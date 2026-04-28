@@ -34929,12 +34929,12 @@
     },
     "END_033": {
       "cost": 7,
-      "attack": 6,
+      "attack": 5,
       "health": 8,
       "type": "minion",
       "rarity": "common",
       "imageHa": "https://cdn.heartharena.com/images/renders/ruRU/END_033.webp",
-      "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/81e0d2749b558b3f7208421eb766cb88f4316c1acb6967ecf04121439f78b3eb.png"
+      "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/e4fd830b805e1d06b3bc95bfd2ac252ff5dff7375dc878e1bafd2e1dae8f24a9.png"
     },
     "WON_329": {
       "cost": 5,
@@ -40121,7 +40121,7 @@
       "type": "spell",
       "rarity": "epic",
       "imageHa": "https://cdn.heartharena.com/images/renders/ruRU/CATA_479.webp",
-      "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/7937ccdd11bb2b2e40ff6afea8fd17c0c83cf4ee246587b3ae693133085ec33d.png"
+      "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/e20cd92fd8f8767ef4811c86433728ef534572fd59e4373a83c691f89b8f0672.png"
     },
     "TTN_856": {
       "cost": 5,
@@ -43669,6 +43669,6 @@
       "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/e9d6f356cf60925dd51f0226bcd04991aedce88067704f1d4ffed18acbc0ed35.png"
     }
   },
-  "updatedAt": "2026-04-28T14:40:01.054Z",
+  "updatedAt": "2026-04-28T19:55:21.802Z",
   "source": "heartharena.com"
 }
