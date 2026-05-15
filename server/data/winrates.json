@@ -5,8 +5,8 @@
       "name": "Охотник на демонов",
       "color": "#224722",
       "textDark": false,
-      "winrate": 52.7,
-      "games": 2822
+      "winrate": 52.6,
+      "games": 2816
     },
     {
       "id": "warlock",
@@ -14,7 +14,7 @@
       "color": "#5c265c",
       "textDark": false,
       "winrate": 51.5,
-      "games": 2022
+      "games": 2080
     },
     {
       "id": "rogue",
@@ -22,39 +22,39 @@
       "color": "#333333",
       "textDark": false,
       "winrate": 51.1,
-      "games": 3323
+      "games": 3306
     },
     {
       "id": "death-knight",
       "name": "Рыцарь смерти",
       "color": "#1f252d",
       "textDark": false,
-      "winrate": 50.9,
-      "games": 3397
+      "winrate": 50.7,
+      "games": 3429
     },
     {
       "id": "shaman",
       "name": "Шаман",
       "color": "#2a2e6b",
       "textDark": false,
-      "winrate": 50.1,
-      "games": 2159
+      "winrate": 50,
+      "games": 2198
     },
     {
       "id": "warrior",
       "name": "Воин",
       "color": "#7a1e1e",
       "textDark": false,
-      "winrate": 49.2,
-      "games": 1678
+      "winrate": 49.3,
+      "games": 1653
     },
     {
       "id": "druid",
       "name": "Друид",
       "color": "#704a16",
       "textDark": false,
-      "winrate": 45.2,
-      "games": 541
+      "winrate": 45.9,
+      "games": 551
     },
     {
       "id": "mage",
@@ -62,15 +62,15 @@
       "color": "#2b5c85",
       "textDark": false,
       "winrate": 44,
-      "games": 675
+      "games": 664
     },
     {
       "id": "priest",
       "name": "Жрец",
       "color": "#d1d1d1",
       "textDark": true,
-      "winrate": 41.7,
-      "games": 387
+      "winrate": 42.5,
+      "games": 384
     },
     {
       "id": "hunter",
@@ -78,7 +78,7 @@
       "color": "#1d5921",
       "textDark": false,
       "winrate": 38.6,
-      "games": 184
+      "games": 183
     },
     {
       "id": "paladin",
@@ -86,9 +86,9 @@
       "color": "#a88a45",
       "textDark": false,
       "winrate": 38.6,
-      "games": 141
+      "games": 136
     }
   ],
-  "updatedAt": "2026-05-15T14:32:32.377Z",
+  "updatedAt": "2026-05-15T19:52:56.511Z",
   "source": "hsreplay.net"
 }
