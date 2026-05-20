@@ -26595,7 +26595,7 @@
       "type": "spell",
       "rarity": "common",
       "imageHa": "https://cdn.heartharena.com/images/renders/ruRU/CATA_138.webp",
-      "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/df8cd6fdb23ae0f393ed6387fa96b17621bd50cffb8573e76b233daa60d286fb.png"
+      "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/92769f75dade02071617f16a0df00e7e8b3a74cd085508e2b4605ee660f36387.png"
     },
     "EDR_272": {
       "cost": 6,
@@ -27375,7 +27375,7 @@
       "type": "minion",
       "rarity": "rare",
       "imageHa": "https://cdn.heartharena.com/images/renders/ruRU/MEND_303.webp",
-      "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/bd0f6928636310527d203180b10da88425f268b5bc370ddb8962194fd04debcc.png"
+      "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/ca9fd9fe823ef119c8a68fc4fd04a547ca5c3a32406907cbd6453bbae65106b6.png"
     },
     "CATA_551": {
       "cost": 3,
@@ -28047,7 +28047,7 @@
       "type": "minion",
       "rarity": "rare",
       "imageHa": "https://cdn.heartharena.com/images/renders/ruRU/MEND_503.webp",
-      "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/7d3526046a1a397bfcdd3e71985dffaddc3966fcdb1f8916a0d2c5ed0ac3a330.png"
+      "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/92d59c779a2ae7f405fd5ae0f7c53558871757901ad0d9651b19632ec989859e.png"
     },
     "FIR_911": {
       "cost": 2,
@@ -28091,7 +28091,7 @@
       "type": "spell",
       "rarity": "rare",
       "imageHa": "https://cdn.heartharena.com/images/renders/ruRU/MEND_502.webp",
-      "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/7604a642d7723275208c2206bdc22d7f6b883fd0846ae091770b34bde453d3d4.png"
+      "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/171916d52fc749d922935640cebcbdf44d313270a21b4c245a33d1270ba13101.png"
     },
     "TIME_000": {
       "cost": 2,
@@ -28328,7 +28328,7 @@
       "type": "spell",
       "rarity": "legendary",
       "imageHa": "https://cdn.heartharena.com/images/renders/ruRU/MEND_505.webp",
-      "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/b269f56ded36032f52f19132114447556a2e832b8d4c65de25ba2c1462e5c88e.png"
+      "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/91144de075d2c14fac46b3158287b37735d7d496816680e4a0f7907d4d5a5a1a.png"
     },
     "TIME_852": {
       "cost": 5,
@@ -32190,6 +32190,6 @@
       "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/e9d6f356cf60925dd51f0226bcd04991aedce88067704f1d4ffed18acbc0ed35.png"
     }
   },
-  "updatedAt": "2026-05-19T20:03:07.898Z",
+  "updatedAt": "2026-05-20T04:34:47.920Z",
   "source": "heartharena.com"
 }
