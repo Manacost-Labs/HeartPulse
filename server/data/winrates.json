@@ -5,8 +5,8 @@
       "name": "Охотник на демонов",
       "color": "#224722",
       "textDark": false,
-      "winrate": 52,
-      "games": 3407
+      "winrate": 52.2,
+      "games": 3401
     },
     {
       "id": "warlock",
@@ -14,15 +14,15 @@
       "color": "#5c265c",
       "textDark": false,
       "winrate": 51.8,
-      "games": 2626
+      "games": 2692
     },
     {
       "id": "rogue",
       "name": "Разбойник",
       "color": "#333333",
       "textDark": false,
-      "winrate": 51,
-      "games": 3419
+      "winrate": 51.1,
+      "games": 3523
     },
     {
       "id": "death-knight",
@@ -30,23 +30,23 @@
       "color": "#1f252d",
       "textDark": false,
       "winrate": 50.5,
-      "games": 3721
+      "games": 3797
     },
     {
       "id": "shaman",
       "name": "Шаман",
       "color": "#2a2e6b",
       "textDark": false,
-      "winrate": 50.3,
-      "games": 2360
+      "winrate": 50.2,
+      "games": 2425
     },
     {
       "id": "warrior",
       "name": "Воин",
       "color": "#7a1e1e",
       "textDark": false,
-      "winrate": 49.4,
-      "games": 1764
+      "winrate": 49.1,
+      "games": 1813
     },
     {
       "id": "druid",
@@ -61,34 +61,34 @@
       "name": "Маг",
       "color": "#2b5c85",
       "textDark": false,
-      "winrate": 43.2,
-      "games": 647
+      "winrate": 43,
+      "games": 659
     },
     {
       "id": "priest",
       "name": "Жрец",
       "color": "#d1d1d1",
       "textDark": true,
-      "winrate": 42.5,
-      "games": 439
+      "winrate": 42.8,
+      "games": 444
     },
     {
       "id": "hunter",
       "name": "Охотник",
       "color": "#1d5921",
       "textDark": false,
-      "winrate": 38.3,
-      "games": 204
+      "winrate": 38.2,
+      "games": 201
     },
     {
       "id": "paladin",
       "name": "Паладин",
       "color": "#a88a45",
       "textDark": false,
-      "winrate": 37.3,
+      "winrate": 36.8,
       "games": 113
     }
   ],
-  "updatedAt": "2026-05-24T04:36:44.769Z",
+  "updatedAt": "2026-05-24T08:44:01.734Z",
   "source": "hsreplay.net"
 }
