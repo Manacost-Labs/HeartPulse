@@ -24461,7 +24461,7 @@
       "type": "minion",
       "rarity": "common",
       "imageHa": "https://cdn.heartharena.com/images/renders/ruRU/WON_357.webp",
-      "imageRu": null
+      "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/bb41df7912868b221cc9da01ecc51564b7112bd11419367b9f6de73328aff6c6.png"
     },
     "REV_375": {
       "cost": 10,
@@ -32190,6 +32190,6 @@
       "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/e9d6f356cf60925dd51f0226bcd04991aedce88067704f1d4ffed18acbc0ed35.png"
     }
   },
-  "updatedAt": "2026-06-09T20:20:27.985Z",
+  "updatedAt": "2026-06-10T04:45:05.553Z",
   "source": "heartharena.com"
 }
