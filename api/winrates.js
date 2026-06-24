@@ -1,5 +1,5 @@
 // Vercel Serverless Function — arena class winrates
-// ?source=hsreplay  (default) → committed scraper snapshot (HSReplay data)
+// ?source=hsreplay  (default) → api.hs-manacost.ru HSReplay dataset
 // ?source=firestone           → live Firestone/zerotoheroes.com API
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -7,6 +7,8 @@ import { dirname, join } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
+
+const HSREPLAY_ARENA_DATASET_URL = 'https://api.hs-manacost.ru/datasets/hsreplay_arena';
 
 const CLASS_INFO = {
   deathknight: { id: 'death-knight', name: 'Рыцарь смерти',     color: '#1f252d' },
@@ -22,6 +24,42 @@ const CLASS_INFO = {
   demonhunter: { id: 'demon-hunter', name: 'Охотник на демонов', color: '#224722' },
 };
 
+function classInfoFromArenaClass(row) {
+  const key = String(row.class ?? '').toLowerCase().replace(/[\s_-]+/g, '');
+  return CLASS_INFO[key] ?? null;
+}
+
+function normalizeHsReplayArenaDataset(raw) {
+  const rows = raw?.data?.structured?.classes;
+  if (!Array.isArray(rows)) throw new Error('missing data.structured.classes');
+
+  const classes = rows
+    .map(row => {
+      const info = classInfoFromArenaClass(row);
+      if (!info) return null;
+      const winrate = Number(row.win_rate ?? String(row.winrate ?? '').replace('%', ''));
+      const games = Number(row.num_drafts ?? row.games ?? 0);
+      if (!Number.isFinite(winrate) || !Number.isFinite(games)) return null;
+      return { ...info, winrate: Math.round(winrate * 10) / 10, games };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.winrate - a.winrate);
+
+  return {
+    classes,
+    updatedAt: raw.fetched_at ?? null,
+    source: 'api.hs-manacost.ru',
+  };
+}
+
+async function fetchHsReplayArenaDataset() {
+  const response = await fetch(HSREPLAY_ARENA_DATASET_URL, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
+  });
+  if (!response.ok) throw new Error(`Upstream HTTP ${response.status}`);
+  return normalizeHsReplayArenaDataset(await response.json());
+}
+
 function loadSnapshot() {
   return JSON.parse(
     readFileSync(join(__dirname, '../server/data/winrates.json'), 'utf-8'),
@@ -34,15 +72,21 @@ export default async function handler(req, res) {
 
   const source = req.query?.source ?? 'hsreplay';
 
-  // ── HSReplay mode: return committed snapshot ──────────────────────────────
+  // ── HSReplay mode: use the same api.hs-manacost.ru dataset as class matchups
   if (source === 'hsreplay') {
     try {
-      const snapshot = loadSnapshot();
+      const data = await fetchHsReplayArenaDataset();
       res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
-      return res.json(snapshot);
+      return res.json(data);
     } catch (err) {
-      console.error('[api/winrates] snapshot read failed:', err.message);
-      return res.status(502).json({ error: 'No snapshot available' });
+      console.error('[api/winrates] api.hs-manacost.ru fetch failed:', err.message);
+      try {
+        const snapshot = loadSnapshot();
+        res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=3600');
+        return res.json({ ...snapshot, source: 'cached' });
+      } catch {
+        return res.status(502).json({ error: err.message });
+      }
     }
   }
 

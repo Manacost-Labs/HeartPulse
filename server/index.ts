@@ -15,6 +15,20 @@ const DATA_DIR   = join(__dirname, 'data');
 // ─── In-memory data cache (avoids disk I/O on every request) ──────────────────
 interface CacheEntry { data: any; etag: string; mtime: number }
 const dataCache = new Map<string, CacheEntry>();
+const HSREPLAY_ARENA_DATASET_URL = 'https://api.hs-manacost.ru/datasets/hsreplay_arena';
+const CLASS_INFO: Record<string, { id: string; name: string; color: string; textDark?: boolean }> = {
+  deathknight: { id: 'death-knight', name: 'Рыцарь смерти',     color: '#1f252d' },
+  paladin:     { id: 'paladin',      name: 'Паладин',            color: '#a88a45' },
+  shaman:      { id: 'shaman',       name: 'Шаман',              color: '#2a2e6b' },
+  hunter:      { id: 'hunter',       name: 'Охотник',            color: '#1d5921' },
+  mage:        { id: 'mage',         name: 'Маг',                color: '#2b5c85' },
+  rogue:       { id: 'rogue',        name: 'Разбойник',          color: '#333333' },
+  warlock:     { id: 'warlock',      name: 'Чернокнижник',       color: '#5c265c' },
+  druid:       { id: 'druid',        name: 'Друид',              color: '#704a16' },
+  warrior:     { id: 'warrior',      name: 'Воин',               color: '#7a1e1e' },
+  priest:      { id: 'priest',       name: 'Жрец',               color: '#d1d1d1', textDark: true },
+  demonhunter: { id: 'demon-hunter', name: 'Охотник на демонов', color: '#224722' },
+};
 
 function loadDataCached(filename: string): CacheEntry | null {
   const filePath = join(DATA_DIR, filename);
@@ -57,6 +71,42 @@ function withClassPositions(data: any) {
       classPosition: positions[section.id] ?? '',
     })),
   };
+}
+
+function classInfoFromArenaClass(row: any) {
+  const key = String(row?.class ?? '').toLowerCase().replace(/[\s_-]+/g, '');
+  return CLASS_INFO[key] ?? null;
+}
+
+function normalizeHsReplayArenaDataset(raw: any) {
+  const rows = raw?.data?.structured?.classes;
+  if (!Array.isArray(rows)) throw new Error('missing data.structured.classes');
+
+  const classes = rows
+    .map((row: any) => {
+      const info = classInfoFromArenaClass(row);
+      if (!info) return null;
+      const winrate = Number(row.win_rate ?? String(row.winrate ?? '').replace('%', ''));
+      const games = Number(row.num_drafts ?? row.games ?? 0);
+      if (!Number.isFinite(winrate) || !Number.isFinite(games)) return null;
+      return { ...info, winrate: Math.round(winrate * 10) / 10, games };
+    })
+    .filter(Boolean)
+    .sort((a: any, b: any) => b.winrate - a.winrate);
+
+  return {
+    classes,
+    updatedAt: raw.fetched_at ?? null,
+    source: 'api.hs-manacost.ru',
+  };
+}
+
+async function fetchHsReplayArenaDataset() {
+  const response = await fetch(HSREPLAY_ARENA_DATASET_URL, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
+  });
+  if (!response.ok) throw new Error(`Upstream HTTP ${response.status}`);
+  return normalizeHsReplayArenaDataset(await response.json());
 }
 
 const app = express();
@@ -102,21 +152,19 @@ function sendCached(req: express.Request, res: express.Response, entry: CacheEnt
 app.get('/api/winrates', async (req, res) => {
   const source = (req.query.source as string) ?? 'hsreplay';
 
+  // HSReplay: use the same api.hs-manacost.ru dataset as class matchups.
+  if (source === 'hsreplay') {
+    try {
+      const data = await fetchHsReplayArenaDataset();
+      res.set('Cache-Control', CACHE_1H);
+      return res.json(data);
+    } catch {
+      // fallback to local snapshot below
+    }
+  }
+
   // Firestone: proxy live zerotoheroes.com API
   if (source === 'firestone') {
-    const CLASS_INFO: Record<string, { id: string; name: string; color: string; textDark?: boolean }> = {
-      deathknight: { id: 'death-knight', name: 'Рыцарь смерти',     color: '#1f252d' },
-      paladin:     { id: 'paladin',      name: 'Паладин',            color: '#a88a45' },
-      shaman:      { id: 'shaman',       name: 'Шаман',              color: '#2a2e6b' },
-      hunter:      { id: 'hunter',       name: 'Охотник',            color: '#1d5921' },
-      mage:        { id: 'mage',         name: 'Маг',                color: '#2b5c85' },
-      rogue:       { id: 'rogue',        name: 'Разбойник',          color: '#333333' },
-      warlock:     { id: 'warlock',      name: 'Чернокнижник',       color: '#5c265c' },
-      druid:       { id: 'druid',        name: 'Друид',              color: '#704a16' },
-      warrior:     { id: 'warrior',      name: 'Воин',               color: '#7a1e1e' },
-      priest:      { id: 'priest',       name: 'Жрец',               color: '#d1d1d1', textDark: true },
-      demonhunter: { id: 'demon-hunter', name: 'Охотник на демонов', color: '#224722' },
-    };
     try {
       const upstream = await fetch(
         'https://static.zerotoheroes.com/api/arena/stats/classes/arena/last-patch/overview.gz.json',
@@ -141,7 +189,7 @@ app.get('/api/winrates', async (req, res) => {
     }
   }
 
-  // HSReplay (default): return cached snapshot
+  // Fallback/default: return cached snapshot
   const entry = loadDataCached('winrates.json');
   if (!entry) return res.status(404).json({ error: 'No data available' });
   return sendCached(req, res, entry, CACHE_6H);

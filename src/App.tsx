@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo, memo, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
-import { Trophy, Scroll, RefreshCw, AlertTriangle, X, Search, Star, Home, BookOpen, Menu, Briefcase, Info } from 'lucide-react';
+import { Trophy, Scroll, RefreshCw, AlertTriangle, X, Search, Star, Home, BookOpen, Menu, Briefcase } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -2507,7 +2507,7 @@ function SiteFooter({ onNavigate, updatedAt }: { onNavigate: (tab: string) => vo
       }}
       aria-label="Подвал сайта"
     >
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-2 sm:grid-cols-3 gap-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-2 gap-6">
         {/* Col 1: Навигация */}
         <div>
           <h3 className="font-hs text-[#fcd34d] text-sm mb-3 uppercase tracking-wide">Разделы</h3>
@@ -2537,20 +2537,6 @@ function SiteFooter({ onNavigate, updatedAt }: { onNavigate: (tab: string) => vo
             <li><a href="https://boosty.to/kolodahearthstone" target="_blank" rel="noopener noreferrer" className="hover:text-[#fcd34d] transition-colors" style={{ color: 'inherit', textDecoration: 'none' }}>Boosty</a></li>
             <li><a href="https://github.com/Zulut30/manacost-arena" target="_blank" rel="noopener noreferrer" className="hover:text-[#fcd34d] transition-colors" style={{ color: 'inherit', textDecoration: 'none' }}>GitHub</a></li>
           </ul>
-        </div>
-
-        {/* Col 3: О проекте */}
-        <div>
-          <h3 className="font-hs text-[#fcd34d] text-sm mb-3 uppercase tracking-wide">О проекте</h3>
-          <p className="text-xs leading-relaxed" style={{ color: '#a88a45' }}>
-            HS-Arena.ru — ведущий портал по Арене Hearthstone от команды Manacost.
-            Актуальная статистика: тир-листы, винрейты, легендарки.
-          </p>
-          {updatedAt && (
-            <p className="text-xs mt-2" style={{ color: '#6b5040' }}>
-              Данные актуальны на: {new Date(updatedAt).toLocaleDateString('ru-RU')}
-            </p>
-          )}
         </div>
       </div>
 
@@ -3056,6 +3042,10 @@ function TabTransition({ children }: { tabKey: string; children: React.ReactNode
 
 // ─── Persistent cache with TTL (survives tab close, expires with data) ────────
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 h — matches server scrape interval
+const WINRATES_CACHE_KEY: Record<'hsreplay' | 'firestone', string> = {
+  hsreplay: 'wr_hsreplay_arena_v2',
+  firestone: 'wr_firestone',
+};
 
 function cacheGet<T>(key: string): T | null {
   try {
@@ -3089,18 +3079,6 @@ async function fetchWithETag(url: string, cacheKey: string): Promise<{ data: any
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>(() => tabFromPath(window.location.pathname));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [aboutOpen, setAboutOpen] = useState(false);
-
-  // Lock body scroll + close on Escape when modal is open
-  useEffect(() => {
-    if (aboutOpen) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setAboutOpen(false); };
-      document.addEventListener('keydown', onKey);
-      return () => { document.body.style.overflow = prev; document.removeEventListener('keydown', onKey); };
-    }
-  }, [aboutOpen]);
 
   /** Navigate to a tab: update state + browser URL */
   const navigate = useCallback((tab: TabId) => {
@@ -3175,9 +3153,14 @@ export default function App() {
   const tlGenRef = useRef(0);
   const articlesRequestedRef = useRef(false);
 
+  useEffect(() => {
+    localStorage.removeItem('wr_hsreplay');
+    localStorage.removeItem('etag_wr_hsreplay');
+  }, []);
+
   const fetchWinrates = useCallback(async (src: 'hsreplay' | 'firestone' = 'hsreplay') => {
     const gen = ++wrGenRef.current;
-    const cacheKey = `wr_${src}`;
+    const cacheKey = WINRATES_CACHE_KEY[src];
     try {
       // Show persisted cache instantly (survives tab close)
       const cached = cacheGet<any>(cacheKey);
@@ -3398,12 +3381,6 @@ export default function App() {
               {(() => { const t = TABS.find(t => t.id === activeTab); const Icon = t!.icon; return <><Icon size={16} className="text-[#8b4513]" /><span>{t!.label}</span></>; })()}
             </div>
             <div className="flex items-center gap-1">
-              <button onClick={() => { setAboutOpen(true); setMobileMenuOpen(false); }}
-                className="w-9 h-9 flex items-center justify-center rounded-lg text-[#4a3018]"
-                style={{ background: 'transparent' }}
-                aria-label="О проекте">
-                <Info size={20} />
-              </button>
               <button onClick={() => setMobileMenuOpen(v => !v)}
                 className="w-9 h-9 flex items-center justify-center rounded-lg text-[#4a3018]"
                 style={{ background: mobileMenuOpen ? 'rgba(0,0,0,0.1)' : 'transparent' }}>
@@ -3452,12 +3429,6 @@ export default function App() {
                 </a>
               );
             })}
-            {/* О проекте — desktop info button */}
-            <button onClick={() => setAboutOpen(true)}
-              className="relative px-3 sm:px-4 py-2 sm:py-3 rounded-t-xl transition-all flex items-center gap-1.5 border-t-[3px] border-x-[3px] flex-shrink-0 bg-parchment-inactive border-[#8b5a2b] text-[#5c3a21] hover:text-[#4a3018] hover:brightness-105 shadow-[inset_0_-3px_6px_rgba(0,0,0,0.2)] z-0 mt-1 sm:mt-2"
-              aria-label="О проекте">
-              <Info size={16} className="opacity-70" />
-            </button>
           </nav>
         </div>
 
@@ -3544,146 +3515,6 @@ export default function App() {
       </main>
 
       <SiteFooter onNavigate={(tab: string) => navigate(tab as TabId)} updatedAt={winratesData.updatedAt} />
-
-      {/* О проекте modal */}
-      {aboutOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
-          style={{ background: 'rgba(0,0,0,0.78)' }}
-          onClick={() => setAboutOpen(false)}
-          onWheel={e => e.preventDefault()}
-          onTouchMove={e => e.preventDefault()}>
-          <div className="w-full sm:w-[520px] sm:mx-auto flex flex-col rounded-t-2xl sm:rounded-2xl"
-            style={{ background: 'linear-gradient(180deg,#1a0e04,#1e1008)', border: '2px solid #8b5a1a', borderBottom: 'none', maxHeight: '88vh' }}
-            onClick={e => e.stopPropagation()}>
-
-            {/* ── Sticky top bar (never scrolls away) ── */}
-            <div className="flex-shrink-0">
-              {/* Handle — mobile only */}
-              <div className="flex justify-center pt-3 pb-1 sm:hidden">
-                <div className="w-10 h-1 rounded-full" style={{ background: '#8b5a1a' }} />
-              </div>
-              {/* Hero banner with X inside */}
-              <div className="relative overflow-hidden mx-3 rounded-xl" style={{ height: 140 }}>
-                <img src="/ad/wallpaper_info.jpg" alt="" className="w-full h-full object-cover object-center"
-                  style={{ opacity: 0.82 }} />
-                <div className="absolute inset-0 rounded-xl" style={{ background: 'linear-gradient(to bottom, transparent 25%, rgba(26,14,4,0.95) 100%)' }} />
-                {/* Close button — top-right of banner, always on screen */}
-                <button onClick={() => setAboutOpen(false)}
-                  className="absolute top-2.5 right-2.5 w-8 h-8 flex items-center justify-center rounded-lg z-10"
-                  style={{ background: 'rgba(0,0,0,0.6)', color: '#e8d5a8', backdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.15)' }}>
-                  <X size={16} />
-                </button>
-                {/* Title — bottom of banner */}
-                <div className="absolute bottom-3 left-4 flex items-center gap-2">
-                  <Info size={17} style={{ color: '#fcd34d' }} />
-                  <span style={{ fontFamily: 'var(--font-display)', color: '#fcd34d', fontSize: '1.1rem', letterSpacing: '0.06em', textShadow: '0 1px 6px rgba(0,0,0,0.9)' }}>О проекте</span>
-                </div>
-              </div>
-            </div>
-
-            {/* ── Scrollable content ── */}
-            <div className="flex-1 overflow-y-auto">
-            <div className="px-5 pt-3 pb-8 flex flex-col gap-5">
-
-              {/* Description */}
-              <p style={{ color: '#e8d5a8', fontFamily: 'var(--font-body)', fontSize: '0.88rem', lineHeight: 1.65 }}>
-                <strong style={{ color: '#fcd34d' }}>HS-Arena.ru</strong> — ведущий портал от команды <strong style={{ color: '#fcd34d' }}>Манакост</strong>, посвящённый режиму Арена в Hearthstone.
-                На сайте собрано всё необходимое для прогресса: актуальные тир-листы карт, винрейты классов, обзоры легендарных карт и аналитические статьи.
-              </p>
-
-              {/* Open source + suggest fixes */}
-              <div className="rounded-xl p-3 flex flex-col gap-2.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1.5px solid rgba(139,90,26,0.35)' }}>
-                <p style={{ color: '#c4a46a', fontFamily: 'var(--font-body)', fontSize: '0.82rem', lineHeight: 1.55 }}>
-                  Проект имеет <strong style={{ color: '#fcd34d' }}>открытый исходный код</strong> — мы рады любой помощи сообщества: правкам, идеям и замечаниям.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <a href="https://github.com/Zulut30/manacost-arena" target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:brightness-110"
-                    style={{ background: 'rgba(255,255,255,0.07)', color: '#e8d5a8', fontFamily: 'var(--font-display)', letterSpacing: '0.04em', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.12)' }}
-                    onClick={e => e.stopPropagation()}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg>
-                    GitHub
-                  </a>
-                  <a href="https://t.me/LordZulut" target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:brightness-110"
-                    style={{ background: 'rgba(41,171,226,0.15)', color: '#7dd3fc', fontFamily: 'var(--font-display)', letterSpacing: '0.04em', textDecoration: 'none', border: '1px solid rgba(41,171,226,0.25)' }}
-                    onClick={e => e.stopPropagation()}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.19 13.982l-2.965-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.963.577z"/></svg>
-                    Предложить правки (@LordZulut)
-                  </a>
-                </div>
-              </div>
-
-              {/* Version badge */}
-              <div className="flex items-center gap-3">
-                <div className="px-3 py-1.5 rounded-lg" style={{ background: 'linear-gradient(135deg,#6b4c2a,#3a2210)', border: '1.5px solid #a88a45' }}>
-                  <span style={{ fontFamily: 'var(--font-display)', color: '#fcd34d', fontSize: '0.85rem', letterSpacing: '0.1em' }}>Версия 1.0</span>
-                </div>
-                <span style={{ color: '#8b7355', fontSize: '0.8rem', fontFamily: 'var(--font-body)' }}>Март 2026</span>
-              </div>
-
-              {/* Roadmap */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="h-px flex-grow" style={{ background: 'linear-gradient(90deg,rgba(212,175,55,0.5),transparent)' }} />
-                  <span style={{ fontFamily: 'var(--font-display)', color: '#c4a46a', fontSize: '0.75rem', letterSpacing: '0.12em' }}>ДОРОЖНАЯ КАРТА</span>
-                  <div className="h-px flex-grow" style={{ background: 'linear-gradient(90deg,transparent,rgba(212,175,55,0.5))' }} />
-                </div>
-                <div className="flex flex-col gap-2">
-                  {([
-                    { ver: '1.0', label: 'Запуск', done: true, items: ['Тир-лист карт', 'Винрейты классов', 'Легендарки', 'Статьи'] },
-                    { ver: '1.1', label: 'Данные и аналитика', done: true, items: ['Данные HSReplay в тир-листе карт', 'Статистика HearthArena для классов', 'Регулярные мета-отчёты'] },
-                    { ver: '1.2', label: 'Контент и гайды', done: false, items: ['Советы по игре для каждого класса', 'Топ лучших легендарных карт', 'Блок последних новостей'] },
-                  ] as const).map(({ ver, label, done, items }) => (
-                    <div key={ver} className="rounded-xl p-3"
-                      style={{ background: done ? 'rgba(252,211,77,0.06)' : 'rgba(255,255,255,0.02)', border: `1.5px solid ${done ? 'rgba(252,211,77,0.28)' : 'rgba(255,255,255,0.07)'}` }}>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-xs font-bold px-2 py-0.5 rounded"
-                          style={{ background: done ? 'rgba(252,211,77,0.18)' : 'rgba(255,255,255,0.07)', color: done ? '#fcd34d' : '#6b5a45', fontFamily: 'var(--font-display)', letterSpacing: '0.05em' }}>
-                          v{ver}
-                        </span>
-                        <span style={{ color: done ? '#e8d5a8' : '#6b5a45', fontSize: '0.83rem', fontFamily: 'var(--font-body)' }}>{label}</span>
-                        {done && <span className="ml-auto text-xs" style={{ color: '#4ade80' }}>✓ Готово</span>}
-                      </div>
-                      <ul className="flex flex-col gap-0.5 pl-1">
-                        {items.map(item => (
-                          <li key={item} className="flex items-start gap-2" style={{ color: done ? '#c4a46a' : '#4a3a28', fontSize: '0.78rem', fontFamily: 'var(--font-body)' }}>
-                            <span style={{ color: done ? '#fcd34d' : '#3a2a18', flexShrink: 0 }}>•</span>{item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Donate section */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="h-px flex-grow" style={{ background: 'linear-gradient(90deg,rgba(212,175,55,0.5),transparent)' }} />
-                  <span style={{ fontFamily: 'var(--font-display)', color: '#c4a46a', fontSize: '0.75rem', letterSpacing: '0.12em' }}>ПОДДЕРЖАТЬ ПРОЕКТ</span>
-                  <div className="h-px flex-grow" style={{ background: 'linear-gradient(90deg,transparent,rgba(212,175,55,0.5))' }} />
-                </div>
-                <div className="rounded-xl p-4 flex flex-col items-center gap-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1.5px solid rgba(139,90,26,0.35)' }}>
-                  <p style={{ color: '#c4a46a', fontFamily: 'var(--font-body)', fontSize: '0.83rem', textAlign: 'center', lineHeight: 1.55 }}>
-                    Если сайт полезен — поддержи проект на Бусти. Это помогает развивать его дальше 🙌
-                  </p>
-                  <img src="/ad/donate-qr.png" alt="QR Boosty donate" className="rounded-lg"
-                    style={{ width: 136, height: 136, border: '2px solid rgba(212,175,55,0.4)' }} />
-                  <a href="https://boosty.to/kolodahearthstone/donate" target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all hover:brightness-110 active:scale-95"
-                    style={{ background: 'linear-gradient(135deg,#f77f00,#e05500)', color: '#fff', fontFamily: 'var(--font-display)', fontSize: '0.88rem', letterSpacing: '0.05em', textDecoration: 'none', boxShadow: '0 4px 14px rgba(247,127,0,0.35)' }}
-                    onClick={e => e.stopPropagation()}>
-                    ♥ Поддержать на Boosty
-                  </a>
-                </div>
-              </div>
-
-            </div>
-            </div>{/* end scrollable */}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
