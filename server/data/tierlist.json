@@ -549,6 +549,13 @@
               "rarity": "common",
               "cardId": "JAIL_447",
               "classKey": "any"
+            },
+            {
+              "name": "Зиллиакс Делюкс 3000",
+              "score": 80,
+              "rarity": "legendary",
+              "cardId": "TOY_330",
+              "classKey": "any"
             }
           ]
         },
@@ -2506,7 +2513,7 @@
           ]
         }
       ],
-      "totalCards": 350
+      "totalCards": 351
     },
     {
       "id": "demon-hunter",
@@ -2980,6 +2987,13 @@
               "rarity": "rare",
               "cardId": "JAIL_891",
               "classKey": "demon-hunter"
+            },
+            {
+              "name": "Зиллиакс Делюкс 3000",
+              "score": 80,
+              "rarity": "legendary",
+              "cardId": "TOY_330",
+              "classKey": "any"
             }
           ]
         },
@@ -4993,7 +5007,7 @@
           ]
         }
       ],
-      "totalCards": 347
+      "totalCards": 348
     },
     {
       "id": "druid",
@@ -5432,6 +5446,13 @@
               "rarity": "rare",
               "cardId": "TIME_703",
               "classKey": "druid"
+            },
+            {
+              "name": "Зиллиакс Делюкс 3000",
+              "score": 80,
+              "rarity": "legendary",
+              "cardId": "TOY_330",
+              "classKey": "any"
             }
           ]
         },
@@ -7480,7 +7501,7 @@
           ]
         }
       ],
-      "totalCards": 347
+      "totalCards": 348
     },
     {
       "id": "hunter",
@@ -7967,6 +7988,13 @@
               "score": 80,
               "rarity": "rare",
               "cardId": "JAM_005",
+              "classKey": "any"
+            },
+            {
+              "name": "Зиллиакс Делюкс 3000",
+              "score": 80,
+              "rarity": "legendary",
+              "cardId": "TOY_330",
               "classKey": "any"
             }
           ]
@@ -9967,7 +9995,7 @@
           ]
         }
       ],
-      "totalCards": 347
+      "totalCards": 348
     },
     {
       "id": "mage",
@@ -10462,6 +10490,13 @@
               "rarity": "legendary",
               "cardId": "DAL_575",
               "classKey": "mage"
+            },
+            {
+              "name": "Зиллиакс Делюкс 3000",
+              "score": 80,
+              "rarity": "legendary",
+              "cardId": "TOY_330",
+              "classKey": "any"
             }
           ]
         },
@@ -12454,7 +12489,7 @@
           ]
         }
       ],
-      "totalCards": 347
+      "totalCards": 348
     },
     {
       "id": "paladin",
@@ -12956,6 +12991,13 @@
               "rarity": "common",
               "cardId": "TIME_EVENT_998",
               "classKey": "paladin"
+            },
+            {
+              "name": "Зиллиакс Делюкс 3000",
+              "score": 80,
+              "rarity": "legendary",
+              "cardId": "TOY_330",
+              "classKey": "any"
             }
           ]
         },
@@ -14962,7 +15004,7 @@
           ]
         }
       ],
-      "totalCards": 350
+      "totalCards": 351
     },
     {
       "id": "priest",
@@ -15463,6 +15505,13 @@
               "score": 80,
               "rarity": "common",
               "cardId": "JAIL_447",
+              "classKey": "any"
+            },
+            {
+              "name": "Зиллиакс Делюкс 3000",
+              "score": 80,
+              "rarity": "legendary",
+              "cardId": "TOY_330",
               "classKey": "any"
             }
           ]
@@ -17449,7 +17498,7 @@
           ]
         }
       ],
-      "totalCards": 347
+      "totalCards": 348
     },
     {
       "id": "rogue",
@@ -17860,6 +17909,13 @@
               "rarity": "rare",
               "cardId": "TOY_521",
               "classKey": "rogue"
+            },
+            {
+              "name": "Зиллиакс Делюкс 3000",
+              "score": 80,
+              "rarity": "legendary",
+              "cardId": "TOY_330",
+              "classKey": "any"
             }
           ]
         },
@@ -19936,7 +19992,7 @@
           ]
         }
       ],
-      "totalCards": 347
+      "totalCards": 348
     },
     {
       "id": "shaman",
@@ -20424,6 +20480,13 @@
               "rarity": "rare",
               "cardId": "TOY_507",
               "classKey": "shaman"
+            },
+            {
+              "name": "Зиллиакс Делюкс 3000",
+              "score": 80,
+              "rarity": "legendary",
+              "cardId": "TOY_330",
+              "classKey": "any"
             }
           ]
         },
@@ -22423,7 +22486,7 @@
           ]
         }
       ],
-      "totalCards": 347
+      "totalCards": 348
     },
     {
       "id": "warlock",
@@ -22855,6 +22918,13 @@
               "rarity": "rare",
               "cardId": "GIFT_11",
               "classKey": "warlock"
+            },
+            {
+              "name": "Зиллиакс Делюкс 3000",
+              "score": 80,
+              "rarity": "legendary",
+              "cardId": "TOY_330",
+              "classKey": "any"
             }
           ]
         },
@@ -24903,7 +24973,7 @@
           ]
         }
       ],
-      "totalCards": 346
+      "totalCards": 347
     },
     {
       "id": "warrior",
@@ -25363,6 +25433,13 @@
               "rarity": "rare",
               "cardId": "REV_990",
               "classKey": "warrior"
+            },
+            {
+              "name": "Зиллиакс Делюкс 3000",
+              "score": 80,
+              "rarity": "legendary",
+              "cardId": "TOY_330",
+              "classKey": "any"
             }
           ]
         },
@@ -27383,7 +27460,7 @@
           ]
         }
       ],
-      "totalCards": 346
+      "totalCards": 347
     },
     {
       "id": "any",
@@ -27688,6 +27765,13 @@
               "score": 80,
               "rarity": "common",
               "cardId": "JAM_033",
+              "classKey": "any"
+            },
+            {
+              "name": "Зиллиакс Делюкс 3000",
+              "score": 80,
+              "rarity": "legendary",
+              "cardId": "TOY_330",
               "classKey": "any"
             }
           ]
@@ -29590,7 +29674,7 @@
           ]
         }
       ],
-      "totalCards": 307
+      "totalCards": 308
     }
   ],
   "cards": {
@@ -32289,6 +32373,15 @@
       "rarity": "common",
       "imageHa": "https://cdn.heartharena.com/images/renders/ruRU/CS3_024.webp",
       "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/91cc3e9be25712b9537ea864cb468e8271ce6c5ba70634754184df1bff663461.png"
+    },
+    "TOY_330": {
+      "cost": -10,
+      "attack": 0,
+      "health": 0,
+      "type": "minion",
+      "rarity": "legendary",
+      "imageHa": "https://cdn.heartharena.com/images/renders/ruRU/TOY_330.webp",
+      "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/65e2eda5156cc6aaef663cf92b8e76b2c7e3ab635a3f2d8201af7a6187219ec1.png"
     },
     "SCH_717": {
       "cost": 7,
@@ -39108,6 +39201,6 @@
       "imageRu": "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/71840381793a216de5f3f44840c3e400391d582baec2a77388030be72c72ac89.png"
     }
   },
-  "updatedAt": "2026-07-01T04:51:56.907Z",
+  "updatedAt": "2026-07-01T10:10:10.491Z",
   "source": "heartharena.com"
 }
