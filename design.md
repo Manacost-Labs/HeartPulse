@@ -253,5 +253,6 @@ Before handoff:
 
 ## Changelog
 
+- **2026-07-02** — Repo hygiene + perf: initialized git (60 legacy .bak files archived to ../bak-archive-20260702.tar.gz and removed); deleted dead legacy App shell from DeferredRoutes.tsx (-691 lines, deferred chunk 171->137 KB) and its orphaned .arena-mobile-* CSS; self-hosted Cinzel/Inter woff2 subsets in public/fonts/google/ (no more fonts.googleapis.com); favicons optimized (ico 161->15 KB); added `npm run qa:screens` screenshot QA script.
 - **2026-07-01** — Mobile menu fix: scoped BG-shell `.arena-mobile-*` rules under `.arena-main`; restyled App-shell mobile menu to navy glass (was legacy gold), added `max-height` scroll and `aria-expanded` toggle state. Added tokens, shells, pitfalls, and QA sections to this document.
 - **2026-06-23** — Design audit + color unification (see rules above; full findings in git history of this file).
