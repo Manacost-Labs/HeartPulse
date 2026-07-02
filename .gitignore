@@ -1,0 +1,10 @@
+node_modules/
+dist/
+server/data/
+.codegraph/
+asset-archive/
+screenshot/
+*.bak*
+*.log
+.env
+.env.*
