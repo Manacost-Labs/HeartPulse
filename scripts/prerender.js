@@ -2,6 +2,9 @@ import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, 
 import { resolve, dirname } from 'path';
 
 const SITE_URL = 'https://arena.hs-manacost.ru';
+const YEAR = new Date().getFullYear();
+const TODAY = new Date().toISOString().split('T')[0];
+const THIRTY_DAYS_AGO = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().split('T')[0];
 
 const PAGES = {
   '/': {
@@ -20,9 +23,14 @@ const PAGES = {
         "inLanguage": "ru",
         "publisher": {
           "@type": "Organization",
+          "@id": `${SITE_URL}/#org`,
           "name": "Manacost",
-          "url": "https://t.me/manacost_ru",
-          "logo": { "@type": "ImageObject", "url": `${SITE_URL}/assets/arena_icon.webp` }
+          "url": SITE_URL,
+          "logo": { "@type": "ImageObject", "url": `${SITE_URL}/assets/arena_icon.webp` },
+          "sameAs": [
+            "https://t.me/manacost_ru",
+            "https://boosty.to/kolodahearthstone"
+          ]
         }
       },
       {
@@ -54,34 +62,32 @@ const PAGES = {
           {
             "@type": "Question",
             "name": "Какой класс лучший на Арене Hearthstone?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Актуальные винрейты всех классов обновляются автоматически на странице «Классы». Данные берутся с миллионов реальных Арена-партий."
-            }
+            "acceptedAnswer": { "@type": "Answer", "text": "По данным HSReplay и Firestone, в текущем патче топ-3 классы меняются с каждым обновлением. Актуальный рейтинг классов по проценту побед смотрите на странице «Классы»." }
           },
           {
             "@type": "Question",
-            "name": "Как пользоваться тир-листом карт для Арены?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Выберите класс в шапке тир-листа, затем используйте поиск и фильтр по редкости. Карты ранжированы от S (авто-пик) до F (не брать никогда)."
-            }
+            "name": "Как пользоваться тир-листом карт?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Выберите класс в верхней панели тир-листа, чтобы увидеть оценки всех карт именно для него. Карты класса S — авто-пик, A — отличные, B — хорошие, C и ниже — ситуативные." }
           },
           {
             "@type": "Question",
-            "name": "Как выбрать легендарку на Арене Hearthstone?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "На вкладке «Легендарки» показаны все возможные группы первого выбора с процентом побед. Выбирайте группу с наибольшим винрейтом для вашего класса."
-            }
+            "name": "Как выбрать легендарку на Арене?",
+            "acceptedAnswer": { "@type": "Answer", "text": "На старте Арены вам предлагают группу из трёх легендарных карт. Выбирайте ту группу, у которой наивысший процент побед — это показывает страница «Легендарки»." }
           },
           {
             "@type": "Question",
-            "name": "Как часто обновляются данные Арены?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Данные обновляются автоматически 4 раза в сутки: в 00:15, 06:15, 12:15 и 18:15 UTC."
-            }
+            "name": "Как часто обновляются данные?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Данные о винрейтах классов и тир-лист карт обновляются автоматически несколько раз в сутки на основе HSReplay, Firestone и HearthArena." }
+          },
+          {
+            "@type": "Question",
+            "name": "Что такое винрейт класса на Арене?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Винрейт — процент матчей, выигранных игроками этого класса. Например, 55% означает, что из 100 партий класс выигрывает в среднем 55." }
+          },
+          {
+            "@type": "Question",
+            "name": "Сколько побед нужно для окупаемости Арены?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Для полной окупаемости (получить золото ≥ стоимости входа) обычно нужно 7+ побед. При 12 победах вы получаете максимальные награды." }
           }
         ]
       }
@@ -99,7 +105,7 @@ const PAGES = {
       </ul>`
   },
   '/classes': {
-    title: 'Винрейт классов — Арена Hearthstone | HS-Arena',
+    title: `Винрейт классов — Арена Hearthstone ${YEAR} | HS-Arena`,
     description: 'Актуальные винрейты всех 11 классов в режиме Арена Hearthstone. Рейтинг на основе миллионов партий с HSReplay и Firestone, обновляется автоматически 4 раза в сутки.',
     h1: 'Винрейт классов на Арене Hearthstone',
     canonical: '/classes',
@@ -134,7 +140,7 @@ const PAGES = {
       <p><a href="/">На главную</a> | <a href="/tierlist">Тир-лист карт</a> | <a href="/legendaries">Легендарки</a></p>`
   },
   '/tierlist': {
-    title: 'Тир-лист карт — Арена Hearthstone | HS-Arena',
+    title: `Тир-лист карт — Арена Hearthstone ${YEAR} | HS-Arena`,
     description: 'Полный тир-лист карт для каждого класса в режиме Арена Hearthstone. Лучшие карты текущего патча с оценками от S (авто-пик) до F. Данные с HearthArena и HSReplay.',
     canonical: '/tierlist',
     ogType: 'website',
@@ -567,12 +573,32 @@ const PAGES = {
 
 function generatePageHtml(baseHtml, pageData, path) {
   const { title, description, canonical, ogType, structuredData, noscript, h1 } = pageData;
-  const fullCanonical = `${SITE_URL}${canonical}`;
+  // Canonical must match the URL nginx actually serves with 200 (trailing slash).
+  const fullCanonical = canonical === '/' ? `${SITE_URL}/` : `${SITE_URL}${canonical}/`;
   const ogImage = `${SITE_URL}/assets/og-preview.png`;
+
+  // Enrich schema graph: breadcrumb linkage, language, dataset licensing.
+  const enriched = structuredData.map(node => ({ ...node }));
+  const breadcrumb = enriched.find(n => n['@type'] === 'BreadcrumbList');
+  if (breadcrumb && !breadcrumb['@id']) breadcrumb['@id'] = `${fullCanonical}#breadcrumb`;
+  for (const node of enriched) {
+    const type = node['@type'];
+    if (!node.inLanguage && ['WebSite', 'WebApplication', 'CollectionPage', 'Dataset', 'ItemList', 'FAQPage'].includes(type)) {
+      node.inLanguage = 'ru';
+    }
+    if (breadcrumb && !node.breadcrumb && ['WebApplication', 'CollectionPage', 'Dataset', 'ItemList'].includes(type)) {
+      node.breadcrumb = { "@id": breadcrumb['@id'] };
+    }
+    if (type === 'Dataset') {
+      if (!node.license) node.license = 'https://creativecommons.org/licenses/by/4.0/';
+      node.temporalCoverage = `${THIRTY_DAYS_AGO}/${TODAY}`;
+      node.dateModified = TODAY;
+    }
+  }
 
   const sdJson = JSON.stringify({
     "@context": "https://schema.org",
-    "@graph": structuredData
+    "@graph": enriched
   });
 
   let html = baseHtml;
@@ -676,13 +702,28 @@ function main() {
 
   const sitemapPath = resolve(distDir, 'sitemap.xml');
   if (existsSync(sitemapPath)) {
+    // Only data-driven pages actually change daily; static sections keep their real lastmod.
+    const DATA_PAGES = new Set([
+      `${SITE_URL}/`,
+      `${SITE_URL}/classes/`,
+      `${SITE_URL}/tierlist/`,
+      `${SITE_URL}/legendaries/`,
+      `${SITE_URL}/heroes/`,
+      `${SITE_URL}/library/`,
+      `${SITE_URL}/library/minions/`,
+      `${SITE_URL}/library/spells/`,
+      `${SITE_URL}/battlegrounds/tier-list/`,
+    ]);
     let sitemap = readFileSync(sitemapPath, 'utf-8');
-    sitemap = sitemap.replace(/<lastmod>[^<]*<\/lastmod>/g, `<lastmod>${today}</lastmod>`);
-    if (!sitemap.includes('<lastmod>')) {
-      sitemap = sitemap.replace(/<\/url>/g, `</url>`); // already has lastmod from source
-    }
+    sitemap = sitemap.replace(/<url>([\s\S]*?)<\/url>/g, (block, inner) => {
+      const loc = (inner.match(/<loc>([^<]*)<\/loc>/) || [])[1];
+      if (loc && DATA_PAGES.has(loc)) {
+        return block.replace(/<lastmod>[^<]*<\/lastmod>/, `<lastmod>${today}</lastmod>`);
+      }
+      return block;
+    });
     writeFileSync(sitemapPath, sitemap, 'utf-8');
-    console.log('[prerender] ✓ Updated sitemap.xml lastmod dates');
+    console.log('[prerender] ✓ Updated sitemap.xml lastmod dates (data pages only)');
   }
 
   makePublicReadable(distDir);

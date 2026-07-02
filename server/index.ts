@@ -3153,6 +3153,7 @@ function makeExternalEtag(prefix: string, source: string, data: any, now: number
 }
 
 const app = express();
+app.disable('x-powered-by');
 
 ensureAdminUploadDirs();
 const PORT = Number(process.env.PORT) || 3001;

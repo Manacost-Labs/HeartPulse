@@ -5850,11 +5850,9 @@ function FAQSection() {
               <span className="font-hs text-[#3d2208] text-sm sm:text-base">{item.q}</span>
               <span className="flex-shrink-0 text-[#8b4513] font-bold text-lg leading-none">{open === i ? '−' : '+'}</span>
             </button>
-            {open === i && (
-              <div className="px-4 pb-4 pt-1">
-                <p className="text-[#5c3a21] text-sm leading-relaxed">{item.a}</p>
-              </div>
-            )}
+            <div className="px-4 pb-4 pt-1" hidden={open !== i}>
+              <p className="text-[#5c3a21] text-sm leading-relaxed">{item.a}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -5945,7 +5943,7 @@ function SectionBanner({ title, subtitle }: { title: string; subtitle: string })
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -18px 34px rgba(5,10,19,0.22)',
         }}
       >
-        <h2
+        <h1
           className="font-hs"
           style={{
             fontSize: 'clamp(1.6rem, 3.5vw, 2.55rem)',
@@ -5954,7 +5952,7 @@ function SectionBanner({ title, subtitle }: { title: string; subtitle: string })
           }}
         >
           {title}
-        </h2>
+        </h1>
         <p
           className="font-body font-semibold"
           style={{
@@ -5975,12 +5973,12 @@ function SectionBanner({ title, subtitle }: { title: string; subtitle: string })
           borderBottom: '1px solid rgba(246,206,104,0.28)',
         }}
       >
-        <h2
+        <h1
           className="font-hs tracking-wide"
           style={{ fontSize: '1.5rem', color: '#fff7cf' }}
         >
           {title}
-        </h2>
+        </h1>
         <p className="text-[#c8d5e8] text-xs mt-0.5 font-semibold">{subtitle}</p>
       </div>
     </>

@@ -3053,6 +3053,7 @@ function HomeTab({ winratesData, loadingWinrates, homeSummaryData, loadingHomeSu
 
   return (
     <div className="home-modern flex flex-col gap-8">
+      <h1 className="sr-only">HS-Arena — статистика Арены Hearthstone: тир-лист карт, винрейты классов, легендарные группы</h1>
       <section className="home-boosty-banner" aria-label="Баннер Манакоста">
         <a
           href="https://boosty.to/kolodahearthstone"
@@ -5679,11 +5680,9 @@ function FAQSection() {
               <span className="font-hs text-[#3d2208] text-sm sm:text-base">{item.q}</span>
               <span className="flex-shrink-0 text-[#8b4513] font-bold text-lg leading-none">{open === i ? '−' : '+'}</span>
             </button>
-            {open === i && (
-              <div className="px-4 pb-4 pt-1">
-                <p className="text-[#5c3a21] text-sm leading-relaxed">{item.a}</p>
-              </div>
-            )}
+            <div className="px-4 pb-4 pt-1" hidden={open !== i}>
+              <p className="text-[#5c3a21] text-sm leading-relaxed">{item.a}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -5774,7 +5773,7 @@ function SectionBanner({ title, subtitle }: { title: string; subtitle: string })
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -18px 34px rgba(5,10,19,0.22)',
         }}
       >
-        <h2
+        <h1
           className="font-hs"
           style={{
             fontSize: 'clamp(1.6rem, 3.5vw, 2.55rem)',
@@ -5783,7 +5782,7 @@ function SectionBanner({ title, subtitle }: { title: string; subtitle: string })
           }}
         >
           {title}
-        </h2>
+        </h1>
         <p
           className="font-body font-semibold"
           style={{
@@ -5804,12 +5803,12 @@ function SectionBanner({ title, subtitle }: { title: string; subtitle: string })
           borderBottom: '1px solid rgba(246,206,104,0.28)',
         }}
       >
-        <h2
+        <h1
           className="font-hs tracking-wide"
           style={{ fontSize: '1.5rem', color: '#fff7cf' }}
         >
           {title}
-        </h2>
+        </h1>
         <p className="text-[#c8d5e8] text-xs mt-0.5 font-semibold">{subtitle}</p>
       </div>
     </>
@@ -9853,6 +9852,15 @@ function tabFromPath(path: string): TabId {
   return (found?.id ?? 'home') as TabId;
 }
 
+// SEO: SPA fallback serves HTTP 200 for any path; mark unknown paths noindex
+// so crawlers drop them instead of indexing soft-404 duplicates of the home page.
+function isKnownPath(path: string): boolean {
+  const clean = path.replace(/\/+$/, '') || '/';
+  if (clean === '/') return true;
+  if (isRemovedPagePath(clean)) return true;
+  return TABS.some(t => t.slug !== '/' && (clean === t.slug || clean.startsWith(t.slug + '/')));
+}
+
 // ─── Tab transition wrapper ────────────────────────────────────────────────────
 function TabTransition({ children }: { tabKey: string; children: React.ReactNode }) {
   return <>{children}</>;
@@ -10994,6 +11002,20 @@ export default function App() {
   const redirectToWwwUrl = getCanonicalRedirectUrl(window.location);
   const [activeTab, setActiveTab] = useState<TabId>(() => tabFromPath(window.location.pathname));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (isKnownPath(window.location.pathname)) return;
+    const existing = document.querySelector('meta[name="robots"]');
+    if (existing) {
+      existing.setAttribute('content', 'noindex, follow');
+    } else {
+      const meta = document.createElement('meta');
+      meta.name = 'robots';
+      meta.content = 'noindex, follow';
+      document.head.appendChild(meta);
+    }
+    document.title = 'Страница не найдена | HS-Arena';
+  }, []);
   const [locationSearch, setLocationSearch] = useState(() => window.location.search);
   const [currentPath, setCurrentPath] = useState(() => window.location.pathname);
 

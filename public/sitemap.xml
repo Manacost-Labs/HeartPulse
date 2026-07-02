@@ -14,7 +14,7 @@
   </url>
 
   <url>
-    <loc>https://arena.hs-manacost.ru/classes</loc>
+    <loc>https://arena.hs-manacost.ru/classes/</loc>
     <lastmod>2026-04-13</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
@@ -25,7 +25,7 @@
   </url>
 
   <url>
-    <loc>https://arena.hs-manacost.ru/tierlist</loc>
+    <loc>https://arena.hs-manacost.ru/tierlist/</loc>
     <lastmod>2026-04-13</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
@@ -36,7 +36,7 @@
   </url>
 
   <url>
-    <loc>https://arena.hs-manacost.ru/legendaries</loc>
+    <loc>https://arena.hs-manacost.ru/legendaries/</loc>
     <lastmod>2026-04-13</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
@@ -47,66 +47,81 @@
   </url>
 
   <url>
-    <loc>https://arena.hs-manacost.ru/articles</loc>
+    <loc>https://arena.hs-manacost.ru/articles/</loc>
     <lastmod>2026-04-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
-    <loc>https://arena.hs-manacost.ru/heroes</loc>
+    <loc>https://arena.hs-manacost.ru/heroes/</loc>
     <lastmod>2026-06-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://arena.hs-manacost.ru/library</loc>
+    <loc>https://arena.hs-manacost.ru/library/</loc>
     <lastmod>2026-06-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://arena.hs-manacost.ru/library/minions</loc>
+    <loc>https://arena.hs-manacost.ru/library/minions/</loc>
     <lastmod>2026-06-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://arena.hs-manacost.ru/library/spells</loc>
+    <loc>https://arena.hs-manacost.ru/library/spells/</loc>
     <lastmod>2026-06-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://arena.hs-manacost.ru/library/archive</loc>
+    <loc>https://arena.hs-manacost.ru/library/archive/</loc>
     <lastmod>2026-06-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
-    <loc>https://arena.hs-manacost.ru/battlegrounds/tier-list</loc>
+    <loc>https://arena.hs-manacost.ru/battlegrounds/tier-list/</loc>
     <lastmod>2026-06-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://arena.hs-manacost.ru/battlegrounds/strategies</loc>
+    <loc>https://arena.hs-manacost.ru/battlegrounds/strategies/</loc>
     <lastmod>2026-06-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://arena.hs-manacost.ru/battlegrounds/tier-builder</loc>
+    <loc>https://arena.hs-manacost.ru/battlegrounds/tier-builder/</loc>
     <lastmod>2026-06-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+  </url>
+
+
+  <url>
+    <loc>https://arena.hs-manacost.ru/guides-archive/</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://arena.hs-manacost.ru/contests/</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
   </url>
 
 </urlset>
