@@ -13,7 +13,8 @@
     "lint": "tsc --noEmit",
     "budget": "node scripts/check-budgets.js",
     "test:tierlist": "tsx tests/hsreplay-tierlist.test.ts",
-    "scrape": "tsx server/scraper.ts"
+    "scrape": "tsx server/scraper.ts",
+    "qa:screens": "node scripts/screenshot-qa.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
