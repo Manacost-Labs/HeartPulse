@@ -54,9 +54,19 @@ function flattenCards(data: TierlistResponse) {
 
 async function assertHsReplayHandler() {
   const baseUrl = process.env.TIERLIST_TEST_BASE_URL ?? 'http://127.0.0.1:3101';
+  const authToken = process.env.TIERLIST_TEST_AUTH_TOKEN?.trim();
   const res = await fetch(`${baseUrl}/api/tierlist?source=hsreplay&v=test&t=${Date.now()}`, {
     cache: 'no-store',
+    headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
   });
+  if (!authToken && [401, 403].includes(res.status)) {
+    const cacheControl = res.headers.get('cache-control') ?? '';
+    const vary = res.headers.get('vary') ?? '';
+    assert.match(cacheControl, /no-store/i, 'paywall responses must not be cached');
+    assert.match(vary, /cookie/i, 'paywall responses must vary by Cookie');
+    assert.match(vary, /authorization/i, 'paywall responses must vary by Authorization');
+    return;
+  }
   assert.equal(res.status, 200, `Expected 200 from ${baseUrl}, got ${res.status}`);
   const data = await res.json() as TierlistResponse;
   const { cards, tierCounts } = flattenCards(data);

@@ -1,7 +1,7 @@
 import express from 'express';
 import cron from 'node-cron';
 import compression from 'compression';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import sharp from 'sharp';
 import { createClient } from 'redis';
 import { chmodSync, copyFileSync, createReadStream, mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, statSync } from 'fs';
@@ -60,6 +60,7 @@ let classMatchupsCache: MemoryCacheEntry | null = null;
 const winratesApiCache = new Map<string, MemoryCacheEntry>();
 const tierlistApiCache = new Map<string, MemoryCacheEntry>();
 const legendariesApiCache = new Map<string, MemoryCacheEntry>();
+const standardMatchupsApiCache = new Map<string, MemoryCacheEntry>();
 const battlegroundAppProxyCache = new Map<string, ProxyBodyCacheEntry>();
 let homeSummaryApiCache: MemoryCacheEntry | null = null;
 let arenaDecksCache: MemoryCacheEntry | null = null;
@@ -97,6 +98,7 @@ function invalidateDataCache() {
   winratesApiCache.clear();
   tierlistApiCache.clear();
   legendariesApiCache.clear();
+  standardMatchupsApiCache.clear();
   battlegroundAppProxyCache.clear();
   homeSummaryApiCache = null;
   classMatchupsCache = null;
@@ -116,11 +118,29 @@ const ADMIN_USER_IDS = new Set(
 const APP_URL = (process.env.APP_URL || 'https://arena.hs-manacost.ru').replace(/\/$/, '');
 const KOLODAHS_DB_ROOT = process.env.KOLODAHS_DB_ROOT || '/var/www/koloda/data/www/db.kolodahs.ru';
 const KOLODAHS_WIKI_CARD_INDEX_FILE = join(KOLODAHS_DB_ROOT, 'var/wiki-hs-cache/wiki-card-index-card.json');
+const DECKVIEW_ARCHETYPES_API_URL = (process.env.DECKVIEW_ARCHETYPES_API_URL || process.env.DECKVIEW_API_URL || '').trim();
+const DECKVIEW_ARCHETYPES_CSV_URL = process.env.DECKVIEW_ARCHETYPES_CSV_URL
+  || 'https://raw.githubusercontent.com/Zulut30/deckview-telegram-bot/main/%D0%90%D1%80%D1%85%D0%B5%D1%82%D0%B8%D0%BF%D1%8B.csv';
+const STANDARD_ARCHETYPE_TRANSLATION_CACHE_MS = Math.max(60_000, Number(process.env.STANDARD_ARCHETYPE_TRANSLATION_CACHE_MS || 6 * 60 * 60 * 1000));
 const KOLODAHS_RELATED_CARD_PAGES_DIR = join(KOLODAHS_DB_ROOT, 'var/wiki-hs-cache/related-card-pages');
 const AUTH_COOKIE_NAME = 'manacost_auth_token';
 const AUTH_FROM = process.env.AUTH_FROM || 'noreply@hs-manacost.ru';
-const AUTH_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+const AUTH_SESSION_TTL_MS = Math.max(
+  12 * 60 * 60 * 1000,
+  Number(process.env.AUTH_SESSION_TTL_MS || 30 * 24 * 60 * 60 * 1000),
+);
+const AUTH_SESSION_REFRESH_WINDOW_MS = Math.max(
+  60 * 60 * 1000,
+  Math.min(
+    AUTH_SESSION_TTL_MS / 2,
+    Number(process.env.AUTH_SESSION_REFRESH_WINDOW_MS || 7 * 24 * 60 * 60 * 1000),
+  ),
+);
 const AUTH_CODE_TTL_MS = 10 * 60 * 1000;
+const AUTH_CODE_MAX_ATTEMPTS = 5;
+const AUTH_CODE_REQUEST_COOLDOWN_MS = Math.max(30_000, Number(process.env.AUTH_CODE_REQUEST_COOLDOWN_MS || 60_000));
+const AUTH_CODE_ISSUE_WINDOW_MS = Math.max(5 * 60_000, Number(process.env.AUTH_CODE_ISSUE_WINDOW_MS || 60 * 60 * 1000));
+const AUTH_CODE_MAX_ISSUES_PER_WINDOW = Math.max(1, Number(process.env.AUTH_CODE_MAX_ISSUES_PER_WINDOW || 5));
 const TELEGRAM_AUTH_BOT_TOKEN = process.env.TELEGRAM_AUTH_BOT_TOKEN || '';
 const TELEGRAM_AUTH_BOT_USERNAME = (process.env.TELEGRAM_AUTH_BOT_USERNAME || '').trim().replace(/^@/, '');
 const TELEGRAM_AUTH_MAX_AGE_MS = 24 * 60 * 60 * 1000;
@@ -134,6 +154,18 @@ const BOOSTY_AUTH_API_URL = (process.env.BOOSTY_AUTH_API_URL || 'http://127.0.0.
 const BOOSTY_MIN_PRICE = Number(process.env.BOOSTY_MIN_PRICE || 99);
 const BOOSTY_MIN_LEVEL_NAME = (process.env.BOOSTY_MIN_LEVEL_NAME || 'Любитель Арены').trim();
 const BOOSTY_LEVEL_ORDER = (process.env.BOOSTY_LEVEL_ORDER || 'Любитель Арены,Алмаз')
+  .split(',')
+  .map(item => item.trim())
+  .filter(Boolean);
+const BOOSTY_ARENA_LEVEL_NAMES = (process.env.BOOSTY_ARENA_LEVEL_NAMES || 'Любитель Арены')
+  .split(',')
+  .map(item => item.trim())
+  .filter(Boolean);
+const BOOSTY_BATTLEGROUNDS_LEVEL_NAMES = (process.env.BOOSTY_BATTLEGROUNDS_LEVEL_NAMES || 'Таверна Боба')
+  .split(',')
+  .map(item => item.trim())
+  .filter(Boolean);
+const BOOSTY_ALL_ACCESS_LEVEL_NAMES = (process.env.BOOSTY_ALL_ACCESS_LEVEL_NAMES || 'Алмаз,Легенда,Топ-1 Легенды,Топ-1000 Легенды')
   .split(',')
   .map(item => item.trim())
   .filter(Boolean);
@@ -159,6 +191,14 @@ const SUBSCRIPTION_TELEGRAM_CHAT_IDS = (process.env.SUBSCRIPTION_TELEGRAM_CHAT_I
   .map(item => item.trim())
   .filter(Boolean);
 const SUBSCRIPTION_REFRESH_MS = 30 * 60 * 1000;
+const SUBSCRIPTION_STALE_RETRY_MS = Math.max(
+  60_000,
+  Number(process.env.SUBSCRIPTION_STALE_RETRY_MS || 5 * 60 * 1000),
+);
+const BOOSTY_ACCESS_GRACE_MS = Math.max(
+  60 * 60 * 1000,
+  Number(process.env.BOOSTY_ACCESS_GRACE_MS || 24 * 60 * 60 * 1000),
+);
 const REDIS_URL = (process.env.REDIS_URL || 'redis://127.0.0.1:6379').trim();
 const REDIS_ENABLED = process.env.REDIS_ENABLED !== '0' && REDIS_URL !== '';
 const REDIS_CACHE_PREFIX = process.env.REDIS_CACHE_PREFIX || 'hs-arena:v2';
@@ -167,6 +207,14 @@ const REDIS_HOME_SUMMARY_TTL_SECONDS = Math.max(60, Number(process.env.REDIS_HOM
 const DATASET_MEMORY_CACHE_MS = Math.max(60_000, Number(process.env.DATASET_MEMORY_CACHE_MS || 5 * 60 * 1000));
 const HOME_SUMMARY_CACHE_MS = REDIS_HOME_SUMMARY_TTL_SECONDS * 1000;
 const CONTEST_ADMIN_USER_ID = 'user_42368c85b8de';
+const CONTEST_PUBLIC_ID_SECRET = process.env.CONTEST_PUBLIC_ID_SECRET || ECOSYSTEM_INTERNAL_KEY || 'manacost-contest-public-winner-v2';
+const CONTEST_LOCAL_TIMEZONE_OFFSET_MINUTES = Number.isFinite(Number(process.env.CONTEST_LOCAL_TIMEZONE_OFFSET_MINUTES))
+  ? Number(process.env.CONTEST_LOCAL_TIMEZONE_OFFSET_MINUTES)
+  : 180;
+const ADMIN_UPLOAD_MAX_BYTES = Math.max(1024 * 1024, Number(process.env.ADMIN_UPLOAD_MAX_BYTES || 12 * 1024 * 1024));
+const ADMIN_UPLOAD_MAX_PIXELS = Math.max(1_000_000, Number(process.env.ADMIN_UPLOAD_MAX_PIXELS || 16_000_000));
+const ADMIN_UPLOAD_MAX_WIDTH = Math.max(1000, Number(process.env.ADMIN_UPLOAD_MAX_WIDTH || 6000));
+const ADMIN_UPLOAD_MAX_HEIGHT = Math.max(1000, Number(process.env.ADMIN_UPLOAD_MAX_HEIGHT || 6000));
 
 interface AdminUser {
   id: string;
@@ -182,6 +230,7 @@ interface AdminUser {
   contactVkUrl?: string;
   contactTelegram?: string;
   contactEmail?: string;
+  blockedAt?: string;
   passwordHash: string;
   createdAt: string;
   updatedAt: string;
@@ -193,9 +242,21 @@ interface SubscriptionStatus {
   checkedAt: string | null;
   stale: boolean;
   message: string;
+  entitlements: SubscriptionEntitlements;
   boosty: Record<string, any>;
   telegram: Record<string, any>;
 }
+
+type SubscriptionEntitlementKey =
+  | 'arena'
+  | 'battlegrounds'
+  | 'standard'
+  | 'contests'
+  | 'guidesArchive'
+  | 'arenaArticles'
+  | 'battlegroundsArticles';
+
+type SubscriptionEntitlements = Record<SubscriptionEntitlementKey, boolean>;
 
 interface PendingCode {
   email: string;
@@ -206,6 +267,7 @@ interface PendingCode {
 
 interface AdminSession {
   tokenHash: string;
+  userId?: string;
   email: string;
   expiresAt: number;
   createdAt: string;
@@ -443,6 +505,23 @@ function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex');
 }
 
+function hmacSha256(value: string, secret: string): string {
+  return createHmac('sha256', secret).update(value).digest('hex');
+}
+
+function safeEqualHex(leftHex: string, rightHex: string): boolean {
+  if (!/^[a-f0-9]+$/i.test(leftHex) || !/^[a-f0-9]+$/i.test(rightHex)) return false;
+  const left = Buffer.from(leftHex, 'hex');
+  const right = Buffer.from(rightHex, 'hex');
+  return left.length === right.length && timingSafeEqual(left, right);
+}
+
+function safeEqualString(leftValue: unknown, rightValue: string): boolean {
+  const left = Buffer.from(String(leftValue ?? ''));
+  const right = Buffer.from(rightValue);
+  return left.length === right.length && timingSafeEqual(left, right);
+}
+
 function hashSecret(secret: string, salt = randomBytes(16).toString('hex')): string {
   const hash = scryptSync(secret, salt, 64).toString('hex');
   return `scrypt:${salt}:${hash}`;
@@ -475,6 +554,7 @@ function db(): DatabaseSync {
       contact_vk_url TEXT,
       contact_telegram TEXT,
       contact_email TEXT,
+      blocked_at TEXT,
       password_hash TEXT NOT NULL,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
@@ -576,16 +656,27 @@ function db(): DatabaseSync {
       landing_path TEXT NOT NULL DEFAULT '',
       FOREIGN KEY(referral_id) REFERENCES referral_links(id) ON DELETE CASCADE
     );
+    CREATE TABLE IF NOT EXISTS article_votes (
+      article_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      vote INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY(article_id, user_id),
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
     CREATE TABLE IF NOT EXISTS meta (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
   `);
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_referral_clicks_referral_time ON referral_clicks(referral_id, clicked_at DESC);');
+  ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_article_votes_article ON article_votes(article_id);');
   const userColumns = new Set((ecosystemDb.prepare('PRAGMA table_info(users)').all() as any[]).map(row => String(row.name)));
   if (!userColumns.has('contact_vk_url')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN contact_vk_url TEXT');
   if (!userColumns.has('contact_telegram')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN contact_telegram TEXT');
   if (!userColumns.has('contact_email')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN contact_email TEXT');
+  if (!userColumns.has('blocked_at')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN blocked_at TEXT');
   migrateLegacyAuthStore(ecosystemDb);
   syncKhaVipProfiles(ecosystemDb);
   return ecosystemDb;
@@ -615,7 +706,7 @@ function migrateLegacyAuthStore(database: DatabaseSync) {
       upsertUserRow(database, user);
     }
     for (const code of Array.isArray(legacy?.pendingCodes) ? legacy!.pendingCodes as PendingCode[] : []) {
-      if (code.expiresAt > Date.now() && code.attempts < 5) {
+      if (code.expiresAt > Date.now() && code.attempts < AUTH_CODE_MAX_ATTEMPTS) {
         database.prepare(`
           INSERT INTO pending_codes (email, code_hash, expires_at, attempts)
           VALUES (?, ?, ?, ?)
@@ -647,8 +738,8 @@ function upsertUserRow(database: DatabaseSync, user: AdminUser) {
   const updatedAt = user.updatedAt || nowIso;
   database.prepare(`
     INSERT INTO users (
-      id, email, name, role, country, newsletter_opt_in, avatar_initials, contact_vk_url, contact_telegram, contact_email, password_hash, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      id, email, name, role, country, newsletter_opt_in, avatar_initials, contact_vk_url, contact_telegram, contact_email, blocked_at, password_hash, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       email = excluded.email,
       name = excluded.name,
@@ -659,6 +750,7 @@ function upsertUserRow(database: DatabaseSync, user: AdminUser) {
       contact_vk_url = excluded.contact_vk_url,
       contact_telegram = excluded.contact_telegram,
       contact_email = excluded.contact_email,
+      blocked_at = excluded.blocked_at,
       password_hash = excluded.password_hash,
       updated_at = excluded.updated_at
   `).run(
@@ -672,6 +764,7 @@ function upsertUserRow(database: DatabaseSync, user: AdminUser) {
     user.contactVkUrl ?? '',
     user.contactTelegram ?? '',
     user.contactEmail ?? '',
+    user.blockedAt ?? '',
     user.passwordHash,
     createdAt,
     updatedAt,
@@ -716,6 +809,7 @@ function authUserFromRow(row: any): AdminUser {
     contactVkUrl: String(row.contact_vk_url ?? ''),
     contactTelegram: String(row.contact_telegram ?? ''),
     contactEmail: String(row.contact_email ?? ''),
+    blockedAt: row.blocked_at ? String(row.blocked_at) : undefined,
     passwordHash: String(row.password_hash),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -724,7 +818,7 @@ function authUserFromRow(row: any): AdminUser {
 
 function loadAuthStore(): AdminAuthStore {
   const now = Date.now();
-  dbRun('DELETE FROM pending_codes WHERE expires_at <= ? OR attempts >= 5', now);
+  dbRun('DELETE FROM pending_codes WHERE expires_at <= ? OR attempts >= ?', now, AUTH_CODE_MAX_ATTEMPTS);
   dbRun('DELETE FROM sessions WHERE expires_at <= ?', now);
   const users = dbAll(`
     SELECT
@@ -743,9 +837,10 @@ function loadAuthStore(): AdminAuthStore {
       expiresAt: Number(row.expires_at),
       attempts: Number(row.attempts),
     }));
-  const sessions = dbAll<any>('SELECT token_hash, email, expires_at, created_at FROM sessions')
+  const sessions = dbAll<any>('SELECT token_hash, user_id, email, expires_at, created_at FROM sessions')
     .map(row => ({
       tokenHash: String(row.token_hash),
+      userId: String(row.user_id || ''),
       email: String(row.email),
       expiresAt: Number(row.expires_at),
       createdAt: String(row.created_at),
@@ -764,7 +859,7 @@ function saveAuthStore(store: AdminAuthStore) {
     for (const user of store.users) upsertUserRow(database, user);
     database.prepare('DELETE FROM pending_codes').run();
     for (const code of store.pendingCodes) {
-      if (code.expiresAt <= Date.now() || code.attempts >= 5) continue;
+      if (code.expiresAt <= Date.now() || code.attempts >= AUTH_CODE_MAX_ATTEMPTS) continue;
       database.prepare(`
         INSERT OR REPLACE INTO pending_codes (email, code_hash, expires_at, attempts)
         VALUES (?, ?, ?, ?)
@@ -773,7 +868,7 @@ function saveAuthStore(store: AdminAuthStore) {
     database.prepare('DELETE FROM sessions').run();
     for (const session of store.sessions) {
       if (session.expiresAt <= Date.now()) continue;
-      const user = store.users.find(item => item.email === session.email);
+      const user = store.users.find(item => item.id === session.userId || item.email === session.email);
       if (!user) continue;
       database.prepare(`
         INSERT OR REPLACE INTO sessions (token_hash, user_id, email, expires_at, created_at)
@@ -786,6 +881,37 @@ function saveAuthStore(store: AdminAuthStore) {
     database.exec('ROLLBACK');
     throw err;
   }
+}
+
+const authCodeIssueHistory = new Map<string, number[]>();
+
+function prepareAuthCode(store: AdminAuthStore, email: string): { ok: true; code: string } | { ok: false; status: number; error: string } {
+  const now = Date.now();
+  const windowStart = now - AUTH_CODE_ISSUE_WINDOW_MS;
+  const recent = (authCodeIssueHistory.get(email) || []).filter(timestamp => timestamp > windowStart);
+  const lastIssuedAt = recent.at(-1) || 0;
+  if (lastIssuedAt && now - lastIssuedAt < AUTH_CODE_REQUEST_COOLDOWN_MS) {
+    return { ok: false, status: 429, error: 'Код уже отправлен. Подождите минуту перед повторной отправкой.' };
+  }
+  if (recent.length >= AUTH_CODE_MAX_ISSUES_PER_WINDOW) {
+    return { ok: false, status: 429, error: 'Слишком много кодов для этой почты. Попробуйте позже.' };
+  }
+
+  const code = randomInt(100000, 1000000).toString();
+  const existing = store.pendingCodes.find(item => item.email === email && item.expiresAt > now);
+  store.pendingCodes = store.pendingCodes.filter(item => item.email !== email && item.expiresAt > now);
+  store.pendingCodes.push({
+    email,
+    codeHash: sha256(code),
+    expiresAt: now + AUTH_CODE_TTL_MS,
+    attempts: existing ? existing.attempts : 0,
+  });
+  authCodeIssueHistory.set(email, [...recent, now]);
+  return { ok: true, code };
+}
+
+function verifyPendingCode(pending: PendingCode, code: string): boolean {
+  return safeEqualHex(pending.codeHash, sha256(code));
 }
 
 function publicUser(user: AdminUser) {
@@ -803,6 +929,9 @@ function publicUser(user: AdminUser) {
     contactVkUrl: user.contactVkUrl ?? '',
     contactTelegram: user.contactTelegram ?? '',
     contactEmail: user.contactEmail ?? '',
+    blockedAt: user.blockedAt ?? '',
+    adminAllowed: isAdminUser(user),
+    contestAdminAllowed: isContestAdminUser(user),
   };
 }
 
@@ -823,6 +952,22 @@ function normalizeDateOnlyInput(value: unknown): string {
 function normalizeDateTimeInput(value: unknown): string | null {
   const raw = normalizeOptionalText(value, 40);
   if (!raw) return null;
+  if (!/[zZ]|[+-]\d{2}:?\d{2}$/.test(raw)) {
+    const localMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/);
+    if (localMatch) {
+      const [, year, month, day, hour, minute, second = '0', millis = '0'] = localMatch;
+      const utcMs = Date.UTC(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+        Number(hour),
+        Number(minute),
+        Number(second),
+        Number(millis.padEnd(3, '0')),
+      ) - CONTEST_LOCAL_TIMEZONE_OFFSET_MINUTES * 60 * 1000;
+      if (Number.isFinite(utcMs)) return new Date(utcMs).toISOString();
+    }
+  }
   const parsed = new Date(raw);
   if (!Number.isFinite(parsed.getTime())) return null;
   return parsed.toISOString();
@@ -845,9 +990,27 @@ function normalizeContactVkUrl(value: unknown): string {
   return '';
 }
 
+function normalizeContestImageUrl(value: unknown): string {
+  const raw = normalizeOptionalText(value, 500);
+  if (!raw) return '';
+  if (/^\/uploads\/admin\/[a-z0-9-]+\.(?:webp|png|jpe?g|gif)$/i.test(raw)) return raw;
+  try {
+    const url = new URL(raw);
+    const appHost = new URL(APP_URL).host;
+    if ((url.protocol === 'https:' || url.protocol === 'http:')
+      && (url.host === appHost || url.hostname === 'arena.hs-manacost.ru')
+      && /^\/uploads\/admin\/[a-z0-9-]+\.(?:webp|png|jpe?g|gif)$/i.test(url.pathname)) {
+      return url.pathname;
+    }
+  } catch {
+    return '';
+  }
+  return '';
+}
+
 function contestAdminAuth(req: import('express').Request): AdminUser | null {
   const user = userAuth(req);
-  return user && user.id === CONTEST_ADMIN_USER_ID ? user : null;
+  return user && isContestAdminUser(user) ? user : null;
 }
 
 function parseJsonArray(value: unknown): any[] {
@@ -860,7 +1023,7 @@ function parseJsonArray(value: unknown): any[] {
 }
 
 function contestStatusFromDates(status: string, startsAt?: string | null, endsAt?: string | null): string {
-  if (status === 'draft' || status === 'cancelled') return status;
+  if (status === 'draft' || status === 'cancelled' || status === 'completed') return status;
   const now = Date.now();
   const startMs = startsAt ? Date.parse(startsAt) : Number.NaN;
   const endMs = endsAt ? Date.parse(endsAt) : Number.NaN;
@@ -869,8 +1032,16 @@ function contestStatusFromDates(status: string, startsAt?: string | null, endsAt
   return 'active';
 }
 
-function contestFromRow(row: any, userEntry?: any) {
+function publicWinnerId(contestId: string, value: string): string {
+  const id = String(value || '').trim();
+  if (!id) return '';
+  const digest = hmacSha256(`${contestId}:${id}`, CONTEST_PUBLIC_ID_SECRET).slice(0, 12);
+  return `win_${digest}`;
+}
+
+function contestFromRow(row: any, userEntry?: any, options: { includeRawWinners?: boolean } = {}) {
   const status = contestStatusFromDates(String(row.status || 'draft'), row.starts_at, row.ends_at);
+  const winners = parseJsonArray(row.winners_json).map(String);
   return {
     id: String(row.id),
     title: String(row.title || ''),
@@ -880,7 +1051,7 @@ function contestFromRow(row: any, userEntry?: any) {
     startsAt: row.starts_at ? String(row.starts_at) : '',
     endsAt: row.ends_at ? String(row.ends_at) : '',
     status,
-    winners: parseJsonArray(row.winners_json).map(String),
+    winners: options.includeRawWinners ? winners : winners.map(id => publicWinnerId(String(row.id), id)).filter(Boolean),
     createdBy: String(row.created_by || ''),
     createdAt: String(row.created_at || ''),
     updatedAt: String(row.updated_at || ''),
@@ -982,6 +1153,48 @@ function khaVerifiedEmail(profile: Record<string, any> | null): string {
   return isRealEmail(email) ? email : '';
 }
 
+function khaProfileHasBoostyAccess(profile: Record<string, any> | null): boolean {
+  if (!profile || profile.boosty_access !== true) return false;
+  return hasBoostyContentAccess(String(profile.boosty_level || ''), Number(profile.boosty_price || 0));
+}
+
+function khaBoostySubscriptionDetail(user: AdminUser, profile: Record<string, any> | null): Record<string, any> | null {
+  if (!khaProfileHasBoostyAccess(profile)) return null;
+  const levelName = String(profile?.boosty_level || '');
+  const rawPrice = Number(profile?.boosty_price || 0);
+  const entitlements = boostyEntitlementsForLevel(levelName);
+  const hasAccess = hasAnyEntitlement(entitlements);
+  return {
+    configured: true,
+    checked: true,
+    found: true,
+    hasAccess,
+    email: khaVerifiedEmail(profile) || user.email,
+    levelName,
+    price: rawPrice,
+    entitlements,
+    source: 'kha-vip-bot',
+    message: hasAccess
+      ? 'Boosty подписка подтверждена через Telegram-бот Манакоста.'
+      : 'Boosty уровень найден, но он не открывает разделы HS-Arena.',
+  };
+}
+
+function findKhaVipProfileForUser(user: AdminUser): Record<string, any> | null {
+  if (user.telegramId) {
+    const byTelegram = readKhaVipProfile(user.telegramId);
+    if (byTelegram) return byTelegram;
+  }
+  if (!isRealEmail(user.email)) return null;
+  const email = normalizeEmail(user.email);
+  const profiles = readKhaVipProfiles();
+  for (const profile of Object.values(profiles)) {
+    if (!profile || typeof profile !== 'object') continue;
+    if (khaVerifiedEmail(profile as Record<string, any>) === email) return profile as Record<string, any>;
+  }
+  return null;
+}
+
 function syncKhaVipProfiles(database: DatabaseSync) {
   const profiles = readKhaVipProfiles();
   const now = new Date().toISOString();
@@ -1033,6 +1246,33 @@ function syncKhaVipProfiles(database: DatabaseSync) {
       `).run(emailUser.id, telegramId, now, now, now);
       const user = loadAuthStore().users.find(item => item.id === emailUser.id);
       if (user) applyKhaSubscriptionSnapshot(user, profile as Record<string, any>);
+      continue;
+    }
+
+    if (!telegramIdentity?.user_id && !emailUser?.id && khaProfileHasBoostyAccess(profile as Record<string, any>)) {
+      const displayName = normalizeOptionalText((profile as Record<string, any>).boosty_name, 80)
+        || email.split('@')[0]
+        || `Telegram ${telegramId}`;
+      const user: AdminUser = {
+        id: `tg_${sha256(telegramId).slice(0, 12)}`,
+        email,
+        name: displayName,
+        role: 'user',
+        country: '',
+        newsletterOptIn: false,
+        avatarInitials: displayName.slice(0, 2).toUpperCase(),
+        telegramId,
+        telegramUsername: '',
+        photoUrl: '',
+        contactVkUrl: '',
+        contactTelegram: '',
+        contactEmail: email,
+        passwordHash: hashSecret(randomBytes(24).toString('hex')),
+        createdAt: now,
+        updatedAt: now,
+      };
+      upsertUserRow(database, user);
+      applyKhaSubscriptionSnapshot(user, profile as Record<string, any>);
     }
   }
 }
@@ -1043,6 +1283,110 @@ function normalizeBoostyLevelName(value: string): string {
     .replace(/ё/g, 'е')
     .replace(/[^a-zа-я0-9]+/g, ' ')
     .trim();
+}
+
+function emptyEntitlements(): SubscriptionEntitlements {
+  return {
+    arena: false,
+    battlegrounds: false,
+    standard: false,
+    contests: false,
+    guidesArchive: false,
+    arenaArticles: false,
+    battlegroundsArticles: false,
+  };
+}
+
+function allEntitlements(): SubscriptionEntitlements {
+  return {
+    arena: true,
+    battlegrounds: true,
+    standard: true,
+    contests: true,
+    guidesArchive: true,
+    arenaArticles: true,
+    battlegroundsArticles: true,
+  };
+}
+
+function mergeEntitlements(...items: Array<Partial<SubscriptionEntitlements> | null | undefined>): SubscriptionEntitlements {
+  const merged = emptyEntitlements();
+  for (const item of items) {
+    if (!item) continue;
+    for (const key of Object.keys(merged) as SubscriptionEntitlementKey[]) {
+      merged[key] ||= Boolean(item[key]);
+    }
+  }
+  return merged;
+}
+
+function hasAnyEntitlement(entitlements: Partial<SubscriptionEntitlements> | null | undefined): boolean {
+  return Boolean(entitlements && Object.values(entitlements).some(Boolean));
+}
+
+function boostyNameMatches(levelName: string, candidates: string[]): boolean {
+  const normalized = normalizeBoostyLevelName(levelName);
+  if (!normalized) return false;
+  return candidates.some(candidate => {
+    const normalizedCandidate = normalizeBoostyLevelName(candidate);
+    return Boolean(normalizedCandidate && (normalized === normalizedCandidate || normalized.includes(normalizedCandidate)));
+  });
+}
+
+function boostyEntitlementsForLevel(levelName: string): SubscriptionEntitlements {
+  if (boostyNameMatches(levelName, BOOSTY_ALL_ACCESS_LEVEL_NAMES)) return allEntitlements();
+
+  const entitlements = emptyEntitlements();
+  if (boostyNameMatches(levelName, BOOSTY_ARENA_LEVEL_NAMES)) {
+    entitlements.arena = true;
+    entitlements.contests = true;
+    entitlements.guidesArchive = true;
+    entitlements.arenaArticles = true;
+  }
+  if (boostyNameMatches(levelName, BOOSTY_BATTLEGROUNDS_LEVEL_NAMES)) {
+    entitlements.battlegrounds = true;
+    entitlements.contests = true;
+    entitlements.guidesArchive = true;
+    entitlements.battlegroundsArticles = true;
+  }
+  return entitlements;
+}
+
+function normalizeEntitlements(value: unknown): SubscriptionEntitlements {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return emptyEntitlements();
+  const source = value as Record<string, unknown>;
+  const entitlements = emptyEntitlements();
+  for (const key of Object.keys(entitlements) as SubscriptionEntitlementKey[]) {
+    entitlements[key] = Boolean(source[key]);
+  }
+  return entitlements;
+}
+
+function normalizeBoostySubscriptionDetail(detail: Record<string, any>): Record<string, any> {
+  if (!detail || typeof detail !== 'object' || Array.isArray(detail)) return {};
+  const levelName = String(detail.levelName || '');
+  const levelEntitlements = levelName ? boostyEntitlementsForLevel(levelName) : emptyEntitlements();
+  const entitlements = hasAnyEntitlement(levelEntitlements)
+    ? levelEntitlements
+    : normalizeEntitlements(detail.entitlements);
+  return {
+    ...detail,
+    entitlements,
+    hasAccess: Boolean(detail.hasAccess) && hasAnyEntitlement(entitlements),
+  };
+}
+
+function normalizeTelegramSubscriptionDetail(detail: Record<string, any>): Record<string, any> {
+  if (!detail || typeof detail !== 'object' || Array.isArray(detail)) return {};
+  const entitlements = mergeEntitlements(
+    normalizeEntitlements(detail.entitlements),
+    detail.hasAccess ? allEntitlements() : emptyEntitlements(),
+  );
+  return {
+    ...detail,
+    entitlements,
+    hasAccess: Boolean(detail.hasAccess) && hasAnyEntitlement(entitlements),
+  };
 }
 
 function boostyLevelRank(levelName: string): number {
@@ -1061,42 +1405,36 @@ function hasRequiredBoostyLevel(levelName: string): boolean {
 }
 
 function hasBoostyContentAccess(levelName: string, price: number): boolean {
-  return hasRequiredBoostyLevel(levelName) || price >= BOOSTY_MIN_PRICE;
+  void price;
+  return hasAnyEntitlement(boostyEntitlementsForLevel(levelName));
 }
 
 function applyKhaSubscriptionSnapshot(user: AdminUser, profile: Record<string, any> | null) {
-  if (!profile || profile.boosty_access !== true) return;
-  const levelName = String(profile.boosty_level || '');
-  const rawPrice = Number(profile.boosty_price || 0);
-  const hasAccess = hasBoostyContentAccess(levelName, rawPrice);
-  if (!hasAccess) return;
-  const inferredPrice = rawPrice || (hasRequiredBoostyLevel(levelName) ? BOOSTY_MIN_PRICE : rawPrice);
+  const boosty = khaBoostySubscriptionDetail(user, profile);
+  if (!boosty) return;
   const now = new Date().toISOString();
+  const entitlements = normalizeEntitlements(boosty.entitlements);
+  const hasAccess = hasAnyEntitlement(entitlements);
   const status: SubscriptionStatus = {
-    hasAccess: true,
+    hasAccess,
     source: 'boosty',
     checkedAt: now,
     stale: false,
-    message: 'Boosty подписка подтверждена через Telegram-бот Манакоста.',
-    boosty: {
-      configured: true,
-      checked: true,
-      found: true,
-      hasAccess: true,
-      email: khaVerifiedEmail(profile) || user.email,
-      levelName,
-      price: inferredPrice,
-      source: 'kha-vip-bot',
-      message: 'Boosty подписка подтверждена через Telegram-бот Манакоста.',
-    },
+    message: hasAccess
+      ? 'Boosty подписка подтверждена через Telegram-бот Манакоста.'
+      : 'Boosty уровень найден, но он не открывает разделы HS-Arena.',
+    entitlements,
+    boosty,
     telegram: {},
   };
   writeSubscriptionStatus(user, status);
-  writeSubscriptionCheck(user, 'boosty:kha-vip-bot', true, status.boosty);
+  writeSubscriptionCheck(user, 'boosty:kha-vip-bot', hasAccess, boosty);
 }
 
 function mergeAuthUsers(store: AdminAuthStore, sourceUser: AdminUser, targetUser: AdminUser, patch: Partial<AdminUser> = {}): AdminUser {
-  targetUser.role = targetUser.role === 'admin' || sourceUser.role === 'admin' ? 'admin' : 'user';
+  const mergedRoleWantsAdmin = targetUser.role === 'admin' || sourceUser.role === 'admin';
+  const targetCanBeAdmin = ADMIN_USER_IDS.size === 0 || ADMIN_USER_IDS.has(targetUser.id);
+  targetUser.role = mergedRoleWantsAdmin && targetCanBeAdmin ? 'admin' : 'user';
   targetUser.country = targetUser.country || sourceUser.country || '';
   targetUser.newsletterOptIn = Boolean(targetUser.newsletterOptIn || sourceUser.newsletterOptIn);
   targetUser.telegramId = patch.telegramId ?? targetUser.telegramId ?? sourceUser.telegramId;
@@ -1107,12 +1445,38 @@ function mergeAuthUsers(store: AdminAuthStore, sourceUser: AdminUser, targetUser
   store.sessions = store.sessions.map(session =>
     session.email === sourceUser.email ? { ...session, email: targetUser.email } : session
   );
+  dbRun('UPDATE identities SET user_id = ?, updated_at = ? WHERE user_id = ?', targetUser.id, targetUser.updatedAt, sourceUser.id);
+  dbRun('UPDATE subscription_checks SET user_id = ? WHERE user_id = ?', targetUser.id, sourceUser.id);
+  dbRun('DELETE FROM subscriptions WHERE user_id = ?', sourceUser.id);
+  dbRun(`
+    UPDATE contest_entries
+    SET user_id = ?
+    WHERE user_id = ?
+      AND NOT EXISTS (
+        SELECT 1 FROM contest_entries existing
+        WHERE existing.contest_id = contest_entries.contest_id
+          AND existing.user_id = ?
+      )
+  `, targetUser.id, sourceUser.id, targetUser.id);
+  dbRun(`
+    DELETE FROM contest_entries
+    WHERE user_id = ?
+      AND EXISTS (
+        SELECT 1 FROM contest_entries existing
+        WHERE existing.contest_id = contest_entries.contest_id
+          AND existing.user_id = ?
+      )
+  `, sourceUser.id, targetUser.id);
   store.users = store.users.filter(user => user.id !== sourceUser.id);
   return targetUser;
 }
 
 function telegramAuthEnabled(): boolean {
   return Boolean(telegramOidcEnabled() || (TELEGRAM_AUTH_BOT_TOKEN && TELEGRAM_AUTH_BOT_USERNAME));
+}
+
+function telegramLegacyWidgetEnabled(): boolean {
+  return Boolean(TELEGRAM_AUTH_BOT_TOKEN && TELEGRAM_AUTH_BOT_USERNAME);
 }
 
 function telegramOidcEnabled(): boolean {
@@ -1212,11 +1576,13 @@ async function telegramOidcJwks(force = false): Promise<any[]> {
 }
 
 function createAuthSession(store: AdminAuthStore, user: AdminUser): string {
+  if (user.blockedAt) throw new Error('Пользователь заблокирован');
   const token = randomBytes(32).toString('hex');
   store.sessions = store.sessions
     .filter(item => item.expiresAt > Date.now() && item.email !== user.email)
     .concat({
       tokenHash: sha256(token),
+      userId: user.id,
       email: user.email,
       expiresAt: Date.now() + AUTH_SESSION_TTL_MS,
       createdAt: new Date().toISOString(),
@@ -1254,26 +1620,11 @@ function setAuthCookie(req: import('express').Request, res: import('express').Re
 }
 
 function clearAuthCookie(req: import('express').Request, res: import('express').Response) {
+  const secure = String(req.headers['x-forwarded-proto'] ?? req.protocol).includes('https') || String(req.headers.host ?? '').includes('arena.hs-manacost.ru');
   const cookie = [
     `${AUTH_COOKIE_NAME}=`,
     'Path=/',
     'Max-Age=0',
-    'HttpOnly',
-    'SameSite=Lax',
-    'Secure',
-    authCookieDomain(req),
-  ].filter(Boolean).join('; ');
-  res.append('Set-Cookie', cookie);
-}
-
-function setTelegramOidcCookie(req: import('express').Request, res: import('express').Response, state: TelegramOidcState) {
-  const secure = String(req.headers['x-forwarded-proto'] ?? req.protocol).includes('https')
-    || String(req.headers.host ?? '').includes('arena.hs-manacost.ru')
-    || String(req.headers.host ?? '').includes('hs-manacost.ru');
-  const cookie = [
-    `${TELEGRAM_OIDC_COOKIE_NAME}=${encodeURIComponent(base64UrlEncode(JSON.stringify(state)))}`,
-    'Path=/api/auth/telegram',
-    `Max-Age=${Math.floor(TELEGRAM_OIDC_STATE_TTL_MS / 1000)}`,
     'HttpOnly',
     'SameSite=Lax',
     secure ? 'Secure' : '',
@@ -1282,36 +1633,92 @@ function setTelegramOidcCookie(req: import('express').Request, res: import('expr
   res.append('Set-Cookie', cookie);
 }
 
-function clearTelegramOidcCookie(req: import('express').Request, res: import('express').Response) {
+function telegramOidcCookieSecure(req: import('express').Request): boolean {
+  return String(req.headers['x-forwarded-proto'] ?? req.protocol).includes('https')
+    || String(req.headers.host ?? '').includes('arena.hs-manacost.ru')
+    || String(req.headers.host ?? '').includes('hs-manacost.ru');
+}
+
+function telegramOidcStateFromValue(value: any): TelegramOidcState | null {
+  if (!value?.state || !value?.nonce || !value?.codeVerifier || !value?.expiresAt) return null;
+  if (Number(value.expiresAt) <= Date.now()) return null;
+  return {
+    state: String(value.state),
+    nonce: String(value.nonce),
+    codeVerifier: String(value.codeVerifier),
+    returnTo: String(value.returnTo || '/?login&telegram=ok'),
+    expiresAt: Number(value.expiresAt),
+  };
+}
+
+function readTelegramOidcStates(req: import('express').Request): TelegramOidcState[] {
+  const raw = cookieValue(req, TELEGRAM_OIDC_COOKIE_NAME);
+  if (!raw) return [];
+  try {
+    const parsed = base64UrlDecodeJson(raw);
+    const values = Array.isArray(parsed?.states) ? parsed.states : [parsed];
+    return values
+      .map(telegramOidcStateFromValue)
+      .filter((state): state is TelegramOidcState => Boolean(state));
+  } catch {
+    return [];
+  }
+}
+
+function writeTelegramOidcStates(req: import('express').Request, res: import('express').Response, states: TelegramOidcState[]) {
+  const validStates = states
+    .map(telegramOidcStateFromValue)
+    .filter((state): state is TelegramOidcState => Boolean(state))
+    .slice(-5);
+  if (!validStates.length) {
+    clearTelegramOidcCookie(req, res);
+    return;
+  }
+  const maxAgeSeconds = Math.max(1, Math.ceil((Math.max(...validStates.map(state => state.expiresAt)) - Date.now()) / 1000));
+  const cookie = [
+    `${TELEGRAM_OIDC_COOKIE_NAME}=${encodeURIComponent(base64UrlEncode(JSON.stringify({ states: validStates })))}`,
+    'Path=/api/auth/telegram',
+    `Max-Age=${maxAgeSeconds}`,
+    'HttpOnly',
+    'SameSite=Lax',
+    telegramOidcCookieSecure(req) ? 'Secure' : '',
+    authCookieDomain(req),
+  ].filter(Boolean).join('; ');
+  res.append('Set-Cookie', cookie);
+}
+
+function setTelegramOidcCookie(req: import('express').Request, res: import('express').Response, state: TelegramOidcState) {
+  const states = readTelegramOidcStates(req).filter(item => item.state !== state.state);
+  states.push(state);
+  writeTelegramOidcStates(req, res, states);
+}
+
+function clearTelegramOidcCookie(req: import('express').Request, res: import('express').Response, stateValue?: string) {
+  if (stateValue) {
+    writeTelegramOidcStates(req, res, readTelegramOidcStates(req).filter(item => item.state !== stateValue));
+    return;
+  }
   const cookie = [
     `${TELEGRAM_OIDC_COOKIE_NAME}=`,
     'Path=/api/auth/telegram',
     'Max-Age=0',
     'HttpOnly',
     'SameSite=Lax',
-    'Secure',
+    telegramOidcCookieSecure(req) ? 'Secure' : '',
     authCookieDomain(req),
   ].filter(Boolean).join('; ');
   res.append('Set-Cookie', cookie);
 }
 
-function readTelegramOidcState(req: import('express').Request): TelegramOidcState | null {
-  const raw = cookieValue(req, TELEGRAM_OIDC_COOKIE_NAME);
-  if (!raw) return null;
-  try {
-    const parsed = base64UrlDecodeJson(raw);
-    if (!parsed?.state || !parsed?.nonce || !parsed?.codeVerifier || !parsed?.expiresAt) return null;
-    if (Number(parsed.expiresAt) <= Date.now()) return null;
-    return {
-      state: String(parsed.state),
-      nonce: String(parsed.nonce),
-      codeVerifier: String(parsed.codeVerifier),
-      returnTo: String(parsed.returnTo || '/?login&telegram=ok'),
-      expiresAt: Number(parsed.expiresAt),
-    };
-  } catch {
-    return null;
-  }
+function readTelegramOidcState(req: import('express').Request, stateValue = ''): TelegramOidcState | null {
+  const states = readTelegramOidcStates(req);
+  if (stateValue) return states.find(item => item.state === stateValue) ?? null;
+  return states[states.length - 1] ?? null;
+}
+
+function safeAuthReturnTo(value: unknown, fallback = '/?login&telegram=ok'): string {
+  const raw = String(value ?? '').trim();
+  return raw.startsWith('/') && !raw.startsWith('//') ? raw : fallback;
 }
 
 async function verifyTelegramOidcIdToken(idToken: string, expectedNonce: string): Promise<Record<string, any>> {
@@ -1335,7 +1742,7 @@ async function verifyTelegramOidcIdToken(idToken: string, expectedNonce: string)
   if (!ok) throw new Error('Telegram id_token не прошёл проверку подписи');
 
   const now = Math.floor(Date.now() / 1000);
-  const aud = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+  const aud = (Array.isArray(payload.aud) ? payload.aud : [payload.aud]).map(String);
   if (payload.iss !== TELEGRAM_OIDC_ISSUER) throw new Error('Некорректный issuer Telegram');
   if (!aud.includes(TELEGRAM_OIDC_CLIENT_ID)) throw new Error('Некорректный audience Telegram');
   if (typeof payload.exp !== 'number' || payload.exp <= now) throw new Error('Telegram id_token устарел');
@@ -1487,7 +1894,36 @@ function userAuth(req: import('express').Request): AdminUser | null {
   const tokenHash = sha256(token);
   const session = store.sessions.find(item => item.tokenHash === tokenHash && item.expiresAt > Date.now());
   if (!session) return null;
-  return store.users.find(user => user.email === session.email) ?? null;
+  const user = store.users.find(item => item.id === session.userId || item.email === session.email) ?? null;
+  if (!user) return null;
+  if (user.blockedAt) {
+    store.sessions = store.sessions.filter(item => item.tokenHash !== tokenHash);
+    saveAuthStore(store);
+    return null;
+  }
+  return user;
+}
+
+function authenticatedSessionFromToken(token: string): { store: AdminAuthStore; session: AdminSession; user: AdminUser } | null {
+  if (!token) return null;
+  const store = loadAuthStore();
+  const tokenHash = sha256(token);
+  const session = store.sessions.find(item => item.tokenHash === tokenHash && item.expiresAt > Date.now());
+  if (!session) return null;
+  const user = store.users.find(item => item.id === session.userId || item.email === session.email);
+  if (user?.blockedAt) {
+    store.sessions = store.sessions.filter(item => item.tokenHash !== tokenHash);
+    saveAuthStore(store);
+    return null;
+  }
+  return user ? { store, session, user } : null;
+}
+
+function refreshAuthSessionIfNeeded(store: AdminAuthStore, session: AdminSession): boolean {
+  const nextExpiresAt = Date.now() + AUTH_SESSION_TTL_MS;
+  if (session.expiresAt > nextExpiresAt - AUTH_SESSION_REFRESH_WINDOW_MS) return false;
+  session.expiresAt = nextExpiresAt;
+  return true;
 }
 
 function adminAuth(req: import('express').Request): AdminUser | null {
@@ -1496,13 +1932,27 @@ function adminAuth(req: import('express').Request): AdminUser | null {
 }
 
 function isAdminUser(user: AdminUser | null | undefined): user is AdminUser {
-  return Boolean(user && user.role === 'admin' && (ADMIN_USER_IDS.size === 0 || ADMIN_USER_IDS.has(user.id)));
+  return Boolean(user && !user.blockedAt && user.role === 'admin');
+}
+
+function isContestAdminUser(user: AdminUser | null | undefined): user is AdminUser {
+  if (!user) return false;
+  const userId = user.id;
+  return isAdminUser(user) || userId === CONTEST_ADMIN_USER_ID;
 }
 
 function getClientIp(req: import('express').Request): string {
   const forwarded = req.headers['x-forwarded-for'];
   const raw = Array.isArray(forwarded) ? forwarded[0] : forwarded;
   return (raw ? raw.split(',')[0] : req.socket?.remoteAddress ?? '').trim();
+}
+
+function rateLimitClientKey(req: import('express').Request): string {
+  return ipKeyGenerator(getClientIp(req) || 'unknown');
+}
+
+function rateLimitEmailKey(req: import('express').Request): string {
+  return `${rateLimitClientKey(req)}:${normalizeEmail(req.body?.email) || 'unknown'}`;
 }
 
 function emptySubscriptionStatus(message = 'Подписка пока не подтверждена'): SubscriptionStatus {
@@ -1512,24 +1962,58 @@ function emptySubscriptionStatus(message = 'Подписка пока не по�
     checkedAt: null,
     stale: true,
     message,
+    entitlements: emptyEntitlements(),
     boosty: {},
     telegram: {},
   };
 }
+
+function deriveStoredEntitlements(
+  hasAccess: boolean,
+  source: string,
+  boosty: Record<string, any>,
+  telegram: Record<string, any>,
+): SubscriptionEntitlements {
+  void hasAccess;
+  const normalizedBoosty = normalizeBoostySubscriptionDetail(boosty);
+  const normalizedTelegram = normalizeTelegramSubscriptionDetail(telegram);
+  const stored = mergeEntitlements(
+    normalizeEntitlements(normalizedBoosty.entitlements),
+    normalizeEntitlements(normalizedTelegram.entitlements),
+  );
+  if (hasAnyEntitlement(stored)) return stored;
+
+  const derivedBoosty = normalizedBoosty.levelName ? boostyEntitlementsForLevel(String(normalizedBoosty.levelName)) : emptyEntitlements();
+  const derivedTelegram = normalizedTelegram.hasAccess || source.includes('telegram') ? allEntitlements() : emptyEntitlements();
+  const derived = mergeEntitlements(derivedBoosty, derivedTelegram);
+  if (hasAnyEntitlement(derived)) return derived;
+
+  return emptyEntitlements();
+}
+
+const subscriptionRefreshInFlight = new Map<string, Promise<SubscriptionStatus>>();
 
 function readSubscriptionStatus(userId: string): SubscriptionStatus | null {
   const row = dbGet<any>('SELECT * FROM subscriptions WHERE user_id = ?', userId);
   if (!row) return null;
   const checkedAt = row.checked_at ? String(row.checked_at) : null;
   const age = checkedAt ? Date.now() - Date.parse(checkedAt) : Number.POSITIVE_INFINITY;
+  const providerMarkedStale = Boolean(row.stale);
+  const shouldRetryStaleProvider = providerMarkedStale && age > SUBSCRIPTION_STALE_RETRY_MS;
+  const boosty = normalizeBoostySubscriptionDetail(safeJsonObject(row.boosty_json));
+  const telegram = normalizeTelegramSubscriptionDetail(safeJsonObject(row.telegram_json));
+  const hasAccess = Boolean(row.has_access);
+  const source = String(row.source || 'none');
+  const entitlements = deriveStoredEntitlements(hasAccess, source, boosty, telegram);
   return {
-    hasAccess: Boolean(row.has_access),
-    source: String(row.source || 'none'),
+    hasAccess: hasAnyEntitlement(entitlements),
+    source,
     checkedAt,
-    stale: Boolean(row.stale) || age > SUBSCRIPTION_REFRESH_MS,
+    stale: age > SUBSCRIPTION_REFRESH_MS || shouldRetryStaleProvider,
     message: String(row.message || ''),
-    boosty: safeJsonObject(row.boosty_json),
-    telegram: safeJsonObject(row.telegram_json),
+    entitlements,
+    boosty,
+    telegram,
   };
 }
 
@@ -1544,6 +2028,10 @@ function safeJsonObject(value: unknown): Record<string, any> {
 
 function writeSubscriptionStatus(user: AdminUser, status: SubscriptionStatus) {
   const nowIso = new Date().toISOString();
+  const boosty = normalizeBoostySubscriptionDetail(status.boosty);
+  const telegram = normalizeTelegramSubscriptionDetail(status.telegram);
+  const entitlements = mergeEntitlements(status.entitlements, boosty.entitlements, telegram.entitlements);
+  const hasAccess = hasAnyEntitlement(entitlements);
   dbRun(`
     INSERT INTO subscriptions (
       user_id, has_access, source, message, checked_at, stale, boosty_json, telegram_json, updated_at
@@ -1557,8 +2045,8 @@ function writeSubscriptionStatus(user: AdminUser, status: SubscriptionStatus) {
       boosty_json = excluded.boosty_json,
       telegram_json = excluded.telegram_json,
       updated_at = excluded.updated_at
-  `, user.id, status.hasAccess ? 1 : 0, status.source, status.message, status.checkedAt, status.stale ? 1 : 0,
-    JSON.stringify(status.boosty), JSON.stringify(status.telegram), nowIso);
+  `, user.id, hasAccess ? 1 : 0, status.source, status.message, status.checkedAt, status.stale ? 1 : 0,
+    JSON.stringify(boosty), JSON.stringify(telegram), nowIso);
 }
 
 function writeSubscriptionCheck(user: AdminUser, source: string, hasAccess: boolean, detail: Record<string, any>) {
@@ -1568,7 +2056,191 @@ function writeSubscriptionCheck(user: AdminUser, source: string, hasAccess: bool
   `, user.id, source, hasAccess ? 1 : 0, JSON.stringify(detail), new Date().toISOString());
 }
 
+function boostyProviderUnavailable(boosty: Record<string, any>): boolean {
+  return Boolean(boosty.stale || boosty.checked === false || boosty.providerUnavailable);
+}
+
+function applyBoostyGracePeriod(boosty: Record<string, any>, previous: SubscriptionStatus | null): Record<string, any> {
+  const current = normalizeBoostySubscriptionDetail(boosty);
+  if (!boostyProviderUnavailable(current)) return current;
+  if (!previous?.checkedAt) {
+    return {
+      ...current,
+      hasAccess: false,
+      entitlements: emptyEntitlements(),
+      message: current.message || 'Boosty временно недоступен, последней успешной проверки нет.',
+    };
+  }
+
+  const previousBoosty = normalizeBoostySubscriptionDetail(previous.boosty);
+  const previousEntitlements = normalizeEntitlements(previousBoosty.entitlements);
+  if (!previousBoosty.hasAccess || !hasAnyEntitlement(previousEntitlements)) {
+    return {
+      ...current,
+      hasAccess: false,
+      entitlements: emptyEntitlements(),
+    };
+  }
+
+  const graceStartedAt = String(previousBoosty.graceStartedAt || previous.checkedAt);
+  const checkedAtMs = Date.parse(graceStartedAt);
+  if (!Number.isFinite(checkedAtMs)) return current;
+  const graceUntilMs = checkedAtMs + BOOSTY_ACCESS_GRACE_MS;
+  if (Date.now() > graceUntilMs) {
+    return {
+      ...current,
+      hasAccess: false,
+      entitlements: emptyEntitlements(),
+      graceExpiredAt: new Date(graceUntilMs).toISOString(),
+      message: 'Boosty временно недоступен, 24-часовой резервный доступ истёк.',
+    };
+  }
+
+  return {
+    ...previousBoosty,
+    hasAccess: true,
+    entitlements: previousEntitlements,
+    stale: true,
+    grace: true,
+    graceStartedAt,
+    graceUntil: new Date(graceUntilMs).toISOString(),
+    providerMessage: current.message || '',
+    message: 'Boosty временно недоступен, доступ сохранён на 24 часа по последней успешной проверке.',
+  };
+}
+
+async function fetchBoostyServiceStatus(): Promise<Record<string, any>> {
+  if (!BOOSTY_AUTH_API_URL) {
+    return {
+      configured: false,
+      ok: false,
+      importStatus: 'not-configured',
+      source: 'none',
+      stale: true,
+      checkedAt: new Date().toISOString(),
+      graceHours: Math.round(BOOSTY_ACCESS_GRACE_MS / (60 * 60 * 1000)),
+      message: 'Boosty API не настроен.',
+    };
+  }
+  try {
+    const response = await fetch(`${BOOSTY_AUTH_API_URL}/api/audit`, { signal: AbortSignal.timeout(12000) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data?.detail || data?.error || `HTTP ${response.status}`);
+    const importStatus = String(data?.importStatus || '');
+    const stale = Boolean(data?.subscriberStale ?? data?.stale ?? importStatus === 'stale');
+    return {
+      configured: true,
+      ok: !stale && importStatus !== 'stale' && importStatus !== 'quarantined',
+      importStatus: importStatus || (stale ? 'stale' : 'unknown'),
+      source: String(data?.subscriberSource || data?.source || ''),
+      stale,
+      snapshotAgeSeconds: data?.snapshotAgeSeconds ?? null,
+      lastErrorCategory: data?.lastErrorCategory || null,
+      lastErrorMessage: data?.lastErrorMessage || null,
+      warnings: Array.isArray(data?.warnings) ? data.warnings : [],
+      summary: data?.summary && typeof data.summary === 'object' ? data.summary : {},
+      checkedAt: new Date().toISOString(),
+      graceHours: Math.round(BOOSTY_ACCESS_GRACE_MS / (60 * 60 * 1000)),
+    };
+  } catch (err: any) {
+    return {
+      configured: true,
+      ok: false,
+      importStatus: 'error',
+      source: 'unavailable',
+      stale: true,
+      snapshotAgeSeconds: null,
+      lastErrorCategory: 'request-failed',
+      lastErrorMessage: err?.message || 'Boosty API временно недоступен.',
+      warnings: ['boosty-api-unavailable'],
+      summary: {},
+      checkedAt: new Date().toISOString(),
+      graceHours: Math.round(BOOSTY_ACCESS_GRACE_MS / (60 * 60 * 1000)),
+    };
+  }
+}
+
+async function fetchBoostySubscribers(includeInactive = true): Promise<Record<string, any>> {
+  if (!BOOSTY_AUTH_API_URL) {
+    return {
+      configured: false,
+      source: 'none',
+      stale: true,
+      subscribers: [],
+      summary: {},
+      levels: {},
+      message: 'Boosty API не настроен.',
+    };
+  }
+  const url = `${BOOSTY_AUTH_API_URL}/api/subscribers?include_inactive=${includeInactive ? 'true' : 'false'}`;
+  const response = await fetch(url, { signal: AbortSignal.timeout(25000) });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data?.detail || data?.error || `HTTP ${response.status}`);
+  const subscribers = Array.isArray(data?.subscribers) ? data.subscribers : [];
+  const rows = subscribers.map((subscriber: Record<string, any>) => {
+    const money = subscriber?.money && typeof subscriber.money === 'object' ? subscriber.money : {};
+    const level = subscriber?.level && typeof subscriber.level === 'object' ? subscriber.level : {};
+    const dates = subscriber?.dates && typeof subscriber.dates === 'object' ? subscriber.dates : {};
+    const levelName = String(level.name || '');
+    const levelEntitlements = boostyEntitlementsForLevel(levelName);
+    const siteAccess = Boolean(subscriber.hasActivePaidAccess) && hasAnyEntitlement(levelEntitlements);
+    return {
+      id: String(subscriber.id || ''),
+      name: String(subscriber.name || ''),
+      email: String(subscriber.email || ''),
+      hasEmail: Boolean(subscriber.hasEmail),
+      avatarUrl: String(subscriber.avatarUrl || ''),
+      status: String(subscriber.status || ''),
+      subscribed: Boolean(subscriber.subscribed),
+      active: Boolean(subscriber.active),
+      paid: Boolean(subscriber.paid),
+      hasActivePaidAccess: Boolean(subscriber.hasActivePaidAccess),
+      willRenew: Boolean(subscriber.willRenew),
+      blacklisted: Boolean(subscriber.blacklisted),
+      canWrite: Boolean(subscriber.canWrite),
+      audienceType: String(subscriber.audienceType || ''),
+      contactStatus: String(subscriber.contactStatus || ''),
+      mailingSegment: String(subscriber.mailingSegment || ''),
+      level: {
+        id: level.id ?? null,
+        name: levelName,
+        price: Number(level.price || 0),
+        currency: String(level.currency || money.currency || 'RUB'),
+      },
+      money: {
+        currentPrice: Number(money.currentPrice || 0),
+        totalPayments: Number(money.totalPayments || 0),
+        currency: String(money.currency || level.currency || 'RUB'),
+      },
+      dates: {
+        subscribedAt: dates.subscribedAt || null,
+        unsubscribedAt: dates.unsubscribedAt || null,
+        nextPaymentAt: dates.nextPaymentAt || null,
+      },
+      entitlements: siteAccess ? levelEntitlements : emptyEntitlements(),
+      siteAccess,
+    };
+  });
+  const levels = rows.reduce((acc: Record<string, number>, row: any) => {
+    const key = row.level.name || 'Без уровня';
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  return {
+    configured: true,
+    source: String(data?.source || ''),
+    stale: Boolean(data?.stale),
+    summary: data?.summary && typeof data.summary === 'object' ? data.summary : {},
+    levels,
+    subscribers: rows,
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
 async function checkBoostySubscription(user: AdminUser): Promise<Record<string, any>> {
+  const khaBoosty = khaBoostySubscriptionDetail(user, findKhaVipProfileForUser(user));
+  if (khaBoosty) return khaBoosty;
+
   if (!isRealEmail(user.email)) {
     return {
       configured: Boolean(BOOSTY_AUTH_API_URL),
@@ -1587,9 +2259,10 @@ async function checkBoostySubscription(user: AdminUser): Promise<Record<string, 
     const money = subscriber?.money && typeof subscriber.money === 'object' ? subscriber.money : {};
     const level = subscriber?.level && typeof subscriber.level === 'object' ? subscriber.level : {};
     const price = Number(money.currentPrice ?? level.price ?? 0) || 0;
-    const active = Boolean(subscriber?.active ?? subscriber?.hasActivePaidAccess ?? data?.hasAccess);
+    const active = Boolean(data?.hasAccess ?? subscriber?.hasActivePaidAccess);
     const levelName = String(level.name || '');
-    const hasAccess = Boolean(data?.found && active && hasBoostyContentAccess(levelName, price));
+    const entitlements = data?.found && active ? boostyEntitlementsForLevel(levelName) : emptyEntitlements();
+    const hasAccess = hasAnyEntitlement(entitlements);
     return {
       configured: true,
       checked: true,
@@ -1601,10 +2274,11 @@ async function checkBoostySubscription(user: AdminUser): Promise<Record<string, 
       minLevelName: BOOSTY_MIN_LEVEL_NAME,
       price,
       levelName,
+      entitlements,
       message: hasAccess
         ? 'Boosty подписка подтверждена.'
         : data?.found
-          ? `Для доступа нужен уровень ${BOOSTY_MIN_LEVEL_NAME} или выше.`
+          ? 'Этот уровень Boosty не открывает разделы HS-Arena.'
           : 'Boosty не нашёл эту почту. Зайдите на Boosty и привяжите/откройте email, затем обновите проверку.',
     };
   } catch (err: any) {
@@ -1615,6 +2289,7 @@ async function checkBoostySubscription(user: AdminUser): Promise<Record<string, 
       hasAccess: false,
       found: false,
       stale: true,
+      providerUnavailable: true,
       email: user.email,
       message: err?.message ?? 'Boosty временно недоступен.',
     };
@@ -1653,6 +2328,7 @@ async function checkTelegramSubscription(user: AdminUser): Promise<Record<string
     configured: true,
     checked: true,
     hasAccess,
+    entitlements: hasAccess ? allEntitlements() : emptyEntitlements(),
     telegramId: user.telegramId,
     username: user.telegramUsername ?? '',
     chats,
@@ -1662,38 +2338,108 @@ async function checkTelegramSubscription(user: AdminUser): Promise<Record<string
   };
 }
 
-async function refreshSubscriptionForUser(user: AdminUser, force = false): Promise<SubscriptionStatus> {
-  if (!force) {
-    const cached = readSubscriptionStatus(user.id);
-    if (cached && !cached.stale) return cached;
-  }
-
-  const [boosty, telegram] = await Promise.all([
+async function refreshSubscriptionForUserNow(user: AdminUser): Promise<SubscriptionStatus> {
+  const previous = readSubscriptionStatus(user.id);
+  const [rawBoosty, rawTelegram] = await Promise.all([
     checkBoostySubscription(user),
     checkTelegramSubscription(user),
   ]);
+  const boosty = applyBoostyGracePeriod(rawBoosty, previous);
+  const telegram = normalizeTelegramSubscriptionDetail(rawTelegram);
   writeSubscriptionCheck(user, 'boosty', Boolean(boosty.hasAccess), boosty);
   writeSubscriptionCheck(user, 'telegram', Boolean(telegram.hasAccess), telegram);
 
+  const entitlements = mergeEntitlements(
+    normalizeEntitlements(boosty.entitlements),
+    normalizeEntitlements(telegram.entitlements),
+  );
   const sources = [
     boosty.hasAccess ? 'boosty' : '',
     telegram.hasAccess ? 'telegram' : '',
   ].filter(Boolean);
-  const hasAccess = sources.length > 0;
+  const hasAccess = hasAnyEntitlement(entitlements);
   const status: SubscriptionStatus = {
     hasAccess,
     source: hasAccess ? sources.join(',') : 'none',
     checkedAt: new Date().toISOString(),
     stale: Boolean(boosty.stale || telegram.stale),
     message: hasAccess
-      ? 'Подписка Манакоста подтверждена.'
+      ? boosty.grace
+        ? 'Boosty временно недоступен, доступ сохранён на 24 часа.'
+        : 'Подписка Манакоста подтверждена.'
       : boosty.message || telegram.message || 'Подписка пока не подтверждена.',
+    entitlements,
     boosty,
     telegram,
   };
   writeSubscriptionStatus(user, status);
   return status;
 }
+
+async function refreshSubscriptionForUser(user: AdminUser, force = false): Promise<SubscriptionStatus> {
+  if (!force) {
+    const cached = readSubscriptionStatus(user.id);
+    if (cached && !cached.stale) return cached;
+    const pending = subscriptionRefreshInFlight.get(user.id);
+    if (pending) return pending;
+  }
+
+  const promise = refreshSubscriptionForUserNow(user)
+    .finally(() => subscriptionRefreshInFlight.delete(user.id));
+  if (!force) subscriptionRefreshInFlight.set(user.id, promise);
+  return promise;
+}
+
+async function refreshSubscriptionAfterTelegramAuth(user: AdminUser): Promise<void> {
+  try {
+    await refreshSubscriptionForUser(user, true);
+  } catch (err: any) {
+    console.warn(`[subscription] Telegram auth refresh failed user=${user.id}:`, err?.message ?? err);
+  }
+}
+
+async function requireSubscriptionAccess(req: express.Request, res: express.Response, next: express.NextFunction) {
+  return requireEntitlementAccess(null)(req, res, next);
+}
+
+function requireEntitlementAccess(entitlement: SubscriptionEntitlementKey | null, label = 'этому разделу') {
+  return async function subscriptionEntitlementGuard(req: express.Request, res: express.Response, next: express.NextFunction) {
+  res.vary('Cookie');
+  res.vary('Authorization');
+  const user = userAuth(req);
+  if (!user) {
+    setPrivateNoStore(res);
+    return res.status(401).json({ error: 'Требуется вход в профиль Манакоста' });
+  }
+  if (isAdminUser(user)) {
+    res.locals.subscriptionGuarded = true;
+    return next();
+  }
+
+  try {
+    const subscription = await refreshSubscriptionForUser(user, false);
+    const allowed = entitlement ? Boolean(subscription.entitlements?.[entitlement]) : subscription.hasAccess;
+    if (!allowed) {
+      setPrivateNoStore(res);
+      return res.status(403).json({
+        error: `Для доступа к ${label} нужна подходящая подписка Манакоста`,
+        subscription,
+      });
+    }
+    res.locals.subscriptionGuarded = true;
+    return next();
+  } catch (err: any) {
+    console.error('[subscription] access guard failed:', err?.message ?? err);
+    setPrivateNoStore(res);
+    return res.status(502).json({ error: 'Не удалось проверить подписку' });
+  }
+  };
+}
+
+const requireArenaAccess = requireEntitlementAccess('arena', 'разделам Арены');
+const requireBattlegroundsAccess = requireEntitlementAccess('battlegrounds', 'разделам Полей Сражений');
+const requireStandardAccess = requireEntitlementAccess('standard', 'разделу Стандарт');
+const requireGuidesArchiveAccess = requireEntitlementAccess('guidesArchive', 'архиву гайдов');
 
 function parseHttpUrl(rawUrl: unknown): URL | null {
   try {
@@ -1887,10 +2633,20 @@ async function refreshAllSubscriptions() {
 
 function internalApiGuard(req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) {
   if (!ECOSYSTEM_INTERNAL_KEY) return res.status(503).json({ error: 'Internal ecosystem API is not configured' });
-  if (String(req.headers['x-ecosystem-key'] ?? '') !== ECOSYSTEM_INTERNAL_KEY) {
+  if (!safeEqualString(req.headers['x-ecosystem-key'], ECOSYSTEM_INTERNAL_KEY)) {
     return res.status(401).json({ error: 'Invalid ecosystem key' });
   }
   next();
+}
+
+function manualScrapeGuard(req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) {
+  if (ECOSYSTEM_INTERNAL_KEY && safeEqualString(req.headers['x-ecosystem-key'], ECOSYSTEM_INTERNAL_KEY)) {
+    return next();
+  }
+  const user = userAuth(req);
+  if (!user) return res.status(401).json({ error: 'Требуется вход администратора' });
+  if (!isAdminUser(user)) return res.status(403).json({ error: 'Доступ запрещён для этого ID' });
+  return next();
 }
 
 function resolveUserFromRequest(req: import('express').Request): AdminUser | null {
@@ -2260,6 +3016,80 @@ const LEGENDARIES_DATASET_BY_SOURCE = {
   hsreplay: 'hsreplay_arena_legendaries',
   firestone: 'firestone_arena_legendaries_normal',
 } as const;
+const STANDARD_MATCHUPS_DATASET_BY_RANK = {
+  legend: 'hsguru_matchups_legend',
+  diamond: 'hsguru_matchups_diamond_4to1',
+} as const;
+const STANDARD_MATCHUPS_RANK_LABEL: Record<keyof typeof STANDARD_MATCHUPS_DATASET_BY_RANK, string> = {
+  legend: 'Легенда',
+  diamond: 'Алмаз 4-1',
+};
+const STANDARD_ARCHETYPE_RU: Record<string, string> = {
+  'Ace Hunter': 'Эйс Охотник',
+  'Aggro Paladin': 'Агро Паладин',
+  'Ashamane Rogue': 'Ашамейн Разбойник',
+  'Aura Paladin': 'Аура Паладин',
+  'Azshara Druid': 'Азшара Друид',
+  'Briarspawn Warrior': 'Брайарспаун Воин',
+  'Broxigar DH': 'Броксигар Охотник на демонов',
+  'Burn Mage': 'Берн Маг',
+  'Burn Rogue': 'Берн Разбойник',
+  'Burn Warrior': 'Берн Воин',
+  'Companion Hunter': 'Компаньон Охотник',
+  'Control Priest': 'Контроль Жрец',
+  'Dino Egglock': 'Дино Кхелос Чернокнижник',
+  'Divergence Warlock': 'Дивергенция Чернокнижник',
+  'Dragon Druid': 'Дракон Друид',
+  'Dragon Hunter': 'Дракон Охотник',
+  'Dragon Warrior': 'Дракон Воин',
+  'Dude Paladin': 'Токен Паладин',
+  'Egg Warrior': 'Кхелос Воин',
+  'Egglock': 'Кхелос Чернокнижник',
+  'Elemental Mage': 'Элементаль Маг',
+  'End of Turnadin': 'Ноздорму Паладин',
+  'Enrage Warrior': 'Исступление Воин',
+  'Frost DK': 'Фрост Рыцарь смерти',
+  'Glacial Shaman': 'Ледяной Шаман',
+  'Gladiator Warrior': 'Гладиатор Воин',
+  'Harold DH': 'Охотник на демонов на возвещении',
+  'Harold DK': 'Рыцарь смерти на возвещении',
+  'Harold Egglock': 'Кхелос Чернокнижник на возвещении',
+  'Harold Rogue': 'Разбойник на возвещении',
+  'Harold Shaman': 'Шаман на возвещении',
+  'Harold Warrior': 'Воин на возвещении',
+  'Herald DH': 'Охотник на демонов на возвещении',
+  'Herald DK': 'Рыцарь смерти на возвещении',
+  'Herald Rogue': 'Разбойник на возвещении',
+  'Herald Shaman': 'Шаман на возвещении',
+  'Herald Warrior': 'Воин на возвещении',
+  'Hostage Druid': 'Заложник Друид',
+  'Imbue Paladin': 'Паладин на силе героя',
+  'Imbue Priest': 'Жрец на силе героя',
+  'Imbue Rogue': 'Разбойник на силе героя',
+  'Krona Druid': 'Крона Друид',
+  'Leyline Mage': 'Лейлайн Маг',
+  'Merithra Druid': 'Меритра Друид',
+  'No Hand Hunter': 'Охотник без руки',
+  'No Minion DH': 'Спелл Охотник на демонов',
+  'Quest DH': 'Квест Охотник на демонов',
+  'Quest Druid': 'Квест Друид',
+  'Quest Hunter': 'Квест Охотник',
+  'Quest Mage': 'Квест Маг',
+  'Quest Rogue': 'Квест Разбойник',
+  'Quest Shaman': 'Квест Шаман',
+  'Quest Warrior': 'Квест Воин',
+  'Rafaamlock': 'Рафаам Чернокнижник',
+  'Token Druid': 'Токен Друид',
+  'Unholy DK': 'Нечестивый Рыцарь смерти',
+  'Vanessa Rogue': 'Ванесса Разбойник',
+  'Wallow Warlock': 'Валлоу Чернокнижник',
+};
+interface StandardArchetypeTranslations {
+  map: Record<string, string>;
+  source: 'deckview-api' | 'deckview-csv' | 'fallback';
+}
+let standardArchetypeTranslationsCache: (StandardArchetypeTranslations & { expiresAt: number }) | null = null;
+let standardArchetypeTranslationsPromise: Promise<StandardArchetypeTranslations> | null = null;
 const TIER_SOURCE_LABEL: Record<keyof typeof TIERLIST_DATASET_BY_SOURCE, string> = {
   hsreplay: 'hsreplay.net',
   heartharena: 'heartharena.com',
@@ -2460,6 +3290,59 @@ function cardImageCachePath(cardId: string, variant: 'thumb' | 'full'): string {
   return join(CARD_IMAGE_CACHE_DIR, `${cardId}-${variant}-${CARD_IMAGE_CACHE_VERSION}.webp`);
 }
 
+function normalizeResolvedCardId(cardId: string): string {
+  return cardId.trim().replace(/^\/+/, '').replace(/\s+/g, '');
+}
+
+async function resolveCardImageId(cardId: string): Promise<string> {
+  if (!/^\d+$/.test(cardId)) return cardId;
+
+  const findByDbf = (cards: Record<string, any> | null | undefined) => {
+    for (const [id, card] of Object.entries(cards ?? {})) {
+      if (String(card?.dbf ?? card?.dbfId ?? '') === cardId) {
+        const resolved = normalizeResolvedCardId(id);
+        if (resolved) return resolved;
+      }
+    }
+    return null;
+  };
+
+  return findByDbf(loadDataCached('cards_ru.json')?.data)
+    ?? findByDbf(await ensureRuCardsData())
+    ?? cardId;
+}
+
+async function ensureCardImagePlaceholder(cardId: string, variant: 'thumb' | 'full', message = 'Нет изображения'): Promise<string> {
+  mkdirSync(CARD_IMAGE_CACHE_DIR, { recursive: true });
+  const outPath = cardImageCachePath(`missing-${cardId}`, variant);
+  if (existsSync(outPath)) return outPath;
+
+  const width = variant === 'full' ? 360 : 180;
+  const height = Math.round(width * 1.516);
+  const safeId = cardId.replace(/[^A-Za-z0-9_/-]/g, '').slice(0, 32);
+  const svg = `
+    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#edf4ff"/>
+          <stop offset="0.55" stop-color="#dbe8f8"/>
+          <stop offset="1" stop-color="#fff4cf"/>
+        </linearGradient>
+      </defs>
+      <rect width="100%" height="100%" rx="${Math.round(width * 0.08)}" fill="url(#bg)"/>
+      <rect x="10" y="10" width="${width - 20}" height="${height - 20}" rx="${Math.round(width * 0.06)}" fill="none" stroke="#94a3b8" stroke-width="2"/>
+      <circle cx="${width / 2}" cy="${height * 0.38}" r="${width * 0.18}" fill="#1f3654" opacity="0.92"/>
+      <text x="50%" y="${height * 0.39}" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="${Math.round(width * 0.18)}" font-weight="700" fill="#f8fbff">?</text>
+      <text x="50%" y="${height * 0.62}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${Math.round(width * 0.08)}" font-weight="700" fill="#1f3654">${message}</text>
+      <text x="50%" y="${height * 0.72}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${Math.round(width * 0.07)}" fill="#64748b">${safeId}</text>
+    </svg>`;
+
+  await sharp(Buffer.from(svg))
+    .webp({ quality: variant === 'full' ? 82 : 76, effort: 4 })
+    .toFile(outPath);
+  return outPath;
+}
+
 async function withCardImageSlot<T>(task: () => Promise<T>): Promise<T> {
   if (activeCardImageJobs >= MAX_CARD_IMAGE_JOBS) {
     await new Promise<void>(resolve => cardImageQueue.push(resolve));
@@ -2503,22 +3386,28 @@ async function fetchRemoteCardImage(cardId: string, variant: 'thumb' | 'full'): 
 
 async function ensureCardImage(cardId: string, variant: 'thumb' | 'full'): Promise<string> {
   mkdirSync(CARD_IMAGE_CACHE_DIR, { recursive: true });
-  const outPath = cardImageCachePath(cardId, variant);
+  const resolvedCardId = await resolveCardImageId(cardId);
+  const outPath = cardImageCachePath(resolvedCardId, variant);
   if (existsSync(outPath)) return outPath;
 
-  const jobKey = `${cardId}:${variant}`;
+  const jobKey = `${resolvedCardId}:${variant}`;
   const existingJob = cardImageJobs.get(jobKey);
   if (existingJob) return existingJob;
 
   const job = (async () => {
     return withCardImageSlot(async () => {
-      const source = await fetchRemoteCardImage(cardId, variant);
-      const width = variant === 'full' ? 360 : 180;
-      await sharp(source)
-        .resize({ width, withoutEnlargement: true })
-        .webp({ quality: variant === 'full' ? 82 : 76, effort: 4 })
-        .toFile(outPath);
-      return outPath;
+      try {
+        const source = await fetchRemoteCardImage(resolvedCardId, variant);
+        const width = variant === 'full' ? 360 : 180;
+        await sharp(source)
+          .resize({ width, withoutEnlargement: true })
+          .webp({ quality: variant === 'full' ? 82 : 76, effort: 4 })
+          .toFile(outPath);
+        return outPath;
+      } catch (err: any) {
+        console.warn('[api/card-image] fallback placeholder:', resolvedCardId, err?.message ?? err);
+        return ensureCardImagePlaceholder(resolvedCardId, variant);
+      }
     });
   })().finally(() => cardImageJobs.delete(jobKey));
 
@@ -3142,6 +4031,191 @@ async function fetchDataset(datasetId: string) {
   return upstream.json();
 }
 
+function parseStandardMatchupNumber(value: unknown): number | null {
+  const raw = String(value ?? '').replace('%', '').replace(',', '.').trim();
+  if (!raw || raw === '—' || raw === '-') return null;
+  const number = Number(raw);
+  return Number.isFinite(number) ? Math.round(number * 10) / 10 : null;
+}
+
+function normalizeStandardArchetypeKey(name: string): string {
+  return name.toLowerCase().trim();
+}
+
+function buildFallbackStandardArchetypeTranslations(): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(STANDARD_ARCHETYPE_RU).map(([eng, rus]) => [normalizeStandardArchetypeKey(eng), rus.trim()]),
+  );
+}
+
+function parseDeckviewArchetypeCsv(text: string): Record<string, string> {
+  const translations: Record<string, string> = {};
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith(',,') || line.includes('Англ. названия')) continue;
+    const parts = line.split(',');
+    if (parts.length < 3) continue;
+    const eng = parts[1]?.trim().replace(/^"+|"+$/g, '');
+    const rus = parts[2]?.trim().replace(/^"+|"+$/g, '');
+    if (!eng || !rus) continue;
+    translations[normalizeStandardArchetypeKey(eng)] = rus.trim();
+  }
+  return translations;
+}
+
+function deckviewArchetypesEndpoint(): string {
+  if (!DECKVIEW_ARCHETYPES_API_URL) return '';
+  const base = DECKVIEW_ARCHETYPES_API_URL.replace(/\/$/, '');
+  return base.endsWith('/public/archetypes') ? base : `${base}/public/archetypes`;
+}
+
+function normalizeDeckviewArchetypesPayload(payload: any): Record<string, string> {
+  const source = Array.isArray(payload?.archetypes)
+    ? payload.archetypes
+    : Array.isArray(payload)
+      ? payload
+      : [];
+  const translations: Record<string, string> = {};
+  for (const item of source) {
+    const eng = Array.isArray(item) ? item[0] : item?.eng ?? item?.english ?? item?.name;
+    const rus = Array.isArray(item) ? item[1] : item?.rus ?? item?.russian ?? item?.label;
+    if (!eng || !rus) continue;
+    translations[normalizeStandardArchetypeKey(String(eng))] = String(rus).trim();
+  }
+  return translations;
+}
+
+async function fetchDeckviewApiArchetypes(): Promise<Record<string, string> | null> {
+  const endpoint = deckviewArchetypesEndpoint();
+  if (!endpoint) return null;
+  const response = await fetch(endpoint, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
+    signal: AbortSignal.timeout(2500),
+  });
+  if (!response.ok) throw new Error(`Deckview archetypes API HTTP ${response.status}`);
+  const translations = normalizeDeckviewArchetypesPayload(await response.json());
+  return Object.keys(translations).length ? translations : null;
+}
+
+async function fetchDeckviewCsvArchetypes(): Promise<Record<string, string> | null> {
+  const response = await fetch(DECKVIEW_ARCHETYPES_CSV_URL, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
+    signal: AbortSignal.timeout(5000),
+  });
+  if (!response.ok) throw new Error(`Deckview archetypes CSV HTTP ${response.status}`);
+  const translations = parseDeckviewArchetypeCsv(await response.text());
+  return Object.keys(translations).length ? translations : null;
+}
+
+async function loadStandardArchetypeTranslations(): Promise<StandardArchetypeTranslations> {
+  const fallback = buildFallbackStandardArchetypeTranslations();
+  try {
+    const apiTranslations = await fetchDeckviewApiArchetypes();
+    if (apiTranslations) return { map: { ...fallback, ...apiTranslations }, source: 'deckview-api' };
+  } catch (err: any) {
+    console.warn('[standard-matchups] deckview archetypes API unavailable:', err?.message ?? err);
+  }
+
+  try {
+    const csvTranslations = await fetchDeckviewCsvArchetypes();
+    if (csvTranslations) return { map: { ...fallback, ...csvTranslations }, source: 'deckview-csv' };
+  } catch (err: any) {
+    console.warn('[standard-matchups] deckview archetypes CSV unavailable:', err?.message ?? err);
+  }
+
+  return { map: fallback, source: 'fallback' };
+}
+
+async function getStandardArchetypeTranslations(now = Date.now()): Promise<StandardArchetypeTranslations> {
+  if (standardArchetypeTranslationsCache && standardArchetypeTranslationsCache.expiresAt > now) {
+    return standardArchetypeTranslationsCache;
+  }
+  if (!standardArchetypeTranslationsPromise) {
+    standardArchetypeTranslationsPromise = loadStandardArchetypeTranslations()
+      .then((result) => {
+        standardArchetypeTranslationsCache = { ...result, expiresAt: Date.now() + STANDARD_ARCHETYPE_TRANSLATION_CACHE_MS };
+        return result;
+      })
+      .finally(() => {
+        standardArchetypeTranslationsPromise = null;
+      });
+  }
+  return standardArchetypeTranslationsPromise;
+}
+
+function translateStandardArchetype(name: string, translations: Record<string, string>): string {
+  const normalizedName = normalizeStandardArchetypeKey(name);
+  const exact = translations[normalizedName];
+  if (exact) return exact;
+
+  let bestMatch = '';
+  let bestLength = 0;
+  for (const [eng, rus] of Object.entries(translations)) {
+    if (normalizedName.includes(eng) && eng.length > bestLength) {
+      bestMatch = rus;
+      bestLength = eng.length;
+    }
+  }
+  return bestMatch || name;
+}
+
+function transformHsguruMatchups(
+  payload: any,
+  rank: keyof typeof STANDARD_MATCHUPS_DATASET_BY_RANK,
+  archetypeTranslations: StandardArchetypeTranslations,
+) {
+  const table = payload?.data?.tables?.[0] ?? payload?.tables?.[0] ?? null;
+  const headers = Array.isArray(table?.headers) ? table.headers.map((item: unknown) => String(item ?? '').trim()) : [];
+  const rows = Array.isArray(table?.rows) ? table.rows : [];
+  const popularityRow = Array.isArray(rows[0]) ? rows[0] : [];
+  const translations = archetypeTranslations.map;
+  const columns: Array<{ name: string; label: string; popularity: string | null }> = [];
+  for (let index = 2; index < headers.length; index += 1) {
+    const name = headers[index];
+    if (!name) continue;
+    columns.push({
+      name,
+      label: translateStandardArchetype(name, translations),
+      popularity: String(popularityRow[index - 1] ?? '').trim() || null,
+    });
+  }
+
+  const dataRows: Array<{
+    archetype: string;
+    archetypeLabel: string;
+    winrate: number | null;
+    cells: Array<{ opponent: string; opponentLabel: string; winrate: number | null }>;
+  }> = [];
+  for (let rowIndex = 1; rowIndex < rows.length; rowIndex += 1) {
+    const row = rows[rowIndex];
+    if (!Array.isArray(row)) continue;
+    const archetype = String(row[1] ?? '').trim();
+    if (!archetype) continue;
+    dataRows.push({
+      archetype,
+      archetypeLabel: translateStandardArchetype(archetype, translations),
+      winrate: parseStandardMatchupNumber(row[0]),
+      cells: columns.map((column, columnIndex) => ({
+        opponent: column.name,
+        opponentLabel: column.label,
+        winrate: parseStandardMatchupNumber(row[columnIndex + 2]),
+      })),
+    });
+  }
+
+  return {
+    rank,
+    rankLabel: STANDARD_MATCHUPS_RANK_LABEL[rank],
+    source: 'hsguru',
+    sourceId: STANDARD_MATCHUPS_DATASET_BY_RANK[rank],
+    sourceUrl: payload?.data?.url ?? payload?.url ?? '',
+    translationSource: archetypeTranslations.source,
+    updatedAt: payload?.fetched_at ?? payload?.data?.fetched_at ?? null,
+    columns,
+    rows: dataRows,
+  };
+}
+
 function makeExternalEtag(prefix: string, source: string, data: any, now: number): string {
   const rawUpdatedAt = data?.updatedAt;
   const updatedMs = rawUpdatedAt ? Date.parse(rawUpdatedAt) : NaN;
@@ -3154,6 +4228,7 @@ function makeExternalEtag(prefix: string, source: string, data: any, now: number
 
 const app = express();
 app.disable('x-powered-by');
+app.set('etag', false);
 
 ensureAdminUploadDirs();
 const PORT = Number(process.env.PORT) || 3001;
@@ -3166,6 +4241,16 @@ app.use('/uploads/admin', express.static(ADMIN_UPLOAD_DIR, {
   maxAge: '30d',
 }));
 
+app.use((req, res, next) => {
+  if (!APP_SECURITY_HEADERS_ENABLED) return next();
+  res.header('X-Content-Type-Options', 'nosniff');
+  res.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  const proto = String(req.headers['x-forwarded-proto'] ?? req.protocol);
+  if (proto.includes('https')) res.header('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+  next();
+});
+
 // Rate limiting: max 120 req/min per IP for data API
 const apiLimiter = rateLimit({
   windowMs: 60_000,
@@ -3177,9 +4262,61 @@ const apiLimiter = rateLimit({
 });
 app.use('/api/', apiLimiter);
 
-// CORS for Vite dev server
+const authCodeRequestLimiter = rateLimit({
+  windowMs: 15 * 60_000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: rateLimitEmailKey,
+  message: { error: 'Слишком много запросов кода. Попробуйте позже.' },
+});
+
+const authCodeVerifyLimiter = rateLimit({
+  windowMs: 15 * 60_000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: rateLimitEmailKey,
+  message: { error: 'Слишком много попыток проверки кода. Попробуйте позже.' },
+});
+
+const authPasswordLimiter = rateLimit({
+  windowMs: 15 * 60_000,
+  max: 12,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: rateLimitEmailKey,
+  message: { error: 'Слишком много попыток входа. Попробуйте позже.' },
+});
+
+const scrapeLimiter = rateLimit({
+  windowMs: 60 * 60_000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Слишком много запусков обновления данных. Попробуйте позже.' },
+});
+
+// CORS for same-origin production and local Vite dev server
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  const origin = String(req.headers.origin || '');
+  if (origin) {
+    try {
+      const parsed = new URL(origin);
+      const appHost = new URL(APP_URL).host;
+      const allowed =
+        parsed.host === appHost
+        || parsed.hostname === 'arena.hs-manacost.ru'
+        || parsed.hostname === 'localhost'
+        || parsed.hostname === '127.0.0.1';
+      if (allowed) {
+        res.header('Access-Control-Allow-Origin', origin);
+        res.header('Vary', 'Origin');
+      }
+    } catch {
+      // Invalid Origin headers are ignored and handled as non-CORS requests.
+    }
+  }
   res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.sendStatus(204);
@@ -3203,17 +4340,29 @@ const ARTICLE_COVER_ALLOWED_HOSTS = new Set([
   'www.kolodahearthstone.ru',
 ]);
 const ARTICLE_COVER_MAX_BYTES = 8 * 1024 * 1024;
+const APP_SECURITY_HEADERS_ENABLED = process.env.APP_SECURITY_HEADERS === '1';
 
 // ─── ETag helper ──────────────────────────────────────────────────────────────
+function responseCacheHeader(res: express.Response, cacheHeader: string): string {
+  if (!res.locals.subscriptionGuarded) return cacheHeader;
+  return cacheHeader.replace(/^public\b/i, 'private');
+}
+
+function setPrivateNoStore(res: express.Response) {
+  res.set('Cache-Control', 'no-store');
+  res.vary('Cookie');
+  res.vary('Authorization');
+}
+
 function sendCached(req: express.Request, res: express.Response, entry: CacheEntry, cacheHeader: string) {
-  res.set('Cache-Control', cacheHeader);
+  res.set('Cache-Control', responseCacheHeader(res, cacheHeader));
   res.set('ETag', entry.etag);
   if (req.headers['if-none-match'] === entry.etag) return res.status(304).end();
   res.json(entry.data);
 }
 
 function sendJsonCached(req: express.Request, res: express.Response, data: any, etag: string, cacheHeader: string, cacheSource?: string) {
-  res.set('Cache-Control', cacheHeader);
+  res.set('Cache-Control', responseCacheHeader(res, cacheHeader));
   res.set('ETag', etag);
   if (cacheSource) res.set('X-Data-Cache', cacheSource);
   if (req.headers['if-none-match'] === etag) return res.status(304).end();
@@ -3432,7 +4581,7 @@ app.get('/api/card-image/:cardId/:variant.webp', async (req, res) => {
   }
 });
 
-app.get('/api/winrates', async (req, res) => {
+app.get('/api/winrates', requireArenaAccess, async (req, res) => {
   const source = (req.query.source as string) ?? 'hsreplay';
   const now = Date.now();
   const cached = winratesApiCache.get(source);
@@ -3511,7 +4660,7 @@ app.get('/api/winrates', async (req, res) => {
   return sendCached(req, res, { ...snapshotEntry, data: { ...snapshotEntry.data, source: 'cached' } }, 'public, max-age=300, stale-while-revalidate=600');
 });
 
-app.get('/api/class-matchups', async (req, res) => {
+app.get('/api/class-matchups', requireArenaAccess, async (req, res) => {
   const now = Date.now();
   if (classMatchupsCache && classMatchupsCache.expiresAt > now) {
     return sendJsonCached(req, res, classMatchupsCache.data, classMatchupsCache.etag, CACHE_1H);
@@ -3534,7 +4683,35 @@ app.get('/api/class-matchups', async (req, res) => {
   }
 });
 
-app.get('/api/tierlist', async (req, res) => {
+app.get('/api/standard/matchups', requireStandardAccess, async (req, res) => {
+  const rank = req.query.rank === 'diamond' ? 'diamond' : 'legend';
+  const now = Date.now();
+  const cached = standardMatchupsApiCache.get(rank);
+
+  if (cached && cached.expiresAt > now) {
+    return sendJsonCached(req, res, cached.data, cached.etag, CACHE_1H, 'memory');
+  }
+
+  try {
+    const [payload, archetypeTranslations] = await Promise.all([
+      fetchDataset(STANDARD_MATCHUPS_DATASET_BY_RANK[rank]),
+      getStandardArchetypeTranslations(now),
+    ]);
+    const data = transformHsguruMatchups(payload, rank, archetypeTranslations);
+    const updatedMs = data.updatedAt ? Date.parse(data.updatedAt) : NaN;
+    const updatedToken = Number.isFinite(updatedMs) ? updatedMs.toString(36) : now.toString(36);
+    const etag = `"standard-matchups-v4-${rank}-${updatedToken}-${data.rows.length}-${data.columns.length}-${data.translationSource}"`;
+    standardMatchupsApiCache.set(rank, { data, etag, expiresAt: now + EXTERNAL_DATASET_CACHE_MS });
+    return sendJsonCached(req, res, data, etag, CACHE_1H);
+  } catch (err: any) {
+    if (cached) {
+      return sendJsonCached(req, res, { ...cached.data, warning: 'stale' }, cached.etag, CACHE_1H, 'memory-stale');
+    }
+    return res.status(502).json({ error: err?.message ?? 'Standard matchups unavailable' });
+  }
+});
+
+app.get('/api/tierlist', requireArenaAccess, async (req, res) => {
   const source = normalizeSource(req.query.source as string | undefined, TIERLIST_DATASET_BY_SOURCE, 'hsreplay');
   const now = Date.now();
   const cached = tierlistApiCache.get(source);
@@ -3571,7 +4748,7 @@ app.get('/api/tierlist', async (req, res) => {
   }
 });
 
-app.get('/api/legendaries', async (req, res) => {
+app.get('/api/legendaries', requireArenaAccess, async (req, res) => {
   const source = normalizeSource(req.query.source as string | undefined, LEGENDARIES_DATASET_BY_SOURCE, 'hsreplay');
   const now = Date.now();
   const cached = legendariesApiCache.get(source);
@@ -3601,7 +4778,7 @@ app.get('/api/legendaries', async (req, res) => {
   }
 });
 
-app.get('/api/decks', async (req, res) => {
+app.get('/api/decks', requireArenaAccess, async (req, res) => {
   const page = Math.max(1, parseCount(req.query.page) ?? 1);
   const pageSize = Math.min(20, Math.max(1, parseCount(req.query.pageSize) ?? 10));
   const className = String(req.query.class ?? '').trim();
@@ -3631,13 +4808,180 @@ app.get('/api/decks', async (req, res) => {
   }
 });
 
+function articleDateMs(article: any): number {
+  const parsed = Date.parse(String(article?.date ?? ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+type ArticleMode = 'arena' | 'battlegrounds' | 'general';
+
+function articleMode(article: Record<string, any>): ArticleMode {
+  const haystack = [
+    article.mode,
+    article.tag,
+    article.title,
+    article.excerpt,
+    article.url,
+  ].map(value => normalizeBoostyLevelName(String(value || ''))).join(' ');
+  if (/(поля сражений|полей сражений|battleground|battle grounds|tavern|таверна|боб|bob|бг)/.test(haystack)) {
+    return 'battlegrounds';
+  }
+  if (/(арена|arena)/.test(haystack)) return 'arena';
+  return 'general';
+}
+
+function articleAccessEntitlement(mode: ArticleMode): SubscriptionEntitlementKey | null {
+  if (mode === 'arena') return 'arenaArticles';
+  if (mode === 'battlegrounds') return 'battlegroundsArticles';
+  return null;
+}
+
+function normalizeArticleModeInput(value: unknown, fallbackArticle: Record<string, any>): ArticleMode {
+  const raw = String(value || '').trim().toLowerCase();
+  if (raw === 'arena' || raw === 'battlegrounds' || raw === 'general') return raw;
+  return articleMode(fallbackArticle);
+}
+
+function subscriptionAllowsArticle(subscription: SubscriptionStatus, article: Record<string, any>): boolean {
+  const entitlement = articleAccessEntitlement(articleMode(article));
+  return entitlement ? Boolean(subscription.entitlements?.[entitlement]) : subscription.hasAccess;
+}
+
+function findArticleById(articleId: string): Record<string, any> | null {
+  const existing: any = loadData('articles.json') ?? { articles: [] };
+  if (!Array.isArray(existing.articles)) return null;
+  return existing.articles.find((article: any) => String(article.id) === articleId) ?? null;
+}
+
+function findArticleByUrlOrTitle(rawUrl: string, title: string): Record<string, any> | null {
+  const existing: any = loadData('articles.json') ?? { articles: [] };
+  if (!Array.isArray(existing.articles)) return null;
+  const targetSlug = articleSlug(rawUrl);
+  const normalizedTitle = normalizeBoostyLevelName(title);
+  return existing.articles.find((article: any) => {
+    const articleUrl = String(article.url || '');
+    const articleTitle = normalizeBoostyLevelName(String(article.title || ''));
+    return (targetSlug && articleSlug(articleUrl) === targetSlug)
+      || (normalizedTitle && articleTitle === normalizedTitle);
+  }) ?? null;
+}
+
+function shapeArticlesData(raw: any, userId = '') {
+  const articles = Array.isArray(raw?.articles)
+    ? [...raw.articles].sort((a, b) => articleDateMs(b) - articleDateMs(a) || String(b.id ?? '').localeCompare(String(a.id ?? '')))
+    : [];
+  const ids = articles.map(article => String(article.id ?? '')).filter(Boolean);
+  const votesByArticle = new Map<string, { likes: number; dislikes: number }>();
+  const userVotes = new Map<string, 'like' | 'dislike'>();
+  if (ids.length) {
+    const placeholders = ids.map(() => '?').join(',');
+    dbAll<any>(`
+      SELECT article_id,
+             SUM(CASE WHEN vote = 1 THEN 1 ELSE 0 END) AS likes,
+             SUM(CASE WHEN vote = -1 THEN 1 ELSE 0 END) AS dislikes
+      FROM article_votes
+      WHERE article_id IN (${placeholders})
+      GROUP BY article_id
+    `, ...ids).forEach(row => {
+      votesByArticle.set(String(row.article_id), {
+        likes: Number(row.likes || 0),
+        dislikes: Number(row.dislikes || 0),
+      });
+    });
+    if (userId) {
+      dbAll<any>(`
+        SELECT article_id, vote
+        FROM article_votes
+        WHERE user_id = ? AND article_id IN (${placeholders})
+      `, userId, ...ids).forEach(row => {
+        userVotes.set(String(row.article_id), Number(row.vote) === 1 ? 'like' : 'dislike');
+      });
+    }
+  }
+  return {
+    ...raw,
+    updatedAt: raw?.updatedAt ?? null,
+    articles: articles.map(article => {
+      const id = String(article.id ?? '');
+      const votes = votesByArticle.get(id) ?? { likes: 0, dislikes: 0 };
+      return {
+        ...article,
+        id,
+        title: String(article.title ?? ''),
+        date: String(article.date ?? ''),
+        image: String(article.image ?? ''),
+        excerpt: String(article.excerpt ?? ''),
+        tag: String(article.tag ?? ''),
+        mode: articleMode(article),
+        url: String(article.url ?? '#'),
+        likes: votes.likes,
+        dislikes: votes.dislikes,
+        userVote: userVotes.get(id) ?? null,
+      };
+    }),
+  };
+}
+
+function articleExists(articleId: string): boolean {
+  return Boolean(findArticleById(articleId));
+}
+
 app.get('/api/articles', (req, res) => {
   const entry = loadDataCached('articles.json');
   if (!entry) return res.status(404).json({ error: 'No data' });
-  return sendCached(req, res, entry, CACHE_1H);
+  const user = userAuth(req);
+  const data = shapeArticlesData(entry.data, user?.id ?? '');
+  if (user) {
+    setPrivateNoStore(res);
+    return res.json(data);
+  }
+  const etag = `"${entry.etag.replace(/^"|"$/g, '')}-articles-votes"`;
+  return sendJsonCached(req, res, data, etag, CACHE_5M);
 });
 
-app.get('/api/guides-archive', (req, res) => {
+app.post('/api/articles/:articleId/vote', async (req, res) => {
+  setPrivateNoStore(res);
+  const user = userAuth(req);
+  if (!user) return res.status(401).json({ error: 'Требуется вход в профиль Манакоста' });
+  const subscription = await refreshSubscriptionForUser(user, false);
+  const articleId = normalizeOptionalText(req.params.articleId, 160);
+  const article = articleId ? findArticleById(articleId) : null;
+  if (!articleId || !article) return res.status(404).json({ error: 'Статья не найдена' });
+  if (!isAdminUser(user) && !subscriptionAllowsArticle(subscription, article)) {
+    return res.status(403).json({ error: 'Голосовать за эту статью могут только подписчики подходящего режима', subscription });
+  }
+  const voteValue = String(req.body?.vote ?? '').toLowerCase();
+  if (voteValue !== 'like' && voteValue !== 'dislike') return res.status(400).json({ error: 'Некорректный голос' });
+  const numericVote = voteValue === 'like' ? 1 : -1;
+  const existing = dbGet<{ vote: number }>('SELECT vote FROM article_votes WHERE article_id = ? AND user_id = ?', articleId, user.id);
+  const nowIso = new Date().toISOString();
+  if (existing && Number(existing.vote) === numericVote) {
+    dbRun('DELETE FROM article_votes WHERE article_id = ? AND user_id = ?', articleId, user.id);
+  } else {
+    dbRun(`
+      INSERT INTO article_votes (article_id, user_id, vote, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(article_id, user_id) DO UPDATE SET vote = excluded.vote, updated_at = excluded.updated_at
+    `, articleId, user.id, numericVote, existing ? nowIso : nowIso, nowIso);
+  }
+  const counts = dbGet<any>(`
+    SELECT
+      SUM(CASE WHEN vote = 1 THEN 1 ELSE 0 END) AS likes,
+      SUM(CASE WHEN vote = -1 THEN 1 ELSE 0 END) AS dislikes
+    FROM article_votes
+    WHERE article_id = ?
+  `, articleId);
+  const next = dbGet<{ vote: number }>('SELECT vote FROM article_votes WHERE article_id = ? AND user_id = ?', articleId, user.id);
+  res.json({
+    success: true,
+    articleId,
+    likes: Number(counts?.likes || 0),
+    dislikes: Number(counts?.dislikes || 0),
+    userVote: next ? (Number(next.vote) === 1 ? 'like' : 'dislike') : null,
+  });
+});
+
+app.get('/api/guides-archive', requireGuidesArchiveAccess, (req, res) => {
   res.set('Cache-Control', CACHE_1H);
   try {
     const database = oldGuidesDatabase();
@@ -3705,7 +5049,7 @@ app.get('/api/guides-archive', (req, res) => {
   }
 });
 
-app.get('/api/guides-archive/:slug', (req, res) => {
+app.get('/api/guides-archive/:slug', requireGuidesArchiveAccess, (req, res) => {
   res.set('Cache-Control', CACHE_1H);
   try {
     const database = oldGuidesDatabase();
@@ -3751,9 +5095,13 @@ app.post('/api/articles/access-link', async (req, res) => {
 
   try {
     const subscription = await refreshSubscriptionForUser(user, false);
-    if (!subscription.hasAccess && !isAdminUser(user)) {
+    const article = findArticleByUrlOrTitle(target.href, title) ?? {
+      title,
+      url: target.href,
+    };
+    if (!isAdminUser(user) && !subscriptionAllowsArticle(subscription, article)) {
       return res.status(403).json({
-        error: 'Для доступа к VIP-статье нужна активная подписка Манакоста',
+        error: 'Для доступа к VIP-статье нужна подписка подходящего режима',
         subscription,
       });
     }
@@ -3903,11 +5251,12 @@ async function proxyBattlegroundAppEndpoint(
     const cacheKey = upstreamUrl.href;
     const cached = battlegroundAppProxyCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
+      const clientCacheControl = res.locals.subscriptionGuarded && !cached.contentType.includes('image/')
+        ? 'private, no-store, max-age=0, must-revalidate'
+        : (cached.contentType.includes('image/') ? BG_IMAGE_CACHE_CONTROL : BG_JSON_CACHE_CONTROL);
       res.status(cached.status);
       res.setHeader('Content-Type', cached.contentType);
-      res.setHeader('Cache-Control', cached.contentType.includes('image/')
-        ? BG_IMAGE_CACHE_CONTROL
-        : BG_JSON_CACHE_CONTROL);
+      res.setHeader('Cache-Control', clientCacheControl);
       res.setHeader('ETag', cached.etag);
       res.setHeader('X-BG-Proxy-Cache', 'HIT');
       if (req.headers['if-none-match'] === cached.etag) return res.status(304).end();
@@ -3937,10 +5286,11 @@ async function proxyBattlegroundAppEndpoint(
       });
     }
     res.status(upstream.status);
+    const clientCacheControl = res.locals.subscriptionGuarded && !contentType.includes('image/')
+      ? 'private, no-store, max-age=0, must-revalidate'
+      : (contentType.includes('image/') ? BG_IMAGE_CACHE_CONTROL : BG_JSON_CACHE_CONTROL);
     res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', contentType.includes('image/')
-      ? BG_IMAGE_CACHE_CONTROL
-      : BG_JSON_CACHE_CONTROL);
+    res.setHeader('Cache-Control', clientCacheControl);
     res.setHeader('ETag', etag);
     res.setHeader('X-BG-Proxy-Cache', 'MISS');
     res.send(body);
@@ -4002,28 +5352,28 @@ async function proxyExtraBattlegroundLibraryEndpoint(req: express.Request, res: 
   }
 }
 
-app.get('/api/battlegrounds-library', (req, res) => proxyLegacyBattlegroundEndpoint(req, res, '/api/battlegrounds-library'));
-app.get('/api/battlegrounds-spells', (req, res) => proxyLegacyBattlegroundEndpoint(req, res, '/api/battlegrounds-spells'));
-app.get('/api/battlegrounds-card-names', (req, res) => proxyLegacyBattlegroundEndpoint(req, res, '/api/battlegrounds-card-names'));
-app.get('/api/bg-comps', (req, res) => proxyLegacyBattlegroundEndpoint(req, res, '/api/bg-comps'));
-app.get('/api/card-art', (req, res) => proxyLegacyBattlegroundEndpoint(req, res, '/api/card-art'));
-app.get('/api/remote-image', (req, res) => proxyLegacyBattlegroundEndpoint(req, res, '/api/remote-image'));
-app.get('/api/bg/heroes', (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/heroes'));
-app.get('/api/bg/heroes/:dbfId/details', (req, res) => proxyBattlegroundAppEndpoint(
+app.get('/api/battlegrounds-library', requireBattlegroundsAccess, (req, res) => proxyLegacyBattlegroundEndpoint(req, res, '/api/battlegrounds-library'));
+app.get('/api/battlegrounds-spells', requireBattlegroundsAccess, (req, res) => proxyLegacyBattlegroundEndpoint(req, res, '/api/battlegrounds-spells'));
+app.get('/api/battlegrounds-card-names', requireBattlegroundsAccess, (req, res) => proxyLegacyBattlegroundEndpoint(req, res, '/api/battlegrounds-card-names'));
+app.get('/api/bg-comps', requireBattlegroundsAccess, (req, res) => proxyLegacyBattlegroundEndpoint(req, res, '/api/bg-comps'));
+app.get('/api/card-art', requireBattlegroundsAccess, (req, res) => proxyLegacyBattlegroundEndpoint(req, res, '/api/card-art'));
+app.get('/api/remote-image', requireBattlegroundsAccess, (req, res) => proxyLegacyBattlegroundEndpoint(req, res, '/api/remote-image'));
+app.get('/api/bg/heroes', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/heroes'));
+app.get('/api/bg/heroes/:dbfId/details', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(
   req,
   res,
   `/api/bg/heroes/${encodeURIComponent(req.params.dbfId)}/details`,
   enrichBattlegroundHeroPayload,
 ));
-app.get('/api/bg/library/meta', (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/library/meta'));
-app.get('/api/bg/library/cards', (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/library/cards'));
-app.get('/api/bg/library/cards/by-dbf/:dbfId', (req, res) => proxyBattlegroundAppEndpoint(req, res, `/api/bg/library/cards/by-dbf/${encodeURIComponent(req.params.dbfId)}`));
-app.get('/api/bg/library/minion-stats', (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/library/minion-stats'));
-app.get('/api/bg/library/minions/:dbfId', (req, res) => proxyBattlegroundAppEndpoint(req, res, `/api/bg/library/minions/${encodeURIComponent(req.params.dbfId)}`));
-app.get('/api/bg/library/minions/:dbfId/history', (req, res) => proxyBattlegroundAppEndpoint(req, res, `/api/bg/library/minions/${encodeURIComponent(req.params.dbfId)}/history`));
-app.get('/api/bg/library/spell-stats', (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/library/spell-stats'));
-app.get('/api/bg/library/extra/:library', (req, res) => proxyExtraBattlegroundLibraryEndpoint(req, res, req.params.library));
-app.get('/api/bg/tier-lists', (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/tier-lists'));
+app.get('/api/bg/library/meta', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/library/meta'));
+app.get('/api/bg/library/cards', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/library/cards'));
+app.get('/api/bg/library/cards/by-dbf/:dbfId', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, `/api/bg/library/cards/by-dbf/${encodeURIComponent(req.params.dbfId)}`));
+app.get('/api/bg/library/minion-stats', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/library/minion-stats'));
+app.get('/api/bg/library/minions/:dbfId', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, `/api/bg/library/minions/${encodeURIComponent(req.params.dbfId)}`));
+app.get('/api/bg/library/minions/:dbfId/history', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, `/api/bg/library/minions/${encodeURIComponent(req.params.dbfId)}/history`));
+app.get('/api/bg/library/spell-stats', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/library/spell-stats'));
+app.get('/api/bg/library/extra/:library', requireBattlegroundsAccess, (req, res) => proxyExtraBattlegroundLibraryEndpoint(req, res, req.params.library));
+app.get('/api/bg/tier-lists', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/tier-lists'));
 
 app.get('/api/status', (req, res) => {
   const wr = loadDataCached('winrates.json');
@@ -4039,7 +5389,7 @@ app.get('/api/status', (req, res) => {
 
 let isScraping = false;
 
-app.post('/api/scrape', async (req, res) => {
+app.post('/api/scrape', manualScrapeGuard, scrapeLimiter, async (req, res) => {
   if (isScraping) {
     return res.status(409).json({ message: 'Парсинг уже запущен' });
   }
@@ -4065,7 +5415,8 @@ app.get('/api/check-ip', (req, res) => {
   });
 });
 
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', authCodeRequestLimiter, async (req, res) => {
+  setPrivateNoStore(res);
   const email = normalizeEmail(req.body?.email);
   const password = String(req.body?.password ?? '');
   const name = String(req.body?.name ?? '').trim() || 'Пользователь Манакоста';
@@ -4095,25 +5446,20 @@ app.post('/api/auth/register', async (req, res) => {
     updatedAt: now,
   });
 
-  const code = randomInt(100000, 1000000).toString();
-  store.pendingCodes = store.pendingCodes.filter(item => item.email !== email && item.expiresAt > Date.now());
-  store.pendingCodes.push({
-    email,
-    codeHash: sha256(code),
-    expiresAt: Date.now() + AUTH_CODE_TTL_MS,
-    attempts: 0,
-  });
+  const authCode = prepareAuthCode(store, email);
+  if (authCode.ok === false) return res.status(authCode.status).json({ error: authCode.error });
   saveAuthStore(store);
 
   try {
-    await sendAuthCodeEmail(email, code);
+    await sendAuthCodeEmail(email, authCode.code);
     res.json({ success: true, email, message: 'Аккаунт создан. Код отправлен на почту' });
   } catch (err: any) {
     res.status(500).json({ error: err?.message ?? 'Аккаунт создан, но код не удалось отправить' });
   }
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authPasswordLimiter, authCodeRequestLimiter, async (req, res) => {
+  setPrivateNoStore(res);
   const email = normalizeEmail(req.body?.email);
   const password = String(req.body?.password ?? '');
   if (!isRealEmail(email)) return res.status(400).json({ error: 'Укажите корректную почту' });
@@ -4123,43 +5469,49 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(401).json({ error: 'Неверная почта или пароль' });
   }
 
-  const code = randomInt(100000, 1000000).toString();
-  store.pendingCodes = store.pendingCodes.filter(item => item.email !== email && item.expiresAt > Date.now());
-  store.pendingCodes.push({
-    email,
-    codeHash: sha256(code),
-    expiresAt: Date.now() + AUTH_CODE_TTL_MS,
-    attempts: 0,
-  });
+  const token = adminTokenFromReq(req);
+  const activeSession = authenticatedSessionFromToken(token);
+  if (activeSession?.user.email === email) {
+    if (refreshAuthSessionIfNeeded(activeSession.store, activeSession.session)) {
+      saveAuthStore(activeSession.store);
+    }
+    setAuthCookie(req, res, token);
+    return res.json({
+      success: true,
+      authenticated: true,
+      user: publicUser(activeSession.user),
+      adminAllowed: isAdminUser(activeSession.user),
+      contestAdminAllowed: isContestAdminUser(activeSession.user),
+      message: 'Вы уже вошли в аккаунт.',
+    });
+  }
+
+  const authCode = prepareAuthCode(store, email);
+  if (authCode.ok === false) return res.status(authCode.status).json({ error: authCode.error });
   saveAuthStore(store);
 
   try {
-    await sendAuthCodeEmail(email, code);
+    await sendAuthCodeEmail(email, authCode.code);
     res.json({ success: true, email, message: 'Код отправлен на почту' });
   } catch (err: any) {
     res.status(500).json({ error: err?.message ?? 'Не удалось отправить код' });
   }
 });
 
-app.post('/api/auth/password-reset/request', async (req, res) => {
+app.post('/api/auth/password-reset/request', authCodeRequestLimiter, async (req, res) => {
+  setPrivateNoStore(res);
   const email = normalizeEmail(req.body?.email);
   if (!isRealEmail(email)) return res.status(400).json({ error: 'Укажите корректную почту' });
   const store = loadAuthStore();
   const user = store.users.find(item => item.email === email);
 
   if (user) {
-    const code = randomInt(100000, 1000000).toString();
-    store.pendingCodes = store.pendingCodes.filter(item => item.email !== email && item.expiresAt > Date.now());
-    store.pendingCodes.push({
-      email,
-      codeHash: sha256(code),
-      expiresAt: Date.now() + AUTH_CODE_TTL_MS,
-      attempts: 0,
-    });
+    const authCode = prepareAuthCode(store, email);
+    if (authCode.ok === false) return res.status(authCode.status).json({ error: authCode.error });
     saveAuthStore(store);
 
     try {
-      await sendAuthCodeEmail(email, code);
+      await sendAuthCodeEmail(email, authCode.code);
     } catch (err: any) {
       return res.status(500).json({ error: err?.message ?? 'Не удалось отправить код' });
     }
@@ -4168,7 +5520,8 @@ app.post('/api/auth/password-reset/request', async (req, res) => {
   res.json({ success: true, email, message: 'Если аккаунт существует, код отправлен на почту' });
 });
 
-app.post('/api/auth/password-reset/confirm', (req, res) => {
+app.post('/api/auth/password-reset/confirm', authCodeVerifyLimiter, (req, res) => {
+  setPrivateNoStore(res);
   const email = normalizeEmail(req.body?.email);
   const code = String(req.body?.code ?? '').replace(/\D/g, '');
   const password = String(req.body?.password ?? '');
@@ -4181,7 +5534,7 @@ app.post('/api/auth/password-reset/confirm', (req, res) => {
   if (!user || !pending) return res.status(401).json({ error: 'Код устарел. Запросите новый.' });
 
   pending.attempts += 1;
-  if (pending.attempts > 5 || pending.codeHash !== sha256(code)) {
+  if (pending.attempts > AUTH_CODE_MAX_ATTEMPTS || !verifyPendingCode(pending, code)) {
     saveAuthStore(store);
     return res.status(401).json({ error: 'Неверный код' });
   }
@@ -4196,16 +5549,18 @@ app.post('/api/auth/password-reset/confirm', (req, res) => {
 
 app.get('/api/auth/telegram/config', (_req, res) => {
   const enabled = telegramAuthEnabled();
+  const useOidc = telegramOidcEnabled();
+  const useLegacyWidget = !useOidc && telegramLegacyWidgetEnabled();
   res.json({
     enabled,
-    mode: telegramOidcEnabled() ? 'oidc' : 'legacy-widget',
+    mode: useOidc ? 'oidc' : useLegacyWidget ? 'legacy-widget' : 'disabled',
     botUsername: enabled ? TELEGRAM_AUTH_BOT_USERNAME : '',
-    authUrl: enabled ? `${APP_URL}/api/auth/telegram/start` : '',
+    authUrl: enabled ? (useLegacyWidget ? `${APP_URL}/api/auth/telegram/callback` : `${APP_URL}/api/auth/telegram/start`) : '',
     callbackUrl: enabled ? `${APP_URL}/api/auth/telegram/callback` : '',
   });
 });
 
-function upsertTelegramUser(payload: Record<string, unknown>) {
+function upsertTelegramUser(payload: Record<string, unknown>, options: { linkUserId?: string } = {}) {
   const telegramId = String(payload.id ?? '').replace(/\D/g, '');
   const telegramOidcSub = String(payload.oidc_sub ?? '').trim();
   if (!telegramId && !telegramOidcSub) throw new Error('Telegram не передал ID пользователя');
@@ -4227,14 +5582,45 @@ function upsertTelegramUser(payload: Record<string, unknown>) {
     ? dbGet<{ user_id?: string }>("SELECT user_id FROM identities WHERE provider = 'telegram_oidc' AND provider_user_id = ?", telegramOidcSub)
     : null;
   const oidcUser = oidcIdentity?.user_id ? store.users.find(item => item.id === oidcIdentity.user_id) : undefined;
+  const usernameOidcIdentity = username
+    ? dbGet<{ user_id?: string }>("SELECT user_id FROM identities WHERE provider = 'telegram_oidc' AND lower(username) = lower(?)", username)
+    : null;
+  const usernameOidcUser = usernameOidcIdentity?.user_id ? store.users.find(item => item.id === usernameOidcIdentity.user_id) : undefined;
   const telegramUser = telegramId ? store.users.find(item => item.telegramId === telegramId) : undefined;
   const usernameTelegramUser = username
     ? store.users.find(item => String(item.telegramUsername || '').toLowerCase() === username.toLowerCase())
     : undefined;
   const emailUser = store.users.find(item => item.email === email);
-  let user = oidcUser ?? telegramUser ?? usernameTelegramUser ?? emailUser;
+  const linkUser = options.linkUserId ? store.users.find(item => item.id === options.linkUserId) : undefined;
+  let user = oidcUser ?? telegramUser ?? usernameTelegramUser ?? usernameOidcUser ?? emailUser;
 
-  if (telegramUser && emailUser && telegramUser.id !== emailUser.id) {
+  if (linkUser) {
+    if (telegramUser && telegramUser.id !== linkUser.id) {
+      user = mergeAuthUsers(store, telegramUser, linkUser, {
+        telegramId,
+        telegramUsername: username,
+        photoUrl: photoUrl || telegramUser.photoUrl,
+      });
+    } else if (oidcUser && oidcUser.id !== linkUser.id) {
+      user = mergeAuthUsers(store, oidcUser, linkUser, {
+        telegramId: telegramId || oidcUser.telegramId,
+        telegramUsername: username || oidcUser.telegramUsername,
+        photoUrl: photoUrl || oidcUser.photoUrl,
+      });
+    } else if (usernameOidcUser && usernameOidcUser.id !== linkUser.id) {
+      user = mergeAuthUsers(store, usernameOidcUser, linkUser, {
+        telegramId: telegramId || usernameOidcUser.telegramId,
+        telegramUsername: username || usernameOidcUser.telegramUsername,
+        photoUrl: photoUrl || usernameOidcUser.photoUrl,
+      });
+    } else {
+      user = linkUser;
+      user.telegramId = telegramId || user.telegramId;
+      user.telegramUsername = username || user.telegramUsername;
+      user.photoUrl = photoUrl || user.photoUrl;
+      user.updatedAt = now;
+    }
+  } else if (telegramUser && emailUser && telegramUser.id !== emailUser.id) {
     user = mergeAuthUsers(store, telegramUser, emailUser, {
       telegramId,
       telegramUsername: username,
@@ -4295,14 +5681,14 @@ function linkTelegramOidcIdentity(user: AdminUser, claims: Record<string, any>) 
 }
 
 app.get('/api/auth/telegram/start', async (req, res) => {
+  setPrivateNoStore(res);
   if (!telegramOidcEnabled()) return res.redirect('/?login&telegram=error');
   try {
     const discovery = await telegramOidcDiscovery();
     const state = randomBytes(24).toString('base64url');
     const nonce = randomBytes(24).toString('base64url');
     const codeVerifier = randomBytes(48).toString('base64url');
-    const returnToRaw = String(req.query.returnTo ?? '/?login&telegram=ok');
-    const returnTo = returnToRaw.startsWith('/') && !returnToRaw.startsWith('//') ? returnToRaw : '/?login&telegram=ok';
+    const returnTo = safeAuthReturnTo(req.query.returnTo);
     setTelegramOidcCookie(req, res, {
       state,
       nonce,
@@ -4329,12 +5715,15 @@ app.get('/api/auth/telegram/start', async (req, res) => {
 });
 
 app.get('/api/auth/telegram/callback', async (req, res) => {
+  setPrivateNoStore(res);
   if (telegramOidcEnabled() && req.query.code) {
-    const oidcState = readTelegramOidcState(req);
-    clearTelegramOidcCookie(req, res);
-    if (!oidcState || String(req.query.state ?? '') !== oidcState.state) {
+    const requestedState = String(req.query.state ?? '');
+    const oidcState = readTelegramOidcState(req, requestedState);
+    if (!oidcState) {
+      console.warn('[auth] Telegram OIDC callback rejected: missing, expired, or mismatched state');
       return res.redirect('/?login&telegram=error');
     }
+    clearTelegramOidcCookie(req, res, oidcState.state);
     try {
       const discovery = await telegramOidcDiscovery();
       const tokenParams = new URLSearchParams({
@@ -4342,28 +5731,34 @@ app.get('/api/auth/telegram/callback', async (req, res) => {
         code: String(req.query.code),
         redirect_uri: `${APP_URL}/api/auth/telegram/callback`,
         client_id: TELEGRAM_OIDC_CLIENT_ID,
-        client_secret: TELEGRAM_OIDC_CLIENT_SECRET,
         code_verifier: oidcState.codeVerifier,
       });
+      const basicAuth = Buffer.from(`${TELEGRAM_OIDC_CLIENT_ID}:${TELEGRAM_OIDC_CLIENT_SECRET}`).toString('base64');
       const tokenData = await fetchJsonWithTimeout(discovery.token_endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: `Basic ${basicAuth}`,
+        },
         body: tokenParams,
       });
       const claims = await verifyTelegramOidcIdToken(String(tokenData.id_token || ''), oidcState.nonce);
       const nameParts = String(claims.name || '').trim().split(/\s+/).filter(Boolean);
       const payload: Record<string, unknown> = {
+        id: String(claims.id ?? '').replace(/\D/g, ''),
         oidc_sub: String(claims.sub ?? ''),
         first_name: nameParts[0] || String(claims.name || '').trim(),
         last_name: nameParts.slice(1).join(' '),
         username: String(claims.preferred_username || '').replace(/^@/, ''),
         photo_url: String(claims.picture || ''),
       };
-      const { store, user, khaProfile } = upsertTelegramUser(payload);
+      const currentUser = userAuth(req);
+      const { store, user, khaProfile } = upsertTelegramUser(payload, { linkUserId: currentUser?.id });
       const token = createAuthSession(store, user);
       saveAuthStore(store);
       linkTelegramOidcIdentity(user, claims);
       applyKhaSubscriptionSnapshot(user, khaProfile);
+      await refreshSubscriptionAfterTelegramAuth(user);
       setAuthCookie(req, res, token);
       return res.redirect(oidcState.returnTo || '/?login&telegram=ok');
     } catch (err) {
@@ -4378,19 +5773,22 @@ app.get('/api/auth/telegram/callback', async (req, res) => {
     return res.redirect('/?login&telegram=error');
   }
   try {
-    const { store, user, khaProfile } = upsertTelegramUser(payload);
+    const currentUser = userAuth(req);
+    const { store, user, khaProfile } = upsertTelegramUser(payload, { linkUserId: currentUser?.id });
     const token = createAuthSession(store, user);
     saveAuthStore(store);
     applyKhaSubscriptionSnapshot(user, khaProfile);
+    await refreshSubscriptionAfterTelegramAuth(user);
     setAuthCookie(req, res, token);
-    return res.redirect('/?login&telegram=ok');
+    return res.redirect(safeAuthReturnTo(req.query.returnTo));
   } catch (err) {
     console.warn('[auth] Telegram callback failed:', err);
     return res.redirect('/?login&telegram=error');
   }
 });
 
-app.post('/api/auth/telegram', (req, res) => {
+app.post('/api/auth/telegram', async (req, res) => {
+  setPrivateNoStore(res);
   const payload = req.body && typeof req.body === 'object' ? req.body as Record<string, unknown> : {};
   const verification = verifyTelegramAuthPayload(payload);
   if (verification.ok === false) return res.status(401).json({ error: verification.error });
@@ -4399,19 +5797,23 @@ app.post('/api/auth/telegram', (req, res) => {
   let user: AdminUser;
   let khaProfile: Record<string, any> | null;
   try {
-    ({ store, user, khaProfile } = upsertTelegramUser(payload));
+    const currentUser = userAuth(req);
+    ({ store, user, khaProfile } = upsertTelegramUser(payload, { linkUserId: currentUser?.id }));
   } catch (err: any) {
     return res.status(400).json({ error: err?.message ?? 'Telegram не передал пользователя' });
   }
 
+  if (user.blockedAt) return res.status(403).json({ error: 'Пользователь заблокирован' });
   const token = createAuthSession(store, user);
   saveAuthStore(store);
   applyKhaSubscriptionSnapshot(user, khaProfile);
+  await refreshSubscriptionAfterTelegramAuth(user);
   setAuthCookie(req, res, token);
-  res.json({ success: true, token, user: publicUser(user), adminAllowed: isAdminUser(user) });
+  res.json({ success: true, token, user: publicUser(user), adminAllowed: isAdminUser(user), contestAdminAllowed: isContestAdminUser(user) });
 });
 
-app.post('/api/auth/verify', (req, res) => {
+app.post('/api/auth/verify', authCodeVerifyLimiter, (req, res) => {
+  setPrivateNoStore(res);
   const email = normalizeEmail(req.body?.email);
   const code = String(req.body?.code ?? '').replace(/\D/g, '');
   if (!isRealEmail(email)) return res.status(400).json({ error: 'Укажите корректную почту' });
@@ -4419,28 +5821,42 @@ app.post('/api/auth/verify', (req, res) => {
   const pending = store.pendingCodes.find(item => item.email === email && item.expiresAt > Date.now());
   if (!pending) return res.status(401).json({ error: 'Код устарел. Запросите новый.' });
   pending.attempts += 1;
-  if (pending.attempts > 5 || pending.codeHash !== sha256(code)) {
+  if (pending.attempts > AUTH_CODE_MAX_ATTEMPTS || !verifyPendingCode(pending, code)) {
     saveAuthStore(store);
     return res.status(401).json({ error: 'Неверный код' });
   }
 
   const user = store.users.find(item => item.email === email);
   if (!user) return res.status(401).json({ error: 'Пользователь не найден' });
+  if (user.blockedAt) return res.status(403).json({ error: 'Пользователь заблокирован' });
 
   store.pendingCodes = store.pendingCodes.filter(item => item.email !== email);
   const token = createAuthSession(store, user);
   saveAuthStore(store);
   setAuthCookie(req, res, token);
-  res.json({ success: true, token, user: publicUser(user), adminAllowed: isAdminUser(user) });
+  res.json({ success: true, token, user: publicUser(user), adminAllowed: isAdminUser(user), contestAdminAllowed: isContestAdminUser(user) });
 });
 
 app.get('/api/auth/me', (req, res) => {
-  const user = userAuth(req);
-  if (!user) return res.status(401).json({ error: 'Требуется вход' });
-  res.json({ user: publicUser(user), adminAllowed: isAdminUser(user) });
+  setPrivateNoStore(res);
+  const token = adminTokenFromReq(req);
+  const activeSession = authenticatedSessionFromToken(token);
+  const user = activeSession?.user ?? null;
+  if (activeSession && token) {
+    if (refreshAuthSessionIfNeeded(activeSession.store, activeSession.session)) {
+      saveAuthStore(activeSession.store);
+    }
+    setAuthCookie(req, res, token);
+  }
+  res.json({
+    user: user ? publicUser(user) : null,
+    adminAllowed: user ? isAdminUser(user) : false,
+    contestAdminAllowed: user ? isContestAdminUser(user) : false,
+  });
 });
 
 app.patch('/api/auth/profile', (req, res) => {
+  setPrivateNoStore(res);
   const authedUser = userAuth(req);
   if (!authedUser) return res.status(401).json({ error: 'Требуется вход' });
   const store = loadAuthStore();
@@ -4468,6 +5884,7 @@ app.patch('/api/auth/profile', (req, res) => {
 });
 
 app.post('/api/auth/logout', (req, res) => {
+  setPrivateNoStore(res);
   const token = adminTokenFromReq(req);
   if (token) {
     const store = loadAuthStore();
@@ -4480,6 +5897,7 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 app.get('/api/subscription/status', async (req, res) => {
+  setPrivateNoStore(res);
   const user = userAuth(req);
   if (!user) return res.status(401).json({ error: 'Требуется вход' });
   try {
@@ -4491,6 +5909,7 @@ app.get('/api/subscription/status', async (req, res) => {
 });
 
 app.post('/api/subscription/refresh', async (req, res) => {
+  setPrivateNoStore(res);
   const user = userAuth(req);
   if (!user) return res.status(401).json({ error: 'Требуется вход' });
   try {
@@ -4503,6 +5922,7 @@ app.post('/api/subscription/refresh', async (req, res) => {
 
 app.get('/api/contests', (req, res) => {
   const user = userAuth(req);
+  if (user) setPrivateNoStore(res);
   const rows = dbAll<any>("SELECT * FROM contests WHERE status NOT IN ('draft', 'cancelled') ORDER BY COALESCE(ends_at, created_at) DESC, created_at DESC");
   const entries = user
     ? new Map(dbAll<any>('SELECT contest_id, status, created_at FROM contest_entries WHERE user_id = ?', user.id).map(row => [String(row.contest_id), row]))
@@ -4514,6 +5934,7 @@ app.get('/api/contests', (req, res) => {
 });
 
 app.post('/api/contests/:contestId/join', async (req, res) => {
+  setPrivateNoStore(res);
   const user = userAuth(req);
   if (!user) return res.status(401).json({ error: 'Войдите в профиль, чтобы участвовать в конкурсе' });
   const contest = dbGet<any>('SELECT * FROM contests WHERE id = ?', String(req.params.contestId));
@@ -4525,9 +5946,9 @@ app.post('/api/contests/:contestId/join', async (req, res) => {
   if (effectiveStatus === 'planned') return res.status(409).json({ error: 'Конкурс еще не начался' });
 
   const subscription = await refreshSubscriptionForUser(user, false);
-  if (!subscription.hasAccess && user.id !== CONTEST_ADMIN_USER_ID) {
+  if (!subscription.entitlements.contests && user.id !== CONTEST_ADMIN_USER_ID) {
     return res.status(403).json({
-      error: 'Для участия нужна активная подписка Манакоста',
+      error: 'Для участия нужна подписка Манакоста с доступом к конкурсам',
       subscription,
     });
   }
@@ -4556,6 +5977,7 @@ app.post('/api/contests/:contestId/join', async (req, res) => {
 });
 
 app.get('/api/profile/contest-history', (req, res) => {
+  setPrivateNoStore(res);
   const user = userAuth(req);
   if (!user) return res.status(401).json({ error: 'Требуется вход' });
   const rows = dbAll<any>(`
@@ -4592,8 +6014,7 @@ app.get('/api/profile/contest-history', (req, res) => {
         joinedAt: String(row.joined_at || ''),
         startsAt: row.starts_at ? String(row.starts_at) : '',
         endsAt: row.ends_at ? String(row.ends_at) : '',
-        winners,
-        isWinner: winners.includes(user.id) || winners.includes(user.email),
+        isWinner: winners.includes(user.id),
       };
     }),
   });
@@ -4610,7 +6031,7 @@ app.get('/api/admin/contests', (req, res) => {
     ORDER BY c.created_at DESC
   `);
   res.json({
-    contests: rows.map(row => ({ ...contestFromRow(row), entriesCount: Number(row.entries_count || 0) })),
+    contests: rows.map(row => ({ ...contestFromRow(row, undefined, { includeRawWinners: true }), entriesCount: Number(row.entries_count || 0) })),
     admin: publicUser(admin),
   });
 });
@@ -4630,6 +6051,11 @@ app.post('/api/admin/contests', (req, res) => {
   if (startsAt && endsAt && Date.parse(endsAt) <= Date.parse(startsAt)) {
     return res.status(400).json({ error: 'Финиш конкурса должен быть позже старта' });
   }
+  const rawImageUrl = normalizeOptionalText(req.body?.imageUrl, 500);
+  const imageUrl = normalizeContestImageUrl(rawImageUrl);
+  if (rawImageUrl && !imageUrl) {
+    return res.status(400).json({ error: 'Обложка конкурса должна быть загружена через админку' });
+  }
   dbRun(`
     INSERT INTO contests (id, title, description, prize, image_url, starts_at, ends_at, status, winners_json, created_by, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -4643,7 +6069,7 @@ app.post('/api/admin/contests', (req, res) => {
       status = excluded.status,
       updated_at = excluded.updated_at
   `, id, title, normalizeOptionalText(req.body?.description, 2000), normalizeOptionalText(req.body?.prize, 240),
-    normalizeOptionalText(req.body?.imageUrl, 500), startsAt, endsAt, status, '[]', admin.id, nowIso, nowIso);
+    imageUrl, startsAt, endsAt, status, '[]', admin.id, nowIso, nowIso);
   const row = dbGet<any>('SELECT * FROM contests WHERE id = ?', id);
   res.json({ success: true, contest: contestFromRow(row) });
 });
@@ -4652,9 +6078,15 @@ app.get('/api/admin/contests/:contestId/entries', (req, res) => {
   const admin = contestAdminAuth(req);
   if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
   const rows = dbAll<any>(`
-    SELECT e.*, u.name, u.role, u.country, u.contact_vk_url, u.contact_telegram, u.contact_email, u.telegram_username
+    SELECT e.*, u.name, u.role, u.country, u.contact_vk_url, u.contact_telegram, u.contact_email, tg.username AS telegram_username
     FROM contest_entries e
     LEFT JOIN users u ON u.id = e.user_id
+    LEFT JOIN (
+      SELECT user_id, MAX(username) AS username
+      FROM identities
+      WHERE provider IN ('telegram', 'telegram_oidc')
+      GROUP BY user_id
+    ) tg ON tg.user_id = e.user_id
     WHERE e.contest_id = ?
     ORDER BY e.created_at DESC
   `, String(req.params.contestId));
@@ -4682,14 +6114,24 @@ app.get('/api/admin/contests/:contestId/entries', (req, res) => {
 app.post('/api/admin/contests/:contestId/winners', (req, res) => {
   const admin = contestAdminAuth(req);
   if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  const winners = Array.isArray(req.body?.winners)
+  const contestId = String(req.params.contestId);
+  const contest = dbGet<any>('SELECT * FROM contests WHERE id = ?', contestId);
+  if (!contest) return res.status(404).json({ error: 'Конкурс не найден' });
+  const requestedWinners: string[] = Array.isArray(req.body?.winners)
     ? req.body.winners.map((item: unknown) => normalizeOptionalText(item, 120)).filter(Boolean).slice(0, 100)
     : [];
+  if (requestedWinners.length === 0) return res.status(400).json({ error: 'Укажите хотя бы одного победителя из заявок конкурса' });
+  const entryRows = dbAll<any>("SELECT user_id FROM contest_entries WHERE contest_id = ? AND status = 'approved'", contestId);
+  const allowedWinnerIds = new Set(entryRows.map(row => String(row.user_id || '')).filter(Boolean));
+  const winners = Array.from(new Set(requestedWinners));
+  const invalidWinners = winners.filter(id => !allowedWinnerIds.has(id));
+  if (invalidWinners.length > 0) {
+    return res.status(400).json({ error: `Победители должны быть ID участников этого конкурса: ${invalidWinners.join(', ')}` });
+  }
   dbRun('UPDATE contests SET winners_json = ?, status = ?, updated_at = ? WHERE id = ?',
-    JSON.stringify(winners), 'completed', new Date().toISOString(), String(req.params.contestId));
-  const row = dbGet<any>('SELECT * FROM contests WHERE id = ?', String(req.params.contestId));
-  if (!row) return res.status(404).json({ error: 'Конкурс не найден' });
-  res.json({ success: true, contest: contestFromRow(row) });
+    JSON.stringify(winners), 'completed', new Date().toISOString(), contestId);
+  const row = dbGet<any>('SELECT * FROM contests WHERE id = ?', contestId);
+  res.json({ success: true, contest: contestFromRow(row, undefined, { includeRawWinners: true }) });
 });
 
 app.delete('/api/admin/contests/:contestId', (req, res) => {
@@ -4700,6 +6142,298 @@ app.delete('/api/admin/contests/:contestId', (req, res) => {
   if (!row) return res.status(404).json({ error: 'Конкурс не найден' });
   dbRun('DELETE FROM contests WHERE id = ?', id);
   res.json({ success: true, deletedId: id });
+});
+
+app.get('/api/admin/users', (req, res) => {
+  const admin = adminAuth(req);
+  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
+  const q = normalizeOptionalText(req.query.q, 120).toLowerCase();
+  const role = normalizeOptionalText(req.query.role, 40);
+  const subscription = normalizeOptionalText(req.query.subscription, 40);
+  const limit = Math.min(200, Math.max(10, Number(req.query.limit || 100) || 100));
+  const offset = Math.max(0, Number(req.query.offset || 0) || 0);
+  const where: string[] = [];
+  const params: any[] = [];
+
+  if (q) {
+    const like = `%${q}%`;
+    where.push(`(
+      lower(u.id) LIKE ?
+      OR lower(u.email) LIKE ?
+      OR lower(u.name) LIKE ?
+      OR lower(COALESCE(u.contact_vk_url, '')) LIKE ?
+      OR lower(COALESCE(u.contact_telegram, '')) LIKE ?
+      OR lower(COALESCE(u.contact_email, '')) LIKE ?
+      OR lower(COALESCE(tg.username, '')) LIKE ?
+      OR lower(COALESCE(tg.provider_user_id, '')) LIKE ?
+    )`);
+    params.push(like, like, like, like, like, like, like, like);
+  }
+  if (role === 'admin' || role === 'user') {
+    where.push('u.role = ?');
+    params.push(role);
+  }
+  if (subscription === 'active') where.push('COALESCE(s.has_access, 0) = 1');
+  if (subscription === 'inactive') where.push('COALESCE(s.has_access, 0) = 0');
+
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const total = dbGet<{ count: number }>(`
+    SELECT COUNT(*) AS count
+    FROM users u
+    LEFT JOIN identities tg ON tg.user_id = u.id AND tg.provider = 'telegram'
+    LEFT JOIN subscriptions s ON s.user_id = u.id
+    ${whereSql}
+  `, ...params)?.count ?? 0;
+  const users = dbAll<any>(`
+    SELECT
+      u.*,
+      tg.provider_user_id AS telegram_id,
+      tg.username AS telegram_username,
+      tg.photo_url AS telegram_photo_url,
+      oidc.provider_user_id AS telegram_oidc_id,
+      s.has_access,
+      s.source AS subscription_source,
+      s.message AS subscription_message,
+      s.checked_at AS subscription_checked_at,
+      s.updated_at AS subscription_updated_at,
+      s.boosty_json,
+      s.telegram_json,
+      (
+        SELECT COUNT(*) FROM contest_entries e WHERE e.user_id = u.id
+      ) AS contest_entries_count
+    FROM users u
+    LEFT JOIN identities tg ON tg.user_id = u.id AND tg.provider = 'telegram'
+    LEFT JOIN identities oidc ON oidc.user_id = u.id AND oidc.provider = 'telegram_oidc'
+    LEFT JOIN subscriptions s ON s.user_id = u.id
+    ${whereSql}
+    ORDER BY u.updated_at DESC, u.created_at DESC
+    LIMIT ? OFFSET ?
+  `, ...params, limit, offset);
+
+  res.json({
+    users: users.map(row => ({
+      id: String(row.id),
+      profileId: String(row.id),
+      name: String(row.name || ''),
+      email: String(row.email || ''),
+      role: String(row.role || 'user'),
+      country: String(row.country || ''),
+      newsletterOptIn: Boolean(row.newsletter_opt_in),
+      avatarInitials: String(row.avatar_initials || ''),
+      telegramId: String(row.telegram_id || ''),
+      telegramUsername: String(row.telegram_username || ''),
+      telegramOidcId: String(row.telegram_oidc_id || ''),
+      photoUrl: String(row.telegram_photo_url || ''),
+      contactVkUrl: String(row.contact_vk_url || ''),
+      contactTelegram: String(row.contact_telegram || ''),
+      contactEmail: String(row.contact_email || ''),
+      blockedAt: String(row.blocked_at || ''),
+      subscription: (() => {
+        const boosty = normalizeBoostySubscriptionDetail(safeJsonObject(row.boosty_json));
+        const telegram = normalizeTelegramSubscriptionDetail(safeJsonObject(row.telegram_json));
+        const source = String(row.subscription_source || 'none');
+        const entitlements = deriveStoredEntitlements(Boolean(row.has_access), source, boosty, telegram);
+        return {
+          hasAccess: hasAnyEntitlement(entitlements),
+          source,
+          message: String(row.subscription_message || ''),
+          checkedAt: row.subscription_checked_at ? String(row.subscription_checked_at) : '',
+          updatedAt: row.subscription_updated_at ? String(row.subscription_updated_at) : '',
+          entitlements,
+          boosty,
+          telegram,
+        };
+      })(),
+      contestEntriesCount: Number(row.contest_entries_count || 0),
+      createdAt: String(row.created_at || ''),
+      updatedAt: String(row.updated_at || ''),
+    })),
+    total,
+    limit,
+    offset,
+  });
+});
+
+app.get('/api/admin/boosty/status', async (req, res) => {
+  const admin = adminAuth(req);
+  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
+  setPrivateNoStore(res);
+  res.json(await fetchBoostyServiceStatus());
+});
+
+app.get('/api/admin/boosty/subscribers', async (req, res) => {
+  const admin = adminAuth(req);
+  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
+  setPrivateNoStore(res);
+  try {
+    const includeInactive = String(req.query.includeInactive ?? '1') !== '0';
+    res.json(await fetchBoostySubscribers(includeInactive));
+  } catch (err: any) {
+    res.status(502).json({
+      configured: Boolean(BOOSTY_AUTH_API_URL),
+      source: 'unavailable',
+      stale: true,
+      subscribers: [],
+      summary: {},
+      levels: {},
+      fetchedAt: new Date().toISOString(),
+      error: err?.message || 'Не удалось загрузить подписчиков Boosty',
+    });
+  }
+});
+
+app.get('/api/admin/telegram/accounts', (req, res) => {
+  const admin = adminAuth(req);
+  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
+  setPrivateNoStore(res);
+  const rows = dbAll<any>(`
+    SELECT
+      u.*,
+      tg.provider_user_id AS telegram_id,
+      tg.username AS telegram_username,
+      tg.photo_url AS telegram_photo_url,
+      tg.verified_at AS telegram_verified_at,
+      oidc.provider_user_id AS telegram_oidc_id,
+      oidc.username AS telegram_oidc_username,
+      oidc.verified_at AS telegram_oidc_verified_at,
+      s.has_access,
+      s.source AS subscription_source,
+      s.message AS subscription_message,
+      s.checked_at AS subscription_checked_at,
+      s.updated_at AS subscription_updated_at,
+      s.boosty_json,
+      s.telegram_json
+    FROM users u
+    LEFT JOIN identities tg ON tg.user_id = u.id AND tg.provider = 'telegram'
+    LEFT JOIN identities oidc ON oidc.user_id = u.id AND oidc.provider = 'telegram_oidc'
+    LEFT JOIN subscriptions s ON s.user_id = u.id
+    ORDER BY u.updated_at DESC, u.created_at DESC
+  `);
+
+  const accounts = rows
+    .map(row => {
+      const boosty = normalizeBoostySubscriptionDetail(safeJsonObject(row.boosty_json));
+      const telegram = normalizeTelegramSubscriptionDetail(safeJsonObject(row.telegram_json));
+      const source = String(row.subscription_source || 'none');
+      const entitlements = deriveStoredEntitlements(Boolean(row.has_access), source, boosty, telegram);
+      const contactTelegram = String(row.contact_telegram || '').trim().replace(/^@/, '');
+      const telegramUsername = String(row.telegram_username || telegram.username || row.telegram_oidc_username || contactTelegram || '').trim().replace(/^@/, '');
+      const telegramId = String(row.telegram_id || telegram.telegramId || '').trim();
+      const telegramOidcId = String(row.telegram_oidc_id || '').trim();
+      const chats = Array.isArray(telegram.chats) ? telegram.chats : [];
+      const hasTelegramIdentity = Boolean(telegramId || telegramOidcId);
+      const hasContactOnly = Boolean(!hasTelegramIdentity && contactTelegram);
+      const telegramAccess = Boolean(telegram.hasAccess);
+      const subscriptionCheckedAt = row.subscription_checked_at ? String(row.subscription_checked_at) : '';
+      const checkedMs = subscriptionCheckedAt ? Date.parse(subscriptionCheckedAt) : Number.NaN;
+      const stale = Number.isFinite(checkedMs) ? Date.now() - checkedMs > SUBSCRIPTION_REFRESH_MS : true;
+      const canBeChecked = Boolean(telegramId);
+      let accessState: 'access' | 'checkable' | 'contact-only' | 'no-access' | 'blocked' = 'no-access';
+      if (row.blocked_at) accessState = 'blocked';
+      else if (telegramAccess) accessState = 'access';
+      else if (canBeChecked) accessState = 'checkable';
+      else if (hasContactOnly) accessState = 'contact-only';
+
+      return {
+        id: String(row.id),
+        profileId: String(row.id),
+        name: String(row.name || ''),
+        email: String(row.email || ''),
+        role: String(row.role || 'user'),
+        blockedAt: String(row.blocked_at || ''),
+        telegramId,
+        telegramOidcId,
+        telegramUsername,
+        contactTelegram,
+        photoUrl: String(row.telegram_photo_url || ''),
+        hasTelegramIdentity,
+        hasContactOnly,
+        canBeChecked,
+        hasAccess: hasAnyEntitlement(entitlements),
+        telegramHasAccess: telegramAccess,
+        accessState,
+        source,
+        message: String(row.subscription_message || telegram.message || ''),
+        checkedAt: subscriptionCheckedAt,
+        updatedAt: row.subscription_updated_at ? String(row.subscription_updated_at) : '',
+        stale,
+        entitlements,
+        chats,
+        boostyHasAccess: Boolean(boosty.hasAccess),
+        createdAt: String(row.created_at || ''),
+        userUpdatedAt: String(row.updated_at || ''),
+      };
+    })
+    .filter(account => (
+      account.hasTelegramIdentity
+      || account.hasContactOnly
+      || account.telegramHasAccess
+      || account.source.includes('telegram')
+      || account.chats.length > 0
+    ));
+
+  const summary = {
+    total: accounts.length,
+    access: accounts.filter(account => account.telegramHasAccess).length,
+    checkable: accounts.filter(account => account.accessState === 'checkable').length,
+    contactOnly: accounts.filter(account => account.accessState === 'contact-only').length,
+    stale: accounts.filter(account => account.stale).length,
+    blocked: accounts.filter(account => account.accessState === 'blocked').length,
+  };
+  res.json({
+    configured: Boolean(KHA_VIP_BOT_TOKEN),
+    chatIds: SUBSCRIPTION_TELEGRAM_CHAT_IDS,
+    summary,
+    accounts,
+    fetchedAt: new Date().toISOString(),
+  });
+});
+
+app.patch('/api/admin/users/:userId', (req, res) => {
+  const admin = adminAuth(req);
+  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
+  const userId = normalizeOptionalText(req.params.userId, 160);
+  const store = loadAuthStore();
+  const user = store.users.find(item => item.id === userId);
+  if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
+
+  const nextRoleRaw = req.body?.role === undefined ? undefined : normalizeOptionalText(req.body.role, 20);
+  const nextBlockedRaw = req.body?.blocked;
+  const wantsRoleChange = nextRoleRaw !== undefined;
+  const wantsBlockChange = nextBlockedRaw !== undefined;
+  if (!wantsRoleChange && !wantsBlockChange) {
+    return res.status(400).json({ error: 'Нет изменений' });
+  }
+  if (nextRoleRaw !== undefined && nextRoleRaw !== 'admin' && nextRoleRaw !== 'user') {
+    return res.status(400).json({ error: 'Некорректная роль' });
+  }
+  const nextBlocked = nextBlockedRaw === undefined ? Boolean(user.blockedAt) : Boolean(nextBlockedRaw);
+  const nextRole = nextRoleRaw === undefined ? user.role : nextRoleRaw as 'admin' | 'user';
+
+  if (user.id === admin.id && nextBlocked) {
+    return res.status(400).json({ error: 'Нельзя заблокировать свой аккаунт' });
+  }
+  if (user.id === admin.id && nextRole !== 'admin') {
+    return res.status(400).json({ error: 'Нельзя снять администратора с самого себя' });
+  }
+
+  const wouldDisableAdmin = user.role === 'admin' && (nextRole !== 'admin' || nextBlocked);
+  if (wouldDisableAdmin) {
+    const remainingAdmins = store.users.filter(item => item.id !== user.id && item.role === 'admin' && !item.blockedAt);
+    if (remainingAdmins.length === 0) {
+      return res.status(400).json({ error: 'Нельзя оставить сайт без активного администратора' });
+    }
+  }
+
+  const nowIso = new Date().toISOString();
+  user.role = nextRole;
+  user.blockedAt = nextBlocked ? (user.blockedAt || nowIso) : '';
+  user.updatedAt = nowIso;
+  if (nextBlocked) {
+    store.sessions = store.sessions.filter(item => item.userId !== user.id && item.email !== user.email);
+  }
+  saveAuthStore(store);
+  res.json({ success: true, user: publicUser(user) });
 });
 
 app.get('/api/admin/users/search', (req, res) => {
@@ -4714,7 +6448,9 @@ app.get('/api/admin/users/search', (req, res) => {
       tg.username AS telegram_username,
       s.has_access,
       s.source AS subscription_source,
-      s.checked_at AS subscription_checked_at
+      s.checked_at AS subscription_checked_at,
+      s.boosty_json,
+      s.telegram_json
     FROM users u
     LEFT JOIN identities tg ON tg.user_id = u.id AND tg.provider = 'telegram'
     LEFT JOIN subscriptions s ON s.user_id = u.id
@@ -4740,18 +6476,26 @@ app.get('/api/admin/users/search', (req, res) => {
       contactVkUrl: String(row.contact_vk_url || ''),
       contactTelegram: String(row.contact_telegram || ''),
       contactEmail: String(row.contact_email || ''),
-      subscription: {
-        hasAccess: Boolean(row.has_access),
-        source: String(row.subscription_source || 'none'),
-        checkedAt: row.subscription_checked_at ? String(row.subscription_checked_at) : '',
-      },
+      subscription: (() => {
+        const source = String(row.subscription_source || 'none');
+        const boosty = normalizeBoostySubscriptionDetail(safeJsonObject(row.boosty_json));
+        const telegram = normalizeTelegramSubscriptionDetail(safeJsonObject(row.telegram_json));
+        const entitlements = deriveStoredEntitlements(Boolean(row.has_access), source, boosty, telegram);
+        return {
+          hasAccess: hasAnyEntitlement(entitlements),
+          source,
+          checkedAt: row.subscription_checked_at ? String(row.subscription_checked_at) : '',
+          entitlements,
+        };
+      })(),
       createdAt: String(row.created_at || ''),
       updatedAt: String(row.updated_at || ''),
     })),
   });
 });
 
-app.post('/api/subscription/email/request', async (req, res) => {
+app.post('/api/subscription/email/request', authCodeRequestLimiter, async (req, res) => {
+  setPrivateNoStore(res);
   const user = userAuth(req);
   if (!user) return res.status(401).json({ error: 'Требуется вход' });
   const email = normalizeEmail(req.body?.email);
@@ -4764,25 +6508,20 @@ app.post('/api/subscription/email/request', async (req, res) => {
     return res.status(409).json({ error: 'Эта почта уже привязана к другому профилю' });
   }
 
-  const code = randomInt(100000, 1000000).toString();
-  store.pendingCodes = store.pendingCodes.filter(item => item.email !== email && item.expiresAt > Date.now());
-  store.pendingCodes.push({
-    email,
-    codeHash: sha256(code),
-    expiresAt: Date.now() + AUTH_CODE_TTL_MS,
-    attempts: 0,
-  });
+  const authCode = prepareAuthCode(store, email);
+  if (authCode.ok === false) return res.status(authCode.status).json({ error: authCode.error });
   saveAuthStore(store);
 
   try {
-    await sendAuthCodeEmail(email, code);
+    await sendAuthCodeEmail(email, authCode.code);
     res.json({ success: true, email, message: 'Код подтверждения отправлен на почту' });
   } catch (err: any) {
     res.status(500).json({ error: err?.message ?? 'Не удалось отправить код' });
   }
 });
 
-app.post('/api/subscription/email/confirm', async (req, res) => {
+app.post('/api/subscription/email/confirm', authCodeVerifyLimiter, async (req, res) => {
+  setPrivateNoStore(res);
   const authedUser = userAuth(req);
   if (!authedUser) return res.status(401).json({ error: 'Требуется вход' });
   const email = normalizeEmail(req.body?.email);
@@ -4803,7 +6542,7 @@ app.post('/api/subscription/email/confirm', async (req, res) => {
   if (!pending) return res.status(401).json({ error: 'Код устарел. Запросите новый.' });
 
   pending.attempts += 1;
-  if (pending.attempts > 5 || pending.codeHash !== sha256(code)) {
+  if (pending.attempts > AUTH_CODE_MAX_ATTEMPTS || !verifyPendingCode(pending, code)) {
     saveAuthStore(store);
     return res.status(401).json({ error: 'Неверный код' });
   }
@@ -4819,12 +6558,14 @@ app.post('/api/subscription/email/confirm', async (req, res) => {
 });
 
 app.get('/api/ecosystem/internal/user', internalApiGuard, (req, res) => {
+  setPrivateNoStore(res);
   const user = resolveUserFromRequest(req);
   if (!user) return res.status(404).json({ error: 'User not found' });
   res.json({ user: publicUser(user), subscription: readSubscriptionStatus(user.id) ?? emptySubscriptionStatus() });
 });
 
 app.get('/api/ecosystem/internal/subscription', internalApiGuard, async (req, res) => {
+  setPrivateNoStore(res);
   const user = resolveUserFromRequest(req);
   if (!user) return res.status(404).json({ error: 'User not found' });
   const force = String(req.query.force ?? '') === '1';
@@ -4833,6 +6574,7 @@ app.get('/api/ecosystem/internal/subscription', internalApiGuard, async (req, re
 });
 
 app.post('/api/ecosystem/internal/subscription', internalApiGuard, async (req, res) => {
+  setPrivateNoStore(res);
   const user = resolveUserFromRequest(req);
   if (!user) return res.status(404).json({ error: 'User not found' });
   const status = await refreshSubscriptionForUser(user, true);
@@ -4863,9 +6605,11 @@ app.post('/api/admin-articles', adminIdGuard, async (req, res) => {
       image:   article.image   ?? '',
       excerpt: article.excerpt ?? '',
       tag:     article.tag     ?? '',
+      mode:    normalizeArticleModeInput(article.mode, article),
       url:     article.url     ?? '#',
     };
     existing.articles.unshift(newArticle);
+    existing.articles.sort((a: any, b: any) => articleDateMs(b) - articleDateMs(a) || String(b.id ?? '').localeCompare(String(a.id ?? '')));
     existing.updatedAt = new Date().toISOString();
     writeFileSync(filePath, JSON.stringify(existing, null, 2), 'utf-8');
     dataCache.delete('articles.json');
@@ -4873,23 +6617,84 @@ app.post('/api/admin-articles', adminIdGuard, async (req, res) => {
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/admin/uploads/image', adminIdGuard, async (req, res) => {
+app.patch('/api/admin-articles', adminIdGuard, async (req, res) => {
   if (!adminAuth(req)) return res.status(401).json({ error: 'Требуется вход' });
+  const id = normalizeOptionalText(req.body?.id ?? req.query?.id, 160);
+  const { article } = req.body ?? {};
+  if (!id) return res.status(400).json({ error: 'id обязателен' });
+  if (!article?.title?.trim()) return res.status(400).json({ error: 'Заголовок обязателен' });
+  try {
+    const filePath = join(DATA_DIR, 'articles.json');
+    const existing: any = loadData('articles.json') ?? { articles: [], updatedAt: null };
+    const list = Array.isArray(existing.articles) ? existing.articles : [];
+    const index = list.findIndex((item: any) => String(item.id) === id);
+    if (index === -1) return res.status(404).json({ error: 'Статья не найдена' });
+    const previous = list[index] ?? {};
+    const updatedArticle = {
+      ...previous,
+      id,
+      title: String(article.title ?? '').trim(),
+      date: normalizeDateOnlyInput(article.date) || String(previous.date || new Date().toISOString().slice(0, 10)),
+      image: String(article.image ?? ''),
+      excerpt: String(article.excerpt ?? ''),
+      tag: String(article.tag ?? ''),
+      mode: normalizeArticleModeInput(article.mode, article),
+      url: String(article.url ?? '#'),
+    };
+    list[index] = updatedArticle;
+    existing.articles = list.sort((a: any, b: any) => articleDateMs(b) - articleDateMs(a) || String(b.id ?? '').localeCompare(String(a.id ?? '')));
+    existing.updatedAt = new Date().toISOString();
+    writeFileSync(filePath, JSON.stringify(existing, null, 2), 'utf-8');
+    dataCache.delete('articles.json');
+    res.json({ success: true, article: updatedArticle });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+function detectAdminUploadFormat(buffer: Buffer): 'gif' | 'jpeg' | 'png' | 'webp' | '' {
+  if (buffer.length < 12) return '';
+  if (buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'png';
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'jpeg';
+  if (buffer.subarray(0, 6).toString('ascii') === 'GIF87a' || buffer.subarray(0, 6).toString('ascii') === 'GIF89a') return 'gif';
+  if (buffer.subarray(0, 4).toString('ascii') === 'RIFF' && buffer.subarray(8, 12).toString('ascii') === 'WEBP') return 'webp';
+  return '';
+}
+
+app.post('/api/admin/uploads/image', async (req, res) => {
+  const canUpload = Boolean(adminAuth(req) || contestAdminAuth(req));
+  if (!canUpload) return res.status(403).json({ error: 'Недостаточно прав' });
   const dataUrl = String(req.body?.dataUrl || '');
   const match = dataUrl.match(/^data:image\/(png|jpe?g|webp|gif);base64,([a-z0-9+/=\s]+)$/i);
   if (!match) return res.status(400).json({ error: 'Нужно передать изображение в формате data URL' });
 
   try {
-    const source = Buffer.from(match[2].replace(/\s/g, ''), 'base64');
+    const declaredFormat = match[1].toLowerCase().replace('jpg', 'jpeg');
+    const base64 = match[2].replace(/\s/g, '');
+    if (!/^[a-z0-9+/]+={0,2}$/i.test(base64) || base64.length % 4 !== 0) {
+      return res.status(400).json({ error: 'Некорректные base64-данные изображения' });
+    }
+    const source = Buffer.from(base64, 'base64');
     if (!source.length) return res.status(400).json({ error: 'Файл пустой' });
-    if (source.length > 12 * 1024 * 1024) return res.status(413).json({ error: 'Картинка больше 12 МБ' });
+    if (source.length > ADMIN_UPLOAD_MAX_BYTES) return res.status(413).json({ error: 'Картинка больше 12 МБ' });
+
+    const actualFormat = detectAdminUploadFormat(source);
+    if (!actualFormat) return res.status(415).json({ error: 'Формат изображения не распознан' });
+    if (actualFormat !== declaredFormat) return res.status(400).json({ error: 'MIME изображения не совпадает с содержимым файла' });
+
+    const metadata = await sharp(source, { limitInputPixels: ADMIN_UPLOAD_MAX_PIXELS }).metadata();
+    const width = Number(metadata.width || 0);
+    const height = Number(metadata.height || 0);
+    if (!width || !height) return res.status(400).json({ error: 'Не удалось определить размер изображения' });
+    if ((metadata.pages || 1) > 1) return res.status(400).json({ error: 'Анимированные изображения не поддерживаются' });
+    if (width > ADMIN_UPLOAD_MAX_WIDTH || height > ADMIN_UPLOAD_MAX_HEIGHT || width * height > ADMIN_UPLOAD_MAX_PIXELS) {
+      return res.status(413).json({ error: 'Разрешение изображения слишком большое' });
+    }
 
     mkdirSync(ADMIN_UPLOAD_DIR, { recursive: true });
     mkdirSync(ADMIN_UPLOAD_SOURCE_DIR, { recursive: true });
     const fileName = `${Date.now().toString(36)}-${randomBytes(5).toString('hex')}.webp`;
     const distPath = join(ADMIN_UPLOAD_DIR, fileName);
     const sourcePath = join(ADMIN_UPLOAD_SOURCE_DIR, fileName);
-    const output = await sharp(source)
+    const output = await sharp(source, { limitInputPixels: ADMIN_UPLOAD_MAX_PIXELS })
       .rotate()
       .resize({ width: 1800, height: 1200, fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 86 })
@@ -4902,7 +6707,8 @@ app.post('/api/admin/uploads/image', adminIdGuard, async (req, res) => {
     }
     res.json({ success: true, url: `/uploads/admin/${fileName}` });
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Не удалось обработать изображение' });
+    console.warn('[admin-upload] image processing failed:', err?.message || err);
+    res.status(500).json({ error: 'Не удалось обработать изображение' });
   }
 });
 
@@ -5111,6 +6917,7 @@ app.delete('/api/admin-articles', adminIdGuard, (req, res) => {
     if (existing.articles.length === before) return res.status(404).json({ error: 'Статья не найдена' });
     existing.updatedAt = new Date().toISOString();
     writeFileSync(filePath, JSON.stringify(existing, null, 2), 'utf-8');
+    dbRun('DELETE FROM article_votes WHERE article_id = ?', String(id));
     dataCache.delete('articles.json');
     res.json({ success: true });
   } catch (err: any) { res.status(500).json({ error: err.message }); }

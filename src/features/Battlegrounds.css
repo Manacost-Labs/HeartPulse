@@ -1,0 +1,52 @@
+.battleground-hero-card:hover .battleground-hero-related-card,
+.battleground-hero-card:focus-within .battleground-hero-related-card,
+.battleground-hero-card:focus-visible .battleground-hero-related-card {
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  opacity: 1;
+  translate: var(--tw-translate-x) var(--tw-translate-y);
+}
+
+.battleground-hero-card[data-has-related="true"]:hover .battleground-hero-main,
+.battleground-hero-card[data-has-related="true"]:focus-within .battleground-hero-main,
+.battleground-hero-card[data-has-related="true"]:focus-visible .battleground-hero-main {
+  --tw-translate-x: -2.5rem;
+  --tw-translate-y: 0;
+  translate: var(--tw-translate-x) var(--tw-translate-y);
+}
+
+.battleground-hero-card[data-has-related="false"]:hover .battleground-hero-main,
+.battleground-hero-card[data-has-related="false"]:focus-within .battleground-hero-main,
+.battleground-hero-card[data-has-related="false"]:focus-visible .battleground-hero-main {
+  --tw-translate-x: 0;
+  --tw-translate-y: -0.25rem;
+  translate: var(--tw-translate-x) var(--tw-translate-y);
+}
+
+.bg-hero-bar-row {
+  grid-template-columns: 82px minmax(0, 1fr);
+}
+
+@media (min-width: 40rem) {
+  .bg-hero-bar-row {
+    grid-template-columns: 92px 1fr 74px;
+  }
+
+  .battleground-hero-card[data-has-related="true"]:hover .battleground-hero-main,
+  .battleground-hero-card[data-has-related="true"]:focus-within .battleground-hero-main,
+  .battleground-hero-card[data-has-related="true"]:focus-visible .battleground-hero-main {
+    --tw-translate-x: -3rem;
+    --tw-translate-y: 0;
+    translate: var(--tw-translate-x) var(--tw-translate-y);
+  }
+}
+
+@media (min-width: 96rem) {
+  .battleground-hero-card[data-has-related="true"]:hover .battleground-hero-main,
+  .battleground-hero-card[data-has-related="true"]:focus-within .battleground-hero-main,
+  .battleground-hero-card[data-has-related="true"]:focus-visible .battleground-hero-main {
+    --tw-translate-x: -3.5rem;
+    --tw-translate-y: 0;
+    translate: var(--tw-translate-x) var(--tw-translate-y);
+  }
+}

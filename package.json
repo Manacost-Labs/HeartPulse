@@ -1,7 +1,7 @@
 {
   "name": "manacost-arena",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"vite --port=3000 --host=0.0.0.0\" \"tsx --watch server/index.ts\"",
@@ -14,7 +14,8 @@
     "budget": "node scripts/check-budgets.js",
     "test:tierlist": "tsx tests/hsreplay-tierlist.test.ts",
     "scrape": "tsx server/scraper.ts",
-    "qa:screens": "node scripts/screenshot-qa.mjs"
+    "qa:screens": "node scripts/screenshot-qa.mjs",
+    "changelog:post": "node scripts/post-arena-changelog.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

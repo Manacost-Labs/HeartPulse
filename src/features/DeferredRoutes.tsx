@@ -5,7 +5,8 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo, memo, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
-import { Trophy, Scroll, RefreshCw, AlertTriangle, X, Search, Star, Home, BookOpen, Menu, ChevronLeft, ChevronRight, Grid3X3, List, LogIn, Eye, EyeOff, UserCircle } from 'lucide-react';
+import './DeferredRoutes.css';
+import { Trophy, Scroll, RefreshCw, AlertTriangle, X, Search, Star, Home, BookOpen, Menu, ChevronLeft, ChevronRight, Grid3X3, List, LogIn, Eye, EyeOff, UserCircle, ThumbsUp, ThumbsDown, ShieldCheck } from 'lucide-react';
 import { getCanonicalRedirectUrl } from '../config/domain';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1292,7 +1293,7 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
   }, [loading]);
 
   const maxWinrate = useMemo(() => Math.max(...classes.map(c => c.winrate), 1), [classes]);
-  const paywallActive = !subscriptionLoading && !subscriptionStatus?.hasAccess;
+  const paywallActive = !subscriptionLoading && !hasSubscriptionEntitlement(subscriptionStatus, 'arena');
 
   return (
     <div>
@@ -1358,12 +1359,13 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
               return (
                 <div
                   key={cls.id}
-                  className="anim-fade-up row-hover group relative flex items-center gap-3 sm:gap-4 rounded-2xl overflow-hidden cursor-default"
+                  className="anim-fade-up row-hover group relative grid items-center gap-2.5 rounded-2xl overflow-hidden cursor-default sm:flex sm:gap-4"
                   style={{
                     animationDelay: delay,
                     background: 'linear-gradient(135deg, #ede0c0 0%, #e2cfa0 50%, #d8c090 100%)',
                     border: '1.5px solid #c9a86c',
                     padding: '10px 14px',
+                    gridTemplateColumns: '36px minmax(82px,96px) minmax(0,1fr)',
                   }}
                 >
                   {/* Class icon */}
@@ -1375,15 +1377,16 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
                   )}
 
                   {/* Class name */}
-                  <div className="flex-shrink-0 w-28 sm:w-40">
+                  <div className="min-w-0 sm:flex-shrink-0 sm:w-40">
                     <span className="font-hs text-sm sm:text-base text-[#3d2208] tracking-wide leading-tight">
                       {cls.name}
                     </span>
                   </div>
 
                   {/* Progress bar */}
-                  <div className="flex-grow relative h-7 sm:h-8 rounded-full overflow-hidden"
+                  <div className="relative h-7 sm:h-8 rounded-full overflow-hidden sm:flex-grow"
                     style={{
+                      minWidth: 118,
                       background: 'linear-gradient(180deg,#1a0e06 0%,#2c1a0e 100%)',
                       boxShadow: 'inset 0 3px 8px rgba(0,0,0,0.85), inset 0 -1px 2px rgba(255,255,255,0.05)',
                       border: '1.5px solid #0a0502',
@@ -2226,7 +2229,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
     [visibleTiers],
   );
   const hiddenCardCount = Math.max(0, totalFilteredCards - visibleCardCount);
-  const paywallActive = !subscriptionLoading && !subscriptionStatus?.hasAccess;
+  const paywallActive = !subscriptionLoading && !hasSubscriptionEntitlement(subscriptionStatus, 'arena');
 
   return (
     <div>
@@ -2695,7 +2698,7 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
     imageHa:  lc.imageHa,
     imageRu:  lc.imageRu ?? null,
   }), []);
-  const paywallActive = !subscriptionLoading && !subscriptionStatus?.hasAccess;
+  const paywallActive = !subscriptionLoading && !hasSubscriptionEntitlement(subscriptionStatus, 'arena');
 
   return (
     <div>
@@ -3360,10 +3363,10 @@ function HomeTab({ winratesData, loadingWinrates, homeSummaryData, loadingHomeSu
 // ─── AdminPanel ───────────────────────────────────────────────────────────────
 
 interface AdminForm {
-  title: string; tag: string; excerpt: string; image: string; url: string;
+  title: string; tag: string; mode: 'arena' | 'battlegrounds' | 'general'; excerpt: string; image: string; url: string;
 }
 
-type AdminSectionId = 'overview' | 'add' | 'list' | 'media';
+type AdminSectionId = 'overview' | 'users' | 'boosty' | 'add' | 'list' | 'media';
 type AdminMessage = { type: 'ok' | 'err'; text: string };
 type AuthUser = {
   id?: string;
@@ -3379,6 +3382,8 @@ type AuthUser = {
   contactVkUrl?: string;
   contactTelegram?: string;
   contactEmail?: string;
+  adminAllowed?: boolean;
+  contestAdminAllowed?: boolean;
 };
 
 type ContestHistoryItem = {
@@ -3392,7 +3397,6 @@ type ContestHistoryItem = {
   joinedAt: string;
   startsAt: string;
   endsAt: string;
-  winners: string[];
   isWinner: boolean;
 };
 
@@ -3402,6 +3406,15 @@ type SubscriptionStatus = {
   checkedAt: string | null;
   stale: boolean;
   message: string;
+  entitlements?: {
+    arena?: boolean;
+    battlegrounds?: boolean;
+    standard?: boolean;
+    contests?: boolean;
+    guidesArchive?: boolean;
+    arenaArticles?: boolean;
+    battlegroundsArticles?: boolean;
+  };
   boosty: {
     checked?: boolean;
     found?: boolean;
@@ -3420,6 +3433,31 @@ type SubscriptionStatus = {
   };
 };
 
+type SubscriptionEntitlementKey = keyof NonNullable<SubscriptionStatus['entitlements']>;
+
+function hasSubscriptionEntitlement(
+  subscription: SubscriptionStatus | null | undefined,
+  entitlement: SubscriptionEntitlementKey | null,
+): boolean {
+  if (!subscription) return false;
+  if (!entitlement) return Boolean(subscription.hasAccess);
+  return Boolean(subscription.entitlements?.[entitlement]);
+}
+
+function subscriptionEntitlementLabels(subscription: { hasAccess?: boolean; entitlements?: SubscriptionStatus['entitlements'] } | null | undefined): string[] {
+  if (!subscription?.entitlements) return subscription?.hasAccess ? ['Все разделы'] : [];
+  const labels: Array<[SubscriptionEntitlementKey, string]> = [
+    ['arena', 'Арена'],
+    ['battlegrounds', 'Поля Сражений'],
+    ['standard', 'Стандарт'],
+    ['contests', 'Конкурсы'],
+    ['guidesArchive', 'Архив гайдов'],
+    ['arenaArticles', 'Статьи Арены'],
+    ['battlegroundsArticles', 'Статьи Полей'],
+  ];
+  return labels.filter(([key]) => subscription.entitlements?.[key]).map(([, label]) => label);
+}
+
 type TelegramAuthPayload = {
   id: number | string;
   first_name?: string;
@@ -3430,15 +3468,102 @@ type TelegramAuthPayload = {
   hash: string;
 };
 
+type TelegramAuthMode = 'legacy-widget' | 'oidc' | 'disabled';
+
+type AdminUserListItem = {
+  id: string;
+  profileId: string;
+  name: string;
+  email: string;
+  role: string;
+  country: string;
+  newsletterOptIn: boolean;
+  telegramId: string;
+  telegramUsername: string;
+  telegramOidcId: string;
+  contactVkUrl: string;
+  contactTelegram: string;
+  contactEmail: string;
+  subscription: {
+    hasAccess: boolean;
+    source: string;
+    message: string;
+    checkedAt: string;
+    updatedAt: string;
+    entitlements?: SubscriptionStatus['entitlements'];
+    boosty?: Record<string, any>;
+    telegram?: Record<string, any>;
+  };
+  contestEntriesCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type BoostySubscriberRow = {
+  id: string;
+  name: string;
+  email: string;
+  hasEmail: boolean;
+  avatarUrl: string;
+  status: string;
+  subscribed: boolean;
+  active: boolean;
+  paid: boolean;
+  hasActivePaidAccess: boolean;
+  willRenew: boolean;
+  blacklisted: boolean;
+  audienceType: string;
+  contactStatus: string;
+  level: { id: number | string | null; name: string; price: number; currency: string };
+  money: { currentPrice: number; totalPayments: number; currency: string };
+  dates: { subscribedAt: string | null; unsubscribedAt: string | null; nextPaymentAt: string | null };
+  entitlements?: SubscriptionStatus['entitlements'];
+  siteAccess: boolean;
+};
+
+type BoostySubscribersPayload = {
+  configured: boolean;
+  source: string;
+  stale: boolean;
+  summary: BoostyAdminStatus['summary'];
+  levels: Record<string, number>;
+  subscribers: BoostySubscriberRow[];
+  fetchedAt: string;
+  error?: string;
+};
+
+type BoostyAdminStatus = {
+  configured: boolean;
+  ok: boolean;
+  importStatus: string;
+  source: string;
+  stale: boolean;
+  snapshotAgeSeconds: number | null;
+  lastErrorCategory: string | null;
+  lastErrorMessage: string | null;
+  warnings: string[];
+  summary: {
+    active?: number;
+    activePaid?: number;
+    boostyPaid?: number;
+    total?: number;
+  };
+  checkedAt: string;
+  graceHours: number;
+  message?: string;
+};
+
 declare global {
   interface Window {
     onHsArenaTelegramAuth?: (user: TelegramAuthPayload) => void;
   }
 }
 
-const EMPTY_FORM: AdminForm = { title: '', tag: '', excerpt: '', image: '', url: '' };
+const EMPTY_FORM: AdminForm = { title: '', tag: '', mode: 'arena', excerpt: '', image: '', url: '' };
 const ADMIN_SECTIONS: { id: AdminSectionId; label: string; description: string }[] = [
   { id: 'overview', label: 'Настройка', description: 'Сводка и быстрые действия' },
+  { id: 'users', label: 'Пользователи', description: 'Единая база и подписки' },
+  { id: 'boosty', label: 'Boosty', description: 'Все подписчики и уровни' },
   { id: 'add', label: 'Новая статья', description: 'Создание карточки материала' },
   { id: 'list', label: 'Список', description: 'Поиск, фильтрация и удаление' },
   { id: 'media', label: 'Медиа', description: 'Промо-изображения' },
@@ -3448,6 +3573,8 @@ const getInitialAdminSection = (): AdminSectionId => {
   if (typeof window === 'undefined') return 'overview';
   const params = new URLSearchParams(window.location.search);
   const rawSection = (params.get('section') || params.get('admin') || '').toLowerCase();
+  if (rawSection === 'users' || rawSection === 'пользователи') return 'users';
+  if (rawSection === 'boosty' || rawSection === 'subscriptions') return 'boosty';
   if (rawSection === 'add' || rawSection === 'new') return 'add';
   if (rawSection === 'list' || rawSection === 'articles') return 'list';
   if (rawSection === 'media') return 'media';
@@ -3477,6 +3604,7 @@ const ADMIN_SECONDARY_BUTTON: React.CSSProperties = {
 
 const AUTH_TOKEN_KEY = 'hs_arena_auth_token';
 const AUTH_EMAIL_KEY = 'hs_arena_auth_email';
+const AUTH_SESSION_HINT_KEY = 'hs_arena_auth_cookie_hint';
 const MANACOST_AVATAR_URL = '/assets/manacost-avatar.jpeg';
 const BOOSTY_SUBSCRIPTION_URL = 'https://boosty.to/kolodahearthstone';
 const TELEGRAM_TRIBUTE_URL = 'https://web.tribute.tg/s/xz9';
@@ -3488,6 +3616,57 @@ const ARTICLE_COVER_PROXY_HOSTS = new Set([
   'kolodahearthstone.ru',
   'www.kolodahearthstone.ru',
 ]);
+
+function authUrlWithReturnTo(rawUrl: string, returnTo: string): string {
+  try {
+    const url = new URL(rawUrl || '/api/auth/telegram/start', window.location.origin);
+    url.searchParams.set('returnTo', returnTo);
+    return url.toString();
+  } catch {
+    return rawUrl || '/api/auth/telegram/start';
+  }
+}
+
+function TelegramLoginWidget({
+  botUsername,
+  authUrl,
+  label = 'Войти через Telegram',
+}: {
+  botUsername: string;
+  authUrl: string;
+  label?: string;
+}) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !botUsername || !authUrl) return;
+    container.innerHTML = '';
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = 'https://telegram.org/js/telegram-widget.js?22';
+    script.setAttribute('data-telegram-login', botUsername);
+    script.setAttribute('data-size', 'large');
+    script.setAttribute('data-radius', '10');
+    script.setAttribute('data-auth-url', authUrl);
+    script.setAttribute('data-request-access', 'write');
+    container.appendChild(script);
+    return () => { container.innerHTML = ''; };
+  }, [authUrl, botUsername]);
+
+  return (
+    <div
+      aria-label={label}
+      ref={containerRef}
+      style={{
+        minHeight: 44,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    />
+  );
+}
 
 function articleImageSrc(value?: string): string {
   const raw = String(value ?? '').trim();
@@ -3529,6 +3708,24 @@ function formatSubscriptionDate(value: string | null): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+function legacyAuthToken(): string {
+  try { return sessionStorage.getItem(AUTH_TOKEN_KEY) || ''; } catch { return ''; }
+}
+
+function markAuthSessionHint(): void {
+  try {
+    localStorage.setItem(AUTH_SESSION_HINT_KEY, '1');
+    sessionStorage.removeItem(AUTH_TOKEN_KEY);
+  } catch { /* storage may be disabled */ }
+}
+
+function clearAuthSessionHint(): void {
+  try {
+    localStorage.removeItem(AUTH_SESSION_HINT_KEY);
+    sessionStorage.removeItem(AUTH_TOKEN_KEY);
+  } catch { /* storage may be disabled */ }
 }
 
 const COUNTRY_OPTIONS = [
@@ -3735,6 +3932,32 @@ function AdminStatCard({ label, value, hint }: { label: string; value: string; h
   );
 }
 
+function shortProfileIdentifier(value: string) {
+  return value.length > 18 ? `${value.slice(0, 8)}...${value.slice(-6)}` : value;
+}
+
+function ProfileStatCard({
+  label,
+  value,
+  hint,
+  title,
+  compact = false,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  title?: string;
+  compact?: boolean;
+}) {
+  return (
+    <div className={`profile-stat-card${compact ? ' profile-stat-card-compact' : ''}`}>
+      <span className="profile-stat-label">{label}</span>
+      <strong className="profile-stat-value" title={title || value}>{value}</strong>
+      <span className="profile-stat-hint">{hint}</span>
+    </div>
+  );
+}
+
 const AdminArticleRow = memo(function AdminArticleRow({
   article,
   deleting,
@@ -3801,10 +4024,10 @@ export function LoginPanel({
   initialAuthUser?: AuthUser | null;
   parentAuthChecking?: boolean;
 }) {
-  const [authToken, setAuthToken] = useState(() => sessionStorage.getItem(AUTH_TOKEN_KEY) || '');
+  const [authToken, setAuthToken] = useState(() => legacyAuthToken());
   const [authUser, setAuthUser] = useState<AuthUser | null>(() => initialAuthUser);
   const [authChecking, setAuthChecking] = useState(parentAuthChecking);
-  const [authStep, setAuthStep] = useState<'password' | 'code'>(() => sessionStorage.getItem(AUTH_TOKEN_KEY) ? 'code' : 'password');
+  const [authStep, setAuthStep] = useState<'password' | 'code'>('password');
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'reset'>('login');
   const [email, setEmail] = useState(() => sessionStorage.getItem(AUTH_EMAIL_KEY) || '');
   const [name, setName] = useState('');
@@ -3815,6 +4038,9 @@ export function LoginPanel({
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<AdminMessage | null>(null);
   const [telegramAuthUrl, setTelegramAuthUrl] = useState('');
+  const [telegramCallbackUrl, setTelegramCallbackUrl] = useState('');
+  const [telegramBotUsername, setTelegramBotUsername] = useState('');
+  const [telegramMode, setTelegramMode] = useState<TelegramAuthMode>('disabled');
   const [telegramEnabled, setTelegramEnabled] = useState(false);
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
@@ -3841,6 +4067,9 @@ export function LoginPanel({
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.enabled || !data.authUrl) return;
         setTelegramAuthUrl(String(data.authUrl || '/api/auth/telegram/start'));
+        setTelegramCallbackUrl(String(data.callbackUrl || data.authUrl || '/api/auth/telegram/callback'));
+        setTelegramBotUsername(String(data.botUsername || ''));
+        setTelegramMode(data.mode === 'legacy-widget' ? 'legacy-widget' : data.mode === 'oidc' ? 'oidc' : 'disabled');
         setTelegramEnabled(true);
       })
       .catch(() => {});
@@ -3864,10 +4093,8 @@ export function LoginPanel({
       return;
     }
 
-    if (!sessionStorage.getItem(AUTH_TOKEN_KEY)) {
-      setAuthToken('');
-      setAuthStep('password');
-    }
+    setAuthToken('');
+    setAuthStep('password');
   }, [initialAuthUser, parentAuthChecking]);
 
   const fetchSubscription = useCallback(async (force = false) => {
@@ -3931,6 +4158,20 @@ export function LoginPanel({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Ошибка входа');
       sessionStorage.setItem(AUTH_EMAIL_KEY, email);
+      if (data.user) {
+        markAuthSessionHint();
+        setAuthToken(data.token || '');
+        setAuthUser(data.user);
+        setProfileCountry(data.user?.country || '');
+        setProfileNewsletter(Boolean(data.user?.newsletterOptIn));
+        setProfileVkUrl(data.user?.contactVkUrl || '');
+        setProfileTelegram(data.user?.contactTelegram || data.user?.telegramUsername || '');
+        setProfileContactEmail(data.user?.contactEmail || (isRealAuthEmail(data.user?.email) ? data.user.email : ''));
+        onAuthChange?.(data.user);
+        setPassword('');
+        setMsg(null);
+        return;
+      }
       setAuthStep('code');
       setPassword('');
       setMsg({ type: 'ok', text: 'Код отправлен на почту.' });
@@ -4023,9 +4264,9 @@ export function LoginPanel({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Неверный код');
-      sessionStorage.setItem(AUTH_TOKEN_KEY, data.token);
       sessionStorage.setItem(AUTH_EMAIL_KEY, email);
-      setAuthToken(data.token);
+      markAuthSessionHint();
+      setAuthToken(data.token || '');
       setAuthUser(data.user);
       setProfileCountry(data.user?.country || '');
       setProfileNewsletter(Boolean(data.user?.newsletterOptIn));
@@ -4129,7 +4370,7 @@ export function LoginPanel({
       method: 'POST',
       headers: authHeaders({ 'Content-Type': 'application/json' }),
     }).catch(() => {});
-    sessionStorage.removeItem(AUTH_TOKEN_KEY);
+    clearAuthSessionHint();
     setAuthToken('');
     setAuthUser(null);
     setSubscription(null);
@@ -4143,6 +4384,15 @@ export function LoginPanel({
     setAuthChecking(false);
   };
 
+  const telegramLoginUrl = authUrlWithReturnTo(
+    telegramMode === 'legacy-widget' ? telegramCallbackUrl : telegramAuthUrl,
+    '/?login&telegram=ok',
+  );
+  const telegramLinkUrl = authUrlWithReturnTo(
+    telegramMode === 'legacy-widget' ? telegramCallbackUrl : telegramAuthUrl,
+    '/?login&telegram=linked',
+  );
+
   if (authChecking && !authUser) {
     return <AuthCheckingCard />;
   }
@@ -4155,13 +4405,18 @@ export function LoginPanel({
       || (isRealAuthEmail(authUser.email) ? authUser.email : '')
       || (authUser.contactTelegram || authUser.telegramUsername ? `@${authUser.contactTelegram || authUser.telegramUsername}` : '')
       || authUser.email;
-    const profileRoleLabel = authUser.role === 'admin' ? 'Администратор' : 'Пользователь Манакоста';
     const subscriptionPending = subscriptionLoading || !subscriptionChecked;
+    const profileRoleLabel = authUser.role === 'admin'
+      ? 'Администратор'
+      : subscription?.hasAccess
+        ? 'Платный подписчик'
+        : 'Участник';
     const subscriptionLabel = subscriptionPending
       ? 'Проверяем подписку'
       : subscription?.hasAccess
         ? 'Подписка активна'
         : 'Подписка не подтверждена';
+    const subscriptionAccessLabels = subscriptionEntitlementLabels(subscription);
     const identityLabel = authUser.telegramUsername
       ? 'Telegram привязан'
       : isRealAuthEmail(authUser.email)
@@ -4174,6 +4429,8 @@ export function LoginPanel({
     ];
     const approvedContestCount = contestHistory.filter(item => item.entryStatus === 'approved').length;
     const wonContestCount = contestHistory.filter(item => item.isWinner).length;
+    const profileId = authUser.profileId || authUser.id || '—';
+    const profileIdDisplay = shortProfileIdentifier(profileId);
     const contestStatusText: Record<string, string> = {
       active: 'Идет',
       planned: 'Скоро',
@@ -4291,7 +4548,7 @@ export function LoginPanel({
               <div style={{ minWidth: 0, textAlign: 'left' }}>
                 <strong style={{ display: 'block', color: '#1e293b', fontSize: '14px' }}>Паспорт профиля Манакоста</strong>
                 <span style={{ display: 'block', color: '#64748b', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  ID: <code style={{ background: '#e2e8f0', padding: '1px 6px', borderRadius: '6px' }}>{authUser.profileId || authUser.id}</code>
+                  ID: <code className="profile-summary-id" title={profileId} style={{ background: '#e2e8f0', padding: '1px 6px', borderRadius: '6px' }}>{profileIdDisplay}</code>
                 </span>
               </div>
             </div>
@@ -4309,7 +4566,7 @@ export function LoginPanel({
               flexShrink: 0,
             }}>
               <Trophy size={14} />
-              {subscriptionPending ? 'Проверяем доступ' : subscription?.hasAccess ? 'Доступ открыт' : 'Базовый профиль'}
+              {subscriptionPending ? 'Проверяем доступ' : subscription?.hasAccess ? 'Платный подписчик' : 'Участник'}
             </span>
           </div>
           {msg && (
@@ -4324,13 +4581,13 @@ export function LoginPanel({
               {msg.text}
             </div>
           )}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', marginBottom: '18px' }}>
-            <AdminStatCard label="ID профиля" value={authUser.profileId || authUser.id || '—'} hint="Единая база Манакоста" />
-            <AdminStatCard label="Роль" value={profileRoleLabel} hint="Уровень доступа" />
-            <AdminStatCard label="Страна" value={authUser.country || 'Не указана'} hint="Данные профиля" />
-            <AdminStatCard label="Рассылка" value={authUser.newsletterOptIn ? 'Подписан' : 'Не подписан'} hint="Новости и обновления" />
-            <AdminStatCard label="Конкурсы" value={approvedContestCount ? String(approvedContestCount) : '0'} hint="Одобренные участия" />
-            <AdminStatCard label="Победы" value={wonContestCount ? String(wonContestCount) : '0'} hint="ID в победителях" />
+          <div className="profile-stat-grid">
+            <ProfileStatCard label="ID профиля" value={profileIdDisplay} title={profileId} hint="Единая база Манакоста" compact />
+            <ProfileStatCard label="Роль" value={profileRoleLabel} hint="Уровень доступа" />
+            <ProfileStatCard label="Страна" value={authUser.country || 'Не указана'} hint="Данные профиля" />
+            <ProfileStatCard label="Рассылка" value={authUser.newsletterOptIn ? 'Подписан' : 'Не подписан'} hint="Новости и обновления" />
+            <ProfileStatCard label="Конкурсы" value={approvedContestCount ? String(approvedContestCount) : '0'} hint="Одобренные участия" />
+            <ProfileStatCard label="Победы" value={wonContestCount ? String(wonContestCount) : '0'} hint="ID в победителях" />
           </div>
           <section style={{
             display: 'grid',
@@ -4351,7 +4608,7 @@ export function LoginPanel({
               </p>
               <div style={{ display: 'grid', gap: '8px' }}>
                 {profileContacts.map(item => (
-                  <div key={item.label} style={{
+                  <div key={item.label} className="profile-contact-row" style={{
                     display: 'grid',
                     gridTemplateColumns: '130px minmax(0, 1fr)',
                     gap: '10px',
@@ -4406,8 +4663,9 @@ export function LoginPanel({
                 Почта для связи
                 <input type="email" value={profileContactEmail} onChange={e => setProfileContactEmail(e.target.value)} placeholder="mail@example.com" style={ADMIN_INPUT} />
               </label>
-              <label style={{ display: 'flex', gap: '9px', alignItems: 'center', color: '#334155', fontSize: '13px', textAlign: 'left', minHeight: 42 }}>
+              <label className="profile-checkbox-row" style={{ display: 'flex', gap: '9px', alignItems: 'center', color: '#334155', fontSize: '13px', textAlign: 'left', minHeight: 42 }}>
                 <input
+                  className="profile-checkbox"
                   type="checkbox"
                   checked={profileNewsletter}
                   onChange={e => setProfileNewsletter(e.target.checked)}
@@ -4515,6 +4773,23 @@ export function LoginPanel({
             <p style={{ margin: '0 0 10px', color: '#334155', fontSize: '13px', lineHeight: 1.45 }}>
               {subscription?.message || 'Подтвердите подписку через Boosty или Telegram VIP-канал.'}
             </p>
+            {subscriptionAccessLabels.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', margin: '0 0 12px' }}>
+                {subscriptionAccessLabels.map(label => (
+                  <span key={label} style={{
+                    padding: '5px 8px',
+                    borderRadius: '999px',
+                    background: 'rgba(16,185,129,0.12)',
+                    border: '1px solid rgba(5,150,105,0.28)',
+                    color: '#065f46',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                  }}>
+                    {label}
+                  </span>
+                ))}
+              </div>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', marginBottom: '12px' }}>
               <div className="profile-subscription-source" style={{ padding: '10px', borderRadius: '10px', background: 'rgba(248,250,255,0.82)', border: '1px solid #cbd7ea', display: 'grid', gridTemplateColumns: '34px 1fr', gap: '9px', alignItems: 'center' }}>
                 <img src="/ad/boosty.png" alt="" style={{ width: 34, height: 34, objectFit: 'contain', borderRadius: '9px', background: '#fff' }} />
@@ -4542,41 +4817,86 @@ export function LoginPanel({
             <p style={{ margin: '0 0 12px', color: '#64748b', fontSize: '12px' }}>
               Последняя проверка: {formatSubscriptionDate(subscription?.checkedAt ?? null)}
             </p>
-            {!isRealAuthEmail(authUser.email) && (
-              <form
-                onSubmit={boostyStep === 'email' ? handleBoostyEmailRequest : handleBoostyEmailConfirm}
-                style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
-              >
-                <p style={{ margin: 0, color: '#475569', fontSize: '12px', lineHeight: 1.35 }}>
-                  Для Boosty привяжите почту, которая указана в вашем Boosty-профиле.
-                </p>
+            <form
+              onSubmit={boostyStep === 'email' ? handleBoostyEmailRequest : handleBoostyEmailConfirm}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                margin: '0 0 12px',
+                padding: '12px',
+                borderRadius: '12px',
+                background: 'rgba(255,247,237,0.82)',
+                border: '1px solid #fed7aa',
+              }}
+            >
+              <p style={{ margin: 0, color: '#334155', fontSize: '12px', lineHeight: 1.4 }}>
+                Для Boosty подтвердите почту, которая указана в вашем Boosty-профиле. Это отдельная проверка от Telegram.
+              </p>
+              <input
+                type="email"
+                value={boostyEmail}
+                onChange={e => setBoostyEmail(e.target.value)}
+                placeholder="Email из Boosty"
+                style={ADMIN_INPUT}
+              />
+              {boostyStep === 'code' && (
                 <input
-                  type="email"
-                  value={boostyEmail}
-                  onChange={e => setBoostyEmail(e.target.value)}
-                  placeholder="Email из Boosty"
-                  style={ADMIN_INPUT}
+                  type="text"
+                  inputMode="numeric"
+                  value={boostyCode}
+                  onChange={e => setBoostyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="6-значный код"
+                  style={{ ...ADMIN_INPUT, textAlign: 'center', letterSpacing: '0.18em' }}
                 />
-                {boostyStep === 'code' && (
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={boostyCode}
-                    onChange={e => setBoostyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="6-значный код"
-                    style={{ ...ADMIN_INPUT, textAlign: 'center', letterSpacing: '0.18em' }}
+              )}
+              <button type="submit" disabled={subscriptionLoading} style={{
+                ...ADMIN_SECONDARY_BUTTON,
+                justifyContent: 'center',
+                background: '#fff7ed',
+                color: '#9a3412',
+                borderColor: '#fdba74',
+                cursor: subscriptionLoading ? 'wait' : 'pointer',
+              }}>
+                {subscriptionLoading
+                  ? 'Проверяем...'
+                  : boostyStep === 'email'
+                    ? 'Подтвердить Boosty-почту'
+                    : 'Подтвердить код Boosty'}
+              </button>
+            </form>
+            {telegramEnabled && !authUser.telegramUsername && (
+              <div style={{
+                margin: '0 0 12px',
+                padding: '12px',
+                borderRadius: '12px',
+                background: 'rgba(239,246,255,0.84)',
+                border: '1px solid #bfdbfe',
+              }}>
+                <p style={{ margin: '0 0 10px', color: '#334155', fontSize: '12px', lineHeight: 1.4 }}>
+                  Для Telegram-подписки нужно привязать сам Telegram-аккаунт. Поле @username в контактах не подходит для проверки VIP-канала.
+                </p>
+                {telegramMode === 'legacy-widget' && telegramBotUsername ? (
+                  <TelegramLoginWidget
+                    botUsername={telegramBotUsername}
+                    authUrl={telegramLinkUrl}
+                    label="Привязать Telegram"
                   />
+                ) : (
+                  <a href={telegramLinkUrl} style={{
+                    ...ADMIN_SECONDARY_BUTTON,
+                    display: 'inline-flex',
+                    justifyContent: 'center',
+                    width: '100%',
+                    textDecoration: 'none',
+                    background: 'linear-gradient(135deg,#2aabee,#1d7fb8)',
+                    borderColor: '#2aabee',
+                    color: '#f8fbff',
+                  }}>
+                    Привязать Telegram
+                  </a>
                 )}
-                <button type="submit" disabled={subscriptionLoading} style={{
-                  ...ADMIN_SECONDARY_BUTTON,
-                  background: 'linear-gradient(135deg,#2563eb,#0f4eb8)',
-                  color: '#f8faff',
-                  borderColor: '#60a5fa',
-                  cursor: subscriptionLoading ? 'wait' : 'pointer',
-                }}>
-                  {boostyStep === 'email' ? 'Привязать Boosty-почту' : 'Подтвердить почту'}
-                </button>
-              </form>
+              </div>
             )}
           </div>
           <section style={{
@@ -4882,33 +5202,41 @@ export function LoginPanel({
             <span>или</span>
             <span style={{ flex: 1, height: 1, background: 'rgba(139,69,19,0.22)' }} />
           </div>
-          <a
-            href={telegramAuthUrl || '/api/auth/telegram/start'}
-            style={{
-              display: 'flex',
-              minHeight: 44,
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '10px',
-              borderRadius: '10px',
-              border: '1.5px solid #2aabee',
-              background: 'linear-gradient(135deg,#2aabee,#1d7fb8)',
-              color: '#f8fbff',
-              fontFamily: 'var(--font-display)',
-              fontSize: '14px',
-              textDecoration: 'none',
-              boxShadow: '0 10px 22px rgba(42,171,238,0.22)',
-              opacity: loading ? 0.7 : 1,
-              pointerEvents: loading ? 'none' : 'auto',
-            }}
-          >
-            <span aria-hidden="true" style={{ width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg viewBox="0 0 24 24" width="22" height="22" focusable="false" style={{ display: 'block' }}>
-                <path fill="#ffffff" d="M21.7 3.3c.3-.9-.6-1.6-1.4-1.2L2.9 8.8c-1 .4-.9 1.8.1 2.1l4.4 1.4 1.7 5.3c.3.9 1.5 1.1 2.1.4l2.4-2.8 4.6 3.4c.8.6 1.9.1 2.1-.9l2.9-14.4ZM8.1 11.8l9.5-5.9-7.4 7.7-.3 3.2-1.8-5Z" />
-              </svg>
-            </span>
-            <span>Войти через Telegram</span>
-          </a>
+          {telegramMode === 'legacy-widget' && telegramBotUsername ? (
+            <TelegramLoginWidget
+              botUsername={telegramBotUsername}
+              authUrl={telegramLoginUrl}
+              label="Войти через Telegram"
+            />
+          ) : (
+            <a
+              href={telegramLoginUrl || '/api/auth/telegram/start'}
+              style={{
+                display: 'flex',
+                minHeight: 44,
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '10px',
+                borderRadius: '10px',
+                border: '1.5px solid #2aabee',
+                background: 'linear-gradient(135deg,#2aabee,#1d7fb8)',
+                color: '#f8fbff',
+                fontFamily: 'var(--font-display)',
+                fontSize: '14px',
+                textDecoration: 'none',
+                boxShadow: '0 10px 22px rgba(42,171,238,0.22)',
+                opacity: loading ? 0.7 : 1,
+                pointerEvents: loading ? 'none' : 'auto',
+              }}
+            >
+              <span aria-hidden="true" style={{ width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg viewBox="0 0 24 24" width="22" height="22" focusable="false" style={{ display: 'block' }}>
+                  <path fill="#ffffff" d="M21.7 3.3c.3-.9-.6-1.6-1.4-1.2L2.9 8.8c-1 .4-.9 1.8.1 2.1l4.4 1.4 1.7 5.3c.3.9 1.5 1.1 2.1.4l2.4-2.8 4.6 3.4c.8.6 1.9.1 2.1-.9l2.9-14.4ZM8.1 11.8l9.5-5.9-7.4 7.7-.3 3.2-1.8-5Z" />
+                </svg>
+              </span>
+              <span>Войти через Telegram</span>
+            </a>
+          )}
         </div>
       )}
       {authStep === 'password' && authMode === 'login' && (
@@ -4949,9 +5277,9 @@ export function AdminPanel({
   onRefresh: (options?: { bust?: boolean; silent?: boolean }) => Promise<void>;
   onRefreshTierlist: () => Promise<void>;
 }) {
-  const [authToken, setAuthToken] = useState(() => sessionStorage.getItem(AUTH_TOKEN_KEY) || '');
+  const [authToken, setAuthToken] = useState(() => legacyAuthToken());
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
-  const [authStep, setAuthStep] = useState<'password' | 'code'>(() => sessionStorage.getItem(AUTH_TOKEN_KEY) ? 'code' : 'password');
+  const [authStep, setAuthStep] = useState<'password' | 'code'>('password');
   const [email, setEmail] = useState(() => sessionStorage.getItem(AUTH_EMAIL_KEY) || '');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
@@ -4968,6 +5296,21 @@ export function AdminPanel({
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'title'>('newest');
   const [classPositionsDraft, setClassPositionsDraft] = useState<Record<string, string>>({});
   const [savingPositions, setSavingPositions] = useState(false);
+  const [adminUsers, setAdminUsers] = useState<AdminUserListItem[]>([]);
+  const [adminUsersTotal, setAdminUsersTotal] = useState(0);
+  const [adminUsersLoading, setAdminUsersLoading] = useState(false);
+  const [adminUsersSearch, setAdminUsersSearch] = useState('');
+  const deferredAdminUsersSearch = useDeferredValue(adminUsersSearch);
+  const [adminUsersRole, setAdminUsersRole] = useState<'all' | 'admin' | 'user'>('all');
+  const [adminUsersSubscription, setAdminUsersSubscription] = useState<'all' | 'active' | 'inactive'>('all');
+  const [boostyStatus, setBoostyStatus] = useState<BoostyAdminStatus | null>(null);
+  const [boostyStatusLoading, setBoostyStatusLoading] = useState(false);
+  const [boostySubscribers, setBoostySubscribers] = useState<BoostySubscribersPayload | null>(null);
+  const [boostySubscribersLoading, setBoostySubscribersLoading] = useState(false);
+  const [boostySubscribersSearch, setBoostySubscribersSearch] = useState('');
+  const deferredBoostySubscribersSearch = useDeferredValue(boostySubscribersSearch);
+  const [boostyLevelFilter, setBoostyLevelFilter] = useState('all');
+  const [boostyAccessFilter, setBoostyAccessFilter] = useState<'all' | 'site' | 'paid' | 'free' | 'inactive'>('all');
 
   const authHeaders = useCallback((extra: Record<string, string> = {}) => ({
     ...extra,
@@ -4975,15 +5318,16 @@ export function AdminPanel({
   }), [authToken]);
 
   useEffect(() => {
-    fetch('/api/auth/me', { headers: authHeaders() })
+    fetch('/api/auth/me', { credentials: 'same-origin', headers: authHeaders() })
       .then(async res => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Требуется вход');
         if (!data.adminAllowed) throw new Error('Нужны права администратора');
+        markAuthSessionHint();
         setAuthUser(data.user);
       })
       .catch(() => {
-        sessionStorage.removeItem(AUTH_TOKEN_KEY);
+        clearAuthSessionHint();
         setAuthToken('');
         setAuthUser(null);
         setAuthStep('password');
@@ -5018,6 +5362,114 @@ export function AdminPanel({
     setClassPositionsDraft(nextDraft);
   }, [tierlistSections]);
 
+  const fetchAdminUsers = useCallback(async () => {
+    if (!authed) return;
+    setAdminUsersLoading(true);
+    try {
+      const params = new URLSearchParams({ limit: '200' });
+      const query = deferredAdminUsersSearch.trim();
+      if (query) params.set('q', query);
+      if (adminUsersRole !== 'all') params.set('role', adminUsersRole);
+      if (adminUsersSubscription !== 'all') params.set('subscription', adminUsersSubscription);
+      const res = await fetch(`/api/admin/users?${params.toString()}`, {
+        credentials: 'same-origin',
+        headers: authHeaders(),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Не удалось загрузить пользователей');
+      setAdminUsers(Array.isArray(data.users) ? data.users : []);
+      setAdminUsersTotal(Number(data.total || 0));
+    } catch (err: any) {
+      setMsg({ type: 'err', text: err?.message || 'Не удалось загрузить пользователей' });
+      setAdminUsers([]);
+      setAdminUsersTotal(0);
+    } finally {
+      setAdminUsersLoading(false);
+    }
+  }, [adminUsersRole, adminUsersSubscription, authHeaders, authed, deferredAdminUsersSearch]);
+
+  const fetchBoostyStatus = useCallback(async () => {
+    if (!authed) return;
+    setBoostyStatusLoading(true);
+    try {
+      const res = await fetch('/api/admin/boosty/status', {
+        credentials: 'same-origin',
+        headers: authHeaders(),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Не удалось загрузить статус Boosty');
+      setBoostyStatus(data as BoostyAdminStatus);
+    } catch (err: any) {
+      setBoostyStatus({
+        configured: true,
+        ok: false,
+        importStatus: 'error',
+        source: 'admin-panel',
+        stale: true,
+        snapshotAgeSeconds: null,
+        lastErrorCategory: 'admin-request-failed',
+        lastErrorMessage: err?.message || 'Не удалось загрузить статус Boosty',
+        warnings: ['admin-request-failed'],
+        summary: {},
+        checkedAt: new Date().toISOString(),
+        graceHours: 24,
+      });
+    } finally {
+      setBoostyStatusLoading(false);
+    }
+  }, [authHeaders, authed]);
+
+  const fetchBoostySubscribers = useCallback(async () => {
+    if (!authed) return;
+    setBoostySubscribersLoading(true);
+    try {
+      const res = await fetch('/api/admin/boosty/subscribers?includeInactive=1', {
+        credentials: 'same-origin',
+        headers: authHeaders(),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Не удалось загрузить подписчиков Boosty');
+      setBoostySubscribers({
+        configured: Boolean(data.configured),
+        source: String(data.source || ''),
+        stale: Boolean(data.stale),
+        summary: data.summary && typeof data.summary === 'object' ? data.summary : {},
+        levels: data.levels && typeof data.levels === 'object' ? data.levels : {},
+        subscribers: Array.isArray(data.subscribers) ? data.subscribers : [],
+        fetchedAt: String(data.fetchedAt || new Date().toISOString()),
+        error: data.error ? String(data.error) : undefined,
+      });
+    } catch (err: any) {
+      setBoostySubscribers({
+        configured: true,
+        source: 'admin-panel',
+        stale: true,
+        summary: {},
+        levels: {},
+        subscribers: [],
+        fetchedAt: new Date().toISOString(),
+        error: err?.message || 'Не удалось загрузить подписчиков Boosty',
+      });
+    } finally {
+      setBoostySubscribersLoading(false);
+    }
+  }, [authHeaders, authed]);
+
+  useEffect(() => {
+    if (activeSection !== 'users') return;
+    void fetchAdminUsers();
+  }, [activeSection, fetchAdminUsers]);
+
+  useEffect(() => {
+    if (activeSection !== 'boosty') return;
+    void fetchBoostySubscribers();
+  }, [activeSection, fetchBoostySubscribers]);
+
+  useEffect(() => {
+    if (!authed) return;
+    void fetchBoostyStatus();
+  }, [authed, fetchBoostyStatus]);
+
   const filteredArticles = useMemo(() => {
     const normalizedSearch = deferredSearchTerm.trim().toLowerCase();
     const list = articles.filter(article => {
@@ -5038,6 +5490,48 @@ export function AdminPanel({
 
     return list;
   }, [articles, deferredSearchTerm, sortBy, tagFilter]);
+
+  const adminUserStats = useMemo(() => {
+    const active = adminUsers.filter(user => user.subscription?.hasAccess).length;
+    const admins = adminUsers.filter(user => user.role === 'admin').length;
+    const telegram = adminUsers.filter(user => user.telegramId || user.telegramUsername || user.telegramOidcId).length;
+    return { active, admins, telegram };
+  }, [adminUsers]);
+
+  const boostyLevelOptions = useMemo(() => (
+    Object.keys(boostySubscribers?.levels || {}).sort((a, b) => a.localeCompare(b, 'ru'))
+  ), [boostySubscribers]);
+
+  const filteredBoostySubscribers = useMemo(() => {
+    const query = deferredBoostySubscribersSearch.trim().toLowerCase();
+    return (boostySubscribers?.subscribers || []).filter(subscriber => {
+      if (boostyLevelFilter !== 'all' && (subscriber.level?.name || 'Без уровня') !== boostyLevelFilter) return false;
+      if (boostyAccessFilter === 'site' && !subscriber.siteAccess) return false;
+      if (boostyAccessFilter === 'paid' && !subscriber.hasActivePaidAccess) return false;
+      if (boostyAccessFilter === 'free' && subscriber.hasActivePaidAccess) return false;
+      if (boostyAccessFilter === 'inactive' && subscriber.active) return false;
+      if (!query) return true;
+      const haystack = [
+        subscriber.id,
+        subscriber.name,
+        subscriber.email,
+        subscriber.level?.name,
+        subscriber.status,
+        subscriber.audienceType,
+      ].filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [boostyAccessFilter, boostyLevelFilter, boostySubscribers, deferredBoostySubscribersSearch]);
+
+  const boostySubscriberStats = useMemo(() => {
+    const subscribers = boostySubscribers?.subscribers || [];
+    return {
+      total: subscribers.length,
+      siteAccess: subscribers.filter(subscriber => subscriber.siteAccess).length,
+      activePaid: subscribers.filter(subscriber => subscriber.hasActivePaidAccess).length,
+      missingEmail: subscribers.filter(subscriber => !subscriber.hasEmail).length,
+    };
+  }, [boostySubscribers]);
 
   const handleGenImage = async () => {
     if (genBusy) return;
@@ -5125,9 +5619,9 @@ export function AdminPanel({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Неверный код');
       if (!data.adminAllowed) throw new Error('У этого аккаунта нет прав администратора');
-      sessionStorage.setItem(AUTH_TOKEN_KEY, data.token);
       sessionStorage.setItem(AUTH_EMAIL_KEY, email);
-      setAuthToken(data.token);
+      markAuthSessionHint();
+      setAuthToken(data.token || '');
       setAuthUser(data.user);
       setCode('');
       setMsg(null);
@@ -5143,7 +5637,7 @@ export function AdminPanel({
       method: 'POST',
       headers: authHeaders({ 'Content-Type': 'application/json' }),
     }).catch(() => {});
-    sessionStorage.removeItem(AUTH_TOKEN_KEY);
+    clearAuthSessionHint();
     setAuthToken('');
     setAuthUser(null);
     setAuthStep('password');
@@ -5221,6 +5715,34 @@ export function AdminPanel({
       setSavingPositions(false);
     }
   };
+
+  const boostyOk = Boolean(boostyStatus?.ok);
+  const boostyTone = !boostyStatus
+    ? 'pending'
+    : boostyOk
+      ? 'ok'
+      : boostyStatus.importStatus === 'stale'
+        ? 'warn'
+        : 'err';
+  const boostyToneStyles: Record<string, { background: string; border: string; color: string; badgeBg: string; badgeColor: string }> = {
+    pending: { background: '#f8faff', border: '#cbd7ea', color: '#334155', badgeBg: '#e0f2fe', badgeColor: '#075985' },
+    ok: { background: '#f0fdf4', border: '#86efac', color: '#14532d', badgeBg: '#dcfce7', badgeColor: '#166534' },
+    warn: { background: '#fffbeb', border: '#facc15', color: '#713f12', badgeBg: '#fef3c7', badgeColor: '#92400e' },
+    err: { background: '#fef2f2', border: '#fca5a5', color: '#7f1d1d', badgeBg: '#fee2e2', badgeColor: '#991b1b' },
+  };
+  const boostyStyle = boostyToneStyles[boostyTone];
+  const boostySnapshotAge = typeof boostyStatus?.snapshotAgeSeconds === 'number'
+    ? boostyStatus.snapshotAgeSeconds < 3600
+      ? `${Math.max(1, Math.round(boostyStatus.snapshotAgeSeconds / 60))} мин`
+      : `${(boostyStatus.snapshotAgeSeconds / 3600).toFixed(1)} ч`
+    : 'нет';
+  const boostyStatusLabel = !boostyStatus
+    ? 'Не проверен'
+    : boostyOk
+      ? 'Fresh'
+      : boostyStatus.importStatus === 'stale'
+        ? 'Stale'
+        : 'Ошибка';
 
   // ── Login screen ──────────────────────────────────────────────────────────
   if (!authed) {
@@ -5391,6 +5913,90 @@ export function AdminPanel({
         })}
       </div>
 
+      <section
+        aria-label="Статус Boosty API"
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+          gap: '12px',
+          alignItems: 'center',
+          background: boostyStyle.background,
+          border: `1.5px solid ${boostyStyle.border}`,
+          borderRadius: '12px',
+          padding: '14px 16px',
+          marginBottom: '18px',
+          color: boostyStyle.color,
+          boxShadow: '0 10px 24px rgba(15,23,42,0.06)',
+        }}
+      >
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', minWidth: 0, flex: '1 1 320px' }}>
+          <span style={{
+            width: 38,
+            height: 38,
+            borderRadius: '10px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: boostyStyle.badgeBg,
+            color: boostyStyle.badgeColor,
+            flexShrink: 0,
+          }}>
+            {boostyTone === 'ok' ? <ShieldCheck size={20} /> : <AlertTriangle size={20} />}
+          </span>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <h3 style={{ margin: 0, color: boostyStyle.color, fontFamily: 'var(--font-display)', fontSize: '1rem' }}>
+                Boosty API
+              </h3>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                minHeight: 24,
+                padding: '3px 9px',
+                borderRadius: '999px',
+                background: boostyStyle.badgeBg,
+                color: boostyStyle.badgeColor,
+                fontSize: '12px',
+                fontWeight: 700,
+              }}>
+                {boostyStatusLoading ? 'Проверяем' : boostyStatusLabel}
+              </span>
+            </div>
+            <p style={{ margin: '6px 0 0', color: boostyStyle.color, fontSize: '13px', lineHeight: 1.45 }}>
+              Источник: <b>{boostyStatus?.source || '—'}</b>
+              {' · '}Импорт: <b>{boostyStatus?.importStatus || '—'}</b>
+              {' · '}Grace period: <b>{boostyStatus?.graceHours ?? 24} ч</b>
+              {' · '}Активных платных: <b>{boostyStatus?.summary?.activePaid ?? '—'}</b>
+            </p>
+            <p style={{ margin: '4px 0 0', color: boostyStyle.color, fontSize: '12px', lineHeight: 1.45 }}>
+              Возраст снапшота: {boostySnapshotAge}
+              {boostyStatus?.lastErrorMessage ? ` · Ошибка: ${boostyStatus.lastErrorMessage}` : ''}
+              {boostyStatus?.checkedAt ? ` · Проверено: ${new Date(boostyStatus.checkedAt).toLocaleString('ru-RU')}` : ''}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => void fetchBoostyStatus()}
+          disabled={boostyStatusLoading}
+          style={{
+            ...ADMIN_SECONDARY_BUTTON,
+            minHeight: 38,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '7px',
+            cursor: boostyStatusLoading ? 'wait' : 'pointer',
+            opacity: boostyStatusLoading ? 0.7 : 1,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <RefreshCw size={15} className={boostyStatusLoading ? 'animate-spin' : ''} />
+          Обновить статус
+        </button>
+      </section>
+
       {activeSection === 'overview' && (
       <div style={{
         background: 'rgba(139,69,19,0.07)',
@@ -5483,6 +6089,313 @@ export function AdminPanel({
       </div>
       )}
 
+      {activeSection === 'users' && (
+        <section style={{
+          background: 'rgba(139,69,19,0.07)',
+          border: '1.5px solid #c4a46a',
+          borderRadius: '12px',
+          padding: '20px',
+          marginBottom: '32px',
+        }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px', marginBottom: '18px' }}>
+            <AdminStatCard label="Всего" value={String(adminUsersTotal)} hint="Пользователей в единой базе" />
+            <AdminStatCard label="Подписчики" value={String(adminUserStats.active)} hint="В текущем срезе" />
+            <AdminStatCard label="Telegram" value={String(adminUserStats.telegram)} hint="Привязан Telegram/OIDC" />
+            <AdminStatCard label="Админы" value={String(adminUserStats.admins)} hint="Полный доступ" />
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))',
+            gap: '10px',
+            alignItems: 'end',
+            marginBottom: '16px',
+          }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', color: '#5a3517', fontSize: '12px', fontWeight: 700 }}>
+              Поиск
+              <input
+                style={ADMIN_INPUT}
+                value={adminUsersSearch}
+                onChange={e => setAdminUsersSearch(e.target.value)}
+                placeholder="email, имя, Telegram, ID, контакт"
+              />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', color: '#5a3517', fontSize: '12px', fontWeight: 700 }}>
+              Роль
+              <select style={ADMIN_INPUT} value={adminUsersRole} onChange={e => setAdminUsersRole(e.target.value as typeof adminUsersRole)}>
+                <option value="all">Все</option>
+                <option value="admin">Админы</option>
+                <option value="user">Пользователи</option>
+              </select>
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', color: '#5a3517', fontSize: '12px', fontWeight: 700 }}>
+              Подписка
+              <select style={ADMIN_INPUT} value={adminUsersSubscription} onChange={e => setAdminUsersSubscription(e.target.value as typeof adminUsersSubscription)}>
+                <option value="all">Все</option>
+                <option value="active">Активна</option>
+                <option value="inactive">Нет доступа</option>
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={() => { void fetchAdminUsers(); }}
+              disabled={adminUsersLoading}
+              style={{ ...ADMIN_SECONDARY_BUTTON, minHeight: 39, cursor: adminUsersLoading ? 'wait' : 'pointer', opacity: adminUsersLoading ? 0.75 : 1 }}
+            >
+              {adminUsersLoading ? 'Загрузка...' : 'Обновить'}
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gap: '10px' }}>
+            {adminUsersLoading && !adminUsers.length && (
+              <div style={{ padding: '16px', borderRadius: '12px', border: '1px dashed #c4a46a', color: '#6b4c2a', background: 'rgba(255,255,255,0.38)' }}>
+                Загружаем пользователей...
+              </div>
+            )}
+            {!adminUsersLoading && !adminUsers.length && (
+              <div style={{ padding: '16px', borderRadius: '12px', border: '1px dashed #c4a46a', color: '#6b4c2a', background: 'rgba(255,255,255,0.38)' }}>
+                Пользователи не найдены.
+              </div>
+            )}
+            {adminUsers.map(user => (
+              <article
+                key={user.id}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 210px), 1fr))',
+                  gap: '12px',
+                  padding: '14px',
+                  borderRadius: '12px',
+                  border: user.role === 'admin' ? '1.5px solid #60a5fa' : user.subscription?.hasAccess ? '1.5px solid #34d399' : '1px solid #cbd7ea',
+                  background: user.role === 'admin'
+                    ? 'linear-gradient(135deg, rgba(219,234,254,0.86), rgba(248,250,255,0.72))'
+                    : 'rgba(248,250,255,0.76)',
+                  boxShadow: '0 10px 24px rgba(15,23,42,0.06)',
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <strong style={{ display: 'block', color: '#1e293b', fontSize: '15px', overflowWrap: 'anywhere' }}>{user.name || 'Без имени'}</strong>
+                  <span style={{ display: 'block', color: '#475569', fontSize: '12px', marginTop: '3px', overflowWrap: 'anywhere' }}>{user.email}</span>
+                  <code style={{ display: 'block', color: '#64748b', fontSize: '11px', marginTop: '6px', overflowWrap: 'anywhere' }}>{user.id}</code>
+                </div>
+                <div style={{ minWidth: 0, color: '#334155', fontSize: '12px', lineHeight: 1.55 }}>
+                  <b style={{ color: user.role === 'admin' ? '#1d4ed8' : '#1e293b' }}>{user.role === 'admin' ? 'Администратор' : 'Пользователь'}</b>
+                  <br />
+                  Страна: {user.country || 'не указана'}
+                  <br />
+                  Рассылка: {user.newsletterOptIn ? 'да' : 'нет'}
+                  <br />
+                  Конкурсы: {user.contestEntriesCount}
+                </div>
+                <div style={{ minWidth: 0, color: '#334155', fontSize: '12px', lineHeight: 1.55 }}>
+                  <b style={{ color: '#1e293b' }}>Telegram</b>
+                  <br />
+                  ID: <span style={{ overflowWrap: 'anywhere' }}>{user.telegramId || 'не привязан'}</span>
+                  <br />
+                  Username: <span style={{ overflowWrap: 'anywhere' }}>{user.telegramUsername ? `@${user.telegramUsername}` : 'не указан'}</span>
+                  <br />
+                  OIDC: <span style={{ overflowWrap: 'anywhere' }}>{user.telegramOidcId ? 'есть' : 'нет'}</span>
+                </div>
+                <div style={{ minWidth: 0, color: '#334155', fontSize: '12px', lineHeight: 1.55 }}>
+                  <b style={{ color: user.subscription?.hasAccess ? '#047857' : '#7f1d1d' }}>
+                    {user.subscription?.hasAccess ? 'Подписка активна' : 'Нет подписки'}
+                  </b>
+                  <br />
+                  Источник: {user.subscription?.source || 'none'}
+                  <br />
+                  Boosty: {user.subscription?.boosty?.levelName || user.subscription?.boosty?.source || 'нет'}
+                  <br />
+                  Доступы: {subscriptionEntitlementLabels(user.subscription).join(', ') || 'нет'}
+                  <br />
+                  Проверка: {user.subscription?.checkedAt ? new Date(user.subscription.checkedAt).toLocaleString('ru-RU') : '—'}
+                </div>
+                <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', paddingTop: '10px', borderTop: '1px solid #d7e1ef', color: '#475569', fontSize: '12px' }}>
+                  <span style={{ overflowWrap: 'anywhere' }}><b>Контакт Telegram:</b> {user.contactTelegram || '—'}</span>
+                  <span style={{ overflowWrap: 'anywhere' }}><b>VK:</b> {user.contactVkUrl || '—'}</span>
+                  <span style={{ overflowWrap: 'anywhere' }}><b>Почта связи:</b> {user.contactEmail || '—'}</span>
+                  <span><b>Создан:</b> {user.createdAt ? new Date(user.createdAt).toLocaleString('ru-RU') : '—'}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {activeSection === 'boosty' && (
+        <section style={{
+          background: 'rgba(139,69,19,0.07)',
+          border: '1.5px solid #c4a46a',
+          borderRadius: '12px',
+          padding: '20px',
+          marginBottom: '32px',
+        }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px', marginBottom: '18px' }}>
+            <AdminStatCard label="Всего Boosty" value={String(boostySubscriberStats.total)} hint="Все строки аудитории" />
+            <AdminStatCard label="Платные" value={String(boostySubscriberStats.activePaid)} hint="Активный платный доступ" />
+            <AdminStatCard label="Доступ на сайте" value={String(boostySubscriberStats.siteAccess)} hint="Распознанный тариф HS-Arena" />
+            <AdminStatCard label="Без email" value={String(boostySubscriberStats.missingEmail)} hint="Не смогут привязать почту" />
+          </div>
+
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '8px',
+            marginBottom: '14px',
+          }}>
+            {boostyLevelOptions.map(levelName => (
+              <span
+                key={levelName}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '5px 9px',
+                  borderRadius: '999px',
+                  background: levelName === boostyLevelFilter ? '#dbeafe' : 'rgba(248,250,255,0.72)',
+                  border: levelName === boostyLevelFilter ? '1px solid #60a5fa' : '1px solid #cbd7ea',
+                  color: '#1e3a5f',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                }}
+              >
+                {levelName || 'Без уровня'}
+                <b>{boostySubscribers?.levels?.[levelName] ?? 0}</b>
+              </span>
+            ))}
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))',
+            gap: '10px',
+            alignItems: 'end',
+            marginBottom: '16px',
+          }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', color: '#5a3517', fontSize: '12px', fontWeight: 700 }}>
+              Поиск Boosty
+              <input
+                style={ADMIN_INPUT}
+                value={boostySubscribersSearch}
+                onChange={e => setBoostySubscribersSearch(e.target.value)}
+                placeholder="email, имя, ID, уровень"
+              />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', color: '#5a3517', fontSize: '12px', fontWeight: 700 }}>
+              Уровень
+              <select style={ADMIN_INPUT} value={boostyLevelFilter} onChange={e => setBoostyLevelFilter(e.target.value)}>
+                <option value="all">Все уровни</option>
+                {boostyLevelOptions.map(levelName => (
+                  <option key={levelName} value={levelName}>{levelName || 'Без уровня'}</option>
+                ))}
+              </select>
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', color: '#5a3517', fontSize: '12px', fontWeight: 700 }}>
+              Статус
+              <select style={ADMIN_INPUT} value={boostyAccessFilter} onChange={e => setBoostyAccessFilter(e.target.value as typeof boostyAccessFilter)}>
+                <option value="all">Все</option>
+                <option value="site">Доступ на сайте</option>
+                <option value="paid">Активные платные</option>
+                <option value="free">Без платной подписки</option>
+                <option value="inactive">Неактивные</option>
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={() => { void fetchBoostySubscribers(); void fetchBoostyStatus(); }}
+              disabled={boostySubscribersLoading}
+              style={{ ...ADMIN_SECONDARY_BUTTON, minHeight: 39, cursor: boostySubscribersLoading ? 'wait' : 'pointer', opacity: boostySubscribersLoading ? 0.75 : 1 }}
+            >
+              {boostySubscribersLoading ? 'Загрузка...' : 'Обновить Boosty'}
+            </button>
+          </div>
+
+          <div style={{ color: '#6b4c2a', fontSize: '12px', marginBottom: '12px' }}>
+            Источник: <b>{boostySubscribers?.source || '—'}</b>
+            {' · '}Показано: <b>{filteredBoostySubscribers.length}</b> из <b>{boostySubscribers?.subscribers.length || 0}</b>
+            {boostySubscribers?.fetchedAt ? ` · Загружено: ${new Date(boostySubscribers.fetchedAt).toLocaleString('ru-RU')}` : ''}
+          </div>
+
+          {boostySubscribers?.error && (
+            <div style={{ padding: '12px 14px', borderRadius: '10px', border: '1px solid #fca5a5', background: '#fef2f2', color: '#7f1d1d', marginBottom: '12px', fontSize: '13px' }}>
+              {boostySubscribers.error}
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gap: '10px' }}>
+            {boostySubscribersLoading && !boostySubscribers?.subscribers.length && (
+              <div style={{ padding: '16px', borderRadius: '12px', border: '1px dashed #c4a46a', color: '#6b4c2a', background: 'rgba(255,255,255,0.38)' }}>
+                Загружаем Boosty-аудиторию...
+              </div>
+            )}
+            {!boostySubscribersLoading && boostySubscribers && filteredBoostySubscribers.length === 0 && (
+              <div style={{ padding: '16px', borderRadius: '12px', border: '1px dashed #c4a46a', color: '#6b4c2a', background: 'rgba(255,255,255,0.38)' }}>
+                Подписчики Boosty не найдены по текущим фильтрам.
+              </div>
+            )}
+            {filteredBoostySubscribers.map(subscriber => {
+              const accessLabels = subscriptionEntitlementLabels({
+                hasAccess: subscriber.siteAccess,
+                entitlements: subscriber.entitlements,
+              });
+              return (
+                <article
+                  key={subscriber.id}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
+                    gap: '12px',
+                    padding: '14px',
+                    borderRadius: '12px',
+                    border: subscriber.siteAccess ? '1.5px solid #34d399' : subscriber.hasActivePaidAccess ? '1.5px solid #60a5fa' : '1px solid #cbd7ea',
+                    background: 'rgba(248,250,255,0.82)',
+                    boxShadow: '0 10px 24px rgba(15,23,42,0.06)',
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '10px', minWidth: 0 }}>
+                    {subscriber.avatarUrl ? (
+                      <img src={subscriber.avatarUrl} alt="" style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1px solid #cbd7ea' }} />
+                    ) : (
+                      <span style={{ width: 42, height: 42, borderRadius: '50%', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#e2e8f0', color: '#475569', fontWeight: 800 }}>
+                        {(subscriber.name || subscriber.email || '?').slice(0, 1).toUpperCase()}
+                      </span>
+                    )}
+                    <div style={{ minWidth: 0 }}>
+                      <strong style={{ display: 'block', color: '#1e293b', fontSize: '15px', overflowWrap: 'anywhere' }}>{subscriber.name || 'Без имени'}</strong>
+                      <span style={{ display: 'block', color: subscriber.hasEmail ? '#475569' : '#9f1239', fontSize: '12px', marginTop: '3px', overflowWrap: 'anywhere' }}>
+                        {subscriber.email || 'email не открыт'}
+                      </span>
+                      <code style={{ display: 'block', color: '#64748b', fontSize: '11px', marginTop: '6px', overflowWrap: 'anywhere' }}>Boosty ID {subscriber.id}</code>
+                    </div>
+                  </div>
+                  <div style={{ minWidth: 0, color: '#334155', fontSize: '12px', lineHeight: 1.55 }}>
+                    <b style={{ color: subscriber.siteAccess ? '#047857' : subscriber.hasActivePaidAccess ? '#1d4ed8' : '#7f1d1d' }}>
+                      {subscriber.level?.name || 'Без уровня'}
+                    </b>
+                    <br />
+                    Цена: {subscriber.money?.currentPrice || subscriber.level?.price || 0} {subscriber.money?.currency || subscriber.level?.currency || 'RUB'}
+                    <br />
+                    Статус: {subscriber.active ? 'active' : subscriber.status || 'inactive'}
+                    <br />
+                    Продление: {subscriber.willRenew ? 'да' : 'нет'}
+                  </div>
+                  <div style={{ minWidth: 0, color: '#334155', fontSize: '12px', lineHeight: 1.55 }}>
+                    <b style={{ color: subscriber.siteAccess ? '#047857' : '#64748b' }}>
+                      {subscriber.siteAccess ? 'Открывает сайт' : 'Не открывает сайт'}
+                    </b>
+                    <br />
+                    Доступы: {accessLabels.join(', ') || 'нет'}
+                    <br />
+                    Следующий платёж: {subscriber.dates?.nextPaymentAt ? new Date(subscriber.dates.nextPaymentAt).toLocaleString('ru-RU') : '—'}
+                    <br />
+                    Подписан: {subscriber.dates?.subscribedAt ? new Date(subscriber.dates.subscribedAt).toLocaleString('ru-RU') : '—'}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {activeSection === 'add' && (
       <div style={{
         background: 'rgba(139,69,19,0.07)',
@@ -5503,6 +6416,18 @@ export function AdminPanel({
             <div>
               <label style={{ display: 'block', color: '#6b4c2a', fontSize: '12px', marginBottom: '4px', fontWeight: 600 }}>Тег</label>
               <input style={ADMIN_INPUT} value={form.tag} onChange={field('tag')} placeholder="Мета / Гайд / Обучение" />
+            </div>
+            <div>
+              <label style={{ display: 'block', color: '#6b4c2a', fontSize: '12px', marginBottom: '4px', fontWeight: 600 }}>Раздел статьи</label>
+              <select
+                style={ADMIN_INPUT}
+                value={form.mode}
+                onChange={e => setForm(current => ({ ...current, mode: e.target.value as AdminForm['mode'] }))}
+              >
+                <option value="arena">Арена</option>
+                <option value="battlegrounds">Поля Сражений</option>
+                <option value="general">Общая</option>
+              </select>
             </div>
             <div>
               <label style={{ display: 'block', color: '#6b4c2a', fontSize: '12px', marginBottom: '4px', fontWeight: 600 }}>Ссылка на статью</label>
@@ -5783,7 +6708,6 @@ function SiteFooter({ onNavigate, updatedAt }: { onNavigate: (tab: string) => vo
           <ul className="flex flex-col gap-1.5 text-sm">
             <li><a href="https://t.me/manacost_ru" target="_blank" rel="noopener noreferrer" className="hover:text-[#f6ce68] transition-colors" style={{ color: 'inherit', textDecoration: 'none' }}>Telegram</a></li>
             <li><a href="https://boosty.to/kolodahearthstone" target="_blank" rel="noopener noreferrer" className="hover:text-[#f6ce68] transition-colors" style={{ color: 'inherit', textDecoration: 'none' }}>Boosty</a></li>
-            <li><a href="https://github.com/Zulut30/manacost-arena" target="_blank" rel="noopener noreferrer" className="hover:text-[#f6ce68] transition-colors" style={{ color: 'inherit', textDecoration: 'none' }}>GitHub</a></li>
           </ul>
         </div>
 
@@ -5965,21 +6889,21 @@ function SectionBanner({ title, subtitle }: { title: string; subtitle: string })
         </p>
       </div>
 
-      {/* Mobile banner — simple parchment header strip, no image */}
+      {/* Mobile banner — light compact header strip, no image */}
       <div
         className="sm:hidden -mx-3 -mt-3 mb-5 px-4 py-4 section-banner-modern"
         style={{
-          background: 'linear-gradient(135deg, #091527, #172b48)',
-          borderBottom: '1px solid rgba(246,206,104,0.28)',
+          background: 'linear-gradient(145deg, rgba(255,255,255,0.96), rgba(232,241,255,0.92))',
+          borderBottom: '1px solid rgba(148,163,184,0.34)',
         }}
       >
         <h1
           className="font-hs tracking-wide"
-          style={{ fontSize: '1.5rem', color: '#fff7cf' }}
+          style={{ fontSize: '1.5rem', color: '#1f3654' }}
         >
           {title}
         </h1>
-        <p className="text-[#c8d5e8] text-xs mt-0.5 font-semibold">{subtitle}</p>
+        <p className="text-[#52667f] text-xs mt-0.5 font-semibold">{subtitle}</p>
       </div>
     </>
   );
@@ -5994,11 +6918,33 @@ interface Article {
   image: string;
   excerpt: string;
   tag?: string;
+  mode?: 'arena' | 'battlegrounds' | 'general' | string;
   url: string;
+  likes?: number;
+  dislikes?: number;
+  userVote?: 'like' | 'dislike' | null;
 }
 interface ArticlesData {
   articles: Article[];
   updatedAt: string | null;
+}
+
+function articleEntitlement(article: Article): SubscriptionEntitlementKey | null {
+  const explicitMode = String(article.mode || '').toLowerCase();
+  if (explicitMode === 'battlegrounds') return 'battlegroundsArticles';
+  if (explicitMode === 'arena') return 'arenaArticles';
+  if (explicitMode === 'general') return null;
+  const haystack = [article.tag, article.title, article.excerpt, article.url]
+    .map(value => String(value || '').toLowerCase().replace(/ё/g, 'е'))
+    .join(' ');
+  if (/(поля сражений|полей сражений|battleground|battle grounds|tavern|таверна|боб|bob|бг)/.test(haystack)) return 'battlegroundsArticles';
+  if (/(арена|arena)/.test(haystack)) return 'arenaArticles';
+  return null;
+}
+
+function canAccessArticle(article: Article, subscription: SubscriptionStatus | null | undefined, authUser?: AuthUser | null): boolean {
+  if (authUser?.role === 'admin') return true;
+  return hasSubscriptionEntitlement(subscription, articleEntitlement(article));
 }
 
 function ArticleCard({
@@ -6007,20 +6953,26 @@ function ArticleCard({
   authUser,
   subscriptionStatus,
   subscriptionLoading = false,
+  onVote,
+  voting = false,
 }: {
   article: Article;
   idx: number;
   authUser?: AuthUser | null;
   subscriptionStatus?: SubscriptionStatus | null;
   subscriptionLoading?: boolean;
+  onVote: (article: Article, vote: 'like' | 'dislike') => void;
+  voting?: boolean;
 }) {
   const [imgErr, setImgErr] = useState(false);
   const [opening, setOpening] = useState(false);
   const isFeatured = idx === 0;
   const canRequestVipLink = Boolean(authUser && isKolodaArticleUrl(article.url));
+  const isVipArticle = isKolodaArticleUrl(article.url);
+  const hasArticleAccess = canAccessArticle(article, subscriptionStatus, authUser);
   const readLabel = opening
     ? 'Открываю…'
-    : canRequestVipLink && subscriptionStatus?.hasAccess
+    : canRequestVipLink && hasArticleAccess
       ? 'Читать VIP →'
       : canRequestVipLink && subscriptionLoading
         ? 'Проверяем →'
@@ -6028,8 +6980,17 @@ function ArticleCard({
 
   const openArticle = async () => {
     if (!article.url || article.url === '#') return;
-    if (!canRequestVipLink) {
+    if (!isVipArticle) {
       window.open(article.url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    if (!authUser) {
+      window.location.href = '/?login';
+      return;
+    }
+    if (subscriptionLoading) return;
+    if (!hasArticleAccess) {
+      window.alert('Для VIP-статьи нужна подписка подходящего режима.');
       return;
     }
 
@@ -6037,12 +6998,11 @@ function ArticleCard({
     if (tab) tab.opener = null;
     setOpening(true);
     try {
-      const token = sessionStorage.getItem(AUTH_TOKEN_KEY) || '';
       const response = await fetch('/api/articles/access-link', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ url: article.url, title: article.title }),
       });
@@ -6051,9 +7011,9 @@ function ArticleCard({
       const nextUrl = String(data.url || article.url);
       if (tab) tab.location.href = nextUrl;
       else window.open(nextUrl, '_blank', 'noopener,noreferrer');
-    } catch {
-      if (tab) tab.location.href = article.url;
-      else window.open(article.url, '_blank', 'noopener,noreferrer');
+    } catch (err: any) {
+      if (tab) tab.close();
+      window.alert(err?.message || 'Не удалось открыть разблокированную статью.');
     } finally {
       setOpening(false);
     }
@@ -6085,20 +7045,37 @@ function ArticleCard({
         )}
       </div>
       {/* Body */}
-      <div className="article-body-modern p-4 flex flex-col flex-grow gap-2">
-        <h3 className="font-hs text-base leading-tight"
-          style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+      <div className="article-body-modern p-4 flex flex-col flex-grow gap-3">
+        <h3 className="font-hs text-base leading-snug">
           {article.title}
         </h3>
-        <p className="text-xs leading-relaxed flex-grow"
-          style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-          {article.excerpt}
-        </p>
-        <div className="article-meta-modern flex items-center justify-between mt-1 pt-2">
+        <div className="article-meta-modern flex items-center justify-between mt-auto pt-2">
           <span className="text-xs">
             {formatArticleDate(article.date)}
           </span>
           <span className="article-read-link text-xs font-bold">{readLabel}</span>
+        </div>
+        <div className="article-vote-row flex items-center gap-2 pt-1" onClick={event => event.stopPropagation()}>
+          <button
+            type="button"
+            className={`article-vote-button ${article.userVote === 'like' ? 'is-active' : ''}`}
+            disabled={voting}
+            onClick={() => onVote(article, 'like')}
+            aria-label="Поставить лайк статье"
+          >
+            <ThumbsUp size={15} />
+            <span>{article.likes ?? 0}</span>
+          </button>
+          <button
+            type="button"
+            className={`article-vote-button ${article.userVote === 'dislike' ? 'is-active' : ''}`}
+            disabled={voting}
+            onClick={() => onVote(article, 'dislike')}
+            aria-label="Поставить дизлайк статье"
+          >
+            <ThumbsDown size={15} />
+            <span>{article.dislikes ?? 0}</span>
+          </button>
         </div>
       </div>
     </article>
@@ -6597,6 +7574,87 @@ export function ArticlesTab({
   subscriptionStatus?: SubscriptionStatus | null;
   subscriptionLoading?: boolean;
 }) {
+  const [articleSearch, setArticleSearch] = useState('');
+  const deferredArticleSearch = useDeferredValue(articleSearch);
+  const [articleTag, setArticleTag] = useState('__all__');
+  const [articleVotes, setArticleVotes] = useState<Record<string, Pick<Article, 'likes' | 'dislikes' | 'userVote'>>>({});
+  const [votingArticleId, setVotingArticleId] = useState('');
+
+  useEffect(() => {
+    setArticleVotes(Object.fromEntries(data.articles.map(article => [
+      article.id,
+      {
+        likes: article.likes ?? 0,
+        dislikes: article.dislikes ?? 0,
+        userVote: article.userVote ?? null,
+      },
+    ])));
+  }, [data.articles]);
+
+  const articleTags = useMemo(() => {
+    const tags = new Set<string>();
+    data.articles.forEach(article => {
+      const tag = article.tag?.trim();
+      if (tag) tags.add(tag);
+    });
+    return Array.from(tags).sort((a, b) => a.localeCompare(b, 'ru'));
+  }, [data.articles]);
+
+  const visibleArticles = useMemo(() => {
+    const query = deferredArticleSearch.trim().toLowerCase();
+    return data.articles
+      .map(article => ({ ...article, ...(articleVotes[article.id] ?? {}) }))
+      .filter(article => {
+        if (articleTag !== '__all__' && (article.tag?.trim() || '') !== articleTag) return false;
+        if (!query) return true;
+        return [article.title, article.tag, article.date]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(query);
+      })
+      .sort((a, b) => {
+        const left = Date.parse(a.date || '');
+        const right = Date.parse(b.date || '');
+        return (Number.isFinite(right) ? right : 0) - (Number.isFinite(left) ? left : 0);
+      });
+  }, [articleTag, articleVotes, data.articles, deferredArticleSearch]);
+
+  const handleArticleVote = useCallback(async (article: Article, vote: 'like' | 'dislike') => {
+    if (!authUser) {
+      window.location.href = '/?login';
+      return;
+    }
+    if (subscriptionLoading) return;
+    if (!canAccessArticle(article, subscriptionStatus, authUser)) {
+      window.alert('Голосовать за эту статью могут только подписчики подходящего режима.');
+      return;
+    }
+    setVotingArticleId(article.id);
+    try {
+      const response = await fetch(`/api/articles/${encodeURIComponent(article.id)}/vote`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vote }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Не удалось сохранить голос');
+      setArticleVotes(previous => ({
+        ...previous,
+        [article.id]: {
+          likes: Number(result.likes || 0),
+          dislikes: Number(result.dislikes || 0),
+          userVote: result.userVote ?? null,
+        },
+      }));
+    } catch (err: any) {
+      window.alert(err?.message || 'Не удалось сохранить голос.');
+    } finally {
+      setVotingArticleId('');
+    }
+  }, [authUser, subscriptionLoading, subscriptionStatus]);
+
   return (
     <div>
       <SectionBanner title="Статьи" subtitle="Гайды, разборы мета и советы по режиму Арена" />
@@ -6605,18 +7663,40 @@ export function ArticlesTab({
         { name: 'Статьи', href: '/articles' },
       ]} />
 
+      <div className="articles-toolbar-modern mb-5">
+        <label className="articles-search-modern">
+          <Search size={17} aria-hidden="true" />
+          <input
+            value={articleSearch}
+            onChange={event => setArticleSearch(event.target.value)}
+            placeholder="Поиск по статьям"
+            aria-label="Поиск по статьям"
+          />
+        </label>
+        <div className="articles-tag-filter" aria-label="Фильтр по тегам">
+          <button type="button" className={articleTag === '__all__' ? 'is-active' : ''} onClick={() => setArticleTag('__all__')}>
+            Все
+          </button>
+          {articleTags.map(tag => (
+            <button key={tag} type="button" className={articleTag === tag ? 'is-active' : ''} onClick={() => setArticleTag(tag)}>
+              {tag}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {loading ? (
         <div className="articles-grid-modern grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {[1,2,3].map(i => <div key={i} className="skeleton h-72 rounded-2xl" />)}
         </div>
-      ) : data.articles.length === 0 ? (
+      ) : visibleArticles.length === 0 ? (
         <div className="articles-empty-modern text-center py-16">
           <BookOpen size={42} aria-hidden="true" className="mx-auto mb-3" />
-          <p className="font-hs text-xl">Статьи скоро появятся</p>
+          <p className="font-hs text-xl">{data.articles.length ? 'Статьи не найдены' : 'Статьи скоро появятся'}</p>
         </div>
       ) : (
         <div className="articles-grid-modern grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {data.articles.map((a, i) => (
+          {visibleArticles.map((a, i) => (
             <React.Fragment key={a.id}>
               <ArticleCard
                 article={a}
@@ -6624,6 +7704,8 @@ export function ArticlesTab({
                 authUser={authUser}
                 subscriptionStatus={subscriptionStatus}
                 subscriptionLoading={subscriptionLoading}
+                onVote={handleArticleVote}
+                voting={votingArticleId === a.id}
               />
             </React.Fragment>
           ))}
@@ -6850,4 +7932,3 @@ async function fetchTierlistSnapshot(src: TierlistSource, bust = false): Promise
   const result = await fetchWithETag(url, cacheKey);
   return result?.data ?? null;
 }
-

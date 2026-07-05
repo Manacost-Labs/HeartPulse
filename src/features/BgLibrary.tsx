@@ -3,6 +3,7 @@ import { ArrowLeft, BarChart3, ChevronDown, ExternalLink, Filter, Search } from 
 
 type LibraryKind = 'minion' | 'spell' | 'anomaly' | 'quest' | 'darkmoon_prize' | 'reward' | 'trinket' | 'timewarped';
 type PoolMode = 'current' | 'archive';
+const BG_LIBRARY_API_VERSION = 'bg-library-20260704-2';
 
 interface LibraryCard {
   id?: number;
@@ -299,10 +300,18 @@ function libraryKindLabel(kind: LibraryKind): string {
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
+  const response = await fetch(url, { cache: 'no-store' });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload?.error || `HTTP ${response.status}`);
   return payload as T;
+}
+
+function versionedLibraryUrl(path: string, params: Record<string, string | number | boolean | null | undefined> = {}): string {
+  const search = new URLSearchParams({ v: BG_LIBRARY_API_VERSION });
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== null && value !== undefined) search.set(key, String(value));
+  }
+  return `${path}?${search.toString()}`;
 }
 
 function formatDecimal(value: unknown, digits = 2): string {
@@ -657,6 +666,7 @@ async function fetchAuxiliaryLibraryCards(kind: LibraryKind, pool: PoolMode, par
   const section = sectionFor(kind);
   if (!section.endpoint) return [];
   const baseParams = new URLSearchParams({
+    v: BG_LIBRARY_API_VERSION,
     per_page: '200',
     page: '1',
     ...Object.fromEntries(Object.entries(params).map(([key, value]) => [key, String(value)])),
@@ -834,9 +844,9 @@ function useLibraryData(kind: LibraryKind, pool: PoolMode) {
     setLoading(true);
     setError('');
     const inPool = pool === 'current' ? '1' : '0';
-    const metaRequest = isBaseLibraryKind(kind) ? fetchJson<LibraryMeta>('/api/bg/library/meta') : Promise.resolve({});
+    const metaRequest = isBaseLibraryKind(kind) ? fetchJson<LibraryMeta>(versionedLibraryUrl('/api/bg/library/meta')) : Promise.resolve({});
     const cardsRequest = isBaseLibraryKind(kind)
-      ? fetchJson<{ data: LibraryCard[] }>(`/api/bg/library/cards?card_type=${kind}&in_pool=${inPool}`).then(result => result.data || [])
+      ? fetchJson<{ data: LibraryCard[] }>(versionedLibraryUrl('/api/bg/library/cards', { card_type: kind, in_pool: inPool })).then(result => result.data || [])
       : fetchAuxiliaryLibraryCards(kind, pool);
 
     Promise.all([metaRequest, cardsRequest])
@@ -1142,13 +1152,11 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
     setArchivePage(1);
   }, [query, tavernFilters, raceFilters, groupFilter, mechanic, includeDuos, kind, pool]);
 
-  const imageReadyCards = useMemo(() => cards.filter(card => primaryCardImage(card)), [cards]);
-  const hiddenWithoutImage = Math.max(0, cards.length - imageReadyCards.length);
   const hiddenArchiveMinions = useMemo(
     () => pool === 'archive' && kind === 'minion'
-      ? imageReadyCards.filter(card => !isArchiveDisplayCard(card, kind, pool)).length
+      ? cards.filter(card => !isArchiveDisplayCard(card, kind, pool)).length
       : 0,
-    [imageReadyCards, kind, pool]
+    [cards, kind, pool]
   );
 
   const creatureTypes = useMemo(() => {
@@ -1184,7 +1192,7 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
     const rows: LibraryCard[] = [];
     const tavernSet = new Set(tavernFilters);
     const raceSet = new Set(raceFilters);
-    for (const card of imageReadyCards) {
+    for (const card of cards) {
       if (!isArchiveDisplayCard(card, kind, pool)) continue;
       if (needle && !containsSearchText(searchText(card), needle)) continue;
       if (!includeDuos && card.duos_only) continue;
@@ -1200,7 +1208,7 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
       }
       return Number(a.tavern_tier || 99) - Number(b.tavern_tier || 99) || cardRuName(a).localeCompare(cardRuName(b), 'ru');
     });
-  }, [groupFilter, imageReadyCards, includeDuos, kind, mechanic, pool, query, raceFilters, tavernFilters]);
+  }, [cards, groupFilter, includeDuos, kind, mechanic, pool, query, raceFilters, tavernFilters]);
 
   const archivePageCount = Math.max(1, Math.ceil(filtered.length / ARCHIVE_PAGE_SIZE));
   const normalizedArchivePage = Math.min(archivePage, archivePageCount);
@@ -1440,7 +1448,7 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
     setError('');
     const section = sectionFor(kind);
     const cardRequest = isBaseLibraryKind(kind)
-      ? fetchJson<LibraryCard>(`/api/bg/library/cards/by-dbf/${dbfId}`)
+      ? fetchJson<LibraryCard>(versionedLibraryUrl(`/api/bg/library/cards/by-dbf/${dbfId}`))
       : fetchAuxiliaryLibraryCards(kind, pool, { dbf: dbfId, per_page: 1 }).then(items => {
         const found = items.find(item => Number(item.dbf) === Number(dbfId)) || items[0];
         if (!found) throw new Error('Карта не найдена');
@@ -1452,7 +1460,7 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
         ? fetch('/bg-legacy/comps-data.js', { cache: 'force-cache' }).then(response => response.ok ? response.text() : '')
         : Promise.resolve(''),
       isBaseLibraryKind(kind) && pool === 'current'
-        ? fetchJson<{ data: LibraryCard[] }>(`/api/bg/library/cards?card_type=${kind}&in_pool=1`).then(result => result.data || []).catch(() => [])
+        ? fetchJson<{ data: LibraryCard[] }>(versionedLibraryUrl('/api/bg/library/cards', { card_type: kind, in_pool: 1 })).then(result => result.data || []).catch(() => [])
         : fetchAuxiliaryLibraryCards(kind, pool).catch(() => []),
     ];
     if (kind === 'minion' && pool === 'current') {

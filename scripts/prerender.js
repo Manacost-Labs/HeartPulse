@@ -104,6 +104,41 @@ const PAGES = {
         <li><a href="/contests">Конкурсы</a> — розыгрыши для подписчиков Манакоста</li>
       </ul>`
   },
+  '/standard/matchups': {
+    title: `Матчапы Стандарта Hearthstone ${YEAR} | Manacost Stats`,
+    description: 'Матрица матчапов актуальной меты Стандарта Hearthstone по данным HSGuru: винрейты архетипов против друг друга для Легенды и Алмаза 4-1.',
+    h1: 'Матчапы Стандарта Hearthstone',
+    canonical: '/standard/matchups',
+    ogType: 'website',
+    structuredData: [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Главная", "item": SITE_URL },
+          { "@type": "ListItem", "position": 2, "name": "Стандарт", "item": `${SITE_URL}/standard/matchups` },
+          { "@type": "ListItem", "position": 3, "name": "Матчапы", "item": `${SITE_URL}/standard/matchups` }
+        ]
+      },
+      {
+        "@type": "Dataset",
+        "@id": `${SITE_URL}/standard/matchups#dataset`,
+        "name": "Матчапы Стандарта Hearthstone",
+        "description": "Матрица винрейтов архетипов актуальной меты Стандарта Hearthstone по данным HSGuru.",
+        "url": `${SITE_URL}/standard/matchups`,
+        "creator": { "@type": "Organization", "name": "Manacost" },
+        "about": {
+          "@type": "VideoGame",
+          "name": "Hearthstone",
+          "gameMode": "Standard"
+        }
+      }
+    ],
+    noscript: `
+      <h1>Матчапы Стандарта Hearthstone</h1>
+      <p>Матрица матчапов актуальной меты Стандарта по данным HSGuru: строки показывают выбранный архетип, столбцы — соперника, в ячейках винрейт.</p>
+      <p>Доступны таблицы для Легенды и Алмаза 4-1.</p>
+      <p><a href="/">На главную</a> | <a href="/articles">Статьи</a> | <a href="/classes">Арена</a></p>`
+  },
   '/classes': {
     title: `Винрейт классов — Арена Hearthstone ${YEAR} | HS-Arena`,
     description: 'Актуальные винрейты всех 11 классов в режиме Арена Hearthstone. Рейтинг на основе миллионов партий с HSReplay и Firestone, обновляется автоматически 4 раза в сутки.',
@@ -571,7 +606,117 @@ const PAGES = {
   }
 };
 
-function generatePageHtml(baseHtml, pageData, path) {
+const API_BASE = process.env.PRERENDER_API || 'http://127.0.0.1:3101';
+
+async function fetchJson(url) {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(t);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+function fmtDate(iso) {
+  if (iso && typeof iso === 'object') {
+    const values = [iso.winrates, iso.tierlist, iso.legendaries]
+      .filter(value => value && !Number.isNaN(Date.parse(value)))
+      .sort((a, b) => Date.parse(b) - Date.parse(a));
+    return values[0] ? values[0].split('T')[0] : TODAY;
+  }
+  if (!iso) return TODAY;
+  return String(iso).split('T')[0];
+}
+
+// Static, crawler-readable data summaries appended below the app (outside #root,
+// so React hydration never wipes them). Only data that is already publicly
+// visible in the UI goes here — never the subscriber-gated per-card ratings.
+function buildSeoSummaries({ winrates, tierlist, legendaries }) {
+  const s = {};
+  const wrDate = fmtDate(winrates && winrates.updatedAt);
+
+  const classList = (winrates && winrates.classes) || [];
+  const topClasses = [...classList].sort((a, b) => b.winrate - a.winrate);
+
+  if (topClasses.length) {
+    const top5 = topClasses.slice(0, 5)
+      .map((c, i) => `<li>${c.name} — ${c.winrate}% побед (${c.games} игр)</li>`)
+      .join('');
+    s['/'] = `
+      <h2>Сводка Арены Hearthstone на ${wrDate}</h2>
+      <p>Manacost Arena — бесплатный справочник по режиму Арена в Hearthstone на русском языке.
+      Мы автоматически собираем статистику с HSReplay, HearthArena и Firestone четыре раза в сутки
+      и превращаем её в понятные инструменты: рейтинг классов по проценту побед, тир-лист карт
+      с оценками от S до F для каждого класса и группы легендарных карт для первого выбора.
+      Данные основаны на миллионах реальных партий текущего патча, поэтому рейтинг отражает
+      живой метагейм, а не устаревшие представления о силе классов.</p>
+      <h3>Топ-5 классов по винрейту (${wrDate})</h3>
+      <ol>${top5}</ol>
+      <p>Полный рейтинг всех 11 классов — на странице <a href="/classes/">Винрейт классов</a>.
+      Оценки карт — в <a href="/tierlist/">Тир-листе</a>, наборы первого выбора — в разделе
+      <a href="/legendaries/">Легендарки</a>. Источник данных: HSReplay. Обновлено: ${wrDate}.</p>`;
+
+  }
+
+  if (tierlist && Array.isArray(tierlist.sections) && tierlist.sections.length) {
+    const tlDate = fmtDate(tierlist.updatedAt);
+    const perClass = tierlist.sections.map(sec => {
+      const counts = (sec.tiers || [])
+        .map(t => `${t.tier}: ${(t.cards || []).length}`)
+        .join(', ');
+      return `<li>${sec.name} — ${counts}</li>`;
+    }).join('');
+    const totalCards = Object.keys(tierlist.cards || {}).length;
+    s['/tierlist'] = `
+      <h2>Тир-лист карт Арены Hearthstone — ${tlDate}</h2>
+      <p>Тир-лист ранжирует все ${totalCards ? totalCards + ' ' : ''}карты текущего пула Арены
+      по силе для каждого класса. Оценка S означает авто-пик — карту стоит брать почти всегда;
+      A и B — сильные и хорошие карты; C — середина; D, E и F — слабые карты, которые берут
+      только при отсутствии альтернатив. Оценки рассчитываются автоматически на основе винрейтов
+      колод с этими картами (HSReplay), рейтингов HearthArena и Firestone и обновляются несколько
+      раз в сутки. Ниже — сводка по количеству карт в каждом тире для всех классов.</p>
+      <h3>Количество карт по тирам (${tlDate})</h3>
+      <ul>${perClass}</ul>
+      <p>Полный список карт с оценками, поиском и фильтрами — на странице
+      <a href="/tierlist/">Тир-лист</a> (доступ к детальным оценкам — по подписке Манакоста).
+      Источник: ${tierlist.source || 'HSReplay, HearthArena, Firestone'}. Обновлено: ${tlDate}.</p>`;
+  }
+
+  if (legendaries && Array.isArray(legendaries.groups) && legendaries.groups.length) {
+    const lgDate = fmtDate(legendaries.updatedAt);
+    const classNames = {};
+    for (const c of classList) classNames[c.id] = c.name;
+    const top = [...legendaries.groups]
+      .filter(g => g.keyCard && typeof g.keyCard.winrate === 'number')
+      .sort((a, b) => b.keyCard.winrate - a.keyCard.winrate)
+      .slice(0, 10)
+      .map(g => `<li>${g.keyCard.name}${classNames[g.keyCard.classKey] ? ' (' + classNames[g.keyCard.classKey] + ')' : ''} — ${g.keyCard.winrate}% побед</li>`)
+      .join('');
+    s['/legendaries'] = `
+      <h2>Легендарные группы Арены Hearthstone — ${lgDate}</h2>
+      <p>В начале каждого драфта Арены игроку предлагают выбор из групп легендарных карт.
+      Правильный первый выбор — одно из самых важных решений забега: сильная легендарка задаёт
+      план на игру и стабильно добавляет победы. В таблице ниже — десять лучших ключевых
+      легендарных карт текущего патча по проценту побед колод, в которых они встречаются.
+      Всего групп: ${legendaries.groups.length}. Данные обновляются автоматически несколько раз
+      в сутки на основе HSReplay и Firestone.</p>
+      <h3>Топ-10 легендарных карт для первого выбора (${lgDate})</h3>
+      <ol>${top}</ol>
+      <p>Все группы с фильтром по классам — на странице <a href="/legendaries/">Легендарки</a>.
+      Обновлено: ${lgDate}.</p>`;
+  }
+
+  return s;
+}
+
+const SEO_SUMMARY_STYLE = 'background:#060c18;color:#9fb1ca;font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.6;padding:2rem 1rem 3rem;';
+const SEO_SUMMARY_INNER = 'max-width:960px;margin:0 auto;';
+
+function generatePageHtml(baseHtml, pageData, path, seoSummary) {
   const { title, description, canonical, ogType, structuredData, noscript, h1 } = pageData;
   // Canonical must match the URL nginx actually serves with 200 (trailing slash).
   const fullCanonical = canonical === '/' ? `${SITE_URL}/` : `${SITE_URL}${canonical}/`;
@@ -653,6 +798,17 @@ function generatePageHtml(baseHtml, pageData, path) {
     `<div id="root"><noscript>${noscript}</noscript></div>`
   );
 
+  if (seoSummary) {
+    // #root keeps 100vh min-height so this block never enters the first
+    // viewport before hydration (no CLS); crawlers without JS still read it.
+    html = html.replace(
+      '</body>',
+      `<style>#root{min-height:100vh}#seo-summary{display:none!important}#seo-summary h2,#seo-summary h3{color:#d9e3f2}#seo-summary a{color:#93c5fd}</style>
+<section id="seo-summary" aria-label="Сводка данных" hidden style="${SEO_SUMMARY_STYLE}"><div style="${SEO_SUMMARY_INNER}">${seoSummary}</div></section>
+</body>`
+    );
+  }
+
   return html;
 }
 
@@ -672,7 +828,7 @@ function makePublicReadable(path) {
   }
 }
 
-function main() {
+async function main() {
   const distDir = resolve(process.cwd(), 'dist');
 
   if (!existsSync(distDir)) {
@@ -685,6 +841,18 @@ function main() {
 
   const today = new Date().toISOString().split('T')[0];
 
+  console.log('[prerender] Fetching live data for SEO summaries...');
+  const homeSummary = await fetchJson(`${API_BASE}/api/home/summary`);
+  const summaries = buildSeoSummaries({
+    winrates: homeSummary ? {
+      updatedAt: homeSummary.updatedAt,
+      classes: homeSummary.topClasses || [],
+    } : null,
+    tierlist: null,
+    legendaries: null,
+  });
+  console.log(`[prerender] SEO summaries ready for: ${Object.keys(summaries).join(', ') || 'none (API unavailable)'}`);
+
   console.log('[prerender] Generating per-route HTML...');
 
   for (const [path, pageData] of Object.entries(PAGES)) {
@@ -695,7 +863,7 @@ function main() {
       mkdirSync(routeDir, { recursive: true });
     }
 
-    const pageHtml = generatePageHtml(baseHtml, pageData, path);
+    const pageHtml = generatePageHtml(baseHtml, pageData, path, summaries[path]);
     writeFileSync(filePath, pageHtml, 'utf-8');
     console.log(`[prerender] ✓ ${path} → ${filePath}`);
   }
