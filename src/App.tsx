@@ -6593,26 +6593,68 @@ function isKnownPath(path: string): boolean {
 }
 
 // ─── Tab transition wrapper ────────────────────────────────────────────────────
-function TabTransition({ children }: { tabKey: string; children: React.ReactNode }) {
-  return <>{children}</>;
+function TabTransition({ tabKey, children }: { tabKey: string; children: React.ReactNode }) {
+  const [entered, setEntered] = useState(false);
+
+  useEffect(() => {
+    setEntered(false);
+    const frame = window.requestAnimationFrame(() => setEntered(true));
+    return () => window.cancelAnimationFrame(frame);
+  }, [tabKey]);
+
+  return (
+    <div className={`route-transition${entered ? ' route-transition-enter' : ''}`} data-route-key={tabKey}>
+      {children}
+    </div>
+  );
 }
 
-const LazyWinrates = React.lazy(() => import('./features/DeferredRoutes').then(module => ({ default: module.Winrates })));
-const LazyTierList = React.lazy(() => import('./features/DeferredRoutes').then(module => ({ default: module.TierList })));
-const LazyLegendaries = React.lazy(() => import('./features/DeferredRoutes').then(module => ({ default: module.Legendaries })));
-const LazyLoginPanel = React.lazy(() => import('./features/DeferredRoutes').then(module => ({ default: module.LoginPanel })));
-const LazyAdminPanel = React.lazy(() => import('./features/DeferredRoutes').then(module => ({ default: module.AdminPanel })));
-const LazyArticlesTab = React.lazy(() => import('./features/DeferredRoutes').then(module => ({ default: module.ArticlesTab })));
-const LazyBgLibrary = React.lazy(() => import('./features/BgLibrary'));
-const LazyGuidesArchive = React.lazy(() => import('./features/GuidesArchive'));
-const LazyStandardMatchupsPage = React.lazy(() => import('./features/StandardMatchups'));
-const LazyHomeTab = React.lazy(() => import('./features/Home'));
-const LazyContestsPage = React.lazy(() => import('./features/Contests').then(module => ({ default: module.ContestsPage })));
-const LazyContestAdminPanel = React.lazy(() => import('./features/Contests').then(module => ({ default: module.ContestAdminPanel })));
-const LazyBattlegroundHeroesRoute = React.lazy(() => import('./features/Battlegrounds').then(module => ({ default: module.BattlegroundHeroesRoute })));
-const LazyBattlegroundTierList = React.lazy(() => import('./features/Battlegrounds').then(module => ({ default: module.BattlegroundTierList })));
-const LazyBattlegroundStrategyBuilderEmbed = React.lazy(() => import('./features/Battlegrounds').then(module => ({ default: module.BattlegroundStrategyBuilderEmbed })));
-const LazyBattlegroundTierBuilderEmbed = React.lazy(() => import('./features/Battlegrounds').then(module => ({ default: module.BattlegroundTierBuilderEmbed })));
+const loadDeferredRoutesModule = () => import('./features/DeferredRoutes');
+const loadBgLibraryModule = () => import('./features/BgLibrary');
+const loadGuidesArchiveModule = () => import('./features/GuidesArchive');
+const loadStandardMatchupsModule = () => import('./features/StandardMatchups');
+const loadHomeModule = () => import('./features/Home');
+const loadContestsModule = () => import('./features/Contests');
+const loadBattlegroundsModule = () => import('./features/Battlegrounds');
+
+const LazyWinrates = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.Winrates })));
+const LazyTierList = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.TierList })));
+const LazyLegendaries = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.Legendaries })));
+const LazyLoginPanel = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.LoginPanel })));
+const LazyAdminPanel = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.AdminPanel })));
+const LazyArticlesTab = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.ArticlesTab })));
+const LazyBgLibrary = React.lazy(loadBgLibraryModule);
+const LazyGuidesArchive = React.lazy(loadGuidesArchiveModule);
+const LazyStandardMatchupsPage = React.lazy(loadStandardMatchupsModule);
+const LazyHomeTab = React.lazy(loadHomeModule);
+const LazyContestsPage = React.lazy(() => loadContestsModule().then(module => ({ default: module.ContestsPage })));
+const LazyContestAdminPanel = React.lazy(() => loadContestsModule().then(module => ({ default: module.ContestAdminPanel })));
+const LazyBattlegroundHeroesRoute = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundHeroesRoute })));
+const LazyBattlegroundTierList = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundTierList })));
+const LazyBattlegroundStrategyBuilderEmbed = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundStrategyBuilderEmbed })));
+const LazyBattlegroundTierBuilderEmbed = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundTierBuilderEmbed })));
+
+const ROUTE_PRELOADERS: Partial<Record<TabId | 'login', () => Promise<unknown>>> = {
+  home: loadHomeModule,
+  winrates: loadDeferredRoutesModule,
+  tierlist: loadDeferredRoutesModule,
+  legendaries: loadDeferredRoutesModule,
+  articles: loadDeferredRoutesModule,
+  login: loadDeferredRoutesModule,
+  'admin-panel': loadContestsModule,
+  contests: loadContestsModule,
+  'standard-matchups': loadStandardMatchupsModule,
+  'bg-strategies': loadBattlegroundsModule,
+  'bg-heroes': loadBattlegroundsModule,
+  'bg-tier-list': loadBattlegroundsModule,
+  'bg-tier-builder': loadBattlegroundsModule,
+  'bg-library': loadBgLibraryModule,
+  'guides-archive': loadGuidesArchiveModule,
+};
+
+function preloadRouteModule(route: TabId | 'login'): void {
+  void ROUTE_PRELOADERS[route]?.().catch(() => {});
+}
 
 function RouteFallback({ minHeight = 520 }: { minHeight?: number }) {
   return (
@@ -6825,13 +6867,16 @@ export default function App() {
   /** Navigate to a tab: update state + browser URL */
   const navigate = useCallback((tab: TabId) => {
     const slug = TABS.find(t => t.id === tab)!.slug;
+    preloadRouteModule(tab);
     if (window.location.pathname !== slug || window.location.search || window.location.hash) {
       window.history.pushState({ tab }, '', slug);
     }
-    setLocationSearch('');
-    setCurrentPath(slug);
-    setActiveTab(tab);
-    setMobileMenuOpen(false);
+    React.startTransition(() => {
+      setLocationSearch('');
+      setCurrentPath(slug);
+      setActiveTab(tab);
+      setMobileMenuOpen(false);
+    });
     applyPageMeta(tab);
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, []);
@@ -6839,24 +6884,44 @@ export default function App() {
   const navigatePath = useCallback((path: string) => {
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
     const tab = tabFromPath(normalizedPath);
+    preloadRouteModule(tab);
     if (window.location.pathname !== normalizedPath || window.location.search || window.location.hash) {
       window.history.pushState({ tab }, '', normalizedPath);
     }
-    setLocationSearch('');
-    setCurrentPath(normalizedPath);
-    setActiveTab(tab);
-    setMobileMenuOpen(false);
+    React.startTransition(() => {
+      setLocationSearch('');
+      setCurrentPath(normalizedPath);
+      setActiveTab(tab);
+      setMobileMenuOpen(false);
+    });
     applyPageMeta(tab);
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, []);
+
+  const navigateLogin = useCallback(() => {
+    preloadRouteModule('login');
+    const path = '/';
+    const search = '?login';
+    if (window.location.pathname !== path || window.location.search !== search || window.location.hash) {
+      window.history.pushState({ tab: activeTab, login: true }, '', `${path}${search}`);
+    }
+    React.startTransition(() => {
+      setLocationSearch(search);
+      setCurrentPath(path);
+      setMobileMenuOpen(false);
+    });
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [activeTab]);
 
   /** Handle browser back / forward */
   useEffect(() => {
     const onPop = (e: PopStateEvent) => {
       const tab = e.state?.tab ?? tabFromPath(window.location.pathname);
-      setLocationSearch(window.location.search);
-      setCurrentPath(window.location.pathname);
-      setActiveTab(tab);
+      React.startTransition(() => {
+        setLocationSearch(window.location.search);
+        setCurrentPath(window.location.pathname);
+        setActiveTab(tab);
+      });
       applyPageMeta(tab);
     };
     window.addEventListener('popstate', onPop);
@@ -7060,6 +7125,7 @@ export default function App() {
   const tierlistRequestedRef = useRef(false);
   const legendariesRequestedRef = useRef(false);
   const warmedTierlistSourcesRef = useRef<Set<TierlistSource>>(new Set());
+  const warmedRoutesRef = useRef<Set<TabId | 'login'>>(new Set());
 
   const fetchHomeSummary = useCallback(async () => {
     const gen = ++homeSummaryGenRef.current;
@@ -7178,6 +7244,16 @@ export default function App() {
     } finally { setLoadingArticles(false); }
   }, []);
 
+  const warmRoute = useCallback((route: TabId | 'login') => {
+    if (warmedRoutesRef.current.has(route)) return;
+    warmedRoutesRef.current.add(route);
+    preloadRouteModule(route);
+
+    if (route === 'articles' && !articlesRequestedRef.current) {
+      void fetchArticles({ silent: true });
+    }
+  }, [fetchArticles]);
+
   const globalUpdatedAt = useMemo(
     () => latestHomeSummaryUpdatedAt(homeSummaryData)
       || winratesData.updatedAt
@@ -7250,6 +7326,16 @@ export default function App() {
 	    void fetchArticles();
 	  }, [activeTab, privateRouteChecking, privateRouteLocked, wantsAdmin, fetchArticles]);
 
+  useEffect(() => {
+    const likelyRoutes: Array<TabId | 'login'> = activeTab === 'home'
+      ? ['articles', 'contests', 'winrates', 'tierlist', 'bg-tier-list', 'login']
+      : ['home', 'articles', 'contests', 'login'];
+
+    return scheduleDelayedIdleTask(() => {
+      likelyRoutes.forEach(route => warmRoute(route));
+    }, 650, 1800);
+  }, [activeTab, warmRoute]);
+
   // Set of cardIds that are companion cards in legendary groups (not the key legendary itself)
   const companionIds = useMemo(() => {
     const keyIds = new Set(legendariesData.groups.map(g => g.keyCard.cardId));
@@ -7302,6 +7388,8 @@ export default function App() {
                 <a
                   key={tab.id}
                   href={tab.slug}
+                  onPointerEnter={() => warmRoute(tab.id)}
+                  onFocus={() => warmRoute(tab.id)}
                   onClick={(e) => { e.preventDefault(); navigate(tab.id); setMobileMenuOpen(false); }}
                   className={`arena-mobile-menu-link ${active ? 'arena-mobile-menu-link-active' : ''}`}
                   aria-current={active ? 'page' : undefined}
@@ -7318,6 +7406,8 @@ export default function App() {
                 <a
                   key={tab.id}
                   href={tab.slug}
+                  onPointerEnter={() => warmRoute(tab.id)}
+                  onFocus={() => warmRoute(tab.id)}
                   onClick={(e) => { e.preventDefault(); navigate(tab.id); setMobileMenuOpen(false); }}
                   className={`arena-mobile-menu-link ${active ? 'arena-mobile-menu-link-active' : ''}`}
                   aria-current={active ? 'page' : undefined}
@@ -7337,6 +7427,8 @@ export default function App() {
                 <a
                   key={tab.id}
                   href={tab.slug}
+                  onPointerEnter={() => warmRoute(tab.id)}
+                  onFocus={() => warmRoute(tab.id)}
                   onClick={(e) => { e.preventDefault(); navigate(tab.id); setMobileMenuOpen(false); }}
                   className={`arena-mobile-menu-link ${active ? 'arena-mobile-menu-link-active' : ''}`}
                   aria-current={active ? 'page' : undefined}
@@ -7356,6 +7448,8 @@ export default function App() {
                 <a
                   key={tab.id}
                   href={tab.slug}
+                  onPointerEnter={() => warmRoute(tab.id)}
+                  onFocus={() => warmRoute(tab.id)}
                   onClick={(e) => { e.preventDefault(); navigate(tab.id); setMobileMenuOpen(false); }}
                   className={`arena-mobile-menu-link ${active ? 'arena-mobile-menu-link-active' : ''}`}
                   aria-current={active ? 'page' : undefined}
@@ -7375,6 +7469,8 @@ export default function App() {
                 <a
                   key={tab.id}
                   href={tab.slug}
+                  onPointerEnter={() => warmRoute(tab.id)}
+                  onFocus={() => warmRoute(tab.id)}
                   onClick={(e) => { e.preventDefault(); navigate(tab.id); setMobileMenuOpen(false); }}
                   className={`arena-mobile-menu-link ${active ? 'arena-mobile-menu-link-active' : ''}`}
                   aria-current={active ? 'page' : undefined}
@@ -7394,6 +7490,8 @@ export default function App() {
                 <a
                   key={tab.id}
                   href={tab.slug}
+                  onPointerEnter={() => warmRoute(tab.id)}
+                  onFocus={() => warmRoute(tab.id)}
                   onClick={(e) => { e.preventDefault(); navigate(tab.id); setMobileMenuOpen(false); }}
                   className={`arena-mobile-menu-link ${active ? 'arena-mobile-menu-link-active' : ''}`}
                   aria-current={active ? 'page' : undefined}
@@ -7405,7 +7503,9 @@ export default function App() {
             })}
             <a
               href="/?login"
-              onClick={() => setMobileMenuOpen(false)}
+              onPointerEnter={() => warmRoute('login')}
+              onFocus={() => warmRoute('login')}
+              onClick={(e) => { e.preventDefault(); navigateLogin(); }}
               className={`arena-mobile-menu-link arena-mobile-menu-profile ${wantsLogin ? 'arena-mobile-menu-link-active' : ''}`}
             >
               {appAuthUser ? (
@@ -7443,6 +7543,8 @@ export default function App() {
                   <a
                     key={tab.id}
                     href={tab.slug}
+                    onPointerEnter={() => warmRoute(tab.id)}
+                    onFocus={() => warmRoute(tab.id)}
                     onClick={(e: React.MouseEvent) => { e.preventDefault(); navigate(tab.id); }}
                     aria-current={active ? 'page' : undefined}
                     className={`arena-sidebar-link ${active ? 'arena-sidebar-link-active' : ''}`}
@@ -7460,6 +7562,8 @@ export default function App() {
                   <a
                     key={tab.id}
                     href={tab.slug}
+                    onPointerEnter={() => warmRoute(tab.id)}
+                    onFocus={() => warmRoute(tab.id)}
                     onClick={(e: React.MouseEvent) => { e.preventDefault(); navigate(tab.id); }}
                     aria-current={active ? 'page' : undefined}
                     className={`arena-sidebar-link ${active ? 'arena-sidebar-link-active' : ''}`}
@@ -7480,6 +7584,8 @@ export default function App() {
                   <a
                     key={tab.id}
                     href={tab.slug}
+                    onPointerEnter={() => warmRoute(tab.id)}
+                    onFocus={() => warmRoute(tab.id)}
                     onClick={(e: React.MouseEvent) => { e.preventDefault(); navigate(tab.id); }}
                     aria-current={active ? 'page' : undefined}
                     className={`arena-sidebar-link ${active ? 'arena-sidebar-link-active' : ''}`}
@@ -7500,6 +7606,8 @@ export default function App() {
                   <a
                     key={tab.id}
                     href={tab.slug}
+                    onPointerEnter={() => warmRoute(tab.id)}
+                    onFocus={() => warmRoute(tab.id)}
                     onClick={(e: React.MouseEvent) => { e.preventDefault(); navigate(tab.id); }}
                     aria-current={active ? 'page' : undefined}
                     className={`arena-sidebar-link ${active ? 'arena-sidebar-link-active' : ''}`}
@@ -7520,6 +7628,8 @@ export default function App() {
                   <a
                     key={tab.id}
                     href={tab.slug}
+                    onPointerEnter={() => warmRoute(tab.id)}
+                    onFocus={() => warmRoute(tab.id)}
                     onClick={(e: React.MouseEvent) => { e.preventDefault(); navigate(tab.id); }}
                     aria-current={active ? 'page' : undefined}
                     className={`arena-sidebar-link ${active ? 'arena-sidebar-link-active' : ''}`}
@@ -7540,6 +7650,8 @@ export default function App() {
                   <a
                     key={tab.id}
                     href={tab.slug}
+                    onPointerEnter={() => warmRoute(tab.id)}
+                    onFocus={() => warmRoute(tab.id)}
                     onClick={(e: React.MouseEvent) => { e.preventDefault(); navigate(tab.id); }}
                     aria-current={active ? 'page' : undefined}
                     className={`arena-sidebar-link ${active ? 'arena-sidebar-link-active' : ''}`}
@@ -7559,6 +7671,9 @@ export default function App() {
 
             <a
               href="/?login"
+              onPointerEnter={() => warmRoute('login')}
+              onFocus={() => warmRoute('login')}
+              onClick={(e) => { e.preventDefault(); navigateLogin(); }}
               className={`arena-sidebar-profile ${wantsLogin ? 'arena-sidebar-profile-active' : ''}`}
               aria-label={appAuthUser || (appAuthChecking && appHasAuthHint) ? 'Открыть профиль' : 'Войти в профиль'}
               style={{ textDecoration: 'none' }}
@@ -7578,17 +7693,21 @@ export default function App() {
           <div className="absolute bottom-0 right-0 w-8 h-8 sm:w-16 sm:h-16 border-b-2 sm:border-b-4 border-r-2 sm:border-r-4 border-gold rounded-br-xl opacity-50" />
 
           {wantsLogin ? (
-            <React.Suspense fallback={<RouteFallback minHeight={760} />}>
-              <LazyLoginPanel
-                initialAuthUser={appAuthUser}
-                parentAuthChecking={appAuthChecking}
-                onAuthChange={handleAppAuthChange}
-              />
-            </React.Suspense>
+            <TabTransition tabKey="login">
+              <React.Suspense fallback={<RouteFallback minHeight={760} />}>
+                <LazyLoginPanel
+                  initialAuthUser={appAuthUser}
+                  parentAuthChecking={appAuthChecking}
+                  onAuthChange={handleAppAuthChange}
+                />
+              </React.Suspense>
+            </TabTransition>
           ) : isAdminMode ? (
+            <TabTransition tabKey="admin">
 	            <React.Suspense fallback={<RouteFallback minHeight={620} />}><LazyContestAdminPanel authUser={appAuthUser} authChecking={appAuthChecking} /></React.Suspense>
+            </TabTransition>
           ) : (
-            <TabTransition tabKey={activeTab}>
+            <TabTransition tabKey={`${activeTab}:${currentPath}`}>
               <>
                 {activeTab === 'home' && (
                   <React.Suspense fallback={<RouteFallback minHeight={720} />}>
