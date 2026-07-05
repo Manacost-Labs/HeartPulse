@@ -4,7 +4,7 @@ import compression from 'compression';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import sharp from 'sharp';
 import { createClient } from 'redis';
-import { chmodSync, copyFileSync, createReadStream, mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, statSync } from 'fs';
+import { chmodSync, copyFileSync, createReadStream, mkdirSync, renameSync, writeFileSync, readFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { spawn } from 'child_process';
@@ -645,6 +645,14 @@ function db(): DatabaseSync {
       FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS idx_telegram_link_tokens_user ON telegram_link_tokens(user_id, expires_at);
+    CREATE TABLE IF NOT EXISTS telegram_email_codes (
+      telegram_id TEXT PRIMARY KEY,
+      email TEXT NOT NULL,
+      code_hash TEXT NOT NULL,
+      expires_at INTEGER NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS pending_codes (
       email TEXT PRIMARY KEY,
       code_hash TEXT NOT NULL,
@@ -1042,6 +1050,112 @@ function telegramLinkCodeFromMessage(text: unknown): string {
   return normalizeTelegramLinkCode(startPayload || linkPayload || raw);
 }
 
+function extractEmailFromTelegramMessage(text: unknown): string {
+  const raw = String(text ?? '').trim();
+  const payload = raw.match(/^\/email\s+(.+)$/i)?.[1] || raw;
+  const match = payload.match(/[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+/);
+  return match ? normalizeEmail(match[0]) : '';
+}
+
+function telegramEmailCodeFromMessage(text: unknown): string {
+  return String(text ?? '').replace(/\D/g, '').slice(0, 6);
+}
+
+function telegramEmailCodeHash(telegramId: string, email: string, code: string): string {
+  return sha256(`telegram-email:${telegramId}:${normalizeEmail(email)}:${code}:${TELEGRAM_AUTH_BOT_TOKEN}`);
+}
+
+function pendingTelegramEmailCode(telegramId: string): { telegram_id: string; email: string; code_hash: string; expires_at: number; attempts: number } | undefined {
+  return dbGet<{ telegram_id: string; email: string; code_hash: string; expires_at: number; attempts: number }>(
+    'SELECT telegram_id, email, code_hash, expires_at, attempts FROM telegram_email_codes WHERE telegram_id = ?',
+    telegramId,
+  );
+}
+
+async function requestTelegramEmailCode(telegramId: string, email: string) {
+  const normalizedTelegramId = String(telegramId || '').replace(/\D/g, '');
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedTelegramId) throw new Error('Telegram не передал ID пользователя');
+  if (!isRealEmail(normalizedEmail)) throw new Error('Пришлите реальную почту в формате name@example.com');
+
+  const existingTelegramId = findKhaVipTelegramByEmail(normalizedEmail);
+  if (existingTelegramId && existingTelegramId !== normalizedTelegramId) {
+    throw new Error('Эта почта уже привязана к другому Telegram');
+  }
+  const telegramIdentity = identityOwner('telegram', normalizedTelegramId);
+  if (telegramIdentity?.user_id && identityBelongsToAnotherUser('boosty-email', normalizedEmail, telegramIdentity.user_id)) {
+    throw new Error('Эта Boosty-почта уже привязана к другому аккаунту');
+  }
+
+  const code = randomInt(100000, 1000000).toString();
+  const nowIso = new Date().toISOString();
+  dbRun(`
+    INSERT INTO telegram_email_codes (telegram_id, email, code_hash, expires_at, attempts, created_at)
+    VALUES (?, ?, ?, ?, 0, ?)
+    ON CONFLICT(telegram_id) DO UPDATE SET
+      email = excluded.email,
+      code_hash = excluded.code_hash,
+      expires_at = excluded.expires_at,
+      attempts = 0,
+      created_at = excluded.created_at
+  `, normalizedTelegramId, normalizedEmail, telegramEmailCodeHash(normalizedTelegramId, normalizedEmail, code), Date.now() + AUTH_CODE_TTL_MS, nowIso);
+  await sendAuthCodeEmail(normalizedEmail, code);
+}
+
+async function confirmTelegramEmailCode(telegramId: string, code: string): Promise<{ email: string; linkedUser?: AdminUser; status?: SubscriptionStatus }> {
+  const normalizedTelegramId = String(telegramId || '').replace(/\D/g, '');
+  const normalizedCode = telegramEmailCodeFromMessage(code);
+  const pending = pendingTelegramEmailCode(normalizedTelegramId);
+  if (!pending) throw new Error('Активного кода нет. Отправьте /email ваша@почта');
+  if (pending.expires_at <= Date.now()) {
+    dbRun('DELETE FROM telegram_email_codes WHERE telegram_id = ?', normalizedTelegramId);
+    throw new Error('Код истёк. Отправьте /email ещё раз.');
+  }
+  const attempts = Number(pending.attempts || 0) + 1;
+  if (attempts > AUTH_CODE_MAX_ATTEMPTS || !safeEqualHex(pending.code_hash, telegramEmailCodeHash(normalizedTelegramId, pending.email, normalizedCode))) {
+    dbRun('UPDATE telegram_email_codes SET attempts = ? WHERE telegram_id = ?', attempts, normalizedTelegramId);
+    throw new Error(attempts >= AUTH_CODE_MAX_ATTEMPTS
+      ? 'Слишком много неверных попыток. Отправьте /email ещё раз.'
+      : `Неверный код. Осталось попыток: ${AUTH_CODE_MAX_ATTEMPTS - attempts}.`);
+  }
+
+  const existingTelegramId = findKhaVipTelegramByEmail(pending.email);
+  if (existingTelegramId && existingTelegramId !== normalizedTelegramId) {
+    throw new Error('Эта почта уже привязана к другому Telegram');
+  }
+
+  const store = loadAuthStore();
+  const linkedUser = store.users.find(item => item.telegramId === normalizedTelegramId);
+  setKhaVipVerifiedEmail(normalizedTelegramId, pending.email);
+  if (linkedUser) {
+    const existingEmailUser = store.users.find(item => item.email === pending.email && item.id !== linkedUser.id);
+    if (existingEmailUser || identityBelongsToAnotherUser('boosty-email', pending.email, linkedUser.id)) {
+      throw new Error('Эта Boosty-почта уже привязана к другому аккаунту');
+    }
+    const oldEmail = linkedUser.email;
+    linkedUser.email = pending.email;
+    linkedUser.contactEmail = linkedUser.contactEmail || pending.email;
+    linkedUser.updatedAt = new Date().toISOString();
+    store.sessions = store.sessions.map(session => session.email === oldEmail ? { ...session, email: pending.email } : session);
+    saveAuthStore(store);
+    const nowIso = new Date().toISOString();
+    dbRun(`
+      INSERT INTO identities (user_id, provider, provider_user_id, email, username, photo_url, verified_at, created_at, updated_at)
+      VALUES (?, 'boosty-email', ?, ?, ?, '', ?, ?, ?)
+      ON CONFLICT(provider, provider_user_id) DO UPDATE SET
+        email = excluded.email,
+        username = excluded.username,
+        verified_at = excluded.verified_at,
+        updated_at = excluded.updated_at
+        WHERE identities.user_id = excluded.user_id
+    `, linkedUser.id, pending.email, pending.email, pending.email, nowIso, nowIso, nowIso);
+  }
+
+  dbRun('DELETE FROM telegram_email_codes WHERE telegram_id = ?', normalizedTelegramId);
+  const status = linkedUser ? await refreshSubscriptionForUser(linkedUser, true) : undefined;
+  return { email: pending.email, linkedUser, status };
+}
+
 function publicUser(user: AdminUser) {
   return {
     id: user.id,
@@ -1275,11 +1389,54 @@ function readKhaVipProfiles(): Record<string, any> {
   }
 }
 
+function writeKhaVipProfiles(profiles: Record<string, any>) {
+  mkdirSync(dirname(KHA_VIP_PROFILES_FILE), { recursive: true });
+  const tmpFile = `${KHA_VIP_PROFILES_FILE}.${process.pid}.${Date.now()}.tmp`;
+  writeFileSync(tmpFile, `${JSON.stringify(profiles, null, 2)}\n`);
+  renameSync(tmpFile, KHA_VIP_PROFILES_FILE);
+}
+
 function khaVerifiedEmail(profile: Record<string, any> | null): string {
   if (!profile?.email_verified_at) return '';
   const email = normalizeEmail(profile.email);
   return isRealEmail(email) ? email : '';
 }
+
+function findKhaVipTelegramByEmail(email: string): string {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return '';
+  const profiles = readKhaVipProfiles();
+  for (const [telegramIdRaw, profile] of Object.entries(profiles)) {
+    if (!profile || typeof profile !== 'object') continue;
+    if (khaVerifiedEmail(profile as Record<string, any>) === normalized) {
+      return String(telegramIdRaw).replace(/\D/g, '');
+    }
+  }
+  return '';
+}
+
+function setKhaVipVerifiedEmail(telegramId: string, email: string) {
+  const normalizedTelegramId = String(telegramId || '').replace(/\D/g, '');
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedTelegramId || !isRealEmail(normalizedEmail)) throw new Error('Некорректные данные Telegram/email');
+
+  const profiles = readKhaVipProfiles();
+  const existingTelegramId = findKhaVipTelegramByEmail(normalizedEmail);
+  if (existingTelegramId && existingTelegramId !== normalizedTelegramId) {
+    throw new Error('Эта почта уже привязана к другому Telegram');
+  }
+
+  const profile = profiles[normalizedTelegramId] && typeof profiles[normalizedTelegramId] === 'object'
+    ? profiles[normalizedTelegramId]
+    : {};
+  profile.email = normalizedEmail;
+  profile.email_verified_at = new Date().toISOString();
+  delete profile.boosty_access;
+  delete profile.boosty_checked_at;
+  profiles[normalizedTelegramId] = profile;
+  writeKhaVipProfiles(profiles);
+}
+
 
 function khaProfileHasBoostyAccess(profile: Record<string, any> | null): boolean {
   if (!profile || profile.boosty_access !== true) return false;
@@ -5829,14 +5986,44 @@ app.post('/api/auth/telegram/bot/webhook', async (req, res) => {
   const chatId = message?.chat?.id;
   const telegramUser = message?.from;
   const telegramId = telegramUser?.id ? String(telegramUser.id).replace(/\D/g, '') : '';
-  const code = telegramLinkCodeFromMessage(message?.text);
+  const messageText = String(message?.text || '').trim();
+  const requestedEmail = extractEmailFromTelegramMessage(messageText);
+  const emailCode = telegramEmailCodeFromMessage(messageText);
+  const hasPendingEmailCode = Boolean(telegramId && pendingTelegramEmailCode(telegramId));
+  const linkCode = telegramLinkCodeFromMessage(messageText);
   res.json({ ok: true });
 
   if (!chatId || !telegramId) return;
-  if (!code) {
+  if (requestedEmail) {
+    try {
+      await requestTelegramEmailCode(telegramId, requestedEmail);
+      await sendTelegramAuthBotMessage(chatId, `Код подтверждения отправлен на ${requestedEmail}. Пришлите сюда 6 цифр из письма.`);
+    } catch (err: any) {
+      await sendTelegramAuthBotMessage(chatId, err?.message || 'Не удалось отправить код подтверждения на почту.');
+    }
+    return;
+  }
+  if (hasPendingEmailCode && emailCode.length === 6 && !/^\/(?:start|link)\b/i.test(messageText) && !/^TG-/i.test(messageText)) {
+    try {
+      const result = await confirmTelegramEmailCode(telegramId, emailCode);
+      if (result.linkedUser) {
+        await sendTelegramAuthBotMessage(chatId, result.status?.hasAccess
+          ? `Почта ${result.email} подтверждена и привязана к сайту. Boosty-доступ обновлён.`
+          : `Почта ${result.email} подтверждена и привязана к сайту. Boosty-доступ пока не найден, обновите проверку в профиле.`);
+      } else {
+        await sendTelegramAuthBotMessage(chatId, `Почта ${result.email} подтверждена в общей базе Telegram-бота. После привязки Telegram на сайте она будет использована для проверки Boosty.`);
+      }
+    } catch (err: any) {
+      await sendTelegramAuthBotMessage(chatId, err?.message || 'Не удалось подтвердить почту.');
+    }
+    return;
+  }
+  if (!linkCode) {
     await sendTelegramAuthBotMessage(chatId, [
       'Отправьте сюда ID-код из профиля arena.hs-manacost.ru.',
       'Код создаётся в блоке Telegram в личном кабинете и действует ограниченное время.',
+      '',
+      'Чтобы привязать Boosty-почту через бота, отправьте /email name@example.com.',
     ].join('\n'));
     return;
   }
@@ -5847,7 +6034,7 @@ app.post('/api/auth/telegram/bot/webhook', async (req, res) => {
       SELECT code, user_id, expires_at, used_at
       FROM telegram_link_tokens
       WHERE code = ?
-    `).get(code) as { code: string; user_id: string; expires_at: number; used_at?: string } | undefined;
+    `).get(linkCode) as { code: string; user_id: string; expires_at: number; used_at?: string } | undefined;
     if (!token || token.used_at || token.expires_at <= Date.now()) {
       await sendTelegramAuthBotMessage(chatId, 'Код не найден или устарел. Создайте новый код в профиле.');
       return;
@@ -5884,7 +6071,29 @@ app.post('/api/auth/telegram/bot/webhook', async (req, res) => {
         updated_at = excluded.updated_at
         WHERE identities.user_id = excluded.user_id
     `, targetUser.id, telegramId, username, nowIso, nowIso, nowIso);
-    database.prepare('UPDATE telegram_link_tokens SET used_at = ?, telegram_id = ? WHERE code = ?').run(nowIso, telegramId, code);
+    const khaEmail = khaVerifiedEmail(readKhaVipProfile(telegramId));
+    if (khaEmail && khaEmail !== targetUser.email) {
+      const existingEmailUser = store.users.find(item => item.email === khaEmail && item.id !== targetUser.id);
+      if (!existingEmailUser && !identityBelongsToAnotherUser('boosty-email', khaEmail, targetUser.id)) {
+        const oldEmail = targetUser.email;
+        targetUser.email = khaEmail;
+        targetUser.contactEmail = targetUser.contactEmail || khaEmail;
+        targetUser.updatedAt = nowIso;
+        store.sessions = store.sessions.map(session => session.email === oldEmail ? { ...session, email: khaEmail } : session);
+        saveAuthStore(store);
+        dbRun(`
+          INSERT INTO identities (user_id, provider, provider_user_id, email, username, photo_url, verified_at, created_at, updated_at)
+          VALUES (?, 'boosty-email', ?, ?, ?, '', ?, ?, ?)
+          ON CONFLICT(provider, provider_user_id) DO UPDATE SET
+            email = excluded.email,
+            username = excluded.username,
+            verified_at = excluded.verified_at,
+            updated_at = excluded.updated_at
+            WHERE identities.user_id = excluded.user_id
+        `, targetUser.id, khaEmail, khaEmail, khaEmail, nowIso, nowIso, nowIso);
+      }
+    }
+    database.prepare('UPDATE telegram_link_tokens SET used_at = ?, telegram_id = ? WHERE code = ?').run(nowIso, telegramId, linkCode);
 
     const status = await refreshSubscriptionForUser(targetUser, true);
     await sendTelegramAuthBotMessage(chatId, status.hasAccess

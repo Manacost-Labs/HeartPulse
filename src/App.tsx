@@ -4301,7 +4301,7 @@ function LoginPanel({
                 </p>
                 </div>
               </div>
-              <div className="profile-subscription-source" style={{ padding: '10px', borderRadius: '10px', background: 'rgba(248,250,255,0.82)', border: '1px solid #cbd7ea', display: 'grid', gridTemplateColumns: '34px 1fr', gap: '9px', alignItems: 'center' }}>
+              <div className="profile-subscription-source" style={{ padding: '10px', borderRadius: '10px', background: 'rgba(248,250,255,0.82)', border: '1px solid #cbd7ea', display: 'grid', gridTemplateColumns: '34px 1fr', gap: '9px', alignItems: 'flex-start' }}>
                 <img src="/ad/telegram.png" alt="" style={{ width: 34, height: 34, objectFit: 'contain', borderRadius: '9px', background: '#eff6ff' }} />
                 <div>
                 <strong style={{ color: '#1e293b', fontSize: '13px' }}>Telegram</strong>
@@ -4310,28 +4310,24 @@ function LoginPanel({
                     ? 'Найден в VIP-канале'
                     : subscription?.telegram?.message || 'Войдите через Telegram для проверки каналов.'}
                 </p>
-                </div>
-              </div>
-            </div>
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '10px',
-              margin: '0 0 12px',
-              padding: '12px',
-              borderRadius: '12px',
-              background: 'rgba(239,246,255,0.82)',
-              border: '1px solid #bfdbfe',
-            }}>
-              <div style={{ minWidth: 220, flex: '1 1 280px' }}>
-                <strong style={{ display: 'block', color: '#1e3a8a', fontSize: '13px' }}>Привязка через Telegram-бота</strong>
-                <p style={{ margin: '4px 0 0', color: '#475569', fontSize: '12px', lineHeight: 1.4 }}>
-                  Если окно Telegram-входа зависает, создайте ID-код и отправьте его боту. Он проверит VIP-каналы и обновит доступ.
-                </p>
-                {telegramLinkCode && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '9px' }}>
+                  <button
+                    type="button"
+                    onClick={() => { void handleTelegramLinkCodeRequest(); }}
+                    disabled={telegramLinkLoading || !telegramBotUsername}
+                    style={{
+                      ...ADMIN_SECONDARY_BUTTON,
+                      minHeight: 34,
+                      padding: '7px 10px',
+                      background: '#eff6ff',
+                      color: '#1d4ed8',
+                      borderColor: '#93c5fd',
+                      cursor: telegramLinkLoading ? 'wait' : 'pointer',
+                    }}
+                  >
+                    {telegramLinkLoading ? 'Создаем...' : 'ID-код для бота'}
+                  </button>
+                  {telegramLinkCode && (
                     <code style={{
                       padding: '6px 9px',
                       borderRadius: '8px',
@@ -4342,36 +4338,26 @@ function LoginPanel({
                     }}>
                       {telegramLinkCode}
                     </code>
-                    {telegramLinkExpiresLabel && (
-                      <span style={{ color: '#64748b', fontSize: '11px' }}>до {telegramLinkExpiresLabel}</span>
-                    )}
-                    {telegramLinkBotUrl && (
-                      <a
-                        href={telegramLinkBotUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{ color: '#1d4ed8', fontSize: '12px', fontWeight: 800, textDecoration: 'none' }}
-                      >
-                        Открыть @{telegramBotUsername}
-                      </a>
-                    )}
-                  </div>
-                )}
+                  )}
+                  {telegramLinkBotUrl && (
+                    <a
+                      href={telegramLinkBotUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ color: '#1d4ed8', fontSize: '12px', fontWeight: 800, textDecoration: 'none' }}
+                    >
+                      Открыть @{telegramBotUsername}
+                    </a>
+                  )}
+                  {telegramLinkExpiresLabel && (
+                    <span style={{ color: '#64748b', fontSize: '11px' }}>до {telegramLinkExpiresLabel}</span>
+                  )}
+                </div>
+                <p style={{ margin: '7px 0 0', color: '#64748b', fontSize: '11px', lineHeight: 1.35 }}>
+                  В боте также можно привязать Boosty-почту командой /email name@example.com.
+                </p>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => { void handleTelegramLinkCodeRequest(); }}
-                disabled={telegramLinkLoading || !telegramBotUsername}
-                style={{
-                  ...ADMIN_SECONDARY_BUTTON,
-                  background: '#eff6ff',
-                  color: '#1d4ed8',
-                  borderColor: '#93c5fd',
-                  cursor: telegramLinkLoading ? 'wait' : 'pointer',
-                }}
-              >
-                {telegramLinkLoading ? 'Создаем...' : 'Получить ID-код'}
-              </button>
             </div>
             <p style={{ margin: '0 0 12px', color: '#64748b', fontSize: '11px' }}>
               Последняя проверка: {formatSubscriptionDate(subscription?.checkedAt ?? null)}

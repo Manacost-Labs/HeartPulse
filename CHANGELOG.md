@@ -2,6 +2,8 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Moved the Telegram bot ID-code control directly into the profile Telegram subscription card so it is visible without scrolling past the subscription sources.
+- Restored Boosty email binding through `@kolodahearthstoneauthbot`: `/email name@example.com` sends a verification code, writes the verified email to the shared KHA/VIP profile store, and syncs the linked site account.
 - Added Redis-backed API caches for arena winrates, class matchups, standard matchups, and Battlegrounds proxy responses so tier/content tables survive Node restarts and warm faster.
 - Added manual Telegram binding through `@kolodahearthstoneauthbot`: a logged-in user can generate a short ID-code in the profile, send it to the bot, and trigger Telegram subscription verification.
 - Hardened identity binding: the same Telegram account or Boosty email can no longer be attached to two different site accounts.
