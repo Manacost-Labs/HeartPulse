@@ -143,7 +143,11 @@ const AUTH_CODE_ISSUE_WINDOW_MS = Math.max(5 * 60_000, Number(process.env.AUTH_C
 const AUTH_CODE_MAX_ISSUES_PER_WINDOW = Math.max(1, Number(process.env.AUTH_CODE_MAX_ISSUES_PER_WINDOW || 5));
 const TELEGRAM_AUTH_BOT_TOKEN = process.env.TELEGRAM_AUTH_BOT_TOKEN || '';
 const TELEGRAM_AUTH_BOT_USERNAME = (process.env.TELEGRAM_AUTH_BOT_USERNAME || '').trim().replace(/^@/, '');
+const TELEGRAM_AUTH_BOT_WEBHOOK_SECRET = (process.env.TELEGRAM_AUTH_BOT_WEBHOOK_SECRET || (TELEGRAM_AUTH_BOT_TOKEN
+  ? createHash('sha256').update(`auth-bot:${TELEGRAM_AUTH_BOT_TOKEN}`).digest('hex').slice(0, 32)
+  : '')).trim();
 const TELEGRAM_AUTH_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const TELEGRAM_LINK_CODE_TTL_MS = Math.max(5 * 60 * 1000, Number(process.env.TELEGRAM_LINK_CODE_TTL_MS || 15 * 60 * 1000));
 const TELEGRAM_OIDC_CLIENT_ID = (process.env.TELEGRAM_OIDC_CLIENT_ID || process.env.TELEGRAM_AUTH_CLIENT_ID || '').trim();
 const TELEGRAM_OIDC_CLIENT_SECRET = (process.env.TELEGRAM_OIDC_CLIENT_SECRET || process.env.TELEGRAM_AUTH_CLIENT_SECRET || '').trim();
 const TELEGRAM_OIDC_ISSUER = 'https://oauth.telegram.org';
@@ -286,6 +290,14 @@ interface RedisCachePayload<T = any> {
   cachedAt: string;
 }
 
+interface RedisProxyCachePayload {
+  bodyBase64: string;
+  contentType: string;
+  status: number;
+  etag: string;
+  cachedAt: string;
+}
+
 interface KhaVipLocker {
   post_id: number;
   code: string;
@@ -357,6 +369,56 @@ async function redisSetCache(key: string, data: any, etag: string, ttlSeconds: n
   } catch (err: any) {
     console.warn('[redis] write failed:', err?.message ?? err);
   }
+}
+
+async function redisGetProxyCache(key: string): Promise<{
+  body: Buffer;
+  contentType: string;
+  status: number;
+  etag: string;
+} | null> {
+  try {
+    const client = await getRedisClient();
+    if (!client) return null;
+    const raw = await client.get(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as RedisProxyCachePayload;
+    if (!parsed?.bodyBase64 || !parsed.etag || !parsed.contentType || !parsed.status) return null;
+    return {
+      body: Buffer.from(parsed.bodyBase64, 'base64'),
+      contentType: parsed.contentType,
+      status: parsed.status,
+      etag: parsed.etag,
+    };
+  } catch (err: any) {
+    console.warn('[redis] proxy read failed:', err?.message ?? err);
+    return null;
+  }
+}
+
+async function redisSetProxyCache(
+  key: string,
+  entry: { body: Buffer; contentType: string; status: number; etag: string },
+  ttlSeconds: number,
+): Promise<void> {
+  try {
+    const client = await getRedisClient();
+    if (!client) return;
+    const payload: RedisProxyCachePayload = {
+      bodyBase64: entry.body.toString('base64'),
+      contentType: entry.contentType,
+      status: entry.status,
+      etag: entry.etag,
+      cachedAt: new Date().toISOString(),
+    };
+    await client.set(key, JSON.stringify(payload), { EX: ttlSeconds });
+  } catch (err: any) {
+    console.warn('[redis] proxy write failed:', err?.message ?? err);
+  }
+}
+
+function redisHashedDataKey(kind: string, value: string): string {
+  return redisDataKey(kind, createHash('sha1').update(value).digest('hex').slice(0, 32));
 }
 
 async function clearRedisDataCache(): Promise<void> {
@@ -573,6 +635,16 @@ function db(): DatabaseSync {
       UNIQUE(provider, provider_user_id),
       FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
     );
+    CREATE TABLE IF NOT EXISTS telegram_link_tokens (
+      code TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      expires_at INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      used_at TEXT,
+      telegram_id TEXT,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_telegram_link_tokens_user ON telegram_link_tokens(user_id, expires_at);
     CREATE TABLE IF NOT EXISTS pending_codes (
       email TEXT PRIMARY KEY,
       code_hash TEXT NOT NULL,
@@ -694,6 +766,27 @@ function dbRun(sql: string, ...params: any[]) {
   db().prepare(sql).run(...params);
 }
 
+function identityOwner(provider: string, providerUserId: string): { user_id: string } | undefined {
+  const normalized = providerUserId.trim();
+  if (!provider || !normalized) return undefined;
+  return dbGet<{ user_id: string }>(
+    'SELECT user_id FROM identities WHERE provider = ? AND provider_user_id = ?',
+    provider,
+    normalized,
+  );
+}
+
+function identityBelongsToAnotherUser(provider: string, providerUserId: string, userId: string): boolean {
+  const owner = identityOwner(provider, providerUserId);
+  return Boolean(owner?.user_id && owner.user_id !== userId);
+}
+
+function assertIdentityAvailable(provider: string, providerUserId: string, userId: string, label: string) {
+  if (identityBelongsToAnotherUser(provider, providerUserId, userId)) {
+    throw new Error(`${label} уже привязан к другому аккаунту`);
+  }
+}
+
 function migrateLegacyAuthStore(database: DatabaseSync) {
   const migrated = database.prepare('SELECT value FROM meta WHERE key = ?').get('legacy_auth_migrated') as { value?: string } | undefined;
   if (migrated?.value === '1') return;
@@ -775,10 +868,10 @@ function upsertUserRow(database: DatabaseSync, user: AdminUser) {
     INSERT INTO identities (user_id, provider, provider_user_id, email, username, photo_url, verified_at, created_at, updated_at)
     VALUES (?, 'email', ?, ?, ?, '', ?, ?, ?)
     ON CONFLICT(provider, provider_user_id) DO UPDATE SET
-      user_id = excluded.user_id,
       email = excluded.email,
       username = excluded.username,
       updated_at = excluded.updated_at
+      WHERE identities.user_id = excluded.user_id
   `).run(user.id, user.email, user.email, user.email, createdAt, createdAt, updatedAt);
 
   if (user.telegramId) {
@@ -786,10 +879,10 @@ function upsertUserRow(database: DatabaseSync, user: AdminUser) {
       INSERT INTO identities (user_id, provider, provider_user_id, email, username, photo_url, verified_at, created_at, updated_at)
       VALUES (?, 'telegram', ?, '', ?, ?, ?, ?, ?)
       ON CONFLICT(provider, provider_user_id) DO UPDATE SET
-        user_id = excluded.user_id,
         username = excluded.username,
         photo_url = excluded.photo_url,
         updated_at = excluded.updated_at
+        WHERE identities.user_id = excluded.user_id
     `).run(user.id, user.telegramId, user.telegramUsername ?? '', user.photoUrl ?? '', createdAt, createdAt, updatedAt);
   }
 }
@@ -912,6 +1005,41 @@ function prepareAuthCode(store: AdminAuthStore, email: string): { ok: true; code
 
 function verifyPendingCode(pending: PendingCode, code: string): boolean {
   return safeEqualHex(pending.codeHash, sha256(code));
+}
+
+function normalizeTelegramLinkCode(value: unknown): string {
+  const raw = String(value ?? '').trim().toUpperCase();
+  const compact = raw.replace(/\s+/g, '').replace(/^\/(?:START|LINK)/, '').replace(/[^A-Z0-9-]/g, '');
+  const match = compact.match(/(?:TG-?)?(\d{6})/);
+  return match ? `TG-${match[1]}` : '';
+}
+
+function createTelegramLinkCode(userId: string): { code: string; expiresAt: number } {
+  const database = db();
+  const now = Date.now();
+  const expiresAt = now + TELEGRAM_LINK_CODE_TTL_MS;
+  database.prepare('DELETE FROM telegram_link_tokens WHERE user_id = ? OR expires_at <= ? OR used_at IS NOT NULL').run(userId, now);
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const code = `TG-${randomInt(100000, 1000000)}`;
+    try {
+      database.prepare(`
+        INSERT INTO telegram_link_tokens (code, user_id, expires_at, created_at)
+        VALUES (?, ?, ?, ?)
+      `).run(code, userId, expiresAt, new Date().toISOString());
+      return { code, expiresAt };
+    } catch {
+      // Retry on a rare code collision.
+    }
+  }
+  throw new Error('Не удалось создать Telegram-код');
+}
+
+function telegramLinkCodeFromMessage(text: unknown): string {
+  const raw = String(text ?? '');
+  const startPayload = raw.match(/^\/start\s+(.+)$/i)?.[1];
+  const linkPayload = raw.match(/^\/link\s+(.+)$/i)?.[1];
+  return normalizeTelegramLinkCode(startPayload || linkPayload || raw);
 }
 
 function publicUser(user: AdminUser) {
@@ -1209,17 +1337,11 @@ function syncKhaVipProfiles(database: DatabaseSync) {
       .get(email) as { id?: string } | undefined;
 
     if (telegramIdentity?.user_id && emailUser?.id && telegramIdentity.user_id !== emailUser.id) {
-      const sourceUser = database.prepare('SELECT email FROM users WHERE id = ?')
-        .get(telegramIdentity.user_id) as { email?: string } | undefined;
-      database.prepare("UPDATE identities SET user_id = ?, email = ?, updated_at = ? WHERE provider = 'telegram' AND provider_user_id = ?")
-        .run(emailUser.id, '', now, telegramId);
-      if (sourceUser?.email) {
-        database.prepare('UPDATE sessions SET user_id = ?, email = ? WHERE user_id = ? OR email = ?')
-          .run(emailUser.id, email, telegramIdentity.user_id, sourceUser.email);
-      }
-      database.prepare('DELETE FROM users WHERE id = ?').run(telegramIdentity.user_id);
-      const user = loadAuthStore().users.find(item => item.id === emailUser.id);
-      if (user) applyKhaSubscriptionSnapshot(user, profile as Record<string, any>);
+      console.warn('[ecosystem] skipped KHA VIP identity merge because Telegram and email belong to different users', {
+        telegramId,
+        telegramUserId: telegramIdentity.user_id,
+        emailUserId: emailUser.id,
+      });
       continue;
     }
 
@@ -1242,7 +1364,9 @@ function syncKhaVipProfiles(database: DatabaseSync) {
       database.prepare(`
         INSERT INTO identities (user_id, provider, provider_user_id, email, username, photo_url, verified_at, created_at, updated_at)
         VALUES (?, 'telegram', ?, '', '', '', ?, ?, ?)
-        ON CONFLICT(provider, provider_user_id) DO UPDATE SET user_id = excluded.user_id, updated_at = excluded.updated_at
+        ON CONFLICT(provider, provider_user_id) DO UPDATE SET
+          updated_at = excluded.updated_at
+          WHERE identities.user_id = excluded.user_id
       `).run(emailUser.id, telegramId, now, now, now);
       const user = loadAuthStore().users.find(item => item.id === emailUser.id);
       if (user) applyKhaSubscriptionSnapshot(user, profile as Record<string, any>);
@@ -4586,7 +4710,13 @@ app.get('/api/winrates', requireArenaAccess, async (req, res) => {
   const now = Date.now();
   const cached = winratesApiCache.get(source);
   if (cached && cached.expiresAt > now) {
-    return sendJsonCached(req, res, cached.data, cached.etag, CACHE_5M);
+    return sendJsonCached(req, res, cached.data, cached.etag, CACHE_5M, 'memory');
+  }
+  const redisKey = redisDataKey('winrates', source);
+  const redisCached = await redisGetCache<any>(redisKey);
+  if (redisCached) {
+    winratesApiCache.set(source, { data: redisCached.data, etag: redisCached.etag, expiresAt: now + CLASS_WINRATES_CACHE_MS });
+    return sendJsonCached(req, res, redisCached.data, redisCached.etag, CACHE_5M, 'redis');
   }
   const snapshotEntry = loadDataCached('winrates.json');
   const snapshotData = snapshotEntry?.data && Array.isArray(snapshotEntry.data.classes)
@@ -4629,7 +4759,8 @@ app.get('/api/winrates', requireArenaAccess, async (req, res) => {
       const updatedToken = data.updatedAt ? Date.parse(data.updatedAt).toString(36) : now.toString(36);
       const etag = `"class-winrates-firestone-${updatedToken}-${classes.length}"`;
       winratesApiCache.set(source, { data, etag, expiresAt: now + CLASS_WINRATES_CACHE_MS });
-      return sendJsonCached(req, res, data, etag, CACHE_5M);
+      void redisSetCache(redisKey, data, etag, REDIS_DATASET_TTL_SECONDS);
+      return sendJsonCached(req, res, data, etag, CACHE_5M, 'origin');
     } catch {
       // fallback to snapshot on error
     }
@@ -4645,12 +4776,14 @@ app.get('/api/winrates', requireArenaAccess, async (req, res) => {
       const updatedToken = snapshotData.updatedAt ? new Date(snapshotData.updatedAt).getTime().toString(36) : now.toString(36);
       const etag = `"class-winrates-local-${updatedToken}-${snapshotData.classes.length}"`;
       winratesApiCache.set(source, { data: localData, etag, expiresAt: now + CLASS_WINRATES_CACHE_MS });
+      void redisSetCache(redisKey, localData, etag, REDIS_DATASET_TTL_SECONDS);
       return sendJsonCached(req, res, localData, etag, CACHE_5M, 'local-fresher-than-upstream');
     }
     const updatedToken = data.updatedAt ? new Date(data.updatedAt).getTime().toString(36) : Date.now().toString(36);
     const etag = `"class-winrates-${updatedToken}-${data.classes.length}"`;
     winratesApiCache.set(source, { data, etag, expiresAt: now + CLASS_WINRATES_CACHE_MS });
-    return sendJsonCached(req, res, data, etag, CACHE_5M);
+    void redisSetCache(redisKey, data, etag, REDIS_DATASET_TTL_SECONDS);
+    return sendJsonCached(req, res, data, etag, CACHE_5M, 'origin');
   } catch (err: any) {
     console.error('[api/winrates] HSReplay arena dataset failed:', err?.message ?? err);
   }
@@ -4663,7 +4796,13 @@ app.get('/api/winrates', requireArenaAccess, async (req, res) => {
 app.get('/api/class-matchups', requireArenaAccess, async (req, res) => {
   const now = Date.now();
   if (classMatchupsCache && classMatchupsCache.expiresAt > now) {
-    return sendJsonCached(req, res, classMatchupsCache.data, classMatchupsCache.etag, CACHE_1H);
+    return sendJsonCached(req, res, classMatchupsCache.data, classMatchupsCache.etag, CACHE_1H, 'memory');
+  }
+  const redisKey = redisDataKey('class-matchups');
+  const redisCached = await redisGetCache<any>(redisKey);
+  if (redisCached) {
+    classMatchupsCache = { data: redisCached.data, etag: redisCached.etag, expiresAt: now + CLASS_MATCHUPS_CACHE_MS };
+    return sendJsonCached(req, res, redisCached.data, redisCached.etag, CACHE_1H, 'redis');
   }
 
   try {
@@ -4671,7 +4810,8 @@ app.get('/api/class-matchups', requireArenaAccess, async (req, res) => {
     const updatedToken = data.updatedAt ? new Date(data.updatedAt).getTime().toString(36) : now.toString(36);
     const etag = `"class-matchups-${updatedToken}-${data.matchups.length}"`;
     classMatchupsCache = { data, etag, expiresAt: now + CLASS_MATCHUPS_CACHE_MS };
-    return sendJsonCached(req, res, data, etag, CACHE_1H);
+    void redisSetCache(redisKey, data, etag, REDIS_DATASET_TTL_SECONDS);
+    return sendJsonCached(req, res, data, etag, CACHE_1H, 'origin');
   } catch (err: any) {
     if (classMatchupsCache) {
       return sendJsonCached(req, res, {
@@ -4691,6 +4831,12 @@ app.get('/api/standard/matchups', requireStandardAccess, async (req, res) => {
   if (cached && cached.expiresAt > now) {
     return sendJsonCached(req, res, cached.data, cached.etag, CACHE_1H, 'memory');
   }
+  const redisKey = redisDataKey('standard-matchups', rank);
+  const redisCached = await redisGetCache<any>(redisKey);
+  if (redisCached) {
+    standardMatchupsApiCache.set(rank, { data: redisCached.data, etag: redisCached.etag, expiresAt: now + EXTERNAL_DATASET_CACHE_MS });
+    return sendJsonCached(req, res, redisCached.data, redisCached.etag, CACHE_1H, 'redis');
+  }
 
   try {
     const [payload, archetypeTranslations] = await Promise.all([
@@ -4702,7 +4848,8 @@ app.get('/api/standard/matchups', requireStandardAccess, async (req, res) => {
     const updatedToken = Number.isFinite(updatedMs) ? updatedMs.toString(36) : now.toString(36);
     const etag = `"standard-matchups-v4-${rank}-${updatedToken}-${data.rows.length}-${data.columns.length}-${data.translationSource}"`;
     standardMatchupsApiCache.set(rank, { data, etag, expiresAt: now + EXTERNAL_DATASET_CACHE_MS });
-    return sendJsonCached(req, res, data, etag, CACHE_1H);
+    void redisSetCache(redisKey, data, etag, REDIS_DATASET_TTL_SECONDS);
+    return sendJsonCached(req, res, data, etag, CACHE_1H, 'origin');
   } catch (err: any) {
     if (cached) {
       return sendJsonCached(req, res, { ...cached.data, warning: 'stale' }, cached.etag, CACHE_1H, 'memory-stale');
@@ -5192,6 +5339,7 @@ async function proxyLegacyBattlegroundEndpoint(req: express.Request, res: expres
     }
 
     const cacheKey = `legacy:${upstreamUrl.href}`;
+    const redisKey = redisHashedDataKey('bg-legacy-proxy', cacheKey);
     const cached = battlegroundAppProxyCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       res.status(cached.status);
@@ -5204,19 +5352,39 @@ async function proxyLegacyBattlegroundEndpoint(req: express.Request, res: expres
       if (req.headers['if-none-match'] === cached.etag) return res.status(304).end();
       return res.send(cached.body);
     }
+    const redisCached = await redisGetProxyCache(redisKey);
+    if (redisCached) {
+      battlegroundAppProxyCache.set(cacheKey, {
+        ...redisCached,
+        expiresAt: Date.now() + BG_DATA_CACHE_MS,
+      });
+      res.status(redisCached.status);
+      res.setHeader('Content-Type', redisCached.contentType);
+      res.setHeader('Cache-Control', redisCached.contentType.includes('image/')
+        ? BG_IMAGE_CACHE_CONTROL
+        : BG_JSON_CACHE_CONTROL);
+      res.setHeader('ETag', redisCached.etag);
+      res.setHeader('X-BG-Legacy-Cache', 'REDIS');
+      if (req.headers['if-none-match'] === redisCached.etag) return res.status(304).end();
+      return res.send(redisCached.body);
+    }
 
     const upstream = await fetch(upstreamUrl, { signal: AbortSignal.timeout(20_000) });
     const body = Buffer.from(await upstream.arrayBuffer());
     const contentType = upstream.headers.get('content-type') || 'application/octet-stream';
     const etag = `"bg-legacy-${createHash('sha1').update(cacheKey).update(body).digest('hex').slice(0, 16)}"`;
     if (upstream.status >= 200 && upstream.status < 300 && !contentType.toLowerCase().includes('image/')) {
-      battlegroundAppProxyCache.set(cacheKey, {
+      const cacheEntry = {
         body,
         contentType,
         status: upstream.status,
         etag,
+      };
+      battlegroundAppProxyCache.set(cacheKey, {
+        ...cacheEntry,
         expiresAt: Date.now() + BG_DATA_CACHE_MS,
       });
+      void redisSetProxyCache(redisKey, cacheEntry, Math.max(60, Math.ceil(BG_DATA_CACHE_MS / 1000)));
     }
     res.status(upstream.status);
     res.setHeader('Content-Type', contentType);
@@ -5249,6 +5417,7 @@ async function proxyBattlegroundAppEndpoint(
     }
 
     const cacheKey = upstreamUrl.href;
+    const redisKey = redisHashedDataKey('bg-app-proxy', cacheKey);
     const cached = battlegroundAppProxyCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       const clientCacheControl = res.locals.subscriptionGuarded && !cached.contentType.includes('image/')
@@ -5261,6 +5430,23 @@ async function proxyBattlegroundAppEndpoint(
       res.setHeader('X-BG-Proxy-Cache', 'HIT');
       if (req.headers['if-none-match'] === cached.etag) return res.status(304).end();
       return res.send(cached.body);
+    }
+    const redisCached = await redisGetProxyCache(redisKey);
+    if (redisCached) {
+      battlegroundAppProxyCache.set(cacheKey, {
+        ...redisCached,
+        expiresAt: Date.now() + BG_DATA_CACHE_MS,
+      });
+      const clientCacheControl = res.locals.subscriptionGuarded && !redisCached.contentType.includes('image/')
+        ? 'private, no-store, max-age=0, must-revalidate'
+        : (redisCached.contentType.includes('image/') ? BG_IMAGE_CACHE_CONTROL : BG_JSON_CACHE_CONTROL);
+      res.status(redisCached.status);
+      res.setHeader('Content-Type', redisCached.contentType);
+      res.setHeader('Cache-Control', clientCacheControl);
+      res.setHeader('ETag', redisCached.etag);
+      res.setHeader('X-BG-Proxy-Cache', 'REDIS');
+      if (req.headers['if-none-match'] === redisCached.etag) return res.status(304).end();
+      return res.send(redisCached.body);
     }
 
     const upstream = await fetch(upstreamUrl, { signal: AbortSignal.timeout(25_000) });
@@ -5277,13 +5463,17 @@ async function proxyBattlegroundAppEndpoint(
     }
     const etag = `"bg-app-${createHash('sha1').update(cacheKey).update(body).digest('hex').slice(0, 16)}"`;
     if (upstream.status >= 200 && upstream.status < 300) {
-      battlegroundAppProxyCache.set(cacheKey, {
+      const cacheEntry = {
         body,
         contentType,
         status: upstream.status,
         etag,
+      };
+      battlegroundAppProxyCache.set(cacheKey, {
+        ...cacheEntry,
         expiresAt: Date.now() + BG_DATA_CACHE_MS,
       });
+      void redisSetProxyCache(redisKey, cacheEntry, Math.max(60, Math.ceil(BG_DATA_CACHE_MS / 1000)));
     }
     res.status(upstream.status);
     const clientCacheControl = res.locals.subscriptionGuarded && !contentType.includes('image/')
@@ -5315,6 +5505,7 @@ async function proxyExtraBattlegroundLibraryEndpoint(req: express.Request, res: 
     }
 
     const cacheKey = `extra-library:${upstreamUrl.href}`;
+    const redisKey = redisHashedDataKey('bg-extra-library', cacheKey);
     const cached = battlegroundAppProxyCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       res.status(cached.status);
@@ -5325,19 +5516,37 @@ async function proxyExtraBattlegroundLibraryEndpoint(req: express.Request, res: 
       if (req.headers['if-none-match'] === cached.etag) return res.status(304).end();
       return res.send(cached.body);
     }
+    const redisCached = await redisGetProxyCache(redisKey);
+    if (redisCached) {
+      battlegroundAppProxyCache.set(cacheKey, {
+        ...redisCached,
+        expiresAt: Date.now() + BG_DATA_CACHE_MS,
+      });
+      res.status(redisCached.status);
+      res.setHeader('Content-Type', redisCached.contentType);
+      res.setHeader('Cache-Control', BG_JSON_CACHE_CONTROL);
+      res.setHeader('ETag', redisCached.etag);
+      res.setHeader('X-BG-Extra-Library-Cache', 'REDIS');
+      if (req.headers['if-none-match'] === redisCached.etag) return res.status(304).end();
+      return res.send(redisCached.body);
+    }
 
     const upstream = await fetch(upstreamUrl, { signal: AbortSignal.timeout(25_000) });
     const body = Buffer.from(await upstream.arrayBuffer());
     const contentType = upstream.headers.get('content-type') || 'application/json; charset=utf-8';
     const etag = `"bg-extra-${createHash('sha1').update(cacheKey).update(body).digest('hex').slice(0, 16)}"`;
     if (upstream.status >= 200 && upstream.status < 300) {
-      battlegroundAppProxyCache.set(cacheKey, {
+      const cacheEntry = {
         body,
         contentType,
         status: upstream.status,
         etag,
+      };
+      battlegroundAppProxyCache.set(cacheKey, {
+        ...cacheEntry,
         expiresAt: Date.now() + BG_DATA_CACHE_MS,
       });
+      void redisSetProxyCache(redisKey, cacheEntry, Math.max(60, Math.ceil(BG_DATA_CACHE_MS / 1000)));
     }
 
     res.status(upstream.status);
@@ -5560,6 +5769,133 @@ app.get('/api/auth/telegram/config', (_req, res) => {
   });
 });
 
+async function sendTelegramAuthBotMessage(chatId: string | number, text: string): Promise<void> {
+  if (!TELEGRAM_AUTH_BOT_TOKEN) return;
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_AUTH_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        disable_web_page_preview: true,
+      }),
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      console.warn('[telegram auth bot] sendMessage failed:', data?.description || `HTTP ${response.status}`);
+    }
+  } catch (err: any) {
+    console.warn('[telegram auth bot] sendMessage unavailable:', err?.message ?? err);
+  }
+}
+
+app.post('/api/auth/telegram/link-code', (req, res) => {
+  setPrivateNoStore(res);
+  const user = userAuth(req);
+  if (!user) return res.status(401).json({ error: 'Требуется вход' });
+  if (!TELEGRAM_AUTH_BOT_TOKEN || !TELEGRAM_AUTH_BOT_USERNAME) {
+    return res.status(503).json({ error: 'Telegram-бот пока не настроен' });
+  }
+
+  try {
+    const result = createTelegramLinkCode(user.id);
+    res.json({
+      success: true,
+      code: result.code,
+      expiresAt: new Date(result.expiresAt).toISOString(),
+      botUsername: TELEGRAM_AUTH_BOT_USERNAME,
+      botUrl: `https://t.me/${TELEGRAM_AUTH_BOT_USERNAME}?start=${encodeURIComponent(result.code)}`,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message ?? 'Не удалось создать Telegram-код' });
+  }
+});
+
+app.post('/api/auth/telegram/bot/webhook', async (req, res) => {
+  setPrivateNoStore(res);
+  if (!TELEGRAM_AUTH_BOT_TOKEN || !TELEGRAM_AUTH_BOT_USERNAME) {
+    return res.status(503).json({ ok: false, error: 'Telegram auth bot disabled' });
+  }
+  if (TELEGRAM_AUTH_BOT_WEBHOOK_SECRET) {
+    const received = String(req.headers['x-telegram-bot-api-secret-token'] || '');
+    if (!safeEqualString(received, TELEGRAM_AUTH_BOT_WEBHOOK_SECRET)) {
+      return res.status(403).json({ ok: false, error: 'Forbidden' });
+    }
+  }
+
+  const message = req.body?.message;
+  const chatId = message?.chat?.id;
+  const telegramUser = message?.from;
+  const telegramId = telegramUser?.id ? String(telegramUser.id).replace(/\D/g, '') : '';
+  const code = telegramLinkCodeFromMessage(message?.text);
+  res.json({ ok: true });
+
+  if (!chatId || !telegramId) return;
+  if (!code) {
+    await sendTelegramAuthBotMessage(chatId, [
+      'Отправьте сюда ID-код из профиля arena.hs-manacost.ru.',
+      'Код создаётся в блоке Telegram в личном кабинете и действует ограниченное время.',
+    ].join('\n'));
+    return;
+  }
+
+  try {
+    const database = db();
+    const token = database.prepare(`
+      SELECT code, user_id, expires_at, used_at
+      FROM telegram_link_tokens
+      WHERE code = ?
+    `).get(code) as { code: string; user_id: string; expires_at: number; used_at?: string } | undefined;
+    if (!token || token.used_at || token.expires_at <= Date.now()) {
+      await sendTelegramAuthBotMessage(chatId, 'Код не найден или устарел. Создайте новый код в профиле.');
+      return;
+    }
+
+    const store = loadAuthStore();
+    const targetUser = store.users.find(item => item.id === token.user_id);
+    if (!targetUser) {
+      await sendTelegramAuthBotMessage(chatId, 'Профиль для этого кода не найден. Создайте новый код в профиле.');
+      return;
+    }
+    if (targetUser.telegramId && targetUser.telegramId !== telegramId) {
+      await sendTelegramAuthBotMessage(chatId, 'У этого аккаунта уже привязан другой Telegram. Напишите администратору, если нужна замена.');
+      return;
+    }
+    const existingTelegramUser = store.users.find(item => item.telegramId === telegramId && item.id !== targetUser.id);
+    if (existingTelegramUser || identityBelongsToAnotherUser('telegram', telegramId, targetUser.id)) {
+      await sendTelegramAuthBotMessage(chatId, 'Этот Telegram уже привязан к другому аккаунту.');
+      return;
+    }
+
+    const username = String(telegramUser?.username || '').trim().replace(/^@/, '');
+    const nowIso = new Date().toISOString();
+    targetUser.telegramId = telegramId;
+    targetUser.telegramUsername = username || targetUser.telegramUsername;
+    targetUser.updatedAt = nowIso;
+    saveAuthStore(store);
+    dbRun(`
+      INSERT INTO identities (user_id, provider, provider_user_id, email, username, photo_url, verified_at, created_at, updated_at)
+      VALUES (?, 'telegram', ?, '', ?, '', ?, ?, ?)
+      ON CONFLICT(provider, provider_user_id) DO UPDATE SET
+        username = excluded.username,
+        verified_at = excluded.verified_at,
+        updated_at = excluded.updated_at
+        WHERE identities.user_id = excluded.user_id
+    `, targetUser.id, telegramId, username, nowIso, nowIso, nowIso);
+    database.prepare('UPDATE telegram_link_tokens SET used_at = ?, telegram_id = ? WHERE code = ?').run(nowIso, telegramId, code);
+
+    const status = await refreshSubscriptionForUser(targetUser, true);
+    await sendTelegramAuthBotMessage(chatId, status.hasAccess
+      ? 'Telegram привязан. Подписка найдена, доступ на сайте обновлён.'
+      : 'Telegram привязан, но бот не нашёл вас в VIP-каналах. Проверьте подписку и нажмите "Обновить" в профиле.');
+  } catch (err: any) {
+    console.warn('[telegram auth bot] link failed:', err?.message ?? err);
+    await sendTelegramAuthBotMessage(chatId, 'Не удалось привязать Telegram. Создайте новый код в профиле и попробуйте ещё раз.');
+  }
+});
+
 function upsertTelegramUser(payload: Record<string, unknown>, options: { linkUserId?: string } = {}) {
   const telegramId = String(payload.id ?? '').replace(/\D/g, '');
   const telegramOidcSub = String(payload.oidc_sub ?? '').trim();
@@ -5595,24 +5931,15 @@ function upsertTelegramUser(payload: Record<string, unknown>, options: { linkUse
   let user = oidcUser ?? telegramUser ?? usernameTelegramUser ?? usernameOidcUser ?? emailUser;
 
   if (linkUser) {
+    if (telegramId) assertIdentityAvailable('telegram', telegramId, linkUser.id, 'Этот Telegram');
+    if (telegramOidcSub) assertIdentityAvailable('telegram_oidc', telegramOidcSub, linkUser.id, 'Этот Telegram');
+    if (verifiedBoostyEmail) assertIdentityAvailable('boosty-email', verifiedBoostyEmail, linkUser.id, 'Эта Boosty-почта');
     if (telegramUser && telegramUser.id !== linkUser.id) {
-      user = mergeAuthUsers(store, telegramUser, linkUser, {
-        telegramId,
-        telegramUsername: username,
-        photoUrl: photoUrl || telegramUser.photoUrl,
-      });
+      throw new Error('Этот Telegram уже привязан к другому аккаунту');
     } else if (oidcUser && oidcUser.id !== linkUser.id) {
-      user = mergeAuthUsers(store, oidcUser, linkUser, {
-        telegramId: telegramId || oidcUser.telegramId,
-        telegramUsername: username || oidcUser.telegramUsername,
-        photoUrl: photoUrl || oidcUser.photoUrl,
-      });
+      throw new Error('Этот Telegram уже привязан к другому аккаунту');
     } else if (usernameOidcUser && usernameOidcUser.id !== linkUser.id) {
-      user = mergeAuthUsers(store, usernameOidcUser, linkUser, {
-        telegramId: telegramId || usernameOidcUser.telegramId,
-        telegramUsername: username || usernameOidcUser.telegramUsername,
-        photoUrl: photoUrl || usernameOidcUser.photoUrl,
-      });
+      throw new Error('Этот Telegram уже привязан к другому аккаунту');
     } else {
       user = linkUser;
       user.telegramId = telegramId || user.telegramId;
@@ -5621,11 +5948,7 @@ function upsertTelegramUser(payload: Record<string, unknown>, options: { linkUse
       user.updatedAt = now;
     }
   } else if (telegramUser && emailUser && telegramUser.id !== emailUser.id) {
-    user = mergeAuthUsers(store, telegramUser, emailUser, {
-      telegramId,
-      telegramUsername: username,
-      photoUrl: photoUrl || telegramUser.photoUrl,
-    });
+    throw new Error('Эта Boosty-почта уже привязана к другому аккаунту');
   } else if (!telegramUser && emailUser) {
     user = emailUser;
     user.telegramId = telegramId || user.telegramId;
@@ -5633,6 +5956,10 @@ function upsertTelegramUser(payload: Record<string, unknown>, options: { linkUse
     user.photoUrl = photoUrl || user.photoUrl;
     user.updatedAt = now;
   } else if (telegramUser && verifiedBoostyEmail && telegramUser.email !== verifiedBoostyEmail) {
+    const emailOwner = store.users.find(item => item.email === verifiedBoostyEmail && item.id !== telegramUser.id);
+    if (emailOwner || identityBelongsToAnotherUser('boosty-email', verifiedBoostyEmail, telegramUser.id)) {
+      throw new Error('Эта Boosty-почта уже привязана к другому аккаунту');
+    }
     telegramUser.email = verifiedBoostyEmail;
     telegramUser.updatedAt = now;
     user = telegramUser;
@@ -5673,10 +6000,10 @@ function linkTelegramOidcIdentity(user: AdminUser, claims: Record<string, any>) 
     INSERT INTO identities (user_id, provider, provider_user_id, email, username, photo_url, verified_at, created_at, updated_at)
     VALUES (?, 'telegram_oidc', ?, '', ?, ?, ?, ?, ?)
     ON CONFLICT(provider, provider_user_id) DO UPDATE SET
-      user_id = excluded.user_id,
       username = excluded.username,
       photo_url = excluded.photo_url,
       updated_at = excluded.updated_at
+      WHERE identities.user_id = excluded.user_id
   `, user.id, oidcSub, String(claims.preferred_username || '').replace(/^@/, ''), String(claims.picture || ''), now, now, now);
 }
 
@@ -6502,9 +6829,8 @@ app.post('/api/subscription/email/request', authCodeRequestLimiter, async (req, 
   if (!isRealEmail(email)) return res.status(400).json({ error: 'Укажите реальную почту Boosty' });
 
   const store = loadAuthStore();
-  const authedStoreUser = store.users.find(item => item.id === user.id);
   const existing = store.users.find(item => item.email === email && item.id !== user.id);
-  if (existing && !authedStoreUser?.telegramId && !existing.telegramId) {
+  if (existing || identityBelongsToAnotherUser('boosty-email', email, user.id)) {
     return res.status(409).json({ error: 'Эта почта уже привязана к другому профилю' });
   }
 
@@ -6532,11 +6858,8 @@ app.post('/api/subscription/email/confirm', authCodeVerifyLimiter, async (req, r
   let user = store.users.find(item => item.id === authedUser.id);
   if (!user) return res.status(401).json({ error: 'Пользователь не найден' });
   const existing = store.users.find(item => item.email === email && item.id !== user.id);
-  if (existing) {
-    if (!user.telegramId && !existing.telegramId) {
-      return res.status(409).json({ error: 'Эта почта уже привязана к другому профилю' });
-    }
-    user = mergeAuthUsers(store, user, existing);
+  if (existing || identityBelongsToAnotherUser('boosty-email', email, user.id)) {
+    return res.status(409).json({ error: 'Эта почта уже привязана к другому профилю' });
   }
   const pending = store.pendingCodes.find(item => item.email === email && item.expiresAt > Date.now());
   if (!pending) return res.status(401).json({ error: 'Код устарел. Запросите новый.' });
@@ -6553,6 +6876,17 @@ app.post('/api/subscription/email/confirm', authCodeVerifyLimiter, async (req, r
   store.pendingCodes = store.pendingCodes.filter(item => item.email !== email);
   store.sessions = store.sessions.map(session => session.email === oldEmail ? { ...session, email } : session);
   saveAuthStore(store);
+  const nowIso = new Date().toISOString();
+  dbRun(`
+    INSERT INTO identities (user_id, provider, provider_user_id, email, username, photo_url, verified_at, created_at, updated_at)
+    VALUES (?, 'boosty-email', ?, ?, ?, '', ?, ?, ?)
+    ON CONFLICT(provider, provider_user_id) DO UPDATE SET
+      email = excluded.email,
+      username = excluded.username,
+      verified_at = excluded.verified_at,
+      updated_at = excluded.updated_at
+      WHERE identities.user_id = excluded.user_id
+  `, user.id, email, email, email, nowIso, nowIso, nowIso);
   const status = await refreshSubscriptionForUser(user, true);
   res.json({ success: true, user: publicUser(user), subscription: status });
 });

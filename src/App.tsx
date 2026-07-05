@@ -3577,8 +3577,12 @@ function LoginPanel({
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<AdminMessage | null>(null);
   const [telegramAuthUrl, setTelegramAuthUrl] = useState('');
+  const [telegramBotUsername, setTelegramBotUsername] = useState('');
   const [telegramEnabled, setTelegramEnabled] = useState(false);
   const [telegramAttemptPending, setTelegramAttemptPending] = useState(false);
+  const [telegramLinkCode, setTelegramLinkCode] = useState('');
+  const [telegramLinkExpiresAt, setTelegramLinkExpiresAt] = useState('');
+  const [telegramLinkLoading, setTelegramLinkLoading] = useState(false);
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   const [subscriptionChecked, setSubscriptionChecked] = useState(false);
@@ -3605,6 +3609,8 @@ function LoginPanel({
     setProfileVkUrl(user?.contactVkUrl || '');
     setProfileTelegram(user?.contactTelegram || user?.telegramUsername || '');
     setProfileContactEmail(user?.contactEmail || (isRealAuthEmail(user?.email) ? user.email : ''));
+    setTelegramLinkCode('');
+    setTelegramLinkExpiresAt('');
     onAuthChange?.(user);
   }, [onAuthChange]);
 
@@ -3641,6 +3647,7 @@ function LoginPanel({
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.enabled || !data.authUrl) return;
         setTelegramAuthUrl(String(data.authUrl || '/api/auth/telegram/start'));
+        setTelegramBotUsername(String(data.botUsername || ''));
         setTelegramEnabled(true);
       })
       .catch(() => {});
@@ -3661,6 +3668,8 @@ function LoginPanel({
       setProfileVkUrl(initialAuthUser.contactVkUrl || '');
       setProfileTelegram(initialAuthUser.contactTelegram || initialAuthUser.telegramUsername || '');
       setProfileContactEmail(initialAuthUser.contactEmail || (isRealAuthEmail(initialAuthUser.email) ? initialAuthUser.email : ''));
+      setTelegramLinkCode('');
+      setTelegramLinkExpiresAt('');
       return;
     }
 
@@ -3886,6 +3895,27 @@ function LoginPanel({
     }
   };
 
+  const handleTelegramLinkCodeRequest = async () => {
+    setTelegramLinkLoading(true);
+    setMsg(null);
+    try {
+      const res = await fetch('/api/auth/telegram/link-code', {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Не удалось создать Telegram-код');
+      setTelegramLinkCode(String(data.code || ''));
+      setTelegramLinkExpiresAt(String(data.expiresAt || ''));
+      if (data.botUsername) setTelegramBotUsername(String(data.botUsername));
+      setMsg({ type: 'ok', text: 'ID-код создан. Отправьте его боту Telegram.' });
+    } catch (err: any) {
+      setMsg({ type: 'err', text: err.message });
+    } finally {
+      setTelegramLinkLoading(false);
+    }
+  };
+
   const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -3924,6 +3954,8 @@ function LoginPanel({
     setAuthUser(null);
     setSubscription(null);
     setSubscriptionChecked(false);
+    setTelegramLinkCode('');
+    setTelegramLinkExpiresAt('');
     onAuthChange?.(null);
     setAuthStep('password');
     setPassword('');
@@ -3964,6 +3996,10 @@ function LoginPanel({
         : 'Профиль без email';
     const profileId = authUser.profileId || authUser.id || '—';
     const profileIdDisplay = shortProfileIdentifier(profileId);
+    const telegramLinkBotUrl = telegramBotUsername && telegramLinkCode
+      ? `https://t.me/${telegramBotUsername}?start=${encodeURIComponent(telegramLinkCode)}`
+      : '';
+    const telegramLinkExpiresLabel = telegramLinkExpiresAt ? formatSubscriptionDate(telegramLinkExpiresAt) : '';
 
     return (
       <div className="profile-page" style={{ padding: '18px 0' }}>
@@ -4276,6 +4312,66 @@ function LoginPanel({
                 </p>
                 </div>
               </div>
+            </div>
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+              margin: '0 0 12px',
+              padding: '12px',
+              borderRadius: '12px',
+              background: 'rgba(239,246,255,0.82)',
+              border: '1px solid #bfdbfe',
+            }}>
+              <div style={{ minWidth: 220, flex: '1 1 280px' }}>
+                <strong style={{ display: 'block', color: '#1e3a8a', fontSize: '13px' }}>Привязка через Telegram-бота</strong>
+                <p style={{ margin: '4px 0 0', color: '#475569', fontSize: '12px', lineHeight: 1.4 }}>
+                  Если окно Telegram-входа зависает, создайте ID-код и отправьте его боту. Он проверит VIP-каналы и обновит доступ.
+                </p>
+                {telegramLinkCode && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                    <code style={{
+                      padding: '6px 9px',
+                      borderRadius: '8px',
+                      background: '#0f172a',
+                      color: '#e0f2fe',
+                      fontWeight: 800,
+                      letterSpacing: '0.08em',
+                    }}>
+                      {telegramLinkCode}
+                    </code>
+                    {telegramLinkExpiresLabel && (
+                      <span style={{ color: '#64748b', fontSize: '11px' }}>до {telegramLinkExpiresLabel}</span>
+                    )}
+                    {telegramLinkBotUrl && (
+                      <a
+                        href={telegramLinkBotUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: '#1d4ed8', fontSize: '12px', fontWeight: 800, textDecoration: 'none' }}
+                      >
+                        Открыть @{telegramBotUsername}
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => { void handleTelegramLinkCodeRequest(); }}
+                disabled={telegramLinkLoading || !telegramBotUsername}
+                style={{
+                  ...ADMIN_SECONDARY_BUTTON,
+                  background: '#eff6ff',
+                  color: '#1d4ed8',
+                  borderColor: '#93c5fd',
+                  cursor: telegramLinkLoading ? 'wait' : 'pointer',
+                }}
+              >
+                {telegramLinkLoading ? 'Создаем...' : 'Получить ID-код'}
+              </button>
             </div>
             <p style={{ margin: '0 0 12px', color: '#64748b', fontSize: '11px' }}>
               Последняя проверка: {formatSubscriptionDate(subscription?.checkedAt ?? null)}
