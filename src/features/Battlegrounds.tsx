@@ -3037,7 +3037,9 @@ const BG_STRATEGY_BUILDER_HTML = String.raw`
   </section>
 </main>`;
 
-const BG_STRATEGY_BUILDER_VERSION = '20260626-legacy-core';
+const BG_STRATEGY_BUILDER_VERSION = '20260705-gridfix2';
+const BG_STRATEGY_BUILDER_CSS = `/bg-legacy/strategy-builder.gridfix2.css?v=${BG_STRATEGY_BUILDER_VERSION}`;
+const BG_STRATEGY_BUILDER_JS = `/bg-legacy/strategy-builder.gridfix2.js?v=${BG_STRATEGY_BUILDER_VERSION}`;
 
 type LegacyScriptOwner = 'strategy-builder' | 'tier-builder';
 
@@ -3059,7 +3061,7 @@ function BattlegroundStrategyBuilderEmbed() {
   useEffect(() => {
     const css = document.createElement('link');
     css.rel = 'stylesheet';
-    css.href = `/bg-legacy/strategy-builder.css?v=${BG_STRATEGY_BUILDER_VERSION}`;
+    css.href = BG_STRATEGY_BUILDER_CSS;
     css.dataset.bgStrategyBuilder = 'true';
     document.head.appendChild(css);
 
@@ -3072,7 +3074,7 @@ function BattlegroundStrategyBuilderEmbed() {
       `/bg-legacy/tier-data.js?v=${version}`,
       `/bg-legacy/accessories-data.js?v=${version}`,
       `/bg-legacy/comps-data.js?v=${version}`,
-      `/bg-legacy/strategy-builder.js?v=${version}`,
+      BG_STRATEGY_BUILDER_JS,
     ];
 
     scripts.reduce(
@@ -3188,7 +3190,7 @@ function BattlegroundTierBuilderEmbed() {
   useEffect(() => {
     const css = document.createElement('link');
     css.rel = 'stylesheet';
-    css.href = `/bg-legacy/strategy-builder.css?v=${BG_STRATEGY_BUILDER_VERSION}`;
+    css.href = BG_STRATEGY_BUILDER_CSS;
     css.dataset.bgTierBuilder = 'true';
     document.head.appendChild(css);
 

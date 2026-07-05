@@ -2,6 +2,8 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Fixed the Battlegrounds strategy canvas layout so the 5x5 board keeps enough vertical space and placed cards no longer collapse into overlapping rows on wide screens.
+- Fixed PNG/WebP export in the Battlegrounds strategy builder by loading board card art through same-origin `/api/card-art` URLs and shipping cache-busted legacy builder assets.
 - Fixed the production profile route so the Telegram ID-code button and generated code are rendered in the visible Telegram subscription card.
 - Moved the Telegram bot ID-code control directly into the profile Telegram subscription card so it is visible without scrolling past the subscription sources.
 - Restored Boosty email binding through `@kolodahearthstoneauthbot`: `/email name@example.com` sends a verification code, writes the verified email to the shared KHA/VIP profile store, and syncs the linked site account.
