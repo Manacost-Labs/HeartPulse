@@ -5951,18 +5951,20 @@ app.get('/api/auth/telegram/config', (_req, res) => {
   });
 });
 
-async function sendTelegramAuthBotMessage(chatId: string | number, text: string): Promise<void> {
+async function sendTelegramAuthBotMessage(chatId: string | number, text: string, replyMarkup?: Record<string, unknown>): Promise<void> {
   if (!TELEGRAM_AUTH_BOT_TOKEN) return;
   const startedAt = Date.now();
   try {
+    const body: Record<string, unknown> = {
+      chat_id: chatId,
+      text,
+      disable_web_page_preview: true,
+    };
+    if (replyMarkup) body.reply_markup = replyMarkup;
     const response = await fetchTelegramBotApi(TELEGRAM_AUTH_BOT_TOKEN, 'sendMessage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        disable_web_page_preview: true,
-      }),
+      body: JSON.stringify(body),
     }, 5_000);
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
@@ -5973,6 +5975,36 @@ async function sendTelegramAuthBotMessage(chatId: string | number, text: string)
   } catch (err: any) {
     console.warn('[telegram auth bot] sendMessage unavailable:', err?.message ?? err);
   }
+}
+
+function telegramButtonText(value: unknown, maxLength = 58): string {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1).trimEnd()}…` : text;
+}
+
+function telegramArticleUrl(article: Record<string, any>): string {
+  const rawUrl = String(article.url || '').trim();
+  if (rawUrl && rawUrl !== '#') return rawUrl;
+  const id = String(article.id || '').trim();
+  return id ? `${APP_URL}/articles?article=${encodeURIComponent(id)}` : `${APP_URL}/articles`;
+}
+
+function telegramCatalogReplyMarkup(limit = 8): Record<string, unknown> {
+  const raw = loadDataCached('articles.json')?.data ?? loadData('articles.json') ?? { articles: [] };
+  const articles = Array.isArray(raw?.articles)
+    ? [...raw.articles]
+        .sort((a, b) => articleDateMs(b) - articleDateMs(a) || String(b.id ?? '').localeCompare(String(a.id ?? '')))
+        .slice(0, limit)
+    : [];
+  return {
+    inline_keyboard: [
+      [{ text: 'Открыть сетку статей на сайте', url: `${APP_URL}/articles` }],
+      ...articles.map(article => ([{
+        text: telegramButtonText(article.title || 'Статья'),
+        url: telegramArticleUrl(article),
+      }])),
+    ],
+  };
 }
 
 app.post('/api/auth/telegram/link-code', (req, res) => {
@@ -6015,6 +6047,7 @@ app.post('/api/auth/telegram/bot/webhook', async (req, res) => {
   const telegramUser = message?.from;
   const telegramId = telegramUser?.id ? String(telegramUser.id).replace(/\D/g, '') : '';
   const messageText = String(message?.text || '').trim();
+  const telegramCommand = messageText.match(/^\/([a-z0-9_]+)(?:@[\w_]+)?(?:\s|$)/i)?.[1]?.toLowerCase() || '';
   const requestedEmail = extractEmailFromTelegramMessage(messageText);
   const emailCode = telegramEmailCodeFromMessage(messageText);
   const hasPendingEmailCode = Boolean(telegramId && pendingTelegramEmailCode(telegramId));
@@ -6023,6 +6056,14 @@ app.post('/api/auth/telegram/bot/webhook', async (req, res) => {
 
   if (!chatId || !telegramId) return;
   if (chatType && chatType !== 'private') return;
+  if (telegramCommand === 'catalog' || telegramCommand === 'articles') {
+    await sendTelegramAuthBotMessage(
+      chatId,
+      'Каталог статей Манакоста. Откройте полную сетку на сайте или выберите одну из последних публикаций:',
+      telegramCatalogReplyMarkup(),
+    );
+    return;
+  }
   if (requestedEmail) {
     try {
       await requestTelegramEmailCode(telegramId, requestedEmail);
