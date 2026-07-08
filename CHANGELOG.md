@@ -2,7 +2,6 @@
 
 ## v1.0.0 - 2026-07-05
 
-- Added `/catalog` and `/articles` handling to `@kolodahearthstoneauthbot`, returning the articles grid link and recent article buttons instead of the auth-code fallback text.
 - Moved Telegram auth bot API calls to the local Bot API server with public API fallback, reducing response latency for link and subscription checks.
 - Restricted `@kolodahearthstoneauthbot` webhook handling to private chats only so the auth bot never answers in groups or supergroups.
 - Fixed the Battlegrounds strategy canvas layout so the 5x5 board keeps enough vertical space and placed cards no longer collapse into overlapping rows on wide screens.
