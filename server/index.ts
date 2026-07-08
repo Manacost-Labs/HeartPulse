@@ -5392,8 +5392,9 @@ function sendGalleryImage(req: express.Request, res: express.Response, item: Gal
   res.type(galleryContentType(item, kind));
   if (download) {
     const ext = item.format === 'jpeg' ? 'jpg' : item.format;
-    const safeName = `${item.title || item.id}`.trim().replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, '-').slice(0, 80) || item.id;
-    res.set('Content-Disposition', `attachment; filename="${safeName}.${ext}"; filename*=UTF-8''${encodeURIComponent(`${safeName}.${ext}`)}`);
+    const displayName = `${item.title || item.id}`.trim().replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, '-').slice(0, 80) || item.id;
+    const asciiName = `gallery-${item.id}.${ext}`;
+    res.set('Content-Disposition', `attachment; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(`${displayName}.${ext}`)}`);
   }
   if (req.headers['if-none-match'] === etag) return res.status(304).end();
   return createReadStream(filePath).pipe(res);
