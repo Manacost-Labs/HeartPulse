@@ -100,6 +100,7 @@ const PAGES = {
         <li><a href="/tierlist">Тир-лист карт</a> — оценки карт от S до F по классам</li>
         <li><a href="/legendaries">Легендарные группы</a> — лучшие легендарки для первого выбора</li>
         <li><a href="/articles">Статьи и гайды</a> — разборы и советы по Арене</li>
+        <li><a href="/gallery">Галерея</a> — арты Манакоста в высоком качестве</li>
         <li><a href="/guides-archive">Архив гайдов</a> — старые материалы Koloda Hearthstone в удобном формате</li>
         <li><a href="/contests">Конкурсы</a> — розыгрыши для подписчиков Манакоста</li>
       </ul>`
@@ -293,6 +294,34 @@ const PAGES = {
       <h1>Статьи и гайды по Арене Hearthstone</h1>
       <p>Гайды, разборы мета и советы по режиму Арена от команды Manacost.</p>
       <p><a href="/">На главную</a> | <a href="/guides-archive">Архив гайдов</a> | <a href="/contests">Конкурсы</a> | <a href="/tierlist">Тир-лист карт</a> | <a href="/classes">Винрейты классов</a></p>`
+  },
+  '/gallery': {
+    title: 'Галерея артов Hearthstone | HS-Arena',
+    description: 'Публичная галерея артов Манакоста в высоком качестве: просмотр и скачивание доступны всем пользователям.',
+    canonical: '/gallery',
+    ogType: 'website',
+    h1: 'Галерея артов Манакоста',
+    structuredData: [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Главная", "item": SITE_URL },
+          { "@type": "ListItem", "position": 2, "name": "Галерея", "item": `${SITE_URL}/gallery` }
+        ]
+      },
+      {
+        "@type": "CollectionPage",
+        "@id": `${SITE_URL}/gallery#collection`,
+        "name": "Галерея артов Манакоста",
+        "description": "Публичная галерея артов Манакоста в высоком качестве для просмотра и скачивания.",
+        "url": `${SITE_URL}/gallery`,
+        "isAccessibleForFree": true
+      }
+    ],
+    noscript: `
+      <h1>Галерея артов Манакоста</h1>
+      <p>Публичная галерея артов в высоком качестве. Просмотр и скачивание доступны всем пользователям.</p>
+      <p><a href="/">На главную</a> | <a href="/articles">Статьи</a> | <a href="/contests">Конкурсы</a> | <a href="/classes">Винрейты классов</a></p>`
   },
   '/guides-archive': {
     title: 'Архив гайдов Hearthstone | Manacost Stats',

@@ -5512,6 +5512,7 @@ function SiteFooter({ onNavigate, updatedAt }: { onNavigate: (tab: string) => vo
     { label: 'Тир-лист',  href: '/tierlist',    tab: 'tierlist'    },
     { label: 'Легендарки', href: '/legendaries', tab: 'legendaries' },
     { label: 'Статьи',     href: '/articles',    tab: 'articles'    },
+    { label: 'Галерея',    href: '/gallery',     tab: 'gallery'     },
   ];
   return (
     <footer
@@ -5766,6 +5767,29 @@ interface Article {
 }
 interface ArticlesData {
   articles: Article[];
+  updatedAt: string | null;
+}
+
+interface GalleryItem {
+  id: string;
+  title: string;
+  description?: string;
+  tag?: string;
+  source?: string;
+  width?: number;
+  height?: number;
+  bytes?: number;
+  format?: string;
+  previewUrl: string;
+  thumbUrl: string;
+  imageUrl: string;
+  downloadUrl: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface GalleryData {
+  items: GalleryItem[];
   updatedAt: string | null;
 }
 
@@ -6432,6 +6456,7 @@ function ArticlesTab({
 const TABS = [
   { id: 'home',        label: 'Главная',    icon: Home,     slug: '/'           },
   { id: 'articles',    label: 'Статьи',     icon: BookOpen, slug: '/articles'   },
+  { id: 'gallery',     label: 'Галерея',    icon: ImageIcon, slug: '/gallery'   },
   { id: 'guides-archive', label: 'Архив гайдов', icon: BookOpen, slug: '/guides-archive' },
   { id: 'contests',    label: 'Конкурсы',   icon: Gift,     slug: '/contests'   },
   { id: 'standard-matchups', label: 'Матчапы', icon: Swords, slug: '/standard/matchups' },
@@ -6450,7 +6475,7 @@ const BG_TAB_IDS = new Set<string>(['bg-heroes', 'bg-library', 'bg-tier-list', '
 const ADMIN_TAB_IDS = new Set<string>(['admin-panel']);
 const TOP_LEVEL_TAB_IDS = new Set<string>(['articles']);
 const STANDARD_TAB_IDS = new Set<string>(['standard-matchups']);
-const MISC_TAB_IDS = new Set<string>(['guides-archive', 'contests']);
+const MISC_TAB_IDS = new Set<string>(['gallery', 'guides-archive', 'contests']);
 const TOP_LEVEL_TABS = TABS.filter(tab => TOP_LEVEL_TAB_IDS.has(tab.id));
 const STANDARD_TABS = TABS.filter(tab => STANDARD_TAB_IDS.has(tab.id));
 const ARENA_TABS = TABS.filter(tab => !BG_TAB_IDS.has(tab.id) && !TOP_LEVEL_TAB_IDS.has(tab.id) && !STANDARD_TAB_IDS.has(tab.id) && !MISC_TAB_IDS.has(tab.id) && !ADMIN_TAB_IDS.has(tab.id) && tab.id !== 'home');
@@ -6514,6 +6539,11 @@ const PAGE_META: Record<string, { title: string; description: string; slug: stri
     title:       'Статьи и гайды по Арене Hearthstone | HS-Arena',
     description: 'Гайды, разборы и советы по режиму Арена в Hearthstone от команды Manacost.',
     slug:        '/articles',
+  },
+  gallery:     {
+    title:       'Галерея артов Hearthstone | HS-Arena',
+    description: 'Публичная галерея артов Манакоста в высоком качестве: просмотр и скачивание доступны всем пользователям.',
+    slug:        '/gallery',
   },
   'guides-archive': {
     title:       'Архив гайдов Hearthstone | Manacost Stats',
@@ -6705,6 +6735,7 @@ const LazyLegendaries = React.lazy(() => loadDeferredRoutesModule().then(module 
 const LazyLoginPanel = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.LoginPanel })));
 const LazyAdminPanel = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.AdminPanel })));
 const LazyArticlesTab = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.ArticlesTab })));
+const LazyGalleryTab = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.GalleryTab })));
 const LazyBgLibrary = React.lazy(loadBgLibraryModule);
 const LazyGuidesArchive = React.lazy(loadGuidesArchiveModule);
 const LazyStandardMatchupsPage = React.lazy(loadStandardMatchupsModule);
@@ -6722,6 +6753,7 @@ const ROUTE_PRELOADERS: Partial<Record<TabId | 'login', () => Promise<unknown>>>
   tierlist: loadDeferredRoutesModule,
   legendaries: loadDeferredRoutesModule,
   articles: loadDeferredRoutesModule,
+  gallery: loadDeferredRoutesModule,
   login: loadDeferredRoutesModule,
   'admin-panel': loadContestsModule,
   contests: loadContestsModule,
@@ -7187,6 +7219,8 @@ export default function App() {
   const [homeSummaryData, setHomeSummaryData] = useState<HomeSummaryData | null>(null);
   const [articlesData, setArticlesData] = useState<ArticlesData>({ articles: [], updatedAt: null });
   const [loadingArticles, setLoadingArticles] = useState(false);
+  const [galleryData, setGalleryData] = useState<GalleryData>({ items: [], updatedAt: null });
+  const [loadingGallery, setLoadingGallery] = useState(false);
 
   const [loadingWinrates,    setLoadingWinrates]    = useState(false); // false = show fallback immediately
   const [loadingTierlist,    setLoadingTierlist]    = useState(true);
@@ -7204,6 +7238,7 @@ export default function App() {
   const homeSummaryGenRef = useRef(0);
   const homeSummaryRequestedRef = useRef(false);
   const articlesRequestedRef = useRef(false);
+  const galleryRequestedRef = useRef(false);
   const tierlistRequestedRef = useRef(false);
   const legendariesRequestedRef = useRef(false);
   const warmedTierlistSourcesRef = useRef<Set<TierlistSource>>(new Set());
@@ -7326,6 +7361,35 @@ export default function App() {
     } finally { setLoadingArticles(false); }
   }, []);
 
+  const fetchGallery = useCallback(async (options: { bust?: boolean; silent?: boolean } = {}) => {
+    const { bust = false, silent = false } = options;
+    const cacheKey = 'gallery_v1';
+    if (!silent) setLoadingGallery(true);
+    try {
+      const cached = bust ? null : cacheGet<GalleryData>(cacheKey);
+      if (cached) {
+        setGalleryData(cached);
+        if (!silent) setLoadingGallery(false);
+      }
+
+      if (bust) {
+        const res = await fetch(`/api/gallery?t=${Date.now()}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error('not ok');
+        const data = await res.json();
+        cacheSet(cacheKey, data);
+        localStorage.removeItem(`etag_${cacheKey}`);
+        setGalleryData(data);
+      } else {
+        const result = await fetchWithETag('/api/gallery', cacheKey);
+        if (!result?.data) throw new Error('not ok');
+        setGalleryData(result.data);
+      }
+      galleryRequestedRef.current = true;
+    } catch {
+      // keep empty
+    } finally { setLoadingGallery(false); }
+  }, []);
+
   const warmRoute = useCallback((route: TabId | 'login') => {
     if (warmedRoutesRef.current.has(route)) return;
     warmedRoutesRef.current.add(route);
@@ -7334,7 +7398,10 @@ export default function App() {
     if (route === 'articles' && !articlesRequestedRef.current) {
       void fetchArticles({ silent: true });
     }
-  }, [fetchArticles]);
+    if (route === 'gallery' && !galleryRequestedRef.current) {
+      void fetchGallery({ silent: true });
+    }
+  }, [fetchArticles, fetchGallery]);
 
   const globalUpdatedAt = useMemo(
     () => latestHomeSummaryUpdatedAt(homeSummaryData)
@@ -7407,6 +7474,11 @@ export default function App() {
 	    if (!needsArticles || articlesRequestedRef.current) return;
 	    void fetchArticles();
 	  }, [activeTab, privateRouteChecking, privateRouteLocked, wantsAdmin, fetchArticles]);
+
+	  useEffect(() => {
+	    if (activeTab !== 'gallery' || galleryRequestedRef.current) return;
+	    void fetchGallery();
+	  }, [activeTab, fetchGallery]);
 
   useEffect(() => {
     const likelyRoutes: Array<TabId | 'login'> = activeTab === 'home'
@@ -7931,6 +8003,15 @@ export default function App() {
                       authUser={appAuthUser}
                       subscriptionStatus={appSubscription}
                       subscriptionLoading={appAuthChecking || appSubscriptionLoading}
+                    />
+                  </React.Suspense>
+                )}
+                {activeTab === 'gallery' && (
+                  <React.Suspense fallback={<RouteFallback minHeight={640} />}>
+                    <LazyGalleryTab
+                      data={galleryData}
+                      loading={loadingGallery}
+                      onNavigate={(tab: string) => navigate(tab as TabId)}
                     />
                   </React.Suspense>
                 )}

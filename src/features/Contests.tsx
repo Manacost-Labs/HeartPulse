@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, Gift, Image as ImageIcon, ShieldCheck, Trophy } from 'lucide-react';
+import { BookOpen, Download, Gift, Image as ImageIcon, ShieldCheck, Trash2, Trophy } from 'lucide-react';
 import './contests.css';
 
 type AdminMessage = { type: 'ok' | 'err'; text: string };
@@ -52,12 +52,38 @@ interface Article {
   url?: string;
 }
 
+interface GalleryItem {
+  id: string;
+  title: string;
+  description?: string;
+  tag?: string;
+  source?: string;
+  width?: number;
+  height?: number;
+  bytes?: number;
+  format?: string;
+  previewUrl: string;
+  thumbUrl: string;
+  imageUrl: string;
+  downloadUrl: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 const ADMIN_INPUT: React.CSSProperties = { width: '100%', border: '1px solid rgba(160,121,55,0.35)', borderRadius: 12, padding: '10px 12px', background: '#fffaf0', color: '#2f1b10', outline: 'none' };
 
 function formatDate(iso: string | null): string {
   if (!iso) return 'нет данных';
   const d = new Date(iso);
   return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function formatBytes(bytes?: number): string {
+  const value = Number(bytes || 0);
+  if (!value) return 'размер не указан';
+  if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(value >= 10 * 1024 * 1024 ? 0 : 1)} МБ`;
+  if (value >= 1024) return `${Math.round(value / 1024)} КБ`;
+  return `${value} Б`;
 }
 
 function formatDateTimeInput(value: string | null | undefined): string {
@@ -363,7 +389,7 @@ export function ContestsPage({
   );
 }
 
-type AdminWorkspaceSection = 'dashboard' | 'users' | 'telegram' | 'articles' | 'contests' | 'referrals' | 'boosty';
+type AdminWorkspaceSection = 'dashboard' | 'users' | 'telegram' | 'articles' | 'gallery' | 'contests' | 'referrals' | 'boosty';
 
 type AdminReferralLink = {
   id: string;
@@ -526,6 +552,19 @@ async function uploadAdminImageFile(file: File): Promise<string> {
   return String(data.url || '');
 }
 
+async function uploadGalleryArtFile(file: File, metadata: { title: string; description: string; tag: string; source: string }): Promise<GalleryItem> {
+  if (!file.type.startsWith('image/')) throw new Error('Можно загружать только изображения');
+  const dataUrl = await fileToDataUrl(file);
+  const res = await fetch('/api/admin/gallery', {
+    method: 'POST',
+    headers: authJsonHeaders(),
+    body: JSON.stringify({ ...metadata, dataUrl }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Не удалось загрузить арт');
+  return data.item as GalleryItem;
+}
+
 function firstImageFile(files: FileList | File[] | null | undefined): File | null {
   if (!files) return null;
   return Array.from(files).find(file => file.type.startsWith('image/')) ?? null;
@@ -638,6 +677,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     if (
       requestedSection === 'users' ||
       requestedSection === 'articles' ||
+      requestedSection === 'gallery' ||
       requestedSection === 'contests' ||
       requestedSection === 'referrals' ||
       requestedSection === 'boosty'
@@ -647,6 +687,10 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     return 'contests';
   });
   const [adminArticles, setAdminArticles] = useState<Article[]>([]);
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+  const [galleryFile, setGalleryFile] = useState<File | null>(null);
+  const [galleryUploading, setGalleryUploading] = useState(false);
+  const [galleryDeletingId, setGalleryDeletingId] = useState('');
   const [referrals, setReferrals] = useState<AdminReferralLink[]>([]);
   const [referralClicks, setReferralClicks] = useState<AdminReferralClick[]>([]);
   const [articleForm, setArticleForm] = useState({
@@ -656,6 +700,12 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     excerpt: '',
     image: '',
     url: '',
+  });
+  const [galleryForm, setGalleryForm] = useState({
+    title: '',
+    tag: '',
+    description: '',
+    source: '',
   });
   const [editingArticleId, setEditingArticleId] = useState('');
   const [referralForm, setReferralForm] = useState({
@@ -706,6 +756,18 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Не удалось загрузить статьи');
       setAdminArticles(Array.isArray(data.articles) ? data.articles : []);
+    } catch (err: any) {
+      setMessage({ type: 'err', text: err.message });
+    }
+  }, [allowed]);
+
+  const loadGalleryItems = useCallback(async () => {
+    if (!allowed) return;
+    try {
+      const res = await fetch(`/api/admin/gallery?t=${Date.now()}`, { headers: authJsonHeaders(), cache: 'no-store' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Не удалось загрузить галерею');
+      setGalleryItems(Array.isArray(data.items) ? data.items : []);
     } catch (err: any) {
       setMessage({ type: 'err', text: err.message });
     }
@@ -838,11 +900,12 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   useEffect(() => {
     if (!allowed) return;
     if (adminSection === 'articles' || adminSection === 'dashboard') void loadAdminArticles();
+    if (adminSection === 'gallery' || adminSection === 'dashboard') void loadGalleryItems();
     if (adminSection === 'referrals' || adminSection === 'dashboard') void loadReferrals();
     if (adminSection === 'boosty' || adminSection === 'dashboard') void loadBoostyStatus();
     if (adminSection === 'boosty') void loadBoostySubscribers();
     if (adminSection === 'telegram' || adminSection === 'dashboard') void loadTelegramAccounts();
-  }, [adminSection, allowed, loadAdminArticles, loadBoostyStatus, loadBoostySubscribers, loadReferrals, loadTelegramAccounts]);
+  }, [adminSection, allowed, loadAdminArticles, loadBoostyStatus, loadBoostySubscribers, loadGalleryItems, loadReferrals, loadTelegramAccounts]);
 
 	  useEffect(() => {
     const requestId = ++entriesRequestRef.current;
@@ -1011,6 +1074,51 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const cancelArticleEdit = () => {
     setEditingArticleId('');
     setArticleForm({ title: '', tag: '', date: '', excerpt: '', image: '', url: '' });
+  };
+
+  const submitGalleryItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!galleryForm.title.trim()) {
+      setMessage({ type: 'err', text: 'Укажите название арта.' });
+      return;
+    }
+    if (!galleryFile) {
+      setMessage({ type: 'err', text: 'Выберите файл изображения.' });
+      return;
+    }
+    setGalleryUploading(true);
+    setMessage(null);
+    try {
+      await uploadGalleryArtFile(galleryFile, galleryForm);
+      setMessage({ type: 'ok', text: 'Арт добавлен в галерею.' });
+      setGalleryForm({ title: '', tag: '', description: '', source: '' });
+      setGalleryFile(null);
+      await loadGalleryItems();
+    } catch (err: any) {
+      setMessage({ type: 'err', text: err.message || 'Не удалось загрузить арт' });
+    } finally {
+      setGalleryUploading(false);
+    }
+  };
+
+  const deleteGalleryItem = async (item: GalleryItem) => {
+    if (!window.confirm(`Удалить «${item.title}» из галереи?`)) return;
+    setGalleryDeletingId(item.id);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/admin/gallery/${encodeURIComponent(item.id)}`, {
+        method: 'DELETE',
+        headers: authJsonHeaders(),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Не удалось удалить арт');
+      setMessage({ type: 'ok', text: 'Арт удален.' });
+      await loadGalleryItems();
+    } catch (err: any) {
+      setMessage({ type: 'err', text: err.message || 'Не удалось удалить арт' });
+    } finally {
+      setGalleryDeletingId('');
+    }
   };
 
   const submitReferral = async (e: React.FormEvent) => {
@@ -1293,6 +1401,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     { id: 'boosty', label: 'Boosty', caption: 'Подписчики и уровни' },
     { id: 'telegram', label: 'Telegram', caption: 'Аккаунты и доступ' },
     { id: 'articles', label: 'Статьи', caption: 'Публикации сайта' },
+    { id: 'gallery', label: 'Галерея', caption: 'Арты и скачивания' },
     { id: 'contests', label: 'Конкурсы', caption: 'Заявки и победители' },
     { id: 'referrals', label: 'Реферальные ссылки', caption: 'Реклама и клики' },
   ];
@@ -1333,6 +1442,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
               <div className="admin-stat-grid">
                 <div><span>Конкурсы</span><strong>{contests.length}</strong><small>{totalContestEntries} заявок</small></div>
                 <div><span>Статьи</span><strong>{adminArticles.length}</strong><small>в текущем списке</small></div>
+                <div><span>Галерея</span><strong>{galleryItems.length}</strong><small>публичных артов</small></div>
                 <div><span>Boosty</span><strong>{boostyStatus?.summary?.boostyPaid ?? boostyStatus?.summary?.activePaid ?? '—'}</strong><small>платные Boosty · {boostyApiLabel}</small></div>
                 <div><span>Telegram</span><strong>{telegramAccounts?.summary?.access ?? '—'}</strong><small>VIP доступ из {telegramAccounts?.summary?.total ?? '—'}</small></div>
                 <div><span>Реклама</span><strong>{referrals.length}</strong><small>{totalReferralClicks} кликов</small></div>
@@ -1344,6 +1454,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
                   <div className="admin-quick-actions">
                     <button type="button" onClick={() => setAdminSection('contests')}>Создать конкурс</button>
                     <button type="button" onClick={() => setAdminSection('articles')}>Добавить статью</button>
+                    <button type="button" onClick={() => setAdminSection('gallery')}>Загрузить арт</button>
                     <button type="button" onClick={() => setAdminSection('boosty')}>Проверить Boosty</button>
                     <button type="button" onClick={() => setAdminSection('telegram')}>Проверить Telegram</button>
                     <button type="button" onClick={() => setAdminSection('referrals')}>Новая рекламная ссылка</button>
@@ -1765,6 +1876,81 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
                     </div>
                   ))}
                   {!adminArticles.length && <p className="contest-muted">Статей пока нет.</p>}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {adminSection === 'gallery' && (
+            <div className="contest-admin-grid">
+              <form className="contest-admin-card admin-gallery-form" onSubmit={submitGalleryItem}>
+                <div className="admin-subsection-head">
+                  <div>
+                    <h2>Новый арт</h2>
+                    <p className="contest-muted">Оригинал сохранится для скачивания, а сайт сам создаст легкие превью.</p>
+                  </div>
+                  <ImageIcon size={28} />
+                </div>
+                <label>Название
+                  <input value={galleryForm.title} onChange={e => setGalleryForm(v => ({ ...v, title: e.target.value }))} placeholder="Например: Легенда Арены" style={ADMIN_INPUT} />
+                </label>
+                <label>Раздел
+                  <input value={galleryForm.tag} onChange={e => setGalleryForm(v => ({ ...v, tag: e.target.value }))} placeholder="Арт, Обложка, Fan art" style={ADMIN_INPUT} />
+                </label>
+                <label>Описание
+                  <textarea value={galleryForm.description} onChange={e => setGalleryForm(v => ({ ...v, description: e.target.value }))} rows={4} placeholder="Короткое описание для карточки" style={{ ...ADMIN_INPUT, resize: 'vertical' }} />
+                </label>
+                <label>Источник или автор
+                  <input value={galleryForm.source} onChange={e => setGalleryForm(v => ({ ...v, source: e.target.value }))} placeholder="Необязательно" style={ADMIN_INPUT} />
+                </label>
+                <label className="admin-gallery-file">
+                  <span>{galleryFile ? galleryFile.name : 'Выберите изображение'}</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    onChange={event => setGalleryFile(firstImageFile(event.target.files))}
+                  />
+                </label>
+                {galleryFile && (
+                  <div className="admin-gallery-selected">
+                    <ImageIcon size={18} />
+                    <span>{galleryFile.name}</span>
+                    <small>{formatBytes(galleryFile.size)}</small>
+                  </div>
+                )}
+                <button type="submit" disabled={galleryUploading} className="contest-primary-button">
+                  {galleryUploading ? 'Загружаем...' : 'Добавить в галерею'}
+                </button>
+              </form>
+
+              <div className="contest-admin-card">
+                <div className="admin-subsection-head">
+                  <div>
+                    <h2>Загруженные арты</h2>
+                    <p className="contest-muted">Публичный раздел `/gallery`, доступен всем пользователям.</p>
+                  </div>
+                  <button type="button" className="contest-secondary-button" onClick={() => void loadGalleryItems()}>
+                    Обновить
+                  </button>
+                </div>
+                <div className="admin-gallery-list">
+                  {galleryItems.map(item => (
+                    <article key={item.id} className="admin-gallery-row">
+                      <img src={item.thumbUrl || item.previewUrl} alt="" loading="lazy" decoding="async" />
+                      <div>
+                        <strong>{item.title}</strong>
+                        <small>{[item.tag || 'без раздела', item.width && item.height ? `${item.width} x ${item.height}` : '', formatBytes(item.bytes)].filter(Boolean).join(' · ')}</small>
+                        <span>{item.description || 'Описание не указано'}</span>
+                      </div>
+                      <div className="admin-gallery-actions">
+                        <a href={item.downloadUrl} title="Скачать оригинал"><Download size={17} /></a>
+                        <button type="button" onClick={() => void deleteGalleryItem(item)} disabled={galleryDeletingId === item.id} title="Удалить">
+                          <Trash2 size={17} />
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                  {!galleryItems.length && <p className="contest-muted">В галерее пока нет артов.</p>}
                 </div>
               </div>
             </div>

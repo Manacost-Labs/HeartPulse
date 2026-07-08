@@ -4,7 +4,7 @@ import compression from 'compression';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import sharp from 'sharp';
 import { createClient } from 'redis';
-import { chmodSync, copyFileSync, createReadStream, mkdirSync, renameSync, writeFileSync, readFileSync, existsSync, readdirSync, statSync } from 'fs';
+import { chmodSync, copyFileSync, createReadStream, mkdirSync, renameSync, unlinkSync, writeFileSync, readFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { spawn } from 'child_process';
@@ -20,6 +20,7 @@ const DATA_DIR   = join(__dirname, 'data');
 const CARD_IMAGE_CACHE_DIR = join(DATA_DIR, 'card-images');
 const ADMIN_UPLOAD_SOURCE_DIR = process.env.ADMIN_UPLOAD_SOURCE_DIR || join(DATA_DIR, 'uploads', 'admin');
 const ADMIN_UPLOAD_DIR = process.env.ADMIN_UPLOAD_DIR || ADMIN_UPLOAD_SOURCE_DIR;
+const GALLERY_UPLOAD_DIR = process.env.GALLERY_UPLOAD_DIR || join(DATA_DIR, 'uploads', 'gallery');
 const CARD_IMAGE_CACHE_VERSION = 'card_img_v1';
 const MAX_CARD_IMAGE_JOBS = 4;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -43,6 +44,10 @@ function ensureAdminUploadDirs() {
       console.warn('[admin-upload] failed to restore public upload', fileName, err);
     }
   }
+}
+
+function ensureGalleryUploadDirs() {
+  mkdirSync(GALLERY_UPLOAD_DIR, { recursive: true });
 }
 
 // ─── In-memory data cache (avoids disk I/O on every request) ──────────────────
@@ -221,6 +226,10 @@ const ADMIN_UPLOAD_MAX_BYTES = Math.max(1024 * 1024, Number(process.env.ADMIN_UP
 const ADMIN_UPLOAD_MAX_PIXELS = Math.max(1_000_000, Number(process.env.ADMIN_UPLOAD_MAX_PIXELS || 16_000_000));
 const ADMIN_UPLOAD_MAX_WIDTH = Math.max(1000, Number(process.env.ADMIN_UPLOAD_MAX_WIDTH || 6000));
 const ADMIN_UPLOAD_MAX_HEIGHT = Math.max(1000, Number(process.env.ADMIN_UPLOAD_MAX_HEIGHT || 6000));
+const GALLERY_UPLOAD_MAX_BYTES = Math.max(5 * 1024 * 1024, Number(process.env.GALLERY_UPLOAD_MAX_BYTES || 32 * 1024 * 1024));
+const GALLERY_UPLOAD_MAX_PIXELS = Math.max(4_000_000, Number(process.env.GALLERY_UPLOAD_MAX_PIXELS || 80_000_000));
+const GALLERY_PREVIEW_MAX_WIDTH = Math.max(1200, Number(process.env.GALLERY_PREVIEW_MAX_WIDTH || 2400));
+const GALLERY_THUMB_MAX_WIDTH = Math.max(360, Number(process.env.GALLERY_THUMB_MAX_WIDTH || 720));
 
 interface AdminUser {
   id: string;
@@ -4537,11 +4546,12 @@ app.disable('x-powered-by');
 app.set('etag', false);
 
 ensureAdminUploadDirs();
+ensureGalleryUploadDirs();
 const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST;
 
 app.use(compression({ level: 6, threshold: 1024 }));
-app.use(express.json({ limit: '16mb' }));
+app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '48mb' }));
 app.use('/uploads/admin', express.static(ADMIN_UPLOAD_DIR, {
   immutable: true,
   maxAge: '30d',
@@ -4564,7 +4574,12 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Слишком много запросов. Попробуйте через минуту.' },
-  skip: (req) => req.path.startsWith('/card-image/') || req.ip === '127.0.0.1' || req.ip === '::1',
+  skip: (req) => (
+    req.path.startsWith('/card-image/')
+    || (req.method === 'GET' && req.originalUrl.startsWith('/api/gallery/'))
+    || req.ip === '127.0.0.1'
+    || req.ip === '::1'
+  ),
 });
 app.use('/api/', apiLimiter);
 
@@ -5254,6 +5269,286 @@ function shapeArticlesData(raw: any, userId = '') {
 function articleExists(articleId: string): boolean {
   return Boolean(findArticleById(articleId));
 }
+
+type GalleryImageKind = 'original' | 'preview' | 'thumb';
+
+interface GalleryItemRecord {
+  id: string;
+  title: string;
+  description: string;
+  tag: string;
+  source: string;
+  width: number;
+  height: number;
+  bytes: number;
+  format: 'gif' | 'jpeg' | 'png' | 'webp';
+  originalFile: string;
+  previewFile: string;
+  thumbFile: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function galleryFileUrl(id: string, kind: GalleryImageKind) {
+  return `/api/gallery/${encodeURIComponent(id)}/${kind}`;
+}
+
+function normalizeGalleryItem(item: any): GalleryItemRecord | null {
+  const id = normalizeOptionalText(item?.id, 120);
+  const originalFile = normalizeOptionalText(item?.originalFile, 180);
+  const previewFile = normalizeOptionalText(item?.previewFile, 180);
+  const thumbFile = normalizeOptionalText(item?.thumbFile, 180);
+  const format = String(item?.format || '').toLowerCase() as GalleryItemRecord['format'];
+  if (!id || !originalFile || !previewFile || !thumbFile || !['gif', 'jpeg', 'png', 'webp'].includes(format)) return null;
+  return {
+    id,
+    title: normalizeOptionalText(item?.title, 160) || 'Арт Манакоста',
+    description: normalizeOptionalText(item?.description, 900),
+    tag: normalizeOptionalText(item?.tag, 80),
+    source: normalizeOptionalText(item?.source, 180),
+    width: Math.max(0, Number(item?.width || 0)),
+    height: Math.max(0, Number(item?.height || 0)),
+    bytes: Math.max(0, Number(item?.bytes || 0)),
+    format,
+    originalFile,
+    previewFile,
+    thumbFile,
+    createdAt: normalizeOptionalText(item?.createdAt, 40) || new Date().toISOString(),
+    updatedAt: normalizeOptionalText(item?.updatedAt, 40) || normalizeOptionalText(item?.createdAt, 40) || new Date().toISOString(),
+  };
+}
+
+function loadGalleryRecords(): { items: GalleryItemRecord[]; updatedAt: string | null } {
+  const raw: any = loadData('gallery.json') ?? { items: [], updatedAt: null };
+  const items = Array.isArray(raw.items)
+    ? raw.items.map(normalizeGalleryItem).filter(Boolean) as GalleryItemRecord[]
+    : [];
+  items.sort((a, b) => Date.parse(b.createdAt || '') - Date.parse(a.createdAt || '') || b.id.localeCompare(a.id));
+  return {
+    items,
+    updatedAt: normalizeOptionalText(raw.updatedAt, 40) || (items[0]?.updatedAt ?? null),
+  };
+}
+
+function saveGalleryRecords(payload: { items: GalleryItemRecord[]; updatedAt: string | null }) {
+  mkdirSync(DATA_DIR, { recursive: true });
+  writeFileSync(join(DATA_DIR, 'gallery.json'), JSON.stringify(payload, null, 2), 'utf-8');
+  dataCache.delete('gallery.json');
+}
+
+function publicGalleryItem(item: GalleryItemRecord) {
+  return {
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    tag: item.tag,
+    source: item.source,
+    width: item.width,
+    height: item.height,
+    bytes: item.bytes,
+    format: item.format,
+    previewUrl: galleryFileUrl(item.id, 'preview'),
+    thumbUrl: galleryFileUrl(item.id, 'thumb'),
+    imageUrl: galleryFileUrl(item.id, 'original'),
+    downloadUrl: `/api/gallery/${encodeURIComponent(item.id)}/download`,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  };
+}
+
+function publicGalleryData(records = loadGalleryRecords()) {
+  return {
+    items: records.items.map(publicGalleryItem),
+    updatedAt: records.updatedAt,
+  };
+}
+
+function galleryFileName(item: GalleryItemRecord, kind: GalleryImageKind) {
+  return kind === 'original' ? item.originalFile : kind === 'preview' ? item.previewFile : item.thumbFile;
+}
+
+function galleryContentType(item: GalleryItemRecord, kind: GalleryImageKind) {
+  if (kind === 'preview' || kind === 'thumb') return 'image/webp';
+  if (item.format === 'jpeg') return 'image/jpeg';
+  if (item.format === 'png') return 'image/png';
+  if (item.format === 'gif') return 'image/gif';
+  return 'image/webp';
+}
+
+function findGalleryItem(id: string): GalleryItemRecord | null {
+  return loadGalleryRecords().items.find(item => item.id === id) ?? null;
+}
+
+function sendGalleryImage(req: express.Request, res: express.Response, item: GalleryItemRecord, kind: GalleryImageKind, download = false) {
+  const fileName = galleryFileName(item, kind);
+  const filePath = join(GALLERY_UPLOAD_DIR, fileName);
+  if (!/^[a-z0-9_-]+\.(?:webp|png|jpe?g|gif)$/i.test(fileName) || !existsSync(filePath)) {
+    return res.status(404).json({ error: 'Файл не найден' });
+  }
+  const stat = statSync(filePath);
+  const etag = `"gallery-${item.id}-${kind}-${stat.mtimeMs.toString(36)}-${stat.size}"`;
+  res.set('Cache-Control', 'public, max-age=2592000, immutable');
+  res.set('ETag', etag);
+  res.type(galleryContentType(item, kind));
+  if (download) {
+    const ext = item.format === 'jpeg' ? 'jpg' : item.format;
+    const safeName = `${item.title || item.id}`.trim().replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, '-').slice(0, 80) || item.id;
+    res.set('Content-Disposition', `attachment; filename="${safeName}.${ext}"; filename*=UTF-8''${encodeURIComponent(`${safeName}.${ext}`)}`);
+  }
+  if (req.headers['if-none-match'] === etag) return res.status(304).end();
+  return createReadStream(filePath).pipe(res);
+}
+
+function removeGalleryFiles(item: GalleryItemRecord) {
+  for (const fileName of [item.originalFile, item.previewFile, item.thumbFile]) {
+    if (!/^[a-z0-9_-]+\.(?:webp|png|jpe?g|gif)$/i.test(fileName)) continue;
+    try {
+      const filePath = join(GALLERY_UPLOAD_DIR, fileName);
+      if (existsSync(filePath)) unlinkSync(filePath);
+    } catch (err) {
+      console.warn('[gallery] failed to remove file', fileName, err);
+    }
+  }
+}
+
+app.get('/api/gallery', (req, res) => {
+  const entry = loadDataCached('gallery.json');
+  const records = entry ? {
+    items: Array.isArray(entry.data?.items)
+      ? entry.data.items.map(normalizeGalleryItem).filter(Boolean) as GalleryItemRecord[]
+      : [],
+    updatedAt: normalizeOptionalText(entry.data?.updatedAt, 40) || null,
+  } : { items: [], updatedAt: null };
+  records.items.sort((a, b) => Date.parse(b.createdAt || '') - Date.parse(a.createdAt || '') || b.id.localeCompare(a.id));
+  const data = publicGalleryData(records);
+  const etag = entry ? `"${entry.etag.replace(/^"|"$/g, '')}-public"` : '"gallery-empty"';
+  return sendJsonCached(req, res, data, etag, CACHE_5M);
+});
+
+app.get('/api/gallery/:id/:kind(original|preview|thumb)', (req, res) => {
+  const id = normalizeOptionalText(req.params.id, 120);
+  const kind = String(req.params.kind || '') as GalleryImageKind;
+  const item = id ? findGalleryItem(id) : null;
+  if (!item) return res.status(404).json({ error: 'Арт не найден' });
+  return sendGalleryImage(req, res, item, kind, false);
+});
+
+app.get('/api/gallery/:id/download', (req, res) => {
+  const id = normalizeOptionalText(req.params.id, 120);
+  const item = id ? findGalleryItem(id) : null;
+  if (!item) return res.status(404).json({ error: 'Арт не найден' });
+  return sendGalleryImage(req, res, item, 'original', true);
+});
+
+app.get('/api/admin/gallery', adminIdGuard, (req, res) => {
+  if (!adminAuth(req)) return res.status(401).json({ error: 'Требуется вход' });
+  setPrivateNoStore(res);
+  res.json(publicGalleryData());
+});
+
+app.post('/api/admin/gallery', adminIdGuard, async (req, res) => {
+  if (!adminAuth(req)) return res.status(401).json({ error: 'Требуется вход' });
+  const dataUrl = String(req.body?.dataUrl || '');
+  const title = normalizeOptionalText(req.body?.title, 160);
+  const description = normalizeOptionalText(req.body?.description, 900);
+  const tag = normalizeOptionalText(req.body?.tag, 80);
+  const sourceLabel = normalizeOptionalText(req.body?.source, 180);
+  const match = dataUrl.match(/^data:image\/(png|jpe?g|webp|gif);base64,([a-z0-9+/=\s]+)$/i);
+  if (!title) return res.status(400).json({ error: 'Название обязательно' });
+  if (!match) return res.status(400).json({ error: 'Нужно передать изображение в формате data URL' });
+
+  try {
+    const declaredFormat = match[1].toLowerCase().replace('jpg', 'jpeg') as GalleryItemRecord['format'];
+    const base64 = match[2].replace(/\s/g, '');
+    if (!/^[a-z0-9+/]+={0,2}$/i.test(base64) || base64.length % 4 !== 0) {
+      return res.status(400).json({ error: 'Некорректные base64-данные изображения' });
+    }
+    const source = Buffer.from(base64, 'base64');
+    if (!source.length) return res.status(400).json({ error: 'Файл пустой' });
+    if (source.length > GALLERY_UPLOAD_MAX_BYTES) return res.status(413).json({ error: `Файл больше ${Math.round(GALLERY_UPLOAD_MAX_BYTES / 1024 / 1024)} МБ` });
+
+    const actualFormat = detectAdminUploadFormat(source);
+    if (!actualFormat) return res.status(415).json({ error: 'Формат изображения не распознан' });
+    if (actualFormat !== declaredFormat) return res.status(400).json({ error: 'MIME изображения не совпадает с содержимым файла' });
+
+    const metadata = await sharp(source, { limitInputPixels: GALLERY_UPLOAD_MAX_PIXELS }).metadata();
+    const width = Number(metadata.width || 0);
+    const height = Number(metadata.height || 0);
+    if (!width || !height) return res.status(400).json({ error: 'Не удалось определить размер изображения' });
+    if ((metadata.pages || 1) > 1) return res.status(400).json({ error: 'Анимированные изображения пока не поддерживаются' });
+    if (width * height > GALLERY_UPLOAD_MAX_PIXELS) {
+      return res.status(413).json({ error: 'Разрешение изображения слишком большое для обработки' });
+    }
+
+    ensureGalleryUploadDirs();
+    const id = `gal_${Date.now().toString(36)}_${randomBytes(4).toString('hex')}`;
+    const originalExt = actualFormat === 'jpeg' ? 'jpg' : actualFormat;
+    const originalFile = `${id}.${originalExt}`;
+    const previewFile = `${id}-preview.webp`;
+    const thumbFile = `${id}-thumb.webp`;
+    const originalPath = join(GALLERY_UPLOAD_DIR, originalFile);
+    const previewPath = join(GALLERY_UPLOAD_DIR, previewFile);
+    const thumbPath = join(GALLERY_UPLOAD_DIR, thumbFile);
+
+    writeFileSync(originalPath, source);
+    chmodSync(originalPath, 0o644);
+    const pipeline = sharp(source, { limitInputPixels: GALLERY_UPLOAD_MAX_PIXELS }).rotate();
+    const preview = await pipeline
+      .clone()
+      .resize({ width: GALLERY_PREVIEW_MAX_WIDTH, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 88 })
+      .toBuffer();
+    const thumb = await pipeline
+      .clone()
+      .resize({ width: GALLERY_THUMB_MAX_WIDTH, height: Math.round(GALLERY_THUMB_MAX_WIDTH * 0.72), fit: 'cover', position: 'attention', withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toBuffer();
+    writeFileSync(previewPath, preview);
+    writeFileSync(thumbPath, thumb);
+    chmodSync(previewPath, 0o644);
+    chmodSync(thumbPath, 0o644);
+
+    const nowIso = new Date().toISOString();
+    const records = loadGalleryRecords();
+    const item: GalleryItemRecord = {
+      id,
+      title,
+      description,
+      tag,
+      source: sourceLabel,
+      width,
+      height,
+      bytes: source.length,
+      format: actualFormat,
+      originalFile,
+      previewFile,
+      thumbFile,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+    records.items.unshift(item);
+    records.updatedAt = nowIso;
+    saveGalleryRecords(records);
+    res.json({ success: true, item: publicGalleryItem(item) });
+  } catch (err: any) {
+    console.warn('[gallery] upload failed:', err?.message || err);
+    res.status(500).json({ error: 'Не удалось обработать арт' });
+  }
+});
+
+app.delete('/api/admin/gallery/:id', adminIdGuard, (req, res) => {
+  if (!adminAuth(req)) return res.status(401).json({ error: 'Требуется вход' });
+  const id = normalizeOptionalText(req.params.id, 120);
+  if (!id) return res.status(400).json({ error: 'id обязателен' });
+  const records = loadGalleryRecords();
+  const item = records.items.find(entry => entry.id === id);
+  if (!item) return res.status(404).json({ error: 'Арт не найден' });
+  removeGalleryFiles(item);
+  records.items = records.items.filter(entry => entry.id !== id);
+  records.updatedAt = new Date().toISOString();
+  saveGalleryRecords(records);
+  res.json({ success: true });
+});
 
 app.get('/api/articles', (req, res) => {
   const entry = loadDataCached('articles.json');
