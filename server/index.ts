@@ -5454,13 +5454,12 @@ app.post('/api/admin/gallery', adminIdGuard, async (req, res) => {
   const description = normalizeOptionalText(req.body?.description, 900);
   const tag = normalizeOptionalText(req.body?.tag, 80);
   const sourceLabel = normalizeOptionalText(req.body?.source, 180);
-  const match = dataUrl.match(/^data:image\/(png|jpe?g|webp|gif);base64,([a-z0-9+/=\s]+)$/i);
+  const match = dataUrl.match(/^data:image\/[a-z0-9.+-]+;base64,([a-z0-9+/=\s]+)$/i);
   if (!title) return res.status(400).json({ error: 'Название обязательно' });
   if (!match) return res.status(400).json({ error: 'Нужно передать изображение в формате data URL' });
 
   try {
-    const declaredFormat = match[1].toLowerCase().replace('jpg', 'jpeg') as GalleryItemRecord['format'];
-    const base64 = match[2].replace(/\s/g, '');
+    const base64 = match[1].replace(/\s/g, '');
     if (!/^[a-z0-9+/]+={0,2}$/i.test(base64) || base64.length % 4 !== 0) {
       return res.status(400).json({ error: 'Некорректные base64-данные изображения' });
     }
@@ -5470,7 +5469,6 @@ app.post('/api/admin/gallery', adminIdGuard, async (req, res) => {
 
     const actualFormat = detectAdminUploadFormat(source);
     if (!actualFormat) return res.status(415).json({ error: 'Формат изображения не распознан' });
-    if (actualFormat !== declaredFormat) return res.status(400).json({ error: 'MIME изображения не совпадает с содержимым файла' });
 
     const metadata = await sharp(source, { limitInputPixels: GALLERY_UPLOAD_MAX_PIXELS }).metadata();
     const width = Number(metadata.width || 0);
@@ -7532,12 +7530,11 @@ app.post('/api/admin/uploads/image', async (req, res) => {
   const canUpload = Boolean(adminAuth(req) || contestAdminAuth(req));
   if (!canUpload) return res.status(403).json({ error: 'Недостаточно прав' });
   const dataUrl = String(req.body?.dataUrl || '');
-  const match = dataUrl.match(/^data:image\/(png|jpe?g|webp|gif);base64,([a-z0-9+/=\s]+)$/i);
+  const match = dataUrl.match(/^data:image\/[a-z0-9.+-]+;base64,([a-z0-9+/=\s]+)$/i);
   if (!match) return res.status(400).json({ error: 'Нужно передать изображение в формате data URL' });
 
   try {
-    const declaredFormat = match[1].toLowerCase().replace('jpg', 'jpeg');
-    const base64 = match[2].replace(/\s/g, '');
+    const base64 = match[1].replace(/\s/g, '');
     if (!/^[a-z0-9+/]+={0,2}$/i.test(base64) || base64.length % 4 !== 0) {
       return res.status(400).json({ error: 'Некорректные base64-данные изображения' });
     }
@@ -7547,7 +7544,6 @@ app.post('/api/admin/uploads/image', async (req, res) => {
 
     const actualFormat = detectAdminUploadFormat(source);
     if (!actualFormat) return res.status(415).json({ error: 'Формат изображения не распознан' });
-    if (actualFormat !== declaredFormat) return res.status(400).json({ error: 'MIME изображения не совпадает с содержимым файла' });
 
     const metadata = await sharp(source, { limitInputPixels: ADMIN_UPLOAD_MAX_PIXELS }).metadata();
     const width = Number(metadata.width || 0);
