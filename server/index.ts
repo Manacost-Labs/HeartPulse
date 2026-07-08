@@ -143,6 +143,8 @@ const AUTH_CODE_ISSUE_WINDOW_MS = Math.max(5 * 60_000, Number(process.env.AUTH_C
 const AUTH_CODE_MAX_ISSUES_PER_WINDOW = Math.max(1, Number(process.env.AUTH_CODE_MAX_ISSUES_PER_WINDOW || 5));
 const TELEGRAM_AUTH_BOT_TOKEN = process.env.TELEGRAM_AUTH_BOT_TOKEN || '';
 const TELEGRAM_AUTH_BOT_USERNAME = (process.env.TELEGRAM_AUTH_BOT_USERNAME || '').trim().replace(/^@/, '');
+const TELEGRAM_BOT_API_BASE = (process.env.TELEGRAM_BOT_API_BASE || process.env.TELEGRAM_AUTH_BOT_API_BASE || 'http://127.0.0.1:8081').replace(/\/+$/, '');
+const TELEGRAM_PUBLIC_BOT_API_BASE = 'https://api.telegram.org';
 const TELEGRAM_AUTH_BOT_WEBHOOK_SECRET = (process.env.TELEGRAM_AUTH_BOT_WEBHOOK_SECRET || (TELEGRAM_AUTH_BOT_TOKEN
   ? createHash('sha256').update(`auth-bot:${TELEGRAM_AUTH_BOT_TOKEN}`).digest('hex').slice(0, 32)
   : '')).trim();
@@ -1836,6 +1838,29 @@ async function fetchJsonWithTimeout(url: string, init: RequestInit = {}, timeout
   }
 }
 
+async function fetchTelegramBotApi(token: string, method: string, init: RequestInit = {}, timeoutMs = 5_000): Promise<Response> {
+  const bases = TELEGRAM_BOT_API_BASE
+    ? [TELEGRAM_BOT_API_BASE, TELEGRAM_PUBLIC_BOT_API_BASE]
+    : [TELEGRAM_PUBLIC_BOT_API_BASE];
+  let lastError: unknown;
+
+  for (const base of bases) {
+    try {
+      const response = await fetch(`${base}/bot${token}/${method}`, {
+        ...init,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (response.ok || base === TELEGRAM_PUBLIC_BOT_API_BASE) return response;
+      const data = await response.json().catch(() => ({}));
+      lastError = new Error(data?.description || `HTTP ${response.status}`);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Telegram Bot API unavailable');
+}
+
 async function telegramOidcDiscovery(): Promise<TelegramOidcDiscovery> {
   if (telegramOidcDiscoveryCache && telegramOidcDiscoveryCache.expiresAt > Date.now()) return telegramOidcDiscoveryCache.data;
   const data = await fetchJsonWithTimeout(TELEGRAM_OIDC_DISCOVERY_URL);
@@ -2589,8 +2614,8 @@ async function checkTelegramSubscription(user: AdminUser): Promise<Record<string
   let hasAccess = false;
   for (const chatId of SUBSCRIPTION_TELEGRAM_CHAT_IDS) {
     try {
-      const url = `https://api.telegram.org/bot${KHA_VIP_BOT_TOKEN}/getChatMember?chat_id=${encodeURIComponent(chatId)}&user_id=${encodeURIComponent(user.telegramId)}`;
-      const response = await fetch(url, { signal: AbortSignal.timeout(12000) });
+      const method = `getChatMember?chat_id=${encodeURIComponent(chatId)}&user_id=${encodeURIComponent(user.telegramId)}`;
+      const response = await fetchTelegramBotApi(KHA_VIP_BOT_TOKEN, method, {}, 5_000);
       const data = await response.json().catch(() => ({}));
       if (!response.ok || data?.ok === false) throw new Error(data?.description || `HTTP ${response.status}`);
       const member = data?.result ?? {};
@@ -5928,8 +5953,9 @@ app.get('/api/auth/telegram/config', (_req, res) => {
 
 async function sendTelegramAuthBotMessage(chatId: string | number, text: string): Promise<void> {
   if (!TELEGRAM_AUTH_BOT_TOKEN) return;
+  const startedAt = Date.now();
   try {
-    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_AUTH_BOT_TOKEN}/sendMessage`, {
+    const response = await fetchTelegramBotApi(TELEGRAM_AUTH_BOT_TOKEN, 'sendMessage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -5937,12 +5963,13 @@ async function sendTelegramAuthBotMessage(chatId: string | number, text: string)
         text,
         disable_web_page_preview: true,
       }),
-      signal: AbortSignal.timeout(12_000),
-    });
+    }, 5_000);
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
       console.warn('[telegram auth bot] sendMessage failed:', data?.description || `HTTP ${response.status}`);
     }
+    const elapsedMs = Date.now() - startedAt;
+    if (elapsedMs > 1500) console.warn(`[telegram auth bot] sendMessage slow: ${elapsedMs}ms`);
   } catch (err: any) {
     console.warn('[telegram auth bot] sendMessage unavailable:', err?.message ?? err);
   }
@@ -5984,6 +6011,7 @@ app.post('/api/auth/telegram/bot/webhook', async (req, res) => {
 
   const message = req.body?.message;
   const chatId = message?.chat?.id;
+  const chatType = String(message?.chat?.type || '');
   const telegramUser = message?.from;
   const telegramId = telegramUser?.id ? String(telegramUser.id).replace(/\D/g, '') : '';
   const messageText = String(message?.text || '').trim();
@@ -5994,6 +6022,7 @@ app.post('/api/auth/telegram/bot/webhook', async (req, res) => {
   res.json({ ok: true });
 
   if (!chatId || !telegramId) return;
+  if (chatType && chatType !== 'private') return;
   if (requestedEmail) {
     try {
       await requestTelegramEmailCode(telegramId, requestedEmail);
@@ -6095,6 +6124,7 @@ app.post('/api/auth/telegram/bot/webhook', async (req, res) => {
     }
     database.prepare('UPDATE telegram_link_tokens SET used_at = ?, telegram_id = ? WHERE code = ?').run(nowIso, telegramId, linkCode);
 
+    await sendTelegramAuthBotMessage(chatId, 'Telegram привязан. Проверяю подписку и обновляю доступ на сайте...');
     const status = await refreshSubscriptionForUser(targetUser, true);
     await sendTelegramAuthBotMessage(chatId, status.hasAccess
       ? 'Telegram привязан. Подписка найдена, доступ на сайте обновлён.'

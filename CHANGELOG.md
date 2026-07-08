@@ -2,6 +2,8 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Moved Telegram auth bot API calls to the local Bot API server with public API fallback, reducing response latency for link and subscription checks.
+- Restricted `@kolodahearthstoneauthbot` webhook handling to private chats only so the auth bot never answers in groups or supergroups.
 - Fixed the Battlegrounds strategy canvas layout so the 5x5 board keeps enough vertical space and placed cards no longer collapse into overlapping rows on wide screens.
 - Fixed PNG/WebP export in the Battlegrounds strategy builder by loading board card art through same-origin `/api/card-art` URLs and shipping cache-busted legacy builder assets.
 - Fixed the production profile route so the Telegram ID-code button and generated code are rendered in the visible Telegram subscription card.
