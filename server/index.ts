@@ -14,7 +14,7 @@ import { createHash, createHmac, createPublicKey, randomBytes, randomInt, scrypt
 import { DatabaseSync } from 'node:sqlite';
 import { scrapeAll, loadData } from './scraper.js';
 import { HSREPLAY_NO_ARENASMITH_TIER, normalizeArenasmithTier, tierFromArenasmithScore } from './hsreplayArenasmith.js';
-import { createBlizzardCardImageClient } from './blizzardCards.js';
+import { createBlizzardCardImageClient, isBlizzardImageContentType } from './blizzardCards.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -23,7 +23,7 @@ const CARD_IMAGE_CACHE_DIR = join(DATA_DIR, 'card-images');
 const ADMIN_UPLOAD_SOURCE_DIR = process.env.ADMIN_UPLOAD_SOURCE_DIR || join(DATA_DIR, 'uploads', 'admin');
 const ADMIN_UPLOAD_DIR = process.env.ADMIN_UPLOAD_DIR || ADMIN_UPLOAD_SOURCE_DIR;
 const GALLERY_UPLOAD_DIR = process.env.GALLERY_UPLOAD_DIR || join(DATA_DIR, 'uploads', 'gallery');
-const CARD_IMAGE_CACHE_VERSION = 'card_img_v3';
+const CARD_IMAGE_CACHE_VERSION = 'card_img_v4';
 const CARD_IMAGE_FALLBACK_RETRY_MS = 5 * 60_000;
 const MAX_CARD_IMAGE_JOBS = 4;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -4507,7 +4507,7 @@ async function fetchRemoteCardImage(cardId: string, variant: 'thumb' | 'full'): 
         });
         const contentType = upstream.headers.get('content-type') ?? '';
         if (!upstream.ok) throw new Error(`Blizzard image HTTP ${upstream.status}`);
-        if (!contentType.toLowerCase().startsWith('image/')) {
+        if (!isBlizzardImageContentType(contentType)) {
           throw new Error(`Blizzard image returned ${contentType || 'unknown content type'}`);
         }
         return { buffer: Buffer.from(await upstream.arrayBuffer()), source: 'blizzard' };

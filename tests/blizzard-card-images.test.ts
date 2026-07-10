@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createBlizzardCardImageClient } from '../server/blizzardCards.js';
+import { createBlizzardCardImageClient, isBlizzardImageContentType } from '../server/blizzardCards.js';
 
 function jsonResponse(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
@@ -20,6 +20,14 @@ async function assertDisabledWithoutCredentials() {
   assert.equal(client.configured, false);
   assert.equal(await client.getImageUrl(123), null);
   assert.equal(requests, 0, 'disabled client must not make network requests');
+}
+
+function assertBlizzardCdnImageContentTypes() {
+  assert.equal(isBlizzardImageContentType('image/png'), true);
+  assert.equal(isBlizzardImageContentType('image/webp; charset=binary'), true);
+  assert.equal(isBlizzardImageContentType('application/octet-stream'), true);
+  assert.equal(isBlizzardImageContentType('text/html'), false);
+  assert.equal(isBlizzardImageContentType(null), false);
 }
 
 async function assertCatalogAndTokenCaching() {
@@ -99,6 +107,7 @@ async function assertUnauthorizedRequestRefreshesToken() {
   assert.equal(cardsRequests, 2);
 }
 
+assertBlizzardCdnImageContentTypes();
 await assertDisabledWithoutCredentials();
 await assertCatalogAndTokenCaching();
 await assertUnauthorizedRequestRefreshesToken();

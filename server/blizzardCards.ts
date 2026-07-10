@@ -44,6 +44,11 @@ function safeBlizzardImageUrl(value: unknown): string | null {
   }
 }
 
+export function isBlizzardImageContentType(value: string | null | undefined): boolean {
+  const contentType = String(value ?? '').split(';', 1)[0].trim().toLowerCase();
+  return contentType.startsWith('image/') || contentType === 'application/octet-stream';
+}
+
 export function createBlizzardCardImageClient(options: BlizzardCardImageClientOptions = {}) {
   const clientId = String(options.clientId ?? '').trim();
   const clientSecret = String(options.clientSecret ?? '').trim();
