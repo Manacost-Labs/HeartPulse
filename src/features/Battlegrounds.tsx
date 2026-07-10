@@ -1969,7 +1969,7 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
   const finalForm = Array.isArray(stats.best_composition?.final_form_minions) ? stats.best_composition.final_form_minions.slice(0, 12) : [];
 
   return (
-    <div className="space-y-6 text-[#3d2a1e]">
+    <div className="bg-hero-detail-page space-y-6 text-[#3d2a1e]">
       <button type="button" onClick={() => onNavigate('/heroes')} className="inline-flex items-center gap-2 rounded-md border border-[#d7b66a]/70 bg-[#fff7e6]/80 px-3 py-2 text-sm font-bold text-[#3d2a1e] transition-colors hover:bg-[#fff3c4]">
         <ChevronLeft className="h-4 w-4" /> Все герои
       </button>
@@ -2455,7 +2455,7 @@ function BattlegroundTierList() {
   }, [displayedTiers, hasStrategyHighlight, loading]);
 
   return (
-    <div className="space-y-5">
+    <div className="bg-tier-list-page space-y-5">
       <div className="text-center">
         <p className="font-hs text-xs uppercase tracking-[0.18em] text-[#8b6c42]">Поля сражений</p>
         <h2 className="mt-2 font-hs text-3xl text-[#3d2a1e] sm:text-4xl">Тир-лист</h2>
@@ -2491,6 +2491,7 @@ function BattlegroundTierList() {
                 window.history.pushState(null, '', `${window.location.pathname}?${params.toString()}`);
               }}
               className="rounded-lg border px-3 py-3 text-left transition-all"
+              aria-pressed={active}
               style={active
                 ? { background: '#dbeafe', borderColor: '#2563eb', color: '#0f172a', boxShadow: '0 8px 18px rgba(37,99,235,0.14)' }
                 : { background: 'rgba(248,250,255,0.94)', borderColor: 'rgba(147,197,253,0.65)', color: '#1e293b' }}
@@ -2806,7 +2807,7 @@ function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) =
   const visibleHeroes = useMemo(() => filteredSections.reduce((sum, section) => sum + section.heroes.length, 0), [filteredSections]);
 
   return (
-    <div className="space-y-5">
+    <div className="bg-heroes-page space-y-5">
       <div className="text-center">
         <p className="font-hs text-xs uppercase tracking-[0.18em] text-[#8b6c42]">Поля сражений</p>
         <h2 className="mt-2 font-hs text-3xl text-[#3d2a1e] sm:text-4xl">Герои</h2>
@@ -3037,7 +3038,7 @@ const BG_STRATEGY_BUILDER_HTML = String.raw`
   </section>
 </main>`;
 
-const BG_STRATEGY_BUILDER_VERSION = '20260705-gridfix2';
+const BG_STRATEGY_BUILDER_VERSION = '20260710-parchment';
 const BG_STRATEGY_BUILDER_CSS = `/bg-legacy/strategy-builder.gridfix2.css?v=${BG_STRATEGY_BUILDER_VERSION}`;
 const BG_STRATEGY_BUILDER_JS = `/bg-legacy/strategy-builder.gridfix2.js?v=${BG_STRATEGY_BUILDER_VERSION}`;
 
@@ -3098,7 +3099,7 @@ function BattlegroundStrategyBuilderEmbed() {
   }, []);
 
   return (
-    <div>
+    <div className="bg-builder-page">
       <div
         id={mountId.current}
         className="strategy-builder-page overflow-visible rounded-lg bg-[#07101f]/95"
@@ -3229,7 +3230,7 @@ function BattlegroundTierBuilderEmbed() {
   return (
     <div
       id={mountId.current}
-      className="strategy-builder-page overflow-visible rounded-lg bg-[#07101f]/95"
+      className="bg-builder-page strategy-builder-page overflow-visible rounded-lg bg-[#07101f]/95"
       dangerouslySetInnerHTML={{ __html: BG_TIER_BUILDER_HTML }}
     />
   );

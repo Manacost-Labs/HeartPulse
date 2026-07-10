@@ -1,25 +1,28 @@
 .strategy-builder-page {
-  --bg: #07101f;
-  --bg-soft: #0e1a2f;
-  --panel: rgba(11, 20, 37, 0.88);
-  --panel-strong: rgba(17, 28, 50, 0.94);
-  --panel-border: rgba(255, 255, 255, 0.1);
-  --text: #f8f1db;
-  --text-strong: #fff8df;
-  --muted: #c8d2e8;
-  --muted-soft: #93a3bd;
-  --gold: #dbc07a;
-  --gold-strong: #f0d79a;
-  --accent: #79b7ff;
-  --accent-soft: rgba(121, 183, 255, 0.18);
+  --bg: #21130f;
+  --bg-soft: #3d2335;
+  --panel: rgba(52, 31, 29, 0.92);
+  --panel-strong: rgba(67, 37, 45, 0.95);
+  --panel-border: rgba(225, 181, 102, 0.24);
+  --text: #f3e4c5;
+  --text-strong: #fff0c8;
+  --muted: #d8c6a8;
+  --muted-soft: #aa9276;
+  --gold: #d9ab49;
+  --gold-strong: #efc96f;
+  --accent: #b87592;
+  --accent-soft: rgba(184, 117, 146, 0.22);
   --danger: #ff857e;
-  --shadow: 0 20px 54px rgba(0, 0, 0, 0.26);
+  --shadow: 0 20px 54px rgba(35, 16, 10, 0.32);
   --radius-xl: 24px;
   --radius-lg: 18px;
   --radius-md: 14px;
   --radius-sm: 10px;
   color: var(--text);
-  font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background:
+    radial-gradient(circle at 48% -20%, rgba(143, 83, 109, 0.28), transparent 42%),
+    linear-gradient(180deg, var(--bg-soft), var(--bg));
 }
 
 .strategy-builder-page *,

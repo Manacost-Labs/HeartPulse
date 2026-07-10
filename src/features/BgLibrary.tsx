@@ -1244,7 +1244,7 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
   }, [archivePageCount, normalizedArchivePage]);
 
   return (
-    <div className="space-y-6 text-[#26374f]">
+    <div className="bg-library-page space-y-6 text-[#26374f]">
       <section className="rounded-lg border border-[#cbd9ed] bg-[#f8fbff] p-4 shadow-[0_16px_38px_rgba(68,88,122,0.14)] sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -1544,7 +1544,7 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
   const wikiUrl = card.wiki_page?.url || card.wiki?.page?.url || '';
 
   return (
-    <div className="space-y-6 text-[#26374f]">
+    <div className="bg-library-detail-page space-y-6 text-[#26374f]">
       <button type="button" onClick={() => navigatePath(backPath)} className="inline-flex items-center gap-2 rounded-md border border-[#cbd9ed] bg-[#ffffff] px-4 py-2 text-sm font-semibold text-[#33445d] hover:border-[#d3af55]">
         <ArrowLeft size={16} /> Назад в {pool === 'archive' ? 'архив' : 'библиотеку'}
       </button>

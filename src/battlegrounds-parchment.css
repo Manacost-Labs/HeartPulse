@@ -1,0 +1,342 @@
+/* Battlegrounds parchment skin
+ * Scoped under .arena-app-battlegrounds so Arena, editorial and admin pages keep
+ * their own visual systems. Interaction and animation rules remain in
+ * Battlegrounds.css and the legacy builder stylesheet.
+ */
+
+.arena-app-battlegrounds {
+  --bg-parchment: #ead6a7;
+  --bg-parchment-light: #f7e8bf;
+  --bg-parchment-panel: rgba(255, 244, 213, 0.7);
+  --bg-parchment-panel-strong: rgba(255, 247, 224, 0.88);
+  --bg-ink: #30251c;
+  --bg-muted: #735e49;
+  --bg-violet: #8f536d;
+  --bg-violet-dark: #3d2335;
+  --bg-violet-deep: #2a1725;
+  --bg-gold: #d9ab49;
+  --bg-wood: #2e160b;
+  --bg-wood-soft: #5f371d;
+  --bg-line: rgba(89, 53, 29, 0.3);
+  background:
+    linear-gradient(90deg, rgba(45, 20, 11, 0.2), transparent 10%, transparent 90%, rgba(45, 20, 11, 0.2)),
+    url('/wallpaper/arena-parchment.jpg') center top / 865px auto repeat;
+}
+
+.arena-app-battlegrounds .arena-workspace,
+.arena-app-battlegrounds .arena-main {
+  background: transparent !important;
+}
+
+.arena-app-battlegrounds .arena-content.arena-content-open {
+  width: min(100%, 1320px) !important;
+  max-width: 1320px !important;
+  margin-inline: auto !important;
+  padding: clamp(0.75rem, 2.5vw, 2.1rem) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: var(--bg-ink) !important;
+  background:
+    linear-gradient(rgba(249, 232, 191, 0.9), rgba(234, 211, 160, 0.9)),
+    url('/wallpaper/arena-parchment.jpg') center top / 865px auto repeat !important;
+  box-shadow: none !important;
+}
+
+.arena-app-battlegrounds .arena-content.arena-content-open::before {
+  content: 'Поля Сражений';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(100%, 680px);
+  aspect-ratio: 4 / 1;
+  margin: 0 auto clamp(0.8rem, 2vw, 1.35rem);
+  background: url('/wallpaper/battlegrounds-bartender-header.webp') center / 100% 100% no-repeat;
+  color: #fff0c8;
+  font-family: var(--font-display, "HSDisplay", serif);
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  text-shadow: 0 2px 3px rgba(45, 22, 10, 0.78);
+  transform: translateY(-1px);
+  filter: drop-shadow(0 8px 8px rgba(70, 39, 19, 0.14));
+}
+
+.arena-app-battlegrounds .bg-library-page,
+.arena-app-battlegrounds .bg-library-detail-page,
+.arena-app-battlegrounds .bg-heroes-page,
+.arena-app-battlegrounds .bg-hero-detail-page,
+.arena-app-battlegrounds .bg-tier-list-page,
+.arena-app-battlegrounds .bg-builder-page {
+  width: 100%;
+  min-width: 0;
+  color: var(--bg-ink) !important;
+}
+
+.arena-app-battlegrounds .bg-library-page > section,
+.arena-app-battlegrounds .bg-library-detail-page > section,
+.arena-app-battlegrounds .bg-heroes-page > section,
+.arena-app-battlegrounds .bg-hero-detail-page > section,
+.arena-app-battlegrounds .bg-tier-list-page > section {
+  border-color: var(--bg-line) !important;
+  border-radius: 0.35rem !important;
+  background:
+    linear-gradient(135deg, rgba(255, 247, 224, 0.66), rgba(230, 204, 151, 0.43)),
+    url('/wallpaper/arena-parchment.jpg') center / 865px auto repeat !important;
+  box-shadow:
+    inset 4px 0 var(--bg-violet),
+    0 10px 22px rgba(72, 42, 22, 0.08) !important;
+}
+
+.arena-app-battlegrounds .bg-library-page > section::after,
+.arena-app-battlegrounds .bg-library-detail-page > section::after,
+.arena-app-battlegrounds .bg-heroes-page > section::after,
+.arena-app-battlegrounds .bg-hero-detail-page > section::after,
+.arena-app-battlegrounds .bg-tier-list-page > section::after {
+  content: '';
+  display: block;
+  height: 5px;
+  margin: 1rem -0.25rem -0.25rem;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #8b5a2c 0 20%, #2e160b 22% 58%, #c08a42 60% 74%, #563019 76%);
+  box-shadow: 0 2px 3px rgba(50, 25, 10, 0.24);
+  opacity: 0.92;
+}
+
+.arena-app-battlegrounds :is(.bg-library-page, .bg-library-detail-page, .bg-heroes-page, .bg-hero-detail-page, .bg-tier-list-page)
+  :is(h1, h2, h3, h4) {
+  color: var(--bg-ink) !important;
+  text-shadow: 0 1px rgba(255, 247, 222, 0.7);
+}
+
+.arena-app-battlegrounds :is(.bg-library-page, .bg-library-detail-page, .bg-heroes-page, .bg-hero-detail-page, .bg-tier-list-page)
+  :is(p, td, label) {
+  color: var(--bg-muted);
+}
+
+.arena-app-battlegrounds :is(.bg-library-page, .bg-library-detail-page, .bg-heroes-page, .bg-hero-detail-page, .bg-tier-list-page)
+  :is([class*="text-[#8a651f]"], [class*="text-[#8b6c42]"], [class*="text-[#60718a]"]) {
+  color: #7d405b !important;
+}
+
+.arena-app-battlegrounds :is(.bg-library-page, .bg-library-detail-page, .bg-heroes-page, .bg-hero-detail-page, .bg-tier-list-page)
+  :is([class*="text-[#5e708a]"], [class*="text-[#657893]"], [class*="text-[#3b4d68]"], [class*="text-[#7b8da6]"]) {
+  color: var(--bg-muted) !important;
+}
+
+.arena-app-battlegrounds :is(.bg-library-page, .bg-library-detail-page, .bg-heroes-page, .bg-hero-detail-page, .bg-tier-list-page)
+  :is([class*="text-[#26374f]"], [class*="text-[#23314a]"], [class*="text-[#33445d]"], [class*="text-[#34445c]"], [class*="text-[#1e3a8a]"]) {
+  color: var(--bg-ink) !important;
+}
+
+/* Replace the former cold dashboard whites and blue borders inside BG routes. */
+.arena-app-battlegrounds :is(.bg-library-page, .bg-library-detail-page, .bg-tier-list-page)
+  :is([class*="bg-[#f8fbff]"], [class*="bg-[#f8faff]"], [class*="bg-[#f3f7fe]"], [class*="bg-[#eef4fd]"], [class*="bg-[#ebf1fc]"], [class*="bg-[#ffffff]"], [class*="bg-white"]) {
+  background-color: var(--bg-parchment-panel-strong) !important;
+}
+
+.arena-app-battlegrounds :is(.bg-library-page, .bg-library-detail-page, .bg-tier-list-page)
+  :is([class*="border-[#cbd9ed]"], [class*="border-[#d6e1f1]"], [class*="border-[#c5d4e9]"], [class*="border-[#bfdbfe]"]) {
+  border-color: var(--bg-line) !important;
+}
+
+/* Library navigation and filters */
+.arena-app-battlegrounds .bg-library-page details,
+.arena-app-battlegrounds .bg-library-page input[type='search'],
+.arena-app-battlegrounds .bg-library-page select,
+.arena-app-battlegrounds .bg-library-detail-page table {
+  border-color: rgba(97, 58, 31, 0.34) !important;
+  color: var(--bg-ink) !important;
+  background: rgba(255, 246, 220, 0.78) !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.45);
+}
+
+.arena-app-battlegrounds .bg-library-page input[type='search']::placeholder {
+  color: rgba(94, 70, 49, 0.62) !important;
+}
+
+.arena-app-battlegrounds .bg-library-page details[open] > summary {
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid rgba(97, 58, 31, 0.18);
+}
+
+.arena-app-battlegrounds .bg-library-page :is(button, a)[class*="border-[#e4c675]"],
+.arena-app-battlegrounds .bg-library-page :is(button, a)[class*="bg-[#e4c675]"] {
+  border-color: #71364f !important;
+  color: #fff0c8 !important;
+  background: linear-gradient(180deg, #8f536d, #623148) !important;
+  box-shadow: inset 0 1px rgba(255, 238, 199, 0.24), 0 3px 8px rgba(71, 30, 47, 0.18);
+}
+
+.arena-app-battlegrounds .bg-library-page :is(button, a):not([class*="bg-[#e4c675]"]):hover {
+  border-color: rgba(125, 64, 91, 0.72) !important;
+  background-color: rgba(255, 238, 199, 0.82) !important;
+}
+
+.arena-app-battlegrounds .bg-library-page [data-library-card-tile] > div:last-of-type {
+  border-color: rgba(97, 58, 31, 0.3) !important;
+  background: rgba(255, 245, 216, 0.82) !important;
+  box-shadow: 0 5px 12px rgba(66, 37, 18, 0.09);
+}
+
+.arena-app-battlegrounds .bg-library-page [data-library-card-tile]:hover > div:last-of-type {
+  border-color: var(--bg-violet) !important;
+  background: rgba(255, 248, 228, 0.96) !important;
+}
+
+/* Do not change transforms/opacity on card images: those rules power the golden-card reveal. */
+.arena-app-battlegrounds .bg-library-page [data-library-card-tile] img,
+.arena-app-battlegrounds .bg-library-detail-page img {
+  filter: none;
+}
+
+.arena-app-battlegrounds .bg-library-detail-page > button,
+.arena-app-battlegrounds .bg-hero-detail-page > button {
+  border-color: rgba(97, 58, 31, 0.36) !important;
+  color: var(--bg-ink) !important;
+  background: rgba(255, 244, 213, 0.78) !important;
+  box-shadow: 0 3px 8px rgba(62, 34, 17, 0.08);
+}
+
+.arena-app-battlegrounds .bg-library-detail-page thead {
+  color: #fff0c8 !important;
+  background: linear-gradient(180deg, #71364f, #4a2638) !important;
+}
+
+.arena-app-battlegrounds .bg-library-detail-page tbody {
+  background: rgba(255, 247, 225, 0.76) !important;
+}
+
+/* Heroes */
+.arena-app-battlegrounds .bg-heroes-page > div:first-child,
+.arena-app-battlegrounds .bg-tier-list-page > div:first-child {
+  position: relative;
+  padding: 0.5rem 1rem 1rem;
+}
+
+.arena-app-battlegrounds .bg-heroes-page > div:first-child::after,
+.arena-app-battlegrounds .bg-tier-list-page > div:first-child::after {
+  content: '';
+  display: block;
+  width: min(100%, 560px);
+  height: 5px;
+  margin: 1rem auto 0;
+  border-radius: 99px;
+  background: linear-gradient(180deg, #a26c33 0 18%, #351b0e 20% 60%, #c38a42 62% 76%, #603619 78%);
+}
+
+.arena-app-battlegrounds .bg-heroes-page [class*="bg-[#dbeafe]"],
+.arena-app-battlegrounds .bg-heroes-page [class*="bg-[#eff6ff]"] {
+  border-color: rgba(125, 64, 91, 0.45) !important;
+  color: #633049 !important;
+  background: rgba(217, 171, 193, 0.24) !important;
+}
+
+.arena-app-battlegrounds .bg-heroes-page .battleground-hero-card {
+  border: 1px solid rgba(92, 53, 29, 0.18) !important;
+  background: linear-gradient(180deg, rgba(255, 246, 218, 0.3), rgba(213, 180, 125, 0.18));
+  box-shadow: 0 8px 16px rgba(68, 38, 19, 0.07);
+}
+
+.arena-app-battlegrounds .bg-heroes-page .battleground-hero-card:hover,
+.arena-app-battlegrounds .bg-heroes-page .battleground-hero-card:focus-visible {
+  border-color: rgba(143, 83, 109, 0.7) !important;
+  background: linear-gradient(180deg, rgba(255, 249, 230, 0.72), rgba(218, 181, 126, 0.4));
+  box-shadow: 0 15px 25px rgba(68, 38, 19, 0.16);
+}
+
+.arena-app-battlegrounds .bg-hero-detail-page :is([class*="bg-[#dbeafe]"], [class*="bg-[#eff6ff]"]) {
+  border-color: rgba(125, 64, 91, 0.42) !important;
+  color: #633049 !important;
+  background: rgba(217, 171, 193, 0.24) !important;
+}
+
+.arena-app-battlegrounds .bg-hero-detail-page .bg-hero-bar-row > div:last-child > div,
+.arena-app-battlegrounds .bg-hero-detail-page [class*="bg-gradient-to-r"] {
+  background-image: linear-gradient(90deg, #8f536d, #d9ab49, #75405a) !important;
+}
+
+/* BG tier list */
+.arena-app-battlegrounds .bg-tier-list-page > .grid:first-of-type button {
+  border-color: rgba(97, 58, 31, 0.32) !important;
+  color: var(--bg-ink) !important;
+  background: rgba(255, 244, 213, 0.58) !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.45), 0 5px 12px rgba(57, 31, 15, 0.08) !important;
+}
+
+.arena-app-battlegrounds .bg-tier-list-page > .grid:first-of-type button[aria-pressed='true'] {
+  border-color: #653149 !important;
+  color: #fff0c8 !important;
+  background: linear-gradient(180deg, #8f536d, #542a40) !important;
+  box-shadow: inset 0 1px rgba(255, 238, 199, 0.24), 0 7px 14px rgba(74, 30, 49, 0.2) !important;
+}
+
+.arena-app-battlegrounds .bg-tier-list-page :is([class*="bg-[#ebf1fc]"], [class*="bg-[#f8faff]"], [class*="bg-[#dbeafe]"]) {
+  border-color: rgba(97, 58, 31, 0.3) !important;
+  color: var(--bg-ink) !important;
+  background: rgba(255, 244, 213, 0.67) !important;
+}
+
+.arena-app-battlegrounds .bg-tier-list-page [class*="bg-[#2563eb]"] {
+  border-color: #653149 !important;
+  color: #fff0c8 !important;
+  background: #71364f !important;
+}
+
+.arena-app-battlegrounds .bg-tier-list-page section section {
+  border-color: rgba(97, 58, 31, 0.28) !important;
+  background: rgba(255, 242, 207, 0.5) !important;
+}
+
+.arena-app-battlegrounds .bg-tier-list-page .group:hover {
+  border-color: rgba(143, 83, 109, 0.68) !important;
+}
+
+/* Builder frame. The interactive canvas itself remains dark for contrast. */
+.arena-app-battlegrounds .bg-builder-page {
+  padding: clamp(28px, 4.8vw, 62px) !important;
+  border: clamp(28px, 4.8vw, 62px) solid transparent !important;
+  border-image-source: url('/wallpaper/wiki-battlegrounds-skin.webp') !important;
+  border-image-slice: 82 fill !important;
+  border-image-width: clamp(28px, 4.8vw, 62px) !important;
+  border-image-repeat: stretch !important;
+  background: #bfa477 !important;
+  box-shadow: 0 16px 28px rgba(65, 35, 17, 0.16) !important;
+}
+
+.arena-app-battlegrounds .bg-builder-page .strategy-builder-page,
+.arena-app-battlegrounds .strategy-builder-page.bg-builder-page {
+  border-radius: 0.3rem !important;
+}
+
+@media (max-width: 720px) {
+  .arena-app-battlegrounds .arena-content.arena-content-open {
+    padding-inline: 0.55rem !important;
+  }
+
+  .arena-app-battlegrounds .arena-content.arena-content-open::before {
+    min-height: 82px;
+    aspect-ratio: auto;
+    background-size: 138% 100%;
+  }
+
+  .arena-app-battlegrounds .bg-library-page > section,
+  .arena-app-battlegrounds .bg-library-detail-page > section,
+  .arena-app-battlegrounds .bg-heroes-page > section,
+  .arena-app-battlegrounds .bg-hero-detail-page > section,
+  .arena-app-battlegrounds .bg-tier-list-page > section {
+    box-shadow: inset 3px 0 var(--bg-violet), 0 7px 16px rgba(72, 42, 22, 0.07) !important;
+  }
+
+  .arena-app-battlegrounds .bg-builder-page {
+    padding: 0.25rem !important;
+    border-width: 25px !important;
+    border-image-width: 25px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arena-app-battlegrounds .bg-library-page [data-library-card-tile],
+  .arena-app-battlegrounds .bg-library-page [data-library-card-tile] img,
+  .arena-app-battlegrounds .battleground-hero-card,
+  .arena-app-battlegrounds .battleground-hero-card img {
+    transition-duration: 0.01ms !important;
+  }
+}
