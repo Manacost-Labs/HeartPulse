@@ -1,258 +1,288 @@
+---
+name: HS-Arena Design System
+colors:
+  primary: "#8d171d"
+  on-primary: "#fff0c8"
+  secondary: "#8f536d"
+  on-secondary: "#fff0c8"
+  background: "#ead6a7"
+  on-background: "#30251c"
+  parchment: "#ead6a7"
+  parchment-light: "#f7e8bf"
+  ink: "#30251c"
+  ink-muted: "#735e49"
+  wood: "#2e160b"
+  wood-soft: "#5f371d"
+  arena-red: "#8d171d"
+  arena-red-dark: "#5d0d13"
+  battlegrounds-violet: "#8f536d"
+  battlegrounds-violet-dark: "#3d2335"
+  battlegrounds-violet-deep: "#2a1725"
+  accent-gold: "#d9ab49"
+  accent-gold-bright: "#efc96f"
+  positive: "#2f7a3e"
+  negative: "#a33a3a"
+typography:
+  display:
+    fontFamily: HSDisplay
+    fontSize: 32px
+    fontWeight: "700"
+    lineHeight: 38px
+    letterSpacing: 0em
+  body:
+    fontFamily: Inter
+    fontSize: 16px
+    fontWeight: "400"
+    lineHeight: 24px
+    letterSpacing: 0em
+rounded:
+  sm: 4px
+  DEFAULT: 6px
+  md: 8px
+  lg: 12px
+  full: 9999px
+spacing:
+  base: 8px
+  xs: 4px
+  sm: 12px
+  md: 24px
+  lg: 40px
+  xl: 64px
+  gutter: 16px
+  margin: 24px
+---
+
 # HS-Arena Design System
 
-> **Purpose of this file.** This is the single source of truth for how HS-Arena (arena.hs-manacost.ru) must look and be built. Any AI agent or developer doing visual work MUST read this file first and follow it. If a requested change conflicts with a rule here, say so before implementing.
+> This is the visual source of truth for `arena.hs-manacost.ru`. Read it before changing UI. Preserve product behavior, data loading and protected animations unless a task explicitly asks for functional changes.
 
 ## Product Direction
 
-HS-Arena should feel like a modern Hearthstone statistics dashboard: fast, readable, premium, and game-aware without becoming an old parchment fan site.
+HS-Arena is a Hearthstone statistics product presented as a readable game compendium. The interface uses real Hearthstone materials without copying the game client: continuous parchment for content, a red textured navigation rail, wood for separators and frames, and one restrained accent per game mode.
 
-Primary design goals:
-- Lead with data clarity: stats, filters, tiers, and updates must scan quickly.
-- Keep Hearthstone flavor through real assets, card art, class icons, and display typography. Do not use warm gold/yellow as a general UI color.
-- Avoid heavy brown panels as the default surface. Use dark navy glass and light dashboard surfaces.
-- Preserve existing interactive engines: tier grids, card preview, lightbox, filters, and download flows.
+The design must feel authored and useful, not like a collection of unrelated rounded dashboard cards.
 
-## Design Tokens
+Primary goals:
+
+- One continuous page canvas and one predictable content width across routes.
+- Data remains fast to scan during a draft or Battlegrounds game.
+- Real card, class and hero assets carry most of the visual energy.
+- Decorative assets frame information; they never reduce legibility or steal interaction space.
+- Existing filters, lightboxes, tier grids, drag/drop builders, exports and media behavior remain intact during visual passes.
+
+## Material And Color Tokens
+
+| Role | Value | Usage |
+|---|---|---|
+| Parchment | `#ead6a7`, `#f7e8bf` | page canvas, quiet panels |
+| Ink | `#30251c` | primary text |
+| Muted ink | `#735e49` | descriptions and metadata |
+| Wood | `#2e160b`, `#5f371d` | rules, frames, depth |
+| Arena red | `#8d171d`, `#5d0d13` | Arena headings and active controls |
+| BG violet | `#8f536d`, `#3d2335`, `#2a1725` | Battlegrounds headings, active controls, builders |
+| Gold | `#d9ab49`, `#efc96f` | icons, tiny highlights, selected details |
+| Positive data | `#2f7a3e` | good metrics only |
+| Negative data | `#a33a3a` | bad metrics and errors only |
+
+Gold is not a general panel fill. Use it for small accents, asset-native details and important selected states. Large surfaces stay parchment, red, violet or dark wood.
 
 ### Typography
 
 | Token | Value | Usage |
 |---|---|---|
-| `--font-hs` | `"HSDisplay", "Cinzel", serif` | Legacy alias, tier badges, some BG components |
-| `--font-display` | `"HSDisplay", serif` | Brand, section titles, tier labels, primary action text, menu links |
-| `--font-body` | `"Inter", sans-serif` | Descriptions, helper text, metadata, long-form text, section labels |
+| `--font-display` / `--font-hs` | `HSDisplay`, fallback serif | brand, headings, menu links, tier labels |
+| `--font-body` | `Inter`, sans-serif | descriptions, filters, tables, metadata |
 
-- `HSDisplay` is self-hosted at `/fonts/2318-font.otf` (`@font-face` in `src/index.css`, `font-display: swap`, preloaded in `index.html`).
-- `Cinzel` + `Inter` load from Google Fonts (preconnect in `index.html`).
-- Letter spacing stays `0` for most UI. Uppercase only for small labels (source names, menu section headers).
-- Mobile headings must not wrap awkwardly. Brand text stays readable and compact.
+- Display type is expressive; body copy stays plain and compact.
+- Uppercase is limited to kickers and small section labels.
+- Long labels must use `min-width: 0` and wrap or truncate intentionally.
 
-### Color Palette
+## Canonical Assets
 
-| Role | Values |
+| Asset | Purpose |
 |---|---|
-| Deep shell | `#040a14`, `#081020`, `#12233f` |
-| Dark glass panels | `rgba(8,18,34,0.98)` → `rgba(6,12,24,0.98)` gradients + `backdrop-filter: blur(16-18px)` |
-| Dashboard surface (light) | `#f8faff`, `#ebf1fc` |
-| Primary accent | `#2563eb`, `#38bdf8`, `#93c5fd` |
-| Borders on dark | `rgba(96,165,250,0.26-0.42)` (blue), `rgba(148,163,184,0.16)` (slate) |
-| Active/selected on dark | `linear-gradient(135deg, rgba(30,64,102,0.9), rgba(12,74,110,0.66))`, border `rgba(96,165,250,0.58)` |
-| Text on dark | `#e5eefc`, `#d9e3f2`, `#c8d5e8`, `#9fb1ca` |
-| Text on light | `#1e293b`, `#334155` |
-| Legacy gold (restricted) | `#f6ce68`, `#fff3c4` — brand text, tier dots, and game-asset accents ONLY |
+| `/wallpaper/arena-parchment.jpg` | continuous page material |
+| `/wallpaper/arena-rail-red.jpg` | fixed red navigation rail |
+| `/wallpaper/main-page-rail-border.png` | Arena wooden frame |
+| `/wallpaper/wiki-battlegrounds-skin.webp` | Battlegrounds outer frame |
+| `/wallpaper/battlegrounds-bartender-header.webp` | Battlegrounds title sign |
+| `/images/deck-border.png` or current profile-frame asset | profile badge frame |
 
-**Hard rule (Color Unification 2026-06-23): no yellow/gold as a UI system color.** Not for cards, FAQ rows, filter strips, source toggles, count pills, empty states, or active controls. Use cool surfaces (white, blue-gray, slate, navy) and blue/cyan for active states, links, progress, rings, and primary actions. Allowed exceptions: card artwork and class icons (source assets), the brand mark, small icon accents.
+Do not hotlink these assets from wiki.gg in runtime CSS. Keep optimized local copies in `public/`.
 
-### Radii
+## Layout Architecture
 
-- Large panels / content shell: `24px`
-- Floating menus, promo cards: `18-20px`
-- Buttons, links, inputs: `12-14px`
-- Small chips/pills: `8px` or `999px` (fully round)
+The app has two navigation contexts that share historical class names:
 
-### Z-Index Scale (do not improvise)
+1. **App shell** in `src/App.tsx`: desktop fixed sidebar at `1024px+`; mobile sticky topbar and fixed drawer below it.
+2. **Legacy/tab shell** in deferred components: any `.arena-mobile-*` rule for this shell must stay scoped below `.arena-main`.
 
-| Layer | z-index |
-|---|---|
-| Mobile topbar (`.arena-mobile-topbar`) | 45 |
-| Mobile menu panel (`.arena-mobile-menu`, App shell) | 44 |
-| Mobile drawer backdrop (`.arena-mobile-drawer-backdrop`) | 43 |
-| BG shell dropdown menu (`.arena-main .arena-mobile-menu`) | 40 |
-| Lightbox / modals | below 43 unless full-screen |
+Never add an unscoped duplicate `.arena-mobile-*` rule. The App drawer must remain `position: fixed`; an inline dropdown may use `position: absolute` only inside a positioned parent.
 
-## Layout Shells — CRITICAL ARCHITECTURE NOTE
+### Page Width
 
-The app has **two independent layout shells that share some class names**. This has already caused a production bug (2026-07-01: mobile menu invisible). Respect the scoping.
+- Standard data and editorial pages: one open parchment surface, `max-width` around `1280–1320px`.
+- Builders may use the full wide workspace but remain visually framed inside the same page canvas.
+- Do not create route-specific narrow wrappers without a content reason.
+- Do not restore the old independent rounded parchment block around every page.
 
-1. **App shell** (`src/App.tsx`):
-   - Desktop ≥1024px (`lg:`): fixed left sidebar (`.arena-sidebar`, `.arena-layout-shell`).
-   - Mobile <1024px: sticky topbar (`.arena-mobile-topbar`, z-45) + burger toggle (`.arena-mobile-nav-toggle`) + **fixed** dropdown (`.arena-mobile-menu`, `position: fixed; top: 72px`, z-44) + backdrop (z-43). The menu nav is a direct child of the page root — it must stay `position: fixed`, never `absolute`.
-2. **BG/tab shell** (`src/features/DeferredRoutes.tsx`):
-   - Inline nav bar inside `main.arena-main`; its dropdown uses `position: absolute` anchored to a `relative` wrapper.
-   - Its styles are scoped in CSS as `.arena-main .arena-mobile-menu`, `.arena-main .arena-mobile-nav-toggle`, etc.
+### Responsive Rules
 
-**Rules:**
-- Never add an unscoped `.arena-mobile-*` rule intended for only one shell. Scope BG-shell rules under `.arena-main`; App-shell rules stay unscoped (they come first in `src/index.css`, ~lines 29–135).
-- When adding a new shell or header variant, use NEW class names instead of reusing existing ones.
-- `position: absolute` dropdowns require a `position: relative` ancestor of the correct size. In the App shell there is none — use `position: fixed`.
+- App shell switches at `1024px`; compact layout must be verified at `390px`.
+- No horizontal page scrolling at `390px`.
+- Touch targets are at least `42px`, preferably `46px`.
+- Long filter rows wrap or scroll locally; they never widen the document.
+- Hover-only information must not be required to use the site.
 
-## Breakpoints & Responsive Rules
+## Shared Surface Language
 
-- App shell switches sidebar ↔ topbar at `1024px` (`lg:`). BG shell mobile nav uses `640px` (`sm:`).
-- Every new component must be checked at **390px width** (iPhone) — no horizontal scroll, ever.
-- Touch targets: minimum `42px`, prefer `46px` height for menu links and buttons.
-- Hover-only affordances must be wrapped in `@media (hover: hover)`; provide `:active` feedback for touch.
-- Long dropdowns need `max-height` + `overflow-y: auto` (mobile menu uses `calc(100dvh - 88px)`).
-- Respect `prefers-reduced-motion` for every animation.
-- Text in constrained rows: `min-width: 0` + ellipsis on the inner `span`.
-
-## Component Class Map
-
-| Class prefix | Component | Defined in |
-|---|---|---|
-| `.arena-sidebar*` | Desktop sidebar (App shell) | `src/index.css` |
-| `.arena-mobile-topbar`, `.arena-mobile-brand` | Mobile sticky header (App shell) | `src/index.css` (~29–56) |
-| `.arena-mobile-nav-toggle`, `.arena-mobile-menu*`, `.arena-mobile-drawer-backdrop` | App-shell mobile menu | `src/index.css` (~58–135) |
-| `.arena-main .arena-mobile-*` | BG-shell mobile nav (scoped) | `src/index.css` (~1032–1135) |
-| `.arena-content`, `.arena-tabs`, `.arena-tab*` | Content panel + tab bar | `src/index.css` |
-| `.arena-footer*` | Footer | `src/index.css` |
-| `.site-switcher*` | Manacost network switcher | `src/index.css` |
-| `.hs-card`, tier grid classes | Cards / tier lists | `src/index.css` + `App.tsx` |
-
-## Surfaces
-
-- Main shell uses blurred Hearthstone artwork behind dark overlays.
-- Navigation and modal panels use dark glass with thin, low-opacity borders.
-- Content panels use soft light surfaces with subtle cool shadows.
-- Avoid yellow/gold borders and parchment fills in UI surfaces. Use blue-gray borders and blue/cyan active states.
-- Home page starts with a compact product summary, not a large hero billboard. Useful section cards and data previews appear immediately.
-- Section banners share one clean top radius and keep background art centered lower in the frame (`center 78%`) so character art does not look cropped upward.
-
-## Shadows
-
-- App chrome: large but soft dark shadow, low opacity.
-- Cards in tier grids: no artificial drop-shadow on the card artwork. Let the real card frame carry depth.
-- Hover states can increase depth but should not create muddy halos.
-- Modal card art remains hero-sized and shadowed; the stat panel carries the structured UI.
-
-Avoid:
-- `rgba(0,0,0,0.85)` on small cards unless the asset needs strong separation.
-- Multiple brown shadows layered together.
-- Heavy inset shadows on dashboard controls.
-- Drop-shadows behind gallery card images (dirty gray field on light backgrounds).
-
-## Motion And Performance
-
-Motion should make the interface feel alive, not slower.
-
-- Prefer opacity, transform, and background-position for animations.
-- Avoid permanent `will-change` on repeated card elements; enable it only for hover/focus states.
-- Infinite animation only for very subtle, low-frequency atmosphere (banner art drift, active-tab glow).
-- Respect `prefers-reduced-motion`.
-- Heavy data not required for the first visible screen loads in idle time.
-- Avoid `content-visibility: auto` on visible card grids and long export/QA pages; on mobile and full-page screenshots it can leave blank blocks until scroll paints them.
-- Performance budget: main JS chunk ≤ ~110 KB gzip, CSS ≤ ~30 KB gzip (`npm run budget` checks this). New heavy features go into deferred chunks.
+- Parchment is a material, not a flat beige color. Use the local texture plus a translucent gradient for readability.
+- Wood separators are thin (`4–6px`) and appear at major section boundaries.
+- Most content sections are nearly square (`4–8px` radius), with a quiet border and one colored inset edge.
+- Avoid a grid of identical large rounded cards. Use grouping, rules, typography and spacing first.
+- Shadows are warm, soft and sparse. No dirty gray halos behind raw card art.
+- Card art, hero portraits, mana gems and rarity assets are never recolored by CSS filters.
 
 ## Navigation
 
-The current menu structure is approved. Do not rework it unless specifically requested.
+- Desktop rail uses red texture, gold icons and expressive cream text.
+- Active link uses a darker red field plus a gold left rule; it must stay readable without glow.
+- Profile badge stays in the Hearthstone deck frame.
+- Mobile uses the same red material, a compact brand and a burger/X button with `aria-expanded`.
+- Navigation structure is approved; visual changes must not rename or reorder routes unless requested.
 
-- Active tab/link: dark navy with blue/cyan text/icon treatment.
-- Menu is a separate floating panel, not attached to the content card.
-- Mobile keeps a compact dark nav bar with brand and burger button; the open state swaps the burger icon for an X and sets `aria-expanded`.
-- Mobile menu links: dark glass rows (`rgba(15,32,58,0.58)`), slate borders, 46px min height; section headers ("АРЕНА", "ПОЛЯ СРАЖЕНИЙ") are small uppercase `--font-body` labels in `#9fb1ca`.
-- Header includes the Manacost site switcher: `Koloda`, `HS-Manacost`, `HS-Arena`. Current site pill glows subtly; external pills stay quieter, use favicon imagery, and open in a new tab.
-- On mobile, the site switcher stacks below the brand and scrolls horizontally if space is tight.
-- Favicon direction: minimalist monogram, dark rounded square, thin cyan rim, geometric `A` strokes — no shield or nested emblem, so it stays clear at 16–32px.
+## Arena Pages
 
-## Lightbox
+- Arena uses red as its mode accent.
+- Main titles and important summaries may sit inside a red framed panel.
+- Filters remain parchment with red selected states.
+- Tier grid, source switching, card preview, lightbox and export behavior are protected.
 
-Must match the dashboard shell:
-- Backdrop: dark blurred glass with subtle blue/cyan radial light.
-- Card image: large, clean, no extra frame, soft premium shadow.
-- Stats panel: dark navy glass or cool light glass, thin blue-gray border, rounded 20–24px.
-- Chips: subdued glass pills, not parchment.
-- Stat rows: compact dark rows with readable labels and colored metric values.
-- Mobile: image first, stats below, max height constrained so scrolling is comfortable.
+## Battlegrounds Pages
 
-Do not:
-- Return to heavy brown panels.
-- Add decorative text explaining how the lightbox works.
-- Change card data logic or source fallback order while doing visual work.
+Battlegrounds uses the shared parchment canvas with dusty violet as the mode accent.
 
-## Hover Card Tooltip
+The root hook is `.arena-app-battlegrounds`. Route roots use:
 
-A compact stats popover, not a brown Hearthstone parchment:
-- Width around 340px on desktop.
-- Light glass dashboard panel with blue-gray border.
-- Rows use quiet white pills with strong right-aligned metric values.
-- Source label is metadata, not a visual headline.
-- Tooltip must not obscure the card more than necessary and stays `pointer-events: none`.
-- Tooltip is hover-only — never required for core info on touch devices.
+- `.bg-heroes-page`
+- `.bg-hero-detail-page`
+- `.bg-library-page`
+- `.bg-library-detail-page`
+- `.bg-tier-list-page`
+- `.bg-builder-page`
 
-## Tier Lists
+BG-specific styles live in `src/battlegrounds-parchment.css` and must stay scoped below `.arena-app-battlegrounds`.
 
-Tier-list grid and export/download behavior are **protected**. Visual edits go through CSS around existing classes unless the user explicitly asks for behavior changes.
+### Heroes
 
-- Keep card images high quality and large enough for recognition.
-- Keep filters compact and scannable; light dashboard filter surfaces with dark active states.
-- Tier badges can be game-like, but their shadows stay soft.
-- No shadows on raw card images in gallery mode.
-- Tier rank badges own their foreground color — global heading/font overrides must not recolor `S/A/B` letters.
-- Rarity and mana filter icons render as source assets. No brightness/saturation filters.
+- Hero tiles use a quiet parchment field so portraits stay dominant.
+- Average placement and pick rate have separate, readable treatments.
+- Search and tier counts are compact.
+- Related-card and hero-power reveals are protected interactions.
+- Hero detail charts may use violet-to-gold data bars; chart meaning must remain distinguishable.
+- Gallery, soundboard and hero-power media lightboxes keep keyboard and close behavior.
 
-## Articles
+### Library, Creatures And Spells
 
-A modern arena magazine section inside the same dashboard shell:
-- Cool white/blue-gray article cards, not parchment.
-- Article tags are dark glass chips with readable light text.
-- Cover images carry the visual energy; body panels stay quiet and readable.
-- No extra intro/status panel above the article grid; after breadcrumbs, the card grid starts immediately.
-- Card titles high contrast, excerpts muted; links blue/cyan.
+- Section switcher, pool state and filters share parchment controls with violet active states.
+- Card names sit on small parchment captions; card images remain visually unboxed.
+- Golden card reveal is protected: base card moves left and golden layer appears to the right on pointer hover/focus.
+- Do not change golden image fallback order, `opacity`, `translate` or event behavior while restyling.
+- Detail pages retain statistics, round charts, wiki links, similar cards and strategy links.
+- Archive pagination uses the same active violet treatment as the current pool switcher.
 
-## Home Page
+### BG Tier List
 
-An index/dashboard, not a landing page:
-- No oversized hero block with mascot/card artwork.
-- Compact intro strip with two primary actions.
-- Navigation cards, top classes, top cards, and legendaries close to the first viewport.
-- Home surfaces light and crisp, bridging dark navigation and data-heavy pages.
+- Top list switcher uses violet active states and parchment idle states.
+- Nested filters use quiet parchment groups; avoid the former white/blue dashboard controls.
+- Tier card click/lightbox behavior and URL state are protected.
+- Raw card images remain large enough to recognize and are not filtered.
 
-## Community Promo Cards
+### Builders
 
-Telegram and Boosty promo cards sit inside the same cool dashboard system:
-- Dark navy/slate glass surfaces with blue/cyan borders and readable light text.
-- Source brand colors only as small icon accents, never full-card brown/orange panels.
-- Titles define their own high-contrast foreground color.
-- On mobile, promo CTAs may stack below the text so labels do not become cramped.
+- Strategy and tier builders sit inside `/wallpaper/wiki-battlegrounds-skin.webp`.
+- The work canvas stays dark for drag/drop contrast, using aubergine, brown, muted gold and parchment text.
+- Restyle through CSS variables and wrapper surfaces first.
+- Do not edit legacy drag/drop, compression, export, canvas or ordering JavaScript during a design-only task.
+- Verify card library mount, drag/drop target, PNG/WebP buttons and mobile overflow after every pass.
 
-## Paywall / Subscriber Sections
+## Lightboxes And Hover Details
 
-- Locked content stays visible but blurred behind the modal — the user must see WHAT they unlock.
-- Paywall modal: light glass panel, `РАЗДЕЛ ДЛЯ ПОДПИСЧИКОВ` kicker, benefit cards, then Boosty (orange accent allowed as brand icon) and Telegram CTA rows, then a quiet "Войти в профиль" button.
-- Never fully hide the page structure behind the paywall.
+- Backdrops are dark and lightly blurred.
+- Arena modal panels use deep red/wood; BG panels use aubergine/wood.
+- Stats rows are compact, high contrast and use metric color only for meaning.
+- Card art has no extra fake frame unless the canonical asset supplies it.
+- Mobile order is art first, stats second, with comfortable internal scrolling.
+- Hover tooltip stays `pointer-events: none` and never becomes the only source of information.
 
-## Footer
+## Motion And Protected Interactions
 
-A product close, not only a legal strip:
-- Dark glass section over faint footer art (`/wallpaper/footer-bg.webp`).
-- Three columns: sections, community, project summary/update status.
-- Low-contrast legal text in the bottom bar.
+Protected behavior includes:
 
-## Known Pitfalls (learned in production — do not repeat)
+- Arena card hover and lightbox transitions.
+- Battlegrounds related-card and hero-power reveals.
+- Golden card base/golden two-layer animation.
+- Builder drag/drop, canvas placement and export.
 
-1. **Duplicate class names across shells** (2026-07-01): a second unscoped `.arena-mobile-menu` block overrode the App-shell menu; `position: absolute; top: calc(100% + .45rem)` resolved against the page root, rendering the menu at ~3500px — invisible. Fix: BG-shell rules are scoped under `.arena-main`. Always scope shell-specific rules.
-2. **Amber/yellow leakage**: medium winrate badges and progress bars must use blue/green data colors, not amber.
-3. **Inherited text color in badges**: any colored metric pill must define its own foreground color; never rely on inherited utilities.
-4. **`content-visibility: auto`** on visible grids breaks full-page screenshots and mobile paint.
-5. **Icon filters**: brightness/saturation filters make rarity/mana icons look damaged.
-6. **Inline styles** in older components: prefer adding semantic classes before visual work.
-7. **`.bak` files**: editors keep timestamped `.bak-*` copies next to sources. Never import from or edit `.bak` files; they are not part of the build.
+Rules:
 
-## QA Checklist (run after every design pass)
+- Prefer `opacity`, `translate`, `transform` and background-position.
+- Do not add permanent `will-change` to repeated cards.
+- Honor `prefers-reduced-motion` by shortening transitions, not by breaking state changes.
+- A visual pass should add semantic root hooks rather than rewriting component state.
 
-1. `npm run lint` (tsc) and `npm run build` (vite + prerender) must pass.
-2. Screenshot QA at **1440px** and **390px**: `/`, `/tierlist`, `/legendaries`, `/classes`, and the hover tooltip. Headless check: puppeteer-core + `/usr/bin/chromium` with `isMobile: true, hasTouch: true`.
-3. Mobile menu: tap burger → panel opens under topbar (top: 72px), all links visible and tappable, tap link → navigates and closes, tap backdrop → closes.
-4. No horizontal scroll at 390px (`document.documentElement.scrollWidth === clientWidth`).
-5. Verify no new yellow/gold UI surfaces appeared.
-6. Production serve notes: `dist/` is served directly by nginx (no reload needed for content changes); `dist/` must stay owned by `www-data:www-data`; build as `koloda` (prerender fixes permissions at the end).
+## Accessibility
 
-## Implementation Notes
+- Active filter buttons expose `aria-pressed` where appropriate.
+- Focus-visible states must be at least as clear as hover states.
+- Color is never the only signal for a metric or selected control.
+- Decorative title frames do not replace real headings in the DOM.
+- Images keep meaningful `alt` text; decorative icons use empty alt or `aria-hidden`.
 
-Primary files:
-- `src/App.tsx` — App-shell structure and component classes.
-- `src/features/DeferredRoutes.tsx` — BG/tab shell and deferred pages.
-- `src/index.css` — all shell, tier-list, modal, and menu styling. App-shell mobile styles ~lines 29–135; BG-shell scoped styles ~lines 1032–1135.
-- `index.html` — SEO meta, JSON-LD, font preloads, analytics.
+## Performance
 
-Before handoff:
-- Run `npm run lint` and `npm run build`.
-- Capture desktop and mobile screenshots for visual QA when touching major surfaces.
-- Update this file when a new rule is established or a pitfall is discovered.
+- Reuse local compressed textures; do not add large remote runtime backgrounds.
+- Keep route-heavy BG code deferred.
+- Avoid `content-visibility: auto` on visible grids; it breaks full-page and mobile paint.
+- Do not add JS for effects achievable in CSS.
+- Run `npm run budget` when changing bundles or adding assets.
+
+## Primary Files
+
+- `src/App.tsx` — shell state and route-level root classes.
+- `src/index.css` — base shell and navigation.
+- `src/parchment-theme.css` — shared Arena/editorial parchment system.
+- `src/battlegrounds-parchment.css` — scoped Battlegrounds skin.
+- `src/features/Battlegrounds.css` — protected BG interaction animations.
+- `src/features/Battlegrounds.tsx` — hero, tier and builder routes.
+- `src/features/BgLibrary.tsx` — library, creature/spell lists and detail pages.
+- `public/bg-legacy/strategy-builder.gridfix2.css` — legacy builder presentation only.
+
+## QA Checklist
+
+1. `npm run lint`.
+2. `npm run build`; if existing `dist/` ownership blocks a local agent, build to a clean temporary outDir and report the infrastructure limitation.
+3. Desktop screenshot at `1440px` and mobile screenshot at `390px` for every changed route family.
+4. Confirm `document.documentElement.scrollWidth === innerWidth` at `390px`.
+5. Heroes: search filters results; hero hover still changes the media layer; detail media opens/closes.
+6. Library: filters work; card navigation works; golden hover layer reaches visible opacity and translates independently.
+7. BG tier list: list/source/filter state and lightbox still work.
+8. Builders: mount contains cards, drag/drop target exists, PNG/WebP buttons exist, no document overflow.
+9. Inspect console errors; mocked API failures used for fallback QA are expected and must be identified as such.
+10. Never deploy during a GitHub-only task. Push the feature branch and update the existing PR.
+
+## Known Pitfalls
+
+1. Unscoped `.arena-mobile-menu` rules previously placed the App drawer thousands of pixels below the viewport.
+2. Global text-color overrides can make tier letters and metric pills unreadable; components with colored backgrounds own their foreground.
+3. CSS filters damage mana, rarity and card assets.
+4. Broad surface selectors must stay below route root hooks.
+5. Existing `dist/` may be owned by the production user; do not delete or replace it unless deployment is explicitly requested.
+6. `Design.md` exists as a compatibility pointer. Update its summary when the canonical direction in `design.md` changes materially.
 
 ## Changelog
 
-- **2026-07-02** — Repo hygiene + perf: initialized git (60 legacy .bak files archived to ../bak-archive-20260702.tar.gz and removed); deleted dead legacy App shell from DeferredRoutes.tsx (-691 lines, deferred chunk 171->137 KB) and its orphaned .arena-mobile-* CSS; self-hosted Cinzel/Inter woff2 subsets in public/fonts/google/ (no more fonts.googleapis.com); favicons optimized (ico 161->15 KB); added `npm run qa:screens` screenshot QA script.
-- **2026-07-01** — Mobile menu fix: scoped BG-shell `.arena-mobile-*` rules under `.arena-main`; restyled App-shell mobile menu to navy glass (was legacy gold), added `max-height` scroll and `aria-expanded` toggle state. Added tokens, shells, pitfalls, and QA sections to this document.
-- **2026-06-23** — Design audit + color unification (see rules above; full findings in git history of this file).
+- **2026-07-10** — Battlegrounds parchment system: added a scoped BG shell, local bartender title sign, violet/gold controls, parchment library and hero surfaces, wiki skin builder frame, warm builder variables, protected golden-card and hero animations, and expanded route-specific QA rules.
+- **2026-07-10** — Unified site direction: continuous parchment page canvas, red textured menu, thicker wooden separators and Hearthstone profile frame.
+- **2026-07-02** — Repository and asset hygiene, deferred route work and screenshot QA.
+- **2026-07-01** — App/BG mobile shell scoping fix.
