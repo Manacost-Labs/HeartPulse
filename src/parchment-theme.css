@@ -3348,6 +3348,171 @@
     transform: scale(1.06);
   }
 
+  /* Keep the full card and every stat inside the viewport without modal scroll. */
+  .card-modal-shell.card-modal-shell--parchment {
+    width: min(940px, calc(100vw - 88px)) !important;
+    max-height: calc(100dvh - 20px) !important;
+    grid-template-columns: minmax(190px, 360px) minmax(280px, 400px) !important;
+    gap: clamp(1rem, 2.4vw, 1.75rem) !important;
+    padding: 0.3rem !important;
+    overflow: visible !important;
+  }
+
+  .card-modal-shell--parchment .card-modal-image {
+    width: auto !important;
+    max-width: min(360px, 36vw) !important;
+    height: min(76dvh, 620px) !important;
+    max-height: calc(100dvh - 28px) !important;
+    object-fit: contain !important;
+  }
+
+  .card-modal-stats.card-modal-stats--parchment {
+    max-height: calc(100dvh - 28px) !important;
+    overflow: hidden !important;
+  }
+
+  @media (max-height: 760px) and (min-width: 768px) {
+    .card-modal-shell.card-modal-shell--parchment {
+      width: min(860px, calc(100vw - 88px)) !important;
+      grid-template-columns: minmax(180px, 330px) minmax(280px, 370px) !important;
+      gap: clamp(0.75rem, 2vw, 1.25rem) !important;
+    }
+
+    .card-modal-shell--parchment .card-modal-image {
+      max-width: min(330px, 34vw) !important;
+      height: calc(100dvh - 24px) !important;
+    }
+
+    .card-modal-stats.card-modal-stats--parchment {
+      border-width: 8px !important;
+      border-image-width: 8px !important;
+      padding: 0.65rem !important;
+    }
+
+    .card-modal-stats--parchment .card-modal-header {
+      padding-bottom: 0.5rem !important;
+    }
+
+    .card-modal-stats--parchment .card-modal-title {
+      font-size: clamp(1.05rem, 2vw, 1.3rem) !important;
+    }
+
+    .card-modal-stats--parchment .card-modal-tier {
+      width: 2.35rem !important;
+      height: 2.35rem !important;
+      font-size: 1rem !important;
+    }
+
+    .card-modal-stats--parchment .card-modal-chip {
+      min-height: 26px !important;
+      padding: 0.25rem 0.48rem !important;
+      font-size: 0.68rem !important;
+    }
+
+    .card-modal-stats--parchment dl {
+      gap: 0.28rem !important;
+      margin-top: 0.55rem !important;
+    }
+
+    .card-modal-stats--parchment .card-modal-stat-row {
+      min-height: 29px !important;
+      padding: 0.34rem 0.5rem !important;
+    }
+
+    .card-modal-stats--parchment .card-modal-stat-row dt {
+      font-size: 0.62rem !important;
+    }
+
+    .card-modal-stats--parchment .card-modal-stat-row dd {
+      font-size: 0.84rem !important;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .card-modal-shell.card-modal-shell--parchment {
+      width: min(360px, calc(100vw - 20px)) !important;
+      max-width: min(360px, calc(100vw - 20px)) !important;
+      max-height: calc(100dvh - 10px) !important;
+      grid-template-columns: minmax(0, 1fr) !important;
+      grid-template-rows: minmax(0, 28dvh) auto !important;
+      gap: 0.35rem !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+    }
+
+    .card-modal-shell--parchment .card-modal-image {
+      width: auto !important;
+      max-width: min(230px, 62vw) !important;
+      height: 28dvh !important;
+      max-height: 230px !important;
+    }
+
+    .card-modal-stats.card-modal-stats--parchment {
+      max-height: none !important;
+      border-width: 6px !important;
+      border-image-width: 6px !important;
+      padding: 0.55rem !important;
+    }
+
+    .card-modal-stats--parchment .card-modal-header {
+      padding-bottom: 0.35rem !important;
+    }
+
+    .card-modal-stats--parchment .card-modal-title {
+      font-size: 1rem !important;
+    }
+
+    .card-modal-stats--parchment .card-modal-tier {
+      width: 2rem !important;
+      height: 2rem !important;
+      font-size: 0.86rem !important;
+    }
+
+    .card-modal-stats--parchment .card-modal-chip {
+      min-height: 24px !important;
+      padding: 0.2rem 0.42rem !important;
+      font-size: 0.62rem !important;
+    }
+
+    .card-modal-stats--parchment dl {
+      gap: 0.2rem !important;
+      margin-top: 0.4rem !important;
+    }
+
+    .card-modal-stats--parchment .card-modal-stat-row {
+      min-height: 27px !important;
+      padding: 0.28rem 0.45rem !important;
+    }
+
+    .card-modal-stats--parchment .card-modal-stat-row dt {
+      font-size: 0.57rem !important;
+    }
+
+    .card-modal-stats--parchment .card-modal-stat-row dd {
+      font-size: 0.78rem !important;
+    }
+  }
+
+  @media (max-height: 680px) and (max-width: 767px) {
+    .card-modal-shell.card-modal-shell--parchment {
+      grid-template-rows: minmax(0, 22dvh) auto !important;
+    }
+
+    .card-modal-shell--parchment .card-modal-image {
+      height: 22dvh !important;
+      max-height: 150px !important;
+    }
+
+    .card-modal-stats.card-modal-stats--parchment {
+      padding: 0.4rem !important;
+    }
+
+    .card-modal-stats--parchment .card-modal-source,
+    .card-modal-stats--parchment .card-modal-chip img {
+      display: none !important;
+    }
+  }
+
   .arena-app-home .home-faq-zone #faq-heading {
     color: #3c2b1f !important;
     text-shadow: none !important;

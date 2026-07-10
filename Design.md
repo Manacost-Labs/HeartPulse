@@ -34,6 +34,7 @@ Do not hotlink wiki assets at runtime.
 - Builders may use the wide workspace but remain inside the same material system.
 - App mobile navigation stays fixed below its topbar; deferred-shell mobile rules stay scoped below `.arena-main`.
 - Verify `390px` with no document-level horizontal scroll and minimum `42px` touch targets.
+- Profile hierarchy uses the large wood frame for hero/settings/access, the deck frame for short statuses and subscription sources, and plain parchment inputs for readability.
 
 ## Battlegrounds Rules
 

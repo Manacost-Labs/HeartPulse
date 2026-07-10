@@ -2376,3 +2376,141 @@
     padding: 1.1rem !important;
   }
 }
+
+/* Profile reliquary: layered Hearthstone frames without touching profile logic. */
+.arena-app-profile .profile-workspace .profile-hero {
+  isolation: isolate;
+  background:
+    linear-gradient(90deg, rgba(70, 5, 10, 0.97) 0%, rgba(83, 8, 13, 0.88) 42%, rgba(65, 5, 10, 0.42) 72%, rgba(43, 3, 7, 0.22) 100%),
+    image-set(
+      url('/wallpaper/profile-hero-hth.webp') type('image/webp'),
+      url('/wallpaper/profile-hero-hth.jpg') type('image/jpeg')
+    ) right 43% / cover no-repeat !important;
+}
+
+.arena-app-profile .profile-workspace .profile-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent 0 58%, rgba(238, 190, 91, 0.12) 82%, transparent 100%),
+    linear-gradient(180deg, rgba(255, 229, 166, 0.06), transparent 34%, rgba(41, 3, 7, 0.2));
+  mix-blend-mode: screen;
+}
+
+.arena-app-profile .profile-workspace .profile-hero > img {
+  display: none !important;
+}
+
+.arena-app-profile .profile-workspace .profile-hero > div {
+  z-index: 1 !important;
+}
+
+.arena-app-profile .profile-workspace .profile-status-chip {
+  min-height: 38px !important;
+  padding: 0.55rem 1rem !important;
+  border: 0 !important;
+  color: #fff0c8 !important;
+  background: url('/wallpaper/deck-border.png') center / 100% 100% no-repeat !important;
+  text-shadow: 0 1px 2px rgba(31, 3, 5, 0.82) !important;
+  box-shadow: 0 5px 10px rgba(37, 5, 7, 0.2) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-status-chip:first-child {
+  padding-left: 1rem !important;
+}
+
+.arena-app-profile .profile-workspace .profile-status-chip + .profile-status-chip {
+  border-left: 0 !important;
+}
+
+.arena-app-profile .profile-workspace :is(
+  .profile-settings-form,
+  .profile-subscription-panel
+) {
+  border: 8px solid transparent !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 18 !important;
+  border-image-width: 8px !important;
+  border-image-outset: 1px !important;
+  border-image-repeat: stretch !important;
+  border-radius: 0 !important;
+  background:
+    linear-gradient(rgba(250, 235, 199, 0.82), rgba(240, 214, 164, 0.68)),
+    url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat !important;
+  box-shadow: 0 13px 24px rgba(70, 38, 15, 0.12) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-contests {
+  border: 6px solid transparent !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 18 !important;
+  border-image-width: 6px !important;
+  border-image-outset: 1px !important;
+  border-image-repeat: stretch !important;
+  border-radius: 0 !important;
+  background: rgba(249, 233, 195, 0.48) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-subscription-source {
+  position: relative;
+  min-height: 78px !important;
+  padding: 0.9rem !important;
+  border: 6px solid transparent !important;
+  border-image-source: url('/wallpaper/deck-border.png') !important;
+  border-image-slice: 16 !important;
+  border-image-width: 6px !important;
+  border-image-outset: 0 !important;
+  border-image-repeat: stretch !important;
+  border-radius: 0 !important;
+  background: rgba(255, 245, 217, 0.72) !important;
+  box-shadow: 0 6px 12px rgba(67, 35, 14, 0.09) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-contest-entry--winner {
+  margin-top: 0.35rem !important;
+  padding: 0.85rem !important;
+  border: 5px solid transparent !important;
+  border-image-source: url('/wallpaper/deck-border.png') !important;
+  border-image-slice: 16 !important;
+  border-image-width: 5px !important;
+  border-image-repeat: stretch !important;
+  background: rgba(244, 216, 148, 0.2) !important;
+}
+
+@media (hover: hover) {
+  .arena-app-profile .profile-workspace .profile-status-chip {
+    transition: filter 160ms ease, transform 160ms ease !important;
+  }
+
+  .arena-app-profile .profile-workspace .profile-status-chip:hover {
+    filter: brightness(1.08) !important;
+    transform: translateY(-1px) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .arena-app-profile .profile-workspace .profile-hero {
+    background-position: 62% center !important;
+  }
+
+  .arena-app-profile .profile-workspace .profile-hero > img {
+    display: none !important;
+  }
+
+  .arena-app-profile .profile-workspace :is(
+    .profile-settings-form,
+    .profile-subscription-panel
+  ) {
+    border-width: 6px !important;
+    border-image-width: 6px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arena-app-profile .profile-workspace .profile-status-chip {
+    transition-duration: 0.01ms !important;
+  }
+}

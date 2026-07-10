@@ -151,6 +151,14 @@ Never add an unscoped duplicate `.arena-mobile-*` rule. The App drawer must rema
 - Mobile uses the same red material, a compact brand and a burger/X button with `aria-expanded`.
 - Navigation structure is approved; visual changes must not rename or reorder routes unless requested.
 
+## Profile
+
+- The profile header is a wood-framed red reliquary with the local tavern artwork visible through a dark red readability veil.
+- Statuses may use the horizontal `/wallpaper/deck-border.png` asset because their short labels fit its proportions.
+- Settings and subscription panels use the larger wooden rail frame; form controls themselves stay plain parchment for readability.
+- Subscription sources and winner entries may use the smaller deck frame, but ordinary rows remain unframed so the page does not become visually noisy.
+- Profile decoration never changes authentication, subscription checks, contest history or form behavior.
+
 ## Arena Pages
 
 - Arena uses red as its mode accent.
@@ -212,7 +220,8 @@ BG-specific styles live in `src/battlegrounds-parchment.css` and must stay scope
 - Arena modal panels use deep red/wood; BG panels use aubergine/wood.
 - Stats rows are compact, high contrast and use metric color only for meaning.
 - Card art has no extra fake frame unless the canonical asset supplies it.
-- Mobile order is art first, stats second, with comfortable internal scrolling.
+- Mobile order is art first, stats second; both are compacted to the viewport instead of adding modal scrolling.
+- Arena card lightboxes must fit the complete card and all statistic rows inside `100dvh`; the modal shell itself must not require scrolling.
 - Hover tooltip stays `pointer-events: none` and never becomes the only source of information.
 
 ## Motion And Protected Interactions
