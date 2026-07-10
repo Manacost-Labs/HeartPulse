@@ -1028,7 +1028,7 @@ function SubscriptionPurchaseButtons() {
   ];
 
   return (
-    <div style={{
+    <div className="arena-paywall__purchase-options" style={{
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
       gap: '10px',
@@ -1117,8 +1117,8 @@ function PaywallGate({
   if (!active) return <>{children}</>;
 
   return (
-    <div style={{ position: 'relative' }}>
-      <div style={{
+    <div className="arena-paywall" style={{ position: 'relative' }}>
+      <div className="arena-paywall__preview" style={{
         filter: 'blur(7px)',
         pointerEvents: 'none',
         userSelect: 'none',
@@ -1126,7 +1126,7 @@ function PaywallGate({
       }}>
         {children}
       </div>
-      <div style={{
+      <div className="arena-paywall__overlay" style={{
         position: 'absolute',
         inset: 0,
         minHeight: 420,
@@ -1137,7 +1137,7 @@ function PaywallGate({
         background: 'linear-gradient(180deg, rgba(238,243,255,0.10), rgba(238,243,255,0.62) 42%, rgba(238,243,255,0.88))',
         borderRadius: '14px',
       }}>
-        <div style={{
+        <div className="arena-paywall__dialog" role="dialog" aria-modal="true" aria-label={title} style={{
           width: 'min(680px, 94%)',
           borderRadius: '14px',
           border: '1.5px solid #8fa7c8',
@@ -1146,16 +1146,16 @@ function PaywallGate({
           padding: '20px',
           textAlign: 'center',
         }}>
-          <p style={{ margin: '0 0 6px', color: '#45617f', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <p className="arena-paywall__eyebrow" style={{ margin: '0 0 6px', color: '#45617f', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             Раздел для подписчиков
           </p>
-          <h3 style={{ margin: '0 0 10px', color: '#142238', fontFamily: 'var(--font-display)', fontSize: '1.25rem' }}>
+          <h3 className="arena-paywall__title" style={{ margin: '0 0 10px', color: '#142238', fontFamily: 'var(--font-display)', fontSize: '1.25rem' }}>
             {title}
           </h3>
-          <p style={{ margin: '0 0 14px', color: '#42566f', fontSize: '13px', lineHeight: 1.55 }}>
+          <p className="arena-paywall__description" style={{ margin: '0 0 14px', color: '#42566f', fontSize: '13px', lineHeight: 1.55 }}>
             Подписка открывает закрытые инструменты Арены и помогает Манакосту держать данные свежими.
           </p>
-          <div style={{
+          <div className="arena-paywall__benefits" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
             gap: '10px',
@@ -1189,11 +1189,11 @@ function PaywallGate({
               </span>
             </div>
           </div>
-          <p style={{ margin: '0 0 16px', color: '#42566f', fontSize: '12px', lineHeight: 1.5 }}>
+          <p className="arena-paywall__note" style={{ margin: '0 0 16px', color: '#42566f', fontSize: '12px', lineHeight: 1.5 }}>
             Доступ откроется через Boosty уровня Любитель Арены и выше или через участие в VIP Telegram-канале.
           </p>
           <SubscriptionPurchaseButtons />
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div className="arena-paywall__actions" style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
             {!authUser ? (
               <a href="/?login" style={{
                 ...ADMIN_SECONDARY_BUTTON,
@@ -1227,7 +1227,7 @@ function PaywallGate({
             )}
           </div>
           {subscriptionStatus?.message && (
-            <p style={{ margin: '12px 0 0', color: '#64748b', fontSize: '12px', lineHeight: 1.4 }}>
+            <p className="arena-paywall__status" style={{ margin: '12px 0 0', color: '#64748b', fontSize: '12px', lineHeight: 1.4 }}>
               {subscriptionStatus.message}
             </p>
           )}
@@ -1261,7 +1261,7 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
   const paywallActive = !subscriptionLoading && !hasSubscriptionEntitlement(subscriptionStatus, 'arena');
 
   return (
-    <div>
+    <div className="arena-classes-page">
       <SectionBanner title="Классы" subtitle="Статистика побед на Арене — текущий патч" />
       <Breadcrumbs items={[
         { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
@@ -1284,7 +1284,7 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
         onRefreshSubscription={onRefreshSubscription}
       >
       {/* UpdateBadge row */}
-      <div className="flex items-center justify-end mb-6 -mt-2">
+      <div className="arena-classes-update flex items-center justify-end mb-6 -mt-2">
         <UpdateBadge updatedAt={updatedAt} />
       </div>
 
@@ -1294,7 +1294,7 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
         </div>
       )}
 
-      <div className="space-y-2.5 sm:space-y-3 relative">
+      <div className="arena-classes-board space-y-2.5 sm:space-y-3 relative">
         <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl pointer-events-none"
           style={{
             background: 'rgba(237,224,192,0.6)',
@@ -1324,15 +1324,17 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
               return (
                 <div
                   key={cls.id}
-                  className="anim-fade-up row-hover group relative grid items-center gap-2.5 rounded-2xl overflow-hidden cursor-default sm:flex sm:gap-4"
+                  data-rank={index + 1}
+                  className="arena-class-row anim-fade-up row-hover group relative grid items-center gap-2.5 rounded-2xl overflow-hidden cursor-default sm:flex sm:gap-4"
                   style={{
                     animationDelay: delay,
                     background: 'linear-gradient(135deg, #ede0c0 0%, #e2cfa0 50%, #d8c090 100%)',
                     border: '1.5px solid #c9a86c',
                     padding: '10px 14px',
-                    gridTemplateColumns: '36px minmax(82px,96px) minmax(0,1fr)',
+                    gridTemplateColumns: '28px 36px minmax(82px,96px) minmax(0,1fr)',
                   }}
                 >
+                  <span className="arena-class-rank" aria-label={`Место ${index + 1}`}>{index + 1}</span>
                   {/* Class icon */}
                   {icon && (
                     <img src={icon} alt={cls.name}
@@ -1349,7 +1351,7 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
                   </div>
 
                   {/* Progress bar */}
-                  <div className="relative h-7 sm:h-8 rounded-full overflow-hidden sm:flex-grow"
+                  <div className="arena-class-meter relative h-7 sm:h-8 rounded-full overflow-hidden sm:flex-grow"
                     style={{
                       minWidth: 118,
                       background: 'linear-gradient(180deg,#1a0e06 0%,#2c1a0e 100%)',
@@ -1357,7 +1359,7 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
                       border: '1.5px solid #0a0502',
                     }}>
                     {/* Fill */}
-                    <div className="absolute inset-y-0 left-0 flex items-center overflow-hidden rounded-full"
+                    <div className="arena-class-meter-fill absolute inset-y-0 left-0 flex items-center overflow-hidden rounded-full"
                       style={{
                         width:      `${barPct}%`,
                         transition: `width 1.1s cubic-bezier(0.4, 0, 0.2, 1) ${barDelay}`,

@@ -28,9 +28,9 @@
 
 /* ─── Public shell ─────────────────────────────────────────────────────── */
 
-:is(.arena-app-home, .arena-app-profile, .arena-app-editorial).bg-wood,
-:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-workspace,
-:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-main {
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data).bg-wood,
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-workspace,
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-main {
   background-color: var(--arena-parchment) !important;
   background-image:
     linear-gradient(rgba(249, 235, 202, 0.72), rgba(236, 213, 166, 0.78)),
@@ -39,15 +39,15 @@
   background-size: auto, 865px 878px !important;
 }
 
-:is(.arena-app-home, .arena-app-profile, .arena-app-editorial).bg-wood::after {
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data).bg-wood::after {
   background: transparent !important;
 }
 
-:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-main {
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-main {
   padding-top: 0 !important;
 }
 
-:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-content.arena-content-open {
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-content.arena-content-open {
   width: 100% !important;
   max-width: 1480px !important;
   margin: 0 auto !important;
@@ -334,11 +334,11 @@
 
 /* ─── Editorial archive: articles, gallery, guides, contests ───────────── */
 
-.arena-app-editorial .arena-main {
+:is(.arena-app-editorial, .arena-app-game-data) .arena-main {
   padding: 0 !important;
 }
 
-.arena-app-editorial .arena-content.arena-content-open {
+:is(.arena-app-editorial, .arena-app-game-data) .arena-content.arena-content-open {
   max-width: 1480px !important;
   padding: clamp(1rem, 2.5vw, 2.4rem) clamp(1rem, 2.8vw, 2.8rem) 3.5rem !important;
 }
@@ -347,7 +347,7 @@
   color: var(--arena-ink) !important;
 }
 
-.arena-app-editorial .section-banner-modern {
+:is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern {
   min-height: 152px !important;
   height: auto !important;
   margin: 0 0 1.35rem !important;
@@ -370,7 +370,7 @@
     0 16px 28px rgba(73, 39, 15, 0.16) !important;
 }
 
-.arena-app-editorial .section-banner-modern::before {
+:is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern::before {
   content: '' !important;
   position: absolute;
   inset: 0;
@@ -380,7 +380,7 @@
     linear-gradient(90deg, rgba(35, 2, 5, 0.1), transparent 52%) !important;
 }
 
-.arena-app-editorial .section-banner-modern h1 {
+:is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern h1 {
   position: relative;
   z-index: 1;
   margin: 0 !important;
@@ -392,7 +392,7 @@
   text-shadow: 0 3px 4px rgba(38, 3, 5, 0.7) !important;
 }
 
-.arena-app-editorial .section-banner-modern p {
+:is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern p {
   position: relative;
   z-index: 1;
   max-width: 720px;
@@ -403,19 +403,187 @@
   text-shadow: 0 2px 2px rgba(38, 3, 5, 0.7) !important;
 }
 
-.arena-app-editorial nav[aria-label='Breadcrumb'] {
+:is(.arena-app-editorial, .arena-app-game-data) nav[aria-label='Breadcrumb'] {
   margin: 0 0 1.15rem !important;
   padding: 0 0.15rem 0.8rem;
   border-bottom: 1px solid var(--arena-paper-line);
 }
 
-.arena-app-editorial nav[aria-label='Breadcrumb'] ol {
+:is(.arena-app-editorial, .arena-app-game-data) nav[aria-label='Breadcrumb'] ol {
   color: #846a49 !important;
 }
 
-.arena-app-editorial nav[aria-label='Breadcrumb'] li:last-child > span {
+:is(.arena-app-editorial, .arena-app-game-data) nav[aria-label='Breadcrumb'] li:last-child > span {
   color: #4b3322 !important;
 }
+
+/* Classes — an Arena ranking ledger with one champion plaque. */
+.arena-app-winrates .arena-classes-page {
+  width: min(100%, 1480px);
+  margin: 0 auto;
+  color: var(--arena-ink);
+}
+
+.arena-app-winrates .arena-classes-page > section[aria-label='Описание раздела'] {
+  margin-bottom: 1.35rem;
+}
+
+.arena-app-winrates .arena-classes-page > section[aria-label='Описание раздела'] p {
+  margin: 0 !important;
+  padding: 0.25rem 0 1rem 1rem !important;
+  border: 0 !important;
+  border-left: 5px solid var(--arena-red) !important;
+  border-bottom: 1px solid var(--arena-paper-line) !important;
+  color: #725d45 !important;
+  background: transparent !important;
+}
+
+.arena-app-winrates .arena-classes-update {
+  margin: 0 0 0.8rem !important;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--arena-paper-line);
+}
+
+.arena-app-winrates .arena-classes-update > div > div {
+  border-radius: 2px !important;
+  border-color: rgba(96, 50, 19, 0.52) !important;
+  color: #d9bd87 !important;
+  background: #4d0b10 !important;
+  box-shadow: none !important;
+}
+
+.arena-app-winrates .arena-classes-board {
+  display: grid;
+  gap: 0 !important;
+  padding: 0.55rem 0;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-image: var(--arena-wood-divider) 1;
+}
+
+.arena-app-winrates .arena-class-row {
+  min-height: 68px;
+  margin: 0 !important;
+  padding: 0.78rem 0.9rem !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--arena-paper-line) !important;
+  border-radius: 0 !important;
+  color: #3e2c20 !important;
+  background: rgba(250, 236, 203, 0.42) !important;
+  box-shadow: none !important;
+}
+
+.arena-app-winrates .arena-class-row:last-child {
+  border-bottom: 0 !important;
+}
+
+.arena-app-winrates .arena-class-row[data-rank='2'],
+.arena-app-winrates .arena-class-row[data-rank='3'] {
+  background: rgba(238, 213, 164, 0.62) !important;
+}
+
+.arena-app-winrates .arena-class-row[data-rank='1'] {
+  min-height: 80px;
+  margin: 0 0 0.65rem !important;
+  padding: 0.85rem 1rem !important;
+  border: 9px solid transparent !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 18 !important;
+  border-image-width: 9px !important;
+  border-image-repeat: stretch !important;
+  color: #f8dfaa !important;
+  background:
+    linear-gradient(90deg, rgba(69, 5, 9, 0.08), rgba(122, 20, 25, 0.08)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+  box-shadow: 0 12px 22px rgba(66, 34, 13, 0.18) !important;
+}
+
+.arena-app-winrates .arena-class-row:hover {
+  transform: translateX(3px) !important;
+  background-color: rgba(244, 222, 179, 0.72) !important;
+}
+
+.arena-app-winrates .arena-class-row[data-rank='1']:hover {
+  transform: translateY(-2px) !important;
+}
+
+.arena-app-winrates .arena-class-rank {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 28px;
+  border: 1px solid rgba(95, 55, 24, 0.34);
+  border-radius: 50%;
+  color: #704d2b;
+  background: rgba(255, 241, 207, 0.62);
+  font-family: var(--font-display);
+  font-size: 0.86rem;
+  line-height: 1;
+}
+
+.arena-app-winrates .arena-class-row[data-rank='1'] .arena-class-rank {
+  border-color: #efc565;
+  color: #541018;
+  background: #efc565;
+  box-shadow: 0 0 0 3px rgba(239, 197, 101, 0.12);
+}
+
+.arena-app-winrates .arena-class-row[data-rank='1'] .font-hs {
+  color: #fff0c5 !important;
+  text-shadow: 0 2px 3px rgba(38, 3, 5, 0.72);
+}
+
+.arena-app-winrates .arena-class-row[data-rank='1'] > div:last-child span {
+  color: #e1c38b !important;
+}
+
+.arena-app-winrates .arena-class-meter {
+  border: 2px solid #32160a !important;
+  border-radius: 3px !important;
+  background: #2b1309 !important;
+  box-shadow:
+    inset 0 3px 8px rgba(0, 0, 0, 0.78),
+    0 1px rgba(255, 236, 191, 0.08) !important;
+}
+
+.arena-app-winrates .arena-class-meter-fill {
+  border-radius: 1px !important;
+}
+
+.arena-app-winrates section[aria-label='Смотри также'] {
+  margin-top: 1.8rem !important;
+  padding-top: 1rem !important;
+  border-top: 5px solid transparent !important;
+  border-image: var(--arena-wood-divider) 1 !important;
+}
+
+.arena-app-winrates section[aria-label='Смотри также'] a {
+  border: 1px solid rgba(97, 56, 24, 0.34) !important;
+  border-radius: 2px !important;
+  color: #5a3d28 !important;
+  background: rgba(255, 241, 207, 0.52) !important;
+}
+
+.arena-app-winrates #faq-heading {
+  color: #3b281b !important;
+}
+
+.arena-app-winrates .faq-card {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.arena-app-winrates .faq-card + .faq-card {
+  border-top: 1px solid var(--arena-paper-line) !important;
+}
+
+.arena-app-winrates .faq-card button span:first-child { color: #493426 !important; }
+.arena-app-winrates .faq-card button span:last-child { color: var(--arena-red) !important; }
+.arena-app-winrates .faq-card p { color: #725f49 !important; }
 
 /* Gallery — pictures sit in actual wooden display frames. */
 .arena-app-gallery .gallery-intro {
@@ -791,19 +959,19 @@
 }
 
 /* Subscription gate — a red framed notice instead of a blue modal. */
-.arena-app-editorial .arena-paywall {
+:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall {
   min-height: 760px !important;
   padding-bottom: 3rem !important;
 }
 
-.arena-app-editorial .arena-paywall__overlay {
+:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__overlay {
   min-height: 720px !important;
   padding: clamp(2rem, 5vw, 4.5rem) 1rem 4.5rem !important;
   border-radius: 0 !important;
   background: linear-gradient(180deg, rgba(241, 220, 177, 0.12), rgba(236, 212, 164, 0.84) 46%, rgba(236, 212, 164, 0.98)) !important;
 }
 
-.arena-app-editorial .arena-paywall__dialog {
+:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__dialog {
   width: min(720px, 96%) !important;
   padding: clamp(1.25rem, 3vw, 2rem) !important;
   border: 12px solid transparent !important;
@@ -819,43 +987,43 @@
   box-shadow: 0 22px 42px rgba(61, 31, 12, 0.28) !important;
 }
 
-.arena-app-editorial .arena-paywall__eyebrow {
+:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__eyebrow {
   color: #efc76b !important;
   font-weight: 900;
 }
 
-.arena-app-editorial .arena-paywall__title {
+:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__title {
   color: #fff0c4 !important;
   font-size: clamp(1.35rem, 3vw, 1.8rem) !important;
   text-shadow: 0 2px 3px rgba(35, 2, 5, 0.7);
 }
 
-.arena-app-editorial :where(.arena-paywall__description, .arena-paywall__note, .arena-paywall__status) {
+:is(.arena-app-editorial, .arena-app-game-data) :where(.arena-paywall__description, .arena-paywall__note, .arena-paywall__status) {
   color: #dfc28c !important;
 }
 
-.arena-app-editorial .arena-paywall__benefits > div {
+:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__benefits > div {
   border: 1px solid rgba(235, 195, 102, 0.26) !important;
   border-radius: 2px !important;
   background: rgba(42, 3, 6, 0.36) !important;
 }
 
-.arena-app-editorial .arena-paywall__benefits :where(strong, span) {
+:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__benefits :where(strong, span) {
   color: #ecd29f !important;
 }
 
-.arena-app-editorial .arena-paywall__purchase-options a {
+:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__purchase-options a {
   border-color: rgba(234, 193, 98, 0.34) !important;
   border-radius: 2px !important;
   background: rgba(247, 229, 190, 0.92) !important;
   box-shadow: none !important;
 }
 
-.arena-app-editorial .arena-paywall__purchase-options a :where(strong, span) {
+:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__purchase-options a :where(strong, span) {
   color: #4b3020 !important;
 }
 
-.arena-app-editorial .arena-paywall__actions :where(a, button) {
+:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__actions :where(a, button) {
   min-height: 42px !important;
   border: 1px solid #efc66a !important;
   border-radius: 2px !important;
@@ -1044,14 +1212,14 @@
 }
 
 @media (max-width: 1023px) {
-  .arena-app-editorial .arena-content.arena-content-open {
+  :is(.arena-app-editorial, .arena-app-game-data) .arena-content.arena-content-open {
     max-width: 100% !important;
     padding: 1.4rem clamp(1rem, 4vw, 2rem) 3rem !important;
   }
 }
 
 @media (max-width: 720px) {
-  .arena-app-editorial .section-banner-modern {
+  :is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern {
     min-height: 118px !important;
     margin-bottom: 1rem !important;
     padding: 1.35rem 1.1rem !important;
@@ -1060,11 +1228,11 @@
     box-shadow: 0 10px 20px rgba(69, 38, 15, 0.14) !important;
   }
 
-  .arena-app-editorial .section-banner-modern h1 {
+  :is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern h1 {
     font-size: clamp(1.75rem, 9vw, 2.4rem) !important;
   }
 
-  .arena-app-editorial .section-banner-modern p {
+  :is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern p {
     font-size: 0.78rem !important;
   }
 
@@ -1105,27 +1273,47 @@
     border-image-width: 8px !important;
   }
 
-  .arena-app-editorial .arena-paywall__overlay {
+  :is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__overlay {
     padding: 1.35rem 0.35rem 3rem !important;
   }
 
-  .arena-app-editorial .arena-paywall__dialog {
+  :is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__dialog {
     width: 100% !important;
     border-width: 8px !important;
     border-image-width: 8px !important;
   }
 
-  .arena-app-editorial .arena-paywall__benefits {
+  :is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__benefits {
     grid-template-columns: 1fr !important;
   }
 }
 
+@media (max-width: 639px) {
+  .arena-app-winrates .arena-class-row {
+    grid-template-columns: 28px 38px minmax(0, 1fr) !important;
+    grid-template-areas:
+      'rank icon name'
+      'meter meter meter';
+    gap: 0.55rem 0.65rem !important;
+  }
+
+  .arena-app-winrates .arena-class-rank { grid-area: rank; }
+  .arena-app-winrates .arena-class-row > img { grid-area: icon; }
+  .arena-app-winrates .arena-class-row > .min-w-0 { grid-area: name; }
+
+  .arena-app-winrates .arena-class-meter {
+    grid-area: meter;
+    width: 100%;
+    min-width: 0 !important;
+  }
+}
+
 @media (max-width: 480px) {
-  .arena-app-editorial .arena-content.arena-content-open {
+  :is(.arena-app-editorial, .arena-app-game-data) .arena-content.arena-content-open {
     padding: 1rem 0.8rem 2.5rem !important;
   }
 
-  .arena-app-editorial nav[aria-label='Breadcrumb'] {
+  :is(.arena-app-editorial, .arena-app-game-data) nav[aria-label='Breadcrumb'] {
     margin-bottom: 0.9rem !important;
   }
 
@@ -1136,7 +1324,7 @@
     border-image-width: 7px !important;
   }
 
-  .arena-app-editorial .arena-paywall__purchase-options {
+  :is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__purchase-options {
     grid-template-columns: 1fr !important;
   }
 }
@@ -1673,7 +1861,7 @@
 .arena-app-home .home-faq-zone .faq-card button span:last-child { color: var(--arena-red) !important; }
 .arena-app-home .home-faq-zone .faq-card p { color: #725f49 !important; }
 
-:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer {
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer {
   margin-top: 0 !important;
   border-top: 5px solid transparent !important;
   border-image: var(--arena-wood-divider) 1 !important;
@@ -1684,25 +1872,25 @@
   box-shadow: inset 0 12px 28px rgba(45, 4, 7, 0.12) !important;
 }
 
-:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer > div:first-child {
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer > div:first-child {
   max-width: 1120px !important;
 }
 
-:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer h3 {
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer h3 {
   color: #efc768 !important;
   text-shadow: none !important;
 }
 
-:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer a { color: #efd9ad !important; }
-:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer a:hover { color: #fff3cd !important; }
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer a { color: #efd9ad !important; }
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer a:hover { color: #fff3cd !important; }
 
-:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer > div:last-child {
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer > div:last-child {
   border-color: rgba(239, 199, 104, 0.2) !important;
 }
 
-:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer p { color: #c7aa76 !important; }
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer p { color: #c7aa76 !important; }
 
-:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .support-prompt {
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .support-prompt {
   border-color: rgba(218, 169, 70, 0.42) !important;
   color: #fff1ca !important;
   background:
@@ -1711,28 +1899,28 @@
   box-shadow: 0 14px 30px rgba(55, 16, 10, 0.24) !important;
 }
 
-:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .support-prompt__trigger { color: #fff1ca !important; }
-:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .support-prompt__dismiss { color: #d9bd83 !important; background: rgba(49, 4, 7, 0.26) !important; }
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .support-prompt__trigger { color: #fff1ca !important; }
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .support-prompt__dismiss { color: #d9bd83 !important; background: rgba(49, 4, 7, 0.26) !important; }
 
 /* Footer's legacy rules live in Tailwind's utilities layer and use !important.
    Keep this correction in the same layer so the scoped home selector wins. */
 @layer utilities {
   /* The legacy shell keeps a fixed blue vignette in the utilities layer.
      Important declarations reverse layer priority, so disable it here too. */
-  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial).bg-wood::after {
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data).bg-wood::after {
     content: none !important;
     display: none !important;
     background: none !important;
   }
 
-  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-content.arena-content-open {
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-content.arena-content-open {
     border-radius: 0 !important;
     box-shadow: none !important;
     filter: none !important;
     backdrop-filter: none !important;
   }
 
-  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer {
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer {
     margin-top: 0 !important;
     border-top: 5px solid transparent !important;
     border-image: var(--arena-wood-divider) 1 !important;
@@ -1743,9 +1931,9 @@
     box-shadow: inset 0 12px 28px rgba(45, 4, 7, 0.12) !important;
   }
 
-  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer::before { display: none !important; }
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer::before { display: none !important; }
 
-  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer > .max-w-6xl {
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer > .max-w-6xl {
     border-color: rgba(236, 194, 99, 0.23) !important;
     border-radius: 2px !important;
     background: rgba(48, 4, 7, 0.22) !important;
@@ -1753,15 +1941,25 @@
     backdrop-filter: none !important;
   }
 
-  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer h3,
-  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer [class*='text-[#f6ce68]'] {
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer h3,
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer [class*='text-[#f6ce68]'] {
     color: #efc768 !important;
     text-shadow: none !important;
   }
 
-  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer a { color: #efd9ad !important; }
-  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer a:hover { color: #fff3cd !important; }
-  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer p { color: #c7aa76 !important; }
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer a { color: #efd9ad !important; }
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer a:hover { color: #fff3cd !important; }
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer p { color: #c7aa76 !important; }
+
+  /* Legacy text utilities otherwise win over the champion plaque colors. */
+  .arena-app-winrates .arena-class-row[data-rank='1'] .font-hs {
+    color: #fff0c5 !important;
+    text-shadow: 0 2px 3px rgba(38, 3, 5, 0.72) !important;
+  }
+
+  .arena-app-winrates .arena-class-row[data-rank='1'] > div:last-child span {
+    color: #e1c38b !important;
+  }
 
   .arena-app-home .home-faq-zone #faq-heading {
     color: #3c2b1f !important;
