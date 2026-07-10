@@ -486,7 +486,7 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
       }}
     >
       {/* Backdrop */}
-      <div className="card-modal-backdrop" style={{
+      <div className="card-modal-backdrop card-modal-backdrop--parchment" style={{
         position: 'absolute', inset: 0,
         background: 'rgba(0,0,0,0.87)',
         backdropFilter: 'blur(12px)',
@@ -495,7 +495,7 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
 
       {/* Card container — stops propagation so tapping/scrolling card doesn't close modal */}
       <div
-        className="card-modal-shell"
+        className="card-modal-shell card-modal-shell--parchment"
         style={{
           position: 'relative',
           zIndex: 1,
@@ -532,7 +532,7 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
           </div>
         )}
 
-        <aside className="card-modal-stats" aria-label={`Статистика карты ${card.name}`}>
+        <aside className="card-modal-stats card-modal-stats--parchment" aria-label={`Статистика карты ${card.name}`}>
           <div className="card-modal-header flex items-start justify-between gap-3 border-b border-[#d8b75e]/25 pb-3">
             <div className="min-w-0">
               <p className="card-modal-source text-[10px] font-black uppercase tracking-wide text-[#c4a46a]">{sourceLabel}</p>
@@ -582,6 +582,7 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
 
       {/* Close button */}
       <button
+        className="card-modal-close card-modal-close--parchment"
         style={{
           position: 'absolute', top: '16px', right: '16px', zIndex: 2,
           width: '44px', height: '44px', borderRadius: '50%',
@@ -653,7 +654,7 @@ const CardStatsTooltip: React.FC<{ card: CardData; position: CardTooltipPosition
 
   return createPortal(
     <div
-      className="card-stats-tooltip pointer-events-none"
+      className="card-stats-tooltip card-stats-tooltip--parchment pointer-events-none"
       style={{
         position: 'fixed',
         left: position.left,
