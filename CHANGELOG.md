@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Turned the home-page Battlegrounds directory into a responsive tavern noticeboard using optimized local Hearthstone frame and bartender-sign assets, with compact mobile rows and no changes to navigation behavior.
 - Moved the Arena Classes page onto the shared parchment canvas with a red wood-framed masthead, numbered ranking ledger, champion plaque, full-width mobile meters, and matching subscription and FAQ surfaces while preserving live data and bar animations.
 - Fixed the editorial card cascade so every article now renders inside a clearly visible nine-pixel Hearthstone wooden frame on desktop and mobile without reducing readable content width.
 - Started the editorial redesign by moving Articles, Gallery, Guides Archive, and Contests onto one open parchment canvas with red textured mastheads, substantial wooden framing, warm controls and cards, a matching subscription gate, and preserved search, filters, downloads, voting, entry, and access flows.

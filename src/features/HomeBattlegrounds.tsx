@@ -18,7 +18,7 @@ export default function HomeBattlegrounds({ onNavigate }: { onNavigate: (tab: st
   return (
     <section aria-labelledby="home-bg-heading" className="home-bg-directory home-reveal">
       <div className="home-section-heading">
-        <div>
+        <div className="home-bg-directory__sign">
           <span>Battlegrounds</span>
           <h2 id="home-bg-heading">Поля Сражений</h2>
         </div>

@@ -1776,39 +1776,128 @@
 }
 
 .arena-app-home .home-bg-directory::after { display: none !important; }
-.arena-app-home .home-bg-directory .home-section-heading > div > span { color: var(--arena-red) !important; }
-.arena-app-home .home-bg-directory .home-section-heading h2 { color: #3b2a1f !important; }
-.arena-app-home .home-bg-directory .home-section-heading > p { color: #78654f !important; }
+
+.arena-app-home .home-bg-directory .home-section-heading {
+  display: grid;
+  grid-template-columns: minmax(360px, 650px) minmax(220px, 1fr);
+  align-items: center;
+  gap: clamp(1rem, 3vw, 2.8rem);
+  margin-bottom: 0.8rem !important;
+}
+
+.arena-app-home .home-bg-directory__sign {
+  width: min(100%, 650px);
+  aspect-ratio: 4 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding-top: 0.25rem;
+  background: url('/wallpaper/battlegrounds-bartender-header.webp') center / 100% 100% no-repeat;
+}
+
+.arena-app-home .home-bg-directory__sign > span {
+  color: #d9b982 !important;
+  font-size: 0.58rem !important;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.arena-app-home .home-bg-directory__sign h2 {
+  color: #fff0c8 !important;
+  font-size: clamp(1.25rem, 2.2vw, 1.85rem) !important;
+  letter-spacing: 0 !important;
+  text-shadow: 0 2px 3px rgba(45, 22, 10, 0.78) !important;
+}
+
+.arena-app-home .home-bg-directory .home-section-heading > p {
+  max-width: 32rem;
+  margin: 0 !important;
+  padding-left: 1rem;
+  border-left: 4px solid #8f536d;
+  color: #6f5943 !important;
+}
 
 .arena-app-home .home-bg-directory__links {
-  border: 1px solid var(--arena-paper-line) !important;
-  background: rgba(250, 235, 199, 0.27) !important;
+  gap: 0.55rem !important;
+  padding: clamp(0.15rem, 1vw, 0.7rem) !important;
+  border: clamp(34px, 5.4vw, 66px) solid transparent !important;
+  border-image-source: url('/wallpaper/wiki-battlegrounds-skin.webp') !important;
+  border-image-slice: 82 fill !important;
+  border-image-width: clamp(34px, 5.4vw, 66px) !important;
+  border-image-repeat: stretch !important;
+  background: #c3a77e !important;
+  box-shadow: 0 18px 30px rgba(67, 38, 17, 0.16) !important;
 }
 
 .arena-app-home .home-bg-directory__link {
   min-height: 164px !important;
-  border-color: var(--arena-paper-line) !important;
+  border-color: rgba(86, 52, 29, 0.3) !important;
   border-radius: 0 !important;
   color: #3e2f23 !important;
-  background: transparent !important;
-  box-shadow: none !important;
+  background: rgba(255, 241, 207, 0.32) !important;
+  box-shadow: inset 3px 0 rgba(139, 79, 104, 0.5) !important;
 }
 
 .arena-app-home .home-bg-directory__link[data-featured='true'] {
-  background: rgba(255, 246, 221, 0.3) !important;
+  background: rgba(255, 245, 218, 0.52) !important;
+  box-shadow: inset 5px 0 #8f536d !important;
 }
 
 .arena-app-home .home-bg-directory__link:hover {
   transform: translateY(-3px) !important;
-  background: rgba(255, 248, 227, 0.58) !important;
-  box-shadow: 0 10px 18px rgba(75, 42, 15, 0.09) !important;
+  border-color: rgba(93, 48, 25, 0.5) !important;
+  background: rgba(255, 248, 227, 0.72) !important;
+  box-shadow: inset 5px 0 #8f536d, 0 10px 18px rgba(75, 42, 15, 0.12) !important;
 }
 
-.arena-app-home .home-bg-directory__link small { color: var(--arena-red) !important; }
+.arena-app-home .home-bg-directory__link small { color: #7d405b !important; }
 .arena-app-home .home-bg-directory__link strong,
 .arena-app-home .home-bg-directory__link[data-featured='true'] strong { color: #3e2c20 !important; }
 .arena-app-home .home-bg-directory__link span span { color: #77634c !important; }
-.arena-app-home .home-bg-directory__link > b { color: var(--arena-red) !important; }
+.arena-app-home .home-bg-directory__link > b { color: #7d405b !important; }
+
+@media (max-width: 860px) {
+  .arena-app-home .home-bg-directory .home-section-heading {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 0.4rem;
+  }
+
+  .arena-app-home .home-bg-directory .home-section-heading > p {
+    max-width: 38rem;
+    padding: 0 1rem;
+    border-left: 0;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .arena-app-home .home-bg-directory__sign {
+    min-height: 82px;
+    aspect-ratio: auto;
+    background-size: 138% 100%;
+  }
+
+  .arena-app-home .home-bg-directory__sign > span { display: none; }
+
+  .arena-app-home .home-bg-directory__sign h2 {
+    font-size: clamp(1.05rem, 6vw, 1.3rem) !important;
+  }
+
+  .arena-app-home .home-bg-directory__links {
+    padding: 0 !important;
+    border-width: 30px !important;
+    border-image-width: 30px !important;
+  }
+
+  .arena-app-home .home-bg-directory__link,
+  .arena-app-home .home-bg-directory__link[data-featured='true'] {
+    min-height: 124px !important;
+    padding: 0.78rem !important;
+  }
+}
 
 /* ─── Community and FAQ ───────────────────────────────────────────────── */
 
