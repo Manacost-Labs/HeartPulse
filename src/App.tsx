@@ -1112,7 +1112,7 @@ function SubscriptionPurchaseButtons() {
   ];
 
   return (
-    <div style={{
+    <div className="arena-paywall__purchase-options" style={{
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
       gap: '10px',
@@ -1202,12 +1202,12 @@ function PaywallGate({
   const blockedContentProps = { 'aria-hidden': true, inert: '' } as unknown as React.HTMLAttributes<HTMLDivElement>;
 
   return (
-    <div style={{
+    <div className="arena-paywall" style={{
       position: 'relative',
       minHeight: 760,
       paddingBottom: 48,
     }}>
-      <div {...blockedContentProps} style={{
+      <div {...blockedContentProps} className="arena-paywall__preview" style={{
         minHeight: 660,
         filter: 'blur(6px)',
         opacity: 0.55,
@@ -1217,7 +1217,7 @@ function PaywallGate({
       }}>
         {children}
       </div>
-      <div style={{
+      <div className="arena-paywall__overlay" style={{
         position: 'absolute',
         inset: 0,
         minHeight: 720,
@@ -1229,6 +1229,7 @@ function PaywallGate({
         borderRadius: '14px',
       }}>
         <div
+          className="arena-paywall__dialog"
           role="dialog"
           aria-modal="true"
           aria-labelledby="paywall-gate-title"
@@ -1242,16 +1243,16 @@ function PaywallGate({
           padding: '20px',
           textAlign: 'center',
         }}>
-          <p style={{ margin: '0 0 6px', color: '#45617f', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <p className="arena-paywall__eyebrow" style={{ margin: '0 0 6px', color: '#45617f', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             Раздел для подписчиков
           </p>
-          <h3 id="paywall-gate-title" style={{ margin: '0 0 10px', color: '#142238', fontFamily: 'var(--font-display)', fontSize: '1.25rem' }}>
+          <h3 className="arena-paywall__title" id="paywall-gate-title" style={{ margin: '0 0 10px', color: '#142238', fontFamily: 'var(--font-display)', fontSize: '1.25rem' }}>
             {title}
           </h3>
-          <p id="paywall-gate-description" style={{ margin: '0 0 14px', color: '#42566f', fontSize: '13px', lineHeight: 1.55 }}>
+          <p className="arena-paywall__description" id="paywall-gate-description" style={{ margin: '0 0 14px', color: '#42566f', fontSize: '13px', lineHeight: 1.55 }}>
             Подписка открывает закрытые инструменты Арены и помогает Манакосту держать данные свежими.
           </p>
-          <div style={{
+          <div className="arena-paywall__benefits" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
             gap: '10px',
@@ -1285,11 +1286,11 @@ function PaywallGate({
               </span>
             </div>
           </div>
-          <p style={{ margin: '0 0 16px', color: '#42566f', fontSize: '12px', lineHeight: 1.5 }}>
+          <p className="arena-paywall__note" style={{ margin: '0 0 16px', color: '#42566f', fontSize: '12px', lineHeight: 1.5 }}>
             Доступ откроется через Boosty уровня Любитель Арены и выше или через участие в VIP Telegram-канале.
           </p>
           <SubscriptionPurchaseButtons />
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div className="arena-paywall__actions" style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
             {!authUser ? (
               <a href="/?login" style={{
                 ...ADMIN_SECONDARY_BUTTON,
@@ -1323,7 +1324,7 @@ function PaywallGate({
             )}
           </div>
           {subscriptionStatus?.message && (
-            <p style={{ margin: '12px 0 0', color: '#64748b', fontSize: '12px', lineHeight: 1.4 }}>
+            <p className="arena-paywall__status" style={{ margin: '12px 0 0', color: '#64748b', fontSize: '12px', lineHeight: 1.4 }}>
               {subscriptionStatus.message}
             </p>
           )}
@@ -7507,10 +7508,11 @@ export default function App() {
     return ids;
   }, [legendariesData]);
   const isFullWidthBuilder = activeTab === 'standard-matchups' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive';
-  const isOpenSurfacePage = !isAdminMode && (activeTab === 'home' || wantsLogin);
+  const isEditorialSurfacePage = !isAdminMode && ['articles', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
+  const isOpenSurfacePage = !isAdminMode && (activeTab === 'home' || wantsLogin || isEditorialSurfacePage);
 
 		  return (
-    <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${activeTab === 'home' && !isAdminMode ? 'arena-app-home' : ''} ${wantsLogin && !isAdminMode ? 'arena-app-profile' : ''}`}>
+    <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${activeTab === 'home' && !isAdminMode ? 'arena-app-home' : ''} ${wantsLogin && !isAdminMode ? 'arena-app-profile' : ''} ${isEditorialSurfacePage ? `arena-app-editorial arena-app-${activeTab}` : ''}`}>
       {!isAdminMode && <header className="arena-mobile-topbar lg:hidden">
         <a
           href="/"

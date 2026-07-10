@@ -7493,7 +7493,7 @@ export function ArticlesTab({
   }, [authUser, subscriptionLoading, subscriptionStatus]);
 
   return (
-    <div>
+    <div className="articles-page">
       <SectionBanner title="Статьи" subtitle="Гайды, разборы мета и советы по режиму Арена" />
       <Breadcrumbs items={[
         { name: 'Главная', href: '/', onClick: () => onNavigate('home') },

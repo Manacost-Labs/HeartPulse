@@ -28,9 +28,9 @@
 
 /* ─── Public shell ─────────────────────────────────────────────────────── */
 
-:is(.arena-app-home, .arena-app-profile).bg-wood,
-:is(.arena-app-home, .arena-app-profile) .arena-workspace,
-:is(.arena-app-home, .arena-app-profile) .arena-main {
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial).bg-wood,
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-workspace,
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-main {
   background-color: var(--arena-parchment) !important;
   background-image:
     linear-gradient(rgba(249, 235, 202, 0.72), rgba(236, 213, 166, 0.78)),
@@ -39,15 +39,15 @@
   background-size: auto, 865px 878px !important;
 }
 
-:is(.arena-app-home, .arena-app-profile).bg-wood::after {
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial).bg-wood::after {
   background: transparent !important;
 }
 
-:is(.arena-app-home, .arena-app-profile) .arena-main {
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-main {
   padding-top: 0 !important;
 }
 
-:is(.arena-app-home, .arena-app-profile) .arena-content.arena-content-open {
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-content.arena-content-open {
   width: 100% !important;
   max-width: 1480px !important;
   margin: 0 auto !important;
@@ -330,6 +330,805 @@
 .arena-mobile-menu-profile > * {
   position: relative;
   z-index: 1;
+}
+
+/* ─── Editorial archive: articles, gallery, guides, contests ───────────── */
+
+.arena-app-editorial .arena-main {
+  padding: 0 !important;
+}
+
+.arena-app-editorial .arena-content.arena-content-open {
+  max-width: 1480px !important;
+  padding: clamp(1rem, 2.5vw, 2.4rem) clamp(1rem, 2.8vw, 2.8rem) 3.5rem !important;
+}
+
+.arena-app-editorial :where(.articles-page, .gallery-page, .guide-archive-page, .guide-archive-detail, .contests-page) {
+  color: var(--arena-ink) !important;
+}
+
+.arena-app-editorial .section-banner-modern {
+  min-height: 152px !important;
+  height: auto !important;
+  margin: 0 0 1.35rem !important;
+  padding: 2rem clamp(1.35rem, 3vw, 2.7rem) !important;
+  overflow: hidden !important;
+  border: 12px solid transparent !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 18 !important;
+  border-image-width: 12px !important;
+  border-image-outset: 2px !important;
+  border-image-repeat: stretch !important;
+  border-radius: 2px !important;
+  color: #fff0c4 !important;
+  background:
+    linear-gradient(90deg, rgba(69, 5, 9, 0.08), rgba(122, 20, 25, 0.12)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(236, 190, 84, 0.13),
+    inset 0 -28px 42px rgba(42, 3, 6, 0.2),
+    0 16px 28px rgba(73, 39, 15, 0.16) !important;
+}
+
+.arena-app-editorial .section-banner-modern::before {
+  content: '' !important;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 83% 20%, rgba(237, 196, 104, 0.13), transparent 16rem),
+    linear-gradient(90deg, rgba(35, 2, 5, 0.1), transparent 52%) !important;
+}
+
+.arena-app-editorial .section-banner-modern h1 {
+  position: relative;
+  z-index: 1;
+  margin: 0 !important;
+  color: #fff1c5 !important;
+  font-family: var(--font-display) !important;
+  font-size: clamp(2rem, 4vw, 3.4rem) !important;
+  line-height: 0.98 !important;
+  letter-spacing: 0.008em !important;
+  text-shadow: 0 3px 4px rgba(38, 3, 5, 0.7) !important;
+}
+
+.arena-app-editorial .section-banner-modern p {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 0.55rem 0 0 !important;
+  color: #edcf91 !important;
+  font-size: 0.88rem !important;
+  line-height: 1.45 !important;
+  text-shadow: 0 2px 2px rgba(38, 3, 5, 0.7) !important;
+}
+
+.arena-app-editorial nav[aria-label='Breadcrumb'] {
+  margin: 0 0 1.15rem !important;
+  padding: 0 0.15rem 0.8rem;
+  border-bottom: 1px solid var(--arena-paper-line);
+}
+
+.arena-app-editorial nav[aria-label='Breadcrumb'] ol {
+  color: #846a49 !important;
+}
+
+.arena-app-editorial nav[aria-label='Breadcrumb'] li:last-child > span {
+  color: #4b3322 !important;
+}
+
+/* Gallery — pictures sit in actual wooden display frames. */
+.arena-app-gallery .gallery-intro {
+  align-items: center;
+  margin: 0 0 1.65rem;
+  padding: 0.3rem 0 1.2rem 1.1rem;
+  border: 0 !important;
+  border-left: 5px solid var(--arena-red) !important;
+  border-bottom: 1px solid var(--arena-paper-line) !important;
+  border-radius: 0 !important;
+  color: var(--arena-ink) !important;
+  background: transparent !important;
+}
+
+.arena-app-gallery .gallery-intro span {
+  color: var(--arena-red) !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.09em !important;
+}
+
+.arena-app-gallery .gallery-intro h2 {
+  margin: 0.45rem 0 0.35rem !important;
+  color: #3b281b !important;
+  font-size: clamp(1.65rem, 2.8vw, 2.45rem) !important;
+  line-height: 1.08;
+}
+
+.arena-app-gallery .gallery-intro :is(p, time) {
+  color: #77634c !important;
+}
+
+.arena-app-gallery .gallery-grid {
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: clamp(1rem, 2vw, 1.45rem);
+}
+
+.arena-app-gallery .gallery-card {
+  border: 9px solid transparent !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 18 !important;
+  border-image-width: 9px !important;
+  border-image-repeat: stretch !important;
+  border-radius: 1px !important;
+  color: var(--arena-ink) !important;
+  background: rgba(246, 230, 192, 0.78) !important;
+  box-shadow: 0 14px 24px rgba(69, 38, 15, 0.15) !important;
+}
+
+.arena-app-gallery .gallery-card-image {
+  border-bottom: 2px solid #5b2f14 !important;
+  background: #35130f !important;
+}
+
+.arena-app-gallery .gallery-card-image span {
+  border: 1px solid rgba(239, 204, 126, 0.38);
+  border-radius: 2px !important;
+  color: #fff0c5 !important;
+  background: rgba(73, 7, 11, 0.9) !important;
+}
+
+.arena-app-gallery .gallery-card-body {
+  min-height: 184px;
+  padding: 1rem !important;
+}
+
+.arena-app-gallery .gallery-tag {
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: var(--arena-red) !important;
+  background: transparent !important;
+  letter-spacing: 0.08em;
+}
+
+.arena-app-gallery .gallery-card h3 {
+  color: #3b281b !important;
+  font-size: 1.18rem !important;
+}
+
+.arena-app-gallery .gallery-card p,
+.arena-app-gallery .gallery-card-meta {
+  color: #79644c !important;
+}
+
+.arena-app-gallery .gallery-download {
+  border: 1px solid #671016 !important;
+  border-radius: 2px !important;
+  color: #fff0c7 !important;
+  background:
+    linear-gradient(rgba(108, 13, 19, 0.08), rgba(58, 5, 9, 0.16)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+}
+
+.arena-app-gallery .gallery-download:hover {
+  border-color: #9e3336 !important;
+  background-color: #761118 !important;
+}
+
+.arena-app-gallery .gallery-empty {
+  border: 5px solid transparent !important;
+  border-image: var(--arena-wood-divider) 1 !important;
+  border-radius: 0 !important;
+  color: #78634a !important;
+  background: rgba(247, 232, 198, 0.58) !important;
+}
+
+.arena-app-gallery .gallery-empty strong { color: #3b281b !important; }
+
+.gallery-lightbox-panel {
+  border: 12px solid transparent !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 18 !important;
+  border-image-width: 12px !important;
+  border-image-repeat: stretch !important;
+  border-radius: 1px !important;
+  background: #3d070b !important;
+}
+
+.gallery-lightbox-head,
+.gallery-lightbox-caption {
+  border-color: rgba(238, 195, 97, 0.24) !important;
+  color: #e3c58a !important;
+  background: url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+}
+
+.gallery-lightbox-head strong { color: #fff0c4 !important; }
+.gallery-lightbox-head span { color: #c9ad78 !important; }
+
+/* Articles — a pinned editorial board on parchment. */
+.arena-app-articles .articles-toolbar-modern {
+  grid-template-columns: minmax(260px, 0.42fr) minmax(0, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem !important;
+  padding: 1rem 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-image: var(--arena-wood-divider) 1;
+}
+
+.arena-app-articles .articles-search-modern {
+  border: 1px solid rgba(94, 56, 25, 0.4) !important;
+  border-radius: 2px !important;
+  color: #8b6a46 !important;
+  background: rgba(255, 242, 209, 0.55) !important;
+  box-shadow: inset 0 1px rgba(255, 250, 232, 0.68) !important;
+}
+
+.arena-app-articles .articles-search-modern input {
+  color: #3b281b !important;
+}
+
+.arena-app-articles .articles-search-modern input::placeholder {
+  color: #9a805e !important;
+}
+
+.arena-app-articles .articles-tag-filter button {
+  min-height: 38px;
+  border: 1px solid rgba(94, 56, 25, 0.3) !important;
+  border-radius: 2px !important;
+  color: #60472f !important;
+  background: rgba(255, 242, 209, 0.38) !important;
+}
+
+.arena-app-articles .articles-tag-filter button.is-active {
+  border-color: #671016 !important;
+  color: #fff0c5 !important;
+  background: var(--arena-red) !important;
+  box-shadow: inset 0 1px rgba(255, 233, 182, 0.12) !important;
+}
+
+.arena-app-articles .article-card-modern {
+  overflow: hidden;
+  border: 8px solid transparent !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 18 !important;
+  border-image-width: 8px !important;
+  border-image-repeat: stretch !important;
+  border-radius: 1px !important;
+  color: var(--arena-ink) !important;
+  background: rgba(247, 232, 198, 0.8) !important;
+  box-shadow: 0 13px 24px rgba(69, 38, 15, 0.13) !important;
+}
+
+.arena-app-articles .article-card-modern::after { display: none !important; }
+
+.arena-app-articles .article-card-modern:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 18px 30px rgba(69, 38, 15, 0.18) !important;
+}
+
+.arena-app-articles .article-image-shell {
+  border-bottom: 2px solid #572b13;
+  background: #401015 !important;
+}
+
+.arena-app-articles .article-tag {
+  border: 1px solid rgba(240, 202, 113, 0.38) !important;
+  border-radius: 2px !important;
+  color: #fff0c5 !important;
+  background: rgba(70, 6, 10, 0.9) !important;
+}
+
+.arena-app-articles .article-body-modern h3 {
+  color: #3b281b !important;
+  font-size: 1.18rem !important;
+  line-height: 1.2 !important;
+}
+
+.arena-app-articles .article-meta-modern,
+.arena-app-articles .article-vote-row {
+  border-color: var(--arena-paper-line) !important;
+}
+
+.arena-app-articles .article-meta-modern span:first-child { color: #806a50 !important; }
+.arena-app-articles .article-read-link { color: var(--arena-red) !important; }
+
+.arena-app-articles .article-vote-button {
+  border-color: rgba(95, 56, 24, 0.28) !important;
+  border-radius: 2px !important;
+  color: #6d563d !important;
+  background: rgba(255, 242, 209, 0.42) !important;
+}
+
+.arena-app-articles .article-vote-button.is-active {
+  border-color: #7b151b !important;
+  color: #fff0c5 !important;
+  background: #7b151b !important;
+}
+
+.arena-app-articles .articles-empty-modern {
+  border: 5px solid transparent !important;
+  border-image: var(--arena-wood-divider) 1 !important;
+  border-radius: 0 !important;
+  color: #5e452f !important;
+  background: rgba(247, 232, 198, 0.58) !important;
+}
+
+/* Guides archive — a library catalogue with red leather headings. */
+.arena-app-guides-archive :where(.guide-archive-page, .guide-archive-detail) {
+  width: min(100%, 1480px);
+  gap: 1.35rem;
+}
+
+.arena-app-guides-archive :where(.guide-archive-hero, .guide-archive-detail-header) {
+  border: 12px solid transparent !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 18 !important;
+  border-image-width: 12px !important;
+  border-image-repeat: stretch !important;
+  border-radius: 1px !important;
+  color: #fff0c4 !important;
+  background:
+    linear-gradient(90deg, rgba(67, 5, 9, 0.1), rgba(113, 15, 20, 0.06)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+  box-shadow: 0 16px 28px rgba(69, 38, 15, 0.16) !important;
+}
+
+.arena-app-guides-archive :where(.guide-archive-hero, .guide-archive-detail-header) h1 {
+  color: #fff1c5 !important;
+  text-shadow: 0 3px 4px rgba(38, 3, 5, 0.68);
+}
+
+.arena-app-guides-archive :where(.guide-archive-hero, .guide-archive-detail-header) p {
+  color: #e7ca91 !important;
+}
+
+.arena-app-guides-archive .guide-archive-eyebrow {
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: #f0c96f !important;
+  background: transparent !important;
+  letter-spacing: 0.12em;
+  padding: 0 !important;
+}
+
+.arena-app-guides-archive .guide-archive-toolbar {
+  gap: 1rem;
+  padding: 1rem 0;
+  border: 0 !important;
+  border-top: 5px solid transparent !important;
+  border-bottom: 5px solid transparent !important;
+  border-image: var(--arena-wood-divider) 1 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.arena-app-guides-archive .guide-archive-search {
+  border: 1px solid rgba(94, 56, 25, 0.4) !important;
+  border-radius: 2px !important;
+  color: #7b151b !important;
+  background: rgba(255, 242, 209, 0.52) !important;
+}
+
+.arena-app-guides-archive .guide-archive-search input { color: #3b281b !important; }
+
+.arena-app-guides-archive :where(.guide-archive-search button, .guide-archive-pagination button, .guide-archive-back) {
+  border: 1px solid #641015 !important;
+  border-radius: 2px !important;
+  color: #fff0c5 !important;
+  background: #7b151b !important;
+}
+
+.arena-app-guides-archive .guide-archive-kind-filter button {
+  border-color: rgba(94, 56, 25, 0.3) !important;
+  border-radius: 2px !important;
+  color: #60472f !important;
+  background: rgba(255, 242, 209, 0.4) !important;
+}
+
+.arena-app-guides-archive .guide-archive-kind-filter button.active {
+  border-color: #641015 !important;
+  color: #fff0c5 !important;
+  background: #7b151b !important;
+}
+
+.arena-app-guides-archive .guide-archive-summary { color: #775f45 !important; }
+
+.arena-app-guides-archive .guide-archive-summary span {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.arena-app-guides-archive .guide-archive-summary span + span {
+  border-left: 1px solid var(--arena-paper-line) !important;
+}
+
+.arena-app-guides-archive .guide-archive-card {
+  overflow: hidden;
+  border: 8px solid transparent !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 18 !important;
+  border-image-width: 8px !important;
+  border-image-repeat: stretch !important;
+  border-radius: 1px !important;
+  color: var(--arena-ink) !important;
+  background: rgba(247, 232, 198, 0.8) !important;
+  box-shadow: 0 13px 24px rgba(69, 38, 15, 0.13) !important;
+}
+
+.arena-app-guides-archive .guide-archive-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 30px rgba(69, 38, 15, 0.18) !important;
+}
+
+.arena-app-guides-archive .guide-archive-card-media {
+  border: 0 !important;
+  border-bottom: 2px solid #572b13 !important;
+  border-radius: 0 !important;
+  background: #e7d2a4 !important;
+}
+
+.arena-app-guides-archive .guide-archive-card-meta { color: #7b151b !important; }
+
+.arena-app-guides-archive .guide-archive-card-meta span {
+  border-radius: 2px !important;
+  background: rgba(123, 21, 27, 0.09) !important;
+}
+
+.arena-app-guides-archive .guide-archive-card strong { color: #3b281b !important; }
+.arena-app-guides-archive .guide-archive-card-description { color: #735e46 !important; }
+.arena-app-guides-archive .guide-archive-card-section { color: #7b151b !important; }
+.arena-app-guides-archive .guide-archive-pagination span { color: #60482f !important; }
+
+.arena-app-guides-archive .guide-archive-reader {
+  border: 0 !important;
+  border-top: 7px solid transparent !important;
+  border-bottom: 7px solid transparent !important;
+  border-image: var(--arena-wood-divider) 1 !important;
+  border-radius: 0 !important;
+  color: #3e2f23 !important;
+  background: rgba(249, 236, 205, 0.64) !important;
+  box-shadow: none !important;
+}
+
+/* Subscription gate — a red framed notice instead of a blue modal. */
+.arena-app-editorial .arena-paywall {
+  min-height: 760px !important;
+  padding-bottom: 3rem !important;
+}
+
+.arena-app-editorial .arena-paywall__overlay {
+  min-height: 720px !important;
+  padding: clamp(2rem, 5vw, 4.5rem) 1rem 4.5rem !important;
+  border-radius: 0 !important;
+  background: linear-gradient(180deg, rgba(241, 220, 177, 0.12), rgba(236, 212, 164, 0.84) 46%, rgba(236, 212, 164, 0.98)) !important;
+}
+
+.arena-app-editorial .arena-paywall__dialog {
+  width: min(720px, 96%) !important;
+  padding: clamp(1.25rem, 3vw, 2rem) !important;
+  border: 12px solid transparent !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 18 !important;
+  border-image-width: 12px !important;
+  border-image-repeat: stretch !important;
+  border-radius: 1px !important;
+  color: #f3d9a0 !important;
+  background:
+    linear-gradient(rgba(68, 5, 9, 0.12), rgba(49, 3, 6, 0.2)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+  box-shadow: 0 22px 42px rgba(61, 31, 12, 0.28) !important;
+}
+
+.arena-app-editorial .arena-paywall__eyebrow {
+  color: #efc76b !important;
+  font-weight: 900;
+}
+
+.arena-app-editorial .arena-paywall__title {
+  color: #fff0c4 !important;
+  font-size: clamp(1.35rem, 3vw, 1.8rem) !important;
+  text-shadow: 0 2px 3px rgba(35, 2, 5, 0.7);
+}
+
+.arena-app-editorial :where(.arena-paywall__description, .arena-paywall__note, .arena-paywall__status) {
+  color: #dfc28c !important;
+}
+
+.arena-app-editorial .arena-paywall__benefits > div {
+  border: 1px solid rgba(235, 195, 102, 0.26) !important;
+  border-radius: 2px !important;
+  background: rgba(42, 3, 6, 0.36) !important;
+}
+
+.arena-app-editorial .arena-paywall__benefits :where(strong, span) {
+  color: #ecd29f !important;
+}
+
+.arena-app-editorial .arena-paywall__purchase-options a {
+  border-color: rgba(234, 193, 98, 0.34) !important;
+  border-radius: 2px !important;
+  background: rgba(247, 229, 190, 0.92) !important;
+  box-shadow: none !important;
+}
+
+.arena-app-editorial .arena-paywall__purchase-options a :where(strong, span) {
+  color: #4b3020 !important;
+}
+
+.arena-app-editorial .arena-paywall__actions :where(a, button) {
+  min-height: 42px !important;
+  border: 1px solid #efc66a !important;
+  border-radius: 2px !important;
+  color: #fff0c5 !important;
+  background: rgba(45, 3, 6, 0.62) !important;
+}
+
+/* Contests — a tavern notice board with a clear access seal. */
+.arena-app-contests .contests-page { width: min(100%, 1480px); }
+
+.arena-app-contests .contest-hero {
+  padding: clamp(1.3rem, 3vw, 2.2rem) !important;
+  border: 12px solid transparent !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 18 !important;
+  border-image-width: 12px !important;
+  border-image-repeat: stretch !important;
+  border-radius: 1px !important;
+  color: #fff0c4 !important;
+  background:
+    linear-gradient(90deg, rgba(69, 5, 9, 0.08), rgba(122, 20, 25, 0.1)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+  box-shadow: 0 16px 28px rgba(69, 38, 15, 0.16) !important;
+}
+
+.arena-app-contests .contest-eyebrow { color: #efc76a !important; }
+
+.arena-app-contests .contest-hero h1 {
+  color: #fff0c4 !important;
+  text-shadow: 0 3px 4px rgba(38, 3, 5, 0.68);
+}
+
+.arena-app-contests .contest-hero > div:first-child > p:last-child {
+  color: #e4c995 !important;
+}
+
+.arena-app-contests .contest-access-card {
+  border: 1px solid rgba(237, 196, 103, 0.32) !important;
+  border-radius: 2px !important;
+  color: #f0d69f !important;
+  background: rgba(43, 3, 6, 0.44) !important;
+}
+
+.arena-app-contests .contest-access-card span { color: #d2b77f !important; }
+.arena-app-contests .contest-access-card strong { color: #fff0c4 !important; }
+
+.arena-app-contests .contest-access-card button {
+  border-color: rgba(237, 196, 103, 0.35) !important;
+  border-radius: 2px !important;
+  color: #f2d69d !important;
+  background: rgba(38, 3, 6, 0.44) !important;
+}
+
+.arena-app-contests .contest-steps {
+  gap: 0;
+  margin: 0 !important;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-image: var(--arena-wood-divider) 1;
+}
+
+.arena-app-contests .contest-steps div {
+  min-height: 72px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: #4f3927;
+  background: rgba(249, 235, 202, 0.42) !important;
+}
+
+.arena-app-contests .contest-steps div + div {
+  border-left: 1px solid var(--arena-paper-line) !important;
+}
+
+.arena-app-contests .contest-steps strong {
+  border-radius: 50% !important;
+  color: #fff0c5 !important;
+  background: #7b151b !important;
+  box-shadow: 0 0 0 3px rgba(123, 21, 27, 0.11);
+}
+
+.arena-app-contests .contest-card {
+  border: 10px solid transparent !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 18 !important;
+  border-image-width: 10px !important;
+  border-image-repeat: stretch !important;
+  border-radius: 1px !important;
+  color: var(--arena-ink) !important;
+  background: rgba(247, 232, 198, 0.8) !important;
+  box-shadow: 0 15px 28px rgba(69, 38, 15, 0.15) !important;
+}
+
+.arena-app-contests .contest-card-image { border-bottom: 2px solid #572b13; }
+.arena-app-contests .contest-card h3 { color: #3b281b !important; }
+.arena-app-contests .contest-card p { color: #735e46 !important; }
+
+.arena-app-contests .contest-card-kicker span,
+.arena-app-contests .contest-winners code {
+  border-radius: 2px !important;
+  color: #7b151b !important;
+  background: rgba(123, 21, 27, 0.08) !important;
+}
+
+.arena-app-contests .contest-card-meta span {
+  border-radius: 2px !important;
+  color: #735e46 !important;
+  background: rgba(92, 56, 25, 0.08) !important;
+}
+
+.arena-app-contests .contest-primary-button {
+  border-color: #641015 !important;
+  border-radius: 2px !important;
+  color: #fff0c5 !important;
+  background: #7b151b !important;
+  box-shadow: none !important;
+}
+
+.arena-app-contests .contest-empty {
+  border: 7px solid transparent !important;
+  border-image: var(--arena-wood-divider) 1 !important;
+  border-radius: 0 !important;
+  color: #755d43 !important;
+  background: rgba(247, 232, 198, 0.58) !important;
+  box-shadow: none !important;
+}
+
+.arena-app-contests .contest-empty strong { color: #3b281b !important; }
+
+.arena-app-editorial :where(a, button, input):focus-visible {
+  outline: 3px solid rgba(123, 21, 27, 0.72) !important;
+  outline-offset: 3px !important;
+}
+
+/* Article refinements must share Tailwind's utilities layer: important
+   declarations reverse layer priority, so unlayered rules cannot beat them. */
+@layer utilities {
+  .arena-app-articles .article-card-modern {
+    border-color: transparent !important;
+    background: rgba(247, 232, 198, 0.84) !important;
+    box-shadow: 0 13px 24px rgba(69, 38, 15, 0.13) !important;
+  }
+
+  .arena-app-articles .article-card-modern:hover {
+    border-color: transparent !important;
+    box-shadow: 0 18px 30px rgba(69, 38, 15, 0.18) !important;
+  }
+
+  .arena-app-articles .article-card-modern::after { display: none !important; }
+  .arena-app-articles .article-image-shell { background: #401015 !important; }
+
+  .arena-app-articles .article-tag {
+    border-color: rgba(240, 202, 113, 0.38) !important;
+    border-radius: 2px !important;
+    color: #fff0c5 !important;
+    background: rgba(70, 6, 10, 0.9) !important;
+  }
+
+  .arena-app-articles .article-body-modern h3 { color: #3b281b !important; }
+  .arena-app-articles .article-meta-modern,
+  .arena-app-articles .article-vote-row { border-color: var(--arena-paper-line) !important; }
+  .arena-app-articles .article-meta-modern span:first-child { color: #806a50 !important; }
+  .arena-app-articles .article-read-link { color: var(--arena-red) !important; }
+
+  .arena-app-articles .article-vote-button {
+    border-color: rgba(95, 56, 24, 0.28) !important;
+    border-radius: 2px !important;
+    color: #6d563d !important;
+    background: rgba(255, 242, 209, 0.42) !important;
+  }
+
+  .arena-app-articles .article-vote-button.is-active {
+    border-color: #7b151b !important;
+    color: #fff0c5 !important;
+    background: #7b151b !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .arena-app-editorial .arena-content.arena-content-open {
+    max-width: 100% !important;
+    padding: 1.4rem clamp(1rem, 4vw, 2rem) 3rem !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .arena-app-editorial .section-banner-modern {
+    min-height: 118px !important;
+    margin-bottom: 1rem !important;
+    padding: 1.35rem 1.1rem !important;
+    border-width: 8px !important;
+    border-image-width: 8px !important;
+    box-shadow: 0 10px 20px rgba(69, 38, 15, 0.14) !important;
+  }
+
+  .arena-app-editorial .section-banner-modern h1 {
+    font-size: clamp(1.75rem, 9vw, 2.4rem) !important;
+  }
+
+  .arena-app-editorial .section-banner-modern p {
+    font-size: 0.78rem !important;
+  }
+
+  .arena-app-gallery .gallery-intro {
+    padding: 0.2rem 0 1rem 0.85rem;
+  }
+
+  .arena-app-gallery .gallery-intro time {
+    text-align: left;
+  }
+
+  .arena-app-articles .articles-toolbar-modern {
+    grid-template-columns: 1fr;
+  }
+
+  .arena-app-contests .contest-hero {
+    flex-direction: column;
+    border-width: 8px !important;
+    border-image-width: 8px !important;
+  }
+
+  .arena-app-contests .contest-access-card {
+    width: 100%;
+    min-height: 126px;
+  }
+
+  .arena-app-contests .contest-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .arena-app-contests .contest-steps div + div {
+    border-top: 1px solid var(--arena-paper-line) !important;
+    border-left: 0 !important;
+  }
+
+  .arena-app-guides-archive :where(.guide-archive-hero, .guide-archive-detail-header) {
+    border-width: 8px !important;
+    border-image-width: 8px !important;
+  }
+
+  .arena-app-editorial .arena-paywall__overlay {
+    padding: 1.35rem 0.35rem 3rem !important;
+  }
+
+  .arena-app-editorial .arena-paywall__dialog {
+    width: 100% !important;
+    border-width: 8px !important;
+    border-image-width: 8px !important;
+  }
+
+  .arena-app-editorial .arena-paywall__benefits {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .arena-app-editorial .arena-content.arena-content-open {
+    padding: 1rem 0.8rem 2.5rem !important;
+  }
+
+  .arena-app-editorial nav[aria-label='Breadcrumb'] {
+    margin-bottom: 0.9rem !important;
+  }
+
+  .arena-app-gallery .gallery-card,
+  .arena-app-articles .article-card-modern,
+  .arena-app-guides-archive .guide-archive-card {
+    border-width: 7px !important;
+    border-image-width: 7px !important;
+  }
+
+  .arena-app-editorial .arena-paywall__purchase-options {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 /* ─── Home: one parchment canvas ───────────────────────────────────────── */
@@ -864,7 +1663,7 @@
 .arena-app-home .home-faq-zone .faq-card button span:last-child { color: var(--arena-red) !important; }
 .arena-app-home .home-faq-zone .faq-card p { color: #725f49 !important; }
 
-:is(.arena-app-home, .arena-app-profile) .arena-footer {
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer {
   margin-top: 0 !important;
   border-top: 5px solid transparent !important;
   border-image: var(--arena-wood-divider) 1 !important;
@@ -875,25 +1674,25 @@
   box-shadow: inset 0 12px 28px rgba(45, 4, 7, 0.12) !important;
 }
 
-:is(.arena-app-home, .arena-app-profile) .arena-footer > div:first-child {
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer > div:first-child {
   max-width: 1120px !important;
 }
 
-:is(.arena-app-home, .arena-app-profile) .arena-footer h3 {
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer h3 {
   color: #efc768 !important;
   text-shadow: none !important;
 }
 
-:is(.arena-app-home, .arena-app-profile) .arena-footer a { color: #efd9ad !important; }
-:is(.arena-app-home, .arena-app-profile) .arena-footer a:hover { color: #fff3cd !important; }
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer a { color: #efd9ad !important; }
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer a:hover { color: #fff3cd !important; }
 
-:is(.arena-app-home, .arena-app-profile) .arena-footer > div:last-child {
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer > div:last-child {
   border-color: rgba(239, 199, 104, 0.2) !important;
 }
 
-:is(.arena-app-home, .arena-app-profile) .arena-footer p { color: #c7aa76 !important; }
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer p { color: #c7aa76 !important; }
 
-:is(.arena-app-home, .arena-app-profile) .support-prompt {
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .support-prompt {
   border-color: rgba(218, 169, 70, 0.42) !important;
   color: #fff1ca !important;
   background:
@@ -902,28 +1701,28 @@
   box-shadow: 0 14px 30px rgba(55, 16, 10, 0.24) !important;
 }
 
-:is(.arena-app-home, .arena-app-profile) .support-prompt__trigger { color: #fff1ca !important; }
-:is(.arena-app-home, .arena-app-profile) .support-prompt__dismiss { color: #d9bd83 !important; background: rgba(49, 4, 7, 0.26) !important; }
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .support-prompt__trigger { color: #fff1ca !important; }
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .support-prompt__dismiss { color: #d9bd83 !important; background: rgba(49, 4, 7, 0.26) !important; }
 
 /* Footer's legacy rules live in Tailwind's utilities layer and use !important.
    Keep this correction in the same layer so the scoped home selector wins. */
 @layer utilities {
   /* The legacy shell keeps a fixed blue vignette in the utilities layer.
      Important declarations reverse layer priority, so disable it here too. */
-  :is(.arena-app-home, .arena-app-profile).bg-wood::after {
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial).bg-wood::after {
     content: none !important;
     display: none !important;
     background: none !important;
   }
 
-  :is(.arena-app-home, .arena-app-profile) .arena-content.arena-content-open {
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-content.arena-content-open {
     border-radius: 0 !important;
     box-shadow: none !important;
     filter: none !important;
     backdrop-filter: none !important;
   }
 
-  :is(.arena-app-home, .arena-app-profile) .arena-footer {
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer {
     margin-top: 0 !important;
     border-top: 5px solid transparent !important;
     border-image: var(--arena-wood-divider) 1 !important;
@@ -934,9 +1733,9 @@
     box-shadow: inset 0 12px 28px rgba(45, 4, 7, 0.12) !important;
   }
 
-  :is(.arena-app-home, .arena-app-profile) .arena-footer::before { display: none !important; }
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer::before { display: none !important; }
 
-  :is(.arena-app-home, .arena-app-profile) .arena-footer > .max-w-6xl {
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer > .max-w-6xl {
     border-color: rgba(236, 194, 99, 0.23) !important;
     border-radius: 2px !important;
     background: rgba(48, 4, 7, 0.22) !important;
@@ -944,15 +1743,15 @@
     backdrop-filter: none !important;
   }
 
-  :is(.arena-app-home, .arena-app-profile) .arena-footer h3,
-  :is(.arena-app-home, .arena-app-profile) .arena-footer [class*='text-[#f6ce68]'] {
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer h3,
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer [class*='text-[#f6ce68]'] {
     color: #efc768 !important;
     text-shadow: none !important;
   }
 
-  :is(.arena-app-home, .arena-app-profile) .arena-footer a { color: #efd9ad !important; }
-  :is(.arena-app-home, .arena-app-profile) .arena-footer a:hover { color: #fff3cd !important; }
-  :is(.arena-app-home, .arena-app-profile) .arena-footer p { color: #c7aa76 !important; }
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer a { color: #efd9ad !important; }
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer a:hover { color: #fff3cd !important; }
+  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial) .arena-footer p { color: #c7aa76 !important; }
 
   .arena-app-home .home-faq-zone #faq-heading {
     color: #3c2b1f !important;
