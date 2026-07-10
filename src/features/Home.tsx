@@ -6,7 +6,9 @@ import {
   Send,
   Sparkles,
 } from 'lucide-react';
+import HomeArenaDirectory from './HomeArenaDirectory';
 import HomeBattlegrounds from './HomeBattlegrounds';
+import HomeLatestArticles, { type HomeArticle } from './HomeLatestArticles';
 import './Home.css';
 
 interface ClassData {
@@ -152,9 +154,11 @@ function DeferredCardImage({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-export default function HomeTab({ homeSummaryData, loadingHomeSummary, onNavigate, faq }: {
+export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles, loadingArticles, onNavigate, faq }: {
   homeSummaryData: HomeSummaryData | null;
   loadingHomeSummary: boolean;
+  articles: HomeArticle[];
+  loadingArticles: boolean;
   onNavigate: (tab: string) => void;
   faq: React.ReactNode;
 }) {
@@ -307,7 +311,9 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, onNavigat
         <span>На этой странице</span>
         <a href="#draft-tools-title">Инструменты</a>
         <a href="#home-data-heading">Арена сегодня</a>
+        <a href="#home-arena-directory-heading">Раздел Арены</a>
         <a href="#home-bg-heading">Поля Сражений</a>
+        <a href="#home-articles-heading">Статьи</a>
         <a href="#faq-heading">Частые вопросы</a>
       </nav>
 
@@ -470,7 +476,11 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, onNavigat
         </div>
       </section>
 
+      <HomeArenaDirectory onNavigate={onNavigate} />
+
       <HomeBattlegrounds onNavigate={onNavigate} />
+
+      <HomeLatestArticles articles={articles} loading={loadingArticles} onNavigate={onNavigate} />
 
       <aside className="home-community home-reveal" aria-label="Сообщество и поддержка">
         <span className="home-community__lead">

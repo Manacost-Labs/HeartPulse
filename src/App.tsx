@@ -7487,7 +7487,7 @@ export default function App() {
   }, [activeTab, privateRouteChecking, privateRouteLocked, tierlistData.updatedAt, warmTierlistSource]);
 
 	  useEffect(() => {
-	    const needsArticles = activeTab === 'articles' || wantsAdmin;
+	    const needsArticles = activeTab === 'home' || activeTab === 'articles' || wantsAdmin;
 	    if (activeTab === 'articles' && (privateRouteChecking || privateRouteLocked)) return;
 	    if (!needsArticles || articlesRequestedRef.current) return;
 	    void fetchArticles();
@@ -7878,6 +7878,8 @@ export default function App() {
                   <HomeTab
                     homeSummaryData={homeSummaryData}
                     loadingHomeSummary={loadingHomeSummary}
+                    articles={articlesData.articles}
+                    loadingArticles={loadingArticles}
                     onNavigate={(tab: string) => navigate(tab as TabId)}
                     faq={<FAQSection />}
                   />

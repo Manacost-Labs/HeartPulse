@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Added a dedicated framed Arena directory and a live latest-articles showcase to the home page, with responsive wood-and-parchment layouts, lazy article artwork, resilient image fallbacks, direct tool navigation, and one cached article request shared with the full archive.
 - Restyled Standard Matchups as a wood-bound scouting ledger with a red framed masthead, accessible rank and archetype switches, a cleaner matchup picker, framed sticky matrix, and responsive subscription gate while preserving all live interactions; also vertically aligned the Battlegrounds tavern sign.
 - Turned the home-page Battlegrounds directory into a responsive tavern noticeboard using optimized local Hearthstone frame and bartender-sign assets, with compact mobile rows and no changes to navigation behavior.
 - Moved the Arena Classes page onto the shared parchment canvas with a red wood-framed masthead, numbered ranking ledger, champion plaque, full-width mobile meters, and matching subscription and FAQ surfaces while preserving live data and bar animations.
