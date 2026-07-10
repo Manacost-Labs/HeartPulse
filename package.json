@@ -14,6 +14,7 @@
     "budget": "node scripts/check-budgets.js",
     "optimize:ui-assets": "node scripts/optimize-ui-assets.mjs",
     "test:tierlist": "tsx tests/hsreplay-tierlist.test.ts",
+    "test:blizzard": "tsx tests/blizzard-card-images.test.ts",
     "scrape": "tsx server/scraper.ts",
     "qa:screens": "node scripts/screenshot-qa.mjs",
     "changelog:post": "node scripts/post-arena-changelog.mjs"

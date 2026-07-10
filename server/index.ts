@@ -14,6 +14,7 @@ import { createHash, createHmac, createPublicKey, randomBytes, randomInt, scrypt
 import { DatabaseSync } from 'node:sqlite';
 import { scrapeAll, loadData } from './scraper.js';
 import { HSREPLAY_NO_ARENASMITH_TIER, normalizeArenasmithTier, tierFromArenasmithScore } from './hsreplayArenasmith.js';
+import { createBlizzardCardImageClient } from './blizzardCards.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -22,13 +23,20 @@ const CARD_IMAGE_CACHE_DIR = join(DATA_DIR, 'card-images');
 const ADMIN_UPLOAD_SOURCE_DIR = process.env.ADMIN_UPLOAD_SOURCE_DIR || join(DATA_DIR, 'uploads', 'admin');
 const ADMIN_UPLOAD_DIR = process.env.ADMIN_UPLOAD_DIR || ADMIN_UPLOAD_SOURCE_DIR;
 const GALLERY_UPLOAD_DIR = process.env.GALLERY_UPLOAD_DIR || join(DATA_DIR, 'uploads', 'gallery');
-const CARD_IMAGE_CACHE_VERSION = 'card_img_v1';
+const CARD_IMAGE_CACHE_VERSION = 'card_img_v2';
+const CARD_IMAGE_FALLBACK_RETRY_MS = 5 * 60_000;
 const MAX_CARD_IMAGE_JOBS = 4;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const BG_DATA_CACHE_MS = Math.max(60_000, Number(process.env.BG_DATA_CACHE_MS || ONE_DAY_MS));
 const BG_DATA_STALE_MS = Math.max(60_000, Number(process.env.BG_DATA_STALE_MS || 7 * ONE_DAY_MS));
 const BG_JSON_CACHE_CONTROL = `public, max-age=${Math.floor(BG_DATA_CACHE_MS / 1000)}, stale-while-revalidate=${Math.floor(BG_DATA_STALE_MS / 1000)}`;
 const BG_IMAGE_CACHE_CONTROL = 'public, max-age=2592000, immutable';
+const blizzardCardImages = createBlizzardCardImageClient({
+  clientId: process.env.BLIZZARD_CLIENT_ID,
+  clientSecret: process.env.BLIZZARD_CLIENT_SECRET,
+  region: process.env.BLIZZARD_API_REGION,
+});
+let lastBlizzardImageWarningAt = 0;
 
 function ensureAdminUploadDirs() {
   mkdirSync(ADMIN_UPLOAD_DIR, { recursive: true });
@@ -70,7 +78,9 @@ const standardMatchupsApiCache = new Map<string, MemoryCacheEntry>();
 const battlegroundAppProxyCache = new Map<string, ProxyBodyCacheEntry>();
 let homeSummaryApiCache: MemoryCacheEntry | null = null;
 let arenaDecksCache: MemoryCacheEntry | null = null;
-const cardImageJobs = new Map<string, Promise<string>>();
+type CardImageSource = 'blizzard' | 'fallback' | 'placeholder';
+type CachedCardImage = { path: string; source: CardImageSource };
+const cardImageJobs = new Map<string, Promise<CachedCardImage>>();
 let activeCardImageJobs = 0;
 const cardImageQueue: Array<() => void> = [];
 
@@ -4393,8 +4403,8 @@ function normalizeCardImageId(value: unknown): string | null {
   return cardId;
 }
 
-function cardImageCachePath(cardId: string, variant: 'thumb' | 'full'): string {
-  return join(CARD_IMAGE_CACHE_DIR, `${cardId}-${variant}-${CARD_IMAGE_CACHE_VERSION}.webp`);
+function cardImageCachePath(cardId: string, variant: 'thumb' | 'full', source: CardImageSource): string {
+  return join(CARD_IMAGE_CACHE_DIR, `${cardId}-${variant}-${source}-${CARD_IMAGE_CACHE_VERSION}.webp`);
 }
 
 function normalizeResolvedCardId(cardId: string): string {
@@ -4419,10 +4429,26 @@ async function resolveCardImageId(cardId: string): Promise<string> {
     ?? cardId;
 }
 
-async function ensureCardImagePlaceholder(cardId: string, variant: 'thumb' | 'full', message = 'Нет изображения'): Promise<string> {
+async function resolveCardDbfId(cardId: string): Promise<number | null> {
+  if (/^\d+$/.test(cardId)) {
+    const numericId = Number(cardId);
+    return Number.isInteger(numericId) && numericId > 0 ? numericId : null;
+  }
+
+  const findDbfId = (cards: Record<string, any> | null | undefined) => {
+    const card = cards?.[cardId];
+    const dbfId = Number(card?.dbf ?? card?.dbfId);
+    return Number.isInteger(dbfId) && dbfId > 0 ? dbfId : null;
+  };
+
+  return findDbfId(loadDataCached('cards_ru.json')?.data)
+    ?? findDbfId(await ensureRuCardsData());
+}
+
+async function ensureCardImagePlaceholder(cardId: string, variant: 'thumb' | 'full', message = 'Нет изображения'): Promise<CachedCardImage> {
   mkdirSync(CARD_IMAGE_CACHE_DIR, { recursive: true });
-  const outPath = cardImageCachePath(`missing-${cardId}`, variant);
-  if (existsSync(outPath)) return outPath;
+  const outPath = cardImageCachePath(`missing-${cardId}`, variant, 'placeholder');
+  if (existsSync(outPath)) return { path: outPath, source: 'placeholder' };
 
   const width = variant === 'full' ? 360 : 180;
   const height = Math.round(width * 1.516);
@@ -4447,7 +4473,7 @@ async function ensureCardImagePlaceholder(cardId: string, variant: 'thumb' | 'fu
   await sharp(Buffer.from(svg))
     .webp({ quality: variant === 'full' ? 82 : 76, effort: 4 })
     .toFile(outPath);
-  return outPath;
+  return { path: outPath, source: 'placeholder' };
 }
 
 async function withCardImageSlot<T>(task: () => Promise<T>): Promise<T> {
@@ -4465,10 +4491,35 @@ async function withCardImageSlot<T>(task: () => Promise<T>): Promise<T> {
   }
 }
 
-async function fetchRemoteCardImage(cardId: string, variant: 'thumb' | 'full'): Promise<Buffer> {
+async function fetchRemoteCardImage(cardId: string, variant: 'thumb' | 'full'): Promise<{ buffer: Buffer; source: Exclude<CardImageSource, 'placeholder'> }> {
   const sourceSize = variant === 'full' ? '512x' : '256x';
   const locales = ['ruRU', 'enUS'];
   let lastError: Error | null = null;
+
+  if (blizzardCardImages.configured) {
+    try {
+      const dbfId = await resolveCardDbfId(cardId);
+      const imageUrl = dbfId ? await blizzardCardImages.getImageUrl(dbfId) : null;
+      if (imageUrl) {
+        const upstream = await fetch(imageUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
+          signal: AbortSignal.timeout(15_000),
+        });
+        const contentType = upstream.headers.get('content-type') ?? '';
+        if (!upstream.ok) throw new Error(`Blizzard image HTTP ${upstream.status}`);
+        if (!contentType.toLowerCase().startsWith('image/')) {
+          throw new Error(`Blizzard image returned ${contentType || 'unknown content type'}`);
+        }
+        return { buffer: Buffer.from(await upstream.arrayBuffer()), source: 'blizzard' };
+      }
+    } catch (err: any) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (Date.now() - lastBlizzardImageWarningAt > 5 * 60_000) {
+        lastBlizzardImageWarningAt = Date.now();
+        console.warn('[api/card-image] Blizzard API unavailable, using HearthstoneJSON fallback:', lastError.message);
+      }
+    }
+  }
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     for (const locale of locales) {
@@ -4481,7 +4532,7 @@ async function fetchRemoteCardImage(cardId: string, variant: 'thumb' | 'full'): 
           lastError = new Error(`Hearthstone image ${locale} HTTP ${upstream.status}`);
           continue;
         }
-        return Buffer.from(await upstream.arrayBuffer());
+        return { buffer: Buffer.from(await upstream.arrayBuffer()), source: 'fallback' };
       } catch (err: any) {
         lastError = err instanceof Error ? err : new Error(String(err));
       }
@@ -4491,26 +4542,36 @@ async function fetchRemoteCardImage(cardId: string, variant: 'thumb' | 'full'): 
   throw lastError ?? new Error('Card image unavailable');
 }
 
-async function ensureCardImage(cardId: string, variant: 'thumb' | 'full'): Promise<string> {
+async function ensureCardImage(cardId: string, variant: 'thumb' | 'full'): Promise<CachedCardImage> {
   mkdirSync(CARD_IMAGE_CACHE_DIR, { recursive: true });
   const resolvedCardId = await resolveCardImageId(cardId);
-  const outPath = cardImageCachePath(resolvedCardId, variant);
-  if (existsSync(outPath)) return outPath;
+  const preferredSource: CardImageSource = blizzardCardImages.configured ? 'blizzard' : 'fallback';
+  const preferredPath = cardImageCachePath(resolvedCardId, variant, preferredSource);
+  if (existsSync(preferredPath)) return { path: preferredPath, source: preferredSource };
 
-  const jobKey = `${resolvedCardId}:${variant}`;
+  const recentFallbackPath = cardImageCachePath(resolvedCardId, variant, 'fallback');
+  if (blizzardCardImages.configured && existsSync(recentFallbackPath)) {
+    const fallbackAge = Date.now() - statSync(recentFallbackPath).mtimeMs;
+    if (fallbackAge < CARD_IMAGE_FALLBACK_RETRY_MS) {
+      return { path: recentFallbackPath, source: 'fallback' };
+    }
+  }
+
+  const jobKey = `${resolvedCardId}:${variant}:${preferredSource}`;
   const existingJob = cardImageJobs.get(jobKey);
   if (existingJob) return existingJob;
 
   const job = (async () => {
     return withCardImageSlot(async () => {
       try {
-        const source = await fetchRemoteCardImage(resolvedCardId, variant);
+        const remoteImage = await fetchRemoteCardImage(resolvedCardId, variant);
+        const outPath = cardImageCachePath(resolvedCardId, variant, remoteImage.source);
         const width = variant === 'full' ? 360 : 180;
-        await sharp(source)
+        await sharp(remoteImage.buffer)
           .resize({ width, withoutEnlargement: true })
           .webp({ quality: variant === 'full' ? 82 : 76, effort: 4 })
           .toFile(outPath);
-        return outPath;
+        return { path: outPath, source: remoteImage.source };
       } catch (err: any) {
         console.warn('[api/card-image] fallback placeholder:', resolvedCardId, err?.message ?? err);
         return ensureCardImagePlaceholder(resolvedCardId, variant);
@@ -5698,16 +5759,18 @@ app.get('/api/card-image/:cardId/:variant.webp', async (req, res) => {
   }
 
   try {
-    const imagePath = await ensureCardImage(cardId, variant);
-    const stat = statSync(imagePath);
+    const image = await ensureCardImage(cardId, variant);
+    const stat = statSync(image.path);
     const etag = `"${stat.mtimeMs.toString(36)}-${stat.size.toString(36)}"`;
 
     res.set('Content-Type', 'image/webp');
-    res.set('Cache-Control', 'public, max-age=2592000, immutable');
+    res.set('Cache-Control', image.source === 'blizzard'
+      ? 'public, max-age=2592000, immutable'
+      : 'public, max-age=300, stale-while-revalidate=3600');
     res.set('ETag', etag);
     if (req.headers['if-none-match'] === etag) return res.status(304).end();
 
-    return createReadStream(imagePath).pipe(res);
+    return createReadStream(image.path).pipe(res);
   } catch (err: any) {
     return res.status(502).json({ error: err?.message ?? 'Card image unavailable' });
   }
@@ -8888,6 +8951,7 @@ cron.schedule('*/30 * * * *', async () => {
 
 app.listen(PORT, HOST, () => {
   console.log(`[Server] API server running on http://${HOST || 'localhost'}:${PORT}`);
+  console.log(`[Server] Blizzard card images: ${blizzardCardImages.configured ? 'enabled' : 'disabled (HearthstoneJSON fallback)'}`);
   console.log('[Server] Scraping every 6 hours. Trigger manual: POST /api/scrape');
 
   const mailingResumeTimer = setTimeout(() => resumeNewsletterCampaigns(), 1500);

@@ -196,6 +196,7 @@ npm install
 # Blizzard Battle.net API (для изображений карт на русском)
 BLIZZARD_CLIENT_ID=your_client_id
 BLIZZARD_CLIENT_SECRET=your_client_secret
+BLIZZARD_API_REGION=eu
 
 # Vercel Blob Store (для статей в production)
 BLOB_READ_WRITE_TOKEN=vercel_blob_rw_...
@@ -310,6 +311,7 @@ curl -X DELETE https://your-domain.vercel.app/api/admin-articles \
 | `ADMIN_PASSWORD` | Рекомендуется | Пароль для доступа к админ-панели |
 | `BLIZZARD_CLIENT_ID` | Опционально | Для русских изображений карт |
 | `BLIZZARD_CLIENT_SECRET` | Опционально | Для русских изображений карт |
+| `BLIZZARD_API_REGION` | Опционально | Регион Blizzard API (`eu` по умолчанию) |
 
 ### Обновление тир-листа
 
@@ -333,9 +335,9 @@ git push                    # Vercel автоматически передепл
 | Тир-лист карт | [hearth-arena.com](https://www.hearth-arena.com) | Puppeteer (парсинг DOM) |
 | Винрейты классов | [zerotoheroes.com](https://www.zerotoheroes.com) / Firestone | REST API (live) |
 | Группы легендарок | hearth-arena.com | Puppeteer |
-| Изображения карт (приоритет) | Blizzard Battle.net API | OAuth2 + REST |
+| Изображения карт (приоритет) | Blizzard Battle.net API | Серверный OAuth2 + REST, локальный WebP-кэш |
 | Изображения карт (fallback) | HearthArena CDN | Прямые URL |
-| Изображения карт (fallback 2) | hearthstonejson.com | CDN |
+| Метаданные и резерв изображений | hearthstonejson.com | Сопоставление card ID с DBF ID + CDN fallback |
 
 ---
 

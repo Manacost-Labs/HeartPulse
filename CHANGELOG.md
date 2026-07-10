@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Added the official Blizzard Hearthstone Game Data API as the primary Arena card-render source when server credentials are configured, with server-only OAuth, shared token/catalog caching, local WebP conversion, automatic token refresh, and a HearthstoneJSON fallback so temporary upstream failures do not leave broken cards.
 - Replaced the remaining white and cool-blue Arena source/filter controls with readable parchment and wine-red states, rebuilt card hover statistics as a wooden ledger, and restyled the shared Tier List/Legendary card lightbox as a responsive tavern frame without changing its data or interactions.
 - Unified the home-page Arena board with the exact Battlegrounds tavern-frame asset, border slicing, frame width, parchment fill, and responsive mobile treatment while retaining Arena-specific links and red accents.
 - Matched the home-page Arena sign to the Battlegrounds tavern plaque and moved the Arena Tier List and Legendary Groups onto the shared parchment-and-wood canvas while preserving source switches, class/search/rarity/mana filters, gallery/table modes, card animations, modals, and subscription gates.

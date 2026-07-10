@@ -361,7 +361,7 @@ function mergeCard(tc: TierCard, lookup: Record<string, CardLookup>): CardData {
 
 // ─── Card image helpers ───────────────────────────────────────────────────────
 
-const CARD_IMAGE_PROXY_VERSION = 'card_img_v1';
+const CARD_IMAGE_PROXY_VERSION = 'card_img_v2';
 const CARD_JSON_IMAGE_VERSION = 'card_art_tooltip_v1';
 const hsImgUrl = (cardId: string, size: '256x' | '512x' = '256x', locale: 'ruRU' | 'enUS' = 'ruRU') => {
   if (locale === 'ruRU') {
