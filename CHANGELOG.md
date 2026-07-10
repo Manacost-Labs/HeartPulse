@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Strengthened the Hearthstone material language with thicker wooden frames around desktop and mobile navigation, the live class board, and the profile plaque; upgraded menu labels to the expressive HS display face while preserving narrow-screen fit and scrolling.
 - Wrapped the signed-in profile badge in desktop and mobile navigation with a locally hosted Hearthstone deck frame while preserving the existing profile link, focus behavior, and compact responsive layout.
 - Restyled the signed-in profile and login screen as a Manacost player passport using the same parchment canvas, red textured panels, wooden framing, warm forms, responsive layout, and preserved authentication, contact, subscription, Telegram, Boosty, and contest-history flows.
 - Removed the legacy fixed blue vignette, oversized navigation drop shadow, and transparent backdrop blur that produced dark compositing bands along the page edges while scrolling the parchment home page.
