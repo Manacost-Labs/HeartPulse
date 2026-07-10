@@ -369,6 +369,8 @@ const SourceToggleButton: React.FC<{
       onClick={onClick}
       disabled={busy && !active}
       title={label}
+      aria-pressed={active}
+      data-active={active ? 'true' : 'false'}
       className="source-toggle-button min-h-[34px] px-2.5 py-1.5 rounded-lg text-xs font-hs transition-all flex items-center justify-center gap-1.5"
       style={active ? {
         background: 'linear-gradient(135deg,#5a3000,#3d1e00)',
@@ -1440,6 +1442,7 @@ const ClassTabs: React.FC<{
             <button
               key={ALL_CARDS_ID}
               data-id={ALL_CARDS_ID}
+              aria-pressed={isActive}
               onClick={() => onChange(ALL_CARDS_ID)}
               title="Все карты"
               className="flex-shrink-0 relative transition-all duration-200"
@@ -1472,6 +1475,7 @@ const ClassTabs: React.FC<{
             <button
               key={sec.id}
               data-id={sec.id}
+              aria-pressed={isActive}
               onClick={() => onChange(sec.id)}
               title={sec.name}
               className="flex-shrink-0 relative transition-all duration-200"
@@ -1933,14 +1937,14 @@ function HSReplayCardsTable({ tiers, onCardOpen, previewSuppressed = false }: {
       {!previewSuppressed && preview && <CardRenderTooltip card={preview.card} position={preview.position} />}
 
       <div
-        className="hsreplay-mobile-table sm:hidden flex flex-col gap-3"
+        className="tierlist-table-mobile hsreplay-mobile-table sm:hidden flex flex-col gap-3"
         onMouseMoveCapture={allowPreview}
         onMouseLeave={hidePreview}
       >
         {rows.map(({ tier, card }, idx) => (
           <article
             key={`${tier}-${card.cardId}-${idx}-mobile`}
-            className="rounded-xl border border-[#c4a46a]/70 bg-[#fff4d4]/85 p-2.5 shadow-[0_8px_22px_rgba(72,43,12,0.14)]"
+            className="tierlist-table-card rounded-xl border border-[#c4a46a]/70 bg-[#fff4d4]/85 p-2.5 shadow-[0_8px_22px_rgba(72,43,12,0.14)]"
           >
             <div className="flex items-center gap-2">
               <span className={`inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border-2 text-xs font-hs shadow ${TIER_COLORS[tier] || TIER_COLORS.C}`}>
@@ -1975,7 +1979,7 @@ function HSReplayCardsTable({ tiers, onCardOpen, previewSuppressed = false }: {
       </div>
 
       <div
-        className="hidden overflow-x-auto rounded-2xl border border-[#c4a46a]/70 bg-[#f5e2b8]/70 shadow-[0_10px_32px_rgba(72,43,12,0.18)] sm:block"
+        className="tierlist-table-desktop hidden overflow-x-auto rounded-2xl border border-[#c4a46a]/70 bg-[#f5e2b8]/70 shadow-[0_10px_32px_rgba(72,43,12,0.18)] sm:block"
         onMouseMoveCapture={allowPreview}
         onMouseLeave={hidePreview}
         onScroll={hidePreviewAfterViewportShift}
@@ -2199,7 +2203,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
   const paywallActive = !subscriptionLoading && !hasSubscriptionEntitlement(subscriptionStatus, 'arena');
 
   return (
-    <div>
+    <div className="arena-tierlist-page">
       <SectionBanner title="Тир-лист" subtitle="Оценки карт для каждого класса — текущий патч" />
       <Breadcrumbs items={[
         { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
@@ -2275,7 +2279,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
       ) : (
         <>
           {/* Nav bar: class icons + search */}
-          <div className="mb-5">
+          <div className="tierlist-class-nav mb-5">
             <ClassTabs
               sections={sections}
               activeId={activeClassId}
@@ -2286,7 +2290,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
           </div>
 
           {/* Active class header + rarity filter */}
-          <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
+          <div className="tierlist-active-header flex items-center justify-between gap-3 mb-5 flex-wrap">
             {activeSection && (
               <div className="flex items-center gap-3">
                 {CLASS_ICON[activeSection.id] ? (
@@ -2440,16 +2444,16 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
               previewSuppressed={Boolean(modalCard)}
             />
           ) : (
-          <div className="space-y-10">
+          <div className="tierlist-groups space-y-10">
             {visibleTiers.length > 0 ? visibleTiers.map((tierGroup, tierIdx) => {
               const tierTotal = tierGroup.totalCardsInTier ?? tierGroup.cards.length;
               return (
-              <div key={tierGroup.tier} className="anim-fade-up"
+              <div key={tierGroup.tier} className="tierlist-group anim-fade-up"
                 style={{
                   animationDelay: `${tierIdx * 0.07}s`,
                 }}>
                 {/* Tier header */}
-                <div className="flex items-center gap-4 mb-5">
+                <div className="tierlist-group-heading flex items-center gap-4 mb-5">
                   <div className={`tier-rank-badge w-12 h-12 md:w-14 md:h-14 flex-shrink-0 flex items-center justify-center text-2xl md:text-3xl font-hs rounded-full border-[3px] shadow-[0_4px_14px_rgba(0,0,0,0.7),inset_0_4px_6px_rgba(255,255,255,0.35),inset_0_-4px_6px_rgba(0,0,0,0.45)] ${TIER_COLORS[tierGroup.tier] || TIER_COLORS['C']}`}>
                     <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">{tierGroup.tier}</span>
                   </div>
@@ -2467,7 +2471,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
                 </div>
 
                 {/* Cards grid — cards are already merged in filteredTiers useMemo */}
-                <div className="flex flex-wrap gap-3 md:gap-5 justify-center md:justify-start">
+                <div className="tierlist-card-grid flex flex-wrap gap-3 md:gap-5 justify-center md:justify-start">
                   {tierGroup.cards.map((card, idx) => (
                     <div
                       key={`${card.cardId}-${idx}`}
@@ -2501,7 +2505,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
           )}
 
           {hiddenCardCount > 0 && (
-            <div className="mt-6 flex flex-col items-center gap-2">
+            <div className="tierlist-load-more mt-6 flex flex-col items-center gap-2">
               <button
                 type="button"
                 onClick={() => setVisibleCardLimit(limit => limit + cardPageStep)}
@@ -2668,7 +2672,7 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
   const paywallActive = !subscriptionLoading && !hasSubscriptionEntitlement(subscriptionStatus, 'arena');
 
   return (
-    <div>
+    <div className="arena-legendaries-page">
       <SectionBanner title="Легендарки" subtitle="Наборы карт для выбора первой легендарки на Арене" />
       <Breadcrumbs items={[
         { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
@@ -2682,15 +2686,15 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
           Выбирайте группу с наивысшим процентом побед для максимальной эффективности на текущем патче.
         </p>
       </section>
-      <div style={{ position: 'relative' }}>
-        <div style={{
+      <div className="legendary-access-shell" style={{ position: 'relative' }}>
+        <div className="legendary-access-content" style={{
           filter: paywallActive ? 'blur(7px)' : 'none',
           pointerEvents: paywallActive ? 'none' : 'auto',
           userSelect: paywallActive ? 'none' : 'auto',
           transition: 'filter 180ms ease',
         }}>
       {/* Source toggle + count row */}
-      <div className="flex items-center justify-between mb-4 -mt-2 flex-wrap gap-2">
+      <div className="legendary-toolbar flex items-center justify-between mb-4 -mt-2 flex-wrap gap-2">
         <div className="legendary-source-toggle flex items-center gap-1 p-1 rounded-xl"
           style={{ background: 'linear-gradient(135deg,#e8d5a0,#d4b87a)', border: '1.5px solid #b8904a' }}>
           {(['hsreplay', 'firestone'] as const).map(src => {
@@ -2714,7 +2718,7 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
       </div>
 
       {/* Class filter nav */}
-      <div className="mb-5">
+      <div className="legendary-class-nav mb-5">
         <div
           ref={classScrollRef}
           className="legendary-class-tabs flex items-center gap-1.5 sm:gap-2 px-3 py-2.5 rounded-2xl overflow-x-auto scrollbar-hs"
@@ -2732,6 +2736,7 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
                 key={cls.id}
                 onClick={() => setActiveClass(cls.id)}
                 title={cls.name}
+                aria-pressed={isActive}
                 className="flex-shrink-0 relative transition-all duration-200"
                 style={{ transform: isActive ? 'scale(1.15)' : 'scale(1)', filter: isActive ? 'none' : 'grayscale(0.2) brightness(0.85)' }}
               >
@@ -2775,23 +2780,24 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
       )}
 
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="legendary-groups-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 9 }).map((_, i) => (
             <div key={i} className="skeleton h-64 w-full rounded-2xl" style={{ animationDelay: `${i * 0.05}s` }} />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-14 rounded-2xl"
+        <div className="legendary-empty text-center py-14 rounded-2xl"
           style={{ background: 'linear-gradient(135deg,#ede0c0,#e0cc9e)', border: '2px dashed #c4a46a' }}>
           <div className="text-4xl mb-3">⭐</div>
           <p className="text-xl font-hs text-[#8b4513] tracking-wide">Нет данных</p>
           <p className="text-[#8b6c42] mt-2 text-sm">Запустите npm run scrape для загрузки легендарных групп.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="legendary-groups-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((group, idx) => (
             <div
               key={`${group.keyCard.cardId}-${idx}`}
+              data-rank={idx + 1}
               className="legendary-group-card anim-scale-in card-hover rounded-2xl flex flex-col items-center p-4 gap-3 cursor-default"
               style={{
                 animationDelay: `${Math.min(idx, 20) * 0.04}s`,
@@ -2799,6 +2805,7 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
                 border: '1.5px solid #c4a46a',
               }}
             >
+              <span className="legendary-group-rank" aria-label={`Место ${idx + 1}`}>{idx + 1}</span>
               {/* Key card image */}
               <LegendaryCardThumb
                 card={group.keyCard}

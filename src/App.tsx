@@ -7509,7 +7509,7 @@ export default function App() {
   }, [legendariesData]);
   const isFullWidthBuilder = activeTab === 'standard-matchups' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive';
   const isEditorialSurfacePage = !isAdminMode && ['articles', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
-  const isGameDataSurfacePage = !isAdminMode && ['winrates', 'standard-matchups'].includes(activeTab);
+  const isGameDataSurfacePage = !isAdminMode && ['winrates', 'standard-matchups', 'tierlist', 'legendaries'].includes(activeTab);
   const isOpenSurfacePage = !isAdminMode && (activeTab === 'home' || wantsLogin || isEditorialSurfacePage || isGameDataSurfacePage);
 
 		  return (
