@@ -314,6 +314,17 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
           </div>
         </div>
 
+        <figure className="home-stage__character" aria-hidden="true">
+          <img
+            src="/wallpaper/home-paladin-hero.webp"
+            alt=""
+            width={1280}
+            height={853}
+            decoding="async"
+            fetchPriority="high"
+          />
+        </figure>
+
         <aside className="home-draft-orbit" aria-live="polite" aria-label="Классы-лидеры текущей меты">
           <span className="home-draft-orbit__caption">Топ классов Арены</span>
           <div className="home-draft-orbit__board">

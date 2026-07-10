@@ -40,6 +40,7 @@ Do not hotlink wiki assets at runtime.
 ## Home Rules
 
 - Lead with live freshness, Arena leaders, source count and direct actions instead of quotes or oversized marketing copy.
+- Use `/wallpaper/home-paladin-hero.webp` as the masked first-screen character mural; keep copy on the red field and turn the art into a short panorama on mobile.
 - Keep the order Battlegrounds directory → Arena directory → useful cross-mode statistics → editorial/community content.
 - The Battlegrounds spotlight chart uses the real eight-place hero distribution from the API and falls back to an explicit updating state, never invented demo values.
 - Frame major home regions with canonical wood assets; keep inner rows quiet, parchment-based and free of generic colored side rails.

@@ -157,6 +157,7 @@ Never add an unscoped duplicate `.arena-mobile-*` rule. The App drawer must rema
 
 - The home page is a utility dashboard, not a promotional landing page. Start with live freshness, the current Arena leader, data-source count and direct actions; avoid oversized slogans, quotes and repeated explanatory copy.
 - Keep the first viewport compact enough to expose the beginning of the product directories on a typical laptop. The live class summary reads as a small tavern scoreboard, not a decorative orbit.
+- The first screen uses `/wallpaper/home-paladin-hero.webp` as a masked character mural behind the live Arena scoreboard. Keep the face and hammer visible, preserve the red text field, and never place essential copy directly over the artwork. On narrow screens the mural becomes a short panorama between actions and live rankings.
 - Mode discovery follows a fixed order: **Battlegrounds directory**, **Arena directory**, then cross-mode statistics. Each directory links directly to the work users can perform in that mode.
 - The statistics section may combine Arena rankings with a Battlegrounds spotlight, but every value and chart point must come from the existing APIs. Never invent demo metrics; show an honest updating state if a source is unavailable.
 - The Battlegrounds hero spotlight uses the actual eight-place distribution as a compact line/area chart, includes hero identity and hero-power context, and links to the full hero directory.
