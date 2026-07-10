@@ -190,41 +190,6 @@ interface TierlistData {
   warning?: string;
 }
 
-interface HomeSummaryCard {
-  cardId: string;
-  name: string;
-  score?: number;
-  rarity?: string;
-  tier?: string;
-  classKey?: string;
-  cost?: number;
-  imageRu?: string | null;
-  imageHa?: string;
-}
-
-interface HomeSummaryLegendary {
-  cardId: string;
-  name: string;
-  cost?: number;
-  imageRu?: string | null;
-  imageHa?: string;
-  winRate: number | null;
-  classKey: string;
-}
-
-interface HomeSummaryData {
-  topClasses: ClassData[];
-  topCards: HomeSummaryCard[];
-  topLegendaries: HomeSummaryLegendary[];
-  updatedAt: {
-    winrates: string | null;
-    tierlist: string | null;
-    legendaries: string | null;
-  };
-  sources?: Record<string, string>;
-  warning?: string;
-}
-
 interface ArenaDeckCard {
   cardId: string;
   name: string;
@@ -2999,367 +2964,6 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
   );
 }
 
-// ─── HomeTab ──────────────────────────────────────────────────────────────────
-
-const HOME_NAV_CARDS: Array<{
-  id: 'winrates' | 'tierlist' | 'legendaries';
-  img: string; title: string; desc: string; stat: string;
-}> = [
-  { id: 'winrates',   img: '/main_assets/winrate-classes.png', title: 'Винрейт классов',   desc: 'Сравнение классов, источник данных и матчапы для выбора драфта.', stat: '11 классов' },
-  { id: 'tierlist',   img: '/main_assets/tier-list.png',       title: 'Тир-лист карт',     desc: 'Оценки карт по классам, поиск, галерея и таблица без лишнего шума.', stat: 'S-F tiers' },
-  { id: 'legendaries',img: '/main_assets/legendary_group.png', title: 'Легендарные группы', desc: 'Пакеты первого выбора с винрейтом и быстрым просмотром карт.', stat: '165+ карт' },
-];
-
-function HomeTab({ winratesData, loadingWinrates, homeSummaryData, loadingHomeSummary, onNavigate }: {
-  winratesData: WinratesData;
-  loadingWinrates: boolean;
-  homeSummaryData: HomeSummaryData | null;
-  loadingHomeSummary: boolean;
-  onNavigate: (tab: 'winrates' | 'tierlist' | 'legendaries') => void;
-}) {
-  const topClasses = useMemo(
-    () => {
-      const summaryClasses = homeSummaryData?.topClasses ?? [];
-      const source = summaryClasses.length ? summaryClasses : winratesData.classes;
-      return [...source].sort((a, b) => b.winrate - a.winrate).slice(0, 3);
-    },
-    [homeSummaryData?.topClasses, winratesData.classes],
-  );
-
-  const topLegendaries = useMemo(
-    () => [...(homeSummaryData?.topLegendaries ?? [])]
-      .filter(g => g.winRate !== null)
-      .slice(0, 8),
-    [homeSummaryData?.topLegendaries],
-  );
-
-  const topCards = useMemo(() => {
-    return [...(homeSummaryData?.topCards ?? [])].slice(0, 10);
-  }, [homeSummaryData?.topCards]);
-
-  return (
-    <div className="home-modern flex flex-col gap-8">
-      <section className="home-boosty-banner" aria-label="Баннер Манакоста">
-        <a
-          href="https://boosty.to/kolodahearthstone"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="home-boosty-banner-link"
-        >
-          <picture>
-            <source
-              media="(max-width: 640px)"
-              type="image/avif"
-              srcSet="/main_assets/boosty-feed-banner-mobile.avif?v=boosty-feed-20260625"
-            />
-            <source
-              media="(max-width: 640px)"
-              type="image/webp"
-              srcSet="/main_assets/boosty-feed-banner-mobile.webp?v=boosty-feed-20260625"
-            />
-            <source
-              media="(max-width: 640px)"
-              type="image/jpeg"
-              srcSet="/main_assets/boosty-feed-banner-mobile.jpg?v=boosty-feed-20260625"
-            />
-            <source type="image/avif" srcSet="/main_assets/manacost-arena-boosty-banner.avif?v=boosty-20260625" />
-            <source type="image/webp" srcSet="/main_assets/manacost-arena-boosty-banner.webp?v=boosty-20260625" />
-            <img
-              src="/main_assets/manacost-arena-boosty-banner.jpg?v=boosty-20260625"
-              alt="Manacost: гайды, статистика и тир-листы Hearthstone. Поддержите команду на Boosty."
-              width={1600}
-              height={327}
-              decoding="async"
-              fetchPriority="high"
-              draggable={false}
-            />
-          </picture>
-        </a>
-      </section>
-
-      {/* Stats grid */}
-      <section aria-label="Разделы сайта">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {HOME_NAV_CARDS.map(card => (
-          <div
-            key={card.id}
-            className="modern-feature-card hs-card hs-card-interactive group rounded-2xl p-5 flex flex-col gap-4"
-          >
-            <div className="flex items-start justify-between gap-3">
-            <div className="w-16 h-16 flex-shrink-0">
-              <img src={card.img} alt={card.title}
-                className="w-full h-full object-contain transition-transform duration-200 group-hover:scale-105"
-                draggable={false}
-                style={{ filter: 'drop-shadow(0 3px 6px rgba(74,40,16,0.38))' }} />
-            </div>
-            <span className="modern-mini-stat">{card.stat}</span>
-            </div>
-            <div>
-              <h3 className="font-hs text-[#3d2208] text-lg mb-1">{card.title}</h3>
-              <p className="text-[#8b6c42] text-sm leading-relaxed">{card.desc}</p>
-            </div>
-            <a
-              href={TABS.find(t => t.id === card.id)?.slug ?? '/'}
-              onClick={(e: React.MouseEvent) => { e.preventDefault(); onNavigate(card.id); }}
-              className="hs-btn mt-auto self-start px-4 py-2 rounded-lg text-sm font-hs"
-              style={{ textDecoration: 'none' }}
-            >
-              Перейти →
-            </a>
-          </div>
-        ))}
-      </div>
-      </section>
-
-      {/* Top classes row */}
-      <section aria-labelledby="top-classes-heading">
-      <div className="flex flex-col gap-3">
-        <h3 id="top-classes-heading" className="font-hs text-[#3d2208] text-xl">Топ классы по винрейту</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {loadingWinrates
-            ? [0, 1, 2].map(i => (
-                <div key={i} className="rounded-2xl p-4 animate-pulse"
-                  style={{ background: 'linear-gradient(135deg,#ede0c0,#e0cc9e)', border: '1.5px solid #c4a46a', height: 80 }} />
-              ))
-            : topClasses.map((cls, i) => {
-                const icon = CLASS_ICON_BY_ID[cls.id];
-                const pct = Math.max(0, Math.min(100, (cls.winrate - 40) / 20 * 100));
-                return (
-                  <div key={cls.id} className="hs-card hs-card-interactive rounded-2xl p-4 flex flex-col gap-2">
-                    <div className="flex items-center gap-3">
-                      <span className="font-hs font-bold text-lg" style={{ minWidth: 24, color: i === 0 ? '#b8860b' : '#8b6c42' }}>#{i + 1}</span>
-                      {icon && <img src={icon} alt={cls.name} className="w-8 h-8 rounded-full object-cover" />}
-                      <span className="font-hs text-[#3d2208] text-base flex-1">{cls.name}</span>
-                      <span className="font-hs text-[#6b4c2a] text-sm font-bold">{cls.winrate.toFixed(1)}%</span>
-                    </div>
-                    <div className="w-full h-2 rounded-full" style={{ background: 'rgba(148,163,184,0.22)' }}>
-                      <div className="h-full rounded-full transition-all"
-                        style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#2563eb,#38bdf8)' }} />
-                    </div>
-                  </div>
-                );
-              })
-          }
-        </div>
-      </div>
-      </section>
-
-      {/* Top cards from tier list */}
-      <section aria-labelledby="top-cards-heading">
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h3 id="top-cards-heading" className="font-hs text-[#3d2208] text-xl">Лучшие карты</h3>
-          <a
-            href="/tierlist"
-            onClick={(e: React.MouseEvent) => { e.preventDefault(); onNavigate('tierlist'); }}
-            className="text-sm font-hs text-[#8b4513] hover:text-[#fcd34d] transition-colors"
-            style={{ textDecoration: 'none' }}
-          >
-            Тир-лист →
-          </a>
-        </div>
-        <div className="flex gap-2 overflow-x-auto scrollbar-hs pb-2">
-          {loadingHomeSummary && topCards.length === 0
-            ? Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="flex-shrink-0 w-24 sm:w-28 rounded-xl animate-pulse"
-                  style={{ height: 150, background: 'linear-gradient(135deg,#ede0c0,#e0cc9e)', border: '1.5px solid #c4a46a' }} />
-              ))
-            : topCards.map(card => {
-                const imgSrc = card.imageRu || card.imageHa || null;
-                return (
-                  <a
-                    key={card.cardId}
-                    href="/tierlist"
-                    onClick={(e: React.MouseEvent) => { e.preventDefault(); onNavigate('tierlist'); }}
-                    className="flex-shrink-0 flex flex-col items-center gap-1 group"
-                    style={{ WebkitTapHighlightColor: 'transparent', textDecoration: 'none' }}
-                  >
-                    {imgSrc ? (
-                      <img
-                        src={imgSrc}
-                        alt={card.name}
-                        loading="lazy"
-                        className="w-20 sm:w-24 h-auto transition-transform duration-200 group-hover:scale-105"
-                        draggable={false}
-                        style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.55)) drop-shadow(0 1px 3px rgba(0,0,0,0.4))' }}
-                      />
-                    ) : (
-                      <div className="w-20 sm:w-24 h-32 rounded-xl flex items-center justify-center text-center px-1.5 transition-transform duration-200 group-hover:scale-105"
-                        style={{
-                          background: 'linear-gradient(135deg,#2c1e16,#1a110a)',
-                          border: '1.5px solid #a88a45',
-                          boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
-                        }}>
-                        <span className="font-hs text-[#fcd34d] text-[10px] leading-tight">{card.name}</span>
-                      </div>
-                    )}
-                    <span className="font-hs text-[#3d2208] text-[10px] sm:text-[11px] text-center leading-tight max-w-[5rem] sm:max-w-[6rem] line-clamp-2">{card.name}</span>
-                  </a>
-                );
-              })
-          }
-        </div>
-      </div>
-      </section>
-
-      {/* Top legendaries */}
-      <section aria-labelledby="top-legendaries-heading">
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h3 id="top-legendaries-heading" className="font-hs text-[#3d2208] text-xl">Лучшие легендарки</h3>
-          <a
-            href="/legendaries"
-            onClick={(e: React.MouseEvent) => { e.preventDefault(); onNavigate('legendaries'); }}
-            className="text-sm font-hs text-[#8b4513] hover:text-[#fcd34d] transition-colors"
-            style={{ textDecoration: 'none' }}
-          >
-            Все →
-          </a>
-        </div>
-        <div className="flex gap-3 overflow-x-auto scrollbar-hs pb-2">
-          {loadingHomeSummary && topLegendaries.length === 0
-            ? Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="flex-shrink-0 w-20 sm:w-24 rounded-xl animate-pulse"
-                  style={{ height: 130, background: 'linear-gradient(135deg,#ede0c0,#e0cc9e)', border: '1.5px solid #c4a46a' }} />
-              ))
-            : topLegendaries.map(g => {
-                const imgSrc = g.imageRu || g.imageHa || null;
-                return (
-                  <a
-                    key={g.cardId}
-                    href="/legendaries"
-                    onClick={(e: React.MouseEvent) => { e.preventDefault(); onNavigate('legendaries'); }}
-                    className="flex-shrink-0 flex flex-col items-center gap-1 group cursor-pointer"
-                    style={{ WebkitTapHighlightColor: 'transparent', textDecoration: 'none' }}
-                  >
-                    <div className="relative">
-                      {imgSrc ? (
-                        <img
-                          src={imgSrc}
-                          alt={g.name}
-                          loading="lazy"
-                          className="w-20 sm:w-24 h-auto transition-transform duration-200 group-hover:scale-105"
-                          draggable={false}
-                          style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.55)) drop-shadow(0 1px 3px rgba(0,0,0,0.4))' }}
-                        />
-                      ) : (
-                        <div className="w-20 sm:w-24 h-32 rounded-xl flex items-center justify-center text-center px-2"
-                          style={{ background: 'linear-gradient(135deg,#2c1e16,#1a110a)', border: '1.5px solid #a88a45' }}>
-                          <span className="font-hs text-[#fcd34d] text-xs leading-tight">{g.name}</span>
-                        </div>
-                      )}
-                      {g.winRate !== null && (
-                        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap"
-                          style={{
-                            background: 'linear-gradient(135deg,#6b4c2a,#3a2210)',
-                            border: '1px solid #a88a45',
-                            color: '#fcd34d',
-                            boxShadow: '0 2px 6px rgba(0,0,0,0.6)',
-                          }}>
-                          {g.winRate.toFixed(1)}%
-                        </div>
-                      )}
-                    </div>
-                    <span className="font-hs text-[#3d2208] text-[11px] sm:text-xs text-center leading-tight max-w-[5rem] sm:max-w-[6rem] line-clamp-2">{g.name}</span>
-                  </a>
-                );
-              })
-          }
-        </div>
-      </div>
-      </section>
-
-      {/* ── Promo banners ──────────────────────────────────────────────────── */}
-      <aside aria-label="Сообщество и поддержка">
-      <div className="flex flex-col gap-3">
-        {/* Telegram */}
-        <a
-          href="https://t.me/manacost_ru"
-          target="_blank"
-          rel="noreferrer"
-          className="community-promo-card community-promo-card-telegram group flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-5 py-4 rounded-2xl no-underline transition-all duration-200 hover:scale-[1.01]"
-          style={{
-            background: 'linear-gradient(135deg, rgba(8,20,38,0.96) 0%, rgba(16,45,78,0.94) 54%, rgba(7,18,34,0.98) 100%)',
-            border: '1px solid rgba(56,189,248,0.32)',
-            boxShadow: '0 18px 34px rgba(15,23,42,0.24), inset 0 1px 0 rgba(147,197,253,0.16)',
-          }}
-        >
-          {/* Icon */}
-          <div className="flex-shrink-0 w-11 h-11 rounded-full overflow-hidden"
-            style={{ boxShadow: '0 0 0 2px rgba(56,189,248,0.5), 0 10px 22px rgba(14,165,233,0.18)' }}>
-            <img src="/ad/telegram.png" alt="Telegram" className="w-full h-full object-cover" draggable={false} />
-          </div>
-
-          {/* Text */}
-          <div className="flex flex-col flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="font-hs text-sm sm:text-base leading-tight" style={{ color: '#e5f2ff' }}>Telegram-канал Manacost</span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0"
-                style={{ background: 'rgba(14,165,233,0.18)', color: '#bae6fd', border: '1px solid rgba(56,189,248,0.35)' }}>
-                Новости
-              </span>
-            </div>
-            <span className="text-xs leading-snug" style={{ color: '#a9bdd6' }}>
-              Патчи, обзоры мета и советы по Арене — первыми
-            </span>
-          </div>
-
-          {/* CTA */}
-          <div className="flex-shrink-0 flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-hs transition-all duration-200 group-hover:brightness-110"
-            style={{ background: 'rgba(37,99,235,0.22)', border: '1px solid rgba(56,189,248,0.45)', color: '#dbeafe', whiteSpace: 'nowrap' }}>
-            Подписаться
-            <span className="text-base leading-none">→</span>
-          </div>
-        </a>
-
-        {/* Boosty */}
-        <a
-          href="https://boosty.to/kolodahearthstone"
-          target="_blank"
-          rel="noreferrer"
-          className="community-promo-card community-promo-card-boosty group flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-5 py-4 rounded-2xl no-underline transition-all duration-200 hover:scale-[1.01]"
-          style={{
-            background: 'linear-gradient(135deg, rgba(8,20,38,0.98) 0%, rgba(23,37,60,0.96) 50%, rgba(7,18,34,0.98) 100%)',
-            border: '1px solid rgba(96,165,250,0.26)',
-            boxShadow: '0 18px 34px rgba(15,23,42,0.24), inset 0 1px 0 rgba(147,197,253,0.12)',
-          }}
-        >
-          {/* Icon */}
-          <div className="flex-shrink-0 w-11 h-11 rounded-xl overflow-hidden p-1.5"
-            style={{ background: 'rgba(249,115,22,0.12)', boxShadow: '0 0 0 2px rgba(96,165,250,0.32), 0 10px 22px rgba(37,99,235,0.14)' }}>
-            <img src="/ad/boosty.png" alt="Boosty" className="w-full h-full object-contain" draggable={false} />
-          </div>
-
-          {/* Text */}
-          <div className="flex flex-col flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="font-hs text-sm sm:text-base leading-tight" style={{ color: '#e5f2ff' }}>Koloda на Boosty</span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0"
-                style={{ background: 'rgba(37,99,235,0.2)', color: '#bfdbfe', border: '1px solid rgba(96,165,250,0.34)' }}>
-                Эксклюзив
-              </span>
-            </div>
-            <span className="text-xs leading-snug" style={{ color: '#a9bdd6' }}>
-              Авторские гайды, разборы и контент для подписчиков
-            </span>
-          </div>
-
-          {/* CTA */}
-          <div className="flex-shrink-0 flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-hs transition-all duration-200 group-hover:brightness-110"
-            style={{ background: 'rgba(37,99,235,0.2)', border: '1px solid rgba(96,165,250,0.42)', color: '#dbeafe', whiteSpace: 'nowrap' }}>
-            Поддержать
-            <span className="text-base leading-none">→</span>
-          </div>
-        </a>
-      </div>
-      </aside>
-
-      {/* FAQ */}
-      <FAQSection />
-    </div>
-  );
-}
-
 // ─── AdminPanel ───────────────────────────────────────────────────────────────
 
 interface AdminForm {
@@ -3738,6 +3342,14 @@ const COUNTRY_OPTIONS = [
   'США',
   'Другая страна',
 ];
+
+const PROFILE_CONTEST_STATUS_TEXT: Record<string, string> = {
+  active: 'Идет',
+  planned: 'Скоро',
+  completed: 'Завершен',
+  cancelled: 'Отменен',
+  draft: 'Черновик',
+};
 
 function authInitials(user: Pick<AuthUser, 'name' | 'email' | 'avatarInitials'>): string {
   const raw = user.avatarInitials || user.name || user.email;
@@ -4463,16 +4075,8 @@ export function LoginPanel({
     const wonContestCount = contestHistory.filter(item => item.isWinner).length;
     const profileId = authUser.profileId || authUser.id || '—';
     const profileIdDisplay = shortProfileIdentifier(profileId);
-    const contestStatusText: Record<string, string> = {
-      active: 'Идет',
-      planned: 'Скоро',
-      completed: 'Завершен',
-      cancelled: 'Отменен',
-      draft: 'Черновик',
-    };
-
     return (
-      <div className="profile-page" style={{ padding: '18px 0', width: '100%' }}>
+      <div className="profile-page profile-workspace" style={{ padding: '18px 0', width: '100%' }}>
         <div className="profile-card" style={{
           width: 'min(100%, 1420px)',
           margin: '0 auto',
@@ -4514,10 +4118,10 @@ export function LoginPanel({
             <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '18px', width: '100%', minWidth: 0 }}>
               <AuthAvatar user={{ ...authUser, name: profileName }} size={92} />
               <div style={{ minWidth: 0, textAlign: 'left', flex: 1 }}>
-                <p style={{ color: '#93c5fd', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px', fontWeight: 700 }}>
-                  Экосистема Манакоста
+                <p className="profile-hero__eyebrow" style={{ color: '#93c5fd', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px', fontWeight: 700 }}>
+                  Личный кабинет
                 </p>
-                <h2 style={{
+                <h1 style={{
                   fontFamily: 'var(--font-display)',
                   color: '#f8faff',
                   fontSize: 'clamp(1.55rem, 4vw, 2.25rem)',
@@ -4527,13 +4131,16 @@ export function LoginPanel({
                   textShadow: '0 8px 24px rgba(0,0,0,0.46)',
                 }}>
                   {profileName}
-                </h2>
-                <p style={{ color: '#c8d5e8', fontSize: '14px', marginTop: '7px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                </h1>
+                <p className="profile-hero__contact" style={{ color: '#c8d5e8', fontSize: '14px', marginTop: '7px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {profileContact}
+                </p>
+                <p className="profile-hero__id" title={profileId}>
+                  ID <code>{profileIdDisplay}</code>
                 </p>
                 <div className="profile-status-chips" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '13px' }}>
                   {[profileRoleLabel, subscriptionLabel, identityLabel].map((item, index) => (
-                    <span key={`${index}-${item}`} className="profile-status-chip" style={{
+                    <span key={item} className="profile-status-chip" style={{
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '6px',
@@ -4554,15 +4161,6 @@ export function LoginPanel({
                 </div>
               </div>
             </div>
-            <div style={{
-              position: 'absolute',
-              left: 26,
-              bottom: 18,
-              zIndex: 2,
-              color: '#9fb1ca',
-              fontSize: '11px',
-              display: 'none',
-            }} />
           </div>
           <div className="profile-summary-strip" style={{
             display: 'flex',
@@ -4602,7 +4200,7 @@ export function LoginPanel({
             </span>
           </div>
           {msg && (
-            <div style={{
+            <div className={`profile-message profile-message--${msg.type}`} role={msg.type === 'err' ? 'alert' : 'status'} aria-live="polite" style={{
               marginBottom: '14px',
               padding: '9px 12px',
               borderRadius: '8px',
@@ -4621,13 +4219,13 @@ export function LoginPanel({
             <ProfileStatCard label="Конкурсы" value={approvedContestCount ? String(approvedContestCount) : '0'} hint="Одобренные участия" />
             <ProfileStatCard label="Победы" value={wonContestCount ? String(wonContestCount) : '0'} hint="ID в победителях" />
           </div>
-          <section style={{
+          <section className="profile-contact-section" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))',
             gap: '14px',
             marginBottom: '18px',
           }}>
-            <div style={{
+            <div className="profile-contact-readonly" style={{
               padding: '16px',
               borderRadius: '16px',
               border: '1px solid #cbd7ea',
@@ -4658,6 +4256,7 @@ export function LoginPanel({
               </div>
             </div>
             <form
+              className="profile-settings-form"
               onSubmit={handleProfileSave}
               style={{
                 display: 'grid',
@@ -4718,6 +4317,7 @@ export function LoginPanel({
             </form>
           </section>
           <form
+            className="profile-settings-form-legacy"
             onSubmit={handleProfileSave}
             style={{
               display: 'none',
@@ -4764,7 +4364,7 @@ export function LoginPanel({
               Сохранить
             </button>
           </form>
-          <div className="profile-subscription-panel" style={{
+          <section className={`profile-subscription-panel ${subscription?.hasAccess ? 'profile-subscription-panel--active' : ''}`} style={{
             marginBottom: '18px',
             padding: '16px',
             borderRadius: '14px',
@@ -4777,7 +4377,7 @@ export function LoginPanel({
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '10px' }}>
               <div>
                 <p style={{ margin: 0, color: '#64748b', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Подписка Манакоста
+                  Доступ к закрытым разделам
                 </p>
                 <strong style={{ display: 'block', marginTop: '4px', color: subscription?.hasAccess ? '#065f46' : '#1e3a5f', fontSize: '1rem' }}>
                   {subscriptionPending
@@ -4806,9 +4406,9 @@ export function LoginPanel({
               {subscription?.message || 'Подтвердите подписку через Boosty или Telegram VIP-канал.'}
             </p>
             {subscriptionAccessLabels.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', margin: '0 0 12px' }}>
+              <div className="profile-access-list" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', margin: '0 0 12px' }}>
                 {subscriptionAccessLabels.map(label => (
-                  <span key={label} style={{
+                  <span key={label} className="profile-access-item" style={{
                     padding: '5px 8px',
                     borderRadius: '999px',
                     background: 'rgba(16,185,129,0.12)',
@@ -4896,6 +4496,7 @@ export function LoginPanel({
               Последняя проверка: {formatSubscriptionDate(subscription?.checkedAt ?? null)}
             </p>
             <form
+              className="profile-boosty-form"
               onSubmit={boostyStep === 'email' ? handleBoostyEmailRequest : handleBoostyEmailConfirm}
               style={{
                 display: 'flex',
@@ -4944,7 +4545,7 @@ export function LoginPanel({
               </button>
             </form>
             {telegramEnabled && !authUser.telegramUsername && (
-              <div style={{
+              <div className="profile-telegram-link" style={{
                 margin: '0 0 12px',
                 padding: '12px',
                 borderRadius: '12px',
@@ -4976,8 +4577,8 @@ export function LoginPanel({
                 )}
               </div>
             )}
-          </div>
-          <section style={{
+          </section>
+          <section className="profile-contests" style={{
             marginBottom: '18px',
             padding: '16px',
             borderRadius: '16px',
@@ -4985,14 +4586,14 @@ export function LoginPanel({
             background: 'rgba(248,250,255,0.78)',
             textAlign: 'left',
           }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '12px' }}>
+            <div className="profile-contests__heading" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '12px' }}>
               <div>
                 <strong style={{ display: 'block', color: '#1e293b', fontSize: '16px' }}>История участия в конкурсах</strong>
                 <span style={{ display: 'block', color: '#64748b', fontSize: '12px', marginTop: '3px' }}>
                   Здесь отображаются конкурсы, куда вы подали заявку через профиль Манакоста.
                 </span>
               </div>
-              <span style={{
+              <span className="profile-contests__count" style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
@@ -5006,13 +4607,13 @@ export function LoginPanel({
                 flexShrink: 0,
               }}>
                 <Trophy size={14} />
-                {contestHistory.length} участий
+                {contestHistory.length} участий · {wonContestCount} побед
               </span>
             </div>
             {contestHistoryLoading ? (
-              <div style={{ color: '#64748b', fontSize: '13px', padding: '12px 0' }}>Загружаем историю...</div>
+              <div className="profile-contests__state" style={{ color: '#64748b', fontSize: '13px', padding: '12px 0' }}>Загружаем историю...</div>
             ) : contestHistory.length === 0 ? (
-              <div style={{
+              <div className="profile-contests__state" style={{
                 borderRadius: '12px',
                 border: '1px dashed #cbd7ea',
                 background: '#f8faff',
@@ -5024,9 +4625,9 @@ export function LoginPanel({
                 Вы пока не участвовали в конкурсах. Когда нажмете “Участвовать” на странице конкурса, заявка появится здесь.
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '10px' }}>
+              <div className="profile-contest-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '10px' }}>
                 {contestHistory.map(item => (
-                  <div key={item.id || item.contestId} style={{
+                  <article key={item.id || item.contestId} className={`profile-contest-entry ${item.imageUrl ? 'profile-contest-entry--with-image' : ''} ${item.isWinner ? 'profile-contest-entry--winner' : ''}`} style={{
                     display: 'grid',
                     gridTemplateColumns: item.imageUrl ? '82px minmax(0, 1fr)' : '1fr',
                     gap: '12px',
@@ -5048,7 +4649,7 @@ export function LoginPanel({
                           fontSize: '12px',
                           fontWeight: 900,
                         }}>
-                          {contestStatusText[item.status] || item.status}
+                          {PROFILE_CONTEST_STATUS_TEXT[item.status] || item.status}
                         </span>
                         <span style={{ borderRadius: '999px', background: '#eef6ff', color: '#1e3a5f', padding: '3px 8px', fontSize: '12px', fontWeight: 900 }}>
                           {item.entryStatus === 'approved' ? 'Участие одобрено' : item.entryStatus || 'Заявка'}
@@ -5065,12 +4666,12 @@ export function LoginPanel({
                         Заявка: {item.joinedAt ? new Date(item.joinedAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'дата не указана'}
                       </p>
                     </div>
-                  </div>
+                  </article>
                 ))}
               </div>
             )}
           </section>
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          <div className="profile-account-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
             {authUser.role === 'admin' && (
               <a href="/?admin&section=list" style={{
                 ...ADMIN_SECONDARY_BUTTON,

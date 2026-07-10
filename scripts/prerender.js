@@ -858,10 +858,10 @@ function makePublicReadable(path) {
 }
 
 async function main() {
-  const distDir = resolve(process.cwd(), 'dist');
+  const distDir = resolve(process.cwd(), process.env.PRERENDER_DIST_DIR || 'dist');
 
   if (!existsSync(distDir)) {
-    console.error('[prerender] dist/ not found. Run "vite build" first.');
+    console.error(`[prerender] ${distDir} not found. Run "vite build" first.`);
     process.exit(1);
   }
 

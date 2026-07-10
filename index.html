@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#1a0e04" />
-    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#081a33" />
+    <meta name="color-scheme" content="light" />
 
     <!-- ═══ Primary SEO ══════════════════════════════════════════════════════ -->
     <title>Manacost Arena — Тир-лист и Винрейты для Арены Hearthstone</title>
@@ -38,10 +38,7 @@
     <link rel="icon"             type="image/x-icon" href="/favicon.ico?v=mana-swirl-20260702" />
     <link rel="apple-touch-icon"                     href="/apple-touch-icon.png?v=mana-swirl-20260702" />
 
-    <!-- ═══ Font performance ════════════════════════════════════════════════ -->
-    <link rel="preload" href="/fonts/2318-font.otf" as="font" type="font/otf" crossorigin />
-    <link rel="preload" href="/fonts/google/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/google/inter-cyrillic.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- ═══ Connection hints ════════════════════════════════════════════════ -->
     <link rel="dns-prefetch" href="https://art.hearthstonejson.com" />
     <link rel="preconnect" href="https://art.hearthstonejson.com" crossorigin />
 
@@ -137,11 +134,20 @@
 
     <!-- ═══ Yandex.Metrika ════════════════════════════════════════════════ -->
     <script type="text/javascript">
-      (function(m,e,t,r,i,k,a){
+      (function(m,e,t,r,i){
         m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
         m[i].l=1*new Date();
-        for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}
-        k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+        var load=function(){
+          for(var j=0;j<e.scripts.length;j++){if(e.scripts[j].src===r){return;}}
+          var k=e.createElement(t),a=e.getElementsByTagName(t)[0];
+          k.async=1;k.src=r;a.parentNode.insertBefore(k,a);
+        };
+        var schedule=function(){
+          if('requestIdleCallback' in m){m.requestIdleCallback(load,{timeout:3000});}
+          else{m.setTimeout(load,1500);}
+        };
+        if(e.readyState==='complete'){schedule();}
+        else{m.addEventListener('load',schedule,{once:true});}
       })(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=108159528','ym');
       ym(108159528,'init',{ssr:true,webvisor:true,clickmap:true,ecommerce:"dataLayer",referrer:document.referrer,url:location.href,accurateTrackBounce:true,trackLinks:true});
     </script>

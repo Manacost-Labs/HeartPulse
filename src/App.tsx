@@ -7,6 +7,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo, memo, useDefe
 import { createPortal } from 'react-dom';
 import { Trophy, Scroll, RefreshCw, AlertTriangle, X, Search, Star, Home, BookOpen, Menu, ChevronLeft, ChevronRight, Grid3X3, List, LogIn, Eye, EyeOff, UserCircle, Library, Gift, ShieldCheck, Send, Swords, Image as ImageIcon } from 'lucide-react';
 import { getCanonicalRedirectUrl } from './config/domain';
+import HomeTab from './features/Home';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -5607,7 +5608,7 @@ function FAQSection() {
       <h2 id="faq-heading" className="font-hs text-[#3d2208] text-xl mb-4">Частые вопросы</h2>
       <div className="flex flex-col gap-2">
         {FAQ_ITEMS.map((item, i) => (
-          <div key={i} className="faq-card rounded-xl overflow-hidden"
+          <div key={item.q} className="faq-card rounded-xl overflow-hidden"
             style={{ border: '1.5px solid #c4a46a', background: 'linear-gradient(135deg,#f5ead0,#ede0c0)' }}>
             <button
               className="w-full text-left flex items-center justify-between px-4 py-3 gap-2"
@@ -6644,15 +6645,32 @@ const SUPPORT_URL = 'https://boosty.to/kolodahearthstone';
 
 function SupportPrompt() {
   const [visible, setVisible] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const timer = window.setTimeout(() => {
-      if (window.matchMedia('(max-width: 760px)').matches) return;
+    if (window.matchMedia('(max-width: 760px)').matches) return;
+
+    try {
       const closedAt = Number(window.localStorage.getItem(SUPPORT_PROMPT_STORAGE_KEY) || 0);
-      if (!closedAt || Date.now() - closedAt >= SUPPORT_PROMPT_INTERVAL_MS) setVisible(true);
-    }, 1200);
-    return () => window.clearTimeout(timer);
+      if (closedAt && Date.now() - closedAt < SUPPORT_PROMPT_INTERVAL_MS) return;
+    } catch { /* storage may be disabled */ }
+
+    const reveal = () => setVisible(true);
+    const handleScroll = () => {
+      if (window.scrollY < 700) return;
+      reveal();
+      window.removeEventListener('scroll', handleScroll);
+    };
+
+    const timer = window.setTimeout(reveal, 12000);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   const close = useCallback(() => {
@@ -6664,8 +6682,22 @@ function SupportPrompt() {
 
   if (!visible) return null;
 
+  if (!expanded) {
+    return (
+      <aside className="support-prompt support-prompt--collapsed" aria-label="Поддержать Манакост">
+        <button type="button" className="support-prompt__trigger" onClick={() => setExpanded(true)} aria-expanded="false">
+          <Gift size={17} aria-hidden="true" />
+          Поддержать проект
+        </button>
+        <button type="button" className="support-prompt__dismiss" onClick={close} aria-label="Скрыть предложение поддержки">
+          <X size={14} />
+        </button>
+      </aside>
+    );
+  }
+
   return (
-    <aside className="support-prompt" aria-label="Поддержать Манакост">
+    <aside className="support-prompt support-prompt--expanded" aria-label="Поддержать Манакост">
       <button type="button" className="support-prompt__close" onClick={close} aria-label="Закрыть уведомление">
         <X size={15} />
       </button>
@@ -6675,7 +6707,7 @@ function SupportPrompt() {
         <span>Отсканируйте QR или откройте Boosty.</span>
       </div>
       <a className="support-prompt__qr" href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" aria-label="Открыть Boosty">
-        <img src="/ad/donate-qr.png" alt="QR код Boosty Манакоста" />
+        <img src="/ad/donate-qr.png" alt="QR код Boosty Манакоста" width={124} height={124} loading="lazy" decoding="async" />
       </a>
       <a className="support-prompt__button" href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" onClick={close}>
         Открыть Boosty
@@ -6725,7 +6757,6 @@ const loadDeferredRoutesModule = () => import('./features/DeferredRoutes');
 const loadBgLibraryModule = () => import('./features/BgLibrary');
 const loadGuidesArchiveModule = () => import('./features/GuidesArchive');
 const loadStandardMatchupsModule = () => import('./features/StandardMatchups');
-const loadHomeModule = () => import('./features/Home');
 const loadContestsModule = () => import('./features/Contests');
 const loadBattlegroundsModule = () => import('./features/Battlegrounds');
 
@@ -6739,7 +6770,6 @@ const LazyGalleryTab = React.lazy(() => loadDeferredRoutesModule().then(module =
 const LazyBgLibrary = React.lazy(loadBgLibraryModule);
 const LazyGuidesArchive = React.lazy(loadGuidesArchiveModule);
 const LazyStandardMatchupsPage = React.lazy(loadStandardMatchupsModule);
-const LazyHomeTab = React.lazy(loadHomeModule);
 const LazyContestsPage = React.lazy(() => loadContestsModule().then(module => ({ default: module.ContestsPage })));
 const LazyContestAdminPanel = React.lazy(() => loadContestsModule().then(module => ({ default: module.ContestAdminPanel })));
 const LazyBattlegroundHeroesRoute = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundHeroesRoute })));
@@ -6748,7 +6778,6 @@ const LazyBattlegroundStrategyBuilderEmbed = React.lazy(() => loadBattlegroundsM
 const LazyBattlegroundTierBuilderEmbed = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundTierBuilderEmbed })));
 
 const ROUTE_PRELOADERS: Partial<Record<TabId | 'login', () => Promise<unknown>>> = {
-  home: loadHomeModule,
   winrates: loadDeferredRoutesModule,
   tierlist: loadDeferredRoutesModule,
   legendaries: loadDeferredRoutesModule,
@@ -6854,18 +6883,6 @@ function scheduleIdleTask(task: () => void, timeout = 1200): () => void {
   }
   const id = window.setTimeout(task, Math.min(timeout, 450));
   return () => window.clearTimeout(id);
-}
-
-function scheduleDelayedIdleTask(task: () => void, delay = 900, idleTimeout = 1200): () => void {
-  if (typeof window === 'undefined') return () => {};
-  let cancelIdle = () => {};
-  const timer = window.setTimeout(() => {
-    cancelIdle = scheduleIdleTask(task, idleTimeout);
-  }, delay);
-  return () => {
-    window.clearTimeout(timer);
-    cancelIdle();
-  };
 }
 
 // ─── Conditional fetch with ETag (skips body if data unchanged) ───────────────
@@ -7084,7 +7101,7 @@ export default function App() {
   // Admin panel: ?admin in URL; access is checked by authenticated user ID.
   const wantsAdmin = locationParams.has('admin');
   const wantsLogin = locationParams.has('login');
-  const isAdminMode = wantsAdmin;
+  const isAdminMode = wantsAdmin || activeTab === 'admin-panel';
   const [appAuthUser, setAppAuthUser] = useState<AuthUser | null>(null);
   const [appAuthChecking, setAppAuthChecking] = useState(true);
   const [appHasAuthHint, setAppHasAuthHint] = useState(() => hasAuthSessionHint());
@@ -7480,16 +7497,6 @@ export default function App() {
 	    void fetchGallery();
 	  }, [activeTab, fetchGallery]);
 
-  useEffect(() => {
-    const likelyRoutes: Array<TabId | 'login'> = activeTab === 'home'
-      ? ['articles', 'contests', 'winrates', 'tierlist', 'bg-tier-list', 'login']
-      : ['home', 'articles', 'contests', 'login'];
-
-    return scheduleDelayedIdleTask(() => {
-      likelyRoutes.forEach(route => warmRoute(route));
-    }, 650, 1800);
-  }, [activeTab, warmRoute]);
-
   // Set of cardIds that are companion cards in legendary groups (not the key legendary itself)
   const companionIds = useMemo(() => {
     const keyIds = new Set(legendariesData.groups.map(g => g.keyCard.cardId));
@@ -7500,10 +7507,11 @@ export default function App() {
     return ids;
   }, [legendariesData]);
   const isFullWidthBuilder = activeTab === 'standard-matchups' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive';
+  const isOpenSurfacePage = !isAdminMode && (activeTab === 'home' || wantsLogin);
 
-	  return (
-    <div className="min-h-screen bg-wood text-[#3d2a1e] font-body">
-      <header className="arena-mobile-topbar lg:hidden">
+		  return (
+    <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${activeTab === 'home' && !isAdminMode ? 'arena-app-home' : ''}`}>
+      {!isAdminMode && <header className="arena-mobile-topbar lg:hidden">
         <a
           href="/"
           onClick={(e) => { e.preventDefault(); navigate('home'); }}
@@ -7512,19 +7520,17 @@ export default function App() {
         >
           <span>Manacost Stats</span>
         </a>
-        {!isAdminMode && (
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(v => !v)}
-            className="arena-mobile-nav-toggle"
-            aria-expanded={mobileMenuOpen}
-            aria-controls="arena-mobile-menu"
-            aria-label={mobileMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
-          >
-            {mobileMenuOpen ? <X size={21} /> : <Menu size={21} />}
-          </button>
-        )}
-      </header>
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(v => !v)}
+          className="arena-mobile-nav-toggle"
+          aria-expanded={mobileMenuOpen}
+          aria-controls="arena-mobile-menu"
+          aria-label={mobileMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
+        >
+          {mobileMenuOpen ? <X size={21} /> : <Menu size={21} />}
+        </button>
+      </header>}
 
       {!isAdminMode && mobileMenuOpen && (
         <>
@@ -7684,7 +7690,7 @@ export default function App() {
               className="arena-sidebar-brand"
               aria-label="На главную"
             >
-              <span>
+              <span className="arena-sidebar-brand-copy">
                 <strong>Manacost Stats</strong>
               </span>
             </a>
@@ -7837,14 +7843,16 @@ export default function App() {
           </aside>
         )}
 
-        <div className={`arena-workspace ${isFullWidthBuilder ? 'arena-workspace-wide' : ''}`}>
-          <main className={`arena-main relative flex flex-col items-center ${isFullWidthBuilder ? 'arena-main-wide' : ''}`} role="main">
+	        <div className={`arena-workspace ${isFullWidthBuilder ? 'arena-workspace-wide' : ''} ${isAdminMode ? 'arena-workspace-admin' : ''}`}>
+	          <main className={`arena-main relative flex flex-col items-center ${isFullWidthBuilder ? 'arena-main-wide' : ''} ${isAdminMode ? 'arena-main-admin' : ''}`} role="main">
         {/* Parchment container */}
-        <div className={`arena-content w-full max-w-6xl mx-auto bg-parchment rounded-xl border-[3px] sm:border-[4px] border-[#6b4c2a] shadow-[inset_0_0_60px_rgba(139,69,19,0.15),0_0_0_2px_#2c1e16,0_15px_30px_rgba(0,0,0,0.6)] p-3 sm:p-6 md:p-10 relative z-0 ${isFullWidthBuilder ? 'arena-content-wide' : ''}`}>
-          <div className="absolute top-0 left-0 w-8 h-8 sm:w-16 sm:h-16 border-t-2 sm:border-t-4 border-l-2 sm:border-l-4 border-gold rounded-tl-xl opacity-50" />
-          <div className="absolute top-0 right-0 w-8 h-8 sm:w-16 sm:h-16 border-t-2 sm:border-t-4 border-r-2 sm:border-r-4 border-gold rounded-tr-xl opacity-50" />
-          <div className="absolute bottom-0 left-0 w-8 h-8 sm:w-16 sm:h-16 border-b-2 sm:border-b-4 border-l-2 sm:border-l-4 border-gold rounded-bl-xl opacity-50" />
-          <div className="absolute bottom-0 right-0 w-8 h-8 sm:w-16 sm:h-16 border-b-2 sm:border-b-4 border-r-2 sm:border-r-4 border-gold rounded-br-xl opacity-50" />
+	        <div className={`arena-content w-full max-w-6xl mx-auto bg-parchment rounded-xl border-[3px] sm:border-[4px] border-[#6b4c2a] shadow-[inset_0_0_60px_rgba(139,69,19,0.15),0_0_0_2px_#2c1e16,0_15px_30px_rgba(0,0,0,0.6)] p-3 sm:p-6 md:p-10 relative z-0 ${isFullWidthBuilder ? 'arena-content-wide' : ''} ${isAdminMode ? 'arena-content-admin' : ''} ${isOpenSurfacePage ? 'arena-content-open' : ''}`}>
+          {!isAdminMode && !isOpenSurfacePage && <>
+            <div className="absolute top-0 left-0 w-8 h-8 sm:w-16 sm:h-16 border-t-2 sm:border-t-4 border-l-2 sm:border-l-4 border-gold rounded-tl-xl opacity-50" />
+            <div className="absolute top-0 right-0 w-8 h-8 sm:w-16 sm:h-16 border-t-2 sm:border-t-4 border-r-2 sm:border-r-4 border-gold rounded-tr-xl opacity-50" />
+            <div className="absolute bottom-0 left-0 w-8 h-8 sm:w-16 sm:h-16 border-b-2 sm:border-b-4 border-l-2 sm:border-l-4 border-gold rounded-bl-xl opacity-50" />
+            <div className="absolute bottom-0 right-0 w-8 h-8 sm:w-16 sm:h-16 border-b-2 sm:border-b-4 border-r-2 sm:border-r-4 border-gold rounded-br-xl opacity-50" />
+          </>}
 
           {wantsLogin ? (
             <TabTransition tabKey="login">
@@ -7864,16 +7872,12 @@ export default function App() {
             <TabTransition tabKey={`${activeTab}:${currentPath}`}>
               <>
                 {activeTab === 'home' && (
-                  <React.Suspense fallback={<RouteFallback minHeight={720} />}>
-                    <LazyHomeTab
-                      winratesData={winratesData}
-                      loadingWinrates={loadingWinrates}
-                      homeSummaryData={homeSummaryData}
-                      loadingHomeSummary={loadingHomeSummary}
-                      onNavigate={(tab: string) => navigate(tab as TabId)}
-                      faq={<FAQSection />}
-                    />
-                  </React.Suspense>
+                  <HomeTab
+                    homeSummaryData={homeSummaryData}
+                    loadingHomeSummary={loadingHomeSummary}
+                    onNavigate={(tab: string) => navigate(tab as TabId)}
+                    faq={<FAQSection />}
+                  />
                 )}
                 {activeTab === 'standard-matchups' && (
                   renderPrivateRoute(
@@ -8040,8 +8044,8 @@ export default function App() {
           </div>
         </main>
 
-        <SiteFooter onNavigate={(tab: string) => navigate(tab as TabId)} updatedAt={globalUpdatedAt} />
-        <SupportPrompt />
+	        {!isAdminMode && <SiteFooter onNavigate={(tab: string) => navigate(tab as TabId)} updatedAt={globalUpdatedAt} />}
+	        {!isAdminMode && <SupportPrompt />}
         </div>
       </div>
     </div>

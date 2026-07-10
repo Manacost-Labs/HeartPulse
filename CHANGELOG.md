@@ -2,6 +2,25 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Removed the legacy fixed blue vignette, oversized navigation drop shadow, and transparent backdrop blur that produced dark compositing bands along the page edges while scrolling the parchment home page.
+- Added the Hearthstone Wiki wooden rail frame as a locally hosted, lightweight border for the fixed navigation, mobile header, and live class board on the home page.
+- Simplified the public brand to the text-only “Manacost Stats” wordmark and removed the remaining cool-blue and violet UI remnants from rankings, draft tools, Battlegrounds navigation, and FAQ surfaces.
+- Reworked the public shell and home page into a unified Hearthstone archive: a continuous parchment canvas, fixed red textured navigation, thin wood dividers, a live class board, quick in-page navigation, resilient empty states, and matching mobile menu, FAQ, community strip, and footer.
+- Rebuilt the public home page as an animated Arena draft table: a compact live-class orbit, a true three-step draft path with Hearthstone artwork, larger card shelves, a distinct Battlegrounds tavern, staged scroll reveals, responsive micro-interactions, and a complete reduced-motion fallback.
+- Reorganized the signed-in profile around the jobs users actually perform: identity and access first, one editable contacts form, clearer Boosty/Telegram verification, compact contest history, and nearby account actions on desktop and mobile.
+- Removed the outer parchment-style card from the home and profile routes, introduced a consistent open canvas with container-aware layouts, and kept the existing auth, subscription, navigation, lazy card loading, and card animation engines unchanged.
+- Added a dedicated admin mailing workspace with HTML composition, exact desktop/mobile preview, test delivery, recipient segments, campaign history, and ready-made templates for the latest article and tier-list updates.
+- Added a durable consent ledger that retains former subscribers without re-enabling unsubscribed addresses, signed one-click unsubscribe links, per-recipient queued delivery, restart-safe status tracking, HTML sanitization, and administrative audit records.
+- Moved every user action into an accessible three-dot menu and added auditable lifetime access grants that override provider status without being overwritten by later Boosty or Telegram refreshes.
+- Rebuilt the live admin workspace with a standalone WordPress-inspired shell, desktop sidebar, mobile drawer, compact dashboard, persistent action feedback, and accessible focus states.
+- Fixed the admin command bar and navigation to the viewport, removed nested list scrolling, tightened every admin page into one consistent layout, and added compact pagination for users, articles, Boosty, Telegram, and contest entries.
+- Split contest work into clear management and editor views, reduced mobile page length, and polished article, gallery, referral, audience, and user cards for faster scanning on desktop and phone.
+- Fixed admin deep links and browser history, contest-admin permissions, duplicate contest requests, destructive-action confirmations, contest schedule presets, and Telegram error reporting; added searchable paginated article/user lists plus article excerpts and explicit access modes.
+- Rebuilt the public home page as a task-first Arena draft workspace with clear primary actions, live data freshness, responsive layouts, and the new Mana Beacon status element.
+- Removed the heavy promotional hero and wallpaper downloads from the critical path, added compact class icons, and deferred below-the-fold card art until it approaches the viewport.
+- Stopped speculative idle loading of unrelated route bundles, made the home route available without an extra request chain, and delayed Yandex Metrika until the page is loaded and idle.
+- Replaced the intrusive support overlay with a delayed collapsed control that loads its QR code only after the user opens it.
+- Updated the cool blue navigation shell and corrected responsive/full-width layouts for the narrower desktop sidebar.
 - Moved Telegram auth bot API calls to the local Bot API server with public API fallback, reducing response latency for link and subscription checks.
 - Restricted `@kolodahearthstoneauthbot` webhook handling to private chats only so the auth bot never answers in groups or supergroups.
 - Fixed the Battlegrounds strategy canvas layout so the 5x5 board keeps enough vertical space and placed cards no longer collapse into overlapping rows on wide screens.

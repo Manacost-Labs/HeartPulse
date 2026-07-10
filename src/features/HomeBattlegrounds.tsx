@@ -16,37 +16,32 @@ const BG_HOME_CARDS: Array<{
 
 export default function HomeBattlegrounds({ onNavigate }: { onNavigate: (tab: string) => void }) {
   return (
-    <section aria-labelledby="home-bg-heading" className="home-bg-section hs-card rounded-2xl p-5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <section aria-labelledby="home-bg-heading" className="home-bg-directory home-reveal">
+      <div className="home-section-heading">
         <div>
-          <h2 id="home-bg-heading" className="font-hs text-[#1f3654] text-2xl sm:text-3xl m-0">Поля Сражений</h2>
-          <p className="text-sm leading-relaxed mt-2 mb-0" style={{ color: '#52667f', maxWidth: 720 }}>
-            Разделы для Battlegrounds: герои, библиотека существ и заклинаний, тир-листы и конструкторы для подготовки стратегий.
-          </p>
+          <span>Battlegrounds</span>
+          <h2 id="home-bg-heading">Поля Сражений</h2>
         </div>
-        <a
-          href="/heroes"
-          onClick={(e: React.MouseEvent) => { e.preventDefault(); onNavigate('bg-heroes'); }}
-          className="modern-secondary-link self-start sm:self-auto"
-          style={{ textDecoration: 'none' }}
-        >
-          Открыть героев
-        </a>
+        <p>Герои, карты и инструменты для подготовки своей стратегии.</p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 mt-5">
-        {BG_HOME_CARDS.map(card => (
+      <nav className="home-bg-directory__links" aria-label="Разделы Полей Сражений">
+        {BG_HOME_CARDS.map((card, index) => (
           <a
             key={card.id}
             href={card.href}
             onClick={(e: React.MouseEvent) => { e.preventDefault(); onNavigate(card.id); }}
-            className="home-bg-card group"
+            className="home-bg-directory__link"
+            data-featured={index < 2 ? 'true' : 'false'}
           >
-            <span className="relative modern-mini-stat self-start mb-2">{card.stat}</span>
-            <strong className="relative font-hs text-lg leading-tight">{card.title}</strong>
-            <span className="relative text-xs leading-snug mt-1">{card.desc}</span>
+            <span>
+              <small>{card.stat === 'builder' ? 'конструктор' : card.stat === 'export' ? 'экспорт' : card.stat}</small>
+              <strong>{card.title}</strong>
+              <span>{card.desc}</span>
+            </span>
+            <b aria-hidden="true">↗</b>
           </a>
         ))}
-      </div>
+      </nav>
     </section>
   );
 }

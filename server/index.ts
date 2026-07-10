@@ -3,6 +3,7 @@ import cron from 'node-cron';
 import compression from 'compression';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import sharp from 'sharp';
+import sanitizeHtml from 'sanitize-html';
 import { createClient } from 'redis';
 import { chmodSync, copyFileSync, createReadStream, mkdirSync, renameSync, unlinkSync, writeFileSync, readFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -130,6 +131,13 @@ const STANDARD_ARCHETYPE_TRANSLATION_CACHE_MS = Math.max(60_000, Number(process.
 const KOLODAHS_RELATED_CARD_PAGES_DIR = join(KOLODAHS_DB_ROOT, 'var/wiki-hs-cache/related-card-pages');
 const AUTH_COOKIE_NAME = 'manacost_auth_token';
 const AUTH_FROM = process.env.AUTH_FROM || 'noreply@hs-manacost.ru';
+const NEWSLETTER_FROM = process.env.NEWSLETTER_FROM || AUTH_FROM;
+const NEWSLETTER_FROM_NAME = (process.env.NEWSLETTER_FROM_NAME || 'Manacost').trim();
+const NEWSLETTER_UNSUBSCRIBE_SECRET = (process.env.NEWSLETTER_UNSUBSCRIBE_SECRET || ECOSYSTEM_INTERNAL_KEY).trim();
+const SENDMAIL_PATH = process.env.SENDMAIL_PATH || '/usr/sbin/sendmail';
+const NEWSLETTER_HTML_MAX_LENGTH = Math.max(10_000, Number(process.env.NEWSLETTER_HTML_MAX_LENGTH || 120_000));
+const NEWSLETTER_SENDMAIL_TIMEOUT_MS = 30_000;
+const NEWSLETTER_LEGACY_MIGRATION_KEY = 'mailing_contacts_legacy_consent_migrated_v1';
 const AUTH_SESSION_TTL_MS = Math.max(
   12 * 60 * 60 * 1000,
   Number(process.env.AUTH_SESSION_TTL_MS || 30 * 24 * 60 * 60 * 1000),
@@ -699,6 +707,18 @@ function db(): DatabaseSync {
       checked_at TEXT NOT NULL,
       FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
     );
+    CREATE TABLE IF NOT EXISTS manual_subscription_grants (
+      user_id TEXT PRIMARY KEY,
+      active INTEGER NOT NULL DEFAULT 1,
+      entitlements_json TEXT NOT NULL DEFAULT '{}',
+      granted_by TEXT NOT NULL,
+      granted_at TEXT NOT NULL,
+      revoked_by TEXT,
+      revoked_at TEXT,
+      note TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
     CREATE TABLE IF NOT EXISTS contests (
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
@@ -756,6 +776,65 @@ function db(): DatabaseSync {
       PRIMARY KEY(article_id, user_id),
       FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
     );
+    CREATE TABLE IF NOT EXISTS mailing_contacts (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      user_id TEXT,
+      name TEXT NOT NULL DEFAULT '',
+      consent_status TEXT NOT NULL DEFAULT 'unknown' CHECK(consent_status IN ('unknown', 'subscribed', 'unsubscribed', 'suppressed')),
+      consent_source TEXT NOT NULL DEFAULT '',
+      consented_at TEXT,
+      verified_at TEXT,
+      unsubscribed_at TEXT,
+      suppressed_reason TEXT NOT NULL DEFAULT '',
+      account_state TEXT NOT NULL DEFAULT 'current' CHECK(account_state IN ('current', 'former')),
+      former_at TEXT,
+      first_seen_at TEXT NOT NULL,
+      last_seen_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
+    );
+    CREATE TABLE IF NOT EXISTS mailing_campaigns (
+      id TEXT PRIMARY KEY,
+      subject TEXT NOT NULL,
+      preheader TEXT NOT NULL DEFAULT '',
+      html_body TEXT NOT NULL,
+      text_body TEXT NOT NULL DEFAULT '',
+      template_key TEXT NOT NULL DEFAULT 'custom',
+      segment TEXT NOT NULL DEFAULT 'all-consented',
+      status TEXT NOT NULL DEFAULT 'queued',
+      created_by TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      started_at TEXT,
+      completed_at TEXT,
+      recipient_count INTEGER NOT NULL DEFAULT 0,
+      accepted_count INTEGER NOT NULL DEFAULT 0,
+      failed_count INTEGER NOT NULL DEFAULT 0,
+      skipped_count INTEGER NOT NULL DEFAULT 0,
+      error TEXT NOT NULL DEFAULT ''
+    );
+    CREATE TABLE IF NOT EXISTS mailing_deliveries (
+      campaign_id TEXT NOT NULL,
+      contact_id TEXT NOT NULL,
+      email_snapshot TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      last_error TEXT NOT NULL DEFAULT '',
+      accepted_at TEXT,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY(campaign_id, contact_id),
+      FOREIGN KEY(campaign_id) REFERENCES mailing_campaigns(id) ON DELETE CASCADE,
+      FOREIGN KEY(contact_id) REFERENCES mailing_contacts(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS admin_audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      actor_user_id TEXT NOT NULL,
+      action TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      details_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS meta (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
@@ -763,6 +842,11 @@ function db(): DatabaseSync {
   `);
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_referral_clicks_referral_time ON referral_clicks(referral_id, clicked_at DESC);');
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_article_votes_article ON article_votes(article_id);');
+  ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_mailing_contacts_status ON mailing_contacts(consent_status, account_state);');
+  ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_mailing_contacts_user ON mailing_contacts(user_id);');
+  ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_mailing_campaigns_created ON mailing_campaigns(created_at DESC);');
+  ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_mailing_deliveries_status ON mailing_deliveries(campaign_id, status, attempts);');
+  ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_admin_audit_created ON admin_audit_log(created_at DESC);');
   const userColumns = new Set((ecosystemDb.prepare('PRAGMA table_info(users)').all() as any[]).map(row => String(row.name)));
   if (!userColumns.has('contact_vk_url')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN contact_vk_url TEXT');
   if (!userColumns.has('contact_telegram')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN contact_telegram TEXT');
@@ -770,6 +854,7 @@ function db(): DatabaseSync {
   if (!userColumns.has('blocked_at')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN blocked_at TEXT');
   migrateLegacyAuthStore(ecosystemDb);
   syncKhaVipProfiles(ecosystemDb);
+  syncExistingMailingContacts(ecosystemDb);
   return ecosystemDb;
 }
 
@@ -844,6 +929,130 @@ function migrateLegacyAuthStore(database: DatabaseSync) {
   }
 }
 
+function mailingContactId(email: string): string {
+  return `mail_${sha256(normalizeEmail(email)).slice(0, 24)}`;
+}
+
+function syncMailingContactForUser(database: DatabaseSync, user: AdminUser, options: { confirmConsent?: boolean; source?: string } = {}) {
+  const email = normalizeEmail(user.email);
+  if (!isRealEmail(email)) return;
+  const nowIso = new Date().toISOString();
+  const source = normalizeOptionalText(options.source, 80) || 'user-sync';
+  const consentKnown = Boolean(options.confirmConsent);
+  const desiredStatus = user.newsletterOptIn ? (consentKnown ? 'subscribed' : 'unknown') : 'unsubscribed';
+  const confirmedAt = options.confirmConsent && user.newsletterOptIn ? nowIso : null;
+
+  database.prepare(`
+    UPDATE mailing_contacts
+    SET user_id = NULL,
+        consent_status = 'suppressed',
+        suppressed_reason = 'email-replaced',
+        updated_at = ?
+    WHERE user_id = ? AND lower(email) <> lower(?)
+  `).run(nowIso, user.id, email);
+
+  database.prepare(`
+    INSERT INTO mailing_contacts (
+      id, email, user_id, name, consent_status, consent_source, consented_at, verified_at,
+      unsubscribed_at, suppressed_reason, account_state, former_at, first_seen_at, last_seen_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '', 'current', NULL, ?, ?, ?)
+    ON CONFLICT(email) DO UPDATE SET
+      user_id = excluded.user_id,
+      name = excluded.name,
+      consent_status = CASE
+        WHEN excluded.consent_status = 'unknown' THEN mailing_contacts.consent_status
+        WHEN mailing_contacts.consent_status IN ('unsubscribed', 'suppressed') AND excluded.verified_at IS NULL
+          THEN mailing_contacts.consent_status
+        ELSE excluded.consent_status
+      END,
+      consent_source = CASE
+        WHEN excluded.consent_status = 'unknown' THEN mailing_contacts.consent_source
+        WHEN mailing_contacts.consent_status IN ('unsubscribed', 'suppressed') AND excluded.verified_at IS NULL
+          THEN mailing_contacts.consent_source
+        ELSE excluded.consent_source
+      END,
+      consented_at = CASE
+        WHEN excluded.consent_status = 'subscribed' AND (excluded.verified_at IS NOT NULL OR mailing_contacts.consented_at IS NULL)
+          THEN COALESCE(excluded.consented_at, mailing_contacts.consented_at)
+        ELSE mailing_contacts.consented_at
+      END,
+      verified_at = COALESCE(excluded.verified_at, mailing_contacts.verified_at),
+      unsubscribed_at = CASE WHEN excluded.verified_at IS NOT NULL THEN NULL ELSE mailing_contacts.unsubscribed_at END,
+      suppressed_reason = CASE WHEN excluded.verified_at IS NOT NULL THEN '' ELSE mailing_contacts.suppressed_reason END,
+      account_state = 'current',
+      former_at = NULL,
+      last_seen_at = excluded.last_seen_at,
+      updated_at = excluded.updated_at
+  `).run(
+    mailingContactId(email),
+    email,
+    user.id,
+    normalizeOptionalText(user.name, 120),
+    desiredStatus,
+    source,
+    desiredStatus === 'subscribed' ? (confirmedAt || user.createdAt || nowIso) : null,
+    confirmedAt,
+    user.newsletterOptIn ? null : nowIso,
+    user.createdAt || nowIso,
+    nowIso,
+    nowIso,
+  );
+}
+
+function syncExistingMailingContacts(database: DatabaseSync) {
+  const migrated = database.prepare('SELECT value FROM meta WHERE key = ?').get(NEWSLETTER_LEGACY_MIGRATION_KEY) as { value?: string } | undefined;
+  if (migrated?.value === '1') return;
+
+  try {
+    database.exec('BEGIN IMMEDIATE');
+    const rows = database.prepare('SELECT * FROM users').all() as any[];
+    for (const row of rows) {
+      const user = authUserFromRow(row);
+      syncMailingContactForUser(database, user, {
+        confirmConsent: Boolean(user.newsletterOptIn),
+        source: 'legacy-registration',
+      });
+    }
+    database.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run(NEWSLETTER_LEGACY_MIGRATION_KEY, '1');
+    database.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run(`${NEWSLETTER_LEGACY_MIGRATION_KEY}_at`, new Date().toISOString());
+    database.exec('COMMIT');
+  } catch (err) {
+    database.exec('ROLLBACK');
+    throw err;
+  }
+}
+
+function updateMailingConsent(user: AdminUser, subscribed: boolean, source: string) {
+  user.newsletterOptIn = subscribed;
+  syncMailingContactForUser(db(), user, { confirmConsent: subscribed, source });
+  if (!subscribed) {
+    const nowIso = new Date().toISOString();
+    dbRun(`
+      UPDATE mailing_contacts
+      SET consent_status = 'unsubscribed', unsubscribed_at = ?, suppressed_reason = 'user-unsubscribed', updated_at = ?
+      WHERE lower(email) = lower(?)
+    `, nowIso, nowIso, normalizeEmail(user.email));
+  }
+}
+
+function rememberBoostyMailingContact(emailValue: unknown, nameValue: unknown, active: boolean, formerAt?: unknown) {
+  const email = normalizeEmail(emailValue);
+  if (!isRealEmail(email)) return;
+  const nowIso = new Date().toISOString();
+  const formerAtIso = formerAt ? String(formerAt) : active ? null : nowIso;
+  dbRun(`
+    INSERT INTO mailing_contacts (
+      id, email, user_id, name, consent_status, consent_source, consented_at, verified_at,
+      unsubscribed_at, suppressed_reason, account_state, former_at, first_seen_at, last_seen_at, updated_at
+    ) VALUES (?, ?, NULL, ?, 'unknown', 'boosty-observed', NULL, NULL, NULL, '', 'former', ?, ?, ?, ?)
+    ON CONFLICT(email) DO UPDATE SET
+      name = CASE WHEN mailing_contacts.name = '' THEN excluded.name ELSE mailing_contacts.name END,
+      former_at = CASE WHEN mailing_contacts.user_id IS NULL AND ? = 0 THEN COALESCE(mailing_contacts.former_at, excluded.former_at) ELSE mailing_contacts.former_at END,
+      last_seen_at = excluded.last_seen_at,
+      updated_at = excluded.updated_at
+  `, mailingContactId(email), email, normalizeOptionalText(nameValue, 120), formerAtIso, nowIso, nowIso, nowIso, active ? 1 : 0);
+}
+
 function upsertUserRow(database: DatabaseSync, user: AdminUser) {
   const nowIso = new Date().toISOString();
   const createdAt = user.createdAt || nowIso;
@@ -904,6 +1113,7 @@ function upsertUserRow(database: DatabaseSync, user: AdminUser) {
         WHERE identities.user_id = excluded.user_id
     `).run(user.id, user.telegramId, user.telegramUsername ?? '', user.photoUrl ?? '', createdAt, createdAt, updatedAt);
   }
+  syncMailingContactForUser(database, user);
 }
 
 function authUserFromRow(row: any): AdminUser {
@@ -966,6 +1176,12 @@ function saveAuthStore(store: AdminAuthStore) {
     database.exec('BEGIN IMMEDIATE');
     const keepIds = store.users.map(user => user.id);
     if (keepIds.length) {
+      const nowIso = new Date().toISOString();
+      database.prepare(`
+        UPDATE mailing_contacts
+        SET user_id = NULL, account_state = 'former', former_at = COALESCE(former_at, ?), updated_at = ?
+        WHERE user_id IS NOT NULL AND user_id NOT IN (${keepIds.map(() => '?').join(',')})
+      `).run(nowIso, nowIso, ...keepIds);
       database.prepare(`DELETE FROM users WHERE id NOT IN (${keepIds.map(() => '?').join(',')})`).run(...keepIds);
     }
     for (const user of store.users) upsertUserRow(database, user);
@@ -2185,13 +2401,531 @@ function sendAuthCodeEmail(to: string, code: string): Promise<void> {
   ].join('\n');
 
   return new Promise((resolve, reject) => {
-    const child = spawn('/usr/sbin/sendmail', ['-f', AUTH_FROM, '-t'], { stdio: ['pipe', 'ignore', 'pipe'] });
+    const child = spawn(SENDMAIL_PATH, ['-f', AUTH_FROM, '-t'], { stdio: ['pipe', 'ignore', 'pipe'] });
     let stderr = '';
     child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
     child.on('error', reject);
     child.on('close', (code: number) => code === 0 ? resolve() : reject(new Error(stderr || `sendmail exited ${code}`)));
     child.stdin.end(message);
   });
+}
+
+type MailingSegment = 'all-consented' | 'active' | 'former';
+
+interface NewsletterDraft {
+  subject: string;
+  preheader: string;
+  htmlBody: string;
+  textBody: string;
+  segment: MailingSegment;
+  templateKey: string;
+}
+
+function escapeNewsletterHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function safeNewsletterUrl(value: unknown, fallback = `${APP_URL}/`): string {
+  const raw = String(value ?? '').trim();
+  if (!raw || raw === '#') return fallback;
+  try {
+    const url = raw.startsWith('/') ? new URL(raw, APP_URL) : new URL(raw);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function sanitizeNewsletterFragment(value: unknown): string {
+  const raw = String(value ?? '').slice(0, NEWSLETTER_HTML_MAX_LENGTH);
+  return sanitizeHtml(raw, {
+    allowedTags: [
+      'p', 'h1', 'h2', 'h3', 'a', 'img', 'ul', 'ol', 'li', 'strong', 'b', 'em', 'i',
+      'blockquote', 'br', 'hr', 'table', 'tbody', 'thead', 'tfoot', 'tr', 'td', 'th',
+    ],
+    allowedAttributes: {
+      a: ['href', 'title'],
+      img: ['src', 'alt', 'width', 'height'],
+      td: ['colspan', 'rowspan', 'align'],
+      th: ['colspan', 'rowspan', 'align'],
+    },
+    allowedSchemes: ['https', 'http', 'mailto'],
+    allowedSchemesByTag: { img: ['https', 'http'] },
+    allowProtocolRelative: false,
+    disallowedTagsMode: 'discard',
+    enforceHtmlBoundary: true,
+  }).trim();
+}
+
+function newsletterTextFromHtml(htmlBody: string): string {
+  return sanitizeHtml(htmlBody, { allowedTags: [], allowedAttributes: {} })
+    .replace(/\s+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
+function normalizeNewsletterDraft(value: any): NewsletterDraft {
+  const subject = normalizeOptionalText(value?.subject, 160);
+  const preheader = normalizeOptionalText(value?.preheader, 220);
+  const segmentRaw = normalizeOptionalText(value?.segment, 40);
+  const segment: MailingSegment = segmentRaw === 'active' || segmentRaw === 'former' ? segmentRaw : 'all-consented';
+  const templateKey = normalizeOptionalText(value?.templateKey, 60) || 'custom';
+  const htmlBody = sanitizeNewsletterFragment(value?.htmlBody ?? value?.html);
+  const suppliedText = normalizeOptionalText(value?.textBody, 100_000);
+  const textBody = suppliedText || newsletterTextFromHtml(htmlBody);
+  if (!subject) throw new Error('Укажите тему письма');
+  if (!htmlBody) throw new Error('HTML письма пуст');
+  return { subject, preheader, htmlBody, textBody, segment, templateKey };
+}
+
+function newsletterPreviewDigest(draft: NewsletterDraft, contacts: Array<{ id?: unknown }>): string {
+  if (!NEWSLETTER_UNSUBSCRIBE_SECRET) throw new Error('NEWSLETTER_UNSUBSCRIBE_SECRET не настроен');
+  const audienceIds = contacts.map(contact => String(contact.id || '')).filter(Boolean).sort();
+  const normalized = JSON.stringify({
+    subject: draft.subject,
+    preheader: draft.preheader,
+    htmlBody: draft.htmlBody,
+    textBody: draft.textBody,
+    segment: draft.segment,
+    templateKey: draft.templateKey,
+    recipientCount: audienceIds.length,
+    audienceHash: sha256(audienceIds.join('\n')),
+  });
+  return hmacSha256(`newsletter-preview:${normalized}`, NEWSLETTER_UNSUBSCRIBE_SECRET);
+}
+
+function newsletterUnsubscribeToken(contactId: string): string {
+  if (!NEWSLETTER_UNSUBSCRIBE_SECRET) throw new Error('NEWSLETTER_UNSUBSCRIBE_SECRET не настроен');
+  const payload = Buffer.from(contactId, 'utf8').toString('base64url');
+  const signature = hmacSha256(`newsletter-unsubscribe:${payload}`, NEWSLETTER_UNSUBSCRIBE_SECRET);
+  return `${payload}.${signature}`;
+}
+
+function mailingContactFromUnsubscribeToken(token: unknown): any | null {
+  if (!NEWSLETTER_UNSUBSCRIBE_SECRET) return null;
+  const [payload, signature] = String(token ?? '').trim().split('.');
+  if (!payload || !signature) return null;
+  const expected = hmacSha256(`newsletter-unsubscribe:${payload}`, NEWSLETTER_UNSUBSCRIBE_SECRET);
+  if (!safeEqualHex(signature, expected)) return null;
+  try {
+    const contactId = Buffer.from(payload, 'base64url').toString('utf8');
+    if (!/^mail_[a-f0-9]{24}$/.test(contactId)) return null;
+    return dbGet<any>('SELECT * FROM mailing_contacts WHERE id = ?', contactId) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function renderNewsletterHtml(draft: NewsletterDraft, unsubscribeUrl: string, preview = false): string {
+  const csp = preview
+    ? `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; form-action 'none'; base-uri 'none'">`
+    : '';
+  const safeSubject = escapeNewsletterHtml(draft.subject);
+  const safePreheader = escapeNewsletterHtml(draft.preheader);
+  const safeUnsubscribeUrl = escapeNewsletterHtml(unsubscribeUrl);
+  return `<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    ${csp}
+    <title>${safeSubject}</title>
+    <style>
+      body{margin:0;padding:0;background:#eef3f8;color:#1d2c3a;font-family:Arial,Helvetica,sans-serif}
+      .mail-wrap{width:100%;padding:24px 10px;background:#eef3f8}
+      .mail-card{width:100%;max-width:640px;margin:0 auto;border:1px solid #cad7e4;border-radius:14px;background:#fff;overflow:hidden}
+      .mail-head{padding:22px 28px;background:#0b1f36;color:#fff}
+      .mail-head small{display:block;color:#80dff3;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+      .mail-head strong{display:block;margin-top:5px;font-size:22px}
+      .mail-content{padding:28px;color:#26394c;font-size:16px;line-height:1.65}
+      .mail-content h1,.mail-content h2,.mail-content h3{margin:0 0 14px;color:#162b40;line-height:1.25}
+      .mail-content p{margin:0 0 16px}.mail-content a{color:#087fbd;font-weight:700}.mail-content img{display:block;max-width:100%;height:auto;margin:18px auto;border-radius:10px}
+      .mail-content blockquote{margin:18px 0;padding:14px 18px;border-left:4px solid #22b6db;background:#f1f8fc}
+      .mail-content table{max-width:100%;border-collapse:collapse}.mail-content td,.mail-content th{padding:8px;border:1px solid #d7e0ea}
+      .mail-foot{padding:20px 28px;border-top:1px solid #d7e0ea;background:#f7f9fb;color:#687888;font-size:12px;line-height:1.55}
+      .mail-foot a{color:#526d83}
+      @media(max-width:520px){.mail-wrap{padding:0}.mail-card{border-radius:0;border-left:0;border-right:0}.mail-head,.mail-content,.mail-foot{padding-left:18px;padding-right:18px}}
+    </style>
+  </head>
+  <body>
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">${safePreheader}</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" class="mail-wrap"><tr><td>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" class="mail-card">
+        <tr><td class="mail-head"><small>HS-Arena · Manacost</small><strong>${safeSubject}</strong></td></tr>
+        <tr><td class="mail-content">${draft.htmlBody}</td></tr>
+        <tr><td class="mail-foot">Вы получили письмо, потому что согласились на рассылку Manacost. <a href="${safeUnsubscribeUrl}">Отписаться от рассылки</a>.</td></tr>
+      </table>
+    </td></tr></table>
+  </body>
+</html>`;
+}
+
+function sendMimeEmail(input: { to: string; subject: string; text: string; html: string; messageId: string; headers?: string[] }): Promise<void> {
+  const recipient = normalizeEmail(input.to);
+  if (!isRealEmail(recipient)) return Promise.reject(new Error('Некорректный email получателя'));
+  const subject = normalizeOptionalText(input.subject, 160);
+  const boundary = `hsarena_${randomBytes(12).toString('hex')}`;
+  const message = [
+    `From: ${encodeMailHeader(NEWSLETTER_FROM_NAME)} <${NEWSLETTER_FROM}>`,
+    `To: ${recipient}`,
+    `Subject: ${encodeMailHeader(subject)}`,
+    `Date: ${new Date().toUTCString()}`,
+    `Message-ID: <${input.messageId}>`,
+    'MIME-Version: 1.0',
+    ...(input.headers ?? []),
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/plain; charset=UTF-8',
+    'Content-Transfer-Encoding: 8bit',
+    '',
+    input.text,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/html; charset=UTF-8',
+    'Content-Transfer-Encoding: 8bit',
+    '',
+    input.html,
+    '',
+    `--${boundary}--`,
+    '',
+  ].join('\r\n');
+  return new Promise((resolve, reject) => {
+    const child = spawn(SENDMAIL_PATH, ['-oi', '-f', NEWSLETTER_FROM, '-t'], { stdio: ['pipe', 'ignore', 'pipe'] });
+    let settled = false;
+    let stderr = '';
+    let timeout: NodeJS.Timeout | undefined;
+    const settle = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      if (timeout) clearTimeout(timeout);
+      if (error) reject(error);
+      else resolve();
+    };
+    child.stderr.on('data', (chunk: Buffer) => {
+      stderr = `${stderr}${chunk.toString()}`.slice(-2000);
+    });
+    child.on('error', (error: Error) => settle(error));
+    child.stdin.on('error', (error: Error) => settle(error));
+    child.on('close', (code: number | null, signal: NodeJS.Signals | null) => {
+      if (code === 0) settle();
+      else settle(new Error(stderr || `sendmail exited ${code ?? 'without code'}${signal ? ` (${signal})` : ''}`));
+    });
+    timeout = setTimeout(() => {
+      child.kill('SIGKILL');
+      settle(new Error('sendmail timeout after 30 seconds'));
+    }, NEWSLETTER_SENDMAIL_TIMEOUT_MS);
+    timeout.unref?.();
+    child.stdin.end(message);
+  });
+}
+
+function mailingContactRows(): any[] {
+  return dbAll<any>(`
+    SELECT
+      mc.*,
+      u.blocked_at,
+      COALESCE(s.has_access, 0) AS provider_access,
+      COALESCE(g.active, 0) AS lifetime_access
+    FROM mailing_contacts mc
+    LEFT JOIN users u ON u.id = mc.user_id
+    LEFT JOIN subscriptions s ON s.user_id = mc.user_id
+    LEFT JOIN manual_subscription_grants g ON g.user_id = mc.user_id
+    ORDER BY mc.updated_at DESC
+  `).map(row => {
+    const active = Boolean(row.provider_access || row.lifetime_access);
+    const eligible = row.consent_status === 'subscribed'
+      && Boolean(row.consented_at)
+      && Boolean(row.verified_at)
+      && isRealEmail(String(row.email || ''))
+      && !row.blocked_at
+      && !row.suppressed_reason;
+    return {
+      ...row,
+      eligible,
+      lifecycle: active ? 'active' : 'former',
+    };
+  });
+}
+
+function eligibleMailingContacts(segment: MailingSegment): any[] {
+  return mailingContactRows().filter(row => row.eligible && (segment === 'all-consented' || row.lifecycle === segment));
+}
+
+function mailingSummary() {
+  const contacts = mailingContactRows();
+  const eligible = contacts.filter(row => row.eligible);
+  return {
+    total: contacts.length,
+    eligible: eligible.length,
+    active: eligible.filter(row => row.lifecycle === 'active').length,
+    former: eligible.filter(row => row.lifecycle === 'former').length,
+    excluded: contacts.length - eligible.length,
+    unsubscribed: contacts.filter(row => row.consent_status === 'unsubscribed').length,
+    pendingConsent: contacts.filter(row => row.consent_status === 'unknown').length,
+    suppressed: contacts.filter(row => row.consent_status === 'suppressed' || Boolean(row.suppressed_reason)).length,
+  };
+}
+
+function newsletterTemplates() {
+  const articlesData: any = loadData('articles.json') ?? { articles: [] };
+  const articles = Array.isArray(articlesData.articles) ? articlesData.articles : [];
+  const latest = articles
+    .slice()
+    .sort((a: any, b: any) => articleDateMs(b) - articleDateMs(a) || String(b?.id || '').localeCompare(String(a?.id || '')))[0];
+  const latestUrl = safeNewsletterUrl(latest?.url, `${APP_URL}/articles`);
+  const latestImage = latest?.image ? safeNewsletterUrl(latest.image, '') : '';
+  const latestTitle = normalizeOptionalText(latest?.title, 180) || 'Новая статья Manacost';
+  const latestExcerpt = normalizeOptionalText(latest?.excerpt, 500) || 'Читайте новый материал на HS-Arena.';
+  return [
+    {
+      id: 'blank',
+      label: 'Пустое письмо',
+      description: 'Начните с чистого текста и своей структуры.',
+      subject: 'Новости Manacost',
+      preheader: 'Свежие материалы и обновления HS-Arena.',
+      htmlBody: '<h2>Заголовок письма</h2><p>Напишите здесь основной текст рассылки.</p>',
+    },
+    {
+      id: 'latest-article',
+      label: 'Последняя статья',
+      description: latest ? latestTitle : 'Шаблон анонса нового материала.',
+      subject: `Новая статья: ${latestTitle}`,
+      preheader: latestExcerpt,
+      htmlBody: sanitizeNewsletterFragment(`
+        ${latestImage ? `<img src="${escapeNewsletterHtml(latestImage)}" alt="">` : ''}
+        <h2>${escapeNewsletterHtml(latestTitle)}</h2>
+        <p>${escapeNewsletterHtml(latestExcerpt)}</p>
+        <p><a href="${escapeNewsletterHtml(latestUrl)}">Читать статью на HS-Arena →</a></p>
+      `),
+    },
+    {
+      id: 'tier-list-update',
+      label: 'Обновился тир-лист',
+      description: 'Короткое письмо об актуальных данных Арены.',
+      subject: 'Тир-лист Арены обновлён',
+      preheader: 'Свежие позиции классов и актуальные данные уже на HS-Arena.',
+      htmlBody: sanitizeNewsletterFragment(`
+        <h2>Тир-лист Арены обновлён</h2>
+        <p>Мы пересчитали актуальные позиции классов по свежей статистике. Проверьте лидеров и подготовьтесь к следующему забегу.</p>
+        <p><a href="${escapeNewsletterHtml(`${APP_URL}/tierlist`)}">Открыть новый тир-лист →</a></p>
+      `),
+    },
+  ];
+}
+
+function mailingCampaignFromRow(row: any) {
+  return {
+    id: String(row.id),
+    subject: String(row.subject || ''),
+    preheader: String(row.preheader || ''),
+    templateKey: String(row.template_key || 'custom'),
+    segment: String(row.segment || 'all-consented'),
+    status: String(row.status || 'queued'),
+    recipientCount: Number(row.recipient_count || 0),
+    acceptedCount: Number(row.accepted_count || 0),
+    failedCount: Number(row.failed_count || 0),
+    skippedCount: Number(row.skipped_count || 0),
+    createdAt: String(row.created_at || ''),
+    startedAt: String(row.started_at || ''),
+    completedAt: String(row.completed_at || ''),
+    error: String(row.error || ''),
+  };
+}
+
+function mailingOverviewPayload() {
+  const contacts = mailingContactRows();
+  const campaigns = dbAll<any>('SELECT * FROM mailing_campaigns ORDER BY created_at DESC LIMIT 20').map(mailingCampaignFromRow);
+  return {
+    summary: mailingSummary(),
+    templates: newsletterTemplates(),
+    contacts: contacts.slice(0, 50).map(row => ({
+      id: String(row.id),
+      email: String(row.email || ''),
+      name: String(row.name || ''),
+      consentStatus: String(row.consent_status || 'unknown'),
+      consentSource: String(row.consent_source || ''),
+      lifecycle: String(row.lifecycle || 'former'),
+      accountState: String(row.account_state || 'current'),
+      eligible: Boolean(row.eligible),
+      updatedAt: String(row.updated_at || ''),
+    })),
+    campaigns,
+    transport: {
+      configured: Boolean(NEWSLETTER_FROM && NEWSLETTER_UNSUBSCRIBE_SECRET && SENDMAIL_PATH),
+      from: NEWSLETTER_FROM,
+    },
+  };
+}
+
+async function sendNewsletterToContact(campaign: any, contact: any) {
+  const draft: NewsletterDraft = {
+    subject: String(campaign.subject || ''),
+    preheader: String(campaign.preheader || ''),
+    htmlBody: sanitizeNewsletterFragment(campaign.html_body),
+    textBody: String(campaign.text_body || ''),
+    segment: campaign.segment as MailingSegment,
+    templateKey: String(campaign.template_key || 'custom'),
+  };
+  const token = newsletterUnsubscribeToken(String(contact.id));
+  const unsubscribeUrl = `${APP_URL}/api/newsletter/unsubscribe?token=${encodeURIComponent(token)}`;
+  const html = renderNewsletterHtml(draft, unsubscribeUrl);
+  const text = `${draft.textBody}\n\nОтписаться от рассылки: ${unsubscribeUrl}`;
+  const host = new URL(APP_URL).hostname;
+  const messageId = `${sha256(`${campaign.id}:${contact.id}`).slice(0, 32)}@${host}`;
+  await sendMimeEmail({
+    to: String(contact.email),
+    subject: draft.subject,
+    text,
+    html,
+    messageId,
+    headers: [
+      'Precedence: bulk',
+      `List-Unsubscribe: <${unsubscribeUrl}>`,
+      'List-Unsubscribe-Post: List-Unsubscribe=One-Click',
+      `X-Campaign-ID: ${campaign.id}`,
+    ],
+  });
+}
+
+const newsletterCampaignJobs = new Set<string>();
+
+function recordNewsletterCampaignTerminalAudit(campaign: any, action: string, details: Record<string, unknown>) {
+  try {
+    recordAdminAuditByActorId(String(campaign?.created_by || 'system'), action, 'mailing_campaign', String(campaign?.id || ''), details);
+  } catch (err: any) {
+    console.error('[mailing] failed to write terminal audit:', err?.message || err);
+  }
+}
+
+async function runNewsletterCampaign(campaignId: string) {
+  if (newsletterCampaignJobs.has(campaignId)) return;
+  newsletterCampaignJobs.add(campaignId);
+  const startedAt = new Date().toISOString();
+  let campaign: any = null;
+  try {
+    campaign = dbGet<any>('SELECT * FROM mailing_campaigns WHERE id = ?', campaignId);
+    if (!campaign || !['queued', 'sending'].includes(String(campaign.status))) return;
+    dbRun("UPDATE mailing_campaigns SET status = 'sending', started_at = COALESCE(started_at, ?), error = '' WHERE id = ?", startedAt, campaignId);
+
+    while (true) {
+      const delivery = dbGet<any>(`
+        SELECT d.*, mc.email, mc.consent_status, mc.consented_at, mc.verified_at, mc.suppressed_reason, u.blocked_at
+        FROM mailing_deliveries d
+        LEFT JOIN mailing_contacts mc ON mc.id = d.contact_id
+        LEFT JOIN users u ON u.id = mc.user_id
+        WHERE d.campaign_id = ? AND d.status IN ('pending', 'failed') AND d.attempts < 3
+        ORDER BY d.updated_at ASC
+        LIMIT 1
+      `, campaignId);
+      if (!delivery) break;
+      const nowIso = new Date().toISOString();
+      const stillEligible = delivery.consent_status === 'subscribed'
+        && Boolean(delivery.consented_at)
+        && Boolean(delivery.verified_at)
+        && !delivery.suppressed_reason
+        && !delivery.blocked_at
+        && isRealEmail(String(delivery.email || ''));
+      if (!stillEligible) {
+        dbRun("UPDATE mailing_deliveries SET status = 'skipped', last_error = 'contact-suppressed', updated_at = ? WHERE campaign_id = ? AND contact_id = ?",
+          nowIso, campaignId, delivery.contact_id);
+        continue;
+      }
+      const claim = db().prepare(`
+        UPDATE mailing_deliveries
+        SET status = 'processing', attempts = attempts + 1, last_error = '', updated_at = ?
+        WHERE campaign_id = ? AND contact_id = ? AND status = ? AND attempts = ? AND attempts < 3
+      `).run(nowIso, campaignId, delivery.contact_id, String(delivery.status), Number(delivery.attempts || 0));
+      if (Number(claim.changes || 0) !== 1) continue;
+      let sendError: any = null;
+      try {
+        await sendNewsletterToContact(campaign, delivery);
+      } catch (err: any) {
+        sendError = err;
+      }
+      if (sendError) {
+        const failedAt = new Date().toISOString();
+        dbRun("UPDATE mailing_deliveries SET status = 'failed', last_error = ?, updated_at = ? WHERE campaign_id = ? AND contact_id = ? AND status = 'processing'",
+          normalizeOptionalText(sendError?.message || 'sendmail failed', 500), failedAt, campaignId, delivery.contact_id);
+        continue;
+      }
+      const acceptedAt = new Date().toISOString();
+      const accepted = db().prepare("UPDATE mailing_deliveries SET status = 'accepted', last_error = '', accepted_at = ?, updated_at = ? WHERE campaign_id = ? AND contact_id = ? AND status = 'processing'")
+        .run(acceptedAt, acceptedAt, campaignId, delivery.contact_id);
+      if (Number(accepted.changes || 0) !== 1) {
+        throw new Error('Локальный почтовый транспорт принял письмо, но его статус не удалось зафиксировать');
+      }
+    }
+
+    const counts = dbGet<any>(`
+      SELECT
+        SUM(CASE WHEN status = 'accepted' THEN 1 ELSE 0 END) AS accepted_count,
+        SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed_count,
+        SUM(CASE WHEN status = 'skipped' THEN 1 ELSE 0 END) AS skipped_count,
+        SUM(CASE WHEN status = 'uncertain' THEN 1 ELSE 0 END) AS uncertain_count,
+        SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) AS processing_count
+      FROM mailing_deliveries WHERE campaign_id = ?
+    `, campaignId) || {};
+    if (Number(counts.processing_count || 0) > 0) return;
+    const completedAt = new Date().toISOString();
+    const acceptedCount = Number(counts.accepted_count || 0);
+    const skippedCount = Number(counts.skipped_count || 0);
+    const uncertainCount = Number(counts.uncertain_count || 0);
+    const failedCount = Number(counts.failed_count || 0) + uncertainCount;
+    const errorMessage = uncertainCount
+      ? 'Состояние части писем после перезапуска неизвестно; они не были отправлены повторно.'
+      : failedCount
+        ? 'Часть писем не принята локальным почтовым транспортом.'
+        : '';
+    const finalStatus = failedCount ? 'completed-with-errors' : 'completed';
+    dbRun(`
+      UPDATE mailing_campaigns
+      SET status = ?, completed_at = ?, accepted_count = ?, failed_count = ?, skipped_count = ?, error = ?
+      WHERE id = ?
+    `, finalStatus, completedAt, acceptedCount, failedCount, skippedCount, errorMessage, campaignId);
+    recordNewsletterCampaignTerminalAudit(campaign, `mailing.${finalStatus}`, {
+      acceptedCount,
+      failedCount,
+      skippedCount,
+      uncertainCount,
+    });
+  } catch (err: any) {
+    const errorMessage = normalizeOptionalText(err?.message || 'campaign failed', 500);
+    try {
+      dbRun(`
+        UPDATE mailing_deliveries
+        SET status = 'uncertain', last_error = 'delivery-state-unknown-after-worker-error', updated_at = ?
+        WHERE campaign_id = ? AND status = 'processing'
+      `, new Date().toISOString(), campaignId);
+      dbRun("UPDATE mailing_campaigns SET status = 'failed', completed_at = ?, error = ? WHERE id = ?",
+        new Date().toISOString(), errorMessage, campaignId);
+    } catch (statusErr: any) {
+      console.error('[mailing] failed to persist campaign failure:', statusErr?.message || statusErr);
+    }
+    if (campaign) recordNewsletterCampaignTerminalAudit(campaign, 'mailing.failed', { error: errorMessage });
+  } finally {
+    newsletterCampaignJobs.delete(campaignId);
+  }
+}
+
+function resumeNewsletterCampaigns() {
+  const resumedAt = new Date().toISOString();
+  dbRun(`
+    UPDATE mailing_deliveries
+    SET status = 'uncertain', last_error = 'delivery-state-unknown-after-restart', updated_at = ?
+    WHERE status = 'processing'
+      AND campaign_id IN (
+        SELECT id FROM mailing_campaigns WHERE status IN ('queued', 'sending', 'failed')
+      )
+  `, resumedAt);
+  const rows = dbAll<any>("SELECT id FROM mailing_campaigns WHERE status IN ('queued', 'sending') ORDER BY created_at ASC");
+  for (const row of rows) void runNewsletterCampaign(String(row.id));
 }
 
 function adminTokenFromReq(req: import('express').Request): string {
@@ -2246,6 +2980,30 @@ function adminAuth(req: import('express').Request): AdminUser | null {
   return user && isAdminUser(user) ? user : null;
 }
 
+function recordAdminAuditByActorId(actorUserId: string, action: string, entityType: string, entityId: string, details: Record<string, unknown> = {}) {
+  dbRun(`
+    INSERT INTO admin_audit_log (actor_user_id, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `, actorUserId, action, entityType, entityId, JSON.stringify(details), new Date().toISOString());
+}
+
+function recordAdminAudit(actor: AdminUser, action: string, entityType: string, entityId: string, details: Record<string, unknown> = {}) {
+  recordAdminAuditByActorId(actor.id, action, entityType, entityId, details);
+}
+
+function adminMutationOriginAllowed(req: import('express').Request): boolean {
+  if (String(req.headers.authorization || '').toLowerCase().startsWith('bearer ')) return true;
+  const raw = String(req.headers.origin || req.headers.referer || '').trim();
+  if (!raw) return false;
+  try {
+    const source = new URL(raw);
+    const app = new URL(APP_URL);
+    return source.origin === app.origin || source.hostname === 'localhost' || source.hostname === '127.0.0.1';
+  } catch {
+    return false;
+  }
+}
+
 function isAdminUser(user: AdminUser | null | undefined): user is AdminUser {
   return Boolean(user && !user.blockedAt && user.role === 'admin');
 }
@@ -2268,6 +3026,11 @@ function rateLimitClientKey(req: import('express').Request): string {
 
 function rateLimitEmailKey(req: import('express').Request): string {
   return `${rateLimitClientKey(req)}:${normalizeEmail(req.body?.email) || 'unknown'}`;
+}
+
+function newsletterAdminRateLimitKey(req: import('express').Request): string {
+  const admin = adminAuth(req);
+  return admin ? `admin:${admin.id}` : `unauthenticated:${rateLimitClientKey(req)}`;
 }
 
 function emptySubscriptionStatus(message = 'Подписка пока не подтверждена'): SubscriptionStatus {
@@ -2308,9 +3071,35 @@ function deriveStoredEntitlements(
 
 const subscriptionRefreshInFlight = new Map<string, Promise<SubscriptionStatus>>();
 
+function activeManualSubscriptionGrant(userId: string): { grantedBy: string; grantedAt: string } | null {
+  const row = dbGet<any>(`
+    SELECT granted_by, granted_at
+    FROM manual_subscription_grants
+    WHERE user_id = ? AND active = 1
+  `, userId);
+  return row ? { grantedBy: String(row.granted_by || ''), grantedAt: String(row.granted_at || '') } : null;
+}
+
+function applyManualSubscriptionGrant(userId: string, status: SubscriptionStatus | null): SubscriptionStatus | null {
+  const grant = activeManualSubscriptionGrant(userId);
+  if (!grant) return status;
+  const base = status ?? emptySubscriptionStatus();
+  const source = base.source && base.source !== 'none'
+    ? `${base.source},manual-lifetime`
+    : 'manual-lifetime';
+  return {
+    ...base,
+    hasAccess: true,
+    source,
+    stale: false,
+    message: 'Бессрочный доступ выдан администратором.',
+    entitlements: allEntitlements(),
+  };
+}
+
 function readSubscriptionStatus(userId: string): SubscriptionStatus | null {
   const row = dbGet<any>('SELECT * FROM subscriptions WHERE user_id = ?', userId);
-  if (!row) return null;
+  if (!row) return applyManualSubscriptionGrant(userId, null);
   const checkedAt = row.checked_at ? String(row.checked_at) : null;
   const age = checkedAt ? Date.now() - Date.parse(checkedAt) : Number.POSITIVE_INFINITY;
   const providerMarkedStale = Boolean(row.stale);
@@ -2320,7 +3109,7 @@ function readSubscriptionStatus(userId: string): SubscriptionStatus | null {
   const hasAccess = Boolean(row.has_access);
   const source = String(row.source || 'none');
   const entitlements = deriveStoredEntitlements(hasAccess, source, boosty, telegram);
-  return {
+  return applyManualSubscriptionGrant(userId, {
     hasAccess: hasAnyEntitlement(entitlements),
     source,
     checkedAt,
@@ -2329,7 +3118,7 @@ function readSubscriptionStatus(userId: string): SubscriptionStatus | null {
     entitlements,
     boosty,
     telegram,
-  };
+  });
 }
 
 function safeJsonObject(value: unknown): Record<string, any> {
@@ -2536,6 +3325,9 @@ async function fetchBoostySubscribers(includeInactive = true): Promise<Record<st
       siteAccess,
     };
   });
+  for (const row of rows) {
+    rememberBoostyMailingContact(row.email, row.name, Boolean(row.active || row.hasActivePaidAccess), row.dates?.unsubscribedAt);
+  }
   const levels = rows.reduce((acc: Record<string, number>, row: any) => {
     const key = row.level.name || 'Без уровня';
     acc[key] = (acc[key] || 0) + 1;
@@ -2688,7 +3480,7 @@ async function refreshSubscriptionForUserNow(user: AdminUser): Promise<Subscript
     telegram,
   };
   writeSubscriptionStatus(user, status);
-  return status;
+  return applyManualSubscriptionGrant(user.id, status) ?? status;
 }
 
 async function refreshSubscriptionForUser(user: AdminUser, force = false): Promise<SubscriptionStatus> {
@@ -4552,6 +5344,7 @@ const HOST = process.env.HOST;
 
 app.use(compression({ level: 6, threshold: 1024 }));
 app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '48mb' }));
+app.use(express.urlencoded({ extended: false, limit: '16kb' }));
 app.use('/uploads/admin', express.static(ADMIN_UPLOAD_DIR, {
   immutable: true,
   maxAge: '30d',
@@ -4616,6 +5409,24 @@ const scrapeLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Слишком много запусков обновления данных. Попробуйте позже.' },
+});
+
+const newsletterSendLimiter = rateLimit({
+  windowMs: 60 * 60_000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: newsletterAdminRateLimitKey,
+  message: { error: 'Слишком много запусков рассылки. Попробуйте позже.' },
+});
+
+const newsletterTestLimiter = rateLimit({
+  windowMs: 60 * 60_000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: newsletterAdminRateLimitKey,
+  message: { error: 'Слишком много тестовых писем. Попробуйте позже.' },
 });
 
 // CORS for same-origin production and local Vite dev server
@@ -5160,8 +5971,11 @@ function articleDateMs(article: any): number {
 type ArticleMode = 'arena' | 'battlegrounds' | 'general';
 
 function articleMode(article: Record<string, any>): ArticleMode {
+  const explicitMode = String(article.mode || '').trim().toLowerCase();
+  if (explicitMode === 'arena' || explicitMode === 'battlegrounds' || explicitMode === 'general') {
+    return explicitMode;
+  }
   const haystack = [
-    article.mode,
     article.tag,
     article.title,
     article.excerpt,
@@ -6106,7 +6920,10 @@ app.post('/api/auth/register', authCodeRequestLimiter, async (req, res) => {
   const password = String(req.body?.password ?? '');
   const name = String(req.body?.name ?? '').trim() || 'Пользователь Манакоста';
   const country = String(req.body?.country ?? '').trim();
-  const newsletterOptIn = Boolean(req.body?.newsletterOptIn);
+  if (typeof req.body?.newsletterOptIn !== 'boolean') {
+    return res.status(400).json({ error: 'Некорректное значение согласия на рассылку' });
+  }
+  const newsletterOptIn = req.body.newsletterOptIn;
   if (!isRealEmail(email)) return res.status(400).json({ error: 'Укажите корректную почту' });
   if (password.length < 8) return res.status(400).json({ error: 'Пароль должен быть не короче 8 символов' });
   if (!country) return res.status(400).json({ error: 'Укажите страну' });
@@ -6693,6 +7510,7 @@ app.post('/api/auth/verify', authCodeVerifyLimiter, (req, res) => {
   store.pendingCodes = store.pendingCodes.filter(item => item.email !== email);
   const token = createAuthSession(store, user);
   saveAuthStore(store);
+  if (user.newsletterOptIn) updateMailingConsent(user, true, 'email-code-verified');
   setAuthCookie(req, res, token);
   res.json({ success: true, token, user: publicUser(user), adminAllowed: isAdminUser(user), contestAdminAllowed: isContestAdminUser(user) });
 });
@@ -6723,12 +7541,16 @@ app.patch('/api/auth/profile', (req, res) => {
   const user = store.users.find(item => item.id === authedUser.id);
   if (!user) return res.status(401).json({ error: 'Пользователь не найден' });
 
+  const newsletterValue = req.body?.newsletterOptIn;
+  if (newsletterValue !== undefined && typeof newsletterValue !== 'boolean') {
+    return res.status(400).json({ error: 'Некорректное значение согласия на рассылку' });
+  }
+
   if (req.body?.country !== undefined) {
     user.country = String(req.body.country ?? '').trim();
   }
-  if (req.body?.newsletterOptIn !== undefined) {
-    user.newsletterOptIn = Boolean(req.body.newsletterOptIn);
-  }
+  const newsletterOptIn = newsletterValue === undefined ? undefined : newsletterValue;
+  if (newsletterOptIn !== undefined) user.newsletterOptIn = newsletterOptIn;
   if (req.body?.contactVkUrl !== undefined) {
     user.contactVkUrl = normalizeContactVkUrl(req.body.contactVkUrl);
   }
@@ -6740,6 +7562,7 @@ app.patch('/api/auth/profile', (req, res) => {
   }
   user.updatedAt = new Date().toISOString();
   saveAuthStore(store);
+  if (newsletterOptIn !== undefined) updateMailingConsent(user, newsletterOptIn, 'profile-preference');
   res.json({ success: true, user: publicUser(user) });
 });
 
@@ -7033,8 +7856,8 @@ app.get('/api/admin/users', (req, res) => {
     where.push('u.role = ?');
     params.push(role);
   }
-  if (subscription === 'active') where.push('COALESCE(s.has_access, 0) = 1');
-  if (subscription === 'inactive') where.push('COALESCE(s.has_access, 0) = 0');
+  if (subscription === 'active') where.push('(COALESCE(s.has_access, 0) = 1 OR COALESCE(g.active, 0) = 1)');
+  if (subscription === 'inactive') where.push('(COALESCE(s.has_access, 0) = 0 AND COALESCE(g.active, 0) = 0)');
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const total = dbGet<{ count: number }>(`
@@ -7042,6 +7865,7 @@ app.get('/api/admin/users', (req, res) => {
     FROM users u
     LEFT JOIN identities tg ON tg.user_id = u.id AND tg.provider = 'telegram'
     LEFT JOIN subscriptions s ON s.user_id = u.id
+    LEFT JOIN manual_subscription_grants g ON g.user_id = u.id
     ${whereSql}
   `, ...params)?.count ?? 0;
   const users = dbAll<any>(`
@@ -7058,6 +7882,8 @@ app.get('/api/admin/users', (req, res) => {
       s.updated_at AS subscription_updated_at,
       s.boosty_json,
       s.telegram_json,
+      g.active AS lifetime_access,
+      g.granted_at AS lifetime_granted_at,
       (
         SELECT COUNT(*) FROM contest_entries e WHERE e.user_id = u.id
       ) AS contest_entries_count
@@ -7065,6 +7891,7 @@ app.get('/api/admin/users', (req, res) => {
     LEFT JOIN identities tg ON tg.user_id = u.id AND tg.provider = 'telegram'
     LEFT JOIN identities oidc ON oidc.user_id = u.id AND oidc.provider = 'telegram_oidc'
     LEFT JOIN subscriptions s ON s.user_id = u.id
+    LEFT JOIN manual_subscription_grants g ON g.user_id = u.id
     ${whereSql}
     ORDER BY u.updated_at DESC, u.created_at DESC
     LIMIT ? OFFSET ?
@@ -7088,15 +7915,23 @@ app.get('/api/admin/users', (req, res) => {
       contactTelegram: String(row.contact_telegram || ''),
       contactEmail: String(row.contact_email || ''),
       blockedAt: String(row.blocked_at || ''),
+      lifetimeAccess: Boolean(row.lifetime_access),
+      lifetimeGrantedAt: String(row.lifetime_granted_at || ''),
       subscription: (() => {
         const boosty = normalizeBoostySubscriptionDetail(safeJsonObject(row.boosty_json));
         const telegram = normalizeTelegramSubscriptionDetail(safeJsonObject(row.telegram_json));
-        const source = String(row.subscription_source || 'none');
-        const entitlements = deriveStoredEntitlements(Boolean(row.has_access), source, boosty, telegram);
+        const lifetimeAccess = Boolean(row.lifetime_access);
+        const providerSource = String(row.subscription_source || 'none');
+        const source = lifetimeAccess
+          ? providerSource === 'none' ? 'manual-lifetime' : `${providerSource},manual-lifetime`
+          : providerSource;
+        const entitlements = lifetimeAccess
+          ? allEntitlements()
+          : deriveStoredEntitlements(Boolean(row.has_access), source, boosty, telegram);
         return {
           hasAccess: hasAnyEntitlement(entitlements),
           source,
-          message: String(row.subscription_message || ''),
+          message: lifetimeAccess ? 'Бессрочный доступ выдан администратором.' : String(row.subscription_message || ''),
           checkedAt: row.subscription_checked_at ? String(row.subscription_checked_at) : '',
           updatedAt: row.subscription_updated_at ? String(row.subscription_updated_at) : '',
           entitlements,
@@ -7252,6 +8087,7 @@ app.get('/api/admin/telegram/accounts', (req, res) => {
 app.patch('/api/admin/users/:userId', (req, res) => {
   const admin = adminAuth(req);
   if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
+  setPrivateNoStore(res);
   const userId = normalizeOptionalText(req.params.userId, 160);
   const store = loadAuthStore();
   const user = store.users.find(item => item.id === userId);
@@ -7259,9 +8095,19 @@ app.patch('/api/admin/users/:userId', (req, res) => {
 
   const nextRoleRaw = req.body?.role === undefined ? undefined : normalizeOptionalText(req.body.role, 20);
   const nextBlockedRaw = req.body?.blocked;
+  const wantsLifetimeChange = Object.prototype.hasOwnProperty.call(req.body ?? {}, 'lifetimeAccess');
+  if (nextBlockedRaw !== undefined && typeof nextBlockedRaw !== 'boolean') {
+    return res.status(400).json({ error: 'Некорректное значение блокировки' });
+  }
+  if (wantsLifetimeChange && typeof req.body?.lifetimeAccess !== 'boolean') {
+    return res.status(400).json({ error: 'Некорректное значение бессрочного доступа' });
+  }
+  if (!adminMutationOriginAllowed(req)) {
+    return res.status(403).json({ error: 'Запрос отклонён: обновите страницу и повторите действие' });
+  }
   const wantsRoleChange = nextRoleRaw !== undefined;
   const wantsBlockChange = nextBlockedRaw !== undefined;
-  if (!wantsRoleChange && !wantsBlockChange) {
+  if (!wantsRoleChange && !wantsBlockChange && !wantsLifetimeChange) {
     return res.status(400).json({ error: 'Нет изменений' });
   }
   if (nextRoleRaw !== undefined && nextRoleRaw !== 'admin' && nextRoleRaw !== 'user') {
@@ -7286,19 +8132,241 @@ app.patch('/api/admin/users/:userId', (req, res) => {
   }
 
   const nowIso = new Date().toISOString();
-  user.role = nextRole;
-  user.blockedAt = nextBlocked ? (user.blockedAt || nowIso) : '';
-  user.updatedAt = nowIso;
-  if (nextBlocked) {
-    store.sessions = store.sessions.filter(item => item.userId !== user.id && item.email !== user.email);
+  const previousRole = user.role;
+  const previousBlocked = Boolean(user.blockedAt);
+  const previousLifetime = Boolean(activeManualSubscriptionGrant(user.id));
+  if (wantsRoleChange || wantsBlockChange) {
+    user.role = nextRole;
+    user.blockedAt = nextBlocked ? (user.blockedAt || nowIso) : '';
+    user.updatedAt = nowIso;
+    if (nextBlocked) {
+      store.sessions = store.sessions.filter(item => item.userId !== user.id && item.email !== user.email);
+    }
+    saveAuthStore(store);
   }
-  saveAuthStore(store);
-  res.json({ success: true, user: publicUser(user) });
+  const auditDetails = {
+    role: wantsRoleChange ? { from: previousRole, to: nextRole } : undefined,
+    blocked: wantsBlockChange ? { from: previousBlocked, to: nextBlocked } : undefined,
+    lifetimeAccess: wantsLifetimeChange ? { from: previousLifetime, to: Boolean(req.body.lifetimeAccess) } : undefined,
+  };
+  if (wantsLifetimeChange) {
+    const lifetimeAccess = Boolean(req.body.lifetimeAccess);
+    const database = db();
+    try {
+      database.exec('BEGIN IMMEDIATE');
+      if (lifetimeAccess) {
+        database.prepare(`
+          INSERT INTO manual_subscription_grants (
+            user_id, active, entitlements_json, granted_by, granted_at, revoked_by, revoked_at, note, updated_at
+          ) VALUES (?, 1, ?, ?, ?, NULL, NULL, ?, ?)
+          ON CONFLICT(user_id) DO UPDATE SET
+            active = 1,
+            entitlements_json = excluded.entitlements_json,
+            granted_by = CASE WHEN manual_subscription_grants.active = 1 THEN manual_subscription_grants.granted_by ELSE excluded.granted_by END,
+            granted_at = CASE WHEN manual_subscription_grants.active = 1 THEN manual_subscription_grants.granted_at ELSE excluded.granted_at END,
+            revoked_by = NULL,
+            revoked_at = NULL,
+            note = CASE WHEN manual_subscription_grants.active = 1 THEN manual_subscription_grants.note ELSE excluded.note END,
+            updated_at = excluded.updated_at
+        `).run(user.id, JSON.stringify(allEntitlements()), admin.id, nowIso, 'Бессрочный доступ из админ-панели', nowIso);
+      } else {
+        database.prepare(`
+          UPDATE manual_subscription_grants
+          SET active = 0, revoked_by = ?, revoked_at = ?, updated_at = ?
+          WHERE user_id = ?
+        `).run(admin.id, nowIso, nowIso, user.id);
+      }
+      recordAdminAudit(admin, 'user.updated', 'user', user.id, auditDetails);
+      database.exec('COMMIT');
+    } catch (err: any) {
+      try { database.exec('ROLLBACK'); } catch { /* BEGIN may itself have failed. */ }
+      return res.status(500).json({ error: err?.message || 'Не удалось изменить бессрочный доступ' });
+    }
+  } else {
+    recordAdminAudit(admin, 'user.updated', 'user', user.id, auditDetails);
+  }
+  const lifetimeAccess = Boolean(activeManualSubscriptionGrant(user.id));
+  res.json({
+    success: true,
+    user: { ...publicUser(user), lifetimeAccess },
+    lifetimeAccess,
+    subscription: readSubscriptionStatus(user.id) ?? emptySubscriptionStatus(),
+  });
+});
+
+app.get('/api/admin/mailings/overview', (req, res) => {
+  const admin = adminAuth(req);
+  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
+  setPrivateNoStore(res);
+  res.json(mailingOverviewPayload());
+});
+
+app.post('/api/admin/mailings/preview', (req, res) => {
+  const admin = adminAuth(req);
+  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
+  if (!adminMutationOriginAllowed(req)) return res.status(403).json({ error: 'Запрос отклонён: обновите страницу' });
+  setPrivateNoStore(res);
+  if (!NEWSLETTER_UNSUBSCRIBE_SECRET) {
+    return res.status(503).json({ error: 'На сервере не настроена безопасная подпись предпросмотра' });
+  }
+  try {
+    const draft = normalizeNewsletterDraft(req.body);
+    const contacts = eligibleMailingContacts(draft.segment);
+    const recipientCount = contacts.length;
+    const previewUrl = `${APP_URL}/api/newsletter/unsubscribe?token=preview`;
+    res.json({
+      subject: draft.subject,
+      html: renderNewsletterHtml(draft, previewUrl, true),
+      text: draft.textBody,
+      recipientCount,
+      previewDigest: newsletterPreviewDigest(draft, contacts),
+      sanitizedHtmlBody: draft.htmlBody,
+    });
+  } catch (err: any) {
+    res.status(400).json({ error: err?.message || 'Не удалось подготовить предпросмотр' });
+  }
+});
+
+app.post('/api/admin/mailings/test', adminIdGuard, newsletterTestLimiter, async (req, res) => {
+  const admin = adminAuth(req);
+  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
+  if (!adminMutationOriginAllowed(req)) return res.status(403).json({ error: 'Запрос отклонён: обновите страницу' });
+  setPrivateNoStore(res);
+  try {
+    if (!isRealEmail(admin.email)) return res.status(400).json({ error: 'У администратора нет подтверждённой почты для теста' });
+    const draft = normalizeNewsletterDraft(req.body);
+    syncMailingContactForUser(db(), admin, { source: 'admin-test' });
+    const contact = dbGet<any>('SELECT * FROM mailing_contacts WHERE lower(email) = lower(?)', admin.email);
+    if (!contact) return res.status(400).json({ error: 'Не удалось подготовить тестовый контакт' });
+    const token = newsletterUnsubscribeToken(String(contact.id));
+    const unsubscribeUrl = `${APP_URL}/api/newsletter/unsubscribe?token=${encodeURIComponent(token)}`;
+    const testDraft = { ...draft, subject: `[Тест] ${draft.subject}` };
+    const host = new URL(APP_URL).hostname;
+    await sendMimeEmail({
+      to: admin.email,
+      subject: testDraft.subject,
+      text: `${draft.textBody}\n\nОтписаться от рассылки: ${unsubscribeUrl}`,
+      html: renderNewsletterHtml(testDraft, unsubscribeUrl),
+      messageId: `${randomBytes(12).toString('hex')}@${host}`,
+      headers: ['Precedence: bulk', `List-Unsubscribe: <${unsubscribeUrl}>`, 'List-Unsubscribe-Post: List-Unsubscribe=One-Click'],
+    });
+    recordAdminAudit(admin, 'mailing.test-sent', 'mailing', 'test', { templateKey: draft.templateKey });
+    res.json({ success: true, message: `Тестовое письмо принято для ${admin.email}` });
+  } catch (err: any) {
+    res.status(400).json({ error: err?.message || 'Не удалось отправить тестовое письмо' });
+  }
+});
+
+app.post('/api/admin/mailings/send', adminIdGuard, newsletterSendLimiter, (req, res) => {
+  const admin = adminAuth(req);
+  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
+  if (!adminMutationOriginAllowed(req)) return res.status(403).json({ error: 'Запрос отклонён: обновите страницу' });
+  setPrivateNoStore(res);
+  try {
+    if (String(req.body?.confirmation || '') !== 'SEND') {
+      return res.status(400).json({ error: 'Подтвердите массовую отправку' });
+    }
+    if (!NEWSLETTER_UNSUBSCRIBE_SECRET) {
+      return res.status(503).json({ error: 'На сервере не настроена безопасная ссылка отписки' });
+    }
+    const running = dbGet<any>("SELECT id FROM mailing_campaigns WHERE status IN ('queued', 'sending') LIMIT 1");
+    if (running) return res.status(409).json({ error: 'Другая рассылка уже выполняется' });
+    const draft = normalizeNewsletterDraft(req.body);
+    const contacts = eligibleMailingContacts(draft.segment);
+    const expectedRecipients = Number(req.body?.expectedRecipients);
+    if (!Number.isInteger(expectedRecipients) || expectedRecipients !== contacts.length) {
+      return res.status(409).json({ error: `Аудитория изменилась: сейчас ${contacts.length}. Обновите предпросмотр.` });
+    }
+    if (!contacts.length) return res.status(400).json({ error: 'В выбранной аудитории нет доступных адресов' });
+    const suppliedPreviewDigest = String(req.body?.previewDigest || '').trim();
+    const expectedPreviewDigest = newsletterPreviewDigest(draft, contacts);
+    if (!safeEqualHex(suppliedPreviewDigest, expectedPreviewDigest)) {
+      return res.status(409).json({ error: 'Предпросмотр устарел или содержимое письма изменилось. Обновите предпросмотр.' });
+    }
+    const campaignId = `campaign_${Date.now().toString(36)}_${randomBytes(5).toString('hex')}`;
+    const nowIso = new Date().toISOString();
+    const database = db();
+    try {
+      database.exec('BEGIN IMMEDIATE');
+      database.prepare(`
+        INSERT INTO mailing_campaigns (
+          id, subject, preheader, html_body, text_body, template_key, segment, status,
+          created_by, created_at, recipient_count
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?)
+      `).run(campaignId, draft.subject, draft.preheader, draft.htmlBody, draft.textBody, draft.templateKey, draft.segment,
+      admin.id, nowIso, contacts.length);
+      const insertDelivery = database.prepare(`
+        INSERT INTO mailing_deliveries (campaign_id, contact_id, email_snapshot, status, attempts, updated_at)
+        VALUES (?, ?, ?, 'pending', 0, ?)
+      `);
+      for (const contact of contacts) insertDelivery.run(campaignId, contact.id, contact.email, nowIso);
+      database.exec('COMMIT');
+    } catch (err) {
+      database.exec('ROLLBACK');
+      throw err;
+    }
+    recordAdminAudit(admin, 'mailing.queued', 'mailing_campaign', campaignId, {
+      segment: draft.segment,
+      recipientCount: contacts.length,
+      templateKey: draft.templateKey,
+    });
+    setImmediate(() => void runNewsletterCampaign(campaignId));
+    res.status(202).json({ success: true, campaign: mailingCampaignFromRow(dbGet<any>('SELECT * FROM mailing_campaigns WHERE id = ?', campaignId)) });
+  } catch (err: any) {
+    res.status(400).json({ error: err?.message || 'Не удалось запустить рассылку' });
+  }
+});
+
+app.get('/api/admin/mailings/:campaignId', (req, res) => {
+  const admin = adminAuth(req);
+  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
+  setPrivateNoStore(res);
+  const campaignId = normalizeOptionalText(req.params.campaignId, 160);
+  const row = dbGet<any>('SELECT * FROM mailing_campaigns WHERE id = ?', campaignId);
+  if (!row) return res.status(404).json({ error: 'Рассылка не найдена' });
+  res.json({ campaign: mailingCampaignFromRow(row) });
+});
+
+app.get('/api/newsletter/unsubscribe', (req, res) => {
+  setPrivateNoStore(res);
+  res.set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+  const token = String(req.query.token || '');
+  const contact = mailingContactFromUnsubscribeToken(token);
+  if (!contact) return res.status(400).type('html').send('<!doctype html><meta charset="utf-8"><title>Ссылка недействительна</title><p>Ссылка отписки недействительна или устарела.</p>');
+  const alreadyUnsubscribed = contact.consent_status === 'unsubscribed' || contact.consent_status === 'suppressed';
+  res.type('html').send(`<!doctype html>
+    <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Отписка от Manacost</title>
+    <style>body{margin:0;background:#eef3f8;color:#1d2c3a;font:16px/1.5 Arial,sans-serif}.card{width:min(92%,520px);margin:10vh auto;padding:28px;border:1px solid #cad7e4;border-radius:12px;background:#fff}button{min-height:42px;padding:0 18px;border:0;border-radius:6px;background:#0d6fae;color:#fff;font-weight:700;cursor:pointer}</style></head>
+    <body><main class="card"><h1>${alreadyUnsubscribed ? 'Вы уже отписаны' : 'Отписаться от рассылки?'}</h1>
+    <p>${alreadyUnsubscribed ? 'Новые письма на этот адрес отправляться не будут.' : 'После подтверждения мы сохраним адрес только в списке исключений, чтобы больше не отправлять письма.'}</p>
+    ${alreadyUnsubscribed ? '' : `<form method="post" action="/api/newsletter/unsubscribe"><input type="hidden" name="token" value="${escapeNewsletterHtml(token)}"><button type="submit">Подтвердить отписку</button></form>`}
+    </main></body></html>`);
+});
+
+app.post('/api/newsletter/unsubscribe', (req, res) => {
+  setPrivateNoStore(res);
+  const token = String(req.body?.token || req.query.token || '');
+  const contact = mailingContactFromUnsubscribeToken(token);
+  if (!contact) return res.status(400).json({ error: 'Ссылка отписки недействительна' });
+  const nowIso = new Date().toISOString();
+  dbRun(`
+    UPDATE mailing_contacts
+    SET consent_status = 'unsubscribed', unsubscribed_at = COALESCE(unsubscribed_at, ?),
+        suppressed_reason = 'user-unsubscribed', updated_at = ?
+    WHERE id = ?
+  `, nowIso, nowIso, contact.id);
+  if (contact.user_id) dbRun('UPDATE users SET newsletter_opt_in = 0, updated_at = ? WHERE id = ?', nowIso, contact.user_id);
+  if (String(req.headers['list-unsubscribe'] || req.body?.ListUnsubscribe || '') === 'One-Click'
+    || String(req.body?.['List-Unsubscribe'] || '') === 'One-Click') {
+    return res.json({ success: true });
+  }
+  res.type('html').send('<!doctype html><meta charset="utf-8"><title>Вы отписались</title><p>Готово. Новые письма Manacost на этот адрес отправляться не будут.</p>');
 });
 
 app.get('/api/admin/users/search', (req, res) => {
-  const admin = contestAdminAuth(req);
+  const admin = adminAuth(req);
   if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
+  setPrivateNoStore(res);
   const q = normalizeOptionalText(req.query.q, 120);
   if (!q) return res.json({ users: [] });
   const like = `%${q.toLowerCase()}%`;
@@ -7409,6 +8477,10 @@ app.post('/api/subscription/email/confirm', authCodeVerifyLimiter, async (req, r
   store.pendingCodes = store.pendingCodes.filter(item => item.email !== email);
   store.sessions = store.sessions.map(session => session.email === oldEmail ? { ...session, email } : session);
   saveAuthStore(store);
+  syncMailingContactForUser(db(), user, {
+    confirmConsent: Boolean(user.newsletterOptIn),
+    source: 'verified-email-change',
+  });
   const nowIso = new Date().toISOString();
   dbRun(`
     INSERT INTO identities (user_id, provider, provider_user_id, email, username, photo_url, verified_at, created_at, updated_at)
@@ -7818,8 +8890,11 @@ app.listen(PORT, HOST, () => {
   console.log(`[Server] API server running on http://${HOST || 'localhost'}:${PORT}`);
   console.log('[Server] Scraping every 6 hours. Trigger manual: POST /api/scrape');
 
-  // Initial scrape on startup (non-blocking)
-  setTimeout(async () => {
+  const mailingResumeTimer = setTimeout(() => resumeNewsletterCampaigns(), 1500);
+  mailingResumeTimer.unref?.();
+
+  // Initial scrape on startup (non-blocking). Isolated QA can disable external writes.
+  if (process.env.DISABLE_INITIAL_SCRAPE !== '1') setTimeout(async () => {
     if (isScraping) return;
     isScraping = true;
     console.log('[Server] Running initial scrape...');
