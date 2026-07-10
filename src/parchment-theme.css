@@ -1801,6 +1801,7 @@
   font-size: 0.58rem !important;
   font-weight: 850;
   letter-spacing: 0.14em;
+  transform: translateY(-5px);
   text-transform: uppercase;
 }
 
@@ -1808,6 +1809,7 @@
   color: #fff0c8 !important;
   font-size: clamp(1.25rem, 2.2vw, 1.85rem) !important;
   letter-spacing: 0 !important;
+  transform: translateY(-5px);
   text-shadow: 0 2px 3px rgba(45, 22, 10, 0.78) !important;
 }
 
