@@ -1954,3 +1954,425 @@
     height: 64px !important;
   }
 }
+
+/* Profile archive theme: the same parchment, red rail and wood language as home. */
+.arena-app-profile .profile-workspace {
+  --profile-ink: #3b2b20;
+  --profile-muted: #78634b;
+  --profile-line: rgba(91, 55, 25, 0.24);
+  --profile-red: #7b151b;
+  --profile-red-dark: #4b090e;
+  --profile-gold: #d6a848;
+  padding: clamp(1.2rem, 2.8vw, 2.5rem) 0 3rem !important;
+  color: var(--profile-ink) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-card {
+  gap: clamp(1.35rem, 2.7cqi, 2.2rem) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-hero {
+  min-height: 218px !important;
+  padding: clamp(1.5rem, 3cqi, 2.25rem) !important;
+  overflow: hidden !important;
+  border: 10px solid transparent !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 18 !important;
+  border-image-width: 10px !important;
+  border-image-outset: 2px !important;
+  border-image-repeat: stretch !important;
+  border-radius: 0 !important;
+  color: #f8e7bd !important;
+  background:
+    linear-gradient(90deg, rgba(65, 5, 9, 0.15), rgba(108, 16, 21, 0.03)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+  box-shadow:
+    inset 0 0 42px rgba(43, 3, 6, 0.22),
+    0 14px 28px rgba(70, 38, 15, 0.16) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-hero > div > span:first-child {
+  width: 88px !important;
+  height: 88px !important;
+  border: 2px solid rgba(240, 203, 117, 0.58) !important;
+  border-radius: 3px !important;
+  background: rgba(49, 4, 7, 0.42) !important;
+  box-shadow: 0 10px 22px rgba(37, 3, 5, 0.32) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-hero__eyebrow {
+  color: #e8bb58 !important;
+  letter-spacing: 0.13em !important;
+}
+
+.arena-app-profile .profile-workspace .profile-hero h1 {
+  color: #fff1c8 !important;
+  font-size: clamp(2rem, 4.6cqi, 3.2rem) !important;
+  letter-spacing: -0.03em !important;
+  text-shadow: 0 2px 7px rgba(35, 3, 5, 0.58) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-hero__contact {
+  color: #e0c594 !important;
+}
+
+.arena-app-profile .profile-workspace .profile-hero__id,
+.arena-app-profile .profile-workspace .profile-hero__id code {
+  color: #c9a96e !important;
+}
+
+.arena-app-profile .profile-workspace .profile-status-chips {
+  gap: 0.35rem !important;
+}
+
+.arena-app-profile .profile-workspace .profile-status-chip {
+  min-height: 30px !important;
+  padding: 0.38rem 0.62rem !important;
+  border: 1px solid rgba(235, 196, 102, 0.29) !important;
+  border-radius: 2px !important;
+  color: #f1d9a6 !important;
+  background: rgba(47, 4, 7, 0.38) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-status-chip:first-child {
+  padding-left: 0.62rem !important;
+}
+
+.arena-app-profile .profile-workspace .profile-status-chip + .profile-status-chip {
+  border-left: 1px solid rgba(235, 196, 102, 0.29) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-message {
+  border-color: rgba(64, 123, 73, 0.38) !important;
+  border-radius: 2px !important;
+  color: #355d39 !important;
+  background: rgba(224, 238, 207, 0.58) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-message--err {
+  border-color: rgba(142, 40, 40, 0.35) !important;
+  color: #7d2227 !important;
+  background: rgba(246, 216, 198, 0.58) !important;
+}
+
+.arena-app-profile .profile-workspace :is(
+  .profile-settings-form,
+  .profile-subscription-panel,
+  .profile-contests,
+  .profile-account-actions
+) {
+  border: 1px solid var(--profile-line) !important;
+  border-radius: 2px !important;
+  background: rgba(249, 233, 195, 0.42) !important;
+  box-shadow: 0 10px 20px rgba(73, 42, 16, 0.06) !important;
+}
+
+.arena-app-profile .profile-workspace :is(
+  .profile-settings-form,
+  .profile-subscription-panel,
+  .profile-contests
+) {
+  position: relative;
+  padding-top: clamp(1.45rem, 3cqi, 1.9rem) !important;
+  border-top: 6px solid transparent !important;
+  border-image: var(--arena-wood-divider) 1 !important;
+}
+
+.arena-app-profile .profile-workspace :is(
+  .profile-settings-form,
+  .profile-subscription-panel,
+  .profile-contests
+) :is(h2, h3, strong) {
+  color: #3d2b1f !important;
+}
+
+.arena-app-profile .profile-workspace .profile-settings-form label {
+  color: #5e4937 !important;
+}
+
+.arena-app-profile .profile-workspace .profile-settings-form > div:first-child strong,
+.arena-app-profile .profile-workspace .profile-contests__heading strong,
+.arena-app-profile .profile-workspace .profile-subscription-panel > div:first-child strong {
+  font-family: var(--font-display) !important;
+  font-size: 1.18rem !important;
+  line-height: 1.08 !important;
+}
+
+.arena-app-profile .profile-workspace .profile-settings-form > div:first-child span,
+.arena-app-profile .profile-workspace .profile-contests__heading span,
+.arena-app-profile .profile-workspace .profile-subscription-panel p {
+  color: var(--profile-muted) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-settings-form :where(input:not([type='checkbox']), select),
+.arena-app-profile .profile-workspace .profile-boosty-form :where(input, select) {
+  border-color: rgba(104, 67, 34, 0.38) !important;
+  border-radius: 2px !important;
+  color: #3d2b1f !important;
+  background: rgba(255, 246, 219, 0.72) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-checkbox {
+  accent-color: var(--profile-red) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-settings-form > button,
+.arena-app-profile .profile-workspace .profile-boosty-form > button,
+.arena-app-profile .profile-workspace .profile-telegram-link > a {
+  border-color: #5b0d12 !important;
+  border-radius: 2px !important;
+  color: #fff0c8 !important;
+  background:
+    linear-gradient(rgba(86, 8, 13, 0.08), rgba(50, 4, 7, 0.18)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+}
+
+.arena-app-profile .profile-workspace .profile-subscription-panel--active,
+.arena-app-profile .profile-workspace .profile-subscription-panel:not(.profile-subscription-panel--active) {
+  border-top: 6px solid transparent !important;
+  border-image: var(--arena-wood-divider) 1 !important;
+}
+
+.arena-app-profile .profile-workspace .profile-subscription-panel > div:first-child > div > p {
+  color: var(--profile-red) !important;
+  font-weight: 800 !important;
+}
+
+.arena-app-profile .profile-workspace .profile-subscription-panel > div:first-child > button {
+  border-color: rgba(103, 64, 29, 0.38) !important;
+  border-radius: 2px !important;
+  color: #5b351d !important;
+  background: rgba(255, 244, 216, 0.5) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-access-list {
+  border-bottom-color: var(--profile-line) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-access-item {
+  color: #3d653f !important;
+}
+
+.arena-app-profile .profile-workspace .profile-access-item::before {
+  color: #4e7e4d !important;
+}
+
+.arena-app-profile .profile-workspace .profile-subscription-source {
+  border-color: var(--profile-line) !important;
+  border-radius: 2px !important;
+  background: rgba(255, 245, 217, 0.48) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-subscription-source strong {
+  color: #4a3322 !important;
+}
+
+.arena-app-profile .profile-workspace .profile-subscription-source p,
+.arena-app-profile .profile-workspace .profile-subscription-source span {
+  color: #79634b !important;
+}
+
+.arena-app-profile .profile-workspace .profile-subscription-source img {
+  border: 1px solid rgba(107, 68, 31, 0.24) !important;
+  border-radius: 2px !important;
+  background: #fff4d8 !important;
+}
+
+.arena-app-profile .profile-workspace .profile-subscription-source button {
+  border-color: rgba(111, 68, 29, 0.4) !important;
+  border-radius: 2px !important;
+  color: #6c3d1d !important;
+  background: rgba(255, 243, 210, 0.72) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-subscription-source code {
+  color: #fff0c8 !important;
+  background: #4d0b10 !important;
+}
+
+.arena-app-profile .profile-workspace .profile-boosty-form,
+.arena-app-profile .profile-workspace .profile-telegram-link {
+  border: 1px solid rgba(112, 69, 29, 0.34) !important;
+  border-left: 3px solid var(--profile-red) !important;
+  border-radius: 2px !important;
+  background: rgba(255, 242, 206, 0.48) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-boosty-form p,
+.arena-app-profile .profile-workspace .profile-telegram-link p {
+  color: #68513c !important;
+}
+
+.arena-app-profile .profile-workspace .profile-contests__heading {
+  border-bottom-color: var(--profile-line) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-contests__count {
+  color: var(--profile-red) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-contests__state {
+  border-color: rgba(104, 67, 34, 0.3) !important;
+  border-radius: 2px !important;
+  color: var(--profile-muted) !important;
+  background: rgba(255, 245, 216, 0.4) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-contest-entry {
+  border-bottom-color: var(--profile-line) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-contest-entry--winner {
+  border-left-color: var(--profile-gold) !important;
+  background: rgba(240, 205, 118, 0.1) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-contest-entry > div > div:first-child > span {
+  border: 1px solid rgba(123, 21, 27, 0.18) !important;
+  border-radius: 2px !important;
+  color: #7b151b !important;
+  background: rgba(161, 58, 52, 0.08) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-contest-entry strong {
+  color: #3d2b1f !important;
+}
+
+.arena-app-profile .profile-workspace .profile-contest-entry p {
+  color: #776047 !important;
+}
+
+.arena-app-profile .profile-workspace .profile-account-actions {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.arena-app-profile .profile-workspace .profile-account-actions :where(button, a) {
+  border-color: rgba(123, 21, 27, 0.34) !important;
+  border-radius: 2px !important;
+  color: #7b151b !important;
+  background: rgba(255, 239, 210, 0.38) !important;
+}
+
+.arena-app-profile .profile-workspace .profile-account-actions a {
+  color: #fff0c8 !important;
+  background:
+    linear-gradient(rgba(86, 8, 13, 0.08), rgba(50, 4, 7, 0.18)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+}
+
+.arena-app-profile .profile-workspace :where(button, a, input, select):focus-visible,
+.arena-app-profile .login-page :where(button, a, input, select):focus-visible {
+  outline-color: rgba(123, 21, 27, 0.72) !important;
+}
+
+/* Login is the front cover of the same profile passport. */
+.arena-app-profile .login-page {
+  padding: clamp(2rem, 6vw, 5rem) 0 !important;
+  color: var(--arena-ink) !important;
+}
+
+.arena-app-profile .login-card {
+  border: 10px solid transparent !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 18 !important;
+  border-image-width: 10px !important;
+  border-image-outset: 2px !important;
+  border-image-repeat: stretch !important;
+  border-radius: 0 !important;
+  background: rgba(248, 231, 191, 0.72) !important;
+  box-shadow: 0 18px 36px rgba(74, 42, 16, 0.14) !important;
+}
+
+.arena-app-profile .login-card > div:first-child {
+  border-color: rgba(236, 195, 96, 0.44) !important;
+  border-radius: 3px !important;
+  color: #f0c667 !important;
+  background:
+    linear-gradient(rgba(86, 8, 13, 0.08), rgba(50, 4, 7, 0.18)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+  box-shadow: 0 10px 20px rgba(61, 12, 9, 0.2) !important;
+}
+
+.arena-app-profile .login-card h2 {
+  color: #3d2b1f !important;
+}
+
+.arena-app-profile .login-card > p {
+  color: #735d46 !important;
+}
+
+.arena-app-profile .login-mode-tabs {
+  border: 1px solid rgba(104, 67, 34, 0.22) !important;
+  border-radius: 2px !important;
+  background: rgba(122, 73, 29, 0.07) !important;
+}
+
+.arena-app-profile .login-mode-tab {
+  border-color: transparent !important;
+  border-radius: 1px !important;
+  color: #79634b !important;
+  background: transparent !important;
+}
+
+.arena-app-profile .login-mode-tab-active {
+  border-color: rgba(123, 21, 27, 0.34) !important;
+  color: #7b151b !important;
+  background: rgba(255, 243, 211, 0.72) !important;
+}
+
+.arena-app-profile .login-card form :where(input, select) {
+  border-color: rgba(104, 67, 34, 0.38) !important;
+  border-radius: 2px !important;
+  color: #3d2b1f !important;
+  background: rgba(255, 246, 219, 0.78) !important;
+}
+
+.arena-app-profile .login-card form > button[type='submit'] {
+  border-color: #5b0d12 !important;
+  border-radius: 2px !important;
+  color: #fff0c8 !important;
+  background:
+    linear-gradient(rgba(86, 8, 13, 0.08), rgba(50, 4, 7, 0.18)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+}
+
+@media (max-width: 1023px) {
+  .arena-app-profile .arena-main {
+    padding: 0 !important;
+  }
+
+  .arena-app-profile .arena-content.arena-content-open {
+    max-width: 100% !important;
+    padding: 0 1rem 2rem !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .arena-app-profile .profile-workspace {
+    padding-top: 1rem !important;
+  }
+
+  .arena-app-profile .profile-workspace .profile-hero {
+    padding: 1rem !important;
+  }
+
+  .arena-app-profile .profile-workspace .profile-hero > div {
+    align-items: flex-start !important;
+  }
+
+  .arena-app-profile .profile-workspace .profile-hero > div > span:first-child {
+    width: 62px !important;
+    height: 62px !important;
+  }
+
+  .arena-app-profile .profile-workspace .profile-hero h1 {
+    font-size: 1.65rem !important;
+  }
+
+  .arena-app-profile .login-card {
+    padding: 1.1rem !important;
+  }
+}

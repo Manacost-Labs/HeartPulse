@@ -4750,9 +4750,10 @@ export function LoginPanel({
         </div>
       )}
       {authStep === 'password' && (
-        <div style={{ display: 'inline-flex', gap: '4px', padding: '4px', borderRadius: '10px', background: 'rgba(37,99,235,0.08)', marginBottom: '14px' }}>
+        <div className="login-mode-tabs" style={{ display: 'inline-flex', gap: '4px', padding: '4px', borderRadius: '10px', background: 'rgba(37,99,235,0.08)', marginBottom: '14px' }}>
           {(['login', 'register'] as const).map(mode => (
             <button key={mode} type="button" onClick={() => { setAuthMode(mode); setMsg(null); setAuthStep('password'); }}
+              className={`login-mode-tab${authMode === mode ? ' login-mode-tab-active' : ''}`}
               style={{
                 border: '1px solid ' + (authMode === mode ? '#60a5fa' : 'transparent'),
                 background: authMode === mode ? '#f8faff' : 'transparent',

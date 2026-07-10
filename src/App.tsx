@@ -7510,7 +7510,7 @@ export default function App() {
   const isOpenSurfacePage = !isAdminMode && (activeTab === 'home' || wantsLogin);
 
 		  return (
-    <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${activeTab === 'home' && !isAdminMode ? 'arena-app-home' : ''}`}>
+    <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${activeTab === 'home' && !isAdminMode ? 'arena-app-home' : ''} ${wantsLogin && !isAdminMode ? 'arena-app-profile' : ''}`}>
       {!isAdminMode && <header className="arena-mobile-topbar lg:hidden">
         <a
           href="/"

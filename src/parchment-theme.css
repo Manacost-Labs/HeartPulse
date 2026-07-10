@@ -28,9 +28,9 @@
 
 /* ─── Public shell ─────────────────────────────────────────────────────── */
 
-.arena-app-home.bg-wood,
-.arena-app-home .arena-workspace,
-.arena-app-home .arena-main {
+:is(.arena-app-home, .arena-app-profile).bg-wood,
+:is(.arena-app-home, .arena-app-profile) .arena-workspace,
+:is(.arena-app-home, .arena-app-profile) .arena-main {
   background-color: var(--arena-parchment) !important;
   background-image:
     linear-gradient(rgba(249, 235, 202, 0.72), rgba(236, 213, 166, 0.78)),
@@ -39,15 +39,15 @@
   background-size: auto, 865px 878px !important;
 }
 
-.arena-app-home.bg-wood::after {
+:is(.arena-app-home, .arena-app-profile).bg-wood::after {
   background: transparent !important;
 }
 
-.arena-app-home .arena-main {
+:is(.arena-app-home, .arena-app-profile) .arena-main {
   padding-top: 0 !important;
 }
 
-.arena-app-home .arena-content.arena-content-open {
+:is(.arena-app-home, .arena-app-profile) .arena-content.arena-content-open {
   width: 100% !important;
   max-width: 1480px !important;
   margin: 0 auto !important;
@@ -797,7 +797,7 @@
 .arena-app-home .home-faq-zone .faq-card button span:last-child { color: var(--arena-red) !important; }
 .arena-app-home .home-faq-zone .faq-card p { color: #725f49 !important; }
 
-.arena-app-home .arena-footer {
+:is(.arena-app-home, .arena-app-profile) .arena-footer {
   margin-top: 0 !important;
   border-top: 5px solid transparent !important;
   border-image: var(--arena-wood-divider) 1 !important;
@@ -808,25 +808,25 @@
   box-shadow: inset 0 12px 28px rgba(45, 4, 7, 0.12) !important;
 }
 
-.arena-app-home .arena-footer > div:first-child {
+:is(.arena-app-home, .arena-app-profile) .arena-footer > div:first-child {
   max-width: 1120px !important;
 }
 
-.arena-app-home .arena-footer h3 {
+:is(.arena-app-home, .arena-app-profile) .arena-footer h3 {
   color: #efc768 !important;
   text-shadow: none !important;
 }
 
-.arena-app-home .arena-footer a { color: #efd9ad !important; }
-.arena-app-home .arena-footer a:hover { color: #fff3cd !important; }
+:is(.arena-app-home, .arena-app-profile) .arena-footer a { color: #efd9ad !important; }
+:is(.arena-app-home, .arena-app-profile) .arena-footer a:hover { color: #fff3cd !important; }
 
-.arena-app-home .arena-footer > div:last-child {
+:is(.arena-app-home, .arena-app-profile) .arena-footer > div:last-child {
   border-color: rgba(239, 199, 104, 0.2) !important;
 }
 
-.arena-app-home .arena-footer p { color: #c7aa76 !important; }
+:is(.arena-app-home, .arena-app-profile) .arena-footer p { color: #c7aa76 !important; }
 
-.arena-app-home .support-prompt {
+:is(.arena-app-home, .arena-app-profile) .support-prompt {
   border-color: rgba(218, 169, 70, 0.42) !important;
   color: #fff1ca !important;
   background:
@@ -835,28 +835,28 @@
   box-shadow: 0 14px 30px rgba(55, 16, 10, 0.24) !important;
 }
 
-.arena-app-home .support-prompt__trigger { color: #fff1ca !important; }
-.arena-app-home .support-prompt__dismiss { color: #d9bd83 !important; background: rgba(49, 4, 7, 0.26) !important; }
+:is(.arena-app-home, .arena-app-profile) .support-prompt__trigger { color: #fff1ca !important; }
+:is(.arena-app-home, .arena-app-profile) .support-prompt__dismiss { color: #d9bd83 !important; background: rgba(49, 4, 7, 0.26) !important; }
 
 /* Footer's legacy rules live in Tailwind's utilities layer and use !important.
    Keep this correction in the same layer so the scoped home selector wins. */
 @layer utilities {
   /* The legacy shell keeps a fixed blue vignette in the utilities layer.
      Important declarations reverse layer priority, so disable it here too. */
-  .arena-app-home.bg-wood::after {
+  :is(.arena-app-home, .arena-app-profile).bg-wood::after {
     content: none !important;
     display: none !important;
     background: none !important;
   }
 
-  .arena-app-home .arena-content.arena-content-open {
+  :is(.arena-app-home, .arena-app-profile) .arena-content.arena-content-open {
     border-radius: 0 !important;
     box-shadow: none !important;
     filter: none !important;
     backdrop-filter: none !important;
   }
 
-  .arena-app-home .arena-footer {
+  :is(.arena-app-home, .arena-app-profile) .arena-footer {
     margin-top: 0 !important;
     border-top: 5px solid transparent !important;
     border-image: var(--arena-wood-divider) 1 !important;
@@ -867,9 +867,9 @@
     box-shadow: inset 0 12px 28px rgba(45, 4, 7, 0.12) !important;
   }
 
-  .arena-app-home .arena-footer::before { display: none !important; }
+  :is(.arena-app-home, .arena-app-profile) .arena-footer::before { display: none !important; }
 
-  .arena-app-home .arena-footer > .max-w-6xl {
+  :is(.arena-app-home, .arena-app-profile) .arena-footer > .max-w-6xl {
     border-color: rgba(236, 194, 99, 0.23) !important;
     border-radius: 2px !important;
     background: rgba(48, 4, 7, 0.22) !important;
@@ -877,15 +877,15 @@
     backdrop-filter: none !important;
   }
 
-  .arena-app-home .arena-footer h3,
-  .arena-app-home .arena-footer [class*='text-[#f6ce68]'] {
+  :is(.arena-app-home, .arena-app-profile) .arena-footer h3,
+  :is(.arena-app-home, .arena-app-profile) .arena-footer [class*='text-[#f6ce68]'] {
     color: #efc768 !important;
     text-shadow: none !important;
   }
 
-  .arena-app-home .arena-footer a { color: #efd9ad !important; }
-  .arena-app-home .arena-footer a:hover { color: #fff3cd !important; }
-  .arena-app-home .arena-footer p { color: #c7aa76 !important; }
+  :is(.arena-app-home, .arena-app-profile) .arena-footer a { color: #efd9ad !important; }
+  :is(.arena-app-home, .arena-app-profile) .arena-footer a:hover { color: #fff3cd !important; }
+  :is(.arena-app-home, .arena-app-profile) .arena-footer p { color: #c7aa76 !important; }
 
   .arena-app-home .home-faq-zone #faq-heading {
     color: #3c2b1f !important;

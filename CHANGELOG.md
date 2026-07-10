@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Restyled the signed-in profile and login screen as a Manacost player passport using the same parchment canvas, red textured panels, wooden framing, warm forms, responsive layout, and preserved authentication, contact, subscription, Telegram, Boosty, and contest-history flows.
 - Removed the legacy fixed blue vignette, oversized navigation drop shadow, and transparent backdrop blur that produced dark compositing bands along the page edges while scrolling the parchment home page.
 - Added the Hearthstone Wiki wooden rail frame as a locally hosted, lightweight border for the fixed navigation, mobile header, and live class board on the home page.
 - Simplified the public brand to the text-only “Manacost Stats” wordmark and removed the remaining cool-blue and violet UI remnants from rankings, draft tools, Battlegrounds navigation, and FAQ surfaces.
