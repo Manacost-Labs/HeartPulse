@@ -23,6 +23,7 @@ HS-Arena is a Hearthstone statistics product presented as a readable game compen
 - `/wallpaper/arena-parchment.jpg`
 - `/wallpaper/arena-rail-red.jpg`
 - `/wallpaper/main-page-rail-border.png`
+- `/wallpaper/deck-border.png`
 - `/wallpaper/wiki-battlegrounds-skin.webp`
 - `/wallpaper/battlegrounds-bartender-header.webp`
 
@@ -31,10 +32,17 @@ Do not hotlink wiki assets at runtime.
 ## Layout Rules
 
 - One continuous page canvas and one predictable `1280–1320px` content width.
-- Builders may use the wide workspace but remain inside the same material system.
+- Builders use the full workspace after the desktop rail; their BG frame is `20–28px`, the library takes roughly `32%`, and annotations move below canvases narrower than `860px`.
 - App mobile navigation stays fixed below its topbar; deferred-shell mobile rules stay scoped below `.arena-main`.
 - Verify `390px` with no document-level horizontal scroll and minimum `42px` touch targets.
 - Profile hierarchy uses the large wood frame for hero/settings/access, the deck frame for short statuses and subscription sources, and plain parchment inputs for readability.
+
+## Home Rules
+
+- Lead with live freshness, Arena leaders, source count and direct actions instead of quotes or oversized marketing copy.
+- Keep the order Battlegrounds directory → Arena directory → useful cross-mode statistics → editorial/community content.
+- The Battlegrounds spotlight chart uses the real eight-place hero distribution from the API and falls back to an explicit updating state, never invented demo values.
+- Frame major home regions with canonical wood assets; keep inner rows quiet, parchment-based and free of generic colored side rails.
 
 ## Battlegrounds Rules
 
@@ -42,6 +50,9 @@ Do not hotlink wiki assets at runtime.
 - Route hooks: `.bg-heroes-page`, `.bg-hero-detail-page`, `.bg-library-page`, `.bg-library-detail-page`, `.bg-tier-list-page`, `.bg-builder-page`.
 - Styles stay scoped in `src/battlegrounds-parchment.css`.
 - Use dusty violet for active controls, parchment for filters and wood for major rules.
+- Do not use violet side rails or colored left-border strips on BG panels; use wooden frames/rules for major separation and quiet neutral borders inside them.
+- BG tier navigation uses walnut/burgundy idle cards and violet/gold selected cards; rank groups use honey parchment, never cold white/blue dashboard surfaces.
+- Hero details use the large rail frame for the identity dossier, a thin rail slice for major ledgers, and the deck frame for hero-power/companion media; names wrap safely and descriptions are not clamped.
 - Preserve hero-power/related-card reveals, golden-card dual-layer animation, tier lightboxes and builder drag/drop/export behavior.
 - Builders use the wiki BG frame and a dark aubergine work surface; edit CSS variables before touching legacy scripts.
 
@@ -63,4 +74,8 @@ Do not hotlink wiki assets at runtime.
 
 ## Changelog
 
+- **2026-07-10** — Defined the utility-first home hierarchy and real-data Battlegrounds hero spotlight chart.
+- **2026-07-10** — Removed generic colored side rails from Battlegrounds panels and directory entries in favor of wooden hierarchy and neutral boundaries.
+- **2026-07-10** — Added the Battlegrounds hero-dossier frame hierarchy and overflow-safe hero media rules.
+- **2026-07-10** — Added the wide-builder, dark BG tier-ledger and corrected profile-plaque composition rules from the canonical specification.
 - **2026-07-10** — Synchronized with the canonical parchment/Battlegrounds design system in `design.md`.

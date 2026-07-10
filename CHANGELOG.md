@@ -2,6 +2,10 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Refactored the home page into a compact utility-first dashboard: live freshness and Arena leaders now appear before the Battlegrounds and Arena directories, followed by neatly grouped cross-mode statistics and a real eight-place Battlegrounds hero distribution chart with an honest unavailable-data state.
+- Removed the generic violet side rails from Battlegrounds heroes, library, tier-list panels, mobile sections, and home-directory entries; retained wooden frames and horizontal wood rules for meaningful separation.
+- Rebuilt Battlegrounds hero details as a wood-framed tavern dossier with dark aubergine identity and media surfaces, thin framed content ledgers, warmer inner cards, and fully wrapping hero-power and companion copy while preserving media lightboxes and golden artwork behavior.
+- Expanded the Battlegrounds strategy and tier-list builders into a wide 32/68 workbench with a slimmer wiki frame and container-responsive annotation rail; replaced the remaining cold BG tier-list surfaces with walnut, aubergine and honey parchment; and corrected the profile plaque, surface isolation, artwork crop and avatar balance without changing protected animations, drag/drop or export logic.
 - Added the official Blizzard Hearthstone Game Data API as the primary Arena card-render source when server credentials are configured, with server-only OAuth, shared token/catalog caching, local WebP conversion, automatic token refresh, and a HearthstoneJSON fallback so temporary upstream failures do not leave broken cards.
 - Replaced the remaining white and cool-blue Arena source/filter controls with readable parchment and wine-red states, rebuilt card hover statistics as a wooden ledger, and restyled the shared Tier List/Legendary card lightbox as a responsive tavern frame without changing its data or interactions.
 - Unified the home-page Arena board with the exact Battlegrounds tavern-frame asset, border slicing, frame width, parchment fill, and responsive mobile treatment while retaining Arena-specific links and red accents.

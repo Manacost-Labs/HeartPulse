@@ -2594,8 +2594,7 @@
 .arena-app-home .home-bg-directory .home-section-heading > p {
   max-width: 32rem;
   margin: 0 !important;
-  padding-left: 1rem;
-  border-left: 4px solid #8f536d;
+  padding-left: 0;
   color: #6f5943 !important;
 }
 
@@ -2617,19 +2616,20 @@
   border-radius: 0 !important;
   color: #3e2f23 !important;
   background: rgba(255, 241, 207, 0.32) !important;
-  box-shadow: inset 3px 0 rgba(139, 79, 104, 0.5) !important;
+  box-shadow: 0 6px 14px rgba(75, 42, 15, 0.07) !important;
 }
 
 .arena-app-home .home-bg-directory__link[data-featured='true'] {
   background: rgba(255, 245, 218, 0.52) !important;
-  box-shadow: inset 5px 0 #8f536d !important;
+  border-color: rgba(112, 67, 35, 0.5) !important;
+  box-shadow: 0 8px 17px rgba(75, 42, 15, 0.11) !important;
 }
 
 .arena-app-home .home-bg-directory__link:hover {
   transform: translateY(-3px) !important;
   border-color: rgba(93, 48, 25, 0.5) !important;
   background: rgba(255, 248, 227, 0.72) !important;
-  box-shadow: inset 5px 0 #8f536d, 0 10px 18px rgba(75, 42, 15, 0.12) !important;
+  box-shadow: 0 10px 18px rgba(75, 42, 15, 0.12) !important;
 }
 
 .arena-app-home .home-bg-directory__link small { color: #7d405b !important; }
@@ -3678,4 +3678,396 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ─── Home utility refactor: live data first, mode hubs second ─────────── */
+
+.arena-app-home .home-stage {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.72fr) !important;
+  gap: clamp(1.2rem, 2.4vw, 2.4rem) !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  padding: clamp(1.2rem, 2.4vw, 2rem) !important;
+  border: 12px solid transparent !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 18 fill !important;
+  border-image-width: 12px !important;
+  border-image-repeat: stretch !important;
+  color: #fff0c8 !important;
+  background:
+    radial-gradient(circle at 78% 12%, rgba(217, 171, 73, 0.15), transparent 28%),
+    linear-gradient(145deg, rgba(91, 12, 18, 0.96), rgba(48, 6, 10, 0.98)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+  box-shadow: 0 18px 32px rgba(70, 35, 16, 0.2) !important;
+}
+
+.arena-app-home .home-stage__copy {
+  max-width: 610px !important;
+  align-self: center;
+}
+
+.arena-app-home .home-stage__label {
+  color: #e8be62 !important;
+}
+
+.arena-app-home .home-stage__label > span {
+  background: #74b778 !important;
+  box-shadow: 0 0 0 4px rgba(116, 183, 120, 0.1) !important;
+}
+
+.arena-app-home .home-stage h1 {
+  max-width: none !important;
+  margin-top: 0.55rem !important;
+  color: #fff0c8 !important;
+  font-size: clamp(2.25rem, 4.2vw, 3.65rem) !important;
+  line-height: 1 !important;
+  letter-spacing: -0.035em !important;
+  text-shadow: 0 2px 3px rgba(26, 3, 6, 0.72) !important;
+}
+
+.arena-app-home .home-stage h1 span {
+  color: #e2b858 !important;
+}
+
+.arena-app-home .home-stage__copy > p {
+  max-width: 62ch !important;
+  margin-top: 0.8rem !important;
+  color: #decaa0 !important;
+  font-size: 0.91rem !important;
+  line-height: 1.56 !important;
+}
+
+.arena-app-home .home-stage__actions {
+  margin-top: 1.1rem !important;
+}
+
+.arena-app-home .home-action--primary {
+  border-color: rgba(238, 196, 102, 0.72) !important;
+  color: #3b2112 !important;
+  background: linear-gradient(180deg, #f0ca72, #c79335) !important;
+}
+
+.arena-app-home .home-action--secondary {
+  border-color: rgba(239, 203, 121, 0.34) !important;
+  color: #f7e4b7 !important;
+  background: rgba(34, 4, 8, 0.28) !important;
+}
+
+.arena-app-home .home-draft-orbit {
+  min-height: 0 !important;
+  align-self: stretch !important;
+  padding: 0 !important;
+  border: 0 !important;
+  color: #fbe9bd !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.arena-app-home .home-draft-orbit__caption {
+  position: static !important;
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #d9ab49 !important;
+  transform: none !important;
+}
+
+.arena-app-home .home-draft-orbit__board {
+  position: static !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  display: grid;
+  gap: 0.45rem;
+  margin: 0 !important;
+}
+
+.arena-app-home .home-orbit-class,
+.arena-app-home .home-orbit-class--1,
+.arena-app-home .home-orbit-class--2,
+.arena-app-home .home-orbit-class--3 {
+  position: static !important;
+  width: 100% !important;
+  min-height: 62px;
+  grid-template-columns: 48px minmax(0, 1fr) !important;
+  padding: 0.45rem 0.6rem !important;
+  transform: none !important;
+}
+
+.arena-app-home .home-orbit-class__icon {
+  width: 46px !important;
+  height: 46px !important;
+}
+
+.arena-app-home .home-orbit-class__icon img {
+  width: 44px !important;
+  height: 44px !important;
+}
+
+.arena-app-home .home-orbit-action {
+  position: static !important;
+  min-height: 38px;
+  margin-top: 0.45rem;
+}
+
+.arena-app-home .home-orbit-empty {
+  position: static !important;
+  width: 100% !important;
+  min-height: 72px;
+  transform: none !important;
+}
+
+.arena-app-home .home-stage__status {
+  grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(120px, 0.7fr)) !important;
+  margin: 0 !important;
+  padding: 6px 0 0 !important;
+  background: var(--arena-wood-divider) top / 100% 5px no-repeat !important;
+}
+
+.arena-app-home .home-stage__status > span {
+  min-height: 52px !important;
+  color: #d8c29a !important;
+  background: rgba(22, 3, 6, 0.2) !important;
+}
+
+.arena-app-home .home-stage__status > span + span {
+  border-left-color: rgba(231, 192, 104, 0.18) !important;
+}
+
+.arena-app-home .home-stage__status small { color: #bda16c !important; }
+.arena-app-home .home-stage__status time,
+.arena-app-home .home-stage__status strong { color: #fff0c8 !important; }
+
+.arena-app-home .home-page-index {
+  margin-block: -1.5rem 0 !important;
+}
+
+.arena-app-home .home-bg-spotlight {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.72fr) minmax(0, 1.28fr);
+  gap: clamp(0.8rem, 2vw, 1.4rem);
+  margin-bottom: clamp(1.25rem, 2.8vw, 2rem);
+  padding: clamp(0.7rem, 1.4vw, 1rem);
+  border: 9px solid transparent;
+  border-image-source: url('/wallpaper/main-page-rail-border.png');
+  border-image-slice: 18 fill;
+  border-image-width: 9px;
+  border-image-repeat: stretch;
+  color: #f5e2b9;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(143, 83, 109, 0.23), transparent 32%),
+    linear-gradient(145deg, #3d232a, #211315);
+  box-shadow: 0 14px 26px rgba(57, 28, 15, 0.18);
+}
+
+.arena-app-home .home-bg-spotlight__hero {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0.55rem;
+}
+
+.arena-app-home .home-bg-spotlight__hero > div:first-child > span {
+  color: #d9ab49;
+  font-size: 0.65rem;
+  font-weight: 820;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.arena-app-home .home-bg-spotlight h3 {
+  margin-top: 0.25rem !important;
+  color: #fff0c8 !important;
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.4vw, 1.9rem);
+  line-height: 1.04;
+}
+
+.arena-app-home .home-bg-spotlight__identity {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.arena-app-home .home-bg-spotlight__identity > img {
+  width: 92px;
+  height: 108px;
+  object-fit: contain;
+  filter: drop-shadow(0 9px 12px rgba(5, 2, 3, 0.42));
+}
+
+.arena-app-home .home-bg-spotlight__identity > div {
+  min-width: 0;
+  display: grid;
+  gap: 0.22rem;
+}
+
+.arena-app-home .home-bg-spotlight__identity strong {
+  color: #fff0c8;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  line-height: 1.15;
+}
+
+.arena-app-home .home-bg-spotlight__identity span,
+.arena-app-home .home-bg-spotlight__identity small {
+  color: #d8c29a;
+  font-size: 0.73rem;
+  line-height: 1.4;
+}
+
+.arena-app-home .home-bg-spotlight__power {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 0.6rem !important;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(222, 181, 92, 0.2);
+}
+
+.arena-app-home .home-bg-spotlight__power b { color: #e8c570; font-size: 0.74rem; }
+.arena-app-home .home-bg-spotlight__power span { color: #cdb994; font-size: 0.68rem; line-height: 1.45; }
+
+.arena-app-home .home-bg-spotlight__hero > a {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  color: #e7c56e;
+  font-size: 0.73rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.arena-app-home .home-bg-spotlight__empty {
+  margin-top: 0.85rem !important;
+  color: #d1bd98 !important;
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.arena-app-home .home-bg-spotlight__chart {
+  min-width: 0;
+  min-height: 250px;
+  display: flex;
+  align-items: center;
+  padding: 0.4rem;
+  border: 1px solid rgba(224, 182, 89, 0.18);
+  background: rgba(18, 7, 10, 0.28);
+}
+
+.arena-app-home .home-bg-spotlight__chart svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.arena-app-home .home-bg-chart__grid { stroke: rgba(224, 184, 99, 0.14); stroke-width: 1; }
+.arena-app-home .home-bg-chart__line { fill: none; stroke: #d9ab49; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.arena-app-home .home-bg-chart__dot { fill: #8f536d; stroke: #f0cf7f; stroke-width: 2; }
+.arena-app-home .home-bg-chart__value { fill: #f5e2b9; font-size: 12px; font-weight: 800; }
+.arena-app-home .home-bg-chart__label { fill: #c9b48c; font-size: 11px; font-weight: 700; }
+
+.arena-app-home .home-bg-chart__placeholder {
+  width: 100%;
+  height: 170px;
+  display: flex;
+  align-items: end;
+  gap: 4%;
+  padding: 1rem;
+}
+
+.arena-app-home .home-bg-chart__placeholder span {
+  flex: 1;
+  background: linear-gradient(180deg, rgba(217, 171, 73, 0.5), rgba(143, 83, 109, 0.15));
+}
+
+.arena-app-home .home-data__layout {
+  margin-top: 0;
+}
+
+@media (max-width: 900px) {
+  .arena-app-home .home-stage {
+    grid-template-columns: 1fr !important;
+  }
+
+  .arena-app-home .home-bg-spotlight {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .arena-app-home .home-stage {
+    gap: 1rem !important;
+    padding: 0.8rem !important;
+    border-width: 9px !important;
+    border-image-width: 9px !important;
+  }
+
+  .arena-app-home .home-stage h1 {
+    max-width: none !important;
+    font-size: clamp(2rem, 10vw, 2.7rem) !important;
+  }
+
+  .arena-app-home .home-stage__copy > p {
+    font-size: 0.8rem !important;
+  }
+
+  .arena-app-home .home-draft-orbit {
+    width: 100% !important;
+    min-height: 0 !important;
+  }
+
+  .arena-app-home .home-draft-orbit__board {
+    width: 100% !important;
+    transform: none !important;
+  }
+
+  .arena-app-home .home-stage__status {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .arena-app-home .home-stage__status > span,
+  .arena-app-home .home-stage__status > span + span {
+    min-height: 48px !important;
+    padding: 0.5rem 0.45rem !important;
+    border-top: 0 !important;
+  }
+
+  .arena-app-home .home-stage__status > span:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .arena-app-home .home-stage__status > span:nth-child(4) {
+    display: flex !important;
+    grid-column: 1 / -1;
+  }
+
+  .arena-app-home .home-page-index {
+    margin-top: -1.4rem !important;
+  }
+
+  .arena-app-home .home-bg-spotlight {
+    padding: 0.45rem;
+    border-width: 7px;
+    border-image-width: 7px;
+  }
+
+  .arena-app-home .home-bg-spotlight__identity {
+    grid-template-columns: 78px minmax(0, 1fr);
+  }
+
+  .arena-app-home .home-bg-spotlight__identity > img {
+    width: 78px;
+    height: 94px;
+  }
+
+  .arena-app-home .home-bg-spotlight__chart {
+    min-height: 190px;
+    padding: 0;
+  }
+
+  .arena-app-home .home-bg-chart__value { font-size: 11px; }
+  .arena-app-home .home-bg-chart__label { font-size: 9px; }
 }

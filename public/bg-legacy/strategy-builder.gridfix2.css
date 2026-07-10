@@ -2833,3 +2833,122 @@ body .strategy-tiers-main .strategy-frame img {
     margin-left: 0;
   }
 }
+
+/* 2026-07 wide workbench pass.
+ * Keep all drag/drop and export hooks untouched; only reclaim canvas space and
+ * let the annotation rail respond to the panel that actually contains it. */
+.strategy-builder-page .bg-strategy-builder-legacy,
+.strategy-builder-page .bg-tier-builder-legacy {
+  width: 100%;
+  grid-template-columns: minmax(300px, 32%) minmax(0, 1fr);
+  gap: clamp(14px, 1.35vw, 22px);
+}
+
+.strategy-builder-page .builder-sidebar,
+.strategy-builder-page .builder-canvas-panel,
+.strategy-builder-page .hero-tier-board {
+  min-width: 0;
+  border-color: rgba(225, 181, 102, 0.3);
+  background:
+    radial-gradient(circle at 50% -18%, rgba(143, 83, 109, 0.18), transparent 42%),
+    linear-gradient(165deg, rgba(67, 37, 45, 0.98), rgba(39, 22, 19, 0.98));
+  box-shadow: 0 14px 34px rgba(31, 13, 9, 0.3), inset 0 1px rgba(255, 226, 164, 0.06);
+}
+
+.strategy-builder-page .builder-sidebar,
+.strategy-builder-page .hero-tier-board {
+  padding: clamp(16px, 1.5vw, 24px);
+}
+
+.strategy-builder-page .builder-canvas-panel {
+  container: builder-canvas / inline-size;
+  padding: clamp(16px, 1.5vw, 24px);
+}
+
+.strategy-builder-page .strategy-board {
+  width: 100%;
+  min-height: clamp(620px, 72cqi, 820px);
+  aspect-ratio: 16 / 10;
+  border-color: rgba(226, 181, 99, 0.18);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(79, 42, 45, 0.38), rgba(28, 16, 15, 0.52)),
+    radial-gradient(circle at 20% 0%, rgba(219, 171, 73, 0.09), transparent 30%);
+}
+
+.strategy-builder-page .eyebrow {
+  color: var(--gold-strong);
+}
+
+.strategy-builder-page .panel-title {
+  color: var(--text-strong);
+}
+
+.strategy-builder-page .tier-builder-row .tier-title {
+  color: var(--text-strong);
+}
+
+.strategy-builder-page .builder-canvas-head .filter-caption {
+  color: var(--muted);
+}
+
+.strategy-builder-page .board-toolbar,
+.strategy-builder-page .quick-slots-panel,
+.strategy-builder-page .community-slots-panel {
+  border-color: rgba(225, 181, 102, 0.24);
+  background: rgba(35, 20, 18, 0.66);
+}
+
+.strategy-builder-page .bg-tier-builder-legacy .hero-tier-pool {
+  max-height: min(980px, calc(100dvh - 300px));
+}
+
+.strategy-builder-page .bg-tier-builder-legacy .hero-tier-board {
+  align-self: start;
+}
+
+@container builder-canvas (max-width: 860px) {
+  .strategy-builder-page .board-with-annotations {
+    flex-direction: column;
+  }
+
+  .strategy-builder-page .annotation-toolbar-vertical {
+    position: static;
+    width: 100%;
+    flex: 0 0 auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .strategy-builder-page .annotation-toolbar-vertical .annotation-toolbar-label {
+    flex: 1 0 100%;
+    text-align: left;
+  }
+
+  .strategy-builder-page .annotation-toolbar-vertical .annotation-tool {
+    width: auto;
+  }
+
+  .strategy-builder-page .annotation-toolbar-vertical .annotation-tool-clear {
+    margin: 0 0 0 auto;
+  }
+}
+
+@media (max-width: 1180px) {
+  .strategy-builder-page .bg-strategy-builder-legacy,
+  .strategy-builder-page .bg-tier-builder-legacy {
+    grid-template-columns: 1fr;
+  }
+
+  .strategy-builder-page .builder-library,
+  .strategy-builder-page .bg-tier-builder-legacy .hero-tier-pool {
+    max-height: 640px;
+  }
+}
+
+@media (max-width: 720px) {
+  .strategy-builder-page .strategy-board {
+    min-height: 620px;
+    aspect-ratio: 4 / 5;
+  }
+}

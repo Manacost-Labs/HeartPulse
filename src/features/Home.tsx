@@ -32,10 +32,28 @@ interface HomeSummaryLegendary {
   winRate: number | null;
 }
 
+interface HomeBattlegroundSpotlight {
+  dbfId: number;
+  name: string;
+  image: string;
+  tier: string;
+  avgPlacement: number;
+  pickRate: number | null;
+  placementDistribution: number[];
+  heroPower?: {
+    name?: string;
+    text?: string;
+    image?: string;
+  };
+  updatedAt?: string | null;
+  source?: string;
+}
+
 interface HomeSummaryData {
   topClasses: ClassData[];
   topCards: HomeSummaryCard[];
   topLegendaries: HomeSummaryLegendary[];
+  battlegroundSpotlight?: HomeBattlegroundSpotlight | null;
   updatedAt?: Record<string, string | null>;
   sources?: Record<string, string>;
 }
@@ -56,48 +74,15 @@ const CLASS_ICON_BY_ID: Record<string, string> = {
   warrior: '/class_icon/ui/warrior-64.webp',
 };
 
-const HOME_NAV_CARDS = [
-  {
-    id: 'winrates',
-    href: '/classes',
-    step: '01',
-    art: '/main_assets/winrate-classes.png',
-    eyebrow: 'Мета сейчас',
-    title: 'Выберите класс',
-    desc: 'Сравните классы и матчапы перед первым выбором.',
-    stat: '11 классов',
-    tone: 'blue',
-  },
-  {
-    id: 'tierlist',
-    href: '/tierlist',
-    step: '02',
-    art: '/main_assets/tier-list.png',
-    eyebrow: 'Главный инструмент',
-    title: 'Оцените карты',
-    desc: 'Быстро оцените карту во время драфта — от S до F.',
-    stat: 'S–F тиры',
-    tone: 'violet',
-  },
-  {
-    id: 'legendaries',
-    href: '/legendaries',
-    step: '03',
-    art: '/main_assets/legendary_group.png',
-    eyebrow: 'Первый выбор',
-    title: 'Сравните легендарки',
-    desc: 'Найдите сильнейшую группу по реальному винрейту.',
-    stat: '165+ карт',
-    tone: 'gold',
-  },
-] as const;
-
 function formatFreshness(updatedAt?: Record<string, string | null>): string {
-  const latest = Object.values(updatedAt ?? {})
+  const timestamps = Object.values(updatedAt ?? {})
     .filter((value): value is string => Boolean(value))
     .map(value => new Date(value))
-    .filter(date => !Number.isNaN(date.getTime()))
-    .sort((a, b) => b.getTime() - a.getTime())[0];
+    .filter(date => !Number.isNaN(date.getTime()));
+  const latestTimestamp = timestamps.length
+    ? Math.max(...timestamps.map(date => date.getTime()))
+    : Number.NaN;
+  const latest = Number.isNaN(latestTimestamp) ? null : new Date(latestTimestamp);
 
   if (!latest) return 'Синхронизация данных';
 
@@ -151,6 +136,98 @@ function DeferredCardImage({ src, alt }: { src: string; alt: string }) {
         ? <img src={src} alt={alt} loading="lazy" decoding="async" fetchPriority="low" width={96} height={144} />
         : <span className="draft-card-image__placeholder" aria-hidden="true" />}
     </span>
+  );
+}
+
+function HomeBattlegroundSpotlightChart({ spotlight, onNavigate }: {
+  spotlight?: HomeBattlegroundSpotlight | null;
+  onNavigate: (tab: string) => void;
+}) {
+  const values = spotlight?.placementDistribution ?? [];
+  const width = 680;
+  const height = 230;
+  const padX = 42;
+  const padTop = 24;
+  const padBottom = 42;
+  const maxValue = Math.max(1, ...values);
+  const chartBottom = height - padBottom;
+  const points = values.map((value, index) => ({
+    value,
+    x: padX + (index / Math.max(1, values.length - 1)) * (width - padX * 2),
+    y: padTop + (1 - value / maxValue) * (chartBottom - padTop),
+  }));
+  const linePath = points.map((point, index) => `${index ? 'L' : 'M'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ');
+  const areaPath = points.length
+    ? `M ${points[0].x.toFixed(1)} ${chartBottom} ${points.map(point => `L ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ')} L ${points[points.length - 1].x.toFixed(1)} ${chartBottom} Z`
+    : '';
+
+  return (
+    <section className="home-bg-spotlight" aria-labelledby="home-bg-spotlight-heading">
+      <div className="home-bg-spotlight__hero">
+        <div>
+          <span>Пример из текущей BG-меты</span>
+          <h3 id="home-bg-spotlight-heading">Распределение мест героя</h3>
+        </div>
+        {spotlight ? (
+          <React.Fragment>
+            <div className="home-bg-spotlight__identity">
+              {spotlight.image && <img src={spotlight.image} alt="" loading="lazy" decoding="async" />}
+              <div>
+                <strong>{spotlight.name}</strong>
+                <span>Тир {spotlight.tier} · среднее место {spotlight.avgPlacement.toFixed(2).replace('.', ',')}</span>
+                {spotlight.pickRate !== null && <small>Выбор героя: {spotlight.pickRate.toFixed(1).replace('.', ',')}%</small>}
+              </div>
+            </div>
+            {spotlight.heroPower?.name && (
+              <p className="home-bg-spotlight__power">
+                <b>{spotlight.heroPower.name}</b>
+                {spotlight.heroPower.text && <span>{spotlight.heroPower.text}</span>}
+              </p>
+            )}
+          </React.Fragment>
+        ) : (
+          <p className="home-bg-spotlight__empty">BG-срез обновляется. Полный рейтинг героев уже доступен в разделе Полей Сражений.</p>
+        )}
+        <a
+          href="/heroes"
+          onClick={(event: React.MouseEvent) => { event.preventDefault(); onNavigate('bg-heroes'); }}
+        >
+          Все герои <ArrowRight size={15} aria-hidden="true" />
+        </a>
+      </div>
+
+      <div className="home-bg-spotlight__chart">
+        {points.length > 0 ? (
+          <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby="home-bg-chart-title home-bg-chart-desc">
+            <title id="home-bg-chart-title">Вероятность занять каждое место героем {spotlight?.name}</title>
+            <desc id="home-bg-chart-desc">График показывает долю первых, вторых и последующих мест до восьмого.</desc>
+            <defs>
+              <linearGradient id="homeBgChartFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#d9ab49" stopOpacity="0.5" />
+                <stop offset="100%" stopColor="#8f536d" stopOpacity="0.04" />
+              </linearGradient>
+            </defs>
+            {[0.25, 0.5, 0.75, 1].map(level => {
+              const y = padTop + (1 - level) * (chartBottom - padTop);
+              return <line key={level} x1={padX} x2={width - padX} y1={y} y2={y} className="home-bg-chart__grid" />;
+            })}
+            <path d={areaPath} fill="url(#homeBgChartFill)" />
+            <path d={linePath} className="home-bg-chart__line" />
+            {points.map((point, index) => (
+              <g key={`place-${index + 1}`}>
+                <circle cx={point.x} cy={point.y} r="6" className="home-bg-chart__dot" />
+                <text x={point.x} y={point.y - 13} textAnchor="middle" className="home-bg-chart__value">{point.value.toFixed(1)}%</text>
+                <text x={point.x} y={height - 14} textAnchor="middle" className="home-bg-chart__label">{index + 1} место</text>
+              </g>
+            ))}
+          </svg>
+        ) : (
+          <div className="home-bg-chart__placeholder" aria-hidden="true">
+            {Array.from({ length: 8 }).map((_, index) => <span key={`place-placeholder-${index + 1}`} style={{ height: `${35 + index * 5}%` }} />)}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -213,22 +290,11 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
   return (
     <div ref={pageRef} className="home-modern home-workbench">
       <section className="home-stage" aria-labelledby="draft-home-title">
-        <div className="home-stage__atmosphere" aria-hidden="true">
-          <span className="home-stage__rune" />
-          <span className="home-stage__spark home-stage__spark--one" />
-          <span className="home-stage__spark home-stage__spark--two" />
-        </div>
-
         <div className="home-stage__copy">
-          <span className="home-stage__label"><span aria-hidden="true" /> HS-Arena · живая мета</span>
-          <h1 id="draft-home-title">
-            Выберите класс.<br />
-            <span>Оцените карты.</span><br />
-            Соберите колоду.
-          </h1>
+          <span className="home-stage__label"><span aria-hidden="true" /> Данные обновляются автоматически</span>
+          <h1 id="draft-home-title">Мета <span>на сегодня</span></h1>
           <p>
-            Текущие винрейты, тир-лист и легендарные группы собраны в одном месте,
-            чтобы нужный ответ был перед глазами во время драфта.
+            Сразу видно лидера Арены, свежесть данных и ключевые инструменты. Ниже — отдельные рабочие зоны Арены и Полей Сражений без повторяющихся вступлений.
           </p>
           <div className="home-stage__actions">
             <a
@@ -249,12 +315,8 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
         </div>
 
         <aside className="home-draft-orbit" aria-live="polite" aria-label="Классы-лидеры текущей меты">
-          <span className="home-draft-orbit__caption">Классы-лидеры</span>
+          <span className="home-draft-orbit__caption">Топ классов Арены</span>
           <div className="home-draft-orbit__board">
-            <span className="home-draft-orbit__circle" aria-hidden="true" />
-            <span className="home-draft-orbit__mana" aria-hidden="true">
-              <img src="/assets/mana.png" alt="" width={82} height={82} decoding="async" />
-            </span>
             {loadingHomeSummary && topClasses.length === 0
               ? [0, 1, 2].map(index => <span key={index} className={`home-orbit-class home-orbit-class--${index + 1} home-orbit-class--loading`} />)
               : topClasses.map((classItem, index) => {
@@ -309,56 +371,26 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
 
       <nav className="home-page-index" aria-label="Быстрые переходы по главной странице">
         <span>На этой странице</span>
-        <a href="#draft-tools-title">Инструменты</a>
-        <a href="#home-data-heading">Арена сегодня</a>
-        <a href="#home-arena-directory-heading">Раздел Арены</a>
         <a href="#home-bg-heading">Поля Сражений</a>
+        <a href="#home-arena-directory-heading">Арена</a>
+        <a href="#home-data-heading">Статистика</a>
         <a href="#home-articles-heading">Статьи</a>
         <a href="#faq-heading">Частые вопросы</a>
       </nav>
 
-      <section className="home-tools home-reveal" aria-labelledby="draft-tools-title">
-        <div className="home-section-heading">
-          <div>
-            <span>Маршрут драфта</span>
-            <h2 id="draft-tools-title">Три решения в каждой колоде</h2>
-          </div>
-          <p>Двигайтесь по порядку или сразу откройте нужный инструмент.</p>
-        </div>
-        <nav className="home-tool-path" aria-label="Основные этапы драфта">
-          <ol>
-            {HOME_NAV_CARDS.map(card => (
-              <li key={card.id}>
-                <a
-                  href={card.href}
-                  className="home-tool-step"
-                  data-tone={card.tone}
-                  onClick={(event: React.MouseEvent) => { event.preventDefault(); onNavigate(card.id); }}
-                >
-                  <span className="home-tool-step__number">{card.step}</span>
-                  <span className="home-tool-step__art"><img src={card.art} alt="" width={108} height={108} loading="lazy" decoding="async" /></span>
-                  <span className="home-tool-step__body">
-                    <small>{card.eyebrow}</small>
-                    <strong>{card.title}</strong>
-                    <span>{card.desc}</span>
-                  </span>
-                  <span className="home-tool-step__meta">{card.stat}</span>
-                  <ArrowRight className="home-tool-step__arrow" size={20} aria-hidden="true" />
-                </a>
-              </li>
-            ))}
-          </ol>
-        </nav>
-      </section>
+      <HomeBattlegrounds onNavigate={onNavigate} />
+
+      <HomeArenaDirectory onNavigate={onNavigate} />
 
       <section className="home-data home-arena-board home-reveal" aria-labelledby="home-data-heading">
         <div className="home-section-heading home-section-heading--data">
           <div>
-            <span>Арена сегодня</span>
-            <h2 id="home-data-heading">Сначала класс, затем карты</h2>
+            <span>Полезная статистика</span>
+            <h2 id="home-data-heading">Мета в цифрах</h2>
           </div>
-          <p>Короткий срез текущей меты — без перехода в большие таблицы.</p>
+          <p>Реальные данные Арены и Полей Сражений в компактной форме.</p>
         </div>
+        <HomeBattlegroundSpotlightChart spotlight={homeSummaryData?.battlegroundSpotlight} onNavigate={onNavigate} />
         <div className="home-data__layout">
           <section className="home-ranking" aria-labelledby="top-classes-heading">
             <div className="home-subheading">
@@ -475,10 +507,6 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
           </div>
         </div>
       </section>
-
-      <HomeArenaDirectory onNavigate={onNavigate} />
-
-      <HomeBattlegrounds onNavigate={onNavigate} />
 
       <HomeLatestArticles articles={articles} loading={loadingArticles} onNavigate={onNavigate} />
 

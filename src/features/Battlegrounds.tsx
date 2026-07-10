@@ -273,8 +273,8 @@ function bgTavernIcon(tavern: string): string {
   return `${BG_TAVERN_ICON_BASE}/tier${encodeURIComponent(tavern)}.png`;
 }
 
-const BG_FILTER_ACTIVE_CLASS = 'border-[#2563eb] bg-[#dbeafe] text-[#0f172a] shadow-sm ring-1 ring-[#60a5fa]';
-const BG_FILTER_IDLE_CLASS = 'border-[#bfdbfe] bg-[#f8faff] text-[#1e293b] hover:bg-[#e0f2fe]';
+const BG_FILTER_ACTIVE_CLASS = 'bg-filter-chip bg-filter-chip--active';
+const BG_FILTER_IDLE_CLASS = 'bg-filter-chip';
 
 function bgItemRaces(item: any): string[] {
   if (Array.isArray(item?.races) && item.races.length) {
@@ -1049,13 +1049,13 @@ function BattlegroundHeroMediaCard({
     <button
       type="button"
       onClick={onOpen}
-      className={`group rounded-2xl border p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(61,42,30,0.1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b58a2f] ${
+      className={`bg-hero-action-card group rounded-2xl border p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(61,42,30,0.1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b58a2f] ${
         tone === 'gold'
-          ? 'border-[#d6a74c] bg-[linear-gradient(135deg,#fff2cf,#eed19c)]'
+          ? 'bg-hero-action-card--gold border-[#d6a74c] bg-[linear-gradient(135deg,#fff2cf,#eed19c)]'
           : 'border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffdf8,#f8eed9)]'
       }`}
     >
-      <p className={`font-hs text-xs uppercase tracking-[0.16em] ${tone === 'gold' ? 'text-[#8a5a11]' : 'text-[#8b6c42]'}`}>{title}</p>
+      <p className="bg-hero-action-card__kicker font-hs text-xs uppercase tracking-[0.16em]">{title}</p>
       <div className="mt-2 grid items-start gap-3 sm:grid-cols-[96px_1fr]">
         <BattlegroundHeroImage
           sources={sources}
@@ -1064,13 +1064,13 @@ function BattlegroundHeroMediaCard({
           imgClassName="w-full object-contain drop-shadow-[0_12px_18px_rgba(61,42,30,0.18)] transition-transform duration-200 group-hover:scale-[1.03]"
         />
         <div className="min-w-0">
-          <h3 className="font-hs text-lg leading-tight text-[#3d2a1e]">{card.name || title}</h3>
+          <h3 className="bg-hero-action-card__title font-hs text-lg leading-tight text-[#3d2a1e]">{card.name || title}</h3>
           {text && (
-            <p className="mt-2 line-clamp-4 text-sm leading-relaxed text-[#4a3018]">
+            <p className="bg-hero-action-card__text mt-2 text-sm leading-relaxed">
               {text}
             </p>
           )}
-          <span className="mt-3 inline-flex items-center rounded-full border border-[#d7b66a] bg-white/55 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[#6b4c2a]">
+          <span className="mt-3 inline-flex items-center rounded-full border border-[#d7b66a] bg-white/55 px-3 py-1 text-[11px] font-bold uppercase tracking-wide">
             Открыть
           </span>
         </div>
@@ -1267,7 +1267,7 @@ function BattlegroundHeroCompositionLineup({ composition, cards }: { composition
   const lineup = Array.isArray(composition?.lineup) ? composition.lineup : [];
   if (!lineup.length) return null;
   return (
-    <section className="rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
+    <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Лучший состав</p>
@@ -1330,7 +1330,7 @@ function BattlegroundHeroCompositionLineup({ composition, cards }: { composition
 
 function BattlegroundHeroDataTable({ title, rows, columns }: { title: string; rows: any[]; columns: Array<{ key: string; label: string; render?: (row: any) => React.ReactNode }> }) {
   return (
-    <section className="rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
+    <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
       <h3 className="font-hs text-xl text-[#3d2a1e]">{title}</h3>
       <div className="mt-3 space-y-3 md:hidden">
         {rows.map(row => {
@@ -1424,7 +1424,7 @@ function BattlegroundHeroProfileInfo({
   const armorText = typeof libraryHero?.armor?.text === 'string' ? libraryHero.armor.text : '';
 
   return (
-    <section className="grid gap-4 rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)] lg:grid-cols-[1fr_320px]">
+    <section className="bg-hero-ledger-panel grid gap-4 rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)] lg:grid-cols-[1fr_320px]">
       <div>
         <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Профиль героя</p>
         <h3 className="font-hs text-2xl text-[#3d2a1e]">Кто это и откуда данные</h3>
@@ -1483,7 +1483,7 @@ function BattlegroundHeroPatchChange({
 }) {
   const patchEntries = changes || EMPTY_HERO_PATCH_ENTRIES;
   return (
-    <section className="rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
+    <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Текущий патч</p>
@@ -1708,7 +1708,7 @@ function BattlegroundHeroGallery({
 }) {
   if (!items.length && !soundGroups.length) return null;
   return (
-    <section className="rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
+    <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Галерея</p>
@@ -1974,9 +1974,9 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
         <ChevronLeft className="h-4 w-4" /> Все герои
       </button>
 
-      <section className="relative overflow-hidden rounded-[28px] border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_18px_42px_rgba(61,42,30,0.1)] sm:p-5">
+      <section className="bg-hero-reliquary relative overflow-hidden rounded-[28px] border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_18px_42px_rgba(61,42,30,0.1)] sm:p-5">
         <div
-          className="absolute inset-y-0 right-0 hidden w-[58%] opacity-[0.1] lg:block"
+          className="bg-hero-reliquary__art absolute inset-y-0 right-0 hidden w-[58%] opacity-[0.1] lg:block"
           style={{
             backgroundImage: `url(${fullArt})`,
             backgroundSize: 'cover',
@@ -1985,9 +1985,9 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
             WebkitMaskImage: 'linear-gradient(90deg, transparent, rgba(0,0,0,1) 30%)',
           }}
         />
-        <div className="relative grid gap-5 lg:grid-cols-[220px_1fr]">
+        <div className="bg-hero-reliquary__layout relative grid gap-5 lg:grid-cols-[220px_1fr]">
           <div className="flex justify-center lg:block">
-            <div className="rounded-[26px] border border-[#d7b66a]/75 bg-[radial-gradient(circle_at_top,#fff7dc,transparent_55%),linear-gradient(180deg,#fffaf0,#eedcba)] p-3 shadow-[0_18px_34px_rgba(61,42,30,0.12)]">
+            <div className="bg-hero-reliquary__portrait rounded-[26px] border border-[#d7b66a]/75 bg-[radial-gradient(circle_at_top,#fff7dc,transparent_55%),linear-gradient(180deg,#fffaf0,#eedcba)] p-3 shadow-[0_18px_34px_rgba(61,42,30,0.12)]">
               <BattlegroundHeroImage
                 sources={bgDetailImageSources(heroImage)}
                 alt={heroName}
@@ -1996,28 +1996,28 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
               />
             </div>
           </div>
-          <div className="min-w-0">
-            <p className="font-hs text-xs uppercase tracking-[0.18em] text-[#8b6c42]">Поля сражений · герой</p>
-            <h1 className="mt-2 font-hs text-4xl leading-tight text-[#3d2a1e] sm:text-5xl">{heroName}</h1>
-            <div className="mt-4 grid grid-cols-2 gap-2 xl:grid-cols-4">
-              <div className="rounded-2xl border border-[#d7b66a]/65 bg-[#fff8ea]/92 p-3">
-                <p className="text-[11px] uppercase text-[#8b6c42]">Тир</p>
-                <p className="font-hs text-2xl text-[#8b4513]">{hero.tier || '—'}</p>
+          <div className="bg-hero-reliquary__identity min-w-0">
+            <p className="bg-hero-reliquary__kicker font-hs text-xs uppercase tracking-[0.18em]">Поля сражений · герой</p>
+            <h1 className="bg-hero-reliquary__title mt-2 font-hs text-4xl leading-tight text-[#3d2a1e] sm:text-5xl">{heroName}</h1>
+            <div className="bg-hero-stat-grid mt-4 grid grid-cols-2 gap-2 xl:grid-cols-4">
+              <div className="bg-hero-stat-plaque rounded-2xl border border-[#d7b66a]/65 bg-[#fff8ea]/92 p-3">
+                <p className="text-[11px] uppercase">Тир</p>
+                <p className="font-hs text-2xl">{hero.tier || '—'}</p>
               </div>
-              <div className="rounded-2xl border border-[#d7b66a]/65 bg-[#fff8ea]/92 p-3">
-                <p className="text-[11px] uppercase text-[#8b6c42]">Среднее место</p>
-                <p className="font-hs text-2xl text-[#3d2a1e]">{bgFormatDecimal(hero.avg_placement, 2)}</p>
+              <div className="bg-hero-stat-plaque rounded-2xl border border-[#d7b66a]/65 bg-[#fff8ea]/92 p-3">
+                <p className="text-[11px] uppercase">Среднее место</p>
+                <p className="font-hs text-2xl">{bgFormatDecimal(hero.avg_placement, 2)}</p>
               </div>
-              <div className="rounded-2xl border border-[#bfdbfe] bg-[#dbeafe]/88 p-3">
-                <p className="text-[11px] uppercase text-[#1e3a8a]">Выбор героя</p>
-                <p className="font-hs text-2xl text-[#1e3a8a]">{hero.pick_rate || '—'}</p>
+              <div className="bg-hero-stat-plaque rounded-2xl border border-[#bfdbfe] bg-[#dbeafe]/88 p-3">
+                <p className="text-[11px] uppercase">Выбор героя</p>
+                <p className="font-hs text-2xl">{hero.pick_rate || '—'}</p>
               </div>
-              <div className="rounded-2xl border border-[#d7b66a]/65 bg-[#fff8ea]/92 p-3">
-                <p className="text-[11px] uppercase text-[#8b6c42]">Лучший состав</p>
-                <p className="font-hs text-xl text-[#3d2a1e]">{hero.best_composition || '—'}</p>
+              <div className="bg-hero-stat-plaque rounded-2xl border border-[#d7b66a]/65 bg-[#fff8ea]/92 p-3">
+                <p className="text-[11px] uppercase">Лучший состав</p>
+                <p className="font-hs text-xl">{hero.best_composition || '—'}</p>
               </div>
             </div>
-            <div className="mt-4 grid gap-3 lg:grid-cols-3">
+            <div className="mt-4 grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
               {heroPower && <BattlegroundHeroMediaCard title="Сила героя" card={heroPower} onOpen={() => openMediaGallery(heroMediaItems, 0)} />}
               {buddy && <BattlegroundHeroMediaCard title="Компаньон" card={buddy} onOpen={() => openMediaGallery(heroMediaItems, heroPower ? 1 : 0)} />}
               {goldenBuddyCard && (
@@ -2066,7 +2066,7 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
       />
 
       {finalForm.length > 0 && (
-        <section className="rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
+        <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
           <h3 className="font-hs text-xl text-[#3d2a1e]">Ключевые существа финального стола</h3>
           <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {finalForm.map((item: any, index: number) => {
@@ -2088,7 +2088,7 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
       )}
 
       {skins.length > 0 && (
-        <section className="rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
+        <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Коллекция</p>
@@ -2165,10 +2165,10 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen }: 
       <article
         data-bg-strategy-highlight={highlighted ? 'true' : undefined}
         data-bg-strategy-key={item?.key || undefined}
-        className={`rounded-lg border p-3 shadow-sm transition-all duration-300 hover:shadow-[0_8px_24px_rgba(61,42,30,0.16)] ${
+        className={`bg-tier-strategy-card rounded-lg border p-3 shadow-sm transition-all duration-300 hover:shadow-[0_8px_24px_rgba(61,42,30,0.16)] ${
           highlighted
-            ? 'border-[#2563eb] bg-[#dbeafe] shadow-[0_0_0_3px_rgba(37,99,235,0.16),0_16px_30px_rgba(37,99,235,0.18)]'
-            : 'border-[#c4a46a]/45 bg-[#fff8ea]/95'
+            ? 'bg-tier-strategy-card--highlighted'
+            : ''
         }`}
       >
         <div className="flex items-start justify-between gap-3">
@@ -2490,11 +2490,8 @@ function BattlegroundTierList() {
                 if (item.id !== 'strategies') params.delete('source');
                 window.history.pushState(null, '', `${window.location.pathname}?${params.toString()}`);
               }}
-              className="rounded-lg border px-3 py-3 text-left transition-all"
+              className="bg-tier-nav-card rounded-lg border px-3 py-3 text-left transition-all"
               aria-pressed={active}
-              style={active
-                ? { background: '#dbeafe', borderColor: '#2563eb', color: '#0f172a', boxShadow: '0 8px 18px rgba(37,99,235,0.14)' }
-                : { background: 'rgba(248,250,255,0.94)', borderColor: 'rgba(147,197,253,0.65)', color: '#1e293b' }}
             >
               <span className="font-hs text-sm">{item.shortLabel}</span>
               <span className="mt-1 block text-[11px] leading-snug opacity-80">{item.description}</span>
@@ -2503,18 +2500,18 @@ function BattlegroundTierList() {
         })}
       </div>
 
-      <section key={`bg-tier-list-${activeList}`} className="rounded-lg border border-[#bfdbfe]/70 bg-[#f8faff]/85 p-3 sm:p-4">
+      <section key={`bg-tier-list-${activeList}`} className="bg-tier-index-panel rounded-lg border p-3 sm:p-4">
         <div className="flex flex-col gap-3 border-b border-[#bfdbfe]/70 pb-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h3 className="font-hs text-2xl text-[#3d2a1e]">{activeMeta.label}</h3>
-            <p className="text-xs text-[#8b6c42]">
+            <h3 className="bg-tier-panel-title font-hs text-2xl">{activeMeta.label}</h3>
+            <p className="bg-tier-panel-meta text-xs">
               {activeData?.source ? `Источник: ${activeData.source}` : 'Источник: BG Manacost'}
               {activeData?.fetchedAt ? ` · обновлено ${formatDate(activeData.fetchedAt)}` : ''}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {activeList === 'strategies' && (
-              <div className="flex items-center gap-1 rounded-lg border border-[#bfdbfe] bg-[#ebf1fc] p-1">
+              <div className="bg-tier-source-switch flex items-center gap-1 rounded-lg border p-1">
                 {(['firestone', 'hsreplay'] as const).map(source => (
                   <button
                     key={source}
@@ -2528,7 +2525,7 @@ function BattlegroundTierList() {
               </div>
             )}
             {activeData?.count !== undefined && (
-              <div className="font-hs text-sm text-[#6b4c2a]">Всего: {Number(activeData.count).toLocaleString('ru-RU')}</div>
+              <div className="bg-tier-panel-count font-hs text-sm">Всего: {Number(activeData.count).toLocaleString('ru-RU')}</div>
             )}
           </div>
         </div>
@@ -2540,7 +2537,7 @@ function BattlegroundTierList() {
         {!loading && !error && (
           <div className="mt-4 space-y-5">
             {activeList === 'minions' && (
-              <div className="rounded-lg border border-[#bfdbfe] bg-[#f8faff] p-3 shadow-sm">
+              <div className="bg-tier-filter-panel rounded-lg border p-3 shadow-sm">
                 <div className="flex flex-col gap-4">
                   <div className="min-w-0">
                     <h4 className="font-hs text-lg text-[#1e293b]">Фильтры существ</h4>
@@ -2549,7 +2546,7 @@ function BattlegroundTierList() {
                   <div className="grid gap-3 xl:grid-cols-[1fr_auto]">
                     <div>
                       <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-[#334155]">Тип существа</p>
-	                      <div className="flex max-w-full flex-wrap gap-1.5 rounded-lg border border-[#bfdbfe] bg-[#ebf1fc] p-1.5">
+	                      <div className="bg-tier-filter-well flex max-w-full flex-wrap gap-1.5 rounded-lg border p-1.5">
                       {minionFilterOptions.races.map(race => (
                         <button
                           key={race}
@@ -2569,7 +2566,7 @@ function BattlegroundTierList() {
                     </div>
                     <div>
                       <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-[#334155]">Уровень таверны</p>
-	                      <div className="flex flex-wrap gap-1.5 rounded-lg border border-[#bfdbfe] bg-[#ebf1fc] p-1.5">
+	                      <div className="bg-tier-filter-well flex flex-wrap gap-1.5 rounded-lg border p-1.5">
                       {minionFilterOptions.taverns.map(tavern => (
                         <button
                           key={tavern}
@@ -2590,7 +2587,7 @@ function BattlegroundTierList() {
               </div>
             )}
             {activeList === 'trinkets' && trinketFilterOptions.sizes.length > 1 && (
-              <div className="rounded-lg border border-[#bfdbfe] bg-[#f8faff] p-3 shadow-sm">
+              <div className="bg-tier-filter-panel rounded-lg border p-3 shadow-sm">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div className="min-w-0">
                     <h4 className="font-hs text-lg text-[#1e293b]">Фильтры аксессуаров</h4>
@@ -2598,7 +2595,7 @@ function BattlegroundTierList() {
                   </div>
                   <div>
                     <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-[#334155]">Размер аксессуара</p>
-	                    <div className="flex max-w-full flex-wrap gap-1.5 rounded-lg border border-[#bfdbfe] bg-[#ebf1fc] p-1.5">
+	                    <div className="bg-tier-filter-well flex max-w-full flex-wrap gap-1.5 rounded-lg border p-1.5">
                       {trinketFilterOptions.sizes.map(size => {
                         const label = size === 'ALL' ? 'Все' : size === 'SMALL' ? 'Малые' : 'Большие';
                         return (
@@ -2626,7 +2623,7 @@ function BattlegroundTierList() {
               const visibleItems = items.slice(0, visibleLimit);
               const hiddenCount = Math.max(0, items.length - visibleItems.length);
               return (
-                <section key={`${activeList}-${tier}`} className="rounded-lg border border-[#c4a46a]/35 bg-[#fff3d8]/60 p-3">
+                <section key={`${activeList}-${tier}`} className="bg-tier-rank-panel rounded-lg border p-3">
                   <div className="mb-3 flex items-center gap-3">
                     <span className={`inline-flex h-11 w-11 items-center justify-center rounded-full border-2 text-lg font-hs shadow ${BG_TIER_BADGES[tier] || BG_TIER_BADGES.C}`}>{tier}</span>
                     <div>
@@ -3038,7 +3035,7 @@ const BG_STRATEGY_BUILDER_HTML = String.raw`
   </section>
 </main>`;
 
-const BG_STRATEGY_BUILDER_VERSION = '20260710-parchment';
+const BG_STRATEGY_BUILDER_VERSION = '20260710-wide-workbench';
 const BG_STRATEGY_BUILDER_CSS = `/bg-legacy/strategy-builder.gridfix2.css?v=${BG_STRATEGY_BUILDER_VERSION}`;
 const BG_STRATEGY_BUILDER_JS = `/bg-legacy/strategy-builder.gridfix2.js?v=${BG_STRATEGY_BUILDER_VERSION}`;
 

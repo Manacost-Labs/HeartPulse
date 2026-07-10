@@ -5142,8 +5142,60 @@ async function loadLegendariesForHomeSummary(now: number) {
   }
 }
 
+function homeSummaryPercent(value: unknown): number | null {
+  const parsed = Number(String(value ?? '').replace('%', '').replace(',', '.').trim());
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+async function loadBattlegroundSpotlightForHomeSummary() {
+  try {
+    const response = await fetch('http://127.0.0.1:3108/api/bg/heroes', {
+      signal: AbortSignal.timeout(12_000),
+      headers: { 'User-Agent': 'ManacostArena/HomeSummary' },
+    });
+    if (!response.ok) throw new Error(`BG heroes HTTP ${response.status}`);
+    const payload = await response.json();
+    const heroes = Array.isArray(payload?.view?.heroes) ? payload.view.heroes : [];
+    const candidates = heroes
+      .map((hero: any) => ({
+        hero,
+        avgPlacement: homeSummaryPercent(hero?.avg_placement),
+        pickRate: homeSummaryPercent(hero?.pick_rate),
+        placementDistribution: Array.isArray(hero?.placement_distribution)
+          ? hero.placement_distribution.map(homeSummaryPercent)
+          : [],
+      }))
+      .filter((entry: any) => entry.avgPlacement !== null
+        && entry.placementDistribution.length === 8
+        && entry.placementDistribution.every((value: number | null) => value !== null))
+      .sort((a: any, b: any) => a.avgPlacement - b.avgPlacement);
+    const selected = candidates[0];
+    if (!selected) return null;
+
+    return {
+      dbfId: Number(selected.hero.dbfId),
+      name: String(selected.hero.hero || 'Герой Полей Сражений'),
+      image: String(selected.hero.image || ''),
+      tier: String(selected.hero.tier || '—'),
+      avgPlacement: selected.avgPlacement,
+      pickRate: selected.pickRate,
+      placementDistribution: selected.placementDistribution,
+      heroPower: {
+        name: String(selected.hero?.hero_power?.card?.name || ''),
+        text: String(selected.hero?.hero_power?.card?.text || ''),
+        image: String(selected.hero?.hero_power?.card?.image || ''),
+      },
+      updatedAt: payload?.fetched_at ?? null,
+      source: payload?.site || 'hsreplay',
+    };
+  } catch (err: any) {
+    console.warn('[api/home/summary] battlegrounds spotlight failed:', err?.message ?? err);
+    return null;
+  }
+}
+
 async function buildHomeSummary(now: number) {
-  const [winratesData, tierlistData, legendariesData] = await Promise.all([
+  const [winratesData, tierlistData, legendariesData, battlegroundSpotlight] = await Promise.all([
     fetchFreshestClassWinratesData().catch((err: any) => {
       console.warn('[api/home/summary] winrates source failed:', err?.message ?? err);
       return loadDataCached('winrates.json')?.data
@@ -5151,6 +5203,7 @@ async function buildHomeSummary(now: number) {
     }),
     loadTierlistForHomeSummary(now),
     loadLegendariesForHomeSummary(now),
+    loadBattlegroundSpotlightForHomeSummary(),
   ]);
 
   const topClasses = [...(winratesData?.classes ?? [])]
@@ -5163,15 +5216,18 @@ async function buildHomeSummary(now: number) {
     topClasses,
     topCards,
     topLegendaries,
+    battlegroundSpotlight,
     updatedAt: {
       winrates: winratesData?.updatedAt ?? null,
       tierlist: tierlistData?.updatedAt ?? null,
       legendaries: legendariesData?.updatedAt ?? null,
+      battlegrounds: battlegroundSpotlight?.updatedAt ?? null,
     },
     sources: {
       winrates: winratesData?.source ?? 'unknown',
       tierlist: tierlistData?.source ?? 'unknown',
       legendaries: legendariesData?.source ?? 'unknown',
+      battlegrounds: battlegroundSpotlight?.source ?? 'unavailable',
     },
   };
 }
@@ -5181,7 +5237,7 @@ function makeHomeSummaryEtag(data: any, now: number) {
     .map(value => typeof value === 'string' ? Date.parse(value) : NaN)
     .filter(Number.isFinite) as number[];
   const updatedToken = (updatedValues.length ? Math.max(...updatedValues) : now).toString(36);
-  return `"home-summary-${updatedToken}-${data.topClasses?.length ?? 0}-${data.topCards?.length ?? 0}-${data.topLegendaries?.length ?? 0}"`;
+  return `"home-summary-v2-${updatedToken}-${data.topClasses?.length ?? 0}-${data.topCards?.length ?? 0}-${data.topLegendaries?.length ?? 0}-${data.battlegroundSpotlight?.dbfId ?? 0}"`;
 }
 
 function datasetApiUrl(datasetId: string): string {
@@ -5722,7 +5778,7 @@ app.get('/api/home/summary', async (req, res) => {
     return sendJsonCached(req, res, homeSummaryApiCache.data, homeSummaryApiCache.etag, CACHE_5M, 'memory');
   }
 
-  const redisKey = redisDataKey('home-summary');
+  const redisKey = redisDataKey('home-summary-v2');
   const redisCached = await redisGetCache(redisKey);
   if (redisCached) {
     homeSummaryApiCache = {

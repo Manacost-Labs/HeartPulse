@@ -213,14 +213,33 @@ interface HomeSummaryLegendary {
   classKey: string;
 }
 
+interface HomeBattlegroundSpotlight {
+  dbfId: number;
+  name: string;
+  image: string;
+  tier: string;
+  avgPlacement: number;
+  pickRate: number | null;
+  placementDistribution: number[];
+  heroPower?: {
+    name?: string;
+    text?: string;
+    image?: string;
+  };
+  updatedAt?: string | null;
+  source?: string;
+}
+
 interface HomeSummaryData {
   topClasses: ClassData[];
   topCards: HomeSummaryCard[];
   topLegendaries: HomeSummaryLegendary[];
+  battlegroundSpotlight?: HomeBattlegroundSpotlight | null;
   updatedAt: {
     winrates: string | null;
     tierlist: string | null;
     legendaries: string | null;
+    battlegrounds?: string | null;
   };
   sources?: Record<string, string>;
   warning?: string;
@@ -7264,7 +7283,7 @@ export default function App() {
 
   const fetchHomeSummary = useCallback(async () => {
     const gen = ++homeSummaryGenRef.current;
-    const cacheKey = 'home_summary_v1';
+    const cacheKey = 'home_summary_v2';
     try {
       const cached = cacheGet<HomeSummaryData>(cacheKey, 5 * 60 * 1000);
       if (cached && gen === homeSummaryGenRef.current) {
@@ -7508,9 +7527,11 @@ export default function App() {
     return ids;
   }, [legendariesData]);
   const isFullWidthBuilder = activeTab === 'standard-matchups' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive';
-  const isEditorialSurfacePage = !isAdminMode && ['articles', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
-  const isGameDataSurfacePage = !isAdminMode && ['winrates', 'standard-matchups', 'tierlist', 'legendaries'].includes(activeTab);
-  const isBattlegroundsSurfacePage = !isAdminMode && BG_TAB_IDS.has(activeTab);
+  // Login is its own visual route. Do not inherit the surface class of the
+  // page that happened to be open before the profile was requested.
+  const isEditorialSurfacePage = !isAdminMode && !wantsLogin && ['articles', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
+  const isGameDataSurfacePage = !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'tierlist', 'legendaries'].includes(activeTab);
+  const isBattlegroundsSurfacePage = !isAdminMode && !wantsLogin && BG_TAB_IDS.has(activeTab);
   const isOpenSurfacePage = !isAdminMode && (activeTab === 'home' || wantsLogin || isEditorialSurfacePage || isGameDataSurfacePage || isBattlegroundsSurfacePage);
 
 		  return (

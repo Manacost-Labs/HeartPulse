@@ -103,10 +103,10 @@ Gold is not a general panel fill. Use it for small accents, asset-native details
 |---|---|
 | `/wallpaper/arena-parchment.jpg` | continuous page material |
 | `/wallpaper/arena-rail-red.jpg` | fixed red navigation rail |
-| `/wallpaper/main-page-rail-border.png` | Arena wooden frame |
+| `/wallpaper/main-page-rail-border.png` | major Arena and Battlegrounds wooden frame |
+| `/wallpaper/deck-border.png` | compact dark frame for short profile statuses and BG hero media cards |
 | `/wallpaper/wiki-battlegrounds-skin.webp` | Battlegrounds outer frame |
 | `/wallpaper/battlegrounds-bartender-header.webp` | Battlegrounds title sign |
-| `/images/deck-border.png` or current profile-frame asset | profile badge frame |
 
 Do not hotlink these assets from wiki.gg in runtime CSS. Keep optimized local copies in `public/`.
 
@@ -122,7 +122,7 @@ Never add an unscoped duplicate `.arena-mobile-*` rule. The App drawer must rema
 ### Page Width
 
 - Standard data and editorial pages: one open parchment surface, `max-width` around `1280–1320px`.
-- Builders may use the full wide workspace but remain visually framed inside the same page canvas.
+- Builders use the full width left after the `252px` desktop rail. Their decorative BG frame is `20–28px` with only `8–12px` inner breathing room; never spend the same wide inset twice as both border and padding.
 - Do not create route-specific narrow wrappers without a content reason.
 - Do not restore the old independent rounded parchment block around every page.
 
@@ -138,7 +138,9 @@ Never add an unscoped duplicate `.arena-mobile-*` rule. The App drawer must rema
 
 - Parchment is a material, not a flat beige color. Use the local texture plus a translucent gradient for readability.
 - Wood separators are thin (`4–6px`) and appear at major section boundaries.
-- Most content sections are nearly square (`4–8px` radius), with a quiet border and one colored inset edge.
+- Most content sections are nearly square (`4–8px` radius), with a quiet neutral border.
+- Do not use colored vertical inset rails or left-border accent strips on BG content panels, cards or directory entries. They read as generic dashboard decoration rather than Hearthstone material.
+- Separate major BG regions with the canonical wooden frame assets or a horizontal wooden rule; use spacing and quiet neutral borders inside those regions.
 - Avoid a grid of identical large rounded cards. Use grouping, rules, typography and spacing first.
 - Shadows are warm, soft and sparse. No dirty gray halos behind raw card art.
 - Card art, hero portraits, mana gems and rarity assets are never recolored by CSS filters.
@@ -151,9 +153,21 @@ Never add an unscoped duplicate `.arena-mobile-*` rule. The App drawer must rema
 - Mobile uses the same red material, a compact brand and a burger/X button with `aria-expanded`.
 - Navigation structure is approved; visual changes must not rename or reorder routes unless requested.
 
+## Home Page
+
+- The home page is a utility dashboard, not a promotional landing page. Start with live freshness, the current Arena leader, data-source count and direct actions; avoid oversized slogans, quotes and repeated explanatory copy.
+- Keep the first viewport compact enough to expose the beginning of the product directories on a typical laptop. The live class summary reads as a small tavern scoreboard, not a decorative orbit.
+- Mode discovery follows a fixed order: **Battlegrounds directory**, **Arena directory**, then cross-mode statistics. Each directory links directly to the work users can perform in that mode.
+- The statistics section may combine Arena rankings with a Battlegrounds spotlight, but every value and chart point must come from the existing APIs. Never invent demo metrics; show an honest updating state if a source is unavailable.
+- The Battlegrounds hero spotlight uses the actual eight-place distribution as a compact line/area chart, includes hero identity and hero-power context, and links to the full hero directory.
+- Use the canonical wood frame for the hero spotlight and major directory boundaries. Internal rows stay quiet and readable; do not add generic colored side rails or a grid of white dashboard cards.
+- On mobile, directories stack before statistics, graph labels remain legible, and the page never gains document-level horizontal scrolling.
+
 ## Profile
 
 - The profile header is a wood-framed red reliquary with the local tavern artwork visible through a dark red readability veil.
+- Its route plaque always reads `Профиль`, independent of the previously open game mode. The profile route must not inherit `arena-app-battlegrounds` or another stale surface class.
+- Align the local tavern artwork to the top edge on desktop so the bartender's face remains visible; balance the left column with a centered `96–110px` avatar instead of adding unrelated filler decoration.
 - Statuses may use the horizontal `/wallpaper/deck-border.png` asset because their short labels fit its proportions.
 - Settings and subscription panels use the larger wooden rail frame; form controls themselves stay plain parchment for readability.
 - Subscription sources and winner entries may use the smaller deck frame, but ordinary rows remain unframed so the page does not become visually noisy.
@@ -187,6 +201,9 @@ BG-specific styles live in `src/battlegrounds-parchment.css` and must stay scope
 - Average placement and pick rate have separate, readable treatments.
 - Search and tier counts are compact.
 - Related-card and hero-power reveals are protected interactions.
+- Hero details use a clear three-level asset hierarchy: the identity dossier uses the full `/wallpaper/main-page-rail-border.png`, primary ledger sections use its thin border slice, and hero-power/companion cards use `/wallpaper/deck-border.png`. Do not frame every chart row or minor statistic.
+- The identity dossier uses dark aubergine/walnut surfaces with cream copy and gold metadata; cold white and blue cards are not valid inside this hierarchy.
+- Long hero, hero-power and companion names use balanced wrapping with `overflow-wrap`; descriptions remain fully readable and are never line-clamped merely to equalize card heights.
 - Hero detail charts may use violet-to-gold data bars; chart meaning must remain distinguishable.
 - Gallery, soundboard and hero-power media lightboxes keep keyboard and close behavior.
 
@@ -201,8 +218,8 @@ BG-specific styles live in `src/battlegrounds-parchment.css` and must stay scope
 
 ### BG Tier List
 
-- Top list switcher uses violet active states and parchment idle states.
-- Nested filters use quiet parchment groups; avoid the former white/blue dashboard controls.
+- Top list switcher uses walnut/burgundy idle cards, cream labels and a violet/gold selected state. Cold white or blue navigation cards are not part of the BG palette.
+- The tier index is a dark wood/aubergine ledger. Rank groups and individual entries use deeper honey parchment, while nested filters use dark wells with violet/gold chips; avoid the former white/blue dashboard controls.
 - Tier card click/lightbox behavior and URL state are protected.
 - Raw card images remain large enough to recognize and are not filtered.
 
@@ -210,6 +227,8 @@ BG-specific styles live in `src/battlegrounds-parchment.css` and must stay scope
 
 - Strategy and tier builders sit inside `/wallpaper/wiki-battlegrounds-skin.webp`.
 - The work canvas stays dark for drag/drop contrast, using aubergine, brown, muted gold and parchment text.
+- On wide screens, reserve roughly `32%` for the searchable library and the remaining width for the canvas/tier rows. The canvas must stay at least `620px` high and should read as a broad workbench rather than a narrow portrait column.
+- Annotation tools respond to the canvas container: below `860px` of canvas width they move into a wrapped horizontal rail below the board, freeing the full board width.
 - Restyle through CSS variables and wrapper surfaces first.
 - Do not edit legacy drag/drop, compression, export, canvas or ordering JavaScript during a design-only task.
 - Verify card library mount, drag/drop target, PNG/WebP buttons and mobile overflow after every pass.
@@ -291,6 +310,7 @@ Rules:
 
 ## Changelog
 
+- **2026-07-10** — Wide BG workbench and contrast pass: reclaimed ornamental-frame space, expanded both builders, made annotation tools container-responsive, replaced cold tier-list whites/blues with walnut, aubergine and honey parchment, and corrected the profile plaque/art/avatar composition.
 - **2026-07-10** — Battlegrounds parchment system: added a scoped BG shell, local bartender title sign, violet/gold controls, parchment library and hero surfaces, wiki skin builder frame, warm builder variables, protected golden-card and hero animations, and expanded route-specific QA rules.
 - **2026-07-10** — Unified site direction: continuous parchment page canvas, red textured menu, thicker wooden separators and Hearthstone profile frame.
 - **2026-07-02** — Repository and asset hygiene, deferred route work and screenshot QA.
