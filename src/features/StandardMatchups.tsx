@@ -306,7 +306,7 @@ function StandardMatchupsPage() {
   return (
     <section className="standard-matchups space-y-5 sm:space-y-6" id="matchups-overview">
       <div
-        className="rounded-2xl p-5 sm:p-7"
+        className="standard-matchups__masthead rounded-2xl p-5 sm:p-7"
         style={{
           background: 'linear-gradient(135deg,rgba(255,248,222,0.96),rgba(231,204,138,0.62))',
           border: '1.5px solid rgba(184,144,74,0.62)',
@@ -321,7 +321,7 @@ function StandardMatchupsPage() {
               Матрица архетипов по данным HSGuru: строки показывают выбранный архетип, столбцы - соперника, в ячейках винрейт.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="standard-matchups__rank-switcher flex flex-wrap gap-2" aria-label="Диапазон рейтинга">
             {([
               ['legend', 'Легенда'],
               ['diamond', 'Алмаз 4-1'],
@@ -330,6 +330,7 @@ function StandardMatchupsPage() {
                 key={value}
                 type="button"
                 onClick={() => setRank(value)}
+                aria-pressed={rank === value}
                 className={`px-4 py-2 rounded-full font-bold transition ${rank === value ? 'text-[#2c1e16]' : 'text-[#6b4c2a]'}`}
                 style={{
                   background: rank === value ? 'linear-gradient(135deg,#f4d06f,#d6a848)' : 'rgba(255,255,255,0.55)',
@@ -345,7 +346,7 @@ function StandardMatchupsPage() {
 
       <nav
         aria-label="Навигация по странице матчапов"
-        className="flex gap-2 overflow-x-auto rounded-2xl border border-[#d7b56e]/60 bg-[#fff8e4]/82 p-2 scrollbar-hs"
+        className="standard-matchups__index flex gap-2 overflow-x-auto rounded-2xl border border-[#d7b56e]/60 bg-[#fff8e4]/82 p-2 scrollbar-hs"
       >
         {[
           ['#matchups-picker', 'Подбор'],
@@ -364,19 +365,19 @@ function StandardMatchupsPage() {
 
       <div className="grid grid-cols-1 gap-5">
         <section
-          className="rounded-2xl p-4 sm:p-5"
+          className="standard-matchups__ledger rounded-2xl p-4 sm:p-5"
           style={{
             background: 'linear-gradient(135deg,#f4e8cc,#e4c98f)',
             border: '1.5px solid #b8904a',
             boxShadow: 'inset 0 1px 3px rgba(139,69,19,0.14),0 10px 20px rgba(0,0,0,0.10)',
           }}
         >
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="standard-matchups__ledger-heading flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
               <h2 className="font-hs text-2xl" style={{ color: '#3d2208' }}>Матрица {data.rankLabel}</h2>
               <p className="text-sm text-[#7a5a35]">Цвет показывает силу матчапа: зеленый - хороший, красный - плохой.</p>
             </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs"
+            <div className="standard-matchups__updated flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs"
               style={{
                 background: 'linear-gradient(135deg,#3a2210,#2c1e16)',
                 border: '1.5px solid #6b4c2a',
@@ -401,7 +402,7 @@ function StandardMatchupsPage() {
           ) : (
             <>
               {activeRow && (
-                <section id="matchups-picker" className="scroll-mt-4 mb-4 rounded-xl border border-[#d7b56e]/60 bg-white/55 p-3 sm:p-4">
+                <section id="matchups-picker" className="standard-matchups__picker scroll-mt-4 mb-4 rounded-xl border border-[#d7b56e]/60 bg-white/55 p-3 sm:p-4">
                   <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
                     <div>
                       <h3 className="font-hs text-xl" style={{ color: '#3d2208' }}>Быстрый просмотр матчапов</h3>
@@ -424,7 +425,7 @@ function StandardMatchupsPage() {
                     </label>
                   </div>
 
-                  <div className="mt-3 flex gap-2 overflow-x-auto pb-1 scrollbar-hs" aria-label="Популярные архетипы">
+                  <div className="standard-matchups__quick-list mt-3 flex gap-2 overflow-x-auto pb-1 scrollbar-hs" aria-label="Популярные архетипы">
                     {quickRows.map(row => {
                       const isActive = row.archetype === activeRow.archetype;
                       return (
@@ -432,6 +433,7 @@ function StandardMatchupsPage() {
                           key={row.archetype}
                           type="button"
                           onClick={() => setSelectedArchetype(row.archetype)}
+                          aria-pressed={isActive}
                           className="shrink-0 rounded-full px-3 py-1.5 text-xs font-black transition focus:outline-none focus:ring-2 focus:ring-[#d6a848]"
                           style={{
                             color: isActive ? '#fff7da' : '#3d2208',
@@ -445,9 +447,9 @@ function StandardMatchupsPage() {
                     })}
                   </div>
 
-                  <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-3">
+                  <div className="standard-matchups__groups mt-4 grid grid-cols-1 lg:grid-cols-3 gap-3">
                     {matchupGroups.map(group => (
-                      <div key={group.title} className="rounded-xl border border-[#e2c993]/70 bg-[#fff8e4]/72 p-3">
+                      <div key={group.title} className="standard-matchups__group rounded-xl border border-[#e2c993]/70 bg-[#fff8e4]/72 p-3">
                         <div className="flex items-center justify-between gap-2 mb-2">
                           <div className="font-hs text-lg" style={{ color: '#3d2208' }}>{group.title}</div>
                           <span
@@ -479,7 +481,7 @@ function StandardMatchupsPage() {
                 </section>
               )}
 
-              <div className="mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="standard-matchups__matrix-guide mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <p className="text-xs sm:text-sm text-[#6b4c2a]">
                   Полная матрица ниже. На ПК используйте кнопки или горизонтальный скролл, на телефоне удобнее быстрый просмотр выше.
                 </p>
@@ -505,7 +507,7 @@ function StandardMatchupsPage() {
                 id="matchups-matrix"
                 tabIndex={0}
                 aria-label="Прокручиваемая таблица матчапов Стандарта"
-                className="scroll-mt-4 overflow-x-auto pb-2 scrollbar-hs rounded-xl border border-[#b8904a]/45 bg-[#fffdf4]/78 focus:outline-none focus:ring-2 focus:ring-[#d6a848]"
+                className="standard-matchups__matrix scroll-mt-4 overflow-x-auto pb-2 scrollbar-hs rounded-xl border border-[#b8904a]/45 bg-[#fffdf4]/78 focus:outline-none focus:ring-2 focus:ring-[#d6a848]"
                 style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain', touchAction: 'pan-x' }}
               >
               <table className="w-full min-w-[980px] sm:min-w-[1280px] border-separate border-spacing-0">
@@ -589,8 +591,8 @@ function StandardMatchupsPage() {
           )}
         </section>
 
-        <aside id="matchups-summary" className="scroll-mt-4 grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <section className="rounded-2xl p-4 bg-[#fff8e4]/80 border border-[#d7b56e]/50">
+        <aside id="matchups-summary" className="standard-matchups__summary scroll-mt-4 grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <section className="standard-matchups__summary-card rounded-2xl p-4 bg-[#fff8e4]/80 border border-[#d7b56e]/50">
             <h3 className="font-hs text-xl mb-3" style={{ color: '#3d2208' }}>Лучшие архетипы</h3>
             <div className="space-y-2">
               {strongest.length ? strongest.map(item => (
@@ -602,7 +604,7 @@ function StandardMatchupsPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl p-4 bg-[#fff8e4]/80 border border-[#d7b56e]/50">
+          <section className="standard-matchups__summary-card rounded-2xl p-4 bg-[#fff8e4]/80 border border-[#d7b56e]/50">
             <h3 className="font-hs text-xl mb-3" style={{ color: '#3d2208' }}>Быстрые ориентиры</h3>
             <div className="space-y-3">
               {bestCounters.map(item => (
