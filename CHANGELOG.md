@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Wrapped the signed-in profile badge in desktop and mobile navigation with a locally hosted Hearthstone deck frame while preserving the existing profile link, focus behavior, and compact responsive layout.
 - Restyled the signed-in profile and login screen as a Manacost player passport using the same parchment canvas, red textured panels, wooden framing, warm forms, responsive layout, and preserved authentication, contact, subscription, Telegram, Boosty, and contest-history flows.
 - Removed the legacy fixed blue vignette, oversized navigation drop shadow, and transparent backdrop blur that produced dark compositing bands along the page edges while scrolling the parchment home page.
 - Added the Hearthstone Wiki wooden rail frame as a locally hosted, lightweight border for the fixed navigation, mobile header, and live class board on the home page.
