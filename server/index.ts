@@ -23,7 +23,7 @@ const CARD_IMAGE_CACHE_DIR = join(DATA_DIR, 'card-images');
 const ADMIN_UPLOAD_SOURCE_DIR = process.env.ADMIN_UPLOAD_SOURCE_DIR || join(DATA_DIR, 'uploads', 'admin');
 const ADMIN_UPLOAD_DIR = process.env.ADMIN_UPLOAD_DIR || ADMIN_UPLOAD_SOURCE_DIR;
 const GALLERY_UPLOAD_DIR = process.env.GALLERY_UPLOAD_DIR || join(DATA_DIR, 'uploads', 'gallery');
-const CARD_IMAGE_CACHE_VERSION = 'card_img_v2';
+const CARD_IMAGE_CACHE_VERSION = 'card_img_v3';
 const CARD_IMAGE_FALLBACK_RETRY_MS = 5 * 60_000;
 const MAX_CARD_IMAGE_JOBS = 4;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -34,7 +34,7 @@ const BG_IMAGE_CACHE_CONTROL = 'public, max-age=2592000, immutable';
 const blizzardCardImages = createBlizzardCardImageClient({
   clientId: process.env.BLIZZARD_CLIENT_ID,
   clientSecret: process.env.BLIZZARD_CLIENT_SECRET,
-  region: process.env.BLIZZARD_API_REGION,
+  region: process.env.BLIZZARD_API_REGION || process.env.BLIZZARD_REGION,
 });
 let lastBlizzardImageWarningAt = 0;
 
@@ -5820,6 +5820,7 @@ app.get('/api/card-image/:cardId/:variant.webp', async (req, res) => {
     const etag = `"${stat.mtimeMs.toString(36)}-${stat.size.toString(36)}"`;
 
     res.set('Content-Type', 'image/webp');
+    res.set('X-Card-Image-Source', image.source);
     res.set('Cache-Control', image.source === 'blizzard'
       ? 'public, max-age=2592000, immutable'
       : 'public, max-age=300, stale-while-revalidate=3600');

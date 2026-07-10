@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Connected the production Arena service to the server's shared Blizzard credentials, accepted the canonical `BLIZZARD_REGION` setting, exposed a safe image-source response header, and rotated the card-image cache so existing HearthstoneJSON fallbacks are replaced immediately.
 - Refactored the home page into a compact utility-first dashboard: live freshness and Arena leaders now appear before the Battlegrounds and Arena directories, followed by neatly grouped cross-mode statistics and a real eight-place Battlegrounds hero distribution chart with an honest unavailable-data state.
 - Removed the generic violet side rails from Battlegrounds heroes, library, tier-list panels, mobile sections, and home-directory entries; retained wooden frames and horizontal wood rules for meaningful separation.
 - Rebuilt Battlegrounds hero details as a wood-framed tavern dossier with dark aubergine identity and media surfaces, thin framed content ledgers, warmer inner cards, and fully wrapping hero-power and companion copy while preserving media lightboxes and golden artwork behavior.
