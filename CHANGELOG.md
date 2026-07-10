@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Fixed the editorial card cascade so every article now renders inside a clearly visible nine-pixel Hearthstone wooden frame on desktop and mobile without reducing readable content width.
 - Started the editorial redesign by moving Articles, Gallery, Guides Archive, and Contests onto one open parchment canvas with red textured mastheads, substantial wooden framing, warm controls and cards, a matching subscription gate, and preserved search, filters, downloads, voting, entry, and access flows.
 - Strengthened the Hearthstone material language with thicker wooden frames around desktop and mobile navigation, the live class board, and the profile plaque; upgraded menu labels to the expressive HS display face while preserving narrow-screen fit and scrolling.
 - Wrapped the signed-in profile badge in desktop and mobile navigation with a locally hosted Hearthstone deck frame while preserving the existing profile link, focus behavior, and compact responsive layout.
