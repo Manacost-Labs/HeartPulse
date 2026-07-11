@@ -11,6 +11,7 @@ import HomeTab from './features/Home';
 import { usePageScrollLock } from './hooks/usePageScrollLock';
 import SubscriptionPurchaseButtons from './components/SubscriptionPurchaseButtons';
 import PaywallGate from './components/PaywallGate';
+import AuthAvatar from './components/AuthAvatar';
 import {
   ADMIN_TABS,
   applyPageMeta,
@@ -3217,7 +3218,7 @@ function authInitials(user: Pick<AuthUser, 'name' | 'email' | 'avatarInitials'>)
     .join('') || 'HS';
 }
 
-function AuthAvatar({ user, size = 52 }: { user: AuthUser; size?: number }) {
+function LegacyAuthAvatar({ user, size = 52 }: { user: AuthUser; size?: number }) {
   const avatarSrc = user.photoUrl || MANACOST_AVATAR_URL;
   return (
     <span style={{

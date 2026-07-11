@@ -60,6 +60,7 @@ async function mockApplicationApi(page, { authenticated }) {
           email: 'qa@example.test',
           name: 'QA Subscriber',
           role: 'user',
+          photoUrl: '/__qa_missing_avatar__.png',
         },
       } : { user: null }));
       return;
@@ -256,11 +257,14 @@ for (const route of authenticatedRoutes) {
         viewportWidth: innerWidth,
         constructors: Boolean(document.querySelector('[aria-controls="arena-mobile-constructors"]')),
         misc: Boolean(document.querySelector('[aria-controls="arena-mobile-misc"]')),
+        avatarFallback: document.querySelector('.auth-avatar > span')?.textContent || '',
+        avatarImageHidden: getComputedStyle(document.querySelector('.auth-avatar img')).display === 'none',
       };
     });
     if (openState.bodyPosition !== 'fixed' || openState.htmlOverflow !== 'hidden') failures.push('mobile menu: background is not scroll-locked');
     if (!openState.profileWidth || openState.profileRight > openState.viewportWidth + 1) failures.push('mobile menu: profile control frame overflows');
     if (!openState.constructors || !openState.misc) failures.push('mobile menu: grouped navigation controls are missing');
+    if (openState.avatarFallback !== 'QS' || !openState.avatarImageHidden) failures.push('mobile menu: broken avatar did not fall back to user initials');
     await page.click('.arena-mobile-drawer-backdrop');
     await page.waitForSelector('.arena-mobile-menu', { hidden: true });
     const closedPosition = await page.evaluate(() => getComputedStyle(document.body).position);
