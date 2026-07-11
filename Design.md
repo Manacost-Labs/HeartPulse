@@ -55,6 +55,7 @@ Do not hotlink wiki assets at runtime.
 - Do not use violet side rails or colored left-border strips on BG panels; use wooden frames/rules for major separation and quiet neutral borders inside them.
 - BG tier navigation uses walnut/burgundy idle cards and violet/gold selected cards; rank groups use honey parchment, never cold white/blue dashboard surfaces.
 - BG library detail dossiers and major ledgers use canonical timber rails with honey parchment inside; long names, groups, sources and metric values wrap safely.
+- BG library mechanics are normalized to user-facing Russian labels before rendering; pass/secret placeholder mechanics are not shown.
 - BG tier entries use explicit theme hooks rather than DOM-position selectors, and strategy/card lightboxes use timber rails over red tavern cloth instead of plain black panels.
 - The BG heroes introduction uses one title divider and one quiet combined metric/search panel; utility panels do not receive decorative bottom rails.
 - Arena cards, deck cards, BG strategies, BG hero media and gallery art share one timber-framed red-cloth lightbox material; white, transparent and plain black modal panels are not valid.
@@ -80,6 +81,7 @@ Do not hotlink wiki assets at runtime.
 
 ## Changelog
 
+- **2026-07-11** — Localized the remaining BG mechanic labels and removed pass/secret placeholders from the library UI.
 - **2026-07-11** — Moved Latest articles above the Battlegrounds and Arena directories on the home page.
 - **2026-07-11** — Applied the canonical tavern footer to every public route, including all Battlegrounds pages.
 - **2026-07-11** — Simplified the BG heroes controls into one rail-free metric and search panel.

@@ -260,6 +260,18 @@ const CARD_NAME_OVERRIDES: Record<string, string> = {
   'bacon refresh': 'Обновление таверны',
 };
 
+const MECHANIC_LABEL_OVERRIDES: Record<string, string> = {
+  bacon_fresh_tooltip: 'В следующих обновлениях',
+  bacon_refresh_tooltip: 'В следующих обновлениях',
+  bacon_blood_gem_tooltip: 'Кровавые самоцветы',
+  immune: 'Неуязвимость',
+};
+
+const HIDDEN_MECHANIC_KEYS = new Set([
+  'bacon_pass_tooltip',
+  'secret',
+]);
+
 const RACE_ICON_BY_SLUG: Record<string, string> = {
   all: '/bg-legacy/assset/общее.webp',
   beast: '/bg-legacy/assset/зверь.webp',
@@ -331,6 +343,12 @@ function formatCount(value: unknown): string {
 
 function cleanSearch(value: unknown): string {
   return String(value || '').toLowerCase().replace(/ё/g, 'е').trim();
+}
+
+function mechanicKey(value: unknown): string {
+  return cleanSearch(value)
+    .replace(/[^a-zа-я0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
 }
 
 function slugify(value: string): string {
@@ -610,7 +628,20 @@ function normalizeMechanic(value: any): { slug: string; name_ru: string } | null
     ? value
     : (value?.name_ru || value?.name_en || value?.slug || value?.name || '');
   if (!label) return null;
-  return { slug: cleanSearch(label), name_ru: String(label) };
+  const slug = String(typeof value === 'string' ? cleanSearch(label) : (value?.slug || cleanSearch(label)));
+  const key = mechanicKey(slug || label);
+  if (HIDDEN_MECHANIC_KEYS.has(key)) return null;
+  return { slug, name_ru: MECHANIC_LABEL_OVERRIDES[key] || String(label) };
+}
+
+function normalizeMechanics(values: unknown): Array<{ slug: string; name_ru: string }> {
+  if (!Array.isArray(values)) return [];
+  const mechanics: Array<{ slug: string; name_ru: string }> = [];
+  for (const value of values) {
+    const mechanic = normalizeMechanic(value);
+    if (mechanic) mechanics.push(mechanic);
+  }
+  return mechanics;
 }
 
 function normalizeAuxiliaryLibraryCard(item: any, kind: LibraryKind): LibraryCard {
@@ -641,9 +672,7 @@ function normalizeAuxiliaryLibraryCard(item: any, kind: LibraryKind): LibraryCar
     health: item?.health ?? null,
     in_pool: Boolean(item?.in_pool ?? item?.pool_status === 'available'),
     duos_only: Boolean(item?.duos_only),
-    mechanics: (item?.mechanics || item?.wiki?.wiki_mechanics_localized || [])
-      .map(normalizeMechanic)
-      .filter(Boolean),
+    mechanics: normalizeMechanics(item?.mechanics || item?.wiki?.wiki_mechanics_localized || []),
     text: item?.text,
     text_ru: textRu,
     images: {
@@ -852,8 +881,15 @@ function useLibraryData(kind: LibraryKind, pool: PoolMode) {
     Promise.all([metaRequest, cardsRequest])
       .then(results => {
         if (!alive) return;
-        setMeta(results[0] as LibraryMeta);
-        setCards(dedupeLibraryCards((results[1] as LibraryCard[]).filter(card => card?.dbf || card?.card_id)));
+        const rawMeta = results[0] as LibraryMeta;
+        const normalizedCards: LibraryCard[] = [];
+        for (const card of results[1] as LibraryCard[]) {
+          if (card?.dbf || card?.card_id) {
+            normalizedCards.push({ ...card, mechanics: normalizeMechanics(card.mechanics) });
+          }
+        }
+        setMeta({ ...rawMeta, mechanics: normalizeMechanics(rawMeta.mechanics) });
+        setCards(dedupeLibraryCards(normalizedCards));
       })
       .catch(errorValue => {
         if (alive) setError(errorValue?.message || 'Не удалось загрузить библиотеку');
