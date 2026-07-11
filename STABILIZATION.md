@@ -47,6 +47,18 @@ The first architecture ratchet is complete:
 | Rollback time | Under 5 minutes | Automated rollback drill |
 | Critical MTTR | Under 30 minutes | Incident log |
 
+## Health contracts
+
+- `GET /health/live` proves that the HTTP process can answer; it has no
+  external dependency and is never cached.
+- `GET /health/ready` proves that the required Arena snapshots exist and have
+  valid timestamps. Stale-but-usable snapshots remain ready so a temporary
+  scraper outage does not remove the site from service.
+- `GET /health/data` enforces the eight-hour freshness SLO and returns `503`
+  for stale, missing, invalid or implausibly future-dated datasets.
+- Redis is an optional acceleration layer and therefore never blocks
+  readiness.
+
 ## Route and access inventory
 
 ### Public and editorial routes
@@ -155,8 +167,10 @@ A task is complete only when all relevant checks below are proven.
   - [ ] Establish explicit reset, base, component, route and override layers once all participating stylesheets can enter the layer order without changing precedence.
 - [ ] Phase 4: modular API, runtime validation and durable data snapshots.
   - [x] Old-guide HTML and URL normalization have moved out of `server/index.ts` into a pure tested sanitizer module with explicit unsafe-protocol, event-handler, inline-style and decorative-image rejection coverage.
+  - [x] Dataset freshness evaluation and Express health handlers are isolated modules with unit and HTTP contract tests for fresh, stale, missing, invalid and clock-skewed data.
 - [ ] Phase 5: isolated scraper publishing.
 - [ ] Phase 6: immutable deployment, readiness and rollback.
+  - [x] Dedicated liveness, readiness and strict data-health endpoints expose uncached machine-readable deployment gates without changing the legacy public status response.
 - [ ] Phase 7: structured telemetry, alerts and backup/restore.
 - [ ] Phase 8: performance, accessibility and final production audit.
 

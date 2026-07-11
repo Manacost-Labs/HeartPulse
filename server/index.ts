@@ -16,6 +16,8 @@ import { scrapeAll, loadData } from './scraper.js';
 import { HSREPLAY_NO_ARENASMITH_TIER, normalizeArenasmithTier, tierFromArenasmithScore } from './hsreplayArenasmith.js';
 import { createBlizzardCardImageClient, isBlizzardImageContentType } from './blizzardCards.js';
 import { createOldGuideSanitizer } from './guides/sanitize.js';
+import { evaluateDataHealth } from './health.js';
+import { createHealthRouter } from './healthRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -6900,6 +6902,31 @@ app.get('/api/bg/library/minions/:dbfId/history', requireBattlegroundsAccess, (r
 app.get('/api/bg/library/spell-stats', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/library/spell-stats'));
 app.get('/api/bg/library/extra/:library', requireBattlegroundsAccess, (req, res) => proxyExtraBattlegroundLibraryEndpoint(req, res, req.params.library));
 app.get('/api/bg/tier-lists', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/tier-lists'));
+
+function criticalDataHealth() {
+  const datasets = [
+    { name: 'winrates', file: 'winrates.json', collection: 'classes' },
+    { name: 'tierlist', file: 'tierlist.json', collection: 'sections' },
+    { name: 'legendaries', file: 'legendaries.json', collection: 'groups' },
+  ].map(definition => {
+    const entry = loadDataCached(definition.file);
+    const records = Array.isArray(entry?.data?.[definition.collection])
+      ? entry.data[definition.collection].length
+      : undefined;
+    return {
+      name: definition.name,
+      updatedAt: entry?.data?.updatedAt,
+      source: entry?.data?.source,
+      records,
+    };
+  });
+  return evaluateDataHealth(datasets);
+}
+
+app.use('/health', createHealthRouter({
+  getDataHealth: criticalDataHealth,
+  getRelease: () => process.env.RELEASE_SHA || process.env.GITHUB_SHA || 'development',
+}));
 
 app.get('/api/status', (req, res) => {
   const wr = loadDataCached('winrates.json');
