@@ -20,6 +20,7 @@
     "verify:ci": "npm run lint && npm test && npm run build && npm run budget && npm run lint:docs",
     "scrape": "tsx server/scraper.ts",
     "qa:screens": "node scripts/screenshot-qa.mjs",
+    "qa:e2e": "node scripts/e2e-qa.mjs",
     "changelog:post": "node scripts/post-arena-changelog.mjs"
   },
   "dependencies": {
