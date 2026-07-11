@@ -22,6 +22,7 @@ READINESS_COMMAND=${READINESS_COMMAND:-curl -fsS --max-time 5 http://127.0.0.1:3
 SKIP_DEPENDENCIES=${SKIP_DEPENDENCIES:-0}
 SKIP_IMMUTABLE_PERMISSIONS=${SKIP_IMMUTABLE_PERMISSIONS:-0}
 DEPENDENCY_USER=${DEPENDENCY_USER:-koloda}
+DATA_USER=${DATA_USER:-koloda}
 
 [[ -f "$SOURCE_RELEASE/release.json" ]] || { echo "release.json is missing" >&2; exit 2; }
 RELEASE_SHA=$(node -e "const m=require(process.argv[1]); if(!/^[a-f0-9]{7,40}$/.test(m.sha||'')) process.exit(2); process.stdout.write(m.sha)" "$SOURCE_RELEASE/release.json")
@@ -29,38 +30,53 @@ RELEASE_SHA=$(node -e "const m=require(process.argv[1]); if(!/^[a-f0-9]{7,40}$/.
 [[ -f "$SOURCE_RELEASE/dist/index.html" ]] || { echo "frontend artifact is missing" >&2; exit 2; }
 
 mkdir -p "$APP_BASE" "$RELEASES_DIR" "$RUNTIME_DIR" "$(dirname "$SHARED_DATA_DIR")"
+chmod 755 "$APP_BASE" "$RELEASES_DIR" "$RUNTIME_DIR" "$(dirname "$SHARED_DATA_DIR")"
 exec 9>"$LOCK_FILE"
 flock -n 9 || { echo "another deployment is running" >&2; exit 3; }
+
+STAGING_RELEASE=''
+DEPENDENCY_STAGING=''
+cleanup_staging() {
+  [[ -z "$STAGING_RELEASE" || ! -e "$STAGING_RELEASE" ]] || rm -rf "$STAGING_RELEASE"
+  [[ -z "$DEPENDENCY_STAGING" || ! -e "$DEPENDENCY_STAGING" ]] || rm -rf "$DEPENDENCY_STAGING"
+}
+trap cleanup_staging EXIT
 
 if [[ ! -d "$SHARED_DATA_DIR" ]]; then
   mkdir -p "$SHARED_DATA_DIR"
   if [[ -d "$WORKSPACE/server/data" ]]; then
     cp -a "$WORKSPACE/server/data/." "$SHARED_DATA_DIR/"
   fi
+  if [[ $EUID -eq 0 ]] && id "$DATA_USER" >/dev/null 2>&1; then
+    chown -R "$DATA_USER:$DATA_USER" "$SHARED_DATA_DIR"
+  fi
+  chmod -R u+rwX,go+rX "$SHARED_DATA_DIR"
 fi
 
 TARGET_RELEASE="$RELEASES_DIR/$RELEASE_SHA"
+RELEASE_WORK="$TARGET_RELEASE"
 NEW_RELEASE=0
 if [[ ! -d "$TARGET_RELEASE" ]]; then
   STAGING_RELEASE="$RELEASES_DIR/.${RELEASE_SHA}.tmp.$$"
   rm -rf "$STAGING_RELEASE"
   cp -a "$SOURCE_RELEASE" "$STAGING_RELEASE"
-  mv "$STAGING_RELEASE" "$TARGET_RELEASE"
+  RELEASE_WORK="$STAGING_RELEASE"
   NEW_RELEASE=1
 fi
 
 if [[ "$NEW_RELEASE" == "1" ]]; then
   if [[ "$SKIP_DEPENDENCIES" == "1" ]]; then
     [[ -d "$WORKSPACE/node_modules" ]] || { echo "workspace node_modules is missing" >&2; exit 2; }
-    ln -s "$WORKSPACE/node_modules" "$TARGET_RELEASE/node_modules"
+    ln -s "$WORKSPACE/node_modules" "$RELEASE_WORK/node_modules"
   else
-    LOCK_HASH=$(node -e "const m=require(process.argv[1]); process.stdout.write(m.packageLockHash.slice(0,24))" "$TARGET_RELEASE/release.json")
+    LOCK_HASH=$(node -e "const m=require(process.argv[1]); process.stdout.write(m.packageLockHash.slice(0,24))" "$RELEASE_WORK/release.json")
     DEPENDENCY_ROOT="$RUNTIME_DIR/$LOCK_HASH"
     if [[ ! -d "$DEPENDENCY_ROOT/node_modules" ]]; then
       DEPENDENCY_STAGING="$RUNTIME_DIR/.${LOCK_HASH}.tmp.$$"
       rm -rf "$DEPENDENCY_STAGING"
       mkdir -p "$DEPENDENCY_STAGING"
-      cp "$TARGET_RELEASE/package.json" "$TARGET_RELEASE/package-lock.json" "$DEPENDENCY_STAGING/"
+      chmod 755 "$DEPENDENCY_STAGING"
+      cp "$RELEASE_WORK/package.json" "$RELEASE_WORK/package-lock.json" "$DEPENDENCY_STAGING/"
       if [[ $EUID -eq 0 ]] && id "$DEPENDENCY_USER" >/dev/null 2>&1; then
         chown -R "$DEPENDENCY_USER:$DEPENDENCY_USER" "$DEPENDENCY_STAGING"
         (cd "$DEPENDENCY_STAGING" && runuser -u "$DEPENDENCY_USER" -- npm ci --omit=dev --no-audit --no-fund)
@@ -70,17 +86,21 @@ if [[ "$NEW_RELEASE" == "1" ]]; then
       fi
       chmod -R a-w "$DEPENDENCY_STAGING"
       mv "$DEPENDENCY_STAGING" "$DEPENDENCY_ROOT"
+      DEPENDENCY_STAGING=''
     fi
-    ln -s "$DEPENDENCY_ROOT/node_modules" "$TARGET_RELEASE/node_modules"
+    ln -s "$DEPENDENCY_ROOT/node_modules" "$RELEASE_WORK/node_modules"
   fi
 
-  mkdir -p "$TARGET_RELEASE/server"
-  ln -s "$SHARED_DATA_DIR" "$TARGET_RELEASE/server/data"
+  mkdir -p "$RELEASE_WORK/server"
+  ln -s "$SHARED_DATA_DIR" "$RELEASE_WORK/server/data"
 
   if [[ "$SKIP_IMMUTABLE_PERMISSIONS" != "1" ]]; then
-    chown -hR root:root "$TARGET_RELEASE"
-    chmod -R a-w,a+rX "$TARGET_RELEASE"
+    chown -hR root:root "$RELEASE_WORK"
+    chmod -R a-w,a+rX "$RELEASE_WORK"
   fi
+
+  mv "$RELEASE_WORK" "$TARGET_RELEASE"
+  STAGING_RELEASE=''
 else
   [[ -L "$TARGET_RELEASE/node_modules" ]] || { echo "existing release has no immutable dependency link" >&2; exit 2; }
   [[ -L "$TARGET_RELEASE/server/data" ]] || { echo "existing release has no shared data link" >&2; exit 2; }

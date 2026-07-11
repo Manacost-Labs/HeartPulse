@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readlinkSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readlinkSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -42,6 +42,17 @@ function deploy(artifact, readiness) {
 }
 
 try {
+  rmSync(join(workspace, 'node_modules'), { recursive: true });
+  const preparationSha = 'd'.repeat(7);
+  const preparationFailure = deploy(fakeRelease(preparationSha), true);
+  assert.notEqual(preparationFailure.status, 0);
+  assert.equal(existsSync(join(appBase, 'releases', preparationSha)), false);
+  assert.equal(
+    readdirSync(join(appBase, 'releases')).some(name => name.startsWith(`.${preparationSha}.tmp.`)),
+    false,
+  );
+  mkdirSync(join(workspace, 'node_modules'), { recursive: true });
+
   const firstSha = 'a'.repeat(7);
   const first = deploy(fakeRelease(firstSha), true);
   assert.equal(first.status, 0, first.stderr || first.stdout);
