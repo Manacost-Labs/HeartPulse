@@ -149,6 +149,9 @@ A task is complete only when all relevant checks below are proven.
   - [x] Full-page Arena, profile, admin and article implementations have a single lazy-route owner instead of shadow copies in `App.tsx`.
   - [x] All remaining exact named component duplicates and retired deck-page helpers have been removed; CI enforces a zero-duplicate budget.
 - [ ] Phase 3: layered CSS and removal of legacy cascade.
+  - [x] One canonical `src/styles/tokens.css` owns every global `:root` token; CI rejects secondary root owners, duplicate tokens and growth beyond the measured 2,724 legacy `!important` declarations.
+  - [ ] Replace legacy overrides route by route and ratchet the `!important` ceiling down after every verified batch.
+  - [ ] Establish explicit reset, base, component, route and override layers once all participating stylesheets can enter the layer order without changing precedence.
 - [ ] Phase 4: modular API, runtime validation and durable data snapshots.
 - [ ] Phase 5: isolated scraper publishing.
 - [ ] Phase 6: immutable deployment, readiness and rollback.

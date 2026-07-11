@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./styles/tokens.css";
 
 @font-face {
   font-family: "HSDisplay";
@@ -2287,20 +2288,6 @@
 }
 
 /* ─── Draft table refresh (2026-07) ─────────────────────────────────────── */
-
-:root {
-  --draft-ink: #10233d;
-  --draft-muted: #52657e;
-  --draft-canvas: #eef5ff;
-  --draft-surface: #ffffff;
-  --draft-line: #d6e2f1;
-  --draft-mana: #1565c0;
-  --draft-cyan: #16b8d4;
-  --draft-violet: #7357d8;
-  --draft-gold: #f4b63c;
-  --draft-coral: #ec6b6b;
-  --draft-navy: #081a33;
-}
 
 .bg-wood::before,
 .arena-sidebar::before,

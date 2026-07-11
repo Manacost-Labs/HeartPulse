@@ -1,0 +1,41 @@
+/*
+ * Canonical global design tokens.
+ *
+ * Route and component styles consume these values but must not create
+ * additional :root blocks. Route-specific values belong on the route owner.
+ */
+
+:root {
+  --arena-parchment: #ead6a7;
+  --arena-parchment-light: #f5e7c6;
+  --arena-ink: #30251c;
+  --arena-muted-ink: #74624d;
+  --arena-red: #7b151b;
+  --arena-red-dark: #4d0b10;
+  --arena-red-soft: #a43835;
+  --arena-gold: #d9ab49;
+  --arena-gold-light: #f1d27e;
+  --arena-wood-dark: #2e160b;
+  --arena-paper-line: rgba(84, 51, 22, 0.22);
+  --arena-wood-divider: linear-gradient(
+    180deg,
+    #2b1409 0,
+    #72401e 22%,
+    #c18a3d 46%,
+    #6b3718 70%,
+    #251006 100%
+  );
+
+  /* Legacy draft surfaces still used by the home and data workspaces. */
+  --draft-ink: #10233d;
+  --draft-muted: #52657e;
+  --draft-canvas: #eef5ff;
+  --draft-surface: #ffffff;
+  --draft-line: #d6e2f1;
+  --draft-mana: #1565c0;
+  --draft-cyan: #16b8d4;
+  --draft-violet: #7357d8;
+  --draft-gold: #f4b63c;
+  --draft-coral: #ec6b6b;
+  --draft-navy: #081a33;
+}

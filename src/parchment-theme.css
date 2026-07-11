@@ -4,28 +4,6 @@
  * It changes only the public shell and the home page; builders/admin keep their own surfaces.
  */
 
-:root {
-  --arena-parchment: #ead6a7;
-  --arena-parchment-light: #f5e7c6;
-  --arena-ink: #30251c;
-  --arena-muted-ink: #74624d;
-  --arena-red: #7b151b;
-  --arena-red-dark: #4d0b10;
-  --arena-red-soft: #a43835;
-  --arena-gold: #d9ab49;
-  --arena-gold-light: #f1d27e;
-  --arena-wood-dark: #2e160b;
-  --arena-paper-line: rgba(84, 51, 22, 0.22);
-  --arena-wood-divider: linear-gradient(
-    180deg,
-    #2b1409 0,
-    #72401e 22%,
-    #c18a3d 46%,
-    #6b3718 70%,
-    #251006 100%
-  );
-}
-
 /* ─── Public shell ─────────────────────────────────────────────────────── */
 
 :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data).bg-wood,
