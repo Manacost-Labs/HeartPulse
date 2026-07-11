@@ -9,6 +9,23 @@ import { Trophy, Scroll, RefreshCw, AlertTriangle, X, Search, Star, Home, BookOp
 import { getCanonicalRedirectUrl } from './config/domain';
 import HomeTab from './features/Home';
 import { usePageScrollLock } from './hooks/usePageScrollLock';
+import {
+  ADMIN_TABS,
+  applyPageMeta,
+  ARENA_TABS,
+  BG_BUILDER_TABS,
+  BG_PRIMARY_TABS,
+  BG_TAB_IDS,
+  isKnownPath,
+  isRemovedPagePath,
+  MISC_TABS,
+  PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS,
+  STANDARD_TABS,
+  tabFromPath,
+  TABS,
+  TOP_LEVEL_TABS,
+  type TabId,
+} from './routes';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -6479,39 +6496,6 @@ function ArticlesTab({
   );
 }
 
-const TABS = [
-  { id: 'home',        label: 'Главная',    icon: Home,     slug: '/'           },
-  { id: 'articles',    label: 'Статьи',     icon: BookOpen, slug: '/articles'   },
-  { id: 'gallery',     label: 'Галерея',    icon: ImageIcon, slug: '/gallery'   },
-  { id: 'guides-archive', label: 'Архив гайдов', icon: BookOpen, slug: '/guides-archive' },
-  { id: 'contests',    label: 'Конкурсы',   icon: Gift,     slug: '/contests'   },
-  { id: 'standard-matchups', label: 'Матчапы', icon: Swords, slug: '/standard/matchups' },
-  { id: 'winrates',    label: 'Классы',     icon: Trophy,   slug: '/classes'    },
-  { id: 'tierlist',    label: 'Тир-лист',   icon: Scroll,   slug: '/tierlist'   },
-  { id: 'legendaries', label: 'Легендарки', icon: Star,      slug: '/legendaries'},
-  { id: 'bg-heroes', label: 'Герои', icon: UserCircle, slug: '/heroes' },
-  { id: 'bg-library', label: 'Библиотека', icon: Library, slug: '/library' },
-  { id: 'bg-tier-list', label: 'Тир-лист', icon: Scroll, slug: '/battlegrounds/tier-list' },
-  { id: 'bg-strategies', label: 'Конструктор стратегий', icon: Grid3X3, slug: '/battlegrounds/strategies' },
-  { id: 'bg-tier-builder', label: 'Конструктор тир-листов', icon: List, slug: '/battlegrounds/tier-builder' },
-  { id: 'admin-panel', label: 'Админ панель', icon: ShieldCheck, slug: '/admin' },
-] as const;
-
-const BG_TAB_IDS = new Set<string>(['bg-heroes', 'bg-library', 'bg-tier-list', 'bg-strategies', 'bg-tier-builder']);
-const ADMIN_TAB_IDS = new Set<string>(['admin-panel']);
-const TOP_LEVEL_TAB_IDS = new Set<string>(['articles']);
-const STANDARD_TAB_IDS = new Set<string>(['standard-matchups']);
-const MISC_TAB_IDS = new Set<string>(['gallery', 'guides-archive', 'contests']);
-const TOP_LEVEL_TABS = TABS.filter(tab => TOP_LEVEL_TAB_IDS.has(tab.id));
-const STANDARD_TABS = TABS.filter(tab => STANDARD_TAB_IDS.has(tab.id));
-const ARENA_TABS = TABS.filter(tab => !BG_TAB_IDS.has(tab.id) && !TOP_LEVEL_TAB_IDS.has(tab.id) && !STANDARD_TAB_IDS.has(tab.id) && !MISC_TAB_IDS.has(tab.id) && !ADMIN_TAB_IDS.has(tab.id) && tab.id !== 'home');
-const BG_TABS = TABS.filter(tab => BG_TAB_IDS.has(tab.id));
-const BG_BUILDER_TAB_IDS = new Set<string>(['bg-strategies', 'bg-tier-builder']);
-const BG_PRIMARY_TABS = BG_TABS.filter(tab => !BG_BUILDER_TAB_IDS.has(tab.id));
-const BG_BUILDER_TABS = BG_TABS.filter(tab => BG_BUILDER_TAB_IDS.has(tab.id));
-const ADMIN_TABS = TABS.filter(tab => ADMIN_TAB_IDS.has(tab.id));
-const MISC_TABS = TABS.filter(tab => MISC_TAB_IDS.has(tab.id));
-
 const NETWORK_SITES = [
   {
     id: 'koloda',
@@ -6539,134 +6523,6 @@ const NETWORK_SITES = [
   },
 ] as const;
 
-// ─── Per-tab SEO meta ─────────────────────────────────────────────────────────
-
-const SITE_URL = 'https://arena.hs-manacost.ru';
-
-const PAGE_META: Record<string, { title: string; description: string; slug: string }> = {
-  home:        {
-    title:       'HS-Arena — Тир-лист и Винрейты для Арены Hearthstone',
-    description: 'Актуальная статистика Арены Hearthstone: тир-лист карт, винрейты классов, легендарные группы. Данные обновляются 4 раза в сутки.',
-    slug:        '/',
-  },
-  winrates:    {
-    title:       'Винрейт классов — Арена Hearthstone | HS-Arena',
-    description: 'Актуальные винрейты всех 11 классов в режиме Арена Hearthstone. Рейтинг на основе миллионов партий, обновляется автоматически.',
-    slug:        '/classes',
-  },
-  tierlist:    {
-    title:       'Тир-лист карт — Арена Hearthstone | HS-Arena',
-    description: 'Полный тир-лист карт для каждого класса в режиме Арена Hearthstone. Лучшие карты текущего патча с оценками от S до F.',
-    slug:        '/tierlist',
-  },
-  legendaries: {
-    title:       'Легендарки на Арене Hearthstone — Лучшие группы | HS-Arena',
-    description: 'Какую легендарную карту выбрать на Арене? Все группы первого выбора с процентом побед. Обновляется автоматически.',
-    slug:        '/legendaries',
-  },
-  articles:    {
-    title:       'Статьи и гайды по Арене Hearthstone | HS-Arena',
-    description: 'Гайды, разборы и советы по режиму Арена в Hearthstone от команды Manacost.',
-    slug:        '/articles',
-  },
-  gallery:     {
-    title:       'Галерея артов Hearthstone | HS-Arena',
-    description: 'Публичная галерея артов Манакоста в высоком качестве: просмотр и скачивание доступны всем пользователям.',
-    slug:        '/gallery',
-  },
-  'guides-archive': {
-    title:       'Архив гайдов Hearthstone | Manacost Stats',
-    description: 'Архив старых гайдов, мета-отчетов и материалов Koloda Hearthstone в удобном формате для чтения.',
-    slug:        '/guides-archive',
-  },
-  contests:    {
-    title:       'Конкурсы Манакоста | Manacost Stats',
-    description: 'Конкурсы для подписчиков Манакоста: участие, проверка подписки и публикация ID победителей.',
-    slug:        '/contests',
-  },
-  'standard-matchups': {
-    title:       'Матчапы Стандарта Hearthstone | Manacost Stats',
-    description: 'Матрица матчапов актуальной меты Стандарта по данным HSGuru: винрейты архетипов против друг друга.',
-    slug:        '/standard/matchups',
-  },
-  'admin-panel': {
-    title:       'Админ панель конкурсов | Manacost Stats',
-    description: 'Панель администратора конкурсов Манакоста: создание конкурсов, заявки, победители и поиск профилей.',
-    slug:        '/admin',
-  },
-  'bg-strategies': {
-    title:       'Конструктор стратегий Полей Сражений | HS-Arena',
-    description: 'Инструмент для сборки и визуализации стратегий Hearthstone Battlegrounds.',
-    slug:        '/battlegrounds/strategies',
-  },
-  'bg-heroes': {
-    title:       'Герои Полей Сражений Hearthstone | HS-Arena',
-    description: 'Тир-лист героев Hearthstone Battlegrounds с отдельными страницами героев, способностями, компаньонами и статистикой.',
-    slug:        '/heroes',
-  },
-  'bg-library': {
-    title:       'Библиотека Полей Сражений Hearthstone | HS-Arena',
-    description: 'Библиотека существ и заклинаний Hearthstone Battlegrounds: актуальный пул, архив, фильтры, статистика и отдельные страницы карт.',
-    slug:        '/library',
-  },
-  'bg-tier-list': {
-    title:       'Тир-лист Полей Сражений Hearthstone | HS-Arena',
-    description: 'Тир-лист Hearthstone Battlegrounds: существа, стратегии, заклинания и аксессуары с фильтрами и просмотром карт.',
-    slug:        '/battlegrounds/tier-list',
-  },
-  'bg-tier-builder': {
-    title:       'Конструктор тир-листов Полей Сражений | HS-Arena',
-    description: 'Инструмент для создания собственных тир-листов карт Hearthstone Battlegrounds.',
-    slug:        '/battlegrounds/tier-builder',
-  },
-};
-
-/** Update <title>, meta description and canonical <link> for the current tab */
-function applyPageMeta(tabId: string): void {
-  const meta = PAGE_META[tabId] ?? PAGE_META.home;
-
-  document.title = meta.title;
-
-  const desc = document.querySelector<HTMLMetaElement>('meta[name="description"]');
-  if (desc) desc.content = meta.description;
-
-  const ogTitle = document.querySelector<HTMLMetaElement>('meta[property="og:title"]');
-  if (ogTitle) ogTitle.content = meta.title;
-
-  const ogDesc = document.querySelector<HTMLMetaElement>('meta[property="og:description"]');
-  if (ogDesc) ogDesc.content = meta.description;
-
-  const ogUrl = document.querySelector<HTMLMetaElement>('meta[property="og:url"]');
-  if (ogUrl) ogUrl.content = `${SITE_URL}${meta.slug}`;
-
-  const twTitle = document.querySelector<HTMLMetaElement>('meta[name="twitter:title"]');
-  if (twTitle) twTitle.content = meta.title;
-
-  const twDesc = document.querySelector<HTMLMetaElement>('meta[name="twitter:description"]');
-  if (twDesc) twDesc.content = meta.description;
-
-  let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-  if (!canonical) {
-    canonical = document.createElement('link');
-    canonical.rel = 'canonical';
-    document.head.appendChild(canonical);
-  }
-  canonical.href = `${SITE_URL}${meta.slug}`;
-}
-
-type TabId = (typeof TABS)[number]['id'];
-const PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS: Partial<Record<TabId, SubscriptionEntitlementKey>> = {
-  'standard-matchups': 'standard',
-  winrates: 'arena',
-  tierlist: 'arena',
-  legendaries: 'arena',
-  'bg-heroes': 'battlegrounds',
-  'bg-library': 'battlegrounds',
-  'bg-tier-list': 'battlegrounds',
-  'bg-strategies': 'battlegrounds',
-  'bg-tier-builder': 'battlegrounds',
-  'guides-archive': 'guidesArchive',
-};
 const SUPPORT_PROMPT_STORAGE_KEY = 'manacost_support_prompt_closed_at';
 const SUPPORT_PROMPT_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000;
 const SUPPORT_URL = 'https://boosty.to/kolodahearthstone';
@@ -6742,26 +6598,6 @@ function SupportPrompt() {
       </a>
     </aside>
   );
-}
-
-function isRemovedPagePath(path: string): boolean {
-  return path === '/decks' || path.startsWith('/decks/') || path.startsWith('/jobs');
-}
-
-/** Resolve tab from current pathname */
-function tabFromPath(path: string): TabId {
-  if (isRemovedPagePath(path)) return 'home';
-  const found = TABS.find(t => t.slug !== '/' && path.startsWith(t.slug));
-  return (found?.id ?? 'home') as TabId;
-}
-
-// SEO: SPA fallback serves HTTP 200 for any path; mark unknown paths noindex
-// so crawlers drop them instead of indexing soft-404 duplicates of the home page.
-function isKnownPath(path: string): boolean {
-  const clean = path.replace(/\/+$/, '') || '/';
-  if (clean === '/') return true;
-  if (isRemovedPagePath(clean)) return true;
-  return TABS.some(t => t.slug !== '/' && (clean === t.slug || clean.startsWith(t.slug + '/')));
 }
 
 // ─── Tab transition wrapper ────────────────────────────────────────────────────

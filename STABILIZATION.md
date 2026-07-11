@@ -129,6 +129,7 @@ A task is complete only when all relevant checks below are proven.
   - [x] Required typecheck, unit-test, build, budget and docs workflow.
   - [x] Deterministic guest/subscriber browser QA at desktop and mobile widths, including dimming, overflow, menu and lightbox scroll-lock regressions.
 - [ ] Phase 2: one route registry and shared frontend components.
+  - [x] One typed route registry owns navigation groups, access entitlements, path resolution and SEO metadata.
 - [ ] Phase 3: layered CSS and removal of legacy cascade.
 - [ ] Phase 4: modular API, runtime validation and durable data snapshots.
 - [ ] Phase 5: isolated scraper publishing.

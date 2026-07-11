@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Consolidated route navigation, grouping, subscription entitlements and SEO metadata into one typed registry with invariant tests for every public path.
 - Added deterministic authenticated browser QA for Arena subscriber pages at desktop and mobile widths, including paywall isolation, viewport dimming, horizontal overflow, grouped mobile navigation and lightbox background scroll locking.
 - Added required application validation on pushes and pull requests: locked install, critical production audit, typecheck, autonomous unit tests, production build, honest no-growth bundle budgets and documentation lint.
 - Added the stabilization source of truth with the route/access inventory, measurable SLOs, mandatory Definition of Done and stop-the-line release rules.
