@@ -213,6 +213,7 @@ BG-specific styles live in `src/battlegrounds-parchment.css` and must stay scope
 ### Library, Creatures And Spells
 
 - Section switcher, pool state and filters share parchment controls with violet active states.
+- The library directory and filters form one tavern catalogue: `main-page-rail-border.png` supplies the timber frame, `arena-rail-red.jpg` supplies the restrained red cloth, and parchment remains the reading surface. Avoid stacked white dashboard cards and repeated loose bottom rails.
 - Library mechanic labels are normalized before rendering: `BACON_REFRESH_TOOLTIP` → `В следующих обновлениях`, `BACON_BLOOD_GEM_TOOLTIP` → `Кровавые самоцветы`, and `IMMUNE` → `Неуязвимость`; `BACON_PASS_TOOLTIP` and `SECRET` are hidden from filters and card metadata.
 - Card names sit on small parchment captions; card images remain visually unboxed.
 - Golden card reveal is protected: base card moves left and golden layer appears to the right on pointer hover/focus.
@@ -316,6 +317,7 @@ Rules:
 
 ## Changelog
 
+- **2026-07-11** — Rebuilt the BG library directory and filters as a timber-framed tavern catalogue with red cloth, parchment controls and asset-backed search framing.
 - **2026-07-11** — Localized the remaining BG mechanic labels and removed the pass/secret placeholder mechanics from the library UI.
 - **2026-07-11** — Moved Latest articles above the Battlegrounds and Arena directories on the home page.
 - **2026-07-11** — Applied the canonical tavern footer to every public route, including all Battlegrounds pages.

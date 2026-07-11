@@ -984,7 +984,8 @@ function FilterChip({ active, children, onClick, title }: { key?: React.Key; act
       type="button"
       title={title}
       onClick={onClick}
-      className={`flex min-h-10 items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
+      data-active={active ? 'true' : 'false'}
+      className={`bg-library-filter-chip flex min-h-10 items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
         active
           ? 'border-[#e4c675] bg-[#e4c675] text-[#101827] shadow-sm'
           : 'border-[#cbd9ed] bg-[#ffffff] text-[#34445c] hover:border-[#d3af55] hover:text-[#6d4f1c]'
@@ -1016,19 +1017,19 @@ function LibrarySectionSwitcher({
   };
 
   return (
-    <section className="rounded-lg border border-[#cbd9ed] bg-[#f3f7fe] p-4 shadow-sm sm:p-5">
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <section className="bg-library-directory rounded-lg border border-[#cbd9ed] bg-[#f3f7fe] p-4 shadow-sm sm:p-5">
+      <div className="bg-library-directory-head mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-hs text-xs uppercase tracking-[0.18em] text-[#8a651f]">Разделы библиотеки</p>
           <h2 className="mt-1 font-hs text-2xl text-[#26374f]">{activeSection.shortTitle} · {activePoolLabel}</h2>
         </div>
-        <div className="rounded-md border border-[#d6e1f1] bg-white px-3 py-2 text-sm font-semibold text-[#5e708a]">
+        <div className="bg-library-result-count rounded-md border border-[#d6e1f1] bg-white px-3 py-2 text-sm font-semibold text-[#5e708a]">
           {filteredCards.toLocaleString('ru-RU')} найдено · {totalCards.toLocaleString('ru-RU')} загружено
         </div>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-[minmax(260px,0.75fr)_1fr]">
-        <div className="rounded-md border border-[#d6e1f1] bg-white p-3">
+      <div className="bg-library-directory-grid grid gap-3 lg:grid-cols-[minmax(260px,0.75fr)_1fr]">
+        <div className="bg-library-nav-group rounded-md border border-[#d6e1f1] bg-white p-3">
           <p className="mb-2 text-xs font-black uppercase tracking-wide text-[#60718a]">Состояние пула</p>
           <div className="flex flex-wrap gap-2">
             {(['current', 'archive'] as PoolMode[]).map(nextPool => {
@@ -1044,6 +1045,7 @@ function LibrarySectionSwitcher({
                     else navigateTo(event, href);
                   }}
                   aria-disabled={disabled ? 'true' : undefined}
+                  data-active={active ? 'true' : 'false'}
                   className={`rounded-md border px-4 py-2 font-hs text-sm ${
                     disabled
                       ? 'cursor-not-allowed border-[#d6e1f1] bg-[#eef4fd] text-[#8b9ab0]'
@@ -1058,9 +1060,9 @@ function LibrarySectionSwitcher({
           </div>
         </div>
 
-        <div className="rounded-md border border-[#d6e1f1] bg-white p-3">
+        <div className="bg-library-nav-group rounded-md border border-[#d6e1f1] bg-white p-3">
           <p className="mb-2 text-xs font-black uppercase tracking-wide text-[#60718a]">Тип данных</p>
-          <div className="flex max-h-28 flex-wrap gap-2 overflow-auto pr-1">
+          <div className="flex max-h-none flex-wrap gap-2 overflow-auto pr-1 sm:max-h-28">
             {LIBRARY_SECTIONS.map(section => {
               const nextKind = section.kind;
               const active = nextKind === kind;
@@ -1070,6 +1072,7 @@ function LibrarySectionSwitcher({
                   key={nextKind}
                   href={href}
                   onClick={(event) => navigateTo(event, href)}
+                  data-active={active ? 'true' : 'false'}
                   className={`rounded-md border px-4 py-2 font-hs text-sm ${
                     active ? 'border-[#e4c675] bg-[#e4c675] text-[#101827]' : 'border-[#cbd9ed] bg-[#ffffff] text-[#33445d]'
                   }`}
@@ -1306,22 +1309,22 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
         filteredCards={filtered.length}
       />
 
-      <section className="rounded-lg border border-[#cbd9ed] bg-[#f3f7fe] p-4 shadow-sm sm:p-5">
+      <section className="bg-library-filter-board rounded-lg border border-[#cbd9ed] bg-[#f3f7fe] p-4 shadow-sm sm:p-5">
         <div className="grid gap-3">
-          <label className="relative block">
+          <label className="bg-library-search relative block">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7b8da6]" size={20} />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               type="search"
-              placeholder="Поиск: Боевой клич, Мурлок, квест, аномалия, Banana"
+              placeholder="Найти карту или механику…"
               className="h-12 w-full rounded-md border border-[#c5d4e9] bg-[#ffffff] pl-12 pr-4 text-base font-semibold text-[#26374f] outline-none transition-colors placeholder:text-[#8b9ab0] focus:border-[#d3af55]"
             />
           </label>
         </div>
 
         <div className="mt-4 space-y-4">
-          <details className="rounded-md border border-[#cbd9ed] bg-[#ffffff] p-3" open>
+          <details className="bg-library-filter-group rounded-md border border-[#cbd9ed] bg-[#ffffff] p-3" open>
             <summary className="flex cursor-pointer list-none items-center justify-between font-hs text-sm text-[#26374f]">
               <span>Формат</span><ChevronDown size={16} />
             </summary>
@@ -1329,7 +1332,8 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
               <button
                 type="button"
                 onClick={() => setIncludeDuos(value => !value)}
-                className={`inline-flex min-h-10 items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
+                data-active={includeDuos ? 'true' : 'false'}
+                className={`bg-library-duos-toggle inline-flex min-h-10 items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
                   includeDuos ? 'border-[#e4c675] bg-[#e4c675] text-[#101827]' : 'border-[#cbd9ed] bg-white text-[#34445c] hover:border-[#d3af55]'
                 }`}
               >
@@ -1338,11 +1342,11 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
                 </span>
                 Показывать карты Duo
               </button>
-              <span className="text-sm text-[#657893]">Выключено: список ближе к одиночному формату. Включено: добавляются карты дуо-режима.</span>
+              <span className="text-sm text-[#657893]">Добавляет карты Duo к списку.</span>
             </div>
           </details>
 
-          <details className="rounded-md border border-[#cbd9ed] bg-[#ffffff] p-3" open>
+          <details className="bg-library-filter-group rounded-md border border-[#cbd9ed] bg-[#ffffff] p-3" open>
             <summary className="flex cursor-pointer list-none items-center justify-between font-hs text-sm text-[#26374f]">
               <span className="flex items-center gap-2"><Filter size={16} />Уровень таверны</span><ChevronDown size={16} />
             </summary>
@@ -1357,7 +1361,7 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
           </details>
 
           {kind === 'minion' && (
-            <details className="rounded-md border border-[#cbd9ed] bg-[#ffffff] p-3" open>
+            <details className="bg-library-filter-group rounded-md border border-[#cbd9ed] bg-[#ffffff] p-3" open>
               <summary className="flex cursor-pointer list-none items-center justify-between font-hs text-sm text-[#26374f]">
                 <span>Тип существа</span><ChevronDown size={16} />
               </summary>
@@ -1373,7 +1377,7 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
           )}
 
           {cardGroups.length > 0 && (
-            <details className="rounded-md border border-[#cbd9ed] bg-[#ffffff] p-3" open>
+            <details className="bg-library-filter-group rounded-md border border-[#cbd9ed] bg-[#ffffff] p-3" open>
               <summary className="flex cursor-pointer list-none items-center justify-between font-hs text-sm text-[#26374f]">
                 <span>Группа</span><ChevronDown size={16} />
               </summary>
@@ -1386,7 +1390,7 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
             </details>
           )}
 
-          <details className="rounded-md border border-[#cbd9ed] bg-[#ffffff] p-3">
+          <details className="bg-library-filter-group rounded-md border border-[#cbd9ed] bg-[#ffffff] p-3">
             <summary className="flex cursor-pointer list-none items-center justify-between font-hs text-sm text-[#26374f]">
               <span>Механики</span><ChevronDown size={16} />
             </summary>

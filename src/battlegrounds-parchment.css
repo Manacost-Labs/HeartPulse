@@ -168,6 +168,171 @@
   background-color: rgba(255, 238, 199, 0.82) !important;
 }
 
+/* Library catalogue: one tavern ledger instead of stacked white dashboard cards. */
+.arena-app-battlegrounds .bg-library-page > :is(.bg-library-directory, .bg-library-filter-board) {
+  overflow: hidden;
+  border: clamp(8px, 1vw, 12px) solid transparent !important;
+  border-radius: 0 !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 13 !important;
+  border-image-width: clamp(8px, 1vw, 12px) !important;
+  border-image-repeat: stretch !important;
+  background:
+    linear-gradient(rgba(96, 10, 18, 0.86), rgba(68, 8, 15, 0.92)),
+    url('/wallpaper/arena-rail-red.jpg') center / cover !important;
+  box-shadow: 0 15px 28px rgba(59, 28, 12, 0.2) !important;
+}
+
+.arena-app-battlegrounds .bg-library-page > :is(.bg-library-directory, .bg-library-filter-board)::after {
+  display: none;
+}
+
+.arena-app-battlegrounds .bg-library-directory {
+  padding: 0 !important;
+}
+
+.arena-app-battlegrounds .bg-library-directory-head {
+  margin: 0 !important;
+  padding: clamp(0.95rem, 2vw, 1.35rem) clamp(1rem, 2.4vw, 1.65rem);
+  border-bottom: 1px solid rgba(224, 176, 76, 0.54);
+  box-shadow: inset 0 -1px rgba(36, 10, 8, 0.58);
+}
+
+.arena-app-battlegrounds .bg-library-page .bg-library-directory .bg-library-directory-head :is(h2, p) {
+  color: #fff0c8 !important;
+  text-shadow: 0 2px 2px rgba(42, 11, 10, 0.55) !important;
+}
+
+.arena-app-battlegrounds .bg-library-result-count {
+  border-color: rgba(223, 177, 78, 0.58) !important;
+  color: #fff0c8 !important;
+  background: rgba(48, 12, 13, 0.52) !important;
+  box-shadow: inset 0 1px rgba(255, 230, 169, 0.11);
+}
+
+.arena-app-battlegrounds .bg-library-directory-grid {
+  gap: 0 !important;
+  padding: clamp(0.8rem, 1.8vw, 1.2rem);
+  background:
+    radial-gradient(circle at 50% -30%, rgba(255, 246, 209, 0.72), transparent 48%),
+    linear-gradient(145deg, rgba(244, 221, 169, 0.97), rgba(218, 183, 121, 0.94)),
+    url('/wallpaper/arena-parchment.jpg') center / 865px auto repeat;
+}
+
+.arena-app-battlegrounds .bg-library-nav-group {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.arena-app-battlegrounds .bg-library-nav-group + .bg-library-nav-group {
+  border-top: 1px solid rgba(86, 45, 23, 0.24) !important;
+}
+
+.arena-app-battlegrounds .bg-library-nav-group > p {
+  color: #6b3048 !important;
+  letter-spacing: 0.08em;
+}
+
+.arena-app-battlegrounds .bg-library-nav-group a,
+.arena-app-battlegrounds .bg-library-filter-chip,
+.arena-app-battlegrounds .bg-library-duos-toggle {
+  border-color: rgba(99, 56, 29, 0.37) !important;
+  color: #3a291d !important;
+  background:
+    linear-gradient(180deg, rgba(255, 247, 218, 0.98), rgba(231, 204, 149, 0.98)),
+    url('/wallpaper/arena-parchment.jpg') center / 500px auto !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.62), 0 2px 4px rgba(75, 39, 17, 0.12) !important;
+}
+
+.arena-app-battlegrounds .bg-library-nav-group a[data-active='true'],
+.arena-app-battlegrounds .bg-library-page .bg-library-filter-board .bg-library-filter-chip[data-active='true'],
+.arena-app-battlegrounds .bg-library-page .bg-library-filter-board .bg-library-duos-toggle[data-active='true'] {
+  border-color: #d9ab49 !important;
+  color: #fff0c8 !important;
+  background:
+    linear-gradient(rgba(118, 24, 34, 0.85), rgba(77, 13, 23, 0.91)),
+    url('/wallpaper/arena-rail-red.jpg') center / cover !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 226, 150, 0.18), 0 3px 7px rgba(66, 20, 17, 0.2) !important;
+}
+
+.arena-app-battlegrounds .bg-library-nav-group a[data-active='false']:not([aria-disabled='true']):hover,
+.arena-app-battlegrounds .bg-library-page .bg-library-filter-board .bg-library-filter-chip[data-active='false']:hover,
+.arena-app-battlegrounds .bg-library-page .bg-library-filter-board .bg-library-duos-toggle[data-active='false']:hover {
+  border-color: #a86e2e !important;
+  color: #6b3048 !important;
+  background:
+    linear-gradient(180deg, #fff1bf, #e8c884),
+    url('/wallpaper/arena-parchment.jpg') center / 500px auto !important;
+}
+
+.arena-app-battlegrounds .bg-library-filter-board {
+  padding: clamp(0.8rem, 1.8vw, 1.15rem) !important;
+}
+
+.arena-app-battlegrounds .bg-library-search {
+  border: 7px solid transparent;
+  border-image-source: url('/wallpaper/deck-border.png');
+  border-image-slice: 20;
+  border-image-width: 7px;
+  border-image-repeat: stretch;
+  background: #f4dfac;
+}
+
+.arena-app-battlegrounds .bg-library-search input[type='search'] {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background:
+    linear-gradient(180deg, rgba(255, 249, 226, 0.98), rgba(239, 216, 169, 0.98)),
+    url('/wallpaper/arena-parchment.jpg') center / 620px auto !important;
+  box-shadow: inset 0 2px 5px rgba(88, 47, 23, 0.14) !important;
+}
+
+.arena-app-battlegrounds .bg-library-filter-board > .mt-4 {
+  margin-top: 0.8rem !important;
+}
+
+.arena-app-battlegrounds .bg-library-filter-group {
+  overflow: hidden;
+  padding: 0 !important;
+  border-color: rgba(70, 31, 17, 0.72) !important;
+  border-radius: 0.2rem !important;
+  background:
+    linear-gradient(145deg, rgba(250, 232, 189, 0.98), rgba(224, 193, 134, 0.98)),
+    url('/wallpaper/arena-parchment.jpg') center / 720px auto !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 247, 216, 0.36), 0 4px 9px rgba(41, 14, 10, 0.2) !important;
+}
+
+.arena-app-battlegrounds .bg-library-filter-group > summary {
+  min-height: 2.7rem;
+  padding: 0.72rem 0.9rem !important;
+  border-bottom: 1px solid rgba(87, 45, 22, 0.25);
+  color: #402719 !important;
+  background: linear-gradient(90deg, rgba(255, 239, 195, 0.52), rgba(188, 132, 70, 0.18));
+}
+
+.arena-app-battlegrounds .bg-library-filter-group[open] > summary {
+  border-bottom-color: rgba(87, 45, 22, 0.34) !important;
+}
+
+.arena-app-battlegrounds .bg-library-filter-group > :not(summary) {
+  margin: 0 !important;
+  padding: 0.78rem 0.85rem 0.9rem;
+}
+
+.arena-app-battlegrounds .bg-library-filter-group .max-h-56 {
+  scrollbar-color: #7b3e31 #e7c98e;
+}
+
+@media (min-width: 1024px) {
+  .arena-app-battlegrounds .bg-library-nav-group + .bg-library-nav-group {
+    border-top: 0 !important;
+    border-left: 1px solid rgba(86, 45, 23, 0.24) !important;
+    padding-left: 1.15rem !important;
+  }
+}
+
 .arena-app-battlegrounds .bg-library-page [data-library-card-tile] > div:last-of-type {
   border-color: rgba(97, 58, 31, 0.3) !important;
   background: rgba(255, 245, 216, 0.82) !important;
