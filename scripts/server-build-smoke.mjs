@@ -1,6 +1,6 @@
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 
 const root = process.cwd();
@@ -15,12 +15,13 @@ mkdirSync(ecosystemDir, { recursive: true });
 writeFileSync(join(dataDir, 'winrates.json'), JSON.stringify({ updatedAt: now, source: 'smoke', classes: [{}] }));
 writeFileSync(join(dataDir, 'tierlist.json'), JSON.stringify({ updatedAt: now, source: 'smoke', sections: [{}] }));
 writeFileSync(join(dataDir, 'legendaries.json'), JSON.stringify({ updatedAt: now, source: 'smoke', groups: [{}] }));
+writeFileSync(join(temporaryRoot, 'release.json'), JSON.stringify({ sha: 'deadbee' }));
 
 const child = spawn(process.execPath, ['build/server/index.js'], {
   cwd: root,
   env: {
     ...process.env,
-    APP_ROOT_DIR: resolve(root),
+    APP_ROOT_DIR: temporaryRoot,
     DISABLE_INITIAL_SCRAPE: '1',
     ECOSYSTEM_DB_FILE: join(ecosystemDir, 'users.sqlite'),
     ECOSYSTEM_DIR: ecosystemDir,
@@ -55,7 +56,9 @@ try {
     }
   }
   if (!live) throw new Error(`compiled server did not become live\n${output}`);
-  if (live.response.status !== 200 || live.body.status !== 'alive') throw new Error('direct liveness contract failed');
+  if (live.response.status !== 200 || live.body.status !== 'alive' || live.body.release !== 'deadbee') {
+    throw new Error('direct liveness or release-manifest contract failed');
+  }
 
   const proxied = await requestJson('/api/health/live');
   if (proxied.response.status !== 200 || proxied.body.status !== 'alive') throw new Error('proxied liveness contract failed');

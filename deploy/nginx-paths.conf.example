@@ -1,0 +1,13 @@
+# Replace the existing paths inside the arena.hs-manacost.ru server block.
+# Keep the surrounding TLS, proxy and cache policy unchanged.
+
+set $root_path /var/www/koloda/data/www/hs-arena.ru/current/dist;
+root $root_path;
+
+location ^~ /uploads/admin/ {
+    alias /var/www/koloda/data/www/hs-arena.ru/shared/server-data/uploads/admin/;
+    expires off;
+    include /etc/nginx/snippets/arena-security-headers.conf;
+    add_header Cache-Control "public, max-age=2592000, immutable" always;
+    access_log off;
+}

@@ -176,6 +176,7 @@ A task is complete only when all relevant checks below are proven.
   - [x] Dedicated liveness, readiness and strict data-health endpoints expose uncached machine-readable deployment gates without changing the legacy public status response.
   - [x] CI emits a readable compiled Node server artifact and starts it against isolated temporary snapshots/SQLite to verify direct health, proxied health and legacy status contracts without `tsx`.
   - [ ] Switch systemd and nginx to a versioned release symlink only after persistent mutable data and automatic rollback are in place.
+  - [x] Release tooling now emits checksum manifests, separates lockfile-addressed dependencies and mutable data, makes releases read-only, switches `current`/`previous` atomically and automatically rolls back failed readiness; success, repeat-deploy and forced-failure paths are tested outside production.
 - [ ] Phase 7: structured telemetry, alerts and backup/restore.
 - [ ] Phase 8: performance, accessibility and final production audit.
 

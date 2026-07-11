@@ -26,6 +26,16 @@ const DEFAULT_APP_ROOT_DIR = existsSync(join(__dirname, '..', '..', 'package.jso
   : join(__dirname, '..');
 const APP_ROOT_DIR = resolve(process.env.APP_ROOT_DIR || DEFAULT_APP_ROOT_DIR);
 const DATA_DIR = resolve(process.env.SERVER_DATA_DIR || join(APP_ROOT_DIR, 'server', 'data'));
+const RELEASE_SHA = (() => {
+  const configured = process.env.RELEASE_SHA || process.env.GITHUB_SHA;
+  if (configured) return configured;
+  try {
+    const manifest = JSON.parse(readFileSync(join(APP_ROOT_DIR, 'release.json'), 'utf8'));
+    return /^[a-f0-9]{7,40}$/i.test(manifest?.sha) ? String(manifest.sha).toLowerCase() : 'development';
+  } catch {
+    return 'development';
+  }
+})();
 const CARD_IMAGE_CACHE_DIR = join(DATA_DIR, 'card-images');
 const ADMIN_UPLOAD_SOURCE_DIR = process.env.ADMIN_UPLOAD_SOURCE_DIR || join(DATA_DIR, 'uploads', 'admin');
 const ADMIN_UPLOAD_DIR = process.env.ADMIN_UPLOAD_DIR || ADMIN_UPLOAD_SOURCE_DIR;
@@ -6929,7 +6939,7 @@ function criticalDataHealth() {
 
 const healthRouter = createHealthRouter({
   getDataHealth: criticalDataHealth,
-  getRelease: () => process.env.RELEASE_SHA || process.env.GITHUB_SHA || 'development',
+  getRelease: () => RELEASE_SHA,
 });
 app.use('/health', healthRouter);
 app.use('/api/health', healthRouter);

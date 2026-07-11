@@ -1,0 +1,24 @@
+[Unit]
+Description=HS-Arena compiled Node API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=koloda
+Group=koloda
+WorkingDirectory=/var/www/koloda/data/www/hs-arena.ru/current
+EnvironmentFile=/etc/hs-arena/hs-arena.env
+EnvironmentFile=-/etc/db-kolodahs-card-scan.env
+Environment=APP_ROOT_DIR=/var/www/koloda/data/www/hs-arena.ru/current
+Environment=SERVER_DATA_DIR=/var/www/koloda/data/www/hs-arena.ru/shared/server-data
+ExecStart=/usr/bin/node build/server/index.js
+Restart=always
+RestartSec=5
+PrivateTmp=true
+NoNewPrivileges=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
