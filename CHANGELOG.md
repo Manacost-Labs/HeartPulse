@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Removed six unreachable full-page implementations from `App.tsx`; Arena data, profile, admin and article screens now have only their lazy route owners, ratcheting duplicate components from 18 to 12.
 - Consolidated route navigation, grouping, subscription entitlements and SEO metadata into one typed registry with invariant tests for every public path.
 - Replaced duplicate paywall purchase controls in the main and deferred bundles with one shared, accessible subscription component.
 - Unified the subscriber gate used by main and deferred routes, preserving inert private previews while removing incorrect modal semantics and another 4 KB from the deferred bundle.
