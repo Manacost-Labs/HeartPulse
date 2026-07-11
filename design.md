@@ -131,6 +131,7 @@ The public shell groups secondary destinations instead of filling the rail with 
 ### Responsive Rules
 
 - App shell switches at `1024px`; compact layout must be verified at `390px`.
+- On mobile Arena data routes, only the route root paints the parchment texture; workspace, main and open content stay transparent to avoid stacked iOS compositing and dark rectangular bands.
 - No horizontal page scrolling at `390px`.
 - Touch targets are at least `42px`, preferably `46px`.
 - Long filter rows wrap or scroll locally; they never widen the document.
@@ -325,6 +326,7 @@ Rules:
 
 ## Changelog
 
+- **2026-07-11** — Removed stacked mobile Arena parchment layers and the full-list source-loading tint that produced the remaining iOS dimmed-content state.
 - **2026-07-11** — Hardened the Arena legendary data path against empty upstream and persisted caches, preserving the latest non-empty scraper snapshot and rotating the client cache after recovery.
 - **2026-07-11** — Grouped both Battlegrounds builders under “Конструкторы” and Gallery, Guides Archive and Contests under the final “Разное” menu, with desktop hover/focus and mobile tap behavior.
 - **2026-07-11** — Applied the canonical timber-and-red-cloth subscription gate to all Battlegrounds routes, replacing the last white-and-blue paywall variant.

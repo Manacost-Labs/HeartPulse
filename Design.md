@@ -85,6 +85,7 @@ Do not hotlink wiki assets at runtime.
 
 ## Changelog
 
+- **2026-07-11** — Corrected the remaining iOS Arena dimming by reducing mobile data routes to one parchment paint layer and a tint-free source loader.
 - **2026-07-11** — Restored Arena legendary groups with non-empty cache validation, scraper fallback and a fresh browser cache generation.
 - **2026-07-11** — Consolidated secondary navigation into accessible “Конструкторы” and final “Разное” disclosure groups across desktop and mobile.
 - **2026-07-11** — Unified Battlegrounds subscription gates with the timber-framed red tavern paywall used across the current site.

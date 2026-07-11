@@ -1299,12 +1299,13 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
       )}
 
       <div className="arena-classes-board space-y-2.5 sm:space-y-3 relative">
-        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl pointer-events-none"
+        <div className="arena-source-loading-overlay absolute inset-0 z-10 flex items-center justify-center rounded-2xl pointer-events-none"
           style={{
-            background: 'rgba(237,224,192,0.6)',
-            backdropFilter: switching && !loading ? 'blur(3px)' : 'blur(0px)',
+            background: 'transparent',
+            backdropFilter: 'none',
             opacity: switching && !loading ? 1 : 0,
-            transition: 'opacity 0.25s ease, backdrop-filter 0.25s ease',
+            visibility: switching && !loading ? 'visible' : 'hidden',
+            transition: 'opacity 0.25s ease',
           }}>
           <div className="flex items-center gap-2 px-4 py-2 rounded-xl font-hs text-sm"
             style={{ background: 'linear-gradient(135deg,#5a3000,#3d1e00)', color: '#fcd34d',
