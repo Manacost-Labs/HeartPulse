@@ -202,17 +202,17 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
 
       <nav className="home-page-index" aria-label="Быстрые переходы по главной странице">
         <span>На этой странице</span>
+        <a href="#home-articles-heading">Статьи</a>
         <a href="#home-bg-heading">Поля Сражений</a>
         <a href="#home-arena-directory-heading">Арена</a>
-        <a href="#home-articles-heading">Статьи</a>
         <a href="#faq-heading">Частые вопросы</a>
       </nav>
+
+      <HomeLatestArticles articles={articles} loading={loadingArticles} onNavigate={onNavigate} />
 
       <HomeBattlegrounds onNavigate={onNavigate} />
 
       <HomeArenaDirectory onNavigate={onNavigate} />
-
-      <HomeLatestArticles articles={articles} loading={loadingArticles} onNavigate={onNavigate} />
 
       <aside className="home-community home-reveal" aria-label="Сообщество и поддержка">
         <span className="home-community__lead">

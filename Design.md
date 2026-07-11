@@ -43,7 +43,7 @@ Do not hotlink wiki assets at runtime.
 - Lead with live freshness, Arena leaders, source count and direct actions instead of quotes or oversized marketing copy.
 - Use `/wallpaper/home-paladin-hero.webp` as the masked first-screen character mural with a clearly left-biased desktop composition so the hero remains visible beside the class board; keep copy on the red field and turn the art into a short panorama on mobile.
 - Do not add a duplicate freshness/source/leader footer strip inside the home hero; the main composition closes directly at the wooden frame.
-- Keep the order Battlegrounds directory → Arena directory → editorial/community content; do not restore the removed “Мета в цифрах” aggregate.
+- Keep the order Latest articles → Battlegrounds directory → Arena directory → community content; do not restore the removed “Мета в цифрах” aggregate.
 - Frame major home regions with canonical wood assets; keep inner rows quiet, parchment-based and free of generic colored side rails.
 
 ## Battlegrounds Rules
@@ -80,6 +80,7 @@ Do not hotlink wiki assets at runtime.
 
 ## Changelog
 
+- **2026-07-11** — Moved Latest articles above the Battlegrounds and Arena directories on the home page.
 - **2026-07-11** — Applied the canonical tavern footer to every public route, including all Battlegrounds pages.
 - **2026-07-11** — Simplified the BG heroes controls into one rail-free metric and search panel.
 - **2026-07-11** — Shifted the home Paladin farther left so the character remains visible beside the Arena class board.

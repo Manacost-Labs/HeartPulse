@@ -160,7 +160,7 @@ Never add an unscoped duplicate `.arena-mobile-*` rule. The App drawer must rema
 - Keep the first viewport compact enough to expose the beginning of the product directories on a typical laptop. The live class summary reads as a small tavern scoreboard, not a decorative orbit.
 - The first screen uses `/wallpaper/home-paladin-hero.webp` as a masked character mural behind the live Arena scoreboard. Keep the face and hammer clearly visible beside the class board with a left-biased desktop composition, preserve the red text field, and never place essential copy directly over the artwork. On narrow screens the mural becomes a short panorama between actions and live rankings.
 - Do not repeat freshness, source count and leader data in a separate footer strip inside the hero; the label and live ranking already communicate that context, so the wood frame should close directly below the main composition.
-- Mode discovery follows a fixed order: **Battlegrounds directory**, then **Arena directory**. Each directory links directly to the work users can perform in that mode.
+- After the quick index, show **Latest articles** first, then the **Battlegrounds directory**, then the **Arena directory**. Each directory links directly to the work users can perform in that mode.
 - Do not restore the removed home “Мета в цифрах” aggregate: class leaders, best cards and legendary groups already have dedicated pages and made the home unnecessarily long.
 - Use the canonical wood frame for the hero spotlight and major directory boundaries. Internal rows stay quiet and readable; do not add generic colored side rails or a grid of white dashboard cards.
 - On mobile, directories stack before articles and community content, and the page never gains document-level horizontal scrolling.
@@ -315,6 +315,7 @@ Rules:
 
 ## Changelog
 
+- **2026-07-11** — Moved Latest articles above the Battlegrounds and Arena directories on the home page.
 - **2026-07-11** — Applied the canonical tavern footer to every public route, including all Battlegrounds pages.
 - **2026-07-11** — Simplified the BG heroes controls into one rail-free metric and search panel.
 - **2026-07-10** — Wide BG workbench and contrast pass: reclaimed ornamental-frame space, expanded both builders, made annotation tools container-responsive, replaced cold tier-list whites/blues with walnut, aubergine and honey parchment, and corrected the profile plaque/art/avatar composition.

@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Moved the home-page Latest articles block above the Battlegrounds and Arena directories and synchronized the quick-navigation order.
 - Applied the canonical red tavern-cloth footer with its wooden top rule, cream navigation and muted-gold legal copy to every public route, including all Battlegrounds pages that still showed the legacy blue footer.
 - Simplified the Battlegrounds heroes introduction by combining metric guidance and search in one quiet parchment panel and removing the two redundant wooden bottom rails.
 - Shifted the home-page Paladin farther left so the character remains visible beside the Arena class board without moving the data or controls.
