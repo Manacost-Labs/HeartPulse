@@ -293,6 +293,7 @@ Rules:
 
 ## Primary Files
 
+- `STABILIZATION.md` — measurable reliability baseline, route/access inventory, SLOs and Definition of Done.
 - `assets.md` — portable design guide and the complete production-URL asset catalogue for integrations.
 - `src/App.tsx` — shell state and route-level root classes.
 - `src/index.css` — base shell and navigation.
