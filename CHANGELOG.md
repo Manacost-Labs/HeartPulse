@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Simplified the Battlegrounds heroes introduction by combining metric guidance and search in one quiet parchment panel and removing the two redundant wooden bottom rails.
 - Shifted the home-page Paladin farther left so the character remains visible beside the Arena class board without moving the data or controls.
 - Unified Arena card, deck-card, Battlegrounds strategy, Battlegrounds hero-media and gallery lightboxes with responsive wooden frames, red tavern-cloth surfaces and cream/gold controls while preserving close, keyboard, swipe and navigation behavior.
 - Removed the home-page “Мета в цифрах” aggregate with class leaders, best cards, legendary groups and the matching quick-navigation link.

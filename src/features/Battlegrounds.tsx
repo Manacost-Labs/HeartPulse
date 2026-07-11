@@ -2816,53 +2816,33 @@ function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) =
         {sourceLabel && <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#8b6c42]">{sourceLabel}</p>}
       </div>
 
-      <section className="rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-3 shadow-[0_12px_28px_rgba(61,42,30,0.08)] sm:p-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Обозначения</p>
-            <p className="mt-1 text-sm font-semibold text-[#6b4c2a]">Цифры под героем показывают эффективность и частоту выбора.</p>
+      <section className="bg-heroes-tools">
+        <div className="bg-heroes-tools__legend">
+          <div className="bg-heroes-tools__explanation">
+            <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Как читать рейтинг</p>
+            <p className="mt-1 text-sm font-semibold text-[#6b4c2a]">Под портретом указаны среднее место и частота выбора героя.</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <div className="flex items-center gap-2 rounded-xl border border-[#d7b66a]/70 bg-[#fff9ed] px-3 py-2">
-              <span className="rounded-md border border-[#d7b66a]/70 bg-[#fff3c4] px-2.5 py-1 font-hs text-sm leading-none text-[#3d2a1e] shadow-sm">4,06</span>
-              <span className="text-xs font-black uppercase tracking-wide text-[#6b4c2a]">среднее место</span>
-            </div>
-            <div className="flex items-center gap-2 rounded-xl border border-[#bfdbfe] bg-[#eff6ff] px-3 py-2">
-              <span className="rounded-md border border-[#bfdbfe] bg-[#dbeafe] px-2.5 py-1 text-xs font-bold leading-none text-[#1e3a8a] shadow-sm">23.05%</span>
-              <span className="text-xs font-black uppercase tracking-wide text-[#1e3a8a]">выбор героя</span>
-            </div>
+          <div className="bg-heroes-tools__metrics" aria-label="Обозначения показателей">
+            <span className="bg-heroes-metric bg-heroes-metric--placement"><strong>4,06</strong>Среднее место</span>
+            <span className="bg-heroes-metric bg-heroes-metric--pickrate"><strong>23.05%</strong>Выбор героя</span>
           </div>
         </div>
-      </section>
 
-      <section className="rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-3 shadow-[0_12px_28px_rgba(61,42,30,0.08)] sm:p-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <label className="block min-w-0 flex-1">
-            <span className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Поиск по героям</span>
-            <div className="mt-2 flex items-center gap-2 rounded-2xl border border-[#d7b66a]/70 bg-[#fff9ed] px-3 py-2 shadow-sm focus-within:ring-2 focus-within:ring-[#b58a2f]">
-              <Search className="h-5 w-5 shrink-0 text-[#8b6c42]" />
-              <input
-                type="search"
-                value={searchTerm}
-                onChange={event => setSearchTerm(event.target.value)}
-                placeholder="Имя героя, тир, сила героя..."
-                className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-[#3d2a1e] outline-none placeholder:text-[#8b6c42]/70"
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => setSearchTerm('')}
-                  className="rounded-full border border-[#d7b66a]/70 bg-[#fff3c4] px-2 py-1 text-xs font-black text-[#6b4c2a] transition-colors hover:bg-[#ffe7a3]"
-                >
-                  Сбросить
-                </button>
-              )}
-            </div>
-          </label>
-          <div className="rounded-2xl border border-[#bfdbfe] bg-[#dbeafe]/78 px-4 py-3 text-sm font-black text-[#1e3a8a]">
+        <label className="bg-heroes-search">
+          <span className="sr-only">Поиск по героям</span>
+          <Search className="h-5 w-5 shrink-0" aria-hidden="true" />
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={event => setSearchTerm(event.target.value)}
+            placeholder="Найти героя, тир или силу героя"
+            className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
+          />
+          {searchTerm && <button type="button" onClick={() => setSearchTerm('')} className="bg-heroes-search__reset">Сбросить</button>}
+          <span className="bg-heroes-search__count">
             {normalizedSearch ? `${visibleHeroes} / ${totalHeroes}` : `${totalHeroes}`} героев
-          </div>
-        </div>
+          </span>
+        </label>
       </section>
 
       {loading && <div className="py-12 text-center font-hs text-[#6b4c2a]">Загружаем героев...</div>}

@@ -201,6 +201,7 @@ BG-specific styles live in `src/battlegrounds-parchment.css` and must stay scope
 - Hero tiles use a quiet parchment field so portraits stay dominant.
 - Average placement and pick rate have separate, readable treatments.
 - Search and tier counts are compact.
+- The heroes introduction keeps one wooden divider below the title, then combines metric guidance and search in one quiet parchment tool panel without decorative bottom rails.
 - Related-card and hero-power reveals are protected interactions.
 - Hero details use a clear three-level asset hierarchy: the identity dossier uses the full `/wallpaper/main-page-rail-border.png`, primary ledger sections use its thin border slice, and hero-power/companion cards use `/wallpaper/deck-border.png`. Do not frame every chart row or minor statistic.
 - The identity dossier uses dark aubergine/walnut surfaces with cream copy and gold metadata; cold white and blue cards are not valid inside this hierarchy.
@@ -313,6 +314,7 @@ Rules:
 
 ## Changelog
 
+- **2026-07-11** — Simplified the BG heroes controls into one rail-free metric and search panel.
 - **2026-07-10** — Wide BG workbench and contrast pass: reclaimed ornamental-frame space, expanded both builders, made annotation tools container-responsive, replaced cold tier-list whites/blues with walnut, aubergine and honey parchment, and corrected the profile plaque/art/avatar composition.
 - **2026-07-10** — Battlegrounds parchment system: added a scoped BG shell, local bartender title sign, violet/gold controls, parchment library and hero surfaces, wiki skin builder frame, warm builder variables, protected golden-card and hero animations, and expanded route-specific QA rules.
 - **2026-07-10** — Unified site direction: continuous parchment page canvas, red textured menu, thicker wooden separators and Hearthstone profile frame.

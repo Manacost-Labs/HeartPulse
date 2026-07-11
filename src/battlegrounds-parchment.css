@@ -314,6 +314,110 @@
   background: rgba(217, 171, 193, 0.24) !important;
 }
 
+.arena-app-battlegrounds .bg-heroes-page > .bg-heroes-tools {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(0.9rem, 1.6vw, 1.2rem) !important;
+  border: 1px solid rgba(102, 62, 31, 0.3) !important;
+  border-radius: 0.35rem !important;
+  background:
+    linear-gradient(135deg, rgba(255, 247, 224, 0.58), rgba(226, 196, 139, 0.34)),
+    url('/wallpaper/arena-parchment.jpg') center / 865px auto repeat !important;
+  box-shadow: 0 8px 18px rgba(72, 42, 22, 0.07) !important;
+}
+
+.arena-app-battlegrounds .bg-heroes-page > .bg-heroes-tools::after { display: none !important; }
+
+.arena-app-battlegrounds .bg-heroes-tools__legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+}
+
+.arena-app-battlegrounds .bg-heroes-tools__explanation { min-width: 0; }
+
+.arena-app-battlegrounds .bg-heroes-tools__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem 1rem;
+}
+
+.arena-app-battlegrounds .bg-heroes-metric {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: #5b432f;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.arena-app-battlegrounds .bg-heroes-metric strong {
+  min-width: 4.5rem;
+  padding: 0.42rem 0.55rem;
+  border: 1px solid rgba(166, 112, 38, 0.34);
+  border-radius: 0.28rem;
+  color: #3d2a1e;
+  background: rgba(255, 235, 174, 0.62);
+  box-shadow: inset 0 1px rgba(255, 249, 225, 0.7);
+  font-family: var(--font-display, "HSDisplay", serif);
+  font-size: 0.9rem;
+  line-height: 1;
+  text-align: center;
+}
+
+.arena-app-battlegrounds .bg-heroes-metric--pickrate strong {
+  border-color: rgba(125, 64, 91, 0.36);
+  color: #66344d;
+  background: rgba(217, 171, 193, 0.22);
+}
+
+.arena-app-battlegrounds .bg-heroes-search {
+  display: flex;
+  min-width: 0;
+  min-height: 48px;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0.65rem 0.55rem 0.85rem;
+  border: 1px solid rgba(118, 76, 38, 0.34);
+  border-radius: 0.35rem;
+  color: #6f5238 !important;
+  background: rgba(255, 246, 219, 0.62);
+  box-shadow: inset 0 1px 4px rgba(76, 43, 20, 0.06);
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.arena-app-battlegrounds .bg-heroes-search:focus-within {
+  border-color: rgba(143, 83, 109, 0.72);
+  background: rgba(255, 249, 230, 0.82);
+  box-shadow: 0 0 0 3px rgba(143, 83, 109, 0.12);
+}
+
+.arena-app-battlegrounds .bg-heroes-search input { color: #3d2a1e; }
+.arena-app-battlegrounds .bg-heroes-search input::placeholder { color: #91785c; }
+
+.arena-app-battlegrounds .bg-heroes-search__reset,
+.arena-app-battlegrounds .bg-heroes-search__count {
+  flex: 0 0 auto;
+  padding: 0.42rem 0.65rem;
+  border: 1px solid rgba(125, 64, 91, 0.28);
+  border-radius: 0.28rem;
+  color: #66344d;
+  background: rgba(217, 171, 193, 0.18);
+  font-size: 0.75rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.arena-app-battlegrounds .bg-heroes-search__reset:hover {
+  border-color: rgba(125, 64, 91, 0.52);
+  background: rgba(217, 171, 193, 0.3);
+}
+
 .arena-app-battlegrounds .bg-heroes-page .battleground-hero-card {
   border: 1px solid rgba(92, 53, 29, 0.18) !important;
   background: linear-gradient(180deg, rgba(255, 246, 218, 0.3), rgba(213, 180, 125, 0.18));
@@ -804,6 +908,21 @@
     aspect-ratio: auto;
     background-size: 138% 100%;
   }
+
+  .arena-app-battlegrounds .bg-heroes-tools__legend {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .arena-app-battlegrounds .bg-heroes-tools__metrics {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .arena-app-battlegrounds .bg-heroes-search { flex-wrap: wrap; }
+  .arena-app-battlegrounds .bg-heroes-search input { flex-basis: calc(100% - 2.5rem); }
+  .arena-app-battlegrounds .bg-heroes-search__count { margin-left: auto; }
 
   .arena-app-battlegrounds .bg-library-page > section,
   .arena-app-battlegrounds .bg-library-detail-page > section,
