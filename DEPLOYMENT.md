@@ -82,6 +82,53 @@ sudo scripts/deploy-release.sh "$(readlink -f /var/www/koloda/data/www/hs-arena.
 This performs the same atomic switch, restart and readiness gate. The release
 that was active before rollback becomes the new `previous` target.
 
+## Encrypted mutable-data backups
+
+The backup includes the complete shared data/upload directory, a consistent
+SQLite `.backup` of `/var/lib/manacost-ecosystem/users.sqlite`, and the KHA/VIP
+profile ledger. Card caches are included so a restore does not depend on an
+upstream service being available.
+
+Install the root-only configuration and timers after deploying a release that
+contains the backup scripts:
+
+```bash
+sudo install -d -m 700 /etc/hs-arena /var/backups/hs-arena
+sudo openssl rand -out /etc/hs-arena/backup-passphrase -base64 48
+sudo chmod 600 /etc/hs-arena/backup-passphrase
+sudo install -m 600 deploy/backup.env.example /etc/hs-arena/backup.env
+sudo install -m 644 deploy/hs-arena-backup.service /etc/systemd/system/
+sudo install -m 644 deploy/hs-arena-backup.timer /etc/systemd/system/
+sudo install -m 644 deploy/hs-arena-backup-verify.service /etc/systemd/system/
+sudo install -m 644 deploy/hs-arena-backup-verify.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now hs-arena-backup.timer hs-arena-backup-verify.timer
+```
+
+The daily job encrypts with GnuPG AES-256 and a high-cost SHA-512 iterated S2K,
+writes an atomic archive
+plus SHA-256 sidecar, and retains 14 days by default. The weekly drill decrypts
+the latest archive into a temporary directory, verifies every manifest entry,
+runs `PRAGMA integrity_check` on the restored user database and checks the
+three critical Arena snapshots. Run both immediately after installation:
+
+```bash
+sudo systemctl start hs-arena-backup.service
+sudo systemctl start hs-arena-backup-verify.service
+sudo systemctl status hs-arena-backup.service hs-arena-backup-verify.service
+```
+
+For a manual restore, first stop the API, verify and decrypt the chosen backup
+into an empty protected directory, preserve the current data separately, then
+replace `shared/server-data`, `users.sqlite` and `kha-vip-profiles.json` with
+their restored copies. Start the API only after SQLite integrity and
+`/api/health/ready` both pass. Never restore the `-wal` or `-shm` files.
+
+The local encrypted copy protects confidentiality and operator mistakes but
+does not protect against loss of the host filesystem. Replicate encrypted
+`.gpg` and `.sha256` files plus an offline copy of the passphrase to a separate
+failure domain before considering disaster recovery complete.
+
 ## Verified production drill
 
 The first production drill on 2026-07-11 switched release `bc19b2b` back to
@@ -98,5 +145,6 @@ curl -fsS https://arena.hs-manacost.ru/api/health/live
 curl -fsS https://arena.hs-manacost.ru/api/health/ready
 curl -fsS https://arena.hs-manacost.ru/api/health/data
 curl -fsS https://arena.hs-manacost.ru/api/metrics
+sudo systemctl list-timers 'hs-arena-backup*'
 npm run qa:e2e
 ```

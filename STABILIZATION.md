@@ -199,7 +199,8 @@ A task is complete only when all relevant checks below are proven.
 - [ ] Phase 7: structured telemetry, alerts and backup/restore.
   - [x] Every HTTP response carries a validated or generated request ID; completed, failed and aborted requests emit one-line JSON records with normalized routes, status, duration and response size, while an allowlist prevents query strings, cookies, authorization headers, request bodies and raw error messages from entering logs.
   - [x] Prometheus text export exposes bounded-route latency histograms, status-class counters, active requests, readiness, data freshness/age and active release; concrete warning and paging thresholds are documented.
-  - [ ] Automate encrypted backups of shared mutable data and prove restore integrity with a scheduled drill.
+  - [x] Daily GnuPG AES-256 backups capture shared data/uploads plus a consistent ecosystem SQLite snapshot; a weekly isolated restore drill verifies the archive checksum, per-file manifest, required datasets and SQLite integrity, with tamper rejection covered in CI.
+  - [ ] Replicate encrypted archives and the recovery key to separate offline failure domains and test a full host-loss recovery.
 - [ ] Phase 8: performance, accessibility and final production audit.
 
 ## Progress metrics

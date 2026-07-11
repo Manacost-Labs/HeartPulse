@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Added encrypted mutable-data recovery tooling and systemd schedules: daily atomic GnuPG AES-256 archives now cover shared datasets/uploads and a consistent ecosystem SQLite snapshot, while a weekly isolated restore drill verifies archive and per-file checksums, required snapshots and SQLite integrity; CI rejects a deliberately tampered archive.
 - Added an uncached Prometheus metrics contract for bounded-route request counts, status classes, latency histograms, active requests, readiness, dataset freshness/age and immutable release identity, with explicit warning and paging thresholds and tests proving URL/query/user values cannot become metric labels.
 - Added privacy-safe structured HTTP telemetry: each response now exposes a request ID, normalized JSON request logs include status/latency/size and aborted requests, unhandled errors return the correlation ID, and regression tests prove that query data, cookies, authorization values, request bodies, emails and raw error messages never reach logs.
 - Completed the immutable production switch: systemd now runs compiled Node from `current`, nginx serves the versioned frontend, mutable datasets/uploads live in shared storage, and a real rollback from `bc19b2b` to `43c8722` completed in one second before the latest release was restored.

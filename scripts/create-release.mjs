@@ -19,6 +19,10 @@ mkdirSync(output, { recursive: false });
 for (const directory of ['build', 'dist', 'public']) cpSync(directory, join(output, directory), { recursive: true });
 mkdirSync(join(output, 'server'), { recursive: true });
 cpSync('server/gen_legendary_image.py', join(output, 'server', 'gen_legendary_image.py'));
+mkdirSync(join(output, 'scripts'), { recursive: true });
+for (const script of ['backup-shared-data.sh', 'verify-backup.sh']) {
+  cpSync(join('scripts', script), join(output, 'scripts', script));
+}
 cpSync('package.json', join(output, 'package.json'));
 cpSync('package-lock.json', join(output, 'package-lock.json'));
 
@@ -33,7 +37,13 @@ async function sha256(file) {
   return hash.digest('hex');
 }
 
-const criticalFiles = ['build/server/index.js', 'dist/index.html', 'package-lock.json'];
+const criticalFiles = [
+  'build/server/index.js',
+  'dist/index.html',
+  'package-lock.json',
+  'scripts/backup-shared-data.sh',
+  'scripts/verify-backup.sh',
+];
 const checksums = Object.fromEntries(await Promise.all(
   criticalFiles.map(async file => [file, await sha256(join(output, file))]),
 ));

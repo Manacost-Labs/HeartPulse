@@ -1,0 +1,11 @@
+[Unit]
+Description=Weekly HS-Arena encrypted restore drill
+
+[Timer]
+OnCalendar=Sun *-*-* 04:20:00 UTC
+RandomizedDelaySec=20m
+Persistent=true
+Unit=hs-arena-backup-verify.service
+
+[Install]
+WantedBy=timers.target

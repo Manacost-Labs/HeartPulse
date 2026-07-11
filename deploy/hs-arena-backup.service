@@ -1,0 +1,14 @@
+[Unit]
+Description=Create encrypted HS-Arena mutable-data backup
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+EnvironmentFile=/etc/hs-arena/backup.env
+ExecStart=/var/www/koloda/data/www/hs-arena.ru/current/scripts/backup-shared-data.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+PrivateTmp=true
+NoNewPrivileges=true

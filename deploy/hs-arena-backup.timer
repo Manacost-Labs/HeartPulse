@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily encrypted HS-Arena backup
+
+[Timer]
+OnCalendar=*-*-* 02:35:00 UTC
+RandomizedDelaySec=20m
+Persistent=true
+Unit=hs-arena-backup.service
+
+[Install]
+WantedBy=timers.target
