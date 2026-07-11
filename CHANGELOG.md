@@ -8,6 +8,7 @@
 - Unified profile avatars across the shell and deferred profile, with deterministic initials when an external photo is missing or broken.
 - Added a CI architecture budget that blocks any increase in duplicate named components between the main and deferred route bundles.
 - Removed the unused deferred route-transition copy and ratcheted the duplicate-component budget from 25 to 24.
+- Deleted both unreachable legacy avatar implementations and their unused helpers, ratcheting the duplicate-component budget from 24 to 23.
 - Added deterministic authenticated browser QA for Arena subscriber pages at desktop and mobile widths, including paywall isolation, viewport dimming, horizontal overflow, grouped mobile navigation and lightbox background scroll locking.
 - Added required application validation on pushes and pull requests: locked install, critical production audit, typecheck, autonomous unit tests, production build, honest no-growth bundle budgets and documentation lint.
 - Added the stabilization source of truth with the route/access inventory, measurable SLOs, mandatory Definition of Done and stop-the-line release rules.

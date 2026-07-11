@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 const FILES = ['src/App.tsx', 'src/features/DeferredRoutes.tsx'];
-const MAX_DUPLICATE_COMPONENTS = Number(process.env.MAX_DUPLICATE_COMPONENTS || 24);
+const MAX_DUPLICATE_COMPONENTS = Number(process.env.MAX_DUPLICATE_COMPONENTS || 23);
 const definitionPattern = /^(?:export\s+)?function\s+([A-Z][A-Za-z0-9_]*)\b/gm;
 
 const componentSets = FILES.map(file => new Set(
