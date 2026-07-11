@@ -873,15 +873,13 @@
 
   .route-transition {
     min-width: 0;
-    opacity: 0.72;
-    transform: translate3d(0, 5px, 0);
-    transition: opacity 0.16s ease, transform 0.16s ease;
-    will-change: opacity, transform;
+    opacity: 1;
+    transform: none;
   }
 
   .route-transition-enter {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    transform: none;
   }
 
   .route-fallback {

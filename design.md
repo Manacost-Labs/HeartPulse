@@ -326,6 +326,7 @@ Rules:
 
 ## Changelog
 
+- **2026-07-11** — Removed route-level opacity as a page-visibility dependency after iOS WebKit could miss the animation frame and leave Arena content at 72% opacity.
 - **2026-07-11** — Removed stacked mobile Arena parchment layers and the full-list source-loading tint that produced the remaining iOS dimmed-content state.
 - **2026-07-11** — Hardened the Arena legendary data path against empty upstream and persisted caches, preserving the latest non-empty scraper snapshot and rotating the client cache after recovery.
 - **2026-07-11** — Grouped both Battlegrounds builders under “Конструкторы” and Gallery, Guides Archive and Contests under the final “Разное” menu, with desktop hover/focus and mobile tap behavior.

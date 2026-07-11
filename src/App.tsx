@@ -6765,20 +6765,8 @@ function isKnownPath(path: string): boolean {
 }
 
 // ─── Tab transition wrapper ────────────────────────────────────────────────────
-function TabTransition({ tabKey, children }: { tabKey: string; children: React.ReactNode }) {
-  const [entered, setEntered] = useState(false);
-
-  useEffect(() => {
-    setEntered(false);
-    const frame = window.requestAnimationFrame(() => setEntered(true));
-    return () => window.cancelAnimationFrame(frame);
-  }, [tabKey]);
-
-  return (
-    <div className={`route-transition${entered ? ' route-transition-enter' : ''}`} data-route-key={tabKey}>
-      {children}
-    </div>
-  );
+function TabTransition({ children }: { tabKey: string; children: React.ReactNode }) {
+  return <>{children}</>;
 }
 
 const loadDeferredRoutesModule = () => import('./features/DeferredRoutes');

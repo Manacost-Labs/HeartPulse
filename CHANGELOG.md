@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Removed the route wrapper's failure-prone `0.72` base opacity so iOS tab restoration can no longer leave Arena pages permanently dimmed.
 - Removed the remaining mobile Arena dimming by keeping a single parchment paint layer on iOS instead of compositing translucent root, workspace and main backgrounds; source refreshes now show only a compact loading badge without tinting the class list.
 - Restored Arena legendary groups by rejecting empty memory/Redis/upstream datasets, falling back to the fresh local scraper snapshot, and rotating the browser cache key so previously stored empty results are discarded immediately.
 - Consolidated the public navigation: both Battlegrounds builders now live under “Конструкторы”, while Gallery, Guides Archive and Contests live under the final “Разное” disclosure; desktop hover/focus, keyboard activation and mobile tap are supported, and the mobile support prompt no longer blocks menu controls.
