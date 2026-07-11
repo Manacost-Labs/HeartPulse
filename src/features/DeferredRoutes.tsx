@@ -7591,11 +7591,6 @@ function tabFromPath(path: string): TabId {
   return (found?.id ?? 'home') as TabId;
 }
 
-// ─── Tab transition wrapper ────────────────────────────────────────────────────
-function TabTransition({ children }: { tabKey: string; children: React.ReactNode }) {
-  return <>{children}</>;
-}
-
 // ─── Persistent cache with TTL (survives tab close, expires with data) ────────
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 h — matches server scrape interval
 const TIERLIST_CACHE_TTL_MS = 60 * 1000;
