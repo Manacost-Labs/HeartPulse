@@ -319,6 +319,7 @@ Rules:
 
 ## Changelog
 
+- **2026-07-11** — Shifted the home hero character left on desktop to align his torso with the intended central focal point while preserving the mobile composition.
 - **2026-07-11** — Added timber frames to BG tier navigation and the tier ledger, introduced the restrained `#4A2F66` active accent, and added the local Hearthstone heading ornament.
 - **2026-07-11** — Rebuilt the BG library directory and filters as a timber-framed tavern catalogue with red cloth, parchment controls and asset-backed search framing.
 - **2026-07-11** — Localized the remaining BG mechanic labels and removed the pass/secret placeholder mechanics from the library UI.

@@ -3842,6 +3842,7 @@
   display: block;
   object-fit: cover;
   object-position: 88% 36%;
+  transform: translateX(clamp(-300px, -14vw, -170px));
   filter: saturate(1.08) contrast(1.04);
 }
 
@@ -4159,6 +4160,7 @@
 
   .arena-app-home .home-stage__character img {
     object-position: 55% 32%;
+    transform: none;
   }
 
   .arena-app-home .home-bg-spotlight {

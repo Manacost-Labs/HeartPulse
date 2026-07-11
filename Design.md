@@ -83,6 +83,7 @@ Do not hotlink wiki assets at runtime.
 
 ## Changelog
 
+- **2026-07-11** — Shifted the home hero character left on desktop without changing the mobile crop.
 - **2026-07-11** — Framed BG tier navigation, introduced the `#4A2F66` active accent and added the Hearthstone heading plaque asset.
 - **2026-07-11** — Rebuilt BG library navigation and filters as an asset-backed tavern catalogue.
 - **2026-07-11** — Localized the remaining BG mechanic labels and removed pass/secret placeholders from the library UI.
