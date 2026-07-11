@@ -1379,6 +1379,10 @@
   }
 
   .section-banner-modern {
+    /* Its decorative absolute layers must stay inside the banner. Without a
+       positioned ancestor, the mobile variant shades the entire page. */
+    position: relative;
+    isolation: isolate;
     border-radius: 22px 22px 0 0;
   }
 
