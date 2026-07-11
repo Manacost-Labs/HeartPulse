@@ -1559,19 +1559,19 @@
 }
 
 /* Subscription gate — a red framed notice instead of a blue modal. */
-:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall {
+:is(.arena-app-editorial, .arena-app-game-data, .arena-app-battlegrounds) .arena-paywall {
   min-height: 760px !important;
   padding-bottom: 3rem !important;
 }
 
-:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__overlay {
+:is(.arena-app-editorial, .arena-app-game-data, .arena-app-battlegrounds) .arena-paywall__overlay {
   min-height: 720px !important;
   padding: clamp(2rem, 5vw, 4.5rem) 1rem 4.5rem !important;
   border-radius: 0 !important;
   background: linear-gradient(180deg, rgba(241, 220, 177, 0.12), rgba(236, 212, 164, 0.84) 46%, rgba(236, 212, 164, 0.98)) !important;
 }
 
-:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__dialog {
+:is(.arena-app-editorial, .arena-app-game-data, .arena-app-battlegrounds) .arena-paywall__dialog {
   width: min(720px, 96%) !important;
   padding: clamp(1.25rem, 3vw, 2rem) !important;
   border: 12px solid transparent !important;
@@ -1587,43 +1587,43 @@
   box-shadow: 0 22px 42px rgba(61, 31, 12, 0.28) !important;
 }
 
-:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__eyebrow {
+:is(.arena-app-editorial, .arena-app-game-data, .arena-app-battlegrounds) .arena-paywall__eyebrow {
   color: #efc76b !important;
   font-weight: 900;
 }
 
-:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__title {
+:is(.arena-app-editorial, .arena-app-game-data, .arena-app-battlegrounds) .arena-paywall__title {
   color: #fff0c4 !important;
   font-size: clamp(1.35rem, 3vw, 1.8rem) !important;
   text-shadow: 0 2px 3px rgba(35, 2, 5, 0.7);
 }
 
-:is(.arena-app-editorial, .arena-app-game-data) :where(.arena-paywall__description, .arena-paywall__note, .arena-paywall__status) {
+:is(.arena-app-editorial, .arena-app-game-data, .arena-app-battlegrounds) :where(.arena-paywall__description, .arena-paywall__note, .arena-paywall__status) {
   color: #dfc28c !important;
 }
 
-:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__benefits > div {
+:is(.arena-app-editorial, .arena-app-game-data, .arena-app-battlegrounds) .arena-paywall__benefits > div {
   border: 1px solid rgba(235, 195, 102, 0.26) !important;
   border-radius: 2px !important;
   background: rgba(42, 3, 6, 0.36) !important;
 }
 
-:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__benefits :where(strong, span) {
+:is(.arena-app-editorial, .arena-app-game-data, .arena-app-battlegrounds) .arena-paywall__benefits :where(strong, span) {
   color: #ecd29f !important;
 }
 
-:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__purchase-options a {
+:is(.arena-app-editorial, .arena-app-game-data, .arena-app-battlegrounds) .arena-paywall__purchase-options a {
   border-color: rgba(234, 193, 98, 0.34) !important;
   border-radius: 2px !important;
   background: rgba(247, 229, 190, 0.92) !important;
   box-shadow: none !important;
 }
 
-:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__purchase-options a :where(strong, span) {
+:is(.arena-app-editorial, .arena-app-game-data, .arena-app-battlegrounds) .arena-paywall__purchase-options a :where(strong, span) {
   color: #4b3020 !important;
 }
 
-:is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__actions :where(a, button) {
+:is(.arena-app-editorial, .arena-app-game-data, .arena-app-battlegrounds) .arena-paywall__actions :where(a, button) {
   min-height: 42px !important;
   border: 1px solid #efc66a !important;
   border-radius: 2px !important;
@@ -1873,17 +1873,17 @@
     border-image-width: 8px !important;
   }
 
-  :is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__overlay {
+  :is(.arena-app-editorial, .arena-app-game-data, .arena-app-battlegrounds) .arena-paywall__overlay {
     padding: 1.35rem 0.35rem 3rem !important;
   }
 
-  :is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__dialog {
+  :is(.arena-app-editorial, .arena-app-game-data, .arena-app-battlegrounds) .arena-paywall__dialog {
     width: 100% !important;
     border-width: 8px !important;
     border-image-width: 8px !important;
   }
 
-  :is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__benefits {
+  :is(.arena-app-editorial, .arena-app-game-data, .arena-app-battlegrounds) .arena-paywall__benefits {
     grid-template-columns: 1fr !important;
   }
 }
@@ -1924,7 +1924,7 @@
     border-image-width: 7px !important;
   }
 
-  :is(.arena-app-editorial, .arena-app-game-data) .arena-paywall__purchase-options {
+  :is(.arena-app-editorial, .arena-app-game-data, .arena-app-battlegrounds) .arena-paywall__purchase-options {
     grid-template-columns: 1fr !important;
   }
 }

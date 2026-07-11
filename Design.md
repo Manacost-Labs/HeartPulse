@@ -85,6 +85,7 @@ Do not hotlink wiki assets at runtime.
 
 ## Changelog
 
+- **2026-07-11** — Unified Battlegrounds subscription gates with the timber-framed red tavern paywall used across the current site.
 - **2026-07-11** — Stabilized the mobile shell: clear subscription gates, compact menu login framing, overflow-safe profile/BG text and shared iOS-safe lightbox scroll locking.
 - **2026-07-11** — Shifted the home hero character left on desktop without changing the mobile crop.
 - **2026-07-11** — Framed BG tier navigation, introduced the `#4A2F66` active accent and added the Hearthstone heading plaque asset.

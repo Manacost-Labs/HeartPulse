@@ -323,6 +323,7 @@ Rules:
 
 ## Changelog
 
+- **2026-07-11** — Applied the canonical timber-and-red-cloth subscription gate to all Battlegrounds routes, replacing the last white-and-blue paywall variant.
 - **2026-07-11** — Removed the misleading partially dimmed mobile subscription preview, stabilized profile badges and long BG copy, simplified the mobile login frame, and added shared iOS-safe background scroll locking to drawers and all content lightboxes.
 - **2026-07-11** — Shifted the home hero character left on desktop to align his torso with the intended central focal point while preserving the mobile composition.
 - **2026-07-11** — Added timber frames to BG tier navigation and the tier ledger, introduced the restrained `#4A2F66` active accent, and added the local Hearthstone heading ornament.
