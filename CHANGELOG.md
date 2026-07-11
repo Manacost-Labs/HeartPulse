@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Consolidated the public navigation: both Battlegrounds builders now live under “Конструкторы”, while Gallery, Guides Archive and Contests live under the final “Разное” disclosure; desktop hover/focus, keyboard activation and mobile tap are supported, and the mobile support prompt no longer blocks menu controls.
 - Extended the canonical timber-framed red tavern paywall to every Battlegrounds route, removing the remaining legacy white-and-blue subscription dialog on desktop and mobile.
 - Fixed the mobile experience across Arena, profile and Battlegrounds routes: subscription gates no longer leave a partially dimmed scrollable page, profile badges and long labels stay inside their containers, the menu login frame is compact, and drawers/lightboxes now lock and restore background scrolling on iOS.
 - Shifted the home-page hero character left on desktop to match the intended focal point while keeping the mobile crop unchanged.

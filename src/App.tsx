@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo, memo, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
-import { Trophy, Scroll, RefreshCw, AlertTriangle, X, Search, Star, Home, BookOpen, Menu, ChevronLeft, ChevronRight, Grid3X3, List, LogIn, Eye, EyeOff, UserCircle, Library, Gift, ShieldCheck, Send, Swords, Image as ImageIcon } from 'lucide-react';
+import { Trophy, Scroll, RefreshCw, AlertTriangle, X, Search, Star, Home, BookOpen, Menu, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, List, LogIn, Eye, EyeOff, UserCircle, Library, Gift, ShieldCheck, Send, Swords, Image as ImageIcon } from 'lucide-react';
 import { getCanonicalRedirectUrl } from './config/domain';
 import HomeTab from './features/Home';
 import { usePageScrollLock } from './hooks/usePageScrollLock';
@@ -6505,6 +6505,9 @@ const TOP_LEVEL_TABS = TABS.filter(tab => TOP_LEVEL_TAB_IDS.has(tab.id));
 const STANDARD_TABS = TABS.filter(tab => STANDARD_TAB_IDS.has(tab.id));
 const ARENA_TABS = TABS.filter(tab => !BG_TAB_IDS.has(tab.id) && !TOP_LEVEL_TAB_IDS.has(tab.id) && !STANDARD_TAB_IDS.has(tab.id) && !MISC_TAB_IDS.has(tab.id) && !ADMIN_TAB_IDS.has(tab.id) && tab.id !== 'home');
 const BG_TABS = TABS.filter(tab => BG_TAB_IDS.has(tab.id));
+const BG_BUILDER_TAB_IDS = new Set<string>(['bg-strategies', 'bg-tier-builder']);
+const BG_PRIMARY_TABS = BG_TABS.filter(tab => !BG_BUILDER_TAB_IDS.has(tab.id));
+const BG_BUILDER_TABS = BG_TABS.filter(tab => BG_BUILDER_TAB_IDS.has(tab.id));
 const ADMIN_TABS = TABS.filter(tab => ADMIN_TAB_IDS.has(tab.id));
 const MISC_TABS = TABS.filter(tab => MISC_TAB_IDS.has(tab.id));
 
@@ -6965,6 +6968,8 @@ export default function App() {
   const redirectToWwwUrl = getCanonicalRedirectUrl(window.location);
   const [activeTab, setActiveTab] = useState<TabId>(() => tabFromPath(window.location.pathname));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileNavGroup, setMobileNavGroup] = useState<'constructors' | 'misc' | null>(null);
+  const [sidebarNavGroup, setSidebarNavGroup] = useState<'constructors' | 'misc' | null>(null);
 
   useEffect(() => {
     if (isKnownPath(window.location.pathname)) return;
@@ -7552,7 +7557,10 @@ export default function App() {
         </a>
         <button
           type="button"
-          onClick={() => setMobileMenuOpen(v => !v)}
+          onClick={() => setMobileMenuOpen(open => {
+            if (open) setMobileNavGroup(null);
+            return !open;
+          })}
           className="arena-mobile-nav-toggle"
           aria-expanded={mobileMenuOpen}
           aria-controls="arena-mobile-menu"
@@ -7568,7 +7576,7 @@ export default function App() {
             type="button"
             className="arena-mobile-drawer-backdrop lg:hidden"
             aria-label="Закрыть меню"
-            onClick={() => setMobileMenuOpen(false)}
+            onClick={() => { setMobileMenuOpen(false); setMobileNavGroup(null); }}
           />
           <nav id="arena-mobile-menu" className="arena-mobile-menu lg:hidden" aria-label="Мобильная навигация">
             {TOP_LEVEL_TABS.map(tab => {
@@ -7652,7 +7660,7 @@ export default function App() {
             <div className="arena-mobile-menu-section" aria-label="Раздел Поля Сражений">
               Поля Сражений
             </div>
-            {BG_TABS.map(tab => {
+            {BG_PRIMARY_TABS.map(tab => {
               const Icon = tab.icon;
               const active = activeTab === tab.id;
               return (
@@ -7670,27 +7678,72 @@ export default function App() {
                 </a>
               );
             })}
-            <div className="arena-mobile-menu-section" aria-label="Раздел Разное">
-              Разное
+            <div className="arena-mobile-menu-group">
+              <button
+                type="button"
+                className={`arena-mobile-menu-link arena-mobile-menu-group-trigger ${BG_BUILDER_TABS.some(tab => tab.id === activeTab) ? 'arena-mobile-menu-link-active' : ''}`}
+                aria-expanded={mobileNavGroup === 'constructors'}
+                aria-controls="arena-mobile-constructors"
+                onClick={() => setMobileNavGroup(group => group === 'constructors' ? null : 'constructors')}
+              >
+                <Grid3X3 size={18} className="flex-shrink-0" />
+                <span>Конструкторы</span>
+                <ChevronDown size={16} className="arena-nav-group-chevron" />
+              </button>
+              <div id="arena-mobile-constructors" className="arena-mobile-menu-group-items" hidden={mobileNavGroup !== 'constructors'}>
+                {BG_BUILDER_TABS.map(tab => {
+                  const Icon = tab.icon;
+                  const active = activeTab === tab.id;
+                  return (
+                    <a
+                      key={tab.id}
+                      href={tab.slug}
+                      onPointerEnter={() => warmRoute(tab.id)}
+                      onFocus={() => warmRoute(tab.id)}
+                      onClick={(e) => { e.preventDefault(); navigate(tab.id); setMobileMenuOpen(false); setMobileNavGroup(null); }}
+                      className={`arena-mobile-menu-link arena-mobile-menu-sublink ${active ? 'arena-mobile-menu-link-active' : ''}`}
+                      aria-current={active ? 'page' : undefined}
+                    >
+                      <Icon size={17} className="flex-shrink-0" />
+                      <span>{tab.label}</span>
+                    </a>
+                  );
+                })}
+              </div>
             </div>
-            {MISC_TABS.map(tab => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.id;
-              return (
-                <a
-                  key={tab.id}
-                  href={tab.slug}
-                  onPointerEnter={() => warmRoute(tab.id)}
-                  onFocus={() => warmRoute(tab.id)}
-                  onClick={(e) => { e.preventDefault(); navigate(tab.id); setMobileMenuOpen(false); }}
-                  className={`arena-mobile-menu-link ${active ? 'arena-mobile-menu-link-active' : ''}`}
-                  aria-current={active ? 'page' : undefined}
-                >
-                  <Icon size={18} className="flex-shrink-0" />
-                  <span>{tab.label}</span>
-                </a>
-              );
-            })}
+            <div className="arena-mobile-menu-group arena-mobile-menu-group--misc">
+              <button
+                type="button"
+                className={`arena-mobile-menu-link arena-mobile-menu-group-trigger ${MISC_TABS.some(tab => tab.id === activeTab) ? 'arena-mobile-menu-link-active' : ''}`}
+                aria-expanded={mobileNavGroup === 'misc'}
+                aria-controls="arena-mobile-misc"
+                onClick={() => setMobileNavGroup(group => group === 'misc' ? null : 'misc')}
+              >
+                <Gift size={18} className="flex-shrink-0" />
+                <span>Разное</span>
+                <ChevronDown size={16} className="arena-nav-group-chevron" />
+              </button>
+              <div id="arena-mobile-misc" className="arena-mobile-menu-group-items" hidden={mobileNavGroup !== 'misc'}>
+                {MISC_TABS.map(tab => {
+                  const Icon = tab.icon;
+                  const active = activeTab === tab.id;
+                  return (
+                    <a
+                      key={tab.id}
+                      href={tab.slug}
+                      onPointerEnter={() => warmRoute(tab.id)}
+                      onFocus={() => warmRoute(tab.id)}
+                      onClick={(e) => { e.preventDefault(); navigate(tab.id); setMobileMenuOpen(false); setMobileNavGroup(null); }}
+                      className={`arena-mobile-menu-link arena-mobile-menu-sublink ${active ? 'arena-mobile-menu-link-active' : ''}`}
+                      aria-current={active ? 'page' : undefined}
+                    >
+                      <Icon size={17} className="flex-shrink-0" />
+                      <span>{tab.label}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
             <a
               href="/?login"
               onPointerEnter={() => warmRoute('login')}
@@ -7811,7 +7864,7 @@ export default function App() {
               <div className="arena-sidebar-section" aria-label="Раздел Поля Сражений">
                 Поля Сражений
               </div>
-              {BG_TABS.map(tab => {
+              {BG_PRIMARY_TABS.map(tab => {
                 const Icon = tab.icon;
                 const active = activeTab === tab.id;
                 return (
@@ -7830,28 +7883,94 @@ export default function App() {
                   </a>
                 );
               })}
-              <div className="arena-sidebar-section" aria-label="Раздел Разное">
-                Разное
+              <div
+                className="arena-sidebar-nav-group"
+                onMouseEnter={() => setSidebarNavGroup('constructors')}
+                onMouseLeave={(event) => {
+                  if (!event.currentTarget.contains(document.activeElement)) setSidebarNavGroup(null);
+                }}
+                onFocus={() => setSidebarNavGroup('constructors')}
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setSidebarNavGroup(null);
+                }}
+              >
+                <button
+                  type="button"
+                  className={`arena-sidebar-link arena-sidebar-nav-group-trigger ${BG_BUILDER_TABS.some(tab => tab.id === activeTab) ? 'arena-sidebar-link-active' : ''}`}
+                  aria-expanded={sidebarNavGroup === 'constructors'}
+                  aria-controls="arena-sidebar-constructors"
+                  onClick={() => setSidebarNavGroup(group => group === 'constructors' ? null : 'constructors')}
+                >
+                  <Grid3X3 size={19} className="arena-sidebar-link-icon flex-shrink-0" />
+                  <span>Конструкторы</span>
+                  <ChevronDown size={15} className="arena-nav-group-chevron" />
+                </button>
+                <div id="arena-sidebar-constructors" className="arena-sidebar-nav-group-items" hidden={sidebarNavGroup !== 'constructors'}>
+                  {BG_BUILDER_TABS.map(tab => {
+                    const Icon = tab.icon;
+                    const active = activeTab === tab.id;
+                    return (
+                      <a
+                        key={tab.id}
+                        href={tab.slug}
+                        onPointerEnter={() => warmRoute(tab.id)}
+                        onFocus={() => warmRoute(tab.id)}
+                        onClick={(e: React.MouseEvent) => { e.preventDefault(); navigate(tab.id); setSidebarNavGroup(null); }}
+                        aria-current={active ? 'page' : undefined}
+                        className={`arena-sidebar-link arena-sidebar-sublink ${active ? 'arena-sidebar-link-active' : ''}`}
+                        style={{ textDecoration: 'none' }}
+                      >
+                        <Icon size={17} className="arena-sidebar-link-icon flex-shrink-0" />
+                        <span>{tab.label}</span>
+                      </a>
+                    );
+                  })}
+                </div>
               </div>
-              {MISC_TABS.map(tab => {
-                const Icon = tab.icon;
-                const active = activeTab === tab.id;
-                return (
-                  <a
-                    key={tab.id}
-                    href={tab.slug}
-                    onPointerEnter={() => warmRoute(tab.id)}
-                    onFocus={() => warmRoute(tab.id)}
-                    onClick={(e: React.MouseEvent) => { e.preventDefault(); navigate(tab.id); }}
-                    aria-current={active ? 'page' : undefined}
-                    className={`arena-sidebar-link ${active ? 'arena-sidebar-link-active' : ''}`}
-                    style={{ textDecoration: 'none' }}
-                  >
-                    <Icon size={19} className="arena-sidebar-link-icon flex-shrink-0" />
-                    <span>{tab.label}</span>
-                  </a>
-                );
-              })}
+              <div
+                className="arena-sidebar-nav-group arena-sidebar-nav-group--misc"
+                onMouseEnter={() => setSidebarNavGroup('misc')}
+                onMouseLeave={(event) => {
+                  if (!event.currentTarget.contains(document.activeElement)) setSidebarNavGroup(null);
+                }}
+                onFocus={() => setSidebarNavGroup('misc')}
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setSidebarNavGroup(null);
+                }}
+              >
+                <button
+                  type="button"
+                  className={`arena-sidebar-link arena-sidebar-nav-group-trigger ${MISC_TABS.some(tab => tab.id === activeTab) ? 'arena-sidebar-link-active' : ''}`}
+                  aria-expanded={sidebarNavGroup === 'misc'}
+                  aria-controls="arena-sidebar-misc"
+                  onClick={() => setSidebarNavGroup(group => group === 'misc' ? null : 'misc')}
+                >
+                  <Gift size={19} className="arena-sidebar-link-icon flex-shrink-0" />
+                  <span>Разное</span>
+                  <ChevronDown size={15} className="arena-nav-group-chevron" />
+                </button>
+                <div id="arena-sidebar-misc" className="arena-sidebar-nav-group-items" hidden={sidebarNavGroup !== 'misc'}>
+                  {MISC_TABS.map(tab => {
+                    const Icon = tab.icon;
+                    const active = activeTab === tab.id;
+                    return (
+                      <a
+                        key={tab.id}
+                        href={tab.slug}
+                        onPointerEnter={() => warmRoute(tab.id)}
+                        onFocus={() => warmRoute(tab.id)}
+                        onClick={(e: React.MouseEvent) => { e.preventDefault(); navigate(tab.id); setSidebarNavGroup(null); }}
+                        aria-current={active ? 'page' : undefined}
+                        className={`arena-sidebar-link arena-sidebar-sublink ${active ? 'arena-sidebar-link-active' : ''}`}
+                        style={{ textDecoration: 'none' }}
+                      >
+                        <Icon size={17} className="arena-sidebar-link-icon flex-shrink-0" />
+                        <span>{tab.label}</span>
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
             </nav>
 
             <div className="arena-sidebar-status" aria-label="Дата обновления данных">

@@ -146,6 +146,52 @@
   font-size: 0.63rem !important;
 }
 
+.arena-mobile-menu-group {
+  display: grid;
+  gap: 0.16rem;
+}
+
+.arena-mobile-menu-group--misc {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(232, 192, 103, 0.22);
+}
+
+.arena-mobile-menu-group-trigger {
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+}
+
+.arena-nav-group-chevron {
+  margin-left: auto;
+  flex: 0 0 auto;
+  transition: transform 160ms ease;
+}
+
+[aria-expanded='true'] > .arena-nav-group-chevron {
+  transform: rotate(180deg);
+}
+
+.arena-mobile-menu-group-items {
+  display: grid;
+  gap: 0.12rem;
+  padding: 0.18rem 0 0.28rem;
+  background: rgba(41, 3, 6, 0.22);
+  box-shadow: inset 0 1px rgba(239, 202, 119, 0.1), inset 0 -1px rgba(239, 202, 119, 0.08);
+}
+
+.arena-mobile-menu-group-items[hidden],
+.arena-sidebar-nav-group-items[hidden] {
+  display: none !important;
+}
+
+.arena-mobile-menu-sublink {
+  min-height: 40px !important;
+  padding-left: 1.55rem !important;
+  font-size: 0.82rem !important;
+}
+
 @media (min-width: 1024px) {
   .arena-sidebar {
     width: 258px !important;
@@ -239,6 +285,38 @@
     transform: translateX(2px) !important;
     color: #fff4d4 !important;
     background: rgba(50, 4, 7, 0.22) !important;
+  }
+
+  .arena-sidebar-nav-group {
+    display: grid;
+    gap: 0.1rem;
+  }
+
+  .arena-sidebar-nav-group--misc {
+    margin-top: 0.52rem;
+    padding-top: 0.52rem;
+    border-top: 1px solid rgba(232, 192, 103, 0.22);
+  }
+
+  .arena-sidebar-nav-group-trigger {
+    width: 100%;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .arena-sidebar-nav-group-items {
+    display: grid;
+    gap: 0.08rem;
+    margin: 0 0.22rem 0.2rem;
+    padding: 0.18rem 0;
+    background: rgba(39, 3, 6, 0.24);
+    box-shadow: inset 0 1px rgba(239, 202, 119, 0.09), inset 0 -1px rgba(239, 202, 119, 0.07);
+  }
+
+  .arena-sidebar-sublink {
+    min-height: 35px !important;
+    padding: 0.42rem 0.55rem 0.42rem 1.38rem !important;
+    font-size: 0.75rem !important;
   }
 
   .arena-sidebar-status {
@@ -2959,6 +3037,12 @@
 
 :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .support-prompt__trigger { color: #fff1ca !important; }
 :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .support-prompt__dismiss { color: #d9bd83 !important; background: rgba(49, 4, 7, 0.26) !important; }
+
+@media (max-width: 760px) {
+  .support-prompt {
+    display: none !important;
+  }
+}
 
 /* Footer's legacy rules live in Tailwind's utilities layer and use !important.
    Keep one public-shell correction in the same layer so every route gets the

@@ -119,6 +119,8 @@ The app has two navigation contexts that share historical class names:
 
 Never add an unscoped duplicate `.arena-mobile-*` rule. The App drawer must remain `position: fixed`; an inline dropdown may use `position: absolute` only inside a positioned parent.
 
+The public shell groups secondary destinations instead of filling the rail with parallel links. **Конструкторы** contains the strategy and tier-list builders; **Разное** is the final navigation group and contains Gallery, Guides Archive and Contests. Groups open on hover, focus or click on desktop and by tap on mobile, with only one group expanded at a time.
+
 ### Page Width
 
 - Standard data and editorial pages: one open parchment surface, `max-width` around `1280–1320px`.
@@ -323,6 +325,7 @@ Rules:
 
 ## Changelog
 
+- **2026-07-11** — Grouped both Battlegrounds builders under “Конструкторы” and Gallery, Guides Archive and Contests under the final “Разное” menu, with desktop hover/focus and mobile tap behavior.
 - **2026-07-11** — Applied the canonical timber-and-red-cloth subscription gate to all Battlegrounds routes, replacing the last white-and-blue paywall variant.
 - **2026-07-11** — Removed the misleading partially dimmed mobile subscription preview, stabilized profile badges and long BG copy, simplified the mobile login frame, and added shared iOS-safe background scroll locking to drawers and all content lightboxes.
 - **2026-07-11** — Shifted the home hero character left on desktop to align his torso with the intended central focal point while preserving the mobile composition.
