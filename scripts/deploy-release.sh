@@ -84,7 +84,7 @@ if [[ "$NEW_RELEASE" == "1" ]]; then
       else
         (cd "$DEPENDENCY_STAGING" && npm ci --omit=dev --no-audit --no-fund)
       fi
-      chmod -R a-w "$DEPENDENCY_STAGING"
+      chmod -R a-w,a+rX "$DEPENDENCY_STAGING"
       mv "$DEPENDENCY_STAGING" "$DEPENDENCY_ROOT"
       DEPENDENCY_STAGING=''
     fi
@@ -104,6 +104,18 @@ if [[ "$NEW_RELEASE" == "1" ]]; then
 else
   [[ -L "$TARGET_RELEASE/node_modules" ]] || { echo "existing release has no immutable dependency link" >&2; exit 2; }
   [[ -L "$TARGET_RELEASE/server/data" ]] || { echo "existing release has no shared data link" >&2; exit 2; }
+fi
+
+if [[ "$SKIP_DEPENDENCIES" != "1" ]]; then
+  DEPENDENCY_PROBE="$TARGET_RELEASE/node_modules/express/package.json"
+  if [[ $EUID -eq 0 ]] && id "$DEPENDENCY_USER" >/dev/null 2>&1; then
+    runuser -u "$DEPENDENCY_USER" -- test -r "$DEPENDENCY_PROBE" || {
+      echo "production dependencies are not readable by $DEPENDENCY_USER" >&2
+      exit 2
+    }
+  else
+    [[ -r "$DEPENDENCY_PROBE" ]] || { echo "production dependencies are not readable" >&2; exit 2; }
+  fi
 fi
 
 OLD_RELEASE=''

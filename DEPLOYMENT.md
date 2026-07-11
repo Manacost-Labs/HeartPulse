@@ -42,7 +42,8 @@ The deployer:
 1. acquires an exclusive deployment lock;
 2. initializes shared data from the workspace only when it does not exist;
 3. installs production dependencies as the unprivileged `koloda` user into a
-   lockfile-addressed cache, then makes that cache read-only;
+   lockfile-addressed cache, makes that cache world-readable but read-only and
+   verifies module access again as `koloda` before switching;
 4. makes the new release root-owned and read-only;
 5. atomically switches `current`;
 6. restarts `hs-arena.service`;
