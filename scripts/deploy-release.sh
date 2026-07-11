@@ -21,6 +21,7 @@ RESTART_COMMAND=${RESTART_COMMAND:-sudo systemctl restart hs-arena.service}
 READINESS_COMMAND=${READINESS_COMMAND:-curl -fsS --max-time 5 http://127.0.0.1:3101/health/ready >/dev/null}
 SKIP_DEPENDENCIES=${SKIP_DEPENDENCIES:-0}
 SKIP_IMMUTABLE_PERMISSIONS=${SKIP_IMMUTABLE_PERMISSIONS:-0}
+DEPENDENCY_USER=${DEPENDENCY_USER:-koloda}
 
 [[ -f "$SOURCE_RELEASE/release.json" ]] || { echo "release.json is missing" >&2; exit 2; }
 RELEASE_SHA=$(node -e "const m=require(process.argv[1]); if(!/^[a-f0-9]{7,40}$/.test(m.sha||'')) process.exit(2); process.stdout.write(m.sha)" "$SOURCE_RELEASE/release.json")
@@ -60,7 +61,13 @@ if [[ "$NEW_RELEASE" == "1" ]]; then
       rm -rf "$DEPENDENCY_STAGING"
       mkdir -p "$DEPENDENCY_STAGING"
       cp "$TARGET_RELEASE/package.json" "$TARGET_RELEASE/package-lock.json" "$DEPENDENCY_STAGING/"
-      (cd "$DEPENDENCY_STAGING" && npm ci --omit=dev --no-audit --no-fund)
+      if [[ $EUID -eq 0 ]] && id "$DEPENDENCY_USER" >/dev/null 2>&1; then
+        chown -R "$DEPENDENCY_USER:$DEPENDENCY_USER" "$DEPENDENCY_STAGING"
+        (cd "$DEPENDENCY_STAGING" && runuser -u "$DEPENDENCY_USER" -- npm ci --omit=dev --no-audit --no-fund)
+        chown -hR root:root "$DEPENDENCY_STAGING"
+      else
+        (cd "$DEPENDENCY_STAGING" && npm ci --omit=dev --no-audit --no-fund)
+      fi
       chmod -R a-w "$DEPENDENCY_STAGING"
       mv "$DEPENDENCY_STAGING" "$DEPENDENCY_ROOT"
     fi
