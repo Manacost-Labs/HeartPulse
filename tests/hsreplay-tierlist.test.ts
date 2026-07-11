@@ -53,6 +53,10 @@ function flattenCards(data: TierlistResponse) {
 }
 
 async function assertHsReplayHandler() {
+  if (process.env.TIERLIST_TEST_SKIP_HANDLER === '1') {
+    console.log('hsreplay handler integration skipped; threshold unit assertions still ran');
+    return;
+  }
   const baseUrl = process.env.TIERLIST_TEST_BASE_URL ?? 'http://127.0.0.1:3101';
   const authToken = process.env.TIERLIST_TEST_AUTH_TOKEN?.trim();
   const res = await fetch(`${baseUrl}/api/tierlist?source=hsreplay&v=test&t=${Date.now()}`, {

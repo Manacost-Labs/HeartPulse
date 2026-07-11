@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Added required application validation on pushes and pull requests: locked install, critical production audit, typecheck, autonomous unit tests, production build, honest no-growth bundle budgets and documentation lint.
 - Added the stabilization source of truth with the route/access inventory, measurable SLOs, mandatory Definition of Done and stop-the-line release rules.
 - Added a portable `assets.md` containing the full HS-Arena visual language, reusable CSS recipes and verified absolute production URLs for all 299 public visual assets.
 - Fixed the actual mobile Arena dimming source by containing the section banner's absolute decorative layers inside the banner instead of letting them cover the full page.
