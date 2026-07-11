@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 const FILES = ['src/App.tsx', 'src/features/DeferredRoutes.tsx'];
-const MAX_DUPLICATE_COMPONENTS = Number(process.env.MAX_DUPLICATE_COMPONENTS || 12);
+const MAX_DUPLICATE_COMPONENTS = 0;
 const definitionPattern = /^(?:export\s+)?function\s+([A-Z][A-Za-z0-9_]*)\b/gm;
 
 const componentSets = FILES.map(file => new Set(
@@ -17,4 +17,4 @@ if (duplicates.length > MAX_DUPLICATE_COMPONENTS) {
   process.exit(1);
 }
 
-console.log('[architecture] no-growth guard passed; ratchet MAX_DUPLICATE_COMPONENTS down after each extraction batch');
+console.log('[architecture] single-owner component guard passed');

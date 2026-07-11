@@ -23,6 +23,17 @@ every completed task must be tested and pushed to `main` as a separate commit.
 | Data publishing | Scraper can commit directly to `main` | Validated isolated data publishing |
 | Observability | Journald and `/api/status` | Request IDs, readiness, error tracking and alerts |
 
+## Current checkpoint — frontend ownership
+
+The first architecture ratchet is complete:
+
+- `src/App.tsx` is down from 8,193 to 3,677 lines;
+- `src/features/DeferredRoutes.tsx` is down from 7,786 to 6,878 lines;
+- exact named component duplicates across those bundles are down from at least
+  20 to zero;
+- CI now rejects the first reintroduced duplicate rather than allowing a
+  temporary no-growth budget.
+
 ## Service-level objectives
 
 | Objective | Target | Evidence |
@@ -128,7 +139,7 @@ A task is complete only when all relevant checks below are proven.
 - [ ] Phase 1: required CI, staging and authenticated E2E/visual QA.
   - [x] Required typecheck, unit-test, build, budget and docs workflow.
   - [x] Deterministic guest/subscriber browser QA at desktop and mobile widths, including dimming, overflow, menu and lightbox scroll-lock regressions.
-- [ ] Phase 2: one route registry and shared frontend components.
+- [x] Phase 2: one route registry and shared frontend components.
   - [x] One typed route registry owns navigation groups, access entitlements, path resolution and SEO metadata.
   - [x] Shared subscription purchase controls replace the first cross-bundle component duplicate.
   - [x] One subscriber gate owns paywall accessibility, actions and private-preview isolation across bundles.
@@ -136,6 +147,7 @@ A task is complete only when all relevant checks below are proven.
   - [x] CI enforces a no-growth duplicate-component budget while the remaining legacy copies are extracted.
   - [x] Shared FAQ owns stable controls, panel relationships and content across Arena data pages.
   - [x] Full-page Arena, profile, admin and article implementations have a single lazy-route owner instead of shadow copies in `App.tsx`.
+  - [x] All remaining exact named component duplicates and retired deck-page helpers have been removed; CI enforces a zero-duplicate budget.
 - [ ] Phase 3: layered CSS and removal of legacy cascade.
 - [ ] Phase 4: modular API, runtime validation and durable data snapshots.
 - [ ] Phase 5: isolated scraper publishing.

@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Completed the frontend single-owner ratchet: removed the unreachable retired deck page and every remaining dead cross-bundle component copy, reduced `App.tsx` to 3,677 lines, and changed CI from a 12-copy allowance to a permanent zero-duplicate gate.
 - Removed six unreachable full-page implementations from `App.tsx`; Arena data, profile, admin and article screens now have only their lazy route owners, ratcheting duplicate components from 18 to 12.
 - Consolidated route navigation, grouping, subscription entitlements and SEO metadata into one typed registry with invariant tests for every public path.
 - Replaced duplicate paywall purchase controls in the main and deferred bundles with one shared, accessible subscription component.
