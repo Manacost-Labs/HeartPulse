@@ -870,9 +870,9 @@ function useLibraryData(kind: LibraryKind, pool: PoolMode) {
 
 function MetricCard({ label, value, caption, tone }: { label: string; value: string; caption?: string; tone?: string }) {
   return (
-    <div className="rounded-md border border-[#cbd9ed] bg-[#f8fbff] px-4 py-3 shadow-sm">
+    <div className="bg-library-metric-card min-w-0 rounded-md border border-[#cbd9ed] bg-[#f8fbff] px-4 py-3 shadow-sm">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-[#60718a]">{label}</p>
-      <p className={`mt-1 font-hs text-2xl ${tone || 'text-[#7c5b24]'}`}>{value}</p>
+      <p className={`mt-1 min-w-0 font-hs text-2xl ${tone || 'text-[#7c5b24]'}`}>{value}</p>
       {caption && <p className="mt-1 text-xs text-[#657893]">{caption}</p>}
     </div>
   );
@@ -1549,15 +1549,15 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
         <ArrowLeft size={16} /> Назад в {pool === 'archive' ? 'архив' : 'библиотеку'}
       </button>
 
-      <section className="overflow-hidden rounded-lg border border-[#cbd9ed] bg-[#f8fbff] shadow-[0_16px_38px_rgba(68,88,122,0.14)]">
-        <div className="grid gap-6 p-4 sm:p-6 lg:grid-cols-[320px_1fr]">
-          <div className="relative mx-auto w-full max-w-xs">
+      <section className="bg-library-card-dossier overflow-hidden rounded-lg border border-[#cbd9ed] bg-[#f8fbff] shadow-[0_16px_38px_rgba(68,88,122,0.14)]">
+        <div className="bg-library-card-dossier__layout grid gap-6 p-4 sm:p-6 lg:grid-cols-[320px_1fr]">
+          <div className="bg-library-card-dossier__art relative mx-auto w-full max-w-xs">
             <img src={heroImage} alt={currentCardName} className="w-full drop-shadow-[0_22px_30px_rgba(21,31,47,0.22)]" data-fallbacks={fallbackCardImages(card, heroImage, true).join('|') || undefined} onError={fallbackBrokenHeroImage} />
           </div>
-          <div className="space-y-5">
+          <div className="bg-library-card-dossier__copy min-w-0 space-y-5">
             <div>
               <p className="font-hs text-xs uppercase tracking-[0.18em] text-[#8a651f]">{section.shortTitle} · {pool === 'archive' ? 'Архив' : 'Активный пул'}</p>
-              <h1 className="mt-2 font-hs text-4xl text-[#23314a] sm:text-5xl">{currentCardName}</h1>
+              <h1 className="bg-library-card-dossier__title mt-2 font-hs text-4xl text-[#23314a] sm:text-5xl">{currentCardName}</h1>
               <p className="mt-1 text-lg text-[#657893]">{cardEnName(card)}</p>
             </div>
 
@@ -1570,7 +1570,7 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
             </div>
 
             {rulesText && (
-              <div className="rounded-md border border-[#d6e1f1] bg-[#ffffff] p-4 text-base leading-relaxed text-[#3b4d68]">
+              <div className="bg-library-card-description rounded-md border border-[#d6e1f1] bg-[#ffffff] p-4 text-base leading-relaxed text-[#3b4d68]">
                 <p className="mb-2 font-hs text-lg text-[#26374f]">Описание карты</p>
                 <p className="whitespace-pre-line">{rulesText}</p>
               </div>
@@ -1592,7 +1592,7 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
               </div>
             )}
 
-            <div className="flex flex-wrap gap-2">
+            <div className="bg-library-card-sources flex min-w-0 flex-wrap gap-2">
               {card.source && <span className="rounded-md border border-[#d6e1f1] bg-white px-3 py-2 text-sm font-semibold text-[#60718a]">Источник: {card.source}</span>}
               {card.artist && <span className="rounded-md border border-[#d6e1f1] bg-white px-3 py-2 text-sm font-semibold text-[#60718a]">Художник: {card.artist}</span>}
               {wikiUrl && (

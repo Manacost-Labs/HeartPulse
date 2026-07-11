@@ -53,6 +53,8 @@ Do not hotlink wiki assets at runtime.
 - Use dusty violet for active controls, parchment for filters and wood for major rules.
 - Do not use violet side rails or colored left-border strips on BG panels; use wooden frames/rules for major separation and quiet neutral borders inside them.
 - BG tier navigation uses walnut/burgundy idle cards and violet/gold selected cards; rank groups use honey parchment, never cold white/blue dashboard surfaces.
+- BG library detail dossiers and major ledgers use canonical timber rails with honey parchment inside; long names, groups, sources and metric values wrap safely.
+- BG tier entries use explicit theme hooks rather than DOM-position selectors, and strategy/card lightboxes use timber rails over red tavern cloth instead of plain black panels.
 - Hero details use the large rail frame for the identity dossier, a thin rail slice for major ledgers, and the deck frame for hero-power/companion media; names wrap safely and descriptions are not clamped.
 - Preserve hero-power/related-card reveals, golden-card dual-layer animation, tier lightboxes and builder drag/drop/export behavior.
 - Builders use the wiki BG frame and a dark aubergine work surface; edit CSS variables before touching legacy scripts.
@@ -75,6 +77,7 @@ Do not hotlink wiki assets at runtime.
 
 ## Changelog
 
+- **2026-07-11** — Added timber-framed BG card dossiers, overflow-safe metadata, stable honey-parchment tier entries and the red tavern-cloth strategy lightbox.
 - **2026-07-10** — Defined the utility-first home hierarchy and real-data Battlegrounds hero spotlight chart.
 - **2026-07-10** — Removed generic colored side rails from Battlegrounds panels and directory entries in favor of wooden hierarchy and neutral boundaries.
 - **2026-07-10** — Added the Battlegrounds hero-dossier frame hierarchy and overflow-safe hero media rules.

@@ -2228,7 +2228,7 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen }: 
       <button
         type="button"
         onClick={() => lightboxItem && onOpen(lightboxItem)}
-        className="group flex flex-col items-center rounded-lg border border-transparent bg-[#fff7e6]/28 p-2 text-center transition-all duration-200 hover:border-[#d7b66a]/70 hover:bg-[#fff7e6]/75 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b58a2f]"
+        className="bg-tier-entry-card bg-tier-entry-card--trinket group flex flex-col items-center rounded-lg border border-transparent bg-[#fff7e6]/28 p-2 text-center transition-all duration-200 hover:border-[#d7b66a]/70 hover:bg-[#fff7e6]/75 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b58a2f]"
       >
         {image && (
           <img
@@ -2255,7 +2255,7 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen }: 
     <button
       type="button"
       onClick={() => lightboxItem && onOpen(lightboxItem)}
-      className="group flex min-h-[132px] gap-3 rounded-lg border border-[#c4a46a]/50 bg-[#fff8ea]/95 p-3 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#fffaf0] hover:shadow-[0_8px_20px_rgba(61,42,30,0.18)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b58a2f]"
+      className="bg-tier-entry-card group flex min-h-[132px] gap-3 rounded-lg border border-[#c4a46a]/50 bg-[#fff8ea]/95 p-3 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#fffaf0] hover:shadow-[0_8px_20px_rgba(61,42,30,0.18)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b58a2f]"
     >
       {image && (
         <img
@@ -2673,8 +2673,8 @@ function BattlegroundTierList() {
       </section>
       {currentLightboxItem && createPortal(
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="bg-lightbox-title">
-          <button className="absolute inset-0 bg-black/72 backdrop-blur-sm" type="button" aria-label="Закрыть" onClick={() => setLightboxIndex(-1)} />
-          <div className="relative grid max-h-[92vh] w-full max-w-4xl gap-4 overflow-y-auto rounded-lg border border-[#d7b66a]/70 bg-[#18100a] p-4 text-[#f8ead0] shadow-2xl md:grid-cols-[minmax(220px,340px)_1fr]">
+          <button className="bg-tier-lightbox-backdrop absolute inset-0 bg-black/72 backdrop-blur-sm" type="button" aria-label="Закрыть" onClick={() => setLightboxIndex(-1)} />
+          <div className="bg-tier-lightbox-frame relative grid max-h-[92vh] w-full max-w-4xl gap-4 overflow-y-auto rounded-lg border border-[#d7b66a]/70 bg-[#18100a] p-4 text-[#f8ead0] shadow-2xl md:grid-cols-[minmax(220px,340px)_1fr]">
             <button
               type="button"
               aria-label="Закрыть"
@@ -2683,14 +2683,14 @@ function BattlegroundTierList() {
             >
               <X className="h-5 w-5" />
             </button>
-            <div className="flex items-center justify-center">
+            <div className="bg-tier-lightbox-art flex items-center justify-center">
               <img
                 src={currentLightboxItem.image}
                 alt={currentLightboxItem.title}
                 className="max-h-[70vh] w-full max-w-[360px] object-contain drop-shadow-[0_12px_28px_rgba(0,0,0,0.65)]"
               />
             </div>
-            <div className="flex min-w-0 flex-col justify-center pr-8">
+            <div className="bg-tier-lightbox-copy flex min-w-0 flex-col justify-center pr-8">
               <p className="font-hs text-xs uppercase tracking-[0.18em] text-[#d7b66a]">{currentLightboxItem.kicker}</p>
               <h3 id="bg-lightbox-title" className="mt-2 font-hs text-2xl leading-tight text-[#fff3c4] sm:text-3xl">{currentLightboxItem.title}</h3>
               {currentLightboxItem.meta && <p className="mt-3 text-sm font-semibold text-[#d9c287]">{currentLightboxItem.meta}</p>}

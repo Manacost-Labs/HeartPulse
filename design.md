@@ -215,12 +215,14 @@ BG-specific styles live in `src/battlegrounds-parchment.css` and must stay scope
 - Golden card reveal is protected: base card moves left and golden layer appears to the right on pointer hover/focus.
 - Do not change golden image fallback order, `opacity`, `translate` or event behavior while restyling.
 - Detail pages retain statistics, round charts, wiki links, similar cards and strategy links.
+- Card detail pages use the canonical timber rail around the identity dossier and thin timber slices around major statistic/related-content ledgers. Their inner fields are honey parchment, never cold white; long card names, group labels, source labels and metric values must wrap inside `min-width: 0` containers.
 - Archive pagination uses the same active violet treatment as the current pool switcher.
 
 ### BG Tier List
 
 - Top list switcher uses walnut/burgundy idle cards, cream labels and a violet/gold selected state. Cold white or blue navigation cards are not part of the BG palette.
 - The tier index is a dark wood/aubergine ledger. Rank groups and individual entries use deeper honey parchment, while nested filters use dark wells with violet/gold chips; avoid the former white/blue dashboard controls.
+- Every rank entry has an explicit themed hook; styling must not depend on `:last-child`, visible limits or whether a “show more” control is present.
 - Tier card click/lightbox behavior and URL state are protected.
 - Raw card images remain large enough to recognize and are not filtered.
 
@@ -237,7 +239,7 @@ BG-specific styles live in `src/battlegrounds-parchment.css` and must stay scope
 ## Lightboxes And Hover Details
 
 - Backdrops are dark and lightly blurred.
-- Arena modal panels use deep red/wood; BG panels use aubergine/wood.
+- Arena modal panels use deep red/wood. BG strategy and card viewers use the canonical timber rail over red tavern cloth with cream/gold copy; plain black modal panels are not valid.
 - Stats rows are compact, high contrast and use metric color only for meaning.
 - Card art has no extra fake frame unless the canonical asset supplies it.
 - Mobile order is art first, stats second; both are compacted to the viewport instead of adding modal scrolling.

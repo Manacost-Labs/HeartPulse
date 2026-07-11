@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Rebuilt Battlegrounds library card details as overflow-safe timber-framed dossiers, replaced the plain black strategy/card lightbox with a red tavern-cloth wooden frame, and fixed tier-entry theming so minion and spell cards stay warm honey parchment after “Show more.”
 - Added a locally optimized Paladin character mural to the home-page live dashboard, with a wine-red readability mask, preserved statistics and a dedicated mobile panorama treatment.
 - Connected the production Arena service to the server's shared Blizzard credentials, accepted the canonical `BLIZZARD_REGION` setting and Blizzard CDN's binary image MIME type, exposed a safe image-source response header, and rotated the card-image cache so existing HearthstoneJSON fallbacks are replaced immediately.
 - Refactored the home page into a compact utility-first dashboard: live freshness and Arena leaders now appear before the Battlegrounds and Arena directories, followed by neatly grouped cross-mode statistics and a real eight-place Battlegrounds hero distribution chart with an honest unavailable-data state.
