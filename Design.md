@@ -36,6 +36,7 @@ Do not hotlink wiki assets at runtime.
 - App mobile navigation stays fixed below its topbar; deferred-shell mobile rules stay scoped below `.arena-main`.
 - Verify `390px` with no document-level horizontal scroll and minimum `42px` touch targets.
 - Profile hierarchy uses the large wood frame for hero/settings/access, the deck frame for short statuses and subscription sources, and plain parchment inputs for readability.
+- The public footer is global to `.arena-app-shell` and always uses red tavern cloth, a wooden top rule, cream links and muted gold legal copy.
 
 ## Home Rules
 
@@ -79,6 +80,7 @@ Do not hotlink wiki assets at runtime.
 
 ## Changelog
 
+- **2026-07-11** — Applied the canonical tavern footer to every public route, including all Battlegrounds pages.
 - **2026-07-11** — Simplified the BG heroes controls into one rail-free metric and search panel.
 - **2026-07-11** — Shifted the home Paladin farther left so the character remains visible beside the Arena class board.
 - **2026-07-11** — Unified all content lightboxes with timber rails, red tavern cloth, cream/gold copy and responsive artwork stages.

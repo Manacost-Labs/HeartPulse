@@ -2965,7 +2965,8 @@
 :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .support-prompt__dismiss { color: #d9bd83 !important; background: rgba(49, 4, 7, 0.26) !important; }
 
 /* Footer's legacy rules live in Tailwind's utilities layer and use !important.
-   Keep this correction in the same layer so the scoped home selector wins. */
+   Keep one public-shell correction in the same layer so every route gets the
+   same tavern footer instead of falling back to the old blue dashboard skin. */
 @layer utilities {
   /* The legacy shell keeps a fixed blue vignette in the utilities layer.
      Important declarations reverse layer priority, so disable it here too. */
@@ -2982,7 +2983,7 @@
     backdrop-filter: none !important;
   }
 
-  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer {
+  .arena-app-shell .arena-footer {
     margin-top: 0 !important;
     border-top: 5px solid transparent !important;
     border-image: var(--arena-wood-divider) 1 !important;
@@ -2993,9 +2994,9 @@
     box-shadow: inset 0 12px 28px rgba(45, 4, 7, 0.12) !important;
   }
 
-  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer::before { display: none !important; }
+  .arena-app-shell .arena-footer::before { display: none !important; }
 
-  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer > .max-w-6xl {
+  .arena-app-shell .arena-footer > .max-w-6xl {
     border-color: rgba(236, 194, 99, 0.23) !important;
     border-radius: 2px !important;
     background: rgba(48, 4, 7, 0.22) !important;
@@ -3003,15 +3004,15 @@
     backdrop-filter: none !important;
   }
 
-  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer h3,
-  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer [class*='text-[#f6ce68]'] {
+  .arena-app-shell .arena-footer h3,
+  .arena-app-shell .arena-footer [class*='text-[#f6ce68]'] {
     color: #efc768 !important;
     text-shadow: none !important;
   }
 
-  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer a { color: #efd9ad !important; }
-  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer a:hover { color: #fff3cd !important; }
-  :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-footer p { color: #c7aa76 !important; }
+  .arena-app-shell .arena-footer a { color: #efd9ad !important; }
+  .arena-app-shell .arena-footer a:hover { color: #fff3cd !important; }
+  .arena-app-shell .arena-footer p { color: #c7aa76 !important; }
 
   /* Legacy text utilities otherwise win over the champion plaque colors. */
   .arena-app-winrates .arena-class-row[data-rank='1'] .font-hs {

@@ -152,6 +152,7 @@ Never add an unscoped duplicate `.arena-mobile-*` rule. The App drawer must rema
 - Profile badge stays in the Hearthstone deck frame.
 - Mobile uses the same red material, a compact brand and a burger/X button with `aria-expanded`.
 - Navigation structure is approved; visual changes must not rename or reorder routes unless requested.
+- The public footer is global to `.arena-app-shell`: every route uses the same red tavern cloth, wooden top rule, cream links and muted gold legal copy. Route-specific footer skins are not valid.
 
 ## Home Page
 
@@ -314,6 +315,7 @@ Rules:
 
 ## Changelog
 
+- **2026-07-11** — Applied the canonical tavern footer to every public route, including all Battlegrounds pages.
 - **2026-07-11** — Simplified the BG heroes controls into one rail-free metric and search panel.
 - **2026-07-10** — Wide BG workbench and contrast pass: reclaimed ornamental-frame space, expanded both builders, made annotation tools container-responsive, replaced cold tier-list whites/blues with walnut, aubergine and honey parchment, and corrected the profile plaque/art/avatar composition.
 - **2026-07-10** — Battlegrounds parchment system: added a scoped BG shell, local bartender title sign, violet/gold controls, parchment library and hero surfaces, wiki skin builder frame, warm builder variables, protected golden-card and hero animations, and expanded route-specific QA rules.
