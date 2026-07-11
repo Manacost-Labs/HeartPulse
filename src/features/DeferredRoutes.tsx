@@ -457,6 +457,7 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
   // Rendered via portal — completely outside app stacking context
   return createPortal(
     <div
+      className="card-modal-lightbox"
       style={{
         position: 'fixed', inset: 0,
         zIndex: 99999,
@@ -6829,6 +6830,7 @@ const DeckCardLightbox: React.FC<{ card: ArenaDeckCard; onClose: () => void }> =
 
   return createPortal(
     <div
+      className="deck-card-lightbox"
       style={{
         position: 'fixed', inset: 0,
         zIndex: 99999,
@@ -6852,9 +6854,9 @@ const DeckCardLightbox: React.FC<{ card: ArenaDeckCard; onClose: () => void }> =
         if (moved < 12) { e.preventDefault(); onClose(); }
       }}
     >
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.87)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }} />
+      <div className="deck-card-lightbox-backdrop" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.87)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }} />
       <div
-        className="flex flex-col items-center gap-3"
+        className="deck-card-lightbox-panel flex flex-col items-center gap-3"
         style={{
           position: 'relative',
           zIndex: 1,
@@ -6906,6 +6908,7 @@ const DeckCardLightbox: React.FC<{ card: ArenaDeckCard; onClose: () => void }> =
         </div>
       </div>
       <button
+        className="hs-lightbox-close"
         style={{
           position: 'absolute', top: '16px', right: '16px', zIndex: 2,
           width: '44px', height: '44px', borderRadius: '50%',

@@ -703,6 +703,74 @@
   background: linear-gradient(180deg, #793342, #441923) !important;
 }
 
+/* Hero gallery viewer uses the same physical tavern display as strategy cards. */
+.bg-hero-media-lightbox-backdrop {
+  background:
+    radial-gradient(circle at 28% 40%, rgba(130, 30, 31, 0.2), transparent 32rem),
+    linear-gradient(rgba(22, 7, 8, 0.91), rgba(9, 3, 4, 0.96)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+  backdrop-filter: blur(9px) saturate(0.82) !important;
+  -webkit-backdrop-filter: blur(9px) saturate(0.82) !important;
+}
+
+.bg-hero-media-lightbox-panel {
+  min-width: 0;
+  border: clamp(12px, 1.6vw, 18px) solid transparent !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 18 !important;
+  border-image-width: clamp(12px, 1.6vw, 18px) !important;
+  border-image-repeat: stretch !important;
+  border-radius: 0 !important;
+  color: #f7e3b7 !important;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(182, 76, 63, 0.25), transparent 30rem),
+    linear-gradient(145deg, rgba(105, 21, 27, 0.98), rgba(48, 8, 14, 0.99)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+  box-shadow: 0 30px 70px rgba(8, 2, 3, 0.68) !important;
+  padding: clamp(0.75rem, 1.6vw, 1.25rem) !important;
+}
+
+.bg-hero-media-lightbox-art {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(231, 188, 98, 0.36) !important;
+  border-radius: 2px !important;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(245, 200, 105, 0.16), transparent 55%),
+    linear-gradient(180deg, rgba(66, 12, 17, 0.82), rgba(28, 5, 8, 0.9)) !important;
+}
+
+.bg-hero-media-lightbox-copy,
+.bg-hero-media-lightbox-copy > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.bg-hero-media-lightbox-copy :is(h3, p, a, button) {
+  color: #f7e3b7 !important;
+}
+
+.bg-hero-media-lightbox-copy > p:first-child {
+  color: #e9bd62 !important;
+}
+
+.bg-hero-media-lightbox-copy h3 {
+  color: #fff0c8 !important;
+  text-shadow: 0 3px 5px rgba(25, 2, 5, 0.7) !important;
+}
+
+.bg-hero-media-lightbox-copy a,
+.bg-hero-media-lightbox-copy button {
+  border-color: rgba(231, 188, 98, 0.46) !important;
+  background: linear-gradient(180deg, rgba(116, 39, 48, 0.88), rgba(57, 14, 21, 0.94)) !important;
+}
+
+.bg-hero-media-lightbox .hs-lightbox-close {
+  border-color: rgba(231, 188, 98, 0.58) !important;
+  color: #fff0c8 !important;
+  background: linear-gradient(180deg, #793342, #441923) !important;
+}
+
 /* Builder frame. The interactive canvas itself remains dark for contrast. */
 .arena-app-battlegrounds .bg-builder-page {
   padding: clamp(0.5rem, 0.9vw, 0.75rem) !important;
@@ -801,6 +869,17 @@
 
   .bg-tier-lightbox-art img {
     max-height: min(43vh, 360px) !important;
+  }
+
+  .bg-hero-media-lightbox-panel {
+    gap: 0.75rem !important;
+    border-width: 10px !important;
+    border-image-width: 10px !important;
+    padding: 0.65rem !important;
+  }
+
+  .bg-hero-media-lightbox-art img {
+    max-height: min(43vh, 350px) !important;
   }
 }
 

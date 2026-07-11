@@ -239,7 +239,7 @@ BG-specific styles live in `src/battlegrounds-parchment.css` and must stay scope
 ## Lightboxes And Hover Details
 
 - Backdrops are dark and lightly blurred.
-- Arena modal panels use deep red/wood. BG strategy and card viewers use the canonical timber rail over red tavern cloth with cream/gold copy; plain black modal panels are not valid.
+- Every content lightbox—Arena cards, deck cards, BG strategies, BG hero media and gallery art—uses the canonical timber rail over red tavern cloth with cream/gold copy. Plain white, transparent and black modal panels are not valid; a dark wine inner art stage is allowed when it improves artwork contrast.
 - Stats rows are compact, high contrast and use metric color only for meaning.
 - Card art has no extra fake frame unless the canonical asset supplies it.
 - Mobile order is art first, stats second; both are compacted to the viewport instead of adding modal scrolling.

@@ -3661,6 +3661,110 @@
   .arena-app-home .home-page-index > a:first-of-type { border-left: 0; }
 }
 
+/* Canonical lightbox material: timber rail, red tavern cloth and cream copy. */
+.card-modal-lightbox .card-modal-backdrop,
+.deck-card-lightbox-backdrop,
+.gallery-lightbox-backdrop {
+  background:
+    radial-gradient(circle at 28% 40%, rgba(132, 31, 32, 0.2), transparent 32rem),
+    linear-gradient(rgba(22, 7, 8, 0.91), rgba(9, 3, 4, 0.96)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+  backdrop-filter: blur(9px) saturate(0.82) !important;
+  -webkit-backdrop-filter: blur(9px) saturate(0.82) !important;
+}
+
+.card-modal-lightbox .card-modal-shell,
+.deck-card-lightbox-panel,
+.gallery-lightbox-panel {
+  min-width: 0;
+  border: clamp(12px, 1.5vw, 18px) solid transparent !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 18 !important;
+  border-image-width: clamp(12px, 1.5vw, 18px) !important;
+  border-image-repeat: stretch !important;
+  border-radius: 0 !important;
+  color: #f7e3b7 !important;
+  background:
+    radial-gradient(circle at 24% 18%, rgba(183, 74, 62, 0.24), transparent 30rem),
+    linear-gradient(145deg, rgba(105, 21, 27, 0.98), rgba(48, 8, 14, 0.99)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+  box-shadow: 0 30px 70px rgba(8, 2, 3, 0.68) !important;
+}
+
+.card-modal-lightbox .card-modal-shell {
+  padding: clamp(0.75rem, 1.8vw, 1.35rem) !important;
+  scrollbar-color: rgba(224, 174, 74, 0.52) transparent !important;
+}
+
+.card-modal-lightbox .card-modal-stats,
+.card-modal-lightbox .card-modal-stats.card-modal-stats--parchment {
+  border: 1px solid rgba(235, 194, 100, 0.3) !important;
+  border-image: none !important;
+  border-radius: 2px !important;
+  color: #f2dbab !important;
+  background: rgba(45, 3, 7, 0.56) !important;
+  box-shadow: inset 0 1px rgba(255, 236, 190, 0.05) !important;
+}
+
+.deck-card-lightbox-panel {
+  width: min(92vw, 380px) !important;
+  padding: clamp(0.7rem, 1.7vw, 1.15rem) !important;
+  scrollbar-color: rgba(224, 174, 74, 0.52) transparent !important;
+}
+
+.deck-card-lightbox-panel > img {
+  max-height: calc(90dvh - 8.5rem) !important;
+  object-fit: contain;
+}
+
+.gallery-lightbox-panel > img {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(236, 187, 91, 0.14), transparent 55%),
+    #260408 !important;
+}
+
+.gallery-lightbox-head,
+.gallery-lightbox-caption {
+  color: #e3c58a !important;
+  background:
+    linear-gradient(rgba(76, 6, 11, 0.14), rgba(39, 3, 6, 0.24)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+}
+
+.hs-lightbox-close,
+.card-modal-close,
+.gallery-icon-action {
+  border: 1px solid rgba(231, 188, 98, 0.58) !important;
+  color: #fff0c8 !important;
+  background: linear-gradient(180deg, #793342, #441923) !important;
+  box-shadow: 0 5px 14px rgba(20, 2, 4, 0.42) !important;
+}
+
+.hs-lightbox-close:hover,
+.card-modal-close:hover,
+.gallery-icon-action:hover {
+  border-color: rgba(255, 218, 132, 0.82) !important;
+  color: #fff7dc !important;
+  background: linear-gradient(180deg, #91404e, #551b26) !important;
+}
+
+@media (max-width: 767px) {
+  .card-modal-lightbox .card-modal-shell,
+  .deck-card-lightbox-panel,
+  .gallery-lightbox-panel {
+    border-width: 9px !important;
+    border-image-width: 9px !important;
+  }
+
+  .card-modal-lightbox .card-modal-shell {
+    padding: 0.65rem !important;
+  }
+
+  .deck-card-lightbox-panel {
+    padding: 0.55rem !important;
+  }
+}
+
 @media (max-width: 420px) {
   .arena-app-home .home-draft-orbit { min-height: 365px !important; }
   .arena-app-home .home-draft-orbit__board { width: 108% !important; margin-left: -4% !important; transform: scale(0.82); }

@@ -895,6 +895,7 @@ function BattlegroundHeroMediaLightbox({
 
   return createPortal(
     <div
+      className="bg-hero-media-lightbox"
       style={{
         position: 'fixed',
         inset: 0,
@@ -924,6 +925,7 @@ function BattlegroundHeroMediaLightbox({
       }}
     >
       <div
+        className="bg-hero-media-lightbox-backdrop"
         style={{
           position: 'absolute',
           inset: 0,
@@ -934,7 +936,7 @@ function BattlegroundHeroMediaLightbox({
       />
 
       <div
-        className="grid gap-5 rounded-[28px] border border-[#d7b66a]/55 bg-[linear-gradient(180deg,#fffdf8,#f4ead4)] p-4 shadow-[0_28px_80px_rgba(0,0,0,0.42)] lg:grid-cols-[minmax(260px,360px)_minmax(280px,420px)] lg:p-5"
+        className="bg-hero-media-lightbox-panel grid gap-5 rounded-[28px] border border-[#d7b66a]/55 bg-[linear-gradient(180deg,#fffdf8,#f4ead4)] p-4 shadow-[0_28px_80px_rgba(0,0,0,0.42)] lg:grid-cols-[minmax(260px,360px)_minmax(280px,420px)] lg:p-5"
         style={{
           position: 'relative',
           zIndex: 1,
@@ -948,7 +950,7 @@ function BattlegroundHeroMediaLightbox({
         onTouchStart={event => event.stopPropagation()}
         onTouchEnd={event => event.stopPropagation()}
       >
-        <div className="flex items-center justify-center rounded-[24px] border border-[#e2cf99] bg-[radial-gradient(circle_at_top,#fff8de,transparent_58%),linear-gradient(180deg,#fff9ef,#f0e0bf)] p-3">
+        <div className="bg-hero-media-lightbox-art flex items-center justify-center rounded-[24px] border border-[#e2cf99] bg-[radial-gradient(circle_at_top,#fff8de,transparent_58%),linear-gradient(180deg,#fff9ef,#f0e0bf)] p-3">
           <BattlegroundHeroImage
             sources={bgDetailImageSources(item.image)}
             alt={item.title}
@@ -962,7 +964,7 @@ function BattlegroundHeroMediaLightbox({
           />
         </div>
 
-        <div className="flex min-w-0 flex-col justify-center">
+        <div className="bg-hero-media-lightbox-copy flex min-w-0 flex-col justify-center">
           {item.kicker && <p className="font-hs text-xs uppercase tracking-[0.18em] text-[#8b6c42]">{item.kicker}</p>}
           <h3 className="mt-2 font-hs text-2xl leading-tight text-[#3d2a1e] sm:text-3xl">{item.title}</h3>
           {item.meta && <p className="mt-3 text-sm font-semibold text-[#6b4c2a]">{item.meta}</p>}
@@ -1021,7 +1023,7 @@ function BattlegroundHeroMediaLightbox({
           event.stopPropagation();
           onClose();
         }}
-        className="absolute right-4 top-4 z-[2] flex h-11 w-11 items-center justify-center rounded-full border border-white/25 bg-black/20 text-white transition-colors hover:bg-black/35"
+        className="hs-lightbox-close absolute right-4 top-4 z-[2] flex h-11 w-11 items-center justify-center rounded-full border border-white/25 bg-black/20 text-white transition-colors hover:bg-black/35"
         aria-label="Закрыть"
       >
         <X className="h-5 w-5" />

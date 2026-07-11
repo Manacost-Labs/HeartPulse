@@ -55,6 +55,7 @@ Do not hotlink wiki assets at runtime.
 - BG tier navigation uses walnut/burgundy idle cards and violet/gold selected cards; rank groups use honey parchment, never cold white/blue dashboard surfaces.
 - BG library detail dossiers and major ledgers use canonical timber rails with honey parchment inside; long names, groups, sources and metric values wrap safely.
 - BG tier entries use explicit theme hooks rather than DOM-position selectors, and strategy/card lightboxes use timber rails over red tavern cloth instead of plain black panels.
+- Arena cards, deck cards, BG strategies, BG hero media and gallery art share one timber-framed red-cloth lightbox material; white, transparent and plain black modal panels are not valid.
 - Hero details use the large rail frame for the identity dossier, a thin rail slice for major ledgers, and the deck frame for hero-power/companion media; names wrap safely and descriptions are not clamped.
 - Preserve hero-power/related-card reveals, golden-card dual-layer animation, tier lightboxes and builder drag/drop/export behavior.
 - Builders use the wiki BG frame and a dark aubergine work surface; edit CSS variables before touching legacy scripts.
@@ -77,6 +78,7 @@ Do not hotlink wiki assets at runtime.
 
 ## Changelog
 
+- **2026-07-11** — Unified all content lightboxes with timber rails, red tavern cloth, cream/gold copy and responsive artwork stages.
 - **2026-07-11** — Removed the aggregate “Мета в цифрах” block from the home page and its quick-navigation link.
 - **2026-07-11** — Shifted the home character crop left and removed the duplicate hero status footer.
 - **2026-07-11** — Added timber-framed BG card dossiers, overflow-safe metadata, stable honey-parchment tier entries and the red tavern-cloth strategy lightbox.
