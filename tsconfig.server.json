@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": false,
+    "allowJs": false,
+    "declaration": false,
+    "isolatedModules": false,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": false,
+    "outDir": "build",
+    "rootDir": ".",
+    "sourceMap": true
+  },
+  "include": [
+    "server/index.ts",
+    "server/scraper.ts",
+    "server/blizzardCards.ts",
+    "server/hsreplayArenasmith.ts",
+    "server/health.ts",
+    "server/healthRoutes.ts",
+    "server/guides/**/*.ts"
+  ]
+}

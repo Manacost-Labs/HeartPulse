@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Added a production Node compilation target and mandatory compiled-server smoke test. CI now starts `build/server/index.js` against isolated temporary snapshots and SQLite, verifies direct/proxied health plus legacy status, and normalizes artifact permissions; runtime data and asset roots are explicit so immutable releases no longer depend on TypeScript source paths.
 - Added dedicated uncached `/health/live`, `/health/ready` and `/health/data` contracts, mirrored externally at `/api/health/*`: deployments can distinguish a live process from valid snapshots, while monitoring receives `503` when Arena data is missing, malformed, future-dated or older than the eight-hour SLO. The evaluator, both proxy mount paths and Express router have unit and real HTTP contract tests.
 - Extracted the old-guide HTML sanitizer from the server monolith, added security regression tests and deterministic subscriber E2E coverage for Guides Archive on desktop/mobile, then removed eight now-unnecessary image `!important` declarations and lowered the permanent CSS debt ceiling to 2,716.
 - Established the CSS stabilization ratchet: all global design variables now live in one canonical token stylesheet, while CI rejects new `:root` owners, duplicate global tokens and any increase above the measured legacy `!important` baseline.

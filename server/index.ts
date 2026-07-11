@@ -7,7 +7,7 @@ import sanitizeHtml from 'sanitize-html';
 import { createClient } from 'redis';
 import { chmodSync, copyFileSync, createReadStream, mkdirSync, renameSync, unlinkSync, writeFileSync, readFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, resolve } from 'path';
 import { spawn } from 'child_process';
 import { createHash, createHmac, createPublicKey, randomBytes, randomInt, scryptSync, timingSafeEqual, verify } from 'crypto';
 // @ts-ignore: node:sqlite is available in the production Node 22 runtime.
@@ -21,7 +21,11 @@ import { createHealthRouter } from './healthRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
-const DATA_DIR   = join(__dirname, 'data');
+const DEFAULT_APP_ROOT_DIR = existsSync(join(__dirname, '..', '..', 'package.json'))
+  ? join(__dirname, '..', '..')
+  : join(__dirname, '..');
+const APP_ROOT_DIR = resolve(process.env.APP_ROOT_DIR || DEFAULT_APP_ROOT_DIR);
+const DATA_DIR = resolve(process.env.SERVER_DATA_DIR || join(APP_ROOT_DIR, 'server', 'data'));
 const CARD_IMAGE_CACHE_DIR = join(DATA_DIR, 'card-images');
 const ADMIN_UPLOAD_SOURCE_DIR = process.env.ADMIN_UPLOAD_SOURCE_DIR || join(DATA_DIR, 'uploads', 'admin');
 const ADMIN_UPLOAD_DIR = process.env.ADMIN_UPLOAD_DIR || ADMIN_UPLOAD_SOURCE_DIR;
@@ -8853,7 +8857,7 @@ app.post('/api/admin/gen-image', adminIdGuard, (req, res) => {
 
   const type = (req.body?.type as string) ?? 'legendaries';
   const scriptMap: Record<string, string> = {
-    legendaries: join(__dirname, 'gen_legendary_image.py'),
+    legendaries: join(APP_ROOT_DIR, 'server', 'gen_legendary_image.py'),
   };
   const script = scriptMap[type];
   if (!script || !existsSync(script)) {
@@ -8864,12 +8868,12 @@ app.post('/api/admin/gen-image', adminIdGuard, (req, res) => {
   }
 
   const outRel = `generated/${type === 'legendaries' ? 'top_legendaries' : type}.png`;
-  const outAbs = join(__dirname, '..', 'public', outRel);
+  const outAbs = join(APP_ROOT_DIR, 'public', outRel);
 
   isGenerating = true;
   const logs: string[] = [];
 
-  const py = spawn('python', [script, outAbs], { cwd: __dirname });
+  const py = spawn('python', [script, outAbs], { cwd: join(APP_ROOT_DIR, 'server') });
 
   py.stdout.on('data', (d: Buffer) => {
     const line = d.toString().trim();

@@ -1,17 +1,22 @@
 import puppeteer from 'puppeteer';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, resolve } from 'path';
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import { config as dotenvConfig } from 'dotenv';
 
-dotenvConfig({ path: join(dirname(fileURLToPath(import.meta.url)), '../.env') });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const DEFAULT_APP_ROOT_DIR = existsSync(join(__dirname, '..', '..', 'package.json'))
+  ? join(__dirname, '..', '..')
+  : join(__dirname, '..');
+const APP_ROOT_DIR = resolve(process.env.APP_ROOT_DIR || DEFAULT_APP_ROOT_DIR);
+
+dotenvConfig({ path: resolve(process.env.APP_ENV_FILE || join(APP_ROOT_DIR, '.env')) });
 
 const BLIZZARD_CLIENT_ID     = process.env.BLIZZARD_CLIENT_ID     ?? '';
 const BLIZZARD_CLIENT_SECRET = process.env.BLIZZARD_CLIENT_SECRET ?? '';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = dirname(__filename);
-const DATA_DIR   = join(__dirname, 'data');
+const DATA_DIR = resolve(process.env.SERVER_DATA_DIR || join(APP_ROOT_DIR, 'server', 'data'));
 
 if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
 
