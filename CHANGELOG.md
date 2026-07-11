@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Added privacy-safe structured HTTP telemetry: each response now exposes a request ID, normalized JSON request logs include status/latency/size and aborted requests, unhandled errors return the correlation ID, and regression tests prove that query data, cookies, authorization values, request bodies, emails and raw error messages never reach logs.
 - Completed the immutable production switch: systemd now runs compiled Node from `current`, nginx serves the versioned frontend, mutable datasets/uploads live in shared storage, and a real rollback from `bc19b2b` to `43c8722` completed in one second before the latest release was restored.
 - Added tested immutable release tooling and an operator runbook: artifacts carry commit/lockfile/checksum manifests, mutable data is shared, production dependencies install unprivileged and are cached by lockfile, releases become root-owned/read-only, `current` and `previous` switch atomically, and failed readiness automatically restores the last healthy release.
 - Added a production Node compilation target and mandatory compiled-server smoke test. CI now starts `build/server/index.js` against isolated temporary snapshots and SQLite, verifies direct/proxied health plus legacy status, and normalizes artifact permissions; runtime data and asset roots are explicit so immutable releases no longer depend on TypeScript source paths.

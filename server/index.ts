@@ -18,6 +18,7 @@ import { createBlizzardCardImageClient, isBlizzardImageContentType } from './bli
 import { createOldGuideSanitizer } from './guides/sanitize.js';
 import { evaluateDataHealth } from './health.js';
 import { createHealthRouter } from './healthRoutes.js';
+import { requestLoggingMiddleware, structuredErrorMiddleware } from './observability.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -5483,6 +5484,7 @@ function makeExternalEtag(prefix: string, source: string, data: any, now: number
 const app = express();
 app.disable('x-powered-by');
 app.set('etag', false);
+app.use(requestLoggingMiddleware());
 
 ensureAdminUploadDirs();
 ensureGalleryUploadDirs();
@@ -8929,6 +8931,8 @@ app.delete('/api/admin-articles', adminIdGuard, (req, res) => {
     res.json({ success: true });
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
+
+app.use(structuredErrorMiddleware());
 
 // ─── Scheduled scraping every 6 hours ─────────────────────────────────────────
 cron.schedule('0 */6 * * *', async () => {

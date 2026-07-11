@@ -179,6 +179,9 @@ A task is complete only when all relevant checks below are proven.
   - [x] Release tooling now emits checksum manifests, separates lockfile-addressed dependencies and mutable data, makes releases read-only, switches `current`/`previous` atomically and automatically rolls back failed readiness; success, repeat-deploy and forced-failure paths are tested outside production.
   - [x] A production rollback drill completed in one second and verified both previous and restored-current release SHAs through liveness.
 - [ ] Phase 7: structured telemetry, alerts and backup/restore.
+  - [x] Every HTTP response carries a validated or generated request ID; completed, failed and aborted requests emit one-line JSON records with normalized routes, status, duration and response size, while an allowlist prevents query strings, cookies, authorization headers, request bodies and raw error messages from entering logs.
+  - [ ] Export request latency, 5xx rate, data age and deployment health as scrapeable metrics with actionable alert thresholds.
+  - [ ] Automate encrypted backups of shared mutable data and prove restore integrity with a scheduled drill.
 - [ ] Phase 8: performance, accessibility and final production audit.
 
 ## Progress metrics

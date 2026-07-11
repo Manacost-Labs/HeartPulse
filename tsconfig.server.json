@@ -19,6 +19,7 @@
     "server/hsreplayArenasmith.ts",
     "server/health.ts",
     "server/healthRoutes.ts",
+    "server/observability.ts",
     "server/guides/**/*.ts"
   ]
 }
