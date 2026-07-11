@@ -10,6 +10,7 @@ import { getCanonicalRedirectUrl } from './config/domain';
 import HomeTab from './features/Home';
 import { usePageScrollLock } from './hooks/usePageScrollLock';
 import SubscriptionPurchaseButtons from './components/SubscriptionPurchaseButtons';
+import PaywallGate from './components/PaywallGate';
 import {
   ADMIN_TABS,
   applyPageMeta,
@@ -1128,7 +1129,7 @@ function ClassMatchupMatrix({ classes, data, loading, error }: {
   );
 }
 
-function PaywallGate({
+function LegacyPaywallGate({
   active,
   title,
   authUser,

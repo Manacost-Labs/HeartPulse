@@ -4,6 +4,7 @@
 
 - Consolidated route navigation, grouping, subscription entitlements and SEO metadata into one typed registry with invariant tests for every public path.
 - Replaced duplicate paywall purchase controls in the main and deferred bundles with one shared, accessible subscription component.
+- Unified the subscriber gate used by main and deferred routes, preserving inert private previews while removing incorrect modal semantics and another 4 KB from the deferred bundle.
 - Added deterministic authenticated browser QA for Arena subscriber pages at desktop and mobile widths, including paywall isolation, viewport dimming, horizontal overflow, grouped mobile navigation and lightbox background scroll locking.
 - Added required application validation on pushes and pull requests: locked install, critical production audit, typecheck, autonomous unit tests, production build, honest no-growth bundle budgets and documentation lint.
 - Added the stabilization source of truth with the route/access inventory, measurable SLOs, mandatory Definition of Done and stop-the-line release rules.

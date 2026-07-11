@@ -10,6 +10,7 @@ import { Trophy, Scroll, RefreshCw, AlertTriangle, X, Search, Star, Home, BookOp
 import { getCanonicalRedirectUrl } from '../config/domain';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import SubscriptionPurchaseButtons from '../components/SubscriptionPurchaseButtons';
+import PaywallGate from '../components/PaywallGate';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1010,7 +1011,7 @@ function ClassMatchupMatrix({ classes, data, loading, error }: {
   );
 }
 
-function PaywallGate({
+function LegacyPaywallGate({
   active,
   title,
   authUser,

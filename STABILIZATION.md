@@ -131,6 +131,7 @@ A task is complete only when all relevant checks below are proven.
 - [ ] Phase 2: one route registry and shared frontend components.
   - [x] One typed route registry owns navigation groups, access entitlements, path resolution and SEO metadata.
   - [x] Shared subscription purchase controls replace the first cross-bundle component duplicate.
+  - [x] One subscriber gate owns paywall accessibility, actions and private-preview isolation across bundles.
 - [ ] Phase 3: layered CSS and removal of legacy cascade.
 - [ ] Phase 4: modular API, runtime validation and durable data snapshots.
 - [ ] Phase 5: isolated scraper publishing.

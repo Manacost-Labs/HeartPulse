@@ -213,8 +213,21 @@ for (const route of authenticatedRoutes) {
   try {
     await page.goto(`${BASE}/classes`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.arena-paywall', { visible: true, timeout: 20_000 });
-    const text = await page.$eval('.arena-paywall', element => element.textContent || '');
-    if (!text.includes('подпис')) failures.push('/classes [guest]: paywall copy is missing');
+    const state = await page.$eval('.arena-paywall', element => {
+      const preview = element.querySelector('.arena-paywall__preview');
+      const dialog = element.querySelector('.arena-paywall__dialog');
+      return {
+        text: element.textContent || '',
+        previewInert: preview?.hasAttribute('inert') || false,
+        previewHidden: preview?.getAttribute('aria-hidden') === 'true',
+        landmark: dialog?.tagName || '',
+        purchaseLinks: element.querySelectorAll('.arena-paywall__purchase-options a').length,
+      };
+    });
+    if (!state.text.includes('подпис')) failures.push('/classes [guest]: paywall copy is missing');
+    if (!state.previewInert || !state.previewHidden) failures.push('/classes [guest]: private preview is exposed to interaction or assistive technology');
+    if (state.landmark !== 'SECTION') failures.push(`/classes [guest]: paywall must be a section, got ${state.landmark || 'nothing'}`);
+    if (state.purchaseLinks !== 2) failures.push(`/classes [guest]: expected 2 purchase links, got ${state.purchaseLinks}`);
     console.log('✓ /classes [mobile guest] paywall');
   } catch (error) {
     failures.push(`/classes [mobile guest]: ${error.message}`);
