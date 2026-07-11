@@ -2466,7 +2466,7 @@ function BattlegroundTierList() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+      <div className="bg-tier-nav-grid grid grid-cols-2 gap-2 lg:grid-cols-4">
         {BG_TIER_LISTS.map(item => {
           const active = item.id === activeList;
           return (
@@ -2504,7 +2504,7 @@ function BattlegroundTierList() {
 
       <section key={`bg-tier-list-${activeList}`} className="bg-tier-index-panel rounded-lg border p-3 sm:p-4">
         <div className="flex flex-col gap-3 border-b border-[#bfdbfe]/70 pb-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
+          <div className="bg-tier-panel-heading">
             <h3 className="bg-tier-panel-title font-hs text-2xl">{activeMeta.label}</h3>
             <p className="bg-tier-panel-meta text-xs">
               {activeData?.source ? `Источник: ${activeData.source}` : 'Источник: BG Manacost'}

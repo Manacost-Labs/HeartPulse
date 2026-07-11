@@ -14,6 +14,8 @@
   --bg-violet: #8f536d;
   --bg-violet-dark: #3d2335;
   --bg-violet-deep: #2a1725;
+  --bg-purple: #4a2f66;
+  --bg-purple-light: #6a4b86;
   --bg-gold: #d9ab49;
   --bg-wood: #2e160b;
   --bg-wood-soft: #5f371d;
@@ -764,7 +766,13 @@
 
 /* BG tier list */
 .arena-app-battlegrounds .bg-tier-list-page .bg-tier-nav-card {
-  min-height: 92px;
+  min-height: 104px;
+  border: 7px solid transparent !important;
+  border-radius: 0 !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 13 !important;
+  border-image-width: 7px !important;
+  border-image-repeat: stretch !important;
   border-color: rgba(221, 177, 91, 0.35) !important;
   color: #f3deb1 !important;
   background:
@@ -783,11 +791,11 @@
   border-color: #e1b45a !important;
   color: #fff0c8 !important;
   background:
-    linear-gradient(160deg, rgba(143, 83, 109, 0.96), rgba(69, 31, 51, 0.98)),
+    linear-gradient(160deg, rgba(74, 47, 102, 0.97), rgba(42, 25, 62, 0.99)),
     url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
   box-shadow:
     inset 0 0 0 2px rgba(255, 224, 148, 0.12),
-    0 8px 18px rgba(74, 30, 49, 0.28) !important;
+    0 8px 18px rgba(49, 29, 70, 0.3) !important;
 }
 
 .arena-app-battlegrounds .bg-tier-list-page .bg-tier-nav-card span:last-child {
@@ -808,14 +816,48 @@
 }
 
 .arena-app-battlegrounds .bg-tier-list-page > .bg-tier-index-panel {
-  border-color: rgba(216, 170, 79, 0.5) !important;
+  border: clamp(8px, 1vw, 11px) solid transparent !important;
+  border-radius: 0 !important;
+  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+  border-image-slice: 13 !important;
+  border-image-width: clamp(8px, 1vw, 11px) !important;
+  border-image-repeat: stretch !important;
   color: #f5e2b9 !important;
   background:
-    radial-gradient(circle at 50% -20%, rgba(143, 83, 109, 0.26), transparent 42%),
+    radial-gradient(circle at 50% -20%, rgba(74, 47, 102, 0.3), transparent 42%),
     linear-gradient(145deg, rgba(61, 34, 29, 0.98), rgba(35, 19, 17, 0.99)) !important;
   box-shadow:
     inset 0 0 0 2px rgba(238, 194, 102, 0.08),
     0 14px 26px rgba(57, 28, 15, 0.17) !important;
+}
+
+.arena-app-battlegrounds .bg-tier-list-page > .bg-tier-index-panel::after {
+  display: none;
+}
+
+.arena-app-battlegrounds .bg-tier-list-page .bg-tier-panel-heading {
+  position: relative;
+  z-index: 0;
+  width: min(100%, 520px);
+  min-height: 58px;
+  padding: 0.55rem clamp(2rem, 5vw, 3.8rem) 0.65rem;
+  text-align: center;
+  isolation: isolate;
+}
+
+.arena-app-battlegrounds .bg-tier-list-page .bg-tier-panel-heading::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--bg-purple);
+  -webkit-mask: url('/wallpaper/main-page-header.svg') center / 100% 100% no-repeat;
+  mask: url('/wallpaper/main-page-header.svg') center / 100% 100% no-repeat;
+  filter: drop-shadow(0 3px 3px rgba(20, 8, 14, 0.38));
+}
+
+.arena-app-battlegrounds .bg-tier-list-page .bg-tier-panel-heading :is(h3, p) {
+  color: #fff0c8 !important;
 }
 
 .arena-app-battlegrounds .bg-tier-list-page .bg-tier-index-panel > div:first-child {
@@ -851,13 +893,13 @@
 .arena-app-battlegrounds .bg-tier-list-page .bg-filter-chip:focus-visible {
   border-color: rgba(238, 199, 112, 0.68) !important;
   color: #fff0c8 !important;
-  background: #68404c !important;
+  background: var(--bg-purple-light) !important;
 }
 
 .arena-app-battlegrounds .bg-tier-list-page .bg-filter-chip--active {
   border-color: #e0b258 !important;
   color: #fff2ca !important;
-  background: linear-gradient(180deg, #925875, #603246) !important;
+  background: linear-gradient(180deg, #62437e, var(--bg-purple)) !important;
   box-shadow: inset 0 0 0 1px rgba(255, 230, 174, 0.18), 0 4px 10px rgba(37, 13, 22, 0.24) !important;
 }
 
@@ -904,11 +946,11 @@
 }
 
 .arena-app-battlegrounds .bg-tier-list-page .bg-tier-strategy-card--highlighted {
-  border-color: #8f536d !important;
+  border-color: var(--bg-purple) !important;
   background:
     linear-gradient(145deg, rgba(239, 208, 160, 0.98), rgba(207, 158, 128, 0.94)),
     url('/wallpaper/arena-parchment.jpg') center / 865px auto repeat !important;
-  box-shadow: 0 0 0 3px rgba(143, 83, 109, 0.18), 0 14px 26px rgba(62, 28, 43, 0.22) !important;
+  box-shadow: 0 0 0 3px rgba(74, 47, 102, 0.2), 0 14px 26px rgba(49, 29, 70, 0.24) !important;
 }
 
 .arena-app-battlegrounds .bg-tier-list-page :is([class*="bg-[#ebf1fc]"], [class*="bg-[#f8faff]"], [class*="bg-[#dbeafe]"]) {

@@ -54,6 +54,7 @@ Do not hotlink wiki assets at runtime.
 - Use dusty violet for active controls, parchment for filters and wood for major rules.
 - Do not use violet side rails or colored left-border strips on BG panels; use wooden frames/rules for major separation and quiet neutral borders inside them.
 - BG tier navigation uses walnut/burgundy idle cards and violet/gold selected cards; rank groups use honey parchment, never cold white/blue dashboard surfaces.
+- BG tier navigation and its main ledger use real timber frames. `#4A2F66` is the restrained selected/focus accent, and the locally stored Hearthstone `main-page-header.svg` ornament is reserved for short heading plaques.
 - BG library detail dossiers and major ledgers use canonical timber rails with honey parchment inside; long names, groups, sources and metric values wrap safely.
 - BG library navigation and filters use one timber-framed tavern catalogue with restrained red cloth, parchment controls and the deck-border asset around search; stacked white dashboard panels are not valid.
 - BG library mechanics are normalized to user-facing Russian labels before rendering; pass/secret placeholder mechanics are not shown.
@@ -82,6 +83,7 @@ Do not hotlink wiki assets at runtime.
 
 ## Changelog
 
+- **2026-07-11** — Framed BG tier navigation, introduced the `#4A2F66` active accent and added the Hearthstone heading plaque asset.
 - **2026-07-11** — Rebuilt BG library navigation and filters as an asset-backed tavern catalogue.
 - **2026-07-11** — Localized the remaining BG mechanic labels and removed pass/secret placeholders from the library UI.
 - **2026-07-11** — Moved Latest articles above the Battlegrounds and Arena directories on the home page.

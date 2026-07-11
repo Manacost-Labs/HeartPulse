@@ -225,6 +225,8 @@ BG-specific styles live in `src/battlegrounds-parchment.css` and must stay scope
 ### BG Tier List
 
 - Top list switcher uses walnut/burgundy idle cards, cream labels and a violet/gold selected state. Cold white or blue navigation cards are not part of the BG palette.
+- Tier navigation cards and the active tier ledger use the canonical timber border asset. The active accent is `#4A2F66`; use it selectively for selected controls, focus/highlight states and title plaques, never as a page-wide background.
+- `public/wallpaper/main-page-header.svg` is the locally stored Hearthstone Wiki heading ornament (source: `https://hearthstone.wiki.gg/images/b/b2/Main_page_header.svg`) and may be used as a mask behind short headings. Preserve generous inner padding and never place body copy inside it.
 - The tier index is a dark wood/aubergine ledger. Rank groups and individual entries use deeper honey parchment, while nested filters use dark wells with violet/gold chips; avoid the former white/blue dashboard controls.
 - Every rank entry has an explicit themed hook; styling must not depend on `:last-child`, visible limits or whether a “show more” control is present.
 - Tier card click/lightbox behavior and URL state are protected.
@@ -317,6 +319,7 @@ Rules:
 
 ## Changelog
 
+- **2026-07-11** — Added timber frames to BG tier navigation and the tier ledger, introduced the restrained `#4A2F66` active accent, and added the local Hearthstone heading ornament.
 - **2026-07-11** — Rebuilt the BG library directory and filters as a timber-framed tavern catalogue with red cloth, parchment controls and asset-backed search framing.
 - **2026-07-11** — Localized the remaining BG mechanic labels and removed the pass/secret placeholder mechanics from the library UI.
 - **2026-07-11** — Moved Latest articles above the Battlegrounds and Arena directories on the home page.

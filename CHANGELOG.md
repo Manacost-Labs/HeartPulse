@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Added timber framing to the Battlegrounds tier navigation and main tier ledger, introduced `#4A2F66` for selected states, and added a locally served Hearthstone heading ornament for concise labels.
 - Rebuilt the Battlegrounds library navigation and filters with real timber, red-cloth and deck-border assets, replacing the cold stacked dashboard panels with one compact tavern catalogue.
 - Localized the remaining Battlegrounds library mechanic labels (`В следующих обновлениях`, `Кровавые самоцветы`, `Неуязвимость`) and removed `BACON_PASS_TOOLTIP` and `SECRET` from filters and card metadata.
 - Moved the home-page Latest articles block above the Battlegrounds and Arena directories and synchronized the quick-navigation order.
