@@ -8,6 +8,7 @@ import { createPortal } from 'react-dom';
 import { Trophy, Scroll, RefreshCw, AlertTriangle, X, Search, Star, Home, BookOpen, Menu, ChevronLeft, ChevronRight, Grid3X3, List, LogIn, Eye, EyeOff, UserCircle, Library, Gift, ShieldCheck, Send, Swords, Image as ImageIcon } from 'lucide-react';
 import { getCanonicalRedirectUrl } from './config/domain';
 import HomeTab from './features/Home';
+import { usePageScrollLock } from './hooks/usePageScrollLock';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1219,7 +1220,7 @@ function PaywallGate({
   children: React.ReactNode;
 }) {
   if (!active) return <>{children}</>;
-  const blockedContentProps = { 'aria-hidden': true, inert: '' } as unknown as React.HTMLAttributes<HTMLDivElement>;
+  const blockedContentProps = { 'aria-hidden': true, inert: true } as unknown as React.HTMLAttributes<HTMLDivElement>;
 
   return (
     <div className="arena-paywall" style={{
@@ -7536,6 +7537,7 @@ export default function App() {
   const isGameDataSurfacePage = !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'tierlist', 'legendaries'].includes(activeTab);
   const isBattlegroundsSurfacePage = !isAdminMode && !wantsLogin && BG_TAB_IDS.has(activeTab);
   const isOpenSurfacePage = !isAdminMode && (activeTab === 'home' || wantsLogin || isEditorialSurfacePage || isGameDataSurfacePage || isBattlegroundsSurfacePage);
+  usePageScrollLock(!isAdminMode && mobileMenuOpen);
 
 		  return (
     <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${activeTab === 'home' && !isAdminMode ? 'arena-app-home' : ''} ${wantsLogin && !isAdminMode ? 'arena-app-profile' : ''} ${isEditorialSurfacePage ? `arena-app-editorial arena-app-${activeTab}` : ''} ${isGameDataSurfacePage ? `arena-app-game-data arena-app-${activeTab}` : ''} ${isBattlegroundsSurfacePage ? `arena-app-battlegrounds arena-app-${activeTab}` : ''}`}>

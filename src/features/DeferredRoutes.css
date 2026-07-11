@@ -2538,19 +2538,23 @@
 
   .arena-app-profile .profile-workspace .profile-status-chips {
     display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    width: calc(100% + 86px) !important;
-    margin-left: -86px !important;
-    gap: 0.25rem !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100% !important;
+    margin-left: 0 !important;
+    gap: 0.35rem !important;
   }
 
   .arena-app-profile .profile-workspace .profile-status-chip {
-    min-height: 42px !important;
+    min-height: 38px !important;
     justify-content: center !important;
-    padding: 0.38rem 0.42rem !important;
-    font-size: 0.62rem !important;
-    line-height: 1.12 !important;
+    padding: 0.38rem 0.55rem !important;
+    font-size: 0.68rem !important;
+    line-height: 1.18 !important;
     text-align: center;
+  }
+
+  .arena-app-profile .profile-workspace .profile-status-chip:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 
   .arena-app-profile .profile-workspace :is(

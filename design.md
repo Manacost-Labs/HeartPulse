@@ -133,6 +133,8 @@ Never add an unscoped duplicate `.arena-mobile-*` rule. The App drawer must rema
 - Touch targets are at least `42px`, preferably `46px`.
 - Long filter rows wrap or scroll locally; they never widen the document.
 - Hover-only information must not be required to use the site.
+- A locked subscription route is a single access panel on mobile; never leave a dimmed, scrollable data preview behind it.
+- Mobile profile badges use their real container width and a normal grid. Negative margins or calculated over-width hacks are not valid.
 
 ## Shared Surface Language
 
@@ -151,6 +153,7 @@ Never add an unscoped duplicate `.arena-mobile-*` rule. The App drawer must rema
 - Active link uses a darker red field plus a gold left rule; it must stay readable without glow.
 - Profile badge stays in the Hearthstone deck frame.
 - Mobile uses the same red material, a compact brand and a burger/X button with `aria-expanded`.
+- Opening the mobile drawer locks the document at its current scroll position; the login entry uses a compact inset-gold border rather than an oversized card-art frame.
 - Navigation structure is approved; visual changes must not rename or reorder routes unless requested.
 - The public footer is global to `.arena-app-shell`: every route uses the same red tavern cloth, wooden top rule, cream links and muted gold legal copy. Route-specific footer skins are not valid.
 
@@ -250,6 +253,7 @@ BG-specific styles live in `src/battlegrounds-parchment.css` and must stay scope
 - Card art has no extra fake frame unless the canonical asset supplies it.
 - Mobile order is art first, stats second; both are compacted to the viewport instead of adding modal scrolling.
 - Arena card lightboxes must fit the complete card and all statistic rows inside `100dvh`; the modal shell itself must not require scrolling.
+- Every drawer and content lightbox locks both the root document and the iOS body at the current scroll position, then restores that exact position on close. Only the modal panel may scroll locally.
 - Hover tooltip stays `pointer-events: none` and never becomes the only source of information.
 
 ## Motion And Protected Interactions
@@ -319,6 +323,7 @@ Rules:
 
 ## Changelog
 
+- **2026-07-11** — Removed the misleading partially dimmed mobile subscription preview, stabilized profile badges and long BG copy, simplified the mobile login frame, and added shared iOS-safe background scroll locking to drawers and all content lightboxes.
 - **2026-07-11** — Shifted the home hero character left on desktop to align his torso with the intended central focal point while preserving the mobile composition.
 - **2026-07-11** — Added timber frames to BG tier navigation and the tier ledger, introduced the restrained `#4A2F66` active accent, and added the local Hearthstone heading ornament.
 - **2026-07-11** — Rebuilt the BG library directory and filters as a timber-framed tavern catalogue with red cloth, parchment controls and asset-backed search framing.

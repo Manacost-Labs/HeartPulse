@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Fixed the mobile experience across Arena, profile and Battlegrounds routes: subscription gates no longer leave a partially dimmed scrollable page, profile badges and long labels stay inside their containers, the menu login frame is compact, and drawers/lightboxes now lock and restore background scrolling on iOS.
 - Shifted the home-page hero character left on desktop to match the intended focal point while keeping the mobile crop unchanged.
 - Added timber framing to the Battlegrounds tier navigation and main tier ledger, introduced `#4A2F66` for selected states, and added a locally served Hearthstone heading ornament for concise labels.
 - Rebuilt the Battlegrounds library navigation and filters with real timber, red-cloth and deck-border assets, replacing the cold stacked dashboard panels with one compact tavern catalogue.

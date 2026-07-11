@@ -8,6 +8,7 @@ import { createPortal } from 'react-dom';
 import './DeferredRoutes.css';
 import { Trophy, Scroll, RefreshCw, AlertTriangle, X, Search, Star, Home, BookOpen, Menu, ChevronLeft, ChevronRight, Grid3X3, List, LogIn, Eye, EyeOff, UserCircle, ThumbsUp, ThumbsDown, ShieldCheck, Download, Image as ImageIcon, Maximize2 } from 'lucide-react';
 import { getCanonicalRedirectUrl } from '../config/domain';
+import { usePageScrollLock } from '../hooks/usePageScrollLock';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -423,16 +424,15 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
     card.cardId ? hsImgUrl(card.cardId, '512x', 'enUS') : null,
   ]), [card.cardId, card.imageHa, card.imageRu]);
   const bigSrc = modalSources[srcIdx] ?? null;
+  usePageScrollLock(true);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setVisible(true));
-    document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = '';
     };
   }, [onClose]);
 
@@ -6812,17 +6812,15 @@ const DeckCardLightbox: React.FC<{ card: ArenaDeckCard; onClose: () => void }> =
     card.cardId ? hsImgUrl(card.cardId, '512x', 'enUS') : null,
   ]), [card.cardId, card.image]);
   const bigSrc = sources[srcIdx] ?? null;
+  usePageScrollLock(true);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setVisible(true));
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
     };
   }, [onClose]);
 
@@ -7292,6 +7290,8 @@ function formatGalleryDate(value?: string | null) {
 }
 
 function GalleryLightbox({ item, onClose }: { item: GalleryItem; onClose: () => void }) {
+  usePageScrollLock(true);
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();

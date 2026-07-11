@@ -1153,6 +1153,16 @@
     padding: 0.15rem;
   }
 
+  .arena-app-battlegrounds :is(.bg-hero-detail-page, .bg-tier-list-page, .bg-library-page, .bg-library-detail-page) {
+    overflow-x: clip;
+  }
+
+  .arena-app-battlegrounds :is(.bg-hero-detail-page, .bg-tier-list-page, .bg-library-page, .bg-library-detail-page)
+    :is(h1, h2, h3, h4, p, a, button) {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   .arena-app-battlegrounds .bg-hero-reliquary__portrait {
     width: min(100%, 250px);
     min-height: 0;
@@ -1161,6 +1171,27 @@
   .arena-app-battlegrounds .bg-hero-reliquary__title {
     font-size: clamp(1.85rem, 9.5vw, 2.75rem) !important;
     line-height: 1.02 !important;
+    text-wrap: pretty;
+  }
+
+  .arena-app-battlegrounds .bg-hero-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .arena-app-battlegrounds .bg-tier-panel-heading,
+  .arena-app-battlegrounds .bg-tier-panel-meta {
+    width: 100%;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .arena-app-battlegrounds .bg-tier-panel-meta {
+    line-height: 1.45;
+  }
+
+  .arena-app-battlegrounds .bg-tier-panel-count {
+    width: fit-content;
+    max-width: 100%;
   }
 
   .arena-app-battlegrounds .bg-hero-action-card {
@@ -1187,6 +1218,8 @@
   .bg-tier-lightbox-frame {
     border-width: 10px !important;
     border-image-width: 10px !important;
+    max-height: calc(100dvh - 1rem) !important;
+    overscroll-behavior: contain;
   }
 
   .bg-tier-lightbox-copy {
@@ -1202,6 +1235,8 @@
     border-width: 10px !important;
     border-image-width: 10px !important;
     padding: 0.65rem !important;
+    max-height: calc(100dvh - 1rem) !important;
+    overscroll-behavior: contain;
   }
 
   .bg-hero-media-lightbox-art img {

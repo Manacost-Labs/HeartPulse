@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import './Battlegrounds.css';
 import { ChevronLeft, ChevronRight, ExternalLink, Pause, Play, Search, Volume2, X } from 'lucide-react';
 
@@ -873,11 +874,10 @@ function BattlegroundHeroMediaLightbox({
   const [visible, setVisible] = useState(false);
   const touchOrigin = useRef<{ x: number; y: number } | null>(null);
   const item = items[index] || null;
+  usePageScrollLock(Boolean(item));
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setVisible(true));
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
       if (event.key === 'ArrowLeft' && items.length > 1) onIndexChange((index - 1 + items.length) % items.length);
@@ -887,7 +887,6 @@ function BattlegroundHeroMediaLightbox({
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
     };
   }, [index, items.length, onClose, onIndexChange]);
 
@@ -2403,6 +2402,7 @@ function BattlegroundTierList() {
     return next;
   }, [activeList, minionRaceFilter, minionTavernFilter, tiers, trinketSizeFilter]);
   const currentLightboxItem = lightboxIndex >= 0 ? lightboxItems[lightboxIndex] : null;
+  usePageScrollLock(Boolean(currentLightboxItem));
   const hasStrategyHighlight = activeList === 'strategies' && Boolean(highlightStrategyKey || highlightStrategyTitle);
 
   const openLightbox = useCallback((item: BattlegroundLightboxItem) => {

@@ -35,6 +35,8 @@ Do not hotlink wiki assets at runtime.
 - Builders use the full workspace after the desktop rail; their BG frame is `20–28px`, the library takes roughly `32%`, and annotations move below canvases narrower than `860px`.
 - App mobile navigation stays fixed below its topbar; deferred-shell mobile rules stay scoped below `.arena-main`.
 - Verify `390px` with no document-level horizontal scroll and minimum `42px` touch targets.
+- Locked subscription routes show one complete access panel on mobile instead of a scrollable dimmed preview.
+- Mobile drawers and every content lightbox lock the iOS body at the current scroll position and restore it exactly on close.
 - Profile hierarchy uses the large wood frame for hero/settings/access, the deck frame for short statuses and subscription sources, and plain parchment inputs for readability.
 - The public footer is global to `.arena-app-shell` and always uses red tavern cloth, a wooden top rule, cream links and muted gold legal copy.
 
@@ -83,6 +85,7 @@ Do not hotlink wiki assets at runtime.
 
 ## Changelog
 
+- **2026-07-11** — Stabilized the mobile shell: clear subscription gates, compact menu login framing, overflow-safe profile/BG text and shared iOS-safe lightbox scroll locking.
 - **2026-07-11** — Shifted the home hero character left on desktop without changing the mobile crop.
 - **2026-07-11** — Framed BG tier navigation, introduced the `#4A2F66` active accent and added the Hearthstone heading plaque asset.
 - **2026-07-11** — Rebuilt BG library navigation and filters as an asset-backed tavern catalogue.
