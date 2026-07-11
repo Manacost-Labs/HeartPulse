@@ -436,15 +436,15 @@
 }
 
 .guide-archive-reader img {
-  float: none !important;
-  position: static !important;
-  inset: auto !important;
-  display: block !important;
-  width: auto !important;
-  max-width: min(100%, 820px) !important;
-  height: auto !important;
+  float: none;
+  position: static;
+  inset: auto;
+  display: block;
+  width: auto;
+  max-width: min(100%, 820px);
+  height: auto;
   max-height: 760px;
-  margin: 0 auto !important;
+  margin: 0 auto;
   object-fit: contain;
   border-radius: 14px;
 }

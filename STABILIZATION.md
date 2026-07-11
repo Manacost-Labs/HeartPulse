@@ -150,9 +150,11 @@ A task is complete only when all relevant checks below are proven.
   - [x] All remaining exact named component duplicates and retired deck-page helpers have been removed; CI enforces a zero-duplicate budget.
 - [ ] Phase 3: layered CSS and removal of legacy cascade.
   - [x] One canonical `src/styles/tokens.css` owns every global `:root` token; CI rejects secondary root owners, duplicate tokens and growth beyond the measured 2,724 legacy `!important` declarations.
+  - [x] The isolated Guides Archive stylesheet no longer needs eight defensive image overrides because its extracted HTML sanitizer removes hostile legacy layout attributes before rendering; the CI ceiling is now 2,716.
   - [ ] Replace legacy overrides route by route and ratchet the `!important` ceiling down after every verified batch.
   - [ ] Establish explicit reset, base, component, route and override layers once all participating stylesheets can enter the layer order without changing precedence.
 - [ ] Phase 4: modular API, runtime validation and durable data snapshots.
+  - [x] Old-guide HTML and URL normalization have moved out of `server/index.ts` into a pure tested sanitizer module with explicit unsafe-protocol, event-handler, inline-style and decorative-image rejection coverage.
 - [ ] Phase 5: isolated scraper publishing.
 - [ ] Phase 6: immutable deployment, readiness and rollback.
 - [ ] Phase 7: structured telemetry, alerts and backup/restore.

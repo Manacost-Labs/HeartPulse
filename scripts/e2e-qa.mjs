@@ -17,6 +17,29 @@ const fixtures = {
   '/api/winrates': JSON.parse(readFileSync('server/data/winrates.json', 'utf8')),
   '/api/tierlist': JSON.parse(readFileSync('server/data/hsreplay_tierlist.json', 'utf8')),
   '/api/legendaries': JSON.parse(readFileSync('server/data/legendaries.json', 'utf8')),
+  '/api/guides-archive': {
+    page: 1,
+    limit: 18,
+    total: 1,
+    totalPages: 1,
+    items: [{
+      id: 1,
+      slug: 'qa-guide',
+      title: 'Контрольный гайд Арены',
+      description: 'Детерминированная запись для проверки адаптивного архива.',
+      image: null,
+      publishedAt: '2026-07-11T00:00:00.000Z',
+      menuName: 'Арена',
+      menuCode: 'arena',
+      kind: 'Гайд',
+      kindSlug: 'guide',
+      oldUrl: 'https://old.kolodahearthstone.ru/qa-guide',
+    }],
+    filters: {
+      kinds: [{ slug: 'guide', label: 'Гайд', count: 1 }],
+      menus: [{ slug: 'arena', label: 'Арена', count: 1 }],
+    },
+  },
 };
 const subscriber = {
   hasAccess: true,
@@ -175,6 +198,7 @@ const authenticatedRoutes = [
   { path: '/classes', expected: 'Паладин', selector: '.arena-app-winrates' },
   { path: '/tierlist', expected: 'Тир-лист', selector: '.hs-tier-card' },
   { path: '/legendaries', expected: 'Медив Освященный', selector: '.legendary-group-card' },
+  { path: '/guides-archive', expected: 'Контрольный гайд Арены', selector: '.guide-archive-card' },
 ];
 
 for (const route of authenticatedRoutes) {

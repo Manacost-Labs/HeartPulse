@@ -15,6 +15,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { scrapeAll, loadData } from './scraper.js';
 import { HSREPLAY_NO_ARENASMITH_TIER, normalizeArenasmithTier, tierFromArenasmithScore } from './hsreplayArenasmith.js';
 import { createBlizzardCardImageClient, isBlizzardImageContentType } from './blizzardCards.js';
+import { createOldGuideSanitizer } from './guides/sanitize.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -207,6 +208,10 @@ const KHA_VIP_ARTICLE_HOSTS = new Set(['kolodahearthstone.ru', 'www.kolodahearth
 const KOLODAHS_API_BASE_URL = (process.env.KOLODAHS_API_BASE_URL || 'https://db.kolodahs.ru/api/v1').replace(/\/$/, '');
 const OLD_GUIDES_DB_FILE = process.env.OLD_GUIDES_DB_FILE || '/var/www/koloda/data/old-sites/kolodahearthstone.ru_old/db/guides.sqlite';
 const OLD_GUIDES_PUBLIC_URL = (process.env.OLD_GUIDES_PUBLIC_URL || 'https://old.kolodahearthstone.ru').replace(/\/$/, '');
+const oldGuideSanitizer = createOldGuideSanitizer(OLD_GUIDES_PUBLIC_URL);
+const normalizeOldGuideAssetUrl = oldGuideSanitizer.normalizeAssetUrl;
+const normalizeOldGuideLink = oldGuideSanitizer.normalizeLink;
+const sanitizeOldGuideHtml = oldGuideSanitizer.sanitizeHtml;
 const EXTRA_BG_LIBRARY_ENDPOINTS: Record<string, string> = {
   anomaly: '/anomalies',
   quest: '/quests',
@@ -5633,19 +5638,6 @@ function oldGuidesDatabase(): DatabaseSync {
   return oldGuidesDb;
 }
 
-function escapeHtml(value: any): string {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function escapeAttribute(value: any): string {
-  return escapeHtml(value).replace(/`/g, '&#96;');
-}
-
 function plainText(value: any): string {
   return String(value ?? '')
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
@@ -5664,100 +5656,6 @@ function excerptText(value: any, maxLength = 220): string {
 
 function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, match => `\\${match}`);
-}
-
-function normalizeOldGuideAssetUrl(rawValue: any): string {
-  const raw = String(rawValue ?? '').trim();
-  if (!raw) return '';
-  if (raw.startsWith('//')) return `https:${raw}`;
-  try {
-    return new URL(raw).href;
-  } catch {
-    const path = raw.startsWith('/') ? raw : `/${raw}`;
-    return `${OLD_GUIDES_PUBLIC_URL}${path}`;
-  }
-}
-
-function normalizeOldGuideLink(rawValue: any): string {
-  const raw = String(rawValue ?? '').trim();
-  if (!raw || raw.startsWith('#') || raw.startsWith('mailto:') || raw.startsWith('tel:')) return raw;
-  if (/^javascript:/i.test(raw)) return '#';
-  if (raw.startsWith('//')) return `https:${raw}`;
-  try {
-    return new URL(raw).href;
-  } catch {
-    const path = raw.startsWith('/') ? raw : `/${raw}`;
-    return `${OLD_GUIDES_PUBLIC_URL}${path}`;
-  }
-}
-
-function htmlAttribute(attrs: string, name: string): string {
-  const pattern = new RegExp(`${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i');
-  const match = attrs.match(pattern);
-  return String(match?.[2] ?? match?.[3] ?? match?.[4] ?? '').trim();
-}
-
-const OLD_GUIDE_ALLOWED_TAGS = new Set([
-  'a', 'b', 'blockquote', 'br', 'code', 'div', 'em', 'figcaption', 'figure', 'h2', 'h3', 'h4', 'hr',
-  'i', 'img', 'li', 'ol', 'p', 'pre', 'span', 'strong', 'table', 'tbody', 'td', 'th', 'thead', 'tr', 'u', 'ul',
-]);
-
-function sanitizeOldGuideHtml(rawHtml: any): string {
-  let html = String(rawHtml ?? '');
-  if (!html.trim()) return '';
-
-  html = html
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/<\s*(script|style|iframe|object|embed|form|input|button|select|textarea|canvas|svg|video|audio)\b[\s\S]*?<\/\s*\1\s*>/gi, '')
-    .replace(/<\s*(script|style|iframe|object|embed|form|input|button|select|textarea|canvas|svg|video|audio)\b[^>]*\/?>/gi, '')
-    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/\s(style|class|id|width|height|align|valign|border|cellpadding|cellspacing)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
-
-  html = html.replace(/<img\b([^>]*)>/gi, (_full, attrs) => {
-    const src = normalizeOldGuideAssetUrl(htmlAttribute(attrs, 'src') || htmlAttribute(attrs, 'data-src'));
-    if (!src) return '';
-    const normalizedSrc = src.toLowerCase();
-    if (normalizedSrc.includes('/separations/') || normalizedSrc.includes('subpage-body-bg')) return '';
-    const alt = htmlAttribute(attrs, 'alt');
-    return `<figure><img src="${escapeAttribute(src)}" alt="${escapeAttribute(alt)}" loading="lazy" decoding="async"></figure>`;
-  });
-
-  html = html.replace(/<a\b([^>]*)>/gi, (_full, attrs) => {
-    const href = normalizeOldGuideLink(htmlAttribute(attrs, 'href'));
-    if (!href || href === '#') return '<a>';
-    return `<a href="${escapeAttribute(href)}" target="_blank" rel="noopener noreferrer">`;
-  });
-
-  html = html.replace(/<\/?([a-z0-9-]+)([^>]*)>/gi, (full, rawTag, attrs) => {
-    const tag = String(rawTag).toLowerCase();
-    if (!OLD_GUIDE_ALLOWED_TAGS.has(tag)) return '';
-    if (full.startsWith('</')) return `</${tag}>`;
-    if (tag === 'a') return full;
-    if (tag === 'img') {
-      const src = normalizeOldGuideAssetUrl(htmlAttribute(attrs, 'src'));
-      if (!src) return '';
-      return `<img src="${escapeAttribute(src)}" alt="${escapeAttribute(htmlAttribute(attrs, 'alt'))}" loading="lazy" decoding="async">`;
-    }
-    if (tag === 'br' || tag === 'hr') return `<${tag}>`;
-    return `<${tag}>`;
-  });
-
-  return html
-    .replace(/<p>\s*<a href="#[^"]*"[^>]*>\s*(?:наверх|к оглавлению)\s*<\/a>\s*<\/p>/gi, '')
-    .replace(/<a href="#[^"]*"[^>]*>\s*(?:наверх|к оглавлению)\s*<\/a>/gi, '')
-    .replace(/^(?:\s*<\/(?:li|ul|ol)>)+/gi, '')
-    .replace(/<p>\s*<\/p>/gi, '')
-    .replace(/<a>\s*<\/a>/gi, '')
-    .replace(/<strong>\s*<\/strong>/gi, '')
-    .replace(/<span>\s*<\/span>/gi, '')
-    .replace(/<p>(?:\s|&nbsp;|<strong>|<\/strong>|<span>|<\/span>|<i>|<\/i>)*<\/p>/gi, '')
-    .replace(/<p>\s*<\/p>/gi, '')
-    .replace(/<p>\s*<\/p>/gi, '')
-    .replace(/<p>\s*(<figure>[\s\S]*?<\/figure>)\s*<\/p>/gi, '$1')
-    .replace(/<p>\s*<a([^>]*)>\s*(<figure>[\s\S]*?<\/figure>)\s*<\/a>\s*<\/p>/gi, '<a$1>$2</a>')
-    .replace(/<p>\s*([А-ЯA-Z])\s*<\/p>/g, '')
-    .replace(/(?:<br>\s*){3,}/gi, '<br><br>')
-    .trim();
 }
 
 function oldGuideImageUrl(value: any): string | null {
