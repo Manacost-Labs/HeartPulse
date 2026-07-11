@@ -159,11 +159,10 @@ Never add an unscoped duplicate `.arena-mobile-*` rule. The App drawer must rema
 - Keep the first viewport compact enough to expose the beginning of the product directories on a typical laptop. The live class summary reads as a small tavern scoreboard, not a decorative orbit.
 - The first screen uses `/wallpaper/home-paladin-hero.webp` as a masked character mural behind the live Arena scoreboard. Keep the face and hammer visible, bias the desktop crop slightly left, preserve the red text field, and never place essential copy directly over the artwork. On narrow screens the mural becomes a short panorama between actions and live rankings.
 - Do not repeat freshness, source count and leader data in a separate footer strip inside the hero; the label and live ranking already communicate that context, so the wood frame should close directly below the main composition.
-- Mode discovery follows a fixed order: **Battlegrounds directory**, **Arena directory**, then cross-mode statistics. Each directory links directly to the work users can perform in that mode.
-- The statistics section may combine Arena rankings with a Battlegrounds spotlight, but every value and chart point must come from the existing APIs. Never invent demo metrics; show an honest updating state if a source is unavailable.
-- The Battlegrounds hero spotlight uses the actual eight-place distribution as a compact line/area chart, includes hero identity and hero-power context, and links to the full hero directory.
+- Mode discovery follows a fixed order: **Battlegrounds directory**, then **Arena directory**. Each directory links directly to the work users can perform in that mode.
+- Do not restore the removed home “Мета в цифрах” aggregate: class leaders, best cards and legendary groups already have dedicated pages and made the home unnecessarily long.
 - Use the canonical wood frame for the hero spotlight and major directory boundaries. Internal rows stay quiet and readable; do not add generic colored side rails or a grid of white dashboard cards.
-- On mobile, directories stack before statistics, graph labels remain legible, and the page never gains document-level horizontal scrolling.
+- On mobile, directories stack before articles and community content, and the page never gains document-level horizontal scrolling.
 
 ## Profile
 

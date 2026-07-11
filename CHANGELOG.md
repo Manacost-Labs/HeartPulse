@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Removed the home-page “Мета в цифрах” aggregate with class leaders, best cards, legendary groups and the matching quick-navigation link.
 - Shifted the home-page Paladin mural slightly left and removed the duplicate freshness/source/leader strip from the bottom of the hero frame.
 - Rebuilt Battlegrounds library card details as overflow-safe timber-framed dossiers, replaced the plain black strategy/card lightbox with a red tavern-cloth wooden frame, and fixed tier-entry theming so minion and spell cards stay warm honey parchment after “Show more.”
 - Added a locally optimized Paladin character mural to the home-page live dashboard, with a wine-red readability mask, preserved statistics and a dedicated mobile panorama treatment.

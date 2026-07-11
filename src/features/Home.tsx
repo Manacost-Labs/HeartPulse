@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   ArrowRight,
   BarChart3,
-  Clock3,
   Send,
   Sparkles,
 } from 'lucide-react';
@@ -74,163 +73,6 @@ const CLASS_ICON_BY_ID: Record<string, string> = {
   warrior: '/class_icon/ui/warrior-64.webp',
 };
 
-function formatFreshness(updatedAt?: Record<string, string | null>): string {
-  const timestamps = Object.values(updatedAt ?? {})
-    .filter((value): value is string => Boolean(value))
-    .map(value => new Date(value))
-    .filter(date => !Number.isNaN(date.getTime()));
-  const latestTimestamp = timestamps.length
-    ? Math.max(...timestamps.map(date => date.getTime()))
-    : Number.NaN;
-  const latest = Number.isNaN(latestTimestamp) ? null : new Date(latestTimestamp);
-
-  if (!latest) return 'Синхронизация данных';
-
-  const now = new Date();
-  const sameDay = latest.toDateString() === now.toDateString();
-  const time = latest.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  if (sameDay) return `Сегодня, ${time}`;
-
-  return latest.toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function EmptyRail({ text }: { text: string }) {
-  return (
-    <div className="draft-empty-state" role="status">
-      <Clock3 size={18} aria-hidden="true" />
-      <span>{text}</span>
-    </div>
-  );
-}
-
-function DeferredCardImage({ src, alt }: { src: string; alt: string }) {
-  const slotRef = useRef<HTMLSpanElement>(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const slot = slotRef.current;
-    if (!slot) return;
-    if (!('IntersectionObserver' in window)) {
-      setReady(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(entries => {
-      if (!entries.some(entry => entry.isIntersecting)) return;
-      setReady(true);
-      observer.disconnect();
-    }, { rootMargin: '350px 0px' });
-
-    observer.observe(slot);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <span ref={slotRef} className="draft-card-image">
-      {ready
-        ? <img src={src} alt={alt} loading="lazy" decoding="async" fetchPriority="low" width={96} height={144} />
-        : <span className="draft-card-image__placeholder" aria-hidden="true" />}
-    </span>
-  );
-}
-
-function HomeBattlegroundSpotlightChart({ spotlight, onNavigate }: {
-  spotlight?: HomeBattlegroundSpotlight | null;
-  onNavigate: (tab: string) => void;
-}) {
-  const values = spotlight?.placementDistribution ?? [];
-  const width = 680;
-  const height = 230;
-  const padX = 42;
-  const padTop = 24;
-  const padBottom = 42;
-  const maxValue = Math.max(1, ...values);
-  const chartBottom = height - padBottom;
-  const points = values.map((value, index) => ({
-    value,
-    x: padX + (index / Math.max(1, values.length - 1)) * (width - padX * 2),
-    y: padTop + (1 - value / maxValue) * (chartBottom - padTop),
-  }));
-  const linePath = points.map((point, index) => `${index ? 'L' : 'M'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ');
-  const areaPath = points.length
-    ? `M ${points[0].x.toFixed(1)} ${chartBottom} ${points.map(point => `L ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ')} L ${points[points.length - 1].x.toFixed(1)} ${chartBottom} Z`
-    : '';
-
-  return (
-    <section className="home-bg-spotlight" aria-labelledby="home-bg-spotlight-heading">
-      <div className="home-bg-spotlight__hero">
-        <div>
-          <span>Пример из текущей BG-меты</span>
-          <h3 id="home-bg-spotlight-heading">Распределение мест героя</h3>
-        </div>
-        {spotlight ? (
-          <React.Fragment>
-            <div className="home-bg-spotlight__identity">
-              {spotlight.image && <img src={spotlight.image} alt="" loading="lazy" decoding="async" />}
-              <div>
-                <strong>{spotlight.name}</strong>
-                <span>Тир {spotlight.tier} · среднее место {spotlight.avgPlacement.toFixed(2).replace('.', ',')}</span>
-                {spotlight.pickRate !== null && <small>Выбор героя: {spotlight.pickRate.toFixed(1).replace('.', ',')}%</small>}
-              </div>
-            </div>
-            {spotlight.heroPower?.name && (
-              <p className="home-bg-spotlight__power">
-                <b>{spotlight.heroPower.name}</b>
-                {spotlight.heroPower.text && <span>{spotlight.heroPower.text}</span>}
-              </p>
-            )}
-          </React.Fragment>
-        ) : (
-          <p className="home-bg-spotlight__empty">BG-срез обновляется. Полный рейтинг героев уже доступен в разделе Полей Сражений.</p>
-        )}
-        <a
-          href="/heroes"
-          onClick={(event: React.MouseEvent) => { event.preventDefault(); onNavigate('bg-heroes'); }}
-        >
-          Все герои <ArrowRight size={15} aria-hidden="true" />
-        </a>
-      </div>
-
-      <div className="home-bg-spotlight__chart">
-        {points.length > 0 ? (
-          <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby="home-bg-chart-title home-bg-chart-desc">
-            <title id="home-bg-chart-title">Вероятность занять каждое место героем {spotlight?.name}</title>
-            <desc id="home-bg-chart-desc">График показывает долю первых, вторых и последующих мест до восьмого.</desc>
-            <defs>
-              <linearGradient id="homeBgChartFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#d9ab49" stopOpacity="0.5" />
-                <stop offset="100%" stopColor="#8f536d" stopOpacity="0.04" />
-              </linearGradient>
-            </defs>
-            {[0.25, 0.5, 0.75, 1].map(level => {
-              const y = padTop + (1 - level) * (chartBottom - padTop);
-              return <line key={level} x1={padX} x2={width - padX} y1={y} y2={y} className="home-bg-chart__grid" />;
-            })}
-            <path d={areaPath} fill="url(#homeBgChartFill)" />
-            <path d={linePath} className="home-bg-chart__line" />
-            {points.map((point, index) => (
-              <g key={`place-${index + 1}`}>
-                <circle cx={point.x} cy={point.y} r="6" className="home-bg-chart__dot" />
-                <text x={point.x} y={point.y - 13} textAnchor="middle" className="home-bg-chart__value">{point.value.toFixed(1)}%</text>
-                <text x={point.x} y={height - 14} textAnchor="middle" className="home-bg-chart__label">{index + 1} место</text>
-              </g>
-            ))}
-          </svg>
-        ) : (
-          <div className="home-bg-chart__placeholder" aria-hidden="true">
-            {Array.from({ length: 8 }).map((_, index) => <span key={`place-placeholder-${index + 1}`} style={{ height: `${35 + index * 5}%` }} />)}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
 export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles, loadingArticles, onNavigate, faq }: {
   homeSummaryData: HomeSummaryData | null;
   loadingHomeSummary: boolean;
@@ -244,18 +86,6 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
       .sort((a, b) => b.winrate - a.winrate)
       .slice(0, 3),
     [homeSummaryData?.topClasses],
-  );
-
-  const topLegendaries = useMemo(
-    () => [...(homeSummaryData?.topLegendaries ?? [])]
-      .filter(group => group.winRate !== null)
-      .slice(0, 6),
-    [homeSummaryData?.topLegendaries],
-  );
-
-  const topCards = useMemo(
-    () => [...(homeSummaryData?.topCards ?? [])].slice(0, 6),
-    [homeSummaryData?.topCards],
   );
 
   const pageRef = useRef<HTMLDivElement>(null);
@@ -374,7 +204,6 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
         <span>На этой странице</span>
         <a href="#home-bg-heading">Поля Сражений</a>
         <a href="#home-arena-directory-heading">Арена</a>
-        <a href="#home-data-heading">Статистика</a>
         <a href="#home-articles-heading">Статьи</a>
         <a href="#faq-heading">Частые вопросы</a>
       </nav>
@@ -382,132 +211,6 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
       <HomeBattlegrounds onNavigate={onNavigate} />
 
       <HomeArenaDirectory onNavigate={onNavigate} />
-
-      <section className="home-data home-arena-board home-reveal" aria-labelledby="home-data-heading">
-        <div className="home-section-heading home-section-heading--data">
-          <div>
-            <span>Полезная статистика</span>
-            <h2 id="home-data-heading">Мета в цифрах</h2>
-          </div>
-          <p>Реальные данные Арены и Полей Сражений в компактной форме.</p>
-        </div>
-        <HomeBattlegroundSpotlightChart spotlight={homeSummaryData?.battlegroundSpotlight} onNavigate={onNavigate} />
-        <div className="home-data__layout">
-          <section className="home-ranking" aria-labelledby="top-classes-heading">
-            <div className="home-subheading">
-              <h3 id="top-classes-heading">Классы-лидеры</h3>
-              <a
-                href="/classes"
-                onClick={(event: React.MouseEvent) => { event.preventDefault(); onNavigate('winrates'); }}
-              >
-                Все классы <ArrowRight size={15} aria-hidden="true" />
-              </a>
-            </div>
-            <div className="home-ranking__list">
-              {loadingHomeSummary && topClasses.length === 0
-                ? [0, 1, 2].map(index => <div key={index} className="home-ranking__row draft-skeleton" />)
-                : topClasses.map((classItem, index) => {
-                  const icon = CLASS_ICON_BY_ID[classItem.id];
-                  const relativeWinrate = Math.max(8, Math.min(100, ((classItem.winrate - 40) / 20) * 100));
-                  return (
-                    <a
-                      key={classItem.id}
-                      href="/classes"
-                      className="home-ranking__row"
-                      onClick={(event: React.MouseEvent) => { event.preventDefault(); onNavigate('winrates'); }}
-                    >
-                      <span className="home-ranking__rank">{index + 1}</span>
-                      {icon && <img src={icon} alt="" width={44} height={44} decoding="async" />}
-                      <span className="home-ranking__name">{classItem.name}</span>
-                      <strong>{classItem.winrate.toFixed(1)}%</strong>
-                      <span className="home-ranking__bar" aria-hidden="true">
-                        <span style={{ width: `${relativeWinrate}%` }} />
-                      </span>
-                    </a>
-                  );
-                })}
-              {!loadingHomeSummary && topClasses.length === 0 && <EmptyRail text="Статистика классов обновляется" />}
-            </div>
-          </section>
-
-          <div className="home-card-strips">
-            <section className="home-card-strip" aria-labelledby="top-cards-heading">
-              <div className="home-subheading">
-                <h3 id="top-cards-heading">Лучшие карты</h3>
-                <a
-                  href="/tierlist"
-                  onClick={(event: React.MouseEvent) => { event.preventDefault(); onNavigate('tierlist'); }}
-                >
-                  Тир-лист <ArrowRight size={15} aria-hidden="true" />
-                </a>
-              </div>
-              <div className="home-card-rail-shell">
-                <div className="draft-card-rail">
-                {loadingHomeSummary && topCards.length === 0
-                  ? Array.from({ length: 5 }).map((_, index) => <div key={index} className="draft-card-item draft-skeleton" />)
-                  : topCards.map(card => {
-                    const image = card.imageRu || card.imageHa || null;
-                    return (
-                      <a
-                        key={card.cardId}
-                        href="/tierlist"
-                        className="draft-card-item"
-                        onClick={(event: React.MouseEvent) => { event.preventDefault(); onNavigate('tierlist'); }}
-                      >
-                        {image
-                          ? <DeferredCardImage src={image} alt={card.name} />
-                          : <span className="draft-card-item__fallback">{card.name}</span>}
-                        <span>{card.name}</span>
-                      </a>
-                    );
-                  })}
-                {!loadingHomeSummary && topCards.length === 0 && <EmptyRail text="Карты скоро появятся" />}
-                </div>
-                <span className="home-rail-hint" aria-hidden="true">Проведите, чтобы увидеть ещё →</span>
-              </div>
-            </section>
-
-            <section className="home-card-strip" aria-labelledby="top-legendaries-heading">
-              <div className="home-subheading">
-                <h3 id="top-legendaries-heading">Легендарные группы</h3>
-                <a
-                  href="/legendaries"
-                  onClick={(event: React.MouseEvent) => { event.preventDefault(); onNavigate('legendaries'); }}
-                >
-                  Все группы <ArrowRight size={15} aria-hidden="true" />
-                </a>
-              </div>
-              <div className="home-card-rail-shell">
-                <div className="draft-card-rail">
-                {loadingHomeSummary && topLegendaries.length === 0
-                  ? Array.from({ length: 5 }).map((_, index) => <div key={index} className="draft-card-item draft-skeleton" />)
-                  : topLegendaries.map(group => {
-                    const image = group.imageRu || group.imageHa || null;
-                    return (
-                      <a
-                        key={group.cardId}
-                        href="/legendaries"
-                        className="draft-card-item"
-                        onClick={(event: React.MouseEvent) => { event.preventDefault(); onNavigate('legendaries'); }}
-                      >
-                        <span className="draft-card-item__art">
-                          {image
-                            ? <DeferredCardImage src={image} alt={group.name} />
-                            : <span className="draft-card-item__fallback">{group.name}</span>}
-                          {group.winRate !== null && <strong>{group.winRate.toFixed(1)}%</strong>}
-                        </span>
-                        <span>{group.name}</span>
-                      </a>
-                    );
-                  })}
-                {!loadingHomeSummary && topLegendaries.length === 0 && <EmptyRail text="Легендарные группы обновляются" />}
-                </div>
-                <span className="home-rail-hint" aria-hidden="true">Проведите, чтобы увидеть ещё →</span>
-              </div>
-            </section>
-          </div>
-        </div>
-      </section>
 
       <HomeLatestArticles articles={articles} loading={loadingArticles} onNavigate={onNavigate} />
 
