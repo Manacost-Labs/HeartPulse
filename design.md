@@ -325,6 +325,7 @@ Rules:
 
 ## Changelog
 
+- **2026-07-11** — Hardened the Arena legendary data path against empty upstream and persisted caches, preserving the latest non-empty scraper snapshot and rotating the client cache after recovery.
 - **2026-07-11** — Grouped both Battlegrounds builders under “Конструкторы” and Gallery, Guides Archive and Contests under the final “Разное” menu, with desktop hover/focus and mobile tap behavior.
 - **2026-07-11** — Applied the canonical timber-and-red-cloth subscription gate to all Battlegrounds routes, replacing the last white-and-blue paywall variant.
 - **2026-07-11** — Removed the misleading partially dimmed mobile subscription preview, stabilized profile badges and long BG copy, simplified the mobile login frame, and added shared iOS-safe background scroll locking to drawers and all content lightboxes.

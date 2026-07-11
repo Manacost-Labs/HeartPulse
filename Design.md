@@ -85,6 +85,7 @@ Do not hotlink wiki assets at runtime.
 
 ## Changelog
 
+- **2026-07-11** — Restored Arena legendary groups with non-empty cache validation, scraper fallback and a fresh browser cache generation.
 - **2026-07-11** — Consolidated secondary navigation into accessible “Конструкторы” and final “Разное” disclosure groups across desktop and mobile.
 - **2026-07-11** — Unified Battlegrounds subscription gates with the timber-framed red tavern paywall used across the current site.
 - **2026-07-11** — Stabilized the mobile shell: clear subscription gates, compact menu login framing, overflow-safe profile/BG text and shared iOS-safe lightbox scroll locking.

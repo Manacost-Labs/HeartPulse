@@ -4982,6 +4982,10 @@ function buildLegendaryPackageMap(payload: any) {
   );
 }
 
+function hasLegendaryGroups(data: any): boolean {
+  return Array.isArray(data?.groups) && data.groups.length > 0;
+}
+
 function compactHomeTopCards(tierlistData: any) {
   const seen = new Set<string>();
   const result: any[] = [];
@@ -5076,14 +5080,15 @@ async function getLegendariesApiData(
   bypassCache = false,
 ): Promise<ApiDataResult> {
   const cached = legendariesApiCache.get(source);
-  if (!bypassCache && cached && cached.expiresAt > now) {
+  if (!bypassCache && cached && cached.expiresAt > now && hasLegendaryGroups(cached.data)) {
     return { data: cached.data, etag: cached.etag, cacheSource: 'memory' };
   }
+  if (cached && !hasLegendaryGroups(cached.data)) legendariesApiCache.delete(source);
 
   const redisKey = redisDataKey('legendaries', source);
   if (!bypassCache) {
     const redisCached = await redisGetCache(redisKey);
-    if (redisCached) {
+    if (redisCached && hasLegendaryGroups(redisCached.data)) {
       legendariesApiCache.set(source, {
         data: redisCached.data,
         etag: redisCached.etag,
@@ -5106,6 +5111,10 @@ async function getLegendariesApiData(
         fetchDataset(LEGENDARIES_DATASET_BY_SOURCE[source]),
         ensureRuCardsData(),
       ]))[0], source);
+  if (!hasLegendaryGroups(dataBase)) {
+    throw new Error(`Empty legendaries dataset: ${source}`);
+  }
+
   let data = dataBase;
   try {
     const tierlistData = (await getTierlistApiData('hsreplay', now)).data;

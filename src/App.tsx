@@ -7364,8 +7364,8 @@ export default function App() {
 
   const fetchLegendaries = useCallback(async (src: LegendarySource = 'hsreplay') => {
     const gen = ++lgGenRef.current;
-    const cacheKey = `leg_ru_cards_v3_${src}`;
-    const baseUrl = `/api/legendaries?source=${src}&v=ru_cards_v3`;
+    const cacheKey = `leg_ru_cards_v4_${src}`;
+    const baseUrl = `/api/legendaries?source=${src}&v=ru_cards_v4`;
     try {
       const cached = cacheGet<any>(cacheKey);
       if (cached && gen === lgGenRef.current) { setLegendariesData(cached); setLoadingLegendaries(false); }
