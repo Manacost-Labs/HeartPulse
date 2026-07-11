@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Shifted the home-page Paladin farther left so the character remains visible beside the Arena class board without moving the data or controls.
 - Unified Arena card, deck-card, Battlegrounds strategy, Battlegrounds hero-media and gallery lightboxes with responsive wooden frames, red tavern-cloth surfaces and cream/gold controls while preserving close, keyboard, swipe and navigation behavior.
 - Removed the home-page “Мета в цифрах” aggregate with class leaders, best cards, legendary groups and the matching quick-navigation link.
 - Shifted the home-page Paladin mural slightly left and removed the duplicate freshness/source/leader strip from the bottom of the hero frame.
