@@ -134,6 +134,7 @@ A task is complete only when all relevant checks below are proven.
   - [x] One subscriber gate owns paywall accessibility, actions and private-preview isolation across bundles.
   - [x] One resilient avatar component owns profile imagery and missing-image fallback across bundles.
   - [x] CI enforces a no-growth duplicate-component budget while the remaining legacy copies are extracted.
+  - [x] Shared FAQ owns stable controls, panel relationships and content across Arena data pages.
 - [ ] Phase 3: layered CSS and removal of legacy cascade.
 - [ ] Phase 4: modular API, runtime validation and durable data snapshots.
 - [ ] Phase 5: isolated scraper publishing.

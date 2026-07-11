@@ -10,6 +10,7 @@
 - Removed the unused deferred route-transition copy and ratcheted the duplicate-component budget from 25 to 24.
 - Deleted both unreachable legacy avatar implementations and their unused helpers, ratcheting the duplicate-component budget from 24 to 23.
 - Deleted both unreachable legacy paywall implementations, removing 293 source lines and ratcheting the duplicate-component budget from 23 to 22.
+- Removed unused deferred profile-button, footer and retired deck code; moved the still-active FAQ into one accessible shared component, ratcheting duplicate components from 22 to 18.
 - Added deterministic authenticated browser QA for Arena subscriber pages at desktop and mobile widths, including paywall isolation, viewport dimming, horizontal overflow, grouped mobile navigation and lightbox background scroll locking.
 - Added required application validation on pushes and pull requests: locked install, critical production audit, typecheck, autonomous unit tests, production build, honest no-growth bundle budgets and documentation lint.
 - Added the stabilization source of truth with the route/access inventory, measurable SLOs, mandatory Definition of Done and stop-the-line release rules.
