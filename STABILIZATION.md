@@ -58,6 +58,9 @@ The first architecture ratchet is complete:
   for stale, missing, invalid or implausibly future-dated datasets.
 - Redis is an optional acceleration layer and therefore never blocks
   readiness.
+- The same contracts are mounted below `/api/health/*` for external monitors,
+  because the production reverse proxy forwards `/api/*` to Node while direct
+  `/health/*` remains available to local service probes.
 
 ## Route and access inventory
 

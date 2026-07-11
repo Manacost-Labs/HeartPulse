@@ -42,12 +42,14 @@ assert.equal(empty.ready, false);
 
 let activeReport = fresh;
 const app = express();
-app.use('/health', createHealthRouter({
+const healthRouter = createHealthRouter({
   getDataHealth: () => activeReport,
   getRelease: () => 'test-release',
   getUptimeSeconds: () => 42.9,
   now: () => new Date(now),
-}));
+});
+app.use('/health', healthRouter);
+app.use('/api/health', healthRouter);
 
 const server = app.listen(0, '127.0.0.1');
 await new Promise<void>((resolve, reject) => {
@@ -69,6 +71,10 @@ try {
     uptimeSeconds: 42,
     release: 'test-release',
   });
+
+  const proxiedLiveResponse = await fetch(`${origin}/api/health/live`);
+  assert.equal(proxiedLiveResponse.status, 200);
+  assert.equal((await proxiedLiveResponse.json()).status, 'alive');
 
   activeReport = stale;
   const staleReadyResponse = await fetch(`${origin}/health/ready`);

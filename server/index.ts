@@ -6923,10 +6923,12 @@ function criticalDataHealth() {
   return evaluateDataHealth(datasets);
 }
 
-app.use('/health', createHealthRouter({
+const healthRouter = createHealthRouter({
   getDataHealth: criticalDataHealth,
   getRelease: () => process.env.RELEASE_SHA || process.env.GITHUB_SHA || 'development',
-}));
+});
+app.use('/health', healthRouter);
+app.use('/api/health', healthRouter);
 
 app.get('/api/status', (req, res) => {
   const wr = loadDataCached('winrates.json');
