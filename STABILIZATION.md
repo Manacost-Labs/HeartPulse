@@ -172,11 +172,12 @@ A task is complete only when all relevant checks below are proven.
   - [x] Old-guide HTML and URL normalization have moved out of `server/index.ts` into a pure tested sanitizer module with explicit unsafe-protocol, event-handler, inline-style and decorative-image rejection coverage.
   - [x] Dataset freshness evaluation and Express health handlers are isolated modules with unit and HTTP contract tests for fresh, stale, missing, invalid and clock-skewed data.
 - [ ] Phase 5: isolated scraper publishing.
-- [ ] Phase 6: immutable deployment, readiness and rollback.
+- [x] Phase 6: immutable deployment, readiness and rollback.
   - [x] Dedicated liveness, readiness and strict data-health endpoints expose uncached machine-readable deployment gates without changing the legacy public status response.
   - [x] CI emits a readable compiled Node server artifact and starts it against isolated temporary snapshots/SQLite to verify direct health, proxied health and legacy status contracts without `tsx`.
-  - [ ] Switch systemd and nginx to a versioned release symlink only after persistent mutable data and automatic rollback are in place.
+  - [x] systemd runs compiled Node from `current`, nginx serves `current/dist`, mutable data lives in `shared/server-data`, and the former workspace remains only the build source.
   - [x] Release tooling now emits checksum manifests, separates lockfile-addressed dependencies and mutable data, makes releases read-only, switches `current`/`previous` atomically and automatically rolls back failed readiness; success, repeat-deploy and forced-failure paths are tested outside production.
+  - [x] A production rollback drill completed in one second and verified both previous and restored-current release SHAs through liveness.
 - [ ] Phase 7: structured telemetry, alerts and backup/restore.
 - [ ] Phase 8: performance, accessibility and final production audit.
 

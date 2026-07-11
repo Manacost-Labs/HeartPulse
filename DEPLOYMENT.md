@@ -82,6 +82,13 @@ sudo scripts/deploy-release.sh "$(readlink -f /var/www/koloda/data/www/hs-arena.
 This performs the same atomic switch, restart and readiness gate. The release
 that was active before rollback becomes the new `previous` target.
 
+## Verified production drill
+
+The first production drill on 2026-07-11 switched release `bc19b2b` back to
+`43c8722`, passed direct liveness with the previous manifest SHA in one second,
+then redeployed `bc19b2b`. Both `current` and `previous` remained valid
+root-owned read-only releases sharing the same mutable data directory.
+
 ## Verification
 
 ```bash
