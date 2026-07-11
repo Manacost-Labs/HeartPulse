@@ -293,6 +293,7 @@ Rules:
 
 ## Primary Files
 
+- `assets.md` — portable design guide and the complete production-URL asset catalogue for integrations.
 - `src/App.tsx` — shell state and route-level root classes.
 - `src/index.css` — base shell and navigation.
 - `src/parchment-theme.css` — shared Arena/editorial parchment system.
@@ -326,6 +327,7 @@ Rules:
 
 ## Changelog
 
+- **2026-07-11** — Added `assets.md` with portable visual rules, integration-ready CSS recipes and verified production URLs for every public visual asset.
 - **2026-07-11** — Contained mobile section-banner pseudo-elements within their timber header; they previously resolved `inset: 0` against the full content canvas and shaded every Arena route.
 - **2026-07-11** — Removed route-level opacity as a page-visibility dependency after iOS WebKit could miss the animation frame and leave Arena content at 72% opacity.
 - **2026-07-11** — Removed stacked mobile Arena parchment layers and the full-list source-loading tint that produced the remaining iOS dimmed-content state.

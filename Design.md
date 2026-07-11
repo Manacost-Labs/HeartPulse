@@ -85,6 +85,7 @@ Do not hotlink wiki assets at runtime.
 
 ## Changelog
 
+- **2026-07-11** — Added the portable `assets.md` design and production asset catalogue for cross-project integration.
 - **2026-07-11** — Fixed the true mobile Arena dimming layer by anchoring section-banner decoration to the banner rather than the full page canvas.
 - **2026-07-11** — Removed the route wrapper's 72% pre-animation opacity so restored iOS tabs always paint Arena pages at full opacity.
 - **2026-07-11** — Corrected the remaining iOS Arena dimming by reducing mobile data routes to one parchment paint layer and a tint-free source loader.
