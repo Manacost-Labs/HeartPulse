@@ -62,6 +62,24 @@ The first architecture ratchet is complete:
   because the production reverse proxy forwards `/api/*` to Node while direct
   `/health/*` remains available to local service probes.
 
+## Metrics and alert contracts
+
+- `GET /metrics` and externally reachable `GET /api/metrics` return uncached
+  Prometheus text without user identifiers, query strings or raw URLs.
+- HTTP counters use bounded Express route templates and status classes;
+  duration histograms use fixed buckets so p95 can be calculated without
+  retaining individual requests.
+- Page the operator immediately when `hs_arena_ready` is zero for two minutes
+  or when 5xx responses exceed 2% of requests for five minutes.
+- Warn when API p95 exceeds 500 ms for ten minutes and page when it exceeds
+  two seconds for five minutes.
+- Warn when any `hs_arena_dataset_age_seconds` exceeds six hours; page at the
+  eight-hour freshness SLO or whenever its state is missing or invalid.
+- Page when the public liveness probe fails from two independent regions for
+  two consecutive checks. A single-region failure is a warning.
+- Every alert must include the active `hs_arena_release_info` SHA, affected
+  route or dataset, first-seen time and the relevant rollback/runbook link.
+
 ## Route and access inventory
 
 ### Public and editorial routes
@@ -180,7 +198,7 @@ A task is complete only when all relevant checks below are proven.
   - [x] A production rollback drill completed in one second and verified both previous and restored-current release SHAs through liveness.
 - [ ] Phase 7: structured telemetry, alerts and backup/restore.
   - [x] Every HTTP response carries a validated or generated request ID; completed, failed and aborted requests emit one-line JSON records with normalized routes, status, duration and response size, while an allowlist prevents query strings, cookies, authorization headers, request bodies and raw error messages from entering logs.
-  - [ ] Export request latency, 5xx rate, data age and deployment health as scrapeable metrics with actionable alert thresholds.
+  - [x] Prometheus text export exposes bounded-route latency histograms, status-class counters, active requests, readiness, data freshness/age and active release; concrete warning and paging thresholds are documented.
   - [ ] Automate encrypted backups of shared mutable data and prove restore integrity with a scheduled drill.
 - [ ] Phase 8: performance, accessibility and final production audit.
 

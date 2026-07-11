@@ -97,5 +97,6 @@ systemctl is-active hs-arena.service
 curl -fsS https://arena.hs-manacost.ru/api/health/live
 curl -fsS https://arena.hs-manacost.ru/api/health/ready
 curl -fsS https://arena.hs-manacost.ru/api/health/data
+curl -fsS https://arena.hs-manacost.ru/api/metrics
 npm run qa:e2e
 ```

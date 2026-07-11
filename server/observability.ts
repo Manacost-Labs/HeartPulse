@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type express from 'express';
+import type { HttpMetrics } from './metrics.js';
 
 export type StructuredLogRecord = Record<string, string | number | boolean | null>;
 export type StructuredLogWriter = (line: string) => void;
@@ -36,17 +37,24 @@ export function normalizeRequestPath(originalUrl: string): string {
     .join('/');
 }
 
+export function requestRouteTemplate(req: express.Request): string {
+  const routePath = req.route?.path;
+  if (typeof routePath === 'string') return routePath.slice(0, 160);
+  return routePath ? '/regexp' : '/unmatched';
+}
+
 function emit(record: StructuredLogRecord, writer: StructuredLogWriter): void {
   writer(JSON.stringify({ timestamp: new Date().toISOString(), ...record }));
 }
 
-export function requestLoggingMiddleware(writer: StructuredLogWriter = defaultWriter): express.RequestHandler {
+export function requestLoggingMiddleware(writer: StructuredLogWriter = defaultWriter, metrics?: HttpMetrics): express.RequestHandler {
   return (req, res, next) => {
     const requestId = requestIdFromHeader(req.headers['x-request-id']);
     const startedAt = process.hrtime.bigint();
     let logged = false;
     res.locals.requestId = requestId;
     res.setHeader('X-Request-ID', requestId);
+    metrics?.requestStarted();
 
     const logRequest = (aborted: boolean) => {
       if (logged) return;
@@ -54,12 +62,14 @@ export function requestLoggingMiddleware(writer: StructuredLogWriter = defaultWr
       const durationMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
       const status = aborted && res.statusCode < 400 ? 499 : res.statusCode;
       const contentLength = Number(res.getHeader('content-length'));
+      const route = requestRouteTemplate(req);
+      metrics?.requestFinished({ method: req.method, route, status, durationMs });
       emit({
         event: aborted ? 'http_request_aborted' : 'http_request',
         level: status >= 500 ? 'error' : status >= 400 ? 'warn' : 'info',
         requestId,
         method: req.method,
-        route: normalizeRequestPath(req.originalUrl),
+        route,
         status,
         durationMs: Number(durationMs.toFixed(2)),
         responseBytes: Number.isFinite(contentLength) ? contentLength : null,
@@ -91,7 +101,7 @@ export function structuredErrorMiddleware(writer: StructuredLogWriter = defaultW
       level: 'error',
       requestId,
       method: req.method,
-      route: normalizeRequestPath(req.originalUrl),
+      route: requestRouteTemplate(req),
       status,
       errorName: String((error as { name?: unknown })?.name || 'Error').slice(0, 80),
       errorCode,

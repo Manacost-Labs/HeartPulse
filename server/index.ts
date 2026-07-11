@@ -18,6 +18,7 @@ import { createBlizzardCardImageClient, isBlizzardImageContentType } from './bli
 import { createOldGuideSanitizer } from './guides/sanitize.js';
 import { evaluateDataHealth } from './health.js';
 import { createHealthRouter } from './healthRoutes.js';
+import { createMetricsRouter, HttpMetrics } from './metrics.js';
 import { requestLoggingMiddleware, structuredErrorMiddleware } from './observability.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -5484,7 +5485,8 @@ function makeExternalEtag(prefix: string, source: string, data: any, now: number
 const app = express();
 app.disable('x-powered-by');
 app.set('etag', false);
-app.use(requestLoggingMiddleware());
+const httpMetrics = new HttpMetrics();
+app.use(requestLoggingMiddleware(undefined, httpMetrics));
 
 ensureAdminUploadDirs();
 ensureGalleryUploadDirs();
@@ -6945,6 +6947,13 @@ const healthRouter = createHealthRouter({
 });
 app.use('/health', healthRouter);
 app.use('/api/health', healthRouter);
+const metricsRouter = createMetricsRouter({
+  metrics: httpMetrics,
+  getDataHealth: criticalDataHealth,
+  getRelease: () => RELEASE_SHA,
+});
+app.use('/metrics', metricsRouter);
+app.use('/api/metrics', metricsRouter);
 
 app.get('/api/status', (req, res) => {
   const wr = loadDataCached('winrates.json');
