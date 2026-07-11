@@ -40,7 +40,8 @@ Do not hotlink wiki assets at runtime.
 ## Home Rules
 
 - Lead with live freshness, Arena leaders, source count and direct actions instead of quotes or oversized marketing copy.
-- Use `/wallpaper/home-paladin-hero.webp` as the masked first-screen character mural; keep copy on the red field and turn the art into a short panorama on mobile.
+- Use `/wallpaper/home-paladin-hero.webp` as the masked first-screen character mural with a slightly left-biased desktop crop; keep copy on the red field and turn the art into a short panorama on mobile.
+- Do not add a duplicate freshness/source/leader footer strip inside the home hero; the main composition closes directly at the wooden frame.
 - Keep the order Battlegrounds directory → Arena directory → useful cross-mode statistics → editorial/community content.
 - The Battlegrounds spotlight chart uses the real eight-place hero distribution from the API and falls back to an explicit updating state, never invented demo values.
 - Frame major home regions with canonical wood assets; keep inner rows quiet, parchment-based and free of generic colored side rails.
@@ -77,6 +78,7 @@ Do not hotlink wiki assets at runtime.
 
 ## Changelog
 
+- **2026-07-11** — Shifted the home character crop left and removed the duplicate hero status footer.
 - **2026-07-11** — Added timber-framed BG card dossiers, overflow-safe metadata, stable honey-parchment tier entries and the red tavern-cloth strategy lightbox.
 - **2026-07-10** — Defined the utility-first home hierarchy and real-data Battlegrounds hero spotlight chart.
 - **2026-07-10** — Removed generic colored side rails from Battlegrounds panels and directory entries in favor of wooden hierarchy and neutral boundaries.

@@ -3736,7 +3736,7 @@
   height: 100%;
   display: block;
   object-fit: cover;
-  object-position: 100% 36%;
+  object-position: 88% 36%;
   filter: saturate(1.08) contrast(1.04);
 }
 

@@ -258,9 +258,6 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
     [homeSummaryData?.topCards],
   );
 
-  const freshness = formatFreshness(homeSummaryData?.updatedAt);
-  const bestClass = topClasses[0];
-  const sourceCount = Object.keys(homeSummaryData?.sources ?? {}).length;
   const pageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -371,13 +368,6 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
             Полный рейтинг классов <ArrowRight size={15} aria-hidden="true" />
           </a>
         </aside>
-
-        <div className="home-stage__status" aria-label="Состояние данных">
-          <span><i className="home-live-dot" aria-hidden="true" /> Данные обновляются автоматически</span>
-          <span><small>Последний срез</small><time>{freshness}</time></span>
-          <span><small>Источники</small><strong>{sourceCount || '—'}</strong></span>
-          {bestClass && <span><small>Лидер</small><strong>{bestClass.name} · {bestClass.winrate.toFixed(1)}%</strong></span>}
-        </div>
       </section>
 
       <nav className="home-page-index" aria-label="Быстрые переходы по главной странице">
