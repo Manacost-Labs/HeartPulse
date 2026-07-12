@@ -1,0 +1,35 @@
+name: Production monitor
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-monitor
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    name: External health and critical routes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout monitor
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Probe production
+        env:
+          PRODUCTION_BASE_URL: https://arena.hs-manacost.ru
+          MONITOR_ATTEMPTS: '2'
+          MONITOR_RETRY_DELAY_MS: '5000'
+          MONITOR_TIMEOUT_MS: '10000'
+        run: node scripts/production-monitor.mjs
