@@ -2,18 +2,6 @@
 
 /* ─── Latest articles ─────────────────────────────────────────────────── */
 
-.arena-app-home .home-latest-articles .home-section-heading > div > span {
-  color: var(--arena-red) !important;
-}
-
-.arena-app-home .home-latest-articles .home-section-heading h2 {
-  color: #3b2a1f !important;
-}
-
-.arena-app-home .home-latest-articles .home-section-heading > p {
-  color: #78654f !important;
-}
-
 .arena-app-home .home-latest-articles__board {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

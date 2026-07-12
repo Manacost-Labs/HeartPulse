@@ -946,6 +946,39 @@ for (const [device, viewport] of [
         failures.push(`home lazy sections: ${selector} remained hidden (${state.classes}; opacity ${state.opacity})`);
       }
     }
+    const desktopHeading = await page.$eval('.home-latest-articles .home-section-heading', element => {
+      const label = element.querySelector(':scope > div > span');
+      const heading = element.querySelector('h2');
+      const summary = element.querySelector(':scope > p');
+      return {
+        marginBottom: getComputedStyle(element).marginBottom,
+        labelColor: label ? getComputedStyle(label).color : '',
+        headingColor: heading ? getComputedStyle(heading).color : '',
+        summaryColor: summary ? getComputedStyle(summary).color : '',
+      };
+    });
+    if (desktopHeading.marginBottom !== '21.6px'
+      || desktopHeading.labelColor !== 'rgb(123, 21, 27)'
+      || desktopHeading.headingColor !== 'rgb(59, 42, 31)'
+      || desktopHeading.summaryColor !== 'rgb(120, 101, 79)') {
+      failures.push(`home headings: desktop parchment typography changed (${JSON.stringify(desktopHeading)})`);
+    }
+    await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
+    const mobileHeading = await page.$eval('.home-latest-articles .home-section-heading', element => {
+      const heading = element.querySelector('h2');
+      const summary = element.querySelector(':scope > p');
+      return {
+        alignItems: getComputedStyle(element).alignItems,
+        headingSize: heading ? getComputedStyle(heading).fontSize : '',
+        summaryDisplay: summary ? getComputedStyle(summary).display : '',
+      };
+    });
+    if (mobileHeading.alignItems !== 'flex-start'
+      || mobileHeading.headingSize !== '32px'
+      || mobileHeading.summaryDisplay !== 'none') {
+      failures.push(`home headings: mobile parchment typography changed (${JSON.stringify(mobileHeading)})`);
+    }
+    await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
     const faqTrigger = await page.$('.home-faq-zone .faq-card__trigger');
     if (!faqTrigger) {
       failures.push('home lazy sections: FAQ trigger is missing');

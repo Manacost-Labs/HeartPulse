@@ -397,9 +397,9 @@
 
 .arena-app-home .home-stage__label,
 .arena-app-home .home-section-heading > div > span {
-  color: var(--arena-red) !important;
-  font-size: 0.67rem !important;
-  letter-spacing: 0.13em !important;
+  color: var(--arena-red);
+  font-size: 0.67rem;
+  letter-spacing: 0.13em;
 }
 
 .arena-app-home .home-stage__label > span {
@@ -561,18 +561,18 @@
   box-shadow: 0 1px rgba(247, 218, 145, 0.42), 0 3px 9px rgba(75, 40, 15, 0.12);
 }
 
-.arena-app-home .home-section-heading { margin-bottom: 1.35rem !important; }
+.arena-app-home .home-section-heading { margin-bottom: 1.35rem; }
 
 .arena-app-home .home-section-heading h2 {
-  color: #3b2a1f !important;
-  font-size: clamp(1.8rem, 3.2vw, 2.7rem) !important;
-  line-height: 1.02 !important;
-  letter-spacing: -0.025em !important;
+  color: #3b2a1f;
+  font-size: clamp(1.8rem, 3.2vw, 2.7rem);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
 }
 
 .arena-app-home .home-section-heading > p {
-  color: #78654f !important;
-  font-size: 0.84rem !important;
+  color: #78654f;
+  font-size: 0.84rem;
 }
 
 /* ─── Live data board ─────────────────────────────────────────────────── */
@@ -664,9 +664,9 @@
   .arena-app-home .home-stage__actions { display: grid !important; grid-template-columns: 1fr !important; }
   .arena-app-home .home-action { width: 100% !important; }
 
-  .arena-app-home .home-section-heading { align-items: flex-start !important; }
-  .arena-app-home .home-section-heading > p { display: none !important; }
-  .arena-app-home .home-section-heading h2 { font-size: 2rem !important; }
+  .arena-app-home .home-section-heading { align-items: flex-start; }
+  .arena-app-home .home-section-heading > p { display: none; }
+  .arena-app-home .home-section-heading h2 { font-size: 2rem; }
 
   .arena-app-home .home-community {
     display: grid !important;
