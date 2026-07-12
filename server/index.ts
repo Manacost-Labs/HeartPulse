@@ -21,6 +21,7 @@ import { createHealthRouter } from './healthRoutes.js';
 import { createMetricsRouter, HttpMetrics } from './metrics.js';
 import { requestLoggingMiddleware, structuredErrorMiddleware } from './observability.js';
 import { createScrapeQueueHandler } from './scrapeQueue.js';
+import { decodeSignedStateCookie, encodeSignedStateCookie, safeAuthReturnTo } from './authRedirect.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -2226,7 +2227,7 @@ function telegramOidcStateFromValue(value: any): TelegramOidcState | null {
     state: String(value.state),
     nonce: String(value.nonce),
     codeVerifier: String(value.codeVerifier),
-    returnTo: String(value.returnTo || '/?login&telegram=ok'),
+    returnTo: safeAuthReturnTo(value.returnTo),
     expiresAt: Number(value.expiresAt),
   };
 }
@@ -2235,7 +2236,8 @@ function readTelegramOidcStates(req: import('express').Request): TelegramOidcSta
   const raw = cookieValue(req, TELEGRAM_OIDC_COOKIE_NAME);
   if (!raw) return [];
   try {
-    const parsed = base64UrlDecodeJson(raw);
+    const parsed = decodeSignedStateCookie(raw, TELEGRAM_OIDC_CLIENT_SECRET) as any;
+    if (!parsed) return [];
     const values = Array.isArray(parsed?.states) ? parsed.states : [parsed];
     return values
       .map(telegramOidcStateFromValue)
@@ -2256,7 +2258,7 @@ function writeTelegramOidcStates(req: import('express').Request, res: import('ex
   }
   const maxAgeSeconds = Math.max(1, Math.ceil((Math.max(...validStates.map(state => state.expiresAt)) - Date.now()) / 1000));
   const cookie = [
-    `${TELEGRAM_OIDC_COOKIE_NAME}=${encodeURIComponent(base64UrlEncode(JSON.stringify({ states: validStates })))}`,
+    `${TELEGRAM_OIDC_COOKIE_NAME}=${encodeURIComponent(encodeSignedStateCookie({ states: validStates }, TELEGRAM_OIDC_CLIENT_SECRET))}`,
     'Path=/api/auth/telegram',
     `Max-Age=${maxAgeSeconds}`,
     'HttpOnly',
@@ -2294,11 +2296,6 @@ function readTelegramOidcState(req: import('express').Request, stateValue = ''):
   const states = readTelegramOidcStates(req);
   if (stateValue) return states.find(item => item.state === stateValue) ?? null;
   return states[states.length - 1] ?? null;
-}
-
-function safeAuthReturnTo(value: unknown, fallback = '/?login&telegram=ok'): string {
-  const raw = String(value ?? '').trim();
-  return raw.startsWith('/') && !raw.startsWith('//') ? raw : fallback;
 }
 
 async function verifyTelegramOidcIdToken(idToken: string, expectedNonce: string): Promise<Record<string, any>> {
@@ -7523,7 +7520,7 @@ app.get('/api/auth/telegram/callback', async (req, res) => {
       applyKhaSubscriptionSnapshot(user, khaProfile);
       await refreshSubscriptionAfterTelegramAuth(user);
       setAuthCookie(req, res, token);
-      return res.redirect(oidcState.returnTo || '/?login&telegram=ok');
+      return res.redirect(safeAuthReturnTo(oidcState.returnTo));
     } catch (err) {
       console.warn('[auth] Telegram OIDC callback failed:', err);
       return res.redirect('/?login&telegram=error');
