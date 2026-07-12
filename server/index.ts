@@ -15,7 +15,6 @@ import { DatabaseSync } from 'node:sqlite';
 import { loadSnapshot } from './snapshots.js';
 import { HSREPLAY_NO_ARENASMITH_TIER, normalizeArenasmithTier, tierFromArenasmithScore } from './hsreplayArenasmith.js';
 import { createBlizzardCardImageClient, isBlizzardImageContentType } from './blizzardCards.js';
-import { createOldGuideSanitizer } from './guides/sanitize.js';
 import { evaluateDataHealth } from './health.js';
 import { createHealthRouter } from './healthRoutes.js';
 import { createMetricsRouter, HttpMetrics } from './metrics.js';
@@ -30,6 +29,7 @@ import { createGalleryRouter } from './galleryRoutes.js';
 import { detectAdminUploadFormat } from './imageFormat.js';
 import { createBattlegroundProxyRouter } from './battlegroundProxyRoutes.js';
 import { createArticleCoverRouter } from './articleCoverRoutes.js';
+import { createGuidesArchiveRouter } from './guidesArchiveRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -247,10 +247,6 @@ const KHA_VIP_ARTICLE_HOSTS = new Set(['kolodahearthstone.ru', 'www.kolodahearth
 const KOLODAHS_API_BASE_URL = (process.env.KOLODAHS_API_BASE_URL || 'https://db.kolodahs.ru/api/v1').replace(/\/$/, '');
 const OLD_GUIDES_DB_FILE = process.env.OLD_GUIDES_DB_FILE || '/var/www/koloda/data/old-sites/kolodahearthstone.ru_old/db/guides.sqlite';
 const OLD_GUIDES_PUBLIC_URL = (process.env.OLD_GUIDES_PUBLIC_URL || 'https://old.kolodahearthstone.ru').replace(/\/$/, '');
-const oldGuideSanitizer = createOldGuideSanitizer(OLD_GUIDES_PUBLIC_URL);
-const normalizeOldGuideAssetUrl = oldGuideSanitizer.normalizeAssetUrl;
-const normalizeOldGuideLink = oldGuideSanitizer.normalizeLink;
-const sanitizeOldGuideHtml = oldGuideSanitizer.sanitizeHtml;
 const EXTRA_BG_LIBRARY_ENDPOINTS: Record<string, string> = {
   anomaly: '/anomalies',
   quest: '/quests',
@@ -5631,47 +5627,6 @@ function oldGuidesDatabase(): DatabaseSync {
   return oldGuidesDb;
 }
 
-function plainText(value: any): string {
-  return String(value ?? '')
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function excerptText(value: any, maxLength = 220): string {
-  const text = plainText(value);
-  if (text.length <= maxLength) return text;
-  return `${text.slice(0, maxLength).replace(/\s+\S*$/, '')}…`;
-}
-
-function escapeLike(value: string): string {
-  return value.replace(/[\\%_]/g, match => `\\${match}`);
-}
-
-function oldGuideImageUrl(value: any): string | null {
-  const url = normalizeOldGuideAssetUrl(value);
-  return url || null;
-}
-
-function oldGuideRowToListItem(row: any) {
-  return {
-    id: Number(row.id),
-    slug: String(row.slug),
-    title: String(row.title ?? ''),
-    description: excerptText(row.description || row.body_text || row.body_html, 220),
-    image: oldGuideImageUrl(row.image),
-    publishedAt: row.published_iso || (row.published_at ? new Date(Number(row.published_at) * 1000).toISOString() : null),
-    menuName: row.menu_name || null,
-    menuCode: row.menu_code || null,
-    kind: row.kind || null,
-    kindSlug: row.kind_slug || null,
-    oldUrl: normalizeOldGuideLink(row.old_url),
-  };
-}
-
 app.get('/api/home/summary', async (req, res) => {
   const now = Date.now();
   if (homeSummaryApiCache && homeSummaryApiCache.expiresAt > now) {
@@ -6176,103 +6131,12 @@ app.post('/api/articles/:articleId/vote', async (req, res) => {
   });
 });
 
-app.get('/api/guides-archive', requireGuidesArchiveAccess, (req, res) => {
-  res.set('Cache-Control', CACHE_1H);
-  try {
-    const database = oldGuidesDatabase();
-    const page = Math.max(1, Math.min(9999, Number(req.query.page || 1) || 1));
-    const limit = Math.max(6, Math.min(48, Number(req.query.limit || 18) || 18));
-    const offset = (page - 1) * limit;
-    const search = String(req.query.q ?? '').trim();
-    const kind = String(req.query.kind ?? '').trim();
-    const menu = String(req.query.menu ?? '').trim();
-    const where: string[] = ['1=1'];
-    const params: any[] = [];
-
-    if (search) {
-      const like = `%${escapeLike(search)}%`;
-      where.push('(title LIKE ? ESCAPE \'\\\' OR description LIKE ? ESCAPE \'\\\' OR keywords LIKE ? ESCAPE \'\\\' OR body_text LIKE ? ESCAPE \'\\\')');
-      params.push(like, like, like, like);
-    }
-    if (kind) {
-      where.push('kind_slug = ?');
-      params.push(kind);
-    }
-    if (menu) {
-      where.push('menu_code = ?');
-      params.push(menu);
-    }
-
-    const whereSql = where.join(' AND ');
-    const totalRow = database.prepare(`SELECT COUNT(*) AS total FROM guides WHERE ${whereSql}`).get(...params) as { total?: number } | undefined;
-    const rows = database.prepare(`
-      SELECT id, slug, old_url, published_at, published_iso, title, description, image, menu_name, menu_code, kind, kind_slug, body_text, body_html
-      FROM guides
-      WHERE ${whereSql}
-      ORDER BY published_at DESC, id DESC
-      LIMIT ? OFFSET ?
-    `).all(...params, limit, offset) as any[];
-    const kindRows = database.prepare(`
-      SELECT COALESCE(kind_slug, 'other') AS slug, COALESCE(kind, 'Другое') AS label, COUNT(*) AS count
-      FROM guides
-      GROUP BY kind_slug, kind
-      ORDER BY count DESC, label ASC
-    `).all() as any[];
-    const menuRows = database.prepare(`
-      SELECT COALESCE(menu_code, '') AS slug, COALESCE(menu_name, 'Без раздела') AS label, COUNT(*) AS count
-      FROM guides
-      WHERE menu_name IS NOT NULL AND TRIM(menu_name) <> ''
-      GROUP BY menu_code, menu_name
-      ORDER BY count DESC, label ASC
-      LIMIT 40
-    `).all() as any[];
-
-    return res.json({
-      page,
-      limit,
-      total: Number(totalRow?.total ?? 0),
-      totalPages: Math.max(1, Math.ceil(Number(totalRow?.total ?? 0) / limit)),
-      items: rows.map(oldGuideRowToListItem),
-      filters: {
-        kinds: kindRows.map(row => ({ slug: String(row.slug || 'other'), label: String(row.label || 'Другое'), count: Number(row.count || 0) })),
-        menus: menuRows.map(row => ({ slug: String(row.slug || ''), label: String(row.label || 'Без раздела'), count: Number(row.count || 0) })),
-      },
-    });
-  } catch (err: any) {
-    console.error('[guides-archive] list failed:', err?.message ?? err);
-    return res.status(500).json({ error: 'Не удалось загрузить архив гайдов' });
-  }
-});
-
-app.get('/api/guides-archive/:slug', requireGuidesArchiveAccess, (req, res) => {
-  res.set('Cache-Control', CACHE_1H);
-  try {
-    const database = oldGuidesDatabase();
-    const key = String(req.params.slug ?? '').trim();
-    const row = database.prepare(`
-      SELECT id, slug, old_url, published_at, published_iso, title, description, keywords, image, menu_name, menu_code, kind, kind_slug,
-             short_html, free_html, body_html, body_text, reply_count
-      FROM guides
-      WHERE slug = ? OR CAST(id AS TEXT) = ?
-      LIMIT 1
-    `).get(key, key) as any | undefined;
-
-    if (!row) return res.status(404).json({ error: 'Гайд не найден' });
-
-    const htmlSource = row.body_html || row.free_html || row.short_html || '';
-    return res.json({
-      ...oldGuideRowToListItem(row),
-      keywords: row.keywords || null,
-      replyCount: Number(row.reply_count || 0),
-      contentHtml: sanitizeOldGuideHtml(htmlSource),
-      fallbackText: htmlSource ? '' : plainText(row.body_text),
-      sourceUrl: normalizeOldGuideLink(row.old_url),
-    });
-  } catch (err: any) {
-    console.error('[guides-archive] detail failed:', err?.message ?? err);
-    return res.status(500).json({ error: 'Не удалось загрузить гайд' });
-  }
-});
+app.use('/api', createGuidesArchiveRouter({
+  getDatabase: oldGuidesDatabase,
+  accessGuard: requireGuidesArchiveAccess,
+  publicUrl: OLD_GUIDES_PUBLIC_URL,
+  cacheHeader: CACHE_1H,
+}));
 
 app.post('/api/articles/access-link', async (req, res) => {
   res.set('Cache-Control', 'no-store');
