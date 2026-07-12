@@ -23,6 +23,7 @@ import { requestLoggingMiddleware, structuredErrorMiddleware } from './observabi
 import { createScrapeQueueHandler } from './scrapeQueue.js';
 import { decodeSignedStateCookie, encodeSignedStateCookie, safeAuthReturnTo } from './authRedirect.js';
 import { csrfRequestAllowed } from './csrf.js';
+import { configureLoopbackProxyTrust, corsOriginAllowed, getTrustedClientIp } from './networkBoundary.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -1614,7 +1615,7 @@ function normalizeReferralTarget(value: any): string {
 }
 
 function requestIpHash(req: import('express').Request): string {
-  const ip = getClientIp(req);
+  const ip = getTrustedClientIp(req);
   const salt = process.env.ECOSYSTEM_INTERNAL_KEY || 'manacost-referrals';
   return createHash('sha256').update(`${salt}:${ip}`).digest('hex');
 }
@@ -3064,14 +3065,8 @@ function isContestAdminUser(user: AdminUser | null | undefined): user is AdminUs
   return isAdminUser(user) || userId === CONTEST_ADMIN_USER_ID;
 }
 
-function getClientIp(req: import('express').Request): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  const raw = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-  return (raw ? raw.split(',')[0] : req.socket?.remoteAddress ?? '').trim();
-}
-
 function rateLimitClientKey(req: import('express').Request): string {
-  return ipKeyGenerator(getClientIp(req) || 'unknown');
+  return ipKeyGenerator(getTrustedClientIp(req) || 'unknown');
 }
 
 function rateLimitEmailKey(req: import('express').Request): string {
@@ -5500,6 +5495,7 @@ function makeExternalEtag(prefix: string, source: string, data: any, now: number
 }
 
 const app = express();
+configureLoopbackProxyTrust(app);
 app.disable('x-powered-by');
 app.set('etag', false);
 const httpMetrics = new HttpMetrics();
@@ -5606,14 +5602,7 @@ app.use((req, res, next) => {
   const origin = String(req.headers.origin || '');
   if (origin) {
     try {
-      const parsed = new URL(origin);
-      const appHost = new URL(APP_URL).host;
-      const allowed =
-        parsed.host === appHost
-        || parsed.hostname === 'arena.hs-manacost.ru'
-        || parsed.hostname === 'localhost'
-        || parsed.hostname === '127.0.0.1';
-      if (allowed) {
+      if (corsOriginAllowed(origin, APP_URL, process.env.NODE_ENV !== 'production')) {
         res.header('Access-Control-Allow-Origin', origin);
         res.header('Vary', 'Origin');
       }
@@ -7002,7 +6991,7 @@ app.get('/api/check-ip', (req, res) => {
   res.json({
     allowed: isAdminUser(user),
     id: user?.id ?? null,
-    ip: getClientIp(req),
+    ip: getTrustedClientIp(req),
   });
 });
 
