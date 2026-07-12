@@ -18,7 +18,7 @@ try {
   writeFileSync(join(workspace, 'dist/index.html'), '<!doctype html>\n');
   writeFileSync(join(workspace, 'public/asset.txt'), 'asset\n');
   writeFileSync(join(workspace, 'server/gen_legendary_image.py'), '# fixture\n');
-  for (const script of ['backup-shared-data.sh', 'verify-backup.sh']) {
+  for (const script of ['backup-shared-data.sh', 'verify-backup.sh', 'replicate-backup.sh']) {
     writeFileSync(join(workspace, 'scripts', script), '#!/usr/bin/env bash\nexit 0\n', { mode: 0o755 });
   }
   writeFileSync(join(workspace, 'package.json'), '{"name":"fixture"}\n');
@@ -35,7 +35,10 @@ try {
   assert.equal(manifest.sha, 'abcdef1');
   assert.match(manifest.checksums['scripts/backup-shared-data.sh'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['scripts/verify-backup.sh'], /^[a-f0-9]{64}$/);
-  assert.ok((statSync(join(output, 'scripts/backup-shared-data.sh')).mode & 0o111) !== 0);
+  assert.match(manifest.checksums['scripts/replicate-backup.sh'], /^[a-f0-9]{64}$/);
+  for (const script of ['backup-shared-data.sh', 'verify-backup.sh', 'replicate-backup.sh']) {
+    assert.ok((statSync(join(output, 'scripts', script)).mode & 0o111) !== 0, `${script} is not executable`);
+  }
 } finally {
   rmSync(root, { recursive: true, force: true });
 }

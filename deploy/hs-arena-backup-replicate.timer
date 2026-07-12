@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily off-site HS-Arena backup replication
+
+[Timer]
+OnCalendar=*-*-* 03:20:00 UTC
+RandomizedDelaySec=20m
+Persistent=true
+Unit=hs-arena-backup-replicate.service
+
+[Install]
+WantedBy=timers.target

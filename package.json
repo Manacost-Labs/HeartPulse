@@ -22,7 +22,7 @@
     "test:health": "tsx tests/health.test.ts",
     "test:observability": "tsx tests/observability.test.ts",
     "test:metrics": "tsx tests/metrics.test.ts",
-    "test:backup": "bash tests/backup-restore.test.sh",
+    "test:backup": "bash tests/backup-restore.test.sh && bash tests/backup-replication.test.sh",
     "test:release": "node tests/create-release.test.mjs",
     "test:snapshots": "tsx tests/snapshots.test.ts",
     "test:scrape-queue": "tsx tests/scrape-queue.test.ts",

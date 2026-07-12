@@ -1,0 +1,17 @@
+[Unit]
+Description=Replicate latest encrypted HS-Arena backup off site
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+EnvironmentFile=/etc/hs-arena/backup.env
+EnvironmentFile=/etc/hs-arena/backup-remote.env
+ExecStart=/var/www/koloda/data/www/hs-arena.ru/current/scripts/replicate-backup.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+PrivateTmp=true
+NoNewPrivileges=true

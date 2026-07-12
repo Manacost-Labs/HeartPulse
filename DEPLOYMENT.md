@@ -132,6 +132,47 @@ does not protect against loss of the host filesystem. Replicate encrypted
 `.gpg` and `.sha256` files plus an offline copy of the passphrase to a separate
 failure domain before considering disaster recovery complete.
 
+### Off-site SSH replication
+
+Use a dedicated account and a pre-created directory on a physically separate
+backup host. The account needs permission to write the two encrypted files and
+run `sha256sum`; it must not have access to the web host or the recovery
+passphrase. Pin the host key instead of accepting it on first use:
+
+```bash
+sudo install -m 600 deploy/backup-remote.env.example /etc/hs-arena/backup-remote.env
+sudo ssh-keygen -t ed25519 -f /etc/hs-arena/backup-replication-key -N ''
+sudo ssh-keyscan -H backup.example.net > /etc/hs-arena/backup-known-hosts
+sudo chmod 600 /etc/hs-arena/backup-replication-key /etc/hs-arena/backup-known-hosts
+sudo install -m 644 deploy/hs-arena-backup-replicate.service /etc/systemd/system/
+sudo install -m 644 deploy/hs-arena-backup-replicate.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+```
+
+Replace every placeholder in `/etc/hs-arena/backup-remote.env`, install only
+the public half of the generated key on the backup account, and verify the
+pinned fingerprint out of band. The replication script rejects unsafe
+host/user/path values, verifies the local checksum before transfer, uses strict
+host-key checking, and verifies the uploaded checksum on the remote host.
+Enable the timer only after a manual transfer succeeds:
+
+```bash
+sudo systemctl start hs-arena-backup-replicate.service
+sudo systemctl status hs-arena-backup-replicate.service
+sudo systemctl enable --now hs-arena-backup-replicate.timer
+```
+
+Do not store `/etc/hs-arena/backup-passphrase` on that same backup host. Keep at
+least two offline copies in separate controlled locations and record a key
+recovery drill without putting the secret in source control or logs.
+
+For the host-loss drill, provision a clean recovery machine, fetch one `.gpg`
+archive and its `.sha256` sidecar from the backup host, provide the offline
+passphrase through a root-only file, run `scripts/verify-backup.sh`, then follow
+the manual restore procedure above. The drill is complete only after SQLite
+integrity, all three required snapshots, `/api/health/ready`, and the public E2E
+suite pass on the recovered host.
+
 ## Isolated scraper publishing
 
 The web process never runs Puppeteer or writes scraper snapshots. A dedicated
