@@ -398,15 +398,51 @@ for (const route of authenticatedRoutes) {
   }
 }
 
+// Keyboard entry: the skip link must be the first application control, become
+// visible on focus and move focus to the main landmark without a pointer.
+{
+  const page = await createQaPage();
+  await page.setViewport({ width: 1440, height: 900 });
+  await mockApplicationApi(page, { authenticated: true });
+  try {
+    await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.focus('.arena-skip-link');
+    const skipState = await page.evaluate(() => {
+      const element = document.activeElement;
+      const rect = element?.getBoundingClientRect();
+      return {
+        className: element?.className || '',
+        firstAppChild: document.querySelector('#root > .arena-app-shell')?.firstElementChild === element,
+        width: rect?.width || 0,
+        height: rect?.height || 0,
+        top: rect?.top || 0,
+      };
+    });
+    if (!String(skipState.className).includes('arena-skip-link') || !skipState.firstAppChild) failures.push('keyboard: skip link is not the first application control');
+    if (skipState.height < 44 || skipState.width < 44 || skipState.top < 0) failures.push(`keyboard: skip link is not visibly actionable (${skipState.width}×${skipState.height}, top ${skipState.top})`);
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(() => location.hash === '#main-content' && document.activeElement?.id === 'main-content');
+    console.log('✓ keyboard skip link and main landmark focus');
+  } catch (error) {
+    failures.push(`keyboard skip link: ${error.message}`);
+  } finally {
+    await page.close();
+  }
+}
+
 // Mobile drawer: visible controls, grouped navigation and background scroll lock.
 {
   const page = await createQaPage();
+  let stage = 'load';
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   await mockApplicationApi(page, { authenticated: true });
   try {
     await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    stage = 'open';
     await page.click('.arena-mobile-nav-toggle');
     await page.waitForSelector('.arena-mobile-menu', { visible: true });
+    stage = 'initial focus';
+    await page.waitForFunction(() => document.querySelector('#arena-mobile-menu')?.contains(document.activeElement), { timeout: 5_000 });
     await page.waitForFunction(() => (
       document.querySelector('.auth-avatar > span')?.textContent === 'QS'
       && getComputedStyle(document.querySelector('.auth-avatar img')).display === 'none'
@@ -424,13 +460,52 @@ for (const route of authenticatedRoutes) {
         misc: Boolean(document.querySelector('[aria-controls="arena-mobile-misc"]')),
         avatarFallback: document.querySelector('.auth-avatar > span')?.textContent || '',
         avatarImageHidden: getComputedStyle(document.querySelector('.auth-avatar img')).display === 'none',
+        toggleSize: (() => {
+          const toggleRect = document.querySelector('.arena-mobile-nav-toggle')?.getBoundingClientRect();
+          return { width: toggleRect?.width || 0, height: toggleRect?.height || 0 };
+        })(),
+        undersizedControls: [...document.querySelectorAll('#arena-mobile-menu a[href], #arena-mobile-menu button:not([disabled])')]
+          .filter(element => !element.closest('[hidden]'))
+          .map(element => element.getBoundingClientRect())
+          .filter(rect => rect.width < 44 || rect.height < 44)
+          .length,
       };
     });
     if (openState.bodyPosition !== 'fixed' || openState.htmlOverflow !== 'hidden') failures.push('mobile menu: background is not scroll-locked');
     if (!openState.profileWidth || openState.profileRight > openState.viewportWidth + 1) failures.push('mobile menu: profile control frame overflows');
     if (!openState.constructors || !openState.misc) failures.push('mobile menu: grouped navigation controls are missing');
     if (openState.avatarFallback !== 'QS' || !openState.avatarImageHidden) failures.push('mobile menu: broken avatar did not fall back to user initials');
+    if (openState.toggleSize.width < 44 || openState.toggleSize.height < 44) failures.push(`mobile menu: toggle target is ${openState.toggleSize.width}×${openState.toggleSize.height}`);
+    if (openState.undersizedControls) failures.push(`mobile menu: ${openState.undersizedControls} visible controls are smaller than 44×44`);
     await auditAccessibility(page, 'mobile menu open');
+
+    stage = 'forward focus trap';
+    await page.evaluate(() => {
+      const menu = document.querySelector('#arena-mobile-menu');
+      const visible = [...menu.querySelectorAll('a[href], button:not([disabled])')]
+        .filter(element => !element.closest('[hidden]'));
+      visible.at(-1)?.focus();
+    });
+    await page.keyboard.press('Tab');
+    const cycledToFirst = await page.evaluate(() => document.activeElement === document.querySelector('#arena-mobile-menu a[href], #arena-mobile-menu button:not([disabled])'));
+    if (!cycledToFirst) failures.push('mobile menu: Tab escaped instead of cycling to the first control');
+    await page.keyboard.down('Shift');
+    await page.keyboard.press('Tab');
+    await page.keyboard.up('Shift');
+    const cycledToLast = await page.evaluate(() => {
+      const visible = [...document.querySelectorAll('#arena-mobile-menu a[href], #arena-mobile-menu button:not([disabled])')]
+        .filter(element => !element.closest('[hidden]'));
+      return document.activeElement === visible.at(-1);
+    });
+    if (!cycledToLast) failures.push('mobile menu: Shift+Tab escaped instead of cycling to the last control');
+    stage = 'escape close and restore';
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('.arena-mobile-menu', { hidden: true });
+    await page.waitForFunction(() => document.activeElement?.classList.contains('arena-mobile-nav-toggle'), { timeout: 5_000 });
+
+    stage = 'backdrop close';
+    await page.click('.arena-mobile-nav-toggle');
+    await page.waitForSelector('.arena-mobile-menu', { visible: true });
     await page.click('.arena-mobile-drawer-backdrop');
     await page.waitForSelector('.arena-mobile-menu', { hidden: true });
     const closedPosition = await page.evaluate(() => getComputedStyle(document.body).position);
@@ -438,7 +513,12 @@ for (const route of authenticatedRoutes) {
     await page.screenshot({ path: `${OUT}/mobile-menu-closed.png`, fullPage: false });
     console.log('✓ mobile menu interaction and scroll lock');
   } catch (error) {
-    failures.push(`mobile menu: ${error.message}`);
+    const active = await page.evaluate(() => ({
+      tag: document.activeElement?.tagName || '',
+      className: document.activeElement?.className || '',
+      label: document.activeElement?.getAttribute('aria-label') || '',
+    })).catch(() => ({}));
+    failures.push(`mobile menu [${stage}]: ${error.message}; active=${JSON.stringify(active)}`);
   } finally {
     await page.close();
   }

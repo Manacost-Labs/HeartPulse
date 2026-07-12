@@ -2366,6 +2366,8 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileNavGroup, setMobileNavGroup] = useState<'constructors' | 'misc' | null>(null);
   const [sidebarNavGroup, setSidebarNavGroup] = useState<'constructors' | 'misc' | null>(null);
+  const mobileMenuRef = useRef<HTMLElement>(null);
+  const mobileMenuToggleRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (isKnownPath(window.location.pathname)) return;
@@ -2941,9 +2943,41 @@ export default function App() {
   const isBattlegroundsSurfacePage = !isAdminMode && !wantsLogin && BG_TAB_IDS.has(activeTab);
   const isOpenSurfacePage = !isAdminMode && (activeTab === 'home' || wantsLogin || isEditorialSurfacePage || isGameDataSurfacePage || isBattlegroundsSurfacePage);
   usePageScrollLock(!isAdminMode && mobileMenuOpen);
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+    const menu = mobileMenuRef.current;
+    if (!menu) return undefined;
+    const focusable: HTMLElement[] = Array.from(menu.querySelectorAll<HTMLElement>('a[href],button:not(:disabled)'));
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    first?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        mobileMenuToggleRef.current?.focus();
+        setMobileMenuOpen(false);
+      }
+      if (event.key !== 'Tab' || !first || !last) return;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [mobileMenuOpen]);
 
 		  return (
     <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${activeTab === 'home' && !isAdminMode ? 'arena-app-home' : ''} ${wantsLogin && !isAdminMode ? 'arena-app-profile' : ''} ${isEditorialSurfacePage ? `arena-app-editorial arena-app-${activeTab}` : ''} ${isGameDataSurfacePage ? `arena-app-game-data arena-app-${activeTab}` : ''} ${isBattlegroundsSurfacePage ? `arena-app-battlegrounds arena-app-${activeTab}` : ''}`}>
+      <a
+        className="arena-skip-link"
+        href="#main-content"
+        onClick={() => document.getElementById('main-content')?.focus()}
+      >
+        К основному содержимому
+      </a>
       {!isAdminMode && <header className="arena-mobile-topbar lg:hidden">
         <a
           href="/"
@@ -2954,6 +2988,7 @@ export default function App() {
           <span>Manacost Stats</span>
         </a>
         <button
+          ref={mobileMenuToggleRef}
           type="button"
           onClick={() => setMobileMenuOpen(open => {
             if (open) setMobileNavGroup(null);
@@ -2976,7 +3011,7 @@ export default function App() {
             aria-label="Закрыть меню"
             onClick={() => { setMobileMenuOpen(false); setMobileNavGroup(null); }}
           />
-          <nav id="arena-mobile-menu" className="arena-mobile-menu lg:hidden" aria-label="Мобильная навигация">
+          <nav ref={mobileMenuRef} id="arena-mobile-menu" className="arena-mobile-menu lg:hidden" aria-label="Мобильная навигация">
             {TOP_LEVEL_TABS.map(tab => {
               const Icon = tab.icon;
               const active = activeTab === tab.id;
@@ -3391,7 +3426,7 @@ export default function App() {
         )}
 
 	        <div className={`arena-workspace ${isFullWidthBuilder ? 'arena-workspace-wide' : ''} ${isAdminMode ? 'arena-workspace-admin' : ''}`}>
-	          <main className={`arena-main relative flex flex-col items-center ${isFullWidthBuilder ? 'arena-main-wide' : ''} ${isAdminMode ? 'arena-main-admin' : ''}`} role="main">
+	          <main id="main-content" tabIndex={-1} className={`arena-main relative flex flex-col items-center ${isFullWidthBuilder ? 'arena-main-wide' : ''} ${isAdminMode ? 'arena-main-admin' : ''}`} role="main">
         {/* Parchment container */}
 	        <div className={`arena-content w-full max-w-6xl mx-auto bg-parchment rounded-xl border-[3px] sm:border-[4px] border-[#6b4c2a] shadow-[inset_0_0_60px_rgba(139,69,19,0.15),0_0_0_2px_#2c1e16,0_15px_30px_rgba(0,0,0,0.6)] p-3 sm:p-6 md:p-10 relative z-0 ${isFullWidthBuilder ? 'arena-content-wide' : ''} ${isAdminMode ? 'arena-content-admin' : ''} ${isOpenSurfacePage ? 'arena-content-open' : ''}`}>
           {!isAdminMode && !isOpenSurfacePage && <>

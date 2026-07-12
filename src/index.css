@@ -1,6 +1,29 @@
 @import "tailwindcss";
 @import "./styles/tokens.css";
 
+.arena-skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 10000;
+  min-height: 44px;
+  padding: 0.7rem 1rem;
+  border: 2px solid #e0b04c;
+  border-radius: 0.35rem;
+  color: #fff3cf;
+  background: #5f0d18;
+  box-shadow: 0 6px 18px rgba(35, 12, 8, 0.35);
+  font-weight: 800;
+  transform: translateY(calc(-100% - 1rem));
+  transition: transform 120ms ease-out;
+}
+
+.arena-skip-link:focus-visible {
+  outline: 3px solid #4a2f66;
+  outline-offset: 3px;
+  transform: translateY(0);
+}
+
 @font-face {
   font-family: "HSDisplay";
   src: url("/fonts/2318-font.otf") format("opentype");
@@ -281,8 +304,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
     border: 1px solid rgba(96, 165, 250, 0.32);
     border-radius: 12px;
     color: #1f3654;
