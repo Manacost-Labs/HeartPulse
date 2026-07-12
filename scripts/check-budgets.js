@@ -7,15 +7,16 @@ const distAssets = join(process.cwd(), 'dist', 'assets');
 const budgets = {
   // Enforce the current production baseline first; later stabilization tasks
   // ratchet these limits down instead of keeping permanently failing targets.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 55_000),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 270_000),
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 52_000),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 267_000),
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 90_000),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 190_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 180_000),
-  css: Number(process.env.BUDGET_CSS_BYTES || 210_000),
+  css: Number(process.env.BUDGET_CSS_BYTES || 205_000),
   routeCss: Number(process.env.BUDGET_ROUTE_CSS_BYTES || 50_000),
   homeSectionCss: Number(process.env.BUDGET_HOME_SECTION_CSS_BYTES || 5_000),
   supportPromptCss: Number(process.env.BUDGET_SUPPORT_PROMPT_CSS_BYTES || 4_000),
+  siteFooterCss: Number(process.env.BUDGET_SITE_FOOTER_CSS_BYTES || 4_000),
 };
 
 const files = readdirSync(distAssets)
@@ -34,6 +35,7 @@ const routeJs = files.filter(file =>
 const css = files.find(file => /^index-.*\.css$/.test(file.name));
 const routeCss = files.find(file => /^route-parchment-.*\.css$/.test(file.name));
 const supportPromptCss = files.find(file => /^SupportPrompt-.*\.css$/.test(file.name));
+const siteFooterCss = files.find(file => /^SiteFooter-.*\.css$/.test(file.name));
 const homeSectionCssFiles = files.filter(file => /^Home(?:ArenaDirectory|Battlegrounds|LatestArticles)-.*\.css$/.test(file.name));
 const largestHomeSectionCss = homeSectionCssFiles.length === 3
   ? homeSectionCssFiles.sort((left, right) => right.bytes - left.bytes)[0]
@@ -62,6 +64,7 @@ const checks = [
   ['shared route CSS', routeCss, budgets.routeCss],
   ['largest lazy home-section CSS', largestHomeSectionCss, budgets.homeSectionCss],
   ['lazy support-prompt CSS', supportPromptCss, budgets.supportPromptCss],
+  ['lazy site-footer CSS', siteFooterCss, budgets.siteFooterCss],
 ];
 
 let failed = false;

@@ -698,10 +698,6 @@
     .arena-content {
       max-width: min(1180px, calc(100vw - 326px)) !important;
     }
-
-    .arena-footer {
-      margin-top: 1.2rem !important;
-    }
   }
 }
 
@@ -1303,59 +1299,6 @@
     display: none;
   }
 
-  .arena-footer {
-    position: relative;
-    overflow: hidden;
-    margin-top: clamp(2rem, 5vw, 4rem) !important;
-    background:
-      radial-gradient(circle at 18% 0%, rgba(96, 165, 250, 0.14), transparent 26rem),
-      radial-gradient(circle at 82% 0%, rgba(246, 206, 104, 0.12), transparent 22rem),
-      linear-gradient(180deg, rgba(248, 251, 255, 0.96), rgba(225, 236, 250, 0.98)) !important;
-    border-top: 1px solid rgba(148, 163, 184, 0.26) !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  }
-
-  .arena-footer::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background-image: url("/wallpaper/footer-bg.jpg");
-    background-image: url("/wallpaper/footer-bg.webp");
-    background-position: center top;
-    background-size: cover;
-    opacity: 0.08;
-    mix-blend-mode: screen;
-  }
-
-  .arena-footer > * {
-    position: relative;
-    z-index: 1;
-  }
-
-  .arena-footer > .max-w-6xl {
-    margin-top: 1.4rem;
-    margin-bottom: 1.2rem;
-    border: 1px solid rgba(148, 163, 184, 0.16);
-    border-radius: 24px;
-    background: rgba(8, 16, 32, 0.54);
-    box-shadow:
-      0 20px 58px rgba(0, 0, 0, 0.24),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(16px);
-  }
-
-  .arena-footer h3 {
-    letter-spacing: 0 !important;
-  }
-
-  .arena-footer a {
-    display: inline-flex;
-    width: fit-content;
-    border-radius: 8px;
-    padding: 0.12rem 0;
-  }
-
   @media (max-width: 767px) {
     .arena-header > .max-w-6xl {
       padding-top: 0.75rem !important;
@@ -1408,12 +1351,6 @@
     .site-switcher-icon img {
       width: 1rem;
       height: 1rem;
-    }
-
-    .arena-footer > .max-w-6xl {
-      margin-left: 0.75rem;
-      margin-right: 0.75rem;
-      grid-template-columns: 1fr !important;
     }
   }
 
@@ -1875,13 +1812,6 @@
     border-color: rgba(96, 165, 250, 0.26) !important;
     box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.18) !important;
     color: #1f4f7a !important;
-  }
-
-  .arena-footer h3,
-  .arena-footer [class*="text-[#f6ce68]"],
-  .arena-footer [style*="#fcd34d"],
-  .arena-footer [style*="#c4a46a"] {
-    color: #93c5fd !important;
   }
 
   .bg-wood::after {

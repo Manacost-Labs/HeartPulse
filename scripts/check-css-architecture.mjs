@@ -4,7 +4,7 @@ import { join, relative } from 'node:path';
 const ROOT = process.cwd();
 const SRC = join(ROOT, 'src');
 const TOKEN_FILE = 'src/styles/tokens.css';
-const MAX_IMPORTANT_DECLARATIONS = 2716;
+const MAX_IMPORTANT_DECLARATIONS = 2683;
 
 function walk(directory) {
   return readdirSync(directory)
