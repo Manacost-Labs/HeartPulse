@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import '../route-parchment.css';
 import {
-  BookOpen,
   CircleDollarSign,
   Download,
   ExternalLink,
@@ -31,6 +30,16 @@ import {
 } from './ContestAdminReferrals';
 import { contestSelectionReducer, INITIAL_CONTEST_SELECTION } from './contestSelection';
 import { ContestAdminDashboard } from './ContestAdminDashboard';
+import {
+  ContestAdminArticles,
+  type Article,
+  type ArticleDraft,
+} from './ContestAdminArticles';
+import {
+  ContestAdminImageUploader,
+  fileToDataUrl,
+  firstImageFile,
+} from './ContestAdminImageUploader';
 import {
   ContestAdminUsers,
   type AdminUserPatch,
@@ -92,17 +101,6 @@ const SUBSCRIPTION_ENTITLEMENT_LABELS: ReadonlyArray<[SubscriptionEntitlementKey
   ['battlegroundsArticles', 'Статьи Полей'],
 ];
 
-interface Article {
-  id: string;
-  title: string;
-  date: string;
-  image?: string;
-  excerpt?: string;
-  tag?: string;
-  mode?: 'arena' | 'battlegrounds' | 'general';
-  url?: string;
-}
-
 interface GalleryItem {
   id: string;
   title: string;
@@ -133,12 +131,6 @@ function formatBytes(bytes?: number): string {
   if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(value >= 10 * 1024 * 1024 ? 0 : 1)} МБ`;
   if (value >= 1024) return `${Math.round(value / 1024)} КБ`;
   return `${value} Б`;
-}
-
-function articleModeLabel(mode?: Article['mode']): string {
-  if (mode === 'arena') return 'Арена';
-  if (mode === 'battlegrounds') return 'Поля Сражений';
-  return 'Общий';
 }
 
 function formatDateTimeInput(value: string | null | undefined): string {
@@ -667,28 +659,6 @@ function subscriptionEntitlementLabels(subscription: { hasAccess?: boolean; enti
   return labels;
 }
 
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Не удалось прочитать файл'));
-    reader.readAsDataURL(file);
-  });
-}
-
-async function uploadAdminImageFile(file: File): Promise<string> {
-  if (!file.type.startsWith('image/')) throw new Error('Можно загружать только изображения');
-  const dataUrl = await fileToDataUrl(file);
-  const res = await fetch('/api/admin/uploads/image', {
-    method: 'POST',
-    headers: authJsonHeaders(),
-    body: JSON.stringify({ dataUrl }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'Не удалось загрузить картинку');
-  return String(data.url || '');
-}
-
 async function uploadGalleryArtFile(file: File, metadata: { title: string; description: string; tag: string; source: string }): Promise<GalleryItem> {
   if (!file.type.startsWith('image/')) throw new Error('Можно загружать только изображения');
   const dataUrl = await fileToDataUrl(file);
@@ -700,96 +670,6 @@ async function uploadGalleryArtFile(file: File, metadata: { title: string; descr
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || 'Не удалось загрузить арт');
   return data.item as GalleryItem;
-}
-
-function firstImageFile(files: FileList | File[] | null | undefined): File | null {
-  if (!files) return null;
-  return Array.from(files).find(file => file.type.startsWith('image/')) ?? null;
-}
-
-function AdminImageUploader({
-  label,
-  value,
-  onChange,
-  allowExternalUrl = true,
-}: {
-  label: string;
-  value: string;
-  onChange: (url: string) => void;
-  allowExternalUrl?: boolean;
-}) {
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState('');
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
-  const uploadFile = async (file: File | null) => {
-    if (!file) return;
-    setUploading(true);
-    setError('');
-    try {
-      const url = await uploadAdminImageFile(file);
-      onChange(url);
-    } catch (err: any) {
-      setError(err.message || 'Не удалось загрузить картинку');
-    } finally {
-      setUploading(false);
-      if (inputRef.current) inputRef.current.value = '';
-    }
-  };
-
-	  return (
-    <div
-      className={`admin-image-uploader ${uploading ? 'admin-image-uploader-busy' : ''}`}
-      onPaste={event => {
-        const file = firstImageFile(Array.from(event.clipboardData.files));
-        if (file) {
-          event.preventDefault();
-          void uploadFile(file);
-        }
-      }}
-      onDragOver={event => {
-        event.preventDefault();
-        event.currentTarget.classList.add('admin-image-uploader-over');
-      }}
-      onDragLeave={event => event.currentTarget.classList.remove('admin-image-uploader-over')}
-      onDrop={event => {
-        event.preventDefault();
-        event.currentTarget.classList.remove('admin-image-uploader-over');
-        void uploadFile(firstImageFile(event.dataTransfer.files));
-      }}
-    >
-      <div className="admin-image-uploader-head">
-        <span>{label}</span>
-        <div className="admin-image-uploader-actions">
-          {value && (
-            <button type="button" onClick={() => onChange('')} disabled={uploading}>
-              Убрать
-            </button>
-          )}
-          <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading}>
-            {uploading ? 'Загружаем...' : 'Выбрать файл'}
-          </button>
-        </div>
-      </div>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        hidden
-        aria-label={`Файл: ${label}`}
-        onChange={event => void uploadFile(firstImageFile(event.target.files))}
-      />
-      {allowExternalUrl ? (
-        <input aria-label={`${label}: URL`} value={value} onChange={event => onChange(event.target.value)} placeholder="URL или загрузка через Ctrl+V / drag and drop" style={ADMIN_INPUT} />
-      ) : (
-        <small className="admin-field-hint">Используйте загрузку файла: конкурс принимает только изображения, сохранённые на этом сайте.</small>
-      )}
-      <div className="admin-image-uploader-body">
-        {value ? <img src={value} alt="" /> : <span><ImageIcon size={24} /> Вставьте картинку, перетащите сюда или загрузите с компьютера</span>}
-      </div>
-      {error && <small className="admin-inline-error">{error}</small>}
-    </div>
-  );
 }
 
 export function ContestAdminPanel({ authUser, authChecking = false }: { authUser: AuthUser | null; authChecking?: boolean }) {
@@ -855,12 +735,12 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const [galleryDeletingId, setGalleryDeletingId] = useState('');
   const [referrals, setReferrals] = useState<AdminReferralLink[]>([]);
   const [referralClicks, setReferralClicks] = useState<AdminReferralClick[]>([]);
-  const [articleForm, setArticleForm] = useState({
+  const [articleForm, setArticleForm] = useState<ArticleDraft>({
     title: '',
     tag: '',
     date: '',
     excerpt: '',
-    mode: 'arena' as Article['mode'],
+    mode: 'arena',
     image: '',
     url: '',
   });
@@ -2524,99 +2404,26 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           )}
 
           {hasFullAdminAccess && adminSection === 'articles' && (
-            <div className="contest-admin-grid admin-article-layout">
-              <form ref={articleFormRef} className="contest-admin-card admin-article-form" onSubmit={submitArticle}>
-                <div className="admin-subsection-head">
-                  <div>
-                    <h2>{editingArticleId ? 'Редактирование статьи' : 'Новая статья'}</h2>
-                    {editingArticleId && <p className="contest-muted">ID: {editingArticleId}</p>}
-                  </div>
-                  {editingArticleId && (
-                    <button type="button" className="contest-secondary-button" onClick={cancelArticleEdit}>
-                      Отменить
-                    </button>
-                  )}
-                </div>
-                <label>Название<input required value={articleForm.title} onChange={e => setArticleForm(v => ({ ...v, title: e.target.value }))} style={ADMIN_INPUT} /></label>
-                <label>Раздел<input value={articleForm.tag} onChange={e => setArticleForm(v => ({ ...v, tag: e.target.value }))} placeholder="Гайд, Мета, Поля Сражений" style={ADMIN_INPUT} /></label>
-                <label>Тип доступа
-                  <select value={articleForm.mode} onChange={e => setArticleForm(v => ({ ...v, mode: e.target.value as Article['mode'] }))} style={ADMIN_INPUT}>
-                    <option value="arena">Арена — подписка на статьи Арены</option>
-                    <option value="battlegrounds">Поля Сражений — подписка на статьи БГ</option>
-                    <option value="general">Общий материал</option>
-                  </select>
-                  <span className="admin-field-hint">Этот выбор определяет, какой доступ понадобится читателю.</span>
-                </label>
-                <label>Краткое описание
-                  <textarea value={articleForm.excerpt} onChange={e => setArticleForm(v => ({ ...v, excerpt: e.target.value }))} rows={4} placeholder="Описание для карточки статьи" style={{ ...ADMIN_INPUT, resize: 'vertical' }} />
-                </label>
-                <label>Дата публикации
-                  <input
-                    type="date"
-                    value={articleForm.date}
-                    onChange={e => setArticleForm(v => ({ ...v, date: e.target.value }))}
-                    style={ADMIN_INPUT}
-                  />
-                  <span className="admin-field-hint">Если оставить пустым, будет сохранена сегодняшняя дата.</span>
-                </label>
-                <label>Ссылка<input value={articleForm.url} onChange={e => setArticleForm(v => ({ ...v, url: e.target.value }))} placeholder="https://..." style={ADMIN_INPUT} /></label>
-                <AdminImageUploader label="Картинка статьи" value={articleForm.image} onChange={url => setArticleForm(v => ({ ...v, image: url }))} />
-                <button type="submit" disabled={loading} className="contest-primary-button">
-                  {editingArticleId ? 'Обновить статью' : 'Сохранить статью'}
-                </button>
-              </form>
-
-              <div ref={articleListRef} className="contest-admin-card admin-article-list-card">
-                <div className="admin-subsection-head">
-                  <div><h2>Список статей</h2><p className="contest-muted">Показано {visibleAdminArticles.length} из {filteredAdminArticles.length}{filteredAdminArticles.length !== adminArticles.length ? ` · всего ${adminArticles.length}` : ''}</p></div>
-                </div>
-                <div className="admin-list-toolbar admin-page-toolbar">
-                  <label>
-                    <span>Поиск по статьям</span>
-                    <input value={articleQuery} onChange={event => { setArticleQuery(event.target.value); setArticlePage(1); }} placeholder="Название, раздел или описание" style={ADMIN_INPUT} />
-                  </label>
-                </div>
-                <div className="admin-article-list">
-                  {visibleAdminArticles.map(article => (
-                    <div key={article.id} className="admin-article-row">
-                      {article.image ? <img src={article.image} alt="" /> : <div><BookOpen size={18} /></div>}
-                      <span><strong>{article.title}</strong><small>{article.tag || 'Без раздела'} · {article.date} · <b>{articleModeLabel(article.mode)}</b></small></span>
-                      <div className="admin-article-actions">
-                        {article.url && article.url !== '#' && <a href={article.url} target="_blank" rel="noreferrer" aria-label={`Открыть статью: ${article.title}`}><ExternalLink size={14} /> Просмотр</a>}
-                        <button type="button" onClick={() => editArticle(article)} disabled={loading}>Редактировать</button>
-                        <button type="button" className="admin-danger-button" onClick={() => void deleteArticle(article)} disabled={loading}>Удалить</button>
-                      </div>
-                    </div>
-                  ))}
-                  {!filteredAdminArticles.length && <p className="contest-muted">{adminArticles.length ? 'По вашему запросу ничего не найдено.' : 'Статей пока нет.'}</p>}
-                </div>
-                {articlePageCount > 1 && (
-                  <nav className="admin-pagination" aria-label="Страницы списка статей">
-                    <button
-                      type="button"
-                      disabled={articlePage === 1}
-                      onClick={() => {
-                        setArticlePage(page => Math.max(1, page - 1));
-                        window.requestAnimationFrame(() => articleListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-                      }}
-                    >
-                      Назад
-                    </button>
-                    <span>Страница {articlePage} из {articlePageCount}</span>
-                    <button
-                      type="button"
-                      disabled={articlePage === articlePageCount}
-                      onClick={() => {
-                        setArticlePage(page => Math.min(articlePageCount, page + 1));
-                        window.requestAnimationFrame(() => articleListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-                      }}
-                    >
-                      Далее
-                    </button>
-                  </nav>
-                )}
-              </div>
-            </div>
+            <ContestAdminArticles
+              articles={adminArticles}
+              visibleArticles={visibleAdminArticles}
+              filteredCount={filteredAdminArticles.length}
+              draft={articleForm}
+              editingId={editingArticleId}
+              loading={loading}
+              query={articleQuery}
+              page={articlePage}
+              pageCount={articlePageCount}
+              formRef={articleFormRef}
+              listRef={articleListRef}
+              onSubmit={submitArticle}
+              onCancelEdit={cancelArticleEdit}
+              onDraftChange={patch => setArticleForm(current => ({ ...current, ...patch }))}
+              onQueryChange={query => { setArticleQuery(query); setArticlePage(1); }}
+              onEdit={editArticle}
+              onDelete={article => void deleteArticle(article)}
+              onPageChange={setArticlePage}
+            />
           )}
 
           {hasFullAdminAccess && adminSection === 'gallery' && (
@@ -2730,7 +2537,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
                         <span>2</span>
                         <div><strong>Картинка</strong><small>Можно вставить Ctrl+V, перетащить файл или указать URL</small></div>
                       </div>
-                      <AdminImageUploader label="Обложка конкурса" value={form.imageUrl} onChange={url => setForm(v => ({ ...v, imageUrl: url }))} allowExternalUrl={false} />
+                      <ContestAdminImageUploader label="Обложка конкурса" value={form.imageUrl} onChange={url => setForm(v => ({ ...v, imageUrl: url }))} allowExternalUrl={false} />
                     </section>
 
                     <section className="admin-contest-section">

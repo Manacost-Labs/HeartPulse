@@ -2650,6 +2650,7 @@
 .admin-workspace-page .admin-image-uploader-body {
   border-color: var(--admin-divider);
   border-radius: 6px;
+  color: var(--admin-muted);
   background: #edf3f8;
 }
 

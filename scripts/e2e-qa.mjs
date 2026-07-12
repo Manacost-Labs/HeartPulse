@@ -145,8 +145,8 @@ const adminFixtures = {
   },
   '/api/articles': {
     articles: [
-      { id: 'qa-article-1', title: 'Первая статья', date: '2026-07-11', mode: 'arena', url: '/articles/qa-1' },
-      { id: 'qa-article-2', title: 'Вторая статья', date: '2026-07-10', mode: 'general', url: '/articles/qa-2' },
+      { id: 'qa-article-1', title: 'Первая статья', date: '2026-07-11', tag: 'Арена', excerpt: 'Контрольная статья Арены.', mode: 'arena', image: '', url: '/articles/qa-1' },
+      { id: 'qa-article-2', title: 'Вторая статья', date: '2026-07-10', tag: 'Общее', excerpt: 'Контрольный общий материал.', mode: 'general', image: '', url: '/articles/qa-2' },
     ],
   },
   '/api/admin/gallery': {
@@ -520,6 +520,27 @@ for (const [device, viewport] of [
     if (!new URL(page.url()).searchParams.has('section') || !page.url().includes('section=articles')) {
       failures.push(`admin dashboard [${device}]: quick navigation did not update URL`);
     }
+    await page.waitForFunction(() => document.querySelectorAll('.admin-article-row').length === 2);
+    await page.click('.admin-article-row button:not(.admin-danger-button)');
+    await page.waitForFunction(() => document.querySelector('.admin-article-form h2')?.textContent?.trim() === 'Редактирование статьи');
+    const editedArticleTitle = await page.$eval('.admin-article-form input[required]', element => element.value);
+    if (editedArticleTitle !== 'Первая статья') failures.push(`admin articles [${device}]: edit did not populate the form`);
+    await page.click('.admin-article-form .contest-secondary-button');
+    await page.waitForFunction(() => document.querySelector('.admin-article-form h2')?.textContent?.trim() === 'Новая статья');
+    const articleSearch = await page.$('.admin-list-toolbar input');
+    if (!articleSearch) throw new Error('Article search input is missing');
+    await articleSearch.type('несуществующий материал');
+    await page.waitForFunction(() => document.querySelectorAll('.admin-article-row').length === 0);
+    const articleEmptyState = await page.$eval('.admin-article-list [role="status"]', element => element.textContent?.trim() || '');
+    if (!articleEmptyState.includes('ничего не найдено')) failures.push(`admin articles [${device}]: filtered empty state is missing`);
+    const articleLayout = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    if (articleLayout.scrollWidth > articleLayout.clientWidth + 1) {
+      failures.push(`admin articles [${device}]: horizontal overflow ${articleLayout.scrollWidth} > ${articleLayout.clientWidth}`);
+    }
+    const articlesViolationCount = await auditAccessibility(page, `admin articles [${device}]`, '.admin-workspace-content');
 
     await page.goto(`${BASE}/?admin&section=users`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.contest-user-row').length === 2);
@@ -550,7 +571,7 @@ for (const [device, viewport] of [
     if (!focusRestored) failures.push(`admin users [${device}]: Escape did not restore focus to the action trigger`);
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
-    console.log(`✓ admin dashboard/users [${device}] layout + keyboard menu + axe (${violationCount + usersViolationCount} violations)`);
+    console.log(`✓ admin dashboard/articles/users [${device}] interactions + axe (${violationCount + articlesViolationCount + usersViolationCount} violations)`);
   } catch (error) {
     const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
     failures.push(`admin dashboard [${device}]: ${error.message}; page: ${diagnostic}`);
