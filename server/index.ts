@@ -5,7 +5,7 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import sharp from 'sharp';
 import sanitizeHtml from 'sanitize-html';
 import { createClient } from 'redis';
-import { chmodSync, copyFileSync, createReadStream, mkdirSync, renameSync, unlinkSync, writeFileSync, readFileSync, existsSync, readdirSync, statSync } from 'fs';
+import { chmodSync, copyFileSync, mkdirSync, renameSync, unlinkSync, writeFileSync, readFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve } from 'path';
 import { spawn } from 'child_process';
@@ -39,6 +39,7 @@ import { createLegendaryRouter } from './legendaryRoutes.js';
 import { createTierlistRouter } from './tierlistRoutes.js';
 import { createWinrateRouter } from './winrateRoutes.js';
 import { createHomeSummaryRouter, type HomeSummaryCacheStore } from './homeSummaryRoutes.js';
+import { createCardImageRouter, normalizeCardImageId } from './cardImageRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -4365,12 +4366,6 @@ function cardImageProxyUrl(cardId: string, variant: 'thumb' | 'full' = 'thumb'):
   return `/api/card-image/${encodeURIComponent(cardId)}/${variant}.webp?v=${CARD_IMAGE_CACHE_VERSION}`;
 }
 
-function normalizeCardImageId(value: unknown): string | null {
-  const cardId = String(value ?? '').trim();
-  if (!/^[A-Za-z0-9_]+$/.test(cardId) || cardId.length > 80) return null;
-  return cardId;
-}
-
 function cardImageCachePath(cardId: string, variant: 'thumb' | 'full', source: CardImageSource): string {
   return join(CARD_IMAGE_CACHE_DIR, `${cardId}-${variant}-${source}-${CARD_IMAGE_CACHE_VERSION}.webp`);
 }
@@ -5634,32 +5629,19 @@ app.use('/api', createHomeSummaryRouter({
   ),
 }));
 
-app.get('/api/card-image/:cardId/:variant.webp', async (req, res) => {
-  const cardId = normalizeCardImageId(req.params.cardId);
-  const variant = req.params.variant === 'full' ? 'full' : req.params.variant === 'thumb' ? 'thumb' : null;
-
-  if (!cardId || !variant) {
-    return res.status(400).json({ error: 'Invalid card image request' });
-  }
-
-  try {
-    const image = await ensureCardImage(cardId, variant);
-    const stat = statSync(image.path);
-    const etag = `"${stat.mtimeMs.toString(36)}-${stat.size.toString(36)}"`;
-
-    res.set('Content-Type', 'image/webp');
-    res.set('X-Card-Image-Source', image.source);
-    res.set('Cache-Control', image.source === 'blizzard'
-      ? 'public, max-age=2592000, immutable'
-      : 'public, max-age=300, stale-while-revalidate=3600');
-    res.set('ETag', etag);
-    if (req.headers['if-none-match'] === etag) return res.status(304).end();
-
-    return createReadStream(image.path).pipe(res);
-  } catch (err: any) {
-    return res.status(502).json({ error: err?.message ?? 'Card image unavailable' });
-  }
-});
+app.use('/api', createCardImageRouter({
+  ensureImage: ensureCardImage,
+  isAllowedPath: path => {
+    const root = resolve(CARD_IMAGE_CACHE_DIR);
+    const candidate = resolve(path);
+    return candidate === root || candidate.startsWith(`${root}/`);
+  },
+  immutableCacheHeader: BG_IMAGE_CACHE_CONTROL,
+  onError: (scope, error) => console.error(
+    `[api/card-image] ${scope} failed:`,
+    error instanceof Error ? error.message : error,
+  ),
+}));
 
 app.use('/api', createWinrateRouter({
   accessGuard: requireArenaAccess,
