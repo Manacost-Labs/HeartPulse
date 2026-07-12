@@ -150,7 +150,21 @@ const adminFixtures = {
     ],
   },
   '/api/admin/gallery': {
-    items: [{ id: 'qa-art', title: 'Контрольный арт', previewUrl: '/qa-art.webp' }],
+    items: [{
+      id: 'qa-art',
+      title: 'Контрольный арт',
+      description: 'Детерминированный арт для browser QA.',
+      tag: 'QA',
+      source: 'fixture',
+      width: 1920,
+      height: 1080,
+      bytes: 125000,
+      previewUrl: '/favicon-192.png',
+      thumbUrl: '/favicon-192.png',
+      imageUrl: '/favicon-192.png',
+      downloadUrl: '/favicon-192.png',
+      createdAt: '2026-07-11T00:00:00.000Z',
+    }],
   },
   '/api/admin/referrals': {
     referrals: [{
@@ -241,7 +255,7 @@ function jsonResponse(body) {
   };
 }
 
-async function mockApplicationApi(page, { authenticated, admin = false }) {
+async function mockApplicationApi(page, { authenticated, admin = false, adminState = {} }) {
   await page.setRequestInterception(true);
   page.on('request', request => {
     const url = new URL(request.url());
@@ -262,6 +276,10 @@ async function mockApplicationApi(page, { authenticated, admin = false }) {
     }
     if (url.pathname === '/api/subscription/status' || url.pathname === '/api/subscription/refresh') {
       request.respond(jsonResponse(subscriber));
+      return;
+    }
+    if (admin && adminState.galleryEmpty && url.pathname === '/api/admin/gallery') {
+      request.respond(jsonResponse({ items: [] }));
       return;
     }
     if (admin && adminFixtures[url.pathname]) {
@@ -465,8 +483,9 @@ for (const [device, viewport] of [
 ]) {
   const page = await createQaPage();
   const runtimeErrors = collectRuntimeErrors(page);
+  const adminState = { galleryEmpty: false };
   await page.setViewport(viewport);
-  await mockApplicationApi(page, { authenticated: true, admin: true });
+  await mockApplicationApi(page, { authenticated: true, admin: true, adminState });
   try {
     await page.goto(`${BASE}/?admin&section=dashboard`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.admin-stat-grid', { timeout: 20_000 });
@@ -542,6 +561,37 @@ for (const [device, viewport] of [
     }
     const articlesViolationCount = await auditAccessibility(page, `admin articles [${device}]`, '.admin-workspace-content');
 
+    await page.goto(`${BASE}/?admin&section=gallery`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForFunction(() => document.querySelectorAll('.admin-gallery-row').length === 1);
+    await page.type('.admin-gallery-form input:not([type="file"])', 'Новый контрольный арт');
+    const galleryFileInput = await page.$('.admin-gallery-form input[type="file"]');
+    if (!galleryFileInput) throw new Error('Gallery file input is missing');
+    await galleryFileInput.uploadFile(`${process.cwd()}/public/favicon-192.png`);
+    await page.waitForFunction(() => document.querySelector('.admin-gallery-selected')?.textContent?.includes('favicon-192.png'));
+    await page.click('.admin-gallery-form button[type="submit"]');
+    await page.waitForFunction(() => {
+      const title = document.querySelector('.admin-gallery-form input:not([type="file"])');
+      return title?.value === '' && !document.querySelector('.admin-gallery-selected');
+    });
+    const galleryLayout = await page.evaluate(() => ({
+      rows: document.querySelectorAll('.admin-gallery-row').length,
+      downloadHref: document.querySelector('.admin-gallery-actions a')?.getAttribute('href') || '',
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    if (galleryLayout.rows !== 1 || galleryLayout.downloadHref !== '/favicon-192.png') {
+      failures.push(`admin gallery [${device}]: upload/list fixture did not render correctly`);
+    }
+    if (galleryLayout.scrollWidth > galleryLayout.clientWidth + 1) {
+      failures.push(`admin gallery [${device}]: horizontal overflow ${galleryLayout.scrollWidth} > ${galleryLayout.clientWidth}`);
+    }
+    adminState.galleryEmpty = true;
+    await page.click('.admin-gallery-layout .contest-secondary-button');
+    await page.waitForFunction(() => document.querySelectorAll('.admin-gallery-row').length === 0);
+    const galleryEmptyState = await page.$eval('.admin-gallery-list [role="status"]', element => element.textContent?.trim() || '');
+    if (!galleryEmptyState.includes('пока нет артов')) failures.push(`admin gallery [${device}]: empty state is missing`);
+    const galleryViolationCount = await auditAccessibility(page, `admin gallery [${device}]`, '.admin-workspace-content');
+
     await page.goto(`${BASE}/?admin&section=users`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.contest-user-row').length === 2);
     const usersState = await page.evaluate(() => ({
@@ -571,7 +621,7 @@ for (const [device, viewport] of [
     if (!focusRestored) failures.push(`admin users [${device}]: Escape did not restore focus to the action trigger`);
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
-    console.log(`✓ admin dashboard/articles/users [${device}] interactions + axe (${violationCount + articlesViolationCount + usersViolationCount} violations)`);
+    console.log(`✓ admin dashboard/articles/gallery/users [${device}] interactions + axe (${violationCount + articlesViolationCount + galleryViolationCount + usersViolationCount} violations)`);
   } catch (error) {
     const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
     failures.push(`admin dashboard [${device}]: ${error.message}; page: ${diagnostic}`);

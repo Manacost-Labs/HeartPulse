@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } 
 import '../route-parchment.css';
 import {
   CircleDollarSign,
-  Download,
   ExternalLink,
   Gift,
   Image as ImageIcon,
@@ -16,7 +15,6 @@ import {
   Send,
   ShieldCheck,
   Smartphone,
-  Trash2,
   Trophy,
   Users,
   X,
@@ -38,8 +36,12 @@ import {
 import {
   ContestAdminImageUploader,
   fileToDataUrl,
-  firstImageFile,
 } from './ContestAdminImageUploader';
+import {
+  ContestAdminGallery,
+  type GalleryDraft,
+  type GalleryItem,
+} from './ContestAdminGallery';
 import {
   ContestAdminUsers,
   type AdminUserPatch,
@@ -101,36 +103,10 @@ const SUBSCRIPTION_ENTITLEMENT_LABELS: ReadonlyArray<[SubscriptionEntitlementKey
   ['battlegroundsArticles', 'Статьи Полей'],
 ];
 
-interface GalleryItem {
-  id: string;
-  title: string;
-  description?: string;
-  tag?: string;
-  source?: string;
-  width?: number;
-  height?: number;
-  bytes?: number;
-  format?: string;
-  previewUrl: string;
-  thumbUrl: string;
-  imageUrl: string;
-  downloadUrl: string;
-  createdAt: string;
-  updatedAt?: string;
-}
-
 function formatDate(iso: string | null): string {
   if (!iso) return 'нет данных';
   const d = new Date(iso);
   return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
-
-function formatBytes(bytes?: number): string {
-  const value = Number(bytes || 0);
-  if (!value) return 'размер не указан';
-  if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(value >= 10 * 1024 * 1024 ? 0 : 1)} МБ`;
-  if (value >= 1024) return `${Math.round(value / 1024)} КБ`;
-  return `${value} Б`;
 }
 
 function formatDateTimeInput(value: string | null | undefined): string {
@@ -744,7 +720,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     image: '',
     url: '',
   });
-  const [galleryForm, setGalleryForm] = useState({
+  const [galleryForm, setGalleryForm] = useState<GalleryDraft>({
     title: '',
     tag: '',
     description: '',
@@ -2427,79 +2403,19 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           )}
 
           {hasFullAdminAccess && adminSection === 'gallery' && (
-            <div className="contest-admin-grid admin-gallery-layout">
-              <form className="contest-admin-card admin-gallery-form" onSubmit={submitGalleryItem}>
-                <div className="admin-subsection-head">
-                  <div>
-                    <h2>Новый арт</h2>
-                    <p className="contest-muted">Оригинал сохранится для скачивания, а сайт сам создаст легкие превью.</p>
-                  </div>
-                  <ImageIcon size={28} />
-                </div>
-                <label>Название
-                  <input value={galleryForm.title} onChange={e => setGalleryForm(v => ({ ...v, title: e.target.value }))} placeholder="Например: Легенда Арены" style={ADMIN_INPUT} />
-                </label>
-                <label>Раздел
-                  <input value={galleryForm.tag} onChange={e => setGalleryForm(v => ({ ...v, tag: e.target.value }))} placeholder="Арт, Обложка, Fan art" style={ADMIN_INPUT} />
-                </label>
-                <label>Описание
-                  <textarea value={galleryForm.description} onChange={e => setGalleryForm(v => ({ ...v, description: e.target.value }))} rows={4} placeholder="Короткое описание для карточки" style={{ ...ADMIN_INPUT, resize: 'vertical' }} />
-                </label>
-                <label>Источник или автор
-                  <input value={galleryForm.source} onChange={e => setGalleryForm(v => ({ ...v, source: e.target.value }))} placeholder="Необязательно" style={ADMIN_INPUT} />
-                </label>
-                <label className="admin-gallery-file">
-                  <span>{galleryFile ? galleryFile.name : 'Выберите изображение'}</span>
-                  <input
-                    ref={galleryFileInputRef}
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/gif"
-                    onChange={event => setGalleryFile(firstImageFile(event.target.files))}
-                  />
-                </label>
-                {galleryFile && (
-                  <div className="admin-gallery-selected">
-                    <ImageIcon size={18} />
-                    <span>{galleryFile.name}</span>
-                    <small>{formatBytes(galleryFile.size)}</small>
-                  </div>
-                )}
-                <button type="submit" disabled={galleryUploading} className="contest-primary-button">
-                  {galleryUploading ? 'Загружаем...' : 'Добавить в галерею'}
-                </button>
-              </form>
-
-              <div className="contest-admin-card">
-                <div className="admin-subsection-head">
-                  <div>
-                    <h2>Загруженные арты</h2>
-                    <p className="contest-muted">Публичный раздел `/gallery`, доступен всем пользователям.</p>
-                  </div>
-                  <button type="button" className="contest-secondary-button" onClick={() => void loadGalleryItems()}>
-                    Обновить
-                  </button>
-                </div>
-                <div className="admin-gallery-list">
-                  {galleryItems.map(item => (
-                    <article key={item.id} className="admin-gallery-row">
-                      <img src={item.thumbUrl || item.previewUrl} alt="" loading="lazy" decoding="async" />
-                      <div>
-                        <strong>{item.title}</strong>
-                        <small>{[item.tag || 'без раздела', item.width && item.height ? `${item.width} x ${item.height}` : '', formatBytes(item.bytes)].filter(Boolean).join(' · ')}</small>
-                        <span>{item.description || 'Описание не указано'}</span>
-                      </div>
-                      <div className="admin-gallery-actions">
-                        <a href={item.downloadUrl} title="Скачать оригинал" aria-label={`Скачать оригинал: ${item.title}`}><Download size={17} /></a>
-                        <button type="button" onClick={() => void deleteGalleryItem(item)} disabled={galleryDeletingId === item.id} title="Удалить" aria-label={`Удалить арт: ${item.title}`}>
-                          <Trash2 size={17} />
-                        </button>
-                      </div>
-                    </article>
-                  ))}
-                  {!galleryItems.length && <p className="contest-muted">В галерее пока нет артов.</p>}
-                </div>
-              </div>
-            </div>
+            <ContestAdminGallery
+              items={galleryItems}
+              draft={galleryForm}
+              file={galleryFile}
+              uploading={galleryUploading}
+              deletingId={galleryDeletingId}
+              fileInputRef={galleryFileInputRef}
+              onSubmit={submitGalleryItem}
+              onDraftChange={patch => setGalleryForm(current => ({ ...current, ...patch }))}
+              onFileChange={setGalleryFile}
+              onRefresh={() => void loadGalleryItems()}
+              onDelete={item => void deleteGalleryItem(item)}
+            />
           )}
 
           {adminSection === 'contests' && (
