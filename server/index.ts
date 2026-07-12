@@ -29,6 +29,7 @@ import { createReferralRouter } from './referralRoutes.js';
 import { createGalleryRouter } from './galleryRoutes.js';
 import { detectAdminUploadFormat } from './imageFormat.js';
 import { createBattlegroundProxyRouter } from './battlegroundProxyRoutes.js';
+import { createArticleCoverRouter } from './articleCoverRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -6324,55 +6325,10 @@ app.post('/api/articles/access-link', async (req, res) => {
   }
 });
 
-app.get('/api/article-cover', async (req, res) => {
-  const rawUrl = String(req.query.url ?? '').trim();
-  let target: URL;
-  try {
-    target = new URL(rawUrl);
-  } catch {
-    return res.status(400).json({ error: 'Некорректный URL обложки' });
-  }
-
-  if (!['https:', 'http:'].includes(target.protocol) || !ARTICLE_COVER_ALLOWED_HOSTS.has(target.hostname.toLowerCase())) {
-    return res.status(400).json({ error: 'Домен обложки не разрешён' });
-  }
-
-  try {
-    const upstream = await fetch(target.href, {
-      headers: {
-        Accept: 'image/avif,image/webp,image/png,image/jpeg,image/*,*/*;q=0.8',
-        'User-Agent': 'HS-Arena article cover proxy/1.0',
-      },
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!upstream.ok) return res.status(upstream.status).json({ error: 'Обложка недоступна' });
-
-    const contentType = upstream.headers.get('content-type') || 'application/octet-stream';
-    if (!contentType.toLowerCase().startsWith('image/')) {
-      return res.status(415).json({ error: 'URL не ведёт на изображение' });
-    }
-
-    const contentLength = Number(upstream.headers.get('content-length') || 0);
-    if (contentLength > ARTICLE_COVER_MAX_BYTES) {
-      return res.status(413).json({ error: 'Обложка слишком большая' });
-    }
-
-    const buffer = Buffer.from(await upstream.arrayBuffer());
-    if (buffer.byteLength > ARTICLE_COVER_MAX_BYTES) {
-      return res.status(413).json({ error: 'Обложка слишком большая' });
-    }
-
-    const etag = `"article-cover-${createHash('sha1').update(target.href).update(String(buffer.byteLength)).digest('hex')}"`;
-    res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
-    res.set('ETag', etag);
-    res.set('Content-Type', contentType);
-    res.set('X-Content-Type-Options', 'nosniff');
-    if (req.headers['if-none-match'] === etag) return res.status(304).end();
-    return res.send(buffer);
-  } catch (err: any) {
-    return res.status(502).json({ error: err?.message ?? 'Не удалось загрузить обложку' });
-  }
-});
+app.use('/api', createArticleCoverRouter({
+  allowedHosts: ARTICLE_COVER_ALLOWED_HOSTS,
+  maxBytes: ARTICLE_COVER_MAX_BYTES,
+}));
 
 async function proxyLegacyBattlegroundEndpoint(req: express.Request, res: express.Response, upstreamPath: string) {
   try {
