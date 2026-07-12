@@ -37,6 +37,7 @@ import { createStandardMatchupRouter } from './standardMatchupRoutes.js';
 import { createClassMatchupRouter, type ClassMatchupCacheStore } from './classMatchupRoutes.js';
 import { createLegendaryRouter } from './legendaryRoutes.js';
 import { createTierlistRouter } from './tierlistRoutes.js';
+import { createWinrateRouter } from './winrateRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -3856,6 +3857,27 @@ async function fetchClassWinratesData() {
   };
 }
 
+async function fetchFirestoneClassWinratesData() {
+  const upstream = await fetch(
+    'https://static.zerotoheroes.com/api/arena/stats/classes/arena/last-patch/overview.gz.json',
+    { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' } },
+  );
+  if (!upstream.ok) throw new Error(`Upstream HTTP ${upstream.status}`);
+  const raw = await upstream.json() as any;
+  const classes = ((raw.stats ?? []) as any[])
+    .map((row: any) => {
+      const key = String(row.playerClass ?? '').toLowerCase().replace(/\s+/g, '');
+      const info = HSREPLAY_CLASS_INFO[key];
+      if (!info || !row.totalGames) return null;
+      const winrate = Math.round((row.totalsWins / row.totalGames) * 1000) / 10;
+      return { ...info, winrate, games: row.totalGames };
+    })
+    .filter(Boolean)
+    .sort((a: any, b: any) => b.winrate - a.winrate);
+  if (!classes.length) throw new Error('No classes in Firestone arena dataset');
+  return { classes, updatedAt: raw.lastUpdated ?? null, source: 'firestoneapp.com' };
+}
+
 async function fetchFreshestClassWinratesData() {
   const liveData = await fetchClassWinratesData();
   const snapshotData = loadDataCached('winrates.json')?.data;
@@ -5656,93 +5678,24 @@ app.get('/api/card-image/:cardId/:variant.webp', async (req, res) => {
   }
 });
 
-app.get('/api/winrates', requireArenaAccess, async (req, res) => {
-  const source = (req.query.source as string) ?? 'hsreplay';
-  const now = Date.now();
-  const cached = winratesApiCache.get(source);
-  if (cached && cached.expiresAt > now) {
-    return sendJsonCached(req, res, cached.data, cached.etag, CACHE_5M, 'memory');
-  }
-  const redisKey = redisDataKey('winrates', source);
-  const redisCached = await redisGetCache<any>(redisKey);
-  if (redisCached) {
-    winratesApiCache.set(source, { data: redisCached.data, etag: redisCached.etag, expiresAt: now + CLASS_WINRATES_CACHE_MS });
-    return sendJsonCached(req, res, redisCached.data, redisCached.etag, CACHE_5M, 'redis');
-  }
-  const snapshotEntry = loadDataCached('winrates.json');
-  const snapshotData = snapshotEntry?.data && Array.isArray(snapshotEntry.data.classes)
-    ? snapshotEntry.data
-    : null;
-
-  // Firestone: proxy live zerotoheroes.com API
-  if (source === 'firestone') {
-    const CLASS_INFO: Record<string, { id: string; name: string; color: string; textDark?: boolean }> = {
-      deathknight: { id: 'death-knight', name: 'Рыцарь смерти',     color: '#1f252d' },
-      paladin:     { id: 'paladin',      name: 'Паладин',            color: '#a88a45' },
-      shaman:      { id: 'shaman',       name: 'Шаман',              color: '#2a2e6b' },
-      hunter:      { id: 'hunter',       name: 'Охотник',            color: '#1d5921' },
-      mage:        { id: 'mage',         name: 'Маг',                color: '#2b5c85' },
-      rogue:       { id: 'rogue',        name: 'Разбойник',          color: '#333333' },
-      warlock:     { id: 'warlock',      name: 'Чернокнижник',       color: '#5c265c' },
-      druid:       { id: 'druid',        name: 'Друид',              color: '#704a16' },
-      warrior:     { id: 'warrior',      name: 'Воин',               color: '#7a1e1e' },
-      priest:      { id: 'priest',       name: 'Жрец',               color: '#d1d1d1', textDark: true },
-      demonhunter: { id: 'demon-hunter', name: 'Охотник на демонов', color: '#224722' },
-    };
-    try {
-      const upstream = await fetch(
-        'https://static.zerotoheroes.com/api/arena/stats/classes/arena/last-patch/overview.gz.json',
-        { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' } },
-      );
-      if (!upstream.ok) throw new Error(`HTTP ${upstream.status}`);
-      const raw = await upstream.json() as any;
-      const classes = ((raw.stats ?? []) as any[])
-        .map((s: any) => {
-          const key  = String(s.playerClass ?? '').toLowerCase().replace(/\s+/g, '');
-          const info = CLASS_INFO[key];
-          if (!info || !s.totalGames) return null;
-          const winrate = Math.round((s.totalsWins / s.totalGames) * 1000) / 10;
-          return { ...info, winrate, games: s.totalGames };
-        })
-        .filter(Boolean)
-        .sort((a: any, b: any) => b.winrate - a.winrate);
-      const data = { classes, updatedAt: raw.lastUpdated ?? null, source: 'firestoneapp.com' };
-      const updatedToken = data.updatedAt ? Date.parse(data.updatedAt).toString(36) : now.toString(36);
-      const etag = `"class-winrates-firestone-${updatedToken}-${classes.length}"`;
-      winratesApiCache.set(source, { data, etag, expiresAt: now + CLASS_WINRATES_CACHE_MS });
-      void redisSetCache(redisKey, data, etag, REDIS_DATASET_TTL_SECONDS);
-      return sendJsonCached(req, res, data, etag, CACHE_5M, 'origin');
-    } catch {
-      // fallback to snapshot on error
-    }
-  }
-
-  // HSReplay (default): use the same live Manacost API dataset as class matchups.
-  try {
-    const data = await fetchClassWinratesData();
-    const liveTime = data.updatedAt ? Date.parse(data.updatedAt) : 0;
-    const snapshotTime = snapshotData?.updatedAt ? Date.parse(snapshotData.updatedAt) : 0;
-    if (snapshotData && Number.isFinite(snapshotTime) && snapshotTime > liveTime) {
-      const localData = { ...snapshotData, source: snapshotData.source ?? 'cached' };
-      const updatedToken = snapshotData.updatedAt ? new Date(snapshotData.updatedAt).getTime().toString(36) : now.toString(36);
-      const etag = `"class-winrates-local-${updatedToken}-${snapshotData.classes.length}"`;
-      winratesApiCache.set(source, { data: localData, etag, expiresAt: now + CLASS_WINRATES_CACHE_MS });
-      void redisSetCache(redisKey, localData, etag, REDIS_DATASET_TTL_SECONDS);
-      return sendJsonCached(req, res, localData, etag, CACHE_5M, 'local-fresher-than-upstream');
-    }
-    const updatedToken = data.updatedAt ? new Date(data.updatedAt).getTime().toString(36) : Date.now().toString(36);
-    const etag = `"class-winrates-${updatedToken}-${data.classes.length}"`;
-    winratesApiCache.set(source, { data, etag, expiresAt: now + CLASS_WINRATES_CACHE_MS });
-    void redisSetCache(redisKey, data, etag, REDIS_DATASET_TTL_SECONDS);
-    return sendJsonCached(req, res, data, etag, CACHE_5M, 'origin');
-  } catch (err: any) {
-    console.error('[api/winrates] HSReplay arena dataset failed:', err?.message ?? err);
-  }
-
-  // Fallback to the last scraper snapshot if the live dataset is unavailable.
-  if (!snapshotEntry) return res.status(404).json({ error: 'No data available' });
-  return sendCached(req, res, { ...snapshotEntry, data: { ...snapshotEntry.data, source: 'cached' } }, 'public, max-age=300, stale-while-revalidate=600');
-});
+app.use('/api', createWinrateRouter({
+  accessGuard: requireArenaAccess,
+  cache: winratesApiCache,
+  redisKey: source => redisDataKey('winrates', source),
+  redisGet: redisGetCache,
+  redisSet: redisSetCache,
+  fetchSource: source => source === 'firestone'
+    ? fetchFirestoneClassWinratesData()
+    : fetchClassWinratesData(),
+  loadSnapshot: () => loadDataCached('winrates.json'),
+  memoryTtlMs: CLASS_WINRATES_CACHE_MS,
+  redisTtlSeconds: REDIS_DATASET_TTL_SECONDS,
+  cacheHeader: CACHE_5M,
+  onError: (scope, source, error) => console.error(
+    `[api/winrates] ${source} ${scope} failed:`,
+    error instanceof Error ? error.message : error,
+  ),
+}));
 
 app.use('/api', createClassMatchupRouter({
   accessGuard: requireArenaAccess,
