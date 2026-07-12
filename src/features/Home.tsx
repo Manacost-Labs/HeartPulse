@@ -5,10 +5,12 @@ import {
   Send,
   Sparkles,
 } from 'lucide-react';
-import HomeArenaDirectory from './HomeArenaDirectory';
-import HomeBattlegrounds from './HomeBattlegrounds';
-import HomeLatestArticles, { type HomeArticle } from './HomeLatestArticles';
+import type { HomeArticle } from './HomeLatestArticles';
 import './Home.css';
+
+const HomeArenaDirectory = React.lazy(() => import('./HomeArenaDirectory'));
+const HomeBattlegrounds = React.lazy(() => import('./HomeBattlegrounds'));
+const HomeLatestArticles = React.lazy(() => import('./HomeLatestArticles'));
 
 interface ClassData {
   id: string;
@@ -208,11 +210,17 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
         <a href="#faq-heading">Частые вопросы</a>
       </nav>
 
-      <HomeLatestArticles articles={articles} loading={loadingArticles} onNavigate={onNavigate} />
+      <React.Suspense fallback={<div className="home-deferred-placeholder" aria-hidden="true" />}>
+        <HomeLatestArticles articles={articles} loading={loadingArticles} onNavigate={onNavigate} />
+      </React.Suspense>
 
-      <HomeBattlegrounds onNavigate={onNavigate} />
+      <React.Suspense fallback={<div className="home-deferred-placeholder" aria-hidden="true" />}>
+        <HomeBattlegrounds onNavigate={onNavigate} />
+      </React.Suspense>
 
-      <HomeArenaDirectory onNavigate={onNavigate} />
+      <React.Suspense fallback={<div className="home-deferred-placeholder" aria-hidden="true" />}>
+        <HomeArenaDirectory onNavigate={onNavigate} />
+      </React.Suspense>
 
       <aside className="home-community home-reveal" aria-label="Сообщество и поддержка">
         <span className="home-community__lead">

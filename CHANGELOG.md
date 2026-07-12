@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Reduced initial JavaScript from 266.8 KB to 249.2 KB and permanently lowered its CI budget to 250 KB by splitting below-fold home directories, FAQ/paywall UI and the delayed support prompt into route-safe chunks; browser QA now proves the lazy home sections and support flow load, interact and pass axe.
 - Added a required real-Chromium axe-core WCAG 2.2 A/AA gate against the locally served production build across critical subscriber desktop/mobile routes, the guest paywall, open mobile menu and open lightbox; fixed the resulting legendary win-rate badge contrast issue and established a zero-violation CI baseline.
 - Isolated Puppeteer scraping from the web process: a dedicated non-overlapping systemd service now handles the six-hour schedule and queued admin requests, validates supported document shapes, rejects empty/incomplete upstream data, durably stages with file/directory `fsync` and atomic rename, publishes a cache-invalidation marker only after success, and exits non-zero on any critical dataset failure.
 - Added encrypted mutable-data recovery tooling and systemd schedules: daily atomic GnuPG AES-256 archives now cover shared datasets/uploads and a consistent ecosystem SQLite snapshot, while a weekly isolated restore drill verifies archive and per-file checksums, required snapshots and SQLite integrity; CI rejects a deliberately tampered archive.

@@ -9,10 +9,7 @@ import { Trophy, Scroll, RefreshCw, AlertTriangle, X, Search, Star, Home, BookOp
 import { getCanonicalRedirectUrl } from './config/domain';
 import HomeTab from './features/Home';
 import { usePageScrollLock } from './hooks/usePageScrollLock';
-import SubscriptionPurchaseButtons from './components/SubscriptionPurchaseButtons';
-import PaywallGate from './components/PaywallGate';
 import AuthAvatar from './components/AuthAvatar';
-import FAQSection from './components/FAQSection';
 import {
   ADMIN_TABS,
   applyPageMeta,
@@ -2171,83 +2168,6 @@ const NETWORK_SITES = [
   },
 ] as const;
 
-const SUPPORT_PROMPT_STORAGE_KEY = 'manacost_support_prompt_closed_at';
-const SUPPORT_PROMPT_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000;
-const SUPPORT_URL = 'https://boosty.to/kolodahearthstone';
-
-function SupportPrompt() {
-  const [visible, setVisible] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (window.matchMedia('(max-width: 760px)').matches) return;
-
-    try {
-      const closedAt = Number(window.localStorage.getItem(SUPPORT_PROMPT_STORAGE_KEY) || 0);
-      if (closedAt && Date.now() - closedAt < SUPPORT_PROMPT_INTERVAL_MS) return;
-    } catch { /* storage may be disabled */ }
-
-    const reveal = () => setVisible(true);
-    const handleScroll = () => {
-      if (window.scrollY < 700) return;
-      reveal();
-      window.removeEventListener('scroll', handleScroll);
-    };
-
-    const timer = window.setTimeout(reveal, 12000);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-
-    return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
-
-  const close = useCallback(() => {
-    try {
-      window.localStorage.setItem(SUPPORT_PROMPT_STORAGE_KEY, String(Date.now()));
-    } catch { /* storage may be disabled */ }
-    setVisible(false);
-  }, []);
-
-  if (!visible) return null;
-
-  if (!expanded) {
-    return (
-      <aside className="support-prompt support-prompt--collapsed" aria-label="Поддержать Манакост">
-        <button type="button" className="support-prompt__trigger" onClick={() => setExpanded(true)} aria-expanded="false">
-          <Gift size={17} aria-hidden="true" />
-          Поддержать проект
-        </button>
-        <button type="button" className="support-prompt__dismiss" onClick={close} aria-label="Скрыть предложение поддержки">
-          <X size={14} />
-        </button>
-      </aside>
-    );
-  }
-
-  return (
-    <aside className="support-prompt support-prompt--expanded" aria-label="Поддержать Манакост">
-      <button type="button" className="support-prompt__close" onClick={close} aria-label="Закрыть уведомление">
-        <X size={15} />
-      </button>
-      <div className="support-prompt__copy">
-        <strong>Манакост держится на вашей поддержке</strong>
-        <span>Донат или подписка помогают оплачивать серверы, парсинг статистики и новые инструменты.</span>
-        <span>Отсканируйте QR или откройте Boosty.</span>
-      </div>
-      <a className="support-prompt__qr" href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" aria-label="Открыть Boosty">
-        <img src="/ad/donate-qr.png" alt="QR код Boosty Манакоста" width={124} height={124} loading="lazy" decoding="async" />
-      </a>
-      <a className="support-prompt__button" href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" onClick={close}>
-        Открыть Boosty
-      </a>
-    </aside>
-  );
-}
-
 // ─── Tab transition wrapper ────────────────────────────────────────────────────
 function TabTransition({ children }: { tabKey: string; children: React.ReactNode }) {
   return <>{children}</>;
@@ -2259,6 +2179,9 @@ const loadGuidesArchiveModule = () => import('./features/GuidesArchive');
 const loadStandardMatchupsModule = () => import('./features/StandardMatchups');
 const loadContestsModule = () => import('./features/Contests');
 const loadBattlegroundsModule = () => import('./features/Battlegrounds');
+const LazyPaywallGate = React.lazy(() => import('./components/PaywallGate'));
+const LazyFAQSection = React.lazy(() => import('./components/FAQSection'));
+const LazySupportPrompt = React.lazy(() => import('./components/SupportPrompt'));
 
 const LazyWinrates = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.Winrates })));
 const LazyTierList = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.TierList })));
@@ -2696,16 +2619,18 @@ export default function App() {
     if (privateRouteChecking) return <RouteFallback minHeight={minHeight} />;
     if (privateRouteLocked) {
       return (
-        <PaywallGate
-          active
-          title={`${activeTabLabel} доступны подписчикам`}
-          authUser={appAuthUser}
-          subscriptionStatus={appSubscription}
-          subscriptionLoading={appSubscriptionLoading}
-          onRefreshSubscription={() => fetchAppSubscription(true)}
-        >
-          <SubscriptionLockedPreview title={activeTabLabel} />
-        </PaywallGate>
+        <React.Suspense fallback={<RouteFallback minHeight={minHeight} />}>
+          <LazyPaywallGate
+            active
+            title={`${activeTabLabel} доступны подписчикам`}
+            authUser={appAuthUser}
+            subscriptionStatus={appSubscription}
+            subscriptionLoading={appSubscriptionLoading}
+            onRefreshSubscription={() => fetchAppSubscription(true)}
+          >
+            <SubscriptionLockedPreview title={activeTabLabel} />
+          </LazyPaywallGate>
+        </React.Suspense>
       );
     }
     return children;
@@ -3500,7 +3425,7 @@ export default function App() {
                     articles={articlesData.articles}
                     loadingArticles={loadingArticles}
                     onNavigate={(tab: string) => navigate(tab as TabId)}
-                    faq={<FAQSection />}
+                    faq={<React.Suspense fallback={null}><LazyFAQSection /></React.Suspense>}
                   />
                 )}
                 {activeTab === 'standard-matchups' && (
@@ -3669,7 +3594,7 @@ export default function App() {
         </main>
 
 	        {!isAdminMode && <SiteFooter onNavigate={(tab: string) => navigate(tab as TabId)} updatedAt={globalUpdatedAt} />}
-	        {!isAdminMode && <SupportPrompt />}
+	        {!isAdminMode && <React.Suspense fallback={null}><LazySupportPrompt /></React.Suspense>}
         </div>
       </div>
     </div>

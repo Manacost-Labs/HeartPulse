@@ -1463,3 +1463,6 @@
     translate: none !important;
   }
 }
+.home-deferred-placeholder {
+  min-height: 18rem;
+}

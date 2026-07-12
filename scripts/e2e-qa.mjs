@@ -349,6 +349,32 @@ for (const route of authenticatedRoutes) {
   }
 }
 
+// Below-fold home chunks and the delayed prompt must remain independently usable.
+{
+  const page = await createQaPage();
+  const runtimeErrors = collectRuntimeErrors(page);
+  await page.setViewport({ width: 1440, height: 900 });
+  await mockApplicationApi(page, { authenticated: true });
+  try {
+    await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('.home-latest-articles');
+    await page.waitForSelector('.home-bg-directory');
+    await page.waitForSelector('.home-arena-directory');
+    await page.evaluate(() => window.scrollTo(0, 900));
+    await page.waitForSelector('.support-prompt--collapsed', { visible: true, timeout: 5_000 });
+    await page.click('.support-prompt__trigger');
+    await page.waitForSelector('.support-prompt--expanded', { visible: true });
+    await auditAccessibility(page, 'home lazy sections and support prompt');
+    if (runtimeErrors.length) failures.push(`home lazy sections: ${runtimeErrors.join(' | ')}`);
+    await page.click('.support-prompt__close');
+    console.log('✓ home lazy sections and delayed support prompt');
+  } catch (error) {
+    failures.push(`home lazy sections: ${error.message}`);
+  } finally {
+    await page.close();
+  }
+}
+
 // Mobile drawer: visible controls, grouped navigation and background scroll lock.
 {
   const page = await createQaPage();
