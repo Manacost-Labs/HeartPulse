@@ -28,6 +28,7 @@ import { createRouteAwareJsonParser, createUploadAuthorizationGuard } from './js
 import { createReferralRouter } from './referralRoutes.js';
 import { createGalleryRouter } from './galleryRoutes.js';
 import { detectAdminUploadFormat } from './imageFormat.js';
+import { createBattlegroundProxyRouter } from './battlegroundProxyRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -6607,28 +6608,13 @@ async function proxyExtraBattlegroundLibraryEndpoint(req: express.Request, res: 
   }
 }
 
-app.get('/api/battlegrounds-library', requireBattlegroundsAccess, (req, res) => proxyLegacyBattlegroundEndpoint(req, res, '/api/battlegrounds-library'));
-app.get('/api/battlegrounds-spells', requireBattlegroundsAccess, (req, res) => proxyLegacyBattlegroundEndpoint(req, res, '/api/battlegrounds-spells'));
-app.get('/api/battlegrounds-card-names', requireBattlegroundsAccess, (req, res) => proxyLegacyBattlegroundEndpoint(req, res, '/api/battlegrounds-card-names'));
-app.get('/api/bg-comps', requireBattlegroundsAccess, (req, res) => proxyLegacyBattlegroundEndpoint(req, res, '/api/bg-comps'));
-app.get('/api/card-art', requireBattlegroundsAccess, (req, res) => proxyLegacyBattlegroundEndpoint(req, res, '/api/card-art'));
-app.get('/api/remote-image', requireBattlegroundsAccess, (req, res) => proxyLegacyBattlegroundEndpoint(req, res, '/api/remote-image'));
-app.get('/api/bg/heroes', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/heroes'));
-app.get('/api/bg/heroes/:dbfId/details', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(
-  req,
-  res,
-  `/api/bg/heroes/${encodeURIComponent(req.params.dbfId)}/details`,
-  enrichBattlegroundHeroPayload,
-));
-app.get('/api/bg/library/meta', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/library/meta'));
-app.get('/api/bg/library/cards', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/library/cards'));
-app.get('/api/bg/library/cards/by-dbf/:dbfId', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, `/api/bg/library/cards/by-dbf/${encodeURIComponent(req.params.dbfId)}`));
-app.get('/api/bg/library/minion-stats', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/library/minion-stats'));
-app.get('/api/bg/library/minions/:dbfId', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, `/api/bg/library/minions/${encodeURIComponent(req.params.dbfId)}`));
-app.get('/api/bg/library/minions/:dbfId/history', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, `/api/bg/library/minions/${encodeURIComponent(req.params.dbfId)}/history`));
-app.get('/api/bg/library/spell-stats', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/library/spell-stats'));
-app.get('/api/bg/library/extra/:library', requireBattlegroundsAccess, (req, res) => proxyExtraBattlegroundLibraryEndpoint(req, res, req.params.library));
-app.get('/api/bg/tier-lists', requireBattlegroundsAccess, (req, res) => proxyBattlegroundAppEndpoint(req, res, '/api/bg/tier-lists'));
+app.use('/api', createBattlegroundProxyRouter({
+  requireAccess: requireBattlegroundsAccess,
+  proxyLegacy: proxyLegacyBattlegroundEndpoint,
+  proxyApp: proxyBattlegroundAppEndpoint,
+  proxyExtraLibrary: proxyExtraBattlegroundLibraryEndpoint,
+  enrichHeroPayload: enrichBattlegroundHeroPayload,
+}));
 
 function criticalDataHealth() {
   const datasets = [
