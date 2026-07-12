@@ -1056,18 +1056,26 @@ for (const [device, viewport] of [
       failures.push(`home Battlegrounds directory: desktop frame changed (${JSON.stringify(desktopBgDirectory)})`);
     }
     await page.evaluate(() => {
-      if (document.querySelector('.home-orbit-class')) return;
-      const fixture = document.createElement('div');
-      fixture.dataset.qaHomeOrbitFixture = 'true';
-      fixture.setAttribute('aria-hidden', 'true');
-      fixture.style.position = 'absolute';
-      fixture.style.visibility = 'hidden';
-      fixture.innerHTML = `
-        <div class="home-orbit-class">
-          <span class="home-orbit-class__icon"></span>
-          <span class="home-orbit-class__copy"><small>Class</small><strong>Name</strong><b>50%</b></span>
-        </div>`;
-      document.querySelector('.home-workbench')?.append(fixture);
+      const board = document.querySelector('.home-draft-orbit__board');
+      if (!document.querySelector('.home-orbit-class__copy')) {
+        const fixture = document.createElement('div');
+        fixture.dataset.qaHomeOrbitFixture = 'true';
+        fixture.className = 'home-orbit-class';
+        fixture.setAttribute('aria-hidden', 'true');
+        fixture.style.visibility = 'hidden';
+        fixture.innerHTML = `
+          <span class="home-orbit-class__icon"><img alt="" width="44" height="44"></span>
+          <span class="home-orbit-class__copy"><small>Class</small><strong>Name</strong><b>50%</b></span>`;
+        board?.append(fixture);
+      }
+      if (!document.querySelector('.home-orbit-empty')) {
+        const emptyFixture = document.createElement('div');
+        emptyFixture.dataset.qaHomeOrbitEmptyFixture = 'true';
+        emptyFixture.className = 'home-orbit-empty';
+        emptyFixture.setAttribute('aria-hidden', 'true');
+        emptyFixture.style.visibility = 'hidden';
+        board?.append(emptyFixture);
+      }
     });
     const desktopShell = await page.$eval('.home-workbench', element => {
       const stage = element.querySelector('.home-stage');
@@ -1076,7 +1084,7 @@ for (const [device, viewport] of [
       const action = element.querySelector('.home-action');
       const orbit = element.querySelector('.home-draft-orbit');
       const orbitCaption = element.querySelector('.home-draft-orbit__caption');
-      const orbitClass = element.querySelector('.home-orbit-class');
+      const orbitClass = element.querySelector('[data-qa-home-orbit-fixture]') || element.querySelector('.home-orbit-class');
       const orbitIcon = element.querySelector('.home-orbit-class__icon');
       const orbitSmall = element.querySelector('.home-orbit-class__copy small');
       const orbitStrong = element.querySelector('.home-orbit-class__copy strong');
@@ -1117,7 +1125,98 @@ for (const [device, viewport] of [
         sectionPaddingTop: firstSection ? Number.parseFloat(getComputedStyle(firstSection).paddingTop) : Number.NaN,
       };
     });
-    await page.evaluate(() => document.querySelector('[data-qa-home-orbit-fixture]')?.remove());
+    const desktopStageLayout = await page.$eval('.home-stage', element => {
+      const stageStyles = getComputedStyle(element);
+      const copy = element.querySelector('.home-stage__copy');
+      const label = element.querySelector('.home-stage__label');
+      const labelDot = element.querySelector('.home-stage__label > span');
+      const heading = element.querySelector('h1');
+      const headingAccent = heading?.querySelector('span');
+      const summary = element.querySelector('.home-stage__copy > p');
+      const actions = element.querySelector('.home-stage__actions');
+      const primary = element.querySelector('.home-action--primary');
+      const secondary = element.querySelector('.home-action--secondary');
+      const orbit = element.querySelector('.home-draft-orbit');
+      const caption = element.querySelector('.home-draft-orbit__caption');
+      const board = element.querySelector('.home-draft-orbit__board');
+      const orbitClass = element.querySelector('[data-qa-home-orbit-fixture]') || element.querySelector('.home-orbit-class');
+      const orbitIcon = orbitClass?.querySelector('.home-orbit-class__icon');
+      const orbitImage = orbitIcon?.querySelector('img');
+      const orbitAction = element.querySelector('.home-orbit-action');
+      const orbitEmpty = element.querySelector('[data-qa-home-orbit-empty-fixture]') || element.querySelector('.home-orbit-empty');
+      const pageIndex = element.parentElement?.querySelector('.home-page-index');
+      const copyStyles = copy ? getComputedStyle(copy) : null;
+      const headingStyles = heading ? getComputedStyle(heading) : null;
+      const summaryStyles = summary ? getComputedStyle(summary) : null;
+      const primaryStyles = primary ? getComputedStyle(primary) : null;
+      const secondaryStyles = secondary ? getComputedStyle(secondary) : null;
+      const orbitStyles = orbit ? getComputedStyle(orbit) : null;
+      const boardStyles = board ? getComputedStyle(board) : null;
+      const orbitClassStyles = orbitClass ? getComputedStyle(orbitClass) : null;
+      return {
+        gridColumns: stageStyles.gridTemplateColumns,
+        gap: Number.parseFloat(stageStyles.gap),
+        minHeight: stageStyles.minHeight,
+        overflow: stageStyles.overflow,
+        padding: stageStyles.padding,
+        borderWidth: stageStyles.borderTopWidth,
+        borderImageSource: stageStyles.borderImageSource,
+        color: stageStyles.color,
+        backgroundImage: stageStyles.backgroundImage,
+        shadow: stageStyles.boxShadow,
+        copyMaxWidth: copyStyles?.maxWidth || '',
+        labelColor: label ? getComputedStyle(label).color : '',
+        labelDotBackground: labelDot ? getComputedStyle(labelDot).backgroundColor : '',
+        labelDotShadow: labelDot ? getComputedStyle(labelDot).boxShadow : '',
+        headingMaxWidth: headingStyles?.maxWidth || '',
+        headingMarginTop: headingStyles?.marginTop || '',
+        headingColor: headingStyles?.color || '',
+        headingSize: headingStyles?.fontSize || '',
+        headingLineHeight: headingStyles?.lineHeight || '',
+        headingShadow: headingStyles?.textShadow || '',
+        headingAccent: headingAccent ? getComputedStyle(headingAccent).color : '',
+        summaryMarginTop: summaryStyles?.marginTop || '',
+        summaryColor: summaryStyles?.color || '',
+        summarySize: summaryStyles?.fontSize || '',
+        actionsMarginTop: actions ? getComputedStyle(actions).marginTop : '',
+        primaryBorder: primaryStyles?.borderTopColor || '',
+        primaryColor: primaryStyles?.color || '',
+        primaryBackground: primaryStyles?.backgroundImage || '',
+        secondaryBorder: secondaryStyles?.borderTopColor || '',
+        secondaryColor: secondaryStyles?.color || '',
+        secondaryBackground: secondaryStyles?.backgroundColor || '',
+        orbitWidth: orbit?.getBoundingClientRect().width || 0,
+        orbitMinHeight: orbitStyles?.minHeight || '',
+        orbitAlignSelf: orbitStyles?.alignSelf || '',
+        orbitPadding: orbitStyles?.padding || '',
+        orbitBorder: orbitStyles?.borderTopWidth || '',
+        orbitColor: orbitStyles?.color || '',
+        orbitBackground: orbitStyles?.backgroundImage || '',
+        orbitShadow: orbitStyles?.boxShadow || '',
+        captionPosition: caption ? getComputedStyle(caption).position : '',
+        captionColor: caption ? getComputedStyle(caption).color : '',
+        captionTransform: caption ? getComputedStyle(caption).transform : '',
+        boardPosition: boardStyles?.position || '',
+        boardWidth: board?.getBoundingClientRect().width || 0,
+        boardMinHeight: boardStyles?.minHeight || '',
+        boardMargin: boardStyles?.margin || '',
+        orbitClassPosition: orbitClassStyles?.position || '',
+        orbitClassMinHeight: orbitClassStyles?.minHeight || '',
+        orbitClassColumns: orbitClassStyles?.gridTemplateColumns || '',
+        orbitClassPadding: orbitClassStyles?.padding || '',
+        orbitClassTransform: orbitClassStyles?.transform || '',
+        orbitIconSize: orbitIcon ? getComputedStyle(orbitIcon).width : '',
+        orbitImageSize: orbitImage ? getComputedStyle(orbitImage).width : '',
+        orbitActionPosition: orbitAction ? getComputedStyle(orbitAction).position : '',
+        orbitEmptyPosition: orbitEmpty ? getComputedStyle(orbitEmpty).position : '',
+        orbitEmptyWidth: orbitEmpty?.getBoundingClientRect().width || 0,
+        pageIndexMarginTop: pageIndex ? getComputedStyle(pageIndex).marginTop : '',
+      };
+    });
+    await page.evaluate(() => {
+      document.querySelector('[data-qa-home-orbit-fixture]')?.remove();
+      document.querySelector('[data-qa-home-orbit-empty-fixture]')?.remove();
+    });
     if (Math.abs(desktopShell.gap - 74.88) > 0.1
       || desktopShell.color !== 'rgb(48, 37, 28)'
       || desktopShell.stageRadius !== '0px'
@@ -1145,6 +1244,65 @@ for (const [device, viewport] of [
       || desktopShell.orbitValueColor !== 'rgb(229, 190, 96)'
       || Math.abs(desktopShell.sectionPaddingTop - 56) > 0.1) {
       failures.push(`home shell: desktop stage and live-orbit theme changed (${JSON.stringify(desktopShell)})`);
+    }
+    if (desktopStageLayout.gridColumns.split(/\s+/).length !== 2
+      || Math.abs(desktopStageLayout.gap - 34.56) > 0.1
+      || desktopStageLayout.minHeight !== '0px'
+      || desktopStageLayout.overflow !== 'hidden'
+      || desktopStageLayout.padding !== '32px'
+      || desktopStageLayout.borderWidth !== '12px'
+      || !desktopStageLayout.borderImageSource.includes('main-page-rail-border.png')
+      || desktopStageLayout.color !== 'rgb(255, 240, 200)'
+      || !desktopStageLayout.backgroundImage.includes('arena-rail-red.jpg')
+      || desktopStageLayout.shadow === 'none'
+      || desktopStageLayout.copyMaxWidth !== '610px'
+      || desktopStageLayout.labelColor !== 'rgb(232, 190, 98)'
+      || desktopStageLayout.labelDotBackground !== 'rgb(116, 183, 120)'
+      || desktopStageLayout.labelDotShadow === 'none'
+      || desktopStageLayout.headingMaxWidth !== 'none'
+      || desktopStageLayout.headingMarginTop !== '8.8px'
+      || desktopStageLayout.headingColor !== 'rgb(255, 240, 200)'
+      || desktopStageLayout.headingSize !== '58.4px'
+      || desktopStageLayout.headingLineHeight !== '58.4px'
+      || desktopStageLayout.headingShadow === 'none'
+      || desktopStageLayout.headingAccent !== 'rgb(226, 184, 88)'
+      || desktopStageLayout.summaryMarginTop !== '12.8px'
+      || desktopStageLayout.summaryColor !== 'rgb(222, 202, 160)'
+      || desktopStageLayout.summarySize !== '14.56px'
+      || desktopStageLayout.actionsMarginTop !== '17.6px'
+      || desktopStageLayout.primaryBorder !== 'rgba(238, 196, 102, 0.72)'
+      || desktopStageLayout.primaryColor !== 'rgb(59, 33, 18)'
+      || desktopStageLayout.primaryBackground === 'none'
+      || desktopStageLayout.secondaryBorder !== 'rgba(239, 203, 121, 0.34)'
+      || desktopStageLayout.secondaryColor !== 'rgb(247, 228, 183)'
+      || desktopStageLayout.secondaryBackground !== 'rgba(34, 4, 8, 0.28)'
+      || desktopStageLayout.orbitWidth <= 0
+      || desktopStageLayout.orbitMinHeight !== '0px'
+      || desktopStageLayout.orbitAlignSelf !== 'stretch'
+      || desktopStageLayout.orbitPadding !== '8.8px'
+      || desktopStageLayout.orbitBorder !== '1px'
+      || desktopStageLayout.orbitColor !== 'rgb(251, 233, 189)'
+      || desktopStageLayout.orbitBackground === 'none'
+      || desktopStageLayout.orbitShadow !== 'none'
+      || desktopStageLayout.captionPosition !== 'static'
+      || desktopStageLayout.captionColor !== 'rgb(217, 171, 73)'
+      || desktopStageLayout.captionTransform !== 'none'
+      || desktopStageLayout.boardPosition !== 'static'
+      || desktopStageLayout.boardWidth <= 0
+      || desktopStageLayout.boardMinHeight !== '0px'
+      || desktopStageLayout.boardMargin !== '0px'
+      || desktopStageLayout.orbitClassPosition !== 'static'
+      || desktopStageLayout.orbitClassMinHeight !== '62px'
+      || !desktopStageLayout.orbitClassColumns.startsWith('48px ')
+      || desktopStageLayout.orbitClassPadding !== '7.2px 9.6px'
+      || desktopStageLayout.orbitClassTransform !== 'none'
+      || desktopStageLayout.orbitIconSize !== '46px'
+      || desktopStageLayout.orbitImageSize !== '44px'
+      || desktopStageLayout.orbitActionPosition !== 'static'
+      || desktopStageLayout.orbitEmptyPosition !== 'static'
+      || desktopStageLayout.orbitEmptyWidth <= 0
+      || desktopStageLayout.pageIndexMarginTop !== '-24px') {
+      failures.push(`home stage: desktop layout changed (${JSON.stringify(desktopStageLayout)})`);
     }
     const desktopCommunity = await page.$eval('.home-community', element => {
       const rootStyles = getComputedStyle(element);

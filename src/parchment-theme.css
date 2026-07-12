@@ -691,26 +691,26 @@
 /* ─── Home utility refactor: live data first, mode hubs second ─────────── */
 
 .arena-app-home .home-stage {
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.72fr) !important;
-  gap: clamp(1.2rem, 2.4vw, 2.4rem) !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-  padding: clamp(1.2rem, 2.4vw, 2rem) !important;
-  border: 12px solid transparent !important;
-  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
-  border-image-slice: 18 fill !important;
-  border-image-width: 12px !important;
-  border-image-repeat: stretch !important;
-  color: #fff0c8 !important;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.72fr);
+  gap: clamp(1.2rem, 2.4vw, 2.4rem);
+  min-height: 0;
+  overflow: hidden;
+  padding: clamp(1.2rem, 2.4vw, 2rem);
+  border: 12px solid transparent;
+  border-image-source: url('/wallpaper/main-page-rail-border.png');
+  border-image-slice: 18 fill;
+  border-image-width: 12px;
+  border-image-repeat: stretch;
+  color: #fff0c8;
   background:
     radial-gradient(circle at 78% 12%, rgba(217, 171, 73, 0.15), transparent 28%),
     linear-gradient(145deg, rgba(91, 12, 18, 0.96), rgba(48, 6, 10, 0.98)),
-    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
-  box-shadow: 0 18px 32px rgba(70, 35, 16, 0.2) !important;
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+  box-shadow: 0 18px 32px rgba(70, 35, 16, 0.2);
 }
 
 .arena-app-home .home-stage__copy {
-  max-width: 610px !important;
+  max-width: 610px;
   position: relative;
   z-index: 2;
   align-self: center;
@@ -750,120 +750,120 @@
 }
 
 .arena-app-home .home-stage__label {
-  color: #e8be62 !important;
+  color: #e8be62;
 }
 
 .arena-app-home .home-stage__label > span {
-  background: #74b778 !important;
-  box-shadow: 0 0 0 4px rgba(116, 183, 120, 0.1) !important;
+  background: #74b778;
+  box-shadow: 0 0 0 4px rgba(116, 183, 120, 0.1);
 }
 
 .arena-app-home .home-stage h1 {
-  max-width: none !important;
-  margin-top: 0.55rem !important;
-  color: #fff0c8 !important;
-  font-size: clamp(2.25rem, 4.2vw, 3.65rem) !important;
-  line-height: 1 !important;
-  letter-spacing: -0.035em !important;
-  text-shadow: 0 2px 3px rgba(26, 3, 6, 0.72) !important;
+  max-width: none;
+  margin-top: 0.55rem;
+  color: #fff0c8;
+  font-size: clamp(2.25rem, 4.2vw, 3.65rem);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  text-shadow: 0 2px 3px rgba(26, 3, 6, 0.72);
 }
 
 .arena-app-home .home-stage h1 span {
-  color: #e2b858 !important;
+  color: #e2b858;
 }
 
 .arena-app-home .home-stage__copy > p {
-  max-width: 62ch !important;
-  margin-top: 0.8rem !important;
-  color: #decaa0 !important;
-  font-size: 0.91rem !important;
-  line-height: 1.56 !important;
+  max-width: 62ch;
+  margin-top: 0.8rem;
+  color: #decaa0;
+  font-size: 0.91rem;
+  line-height: 1.56;
 }
 
 .arena-app-home .home-stage__actions {
-  margin-top: 1.1rem !important;
+  margin-top: 1.1rem;
 }
 
 .arena-app-home .home-action--primary {
-  border-color: rgba(238, 196, 102, 0.72) !important;
-  color: #3b2112 !important;
-  background: linear-gradient(180deg, #f0ca72, #c79335) !important;
+  border-color: rgba(238, 196, 102, 0.72);
+  color: #3b2112;
+  background: linear-gradient(180deg, #f0ca72, #c79335);
 }
 
 .arena-app-home .home-action--secondary {
-  border-color: rgba(239, 203, 121, 0.34) !important;
-  color: #f7e4b7 !important;
-  background: rgba(34, 4, 8, 0.28) !important;
+  border-color: rgba(239, 203, 121, 0.34);
+  color: #f7e4b7;
+  background: rgba(34, 4, 8, 0.28);
 }
 
 .arena-app-home .home-draft-orbit {
-  width: 88% !important;
-  min-height: 0 !important;
+  width: 88%;
+  min-height: 0;
   position: relative;
   z-index: 2;
   justify-self: end;
-  align-self: stretch !important;
-  padding: 0.55rem !important;
-  border: 1px solid rgba(228, 185, 91, 0.2) !important;
-  color: #fbe9bd !important;
-  background: linear-gradient(145deg, rgba(38, 3, 8, 0.76), rgba(24, 3, 7, 0.46)) !important;
-  box-shadow: none !important;
+  align-self: stretch;
+  padding: 0.55rem;
+  border: 1px solid rgba(228, 185, 91, 0.2);
+  color: #fbe9bd;
+  background: linear-gradient(145deg, rgba(38, 3, 8, 0.76), rgba(24, 3, 7, 0.46));
+  box-shadow: none;
 }
 
 .arena-app-home .home-draft-orbit__caption {
-  position: static !important;
+  position: static;
   display: block;
   margin-bottom: 0.5rem;
-  color: #d9ab49 !important;
-  transform: none !important;
+  color: #d9ab49;
+  transform: none;
 }
 
 .arena-app-home .home-draft-orbit__board {
-  position: static !important;
-  width: 100% !important;
-  min-height: 0 !important;
+  position: static;
+  width: 100%;
+  min-height: 0;
   display: grid;
   gap: 0.45rem;
-  margin: 0 !important;
+  margin: 0;
 }
 
 .arena-app-home .home-orbit-class,
 .arena-app-home .home-orbit-class--1,
 .arena-app-home .home-orbit-class--2,
 .arena-app-home .home-orbit-class--3 {
-  position: static !important;
-  width: 100% !important;
+  position: static;
+  width: 100%;
   min-height: 62px;
-  grid-template-columns: 48px minmax(0, 1fr) !important;
-  padding: 0.45rem 0.6rem !important;
-  transform: none !important;
+  grid-template-columns: 48px minmax(0, 1fr);
+  padding: 0.45rem 0.6rem;
+  transform: none;
 }
 
 .arena-app-home .home-orbit-class__icon {
-  width: 46px !important;
-  height: 46px !important;
+  width: 46px;
+  height: 46px;
 }
 
 .arena-app-home .home-orbit-class__icon img {
-  width: 44px !important;
-  height: 44px !important;
+  width: 44px;
+  height: 44px;
 }
 
 .arena-app-home .home-orbit-action {
-  position: static !important;
+  position: static;
   min-height: 38px;
   margin-top: 0.45rem;
 }
 
 .arena-app-home .home-orbit-empty {
-  position: static !important;
-  width: 100% !important;
+  position: static;
+  width: 100%;
   min-height: 72px;
-  transform: none !important;
+  transform: none;
 }
 
 .arena-app-home .home-page-index {
-  margin-block: -1.5rem 0 !important;
+  margin-block: -1.5rem 0;
 }
 
 @media (max-width: 900px) {
