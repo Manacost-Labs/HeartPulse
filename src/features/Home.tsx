@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useMemo } from 'react';
 import {
   ArrowRight,
   BarChart3,
@@ -90,40 +90,8 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
     [homeSummaryData?.topClasses],
   );
 
-  const pageRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const root = pageRef.current;
-    if (!root) return;
-
-    const sections = (): HTMLElement[] => Array.from(root.querySelectorAll<HTMLElement>('.home-reveal'));
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduceMotion || !('IntersectionObserver' in window)) {
-      sections().forEach(section => section.classList.add('is-visible'));
-      return;
-    }
-
-    root.classList.add('home-reveal-enabled');
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (!entry.isIntersecting) return;
-        entry.target.classList.add('is-visible');
-        observer.unobserve(entry.target);
-      });
-    }, { threshold: 0.08 });
-
-    const observeSections = () => sections().forEach(section => observer.observe(section));
-    const mutations = new MutationObserver(observeSections);
-    mutations.observe(root, { childList: true, subtree: true });
-    observeSections();
-    return () => {
-      mutations.disconnect();
-      observer.disconnect();
-    };
-  }, []);
-
   return (
-    <div ref={pageRef} className="home-modern home-workbench">
+    <div className="home-modern home-workbench">
       <section className="home-stage" aria-labelledby="draft-home-title">
         <div className="home-stage__copy">
           <span className="home-stage__label"><span aria-hidden="true" /> Данные обновляются автоматически</span>

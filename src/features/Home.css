@@ -467,21 +467,7 @@
   transform: none;
 }
 
-.home-reveal-enabled .home-reveal:not(.is-visible) {
-  opacity: 0;
-  transform: translate3d(0, 14px, 0);
-}
-
-.home-reveal-enabled .home-reveal {
-  transition: opacity 0.42s ease, transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.home-reveal-enabled .home-bg-directory:not(.is-visible) .home-bg-directory__link {
-  opacity: 0;
-  transform: translate3d(0, 10px, 0);
-}
-
-.home-bg-directory.is-visible .home-bg-directory__link {
+.home-bg-directory__link {
   opacity: 1;
   transform: translate3d(0, 0, 0);
   transition:

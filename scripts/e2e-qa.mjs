@@ -987,6 +987,18 @@ for (const [device, viewport] of [
     if (JSON.stringify(homeCssState.footerLinks) !== JSON.stringify(expectedFooterLinks)) {
       failures.push(`home lazy sections: canonical footer links are incomplete (${homeCssState.footerLinks.join(', ')})`);
     }
+    const initiallyVisibleHomeSections = await page.$$eval(
+      '.home-latest-articles, .home-bg-directory, .home-arena-directory, .home-community, .home-faq-zone',
+      elements => elements.map(element => ({
+        classes: element.className,
+        opacity: Number(getComputedStyle(element).opacity),
+        visibility: getComputedStyle(element).visibility,
+      })),
+    );
+    const hiddenHomeSection = initiallyVisibleHomeSections.find(section => section.opacity < 0.99 || section.visibility !== 'visible');
+    if (hiddenHomeSection) {
+      failures.push(`home sections: content is hidden before scrolling (${JSON.stringify(hiddenHomeSection)})`);
+    }
     const desktopContentCanvas = await page.$eval('.arena-content-open', element => {
       const styles = getComputedStyle(element);
       return {
@@ -1013,24 +1025,6 @@ for (const [device, viewport] of [
       || desktopContentCanvas.filter !== 'none'
       || desktopContentCanvas.backdrop !== 'none') {
       failures.push(`home content canvas: desktop contract changed (${JSON.stringify(desktopContentCanvas)})`);
-    }
-    for (const selector of ['.home-latest-articles', '.home-bg-directory', '.home-arena-directory']) {
-      await page.$eval(selector, element => element.scrollIntoView({ block: 'center' }));
-      try {
-        await page.waitForFunction(target => {
-          const element = document.querySelector(target);
-          const animated = document.querySelector('.home-modern')?.classList.contains('home-reveal-enabled');
-          return Boolean(element)
-            && (!animated || element.classList.contains('is-visible'))
-            && Number(getComputedStyle(element).opacity) > 0.99;
-        }, { timeout: 5_000 }, selector);
-      } catch {
-        const state = await page.$eval(selector, element => ({
-          classes: element.className,
-          opacity: getComputedStyle(element).opacity,
-        }));
-        failures.push(`home lazy sections: ${selector} remained hidden (${state.classes}; opacity ${state.opacity})`);
-      }
     }
     const desktopHeading = await page.$eval('.home-latest-articles .home-section-heading', element => {
       const label = element.querySelector(':scope > div > span');
