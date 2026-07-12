@@ -963,6 +963,40 @@ for (const [device, viewport] of [
       || desktopHeading.summaryColor !== 'rgb(120, 101, 79)') {
       failures.push(`home headings: desktop parchment typography changed (${JSON.stringify(desktopHeading)})`);
     }
+    const desktopArenaDirectory = await page.$eval('.home-arena-directory', element => {
+      const headingRow = element.querySelector('.home-section-heading');
+      const signLabel = element.querySelector('.home-arena-directory__sign > span');
+      const signHeading = element.querySelector('.home-arena-directory__sign h2');
+      const summary = element.querySelector('.home-section-heading > p');
+      const links = element.querySelector('.home-arena-directory__links');
+      const linkStyles = links ? getComputedStyle(links) : null;
+      return {
+        headingMargin: headingRow ? getComputedStyle(headingRow).marginBottom : '',
+        labelColor: signLabel ? getComputedStyle(signLabel).color : '',
+        labelSize: signLabel ? getComputedStyle(signLabel).fontSize : '',
+        headingColor: signHeading ? getComputedStyle(signHeading).color : '',
+        headingSize: signHeading ? getComputedStyle(signHeading).fontSize : '',
+        summaryColor: summary ? getComputedStyle(summary).color : '',
+        summaryMargin: summary ? getComputedStyle(summary).margin : '',
+        gridGap: linkStyles?.gap || '',
+        gridPadding: linkStyles?.padding || '',
+        gridBorder: linkStyles?.borderTopWidth || '',
+        gridBackground: linkStyles?.backgroundColor || '',
+      };
+    });
+    if (desktopArenaDirectory.headingMargin !== '16px'
+      || desktopArenaDirectory.labelColor !== 'rgb(239, 197, 104)'
+      || desktopArenaDirectory.labelSize !== '9.92px'
+      || desktopArenaDirectory.headingColor !== 'rgb(255, 240, 200)'
+      || desktopArenaDirectory.headingSize !== '29.6px'
+      || desktopArenaDirectory.summaryColor !== 'rgb(111, 89, 67)'
+      || desktopArenaDirectory.summaryMargin !== '0px'
+      || desktopArenaDirectory.gridGap !== '8.8px'
+      || desktopArenaDirectory.gridPadding !== '11.2px'
+      || desktopArenaDirectory.gridBorder !== '66px'
+      || desktopArenaDirectory.gridBackground !== 'rgb(195, 167, 126)') {
+      failures.push(`home Arena directory: desktop frame changed (${JSON.stringify(desktopArenaDirectory)})`);
+    }
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
     const mobileHeading = await page.$eval('.home-latest-articles .home-section-heading', element => {
       const heading = element.querySelector('h2');
@@ -977,6 +1011,24 @@ for (const [device, viewport] of [
       || mobileHeading.headingSize !== '32px'
       || mobileHeading.summaryDisplay !== 'none') {
       failures.push(`home headings: mobile parchment typography changed (${JSON.stringify(mobileHeading)})`);
+    }
+    const mobileArenaDirectory = await page.$eval('.home-arena-directory', element => {
+      const heading = element.querySelector('.home-arena-directory__sign h2');
+      const links = element.querySelector('.home-arena-directory__links');
+      const linkStyles = links ? getComputedStyle(links) : null;
+      return {
+        headingSize: heading ? getComputedStyle(heading).fontSize : '',
+        gridPadding: linkStyles?.padding || '',
+        gridBorder: linkStyles?.borderTopWidth || '',
+        gridWidth: links?.getBoundingClientRect().width || 0,
+        viewportWidth: document.documentElement.clientWidth,
+      };
+    });
+    if (mobileArenaDirectory.headingSize !== '20.8px'
+      || mobileArenaDirectory.gridPadding !== '0px'
+      || mobileArenaDirectory.gridBorder !== '30px'
+      || mobileArenaDirectory.gridWidth > mobileArenaDirectory.viewportWidth) {
+      failures.push(`home Arena directory: mobile frame changed (${JSON.stringify(mobileArenaDirectory)})`);
     }
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
     const faqTrigger = await page.$('.home-faq-zone .faq-card__trigger');

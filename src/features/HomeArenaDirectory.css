@@ -11,7 +11,7 @@
   grid-template-columns: minmax(360px, 650px) minmax(220px, 1fr);
   align-items: center;
   gap: clamp(1rem, 3vw, 2.8rem);
-  margin-bottom: 1rem !important;
+  margin-bottom: 1rem;
 }
 
 .arena-app-home .home-arena-directory__sign {
@@ -25,43 +25,43 @@
   background: url('/wallpaper/battlegrounds-bartender-header.webp') center / 100% 100% no-repeat;
 }
 
-.arena-app-home .home-arena-directory__sign > span {
-  color: #efc568 !important;
-  font-size: 0.62rem !important;
+.arena-app-home .home-arena-directory .home-arena-directory__sign > span {
+  color: #efc568;
+  font-size: 0.62rem;
   font-weight: 850;
   letter-spacing: 0.16em;
   transform: translateY(-5px);
   text-transform: uppercase;
 }
 
-.arena-app-home .home-arena-directory__sign h2 {
-  color: #fff0c8 !important;
-  font-size: clamp(1.25rem, 2.2vw, 1.85rem) !important;
-  letter-spacing: 0 !important;
+.arena-app-home .home-arena-directory .home-arena-directory__sign h2 {
+  color: #fff0c8;
+  font-size: clamp(1.25rem, 2.2vw, 1.85rem);
+  letter-spacing: 0;
   transform: translateY(-5px);
-  text-shadow: 0 2px 3px rgba(45, 22, 10, 0.78) !important;
+  text-shadow: 0 2px 3px rgba(45, 22, 10, 0.78);
 }
 
 .arena-app-home .home-arena-directory .home-section-heading > p {
   max-width: 32rem;
-  margin: 0 !important;
+  margin: 0;
   padding-left: 1rem;
   border-left: 4px solid var(--arena-red);
-  color: #6f5943 !important;
+  color: #6f5943;
 }
 
 .arena-app-home .home-arena-directory__links {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 0.55rem !important;
-  padding: clamp(0.15rem, 1vw, 0.7rem) !important;
-  border: clamp(34px, 5.4vw, 66px) solid transparent !important;
-  border-image-source: url('/wallpaper/wiki-battlegrounds-skin.webp') !important;
-  border-image-slice: 82 fill !important;
-  border-image-width: clamp(34px, 5.4vw, 66px) !important;
-  border-image-repeat: stretch !important;
-  background: #c3a77e !important;
-  box-shadow: 0 18px 30px rgba(67, 38, 17, 0.16) !important;
+  gap: 0.55rem;
+  padding: clamp(0.15rem, 1vw, 0.7rem);
+  border: clamp(34px, 5.4vw, 66px) solid transparent;
+  border-image-source: url('/wallpaper/wiki-battlegrounds-skin.webp');
+  border-image-slice: 82 fill;
+  border-image-width: clamp(34px, 5.4vw, 66px);
+  border-image-repeat: stretch;
+  background: #c3a77e;
+  box-shadow: 0 18px 30px rgba(67, 38, 17, 0.16);
 }
 
 .arena-app-home .home-arena-directory__link {
@@ -157,14 +157,14 @@
 
   .arena-app-home .home-arena-directory__sign > span { display: none; }
 
-  .arena-app-home .home-arena-directory__sign h2 {
-    font-size: clamp(1.05rem, 6vw, 1.3rem) !important;
+  .arena-app-home .home-arena-directory .home-arena-directory__sign h2 {
+    font-size: clamp(1.05rem, 6vw, 1.3rem);
   }
 
   .arena-app-home .home-arena-directory__links {
-    padding: 0 !important;
-    border-width: 30px !important;
-    border-image-width: 30px !important;
+    padding: 0;
+    border-width: 30px;
+    border-image-width: 30px;
   }
 
   .arena-app-home .home-arena-directory__link,
