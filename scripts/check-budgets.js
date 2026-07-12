@@ -1,12 +1,16 @@
-import { readdirSync, statSync } from 'fs';
+import { readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
+import { gzipSync } from 'zlib';
 
 const distAssets = join(process.cwd(), 'dist', 'assets');
 
 const budgets = {
   // Enforce the current production baseline first; later stabilization tasks
   // ratchet these limits down instead of keeping permanently failing targets.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 250_000),
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 70_000),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 290_000),
+  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 100_000),
+  vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 190_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 180_000),
   css: Number(process.env.BUDGET_CSS_BYTES || 300_000),
 };
@@ -25,9 +29,25 @@ const routeJs = files.filter(file =>
   && !file.name.startsWith('vendor-')
 );
 const css = files.find(file => /^index-.*\.css$/.test(file.name));
+const vendorReact = files.find(file => /^vendor-react-.*\.js$/.test(file.name));
+const initialJsFiles = [mainJs, vendorReact, files.find(file => /^vendor-icons-.*\.js$/.test(file.name))]
+  .filter(Boolean);
+const initialJs = initialJsFiles.length === 3 ? {
+  name: initialJsFiles.map(file => file.name).join(' + '),
+  bytes: initialJsFiles.reduce((sum, file) => sum + file.bytes, 0),
+} : null;
+const initialJsGzip = initialJsFiles.length === 3 ? {
+  name: 'gzip(' + initialJsFiles.map(file => file.name).join(' + ') + ')',
+  bytes: initialJsFiles.reduce((sum, file) => (
+    sum + gzipSync(readFileSync(join(distAssets, file.name)), { level: 9 }).length
+  ), 0),
+} : null;
 
 const checks = [
-  ['initial JS', mainJs, budgets.mainJs],
+  ['application shell JS', mainJs, budgets.mainJs],
+  ['stable React vendor JS', vendorReact, budgets.vendorReact],
+  ['initial JS raw total', initialJs, budgets.initialJs],
+  ['initial JS gzip total', initialJsGzip, budgets.initialJsGzip],
   ['largest route JS', routeJs[0], budgets.routeJs],
   ['CSS', css, budgets.css],
 ];
@@ -45,6 +65,6 @@ for (const [label, file, budget] of checks) {
   if (!ok) failed = true;
 }
 
-console.log('[budget] ratchet target: initial JS 220 KB; CSS 260 KB.');
+console.log('[budget] ratchet target: application shell 60 KB; initial raw total 280 KB; CSS 260 KB.');
 
 if (failed) process.exit(1);
