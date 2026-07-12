@@ -567,8 +567,7 @@
     transform: translate(3px, -3px);
   }
 
-  .home-community > a:hover,
-  .home-faq-zone .faq-card button:hover { background: #eef6fb !important; }
+  .home-community > a:hover { background: #eef6fb !important; }
 }
 
 .home-action:active,

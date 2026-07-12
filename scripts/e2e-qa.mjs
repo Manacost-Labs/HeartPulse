@@ -922,6 +922,22 @@ for (const [device, viewport] of [
     if (!homeCssState.faqCss) failures.push('home lazy sections: FAQ owner CSS did not load');
     if (!homeCssState.supportCss) failures.push('home lazy sections: support-prompt owner CSS did not load');
     if (!homeCssState.footerCss || !homeCssState.footerMarkup) failures.push('home lazy sections: site-footer owner or markup did not load');
+    const faqTrigger = await page.$('.home-faq-zone .faq-card__trigger');
+    if (!faqTrigger) {
+      failures.push('home lazy sections: FAQ trigger is missing');
+    } else {
+      const initialFaqState = await faqTrigger.evaluate(element => element.getAttribute('aria-expanded'));
+      if (initialFaqState !== 'false') failures.push(`home lazy sections: FAQ must start collapsed, got ${initialFaqState}`);
+      await faqTrigger.click();
+      const expandedFaqState = await faqTrigger.evaluate(element => ({
+        expanded: element.getAttribute('aria-expanded'),
+        panelHidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hidden,
+      }));
+      if (expandedFaqState.expanded !== 'true' || expandedFaqState.panelHidden !== false) {
+        failures.push('home lazy sections: FAQ trigger did not expose its controlled panel');
+      }
+      await faqTrigger.click();
+    }
     const routeMetaLoadedInitially = await page.evaluate(() => performance.getEntriesByType('resource')
       .some(entry => entry.name.includes('/assets/route-meta-')));
     if (routeMetaLoadedInitially) failures.push('home lazy sections: route metadata loaded before client navigation');

@@ -32,27 +32,26 @@ export default function FAQSection() {
   const headingId = useId();
   const [open, setOpen] = useState<number | null>(null);
   return (
-    <section aria-labelledby={headingId} className="mt-8 mb-2">
-      <h2 id={headingId} className="font-hs text-[#3d2208] text-xl mb-4">Частые вопросы</h2>
-      <div className="flex flex-col gap-2">
+    <section aria-labelledby={headingId} className="faq-section">
+      <h2 id={headingId} className="faq-section__heading">Частые вопросы</h2>
+      <div className="faq-section__list">
         {FAQ_ITEMS.map((item, index) => {
           const expanded = open === index;
           const panelId = `${headingId}-panel-${index}`;
           return (
-            <div key={item.q} className="faq-card rounded-xl overflow-hidden" style={{ border: '1.5px solid #c4a46a', background: 'linear-gradient(135deg,#f5ead0,#ede0c0)' }}>
+            <div key={item.q} className="faq-card">
               <button
                 type="button"
-                className="w-full text-left flex items-center justify-between px-4 py-3 gap-2"
-                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                className="faq-card__trigger"
                 onClick={() => setOpen(expanded ? null : index)}
                 aria-expanded={expanded}
                 aria-controls={panelId}
               >
-                <span className="font-hs text-[#3d2208] text-sm sm:text-base">{item.q}</span>
-                <span aria-hidden="true" className="flex-shrink-0 text-[#8b4513] font-bold text-lg leading-none">{expanded ? '−' : '+'}</span>
+                <span className="faq-card__question">{item.q}</span>
+                <span aria-hidden="true" className="faq-card__icon">{expanded ? '−' : '+'}</span>
               </button>
-              <div id={panelId} className="px-4 pb-4 pt-1" hidden={!expanded}>
-                <p className="text-[#5c3a21] text-sm leading-relaxed">{item.a}</p>
+              <div id={panelId} className="faq-card__panel" hidden={!expanded}>
+                <p className="faq-card__answer">{item.a}</p>
               </div>
             </div>
           );

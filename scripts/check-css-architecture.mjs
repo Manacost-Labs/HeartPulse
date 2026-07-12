@@ -4,7 +4,7 @@ import { join, relative } from 'node:path';
 const ROOT = process.cwd();
 const SRC = join(ROOT, 'src');
 const TOKEN_FILE = 'src/styles/tokens.css';
-const MAX_IMPORTANT_DECLARATIONS = 2429;
+const MAX_IMPORTANT_DECLARATIONS = 2370;
 const RETIRED_HOME_CLASS_PREFIXES = [
   'home-stage__atmosphere',
   'home-stage__rune',
