@@ -19,8 +19,8 @@
 
 .home-workbench > section,
 .home-workbench > aside {
-  content-visibility: visible !important;
-  contain-intrinsic-size: auto !important;
+  content-visibility: visible;
+  contain-intrinsic-size: auto;
 }
 
 .home-workbench h1,
@@ -567,7 +567,7 @@
     transform: translate(3px, -3px);
   }
 
-  .home-community > a:hover { background: #eef6fb !important; }
+  .home-community > a:hover { background: #eef6fb; }
 }
 
 .home-action:active,
