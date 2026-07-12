@@ -211,6 +211,7 @@ A task is complete only when all relevant checks below are proven.
   - [x] The public mobile topbar, drawer, navigation links and profile control now rely on the unlayered parchment owner instead of 63 defensive flags; open/active visual states and keyboard/scroll behavior are browser-tested and the global ceiling is 2,036.
   - [x] The desktop public sidebar frame, brand, sections and navigation links now override the layered legacy shell through normal cascade order instead of 52 defensive flags; active/hover/group behavior is browser-tested and the global ceiling is 1,984.
   - [x] The desktop sidebar freshness status, framed profile control and workspace offset now use normal cascade ownership instead of 26 defensive flags; exact rendering and viewport alignment are browser-tested and the global ceiling is 1,958.
+  - [x] Public parchment backgrounds no longer fight two forced legacy blue overlays: 11 obsolete flags were removed across the base and public shell, public pseudo-overlay suppression and admin background isolation are browser-tested, and the global ceiling is 1,947.
   - [ ] Replace legacy overrides route by route and ratchet the `!important` ceiling down after every verified batch.
   - [ ] Establish explicit reset, base, component, route and override layers once all participating stylesheets can enter the layer order without changing precedence.
 - [ ] Phase 4: modular API, runtime validation and durable data snapshots.

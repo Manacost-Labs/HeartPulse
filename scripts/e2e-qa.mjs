@@ -577,6 +577,7 @@ for (const [device, viewport] of [
     });
     const state = await page.evaluate(() => {
       const root = document.documentElement;
+      const shell = document.querySelector('.bg-wood');
       const stats = [...document.querySelectorAll('.admin-stat-grid > div')].map(element => ({
         label: element.querySelector('span')?.textContent?.trim() || '',
         value: element.querySelector('strong')?.textContent?.trim() || '',
@@ -589,6 +590,7 @@ for (const [device, viewport] of [
         emptyClicksStatus: document.querySelector('.admin-referral-clicks [role="status"]')?.textContent?.trim() || '',
         scrollWidth: root.scrollWidth,
         clientWidth: root.clientWidth,
+        shellAfterBackground: shell ? getComputedStyle(shell, '::after').backgroundImage : '',
       };
     });
     if (state.stats.length !== 4) failures.push(`admin dashboard [${device}]: expected 4 KPI cards, got ${state.stats.length}`);
@@ -606,6 +608,9 @@ for (const [device, viewport] of [
     if (state.quickActions.length !== 8) failures.push(`admin dashboard [${device}]: expected 8 quick actions, got ${state.quickActions.length}`);
     if (!state.emptyClicksStatus.includes('Переходов пока нет')) failures.push(`admin dashboard [${device}]: recent-click empty state is not exposed`);
     if (state.scrollWidth > state.clientWidth + 1) failures.push(`admin dashboard [${device}]: horizontal overflow ${state.scrollWidth} > ${state.clientWidth}`);
+    if (state.shellAfterBackground === 'none' || !state.shellAfterBackground.includes('linear-gradient')) {
+      failures.push(`admin dashboard [${device}]: admin shell background overlay was lost`);
+    }
     const violationCount = await auditAccessibility(page, `admin dashboard [${device}]`, '.admin-workspace-content');
     await page.evaluate(() => {
       const button = [...document.querySelectorAll('.admin-quick-actions button')]
@@ -1658,6 +1663,8 @@ for (const [device, viewport] of [
       const profileLabel = profile?.querySelector('.arena-sidebar-profile-label');
       const profileHint = profile?.querySelector('.arena-sidebar-profile-hint');
       const workspace = document.querySelector('.arena-workspace');
+      const shell = document.querySelector('.bg-wood');
+      const main = document.querySelector('.arena-main');
       const sidebarStyles = sidebar ? getComputedStyle(sidebar) : null;
       const brandStyles = brand ? getComputedStyle(brand) : null;
       const navStyles = nav ? getComputedStyle(nav) : null;
@@ -1667,6 +1674,9 @@ for (const [device, viewport] of [
       const statusStyles = status ? getComputedStyle(status) : null;
       const profileStyles = profile ? getComputedStyle(profile) : null;
       const profileIconStyles = profileIcon ? getComputedStyle(profileIcon) : null;
+      const shellStyles = shell ? getComputedStyle(shell) : null;
+      const workspaceStyles = workspace ? getComputedStyle(workspace) : null;
+      const mainStyles = main ? getComputedStyle(main) : null;
       const profileIconContract = {
         border: profileIconStyles?.borderTopColor || '',
         color: profileIconStyles?.color || '',
@@ -1746,6 +1756,16 @@ for (const [device, viewport] of [
         profileHintSize: profileHint ? getComputedStyle(profileHint).fontSize : '',
         workspaceMarginLeft: workspace ? getComputedStyle(workspace).marginLeft : '',
         workspaceLeft: workspace?.getBoundingClientRect().left || 0,
+        shellBackgroundColor: shellStyles?.backgroundColor || '',
+        shellBackgroundImage: shellStyles?.backgroundImage || '',
+        shellBackgroundRepeat: shellStyles?.backgroundRepeat || '',
+        shellBackgroundSize: shellStyles?.backgroundSize || '',
+        shellAfterContent: shell ? getComputedStyle(shell, '::after').content : '',
+        shellAfterDisplay: shell ? getComputedStyle(shell, '::after').display : '',
+        shellAfterBackground: shell ? getComputedStyle(shell, '::after').backgroundImage : '',
+        workspaceBackground: workspaceStyles?.backgroundImage || '',
+        mainBackground: mainStyles?.backgroundImage || '',
+        mainPaddingTop: mainStyles?.paddingTop || '',
       };
     });
     if (Math.abs(sidebarState.width - 258) > 0.1
@@ -1817,7 +1837,17 @@ for (const [device, viewport] of [
       || sidebarState.profileHintColor !== 'rgb(210, 183, 127)'
       || sidebarState.profileHintSize !== '11.36px'
       || sidebarState.workspaceMarginLeft !== '258px'
-      || Math.abs(sidebarState.workspaceLeft - 258) > 0.1) {
+      || Math.abs(sidebarState.workspaceLeft - 258) > 0.1
+      || sidebarState.shellBackgroundColor !== 'rgb(234, 214, 167)'
+      || !sidebarState.shellBackgroundImage.includes('arena-parchment.jpg')
+      || sidebarState.shellBackgroundRepeat !== 'repeat, repeat'
+      || sidebarState.shellBackgroundSize !== 'auto, 865px 878px'
+      || sidebarState.shellAfterContent !== 'none'
+      || sidebarState.shellAfterDisplay !== 'none'
+      || sidebarState.shellAfterBackground !== 'none'
+      || !sidebarState.workspaceBackground.includes('arena-parchment.jpg')
+      || !sidebarState.mainBackground.includes('arena-parchment.jpg')
+      || sidebarState.mainPaddingTop !== '0px') {
       failures.push(`desktop sidebar: parchment frame changed (${JSON.stringify(sidebarState)})`);
     }
     const hoverTarget = '.arena-sidebar a.arena-sidebar-link:not(.arena-sidebar-link-active)';
