@@ -13,7 +13,7 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "lint:docs": "markdownlint-cli2 STABILIZATION.md DEPLOYMENT.md assets.md && design.md lint design.md",
-    "lint:architecture": "node scripts/check-component-duplicates.mjs && node scripts/check-css-architecture.mjs",
+    "lint:architecture": "node scripts/check-component-duplicates.mjs && node scripts/check-css-architecture.mjs && node scripts/check-entry-dead-code.mjs",
     "budget": "node scripts/check-budgets.js",
     "optimize:ui-assets": "node scripts/optimize-ui-assets.mjs",
     "test:tierlist": "tsx tests/hsreplay-tierlist.test.ts",
