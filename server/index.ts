@@ -25,6 +25,7 @@ import { decodeSignedStateCookie, encodeSignedStateCookie, safeAuthReturnTo } fr
 import { csrfRequestAllowed } from './csrf.js';
 import { configureLoopbackProxyTrust, corsOriginAllowed, getTrustedClientIp } from './networkBoundary.js';
 import { createRouteAwareJsonParser, createUploadAuthorizationGuard } from './jsonBody.js';
+import { referralClickFromRow } from './referrals.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -8791,7 +8792,7 @@ app.get('/api/admin/referrals', adminIdGuard, (req, res) => {
       ORDER BY link.created_at DESC
     `).all() as any[];
     const recentClicks = database.prepare(`
-      SELECT clicks.referral_id, links.slug, clicks.clicked_at, clicks.user_agent, clicks.referrer, clicks.landing_path
+      SELECT clicks.id, clicks.referral_id, links.slug, clicks.clicked_at, clicks.user_agent, clicks.referrer, clicks.landing_path
       FROM referral_clicks AS clicks
       JOIN referral_links AS links ON links.id = clicks.referral_id
       ORDER BY clicks.clicked_at DESC
@@ -8799,14 +8800,7 @@ app.get('/api/admin/referrals', adminIdGuard, (req, res) => {
     `).all() as any[];
     res.json({
       referrals: rows.map(referralFromRow),
-      recentClicks: recentClicks.map(row => ({
-        referralId: String(row.referral_id || ''),
-        slug: String(row.slug || ''),
-        clickedAt: String(row.clicked_at || ''),
-        userAgent: String(row.user_agent || ''),
-        referrer: String(row.referrer || ''),
-        landingPath: String(row.landing_path || ''),
-      })),
+      recentClicks: recentClicks.map(referralClickFromRow),
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Не удалось загрузить ссылки' });

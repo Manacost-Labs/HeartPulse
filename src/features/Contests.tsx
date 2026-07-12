@@ -500,6 +500,7 @@ type AdminReferralLink = {
 };
 
 type AdminReferralClick = {
+  id: string;
   referralId: string;
   slug: string;
   clickedAt: string;
@@ -2082,8 +2083,8 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
                 <div className="contest-admin-card">
                   <h2>Последние переходы</h2>
                   <div className="admin-referral-clicks">
-                    {referralClicks.slice(0, 8).map((click, index) => (
-                      <div key={`${click.slug}-${click.clickedAt}-${index}`}>
+                    {referralClicks.slice(0, 8).map(click => (
+                      <div key={click.id}>
                         <strong>/r/{click.slug}</strong>
                         <span>{click.clickedAt ? formatDate(click.clickedAt) : 'без даты'}</span>
                       </div>
@@ -3165,8 +3166,8 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
                 </div>
                 <h3 className="admin-subtitle">Последние переходы</h3>
                 <div className="admin-referral-clicks">
-                  {(referralClicksExpanded ? referralClicks : referralClicks.slice(0, 8)).map((click, index) => (
-                    <div key={`${click.slug}-${click.clickedAt}-${index}`}>
+                  {(referralClicksExpanded ? referralClicks : referralClicks.slice(0, 8)).map(click => (
+                    <div key={click.id}>
                       <strong>/r/{click.slug}</strong>
                       <span>{click.clickedAt ? formatDate(click.clickedAt) : 'без даты'} · {click.referrer || 'прямой переход'}</span>
                     </div>
