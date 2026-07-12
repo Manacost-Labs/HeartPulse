@@ -38,6 +38,7 @@ import { createClassMatchupRouter, type ClassMatchupCacheStore } from './classMa
 import { createLegendaryRouter } from './legendaryRoutes.js';
 import { createTierlistRouter } from './tierlistRoutes.js';
 import { createWinrateRouter } from './winrateRoutes.js';
+import { createHomeSummaryRouter, type HomeSummaryCacheStore } from './homeSummaryRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -111,7 +112,7 @@ const tierlistApiCache = new Map<string, MemoryCacheEntry>();
 const legendariesApiCache = new Map<string, MemoryCacheEntry>();
 const standardMatchupsApiCache = new Map<string, MemoryCacheEntry>();
 const battlegroundAppProxyCache = new Map<string, ProxyBodyCacheEntry>();
-let homeSummaryApiCache: MemoryCacheEntry | null = null;
+const homeSummaryApiCache: HomeSummaryCacheStore = { current: null };
 const arenaDecksCache: ArenaDecksCacheStore = { current: null };
 type CardImageSource = 'blizzard' | 'fallback' | 'placeholder';
 type CachedCardImage = { path: string; source: CardImageSource };
@@ -151,7 +152,7 @@ function invalidateDataCache() {
   legendariesApiCache.clear();
   standardMatchupsApiCache.clear();
   battlegroundAppProxyCache.clear();
-  homeSummaryApiCache = null;
+  homeSummaryApiCache.current = null;
   classMatchupsCache.current = null;
   arenaDecksCache.current = null;
   void clearRedisDataCache();
@@ -5617,39 +5618,21 @@ function oldGuidesDatabase(): DatabaseSync {
   return oldGuidesDb;
 }
 
-app.get('/api/home/summary', async (req, res) => {
-  const now = Date.now();
-  if (homeSummaryApiCache && homeSummaryApiCache.expiresAt > now) {
-    return sendJsonCached(req, res, homeSummaryApiCache.data, homeSummaryApiCache.etag, CACHE_5M, 'memory');
-  }
-
-  const redisKey = redisDataKey('home-summary-v2');
-  const redisCached = await redisGetCache(redisKey);
-  if (redisCached) {
-    homeSummaryApiCache = {
-      data: redisCached.data,
-      etag: redisCached.etag,
-      expiresAt: now + HOME_SUMMARY_CACHE_MS,
-    };
-    return sendJsonCached(req, res, redisCached.data, redisCached.etag, CACHE_5M, 'redis');
-  }
-
-  try {
-    const data = await buildHomeSummary(now);
-    const etag = makeHomeSummaryEtag(data, now);
-    homeSummaryApiCache = { data, etag, expiresAt: now + HOME_SUMMARY_CACHE_MS };
-    void redisSetCache(redisKey, data, etag, REDIS_HOME_SUMMARY_TTL_SECONDS);
-    return sendJsonCached(req, res, data, etag, CACHE_5M, 'origin');
-  } catch (err: any) {
-    if (homeSummaryApiCache) {
-      return sendJsonCached(req, res, {
-        ...homeSummaryApiCache.data,
-        warning: 'stale',
-      }, homeSummaryApiCache.etag, 'public, max-age=60, stale-while-revalidate=300', 'memory-stale');
-    }
-    return res.status(502).json({ error: err?.message ?? 'Home summary unavailable' });
-  }
-});
+app.use('/api', createHomeSummaryRouter({
+  cache: homeSummaryApiCache,
+  redisKey: redisDataKey('home-summary-v2'),
+  redisGet: redisGetCache,
+  redisSet: redisSetCache,
+  buildSummary: buildHomeSummary,
+  makeEtag: makeHomeSummaryEtag,
+  memoryTtlMs: HOME_SUMMARY_CACHE_MS,
+  redisTtlSeconds: REDIS_HOME_SUMMARY_TTL_SECONDS,
+  cacheHeader: CACHE_5M,
+  onError: (scope, error) => console.error(
+    `[api/home/summary] ${scope} failed:`,
+    error instanceof Error ? error.message : error,
+  ),
+}));
 
 app.get('/api/card-image/:cardId/:variant.webp', async (req, res) => {
   const cardId = normalizeCardImageId(req.params.cardId);
