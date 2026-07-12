@@ -11,6 +11,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { createServer } from 'node:net';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -22,7 +23,20 @@ const backupDir = join(fixture, 'backups');
 const restoredRoot = join(fixture, 'restored');
 const passphrase = join(fixture, 'passphrase');
 const releaseRoot = join(fixture, 'release');
-const port = 34_000 + Math.floor(Math.random() * 1_000);
+const port = await new Promise((resolvePort, rejectPort) => {
+  const probe = createServer();
+  probe.unref();
+  probe.once('error', rejectPort);
+  probe.listen(0, '127.0.0.1', () => {
+    const address = probe.address();
+    if (!address || typeof address === 'string') {
+      probe.close();
+      rejectPort(new Error('failed to allocate recovery smoke port'));
+      return;
+    }
+    probe.close(error => error ? rejectPort(error) : resolvePort(address.port));
+  });
+});
 const now = new Date().toISOString();
 
 function run(command, args, options = {}) {
