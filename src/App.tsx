@@ -771,7 +771,7 @@ export default function App() {
       setActiveTab(tab);
       setMobileMenuOpen(false);
     });
-    applyPageMeta(tab);
+    void applyPageMeta(tab);
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, []);
 
@@ -788,7 +788,7 @@ export default function App() {
       setActiveTab(tab);
       setMobileMenuOpen(false);
     });
-    applyPageMeta(tab);
+    void applyPageMeta(tab);
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, []);
 
@@ -816,14 +816,11 @@ export default function App() {
         setCurrentPath(window.location.pathname);
         setActiveTab(tab);
       });
-      applyPageMeta(tab);
+      void applyPageMeta(tab);
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
-
-  /** Apply initial meta on first mount */
-  useEffect(() => { applyPageMeta(activeTab); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const loadedAsset = currentAppAssetPath();

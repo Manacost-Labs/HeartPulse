@@ -455,6 +455,9 @@ for (const route of authenticatedRoutes) {
     if (!homeCssState.arenaCss || !homeCssState.battlegroundsCss || !homeCssState.articlesCss) failures.push('home lazy sections: one or more owner CSS chunks did not load');
     if (!homeCssState.supportCss) failures.push('home lazy sections: support-prompt owner CSS did not load');
     if (!homeCssState.footerCss || !homeCssState.footerMarkup) failures.push('home lazy sections: site-footer owner or markup did not load');
+    const routeMetaLoadedInitially = await page.evaluate(() => performance.getEntriesByType('resource')
+      .some(entry => entry.name.includes('/assets/route-meta-')));
+    if (routeMetaLoadedInitially) failures.push('home lazy sections: route metadata loaded before client navigation');
     await page.evaluate(() => window.scrollTo(0, 900));
     await page.waitForSelector('.support-prompt--collapsed', { visible: true, timeout: 5_000 });
     await page.click('.support-prompt__trigger');
@@ -462,6 +465,16 @@ for (const route of authenticatedRoutes) {
     await auditAccessibility(page, 'home lazy sections and support prompt');
     if (runtimeErrors.length) failures.push(`home lazy sections: ${runtimeErrors.join(' | ')}`);
     await page.click('.support-prompt__close');
+    await page.click('.arena-sidebar a[href="/classes"]');
+    await page.waitForFunction(() => document.title.startsWith('Винрейт классов'), { timeout: 5_000 });
+    const routeMetaState = await page.evaluate(() => ({
+      path: location.pathname,
+      description: document.querySelector('meta[name="description"]')?.getAttribute('content') || '',
+      chunkLoaded: performance.getEntriesByType('resource').some(entry => entry.name.includes('/assets/route-meta-')),
+    }));
+    if (routeMetaState.path !== '/classes' || !routeMetaState.description.includes('винрейты всех 11 классов') || !routeMetaState.chunkLoaded) {
+      failures.push(`home lazy sections: client route metadata did not update (${JSON.stringify(routeMetaState)})`);
+    }
     console.log('✓ home lazy sections and delayed support prompt');
   } catch (error) {
     failures.push(`home lazy sections: ${error.message}`);

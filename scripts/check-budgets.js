@@ -7,8 +7,8 @@ const distAssets = join(process.cwd(), 'dist', 'assets');
 const budgets = {
   // Enforce the current production baseline first; later stabilization tasks
   // ratchet these limits down instead of keeping permanently failing targets.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 52_000),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 267_000),
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 48_000),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 263_000),
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 90_000),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 190_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 180_000),
@@ -17,6 +17,7 @@ const budgets = {
   homeSectionCss: Number(process.env.BUDGET_HOME_SECTION_CSS_BYTES || 5_000),
   supportPromptCss: Number(process.env.BUDGET_SUPPORT_PROMPT_CSS_BYTES || 4_000),
   siteFooterCss: Number(process.env.BUDGET_SITE_FOOTER_CSS_BYTES || 4_000),
+  routeMetaJs: Number(process.env.BUDGET_ROUTE_META_JS_BYTES || 5_000),
 };
 
 const files = readdirSync(distAssets)
@@ -36,6 +37,7 @@ const css = files.find(file => /^index-.*\.css$/.test(file.name));
 const routeCss = files.find(file => /^route-parchment-.*\.css$/.test(file.name));
 const supportPromptCss = files.find(file => /^SupportPrompt-.*\.css$/.test(file.name));
 const siteFooterCss = files.find(file => /^SiteFooter-.*\.css$/.test(file.name));
+const routeMetaJs = files.find(file => /^route-meta-.*\.js$/.test(file.name));
 const homeSectionCssFiles = files.filter(file => /^Home(?:ArenaDirectory|Battlegrounds|LatestArticles)-.*\.css$/.test(file.name));
 const largestHomeSectionCss = homeSectionCssFiles.length === 3
   ? homeSectionCssFiles.sort((left, right) => right.bytes - left.bytes)[0]
@@ -65,6 +67,7 @@ const checks = [
   ['largest lazy home-section CSS', largestHomeSectionCss, budgets.homeSectionCss],
   ['lazy support-prompt CSS', supportPromptCss, budgets.supportPromptCss],
   ['lazy site-footer CSS', siteFooterCss, budgets.siteFooterCss],
+  ['lazy route-metadata JS', routeMetaJs, budgets.routeMetaJs],
 ];
 
 let failed = false;
@@ -80,6 +83,6 @@ for (const [label, file, budget] of checks) {
   if (!ok) failed = true;
 }
 
-console.log('[budget] ratchet target: application shell 50 KB; initial raw total 265 KB; initial CSS 200 KB.');
+console.log('[budget] ratchet target: initial CSS 200 KB; then profile the next route-owned reduction.');
 
 if (failed) process.exit(1);

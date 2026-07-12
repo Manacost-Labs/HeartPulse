@@ -18,7 +18,7 @@ every completed task must be tested and pushed to `main` as a separate commit.
 | Visual QA | 4 routes, primarily guest state | Critical routes in guest/locked/subscriber states |
 | CI | Scheduled scraper only | Required validation workflow on every push and PR |
 | Deployment | Live working tree, server started through `tsx` | Immutable compiled release with health rollback |
-| Initial JS | About 267 KB volatile entry | Stable vendor cache, ≤52 KB shell, ≤267 KB raw/≤90 KB gzip total |
+| Initial JS | About 267 KB volatile entry | Stable vendor cache, ≤48 KB shell, ≤263 KB raw/≤90 KB gzip total |
 | Main CSS | About 324 KB raw | Route ownership, ≤205 KB initial, then ≤200 KB |
 | Data publishing | Scraper can commit directly to `main` | Validated isolated data publishing |
 | Observability | Journald and `/api/status` | Request IDs, readiness, error tracking and alerts |
@@ -212,10 +212,10 @@ A task is complete only when all relevant checks below are proven.
   - [x] Keyboard CI now proves a visible first-control skip link moves focus into the main landmark, the mobile drawer owns focus while open, cycles in both directions, closes on Escape and restores focus; all visible drawer controls have at least 44×44 CSS-pixel targets.
   - [x] Browser CI emulates a 640 CSS-pixel reflow target (1280 at 200% zoom), forced-colors and reduced-motion together, rejecting horizontal overflow, lost focus outlines, active transitions and axe violations.
   - [ ] Complete the manual keyboard spot-check plus VoiceOver/TalkBack and real browser 200% zoom matrix on physical desktop/mobile devices.
-  - [x] Volatile initial JS is down from 266.8 KB to a 51.2 KB application shell by splitting below-fold UI and the footer, moving `react-dom/client` into a stable dependency-addressed vendor chunk, removing unused declarations and sharing one route-link renderer across mobile/sidebar navigation. CI separately caps the shell, 184.9 KB React vendor, 266.7 KB raw initial graph and 81.3 KB gzip initial graph so chunk reshuffling cannot hide total growth.
+  - [x] Volatile initial JS is down from 266.8 KB to a 47.2 KB application shell by splitting below-fold UI and the footer, moving `react-dom/client` into a stable dependency-addressed vendor chunk, removing unused declarations, sharing one route-link renderer and loading the 4.3 KB SEO metadata map only after client navigation. CI separately caps the shell, 184.9 KB React vendor, 262.7 KB raw initial graph and 80.3 KB gzip initial graph; browser QA proves route metadata is absent initially and updates title/description after navigation.
   - [x] The initial-shell source no longer carries 103 retired route, deck, card-modal and admin declarations in `App.tsx`; React Doctor improved from 60 to 71 and CI now rejects unused declarations or parameters across all six initial-shell modules.
   - [x] Initial CSS is down from 322.7 KB to 203.9 KB: the 47.5 KB route parchment layer, three 3.5–4.2 KB below-fold home styles, 3.5 KB support-prompt style and 3.7 KB footer style are loaded by their lazy owners. A retired, unreferenced draft-theme layer was removed. CI caps every layer, proves owners receive their CSS and proves route CSS does not leak into the home route.
-  - [ ] Profile the next reductions toward a 50 KB application shell, 265 KB raw initial graph and 200 KB initial CSS.
+  - [ ] Reduce initial CSS from 203.9 KB to 200 KB, then profile the next route-owned reduction.
 
 ## Progress metrics
 
