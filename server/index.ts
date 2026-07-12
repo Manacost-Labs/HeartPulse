@@ -25,7 +25,7 @@ import { decodeSignedStateCookie, encodeSignedStateCookie, safeAuthReturnTo } fr
 import { csrfRequestAllowed } from './csrf.js';
 import { configureLoopbackProxyTrust, corsOriginAllowed, getTrustedClientIp } from './networkBoundary.js';
 import { createRouteAwareJsonParser, createUploadAuthorizationGuard } from './jsonBody.js';
-import { referralClickFromRow } from './referrals.js';
+import { createReferralRouter } from './referralRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -1582,62 +1582,6 @@ function contestFromRow(row: any, userEntry?: any, options: { includeRawWinners?
       status: String(userEntry.status || 'pending'),
       createdAt: String(userEntry.created_at || ''),
     } : null,
-  };
-}
-
-function slugifyReferral(value: any): string {
-  const raw = String(value ?? '').trim().toLowerCase();
-  const translit = raw
-    .replace(/а/g, 'a').replace(/б/g, 'b').replace(/в/g, 'v').replace(/г/g, 'g')
-    .replace(/д/g, 'd').replace(/е/g, 'e').replace(/ё/g, 'e').replace(/ж/g, 'zh')
-    .replace(/з/g, 'z').replace(/и/g, 'i').replace(/й/g, 'y').replace(/к/g, 'k')
-    .replace(/л/g, 'l').replace(/м/g, 'm').replace(/н/g, 'n').replace(/о/g, 'o')
-    .replace(/п/g, 'p').replace(/р/g, 'r').replace(/с/g, 's').replace(/т/g, 't')
-    .replace(/у/g, 'u').replace(/ф/g, 'f').replace(/х/g, 'h').replace(/ц/g, 'c')
-    .replace(/ч/g, 'ch').replace(/ш/g, 'sh').replace(/щ/g, 'sch').replace(/ы/g, 'y')
-    .replace(/э/g, 'e').replace(/ю/g, 'yu').replace(/я/g, 'ya')
-    .replace(/[ъь]/g, '');
-  return translit.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 72) || `ref-${Date.now().toString(36)}`;
-}
-
-function normalizeReferralTarget(value: any): string {
-  const raw = String(value ?? '/').trim();
-  if (!raw || raw === '#') return '/';
-  try {
-    if (raw.startsWith('http://') || raw.startsWith('https://')) {
-      const url = new URL(raw);
-      const appUrl = new URL(APP_URL);
-      if (url.hostname !== appUrl.hostname) return '/';
-      return `${url.pathname || '/'}${url.search || ''}${url.hash || ''}`;
-    }
-  } catch {
-    return '/';
-  }
-  return raw.startsWith('/') ? raw : '/';
-}
-
-function requestIpHash(req: import('express').Request): string {
-  const ip = getTrustedClientIp(req);
-  const salt = process.env.ECOSYSTEM_INTERNAL_KEY || 'manacost-referrals';
-  return createHash('sha256').update(`${salt}:${ip}`).digest('hex');
-}
-
-function referralFromRow(row: any) {
-  const slug = String(row.slug || '');
-  return {
-    id: String(row.id),
-    slug,
-    label: String(row.label || ''),
-    campaign: String(row.campaign || ''),
-    targetPath: String(row.target_path || '/'),
-    status: String(row.status || 'active'),
-    createdBy: String(row.created_by || ''),
-    createdAt: String(row.created_at || ''),
-    updatedAt: String(row.updated_at || ''),
-    url: `${APP_URL}/r/${encodeURIComponent(slug)}`,
-    clicks: Number(row.clicks || 0),
-    uniqueClicks: Number(row.unique_clicks || 0),
-    lastClickAt: row.last_click_at ? String(row.last_click_at) : '',
   };
 }
 
@@ -8745,107 +8689,14 @@ app.post('/api/admin/uploads/image', async (req, res) => {
   }
 });
 
-app.post('/api/referrals/track/:slug', (req, res) => {
-  const slug = slugifyReferral(req.params.slug);
-  if (!slug) return res.status(404).json({ error: 'Ссылка не найдена' });
-  try {
-    const database = db();
-    const link = database.prepare("SELECT * FROM referral_links WHERE slug = ? AND status = 'active'")
-      .get(slug) as any | undefined;
-    if (!link) return res.status(404).json({ error: 'Ссылка не найдена', targetUrl: `${APP_URL}/` });
-
-    database.prepare(`
-      INSERT INTO referral_clicks (referral_id, clicked_at, ip_hash, user_agent, referrer, landing_path)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(
-      link.id,
-      new Date().toISOString(),
-      requestIpHash(req),
-      String(req.headers['user-agent'] || '').slice(0, 500),
-      String(req.headers.referer || req.headers.referrer || '').slice(0, 500),
-      String(req.body?.landingPath || req.originalUrl || '').slice(0, 500),
-    );
-
-    res.json({
-      success: true,
-      targetPath: normalizeReferralTarget(link.target_path),
-      targetUrl: `${APP_URL}${normalizeReferralTarget(link.target_path)}`,
-    });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Не удалось записать переход' });
-  }
-});
-
-app.get('/api/admin/referrals', adminIdGuard, (req, res) => {
-  if (!adminAuth(req)) return res.status(401).json({ error: 'Требуется вход' });
-  try {
-    const database = db();
-    const rows = database.prepare(`
-      SELECT
-        link.*,
-        COUNT(clicks.id) AS clicks,
-        COUNT(DISTINCT clicks.ip_hash) AS unique_clicks,
-        MAX(clicks.clicked_at) AS last_click_at
-      FROM referral_links AS link
-      LEFT JOIN referral_clicks AS clicks ON clicks.referral_id = link.id
-      GROUP BY link.id
-      ORDER BY link.created_at DESC
-    `).all() as any[];
-    const recentClicks = database.prepare(`
-      SELECT clicks.id, clicks.referral_id, links.slug, clicks.clicked_at, clicks.user_agent, clicks.referrer, clicks.landing_path
-      FROM referral_clicks AS clicks
-      JOIN referral_links AS links ON links.id = clicks.referral_id
-      ORDER BY clicks.clicked_at DESC
-      LIMIT 120
-    `).all() as any[];
-    res.json({
-      referrals: rows.map(referralFromRow),
-      recentClicks: recentClicks.map(referralClickFromRow),
-    });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Не удалось загрузить ссылки' });
-  }
-});
-
-app.post('/api/admin/referrals', adminIdGuard, (req, res) => {
-  const user = adminAuth(req);
-  if (!user) return res.status(401).json({ error: 'Требуется вход' });
-  const label = String(req.body?.label || '').trim();
-  if (!label) return res.status(400).json({ error: 'Название ссылки обязательно' });
-  const slug = slugifyReferral(req.body?.slug || label);
-  const status = String(req.body?.status || 'active') === 'paused' ? 'paused' : 'active';
-  const now = new Date().toISOString();
-  const id = `ref_${randomBytes(6).toString('hex')}`;
-
-  try {
-    const database = db();
-    database.prepare(`
-      INSERT INTO referral_links (id, slug, label, campaign, target_path, status, created_by, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      slug,
-      label,
-      String(req.body?.campaign || '').trim(),
-      normalizeReferralTarget(req.body?.targetPath || req.body?.target_path || '/'),
-      status,
-      user.id,
-      now,
-      now,
-    );
-    const row = database.prepare(`
-      SELECT link.*, 0 AS clicks, 0 AS unique_clicks, NULL AS last_click_at
-      FROM referral_links AS link
-      WHERE link.id = ?
-    `).get(id) as any;
-    res.json({ success: true, referral: referralFromRow(row) });
-  } catch (err: any) {
-    if (String(err?.message || '').includes('UNIQUE')) {
-      return res.status(409).json({ error: 'Такой slug уже занят' });
-    }
-    res.status(500).json({ error: err.message || 'Не удалось сохранить ссылку' });
-  }
-});
+app.use('/api', createReferralRouter({
+  getDatabase: db,
+  adminGuard: adminIdGuard,
+  adminAuth,
+  appUrl: APP_URL,
+  clientIp: getTrustedClientIp,
+  ipHashSalt: process.env.ECOSYSTEM_INTERNAL_KEY || 'manacost-referrals',
+}));
 
 app.get('/api/admin-class-positions', adminIdGuard, (req, res) => {
   if (!adminAuth(req)) return res.status(401).json({ error: 'Требуется вход' });

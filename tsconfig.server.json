@@ -23,6 +23,7 @@
     "server/metrics.ts",
     "server/networkBoundary.ts",
     "server/observability.ts",
+    "server/referralRoutes.ts",
     "server/referrals.ts",
     "server/scrapeQueue.ts",
     "server/snapshots.ts",
