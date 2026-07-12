@@ -4,7 +4,28 @@ import { join, relative } from 'node:path';
 const ROOT = process.cwd();
 const SRC = join(ROOT, 'src');
 const TOKEN_FILE = 'src/styles/tokens.css';
-const MAX_IMPORTANT_DECLARATIONS = 2683;
+const MAX_IMPORTANT_DECLARATIONS = 2562;
+const RETIRED_HOME_CLASS_PREFIXES = [
+  'home-stage__atmosphere',
+  'home-stage__rune',
+  'home-stage__spark',
+  'home-draft-orbit__circle',
+  'home-draft-orbit__mana',
+  'home-stage__status',
+  'home-live-dot',
+  'home-tool-path',
+  'home-tool-step',
+  'home-arena-board',
+  'home-data__layout',
+  'home-ranking',
+  'home-card-strip',
+  'home-subheading',
+  'draft-card-rail',
+  'draft-card-item',
+  'draft-card-image',
+  'home-bg-spotlight',
+  'home-bg-chart',
+];
 
 function walk(directory) {
   return readdirSync(directory)
@@ -51,9 +72,21 @@ const importantCount = sources.reduce(
   0,
 );
 
+const retiredHomeSelectors = sources.flatMap(({ file, source }) => (
+  RETIRED_HOME_CLASS_PREFIXES
+    .filter(prefix => new RegExp(`\\.${prefix}(?:__|--|(?![\\w-]))`).test(source))
+    .map(prefix => `${file}:.${prefix}`)
+));
+
+if (retiredHomeSelectors.length > 0) {
+  console.error(`[css-architecture] retired ownerless Home selectors returned: ${retiredHomeSelectors.join(', ')}`);
+  process.exit(1);
+}
+
 console.log(`[css-architecture] global :root owners: ${rootOwners.length} / 1`);
 console.log(`[css-architecture] unique global tokens: ${tokenNames.length}`);
 console.log(`[css-architecture] !important declarations: ${importantCount} / ${MAX_IMPORTANT_DECLARATIONS}`);
+console.log(`[css-architecture] retired ownerless Home selector prefixes: 0 / ${RETIRED_HOME_CLASS_PREFIXES.length}`);
 
 if (importantCount > MAX_IMPORTANT_DECLARATIONS) {
   console.error('[css-architecture] legacy cascade debt increased; remove an override or use scoped specificity instead');

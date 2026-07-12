@@ -223,8 +223,9 @@ A task is complete only when all relevant checks below are proven.
   - [x] Volatile initial JS is down from 266.8 KB to a 47.2 KB application shell by splitting below-fold UI and the footer, moving `react-dom/client` into a stable dependency-addressed vendor chunk, removing unused declarations, sharing one route-link renderer and loading the 4.3 KB SEO metadata map only after client navigation. CI separately caps the shell, 184.9 KB React vendor, 262.7 KB raw initial graph and 80.3 KB gzip initial graph; browser QA proves route metadata is absent initially and updates title/description after navigation.
   - [x] Referral resolution, release polling and initial authentication requests now abort during React cleanup; stale responses cannot redirect, reload or update authentication state after their owning effect is gone.
   - [x] The initial-shell source no longer carries 103 retired route, deck, card-modal and admin declarations in `App.tsx`; React Doctor improved from 60 to 71 and CI now rejects unused declarations or parameters across all six initial-shell modules.
-  - [x] Initial CSS is down from 322.7 KB to 187.0 KB: the 47.4 KB route parchment layer, 67.6 KB deferred Arena-data layer, three 3.5–4.2 KB below-fold home styles, 3.4 KB FAQ styles, 3.5 KB support-prompt styles and 3.6 KB footer styles load only with their owners. Retired styles were removed. CI caps every layer and proves both route layers stay out of the home route.
-  - [ ] Reduce initial CSS from 187.0 KB to 180 KB, then profile the next route-owned reduction.
+  - [x] Initial CSS is down from 322.7 KB to 164.1 KB: the 47.4 KB route parchment layer, 67.6 KB deferred Arena-data layer, three 3.5–4.2 KB below-fold home styles, 3.4 KB FAQ styles, 3.5 KB support-prompt styles and 3.6 KB footer styles load only with their owners. CI caps every layer and proves both route layers stay out of the home route.
+  - [x] Retired draft-path, arena-board, card-rail and Battlegrounds-spotlight Home styles and their unused animations were removed from both initial owners; CI caps initial CSS at 165 KB, rejects all 19 retired selector prefixes and ratchets the legacy `!important` ceiling from 2,683 to 2,562.
+  - [ ] Profile the next ownerless or route-owned initial CSS reduction and ratchet the limit to 160 KB.
 
 ## Progress metrics
 
