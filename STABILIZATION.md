@@ -27,8 +27,8 @@ every completed task must be tested and pushed to `main` as a separate commit.
 
 The first architecture ratchet is complete:
 
-- `src/App.tsx` is down from 8,193 to 3,677 lines;
-- `src/features/DeferredRoutes.tsx` is down from 7,786 to 6,878 lines;
+- `src/App.tsx` is down from 8,193 to 1,777 lines;
+- `src/features/DeferredRoutes.tsx` is down from 7,786 to 6,881 lines;
 - exact named component duplicates across those bundles are down from at least
   20 to zero;
 - CI now rejects the first reintroduced duplicate rather than allowing a
@@ -191,6 +191,7 @@ A task is complete only when all relevant checks below are proven.
   - [ ] Replace legacy overrides route by route and ratchet the `!important` ceiling down after every verified batch.
   - [ ] Establish explicit reset, base, component, route and override layers once all participating stylesheets can enter the layer order without changing precedence.
 - [ ] Phase 4: modular API, runtime validation and durable data snapshots.
+  - [x] Gallery media, Battlegrounds proxy and article-cover routes have isolated dependency-injected routers with real HTTP contracts; redirects, authorization, cache validators, content types and byte limits are verified outside the server monolith.
   - [x] Old-guide HTML and URL normalization have moved out of `server/index.ts` into a pure tested sanitizer module with explicit unsafe-protocol, event-handler, inline-style and decorative-image rejection coverage.
   - [x] Dataset freshness evaluation and Express health handlers are isolated modules with unit and HTTP contract tests for fresh, stale, missing, invalid and clock-skewed data.
   - [x] Authentication redirects are normalized by a standalone tested boundary, and Telegram OIDC state cookies are HMAC-signed; unsigned, tampered, oversized and cross-origin redirect values are rejected before callback state can be consumed.
@@ -228,7 +229,7 @@ A task is complete only when all relevant checks below are proven.
   - [x] Initial CSS is down from 322.7 KB to 164.1 KB: the 47.4 KB route parchment layer, 67.6 KB deferred Arena-data layer, three 3.5–4.2 KB below-fold home styles, 3.4 KB FAQ styles, 3.5 KB support-prompt styles and 3.6 KB footer styles load only with their owners. CI caps every layer and proves both route layers stay out of the home route.
   - [x] Retired draft-path, arena-board, card-rail and Battlegrounds-spotlight Home styles and their unused animations were removed from both initial owners; CI rejects all 19 retired Home selector prefixes.
   - [x] The next ownership audit removed retired switcher, Arena-header, Home-summary, promotion and transition rules; built initial CSS fell from 164.1 KB to 152.4 KB, CI now caps it at 153 KB, rejects 22 additional retired prefixes and ratchets the legacy `!important` ceiling from 2,562 to 2,503.
-  - [ ] Profile the next ownerless or route-owned initial CSS reduction and ratchet the limit to 150 KB.
+  - [x] The next cascade audit removed 139 declarations that were fully overridden by the current Home layout; built initial CSS is 148,407 bytes and CI now enforces a 150,000-byte ceiling.
 
 ## Progress metrics
 
