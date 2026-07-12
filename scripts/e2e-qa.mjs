@@ -6,7 +6,7 @@
 //   npm run qa:e2e
 //   npm run qa:e2e -- --url=http://127.0.0.1:4173
 import puppeteer from 'puppeteer';
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -24,10 +24,58 @@ const BASE = (process.argv.find(arg => arg.startsWith('--url=')) || '--url=https
   .replace(/\/$/, '');
 const OUT = process.env.QA_SCREENSHOT_DIR || `/tmp/hs-arena-qa-${process.getuid?.() ?? 'user'}`;
 const failures = [];
+const qaCard = {
+  cardId: 'TIME_890',
+  name: 'Медив Освященный',
+  imageHa: 'https://cdn.heartharena.com/images/renders/ruRU/TIME_890.webp',
+  imageRu: 'https://d15f34w2p8l1cc.cloudfront.net/hearthstone/5b1c3236a936971ce184478955f9f6802837a938fba48281b953dc37cc6998ad.png',
+};
+const qaClasses = [
+  ['paladin', 'Паладин', '#a88a45', 54.6],
+  ['hunter', 'Охотник', '#1d5921', 52.6],
+  ['mage', 'Маг', '#2b5c85', 51.8],
+  ['priest', 'Жрец', '#d1d1d1', 50.9],
+  ['death-knight', 'Рыцарь смерти', '#1f252d', 49.8],
+  ['demon-hunter', 'Охотник на демонов', '#224722', 48.7],
+  ['rogue', 'Разбойник', '#333333', 47.6],
+  ['shaman', 'Шаман', '#2a2e6b', 46.5],
+  ['warlock', 'Чернокнижник', '#5c265c', 45.4],
+  ['druid', 'Друид', '#704a16', 44.3],
+  ['warrior', 'Воин', '#7a1e1e', 43.2],
+].map(([id, name, color, winrate], index) => ({ id, name, color, winrate, games: 1500 - index * 50 }));
 const fixtures = {
-  '/api/winrates': JSON.parse(readFileSync('server/data/winrates.json', 'utf8')),
-  '/api/tierlist': JSON.parse(readFileSync('server/data/hsreplay_tierlist.json', 'utf8')),
-  '/api/legendaries': JSON.parse(readFileSync('server/data/legendaries.json', 'utf8')),
+  '/api/winrates': {
+    classes: qaClasses,
+    updatedAt: '2026-07-11T00:00:00.000Z',
+    source: 'qa-fixture',
+  },
+  '/api/tierlist': {
+    sections: [{
+      id: 'any',
+      name: 'Нейтральные',
+      color: '#4a4a4a',
+      tiers: [{
+        tier: 'S',
+        label: 'Отлично',
+        description: 'Контрольный тир.',
+        cards: [{ ...qaCard, score: 100, winrate: 59.5, rarity: 'legendary', classKey: 'any' }],
+      }],
+    }],
+    cards: {
+      TIME_890: { cost: 10, attack: 7, health: 7, type: 'minion', rarity: 'legendary', imageHa: qaCard.imageHa, imageRu: qaCard.imageRu },
+    },
+    updatedAt: '2026-07-11T00:00:00.000Z',
+    source: 'qa-fixture',
+  },
+  '/api/legendaries': {
+    groups: [
+      { keyCard: qaCard, cards: [], winRate: 66.3, classKey: 'priest' },
+      { keyCard: { ...qaCard, cardId: 'TIME_890_BLUE', name: 'Медив Освященный II' }, cards: [], winRate: 55.2, classKey: 'mage' },
+      { keyCard: { ...qaCard, cardId: 'TIME_890_RED', name: 'Медив Освященный III' }, cards: [], winRate: 42.1, classKey: 'warrior' },
+    ],
+    updatedAt: '2026-07-11T00:00:00.000Z',
+    source: 'qa-fixture',
+  },
   '/api/guides-archive': {
     page: 1,
     limit: 18,
@@ -226,6 +274,12 @@ const browser = await puppeteer.launch({
   args: ['--no-sandbox', '--disable-dev-shm-usage'],
 });
 
+async function createQaPage() {
+  const page = await browser.newPage();
+  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+  return page;
+}
+
 const authenticatedRoutes = [
   { path: '/classes', expected: 'Паладин', selector: '.arena-app-winrates' },
   { path: '/tierlist', expected: 'Тир-лист', selector: '.hs-tier-card' },
@@ -238,7 +292,7 @@ for (const route of authenticatedRoutes) {
     ['desktop', { width: 1440, height: 900 }],
     ['mobile', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
   ]) {
-    const page = await browser.newPage();
+    const page = await createQaPage();
     const runtimeErrors = collectRuntimeErrors(page);
     await page.setViewport(viewport);
     await mockApplicationApi(page, { authenticated: true });
@@ -265,7 +319,7 @@ for (const route of authenticatedRoutes) {
 
 // Guest access must render the themed paywall instead of leaking private data.
 {
-  const page = await browser.newPage();
+  const page = await createQaPage();
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   await mockApplicationApi(page, { authenticated: false });
   try {
@@ -297,7 +351,7 @@ for (const route of authenticatedRoutes) {
 
 // Mobile drawer: visible controls, grouped navigation and background scroll lock.
 {
-  const page = await browser.newPage();
+  const page = await createQaPage();
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   await mockApplicationApi(page, { authenticated: true });
   try {
@@ -344,7 +398,7 @@ for (const route of authenticatedRoutes) {
 // Card lightbox: opening it must freeze the underlying mobile document and
 // closing it must restore both the scroll position and inline styles.
 {
-  const page = await browser.newPage();
+  const page = await createQaPage();
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   await mockApplicationApi(page, { authenticated: true });
   try {
