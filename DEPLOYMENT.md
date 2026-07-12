@@ -129,6 +129,38 @@ does not protect against loss of the host filesystem. Replicate encrypted
 `.gpg` and `.sha256` files plus an offline copy of the passphrase to a separate
 failure domain before considering disaster recovery complete.
 
+## Isolated scraper publishing
+
+The web process never runs Puppeteer or writes scraper snapshots. A dedicated
+oneshot service publishes each supported dataset only after structural
+validation, using a same-filesystem temporary file, file `fsync`, atomic rename
+and directory `fsync`. Empty collections, missing card indexes, invalid dates
+and unknown filenames are rejected without replacing the last good snapshot.
+
+Install the schedule and manual-request path unit:
+
+```bash
+sudo install -m 644 deploy/hs-arena-scraper.service /etc/systemd/system/
+sudo install -m 644 deploy/hs-arena-scraper.timer /etc/systemd/system/
+sudo install -m 644 deploy/hs-arena-scraper.path /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now hs-arena-scraper.timer hs-arena-scraper.path
+```
+
+The timer runs every six hours and shortly after boot. An authorized
+`POST /api/scrape` atomically creates `.scrape-request`; the path unit starts
+the same isolated service, so manual and scheduled runs cannot overlap. A
+publication marker makes the API discard in-memory and Redis data caches only
+after a validated snapshot is durable.
+
+Verify one real run without touching the web process:
+
+```bash
+sudo systemctl start hs-arena-scraper.service
+sudo systemctl show hs-arena-scraper.service -p Result -p ExecMainStatus
+curl -fsS https://arena.hs-manacost.ru/api/health/data
+```
+
 ## Verified production drill
 
 The first production drill on 2026-07-11 switched release `bc19b2b` back to
@@ -146,5 +178,6 @@ curl -fsS https://arena.hs-manacost.ru/api/health/ready
 curl -fsS https://arena.hs-manacost.ru/api/health/data
 curl -fsS https://arena.hs-manacost.ru/api/metrics
 sudo systemctl list-timers 'hs-arena-backup*'
+sudo systemctl list-timers 'hs-arena-scraper*'
 npm run qa:e2e
 ```

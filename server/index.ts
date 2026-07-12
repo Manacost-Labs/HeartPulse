@@ -12,7 +12,7 @@ import { spawn } from 'child_process';
 import { createHash, createHmac, createPublicKey, randomBytes, randomInt, scryptSync, timingSafeEqual, verify } from 'crypto';
 // @ts-ignore: node:sqlite is available in the production Node 22 runtime.
 import { DatabaseSync } from 'node:sqlite';
-import { scrapeAll, loadData } from './scraper.js';
+import { loadSnapshot } from './snapshots.js';
 import { HSREPLAY_NO_ARENASMITH_TIER, normalizeArenasmithTier, tierFromArenasmithScore } from './hsreplayArenasmith.js';
 import { createBlizzardCardImageClient, isBlizzardImageContentType } from './blizzardCards.js';
 import { createOldGuideSanitizer } from './guides/sanitize.js';
@@ -20,6 +20,7 @@ import { evaluateDataHealth } from './health.js';
 import { createHealthRouter } from './healthRoutes.js';
 import { createMetricsRouter, HttpMetrics } from './metrics.js';
 import { requestLoggingMiddleware, structuredErrorMiddleware } from './observability.js';
+import { createScrapeQueueHandler } from './scrapeQueue.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -28,6 +29,8 @@ const DEFAULT_APP_ROOT_DIR = existsSync(join(__dirname, '..', '..', 'package.jso
   : join(__dirname, '..');
 const APP_ROOT_DIR = resolve(process.env.APP_ROOT_DIR || DEFAULT_APP_ROOT_DIR);
 const DATA_DIR = resolve(process.env.SERVER_DATA_DIR || join(APP_ROOT_DIR, 'server', 'data'));
+const SNAPSHOT_PUBLICATION_FILE = join(DATA_DIR, '.snapshots-published');
+const loadData = (filename: string): any | null => loadSnapshot(DATA_DIR, filename);
 const RELEASE_SHA = (() => {
   const configured = process.env.RELEASE_SHA || process.env.GITHUB_SHA;
   if (configured) return configured;
@@ -139,6 +142,19 @@ function invalidateDataCache() {
   classMatchupsCache = null;
   arenaDecksCache = null;
   void clearRedisDataCache();
+}
+let observedSnapshotPublicationMtime = 0;
+
+function observeSnapshotPublication(): void {
+  try {
+    const mtime = statSync(SNAPSHOT_PUBLICATION_FILE).mtimeMs;
+    if (mtime <= observedSnapshotPublicationMtime) return;
+    observedSnapshotPublicationMtime = mtime;
+    invalidateDataCache();
+    console.log('[snapshots] activated newly published validated data');
+  } catch {
+    // The marker is optional until the first atomic publication.
+  }
 }
 const AUTH_FILE = join(DATA_DIR, 'admin_auth.json');
 const ECOSYSTEM_DIR = process.env.ECOSYSTEM_DIR || '/var/lib/manacost-ecosystem';
@@ -5487,6 +5503,10 @@ app.disable('x-powered-by');
 app.set('etag', false);
 const httpMetrics = new HttpMetrics();
 app.use(requestLoggingMiddleware(undefined, httpMetrics));
+app.use((_req, _res, next) => {
+  observeSnapshotPublication();
+  next();
+});
 
 ensureAdminUploadDirs();
 ensureGalleryUploadDirs();
@@ -6967,22 +6987,7 @@ app.get('/api/status', (req, res) => {
   return sendJsonCached(req, res, data, etag, CACHE_5M);
 });
 
-let isScraping = false;
-
-app.post('/api/scrape', manualScrapeGuard, scrapeLimiter, async (req, res) => {
-  if (isScraping) {
-    return res.status(409).json({ message: 'Парсинг уже запущен' });
-  }
-  isScraping = true;
-  res.json({ message: 'Парсинг запущен' });
-  try {
-    const result = await scrapeAll();
-    invalidateDataCache();
-    console.log('[Server] Manual scrape result:', result);
-  } finally {
-    isScraping = false;
-  }
-});
+app.post('/api/scrape', manualScrapeGuard, scrapeLimiter, createScrapeQueueHandler(DATA_DIR));
 
 // ─── IP check endpoint (mirrors api/check-ip.js for Vercel) ──────────────────
 
@@ -8943,22 +8948,6 @@ app.delete('/api/admin-articles', adminIdGuard, (req, res) => {
 
 app.use(structuredErrorMiddleware());
 
-// ─── Scheduled scraping every 6 hours ─────────────────────────────────────────
-cron.schedule('0 */6 * * *', async () => {
-  if (isScraping) return;
-  isScraping = true;
-  console.log('[Cron] Starting scheduled scrape...');
-  try {
-    const result = await scrapeAll();
-    invalidateDataCache();
-    console.log('[Cron] Scrape complete:', result);
-  } catch (err) {
-    console.error('[Cron] Scrape failed:', err);
-  } finally {
-    isScraping = false;
-  }
-});
-
 cron.schedule('*/30 * * * *', async () => {
   console.log('[Subscription] Starting scheduled subscription refresh...');
   try {
@@ -8972,24 +8961,9 @@ cron.schedule('*/30 * * * *', async () => {
 app.listen(PORT, HOST, () => {
   console.log(`[Server] API server running on http://${HOST || 'localhost'}:${PORT}`);
   console.log(`[Server] Blizzard card images: ${blizzardCardImages.configured ? 'enabled' : 'disabled (HearthstoneJSON fallback)'}`);
-  console.log('[Server] Scraping every 6 hours. Trigger manual: POST /api/scrape');
+  console.log('[Server] Scraping is isolated in hs-arena-scraper.service. Trigger queue: POST /api/scrape');
 
   const mailingResumeTimer = setTimeout(() => resumeNewsletterCampaigns(), 1500);
   mailingResumeTimer.unref?.();
 
-  // Initial scrape on startup (non-blocking). Isolated QA can disable external writes.
-  if (process.env.DISABLE_INITIAL_SCRAPE !== '1') setTimeout(async () => {
-    if (isScraping) return;
-    isScraping = true;
-    console.log('[Server] Running initial scrape...');
-    try {
-      const result = await scrapeAll();
-      invalidateDataCache();
-      console.log('[Server] Initial scrape complete:', result);
-    } catch (err) {
-      console.error('[Server] Initial scrape failed:', err);
-    } finally {
-      isScraping = false;
-    }
-  }, 2000);
 });

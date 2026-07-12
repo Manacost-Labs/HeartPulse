@@ -1,0 +1,12 @@
+[Unit]
+Description=Run isolated HS-Arena scraper every six hours
+
+[Timer]
+OnBootSec=5m
+OnCalendar=*-*-* 00/6:10:00 UTC
+RandomizedDelaySec=10m
+Persistent=true
+Unit=hs-arena-scraper.service
+
+[Install]
+WantedBy=timers.target

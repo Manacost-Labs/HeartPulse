@@ -1,0 +1,9 @@
+[Unit]
+Description=Queue manual HS-Arena scrape requests
+
+[Path]
+PathExists=/var/www/koloda/data/www/hs-arena.ru/shared/server-data/.scrape-request
+Unit=hs-arena-scraper.service
+
+[Install]
+WantedBy=multi-user.target

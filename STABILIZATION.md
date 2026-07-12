@@ -189,7 +189,10 @@ A task is complete only when all relevant checks below are proven.
 - [ ] Phase 4: modular API, runtime validation and durable data snapshots.
   - [x] Old-guide HTML and URL normalization have moved out of `server/index.ts` into a pure tested sanitizer module with explicit unsafe-protocol, event-handler, inline-style and decorative-image rejection coverage.
   - [x] Dataset freshness evaluation and Express health handlers are isolated modules with unit and HTTP contract tests for fresh, stale, missing, invalid and clock-skewed data.
-- [ ] Phase 5: isolated scraper publishing.
+- [x] Phase 5: isolated scraper publishing.
+  - [x] Supported scraper documents are structurally validated and durably published through same-filesystem staging, file and directory `fsync`, and atomic rename; empty/incomplete results cannot replace the last good snapshot.
+  - [x] Puppeteer scraping runs only in one systemd oneshot controlled by a six-hour timer and a manual-request path unit; the API queues requests without scraping in-process, and successful publications invalidate process and Redis caches through a durable marker.
+  - [x] The standalone scraper exits non-zero when any critical Arena dataset fails, allowing systemd monitoring to distinguish partial upstream failure from success.
 - [x] Phase 6: immutable deployment, readiness and rollback.
   - [x] Dedicated liveness, readiness and strict data-health endpoints expose uncached machine-readable deployment gates without changing the legacy public status response.
   - [x] CI emits a readable compiled Node server artifact and starts it against isolated temporary snapshots/SQLite to verify direct health, proxied health and legacy status contracts without `tsx`.

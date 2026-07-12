@@ -1,8 +1,9 @@
 import puppeteer from 'puppeteer';
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve } from 'path';
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync } from 'fs';
 import { config as dotenvConfig } from 'dotenv';
+import { loadSnapshot, publishSnapshot } from './snapshots.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -1046,13 +1047,11 @@ async function buildBlizzardImageMap(token: string) {
 }
 
 function saveData(filename: string, data: object) {
-  writeFileSync(join(DATA_DIR, filename), JSON.stringify(data, null, 2), 'utf-8');
+  publishSnapshot(DATA_DIR, filename, data);
 }
 
 export function loadData(filename: string): any | null {
-  try {
-    return JSON.parse(readFileSync(join(DATA_DIR, filename), 'utf-8'));
-  } catch { return null; }
+  return loadSnapshot(DATA_DIR, filename);
 }
 
 // ─── HSReplay Legendaries ─────────────────────────────────────────────────────
@@ -1205,5 +1204,12 @@ export async function scrapeAll() {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  scrapeAll().then(res => { console.log('[Scraper] Done:', res); process.exit(0); });
+  scrapeAll().then(result => {
+    console.log('[Scraper] Done:', result);
+    const criticalSucceeded = result.winrates && result.tierlist && result.legendaries;
+    process.exit(criticalSucceeded ? 0 : 1);
+  }).catch(error => {
+    console.error('[Scraper] Fatal:', error instanceof Error ? error.message : 'unknown error');
+    process.exit(1);
+  });
 }

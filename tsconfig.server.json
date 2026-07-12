@@ -21,6 +21,8 @@
     "server/healthRoutes.ts",
     "server/metrics.ts",
     "server/observability.ts",
+    "server/scrapeQueue.ts",
+    "server/snapshots.ts",
     "server/guides/**/*.ts"
   ]
 }
