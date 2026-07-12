@@ -24,6 +24,7 @@ import { createScrapeQueueHandler } from './scrapeQueue.js';
 import { decodeSignedStateCookie, encodeSignedStateCookie, safeAuthReturnTo } from './authRedirect.js';
 import { csrfRequestAllowed } from './csrf.js';
 import { configureLoopbackProxyTrust, corsOriginAllowed, getTrustedClientIp } from './networkBoundary.js';
+import { createRouteAwareJsonParser } from './jsonBody.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -5511,7 +5512,11 @@ const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST;
 
 app.use(compression({ level: 6, threshold: 1024 }));
-app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '48mb' }));
+app.use(createRouteAwareJsonParser({
+  defaultLimit: process.env.API_JSON_BODY_LIMIT || '1mb',
+  adminUploadMaxBytes: ADMIN_UPLOAD_MAX_BYTES,
+  galleryUploadMaxBytes: GALLERY_UPLOAD_MAX_BYTES,
+}));
 app.use(express.urlencoded({ extended: false, limit: '16kb' }));
 app.use('/uploads/admin', express.static(ADMIN_UPLOAD_DIR, {
   immutable: true,
