@@ -31,8 +31,12 @@ import {
   type ReferralDraft,
 } from './ContestAdminReferrals';
 import { contestSelectionReducer, INITIAL_CONTEST_SELECTION } from './contestSelection';
-
-type AdminMessage = { type: 'ok' | 'err'; text: string };
+import {
+  adminWorkspaceReducer,
+  createAdminWorkspaceState,
+  type AdminMessage,
+  type AdminWorkspaceSection,
+} from './adminWorkspaceState';
 
 type AuthUser = {
   id?: string;
@@ -434,7 +438,6 @@ export function ContestsPage({
   );
 }
 
-type AdminWorkspaceSection = 'dashboard' | 'users' | 'mailing' | 'telegram' | 'articles' | 'gallery' | 'contests' | 'referrals' | 'boosty';
 type ContestWorkspaceView = 'manage' | 'editor';
 
 const CONTEST_STATUS_OPTIONS = [
@@ -834,7 +837,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const [usersLoading, setUsersLoading] = useState(false);
   const [usersReloadKey, setUsersReloadKey] = useState(0);
   const [userActionId, setUserActionId] = useState('');
-  const [openUserMenuId, setOpenUserMenuId] = useState('');
   const [mailingOverview, setMailingOverview] = useState<MailingOverview | null>(null);
   const [mailingLoading, setMailingLoading] = useState(false);
   const [mailingDraft, setMailingDraft] = useState<MailingDraft>(EMPTY_MAILING_DRAFT);
@@ -844,9 +846,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const [mailingPreviewLoading, setMailingPreviewLoading] = useState(false);
   const [mailingSending, setMailingSending] = useState(false);
   const [mailingTesting, setMailingTesting] = useState(false);
-  const [message, setMessage] = useState<AdminMessage | null>(null);
   const [loading, setLoading] = useState(false);
-  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [form, setForm] = useState({
     id: '',
     title: '',
@@ -857,10 +857,23 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     status: 'active',
     description: '',
   });
-  const [adminSection, setAdminSection] = useState<AdminWorkspaceSection>(() => {
+  const initialAdminSection = (() => {
     const requested = adminSectionFromLocation(hasFullAdminAccess ? 'dashboard' : 'contests');
     return hasFullAdminAccess || requested === 'contests' ? requested : 'contests';
-  });
+  })();
+  const [adminWorkspace, dispatchAdminWorkspace] = useReducer(
+    adminWorkspaceReducer,
+    createAdminWorkspaceState(initialAdminSection),
+  );
+  const {
+    section: adminSection,
+    adminMenuOpen,
+    openUserMenuId,
+    message,
+  } = adminWorkspace;
+  const setMessage = useCallback((nextMessage: AdminMessage | null) => {
+    dispatchAdminWorkspace({ type: 'setMessage', message: nextMessage });
+  }, []);
   const [adminArticles, setAdminArticles] = useState<Article[]>([]);
   const [articleQuery, setArticleQuery] = useState('');
   const [articlePage, setArticlePage] = useState(1);
@@ -914,10 +927,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
 
   const changeAdminSection = useCallback((section: AdminWorkspaceSection, options?: { replace?: boolean }) => {
     const nextSection = hasFullAdminAccess || section === 'contests' ? section : 'contests';
-    setAdminSection(nextSection);
-    setAdminMenuOpen(false);
-    setOpenUserMenuId('');
-    setMessage(null);
+    dispatchAdminWorkspace({ type: 'navigate', section: nextSection });
 
     const url = new URL(window.location.href);
     const alreadyActive = url.searchParams.get('section') === nextSection;
@@ -935,10 +945,10 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   useEffect(() => {
     const handlePopState = () => {
       const requested = adminSectionFromLocation(hasFullAdminAccess ? 'dashboard' : 'contests');
-      setAdminSection(hasFullAdminAccess || requested === 'contests' ? requested : 'contests');
-      setAdminMenuOpen(false);
-      setOpenUserMenuId('');
-      setMessage(null);
+      dispatchAdminWorkspace({
+        type: 'navigate',
+        section: hasFullAdminAccess || requested === 'contests' ? requested : 'contests',
+      });
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -957,7 +967,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        setAdminMenuOpen(false);
+        dispatchAdminWorkspace({ type: 'closeAdminMenu' });
         return;
       }
       if (event.key !== 'Tab') return;
@@ -986,7 +996,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     if (!openUserMenuId) return;
     const closeMenu = (restoreFocus: boolean) => {
       const trigger = userMenuTriggerMap.get(openUserMenuId);
-      setOpenUserMenuId('');
+      dispatchAdminWorkspace({ type: 'closeUserMenu' });
       if (restoreFocus) window.requestAnimationFrame(() => trigger?.focus());
     };
     const handlePointerDown = (event: PointerEvent) => {
@@ -998,7 +1008,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     const handleFocusIn = (event: FocusEvent) => {
       const target = event.target as Node;
       if (!userMenuRef.current?.contains(target) && !userMenuTriggerMap.get(openUserMenuId)?.contains(target)) {
-        setOpenUserMenuId('');
+        dispatchAdminWorkspace({ type: 'closeUserMenu' });
       }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1018,7 +1028,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           ? Math.max(0, triggerIndex - 1)
           : Math.min(focusable.length - 1, triggerIndex + 1);
         const target = focusable[targetIndex] || trigger;
-        setOpenUserMenuId('');
+        dispatchAdminWorkspace({ type: 'closeUserMenu' });
         window.requestAnimationFrame(() => target?.focus());
         return;
       }
@@ -1574,7 +1584,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
             ? 'сделать администратором'
             : 'снять права администратора';
     const confirmed = window.confirm(`Точно ${actionLabel} пользователя ${user.name || user.email || user.id}?`);
-    setOpenUserMenuId('');
+    dispatchAdminWorkspace({ type: 'closeUserMenu' });
     window.requestAnimationFrame(() => menuTrigger?.focus());
     if (!confirmed) return;
     setUserActionId(`${user.id}:${Object.keys(patch).join(',')}`);
@@ -1946,7 +1956,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           ref={adminMenuButtonRef}
           type="button"
           className="admin-menu-toggle"
-          onClick={() => setAdminMenuOpen(value => !value)}
+          onClick={() => dispatchAdminWorkspace({ type: 'toggleAdminMenu' })}
           aria-expanded={adminMenuOpen}
           aria-controls="admin-primary-navigation"
           aria-label={adminMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
@@ -1974,7 +1984,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       )}
 
       <div className="admin-workspace-layout">
-        {adminMenuOpen && <button type="button" className="admin-nav-backdrop" onClick={() => setAdminMenuOpen(false)} aria-label="Закрыть меню" />}
+        {adminMenuOpen && <button type="button" className="admin-nav-backdrop" onClick={() => dispatchAdminWorkspace({ type: 'closeAdminMenu' })} aria-label="Закрыть меню" />}
         <aside
           ref={adminNavRef}
           className={`admin-workspace-nav ${adminMenuOpen ? 'is-open' : ''}`}
@@ -2124,7 +2134,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
                           aria-haspopup="menu"
                           aria-expanded={openUserMenuId === user.id}
                           aria-controls={openUserMenuId === user.id ? `user-actions-${user.id}` : undefined}
-                          onClick={() => setOpenUserMenuId(current => current === user.id ? '' : user.id)}
+                          onClick={() => dispatchAdminWorkspace({ type: 'toggleUserMenu', userId: user.id })}
                         >
                           {userActionId.startsWith(`${user.id}:`) ? <span className="admin-action-spinner" aria-hidden="true" /> : <MoreVertical size={20} />}
                         </button>
