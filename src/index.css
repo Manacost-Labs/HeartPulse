@@ -1612,25 +1612,6 @@
     }
   }
 
-  .faq-card {
-    background:
-      linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(237, 243, 251, 0.9)) !important;
-    border: 1px solid rgba(148, 163, 184, 0.3) !important;
-    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
-  }
-
-  .faq-card button span:first-child {
-    color: #1f3654 !important;
-  }
-
-  .faq-card button span:last-child {
-    color: #34618f !important;
-  }
-
-  .faq-card p {
-    color: #52667f !important;
-  }
-
   .home-modern .hs-card {
     position: relative;
     overflow: hidden;

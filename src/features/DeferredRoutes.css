@@ -2571,3 +2571,323 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Owned by the deferred Tier List and Legendaries lightbox. */
+@layer utilities {
+  .card-modal-backdrop.card-modal-backdrop--parchment {
+    background:
+      radial-gradient(circle at 30% 42%, rgba(145, 42, 32, 0.2), transparent 30rem),
+      radial-gradient(circle at 72% 18%, rgba(220, 171, 72, 0.1), transparent 28rem),
+      linear-gradient(rgba(25, 9, 5, 0.92), rgba(12, 5, 3, 0.95)),
+      url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+    backdrop-filter: blur(8px) saturate(0.9) !important;
+    -webkit-backdrop-filter: blur(8px) saturate(0.9) !important;
+  }
+
+  .card-modal-shell.card-modal-shell--parchment {
+    scrollbar-color: rgba(224, 174, 74, 0.52) transparent !important;
+  }
+
+  .card-modal-stats.card-modal-stats--parchment {
+    max-width: 420px;
+    border: 12px solid transparent !important;
+    border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
+    border-image-slice: 18 !important;
+    border-image-width: 12px !important;
+    border-image-repeat: stretch !important;
+    border-radius: 1px !important;
+    color: #f2dbab !important;
+    background:
+      linear-gradient(rgba(71, 5, 9, 0.18), rgba(46, 3, 6, 0.34)),
+      url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+    box-shadow:
+      0 28px 66px rgba(0, 0, 0, 0.48),
+      inset 0 1px rgba(255, 232, 176, 0.08) !important;
+    padding: 1rem !important;
+    backdrop-filter: none !important;
+  }
+
+  .card-modal-stats--parchment .card-modal-header {
+    border-color: rgba(235, 194, 100, 0.32) !important;
+  }
+
+  .card-modal-stats--parchment .card-modal-source {
+    color: #efc568 !important;
+  }
+
+  .card-modal-stats--parchment .card-modal-title {
+    color: #fff0c4 !important;
+    text-shadow: 0 3px 4px rgba(35, 2, 5, 0.72) !important;
+  }
+
+  .card-modal-stats--parchment .card-modal-chip {
+    border: 1px solid rgba(235, 194, 100, 0.3) !important;
+    border-radius: 2px !important;
+    color: #f0d49d !important;
+    background: rgba(35, 2, 5, 0.38) !important;
+  }
+
+  .card-modal-stats--parchment .card-modal-chip--mana {
+    border-color: rgba(113, 170, 217, 0.45) !important;
+    color: #d5e9f6 !important;
+    background: rgba(18, 43, 67, 0.46) !important;
+  }
+
+  .card-modal-stats--parchment .card-modal-stat-row {
+    min-height: 37px !important;
+    border: 1px solid rgba(235, 194, 100, 0.18) !important;
+    border-radius: 2px !important;
+    background: rgba(38, 2, 5, 0.42) !important;
+    box-shadow: inset 0 1px rgba(255, 236, 190, 0.035) !important;
+  }
+
+  .card-modal-stats--parchment .card-modal-stat-row dt {
+    color: #d9be8c !important;
+  }
+
+  .card-modal-close.card-modal-close--parchment {
+    border: 2px solid #d9aa49 !important;
+    border-radius: 50% !important;
+    color: #fff0c4 !important;
+    background: #6d1117 !important;
+    box-shadow: 0 8px 18px rgba(26, 4, 4, 0.38), inset 0 1px rgba(255, 234, 180, 0.16) !important;
+  }
+
+  .card-modal-close.card-modal-close--parchment:hover {
+    color: #fff7d7 !important;
+    background: #8b1a20 !important;
+    transform: scale(1.06);
+  }
+  .card-modal-shell.card-modal-shell--parchment {
+    width: min(940px, calc(100vw - 88px)) !important;
+    max-height: calc(100dvh - 20px) !important;
+    grid-template-columns: minmax(190px, 360px) minmax(280px, 400px) !important;
+    gap: clamp(1rem, 2.4vw, 1.75rem) !important;
+    padding: 0.3rem !important;
+    overflow: visible !important;
+  }
+
+  .card-modal-shell--parchment .card-modal-image {
+    width: auto !important;
+    max-width: min(360px, 36vw) !important;
+    height: min(76dvh, 620px) !important;
+    max-height: calc(100dvh - 28px) !important;
+    object-fit: contain !important;
+  }
+
+  .card-modal-stats.card-modal-stats--parchment {
+    max-height: calc(100dvh - 28px) !important;
+    overflow: hidden !important;
+  }
+
+  @media (max-height: 760px) and (min-width: 768px) {
+    .card-modal-shell.card-modal-shell--parchment {
+      width: min(860px, calc(100vw - 88px)) !important;
+      grid-template-columns: minmax(180px, 330px) minmax(280px, 370px) !important;
+      gap: clamp(0.75rem, 2vw, 1.25rem) !important;
+    }
+    }
+
+  @media (max-height: 760px) and (min-width: 768px) {
+
+    .card-modal-shell--parchment .card-modal-image {
+      max-width: min(330px, 34vw) !important;
+      height: calc(100dvh - 24px) !important;
+    }
+    }
+
+  @media (max-height: 760px) and (min-width: 768px) {
+
+    .card-modal-stats.card-modal-stats--parchment {
+      border-width: 8px !important;
+      border-image-width: 8px !important;
+      padding: 0.65rem !important;
+    }
+    }
+
+  @media (max-height: 760px) and (min-width: 768px) {
+
+    .card-modal-stats--parchment .card-modal-header {
+      padding-bottom: 0.5rem !important;
+    }
+    }
+
+  @media (max-height: 760px) and (min-width: 768px) {
+
+    .card-modal-stats--parchment .card-modal-title {
+      font-size: clamp(1.05rem, 2vw, 1.3rem) !important;
+    }
+    }
+
+  @media (max-height: 760px) and (min-width: 768px) {
+
+    .card-modal-stats--parchment .card-modal-tier {
+      width: 2.35rem !important;
+      height: 2.35rem !important;
+      font-size: 1rem !important;
+    }
+    }
+
+  @media (max-height: 760px) and (min-width: 768px) {
+
+    .card-modal-stats--parchment .card-modal-chip {
+      min-height: 26px !important;
+      padding: 0.25rem 0.48rem !important;
+      font-size: 0.68rem !important;
+    }
+    }
+
+  @media (max-height: 760px) and (min-width: 768px) {
+
+    .card-modal-stats--parchment dl {
+      gap: 0.28rem !important;
+      margin-top: 0.55rem !important;
+    }
+    }
+
+  @media (max-height: 760px) and (min-width: 768px) {
+
+    .card-modal-stats--parchment .card-modal-stat-row {
+      min-height: 29px !important;
+      padding: 0.34rem 0.5rem !important;
+    }
+    }
+
+  @media (max-height: 760px) and (min-width: 768px) {
+
+    .card-modal-stats--parchment .card-modal-stat-row dt {
+      font-size: 0.62rem !important;
+    }
+    }
+
+  @media (max-height: 760px) and (min-width: 768px) {
+
+    .card-modal-stats--parchment .card-modal-stat-row dd {
+      font-size: 0.84rem !important;
+    }
+    }
+
+  @media (max-width: 767px) {
+    .card-modal-shell.card-modal-shell--parchment {
+      width: min(360px, calc(100vw - 20px)) !important;
+      max-width: min(360px, calc(100vw - 20px)) !important;
+      max-height: calc(100dvh - 10px) !important;
+      grid-template-columns: minmax(0, 1fr) !important;
+      grid-template-rows: minmax(0, 28dvh) auto !important;
+      gap: 0.35rem !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+    }
+    }
+
+  @media (max-width: 767px) {
+
+    .card-modal-shell--parchment .card-modal-image {
+      width: auto !important;
+      max-width: min(230px, 62vw) !important;
+      height: 28dvh !important;
+      max-height: 230px !important;
+    }
+    }
+
+  @media (max-width: 767px) {
+
+    .card-modal-stats.card-modal-stats--parchment {
+      max-height: none !important;
+      border-width: 6px !important;
+      border-image-width: 6px !important;
+      padding: 0.55rem !important;
+    }
+    }
+
+  @media (max-width: 767px) {
+
+    .card-modal-stats--parchment .card-modal-header {
+      padding-bottom: 0.35rem !important;
+    }
+    }
+
+  @media (max-width: 767px) {
+
+    .card-modal-stats--parchment .card-modal-title {
+      font-size: 1rem !important;
+    }
+    }
+
+  @media (max-width: 767px) {
+
+    .card-modal-stats--parchment .card-modal-tier {
+      width: 2rem !important;
+      height: 2rem !important;
+      font-size: 0.86rem !important;
+    }
+    }
+
+  @media (max-width: 767px) {
+
+    .card-modal-stats--parchment .card-modal-chip {
+      min-height: 24px !important;
+      padding: 0.2rem 0.42rem !important;
+      font-size: 0.62rem !important;
+    }
+    }
+
+  @media (max-width: 767px) {
+
+    .card-modal-stats--parchment dl {
+      gap: 0.2rem !important;
+      margin-top: 0.4rem !important;
+    }
+    }
+
+  @media (max-width: 767px) {
+
+    .card-modal-stats--parchment .card-modal-stat-row {
+      min-height: 27px !important;
+      padding: 0.28rem 0.45rem !important;
+    }
+    }
+
+  @media (max-width: 767px) {
+
+    .card-modal-stats--parchment .card-modal-stat-row dt {
+      font-size: 0.57rem !important;
+    }
+    }
+
+  @media (max-width: 767px) {
+
+    .card-modal-stats--parchment .card-modal-stat-row dd {
+      font-size: 0.78rem !important;
+    }
+    }
+
+  @media (max-height: 680px) and (max-width: 767px) {
+    .card-modal-shell.card-modal-shell--parchment {
+      grid-template-rows: minmax(0, 22dvh) auto !important;
+    }
+    }
+
+  @media (max-height: 680px) and (max-width: 767px) {
+
+    .card-modal-shell--parchment .card-modal-image {
+      height: 22dvh !important;
+      max-height: 150px !important;
+    }
+    }
+
+  @media (max-height: 680px) and (max-width: 767px) {
+
+    .card-modal-stats.card-modal-stats--parchment {
+      padding: 0.4rem !important;
+    }
+    }
+
+  @media (max-height: 680px) and (max-width: 767px) {
+
+    .card-modal-stats--parchment .card-modal-source,
+    .card-modal-stats--parchment .card-modal-chip img {
+      display: none !important;
+    }
+    }
+}

@@ -1,0 +1,162 @@
+/* Owned by the shared lazy FAQ section. */
+
+
+
+@layer utilities {
+
+  .faq-card {
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(237, 243, 251, 0.9)) !important;
+    border: 1px solid rgba(148, 163, 184, 0.3) !important;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+  }
+
+  .faq-card button span:first-child {
+    color: #1f3654 !important;
+  }
+
+  .faq-card button span:last-child {
+    color: #34618f !important;
+  }
+
+  .faq-card p {
+    color: #52667f !important;
+  }
+
+}
+
+
+
+.home-faq-zone > section {
+  margin: 0 !important;
+  padding-top: 0;
+}
+
+.home-faq-zone #faq-heading {
+  margin: 0 0 1rem !important;
+  color: var(--home-ink) !important;
+  font-family: var(--font-display) !important;
+  font-size: clamp(1.65rem, 3.2cqi, 2.35rem) !important;
+}
+
+.home-faq-zone #faq-heading + div {
+  gap: 0 !important;
+  overflow: hidden;
+  border: 1px solid var(--home-line);
+  border-radius: 14px;
+  background: rgba(251, 253, 255, 0.84);
+}
+
+.home-faq-zone .faq-card {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.home-faq-zone .faq-card + .faq-card {
+  border-top: 1px solid var(--home-line) !important;
+}
+
+.home-faq-zone .faq-card button {
+  min-height: 58px;
+  padding: 0.85rem 1rem !important;
+  transition: background-color 0.18s ease;
+}
+
+.home-faq-zone .faq-card button span:first-child {
+  color: var(--home-ink) !important;
+  font-family: var(--font-body) !important;
+  font-size: 0.84rem !important;
+  font-weight: 770;
+}
+
+.home-faq-zone .faq-card button span:last-child {
+  color: #1683b7 !important;
+}
+
+.home-faq-zone .faq-card > div {
+  padding: 0.1rem 1rem 1rem !important;
+}
+
+.home-faq-zone .faq-card p {
+  max-width: 78ch;
+  color: var(--home-muted) !important;
+  font-size: 0.8rem !important;
+  line-height: 1.6;
+}
+
+.arena-app-home .home-faq-zone > section {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.arena-app-home .home-faq-zone #faq-heading { color: #3c2b1f !important; }
+
+.arena-app-home .home-faq-zone #faq-heading + div {
+  gap: 0 !important;
+  border: 1px solid var(--arena-paper-line) !important;
+  border-radius: 0 !important;
+  background: rgba(247, 228, 187, 0.26) !important;
+}
+
+.arena-app-home .home-faq-zone .faq-card { border-color: var(--arena-paper-line) !important; }
+
+.arena-app-home .home-faq-zone .faq-card button { color: #4a3525 !important; background: rgba(255, 246, 220, 0.18) !important; }
+
+.arena-app-home .home-faq-zone .faq-card button span:last-child { color: var(--arena-red) !important; }
+
+.arena-app-home .home-faq-zone .faq-card p { color: #725f49 !important; }
+
+@layer utilities {
+
+  .arena-app-home .home-faq-zone #faq-heading {
+    color: #3c2b1f !important;
+    text-shadow: none !important;
+  }
+
+  .arena-app-home .home-faq-zone .faq-card {
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .arena-app-home .home-faq-zone .faq-card + .faq-card {
+    border-top: 1px solid var(--arena-paper-line) !important;
+  }
+
+  .arena-app-home .home-faq-zone .faq-card button {
+    color: #493426 !important;
+    background: transparent !important;
+  }
+
+  .arena-app-home .home-faq-zone .faq-card button span:first-child { color: #493426 !important; }
+  .arena-app-home .home-faq-zone .faq-card button span:last-child { color: var(--arena-red) !important; }
+  .arena-app-home .home-faq-zone .faq-card p { color: #725f49 !important; }
+}
+
+
+
+.arena-app-winrates #faq-heading {
+  color: #3b281b !important;
+}
+
+.arena-app-winrates .faq-card {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.arena-app-winrates .faq-card + .faq-card {
+  border-top: 1px solid var(--arena-paper-line) !important;
+}
+
+.arena-app-winrates .faq-card button span:first-child { color: #493426 !important; }
+
+.arena-app-winrates .faq-card button span:last-child { color: var(--arena-red) !important; }
+
+.arena-app-winrates .faq-card p { color: #725f49 !important; }

@@ -838,25 +838,6 @@
   background: rgba(255, 241, 207, 0.52) !important;
 }
 
-.arena-app-winrates #faq-heading {
-  color: #3b281b !important;
-}
-
-.arena-app-winrates .faq-card {
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-.arena-app-winrates .faq-card + .faq-card {
-  border-top: 1px solid var(--arena-paper-line) !important;
-}
-
-.arena-app-winrates .faq-card button span:first-child { color: #493426 !important; }
-.arena-app-winrates .faq-card button span:last-child { color: var(--arena-red) !important; }
-.arena-app-winrates .faq-card p { color: #725f49 !important; }
-
 /* Gallery — pictures sit in actual wooden display frames. */
 .arena-app-gallery .gallery-intro {
   align-items: center;

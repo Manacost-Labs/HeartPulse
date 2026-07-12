@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import './FAQSection.css';
 
 const FAQ_ITEMS = [
   {

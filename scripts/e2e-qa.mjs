@@ -439,6 +439,7 @@ for (const route of authenticatedRoutes) {
     await page.waitForSelector('.home-latest-articles');
     await page.waitForSelector('.home-bg-directory');
     await page.waitForSelector('.home-arena-directory');
+    await page.waitForSelector('.home-faq-zone');
     const homeCssState = await page.evaluate(() => {
       const hrefs = [...document.styleSheets].map(sheet => sheet.href || '');
       return {
@@ -446,6 +447,7 @@ for (const route of authenticatedRoutes) {
         arenaCss: hrefs.some(href => href.includes('/assets/HomeArenaDirectory-')),
         battlegroundsCss: hrefs.some(href => href.includes('/assets/HomeBattlegrounds-')),
         articlesCss: hrefs.some(href => href.includes('/assets/HomeLatestArticles-')),
+        faqCss: hrefs.some(href => href.includes('/assets/FAQSection-')),
         supportCss: hrefs.some(href => href.includes('/assets/SupportPrompt-')),
         footerCss: hrefs.some(href => href.includes('/assets/SiteFooter-')),
         footerMarkup: Boolean(document.querySelector('.arena-footer')),
@@ -453,6 +455,7 @@ for (const route of authenticatedRoutes) {
     });
     if (homeCssState.routeCssLoaded) failures.push('home lazy sections: route-only parchment CSS leaked into the initial home route');
     if (!homeCssState.arenaCss || !homeCssState.battlegroundsCss || !homeCssState.articlesCss) failures.push('home lazy sections: one or more owner CSS chunks did not load');
+    if (!homeCssState.faqCss) failures.push('home lazy sections: FAQ owner CSS did not load');
     if (!homeCssState.supportCss) failures.push('home lazy sections: support-prompt owner CSS did not load');
     if (!homeCssState.footerCss || !homeCssState.footerMarkup) failures.push('home lazy sections: site-footer owner or markup did not load');
     const routeMetaLoadedInitially = await page.evaluate(() => performance.getEntriesByType('resource')

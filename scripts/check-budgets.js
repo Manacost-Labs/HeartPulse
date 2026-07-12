@@ -12,9 +12,11 @@ const budgets = {
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 90_000),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 190_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 180_000),
-  css: Number(process.env.BUDGET_CSS_BYTES || 205_000),
+  css: Number(process.env.BUDGET_CSS_BYTES || 200_000),
   routeCss: Number(process.env.BUDGET_ROUTE_CSS_BYTES || 50_000),
+  deferredRoutesCss: Number(process.env.BUDGET_DEFERRED_ROUTES_CSS_BYTES || 61_000),
   homeSectionCss: Number(process.env.BUDGET_HOME_SECTION_CSS_BYTES || 5_000),
+  faqSectionCss: Number(process.env.BUDGET_FAQ_SECTION_CSS_BYTES || 4_000),
   supportPromptCss: Number(process.env.BUDGET_SUPPORT_PROMPT_CSS_BYTES || 4_000),
   siteFooterCss: Number(process.env.BUDGET_SITE_FOOTER_CSS_BYTES || 4_000),
   routeMetaJs: Number(process.env.BUDGET_ROUTE_META_JS_BYTES || 5_000),
@@ -35,6 +37,8 @@ const routeJs = files.filter(file =>
 );
 const css = files.find(file => /^index-.*\.css$/.test(file.name));
 const routeCss = files.find(file => /^route-parchment-.*\.css$/.test(file.name));
+const deferredRoutesCss = files.find(file => /^DeferredRoutes-.*\.css$/.test(file.name));
+const faqSectionCss = files.find(file => /^FAQSection-.*\.css$/.test(file.name));
 const supportPromptCss = files.find(file => /^SupportPrompt-.*\.css$/.test(file.name));
 const siteFooterCss = files.find(file => /^SiteFooter-.*\.css$/.test(file.name));
 const routeMetaJs = files.find(file => /^route-meta-.*\.js$/.test(file.name));
@@ -64,7 +68,9 @@ const checks = [
   ['largest route JS', routeJs[0], budgets.routeJs],
   ['initial CSS', css, budgets.css],
   ['shared route CSS', routeCss, budgets.routeCss],
+  ['deferred route-owner CSS', deferredRoutesCss, budgets.deferredRoutesCss],
   ['largest lazy home-section CSS', largestHomeSectionCss, budgets.homeSectionCss],
+  ['lazy FAQ-section CSS', faqSectionCss, budgets.faqSectionCss],
   ['lazy support-prompt CSS', supportPromptCss, budgets.supportPromptCss],
   ['lazy site-footer CSS', siteFooterCss, budgets.siteFooterCss],
   ['lazy route-metadata JS', routeMetaJs, budgets.routeMetaJs],
@@ -83,6 +89,6 @@ for (const [label, file, budget] of checks) {
   if (!ok) failed = true;
 }
 
-console.log('[budget] ratchet target: initial CSS 200 KB; then profile the next route-owned reduction.');
+console.log('[budget] ratchet target: initial CSS 190 KB; then profile the next route-owned reduction.');
 
 if (failed) process.exit(1);
