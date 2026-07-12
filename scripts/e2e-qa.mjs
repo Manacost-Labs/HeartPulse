@@ -902,6 +902,7 @@ for (const [device, viewport] of [
     await page.waitForSelector('.home-bg-directory');
     await page.waitForSelector('.home-arena-directory');
     await page.waitForSelector('.home-faq-zone');
+    await page.waitForSelector('.arena-footer__link');
     const homeCssState = await page.evaluate(() => {
       const hrefs = [...document.styleSheets].map(sheet => sheet.href || '');
       return {
