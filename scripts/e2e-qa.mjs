@@ -192,6 +192,34 @@ const adminFixtures = {
     summary: { boostyPaid: 4, activePaid: 4 },
     checkedAt: '2026-07-11T00:00:00.000Z',
   },
+  '/api/admin/boosty/subscribers': {
+    configured: true,
+    source: 'qa-fixture',
+    stale: false,
+    summary: { boostyPaid: 2, activePaid: 1 },
+    levels: { 'Любитель Арены': 1, 'Зритель': 1 },
+    subscribers: [
+      {
+        id: 'boosty-qa-1', name: 'Активный подписчик', email: 'active@example.test', hasEmail: true,
+        avatarUrl: '', status: 'active', subscribed: true, active: true, paid: true, hasActivePaidAccess: true,
+        willRenew: true, blacklisted: false, canWrite: true, audienceType: 'boosty-paid', contactStatus: 'known',
+        level: { id: 1, name: 'Любитель Арены', price: 500, currency: 'RUB' },
+        money: { currentPrice: 500, totalPayments: 1500, currency: 'RUB' },
+        dates: { subscribedAt: '2026-06-01T00:00:00.000Z', unsubscribedAt: null, nextPaymentAt: '2026-08-01T00:00:00.000Z' },
+        entitlements: { arena: true, battlegrounds: true }, siteAccess: true,
+      },
+      {
+        id: 'boosty-qa-2', name: 'Неактивный подписчик', email: '', hasEmail: false,
+        avatarUrl: '', status: 'inactive', subscribed: false, active: false, paid: false, hasActivePaidAccess: false,
+        willRenew: false, blacklisted: false, canWrite: false, audienceType: 'boosty-free', contactStatus: 'missing-email',
+        level: { id: 2, name: 'Зритель', price: 0, currency: 'RUB' },
+        money: { currentPrice: 0, totalPayments: 0, currency: 'RUB' },
+        dates: { subscribedAt: null, unsubscribedAt: '2026-06-02T00:00:00.000Z', nextPaymentAt: null },
+        entitlements: {}, siteAccess: false,
+      },
+    ],
+    fetchedAt: '2026-07-11T00:00:00.000Z',
+  },
   '/api/admin/telegram/accounts': {
     configured: true,
     chatIds: [],
@@ -592,6 +620,29 @@ for (const [device, viewport] of [
     if (!galleryEmptyState.includes('пока нет артов')) failures.push(`admin gallery [${device}]: empty state is missing`);
     const galleryViolationCount = await auditAccessibility(page, `admin gallery [${device}]`, '.admin-workspace-content');
 
+    await page.goto(`${BASE}/?admin&section=boosty`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForFunction(() => document.querySelectorAll('.admin-boosty-row').length === 2);
+    const boostyState = await page.evaluate(() => ({
+      rows: document.querySelectorAll('.admin-boosty-row').length,
+      stats: [...document.querySelectorAll('.admin-boosty-stats strong')].map(element => element.textContent?.trim() || ''),
+      apiStatus: document.querySelector('.admin-boosty-status strong')?.textContent?.trim() || '',
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    if (boostyState.rows !== 2 || boostyState.stats.join(',') !== '2,2,1,1' || !boostyState.apiStatus.includes('работает')) {
+      failures.push(`admin Boosty [${device}]: deterministic status, KPI or subscriber list did not render`);
+    }
+    if (boostyState.scrollWidth > boostyState.clientWidth + 1) {
+      failures.push(`admin Boosty [${device}]: horizontal overflow ${boostyState.scrollWidth} > ${boostyState.clientWidth}`);
+    }
+    await page.select('.admin-boosty-filters label:last-child select', 'inactive');
+    await page.waitForFunction(() => document.querySelectorAll('.admin-boosty-row').length === 1);
+    await page.type('.admin-boosty-filters input', 'нет такого подписчика');
+    await page.waitForFunction(() => document.querySelectorAll('.admin-boosty-row').length === 0);
+    const boostyEmptyState = await page.$eval('.admin-boosty-list [role="status"]', element => element.textContent?.trim() || '');
+    if (!boostyEmptyState.includes('не найдены')) failures.push(`admin Boosty [${device}]: filtered empty state is missing`);
+    const boostyViolationCount = await auditAccessibility(page, `admin Boosty [${device}]`, '.admin-workspace-content');
+
     await page.goto(`${BASE}/?admin&section=users`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.contest-user-row').length === 2);
     const usersState = await page.evaluate(() => ({
@@ -621,7 +672,7 @@ for (const [device, viewport] of [
     if (!focusRestored) failures.push(`admin users [${device}]: Escape did not restore focus to the action trigger`);
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
-    console.log(`✓ admin dashboard/articles/gallery/users [${device}] interactions + axe (${violationCount + articlesViolationCount + galleryViolationCount + usersViolationCount} violations)`);
+    console.log(`✓ admin dashboard/articles/gallery/Boosty/users [${device}] interactions + axe (${violationCount + articlesViolationCount + galleryViolationCount + boostyViolationCount + usersViolationCount} violations)`);
   } catch (error) {
     const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
     failures.push(`admin dashboard [${device}]: ${error.message}; page: ${diagnostic}`);

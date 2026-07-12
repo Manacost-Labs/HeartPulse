@@ -47,6 +47,11 @@ import {
   type AdminUserPatch,
   type AdminUserSearchResult,
 } from './ContestAdminUsers';
+import {
+  ContestAdminBoosty,
+  type BoostyAdminStatus,
+  type BoostySubscribersPayload,
+} from './ContestAdminBoosty';
 import { ADMIN_INPUT } from './contestAdminUi';
 import {
   adminWorkspaceReducer,
@@ -434,61 +439,6 @@ function adminSectionFromLocation(defaultSection: AdminWorkspaceSection): AdminW
   return defaultSection;
 }
 
-type BoostyAdminStatus = {
-  configured: boolean;
-  ok: boolean;
-  importStatus: string;
-  source: string;
-  stale: boolean;
-  snapshotAgeSeconds: number | null;
-  lastErrorCategory: string | null;
-  lastErrorMessage: string | null;
-  warnings: string[];
-  summary: {
-    active?: number;
-    activePaid?: number;
-    boostyPaid?: number;
-    total?: number;
-    [key: string]: unknown;
-  };
-  checkedAt?: string;
-  graceHours?: number;
-};
-
-type BoostySubscriberRow = {
-  id: string;
-  name: string;
-  email: string;
-  hasEmail: boolean;
-  avatarUrl: string;
-  status: string;
-  subscribed: boolean;
-  active: boolean;
-  paid: boolean;
-  hasActivePaidAccess: boolean;
-  willRenew: boolean;
-  blacklisted: boolean;
-  canWrite: boolean;
-  audienceType: string;
-  contactStatus: string;
-  level: { id: number | string | null; name: string; price: number; currency: string };
-  money: { currentPrice: number; totalPayments: number; currency: string };
-  dates: { subscribedAt: string | null; unsubscribedAt: string | null; nextPaymentAt: string | null };
-  entitlements?: SubscriptionStatus['entitlements'];
-  siteAccess: boolean;
-};
-
-type BoostySubscribersPayload = {
-  configured: boolean;
-  source: string;
-  stale: boolean;
-  summary: BoostyAdminStatus['summary'];
-  levels: Record<string, number>;
-  subscribers: BoostySubscriberRow[];
-  fetchedAt: string;
-  error?: string;
-};
-
 type TelegramAdminAccount = {
   id: string;
   profileId: string;
@@ -731,10 +681,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const [boostyStatusLoading, setBoostyStatusLoading] = useState(false);
   const [boostySubscribers, setBoostySubscribers] = useState<BoostySubscribersPayload | null>(null);
   const [boostySubscribersLoading, setBoostySubscribersLoading] = useState(false);
-  const [boostySubscribersSearch, setBoostySubscribersSearch] = useState('');
-  const [boostyLevelFilter, setBoostyLevelFilter] = useState('all');
-  const [boostyAccessFilter, setBoostyAccessFilter] = useState<'all' | 'site' | 'paid' | 'free' | 'inactive'>('all');
-  const [boostyPage, setBoostyPage] = useState(1);
   const [telegramAccounts, setTelegramAccounts] = useState<TelegramAccountsPayload | null>(null);
   const [telegramAccountsLoading, setTelegramAccountsLoading] = useState(false);
   const [telegramAccountsSearch, setTelegramAccountsSearch] = useState('');
@@ -1617,40 +1563,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const selectedContestWinnerCount = selectedWinnerIds.length;
   const selectedContestApprovedWinnerCount = approvedEntries.filter(entry => selectedWinnerIdSet.has(entry.profileId)).length;
 
-  const boostyLevelOptions = useMemo(
-    () => Object.keys(boostySubscribers?.levels || {}).sort((a, b) => a.localeCompare(b, 'ru')),
-    [boostySubscribers],
-  );
-  const filteredBoostySubscribers = useMemo(() => {
-    const query = boostySubscribersSearch.trim().toLowerCase();
-    return (boostySubscribers?.subscribers || []).filter(subscriber => {
-      if (boostyLevelFilter !== 'all' && (subscriber.level?.name || 'Без уровня') !== boostyLevelFilter) return false;
-      if (boostyAccessFilter === 'site' && !subscriber.siteAccess) return false;
-      if (boostyAccessFilter === 'paid' && !subscriber.hasActivePaidAccess) return false;
-      if (boostyAccessFilter === 'free' && subscriber.hasActivePaidAccess) return false;
-      if (boostyAccessFilter === 'inactive' && subscriber.active) return false;
-      if (!query) return true;
-      const haystack = [
-        subscriber.id,
-        subscriber.name,
-        subscriber.email,
-        subscriber.level?.name,
-        subscriber.status,
-        subscriber.audienceType,
-      ].filter(Boolean).join(' ').toLowerCase();
-      return haystack.includes(query);
-    });
-  }, [boostyAccessFilter, boostyLevelFilter, boostySubscribers, boostySubscribersSearch]);
-  const boostyPageCount = Math.max(1, Math.ceil(filteredBoostySubscribers.length / ADMIN_AUDIENCE_PAGE_SIZE));
-  const visibleBoostySubscribers = useMemo(
-    () => filteredBoostySubscribers.slice((boostyPage - 1) * ADMIN_AUDIENCE_PAGE_SIZE, boostyPage * ADMIN_AUDIENCE_PAGE_SIZE),
-    [boostyPage, filteredBoostySubscribers],
-  );
-
-  useEffect(() => {
-    setBoostyPage(current => Math.min(current, boostyPageCount));
-  }, [boostyPageCount]);
-
   const filteredTelegramAccounts = useMemo(() => {
     const query = telegramAccountsSearch.trim().toLowerCase();
     return (telegramAccounts?.accounts || []).filter(account => {
@@ -1684,20 +1596,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   useEffect(() => {
     setTelegramPage(current => Math.min(current, telegramPageCount));
   }, [telegramPageCount]);
-  const boostySubscriberStats = useMemo(() => {
-    const subscribers = boostySubscribers?.subscribers || [];
-    const summaryBoostyPaid = Number(boostySubscribers?.summary?.boostyPaid);
-    return {
-      total: subscribers.length,
-      siteAccess: subscribers.filter(subscriber => subscriber.siteAccess).length,
-      activePaid: subscribers.filter(subscriber => subscriber.hasActivePaidAccess).length,
-      boostyPaid: Number.isFinite(summaryBoostyPaid)
-        ? summaryBoostyPaid
-        : subscribers.filter(subscriber => subscriber.audienceType === 'boosty-paid').length,
-      missingEmail: subscribers.filter(subscriber => !subscriber.hasEmail).length,
-    };
-  }, [boostySubscribers]);
-
   if (authChecking) {
     return (
       <section className="contest-admin-page admin-access-state">
@@ -1760,20 +1658,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const previewEndsAt = form.endsAt ? formatDate(form.endsAt) : 'без даты окончания';
   const totalReferralClicks = referrals.reduce((sum, item) => sum + (item.clicks || 0), 0);
   const totalContestEntries = contests.reduce((sum, item) => sum + (item.entriesCount || 0), 0);
-  const boostyApiTone = boostyStatusLoading
-    ? 'loading'
-    : boostyStatus?.ok
-      ? 'ok'
-      : boostyStatus?.configured === false
-        ? 'not-configured'
-        : 'bad';
-  const boostyApiLabel = boostyStatusLoading
-    ? 'проверяем'
-    : boostyApiTone === 'ok'
-      ? 'работает'
-      : boostyApiTone === 'not-configured'
-        ? 'не настроен'
-        : 'ошибка';
   const adminNav = hasFullAdminAccess ? ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS.filter(item => item.id === 'contests');
   const activeAdminItem = adminNav.find(item => item.id === adminSection) || adminNav[0];
 
@@ -2095,156 +1979,21 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           )}
 
           {hasFullAdminAccess && adminSection === 'boosty' && (
-            <div className="contest-admin-card admin-full-card">
-              <div className="contest-users-head">
-                <div>
-                  <h2>Подписчики Boosty</h2>
-                  <p className="contest-muted">
-                    Распознанные уровни и доступы сайта. Показано {visibleBoostySubscribers.length} из {filteredBoostySubscribers.length}{filteredBoostySubscribers.length !== (boostySubscribers?.subscribers.length || 0) ? ` · всего ${boostySubscribers?.subscribers.length || 0}` : ''}.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="contest-secondary-button"
-                  disabled={boostyStatusLoading || boostySubscribersLoading}
-                  onClick={() => {
-                    void loadBoostyStatus();
-                    void loadBoostySubscribers();
-                  }}
-                >
-                  {boostyStatusLoading || boostySubscribersLoading ? 'Загрузка...' : 'Обновить Boosty'}
-                </button>
-              </div>
-
-              <div className={`admin-boosty-status admin-boosty-status-${boostyApiTone}`}>
-                <div>
-                  <strong>Boosty API: {boostyApiLabel}</strong>
-                  <span>
-                    Источник: {boostyStatus?.source || '—'}
-                    {' · '}
-                    Импорт: {boostyStatus?.importStatus || '—'}
-                    {' · '}
-                    Grace: {boostyStatus?.graceHours ?? 24} ч
-                  </span>
-                  <span>
-                    Возраст снапшота: {typeof boostyStatus?.snapshotAgeSeconds === 'number' ? `${Math.round(boostyStatus.snapshotAgeSeconds / 60)} мин` : '—'}
-                    {boostyStatus?.checkedAt ? ` · Проверено: ${formatDate(boostyStatus.checkedAt)}` : ''}
-                    {` · Без email: ${boostySubscriberStats.missingEmail}`}
-                  </span>
-                  {boostyStatus?.lastErrorMessage && <span>Ошибка: {boostyStatus.lastErrorMessage}</span>}
-                </div>
-              </div>
-
-              <div className="admin-stat-grid admin-boosty-stats">
-                <div><span>Всего Boosty</span><strong>{boostySubscriberStats.total}</strong><small>включая неактивных</small></div>
-                <div><span>Платные Boosty</span><strong>{boostySubscriberStats.boostyPaid}</strong><small>как в кабинете Boosty</small></div>
-                <div><span>Активный доступ</span><strong>{boostySubscriberStats.activePaid}</strong><small>оплачено, даже без автопродления</small></div>
-                <div><span>Доступ на сайте</span><strong>{boostySubscriberStats.siteAccess}</strong><small>активная оплата + тариф распознан</small></div>
-              </div>
-
-              <div className="admin-boosty-levels" aria-label="Уровни Boosty">
-                {boostyLevelOptions.map(levelName => (
-                  <button
-                    key={levelName}
-                    type="button"
-                    className={boostyLevelFilter === levelName ? 'is-active' : ''}
-                    onClick={() => { setBoostyLevelFilter(boostyLevelFilter === levelName ? 'all' : levelName); setBoostyPage(1); }}
-                  >
-                    <span>{levelName || 'Без уровня'}</span>
-                    <b>{boostySubscribers?.levels?.[levelName] ?? 0}</b>
-                  </button>
-                ))}
-                {!boostyLevelOptions.length && <p className="contest-muted">Уровни появятся после загрузки Boosty.</p>}
-              </div>
-
-              <div className="admin-boosty-filters admin-page-toolbar">
-                <label>
-                  Поиск
-                  <input
-                    value={boostySubscribersSearch}
-                    onChange={e => { setBoostySubscribersSearch(e.target.value); setBoostyPage(1); }}
-                    placeholder="email, имя, Boosty ID или уровень"
-                    style={ADMIN_INPUT}
-                  />
-                </label>
-                <label>
-                  Уровень
-                  <select value={boostyLevelFilter} onChange={e => { setBoostyLevelFilter(e.target.value); setBoostyPage(1); }} style={ADMIN_INPUT}>
-                    <option value="all">Все уровни</option>
-                    {boostyLevelOptions.map(levelName => (
-                      <option key={levelName} value={levelName}>{levelName || 'Без уровня'}</option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Статус
-                  <select value={boostyAccessFilter} onChange={e => { setBoostyAccessFilter(e.target.value as typeof boostyAccessFilter); setBoostyPage(1); }} style={ADMIN_INPUT}>
-                    <option value="all">Все</option>
-                    <option value="site">Доступ на сайте</option>
-                    <option value="paid">Активные платные</option>
-                    <option value="free">Без платной подписки</option>
-                    <option value="inactive">Неактивные</option>
-                  </select>
-                </label>
-              </div>
-
-              <p className="contest-muted">
-                Источник списка: {boostySubscribers?.source || '—'}
-                {' · '}
-                Загружено: {boostySubscribers?.fetchedAt ? formatDate(boostySubscribers.fetchedAt) : '—'}
-              </p>
-              {boostySubscribers?.error && <div className="contest-message contest-message-err">{boostySubscribers.error}</div>}
-
-              <div className="admin-boosty-list">
-                {boostySubscribersLoading && !boostySubscribers?.subscribers.length ? (
-                  <p className="contest-muted">Загружаем Boosty-аудиторию...</p>
-                ) : visibleBoostySubscribers.length ? visibleBoostySubscribers.map(subscriber => {
-                  const accessLabels = subscriptionEntitlementLabels({
-                    hasAccess: subscriber.siteAccess,
-                    entitlements: subscriber.entitlements,
-                  });
-                  return (
-                    <article key={subscriber.id} className={`admin-boosty-row ${subscriber.siteAccess ? 'has-site-access' : subscriber.hasActivePaidAccess ? 'has-paid-access' : ''}`}>
-                      <div className="admin-boosty-person">
-                        {subscriber.avatarUrl ? (
-                          <img src={subscriber.avatarUrl} alt="" />
-                        ) : (
-                          <span>{(subscriber.name || subscriber.email || '?').slice(0, 1).toUpperCase()}</span>
-                        )}
-                        <div>
-                          <strong>{subscriber.name || 'Без имени'}</strong>
-                          <small className={subscriber.hasEmail ? '' : 'is-warning'}>{subscriber.email || 'email не открыт'}</small>
-                          <code>Boosty ID {subscriber.id}</code>
-                        </div>
-                      </div>
-                      <div>
-                        <strong>{subscriber.level?.name || 'Без уровня'}</strong>
-                        <span>Цена: {subscriber.money?.currentPrice || subscriber.level?.price || 0} {subscriber.money?.currency || subscriber.level?.currency || 'RUB'}</span>
-                        <span>Статус: {subscriber.active ? 'active' : subscriber.status || 'inactive'}</span>
-                        <span>Продление: {subscriber.willRenew ? 'да' : 'нет'}</span>
-                      </div>
-                      <div>
-                        <strong>{subscriber.siteAccess ? 'Открывает сайт' : subscriber.hasActivePaidAccess ? 'Платит, но тариф не сопоставлен' : 'Не открывает сайт'}</strong>
-                        <span>Доступы: {accessLabels.join(', ') || 'нет'}</span>
-                        <span>Следующий платеж: {subscriber.dates?.nextPaymentAt ? formatDate(subscriber.dates.nextPaymentAt) : '—'}</span>
-                        <span>Подписан: {subscriber.dates?.subscribedAt ? formatDate(subscriber.dates.subscribedAt) : '—'}</span>
-                      </div>
-                    </article>
-                  );
-                }) : (
-                  <p className="contest-muted">
-                    {boostySubscribers ? 'Подписчики Boosty не найдены по текущим фильтрам.' : 'Нажмите “Обновить Boosty”, чтобы загрузить список подписчиков.'}
-                  </p>
-                )}
-              </div>
-              {boostyPageCount > 1 && (
-                <nav className="admin-pagination" aria-label="Страницы списка подписчиков Boosty">
-                  <button type="button" disabled={boostyPage === 1} onClick={() => setBoostyPage(page => Math.max(1, page - 1))}>Назад</button>
-                  <span>Страница {boostyPage} из {boostyPageCount}</span>
-                  <button type="button" disabled={boostyPage === boostyPageCount} onClick={() => setBoostyPage(page => Math.min(boostyPageCount, page + 1))}>Далее</button>
-                </nav>
-              )}
-            </div>
+            <ContestAdminBoosty
+              status={boostyStatus}
+              statusLoading={boostyStatusLoading}
+              subscribers={boostySubscribers}
+              subscribersLoading={boostySubscribersLoading}
+              onReload={() => {
+                void loadBoostyStatus();
+                void loadBoostySubscribers();
+              }}
+              formatDate={formatDate}
+              entitlementLabels={subscriber => subscriptionEntitlementLabels({
+                hasAccess: subscriber.siteAccess,
+                entitlements: subscriber.entitlements as SubscriptionStatus['entitlements'],
+              })}
+            />
           )}
 
           {hasFullAdminAccess && adminSection === 'telegram' && (
