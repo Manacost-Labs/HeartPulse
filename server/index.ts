@@ -35,6 +35,7 @@ import { createOperationalRouter } from './operationalRoutes.js';
 import { createArenaDecksRouter, type ArenaDecksCacheStore } from './arenaDeckRoutes.js';
 import { createStandardMatchupRouter } from './standardMatchupRoutes.js';
 import { createClassMatchupRouter, type ClassMatchupCacheStore } from './classMatchupRoutes.js';
+import { createLegendaryRouter } from './legendaryRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -5813,35 +5814,24 @@ app.get('/api/tierlist', requireArenaAccess, async (req, res) => {
   }
 });
 
-app.get('/api/legendaries', requireArenaAccess, async (req, res) => {
-  const source = normalizeSource(req.query.source as string | undefined, LEGENDARIES_DATASET_BY_SOURCE, 'hsreplay');
-  const now = Date.now();
-  const cached = legendariesApiCache.get(source);
-  const bypassCache = req.query.t !== undefined
-    || req.query.bust === '1';
-  if (!bypassCache && cached && cached.expiresAt > now) {
-    return sendJsonCached(req, res, cached.data, cached.etag, CACHE_1H, 'memory');
-  }
-
-  try {
-    const result = await getLegendariesApiData(source, now, bypassCache);
-    return sendJsonCached(req, res, result.data, result.etag, CACHE_1H, result.cacheSource);
-  } catch (err: any) {
-    if (cached) {
-      return sendJsonCached(req, res, {
-        ...cached.data,
-        warning: 'stale',
-      }, cached.etag, 'public, max-age=300, stale-while-revalidate=600', 'memory-stale');
-    }
-
-    if (source === 'hsreplay') {
-      const fallback = loadDataCached('legendaries.json');
-      if (fallback) return sendCached(req, res, fallback, CACHE_6H);
-    }
-
-    return res.status(502).json({ error: err?.message ?? 'Legendaries unavailable' });
-  }
-});
+app.use('/api', createLegendaryRouter({
+  accessGuard: requireArenaAccess,
+  cache: legendariesApiCache,
+  resolveSource: source => normalizeSource(source, LEGENDARIES_DATASET_BY_SOURCE, 'hsreplay'),
+  getData: (source, now, bypassCache) => getLegendariesApiData(
+    source as keyof typeof LEGENDARIES_DATASET_BY_SOURCE,
+    now,
+    bypassCache,
+  ),
+  isUsableData: hasLegendaryGroups,
+  loadFallback: source => source === 'hsreplay' ? loadDataCached('legendaries.json') : null,
+  cacheHeader: CACHE_1H,
+  fallbackCacheHeader: CACHE_6H,
+  onError: error => console.error(
+    '[api/legendaries] request failed:',
+    error instanceof Error ? error.message : error,
+  ),
+}));
 
 app.use('/api', createArenaDecksRouter({
   accessGuard: requireArenaAccess,

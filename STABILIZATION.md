@@ -101,6 +101,11 @@ The first architecture ratchet is complete:
 | `/tierlist` | `arena` | Tier list, images and source switching | filters/lightbox/mobile |
 | `/legendaries` | `arena` | Legendary groups and fallback snapshot | empty rejection/source/lightbox |
 
+The `/api/legendaries` HTTP boundary is isolated in `server/legendaryRoutes.ts`.
+Its contract rejects empty memory/origin datasets, preserves the last usable
+stale response, falls back only to a validated local snapshot, keeps subscriber
+responses private and never exposes upstream error details.
+
 ### Battlegrounds routes
 
 | Route family | Entitlement | Critical API | Required QA |
