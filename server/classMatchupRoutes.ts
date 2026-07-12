@@ -1,48 +1,47 @@
 import { Router, type RequestHandler } from 'express';
 import { sendDatasetJsonCached } from './datasetCacheResponse.js';
 
-export type StandardMatchupRank = 'legend' | 'diamond';
 type CacheEntry = { data: any; etag: string; expiresAt: number };
 type RedisEntry = { data: any; etag: string };
 
-export type StandardMatchupRouterDependencies = {
+export type ClassMatchupCacheStore = { current: CacheEntry | null };
+
+export type ClassMatchupRouterDependencies = {
   accessGuard: RequestHandler;
-  memoryCache: Map<string, CacheEntry>;
-  redisKey: (rank: StandardMatchupRank) => string;
+  cache: ClassMatchupCacheStore;
+  redisKey: string;
   redisGet: (key: string) => Promise<RedisEntry | null>;
   redisSet: (key: string, data: any, etag: string, ttlSeconds: number) => Promise<unknown> | unknown;
-  fetchPayload: (rank: StandardMatchupRank) => Promise<any>;
-  getTranslations: (now: number) => Promise<any>;
-  transform: (payload: any, rank: StandardMatchupRank, translations: any) => any;
+  fetchMatchups: () => Promise<any>;
   memoryTtlMs: number;
   redisTtlSeconds: number;
   cacheHeader?: string;
+  staleCacheHeader?: string;
   now?: () => number;
   onError?: (scope: 'redis-read' | 'redis-write' | 'origin', error: unknown) => void;
 };
 
-export function createStandardMatchupRouter(dependencies: StandardMatchupRouterDependencies): Router {
+export function createClassMatchupRouter(dependencies: ClassMatchupRouterDependencies): Router {
   const router = Router();
   const cacheHeader = dependencies.cacheHeader ?? 'public, max-age=3600, stale-while-revalidate=600';
+  const staleHeader = dependencies.staleCacheHeader ?? 'public, max-age=300, stale-while-revalidate=600';
   const now = dependencies.now ?? Date.now;
 
-  router.get('/standard/matchups', dependencies.accessGuard, async (request, response) => {
-    const rank: StandardMatchupRank = request.query.rank === 'diamond' ? 'diamond' : 'legend';
+  router.get('/class-matchups', dependencies.accessGuard, async (request, response) => {
     const timestamp = now();
-    const cached = dependencies.memoryCache.get(rank);
+    const cached = dependencies.cache.current;
     if (cached && cached.expiresAt > timestamp) {
       return sendDatasetJsonCached(request, response, cached.data, cached.etag, cacheHeader, 'memory');
     }
 
-    const key = dependencies.redisKey(rank);
     try {
-      const redisCached = await dependencies.redisGet(key);
+      const redisCached = await dependencies.redisGet(dependencies.redisKey);
       if (redisCached) {
-        dependencies.memoryCache.set(rank, {
+        dependencies.cache.current = {
           data: redisCached.data,
           etag: redisCached.etag,
           expiresAt: timestamp + dependencies.memoryTtlMs,
-        });
+        };
         return sendDatasetJsonCached(request, response, redisCached.data, redisCached.etag, cacheHeader, 'redis');
       }
     } catch (error) {
@@ -50,21 +49,21 @@ export function createStandardMatchupRouter(dependencies: StandardMatchupRouterD
     }
 
     try {
-      const [payload, translations] = await Promise.all([
-        dependencies.fetchPayload(rank),
-        dependencies.getTranslations(timestamp),
-      ]);
-      const data = dependencies.transform(payload, rank, translations);
+      const data = await dependencies.fetchMatchups();
       const updatedMs = data.updatedAt ? Date.parse(data.updatedAt) : Number.NaN;
       const updatedToken = Number.isFinite(updatedMs) ? updatedMs.toString(36) : timestamp.toString(36);
-      const etag = `"standard-matchups-v4-${rank}-${updatedToken}-${data.rows.length}-${data.columns.length}-${data.translationSource}"`;
-      dependencies.memoryCache.set(rank, {
+      const etag = `"class-matchups-${updatedToken}-${data.matchups.length}"`;
+      dependencies.cache.current = {
         data,
         etag,
         expiresAt: timestamp + dependencies.memoryTtlMs,
-      });
-      Promise.resolve(dependencies.redisSet(key, data, etag, dependencies.redisTtlSeconds))
-        .catch(error => dependencies.onError?.('redis-write', error));
+      };
+      Promise.resolve(dependencies.redisSet(
+        dependencies.redisKey,
+        data,
+        etag,
+        dependencies.redisTtlSeconds,
+      )).catch(error => dependencies.onError?.('redis-write', error));
       return sendDatasetJsonCached(request, response, data, etag, cacheHeader, 'origin');
     } catch (error) {
       dependencies.onError?.('origin', error);
@@ -74,11 +73,11 @@ export function createStandardMatchupRouter(dependencies: StandardMatchupRouterD
           response,
           { ...cached.data, warning: 'stale' },
           cached.etag,
-          cacheHeader,
+          staleHeader,
           'memory-stale',
         );
       }
-      return response.status(502).json({ error: 'Standard matchups unavailable' });
+      return response.status(502).json({ error: 'Class matchups unavailable' });
     }
   });
 

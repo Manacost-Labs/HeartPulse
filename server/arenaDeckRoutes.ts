@@ -1,4 +1,5 @@
-import { Router, type RequestHandler, type Response } from 'express';
+import { Router, type RequestHandler } from 'express';
+import { sendDatasetJsonCached } from './datasetCacheResponse.js';
 
 type DecksData = {
   decks: any[];
@@ -71,18 +72,6 @@ function etagToken(value: string) {
   return encodeURIComponent(value).replace(/[^a-z0-9_.~-]/gi, '_') || 'all';
 }
 
-function sendCached(response: Response, requestEtag: string | undefined, data: any, etag: string, cacheHeader: string) {
-  const guarded = Boolean(response.locals.subscriptionGuarded);
-  response.set('Cache-Control', guarded ? cacheHeader.replace(/^public\b/i, 'private') : cacheHeader);
-  if (guarded) {
-    response.vary('Cookie');
-    response.vary('Authorization');
-  }
-  response.set('ETag', etag);
-  if (requestEtag === etag) return response.status(304).end();
-  return response.json(data);
-}
-
 function pageEtag(baseEtag: string, page: number, pageSize: number, className: string, stale = false) {
   return `"${baseEtag.replace(/^"|"$/g, '')}-p${page}-s${pageSize}-c${etagToken(className)}${stale ? '-stale' : ''}"`;
 }
@@ -103,7 +92,7 @@ export function createArenaDecksRouter(dependencies: ArenaDecksRouterDependencie
     const cached = dependencies.cache.current;
     if (cached && cached.expiresAt > timestamp) {
       const data = shapeArenaDecksPage(cached.data, page, pageSize, className);
-      return sendCached(response, request.headers['if-none-match'], data, pageEtag(cached.etag, data.page, pageSize, className), cacheHeader);
+      return sendDatasetJsonCached(request, response, data, pageEtag(cached.etag, data.page, pageSize, className), cacheHeader);
     }
 
     try {
@@ -113,13 +102,13 @@ export function createArenaDecksRouter(dependencies: ArenaDecksRouterDependencie
       const etag = `"arena-decks-${updatedToken}-${data.decks.length}-${data.totalDecks ?? 0}"`;
       dependencies.cache.current = { data, etag, expiresAt: timestamp + cacheTtlMs };
       const shaped = shapeArenaDecksPage(data, page, pageSize, className);
-      return sendCached(response, request.headers['if-none-match'], shaped, pageEtag(etag, shaped.page, pageSize, className), cacheHeader);
+      return sendDatasetJsonCached(request, response, shaped, pageEtag(etag, shaped.page, pageSize, className), cacheHeader);
     } catch (error) {
       dependencies.onFetchError?.(error);
       const stale = dependencies.cache.current;
       if (stale) {
         const data = shapeArenaDecksPage({ ...stale.data, warning: 'stale' }, page, pageSize, className);
-        return sendCached(response, request.headers['if-none-match'], data, pageEtag(stale.etag, data.page, pageSize, className, true), staleHeader);
+        return sendDatasetJsonCached(request, response, data, pageEtag(stale.etag, data.page, pageSize, className, true), staleHeader);
       }
       return response.status(502).json({ error: 'Arena decks unavailable' });
     }

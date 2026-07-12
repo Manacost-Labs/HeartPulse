@@ -34,6 +34,7 @@ import { createArticleRouter } from './articleRoutes.js';
 import { createOperationalRouter } from './operationalRoutes.js';
 import { createArenaDecksRouter, type ArenaDecksCacheStore } from './arenaDeckRoutes.js';
 import { createStandardMatchupRouter } from './standardMatchupRoutes.js';
+import { createClassMatchupRouter, type ClassMatchupCacheStore } from './classMatchupRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -101,7 +102,7 @@ interface ProxyBodyCacheEntry {
   etag: string;
   expiresAt: number;
 }
-let classMatchupsCache: MemoryCacheEntry | null = null;
+const classMatchupsCache: ClassMatchupCacheStore = { current: null };
 const winratesApiCache = new Map<string, MemoryCacheEntry>();
 const tierlistApiCache = new Map<string, MemoryCacheEntry>();
 const legendariesApiCache = new Map<string, MemoryCacheEntry>();
@@ -148,7 +149,7 @@ function invalidateDataCache() {
   standardMatchupsApiCache.clear();
   battlegroundAppProxyCache.clear();
   homeSummaryApiCache = null;
-  classMatchupsCache = null;
+  classMatchupsCache.current = null;
   arenaDecksCache.current = null;
   void clearRedisDataCache();
 }
@@ -5741,35 +5742,21 @@ app.get('/api/winrates', requireArenaAccess, async (req, res) => {
   return sendCached(req, res, { ...snapshotEntry, data: { ...snapshotEntry.data, source: 'cached' } }, 'public, max-age=300, stale-while-revalidate=600');
 });
 
-app.get('/api/class-matchups', requireArenaAccess, async (req, res) => {
-  const now = Date.now();
-  if (classMatchupsCache && classMatchupsCache.expiresAt > now) {
-    return sendJsonCached(req, res, classMatchupsCache.data, classMatchupsCache.etag, CACHE_1H, 'memory');
-  }
-  const redisKey = redisDataKey('class-matchups');
-  const redisCached = await redisGetCache<any>(redisKey);
-  if (redisCached) {
-    classMatchupsCache = { data: redisCached.data, etag: redisCached.etag, expiresAt: now + CLASS_MATCHUPS_CACHE_MS };
-    return sendJsonCached(req, res, redisCached.data, redisCached.etag, CACHE_1H, 'redis');
-  }
-
-  try {
-    const data = await fetchClassMatchupsData();
-    const updatedToken = data.updatedAt ? new Date(data.updatedAt).getTime().toString(36) : now.toString(36);
-    const etag = `"class-matchups-${updatedToken}-${data.matchups.length}"`;
-    classMatchupsCache = { data, etag, expiresAt: now + CLASS_MATCHUPS_CACHE_MS };
-    void redisSetCache(redisKey, data, etag, REDIS_DATASET_TTL_SECONDS);
-    return sendJsonCached(req, res, data, etag, CACHE_1H, 'origin');
-  } catch (err: any) {
-    if (classMatchupsCache) {
-      return sendJsonCached(req, res, {
-        ...classMatchupsCache.data,
-        warning: 'stale',
-      }, classMatchupsCache.etag, 'public, max-age=300, stale-while-revalidate=600');
-    }
-    return res.status(502).json({ error: err?.message ?? 'Class matchups unavailable' });
-  }
-});
+app.use('/api', createClassMatchupRouter({
+  accessGuard: requireArenaAccess,
+  cache: classMatchupsCache,
+  redisKey: redisDataKey('class-matchups'),
+  redisGet: redisGetCache,
+  redisSet: redisSetCache,
+  fetchMatchups: fetchClassMatchupsData,
+  memoryTtlMs: CLASS_MATCHUPS_CACHE_MS,
+  redisTtlSeconds: REDIS_DATASET_TTL_SECONDS,
+  cacheHeader: CACHE_1H,
+  onError: (scope, error) => console.error(
+    `[class-matchups] ${scope} failed:`,
+    error instanceof Error ? error.message : error,
+  ),
+}));
 
 app.use('/api', createStandardMatchupRouter({
   accessGuard: requireStandardAccess,
