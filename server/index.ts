@@ -31,6 +31,7 @@ import { createBattlegroundProxyRouter } from './battlegroundProxyRoutes.js';
 import { createArticleCoverRouter } from './articleCoverRoutes.js';
 import { createGuidesArchiveRouter } from './guidesArchiveRoutes.js';
 import { createArticleRouter } from './articleRoutes.js';
+import { createOperationalRouter } from './operationalRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -6387,30 +6388,16 @@ const metricsRouter = createMetricsRouter({
 app.use('/metrics', metricsRouter);
 app.use('/api/metrics', metricsRouter);
 
-app.get('/api/status', (req, res) => {
-  const wr = loadDataCached('winrates.json');
-  const tl = loadDataCached('tierlist.json');
-  const data = {
-    winrates: { updatedAt: wr?.data?.updatedAt ?? null, source: wr?.data?.source ?? null },
-    tierlist: { updatedAt: tl?.data?.updatedAt ?? null, source: tl?.data?.source ?? null },
-    nextScrape: 'каждые 6 часов',
-  };
-  const etag = `"status-${wr?.mtime?.toString(36) ?? '0'}-${tl?.mtime?.toString(36) ?? '0'}"`;
-  return sendJsonCached(req, res, data, etag, CACHE_5M);
-});
-
-app.post('/api/scrape', manualScrapeGuard, scrapeLimiter, createScrapeQueueHandler(DATA_DIR));
-
-// ─── IP check endpoint (mirrors api/check-ip.js for Vercel) ──────────────────
-
-app.get('/api/check-ip', (req, res) => {
-  const user = userAuth(req);
-  res.json({
-    allowed: isAdminUser(user),
-    id: user?.id ?? null,
-    ip: getTrustedClientIp(req),
-  });
-});
+app.use('/api', createOperationalRouter({
+  loadDataset: filename => loadDataCached(filename),
+  authenticate: userAuth,
+  isAdmin: user => isAdminUser(user as AdminUser | null),
+  getClientIp: getTrustedClientIp,
+  scrapeGuard: manualScrapeGuard,
+  scrapeLimiter,
+  scrapeQueueHandler: createScrapeQueueHandler(DATA_DIR),
+  publicCacheHeader: CACHE_5M,
+}));
 
 app.post('/api/auth/register', authCodeRequestLimiter, async (req, res) => {
   setPrivateNoStore(res);
