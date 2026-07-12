@@ -930,10 +930,21 @@ for (const [device, viewport] of [
     }
     for (const selector of ['.home-latest-articles', '.home-bg-directory', '.home-arena-directory']) {
       await page.$eval(selector, element => element.scrollIntoView({ block: 'center' }));
-      await page.waitForFunction(target => {
-        const element = document.querySelector(target);
-        return Boolean(element?.classList.contains('is-visible')) && getComputedStyle(element).opacity === '1';
-      }, { timeout: 5_000 }, selector);
+      try {
+        await page.waitForFunction(target => {
+          const element = document.querySelector(target);
+          const animated = document.querySelector('.home-modern')?.classList.contains('home-reveal-enabled');
+          return Boolean(element)
+            && (!animated || element.classList.contains('is-visible'))
+            && Number(getComputedStyle(element).opacity) > 0.99;
+        }, { timeout: 5_000 }, selector);
+      } catch {
+        const state = await page.$eval(selector, element => ({
+          classes: element.className,
+          opacity: getComputedStyle(element).opacity,
+        }));
+        failures.push(`home lazy sections: ${selector} remained hidden (${state.classes}; opacity ${state.opacity})`);
+      }
     }
     const faqTrigger = await page.$('.home-faq-zone .faq-card__trigger');
     if (!faqTrigger) {
