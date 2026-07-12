@@ -143,6 +143,20 @@ const adminFixtures = {
       entriesCount: 3,
     }],
   },
+  '/api/admin/contests/qa-contest/entries': {
+    entries: [
+      {
+        id: 'entry-qa-1', contestId: 'qa-contest', userId: 'user-qa-1', profileId: 'PROFILE-001', name: 'Одобренный участник',
+        email: 'winner@example.test', status: 'approved', createdAt: '2026-07-11T01:00:00.000Z',
+        contact: { telegram: '@winner' }, subscription: { hasAccess: true }, profileContacts: { vk: 'vk.com/winner', telegram: '@winner' },
+      },
+      {
+        id: 'entry-qa-2', contestId: 'qa-contest', userId: 'user-qa-2', profileId: 'PROFILE-002', name: 'Участник на проверке',
+        email: 'pending@example.test', status: 'pending', createdAt: '2026-07-11T02:00:00.000Z',
+        contact: {}, subscription: { hasAccess: true }, profileContacts: {},
+      },
+    ],
+  },
   '/api/articles': {
     articles: [
       { id: 'qa-article-1', title: 'Первая статья', date: '2026-07-11', tag: 'Арена', excerpt: 'Контрольная статья Арены.', mode: 'arena', image: '', url: '/articles/qa-1' },
@@ -726,6 +740,40 @@ for (const [device, viewport] of [
     if (!mobilePreviewSelected) failures.push(`admin mailing [${device}]: mobile preview mode did not activate`);
     const mailingViolationCount = await auditAccessibility(page, `admin mailing [${device}]`, '.admin-workspace-content');
 
+    await page.goto(`${BASE}/?admin&section=contests`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForFunction(() => document.querySelectorAll('.contest-entry-row').length === 2);
+    const contestsState = await page.evaluate(() => ({
+      summaryButtons: document.querySelectorAll('.admin-contest-summary-grid button').length,
+      selectedTitle: document.querySelector('.admin-selected-contest h3')?.textContent?.trim() || '',
+      entries: document.querySelectorAll('.contest-entry-row').length,
+      disabledEntries: document.querySelectorAll('.contest-entry-row input:disabled').length,
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    if (contestsState.summaryButtons !== 6 || contestsState.selectedTitle !== 'Контрольный конкурс' || contestsState.entries !== 2 || contestsState.disabledEntries !== 1) {
+      failures.push(`admin contests [${device}]: summary, selection or entries fixture did not render`);
+    }
+    if (contestsState.scrollWidth > contestsState.clientWidth + 1) {
+      failures.push(`admin contests [${device}]: horizontal overflow ${contestsState.scrollWidth} > ${contestsState.clientWidth}`);
+    }
+    await page.click('.contest-entry-row:not(.is-disabled) input[type="checkbox"]');
+    await page.waitForFunction(() => document.querySelector('.admin-winner-publish button')?.disabled === false);
+    await page.click('.admin-form-actions .contest-secondary-button');
+    await page.waitForFunction(() => document.querySelector('.admin-contest-form h2')?.textContent?.includes('Редактирование'));
+    const contestEditorState = await page.evaluate(() => ({
+      title: document.querySelector('.admin-contest-form input:not([type="datetime-local"]):not([type="file"])')?.value || '',
+      previewTitle: document.querySelector('.admin-contest-preview-card h3')?.textContent?.trim() || '',
+    }));
+    if (contestEditorState.title !== 'Контрольный конкурс' || contestEditorState.previewTitle !== 'Контрольный конкурс') {
+      failures.push(`admin contests [${device}]: edit action did not populate form and preview`);
+    }
+    await page.click('.admin-view-switch button:first-child');
+    await page.click('.admin-contest-summary-grid button:nth-child(5)');
+    await page.waitForFunction(() => document.querySelectorAll('.admin-contest-list button').length === 0);
+    const contestEmptyState = await page.$eval('.admin-contest-list [role="status"]', element => element.textContent?.trim() || '');
+    if (!contestEmptyState.includes('нет')) failures.push(`admin contests [${device}]: filtered empty state is missing`);
+    const contestsViolationCount = await auditAccessibility(page, `admin contests [${device}]`, '.admin-workspace-content');
+
     await page.goto(`${BASE}/?admin&section=users`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.contest-user-row').length === 2);
     const usersState = await page.evaluate(() => ({
@@ -755,7 +803,7 @@ for (const [device, viewport] of [
     if (!focusRestored) failures.push(`admin users [${device}]: Escape did not restore focus to the action trigger`);
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
-    console.log(`✓ admin dashboard/articles/gallery/Boosty/Telegram/mailing/users [${device}] interactions + axe (${violationCount + articlesViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + usersViolationCount} violations)`);
+    console.log(`✓ admin dashboard/articles/gallery/Boosty/Telegram/mailing/contests/users [${device}] interactions + axe (${violationCount + articlesViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount} violations)`);
   } catch (error) {
     const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
     failures.push(`admin dashboard [${device}]: ${error.message}; page: ${diagnostic}`);

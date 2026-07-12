@@ -661,7 +661,7 @@
 
 .admin-contest-summary-grid span {
   margin-top: 0.28rem;
-  color: #64748b;
+  color: var(--admin-muted, #5d6875);
   font-size: 0.78rem;
   font-weight: 800;
 }

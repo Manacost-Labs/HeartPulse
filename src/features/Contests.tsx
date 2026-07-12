@@ -30,10 +30,7 @@ import {
   type Article,
   type ArticleDraft,
 } from './ContestAdminArticles';
-import {
-  ContestAdminImageUploader,
-  fileToDataUrl,
-} from './ContestAdminImageUploader';
+import { fileToDataUrl } from './ContestAdminImageUploader';
 import {
   ContestAdminGallery,
   type GalleryDraft,
@@ -61,6 +58,14 @@ import {
   type MailingPreviewMode,
   type MailingTemplate,
 } from './ContestAdminMailing';
+import {
+  ContestAdminContests,
+  CONTEST_STATUS_OPTIONS,
+  type Contest,
+  type ContestDraft,
+  type ContestEntry,
+  type ContestWorkspaceView,
+} from './ContestAdminContests';
 import { ADMIN_INPUT } from './contestAdminUi';
 import {
   adminWorkspaceReducer,
@@ -163,34 +168,6 @@ const CONTEST_ADMIN_USER_ID = 'user_42368c85b8de';
 function isContestAdminUser(user: AuthUser | null | undefined): boolean {
   return Boolean(user && (user.contestAdminAllowed || user.adminAllowed || user.id === CONTEST_ADMIN_USER_ID || user.profileId === CONTEST_ADMIN_USER_ID));
 }
-
-type Contest = {
-  id: string;
-  title: string;
-  description: string;
-  prize: string;
-  imageUrl: string;
-  startsAt: string;
-  endsAt: string;
-  status: string;
-  winners: string[];
-  entry?: { status: string; createdAt: string } | null;
-  entriesCount?: number;
-};
-
-type ContestEntry = {
-  id: string;
-  contestId: string;
-  userId: string;
-  profileId: string;
-  name: string;
-  email: string;
-  status: string;
-  createdAt: string;
-  contact: Record<string, any>;
-  subscription: Record<string, any>;
-  profileContacts: Record<string, string>;
-};
 
 function authJsonHeaders(): HeadersInit {
   return { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' };
@@ -392,16 +369,6 @@ export function ContestsPage({
   );
 }
 
-type ContestWorkspaceView = 'manage' | 'editor';
-
-const CONTEST_STATUS_OPTIONS = [
-  { value: 'active', label: 'Опубликовать', caption: 'Конкурс виден на сайте' },
-  { value: 'planned', label: 'Запланировать', caption: 'Виден как ближайший конкурс' },
-  { value: 'draft', label: 'Черновик', caption: 'Не показывать участникам' },
-  { value: 'completed', label: 'Завершить', caption: 'Перенести в прошлые конкурсы' },
-  { value: 'cancelled', label: 'Отменить', caption: 'Скрыть без удаления' },
-] as const;
-
 const ADMIN_NAV_ITEMS: ReadonlyArray<{
   id: AdminWorkspaceSection;
   label: string;
@@ -496,7 +463,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const [mailingSending, setMailingSending] = useState(false);
   const [mailingTesting, setMailingTesting] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<ContestDraft>({
     id: '',
     title: '',
     prize: '',
@@ -1715,259 +1682,54 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           )}
 
           {adminSection === 'contests' && (
-            <div className="contest-admin-grid">
-              <div className="admin-view-switch admin-full-card" role="group" aria-label="Режим работы с конкурсами">
-                <button type="button" className={contestWorkspaceView === 'manage' ? 'is-active' : ''} aria-pressed={contestWorkspaceView === 'manage'} onClick={() => setContestWorkspaceView('manage')}>Управление</button>
-                <button type="button" className={contestWorkspaceView === 'editor' ? 'is-active' : ''} aria-pressed={contestWorkspaceView === 'editor'} onClick={() => setContestWorkspaceView('editor')}>{form.id ? 'Редактирование' : 'Новый конкурс'}</button>
-              </div>
-
-              {contestWorkspaceView === 'editor' && (
-                <form ref={contestFormRef} className="contest-admin-card admin-contest-form" onSubmit={submitContest}>
-                <div className="admin-contest-form-head">
-                  <div>
-                    <span className="contest-eyebrow">Конкурс</span>
-                    <h2>{form.id ? 'Редактирование конкурса' : 'Новый конкурс'}</h2>
-                    {form.id ? <p>Изменения применятся к выбранному конкурсу и его публичной странице.</p> : <p>Заполни основные данные, проверь предпросмотр и выбери режим публикации.</p>}
-                  </div>
-                  <span className="admin-contest-mode">{form.id ? 'Изменение' : 'Создание'}</span>
-                </div>
-
-                <div className="admin-contest-editor">
-                  <div className="admin-contest-sections">
-                    <section className="admin-contest-section">
-                      <div className="admin-section-title">
-                        <span>1</span>
-                        <div><strong>Основное</strong><small>Название, приз и описание для участников</small></div>
-                      </div>
-                      <label>Название конкурса<input value={form.title} onChange={e => setForm(v => ({ ...v, title: e.target.value }))} placeholder="Например: Розыгрыш рунических камней" style={ADMIN_INPUT} /></label>
-                      <label>Приз<input value={form.prize} onChange={e => setForm(v => ({ ...v, prize: e.target.value }))} placeholder="Например: 3000 рунических камней" style={ADMIN_INPUT} /></label>
-                      <label>Описание<textarea value={form.description} onChange={e => setForm(v => ({ ...v, description: e.target.value }))} rows={5} placeholder="Коротко объясни условия участия и что получит победитель." style={{ ...ADMIN_INPUT, resize: 'vertical' }} /></label>
-                    </section>
-
-                    <section className="admin-contest-section">
-                      <div className="admin-section-title">
-                        <span>2</span>
-                        <div><strong>Картинка</strong><small>Можно вставить Ctrl+V, перетащить файл или указать URL</small></div>
-                      </div>
-                      <ContestAdminImageUploader label="Обложка конкурса" value={form.imageUrl} onChange={url => setForm(v => ({ ...v, imageUrl: url }))} allowExternalUrl={false} />
-                    </section>
-
-                    <section className="admin-contest-section">
-                      <div className="admin-section-title">
-                        <span>3</span>
-                        <div><strong>Расписание</strong><small>Если старт пустой, конкурс запускается сразу после публикации</small></div>
-                      </div>
-	                      <div className="admin-date-presets" aria-label="Быстрый выбор времени конкурса">
-	                        <button type="button" onClick={setContestStartNow}>Старт сейчас</button>
-	                        <button type="button" onClick={setContestStartInHour}>Старт через час</button>
-	                        <button type="button" onClick={setContestEndInTenMinutes}>Финиш +10 минут</button>
-	                        <button type="button" onClick={setContestEndInHour}>Финиш +1 час</button>
-	                        <button type="button" onClick={setContestEndTomorrow}>Финиш +24 часа</button>
-	                      </div>
-                      <div className="contest-admin-two">
-                        <label>Старт<input type="datetime-local" value={form.startsAt} onChange={e => setForm(v => ({ ...v, startsAt: e.target.value }))} style={ADMIN_INPUT} /></label>
-                        <label>Финиш<input type="datetime-local" value={form.endsAt} onChange={e => setForm(v => ({ ...v, endsAt: e.target.value }))} style={ADMIN_INPUT} /></label>
-                      </div>
-                      <span className="admin-field-hint">После финиша конкурс останется в прошлых конкурсах. Удалять его можно вручную.</span>
-                    </section>
-
-                    <section className="admin-contest-section">
-                      <div className="admin-section-title">
-                        <span>4</span>
-                        <div><strong>Публикация</strong><small>Выбери, что сайт должен сделать с конкурсом</small></div>
-                      </div>
-                      <div className="admin-status-grid">
-                        {CONTEST_STATUS_OPTIONS.map(option => (
-	                          <button
-	                            key={option.value}
-	                            type="button"
-	                            className={form.status === option.value ? 'is-active' : ''}
-	                            aria-pressed={form.status === option.value}
-	                            onClick={() => setForm(v => ({ ...v, status: option.value }))}
-	                          >
-                            <strong>{option.label}</strong>
-                            <span>{option.caption}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </section>
-                  </div>
-
-                  <aside className="admin-contest-preview-panel" aria-label="Предпросмотр конкурса">
-                    <div className="admin-contest-preview-card">
-                      {form.imageUrl ? <img src={form.imageUrl} alt="" /> : <div className="admin-contest-preview-placeholder"><ImageIcon size={28} /><span>Обложка появится здесь</span></div>}
-                      <div>
-                        <span className="admin-contest-preview-status">{currentStatus.label}</span>
-                        <h3>{form.title.trim() || 'Название конкурса'}</h3>
-                        <p>{form.description.trim() || 'Описание будет видно участникам на странице конкурсов.'}</p>
-                        <dl>
-                          <div><dt>Приз</dt><dd>{form.prize.trim() || 'не указан'}</dd></div>
-                          <div><dt>Старт</dt><dd>{previewStartsAt}</dd></div>
-                          <div><dt>Финиш</dt><dd>{previewEndsAt}</dd></div>
-                        </dl>
-                      </div>
-                    </div>
-                    <div className="admin-form-actions admin-contest-submit-row">
-                      <button type="submit" disabled={loading || !form.title.trim() || !form.prize.trim()} className="contest-primary-button">
-                        {form.id ? 'Сохранить изменения' : 'Создать конкурс'}
-                      </button>
-                      <button type="button" className="contest-secondary-button" onClick={resetContestForm}>
-                        {form.id ? 'Создать новый' : 'Очистить форму'}
-                      </button>
-                    </div>
-                    {form.id && <p className="contest-muted">Редактируется: <code>{form.id}</code></p>}
-                  </aside>
-                </div>
-                </form>
-              )}
-
-              {contestWorkspaceView === 'manage' && (
-                <div className="contest-admin-card admin-contest-manage-card">
-                <div className="admin-contest-form-head">
-                  <div>
-                    <span className="contest-eyebrow">Управление</span>
-                    <h2>Рабочий стол конкурсов</h2>
-                    <p>Один экран для проверки заявок, выбора победителей и завершения конкурса.</p>
-                  </div>
-                  <button type="button" className="contest-secondary-button" onClick={resetContestForm}>Новый конкурс</button>
-                </div>
-
-	                <div className="admin-contest-summary-grid" aria-label="Сводка конкурсов">
-	                  <button type="button" className={contestStatusFilter === 'all' ? 'is-active' : ''} aria-pressed={contestStatusFilter === 'all'} onClick={() => setContestStatusFilter('all')}>
-	                    <strong>{contestStats.all}</strong><span>Все</span>
-	                  </button>
-	                  <button type="button" className={contestStatusFilter === 'active' ? 'is-active' : ''} aria-pressed={contestStatusFilter === 'active'} onClick={() => setContestStatusFilter('active')}>
-	                    <strong>{contestStats.active}</strong><span>Активные</span>
-	                  </button>
-	                  <button type="button" className={contestStatusFilter === 'planned' ? 'is-active' : ''} aria-pressed={contestStatusFilter === 'planned'} onClick={() => setContestStatusFilter('planned')}>
-	                    <strong>{contestStats.planned}</strong><span>Скоро</span>
-	                  </button>
-	                  <button type="button" className={contestStatusFilter === 'draft' ? 'is-active' : ''} aria-pressed={contestStatusFilter === 'draft'} onClick={() => setContestStatusFilter('draft')}>
-	                    <strong>{contestStats.draft}</strong><span>Черновики</span>
-	                  </button>
-	                  <button type="button" className={contestStatusFilter === 'completed' ? 'is-active' : ''} aria-pressed={contestStatusFilter === 'completed'} onClick={() => setContestStatusFilter('completed')}>
-	                    <strong>{contestStats.completed}</strong><span>Завершены</span>
-	                  </button>
-	                  <button type="button" className={contestStatusFilter === 'cancelled' ? 'is-active' : ''} aria-pressed={contestStatusFilter === 'cancelled'} onClick={() => setContestStatusFilter('cancelled')}>
-	                    <strong>{contestStats.cancelled}</strong><span>Отменены</span>
-	                  </button>
-                </div>
-
-                <div className="admin-contest-workflow">
-                  <div className="admin-contest-picker">
-                    <div className="admin-subsection-head">
-                      <div>
-                        <strong>1. Выберите конкурс</strong>
-                        <span>{filteredContests.length ? `${filteredContests.length} в текущем фильтре` : 'нет конкурсов в фильтре'}</span>
-                      </div>
-                    </div>
-                    <div className="admin-contest-list">
-                      {filteredContests.map(contest => (
-                        <div key={contest.id} className={contest.id === selectedContestId ? 'is-selected' : ''}>
-	                          <button type="button" aria-pressed={contest.id === selectedContestId} onClick={() => dispatchContestSelection({ type: 'select', contest })}>
-                            <strong>{contest.title}</strong>
-                            <span>{contestStatusLabel(contest.status)} · {contest.entriesCount ?? 0} заявок{contest.endsAt ? ` · ${formatDate(contest.endsAt)}` : ''}</span>
-                          </button>
-                        </div>
-                      ))}
-                      {!filteredContests.length && <p className="contest-muted">В этом фильтре конкурсов нет.</p>}
-                    </div>
-                  </div>
-
-                  <div className="admin-contest-detail">
-                    {selectedContest ? (
-                      <>
-                        <div className="admin-selected-contest">
-                          <div>
-                            <span className={`admin-status-badge admin-status-${selectedContest.status}`}>{contestStatusLabel(selectedContest.status)}</span>
-                            <h3>{selectedContest.title}</h3>
-                            <p>{selectedContest.prize}</p>
-                          </div>
-                          <dl>
-                            <div><dt>Заявки</dt><dd>{selectedContestEntryCount}</dd></div>
-                            <div><dt>Одобрены</dt><dd>{approvedEntries.length}</dd></div>
-                            <div><dt>Победители</dt><dd>{selectedContestWinnerCount}</dd></div>
-                          </dl>
-                        </div>
-
-                        <div className="admin-form-actions">
-                          <button type="button" className="contest-secondary-button" onClick={editSelectedContest}>Редактировать настройки</button>
-                          <button type="button" className="contest-secondary-button" onClick={() => void loadAdminContests()}>Обновить список</button>
-                          <button type="button" className="admin-danger-button" onClick={() => void deleteContest(selectedContest)} disabled={loading}>Удалить конкурс</button>
-                        </div>
-
-                        <div className="admin-subsection-head">
-                          <div>
-                            <strong>2. Проверьте заявки</strong>
-                            <span>Отмечайте победителей прямо в списке. Неодобренные заявки нельзя выбрать.</span>
-                          </div>
-                          <button type="button" className="contest-secondary-button" onClick={clearWinnerSelection} disabled={!selectedWinnerIds.length}>Сбросить выбор</button>
-                        </div>
-
-                        <div className="contest-entry-list">
-                          {entriesLoading ? <p className="contest-muted">Загружаем заявки конкурса...</p> : entries.length ? visibleEntries.map(entry => {
-                            const isApproved = entry.status === 'approved';
-                            const isWinner = selectedWinnerIdSet.has(entry.profileId);
-                            return (
-                              <div
-                                key={entry.id}
-                                className={`contest-entry-row admin-winner-entry ${isWinner ? 'is-winner' : ''} ${!isApproved ? 'is-disabled' : ''}`}
-                              >
-                                <label className="admin-winner-select">
-                                  <input
-                                    type="checkbox"
-                                    checked={isWinner}
-                                    disabled={!isApproved}
-                                    onChange={() => toggleWinner(entry.profileId)}
-                                  />
-                                  <span>
-                                    <strong>{entry.name || entry.profileId}</strong>
-                                    <small>{entry.profileId} · {entry.email || 'email не указан'}</small>
-                                    <small>VK: {entry.profileContacts?.vk || entry.contact?.vk || '—'} · TG: {entry.profileContacts?.telegram || entry.contact?.telegram || '—'}</small>
-                                  </span>
-                                </label>
-                                <div className="contest-entry-actions">
-                                  <code>{contestStatusLabel(entry.status)}</code>
-                                  <button type="button" className="contest-secondary-button" onClick={() => void copyText(entry.profileId, 'ID участника скопирован.')}>ID</button>
-                                </div>
-                              </div>
-                            );
-                          }) : <p className="contest-muted">Заявок пока нет. После первой заявки здесь появится список участников.</p>}
-                        </div>
-                        {entriesPageCount > 1 && (
-                          <nav className="admin-pagination" aria-label="Страницы заявок конкурса">
-                            <button type="button" disabled={entriesPage === 1 || entriesLoading} onClick={() => dispatchContestSelection({ type: 'setEntriesPage', entriesPage: entriesPage - 1 })}>Назад</button>
-                            <span>Страница {entriesPage} из {entriesPageCount}</span>
-                            <button type="button" disabled={entriesPage === entriesPageCount || entriesLoading} onClick={() => dispatchContestSelection({ type: 'setEntriesPage', entriesPage: Math.min(entriesPageCount, entriesPage + 1) })}>Далее</button>
-                          </nav>
-                        )}
-
-                        <div className="admin-winner-publish">
-                          <div>
-                            <strong>3. Завершите конкурс</strong>
-                            <span>{selectedContestApprovedWinnerCount} из {selectedContestWinnerCount} выбранных ID найдены среди одобренных заявок.</span>
-                          </div>
-                          <button type="button" disabled={loading || !selectedContestId || !selectedWinnerIds.length} onClick={saveWinners} className="contest-primary-button">
-                            Опубликовать победителей
-                          </button>
-                        </div>
-
-                        <label>Ручной список ID победителей
-                          <textarea value={winnersText} onChange={event => dispatchContestSelection({ type: 'setWinnersText', winnersText: event.target.value })} rows={3} placeholder="Можно вставить ID через запятую или с новой строки" style={{ ...ADMIN_INPUT, resize: 'vertical' }} />
-                        </label>
-                      </>
-                    ) : (
-                      <div className="contest-empty">
-                        <Trophy size={34} />
-                        <strong>Выберите конкурс</strong>
-                        <span>После выбора появятся заявки, быстрые действия и публикация победителей.</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                </div>
-              )}
-            </div>
+            <ContestAdminContests
+              view={contestWorkspaceView}
+              onViewChange={setContestWorkspaceView}
+              form={form}
+              formRef={contestFormRef}
+              onFormChange={patch => setForm(current => ({ ...current, ...patch }))}
+              onSubmit={submitContest}
+              onReset={resetContestForm}
+              onStartNow={setContestStartNow}
+              onStartInHour={setContestStartInHour}
+              onEndInTenMinutes={setContestEndInTenMinutes}
+              onEndInHour={setContestEndInHour}
+              onEndTomorrow={setContestEndTomorrow}
+              currentStatusLabel={currentStatus.label}
+              previewStartsAt={previewStartsAt}
+              previewEndsAt={previewEndsAt}
+              loading={loading}
+              statusFilter={contestStatusFilter}
+              onStatusFilterChange={setContestStatusFilter}
+              stats={contestStats}
+              contests={filteredContests}
+              selectedContestId={selectedContestId}
+              selectedContest={selectedContest}
+              onSelectContest={contest => dispatchContestSelection({ type: 'select', contest })}
+              onEditSelected={editSelectedContest}
+              onReload={() => void loadAdminContests()}
+              onDelete={contest => void deleteContest(contest)}
+              selectedContestEntryCount={selectedContestEntryCount}
+              approvedEntryCount={approvedEntries.length}
+              selectedWinnerCount={selectedContestWinnerCount}
+              entries={entries}
+              visibleEntries={visibleEntries}
+              entriesLoading={entriesLoading}
+              selectedWinnerIds={selectedWinnerIds}
+              selectedWinnerIdSet={selectedWinnerIdSet}
+              onToggleWinner={toggleWinner}
+              onClearWinners={clearWinnerSelection}
+              entriesPage={entriesPage}
+              entriesPageCount={entriesPageCount}
+              onEntriesPageChange={entriesPage => dispatchContestSelection({ type: 'setEntriesPage', entriesPage })}
+              approvedWinnerCount={selectedContestApprovedWinnerCount}
+              onSaveWinners={() => void saveWinners()}
+              winnersText={winnersText}
+              onWinnersTextChange={nextWinnersText => dispatchContestSelection({ type: 'setWinnersText', winnersText: nextWinnersText })}
+              onCopyProfileId={profileId => void copyText(profileId, 'ID участника скопирован.')}
+              formatDate={formatDate}
+              statusLabel={contestStatusLabel}
+            />
           )}
 
           {hasFullAdminAccess && adminSection === 'referrals' && (
