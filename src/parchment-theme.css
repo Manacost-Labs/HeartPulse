@@ -580,34 +580,34 @@
 /* ─── Community and FAQ ───────────────────────────────────────────────── */
 
 .arena-app-home .home-community {
-  overflow: hidden !important;
-  padding: 5px 0 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  color: #f7e8c3 !important;
-  background: var(--arena-wood-divider) top / 100% 5px no-repeat !important;
-  box-shadow: none !important;
+  overflow: hidden;
+  padding: 5px 0 0;
+  border: 0;
+  border-radius: 0;
+  color: #f7e8c3;
+  background: var(--arena-wood-divider) top / 100% 5px no-repeat;
+  box-shadow: none;
 }
 
-.arena-app-home .home-community::before { display: none !important; }
+.arena-app-home .home-community::before { display: none; }
 
 .arena-app-home .home-community__lead,
 .arena-app-home .home-community > a {
-  min-height: 105px !important;
-  padding: 1.2rem !important;
-  color: #f7e8c3 !important;
+  min-height: 105px;
+  padding: 1.2rem;
+  color: #f7e8c3;
   background:
     linear-gradient(90deg, rgba(72, 6, 11, 0.16), rgba(105, 15, 20, 0.05)),
-    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
 }
 
 .arena-app-home .home-community > a + a,
-.arena-app-home .home-community__lead + a { border-left-color: rgba(239, 202, 119, 0.23) !important; }
+.arena-app-home .home-community__lead + a { border-left-color: rgba(239, 202, 119, 0.23); }
 .arena-app-home .home-community__lead small,
-.arena-app-home .home-community > a small { color: #d4b77b !important; }
+.arena-app-home .home-community > a small { color: #d4b77b; }
 .arena-app-home .home-community__lead strong,
-.arena-app-home .home-community > a strong { color: #fff2cd !important; }
-.arena-app-home .home-community > a:hover { background-color: rgba(44, 3, 6, 0.25) !important; }
+.arena-app-home .home-community > a strong { color: #fff2cd; }
+.arena-app-home .home-community > a:hover { background-color: rgba(44, 3, 6, 0.25); }
 
 /* Footer's legacy rules live in Tailwind's utilities layer and use !important.
    Keep one public-shell correction in the same layer so every route gets the
@@ -640,8 +640,8 @@
 }
 
 .arena-app-home .home-workbench :where(a, button):focus-visible {
-  outline: 3px solid rgba(123, 21, 27, 0.72) !important;
-  outline-offset: 3px !important;
+  outline: 3px solid rgba(123, 21, 27, 0.72);
+  outline-offset: 3px;
 }
 
 /* ─── Responsive ──────────────────────────────────────────────────────── */
@@ -659,24 +659,24 @@
 @media (max-width: 640px) {
   .arena-app-home .arena-content.arena-content-open { padding: 0 1rem 2rem !important; }
 
-  .arena-app-home .home-workbench { gap: 3.2rem !important; }
+  .arena-app-home .home-workbench { gap: 3.2rem; }
 
-  .arena-app-home .home-stage__actions { display: grid !important; grid-template-columns: 1fr !important; }
-  .arena-app-home .home-action { width: 100% !important; }
+  .arena-app-home .home-stage__actions { display: grid; grid-template-columns: 1fr; }
+  .arena-app-home .home-action { width: 100%; }
 
   .arena-app-home .home-section-heading { align-items: flex-start; }
   .arena-app-home .home-section-heading > p { display: none; }
   .arena-app-home .home-section-heading h2 { font-size: 2rem; }
 
   .arena-app-home .home-community {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .arena-app-home .home-community__lead,
-  .arena-app-home .home-community > a { min-height: 84px !important; }
+  .arena-app-home .home-community > a { min-height: 84px; }
   .arena-app-home .home-community > a + a,
-  .arena-app-home .home-community__lead + a { border-left: 0 !important; border-top: 1px solid rgba(239, 202, 119, 0.23) !important; }
+  .arena-app-home .home-community__lead + a { border-left: 0; border-top: 1px solid rgba(239, 202, 119, 0.23); }
 
   .arena-app-home .home-page-index {
     margin-inline: -1rem;

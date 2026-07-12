@@ -1146,6 +1146,65 @@ for (const [device, viewport] of [
       || Math.abs(desktopShell.sectionPaddingTop - 56) > 0.1) {
       failures.push(`home shell: desktop stage and live-orbit theme changed (${JSON.stringify(desktopShell)})`);
     }
+    const desktopCommunity = await page.$eval('.home-community', element => {
+      const rootStyles = getComputedStyle(element);
+      const lead = element.querySelector('.home-community__lead');
+      const firstLink = element.querySelector(':scope > a');
+      const small = lead?.querySelector('small');
+      const strong = lead?.querySelector('strong');
+      const leadStyles = lead ? getComputedStyle(lead) : null;
+      const linkStyles = firstLink ? getComputedStyle(firstLink) : null;
+      return {
+        display: rootStyles.display,
+        overflow: rootStyles.overflow,
+        padding: rootStyles.padding,
+        border: rootStyles.borderTopWidth,
+        radius: rootStyles.borderRadius,
+        color: rootStyles.color,
+        backgroundImage: rootStyles.backgroundImage,
+        shadow: rootStyles.boxShadow,
+        beforeDisplay: getComputedStyle(element, '::before').display,
+        leadMinHeight: leadStyles?.minHeight || '',
+        leadPadding: leadStyles?.padding || '',
+        leadColor: leadStyles?.color || '',
+        leadBackground: leadStyles?.backgroundImage || '',
+        linkBorderLeftWidth: linkStyles?.borderLeftWidth || '',
+        linkBorderLeftColor: linkStyles?.borderLeftColor || '',
+        smallColor: small ? getComputedStyle(small).color : '',
+        strongColor: strong ? getComputedStyle(strong).color : '',
+      };
+    });
+    if (desktopCommunity.display !== 'grid'
+      || desktopCommunity.overflow !== 'hidden'
+      || desktopCommunity.padding !== '5px 0px 0px'
+      || desktopCommunity.border !== '0px'
+      || desktopCommunity.radius !== '0px'
+      || desktopCommunity.color !== 'rgb(247, 232, 195)'
+      || desktopCommunity.backgroundImage === 'none'
+      || desktopCommunity.shadow !== 'none'
+      || desktopCommunity.beforeDisplay !== 'none'
+      || desktopCommunity.leadMinHeight !== '105px'
+      || desktopCommunity.leadPadding !== '19.2px'
+      || desktopCommunity.leadColor !== 'rgb(247, 232, 195)'
+      || !desktopCommunity.leadBackground.includes('arena-rail-red.jpg')
+      || desktopCommunity.linkBorderLeftWidth !== '1px'
+      || desktopCommunity.linkBorderLeftColor !== 'rgba(239, 202, 119, 0.23)'
+      || desktopCommunity.smallColor !== 'rgb(212, 183, 123)'
+      || desktopCommunity.strongColor !== 'rgb(255, 242, 205)') {
+      failures.push(`home community: desktop tavern strip changed (${JSON.stringify(desktopCommunity)})`);
+    }
+    await page.$eval('.home-action', element => element.focus());
+    const focusedAction = await page.$eval('.home-action', element => ({
+      outlineWidth: getComputedStyle(element).outlineWidth,
+      outlineColor: getComputedStyle(element).outlineColor,
+      outlineOffset: getComputedStyle(element).outlineOffset,
+    }));
+    if (focusedAction.outlineWidth !== '3px'
+      || focusedAction.outlineColor !== 'rgba(123, 21, 27, 0.72)'
+      || focusedAction.outlineOffset !== '3px') {
+      failures.push(`home shell: keyboard focus treatment changed (${JSON.stringify(focusedAction)})`);
+    }
+    await page.$eval('.home-action', element => element.blur());
     await page.hover('.home-action');
     await new Promise(resolve => setTimeout(resolve, 250));
     const hoveredAction = await page.$eval('.home-action', element => ({
@@ -1154,6 +1213,13 @@ for (const [device, viewport] of [
     }));
     if (hoveredAction.transform !== 'matrix(1, 0, 0, 1, 0, -2)' || hoveredAction.shadow === 'none') {
       failures.push(`home shell: CTA hover treatment changed (${JSON.stringify(hoveredAction)})`);
+    }
+    await page.mouse.move(0, 0);
+    await page.hover('.home-community > a');
+    await new Promise(resolve => setTimeout(resolve, 220));
+    const hoveredCommunityLink = await page.$eval('.home-community > a', element => getComputedStyle(element).backgroundColor);
+    if (hoveredCommunityLink !== 'rgba(44, 3, 6, 0.25)') {
+      failures.push(`home community: link hover treatment changed (${hoveredCommunityLink})`);
     }
     await page.mouse.move(0, 0);
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
@@ -1214,6 +1280,48 @@ for (const [device, viewport] of [
       || mobileBgDirectory.featuredPadding !== '12.48px'
       || mobileBgDirectory.gridWidth > mobileBgDirectory.viewportWidth) {
       failures.push(`home Battlegrounds directory: mobile frame changed (${JSON.stringify(mobileBgDirectory)})`);
+    }
+    const mobileShell = await page.$eval('.home-workbench', element => {
+      const actions = element.querySelector('.home-stage__actions');
+      const actionLinks = Array.from(actions?.querySelectorAll('.home-action') || []);
+      const firstActionRect = actionLinks[0]?.getBoundingClientRect();
+      const secondActionRect = actionLinks[1]?.getBoundingClientRect();
+      const actionsRect = actions?.getBoundingClientRect();
+      const community = element.querySelector('.home-community');
+      const communityLead = community?.querySelector('.home-community__lead');
+      const communityLink = community?.querySelector(':scope > a');
+      const communityStyles = community ? getComputedStyle(community) : null;
+      const communityLinkStyles = communityLink ? getComputedStyle(communityLink) : null;
+      return {
+        workbenchGap: getComputedStyle(element).gap,
+        actionsDisplay: actions ? getComputedStyle(actions).display : '',
+        actionColumns: actions ? getComputedStyle(actions).gridTemplateColumns : '',
+        actionWidth: firstActionRect?.width || 0,
+        actionsWidth: actionsRect?.width || 0,
+        actionsStacked: Boolean(firstActionRect && secondActionRect && secondActionRect.top >= firstActionRect.bottom),
+        communityDisplay: communityStyles?.display || '',
+        communityColumns: communityStyles?.gridTemplateColumns || '',
+        communityWidth: community?.getBoundingClientRect().width || 0,
+        viewportWidth: document.documentElement.clientWidth,
+        communityLeadMinHeight: communityLead ? getComputedStyle(communityLead).minHeight : '',
+        communityLinkBorderLeft: communityLinkStyles?.borderLeftWidth || '',
+        communityLinkBorderTop: communityLinkStyles?.borderTopWidth || '',
+        communityLinkBorderTopColor: communityLinkStyles?.borderTopColor || '',
+      };
+    });
+    if (mobileShell.workbenchGap !== '51.2px'
+      || mobileShell.actionsDisplay !== 'grid'
+      || mobileShell.actionColumns.split(/\s+/).length !== 1
+      || Math.abs(mobileShell.actionWidth - mobileShell.actionsWidth) > 0.5
+      || !mobileShell.actionsStacked
+      || mobileShell.communityDisplay !== 'grid'
+      || mobileShell.communityColumns.split(/\s+/).length !== 1
+      || mobileShell.communityWidth > mobileShell.viewportWidth
+      || mobileShell.communityLeadMinHeight !== '84px'
+      || mobileShell.communityLinkBorderLeft !== '0px'
+      || mobileShell.communityLinkBorderTop !== '1px'
+      || mobileShell.communityLinkBorderTopColor !== 'rgba(239, 202, 119, 0.23)') {
+      failures.push(`home shell: mobile CTA/community layout changed (${JSON.stringify(mobileShell)})`);
     }
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
     const faqTrigger = await page.$('.home-faq-zone .faq-card__trigger');
