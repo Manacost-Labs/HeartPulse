@@ -22,6 +22,7 @@ import { createMetricsRouter, HttpMetrics } from './metrics.js';
 import { requestLoggingMiddleware, structuredErrorMiddleware } from './observability.js';
 import { createScrapeQueueHandler } from './scrapeQueue.js';
 import { decodeSignedStateCookie, encodeSignedStateCookie, safeAuthReturnTo } from './authRedirect.js';
+import { csrfRequestAllowed } from './csrf.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -3037,17 +3038,20 @@ function recordAdminAudit(actor: AdminUser, action: string, entityType: string, 
   recordAdminAuditByActorId(actor.id, action, entityType, entityId, details);
 }
 
-function adminMutationOriginAllowed(req: import('express').Request): boolean {
-  if (String(req.headers.authorization || '').toLowerCase().startsWith('bearer ')) return true;
-  const raw = String(req.headers.origin || req.headers.referer || '').trim();
-  if (!raw) return false;
-  try {
-    const source = new URL(raw);
-    const app = new URL(APP_URL);
-    return source.origin === app.origin || source.hostname === 'localhost' || source.hostname === '127.0.0.1';
-  } catch {
-    return false;
-  }
+function cookieMutationCsrfAllowed(req: import('express').Request): boolean {
+  const requestPath = new URL(req.originalUrl, 'http://localhost').pathname;
+  return csrfRequestAllowed({
+    method: req.method,
+    path: requestPath,
+    authorization: req.headers.authorization,
+    authCookiePresent: Boolean(cookieValue(req, AUTH_COOKIE_NAME)),
+    csrfHeader: req.headers['x-csrf-request'],
+    origin: req.headers.origin,
+    referer: req.headers.referer,
+    secFetchSite: req.headers['sec-fetch-site'],
+    appUrl: APP_URL,
+    allowLocalDevelopmentOrigins: process.env.NODE_ENV !== 'production',
+  });
 }
 
 function isAdminUser(user: AdminUser | null | undefined): user is AdminUser {
@@ -5618,9 +5622,14 @@ app.use((req, res, next) => {
     }
   }
   res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Request');
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
+});
+
+app.use('/api/', (req, res, next) => {
+  if (cookieMutationCsrfAllowed(req)) return next();
+  return res.status(403).json({ error: 'Запрос отклонён: обновите страницу' });
 });
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
@@ -8185,7 +8194,7 @@ app.patch('/api/admin/users/:userId', (req, res) => {
   if (wantsLifetimeChange && typeof req.body?.lifetimeAccess !== 'boolean') {
     return res.status(400).json({ error: 'Некорректное значение бессрочного доступа' });
   }
-  if (!adminMutationOriginAllowed(req)) {
+  if (!cookieMutationCsrfAllowed(req)) {
     return res.status(403).json({ error: 'Запрос отклонён: обновите страницу и повторите действие' });
   }
   const wantsRoleChange = nextRoleRaw !== undefined;
@@ -8287,7 +8296,7 @@ app.get('/api/admin/mailings/overview', (req, res) => {
 app.post('/api/admin/mailings/preview', (req, res) => {
   const admin = adminAuth(req);
   if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  if (!adminMutationOriginAllowed(req)) return res.status(403).json({ error: 'Запрос отклонён: обновите страницу' });
+  if (!cookieMutationCsrfAllowed(req)) return res.status(403).json({ error: 'Запрос отклонён: обновите страницу' });
   setPrivateNoStore(res);
   if (!NEWSLETTER_UNSUBSCRIBE_SECRET) {
     return res.status(503).json({ error: 'На сервере не настроена безопасная подпись предпросмотра' });
@@ -8313,7 +8322,7 @@ app.post('/api/admin/mailings/preview', (req, res) => {
 app.post('/api/admin/mailings/test', adminIdGuard, newsletterTestLimiter, async (req, res) => {
   const admin = adminAuth(req);
   if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  if (!adminMutationOriginAllowed(req)) return res.status(403).json({ error: 'Запрос отклонён: обновите страницу' });
+  if (!cookieMutationCsrfAllowed(req)) return res.status(403).json({ error: 'Запрос отклонён: обновите страницу' });
   setPrivateNoStore(res);
   try {
     if (!isRealEmail(admin.email)) return res.status(400).json({ error: 'У администратора нет подтверждённой почты для теста' });
@@ -8343,7 +8352,7 @@ app.post('/api/admin/mailings/test', adminIdGuard, newsletterTestLimiter, async 
 app.post('/api/admin/mailings/send', adminIdGuard, newsletterSendLimiter, (req, res) => {
   const admin = adminAuth(req);
   if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  if (!adminMutationOriginAllowed(req)) return res.status(403).json({ error: 'Запрос отклонён: обновите страницу' });
+  if (!cookieMutationCsrfAllowed(req)) return res.status(403).json({ error: 'Запрос отклонён: обновите страницу' });
   setPrivateNoStore(res);
   try {
     if (String(req.body?.confirmation || '') !== 'SEND') {

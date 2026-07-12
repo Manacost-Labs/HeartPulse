@@ -218,7 +218,7 @@ type AdminUserSearchResult = {
 };
 
 function authJsonHeaders(): HeadersInit {
-  return { 'Content-Type': 'application/json' };
+  return { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' };
 }
 
 function contestStatusLabel(status: string): string {

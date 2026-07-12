@@ -3206,6 +3206,7 @@ export function LoginPanel({
 
   const authHeaders = useCallback((extra: Record<string, string> = {}) => ({
     ...extra,
+    'X-CSRF-Request': '1',
     ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
   }), [authToken]);
 
@@ -4527,6 +4528,7 @@ export function AdminPanel({
 
   const authHeaders = useCallback((extra: Record<string, string> = {}) => ({
     ...extra,
+    'X-CSRF-Request': '1',
     ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
   }), [authToken]);
 

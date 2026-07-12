@@ -952,10 +952,10 @@ export default function App() {
       const res = await fetch(force ? '/api/subscription/refresh' : '/api/subscription/status', {
         method: force ? 'POST' : 'GET',
         credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' },
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Не удалось проверить подписку');
+      if (!res.ok) throw 0;
       setAppSubscription(data);
       return data as SubscriptionStatus;
     } catch {
