@@ -65,6 +65,16 @@ type SubscriptionEntitlementKey =
   | 'arenaArticles'
   | 'battlegroundsArticles';
 
+const SUBSCRIPTION_ENTITLEMENT_LABELS: ReadonlyArray<[SubscriptionEntitlementKey, string]> = [
+  ['arena', 'Арена'],
+  ['battlegrounds', 'Поля Сражений'],
+  ['standard', 'Стандарт'],
+  ['contests', 'Конкурсы'],
+  ['guidesArchive', 'Архив гайдов'],
+  ['arenaArticles', 'Статьи Арены'],
+  ['battlegroundsArticles', 'Статьи Полей'],
+];
+
 interface Article {
   id: string;
   title: string;
@@ -420,6 +430,33 @@ export function ContestsPage({
 type AdminWorkspaceSection = 'dashboard' | 'users' | 'mailing' | 'telegram' | 'articles' | 'gallery' | 'contests' | 'referrals' | 'boosty';
 type ContestWorkspaceView = 'manage' | 'editor';
 
+const CONTEST_STATUS_OPTIONS = [
+  { value: 'active', label: 'Опубликовать', caption: 'Конкурс виден на сайте' },
+  { value: 'planned', label: 'Запланировать', caption: 'Виден как ближайший конкурс' },
+  { value: 'draft', label: 'Черновик', caption: 'Не показывать участникам' },
+  { value: 'completed', label: 'Завершить', caption: 'Перенести в прошлые конкурсы' },
+  { value: 'cancelled', label: 'Отменить', caption: 'Скрыть без удаления' },
+] as const;
+
+const ADMIN_NAV_ITEMS: ReadonlyArray<{
+  id: AdminWorkspaceSection;
+  label: string;
+  caption: string;
+  status: string;
+  group: string;
+  icon: React.ElementType;
+}> = [
+  { id: 'dashboard', label: 'Обзор', caption: 'Состояние проекта и быстрые действия', status: 'Сводка проекта', group: 'Рабочий стол', icon: LayoutDashboard },
+  { id: 'articles', label: 'Статьи', caption: 'Публикации, раздел и доступ', status: 'Сохранение по кнопке', group: 'Контент', icon: Newspaper },
+  { id: 'gallery', label: 'Галерея', caption: 'Арты и оригиналы для скачивания', status: 'Сохранение по кнопке', group: 'Контент', icon: ImageIcon },
+  { id: 'users', label: 'Пользователи', caption: 'Права, блокировки и контакты', status: 'Действия с подтверждением', group: 'Аудитория', icon: Users },
+  { id: 'mailing', label: 'Рассылка', caption: 'Письма, шаблоны и история отправок', status: 'Безопасная очередь отправки', group: 'Аудитория', icon: Mail },
+  { id: 'boosty', label: 'Boosty', caption: 'Подписчики и уровни доступа', status: 'Данные только для просмотра', group: 'Аудитория', icon: CircleDollarSign },
+  { id: 'telegram', label: 'Telegram', caption: 'Аккаунты и проверка доступа', status: 'Данные только для просмотра', group: 'Аудитория', icon: MessageCircle },
+  { id: 'contests', label: 'Конкурсы', caption: 'Заявки, статусы и победители', status: 'Сохранение по кнопке', group: 'Рост', icon: Trophy },
+  { id: 'referrals', label: 'Реферальные ссылки', caption: 'Кампании и статистика кликов', status: 'Сохранение по кнопке', group: 'Рост', icon: Link2 },
+];
+
 const ADMIN_USERS_PAGE_SIZE = 20;
 const ADMIN_ARTICLES_PAGE_SIZE = 12;
 const ADMIN_AUDIENCE_PAGE_SIZE = 20;
@@ -665,16 +702,11 @@ function mailingConsentLabel(contact: MailingContact): string {
 
 function subscriptionEntitlementLabels(subscription: { hasAccess?: boolean; entitlements?: SubscriptionStatus['entitlements'] } | null | undefined): string[] {
   if (!subscription?.entitlements) return subscription?.hasAccess ? ['Все разделы'] : [];
-  const labels: Array<[SubscriptionEntitlementKey, string]> = [
-    ['arena', 'Арена'],
-    ['battlegrounds', 'Поля Сражений'],
-    ['standard', 'Стандарт'],
-    ['contests', 'Конкурсы'],
-    ['guidesArchive', 'Архив гайдов'],
-    ['arenaArticles', 'Статьи Арены'],
-    ['battlegroundsArticles', 'Статьи Полей'],
-  ];
-  return labels.filter(([key]) => subscription.entitlements?.[key]).map(([, label]) => label);
+  const labels: string[] = [];
+  for (const [key, label] of SUBSCRIPTION_ENTITLEMENT_LABELS) {
+    if (subscription.entitlements[key]) labels.push(label);
+  }
+  return labels;
 }
 
 function fileToDataUrl(file: File): Promise<string> {
@@ -902,8 +934,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const contestFormRef = useRef<HTMLFormElement | null>(null);
   const galleryFileInputRef = useRef<HTMLInputElement | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
-  const userMenuTriggerRefs = useRef<Map<string, HTMLButtonElement> | null>(null);
-  const userMenuTriggerMap = userMenuTriggerRefs.current ??= new Map<string, HTMLButtonElement>();
+  const userMenuTriggerMap = useMemo(() => new Map<string, HTMLButtonElement>(), []);
   const mailingPreviewRequestRef = useRef(0);
   const mailingDraftDirtyRef = useRef(false);
 
@@ -941,6 +972,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
 
   useEffect(() => {
     if (!adminMenuOpen) return;
+    const menuButton = adminMenuButtonRef.current;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const focusable = (): HTMLElement[] => {
@@ -972,7 +1004,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       window.cancelAnimationFrame(focusFrame);
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = previousOverflow;
-      window.requestAnimationFrame(() => adminMenuButtonRef.current?.focus());
+      window.requestAnimationFrame(() => menuButton?.focus());
     };
   }, [adminMenuOpen]);
 
@@ -1922,14 +1954,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     });
   };
   const clearWinnerSelection = () => setWinnersText('');
-  const contestStatusOptions = [
-    { value: 'active', label: 'Опубликовать', caption: 'Конкурс виден на сайте' },
-    { value: 'planned', label: 'Запланировать', caption: 'Виден как ближайший конкурс' },
-    { value: 'draft', label: 'Черновик', caption: 'Не показывать участникам' },
-    { value: 'completed', label: 'Завершить', caption: 'Перенести в прошлые конкурсы' },
-    { value: 'cancelled', label: 'Отменить', caption: 'Скрыть без удаления' },
-  ];
-  const currentStatus = contestStatusOptions.find(item => item.value === form.status) ?? contestStatusOptions[0];
+  const currentStatus = CONTEST_STATUS_OPTIONS.find(item => item.value === form.status) ?? CONTEST_STATUS_OPTIONS[0];
   const previewStartsAt = form.startsAt ? formatDate(form.startsAt) : 'сразу после публикации';
   const previewEndsAt = form.endsAt ? formatDate(form.endsAt) : 'без даты окончания';
   const totalReferralClicks = referrals.reduce((sum, item) => sum + (item.clicks || 0), 0);
@@ -1948,25 +1973,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       : boostyApiTone === 'not-configured'
         ? 'не настроен'
         : 'ошибка';
-  const allAdminNav: Array<{
-    id: AdminWorkspaceSection;
-    label: string;
-    caption: string;
-    status: string;
-    group: string;
-    icon: React.ElementType;
-  }> = [
-    { id: 'dashboard', label: 'Обзор', caption: 'Состояние проекта и быстрые действия', status: 'Сводка проекта', group: 'Рабочий стол', icon: LayoutDashboard },
-    { id: 'articles', label: 'Статьи', caption: 'Публикации, раздел и доступ', status: 'Сохранение по кнопке', group: 'Контент', icon: Newspaper },
-    { id: 'gallery', label: 'Галерея', caption: 'Арты и оригиналы для скачивания', status: 'Сохранение по кнопке', group: 'Контент', icon: ImageIcon },
-    { id: 'users', label: 'Пользователи', caption: 'Права, блокировки и контакты', status: 'Действия с подтверждением', group: 'Аудитория', icon: Users },
-    { id: 'mailing', label: 'Рассылка', caption: 'Письма, шаблоны и история отправок', status: 'Безопасная очередь отправки', group: 'Аудитория', icon: Mail },
-    { id: 'boosty', label: 'Boosty', caption: 'Подписчики и уровни доступа', status: 'Данные только для просмотра', group: 'Аудитория', icon: CircleDollarSign },
-    { id: 'telegram', label: 'Telegram', caption: 'Аккаунты и проверка доступа', status: 'Данные только для просмотра', group: 'Аудитория', icon: MessageCircle },
-    { id: 'contests', label: 'Конкурсы', caption: 'Заявки, статусы и победители', status: 'Сохранение по кнопке', group: 'Рост', icon: Trophy },
-    { id: 'referrals', label: 'Реферальные ссылки', caption: 'Кампании и статистика кликов', status: 'Сохранение по кнопке', group: 'Рост', icon: Link2 },
-  ];
-  const adminNav = hasFullAdminAccess ? allAdminNav : allAdminNav.filter(item => item.id === 'contests');
+  const adminNav = hasFullAdminAccess ? ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS.filter(item => item.id === 'contests');
   const activeAdminItem = adminNav.find(item => item.id === adminSection) || adminNav[0];
 
   return (
@@ -2926,7 +2933,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
                         <div><strong>Публикация</strong><small>Выбери, что сайт должен сделать с конкурсом</small></div>
                       </div>
                       <div className="admin-status-grid">
-                        {contestStatusOptions.map(option => (
+                        {CONTEST_STATUS_OPTIONS.map(option => (
 	                          <button
 	                            key={option.value}
 	                            type="button"
