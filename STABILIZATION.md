@@ -228,7 +228,7 @@ A task is complete only when all relevant checks below are proven.
   - [x] The initial-shell source no longer carries 103 retired route, deck, card-modal and admin declarations in `App.tsx`; React Doctor improved from 60 to 71 and CI now rejects unused declarations or parameters across all six initial-shell modules.
   - [x] Initial CSS is down from 322.7 KB to 164.1 KB: the 47.4 KB route parchment layer, 67.6 KB deferred Arena-data layer, three 3.5–4.2 KB below-fold home styles, 3.4 KB FAQ styles, 3.5 KB support-prompt styles and 3.6 KB footer styles load only with their owners. CI caps every layer and proves both route layers stay out of the home route.
   - [x] Retired draft-path, arena-board, card-rail and Battlegrounds-spotlight Home styles and their unused animations were removed from both initial owners; CI rejects all 19 retired Home selector prefixes.
-  - [x] The next ownership audit removed retired switcher, Arena-header, Home-summary, promotion and transition rules; built initial CSS fell from 164.1 KB to 152.4 KB, CI now caps it at 153 KB, rejects 22 additional retired prefixes and ratchets the legacy `!important` ceiling from 2,562 to 2,503.
+  - [x] The next ownership audits removed retired switcher, Arena-header, Home-summary, promotion and transition rules plus 139 declarations fully overridden by the current Home layout; built initial CSS fell from 164.1 KB to 148,407 bytes, CI caps it at 150,000 bytes, rejects 22 additional retired prefixes and ratchets the legacy `!important` ceiling from 2,562 to 2,429.
   - [x] The next cascade audit removed 139 declarations that were fully overridden by the current Home layout; built initial CSS is 148,407 bytes and CI now enforces a 150,000-byte ceiling.
 
 ## Progress metrics
