@@ -52,6 +52,10 @@ import {
   type BoostyAdminStatus,
   type BoostySubscribersPayload,
 } from './ContestAdminBoosty';
+import {
+  ContestAdminTelegram,
+  type TelegramAccountsPayload,
+} from './ContestAdminTelegram';
 import { ADMIN_INPUT } from './contestAdminUi';
 import {
   adminWorkspaceReducer,
@@ -414,8 +418,7 @@ const ADMIN_NAV_ITEMS: ReadonlyArray<{
 
 const ADMIN_USERS_PAGE_SIZE = 20;
 const ADMIN_ARTICLES_PAGE_SIZE = 12;
-const ADMIN_AUDIENCE_PAGE_SIZE = 20;
-
+const ADMIN_ENTRIES_PAGE_SIZE = 20;
 const ADMIN_WORKSPACE_SECTION_IDS: AdminWorkspaceSection[] = [
   'dashboard',
   'articles',
@@ -438,52 +441,6 @@ function adminSectionFromLocation(defaultSection: AdminWorkspaceSection): AdminW
   if (params.has('contest') || params.has('contests')) return 'contests';
   return defaultSection;
 }
-
-type TelegramAdminAccount = {
-  id: string;
-  profileId: string;
-  name: string;
-  email: string;
-  role: string;
-  blockedAt: string;
-  telegramId: string;
-  telegramOidcId: string;
-  telegramUsername: string;
-  contactTelegram: string;
-  photoUrl: string;
-  hasTelegramIdentity: boolean;
-  hasContactOnly: boolean;
-  canBeChecked: boolean;
-  hasAccess: boolean;
-  telegramHasAccess: boolean;
-  accessState: 'access' | 'checkable' | 'contact-only' | 'no-access' | 'blocked';
-  source: string;
-  message: string;
-  checkedAt: string;
-  updatedAt: string;
-  stale: boolean;
-  entitlements?: SubscriptionStatus['entitlements'];
-  chats: Array<Record<string, any>>;
-  boostyHasAccess: boolean;
-  createdAt: string;
-  userUpdatedAt: string;
-};
-
-type TelegramAccountsPayload = {
-  configured: boolean;
-  chatIds: string[];
-  summary: {
-    total: number;
-    access: number;
-    checkable: number;
-    contactOnly: number;
-    stale: number;
-    blocked: number;
-  };
-  accounts: TelegramAdminAccount[];
-  fetchedAt: string;
-  error?: string;
-};
 
 type MailingSegment = 'all-consented' | 'active' | 'former';
 type MailingPreviewMode = 'desktop' | 'mobile';
@@ -683,9 +640,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const [boostySubscribersLoading, setBoostySubscribersLoading] = useState(false);
   const [telegramAccounts, setTelegramAccounts] = useState<TelegramAccountsPayload | null>(null);
   const [telegramAccountsLoading, setTelegramAccountsLoading] = useState(false);
-  const [telegramAccountsSearch, setTelegramAccountsSearch] = useState('');
-  const [telegramAccessFilter, setTelegramAccessFilter] = useState<'all' | 'access' | 'checkable' | 'contact-only' | 'stale' | 'blocked'>('all');
-  const [telegramPage, setTelegramPage] = useState(1);
 
   const entriesRequestRef = useRef(0);
   const adminMenuButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -1515,10 +1469,10 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const selectedWinnerIds = useMemo(() => parseWinnerIds(winnersText), [winnersText]);
   const selectedWinnerIdSet = useMemo(() => new Set(selectedWinnerIds), [selectedWinnerIds]);
   const approvedEntries = useMemo(() => entries.filter(entry => entry.status === 'approved'), [entries]);
-  const entriesPageCount = Math.max(1, Math.ceil(entries.length / ADMIN_AUDIENCE_PAGE_SIZE));
+  const entriesPageCount = Math.max(1, Math.ceil(entries.length / ADMIN_ENTRIES_PAGE_SIZE));
   const entriesPage = Math.min(contestSelection.entriesPage, entriesPageCount);
   const visibleEntries = useMemo(
-    () => entries.slice((entriesPage - 1) * ADMIN_AUDIENCE_PAGE_SIZE, entriesPage * ADMIN_AUDIENCE_PAGE_SIZE),
+    () => entries.slice((entriesPage - 1) * ADMIN_ENTRIES_PAGE_SIZE, entriesPage * ADMIN_ENTRIES_PAGE_SIZE),
     [entries, entriesPage],
   );
   const contestStats = useMemo(() => {
@@ -1563,39 +1517,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const selectedContestWinnerCount = selectedWinnerIds.length;
   const selectedContestApprovedWinnerCount = approvedEntries.filter(entry => selectedWinnerIdSet.has(entry.profileId)).length;
 
-  const filteredTelegramAccounts = useMemo(() => {
-    const query = telegramAccountsSearch.trim().toLowerCase();
-    return (telegramAccounts?.accounts || []).filter(account => {
-      if (telegramAccessFilter === 'access' && !account.telegramHasAccess) return false;
-      if (telegramAccessFilter === 'checkable' && account.accessState !== 'checkable') return false;
-      if (telegramAccessFilter === 'contact-only' && account.accessState !== 'contact-only') return false;
-      if (telegramAccessFilter === 'stale' && !account.stale) return false;
-      if (telegramAccessFilter === 'blocked' && account.accessState !== 'blocked') return false;
-      if (!query) return true;
-      const haystack = [
-        account.id,
-        account.profileId,
-        account.name,
-        account.email,
-        account.telegramId,
-        account.telegramOidcId,
-        account.telegramUsername,
-        account.contactTelegram,
-        account.source,
-        account.message,
-      ].filter(Boolean).join(' ').toLowerCase();
-      return haystack.includes(query);
-    });
-  }, [telegramAccessFilter, telegramAccounts, telegramAccountsSearch]);
-  const telegramPageCount = Math.max(1, Math.ceil(filteredTelegramAccounts.length / ADMIN_AUDIENCE_PAGE_SIZE));
-  const visibleTelegramAccounts = useMemo(
-    () => filteredTelegramAccounts.slice((telegramPage - 1) * ADMIN_AUDIENCE_PAGE_SIZE, telegramPage * ADMIN_AUDIENCE_PAGE_SIZE),
-    [filteredTelegramAccounts, telegramPage],
-  );
-
-  useEffect(() => {
-    setTelegramPage(current => Math.min(current, telegramPageCount));
-  }, [telegramPageCount]);
   if (authChecking) {
     return (
       <section className="contest-admin-page admin-access-state">
@@ -1997,135 +1918,16 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           )}
 
           {hasFullAdminAccess && adminSection === 'telegram' && (
-            <div className="contest-admin-card admin-full-card">
-              <div className="contest-users-head">
-                <div>
-                  <h2>Telegram-аккаунты</h2>
-                  <p className="contest-muted">
-                    Профили с Telegram и историей проверки. Показано {visibleTelegramAccounts.length} из {filteredTelegramAccounts.length}{filteredTelegramAccounts.length !== (telegramAccounts?.accounts.length || 0) ? ` · всего ${telegramAccounts?.accounts.length || 0}` : ''}.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="contest-secondary-button"
-                  disabled={telegramAccountsLoading}
-                  onClick={() => void loadTelegramAccounts()}
-                >
-                  {telegramAccountsLoading ? 'Загрузка...' : 'Обновить данные'}
-                </button>
-              </div>
-
-              <div className={`admin-telegram-status ${telegramAccounts?.error ? 'is-error' : telegramAccounts?.configured ? 'is-ok' : 'is-warning'}`}>
-                <div>
-                  <strong>{telegramAccounts?.error ? 'Не удалось получить данные Telegram' : telegramAccounts?.configured ? 'Telegram bot настроен' : 'Telegram bot не настроен'}</strong>
-                  {telegramAccounts?.error && <span>{telegramAccounts.error}</span>}
-                  <span>Каналы проверки: {telegramAccounts?.chatIds?.length ? telegramAccounts.chatIds.join(', ') : 'нет настроенных chat_id'}</span>
-                  <span>Загружено: {telegramAccounts?.fetchedAt ? formatDate(telegramAccounts.fetchedAt) : '—'} · Устаревшие проверки: {telegramAccounts?.summary.stale ?? 0}</span>
-                </div>
-              </div>
-
-              <div className="admin-stat-grid admin-telegram-stats">
-                <div><span>Всего</span><strong>{telegramAccounts?.summary.total ?? 0}</strong><small>Telegram-связанные профили</small></div>
-                <div><span>Доступ</span><strong>{telegramAccounts?.summary.access ?? 0}</strong><small>есть в VIP-каналах</small></div>
-                <div><span>Можно проверить</span><strong>{telegramAccounts?.summary.checkable ?? 0}</strong><small>есть Telegram ID</small></div>
-                <div><span>Только username</span><strong>{telegramAccounts?.summary.contactOnly ?? 0}</strong><small>нужна привязка Telegram</small></div>
-              </div>
-
-              <div className="admin-telegram-filters admin-page-toolbar">
-                <label>
-                  Поиск
-                  <input
-                    value={telegramAccountsSearch}
-                    onChange={e => { setTelegramAccountsSearch(e.target.value); setTelegramPage(1); }}
-                    placeholder="email, имя, @username или Telegram ID"
-                    style={ADMIN_INPUT}
-                  />
-                </label>
-                <label>
-                  Статус
-                  <select value={telegramAccessFilter} onChange={e => { setTelegramAccessFilter(e.target.value as typeof telegramAccessFilter); setTelegramPage(1); }} style={ADMIN_INPUT}>
-                    <option value="all">Все</option>
-                    <option value="access">Есть Telegram-доступ</option>
-                    <option value="checkable">Можно проверить</option>
-                    <option value="contact-only">Только username</option>
-                    <option value="stale">Устаревшая проверка</option>
-                    <option value="blocked">Заблокированные</option>
-                  </select>
-                </label>
-              </div>
-
-              <div className="admin-telegram-list">
-                {telegramAccountsLoading && !telegramAccounts?.accounts.length ? (
-                  <p className="contest-muted">Загружаем Telegram-аккаунты...</p>
-                ) : visibleTelegramAccounts.length ? visibleTelegramAccounts.map(account => {
-                  const accessLabels = subscriptionEntitlementLabels({
-                    hasAccess: account.hasAccess,
-                    entitlements: account.entitlements,
-                  });
-                  const stateLabel = account.accessState === 'access'
-                    ? 'Есть доступ'
-                    : account.accessState === 'checkable'
-                      ? 'Можно проверить ботом'
-                      : account.accessState === 'contact-only'
-                        ? 'Только username'
-                        : account.accessState === 'blocked'
-                          ? 'Заблокирован'
-                          : 'Нет доступа';
-                  return (
-                    <article key={account.id} className={`admin-telegram-row is-${account.accessState}`}>
-                      <div className="admin-telegram-person">
-                        {account.photoUrl ? (
-                          <img src={account.photoUrl} alt="" />
-                        ) : (
-                          <span>{(account.name || account.telegramUsername || account.email || '?').slice(0, 1).toUpperCase()}</span>
-                        )}
-                        <div>
-                          <strong>{account.name || account.telegramUsername || 'Без имени'}</strong>
-                          <small>{account.email || 'email не указан'}</small>
-                          <code>{account.profileId}</code>
-                        </div>
-                      </div>
-                      <div>
-                        <strong>{account.telegramUsername ? `@${account.telegramUsername}` : 'Telegram username не указан'}</strong>
-                        <span>Telegram ID: {account.telegramId || '—'}</span>
-                        <span>OIDC ID: {account.telegramOidcId || '—'}</span>
-                        <span>Контакт в профиле: {account.contactTelegram ? `@${account.contactTelegram}` : '—'}</span>
-                      </div>
-                      <div>
-                        <strong>{stateLabel}</strong>
-                        <span>Источник: {account.source || '—'}</span>
-                        <span>Доступы: {accessLabels.join(', ') || 'нет'}</span>
-                        <span>Проверка: {account.checkedAt ? formatDate(account.checkedAt) : '—'}{account.stale ? ' · устарела' : ''}</span>
-                        {account.message && <small>{account.message}</small>}
-                      </div>
-                      <div className="admin-telegram-chats">
-                        <strong>Каналы</strong>
-                        {account.chats.length ? account.chats.map((chat, index) => (
-                          <span key={`${account.id}-${String(chat.chatId || index)}`} className={chat.isMember || chat.hasAccess ? 'is-member' : 'is-missing'}>
-                            {String(chat.chatId || chat.id || 'chat')}
-                            {' · '}
-                            {String(chat.status || chat.error || (chat.isMember || chat.hasAccess ? 'member' : 'no access'))}
-                          </span>
-                        )) : (
-                          <span>Истории проверки каналов нет</span>
-                        )}
-                      </div>
-                    </article>
-                  );
-                }) : (
-                  <p className="contest-muted">
-                    {telegramAccounts ? 'Telegram-аккаунты не найдены по текущим фильтрам.' : 'Нажмите “Обновить Telegram”, чтобы загрузить список аккаунтов.'}
-                  </p>
-                )}
-              </div>
-              {telegramPageCount > 1 && (
-                <nav className="admin-pagination" aria-label="Страницы списка Telegram-аккаунтов">
-                  <button type="button" disabled={telegramPage === 1} onClick={() => setTelegramPage(page => Math.max(1, page - 1))}>Назад</button>
-                  <span>Страница {telegramPage} из {telegramPageCount}</span>
-                  <button type="button" disabled={telegramPage === telegramPageCount} onClick={() => setTelegramPage(page => Math.min(telegramPageCount, page + 1))}>Далее</button>
-                </nav>
-              )}
-            </div>
+            <ContestAdminTelegram
+              payload={telegramAccounts}
+              loading={telegramAccountsLoading}
+              onReload={() => void loadTelegramAccounts()}
+              formatDate={formatDate}
+              entitlementLabels={account => subscriptionEntitlementLabels({
+                hasAccess: account.hasAccess,
+                entitlements: account.entitlements as SubscriptionStatus['entitlements'],
+              })}
+            />
           )}
 
           {hasFullAdminAccess && adminSection === 'articles' && (

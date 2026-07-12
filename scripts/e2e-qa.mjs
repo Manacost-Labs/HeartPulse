@@ -222,9 +222,27 @@ const adminFixtures = {
   },
   '/api/admin/telegram/accounts': {
     configured: true,
-    chatIds: [],
-    summary: { total: 6, access: 5, checkable: 5, contactOnly: 1, stale: 0, blocked: 0 },
-    accounts: [],
+    chatIds: ['-100123456'],
+    summary: { total: 2, access: 1, checkable: 1, contactOnly: 1, stale: 1, blocked: 0 },
+    accounts: [
+      {
+        id: 'telegram-qa-1', profileId: 'TG-0001', name: 'Участник VIP', email: 'vip@example.test', role: 'user', blockedAt: '',
+        telegramId: '10001', telegramOidcId: 'oidc-10001', telegramUsername: 'vip_member', contactTelegram: 'vip_member', photoUrl: '',
+        hasTelegramIdentity: true, hasContactOnly: false, canBeChecked: true, hasAccess: true, telegramHasAccess: true,
+        accessState: 'access', source: 'telegram', message: 'Участник найден', checkedAt: '2026-07-11T00:00:00.000Z',
+        updatedAt: '2026-07-11T00:00:00.000Z', stale: false, entitlements: { arena: true, battlegrounds: true },
+        chats: [{ chatId: '-100123456', status: 'member', isMember: true, hasAccess: true }], boostyHasAccess: false,
+        createdAt: '2026-07-01T00:00:00.000Z', userUpdatedAt: '2026-07-11T00:00:00.000Z',
+      },
+      {
+        id: 'telegram-qa-2', profileId: 'TG-0002', name: 'Контакт без привязки', email: 'contact@example.test', role: 'user', blockedAt: '',
+        telegramId: '', telegramOidcId: '', telegramUsername: 'contact_only', contactTelegram: 'contact_only', photoUrl: '',
+        hasTelegramIdentity: false, hasContactOnly: true, canBeChecked: false, hasAccess: false, telegramHasAccess: false,
+        accessState: 'contact-only', source: 'profile', message: 'Нужна привязка Telegram', checkedAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-07-11T00:00:00.000Z', stale: true, entitlements: {}, chats: [], boostyHasAccess: false,
+        createdAt: '2026-07-02T00:00:00.000Z', userUpdatedAt: '2026-07-11T00:00:00.000Z',
+      },
+    ],
     fetchedAt: '2026-07-11T00:00:00.000Z',
   },
   '/api/admin/users': {
@@ -544,7 +562,7 @@ for (const [device, viewport] of [
     if (state.stats.length !== 4) failures.push(`admin dashboard [${device}]: expected 4 KPI cards, got ${state.stats.length}`);
     const expectedStats = [
       { label: 'Контент', value: '2', detail: 'статей · 1 артов' },
-      { label: 'Аудитория', value: '4', detail: 'платных Boosty · Telegram 5' },
+      { label: 'Аудитория', value: '4', detail: 'платных Boosty · Telegram 1' },
       { label: 'Конкурсы', value: '1', detail: '3 заявок' },
       { label: 'Кампании', value: '1', detail: '7 переходов' },
     ];
@@ -643,6 +661,29 @@ for (const [device, viewport] of [
     if (!boostyEmptyState.includes('не найдены')) failures.push(`admin Boosty [${device}]: filtered empty state is missing`);
     const boostyViolationCount = await auditAccessibility(page, `admin Boosty [${device}]`, '.admin-workspace-content');
 
+    await page.goto(`${BASE}/?admin&section=telegram`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForFunction(() => document.querySelectorAll('.admin-telegram-row').length === 2);
+    const telegramState = await page.evaluate(() => ({
+      rows: document.querySelectorAll('.admin-telegram-row').length,
+      stats: [...document.querySelectorAll('.admin-telegram-stats strong')].map(element => element.textContent?.trim() || ''),
+      botStatus: document.querySelector('.admin-telegram-status strong')?.textContent?.trim() || '',
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    if (telegramState.rows !== 2 || telegramState.stats.join(',') !== '2,1,1,1' || !telegramState.botStatus.includes('настроен')) {
+      failures.push(`admin Telegram [${device}]: deterministic status, KPI or account list did not render`);
+    }
+    if (telegramState.scrollWidth > telegramState.clientWidth + 1) {
+      failures.push(`admin Telegram [${device}]: horizontal overflow ${telegramState.scrollWidth} > ${telegramState.clientWidth}`);
+    }
+    await page.select('.admin-telegram-filters select', 'contact-only');
+    await page.waitForFunction(() => document.querySelectorAll('.admin-telegram-row').length === 1);
+    await page.type('.admin-telegram-filters input', 'нет такого аккаунта');
+    await page.waitForFunction(() => document.querySelectorAll('.admin-telegram-row').length === 0);
+    const telegramEmptyState = await page.$eval('.admin-telegram-list [role="status"]', element => element.textContent?.trim() || '');
+    if (!telegramEmptyState.includes('не найдены')) failures.push(`admin Telegram [${device}]: filtered empty state is missing`);
+    const telegramViolationCount = await auditAccessibility(page, `admin Telegram [${device}]`, '.admin-workspace-content');
+
     await page.goto(`${BASE}/?admin&section=users`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.contest-user-row').length === 2);
     const usersState = await page.evaluate(() => ({
@@ -672,7 +713,7 @@ for (const [device, viewport] of [
     if (!focusRestored) failures.push(`admin users [${device}]: Escape did not restore focus to the action trigger`);
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
-    console.log(`✓ admin dashboard/articles/gallery/Boosty/users [${device}] interactions + axe (${violationCount + articlesViolationCount + galleryViolationCount + boostyViolationCount + usersViolationCount} violations)`);
+    console.log(`✓ admin dashboard/articles/gallery/Boosty/Telegram/users [${device}] interactions + axe (${violationCount + articlesViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + usersViolationCount} violations)`);
   } catch (error) {
     const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
     failures.push(`admin dashboard [${device}]: ${error.message}; page: ${diagnostic}`);
