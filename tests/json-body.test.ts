@@ -1,11 +1,24 @@
 import assert from 'node:assert/strict';
 import express from 'express';
-import { createRouteAwareJsonParser, jsonLimitForBase64Binary } from '../server/jsonBody.js';
+import {
+  createRouteAwareJsonParser,
+  createUploadAuthorizationGuard,
+  jsonLimitForBase64Binary,
+} from '../server/jsonBody.js';
 
 assert.equal(jsonLimitForBase64Binary(12 * 1024 * 1024), 17_039_360);
 assert.ok(jsonLimitForBase64Binary(32 * 1024 * 1024) < 43 * 1024 * 1024);
 
 const app = express();
+let parserReached = 0;
+app.use(createUploadAuthorizationGuard({
+  galleryAccessStatus: req => req.headers['x-test-role'] === 'admin' ? null : 401,
+  adminImageAllowed: req => req.headers['x-test-role'] === 'admin',
+}));
+app.use((_req, _res, next) => {
+  parserReached += 1;
+  next();
+});
 app.use(createRouteAwareJsonParser({
   defaultLimit: 100,
   adminUploadMaxBytes: 300,
@@ -22,20 +35,25 @@ await new Promise<void>((resolve, reject) => {
   server.once('error', reject);
 });
 
-async function post(path: string, size: number): Promise<Response> {
+async function post(path: string, size: number, role = ''): Promise<Response> {
   const address = server.address();
   assert.ok(address && typeof address === 'object');
   return fetch(`http://127.0.0.1:${address.port}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(role ? { 'X-Test-Role': role } : {}) },
     body: JSON.stringify({ value: 'x'.repeat(size) }),
   });
 }
 
 try {
   assert.equal((await post('/api/auth/login', 150)).status, 413);
-  assert.equal((await post('/api/admin/uploads/image', 150)).status, 200);
-  assert.equal((await post('/api/admin/gallery?source=test', 400)).status, 200);
+  const reachedAfterOrdinaryRequest = parserReached;
+  assert.equal((await post('/api/admin/uploads/image', 150)).status, 403);
+  assert.equal(parserReached, reachedAfterOrdinaryRequest, 'unauthorized upload reached the body parser');
+  assert.equal((await post('/api/admin/gallery?source=test', 400)).status, 401);
+  assert.equal(parserReached, reachedAfterOrdinaryRequest, 'unauthorized gallery upload reached the body parser');
+  assert.equal((await post('/api/admin/uploads/image', 150, 'admin')).status, 200);
+  assert.equal((await post('/api/admin/gallery?source=test', 400, 'admin')).status, 200);
   assert.equal((await post('/api/admin/gallery-other', 150)).status, 413);
 } finally {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));

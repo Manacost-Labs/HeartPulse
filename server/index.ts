@@ -24,7 +24,7 @@ import { createScrapeQueueHandler } from './scrapeQueue.js';
 import { decodeSignedStateCookie, encodeSignedStateCookie, safeAuthReturnTo } from './authRedirect.js';
 import { csrfRequestAllowed } from './csrf.js';
 import { configureLoopbackProxyTrust, corsOriginAllowed, getTrustedClientIp } from './networkBoundary.js';
-import { createRouteAwareJsonParser } from './jsonBody.js';
+import { createRouteAwareJsonParser, createUploadAuthorizationGuard } from './jsonBody.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -5512,12 +5512,6 @@ const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST;
 
 app.use(compression({ level: 6, threshold: 1024 }));
-app.use(createRouteAwareJsonParser({
-  defaultLimit: process.env.API_JSON_BODY_LIMIT || '1mb',
-  adminUploadMaxBytes: ADMIN_UPLOAD_MAX_BYTES,
-  galleryUploadMaxBytes: GALLERY_UPLOAD_MAX_BYTES,
-}));
-app.use(express.urlencoded({ extended: false, limit: '16kb' }));
 app.use('/uploads/admin', express.static(ADMIN_UPLOAD_DIR, {
   immutable: true,
   maxAge: '30d',
@@ -5625,6 +5619,21 @@ app.use('/api/', (req, res, next) => {
   if (cookieMutationCsrfAllowed(req)) return next();
   return res.status(403).json({ error: 'Запрос отклонён: обновите страницу' });
 });
+
+app.use(createUploadAuthorizationGuard({
+  galleryAccessStatus: req => {
+    const user = userAuth(req);
+    if (!user) return 401;
+    return isAdminUser(user) ? null : 403;
+  },
+  adminImageAllowed: req => Boolean(adminAuth(req) || contestAdminAuth(req)),
+}));
+app.use(createRouteAwareJsonParser({
+  defaultLimit: process.env.API_JSON_BODY_LIMIT || '1mb',
+  adminUploadMaxBytes: ADMIN_UPLOAD_MAX_BYTES,
+  galleryUploadMaxBytes: GALLERY_UPLOAD_MAX_BYTES,
+}));
+app.use(express.urlencoded({ extended: false, limit: '16kb' }));
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
 
