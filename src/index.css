@@ -696,7 +696,7 @@
     }
 
     .arena-content {
-      max-width: min(1180px, calc(100vw - 326px)) !important;
+      max-width: min(1180px, calc(100vw - 326px));
     }
   }
 }
@@ -945,8 +945,8 @@
       linear-gradient(180deg, rgba(248, 250, 255, 0.93), rgba(235, 241, 252, 0.88)),
       radial-gradient(circle at 18% 0%, rgba(246, 206, 104, 0.16), transparent 24rem);
     border-color: rgba(226, 193, 112, 0.58);
-    border-width: 1px !important;
-    border-radius: 24px !important;
+    border-width: 1px;
+    border-radius: 24px;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.88),
       0 0 0 1px rgba(255, 255, 255, 0.12),
@@ -1032,8 +1032,8 @@
     }
 
     .arena-content.bg-parchment {
-      border-radius: 18px !important;
-      padding: 0.85rem !important;
+      border-radius: 18px;
+      padding: 0.85rem;
     }
 
     .section-banner-modern {
@@ -1088,7 +1088,7 @@
 
   .arena-content,
   .arena-content.bg-parchment {
-    border-color: rgba(148, 163, 184, 0.34) !important;
+    border-color: rgba(148, 163, 184, 0.34);
   }
 
   .arena-content [style*="#e8d5a0"],
@@ -1482,14 +1482,14 @@
 }
 
 .arena-content.bg-parchment {
-  background-color: rgba(248, 251, 255, 0.96) !important;
+  background-color: rgba(248, 251, 255, 0.96);
   background-image:
     radial-gradient(circle at 0% 0%, rgba(22, 184, 212, 0.06), transparent 22rem),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(242, 247, 254, 0.96)) !important;
-  border-color: rgba(133, 158, 190, 0.26) !important;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(242, 247, 254, 0.96));
+  border-color: rgba(133, 158, 190, 0.26);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 20px 56px rgba(30, 58, 92, 0.13) !important;
+    0 20px 56px rgba(30, 58, 92, 0.13);
 }
 
 @media (min-width: 1024px) {
@@ -1589,7 +1589,7 @@
   }
 
   .arena-content {
-    max-width: min(1240px, calc(100vw - 290px)) !important;
+    max-width: min(1240px, calc(100vw - 290px));
   }
 }
 
@@ -1599,25 +1599,25 @@
   }
 
   .arena-content.bg-parchment {
-    padding: 0.6rem !important;
-    border-radius: 17px !important;
+    padding: 0.6rem;
+    border-radius: 17px;
   }
 }
 
 /* Open canvas for content-led pages. The route shell remains unchanged elsewhere. */
 .arena-content.arena-content-open {
-  max-width: min(1480px, calc(100vw - 290px)) !important;
-  padding: clamp(0.75rem, 2.25vw, 2rem) !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  background-image: none !important;
-  box-shadow: none !important;
+  max-width: min(1480px, calc(100vw - 290px));
+  padding: clamp(0.75rem, 2.25vw, 2rem);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  background-image: none;
+  box-shadow: none;
 }
 
 @media (max-width: 1023px) {
   .arena-content.arena-content-open {
-    max-width: 100% !important;
-    padding: clamp(0.5rem, 3vw, 1.25rem) !important;
+    max-width: 100%;
+    padding: clamp(0.5rem, 3vw, 1.25rem);
   }
 }

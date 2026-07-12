@@ -26,16 +26,16 @@
 }
 
 :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-content.arena-content-open {
-  width: 100% !important;
-  max-width: 1480px !important;
-  margin: 0 auto !important;
-  padding: clamp(1rem, 2.4vw, 2.25rem) clamp(1rem, 2.7vw, 2.7rem) 3rem !important;
-  border-radius: 0 !important;
-  color: var(--arena-ink) !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  filter: none !important;
-  backdrop-filter: none !important;
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: clamp(1rem, 2.4vw, 2.25rem) clamp(1rem, 2.7vw, 2.7rem) 3rem;
+  border-radius: 0;
+  color: var(--arena-ink);
+  background: transparent;
+  box-shadow: none;
+  filter: none;
+  backdrop-filter: none;
 }
 
 .arena-mobile-topbar {
@@ -622,10 +622,10 @@
   }
 
   :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .arena-content.arena-content-open {
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    filter: none !important;
-    backdrop-filter: none !important;
+    border-radius: 0;
+    box-shadow: none;
+    filter: none;
+    backdrop-filter: none;
   }
 
   /* Legacy text utilities otherwise win over the champion plaque colors. */
@@ -647,17 +647,17 @@
 /* ─── Responsive ──────────────────────────────────────────────────────── */
 
 @media (max-width: 1023px) {
-  .arena-app-home .arena-main { padding: 0 !important; }
+  .arena-app-home .arena-main { padding: 0; }
 
   .arena-app-home .arena-content.arena-content-open {
-    max-width: 100% !important;
-    padding: clamp(1rem, 4vw, 2rem) !important;
+    max-width: 100%;
+    padding: clamp(1rem, 4vw, 2rem);
   }
 
 }
 
 @media (max-width: 640px) {
-  .arena-app-home .arena-content.arena-content-open { padding: 0 1rem 2rem !important; }
+  .arena-app-home .arena-content.arena-content-open { padding: 0 1rem 2rem; }
 
   .arena-app-home .home-workbench { gap: 3.2rem; }
 

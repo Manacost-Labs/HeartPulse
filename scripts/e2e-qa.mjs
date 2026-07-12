@@ -433,6 +433,7 @@ async function inspectLayout(page, { mobile }) {
     const routeParchmentLoaded = [...document.styleSheets]
       .some(sheet => sheet.href?.includes('/assets/route-parchment-'));
     const content = document.querySelector('.arena-content-open');
+    const contentStyle = content ? getComputedStyle(content) : null;
     const bannerStyle = banner ? getComputedStyle(banner) : null;
     const suspiciousOverlays = [...document.querySelectorAll('body *')]
       .map(element => ({ element, style: getComputedStyle(element), rect: element.getBoundingClientRect() }))
@@ -466,6 +467,14 @@ async function inspectLayout(page, { mobile }) {
       battlegroundsSurface: shell?.classList.contains('arena-app-battlegrounds') || false,
       battlegroundsBackground: shellStyle?.backgroundImage || '',
       battlegroundsSign: content ? getComputedStyle(content, '::before').backgroundImage : '',
+      contentPadding: contentStyle?.padding || '',
+      contentBorder: contentStyle?.borderTopWidth || '',
+      contentRadius: contentStyle?.borderRadius || '',
+      contentBackgroundColor: contentStyle?.backgroundColor || '',
+      contentBackgroundImage: contentStyle?.backgroundImage || '',
+      contentShadow: contentStyle?.boxShadow || '',
+      contentFilter: contentStyle?.filter || '',
+      contentBackdrop: contentStyle?.backdropFilter || '',
       bannerPosition: bannerStyle?.position || null,
       bannerOverflow: bannerStyle?.overflow || null,
       bannerHeight: banner?.getBoundingClientRect().height || 0,
@@ -483,6 +492,36 @@ function assertLayout(path, layout) {
   if (layout.shellOpacity !== '1') failures.push(`${path}: app shell opacity is ${layout.shellOpacity}`);
   if (layout.shellFilter && layout.shellFilter !== 'none') failures.push(`${path}: app shell filter is ${layout.shellFilter}`);
   if (layout.routeParchmentExpected && !layout.routeParchmentLoaded) failures.push(`${path}: route-owned parchment CSS was not loaded`);
+  if (layout.routeParchmentExpected && (
+    layout.contentBorder !== '0px'
+    || layout.contentRadius !== '0px'
+    || layout.contentShadow !== 'none'
+    || layout.contentFilter !== 'none'
+  )) {
+    failures.push(`${path}: public content canvas fell back to the legacy dashboard frame (${JSON.stringify({
+      border: layout.contentBorder,
+      radius: layout.contentRadius,
+      shadow: layout.contentShadow,
+      filter: layout.contentFilter,
+    })})`);
+  }
+  if (layout.routeParchmentExpected && !layout.battlegroundsSurface && (
+    layout.contentBackgroundColor !== 'rgba(0, 0, 0, 0)'
+    || layout.contentBackgroundImage !== 'none'
+    || layout.contentBackdrop !== 'none'
+  )) {
+    failures.push(`${path}: editorial/game-data canvas inherited the legacy blue surface (${JSON.stringify({
+      backgroundColor: layout.contentBackgroundColor,
+      backgroundImage: layout.contentBackgroundImage,
+      backdrop: layout.contentBackdrop,
+    })})`);
+  }
+  if (layout.routeParchmentExpected && !layout.battlegroundsSurface) {
+    const expectedPadding = layout.mobile ? '16px 12.8px 40px' : '36px 40.32px 56px';
+    if (layout.contentPadding !== expectedPadding) {
+      failures.push(`${path}: route content padding changed (${layout.contentPadding}; expected ${expectedPadding})`);
+    }
+  }
   if (layout.battlegroundsSurface && !layout.battlegroundsBackground.includes('arena-parchment')) {
     failures.push(`${path}: route-owned Battlegrounds parchment CSS was not loaded`);
   }
@@ -932,6 +971,33 @@ for (const [device, viewport] of [
     const expectedFooterLinks = ['/', '/classes', '/tierlist', '/legendaries', '/articles', '/gallery'];
     if (JSON.stringify(homeCssState.footerLinks) !== JSON.stringify(expectedFooterLinks)) {
       failures.push(`home lazy sections: canonical footer links are incomplete (${homeCssState.footerLinks.join(', ')})`);
+    }
+    const desktopContentCanvas = await page.$eval('.arena-content-open', element => {
+      const styles = getComputedStyle(element);
+      return {
+        maxWidth: styles.maxWidth,
+        padding: styles.padding,
+        border: styles.borderTopWidth,
+        radius: styles.borderRadius,
+        color: styles.color,
+        backgroundColor: styles.backgroundColor,
+        backgroundImage: styles.backgroundImage,
+        shadow: styles.boxShadow,
+        filter: styles.filter,
+        backdrop: styles.backdropFilter,
+      };
+    });
+    if (desktopContentCanvas.maxWidth !== '1480px'
+      || desktopContentCanvas.padding !== '34.56px 38.88px 48px'
+      || desktopContentCanvas.border !== '0px'
+      || desktopContentCanvas.radius !== '0px'
+      || desktopContentCanvas.color !== 'rgb(48, 37, 28)'
+      || desktopContentCanvas.backgroundColor !== 'rgba(0, 0, 0, 0)'
+      || desktopContentCanvas.backgroundImage !== 'none'
+      || desktopContentCanvas.shadow !== 'none'
+      || desktopContentCanvas.filter !== 'none'
+      || desktopContentCanvas.backdrop !== 'none') {
+      failures.push(`home content canvas: desktop contract changed (${JSON.stringify(desktopContentCanvas)})`);
     }
     for (const selector of ['.home-latest-articles', '.home-bg-directory', '.home-arena-directory']) {
       await page.$eval(selector, element => element.scrollIntoView({ block: 'center' }));
@@ -1386,6 +1452,31 @@ for (const [device, viewport] of [
     }
     await page.mouse.move(0, 0);
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
+    const mobileContentCanvas = await page.$eval('.arena-content-open', element => {
+      const styles = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return {
+        width: rect.width,
+        viewportWidth: document.documentElement.clientWidth,
+        maxWidth: styles.maxWidth,
+        padding: styles.padding,
+        border: styles.borderTopWidth,
+        radius: styles.borderRadius,
+        backgroundColor: styles.backgroundColor,
+        backgroundImage: styles.backgroundImage,
+        shadow: styles.boxShadow,
+      };
+    });
+    if (Math.abs(mobileContentCanvas.width - mobileContentCanvas.viewportWidth) > 0.1
+      || mobileContentCanvas.maxWidth !== '100%'
+      || mobileContentCanvas.padding !== '0px 16px 32px'
+      || mobileContentCanvas.border !== '0px'
+      || mobileContentCanvas.radius !== '0px'
+      || mobileContentCanvas.backgroundColor !== 'rgba(0, 0, 0, 0)'
+      || mobileContentCanvas.backgroundImage !== 'none'
+      || mobileContentCanvas.shadow !== 'none') {
+      failures.push(`home content canvas: mobile contract changed (${JSON.stringify(mobileContentCanvas)})`);
+    }
     const mobileHeading = await page.$eval('.home-latest-articles .home-section-heading', element => {
       const heading = element.querySelector('h2');
       const summary = element.querySelector(':scope > p');
