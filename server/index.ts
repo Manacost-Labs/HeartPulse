@@ -40,6 +40,7 @@ import { createTierlistRouter } from './tierlistRoutes.js';
 import { createWinrateRouter } from './winrateRoutes.js';
 import { createHomeSummaryRouter, type HomeSummaryCacheStore } from './homeSummaryRoutes.js';
 import { createCardImageRouter, normalizeCardImageId } from './cardImageRoutes.js';
+import { createAdminClassPositionRouter, writeClassPositionsFile } from './adminClassPositionRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -7949,35 +7950,13 @@ app.use('/api', createReferralRouter({
   ipHashSalt: process.env.ECOSYSTEM_INTERNAL_KEY || 'manacost-referrals',
 }));
 
-app.get('/api/admin-class-positions', adminIdGuard, (req, res) => {
-  if (!adminAuth(req)) return res.status(401).json({ error: 'Требуется вход' });
-  try {
-    res.json(loadClassPositionsData());
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/admin-class-positions', adminIdGuard, (req, res) => {
-  if (!adminAuth(req)) return res.status(401).json({ error: 'Требуется вход' });
-  const positions = req.body?.positions;
-  if (!positions || typeof positions !== 'object' || Array.isArray(positions)) {
-    return res.status(400).json({ error: 'positions must be an object' });
-  }
-  try {
-    const normalized = Object.fromEntries(
-      Object.entries(positions)
-        .map(([key, value]) => [key, String(value ?? '').trim()])
-        .filter(([, value]) => value.length > 0)
-    );
-    const payload = { positions: normalized, updatedAt: new Date().toISOString() };
-    const filePath = join(DATA_DIR, 'class_positions.json');
-    writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf-8');
-    res.json({ success: true, ...payload });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
+app.use('/api', createAdminClassPositionRouter({
+  adminGuard: adminIdGuard,
+  adminAuth,
+  loadPositions: loadClassPositionsData,
+  savePositions: document => writeClassPositionsFile(DATA_DIR, document),
+  setPrivateNoStore,
+}));
 
 // ─── Image generation (/api/admin/gen-image) ──────────────────────────────────
 
