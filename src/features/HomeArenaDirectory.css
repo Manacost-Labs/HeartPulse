@@ -1,0 +1,175 @@
+/* Styles owned by the lazy home section. */
+
+/* ─── Arena directory ────────────────────────────────────────────────── */
+
+.arena-app-home .home-arena-directory {
+  overflow: visible;
+}
+
+.arena-app-home .home-arena-directory .home-section-heading {
+  display: grid;
+  grid-template-columns: minmax(360px, 650px) minmax(220px, 1fr);
+  align-items: center;
+  gap: clamp(1rem, 3vw, 2.8rem);
+  margin-bottom: 1rem !important;
+}
+
+.arena-app-home .home-arena-directory__sign {
+  width: min(100%, 650px);
+  aspect-ratio: 4 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding-top: 0.25rem;
+  background: url('/wallpaper/battlegrounds-bartender-header.webp') center / 100% 100% no-repeat;
+}
+
+.arena-app-home .home-arena-directory__sign > span {
+  color: #efc568 !important;
+  font-size: 0.62rem !important;
+  font-weight: 850;
+  letter-spacing: 0.16em;
+  transform: translateY(-5px);
+  text-transform: uppercase;
+}
+
+.arena-app-home .home-arena-directory__sign h2 {
+  color: #fff0c8 !important;
+  font-size: clamp(1.25rem, 2.2vw, 1.85rem) !important;
+  letter-spacing: 0 !important;
+  transform: translateY(-5px);
+  text-shadow: 0 2px 3px rgba(45, 22, 10, 0.78) !important;
+}
+
+.arena-app-home .home-arena-directory .home-section-heading > p {
+  max-width: 32rem;
+  margin: 0 !important;
+  padding-left: 1rem;
+  border-left: 4px solid var(--arena-red);
+  color: #6f5943 !important;
+}
+
+.arena-app-home .home-arena-directory__links {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.55rem !important;
+  padding: clamp(0.15rem, 1vw, 0.7rem) !important;
+  border: clamp(34px, 5.4vw, 66px) solid transparent !important;
+  border-image-source: url('/wallpaper/wiki-battlegrounds-skin.webp') !important;
+  border-image-slice: 82 fill !important;
+  border-image-width: clamp(34px, 5.4vw, 66px) !important;
+  border-image-repeat: stretch !important;
+  background: #c3a77e !important;
+  box-shadow: 0 18px 30px rgba(67, 38, 17, 0.16) !important;
+}
+
+.arena-app-home .home-arena-directory__link {
+  min-height: 148px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 1rem;
+  padding: 1.05rem;
+  border: 1px solid rgba(95, 55, 24, 0.3);
+  border-radius: 1px;
+  color: #3e2f23;
+  text-decoration: none;
+  background: rgba(255, 244, 216, 0.38);
+  box-shadow: inset 3px 0 rgba(123, 21, 27, 0.52);
+  transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.arena-app-home .home-arena-directory__link[data-featured='true'] {
+  min-height: 164px;
+  background: rgba(255, 246, 221, 0.58);
+  box-shadow: inset 5px 0 var(--arena-red);
+}
+
+.arena-app-home .home-arena-directory__link:hover {
+  transform: translateY(-3px);
+  border-color: rgba(100, 47, 24, 0.52);
+  background: rgba(255, 249, 232, 0.78);
+  box-shadow: inset 5px 0 var(--arena-red), 0 10px 18px rgba(75, 42, 15, 0.11);
+}
+
+.arena-app-home .home-arena-directory__link > span {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.arena-app-home .home-arena-directory__link small {
+  color: var(--arena-red);
+  font-size: 0.64rem;
+  font-weight: 820;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.arena-app-home .home-arena-directory__link strong {
+  color: #3e2c20;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+}
+
+.arena-app-home .home-arena-directory__link span span {
+  color: #77634c;
+  font-size: 0.75rem;
+  line-height: 1.48;
+}
+
+.arena-app-home .home-arena-directory__link > b {
+  color: var(--arena-red);
+  font-size: 0.9rem;
+}
+
+@container home-workbench (min-width: 42rem) {
+  .arena-app-home .home-arena-directory__links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container home-workbench (min-width: 64rem) {
+  .arena-app-home .home-arena-directory__links { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .arena-app-home .home-arena-directory__link[data-featured='true'] { grid-column: span 3; }
+  .arena-app-home .home-arena-directory__link:not([data-featured='true']) { grid-column: span 2; }
+}
+
+@media (max-width: 860px) {
+  .arena-app-home .home-arena-directory .home-section-heading {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 0.65rem;
+  }
+
+  .arena-app-home .home-arena-directory .home-section-heading > p {
+    max-width: 38rem;
+    padding: 0 1rem;
+    border-left: 0;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .arena-app-home .home-arena-directory__sign {
+    min-height: 82px;
+    aspect-ratio: auto;
+    background-size: 138% 100%;
+  }
+
+  .arena-app-home .home-arena-directory__sign > span { display: none; }
+
+  .arena-app-home .home-arena-directory__sign h2 {
+    font-size: clamp(1.05rem, 6vw, 1.3rem) !important;
+  }
+
+  .arena-app-home .home-arena-directory__links {
+    padding: 0 !important;
+    border-width: 30px !important;
+    border-image-width: 30px !important;
+  }
+
+  .arena-app-home .home-arena-directory__link,
+  .arena-app-home .home-arena-directory__link[data-featured='true'] {
+    min-height: 124px;
+    padding: 0.78rem;
+  }
+}

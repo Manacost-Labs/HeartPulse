@@ -1,4 +1,5 @@
 import React from 'react';
+import './HomeArenaDirectory.css';
 
 const ARENA_HOME_CARDS: Array<{
   id: 'winrates' | 'tierlist' | 'legendaries' | 'articles' | 'guides-archive';

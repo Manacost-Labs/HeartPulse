@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
+import './HomeLatestArticles.css';
 
 export interface HomeArticle {
   id: string;

@@ -439,9 +439,17 @@ for (const route of authenticatedRoutes) {
     await page.waitForSelector('.home-latest-articles');
     await page.waitForSelector('.home-bg-directory');
     await page.waitForSelector('.home-arena-directory');
-    const routeCssLoaded = await page.evaluate(() => [...document.styleSheets]
-      .some(sheet => sheet.href?.includes('/assets/route-parchment-')));
-    if (routeCssLoaded) failures.push('home lazy sections: route-only parchment CSS leaked into the initial home route');
+    const homeCssState = await page.evaluate(() => {
+      const hrefs = [...document.styleSheets].map(sheet => sheet.href || '');
+      return {
+        routeCssLoaded: hrefs.some(href => href.includes('/assets/route-parchment-')),
+        arenaCss: hrefs.some(href => href.includes('/assets/HomeArenaDirectory-')),
+        battlegroundsCss: hrefs.some(href => href.includes('/assets/HomeBattlegrounds-')),
+        articlesCss: hrefs.some(href => href.includes('/assets/HomeLatestArticles-')),
+      };
+    });
+    if (homeCssState.routeCssLoaded) failures.push('home lazy sections: route-only parchment CSS leaked into the initial home route');
+    if (!homeCssState.arenaCss || !homeCssState.battlegroundsCss || !homeCssState.articlesCss) failures.push('home lazy sections: one or more owner CSS chunks did not load');
     await page.evaluate(() => window.scrollTo(0, 900));
     await page.waitForSelector('.support-prompt--collapsed', { visible: true, timeout: 5_000 });
     await page.click('.support-prompt__trigger');

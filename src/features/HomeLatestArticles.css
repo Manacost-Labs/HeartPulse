@@ -1,0 +1,194 @@
+/* Styles owned by the lazy home section. */
+
+/* ─── Latest articles ─────────────────────────────────────────────────── */
+
+.arena-app-home .home-latest-articles .home-section-heading > div > span {
+  color: var(--arena-red) !important;
+}
+
+.arena-app-home .home-latest-articles .home-section-heading h2 {
+  color: #3b2a1f !important;
+}
+
+.arena-app-home .home-latest-articles .home-section-heading > p {
+  color: #78654f !important;
+}
+
+.arena-app-home .home-latest-articles__board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+  border: 12px solid transparent;
+  border-image-source: url('/wallpaper/main-page-rail-border.png');
+  border-image-slice: 18;
+  border-image-width: 12px;
+  border-image-repeat: stretch;
+  background: rgba(247, 226, 184, 0.74);
+  box-shadow: 0 16px 28px rgba(68, 37, 15, 0.15);
+}
+
+.arena-app-home .home-latest-article {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  color: #3e2c20;
+  text-decoration: none;
+  background: rgba(255, 244, 216, 0.5);
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.arena-app-home .home-latest-article + .home-latest-article {
+  border-top: 1px solid var(--arena-paper-line);
+}
+
+.arena-app-home .home-latest-article:hover {
+  z-index: 1;
+  transform: translateY(-3px);
+  background: rgba(255, 249, 231, 0.9);
+  box-shadow: 0 12px 22px rgba(69, 38, 15, 0.12);
+}
+
+.arena-app-home .home-latest-article__image {
+  position: relative;
+  aspect-ratio: 16 / 8.5;
+  display: block;
+  overflow: hidden;
+  border-bottom: 5px solid transparent;
+  border-image: var(--arena-wood-divider) 1;
+  background:
+    linear-gradient(135deg, rgba(63, 4, 8, 0.16), rgba(113, 15, 20, 0.08)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+}
+
+.arena-app-home .home-latest-article__image img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.arena-app-home .home-latest-article:hover .home-latest-article__image img {
+  transform: scale(1.025);
+}
+
+.arena-app-home .home-latest-article__image-fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 237, 195, 0.82);
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 8vw, 6rem);
+  background:
+    linear-gradient(135deg, rgba(74, 5, 9, 0.08), rgba(121, 17, 23, 0.12)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+}
+
+.arena-app-home .home-latest-article__body {
+  min-height: 190px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1rem 1.05rem 1.1rem;
+}
+
+.arena-app-home .home-latest-article__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  color: #80684e;
+  font-size: 0.68rem;
+}
+
+.arena-app-home .home-latest-article__meta small {
+  color: var(--arena-red);
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.arena-app-home .home-latest-article__body > strong {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #3d291d;
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 1.7vw, 1.35rem);
+  line-height: 1.18;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.arena-app-home .home-latest-article__body > span:not(.home-latest-article__meta) {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #75614a;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.arena-app-home .home-latest-article__body > b {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: auto;
+  color: var(--arena-red);
+  font-size: 0.76rem;
+}
+
+.arena-app-home .home-latest-article--loading {
+  min-height: 390px;
+  background: linear-gradient(100deg, rgba(231, 205, 157, 0.5), rgba(255, 242, 210, 0.7), rgba(231, 205, 157, 0.5));
+  background-size: 220% 100%;
+  animation: home-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+.arena-app-home .home-latest-articles__empty {
+  min-height: 190px;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  color: #75614a;
+  text-align: center;
+}
+
+.arena-app-home .home-latest-articles__all {
+  min-height: 44px;
+  width: max-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid #efc568;
+  border-radius: 1px;
+  color: #fff0c8;
+  font-weight: 800;
+  text-decoration: none;
+  background: var(--arena-red);
+}
+
+@container home-workbench (min-width: 42rem) {
+  .arena-app-home .home-latest-articles__board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .arena-app-home .home-latest-article:first-child { grid-column: 1 / -1; }
+  .arena-app-home .home-latest-article + .home-latest-article { border-top: 0; border-left: 1px solid var(--arena-paper-line); }
+}
+
+@container home-workbench (min-width: 64rem) {
+  .arena-app-home .home-latest-articles__board { grid-template-columns: 1.2fr 0.9fr 0.9fr; }
+  .arena-app-home .home-latest-article:first-child { grid-column: auto; }
+}
+
+@media (max-width: 480px) {
+  .arena-app-home .home-latest-articles__board {
+    border-width: 8px;
+    border-image-width: 8px;
+  }
+
+  .arena-app-home .home-latest-article__body { min-height: 172px; }
+}

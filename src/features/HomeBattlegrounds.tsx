@@ -1,4 +1,5 @@
 import React from 'react';
+import './HomeBattlegrounds.css';
 
 const BG_HOME_CARDS: Array<{
   id: 'bg-heroes' | 'bg-library' | 'bg-tier-list' | 'bg-strategies' | 'bg-tier-builder';
