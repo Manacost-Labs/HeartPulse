@@ -6085,9 +6085,18 @@ app.use('/api', createArticleRouter({
   findArticle: findArticleById,
   isAdmin: user => isAdminUser(user as AdminUser),
   subscriptionAllowsArticle,
+  parseUrl: parseHttpUrl,
+  isVipArticleUrl: isKhaVipArticleUrl,
+  findArticleByUrlOrTitle,
+  findVipLocker: findKhaVipLockerForArticle,
+  issueVipLink: (locker, user) => issueKhaVipArticleLink(locker as KhaVipLocker, user as AdminUser),
   dbGet,
   dbRun,
   publicCacheHeader: CACHE_5M,
+  onAccessLinkError: error => console.error(
+    '[articles] access-link failed:',
+    error instanceof Error ? error.message : error,
+  ),
 }));
 
 app.use('/api', createGuidesArchiveRouter({
@@ -6096,57 +6105,6 @@ app.use('/api', createGuidesArchiveRouter({
   publicUrl: OLD_GUIDES_PUBLIC_URL,
   cacheHeader: CACHE_1H,
 }));
-
-app.post('/api/articles/access-link', async (req, res) => {
-  res.set('Cache-Control', 'no-store');
-  const user = userAuth(req);
-  if (!user) return res.status(401).json({ error: 'Требуется вход в профиль Манакоста' });
-
-  const rawUrl = String(req.body?.url ?? '').trim();
-  const title = String(req.body?.title ?? '').trim();
-  const target = parseHttpUrl(rawUrl);
-  if (!target) return res.status(400).json({ error: 'Некорректная ссылка на статью' });
-
-  if (!isKhaVipArticleUrl(target.href)) {
-    return res.json({ url: target.href, passthrough: true });
-  }
-
-  try {
-    const subscription = await refreshSubscriptionForUser(user, false);
-    const article = findArticleByUrlOrTitle(target.href, title) ?? {
-      title,
-      url: target.href,
-    };
-    if (!isAdminUser(user) && !subscriptionAllowsArticle(subscription, article)) {
-      return res.status(403).json({
-        error: 'Для доступа к VIP-статье нужна подписка подходящего режима',
-        subscription,
-      });
-    }
-
-    const locker = await findKhaVipLockerForArticle(target.href, title);
-    if (!locker) {
-      return res.status(404).json({ error: 'VIP-материал не найден в каталоге Koloda' });
-    }
-
-    const issued = await issueKhaVipArticleLink(locker, user);
-    return res.json({
-      url: String(issued.url),
-      target: String(issued.target || locker.url),
-      expiresAt: issued.expires_at ?? null,
-      ttl: Number(issued.ttl || 900),
-      source: 'koloda-vip',
-      article: {
-        postId: locker.post_id,
-        title: locker.title,
-        url: locker.url,
-      },
-    });
-  } catch (err: any) {
-    console.error('[articles] access-link failed:', err?.message ?? err);
-    return res.status(502).json({ error: err?.message ?? 'Не удалось выдать доступ к статье' });
-  }
-});
 
 app.use('/api', createArticleCoverRouter({
   allowedHosts: ARTICLE_COVER_ALLOWED_HOSTS,

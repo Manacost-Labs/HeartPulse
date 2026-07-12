@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import express from 'express';
 // @ts-ignore: node:sqlite is available in the production Node 22 runtime.
 import { DatabaseSync } from 'node:sqlite';
-import { createArticleRouter } from '../server/articleRoutes.js';
+import { createArticleRouter, type ArticleRouterDependencies } from '../server/articleRoutes.js';
 
 const database = new DatabaseSync(':memory:');
 database.exec(`
@@ -22,35 +22,55 @@ const articlesEntry = {
   data: { articles: [{ id: 'a1', title: 'Арена' }] },
   etag: '"articles-base"',
 };
+const accessErrors: unknown[] = [];
 
-function dependencies(loadArticles: () => typeof articlesEntry | null = () => articlesEntry) {
+function dependencies(overrides: Partial<ArticleRouterDependencies> = {}): ArticleRouterDependencies {
   return {
-    loadArticles,
+    loadArticles: () => articlesEntry,
     authenticate: (request: express.Request) => {
       const id = String(request.headers['x-test-user'] || '');
       return id ? { id } : null;
     },
     shapeArticles: (data: any, userId: string) => ({ ...data, viewer: userId }),
-    refreshSubscription: async (user: { id: string }) => ({ hasAccess: user.id !== 'blocked', userId: user.id }),
+    refreshSubscription: async (user: { id: string }) => ({ hasAccess: user.id === 'member', userId: user.id }),
     findArticle: (articleId: string) => articleId === 'a1' ? { id: 'a1', mode: 'arena' } : null,
     isAdmin: (user: { id: string }) => user.id === 'admin',
     subscriptionAllowsArticle: (subscription: any) => Boolean(subscription.hasAccess),
+    parseUrl: value => {
+      try {
+        const url = new URL(String(value));
+        return url.protocol === 'http:' || url.protocol === 'https:' ? url : null;
+      } catch {
+        return null;
+      }
+    },
+    isVipArticleUrl: value => new URL(value).hostname === 'vip.example',
+    findArticleByUrlOrTitle: (url, title) => ({ url, title, mode: 'arena' }),
+    findVipLocker: async (url, title) => title === 'missing'
+      ? null
+      : { post_id: 42, title, url, code: 'vip-code' },
+    issueVipLink: async locker => {
+      if (locker.title === 'error') throw new Error('private upstream detail');
+      return { url: 'https://vip.example/access/token', expires_at: '2026-07-12T14:15:00.000Z', ttl: 600 };
+    },
     dbGet,
     dbRun,
     publicCacheHeader: 'public, max-age=300, stale-while-revalidate=300',
     now: () => new Date('2026-07-12T14:00:00.000Z'),
+    onAccessLinkError: error => accessErrors.push(error),
+    ...overrides,
   };
 }
 
-function startApp(loadArticles?: () => typeof articlesEntry | null) {
+function startApp(overrides: Partial<ArticleRouterDependencies> = {}) {
   const app = express();
   app.use(express.json());
-  app.use('/api', createArticleRouter(dependencies(loadArticles)));
+  app.use('/api', createArticleRouter(dependencies(overrides)));
   return app.listen(0, '127.0.0.1');
 }
 
 const server = startApp();
-const noDataServer = startApp(() => null);
+const noDataServer = startApp({ loadArticles: () => null });
 await Promise.all([server, noDataServer].map(instance => new Promise<void>((resolve, reject) => {
   instance.once('listening', resolve);
   instance.once('error', reject);
@@ -75,6 +95,67 @@ const voteRequest = (user: string, vote: string) => request('/articles/a1/vote',
 });
 
 try {
+  const anonymousAccess = await request('/articles/access-link', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url: 'https://vip.example/article' }),
+  });
+  assert.equal(anonymousAccess.response.status, 401);
+  assert.equal(anonymousAccess.response.headers.get('cache-control'), 'no-store');
+  assert.match(anonymousAccess.response.headers.get('vary') || '', /Cookie/);
+
+  const invalidAccess = await request('/articles/access-link', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Test-User': 'member' },
+    body: JSON.stringify({ url: 'javascript:alert(1)' }),
+  });
+  assert.equal(invalidAccess.response.status, 400);
+
+  const passthrough = await request('/articles/access-link', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Test-User': 'member' },
+    body: JSON.stringify({ url: 'https://example.com/guide?ref=arena' }),
+  });
+  assert.deepEqual(passthrough.body, { url: 'https://example.com/guide?ref=arena', passthrough: true });
+
+  const forbiddenAccess = await request('/articles/access-link', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Test-User': 'blocked' },
+    body: JSON.stringify({ url: 'https://vip.example/article', title: 'VIP' }),
+  });
+  assert.equal(forbiddenAccess.response.status, 403);
+  assert.equal(forbiddenAccess.body.subscription.userId, 'blocked');
+
+  const missingAccess = await request('/articles/access-link', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Test-User': 'member' },
+    body: JSON.stringify({ url: 'https://vip.example/article', title: 'missing' }),
+  });
+  assert.equal(missingAccess.response.status, 404);
+
+  const vipAccess = await request('/articles/access-link', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Test-User': 'member' },
+    body: JSON.stringify({ url: 'https://vip.example/article', title: 'VIP guide' }),
+  });
+  assert.deepEqual(vipAccess.body, {
+    url: 'https://vip.example/access/token',
+    target: 'https://vip.example/article',
+    expiresAt: '2026-07-12T14:15:00.000Z',
+    ttl: 600,
+    source: 'koloda-vip',
+    article: { postId: 42, title: 'VIP guide', url: 'https://vip.example/article' },
+  });
+
+  const failedAccess = await request('/articles/access-link', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Test-User': 'member' },
+    body: JSON.stringify({ url: 'https://vip.example/article', title: 'error' }),
+  });
+  assert.equal(failedAccess.response.status, 502);
+  assert.deepEqual(failedAccess.body, { error: 'Не удалось выдать доступ к статье' });
+  assert.equal(accessErrors.length, 1);
+
   const publicList = await request('/articles');
   assert.equal(publicList.response.status, 200);
   assert.equal(publicList.body.viewer, '');

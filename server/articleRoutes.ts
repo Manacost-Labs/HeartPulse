@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express';
 
 type ArticleUser = { id: string };
 type ArticlesCacheEntry = { data: any; etag: string };
+type ArticleLocker = { post_id: number; title: string; url: string; [key: string]: any };
 
 export type ArticleRouterDependencies = {
   loadArticles: () => ArticlesCacheEntry | null;
@@ -11,8 +12,14 @@ export type ArticleRouterDependencies = {
   findArticle: (articleId: string) => Record<string, any> | null;
   isAdmin: (user: ArticleUser) => boolean;
   subscriptionAllowsArticle: (subscription: any, article: Record<string, any>) => boolean;
+  parseUrl: (value: unknown) => URL | null;
+  isVipArticleUrl: (url: string) => boolean;
+  findArticleByUrlOrTitle: (url: string, title: string) => Record<string, any> | null;
+  findVipLocker: (url: string, title: string) => Promise<ArticleLocker | null>;
+  issueVipLink: (locker: ArticleLocker, user: ArticleUser) => Promise<Record<string, any>>;
   dbGet: (sql: string, ...params: any[]) => any;
   dbRun: (sql: string, ...params: any[]) => unknown;
+  onAccessLinkError?: (error: unknown) => void;
   publicCacheHeader?: string;
   now?: () => Date;
 };
@@ -27,6 +34,45 @@ export function createArticleRouter(dependencies: ArticleRouterDependencies): Ro
   const router = Router();
   const cacheHeader = dependencies.publicCacheHeader ?? 'public, max-age=300, stale-while-revalidate=300';
   const now = dependencies.now ?? (() => new Date());
+
+  router.post('/articles/access-link', async (request, response) => {
+    setPrivateNoStore(response);
+    const user = dependencies.authenticate(request);
+    if (!user) return response.status(401).json({ error: 'Требуется вход в профиль Манакоста' });
+
+    const rawUrl = String(request.body?.url ?? '').trim();
+    const title = String(request.body?.title ?? '').trim();
+    const target = dependencies.parseUrl(rawUrl);
+    if (!target) return response.status(400).json({ error: 'Некорректная ссылка на статью' });
+    if (!dependencies.isVipArticleUrl(target.href)) {
+      return response.json({ url: target.href, passthrough: true });
+    }
+
+    try {
+      const subscription = await dependencies.refreshSubscription(user);
+      const article = dependencies.findArticleByUrlOrTitle(target.href, title) ?? { title, url: target.href };
+      if (!dependencies.isAdmin(user) && !dependencies.subscriptionAllowsArticle(subscription, article)) {
+        return response.status(403).json({
+          error: 'Для доступа к VIP-статье нужна подписка подходящего режима',
+          subscription,
+        });
+      }
+      const locker = await dependencies.findVipLocker(target.href, title);
+      if (!locker) return response.status(404).json({ error: 'VIP-материал не найден в каталоге Koloda' });
+      const issued = await dependencies.issueVipLink(locker, user);
+      return response.json({
+        url: String(issued.url),
+        target: String(issued.target || locker.url),
+        expiresAt: issued.expires_at ?? null,
+        ttl: Number(issued.ttl || 900),
+        source: 'koloda-vip',
+        article: { postId: locker.post_id, title: locker.title, url: locker.url },
+      });
+    } catch (error) {
+      dependencies.onAccessLinkError?.(error);
+      return response.status(502).json({ error: 'Не удалось выдать доступ к статье' });
+    }
+  });
 
   router.get('/articles', (request, response) => {
     const entry = dependencies.loadArticles();
