@@ -286,33 +286,33 @@
   }
 
   .arena-sidebar-status {
-    margin-top: auto !important;
-    padding: 0.65rem 0.45rem 0.35rem !important;
-    border-color: rgba(232, 192, 103, 0.23) !important;
+    margin-top: auto;
+    padding: 0.65rem 0.45rem 0.35rem;
+    border-color: rgba(232, 192, 103, 0.23);
   }
 
   .arena-sidebar-status::before {
-    background: #72bc75 !important;
-    box-shadow: 0 0 0 3px rgba(114, 188, 117, 0.11) !important;
+    background: #72bc75;
+    box-shadow: 0 0 0 3px rgba(114, 188, 117, 0.11);
   }
 
-  .arena-sidebar-status span { color: #c5a873 !important; }
-  .arena-sidebar-status strong { color: #fff0c7 !important; }
+  .arena-sidebar-status span { color: #c5a873; }
+  .arena-sidebar-status strong { color: #fff0c7; }
 
   .arena-sidebar-profile {
-    position: relative !important;
-    min-height: 74px !important;
-    padding: 0.78rem 1rem !important;
-    overflow: visible !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    color: #f3d27a !important;
-    background: rgba(38, 3, 6, 0.4) !important;
-    box-shadow: 0 10px 18px rgba(38, 7, 7, 0.18) !important;
+    position: relative;
+    min-height: 74px;
+    padding: 0.78rem 1rem;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    color: #f3d27a;
+    background: rgba(38, 3, 6, 0.4);
+    box-shadow: 0 10px 18px rgba(38, 7, 7, 0.18);
   }
 
   .arena-sidebar-profile::after {
-    content: '' !important;
+    content: '';
     position: absolute;
     inset: -5px;
     z-index: 2;
@@ -327,23 +327,23 @@
   }
 
   .arena-sidebar-profile-icon {
-    border-color: rgba(237, 196, 105, 0.32) !important;
-    color: #e7b94e !important;
-    background: rgba(48, 4, 7, 0.31) !important;
+    border-color: rgba(237, 196, 105, 0.32);
+    color: #e7b94e;
+    background: rgba(48, 4, 7, 0.31);
   }
 
   .arena-sidebar-profile-label {
-    color: #fff4d3 !important;
-    font-size: 1.03rem !important;
-    text-shadow: 0 2px 3px rgba(34, 3, 5, 0.72) !important;
+    color: #fff4d3;
+    font-size: 1.03rem;
+    text-shadow: 0 2px 3px rgba(34, 3, 5, 0.72);
   }
 
   .arena-sidebar-profile-hint {
-    color: #d2b77f !important;
-    font-size: 0.71rem !important;
+    color: #d2b77f;
+    font-size: 0.71rem;
   }
 
-  .arena-workspace { margin-left: 258px !important; }
+  .arena-workspace { margin-left: 258px; }
 }
 
 .arena-mobile-menu-profile {

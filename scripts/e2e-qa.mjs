@@ -1641,12 +1641,38 @@ for (const [device, viewport] of [
       const inactiveLink = sidebar?.querySelector('a.arena-sidebar-link:not(.arena-sidebar-link-active)');
       const activeLink = sidebar?.querySelector('.arena-sidebar-link-active');
       const inactiveIcon = inactiveLink?.querySelector('.arena-sidebar-link-icon');
+      const status = sidebar?.querySelector('.arena-sidebar-status');
+      const statusLabel = status?.querySelector('span');
+      const statusValue = status?.querySelector('strong');
+      const profile = sidebar?.querySelector('.arena-sidebar-profile');
+      let profileIcon = profile?.querySelector('.arena-sidebar-profile-icon');
+      let profileIconFixture = null;
+      if (!profileIcon && profile) {
+        profileIconFixture = document.createElement('span');
+        profileIconFixture.className = 'arena-sidebar-profile-icon';
+        profileIconFixture.setAttribute('aria-hidden', 'true');
+        profileIconFixture.style.visibility = 'hidden';
+        profile.append(profileIconFixture);
+        profileIcon = profileIconFixture;
+      }
+      const profileLabel = profile?.querySelector('.arena-sidebar-profile-label');
+      const profileHint = profile?.querySelector('.arena-sidebar-profile-hint');
+      const workspace = document.querySelector('.arena-workspace');
       const sidebarStyles = sidebar ? getComputedStyle(sidebar) : null;
       const brandStyles = brand ? getComputedStyle(brand) : null;
       const navStyles = nav ? getComputedStyle(nav) : null;
       const sectionStyles = section ? getComputedStyle(section) : null;
       const inactiveStyles = inactiveLink ? getComputedStyle(inactiveLink) : null;
       const activeStyles = activeLink ? getComputedStyle(activeLink) : null;
+      const statusStyles = status ? getComputedStyle(status) : null;
+      const profileStyles = profile ? getComputedStyle(profile) : null;
+      const profileIconStyles = profileIcon ? getComputedStyle(profileIcon) : null;
+      const profileIconContract = {
+        border: profileIconStyles?.borderTopColor || '',
+        color: profileIconStyles?.color || '',
+        background: profileIconStyles?.backgroundColor || '',
+      };
+      profileIconFixture?.remove();
       const rect = sidebar?.getBoundingClientRect();
       return {
         width: rect?.width || 0,
@@ -1692,6 +1718,34 @@ for (const [device, viewport] of [
         activeBackground: activeStyles?.backgroundImage || '',
         activeShadow: activeStyles?.boxShadow || '',
         activeBeforeDisplay: activeLink ? getComputedStyle(activeLink, '::before').display : '',
+        statusPadding: statusStyles?.padding || '',
+        statusBorderColor: statusStyles?.borderTopColor || '',
+        statusDotBackground: status ? getComputedStyle(status, '::before').backgroundColor : '',
+        statusDotShadow: status ? getComputedStyle(status, '::before').boxShadow : '',
+        statusLabelColor: statusLabel ? getComputedStyle(statusLabel).color : '',
+        statusValueColor: statusValue ? getComputedStyle(statusValue).color : '',
+        profilePosition: profileStyles?.position || '',
+        profileMinHeight: profileStyles?.minHeight || '',
+        profilePadding: profileStyles?.padding || '',
+        profileOverflow: profileStyles?.overflow || '',
+        profileBorder: profileStyles?.borderTopWidth || '',
+        profileRadius: profileStyles?.borderRadius || '',
+        profileColor: profileStyles?.color || '',
+        profileBackground: profileStyles?.backgroundColor || '',
+        profileShadow: profileStyles?.boxShadow || '',
+        profileAfterContent: profile ? getComputedStyle(profile, '::after').content : '',
+        profileAfterInset: profile ? getComputedStyle(profile, '::after').top : '',
+        profileAfterBackground: profile ? getComputedStyle(profile, '::after').backgroundImage : '',
+        profileIconBorder: profileIconContract.border,
+        profileIconColor: profileIconContract.color,
+        profileIconBackground: profileIconContract.background,
+        profileLabelColor: profileLabel ? getComputedStyle(profileLabel).color : '',
+        profileLabelSize: profileLabel ? getComputedStyle(profileLabel).fontSize : '',
+        profileLabelShadow: profileLabel ? getComputedStyle(profileLabel).textShadow : '',
+        profileHintColor: profileHint ? getComputedStyle(profileHint).color : '',
+        profileHintSize: profileHint ? getComputedStyle(profileHint).fontSize : '',
+        workspaceMarginLeft: workspace ? getComputedStyle(workspace).marginLeft : '',
+        workspaceLeft: workspace?.getBoundingClientRect().left || 0,
       };
     });
     if (Math.abs(sidebarState.width - 258) > 0.1
@@ -1735,7 +1789,35 @@ for (const [device, viewport] of [
       || sidebarState.activeColor !== 'rgb(255, 247, 223)'
       || sidebarState.activeBackground === 'none'
       || sidebarState.activeShadow === 'none'
-      || sidebarState.activeBeforeDisplay !== 'none') {
+      || sidebarState.activeBeforeDisplay !== 'none'
+      || sidebarState.statusPadding !== '10.4px 7.2px 5.6px'
+      || sidebarState.statusBorderColor !== 'rgba(232, 192, 103, 0.23)'
+      || sidebarState.statusDotBackground !== 'rgb(114, 188, 117)'
+      || sidebarState.statusDotShadow === 'none'
+      || sidebarState.statusLabelColor !== 'rgb(197, 168, 115)'
+      || sidebarState.statusValueColor !== 'rgb(255, 240, 199)'
+      || sidebarState.profilePosition !== 'relative'
+      || sidebarState.profileMinHeight !== '74px'
+      || sidebarState.profilePadding !== '12.48px 16px'
+      || sidebarState.profileOverflow !== 'visible'
+      || sidebarState.profileBorder !== '0px'
+      || sidebarState.profileRadius !== '0px'
+      || sidebarState.profileColor !== 'rgb(243, 210, 122)'
+      || sidebarState.profileBackground !== 'rgba(38, 3, 6, 0.4)'
+      || sidebarState.profileShadow === 'none'
+      || sidebarState.profileAfterContent !== '""'
+      || sidebarState.profileAfterInset !== '-5px'
+      || !sidebarState.profileAfterBackground.includes('deck-border.png')
+      || sidebarState.profileIconBorder !== 'rgba(237, 196, 105, 0.32)'
+      || sidebarState.profileIconColor !== 'rgb(231, 185, 78)'
+      || sidebarState.profileIconBackground !== 'rgba(48, 4, 7, 0.31)'
+      || sidebarState.profileLabelColor !== 'rgb(255, 244, 211)'
+      || sidebarState.profileLabelSize !== '16.48px'
+      || sidebarState.profileLabelShadow === 'none'
+      || sidebarState.profileHintColor !== 'rgb(210, 183, 127)'
+      || sidebarState.profileHintSize !== '11.36px'
+      || sidebarState.workspaceMarginLeft !== '258px'
+      || Math.abs(sidebarState.workspaceLeft - 258) > 0.1) {
       failures.push(`desktop sidebar: parchment frame changed (${JSON.stringify(sidebarState)})`);
     }
     const hoverTarget = '.arena-sidebar a.arena-sidebar-link:not(.arena-sidebar-link-active)';
