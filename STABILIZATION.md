@@ -101,6 +101,10 @@ The first architecture ratchet is complete:
 | `/tierlist` | `arena` | Tier list, images and source switching | filters/lightbox/mobile |
 | `/legendaries` | `arena` | Legendary groups and fallback snapshot | empty rejection/source/lightbox |
 
+The `/api/tierlist` HTTP boundary is isolated in `server/tierlistRoutes.ts`.
+Source normalization, explicit cache bypass, ETag/304, stale recovery, local
+source-specific fallbacks and subscriber-private caching are contract tested.
+
 The `/api/legendaries` HTTP boundary is isolated in `server/legendaryRoutes.ts`.
 Its contract rejects empty memory/origin datasets, preserves the last usable
 stale response, falls back only to a validated local snapshot, keeps subscriber

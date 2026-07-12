@@ -36,6 +36,7 @@ import { createArenaDecksRouter, type ArenaDecksCacheStore } from './arenaDeckRo
 import { createStandardMatchupRouter } from './standardMatchupRoutes.js';
 import { createClassMatchupRouter, type ClassMatchupCacheStore } from './classMatchupRoutes.js';
 import { createLegendaryRouter } from './legendaryRoutes.js';
+import { createTierlistRouter } from './tierlistRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -5777,42 +5778,32 @@ app.use('/api', createStandardMatchupRouter({
   ),
 }));
 
-app.get('/api/tierlist', requireArenaAccess, async (req, res) => {
-  const source = normalizeSource(req.query.source as string | undefined, TIERLIST_DATASET_BY_SOURCE, 'hsreplay');
-  const now = Date.now();
-  const cached = tierlistApiCache.get(source);
-  const bypassCache = req.query.t !== undefined
-    || req.query.bust === '1';
-  if (!bypassCache && cached && cached.expiresAt > now) {
-    return sendJsonCached(req, res, withClassPositions(cached.data), cached.etag, CACHE_TIERLIST, 'memory');
-  }
-
-  try {
-    const result = await getTierlistApiData(source, now, bypassCache);
-    return sendJsonCached(req, res, withClassPositions(result.data), result.etag, CACHE_TIERLIST, result.cacheSource);
-  } catch (err: any) {
-    if (cached) {
-      return sendJsonCached(req, res, withClassPositions({
-        ...cached.data,
-        warning: 'stale',
-      }), cached.etag, CACHE_TIERLIST_STALE, 'memory-stale');
-    }
-
-    const fallbackFilename = source === 'hsreplay' ? 'hsreplay_tierlist.json' : source === 'heartharena' ? 'tierlist.json' : null;
-    const fallback = fallbackFilename ? loadDataCached(fallbackFilename) : null;
-    if (fallback) {
-      return sendCached(req, res, {
-        ...fallback,
-        data: withClassPositions({
-          ...fallback.data,
-          warning: 'fallback',
-        }),
-      }, CACHE_6H);
-    }
-
-    return res.status(502).json({ error: err?.message ?? 'Tierlist unavailable' });
-  }
-});
+app.use('/api', createTierlistRouter({
+  accessGuard: requireArenaAccess,
+  cache: tierlistApiCache,
+  resolveSource: source => normalizeSource(source, TIERLIST_DATASET_BY_SOURCE, 'hsreplay'),
+  getData: (source, now, bypassCache) => getTierlistApiData(
+    source as keyof typeof TIERLIST_DATASET_BY_SOURCE,
+    now,
+    bypassCache,
+  ),
+  present: withClassPositions,
+  loadFallback: source => {
+    const filename = source === 'hsreplay'
+      ? 'hsreplay_tierlist.json'
+      : source === 'heartharena'
+        ? 'tierlist.json'
+        : null;
+    return filename ? loadDataCached(filename) : null;
+  },
+  cacheHeader: CACHE_TIERLIST,
+  staleCacheHeader: CACHE_TIERLIST_STALE,
+  fallbackCacheHeader: CACHE_6H,
+  onError: error => console.error(
+    '[api/tierlist] request failed:',
+    error instanceof Error ? error.message : error,
+  ),
+}));
 
 app.use('/api', createLegendaryRouter({
   accessGuard: requireArenaAccess,
