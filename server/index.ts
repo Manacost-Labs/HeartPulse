@@ -41,6 +41,7 @@ import { createWinrateRouter } from './winrateRoutes.js';
 import { createHomeSummaryRouter, type HomeSummaryCacheStore } from './homeSummaryRoutes.js';
 import { createCardImageRouter, normalizeCardImageId } from './cardImageRoutes.js';
 import { createAdminClassPositionRouter, writeClassPositionsFile } from './adminClassPositionRoutes.js';
+import { createAdminArticleRouter, writeArticlesFile } from './adminArticleRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -7830,65 +7831,20 @@ function adminIdGuard(req: import('express').Request, res: import('express').Res
   next();
 }
 
-app.post('/api/admin-articles', adminIdGuard, async (req, res) => {
-  if (!adminAuth(req)) return res.status(401).json({ error: 'Требуется вход' });
-  const { article } = req.body ?? {};
-  if (!article?.title?.trim()) return res.status(400).json({ error: 'Заголовок обязателен' });
-  try {
-    const filePath = join(DATA_DIR, 'articles.json');
-    const existing: any = loadData('articles.json') ?? { articles: [], updatedAt: null };
-    const publishedDate = normalizeDateOnlyInput(article.date) || new Date().toISOString().slice(0, 10);
-    const newArticle = {
-      id:      Date.now().toString(),
-      title:   article.title.trim(),
-      date:    publishedDate,
-      image:   article.image   ?? '',
-      excerpt: article.excerpt ?? '',
-      tag:     article.tag     ?? '',
-      mode:    normalizeArticleModeInput(article.mode, article),
-      url:     article.url     ?? '#',
-    };
-    existing.articles.unshift(newArticle);
-    existing.articles.sort((a: any, b: any) => articleDateMs(b) - articleDateMs(a) || String(b.id ?? '').localeCompare(String(a.id ?? '')));
-    existing.updatedAt = new Date().toISOString();
-    writeFileSync(filePath, JSON.stringify(existing, null, 2), 'utf-8');
-    dataCache.delete('articles.json');
-    res.json({ success: true, article: newArticle });
-  } catch (err: any) { res.status(500).json({ error: err.message }); }
-});
-
-app.patch('/api/admin-articles', adminIdGuard, async (req, res) => {
-  if (!adminAuth(req)) return res.status(401).json({ error: 'Требуется вход' });
-  const id = normalizeOptionalText(req.body?.id ?? req.query?.id, 160);
-  const { article } = req.body ?? {};
-  if (!id) return res.status(400).json({ error: 'id обязателен' });
-  if (!article?.title?.trim()) return res.status(400).json({ error: 'Заголовок обязателен' });
-  try {
-    const filePath = join(DATA_DIR, 'articles.json');
-    const existing: any = loadData('articles.json') ?? { articles: [], updatedAt: null };
-    const list = Array.isArray(existing.articles) ? existing.articles : [];
-    const index = list.findIndex((item: any) => String(item.id) === id);
-    if (index === -1) return res.status(404).json({ error: 'Статья не найдена' });
-    const previous = list[index] ?? {};
-    const updatedArticle = {
-      ...previous,
-      id,
-      title: String(article.title ?? '').trim(),
-      date: normalizeDateOnlyInput(article.date) || String(previous.date || new Date().toISOString().slice(0, 10)),
-      image: String(article.image ?? ''),
-      excerpt: String(article.excerpt ?? ''),
-      tag: String(article.tag ?? ''),
-      mode: normalizeArticleModeInput(article.mode, article),
-      url: String(article.url ?? '#'),
-    };
-    list[index] = updatedArticle;
-    existing.articles = list.sort((a: any, b: any) => articleDateMs(b) - articleDateMs(a) || String(b.id ?? '').localeCompare(String(a.id ?? '')));
-    existing.updatedAt = new Date().toISOString();
-    writeFileSync(filePath, JSON.stringify(existing, null, 2), 'utf-8');
-    dataCache.delete('articles.json');
-    res.json({ success: true, article: updatedArticle });
-  } catch (err: any) { res.status(500).json({ error: err.message }); }
-});
+app.use('/api', createAdminArticleRouter({
+  adminGuard: adminIdGuard,
+  adminAuth,
+  loadArticles: () => loadData('articles.json') ?? { articles: [], updatedAt: null },
+  saveArticles: document => writeArticlesFile(DATA_DIR, document),
+  invalidateArticles: () => dataCache.delete('articles.json'),
+  deleteArticleVotes: articleId => { dbRun('DELETE FROM article_votes WHERE article_id = ?', articleId); },
+  normalizeMode: (value, article) => normalizeArticleModeInput(value, article),
+  setPrivateNoStore,
+  onVoteCleanupError: (error, articleId) => console.warn(
+    `[admin-articles] vote cleanup failed article=${articleId}:`,
+    error instanceof Error ? error.message : error,
+  ),
+}));
 
 app.post('/api/admin/uploads/image', async (req, res) => {
   const canUpload = Boolean(adminAuth(req) || contestAdminAuth(req));
@@ -8010,24 +7966,6 @@ app.post('/api/admin/gen-image', adminIdGuard, (req, res) => {
 app.get('/api/admin/gen-status', adminIdGuard, (req, res) => {
   if (!adminAuth(req)) return res.status(401).json({ error: 'Требуется вход' });
   res.json({ busy: isGenerating });
-});
-
-app.delete('/api/admin-articles', adminIdGuard, (req, res) => {
-  if (!adminAuth(req)) return res.status(401).json({ error: 'Требуется вход' });
-  const id = req.body?.id;
-  if (!id) return res.status(400).json({ error: 'id обязателен' });
-  try {
-    const filePath = join(DATA_DIR, 'articles.json');
-    const existing: any = loadData('articles.json') ?? { articles: [], updatedAt: null };
-    const before = existing.articles.length;
-    existing.articles = existing.articles.filter((a: any) => a.id !== id);
-    if (existing.articles.length === before) return res.status(404).json({ error: 'Статья не найдена' });
-    existing.updatedAt = new Date().toISOString();
-    writeFileSync(filePath, JSON.stringify(existing, null, 2), 'utf-8');
-    dbRun('DELETE FROM article_votes WHERE article_id = ?', String(id));
-    dataCache.delete('articles.json');
-    res.json({ success: true });
-  } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
 app.use(structuredErrorMiddleware());

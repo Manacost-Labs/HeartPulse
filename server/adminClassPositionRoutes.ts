@@ -1,16 +1,5 @@
-import { randomUUID } from 'node:crypto';
-import {
-  closeSync,
-  fchmodSync,
-  fsyncSync,
-  mkdirSync,
-  openSync,
-  renameSync,
-  unlinkSync,
-  writeFileSync,
-} from 'node:fs';
-import { join } from 'node:path';
 import { Router, type Request, type RequestHandler, type Response } from 'express';
+import { writeJsonAtomically } from './durableJson.js';
 
 const MAX_POSITION_KEYS = 64;
 const MAX_CLASS_ID_LENGTH = 80;
@@ -67,30 +56,7 @@ export function normalizeClassPositions(value: unknown): Record<string, string> 
 }
 
 export function writeClassPositionsFile(dataDirectory: string, document: ClassPositionsDocument): string {
-  mkdirSync(dataDirectory, { recursive: true });
-  const destination = join(dataDirectory, 'class_positions.json');
-  const temporary = join(dataDirectory, `.class_positions.${process.pid}.${randomUUID()}.tmp`);
-  let descriptor: number | null = null;
-  try {
-    descriptor = openSync(temporary, 'wx', 0o640);
-    fchmodSync(descriptor, 0o640);
-    writeFileSync(descriptor, `${JSON.stringify(document, null, 2)}\n`, 'utf8');
-    fsyncSync(descriptor);
-    closeSync(descriptor);
-    descriptor = null;
-    renameSync(temporary, destination);
-    const directoryDescriptor = openSync(dataDirectory, 'r');
-    try {
-      fsyncSync(directoryDescriptor);
-    } finally {
-      closeSync(directoryDescriptor);
-    }
-    return destination;
-  } catch (error) {
-    if (descriptor !== null) closeSync(descriptor);
-    try { unlinkSync(temporary); } catch { /* temporary file was not created or was already renamed */ }
-    throw error;
-  }
+  return writeJsonAtomically(dataDirectory, 'class_positions.json', document);
 }
 
 export function createAdminClassPositionRouter(

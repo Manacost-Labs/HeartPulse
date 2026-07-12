@@ -360,6 +360,32 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
       request.respond(jsonResponse({ items: [] }));
       return;
     }
+    if (admin && url.pathname === '/api/articles') {
+      request.respond(jsonResponse({ articles: adminState.articles ?? adminFixtures['/api/articles'].articles }));
+      return;
+    }
+    if (admin && url.pathname === '/api/admin-articles') {
+      const payload = JSON.parse(request.postData() || '{}');
+      const articles = adminState.articles ??= structuredClone(adminFixtures['/api/articles'].articles);
+      if (request.method() === 'POST') {
+        const article = { id: 'qa-created-article', ...payload.article };
+        articles.unshift(article);
+        request.respond(jsonResponse({ success: true, article }));
+        return;
+      }
+      if (request.method() === 'PATCH') {
+        const index = articles.findIndex(article => article.id === payload.id);
+        const article = { ...articles[index], ...payload.article, id: payload.id };
+        if (index >= 0) articles[index] = article;
+        request.respond(jsonResponse({ success: true, article }));
+        return;
+      }
+      if (request.method() === 'DELETE') {
+        adminState.articles = articles.filter(article => article.id !== payload.id);
+        request.respond(jsonResponse({ success: true }));
+        return;
+      }
+    }
     if (admin && adminFixtures[url.pathname]) {
       request.respond(jsonResponse(adminFixtures[url.pathname]));
       return;
@@ -615,7 +641,10 @@ for (const [device, viewport] of [
 ]) {
   const page = await createQaPage();
   const runtimeErrors = collectRuntimeErrors(page);
-  const adminState = { galleryEmpty: false };
+  const adminState = {
+    galleryEmpty: false,
+    articles: structuredClone(adminFixtures['/api/articles'].articles),
+  };
   await page.setViewport(viewport);
   await mockApplicationApi(page, { authenticated: true, admin: true, adminState });
   try {
@@ -681,8 +710,28 @@ for (const [device, viewport] of [
     await page.waitForFunction(() => document.querySelector('.admin-article-form h2')?.textContent?.trim() === 'Редактирование статьи');
     const editedArticleTitle = await page.$eval('.admin-article-form input[required]', element => element.value);
     if (editedArticleTitle !== 'Первая статья') failures.push(`admin articles [${device}]: edit did not populate the form`);
-    await page.click('.admin-article-form .contest-secondary-button');
-    await page.waitForFunction(() => document.querySelector('.admin-article-form h2')?.textContent?.trim() === 'Новая статья');
+    await page.click('.admin-article-form input[required]', { clickCount: 3 });
+    await page.type('.admin-article-form input[required]', 'Первая статья — обновлена');
+    await page.click('.admin-article-form button[type="submit"]');
+    await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Статья обновлена.'));
+    await page.waitForFunction(() => [...document.querySelectorAll('.admin-article-row strong')]
+      .some(element => element.textContent?.trim() === 'Первая статья — обновлена'));
+
+    await page.type('.admin-article-form input[required]', 'Новая QA статья');
+    await page.click('.admin-article-form button[type="submit"]');
+    await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Статья добавлена.'));
+    await page.waitForFunction(() => document.querySelectorAll('.admin-article-row').length === 3);
+    await page.evaluate(() => { window.confirm = () => true; });
+    await page.evaluate(() => {
+      const row = [...document.querySelectorAll('.admin-article-row')]
+        .find(element => element.querySelector('strong')?.textContent?.trim() === 'Новая QA статья');
+      const button = row?.querySelector('.admin-danger-button');
+      if (!(button instanceof HTMLButtonElement)) throw new Error('Created article delete action is missing');
+      button.click();
+    });
+    await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Статья удалена.'));
+    await page.waitForFunction(() => document.querySelectorAll('.admin-article-row').length === 2);
+
     const articleSearch = await page.$('.admin-list-toolbar input');
     if (!articleSearch) throw new Error('Article search input is missing');
     await articleSearch.type('несуществующий материал');
