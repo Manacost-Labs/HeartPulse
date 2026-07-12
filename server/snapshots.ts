@@ -13,6 +13,7 @@ import { basename, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 const MAX_FUTURE_SKEW_MS = 5 * 60 * 1000;
+const MINIMUM_RETAINED_COLLECTION_RATIO = 0.5;
 
 type SnapshotDocument = Record<string, unknown>;
 
@@ -45,11 +46,59 @@ export function validateSnapshot(filename: string, data: unknown, now = Date.now
   }
 }
 
+function validateSnapshotContinuity(
+  dataDirectory: string,
+  filename: string,
+  replacement: SnapshotDocument,
+  now = Date.now(),
+): void {
+  const existing = loadSnapshot(dataDirectory, filename);
+  try {
+    validateSnapshot(filename, existing, now);
+  } catch {
+    // A missing or already-invalid destination must not prevent recovery with a
+    // structurally valid replacement.
+    return;
+  }
+
+  const specification = SNAPSHOT_COLLECTIONS[filename];
+  const current = existing as SnapshotDocument;
+  const currentUpdatedAt = Date.parse(String(current.updatedAt));
+  const replacementUpdatedAt = Date.parse(String(replacement.updatedAt));
+  if (replacementUpdatedAt < currentUpdatedAt) {
+    throw new Error(`${filename}: replacement is older than the published snapshot`);
+  }
+
+  const currentCollection = current[specification.collection] as unknown[];
+  const replacementCollection = replacement[specification.collection] as unknown[];
+  const minimumCollectionSize = Math.ceil(
+    currentCollection.length * MINIMUM_RETAINED_COLLECTION_RATIO,
+  );
+  if (replacementCollection.length < minimumCollectionSize) {
+    throw new Error(
+      `${filename}: ${specification.collection} shrank unexpectedly `
+      + `(${currentCollection.length} -> ${replacementCollection.length})`,
+    );
+  }
+
+  if (specification.requireCards) {
+    const currentCardCount = Object.keys(current.cards as Record<string, unknown>).length;
+    const replacementCardCount = Object.keys(replacement.cards as Record<string, unknown>).length;
+    const minimumCardCount = Math.ceil(currentCardCount * MINIMUM_RETAINED_COLLECTION_RATIO);
+    if (replacementCardCount < minimumCardCount) {
+      throw new Error(
+        `${filename}: cards index shrank unexpectedly (${currentCardCount} -> ${replacementCardCount})`,
+      );
+    }
+  }
+}
+
 export function publishSnapshot(dataDirectory: string, filename: string, data: unknown): string {
   validateSnapshot(filename, data);
-  mkdirSync(dataDirectory, { recursive: true });
   const safeFilename = basename(filename);
   if (safeFilename !== filename) throw new Error('snapshot filename must not contain a path');
+  mkdirSync(dataDirectory, { recursive: true });
+  validateSnapshotContinuity(dataDirectory, safeFilename, data);
   const destination = join(dataDirectory, safeFilename);
   const temporary = join(dataDirectory, `.${safeFilename}.${process.pid}.${randomUUID()}.tmp`);
   const markerTemporary = join(dataDirectory, `.snapshots-published.${process.pid}.${randomUUID()}.tmp`);
