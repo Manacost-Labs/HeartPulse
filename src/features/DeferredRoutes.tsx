@@ -2145,9 +2145,9 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
 
 function winRateBadgeColor(wr: number | null | undefined): string {
   if (!wr) return '#6b7280';
-  if (wr >= 60) return '#16a34a';
+  if (wr >= 60) return '#166534';
   if (wr >= 50) return '#2563eb';
-  return '#dc2626';
+  return '#991b1b';
 }
 
 const LegendaryCardThumb: React.FC<{

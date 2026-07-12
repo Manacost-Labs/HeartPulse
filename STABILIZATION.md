@@ -146,6 +146,7 @@ A task is complete only when all relevant checks below are proven.
 - [ ] `npm run build` passes.
 - [ ] Bundle budget passes or the task includes an approved ratchet update.
 - [ ] Guest and entitled behavior are covered where access differs.
+- [ ] Critical guest/subscriber states have zero axe WCAG 2.2 A/AA violations.
 - [ ] Desktop and 390 px mobile rendering are checked for UI work.
 - [ ] `document.documentElement.scrollWidth === innerWidth` at 390 px.
 - [ ] No new browser console error is introduced.
@@ -172,6 +173,7 @@ A task is complete only when all relevant checks below are proven.
 - [ ] Phase 1: required CI, staging and authenticated E2E/visual QA.
   - [x] Required typecheck, unit-test, build, budget and docs workflow.
   - [x] Deterministic guest/subscriber browser QA at desktop and mobile widths, including dimming, overflow, menu and lightbox scroll-lock regressions.
+  - [x] CI serves the built frontend locally and runs the deterministic desktop/mobile flows with axe-core WCAG 2.2 A/AA checks before a commit can pass.
 - [x] Phase 2: one route registry and shared frontend components.
   - [x] One typed route registry owns navigation groups, access entitlements, path resolution and SEO metadata.
   - [x] Shared subscription purchase controls replace the first cross-bundle component duplicate.
@@ -205,6 +207,9 @@ A task is complete only when all relevant checks below are proven.
   - [x] Daily GnuPG AES-256 backups capture shared data/uploads plus a consistent ecosystem SQLite snapshot; a weekly isolated restore drill verifies the archive checksum, per-file manifest, required datasets and SQLite integrity, with tamper rejection covered in CI.
   - [ ] Replicate encrypted archives and the recovery key to separate offline failure domains and test a full host-loss recovery.
 - [ ] Phase 8: performance, accessibility and final production audit.
+  - [x] Automated WCAG 2.2 A/AA audits cover critical Arena subscriber routes at desktop/mobile widths, the guest paywall, open mobile navigation and open card lightbox; the initial contrast violation was fixed and CI now requires zero axe violations.
+  - [ ] Complete manual keyboard, VoiceOver/TalkBack, 200% zoom, forced-colors and reduced-motion checks on the route inventory.
+  - [ ] Ratchet initial JS to 250 KB and main CSS to 300 KB, then profile the next route-level reductions.
 
 ## Progress metrics
 

@@ -6,12 +6,23 @@
 //   npm run qa:e2e
 //   npm run qa:e2e -- --url=http://127.0.0.1:4173
 import puppeteer from 'puppeteer';
-import { mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const AXE_PATH = require.resolve('axe-core/axe.min.js');
+const CHROMIUM_PATH = [
+  process.env.CHROMIUM_PATH,
+  '/usr/bin/chromium',
+  '/usr/bin/google-chrome',
+  '/usr/bin/google-chrome-stable',
+].find(candidate => candidate && existsSync(candidate));
+if (!CHROMIUM_PATH) throw new Error('Chromium/Chrome executable is required for browser QA');
 
 const BASE = (process.argv.find(arg => arg.startsWith('--url=')) || '--url=https://arena.hs-manacost.ru')
   .slice(6)
   .replace(/\/$/, '');
-const OUT = process.env.QA_SCREENSHOT_DIR || '/tmp/hs-arena-qa';
+const OUT = process.env.QA_SCREENSHOT_DIR || `/tmp/hs-arena-qa-${process.getuid?.() ?? 'user'}`;
 const failures = [];
 const fixtures = {
   '/api/winrates': JSON.parse(readFileSync('server/data/winrates.json', 'utf8')),
@@ -126,6 +137,27 @@ async function waitForMeaningfulPage(page, expectedText) {
   ).catch(() => {});
 }
 
+async function auditAccessibility(page, label, context = 'document') {
+  await page.addScriptTag({ path: AXE_PATH });
+  const results = await page.evaluate(async auditContext => {
+    const target = auditContext === 'document' ? document : document.querySelector(auditContext);
+    if (!target) throw new Error(`Accessibility audit target is missing: ${auditContext}`);
+    return window.axe.run(target, {
+      runOnly: {
+        type: 'tag',
+        values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'],
+      },
+      resultTypes: ['violations'],
+    });
+  }, context);
+  for (const violation of results.violations) {
+    const selectors = violation.nodes.slice(0, 3).flatMap(node => node.target).join(' | ');
+    const summary = violation.nodes[0]?.failureSummary?.replace(/\s+/g, ' ').trim() || '';
+    failures.push(`${label} [a11y ${violation.impact || 'unknown'}] ${violation.id}: ${violation.help}; ${selectors}; ${summary}`);
+  }
+  return results.violations.length;
+}
+
 async function inspectLayout(page, { mobile }) {
   return page.evaluate(isMobile => {
     const root = document.documentElement;
@@ -190,7 +222,7 @@ function assertLayout(path, layout) {
 
 const browser = await puppeteer.launch({
   headless: 'new',
-  executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+  executablePath: CHROMIUM_PATH,
   args: ['--no-sandbox', '--disable-dev-shm-usage'],
 });
 
@@ -214,13 +246,14 @@ for (const route of authenticatedRoutes) {
       await page.goto(BASE + route.path, { waitUntil: 'domcontentloaded', timeout: 45_000 });
       await waitForMeaningfulPage(page, route.expected);
       await page.waitForSelector(route.selector, { timeout: 20_000 });
+      const violationCount = await auditAccessibility(page, `${route.path} [${device}]`);
       const paywallVisible = await page.$eval('.arena-paywall', element => getComputedStyle(element).display !== 'none').catch(() => false);
       if (paywallVisible) failures.push(`${route.path} [${device}]: subscriber still sees paywall`);
       const layout = await inspectLayout(page, { mobile: device === 'mobile' });
       assertLayout(`${route.path} [${device}]`, layout);
       await page.screenshot({ path: `${OUT}/${route.path.slice(1)}-${device}.png`, fullPage: false });
       if (runtimeErrors.length) failures.push(`${route.path} [${device}]: ${runtimeErrors.join(' | ')}`);
-      console.log(`✓ ${route.path} [${device}] subscriber layout`);
+      console.log(`✓ ${route.path} [${device}] subscriber layout + axe (${violationCount} violations)`);
     } catch (error) {
       const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 240).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
       failures.push(`${route.path} [${device}]: ${error.message}; page: ${diagnostic}`);
@@ -253,7 +286,8 @@ for (const route of authenticatedRoutes) {
     if (!state.previewInert || !state.previewHidden) failures.push('/classes [guest]: private preview is exposed to interaction or assistive technology');
     if (state.landmark !== 'SECTION') failures.push(`/classes [guest]: paywall must be a section, got ${state.landmark || 'nothing'}`);
     if (state.purchaseLinks !== 2) failures.push(`/classes [guest]: expected 2 purchase links, got ${state.purchaseLinks}`);
-    console.log('✓ /classes [mobile guest] paywall');
+    const violationCount = await auditAccessibility(page, '/classes [mobile guest]');
+    console.log(`✓ /classes [mobile guest] paywall + axe (${violationCount} violations)`);
   } catch (error) {
     failures.push(`/classes [mobile guest]: ${error.message}`);
   } finally {
@@ -270,6 +304,10 @@ for (const route of authenticatedRoutes) {
     await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.click('.arena-mobile-nav-toggle');
     await page.waitForSelector('.arena-mobile-menu', { visible: true });
+    await page.waitForFunction(() => (
+      document.querySelector('.auth-avatar > span')?.textContent === 'QS'
+      && getComputedStyle(document.querySelector('.auth-avatar img')).display === 'none'
+    ), { timeout: 5_000 }).catch(() => {});
     const openState = await page.evaluate(() => {
       const profile = document.querySelector('.arena-mobile-menu-profile');
       const rect = profile?.getBoundingClientRect();
@@ -289,6 +327,7 @@ for (const route of authenticatedRoutes) {
     if (!openState.profileWidth || openState.profileRight > openState.viewportWidth + 1) failures.push('mobile menu: profile control frame overflows');
     if (!openState.constructors || !openState.misc) failures.push('mobile menu: grouped navigation controls are missing');
     if (openState.avatarFallback !== 'QS' || !openState.avatarImageHidden) failures.push('mobile menu: broken avatar did not fall back to user initials');
+    await auditAccessibility(page, 'mobile menu open');
     await page.click('.arena-mobile-drawer-backdrop');
     await page.waitForSelector('.arena-mobile-menu', { hidden: true });
     const closedPosition = await page.evaluate(() => getComputedStyle(document.body).position);
@@ -316,6 +355,7 @@ for (const route of authenticatedRoutes) {
     await new Promise(resolve => setTimeout(resolve, 150));
     await page.$eval('.hs-tier-card', element => element.click());
     await page.waitForSelector('.card-modal-lightbox', { visible: true });
+    await auditAccessibility(page, 'mobile lightbox open', '.card-modal-lightbox');
     const locked = await page.evaluate(() => ({
       bodyPosition: getComputedStyle(document.body).position,
       htmlOverflow: getComputedStyle(document.documentElement).overflow,
