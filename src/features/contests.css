@@ -3858,16 +3858,4 @@
     contain: none !important;
   }
 
-  .arena-content-admin > .route-transition {
-    width: 100%;
-    min-height: 100vh;
-    opacity: 1 !important;
-    transform: none !important;
-    filter: none !important;
-    backdrop-filter: none !important;
-    perspective: none !important;
-    contain: none !important;
-    transition: none !important;
-    will-change: auto;
-  }
 }

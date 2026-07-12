@@ -4,7 +4,7 @@ import { join, relative } from 'node:path';
 const ROOT = process.cwd();
 const SRC = join(ROOT, 'src');
 const TOKEN_FILE = 'src/styles/tokens.css';
-const MAX_IMPORTANT_DECLARATIONS = 2562;
+const MAX_IMPORTANT_DECLARATIONS = 2503;
 const RETIRED_HOME_CLASS_PREFIXES = [
   'home-stage__atmosphere',
   'home-stage__rune',
@@ -25,6 +25,30 @@ const RETIRED_HOME_CLASS_PREFIXES = [
   'draft-card-image',
   'home-bg-spotlight',
   'home-bg-chart',
+];
+const RETIRED_INITIAL_CLASS_PREFIXES = [
+  'community-promo-card',
+  'bg-parchment-inactive',
+  'hs-input',
+  'text-gold',
+  'anim-fade-left',
+  'route-transition',
+  'hs-card-interactive',
+  'hs-btn',
+  'gold-pulse',
+  'arena-header',
+  'arena-brand-card',
+  'site-switcher',
+  'arena-tabs',
+  'arena-tab',
+  'home-summary',
+  'home-boosty-banner',
+  'modern-primary-link',
+  'modern-secondary-link',
+  'modern-mini-stat',
+  'arena-mobile-menu-sublink',
+  'arena-sidebar-sublink',
+  'home-section-heading--data',
 ];
 
 function walk(directory) {
@@ -77,9 +101,19 @@ const retiredHomeSelectors = sources.flatMap(({ file, source }) => (
     .filter(prefix => new RegExp(`\\.${prefix}(?:__|--|(?![\\w-]))`).test(source))
     .map(prefix => `${file}:.${prefix}`)
 ));
+const retiredInitialSelectors = sources.flatMap(({ file, source }) => (
+  RETIRED_INITIAL_CLASS_PREFIXES
+    .filter(prefix => new RegExp(`\\.${prefix}(?:__|--|(?![\\w-]))`).test(source))
+    .map(prefix => `${file}:.${prefix}`)
+));
 
 if (retiredHomeSelectors.length > 0) {
   console.error(`[css-architecture] retired ownerless Home selectors returned: ${retiredHomeSelectors.join(', ')}`);
+  process.exit(1);
+}
+
+if (retiredInitialSelectors.length > 0) {
+  console.error(`[css-architecture] retired ownerless initial selectors returned: ${retiredInitialSelectors.join(', ')}`);
   process.exit(1);
 }
 
@@ -87,6 +121,7 @@ console.log(`[css-architecture] global :root owners: ${rootOwners.length} / 1`);
 console.log(`[css-architecture] unique global tokens: ${tokenNames.length}`);
 console.log(`[css-architecture] !important declarations: ${importantCount} / ${MAX_IMPORTANT_DECLARATIONS}`);
 console.log(`[css-architecture] retired ownerless Home selector prefixes: 0 / ${RETIRED_HOME_CLASS_PREFIXES.length}`);
+console.log(`[css-architecture] retired ownerless initial selector prefixes: 0 / ${RETIRED_INITIAL_CLASS_PREFIXES.length}`);
 
 if (importantCount > MAX_IMPORTANT_DECLARATIONS) {
   console.error('[css-architecture] legacy cascade debt increased; remove an override or use scoped specificity instead');

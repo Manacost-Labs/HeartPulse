@@ -305,11 +305,6 @@
 
 /* ─── Arena board ────────────────────────────────────────────────────────── */
 
-.home-section-heading--data {
-  padding-bottom: 1.3rem;
-  border-bottom: 1px solid var(--home-line);
-}
-
 /* ─── Battlegrounds tavern ───────────────────────────────────────────────── */
 
 .home-bg-directory {
