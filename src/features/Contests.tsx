@@ -24,6 +24,12 @@ import {
   X,
 } from 'lucide-react';
 import './contests.css';
+import {
+  ContestAdminReferrals,
+  type AdminReferralClick,
+  type AdminReferralLink,
+  type ReferralDraft,
+} from './ContestAdminReferrals';
 
 type AdminMessage = { type: 'ok' | 'err'; text: string };
 
@@ -484,31 +490,6 @@ function adminSectionFromLocation(defaultSection: AdminWorkspaceSection): AdminW
   return defaultSection;
 }
 
-type AdminReferralLink = {
-  id: string;
-  slug: string;
-  label: string;
-  campaign: string;
-  targetPath: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  url: string;
-  clicks: number;
-  uniqueClicks: number;
-  lastClickAt: string;
-};
-
-type AdminReferralClick = {
-  id: string;
-  referralId: string;
-  slug: string;
-  clickedAt: string;
-  userAgent: string;
-  referrer: string;
-  landingPath: string;
-};
-
 type BoostyAdminStatus = {
   configured: boolean;
   ok: boolean;
@@ -889,7 +870,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const [galleryDeletingId, setGalleryDeletingId] = useState('');
   const [referrals, setReferrals] = useState<AdminReferralLink[]>([]);
   const [referralClicks, setReferralClicks] = useState<AdminReferralClick[]>([]);
-  const [referralClicksExpanded, setReferralClicksExpanded] = useState(false);
   const [articleForm, setArticleForm] = useState({
     title: '',
     tag: '',
@@ -906,13 +886,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     source: '',
   });
   const [editingArticleId, setEditingArticleId] = useState('');
-  const [referralForm, setReferralForm] = useState({
-    label: '',
-    slug: '',
-    campaign: '',
-    targetPath: '/',
-    status: 'active',
-  });
   const [boostyStatus, setBoostyStatus] = useState<BoostyAdminStatus | null>(null);
   const [boostyStatusLoading, setBoostyStatusLoading] = useState(false);
   const [boostySubscribers, setBoostySubscribers] = useState<BoostySubscribersPayload | null>(null);
@@ -1557,24 +1530,23 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     }
   };
 
-  const submitReferral = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!referralForm.label.trim()) return;
+  const submitReferral = async (draft: ReferralDraft): Promise<boolean> => {
     setLoading(true);
     setMessage(null);
     try {
       const res = await fetch('/api/admin/referrals', {
         method: 'POST',
         headers: authJsonHeaders(),
-        body: JSON.stringify(referralForm),
+        body: JSON.stringify(draft),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Не удалось создать ссылку');
       setMessage({ type: 'ok', text: 'Реферальная ссылка создана.' });
-      setReferralForm({ label: '', slug: '', campaign: '', targetPath: '/', status: 'active' });
       await loadReferrals();
+      return true;
     } catch (err: any) {
       setMessage({ type: 'err', text: err.message });
+      return false;
     } finally {
       setLoading(false);
     }
@@ -3128,59 +3100,14 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           )}
 
           {hasFullAdminAccess && adminSection === 'referrals' && (
-            <div className="contest-admin-grid admin-referral-layout">
-              <form className="contest-admin-card" onSubmit={submitReferral}>
-                <h2>Новая рекламная ссылка</h2>
-                <label>Название<input value={referralForm.label} onChange={e => setReferralForm(v => ({ ...v, label: e.target.value }))} placeholder="Telegram июль, VK пост, Boosty баннер" style={ADMIN_INPUT} /></label>
-                <label>Slug<input value={referralForm.slug} onChange={e => setReferralForm(v => ({ ...v, slug: e.target.value }))} placeholder="tg-july" style={ADMIN_INPUT} /></label>
-                <label>Кампания<input value={referralForm.campaign} onChange={e => setReferralForm(v => ({ ...v, campaign: e.target.value }))} placeholder="summer-2026" style={ADMIN_INPUT} /></label>
-                <label>Куда вести<input value={referralForm.targetPath} onChange={e => setReferralForm(v => ({ ...v, targetPath: e.target.value }))} placeholder="/" style={ADMIN_INPUT} /></label>
-                <label>Статус
-                  <select value={referralForm.status} onChange={e => setReferralForm(v => ({ ...v, status: e.target.value }))} style={ADMIN_INPUT}>
-                    <option value="active">Активна</option>
-                    <option value="paused">Пауза</option>
-                  </select>
-                </label>
-                <button type="submit" disabled={loading} className="contest-primary-button">Создать ссылку</button>
-              </form>
-
-              <div className="contest-admin-card admin-referral-report">
-                <h2>Статистика ссылок</h2>
-                <div className="admin-referral-list">
-                  {referrals.map(item => (
-                    <div key={item.id} className="admin-referral-row">
-                      <div>
-                        <strong>{item.label}</strong>
-                        <span>{item.campaign || 'без кампании'} · {item.status === 'active' ? 'активна' : 'пауза'}</span>
-                        <code>{item.url}</code>
-                      </div>
-                      <div className="admin-referral-stats">
-                        <span><strong>{item.clicks}</strong> кликов</span>
-                        <span><strong>{item.uniqueClicks}</strong> уник.</span>
-                        <span>{item.lastClickAt ? formatDate(item.lastClickAt) : 'нет кликов'}</span>
-                      </div>
-                      <button type="button" onClick={() => void copyText(item.url, 'Реферальная ссылка скопирована.')}>Копировать</button>
-                    </div>
-                  ))}
-                  {!referrals.length && <p className="contest-muted">Реферальных ссылок пока нет.</p>}
-                </div>
-                <h3 className="admin-subtitle">Последние переходы</h3>
-                <div className="admin-referral-clicks">
-                  {(referralClicksExpanded ? referralClicks : referralClicks.slice(0, 8)).map(click => (
-                    <div key={click.id}>
-                      <strong>/r/{click.slug}</strong>
-                      <span>{click.clickedAt ? formatDate(click.clickedAt) : 'без даты'} · {click.referrer || 'прямой переход'}</span>
-                    </div>
-                  ))}
-                  {!referralClicks.length && <p className="contest-muted">Переходов пока нет.</p>}
-                </div>
-                {referralClicks.length > 8 && (
-                  <button type="button" className="contest-secondary-button admin-referral-more" onClick={() => setReferralClicksExpanded(value => !value)}>
-                    {referralClicksExpanded ? 'Свернуть переходы' : `Показать все переходы (${referralClicks.length})`}
-                  </button>
-                )}
-              </div>
-            </div>
+            <ContestAdminReferrals
+              referrals={referrals}
+              referralClicks={referralClicks}
+              loading={loading}
+              formatDate={formatDate}
+              onCopy={copyText}
+              onSubmit={submitReferral}
+            />
           )}
         </div>
       </div>

@@ -2760,6 +2760,18 @@
   min-width: 0;
 }
 
+.admin-workspace-page .admin-referral-form input,
+.admin-workspace-page .admin-referral-form select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 11px;
+  border: 1px solid #c3c4c7;
+  border-radius: 6px;
+  background: #fff;
+  color: #1d2327;
+}
+
 .admin-referral-more {
   align-self: flex-start;
   margin-top: 0.25rem;
