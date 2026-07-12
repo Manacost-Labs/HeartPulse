@@ -19,7 +19,7 @@ every completed task must be tested and pushed to `main` as a separate commit.
 | CI | Scheduled scraper only | Required validation workflow on every push and PR |
 | Deployment | Live working tree, server started through `tsx` | Immutable compiled release with health rollback |
 | Initial JS | About 267 KB volatile entry | Stable vendor cache, ≤48 KB shell, ≤263 KB raw/≤90 KB gzip total |
-| Main CSS | About 324 KB raw | Route ownership, ≤200 KB initial, then ≤190 KB |
+| Main CSS | About 324 KB raw | Route ownership, ≤190 KB initial, then ≤180 KB |
 | Data publishing | Scraper can commit directly to `main` | Validated isolated data publishing |
 | Observability | Journald and `/api/status` | Request IDs, readiness, error tracking and alerts |
 
@@ -215,8 +215,8 @@ A task is complete only when all relevant checks below are proven.
   - [x] Volatile initial JS is down from 266.8 KB to a 47.2 KB application shell by splitting below-fold UI and the footer, moving `react-dom/client` into a stable dependency-addressed vendor chunk, removing unused declarations, sharing one route-link renderer and loading the 4.3 KB SEO metadata map only after client navigation. CI separately caps the shell, 184.9 KB React vendor, 262.7 KB raw initial graph and 80.3 KB gzip initial graph; browser QA proves route metadata is absent initially and updates title/description after navigation.
   - [x] Referral resolution, release polling and initial authentication requests now abort during React cleanup; stale responses cannot redirect, reload or update authentication state after their owning effect is gone.
   - [x] The initial-shell source no longer carries 103 retired route, deck, card-modal and admin declarations in `App.tsx`; React Doctor improved from 60 to 71 and CI now rejects unused declarations or parameters across all six initial-shell modules.
-  - [x] Initial CSS is down from 322.7 KB to 195.0 KB: the 47.0 KB route parchment layer, three 3.5–4.2 KB below-fold home styles, 3.4 KB FAQ styles, 3.5 KB support-prompt styles, 3.6 KB footer styles and deferred lightbox styles are loaded by their lazy owners. A retired, unreferenced draft-theme layer was removed. CI caps every layer, proves owners receive their CSS and proves route CSS does not leak into the home route.
-  - [ ] Reduce initial CSS from 195.0 KB to 190 KB, then profile the next route-owned reduction.
+  - [x] Initial CSS is down from 322.7 KB to 187.0 KB: the 47.4 KB route parchment layer, 67.6 KB deferred Arena-data layer, three 3.5–4.2 KB below-fold home styles, 3.4 KB FAQ styles, 3.5 KB support-prompt styles and 3.6 KB footer styles load only with their owners. Retired styles were removed. CI caps every layer and proves both route layers stay out of the home route.
+  - [ ] Reduce initial CSS from 187.0 KB to 180 KB, then profile the next route-owned reduction.
 
 ## Progress metrics
 

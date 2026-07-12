@@ -444,6 +444,7 @@ for (const route of authenticatedRoutes) {
       const hrefs = [...document.styleSheets].map(sheet => sheet.href || '');
       return {
         routeCssLoaded: hrefs.some(href => href.includes('/assets/route-parchment-')),
+        deferredRoutesCssLoaded: hrefs.some(href => href.includes('/assets/DeferredRoutes-') && href.endsWith('.css')),
         arenaCss: hrefs.some(href => href.includes('/assets/HomeArenaDirectory-')),
         battlegroundsCss: hrefs.some(href => href.includes('/assets/HomeBattlegrounds-')),
         articlesCss: hrefs.some(href => href.includes('/assets/HomeLatestArticles-')),
@@ -454,6 +455,7 @@ for (const route of authenticatedRoutes) {
       };
     });
     if (homeCssState.routeCssLoaded) failures.push('home lazy sections: route-only parchment CSS leaked into the initial home route');
+    if (homeCssState.deferredRoutesCssLoaded) failures.push('home lazy sections: deferred route-owner CSS leaked into the initial home route');
     if (!homeCssState.arenaCss || !homeCssState.battlegroundsCss || !homeCssState.articlesCss) failures.push('home lazy sections: one or more owner CSS chunks did not load');
     if (!homeCssState.faqCss) failures.push('home lazy sections: FAQ owner CSS did not load');
     if (!homeCssState.supportCss) failures.push('home lazy sections: support-prompt owner CSS did not load');

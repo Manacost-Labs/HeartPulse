@@ -1724,3 +1724,23 @@
     padding: 0.55rem !important;
   }
 }
+
+/* Owned by the lazy parchment route layer used by Standard matchups. */
+@layer utilities {
+
+  .arena-app-standard-matchups .standard-matchups__masthead .uppercase {
+    color: #efc568 !important;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__masthead p {
+    color: #e5c994 !important;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__rank-switcher button {
+    color: #e2c690 !important;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__rank-switcher button[aria-pressed='true'] {
+    color: #4b2818 !important;
+  }
+}
