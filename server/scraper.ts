@@ -3,7 +3,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join, resolve } from 'path';
 import { existsSync, mkdirSync, readFileSync } from 'fs';
 import { config as dotenvConfig } from 'dotenv';
-import { loadSnapshot, publishSnapshot } from './snapshots.js';
+import { loadSnapshot, publishSnapshot, SNAPSHOT_SCHEMA_VERSION } from './snapshots.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -310,6 +310,7 @@ export async function scrapeHSReplayClassWinrates(): Promise<boolean> {
   }
 
   saveData('winrates.json', {
+    schemaVersion: SNAPSHOT_SCHEMA_VERSION,
     classes: intercepted.sort((a: any, b: any) => b.winrate - a.winrate),
     updatedAt: new Date().toISOString(),
     source: 'hsreplay.net',
@@ -707,6 +708,7 @@ export async function scrapeHSReplayTierlist(): Promise<boolean> {
       });
 
     saveData('hsreplay_tierlist.json', {
+      schemaVersion: SNAPSHOT_SCHEMA_VERSION,
       sections,
       cards:     cardImages, // reuse HearthArena images
       updatedAt: new Date().toISOString(),
@@ -749,6 +751,7 @@ export async function scrapeFirestoneWinrates(): Promise<boolean> {
 
     if (classes.length < 3) throw new Error('Too few classes: ' + classes.length);
     saveData('winrates.json', {
+      schemaVersion: SNAPSHOT_SCHEMA_VERSION,
       classes: classes.sort((a: any, b: any) => b.winrate - a.winrate),
       updatedAt: data.lastUpdated || new Date().toISOString(),
       source: 'firestoneapp.com',
@@ -965,6 +968,7 @@ export async function scrapeHearthArenaTierlist(): Promise<boolean> {
     console.log(`[Scraper] HearthArena: ${totalUnique} unique cards, ${totalCards} section entries across ${sections.length} classes`);
 
     saveData('tierlist.json', {
+      schemaVersion: SNAPSHOT_SCHEMA_VERSION,
       sections,
       cards:     cardLookup,
       updatedAt: new Date().toISOString(),
@@ -1168,6 +1172,7 @@ export async function scrapeLegendaries(): Promise<boolean> {
     });
 
     saveData('legendaries.json', {
+      schemaVersion: SNAPSHOT_SCHEMA_VERSION,
       groups,
       updatedAt: new Date().toISOString(),
       source: 'hsreplay.net',

@@ -14,6 +14,7 @@ import { randomUUID } from 'node:crypto';
 
 const MAX_FUTURE_SKEW_MS = 5 * 60 * 1000;
 const MINIMUM_RETAINED_COLLECTION_RATIO = 0.5;
+export const SNAPSHOT_SCHEMA_VERSION = 1;
 
 type SnapshotDocument = Record<string, unknown>;
 
@@ -24,11 +25,114 @@ const SNAPSHOT_COLLECTIONS: Record<string, { collection: string; minimum: number
   'hsreplay_tierlist.json': { collection: 'sections', minimum: 1, requireCards: true },
 };
 
-export function validateSnapshot(filename: string, data: unknown, now = Date.now()): asserts data is SnapshotDocument {
+function requireRecord(value: unknown, label: string): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`${label} must be an object`);
+  }
+  return value as Record<string, unknown>;
+}
+
+function requireUniqueId(
+  records: unknown[],
+  label: string,
+  readId: (record: Record<string, unknown>) => unknown,
+): void {
+  const identifiers = new Set<string>();
+  records.forEach((value, index) => {
+    const record = requireRecord(value, `${label}[${index}]`);
+    const id = String(readId(record) ?? '').trim();
+    if (!id) throw new Error(`${label}[${index}]: id is missing`);
+    if (identifiers.has(id)) throw new Error(`${label}: duplicate id ${id}`);
+    identifiers.add(id);
+  });
+}
+
+function validateSnapshotRecords(filename: string, document: SnapshotDocument): void {
+  if (filename === 'winrates.json') {
+    const classes = document.classes as unknown[];
+    requireUniqueId(classes, 'winrates.json: classes', record => record.id);
+    classes.forEach((value, index) => {
+      const record = requireRecord(value, `winrates.json: classes[${index}]`);
+      const winrate = record.winrate;
+      if (typeof winrate !== 'number' || !Number.isFinite(winrate) || winrate < 0 || winrate > 100) {
+        throw new Error(`winrates.json: classes[${index}]: winrate is invalid`);
+      }
+      if (record.games !== undefined
+        && (typeof record.games !== 'number' || !Number.isFinite(record.games) || record.games < 0)) {
+        throw new Error(`winrates.json: classes[${index}]: games is invalid`);
+      }
+    });
+    return;
+  }
+
+  if (filename === 'tierlist.json' || filename === 'hsreplay_tierlist.json') {
+    const sections = document.sections as unknown[];
+    requireUniqueId(sections, `${filename}: sections`, record => record.id);
+    let cardReferenceCount = 0;
+    sections.forEach((value, sectionIndex) => {
+      const section = requireRecord(value, `${filename}: sections[${sectionIndex}]`);
+      if (!Array.isArray(section.tiers) || section.tiers.length === 0) {
+        throw new Error(`${filename}: sections[${sectionIndex}]: tiers is empty`);
+      }
+      section.tiers.forEach((tierValue, tierIndex) => {
+        const tier = requireRecord(tierValue, `${filename}: sections[${sectionIndex}].tiers[${tierIndex}]`);
+        if (!Array.isArray(tier.cards) || tier.cards.length === 0) {
+          throw new Error(`${filename}: sections[${sectionIndex}].tiers[${tierIndex}]: cards is empty`);
+        }
+        tier.cards.forEach((cardValue, cardIndex) => {
+          const card = requireRecord(
+            cardValue,
+            `${filename}: sections[${sectionIndex}].tiers[${tierIndex}].cards[${cardIndex}]`,
+          );
+          if (!String(card.cardId ?? '').trim()) {
+            throw new Error(
+              `${filename}: sections[${sectionIndex}].tiers[${tierIndex}].cards[${cardIndex}]: cardId is missing`,
+            );
+          }
+          cardReferenceCount += 1;
+        });
+      });
+    });
+    if (cardReferenceCount === 0) throw new Error(`${filename}: no tier card references`);
+    return;
+  }
+
+  if (filename === 'legendaries.json') {
+    const groups = document.groups as unknown[];
+    requireUniqueId(groups, 'legendaries.json: groups', record => {
+      const keyCard = requireRecord(record.keyCard, 'legendaries.json: keyCard');
+      return keyCard.cardId;
+    });
+    groups.forEach((value, index) => {
+      const group = requireRecord(value, `legendaries.json: groups[${index}]`);
+      if (!Array.isArray(group.cards) || group.cards.length === 0) {
+        throw new Error(`legendaries.json: groups[${index}]: cards is empty`);
+      }
+      if (group.winRate !== null && group.winRate !== undefined
+        && (typeof group.winRate !== 'number'
+          || !Number.isFinite(group.winRate)
+          || group.winRate < 0
+          || group.winRate > 100)) {
+        throw new Error(`legendaries.json: groups[${index}]: winRate is invalid`);
+      }
+    });
+  }
+}
+
+function validateSnapshotDocument(
+  filename: string,
+  data: unknown,
+  now: number,
+  allowLegacySchema: boolean,
+): asserts data is SnapshotDocument {
   const specification = SNAPSHOT_COLLECTIONS[filename];
   if (!specification) throw new Error(`unsupported snapshot: ${filename}`);
   if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error(`${filename}: expected object`);
   const document = data as SnapshotDocument;
+  if (document.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
+    && !(allowLegacySchema && document.schemaVersion === undefined)) {
+    throw new Error(`${filename}: unsupported schema version`);
+  }
   const collection = document[specification.collection];
   if (!Array.isArray(collection) || collection.length < specification.minimum) {
     throw new Error(`${filename}: ${specification.collection} is empty or incomplete`);
@@ -44,6 +148,11 @@ export function validateSnapshot(filename: string, data: unknown, now = Date.now
       throw new Error(`${filename}: cards index is empty`);
     }
   }
+  validateSnapshotRecords(filename, document);
+}
+
+export function validateSnapshot(filename: string, data: unknown, now = Date.now()): asserts data is SnapshotDocument {
+  validateSnapshotDocument(filename, data, now, false);
 }
 
 function validateSnapshotContinuity(
@@ -54,7 +163,7 @@ function validateSnapshotContinuity(
 ): void {
   const existing = loadSnapshot(dataDirectory, filename);
   try {
-    validateSnapshot(filename, existing, now);
+    validateSnapshotDocument(filename, existing, now, true);
   } catch {
     // A missing or already-invalid destination must not prevent recovery with a
     // structurally valid replacement.

@@ -201,6 +201,7 @@ A task is complete only when all relevant checks below are proven.
 - [x] Phase 5: isolated scraper publishing.
   - [x] Supported scraper documents are structurally validated and durably published through same-filesystem staging, file and directory `fsync`, and atomic rename; empty/incomplete results cannot replace the last good snapshot.
   - [x] Snapshot publication also rejects older replacements and unexpected losses of more than half of the published primary collection or card index, while still allowing a valid snapshot to recover a missing or invalid destination.
+  - [x] Arena snapshots carry an explicit schema version and validate unique source identifiers, numeric ranges and required nested tier/group collections before publication; the first versioned publication retains continuity checks against an otherwise-valid legacy snapshot.
   - [x] Puppeteer scraping runs only in one systemd oneshot controlled by a six-hour timer and a manual-request path unit; the API queues requests without scraping in-process, and successful publications invalidate process and Redis caches through a durable marker.
   - [x] The standalone scraper exits non-zero when any critical Arena dataset fails, allowing systemd monitoring to distinguish partial upstream failure from success.
 - [x] Phase 6: immutable deployment, readiness and rollback.
