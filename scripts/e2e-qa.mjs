@@ -527,6 +527,11 @@ for (const route of authenticatedRoutes) {
         misc: Boolean(document.querySelector('[aria-controls="arena-mobile-misc"]')),
         avatarFallback: document.querySelector('.auth-avatar > span')?.textContent || '',
         avatarImageHidden: getComputedStyle(document.querySelector('.auth-avatar img')).display === 'none',
+        missingRoutes: [
+          '/articles', '/standard/matchups', '/classes', '/tierlist', '/legendaries',
+          '/heroes', '/library', '/battlegrounds/tier-list', '/battlegrounds/strategies',
+          '/battlegrounds/tier-builder', '/gallery', '/guides-archive', '/contests',
+        ].filter(path => !document.querySelector(`#arena-mobile-menu a[href="${path}"]`)),
         toggleSize: (() => {
           const toggleRect = document.querySelector('.arena-mobile-nav-toggle')?.getBoundingClientRect();
           return { width: toggleRect?.width || 0, height: toggleRect?.height || 0 };
@@ -541,6 +546,7 @@ for (const route of authenticatedRoutes) {
     if (openState.bodyPosition !== 'fixed' || openState.htmlOverflow !== 'hidden') failures.push('mobile menu: background is not scroll-locked');
     if (!openState.profileWidth || openState.profileRight > openState.viewportWidth + 1) failures.push('mobile menu: profile control frame overflows');
     if (!openState.constructors || !openState.misc) failures.push('mobile menu: grouped navigation controls are missing');
+    if (openState.missingRoutes.length) failures.push(`mobile menu: missing routes ${openState.missingRoutes.join(', ')}`);
     if (openState.avatarFallback !== 'QS' || !openState.avatarImageHidden) failures.push('mobile menu: broken avatar did not fall back to user initials');
     if (openState.toggleSize.width < 44 || openState.toggleSize.height < 44) failures.push(`mobile menu: toggle target is ${openState.toggleSize.width}×${openState.toggleSize.height}`);
     if (openState.undersizedControls) failures.push(`mobile menu: ${openState.undersizedControls} visible controls are smaller than 44×44`);

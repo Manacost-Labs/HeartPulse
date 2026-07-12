@@ -2173,6 +2173,50 @@ function TabTransition({ children }: { tabKey: string; children: React.ReactNode
   return <>{children}</>;
 }
 
+type NavigationRoute = (typeof TABS)[number];
+
+function NavigationRouteLinks({
+  routes,
+  activeTab,
+  variant,
+  sublink = false,
+  onNavigate,
+  onWarm,
+}: {
+  routes: readonly NavigationRoute[];
+  activeTab: TabId;
+  variant: 'mobile' | 'sidebar';
+  sublink?: boolean;
+  onNavigate: (tab: TabId) => void;
+  onWarm: (tab: TabId) => void;
+}) {
+  const classPrefix = variant === 'mobile' ? 'arena-mobile-menu' : 'arena-sidebar';
+  const iconSize = sublink ? 17 : variant === 'mobile' ? 18 : 19;
+
+  return routes.map(tab => {
+    const Icon = tab.icon;
+    const active = activeTab === tab.id;
+    return (
+      <a
+        key={tab.id}
+        href={tab.slug}
+        onPointerEnter={() => onWarm(tab.id)}
+        onFocus={() => onWarm(tab.id)}
+        onClick={(event) => {
+          event.preventDefault();
+          onNavigate(tab.id);
+        }}
+        aria-current={active ? 'page' : undefined}
+        className={`${classPrefix}-link ${sublink ? `${classPrefix}-sublink ` : ''}${active ? `${classPrefix}-link-active` : ''}`}
+        style={variant === 'sidebar' ? { textDecoration: 'none' } : undefined}
+      >
+        <Icon size={iconSize} className={`${variant === 'sidebar' ? 'arena-sidebar-link-icon ' : ''}flex-shrink-0`} />
+        <span>{tab.label}</span>
+      </a>
+    );
+  });
+}
+
 const loadDeferredRoutesModule = () => import('./features/DeferredRoutes');
 const loadBgLibraryModule = () => import('./features/BgLibrary');
 const loadGuidesArchiveModule = () => import('./features/GuidesArchive');
@@ -2990,10 +3034,10 @@ export default function App() {
         <button
           ref={mobileMenuToggleRef}
           type="button"
-          onClick={() => setMobileMenuOpen(open => {
-            if (open) setMobileNavGroup(null);
-            return !open;
-          })}
+          onClick={() => {
+            if (mobileMenuOpen) setMobileNavGroup(null);
+            setMobileMenuOpen(!mobileMenuOpen);
+          }}
           className="arena-mobile-nav-toggle"
           aria-expanded={mobileMenuOpen}
           aria-controls="arena-mobile-menu"
@@ -3012,105 +3056,20 @@ export default function App() {
             onClick={() => { setMobileMenuOpen(false); setMobileNavGroup(null); }}
           />
           <nav ref={mobileMenuRef} id="arena-mobile-menu" className="arena-mobile-menu lg:hidden" aria-label="Мобильная навигация">
-            {TOP_LEVEL_TABS.map(tab => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.id;
-              return (
-                <a
-                  key={tab.id}
-                  href={tab.slug}
-                  onPointerEnter={() => warmRoute(tab.id)}
-                  onFocus={() => warmRoute(tab.id)}
-                  onClick={(e) => { e.preventDefault(); navigate(tab.id); setMobileMenuOpen(false); }}
-                  className={`arena-mobile-menu-link ${active ? 'arena-mobile-menu-link-active' : ''}`}
-                  aria-current={active ? 'page' : undefined}
-                >
-                  <Icon size={18} className="flex-shrink-0" />
-                  <span>{tab.label}</span>
-                </a>
-              );
-            })}
-            {appIsContestAdmin && ADMIN_TABS.map(tab => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.id;
-              return (
-                <a
-                  key={tab.id}
-                  href={tab.slug}
-                  onPointerEnter={() => warmRoute(tab.id)}
-                  onFocus={() => warmRoute(tab.id)}
-                  onClick={(e) => { e.preventDefault(); navigate(tab.id); setMobileMenuOpen(false); }}
-                  className={`arena-mobile-menu-link ${active ? 'arena-mobile-menu-link-active' : ''}`}
-                  aria-current={active ? 'page' : undefined}
-                >
-                  <Icon size={18} className="flex-shrink-0" />
-                  <span>{tab.label}</span>
-                </a>
-              );
-            })}
+            <NavigationRouteLinks routes={TOP_LEVEL_TABS} activeTab={activeTab} variant="mobile" onNavigate={navigate} onWarm={warmRoute} />
+            {appIsContestAdmin && <NavigationRouteLinks routes={ADMIN_TABS} activeTab={activeTab} variant="mobile" onNavigate={navigate} onWarm={warmRoute} />}
             <div className="arena-mobile-menu-section" aria-label="Раздел Стандарт">
               Стандарт
             </div>
-            {STANDARD_TABS.map(tab => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.id;
-              return (
-                <a
-                  key={tab.id}
-                  href={tab.slug}
-                  onPointerEnter={() => warmRoute(tab.id)}
-                  onFocus={() => warmRoute(tab.id)}
-                  onClick={(e) => { e.preventDefault(); navigate(tab.id); setMobileMenuOpen(false); }}
-                  className={`arena-mobile-menu-link ${active ? 'arena-mobile-menu-link-active' : ''}`}
-                  aria-current={active ? 'page' : undefined}
-                >
-                  <Icon size={18} className="flex-shrink-0" />
-                  <span>{tab.label}</span>
-                </a>
-              );
-            })}
+            <NavigationRouteLinks routes={STANDARD_TABS} activeTab={activeTab} variant="mobile" onNavigate={navigate} onWarm={warmRoute} />
             <div className="arena-mobile-menu-section" aria-label="Раздел Арена">
               Арена
             </div>
-            {ARENA_TABS.map(tab => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.id;
-              return (
-                <a
-                  key={tab.id}
-                  href={tab.slug}
-                  onPointerEnter={() => warmRoute(tab.id)}
-                  onFocus={() => warmRoute(tab.id)}
-                  onClick={(e) => { e.preventDefault(); navigate(tab.id); setMobileMenuOpen(false); }}
-                  className={`arena-mobile-menu-link ${active ? 'arena-mobile-menu-link-active' : ''}`}
-                  aria-current={active ? 'page' : undefined}
-                >
-                  <Icon size={18} className="flex-shrink-0" />
-                  <span>{tab.label}</span>
-                </a>
-              );
-            })}
+            <NavigationRouteLinks routes={ARENA_TABS} activeTab={activeTab} variant="mobile" onNavigate={navigate} onWarm={warmRoute} />
             <div className="arena-mobile-menu-section" aria-label="Раздел Поля Сражений">
               Поля Сражений
             </div>
-            {BG_PRIMARY_TABS.map(tab => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.id;
-              return (
-                <a
-                  key={tab.id}
-                  href={tab.slug}
-                  onPointerEnter={() => warmRoute(tab.id)}
-                  onFocus={() => warmRoute(tab.id)}
-                  onClick={(e) => { e.preventDefault(); navigate(tab.id); setMobileMenuOpen(false); }}
-                  className={`arena-mobile-menu-link ${active ? 'arena-mobile-menu-link-active' : ''}`}
-                  aria-current={active ? 'page' : undefined}
-                >
-                  <Icon size={18} className="flex-shrink-0" />
-                  <span>{tab.label}</span>
-                </a>
-              );
-            })}
+            <NavigationRouteLinks routes={BG_PRIMARY_TABS} activeTab={activeTab} variant="mobile" onNavigate={navigate} onWarm={warmRoute} />
             <div className="arena-mobile-menu-group">
               <button
                 type="button"
@@ -3124,24 +3083,14 @@ export default function App() {
                 <ChevronDown size={16} className="arena-nav-group-chevron" />
               </button>
               <div id="arena-mobile-constructors" className="arena-mobile-menu-group-items" hidden={mobileNavGroup !== 'constructors'}>
-                {BG_BUILDER_TABS.map(tab => {
-                  const Icon = tab.icon;
-                  const active = activeTab === tab.id;
-                  return (
-                    <a
-                      key={tab.id}
-                      href={tab.slug}
-                      onPointerEnter={() => warmRoute(tab.id)}
-                      onFocus={() => warmRoute(tab.id)}
-                      onClick={(e) => { e.preventDefault(); navigate(tab.id); setMobileMenuOpen(false); setMobileNavGroup(null); }}
-                      className={`arena-mobile-menu-link arena-mobile-menu-sublink ${active ? 'arena-mobile-menu-link-active' : ''}`}
-                      aria-current={active ? 'page' : undefined}
-                    >
-                      <Icon size={17} className="flex-shrink-0" />
-                      <span>{tab.label}</span>
-                    </a>
-                  );
-                })}
+                <NavigationRouteLinks
+                  routes={BG_BUILDER_TABS}
+                  activeTab={activeTab}
+                  variant="mobile"
+                  sublink
+                  onNavigate={tab => { navigate(tab); setMobileNavGroup(null); }}
+                  onWarm={warmRoute}
+                />
               </div>
             </div>
             <div className="arena-mobile-menu-group arena-mobile-menu-group--misc">
@@ -3157,24 +3106,14 @@ export default function App() {
                 <ChevronDown size={16} className="arena-nav-group-chevron" />
               </button>
               <div id="arena-mobile-misc" className="arena-mobile-menu-group-items" hidden={mobileNavGroup !== 'misc'}>
-                {MISC_TABS.map(tab => {
-                  const Icon = tab.icon;
-                  const active = activeTab === tab.id;
-                  return (
-                    <a
-                      key={tab.id}
-                      href={tab.slug}
-                      onPointerEnter={() => warmRoute(tab.id)}
-                      onFocus={() => warmRoute(tab.id)}
-                      onClick={(e) => { e.preventDefault(); navigate(tab.id); setMobileMenuOpen(false); setMobileNavGroup(null); }}
-                      className={`arena-mobile-menu-link arena-mobile-menu-sublink ${active ? 'arena-mobile-menu-link-active' : ''}`}
-                      aria-current={active ? 'page' : undefined}
-                    >
-                      <Icon size={17} className="flex-shrink-0" />
-                      <span>{tab.label}</span>
-                    </a>
-                  );
-                })}
+                <NavigationRouteLinks
+                  routes={MISC_TABS}
+                  activeTab={activeTab}
+                  variant="mobile"
+                  sublink
+                  onNavigate={tab => { navigate(tab); setMobileNavGroup(null); }}
+                  onWarm={warmRoute}
+                />
               </div>
             </div>
             <a
@@ -3212,110 +3151,20 @@ export default function App() {
             </a>
 
             <nav className="arena-sidebar-nav" aria-label="Разделы сайта">
-              {TOP_LEVEL_TABS.map(tab => {
-                const Icon = tab.icon;
-                const active = activeTab === tab.id;
-                return (
-                  <a
-                    key={tab.id}
-                    href={tab.slug}
-                    onPointerEnter={() => warmRoute(tab.id)}
-                    onFocus={() => warmRoute(tab.id)}
-                    onClick={(e: React.MouseEvent) => { e.preventDefault(); navigate(tab.id); }}
-                    aria-current={active ? 'page' : undefined}
-                    className={`arena-sidebar-link ${active ? 'arena-sidebar-link-active' : ''}`}
-                    style={{ textDecoration: 'none' }}
-                  >
-                    <Icon size={19} className="arena-sidebar-link-icon flex-shrink-0" />
-                    <span>{tab.label}</span>
-                  </a>
-                );
-              })}
-              {appIsContestAdmin && ADMIN_TABS.map(tab => {
-                const Icon = tab.icon;
-                const active = activeTab === tab.id;
-                return (
-                  <a
-                    key={tab.id}
-                    href={tab.slug}
-                    onPointerEnter={() => warmRoute(tab.id)}
-                    onFocus={() => warmRoute(tab.id)}
-                    onClick={(e: React.MouseEvent) => { e.preventDefault(); navigate(tab.id); }}
-                    aria-current={active ? 'page' : undefined}
-                    className={`arena-sidebar-link ${active ? 'arena-sidebar-link-active' : ''}`}
-                    style={{ textDecoration: 'none' }}
-                  >
-                    <Icon size={19} className="arena-sidebar-link-icon flex-shrink-0" />
-                    <span>{tab.label}</span>
-                  </a>
-                );
-              })}
+              <NavigationRouteLinks routes={TOP_LEVEL_TABS} activeTab={activeTab} variant="sidebar" onNavigate={navigate} onWarm={warmRoute} />
+              {appIsContestAdmin && <NavigationRouteLinks routes={ADMIN_TABS} activeTab={activeTab} variant="sidebar" onNavigate={navigate} onWarm={warmRoute} />}
               <div className="arena-sidebar-section" aria-label="Раздел Стандарт">
                 Стандарт
               </div>
-              {STANDARD_TABS.map(tab => {
-                const Icon = tab.icon;
-                const active = activeTab === tab.id;
-                return (
-                  <a
-                    key={tab.id}
-                    href={tab.slug}
-                    onPointerEnter={() => warmRoute(tab.id)}
-                    onFocus={() => warmRoute(tab.id)}
-                    onClick={(e: React.MouseEvent) => { e.preventDefault(); navigate(tab.id); }}
-                    aria-current={active ? 'page' : undefined}
-                    className={`arena-sidebar-link ${active ? 'arena-sidebar-link-active' : ''}`}
-                    style={{ textDecoration: 'none' }}
-                  >
-                    <Icon size={19} className="arena-sidebar-link-icon flex-shrink-0" />
-                    <span>{tab.label}</span>
-                  </a>
-                );
-              })}
+              <NavigationRouteLinks routes={STANDARD_TABS} activeTab={activeTab} variant="sidebar" onNavigate={navigate} onWarm={warmRoute} />
               <div className="arena-sidebar-section" aria-label="Раздел Арена">
                 Арена
               </div>
-              {ARENA_TABS.map(tab => {
-                const Icon = tab.icon;
-                const active = activeTab === tab.id;
-                return (
-                  <a
-                    key={tab.id}
-                    href={tab.slug}
-                    onPointerEnter={() => warmRoute(tab.id)}
-                    onFocus={() => warmRoute(tab.id)}
-                    onClick={(e: React.MouseEvent) => { e.preventDefault(); navigate(tab.id); }}
-                    aria-current={active ? 'page' : undefined}
-                    className={`arena-sidebar-link ${active ? 'arena-sidebar-link-active' : ''}`}
-                    style={{ textDecoration: 'none' }}
-                  >
-                    <Icon size={19} className="arena-sidebar-link-icon flex-shrink-0" />
-                    <span>{tab.label}</span>
-                  </a>
-                );
-              })}
+              <NavigationRouteLinks routes={ARENA_TABS} activeTab={activeTab} variant="sidebar" onNavigate={navigate} onWarm={warmRoute} />
               <div className="arena-sidebar-section" aria-label="Раздел Поля Сражений">
                 Поля Сражений
               </div>
-              {BG_PRIMARY_TABS.map(tab => {
-                const Icon = tab.icon;
-                const active = activeTab === tab.id;
-                return (
-                  <a
-                    key={tab.id}
-                    href={tab.slug}
-                    onPointerEnter={() => warmRoute(tab.id)}
-                    onFocus={() => warmRoute(tab.id)}
-                    onClick={(e: React.MouseEvent) => { e.preventDefault(); navigate(tab.id); }}
-                    aria-current={active ? 'page' : undefined}
-                    className={`arena-sidebar-link ${active ? 'arena-sidebar-link-active' : ''}`}
-                    style={{ textDecoration: 'none' }}
-                  >
-                    <Icon size={19} className="arena-sidebar-link-icon flex-shrink-0" />
-                    <span>{tab.label}</span>
-                  </a>
-                );
-              })}
+              <NavigationRouteLinks routes={BG_PRIMARY_TABS} activeTab={activeTab} variant="sidebar" onNavigate={navigate} onWarm={warmRoute} />
               <div
                 className="arena-sidebar-nav-group"
                 onMouseEnter={() => setSidebarNavGroup('constructors')}
@@ -3339,25 +3188,14 @@ export default function App() {
                   <ChevronDown size={15} className="arena-nav-group-chevron" />
                 </button>
                 <div id="arena-sidebar-constructors" className="arena-sidebar-nav-group-items" hidden={sidebarNavGroup !== 'constructors'}>
-                  {BG_BUILDER_TABS.map(tab => {
-                    const Icon = tab.icon;
-                    const active = activeTab === tab.id;
-                    return (
-                      <a
-                        key={tab.id}
-                        href={tab.slug}
-                        onPointerEnter={() => warmRoute(tab.id)}
-                        onFocus={() => warmRoute(tab.id)}
-                        onClick={(e: React.MouseEvent) => { e.preventDefault(); navigate(tab.id); setSidebarNavGroup(null); }}
-                        aria-current={active ? 'page' : undefined}
-                        className={`arena-sidebar-link arena-sidebar-sublink ${active ? 'arena-sidebar-link-active' : ''}`}
-                        style={{ textDecoration: 'none' }}
-                      >
-                        <Icon size={17} className="arena-sidebar-link-icon flex-shrink-0" />
-                        <span>{tab.label}</span>
-                      </a>
-                    );
-                  })}
+                  <NavigationRouteLinks
+                    routes={BG_BUILDER_TABS}
+                    activeTab={activeTab}
+                    variant="sidebar"
+                    sublink
+                    onNavigate={tab => { navigate(tab); setSidebarNavGroup(null); }}
+                    onWarm={warmRoute}
+                  />
                 </div>
               </div>
               <div
@@ -3383,25 +3221,14 @@ export default function App() {
                   <ChevronDown size={15} className="arena-nav-group-chevron" />
                 </button>
                 <div id="arena-sidebar-misc" className="arena-sidebar-nav-group-items" hidden={sidebarNavGroup !== 'misc'}>
-                  {MISC_TABS.map(tab => {
-                    const Icon = tab.icon;
-                    const active = activeTab === tab.id;
-                    return (
-                      <a
-                        key={tab.id}
-                        href={tab.slug}
-                        onPointerEnter={() => warmRoute(tab.id)}
-                        onFocus={() => warmRoute(tab.id)}
-                        onClick={(e: React.MouseEvent) => { e.preventDefault(); navigate(tab.id); setSidebarNavGroup(null); }}
-                        aria-current={active ? 'page' : undefined}
-                        className={`arena-sidebar-link arena-sidebar-sublink ${active ? 'arena-sidebar-link-active' : ''}`}
-                        style={{ textDecoration: 'none' }}
-                      >
-                        <Icon size={17} className="arena-sidebar-link-icon flex-shrink-0" />
-                        <span>{tab.label}</span>
-                      </a>
-                    );
-                  })}
+                  <NavigationRouteLinks
+                    routes={MISC_TABS}
+                    activeTab={activeTab}
+                    variant="sidebar"
+                    sublink
+                    onNavigate={tab => { navigate(tab); setSidebarNavGroup(null); }}
+                    onWarm={warmRoute}
+                  />
                 </div>
               </div>
             </nav>
@@ -3426,7 +3253,7 @@ export default function App() {
         )}
 
 	        <div className={`arena-workspace ${isFullWidthBuilder ? 'arena-workspace-wide' : ''} ${isAdminMode ? 'arena-workspace-admin' : ''}`}>
-	          <main id="main-content" tabIndex={-1} className={`arena-main relative flex flex-col items-center ${isFullWidthBuilder ? 'arena-main-wide' : ''} ${isAdminMode ? 'arena-main-admin' : ''}`} role="main">
+	          <main id="main-content" tabIndex={-1} className={`arena-main relative flex flex-col items-center ${isFullWidthBuilder ? 'arena-main-wide' : ''} ${isAdminMode ? 'arena-main-admin' : ''}`}>
         {/* Parchment container */}
 	        <div className={`arena-content w-full max-w-6xl mx-auto bg-parchment rounded-xl border-[3px] sm:border-[4px] border-[#6b4c2a] shadow-[inset_0_0_60px_rgba(139,69,19,0.15),0_0_0_2px_#2c1e16,0_15px_30px_rgba(0,0,0,0.6)] p-3 sm:p-6 md:p-10 relative z-0 ${isFullWidthBuilder ? 'arena-content-wide' : ''} ${isAdminMode ? 'arena-content-admin' : ''} ${isOpenSurfacePage ? 'arena-content-open' : ''}`}>
           {!isAdminMode && !isOpenSurfacePage && <>
