@@ -96,10 +96,10 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
     const root = pageRef.current;
     if (!root) return;
 
-    const sections: HTMLElement[] = Array.from(root.querySelectorAll('.home-reveal')) as HTMLElement[];
+    const sections = (): HTMLElement[] => Array.from(root.querySelectorAll<HTMLElement>('.home-reveal'));
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduceMotion || !('IntersectionObserver' in window)) {
-      sections.forEach(section => section.classList.add('is-visible'));
+      sections().forEach(section => section.classList.add('is-visible'));
       return;
     }
 
@@ -110,10 +110,16 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
         entry.target.classList.add('is-visible');
         observer.unobserve(entry.target);
       });
-    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    }, { threshold: 0.08 });
 
-    sections.forEach(section => observer.observe(section));
-    return () => observer.disconnect();
+    const observeSections = () => sections().forEach(section => observer.observe(section));
+    const mutations = new MutationObserver(observeSections);
+    mutations.observe(root, { childList: true, subtree: true });
+    observeSections();
+    return () => {
+      mutations.disconnect();
+      observer.disconnect();
+    };
   }, []);
 
   return (

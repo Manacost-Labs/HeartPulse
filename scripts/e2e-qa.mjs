@@ -928,6 +928,13 @@ for (const [device, viewport] of [
     if (JSON.stringify(homeCssState.footerLinks) !== JSON.stringify(expectedFooterLinks)) {
       failures.push(`home lazy sections: canonical footer links are incomplete (${homeCssState.footerLinks.join(', ')})`);
     }
+    for (const selector of ['.home-latest-articles', '.home-bg-directory', '.home-arena-directory']) {
+      await page.$eval(selector, element => element.scrollIntoView({ block: 'center' }));
+      await page.waitForFunction(target => {
+        const element = document.querySelector(target);
+        return Boolean(element?.classList.contains('is-visible')) && getComputedStyle(element).opacity === '1';
+      }, { timeout: 5_000 }, selector);
+    }
     const faqTrigger = await page.$('.home-faq-zone .faq-card__trigger');
     if (!faqTrigger) {
       failures.push('home lazy sections: FAQ trigger is missing');
