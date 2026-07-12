@@ -284,9 +284,27 @@ const adminFixtures = {
     total: 2,
   },
   '/api/admin/mailings/overview': {
-    campaigns: [],
-    templates: [],
-    summary: { total: 0, queued: 0, sent: 0, failed: 0 },
+    campaigns: [{
+      id: 'mailing-qa-1', subject: 'Прошлая рассылка', preheader: 'Архив', templateKey: 'blank', segment: 'active',
+      status: 'completed', recipientCount: 3, acceptedCount: 3, failedCount: 0, skippedCount: 0,
+      createdAt: '2026-07-10T00:00:00.000Z', startedAt: '2026-07-10T00:01:00.000Z', completedAt: '2026-07-10T00:02:00.000Z', error: '',
+    }],
+    templates: [{
+      id: 'latest-article', label: 'Свежая статья', description: 'Анонс нового материала',
+      subject: 'Новая статья Manacost', preheader: 'Читайте свежий материал', htmlBody: '<h2>Новая статья</h2><p>Текст анонса.</p>',
+    }],
+    contacts: [{
+      id: 'mail-contact-1', email: 'reader@example.test', name: 'Читатель', consentStatus: 'subscribed', consentSource: 'profile',
+      lifecycle: 'active', accountState: 'current', eligible: true, updatedAt: '2026-07-11T00:00:00.000Z',
+    }],
+    summary: { total: 4, eligible: 3, active: 2, former: 1, excluded: 1, unsubscribed: 1, pendingConsent: 0, suppressed: 0 },
+    transport: { configured: true, from: 'Manacost <news@example.test>' },
+  },
+  '/api/admin/mailings/preview': {
+    html: '<!doctype html><html lang="ru"><body><h1>Предпросмотр QA</h1></body></html>',
+    recipientCount: 3,
+    sanitizedHtmlBody: '<h1>Предпросмотр QA</h1>',
+    previewDigest: 'qa-preview-digest',
   },
 };
 
@@ -684,6 +702,30 @@ for (const [device, viewport] of [
     if (!telegramEmptyState.includes('не найдены')) failures.push(`admin Telegram [${device}]: filtered empty state is missing`);
     const telegramViolationCount = await auditAccessibility(page, `admin Telegram [${device}]`, '.admin-workspace-content');
 
+    await page.goto(`${BASE}/?admin&section=mailing`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForFunction(() => document.querySelectorAll('.admin-mailing-template-grid button').length === 1);
+    await page.waitForFunction(() => document.querySelector('.admin-mailing-preview-stage iframe'));
+    const mailingInitial = await page.evaluate(() => ({
+      stats: [...document.querySelectorAll('.admin-mailing-stats strong')].map(element => element.textContent?.trim() || ''),
+      campaigns: document.querySelectorAll('.admin-mailing-history > div').length,
+      contacts: document.querySelectorAll('.admin-mailing-contacts > div').length,
+      previewCount: document.querySelector('.admin-mailing-preview-meta strong')?.textContent?.trim() || '',
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    if (mailingInitial.stats.join(',') !== '3,2,1,1' || mailingInitial.campaigns !== 1 || mailingInitial.contacts !== 1 || mailingInitial.previewCount !== '3') {
+      failures.push(`admin mailing [${device}]: KPI, preview, history or contacts fixture did not render`);
+    }
+    if (mailingInitial.scrollWidth > mailingInitial.clientWidth + 1) {
+      failures.push(`admin mailing [${device}]: horizontal overflow ${mailingInitial.scrollWidth} > ${mailingInitial.clientWidth}`);
+    }
+    await page.click('.admin-mailing-template-grid button');
+    await page.waitForFunction(() => document.querySelector('.admin-mailing-field input')?.value === 'Новая статья Manacost');
+    await page.click('.admin-mailing-preview-toolbar fieldset button:last-child');
+    const mobilePreviewSelected = await page.$eval('.admin-mailing-preview-stage', element => element.classList.contains('is-mobile'));
+    if (!mobilePreviewSelected) failures.push(`admin mailing [${device}]: mobile preview mode did not activate`);
+    const mailingViolationCount = await auditAccessibility(page, `admin mailing [${device}]`, '.admin-workspace-content');
+
     await page.goto(`${BASE}/?admin&section=users`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.contest-user-row').length === 2);
     const usersState = await page.evaluate(() => ({
@@ -713,7 +755,7 @@ for (const [device, viewport] of [
     if (!focusRestored) failures.push(`admin users [${device}]: Escape did not restore focus to the action trigger`);
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
-    console.log(`✓ admin dashboard/articles/gallery/Boosty/Telegram/users [${device}] interactions + axe (${violationCount + articlesViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + usersViolationCount} violations)`);
+    console.log(`✓ admin dashboard/articles/gallery/Boosty/Telegram/mailing/users [${device}] interactions + axe (${violationCount + articlesViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + usersViolationCount} violations)`);
   } catch (error) {
     const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
     failures.push(`admin dashboard [${device}]: ${error.message}; page: ${diagnostic}`);

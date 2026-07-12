@@ -10,11 +10,8 @@ import {
   Mail,
   Menu,
   MessageCircle,
-  Monitor,
   Newspaper,
-  Send,
   ShieldCheck,
-  Smartphone,
   Trophy,
   Users,
   X,
@@ -56,6 +53,14 @@ import {
   ContestAdminTelegram,
   type TelegramAccountsPayload,
 } from './ContestAdminTelegram';
+import {
+  ContestAdminMailing,
+  EMPTY_MAILING_DRAFT,
+  type MailingDraft,
+  type MailingOverview,
+  type MailingPreviewMode,
+  type MailingTemplate,
+} from './ContestAdminMailing';
 import { ADMIN_INPUT } from './contestAdminUi';
 import {
   adminWorkspaceReducer,
@@ -440,97 +445,6 @@ function adminSectionFromLocation(defaultSection: AdminWorkspaceSection): AdminW
   }
   if (params.has('contest') || params.has('contests')) return 'contests';
   return defaultSection;
-}
-
-type MailingSegment = 'all-consented' | 'active' | 'former';
-type MailingPreviewMode = 'desktop' | 'mobile';
-
-type MailingTemplate = {
-  id: string;
-  label: string;
-  description: string;
-  subject: string;
-  preheader: string;
-  htmlBody: string;
-};
-
-type MailingContact = {
-  id: string;
-  email: string;
-  name: string;
-  consentStatus: 'unknown' | 'subscribed' | 'unsubscribed' | 'suppressed';
-  consentSource: string;
-  lifecycle: 'active' | 'former';
-  accountState: 'current' | 'former';
-  eligible: boolean;
-  updatedAt: string;
-};
-
-type MailingCampaign = {
-  id: string;
-  subject: string;
-  preheader: string;
-  templateKey: string;
-  segment: MailingSegment;
-  status: string;
-  recipientCount: number;
-  acceptedCount: number;
-  failedCount: number;
-  skippedCount: number;
-  createdAt: string;
-  startedAt: string;
-  completedAt: string;
-  error: string;
-};
-
-type MailingOverview = {
-  summary: {
-    total: number;
-    eligible: number;
-    active: number;
-    former: number;
-    excluded: number;
-    unsubscribed: number;
-    pendingConsent: number;
-    suppressed: number;
-  };
-  templates: MailingTemplate[];
-  contacts: MailingContact[];
-  campaigns: MailingCampaign[];
-  transport: { configured: boolean; from: string };
-};
-
-type MailingDraft = {
-  subject: string;
-  preheader: string;
-  htmlBody: string;
-  segment: MailingSegment;
-  templateKey: string;
-};
-
-const EMPTY_MAILING_DRAFT: MailingDraft = {
-  subject: 'Новости Manacost',
-  preheader: 'Свежие материалы и обновления HS-Arena.',
-  htmlBody: '<h2>Заголовок письма</h2><p>Напишите здесь основной текст рассылки.</p>',
-  segment: 'all-consented',
-  templateKey: 'blank',
-};
-
-function mailingCampaignStatus(status: string): { label: string; tone: string } {
-  if (status === 'completed') return { label: 'Отправлена', tone: 'ok' };
-  if (status === 'completed-with-errors') return { label: 'С ошибками', tone: 'bad' };
-  if (status === 'sending') return { label: 'Отправляется', tone: 'working' };
-  if (status === 'queued') return { label: 'В очереди', tone: 'working' };
-  if (status === 'failed') return { label: 'Ошибка', tone: 'bad' };
-  return { label: status || 'Неизвестно', tone: 'muted' };
-}
-
-function mailingConsentLabel(contact: MailingContact): string {
-  if (contact.consentStatus === 'subscribed' && contact.eligible) return 'Можно отправлять';
-  if (contact.consentStatus === 'unsubscribed') return 'Отписан';
-  if (contact.consentStatus === 'suppressed') return 'Исключён';
-  if (contact.consentStatus === 'subscribed') return 'Временно исключён';
-  return 'Ожидает согласия';
 }
 
 function subscriptionEntitlementLabels(subscription: { hasAccess?: boolean; entitlements?: SubscriptionStatus['entitlements'] } | null | undefined): string[] {
@@ -1354,6 +1268,12 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     setMailingPreviewLoading(false);
   };
 
+  const updateMailingDraft = (patch: Partial<MailingDraft>, options?: { invalidatePreview?: boolean }) => {
+    setMailingDraft(current => ({ ...current, ...patch }));
+    mailingDraftDirtyRef.current = true;
+    if (options?.invalidatePreview) invalidateMailingPreview();
+  };
+
   const sendMailingTest = async () => {
     if (!mailingDraft.subject.trim() || !mailingDraft.htmlBody.trim()) {
       setMessage({ type: 'err', text: 'Заполните тему и HTML письма.' });
@@ -1703,200 +1623,25 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           )}
 
           {hasFullAdminAccess && adminSection === 'mailing' && (
-            <div className="admin-mailing-page">
-              <div className="admin-stat-grid admin-mailing-stats">
-                <div><span>Доступно для отправки</span><strong>{mailingOverview?.summary.eligible ?? '—'}</strong><small>только с подтверждённым согласием</small></div>
-                <div><span>Активные</span><strong>{mailingOverview?.summary.active ?? '—'}</strong><small>с действующим доступом</small></div>
-                <div><span>Бывшие</span><strong>{mailingOverview?.summary.former ?? '—'}</strong><small>адрес сохранён, отписки не было</small></div>
-                <div><span>Исключены</span><strong>{mailingOverview?.summary.excluded ?? '—'}</strong><small>отписаны, без согласия или заблокированы</small></div>
-              </div>
-
-              <section className="contest-admin-card admin-mailing-templates" aria-labelledby="mailing-templates-title">
-                <div className="contest-users-head">
-                  <div>
-                    <h2 id="mailing-templates-title">Начать с шаблона</h2>
-                    <p className="contest-muted">Шаблон заполнит тему и HTML. Всё можно отредактировать перед отправкой.</p>
-                  </div>
-                  <button type="button" className="contest-secondary-button" disabled={mailingLoading} onClick={() => void loadMailingOverview()}>
-                    {mailingLoading ? 'Обновляем…' : 'Обновить данные'}
-                  </button>
-                </div>
-                <div className="admin-mailing-template-grid">
-                  {(mailingOverview?.templates || []).map(template => {
-                    const TemplateIcon = template.id === 'latest-article' ? Newspaper : template.id === 'tier-list-update' ? Trophy : Mail;
-                    return (
-                      <button
-                        type="button"
-                        key={template.id}
-                        className={mailingDraft.templateKey === template.id ? 'is-selected' : ''}
-                        aria-pressed={mailingDraft.templateKey === template.id}
-                        onClick={() => applyMailingTemplate(template)}
-                      >
-                        <span><TemplateIcon size={20} /></span>
-                        <strong>{template.label}</strong>
-                        <small>{template.description}</small>
-                      </button>
-                    );
-                  })}
-                  {!mailingLoading && !mailingOverview?.templates.length && <p className="contest-muted">Шаблоны пока недоступны.</p>}
-                </div>
-              </section>
-
-              <div className="admin-mailing-layout">
-                <section className="contest-admin-card admin-mailing-editor" aria-labelledby="mailing-editor-title">
-                  <div className="admin-card-heading">
-                    <span className="admin-card-heading-icon"><Mail size={19} /></span>
-                    <div><h2 id="mailing-editor-title">Содержание письма</h2><p>Сначала выберите аудиторию, затем проверьте письмо справа.</p></div>
-                  </div>
-
-                  <fieldset className="admin-mailing-audience">
-                    <legend>Получатели</legend>
-                    {([
-                      { id: 'all-consented', label: 'Все согласившиеся', count: mailingOverview?.summary.eligible ?? 0, caption: 'Активные и бывшие подписчики' },
-                      { id: 'active', label: 'Только активные', count: mailingOverview?.summary.active ?? 0, caption: 'Есть подписка или бессрочный доступ' },
-                      { id: 'former', label: 'Только бывшие', count: mailingOverview?.summary.former ?? 0, caption: 'Ушли, но не отписались от писем' },
-                    ] as Array<{ id: MailingSegment; label: string; count: number; caption: string }>).map(segment => (
-                      <label key={segment.id} className={mailingDraft.segment === segment.id ? 'is-selected' : ''}>
-                        <input
-                          type="radio"
-                          name="mailing-segment"
-                          value={segment.id}
-                          checked={mailingDraft.segment === segment.id}
-                          onChange={() => setMailingDraft(current => ({ ...current, segment: segment.id }))}
-                        />
-                        <span><strong>{segment.label}</strong><small>{segment.caption}</small></span>
-                        <b>{segment.count}</b>
-                      </label>
-                    ))}
-                  </fieldset>
-
-                  <label className="admin-mailing-field">
-                    <span>Тема письма <b>{mailingDraft.subject.length}/160</b></span>
-                    <input
-                      value={mailingDraft.subject}
-                      maxLength={160}
-                      onChange={event => {
-                        const subject = event.target.value;
-                        setMailingDraft(current => ({ ...current, subject, templateKey: 'custom' }));
-                        mailingDraftDirtyRef.current = true;
-                        if (!subject.trim()) invalidateMailingPreview();
-                      }}
-                      placeholder="Например: Тир-лист Арены обновлён"
-                    />
-                  </label>
-                  <label className="admin-mailing-field">
-                    <span>Короткое описание <b>{mailingDraft.preheader.length}/220</b></span>
-                    <input
-                      value={mailingDraft.preheader}
-                      maxLength={220}
-                      onChange={event => {
-                        setMailingDraft(current => ({ ...current, preheader: event.target.value, templateKey: 'custom' }));
-                        mailingDraftDirtyRef.current = true;
-                      }}
-                      placeholder="Этот текст виден рядом с темой во входящих"
-                    />
-                  </label>
-                  <label className="admin-mailing-field admin-mailing-html-field">
-                    <span>HTML статьи <b>{mailingDraft.htmlBody.length.toLocaleString('ru-RU')} знаков</b></span>
-                    <textarea
-                      value={mailingDraft.htmlBody}
-                      maxLength={100000}
-                      spellCheck={false}
-                      onChange={event => {
-                        const htmlBody = event.target.value;
-                        setMailingDraft(current => ({ ...current, htmlBody, templateKey: 'custom' }));
-                        mailingDraftDirtyRef.current = true;
-                        if (!htmlBody.trim()) invalidateMailingPreview();
-                      }}
-                      aria-describedby="mailing-html-help"
-                    />
-                  </label>
-                  <p id="mailing-html-help" className="admin-mailing-help">
-                    Разрешены безопасные заголовки, абзацы, списки, ссылки, изображения и таблицы. Скрипты, формы, стили и опасные ссылки сервер удалит. Шапка и ссылка отписки добавляются автоматически.
-                  </p>
-
-                  <div className="admin-mailing-actions">
-                    <button type="button" className="contest-secondary-button" disabled={mailingPreviewLoading} onClick={() => void requestMailingPreview(mailingDraft)}>
-                      <Monitor size={17} /> {mailingPreviewLoading ? 'Собираем…' : 'Обновить предпросмотр'}
-                    </button>
-                    <button type="button" className="contest-secondary-button" disabled={mailingTesting || !mailingOverview?.transport.configured} onClick={() => void sendMailingTest()}>
-                      <Send size={17} /> {mailingTesting ? 'Отправляем…' : 'Отправить тест себе'}
-                    </button>
-                    <button
-                      type="button"
-                      className="contest-primary-button admin-mailing-send-button"
-                      disabled={mailingSending || mailingPreviewCount < 1 || !mailingOverview?.transport.configured}
-                      onClick={() => void sendMailing()}
-                    >
-                      <Mail size={17} /> {mailingSending ? 'Ставим в очередь…' : `Разослать · ${mailingPreviewCount}`}
-                    </button>
-                  </div>
-                  {mailingOverview && !mailingOverview.transport.configured && <p className="admin-inline-error">Почтовый транспорт или секрет ссылки отписки не настроен на сервере.</p>}
-                </section>
-
-                <section className="contest-admin-card admin-mailing-preview-card" aria-labelledby="mailing-preview-title">
-                  <div className="admin-mailing-preview-toolbar">
-                    <div><h2 id="mailing-preview-title">Предпросмотр</h2><p>Точная версия после серверной очистки HTML</p></div>
-                    <fieldset aria-label="Размер предпросмотра">
-                      <button type="button" className={mailingPreviewMode === 'desktop' ? 'is-active' : ''} aria-pressed={mailingPreviewMode === 'desktop'} onClick={() => setMailingPreviewMode('desktop')}><Monitor size={16} /><span>Экран</span></button>
-                      <button type="button" className={mailingPreviewMode === 'mobile' ? 'is-active' : ''} aria-pressed={mailingPreviewMode === 'mobile'} onClick={() => setMailingPreviewMode('mobile')}><Smartphone size={16} /><span>Телефон</span></button>
-                    </fieldset>
-                  </div>
-                  <div className={`admin-mailing-preview-stage is-${mailingPreviewMode}`} aria-busy={mailingPreviewLoading}>
-                    {mailingPreviewHtml ? (
-                      <iframe
-                        title="Предпросмотр письма"
-                        sandbox=""
-                        referrerPolicy="no-referrer"
-                        srcDoc={mailingPreviewHtml}
-                      />
-                    ) : (
-                      <div className="admin-mailing-preview-empty"><Mail size={30} /><strong>Письмо появится здесь</strong><span>Заполните тему и HTML — предпросмотр обновится автоматически.</span></div>
-                    )}
-                  </div>
-                  <div className="admin-mailing-preview-meta">
-                    <span>Получателей после проверок</span><strong>{mailingPreviewCount}</strong>
-                  </div>
-                </section>
-              </div>
-
-              <div className="admin-mailing-bottom-grid">
-                <section className="contest-admin-card" aria-labelledby="mailing-history-title">
-                  <div className="contest-users-head"><div><h2 id="mailing-history-title">История рассылок</h2><p className="contest-muted">Очередь продолжит работу после перезапуска сервера.</p></div></div>
-                  <div className="admin-mailing-history">
-                    {(mailingOverview?.campaigns || []).map(campaign => {
-                      const status = mailingCampaignStatus(campaign.status);
-                      return (
-                        <div key={campaign.id}>
-                          <span className={`admin-mailing-status is-${status.tone}`}>{status.label}</span>
-                          <div>
-                            <strong>{campaign.subject}</strong>
-                            <small>{formatDate(campaign.createdAt)} · {campaign.recipientCount} получателей</small>
-                            {campaign.error && <small className="admin-mailing-campaign-error">{campaign.error}</small>}
-                          </div>
-                          <span>{campaign.acceptedCount} принято · {campaign.failedCount} ошибок · {campaign.skippedCount} пропущено</span>
-                        </div>
-                      );
-                    })}
-                    {!mailingLoading && !mailingOverview?.campaigns.length && <p className="contest-muted">Рассылок ещё не было.</p>}
-                  </div>
-                </section>
-
-                <section className="contest-admin-card" aria-labelledby="mailing-contacts-title">
-                  <div className="contest-users-head"><div><h2 id="mailing-contacts-title">Реестр адресов</h2><p className="contest-muted">Бывшие подписчики остаются в реестре; отписанные адреса хранятся как запрет отправки.</p></div></div>
-                  <div className="admin-mailing-contacts">
-                    {(mailingOverview?.contacts || []).slice(0, 10).map(contact => (
-                      <div key={contact.id}>
-                        <span className={contact.eligible ? 'is-ok' : 'is-muted'}><i />{mailingConsentLabel(contact)}</span>
-                        <div><strong>{contact.name || contact.email}</strong><small>{contact.email} · {contact.lifecycle === 'active' ? 'активный' : 'бывший'}</small></div>
-                      </div>
-                    ))}
-                    {!mailingLoading && !mailingOverview?.contacts.length && <p className="contest-muted">Сохранённых адресов пока нет.</p>}
-                  </div>
-                  {Boolean(mailingOverview?.contacts.length) && <p className="admin-mailing-register-note">Показаны последние 10 записей из {mailingOverview?.summary.total || 0}.</p>}
-                </section>
-              </div>
-            </div>
+            <ContestAdminMailing
+              overview={mailingOverview}
+              loading={mailingLoading}
+              draft={mailingDraft}
+              previewHtml={mailingPreviewHtml}
+              previewCount={mailingPreviewCount}
+              previewMode={mailingPreviewMode}
+              previewLoading={mailingPreviewLoading}
+              sending={mailingSending}
+              testing={mailingTesting}
+              onReload={() => void loadMailingOverview()}
+              onApplyTemplate={applyMailingTemplate}
+              onDraftChange={updateMailingDraft}
+              onPreviewModeChange={setMailingPreviewMode}
+              onPreview={() => void requestMailingPreview(mailingDraft)}
+              onTest={() => void sendMailingTest()}
+              onSend={() => void sendMailing()}
+              formatDate={formatDate}
+            />
           )}
 
           {hasFullAdminAccess && adminSection === 'boosty' && (

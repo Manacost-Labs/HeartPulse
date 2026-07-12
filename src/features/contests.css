@@ -3173,7 +3173,7 @@
 }
 
 .admin-mailing-field > span b {
-  color: #758392;
+  color: var(--admin-muted);
   font-size: 0.65rem;
   font-weight: 650;
 }
@@ -3266,7 +3266,7 @@
   gap: 0.3rem;
   border: 0;
   border-radius: 4px;
-  color: #617181;
+  color: var(--admin-muted);
   background: transparent;
   font-size: 0.68rem;
   font-weight: 740;
