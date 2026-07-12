@@ -1,0 +1,196 @@
+/* Owned by the lazy support prompt. */
+
+
+
+.support-prompt {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 80;
+  width: min(470px, calc(100vw - 32px));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 142px;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid rgba(246, 206, 104, 0.46);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(246, 206, 104, 0.22), transparent 10rem),
+    linear-gradient(145deg, rgba(13, 24, 43, 0.98), rgba(24, 56, 91, 0.96));
+  color: #f8fbff;
+  box-shadow:
+    0 24px 52px rgba(3, 8, 20, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.support-prompt__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(246, 206, 104, 0.32);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.58);
+  color: #dbeafe;
+  cursor: pointer;
+}
+
+.support-prompt__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-right: 20px;
+}
+
+.support-prompt__copy strong {
+  color: #fff2bf;
+  font-family: var(--font-display);
+  font-size: 1.08rem;
+  line-height: 1.1;
+}
+
+.support-prompt__copy span {
+  color: #dbeafe;
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.support-prompt__qr {
+  grid-row: span 2;
+  align-self: center;
+  display: block;
+  padding: 8px;
+  border: 1px solid rgba(246, 206, 104, 0.38);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 14px 30px rgba(3, 8, 20, 0.28);
+}
+
+.support-prompt__qr img {
+  display: block;
+  width: 124px;
+  height: 124px;
+  object-fit: contain;
+}
+
+.support-prompt__button {
+  width: fit-content;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f6ce68, #f59e0b);
+  color: #172033;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+@media (max-width: 760px) {
+  .support-prompt {
+    display: none;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 900px) {
+  .support-prompt {
+    right: 10px;
+    grid-template-columns: minmax(0, 1fr) 118px;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .support-prompt__qr img {
+    width: 100px;
+    height: 100px;
+  }
+}
+
+.support-prompt {
+  top: auto;
+  right: 18px;
+  bottom: 18px;
+  border-color: rgba(96, 190, 225, 0.34);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(22, 184, 212, 0.19), transparent 11rem),
+    linear-gradient(145deg, rgba(8, 26, 51, 0.98), rgba(16, 55, 91, 0.98));
+}
+
+.support-prompt--collapsed {
+  width: auto;
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.35rem;
+  border-radius: 999px;
+  box-shadow: 0 12px 28px rgba(8, 26, 51, 0.24);
+}
+
+.support-prompt__trigger,
+.support-prompt__dismiss {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.support-prompt__trigger {
+  gap: 0.4rem;
+  padding: 0.42rem 0.75rem;
+  color: #eaf8ff;
+  font-size: 0.76rem;
+  font-weight: 780;
+  background: transparent;
+}
+
+.support-prompt__dismiss {
+  width: 36px;
+  color: #9db8d2;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.support-prompt--expanded {
+  animation: supportPromptOpen 0.18s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .support-prompt--expanded {
+    animation: none !important;
+  }
+}
+
+@keyframes supportPromptOpen {
+  from { opacity: 0; transform: translateY(6px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+
+
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .support-prompt {
+  border-color: rgba(218, 169, 70, 0.42) !important;
+  color: #fff1ca !important;
+  background:
+    linear-gradient(90deg, rgba(69, 5, 10, 0.2), rgba(104, 14, 19, 0.06)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
+  box-shadow: 0 14px 30px rgba(55, 16, 10, 0.24) !important;
+}
+
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .support-prompt__trigger { color: #fff1ca !important; }
+
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .support-prompt__dismiss { color: #d9bd83 !important; background: rgba(49, 4, 7, 0.26) !important; }
+
+@media (max-width: 760px) {
+  .support-prompt {
+    display: none !important;
+  }
+}

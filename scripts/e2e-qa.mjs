@@ -446,10 +446,12 @@ for (const route of authenticatedRoutes) {
         arenaCss: hrefs.some(href => href.includes('/assets/HomeArenaDirectory-')),
         battlegroundsCss: hrefs.some(href => href.includes('/assets/HomeBattlegrounds-')),
         articlesCss: hrefs.some(href => href.includes('/assets/HomeLatestArticles-')),
+        supportCss: hrefs.some(href => href.includes('/assets/SupportPrompt-')),
       };
     });
     if (homeCssState.routeCssLoaded) failures.push('home lazy sections: route-only parchment CSS leaked into the initial home route');
     if (!homeCssState.arenaCss || !homeCssState.battlegroundsCss || !homeCssState.articlesCss) failures.push('home lazy sections: one or more owner CSS chunks did not load');
+    if (!homeCssState.supportCss) failures.push('home lazy sections: support-prompt owner CSS did not load');
     await page.evaluate(() => window.scrollTo(0, 900));
     await page.waitForSelector('.support-prompt--collapsed', { visible: true, timeout: 5_000 });
     await page.click('.support-prompt__trigger');

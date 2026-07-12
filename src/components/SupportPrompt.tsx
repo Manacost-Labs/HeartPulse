@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Gift, X } from 'lucide-react';
+import './SupportPrompt.css';
 
 const STORAGE_KEY = 'manacost_support_prompt_closed_at';
 const INTERVAL_MS = 3 * 24 * 60 * 60 * 1000;
