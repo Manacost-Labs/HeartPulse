@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import '../route-parchment.css';
 
 type StandardMatchupsRank = 'legend' | 'diamond';
 

@@ -222,6 +222,13 @@ async function inspectLayout(page, { mobile }) {
     const shell = document.querySelector('.arena-app-shell');
     const banner = document.querySelector('.section-banner-modern');
     const shellStyle = shell ? getComputedStyle(shell) : null;
+    const routeParchmentExpected = Boolean(shell && (
+      shell.classList.contains('arena-app-editorial')
+      || shell.classList.contains('arena-app-game-data')
+      || shell.classList.contains('arena-app-battlegrounds')
+    ));
+    const routeParchmentLoaded = [...document.styleSheets]
+      .some(sheet => sheet.href?.includes('/assets/route-parchment-'));
     const content = document.querySelector('.arena-content-open');
     const bannerStyle = banner ? getComputedStyle(banner) : null;
     const suspiciousOverlays = [...document.querySelectorAll('body *')]
@@ -251,6 +258,8 @@ async function inspectLayout(page, { mobile }) {
       clientWidth: root.clientWidth,
       shellOpacity: shellStyle?.opacity || null,
       shellFilter: shellStyle?.filter || null,
+      routeParchmentExpected,
+      routeParchmentLoaded,
       battlegroundsSurface: shell?.classList.contains('arena-app-battlegrounds') || false,
       battlegroundsBackground: shellStyle?.backgroundImage || '',
       battlegroundsSign: content ? getComputedStyle(content, '::before').backgroundImage : '',
@@ -270,6 +279,7 @@ function assertLayout(path, layout) {
   }
   if (layout.shellOpacity !== '1') failures.push(`${path}: app shell opacity is ${layout.shellOpacity}`);
   if (layout.shellFilter && layout.shellFilter !== 'none') failures.push(`${path}: app shell filter is ${layout.shellFilter}`);
+  if (layout.routeParchmentExpected && !layout.routeParchmentLoaded) failures.push(`${path}: route-owned parchment CSS was not loaded`);
   if (layout.battlegroundsSurface && !layout.battlegroundsBackground.includes('arena-parchment')) {
     failures.push(`${path}: route-owned Battlegrounds parchment CSS was not loaded`);
   }
@@ -429,6 +439,9 @@ for (const route of authenticatedRoutes) {
     await page.waitForSelector('.home-latest-articles');
     await page.waitForSelector('.home-bg-directory');
     await page.waitForSelector('.home-arena-directory');
+    const routeCssLoaded = await page.evaluate(() => [...document.styleSheets]
+      .some(sheet => sheet.href?.includes('/assets/route-parchment-')));
+    if (routeCssLoaded) failures.push('home lazy sections: route-only parchment CSS leaked into the initial home route');
     await page.evaluate(() => window.scrollTo(0, 900));
     await page.waitForSelector('.support-prompt--collapsed', { visible: true, timeout: 5_000 });
     await page.click('.support-prompt__trigger');

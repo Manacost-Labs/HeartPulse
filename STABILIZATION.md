@@ -19,7 +19,7 @@ every completed task must be tested and pushed to `main` as a separate commit.
 | CI | Scheduled scraper only | Required validation workflow on every push and PR |
 | Deployment | Live working tree, server started through `tsx` | Immutable compiled release with health rollback |
 | Initial JS | About 267 KB volatile entry | Stable vendor cache, ≤70 KB shell, ≤290 KB raw/≤100 KB gzip total |
-| Main CSS | About 324 KB raw | No growth, then staged reduction |
+| Main CSS | About 324 KB raw | Route ownership, ≤250 KB initial, then ≤230 KB |
 | Data publishing | Scraper can commit directly to `main` | Validated isolated data publishing |
 | Observability | Journald and `/api/status` | Request IDs, readiness, error tracking and alerts |
 
@@ -212,8 +212,8 @@ A task is complete only when all relevant checks below are proven.
   - [x] Browser CI emulates a 640 CSS-pixel reflow target (1280 at 200% zoom), forced-colors and reduced-motion together, rejecting horizontal overflow, lost focus outlines, active transitions and axe violations.
   - [ ] Complete the manual keyboard spot-check plus VoiceOver/TalkBack and real browser 200% zoom matrix on physical desktop/mobile devices.
   - [x] Volatile initial JS is down from 266.8 KB to 68.4 KB by splitting below-fold UI and moving `react-dom/client` into a stable dependency-addressed vendor chunk; CI separately caps the 68.4 KB shell, 184.9 KB React vendor, 283.9 KB raw initial graph and 85.3 KB gzip initial graph so chunk reshuffling cannot hide total growth.
-  - [x] Main CSS is down from 322.7 KB to 286.6 KB by loading the fully scoped Battlegrounds parchment skin only with its two route owners; CI enforces 300 KB, and desktop/mobile axe QA proves both tier-list and library chunks receive the correct parchment and sign assets.
-  - [ ] Ratchet the 68.4 KB application shell to 60 KB, the 283.9 KB raw initial graph to 280 KB and main CSS to 260 KB, then profile the next route-level reductions.
+  - [x] Initial CSS is down from 322.7 KB to 239.1 KB: the 47.5 KB Arena/editorial/paywall/lightbox parchment layer is loaded only by lazy route owners, while the home canvas and public shell stay initial. CI caps both chunks independently, proves route pages receive the layer and proves it does not leak into the home route.
+  - [ ] Ratchet the 68.4 KB application shell to 60 KB, the 283.9 KB raw initial graph to 280 KB and initial CSS to 230 KB, then profile the next route-level reductions.
 
 ## Progress metrics
 

@@ -12,7 +12,8 @@ const budgets = {
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 100_000),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 190_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 180_000),
-  css: Number(process.env.BUDGET_CSS_BYTES || 300_000),
+  css: Number(process.env.BUDGET_CSS_BYTES || 250_000),
+  routeCss: Number(process.env.BUDGET_ROUTE_CSS_BYTES || 50_000),
 };
 
 const files = readdirSync(distAssets)
@@ -29,6 +30,7 @@ const routeJs = files.filter(file =>
   && !file.name.startsWith('vendor-')
 );
 const css = files.find(file => /^index-.*\.css$/.test(file.name));
+const routeCss = files.find(file => /^route-parchment-.*\.css$/.test(file.name));
 const vendorReact = files.find(file => /^vendor-react-.*\.js$/.test(file.name));
 const initialJsFiles = [mainJs, vendorReact, files.find(file => /^vendor-icons-.*\.js$/.test(file.name))]
   .filter(Boolean);
@@ -49,7 +51,8 @@ const checks = [
   ['initial JS raw total', initialJs, budgets.initialJs],
   ['initial JS gzip total', initialJsGzip, budgets.initialJsGzip],
   ['largest route JS', routeJs[0], budgets.routeJs],
-  ['CSS', css, budgets.css],
+  ['initial CSS', css, budgets.css],
+  ['shared route CSS', routeCss, budgets.routeCss],
 ];
 
 let failed = false;
@@ -65,6 +68,6 @@ for (const [label, file, budget] of checks) {
   if (!ok) failed = true;
 }
 
-console.log('[budget] ratchet target: application shell 60 KB; initial raw total 280 KB; CSS 260 KB.');
+console.log('[budget] ratchet target: application shell 60 KB; initial raw total 280 KB; initial CSS 230 KB.');
 
 if (failed) process.exit(1);

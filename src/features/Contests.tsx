@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import '../route-parchment.css';
 import {
   BookOpen,
   CircleDollarSign,

@@ -1,6 +1,7 @@
 import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
+import '../route-parchment.css';
 import './Battlegrounds.css';
 import '../battlegrounds-parchment.css';
 import { ChevronLeft, ChevronRight, ExternalLink, Pause, Play, Search, Volume2, X } from 'lucide-react';
