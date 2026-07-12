@@ -239,6 +239,26 @@ function appAssetPathFromHtml(html: string): string | null {
   return html.match(/\/assets\/index-[^"']+\.js/)?.[0] ?? null;
 }
 
+async function resolveReferralTarget(slug: string, landingPath: string, signal: AbortSignal): Promise<string> {
+  const response = await fetch(`/api/referrals/track/${encodeURIComponent(slug)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ landingPath }),
+    signal,
+  });
+  const data = await response.json().catch(() => ({}));
+  return (response.ok && data.targetUrl) || '/';
+}
+
+async function fetchLatestAppAsset(pathname: string, signal: AbortSignal): Promise<string | null> {
+  const response = await fetch(`${pathname}?build-check=${Date.now()}`, {
+    cache: 'no-store',
+    credentials: 'same-origin',
+    signal,
+  });
+  return response.ok ? appAssetPathFromHtml(await response.text()) : null;
+}
+
 // ─── Fallback data ────────────────────────────────────────────────────────────
 
 const FALLBACK_CLASSES: ClassData[] = [
@@ -271,6 +291,17 @@ type AuthUser = {
   adminAllowed?: boolean;
   contestAdminAllowed?: boolean;
 };
+
+async function fetchCurrentAuthUser(token: string | null, signal: AbortSignal): Promise<AuthUser | null> {
+  const response = await fetch('/api/auth/me', {
+    credentials: 'same-origin',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    signal,
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw 0;
+  return data.user ?? null;
+}
 
 type SubscriptionStatus = {
   hasAccess: boolean;
@@ -732,19 +763,17 @@ export default function App() {
     const match = window.location.pathname.match(/^\/r\/([^/]+)\/?$/);
     if (!match) return;
     const slug = decodeURIComponent(match[1] || '');
-    fetch(`/api/referrals/track/${encodeURIComponent(slug)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ landingPath: `${window.location.pathname}${window.location.search}${window.location.hash}` }),
-    })
-      .then(async res => {
-        const data = await res.json().catch(() => ({}));
-        return { ok: res.ok, data };
+    const controller = new AbortController();
+    const signal = controller.signal;
+    const landingPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    void resolveReferralTarget(slug, landingPath, signal)
+      .then(targetUrl => {
+        if (!signal.aborted) window.location.replace(targetUrl);
       })
-      .then(({ ok, data }) => {
-        window.location.replace(ok && data.targetUrl ? String(data.targetUrl) : '/');
-      })
-      .catch(() => window.location.replace('/'));
+      .catch(() => {
+        if (!signal.aborted) window.location.replace('/');
+      });
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
@@ -827,18 +856,16 @@ export default function App() {
     if (!loadedAsset) return;
 
     let checking = false;
+    let activeController: AbortController | undefined;
     const checkForNewBuild = async () => {
       if (checking || document.visibilityState === 'hidden') return;
       checking = true;
+      const controller = new AbortController();
+      const signal = controller.signal;
+      activeController = controller;
       try {
-        const res = await fetch(`${window.location.pathname}?build-check=${Date.now()}`, {
-          cache: 'no-store',
-          credentials: 'same-origin',
-        });
-        if (!res.ok) return;
-        const html = await res.text();
-        const latestAsset = appAssetPathFromHtml(html);
-        if (latestAsset && latestAsset !== loadedAsset) {
+        const latestAsset = await fetchLatestAppAsset(window.location.pathname, signal);
+        if (!signal.aborted && latestAsset && latestAsset !== loadedAsset) {
           window.location.reload();
         }
       } catch {
@@ -852,6 +879,7 @@ export default function App() {
     window.addEventListener('focus', checkForNewBuild);
     document.addEventListener('visibilitychange', checkForNewBuild);
     return () => {
+      activeController?.abort();
       window.clearInterval(interval);
       window.removeEventListener('focus', checkForNewBuild);
       document.removeEventListener('visibilitychange', checkForNewBuild);
@@ -875,18 +903,14 @@ export default function App() {
   ));
 
   useEffect(() => {
-    let alive = true;
+    const controller = new AbortController();
+    const signal = controller.signal;
     const token = legacyAuthToken();
     setAppAuthChecking(true);
-    fetch('/api/auth/me', {
-      credentials: 'same-origin',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then(async res => {
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Требуется вход');
-        if (!alive) return;
-        if (!data.user) {
+    void fetchCurrentAuthUser(token, signal)
+      .then(user => {
+        if (signal.aborted) return;
+        if (!user) {
           clearAuthSessionHint();
           setAppHasAuthHint(false);
           setAppAuthUser(null);
@@ -895,19 +919,19 @@ export default function App() {
         }
         markAuthSessionHint();
         setAppHasAuthHint(true);
-        setAppAuthUser(data.user);
+        setAppAuthUser(user);
       })
       .catch(() => {
-        if (!alive) return;
+        if (signal.aborted) return;
         clearAuthSessionHint();
         setAppHasAuthHint(false);
         setAppAuthUser(null);
         setAppSubscription(null);
       })
       .finally(() => {
-        if (alive) setAppAuthChecking(false);
+        if (!signal.aborted) setAppAuthChecking(false);
       });
-    return () => { alive = false; };
+    return () => controller.abort();
   }, []);
 
   const handleAppAuthChange = useCallback((user: AuthUser | null) => {
