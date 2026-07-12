@@ -33,6 +33,7 @@ import { createGuidesArchiveRouter } from './guidesArchiveRoutes.js';
 import { createArticleRouter } from './articleRoutes.js';
 import { createOperationalRouter } from './operationalRoutes.js';
 import { createArenaDecksRouter, type ArenaDecksCacheStore } from './arenaDeckRoutes.js';
+import { createStandardMatchupRouter } from './standardMatchupRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -5770,40 +5771,23 @@ app.get('/api/class-matchups', requireArenaAccess, async (req, res) => {
   }
 });
 
-app.get('/api/standard/matchups', requireStandardAccess, async (req, res) => {
-  const rank = req.query.rank === 'diamond' ? 'diamond' : 'legend';
-  const now = Date.now();
-  const cached = standardMatchupsApiCache.get(rank);
-
-  if (cached && cached.expiresAt > now) {
-    return sendJsonCached(req, res, cached.data, cached.etag, CACHE_1H, 'memory');
-  }
-  const redisKey = redisDataKey('standard-matchups', rank);
-  const redisCached = await redisGetCache<any>(redisKey);
-  if (redisCached) {
-    standardMatchupsApiCache.set(rank, { data: redisCached.data, etag: redisCached.etag, expiresAt: now + EXTERNAL_DATASET_CACHE_MS });
-    return sendJsonCached(req, res, redisCached.data, redisCached.etag, CACHE_1H, 'redis');
-  }
-
-  try {
-    const [payload, archetypeTranslations] = await Promise.all([
-      fetchDataset(STANDARD_MATCHUPS_DATASET_BY_RANK[rank]),
-      getStandardArchetypeTranslations(now),
-    ]);
-    const data = transformHsguruMatchups(payload, rank, archetypeTranslations);
-    const updatedMs = data.updatedAt ? Date.parse(data.updatedAt) : NaN;
-    const updatedToken = Number.isFinite(updatedMs) ? updatedMs.toString(36) : now.toString(36);
-    const etag = `"standard-matchups-v4-${rank}-${updatedToken}-${data.rows.length}-${data.columns.length}-${data.translationSource}"`;
-    standardMatchupsApiCache.set(rank, { data, etag, expiresAt: now + EXTERNAL_DATASET_CACHE_MS });
-    void redisSetCache(redisKey, data, etag, REDIS_DATASET_TTL_SECONDS);
-    return sendJsonCached(req, res, data, etag, CACHE_1H, 'origin');
-  } catch (err: any) {
-    if (cached) {
-      return sendJsonCached(req, res, { ...cached.data, warning: 'stale' }, cached.etag, CACHE_1H, 'memory-stale');
-    }
-    return res.status(502).json({ error: err?.message ?? 'Standard matchups unavailable' });
-  }
-});
+app.use('/api', createStandardMatchupRouter({
+  accessGuard: requireStandardAccess,
+  memoryCache: standardMatchupsApiCache,
+  redisKey: rank => redisDataKey('standard-matchups', rank),
+  redisGet: redisGetCache,
+  redisSet: redisSetCache,
+  fetchPayload: rank => fetchDataset(STANDARD_MATCHUPS_DATASET_BY_RANK[rank]),
+  getTranslations: getStandardArchetypeTranslations,
+  transform: transformHsguruMatchups,
+  memoryTtlMs: EXTERNAL_DATASET_CACHE_MS,
+  redisTtlSeconds: REDIS_DATASET_TTL_SECONDS,
+  cacheHeader: CACHE_1H,
+  onError: (scope, error) => console.error(
+    `[standard-matchups] ${scope} failed:`,
+    error instanceof Error ? error.message : error,
+  ),
+}));
 
 app.get('/api/tierlist', requireArenaAccess, async (req, res) => {
   const source = normalizeSource(req.query.source as string | undefined, TIERLIST_DATASET_BY_SOURCE, 'hsreplay');
