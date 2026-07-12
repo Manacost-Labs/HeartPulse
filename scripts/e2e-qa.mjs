@@ -185,6 +185,44 @@ const adminFixtures = {
     accounts: [],
     fetchedAt: '2026-07-11T00:00:00.000Z',
   },
+  '/api/admin/users': {
+    users: [
+      {
+        id: 'qa-user-1',
+        profileId: 'QA-0001',
+        name: 'Первый пользователь',
+        email: 'first@example.test',
+        role: 'user',
+        country: 'RU',
+        telegramUsername: 'first_user',
+        contactVkUrl: '',
+        contactTelegram: '@first_user',
+        contactEmail: 'first@example.test',
+        lifetimeAccess: false,
+        subscription: { hasAccess: true, source: 'qa', checkedAt: '2026-07-11T00:00:00.000Z' },
+        contestEntriesCount: 2,
+        createdAt: '2026-07-01T00:00:00.000Z',
+      },
+      {
+        id: 'qa-user-2',
+        profileId: 'QA-0002',
+        name: 'Заблокированный пользователь',
+        email: 'blocked@example.test',
+        role: 'user',
+        country: 'KZ',
+        telegramUsername: '',
+        contactVkUrl: '',
+        contactTelegram: '',
+        contactEmail: 'blocked@example.test',
+        lifetimeAccess: false,
+        blockedAt: '2026-07-10T00:00:00.000Z',
+        subscription: { hasAccess: false, source: 'qa', checkedAt: '2026-07-11T00:00:00.000Z' },
+        contestEntriesCount: 0,
+        createdAt: '2026-07-02T00:00:00.000Z',
+      },
+    ],
+    total: 2,
+  },
   '/api/admin/mailings/overview': {
     campaigns: [],
     templates: [],
@@ -482,9 +520,37 @@ for (const [device, viewport] of [
     if (!new URL(page.url()).searchParams.has('section') || !page.url().includes('section=articles')) {
       failures.push(`admin dashboard [${device}]: quick navigation did not update URL`);
     }
+
+    await page.goto(`${BASE}/?admin&section=users`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForFunction(() => document.querySelectorAll('.contest-user-row').length === 2);
+    const usersState = await page.evaluate(() => ({
+      rows: document.querySelectorAll('.contest-user-row').length,
+      summary: document.querySelector('.contest-users-head .contest-muted')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    if (usersState.rows !== 2 || !usersState.summary.includes('Показано 2 из 2')) {
+      failures.push(`admin users [${device}]: deterministic user list did not render`);
+    }
+    if (usersState.scrollWidth > usersState.clientWidth + 1) {
+      failures.push(`admin users [${device}]: horizontal overflow ${usersState.scrollWidth} > ${usersState.clientWidth}`);
+    }
+    await page.click('.contest-user-menu-trigger');
+    await page.waitForSelector('.contest-user-menu[role="menu"]', { visible: true });
+    await page.waitForFunction(() => document.activeElement?.getAttribute('role') === 'menuitem');
+    await page.keyboard.press('ArrowDown');
+    const focusedMenuItem = await page.evaluate(() => document.activeElement?.textContent?.replace(/\s+/g, ' ').trim() || '');
+    if (!focusedMenuItem.includes('Сделать администратором')) {
+      failures.push(`admin users [${device}]: ArrowDown did not move focus to the next menu action`);
+    }
+    const usersViolationCount = await auditAccessibility(page, `admin users menu [${device}]`, '.admin-workspace-content');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.querySelector('.contest-user-menu'));
+    const focusRestored = await page.evaluate(() => document.activeElement?.classList.contains('contest-user-menu-trigger') === true);
+    if (!focusRestored) failures.push(`admin users [${device}]: Escape did not restore focus to the action trigger`);
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
-    console.log(`✓ admin dashboard [${device}] layout + navigation + axe (${violationCount} violations)`);
+    console.log(`✓ admin dashboard/users [${device}] layout + keyboard menu + axe (${violationCount + usersViolationCount} violations)`);
   } catch (error) {
     const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
     failures.push(`admin dashboard [${device}]: ${error.message}; page: ${diagnostic}`);

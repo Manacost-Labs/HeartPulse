@@ -1046,6 +1046,14 @@
   color: #991b1b;
 }
 
+.contest-user-row .contest-access-ok {
+  color: #065f46;
+}
+
+.contest-user-row .contest-access-no {
+  color: #991b1b;
+}
+
 .admin-workspace-page {
   --admin-bar-h: 52px;
   --admin-nav-w: 238px;
@@ -3543,7 +3551,7 @@
 
 .admin-workspace-page .contest-user-badges .contest-user-menu button small {
   margin-top: 0.12rem;
-  color: #708090 !important;
+  color: #52606d !important;
   font-size: 0.63rem;
   font-weight: 600;
   line-height: 1.25;

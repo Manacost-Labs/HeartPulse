@@ -13,7 +13,6 @@ import {
   Menu,
   MessageCircle,
   Monitor,
-  MoreVertical,
   Newspaper,
   Send,
   ShieldCheck,
@@ -32,6 +31,12 @@ import {
 } from './ContestAdminReferrals';
 import { contestSelectionReducer, INITIAL_CONTEST_SELECTION } from './contestSelection';
 import { ContestAdminDashboard } from './ContestAdminDashboard';
+import {
+  ContestAdminUsers,
+  type AdminUserPatch,
+  type AdminUserSearchResult,
+} from './ContestAdminUsers';
+import { ADMIN_INPUT } from './contestAdminUi';
 import {
   adminWorkspaceReducer,
   createAdminWorkspaceState,
@@ -115,17 +120,6 @@ interface GalleryItem {
   createdAt: string;
   updatedAt?: string;
 }
-
-const ADMIN_INPUT: React.CSSProperties = {
-  width: '100%',
-  boxSizing: 'border-box',
-  minHeight: 40,
-  border: '1px solid #c3c4c7',
-  borderRadius: 6,
-  padding: '9px 11px',
-  background: '#fff',
-  color: '#1d2327',
-};
 
 function formatDate(iso: string | null): string {
   if (!iso) return 'нет данных';
@@ -214,29 +208,6 @@ type ContestEntry = {
   contact: Record<string, any>;
   subscription: Record<string, any>;
   profileContacts: Record<string, string>;
-};
-
-type AdminUserSearchResult = {
-  id: string;
-  profileId: string;
-  name: string;
-  email: string;
-  role: string;
-  country: string;
-  telegramId?: string;
-  telegramUsername: string;
-  telegramOidcId?: string;
-  contactVkUrl: string;
-  contactTelegram: string;
-  contactEmail: string;
-  newsletterOptIn?: boolean;
-  lifetimeAccess?: boolean;
-  lifetimeGrantedAt?: string;
-  subscription: { hasAccess: boolean; source: string; checkedAt: string; message?: string; entitlements?: SubscriptionStatus['entitlements'] };
-  contestEntriesCount?: number;
-  blockedAt?: string;
-  createdAt?: string;
-  updatedAt?: string;
 };
 
 function authJsonHeaders(): HeadersInit {
@@ -998,7 +969,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     const closeMenu = (restoreFocus: boolean) => {
       const trigger = userMenuTriggerMap.get(openUserMenuId);
       dispatchAdminWorkspace({ type: 'closeUserMenu' });
-      if (restoreFocus) window.requestAnimationFrame(() => trigger?.focus());
+      if (restoreFocus) trigger?.focus({ preventScroll: true });
     };
     const handlePointerDown = (event: PointerEvent) => {
       if (!userMenuRef.current?.contains(event.target as Node)
@@ -1030,7 +1001,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           : Math.min(focusable.length - 1, triggerIndex + 1);
         const target = focusable[targetIndex] || trigger;
         dispatchAdminWorkspace({ type: 'closeUserMenu' });
-        window.requestAnimationFrame(() => target?.focus());
+        target?.focus({ preventScroll: true });
         return;
       }
       if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
@@ -1571,7 +1542,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     }
   };
 
-  const updateAdminUser = async (user: AdminUserSearchResult, patch: { role?: 'admin' | 'user'; blocked?: boolean; lifetimeAccess?: boolean }) => {
+  const updateAdminUser = async (user: AdminUserSearchResult, patch: AdminUserPatch) => {
     const menuTrigger = userMenuTriggerMap.get(user.id);
     const willBlock = patch.blocked === true;
     const willPromote = patch.role === 'admin';
@@ -1586,7 +1557,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
             : 'снять права администратора';
     const confirmed = window.confirm(`Точно ${actionLabel} пользователя ${user.name || user.email || user.id}?`);
     dispatchAdminWorkspace({ type: 'closeUserMenu' });
-    window.requestAnimationFrame(() => menuTrigger?.focus());
+    menuTrigger?.focus({ preventScroll: true });
     if (!confirmed) return;
     setUserActionId(`${user.id}:${Object.keys(patch).join(',')}`);
     setMessage(null);
@@ -2049,124 +2020,25 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           )}
 
           {hasFullAdminAccess && adminSection === 'users' && (
-            <div className="contest-admin-card contest-admin-search admin-full-card">
-              <div className="contest-users-head">
-                <div>
-                  <h2>Пользователи</h2>
-                  <p className="contest-muted">
-                    Единая база профилей Манакоста. Показано {users.length} из {usersTotal}.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="contest-secondary-button"
-                  disabled={usersLoading}
-                  onClick={() => setUsersReloadKey(value => value + 1)}
-                >
-                  {usersLoading ? 'Загрузка...' : 'Обновить'}
-                </button>
-              </div>
-              <div className="admin-page-toolbar admin-user-toolbar">
-                <label>
-                  Фильтр по ID, почте, имени, Telegram или VK
-                  <input value={userQuery} onChange={e => { setUserQuery(e.target.value); setUsersPage(1); }} placeholder="user_..., email, имя или username" style={ADMIN_INPUT} />
-                </label>
-              </div>
-              <div className="contest-user-results">
-                {usersLoading && !users.length ? (
-                  <p className="contest-muted">Загружаем список пользователей...</p>
-                ) : users.length ? users.map(user => (
-                  <div key={user.id} className="contest-user-row">
-                    <div>
-                      <strong>{user.name}</strong>
-                      <span>ID: {user.profileId}</span>
-                      <span>{user.email || 'email не указан'} · {user.country || 'страна не указана'} · {user.role === 'admin' ? 'администратор' : 'пользователь'}</span>
-                      <span>
-                        TG: {user.contactTelegram || user.telegramUsername || user.telegramId || '—'}
-                        {' · '}
-                        VK: {user.contactVkUrl || '—'}
-                        {' · '}
-                        связь: {user.contactEmail || '—'}
-                      </span>
-                      <span>
-                        Конкурсы: {user.contestEntriesCount ?? 0}
-                        {' · '}
-                        создан: {user.createdAt ? formatDate(user.createdAt) : '—'}
-                      </span>
-                    </div>
-                    <div className="contest-user-badges">
-                      <span className={user.blockedAt ? 'contest-role-blocked' : user.role === 'admin' ? 'contest-role-admin' : 'contest-role-user'}>
-                        {user.blockedAt ? 'заблокирован' : user.role === 'admin' ? 'админ' : 'участник'}
-                      </span>
-                      <span className={user.subscription?.hasAccess ? 'contest-access-ok' : 'contest-access-no'}>
-                        {user.lifetimeAccess ? 'бессрочно' : user.subscription?.hasAccess ? 'подписка' : 'нет доступа'}
-                      </span>
-                      <div className="contest-user-actions contest-user-action-menu-wrap">
-                        <button
-                          ref={node => {
-                            if (node) userMenuTriggerMap.set(user.id, node);
-                            else userMenuTriggerMap.delete(user.id);
-                          }}
-                          type="button"
-                          className="contest-user-menu-trigger"
-                          disabled={Boolean(userActionId)}
-                          aria-label={`Действия с пользователем ${user.name || user.email || user.id}`}
-                          aria-haspopup="menu"
-                          aria-expanded={openUserMenuId === user.id}
-                          aria-controls={openUserMenuId === user.id ? `user-actions-${user.id}` : undefined}
-                          onClick={() => dispatchAdminWorkspace({ type: 'toggleUserMenu', userId: user.id })}
-                        >
-                          {userActionId.startsWith(`${user.id}:`) ? <span className="admin-action-spinner" aria-hidden="true" /> : <MoreVertical size={20} />}
-                        </button>
-                        {openUserMenuId === user.id && (
-                          <div ref={userMenuRef} id={`user-actions-${user.id}`} className="contest-user-menu" role="menu" aria-label={`Действия: ${user.name || user.email}`}>
-                            <button
-                              type="button"
-                              role="menuitem"
-                              onClick={() => void updateAdminUser(user, { lifetimeAccess: !user.lifetimeAccess })}
-                            >
-                              <ShieldCheck size={16} />
-                              <span>{user.lifetimeAccess ? 'Отозвать бессрочную подписку' : 'Дать бессрочную подписку'}<small>Доступ ко всем закрытым разделам</small></span>
-                            </button>
-                            <button
-                              type="button"
-                              role="menuitem"
-                              disabled={authUser?.id === user.id}
-                              onClick={() => void updateAdminUser(user, { role: user.role === 'admin' ? 'user' : 'admin' })}
-                            >
-                              <Users size={16} />
-                              <span>{user.role === 'admin' ? 'Снять права администратора' : 'Сделать администратором'}<small>Изменить уровень управления</small></span>
-                            </button>
-                            <hr className="contest-user-menu-divider" />
-                            <button
-                              type="button"
-                              role="menuitem"
-                              className={!user.blockedAt ? 'is-danger' : undefined}
-                              disabled={authUser?.id === user.id}
-                              onClick={() => void updateAdminUser(user, { blocked: !user.blockedAt })}
-                            >
-                              <Trash2 size={16} />
-                              <span>{user.blockedAt ? 'Разблокировать' : 'Заблокировать'}<small>{user.blockedAt ? 'Вернуть доступ к аккаунту' : 'Закрыть вход и исключить из рассылки'}</small></span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )) : (
-                  <p className="contest-muted">
-                    {userQuery.trim() ? 'По этому фильтру пользователей нет.' : 'В единой базе пока нет пользователей.'}
-                  </p>
-                )}
-              </div>
-              {usersPageCount > 1 && (
-                <nav className="admin-pagination" aria-label="Страницы списка пользователей">
-                  <button type="button" disabled={usersPage === 1 || usersLoading} onClick={() => setUsersPage(page => Math.max(1, page - 1))}>Назад</button>
-                  <span>Страница {usersPage} из {usersPageCount}</span>
-                  <button type="button" disabled={usersPage === usersPageCount || usersLoading} onClick={() => setUsersPage(page => Math.min(usersPageCount, page + 1))}>Далее</button>
-                </nav>
-              )}
-            </div>
+            <ContestAdminUsers
+              currentUserId={authUser?.id}
+              users={users}
+              total={usersTotal}
+              loading={usersLoading}
+              query={userQuery}
+              page={usersPage}
+              pageCount={usersPageCount}
+              actionId={userActionId}
+              openMenuId={openUserMenuId}
+              menuRef={userMenuRef}
+              menuTriggerMap={userMenuTriggerMap}
+              formatDate={formatDate}
+              onRefresh={() => setUsersReloadKey(value => value + 1)}
+              onQueryChange={query => { setUserQuery(query); setUsersPage(1); }}
+              onPageChange={setUsersPage}
+              onToggleMenu={userId => dispatchAdminWorkspace({ type: 'toggleUserMenu', userId })}
+              onUpdateUser={(user, patch) => void updateAdminUser(user, patch)}
+            />
           )}
 
           {hasFullAdminAccess && adminSection === 'mailing' && (
