@@ -32,6 +32,7 @@ import { createArticleCoverRouter } from './articleCoverRoutes.js';
 import { createGuidesArchiveRouter } from './guidesArchiveRoutes.js';
 import { createArticleRouter } from './articleRoutes.js';
 import { createOperationalRouter } from './operationalRoutes.js';
+import { createArenaDecksRouter, type ArenaDecksCacheStore } from './arenaDeckRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -106,7 +107,7 @@ const legendariesApiCache = new Map<string, MemoryCacheEntry>();
 const standardMatchupsApiCache = new Map<string, MemoryCacheEntry>();
 const battlegroundAppProxyCache = new Map<string, ProxyBodyCacheEntry>();
 let homeSummaryApiCache: MemoryCacheEntry | null = null;
-let arenaDecksCache: MemoryCacheEntry | null = null;
+const arenaDecksCache: ArenaDecksCacheStore = { current: null };
 type CardImageSource = 'blizzard' | 'fallback' | 'placeholder';
 type CachedCardImage = { path: string; source: CardImageSource };
 const cardImageJobs = new Map<string, Promise<CachedCardImage>>();
@@ -147,7 +148,7 @@ function invalidateDataCache() {
   battlegroundAppProxyCache.clear();
   homeSummaryApiCache = null;
   classMatchupsCache = null;
-  arenaDecksCache = null;
+  arenaDecksCache.current = null;
   void clearRedisDataCache();
 }
 let observedSnapshotPublicationMtime = 0;
@@ -3975,45 +3976,6 @@ function sortDeckCardsByMana(cards: any[]) {
   });
 }
 
-function arenaDeckClassOptions(decks: any[]) {
-  const map = new Map<string, any>();
-  for (const deck of decks) {
-    for (const cls of deck.classes ?? []) {
-      if (cls?.name && !map.has(cls.name)) map.set(cls.name, cls);
-    }
-  }
-  return Array.from(map.values()).sort((a, b) => String(a.name).localeCompare(String(b.name), 'ru'));
-}
-
-function shapeArenaDecksPage(data: any, page: number, pageSize: number, className: string) {
-  const allDecks = Array.isArray(data?.decks) ? data.decks : [];
-  const filtered = className
-    ? allDecks.filter((deck: any) => (deck.classes ?? []).some((cls: any) => cls?.name === className))
-    : allDecks;
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const safePage = Math.min(totalPages, Math.max(1, page));
-  const start = (safePage - 1) * pageSize;
-
-  return {
-    decks: filtered.slice(start, start + pageSize),
-    totalDecks: data.totalDecks ?? allDecks.length,
-    filteredDecks: filtered.length,
-    page: safePage,
-    pageSize,
-    totalPages,
-    activeClass: className || '',
-    classOptions: arenaDeckClassOptions(allDecks),
-    updatedAt: data.updatedAt ?? null,
-    source: 'arena-decks',
-    sourceUrl: '',
-    warning: data.warning,
-  };
-}
-
-function etagToken(value: string) {
-  return encodeURIComponent(value).replace(/[^a-z0-9_.~-]/gi, '_') || 'all';
-}
-
 function parseKolodaUtcDate(value: string): string | null {
   const match = value.match(/(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})\s+UTC/i);
   if (!match) return null;
@@ -5910,35 +5872,18 @@ app.get('/api/legendaries', requireArenaAccess, async (req, res) => {
   }
 });
 
-app.get('/api/decks', requireArenaAccess, async (req, res) => {
-  const page = Math.max(1, parseCount(req.query.page) ?? 1);
-  const pageSize = Math.min(20, Math.max(1, parseCount(req.query.pageSize) ?? 10));
-  const className = String(req.query.class ?? '').trim();
-  const now = Date.now();
-  if (arenaDecksCache && arenaDecksCache.expiresAt > now) {
-    const pageData = shapeArenaDecksPage(arenaDecksCache.data, page, pageSize, className);
-    const etag = `"${arenaDecksCache.etag.replace(/^"|"$/g, '')}-p${pageData.page}-s${pageSize}-c${etagToken(className)}"`;
-    return sendJsonCached(req, res, pageData, etag, CACHE_1H);
-  }
-
-  try {
-    const data = await fetchArenaDecksData(ARENA_DECKS_MAX_LIMIT);
-    const updatedToken = data.updatedAt ? Date.parse(data.updatedAt).toString(36) : now.toString(36);
-    const etag = `"arena-decks-${updatedToken}-${data.decks.length}-${data.totalDecks ?? 0}"`;
-    arenaDecksCache = { data, etag, expiresAt: now + ARENA_DECKS_CACHE_MS };
-    const pageData = shapeArenaDecksPage(data, page, pageSize, className);
-    const pageEtag = `"${etag.replace(/^"|"$/g, '')}-p${pageData.page}-s${pageSize}-c${etagToken(className)}"`;
-    return sendJsonCached(req, res, pageData, pageEtag, CACHE_1H);
-  } catch (err: any) {
-    if (arenaDecksCache) {
-      const pageData = shapeArenaDecksPage({ ...arenaDecksCache.data, warning: 'stale' }, page, pageSize, className);
-      const etag = `"${arenaDecksCache.etag.replace(/^"|"$/g, '')}-p${pageData.page}-s${pageSize}-c${etagToken(className)}-stale"`;
-      return sendJsonCached(req, res, pageData, etag, 'public, max-age=300, stale-while-revalidate=600');
-    }
-
-    return res.status(502).json({ error: err?.message ?? 'Arena decks unavailable' });
-  }
-});
+app.use('/api', createArenaDecksRouter({
+  accessGuard: requireArenaAccess,
+  fetchDecks: fetchArenaDecksData,
+  cache: arenaDecksCache,
+  maxLimit: ARENA_DECKS_MAX_LIMIT,
+  cacheTtlMs: ARENA_DECKS_CACHE_MS,
+  publicCacheHeader: CACHE_1H,
+  onFetchError: error => console.error(
+    '[arena-decks] fetch failed:',
+    error instanceof Error ? error.message : error,
+  ),
+}));
 
 function articleDateMs(article: any): number {
   const parsed = Date.parse(String(article?.date ?? ''));
