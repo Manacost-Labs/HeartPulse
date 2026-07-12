@@ -32,7 +32,9 @@ const state = {
 const signed = encodeSignedStateCookie({ states: [state] }, secret);
 assert.deepEqual(decodeSignedStateCookie(signed, secret), { states: [state] });
 assert.equal(decodeSignedStateCookie(signed, 'wrong-secret'), null);
-assert.equal(decodeSignedStateCookie(signed.replace(/.$/, char => char === 'a' ? 'b' : 'a'), secret), null);
+const [payload, signature] = signed.split('.');
+const tamperedSignature = `${signature[0] === 'a' ? 'b' : 'a'}${signature.slice(1)}`;
+assert.equal(decodeSignedStateCookie(`${payload}.${tamperedSignature}`, secret), null);
 assert.equal(decodeSignedStateCookie(signed.split('.')[0], secret), null, 'unsigned legacy cookie must be rejected');
 assert.equal(decodeSignedStateCookie(`x.${'a'.repeat(9_000)}`, secret), null, 'oversized cookie must be rejected');
 assert.throws(() => encodeSignedStateCookie(state, ''), /secret is required/);
