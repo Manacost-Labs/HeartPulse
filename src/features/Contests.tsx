@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import '../route-parchment.css';
 import {
   BookOpen,
@@ -30,6 +30,7 @@ import {
   type AdminReferralLink,
   type ReferralDraft,
 } from './ContestAdminReferrals';
+import { contestSelectionReducer, INITIAL_CONTEST_SELECTION } from './contestSelection';
 
 type AdminMessage = { type: 'ok' | 'err'; text: string };
 
@@ -822,8 +823,8 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const [contests, setContests] = useState<Contest[]>([]);
   const [entries, setEntries] = useState<ContestEntry[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(false);
-  const [entriesPage, setEntriesPage] = useState(1);
-  const [selectedContestId, setSelectedContestId] = useState('');
+  const [contestSelection, dispatchContestSelection] = useReducer(contestSelectionReducer, INITIAL_CONTEST_SELECTION);
+  const { contestId: selectedContestId, winnersText } = contestSelection;
   const [contestStatusFilter, setContestStatusFilter] = useState('all');
   const [contestWorkspaceView, setContestWorkspaceView] = useState<ContestWorkspaceView>('manage');
   const [userQuery, setUserQuery] = useState('');
@@ -843,7 +844,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const [mailingPreviewLoading, setMailingPreviewLoading] = useState(false);
   const [mailingSending, setMailingSending] = useState(false);
   const [mailingTesting, setMailingTesting] = useState(false);
-  const [winnersText, setWinnersText] = useState('');
   const [message, setMessage] = useState<AdminMessage | null>(null);
   const [loading, setLoading] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
@@ -1065,7 +1065,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     document.title = `${labels[adminSection]} — Админка | Manacost Stats`;
   }, [adminSection, allowed]);
 
-  const loadAdminContests = useCallback(async () => {
+  const loadAdminContests = useCallback(async (preferredContestId?: string) => {
     if (!allowed) return;
     setLoading(true);
     try {
@@ -1074,7 +1074,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       if (!res.ok) throw new Error(data.error || 'Не удалось загрузить конкурсы');
       const list = Array.isArray(data.contests) ? data.contests : [];
       setContests(list);
-      setSelectedContestId(current => list.some((item: Contest) => item.id === current) ? current : (list[0]?.id || ''));
+      dispatchContestSelection({ type: 'sync', contests: list, preferredContestId });
     } catch (err: any) {
       setMessage({ type: 'err', text: err.message });
     } finally {
@@ -1402,8 +1402,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       if (!res.ok) throw new Error(data.error || 'Не удалось сохранить конкурс');
       setMessage({ type: 'ok', text: 'Конкурс сохранен.' });
       setForm({ id: '', title: '', prize: '', imageUrl: '', startsAt: '', endsAt: '', status: 'active', description: '' });
-      await loadAdminContests();
-      if (data.contest?.id) setSelectedContestId(data.contest.id);
+      await loadAdminContests(data.contest?.id ? String(data.contest.id) : undefined);
       setContestWorkspaceView('manage');
     } catch (err: any) {
       setMessage({ type: 'err', text: err.message });
@@ -1718,7 +1717,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Не удалось удалить конкурс');
       setMessage({ type: 'ok', text: 'Конкурс удален.' });
-      if (selectedContestId === contest.id) setSelectedContestId('');
+      if (selectedContestId === contest.id) dispatchContestSelection({ type: 'select' });
       if (form.id === contest.id) setForm({ id: '', title: '', prize: '', imageUrl: '', startsAt: '', endsAt: '', status: 'active', description: '' });
       await loadAdminContests();
     } catch (err: any) {
@@ -1729,11 +1728,11 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   };
 
   const selectedContest = contests.find(contest => contest.id === selectedContestId);
-  const selectedContestWinnersText = selectedContest?.winners?.join('\n') ?? '';
   const selectedWinnerIds = useMemo(() => parseWinnerIds(winnersText), [winnersText]);
   const selectedWinnerIdSet = useMemo(() => new Set(selectedWinnerIds), [selectedWinnerIds]);
   const approvedEntries = useMemo(() => entries.filter(entry => entry.status === 'approved'), [entries]);
   const entriesPageCount = Math.max(1, Math.ceil(entries.length / ADMIN_AUDIENCE_PAGE_SIZE));
+  const entriesPage = Math.min(contestSelection.entriesPage, entriesPageCount);
   const visibleEntries = useMemo(
     () => entries.slice((entriesPage - 1) * ADMIN_AUDIENCE_PAGE_SIZE, entriesPage * ADMIN_AUDIENCE_PAGE_SIZE),
     [entries, entriesPage],
@@ -1779,15 +1778,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const selectedContestEntryCount = selectedContest?.entriesCount ?? entries.length;
   const selectedContestWinnerCount = selectedWinnerIds.length;
   const selectedContestApprovedWinnerCount = approvedEntries.filter(entry => selectedWinnerIdSet.has(entry.profileId)).length;
-
-  useEffect(() => {
-    setWinnersText(selectedContestWinnersText);
-    setEntriesPage(1);
-  }, [selectedContestId, selectedContestWinnersText]);
-
-  useEffect(() => {
-    setEntriesPage(current => Math.min(current, entriesPageCount));
-  }, [entriesPageCount]);
 
   const boostyLevelOptions = useMemo(
     () => Object.keys(boostySubscribers?.levels || {}).sort((a, b) => a.localeCompare(b, 'ru')),
@@ -1920,13 +1910,13 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const setContestEndInHour = () => setContestEndAfterStart(60);
   const setContestEndTomorrow = () => setContestEndAfterStart(24 * 60);
   const toggleWinner = (profileId: string) => {
-    setWinnersText(previous => {
-      const winners = parseWinnerIds(previous);
-      if (winners.includes(profileId)) return winners.filter(id => id !== profileId).join('\n');
-      return [...winners, profileId].join('\n');
-    });
+    const winners = parseWinnerIds(winnersText);
+    const nextWinnersText = winners.includes(profileId)
+      ? winners.filter(id => id !== profileId).join('\n')
+      : [...winners, profileId].join('\n');
+    dispatchContestSelection({ type: 'setWinnersText', winnersText: nextWinnersText });
   };
-  const clearWinnerSelection = () => setWinnersText('');
+  const clearWinnerSelection = () => dispatchContestSelection({ type: 'setWinnersText', winnersText: '' });
   const currentStatus = CONTEST_STATUS_OPTIONS.find(item => item.value === form.status) ?? CONTEST_STATUS_OPTIONS[0];
   const previewStartsAt = form.startsAt ? formatDate(form.startsAt) : 'сразу после публикации';
   const previewEndsAt = form.endsAt ? formatDate(form.endsAt) : 'без даты окончания';
@@ -2993,7 +2983,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
                     <div className="admin-contest-list">
                       {filteredContests.map(contest => (
                         <div key={contest.id} className={contest.id === selectedContestId ? 'is-selected' : ''}>
-	                          <button type="button" aria-pressed={contest.id === selectedContestId} onClick={() => setSelectedContestId(contest.id)}>
+	                          <button type="button" aria-pressed={contest.id === selectedContestId} onClick={() => dispatchContestSelection({ type: 'select', contest })}>
                             <strong>{contest.title}</strong>
                             <span>{contestStatusLabel(contest.status)} · {contest.entriesCount ?? 0} заявок{contest.endsAt ? ` · ${formatDate(contest.endsAt)}` : ''}</span>
                           </button>
@@ -3065,9 +3055,9 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
                         </div>
                         {entriesPageCount > 1 && (
                           <nav className="admin-pagination" aria-label="Страницы заявок конкурса">
-                            <button type="button" disabled={entriesPage === 1 || entriesLoading} onClick={() => setEntriesPage(page => Math.max(1, page - 1))}>Назад</button>
+                            <button type="button" disabled={entriesPage === 1 || entriesLoading} onClick={() => dispatchContestSelection({ type: 'setEntriesPage', entriesPage: entriesPage - 1 })}>Назад</button>
                             <span>Страница {entriesPage} из {entriesPageCount}</span>
-                            <button type="button" disabled={entriesPage === entriesPageCount || entriesLoading} onClick={() => setEntriesPage(page => Math.min(entriesPageCount, page + 1))}>Далее</button>
+                            <button type="button" disabled={entriesPage === entriesPageCount || entriesLoading} onClick={() => dispatchContestSelection({ type: 'setEntriesPage', entriesPage: Math.min(entriesPageCount, entriesPage + 1) })}>Далее</button>
                           </nav>
                         )}
 
@@ -3082,7 +3072,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
                         </div>
 
                         <label>Ручной список ID победителей
-                          <textarea value={winnersText} onChange={e => setWinnersText(e.target.value)} rows={3} placeholder="Можно вставить ID через запятую или с новой строки" style={{ ...ADMIN_INPUT, resize: 'vertical' }} />
+                          <textarea value={winnersText} onChange={event => dispatchContestSelection({ type: 'setWinnersText', winnersText: event.target.value })} rows={3} placeholder="Можно вставить ID через запятую или с новой строки" style={{ ...ADMIN_INPUT, resize: 'vertical' }} />
                         </label>
                       </>
                     ) : (
