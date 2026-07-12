@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Reduced main CSS from 322.7 KB to 285.7 KB and permanently lowered its CI ceiling to 300 KB by moving the fully scoped Battlegrounds parchment skin out of the global entry and into its tier/hero/builder and library route owners; deterministic desktop/mobile QA now verifies both chunks load the parchment, wooden sign and zero-violation UI.
 - Reduced initial JavaScript from 266.8 KB to 249.2 KB and permanently lowered its CI budget to 250 KB by splitting below-fold home directories, FAQ/paywall UI and the delayed support prompt into route-safe chunks; browser QA now proves the lazy home sections and support flow load, interact and pass axe.
 - Added a required real-Chromium axe-core WCAG 2.2 A/AA gate against the locally served production build across critical subscriber desktop/mobile routes, the guest paywall, open mobile menu and open lightbox; fixed the resulting legendary win-rate badge contrast issue and established a zero-violation CI baseline.
 - Isolated Puppeteer scraping from the web process: a dedicated non-overlapping systemd service now handles the six-hour schedule and queued admin requests, validates supported document shapes, rejects empty/incomplete upstream data, durably stages with file/directory `fsync` and atomic rename, publishes a cache-invalidation marker only after success, and exits non-zero on any critical dataset failure.

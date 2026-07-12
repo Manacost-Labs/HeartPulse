@@ -210,7 +210,8 @@ A task is complete only when all relevant checks below are proven.
   - [x] Automated WCAG 2.2 A/AA audits cover critical Arena subscriber routes at desktop/mobile widths, the guest paywall, open mobile navigation and open card lightbox; the initial contrast violation was fixed and CI now requires zero axe violations.
   - [ ] Complete manual keyboard, VoiceOver/TalkBack, 200% zoom, forced-colors and reduced-motion checks on the route inventory.
   - [x] Initial JS is down from 266.8 KB to 249.2 KB by splitting below-fold home directories, FAQ/paywall UI and the delayed support prompt; CI now enforces the 250 KB ceiling and browser QA proves every lazy surface still loads and remains accessible.
-  - [ ] Ratchet initial JS to 220 KB and main CSS to 300 KB, then profile the next route-level reductions.
+  - [x] Main CSS is down from 322.7 KB to 285.7 KB by loading the fully scoped Battlegrounds parchment skin only with its two route owners; CI now enforces 300 KB, and desktop/mobile axe QA proves both tier-list and library chunks receive the correct parchment and sign assets.
+  - [ ] Ratchet initial JS to 220 KB and main CSS to 260 KB, then profile the next route-level reductions.
 
 ## Progress metrics
 

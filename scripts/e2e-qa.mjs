@@ -76,6 +76,16 @@ const fixtures = {
     updatedAt: '2026-07-11T00:00:00.000Z',
     source: 'qa-fixture',
   },
+  '/api/bg/tier-lists': {
+    list: 'spells',
+    source: 'qa-fixture',
+    fetchedAt: '2026-07-11T00:00:00.000Z',
+    count: 0,
+    tierCounts: {},
+    tiers: {},
+  },
+  '/api/bg/library/meta': {},
+  '/api/bg/library/cards': { data: [] },
   '/api/guides-archive': {
     page: 1,
     limit: 18,
@@ -212,6 +222,7 @@ async function inspectLayout(page, { mobile }) {
     const shell = document.querySelector('.arena-app-shell');
     const banner = document.querySelector('.section-banner-modern');
     const shellStyle = shell ? getComputedStyle(shell) : null;
+    const content = document.querySelector('.arena-content-open');
     const bannerStyle = banner ? getComputedStyle(banner) : null;
     const suspiciousOverlays = [...document.querySelectorAll('body *')]
       .map(element => ({ element, style: getComputedStyle(element), rect: element.getBoundingClientRect() }))
@@ -240,6 +251,9 @@ async function inspectLayout(page, { mobile }) {
       clientWidth: root.clientWidth,
       shellOpacity: shellStyle?.opacity || null,
       shellFilter: shellStyle?.filter || null,
+      battlegroundsSurface: shell?.classList.contains('arena-app-battlegrounds') || false,
+      battlegroundsBackground: shellStyle?.backgroundImage || '',
+      battlegroundsSign: content ? getComputedStyle(content, '::before').backgroundImage : '',
       bannerPosition: bannerStyle?.position || null,
       bannerOverflow: bannerStyle?.overflow || null,
       bannerHeight: banner?.getBoundingClientRect().height || 0,
@@ -256,6 +270,12 @@ function assertLayout(path, layout) {
   }
   if (layout.shellOpacity !== '1') failures.push(`${path}: app shell opacity is ${layout.shellOpacity}`);
   if (layout.shellFilter && layout.shellFilter !== 'none') failures.push(`${path}: app shell filter is ${layout.shellFilter}`);
+  if (layout.battlegroundsSurface && !layout.battlegroundsBackground.includes('arena-parchment')) {
+    failures.push(`${path}: route-owned Battlegrounds parchment CSS was not loaded`);
+  }
+  if (layout.battlegroundsSurface && !layout.battlegroundsSign.includes('battlegrounds-bartender-header')) {
+    failures.push(`${path}: route-owned Battlegrounds sign CSS was not loaded`);
+  }
   if (layout.bannerPosition && layout.bannerPosition !== 'relative') {
     failures.push(`${path}: banner is not a containing block (${layout.bannerPosition})`);
   }
@@ -285,6 +305,8 @@ const authenticatedRoutes = [
   { path: '/tierlist', expected: 'Тир-лист', selector: '.hs-tier-card' },
   { path: '/legendaries', expected: 'Медив Освященный', selector: '.legendary-group-card' },
   { path: '/guides-archive', expected: 'Контрольный гайд Арены', selector: '.guide-archive-card' },
+  { path: '/battlegrounds/tier-list?list=spells', expected: 'Тир-лист заклинаний', selector: '.bg-tier-list-page' },
+  { path: '/library', expected: 'Библиотека Полей Сражений', selector: '.bg-library-page' },
 ];
 
 for (const route of authenticatedRoutes) {
@@ -305,7 +327,8 @@ for (const route of authenticatedRoutes) {
       if (paywallVisible) failures.push(`${route.path} [${device}]: subscriber still sees paywall`);
       const layout = await inspectLayout(page, { mobile: device === 'mobile' });
       assertLayout(`${route.path} [${device}]`, layout);
-      await page.screenshot({ path: `${OUT}/${route.path.slice(1)}-${device}.png`, fullPage: false });
+      const screenshotName = route.path.replace(/^\//, '').replace(/[^a-z0-9-]+/gi, '-');
+      await page.screenshot({ path: `${OUT}/${screenshotName}-${device}.png`, fullPage: false });
       if (runtimeErrors.length) failures.push(`${route.path} [${device}]: ${runtimeErrors.join(' | ')}`);
       console.log(`✓ ${route.path} [${device}] subscriber layout + axe (${violationCount} violations)`);
     } catch (error) {

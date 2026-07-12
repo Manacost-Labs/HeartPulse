@@ -8,7 +8,7 @@ const budgets = {
   // ratchet these limits down instead of keeping permanently failing targets.
   mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 250_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 180_000),
-  css: Number(process.env.BUDGET_CSS_BYTES || 325_000),
+  css: Number(process.env.BUDGET_CSS_BYTES || 300_000),
 };
 
 const files = readdirSync(distAssets)
@@ -45,6 +45,6 @@ for (const [label, file, budget] of checks) {
   if (!ok) failed = true;
 }
 
-console.log('[budget] ratchet target: initial JS 220 KB; CSS 300 KB then 260 KB.');
+console.log('[budget] ratchet target: initial JS 220 KB; CSS 260 KB.');
 
 if (failed) process.exit(1);

@@ -2,6 +2,7 @@ import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef,
 import { createPortal } from 'react-dom';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import './Battlegrounds.css';
+import '../battlegrounds-parchment.css';
 import { ChevronLeft, ChevronRight, ExternalLink, Pause, Play, Search, Volume2, X } from 'lucide-react';
 
 const BG_FALLBACK_ICON = '/arena-logo-icon.webp?v=mana-swirl-20260624';
