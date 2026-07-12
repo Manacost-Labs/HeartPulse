@@ -27,6 +27,15 @@ backup_file=$("$root/scripts/backup-shared-data.sh")
 [[ -s "$backup_file" && -s "$backup_file.sha256" ]]
 "$root/scripts/verify-backup.sh" "$backup_file" | grep -q 'verified restore'
 
+restored_root="$fixture/restored"
+"$root/scripts/restore-backup.sh" "$backup_file" "$restored_root" | grep -q "$restored_root"
+[[ -s "$restored_root/server-data/uploads/admin/example.txt" ]]
+[[ "$(sqlite3 "$restored_root/ecosystem/users.sqlite" 'SELECT id FROM users;')" == 'qa-user' ]]
+if "$root/scripts/restore-backup.sh" "$backup_file" "$restored_root" >/dev/null 2>&1; then
+  echo 'restore unexpectedly overwrote a populated target' >&2
+  exit 1
+fi
+
 cp "$backup_file" "$fixture/tampered.enc"
 cp "$backup_file.sha256" "$fixture/tampered.enc.sha256"
 printf 'tamper' >> "$fixture/tampered.enc"

@@ -121,11 +121,22 @@ sudo systemctl start hs-arena-backup-verify.service
 sudo systemctl status hs-arena-backup.service hs-arena-backup-verify.service
 ```
 
-For a manual restore, first stop the API, verify and decrypt the chosen backup
-into an empty protected directory, preserve the current data separately, then
-replace `shared/server-data`, `users.sqlite` and `kha-vip-profiles.json` with
-their restored copies. Start the API only after SQLite integrity and
-`/api/health/ready` both pass. Never restore the `-wal` or `-shm` files.
+For a manual restore, first stop the API and restore the chosen archive into a
+new empty absolute path. The command verifies the encrypted archive checksum,
+rejects unsafe archive paths, checks every manifest entry and SQLite integrity,
+and refuses to overwrite a populated target:
+
+```bash
+sudo HS_ARENA_BACKUP_PASSPHRASE_FILE=/etc/hs-arena/backup-passphrase \
+  current/scripts/restore-backup.sh \
+  /var/backups/hs-arena/hs-arena-YYYYMMDDTHHMMSSZ.tar.gz.gpg \
+  /var/lib/hs-arena-recovery
+```
+
+Preserve the current data separately, then install the recovered
+`server-data`, `users.sqlite` and `kha-vip-profiles.json` from that directory.
+Start the API only after SQLite integrity, `/api/health/ready`, strict data
+health and the public E2E suite pass. Never restore the `-wal` or `-shm` files.
 
 The local encrypted copy protects confidentiality and operator mistakes but
 does not protect against loss of the host filesystem. Replicate encrypted
