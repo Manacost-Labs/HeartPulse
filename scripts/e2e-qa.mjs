@@ -1481,6 +1481,71 @@ for (const [device, viewport] of [
       || mobileShell.communityLinkBorderTopColor !== 'rgba(239, 202, 119, 0.23)') {
       failures.push(`home shell: mobile CTA/community layout changed (${JSON.stringify(mobileShell)})`);
     }
+    const mobileStageLayout = await page.$eval('.home-stage', element => {
+      const stageStyles = getComputedStyle(element);
+      const heading = element.querySelector('h1');
+      const summary = element.querySelector('.home-stage__copy > p');
+      const character = element.querySelector('.home-stage__character');
+      const characterImage = character?.querySelector('img');
+      const orbit = element.querySelector('.home-draft-orbit');
+      const board = element.querySelector('.home-draft-orbit__board');
+      const pageIndex = element.parentElement?.querySelector('.home-page-index');
+      const headingStyles = heading ? getComputedStyle(heading) : null;
+      const characterStyles = character ? getComputedStyle(character) : null;
+      const characterImageStyles = characterImage ? getComputedStyle(characterImage) : null;
+      const orbitStyles = orbit ? getComputedStyle(orbit) : null;
+      const boardStyles = board ? getComputedStyle(board) : null;
+      return {
+        gridColumns: stageStyles.gridTemplateColumns,
+        stageWidth: element.getBoundingClientRect().width,
+        gap: stageStyles.gap,
+        padding: stageStyles.padding,
+        borderWidth: stageStyles.borderTopWidth,
+        borderImageWidth: stageStyles.borderImageWidth,
+        headingMaxWidth: headingStyles?.maxWidth || '',
+        headingSize: headingStyles?.fontSize || '',
+        headingLineHeight: headingStyles?.lineHeight || '',
+        summarySize: summary ? getComputedStyle(summary).fontSize : '',
+        characterPosition: characterStyles?.position || '',
+        characterWidth: character?.getBoundingClientRect().width || 0,
+        characterHeight: character?.getBoundingClientRect().height || 0,
+        characterMargin: characterStyles?.margin || '',
+        characterBorderWidth: characterStyles?.borderTopWidth || '',
+        characterImagePosition: characterImageStyles?.objectPosition || '',
+        characterImageTransform: characterImageStyles?.transform || '',
+        orbitWidth: orbit?.getBoundingClientRect().width || 0,
+        orbitMinHeight: orbitStyles?.minHeight || '',
+        boardWidth: board?.getBoundingClientRect().width || 0,
+        boardTransform: boardStyles?.transform || '',
+        pageIndexMarginTop: pageIndex ? getComputedStyle(pageIndex).marginTop : '',
+        viewportWidth: document.documentElement.clientWidth,
+      };
+    });
+    if (mobileStageLayout.gridColumns.split(/\s+/).length !== 1
+      || mobileStageLayout.stageWidth > mobileStageLayout.viewportWidth
+      || mobileStageLayout.gap !== '16px'
+      || mobileStageLayout.padding !== '12.8px'
+      || mobileStageLayout.borderWidth !== '9px'
+      || mobileStageLayout.borderImageWidth !== '9px'
+      || mobileStageLayout.headingMaxWidth !== 'none'
+      || mobileStageLayout.headingSize !== '39px'
+      || mobileStageLayout.headingLineHeight !== '39px'
+      || mobileStageLayout.summarySize !== '12.8px'
+      || mobileStageLayout.characterPosition !== 'relative'
+      || mobileStageLayout.characterWidth <= 0
+      || Math.abs(mobileStageLayout.characterHeight - 171.6) > 0.2
+      || mobileStageLayout.characterMargin !== '0px -8.8px'
+      || mobileStageLayout.characterBorderWidth !== '4px'
+      || mobileStageLayout.characterImagePosition !== '55% 32%'
+      || mobileStageLayout.characterImageTransform !== 'none'
+      || mobileStageLayout.orbitWidth <= 0
+      || mobileStageLayout.orbitMinHeight !== '0px'
+      || mobileStageLayout.boardWidth <= 0
+      || Math.abs(mobileStageLayout.boardWidth - mobileStageLayout.orbitWidth + 19.6) > 0.5
+      || mobileStageLayout.boardTransform !== 'none'
+      || mobileStageLayout.pageIndexMarginTop !== '-22.4px') {
+      failures.push(`home stage: mobile responsive layout changed (${JSON.stringify(mobileStageLayout)})`);
+    }
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
     const faqTrigger = await page.$('.home-faq-zone .faq-card__trigger');
     if (!faqTrigger) {

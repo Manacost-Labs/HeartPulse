@@ -868,7 +868,7 @@
 
 @media (max-width: 900px) {
   .arena-app-home .home-stage {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: 1fr;
   }
 
   .arena-app-home .home-stage__character {
@@ -899,32 +899,32 @@
 
 @media (max-width: 640px) {
   .arena-app-home .home-stage {
-    gap: 1rem !important;
-    padding: 0.8rem !important;
-    border-width: 9px !important;
-    border-image-width: 9px !important;
+    gap: 1rem;
+    padding: 0.8rem;
+    border-width: 9px;
+    border-image-width: 9px;
   }
 
   .arena-app-home .home-stage h1 {
-    max-width: none !important;
-    font-size: clamp(2rem, 10vw, 2.7rem) !important;
+    max-width: none;
+    font-size: clamp(2rem, 10vw, 2.7rem);
   }
 
   .arena-app-home .home-stage__copy > p {
-    font-size: 0.8rem !important;
+    font-size: 0.8rem;
   }
 
   .arena-app-home .home-draft-orbit {
-    width: 100% !important;
-    min-height: 0 !important;
+    width: 100%;
+    min-height: 0;
   }
 
   .arena-app-home .home-draft-orbit__board {
-    width: 100% !important;
-    transform: none !important;
+    width: 100%;
+    transform: none;
   }
 
   .arena-app-home .home-page-index {
-    margin-top: -1.4rem !important;
+    margin-top: -1.4rem;
   }
 }

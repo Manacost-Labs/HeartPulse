@@ -207,6 +207,7 @@ A task is complete only when all relevant checks below are proven.
   - [x] The scoped Home canvas, stage primitives, CTA and live-orbit palette no longer need 28 theme flags; exact shell and interaction styles are browser-tested and the global ceiling is 2,205.
   - [x] Home community, mobile CTA layout and keyboard focus treatment now rely on scoped cascade ownership instead of 27 defensive flags; desktop/mobile interaction styles are browser-tested and the global ceiling is 2,178.
   - [x] The desktop Home stage, hero copy, CTA palette and compact live board now use scoped cascade ownership instead of 66 defensive flags; their rendered layout is browser-tested and the global ceiling is 2,112.
+  - [x] The Home stage mobile breakpoint now owns its one-column hero, compact typography, full-width live board and page index without 13 defensive flags; exact responsive styles are browser-tested and the global ceiling is 2,099.
   - [ ] Replace legacy overrides route by route and ratchet the `!important` ceiling down after every verified batch.
   - [ ] Establish explicit reset, base, component, route and override layers once all participating stylesheets can enter the layer order without changing precedence.
 - [ ] Phase 4: modular API, runtime validation and durable data snapshots.
