@@ -814,7 +814,7 @@ type HSCardProps = {
   onPreviewEnd?: () => void;
 };
 
-const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabled = false, onPreviewStart, onPreviewEnd }) => {
+const HSCard: React.FC<HSCardProps> = /* @__PURE__ */ memo(({ card, onClick, previewEnabled = false, onPreviewStart, onPreviewEnd }) => {
   // Multi-step fallback: Russian render first, then source image, then English as last resort.
   const sources = useMemo(() => uniqueSources([
     card.imageRu  || null,
@@ -959,7 +959,7 @@ const ClassTabs: React.FC<{
   onChange: (id: string) => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
-}> = memo(({ sections, activeId, onChange, searchQuery, onSearchChange }) => {
+}> = /* @__PURE__ */ memo(({ sections, activeId, onChange, searchQuery, onSearchChange }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -1321,7 +1321,7 @@ const HSTableCardThumb: React.FC<{
   onClick: () => void;
   onPreviewStart: (card: CardData, anchor: HTMLElement) => void;
   onPreviewEnd: () => void;
-}> = memo(({ card, onClick, onPreviewStart, onPreviewEnd }) => {
+}> = /* @__PURE__ */ memo(({ card, onClick, onPreviewStart, onPreviewEnd }) => {
   const sources = useMemo(() => uniqueSources([
     card.cardId ? hsJsonTileUrl(card.cardId) : null,
     card.cardId ? hsJsonTileUrl(card.cardId, 'jpg') : null,
@@ -1410,7 +1410,7 @@ const LegendaryCardThumb: React.FC<{
   card: LegendaryCard;
   size: 'lg' | 'sm';
   onClick: () => void;
-}> = memo(({ card, size, onClick }) => {
+}> = /* @__PURE__ */ memo(({ card, size, onClick }) => {
   // Fallback chain: Russian render first, then source image, then English as last resort.
   const sources = uniqueSources([
     card.imageRu || null,
@@ -1759,7 +1759,7 @@ function shortProfileIdentifier(value: string) {
 }
 
 
-const AdminArticleRow = memo(function AdminArticleRow({
+const AdminArticleRow = /* @__PURE__ */ memo(function AdminArticleRow({
   article,
   deleting,
   onDelete,

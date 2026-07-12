@@ -7,9 +7,9 @@ const distAssets = join(process.cwd(), 'dist', 'assets');
 const budgets = {
   // Enforce the current production baseline first; later stabilization tasks
   // ratchet these limits down instead of keeping permanently failing targets.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 70_000),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 290_000),
-  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 100_000),
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 60_000),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 280_000),
+  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 90_000),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 190_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 180_000),
   css: Number(process.env.BUDGET_CSS_BYTES || 250_000),
@@ -68,6 +68,6 @@ for (const [label, file, budget] of checks) {
   if (!ok) failed = true;
 }
 
-console.log('[budget] ratchet target: application shell 60 KB; initial raw total 280 KB; initial CSS 230 KB.');
+console.log('[budget] ratchet target: application shell 55 KB; initial raw total 270 KB; initial CSS 230 KB.');
 
 if (failed) process.exit(1);
