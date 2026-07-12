@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @import "./styles/tokens.css";
 
+.arena-app-shell {
+  --arena-stale-badge-bg: linear-gradient(135deg, #7a1e1e, #4a0a0a);
+  --arena-stale-badge-text: #fca5a5;
+  --arena-update-badge-bg: linear-gradient(135deg, #3a2210, #2c1e16);
+  --arena-update-badge-text: #e8d5a5;
+}
+
 .arena-skip-link {
   position: fixed;
   top: 0.75rem;
@@ -22,6 +29,26 @@
   outline: 3px solid #4a2f66;
   outline-offset: 3px;
   transform: translateY(0);
+}
+
+@media (forced-colors: active) {
+  .arena-app-shell {
+    --arena-stale-badge-bg: Canvas;
+    --arena-stale-badge-text: CanvasText;
+    --arena-update-badge-bg: Canvas;
+    --arena-update-badge-text: CanvasText;
+  }
+
+  .arena-skip-link {
+    color: CanvasText;
+    background: Canvas;
+    border-color: CanvasText;
+    box-shadow: none;
+  }
+
+  .arena-skip-link:focus-visible {
+    outline-color: Highlight;
+  }
 }
 
 @font-face {

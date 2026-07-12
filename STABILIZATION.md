@@ -209,7 +209,8 @@ A task is complete only when all relevant checks below are proven.
 - [ ] Phase 8: performance, accessibility and final production audit.
   - [x] Automated WCAG 2.2 A/AA audits cover critical Arena subscriber routes at desktop/mobile widths, the guest paywall, open mobile navigation and open card lightbox; the initial contrast violation was fixed and CI now requires zero axe violations.
   - [x] Keyboard CI now proves a visible first-control skip link moves focus into the main landmark, the mobile drawer owns focus while open, cycles in both directions, closes on Escape and restores focus; all visible drawer controls have at least 44×44 CSS-pixel targets.
-  - [ ] Complete manual keyboard, VoiceOver/TalkBack, 200% zoom, forced-colors and reduced-motion checks on the route inventory.
+  - [x] Browser CI emulates a 640 CSS-pixel reflow target (1280 at 200% zoom), forced-colors and reduced-motion together, rejecting horizontal overflow, lost focus outlines, active transitions and axe violations.
+  - [ ] Complete the manual keyboard spot-check plus VoiceOver/TalkBack and real browser 200% zoom matrix on physical desktop/mobile devices.
   - [x] Initial JS is down from 266.8 KB to 249.2 KB by splitting below-fold home directories, FAQ/paywall UI and the delayed support prompt; CI now enforces the 250 KB ceiling and browser QA proves every lazy surface still loads and remains accessible.
   - [x] Main CSS is down from 322.7 KB to 285.7 KB by loading the fully scoped Battlegrounds parchment skin only with its two route owners; CI now enforces 300 KB, and desktop/mobile axe QA proves both tier-list and library chunks receive the correct parchment and sign assets.
   - [ ] Ratchet initial JS to 220 KB and main CSS to 260 KB, then profile the next route-level reductions.

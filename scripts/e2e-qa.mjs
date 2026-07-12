@@ -340,6 +340,52 @@ for (const route of authenticatedRoutes) {
   }
 }
 
+// Reflow and operating-system accessibility modes. A 640 CSS-pixel viewport
+// is the layout width of a 1280-pixel desktop viewport at 200% zoom.
+{
+  const page = await createQaPage();
+  await page.setViewport({ width: 640, height: 900, deviceScaleFactor: 2 });
+  await mockApplicationApi(page, { authenticated: true });
+  const client = await page.createCDPSession();
+  try {
+    await client.send('Emulation.setEmulatedMedia', {
+      media: 'screen',
+      features: [
+        { name: 'forced-colors', value: 'active' },
+        { name: 'prefers-reduced-motion', value: 'reduce' },
+      ],
+    });
+    await page.goto(`${BASE}/classes`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await waitForMeaningfulPage(page, 'Паладин');
+    await page.waitForSelector('.arena-app-winrates');
+    await page.focus('.arena-skip-link');
+    const state = await page.evaluate(() => {
+      const skip = document.querySelector('.arena-skip-link');
+      const style = getComputedStyle(skip);
+      return {
+        forcedColors: matchMedia('(forced-colors: active)').matches,
+        reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+        transitionSeconds: Math.max(...style.transitionDuration.split(',').map(value => parseFloat(value) || 0)),
+        focusOutlineWidth: parseFloat(style.outlineWidth) || 0,
+        focusOutlineStyle: style.outlineStyle,
+      };
+    });
+    if (!state.forcedColors || !state.reducedMotion) failures.push('accessibility media: Chromium did not activate the requested modes');
+    if (state.scrollWidth > state.clientWidth + 1) failures.push(`200% reflow: horizontal overflow ${state.scrollWidth} > ${state.clientWidth}`);
+    if (state.transitionSeconds > 0.001) failures.push(`reduced motion: skip-link transition still lasts ${state.transitionSeconds}s`);
+    if (state.focusOutlineWidth < 2 || state.focusOutlineStyle === 'none') failures.push('forced colors: focused skip link has no durable outline');
+    const violationCount = await auditAccessibility(page, '/classes [200% reflow + forced colors + reduced motion]');
+    console.log(`✓ 200% reflow, forced colors and reduced motion (${violationCount} axe violations)`);
+  } catch (error) {
+    failures.push(`accessibility media and reflow: ${error.message}`);
+  } finally {
+    await client.detach().catch(() => {});
+    await page.close();
+  }
+}
+
 // Guest access must render the themed paywall instead of leaking private data.
 {
   const page = await createQaPage();

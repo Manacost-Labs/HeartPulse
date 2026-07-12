@@ -921,9 +921,9 @@ const UpdateBadge: React.FC<{ updatedAt: string | null }> =
       {isStale && (
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
           style={{
-            background: 'linear-gradient(135deg,#7a1e1e,#4a0a0a)',
+            background: 'var(--arena-stale-badge-bg)',
             border: '1.5px solid #dc2626',
-            color: '#fca5a5',
+            color: 'var(--arena-stale-badge-text)',
             boxShadow: '0 2px 6px rgba(220,38,38,0.3)',
           }}>
           <AlertTriangle size={11} />
@@ -933,9 +933,9 @@ const UpdateBadge: React.FC<{ updatedAt: string | null }> =
       {/* Timestamp pill */}
       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs"
         style={{
-          background: 'linear-gradient(135deg,#3a2210,#2c1e16)',
+          background: 'var(--arena-update-badge-bg)',
           border: `1.5px solid ${isStale ? '#dc2626' : '#6b4c2a'}`,
-          color: '#e8d5a5',
+          color: 'var(--arena-update-badge-text)',
           boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
         }}>
         <RefreshCw size={11} className="text-[#a88a45]" />

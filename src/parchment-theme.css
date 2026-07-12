@@ -1103,8 +1103,8 @@
 .arena-app-winrates .arena-classes-update > div > div {
   border-radius: 2px !important;
   border-color: rgba(96, 50, 19, 0.52) !important;
-  color: #d9bd87 !important;
-  background: #4d0b10 !important;
+  color: #d9bd87;
+  background: #4d0b10;
   box-shadow: none !important;
 }
 
