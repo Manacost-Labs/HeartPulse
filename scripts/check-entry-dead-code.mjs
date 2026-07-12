@@ -1,4 +1,5 @@
 import { relative, resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 
 const configPath = ts.findConfigFile(process.cwd(), ts.sys.fileExists, 'tsconfig.json');
@@ -40,4 +41,10 @@ if (diagnostics.length) {
   process.exit(1);
 }
 
-console.log(`[entry-dead-code] ${entryFiles.size} initial-shell modules have no unused declarations or parameters`);
+const deferredRoutesSource = readFileSync('src/features/DeferredRoutes.tsx', 'utf8');
+if (/export\s+function\s+AdminPanel\b/.test(deferredRoutesSource)) {
+  console.error('[entry-dead-code] retired DeferredRoutes.AdminPanel export returned to the production graph');
+  process.exit(1);
+}
+
+console.log(`[entry-dead-code] ${entryFiles.size} initial-shell modules have no unused declarations or parameters; retired lazy AdminPanel export is absent`);

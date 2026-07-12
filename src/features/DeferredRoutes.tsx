@@ -4476,7 +4476,7 @@ export function LoginPanel({
   );
 }
 
-export function AdminPanel({
+function AdminPanel({
   articles,
   loadingArticles,
   articlesUpdatedAt,
