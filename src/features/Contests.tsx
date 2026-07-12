@@ -31,6 +31,7 @@ import {
   type ReferralDraft,
 } from './ContestAdminReferrals';
 import { contestSelectionReducer, INITIAL_CONTEST_SELECTION } from './contestSelection';
+import { ContestAdminDashboard } from './ContestAdminDashboard';
 import {
   adminWorkspaceReducer,
   createAdminWorkspaceState,
@@ -2031,41 +2032,20 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
             <div className="admin-section-status"><i />{activeAdminItem?.status}</div>
           </div>
           {hasFullAdminAccess && adminSection === 'dashboard' && (
-            <>
-              <div className="admin-stat-grid">
-                <div><span>Контент</span><strong>{adminArticles.length}</strong><small>статей · {galleryItems.length} артов</small></div>
-                <div><span>Аудитория</span><strong>{boostyStatus?.summary?.boostyPaid ?? boostyStatus?.summary?.activePaid ?? '—'}</strong><small>платных Boosty · Telegram {telegramAccounts?.summary?.access ?? '—'}</small></div>
-                <div><span>Конкурсы</span><strong>{contests.length}</strong><small>{totalContestEntries} заявок</small></div>
-                <div><span>Кампании</span><strong>{referrals.length}</strong><small>{totalReferralClicks} переходов</small></div>
-              </div>
-              <div className="contest-admin-grid admin-dashboard-grid">
-                <div className="contest-admin-card">
-                  <h2>Быстрый доступ</h2>
-                  <div className="admin-quick-actions">
-                    <button type="button" onClick={() => { changeAdminSection('contests'); resetContestForm(); }}>Создать конкурс</button>
-                    <button type="button" onClick={() => changeAdminSection('articles')}>Добавить статью</button>
-                    <button type="button" onClick={() => changeAdminSection('gallery')}>Загрузить арт</button>
-                    <button type="button" onClick={() => changeAdminSection('mailing')}>Создать рассылку</button>
-                    <button type="button" onClick={() => changeAdminSection('boosty')}>Открыть Boosty</button>
-                    <button type="button" onClick={() => changeAdminSection('telegram')}>Открыть Telegram</button>
-                    <button type="button" onClick={() => changeAdminSection('referrals')}>Новая рекламная ссылка</button>
-                    <button type="button" onClick={() => changeAdminSection('users')}>Найти пользователя</button>
-                  </div>
-                </div>
-                <div className="contest-admin-card">
-                  <h2>Последние переходы</h2>
-                  <div className="admin-referral-clicks">
-                    {referralClicks.slice(0, 8).map(click => (
-                      <div key={click.id}>
-                        <strong>/r/{click.slug}</strong>
-                        <span>{click.clickedAt ? formatDate(click.clickedAt) : 'без даты'}</span>
-                      </div>
-                    ))}
-                    {!referralClicks.length && <p className="contest-muted">Переходов пока нет.</p>}
-                  </div>
-                </div>
-              </div>
-            </>
+            <ContestAdminDashboard
+              articleCount={adminArticles.length}
+              galleryCount={galleryItems.length}
+              boostyPaidCount={boostyStatus?.summary?.boostyPaid ?? boostyStatus?.summary?.activePaid ?? '—'}
+              telegramAccessCount={telegramAccounts?.summary?.access ?? '—'}
+              contestCount={contests.length}
+              contestEntryCount={totalContestEntries}
+              referralCount={referrals.length}
+              referralClickCount={totalReferralClicks}
+              recentReferralClicks={referralClicks}
+              formatDate={formatDate}
+              onNavigate={changeAdminSection}
+              onCreateContest={() => { changeAdminSection('contests'); resetContestForm(); }}
+            />
           )}
 
           {hasFullAdminAccess && adminSection === 'users' && (

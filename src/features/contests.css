@@ -2310,7 +2310,7 @@
 }
 
 .admin-section-header > div:first-child > span {
-  color: #718096;
+  color: var(--admin-muted);
   font-size: 0.7rem;
   font-weight: 760;
 }

@@ -128,6 +128,69 @@ const subscriber = {
   boosty: { checked: true, found: true, hasAccess: true },
   telegram: { checked: false, hasAccess: false },
 };
+const adminFixtures = {
+  '/api/admin/contests': {
+    contests: [{
+      id: 'qa-contest',
+      title: 'Контрольный конкурс',
+      description: 'Детерминированный конкурс для browser QA.',
+      prize: 'Приз',
+      imageUrl: '',
+      startsAt: '2026-07-11T00:00:00.000Z',
+      endsAt: '2026-07-20T00:00:00.000Z',
+      status: 'active',
+      winners: [],
+      entriesCount: 3,
+    }],
+  },
+  '/api/articles': {
+    articles: [
+      { id: 'qa-article-1', title: 'Первая статья', date: '2026-07-11', mode: 'arena', url: '/articles/qa-1' },
+      { id: 'qa-article-2', title: 'Вторая статья', date: '2026-07-10', mode: 'general', url: '/articles/qa-2' },
+    ],
+  },
+  '/api/admin/gallery': {
+    items: [{ id: 'qa-art', title: 'Контрольный арт', previewUrl: '/qa-art.webp' }],
+  },
+  '/api/admin/referrals': {
+    referrals: [{
+      id: 'qa-referral',
+      slug: 'qa-campaign',
+      label: 'QA campaign',
+      campaign: 'qa',
+      targetPath: '/',
+      status: 'active',
+      createdAt: '2026-07-11T00:00:00.000Z',
+      updatedAt: '2026-07-11T00:00:00.000Z',
+      url: 'https://arena.hs-manacost.ru/r/qa-campaign',
+      clicks: 7,
+      uniqueClicks: 5,
+      lastClickAt: '2026-07-11T00:00:00.000Z',
+    }],
+    recentClicks: [],
+  },
+  '/api/admin/boosty/status': {
+    configured: true,
+    ok: true,
+    importStatus: 'ok',
+    source: 'qa-fixture',
+    stale: false,
+    summary: { boostyPaid: 4, activePaid: 4 },
+    checkedAt: '2026-07-11T00:00:00.000Z',
+  },
+  '/api/admin/telegram/accounts': {
+    configured: true,
+    chatIds: [],
+    summary: { total: 6, access: 5, checkable: 5, contactOnly: 1, stale: 0, blocked: 0 },
+    accounts: [],
+    fetchedAt: '2026-07-11T00:00:00.000Z',
+  },
+  '/api/admin/mailings/overview': {
+    campaigns: [],
+    templates: [],
+    summary: { total: 0, queued: 0, sent: 0, failed: 0 },
+  },
+};
 
 mkdirSync(OUT, { recursive: true });
 
@@ -140,18 +203,20 @@ function jsonResponse(body) {
   };
 }
 
-async function mockApplicationApi(page, { authenticated }) {
+async function mockApplicationApi(page, { authenticated, admin = false }) {
   await page.setRequestInterception(true);
   page.on('request', request => {
     const url = new URL(request.url());
     if (url.pathname === '/api/auth/me') {
       request.respond(jsonResponse(authenticated ? {
         user: {
-          id: 'qa-subscriber',
-          profileId: 'qa-subscriber',
+          id: admin ? 'qa-admin' : 'qa-subscriber',
+          profileId: admin ? 'qa-admin' : 'qa-subscriber',
           email: 'qa@example.test',
-          name: 'QA Subscriber',
-          role: 'user',
+          name: admin ? 'QA Administrator' : 'QA Subscriber',
+          role: admin ? 'admin' : 'user',
+          adminAllowed: admin,
+          contestAdminAllowed: admin,
           photoUrl: '/__qa_missing_avatar__.png',
         },
       } : { user: null }));
@@ -159,6 +224,10 @@ async function mockApplicationApi(page, { authenticated }) {
     }
     if (url.pathname === '/api/subscription/status' || url.pathname === '/api/subscription/refresh') {
       request.respond(jsonResponse(subscriber));
+      return;
+    }
+    if (admin && adminFixtures[url.pathname]) {
+      request.respond(jsonResponse(adminFixtures[url.pathname]));
       return;
     }
     const fixtureKey = Object.keys(fixtures).find(key => url.pathname === key);
@@ -347,6 +416,80 @@ for (const route of authenticatedRoutes) {
     } finally {
       await page.close();
     }
+  }
+}
+
+// Full-admin dashboard: deterministic KPI rendering, empty state, quick
+// navigation, responsive layout and accessibility after component extraction.
+for (const [device, viewport] of [
+  ['desktop', { width: 1440, height: 900 }],
+  ['mobile', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
+]) {
+  const page = await createQaPage();
+  const runtimeErrors = collectRuntimeErrors(page);
+  await page.setViewport(viewport);
+  await mockApplicationApi(page, { authenticated: true, admin: true });
+  try {
+    await page.goto(`${BASE}/?admin&section=dashboard`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('.admin-stat-grid', { timeout: 20_000 });
+    await page.waitForFunction(() => {
+      const cards = [...document.querySelectorAll('.admin-stat-grid > div')];
+      return cards.length === 4
+        && cards[0]?.querySelector('strong')?.textContent?.trim() === '2'
+        && cards[1]?.querySelector('strong')?.textContent?.trim() === '4'
+        && cards[2]?.querySelector('small')?.textContent?.includes('3 заявок')
+        && cards[3]?.querySelector('small')?.textContent?.includes('7 переходов');
+    });
+    const state = await page.evaluate(() => {
+      const root = document.documentElement;
+      const stats = [...document.querySelectorAll('.admin-stat-grid > div')].map(element => ({
+        label: element.querySelector('span')?.textContent?.trim() || '',
+        value: element.querySelector('strong')?.textContent?.trim() || '',
+        detail: element.querySelector('small')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      }));
+      const quickActions = [...document.querySelectorAll('.admin-quick-actions button')].map(element => element.textContent?.trim() || '');
+      return {
+        stats,
+        quickActions,
+        emptyClicksStatus: document.querySelector('.admin-referral-clicks [role="status"]')?.textContent?.trim() || '',
+        scrollWidth: root.scrollWidth,
+        clientWidth: root.clientWidth,
+      };
+    });
+    if (state.stats.length !== 4) failures.push(`admin dashboard [${device}]: expected 4 KPI cards, got ${state.stats.length}`);
+    const expectedStats = [
+      { label: 'Контент', value: '2', detail: 'статей · 1 артов' },
+      { label: 'Аудитория', value: '4', detail: 'платных Boosty · Telegram 5' },
+      { label: 'Конкурсы', value: '1', detail: '3 заявок' },
+      { label: 'Кампании', value: '1', detail: '7 переходов' },
+    ];
+    for (const [index, expected] of expectedStats.entries()) {
+      if (JSON.stringify(state.stats[index]) !== JSON.stringify(expected)) {
+        failures.push(`admin dashboard [${device}]: KPI ${index + 1} mismatch ${JSON.stringify(state.stats[index])}`);
+      }
+    }
+    if (state.quickActions.length !== 8) failures.push(`admin dashboard [${device}]: expected 8 quick actions, got ${state.quickActions.length}`);
+    if (!state.emptyClicksStatus.includes('Переходов пока нет')) failures.push(`admin dashboard [${device}]: recent-click empty state is not exposed`);
+    if (state.scrollWidth > state.clientWidth + 1) failures.push(`admin dashboard [${device}]: horizontal overflow ${state.scrollWidth} > ${state.clientWidth}`);
+    const violationCount = await auditAccessibility(page, `admin dashboard [${device}]`, '.admin-workspace-content');
+    await page.evaluate(() => {
+      const button = [...document.querySelectorAll('.admin-quick-actions button')]
+        .find(element => element.textContent?.trim() === 'Добавить статью');
+      if (!(button instanceof HTMLButtonElement)) throw new Error('Add article quick action is missing');
+      button.click();
+    });
+    await page.waitForFunction(() => document.querySelector('#admin-section-title')?.textContent?.trim() === 'Статьи');
+    if (!new URL(page.url()).searchParams.has('section') || !page.url().includes('section=articles')) {
+      failures.push(`admin dashboard [${device}]: quick navigation did not update URL`);
+    }
+    if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
+    await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
+    console.log(`✓ admin dashboard [${device}] layout + navigation + axe (${violationCount} violations)`);
+  } catch (error) {
+    const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
+    failures.push(`admin dashboard [${device}]: ${error.message}; page: ${diagnostic}`);
+  } finally {
+    await page.close();
   }
 }
 
