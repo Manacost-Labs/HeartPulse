@@ -385,15 +385,15 @@
   --home-gold: var(--arena-gold);
   --home-frost: var(--arena-parchment-light);
   --home-paper: rgba(248, 235, 204, 0.64);
-  gap: clamp(2.5rem, 5.2vw, 5.2rem) !important;
-  color: var(--arena-ink) !important;
+  gap: clamp(2.5rem, 5.2vw, 5.2rem);
+  color: var(--arena-ink);
 }
 
 .arena-app-home .home-stage {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
-.arena-app-home .home-stage::after { display: none !important; }
+.arena-app-home .home-stage::after { display: none; }
 
 .arena-app-home .home-stage__label,
 .arena-app-home .home-section-heading > div > span {
@@ -403,57 +403,57 @@
 }
 
 .arena-app-home .home-stage__label > span {
-  width: 7px !important;
-  height: 7px !important;
-  border: 0 !important;
+  width: 7px;
+  height: 7px;
+  border: 0;
 }
 
 .arena-app-home .home-stage h1 {
-  font-weight: 800 !important;
+  font-weight: 800;
 }
 
 .arena-app-home .home-action {
-  min-height: 44px !important;
-  border-radius: 3px !important;
-  font-size: 0.78rem !important;
+  min-height: 44px;
+  border-radius: 3px;
+  font-size: 0.78rem;
   letter-spacing: 0.01em;
-  box-shadow: none !important;
+  box-shadow: none;
 }
 
 .arena-app-home .home-action:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 8px 16px rgba(82, 44, 16, 0.13) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(82, 44, 16, 0.13);
 }
 
 /* The existing live-data orbit becomes the single red game board. */
 .arena-app-home .home-draft-orbit {
-  border-radius: 2px !important;
+  border-radius: 2px;
 }
 
 .arena-app-home .home-draft-orbit::after {
-  display: none !important;
+  display: none;
 }
 
 .arena-app-home .home-draft-orbit__caption {
-  letter-spacing: 0.12em !important;
+  letter-spacing: 0.12em;
 }
 
 .arena-app-home .home-orbit-class {
-  border-color: rgba(237, 199, 111, 0.32) !important;
-  border-radius: 3px !important;
-  color: #fff0ca !important;
-  background: rgba(47, 4, 7, 0.72) !important;
-  box-shadow: 0 9px 18px rgba(39, 4, 6, 0.24) !important;
+  border-color: rgba(237, 199, 111, 0.32);
+  border-radius: 3px;
+  color: #fff0ca;
+  background: rgba(47, 4, 7, 0.72);
+  box-shadow: 0 9px 18px rgba(39, 4, 6, 0.24);
 }
 
 .arena-app-home .home-orbit-class__icon {
-  border-color: rgba(232, 191, 94, 0.31) !important;
-  background: rgba(236, 195, 102, 0.09) !important;
+  border-color: rgba(232, 191, 94, 0.31);
+  background: rgba(236, 195, 102, 0.09);
 }
 
-.arena-app-home .home-orbit-class__copy small { color: #d4ae63 !important; }
-.arena-app-home .home-orbit-class__copy strong { color: #fff3d3 !important; }
-.arena-app-home .home-orbit-class__copy b { color: #e5be60 !important; }
+.arena-app-home .home-orbit-class__copy small { color: #d4ae63; }
+.arena-app-home .home-orbit-class__copy strong { color: #fff3d3; }
+.arena-app-home .home-orbit-class__copy b { color: #e5be60; }
 
 .arena-app-home .home-orbit-action {
   display: flex;
@@ -547,7 +547,7 @@
 
 .arena-app-home :is(.home-arena-directory, .home-bg-directory, .home-latest-articles, .home-community, .home-faq-zone) {
   position: relative;
-  padding-top: clamp(2.2rem, 4vw, 3.5rem) !important;
+  padding-top: clamp(2.2rem, 4vw, 3.5rem);
 }
 
 .arena-app-home :is(.home-arena-directory, .home-bg-directory, .home-latest-articles, .home-community, .home-faq-zone)::before {

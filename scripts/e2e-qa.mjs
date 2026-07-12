@@ -1055,6 +1055,107 @@ for (const [device, viewport] of [
       || desktopBgDirectory.featuredLabel !== 'rgb(125, 64, 91)') {
       failures.push(`home Battlegrounds directory: desktop frame changed (${JSON.stringify(desktopBgDirectory)})`);
     }
+    await page.evaluate(() => {
+      if (document.querySelector('.home-orbit-class')) return;
+      const fixture = document.createElement('div');
+      fixture.dataset.qaHomeOrbitFixture = 'true';
+      fixture.setAttribute('aria-hidden', 'true');
+      fixture.style.position = 'absolute';
+      fixture.style.visibility = 'hidden';
+      fixture.innerHTML = `
+        <div class="home-orbit-class">
+          <span class="home-orbit-class__icon"></span>
+          <span class="home-orbit-class__copy"><small>Class</small><strong>Name</strong><b>50%</b></span>
+        </div>`;
+      document.querySelector('.home-workbench')?.append(fixture);
+    });
+    const desktopShell = await page.$eval('.home-workbench', element => {
+      const stage = element.querySelector('.home-stage');
+      const stageLabelDot = element.querySelector('.home-stage__label > span');
+      const stageHeading = element.querySelector('.home-stage h1');
+      const action = element.querySelector('.home-action');
+      const orbit = element.querySelector('.home-draft-orbit');
+      const orbitCaption = element.querySelector('.home-draft-orbit__caption');
+      const orbitClass = element.querySelector('.home-orbit-class');
+      const orbitIcon = element.querySelector('.home-orbit-class__icon');
+      const orbitSmall = element.querySelector('.home-orbit-class__copy small');
+      const orbitStrong = element.querySelector('.home-orbit-class__copy strong');
+      const orbitValue = element.querySelector('.home-orbit-class__copy b');
+      const firstSection = element.querySelector('.home-latest-articles');
+      const stageStyles = stage ? getComputedStyle(stage) : null;
+      const labelDotStyles = stageLabelDot ? getComputedStyle(stageLabelDot) : null;
+      const actionStyles = action ? getComputedStyle(action) : null;
+      const orbitStyles = orbit ? getComputedStyle(orbit) : null;
+      const orbitClassStyles = orbitClass ? getComputedStyle(orbitClass) : null;
+      const orbitIconStyles = orbitIcon ? getComputedStyle(orbitIcon) : null;
+      return {
+        gap: Number.parseFloat(getComputedStyle(element).gap),
+        color: getComputedStyle(element).color,
+        stageRadius: stageStyles?.borderRadius || '',
+        stageAfterDisplay: stage ? getComputedStyle(stage, '::after').display : '',
+        labelDotWidth: labelDotStyles?.width || '',
+        labelDotHeight: labelDotStyles?.height || '',
+        labelDotBorder: labelDotStyles?.borderTopWidth || '',
+        headingWeight: stageHeading ? getComputedStyle(stageHeading).fontWeight : '',
+        actionMinHeight: actionStyles?.minHeight || '',
+        actionRadius: actionStyles?.borderRadius || '',
+        actionFontSize: actionStyles?.fontSize || '',
+        actionShadow: actionStyles?.boxShadow || '',
+        orbitRadius: orbitStyles?.borderRadius || '',
+        orbitAfterDisplay: orbit ? getComputedStyle(orbit, '::after').display : '',
+        orbitCaptionSpacing: orbitCaption ? Number.parseFloat(getComputedStyle(orbitCaption).letterSpacing) : Number.NaN,
+        orbitBorderColor: orbitClassStyles?.borderTopColor || '',
+        orbitClassRadius: orbitClassStyles?.borderRadius || '',
+        orbitClassColor: orbitClassStyles?.color || '',
+        orbitClassBackground: orbitClassStyles?.backgroundColor || '',
+        orbitClassShadow: orbitClassStyles?.boxShadow || '',
+        orbitIconBorderColor: orbitIconStyles?.borderTopColor || '',
+        orbitIconBackground: orbitIconStyles?.backgroundColor || '',
+        orbitSmallColor: orbitSmall ? getComputedStyle(orbitSmall).color : '',
+        orbitStrongColor: orbitStrong ? getComputedStyle(orbitStrong).color : '',
+        orbitValueColor: orbitValue ? getComputedStyle(orbitValue).color : '',
+        sectionPaddingTop: firstSection ? Number.parseFloat(getComputedStyle(firstSection).paddingTop) : Number.NaN,
+      };
+    });
+    await page.evaluate(() => document.querySelector('[data-qa-home-orbit-fixture]')?.remove());
+    if (Math.abs(desktopShell.gap - 74.88) > 0.1
+      || desktopShell.color !== 'rgb(48, 37, 28)'
+      || desktopShell.stageRadius !== '0px'
+      || desktopShell.stageAfterDisplay !== 'none'
+      || desktopShell.labelDotWidth !== '7px'
+      || desktopShell.labelDotHeight !== '7px'
+      || desktopShell.labelDotBorder !== '0px'
+      || desktopShell.headingWeight !== '800'
+      || desktopShell.actionMinHeight !== '44px'
+      || desktopShell.actionRadius !== '3px'
+      || desktopShell.actionFontSize !== '12.48px'
+      || desktopShell.actionShadow !== 'none'
+      || desktopShell.orbitRadius !== '2px'
+      || desktopShell.orbitAfterDisplay !== 'none'
+      || Math.abs(desktopShell.orbitCaptionSpacing - 1.3056) > 0.02
+      || desktopShell.orbitBorderColor !== 'rgba(237, 199, 111, 0.32)'
+      || desktopShell.orbitClassRadius !== '3px'
+      || desktopShell.orbitClassColor !== 'rgb(255, 240, 202)'
+      || desktopShell.orbitClassBackground !== 'rgba(47, 4, 7, 0.72)'
+      || desktopShell.orbitClassShadow === 'none'
+      || desktopShell.orbitIconBorderColor !== 'rgba(232, 191, 94, 0.31)'
+      || desktopShell.orbitIconBackground !== 'rgba(236, 195, 102, 0.09)'
+      || desktopShell.orbitSmallColor !== 'rgb(212, 174, 99)'
+      || desktopShell.orbitStrongColor !== 'rgb(255, 243, 211)'
+      || desktopShell.orbitValueColor !== 'rgb(229, 190, 96)'
+      || Math.abs(desktopShell.sectionPaddingTop - 56) > 0.1) {
+      failures.push(`home shell: desktop stage and live-orbit theme changed (${JSON.stringify(desktopShell)})`);
+    }
+    await page.hover('.home-action');
+    await new Promise(resolve => setTimeout(resolve, 250));
+    const hoveredAction = await page.$eval('.home-action', element => ({
+      transform: getComputedStyle(element).transform,
+      shadow: getComputedStyle(element).boxShadow,
+    }));
+    if (hoveredAction.transform !== 'matrix(1, 0, 0, 1, 0, -2)' || hoveredAction.shadow === 'none') {
+      failures.push(`home shell: CTA hover treatment changed (${JSON.stringify(hoveredAction)})`);
+    }
+    await page.mouse.move(0, 0);
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
     const mobileHeading = await page.$eval('.home-latest-articles .home-section-heading', element => {
       const heading = element.querySelector('h2');
@@ -1063,11 +1164,13 @@ for (const [device, viewport] of [
         alignItems: getComputedStyle(element).alignItems,
         headingSize: heading ? getComputedStyle(heading).fontSize : '',
         summaryDisplay: summary ? getComputedStyle(summary).display : '',
+        sectionPaddingTop: Number.parseFloat(getComputedStyle(element.closest('.home-latest-articles')).paddingTop),
       };
     });
     if (mobileHeading.alignItems !== 'flex-start'
       || mobileHeading.headingSize !== '32px'
-      || mobileHeading.summaryDisplay !== 'none') {
+      || mobileHeading.summaryDisplay !== 'none'
+      || Math.abs(mobileHeading.sectionPaddingTop - 35.2) > 0.1) {
       failures.push(`home headings: mobile parchment typography changed (${JSON.stringify(mobileHeading)})`);
     }
     const mobileArenaDirectory = await page.$eval('.home-arena-directory', element => {

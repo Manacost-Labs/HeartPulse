@@ -204,6 +204,7 @@ A task is complete only when all relevant checks below are proven.
   - [x] Shared Home heading specificity now owns desktop/mobile typography without duplicate lazy-article declarations or 13 defensive theme flags; 16 `!important` declarations were removed and the global ceiling is 2,305.
   - [x] The lazy Arena directory now has one semantic selector owner for its sign, framed grid and mobile frame; all 22 defensive flags were removed, computed desktop/mobile presentation is browser-tested and the global ceiling is 2,283.
   - [x] The lazy Battlegrounds directory now overrides the retired blue base through semantic scope instead of force; all 50 defensive flags were removed, the wooden desktop/mobile presentation is browser-tested and the global ceiling is 2,233.
+  - [x] The scoped Home canvas, stage primitives, CTA and live-orbit palette no longer need 28 theme flags; exact shell and interaction styles are browser-tested and the global ceiling is 2,205.
   - [ ] Replace legacy overrides route by route and ratchet the `!important` ceiling down after every verified batch.
   - [ ] Establish explicit reset, base, component, route and override layers once all participating stylesheets can enter the layer order without changing precedence.
 - [ ] Phase 4: modular API, runtime validation and durable data snapshots.
