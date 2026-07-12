@@ -1,9 +1,10 @@
 # Manacost Arena
 
-Русскоязычная аналитическая платформа для Арены и Полей Сражений Hearthstone.
+**Русскоязычная аналитическая платформа для Арены и Полей Сражений
+Hearthstone.**
 
-[Открыть сайт](https://arena.hs-manacost.ru) ·
-[План стабилизации](STABILIZATION.md) ·
+[Открыть платформу](https://arena.hs-manacost.ru) ·
+[Стабилизация](STABILIZATION.md) ·
 [Дизайн и ассеты](assets.md) ·
 [Деплой](DEPLOYMENT.md)
 
@@ -12,6 +13,8 @@
 [![React 19](https://img.shields.io/badge/React-19-4A2F66?logo=react&logoColor=white)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-8F1731?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-22+-5E4428?logo=node.js&logoColor=white)](https://nodejs.org/)
+
+![Главная страница Manacost Arena на desktop](docs/screenshots/home-desktop.png)
 
 ## О проекте
 
@@ -27,22 +30,22 @@ accessibility-проверок перед каждым релизом.
 
 ## Интерфейс
 
-![Главная страница Manacost Arena на desktop](docs/screenshots/home-desktop.png)
-
 ![Последние статьи и раздел Полей Сражений](docs/screenshots/home-sections.png)
 
 ![Главная страница Manacost Arena на телефоне](docs/screenshots/home-mobile.png)
 
-## Возможности
+## Что внутри
 
-- **Арена:** винрейты классов, тир-листы карт, легендарные группы и матчапы.
-- **Поля Сражений:** герои, существа, заклинания, аксессуары и архив карт.
-- **Конструкторы:** стратегии и пользовательские тир-листы.
-- **Контент:** статьи, мета-отчёты, архив гайдов, галерея и конкурсы.
-- **Профиль:** Telegram/Boosty-доступ, подписка и персональные состояния.
-- **Администрирование:** редакционная панель, публикация данных и мониторинг.
-- **Адаптивность:** рабочие состояния от 320 px, 200% zoom и forced colors.
-- **Доступность:** клавиатурная навигация, scroll lock модальных окон и axe-аудит.
+| Арена | Поля Сражений | Платформа |
+| --- | --- | --- |
+| Винрейты классов | Герои и их профили | Статьи и мета-отчёты |
+| Тир-листы карт | Библиотека и архив | Архив гайдов и галерея |
+| Группы легендарок | Тир-листы меты | Telegram/Boosty-профиль |
+| Матчапы и аналитика | Конструкторы стратегий | Редакционная admin-панель |
+
+Интерфейс работает от 320 px, проходит 200% reflow и forced-colors
+проверку. Клавиатурная навигация, scroll lock модальных окон и
+axe-аудит входят в обязательный release gate.
 
 ## Архитектура
 
