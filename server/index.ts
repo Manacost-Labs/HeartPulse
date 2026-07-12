@@ -30,6 +30,7 @@ import { detectAdminUploadFormat } from './imageFormat.js';
 import { createBattlegroundProxyRouter } from './battlegroundProxyRoutes.js';
 import { createArticleCoverRouter } from './articleCoverRoutes.js';
 import { createGuidesArchiveRouter } from './guidesArchiveRoutes.js';
+import { createArticleRouter } from './articleRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -6076,60 +6077,18 @@ app.use('/api', createGalleryRouter({
   setPrivateNoStore,
 }));
 
-app.get('/api/articles', (req, res) => {
-  const entry = loadDataCached('articles.json');
-  if (!entry) return res.status(404).json({ error: 'No data' });
-  const user = userAuth(req);
-  const data = shapeArticlesData(entry.data, user?.id ?? '');
-  if (user) {
-    setPrivateNoStore(res);
-    return res.json(data);
-  }
-  const etag = `"${entry.etag.replace(/^"|"$/g, '')}-articles-votes"`;
-  return sendJsonCached(req, res, data, etag, CACHE_5M);
-});
-
-app.post('/api/articles/:articleId/vote', async (req, res) => {
-  setPrivateNoStore(res);
-  const user = userAuth(req);
-  if (!user) return res.status(401).json({ error: 'Требуется вход в профиль Манакоста' });
-  const subscription = await refreshSubscriptionForUser(user, false);
-  const articleId = normalizeOptionalText(req.params.articleId, 160);
-  const article = articleId ? findArticleById(articleId) : null;
-  if (!articleId || !article) return res.status(404).json({ error: 'Статья не найдена' });
-  if (!isAdminUser(user) && !subscriptionAllowsArticle(subscription, article)) {
-    return res.status(403).json({ error: 'Голосовать за эту статью могут только подписчики подходящего режима', subscription });
-  }
-  const voteValue = String(req.body?.vote ?? '').toLowerCase();
-  if (voteValue !== 'like' && voteValue !== 'dislike') return res.status(400).json({ error: 'Некорректный голос' });
-  const numericVote = voteValue === 'like' ? 1 : -1;
-  const existing = dbGet<{ vote: number }>('SELECT vote FROM article_votes WHERE article_id = ? AND user_id = ?', articleId, user.id);
-  const nowIso = new Date().toISOString();
-  if (existing && Number(existing.vote) === numericVote) {
-    dbRun('DELETE FROM article_votes WHERE article_id = ? AND user_id = ?', articleId, user.id);
-  } else {
-    dbRun(`
-      INSERT INTO article_votes (article_id, user_id, vote, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?)
-      ON CONFLICT(article_id, user_id) DO UPDATE SET vote = excluded.vote, updated_at = excluded.updated_at
-    `, articleId, user.id, numericVote, existing ? nowIso : nowIso, nowIso);
-  }
-  const counts = dbGet<any>(`
-    SELECT
-      SUM(CASE WHEN vote = 1 THEN 1 ELSE 0 END) AS likes,
-      SUM(CASE WHEN vote = -1 THEN 1 ELSE 0 END) AS dislikes
-    FROM article_votes
-    WHERE article_id = ?
-  `, articleId);
-  const next = dbGet<{ vote: number }>('SELECT vote FROM article_votes WHERE article_id = ? AND user_id = ?', articleId, user.id);
-  res.json({
-    success: true,
-    articleId,
-    likes: Number(counts?.likes || 0),
-    dislikes: Number(counts?.dislikes || 0),
-    userVote: next ? (Number(next.vote) === 1 ? 'like' : 'dislike') : null,
-  });
-});
+app.use('/api', createArticleRouter({
+  loadArticles: () => loadDataCached('articles.json'),
+  authenticate: userAuth,
+  shapeArticles: shapeArticlesData,
+  refreshSubscription: user => refreshSubscriptionForUser(user as AdminUser, false),
+  findArticle: findArticleById,
+  isAdmin: user => isAdminUser(user as AdminUser),
+  subscriptionAllowsArticle,
+  dbGet,
+  dbRun,
+  publicCacheHeader: CACHE_5M,
+}));
 
 app.use('/api', createGuidesArchiveRouter({
   getDatabase: oldGuidesDatabase,
