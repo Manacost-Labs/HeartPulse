@@ -914,6 +914,7 @@ for (const [device, viewport] of [
         supportCss: hrefs.some(href => href.includes('/assets/SupportPrompt-')),
         footerCss: hrefs.some(href => href.includes('/assets/SiteFooter-')),
         footerMarkup: Boolean(document.querySelector('.arena-footer')),
+        footerLinks: [...document.querySelectorAll('.arena-footer__link[href^="/"]')].map(link => link.getAttribute('href')),
       };
     });
     if (homeCssState.routeCssLoaded) failures.push('home lazy sections: route-only parchment CSS leaked into the initial home route');
@@ -922,6 +923,10 @@ for (const [device, viewport] of [
     if (!homeCssState.faqCss) failures.push('home lazy sections: FAQ owner CSS did not load');
     if (!homeCssState.supportCss) failures.push('home lazy sections: support-prompt owner CSS did not load');
     if (!homeCssState.footerCss || !homeCssState.footerMarkup) failures.push('home lazy sections: site-footer owner or markup did not load');
+    const expectedFooterLinks = ['/', '/classes', '/tierlist', '/legendaries', '/articles', '/gallery'];
+    if (JSON.stringify(homeCssState.footerLinks) !== JSON.stringify(expectedFooterLinks)) {
+      failures.push(`home lazy sections: canonical footer links are incomplete (${homeCssState.footerLinks.join(', ')})`);
+    }
     const faqTrigger = await page.$('.home-faq-zone .faq-card__trigger');
     if (!faqTrigger) {
       failures.push('home lazy sections: FAQ trigger is missing');

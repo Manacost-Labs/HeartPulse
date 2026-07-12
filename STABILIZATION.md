@@ -190,6 +190,7 @@ A task is complete only when all relevant checks below are proven.
   - [x] The isolated Guides Archive stylesheet no longer needs eight defensive image overrides because its extracted HTML sanitizer removes hostile legacy layout attributes before rendering; the CI ceiling is now 2,716.
   - [x] The shared FAQ owns semantic element classes instead of utility and inline-style collisions; all 59 component `!important` declarations were removed, its expand/collapse relationship is covered in browser QA and the global ceiling is 2,370.
   - [x] The lazy support prompt stylesheet is its sole selector owner, so its nine defensive `!important` flags were removed; desktop reveal/expand/close, mobile suppression and reduced motion remain covered and the global ceiling is 2,361.
+  - [x] The lazy footer now owns semantic layout/link/legal classes instead of inline utility collisions and duplicate variants; all 37 footer `!important` flags were removed, internal links work before hydration and the global ceiling is 2,324.
   - [ ] Replace legacy overrides route by route and ratchet the `!important` ceiling down after every verified batch.
   - [ ] Establish explicit reset, base, component, route and override layers once all participating stylesheets can enter the layer order without changing precedence.
 - [ ] Phase 4: modular API, runtime validation and durable data snapshots.

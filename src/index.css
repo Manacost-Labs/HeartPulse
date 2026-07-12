@@ -1469,8 +1469,7 @@
 /* ─── Draft table refresh (2026-07) ─────────────────────────────────────── */
 
 .bg-wood::before,
-.arena-sidebar::before,
-.arena-footer::before {
+.arena-sidebar::before {
   content: none !important;
   background-image: none !important;
 }
