@@ -44,12 +44,15 @@ The deployer:
 3. installs production dependencies as the unprivileged `koloda` user into a
    lockfile-addressed cache, makes that cache world-readable but read-only and
    verifies module access again as `koloda` before switching;
-4. makes the new release root-owned and read-only;
-5. atomically switches `current`;
-6. restarts `hs-arena.service`;
-7. waits for direct readiness on port 3101;
-8. restores the former `current` automatically when restart/readiness fails;
-9. updates `previous` only after a healthy deployment.
+4. carries forward content-hashed assets from the active release without
+   overwriting the new build, then removes inherited files older than 35 days;
+   this keeps edge-cached HTML usable for longer than the 30-day asset TTL;
+5. makes the new release root-owned and read-only;
+6. atomically switches `current`;
+7. restarts `hs-arena.service`;
+8. waits for direct readiness on port 3101;
+9. restores the former `current` automatically when restart/readiness fails;
+10. updates `previous` only after a healthy deployment.
 
 ## First infrastructure switch
 

@@ -21,6 +21,7 @@ RESTART_COMMAND=${RESTART_COMMAND:-sudo systemctl restart hs-arena.service}
 READINESS_COMMAND=${READINESS_COMMAND:-curl -fsS --max-time 5 http://127.0.0.1:3101/health/ready >/dev/null}
 SKIP_DEPENDENCIES=${SKIP_DEPENDENCIES:-0}
 SKIP_IMMUTABLE_PERMISSIONS=${SKIP_IMMUTABLE_PERMISSIONS:-0}
+ASSET_RETENTION_DAYS=${ASSET_RETENTION_DAYS:-35}
 DEPENDENCY_USER=${DEPENDENCY_USER:-koloda}
 DATA_USER=${DATA_USER:-koloda}
 
@@ -33,6 +34,9 @@ mkdir -p "$APP_BASE" "$RELEASES_DIR" "$RUNTIME_DIR" "$(dirname "$SHARED_DATA_DIR
 chmod 755 "$APP_BASE" "$RELEASES_DIR" "$RUNTIME_DIR" "$(dirname "$SHARED_DATA_DIR")"
 exec 9>"$LOCK_FILE"
 flock -n 9 || { echo "another deployment is running" >&2; exit 3; }
+
+SOURCE_CURRENT_RELEASE=''
+if [[ -L "$CURRENT_LINK" ]]; then SOURCE_CURRENT_RELEASE=$(readlink -f "$CURRENT_LINK"); fi
 
 STAGING_RELEASE=''
 DEPENDENCY_STAGING=''
@@ -65,6 +69,16 @@ if [[ ! -d "$TARGET_RELEASE" ]]; then
 fi
 
 if [[ "$NEW_RELEASE" == "1" ]]; then
+  # Edge caches can retain an older HTML document briefly even when the origin
+  # marks HTML as no-store. Keep content-hashed assets from prior releases so a
+  # stale document never points at a 404. Each release inherits the cumulative
+  # set and drops files older than the edge-cache TTL plus a safety margin.
+  if [[ -n "$SOURCE_CURRENT_RELEASE" && -d "$SOURCE_CURRENT_RELEASE/dist/assets" ]]; then
+    mkdir -p "$RELEASE_WORK/dist/assets"
+    cp -an "$SOURCE_CURRENT_RELEASE/dist/assets/." "$RELEASE_WORK/dist/assets/"
+    find "$RELEASE_WORK/dist/assets" -type f -mtime "+$ASSET_RETENTION_DAYS" -delete
+  fi
+
   if [[ "$SKIP_DEPENDENCIES" == "1" ]]; then
     [[ -d "$WORKSPACE/node_modules" ]] || { echo "workspace node_modules is missing" >&2; exit 2; }
     ln -s "$WORKSPACE/node_modules" "$RELEASE_WORK/node_modules"
@@ -118,8 +132,7 @@ if [[ "$SKIP_DEPENDENCIES" != "1" ]]; then
   fi
 fi
 
-OLD_RELEASE=''
-if [[ -L "$CURRENT_LINK" ]]; then OLD_RELEASE=$(readlink -f "$CURRENT_LINK"); fi
+OLD_RELEASE=$SOURCE_CURRENT_RELEASE
 NEXT_LINK="${CURRENT_LINK}.next.$$"
 ln -s "$TARGET_RELEASE" "$NEXT_LINK"
 mv -Tf "$NEXT_LINK" "$CURRENT_LINK"

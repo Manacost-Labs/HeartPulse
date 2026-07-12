@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readlinkSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -15,8 +15,10 @@ function fakeRelease(sha) {
   const directory = join(root, `artifact-${sha}`);
   mkdirSync(join(directory, 'build', 'server'), { recursive: true });
   mkdirSync(join(directory, 'dist'), { recursive: true });
+  mkdirSync(join(directory, 'dist', 'assets'), { recursive: true });
   writeFileSync(join(directory, 'build', 'server', 'index.js'), '');
   writeFileSync(join(directory, 'dist', 'index.html'), '');
+  writeFileSync(join(directory, 'dist', 'assets', `asset-${sha}.js`), sha);
   writeFileSync(join(directory, 'package.json'), '{}');
   writeFileSync(join(directory, 'package-lock.json'), '{}');
   writeFileSync(join(directory, 'release.json'), JSON.stringify({ sha, packageLockHash: 'a'.repeat(64) }));
@@ -54,7 +56,12 @@ try {
   mkdirSync(join(workspace, 'node_modules'), { recursive: true });
 
   const firstSha = 'a'.repeat(7);
-  const first = deploy(fakeRelease(firstSha), true);
+  const firstArtifact = fakeRelease(firstSha);
+  const staleAsset = join(firstArtifact, 'dist', 'assets', 'stale.js');
+  writeFileSync(staleAsset, 'stale');
+  const staleDate = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000);
+  utimesSync(staleAsset, staleDate, staleDate);
+  const first = deploy(firstArtifact, true);
   assert.equal(first.status, 0, first.stderr || first.stdout);
   const firstTarget = resolve(appBase, 'releases', firstSha);
   assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), firstTarget);
@@ -65,6 +72,9 @@ try {
   const secondTarget = resolve(appBase, 'releases', secondSha);
   assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), secondTarget);
   assert.equal(resolve(appBase, readlinkSync(join(appBase, 'previous'))), firstTarget);
+  assert.equal(readFileSync(join(secondTarget, 'dist', 'assets', `asset-${firstSha}.js`), 'utf8'), firstSha);
+  assert.equal(readFileSync(join(secondTarget, 'dist', 'assets', `asset-${secondSha}.js`), 'utf8'), secondSha);
+  assert.equal(existsSync(join(secondTarget, 'dist', 'assets', 'stale.js')), false);
 
   const repeated = deploy(fakeRelease(secondSha), true);
   assert.equal(repeated.status, 0, repeated.stderr || repeated.stdout);
