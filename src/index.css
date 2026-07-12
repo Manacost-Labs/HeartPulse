@@ -1244,26 +1244,25 @@
 
 @media (min-width: 1024px) {
   .arena-workspace-wide {
-    width: calc(100vw - 252px) !important;
-    max-width: none !important;
+    max-width: none;
   }
 
   .arena-main-wide {
-    align-items: stretch !important;
-    width: 100% !important;
-    max-width: none !important;
-    padding-left: clamp(0.75rem, 1vw, 1.25rem) !important;
-    padding-right: clamp(0.75rem, 1vw, 1.25rem) !important;
+    align-items: stretch;
+    width: 100%;
+    max-width: none;
+    padding-left: clamp(0.75rem, 1vw, 1.25rem);
+    padding-right: clamp(0.75rem, 1vw, 1.25rem);
   }
 
   .arena-main-wide .arena-content-wide,
   .arena-content.arena-content-wide {
-    width: 100% !important;
-    min-width: calc(100vw - 292px) !important;
-    max-width: none !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    padding: clamp(0.75rem, 1vw, 1.25rem) !important;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+    padding: clamp(0.75rem, 1vw, 1.25rem);
   }
 
   .arena-content-wide .strategy-builder-page {

@@ -434,6 +434,8 @@ async function inspectLayout(page, { mobile }) {
       .some(sheet => sheet.href?.includes('/assets/route-parchment-'));
     const content = document.querySelector('.arena-content-open');
     const contentStyle = content ? getComputedStyle(content) : null;
+    const workspace = document.querySelector('.arena-workspace');
+    const workspaceRect = workspace?.getBoundingClientRect();
     const bannerStyle = banner ? getComputedStyle(banner) : null;
     const suspiciousOverlays = [...document.querySelectorAll('body *')]
       .map(element => ({ element, style: getComputedStyle(element), rect: element.getBoundingClientRect() }))
@@ -460,6 +462,9 @@ async function inspectLayout(page, { mobile }) {
       textLength: document.body?.innerText.length || 0,
       scrollWidth: root.scrollWidth,
       clientWidth: root.clientWidth,
+      wideWorkspace: content?.classList.contains('arena-content-wide') || false,
+      workspaceRight: workspaceRect?.right || 0,
+      contentMinWidth: contentStyle?.minWidth || '',
       shellOpacity: shellStyle?.opacity || null,
       shellFilter: shellStyle?.filter || null,
       routeParchmentExpected,
@@ -486,8 +491,18 @@ async function inspectLayout(page, { mobile }) {
 
 function assertLayout(path, layout) {
   if (!layout.title || layout.textLength < 100) failures.push(`${path}: blank or unidentified page`);
-  if (layout.mobile && layout.scrollWidth > layout.clientWidth + 1) {
+  if (layout.scrollWidth > layout.clientWidth + 1) {
     failures.push(`${path}: horizontal overflow ${layout.scrollWidth} > ${layout.clientWidth}`);
+  }
+  if (!layout.mobile && layout.wideWorkspace && (
+    Math.abs(layout.workspaceRight - layout.clientWidth) > 0.5
+    || layout.contentMinWidth !== '0px'
+  )) {
+    failures.push(`${path}: desktop full-width canvas escaped the workspace (${JSON.stringify({
+      workspaceRight: layout.workspaceRight,
+      viewportRight: layout.clientWidth,
+      contentMinWidth: layout.contentMinWidth,
+    })})`);
   }
   if (layout.shellOpacity !== '1') failures.push(`${path}: app shell opacity is ${layout.shellOpacity}`);
   if (layout.shellFilter && layout.shellFilter !== 'none') failures.push(`${path}: app shell filter is ${layout.shellFilter}`);
