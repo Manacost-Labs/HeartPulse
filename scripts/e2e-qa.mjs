@@ -1641,8 +1641,37 @@ for (const [device, viewport] of [
       && getComputedStyle(document.querySelector('.auth-avatar img')).display === 'none'
     ), { timeout: 5_000 }).catch(() => {});
     const openState = await page.evaluate(() => {
+      const topbar = document.querySelector('.arena-mobile-topbar');
+      const brand = document.querySelector('.arena-mobile-brand');
+      const toggle = document.querySelector('.arena-mobile-nav-toggle');
+      const menu = document.querySelector('.arena-mobile-menu');
       const profile = document.querySelector('.arena-mobile-menu-profile');
+      const inactiveLink = menu?.querySelector('.arena-mobile-menu-link:not(.arena-mobile-menu-link-active)');
+      let activeLink = menu?.querySelector('.arena-mobile-menu-link-active');
+      let activeFixture = null;
+      if (!activeLink && menu) {
+        activeFixture = document.createElement('a');
+        activeFixture.className = 'arena-mobile-menu-link arena-mobile-menu-link-active';
+        activeFixture.setAttribute('aria-hidden', 'true');
+        activeFixture.style.visibility = 'hidden';
+        menu.append(activeFixture);
+        activeLink = activeFixture;
+      }
+      const section = menu?.querySelector('.arena-mobile-menu-section');
       const rect = profile?.getBoundingClientRect();
+      const topbarStyles = topbar ? getComputedStyle(topbar) : null;
+      const toggleStyles = toggle ? getComputedStyle(toggle) : null;
+      const menuStyles = menu ? getComputedStyle(menu) : null;
+      const inactiveLinkStyles = inactiveLink ? getComputedStyle(inactiveLink) : null;
+      const activeLinkStyles = activeLink ? getComputedStyle(activeLink) : null;
+      const profileStyles = profile ? getComputedStyle(profile) : null;
+      const activeContract = {
+        borderColor: activeLinkStyles?.borderLeftColor || '',
+        color: activeLinkStyles?.color || '',
+        background: activeLinkStyles?.backgroundColor || '',
+        beforeDisplay: activeLink ? getComputedStyle(activeLink, '::before').display : '',
+      };
+      activeFixture?.remove();
       return {
         bodyPosition: getComputedStyle(document.body).position,
         htmlOverflow: getComputedStyle(document.documentElement).overflow,
@@ -1659,9 +1688,61 @@ for (const [device, viewport] of [
           '/battlegrounds/tier-builder', '/gallery', '/guides-archive', '/contests',
         ].filter(path => !document.querySelector(`#arena-mobile-menu a[href="${path}"]`)),
         toggleSize: (() => {
-          const toggleRect = document.querySelector('.arena-mobile-nav-toggle')?.getBoundingClientRect();
+          const toggleRect = toggle?.getBoundingClientRect();
           return { width: toggleRect?.width || 0, height: toggleRect?.height || 0 };
         })(),
+        topbarMinHeight: topbarStyles?.minHeight || '',
+        topbarBorder: topbarStyles?.borderBottomWidth || '',
+        topbarBorderImage: topbarStyles?.borderImageSource || '',
+        topbarBorderImageWidth: topbarStyles?.borderImageWidth || '',
+        topbarColor: topbarStyles?.color || '',
+        topbarBackground: topbarStyles?.backgroundImage || '',
+        topbarShadow: topbarStyles?.boxShadow || '',
+        topbarBackdrop: topbarStyles?.backdropFilter || '',
+        brandColor: brand ? getComputedStyle(brand).color : '',
+        brandSize: brand ? getComputedStyle(brand).fontSize : '',
+        toggleBorder: toggleStyles?.borderTopColor || '',
+        toggleRadius: toggleStyles?.borderRadius || '',
+        toggleColor: toggleStyles?.color || '',
+        toggleBackground: toggleStyles?.backgroundColor || '',
+        toggleShadow: toggleStyles?.boxShadow || '',
+        menuTop: menuStyles?.top || '',
+        menuGap: menuStyles?.gap || '',
+        menuPadding: menuStyles?.padding || '',
+        menuBorder: menuStyles?.borderTopWidth || '',
+        menuBorderImage: menuStyles?.borderImageSource || '',
+        menuBorderImageWidth: menuStyles?.borderImageWidth || '',
+        menuRadius: menuStyles?.borderRadius || '',
+        menuBackground: menuStyles?.backgroundImage || '',
+        menuShadow: menuStyles?.boxShadow || '',
+        menuBackdrop: menuStyles?.backdropFilter || '',
+        linkMinHeight: inactiveLinkStyles?.minHeight || '',
+        linkPadding: inactiveLinkStyles?.padding || '',
+        linkBorderTop: inactiveLinkStyles?.borderTopWidth || '',
+        linkBorderLeft: inactiveLinkStyles?.borderLeftWidth || '',
+        linkRadius: inactiveLinkStyles?.borderRadius || '',
+        linkColor: inactiveLinkStyles?.color || '',
+        linkBackground: inactiveLinkStyles?.backgroundColor || '',
+        linkSize: inactiveLinkStyles?.fontSize || '',
+        linkWeight: inactiveLinkStyles?.fontWeight || '',
+        linkShadow: inactiveLinkStyles?.textShadow || '',
+        activeBorderColor: activeContract.borderColor,
+        activeColor: activeContract.color,
+        activeBackground: activeContract.background,
+        activeBeforeDisplay: activeContract.beforeDisplay,
+        sectionMarginTop: section ? getComputedStyle(section).marginTop : '',
+        sectionColor: section ? getComputedStyle(section).color : '',
+        sectionSize: section ? getComputedStyle(section).fontSize : '',
+        profilePosition: profileStyles?.position || '',
+        profileMinHeight: profileStyles?.minHeight || '',
+        profilePadding: profileStyles?.padding || '',
+        profileOverflow: profileStyles?.overflow || '',
+        profileBorder: profileStyles?.borderTopWidth || '',
+        profileRadius: profileStyles?.borderRadius || '',
+        profileColor: profileStyles?.color || '',
+        profileBackground: profileStyles?.backgroundImage || '',
+        profileShadow: profileStyles?.boxShadow || '',
+        profileAfterDisplay: profile ? getComputedStyle(profile, '::after').display : '',
         undersizedControls: [...document.querySelectorAll('#arena-mobile-menu a[href], #arena-mobile-menu button:not([disabled])')]
           .filter(element => !element.closest('[hidden]'))
           .map(element => element.getBoundingClientRect())
@@ -1676,7 +1757,62 @@ for (const [device, viewport] of [
     if (openState.avatarFallback !== 'QS' || !openState.avatarImageHidden) failures.push('mobile menu: broken avatar did not fall back to user initials');
     if (openState.toggleSize.width < 44 || openState.toggleSize.height < 44) failures.push(`mobile menu: toggle target is ${openState.toggleSize.width}×${openState.toggleSize.height}`);
     if (openState.undersizedControls) failures.push(`mobile menu: ${openState.undersizedControls} visible controls are smaller than 44×44`);
+    if (openState.topbarMinHeight !== '61px'
+      || openState.topbarBorder !== '10px'
+      || !openState.topbarBorderImage.includes('main-page-rail-border.png')
+      || openState.topbarBorderImageWidth !== '0 0 10px'
+      || openState.topbarColor !== 'rgb(255, 241, 202)'
+      || !openState.topbarBackground.includes('arena-rail-red.jpg')
+      || openState.topbarShadow === 'none'
+      || openState.topbarBackdrop !== 'none'
+      || openState.brandColor !== 'rgb(255, 240, 196)'
+      || openState.brandSize !== '18.88px'
+      || openState.toggleBorder !== 'rgb(241, 210, 126)'
+      || openState.toggleRadius !== '4px'
+      || openState.toggleColor !== 'rgb(255, 239, 199)'
+      || openState.toggleBackground !== 'rgba(45, 4, 7, 0.62)'
+      || openState.toggleShadow === 'none'
+      || openState.menuTop !== '70px'
+      || openState.menuGap !== '3.2px'
+      || openState.menuPadding !== '12px 12.8px'
+      || openState.menuBorder !== '7px'
+      || !openState.menuBorderImage.includes('main-page-rail-border.png')
+      || openState.menuBorderImageWidth !== '7px'
+      || openState.menuRadius !== '2px'
+      || !openState.menuBackground.includes('arena-rail-red.jpg')
+      || openState.menuShadow === 'none'
+      || openState.menuBackdrop !== 'none'
+      || openState.linkMinHeight !== '44px'
+      || openState.linkPadding !== '9.28px 10.88px'
+      || openState.linkBorderTop !== '0px'
+      || openState.linkBorderLeft !== '3px'
+      || openState.linkRadius !== '2px'
+      || openState.linkColor !== 'rgb(248, 223, 173)'
+      || openState.linkBackground !== 'rgba(0, 0, 0, 0)'
+      || openState.linkSize !== '15.04px'
+      || openState.linkWeight !== '700'
+      || openState.linkShadow === 'none'
+      || openState.activeBorderColor !== 'rgb(217, 171, 73)'
+      || openState.activeColor !== 'rgb(255, 246, 220)'
+      || openState.activeBackground !== 'rgba(48, 4, 7, 0.42)'
+      || openState.activeBeforeDisplay !== 'none'
+      || openState.sectionMarginTop !== '10.4px'
+      || openState.sectionColor !== 'rgb(223, 182, 95)'
+      || openState.sectionSize !== '10.08px'
+      || openState.profilePosition !== 'relative'
+      || openState.profileMinHeight !== '50px'
+      || openState.profilePadding !== '10.88px 12.8px'
+      || openState.profileOverflow !== 'hidden'
+      || openState.profileBorder !== '1px'
+      || openState.profileRadius !== '2px'
+      || openState.profileColor !== 'rgb(255, 240, 200)'
+      || openState.profileBackground === 'none'
+      || openState.profileShadow === 'none'
+      || openState.profileAfterDisplay !== 'none') {
+      failures.push(`mobile menu: parchment visual contract changed (${JSON.stringify(openState)})`);
+    }
     await auditAccessibility(page, 'mobile menu open');
+    await page.screenshot({ path: `${OUT}/mobile-menu-open.png`, fullPage: false });
 
     stage = 'forward focus trap';
     await page.evaluate(() => {

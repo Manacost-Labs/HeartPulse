@@ -39,89 +39,89 @@
 }
 
 .arena-mobile-topbar {
-  min-height: 61px !important;
-  border-bottom: 10px solid transparent !important;
-  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
-  border-image-slice: 18 !important;
-  border-image-width: 0 0 10px 0 !important;
-  border-image-outset: 0 !important;
-  border-image-repeat: stretch !important;
-  color: #fff1ca !important;
+  min-height: 61px;
+  border-bottom: 10px solid transparent;
+  border-image-source: url('/wallpaper/main-page-rail-border.png');
+  border-image-slice: 18;
+  border-image-width: 0 0 10px 0;
+  border-image-outset: 0;
+  border-image-repeat: stretch;
+  color: #fff1ca;
   background:
     linear-gradient(90deg, rgba(77, 8, 13, 0.3), rgba(111, 17, 22, 0.08)),
-    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
-  box-shadow: 0 8px 22px rgba(49, 14, 9, 0.24) !important;
-  backdrop-filter: none !important;
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+  box-shadow: 0 8px 22px rgba(49, 14, 9, 0.24);
+  backdrop-filter: none;
 }
 
 .arena-mobile-brand {
-  color: #fff0c4 !important;
-  font-size: 1.18rem !important;
+  color: #fff0c4;
+  font-size: 1.18rem;
   text-shadow: 0 2px 5px rgba(36, 5, 7, 0.55);
 }
 
 .arena-mobile-brand span { color: var(--arena-gold-light); }
 
 .arena-mobile-nav-toggle {
-  border-color: rgba(238, 201, 116, 0.48) !important;
-  border-radius: 4px !important;
-  color: #ffefc7 !important;
-  background: rgba(52, 5, 9, 0.32) !important;
-  box-shadow: inset 0 1px rgba(255, 240, 201, 0.08) !important;
+  border-color: rgba(238, 201, 116, 0.48);
+  border-radius: 4px;
+  color: #ffefc7;
+  background: rgba(52, 5, 9, 0.32);
+  box-shadow: inset 0 1px rgba(255, 240, 201, 0.08);
 }
 
 .arena-mobile-nav-toggle[aria-expanded='true'] {
-  border-color: var(--arena-gold-light) !important;
-  background: rgba(45, 4, 7, 0.62) !important;
+  border-color: var(--arena-gold-light);
+  background: rgba(45, 4, 7, 0.62);
 }
 
 .arena-mobile-menu {
-  top: 70px !important;
-  gap: 0.2rem !important;
-  padding: 0.75rem 0.8rem !important;
-  border: 7px solid transparent !important;
-  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
-  border-image-slice: 18 !important;
-  border-image-width: 7px !important;
-  border-image-outset: 0 !important;
-  border-image-repeat: stretch !important;
-  border-radius: 2px !important;
+  top: 70px;
+  gap: 0.2rem;
+  padding: 0.75rem 0.8rem;
+  border: 7px solid transparent;
+  border-image-source: url('/wallpaper/main-page-rail-border.png');
+  border-image-slice: 18;
+  border-image-width: 7px;
+  border-image-outset: 0;
+  border-image-repeat: stretch;
+  border-radius: 2px;
   background:
     linear-gradient(rgba(82, 8, 13, 0.16), rgba(52, 5, 9, 0.2)),
-    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
-  box-shadow: 0 24px 52px rgba(45, 7, 9, 0.46), inset 0 0 0 3px rgba(221, 170, 70, 0.11) !important;
-  backdrop-filter: none !important;
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+  box-shadow: 0 24px 52px rgba(45, 7, 9, 0.46), inset 0 0 0 3px rgba(221, 170, 70, 0.11);
+  backdrop-filter: none;
 }
 
 .arena-mobile-menu-link {
-  min-height: 44px !important;
-  padding: 0.58rem 0.68rem !important;
-  border: 0 !important;
-  border-left: 3px solid transparent !important;
-  border-radius: 2px !important;
-  color: #f8dfad !important;
-  background: transparent !important;
-  font-family: var(--font-display) !important;
-  font-size: 0.94rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.012em !important;
-  line-height: 1.08 !important;
-  text-shadow: 0 2px 2px rgba(37, 4, 6, 0.7) !important;
+  min-height: 44px;
+  padding: 0.58rem 0.68rem;
+  border: 0;
+  border-left: 3px solid transparent;
+  border-radius: 2px;
+  color: #f8dfad;
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: 0.94rem;
+  font-weight: 700;
+  letter-spacing: 0.012em;
+  line-height: 1.08;
+  text-shadow: 0 2px 2px rgba(37, 4, 6, 0.7);
 }
 
 .arena-mobile-menu-link-active,
 .arena-mobile-menu-link:active {
-  border-left-color: var(--arena-gold) !important;
-  color: #fff6dc !important;
-  background: rgba(48, 4, 7, 0.42) !important;
+  border-left-color: var(--arena-gold);
+  color: #fff6dc;
+  background: rgba(48, 4, 7, 0.42);
 }
 
-.arena-mobile-menu-link-active::before { display: none !important; }
+.arena-mobile-menu-link-active::before { display: none; }
 
 .arena-mobile-menu-section {
-  margin-top: 0.65rem !important;
-  color: #dfb65f !important;
-  font-size: 0.63rem !important;
+  margin-top: 0.65rem;
+  color: #dfb65f;
+  font-size: 0.63rem;
 }
 
 .arena-mobile-menu-group {
@@ -347,24 +347,24 @@
 }
 
 .arena-mobile-menu-profile {
-  position: relative !important;
+  position: relative;
   order: -1;
   width: 100%;
-  min-height: 50px !important;
+  min-height: 50px;
   margin-bottom: 0.45rem;
-  padding: 0.68rem 0.8rem !important;
-  overflow: hidden !important;
-  border: 1px solid rgba(237, 196, 105, 0.5) !important;
-  border-radius: 2px !important;
-  color: #fff0c8 !important;
-  background: linear-gradient(90deg, rgba(43, 4, 7, 0.72), rgba(72, 8, 12, 0.42)) !important;
+  padding: 0.68rem 0.8rem;
+  overflow: hidden;
+  border: 1px solid rgba(237, 196, 105, 0.5);
+  border-radius: 2px;
+  color: #fff0c8;
+  background: linear-gradient(90deg, rgba(43, 4, 7, 0.72), rgba(72, 8, 12, 0.42));
   box-shadow:
     inset 0 0 0 3px rgba(255, 226, 157, 0.08),
-    0 7px 14px rgba(35, 4, 6, 0.18) !important;
+    0 7px 14px rgba(35, 4, 6, 0.18);
 }
 
 .arena-mobile-menu-profile::after {
-  display: none !important;
+  display: none;
 }
 
 .arena-mobile-menu-profile > * {
