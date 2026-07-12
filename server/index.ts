@@ -26,6 +26,8 @@ import { csrfRequestAllowed } from './csrf.js';
 import { configureLoopbackProxyTrust, corsOriginAllowed, getTrustedClientIp } from './networkBoundary.js';
 import { createRouteAwareJsonParser, createUploadAuthorizationGuard } from './jsonBody.js';
 import { createReferralRouter } from './referralRoutes.js';
+import { createGalleryRouter } from './galleryRoutes.js';
+import { detectAdminUploadFormat } from './imageFormat.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -80,10 +82,6 @@ function ensureAdminUploadDirs() {
       console.warn('[admin-upload] failed to restore public upload', fileName, err);
     }
   }
-}
-
-function ensureGalleryUploadDirs() {
-  mkdirSync(GALLERY_UPLOAD_DIR, { recursive: true });
 }
 
 // ─── In-memory data cache (avoids disk I/O on every request) ──────────────────
@@ -5452,7 +5450,6 @@ app.use((_req, _res, next) => {
 });
 
 ensureAdminUploadDirs();
-ensureGalleryUploadDirs();
 const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST;
 
@@ -6105,284 +6102,22 @@ function articleExists(articleId: string): boolean {
   return Boolean(findArticleById(articleId));
 }
 
-type GalleryImageKind = 'original' | 'preview' | 'thumb';
-
-interface GalleryItemRecord {
-  id: string;
-  title: string;
-  description: string;
-  tag: string;
-  source: string;
-  width: number;
-  height: number;
-  bytes: number;
-  format: 'gif' | 'jpeg' | 'png' | 'webp';
-  originalFile: string;
-  previewFile: string;
-  thumbFile: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-function galleryFileUrl(id: string, kind: GalleryImageKind) {
-  return `/api/gallery/${encodeURIComponent(id)}/${kind}`;
-}
-
-function normalizeGalleryItem(item: any): GalleryItemRecord | null {
-  const id = normalizeOptionalText(item?.id, 120);
-  const originalFile = normalizeOptionalText(item?.originalFile, 180);
-  const previewFile = normalizeOptionalText(item?.previewFile, 180);
-  const thumbFile = normalizeOptionalText(item?.thumbFile, 180);
-  const format = String(item?.format || '').toLowerCase() as GalleryItemRecord['format'];
-  if (!id || !originalFile || !previewFile || !thumbFile || !['gif', 'jpeg', 'png', 'webp'].includes(format)) return null;
-  return {
-    id,
-    title: normalizeOptionalText(item?.title, 160) || 'Арт Манакоста',
-    description: normalizeOptionalText(item?.description, 900),
-    tag: normalizeOptionalText(item?.tag, 80),
-    source: normalizeOptionalText(item?.source, 180),
-    width: Math.max(0, Number(item?.width || 0)),
-    height: Math.max(0, Number(item?.height || 0)),
-    bytes: Math.max(0, Number(item?.bytes || 0)),
-    format,
-    originalFile,
-    previewFile,
-    thumbFile,
-    createdAt: normalizeOptionalText(item?.createdAt, 40) || new Date().toISOString(),
-    updatedAt: normalizeOptionalText(item?.updatedAt, 40) || normalizeOptionalText(item?.createdAt, 40) || new Date().toISOString(),
-  };
-}
-
-function loadGalleryRecords(): { items: GalleryItemRecord[]; updatedAt: string | null } {
-  const raw: any = loadData('gallery.json') ?? { items: [], updatedAt: null };
-  const items = Array.isArray(raw.items)
-    ? raw.items.map(normalizeGalleryItem).filter(Boolean) as GalleryItemRecord[]
-    : [];
-  items.sort((a, b) => Date.parse(b.createdAt || '') - Date.parse(a.createdAt || '') || b.id.localeCompare(a.id));
-  return {
-    items,
-    updatedAt: normalizeOptionalText(raw.updatedAt, 40) || (items[0]?.updatedAt ?? null),
-  };
-}
-
-function saveGalleryRecords(payload: { items: GalleryItemRecord[]; updatedAt: string | null }) {
-  mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(join(DATA_DIR, 'gallery.json'), JSON.stringify(payload, null, 2), 'utf-8');
-  dataCache.delete('gallery.json');
-}
-
-function publicGalleryItem(item: GalleryItemRecord) {
-  return {
-    id: item.id,
-    title: item.title,
-    description: item.description,
-    tag: item.tag,
-    source: item.source,
-    width: item.width,
-    height: item.height,
-    bytes: item.bytes,
-    format: item.format,
-    previewUrl: galleryFileUrl(item.id, 'preview'),
-    thumbUrl: galleryFileUrl(item.id, 'thumb'),
-    imageUrl: galleryFileUrl(item.id, 'original'),
-    downloadUrl: `/api/gallery/${encodeURIComponent(item.id)}/download`,
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt,
-  };
-}
-
-function publicGalleryData(records = loadGalleryRecords()) {
-  return {
-    items: records.items.map(publicGalleryItem),
-    updatedAt: records.updatedAt,
-  };
-}
-
-function galleryFileName(item: GalleryItemRecord, kind: GalleryImageKind) {
-  return kind === 'original' ? item.originalFile : kind === 'preview' ? item.previewFile : item.thumbFile;
-}
-
-function galleryContentType(item: GalleryItemRecord, kind: GalleryImageKind) {
-  if (kind === 'preview' || kind === 'thumb') return 'image/webp';
-  if (item.format === 'jpeg') return 'image/jpeg';
-  if (item.format === 'png') return 'image/png';
-  if (item.format === 'gif') return 'image/gif';
-  return 'image/webp';
-}
-
-function findGalleryItem(id: string): GalleryItemRecord | null {
-  return loadGalleryRecords().items.find(item => item.id === id) ?? null;
-}
-
-function sendGalleryImage(req: express.Request, res: express.Response, item: GalleryItemRecord, kind: GalleryImageKind, download = false) {
-  const fileName = galleryFileName(item, kind);
-  const filePath = join(GALLERY_UPLOAD_DIR, fileName);
-  if (!/^[a-z0-9_-]+\.(?:webp|png|jpe?g|gif)$/i.test(fileName) || !existsSync(filePath)) {
-    return res.status(404).json({ error: 'Файл не найден' });
-  }
-  const stat = statSync(filePath);
-  const etag = `"gallery-${item.id}-${kind}-${stat.mtimeMs.toString(36)}-${stat.size}"`;
-  res.set('Cache-Control', 'public, max-age=2592000, immutable');
-  res.set('ETag', etag);
-  res.type(galleryContentType(item, kind));
-  if (download) {
-    const ext = item.format === 'jpeg' ? 'jpg' : item.format;
-    const displayName = `${item.title || item.id}`.trim().replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, '-').slice(0, 80) || item.id;
-    const asciiName = `gallery-${item.id}.${ext}`;
-    res.set('Content-Disposition', `attachment; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(`${displayName}.${ext}`)}`);
-  }
-  if (req.headers['if-none-match'] === etag) return res.status(304).end();
-  return createReadStream(filePath).pipe(res);
-}
-
-function removeGalleryFiles(item: GalleryItemRecord) {
-  for (const fileName of [item.originalFile, item.previewFile, item.thumbFile]) {
-    if (!/^[a-z0-9_-]+\.(?:webp|png|jpe?g|gif)$/i.test(fileName)) continue;
-    try {
-      const filePath = join(GALLERY_UPLOAD_DIR, fileName);
-      if (existsSync(filePath)) unlinkSync(filePath);
-    } catch (err) {
-      console.warn('[gallery] failed to remove file', fileName, err);
-    }
-  }
-}
-
-app.get('/api/gallery', (req, res) => {
-  const entry = loadDataCached('gallery.json');
-  const records = entry ? {
-    items: Array.isArray(entry.data?.items)
-      ? entry.data.items.map(normalizeGalleryItem).filter(Boolean) as GalleryItemRecord[]
-      : [],
-    updatedAt: normalizeOptionalText(entry.data?.updatedAt, 40) || null,
-  } : { items: [], updatedAt: null };
-  records.items.sort((a, b) => Date.parse(b.createdAt || '') - Date.parse(a.createdAt || '') || b.id.localeCompare(a.id));
-  const data = publicGalleryData(records);
-  const etag = entry ? `"${entry.etag.replace(/^"|"$/g, '')}-public"` : '"gallery-empty"';
-  return sendJsonCached(req, res, data, etag, CACHE_5M);
-});
-
-app.get('/api/gallery/:id/:kind(original|preview|thumb)', (req, res) => {
-  const id = normalizeOptionalText(req.params.id, 120);
-  const kind = String(req.params.kind || '') as GalleryImageKind;
-  const item = id ? findGalleryItem(id) : null;
-  if (!item) return res.status(404).json({ error: 'Арт не найден' });
-  return sendGalleryImage(req, res, item, kind, false);
-});
-
-app.get('/api/gallery/:id/download', (req, res) => {
-  const id = normalizeOptionalText(req.params.id, 120);
-  const item = id ? findGalleryItem(id) : null;
-  if (!item) return res.status(404).json({ error: 'Арт не найден' });
-  return sendGalleryImage(req, res, item, 'original', true);
-});
-
-app.get('/api/admin/gallery', adminIdGuard, (req, res) => {
-  if (!adminAuth(req)) return res.status(401).json({ error: 'Требуется вход' });
-  setPrivateNoStore(res);
-  res.json(publicGalleryData());
-});
-
-app.post('/api/admin/gallery', adminIdGuard, async (req, res) => {
-  if (!adminAuth(req)) return res.status(401).json({ error: 'Требуется вход' });
-  const dataUrl = String(req.body?.dataUrl || '');
-  const title = normalizeOptionalText(req.body?.title, 160);
-  const description = normalizeOptionalText(req.body?.description, 900);
-  const tag = normalizeOptionalText(req.body?.tag, 80);
-  const sourceLabel = normalizeOptionalText(req.body?.source, 180);
-  const match = dataUrl.match(/^data:image\/[a-z0-9.+-]+;base64,([a-z0-9+/=\s]+)$/i);
-  if (!title) return res.status(400).json({ error: 'Название обязательно' });
-  if (!match) return res.status(400).json({ error: 'Нужно передать изображение в формате data URL' });
-
-  try {
-    const base64 = match[1].replace(/\s/g, '');
-    if (!/^[a-z0-9+/]+={0,2}$/i.test(base64) || base64.length % 4 !== 0) {
-      return res.status(400).json({ error: 'Некорректные base64-данные изображения' });
-    }
-    const source = Buffer.from(base64, 'base64');
-    if (!source.length) return res.status(400).json({ error: 'Файл пустой' });
-    if (source.length > GALLERY_UPLOAD_MAX_BYTES) return res.status(413).json({ error: `Файл больше ${Math.round(GALLERY_UPLOAD_MAX_BYTES / 1024 / 1024)} МБ` });
-
-    const actualFormat = detectAdminUploadFormat(source);
-    if (!actualFormat) return res.status(415).json({ error: 'Формат изображения не распознан' });
-
-    const metadata = await sharp(source, { limitInputPixels: GALLERY_UPLOAD_MAX_PIXELS }).metadata();
-    const width = Number(metadata.width || 0);
-    const height = Number(metadata.height || 0);
-    if (!width || !height) return res.status(400).json({ error: 'Не удалось определить размер изображения' });
-    if ((metadata.pages || 1) > 1) return res.status(400).json({ error: 'Анимированные изображения пока не поддерживаются' });
-    if (width * height > GALLERY_UPLOAD_MAX_PIXELS) {
-      return res.status(413).json({ error: 'Разрешение изображения слишком большое для обработки' });
-    }
-
-    ensureGalleryUploadDirs();
-    const id = `gal_${Date.now().toString(36)}_${randomBytes(4).toString('hex')}`;
-    const originalExt = actualFormat === 'jpeg' ? 'jpg' : actualFormat;
-    const originalFile = `${id}.${originalExt}`;
-    const previewFile = `${id}-preview.webp`;
-    const thumbFile = `${id}-thumb.webp`;
-    const originalPath = join(GALLERY_UPLOAD_DIR, originalFile);
-    const previewPath = join(GALLERY_UPLOAD_DIR, previewFile);
-    const thumbPath = join(GALLERY_UPLOAD_DIR, thumbFile);
-
-    writeFileSync(originalPath, source);
-    chmodSync(originalPath, 0o644);
-    const pipeline = sharp(source, { limitInputPixels: GALLERY_UPLOAD_MAX_PIXELS }).rotate();
-    const preview = await pipeline
-      .clone()
-      .resize({ width: GALLERY_PREVIEW_MAX_WIDTH, fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: 88 })
-      .toBuffer();
-    const thumb = await pipeline
-      .clone()
-      .resize({ width: GALLERY_THUMB_MAX_WIDTH, height: Math.round(GALLERY_THUMB_MAX_WIDTH * 0.72), fit: 'cover', position: 'attention', withoutEnlargement: true })
-      .webp({ quality: 80 })
-      .toBuffer();
-    writeFileSync(previewPath, preview);
-    writeFileSync(thumbPath, thumb);
-    chmodSync(previewPath, 0o644);
-    chmodSync(thumbPath, 0o644);
-
-    const nowIso = new Date().toISOString();
-    const records = loadGalleryRecords();
-    const item: GalleryItemRecord = {
-      id,
-      title,
-      description,
-      tag,
-      source: sourceLabel,
-      width,
-      height,
-      bytes: source.length,
-      format: actualFormat,
-      originalFile,
-      previewFile,
-      thumbFile,
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    };
-    records.items.unshift(item);
-    records.updatedAt = nowIso;
-    saveGalleryRecords(records);
-    res.json({ success: true, item: publicGalleryItem(item) });
-  } catch (err: any) {
-    console.warn('[gallery] upload failed:', err?.message || err);
-    res.status(500).json({ error: 'Не удалось обработать арт' });
-  }
-});
-
-app.delete('/api/admin/gallery/:id', adminIdGuard, (req, res) => {
-  if (!adminAuth(req)) return res.status(401).json({ error: 'Требуется вход' });
-  const id = normalizeOptionalText(req.params.id, 120);
-  if (!id) return res.status(400).json({ error: 'id обязателен' });
-  const records = loadGalleryRecords();
-  const item = records.items.find(entry => entry.id === id);
-  if (!item) return res.status(404).json({ error: 'Арт не найден' });
-  removeGalleryFiles(item);
-  records.items = records.items.filter(entry => entry.id !== id);
-  records.updatedAt = new Date().toISOString();
-  saveGalleryRecords(records);
-  res.json({ success: true });
-});
+app.use('/api', createGalleryRouter({
+  dataDir: DATA_DIR,
+  uploadDir: GALLERY_UPLOAD_DIR,
+  uploadMaxBytes: GALLERY_UPLOAD_MAX_BYTES,
+  uploadMaxPixels: GALLERY_UPLOAD_MAX_PIXELS,
+  previewMaxWidth: GALLERY_PREVIEW_MAX_WIDTH,
+  thumbMaxWidth: GALLERY_THUMB_MAX_WIDTH,
+  loadData,
+  loadDataCached,
+  invalidateDataCache: filename => dataCache.delete(filename),
+  sendJsonCached,
+  publicCacheHeader: CACHE_5M,
+  adminGuard: adminIdGuard,
+  adminAuth,
+  setPrivateNoStore,
+}));
 
 app.get('/api/articles', (req, res) => {
   const entry = loadDataCached('articles.json');
@@ -8628,15 +8363,6 @@ app.patch('/api/admin-articles', adminIdGuard, async (req, res) => {
     res.json({ success: true, article: updatedArticle });
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
-
-function detectAdminUploadFormat(buffer: Buffer): 'gif' | 'jpeg' | 'png' | 'webp' | '' {
-  if (buffer.length < 12) return '';
-  if (buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'png';
-  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'jpeg';
-  if (buffer.subarray(0, 6).toString('ascii') === 'GIF87a' || buffer.subarray(0, 6).toString('ascii') === 'GIF89a') return 'gif';
-  if (buffer.subarray(0, 4).toString('ascii') === 'RIFF' && buffer.subarray(8, 12).toString('ascii') === 'WEBP') return 'webp';
-  return '';
-}
 
 app.post('/api/admin/uploads/image', async (req, res) => {
   const canUpload = Boolean(adminAuth(req) || contestAdminAuth(req));
