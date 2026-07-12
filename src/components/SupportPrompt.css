@@ -165,7 +165,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .support-prompt--expanded {
-    animation: none !important;
+    animation: none;
   }
 }
 
@@ -177,20 +177,20 @@
 
 
 :is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .support-prompt {
-  border-color: rgba(218, 169, 70, 0.42) !important;
-  color: #fff1ca !important;
+  border-color: rgba(218, 169, 70, 0.42);
+  color: #fff1ca;
   background:
     linear-gradient(90deg, rgba(69, 5, 10, 0.2), rgba(104, 14, 19, 0.06)),
-    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
-  box-shadow: 0 14px 30px rgba(55, 16, 10, 0.24) !important;
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+  box-shadow: 0 14px 30px rgba(55, 16, 10, 0.24);
 }
 
-:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .support-prompt__trigger { color: #fff1ca !important; }
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .support-prompt__trigger { color: #fff1ca; }
 
-:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .support-prompt__dismiss { color: #d9bd83 !important; background: rgba(49, 4, 7, 0.26) !important; }
+:is(.arena-app-home, .arena-app-profile, .arena-app-editorial, .arena-app-game-data) .support-prompt__dismiss { color: #d9bd83; background: rgba(49, 4, 7, 0.26); }
 
 @media (max-width: 760px) {
   .support-prompt {
-    display: none !important;
+    display: none;
   }
 }
