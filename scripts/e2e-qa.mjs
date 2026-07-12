@@ -1623,6 +1623,158 @@ for (const [device, viewport] of [
   }
 }
 
+// Desktop sidebar: stable tavern frame, active/hover navigation and expandable groups.
+{
+  const page = await createQaPage();
+  await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
+  await mockApplicationApi(page, { authenticated: true });
+  try {
+    await page.goto(`${BASE}/classes`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await waitForMeaningfulPage(page, 'Паладин');
+    await page.waitForSelector('.arena-sidebar', { visible: true });
+    const sidebarState = await page.evaluate(() => {
+      const sidebar = document.querySelector('.arena-sidebar');
+      const brand = sidebar?.querySelector('.arena-sidebar-brand');
+      const brandName = brand?.querySelector('strong');
+      const nav = sidebar?.querySelector('.arena-sidebar-nav');
+      const section = sidebar?.querySelector('.arena-sidebar-section');
+      const inactiveLink = sidebar?.querySelector('a.arena-sidebar-link:not(.arena-sidebar-link-active)');
+      const activeLink = sidebar?.querySelector('.arena-sidebar-link-active');
+      const inactiveIcon = inactiveLink?.querySelector('.arena-sidebar-link-icon');
+      const sidebarStyles = sidebar ? getComputedStyle(sidebar) : null;
+      const brandStyles = brand ? getComputedStyle(brand) : null;
+      const navStyles = nav ? getComputedStyle(nav) : null;
+      const sectionStyles = section ? getComputedStyle(section) : null;
+      const inactiveStyles = inactiveLink ? getComputedStyle(inactiveLink) : null;
+      const activeStyles = activeLink ? getComputedStyle(activeLink) : null;
+      const rect = sidebar?.getBoundingClientRect();
+      return {
+        width: rect?.width || 0,
+        height: rect?.height || 0,
+        viewportHeight: innerHeight,
+        padding: sidebarStyles?.padding || '',
+        borderRight: sidebarStyles?.borderRightWidth || '',
+        borderImage: sidebarStyles?.borderImageSource || '',
+        borderImageWidth: sidebarStyles?.borderImageWidth || '',
+        color: sidebarStyles?.color || '',
+        background: sidebarStyles?.backgroundImage || '',
+        shadow: sidebarStyles?.boxShadow || '',
+        beforeDisplay: sidebar ? getComputedStyle(sidebar, '::before').display : '',
+        brandMinHeight: brandStyles?.minHeight || '',
+        brandPadding: brandStyles?.padding || '',
+        brandColor: brandName ? getComputedStyle(brandName).color : '',
+        brandSize: brandName ? getComputedStyle(brandName).fontSize : '',
+        brandLineHeight: brandName ? getComputedStyle(brandName).lineHeight : '',
+        brandShadow: brandName ? getComputedStyle(brandName).textShadow : '',
+        navGap: navStyles?.gap || '',
+        navMarginTop: navStyles?.marginTop || '',
+        navPadding: navStyles?.padding || '',
+        navBorderColor: navStyles?.borderTopColor || '',
+        sectionMargin: sectionStyles?.margin || '',
+        sectionColor: sectionStyles?.color || '',
+        sectionSize: sectionStyles?.fontSize || '',
+        sectionWeight: sectionStyles?.fontWeight || '',
+        linkMinHeight: inactiveStyles?.minHeight || '',
+        linkGap: inactiveStyles?.gap || '',
+        linkPadding: inactiveStyles?.padding || '',
+        linkBorderTop: inactiveStyles?.borderTopWidth || '',
+        linkBorderLeft: inactiveStyles?.borderLeftWidth || '',
+        linkRadius: inactiveStyles?.borderRadius || '',
+        linkColor: inactiveStyles?.color || '',
+        linkBackground: inactiveStyles?.backgroundColor || '',
+        linkSize: inactiveStyles?.fontSize || '',
+        linkWeight: inactiveStyles?.fontWeight || '',
+        linkShadow: inactiveStyles?.textShadow || '',
+        linkBoxShadow: inactiveStyles?.boxShadow || '',
+        iconColor: inactiveIcon ? getComputedStyle(inactiveIcon).color : '',
+        activeBorder: activeStyles?.borderLeftColor || '',
+        activeColor: activeStyles?.color || '',
+        activeBackground: activeStyles?.backgroundImage || '',
+        activeShadow: activeStyles?.boxShadow || '',
+        activeBeforeDisplay: activeLink ? getComputedStyle(activeLink, '::before').display : '',
+      };
+    });
+    if (Math.abs(sidebarState.width - 258) > 0.1
+      || sidebarState.height < sidebarState.viewportHeight
+      || sidebarState.padding !== '14.4px 11.52px'
+      || sidebarState.borderRight !== '14px'
+      || !sidebarState.borderImage.includes('main-page-rail-border.png')
+      || sidebarState.borderImageWidth !== '0 14px 0 0'
+      || sidebarState.color !== 'rgb(234, 210, 161)'
+      || !sidebarState.background.includes('arena-rail-red.jpg')
+      || sidebarState.shadow === 'none'
+      || sidebarState.beforeDisplay !== 'none'
+      || sidebarState.brandMinHeight !== '64px'
+      || sidebarState.brandPadding !== '10.4px 8.8px 12.8px'
+      || sidebarState.brandColor !== 'rgb(255, 241, 200)'
+      || sidebarState.brandSize !== '20px'
+      || sidebarState.brandLineHeight !== '21px'
+      || sidebarState.brandShadow === 'none'
+      || sidebarState.navGap !== '2.08px'
+      || sidebarState.navMarginTop !== '7.2px'
+      || sidebarState.navPadding !== '7.2px 0px'
+      || sidebarState.navBorderColor !== 'rgba(232, 192, 103, 0.2)'
+      || sidebarState.sectionMargin !== '11.52px 8.8px 4px'
+      || sidebarState.sectionColor !== 'rgb(220, 175, 85)'
+      || sidebarState.sectionSize !== '9.76px'
+      || sidebarState.sectionWeight !== '850'
+      || sidebarState.linkMinHeight !== '40px'
+      || sidebarState.linkGap !== '9.92px'
+      || sidebarState.linkPadding !== '8.32px 9.92px'
+      || sidebarState.linkBorderTop !== '0px'
+      || sidebarState.linkBorderLeft !== '3px'
+      || sidebarState.linkRadius !== '2px'
+      || sidebarState.linkColor !== 'rgb(247, 223, 176)'
+      || sidebarState.linkBackground !== 'rgba(0, 0, 0, 0)'
+      || sidebarState.linkSize !== '13.44px'
+      || sidebarState.linkWeight !== '700'
+      || sidebarState.linkShadow === 'none'
+      || sidebarState.linkBoxShadow !== 'none'
+      || sidebarState.iconColor !== 'rgb(224, 171, 66)'
+      || sidebarState.activeBorder !== 'rgb(242, 200, 93)'
+      || sidebarState.activeColor !== 'rgb(255, 247, 223)'
+      || sidebarState.activeBackground === 'none'
+      || sidebarState.activeShadow === 'none'
+      || sidebarState.activeBeforeDisplay !== 'none') {
+      failures.push(`desktop sidebar: parchment frame changed (${JSON.stringify(sidebarState)})`);
+    }
+    const hoverTarget = '.arena-sidebar a.arena-sidebar-link:not(.arena-sidebar-link-active)';
+    await page.hover(hoverTarget);
+    await new Promise(resolve => setTimeout(resolve, 220));
+    const hoveredLink = await page.$eval(hoverTarget, element => ({
+      transform: getComputedStyle(element).transform,
+      color: getComputedStyle(element).color,
+      background: getComputedStyle(element).backgroundColor,
+    }));
+    if (hoveredLink.transform !== 'matrix(1, 0, 0, 1, 2, 0)'
+      || hoveredLink.color !== 'rgb(255, 244, 212)'
+      || hoveredLink.background !== 'rgba(50, 4, 7, 0.22)') {
+      failures.push(`desktop sidebar: hover treatment changed (${JSON.stringify(hoveredLink)})`);
+    }
+    const constructorsTrigger = '[aria-controls="arena-sidebar-constructors"]';
+    await page.click(constructorsTrigger);
+    const expandedGroup = await page.$eval(constructorsTrigger, element => ({
+      expanded: element.getAttribute('aria-expanded'),
+      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hidden,
+    }));
+    if (expandedGroup.expanded !== 'true' || expandedGroup.hidden !== false) failures.push('desktop sidebar: constructors group did not expand');
+    await page.$eval(hoverTarget, element => element.focus());
+    await page.waitForFunction(selector => document.querySelector(selector)?.getAttribute('aria-expanded') === 'false', { timeout: 5_000 }, constructorsTrigger);
+    const collapsedGroup = await page.$eval(constructorsTrigger, element => ({
+      expanded: element.getAttribute('aria-expanded'),
+      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hidden,
+    }));
+    if (collapsedGroup.expanded !== 'false' || collapsedGroup.hidden !== true) failures.push('desktop sidebar: constructors group did not collapse');
+    await auditAccessibility(page, 'desktop sidebar');
+    await page.screenshot({ path: `${OUT}/desktop-sidebar.png`, fullPage: false });
+    console.log('✓ desktop sidebar frame, hover and expandable navigation');
+  } catch (error) {
+    failures.push(`desktop sidebar: ${error.message}`);
+  } finally {
+    await page.close();
+  }
+}
+
 // Mobile drawer: visible controls, grouped navigation and background scroll lock.
 {
   const page = await createQaPage();

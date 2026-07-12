@@ -166,28 +166,28 @@
 
 @media (min-width: 1024px) {
   .arena-sidebar {
-    width: 258px !important;
-    padding: 0.9rem 0.72rem !important;
-    border-right: 14px solid transparent !important;
-    border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
-    border-image-slice: 18 !important;
-    border-image-width: 0 14px 0 0 !important;
-    border-image-outset: 0 !important;
-    border-image-repeat: stretch !important;
-    color: #ead2a1 !important;
+    width: 258px;
+    padding: 0.9rem 0.72rem;
+    border-right: 14px solid transparent;
+    border-image-source: url('/wallpaper/main-page-rail-border.png');
+    border-image-slice: 18;
+    border-image-width: 0 14px 0 0;
+    border-image-outset: 0;
+    border-image-repeat: stretch;
+    color: #ead2a1;
     background:
       linear-gradient(90deg, rgba(70, 6, 10, 0.18), rgba(112, 18, 22, 0.08)),
-      url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
-    box-shadow: inset -7px 0 18px rgba(45, 5, 8, 0.16) !important;
+      url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+    box-shadow: inset -7px 0 18px rgba(45, 5, 8, 0.16);
   }
 
   .arena-sidebar::before {
-    display: none !important;
+    display: none;
   }
 
   .arena-sidebar-brand {
-    min-height: 64px !important;
-    padding: 0.65rem 0.55rem 0.8rem !important;
+    min-height: 64px;
+    padding: 0.65rem 0.55rem 0.8rem;
     border-bottom: 1px solid rgba(237, 199, 111, 0.25);
   }
 
@@ -199,64 +199,64 @@
 
   .arena-sidebar-brand strong {
     overflow: hidden;
-    color: #fff1c8 !important;
-    font-size: 1.25rem !important;
-    line-height: 1.05 !important;
+    color: #fff1c8;
+    font-size: 1.25rem;
+    line-height: 1.05;
     text-overflow: ellipsis;
-    text-shadow: 0 2px 6px rgba(39, 4, 6, 0.58) !important;
+    text-shadow: 0 2px 6px rgba(39, 4, 6, 0.58);
     white-space: nowrap;
   }
 
   .arena-sidebar-nav {
-    gap: 0.13rem !important;
-    margin-top: 0.45rem !important;
-    padding: 0.45rem 0 !important;
-    border-color: rgba(232, 192, 103, 0.2) !important;
+    gap: 0.13rem;
+    margin-top: 0.45rem;
+    padding: 0.45rem 0;
+    border-color: rgba(232, 192, 103, 0.2);
   }
 
   .arena-sidebar-section {
-    margin: 0.72rem 0.55rem 0.25rem !important;
-    color: #dcaf55 !important;
-    font-family: var(--font-body) !important;
-    font-size: 0.61rem !important;
-    font-weight: 850 !important;
-    letter-spacing: 0.12em !important;
+    margin: 0.72rem 0.55rem 0.25rem;
+    color: #dcaf55;
+    font-family: var(--font-body);
+    font-size: 0.61rem;
+    font-weight: 850;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
   }
 
   .arena-sidebar-link {
-    min-height: 40px !important;
-    gap: 0.62rem !important;
-    padding: 0.52rem 0.62rem !important;
-    border: 0 !important;
-    border-left: 3px solid transparent !important;
-    border-radius: 2px !important;
-    color: #f7dfb0 !important;
-    background: transparent !important;
-    font-family: var(--font-display) !important;
-    font-size: 0.84rem !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.012em !important;
-    line-height: 1.08 !important;
-    text-shadow: 0 2px 2px rgba(36, 4, 6, 0.68) !important;
-    box-shadow: none !important;
+    min-height: 40px;
+    gap: 0.62rem;
+    padding: 0.52rem 0.62rem;
+    border: 0;
+    border-left: 3px solid transparent;
+    border-radius: 2px;
+    color: #f7dfb0;
+    background: transparent;
+    font-family: var(--font-display);
+    font-size: 0.84rem;
+    font-weight: 700;
+    letter-spacing: 0.012em;
+    line-height: 1.08;
+    text-shadow: 0 2px 2px rgba(36, 4, 6, 0.68);
+    box-shadow: none;
   }
 
-  .arena-sidebar-link-icon { color: #e0ab42 !important; }
+  .arena-sidebar-link-icon { color: #e0ab42; }
 
   .arena-sidebar-link-active {
-    border-left-color: #f2c85d !important;
-    color: #fff7df !important;
-    background: linear-gradient(90deg, rgba(52, 4, 7, 0.55), rgba(52, 4, 7, 0.12)) !important;
-    box-shadow: inset 0 1px rgba(255, 235, 188, 0.07) !important;
+    border-left-color: #f2c85d;
+    color: #fff7df;
+    background: linear-gradient(90deg, rgba(52, 4, 7, 0.55), rgba(52, 4, 7, 0.12));
+    box-shadow: inset 0 1px rgba(255, 235, 188, 0.07);
   }
 
-  .arena-sidebar-link-active::before { display: none !important; }
+  .arena-sidebar-link-active::before { display: none; }
 
   .arena-sidebar-link:hover {
-    transform: translateX(2px) !important;
-    color: #fff4d4 !important;
-    background: rgba(50, 4, 7, 0.22) !important;
+    transform: translateX(2px);
+    color: #fff4d4;
+    background: rgba(50, 4, 7, 0.22);
   }
 
   .arena-sidebar-nav-group {

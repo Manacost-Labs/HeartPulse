@@ -1494,7 +1494,7 @@ export default function App() {
                   className={`arena-sidebar-link arena-sidebar-nav-group-trigger ${BG_BUILDER_TABS.some(tab => tab.id === activeTab) ? 'arena-sidebar-link-active' : ''}`}
                   aria-expanded={sidebarNavGroup === 'constructors'}
                   aria-controls="arena-sidebar-constructors"
-                  onClick={() => setSidebarNavGroup(group => group === 'constructors' ? null : 'constructors')}
+                  onClick={() => setSidebarNavGroup('constructors')}
                 >
                   <Grid3X3 size={19} className="arena-sidebar-link-icon flex-shrink-0" />
                   <span>Конструкторы</span>
@@ -1527,7 +1527,7 @@ export default function App() {
                   className={`arena-sidebar-link arena-sidebar-nav-group-trigger ${MISC_TABS.some(tab => tab.id === activeTab) ? 'arena-sidebar-link-active' : ''}`}
                   aria-expanded={sidebarNavGroup === 'misc'}
                   aria-controls="arena-sidebar-misc"
-                  onClick={() => setSidebarNavGroup(group => group === 'misc' ? null : 'misc')}
+                  onClick={() => setSidebarNavGroup('misc')}
                 >
                   <Gift size={19} className="arena-sidebar-link-icon flex-shrink-0" />
                   <span>Разное</span>
