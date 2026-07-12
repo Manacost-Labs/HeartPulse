@@ -997,6 +997,64 @@ for (const [device, viewport] of [
       || desktopArenaDirectory.gridBackground !== 'rgb(195, 167, 126)') {
       failures.push(`home Arena directory: desktop frame changed (${JSON.stringify(desktopArenaDirectory)})`);
     }
+    const desktopBgDirectory = await page.$eval('.home-bg-directory', element => {
+      const rootStyles = getComputedStyle(element);
+      const headingRow = element.querySelector('.home-section-heading');
+      const signLabel = element.querySelector('.home-bg-directory__sign > span');
+      const signHeading = element.querySelector('.home-bg-directory__sign h2');
+      const summary = element.querySelector('.home-section-heading > p');
+      const links = element.querySelector('.home-bg-directory__links');
+      const linkStyles = links ? getComputedStyle(links) : null;
+      const featured = element.querySelector('.home-bg-directory__link[data-featured="true"]');
+      const featuredStyles = featured ? getComputedStyle(featured) : null;
+      const featuredLabel = featured?.querySelector('small');
+      return {
+        overflow: rootStyles.overflow,
+        border: rootStyles.borderTopWidth,
+        radius: rootStyles.borderRadius,
+        color: rootStyles.color,
+        backgroundImage: rootStyles.backgroundImage,
+        shadow: rootStyles.boxShadow,
+        headingMargin: headingRow ? getComputedStyle(headingRow).marginBottom : '',
+        labelColor: signLabel ? getComputedStyle(signLabel).color : '',
+        labelSize: signLabel ? getComputedStyle(signLabel).fontSize : '',
+        headingColor: signHeading ? getComputedStyle(signHeading).color : '',
+        headingSize: signHeading ? getComputedStyle(signHeading).fontSize : '',
+        summaryColor: summary ? getComputedStyle(summary).color : '',
+        gridGap: linkStyles?.gap || '',
+        gridPadding: linkStyles?.padding || '',
+        gridBorder: linkStyles?.borderTopWidth || '',
+        gridBackground: linkStyles?.backgroundColor || '',
+        featuredHeight: featuredStyles?.minHeight || '',
+        featuredRadius: featuredStyles?.borderRadius || '',
+        featuredColor: featuredStyles?.color || '',
+        featuredBackground: featuredStyles?.backgroundColor || '',
+        featuredLabel: featuredLabel ? getComputedStyle(featuredLabel).color : '',
+      };
+    });
+    if (desktopBgDirectory.overflow !== 'visible'
+      || desktopBgDirectory.border !== '0px'
+      || desktopBgDirectory.radius !== '0px'
+      || desktopBgDirectory.color !== 'rgb(48, 37, 28)'
+      || desktopBgDirectory.backgroundImage !== 'none'
+      || desktopBgDirectory.shadow !== 'none'
+      || desktopBgDirectory.headingMargin !== '12.8px'
+      || desktopBgDirectory.labelColor !== 'rgb(217, 185, 130)'
+      || desktopBgDirectory.labelSize !== '9.28px'
+      || desktopBgDirectory.headingColor !== 'rgb(255, 240, 200)'
+      || desktopBgDirectory.headingSize !== '29.6px'
+      || desktopBgDirectory.summaryColor !== 'rgb(111, 89, 67)'
+      || desktopBgDirectory.gridGap !== '8.8px'
+      || desktopBgDirectory.gridPadding !== '11.2px'
+      || desktopBgDirectory.gridBorder !== '66px'
+      || desktopBgDirectory.gridBackground !== 'rgb(195, 167, 126)'
+      || desktopBgDirectory.featuredHeight !== '164px'
+      || desktopBgDirectory.featuredRadius !== '0px'
+      || desktopBgDirectory.featuredColor !== 'rgb(62, 47, 35)'
+      || desktopBgDirectory.featuredBackground !== 'rgba(255, 245, 218, 0.52)'
+      || desktopBgDirectory.featuredLabel !== 'rgb(125, 64, 91)') {
+      failures.push(`home Battlegrounds directory: desktop frame changed (${JSON.stringify(desktopBgDirectory)})`);
+    }
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
     const mobileHeading = await page.$eval('.home-latest-articles .home-section-heading', element => {
       const heading = element.querySelector('h2');
@@ -1029,6 +1087,30 @@ for (const [device, viewport] of [
       || mobileArenaDirectory.gridBorder !== '30px'
       || mobileArenaDirectory.gridWidth > mobileArenaDirectory.viewportWidth) {
       failures.push(`home Arena directory: mobile frame changed (${JSON.stringify(mobileArenaDirectory)})`);
+    }
+    const mobileBgDirectory = await page.$eval('.home-bg-directory', element => {
+      const heading = element.querySelector('.home-bg-directory__sign h2');
+      const links = element.querySelector('.home-bg-directory__links');
+      const linkStyles = links ? getComputedStyle(links) : null;
+      const featured = element.querySelector('.home-bg-directory__link[data-featured="true"]');
+      const featuredStyles = featured ? getComputedStyle(featured) : null;
+      return {
+        headingSize: heading ? getComputedStyle(heading).fontSize : '',
+        gridPadding: linkStyles?.padding || '',
+        gridBorder: linkStyles?.borderTopWidth || '',
+        gridWidth: links?.getBoundingClientRect().width || 0,
+        featuredHeight: featuredStyles?.minHeight || '',
+        featuredPadding: featuredStyles?.padding || '',
+        viewportWidth: document.documentElement.clientWidth,
+      };
+    });
+    if (mobileBgDirectory.headingSize !== '20.8px'
+      || mobileBgDirectory.gridPadding !== '0px'
+      || mobileBgDirectory.gridBorder !== '30px'
+      || mobileBgDirectory.featuredHeight !== '124px'
+      || mobileBgDirectory.featuredPadding !== '12.48px'
+      || mobileBgDirectory.gridWidth > mobileBgDirectory.viewportWidth) {
+      failures.push(`home Battlegrounds directory: mobile frame changed (${JSON.stringify(mobileBgDirectory)})`);
     }
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
     const faqTrigger = await page.$('.home-faq-zone .faq-card__trigger');

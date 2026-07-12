@@ -3,24 +3,24 @@
 /* ─── Battlegrounds directory ─────────────────────────────────────────── */
 
 .arena-app-home .home-bg-directory {
-  overflow: visible !important;
-  padding-inline: 0 !important;
-  padding-bottom: 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  color: var(--arena-ink) !important;
-  background: transparent !important;
-  box-shadow: none !important;
+  overflow: visible;
+  padding-inline: 0;
+  padding-bottom: 0;
+  border: 0;
+  border-radius: 0;
+  color: var(--arena-ink);
+  background: transparent;
+  box-shadow: none;
 }
 
-.arena-app-home .home-bg-directory::after { display: none !important; }
+.arena-app-home .home-bg-directory::after { display: none; }
 
 .arena-app-home .home-bg-directory .home-section-heading {
   display: grid;
   grid-template-columns: minmax(360px, 650px) minmax(220px, 1fr);
   align-items: center;
   gap: clamp(1rem, 3vw, 2.8rem);
-  margin-bottom: 0.8rem !important;
+  margin-bottom: 0.8rem;
 }
 
 .arena-app-home .home-bg-directory__sign {
@@ -34,69 +34,69 @@
   background: url('/wallpaper/battlegrounds-bartender-header.webp') center / 100% 100% no-repeat;
 }
 
-.arena-app-home .home-bg-directory__sign > span {
-  color: #d9b982 !important;
-  font-size: 0.58rem !important;
+.arena-app-home .home-bg-directory .home-bg-directory__sign > span {
+  color: #d9b982;
+  font-size: 0.58rem;
   font-weight: 850;
   letter-spacing: 0.14em;
   transform: translateY(-5px);
   text-transform: uppercase;
 }
 
-.arena-app-home .home-bg-directory__sign h2 {
-  color: #fff0c8 !important;
-  font-size: clamp(1.25rem, 2.2vw, 1.85rem) !important;
-  letter-spacing: 0 !important;
+.arena-app-home .home-bg-directory .home-bg-directory__sign h2 {
+  color: #fff0c8;
+  font-size: clamp(1.25rem, 2.2vw, 1.85rem);
+  letter-spacing: 0;
   transform: translateY(-5px);
-  text-shadow: 0 2px 3px rgba(45, 22, 10, 0.78) !important;
+  text-shadow: 0 2px 3px rgba(45, 22, 10, 0.78);
 }
 
 .arena-app-home .home-bg-directory .home-section-heading > p {
   max-width: 32rem;
-  margin: 0 !important;
+  margin: 0;
   padding-left: 0;
-  color: #6f5943 !important;
+  color: #6f5943;
 }
 
 .arena-app-home .home-bg-directory__links {
-  gap: 0.55rem !important;
-  padding: clamp(0.15rem, 1vw, 0.7rem) !important;
-  border: clamp(34px, 5.4vw, 66px) solid transparent !important;
-  border-image-source: url('/wallpaper/wiki-battlegrounds-skin.webp') !important;
-  border-image-slice: 82 fill !important;
-  border-image-width: clamp(34px, 5.4vw, 66px) !important;
-  border-image-repeat: stretch !important;
-  background: #c3a77e !important;
-  box-shadow: 0 18px 30px rgba(67, 38, 17, 0.16) !important;
+  gap: 0.55rem;
+  padding: clamp(0.15rem, 1vw, 0.7rem);
+  border: clamp(34px, 5.4vw, 66px) solid transparent;
+  border-image-source: url('/wallpaper/wiki-battlegrounds-skin.webp');
+  border-image-slice: 82 fill;
+  border-image-width: clamp(34px, 5.4vw, 66px);
+  border-image-repeat: stretch;
+  background: #c3a77e;
+  box-shadow: 0 18px 30px rgba(67, 38, 17, 0.16);
 }
 
 .arena-app-home .home-bg-directory__link {
-  min-height: 164px !important;
-  border-color: rgba(86, 52, 29, 0.3) !important;
-  border-radius: 0 !important;
-  color: #3e2f23 !important;
-  background: rgba(255, 241, 207, 0.32) !important;
-  box-shadow: 0 6px 14px rgba(75, 42, 15, 0.07) !important;
+  min-height: 164px;
+  border-color: rgba(86, 52, 29, 0.3);
+  border-radius: 0;
+  color: #3e2f23;
+  background: rgba(255, 241, 207, 0.32);
+  box-shadow: 0 6px 14px rgba(75, 42, 15, 0.07);
 }
 
 .arena-app-home .home-bg-directory__link[data-featured='true'] {
-  background: rgba(255, 245, 218, 0.52) !important;
-  border-color: rgba(112, 67, 35, 0.5) !important;
-  box-shadow: 0 8px 17px rgba(75, 42, 15, 0.11) !important;
+  background: rgba(255, 245, 218, 0.52);
+  border-color: rgba(112, 67, 35, 0.5);
+  box-shadow: 0 8px 17px rgba(75, 42, 15, 0.11);
 }
 
 .arena-app-home .home-bg-directory__link:hover {
-  transform: translateY(-3px) !important;
-  border-color: rgba(93, 48, 25, 0.5) !important;
-  background: rgba(255, 248, 227, 0.72) !important;
-  box-shadow: 0 10px 18px rgba(75, 42, 15, 0.12) !important;
+  transform: translateY(-3px);
+  border-color: rgba(93, 48, 25, 0.5);
+  background: rgba(255, 248, 227, 0.72);
+  box-shadow: 0 10px 18px rgba(75, 42, 15, 0.12);
 }
 
-.arena-app-home .home-bg-directory__link small { color: #7d405b !important; }
+.arena-app-home .home-bg-directory__link small { color: #7d405b; }
 .arena-app-home .home-bg-directory__link strong,
-.arena-app-home .home-bg-directory__link[data-featured='true'] strong { color: #3e2c20 !important; }
-.arena-app-home .home-bg-directory__link span span { color: #77634c !important; }
-.arena-app-home .home-bg-directory__link > b { color: #7d405b !important; }
+.arena-app-home .home-bg-directory__link[data-featured='true'] strong { color: #3e2c20; }
+.arena-app-home .home-bg-directory__link span span { color: #77634c; }
+.arena-app-home .home-bg-directory__link > b { color: #7d405b; }
 
 @media (max-width: 860px) {
   .arena-app-home .home-bg-directory .home-section-heading {
@@ -122,19 +122,19 @@
 
   .arena-app-home .home-bg-directory__sign > span { display: none; }
 
-  .arena-app-home .home-bg-directory__sign h2 {
-    font-size: clamp(1.05rem, 6vw, 1.3rem) !important;
+  .arena-app-home .home-bg-directory .home-bg-directory__sign h2 {
+    font-size: clamp(1.05rem, 6vw, 1.3rem);
   }
 
   .arena-app-home .home-bg-directory__links {
-    padding: 0 !important;
-    border-width: 30px !important;
-    border-image-width: 30px !important;
+    padding: 0;
+    border-width: 30px;
+    border-image-width: 30px;
   }
 
   .arena-app-home .home-bg-directory__link,
   .arena-app-home .home-bg-directory__link[data-featured='true'] {
-    min-height: 124px !important;
-    padding: 0.78rem !important;
+    min-height: 124px;
+    padding: 0.78rem;
   }
 }
