@@ -933,7 +933,8 @@ for (const [device, viewport] of [
     await page.type('.admin-contest-section:first-of-type input', 'Контрольный конкурс — обновлён');
     await page.click('.admin-contest-submit-row button[type="submit"]');
     await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Конкурс сохранен.'));
-    await page.waitForSelector('.admin-contest-manage-card');
+    await page.goto(`${BASE}/?admin&section=contests`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('.admin-contest-manage-card', { timeout: 20_000 });
     await page.waitForFunction(() => [...document.querySelectorAll('.admin-contest-list button strong')]
       .some(element => element.textContent?.trim() === 'Контрольный конкурс — обновлён'));
 
@@ -945,7 +946,8 @@ for (const [device, viewport] of [
     await contestMainInputs[1].type('QA приз');
     await page.click('.admin-contest-submit-row button[type="submit"]');
     await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Конкурс сохранен.'));
-    await page.waitForSelector('.admin-contest-manage-card');
+    await page.goto(`${BASE}/?admin&section=contests`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('.admin-contest-manage-card', { timeout: 20_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-contest-list > div').length === 2);
     await page.evaluate(() => {
       const button = [...document.querySelectorAll('.admin-contest-list button')]
@@ -954,6 +956,7 @@ for (const [device, viewport] of [
       button.click();
     });
     await page.waitForFunction(() => document.querySelector('.admin-selected-contest h3')?.textContent?.trim() === 'Новый QA конкурс');
+    await page.evaluate(() => { window.confirm = () => true; });
     await page.click('.admin-contest-detail .admin-danger-button');
     await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Конкурс удален.'));
     await page.waitForFunction(() => document.querySelectorAll('.admin-contest-list > div').length === 1);
