@@ -462,17 +462,7 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
   // Rendered via portal — completely outside app stacking context
   return createPortal(
     <div
-      className="card-modal-lightbox"
-      style={{
-        position: 'fixed', inset: 0,
-        zIndex: 99999,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '16px',
-        opacity: visible ? 1 : 0,
-        transition: 'opacity 0.22s ease',
-        userSelect: 'none',
-        WebkitTapHighlightColor: 'transparent',
-      }}
+      className={`card-modal-lightbox${visible ? ' is-visible' : ''}`}
       /* Desktop: click backdrop → close */
       onClick={onClose}
       /* Mobile: record touch start, close only if finger barely moved (tap, not scroll) */
@@ -492,31 +482,11 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
       }}
     >
       {/* Backdrop */}
-      <div className="card-modal-backdrop card-modal-backdrop--parchment" style={{
-        position: 'absolute', inset: 0,
-        background: 'rgba(0,0,0,0.87)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-      }} />
+      <div className="card-modal-backdrop card-modal-backdrop--parchment" />
 
       {/* Card container — stops propagation so tapping/scrolling card doesn't close modal */}
       <div
-        className="card-modal-shell card-modal-shell--parchment"
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          display: 'grid',
-          gridTemplateColumns: 'minmax(230px, 360px) minmax(280px, 380px)',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '28px',
-          maxWidth: '940px', width: '100%',
-          maxHeight: '90dvh',
-          overflowY: 'auto',
-          WebkitOverflowScrolling: 'touch',
-          transform: visible ? 'scale(1) translateY(0)' : 'scale(0.72) translateY(40px)',
-          transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
-        }}
+        className={`card-modal-shell card-modal-shell--parchment${visible ? ' is-visible' : ''}`}
         onClick={e => e.stopPropagation()}
         onTouchStart={e => e.stopPropagation()}
         onTouchEnd={e => e.stopPropagation()}
@@ -527,7 +497,6 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
             height={548}
             decoding="async"
             className="card-modal-image"
-            style={{ width: '100%', maxWidth: '360px', height: 'auto', filter: 'drop-shadow(0 24px 60px rgba(0,0,0,0.95))' }}
             draggable={false} />
         ) : (
           <div style={{
@@ -589,14 +558,6 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
       {/* Close button */}
       <button
         className="card-modal-close card-modal-close--parchment"
-        style={{
-          position: 'absolute', top: '16px', right: '16px', zIndex: 2,
-          width: '44px', height: '44px', borderRadius: '50%',
-          background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'rgba(255,255,255,0.75)', cursor: 'pointer', transition: 'all 0.2s',
-          touchAction: 'manipulation',
-        }}
         onClick={e => { e.stopPropagation(); onClose(); }}
         aria-label="Закрыть"
       >

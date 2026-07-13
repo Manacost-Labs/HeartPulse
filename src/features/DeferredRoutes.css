@@ -290,20 +290,64 @@
     font-weight: 900;
   }
 
+  .card-modal-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    opacity: 0;
+    transition: opacity 0.22s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .card-modal-lightbox.is-visible {
+    opacity: 1;
+  }
+
+  .card-modal-backdrop {
+    position: absolute;
+    inset: 0;
+  }
+
   .card-modal-shell {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(230px, 360px) minmax(280px, 380px);
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    width: 100%;
+    max-width: 940px;
+    max-height: 90dvh;
+    overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
     scrollbar-color: rgba(96, 165, 250, 0.36) transparent;
     padding: 0.5rem;
+    transform: scale(0.72) translateY(40px);
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .card-modal-shell.is-visible {
+    transform: scale(1) translateY(0);
   }
 
   .card-modal-image {
     justify-self: center;
+    width: 100%;
+    max-width: 360px;
+    height: auto;
     max-height: min(76dvh, 620px);
     object-fit: contain;
     filter:
       drop-shadow(0 24px 42px rgba(0, 0, 0, 0.48))
-      drop-shadow(0 7px 14px rgba(15, 23, 42, 0.34)) !important;
+      drop-shadow(0 7px 14px rgba(15, 23, 42, 0.34));
   }
 
   .card-modal-stats {
@@ -2606,41 +2650,57 @@
     color: #d9be8c !important;
   }
 
+  .card-modal-close.card-modal-close--parchment {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 2;
+    display: flex;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+    touch-action: manipulation;
+  }
+
   .card-modal-shell.card-modal-shell--parchment {
-    width: min(940px, calc(100vw - 88px)) !important;
-    max-height: calc(100dvh - 20px) !important;
-    grid-template-columns: minmax(190px, 360px) minmax(280px, 400px) !important;
-    gap: clamp(1rem, 2.4vw, 1.75rem) !important;
+    width: min(940px, calc(100vw - 88px));
+    max-height: calc(100dvh - 20px);
+    grid-template-columns: minmax(190px, 360px) minmax(280px, 400px);
+    gap: clamp(1rem, 2.4vw, 1.75rem);
     padding: 0.3rem !important;
-    overflow: visible !important;
+    overflow: visible;
   }
 
   .card-modal-shell--parchment .card-modal-image {
-    width: auto !important;
-    max-width: min(360px, 36vw) !important;
-    height: min(76dvh, 620px) !important;
-    max-height: calc(100dvh - 28px) !important;
-    object-fit: contain !important;
+    width: auto;
+    max-width: min(360px, 36vw);
+    height: min(76dvh, 620px);
+    max-height: calc(100dvh - 28px);
+    object-fit: contain;
   }
 
   .card-modal-stats.card-modal-stats--parchment {
-    max-height: calc(100dvh - 28px) !important;
-    overflow: hidden !important;
+    max-height: calc(100dvh - 28px);
+    overflow: hidden;
   }
 
   @media (max-height: 760px) and (min-width: 768px) {
     .card-modal-shell.card-modal-shell--parchment {
-      width: min(860px, calc(100vw - 88px)) !important;
-      grid-template-columns: minmax(180px, 330px) minmax(280px, 370px) !important;
-      gap: clamp(0.75rem, 2vw, 1.25rem) !important;
+      width: min(860px, calc(100vw - 88px));
+      grid-template-columns: minmax(180px, 330px) minmax(280px, 370px);
+      gap: clamp(0.75rem, 2vw, 1.25rem);
     }
     }
 
   @media (max-height: 760px) and (min-width: 768px) {
 
     .card-modal-shell--parchment .card-modal-image {
-      max-width: min(330px, 34vw) !important;
-      height: calc(100dvh - 24px) !important;
+      max-width: min(330px, 34vw);
+      height: calc(100dvh - 24px);
     }
     }
 
@@ -2717,24 +2777,24 @@
 
   @media (max-width: 767px) {
     .card-modal-shell.card-modal-shell--parchment {
-      width: min(360px, calc(100vw - 20px)) !important;
-      max-width: min(360px, calc(100vw - 20px)) !important;
-      max-height: calc(100dvh - 10px) !important;
-      grid-template-columns: minmax(0, 1fr) !important;
-      grid-template-rows: minmax(0, 28dvh) auto !important;
-      gap: 0.35rem !important;
+      width: min(360px, calc(100vw - 20px));
+      max-width: min(360px, calc(100vw - 20px));
+      max-height: calc(100dvh - 10px);
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(0, 28dvh) auto;
+      gap: 0.35rem;
       padding: 0 !important;
-      overflow: hidden !important;
+      overflow: hidden;
     }
     }
 
   @media (max-width: 767px) {
 
     .card-modal-shell--parchment .card-modal-image {
-      width: auto !important;
-      max-width: min(230px, 62vw) !important;
-      height: 28dvh !important;
-      max-height: 230px !important;
+      width: auto;
+      max-width: min(230px, 62vw);
+      height: 28dvh;
+      max-height: 230px;
     }
     }
 
@@ -2812,15 +2872,15 @@
 
   @media (max-height: 680px) and (max-width: 767px) {
     .card-modal-shell.card-modal-shell--parchment {
-      grid-template-rows: minmax(0, 22dvh) auto !important;
+      grid-template-rows: minmax(0, 22dvh) auto;
     }
     }
 
   @media (max-height: 680px) and (max-width: 767px) {
 
     .card-modal-shell--parchment .card-modal-image {
-      height: 22dvh !important;
-      max-height: 150px !important;
+      height: 22dvh;
+      max-height: 150px;
     }
     }
 

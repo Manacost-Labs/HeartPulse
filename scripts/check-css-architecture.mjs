@@ -4,7 +4,7 @@ import { join, relative } from 'node:path';
 const ROOT = process.cwd();
 const SRC = join(ROOT, 'src');
 const TOKEN_FILE = 'src/styles/tokens.css';
-const MAX_IMPORTANT_DECLARATIONS = 1763;
+const MAX_IMPORTANT_DECLARATIONS = 1731;
 const RETIRED_OWNERLESS_CSS_FRAGMENTS = [
   '.home-modern .hs-card',
   '.home-modern > section',

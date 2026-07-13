@@ -11,7 +11,7 @@ const budgets = {
   initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 263_000),
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 90_000),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 190_000),
-  routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 118_000),
+  routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 116_000),
   css: Number(process.env.BUDGET_CSS_BYTES || 143_000),
   routeCss: Number(process.env.BUDGET_ROUTE_CSS_BYTES || 48_000),
   deferredRoutesCss: Number(process.env.BUDGET_DEFERRED_ROUTES_CSS_BYTES || 67_000),

@@ -2786,20 +2786,33 @@ for (const [device, viewport] of [
       const shell = style('.card-modal-shell');
       const stats = style('.card-modal-stats');
       const close = style('.card-modal-close');
+      const inlineOwners = [
+        '.card-modal-lightbox',
+        '.card-modal-backdrop',
+        '.card-modal-shell',
+        '.card-modal-image',
+        '.card-modal-close',
+      ].filter(selector => document.querySelector(selector)?.hasAttribute('style'));
       return {
         backdropImage: backdrop.backgroundImage,
         shellImage: shell.backgroundImage,
         shellBorderImage: shell.borderImageSource,
         shellBorderWidth: Number.parseFloat(shell.borderTopWidth),
+        shellColumns: shell.gridTemplateColumns,
         statsBackground: stats.backgroundColor,
         closeBackground: close.backgroundImage,
+        closeSize: [close.width, close.height],
+        inlineOwners,
       };
     });
     if (!material.backdropImage.includes('arena-rail-red.jpg')) failures.push('lightbox: canonical red backdrop texture is missing');
     if (!material.shellImage.includes('arena-rail-red.jpg')) failures.push('lightbox: canonical red panel texture is missing');
     if (!material.shellBorderImage.includes('main-page-rail-border.png') || material.shellBorderWidth < 9) failures.push('lightbox: wooden panel frame is missing');
+    if (material.shellColumns === 'none') failures.push('lightbox: responsive CSS owner did not establish the card grid');
     if (material.statsBackground !== 'rgba(45, 3, 7, 0.56)') failures.push(`lightbox: unexpected stats material ${material.statsBackground}`);
     if (!material.closeBackground.includes('linear-gradient')) failures.push('lightbox: shared close-button material is missing');
+    if (material.closeSize[0] !== '44px' || material.closeSize[1] !== '44px') failures.push(`lightbox: close target is ${material.closeSize.join(' × ')}`);
+    if (material.inlineOwners.length) failures.push(`lightbox: presentation leaked back into inline styles (${material.inlineOwners.join(', ')})`);
     const locked = await page.evaluate(() => ({
       bodyPosition: getComputedStyle(document.body).position,
       htmlOverflow: getComputedStyle(document.documentElement).overflow,
