@@ -1,12 +1,21 @@
-# Manacost Arena
+<!-- markdownlint-disable MD033 MD041 -->
 
-**Русскоязычная аналитическая платформа для Арены и Полей Сражений
-Hearthstone.**
+<p align="center">
+  <img src="public/favicon-192.png" width="96" height="96" alt="Manacost Arena">
+</p>
 
-[Открыть платформу](https://arena.hs-manacost.ru) ·
-[Стабилизация](STABILIZATION.md) ·
-[Дизайн и ассеты](assets.md) ·
-[Деплой](DEPLOYMENT.md)
+<h1 align="center">Manacost Arena</h1>
+
+<p align="center">
+  Русскоязычная аналитическая платформа для Арены и Полей Сражений Hearthstone.
+</p>
+
+<p align="center">
+  <a href="https://arena.hs-manacost.ru">Открыть production</a> ·
+  <a href="STABILIZATION.md">Надёжность</a> ·
+  <a href="assets.md">Дизайн и ассеты</a> ·
+  <a href="DEPLOYMENT.md">Деплой</a>
+</p>
 
 [![CI][ci-badge]][ci-workflow]
 [![Production][production-badge]][production-health]
@@ -19,6 +28,21 @@ Hearthstone.**
 > Production-ready React/TypeScript-приложение с Express API, атомарными
 > релизами, desktop/mobile E2E, accessibility-аудитом и безопасными
 > stale-fallback контрактами для внешних источников данных.
+
+## Зачем этот проект
+
+Manacost Arena превращает разрозненные игровые данные в один быстрый рабочий
+экран: перед драфтом можно проверить лидирующие классы и карты, во время игры —
+открыть нужный тир-лист, а для Полей Сражений — перейти к героям, библиотеке или
+конструктору стратегии. Редакционные мета-отчёты находятся рядом со статистикой,
+поэтому контекст не теряется между несколькими сервисами.
+
+- **Актуальные данные:** классы, карты и легендарные группы, источник и время
+  обновления, durable snapshots при сбое upstream.
+- **Игровые инструменты:** герои, BG-библиотека, конструкторы, поиск, фильтры,
+  mobile lightbox, профиль, статьи, гайды и конкурсы.
+- **Production-контур:** immutable releases, автоматический rollback, security
+  contracts, encrypted backup, desktop/mobile E2E и zero-axe gate.
 
 | Быстрый вход | Ссылка |
 | --- | --- |
@@ -40,13 +64,14 @@ Manacost Arena объединяет актуальную статистику, �
 Desktop и mobile проходят один и тот же набор функциональных, адаптивных и
 accessibility-проверок перед каждым релизом.
 
-## Интерфейс
+## Интерфейс production
 
 ![Последние статьи и раздел Полей Сражений](docs/screenshots/home-sections.png)
 
 ![Главная страница Manacost Arena на телефоне](docs/screenshots/home-mobile.png)
 
-Актуальные кадры production можно воспроизвести одной командой:
+Скриншоты снимаются прямо с production в desktop и mobile viewport. Их можно
+воспроизвести одной командой:
 
 ```bash
 npm run docs:screenshots
