@@ -225,6 +225,7 @@ A task is complete only when all relevant checks below are proven.
   - [x] User action popovers now rely on their semantic menu owners for wrapper, label, hint and divider styling instead of ten forced declarations; desktop/mobile keyboard E2E locks the computed menu visuals, and the global ceiling is 1,855.
   - [x] The profile card and hero shell now use semantic route CSS owners instead of inline and initial-shell layout declarations, so mobile spacing, status reflow and hero alignment no longer depend on cross-file masking; desktop/mobile E2E locks the framed hero asset, semantic flex body, two-column mobile status grid, horizontal reflow and zero axe violations, and the global ceiling is 1,846.
   - [x] Profile status chips now have one route-owned cascade instead of inline, initial-shell and mobile `!important` declarations; the authenticated desktop/mobile profile checks preserve their layout while the global ceiling falls to 1,805.
+  - [x] Removed four legacy profile panels that were still rendered only to be hidden by route CSS, deleting 264 lines of unreachable JSX/CSS, lowering the global `!important` ceiling to 1,801 and ratcheting the initial-CSS/route-JS budgets to 143/118 KB.
   - [ ] Replace legacy overrides route by route and ratchet the `!important` ceiling down after every verified batch.
   - [ ] Establish explicit reset, base, component, route and override layers once all participating stylesheets can enter the layer order without changing precedence.
 - [ ] Phase 4: modular API, runtime validation and durable data snapshots.

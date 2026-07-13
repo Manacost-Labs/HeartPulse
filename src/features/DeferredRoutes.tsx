@@ -3077,28 +3077,6 @@ function shortProfileIdentifier(value: string) {
   return value.length > 18 ? `${value.slice(0, 8)}...${value.slice(-6)}` : value;
 }
 
-function ProfileStatCard({
-  label,
-  value,
-  hint,
-  title,
-  compact = false,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-  title?: string;
-  compact?: boolean;
-}) {
-  return (
-    <div className={`profile-stat-card${compact ? ' profile-stat-card-compact' : ''}`}>
-      <span className="profile-stat-label">{label}</span>
-      <strong className="profile-stat-value" title={title || value}>{value}</strong>
-      <span className="profile-stat-hint">{hint}</span>
-    </div>
-  );
-}
-
 const AdminArticleRow = memo(function AdminArticleRow({
   article,
   deleting,
@@ -3586,16 +3564,10 @@ export function LoginPanel({
       : isRealAuthEmail(authUser.email)
         ? 'Email привязан'
         : 'Профиль без email';
-    const profileContacts = [
-      { label: 'Telegram', value: authUser.contactTelegram || authUser.telegramUsername || 'Не указан' },
-      { label: 'VK', value: authUser.contactVkUrl || 'Не указан' },
-      { label: 'Почта для связи', value: authUser.contactEmail || (isRealAuthEmail(authUser.email) ? authUser.email : 'Не указана') },
-    ];
     const telegramLinkBotUrl = telegramBotUsername && telegramLinkCode
       ? `https://t.me/${telegramBotUsername}?start=${encodeURIComponent(telegramLinkCode)}`
       : '';
     const telegramLinkExpiresLabel = telegramLinkExpiresAt ? formatSubscriptionDate(telegramLinkExpiresAt) : '';
-    const approvedContestCount = contestHistory.filter(item => item.entryStatus === 'approved').length;
     const wonContestCount = contestHistory.filter(item => item.isWinner).length;
     const profileId = authUser.profileId || authUser.id || '—';
     const profileIdDisplay = shortProfileIdentifier(profileId);
@@ -3653,43 +3625,6 @@ export function LoginPanel({
               </div>
             </div>
           </div>
-          <div className="profile-summary-strip" style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            marginBottom: '18px',
-            padding: '12px 14px',
-            borderRadius: '14px',
-            background: 'linear-gradient(135deg, rgba(15,23,42,0.06), rgba(37,99,235,0.08))',
-            border: '1px solid rgba(148,163,184,0.38)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-              <img src="/assets/manacost-avatar.jpeg" alt="" style={{ width: 36, height: 36, borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }} />
-              <div style={{ minWidth: 0, textAlign: 'left' }}>
-                <strong style={{ display: 'block', color: '#1e293b', fontSize: '14px' }}>Паспорт профиля Манакоста</strong>
-                <span style={{ display: 'block', color: '#64748b', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  ID: <code className="profile-summary-id" title={profileId} style={{ background: '#e2e8f0', padding: '1px 6px', borderRadius: '6px' }}>{profileIdDisplay}</code>
-                </span>
-              </div>
-            </div>
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '7px 10px',
-              borderRadius: '999px',
-            background: subscriptionPending ? '#e0f2fe' : subscription?.hasAccess ? '#dcfce7' : '#f1f5f9',
-            color: subscriptionPending ? '#075985' : subscription?.hasAccess ? '#065f46' : '#334155',
-            border: subscriptionPending ? '1px solid #7dd3fc' : subscription?.hasAccess ? '1px solid #86efac' : '1px solid #cbd5e1',
-              fontSize: '12px',
-              fontWeight: 800,
-              flexShrink: 0,
-            }}>
-              <Trophy size={14} />
-              {subscriptionPending ? 'Проверяем доступ' : subscription?.hasAccess ? 'Платный подписчик' : 'Участник'}
-            </span>
-          </div>
           {msg && (
             <div className={`profile-message profile-message--${msg.type}`} role={msg.type === 'err' ? 'alert' : 'status'} aria-live="polite" style={{
               marginBottom: '14px',
@@ -3702,50 +3637,12 @@ export function LoginPanel({
               {msg.text}
             </div>
           )}
-          <div className="profile-stat-grid">
-            <ProfileStatCard label="ID профиля" value={profileIdDisplay} title={profileId} hint="Единая база Манакоста" compact />
-            <ProfileStatCard label="Роль" value={profileRoleLabel} hint="Уровень доступа" />
-            <ProfileStatCard label="Страна" value={authUser.country || 'Не указана'} hint="Данные профиля" />
-            <ProfileStatCard label="Рассылка" value={authUser.newsletterOptIn ? 'Подписан' : 'Не подписан'} hint="Новости и обновления" />
-            <ProfileStatCard label="Конкурсы" value={approvedContestCount ? String(approvedContestCount) : '0'} hint="Одобренные участия" />
-            <ProfileStatCard label="Победы" value={wonContestCount ? String(wonContestCount) : '0'} hint="ID в победителях" />
-          </div>
           <section className="profile-contact-section" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))',
             gap: '14px',
             marginBottom: '18px',
           }}>
-            <div className="profile-contact-readonly" style={{
-              padding: '16px',
-              borderRadius: '16px',
-              border: '1px solid #cbd7ea',
-              background: 'rgba(248,250,255,0.78)',
-              textAlign: 'left',
-            }}>
-              <strong style={{ display: 'block', color: '#1e293b', fontSize: '16px', marginBottom: '5px' }}>Контакты профиля</strong>
-              <p style={{ margin: '0 0 12px', color: '#64748b', fontSize: '12px', lineHeight: 1.45 }}>
-                Эти данные видны администрации при участии в конкурсах и нужны для связи с победителями.
-              </p>
-              <div style={{ display: 'grid', gap: '8px' }}>
-                {profileContacts.map(item => (
-                  <div key={item.label} className="profile-contact-row" style={{
-                    display: 'grid',
-                    gridTemplateColumns: '130px minmax(0, 1fr)',
-                    gap: '10px',
-                    padding: '9px 10px',
-                    borderRadius: '10px',
-                    background: '#f8faff',
-                    border: '1px solid #d7e1ef',
-                  }}>
-                    <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{item.label}</span>
-                    <span style={{ color: item.value === 'Не указан' || item.value === 'Не указана' ? '#94a3b8' : '#1e293b', fontSize: '13px', fontWeight: 700, overflowWrap: 'anywhere' }}>
-                      {item.value}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
             <form
               className="profile-settings-form"
               onSubmit={handleProfileSave}
@@ -3807,54 +3704,6 @@ export function LoginPanel({
               </button>
             </form>
           </section>
-          <form
-            className="profile-settings-form-legacy"
-            onSubmit={handleProfileSave}
-            style={{
-              display: 'none',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: '10px',
-              alignItems: 'end',
-              marginBottom: '18px',
-              padding: '14px',
-              borderRadius: '14px',
-              border: '1px solid #cbd7ea',
-              background: 'rgba(248,250,255,0.72)',
-            }}
-          >
-            <div style={{ gridColumn: '1 / -1', textAlign: 'left' }}>
-              <strong style={{ display: 'block', color: '#1e293b', fontSize: '15px' }}>Настройки профиля</strong>
-              <span style={{ display: 'block', color: '#64748b', fontSize: '12px', marginTop: '3px' }}>
-                Страна и рассылка используются во всей экосистеме Манакоста.
-              </span>
-            </div>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', color: '#334155', fontSize: '12px', textAlign: 'left' }}>
-              Страна
-              <select value={profileCountry} onChange={e => setProfileCountry(e.target.value)} style={ADMIN_INPUT}>
-                <option value="">Не указана</option>
-                {COUNTRY_OPTIONS.map(item => <option key={item} value={item}>{item}</option>)}
-              </select>
-            </label>
-            <label style={{ display: 'flex', gap: '9px', alignItems: 'center', color: '#334155', fontSize: '13px', textAlign: 'left', minHeight: 42 }}>
-              <input
-                type="checkbox"
-                checked={profileNewsletter}
-                onChange={e => setProfileNewsletter(e.target.checked)}
-                style={{ accentColor: '#2563eb' }}
-              />
-              <span>Получать рассылку Манакоста</span>
-            </label>
-            <button type="submit" disabled={loading} style={{
-              ...ADMIN_SECONDARY_BUTTON,
-              minHeight: 42,
-              background: 'linear-gradient(135deg,#2563eb,#0f4eb8)',
-              color: '#f8faff',
-              borderColor: '#60a5fa',
-              cursor: loading ? 'wait' : 'pointer',
-            }}>
-              Сохранить
-            </button>
-          </form>
           <section className={`profile-subscription-panel ${subscription?.hasAccess ? 'profile-subscription-panel--active' : ''}`} style={{
             marginBottom: '18px',
             padding: '16px',

@@ -899,7 +899,6 @@
     white-space: nowrap;
   }
 
-  .profile-summary-strip,
   .profile-subscription-panel {
     min-height: 78px;
   }
@@ -1659,13 +1658,6 @@
 
 .profile-workspace .profile-status-chip + .profile-status-chip {
   border-left: 1px solid #c9d6e1;
-}
-
-.profile-workspace .profile-summary-strip,
-.profile-workspace .profile-stat-grid,
-.profile-workspace .profile-contact-readonly,
-.profile-workspace .profile-settings-form-legacy {
-  display: none !important;
 }
 
 .profile-workspace .profile-message {
