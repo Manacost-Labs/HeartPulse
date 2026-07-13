@@ -62,6 +62,7 @@ import {
   unsubscribeNewsletterContact,
   type NewsletterUnsubscribeStore,
 } from './newsletterUnsubscribeRoutes.js';
+import { createAdminUserReadRouter } from './adminUserReadRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -7111,127 +7112,43 @@ app.use('/api', createAdminContestMutationRouter({
   setPrivateNoStore,
 }));
 
-app.get('/api/admin/users', (req, res) => {
-  const admin = adminAuth(req);
-  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  const q = normalizeOptionalText(req.query.q, 120).toLowerCase();
-  const role = normalizeOptionalText(req.query.role, 40);
-  const subscription = normalizeOptionalText(req.query.subscription, 40);
-  const limit = Math.min(200, Math.max(10, Number(req.query.limit || 100) || 100));
-  const offset = Math.max(0, Number(req.query.offset || 0) || 0);
-  const where: string[] = [];
-  const params: any[] = [];
+app.use('/api', createAdminUserReadRouter({
+  adminAuth,
+  repository: {
+    get: (sql, ...params) => dbGet<any>(sql, ...params) ?? null,
+    all: (sql, ...params) => dbAll<any>(sql, ...params),
+  },
+  subscriptionForUser: (row, lifetimeAccess) => {
+    const boosty = normalizeBoostySubscriptionDetail(safeJsonObject(row.boosty_json));
+    const telegram = normalizeTelegramSubscriptionDetail(safeJsonObject(row.telegram_json));
+    const providerSource = String(row.subscription_source || 'none');
+    const source = lifetimeAccess
+      ? providerSource === 'none' ? 'manual-lifetime' : `${providerSource},manual-lifetime`
+      : providerSource;
+    const entitlements = lifetimeAccess
+      ? allEntitlements()
+      : deriveStoredEntitlements(Boolean(row.has_access), source, boosty, telegram);
+    return {
+      hasAccess: hasAnyEntitlement(entitlements), source,
+      message: lifetimeAccess ? 'Бессрочный доступ выдан администратором.' : String(row.subscription_message || ''),
+      checkedAt: row.subscription_checked_at ? String(row.subscription_checked_at) : '',
+      updatedAt: row.subscription_updated_at ? String(row.subscription_updated_at) : '',
+      entitlements, boosty, telegram,
+    };
+  },
+  subscriptionForSearchUser: row => {
+    const source = String(row.subscription_source || 'none');
+    const boosty = normalizeBoostySubscriptionDetail(safeJsonObject(row.boosty_json));
+    const telegram = normalizeTelegramSubscriptionDetail(safeJsonObject(row.telegram_json));
+    const entitlements = deriveStoredEntitlements(Boolean(row.has_access), source, boosty, telegram);
+    return {
+      hasAccess: hasAnyEntitlement(entitlements), source,
+      checkedAt: row.subscription_checked_at ? String(row.subscription_checked_at) : '', entitlements,
+    };
+  },
+  setPrivateNoStore,
+}));
 
-  if (q) {
-    const like = `%${q}%`;
-    where.push(`(
-      lower(u.id) LIKE ?
-      OR lower(u.email) LIKE ?
-      OR lower(u.name) LIKE ?
-      OR lower(COALESCE(u.contact_vk_url, '')) LIKE ?
-      OR lower(COALESCE(u.contact_telegram, '')) LIKE ?
-      OR lower(COALESCE(u.contact_email, '')) LIKE ?
-      OR lower(COALESCE(tg.username, '')) LIKE ?
-      OR lower(COALESCE(tg.provider_user_id, '')) LIKE ?
-    )`);
-    params.push(like, like, like, like, like, like, like, like);
-  }
-  if (role === 'admin' || role === 'user') {
-    where.push('u.role = ?');
-    params.push(role);
-  }
-  if (subscription === 'active') where.push('(COALESCE(s.has_access, 0) = 1 OR COALESCE(g.active, 0) = 1)');
-  if (subscription === 'inactive') where.push('(COALESCE(s.has_access, 0) = 0 AND COALESCE(g.active, 0) = 0)');
-
-  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
-  const total = dbGet<{ count: number }>(`
-    SELECT COUNT(*) AS count
-    FROM users u
-    LEFT JOIN identities tg ON tg.user_id = u.id AND tg.provider = 'telegram'
-    LEFT JOIN subscriptions s ON s.user_id = u.id
-    LEFT JOIN manual_subscription_grants g ON g.user_id = u.id
-    ${whereSql}
-  `, ...params)?.count ?? 0;
-  const users = dbAll<any>(`
-    SELECT
-      u.*,
-      tg.provider_user_id AS telegram_id,
-      tg.username AS telegram_username,
-      tg.photo_url AS telegram_photo_url,
-      oidc.provider_user_id AS telegram_oidc_id,
-      s.has_access,
-      s.source AS subscription_source,
-      s.message AS subscription_message,
-      s.checked_at AS subscription_checked_at,
-      s.updated_at AS subscription_updated_at,
-      s.boosty_json,
-      s.telegram_json,
-      g.active AS lifetime_access,
-      g.granted_at AS lifetime_granted_at,
-      (
-        SELECT COUNT(*) FROM contest_entries e WHERE e.user_id = u.id
-      ) AS contest_entries_count
-    FROM users u
-    LEFT JOIN identities tg ON tg.user_id = u.id AND tg.provider = 'telegram'
-    LEFT JOIN identities oidc ON oidc.user_id = u.id AND oidc.provider = 'telegram_oidc'
-    LEFT JOIN subscriptions s ON s.user_id = u.id
-    LEFT JOIN manual_subscription_grants g ON g.user_id = u.id
-    ${whereSql}
-    ORDER BY u.updated_at DESC, u.created_at DESC
-    LIMIT ? OFFSET ?
-  `, ...params, limit, offset);
-
-  res.json({
-    users: users.map(row => ({
-      id: String(row.id),
-      profileId: String(row.id),
-      name: String(row.name || ''),
-      email: String(row.email || ''),
-      role: String(row.role || 'user'),
-      country: String(row.country || ''),
-      newsletterOptIn: Boolean(row.newsletter_opt_in),
-      avatarInitials: String(row.avatar_initials || ''),
-      telegramId: String(row.telegram_id || ''),
-      telegramUsername: String(row.telegram_username || ''),
-      telegramOidcId: String(row.telegram_oidc_id || ''),
-      photoUrl: String(row.telegram_photo_url || ''),
-      contactVkUrl: String(row.contact_vk_url || ''),
-      contactTelegram: String(row.contact_telegram || ''),
-      contactEmail: String(row.contact_email || ''),
-      blockedAt: String(row.blocked_at || ''),
-      lifetimeAccess: Boolean(row.lifetime_access),
-      lifetimeGrantedAt: String(row.lifetime_granted_at || ''),
-      subscription: (() => {
-        const boosty = normalizeBoostySubscriptionDetail(safeJsonObject(row.boosty_json));
-        const telegram = normalizeTelegramSubscriptionDetail(safeJsonObject(row.telegram_json));
-        const lifetimeAccess = Boolean(row.lifetime_access);
-        const providerSource = String(row.subscription_source || 'none');
-        const source = lifetimeAccess
-          ? providerSource === 'none' ? 'manual-lifetime' : `${providerSource},manual-lifetime`
-          : providerSource;
-        const entitlements = lifetimeAccess
-          ? allEntitlements()
-          : deriveStoredEntitlements(Boolean(row.has_access), source, boosty, telegram);
-        return {
-          hasAccess: hasAnyEntitlement(entitlements),
-          source,
-          message: lifetimeAccess ? 'Бессрочный доступ выдан администратором.' : String(row.subscription_message || ''),
-          checkedAt: row.subscription_checked_at ? String(row.subscription_checked_at) : '',
-          updatedAt: row.subscription_updated_at ? String(row.subscription_updated_at) : '',
-          entitlements,
-          boosty,
-          telegram,
-        };
-      })(),
-      contestEntriesCount: Number(row.contest_entries_count || 0),
-      createdAt: String(row.created_at || ''),
-      updatedAt: String(row.updated_at || ''),
-    })),
-    total,
-    limit,
-    offset,
-  });
-});
 
 app.get('/api/admin/boosty/status', async (req, res) => {
   const admin = adminAuth(req);
@@ -7579,64 +7496,6 @@ app.use('/api', createNewsletterUnsubscribeRouter({
   setPrivateNoStore,
 }));
 
-app.get('/api/admin/users/search', (req, res) => {
-  const admin = adminAuth(req);
-  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  setPrivateNoStore(res);
-  const q = normalizeOptionalText(req.query.q, 120);
-  if (!q) return res.json({ users: [] });
-  const like = `%${q.toLowerCase()}%`;
-  const users = dbAll<any>(`
-    SELECT
-      u.*,
-      tg.username AS telegram_username,
-      s.has_access,
-      s.source AS subscription_source,
-      s.checked_at AS subscription_checked_at,
-      s.boosty_json,
-      s.telegram_json
-    FROM users u
-    LEFT JOIN identities tg ON tg.user_id = u.id AND tg.provider = 'telegram'
-    LEFT JOIN subscriptions s ON s.user_id = u.id
-    WHERE lower(u.id) LIKE ?
-      OR lower(u.email) LIKE ?
-      OR lower(u.name) LIKE ?
-      OR lower(COALESCE(u.contact_vk_url, '')) LIKE ?
-      OR lower(COALESCE(u.contact_telegram, '')) LIKE ?
-      OR lower(COALESCE(u.contact_email, '')) LIKE ?
-      OR lower(COALESCE(tg.username, '')) LIKE ?
-    ORDER BY u.updated_at DESC
-    LIMIT 40
-  `, like, like, like, like, like, like, like);
-  res.json({
-    users: users.map(row => ({
-      id: String(row.id),
-      profileId: String(row.id),
-      name: String(row.name || ''),
-      email: String(row.email || ''),
-      role: String(row.role || 'user'),
-      country: String(row.country || ''),
-      telegramUsername: String(row.telegram_username || ''),
-      contactVkUrl: String(row.contact_vk_url || ''),
-      contactTelegram: String(row.contact_telegram || ''),
-      contactEmail: String(row.contact_email || ''),
-      subscription: (() => {
-        const source = String(row.subscription_source || 'none');
-        const boosty = normalizeBoostySubscriptionDetail(safeJsonObject(row.boosty_json));
-        const telegram = normalizeTelegramSubscriptionDetail(safeJsonObject(row.telegram_json));
-        const entitlements = deriveStoredEntitlements(Boolean(row.has_access), source, boosty, telegram);
-        return {
-          hasAccess: hasAnyEntitlement(entitlements),
-          source,
-          checkedAt: row.subscription_checked_at ? String(row.subscription_checked_at) : '',
-          entitlements,
-        };
-      })(),
-      createdAt: String(row.created_at || ''),
-      updatedAt: String(row.updated_at || ''),
-    })),
-  });
-});
 
 app.post('/api/subscription/email/request', authCodeRequestLimiter, async (req, res) => {
   setPrivateNoStore(res);
