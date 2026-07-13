@@ -1021,39 +1021,39 @@
      parchment/gold styles while leaving actual Hearthstone artwork alone. */
 
   .arena-mobile-nav [style*="#6b4c2a"],
-  .arena-content [style*="#5a3000"],
-  .arena-content [style*="#6b4c2a,#3a2210"],
-  .arena-content [style*="#6b4c2a, #3a2210"],
-  .arena-content [style*="#3d1e00"] {
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#5a3000"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#6b4c2a,#3a2210"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#6b4c2a, #3a2210"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#3d1e00"] {
     background: linear-gradient(135deg, #12233f, #243c5f) !important;
     border-color: rgba(96, 165, 250, 0.42) !important;
     color: #dbeafe !important;
   }
 
   .arena-mobile-nav [style*="#6b4c2a"] *,
-  .arena-content [style*="#5a3000"] *,
-  .arena-content [style*="#6b4c2a,#3a2210"] *,
-  .arena-content [style*="#6b4c2a, #3a2210"] *,
-  .arena-content [style*="#3d1e00"] * {
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#5a3000"] *,
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#6b4c2a,#3a2210"] *,
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#6b4c2a, #3a2210"] *,
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#3d1e00"] * {
     color: #dbeafe !important;
   }
 
-  .arena-content,
-  .arena-content.bg-parchment {
+  .arena-app-shell:not(.arena-app-game-data) .arena-content,
+  .arena-app-shell:not(.arena-app-game-data) .arena-content.bg-parchment {
     border-color: rgba(148, 163, 184, 0.34);
   }
 
-  .arena-content [style*="#e8d5a0"],
-  .arena-content [style*="#d4b87a"],
-  .arena-content [style*="#ede0c0"],
-  .arena-content [style*="#e0cc9e"],
-  .arena-content [style*="#f4e8cc"],
-  .arena-content [style*="#f5ead0"],
-  .arena-content [style*="#fff4d4"],
-  .arena-content [style*="#f5e2b8"],
-  .arena-content [style*="#fff6df"],
-  .arena-content [style*="#f3dfb5"],
-  .arena-content [style*="#fff1c8"] {
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#e8d5a0"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#d4b87a"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#ede0c0"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#e0cc9e"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#f4e8cc"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#f5ead0"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#fff4d4"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#f5e2b8"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#fff6df"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#f3dfb5"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#fff1c8"] {
     background:
       linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(237, 243, 251, 0.9)) !important;
     border-color: rgba(148, 163, 184, 0.32) !important;
@@ -1062,37 +1062,37 @@
       0 8px 24px rgba(15, 23, 42, 0.08) !important;
   }
 
-  .arena-content [style*="#c4a46a"],
-  .arena-content [style*="#a88a45"],
-  .arena-content [style*="#b8904a"],
-  .arena-content [style*="rgba(252,211,77"],
-  .arena-content [style*="rgba(246, 206, 104"] {
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#c4a46a"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#a88a45"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#b8904a"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="rgba(252,211,77"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="rgba(246, 206, 104"] {
     border-color: rgba(148, 163, 184, 0.34) !important;
   }
 
-  .arena-content [style*="#fcd34d"],
-  .arena-content [style*="#f6ce68"],
-  .arena-content [style*="#fff7cf"],
-  .arena-content [style*="#8b4513"],
-  .arena-content [style*="#8b6c42"],
-  .arena-content [style*="#6b4c2a"],
-  .arena-content [style*="#4a3018"],
-  .arena-content [style*="#3d2208"],
-  .arena-content [class*="text-[#fcd34d]"],
-  .arena-content [class*="text-[#f6ce68]"],
-  .arena-content [class*="text-[#8b4513]"],
-  .arena-content [class*="text-[#8b6c42]"],
-  .arena-content [class*="text-[#6b4c2a]"],
-  .arena-content [class*="text-[#4a3018]"],
-  .arena-content [class*="text-[#3d2208]"] {
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#fcd34d"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#f6ce68"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#fff7cf"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#8b4513"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#8b6c42"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#6b4c2a"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#4a3018"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [style*="#3d2208"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [class*="text-[#fcd34d]"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [class*="text-[#f6ce68]"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [class*="text-[#8b4513]"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [class*="text-[#8b6c42]"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [class*="text-[#6b4c2a]"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [class*="text-[#4a3018]"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content [class*="text-[#3d2208]"] {
     color: #1f3654 !important;
   }
 
-  .arena-content p,
-  .arena-content li,
-  .arena-content dt,
-  .arena-content .text-sm,
-  .arena-content .text-xs {
+  .arena-app-shell:not(.arena-app-game-data) .arena-content p,
+  .arena-app-shell:not(.arena-app-game-data) .arena-content li,
+  .arena-app-shell:not(.arena-app-game-data) .arena-content dt,
+  .arena-app-shell:not(.arena-app-game-data) .arena-content .text-sm,
+  .arena-app-shell:not(.arena-app-game-data) .arena-content .text-xs {
     color: #52667f;
   }
 
@@ -1102,31 +1102,29 @@
     }
   }
 
-  .arena-content h1,
-  .arena-content h2,
-  .arena-content h3,
-  .arena-content h4,
-  .arena-content .font-hs {
+  .arena-app-shell:not(.arena-app-game-data) .arena-content h1,
+  .arena-app-shell:not(.arena-app-game-data) .arena-content h2,
+  .arena-app-shell:not(.arena-app-game-data) .arena-content h3,
+  .arena-app-shell:not(.arena-app-game-data) .arena-content h4,
+  .arena-app-shell:not(.arena-app-game-data) .arena-content .font-hs {
     color: #1f3654;
   }
 
-  .arena-content a[style*="#8b4513"],
-  .arena-content button[style*="#6b4c2a"],
-  .arena-content button[style*="#5a3000"] {
+  .arena-app-shell:not(.arena-app-game-data) .arena-content a[style*="#8b4513"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content button[style*="#6b4c2a"],
+  .arena-app-shell:not(.arena-app-game-data) .arena-content button[style*="#5a3000"] {
     background: linear-gradient(135deg, #1d4ed8, #0891b2) !important;
     border-color: rgba(125, 211, 252, 0.5) !important;
     color: #f8fbff !important;
     box-shadow: 0 10px 24px rgba(37, 99, 235, 0.18) !important;
   }
 
-  .arena-content button[style*="#6b4c2a"] *,
-  .arena-content button[style*="#5a3000"] * {
+  .arena-app-shell:not(.arena-app-game-data) .arena-content button[style*="#6b4c2a"] *,
+  .arena-app-shell:not(.arena-app-game-data) .arena-content button[style*="#5a3000"] * {
     color: #f8fbff !important;
   }
 
-  .modern-eyebrow,
-  .tierlist-rarity-filter > button[data-active="true"],
-  .tierlist-mana-filter > button[data-active="true"] {
+  .modern-eyebrow {
     background: rgba(30, 64, 102, 0.08) !important;
     border-color: rgba(96, 165, 250, 0.26) !important;
     box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.18) !important;
@@ -1154,42 +1152,6 @@
     transform-origin: center bottom;
     will-change: transform;
     animation: subtleArtDrift 18s ease-in-out infinite;
-  }
-
-  .tierlist-class-scroll button > div[style*="#fcd34d"],
-  .legendary-class-tabs button > div[style*="#fcd34d"],
-  .tierlist-class-scroll button > div[style*="252,211,77"],
-  .legendary-class-tabs button > div[style*="252,211,77"],
-  .tierlist-class-scroll button > div[style*="252, 211, 77"],
-  .legendary-class-tabs button > div[style*="252, 211, 77"] {
-    box-shadow:
-      0 0 0 2.5px rgba(96, 165, 250, 0.9),
-      0 6px 16px rgba(37, 99, 235, 0.18) !important;
-  }
-
-  .tierlist-class-scroll button > .bg-\[\#fcd34d\],
-  .legendary-class-tabs button > .bg-\[\#fcd34d\],
-  .tierlist-class-scroll [class*="bg-[#fcd34d]"],
-  .legendary-class-tabs [class*="bg-[#fcd34d]"] {
-    background-color: #60a5fa !important;
-  }
-
-  .tierlist-class-scroll button svg,
-  .legendary-class-tabs button svg,
-  .tierlist-class-scroll button svg[class*="text-[#fcd34d]"],
-  .legendary-class-tabs button svg[class*="text-[#fcd34d]"] {
-    color: #bfdbfe !important;
-  }
-
-  @media (max-width: 639px) {
-    .tierlist-source-toggle,
-    .tierlist-view-toggle,
-    .tierlist-rarity-filter,
-    .tierlist-mana-filter,
-    .tierlist-class-tabs {
-      background:
-        linear-gradient(135deg, rgba(248, 250, 255, 0.84), rgba(226, 235, 250, 0.76)) !important;
-    }
   }
 
 }

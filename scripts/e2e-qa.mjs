@@ -754,6 +754,94 @@ const authenticatedRoutes = [
   { path: '/library', expected: 'Библиотека Полей Сражений', selector: '.bg-library-page' },
 ];
 
+async function assertArenaDataRoutePresentation(page, path, device) {
+  const state = await page.evaluate(routePath => {
+    const style = (selector, pseudo) => {
+      const element = document.querySelector(selector);
+      return element ? getComputedStyle(element, pseudo) : null;
+    };
+    const snapshot = computed => computed ? {
+      color: computed.color,
+      backgroundColor: computed.backgroundColor,
+      backgroundImage: computed.backgroundImage,
+      borderImageSource: computed.borderImageSource,
+      borderRadius: computed.borderRadius,
+      boxShadow: computed.boxShadow,
+      textShadow: computed.textShadow,
+      display: computed.display,
+    } : null;
+
+    if (routePath === '/classes') {
+      return {
+        kind: 'classes',
+        winner: snapshot(style(".arena-class-row[data-rank='1']")),
+        title: snapshot(style(".arena-class-row[data-rank='1'] .font-hs")),
+        games: snapshot(style(".arena-class-row[data-rank='1'] > div:last-child span")),
+      };
+    }
+    if (routePath === '/tierlist') {
+      return {
+        kind: 'tierlist',
+        sourceShell: snapshot(style('.tierlist-source-toggle')),
+        activeSource: snapshot(style(".tierlist-source-toggle .source-toggle-button[data-active='true']")),
+        classTabs: snapshot(style('.tierlist-class-tabs')),
+        activeFilter: snapshot(style(".tierlist-rarity-filter > button[data-active='true']")),
+        heading: snapshot(style('.tierlist-group-heading h3')),
+      };
+    }
+    if (routePath === '/legendaries') {
+      return {
+        kind: 'legendaries',
+        sourceShell: snapshot(style('.legendary-source-toggle')),
+        activeSource: snapshot(style(".legendary-source-toggle .source-toggle-button[data-active='true']")),
+        classTabs: snapshot(style('.legendary-class-tabs')),
+        selectedClass: snapshot(style(".legendary-class-tabs button[aria-pressed='true'] > div")),
+        count: snapshot(style('.legendary-count-pill')),
+        firstCard: snapshot(style(".legendary-group-card[data-rank='1']")),
+        firstCardAfter: snapshot(style(".legendary-group-card[data-rank='1']", '::after')),
+      };
+    }
+    return { kind: 'other' };
+  }, path);
+
+  const prefix = `${path} [${device}] route materials`;
+  if (state.kind === 'classes') {
+    if (!state.winner?.backgroundImage.includes('arena-rail-red.jpg') || !state.winner?.borderImageSource.includes('main-page-rail-border.png')) {
+      failures.push(`${prefix}: winner row lost its red timber material`);
+    }
+    if (state.title?.color !== 'rgb(255, 240, 197)' || state.title?.textShadow === 'none') {
+      failures.push(`${prefix}: winner title color changed (${state.title?.color || 'missing'})`);
+    }
+    if (state.games?.color !== 'rgb(225, 195, 139)') failures.push(`${prefix}: winner games color changed (${state.games?.color || 'missing'})`);
+    return;
+  }
+  if (state.kind === 'tierlist' || state.kind === 'legendaries') {
+    if (!state.sourceShell?.backgroundImage.includes('arena-parchment.jpg') || state.sourceShell?.borderRadius !== '2px') {
+      failures.push(`${prefix}: source switcher lost its parchment frame`);
+    }
+    if (state.activeSource?.backgroundColor !== 'rgb(109, 17, 23)' || state.activeSource?.color !== 'rgb(255, 240, 196)') {
+      failures.push(`${prefix}: active source material changed (${JSON.stringify(state.activeSource)})`);
+    }
+    if (!state.classTabs?.borderImageSource.includes('linear-gradient')) failures.push(`${prefix}: class tabs lost the wooden divider`);
+  }
+  if (state.kind === 'tierlist') {
+    if (state.activeFilter?.backgroundColor !== 'rgb(109, 17, 23)' || state.activeFilter?.color !== 'rgb(255, 240, 196)') {
+      failures.push(`${prefix}: active filter material changed (${JSON.stringify(state.activeFilter)})`);
+    }
+    if (state.heading?.color !== 'rgb(61, 41, 29)') failures.push(`${prefix}: tier heading color changed (${state.heading?.color || 'missing'})`);
+  }
+  if (state.kind === 'legendaries') {
+    if (state.count?.backgroundColor !== 'rgb(77, 11, 16)' || state.count?.color !== 'rgb(224, 195, 141)') {
+      failures.push(`${prefix}: group count material changed (${JSON.stringify(state.count)})`);
+    }
+    if (!state.firstCard?.backgroundImage.includes('arena-rail-red.jpg') || !state.firstCard?.borderImageSource.includes('main-page-rail-border.png')) {
+      failures.push(`${prefix}: first legendary group lost its red timber material`);
+    }
+    if (state.firstCardAfter?.display !== 'none') failures.push(`${prefix}: retired legendary overlay became visible`);
+    if (!state.selectedClass?.boxShadow.includes('rgb(239, 197, 104)')) failures.push(`${prefix}: selected class ring changed (${state.selectedClass?.boxShadow || 'missing'})`);
+  }
+}
+
 for (const route of authenticatedRoutes) {
   for (const [device, viewport] of [
     ['desktop', { width: 1440, height: 900 }],
@@ -767,6 +855,7 @@ for (const route of authenticatedRoutes) {
       await page.goto(BASE + route.path, { waitUntil: 'domcontentloaded', timeout: 45_000 });
       await waitForMeaningfulPage(page, route.expected);
       await page.waitForSelector(route.selector, { timeout: 20_000 });
+      await assertArenaDataRoutePresentation(page, route.path, device);
       const violationCount = await auditAccessibility(page, `${route.path} [${device}]`);
       const paywallVisible = await page.$eval('.arena-paywall', element => getComputedStyle(element).display !== 'none').catch(() => false);
       if (paywallVisible) failures.push(`${route.path} [${device}]: subscriber still sees paywall`);
