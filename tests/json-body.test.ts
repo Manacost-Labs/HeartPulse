@@ -14,6 +14,7 @@ let parserReached = 0;
 app.use(createUploadAuthorizationGuard({
   galleryAccessStatus: req => req.headers['x-test-role'] === 'admin' ? null : 401,
   adminImageAllowed: req => req.headers['x-test-role'] === 'admin',
+  setPrivateNoStore: res => res.set('Cache-Control', 'private, no-store'),
 }));
 app.use((_req, _res, next) => {
   parserReached += 1;
@@ -48,7 +49,9 @@ async function post(path: string, size: number, role = ''): Promise<Response> {
 try {
   assert.equal((await post('/api/auth/login', 150)).status, 413);
   const reachedAfterOrdinaryRequest = parserReached;
-  assert.equal((await post('/api/admin/uploads/image', 150)).status, 403);
+  const deniedUpload = await post('/api/admin/uploads/image', 150);
+  assert.equal(deniedUpload.status, 403);
+  assert.equal(deniedUpload.headers.get('cache-control'), 'private, no-store');
   assert.equal(parserReached, reachedAfterOrdinaryRequest, 'unauthorized upload reached the body parser');
   assert.equal((await post('/api/admin/gallery?source=test', 400)).status, 401);
   assert.equal(parserReached, reachedAfterOrdinaryRequest, 'unauthorized gallery upload reached the body parser');

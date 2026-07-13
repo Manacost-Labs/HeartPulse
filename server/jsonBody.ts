@@ -9,6 +9,7 @@ type JsonBodyParserOptions = {
 type UploadAuthorizationGuardOptions = {
   galleryAccessStatus: (req: express.Request) => 401 | 403 | null;
   adminImageAllowed: (req: express.Request) => boolean;
+  setPrivateNoStore?: (response: express.Response) => void;
 };
 
 function largeJsonRoute(req: express.Request): 'admin-image' | 'gallery' | null {
@@ -50,10 +51,11 @@ export function createUploadAuthorizationGuard(options: UploadAuthorizationGuard
     const route = largeJsonRoute(req);
     if (route === 'gallery') {
       const status = options.galleryAccessStatus(req);
-      if (status === 401) return res.status(401).json({ error: 'Требуется вход' });
-      if (status === 403) return res.status(403).json({ error: 'Доступ запрещён для этого ID' });
+      if (status === 401) { options.setPrivateNoStore?.(res); return res.status(401).json({ error: 'Требуется вход' }); }
+      if (status === 403) { options.setPrivateNoStore?.(res); return res.status(403).json({ error: 'Доступ запрещён для этого ID' }); }
     }
     if (route === 'admin-image' && !options.adminImageAllowed(req)) {
+      options.setPrivateNoStore?.(res);
       return res.status(403).json({ error: 'Недостаточно прав' });
     }
     return next();

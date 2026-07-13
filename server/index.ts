@@ -26,7 +26,6 @@ import { configureLoopbackProxyTrust, corsOriginAllowed, getTrustedClientIp } fr
 import { createRouteAwareJsonParser, createUploadAuthorizationGuard } from './jsonBody.js';
 import { createReferralRouter } from './referralRoutes.js';
 import { createGalleryRouter } from './galleryRoutes.js';
-import { detectAdminUploadFormat } from './imageFormat.js';
 import { createBattlegroundProxyRouter } from './battlegroundProxyRoutes.js';
 import { createArticleCoverRouter } from './articleCoverRoutes.js';
 import { createGuidesArchiveRouter } from './guidesArchiveRoutes.js';
@@ -66,6 +65,7 @@ import { createAdminUserReadRouter } from './adminUserReadRoutes.js';
 import { createAdminBoostyRouter } from './adminBoostyRoutes.js';
 import { createAdminTelegramReadRouter } from './adminTelegramReadRoutes.js';
 import { createAdminContestReadRouter } from './adminContestReadRoutes.js';
+import { createAdminImageUploadRouter } from './adminImageUploadRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -5576,6 +5576,7 @@ app.use(createUploadAuthorizationGuard({
     return isAdminUser(user) ? null : 403;
   },
   adminImageAllowed: req => Boolean(adminAuth(req) || contestAdminAuth(req)),
+  setPrivateNoStore,
 }));
 app.use(createRouteAwareJsonParser({
   defaultLimit: process.env.API_JSON_BODY_LIMIT || '1mb',
@@ -7465,56 +7466,17 @@ app.use('/api', createAdminArticleRouter({
   ),
 }));
 
-app.post('/api/admin/uploads/image', async (req, res) => {
-  const canUpload = Boolean(adminAuth(req) || contestAdminAuth(req));
-  if (!canUpload) return res.status(403).json({ error: 'Недостаточно прав' });
-  const dataUrl = String(req.body?.dataUrl || '');
-  const match = dataUrl.match(/^data:image\/[a-z0-9.+-]+;base64,([a-z0-9+/=\s]+)$/i);
-  if (!match) return res.status(400).json({ error: 'Нужно передать изображение в формате data URL' });
-
-  try {
-    const base64 = match[1].replace(/\s/g, '');
-    if (!/^[a-z0-9+/]+={0,2}$/i.test(base64) || base64.length % 4 !== 0) {
-      return res.status(400).json({ error: 'Некорректные base64-данные изображения' });
-    }
-    const source = Buffer.from(base64, 'base64');
-    if (!source.length) return res.status(400).json({ error: 'Файл пустой' });
-    if (source.length > ADMIN_UPLOAD_MAX_BYTES) return res.status(413).json({ error: 'Картинка больше 12 МБ' });
-
-    const actualFormat = detectAdminUploadFormat(source);
-    if (!actualFormat) return res.status(415).json({ error: 'Формат изображения не распознан' });
-
-    const metadata = await sharp(source, { limitInputPixels: ADMIN_UPLOAD_MAX_PIXELS }).metadata();
-    const width = Number(metadata.width || 0);
-    const height = Number(metadata.height || 0);
-    if (!width || !height) return res.status(400).json({ error: 'Не удалось определить размер изображения' });
-    if ((metadata.pages || 1) > 1) return res.status(400).json({ error: 'Анимированные изображения не поддерживаются' });
-    if (width > ADMIN_UPLOAD_MAX_WIDTH || height > ADMIN_UPLOAD_MAX_HEIGHT || width * height > ADMIN_UPLOAD_MAX_PIXELS) {
-      return res.status(413).json({ error: 'Разрешение изображения слишком большое' });
-    }
-
-    mkdirSync(ADMIN_UPLOAD_DIR, { recursive: true });
-    mkdirSync(ADMIN_UPLOAD_SOURCE_DIR, { recursive: true });
-    const fileName = `${Date.now().toString(36)}-${randomBytes(5).toString('hex')}.webp`;
-    const distPath = join(ADMIN_UPLOAD_DIR, fileName);
-    const sourcePath = join(ADMIN_UPLOAD_SOURCE_DIR, fileName);
-    const output = await sharp(source, { limitInputPixels: ADMIN_UPLOAD_MAX_PIXELS })
-      .rotate()
-      .resize({ width: 1800, height: 1200, fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: 86 })
-      .toBuffer();
-    writeFileSync(distPath, output);
-    chmodSync(distPath, 0o644);
-    if (sourcePath !== distPath) {
-      writeFileSync(sourcePath, output);
-      chmodSync(sourcePath, 0o644);
-    }
-    res.json({ success: true, url: `/uploads/admin/${fileName}` });
-  } catch (err: any) {
-    console.warn('[admin-upload] image processing failed:', err?.message || err);
-    res.status(500).json({ error: 'Не удалось обработать изображение' });
-  }
-});
+app.use('/api', createAdminImageUploadRouter({
+  adminAuth,
+  contestAdminAuth,
+  setPrivateNoStore,
+  publicDir: ADMIN_UPLOAD_DIR,
+  sourceDir: ADMIN_UPLOAD_SOURCE_DIR,
+  maxBytes: ADMIN_UPLOAD_MAX_BYTES,
+  maxPixels: ADMIN_UPLOAD_MAX_PIXELS,
+  maxWidth: ADMIN_UPLOAD_MAX_WIDTH,
+  maxHeight: ADMIN_UPLOAD_MAX_HEIGHT,
+}));
 
 app.use('/api', createReferralRouter({
   getDatabase: db,
