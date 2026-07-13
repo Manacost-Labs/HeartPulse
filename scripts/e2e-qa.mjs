@@ -429,6 +429,10 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
     if (admin && url.pathname === '/api/admin/contests') {
       const contests = adminState.contests ??= structuredClone(adminFixtures['/api/admin/contests'].contests);
       if (request.method() === 'GET') {
+        if (adminState.contestReadFailure) {
+          request.respond({ ...jsonResponse({ error: 'Не удалось загрузить конкурсы' }), status: 500 });
+          return;
+        }
         request.respond(jsonResponse({ contests }));
         return;
       }
@@ -772,6 +776,7 @@ for (const [device, viewport] of [
     galleryEmpty: false,
     boostyFailure: false,
     telegramFailure: false,
+    contestReadFailure: false,
     articles: structuredClone(adminFixtures['/api/articles'].articles),
     contests: structuredClone(adminFixtures['/api/admin/contests'].contests),
     users: structuredClone(adminFixtures['/api/admin/users'].users),
@@ -1102,6 +1107,17 @@ for (const [device, viewport] of [
     const contestEmptyState = await page.$eval('.admin-contest-list [role="status"]', element => element.textContent?.trim() || '');
     if (!contestEmptyState.includes('нет')) failures.push(`admin contests [${device}]: filtered empty state is missing`);
     const contestsViolationCount = await auditAccessibility(page, `admin contests [${device}]`, '.admin-workspace-content');
+    adminState.contestReadFailure = true;
+    await page.goto(`${BASE}/?admin&section=contests`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Не удалось загрузить конкурсы'));
+    const contestReadFailureState = await page.$eval('.admin-workspace-content', element => ({
+      text: element.textContent?.replace(/\s+/g, ' ').trim() || '',
+      contests: element.querySelectorAll('.admin-contest-list > div').length,
+    }));
+    if (contestReadFailureState.contests !== 0 || /private|sqlite|token/i.test(contestReadFailureState.text)) {
+      failures.push(`admin contests [${device}]: storage failure fallback is unsafe or incomplete (${JSON.stringify(contestReadFailureState)})`);
+    }
+    adminState.contestReadFailure = false;
 
     await page.goto(`${BASE}/?admin&section=users`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.contest-user-row').length === 2);

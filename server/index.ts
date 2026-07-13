@@ -65,6 +65,7 @@ import {
 import { createAdminUserReadRouter } from './adminUserReadRoutes.js';
 import { createAdminBoostyRouter } from './adminBoostyRoutes.js';
 import { createAdminTelegramReadRouter } from './adminTelegramReadRoutes.js';
+import { createAdminContestReadRouter } from './adminContestReadRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -7025,58 +7026,14 @@ app.get('/api/profile/contest-history', (req, res) => {
   });
 });
 
-app.get('/api/admin/contests', (req, res) => {
-  const admin = contestAdminAuth(req);
-  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  const rows = dbAll<any>(`
-    SELECT c.*, COUNT(e.id) AS entries_count
-    FROM contests c
-    LEFT JOIN contest_entries e ON e.contest_id = c.id
-    GROUP BY c.id
-    ORDER BY c.created_at DESC
-  `);
-  res.json({
-    contests: rows.map(row => ({ ...contestFromRow(row, undefined, { includeRawWinners: true }), entriesCount: Number(row.entries_count || 0) })),
-    admin: publicUser(admin),
-  });
-});
-
-app.get('/api/admin/contests/:contestId/entries', (req, res) => {
-  const admin = contestAdminAuth(req);
-  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  const rows = dbAll<any>(`
-    SELECT e.*, u.name, u.role, u.country, u.contact_vk_url, u.contact_telegram, u.contact_email, tg.username AS telegram_username
-    FROM contest_entries e
-    LEFT JOIN users u ON u.id = e.user_id
-    LEFT JOIN (
-      SELECT user_id, MAX(username) AS username
-      FROM identities
-      WHERE provider IN ('telegram', 'telegram_oidc')
-      GROUP BY user_id
-    ) tg ON tg.user_id = e.user_id
-    WHERE e.contest_id = ?
-    ORDER BY e.created_at DESC
-  `, String(req.params.contestId));
-  res.json({
-    entries: rows.map(row => ({
-      id: String(row.id),
-      contestId: String(row.contest_id),
-      userId: String(row.user_id),
-      profileId: String(row.user_id),
-      name: String(row.name || ''),
-      email: String(row.email || ''),
-      status: String(row.status || ''),
-      createdAt: String(row.created_at || ''),
-      contact: safeJsonObject(row.contact_json),
-      subscription: safeJsonObject(row.subscription_json),
-      profileContacts: {
-        vk: String(row.contact_vk_url || ''),
-        telegram: String(row.contact_telegram || row.telegram_username || ''),
-        email: String(row.contact_email || ''),
-      },
-    })),
-  });
-});
+app.use('/api', createAdminContestReadRouter({
+  adminAuth: contestAdminAuth,
+  repository: { all: (sql, ...params) => dbAll<Record<string, unknown>>(sql, ...params) },
+  serializeContest: row => contestFromRow(row, undefined, { includeRawWinners: true }),
+  serializeAdmin: publicUser,
+  safeJsonObject,
+  setPrivateNoStore,
+}));
 
 app.use('/api', createAdminContestMutationRouter({
   adminAuth: contestAdminAuth,
