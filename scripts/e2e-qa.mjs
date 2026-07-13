@@ -386,6 +386,54 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
         return;
       }
     }
+    if (admin && url.pathname === '/api/admin/contests') {
+      const contests = adminState.contests ??= structuredClone(adminFixtures['/api/admin/contests'].contests);
+      if (request.method() === 'GET') {
+        request.respond(jsonResponse({ contests }));
+        return;
+      }
+      if (request.method() === 'POST') {
+        const payload = JSON.parse(request.postData() || '{}');
+        const id = payload.id || 'qa-created-contest';
+        const index = contests.findIndex(contest => contest.id === id);
+        const contest = {
+          ...(index >= 0 ? contests[index] : { entriesCount: 0, winners: [] }),
+          ...payload,
+          id,
+        };
+        if (index >= 0) contests[index] = contest;
+        else contests.unshift(contest);
+        request.respond(jsonResponse({ success: true, contest }));
+        return;
+      }
+    }
+    const contestEntriesMatch = admin && url.pathname.match(/^\/api\/admin\/contests\/([^/]+)\/entries$/);
+    if (contestEntriesMatch) {
+      const entries = contestEntriesMatch[1] === 'qa-contest'
+        ? adminFixtures['/api/admin/contests/qa-contest/entries'].entries
+        : [];
+      request.respond(jsonResponse({ entries }));
+      return;
+    }
+    const contestWinnersMatch = admin && url.pathname.match(/^\/api\/admin\/contests\/([^/]+)\/winners$/);
+    if (contestWinnersMatch && request.method() === 'POST') {
+      const payload = JSON.parse(request.postData() || '{}');
+      const contests = adminState.contests ??= structuredClone(adminFixtures['/api/admin/contests'].contests);
+      const contest = contests.find(item => item.id === contestWinnersMatch[1]);
+      if (contest) {
+        contest.winners = payload.winners;
+        contest.status = 'completed';
+      }
+      request.respond(jsonResponse({ success: true, contest }));
+      return;
+    }
+    const contestDeleteMatch = admin && url.pathname.match(/^\/api\/admin\/contests\/([^/]+)$/);
+    if (contestDeleteMatch && request.method() === 'DELETE') {
+      const contests = adminState.contests ??= structuredClone(adminFixtures['/api/admin/contests'].contests);
+      adminState.contests = contests.filter(contest => contest.id !== contestDeleteMatch[1]);
+      request.respond(jsonResponse({ success: true, deletedId: contestDeleteMatch[1] }));
+      return;
+    }
     if (admin && adminFixtures[url.pathname]) {
       request.respond(jsonResponse(adminFixtures[url.pathname]));
       return;
@@ -644,6 +692,7 @@ for (const [device, viewport] of [
   const adminState = {
     galleryEmpty: false,
     articles: structuredClone(adminFixtures['/api/articles'].articles),
+    contests: structuredClone(adminFixtures['/api/admin/contests'].contests),
   };
   await page.setViewport(viewport);
   await mockApplicationApi(page, { authenticated: true, admin: true, adminState });
@@ -866,6 +915,11 @@ for (const [device, viewport] of [
     }
     await page.click('.contest-entry-row:not(.is-disabled) input[type="checkbox"]');
     await page.waitForFunction(() => document.querySelector('.admin-winner-publish button')?.disabled === false);
+    await page.evaluate(() => { window.confirm = () => true; });
+    await page.click('.admin-winner-publish button');
+    await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Победители опубликованы.'));
+    await page.waitForFunction(() => document.querySelector('.admin-selected-contest .admin-status-badge')?.textContent?.includes('Завершен'));
+
     await page.click('.admin-form-actions .contest-secondary-button');
     await page.waitForFunction(() => document.querySelector('.admin-contest-form h2')?.textContent?.includes('Редактирование'));
     const contestEditorState = await page.evaluate(() => ({
@@ -875,8 +929,27 @@ for (const [device, viewport] of [
     if (contestEditorState.title !== 'Контрольный конкурс' || contestEditorState.previewTitle !== 'Контрольный конкурс') {
       failures.push(`admin contests [${device}]: edit action did not populate form and preview`);
     }
-    await page.click('.admin-view-switch button:first-child');
-    await page.click('.admin-contest-summary-grid button:nth-child(5)');
+    await page.click('.admin-contest-section:first-of-type input', { clickCount: 3 });
+    await page.type('.admin-contest-section:first-of-type input', 'Контрольный конкурс — обновлён');
+    await page.click('.admin-contest-submit-row button[type="submit"]');
+    await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Конкурс сохранен.'));
+    await page.waitForFunction(() => document.querySelector('.admin-selected-contest h3')?.textContent?.trim() === 'Контрольный конкурс — обновлён');
+
+    await page.click('.admin-contest-manage-card .admin-contest-form-head > button');
+    await page.waitForFunction(() => document.querySelector('.admin-contest-form h2')?.textContent?.trim() === 'Новый конкурс');
+    const contestMainInputs = await page.$$('.admin-contest-section:first-of-type input');
+    if (contestMainInputs.length < 2) throw new Error('Contest title and prize inputs are missing');
+    await contestMainInputs[0].type('Новый QA конкурс');
+    await contestMainInputs[1].type('QA приз');
+    await page.click('.admin-contest-submit-row button[type="submit"]');
+    await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Конкурс сохранен.'));
+    await page.waitForFunction(() => document.querySelectorAll('.admin-contest-list > div').length === 2);
+    await page.waitForFunction(() => document.querySelector('.admin-selected-contest h3')?.textContent?.trim() === 'Новый QA конкурс');
+    await page.click('.admin-contest-detail .admin-danger-button');
+    await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Конкурс удален.'));
+    await page.waitForFunction(() => document.querySelectorAll('.admin-contest-list > div').length === 1);
+
+    await page.click('.admin-contest-summary-grid button:nth-child(6)');
     await page.waitForFunction(() => document.querySelectorAll('.admin-contest-list button').length === 0);
     const contestEmptyState = await page.$eval('.admin-contest-list [role="status"]', element => element.textContent?.trim() || '');
     if (!contestEmptyState.includes('нет')) failures.push(`admin contests [${device}]: filtered empty state is missing`);

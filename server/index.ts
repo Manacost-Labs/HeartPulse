@@ -42,6 +42,7 @@ import { createHomeSummaryRouter, type HomeSummaryCacheStore } from './homeSumma
 import { createCardImageRouter, normalizeCardImageId } from './cardImageRoutes.js';
 import { createAdminClassPositionRouter, writeClassPositionsFile } from './adminClassPositionRoutes.js';
 import { createAdminArticleRouter, writeArticlesFile } from './adminArticleRoutes.js';
+import { createAdminContestMutationRouter } from './adminContestMutationRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -7021,44 +7022,6 @@ app.get('/api/admin/contests', (req, res) => {
   });
 });
 
-app.post('/api/admin/contests', (req, res) => {
-  const admin = contestAdminAuth(req);
-  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  const id = normalizeOptionalText(req.body?.id, 80) || `contest_${randomBytes(8).toString('hex')}`;
-  const title = normalizeOptionalText(req.body?.title, 160);
-  if (!title) return res.status(400).json({ error: 'Укажите название конкурса' });
-  const nowIso = new Date().toISOString();
-  const status = ['draft', 'active', 'planned', 'completed', 'cancelled'].includes(String(req.body?.status))
-    ? String(req.body.status)
-    : 'active';
-  const startsAt = normalizeDateTimeInput(req.body?.startsAt);
-  const endsAt = normalizeDateTimeInput(req.body?.endsAt);
-  if (startsAt && endsAt && Date.parse(endsAt) <= Date.parse(startsAt)) {
-    return res.status(400).json({ error: 'Финиш конкурса должен быть позже старта' });
-  }
-  const rawImageUrl = normalizeOptionalText(req.body?.imageUrl, 500);
-  const imageUrl = normalizeContestImageUrl(rawImageUrl);
-  if (rawImageUrl && !imageUrl) {
-    return res.status(400).json({ error: 'Обложка конкурса должна быть загружена через админку' });
-  }
-  dbRun(`
-    INSERT INTO contests (id, title, description, prize, image_url, starts_at, ends_at, status, winners_json, created_by, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET
-      title = excluded.title,
-      description = excluded.description,
-      prize = excluded.prize,
-      image_url = excluded.image_url,
-      starts_at = excluded.starts_at,
-      ends_at = excluded.ends_at,
-      status = excluded.status,
-      updated_at = excluded.updated_at
-  `, id, title, normalizeOptionalText(req.body?.description, 2000), normalizeOptionalText(req.body?.prize, 240),
-    imageUrl, startsAt, endsAt, status, '[]', admin.id, nowIso, nowIso);
-  const row = dbGet<any>('SELECT * FROM contests WHERE id = ?', id);
-  res.json({ success: true, contest: contestFromRow(row) });
-});
-
 app.get('/api/admin/contests/:contestId/entries', (req, res) => {
   const admin = contestAdminAuth(req);
   if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
@@ -7096,38 +7059,41 @@ app.get('/api/admin/contests/:contestId/entries', (req, res) => {
   });
 });
 
-app.post('/api/admin/contests/:contestId/winners', (req, res) => {
-  const admin = contestAdminAuth(req);
-  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  const contestId = String(req.params.contestId);
-  const contest = dbGet<any>('SELECT * FROM contests WHERE id = ?', contestId);
-  if (!contest) return res.status(404).json({ error: 'Конкурс не найден' });
-  const requestedWinners: string[] = Array.isArray(req.body?.winners)
-    ? req.body.winners.map((item: unknown) => normalizeOptionalText(item, 120)).filter(Boolean).slice(0, 100)
-    : [];
-  if (requestedWinners.length === 0) return res.status(400).json({ error: 'Укажите хотя бы одного победителя из заявок конкурса' });
-  const entryRows = dbAll<any>("SELECT user_id FROM contest_entries WHERE contest_id = ? AND status = 'approved'", contestId);
-  const allowedWinnerIds = new Set(entryRows.map(row => String(row.user_id || '')).filter(Boolean));
-  const winners = Array.from(new Set(requestedWinners));
-  const invalidWinners = winners.filter(id => !allowedWinnerIds.has(id));
-  if (invalidWinners.length > 0) {
-    return res.status(400).json({ error: `Победители должны быть ID участников этого конкурса: ${invalidWinners.join(', ')}` });
-  }
-  dbRun('UPDATE contests SET winners_json = ?, status = ?, updated_at = ? WHERE id = ?',
-    JSON.stringify(winners), 'completed', new Date().toISOString(), contestId);
-  const row = dbGet<any>('SELECT * FROM contests WHERE id = ?', contestId);
-  res.json({ success: true, contest: contestFromRow(row, undefined, { includeRawWinners: true }) });
-});
-
-app.delete('/api/admin/contests/:contestId', (req, res) => {
-  const admin = contestAdminAuth(req);
-  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  const id = String(req.params.contestId || '');
-  const row = dbGet<any>('SELECT * FROM contests WHERE id = ?', id);
-  if (!row) return res.status(404).json({ error: 'Конкурс не найден' });
-  dbRun('DELETE FROM contests WHERE id = ?', id);
-  res.json({ success: true, deletedId: id });
-});
+app.use('/api', createAdminContestMutationRouter({
+  adminAuth: contestAdminAuth,
+  normalizeDateTime: normalizeDateTimeInput,
+  normalizeImageUrl: normalizeContestImageUrl,
+  upsertContest: contest => {
+    dbRun(`
+      INSERT INTO contests (id, title, description, prize, image_url, starts_at, ends_at, status, winners_json, created_by, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        title = excluded.title,
+        description = excluded.description,
+        prize = excluded.prize,
+        image_url = excluded.image_url,
+        starts_at = excluded.starts_at,
+        ends_at = excluded.ends_at,
+        status = excluded.status,
+        updated_at = excluded.updated_at
+    `, contest.id, contest.title, contest.description, contest.prize, contest.imageUrl, contest.startsAt,
+    contest.endsAt, contest.status, '[]', contest.createdBy, contest.timestamp, contest.timestamp);
+    return dbGet<any>('SELECT * FROM contests WHERE id = ?', contest.id);
+  },
+  getContest: contestId => dbGet<any>('SELECT * FROM contests WHERE id = ?', contestId) ?? null,
+  approvedWinnerIds: contestId => dbAll<any>(
+    "SELECT user_id FROM contest_entries WHERE contest_id = ? AND status = 'approved'",
+    contestId,
+  ).map(row => String(row.user_id || '')).filter(Boolean),
+  publishWinners: (contestId, winners, timestamp) => {
+    dbRun('UPDATE contests SET winners_json = ?, status = ?, updated_at = ? WHERE id = ?',
+      JSON.stringify(winners), 'completed', timestamp, contestId);
+    return dbGet<any>('SELECT * FROM contests WHERE id = ?', contestId);
+  },
+  deleteContest: contestId => { dbRun('DELETE FROM contests WHERE id = ?', contestId); },
+  serializeContest: (row, includeRawWinners) => contestFromRow(row, undefined, { includeRawWinners }),
+  setPrivateNoStore,
+}));
 
 app.get('/api/admin/users', (req, res) => {
   const admin = adminAuth(req);
