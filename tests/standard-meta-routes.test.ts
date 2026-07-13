@@ -18,6 +18,9 @@ const recommendation: StandardMetaRecommendation = {
   sampleGames: 20,
   winrate: 60,
   updatedAt: '2026-07-13T12:00:00.000Z',
+  classKey: 'shaman',
+  matchedArchetype: 'Mug Shaman',
+  matchMethod: 'exact',
 };
 
 const adminGuard: RequestHandler = (request, response, next) => {

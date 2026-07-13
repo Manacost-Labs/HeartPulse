@@ -39,6 +39,10 @@ import {
   type StandardMetaRank,
   type StandardMetaRecommendation,
 } from './standardMetaRoutes.js';
+import {
+  inferStandardMetaClass,
+  normalizeStandardMetaClass,
+} from './standardMetaClasses.js';
 import { createClassMatchupRouter, type ClassMatchupCacheStore } from './classMatchupRoutes.js';
 import { createLegendaryRouter } from './legendaryRoutes.js';
 import { createTierlistRouter } from './tierlistRoutes.js';
@@ -161,6 +165,43 @@ const standardMetaApiCache = new Map<string, MemoryCacheEntry>();
 const viciousSyndicateGoldApiCache = new Map<string, MemoryCacheEntry>();
 const standardMetaRecommendationCache = new Map<string, { data: StandardMetaRecommendation | null; expiresAt: number }>();
 const standardMetaPreviewCache = new Map<string, { hash: string; expiresAt: number }>();
+let standardMetaDeckRowsCache: { rows: any[]; expiresAt: number } | null = null;
+const STANDARD_META_PREVIEW_CACHE_FILE = join(DATA_DIR, 'standard-meta-preview-cache.json');
+
+function hydrateStandardMetaPreviewCache() {
+  try {
+    const parsed = JSON.parse(readFileSync(STANDARD_META_PREVIEW_CACHE_FILE, 'utf8'));
+    const entries = Array.isArray(parsed?.entries) ? parsed.entries : [];
+    const now = Date.now();
+    for (const entry of entries) {
+      const key = String(entry?.key ?? '');
+      const hash = String(entry?.hash ?? '');
+      const expiresAt = Number(entry?.expiresAt);
+      if (/^[a-f0-9]{64}$/.test(key) && /^[a-zA-Z0-9_-]{8,96}$/.test(hash) && expiresAt > now) {
+        standardMetaPreviewCache.set(key, { hash, expiresAt });
+      }
+    }
+  } catch (error: any) {
+    if (error?.code !== 'ENOENT') console.warn('[standard-meta] preview cache load failed:', error?.message ?? error);
+  }
+}
+
+function persistStandardMetaPreviewCache() {
+  try {
+    mkdirSync(dirname(STANDARD_META_PREVIEW_CACHE_FILE), { recursive: true });
+    const now = Date.now();
+    const entries = [...standardMetaPreviewCache.entries()]
+      .filter(([, value]) => value.expiresAt > now)
+      .map(([key, value]) => ({ key, ...value }));
+    const temporary = `${STANDARD_META_PREVIEW_CACHE_FILE}.${process.pid}.tmp`;
+    writeFileSync(temporary, `${JSON.stringify({ version: 1, entries }, null, 2)}\n`, { mode: 0o640 });
+    renameSync(temporary, STANDARD_META_PREVIEW_CACHE_FILE);
+  } catch (error: any) {
+    console.warn('[standard-meta] preview cache save failed:', error?.message ?? error);
+  }
+}
+
+hydrateStandardMetaPreviewCache();
 const battlegroundAppProxyCache = new Map<string, ProxyBodyCacheEntry>();
 const homeSummaryApiCache: HomeSummaryCacheStore = { current: null };
 const arenaDecksCache: ArenaDecksCacheStore = { current: null };
@@ -4206,7 +4247,7 @@ const VICIOUS_CLASS_RU: Record<string, string> = {
   Warrior: 'Воин',
 };
 const STANDARD_META_RECOMMENDATION_CACHE_MS = 15 * 60_000;
-const STANDARD_META_PREVIEW_CACHE_MS = 24 * 60 * 60_000;
+const STANDARD_META_PREVIEW_CACHE_MS = 30 * 24 * 60 * 60_000;
 const KOLODAHS_RENDER_API_BASE_URL = (process.env.KOLODAHS_RENDER_API_BASE_URL || 'https://api.kolodahs.ru').replace(/\/+$/, '');
 const KOLODAHS_API_KEY = String(process.env.KOLODAHS_API_KEY || '').trim();
 const STANDARD_ARCHETYPE_RU: Record<string, string> = {
@@ -5634,6 +5675,7 @@ function transformHsguruMeta(
       archetype,
       archetypeLabel: translateStandardArchetype(archetype, translations),
       translated: translateStandardArchetype(archetype, translations) !== archetype,
+      classKey: inferStandardMetaClass(archetype),
       winrate: parseNumber(row[1]),
       popularity,
       games,
@@ -5696,6 +5738,10 @@ function viciousBuildSourceLabel(source: string): string {
 }
 
 async function fetchViciousConstructedDeckRows(): Promise<any[]> {
+  const now = Date.now();
+  if (standardMetaDeckRowsCache && standardMetaDeckRowsCache.expiresAt > now) {
+    return standardMetaDeckRowsCache.rows;
+  }
   const offsets = [0, 200, 400, 600];
   const pages = await Promise.all(offsets.map(async offset => {
     const response = await fetch(`${DATASET_API_ORIGIN}/v1/constructed/decks?limit=200&offset=${offset}`, {
@@ -5706,7 +5752,9 @@ async function fetchViciousConstructedDeckRows(): Promise<any[]> {
     const payload = await response.json();
     return Array.isArray(payload?.data) ? payload.data : [];
   }));
-  return pages.flat();
+  const rows = pages.flat();
+  standardMetaDeckRowsCache = { rows, expiresAt: now + STANDARD_META_RECOMMENDATION_CACHE_MS };
+  return rows;
 }
 
 function findViciousGoldBuild(
@@ -5736,6 +5784,8 @@ function findViciousGoldBuild(
   if (!selected) return null;
   const source = String(selected.source_id ?? 'constructed-decks');
   const score = parseDeckScore(selected.score);
+  const classKey = normalizeStandardMetaClass(selected.class) ?? inferStandardMetaClass(matchedArchetype);
+  if (!classKey) return null;
   return {
     archetype: deck,
     archetypeLabel: deckLabel,
@@ -5747,6 +5797,7 @@ function findViciousGoldBuild(
     sampleGames: score.games,
     winrate: parseNumber(selected.win_rate ?? selected.winrate) ?? score.winrate,
     updatedAt: String(selected.updated_at ?? '').trim() || null,
+    classKey,
     matchedArchetype,
     matchMethod: alias?.representative ? 'representative' : alias ? 'alias' : 'exact',
   };
@@ -5895,6 +5946,8 @@ function parseHsguruStreamerDecks(payload: any, archetype: string, archetypeLabe
     const rowFormat = String(row[2] ?? '').trim().toLowerCase();
     if (rowFormat !== format) return [];
     const score = parseDeckScore(row[6]);
+    const classKey = inferStandardMetaClass(archetype);
+    if (!classKey) return [];
     const base: Omit<StandardMetaDeckCandidate, 'quality'> = {
       archetype,
       archetypeLabel,
@@ -5906,16 +5959,29 @@ function parseHsguruStreamerDecks(payload: any, archetype: string, archetypeLabe
       sampleGames: score.games,
       winrate: score.winrate,
       updatedAt: String(row[8] ?? '').trim() || payload?.fetched_at || null,
+      classKey,
+      matchedArchetype: archetype,
+      matchMethod: 'exact',
     };
     return [{ ...base, quality: standardMetaDeckQuality(base) }];
   });
 }
 
-function parseConstructedDecks(payload: any, archetype: string, archetypeLabel: string, format: StandardMetaFormat): StandardMetaDeckCandidate[] {
+function parseConstructedDecks(
+  payload: any,
+  archetype: string,
+  archetypeLabel: string,
+  format: StandardMetaFormat,
+  matchMethod: 'exact' | 'representative' = 'exact',
+): StandardMetaDeckCandidate[] {
   const wanted = normalizeStandardArchetypeKey(archetype);
+  const wantedClass = inferStandardMetaClass(archetype);
   const rows = Array.isArray(payload?.data) ? payload.data : [];
   return rows.flatMap((row: any) => {
-    if (normalizeStandardArchetypeKey(String(row?.archetype ?? '')) !== wanted) return [];
+    const matchedArchetype = String(row?.archetype ?? '').trim();
+    const rowClass = normalizeStandardMetaClass(row?.class) ?? inferStandardMetaClass(matchedArchetype);
+    const isExact = normalizeStandardArchetypeKey(matchedArchetype) === wanted;
+    if (matchMethod === 'exact' ? !isExact : (isExact || !wantedClass || rowClass !== wantedClass)) return [];
     const rowFormat = String(row?.format ?? '').trim().toLowerCase();
     if (format === 'wild' && rowFormat !== 'wild') return [];
     if (format === 'standard' && rowFormat && rowFormat !== 'standard') return [];
@@ -5923,6 +5989,8 @@ function parseConstructedDecks(payload: any, archetype: string, archetypeLabel: 
     if (!/^[A-Za-z0-9+/=]{40,}$/.test(deckCode)) return [];
     const score = parseDeckScore(row?.score);
     const directWinrate = parseNumber(row?.win_rate ?? row?.winrate);
+    const classKey = wantedClass ?? rowClass;
+    if (!classKey) return [];
     const base: Omit<StandardMetaDeckCandidate, 'quality'> = {
       archetype,
       archetypeLabel,
@@ -5934,6 +6002,9 @@ function parseConstructedDecks(payload: any, archetype: string, archetypeLabel: 
       sampleGames: score.games,
       winrate: directWinrate ?? score.winrate,
       updatedAt: String(row?.updated_at ?? payload?.meta?.fetched_at ?? '').trim() || null,
+      classKey,
+      matchedArchetype,
+      matchMethod,
     };
     return [{ ...base, quality: standardMetaDeckQuality(base) }];
   });
@@ -5948,20 +6019,24 @@ async function findStandardMetaRecommendation(
   const now = Date.now();
   const cached = standardMetaRecommendationCache.get(cacheKey);
   if (cached && cached.expiresAt > now) return cached.data;
-  const [constructedPayload, streamerPayload] = await Promise.all([
-    fetch(`${DATASET_API_ORIGIN}/v1/constructed/decks?q=${encodeURIComponent(archetype)}&limit=100`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
-      signal: AbortSignal.timeout(8_000),
-    }).then(async response => {
-      if (!response.ok) throw new Error(`Constructed decks HTTP ${response.status}`);
-      return response.json();
-    }).catch(() => ({ data: [] })),
+  const [constructedRows, streamerPayload] = await Promise.all([
+    fetchViciousConstructedDeckRows().catch(() => []),
     fetchDataset(HSGURU_STREAMER_DECKS_DATASET).catch(() => ({ data: { tables: [] } })),
   ]);
-  const candidates = [
+  const constructedPayload = { data: constructedRows };
+  let candidates = [
     ...parseHsguruStreamerDecks(streamerPayload, archetype, archetypeLabel, format),
     ...parseConstructedDecks(constructedPayload, archetype, archetypeLabel, format),
   ].sort((left, right) => right.quality - left.quality);
+  if (!candidates.length) {
+    const formatRows = constructedRows.filter(row => String(row?.format ?? '').trim().toLowerCase() === format);
+    candidates = parseConstructedDecks({ data: formatRows }, archetype, archetypeLabel, format, 'representative')
+      .sort((left, right) => right.quality - left.quality);
+    if (!candidates.length && format === 'standard') {
+      candidates = parseConstructedDecks(constructedPayload, archetype, archetypeLabel, format, 'representative')
+        .sort((left, right) => right.quality - left.quality);
+    }
+  }
   const selected = candidates[0] ? (({ quality: _quality, ...recommendation }) => recommendation)(candidates[0]) : null;
   standardMetaRecommendationCache.set(cacheKey, { data: selected, expiresAt: now + STANDARD_META_RECOMMENDATION_CACHE_MS });
   return selected;
@@ -5996,6 +6071,7 @@ async function createStandardMetaPreview(recommendation: StandardMetaRecommendat
       return await fetchStandardMetaPreview(cached.hash);
     } catch {
       standardMetaPreviewCache.delete(cacheKey);
+      persistStandardMetaPreviewCache();
     }
   }
   const response = await fetch(`${KOLODAHS_RENDER_API_BASE_URL}/v1/deck`, {
@@ -6017,6 +6093,7 @@ async function createStandardMetaPreview(recommendation: StandardMetaRecommendat
   const preview = normalizeStandardMetaPreview(await response.json());
   if (!preview.hash) throw new Error('KolodaHS returned an empty hash');
   standardMetaPreviewCache.set(cacheKey, { hash: preview.hash, expiresAt: Date.now() + STANDARD_META_PREVIEW_CACHE_MS });
+  persistStandardMetaPreviewCache();
   return preview;
 }
 

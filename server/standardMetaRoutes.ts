@@ -1,4 +1,5 @@
 import { Router, type RequestHandler } from 'express';
+import type { StandardMetaClassKey } from './standardMetaClasses.js';
 
 export type StandardMetaFormat = 'standard' | 'wild';
 export type StandardMetaRank = 'legend' | 'diamond' | 'top_5k' | 'top_legend';
@@ -14,6 +15,9 @@ export type StandardMetaRecommendation = {
   sampleGames: number | null;
   winrate: number | null;
   updatedAt: string | null;
+  classKey: StandardMetaClassKey;
+  matchedArchetype: string;
+  matchMethod: 'exact' | 'alias' | 'representative';
 };
 
 export type StandardMetaPreview = {

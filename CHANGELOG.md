@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Rebuilt the Standard meta deck modal as a viewport-safe body portal with a fully visible preview, persistent deck code and accessible focus/scroll handling; corrected `*lock` archetypes to Warlock, added same-class representative builds for complete code coverage, and persisted KolodaHS preview hashes for 30 days so releases and repeated opens do not regenerate images.
 - Fixed the Vicious Syndicate Gold build resolver so Blood Warrior uses a valid current Standard Lo’Gosh Warrior fallback from the constructed-decks API instead of MetaStats' invalid short Control Warrior code, restoring real 26/26 deck-code coverage.
 - Added the administrator-only Standard meta beta with HSGuru rank/format slices, translated archetypes, exact-match recommended decks, KolodaHS image previews, deck-code copying, and a direct entry point from the authenticated profile.
 - Fixed administrator navigation compatibility so admin-only Standard links, including “Vicious Syndicate Gold,” remain visible whether `/api/auth/me` returns permission flags inside `user` or at the response top level.

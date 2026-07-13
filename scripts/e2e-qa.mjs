@@ -138,7 +138,11 @@ const adminFixtures = {
     sourceUrl: '',
     translationSource: 'qa-fixture',
     updatedAt: '2026-07-11T00:00:00.000Z',
-    items: [],
+    items: [{
+      id: 'qa-evenlock', archetype: 'Evenlock', archetypeLabel: 'Чётный Чернокнижник', translated: true,
+      classKey: 'warlock', winrate: 61.1, popularity: 5.9, games: 6476, turns: 6.2,
+      durationMinutes: 5.3, climbingSpeed: 2.49,
+    }],
   },
   '/api/admin/contests': {
     contests: [{
@@ -652,6 +656,25 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
         acceptedCount: 0, failedCount: 0, skippedCount: 0, createdAt: '2026-07-13T03:00:00.000Z', startedAt: '', completedAt: '', error: '',
       });
       request.respond({ ...jsonResponse({ success: true, campaign: campaigns[0] }), status: 202 });
+      return;
+    }
+    if (admin && url.pathname === '/api/admin/standard-meta/recommendation' && request.method() === 'GET') {
+      adminState.standardMetaRecommendationRequests = (adminState.standardMetaRecommendationRequests || 0) + 1;
+      request.respond(jsonResponse({
+        recommendation: {
+          archetype: 'Evenlock', archetypeLabel: 'Чётный Чернокнижник', format: 'standard',
+          deckCode: 'AAECAf0GQaFixtureDeckCodeForBrowserQualityAssurance1234567890==',
+          source: 'qa-fixture', sourceUrl: '', streamer: null, sampleGames: 6476, winrate: 61.1,
+          updatedAt: '2026-07-13T00:00:00.000Z', classKey: 'warlock', matchedArchetype: 'Evenlock', matchMethod: 'exact',
+        },
+      }));
+      return;
+    }
+    if (admin && url.pathname === '/api/admin/standard-meta/preview' && request.method() === 'POST') {
+      adminState.standardMetaPreviewRequests = (adminState.standardMetaPreviewRequests || 0) + 1;
+      request.respond(jsonResponse({
+        preview: { hash: 'qa-preview-hash', state: 'done', ready: true, imageUrl: '/ad/wallpaper_info.webp', error: null },
+      }));
       return;
     }
     if (admin && adminFixtures[url.pathname]) {
@@ -1720,6 +1743,42 @@ for (const [device, viewport] of [
     await page.click('[data-profile-admin-destination="standard-meta"]');
     await page.waitForFunction(() => window.location.pathname === '/standard/meta');
     await page.waitForSelector('.standard-meta', { timeout: 20_000 });
+    await page.click('.standard-meta-card__deck-button');
+    await page.waitForSelector('.standard-meta-modal__image-stage img');
+    const metaModalState = await page.evaluate(() => {
+      const modal = document.querySelector('.standard-meta-modal');
+      const panel = document.querySelector('.standard-meta-modal__panel');
+      const image = document.querySelector('.standard-meta-modal__image-stage img');
+      const classImage = document.querySelector('.standard-meta-modal__header img');
+      const code = document.querySelector('.standard-meta-modal__code-block code');
+      const panelRect = panel?.getBoundingClientRect();
+      const imageRect = image?.getBoundingClientRect();
+      return {
+        panelTop: panelRect?.top ?? -1,
+        panelBottom: panelRect?.bottom ?? -1,
+        imageWidth: imageRect?.width ?? 0,
+        imageHeight: imageRect?.height ?? 0,
+        viewportHeight: window.innerHeight,
+        code: code?.textContent || '',
+        classImage: classImage?.getAttribute('src') || '',
+        bodyLocked: getComputedStyle(document.body).position === 'fixed',
+        portalIsBodyChild: modal?.parentElement === document.body,
+      };
+    });
+    if (metaModalState.panelTop < 0 || metaModalState.panelBottom > metaModalState.viewportHeight + 1
+      || metaModalState.imageWidth < 80 || metaModalState.imageHeight < 80
+      || !metaModalState.code.startsWith('AA') || !metaModalState.classImage.includes('warlock-64.webp')
+      || !metaModalState.bodyLocked || !metaModalState.portalIsBodyChild) {
+      failures.push(`standard meta modal [${device}]: geometry, code, class, portal or scroll lock regressed (${JSON.stringify(metaModalState)})`);
+    }
+    await auditAccessibility(page, `standard meta modal [${device}]`, '.standard-meta-modal__panel');
+    await page.click('.standard-meta-modal__close');
+    await page.click('.standard-meta-card__deck-button');
+    await page.waitForSelector('.standard-meta-modal__image-stage img');
+    if (adminState.standardMetaRecommendationRequests !== 1 || adminState.standardMetaPreviewRequests !== 1) {
+      failures.push(`standard meta modal [${device}]: reopening repeated API work (${JSON.stringify({ recommendations: adminState.standardMetaRecommendationRequests, previews: adminState.standardMetaPreviewRequests })})`);
+    }
+    await page.click('.standard-meta-modal__close');
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
     console.log(`✓ admin dashboard/articles/translations/gallery/Boosty/Telegram/mailing/contests/users/profile [${device}] interactions + axe (${violationCount + articlesViolationCount + translationsViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + profileViolationCount} violations)`);

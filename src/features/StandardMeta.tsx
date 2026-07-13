@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   AlertTriangle,
   ExternalLink,
@@ -17,12 +18,14 @@ import './StandardMeta.css';
 
 type MetaFormat = 'standard' | 'wild';
 type MetaRank = 'legend' | 'diamond' | 'top_5k' | 'top_legend';
+type MetaClass = 'deathknight' | 'demonhunter' | 'druid' | 'hunter' | 'mage' | 'paladin' | 'priest' | 'rogue' | 'shaman' | 'warlock' | 'warrior';
 
 type MetaItem = {
   id: string;
   archetype: string;
   archetypeLabel: string;
   translated: boolean;
+  classKey: MetaClass | null;
   winrate: number | null;
   popularity: number | null;
   games: number | null;
@@ -54,6 +57,9 @@ type Recommendation = {
   sampleGames: number | null;
   winrate: number | null;
   updatedAt: string | null;
+  classKey: MetaClass;
+  matchedArchetype: string;
+  matchMethod: 'exact' | 'alias' | 'representative';
 };
 
 type Preview = {
@@ -71,6 +77,12 @@ type DeckModalState = {
   loadingRecommendation: boolean;
   loadingPreview: boolean;
   error: string;
+  previewError: string;
+};
+
+type DeckCacheEntry = {
+  recommendation: Recommendation;
+  preview: Preview | null;
   previewError: string;
 };
 
@@ -131,23 +143,8 @@ function formatNumber(value: number | null, suffix = ''): string {
   return `${value.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}${suffix}`;
 }
 
-function classIcon(archetype: string): string {
-  const value = archetype.toLowerCase();
-  const rules: Array<[string[], string]> = [
-    [['death knight', ' dk'], 'deathknight'],
-    [['demon hunter', ' dh'], 'demonhunter'],
-    [['warlock', 'egglock', 'rafaamlock'], 'warlock'],
-    [['paladin', 'turnadin'], 'paladin'],
-    [['warrior'], 'warrior'],
-    [['shaman'], 'shaman'],
-    [['hunter'], 'hunter'],
-    [['druid'], 'druid'],
-    [['priest'], 'priest'],
-    [['rogue'], 'rogue'],
-    [['mage'], 'mage'],
-  ];
-  const className = rules.find(([needles]) => needles.some(needle => value.includes(needle)))?.[1] ?? 'mage';
-  return `/class_icon/ui/${className}-64.webp`;
+function classIcon(classKey: MetaClass | null): string {
+  return classKey ? `/class_icon/ui/${classKey}-64.webp` : '/class_icon/neutral.webp';
 }
 
 function WinrateMedallion({ value }: { value: number | null }) {
@@ -161,17 +158,34 @@ function WinrateMedallion({ value }: { value: number | null }) {
 }
 
 function DeckModal({ state, onClose }: { state: DeckModalState; onClose: () => void }) {
+  const panelRef = useRef<HTMLElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const [copied, setCopied] = useState(false);
   usePageScrollLock(true);
 
   useEffect(() => {
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     closeRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
+      if (event.key !== 'Tab' || !panelRef.current) return;
+      const focusable = [...panelRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])')];
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      previouslyFocused?.focus();
+    };
   }, [onClose]);
 
   const copyDeck = async () => {
@@ -181,17 +195,17 @@ function DeckModal({ state, onClose }: { state: DeckModalState; onClose: () => v
     window.setTimeout(() => setCopied(false), 1800);
   };
 
-  return (
+  const modal = (
     <div className="standard-meta-modal" role="presentation" onMouseDown={event => {
       if (event.target === event.currentTarget) onClose();
     }}>
-      <section className="standard-meta-modal__panel" role="dialog" aria-modal="true" aria-labelledby="standard-meta-deck-title">
+      <section ref={panelRef} className="standard-meta-modal__panel" role="dialog" aria-modal="true" aria-labelledby="standard-meta-deck-title">
         <button ref={closeRef} type="button" className="standard-meta-modal__close" onClick={onClose} aria-label="Закрыть окно">
           <X size={22} />
         </button>
 
         <header className="standard-meta-modal__header">
-          <img src={classIcon(state.item.archetype)} alt="" width="64" height="64" />
+          <img src={classIcon(state.recommendation?.classKey ?? state.item.classKey)} alt="" width="64" height="64" />
           <div>
             <span className="standard-meta__eyebrow">РЕКОМЕНДУЕМАЯ СБОРКА · BETA</span>
             <h2 id="standard-meta-deck-title">{state.item.archetypeLabel}</h2>
@@ -200,7 +214,7 @@ function DeckModal({ state, onClose }: { state: DeckModalState; onClose: () => v
         </header>
 
         {state.loadingRecommendation && (
-          <div className="standard-meta-modal__status" role="status">
+          <div className="standard-meta-modal__status standard-meta-modal__status--full" role="status">
             <RefreshCw className="standard-meta__spinner" size={30} />
             <strong>Подбираем свежую сборку</strong>
             <span>Сравниваем доступные колоды и размер выборки.</span>
@@ -208,7 +222,7 @@ function DeckModal({ state, onClose }: { state: DeckModalState; onClose: () => v
         )}
 
         {!state.loadingRecommendation && state.error && (
-          <div className="standard-meta-modal__status standard-meta-modal__status--warning" role="alert">
+          <div className="standard-meta-modal__status standard-meta-modal__status--warning standard-meta-modal__status--full" role="alert">
             <AlertTriangle size={30} />
             <strong>Сборка пока не найдена</strong>
             <span>{state.error}</span>
@@ -216,14 +230,7 @@ function DeckModal({ state, onClose }: { state: DeckModalState; onClose: () => v
         )}
 
         {state.recommendation && (
-          <>
-            <div className="standard-meta-modal__deck-meta">
-              <span><Sparkles size={15} /> {state.recommendation.source.replace(/[-_]/g, ' ')}</span>
-              {state.recommendation.streamer && <span><Trophy size={15} /> {state.recommendation.streamer}</span>}
-              {state.recommendation.sampleGames !== null && <span>{state.recommendation.sampleGames} игр</span>}
-              {state.recommendation.winrate !== null && <span>{formatNumber(state.recommendation.winrate, '%')} WR</span>}
-            </div>
-
+          <div className="standard-meta-modal__content">
             <div className="standard-meta-modal__image-stage">
               {state.preview?.ready && state.preview.imageUrl ? (
                 <img src={state.preview.imageUrl} alt={`Колода ${state.item.archetypeLabel}`} />
@@ -242,22 +249,45 @@ function DeckModal({ state, onClose }: { state: DeckModalState; onClose: () => v
               )}
             </div>
 
-            <div className="standard-meta-modal__actions">
-              <button type="button" className="standard-meta__primary-button" onClick={copyDeck}>
-                {copied ? <ShieldCheck size={18} /> : <Swords size={18} />}
-                {copied ? 'Код скопирован' : 'Скопировать код'}
-              </button>
-              {state.recommendation.sourceUrl && (
-                <a href={state.recommendation.sourceUrl} target="_blank" rel="noreferrer" className="standard-meta__secondary-button">
-                  Источник <ExternalLink size={16} />
-                </a>
+            <aside className="standard-meta-modal__details">
+              <div className="standard-meta-modal__deck-meta">
+                <span><Sparkles size={15} /> {state.recommendation.source.replace(/[-_]/g, ' ')}</span>
+                {state.recommendation.streamer && <span><Trophy size={15} /> {state.recommendation.streamer}</span>}
+                {state.recommendation.sampleGames !== null && <span>{state.recommendation.sampleGames.toLocaleString('ru-RU')} игр</span>}
+                {state.recommendation.winrate !== null && <span>{formatNumber(state.recommendation.winrate, '%')} WR</span>}
+              </div>
+
+              {state.recommendation.matchMethod === 'representative' && (
+                <div className="standard-meta-modal__notice">
+                  <ShieldCheck size={18} />
+                  <span>Для архетипа пока нет точного свежего списка. Показана лучшая доступная сборка того же класса: <strong>{state.recommendation.matchedArchetype}</strong>.</span>
+                </div>
               )}
-            </div>
-          </>
+
+              <div className="standard-meta-modal__code-block">
+                <span>Код колоды</span>
+                <code>{state.recommendation.deckCode}</code>
+              </div>
+
+              <div className="standard-meta-modal__actions">
+                <button type="button" className="standard-meta__primary-button" onClick={copyDeck}>
+                  {copied ? <ShieldCheck size={18} /> : <Swords size={18} />}
+                  {copied ? 'Код скопирован' : 'Скопировать код'}
+                </button>
+                {state.recommendation.sourceUrl && (
+                  <a href={state.recommendation.sourceUrl} target="_blank" rel="noreferrer" className="standard-meta__secondary-button">
+                    Источник <ExternalLink size={16} />
+                  </a>
+                )}
+              </div>
+            </aside>
+          </div>
         )}
       </section>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }
 
 export default function StandardMetaPage() {
@@ -269,6 +299,8 @@ export default function StandardMetaPage() {
   const [error, setError] = useState('');
   const [modal, setModal] = useState<DeckModalState | null>(null);
   const requestId = useRef(0);
+  const deckCache = useRef(new Map<string, DeckCacheEntry>());
+  const closeModal = useCallback(() => setModal(null), []);
 
   useEffect(() => {
     const currentRequest = ++requestId.current;
@@ -293,7 +325,15 @@ export default function StandardMetaPage() {
     if (!modal?.preview?.hash || modal.preview.ready || modal.preview.state === 'error') return undefined;
     const timer = window.setTimeout(() => {
       void apiJson<{ preview: Preview }>(`/api/admin/standard-meta/preview/${encodeURIComponent(modal.preview!.hash)}`)
-        .then(({ preview }) => setModal(current => current ? { ...current, preview, loadingPreview: false } : current))
+        .then(({ preview }) => setModal(current => {
+          if (!current?.recommendation) return current;
+          deckCache.current.set(`${current.recommendation.format}:${current.item.archetype.toLowerCase()}`, {
+            recommendation: current.recommendation,
+            preview,
+            previewError: '',
+          });
+          return { ...current, preview, loadingPreview: false };
+        }))
         .catch(cause => setModal(current => current ? {
           ...current,
           loadingPreview: false,
@@ -310,6 +350,20 @@ export default function StandardMetaPage() {
   }, [data.items, query]);
 
   const openDeck = async (item: MetaItem) => {
+    const cacheKey = `${format}:${item.archetype.toLowerCase()}`;
+    const cached = deckCache.current.get(cacheKey);
+    if (cached) {
+      setModal({
+        item,
+        recommendation: cached.recommendation,
+        preview: cached.preview,
+        loadingRecommendation: false,
+        loadingPreview: Boolean(cached.preview && !cached.preview.ready && cached.preview.state !== 'error'),
+        error: '',
+        previewError: cached.previewError,
+      });
+      return;
+    }
     setModal({
       item,
       recommendation: null,
@@ -328,6 +382,7 @@ export default function StandardMetaPage() {
         loadingRecommendation: false,
         loadingPreview: true,
       } : current);
+      deckCache.current.set(cacheKey, { recommendation, preview: null, previewError: '' });
       try {
         const result = await apiJson<{ preview: Preview }>('/api/admin/standard-meta/preview', {
           method: 'POST',
@@ -338,12 +393,15 @@ export default function StandardMetaPage() {
           preview: result.preview,
           loadingPreview: false,
         } : current);
+        deckCache.current.set(cacheKey, { recommendation, preview: result.preview, previewError: '' });
       } catch (cause) {
+        const previewError = cause instanceof Error ? cause.message : 'Изображение пока недоступно';
         setModal(current => current?.item.id === item.id ? {
           ...current,
           loadingPreview: false,
-          previewError: cause instanceof Error ? cause.message : 'Изображение пока недоступно',
+          previewError,
         } : current);
+        deckCache.current.set(cacheKey, { recommendation, preview: null, previewError });
       }
     } catch (cause) {
       setModal(current => current?.item.id === item.id ? {
@@ -412,7 +470,7 @@ export default function StandardMetaPage() {
           {filteredItems.map((item, index) => (
             <article className="standard-meta-card" key={item.id}>
               <div className="standard-meta-card__rank" aria-label={`Место ${index + 1}`}>{index + 1}</div>
-              <img className="standard-meta-card__class" src={classIcon(item.archetype)} alt="" width="56" height="56" />
+              <img className="standard-meta-card__class" src={classIcon(item.classKey)} alt="" width="56" height="56" />
               <div className="standard-meta-card__title">
                 <span>{item.translated ? item.archetype : 'ПЕРЕВОД ОЖИДАЕТСЯ'}</span>
                 <h2>{item.archetypeLabel}</h2>
@@ -438,7 +496,7 @@ export default function StandardMetaPage() {
         </section>
       )}
 
-      {modal && <DeckModal state={modal} onClose={() => setModal(null)} />}
+      {modal && <DeckModal state={modal} onClose={closeModal} />}
     </main>
   );
 }
