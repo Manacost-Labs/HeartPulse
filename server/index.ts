@@ -72,6 +72,7 @@ import { createSubscriptionRouter } from './subscriptionRoutes.js';
 import { createAuthProfileRouter, type AuthProfilePatch } from './authProfileRoutes.js';
 import { completePasswordReset, createPasswordResetRouter } from './passwordResetRoutes.js';
 import { authenticatedUserPayload, createAuthVerificationRouter } from './authVerificationRoutes.js';
+import { createAuthCredentialRouter, deliverCredentialCode } from './authCredentialRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -6244,91 +6245,84 @@ app.use('/api', createOperationalRouter({
   publicCacheHeader: CACHE_5M,
 }));
 
-app.post('/api/auth/register', authCodeRequestLimiter, async (req, res) => {
-  setPrivateNoStore(res);
-  const email = normalizeEmail(req.body?.email);
-  const password = String(req.body?.password ?? '');
-  const name = String(req.body?.name ?? '').trim() || 'Пользователь Манакоста';
-  const country = String(req.body?.country ?? '').trim();
-  if (typeof req.body?.newsletterOptIn !== 'boolean') {
-    return res.status(400).json({ error: 'Некорректное значение согласия на рассылку' });
-  }
-  const newsletterOptIn = req.body.newsletterOptIn;
-  if (!isRealEmail(email)) return res.status(400).json({ error: 'Укажите корректную почту' });
-  if (password.length < 8) return res.status(400).json({ error: 'Пароль должен быть не короче 8 символов' });
-  if (!country) return res.status(400).json({ error: 'Укажите страну' });
-  if (!newsletterOptIn) return res.status(400).json({ error: 'Подтвердите согласие на получение рассылки' });
-
-  const store = loadAuthStore();
-  if (store.users.some(item => item.email === email)) {
-    return res.status(409).json({ error: 'Пользователь с такой почтой уже есть' });
-  }
-
-  const now = new Date().toISOString();
-  store.users.push({
-    id: `user_${sha256(email).slice(0, 12)}`,
-    email,
-    name,
-    role: 'user',
-    country,
-    newsletterOptIn,
-    avatarInitials: name.slice(0, 2).toUpperCase(),
-    passwordHash: hashSecret(password),
-    createdAt: now,
-    updatedAt: now,
-  });
-
-  const authCode = prepareAuthCode(store, email);
-  if (authCode.ok === false) return res.status(authCode.status).json({ error: authCode.error });
-  saveAuthStore(store);
-
-  try {
-    await sendAuthCodeEmail(email, authCode.code);
-    res.json({ success: true, email, message: 'Аккаунт создан. Код отправлен на почту' });
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message ?? 'Аккаунт создан, но код не удалось отправить' });
-  }
-});
-
-app.post('/api/auth/login', authPasswordLimiter, authCodeRequestLimiter, async (req, res) => {
-  setPrivateNoStore(res);
-  const email = normalizeEmail(req.body?.email);
-  const password = String(req.body?.password ?? '');
-  if (!isRealEmail(email)) return res.status(400).json({ error: 'Укажите корректную почту' });
-  const store = loadAuthStore();
-  const user = store.users.find(item => item.email === email);
-  if (!user || !password || !verifySecret(password, user.passwordHash)) {
-    return res.status(401).json({ error: 'Неверная почта или пароль' });
-  }
-
-  const token = adminTokenFromReq(req);
-  const activeSession = authenticatedSessionFromToken(token);
-  if (activeSession?.user.email === email) {
-    if (refreshAuthSessionIfNeeded(activeSession.store, activeSession.session)) {
-      saveAuthStore(activeSession.store);
+app.use('/api/auth/register', authCodeRequestLimiter);
+app.use('/api/auth/login', authPasswordLimiter, authCodeRequestLimiter);
+app.use('/api', createAuthCredentialRouter({
+  normalizeEmail,
+  isRealEmail,
+  register: async ({ email, password, name, country, newsletterOptIn }) => {
+    const store = loadAuthStore();
+    if (store.users.some(item => item.email === email)) {
+      return { ok: false, status: 409, error: 'Пользователь с такой почтой уже есть' } as const;
     }
-    setAuthCookie(req, res, token);
-    return res.json({
-      success: true,
-      authenticated: true,
-      user: publicUser(activeSession.user),
-      adminAllowed: isAdminUser(activeSession.user),
-      contestAdminAllowed: isContestAdminUser(activeSession.user),
-      message: 'Вы уже вошли в аккаунт.',
+
+    const now = new Date().toISOString();
+    store.users.push({
+      id: `user_${sha256(email).slice(0, 12)}`,
+      email,
+      name,
+      role: 'user',
+      country,
+      newsletterOptIn,
+      avatarInitials: name.slice(0, 2).toUpperCase(),
+      passwordHash: hashSecret(password),
+      createdAt: now,
+      updatedAt: now,
     });
-  }
 
-  const authCode = prepareAuthCode(store, email);
-  if (authCode.ok === false) return res.status(authCode.status).json({ error: authCode.error });
-  saveAuthStore(store);
+    const authCode = prepareAuthCode(store, email);
+    if (authCode.ok === false) return authCode;
+    await deliverCredentialCode(
+      () => sendAuthCodeEmail(email, authCode.code),
+      () => saveAuthStore(store),
+    );
+    return {
+      ok: true,
+      payload: { success: true, email, message: 'Аккаунт создан. Код отправлен на почту' },
+    } as const;
+  },
+  login: async ({ email, password }, req) => {
+    const store = loadAuthStore();
+    const user = store.users.find(item => item.email === email);
+    if (!user || user.blockedAt || !verifySecret(password, user.passwordHash)) {
+      return { ok: false, status: 401, error: 'Неверная почта или пароль' } as const;
+    }
 
-  try {
-    await sendAuthCodeEmail(email, authCode.code);
-    res.json({ success: true, email, message: 'Код отправлен на почту' });
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message ?? 'Не удалось отправить код' });
-  }
-});
+    const token = adminTokenFromReq(req);
+    const activeSession = authenticatedSessionFromToken(token);
+    if (activeSession?.user.email === email) {
+      if (refreshAuthSessionIfNeeded(activeSession.store, activeSession.session)) {
+        saveAuthStore(activeSession.store);
+      }
+      return {
+        ok: true,
+        sessionToken: token,
+        payload: {
+          success: true,
+          authenticated: true,
+          user: publicUser(activeSession.user),
+          adminAllowed: isAdminUser(activeSession.user),
+          contestAdminAllowed: isContestAdminUser(activeSession.user),
+          message: 'Вы уже вошли в аккаунт.',
+        },
+      } as const;
+    }
+
+    const authCode = prepareAuthCode(store, email);
+    if (authCode.ok === false) return authCode;
+    await deliverCredentialCode(
+      () => sendAuthCodeEmail(email, authCode.code),
+      () => saveAuthStore(store),
+    );
+    return {
+      ok: true,
+      payload: { success: true, email, message: 'Код отправлен на почту' },
+    } as const;
+  },
+  setAuthCookie,
+  setPrivateNoStore,
+  reportFailure: operation => console.warn(`[auth] ${operation} could not be completed`),
+}));
 
 app.use('/api/auth/password-reset/request', authCodeRequestLimiter);
 app.use('/api/auth/password-reset/confirm', authCodeVerifyLimiter);
