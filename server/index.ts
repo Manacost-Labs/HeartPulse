@@ -66,6 +66,7 @@ import { createAdminBoostyRouter } from './adminBoostyRoutes.js';
 import { createAdminTelegramReadRouter } from './adminTelegramReadRoutes.js';
 import { createAdminContestReadRouter } from './adminContestReadRoutes.js';
 import { createAdminImageUploadRouter } from './adminImageUploadRoutes.js';
+import { createAdminImageGenerationRouter } from './adminImageGenerationRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -7495,59 +7496,19 @@ app.use('/api', createAdminClassPositionRouter({
   setPrivateNoStore,
 }));
 
-// ─── Image generation (/api/admin/gen-image) ──────────────────────────────────
-
-let isGenerating = false;
-
-app.post('/api/admin/gen-image', adminIdGuard, (req, res) => {
-  if (!adminAuth(req)) return res.status(401).json({ error: 'Требуется вход' });
-
-  const type = (req.body?.type as string) ?? 'legendaries';
-  const scriptMap: Record<string, string> = {
-    legendaries: join(APP_ROOT_DIR, 'server', 'gen_legendary_image.py'),
-  };
-  const script = scriptMap[type];
-  if (!script || !existsSync(script)) {
-    return res.status(400).json({ error: `Скрипт для типа "${type}" не найден` });
-  }
-  if (isGenerating) {
-    return res.status(409).json({ error: 'Генерация уже запущена' });
-  }
-
-  const outRel = `generated/${type === 'legendaries' ? 'top_legendaries' : type}.png`;
-  const outAbs = join(APP_ROOT_DIR, 'public', outRel);
-
-  isGenerating = true;
-  const logs: string[] = [];
-
-  const py = spawn('python', [script, outAbs], { cwd: join(APP_ROOT_DIR, 'server') });
-
-  py.stdout.on('data', (d: Buffer) => {
-    const line = d.toString().trim();
-    if (line) { logs.push(line); console.log('[gen-image]', line); }
-  });
-  py.stderr.on('data', (d: Buffer) => {
-    const line = d.toString().trim();
-    if (line) { logs.push('ERR: ' + line); console.error('[gen-image]', line); }
-  });
-
-  py.on('close', (code: number) => {
-    isGenerating = false;
-    if (code === 0) {
-      console.log('[gen-image] Done →', outAbs);
-    } else {
-      console.error('[gen-image] Failed, code:', code);
-    }
-  });
-
-  // Respond immediately with task started; client polls /api/admin/gen-status
-  res.json({ message: 'Генерация запущена', outUrl: '/' + outRel });
-});
-
-app.get('/api/admin/gen-status', adminIdGuard, (req, res) => {
-  if (!adminAuth(req)) return res.status(401).json({ error: 'Требуется вход' });
-  res.json({ busy: isGenerating });
-});
+app.use('/api', createAdminImageGenerationRouter({
+  adminGuard: adminIdGuard,
+  adminAuth,
+  setPrivateNoStore,
+  jobs: {
+    legendaries: {
+      script: join(APP_ROOT_DIR, 'server', 'gen_legendary_image.py'),
+      output: join(APP_ROOT_DIR, 'public', 'generated', 'top_legendaries.png'),
+      publicUrl: '/generated/top_legendaries.png',
+      cwd: join(APP_ROOT_DIR, 'server'),
+    },
+  },
+}));
 
 app.use(structuredErrorMiddleware());
 
