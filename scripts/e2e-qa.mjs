@@ -2818,6 +2818,39 @@ async function assertCardLightboxPresentation(page, label, expectedColumns) {
   }
 }
 
+async function assertCardTooltipPresentation(page, label) {
+  await page.hover('.hs-tier-card');
+  await page.waitForSelector('.card-stats-tooltip--parchment', { visible: true });
+  const material = await page.evaluate(() => {
+    const tooltip = document.querySelector('.card-stats-tooltip--parchment');
+    const header = tooltip.querySelector('.card-stats-tooltip-header');
+    const row = tooltip.querySelector('.card-stats-tooltip-row');
+    const bounds = tooltip.getBoundingClientRect();
+    const tooltipStyle = getComputedStyle(tooltip);
+    const headerStyle = getComputedStyle(header);
+    const rowStyle = getComputedStyle(row);
+    return {
+      borderImage: tooltipStyle.borderImageSource,
+      borderWidth: Number.parseFloat(tooltipStyle.borderTopWidth),
+      background: tooltipStyle.backgroundImage,
+      headerBackground: headerStyle.backgroundImage,
+      rowBackground: rowStyle.backgroundColor,
+      rowRadius: rowStyle.borderRadius,
+      rect: { left: bounds.left, top: bounds.top, right: bounds.right, bottom: bounds.bottom, width: bounds.width, height: bounds.height },
+      viewport: { width: innerWidth, height: innerHeight },
+    };
+  });
+  const prefix = `card tooltip ${label}`;
+  if (!material.borderImage.includes('main-page-rail-border.png') || material.borderWidth < 8) failures.push(`${prefix}: wooden frame is missing`);
+  if (!material.background.includes('arena-parchment.jpg')) failures.push(`${prefix}: parchment surface is missing`);
+  if (!material.headerBackground.includes('arena-rail-red.jpg')) failures.push(`${prefix}: red header texture is missing`);
+  if (material.rowBackground !== 'rgba(255, 244, 216, 0.28)' || material.rowRadius !== '0px') failures.push(`${prefix}: row material changed`);
+  if (material.rect.width <= 0 || material.rect.height <= 0) failures.push(`${prefix}: preview has no rendered area`);
+  if (material.rect.left < -1 || material.rect.top < -1 || material.rect.right > material.viewport.width + 1 || material.rect.bottom > material.viewport.height + 1) {
+    failures.push(`${prefix}: preview escapes the viewport (${JSON.stringify(material.rect)})`);
+  }
+}
+
 for (const [label, viewport] of [
   ['desktop', { width: 1280, height: 720 }],
   ['compact desktop', { width: 1024, height: 640 }],
@@ -2829,6 +2862,7 @@ for (const [label, viewport] of [
     await page.goto(`${BASE}/tierlist`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await waitForMeaningfulPage(page, 'Тир-лист');
     await page.waitForSelector('.hs-tier-card');
+    await assertCardTooltipPresentation(page, label);
     await page.$eval('.hs-tier-card', element => element.click());
     await page.waitForSelector('.card-modal-lightbox', { visible: true });
     await assertCardLightboxPresentation(page, label, 2);

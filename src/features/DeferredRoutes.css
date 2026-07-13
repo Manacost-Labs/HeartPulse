@@ -3071,60 +3071,62 @@
   .arena-app-tierlist.arena-app-game-data :is(.tierlist-view-toggle, .tierlist-rarity-filter, .tierlist-mana-filter) > button:not([data-active='true']) {
     color: #493426 !important;
   }
-  .card-stats-tooltip.card-stats-tooltip--parchment {
-    overflow: hidden;
-    border: 8px solid transparent !important;
-    border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
-    border-image-slice: 18 !important;
-    border-image-width: 8px !important;
-    border-image-repeat: stretch !important;
-    border-radius: 1px !important;
-    color: #3e2c20 !important;
-    background:
-      linear-gradient(rgba(250, 235, 201, 0.92), rgba(226, 198, 145, 0.94)),
-      url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat !important;
-    box-shadow: 0 18px 38px rgba(48, 23, 8, 0.3) !important;
-    padding: 0.68rem !important;
-    backdrop-filter: none !important;
-  }
+}
 
-  .card-stats-tooltip--parchment .card-stats-tooltip-header {
-    margin: -0.68rem -0.68rem 0.62rem !important;
-    padding: 0.68rem 0.75rem 0.62rem !important;
-    border-bottom: 2px solid #5c2b13 !important;
-    background:
-      linear-gradient(90deg, rgba(54, 3, 6, 0.12), rgba(114, 15, 20, 0.08)),
-      url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
-  }
+/* Owned by the deferred Arena card preview tooltip. */
+.card-stats-tooltip.card-stats-tooltip--parchment {
+  overflow: hidden;
+  border: 8px solid transparent;
+  border-image-source: url('/wallpaper/main-page-rail-border.png');
+  border-image-slice: 18;
+  border-image-width: 8px;
+  border-image-repeat: stretch;
+  border-radius: 1px;
+  color: #3e2c20;
+  background:
+    linear-gradient(rgba(250, 235, 201, 0.92), rgba(226, 198, 145, 0.94)),
+    url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat;
+  box-shadow: 0 18px 38px rgba(48, 23, 8, 0.3);
+  padding: 0.68rem;
+  backdrop-filter: none;
+}
 
-  .card-stats-tooltip--parchment .card-stats-tooltip-title {
-    color: #fff0c4 !important;
-    text-shadow: 0 2px 3px rgba(39, 2, 5, 0.7) !important;
-  }
+.card-stats-tooltip--parchment .card-stats-tooltip-header {
+  margin: -0.68rem -0.68rem 0.62rem;
+  padding: 0.68rem 0.75rem 0.62rem;
+  border-bottom: 2px solid #5c2b13;
+  background:
+    linear-gradient(90deg, rgba(54, 3, 6, 0.12), rgba(114, 15, 20, 0.08)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+}
 
-  .card-stats-tooltip--parchment .card-stats-tooltip-source {
-    color: #efc568 !important;
-  }
+.card-stats-tooltip--parchment .card-stats-tooltip-title {
+  color: #fff0c4;
+  text-shadow: 0 2px 3px rgba(39, 2, 5, 0.7);
+}
 
-  .card-stats-tooltip--parchment .card-stats-tooltip-rows {
-    gap: 0 !important;
-  }
+.card-stats-tooltip--parchment .card-stats-tooltip-source {
+  color: #efc568;
+}
 
-  .card-stats-tooltip--parchment .card-stats-tooltip-row {
-    min-height: 31px !important;
-    border: 0 !important;
-    border-bottom: 1px solid rgba(91, 50, 23, 0.2) !important;
-    border-radius: 0 !important;
-    color: #68543e !important;
-    background: rgba(255, 244, 216, 0.28) !important;
-    padding: 0.42rem 0.5rem !important;
-  }
+.card-stats-tooltip--parchment .card-stats-tooltip-rows {
+  gap: 0;
+}
 
-  .card-stats-tooltip--parchment .card-stats-tooltip-row:last-child {
-    border-bottom: 0 !important;
-  }
+.card-stats-tooltip--parchment .card-stats-tooltip-row {
+  min-height: 31px;
+  border: 0;
+  border-bottom: 1px solid rgba(91, 50, 23, 0.2);
+  border-radius: 0;
+  color: #68543e;
+  background: rgba(255, 244, 216, 0.28);
+  padding: 0.42rem 0.5rem;
+}
 
-  .card-stats-tooltip--parchment .card-stats-tooltip-row strong {
-    color: #71141a !important;
-  }
+.card-stats-tooltip--parchment .card-stats-tooltip-row:last-child {
+  border-bottom: 0;
+}
+
+.card-stats-tooltip--parchment .card-stats-tooltip-row strong {
+  color: #71141a;
 }
