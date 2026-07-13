@@ -5436,6 +5436,35 @@ function translateStandardArchetype(name: string, translations: Record<string, s
   return bestMatch || name;
 }
 
+async function loadObservedStandardArchetypes() {
+  const ranks = Object.entries(STANDARD_MATCHUPS_DATASET_BY_RANK) as Array<[
+    keyof typeof STANDARD_MATCHUPS_DATASET_BY_RANK,
+    string,
+  ]>;
+  const payloads = await Promise.all(ranks.map(async ([rank, datasetId]) => ({
+    rank,
+    payload: await fetchDataset(datasetId),
+  })));
+  return payloads.flatMap(({ rank, payload }) => {
+    const table = payload?.data?.tables?.[0] ?? payload?.tables?.[0] ?? null;
+    const headers = Array.isArray(table?.headers) ? table.headers.slice(2) : [];
+    const rows = Array.isArray(table?.rows) ? table.rows.slice(1) : [];
+    const names = [
+      ...headers,
+      ...rows.map((row: unknown) => Array.isArray(row) ? row[1] : ''),
+    ];
+    const uniqueNames = new Map<string, string>();
+    for (const value of names) {
+      const nameEn = String(value ?? '').trim().replace(/\s+/g, ' ');
+      if (nameEn) uniqueNames.set(normalizeStandardArchetypeKey(nameEn), nameEn);
+    }
+    return [...uniqueNames.values()].map(nameEn => ({
+      nameEn,
+      rank: STANDARD_MATCHUPS_RANK_LABEL[rank],
+    }));
+  });
+}
+
 function transformHsguruMatchups(
   payload: any,
   rank: keyof typeof STANDARD_MATCHUPS_DATASET_BY_RANK,
@@ -7436,6 +7465,7 @@ app.use('/api', createAdminArchetypeTranslationRouter({
   adminAuth,
   getDatabase: db,
   loadUpstream: fetchBlizzcoreArchetypesPayload,
+  loadObservedArchetypes: loadObservedStandardArchetypes,
   ensureSeeded: ensureArchetypeTranslationsSeeded,
   setPrivateNoStore,
   invalidateTranslations: () => {

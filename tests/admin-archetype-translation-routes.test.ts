@@ -3,6 +3,7 @@ import express from 'express';
 // @ts-ignore: node:sqlite is available in the production Node 22 runtime.
 import { DatabaseSync } from 'node:sqlite';
 import {
+  analyzeArchetypeTranslationCoverage,
   createAdminArchetypeTranslationRouter,
   normalizeArchetypeTranslation,
   normalizeBlizzcoreArchetypes,
@@ -45,6 +46,7 @@ let upstreamPayload: unknown = [
 ];
 let seedRuns = 0;
 let invalidations = 0;
+let observedFails = false;
 const audit: string[] = [];
 const timestamp = '2026-07-13T16:30:00.000Z';
 
@@ -60,6 +62,15 @@ app.use('/api', createAdminArchetypeTranslationRouter({
   adminAuth: request => request.headers['x-test-user'] === 'admin' ? { id: 'admin-1' } : null,
   getDatabase: () => database,
   loadUpstream: async () => upstreamPayload,
+  loadObservedArchetypes: async () => {
+    if (observedFails) throw new Error('private upstream detail');
+    return [
+      { nameEn: 'Control Warrior', rank: 'Легенда' },
+      { nameEn: 'Tempo Mage', rank: 'Алмаз 4-1' },
+      { nameEn: 'New Priest', rank: 'Легенда' },
+      { nameEn: 'New Priest', rank: 'Алмаз 4-1' },
+    ];
+  },
   ensureSeeded: async () => {
     const count = Number((database.prepare('SELECT COUNT(*) AS total FROM archetype_translations').get() as any).total);
     if (count) return;
@@ -104,6 +115,25 @@ try {
     lastSyncedAt: timestamp,
   });
   assert.equal(seedRuns, 1);
+
+  const coverage = await request('/admin/archetype-translations/untranslated', { headers: adminHeaders });
+  assert.equal(coverage.response.status, 200);
+  assert.deepEqual(coverage.body, {
+    items: [{ nameEn: 'New Priest', ranks: ['Алмаз 4-1', 'Легенда'] }],
+    totalObserved: 3,
+    translated: 2,
+    missing: 1,
+    coveragePercent: 66.7,
+  });
+  assert.deepEqual(analyzeArchetypeTranslationCoverage(database, []), {
+    items: [], totalObserved: 0, translated: 0, missing: 0, coveragePercent: 100,
+  });
+
+  observedFails = true;
+  const unavailableCoverage = await request('/admin/archetype-translations/untranslated', { headers: adminHeaders });
+  assert.equal(unavailableCoverage.response.status, 502);
+  assert.deepEqual(unavailableCoverage.body, { error: 'Не удалось проверить актуальные архетипы' });
+  observedFails = false;
 
   const invalid = await request('/admin/archetype-translations', {
     method: 'POST', headers: adminHeaders, body: JSON.stringify({ translation: { nameEn: '', nameRu: 'Пусто' } }),

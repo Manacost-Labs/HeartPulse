@@ -506,6 +506,27 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
         return;
       }
     }
+    if (admin && url.pathname === '/api/admin/archetype-translations/untranslated') {
+      const translations = adminState.translations ??= structuredClone(adminFixtures['/api/admin/archetype-translations'].items);
+      const observed = [
+        { nameEn: 'Control Warrior', ranks: ['Легенда', 'Алмаз 4-1'] },
+        { nameEn: 'Rainbow Mage', ranks: ['Легенда'] },
+        { nameEn: 'Void Soul DH', ranks: ['Легенда', 'Алмаз 4-1'] },
+      ];
+      const translatedKeys = translations.map(item => item.nameEn.toLocaleLowerCase('en-US'));
+      const items = observed.filter(item => {
+        const key = item.nameEn.toLocaleLowerCase('en-US');
+        return !translatedKeys.some(translationKey => key === translationKey || key.includes(translationKey));
+      });
+      request.respond(jsonResponse({
+        items,
+        totalObserved: observed.length,
+        translated: observed.length - items.length,
+        missing: items.length,
+        coveragePercent: Math.round(((observed.length - items.length) / observed.length) * 1_000) / 10,
+      }));
+      return;
+    }
     if (admin && url.pathname === '/api/admin/archetype-translations') {
       const translations = adminState.translations ??= structuredClone(adminFixtures['/api/admin/archetype-translations'].items);
       if (request.method() === 'POST') {
@@ -1085,13 +1106,20 @@ for (const [device, viewport] of [
 
     await page.goto(`${BASE}/?admin&section=translations`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 2);
+    await page.waitForFunction(() => document.querySelectorAll('.admin-untranslated-list li').length === 1);
+    await page.screenshot({ path: `${OUT}/admin-translations-${device}.png`, fullPage: false });
+    const missingName = await page.$eval('.admin-untranslated-list strong', element => element.textContent?.trim() || '');
+    if (missingName !== 'Void Soul DH') failures.push(`admin translations [${device}]: current missing archetype was not detected`);
+    await page.click('.admin-untranslated-list button');
     const translationInputs = await page.$$('.admin-translation-form input');
     if (translationInputs.length !== 2) throw new Error('Translation editor fields are missing');
-    await translationInputs[0].type('Token Druid');
-    await translationInputs[1].type('Токен Друид');
+    const queuedEnglishName = await page.$eval('#admin-translation-name-en', element => element.value);
+    if (queuedEnglishName !== 'Void Soul DH') failures.push(`admin translations [${device}]: missing archetype did not prefill the editor`);
+    await translationInputs[1].type('Душа Бездны Охотник на демонов');
     await page.click('.admin-translation-form button[type="submit"]');
     await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Перевод добавлен'));
     await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 3);
+    await page.waitForFunction(() => document.querySelector('.admin-translation-covered')?.textContent?.includes('Все актуальные архетипы переведены'));
     await page.click('.admin-translation-table tbody tr:first-child button');
     await page.waitForFunction(() => document.querySelector('.admin-translation-form h2')?.textContent?.includes('Редактирование'));
     const editInputs = await page.$$('.admin-translation-form input');
@@ -1107,6 +1135,20 @@ for (const [device, viewport] of [
     if (!translationEmpty.includes('не найдены')) failures.push(`admin translations [${device}]: filtered empty state is missing`);
     await translationSearch.click({ clickCount: 3 });
     await page.keyboard.press('Backspace');
+    await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 3);
+    await page.evaluate(() => {
+      const button = [...document.querySelectorAll('.admin-translation-source-filter button')]
+        .find(element => element.textContent?.trim() === 'BlizzCore');
+      if (!(button instanceof HTMLButtonElement)) throw new Error('BlizzCore source filter is missing');
+      button.click();
+    });
+    await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 0);
+    await page.evaluate(() => {
+      const button = [...document.querySelectorAll('.admin-translation-source-filter button')]
+        .find(element => element.textContent?.trim() === 'Все');
+      if (!(button instanceof HTMLButtonElement)) throw new Error('All translations source filter is missing');
+      button.click();
+    });
     await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 3);
     await page.click('.admin-translation-list-card > .admin-card-heading button');
     await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('BlizzCore синхронизирован'));

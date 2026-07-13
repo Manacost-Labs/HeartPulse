@@ -29,11 +29,25 @@ export type BlizzcoreArchetype = {
   nameRu: string;
 };
 
+export type ObservedArchetype = {
+  nameEn: string;
+  rank: string;
+};
+
+export type ArchetypeTranslationCoverage = {
+  items: Array<{ nameEn: string; ranks: string[] }>;
+  totalObserved: number;
+  translated: number;
+  missing: number;
+  coveragePercent: number;
+};
+
 export type AdminArchetypeTranslationRouterDependencies = {
   adminGuard: RequestHandler;
   adminAuth: (request: Request) => AdminIdentity | null;
   getDatabase: () => DatabaseSync;
   loadUpstream: () => Promise<unknown>;
+  loadObservedArchetypes?: () => Promise<ObservedArchetype[]>;
   ensureSeeded?: () => Promise<void>;
   setPrivateNoStore: (response: Response) => void;
   invalidateTranslations: () => void;
@@ -165,6 +179,39 @@ export function syncBlizzcoreArchetypes(
   return { imported, updated, preservedManual };
 }
 
+export function analyzeArchetypeTranslationCoverage(
+  database: DatabaseSync,
+  observed: ObservedArchetype[],
+): ArchetypeTranslationCoverage {
+  const translationKeys = (database.prepare('SELECT name_en_key FROM archetype_translations').all() as Array<{ name_en_key: string }>)
+    .map(row => String(row.name_en_key || '').trim())
+    .filter(Boolean);
+  const grouped = new Map<string, { nameEn: string; ranks: Set<string> }>();
+  for (const item of observed) {
+    const nameEn = String(item?.nameEn || '').trim().replace(/\s+/g, ' ');
+    const rank = String(item?.rank || '').trim();
+    if (!nameEn || nameEn.length > MAX_NAME_LENGTH || CONTROL_CHARACTERS.test(nameEn)) continue;
+    const key = nameEn.toLocaleLowerCase('en-US');
+    const current = grouped.get(key) ?? { nameEn, ranks: new Set<string>() };
+    if (rank) current.ranks.add(rank);
+    grouped.set(key, current);
+  }
+
+  const missing = [...grouped.entries()]
+    .filter(([key]) => !translationKeys.some(translationKey => key === translationKey || key.includes(translationKey)))
+    .map(([, item]) => ({ nameEn: item.nameEn, ranks: [...item.ranks].sort((left, right) => left.localeCompare(right, 'ru')) }))
+    .sort((left, right) => left.nameEn.localeCompare(right.nameEn, 'en'));
+  const totalObserved = grouped.size;
+  const translated = totalObserved - missing.length;
+  return {
+    items: missing,
+    totalObserved,
+    translated,
+    missing: missing.length,
+    coveragePercent: totalObserved ? Math.round((translated / totalObserved) * 1_000) / 10 : 100,
+  };
+}
+
 function listTranslations(database: DatabaseSync, request: Request) {
   const query = String(request.query.q || '').trim().slice(0, MAX_NAME_LENGTH).toLocaleLowerCase('ru-RU');
   const source = request.query.source === 'manual' || request.query.source === 'blizzcore'
@@ -234,6 +281,23 @@ export function createAdminArchetypeTranslationRouter(
       return response.json(listTranslations(dependencies.getDatabase(), request));
     } catch {
       return response.status(500).json({ error: 'Не удалось загрузить переводы архетипов' });
+    }
+  });
+
+  router.get('/admin/archetype-translations/untranslated', dependencies.adminGuard, async (request, response) => {
+    if (!authorize(request, response)) return response.status(401).json({ error: 'Требуется вход' });
+    if (!dependencies.loadObservedArchetypes) {
+      return response.status(503).json({ error: 'Проверка покрытия переводов не настроена' });
+    }
+    try {
+      await dependencies.ensureSeeded?.();
+      const coverage = analyzeArchetypeTranslationCoverage(
+        dependencies.getDatabase(),
+        await dependencies.loadObservedArchetypes(),
+      );
+      return response.json(coverage);
+    } catch {
+      return response.status(502).json({ error: 'Не удалось проверить актуальные архетипы' });
     }
   });
 

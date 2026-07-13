@@ -67,13 +67,17 @@ import {
   type ContestWorkspaceView,
 } from './ContestAdminContests';
 import { ADMIN_INPUT } from './contestAdminUi';
-import { ContestAdminTranslations } from './ContestAdminTranslations';
 import {
   adminWorkspaceReducer,
   createAdminWorkspaceState,
   type AdminMessage,
   type AdminWorkspaceSection,
 } from './adminWorkspaceState';
+
+const ContestAdminTranslations = React.lazy(async () => {
+  const module = await import('./ContestAdminTranslations');
+  return { default: module.ContestAdminTranslations };
+});
 
 type AuthUser = {
   id?: string;
@@ -1686,7 +1690,9 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           )}
 
           {hasFullAdminAccess && adminSection === 'translations' && (
-            <ContestAdminTranslations onMessage={setMessage} />
+            <React.Suspense fallback={<p className="contest-muted" role="status">Загружаем управление переводами…</p>}>
+              <ContestAdminTranslations onMessage={setMessage} />
+            </React.Suspense>
           )}
 
           {adminSection === 'contests' && (

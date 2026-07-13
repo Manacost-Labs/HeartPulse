@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { AdminMessage } from './adminWorkspaceState';
 
 export type ArchetypeTranslation = {
@@ -23,11 +23,21 @@ type TranslationResponse = {
 };
 
 type TranslationDraft = { nameEn: string; nameRu: string };
+type TranslationCoverage = {
+  items: Array<{ nameEn: string; ranks: string[] }>;
+  totalObserved: number;
+  translated: number;
+  missing: number;
+  coveragePercent: number;
+};
 type MessageHandler = (message: AdminMessage | null) => void;
 const EMPTY_DRAFT: TranslationDraft = { nameEn: '', nameRu: '' };
 const EMPTY_RESPONSE: TranslationResponse = {
   items: [], total: 0, page: 1, pageSize: 40, pages: 1,
   stats: { total: 0, manual: 0, blizzcore: 0, lastSyncedAt: null },
+};
+const EMPTY_COVERAGE: TranslationCoverage = {
+  items: [], totalObserved: 0, translated: 0, missing: 0, coveragePercent: 100,
 };
 
 function requestHeaders(): HeadersInit {
@@ -47,6 +57,9 @@ type TranslationWorkspaceViewProps = {
   loading: boolean;
   saving: boolean;
   syncing: boolean;
+  coverage: TranslationCoverage;
+  coverageLoading: boolean;
+  coverageError: string;
   query: string;
   source: string;
   draft: TranslationDraft;
@@ -58,7 +71,10 @@ type TranslationWorkspaceViewProps = {
   onEdit: (item: ArchetypeTranslation) => void;
   onCancelEdit: () => void;
   onSync: () => void;
+  onRetryCoverage: () => void;
+  onTranslateMissing: (nameEn: string) => void;
   onPageChange: (page: number) => void;
+  russianInputRef: React.RefObject<HTMLInputElement | null>;
 };
 
 function TranslationWorkspaceView({
@@ -66,6 +82,9 @@ function TranslationWorkspaceView({
   loading,
   saving,
   syncing,
+  coverage,
+  coverageLoading,
+  coverageError,
   query,
   source,
   draft,
@@ -77,16 +96,77 @@ function TranslationWorkspaceView({
   onEdit,
   onCancelEdit,
   onSync,
+  onRetryCoverage,
+  onTranslateMissing,
   onPageChange,
+  russianInputRef,
 }: TranslationWorkspaceViewProps) {
   return (
     <div className="admin-translation-workspace">
       <div className="admin-stat-grid admin-translation-stats" aria-label="Сводка переводов">
-        <div><span>Всего переводов</span><strong>{data.stats.total}</strong><small>доступно сайту</small></div>
-        <div><span>Из BlizzCore</span><strong>{data.stats.blizzcore}</strong><small>обновляются синхронизацией</small></div>
-        <div><span>Ручные</span><strong>{data.stats.manual}</strong><small>имеют приоритет</small></div>
+        <div className={coverage.missing ? 'needs-attention' : 'is-complete'}>
+          <span>Покрытие матчапов</span>
+          <strong>{coverageLoading ? '…' : `${coverage.coveragePercent}%`}</strong>
+          <small>{coverage.translated} из {coverage.totalObserved} актуальных</small>
+        </div>
+        <div className={coverage.missing ? 'needs-attention' : 'is-complete'}>
+          <span>Нужно перевести</span>
+          <strong>{coverageLoading ? '…' : coverage.missing}</strong>
+          <small>{coverage.missing ? 'видны пользователям на английском' : 'всё переведено'}</small>
+        </div>
+        <div><span>Таблица переводов</span><strong>{data.stats.total}</strong><small>{data.stats.blizzcore} BlizzCore · {data.stats.manual} ручных</small></div>
         <div><span>Последняя синхронизация</span><strong className="admin-translation-date">{formatSyncDate(data.stats.lastSyncedAt)}</strong><small>источник: api.blizzcore.ru</small></div>
       </div>
+
+      <section className="contest-admin-card admin-translation-coverage" aria-labelledby="translation-coverage-title">
+        <div className="admin-card-heading">
+          <div>
+            <h2 id="translation-coverage-title">Что ещё не переведено</h2>
+            <p className="contest-muted">Сравниваем таблицу с архетипами, которые прямо сейчас встречаются в матчапах Легенды и Алмаза 4–1.</p>
+          </div>
+          <button type="button" className="contest-secondary-button" onClick={onRetryCoverage} disabled={coverageLoading}>
+            {coverageLoading ? 'Проверяем…' : 'Проверить ещё раз'}
+          </button>
+        </div>
+        {!coverageError && !coverageLoading && (
+          <div className="admin-translation-progress">
+            <progress
+              aria-label="Покрытие переводами актуальных архетипов"
+              max={100}
+              value={coverage.coveragePercent}
+            />
+            <strong>{coverage.translated} из {coverage.totalObserved}</strong>
+          </div>
+        )}
+        {coverageError && (
+          <div className="admin-translation-coverage-error" role="alert">
+            <span>{coverageError}</span>
+            <button type="button" onClick={onRetryCoverage}>Повторить</button>
+          </div>
+        )}
+        {!coverageError && coverageLoading && <p className="contest-muted admin-translation-empty" role="status">Проверяем актуальные матчапы…</p>}
+        {!coverageError && !coverageLoading && coverage.items.length > 0 && (
+          <ul className="admin-untranslated-list" aria-label="Архетипы без перевода">
+            {coverage.items.map(item => (
+              <li key={item.nameEn}>
+                <div>
+                  <strong>{item.nameEn}</strong>
+                  <span>{item.ranks.join(' · ')}</span>
+                </div>
+                <button type="button" className="contest-primary-button" onClick={() => onTranslateMissing(item.nameEn)}>
+                  Перевести
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {!coverageError && !coverageLoading && coverage.items.length === 0 && (
+          <div className="admin-translation-covered" role="status">
+            <strong>Все актуальные архетипы переведены</strong>
+            <span>Новые названия появятся здесь автоматически после обновления матчапов.</span>
+          </div>
+        )}
+      </section>
 
       <div className="contest-admin-grid admin-translation-layout">
         <form className="contest-admin-card admin-translation-form" onSubmit={onSubmit}>
@@ -97,9 +177,10 @@ function TranslationWorkspaceView({
             </div>
             {editing && <span className="admin-source-badge is-manual">Ручной</span>}
           </div>
-          <label>
+          <label htmlFor="admin-translation-name-en">
             Английское название
             <input
+              id="admin-translation-name-en"
               value={draft.nameEn}
               onChange={event => onDraftChange({ nameEn: event.target.value })}
               placeholder="Control Warrior"
@@ -108,9 +189,11 @@ function TranslationWorkspaceView({
               required
             />
           </label>
-          <label>
+          <label htmlFor="admin-translation-name-ru">
             Русский перевод
             <input
+              ref={russianInputRef}
+              id="admin-translation-name-ru"
               value={draft.nameRu}
               onChange={event => onDraftChange({ nameRu: event.target.value })}
               placeholder="Контроль Воин"
@@ -123,8 +206,13 @@ function TranslationWorkspaceView({
             <button type="submit" className="contest-primary-button" disabled={saving}>
               {saving ? 'Сохраняем…' : editing ? 'Сохранить перевод' : 'Добавить перевод'}
             </button>
-            {editing && <button type="button" className="contest-secondary-button" onClick={onCancelEdit}>Отмена</button>}
+            {(editing || draft.nameEn || draft.nameRu) && (
+              <button type="button" className="contest-secondary-button" onClick={onCancelEdit}>
+                {editing ? 'Отмена' : 'Очистить'}
+              </button>
+            )}
           </div>
+          <p className="admin-translation-form-note">После сохранения очередь непереведённых обновится автоматически.</p>
         </form>
 
         <section className="contest-admin-card admin-translation-list-card" aria-labelledby="translation-table-title">
@@ -138,22 +226,32 @@ function TranslationWorkspaceView({
             </button>
           </div>
           <div className="admin-list-toolbar admin-translation-toolbar">
-            <label>
+            <label htmlFor="admin-translation-search">
               Поиск
-              <input value={query} onChange={event => onQueryChange(event.target.value)} placeholder="Английское или русское название" />
+              <div className="admin-translation-search-control">
+                <input
+                  id="admin-translation-search"
+                  type="search"
+                  value={query}
+                  onChange={event => onQueryChange(event.target.value)}
+                  placeholder="Английское или русское название"
+                />
+                {query && <button type="button" onClick={() => onQueryChange('')} aria-label="Очистить поиск">Очистить</button>}
+              </div>
             </label>
-            <label>
-              Источник
-              <select value={source} onChange={event => onSourceChange(event.target.value)}>
-                <option value="">Все переводы</option>
-                <option value="manual">Ручные</option>
-                <option value="blizzcore">BlizzCore</option>
-              </select>
-            </label>
+            <fieldset className="admin-translation-source-filter">
+              <legend>Источник</legend>
+              <div role="group" aria-label="Фильтр по источнику">
+                <button type="button" aria-pressed={source === ''} onClick={() => onSourceChange('')}>Все</button>
+                <button type="button" aria-pressed={source === 'manual'} onClick={() => onSourceChange('manual')}>Ручные</button>
+                <button type="button" aria-pressed={source === 'blizzcore'} onClick={() => onSourceChange('blizzcore')}>BlizzCore</button>
+              </div>
+            </fieldset>
           </div>
 
           <div className="admin-translation-table-wrap" aria-busy={loading}>
             <table className="admin-translation-table">
+              <caption className="sr-only">Управляемые переводы архетипов</caption>
               <thead><tr><th>English</th><th>Русский</th><th>Источник</th><th aria-label="Действия" /></tr></thead>
               <tbody>
                 {data.items.map(item => (
@@ -191,8 +289,12 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [coverage, setCoverage] = useState<TranslationCoverage>(EMPTY_COVERAGE);
+  const [coverageLoading, setCoverageLoading] = useState(true);
+  const [coverageError, setCoverageError] = useState('');
   const [editing, setEditing] = useState<ArchetypeTranslation | null>(null);
   const [draft, setDraft] = useState<TranslationDraft>(EMPTY_DRAFT);
+  const russianInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -215,11 +317,35 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
     }
   }, [onMessage, page, query, source]);
 
+  const loadCoverage = useCallback(async (signal?: AbortSignal) => {
+    setCoverageLoading(true);
+    setCoverageError('');
+    try {
+      const response = await fetch('/api/admin/archetype-translations/untranslated', {
+        headers: requestHeaders(), cache: 'no-store', credentials: 'same-origin', signal,
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Не удалось проверить актуальные архетипы');
+      setCoverage(payload as TranslationCoverage);
+    } catch (error) {
+      if (signal?.aborted) return;
+      setCoverageError(error instanceof Error ? error.message : 'Не удалось проверить актуальные архетипы');
+    } finally {
+      if (!signal?.aborted) setCoverageLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const controller = new AbortController();
     const timer = window.setTimeout(() => void load(controller.signal), query.trim() ? 220 : 0);
     return () => { window.clearTimeout(timer); controller.abort(); };
   }, [load]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadCoverage(controller.signal);
+    return () => controller.abort();
+  }, [loadCoverage]);
 
   const resetEditor = () => {
     setEditing(null);
@@ -243,6 +369,7 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
       resetEditor();
       if (page !== 1) setPage(1);
       else await load();
+      await loadCoverage();
     } catch (error) {
       onMessage({ type: 'err', text: error instanceof Error ? error.message : 'Не удалось сохранить перевод' });
     } finally {
@@ -259,7 +386,7 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'Не удалось синхронизировать переводы');
       onMessage({ type: 'ok', text: `BlizzCore синхронизирован: ${payload.rows} строк, новых — ${payload.imported}.` });
-      await load();
+      await Promise.all([load(), loadCoverage()]);
     } catch (error) {
       onMessage({ type: 'err', text: error instanceof Error ? error.message : 'Не удалось синхронизировать переводы' });
     } finally {
@@ -270,15 +397,27 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
   return (
     <TranslationWorkspaceView
       data={data} loading={loading} saving={saving} syncing={syncing}
+      coverage={coverage} coverageLoading={coverageLoading} coverageError={coverageError}
       query={query} source={source} draft={draft} editing={editing}
       onQueryChange={value => { setQuery(value); setPage(1); }}
       onSourceChange={value => { setSource(value); setPage(1); }}
       onDraftChange={patch => setDraft(current => ({ ...current, ...patch }))}
       onSubmit={submit}
-      onEdit={item => { setEditing(item); setDraft({ nameEn: item.nameEn, nameRu: item.nameRu }); }}
+      onEdit={item => {
+        setEditing(item);
+        setDraft({ nameEn: item.nameEn, nameRu: item.nameRu });
+        window.requestAnimationFrame(() => russianInputRef.current?.focus());
+      }}
       onCancelEdit={resetEditor}
       onSync={() => void sync()}
+      onRetryCoverage={() => void loadCoverage()}
+      onTranslateMissing={nameEn => {
+        setEditing(null);
+        setDraft({ nameEn, nameRu: '' });
+        window.requestAnimationFrame(() => russianInputRef.current?.focus());
+      }}
       onPageChange={setPage}
+      russianInputRef={russianInputRef}
     />
   );
 }
