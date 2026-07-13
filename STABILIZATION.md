@@ -249,6 +249,7 @@ A task is complete only when all relevant checks below are proven.
   - [x] Shared admin/contest image uploads now use an isolated private router with signature, byte, dimension, animation and pixel-bomb validation; dual public/source publication is atomic and rolls back every temporary or partially published file on failure.
   - [x] Admin image generation now uses an isolated private subprocess boundary with a fixed job allowlist, bounded single-line logs and deterministic busy-lock recovery after synchronous or asynchronous spawn failures.
   - [x] Public contest listing, subscription-gated entry and private contest history now share an isolated router with bounded IDs, parameterized SQL, generic storage/upstream failures, idempotent entry timestamps and PII-safe HTTP contracts.
+  - [x] Subscription status and forced refresh now share an isolated private router; provider failures return a stable unavailable status without exposing upstream diagnostics, and authorization/force/cache behavior has HTTP contracts.
 - [x] Phase 5: isolated scraper publishing.
   - [x] Supported scraper documents are structurally validated and durably published through same-filesystem staging, file and directory `fsync`, and atomic rename; empty/incomplete results cannot replace the last good snapshot.
   - [x] Snapshot publication also rejects older replacements and unexpected losses of more than half of the published primary collection or card index, while still allowing a valid snapshot to recover a missing or invalid destination.

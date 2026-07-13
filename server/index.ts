@@ -68,6 +68,7 @@ import { createAdminContestReadRouter } from './adminContestReadRoutes.js';
 import { createAdminImageUploadRouter } from './adminImageUploadRoutes.js';
 import { createAdminImageGenerationRouter } from './adminImageGenerationRoutes.js';
 import { createContestRouter } from './contestRoutes.js';
+import { createSubscriptionRouter } from './subscriptionRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -6905,29 +6906,12 @@ app.post('/api/auth/logout', (req, res) => {
   res.json({ success: true });
 });
 
-app.get('/api/subscription/status', async (req, res) => {
-  setPrivateNoStore(res);
-  const user = userAuth(req);
-  if (!user) return res.status(401).json({ error: 'Требуется вход' });
-  try {
-    const status = await refreshSubscriptionForUser(user, false);
-    res.json(status);
-  } catch (err: any) {
-    res.status(500).json(emptySubscriptionStatus(err?.message ?? 'Не удалось проверить подписку'));
-  }
-});
-
-app.post('/api/subscription/refresh', async (req, res) => {
-  setPrivateNoStore(res);
-  const user = userAuth(req);
-  if (!user) return res.status(401).json({ error: 'Требуется вход' });
-  try {
-    const status = await refreshSubscriptionForUser(user, true);
-    res.json(status);
-  } catch (err: any) {
-    res.status(500).json(emptySubscriptionStatus(err?.message ?? 'Не удалось проверить подписку'));
-  }
-});
+app.use('/api', createSubscriptionRouter({
+  userAuth,
+  refreshSubscription: refreshSubscriptionForUser,
+  unavailableStatus: emptySubscriptionStatus,
+  setPrivateNoStore,
+}));
 
 app.use('/api', createContestRouter({
   userAuth,
