@@ -369,28 +369,28 @@
   }
 
   .card-modal-header {
-    border-color: rgba(148, 163, 184, 0.18) !important;
+    border-color: rgba(148, 163, 184, 0.18);
     padding-bottom: 0.95rem;
   }
 
   .card-modal-source {
-    color: #f6ce68 !important;
-    letter-spacing: 0 !important;
+    color: #f6ce68;
+    letter-spacing: 0;
   }
 
   .card-modal-title {
-    color: #fff7cf !important;
-    font-size: clamp(1.22rem, 2vw, 1.55rem) !important;
-    letter-spacing: 0 !important;
+    color: #fff7cf;
+    font-size: clamp(1.22rem, 2vw, 1.55rem);
+    letter-spacing: 0;
     text-shadow: 0 3px 16px rgba(0, 0, 0, 0.28);
   }
 
   .card-modal-tier {
-    border-color: rgba(255, 255, 255, 0.42) !important;
+    border-color: rgba(255, 255, 255, 0.42);
     box-shadow:
       0 12px 24px rgba(0, 0, 0, 0.28),
       inset 0 2px 4px rgba(255, 255, 255, 0.34),
-      inset 0 -2px 4px rgba(0, 0, 0, 0.3) !important;
+      inset 0 -2px 4px rgba(0, 0, 0, 0.3);
   }
 
   .card-modal-chip {
@@ -429,25 +429,25 @@
   }
 
   .card-modal-stat-row dt {
-    color: #9fb1ca !important;
-    letter-spacing: 0 !important;
+    color: #9fb1ca;
+    letter-spacing: 0;
   }
 
   .card-modal-stat-row dd {
-    font-size: 1rem !important;
+    font-size: 1rem;
   }
 
   @media (max-width: 767px) {
     .card-modal-shell {
-      grid-template-columns: 1fr !important;
-      gap: 0.88rem !important;
-      max-width: min(360px, calc(100vw - 32px)) !important;
-      max-height: 92dvh !important;
+      grid-template-columns: 1fr;
+      gap: 0.88rem;
+      max-width: min(360px, calc(100vw - 32px));
+      max-height: 92dvh;
       padding: 0 0 0.5rem;
     }
 
     .card-modal-image {
-      max-width: min(280px, 70vw) !important;
+      max-width: min(280px, 70vw);
       max-height: 42dvh;
     }
 
@@ -465,11 +465,11 @@
 
   @media (max-width: 380px) {
     .card-modal-shell {
-      max-width: calc(100vw - 24px) !important;
+      max-width: calc(100vw - 24px);
     }
 
     .card-modal-image {
-      max-width: min(270px, 72vw) !important;
+      max-width: min(270px, 72vw);
     }
   }
 
@@ -2382,7 +2382,80 @@
   }
 }
 
-/* Owned by the deferred Tier List and Legendaries lightbox. */
+/* Sole material owner for the deferred Tier List and Legendaries lightbox. */
+.card-modal-lightbox .card-modal-backdrop--parchment {
+  background:
+    radial-gradient(circle at 28% 40%, rgba(132, 31, 32, 0.2), transparent 32rem),
+    linear-gradient(rgba(22, 7, 8, 0.91), rgba(9, 3, 4, 0.96)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+  backdrop-filter: blur(9px) saturate(0.82);
+  -webkit-backdrop-filter: blur(9px) saturate(0.82);
+}
+
+.card-modal-lightbox .card-modal-shell.card-modal-shell--parchment {
+  min-width: 0;
+  border: clamp(12px, 1.5vw, 18px) solid transparent;
+  border-image-source: url('/wallpaper/main-page-rail-border.png');
+  border-image-slice: 18;
+  border-image-width: clamp(12px, 1.5vw, 18px);
+  border-image-repeat: stretch;
+  border-radius: 0;
+  color: #f7e3b7;
+  background:
+    radial-gradient(circle at 24% 18%, rgba(183, 74, 62, 0.24), transparent 30rem),
+    linear-gradient(145deg, rgba(105, 21, 27, 0.98), rgba(48, 8, 14, 0.99)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+  box-shadow: 0 30px 70px rgba(8, 2, 3, 0.68);
+  padding: clamp(0.75rem, 1.8vw, 1.35rem);
+  scrollbar-color: rgba(224, 174, 74, 0.52) transparent;
+}
+
+.card-modal-lightbox .card-modal-stats.card-modal-stats--parchment {
+  border: 1px solid rgba(235, 194, 100, 0.3);
+  border-image: none;
+  border-radius: 2px;
+  color: #f2dbab;
+  background: rgba(45, 3, 7, 0.56);
+  box-shadow: inset 0 1px rgba(255, 236, 190, 0.05);
+}
+
+.card-modal-lightbox .card-modal-tier {
+  border-color: rgba(255, 255, 255, 0.42);
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.28),
+    inset 0 2px 4px rgba(255, 255, 255, 0.34),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.card-modal-lightbox .card-modal-close.card-modal-close--parchment {
+  border: 1px solid rgba(231, 188, 98, 0.58);
+  color: #fff0c8;
+  background: linear-gradient(180deg, #793342, #441923);
+  box-shadow: 0 5px 14px rgba(20, 2, 4, 0.42);
+}
+
+.card-modal-lightbox .card-modal-close.card-modal-close--parchment:hover {
+  border-color: rgba(255, 218, 132, 0.82);
+  color: #fff7dc;
+  background: linear-gradient(180deg, #91404e, #551b26);
+}
+
+.card-modal-image-fallback {
+  display: flex;
+  width: 256px;
+  height: 384px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #a88a45;
+  border-radius: 16px;
+  background: #2c1e16;
+  color: #fcd34d;
+  font-family: var(--font-hs);
+  font-size: 18px;
+  text-align: center;
+  padding: 16px;
+}
+
 .card-modal-stats.card-modal-stats--parchment {
   max-width: 420px;
   padding: 1rem;
@@ -2466,215 +2539,151 @@
 }
 
 @media (max-height: 760px) and (min-width: 768px) {
-    .card-modal-shell.card-modal-shell--parchment {
-      width: min(860px, calc(100vw - 88px));
-      grid-template-columns: minmax(180px, 330px) minmax(280px, 370px);
-      gap: clamp(0.75rem, 2vw, 1.25rem);
-    }
-    }
-
-  @media (max-height: 760px) and (min-width: 768px) {
-
-    .card-modal-shell--parchment .card-modal-image {
-      max-width: min(330px, 34vw);
-      height: min(76dvh, 620px);
-    }
-    }
-
-  @media (max-height: 760px) and (min-width: 768px) {
-
-    .card-modal-stats.card-modal-stats--parchment {
-      border-width: 8px;
-      border-image-width: 8px;
-      padding: 0.65rem;
-    }
-    }
-
-  @media (max-height: 760px) and (min-width: 768px) {
-
-    .card-modal-stats--parchment .card-modal-header {
-      padding-bottom: 0.5rem;
-    }
-    }
-
-  @media (max-height: 760px) and (min-width: 768px) {
-
-    .card-modal-stats--parchment .card-modal-title {
-      font-size: clamp(1.05rem, 2vw, 1.3rem);
-    }
-    }
-
-  @media (max-height: 760px) and (min-width: 768px) {
-
-    .card-modal-stats--parchment .card-modal-tier {
-      width: 2.35rem;
-      height: 2.35rem;
-      font-size: 1rem;
-    }
-    }
-
-  @media (max-height: 760px) and (min-width: 768px) {
-
-    .card-modal-stats--parchment .card-modal-chip {
-      min-height: 26px;
-      padding: 0.25rem 0.48rem;
-      font-size: 0.68rem;
-    }
-    }
-
-  @media (max-height: 760px) and (min-width: 768px) {
-
-    .card-modal-stats--parchment dl {
-      gap: 0.28rem;
-      margin-top: 0.55rem;
-    }
-    }
-
-  @media (max-height: 760px) and (min-width: 768px) {
-
-    .card-modal-stats--parchment .card-modal-stat-row {
-      min-height: 29px;
-      padding: 0.34rem 0.5rem;
-    }
-    }
-
-  @media (max-height: 760px) and (min-width: 768px) {
-
-    .card-modal-stats--parchment .card-modal-stat-row dt {
-      font-size: 0.62rem;
-    }
-    }
-
-  @media (max-height: 760px) and (min-width: 768px) {
-
-    .card-modal-stats--parchment .card-modal-stat-row dd {
-      font-size: 0.84rem;
-    }
-    }
-
-  @media (max-width: 767px) {
-    .card-modal-shell.card-modal-shell--parchment {
-      width: min(360px, calc(100vw - 20px));
-      max-width: min(360px, calc(100vw - 20px));
-      max-height: calc(100dvh - 10px);
-      grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: minmax(0, 28dvh) auto;
-      gap: 0.35rem;
-      padding: 0;
-      overflow: hidden;
-    }
-    }
-
-  @media (max-width: 767px) {
-
-    .card-modal-shell--parchment .card-modal-image {
-      width: auto;
-      max-width: min(230px, 62vw);
-      height: 28dvh;
-      max-height: 230px;
-    }
-    }
-
-  @media (max-width: 767px) {
-
-    .card-modal-stats.card-modal-stats--parchment {
-      max-height: none;
-      border-width: 6px;
-      border-image-width: 6px;
-      padding: 0.55rem;
-    }
-    }
-
-  @media (max-width: 767px) {
-
-    .card-modal-stats--parchment .card-modal-header {
-      padding-bottom: 0.35rem;
-    }
-    }
-
-  @media (max-width: 767px) {
-
-    .card-modal-stats--parchment .card-modal-title {
-      font-size: 1rem;
-    }
-    }
-
-  @media (max-width: 767px) {
-
-    .card-modal-stats--parchment .card-modal-tier {
-      width: 2rem;
-      height: 2rem;
-      font-size: 0.86rem;
-    }
-    }
-
-  @media (max-width: 767px) {
-
-    .card-modal-stats--parchment .card-modal-chip {
-      min-height: 24px;
-      padding: 0.2rem 0.42rem;
-      font-size: 0.62rem;
-    }
-    }
-
-  @media (max-width: 767px) {
-
-    .card-modal-stats--parchment dl {
-      gap: 0.2rem;
-      margin-top: 0.4rem;
-    }
-    }
-
-  @media (max-width: 767px) {
-
-    .card-modal-stats--parchment .card-modal-stat-row {
-      min-height: 27px;
-      padding: 0.28rem 0.45rem;
-    }
-    }
-
-  @media (max-width: 767px) {
-
-    .card-modal-stats--parchment .card-modal-stat-row dt {
-      font-size: 0.57rem;
-    }
-    }
-
-  @media (max-width: 767px) {
-
-    .card-modal-stats--parchment .card-modal-stat-row dd {
-      font-size: 0.78rem;
-    }
-    }
-
-  @media (max-height: 680px) and (max-width: 767px) {
-    .card-modal-shell.card-modal-shell--parchment {
-      grid-template-rows: minmax(0, 22dvh) auto;
-    }
-    }
-
-  @media (max-height: 680px) and (max-width: 767px) {
-
-    .card-modal-shell--parchment .card-modal-image {
-      height: 22dvh;
-      max-height: 150px;
-    }
-    }
-
-  @media (max-height: 680px) and (max-width: 767px) {
-
-    .card-modal-stats.card-modal-stats--parchment {
-      padding: 0.4rem;
-    }
-    }
-
-  @media (max-height: 680px) and (max-width: 767px) {
-
-    .card-modal-stats--parchment .card-modal-source,
-    .card-modal-stats--parchment .card-modal-chip img {
-      display: none;
-    }
+  .card-modal-shell.card-modal-shell--parchment {
+    width: min(860px, calc(100vw - 88px));
+    grid-template-columns: minmax(180px, 330px) minmax(280px, 370px);
+    gap: clamp(0.75rem, 2vw, 1.25rem);
   }
+
+  .card-modal-shell--parchment .card-modal-image {
+    max-width: min(330px, 34vw);
+    height: min(76dvh, 620px);
+  }
+
+  .card-modal-stats.card-modal-stats--parchment {
+    padding: 0.65rem;
+  }
+
+  .card-modal-stats--parchment .card-modal-header {
+    padding-bottom: 0.5rem;
+  }
+
+  .card-modal-stats--parchment .card-modal-title {
+    font-size: clamp(1.05rem, 2vw, 1.3rem);
+  }
+
+  .card-modal-stats--parchment .card-modal-tier {
+    width: 2.35rem;
+    height: 2.35rem;
+    font-size: 1rem;
+  }
+
+  .card-modal-stats--parchment .card-modal-chip {
+    min-height: 26px;
+    padding: 0.25rem 0.48rem;
+    font-size: 0.68rem;
+  }
+
+  .card-modal-stats--parchment dl {
+    gap: 0.28rem;
+    margin-top: 0.55rem;
+  }
+
+  .card-modal-stats--parchment .card-modal-stat-row {
+    min-height: 29px;
+    padding: 0.34rem 0.5rem;
+  }
+
+  .card-modal-stats--parchment .card-modal-stat-row dt {
+    font-size: 0.62rem;
+  }
+
+  .card-modal-stats--parchment .card-modal-stat-row dd {
+    font-size: 0.84rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .card-modal-lightbox .card-modal-shell.card-modal-shell--parchment {
+    width: min(360px, calc(100vw - 20px));
+    max-width: min(360px, calc(100vw - 20px));
+    max-height: calc(100dvh - 10px);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 28dvh) auto;
+    gap: 0.35rem;
+    border-width: 9px;
+    border-image-width: 9px;
+    padding: 0.65rem;
+    overflow: hidden;
+  }
+
+  .card-modal-image-fallback {
+    width: min(230px, 62vw);
+    height: 28dvh;
+    min-height: 150px;
+    padding: 12px;
+  }
+
+  .card-modal-shell--parchment .card-modal-image {
+    width: auto;
+    max-width: min(230px, 62vw);
+    height: 28dvh;
+    max-height: 230px;
+  }
+
+  .card-modal-stats.card-modal-stats--parchment {
+    max-height: none;
+    padding: 0.55rem;
+  }
+
+  .card-modal-stats--parchment .card-modal-header {
+    padding-bottom: 0.35rem;
+  }
+
+  .card-modal-stats--parchment .card-modal-title {
+    font-size: 1rem;
+  }
+
+  .card-modal-stats--parchment .card-modal-tier {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.86rem;
+  }
+
+  .card-modal-stats--parchment .card-modal-chip {
+    min-height: 24px;
+    padding: 0.2rem 0.42rem;
+    font-size: 0.62rem;
+  }
+
+  .card-modal-stats--parchment dl {
+    gap: 0.2rem;
+    margin-top: 0.4rem;
+  }
+
+  .card-modal-stats--parchment .card-modal-stat-row {
+    min-height: 27px;
+    padding: 0.28rem 0.45rem;
+  }
+
+  .card-modal-stats--parchment .card-modal-stat-row dt {
+    font-size: 0.57rem;
+  }
+
+  .card-modal-stats--parchment .card-modal-stat-row dd {
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-height: 680px) and (max-width: 767px) {
+  .card-modal-lightbox .card-modal-shell.card-modal-shell--parchment {
+    grid-template-rows: minmax(0, 22dvh) auto;
+  }
+
+  .card-modal-shell--parchment .card-modal-image {
+    height: 22dvh;
+    max-height: 150px;
+  }
+
+  .card-modal-stats.card-modal-stats--parchment {
+    padding: 0.4rem;
+  }
+
+  .card-modal-stats--parchment .card-modal-source,
+  .card-modal-stats--parchment .card-modal-chip img {
+    display: none;
+  }
+}
 
 /* Owned by the deferred Arena card preview tooltip. */
 .card-stats-tooltip.card-stats-tooltip--parchment {

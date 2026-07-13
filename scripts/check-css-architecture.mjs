@@ -4,7 +4,8 @@ import { join, relative } from 'node:path';
 const ROOT = process.cwd();
 const SRC = join(ROOT, 'src');
 const TOKEN_FILE = 'src/styles/tokens.css';
-const MAX_IMPORTANT_DECLARATIONS = 1179;
+const MAX_IMPORTANT_DECLARATIONS = 1152;
+const ROUTE_PARCHMENT_FILE = 'src/route-parchment.css';
 const RETIRED_OWNERLESS_CSS_FRAGMENTS = [
   '.home-modern .hs-card',
   '.home-modern > section',
@@ -74,6 +75,17 @@ const sources = cssFiles.map(path => ({
   file: relative(ROOT, path),
   source: readFileSync(path, 'utf8'),
 }));
+const routeParchmentSource = sources.find(({ file }) => file === ROUTE_PARCHMENT_FILE)?.source;
+
+if (!routeParchmentSource) {
+  console.error(`[css-architecture] ${ROUTE_PARCHMENT_FILE} could not be located`);
+  process.exit(1);
+}
+
+if (/\.card-modal(?:-|\b)/.test(routeParchmentSource)) {
+  console.error('[css-architecture] deferred card modal selectors leaked back into the shared route parchment owner');
+  process.exit(1);
+}
 
 const rootOwners = sources
   .filter(({ source }) => /^\s*:root\b/m.test(source))

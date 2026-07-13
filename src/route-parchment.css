@@ -1600,8 +1600,8 @@
   }
 }
 
-/* Canonical lightbox material: timber rail, red tavern cloth and cream copy. */
-.card-modal-lightbox .card-modal-backdrop,
+/* Shared gallery/deck lightbox material. Arena card modals are owned by the
+   deferred Tier List bundle so loading that feature cannot alter other routes. */
 .deck-card-lightbox-backdrop,
 .gallery-lightbox-backdrop {
   background:
@@ -1612,7 +1612,6 @@
   -webkit-backdrop-filter: blur(9px) saturate(0.82) !important;
 }
 
-.card-modal-lightbox .card-modal-shell,
 .deck-card-lightbox-panel,
 .gallery-lightbox-panel {
   min-width: 0;
@@ -1628,21 +1627,6 @@
     linear-gradient(145deg, rgba(105, 21, 27, 0.98), rgba(48, 8, 14, 0.99)),
     url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
   box-shadow: 0 30px 70px rgba(8, 2, 3, 0.68) !important;
-}
-
-.card-modal-lightbox .card-modal-shell {
-  padding: clamp(0.75rem, 1.8vw, 1.35rem) !important;
-  scrollbar-color: rgba(224, 174, 74, 0.52) transparent !important;
-}
-
-.card-modal-lightbox .card-modal-stats,
-.card-modal-lightbox .card-modal-stats.card-modal-stats--parchment {
-  border: 1px solid rgba(235, 194, 100, 0.3) !important;
-  border-image: none !important;
-  border-radius: 2px !important;
-  color: #f2dbab !important;
-  background: rgba(45, 3, 7, 0.56) !important;
-  box-shadow: inset 0 1px rgba(255, 236, 190, 0.05) !important;
 }
 
 .deck-card-lightbox-panel {
@@ -1671,7 +1655,6 @@
 }
 
 .hs-lightbox-close,
-.card-modal-close,
 .gallery-icon-action {
   border: 1px solid rgba(231, 188, 98, 0.58) !important;
   color: #fff0c8 !important;
@@ -1680,7 +1663,6 @@
 }
 
 .hs-lightbox-close:hover,
-.card-modal-close:hover,
 .gallery-icon-action:hover {
   border-color: rgba(255, 218, 132, 0.82) !important;
   color: #fff7dc !important;
@@ -1727,15 +1709,10 @@
     max-width: 100% !important;
   }
 
-  .card-modal-lightbox .card-modal-shell,
   .deck-card-lightbox-panel,
   .gallery-lightbox-panel {
     border-width: 9px !important;
     border-image-width: 9px !important;
-  }
-
-  .card-modal-lightbox .card-modal-shell {
-    padding: 0.65rem !important;
   }
 
   .deck-card-lightbox-panel {

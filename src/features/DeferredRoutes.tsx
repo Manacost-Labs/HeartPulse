@@ -499,11 +499,8 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
             className="card-modal-image"
             draggable={false} />
         ) : (
-          <div style={{
-            width: '256px', height: '384px', background: '#2c1e16', borderRadius: '16px',
-            border: '2px solid #a88a45', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <span style={{ color: '#fcd34d', fontFamily: 'var(--font-hs)', fontSize: '18px', textAlign: 'center', padding: '16px' }}>{card.name}</span>
+          <div className="card-modal-image-fallback" role="img" aria-label={card.name}>
+            <span>{card.name}</span>
           </div>
         )}
 

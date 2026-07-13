@@ -26,9 +26,15 @@ const loginStart = deferredSource.indexOf('<div className="login-page"', profile
 const loginEnd = deferredSource.indexOf('function AdminPanel', loginStart);
 const passwordInputStart = deferredSource.indexOf('function PasswordInput');
 const passwordInputEnd = deferredSource.indexOf('function AuthCheckingCard', passwordInputStart);
+const cardModalStart = deferredSource.indexOf('const CardModal:');
+const cardModalEnd = deferredSource.indexOf('// ─── HSCard', cardModalStart);
 
-if (profileStart < 0 || loginStart < 0 || loginEnd < 0 || passwordInputStart < 0 || passwordInputEnd < 0) {
-  console.error('[architecture] authenticated profile boundary could not be located');
+if (
+  profileStart < 0 || loginStart < 0 || loginEnd < 0
+  || passwordInputStart < 0 || passwordInputEnd < 0
+  || cardModalStart < 0 || cardModalEnd < 0
+) {
+  console.error('[architecture] deferred presentation boundary could not be located');
   process.exit(1);
 }
 
@@ -50,5 +56,15 @@ const loginInlineStyles = [
 console.log(`[architecture] public auth inline styles: ${loginInlineStyles.length} / 0`);
 if (loginInlineStyles.length > 0) {
   console.error('[architecture] public auth presentation must remain owned by semantic CSS classes');
+  process.exit(1);
+}
+
+const cardModalInlineStyles = deferredSource
+  .slice(cardModalStart, cardModalEnd)
+  .match(/\bstyle\s*=/g) || [];
+
+console.log(`[architecture] card modal inline styles: ${cardModalInlineStyles.length} / 0`);
+if (cardModalInlineStyles.length > 0) {
+  console.error('[architecture] card modal presentation must remain owned by its lazy semantic stylesheet');
   process.exit(1);
 }
