@@ -1405,6 +1405,19 @@ for (const [device, viewport] of [
       const heroStyle = hero ? getComputedStyle(hero) : null;
       const bodyStyle = body ? getComputedStyle(body) : null;
       const statusStyle = status ? getComputedStyle(status) : null;
+      const material = selector => {
+        const element = document.querySelector(selector);
+        if (!element) return null;
+        const computed = getComputedStyle(element);
+        return {
+          minHeight: computed.minHeight,
+          borderRadius: computed.borderRadius,
+          borderImageSource: computed.borderImageSource,
+          backgroundColor: computed.backgroundColor,
+          backgroundImage: computed.backgroundImage,
+          color: computed.color,
+        };
+      };
       return {
         cardPadding: cardStyle?.padding || '',
         cardRadius: cardStyle?.borderRadius || '',
@@ -1425,6 +1438,14 @@ for (const [device, viewport] of [
         heroClientWidth: hero?.clientWidth || 0,
         scrollWidth: document.documentElement.scrollWidth,
         clientWidth: document.documentElement.clientWidth,
+        materials: {
+          settings: material('.profile-settings-form'),
+          subscription: material('.profile-subscription-panel'),
+          source: material('.profile-subscription-source'),
+          contests: material('.profile-contests'),
+          statusChip: material('.profile-status-chip'),
+          input: material('.profile-settings-form input:not([type="checkbox"])'),
+        },
       };
     });
     const expectedProfile = device === 'desktop'
@@ -1454,6 +1475,31 @@ for (const [device, viewport] of [
       || profileState.heroScrollWidth > profileState.heroClientWidth + 1
       || profileState.scrollWidth > profileState.clientWidth + 1) {
       failures.push(`profile [${device}]: hero asset or horizontal reflow changed (${JSON.stringify(profileState)})`);
+    }
+    const framedProfileSurfaces = [profileState.materials.settings, profileState.materials.subscription];
+    if (framedProfileSurfaces.some(surface => !surface
+      || !surface.borderImageSource.includes('main-page-rail-border.png')
+      || !surface.backgroundImage.includes('arena-parchment.jpg')
+      || surface.borderRadius !== '0px')) {
+      failures.push(`profile [${device}]: settings or subscription frame changed (${JSON.stringify(framedProfileSurfaces)})`);
+    }
+    if (!profileState.materials.source?.borderImageSource.includes('deck-border.png')
+      || profileState.materials.source?.minHeight !== '78px'
+      || profileState.materials.source?.borderRadius !== '0px') {
+      failures.push(`profile [${device}]: subscription source frame changed (${JSON.stringify(profileState.materials.source)})`);
+    }
+    if (!profileState.materials.contests?.borderImageSource.includes('main-page-rail-border.png')
+      || profileState.materials.contests?.borderRadius !== '0px') {
+      failures.push(`profile [${device}]: contest frame changed (${JSON.stringify(profileState.materials.contests)})`);
+    }
+    if (!profileState.materials.statusChip?.backgroundImage.includes('deck-border.png')
+      || profileState.materials.statusChip?.minHeight !== '38px') {
+      failures.push(`profile [${device}]: status chip material changed (${JSON.stringify(profileState.materials.statusChip)})`);
+    }
+    if (profileState.materials.input?.borderRadius !== '2px'
+      || profileState.materials.input?.color !== 'rgb(61, 43, 31)'
+      || profileState.materials.input?.backgroundColor !== 'rgba(255, 246, 219, 0.72)') {
+      failures.push(`profile [${device}]: profile input material changed (${JSON.stringify(profileState.materials.input)})`);
     }
     await page.click('.profile-settings-form button[type="submit"]');
     await page.waitForFunction(() => document.querySelector('.profile-message--ok')?.textContent?.includes('Профиль обновлен.'));

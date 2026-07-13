@@ -1394,8 +1394,8 @@
 }
 
 .profile-workspace .profile-card {
-  width: 100% !important;
-  display: grid !important;
+  width: 100%;
+  display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
     "hero"
@@ -1405,14 +1405,14 @@
     "contests"
     "actions";
   gap: clamp(1rem, 2.5cqi, 1.5rem);
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: visible !important;
-  contain: none !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  contain: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .profile-workspace .profile-hero {
@@ -1420,20 +1420,20 @@
   grid-area: hero;
   width: 100%;
   display: flex;
-  min-height: 148px !important;
-  margin: 0 !important;
-  padding: clamp(1rem, 2.4cqi, 1.45rem) !important;
-  align-items: center !important;
-  overflow: visible !important;
+  min-height: 148px;
+  margin: 0;
+  padding: clamp(1rem, 2.4cqi, 1.45rem);
+  align-items: center;
+  overflow: visible;
   border-top: 3px solid #173b5e;
   border-bottom: 1px solid rgba(91, 119, 148, 0.3);
-  background: rgba(252, 253, 254, 0.9) !important;
-  background-image: none !important;
-  box-shadow: none !important;
+  background: rgba(252, 253, 254, 0.9);
+  background-image: none;
+  box-shadow: none;
 }
 
 .profile-workspace .profile-hero > img {
-  display: none !important;
+  display: none;
 }
 
 .profile-workspace .profile-hero__body {
@@ -1443,36 +1443,36 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: clamp(0.85rem, 2cqi, 1.25rem) !important;
+  gap: clamp(0.85rem, 2cqi, 1.25rem);
 }
 
 .profile-workspace .profile-hero__body > span:first-child {
-  width: 74px !important;
-  height: 74px !important;
-  border: 1px solid #c4d5e3 !important;
-  box-shadow: 0 7px 18px rgba(27, 55, 82, 0.12) !important;
+  width: 74px;
+  height: 74px;
+  border: 1px solid #c4d5e3;
+  box-shadow: 0 7px 18px rgba(27, 55, 82, 0.12);
 }
 
 .profile-workspace .profile-hero__eyebrow {
-  margin: 0 0 0.25rem !important;
-  color: #1d6f9b !important;
-  font-size: 0.68rem !important;
-  letter-spacing: 0.075em !important;
+  margin: 0 0 0.25rem;
+  color: #1d6f9b;
+  font-size: 0.68rem;
+  letter-spacing: 0.075em;
 }
 
 .profile-workspace .profile-hero h1 {
-  margin: 0 !important;
-  color: #142d46 !important;
-  font-size: clamp(1.65rem, 4cqi, 2.35rem) !important;
+  margin: 0;
+  color: #142d46;
+  font-size: clamp(1.65rem, 4cqi, 2.35rem);
   letter-spacing: -0.025em;
   line-height: 1.05;
-  text-shadow: none !important;
+  text-shadow: none;
 }
 
 .profile-workspace .profile-hero__contact {
-  margin: 0.35rem 0 0 !important;
-  color: #5d7186 !important;
-  font-size: 0.8rem !important;
+  margin: 0.35rem 0 0;
+  color: #5d7186;
+  font-size: 0.8rem;
 }
 
 .profile-workspace .profile-hero__id {
@@ -1545,110 +1545,110 @@
 
 .profile-workspace .profile-contact-section {
   grid-area: settings;
-  display: block !important;
-  margin: 0 !important;
+  display: block;
+  margin: 0;
 }
 
 .profile-workspace .profile-settings-form,
 .profile-workspace .profile-subscription-panel,
 .profile-workspace .profile-contests,
 .profile-workspace .profile-account-actions {
-  border: 1px solid rgba(94, 122, 150, 0.28) !important;
-  border-radius: 9px !important;
-  background: rgba(252, 253, 254, 0.9) !important;
-  box-shadow: none !important;
+  border: 1px solid rgba(94, 122, 150, 0.28);
+  border-radius: 9px;
+  background: rgba(252, 253, 254, 0.9);
+  box-shadow: none;
 }
 
 .profile-workspace .profile-settings-form {
-  grid-template-columns: minmax(0, 1fr) !important;
-  gap: 0.8rem !important;
-  padding: clamp(1rem, 2.4cqi, 1.35rem) !important;
-  align-items: stretch !important;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.8rem;
+  padding: clamp(1rem, 2.4cqi, 1.35rem);
+  align-items: stretch;
 }
 
 .profile-workspace .profile-settings-form label {
-  gap: 0.35rem !important;
-  color: #41576c !important;
-  font-size: 0.72rem !important;
+  gap: 0.35rem;
+  color: #41576c;
+  font-size: 0.72rem;
   font-weight: 700;
 }
 
 .profile-workspace .profile-settings-form :where(input:not([type="checkbox"]), select),
 .profile-workspace .profile-boosty-form :where(input, select) {
-  min-height: 42px !important;
-  width: 100% !important;
-  padding: 0.65rem 0.72rem !important;
-  border: 1px solid #b9cad9 !important;
-  border-radius: 7px !important;
-  color: #1c3349 !important;
-  background: #fff !important;
-  box-shadow: none !important;
+  min-height: 42px;
+  width: 100%;
+  padding: 0.65rem 0.72rem;
+  border: 1px solid #b9cad9;
+  border-radius: 7px;
+  color: #1c3349;
+  background: #fff;
+  box-shadow: none;
 }
 
 .profile-workspace .profile-checkbox-row {
-  min-height: 40px !important;
-  padding: 0.45rem 0 !important;
-  font-weight: 650 !important;
+  min-height: 40px;
+  padding: 0.45rem 0;
+  font-weight: 650;
 }
 
 .profile-workspace .profile-settings-form > button,
 .profile-workspace .profile-subscription-panel button,
 .profile-workspace .profile-account-actions :where(button, a) {
-  min-height: 40px !important;
-  border-radius: 7px !important;
-  box-shadow: none !important;
+  min-height: 40px;
+  border-radius: 7px;
+  box-shadow: none;
 }
 
 .profile-workspace .profile-settings-form > button {
-  border-color: #173f66 !important;
-  color: #f7fbff !important;
-  background: #173f66 !important;
+  border-color: #173f66;
+  color: #f7fbff;
+  background: #173f66;
 }
 
 .profile-workspace .profile-subscription-panel {
   grid-area: access;
-  margin: 0 !important;
-  padding: clamp(1rem, 2.5cqi, 1.4rem) !important;
-  text-align: left !important;
+  margin: 0;
+  padding: clamp(1rem, 2.5cqi, 1.4rem);
+  text-align: left;
 }
 
 .profile-workspace .profile-subscription-panel--active {
-  border-top: 3px solid #2a8b68 !important;
+  border-top: 3px solid #2a8b68;
 }
 
 .profile-workspace .profile-subscription-panel:not(.profile-subscription-panel--active) {
-  border-top: 3px solid #517da1 !important;
+  border-top: 3px solid #517da1;
 }
 
 .profile-workspace .profile-subscription-source {
-  min-height: 0 !important;
-  padding: 0.8rem !important;
-  border: 1px solid #d0dce6 !important;
-  border-radius: 7px !important;
-  background: #f7fafc !important;
+  min-height: 0;
+  padding: 0.8rem;
+  border: 1px solid #d0dce6;
+  border-radius: 7px;
+  background: #f7fafc;
 }
 
 .profile-workspace .profile-subscription-source img {
-  border-radius: 7px !important;
-  box-shadow: none !important;
+  border-radius: 7px;
+  box-shadow: none;
 }
 
 .profile-workspace .profile-access-list {
-  display: grid !important;
+  display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 0.25rem 0.9rem !important;
+  gap: 0.25rem 0.9rem;
   padding: 0.25rem 0 0.85rem;
   border-bottom: 1px solid rgba(94, 122, 150, 0.2);
 }
 
 .profile-workspace .profile-access-item {
   position: relative;
-  padding: 0.25rem 0 0.25rem 1rem !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  color: #285f4c !important;
-  font-size: 0.7rem !important;
-  background: transparent !important;
+  padding: 0.25rem 0 0.25rem 1rem;
+  border: 0;
+  border-radius: 0;
+  color: #285f4c;
+  font-size: 0.7rem;
+  background: transparent;
 }
 
 .profile-workspace .profile-access-item::before {
@@ -1661,29 +1661,29 @@
 
 .profile-workspace .profile-boosty-form,
 .profile-workspace .profile-telegram-link {
-  padding: 0.85rem !important;
-  border: 1px solid #ddcfb8 !important;
-  border-left: 3px solid #c9823a !important;
-  border-radius: 7px !important;
-  background: #fffaf2 !important;
+  padding: 0.85rem;
+  border: 1px solid #ddcfb8;
+  border-left: 3px solid #c9823a;
+  border-radius: 7px;
+  background: #fffaf2;
 }
 
 .profile-workspace .profile-telegram-link {
-  border-color: #bed6e6 !important;
-  border-left-color: #2a92c6 !important;
-  background: #f3f9fc !important;
+  border-color: #bed6e6;
+  border-left-color: #2a92c6;
+  background: #f3f9fc;
 }
 
 .profile-workspace .profile-subscription-panel code {
-  border-radius: 5px !important;
-  box-shadow: none !important;
+  border-radius: 5px;
+  box-shadow: none;
 }
 
 .profile-workspace .profile-contests {
   grid-area: contests;
-  margin: 0 !important;
-  padding: clamp(1rem, 2.5cqi, 1.35rem) !important;
-  text-align: left !important;
+  margin: 0;
+  padding: clamp(1rem, 2.5cqi, 1.35rem);
+  text-align: left;
 }
 
 .profile-workspace .profile-contests__heading {
@@ -1692,69 +1692,69 @@
 }
 
 .profile-workspace .profile-contests__count {
-  border: 0 !important;
-  border-radius: 0 !important;
-  color: #375976 !important;
-  background: transparent !important;
+  border: 0;
+  border-radius: 0;
+  color: #375976;
+  background: transparent;
 }
 
 .profile-workspace .profile-contests__state {
-  border-radius: 7px !important;
-  background: #f7fafc !important;
+  border-radius: 7px;
+  background: #f7fafc;
 }
 
 .profile-workspace .profile-contest-list {
-  grid-template-columns: minmax(0, 1fr) !important;
-  gap: 0 !important;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
 }
 
 .profile-workspace .profile-contest-entry {
-  padding: 0.9rem 0 !important;
-  border: 0 !important;
-  border-bottom: 1px solid rgba(94, 122, 150, 0.22) !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
+  padding: 0.9rem 0;
+  border: 0;
+  border-bottom: 1px solid rgba(94, 122, 150, 0.22);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .profile-workspace .profile-contest-entry:first-child {
-  padding-top: 0.25rem !important;
+  padding-top: 0.25rem;
 }
 
 .profile-workspace .profile-contest-entry--winner {
-  border-left: 3px solid #d9a229 !important;
-  padding-left: 0.75rem !important;
+  border-left: 3px solid #d9a229;
+  padding-left: 0.75rem;
 }
 
 .profile-workspace .profile-contest-entry img {
-  border-radius: 7px !important;
+  border-radius: 7px;
 }
 
 .profile-workspace .profile-account-actions {
   grid-area: actions;
-  align-items: stretch !important;
-  justify-content: stretch !important;
-  margin: 0 !important;
-  padding: 0.85rem !important;
+  align-items: stretch;
+  justify-content: stretch;
+  margin: 0;
+  padding: 0.85rem;
 }
 
 .profile-workspace .profile-account-actions :where(button, a) {
   flex: 1 1 150px;
   justify-content: center;
-  color: #7e3030 !important;
-  border-color: #dfb0b0 !important;
-  background: #fff7f7 !important;
+  color: #7e3030;
+  border-color: #dfb0b0;
+  background: #fff7f7;
   text-align: center;
 }
 
 .profile-workspace .profile-account-actions a {
-  color: #244f72 !important;
-  border-color: #b8cddd !important;
-  background: #f4f8fb !important;
+  color: #244f72;
+  border-color: #b8cddd;
+  background: #f4f8fb;
 }
 
 .profile-workspace :where(button, a, input, select):focus-visible {
-  outline: 3px solid rgba(23, 111, 166, 0.28) !important;
+  outline: 3px solid rgba(23, 111, 166, 0.28);
   outline-offset: 2px;
 }
 
@@ -1777,44 +1777,44 @@
 
 @media (max-width: 640px) {
   .profile-workspace {
-    padding-block: 0.5rem !important;
+    padding-block: 0.5rem;
   }
 
   .profile-workspace .profile-hero {
-    min-height: 0 !important;
-    padding: 1rem 0.75rem !important;
+    min-height: 0;
+    padding: 1rem 0.75rem;
   }
 
   .profile-workspace .profile-hero__body {
-    align-items: center !important;
-    flex-direction: row !important;
+    align-items: center;
+    flex-direction: row;
   }
 
   .profile-workspace .profile-hero__body > span:first-child {
-    width: 58px !important;
-    height: 58px !important;
+    width: 58px;
+    height: 58px;
   }
 
   .profile-workspace .profile-contests__heading {
-    align-items: flex-start !important;
+    align-items: flex-start;
     flex-direction: column;
   }
 
   .profile-workspace .profile-contests__count {
-    padding-left: 0 !important;
+    padding-left: 0;
   }
 
   .profile-workspace .profile-contest-entry--with-image {
-    grid-template-columns: 64px minmax(0, 1fr) !important;
+    grid-template-columns: 64px minmax(0, 1fr);
   }
 
   .profile-workspace .profile-contest-entry:not(.profile-contest-entry--with-image) {
-    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .profile-workspace .profile-contest-entry > img {
-    width: 64px !important;
-    height: 64px !important;
+    width: 64px;
+    height: 64px;
   }
 }
 
@@ -1988,12 +1988,6 @@
   background:
     linear-gradient(rgba(86, 8, 13, 0.08), rgba(50, 4, 7, 0.18)),
     url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
-}
-
-.arena-app-profile .profile-workspace .profile-subscription-panel--active,
-.arena-app-profile .profile-workspace .profile-subscription-panel:not(.profile-subscription-panel--active) {
-  border-top: 6px solid transparent !important;
-  border-image: var(--arena-wood-divider) 1 !important;
 }
 
 .arena-app-profile .profile-workspace .profile-subscription-panel > div:first-child > div > p {
