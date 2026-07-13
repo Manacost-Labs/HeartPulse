@@ -2749,6 +2749,113 @@
   grid-template-columns: minmax(300px, 0.62fr) minmax(520px, 1.38fr);
 }
 
+.admin-workspace-page .admin-translation-layout {
+  grid-template-columns: minmax(280px, 0.55fr) minmax(620px, 1.45fr);
+}
+
+.admin-translation-stats .admin-translation-date {
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.admin-translation-form input,
+.admin-translation-toolbar input,
+.admin-translation-toolbar select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 11px;
+  border: 1px solid #c3c4c7;
+  border-radius: 6px;
+  color: #1d2327;
+  background: #fff;
+}
+
+.admin-translation-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(150px, 0.32fr);
+  gap: 0.65rem;
+}
+
+.admin-translation-table-wrap {
+  min-width: 0;
+  overflow-x: auto;
+  border: 1px solid var(--admin-divider);
+  border-radius: 7px;
+  background: #fff;
+}
+
+.admin-translation-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--admin-ink);
+  font-size: 0.79rem;
+}
+
+.admin-translation-table th,
+.admin-translation-table td {
+  padding: 0.72rem 0.75rem;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--admin-divider);
+}
+
+.admin-translation-table th {
+  color: var(--admin-muted);
+  background: #f7f9fb;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-translation-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.admin-translation-table td:first-child strong,
+.admin-translation-table td:first-child small {
+  display: block;
+}
+
+.admin-translation-table td:first-child small {
+  margin-top: 0.15rem;
+  color: var(--admin-muted);
+  font-size: 0.65rem;
+}
+
+.admin-translation-table td:last-child {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.admin-source-badge {
+  width: fit-content;
+  padding: 0.22rem 0.48rem;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #b7d6e9;
+  border-radius: 999px;
+  color: #0b5d87;
+  background: #eef8fd;
+  font-size: 0.65rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.admin-source-badge.is-manual {
+  border-color: #c9b8da;
+  color: #4a2f66;
+  background: #f5effa;
+}
+
+.admin-translation-empty {
+  margin: 0;
+  padding: 1.2rem;
+  text-align: center;
+}
+
 .admin-referral-report {
   min-width: 0;
 }
@@ -3665,6 +3772,10 @@
     grid-template-columns: 1fr;
   }
 
+  .admin-workspace-page .admin-translation-layout {
+    grid-template-columns: 1fr;
+  }
+
   .admin-mailing-template-grid,
   .admin-mailing-bottom-grid {
     grid-template-columns: 1fr;
@@ -3815,6 +3926,72 @@
   .admin-mailing-history > div,
   .admin-mailing-contacts > div {
     grid-template-columns: 1fr;
+  }
+
+  .admin-translation-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-translation-table-wrap {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .admin-translation-table,
+  .admin-translation-table tbody,
+  .admin-translation-table tr,
+  .admin-translation-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-translation-table thead {
+    display: none;
+  }
+
+  .admin-translation-table tbody {
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .admin-translation-table tr {
+    padding: 0.75rem;
+    border: 1px solid var(--admin-divider);
+    border-radius: 7px;
+    background: #fff;
+  }
+
+  .admin-translation-table td {
+    padding: 0.32rem 0;
+    border: 0;
+  }
+
+  .admin-translation-table td:nth-child(2)::before,
+  .admin-translation-table td:nth-child(3)::before {
+    margin-right: 0.4rem;
+    color: var(--admin-muted);
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .admin-translation-table td:nth-child(2)::before {
+    content: 'Перевод:';
+  }
+
+  .admin-translation-table td:nth-child(3)::before {
+    content: 'Источник:';
+  }
+
+  .admin-translation-table td:last-child {
+    width: 100%;
+    padding-top: 0.55rem;
+    text-align: left;
+  }
+
+  .admin-translation-table td:last-child button {
+    width: 100%;
   }
 }
 

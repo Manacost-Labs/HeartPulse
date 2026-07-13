@@ -46,6 +46,7 @@ export function ContestAdminDashboard({
             <button type="button" onClick={onCreateContest}>Создать конкурс</button>
             <button type="button" onClick={() => onNavigate('articles')}>Добавить статью</button>
             <button type="button" onClick={() => onNavigate('gallery')}>Загрузить арт</button>
+            <button type="button" onClick={() => onNavigate('translations')}>Добавить перевод</button>
             <button type="button" onClick={() => onNavigate('mailing')}>Создать рассылку</button>
             <button type="button" onClick={() => onNavigate('boosty')}>Открыть Boosty</button>
             <button type="button" onClick={() => onNavigate('telegram')}>Открыть Telegram</button>

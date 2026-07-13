@@ -197,6 +197,20 @@ const adminFixtures = {
     }],
     recentClicks: [],
   },
+  '/api/admin/archetype-translations': {
+    items: [
+      {
+        id: 1, blizzcoreId: 11, nameEn: 'Control Warrior', nameRu: 'Контроль Воин', source: 'blizzcore',
+        createdAt: '2026-07-11T00:00:00.000Z', updatedAt: '2026-07-11T00:00:00.000Z',
+        syncedAt: '2026-07-11T00:00:00.000Z', updatedBy: 'system',
+      },
+      {
+        id: 2, blizzcoreId: null, nameEn: 'Rainbow Mage', nameRu: 'Радужный Маг', source: 'manual',
+        createdAt: '2026-07-11T00:00:00.000Z', updatedAt: '2026-07-11T00:00:00.000Z',
+        syncedAt: null, updatedBy: 'qa-admin',
+      },
+    ],
+  },
   '/api/admin/boosty/status': {
     configured: true,
     ok: true,
@@ -491,6 +505,56 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
         request.respond(jsonResponse({ success: true, contest }));
         return;
       }
+    }
+    if (admin && url.pathname === '/api/admin/archetype-translations') {
+      const translations = adminState.translations ??= structuredClone(adminFixtures['/api/admin/archetype-translations'].items);
+      if (request.method() === 'POST') {
+        const payload = JSON.parse(request.postData() || '{}').translation || {};
+        translations.push({
+          id: Math.max(0, ...translations.map(item => item.id)) + 1,
+          blizzcoreId: null,
+          nameEn: payload.nameEn,
+          nameRu: payload.nameRu,
+          source: 'manual',
+          createdAt: '2026-07-13T03:00:00.000Z',
+          updatedAt: '2026-07-13T03:00:00.000Z',
+          syncedAt: null,
+          updatedBy: 'qa-admin',
+        });
+        request.respond({ ...jsonResponse({ success: true, translation: translations.at(-1) }), status: 201 });
+        return;
+      }
+      const query = (url.searchParams.get('q') || '').toLocaleLowerCase('ru-RU');
+      const source = url.searchParams.get('source') || '';
+      const items = translations.filter(item => (!query || `${item.nameEn} ${item.nameRu}`.toLocaleLowerCase('ru-RU').includes(query))
+        && (!source || item.source === source));
+      request.respond(jsonResponse({
+        items,
+        total: items.length,
+        page: 1,
+        pageSize: 40,
+        pages: 1,
+        stats: {
+          total: translations.length,
+          manual: translations.filter(item => item.source === 'manual').length,
+          blizzcore: translations.filter(item => item.source === 'blizzcore').length,
+          lastSyncedAt: '2026-07-11T00:00:00.000Z',
+        },
+      }));
+      return;
+    }
+    const translationEditMatch = admin && url.pathname.match(/^\/api\/admin\/archetype-translations\/(\d+)$/);
+    if (translationEditMatch && request.method() === 'PATCH') {
+      const translations = adminState.translations ??= structuredClone(adminFixtures['/api/admin/archetype-translations'].items);
+      const item = translations.find(row => row.id === Number(translationEditMatch[1]));
+      const payload = JSON.parse(request.postData() || '{}').translation || {};
+      if (item) Object.assign(item, payload, { source: 'manual', updatedBy: 'qa-admin' });
+      request.respond(jsonResponse({ success: true, translation: item }));
+      return;
+    }
+    if (admin && url.pathname === '/api/admin/archetype-translations/sync' && request.method() === 'POST') {
+      request.respond(jsonResponse({ success: true, rows: 2, imported: 0, updated: 1, preservedManual: 1 }));
+      return;
     }
     const contestEntriesMatch = admin && url.pathname.match(/^\/api\/admin\/contests\/([^/]+)\/entries$/);
     if (contestEntriesMatch) {
@@ -910,6 +974,7 @@ for (const [device, viewport] of [
     articles: structuredClone(adminFixtures['/api/articles'].articles),
     contests: structuredClone(adminFixtures['/api/admin/contests'].contests),
     users: structuredClone(adminFixtures['/api/admin/users'].users),
+    translations: structuredClone(adminFixtures['/api/admin/archetype-translations'].items),
     mailingCampaigns: structuredClone(adminFixtures['/api/admin/mailings/overview'].campaigns),
   };
   await page.setViewport(viewport);
@@ -956,7 +1021,7 @@ for (const [device, viewport] of [
         failures.push(`admin dashboard [${device}]: KPI ${index + 1} mismatch ${JSON.stringify(state.stats[index])}`);
       }
     }
-    if (state.quickActions.length !== 8) failures.push(`admin dashboard [${device}]: expected 8 quick actions, got ${state.quickActions.length}`);
+    if (state.quickActions.length !== 9) failures.push(`admin dashboard [${device}]: expected 9 quick actions, got ${state.quickActions.length}`);
     if (state.dashboardColumns !== (device === 'desktop' ? 2 : 1)) failures.push(`admin dashboard [${device}]: expected owned ${device === 'desktop' ? 'two' : 'single'}-column layout, got ${state.dashboardColumns}`);
     if (!state.emptyClicksStatus.includes('Переходов пока нет')) failures.push(`admin dashboard [${device}]: recent-click empty state is not exposed`);
     if (state.scrollWidth > state.clientWidth + 1) failures.push(`admin dashboard [${device}]: horizontal overflow ${state.scrollWidth} > ${state.clientWidth}`);
@@ -1017,6 +1082,46 @@ for (const [device, viewport] of [
     }
     if (articleLayout.columns !== (device === 'desktop' ? 2 : 1)) failures.push(`admin articles [${device}]: expected owned ${device === 'desktop' ? 'two' : 'single'}-column layout, got ${articleLayout.columns}`);
     const articlesViolationCount = await auditAccessibility(page, `admin articles [${device}]`, '.admin-workspace-content');
+
+    await page.goto(`${BASE}/?admin&section=translations`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 2);
+    const translationInputs = await page.$$('.admin-translation-form input');
+    if (translationInputs.length !== 2) throw new Error('Translation editor fields are missing');
+    await translationInputs[0].type('Token Druid');
+    await translationInputs[1].type('Токен Друид');
+    await page.click('.admin-translation-form button[type="submit"]');
+    await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Перевод добавлен'));
+    await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 3);
+    await page.click('.admin-translation-table tbody tr:first-child button');
+    await page.waitForFunction(() => document.querySelector('.admin-translation-form h2')?.textContent?.includes('Редактирование'));
+    const editInputs = await page.$$('.admin-translation-form input');
+    await editInputs[1].click({ clickCount: 3 });
+    await editInputs[1].type('Контрольный Воин');
+    await page.click('.admin-translation-form button[type="submit"]');
+    await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Перевод обновлён'));
+    const translationSearch = await page.$('.admin-translation-toolbar input');
+    if (!translationSearch) throw new Error('Translation search field is missing');
+    await translationSearch.type('несуществующий архетип');
+    await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 0);
+    const translationEmpty = await page.$eval('.admin-translation-empty', element => element.textContent?.trim() || '');
+    if (!translationEmpty.includes('не найдены')) failures.push(`admin translations [${device}]: filtered empty state is missing`);
+    await translationSearch.click({ clickCount: 3 });
+    await page.keyboard.press('Backspace');
+    await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 3);
+    await page.click('.admin-translation-list-card > .admin-card-heading button');
+    await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('BlizzCore синхронизирован'));
+    const translationLayout = await page.evaluate(() => ({
+      rows: document.querySelectorAll('.admin-translation-table tbody tr').length,
+      columns: getComputedStyle(document.querySelector('.admin-translation-layout')).gridTemplateColumns.split(/\s+/).length,
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    if (translationLayout.rows !== 3) failures.push(`admin translations [${device}]: create/edit/sync fixture did not persist`);
+    if (translationLayout.columns !== (device === 'desktop' ? 2 : 1)) failures.push(`admin translations [${device}]: responsive layout has ${translationLayout.columns} columns`);
+    if (translationLayout.scrollWidth > translationLayout.clientWidth + 1) {
+      failures.push(`admin translations [${device}]: horizontal overflow ${translationLayout.scrollWidth} > ${translationLayout.clientWidth}`);
+    }
+    const translationsViolationCount = await auditAccessibility(page, `admin translations [${device}]`, '.admin-workspace-content');
 
     await page.goto(`${BASE}/?admin&section=gallery`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-gallery-row').length === 1);
@@ -1557,7 +1662,7 @@ for (const [device, viewport] of [
     await page.screenshot({ path: `${OUT}/profile-${device}.png`, fullPage: false });
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
-    console.log(`✓ admin dashboard/articles/gallery/Boosty/Telegram/mailing/contests/users/profile [${device}] interactions + axe (${violationCount + articlesViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + profileViolationCount} violations)`);
+    console.log(`✓ admin dashboard/articles/translations/gallery/Boosty/Telegram/mailing/contests/users/profile [${device}] interactions + axe (${violationCount + articlesViolationCount + translationsViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + profileViolationCount} violations)`);
   } catch (error) {
     const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
     failures.push(`admin dashboard [${device}]: ${error.message}; page: ${diagnostic}`);

@@ -39,6 +39,11 @@ import { createWinrateRouter } from './winrateRoutes.js';
 import { createHomeSummaryRouter, type HomeSummaryCacheStore } from './homeSummaryRoutes.js';
 import { createCardImageRouter, normalizeCardImageId } from './cardImageRoutes.js';
 import { createAdminClassPositionRouter, writeClassPositionsFile } from './adminClassPositionRoutes.js';
+import {
+  createAdminArchetypeTranslationRouter,
+  normalizeBlizzcoreArchetypes,
+  syncBlizzcoreArchetypes,
+} from './adminArchetypeTranslationRoutes.js';
 import { createAdminArticleRouter, writeArticlesFile } from './adminArticleRoutes.js';
 import { createAdminContestMutationRouter } from './adminContestMutationRoutes.js';
 import {
@@ -220,6 +225,8 @@ const KOLODAHS_WIKI_CARD_INDEX_FILE = join(KOLODAHS_DB_ROOT, 'var/wiki-hs-cache/
 const DECKVIEW_ARCHETYPES_API_URL = (process.env.DECKVIEW_ARCHETYPES_API_URL || process.env.DECKVIEW_API_URL || '').trim();
 const DECKVIEW_ARCHETYPES_CSV_URL = process.env.DECKVIEW_ARCHETYPES_CSV_URL
   || 'https://raw.githubusercontent.com/Zulut30/deckview-telegram-bot/main/%D0%90%D1%80%D1%85%D0%B5%D1%82%D0%B8%D0%BF%D1%8B.csv';
+const BLIZZCORE_ARCHETYPES_API_URL = process.env.BLIZZCORE_ARCHETYPES_API_URL
+  || 'https://api.blizzcore.ru/archetypes?limit=500';
 const STANDARD_ARCHETYPE_TRANSLATION_CACHE_MS = Math.max(60_000, Number(process.env.STANDARD_ARCHETYPE_TRANSLATION_CACHE_MS || 6 * 60 * 60 * 1000));
 const KOLODAHS_RELATED_CARD_PAGES_DIR = join(KOLODAHS_DB_ROOT, 'var/wiki-hs-cache/related-card-pages');
 const AUTH_COOKIE_NAME = 'manacost_auth_token';
@@ -929,6 +936,19 @@ function db(): DatabaseSync {
       details_json TEXT NOT NULL DEFAULT '{}',
       created_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS archetype_translations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      blizzcore_id INTEGER UNIQUE,
+      name_en TEXT NOT NULL,
+      name_en_key TEXT NOT NULL UNIQUE,
+      name_ru TEXT NOT NULL,
+      name_ru_key TEXT NOT NULL,
+      source TEXT NOT NULL DEFAULT 'blizzcore' CHECK(source IN ('blizzcore', 'manual')),
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      synced_at TEXT,
+      updated_by TEXT
+    );
     CREATE TABLE IF NOT EXISTS meta (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
@@ -941,6 +961,7 @@ function db(): DatabaseSync {
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_mailing_campaigns_created ON mailing_campaigns(created_at DESC);');
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_mailing_deliveries_status ON mailing_deliveries(campaign_id, status, attempts);');
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_admin_audit_created ON admin_audit_log(created_at DESC);');
+  ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_archetype_translations_source ON archetype_translations(source, updated_at DESC);');
   const userColumns = new Set((ecosystemDb.prepare('PRAGMA table_info(users)').all() as any[]).map(row => String(row.name)));
   if (!userColumns.has('contact_vk_url')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN contact_vk_url TEXT');
   if (!userColumns.has('contact_telegram')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN contact_telegram TEXT');
@@ -4183,10 +4204,11 @@ const STANDARD_ARCHETYPE_RU: Record<string, string> = {
 };
 interface StandardArchetypeTranslations {
   map: Record<string, string>;
-  source: 'deckview-api' | 'deckview-csv' | 'fallback';
+  source: 'admin-db' | 'deckview-api' | 'deckview-csv' | 'fallback';
 }
 let standardArchetypeTranslationsCache: (StandardArchetypeTranslations & { expiresAt: number }) | null = null;
 let standardArchetypeTranslationsPromise: Promise<StandardArchetypeTranslations> | null = null;
+let archetypeTranslationSeedPromise: Promise<void> | null = null;
 const TIER_SOURCE_LABEL: Record<keyof typeof TIERLIST_DATASET_BY_SOURCE, string> = {
   hsreplay: 'hsreplay.net',
   heartharena: 'heartharena.com',
@@ -5255,6 +5277,44 @@ function buildFallbackStandardArchetypeTranslations(): Record<string, string> {
   );
 }
 
+function loadAdminArchetypeTranslations(): Record<string, string> {
+  const rows = dbAll<{ name_en: string; name_ru: string }>(`
+    SELECT name_en, name_ru
+    FROM archetype_translations
+    ORDER BY CASE WHEN source = 'manual' THEN 0 ELSE 1 END, updated_at DESC
+  `);
+  const translations: Record<string, string> = {};
+  for (const row of rows) {
+    const nameEn = String(row.name_en || '').trim();
+    const nameRu = String(row.name_ru || '').trim();
+    if (nameEn && nameRu) translations[normalizeStandardArchetypeKey(nameEn)] = nameRu;
+  }
+  return translations;
+}
+
+async function fetchBlizzcoreArchetypesPayload(): Promise<unknown> {
+  const response = await fetch(BLIZZCORE_ARCHETYPES_API_URL, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
+    signal: AbortSignal.timeout(5_000),
+  });
+  if (!response.ok) throw new Error(`BlizzCore archetypes API HTTP ${response.status}`);
+  return response.json();
+}
+
+async function ensureArchetypeTranslationsSeeded(): Promise<void> {
+  const count = Number(dbGet<{ total: number }>('SELECT COUNT(*) AS total FROM archetype_translations')?.total || 0);
+  if (count > 0) return;
+  if (!archetypeTranslationSeedPromise) {
+    archetypeTranslationSeedPromise = (async () => {
+      const rows = normalizeBlizzcoreArchetypes(await fetchBlizzcoreArchetypesPayload());
+      syncBlizzcoreArchetypes(db(), rows, 'system:blizzcore-seed', new Date().toISOString());
+    })().finally(() => {
+      archetypeTranslationSeedPromise = null;
+    });
+  }
+  return archetypeTranslationSeedPromise;
+}
+
 function parseDeckviewArchetypeCsv(text: string): Record<string, string> {
   const translations: Record<string, string> = {};
   for (const rawLine of text.split(/\r?\n/)) {
@@ -5316,6 +5376,16 @@ async function fetchDeckviewCsvArchetypes(): Promise<Record<string, string> | nu
 
 async function loadStandardArchetypeTranslations(): Promise<StandardArchetypeTranslations> {
   const fallback = buildFallbackStandardArchetypeTranslations();
+  try {
+    await ensureArchetypeTranslationsSeeded();
+    const localTranslations = loadAdminArchetypeTranslations();
+    if (Object.keys(localTranslations).length) {
+      return { map: { ...fallback, ...localTranslations }, source: 'admin-db' };
+    }
+  } catch (err: any) {
+    console.warn('[standard-matchups] admin archetype translations unavailable:', err?.message ?? err);
+  }
+
   try {
     const apiTranslations = await fetchDeckviewApiArchetypes();
     if (apiTranslations) return { map: { ...fallback, ...apiTranslations }, source: 'deckview-api' };
@@ -7359,6 +7429,27 @@ app.use('/api', createAdminClassPositionRouter({
   loadPositions: loadClassPositionsData,
   savePositions: document => writeClassPositionsFile(DATA_DIR, document),
   setPrivateNoStore,
+}));
+
+app.use('/api', createAdminArchetypeTranslationRouter({
+  adminGuard: adminIdGuard,
+  adminAuth,
+  getDatabase: db,
+  loadUpstream: fetchBlizzcoreArchetypesPayload,
+  ensureSeeded: ensureArchetypeTranslationsSeeded,
+  setPrivateNoStore,
+  invalidateTranslations: () => {
+    standardArchetypeTranslationsCache = null;
+    standardArchetypeTranslationsPromise = null;
+    invalidateDataCache();
+  },
+  recordAudit: (actor, action, entityId, details) => recordAdminAuditByActorId(
+    actor.id,
+    action,
+    'archetype-translation',
+    entityId,
+    details,
+  ),
 }));
 
 app.use('/api', createAdminImageGenerationRouter({

@@ -7,6 +7,7 @@ export type AdminWorkspaceSection =
   | 'telegram'
   | 'articles'
   | 'gallery'
+  | 'translations'
   | 'contests'
   | 'referrals'
   | 'boosty';
