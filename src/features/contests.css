@@ -2499,9 +2499,9 @@
 }
 
 .admin-workspace-page .admin-danger-button {
-  border-color: #e2a8a8 !important;
-  color: var(--admin-danger) !important;
-  background: #fff7f7 !important;
+  border-color: #e2a8a8;
+  color: var(--admin-danger);
+  background: #fff7f7;
 }
 
 .admin-workspace-page button:disabled {

@@ -1063,6 +1063,16 @@ for (const [device, viewport] of [
       selectedTitle: document.querySelector('.admin-selected-contest h3')?.textContent?.trim() || '',
       entries: document.querySelectorAll('.contest-entry-row').length,
       disabledEntries: document.querySelectorAll('.contest-entry-row input:disabled').length,
+      dangerButton: (() => {
+        const element = document.querySelector('.admin-contest-detail .admin-danger-button');
+        if (!(element instanceof HTMLButtonElement)) return null;
+        const style = getComputedStyle(element);
+        return {
+          borderColor: style.borderColor,
+          color: style.color,
+          backgroundColor: style.backgroundColor,
+        };
+      })(),
       viewSwitch: (() => {
         const element = document.querySelector('.admin-view-switch');
         if (!(element instanceof HTMLElement)) return null;
@@ -1083,6 +1093,12 @@ for (const [device, viewport] of [
     }
     if (contestsState.scrollWidth > contestsState.clientWidth + 1) {
       failures.push(`admin contests [${device}]: horizontal overflow ${contestsState.scrollWidth} > ${contestsState.clientWidth}`);
+    }
+    if (!contestsState.dangerButton
+      || contestsState.dangerButton.borderColor !== 'rgb(226, 168, 168)'
+      || contestsState.dangerButton.color !== 'rgb(179, 45, 46)'
+      || contestsState.dangerButton.backgroundColor !== 'rgb(255, 247, 247)') {
+      failures.push(`admin contests [${device}]: danger action lost its owned visual state (${JSON.stringify(contestsState.dangerButton)})`);
     }
     if (!contestsState.viewSwitch
       || contestsState.viewSwitch.display !== 'grid'
