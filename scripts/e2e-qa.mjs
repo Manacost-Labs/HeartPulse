@@ -2780,6 +2780,26 @@ for (const [device, viewport] of [
     await page.$eval('.hs-tier-card', element => element.click());
     await page.waitForSelector('.card-modal-lightbox', { visible: true });
     await auditAccessibility(page, 'mobile lightbox open', '.card-modal-lightbox');
+    const material = await page.evaluate(() => {
+      const style = selector => getComputedStyle(document.querySelector(selector));
+      const backdrop = style('.card-modal-backdrop');
+      const shell = style('.card-modal-shell');
+      const stats = style('.card-modal-stats');
+      const close = style('.card-modal-close');
+      return {
+        backdropImage: backdrop.backgroundImage,
+        shellImage: shell.backgroundImage,
+        shellBorderImage: shell.borderImageSource,
+        shellBorderWidth: Number.parseFloat(shell.borderTopWidth),
+        statsBackground: stats.backgroundColor,
+        closeBackground: close.backgroundImage,
+      };
+    });
+    if (!material.backdropImage.includes('arena-rail-red.jpg')) failures.push('lightbox: canonical red backdrop texture is missing');
+    if (!material.shellImage.includes('arena-rail-red.jpg')) failures.push('lightbox: canonical red panel texture is missing');
+    if (!material.shellBorderImage.includes('main-page-rail-border.png') || material.shellBorderWidth < 9) failures.push('lightbox: wooden panel frame is missing');
+    if (material.statsBackground !== 'rgba(45, 3, 7, 0.56)') failures.push(`lightbox: unexpected stats material ${material.statsBackground}`);
+    if (!material.closeBackground.includes('linear-gradient')) failures.push('lightbox: shared close-button material is missing');
     const locked = await page.evaluate(() => ({
       bodyPosition: getComputedStyle(document.body).position,
       htmlOverflow: getComputedStyle(document.documentElement).overflow,

@@ -297,15 +297,6 @@
     padding: 0.5rem;
   }
 
-  .card-modal-backdrop {
-    background:
-      radial-gradient(circle at 24% 42%, rgba(96, 165, 250, 0.13), transparent 28rem),
-      radial-gradient(circle at 76% 18%, rgba(246, 206, 104, 0.1), transparent 28rem),
-      rgba(3, 7, 14, 0.9) !important;
-    backdrop-filter: blur(18px) saturate(1.05) !important;
-    -webkit-backdrop-filter: blur(18px) saturate(1.05) !important;
-  }
-
   .card-modal-image {
     justify-self: center;
     max-height: min(76dvh, 620px);
@@ -2571,35 +2562,8 @@
 
 /* Owned by the deferred Tier List and Legendaries lightbox. */
 @layer utilities {
-  .card-modal-backdrop.card-modal-backdrop--parchment {
-    background:
-      radial-gradient(circle at 30% 42%, rgba(145, 42, 32, 0.2), transparent 30rem),
-      radial-gradient(circle at 72% 18%, rgba(220, 171, 72, 0.1), transparent 28rem),
-      linear-gradient(rgba(25, 9, 5, 0.92), rgba(12, 5, 3, 0.95)),
-      url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
-    backdrop-filter: blur(8px) saturate(0.9) !important;
-    -webkit-backdrop-filter: blur(8px) saturate(0.9) !important;
-  }
-
-  .card-modal-shell.card-modal-shell--parchment {
-    scrollbar-color: rgba(224, 174, 74, 0.52) transparent !important;
-  }
-
   .card-modal-stats.card-modal-stats--parchment {
     max-width: 420px;
-    border: 12px solid transparent !important;
-    border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
-    border-image-slice: 18 !important;
-    border-image-width: 12px !important;
-    border-image-repeat: stretch !important;
-    border-radius: 1px !important;
-    color: #f2dbab !important;
-    background:
-      linear-gradient(rgba(71, 5, 9, 0.18), rgba(46, 3, 6, 0.34)),
-      url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
-    box-shadow:
-      0 28px 66px rgba(0, 0, 0, 0.48),
-      inset 0 1px rgba(255, 232, 176, 0.08) !important;
     padding: 1rem !important;
     backdrop-filter: none !important;
   }
@@ -2642,19 +2606,6 @@
     color: #d9be8c !important;
   }
 
-  .card-modal-close.card-modal-close--parchment {
-    border: 2px solid #d9aa49 !important;
-    border-radius: 50% !important;
-    color: #fff0c4 !important;
-    background: #6d1117 !important;
-    box-shadow: 0 8px 18px rgba(26, 4, 4, 0.38), inset 0 1px rgba(255, 234, 180, 0.16) !important;
-  }
-
-  .card-modal-close.card-modal-close--parchment:hover {
-    color: #fff7d7 !important;
-    background: #8b1a20 !important;
-    transform: scale(1.06);
-  }
   .card-modal-shell.card-modal-shell--parchment {
     width: min(940px, calc(100vw - 88px)) !important;
     max-height: calc(100dvh - 20px) !important;
