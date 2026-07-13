@@ -67,6 +67,7 @@ import { createAdminTelegramReadRouter } from './adminTelegramReadRoutes.js';
 import { createAdminContestReadRouter } from './adminContestReadRoutes.js';
 import { createAdminImageUploadRouter } from './adminImageUploadRoutes.js';
 import { createAdminImageGenerationRouter } from './adminImageGenerationRoutes.js';
+import { createContestRouter } from './contestRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -6928,105 +6929,21 @@ app.post('/api/subscription/refresh', async (req, res) => {
   }
 });
 
-app.get('/api/contests', (req, res) => {
-  const user = userAuth(req);
-  if (user) setPrivateNoStore(res);
-  const rows = dbAll<any>("SELECT * FROM contests WHERE status NOT IN ('draft', 'cancelled') ORDER BY COALESCE(ends_at, created_at) DESC, created_at DESC");
-  const entries = user
-    ? new Map(dbAll<any>('SELECT contest_id, status, created_at FROM contest_entries WHERE user_id = ?', user.id).map(row => [String(row.contest_id), row]))
-    : new Map<string, any>();
-  res.json({
-    contests: rows.map(row => contestFromRow(row, entries.get(String(row.id)))),
-    user: user ? publicUser(user) : null,
-  });
-});
-
-app.post('/api/contests/:contestId/join', async (req, res) => {
-  setPrivateNoStore(res);
-  const user = userAuth(req);
-  if (!user) return res.status(401).json({ error: 'Войдите в профиль, чтобы участвовать в конкурсе' });
-  const contest = dbGet<any>('SELECT * FROM contests WHERE id = ?', String(req.params.contestId));
-  if (!contest || contest.status === 'draft' || contest.status === 'cancelled') {
-    return res.status(404).json({ error: 'Конкурс не найден' });
-  }
-  const effectiveStatus = contestStatusFromDates(String(contest.status || ''), contest.starts_at, contest.ends_at);
-  if (effectiveStatus === 'completed') return res.status(409).json({ error: 'Конкурс уже завершен' });
-  if (effectiveStatus === 'planned') return res.status(409).json({ error: 'Конкурс еще не начался' });
-
-  const subscription = await refreshSubscriptionForUser(user, false);
-  if (!subscription.entitlements.contests && user.id !== CONTEST_ADMIN_USER_ID) {
-    return res.status(403).json({
-      error: 'Для участия нужна подписка Манакоста с доступом к конкурсам',
-      subscription,
-    });
-  }
-
-  const nowIso = new Date().toISOString();
-  const contact = {
-    vk: user.contactVkUrl ?? '',
-    telegram: user.contactTelegram || user.telegramUsername || '',
-    email: user.contactEmail || (isRealEmail(user.email) ? user.email : ''),
-  };
-  dbRun(`
-    INSERT INTO contest_entries (id, contest_id, user_id, email, contact_json, subscription_json, status, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, 'approved', ?)
-    ON CONFLICT(contest_id, user_id) DO UPDATE SET
-      email = excluded.email,
-      contact_json = excluded.contact_json,
-      subscription_json = excluded.subscription_json,
-      status = 'approved'
-  `, `entry_${randomBytes(8).toString('hex')}`, contest.id, user.id, user.email, JSON.stringify(contact), JSON.stringify(subscription), nowIso);
-
-  res.json({
-    success: true,
-    entry: { status: 'approved', createdAt: nowIso },
-    subscription,
-  });
-});
-
-app.get('/api/profile/contest-history', (req, res) => {
-  setPrivateNoStore(res);
-  const user = userAuth(req);
-  if (!user) return res.status(401).json({ error: 'Требуется вход' });
-  const rows = dbAll<any>(`
-    SELECT
-      e.id AS entry_id,
-      e.contest_id,
-      e.status AS entry_status,
-      e.created_at AS joined_at,
-      c.title,
-      c.prize,
-      c.image_url,
-      c.starts_at,
-      c.ends_at,
-      c.status AS contest_status,
-      c.winners_json
-    FROM contest_entries e
-    JOIN contests c ON c.id = e.contest_id
-    WHERE e.user_id = ?
-    ORDER BY e.created_at DESC
-  `, user.id);
-
-  res.json({
-    entries: rows.map(row => {
-      const winners = parseJsonArray(row.winners_json).map(String);
-      const contestId = String(row.contest_id || '');
-      return {
-        id: String(row.entry_id || ''),
-        contestId,
-        title: String(row.title || ''),
-        prize: String(row.prize || ''),
-        imageUrl: String(row.image_url || ''),
-        status: contestStatusFromDates(String(row.contest_status || ''), row.starts_at, row.ends_at),
-        entryStatus: String(row.entry_status || ''),
-        joinedAt: String(row.joined_at || ''),
-        startsAt: row.starts_at ? String(row.starts_at) : '',
-        endsAt: row.ends_at ? String(row.ends_at) : '',
-        isWinner: winners.includes(user.id),
-      };
-    }),
-  });
-});
+app.use('/api', createContestRouter({
+  userAuth,
+  repository: {
+    all: (sql, ...params) => dbAll<Record<string, unknown>>(sql, ...params),
+    get: (sql, ...params) => dbGet<Record<string, unknown>>(sql, ...params) ?? null,
+    run: (sql, ...params) => dbRun(sql, ...params),
+  },
+  serializeContest: (row, entry) => contestFromRow(row, entry),
+  serializeUser: publicUser,
+  refreshSubscription: user => refreshSubscriptionForUser(user, false),
+  contestStatus: contestStatusFromDates,
+  setPrivateNoStore,
+  contestAdminUserId: CONTEST_ADMIN_USER_ID,
+  isRealEmail,
+}));
 
 app.use('/api', createAdminContestReadRouter({
   adminAuth: contestAdminAuth,
