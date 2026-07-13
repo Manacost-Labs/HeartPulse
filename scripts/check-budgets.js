@@ -12,7 +12,7 @@ const budgets = {
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 90_000),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 190_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 130_000),
-  css: Number(process.env.BUDGET_CSS_BYTES || 150_000),
+  css: Number(process.env.BUDGET_CSS_BYTES || 145_000),
   routeCss: Number(process.env.BUDGET_ROUTE_CSS_BYTES || 48_000),
   deferredRoutesCss: Number(process.env.BUDGET_DEFERRED_ROUTES_CSS_BYTES || 68_000),
   homeSectionCss: Number(process.env.BUDGET_HOME_SECTION_CSS_BYTES || 5_000),
@@ -89,6 +89,6 @@ for (const [label, file, budget] of checks) {
   if (!ok) failed = true;
 }
 
-console.log('[budget] initial CSS is locked below 150 KB; keep ratcheting as obsolete rules are removed.');
+console.log('[budget] initial CSS is locked below 145 KB; keep ratcheting as obsolete rules are removed.');
 
 if (failed) process.exit(1);

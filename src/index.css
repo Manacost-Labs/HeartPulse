@@ -909,15 +909,6 @@
       0 8px 24px rgba(15, 23, 42, 0.08);
     transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
   }
-  @media (hover: hover) {
-  }
-
-  /* Engraved brass call-to-action button (the "Перейти →" family) */
-  @media (hover: hover) {
-  }
-
-  /* Gold glow pulse */
-
   /* Scrollbar styling */
   .scrollbar-hs {
     scrollbar-width: thin;
@@ -993,12 +984,6 @@
     z-index: 2;
   }
 
-  @media (hover: hover) {
-  }
-
-  @media (max-width: 640px) {
-  }
-
   .modern-eyebrow {
     display: inline-flex;
     align-items: center;
@@ -1016,16 +1001,6 @@
     text-transform: uppercase;
   }
 
-  @media (hover: hover) {
-  }
-
-  .modern-feature-card.hs-card {
-    background:
-      linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(237, 243, 251, 0.9)),
-      radial-gradient(circle at 12% 0%, rgba(96, 165, 250, 0.08), transparent 16rem);
-    border-color: rgba(148, 163, 184, 0.34);
-  }
-
   @media (max-width: 767px) {
     .arena-main {
       padding: 1rem 0.55rem 1.5rem;
@@ -1040,29 +1015,6 @@
       border-radius: 16px 16px 0 0;
     }
 
-  }
-
-  .home-modern .hs-card {
-    position: relative;
-    overflow: hidden;
-    background:
-      linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(237, 243, 251, 0.9)) !important;
-    border-color: rgba(148, 163, 184, 0.3) !important;
-  }
-
-  .home-modern .hs-card h3,
-  .home-modern .hs-card .font-hs {
-    color: #1f3654 !important;
-  }
-
-  .home-modern .hs-card p,
-  .home-modern .hs-card span {
-    color: #52667f !important;
-  }
-
-  .home-modern section[aria-labelledby="top-cards-heading"] img,
-  .home-modern section[aria-labelledby="top-legendaries-heading"] img {
-    filter: none !important;
   }
 
   /* Unified cool UI theme. This intentionally overrides older inline

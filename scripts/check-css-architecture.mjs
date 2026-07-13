@@ -4,7 +4,14 @@ import { join, relative } from 'node:path';
 const ROOT = process.cwd();
 const SRC = join(ROOT, 'src');
 const TOKEN_FILE = 'src/styles/tokens.css';
-const MAX_IMPORTANT_DECLARATIONS = 1892;
+const MAX_IMPORTANT_DECLARATIONS = 1887;
+const RETIRED_OWNERLESS_CSS_FRAGMENTS = [
+  '.home-modern .hs-card',
+  '.home-modern > section',
+  '.modern-feature-card',
+  'top-cards-heading',
+  'top-legendaries-heading',
+];
 const RETIRED_HOME_CLASS_PREFIXES = [
   'home-stage__atmosphere',
   'home-stage__rune',
@@ -106,6 +113,11 @@ const retiredInitialSelectors = sources.flatMap(({ file, source }) => (
     .filter(prefix => new RegExp(`\\.${prefix}(?:__|--|(?![\\w-]))`).test(source))
     .map(prefix => `${file}:.${prefix}`)
 ));
+const retiredOwnerlessFragments = sources.flatMap(({ file, source }) => (
+  RETIRED_OWNERLESS_CSS_FRAGMENTS
+    .filter(fragment => source.includes(fragment))
+    .map(fragment => `${file}:${fragment}`)
+));
 
 if (retiredHomeSelectors.length > 0) {
   console.error(`[css-architecture] retired ownerless Home selectors returned: ${retiredHomeSelectors.join(', ')}`);
@@ -117,11 +129,17 @@ if (retiredInitialSelectors.length > 0) {
   process.exit(1);
 }
 
+if (retiredOwnerlessFragments.length > 0) {
+  console.error(`[css-architecture] retired ownerless CSS fragments returned: ${retiredOwnerlessFragments.join(', ')}`);
+  process.exit(1);
+}
+
 console.log(`[css-architecture] global :root owners: ${rootOwners.length} / 1`);
 console.log(`[css-architecture] unique global tokens: ${tokenNames.length}`);
 console.log(`[css-architecture] !important declarations: ${importantCount} / ${MAX_IMPORTANT_DECLARATIONS}`);
 console.log(`[css-architecture] retired ownerless Home selector prefixes: 0 / ${RETIRED_HOME_CLASS_PREFIXES.length}`);
 console.log(`[css-architecture] retired ownerless initial selector prefixes: 0 / ${RETIRED_INITIAL_CLASS_PREFIXES.length}`);
+console.log(`[css-architecture] retired ownerless CSS fragments: 0 / ${RETIRED_OWNERLESS_CSS_FRAGMENTS.length}`);
 
 if (importantCount > MAX_IMPORTANT_DECLARATIONS) {
   console.error('[css-architecture] legacy cascade debt increased; remove an override or use scoped specificity instead');

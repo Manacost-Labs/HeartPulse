@@ -880,12 +880,6 @@
     animation: none !important;
   }
 
-  .home-modern > section,
-  .home-modern > aside {
-    content-visibility: auto;
-    contain-intrinsic-size: 320px;
-  }
-
   .profile-card {
     contain: layout paint;
   }
