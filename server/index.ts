@@ -43,6 +43,11 @@ import { createCardImageRouter, normalizeCardImageId } from './cardImageRoutes.j
 import { createAdminClassPositionRouter, writeClassPositionsFile } from './adminClassPositionRoutes.js';
 import { createAdminArticleRouter, writeArticlesFile } from './adminArticleRoutes.js';
 import { createAdminContestMutationRouter } from './adminContestMutationRoutes.js';
+import {
+  createAdminUserMutationRouter,
+  mutateAdminUser,
+  type AdminUserMutationStore,
+} from './adminUserMutationRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -7352,115 +7357,88 @@ app.get('/api/admin/telegram/accounts', (req, res) => {
   });
 });
 
-app.patch('/api/admin/users/:userId', (req, res) => {
-  const admin = adminAuth(req);
-  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  setPrivateNoStore(res);
-  const userId = normalizeOptionalText(req.params.userId, 160);
-  const store = loadAuthStore();
-  const user = store.users.find(item => item.id === userId);
-  if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
-
-  const nextRoleRaw = req.body?.role === undefined ? undefined : normalizeOptionalText(req.body.role, 20);
-  const nextBlockedRaw = req.body?.blocked;
-  const wantsLifetimeChange = Object.prototype.hasOwnProperty.call(req.body ?? {}, 'lifetimeAccess');
-  if (nextBlockedRaw !== undefined && typeof nextBlockedRaw !== 'boolean') {
-    return res.status(400).json({ error: 'Некорректное значение блокировки' });
-  }
-  if (wantsLifetimeChange && typeof req.body?.lifetimeAccess !== 'boolean') {
-    return res.status(400).json({ error: 'Некорректное значение бессрочного доступа' });
-  }
-  if (!cookieMutationCsrfAllowed(req)) {
-    return res.status(403).json({ error: 'Запрос отклонён: обновите страницу и повторите действие' });
-  }
-  const wantsRoleChange = nextRoleRaw !== undefined;
-  const wantsBlockChange = nextBlockedRaw !== undefined;
-  if (!wantsRoleChange && !wantsBlockChange && !wantsLifetimeChange) {
-    return res.status(400).json({ error: 'Нет изменений' });
-  }
-  if (nextRoleRaw !== undefined && nextRoleRaw !== 'admin' && nextRoleRaw !== 'user') {
-    return res.status(400).json({ error: 'Некорректная роль' });
-  }
-  const nextBlocked = nextBlockedRaw === undefined ? Boolean(user.blockedAt) : Boolean(nextBlockedRaw);
-  const nextRole = nextRoleRaw === undefined ? user.role : nextRoleRaw as 'admin' | 'user';
-
-  if (user.id === admin.id && nextBlocked) {
-    return res.status(400).json({ error: 'Нельзя заблокировать свой аккаунт' });
-  }
-  if (user.id === admin.id && nextRole !== 'admin') {
-    return res.status(400).json({ error: 'Нельзя снять администратора с самого себя' });
-  }
-
-  const wouldDisableAdmin = user.role === 'admin' && (nextRole !== 'admin' || nextBlocked);
-  if (wouldDisableAdmin) {
-    const remainingAdmins = store.users.filter(item => item.id !== user.id && item.role === 'admin' && !item.blockedAt);
-    if (remainingAdmins.length === 0) {
-      return res.status(400).json({ error: 'Нельзя оставить сайт без активного администратора' });
-    }
-  }
-
-  const nowIso = new Date().toISOString();
-  const previousRole = user.role;
-  const previousBlocked = Boolean(user.blockedAt);
-  const previousLifetime = Boolean(activeManualSubscriptionGrant(user.id));
-  if (wantsRoleChange || wantsBlockChange) {
-    user.role = nextRole;
-    user.blockedAt = nextBlocked ? (user.blockedAt || nowIso) : '';
-    user.updatedAt = nowIso;
-    if (nextBlocked) {
-      store.sessions = store.sessions.filter(item => item.userId !== user.id && item.email !== user.email);
-    }
-    saveAuthStore(store);
-  }
-  const auditDetails = {
-    role: wantsRoleChange ? { from: previousRole, to: nextRole } : undefined,
-    blocked: wantsBlockChange ? { from: previousBlocked, to: nextBlocked } : undefined,
-    lifetimeAccess: wantsLifetimeChange ? { from: previousLifetime, to: Boolean(req.body.lifetimeAccess) } : undefined,
-  };
-  if (wantsLifetimeChange) {
-    const lifetimeAccess = Boolean(req.body.lifetimeAccess);
+app.use('/api', createAdminUserMutationRouter({
+  adminAuth,
+  csrfAllowed: cookieMutationCsrfAllowed,
+  setPrivateNoStore,
+  mutateUser: (actorId, userId, changes) => {
     const database = db();
-    try {
-      database.exec('BEGIN IMMEDIATE');
-      if (lifetimeAccess) {
+    const mutationStore: AdminUserMutationStore = {
+      transaction: work => {
+        try {
+          database.exec('BEGIN IMMEDIATE');
+          const result = work();
+          database.exec('COMMIT');
+          return result;
+        } catch (error) {
+          try { database.exec('ROLLBACK'); } catch { /* BEGIN may itself have failed. */ }
+          throw error;
+        }
+      },
+      listUsers: () => (database.prepare(`
+        SELECT id, email, role, blocked_at, updated_at
+        FROM users
+        ORDER BY created_at ASC
+      `).all() as any[]).map(row => ({
+        id: String(row.id),
+        email: String(row.email),
+        role: row.role === 'admin' ? 'admin' : 'user',
+        blockedAt: row.blocked_at ? String(row.blocked_at) : '',
+        updatedAt: String(row.updated_at),
+      })),
+      hasLifetimeAccess: targetId => Boolean(database.prepare(`
+        SELECT 1 FROM manual_subscription_grants WHERE user_id = ? AND active = 1
+      `).get(targetId)),
+      updateUser: (targetId, values) => {
         database.prepare(`
-          INSERT INTO manual_subscription_grants (
-            user_id, active, entitlements_json, granted_by, granted_at, revoked_by, revoked_at, note, updated_at
-          ) VALUES (?, 1, ?, ?, ?, NULL, NULL, ?, ?)
-          ON CONFLICT(user_id) DO UPDATE SET
-            active = 1,
-            entitlements_json = excluded.entitlements_json,
-            granted_by = CASE WHEN manual_subscription_grants.active = 1 THEN manual_subscription_grants.granted_by ELSE excluded.granted_by END,
-            granted_at = CASE WHEN manual_subscription_grants.active = 1 THEN manual_subscription_grants.granted_at ELSE excluded.granted_at END,
-            revoked_by = NULL,
-            revoked_at = NULL,
-            note = CASE WHEN manual_subscription_grants.active = 1 THEN manual_subscription_grants.note ELSE excluded.note END,
-            updated_at = excluded.updated_at
-        `).run(user.id, JSON.stringify(allEntitlements()), admin.id, nowIso, 'Бессрочный доступ из админ-панели', nowIso);
-      } else {
+          UPDATE users SET role = ?, blocked_at = ?, updated_at = ? WHERE id = ?
+        `).run(values.role, values.blockedAt || null, values.updatedAt, targetId);
+      },
+      deleteUserSessions: (targetId, email) => {
+        database.prepare('DELETE FROM sessions WHERE user_id = ? OR email = ?').run(targetId, email);
+      },
+      setLifetimeAccess: (targetId, enabled, grantedBy, timestamp) => {
+        if (enabled) {
+          database.prepare(`
+            INSERT INTO manual_subscription_grants (
+              user_id, active, entitlements_json, granted_by, granted_at, revoked_by, revoked_at, note, updated_at
+            ) VALUES (?, 1, ?, ?, ?, NULL, NULL, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+              active = 1,
+              entitlements_json = excluded.entitlements_json,
+              granted_by = CASE WHEN manual_subscription_grants.active = 1 THEN manual_subscription_grants.granted_by ELSE excluded.granted_by END,
+              granted_at = CASE WHEN manual_subscription_grants.active = 1 THEN manual_subscription_grants.granted_at ELSE excluded.granted_at END,
+              revoked_by = NULL,
+              revoked_at = NULL,
+              note = CASE WHEN manual_subscription_grants.active = 1 THEN manual_subscription_grants.note ELSE excluded.note END,
+              updated_at = excluded.updated_at
+          `).run(targetId, JSON.stringify(allEntitlements()), grantedBy, timestamp, 'Бессрочный доступ из админ-панели', timestamp);
+        } else {
+          database.prepare(`
+            UPDATE manual_subscription_grants
+            SET active = 0, revoked_by = ?, revoked_at = ?, updated_at = ?
+            WHERE user_id = ?
+          `).run(grantedBy, timestamp, timestamp, targetId);
+        }
+      },
+      recordAudit: (grantedBy, targetId, details, timestamp) => {
         database.prepare(`
-          UPDATE manual_subscription_grants
-          SET active = 0, revoked_by = ?, revoked_at = ?, updated_at = ?
-          WHERE user_id = ?
-        `).run(admin.id, nowIso, nowIso, user.id);
-      }
-      recordAdminAudit(admin, 'user.updated', 'user', user.id, auditDetails);
-      database.exec('COMMIT');
-    } catch (err: any) {
-      try { database.exec('ROLLBACK'); } catch { /* BEGIN may itself have failed. */ }
-      return res.status(500).json({ error: err?.message || 'Не удалось изменить бессрочный доступ' });
-    }
-  } else {
-    recordAdminAudit(admin, 'user.updated', 'user', user.id, auditDetails);
-  }
-  const lifetimeAccess = Boolean(activeManualSubscriptionGrant(user.id));
-  res.json({
-    success: true,
-    user: { ...publicUser(user), lifetimeAccess },
-    lifetimeAccess,
-    subscription: readSubscriptionStatus(user.id) ?? emptySubscriptionStatus(),
-  });
-});
+          INSERT INTO admin_audit_log (actor_user_id, action, entity_type, entity_id, details_json, created_at)
+          VALUES (?, 'user.updated', 'user', ?, ?, ?)
+        `).run(grantedBy, targetId, JSON.stringify(details), timestamp);
+      },
+    };
+    const outcome = mutateAdminUser(mutationStore, actorId, userId, changes, new Date().toISOString());
+    const user = loadAuthStore().users.find(item => item.id === userId);
+    if (!user) throw new Error('Updated user is missing');
+    return {
+      success: true,
+      user: { ...publicUser(user), lifetimeAccess: outcome.lifetimeAccess },
+      lifetimeAccess: outcome.lifetimeAccess,
+      subscription: readSubscriptionStatus(user.id) ?? emptySubscriptionStatus(),
+    };
+  },
+}));
 
 app.get('/api/admin/mailings/overview', (req, res) => {
   const admin = adminAuth(req);

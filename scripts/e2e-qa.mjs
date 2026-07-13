@@ -434,6 +434,24 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
       request.respond(jsonResponse({ success: true, deletedId: contestDeleteMatch[1] }));
       return;
     }
+    if (admin && url.pathname === '/api/admin/users' && request.method() === 'GET') {
+      const users = adminState.users ??= structuredClone(adminFixtures['/api/admin/users'].users);
+      request.respond(jsonResponse({ users, total: users.length }));
+      return;
+    }
+    const adminUserMatch = admin && url.pathname.match(/^\/api\/admin\/users\/([^/]+)$/);
+    if (adminUserMatch && request.method() === 'PATCH') {
+      const users = adminState.users ??= structuredClone(adminFixtures['/api/admin/users'].users);
+      const user = users.find(item => item.id === decodeURIComponent(adminUserMatch[1]));
+      const payload = JSON.parse(request.postData() || '{}');
+      if (user) {
+        if (payload.role === 'admin' || payload.role === 'user') user.role = payload.role;
+        if (typeof payload.blocked === 'boolean') user.blockedAt = payload.blocked ? '2026-07-13T02:00:00.000Z' : '';
+        if (typeof payload.lifetimeAccess === 'boolean') user.lifetimeAccess = payload.lifetimeAccess;
+      }
+      request.respond(jsonResponse({ success: true, user, lifetimeAccess: Boolean(user?.lifetimeAccess) }));
+      return;
+    }
     if (admin && adminFixtures[url.pathname]) {
       request.respond(jsonResponse(adminFixtures[url.pathname]));
       return;
@@ -693,6 +711,7 @@ for (const [device, viewport] of [
     galleryEmpty: false,
     articles: structuredClone(adminFixtures['/api/articles'].articles),
     contests: structuredClone(adminFixtures['/api/admin/contests'].contests),
+    users: structuredClone(adminFixtures['/api/admin/users'].users),
   };
   await page.setViewport(viewport);
   await mockApplicationApi(page, { authenticated: true, admin: true, adminState });
@@ -994,6 +1013,32 @@ for (const [device, viewport] of [
     await page.waitForFunction(() => !document.querySelector('.contest-user-menu'));
     const focusRestored = await page.evaluate(() => document.activeElement?.classList.contains('contest-user-menu-trigger') === true);
     if (!focusRestored) failures.push(`admin users [${device}]: Escape did not restore focus to the action trigger`);
+    await page.evaluate(() => { window.confirm = () => true; });
+    for (const actionText of ['Дать бессрочную подписку', 'Сделать администратором', 'Заблокировать']) {
+      await page.click('.contest-user-row:first-child .contest-user-menu-trigger');
+      await page.waitForSelector('.contest-user-menu[role="menu"]', { visible: true });
+      await page.evaluate(text => {
+        const button = [...document.querySelectorAll('.contest-user-menu button[role="menuitem"]')]
+          .find(element => element.textContent?.includes(text));
+        if (!(button instanceof HTMLButtonElement)) throw new Error(`Missing user action: ${text}`);
+        button.click();
+      }, actionText);
+      await page.waitForFunction(text => {
+        const row = document.querySelector('.contest-user-row:first-child');
+        if (!row) return false;
+        if (text === 'Дать бессрочную подписку') return row.querySelector('.contest-access-ok')?.textContent?.includes('бессрочно');
+        if (text === 'Сделать администратором') return row.textContent?.includes('администратор');
+        return row.querySelector('.contest-role-blocked')?.textContent?.includes('заблокирован');
+      }, {}, actionText);
+      await page.waitForFunction(() => !document.querySelector('.contest-user-menu'));
+      await page.waitForFunction(() => !document.querySelector('.contest-user-menu-trigger')?.hasAttribute('disabled'));
+    }
+    await page.goto(`${BASE}/?admin&section=users`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForFunction(() => document.querySelectorAll('.contest-user-row').length === 2);
+    const persistedUser = await page.$eval('.contest-user-row:first-child', element => element.textContent?.replace(/\s+/g, ' ').trim() || '');
+    if (!persistedUser.includes('администратор') || !persistedUser.includes('заблокирован') || !persistedUser.includes('бессрочно')) {
+      failures.push(`admin users [${device}]: role/block/lifetime mutations did not persist after navigation`);
+    }
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
     console.log(`✓ admin dashboard/articles/gallery/Boosty/Telegram/mailing/contests/users [${device}] interactions + axe (${violationCount + articlesViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount} violations)`);
