@@ -352,6 +352,27 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
       } : { user: null }));
       return;
     }
+    if (url.pathname === '/api/auth/profile' && request.method() === 'PATCH') {
+      if (adminState.profileSaveFailure) {
+        request.respond({ ...jsonResponse({ error: 'Контрольная ошибка сохранения' }), status: 500 });
+        return;
+      }
+      const payload = JSON.parse(request.postData() || '{}');
+      request.respond(jsonResponse({
+        user: {
+          id: admin ? 'qa-admin' : 'qa-subscriber',
+          profileId: admin ? 'qa-admin' : 'qa-subscriber',
+          email: 'qa@example.test',
+          name: admin ? 'QA Administrator' : 'QA Subscriber',
+          role: admin ? 'admin' : 'user',
+          adminAllowed: admin,
+          contestAdminAllowed: admin,
+          photoUrl: '/__qa_missing_avatar__.png',
+          ...payload,
+        },
+      }));
+      return;
+    }
     if (url.pathname === '/api/subscription/status' || url.pathname === '/api/subscription/refresh') {
       request.respond(jsonResponse(subscriber));
       return;
@@ -1345,6 +1366,26 @@ for (const [device, viewport] of [
       || profileState.scrollWidth > profileState.clientWidth + 1) {
       failures.push(`profile [${device}]: hero asset or horizontal reflow changed (${JSON.stringify(profileState)})`);
     }
+    await page.click('.profile-settings-form button[type="submit"]');
+    await page.waitForFunction(() => document.querySelector('.profile-message--ok')?.textContent?.includes('Профиль обновлен.'));
+    const successMessage = await page.$eval('.profile-message--ok', element => {
+      const style = getComputedStyle(element);
+      return { role: element.getAttribute('role'), radius: style.borderRadius, color: style.color };
+    });
+    if (successMessage.role !== 'status' || successMessage.radius !== '2px' || successMessage.color !== 'rgb(53, 93, 57)') {
+      failures.push(`profile [${device}]: success message lost semantic visual ownership (${JSON.stringify(successMessage)})`);
+    }
+    adminState.profileSaveFailure = true;
+    await page.click('.profile-settings-form button[type="submit"]');
+    await page.waitForFunction(() => document.querySelector('.profile-message--err')?.textContent?.includes('Контрольная ошибка сохранения'));
+    const errorMessage = await page.$eval('.profile-message--err', element => {
+      const style = getComputedStyle(element);
+      return { role: element.getAttribute('role'), radius: style.borderRadius, color: style.color };
+    });
+    if (errorMessage.role !== 'alert' || errorMessage.radius !== '2px' || errorMessage.color !== 'rgb(125, 34, 39)') {
+      failures.push(`profile [${device}]: error message lost semantic visual ownership (${JSON.stringify(errorMessage)})`);
+    }
+    adminState.profileSaveFailure = false;
     const profileViolationCount = await auditAccessibility(page, `profile [${device}]`, '.profile-page');
     await page.screenshot({ path: `${OUT}/profile-${device}.png`, fullPage: false });
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);

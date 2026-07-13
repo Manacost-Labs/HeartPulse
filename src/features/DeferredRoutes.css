@@ -1662,19 +1662,19 @@
 
 .profile-workspace .profile-message {
   grid-area: message;
-  margin: 0 !important;
-  padding: 0.7rem 0.85rem !important;
+  margin: 0;
+  padding: 0.7rem 0.85rem;
   border: 1px solid #b9d9c9;
-  border-radius: 7px !important;
-  background: #edf8f2 !important;
-  color: #246048 !important;
-  font-size: 0.76rem !important;
+  border-radius: 7px;
+  background: #edf8f2;
+  color: #246048;
+  font-size: 0.76rem;
 }
 
 .profile-workspace .profile-message--err {
   border-color: #efc1c1;
-  background: #fff3f3 !important;
-  color: #8d3030 !important;
+  background: #fff3f3;
+  color: #8d3030;
 }
 
 .profile-workspace .profile-contact-section {
@@ -2040,16 +2040,16 @@
 }
 
 .arena-app-profile .profile-workspace .profile-message {
-  border-color: rgba(64, 123, 73, 0.38) !important;
-  border-radius: 2px !important;
-  color: #355d39 !important;
-  background: rgba(224, 238, 207, 0.58) !important;
+  border-color: rgba(64, 123, 73, 0.38);
+  border-radius: 2px;
+  color: #355d39;
+  background: rgba(224, 238, 207, 0.58);
 }
 
 .arena-app-profile .profile-workspace .profile-message--err {
-  border-color: rgba(142, 40, 40, 0.35) !important;
-  color: #7d2227 !important;
-  background: rgba(246, 216, 198, 0.58) !important;
+  border-color: rgba(142, 40, 40, 0.35);
+  color: #7d2227;
+  background: rgba(246, 216, 198, 0.58);
 }
 
 .arena-app-profile .profile-workspace :is(

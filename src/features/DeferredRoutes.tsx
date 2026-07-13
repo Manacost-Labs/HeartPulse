@@ -3626,14 +3626,7 @@ export function LoginPanel({
             </div>
           </div>
           {msg && (
-            <div className={`profile-message profile-message--${msg.type}`} role={msg.type === 'err' ? 'alert' : 'status'} aria-live="polite" style={{
-              marginBottom: '14px',
-              padding: '9px 12px',
-              borderRadius: '8px',
-              background: msg.type === 'ok' ? '#d1fae5' : '#fee2e2',
-              color: msg.type === 'ok' ? '#065f46' : '#991b1b',
-              fontSize: '12px',
-            }}>
+            <div className={`profile-message profile-message--${msg.type}`} role={msg.type === 'err' ? 'alert' : 'status'} aria-live="polite">
               {msg.text}
             </div>
           )}
