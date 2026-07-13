@@ -8,36 +8,9 @@ import {
 import type { HomeArticle } from './HomeLatestArticles';
 import './Home.css';
 
-const HOME_SECTION_RELOAD_PREFIX = 'home_section_reload_v1:';
-
-function lazyHomeSection<T extends React.ComponentType<any>>(
-  section: string,
-  loader: () => Promise<{ default: T }>,
-): React.LazyExoticComponent<T> {
-  return React.lazy(async () => {
-    const reloadKey = `${HOME_SECTION_RELOAD_PREFIX}${section}`;
-    try {
-      const module = await loader();
-      try { window.sessionStorage.removeItem(reloadKey); } catch { /* private mode */ }
-      return module;
-    } catch (error) {
-      try {
-        if (window.sessionStorage.getItem(reloadKey) !== '1') {
-          window.sessionStorage.setItem(reloadKey, '1');
-          window.location.reload();
-          return await new Promise<never>(() => {});
-        }
-      } catch {
-        // Storage can be unavailable in strict privacy modes; the boundary below remains usable.
-      }
-      throw error;
-    }
-  });
-}
-
-const HomeArenaDirectory = lazyHomeSection('arena', () => import('./HomeArenaDirectory'));
-const HomeBattlegrounds = lazyHomeSection('battlegrounds', () => import('./HomeBattlegrounds'));
-const HomeLatestArticles = lazyHomeSection('articles', () => import('./HomeLatestArticles'));
+const HomeArenaDirectory = React.lazy(() => import('./HomeArenaDirectory'));
+const HomeBattlegrounds = React.lazy(() => import('./HomeBattlegrounds'));
+const HomeLatestArticles = React.lazy(() => import('./HomeLatestArticles'));
 
 function HomeSectionFallback({ label }: { label: string }) {
   return (
@@ -45,6 +18,30 @@ function HomeSectionFallback({ label }: { label: string }) {
       <span>Загружается раздел «{label}»…</span>
     </section>
   );
+}
+
+class HomeSectionBoundary extends React.Component<
+  React.PropsWithChildren<{ label: string }>,
+  { failed: boolean }
+> {
+  declare readonly props: React.PropsWithChildren<{ label: string }>;
+  state = { failed: false };
+
+  static getDerivedStateFromError(): { failed: boolean } {
+    return { failed: true };
+  }
+
+  render(): React.ReactNode {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <section className="home-deferred-placeholder" data-home-error role="alert">
+        <strong>Не загрузился раздел «{this.props.label}»</strong>
+        <button className="home-action home-action--primary" type="button" onClick={() => window.location.reload()}>
+          Повторить
+        </button>
+      </section>
+    );
+  }
 }
 
 interface ClassData {
@@ -132,7 +129,7 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
           <span className="home-stage__label"><span aria-hidden="true" /> Данные обновляются автоматически</span>
           <h1 id="draft-home-title">Мета <span>на сегодня</span></h1>
           <p>
-            Сразу видно лидера Арены, свежесть данных и ключевые инструменты. Ниже — отдельные рабочие зоны Арены и Полей Сражений без повторяющихся вступлений.
+            Лидеры Арены, свежесть данных и ключевые инструменты — на одном экране.
           </p>
           <div className="home-stage__actions">
             <a
@@ -219,17 +216,23 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
         <a href="#faq-heading">Частые вопросы</a>
       </nav>
 
-      <React.Suspense fallback={<HomeSectionFallback label="Последние статьи" />}>
-        <HomeLatestArticles articles={articles} loading={loadingArticles} onNavigate={onNavigate} />
-      </React.Suspense>
+      <HomeSectionBoundary label="Последние статьи">
+        <React.Suspense fallback={<HomeSectionFallback label="Последние статьи" />}>
+          <HomeLatestArticles articles={articles} loading={loadingArticles} onNavigate={onNavigate} />
+        </React.Suspense>
+      </HomeSectionBoundary>
 
-      <React.Suspense fallback={<HomeSectionFallback label="Поля Сражений" />}>
-        <HomeBattlegrounds onNavigate={onNavigate} />
-      </React.Suspense>
+      <HomeSectionBoundary label="Поля Сражений">
+        <React.Suspense fallback={<HomeSectionFallback label="Поля Сражений" />}>
+          <HomeBattlegrounds onNavigate={onNavigate} />
+        </React.Suspense>
+      </HomeSectionBoundary>
 
-      <React.Suspense fallback={<HomeSectionFallback label="Арена" />}>
-        <HomeArenaDirectory onNavigate={onNavigate} />
-      </React.Suspense>
+      <HomeSectionBoundary label="Арена">
+        <React.Suspense fallback={<HomeSectionFallback label="Арена" />}>
+          <HomeArenaDirectory onNavigate={onNavigate} />
+        </React.Suspense>
+      </HomeSectionBoundary>
 
       <aside className="home-community home-reveal" aria-label="Сообщество и поддержка">
         <span className="home-community__lead">

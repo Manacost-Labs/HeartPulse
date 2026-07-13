@@ -337,6 +337,11 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
   await page.setRequestInterception(true);
   page.on('request', request => {
     const url = new URL(request.url());
+    if (adminState.homeArticlesChunkFailure
+      && /^\/assets\/HomeLatestArticles-[^/]+\.js$/.test(url.pathname)) {
+      request.abort('failed');
+      return;
+    }
     if (url.pathname === '/api/auth/me') {
       request.respond(jsonResponse(authenticated ? {
         user: {
@@ -2368,6 +2373,51 @@ for (const [device, viewport] of [
     console.log('✓ home lazy sections and delayed support prompt');
   } catch (error) {
     failures.push(`home lazy sections: ${error.message}`);
+  } finally {
+    await page.close();
+  }
+}
+
+// A failed below-fold chunk must not remove the rest of Home. The section
+// degrades inside its own frame and offers an explicit page refresh.
+{
+  const page = await createQaPage();
+  await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
+  await mockApplicationApi(page, {
+    authenticated: true,
+    adminState: { homeArticlesChunkFailure: true },
+  });
+  try {
+    await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('[data-home-error]', { visible: true, timeout: 15_000 });
+    await page.waitForSelector('.home-bg-directory', { visible: true });
+    await page.waitForSelector('.home-arena-directory', { visible: true });
+    await page.waitForSelector('.home-community', { visible: true });
+    await page.waitForSelector('.home-faq-zone', { visible: true });
+    const recoveryState = await page.$eval('[data-home-error]', element => {
+      const button = element.querySelector('button');
+      const styles = getComputedStyle(element);
+      const buttonStyles = button ? getComputedStyle(button) : null;
+      return {
+        text: element.textContent || '',
+        role: element.getAttribute('role'),
+        minHeight: styles.minHeight,
+        buttonHeight: button?.getBoundingClientRect().height || 0,
+        buttonCursor: buttonStyles?.cursor || '',
+        horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth,
+      };
+    });
+    if (!recoveryState.text.includes('Последние статьи')
+      || recoveryState.role !== 'alert'
+      || recoveryState.minHeight !== '288px'
+      || recoveryState.buttonHeight < 44
+      || recoveryState.buttonCursor !== 'pointer'
+      || recoveryState.horizontalOverflow) {
+      failures.push(`home chunk recovery: contract changed (${JSON.stringify(recoveryState)})`);
+    }
+    console.log('✓ home chunk failure remains local and recoverable');
+  } catch (error) {
+    failures.push(`home chunk recovery: ${error.message}`);
   } finally {
     await page.close();
   }

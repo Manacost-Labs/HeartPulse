@@ -719,3 +719,8 @@
   color: #5f371d;
   text-align: center;
 }
+
+[data-home-error] .home-action {
+  min-height: 44px;
+  cursor: pointer;
+}
