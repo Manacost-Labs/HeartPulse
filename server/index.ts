@@ -48,6 +48,10 @@ import {
   mutateAdminUser,
   type AdminUserMutationStore,
 } from './adminUserMutationRoutes.js';
+import {
+  AdminMailingValidationError,
+  createAdminMailingPreviewRouter,
+} from './adminMailingPreviewRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -2487,8 +2491,8 @@ function normalizeNewsletterDraft(value: any): NewsletterDraft {
   const htmlBody = sanitizeNewsletterFragment(value?.htmlBody ?? value?.html);
   const suppliedText = normalizeOptionalText(value?.textBody, 100_000);
   const textBody = suppliedText || newsletterTextFromHtml(htmlBody);
-  if (!subject) throw new Error('Укажите тему письма');
-  if (!htmlBody) throw new Error('HTML письма пуст');
+  if (!subject) throw new AdminMailingValidationError('Укажите тему письма');
+  if (!htmlBody) throw new AdminMailingValidationError('HTML письма пуст');
   return { subject, preheader, htmlBody, textBody, segment, templateKey };
 }
 
@@ -7447,31 +7451,16 @@ app.get('/api/admin/mailings/overview', (req, res) => {
   res.json(mailingOverviewPayload());
 });
 
-app.post('/api/admin/mailings/preview', (req, res) => {
-  const admin = adminAuth(req);
-  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  if (!cookieMutationCsrfAllowed(req)) return res.status(403).json({ error: 'Запрос отклонён: обновите страницу' });
-  setPrivateNoStore(res);
-  if (!NEWSLETTER_UNSUBSCRIBE_SECRET) {
-    return res.status(503).json({ error: 'На сервере не настроена безопасная подпись предпросмотра' });
-  }
-  try {
-    const draft = normalizeNewsletterDraft(req.body);
-    const contacts = eligibleMailingContacts(draft.segment);
-    const recipientCount = contacts.length;
-    const previewUrl = `${APP_URL}/api/newsletter/unsubscribe?token=preview`;
-    res.json({
-      subject: draft.subject,
-      html: renderNewsletterHtml(draft, previewUrl, true),
-      text: draft.textBody,
-      recipientCount,
-      previewDigest: newsletterPreviewDigest(draft, contacts),
-      sanitizedHtmlBody: draft.htmlBody,
-    });
-  } catch (err: any) {
-    res.status(400).json({ error: err?.message || 'Не удалось подготовить предпросмотр' });
-  }
-});
+app.use('/api', createAdminMailingPreviewRouter({
+  adminAuth,
+  csrfAllowed: cookieMutationCsrfAllowed,
+  signingSecretConfigured: () => Boolean(NEWSLETTER_UNSUBSCRIBE_SECRET),
+  normalizeDraft: normalizeNewsletterDraft,
+  eligibleContacts: segment => eligibleMailingContacts(segment),
+  renderPreview: draft => renderNewsletterHtml(draft, `${APP_URL}/api/newsletter/unsubscribe?token=preview`, true),
+  previewDigest: newsletterPreviewDigest,
+  setPrivateNoStore,
+}));
 
 app.post('/api/admin/mailings/test', adminIdGuard, newsletterTestLimiter, async (req, res) => {
   const admin = adminAuth(req);
