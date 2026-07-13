@@ -222,6 +222,7 @@ A task is complete only when all relevant checks below are proven.
   - [x] The contest workspace view switch now owns its full-grid placement and compact width directly instead of borrowing the full-card utility and forcing two overrides; desktop/mobile E2E verifies the computed compact layout, and the global ceiling is 1,874.
   - [x] Destructive admin actions now inherit their red border, text and surface through a sufficiently specific workspace owner instead of three unnecessary forced declarations; desktop/mobile E2E locks the computed visual state, and the global ceiling is 1,871.
   - [x] Dashboard, article, gallery and referral workspaces now rely on source-ordered desktop and responsive grid owners instead of six forced column declarations; desktop/mobile E2E locks the computed one/two-column behavior, and the global ceiling is 1,865.
+  - [x] User action popovers now rely on their semantic menu owners for wrapper, label, hint and divider styling instead of ten forced declarations; desktop/mobile keyboard E2E locks the computed menu visuals, and the global ceiling is 1,855.
   - [ ] Replace legacy overrides route by route and ratchet the `!important` ceiling down after every verified batch.
   - [ ] Establish explicit reset, base, component, route and override layers once all participating stylesheets can enter the layer order without changing precedence.
 - [ ] Phase 4: modular API, runtime validation and durable data snapshots.

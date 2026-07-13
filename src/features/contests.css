@@ -3451,9 +3451,9 @@
 
 .admin-workspace-page .contest-user-action-menu-wrap {
   position: relative;
-  min-width: auto !important;
+  min-width: auto;
   margin-top: 0;
-  display: block !important;
+  display: block;
 }
 
 .admin-workspace-page .contest-user-menu-trigger {
@@ -3536,7 +3536,7 @@
   display: block;
   border: 0;
   border-radius: 0;
-  color: inherit !important;
+  color: inherit;
   background: transparent;
   font-size: 0.75rem;
   text-align: left;
@@ -3544,22 +3544,22 @@
 
 .admin-workspace-page .contest-user-badges .contest-user-menu button small {
   margin-top: 0.12rem;
-  color: #52606d !important;
+  color: #52606d;
   font-size: 0.63rem;
   font-weight: 600;
   line-height: 1.25;
 }
 
 .contest-user-menu-divider {
-  width: 100% !important;
-  min-width: 0 !important;
+  width: 100%;
+  min-width: 0;
   height: 1px;
   margin: 0.25rem 0;
-  padding: 0 !important;
-  display: block !important;
+  padding: 0;
+  display: block;
   border: 0;
-  border-radius: 0 !important;
-  background: #e3e9ef !important;
+  border-radius: 0;
+  background: #e3e9ef;
 }
 
 .admin-workspace-page .contest-user-menu-trigger .admin-action-spinner {

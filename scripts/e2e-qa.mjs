@@ -1213,6 +1213,34 @@ for (const [device, viewport] of [
     await page.click('.contest-user-menu-trigger');
     await page.waitForSelector('.contest-user-menu[role="menu"]', { visible: true });
     await page.waitForFunction(() => document.activeElement?.getAttribute('role') === 'menuitem');
+    const menuVisualState = await page.evaluate(() => {
+      const firstLabel = document.querySelector('.contest-user-menu button > span');
+      const firstHint = firstLabel?.querySelector('small');
+      const divider = document.querySelector('.contest-user-menu-divider');
+      const labelStyle = firstLabel ? getComputedStyle(firstLabel) : null;
+      const hintStyle = firstHint ? getComputedStyle(firstHint) : null;
+      const dividerStyle = divider ? getComputedStyle(divider) : null;
+      return {
+        labelDisplay: labelStyle?.display || '',
+        labelColor: labelStyle?.color || '',
+        hintDisplay: hintStyle?.display || '',
+        hintColor: hintStyle?.color || '',
+        dividerDisplay: dividerStyle?.display || '',
+        dividerHeight: divider?.getBoundingClientRect().height || 0,
+        dividerBackground: dividerStyle?.backgroundColor || '',
+        dividerPadding: dividerStyle?.padding || '',
+      };
+    });
+    if (menuVisualState.labelDisplay !== 'block'
+      || menuVisualState.labelColor !== 'rgb(36, 56, 74)'
+      || menuVisualState.hintDisplay !== 'block'
+      || menuVisualState.hintColor !== 'rgb(82, 96, 109)'
+      || menuVisualState.dividerDisplay !== 'block'
+      || menuVisualState.dividerHeight !== 1
+      || menuVisualState.dividerBackground !== 'rgb(227, 233, 239)'
+      || menuVisualState.dividerPadding !== '0px') {
+      failures.push(`admin users [${device}]: menu visual ownership changed (${JSON.stringify(menuVisualState)})`);
+    }
     const obscuredTriggerState = await page.$$eval('.contest-user-menu-trigger[aria-expanded="false"]', triggers => (
       triggers.map(trigger => getComputedStyle(trigger).visibility)
     ));
