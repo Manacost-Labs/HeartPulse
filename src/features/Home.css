@@ -709,9 +709,7 @@
   .home-reveal,
   .home-reveal:not(.is-visible),
   .home-bg-directory__link {
-    opacity: 1 !important;
     transform: none !important;
-    translate: none !important;
   }
 }
 .home-deferred-placeholder {
