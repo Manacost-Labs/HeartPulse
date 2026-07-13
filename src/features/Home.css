@@ -714,4 +714,8 @@
 }
 .home-deferred-placeholder {
   min-height: 18rem;
+  display: grid;
+  place-items: center;
+  color: #5f371d;
+  text-align: center;
 }

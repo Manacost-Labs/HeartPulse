@@ -8,9 +8,44 @@ import {
 import type { HomeArticle } from './HomeLatestArticles';
 import './Home.css';
 
-const HomeArenaDirectory = React.lazy(() => import('./HomeArenaDirectory'));
-const HomeBattlegrounds = React.lazy(() => import('./HomeBattlegrounds'));
-const HomeLatestArticles = React.lazy(() => import('./HomeLatestArticles'));
+const HOME_SECTION_RELOAD_PREFIX = 'home_section_reload_v1:';
+
+function lazyHomeSection<T extends React.ComponentType<any>>(
+  section: string,
+  loader: () => Promise<{ default: T }>,
+): React.LazyExoticComponent<T> {
+  return React.lazy(async () => {
+    const reloadKey = `${HOME_SECTION_RELOAD_PREFIX}${section}`;
+    try {
+      const module = await loader();
+      try { window.sessionStorage.removeItem(reloadKey); } catch { /* private mode */ }
+      return module;
+    } catch (error) {
+      try {
+        if (window.sessionStorage.getItem(reloadKey) !== '1') {
+          window.sessionStorage.setItem(reloadKey, '1');
+          window.location.reload();
+          return await new Promise<never>(() => {});
+        }
+      } catch {
+        // Storage can be unavailable in strict privacy modes; the boundary below remains usable.
+      }
+      throw error;
+    }
+  });
+}
+
+const HomeArenaDirectory = lazyHomeSection('arena', () => import('./HomeArenaDirectory'));
+const HomeBattlegrounds = lazyHomeSection('battlegrounds', () => import('./HomeBattlegrounds'));
+const HomeLatestArticles = lazyHomeSection('articles', () => import('./HomeLatestArticles'));
+
+function HomeSectionFallback({ label }: { label: string }) {
+  return (
+    <section className="home-deferred-placeholder" role="status" aria-live="polite">
+      <span>Загружается раздел «{label}»…</span>
+    </section>
+  );
+}
 
 interface ClassData {
   id: string;
@@ -184,15 +219,15 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
         <a href="#faq-heading">Частые вопросы</a>
       </nav>
 
-      <React.Suspense fallback={<div className="home-deferred-placeholder" aria-hidden="true" />}>
+      <React.Suspense fallback={<HomeSectionFallback label="Последние статьи" />}>
         <HomeLatestArticles articles={articles} loading={loadingArticles} onNavigate={onNavigate} />
       </React.Suspense>
 
-      <React.Suspense fallback={<div className="home-deferred-placeholder" aria-hidden="true" />}>
+      <React.Suspense fallback={<HomeSectionFallback label="Поля Сражений" />}>
         <HomeBattlegrounds onNavigate={onNavigate} />
       </React.Suspense>
 
-      <React.Suspense fallback={<div className="home-deferred-placeholder" aria-hidden="true" />}>
+      <React.Suspense fallback={<HomeSectionFallback label="Арена" />}>
         <HomeArenaDirectory onNavigate={onNavigate} />
       </React.Suspense>
 
