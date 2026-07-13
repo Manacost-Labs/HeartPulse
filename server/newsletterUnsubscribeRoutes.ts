@@ -21,8 +21,9 @@ export type NewsletterUnsubscribeDependencies = {
 };
 
 const CSP = "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'";
-const invalidHtml = '<!doctype html><meta charset="utf-8"><title>Ссылка недействительна</title><p>Ссылка отписки недействительна или устарела.</p>';
-const failedHtml = '<!doctype html><meta charset="utf-8"><title>Ошибка отписки</title><p>Не удалось обработать отписку. Повторите попытку позже.</p>';
+const privateHead = '<meta charset="utf-8"><meta name="referrer" content="no-referrer">';
+const invalidHtml = `<!doctype html>${privateHead}<title>Ссылка недействительна</title><p>Ссылка отписки недействительна или устарела.</p>`;
+const failedHtml = `<!doctype html>${privateHead}<title>Ошибка отписки</title><p>Не удалось обработать отписку. Повторите попытку позже.</p>`;
 
 export function unsubscribeNewsletterContact(
   store: NewsletterUnsubscribeStore,
@@ -69,7 +70,7 @@ export function createNewsletterUnsubscribeRouter(dependencies: NewsletterUnsubs
     const alreadyUnsubscribed = contact.consentStatus === 'unsubscribed' || contact.consentStatus === 'suppressed';
     const safeToken = dependencies.escapeHtml(token);
     return response.type('html').send(`<!doctype html>
-      <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Отписка от Manacost</title>
+      <html lang="ru"><head>${privateHead}<meta name="viewport" content="width=device-width,initial-scale=1"><title>Отписка от Manacost</title>
       <style>body{margin:0;background:#eef3f8;color:#1d2c3a;font:16px/1.5 Arial,sans-serif}.card{width:min(92%,520px);margin:10vh auto;padding:28px;border:1px solid #cad7e4;border-radius:12px;background:#fff}button{min-height:44px;padding:0 18px;border:0;border-radius:6px;background:#0d6fae;color:#fff;font-weight:700;cursor:pointer}</style></head>
       <body><main class="card"><h1>${alreadyUnsubscribed ? 'Вы уже отписаны' : 'Отписаться от рассылки?'}</h1>
       <p>${alreadyUnsubscribed ? 'Новые письма на этот адрес отправляться не будут.' : 'После подтверждения мы сохраним адрес только в списке исключений, чтобы больше не отправлять письма.'}</p>
@@ -95,7 +96,7 @@ export function createNewsletterUnsubscribeRouter(dependencies: NewsletterUnsubs
       return response.status(500).json({ error: 'Не удалось обработать отписку' });
     }
     if (oneClick) return response.json({ success: true });
-    return response.type('html').send('<!doctype html><meta charset="utf-8"><title>Вы отписались</title><p>Готово. Новые письма Manacost на этот адрес отправляться не будут.</p>');
+    return response.type('html').send(`<!doctype html>${privateHead}<title>Вы отписались</title><p>Готово. Новые письма Manacost на этот адрес отправляться не будут.</p>`);
   });
 
   return router;

@@ -53,10 +53,12 @@ try {
   assert.equal(invalid.headers.get('cache-control'), 'private, no-store');
   assert.match(invalid.headers.get('content-security-policy') || '', /form-action 'self'/);
   assert.equal(invalid.headers.get('referrer-policy'), 'no-referrer');
+  assert.match(await invalid.text(), /<meta name="referrer" content="no-referrer">/);
 
   const confirmation = await fetch(`${base}?token=valid-token`);
   assert.equal(confirmation.status, 200);
   const confirmationHtml = await confirmation.text();
+  assert.match(confirmationHtml, /<meta name="referrer" content="no-referrer">/);
   assert.match(confirmationHtml, /Подтвердить отписку/);
   assert.match(confirmationHtml, /name="token" value="valid-token"/);
 
