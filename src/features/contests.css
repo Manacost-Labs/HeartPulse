@@ -1502,10 +1502,10 @@
   font-size: 0.75rem;
 }
 
-.admin-boosty-person {
-  flex-direction: row !important;
+.admin-boosty-row > .admin-boosty-person {
+  flex-direction: row;
   align-items: flex-start;
-  gap: 0.65rem !important;
+  gap: 0.65rem;
 }
 
 .admin-boosty-person img,
@@ -1653,10 +1653,10 @@
   font-size: 0.75rem;
 }
 
-.admin-telegram-person {
-  flex-direction: row !important;
+.admin-telegram-row > .admin-telegram-person {
+  flex-direction: row;
   align-items: flex-start;
-  gap: 0.65rem !important;
+  gap: 0.65rem;
 }
 
 .admin-telegram-person img,

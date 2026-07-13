@@ -917,18 +917,27 @@ for (const [device, viewport] of [
 
     await page.goto(`${BASE}/?admin&section=boosty`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-boosty-row').length === 2);
-    const boostyState = await page.evaluate(() => ({
-      rows: document.querySelectorAll('.admin-boosty-row').length,
-      stats: [...document.querySelectorAll('.admin-boosty-stats strong')].map(element => element.textContent?.trim() || ''),
-      apiStatus: document.querySelector('.admin-boosty-status strong')?.textContent?.trim() || '',
-      scrollWidth: document.documentElement.scrollWidth,
-      clientWidth: document.documentElement.clientWidth,
-    }));
+    const boostyState = await page.evaluate(() => {
+      const person = document.querySelector('.admin-boosty-person');
+      const personStyle = person ? getComputedStyle(person) : null;
+      return {
+        rows: document.querySelectorAll('.admin-boosty-row').length,
+        stats: [...document.querySelectorAll('.admin-boosty-stats strong')].map(element => element.textContent?.trim() || ''),
+        apiStatus: document.querySelector('.admin-boosty-status strong')?.textContent?.trim() || '',
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+        personDirection: personStyle?.flexDirection || '',
+        personGap: parseFloat(personStyle?.gap || '0') || 0,
+      };
+    });
     if (boostyState.rows !== 2 || boostyState.stats.join(',') !== '2,2,1,1' || !boostyState.apiStatus.includes('работает')) {
       failures.push(`admin Boosty [${device}]: deterministic status, KPI or subscriber list did not render`);
     }
     if (boostyState.scrollWidth > boostyState.clientWidth + 1) {
       failures.push(`admin Boosty [${device}]: horizontal overflow ${boostyState.scrollWidth} > ${boostyState.clientWidth}`);
+    }
+    if (boostyState.personDirection !== 'row' || boostyState.personGap < 10) {
+      failures.push(`admin Boosty [${device}]: subscriber identity layout changed (${JSON.stringify(boostyState)})`);
     }
     await page.select('.admin-boosty-filters label:last-child select', 'inactive');
     await page.waitForFunction(() => document.querySelectorAll('.admin-boosty-row').length === 1);
@@ -957,18 +966,27 @@ for (const [device, viewport] of [
 
     await page.goto(`${BASE}/?admin&section=telegram`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-telegram-row').length === 2);
-    const telegramState = await page.evaluate(() => ({
-      rows: document.querySelectorAll('.admin-telegram-row').length,
-      stats: [...document.querySelectorAll('.admin-telegram-stats strong')].map(element => element.textContent?.trim() || ''),
-      botStatus: document.querySelector('.admin-telegram-status strong')?.textContent?.trim() || '',
-      scrollWidth: document.documentElement.scrollWidth,
-      clientWidth: document.documentElement.clientWidth,
-    }));
+    const telegramState = await page.evaluate(() => {
+      const person = document.querySelector('.admin-telegram-person');
+      const personStyle = person ? getComputedStyle(person) : null;
+      return {
+        rows: document.querySelectorAll('.admin-telegram-row').length,
+        stats: [...document.querySelectorAll('.admin-telegram-stats strong')].map(element => element.textContent?.trim() || ''),
+        botStatus: document.querySelector('.admin-telegram-status strong')?.textContent?.trim() || '',
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+        personDirection: personStyle?.flexDirection || '',
+        personGap: parseFloat(personStyle?.gap || '0') || 0,
+      };
+    });
     if (telegramState.rows !== 2 || telegramState.stats.join(',') !== '2,1,1,1' || !telegramState.botStatus.includes('настроен')) {
       failures.push(`admin Telegram [${device}]: deterministic status, KPI or account list did not render`);
     }
     if (telegramState.scrollWidth > telegramState.clientWidth + 1) {
       failures.push(`admin Telegram [${device}]: horizontal overflow ${telegramState.scrollWidth} > ${telegramState.clientWidth}`);
+    }
+    if (telegramState.personDirection !== 'row' || telegramState.personGap < 10) {
+      failures.push(`admin Telegram [${device}]: account identity layout changed (${JSON.stringify(telegramState)})`);
     }
     await page.select('.admin-telegram-filters select', 'contact-only');
     await page.waitForFunction(() => document.querySelectorAll('.admin-telegram-row').length === 1);
