@@ -3642,22 +3642,9 @@ export function LoginPanel({
                 <p className="profile-hero__id" title={profileId}>
                   ID <code>{profileIdDisplay}</code>
                 </p>
-                <div className="profile-status-chips" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '13px' }}>
+                <div className="profile-status-chips">
                   {[profileRoleLabel, subscriptionLabel, identityLabel].map((item, index) => (
-                    <span key={item} className="profile-status-chip" style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      minHeight: 30,
-                      padding: '6px 10px',
-                      borderRadius: '999px',
-                      background: index === 1 && subscription?.hasAccess ? 'rgba(16,185,129,0.18)' : 'rgba(248,250,255,0.10)',
-                      border: index === 1 && subscription?.hasAccess ? '1px solid rgba(52,211,153,0.54)' : '1px solid rgba(147,197,253,0.22)',
-                      color: index === 1 && subscription?.hasAccess ? '#bbf7d0' : '#e5eefc',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      backdropFilter: 'blur(10px)',
-                    }}>
+                    <span key={item} className="profile-status-chip">
                       {index === 0 ? <UserCircle size={14} /> : index === 1 ? <Star size={14} /> : <LogIn size={14} />}
                       {item}
                     </span>

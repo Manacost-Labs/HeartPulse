@@ -1627,32 +1627,38 @@
 }
 
 .profile-workspace .profile-status-chips {
-  min-height: 0 !important;
-  gap: 0 !important;
-  margin-top: 0.75rem !important;
+  display: flex;
+  min-height: 0;
+  gap: 0;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .profile-workspace .profile-status-chip {
-  min-width: 0 !important;
-  min-height: 0 !important;
-  justify-content: flex-start !important;
-  padding: 0 0.65rem !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  color: #4f667c !important;
-  font-size: 0.7rem !important;
-  font-weight: 700 !important;
-  white-space: normal !important;
-  background: transparent !important;
-  backdrop-filter: none !important;
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 0;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.375rem;
+  padding: 0 0.65rem;
+  border: 0;
+  border-radius: 0;
+  color: #4f667c;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: normal;
+  background: transparent;
+  backdrop-filter: none;
 }
 
 .profile-workspace .profile-status-chip:first-child {
-  padding-left: 0 !important;
+  padding-left: 0;
 }
 
 .profile-workspace .profile-status-chip + .profile-status-chip {
-  border-left: 1px solid #c9d6e1 !important;
+  border-left: 1px solid #c9d6e1;
 }
 
 .profile-workspace .profile-summary-strip,
@@ -1931,10 +1937,6 @@
     height: 58px !important;
   }
 
-  .profile-workspace .profile-status-chips {
-    display: none !important;
-  }
-
   .profile-workspace .profile-contests__heading {
     align-items: flex-start !important;
     flex-direction: column;
@@ -2025,24 +2027,24 @@
 }
 
 .arena-app-profile .profile-workspace .profile-status-chips {
-  gap: 0.35rem !important;
+  gap: 0.35rem;
 }
 
 .arena-app-profile .profile-workspace .profile-status-chip {
-  min-height: 30px !important;
-  padding: 0.38rem 0.62rem !important;
-  border: 1px solid rgba(235, 196, 102, 0.29) !important;
-  border-radius: 2px !important;
-  color: #f1d9a6 !important;
-  background: rgba(47, 4, 7, 0.38) !important;
+  min-height: 30px;
+  padding: 0.38rem 0.62rem;
+  border: 1px solid rgba(235, 196, 102, 0.29);
+  border-radius: 2px;
+  color: #f1d9a6;
+  background: rgba(47, 4, 7, 0.38);
 }
 
 .arena-app-profile .profile-workspace .profile-status-chip:first-child {
-  padding-left: 0.62rem !important;
+  padding-left: 0.62rem;
 }
 
 .arena-app-profile .profile-workspace .profile-status-chip + .profile-status-chip {
-  border-left: 1px solid rgba(235, 196, 102, 0.29) !important;
+  border-left: 1px solid rgba(235, 196, 102, 0.29);
 }
 
 .arena-app-profile .profile-workspace .profile-message {
@@ -2509,12 +2511,12 @@
 
 @media (hover: hover) {
   .arena-app-profile .profile-workspace .profile-status-chip {
-    transition: filter 160ms ease, transform 160ms ease !important;
+    transition: filter 160ms ease, transform 160ms ease;
   }
 
   .arena-app-profile .profile-workspace .profile-status-chip:hover {
-    filter: brightness(1.08) !important;
-    transform: translateY(-1px) !important;
+    filter: brightness(1.08);
+    transform: translateY(-1px);
   }
 }
 
@@ -2540,19 +2542,19 @@
   }
 
   .arena-app-profile .profile-workspace .profile-status-chips {
-    display: grid !important;
+    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: 100% !important;
-    margin-left: 0 !important;
-    gap: 0.35rem !important;
+    width: 100%;
+    margin-left: 0;
+    gap: 0.35rem;
   }
 
   .arena-app-profile .profile-workspace .profile-status-chip {
-    min-height: 38px !important;
-    justify-content: center !important;
-    padding: 0.38rem 0.55rem !important;
-    font-size: 0.68rem !important;
-    line-height: 1.18 !important;
+    min-height: 38px;
+    justify-content: center;
+    padding: 0.38rem 0.55rem;
+    font-size: 0.68rem;
+    line-height: 1.18;
     text-align: center;
   }
 
@@ -2571,7 +2573,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .arena-app-profile .profile-workspace .profile-status-chip {
-    transition-duration: 0.01ms !important;
+    transition-duration: 0.01ms;
   }
 }
 

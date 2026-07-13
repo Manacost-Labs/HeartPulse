@@ -1349,14 +1349,6 @@
 }
 
 @media (max-width: 760px) {
-  .profile-status-chips {
-    gap: 6px !important;
-  }
-
-  .profile-status-chip {
-    max-width: 100%;
-  }
-
   .profile-summary-strip {
     align-items: flex-start !important;
     flex-direction: column;
