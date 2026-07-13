@@ -933,7 +933,9 @@ for (const [device, viewport] of [
     await page.type('.admin-contest-section:first-of-type input', 'Контрольный конкурс — обновлён');
     await page.click('.admin-contest-submit-row button[type="submit"]');
     await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Конкурс сохранен.'));
-    await page.waitForFunction(() => document.querySelector('.admin-selected-contest h3')?.textContent?.trim() === 'Контрольный конкурс — обновлён');
+    await page.waitForSelector('.admin-contest-manage-card');
+    await page.waitForFunction(() => [...document.querySelectorAll('.admin-contest-list button strong')]
+      .some(element => element.textContent?.trim() === 'Контрольный конкурс — обновлён'));
 
     await page.click('.admin-contest-manage-card .admin-contest-form-head > button');
     await page.waitForFunction(() => document.querySelector('.admin-contest-form h2')?.textContent?.trim() === 'Новый конкурс');
@@ -943,7 +945,14 @@ for (const [device, viewport] of [
     await contestMainInputs[1].type('QA приз');
     await page.click('.admin-contest-submit-row button[type="submit"]');
     await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Конкурс сохранен.'));
+    await page.waitForSelector('.admin-contest-manage-card');
     await page.waitForFunction(() => document.querySelectorAll('.admin-contest-list > div').length === 2);
+    await page.evaluate(() => {
+      const button = [...document.querySelectorAll('.admin-contest-list button')]
+        .find(element => element.querySelector('strong')?.textContent?.trim() === 'Новый QA конкурс');
+      if (!(button instanceof HTMLButtonElement)) throw new Error('Created contest is missing from manager');
+      button.click();
+    });
     await page.waitForFunction(() => document.querySelector('.admin-selected-contest h3')?.textContent?.trim() === 'Новый QA конкурс');
     await page.click('.admin-contest-detail .admin-danger-button');
     await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Конкурс удален.'));
