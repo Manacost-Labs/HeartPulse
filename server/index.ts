@@ -70,6 +70,7 @@ import { createAdminImageGenerationRouter } from './adminImageGenerationRoutes.j
 import { createContestRouter } from './contestRoutes.js';
 import { createSubscriptionRouter } from './subscriptionRoutes.js';
 import { createAuthProfileRouter, type AuthProfilePatch } from './authProfileRoutes.js';
+import { completePasswordReset, createPasswordResetRouter } from './passwordResetRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -6328,54 +6329,37 @@ app.post('/api/auth/login', authPasswordLimiter, authCodeRequestLimiter, async (
   }
 });
 
-app.post('/api/auth/password-reset/request', authCodeRequestLimiter, async (req, res) => {
-  setPrivateNoStore(res);
-  const email = normalizeEmail(req.body?.email);
-  if (!isRealEmail(email)) return res.status(400).json({ error: 'Укажите корректную почту' });
-  const store = loadAuthStore();
-  const user = store.users.find(item => item.email === email);
-
-  if (user) {
+app.use('/api/auth/password-reset/request', authCodeRequestLimiter);
+app.use('/api/auth/password-reset/confirm', authCodeVerifyLimiter);
+app.use('/api', createPasswordResetRouter({
+  normalizeEmail,
+  isRealEmail,
+  issueReset: async email => {
+    const store = loadAuthStore();
+    const user = store.users.find(item => item.email === email);
+    if (!user || user.blockedAt) return;
     const authCode = prepareAuthCode(store, email);
-    if (authCode.ok === false) return res.status(authCode.status).json({ error: authCode.error });
+    if (authCode.ok === false) return;
     saveAuthStore(store);
-
-    try {
-      await sendAuthCodeEmail(email, authCode.code);
-    } catch (err: any) {
-      return res.status(500).json({ error: err?.message ?? 'Не удалось отправить код' });
-    }
-  }
-
-  res.json({ success: true, email, message: 'Если аккаунт существует, код отправлен на почту' });
-});
-
-app.post('/api/auth/password-reset/confirm', authCodeVerifyLimiter, (req, res) => {
-  setPrivateNoStore(res);
-  const email = normalizeEmail(req.body?.email);
-  const code = String(req.body?.code ?? '').replace(/\D/g, '');
-  const password = String(req.body?.password ?? '');
-  if (!isRealEmail(email)) return res.status(400).json({ error: 'Укажите корректную почту' });
-  if (password.length < 8) return res.status(400).json({ error: 'Пароль должен быть не короче 8 символов' });
-
-  const store = loadAuthStore();
-  const user = store.users.find(item => item.email === email);
-  const pending = store.pendingCodes.find(item => item.email === email && item.expiresAt > Date.now());
-  if (!user || !pending) return res.status(401).json({ error: 'Код устарел. Запросите новый.' });
-
-  pending.attempts += 1;
-  if (pending.attempts > AUTH_CODE_MAX_ATTEMPTS || !verifyPendingCode(pending, code)) {
-    saveAuthStore(store);
-    return res.status(401).json({ error: 'Неверный код' });
-  }
-
-  user.passwordHash = hashSecret(password);
-  user.updatedAt = new Date().toISOString();
-  store.pendingCodes = store.pendingCodes.filter(item => item.email !== email);
-  store.sessions = store.sessions.filter(item => item.email !== email);
-  saveAuthStore(store);
-  res.json({ success: true, message: 'Пароль обновлен' });
-});
+    await sendAuthCodeEmail(email, authCode.code);
+  },
+  confirmReset: (email, code, password) => {
+    const store = loadAuthStore();
+    const user = store.users.find(item => item.email === email);
+    if (user?.blockedAt) return false;
+    return completePasswordReset(store, email, code, password, {
+      now: Date.now,
+      maxAttempts: AUTH_CODE_MAX_ATTEMPTS,
+      verifyCode: verifyPendingCode,
+      hashPassword: hashSecret,
+      persist: saveAuthStore,
+    });
+  },
+  reportRequestFailure: () => {
+    console.warn('[auth] password reset request could not be completed');
+  },
+  setPrivateNoStore,
+}));
 
 app.get('/api/auth/telegram/config', (_req, res) => {
   const enabled = telegramAuthEnabled();
