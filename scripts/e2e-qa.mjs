@@ -808,6 +808,7 @@ for (const [device, viewport] of [
         stats,
         quickActions,
         emptyClicksStatus: document.querySelector('.admin-referral-clicks [role="status"]')?.textContent?.trim() || '',
+        dashboardColumns: getComputedStyle(document.querySelector('.admin-dashboard-grid')).gridTemplateColumns.split(/\s+/).length,
         scrollWidth: root.scrollWidth,
         clientWidth: root.clientWidth,
         shellAfterBackground: shell ? getComputedStyle(shell, '::after').backgroundImage : '',
@@ -826,6 +827,7 @@ for (const [device, viewport] of [
       }
     }
     if (state.quickActions.length !== 8) failures.push(`admin dashboard [${device}]: expected 8 quick actions, got ${state.quickActions.length}`);
+    if (state.dashboardColumns !== (device === 'desktop' ? 2 : 1)) failures.push(`admin dashboard [${device}]: expected owned ${device === 'desktop' ? 'two' : 'single'}-column layout, got ${state.dashboardColumns}`);
     if (!state.emptyClicksStatus.includes('Переходов пока нет')) failures.push(`admin dashboard [${device}]: recent-click empty state is not exposed`);
     if (state.scrollWidth > state.clientWidth + 1) failures.push(`admin dashboard [${device}]: horizontal overflow ${state.scrollWidth} > ${state.clientWidth}`);
     if (state.shellAfterBackground === 'none' || !state.shellAfterBackground.includes('linear-gradient')) {
@@ -876,12 +878,14 @@ for (const [device, viewport] of [
     const articleEmptyState = await page.$eval('.admin-article-list [role="status"]', element => element.textContent?.trim() || '');
     if (!articleEmptyState.includes('ничего не найдено')) failures.push(`admin articles [${device}]: filtered empty state is missing`);
     const articleLayout = await page.evaluate(() => ({
+      columns: getComputedStyle(document.querySelector('.admin-article-layout')).gridTemplateColumns.split(/\s+/).length,
       scrollWidth: document.documentElement.scrollWidth,
       clientWidth: document.documentElement.clientWidth,
     }));
     if (articleLayout.scrollWidth > articleLayout.clientWidth + 1) {
       failures.push(`admin articles [${device}]: horizontal overflow ${articleLayout.scrollWidth} > ${articleLayout.clientWidth}`);
     }
+    if (articleLayout.columns !== (device === 'desktop' ? 2 : 1)) failures.push(`admin articles [${device}]: expected owned ${device === 'desktop' ? 'two' : 'single'}-column layout, got ${articleLayout.columns}`);
     const articlesViolationCount = await auditAccessibility(page, `admin articles [${device}]`, '.admin-workspace-content');
 
     await page.goto(`${BASE}/?admin&section=gallery`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
@@ -899,6 +903,7 @@ for (const [device, viewport] of [
     const galleryLayout = await page.evaluate(() => ({
       rows: document.querySelectorAll('.admin-gallery-row').length,
       downloadHref: document.querySelector('.admin-gallery-actions a')?.getAttribute('href') || '',
+      columns: getComputedStyle(document.querySelector('.admin-gallery-layout')).gridTemplateColumns.split(/\s+/).length,
       scrollWidth: document.documentElement.scrollWidth,
       clientWidth: document.documentElement.clientWidth,
     }));
@@ -908,6 +913,7 @@ for (const [device, viewport] of [
     if (galleryLayout.scrollWidth > galleryLayout.clientWidth + 1) {
       failures.push(`admin gallery [${device}]: horizontal overflow ${galleryLayout.scrollWidth} > ${galleryLayout.clientWidth}`);
     }
+    if (galleryLayout.columns !== (device === 'desktop' ? 2 : 1)) failures.push(`admin gallery [${device}]: expected owned ${device === 'desktop' ? 'two' : 'single'}-column layout, got ${galleryLayout.columns}`);
     adminState.galleryEmpty = true;
     await page.click('.admin-gallery-layout .contest-secondary-button');
     await page.waitForFunction(() => document.querySelectorAll('.admin-gallery-row').length === 0);
