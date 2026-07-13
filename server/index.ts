@@ -56,6 +56,7 @@ import {
   AdminMailingDeliveryError,
   createAdminMailingDeliveryRouter,
 } from './adminMailingDeliveryRoutes.js';
+import { createAdminMailingReadRouter } from './adminMailingReadRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -7448,12 +7449,13 @@ app.use('/api', createAdminUserMutationRouter({
   },
 }));
 
-app.get('/api/admin/mailings/overview', (req, res) => {
-  const admin = adminAuth(req);
-  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  setPrivateNoStore(res);
-  res.json(mailingOverviewPayload());
-});
+app.use('/api', createAdminMailingReadRouter({
+  adminAuth,
+  overview: mailingOverviewPayload,
+  getCampaign: campaignId => dbGet<any>('SELECT * FROM mailing_campaigns WHERE id = ?', campaignId) ?? null,
+  serializeCampaign: mailingCampaignFromRow,
+  setPrivateNoStore,
+}));
 
 app.use('/api', createAdminMailingPreviewRouter({
   adminAuth,
@@ -7533,16 +7535,6 @@ app.use('/api', createAdminMailingDeliveryRouter({
   setPrivateNoStore,
   onSideEffectError: (_error, operation) => console.error(`[mailing] post-commit side effect failed: ${operation}`),
 }));
-
-app.get('/api/admin/mailings/:campaignId', (req, res) => {
-  const admin = adminAuth(req);
-  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  setPrivateNoStore(res);
-  const campaignId = normalizeOptionalText(req.params.campaignId, 160);
-  const row = dbGet<any>('SELECT * FROM mailing_campaigns WHERE id = ?', campaignId);
-  if (!row) return res.status(404).json({ error: 'Рассылка не найдена' });
-  res.json({ campaign: mailingCampaignFromRow(row) });
-});
 
 app.get('/api/newsletter/unsubscribe', (req, res) => {
   setPrivateNoStore(res);
