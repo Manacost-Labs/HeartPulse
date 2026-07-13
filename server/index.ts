@@ -64,6 +64,7 @@ import {
 } from './newsletterUnsubscribeRoutes.js';
 import { createAdminUserReadRouter } from './adminUserReadRoutes.js';
 import { createAdminBoostyRouter } from './adminBoostyRoutes.js';
+import { createAdminTelegramReadRouter } from './adminTelegramReadRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -7159,112 +7160,19 @@ app.use('/api', createAdminBoostyRouter({
   setPrivateNoStore,
 }));
 
-app.get('/api/admin/telegram/accounts', (req, res) => {
-  const admin = adminAuth(req);
-  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  setPrivateNoStore(res);
-  const rows = dbAll<any>(`
-    SELECT
-      u.*,
-      tg.provider_user_id AS telegram_id,
-      tg.username AS telegram_username,
-      tg.photo_url AS telegram_photo_url,
-      tg.verified_at AS telegram_verified_at,
-      oidc.provider_user_id AS telegram_oidc_id,
-      oidc.username AS telegram_oidc_username,
-      oidc.verified_at AS telegram_oidc_verified_at,
-      s.has_access,
-      s.source AS subscription_source,
-      s.message AS subscription_message,
-      s.checked_at AS subscription_checked_at,
-      s.updated_at AS subscription_updated_at,
-      s.boosty_json,
-      s.telegram_json
-    FROM users u
-    LEFT JOIN identities tg ON tg.user_id = u.id AND tg.provider = 'telegram'
-    LEFT JOIN identities oidc ON oidc.user_id = u.id AND oidc.provider = 'telegram_oidc'
-    LEFT JOIN subscriptions s ON s.user_id = u.id
-    ORDER BY u.updated_at DESC, u.created_at DESC
-  `);
-
-  const accounts = rows
-    .map(row => {
-      const boosty = normalizeBoostySubscriptionDetail(safeJsonObject(row.boosty_json));
-      const telegram = normalizeTelegramSubscriptionDetail(safeJsonObject(row.telegram_json));
-      const source = String(row.subscription_source || 'none');
-      const entitlements = deriveStoredEntitlements(Boolean(row.has_access), source, boosty, telegram);
-      const contactTelegram = String(row.contact_telegram || '').trim().replace(/^@/, '');
-      const telegramUsername = String(row.telegram_username || telegram.username || row.telegram_oidc_username || contactTelegram || '').trim().replace(/^@/, '');
-      const telegramId = String(row.telegram_id || telegram.telegramId || '').trim();
-      const telegramOidcId = String(row.telegram_oidc_id || '').trim();
-      const chats = Array.isArray(telegram.chats) ? telegram.chats : [];
-      const hasTelegramIdentity = Boolean(telegramId || telegramOidcId);
-      const hasContactOnly = Boolean(!hasTelegramIdentity && contactTelegram);
-      const telegramAccess = Boolean(telegram.hasAccess);
-      const subscriptionCheckedAt = row.subscription_checked_at ? String(row.subscription_checked_at) : '';
-      const checkedMs = subscriptionCheckedAt ? Date.parse(subscriptionCheckedAt) : Number.NaN;
-      const stale = Number.isFinite(checkedMs) ? Date.now() - checkedMs > SUBSCRIPTION_REFRESH_MS : true;
-      const canBeChecked = Boolean(telegramId);
-      let accessState: 'access' | 'checkable' | 'contact-only' | 'no-access' | 'blocked' = 'no-access';
-      if (row.blocked_at) accessState = 'blocked';
-      else if (telegramAccess) accessState = 'access';
-      else if (canBeChecked) accessState = 'checkable';
-      else if (hasContactOnly) accessState = 'contact-only';
-
-      return {
-        id: String(row.id),
-        profileId: String(row.id),
-        name: String(row.name || ''),
-        email: String(row.email || ''),
-        role: String(row.role || 'user'),
-        blockedAt: String(row.blocked_at || ''),
-        telegramId,
-        telegramOidcId,
-        telegramUsername,
-        contactTelegram,
-        photoUrl: String(row.telegram_photo_url || ''),
-        hasTelegramIdentity,
-        hasContactOnly,
-        canBeChecked,
-        hasAccess: hasAnyEntitlement(entitlements),
-        telegramHasAccess: telegramAccess,
-        accessState,
-        source,
-        message: String(row.subscription_message || telegram.message || ''),
-        checkedAt: subscriptionCheckedAt,
-        updatedAt: row.subscription_updated_at ? String(row.subscription_updated_at) : '',
-        stale,
-        entitlements,
-        chats,
-        boostyHasAccess: Boolean(boosty.hasAccess),
-        createdAt: String(row.created_at || ''),
-        userUpdatedAt: String(row.updated_at || ''),
-      };
-    })
-    .filter(account => (
-      account.hasTelegramIdentity
-      || account.hasContactOnly
-      || account.telegramHasAccess
-      || account.source.includes('telegram')
-      || account.chats.length > 0
-    ));
-
-  const summary = {
-    total: accounts.length,
-    access: accounts.filter(account => account.telegramHasAccess).length,
-    checkable: accounts.filter(account => account.accessState === 'checkable').length,
-    contactOnly: accounts.filter(account => account.accessState === 'contact-only').length,
-    stale: accounts.filter(account => account.stale).length,
-    blocked: accounts.filter(account => account.accessState === 'blocked').length,
-  };
-  res.json({
-    configured: Boolean(KHA_VIP_BOT_TOKEN),
-    chatIds: SUBSCRIPTION_TELEGRAM_CHAT_IDS,
-    summary,
-    accounts,
-    fetchedAt: new Date().toISOString(),
-  });
-});
+app.use('/api', createAdminTelegramReadRouter({
+  adminAuth,
+  repository: { all: sql => dbAll<Record<string, unknown>>(sql) },
+  safeJsonObject,
+  normalizeBoosty: normalizeBoostySubscriptionDetail,
+  normalizeTelegram: normalizeTelegramSubscriptionDetail,
+  deriveEntitlements: (hasAccess, source, boosty, telegram) => deriveStoredEntitlements(hasAccess, source, boosty, telegram),
+  hasAnyEntitlement: entitlements => hasAnyEntitlement(entitlements),
+  subscriptionRefreshMs: SUBSCRIPTION_REFRESH_MS,
+  configured: () => Boolean(KHA_VIP_BOT_TOKEN),
+  chatIds: () => [...SUBSCRIPTION_TELEGRAM_CHAT_IDS],
+  setPrivateNoStore,
+}));
 
 app.use('/api', createAdminUserMutationRouter({
   adminAuth,

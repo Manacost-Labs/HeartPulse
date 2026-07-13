@@ -393,6 +393,13 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
       });
       return;
     }
+    if (admin && adminState.telegramFailure && url.pathname === '/api/admin/telegram/accounts') {
+      request.respond({
+        ...jsonResponse({ error: 'Не удалось загрузить Telegram-аккаунты' }),
+        status: 500,
+      });
+      return;
+    }
     if (admin && url.pathname === '/api/articles') {
       request.respond(jsonResponse({ articles: adminState.articles ?? adminFixtures['/api/articles'].articles }));
       return;
@@ -764,6 +771,7 @@ for (const [device, viewport] of [
   const adminState = {
     galleryEmpty: false,
     boostyFailure: false,
+    telegramFailure: false,
     articles: structuredClone(adminFixtures['/api/articles'].articles),
     contests: structuredClone(adminFixtures['/api/admin/contests'].contests),
     users: structuredClone(adminFixtures['/api/admin/users'].users),
@@ -964,6 +972,36 @@ for (const [device, viewport] of [
     const telegramEmptyState = await page.$eval('.admin-telegram-list [role="status"]', element => element.textContent?.trim() || '');
     if (!telegramEmptyState.includes('не найдены')) failures.push(`admin Telegram [${device}]: filtered empty state is missing`);
     const telegramViolationCount = await auditAccessibility(page, `admin Telegram [${device}]`, '.admin-workspace-content');
+    adminState.telegramFailure = true;
+    const telegramReloadPoint = await page.$eval('.contest-users-head .contest-secondary-button', async element => {
+      element.scrollIntoView({ block: 'center', inline: 'center' });
+      await new Promise(resolve => requestAnimationFrame(() => resolve()));
+      const rect = element.getBoundingClientRect();
+      return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+    });
+    const telegramReloadHit = await page.evaluate(point => {
+      const button = document.querySelector('.contest-users-head .contest-secondary-button');
+      const target = document.elementFromPoint(point.x, point.y);
+      return Boolean(button && target && (button === target || button.contains(target)));
+    }, telegramReloadPoint);
+    if (!telegramReloadHit) failures.push(`admin Telegram [${device}]: reload button is obscured after filtering`);
+    if (device === 'mobile') await page.touchscreen.tap(telegramReloadPoint.x, telegramReloadPoint.y);
+    else await page.mouse.click(telegramReloadPoint.x, telegramReloadPoint.y);
+    await page.waitForFunction(() => {
+      const text = document.querySelector('.admin-workspace-content')?.textContent || '';
+      return text.includes('Не удалось получить данные Telegram') && text.includes('Не удалось загрузить Telegram-аккаунты');
+    });
+    const telegramFailureState = await page.$eval('.admin-workspace-content', element => ({
+      text: element.textContent?.replace(/\s+/g, ' ').trim() || '',
+      rows: element.querySelectorAll('.admin-telegram-row').length,
+      alerts: element.querySelectorAll('[role="alert"]').length,
+    }));
+    if (telegramFailureState.rows !== 0
+      || telegramFailureState.alerts < 1
+      || /private|sqlite|token/i.test(telegramFailureState.text)) {
+      failures.push(`admin Telegram [${device}]: storage failure fallback is unsafe or incomplete (${JSON.stringify(telegramFailureState)})`);
+    }
+    adminState.telegramFailure = false;
 
     await page.goto(`${BASE}/?admin&section=mailing`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-mailing-template-grid button').length === 1);
