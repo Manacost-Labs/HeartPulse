@@ -273,6 +273,7 @@ A task is complete only when all relevant checks below are proven.
   - [x] Puppeteer scraping runs only in one systemd oneshot controlled by a six-hour timer and a manual-request path unit; the API queues requests without scraping in-process, and successful publications invalidate process and Redis caches through a durable marker.
   - [x] The standalone scraper exits non-zero when any critical Arena dataset fails, allowing systemd monitoring to distinguish partial upstream failure from success.
   - [x] The obsolete GitHub cron no longer attempts to commit ignored runtime snapshots; production scheduling remains owned by the isolated host timer, while a read-only manual diagnostic and CI contract prevent split ownership from returning.
+  - [x] GitHub workflows use supported Node 24 action runtimes and a consistent Node.js 22 application runtime; the scraper workflow contract rejects the deprecated v4 actions.
 - [x] Phase 6: immutable deployment, readiness and rollback.
   - [x] Dedicated liveness, readiness and strict data-health endpoints expose uncached machine-readable deployment gates without changing the legacy public status response.
   - [x] CI emits a readable compiled Node server artifact and starts it against isolated temporary snapshots/SQLite to verify direct health, proxied health and legacy status contracts without `tsx`.

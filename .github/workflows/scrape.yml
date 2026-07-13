@@ -18,23 +18,21 @@ jobs:
       # Production publishing is owned by hs-arena-scraper.timer on the host.
       # This workflow is a read-only, operator-triggered upstream diagnostic.
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      # 2. Node 20 + npm cache
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
-      # 3. Install all dependencies.
+      # Install all dependencies.
       #    puppeteer@22 downloads Chrome automatically during npm ci
       #    UNLESS PUPPETEER_SKIP_DOWNLOAD=true — we intentionally do NOT set
       #    that variable here (it's set in vercel.json only for the Vercel build).
       - name: Install dependencies
         run: npm ci
 
-      # 4. Run the scraper
       - name: Scrape data
         env:
           BLIZZARD_CLIENT_ID:     ${{ secrets.BLIZZARD_CLIENT_ID }}
