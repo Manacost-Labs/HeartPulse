@@ -3600,29 +3600,9 @@ export function LoginPanel({
     const profileId = authUser.profileId || authUser.id || '—';
     const profileIdDisplay = shortProfileIdentifier(profileId);
     return (
-      <div className="profile-page profile-workspace" style={{ padding: '18px 0', width: '100%' }}>
-        <div className="profile-card" style={{
-          width: 'min(100%, 1420px)',
-          margin: '0 auto',
-          borderRadius: '24px',
-          border: '1px solid rgba(148,163,184,0.32)',
-          background: 'linear-gradient(180deg, rgba(248,250,255,0.96), rgba(235,241,252,0.88))',
-          boxShadow: '0 24px 64px rgba(4,10,20,0.28), inset 0 1px 0 rgba(255,255,255,0.82)',
-          padding: 'clamp(14px, 2vw, 24px)',
-          overflow: 'hidden',
-        }}>
-          <div className="profile-hero" style={{
-            position: 'relative',
-            margin: '-24px -24px 20px',
-            minHeight: 230,
-            padding: '26px',
-            display: 'flex',
-            alignItems: 'flex-end',
-            overflow: 'hidden',
-            backgroundImage: 'linear-gradient(90deg, rgba(4,10,20,0.96) 0%, rgba(8,16,32,0.82) 44%, rgba(8,16,32,0.34) 100%), linear-gradient(180deg, rgba(4,10,20,0.10), rgba(4,10,20,0.44)), image-set(url("/wallpaper/profile-hero-hth.webp") type("image/webp"), url("/wallpaper/profile-hero-hth.jpg") type("image/jpeg"))',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center 48%',
-          }}>
+      <div className="profile-page profile-workspace">
+        <div className="profile-card">
+          <div className="profile-hero">
             <img
               src="/assets/arena_icon.webp"
               alt=""
@@ -3639,7 +3619,7 @@ export function LoginPanel({
                 pointerEvents: 'none',
               }}
             />
-            <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '18px', width: '100%', minWidth: 0 }}>
+            <div className="profile-hero__body">
               <AuthAvatar user={{ ...authUser, name: profileName }} size={92} />
               <div style={{ minWidth: 0, textAlign: 'left', flex: 1 }}>
                 <p className="profile-hero__eyebrow" style={{ color: '#93c5fd', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px', fontWeight: 700 }}>

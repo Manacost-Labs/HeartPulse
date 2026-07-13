@@ -1252,10 +1252,6 @@
   flex: 0 0 auto;
 }
 
-.profile-card {
-  color: #1e293b;
-}
-
 .profile-summary-strip {
   min-width: 0;
 }
@@ -1353,23 +1349,6 @@
 }
 
 @media (max-width: 760px) {
-  .profile-card {
-    padding: 14px !important;
-    border-radius: 16px !important;
-  }
-
-  .profile-hero {
-    margin: -14px -14px 16px !important;
-    min-height: 250px !important;
-    padding: 22px 18px !important;
-    align-items: flex-end !important;
-  }
-
-  .profile-hero > div[style*="display: flex"] {
-    align-items: flex-start !important;
-    gap: 14px !important;
-  }
-
   .profile-status-chips {
     gap: 6px !important;
   }
@@ -1397,10 +1376,6 @@
 @media (max-width: 560px) {
   .profile-stat-grid {
     grid-template-columns: 1fr;
-  }
-
-  .profile-hero > div[style*="display: flex"] {
-    flex-direction: column !important;
   }
 
   .profile-summary-id {

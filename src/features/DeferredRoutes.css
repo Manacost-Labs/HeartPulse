@@ -1551,7 +1551,10 @@
 }
 
 .profile-workspace .profile-hero {
+  position: relative;
   grid-area: hero;
+  width: 100%;
+  display: flex;
   min-height: 148px !important;
   margin: 0 !important;
   padding: clamp(1rem, 2.4cqi, 1.45rem) !important;
@@ -1568,11 +1571,17 @@
   display: none !important;
 }
 
-.profile-workspace .profile-hero > div {
+.profile-workspace .profile-hero__body {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
   gap: clamp(0.85rem, 2cqi, 1.25rem) !important;
 }
 
-.profile-workspace .profile-hero > div > span:first-child {
+.profile-workspace .profile-hero__body > span:first-child {
   width: 74px !important;
   height: 74px !important;
   border: 1px solid #c4d5e3 !important;
@@ -1912,12 +1921,12 @@
     padding: 1rem 0.75rem !important;
   }
 
-  .profile-workspace .profile-hero > div {
+  .profile-workspace .profile-hero__body {
     align-items: center !important;
     flex-direction: row !important;
   }
 
-  .profile-workspace .profile-hero > div > span:first-child {
+  .profile-workspace .profile-hero__body > span:first-child {
     width: 58px !important;
     height: 58px !important;
   }
@@ -1985,7 +1994,7 @@
     0 14px 28px rgba(70, 38, 15, 0.16) !important;
 }
 
-.arena-app-profile .profile-workspace .profile-hero > div > span:first-child {
+.arena-app-profile .profile-workspace .profile-hero__body > span:first-child {
   width: 88px !important;
   height: 88px !important;
   border: 2px solid rgba(240, 203, 117, 0.58) !important;
@@ -2353,11 +2362,11 @@
     padding: 1rem !important;
   }
 
-  .arena-app-profile .profile-workspace .profile-hero > div {
+  .arena-app-profile .profile-workspace .profile-hero__body {
     align-items: flex-start !important;
   }
 
-  .arena-app-profile .profile-workspace .profile-hero > div > span:first-child {
+  .arena-app-profile .profile-workspace .profile-hero__body > span:first-child {
     width: 62px !important;
     height: 62px !important;
   }
@@ -2415,13 +2424,13 @@
   display: none !important;
 }
 
-.arena-app-profile .profile-workspace .profile-hero > div {
+.arena-app-profile .profile-workspace .profile-hero__body {
   z-index: 1 !important;
   min-height: 168px;
   align-items: center !important;
 }
 
-.arena-app-profile .profile-workspace .profile-hero > div > span:first-child {
+.arena-app-profile .profile-workspace .profile-hero__body > span:first-child {
   width: clamp(96px, 8vw, 110px) !important;
   height: clamp(96px, 8vw, 110px) !important;
 }
@@ -2525,7 +2534,7 @@
     display: none !important;
   }
 
-  .arena-app-profile .profile-workspace .profile-hero > div > span:first-child {
+  .arena-app-profile .profile-workspace .profile-hero__body > span:first-child {
     width: 68px !important;
     height: 68px !important;
   }

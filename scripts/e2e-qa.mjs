@@ -1283,9 +1283,73 @@ for (const [device, viewport] of [
     if (!persistedUser.includes('администратор') || !persistedUser.includes('заблокирован') || !persistedUser.includes('бессрочно')) {
       failures.push(`admin users [${device}]: role/block/lifetime mutations did not persist after navigation`);
     }
+
+    await page.goto(`${BASE}/?login`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('.profile-card .profile-hero__body', { timeout: 20_000 });
+    const profileState = await page.evaluate(() => {
+      const card = document.querySelector('.profile-card');
+      const hero = document.querySelector('.profile-hero');
+      const body = document.querySelector('.profile-hero__body');
+      const status = document.querySelector('.profile-status-chips');
+      const cardStyle = card ? getComputedStyle(card) : null;
+      const heroStyle = hero ? getComputedStyle(hero) : null;
+      const bodyStyle = body ? getComputedStyle(body) : null;
+      const statusStyle = status ? getComputedStyle(status) : null;
+      return {
+        cardPadding: cardStyle?.padding || '',
+        cardRadius: cardStyle?.borderRadius || '',
+        heroMinHeight: heroStyle?.minHeight || '',
+        heroMargin: heroStyle?.margin || '',
+        heroPadding: heroStyle?.padding || '',
+        heroAlign: heroStyle?.alignItems || '',
+        heroBackground: heroStyle?.backgroundImage || '',
+        heroBorderImage: heroStyle?.borderImageSource || '',
+        heroOverflow: heroStyle?.overflow || '',
+        bodyDisplay: bodyStyle?.display || '',
+        bodyDirection: bodyStyle?.flexDirection || '',
+        bodyAlign: bodyStyle?.alignItems || '',
+        bodyGap: bodyStyle?.gap || '',
+        statusDisplay: statusStyle?.display || '',
+        statusColumns: statusStyle?.gridTemplateColumns || '',
+        heroScrollWidth: hero?.scrollWidth || 0,
+        heroClientWidth: hero?.clientWidth || 0,
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+      };
+    });
+    const expectedProfile = device === 'desktop'
+      ? {
+          cardPadding: '0px', cardRadius: '0px', heroMinHeight: '240px',
+          heroMargin: '0px', heroAlign: 'center', bodyDisplay: 'flex',
+          bodyDirection: 'row', bodyAlign: 'center', statusDisplay: 'flex',
+        }
+      : {
+          cardPadding: '0px', cardRadius: '0px', heroMinHeight: '276px',
+          heroMargin: '0px', heroPadding: '16px', heroAlign: 'center', bodyDisplay: 'flex',
+          bodyDirection: 'row', bodyAlign: 'center', statusDisplay: 'grid',
+        };
+    for (const [property, expected] of Object.entries(expectedProfile)) {
+      if (profileState[property] !== expected) {
+        failures.push(`profile [${device}]: ${property} expected ${expected}, got ${profileState[property]}`);
+      }
+    }
+    const profileGap = Number.parseFloat(profileState.bodyGap);
+    const mobileStatusColumns = profileState.statusColumns.split(/\s+/).filter(Boolean).length;
+    if (!profileState.heroBackground.includes('profile-hero-hth')
+      || !profileState.heroBorderImage.includes('main-page-rail-border')
+      || profileState.heroOverflow !== 'hidden'
+      || !Number.isFinite(profileGap)
+      || profileGap < 12
+      || (device === 'mobile' && mobileStatusColumns !== 2)
+      || profileState.heroScrollWidth > profileState.heroClientWidth + 1
+      || profileState.scrollWidth > profileState.clientWidth + 1) {
+      failures.push(`profile [${device}]: hero asset or horizontal reflow changed (${JSON.stringify(profileState)})`);
+    }
+    const profileViolationCount = await auditAccessibility(page, `profile [${device}]`, '.profile-page');
+    await page.screenshot({ path: `${OUT}/profile-${device}.png`, fullPage: false });
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
-    console.log(`✓ admin dashboard/articles/gallery/Boosty/Telegram/mailing/contests/users [${device}] interactions + axe (${violationCount + articlesViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount} violations)`);
+    console.log(`✓ admin dashboard/articles/gallery/Boosty/Telegram/mailing/contests/users/profile [${device}] interactions + axe (${violationCount + articlesViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + profileViolationCount} violations)`);
   } catch (error) {
     const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
     failures.push(`admin dashboard [${device}]: ${error.message}; page: ${diagnostic}`);
