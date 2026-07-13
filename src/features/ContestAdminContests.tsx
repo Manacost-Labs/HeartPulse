@@ -154,7 +154,7 @@ function ContestManager(props: ContestAdminContestsProps) {
 export function ContestAdminContests(props: ContestAdminContestsProps) {
   return (
     <div className="contest-admin-grid">
-      <div className="admin-view-switch admin-full-card" role="group" aria-label="Режим работы с конкурсами"><button type="button" className={props.view === 'manage' ? 'is-active' : ''} aria-pressed={props.view === 'manage'} onClick={() => props.onViewChange('manage')}>Управление</button><button type="button" className={props.view === 'editor' ? 'is-active' : ''} aria-pressed={props.view === 'editor'} onClick={() => props.onViewChange('editor')}>{props.form.id ? 'Редактирование' : 'Новый конкурс'}</button></div>
+      <div className="admin-view-switch" role="group" aria-label="Режим работы с конкурсами"><button type="button" className={props.view === 'manage' ? 'is-active' : ''} aria-pressed={props.view === 'manage'} onClick={() => props.onViewChange('manage')}>Управление</button><button type="button" className={props.view === 'editor' ? 'is-active' : ''} aria-pressed={props.view === 'editor'} onClick={() => props.onViewChange('editor')}>{props.form.id ? 'Редактирование' : 'Новый конкурс'}</button></div>
       {props.view === 'editor' ? <ContestEditor {...props} /> : <ContestManager {...props} />}
     </div>
   );

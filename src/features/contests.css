@@ -1892,7 +1892,7 @@
 
 .admin-gallery-actions a,
 .admin-gallery-actions button {
-  display: inline-grid;
+  display: grid;
   width: 38px;
   height: 38px;
   place-items: center;
@@ -2906,8 +2906,9 @@
 }
 
 .admin-view-switch {
-  width: fit-content !important;
-  margin: 0 !important;
+  grid-column: 1 / -1;
+  width: fit-content;
+  margin: 0;
   padding: 3px;
   display: inline-grid;
   grid-template-columns: repeat(2, auto);

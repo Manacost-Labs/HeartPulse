@@ -1063,6 +1063,18 @@ for (const [device, viewport] of [
       selectedTitle: document.querySelector('.admin-selected-contest h3')?.textContent?.trim() || '',
       entries: document.querySelectorAll('.contest-entry-row').length,
       disabledEntries: document.querySelectorAll('.contest-entry-row input:disabled').length,
+      viewSwitch: (() => {
+        const element = document.querySelector('.admin-view-switch');
+        if (!(element instanceof HTMLElement)) return null;
+        const style = getComputedStyle(element);
+        return {
+          display: style.display,
+          marginLeft: style.marginLeft,
+          marginRight: style.marginRight,
+          width: element.getBoundingClientRect().width,
+          parentWidth: element.parentElement?.getBoundingClientRect().width || 0,
+        };
+      })(),
       scrollWidth: document.documentElement.scrollWidth,
       clientWidth: document.documentElement.clientWidth,
     }));
@@ -1071,6 +1083,13 @@ for (const [device, viewport] of [
     }
     if (contestsState.scrollWidth > contestsState.clientWidth + 1) {
       failures.push(`admin contests [${device}]: horizontal overflow ${contestsState.scrollWidth} > ${contestsState.clientWidth}`);
+    }
+    if (!contestsState.viewSwitch
+      || contestsState.viewSwitch.display !== 'grid'
+      || contestsState.viewSwitch.marginLeft !== '0px'
+      || contestsState.viewSwitch.marginRight !== '0px'
+      || contestsState.viewSwitch.width >= contestsState.viewSwitch.parentWidth) {
+      failures.push(`admin contests [${device}]: view switch lost its compact owned layout (${JSON.stringify(contestsState.viewSwitch)})`);
     }
     await page.click('.contest-entry-row:not(.is-disabled) input[type="checkbox"]');
     await page.waitForFunction(() => document.querySelector('.admin-winner-publish button')?.disabled === false);
