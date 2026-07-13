@@ -1168,7 +1168,21 @@ for (const [device, viewport] of [
     await page.waitForSelector('.home-bg-directory');
     await page.waitForSelector('.home-arena-directory');
     await page.waitForSelector('.home-faq-zone');
+    await page.waitForSelector('#faq-heading');
     await page.waitForSelector('.arena-footer__link');
+    const homeLandmarks = await page.evaluate(() => ({
+      stage: Boolean(document.querySelector('.home-stage')),
+      character: Boolean(document.querySelector('.home-stage__character img')),
+      articles: Boolean(document.querySelector('.home-latest-articles')),
+      battlegrounds: Boolean(document.querySelector('.home-bg-directory')),
+      arena: Boolean(document.querySelector('.home-arena-directory')),
+      community: Boolean(document.querySelector('.home-community')),
+      faq: Boolean(document.querySelector('#faq-heading')),
+      faqIndexHref: document.querySelector('.home-page-index a[href="#faq-heading"]')?.getAttribute('href') || '',
+    }));
+    if (Object.entries(homeLandmarks).some(([, value]) => value === false) || homeLandmarks.faqIndexHref !== '#faq-heading') {
+      failures.push(`home landmarks: one or more primary elements disappeared (${JSON.stringify(homeLandmarks)})`);
+    }
     const homeCssState = await page.evaluate(() => {
       const hrefs = [...document.styleSheets].map(sheet => sheet.href || '');
       return {

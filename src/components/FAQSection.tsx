@@ -29,7 +29,8 @@ const FAQ_ITEMS = [
 ] as const;
 
 export default function FAQSection() {
-  const headingId = useId();
+  const panelBaseId = useId();
+  const headingId = 'faq-heading';
   const [open, setOpen] = useState<number | null>(null);
   return (
     <section aria-labelledby={headingId} className="faq-section">
@@ -37,7 +38,7 @@ export default function FAQSection() {
       <div className="faq-section__list">
         {FAQ_ITEMS.map((item, index) => {
           const expanded = open === index;
-          const panelId = `${headingId}-panel-${index}`;
+          const panelId = `${panelBaseId}-panel-${index}`;
           return (
             <div key={item.q} className="faq-card">
               <button
