@@ -16,6 +16,18 @@ Hearthstone.**
 
 ![Главная страница Manacost Arena на desktop](docs/screenshots/home-desktop.png)
 
+> Production-ready React/TypeScript-приложение с Express API, атомарными
+> релизами, desktop/mobile E2E, accessibility-аудитом и безопасными
+> stale-fallback контрактами для внешних источников данных.
+
+| Быстрый вход | Ссылка |
+| --- | --- |
+| Арена: винрейты классов | [Открыть `/classes`](https://arena.hs-manacost.ru/classes) |
+| Арена: тир-лист карт | [Открыть `/tierlist`](https://arena.hs-manacost.ru/tierlist) |
+| Поля Сражений: герои | [Открыть `/heroes`](https://arena.hs-manacost.ru/heroes) |
+| Поля Сражений: библиотека | [Открыть `/library`](https://arena.hs-manacost.ru/library) |
+| Состояние production | [Readiness API](https://arena.hs-manacost.ru/api/health/ready) |
+
 ## О проекте
 
 Manacost Arena объединяет актуальную статистику, редакционные материалы и
@@ -33,6 +45,12 @@ accessibility-проверок перед каждым релизом.
 ![Последние статьи и раздел Полей Сражений](docs/screenshots/home-sections.png)
 
 ![Главная страница Manacost Arena на телефоне](docs/screenshots/home-mobile.png)
+
+Актуальные кадры production можно воспроизвести одной командой:
+
+```bash
+npm run docs:screenshots
+```
 
 ## Что внутри
 
