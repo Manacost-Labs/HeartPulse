@@ -2813,7 +2813,7 @@ const ADMIN_SECONDARY_BUTTON: React.CSSProperties = {
   cursor: 'pointer',
 };
 
-const AUTH_TOKEN_KEY = 'hs_arena_auth_token';
+const LEGACY_AUTH_TOKEN_KEY = 'hs_arena_auth_token';
 const AUTH_EMAIL_KEY = 'hs_arena_auth_email';
 const AUTH_SESSION_HINT_KEY = 'hs_arena_auth_cookie_hint';
 const ARTICLE_COVER_PROXY_HOSTS = new Set([
@@ -2918,21 +2918,17 @@ function formatSubscriptionDate(value: string | null): string {
   return date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
-function legacyAuthToken(): string {
-  try { return sessionStorage.getItem(AUTH_TOKEN_KEY) || ''; } catch { return ''; }
-}
-
 function markAuthSessionHint(): void {
   try {
     localStorage.setItem(AUTH_SESSION_HINT_KEY, '1');
-    sessionStorage.removeItem(AUTH_TOKEN_KEY);
+    sessionStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
   } catch { /* storage may be disabled */ }
 }
 
 function clearAuthSessionHint(): void {
   try {
     localStorage.removeItem(AUTH_SESSION_HINT_KEY);
-    sessionStorage.removeItem(AUTH_TOKEN_KEY);
+    sessionStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
   } catch { /* storage may be disabled */ }
 }
 
@@ -3169,7 +3165,6 @@ export function LoginPanel({
   initialAuthUser?: AuthUser | null;
   parentAuthChecking?: boolean;
 }) {
-  const [authToken, setAuthToken] = useState(() => legacyAuthToken());
   const [authUser, setAuthUser] = useState<AuthUser | null>(() => initialAuthUser);
   const [authChecking, setAuthChecking] = useState(parentAuthChecking);
   const [authStep, setAuthStep] = useState<'password' | 'code'>('password');
@@ -3207,8 +3202,7 @@ export function LoginPanel({
   const authHeaders = useCallback((extra: Record<string, string> = {}) => ({
     ...extra,
     'X-CSRF-Request': '1',
-    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-  }), [authToken]);
+  }), []);
 
   useEffect(() => {
     fetch('/api/auth/telegram/config')
@@ -3244,7 +3238,6 @@ export function LoginPanel({
       return;
     }
 
-    setAuthToken('');
     setAuthStep('password');
   }, [initialAuthUser, parentAuthChecking]);
 
@@ -3311,7 +3304,6 @@ export function LoginPanel({
       sessionStorage.setItem(AUTH_EMAIL_KEY, email);
       if (data.user) {
         markAuthSessionHint();
-        setAuthToken(data.token || '');
         setAuthUser(data.user);
         setProfileCountry(data.user?.country || '');
         setProfileNewsletter(Boolean(data.user?.newsletterOptIn));
@@ -3417,7 +3409,6 @@ export function LoginPanel({
       if (!res.ok) throw new Error(data.error || 'Неверный код');
       sessionStorage.setItem(AUTH_EMAIL_KEY, email);
       markAuthSessionHint();
-      setAuthToken(data.token || '');
       setAuthUser(data.user);
       setProfileCountry(data.user?.country || '');
       setProfileNewsletter(Boolean(data.user?.newsletterOptIn));
@@ -3522,7 +3513,6 @@ export function LoginPanel({
       headers: authHeaders({ 'Content-Type': 'application/json' }),
     }).catch(() => {});
     clearAuthSessionHint();
-    setAuthToken('');
     setAuthUser(null);
     setSubscription(null);
     setSubscriptionChecked(false);
@@ -4491,7 +4481,6 @@ function AdminPanel({
   onRefresh: (options?: { bust?: boolean; silent?: boolean }) => Promise<void>;
   onRefreshTierlist: () => Promise<void>;
 }) {
-  const [authToken, setAuthToken] = useState(() => legacyAuthToken());
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [authStep, setAuthStep] = useState<'password' | 'code'>('password');
   const [email, setEmail] = useState(() => sessionStorage.getItem(AUTH_EMAIL_KEY) || '');
@@ -4529,8 +4518,7 @@ function AdminPanel({
   const authHeaders = useCallback((extra: Record<string, string> = {}) => ({
     ...extra,
     'X-CSRF-Request': '1',
-    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-  }), [authToken]);
+  }), []);
 
   useEffect(() => {
     fetch('/api/auth/me', { credentials: 'same-origin', headers: authHeaders() })
@@ -4543,11 +4531,10 @@ function AdminPanel({
       })
       .catch(() => {
         clearAuthSessionHint();
-        setAuthToken('');
         setAuthUser(null);
         setAuthStep('password');
       });
-  }, [authToken, authHeaders]);
+  }, [authHeaders]);
 
   // ── Image generation state ────────────────────────────────────────────────
   const [genBusy,   setGenBusy]   = useState(false);
@@ -4836,7 +4823,6 @@ function AdminPanel({
       if (!data.adminAllowed) throw new Error('У этого аккаунта нет прав администратора');
       sessionStorage.setItem(AUTH_EMAIL_KEY, email);
       markAuthSessionHint();
-      setAuthToken(data.token || '');
       setAuthUser(data.user);
       setCode('');
       setMsg(null);
@@ -4853,7 +4839,6 @@ function AdminPanel({
       headers: authHeaders({ 'Content-Type': 'application/json' }),
     }).catch(() => {});
     clearAuthSessionHint();
-    setAuthToken('');
     setAuthUser(null);
     setAuthStep('password');
     setPassword('');

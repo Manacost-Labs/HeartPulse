@@ -292,10 +292,9 @@ type AuthUser = {
   contestAdminAllowed?: boolean;
 };
 
-async function fetchCurrentAuthUser(token: string | null, signal: AbortSignal): Promise<AuthUser | null> {
+async function fetchCurrentAuthUser(signal: AbortSignal): Promise<AuthUser | null> {
   const response = await fetch('/api/auth/me', {
     credentials: 'same-origin',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
     signal,
   });
   const data = await response.json().catch(() => ({}));
@@ -363,28 +362,27 @@ declare global {
   }
 }
 
-const AUTH_TOKEN_KEY = 'hs_arena_auth_token';
+const LEGACY_AUTH_TOKEN_KEY = 'hs_arena_auth_token';
 const AUTH_SESSION_HINT_KEY = 'hs_arena_auth_cookie_hint';
 
-function legacyAuthToken(): string {
-  try { return sessionStorage.getItem(AUTH_TOKEN_KEY) || ''; } catch { return ''; }
-}
-
 function hasAuthSessionHint(): boolean {
-  try { return localStorage.getItem(AUTH_SESSION_HINT_KEY) === '1' || Boolean(sessionStorage.getItem(AUTH_TOKEN_KEY)); } catch { return false; }
+  try {
+    sessionStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
+    return localStorage.getItem(AUTH_SESSION_HINT_KEY) === '1';
+  } catch { return false; }
 }
 
 function markAuthSessionHint(): void {
   try {
     localStorage.setItem(AUTH_SESSION_HINT_KEY, '1');
-    sessionStorage.removeItem(AUTH_TOKEN_KEY);
+    sessionStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
   } catch { /* storage may be disabled */ }
 }
 
 function clearAuthSessionHint(): void {
   try {
     localStorage.removeItem(AUTH_SESSION_HINT_KEY);
-    sessionStorage.removeItem(AUTH_TOKEN_KEY);
+    sessionStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
   } catch { /* storage may be disabled */ }
 }
 
@@ -905,9 +903,8 @@ export default function App() {
   useEffect(() => {
     const controller = new AbortController();
     const signal = controller.signal;
-    const token = legacyAuthToken();
     setAppAuthChecking(true);
-    void fetchCurrentAuthUser(token, signal)
+    void fetchCurrentAuthUser(signal)
       .then(user => {
         if (signal.aborted) return;
         if (!user) {

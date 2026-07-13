@@ -71,6 +71,7 @@ import { createContestRouter } from './contestRoutes.js';
 import { createSubscriptionRouter } from './subscriptionRoutes.js';
 import { createAuthProfileRouter, type AuthProfilePatch } from './authProfileRoutes.js';
 import { completePasswordReset, createPasswordResetRouter } from './passwordResetRoutes.js';
+import { authenticatedUserPayload, createAuthVerificationRouter } from './authVerificationRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -6798,34 +6799,51 @@ app.post('/api/auth/telegram', async (req, res) => {
   applyKhaSubscriptionSnapshot(user, khaProfile);
   await refreshSubscriptionAfterTelegramAuth(user);
   setAuthCookie(req, res, token);
-  res.json({ success: true, token, user: publicUser(user), adminAllowed: isAdminUser(user), contestAdminAllowed: isContestAdminUser(user) });
+  res.json(authenticatedUserPayload(user, {
+    serializeUser: publicUser,
+    isAdmin: isAdminUser,
+    isContestAdmin: isContestAdminUser,
+  }));
 });
 
-app.post('/api/auth/verify', authCodeVerifyLimiter, (req, res) => {
-  setPrivateNoStore(res);
-  const email = normalizeEmail(req.body?.email);
-  const code = String(req.body?.code ?? '').replace(/\D/g, '');
-  if (!isRealEmail(email)) return res.status(400).json({ error: 'Укажите корректную почту' });
-  const store = loadAuthStore();
-  const pending = store.pendingCodes.find(item => item.email === email && item.expiresAt > Date.now());
-  if (!pending) return res.status(401).json({ error: 'Код устарел. Запросите новый.' });
-  pending.attempts += 1;
-  if (pending.attempts > AUTH_CODE_MAX_ATTEMPTS || !verifyPendingCode(pending, code)) {
+app.use('/api/auth/verify', authCodeVerifyLimiter);
+app.use('/api', createAuthVerificationRouter({
+  normalizeEmail,
+  isRealEmail,
+  verify: (email, code) => {
+    const store = loadAuthStore();
+    const user = store.users.find(item => item.email === email);
+    const pending = store.pendingCodes.find(item => item.email === email && item.expiresAt > Date.now());
+    if (!user || !pending) {
+      return { ok: false, status: 401, error: 'Неверный или устаревший код' } as const;
+    }
+    pending.attempts += 1;
+    if (pending.attempts > AUTH_CODE_MAX_ATTEMPTS || !verifyPendingCode(pending, code)) {
+      saveAuthStore(store);
+      return { ok: false, status: 401, error: 'Неверный или устаревший код' } as const;
+    }
+    store.pendingCodes = store.pendingCodes.filter(item => item.email !== email);
+    if (user.blockedAt) {
+      saveAuthStore(store);
+      return { ok: false, status: 403, error: 'Доступ запрещён' } as const;
+    }
+    const sessionToken = createAuthSession(store, user);
     saveAuthStore(store);
-    return res.status(401).json({ error: 'Неверный код' });
-  }
-
-  const user = store.users.find(item => item.email === email);
-  if (!user) return res.status(401).json({ error: 'Пользователь не найден' });
-  if (user.blockedAt) return res.status(403).json({ error: 'Пользователь заблокирован' });
-
-  store.pendingCodes = store.pendingCodes.filter(item => item.email !== email);
-  const token = createAuthSession(store, user);
-  saveAuthStore(store);
-  if (user.newsletterOptIn) updateMailingConsent(user, true, 'email-code-verified');
-  setAuthCookie(req, res, token);
-  res.json({ success: true, token, user: publicUser(user), adminAllowed: isAdminUser(user), contestAdminAllowed: isContestAdminUser(user) });
-});
+    if (user.newsletterOptIn) {
+      try {
+        updateMailingConsent(user, true, 'email-code-verified');
+      } catch {
+        console.warn('[auth] verified mailing consent could not be synchronized');
+      }
+    }
+    return { ok: true, user, sessionToken } as const;
+  },
+  setAuthCookie,
+  serializeUser: publicUser,
+  isAdmin: isAdminUser,
+  isContestAdmin: isContestAdminUser,
+  setPrivateNoStore,
+}));
 
 app.use('/api', createAuthProfileRouter({
   getSession: req => {
