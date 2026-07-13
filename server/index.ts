@@ -7486,4 +7486,14 @@ app.listen(PORT, HOST, () => {
   const mailingResumeTimer = setTimeout(() => resumeNewsletterCampaigns(), 1500);
   mailingResumeTimer.unref?.();
 
+  const archetypeTranslationSeedTimer = setTimeout(() => {
+    ensureArchetypeTranslationsSeeded()
+      .then(() => console.log('[Archetype translations] Startup sync complete.'))
+      .catch(error => console.warn(
+        '[Archetype translations] Startup sync failed:',
+        error instanceof Error ? error.message : error,
+      ));
+  }, 2500);
+  archetypeTranslationSeedTimer.unref?.();
+
 });
