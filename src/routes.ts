@@ -25,6 +25,7 @@ type RouteDefinition = {
   slug: string;
   group: RouteGroup;
   entitlement: RouteEntitlement | null;
+  adminOnly?: boolean;
 };
 
 export const TABS = [
@@ -45,6 +46,12 @@ export const TABS = [
   },
   {
     id: 'standard-matchups', label: 'Матчапы', icon: Swords, slug: '/standard/matchups', group: 'standard', entitlement: 'standard',
+  },
+  {
+    id: 'standard-meta', label: 'Мета · Beta', icon: Swords, slug: '/standard/meta', group: 'standard', entitlement: null, adminOnly: true,
+  },
+  {
+    id: 'standard-vicious-gold', label: 'Vicious Syndicate Gold', icon: Star, slug: '/standard/vicious-gold', group: 'standard', entitlement: null, adminOnly: true,
   },
   {
     id: 'winrates', label: 'Классы', icon: Trophy, slug: '/classes', group: 'arena', entitlement: 'arena',
@@ -86,6 +93,9 @@ export const BG_PRIMARY_TABS = routesInGroup('bg-primary');
 export const BG_BUILDER_TABS = routesInGroup('bg-builder');
 export const MISC_TABS = routesInGroup('misc');
 export const ADMIN_TABS = routesInGroup('admin');
+export const ADMIN_ONLY_TAB_IDS = new Set<TabId>(
+  TABS.filter(route => 'adminOnly' in route && route.adminOnly).map(route => route.id),
+);
 export const BG_TAB_IDS = new Set<TabId>([...BG_PRIMARY_TABS, ...BG_BUILDER_TABS].map(route => route.id));
 export const PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS = Object.fromEntries(
   TABS.filter(route => route.entitlement).map(route => [route.id, route.entitlement]),

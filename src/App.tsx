@@ -11,6 +11,7 @@ import { usePageScrollLock } from './hooks/usePageScrollLock';
 import AuthAvatar from './components/AuthAvatar';
 import {
   ADMIN_TABS,
+  ADMIN_ONLY_TAB_IDS,
   applyPageMeta,
   ARENA_TABS,
   BG_BUILDER_TABS,
@@ -299,7 +300,12 @@ async function fetchCurrentAuthUser(signal: AbortSignal): Promise<AuthUser | nul
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw 0;
-  return data.user ?? null;
+  if (!data.user) return null;
+  return {
+    ...data.user,
+    adminAllowed: Boolean(data.user.adminAllowed ?? data.adminAllowed),
+    contestAdminAllowed: Boolean(data.user.contestAdminAllowed ?? data.contestAdminAllowed),
+  };
 }
 
 type SubscriptionStatus = {
@@ -542,6 +548,8 @@ const loadDeferredRoutesModule = () => import('./features/DeferredRoutes');
 const loadBgLibraryModule = () => import('./features/BgLibrary');
 const loadGuidesArchiveModule = () => import('./features/GuidesArchive');
 const loadStandardMatchupsModule = () => import('./features/StandardMatchups');
+const loadStandardMetaModule = () => import('./features/StandardMeta');
+const loadViciousSyndicateGoldModule = () => import('./features/ViciousSyndicateGold');
 const loadContestsModule = () => import('./features/Contests');
 const loadBattlegroundsModule = () => import('./features/Battlegrounds');
 const LazyPaywallGate = React.lazy(() => import('./components/PaywallGate'));
@@ -558,6 +566,8 @@ const LazyGalleryTab = React.lazy(() => loadDeferredRoutesModule().then(module =
 const LazyBgLibrary = React.lazy(loadBgLibraryModule);
 const LazyGuidesArchive = React.lazy(loadGuidesArchiveModule);
 const LazyStandardMatchupsPage = React.lazy(loadStandardMatchupsModule);
+const LazyStandardMetaPage = React.lazy(loadStandardMetaModule);
+const LazyViciousSyndicateGoldPage = React.lazy(loadViciousSyndicateGoldModule);
 const LazyContestsPage = React.lazy(() => loadContestsModule().then(module => ({ default: module.ContestsPage })));
 const LazyContestAdminPanel = React.lazy(() => loadContestsModule().then(module => ({ default: module.ContestAdminPanel })));
 const LazyBattlegroundHeroesRoute = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundHeroesRoute })));
@@ -575,6 +585,8 @@ const ROUTE_PRELOADERS: Partial<Record<TabId | 'login', () => Promise<unknown>>>
   'admin-panel': loadContestsModule,
   contests: loadContestsModule,
   'standard-matchups': loadStandardMatchupsModule,
+  'standard-meta': loadStandardMetaModule,
+  'standard-vicious-gold': loadViciousSyndicateGoldModule,
   'bg-strategies': loadBattlegroundsModule,
   'bg-heroes': loadBattlegroundsModule,
   'bg-tier-list': loadBattlegroundsModule,
@@ -834,6 +846,10 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [activeTab]);
 
+  useEffect(() => {
+    if (activeTab !== 'home') void applyPageMeta(activeTab);
+  }, [activeTab]);
+
   /** Handle browser back / forward */
   useEffect(() => {
     const onPop = (e: PopStateEvent) => {
@@ -899,6 +915,10 @@ export default function App() {
     || appAuthUser.id === 'user_42368c85b8de'
     || appAuthUser.profileId === 'user_42368c85b8de'
   ));
+  const appIsAdmin = Boolean(appAuthUser && (appAuthUser.adminAllowed || appAuthUser.role === 'admin'));
+  const visibleStandardTabs = appIsAdmin
+    ? STANDARD_TABS
+    : STANDARD_TABS.filter(route => !ADMIN_ONLY_TAB_IDS.has(route.id));
 
   useEffect(() => {
     const controller = new AbortController();
@@ -1289,11 +1309,11 @@ export default function App() {
     );
     return ids;
   }, [legendariesData]);
-  const isFullWidthBuilder = activeTab === 'standard-matchups' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive';
+  const isFullWidthBuilder = activeTab === 'standard-matchups' || activeTab === 'standard-meta' || activeTab === 'standard-vicious-gold' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive';
   // Login is its own visual route. Do not inherit the surface class of the
   // page that happened to be open before the profile was requested.
   const isEditorialSurfacePage = !isAdminMode && !wantsLogin && ['articles', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
-  const isGameDataSurfacePage = !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'tierlist', 'legendaries'].includes(activeTab);
+  const isGameDataSurfacePage = !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'standard-meta', 'standard-vicious-gold', 'tierlist', 'legendaries'].includes(activeTab);
   const isBattlegroundsSurfacePage = !isAdminMode && !wantsLogin && BG_TAB_IDS.has(activeTab);
   const isOpenSurfacePage = !isAdminMode && (activeTab === 'home' || wantsLogin || isEditorialSurfacePage || isGameDataSurfacePage || isBattlegroundsSurfacePage);
   usePageScrollLock(!isAdminMode && mobileMenuOpen);
@@ -1371,7 +1391,7 @@ export default function App() {
             <div className="arena-mobile-menu-section" aria-label="Раздел Стандарт">
               Стандарт
             </div>
-            <NavigationRouteLinks routes={STANDARD_TABS} activeTab={activeTab} variant="mobile" onNavigate={navigate} onWarm={warmRoute} />
+            <NavigationRouteLinks routes={visibleStandardTabs} activeTab={activeTab} variant="mobile" onNavigate={navigate} onWarm={warmRoute} />
             <div className="arena-mobile-menu-section" aria-label="Раздел Арена">
               Арена
             </div>
@@ -1466,7 +1486,7 @@ export default function App() {
               <div className="arena-sidebar-section" aria-label="Раздел Стандарт">
                 Стандарт
               </div>
-              <NavigationRouteLinks routes={STANDARD_TABS} activeTab={activeTab} variant="sidebar" onNavigate={navigate} onWarm={warmRoute} />
+              <NavigationRouteLinks routes={visibleStandardTabs} activeTab={activeTab} variant="sidebar" onNavigate={navigate} onWarm={warmRoute} />
               <div className="arena-sidebar-section" aria-label="Раздел Арена">
                 Арена
               </div>
@@ -1604,6 +1624,36 @@ export default function App() {
                   renderPrivateRoute(
                     <React.Suspense fallback={<RouteFallback minHeight={720} />}><LazyStandardMatchupsPage /></React.Suspense>,
                     720,
+                  )
+                )}
+                {activeTab === 'standard-meta' && (
+                  appAuthChecking ? (
+                    <RouteFallback minHeight={720} />
+                  ) : appIsAdmin ? (
+                    <React.Suspense fallback={<RouteFallback minHeight={720} />}><LazyStandardMetaPage /></React.Suspense>
+                  ) : (
+                    <section className="section-banner-modern" role="alert">
+                      <div>
+                        <span className="uppercase text-xs font-bold tracking-widest">Закрытая beta</span>
+                        <h1>Страница доступна администраторам</h1>
+                        <p>Войдите в административный профиль, чтобы открыть панель меты.</p>
+                      </div>
+                    </section>
+                  )
+                )}
+                {activeTab === 'standard-vicious-gold' && (
+                  appAuthChecking ? (
+                    <RouteFallback minHeight={720} />
+                  ) : appIsAdmin ? (
+                    <React.Suspense fallback={<RouteFallback minHeight={720} />}><LazyViciousSyndicateGoldPage /></React.Suspense>
+                  ) : (
+                    <section className="section-banner-modern" role="alert">
+                      <div>
+                        <span className="uppercase text-xs font-bold tracking-widest">Закрытая статистика</span>
+                        <h1>Страница доступна администраторам</h1>
+                        <p>Войдите в административный профиль, чтобы открыть Vicious Syndicate Gold.</p>
+                      </div>
+                    </section>
                   )
                 )}
 	                {activeTab === 'winrates' && (

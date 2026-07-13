@@ -32,6 +32,13 @@ import { createArticleRouter } from './articleRoutes.js';
 import { createOperationalRouter } from './operationalRoutes.js';
 import { createArenaDecksRouter, type ArenaDecksCacheStore } from './arenaDeckRoutes.js';
 import { createStandardMatchupRouter } from './standardMatchupRoutes.js';
+import {
+  createStandardMetaRouter,
+  type StandardMetaFormat,
+  type StandardMetaPreview,
+  type StandardMetaRank,
+  type StandardMetaRecommendation,
+} from './standardMetaRoutes.js';
 import { createClassMatchupRouter, type ClassMatchupCacheStore } from './classMatchupRoutes.js';
 import { createLegendaryRouter } from './legendaryRoutes.js';
 import { createTierlistRouter } from './tierlistRoutes.js';
@@ -150,6 +157,10 @@ const winratesApiCache = new Map<string, MemoryCacheEntry>();
 const tierlistApiCache = new Map<string, MemoryCacheEntry>();
 const legendariesApiCache = new Map<string, MemoryCacheEntry>();
 const standardMatchupsApiCache = new Map<string, MemoryCacheEntry>();
+const standardMetaApiCache = new Map<string, MemoryCacheEntry>();
+const viciousSyndicateGoldApiCache = new Map<string, MemoryCacheEntry>();
+const standardMetaRecommendationCache = new Map<string, { data: StandardMetaRecommendation | null; expiresAt: number }>();
+const standardMetaPreviewCache = new Map<string, { hash: string; expiresAt: number }>();
 const battlegroundAppProxyCache = new Map<string, ProxyBodyCacheEntry>();
 const homeSummaryApiCache: HomeSummaryCacheStore = { current: null };
 const arenaDecksCache: ArenaDecksCacheStore = { current: null };
@@ -4142,6 +4153,62 @@ const STANDARD_MATCHUPS_RANK_LABEL: Record<keyof typeof STANDARD_MATCHUPS_DATASE
   legend: 'Легенда',
   diamond: 'Алмаз 4-1',
 };
+const STANDARD_META_DATASET_BY_FORMAT_RANK: Record<StandardMetaFormat, Record<StandardMetaRank, string>> = {
+  standard: {
+    legend: 'hsguru_meta_standard_legend',
+    diamond: 'hsguru_meta_standard_diamond_4to1',
+    top_5k: 'hsguru_meta_standard_top_5k',
+    top_legend: 'hsguru_meta_standard_top_legend',
+  },
+  wild: {
+    legend: 'hsguru_meta_wild_legend',
+    diamond: 'hsguru_meta_wild_diamond_4to1',
+    top_5k: 'hsguru_meta_wild_top_5k',
+    top_legend: 'hsguru_meta_wild_top_legend',
+  },
+};
+const STANDARD_META_FORMAT_LABEL: Record<StandardMetaFormat, string> = {
+  standard: 'Стандарт',
+  wild: 'Вольный',
+};
+const STANDARD_META_RANK_LABEL: Record<StandardMetaRank, string> = {
+  legend: 'Легенда',
+  diamond: 'Алмаз 4-1',
+  top_5k: 'Топ-5000',
+  top_legend: 'Высшая легенда',
+};
+const HSGURU_STREAMER_DECKS_DATASET = 'hsguru_streamer_decks_legend_1000';
+const VICIOUS_SYNDICATE_LIVE_DATASET = 'vicious_syndicate_live_beta';
+const VICIOUS_GOLD_MIN_DECK_FREQUENCY = 0.5;
+const VICIOUS_BUILD_ALIASES: Record<string, { archetype: string; representative?: boolean }> = {
+  'Two Rogue': { archetype: 'Two-Bit Rogue' },
+  'Soothsayer Priest': { archetype: 'Control Priest', representative: true },
+  'Herald DeathKnight': { archetype: 'Herald Death Knight' },
+  'Quest Shaman': { archetype: 'Zee Quest Shaman' },
+  'Animancer Warlock': { archetype: 'Demon Warlock', representative: true },
+  'Unholy DeathKnight': { archetype: 'Unholy Death Knight' },
+  'Blood Warrior': { archetype: 'Control Warrior', representative: true },
+  'Thief Priest': { archetype: 'Control Priest', representative: true },
+  'Ayaya Rogue': { archetype: 'Aya Rogue' },
+  'Void DemonHunter': { archetype: 'Void Soul Demon Hunter' },
+};
+const VICIOUS_CLASS_RU: Record<string, string> = {
+  DeathKnight: 'Рыцарь смерти',
+  DemonHunter: 'Охотник на демонов',
+  Druid: 'Друид',
+  Hunter: 'Охотник',
+  Mage: 'Маг',
+  Paladin: 'Паладин',
+  Priest: 'Жрец',
+  Rogue: 'Разбойник',
+  Shaman: 'Шаман',
+  Warlock: 'Чернокнижник',
+  Warrior: 'Воин',
+};
+const STANDARD_META_RECOMMENDATION_CACHE_MS = 15 * 60_000;
+const STANDARD_META_PREVIEW_CACHE_MS = 24 * 60 * 60_000;
+const KOLODAHS_RENDER_API_BASE_URL = (process.env.KOLODAHS_RENDER_API_BASE_URL || 'https://api.kolodahs.ru').replace(/\/+$/, '');
+const KOLODAHS_API_KEY = String(process.env.KOLODAHS_API_KEY || '').trim();
 const STANDARD_ARCHETYPE_RU: Record<string, string> = {
   'Ace Hunter': 'Эйс Охотник',
   'Aggro Paladin': 'Агро Паладин',
@@ -4155,11 +4222,13 @@ const STANDARD_ARCHETYPE_RU: Record<string, string> = {
   'Burn Warrior': 'Берн Воин',
   'Companion Hunter': 'Компаньон Охотник',
   'Control Priest': 'Контроль Жрец',
+  'Chef Druid': 'Шеф-повар Друид',
   'Dino Egglock': 'Дино Кхелос Чернокнижник',
   'Divergence Warlock': 'Дивергенция Чернокнижник',
   'Dragon Druid': 'Дракон Друид',
   'Dragon Hunter': 'Дракон Охотник',
   'Dragon Warrior': 'Дракон Воин',
+  'Egg Paladin': 'Кхелос Паладин',
   'Dude Paladin': 'Токен Паладин',
   'Egg Warrior': 'Кхелос Воин',
   'Egglock': 'Кхелос Чернокнижник',
@@ -4178,6 +4247,7 @@ const STANDARD_ARCHETYPE_RU: Record<string, string> = {
   'Herald DH': 'Охотник на демонов на возвещении',
   'Herald DK': 'Рыцарь смерти на возвещении',
   'Herald Rogue': 'Разбойник на возвещении',
+  'Herald DeathKnight': 'Рыцарь смерти на возвещении',
   'Herald Shaman': 'Шаман на возвещении',
   'Herald Warrior': 'Воин на возвещении',
   'Hostage Druid': 'Заложник Друид',
@@ -4186,6 +4256,8 @@ const STANDARD_ARCHETYPE_RU: Record<string, string> = {
   'Imbue Rogue': 'Разбойник на силе героя',
   'Krona Druid': 'Крона Друид',
   'Leyline Mage': 'Лейлайн Маг',
+  'Manastorm Mage': 'Манашторм Маг',
+  'Mug Shaman': 'Кружечный Шаман',
   'Merithra Druid': 'Меритра Друид',
   'No Hand Hunter': 'Охотник без руки',
   'No Minion DH': 'Спелл Охотник на демонов',
@@ -4196,6 +4268,18 @@ const STANDARD_ARCHETYPE_RU: Record<string, string> = {
   'Quest Rogue': 'Квест Разбойник',
   'Quest Shaman': 'Квест Шаман',
   'Quest Warrior': 'Квест Воин',
+  'Pure Paladin': 'Чистый Паладин',
+  'Rafaam Warlock': 'Рафаам Чернокнижник',
+  'Soothsayer Priest': 'Предсказатель Жрец',
+  'Thief Priest': 'Вор Жрец',
+  'Two Rogue': 'Двухбитный Разбойник',
+  'Unholy DeathKnight': 'Нечестивый Рыцарь смерти',
+  'Void DemonHunter': 'Бездна Охотник на демонов',
+  'Blood Warrior': 'Кровавый Воин',
+  'Animancer Warlock': 'Анимансер Чернокнижник',
+  'Ayaya Rogue': 'Ая Разбойник',
+  'Face Hunter': 'Фейс Охотник',
+  'Zee Shaman': 'Зи Шаман',
   'Rafaamlock': 'Рафаам Чернокнижник',
   'Token Druid': 'Токен Друид',
   'Unholy DK': 'Нечестивый Рыцарь смерти',
@@ -5522,6 +5606,420 @@ function transformHsguruMatchups(
   };
 }
 
+function parseStandardMetaPopularity(value: unknown): { popularity: number | null; games: number | null } {
+  const raw = String(value ?? '').trim();
+  const match = raw.match(/(-?[\d.,]+)\s*%?\s*(?:\(([\d\s.,]+)\))?/);
+  return {
+    popularity: parseNumber(match?.[1]),
+    games: parseCount(match?.[2]),
+  };
+}
+
+function transformHsguruMeta(
+  payload: any,
+  format: StandardMetaFormat,
+  rank: StandardMetaRank,
+  archetypeTranslations: StandardArchetypeTranslations,
+) {
+  const table = payload?.data?.tables?.[0] ?? payload?.tables?.[0] ?? null;
+  const rows = Array.isArray(table?.rows) ? table.rows : [];
+  const translations = archetypeTranslations.map;
+  const items = rows.flatMap((row: unknown) => {
+    if (!Array.isArray(row)) return [];
+    const archetype = String(row[0] ?? '').trim().replace(/\s+/g, ' ');
+    if (!archetype) return [];
+    const { popularity, games } = parseStandardMetaPopularity(row[2]);
+    return [{
+      id: createHash('sha1').update(`${format}:${archetype.toLowerCase()}`).digest('hex').slice(0, 12),
+      archetype,
+      archetypeLabel: translateStandardArchetype(archetype, translations),
+      translated: translateStandardArchetype(archetype, translations) !== archetype,
+      winrate: parseNumber(row[1]),
+      popularity,
+      games,
+      turns: parseNumber(row[3]),
+      durationMinutes: parseNumber(row[4]),
+      climbingSpeed: parseNumber(String(row[5] ?? '').match(/-?[\d.,]+/)?.[0]),
+    }];
+  });
+  return {
+    format,
+    formatLabel: STANDARD_META_FORMAT_LABEL[format],
+    rank,
+    rankLabel: STANDARD_META_RANK_LABEL[rank],
+    source: 'hsguru',
+    sourceId: STANDARD_META_DATASET_BY_FORMAT_RANK[format][rank],
+    sourceUrl: payload?.data?.url ?? payload?.url ?? '',
+    translationSource: archetypeTranslations.source,
+    updatedAt: payload?.fetched_at ?? payload?.data?.fetched_at ?? null,
+    items,
+  };
+}
+
+async function loadStandardMeta(format: StandardMetaFormat, rank: StandardMetaRank) {
+  const cacheKey = `${format}:${rank}`;
+  const now = Date.now();
+  const cached = standardMetaApiCache.get(cacheKey);
+  if (cached && cached.expiresAt > now) return cached.data;
+  const [payload, translations] = await Promise.all([
+    fetchDataset(STANDARD_META_DATASET_BY_FORMAT_RANK[format][rank]),
+    getStandardArchetypeTranslations(now),
+  ]);
+  const data = transformHsguruMeta(payload, format, rank, translations);
+  standardMetaApiCache.set(cacheKey, {
+    data,
+    etag: '',
+    expiresAt: now + EXTERNAL_DATASET_CACHE_MS,
+  });
+  return data;
+}
+
+type ViciousGoldBuild = StandardMetaRecommendation & {
+  matchedArchetype: string;
+  matchMethod: 'exact' | 'alias' | 'representative';
+};
+
+function viciousPercent(value: unknown): number | null {
+  const parsed = Number(String(value ?? '').replace('%', '').replace(',', '.').trim());
+  return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : null;
+}
+
+function viciousClassIcon(className: string): string {
+  return className.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+}
+
+function viciousBuildSourceLabel(source: string): string {
+  if (source === 'vicious_syndicate_radars') return 'Vicious Syndicate';
+  if (source === 'hearthstone_decks') return 'Hearthstone Decks';
+  if (source === 'metastats_decks') return 'MetaStats';
+  return source.replace(/[-_]+/g, ' ');
+}
+
+async function fetchViciousConstructedDeckRows(): Promise<any[]> {
+  const offsets = [0, 200, 400, 600];
+  const pages = await Promise.all(offsets.map(async offset => {
+    const response = await fetch(`${DATASET_API_ORIGIN}/v1/constructed/decks?limit=200&offset=${offset}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!response.ok) throw new Error(`Constructed decks HTTP ${response.status}`);
+    const payload = await response.json();
+    return Array.isArray(payload?.data) ? payload.data : [];
+  }));
+  return pages.flat();
+}
+
+function findViciousGoldBuild(
+  rows: any[],
+  deck: string,
+  deckLabel: string,
+): ViciousGoldBuild | null {
+  const alias = VICIOUS_BUILD_ALIASES[deck];
+  const matchedArchetype = alias?.archetype ?? deck;
+  const wanted = normalizeStandardArchetypeKey(matchedArchetype);
+  const candidates = rows.filter(row => {
+    if (normalizeStandardArchetypeKey(String(row?.archetype ?? '')) !== wanted) return false;
+    const format = String(row?.format ?? '').trim().toLowerCase();
+    if (format && format !== 'standard') return false;
+    return /^[A-Za-z0-9+/=]{40,}$/.test(String(row?.deck_code ?? '').trim());
+  }).sort((left, right) => {
+    const quality = (row: any) => {
+      const source = String(row?.source_id ?? '');
+      const sourceScore = source === 'vicious_syndicate_radars' ? 300 : source === 'hearthstone_decks' ? 200 : 100;
+      const formatScore = String(row?.format ?? '').toLowerCase() === 'standard' ? 50 : 0;
+      const freshness = Date.parse(String(row?.updated_at ?? '')) / 1e12 || 0;
+      return sourceScore + formatScore + freshness + (Number(row?.win_rate) || 0) / 100;
+    };
+    return quality(right) - quality(left);
+  });
+  const selected = candidates[0];
+  if (!selected) return null;
+  const source = String(selected.source_id ?? 'constructed-decks');
+  const score = parseDeckScore(selected.score);
+  return {
+    archetype: deck,
+    archetypeLabel: deckLabel,
+    deckCode: String(selected.deck_code).trim(),
+    format: 'standard',
+    source,
+    sourceUrl: String(selected.url ?? ''),
+    streamer: null,
+    sampleGames: score.games,
+    winrate: parseNumber(selected.win_rate ?? selected.winrate) ?? score.winrate,
+    updatedAt: String(selected.updated_at ?? '').trim() || null,
+    matchedArchetype,
+    matchMethod: alias?.representative ? 'representative' : alias ? 'alias' : 'exact',
+  };
+}
+
+const VICIOUS_RANK_RU: Record<string, string> = {
+  'All ranks': 'Все ранги',
+  Legend: 'Легенда',
+  'Diamond 1-4': 'Алмаз 1–4',
+  'Diamond 5-10': 'Алмаз 5–10',
+  Platinum: 'Платина',
+  'Gold Silver Bronze': 'Золото, Серебро, Бронза',
+};
+
+async function loadViciousSyndicateGold() {
+  const now = Date.now();
+  const cached = viciousSyndicateGoldApiCache.get('standard');
+  if (cached && cached.expiresAt > now) return cached.data;
+
+  const [payload, translations, constructedRows] = await Promise.all([
+    fetchDataset(VICIOUS_SYNDICATE_LIVE_DATASET),
+    getStandardArchetypeTranslations(now),
+    fetchViciousConstructedDeckRows(),
+  ]);
+  const structured = payload?.data?.structured ?? payload?.structured ?? {};
+  const rawClasses = Array.isArray(structured.class_distribution) ? structured.class_distribution : [];
+  const rawDecks = Array.isArray(structured.deck_distribution) ? structured.deck_distribution : [];
+  const rawTierList = Array.isArray(structured.tier_list) ? structured.tier_list : [];
+  const classByDeck = new Map<string, string>(rawDecks.map((row: any) => [String(row?.deck ?? ''), String(row?.class ?? '')]));
+  const translatedDeck = (deck: string) => translateStandardArchetype(deck, translations.map);
+  const deckDistribution = rawDecks.flatMap((row: any) => {
+    const frequency = viciousPercent(row?.frequency);
+    if (frequency === null || frequency < VICIOUS_GOLD_MIN_DECK_FREQUENCY) return [];
+    const deck = String(row?.deck ?? '').trim();
+    const className = String(row?.class ?? '').trim();
+    if (!deck || !className) return [];
+    const deckLabel = translatedDeck(deck);
+    const build = findViciousGoldBuild(constructedRows, deck, deckLabel);
+    return [{
+      deck,
+      deckLabel,
+      class: className,
+      classLabel: VICIOUS_CLASS_RU[className] ?? className,
+      classIcon: viciousClassIcon(className),
+      frequency,
+      build: build ? { ...build, sourceLabel: viciousBuildSourceLabel(build.source) } : null,
+    }];
+  });
+  const buildsByDeck = new Map(deckDistribution.map((row: any) => [row.deck, row.build]));
+  const tierList = rawTierList.map((section: any) => {
+    const rankBracket = String(section?.rank_bracket ?? '').trim();
+    const decks = Array.isArray(section?.decks) ? section.decks : [];
+    return {
+      rankBracket,
+      rankLabel: VICIOUS_RANK_RU[rankBracket] ?? rankBracket,
+      decks: decks.flatMap((row: any) => {
+        const deck = String(row?.deck ?? '').trim();
+        const className = classByDeck.get(deck) ?? '';
+        const winrate = viciousPercent(row?.winrate);
+        if (!deck || !className || winrate === null) return [];
+        return [{
+          rank: Number(row?.rank) || 0,
+          deck,
+          deckLabel: translatedDeck(deck),
+          class: className,
+          classLabel: VICIOUS_CLASS_RU[className] ?? className,
+          classIcon: viciousClassIcon(className),
+          winrate,
+          build: buildsByDeck.get(deck) ?? null,
+        }];
+      }),
+    };
+  });
+  const data = {
+    title: 'Vicious Syndicate Gold',
+    format: String(structured.format ?? 'Standard'),
+    games: Number(structured.games) || 0,
+    source: 'Vicious Syndicate Live',
+    sourceUrl: String(payload?.data?.url ?? payload?.url ?? 'https://www.vicioussyndicate.com/data-reaper-live/'),
+    sourceId: VICIOUS_SYNDICATE_LIVE_DATASET,
+    updatedAt: payload?.fetched_at ?? payload?.data?.fetched_at ?? null,
+    minimumDeckFrequency: VICIOUS_GOLD_MIN_DECK_FREQUENCY,
+    timeRanges: {
+      distribution: structured.pie_time_range ?? null,
+      tierLadder: structured.tier_ladder_time_range ?? null,
+      tierMatchups: structured.tier_matchup_time_range ?? null,
+    },
+    classDistribution: rawClasses.flatMap((row: any) => {
+      const className = String(row?.class ?? '').trim();
+      const frequency = viciousPercent(row?.frequency);
+      if (!className || frequency === null) return [];
+      return [{
+        class: className,
+        classLabel: VICIOUS_CLASS_RU[className] ?? className,
+        classIcon: viciousClassIcon(className),
+        frequency,
+      }];
+    }),
+    deckDistribution,
+    tierList,
+    buildCoverage: {
+      found: deckDistribution.filter((row: any) => row.build).length,
+      total: deckDistribution.length,
+    },
+  };
+  viciousSyndicateGoldApiCache.set('standard', {
+    data,
+    etag: '',
+    expiresAt: now + EXTERNAL_DATASET_CACHE_MS,
+  });
+  return data;
+}
+
+type StandardMetaDeckCandidate = StandardMetaRecommendation & { quality: number };
+
+function parseDeckScore(value: unknown): { games: number | null; winrate: number | null } {
+  const raw = String(value ?? '').trim();
+  const record = raw.match(/(\d+)\s*-\s*(\d+)/);
+  if (record) {
+    const wins = Number(record[1]);
+    const losses = Number(record[2]);
+    const games = wins + losses;
+    return { games, winrate: games ? Math.round((wins / games) * 10_000) / 100 : null };
+  }
+  const games = raw.match(/([\d\s]+)\s*games?/i);
+  return { games: parseCount(games?.[1]), winrate: null };
+}
+
+function standardMetaDeckQuality(candidate: Omit<StandardMetaDeckCandidate, 'quality'>): number {
+  const sample = Math.min(2_000, candidate.sampleGames ?? 0);
+  const winrate = candidate.winrate ?? 0;
+  const freshness = candidate.updatedAt ? Date.parse(candidate.updatedAt) / 1e12 : 0;
+  const sourceBonus = candidate.source === 'hsguru-streamer' ? 35 : 20;
+  return sample * 10 + winrate + freshness + sourceBonus;
+}
+
+function parseHsguruStreamerDecks(payload: any, archetype: string, archetypeLabel: string, format: StandardMetaFormat): StandardMetaDeckCandidate[] {
+  const table = payload?.data?.tables?.[0] ?? payload?.tables?.[0] ?? null;
+  const rows = Array.isArray(table?.rows) ? table.rows : [];
+  const wanted = normalizeStandardArchetypeKey(archetype);
+  return rows.flatMap((row: unknown) => {
+    if (!Array.isArray(row)) return [];
+    const deckCell = String(row[0] ?? '').trim();
+    const match = deckCell.match(/^###\s+(.+?)\s+([A-Za-z0-9+/=]{40,})\s+#/);
+    if (!match || normalizeStandardArchetypeKey(match[1]) !== wanted) return [];
+    const rowFormat = String(row[2] ?? '').trim().toLowerCase();
+    if (rowFormat !== format) return [];
+    const score = parseDeckScore(row[6]);
+    const base: Omit<StandardMetaDeckCandidate, 'quality'> = {
+      archetype,
+      archetypeLabel,
+      deckCode: match[2],
+      format,
+      source: 'hsguru-streamer',
+      sourceUrl: payload?.data?.url ?? payload?.url ?? '',
+      streamer: String(row[1] ?? '').trim() || null,
+      sampleGames: score.games,
+      winrate: score.winrate,
+      updatedAt: String(row[8] ?? '').trim() || payload?.fetched_at || null,
+    };
+    return [{ ...base, quality: standardMetaDeckQuality(base) }];
+  });
+}
+
+function parseConstructedDecks(payload: any, archetype: string, archetypeLabel: string, format: StandardMetaFormat): StandardMetaDeckCandidate[] {
+  const wanted = normalizeStandardArchetypeKey(archetype);
+  const rows = Array.isArray(payload?.data) ? payload.data : [];
+  return rows.flatMap((row: any) => {
+    if (normalizeStandardArchetypeKey(String(row?.archetype ?? '')) !== wanted) return [];
+    const rowFormat = String(row?.format ?? '').trim().toLowerCase();
+    if (format === 'wild' && rowFormat !== 'wild') return [];
+    if (format === 'standard' && rowFormat && rowFormat !== 'standard') return [];
+    const deckCode = String(row?.deck_code ?? '').trim();
+    if (!/^[A-Za-z0-9+/=]{40,}$/.test(deckCode)) return [];
+    const score = parseDeckScore(row?.score);
+    const directWinrate = parseNumber(row?.win_rate ?? row?.winrate);
+    const base: Omit<StandardMetaDeckCandidate, 'quality'> = {
+      archetype,
+      archetypeLabel,
+      deckCode,
+      format,
+      source: String(row?.source_id ?? 'constructed-decks'),
+      sourceUrl: String(row?.url ?? ''),
+      streamer: null,
+      sampleGames: score.games,
+      winrate: directWinrate ?? score.winrate,
+      updatedAt: String(row?.updated_at ?? payload?.meta?.fetched_at ?? '').trim() || null,
+    };
+    return [{ ...base, quality: standardMetaDeckQuality(base) }];
+  });
+}
+
+async function findStandardMetaRecommendation(
+  archetype: string,
+  archetypeLabel: string,
+  format: StandardMetaFormat,
+): Promise<StandardMetaRecommendation | null> {
+  const cacheKey = `${format}:${normalizeStandardArchetypeKey(archetype)}`;
+  const now = Date.now();
+  const cached = standardMetaRecommendationCache.get(cacheKey);
+  if (cached && cached.expiresAt > now) return cached.data;
+  const [constructedPayload, streamerPayload] = await Promise.all([
+    fetch(`${DATASET_API_ORIGIN}/v1/constructed/decks?q=${encodeURIComponent(archetype)}&limit=100`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
+      signal: AbortSignal.timeout(8_000),
+    }).then(async response => {
+      if (!response.ok) throw new Error(`Constructed decks HTTP ${response.status}`);
+      return response.json();
+    }).catch(() => ({ data: [] })),
+    fetchDataset(HSGURU_STREAMER_DECKS_DATASET).catch(() => ({ data: { tables: [] } })),
+  ]);
+  const candidates = [
+    ...parseHsguruStreamerDecks(streamerPayload, archetype, archetypeLabel, format),
+    ...parseConstructedDecks(constructedPayload, archetype, archetypeLabel, format),
+  ].sort((left, right) => right.quality - left.quality);
+  const selected = candidates[0] ? (({ quality: _quality, ...recommendation }) => recommendation)(candidates[0]) : null;
+  standardMetaRecommendationCache.set(cacheKey, { data: selected, expiresAt: now + STANDARD_META_RECOMMENDATION_CACHE_MS });
+  return selected;
+}
+
+function normalizeStandardMetaPreview(payload: any): StandardMetaPreview {
+  const job = payload?.job ?? payload ?? {};
+  return {
+    hash: String(job.hash ?? ''),
+    state: String(job.state ?? 'queued'),
+    ready: Boolean(job.ready),
+    imageUrl: typeof job.image_url === 'string' && job.image_url.startsWith('https://') ? job.image_url : null,
+    error: job.error ? String(job.error).slice(0, 300) : null,
+  };
+}
+
+async function fetchStandardMetaPreview(hash: string): Promise<StandardMetaPreview> {
+  const response = await fetch(`${KOLODAHS_RENDER_API_BASE_URL}/v1/deck/${encodeURIComponent(hash)}`, {
+    headers: { 'User-Agent': 'ManacostArena/1.0' },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok) throw new Error(`KolodaHS HTTP ${response.status}`);
+  return normalizeStandardMetaPreview(await response.json());
+}
+
+async function createStandardMetaPreview(recommendation: StandardMetaRecommendation): Promise<StandardMetaPreview> {
+  if (!KOLODAHS_API_KEY) throw new Error('KOLODAHS_NOT_CONFIGURED');
+  const cacheKey = createHash('sha256').update(recommendation.deckCode).digest('hex');
+  const cached = standardMetaPreviewCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    try {
+      return await fetchStandardMetaPreview(cached.hash);
+    } catch {
+      standardMetaPreviewCache.delete(cacheKey);
+    }
+  }
+  const response = await fetch(`${KOLODAHS_RENDER_API_BASE_URL}/v1/deck`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Kolodahs-Api-Key': KOLODAHS_API_KEY,
+      'User-Agent': 'ManacostArena/1.0',
+    },
+    body: JSON.stringify({
+      title: recommendation.archetypeLabel,
+      deck_code: recommendation.deckCode,
+      wait_seconds: 0,
+      card_data_source: 'auto',
+    }),
+    signal: AbortSignal.timeout(12_000),
+  });
+  if (!response.ok) throw new Error(`KolodaHS HTTP ${response.status}`);
+  const preview = normalizeStandardMetaPreview(await response.json());
+  if (!preview.hash) throw new Error('KolodaHS returned an empty hash');
+  standardMetaPreviewCache.set(cacheKey, { hash: preview.hash, expiresAt: Date.now() + STANDARD_META_PREVIEW_CACHE_MS });
+  return preview;
+}
+
 function makeExternalEtag(prefix: string, source: string, data: any, now: number): string {
   const rawUpdatedAt = data?.updatedAt;
   const updatedMs = rawUpdatedAt ? Date.parse(rawUpdatedAt) : NaN;
@@ -5803,6 +6301,20 @@ app.use('/api', createStandardMatchupRouter({
   cacheHeader: CACHE_1H,
   onError: (scope, error) => console.error(
     `[standard-matchups] ${scope} failed:`,
+    error instanceof Error ? error.message : error,
+  ),
+}));
+
+app.use('/api', createStandardMetaRouter({
+  adminGuard: adminIdGuard,
+  loadMeta: loadStandardMeta,
+  loadViciousGold: loadViciousSyndicateGold,
+  findRecommendation: findStandardMetaRecommendation,
+  createPreview: createStandardMetaPreview,
+  getPreview: fetchStandardMetaPreview,
+  setPrivateNoStore,
+  onError: (scope, error) => console.error(
+    `[standard-meta] ${scope} failed:`,
     error instanceof Error ? error.message : error,
   ),
 }));

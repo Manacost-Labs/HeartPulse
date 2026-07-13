@@ -2,6 +2,9 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Added the administrator-only Standard meta beta with HSGuru rank/format slices, translated archetypes, exact-match recommended decks, KolodaHS image previews, deck-code copying, and a direct entry point from the authenticated profile.
+- Fixed administrator navigation compatibility so admin-only Standard links, including “Vicious Syndicate Gold,” remain visible whether `/api/auth/me` returns permission flags inside `user` or at the response top level.
+- Added the administrator-only “Vicious Syndicate Gold” Standard page with live class and deck distributions, a strict 0.5% deck cutoff, API-backed deck codes, and class-filtered Power Tier rankings for all six available rank brackets; both navigation visibility and the private no-store server endpoint enforce administrator access.
 - Reduced main CSS from 322.7 KB to 285.7 KB and permanently lowered its CI ceiling to 300 KB by moving the fully scoped Battlegrounds parchment skin out of the global entry and into its tier/hero/builder and library route owners; deterministic desktop/mobile QA now verifies both chunks load the parchment, wooden sign and zero-violation UI.
 - Reduced initial JavaScript from 266.8 KB to 249.2 KB and permanently lowered its CI budget to 250 KB by splitting below-fold home directories, FAQ/paywall UI and the delayed support prompt into route-safe chunks; browser QA now proves the lazy home sections and support flow load, interact and pass axe.
 - Added a required real-Chromium axe-core WCAG 2.2 A/AA gate against the locally served production build across critical subscriber desktop/mobile routes, the guest paywall, open mobile menu and open lightbox; fixed the resulting legendary win-rate badge contrast issue and established a zero-violation CI baseline.

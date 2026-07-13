@@ -3817,10 +3817,15 @@ export function LoginPanel({
             )}
           </section>
           <div className="profile-account-actions">
-            {authUser.role === 'admin' && (
-              <a href="/?admin&section=list">
-                Настроить статьи
-              </a>
+            {(authUser.adminAllowed || authUser.role === 'admin') && (
+              <>
+                <a href="/standard/meta" data-profile-admin-destination="standard-meta">
+                  Открыть мету Standard · Beta
+                </a>
+                <a href="/?admin&section=list" data-profile-admin-destination="articles">
+                  Настроить статьи
+                </a>
+              </>
             )}
             <button type="button" onClick={handleLogout}>
               Выйти

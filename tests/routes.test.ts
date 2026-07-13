@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {
+  ADMIN_ONLY_TAB_IDS,
   BG_TAB_IDS,
   isKnownPath,
   PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS,
@@ -28,5 +29,13 @@ assert.equal(isKnownPath('/definitely-unknown'), false);
 for (const id of BG_TAB_IDS) {
   assert.equal(PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS[id], 'battlegrounds', `${id} must require the battlegrounds entitlement`);
 }
+
+assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-meta'), true, 'Standard meta beta must stay admin-only');
+assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-vicious-gold'), true, 'Vicious Syndicate Gold must stay admin-only');
+assert.equal(
+  PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS['standard-vicious-gold'],
+  undefined,
+  'admin access must not be replaced by a subscription entitlement',
+);
 
 console.log(`route registry assertions passed (${TABS.length} routes)`);

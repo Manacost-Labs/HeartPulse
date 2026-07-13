@@ -1620,6 +1620,7 @@ for (const [device, viewport] of [
           statusChip: material('.profile-status-chip'),
           input: material('.profile-settings-form input:not([type="checkbox"])'),
         },
+        adminMetaHref: document.querySelector('[data-profile-admin-destination="standard-meta"]')?.getAttribute('href') || '',
       };
     });
     const expectedProfile = device === 'desktop'
@@ -1680,6 +1681,9 @@ for (const [device, viewport] of [
       || profileState.materials.input?.backgroundColor !== 'rgba(255, 246, 219, 0.72)') {
       failures.push(`profile [${device}]: profile input material changed (${JSON.stringify(profileState.materials.input)})`);
     }
+    if (profileState.adminMetaHref !== '/standard/meta') {
+      failures.push(`profile [${device}]: admin meta destination is missing or incorrect (${profileState.adminMetaHref})`);
+    }
     await page.click('.profile-settings-form button[type="submit"]');
     await page.waitForFunction(() => document.querySelector('.profile-message--ok')?.textContent?.includes('Профиль обновлен.'));
     const successMessage = await page.$eval('.profile-message--ok', element => {
@@ -1702,6 +1706,9 @@ for (const [device, viewport] of [
     adminState.profileSaveFailure = false;
     const profileViolationCount = await auditAccessibility(page, `profile [${device}]`, '.profile-page');
     await page.screenshot({ path: `${OUT}/profile-${device}.png`, fullPage: false });
+    await page.click('[data-profile-admin-destination="standard-meta"]');
+    await page.waitForFunction(() => window.location.pathname === '/standard/meta');
+    await page.waitForSelector('.standard-meta', { timeout: 20_000 });
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
     console.log(`✓ admin dashboard/articles/translations/gallery/Boosty/Telegram/mailing/contests/users/profile [${device}] interactions + axe (${violationCount + articlesViolationCount + translationsViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + profileViolationCount} violations)`);
