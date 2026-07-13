@@ -4,13 +4,15 @@ import { join, relative } from 'node:path';
 const ROOT = process.cwd();
 const SRC = join(ROOT, 'src');
 const TOKEN_FILE = 'src/styles/tokens.css';
-const MAX_IMPORTANT_DECLARATIONS = 1390;
+const MAX_IMPORTANT_DECLARATIONS = 1219;
 const RETIRED_OWNERLESS_CSS_FRAGMENTS = [
   '.home-modern .hs-card',
   '.home-modern > section',
   '.modern-feature-card',
   'top-cards-heading',
   'top-legendaries-heading',
+  'Profile archive theme:',
+  'Profile reliquary:',
 ];
 const RETIRED_HOME_CLASS_PREFIXES = [
   'home-stage__atmosphere',

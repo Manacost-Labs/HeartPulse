@@ -14,7 +14,7 @@ const budgets = {
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 116_000),
   css: Number(process.env.BUDGET_CSS_BYTES || 143_000),
   routeCss: Number(process.env.BUDGET_ROUTE_CSS_BYTES || 48_000),
-  deferredRoutesCss: Number(process.env.BUDGET_DEFERRED_ROUTES_CSS_BYTES || 53_500),
+  deferredRoutesCss: Number(process.env.BUDGET_DEFERRED_ROUTES_CSS_BYTES || 52_000),
   homeSectionCss: Number(process.env.BUDGET_HOME_SECTION_CSS_BYTES || 5_000),
   faqSectionCss: Number(process.env.BUDGET_FAQ_SECTION_CSS_BYTES || 4_000),
   supportPromptCss: Number(process.env.BUDGET_SUPPORT_PROMPT_CSS_BYTES || 4_000),

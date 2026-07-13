@@ -3540,36 +3540,17 @@ export function LoginPanel({
               src="/assets/arena_icon.webp"
               alt=""
               draggable={false}
-              style={{
-                position: 'absolute',
-                right: 22,
-                top: 18,
-                width: 54,
-                height: 54,
-                objectFit: 'contain',
-                opacity: 0.76,
-                filter: 'drop-shadow(0 10px 22px rgba(56,189,248,0.28))',
-                pointerEvents: 'none',
-              }}
             />
             <div className="profile-hero__body">
               <AuthAvatar user={{ ...authUser, name: profileName }} size={92} />
-              <div style={{ minWidth: 0, textAlign: 'left', flex: 1 }}>
-                <p className="profile-hero__eyebrow" style={{ color: '#93c5fd', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px', fontWeight: 700 }}>
+              <div className="profile-hero__identity">
+                <p className="profile-hero__eyebrow">
                   Личный кабинет
                 </p>
-                <h1 style={{
-                  fontFamily: 'var(--font-display)',
-                  color: '#f8faff',
-                  fontSize: 'clamp(1.55rem, 4vw, 2.25rem)',
-                  margin: 0,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  textShadow: '0 8px 24px rgba(0,0,0,0.46)',
-                }}>
+                <h1>
                   {profileName}
                 </h1>
-                <p className="profile-hero__contact" style={{ color: '#c8d5e8', fontSize: '14px', marginTop: '7px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <p className="profile-hero__contact">
                   {profileContact}
                 </p>
                 <p className="profile-hero__id" title={profileId}>
@@ -3591,89 +3572,57 @@ export function LoginPanel({
               {msg.text}
             </div>
           )}
-          <section className="profile-contact-section" style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))',
-            gap: '14px',
-            marginBottom: '18px',
-          }}>
+          <section className="profile-contact-section">
             <form
               className="profile-settings-form"
               onSubmit={handleProfileSave}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                gap: '10px',
-                alignItems: 'end',
-                padding: '16px',
-                borderRadius: '16px',
-                border: '1px solid #cbd7ea',
-                background: 'rgba(248,250,255,0.78)',
-              }}
             >
-              <div style={{ gridColumn: '1 / -1', textAlign: 'left' }}>
-                <strong style={{ display: 'block', color: '#1e293b', fontSize: '16px' }}>Настройки и каналы связи</strong>
-                <span style={{ display: 'block', color: '#64748b', fontSize: '12px', marginTop: '3px' }}>
+              <div className="profile-section-heading">
+                <strong>Настройки и каналы связи</strong>
+                <span>
                   Укажите удобные контакты. Они будут использоваться для конкурсов, призов и важных уведомлений.
                 </span>
               </div>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', color: '#334155', fontSize: '12px', textAlign: 'left' }}>
+              <label>
                 Страна
-                <select value={profileCountry} onChange={e => setProfileCountry(e.target.value)} style={ADMIN_INPUT}>
+                <select value={profileCountry} onChange={e => setProfileCountry(e.target.value)}>
                   <option value="">Не указана</option>
                   {COUNTRY_OPTIONS.map(item => <option key={item} value={item}>{item}</option>)}
                 </select>
               </label>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', color: '#334155', fontSize: '12px', textAlign: 'left' }}>
+              <label>
                 Telegram
-                <input value={profileTelegram} onChange={e => setProfileTelegram(e.target.value)} placeholder="@username" style={ADMIN_INPUT} />
+                <input value={profileTelegram} onChange={e => setProfileTelegram(e.target.value)} placeholder="@username" />
               </label>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', color: '#334155', fontSize: '12px', textAlign: 'left' }}>
+              <label>
                 VK
-                <input value={profileVkUrl} onChange={e => setProfileVkUrl(e.target.value)} placeholder="https://vk.com/username" style={ADMIN_INPUT} />
+                <input value={profileVkUrl} onChange={e => setProfileVkUrl(e.target.value)} placeholder="https://vk.com/username" />
               </label>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', color: '#334155', fontSize: '12px', textAlign: 'left' }}>
+              <label>
                 Почта для связи
-                <input type="email" value={profileContactEmail} onChange={e => setProfileContactEmail(e.target.value)} placeholder="mail@example.com" style={ADMIN_INPUT} />
+                <input type="email" value={profileContactEmail} onChange={e => setProfileContactEmail(e.target.value)} placeholder="mail@example.com" />
               </label>
-              <label className="profile-checkbox-row" style={{ display: 'flex', gap: '9px', alignItems: 'center', color: '#334155', fontSize: '13px', textAlign: 'left', minHeight: 42 }}>
+              <label className="profile-checkbox-row">
                 <input
                   className="profile-checkbox"
                   type="checkbox"
                   checked={profileNewsletter}
                   onChange={e => setProfileNewsletter(e.target.checked)}
-                  style={{ accentColor: '#2563eb' }}
                 />
                 <span>Получать рассылку Манакоста</span>
               </label>
-              <button type="submit" disabled={loading} style={{
-                ...ADMIN_SECONDARY_BUTTON,
-                minHeight: 42,
-                background: 'linear-gradient(135deg,#2563eb,#0f4eb8)',
-                color: '#f8faff',
-                borderColor: '#60a5fa',
-                cursor: loading ? 'wait' : 'pointer',
-              }}>
+              <button type="submit" disabled={loading}>
                 Сохранить профиль
               </button>
             </form>
           </section>
-          <section className={`profile-subscription-panel ${subscription?.hasAccess ? 'profile-subscription-panel--active' : ''}`} style={{
-            marginBottom: '18px',
-            padding: '16px',
-            borderRadius: '14px',
-            background: subscription?.hasAccess
-              ? 'linear-gradient(135deg, rgba(220,252,231,0.82), rgba(239,253,244,0.58))'
-              : 'linear-gradient(135deg, rgba(235,241,252,0.94), rgba(248,250,255,0.72))',
-            border: subscription?.hasAccess ? '1.5px solid #34d399' : '1.5px solid #9db4d5',
-            textAlign: 'left',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '10px' }}>
+          <section className={`profile-subscription-panel ${subscription?.hasAccess ? 'profile-subscription-panel--active' : ''}`}>
+            <div className="profile-subscription-header">
               <div>
-                <p style={{ margin: 0, color: '#64748b', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                <p className="profile-subscription-kicker">
                   Доступ к закрытым разделам
                 </p>
-                <strong style={{ display: 'block', marginTop: '4px', color: subscription?.hasAccess ? '#065f46' : '#1e3a5f', fontSize: '1rem' }}>
+                <strong className="profile-subscription-state">
                   {subscriptionPending
                     ? 'Проверяем...'
                     : subscription?.hasAccess
@@ -3685,84 +3634,53 @@ export function LoginPanel({
                 type="button"
                 onClick={() => { void fetchSubscription(true); }}
                 disabled={subscriptionLoading}
-                style={{
-                  ...ADMIN_SECONDARY_BUTTON,
-                  background: '#f8faff',
-                  color: '#1f3b63',
-                  borderColor: '#9db4d5',
-                  cursor: subscriptionLoading ? 'wait' : 'pointer',
-                }}
               >
                 {subscriptionLoading ? 'Проверяем...' : 'Обновить'}
               </button>
             </div>
-            <p style={{ margin: '0 0 10px', color: '#334155', fontSize: '13px', lineHeight: 1.45 }}>
+            <p className="profile-subscription-copy">
               {subscription?.message || 'Подтвердите подписку через Boosty или Telegram VIP-канал.'}
             </p>
             {subscriptionAccessLabels.length > 0 && (
-              <div className="profile-access-list" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', margin: '0 0 12px' }}>
+              <div className="profile-access-list">
                 {subscriptionAccessLabels.map(label => (
-                  <span key={label} className="profile-access-item" style={{
-                    padding: '5px 8px',
-                    borderRadius: '999px',
-                    background: 'rgba(16,185,129,0.12)',
-                    border: '1px solid rgba(5,150,105,0.28)',
-                    color: '#065f46',
-                    fontSize: '11px',
-                    fontWeight: 800,
-                  }}>
+                  <span key={label} className="profile-access-item">
                     {label}
                   </span>
                 ))}
               </div>
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', marginBottom: '12px' }}>
-              <div className="profile-subscription-source" style={{ padding: '10px', borderRadius: '10px', background: 'rgba(248,250,255,0.82)', border: '1px solid #cbd7ea', display: 'grid', gridTemplateColumns: '34px 1fr', gap: '9px', alignItems: 'center' }}>
-                <img src="/ad/boosty.png" alt="" style={{ width: 34, height: 34, objectFit: 'contain', borderRadius: '9px', background: '#fff' }} />
+            <div className="profile-subscription-sources">
+              <div className="profile-subscription-source">
+                <img src="/ad/boosty.png" alt="" />
                 <div>
-                <strong style={{ color: '#1e293b', fontSize: '13px' }}>Boosty</strong>
-                <p style={{ margin: '4px 0 0', color: '#475569', fontSize: '12px', lineHeight: 1.35 }}>
+                <strong>Boosty</strong>
+                <p>
                   {subscription?.boosty?.hasAccess
                     ? `${subscription.boosty.levelName || 'Уровень'} · ${subscription.boosty.price || 0} RUB`
                     : subscription?.boosty?.message || 'Почта еще не проверена.'}
                 </p>
                 </div>
               </div>
-              <div className="profile-subscription-source" style={{ padding: '10px', borderRadius: '10px', background: 'rgba(248,250,255,0.82)', border: '1px solid #cbd7ea', display: 'grid', gridTemplateColumns: '34px 1fr', gap: '9px', alignItems: 'flex-start' }}>
-                <img src="/ad/telegram.png" alt="" style={{ width: 34, height: 34, objectFit: 'contain', borderRadius: '9px', background: '#eff6ff' }} />
+              <div className="profile-subscription-source profile-subscription-source--telegram">
+                <img src="/ad/telegram.png" alt="" />
                 <div>
-                <strong style={{ color: '#1e293b', fontSize: '13px' }}>Telegram</strong>
-                <p style={{ margin: '4px 0 0', color: '#475569', fontSize: '12px', lineHeight: 1.35 }}>
+                <strong>Telegram</strong>
+                <p>
                   {subscription?.telegram?.hasAccess
                     ? 'Найден в VIP-канале'
                     : subscription?.telegram?.message || 'Войдите через Telegram для проверки каналов.'}
                 </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '9px' }}>
+                <div className="profile-subscription-source__actions">
                   <button
                     type="button"
                     onClick={() => { void handleTelegramLinkCodeRequest(); }}
                     disabled={telegramLinkLoading || !telegramBotUsername}
-                    style={{
-                      ...ADMIN_SECONDARY_BUTTON,
-                      minHeight: 34,
-                      padding: '7px 10px',
-                      background: '#eff6ff',
-                      color: '#1d4ed8',
-                      borderColor: '#93c5fd',
-                      cursor: telegramLinkLoading ? 'wait' : 'pointer',
-                    }}
                   >
                     {telegramLinkLoading ? 'Создаем...' : 'ID-код для бота'}
                   </button>
                   {telegramLinkCode && (
-                    <code style={{
-                      padding: '6px 9px',
-                      borderRadius: '8px',
-                      background: '#0f172a',
-                      color: '#e0f2fe',
-                      fontWeight: 800,
-                      letterSpacing: '0.08em',
-                    }}>
+                    <code>
                       {telegramLinkCode}
                     </code>
                   )}
@@ -3771,39 +3689,29 @@ export function LoginPanel({
                       href={telegramLinkBotUrl}
                       target="_blank"
                       rel="noreferrer"
-                      style={{ color: '#1d4ed8', fontSize: '12px', fontWeight: 800, textDecoration: 'none' }}
+                      className="profile-subscription-source__link"
                     >
                       Открыть @{telegramBotUsername}
                     </a>
                   )}
                   {telegramLinkExpiresLabel && (
-                    <span style={{ color: '#64748b', fontSize: '11px' }}>до {telegramLinkExpiresLabel}</span>
+                    <span className="profile-subscription-source__expiry">до {telegramLinkExpiresLabel}</span>
                   )}
                 </div>
-                <p style={{ margin: '7px 0 0', color: '#64748b', fontSize: '11px', lineHeight: 1.35 }}>
+                <p className="profile-subscription-source__tip">
                   Для Boosty-почты в боте: /email name@example.com.
                 </p>
                 </div>
               </div>
             </div>
-            <p style={{ margin: '0 0 12px', color: '#64748b', fontSize: '12px' }}>
+            <p className="profile-subscription-checked">
               Последняя проверка: {formatSubscriptionDate(subscription?.checkedAt ?? null)}
             </p>
             <form
               className="profile-boosty-form"
               onSubmit={boostyStep === 'email' ? handleBoostyEmailRequest : handleBoostyEmailConfirm}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-                margin: '0 0 12px',
-                padding: '12px',
-                borderRadius: '12px',
-                background: 'rgba(255,247,237,0.82)',
-                border: '1px solid #fed7aa',
-              }}
             >
-              <p style={{ margin: 0, color: '#334155', fontSize: '12px', lineHeight: 1.4 }}>
+              <p>
                 Для Boosty подтвердите почту, которая указана в вашем Boosty-профиле. Это отдельная проверка от Telegram.
               </p>
               <input
@@ -3811,7 +3719,6 @@ export function LoginPanel({
                 value={boostyEmail}
                 onChange={e => setBoostyEmail(e.target.value)}
                 placeholder="Email из Boosty"
-                style={ADMIN_INPUT}
               />
               {boostyStep === 'code' && (
                 <input
@@ -3820,17 +3727,10 @@ export function LoginPanel({
                   value={boostyCode}
                   onChange={e => setBoostyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   placeholder="6-значный код"
-                  style={{ ...ADMIN_INPUT, textAlign: 'center', letterSpacing: '0.18em' }}
+                  className="profile-boosty-code"
                 />
               )}
-              <button type="submit" disabled={subscriptionLoading} style={{
-                ...ADMIN_SECONDARY_BUTTON,
-                justifyContent: 'center',
-                background: '#fff7ed',
-                color: '#9a3412',
-                borderColor: '#fdba74',
-                cursor: subscriptionLoading ? 'wait' : 'pointer',
-              }}>
+              <button type="submit" disabled={subscriptionLoading}>
                 {subscriptionLoading
                   ? 'Проверяем...'
                   : boostyStep === 'email'
@@ -3839,14 +3739,8 @@ export function LoginPanel({
               </button>
             </form>
             {telegramEnabled && !authUser.telegramUsername && (
-              <div className="profile-telegram-link" style={{
-                margin: '0 0 12px',
-                padding: '12px',
-                borderRadius: '12px',
-                background: 'rgba(239,246,255,0.84)',
-                border: '1px solid #bfdbfe',
-              }}>
-                <p style={{ margin: '0 0 10px', color: '#334155', fontSize: '12px', lineHeight: 1.4 }}>
+              <div className="profile-telegram-link">
+                <p>
                   Для Telegram-подписки нужно привязать сам Telegram-аккаунт. Поле @username в контактах не подходит для проверки VIP-канала.
                 </p>
                 {telegramMode === 'legacy-widget' && telegramBotUsername ? (
@@ -3856,107 +3750,56 @@ export function LoginPanel({
                     label="Привязать Telegram"
                   />
                 ) : (
-                  <a href={telegramLinkUrl} style={{
-                    ...ADMIN_SECONDARY_BUTTON,
-                    display: 'inline-flex',
-                    justifyContent: 'center',
-                    width: '100%',
-                    textDecoration: 'none',
-                    background: 'linear-gradient(135deg,#2aabee,#1d7fb8)',
-                    borderColor: '#2aabee',
-                    color: '#f8fbff',
-                  }}>
+                  <a href={telegramLinkUrl}>
                     Привязать Telegram
                   </a>
                 )}
               </div>
             )}
           </section>
-          <section className="profile-contests" style={{
-            marginBottom: '18px',
-            padding: '16px',
-            borderRadius: '16px',
-            border: '1px solid #cbd7ea',
-            background: 'rgba(248,250,255,0.78)',
-            textAlign: 'left',
-          }}>
-            <div className="profile-contests__heading" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '12px' }}>
+          <section className="profile-contests">
+            <div className="profile-contests__heading">
               <div>
-                <strong style={{ display: 'block', color: '#1e293b', fontSize: '16px' }}>История участия в конкурсах</strong>
-                <span style={{ display: 'block', color: '#64748b', fontSize: '12px', marginTop: '3px' }}>
+                <strong>История участия в конкурсах</strong>
+                <span>
                   Здесь отображаются конкурсы, куда вы подали заявку через профиль Манакоста.
                 </span>
               </div>
-              <span className="profile-contests__count" style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                borderRadius: '999px',
-                background: '#eef6ff',
-                border: '1px solid #cbd7ea',
-                color: '#1e3a5f',
-                padding: '7px 10px',
-                fontSize: '12px',
-                fontWeight: 900,
-                flexShrink: 0,
-              }}>
+              <span className="profile-contests__count">
                 <Trophy size={14} />
                 {contestHistory.length} участий · {wonContestCount} побед
               </span>
             </div>
             {contestHistoryLoading ? (
-              <div className="profile-contests__state" style={{ color: '#64748b', fontSize: '13px', padding: '12px 0' }}>Загружаем историю...</div>
+              <div className="profile-contests__state">Загружаем историю...</div>
             ) : contestHistory.length === 0 ? (
-              <div className="profile-contests__state" style={{
-                borderRadius: '12px',
-                border: '1px dashed #cbd7ea',
-                background: '#f8faff',
-                color: '#64748b',
-                padding: '14px',
-                fontSize: '13px',
-                lineHeight: 1.45,
-              }}>
+              <div className="profile-contests__state profile-contests__state--empty">
                 Вы пока не участвовали в конкурсах. Когда нажмете “Участвовать” на странице конкурса, заявка появится здесь.
               </div>
             ) : (
-              <div className="profile-contest-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '10px' }}>
+              <div className="profile-contest-list">
                 {contestHistory.map(item => (
-                  <article key={item.id || item.contestId} className={`profile-contest-entry ${item.imageUrl ? 'profile-contest-entry--with-image' : ''} ${item.isWinner ? 'profile-contest-entry--winner' : ''}`} style={{
-                    display: 'grid',
-                    gridTemplateColumns: item.imageUrl ? '82px minmax(0, 1fr)' : '1fr',
-                    gap: '12px',
-                    padding: '12px',
-                    borderRadius: '14px',
-                    border: item.isWinner ? '1.5px solid #facc15' : '1px solid #d7e1ef',
-                    background: item.isWinner ? 'linear-gradient(135deg,#fff7d6,#f8faff)' : '#f8faff',
-                  }}>
+                  <article key={item.id || item.contestId} className={`profile-contest-entry ${item.imageUrl ? 'profile-contest-entry--with-image' : ''} ${item.isWinner ? 'profile-contest-entry--winner' : ''}`}>
                     {item.imageUrl && (
-                      <img src={item.imageUrl} alt="" loading="lazy" decoding="async" style={{ width: 82, height: 82, borderRadius: '12px', objectFit: 'cover', background: '#e2e8f0' }} />
+                      <img src={item.imageUrl} alt="" loading="lazy" decoding="async" />
                     )}
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ display: 'flex', gap: '7px', flexWrap: 'wrap', marginBottom: '6px' }}>
-                        <span style={{
-                          borderRadius: '999px',
-                          background: item.status === 'completed' ? '#f1f5f9' : '#dcfce7',
-                          color: item.status === 'completed' ? '#475569' : '#065f46',
-                          padding: '3px 8px',
-                          fontSize: '12px',
-                          fontWeight: 900,
-                        }}>
+                    <div className="profile-contest-entry__body">
+                      <div className="profile-contest-entry__badges">
+                        <span className={`profile-contest-badge profile-contest-badge--${item.status === 'completed' ? 'completed' : 'active'}`}>
                           {PROFILE_CONTEST_STATUS_TEXT[item.status] || item.status}
                         </span>
-                        <span style={{ borderRadius: '999px', background: '#eef6ff', color: '#1e3a5f', padding: '3px 8px', fontSize: '12px', fontWeight: 900 }}>
+                        <span className="profile-contest-badge profile-contest-badge--entry">
                           {item.entryStatus === 'approved' ? 'Участие одобрено' : item.entryStatus || 'Заявка'}
                         </span>
                         {item.isWinner && (
-                          <span style={{ borderRadius: '999px', background: '#fef3c7', color: '#92400e', padding: '3px 8px', fontSize: '12px', fontWeight: 900 }}>
+                          <span className="profile-contest-badge profile-contest-badge--winner">
                             Победитель
                           </span>
                         )}
                       </div>
-                      <strong style={{ display: 'block', color: '#1e293b', fontSize: '14px', lineHeight: 1.25, overflowWrap: 'anywhere' }}>{item.title}</strong>
-                      {item.prize && <p style={{ margin: '5px 0 0', color: '#7c5b22', fontSize: '12px', fontWeight: 800, overflowWrap: 'anywhere' }}>Приз: {item.prize}</p>}
-                      <p style={{ margin: '7px 0 0', color: '#64748b', fontSize: '12px' }}>
+                      <strong className="profile-contest-entry__title">{item.title}</strong>
+                      {item.prize && <p className="profile-contest-entry__prize">Приз: {item.prize}</p>}
+                      <p className="profile-contest-entry__date">
                         Заявка: {item.joinedAt ? new Date(item.joinedAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'дата не указана'}
                       </p>
                     </div>
@@ -3965,26 +3808,13 @@ export function LoginPanel({
               </div>
             )}
           </section>
-          <div className="profile-account-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          <div className="profile-account-actions">
             {authUser.role === 'admin' && (
-              <a href="/?admin&section=list" style={{
-                ...ADMIN_SECONDARY_BUTTON,
-                display: 'inline-flex',
-                alignItems: 'center',
-                textDecoration: 'none',
-                background: 'linear-gradient(135deg,#12233f,#081020)',
-                color: '#e5eefc',
-                borderColor: '#60a5fa',
-              }}>
+              <a href="/?admin&section=list">
                 Настроить статьи
               </a>
             )}
-            <button type="button" onClick={handleLogout} style={{
-              ...ADMIN_SECONDARY_BUTTON,
-              background: 'rgba(153,27,27,0.08)',
-              color: '#991b1b',
-              borderColor: '#fca5a5',
-            }}>
+            <button type="button" onClick={handleLogout}>
               Выйти
             </button>
           </div>
