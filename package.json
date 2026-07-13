@@ -122,5 +122,5 @@
     "typescript": "~5.8.2",
     "vite": "^6.4.3"
   },
-  "description": "Hearthstone Arena statistics — tier list, class winrates, legendary groups"
+  "description": "Russian Hearthstone Arena and Battlegrounds analytics platform"
 }

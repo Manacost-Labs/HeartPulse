@@ -1,33 +1,70 @@
-<!-- markdownlint-disable MD033 MD041 -->
+<!-- markdownlint-disable MD013 MD033 MD041 -->
 
 <p align="center">
-  <img src="public/favicon-192.png" width="96" height="96" alt="Manacost Arena">
+  <img src="public/favicon-192.png" width="104" height="104"
+    alt="Логотип Manacost Arena">
 </p>
 
 <h1 align="center">Manacost Arena</h1>
 
 <p align="center">
-  Русскоязычная аналитическая платформа для Арены и Полей Сражений Hearthstone.
+  <strong>Мета Hearthstone без таблиц, которые приходится расшифровывать.</strong>
 </p>
 
 <p align="center">
-  <a href="https://arena.hs-manacost.ru">Открыть production</a> ·
+  Русскоязычная production-платформа для Арены и Полей Сражений:<br>
+  тир-листы, винрейты, библиотека карт, гайды и игровые конструкторы.
+</p>
+
+<p align="center">
+  <a href="https://arena.hs-manacost.ru"><strong>Открыть сайт</strong></a> ·
   <a href="STABILIZATION.md">Надёжность</a> ·
   <a href="assets.md">Дизайн и ассеты</a> ·
   <a href="DEPLOYMENT.md">Деплой</a>
 </p>
 
-[![CI][ci-badge]][ci-workflow]
-[![Production][production-badge]][production-health]
-[![React 19](https://img.shields.io/badge/React-19-4A2F66?logo=react&logoColor=white)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-strict-8F1731?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-22+-5E4428?logo=node.js&logoColor=white)](https://nodejs.org/)
+<p align="center">
+  <a href="https://github.com/Zulut30/manacost-arena/actions/workflows/ci.yml">
+    <img alt="CI"
+      src="https://github.com/Zulut30/manacost-arena/actions/workflows/ci.yml/badge.svg?branch=main">
+  </a>
+  <a href="https://arena.hs-manacost.ru/api/health/ready">
+    <img alt="Production health"
+      src="https://img.shields.io/website?url=https%3A%2F%2Farena.hs-manacost.ru%2Fapi%2Fhealth%2Fready&up_message=healthy&down_message=unavailable&label=production&color=4A2F66">
+  </a>
+  <a href="https://react.dev">
+    <img alt="React 19"
+      src="https://img.shields.io/badge/React-19-4A2F66?logo=react&logoColor=white">
+  </a>
+  <a href="https://www.typescriptlang.org/">
+    <img alt="TypeScript strict"
+      src="https://img.shields.io/badge/TypeScript-strict-8F1731?logo=typescript&logoColor=white">
+  </a>
+  <a href="https://nodejs.org/">
+    <img alt="Node.js 22+"
+      src="https://img.shields.io/badge/Node.js-22+-5E4428?logo=node.js&logoColor=white">
+  </a>
+</p>
 
-![Главная страница Manacost Arena на desktop](docs/screenshots/home-desktop.png)
+<table>
+  <tr>
+    <td width="72%">
+      <img src="docs/screenshots/home-desktop.png"
+        alt="Главная Manacost Arena на desktop">
+    </td>
+    <td width="28%">
+      <img src="docs/screenshots/home-mobile.png"
+        alt="Главная Manacost Arena на телефоне">
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Desktop workspace</strong></td>
+    <td align="center"><strong>Mobile, 390 px</strong></td>
+  </tr>
+</table>
 
-> Production-ready React/TypeScript-приложение с Express API, атомарными
-> релизами, desktop/mobile E2E, accessibility-аудитом и безопасными
-> stale-fallback контрактами для внешних источников данных.
+> Один репозиторий объединяет React-интерфейс, Express API, durable snapshots,
+> immutable-релизы и обязательный desktop/mobile quality gate.
 
 ## Зачем этот проект
 
@@ -64,11 +101,9 @@ Manacost Arena объединяет актуальную статистику, �
 Desktop и mobile проходят один и тот же набор функциональных, адаптивных и
 accessibility-проверок перед каждым релизом.
 
-## Интерфейс production
+## Интерфейс в деталях
 
 ![Последние статьи и раздел Полей Сражений](docs/screenshots/home-sections.png)
-
-![Главная страница Manacost Arena на телефоне](docs/screenshots/home-mobile.png)
 
 Скриншоты снимаются прямо с production в desktop и mobile viewport. Их можно
 воспроизвести одной командой:
@@ -218,8 +253,3 @@ sudo scripts/deploy-release.sh "$artifact"
 [Manacost в Telegram](https://t.me/manacost_ru).
 
 Сделано командой Manacost для русскоязычного сообщества Hearthstone.
-
-[ci-badge]: https://github.com/Zulut30/manacost-arena/actions/workflows/ci.yml/badge.svg?branch=main
-[ci-workflow]: https://github.com/Zulut30/manacost-arena/actions/workflows/ci.yml
-[production-badge]: https://img.shields.io/website?url=https%3A%2F%2Farena.hs-manacost.ru%2Fapi%2Fhealth%2Fready&up_message=healthy&down_message=unavailable&label=production&color=4A2F66
-[production-health]: https://arena.hs-manacost.ru/api/health/ready
