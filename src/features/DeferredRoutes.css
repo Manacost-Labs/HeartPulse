@@ -2605,90 +2605,89 @@
 }
 
 /* Owned by the deferred Tier List and Legendaries lightbox. */
-@layer utilities {
-  .card-modal-stats.card-modal-stats--parchment {
-    max-width: 420px;
-    padding: 1rem !important;
-    backdrop-filter: none !important;
-  }
+.card-modal-stats.card-modal-stats--parchment {
+  max-width: 420px;
+  padding: 1rem;
+  backdrop-filter: none;
+}
 
-  .card-modal-stats--parchment .card-modal-header {
-    border-color: rgba(235, 194, 100, 0.32) !important;
-  }
+.card-modal-stats--parchment .card-modal-header {
+  border-color: rgba(235, 194, 100, 0.32);
+}
 
-  .card-modal-stats--parchment .card-modal-source {
-    color: #efc568 !important;
-  }
+.card-modal-stats--parchment .card-modal-source {
+  color: #efc568;
+}
 
-  .card-modal-stats--parchment .card-modal-title {
-    color: #fff0c4 !important;
-    text-shadow: 0 3px 4px rgba(35, 2, 5, 0.72) !important;
-  }
+.card-modal-stats--parchment .card-modal-title {
+  color: #fff0c4;
+  text-shadow: 0 3px 4px rgba(35, 2, 5, 0.72);
+}
 
-  .card-modal-stats--parchment .card-modal-chip {
-    border: 1px solid rgba(235, 194, 100, 0.3) !important;
-    border-radius: 2px !important;
-    color: #f0d49d !important;
-    background: rgba(35, 2, 5, 0.38) !important;
-  }
+.card-modal-stats--parchment .card-modal-chip {
+  border: 1px solid rgba(235, 194, 100, 0.3);
+  border-radius: 2px;
+  color: #f0d49d;
+  background: rgba(35, 2, 5, 0.38);
+}
 
-  .card-modal-stats--parchment .card-modal-chip--mana {
-    border-color: rgba(113, 170, 217, 0.45) !important;
-    color: #d5e9f6 !important;
-    background: rgba(18, 43, 67, 0.46) !important;
-  }
+.card-modal-stats--parchment .card-modal-chip--mana {
+  border-color: rgba(113, 170, 217, 0.45);
+  color: #d5e9f6;
+  background: rgba(18, 43, 67, 0.46);
+}
 
-  .card-modal-stats--parchment .card-modal-stat-row {
-    min-height: 37px !important;
-    border: 1px solid rgba(235, 194, 100, 0.18) !important;
-    border-radius: 2px !important;
-    background: rgba(38, 2, 5, 0.42) !important;
-    box-shadow: inset 0 1px rgba(255, 236, 190, 0.035) !important;
-  }
+.card-modal-stats--parchment .card-modal-stat-row {
+  min-height: 37px;
+  border: 1px solid rgba(235, 194, 100, 0.18);
+  border-radius: 2px;
+  background: rgba(38, 2, 5, 0.42);
+  box-shadow: inset 0 1px rgba(255, 236, 190, 0.035);
+}
 
-  .card-modal-stats--parchment .card-modal-stat-row dt {
-    color: #d9be8c !important;
-  }
+.card-modal-stats--parchment .card-modal-stat-row dt {
+  color: #d9be8c;
+}
 
-  .card-modal-close.card-modal-close--parchment {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    z-index: 2;
-    display: flex;
-    width: 44px;
-    height: 44px;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
-    touch-action: manipulation;
-  }
+.card-modal-close.card-modal-close--parchment {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  display: flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+  touch-action: manipulation;
+}
 
-  .card-modal-shell.card-modal-shell--parchment {
-    width: min(940px, calc(100vw - 88px));
-    max-height: calc(100dvh - 20px);
-    grid-template-columns: minmax(190px, 360px) minmax(280px, 400px);
-    gap: clamp(1rem, 2.4vw, 1.75rem);
-    padding: 0.3rem !important;
-    overflow: visible;
-  }
+.card-modal-shell.card-modal-shell--parchment {
+  width: min(940px, calc(100vw - 88px));
+  max-height: calc(100dvh - 20px);
+  grid-template-columns: minmax(190px, 360px) minmax(280px, 400px);
+  gap: clamp(1rem, 2.4vw, 1.75rem);
+  padding: 0.3rem;
+  overflow: visible;
+}
 
-  .card-modal-shell--parchment .card-modal-image {
-    width: auto;
-    max-width: min(360px, 36vw);
-    height: min(76dvh, 620px);
-    max-height: calc(100dvh - 28px);
-    object-fit: contain;
-  }
+.card-modal-shell--parchment .card-modal-image {
+  width: auto;
+  max-width: min(360px, 36vw);
+  height: min(76dvh, 620px);
+  max-height: calc(100dvh - 28px);
+  object-fit: contain;
+}
 
-  .card-modal-stats.card-modal-stats--parchment {
-    max-height: calc(100dvh - 28px);
-    overflow: hidden;
-  }
+.card-modal-stats.card-modal-stats--parchment {
+  max-height: calc(100dvh - 28px);
+  overflow: hidden;
+}
 
-  @media (max-height: 760px) and (min-width: 768px) {
+@media (max-height: 760px) and (min-width: 768px) {
     .card-modal-shell.card-modal-shell--parchment {
       width: min(860px, calc(100vw - 88px));
       grid-template-columns: minmax(180px, 330px) minmax(280px, 370px);
@@ -2700,78 +2699,78 @@
 
     .card-modal-shell--parchment .card-modal-image {
       max-width: min(330px, 34vw);
-      height: calc(100dvh - 24px);
+      height: min(76dvh, 620px);
     }
     }
 
   @media (max-height: 760px) and (min-width: 768px) {
 
     .card-modal-stats.card-modal-stats--parchment {
-      border-width: 8px !important;
-      border-image-width: 8px !important;
-      padding: 0.65rem !important;
+      border-width: 8px;
+      border-image-width: 8px;
+      padding: 0.65rem;
     }
     }
 
   @media (max-height: 760px) and (min-width: 768px) {
 
     .card-modal-stats--parchment .card-modal-header {
-      padding-bottom: 0.5rem !important;
+      padding-bottom: 0.5rem;
     }
     }
 
   @media (max-height: 760px) and (min-width: 768px) {
 
     .card-modal-stats--parchment .card-modal-title {
-      font-size: clamp(1.05rem, 2vw, 1.3rem) !important;
+      font-size: clamp(1.05rem, 2vw, 1.3rem);
     }
     }
 
   @media (max-height: 760px) and (min-width: 768px) {
 
     .card-modal-stats--parchment .card-modal-tier {
-      width: 2.35rem !important;
-      height: 2.35rem !important;
-      font-size: 1rem !important;
+      width: 2.35rem;
+      height: 2.35rem;
+      font-size: 1rem;
     }
     }
 
   @media (max-height: 760px) and (min-width: 768px) {
 
     .card-modal-stats--parchment .card-modal-chip {
-      min-height: 26px !important;
-      padding: 0.25rem 0.48rem !important;
-      font-size: 0.68rem !important;
+      min-height: 26px;
+      padding: 0.25rem 0.48rem;
+      font-size: 0.68rem;
     }
     }
 
   @media (max-height: 760px) and (min-width: 768px) {
 
     .card-modal-stats--parchment dl {
-      gap: 0.28rem !important;
-      margin-top: 0.55rem !important;
+      gap: 0.28rem;
+      margin-top: 0.55rem;
     }
     }
 
   @media (max-height: 760px) and (min-width: 768px) {
 
     .card-modal-stats--parchment .card-modal-stat-row {
-      min-height: 29px !important;
-      padding: 0.34rem 0.5rem !important;
+      min-height: 29px;
+      padding: 0.34rem 0.5rem;
     }
     }
 
   @media (max-height: 760px) and (min-width: 768px) {
 
     .card-modal-stats--parchment .card-modal-stat-row dt {
-      font-size: 0.62rem !important;
+      font-size: 0.62rem;
     }
     }
 
   @media (max-height: 760px) and (min-width: 768px) {
 
     .card-modal-stats--parchment .card-modal-stat-row dd {
-      font-size: 0.84rem !important;
+      font-size: 0.84rem;
     }
     }
 
@@ -2783,7 +2782,7 @@
       grid-template-columns: minmax(0, 1fr);
       grid-template-rows: minmax(0, 28dvh) auto;
       gap: 0.35rem;
-      padding: 0 !important;
+      padding: 0;
       overflow: hidden;
     }
     }
@@ -2801,72 +2800,72 @@
   @media (max-width: 767px) {
 
     .card-modal-stats.card-modal-stats--parchment {
-      max-height: none !important;
-      border-width: 6px !important;
-      border-image-width: 6px !important;
-      padding: 0.55rem !important;
+      max-height: none;
+      border-width: 6px;
+      border-image-width: 6px;
+      padding: 0.55rem;
     }
     }
 
   @media (max-width: 767px) {
 
     .card-modal-stats--parchment .card-modal-header {
-      padding-bottom: 0.35rem !important;
+      padding-bottom: 0.35rem;
     }
     }
 
   @media (max-width: 767px) {
 
     .card-modal-stats--parchment .card-modal-title {
-      font-size: 1rem !important;
+      font-size: 1rem;
     }
     }
 
   @media (max-width: 767px) {
 
     .card-modal-stats--parchment .card-modal-tier {
-      width: 2rem !important;
-      height: 2rem !important;
-      font-size: 0.86rem !important;
+      width: 2rem;
+      height: 2rem;
+      font-size: 0.86rem;
     }
     }
 
   @media (max-width: 767px) {
 
     .card-modal-stats--parchment .card-modal-chip {
-      min-height: 24px !important;
-      padding: 0.2rem 0.42rem !important;
-      font-size: 0.62rem !important;
+      min-height: 24px;
+      padding: 0.2rem 0.42rem;
+      font-size: 0.62rem;
     }
     }
 
   @media (max-width: 767px) {
 
     .card-modal-stats--parchment dl {
-      gap: 0.2rem !important;
-      margin-top: 0.4rem !important;
+      gap: 0.2rem;
+      margin-top: 0.4rem;
     }
     }
 
   @media (max-width: 767px) {
 
     .card-modal-stats--parchment .card-modal-stat-row {
-      min-height: 27px !important;
-      padding: 0.28rem 0.45rem !important;
+      min-height: 27px;
+      padding: 0.28rem 0.45rem;
     }
     }
 
   @media (max-width: 767px) {
 
     .card-modal-stats--parchment .card-modal-stat-row dt {
-      font-size: 0.57rem !important;
+      font-size: 0.57rem;
     }
     }
 
   @media (max-width: 767px) {
 
     .card-modal-stats--parchment .card-modal-stat-row dd {
-      font-size: 0.78rem !important;
+      font-size: 0.78rem;
     }
     }
 
@@ -2887,7 +2886,7 @@
   @media (max-height: 680px) and (max-width: 767px) {
 
     .card-modal-stats.card-modal-stats--parchment {
-      padding: 0.4rem !important;
+      padding: 0.4rem;
     }
     }
 
@@ -2895,10 +2894,9 @@
 
     .card-modal-stats--parchment .card-modal-source,
     .card-modal-stats--parchment .card-modal-chip img {
-      display: none !important;
+      display: none;
     }
-    }
-}
+  }
 
 /* Owned by the deferred Arena data routes and their card tooltip. */
 @layer utilities {

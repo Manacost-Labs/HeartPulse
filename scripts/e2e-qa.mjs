@@ -2765,6 +2765,83 @@ for (const [device, viewport] of [
   }
 }
 
+async function assertCardLightboxPresentation(page, label, expectedColumns) {
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('.card-modal-lightbox')).opacity === '1');
+  const material = await page.evaluate(() => {
+    const element = selector => document.querySelector(selector);
+    const style = selector => getComputedStyle(element(selector));
+    const rect = selector => {
+      const bounds = element(selector).getBoundingClientRect();
+      return { left: bounds.left, top: bounds.top, right: bounds.right, bottom: bounds.bottom, width: bounds.width, height: bounds.height };
+    };
+    const backdrop = style('.card-modal-backdrop');
+    const shell = style('.card-modal-shell');
+    const stats = style('.card-modal-stats');
+    const close = style('.card-modal-close');
+    const inlineOwners = [
+      '.card-modal-lightbox',
+      '.card-modal-backdrop',
+      '.card-modal-shell',
+      '.card-modal-image',
+      '.card-modal-close',
+    ].filter(selector => element(selector)?.hasAttribute('style'));
+    return {
+      backdropImage: backdrop.backgroundImage,
+      shellImage: shell.backgroundImage,
+      shellBorderImage: shell.borderImageSource,
+      shellBorderWidth: Number.parseFloat(shell.borderTopWidth),
+      shellColumnCount: shell.gridTemplateColumns.split(' ').filter(Boolean).length,
+      statsBackground: stats.backgroundColor,
+      closeBackground: close.backgroundImage,
+      closeSize: [close.width, close.height],
+      shellRect: rect('.card-modal-shell'),
+      imageRect: rect('.card-modal-image'),
+      statsRect: rect('.card-modal-stats'),
+      viewport: { width: innerWidth, height: innerHeight },
+      inlineOwners,
+    };
+  });
+  const prefix = `lightbox ${label}`;
+  if (!material.backdropImage.includes('arena-rail-red.jpg')) failures.push(`${prefix}: canonical red backdrop texture is missing`);
+  if (!material.shellImage.includes('arena-rail-red.jpg')) failures.push(`${prefix}: canonical red panel texture is missing`);
+  if (!material.shellBorderImage.includes('main-page-rail-border.png') || material.shellBorderWidth < 9) failures.push(`${prefix}: wooden panel frame is missing`);
+  if (material.shellColumnCount !== expectedColumns) failures.push(`${prefix}: expected ${expectedColumns} grid columns, received ${material.shellColumnCount}`);
+  if (material.statsBackground !== 'rgba(45, 3, 7, 0.56)') failures.push(`${prefix}: unexpected stats material ${material.statsBackground}`);
+  if (!material.closeBackground.includes('linear-gradient')) failures.push(`${prefix}: shared close-button material is missing`);
+  if (material.closeSize[0] !== '44px' || material.closeSize[1] !== '44px') failures.push(`${prefix}: close target is ${material.closeSize.join(' × ')}`);
+  if (material.inlineOwners.length) failures.push(`${prefix}: presentation leaked back into inline styles (${material.inlineOwners.join(', ')})`);
+  for (const [name, bounds] of [['shell', material.shellRect], ['image', material.imageRect], ['stats', material.statsRect]]) {
+    if (bounds.width <= 0 || bounds.height <= 0) failures.push(`${prefix}: ${name} has no rendered area`);
+    if (bounds.left < -1 || bounds.top < -1 || bounds.right > material.viewport.width + 1 || bounds.bottom > material.viewport.height + 1) {
+      failures.push(`${prefix}: ${name} escapes the viewport (${JSON.stringify(bounds)})`);
+    }
+  }
+}
+
+for (const [label, viewport] of [
+  ['desktop', { width: 1280, height: 720 }],
+  ['compact desktop', { width: 1024, height: 640 }],
+]) {
+  const page = await createQaPage();
+  await page.setViewport({ ...viewport, deviceScaleFactor: 1 });
+  await mockApplicationApi(page, { authenticated: true });
+  try {
+    await page.goto(`${BASE}/tierlist`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await waitForMeaningfulPage(page, 'Тир-лист');
+    await page.waitForSelector('.hs-tier-card');
+    await page.$eval('.hs-tier-card', element => element.click());
+    await page.waitForSelector('.card-modal-lightbox', { visible: true });
+    await assertCardLightboxPresentation(page, label, 2);
+    await page.click('.card-modal-lightbox [aria-label="Закрыть"]');
+    await page.waitForSelector('.card-modal-lightbox', { hidden: true });
+    console.log(`✓ ${label} lightbox material and geometry`);
+  } catch (error) {
+    failures.push(`${label} lightbox: ${error.message}`);
+  } finally {
+    await page.close();
+  }
+}
+
 // Card lightbox: opening it must freeze the underlying mobile document and
 // closing it must restore both the scroll position and inline styles.
 {
@@ -2780,39 +2857,7 @@ for (const [device, viewport] of [
     await page.$eval('.hs-tier-card', element => element.click());
     await page.waitForSelector('.card-modal-lightbox', { visible: true });
     await auditAccessibility(page, 'mobile lightbox open', '.card-modal-lightbox');
-    const material = await page.evaluate(() => {
-      const style = selector => getComputedStyle(document.querySelector(selector));
-      const backdrop = style('.card-modal-backdrop');
-      const shell = style('.card-modal-shell');
-      const stats = style('.card-modal-stats');
-      const close = style('.card-modal-close');
-      const inlineOwners = [
-        '.card-modal-lightbox',
-        '.card-modal-backdrop',
-        '.card-modal-shell',
-        '.card-modal-image',
-        '.card-modal-close',
-      ].filter(selector => document.querySelector(selector)?.hasAttribute('style'));
-      return {
-        backdropImage: backdrop.backgroundImage,
-        shellImage: shell.backgroundImage,
-        shellBorderImage: shell.borderImageSource,
-        shellBorderWidth: Number.parseFloat(shell.borderTopWidth),
-        shellColumns: shell.gridTemplateColumns,
-        statsBackground: stats.backgroundColor,
-        closeBackground: close.backgroundImage,
-        closeSize: [close.width, close.height],
-        inlineOwners,
-      };
-    });
-    if (!material.backdropImage.includes('arena-rail-red.jpg')) failures.push('lightbox: canonical red backdrop texture is missing');
-    if (!material.shellImage.includes('arena-rail-red.jpg')) failures.push('lightbox: canonical red panel texture is missing');
-    if (!material.shellBorderImage.includes('main-page-rail-border.png') || material.shellBorderWidth < 9) failures.push('lightbox: wooden panel frame is missing');
-    if (material.shellColumns === 'none') failures.push('lightbox: responsive CSS owner did not establish the card grid');
-    if (material.statsBackground !== 'rgba(45, 3, 7, 0.56)') failures.push(`lightbox: unexpected stats material ${material.statsBackground}`);
-    if (!material.closeBackground.includes('linear-gradient')) failures.push('lightbox: shared close-button material is missing');
-    if (material.closeSize[0] !== '44px' || material.closeSize[1] !== '44px') failures.push(`lightbox: close target is ${material.closeSize.join(' × ')}`);
-    if (material.inlineOwners.length) failures.push(`lightbox: presentation leaked back into inline styles (${material.inlineOwners.join(', ')})`);
+    await assertCardLightboxPresentation(page, 'mobile', 1);
     const locked = await page.evaluate(() => ({
       bodyPosition: getComputedStyle(document.body).position,
       htmlOverflow: getComputedStyle(document.documentElement).overflow,
