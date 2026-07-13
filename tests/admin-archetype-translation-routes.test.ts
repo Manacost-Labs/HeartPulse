@@ -17,6 +17,10 @@ assert.deepEqual(normalizeArchetypeTranslation({ nameEn: '  Control   Warrior ',
 });
 assert.throws(() => normalizeArchetypeTranslation({ nameEn: 'Воин', nameRu: 'Воин' }));
 assert.throws(() => normalizeBlizzcoreArchetypes([{ id: 1, name_en: 'Mage', name_ru: 'Маг' }, { id: 1, name_en: 'Warrior', name_ru: 'Воин' }]));
+assert.deepEqual(
+  normalizeBlizzcoreArchetypes([{ id: 197, name_en: 'Большой друид', name_ru: 'Большой Друид' }]),
+  [{ id: 197, nameEn: 'Большой друид', nameRu: 'Большой Друид' }],
+);
 
 const database = new DatabaseSync(':memory:');
 database.exec(`

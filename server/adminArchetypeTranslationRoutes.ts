@@ -82,13 +82,22 @@ export function normalizeBlizzcoreArchetypes(payload: unknown): BlizzcoreArchety
   const ids = new Set<number>();
   const keys = new Set<string>();
   return source.map((item) => {
-    const normalized = normalizeArchetypeTranslation(item);
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      throw new ArchetypeTranslationValidationError('BlizzCore вернул некорректную строку');
+    }
+    const record = item as Record<string, unknown>;
+    // BlizzCore has a small number of legacy rows whose name_en is already in
+    // Russian. Keep those source rows importable while preserving the stricter
+    // Latin-name validation for translations entered manually in the admin UI.
+    const nameEn = normalizeText(record.nameEn ?? record.name_en, 'Английское название');
+    const nameRu = normalizeText(record.nameRu ?? record.name_ru, 'Русский перевод');
+    const nameKey = nameEn.toLocaleLowerCase('en-US');
     const rawId = Number((item as Record<string, unknown>).id);
     if (!Number.isSafeInteger(rawId) || rawId <= 0) throw new ArchetypeTranslationValidationError('BlizzCore вернул некорректный id');
-    if (ids.has(rawId) || keys.has(normalized.nameKey)) throw new ArchetypeTranslationValidationError('BlizzCore вернул дублирующиеся строки');
+    if (ids.has(rawId) || keys.has(nameKey)) throw new ArchetypeTranslationValidationError('BlizzCore вернул дублирующиеся строки');
     ids.add(rawId);
-    keys.add(normalized.nameKey);
-    return { id: rawId, nameEn: normalized.nameEn, nameRu: normalized.nameRu };
+    keys.add(nameKey);
+    return { id: rawId, nameEn, nameRu };
   });
 }
 
