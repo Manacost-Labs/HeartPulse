@@ -73,6 +73,21 @@ curl -fsS https://arena.hs-manacost.ru/api/health/ready
 Do not remove the old workspace `dist` or `server/data` until the new service,
 nginx paths, authenticated E2E and one rollback drill have all passed.
 
+## Local mail transport
+
+The application submits authentication and newsletter mail to the local Exim
+listener over SMTP (`127.0.0.1:25` by default). Do not switch it back to the
+setuid `/usr/sbin/sendmail` binary: `hs-arena.service` deliberately has
+`NoNewPrivileges=true`, so a sendmail child cannot become the Exim user and
+cannot create spool files.
+
+The optional `LOCAL_SMTP_HOST`, `LOCAL_SMTP_PORT` and
+`LOCAL_SMTP_TIMEOUT_MS` environment variables configure this connection. Keep
+the host loopback-only unless transport authentication and encryption are
+added. A healthy runtime should retain `NoNewPrivileges: 1`, accept a probe
+through local SMTP and have no `Failed to create spool file` records in the
+Exim log.
+
 ## Manual rollback
 
 The deployer can deploy the already validated `previous` release without

@@ -8,7 +8,6 @@ import { createClient } from 'redis';
 import { chmodSync, copyFileSync, mkdirSync, renameSync, unlinkSync, writeFileSync, readFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve } from 'path';
-import { spawn } from 'child_process';
 import { createHash, createHmac, createPublicKey, randomBytes, randomInt, scryptSync, timingSafeEqual, verify } from 'crypto';
 // @ts-ignore: node:sqlite is available in the production Node 22 runtime.
 import { DatabaseSync } from 'node:sqlite';
@@ -73,6 +72,7 @@ import { createAuthProfileRouter, type AuthProfilePatch } from './authProfileRou
 import { completePasswordReset, createPasswordResetRouter } from './passwordResetRoutes.js';
 import { authenticatedUserPayload, createAuthVerificationRouter } from './authVerificationRoutes.js';
 import { createAuthCredentialRouter, deliverCredentialCode } from './authCredentialRoutes.js';
+import { sendLocalSmtpMessage } from './localSmtp.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -227,9 +227,10 @@ const AUTH_FROM = process.env.AUTH_FROM || 'noreply@hs-manacost.ru';
 const NEWSLETTER_FROM = process.env.NEWSLETTER_FROM || AUTH_FROM;
 const NEWSLETTER_FROM_NAME = (process.env.NEWSLETTER_FROM_NAME || 'Manacost').trim();
 const NEWSLETTER_UNSUBSCRIBE_SECRET = (process.env.NEWSLETTER_UNSUBSCRIBE_SECRET || ECOSYSTEM_INTERNAL_KEY).trim();
-const SENDMAIL_PATH = process.env.SENDMAIL_PATH || '/usr/sbin/sendmail';
+const LOCAL_SMTP_HOST = (process.env.LOCAL_SMTP_HOST || '127.0.0.1').trim();
+const LOCAL_SMTP_PORT = Math.max(1, Math.min(65_535, Number(process.env.LOCAL_SMTP_PORT || 25)));
 const NEWSLETTER_HTML_MAX_LENGTH = Math.max(10_000, Number(process.env.NEWSLETTER_HTML_MAX_LENGTH || 120_000));
-const NEWSLETTER_SENDMAIL_TIMEOUT_MS = 30_000;
+const LOCAL_SMTP_TIMEOUT_MS = Math.max(1_000, Math.min(120_000, Number(process.env.LOCAL_SMTP_TIMEOUT_MS || 30_000)));
 const NEWSLETTER_LEGACY_MIGRATION_KEY = 'mailing_contacts_legacy_consent_migrated_v1';
 const AUTH_SESSION_TTL_MS = Math.max(
   12 * 60 * 60 * 1000,
@@ -2433,13 +2434,13 @@ function sendAuthCodeEmail(to: string, code: string): Promise<void> {
     '',
   ].join('\n');
 
-  return new Promise((resolve, reject) => {
-    const child = spawn(SENDMAIL_PATH, ['-f', AUTH_FROM, '-t'], { stdio: ['pipe', 'ignore', 'pipe'] });
-    let stderr = '';
-    child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
-    child.on('error', reject);
-    child.on('close', (code: number) => code === 0 ? resolve() : reject(new Error(stderr || `sendmail exited ${code}`)));
-    child.stdin.end(message);
+  return sendLocalSmtpMessage({
+    envelopeFrom: AUTH_FROM,
+    recipients: [recipient],
+    message,
+    host: LOCAL_SMTP_HOST,
+    port: LOCAL_SMTP_PORT,
+    timeoutMs: LOCAL_SMTP_TIMEOUT_MS,
   });
 }
 
@@ -2626,33 +2627,13 @@ function sendMimeEmail(input: { to: string; subject: string; text: string; html:
     `--${boundary}--`,
     '',
   ].join('\r\n');
-  return new Promise((resolve, reject) => {
-    const child = spawn(SENDMAIL_PATH, ['-oi', '-f', NEWSLETTER_FROM, '-t'], { stdio: ['pipe', 'ignore', 'pipe'] });
-    let settled = false;
-    let stderr = '';
-    let timeout: NodeJS.Timeout | undefined;
-    const settle = (error?: Error) => {
-      if (settled) return;
-      settled = true;
-      if (timeout) clearTimeout(timeout);
-      if (error) reject(error);
-      else resolve();
-    };
-    child.stderr.on('data', (chunk: Buffer) => {
-      stderr = `${stderr}${chunk.toString()}`.slice(-2000);
-    });
-    child.on('error', (error: Error) => settle(error));
-    child.stdin.on('error', (error: Error) => settle(error));
-    child.on('close', (code: number | null, signal: NodeJS.Signals | null) => {
-      if (code === 0) settle();
-      else settle(new Error(stderr || `sendmail exited ${code ?? 'without code'}${signal ? ` (${signal})` : ''}`));
-    });
-    timeout = setTimeout(() => {
-      child.kill('SIGKILL');
-      settle(new Error('sendmail timeout after 30 seconds'));
-    }, NEWSLETTER_SENDMAIL_TIMEOUT_MS);
-    timeout.unref?.();
-    child.stdin.end(message);
+  return sendLocalSmtpMessage({
+    envelopeFrom: NEWSLETTER_FROM,
+    recipients: [recipient],
+    message,
+    host: LOCAL_SMTP_HOST,
+    port: LOCAL_SMTP_PORT,
+    timeoutMs: LOCAL_SMTP_TIMEOUT_MS,
   });
 }
 
@@ -2788,7 +2769,7 @@ function mailingOverviewPayload() {
     })),
     campaigns,
     transport: {
-      configured: Boolean(NEWSLETTER_FROM && NEWSLETTER_UNSUBSCRIBE_SECRET && SENDMAIL_PATH),
+      configured: Boolean(NEWSLETTER_FROM && NEWSLETTER_UNSUBSCRIBE_SECRET && LOCAL_SMTP_HOST),
       from: NEWSLETTER_FROM,
     },
   };
