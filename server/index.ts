@@ -57,6 +57,11 @@ import {
   createAdminMailingDeliveryRouter,
 } from './adminMailingDeliveryRoutes.js';
 import { createAdminMailingReadRouter } from './adminMailingReadRoutes.js';
+import {
+  createNewsletterUnsubscribeRouter,
+  unsubscribeNewsletterContact,
+  type NewsletterUnsubscribeStore,
+} from './newsletterUnsubscribeRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -2530,13 +2535,10 @@ function mailingContactFromUnsubscribeToken(token: unknown): any | null {
   if (!payload || !signature) return null;
   const expected = hmacSha256(`newsletter-unsubscribe:${payload}`, NEWSLETTER_UNSUBSCRIBE_SECRET);
   if (!safeEqualHex(signature, expected)) return null;
-  try {
-    const contactId = Buffer.from(payload, 'base64url').toString('utf8');
-    if (!/^mail_[a-f0-9]{24}$/.test(contactId)) return null;
-    return dbGet<any>('SELECT * FROM mailing_contacts WHERE id = ?', contactId) ?? null;
-  } catch {
-    return null;
-  }
+  let contactId = '';
+  try { contactId = Buffer.from(payload, 'base64url').toString('utf8'); } catch { return null; }
+  if (!/^mail_[a-f0-9]{24}$/.test(contactId)) return null;
+  return dbGet<any>('SELECT * FROM mailing_contacts WHERE id = ?', contactId) ?? null;
 }
 
 function renderNewsletterHtml(draft: NewsletterDraft, unsubscribeUrl: string, preview = false): string {
@@ -7536,41 +7538,46 @@ app.use('/api', createAdminMailingDeliveryRouter({
   onSideEffectError: (_error, operation) => console.error(`[mailing] post-commit side effect failed: ${operation}`),
 }));
 
-app.get('/api/newsletter/unsubscribe', (req, res) => {
-  setPrivateNoStore(res);
-  res.set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
-  const token = String(req.query.token || '');
-  const contact = mailingContactFromUnsubscribeToken(token);
-  if (!contact) return res.status(400).type('html').send('<!doctype html><meta charset="utf-8"><title>Ссылка недействительна</title><p>Ссылка отписки недействительна или устарела.</p>');
-  const alreadyUnsubscribed = contact.consent_status === 'unsubscribed' || contact.consent_status === 'suppressed';
-  res.type('html').send(`<!doctype html>
-    <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Отписка от Manacost</title>
-    <style>body{margin:0;background:#eef3f8;color:#1d2c3a;font:16px/1.5 Arial,sans-serif}.card{width:min(92%,520px);margin:10vh auto;padding:28px;border:1px solid #cad7e4;border-radius:12px;background:#fff}button{min-height:42px;padding:0 18px;border:0;border-radius:6px;background:#0d6fae;color:#fff;font-weight:700;cursor:pointer}</style></head>
-    <body><main class="card"><h1>${alreadyUnsubscribed ? 'Вы уже отписаны' : 'Отписаться от рассылки?'}</h1>
-    <p>${alreadyUnsubscribed ? 'Новые письма на этот адрес отправляться не будут.' : 'После подтверждения мы сохраним адрес только в списке исключений, чтобы больше не отправлять письма.'}</p>
-    ${alreadyUnsubscribed ? '' : `<form method="post" action="/api/newsletter/unsubscribe"><input type="hidden" name="token" value="${escapeNewsletterHtml(token)}"><button type="submit">Подтвердить отписку</button></form>`}
-    </main></body></html>`);
-});
-
-app.post('/api/newsletter/unsubscribe', (req, res) => {
-  setPrivateNoStore(res);
-  const token = String(req.body?.token || req.query.token || '');
-  const contact = mailingContactFromUnsubscribeToken(token);
-  if (!contact) return res.status(400).json({ error: 'Ссылка отписки недействительна' });
-  const nowIso = new Date().toISOString();
-  dbRun(`
-    UPDATE mailing_contacts
-    SET consent_status = 'unsubscribed', unsubscribed_at = COALESCE(unsubscribed_at, ?),
-        suppressed_reason = 'user-unsubscribed', updated_at = ?
-    WHERE id = ?
-  `, nowIso, nowIso, contact.id);
-  if (contact.user_id) dbRun('UPDATE users SET newsletter_opt_in = 0, updated_at = ? WHERE id = ?', nowIso, contact.user_id);
-  if (String(req.headers['list-unsubscribe'] || req.body?.ListUnsubscribe || '') === 'One-Click'
-    || String(req.body?.['List-Unsubscribe'] || '') === 'One-Click') {
-    return res.json({ success: true });
-  }
-  res.type('html').send('<!doctype html><meta charset="utf-8"><title>Вы отписались</title><p>Готово. Новые письма Manacost на этот адрес отправляться не будут.</p>');
-});
+app.use('/api', createNewsletterUnsubscribeRouter({
+  resolveContact: token => {
+    const row = mailingContactFromUnsubscribeToken(token);
+    return row ? {
+      id: String(row.id),
+      userId: row.user_id ? String(row.user_id) : undefined,
+      consentStatus: String(row.consent_status || 'unknown'),
+    } : null;
+  },
+  unsubscribe: (contact, timestamp) => {
+    const database = db();
+    const store: NewsletterUnsubscribeStore = {
+      transaction: work => {
+        try {
+          database.exec('BEGIN IMMEDIATE');
+          const result = work();
+          database.exec('COMMIT');
+          return result;
+        } catch (error) {
+          try { database.exec('ROLLBACK'); } catch { /* BEGIN may itself have failed. */ }
+          throw error;
+        }
+      },
+      updateContact: (contactId, updatedAt) => {
+        database.prepare(`
+          UPDATE mailing_contacts
+          SET consent_status = 'unsubscribed', unsubscribed_at = COALESCE(unsubscribed_at, ?),
+              suppressed_reason = 'user-unsubscribed', updated_at = ?
+          WHERE id = ?
+        `).run(updatedAt, updatedAt, contactId);
+      },
+      updateUser: (userId, updatedAt) => {
+        database.prepare('UPDATE users SET newsletter_opt_in = 0, updated_at = ? WHERE id = ?').run(updatedAt, userId);
+      },
+    };
+    unsubscribeNewsletterContact(store, contact, timestamp);
+  },
+  escapeHtml: escapeNewsletterHtml,
+  setPrivateNoStore,
+}));
 
 app.get('/api/admin/users/search', (req, res) => {
   const admin = adminAuth(req);
