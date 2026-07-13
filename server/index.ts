@@ -69,6 +69,7 @@ import { createAdminImageUploadRouter } from './adminImageUploadRoutes.js';
 import { createAdminImageGenerationRouter } from './adminImageGenerationRoutes.js';
 import { createContestRouter } from './contestRoutes.js';
 import { createSubscriptionRouter } from './subscriptionRoutes.js';
+import { createAuthProfileRouter, type AuthProfilePatch } from './authProfileRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -6842,69 +6843,55 @@ app.post('/api/auth/verify', authCodeVerifyLimiter, (req, res) => {
   res.json({ success: true, token, user: publicUser(user), adminAllowed: isAdminUser(user), contestAdminAllowed: isContestAdminUser(user) });
 });
 
-app.get('/api/auth/me', (req, res) => {
-  setPrivateNoStore(res);
-  const token = adminTokenFromReq(req);
-  const activeSession = authenticatedSessionFromToken(token);
-  const user = activeSession?.user ?? null;
-  if (activeSession && token) {
-    if (refreshAuthSessionIfNeeded(activeSession.store, activeSession.session)) {
-      saveAuthStore(activeSession.store);
+app.use('/api', createAuthProfileRouter({
+  getSession: req => {
+    const token = adminTokenFromReq(req);
+    const activeSession = authenticatedSessionFromToken(token);
+    if (!activeSession || !token) return null;
+    return {
+      user: activeSession.user,
+      touch: res => {
+        if (refreshAuthSessionIfNeeded(activeSession.store, activeSession.session)) {
+          saveAuthStore(activeSession.store);
+        }
+        setAuthCookie(req, res, token);
+      },
+    };
+  },
+  authenticate: userAuth,
+  userId: user => user.id,
+  updateProfile: (userId: string, patch: AuthProfilePatch) => {
+    const store = loadAuthStore();
+    const user = store.users.find(item => item.id === userId);
+    if (!user) return null;
+    if (patch.country !== undefined) user.country = patch.country;
+    if (patch.newsletterOptIn !== undefined) user.newsletterOptIn = patch.newsletterOptIn;
+    if (patch.contactVkUrl !== undefined) user.contactVkUrl = patch.contactVkUrl;
+    if (patch.contactTelegram !== undefined) user.contactTelegram = patch.contactTelegram;
+    if (patch.contactEmail !== undefined) user.contactEmail = patch.contactEmail;
+    user.updatedAt = new Date().toISOString();
+    saveAuthStore(store);
+    if (patch.newsletterOptIn !== undefined) {
+      updateMailingConsent(user, patch.newsletterOptIn, 'profile-preference');
     }
-    setAuthCookie(req, res, token);
-  }
-  res.json({
-    user: user ? publicUser(user) : null,
-    adminAllowed: user ? isAdminUser(user) : false,
-    contestAdminAllowed: user ? isContestAdminUser(user) : false,
-  });
-});
-
-app.patch('/api/auth/profile', (req, res) => {
-  setPrivateNoStore(res);
-  const authedUser = userAuth(req);
-  if (!authedUser) return res.status(401).json({ error: 'Требуется вход' });
-  const store = loadAuthStore();
-  const user = store.users.find(item => item.id === authedUser.id);
-  if (!user) return res.status(401).json({ error: 'Пользователь не найден' });
-
-  const newsletterValue = req.body?.newsletterOptIn;
-  if (newsletterValue !== undefined && typeof newsletterValue !== 'boolean') {
-    return res.status(400).json({ error: 'Некорректное значение согласия на рассылку' });
-  }
-
-  if (req.body?.country !== undefined) {
-    user.country = String(req.body.country ?? '').trim();
-  }
-  const newsletterOptIn = newsletterValue === undefined ? undefined : newsletterValue;
-  if (newsletterOptIn !== undefined) user.newsletterOptIn = newsletterOptIn;
-  if (req.body?.contactVkUrl !== undefined) {
-    user.contactVkUrl = normalizeContactVkUrl(req.body.contactVkUrl);
-  }
-  if (req.body?.contactTelegram !== undefined) {
-    user.contactTelegram = normalizeContactTelegram(req.body.contactTelegram);
-  }
-  if (req.body?.contactEmail !== undefined) {
-    user.contactEmail = normalizeContactEmail(req.body.contactEmail);
-  }
-  user.updatedAt = new Date().toISOString();
-  saveAuthStore(store);
-  if (newsletterOptIn !== undefined) updateMailingConsent(user, newsletterOptIn, 'profile-preference');
-  res.json({ success: true, user: publicUser(user) });
-});
-
-app.post('/api/auth/logout', (req, res) => {
-  setPrivateNoStore(res);
-  const token = adminTokenFromReq(req);
-  if (token) {
+    return user;
+  },
+  serializeUser: publicUser,
+  isAdmin: isAdminUser,
+  isContestAdmin: isContestAdminUser,
+  tokenFromRequest: adminTokenFromReq,
+  revokeSession: token => {
     const store = loadAuthStore();
     const tokenHash = sha256(token);
     store.sessions = store.sessions.filter(item => item.tokenHash !== tokenHash);
     saveAuthStore(store);
-  }
-  clearAuthCookie(req, res);
-  res.json({ success: true });
-});
+  },
+  clearAuthCookie,
+  normalizeContactEmail,
+  normalizeContactTelegram,
+  normalizeContactVkUrl,
+  setPrivateNoStore,
+}));
 
 app.use('/api', createSubscriptionRouter({
   userAuth,
