@@ -1425,6 +1425,8 @@ for (const [device, viewport] of [
       const heroStyle = hero ? getComputedStyle(hero) : null;
       const bodyStyle = body ? getComputedStyle(body) : null;
       const statusStyle = status ? getComputedStyle(status) : null;
+      const arenaMainStyle = getComputedStyle(document.querySelector('.arena-main'));
+      const arenaContentStyle = getComputedStyle(document.querySelector('.arena-content.arena-content-open'));
       const material = selector => {
         const element = document.querySelector(selector);
         if (!element) return null;
@@ -1458,6 +1460,11 @@ for (const [device, viewport] of [
         heroClientWidth: hero?.clientWidth || 0,
         scrollWidth: document.documentElement.scrollWidth,
         clientWidth: document.documentElement.clientWidth,
+        routeShell: {
+          mainPadding: arenaMainStyle.padding,
+          contentMaxWidth: arenaContentStyle.maxWidth,
+          contentPadding: arenaContentStyle.padding,
+        },
         materials: {
           settings: material('.profile-settings-form'),
           subscription: material('.profile-subscription-panel'),
@@ -1495,6 +1502,11 @@ for (const [device, viewport] of [
       || profileState.heroScrollWidth > profileState.heroClientWidth + 1
       || profileState.scrollWidth > profileState.clientWidth + 1) {
       failures.push(`profile [${device}]: hero asset or horizontal reflow changed (${JSON.stringify(profileState)})`);
+    }
+    if (device === 'mobile' && (profileState.routeShell.mainPadding !== '0px'
+      || profileState.routeShell.contentMaxWidth !== '100%'
+      || profileState.routeShell.contentPadding !== '0px 16px 32px')) {
+      failures.push(`profile [${device}]: responsive route shell changed (${JSON.stringify(profileState.routeShell)})`);
     }
     const framedProfileSurfaces = [profileState.materials.settings, profileState.materials.subscription];
     if (framedProfileSurfaces.some(surface => !surface
