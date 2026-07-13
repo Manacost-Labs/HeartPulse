@@ -452,6 +452,27 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
       request.respond(jsonResponse({ success: true, user, lifetimeAccess: Boolean(user?.lifetimeAccess) }));
       return;
     }
+    if (admin && url.pathname === '/api/admin/mailings/overview' && request.method() === 'GET') {
+      const overview = structuredClone(adminFixtures['/api/admin/mailings/overview']);
+      overview.campaigns = adminState.mailingCampaigns ??= structuredClone(overview.campaigns);
+      request.respond(jsonResponse(overview));
+      return;
+    }
+    if (admin && url.pathname === '/api/admin/mailings/test' && request.method() === 'POST') {
+      request.respond(jsonResponse({ success: true, message: 'Тестовое письмо принято для qa@example.test' }));
+      return;
+    }
+    if (admin && url.pathname === '/api/admin/mailings/send' && request.method() === 'POST') {
+      const payload = JSON.parse(request.postData() || '{}');
+      const campaigns = adminState.mailingCampaigns ??= structuredClone(adminFixtures['/api/admin/mailings/overview'].campaigns);
+      campaigns.unshift({
+        id: 'mailing-qa-created', subject: payload.subject, preheader: payload.preheader || '', templateKey: payload.templateKey || 'custom',
+        segment: payload.segment || 'all-consented', status: 'queued', recipientCount: payload.expectedRecipients,
+        acceptedCount: 0, failedCount: 0, skippedCount: 0, createdAt: '2026-07-13T03:00:00.000Z', startedAt: '', completedAt: '', error: '',
+      });
+      request.respond({ ...jsonResponse({ success: true, campaign: campaigns[0] }), status: 202 });
+      return;
+    }
     if (admin && adminFixtures[url.pathname]) {
       request.respond(jsonResponse(adminFixtures[url.pathname]));
       return;
@@ -712,6 +733,7 @@ for (const [device, viewport] of [
     articles: structuredClone(adminFixtures['/api/articles'].articles),
     contests: structuredClone(adminFixtures['/api/admin/contests'].contests),
     users: structuredClone(adminFixtures['/api/admin/users'].users),
+    mailingCampaigns: structuredClone(adminFixtures['/api/admin/mailings/overview'].campaigns),
   };
   await page.setViewport(viewport);
   await mockApplicationApi(page, { authenticated: true, admin: true, adminState });
@@ -914,6 +936,12 @@ for (const [device, viewport] of [
     await page.click('.admin-mailing-preview-toolbar fieldset button:last-child');
     const mobilePreviewSelected = await page.$eval('.admin-mailing-preview-stage', element => element.classList.contains('is-mobile'));
     if (!mobilePreviewSelected) failures.push(`admin mailing [${device}]: mobile preview mode did not activate`);
+    await page.evaluate(() => { window.confirm = () => true; });
+    await page.click('.admin-mailing-actions button:nth-child(2)');
+    await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Тестовое письмо принято'));
+    await page.click('.admin-mailing-actions button:nth-child(3)');
+    await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Рассылка поставлена в очередь'));
+    await page.waitForFunction(() => document.querySelectorAll('.admin-mailing-history > div').length === 2);
     const mailingViolationCount = await auditAccessibility(page, `admin mailing [${device}]`, '.admin-workspace-content');
 
     await page.goto(`${BASE}/?admin&section=contests`, { waitUntil: 'domcontentloaded', timeout: 45_000 });

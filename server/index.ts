@@ -52,6 +52,10 @@ import {
   AdminMailingValidationError,
   createAdminMailingPreviewRouter,
 } from './adminMailingPreviewRoutes.js';
+import {
+  AdminMailingDeliveryError,
+  createAdminMailingDeliveryRouter,
+} from './adminMailingDeliveryRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -7462,17 +7466,19 @@ app.use('/api', createAdminMailingPreviewRouter({
   setPrivateNoStore,
 }));
 
-app.post('/api/admin/mailings/test', adminIdGuard, newsletterTestLimiter, async (req, res) => {
-  const admin = adminAuth(req);
-  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  if (!cookieMutationCsrfAllowed(req)) return res.status(403).json({ error: 'Запрос отклонён: обновите страницу' });
-  setPrivateNoStore(res);
-  try {
-    if (!isRealEmail(admin.email)) return res.status(400).json({ error: 'У администратора нет подтверждённой почты для теста' });
-    const draft = normalizeNewsletterDraft(req.body);
-    syncMailingContactForUser(db(), admin, { source: 'admin-test' });
+app.use('/api', createAdminMailingDeliveryRouter({
+  adminGuard: adminIdGuard,
+  testLimiter: newsletterTestLimiter,
+  sendLimiter: newsletterSendLimiter,
+  adminAuth,
+  csrfAllowed: cookieMutationCsrfAllowed,
+  signingSecretConfigured: () => Boolean(NEWSLETTER_UNSUBSCRIBE_SECRET),
+  normalizeDraft: normalizeNewsletterDraft,
+  isRealEmail,
+  sendTest: async (admin, draft) => {
+    syncMailingContactForUser(db(), admin as AdminUser, { source: 'admin-test' });
     const contact = dbGet<any>('SELECT * FROM mailing_contacts WHERE lower(email) = lower(?)', admin.email);
-    if (!contact) return res.status(400).json({ error: 'Не удалось подготовить тестовый контакт' });
+    if (!contact) throw new Error('Test contact is missing');
     const token = newsletterUnsubscribeToken(String(contact.id));
     const unsubscribeUrl = `${APP_URL}/api/newsletter/unsubscribe?token=${encodeURIComponent(token)}`;
     const testDraft = { ...draft, subject: `[Тест] ${draft.subject}` };
@@ -7485,44 +7491,23 @@ app.post('/api/admin/mailings/test', adminIdGuard, newsletterTestLimiter, async 
       messageId: `${randomBytes(12).toString('hex')}@${host}`,
       headers: ['Precedence: bulk', `List-Unsubscribe: <${unsubscribeUrl}>`, 'List-Unsubscribe-Post: List-Unsubscribe=One-Click'],
     });
-    recordAdminAudit(admin, 'mailing.test-sent', 'mailing', 'test', { templateKey: draft.templateKey });
-    res.json({ success: true, message: `Тестовое письмо принято для ${admin.email}` });
-  } catch (err: any) {
-    res.status(400).json({ error: err?.message || 'Не удалось отправить тестовое письмо' });
-  }
-});
-
-app.post('/api/admin/mailings/send', adminIdGuard, newsletterSendLimiter, (req, res) => {
-  const admin = adminAuth(req);
-  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  if (!cookieMutationCsrfAllowed(req)) return res.status(403).json({ error: 'Запрос отклонён: обновите страницу' });
-  setPrivateNoStore(res);
-  try {
-    if (String(req.body?.confirmation || '') !== 'SEND') {
-      return res.status(400).json({ error: 'Подтвердите массовую отправку' });
-    }
-    if (!NEWSLETTER_UNSUBSCRIBE_SECRET) {
-      return res.status(503).json({ error: 'На сервере не настроена безопасная ссылка отписки' });
-    }
-    const running = dbGet<any>("SELECT id FROM mailing_campaigns WHERE status IN ('queued', 'sending') LIMIT 1");
-    if (running) return res.status(409).json({ error: 'Другая рассылка уже выполняется' });
-    const draft = normalizeNewsletterDraft(req.body);
-    const contacts = eligibleMailingContacts(draft.segment);
-    const expectedRecipients = Number(req.body?.expectedRecipients);
-    if (!Number.isInteger(expectedRecipients) || expectedRecipients !== contacts.length) {
-      return res.status(409).json({ error: `Аудитория изменилась: сейчас ${contacts.length}. Обновите предпросмотр.` });
-    }
-    if (!contacts.length) return res.status(400).json({ error: 'В выбранной аудитории нет доступных адресов' });
-    const suppliedPreviewDigest = String(req.body?.previewDigest || '').trim();
-    const expectedPreviewDigest = newsletterPreviewDigest(draft, contacts);
-    if (!safeEqualHex(suppliedPreviewDigest, expectedPreviewDigest)) {
-      return res.status(409).json({ error: 'Предпросмотр устарел или содержимое письма изменилось. Обновите предпросмотр.' });
-    }
+  },
+  queueCampaign: (admin, draft, expectedRecipients, suppliedPreviewDigest) => {
     const campaignId = `campaign_${Date.now().toString(36)}_${randomBytes(5).toString('hex')}`;
     const nowIso = new Date().toISOString();
     const database = db();
     try {
       database.exec('BEGIN IMMEDIATE');
+      const running = database.prepare("SELECT id FROM mailing_campaigns WHERE status IN ('queued', 'sending') LIMIT 1").get();
+      if (running) throw new AdminMailingDeliveryError(409, 'Другая рассылка уже выполняется');
+      const contacts = eligibleMailingContacts(draft.segment);
+      if (!Number.isInteger(expectedRecipients) || expectedRecipients !== contacts.length) {
+        throw new AdminMailingDeliveryError(409, `Аудитория изменилась: сейчас ${contacts.length}. Обновите предпросмотр.`);
+      }
+      if (!contacts.length) throw new AdminMailingDeliveryError(400, 'В выбранной аудитории нет доступных адресов');
+      if (!safeEqualHex(suppliedPreviewDigest, newsletterPreviewDigest(draft, contacts))) {
+        throw new AdminMailingDeliveryError(409, 'Предпросмотр устарел или содержимое письма изменилось. Обновите предпросмотр.');
+      }
       database.prepare(`
         INSERT INTO mailing_campaigns (
           id, subject, preheader, html_body, text_body, template_key, segment, status,
@@ -7536,21 +7521,18 @@ app.post('/api/admin/mailings/send', adminIdGuard, newsletterSendLimiter, (req, 
       `);
       for (const contact of contacts) insertDelivery.run(campaignId, contact.id, contact.email, nowIso);
       database.exec('COMMIT');
-    } catch (err) {
-      database.exec('ROLLBACK');
-      throw err;
+      const row = database.prepare('SELECT * FROM mailing_campaigns WHERE id = ?').get(campaignId);
+      return { campaign: mailingCampaignFromRow(row), recipientCount: contacts.length };
+    } catch (error) {
+      try { database.exec('ROLLBACK'); } catch { /* BEGIN may itself have failed. */ }
+      throw error;
     }
-    recordAdminAudit(admin, 'mailing.queued', 'mailing_campaign', campaignId, {
-      segment: draft.segment,
-      recipientCount: contacts.length,
-      templateKey: draft.templateKey,
-    });
-    setImmediate(() => void runNewsletterCampaign(campaignId));
-    res.status(202).json({ success: true, campaign: mailingCampaignFromRow(dbGet<any>('SELECT * FROM mailing_campaigns WHERE id = ?', campaignId)) });
-  } catch (err: any) {
-    res.status(400).json({ error: err?.message || 'Не удалось запустить рассылку' });
-  }
-});
+  },
+  recordAudit: (admin, action, entityType, entityId, details) => recordAdminAudit(admin as AdminUser, action, entityType, entityId, details),
+  scheduleCampaign: campaignId => { setImmediate(() => void runNewsletterCampaign(campaignId)); },
+  setPrivateNoStore,
+  onSideEffectError: (_error, operation) => console.error(`[mailing] post-commit side effect failed: ${operation}`),
+}));
 
 app.get('/api/admin/mailings/:campaignId', (req, res) => {
   const admin = adminAuth(req);
