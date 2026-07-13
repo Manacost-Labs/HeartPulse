@@ -1,0 +1,260 @@
+/* Public authentication owns its material in this route-only stylesheet. */
+.login-page {
+  padding: clamp(2rem, 6vw, 5rem) 0;
+  color: var(--arena-ink);
+}
+
+.login-card {
+  width: min(100%, 460px);
+  min-height: 430px;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 1.5rem;
+  border: 10px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 / 10px / 2px stretch;
+  text-align: center;
+  background: rgba(248, 231, 191, 0.72);
+  box-shadow: 0 18px 36px rgba(74, 42, 16, 0.14);
+}
+
+.login-card__emblem {
+  display: flex;
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 0.75rem;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(236, 195, 96, 0.44);
+  border-radius: 3px;
+  color: #f0c667;
+  background:
+    linear-gradient(rgba(86, 8, 13, 0.08), rgba(50, 4, 7, 0.18)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+  box-shadow: 0 10px 20px rgba(61, 12, 9, 0.2);
+}
+
+.login-card__title {
+  margin: 0 0 0.5rem;
+  color: #3d2b1f;
+  font: 700 1.55rem/1.15 var(--font-display);
+}
+
+.login-card__intro {
+  margin: 0 0 1.125rem;
+  color: #735d46;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.login-message {
+  max-width: 340px;
+  margin: 0 auto 0.875rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid;
+  border-radius: 2px;
+  font-size: 0.75rem;
+}
+
+.login-message--ok {
+  border-color: rgba(53, 93, 57, 0.32);
+  color: #355d39;
+  background: rgba(223, 239, 201, 0.66);
+}
+
+.login-message--err {
+  border-color: rgba(125, 34, 39, 0.32);
+  color: #7d2227;
+  background: rgba(247, 210, 193, 0.68);
+}
+
+.login-mode-tabs {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 0.875rem;
+  padding: 4px;
+  border: 1px solid rgba(104, 67, 34, 0.22);
+  border-radius: 2px;
+  background: rgba(122, 73, 29, 0.07);
+}
+
+.login-mode-tab {
+  min-height: 44px;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid transparent;
+  border-radius: 1px;
+  color: #79634b;
+  font: 700 0.8125rem var(--font-display);
+  background: transparent;
+  cursor: pointer;
+}
+
+.login-mode-tab-active {
+  border-color: rgba(123, 21, 27, 0.34);
+  color: #7b151b;
+  background: rgba(255, 243, 211, 0.72);
+}
+
+.login-form {
+  display: flex;
+  max-width: 320px;
+  margin: 0 auto;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.login-field {
+  display: grid;
+  position: relative;
+  gap: 0.3rem;
+  color: #6b4c2a;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.login-field :where(input, select) {
+  width: 100%;
+  min-height: 46px;
+  box-sizing: border-box;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid rgba(104, 67, 34, 0.38);
+  border-radius: 2px;
+  color: #3d2b1f;
+  font: 400 0.875rem var(--font-body);
+  background: rgba(255, 246, 219, 0.78);
+}
+
+.login-password-field input {
+  padding-right: 3rem;
+}
+
+.login-password-field > button {
+  display: inline-flex;
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  color: #6b4c2a;
+  background: transparent;
+  cursor: pointer;
+}
+
+.login-consent {
+  display: flex;
+  min-height: 44px;
+  gap: 0.6rem;
+  align-items: flex-start;
+  color: #6b4c2a;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+
+.login-consent input {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  accent-color: #7b151b;
+}
+
+.login-code-sent {
+  margin: 0;
+  color: #735d46;
+  font-size: 0.75rem;
+}
+
+.login-code-field input {
+  font-size: 1.125rem;
+  letter-spacing: 0.18em;
+  text-align: center;
+}
+
+.login-submit {
+  min-height: 46px;
+  padding: 0.625rem;
+  border: 1px solid #5b0d12;
+  border-radius: 2px;
+  color: #fff0c8;
+  font: 700 0.9375rem var(--font-display);
+  background:
+    linear-gradient(rgba(86, 8, 13, 0.08), rgba(50, 4, 7, 0.18)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+  cursor: pointer;
+}
+
+.login-submit:disabled,
+.login-telegram-link--disabled {
+  opacity: 0.7;
+  cursor: wait;
+  pointer-events: none;
+}
+
+.login-link-button {
+  min-height: 44px;
+  padding: 0.35rem;
+  border: 0;
+  color: #6b4c2a;
+  font-size: 0.75rem;
+  text-decoration: underline;
+  background: transparent;
+  cursor: pointer;
+}
+
+.login-link-button--footer {
+  margin-top: 0.5rem;
+}
+
+.login-telegram {
+  max-width: 320px;
+  margin: 1rem auto 0;
+}
+
+.login-divider {
+  display: flex;
+  gap: 0.625rem;
+  margin-bottom: 0.75rem;
+  align-items: center;
+  color: #735d46;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.login-divider__line {
+  height: 1px;
+  flex: 1;
+  background: rgba(139, 69, 19, 0.22);
+}
+
+.login-telegram-link {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  border: 1px solid #1d7fb8;
+  border-radius: 2px;
+  color: #f8fbff;
+  font: 700 0.875rem var(--font-display);
+  text-decoration: none;
+  background: linear-gradient(135deg, #2aabee, #1d7fb8);
+  box-shadow: 0 8px 18px rgba(42, 171, 238, 0.2);
+}
+
+.login-telegram-link__icon,
+.login-telegram-link__icon svg {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+}
+
+@media (max-width: 640px) {
+  .login-card {
+    padding: 1.1rem;
+  }
+}

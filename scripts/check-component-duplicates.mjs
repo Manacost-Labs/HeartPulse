@@ -23,8 +23,11 @@ console.log('[architecture] single-owner component guard passed');
 const deferredSource = fileSources[1];
 const profileStart = deferredSource.indexOf('const profileName =');
 const loginStart = deferredSource.indexOf('<div className="login-page"', profileStart);
+const loginEnd = deferredSource.indexOf('function AdminPanel', loginStart);
+const passwordInputStart = deferredSource.indexOf('function PasswordInput');
+const passwordInputEnd = deferredSource.indexOf('function AuthCheckingCard', passwordInputStart);
 
-if (profileStart < 0 || loginStart < 0) {
+if (profileStart < 0 || loginStart < 0 || loginEnd < 0 || passwordInputStart < 0 || passwordInputEnd < 0) {
   console.error('[architecture] authenticated profile boundary could not be located');
   process.exit(1);
 }
@@ -36,5 +39,16 @@ const profileInlineStyles = deferredSource
 console.log(`[architecture] authenticated profile inline styles: ${profileInlineStyles.length} / 0`);
 if (profileInlineStyles.length > 0) {
   console.error('[architecture] authenticated profile presentation must remain owned by semantic CSS classes');
+  process.exit(1);
+}
+
+const loginInlineStyles = [
+  deferredSource.slice(passwordInputStart, passwordInputEnd),
+  deferredSource.slice(loginStart, loginEnd),
+].flatMap(source => source.match(/\bstyle\s*=/g) || []);
+
+console.log(`[architecture] public auth inline styles: ${loginInlineStyles.length} / 0`);
+if (loginInlineStyles.length > 0) {
+  console.error('[architecture] public auth presentation must remain owned by semantic CSS classes');
   process.exit(1);
 }

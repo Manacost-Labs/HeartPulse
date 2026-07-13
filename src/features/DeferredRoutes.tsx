@@ -2916,47 +2916,33 @@ function PasswordInput({
   value,
   onChange,
   placeholder = 'Пароль',
+  autoComplete = 'current-password',
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  autoComplete?: 'current-password' | 'new-password';
 }) {
   const [visible, setVisible] = useState(false);
   return (
-    <div style={{ position: 'relative', width: '100%' }}>
+    <label className="login-field login-password-field">
+      <span>{placeholder}</span>
       <input
         type={visible ? 'text' : 'password'}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        style={{ ...ADMIN_INPUT, paddingRight: '42px' }}
-        autoComplete="current-password"
+        autoComplete={autoComplete}
       />
       <button
         type="button"
         onClick={() => setVisible(v => !v)}
         aria-label={visible ? 'Скрыть пароль' : 'Показать пароль'}
         title={visible ? 'Скрыть пароль' : 'Показать пароль'}
-        style={{
-          position: 'absolute',
-          top: '50%',
-          right: '8px',
-          transform: 'translateY(-50%)',
-          width: '30px',
-          height: '30px',
-          borderRadius: '8px',
-          border: '1px solid rgba(139,69,19,0.18)',
-          background: 'rgba(255,255,255,0.34)',
-          color: '#6b4c2a',
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-        }}
       >
         {visible ? <EyeOff size={16} /> : <Eye size={16} />}
       </button>
-    </div>
+    </label>
   );
 }
 
@@ -3013,6 +2999,16 @@ function AuthCheckingCard({ delayMs = 180 }: { delayMs?: number }) {
       </div>
     </div>
   );
+}
+
+let loginPresentationStyles: Promise<unknown> | null = null;
+
+function loadLoginPresentationStyles() {
+  loginPresentationStyles ??= import('./LoginPanel.css').catch(error => {
+    loginPresentationStyles = null;
+    throw error;
+  });
+  return loginPresentationStyles;
 }
 
 function AdminStatCard({ label, value, hint }: { label: string; value: string; hint: string }) {
@@ -3106,6 +3102,7 @@ export function LoginPanel({
 }) {
   const [authUser, setAuthUser] = useState<AuthUser | null>(() => initialAuthUser);
   const [authChecking, setAuthChecking] = useState(parentAuthChecking);
+  const [loginStylesReady, setLoginStylesReady] = useState(false);
   const [authStep, setAuthStep] = useState<'password' | 'code'>('password');
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'reset'>('login');
   const [email, setEmail] = useState(() => sessionStorage.getItem(AUTH_EMAIL_KEY) || '');
@@ -3156,6 +3153,16 @@ export function LoginPanel({
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (authUser) return;
+    let active = true;
+    void loadLoginPresentationStyles().then(
+      () => { if (active) setLoginStylesReady(true); },
+      () => { if (active) setLoginStylesReady(true); },
+    );
+    return () => { active = false; };
+  }, [authUser]);
 
   useEffect(() => {
     if (parentAuthChecking) {
@@ -3500,6 +3507,10 @@ export function LoginPanel({
     return <AuthCheckingCard />;
   }
 
+  if (!authUser && !loginStylesReady) {
+    return <AuthCheckingCard delayMs={0} />;
+  }
+
   if (authUser) {
     const profileName = authUser.name?.trim() === 'Пользователь Манакост'
       ? 'Пользователь Манакоста'
@@ -3824,244 +3835,185 @@ export function LoginPanel({
   }
 
   return (
-    <div className="login-page" style={{ padding: '18px 0' }}>
-      <div className="login-card" style={{
-        maxWidth: 460,
-        margin: '0 auto',
-        borderRadius: '16px',
-        border: '1.5px solid #cbd7ea',
-        background: 'linear-gradient(180deg, rgba(248,250,255,0.98), rgba(235,241,252,0.94))',
-        boxShadow: '0 24px 54px rgba(4,10,20,0.30), inset 0 1px 0 rgba(255,255,255,0.75)',
-        padding: '24px',
-        textAlign: 'center',
-      }}>
-      <div style={{
-        width: 58,
-        height: 58,
-        margin: '0 auto 12px',
-        borderRadius: '50%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg,#12233f,#081020)',
-        color: '#93c5fd',
-        border: '2px solid rgba(56,189,248,0.45)',
-        boxShadow: '0 12px 26px rgba(15,23,42,0.22)',
-      }}>
-        <UserCircle size={30} />
-      </div>
-      <h2 style={{ fontFamily: 'var(--font-display)', color: '#1e293b', fontSize: '1.55rem', marginBottom: '8px' }}>
-        {authMode === 'register' ? 'Регистрация' : authMode === 'reset' ? 'Восстановление пароля' : 'Войти в экосистему Манакост'}
-      </h2>
-      <p style={{ color: '#475569', fontSize: '13px', marginBottom: '18px', lineHeight: 1.5 }}>
-        {authMode === 'register'
-          ? 'Укажите данные профиля, затем подтвердите почту кодом.'
-          : authMode === 'reset'
-            ? 'Укажите почту, получите код и задайте новый пароль.'
-            : 'Войдите по почте, паролю и коду подтверждения.'}
-      </p>
-      {msg && (
-        <div style={{
-          maxWidth: '340px',
-          margin: '0 auto 14px',
-          padding: '9px 12px',
-          borderRadius: '8px',
-          background: msg.type === 'ok' ? '#d1fae5' : '#fee2e2',
-          color: msg.type === 'ok' ? '#065f46' : '#991b1b',
-          fontSize: '12px',
-        }}>
-          {msg.text}
+    <div className="login-page">
+      <section className="login-card" aria-labelledby="login-card-title">
+        <div className="login-card__emblem" aria-hidden="true">
+          <UserCircle size={30} />
         </div>
-      )}
-      {authStep === 'password' && (
-        <div className="login-mode-tabs" style={{ display: 'inline-flex', gap: '4px', padding: '4px', borderRadius: '10px', background: 'rgba(37,99,235,0.08)', marginBottom: '14px' }}>
-          {(['login', 'register'] as const).map(mode => (
-            <button key={mode} type="button" onClick={() => { setAuthMode(mode); setMsg(null); setAuthStep('password'); }}
-              className={`login-mode-tab${authMode === mode ? ' login-mode-tab-active' : ''}`}
-              style={{
-                border: '1px solid ' + (authMode === mode ? '#60a5fa' : 'transparent'),
-                background: authMode === mode ? '#f8faff' : 'transparent',
-                color: authMode === mode ? '#1e293b' : '#64748b',
-                borderRadius: '8px',
-                padding: '7px 12px',
-                cursor: 'pointer',
-                fontFamily: 'var(--font-display)',
-                fontSize: '13px',
-              }}>
-              {mode === 'login' ? 'Вход' : 'Регистрация'}
-            </button>
-          ))}
-        </div>
-      )}
-      <form onSubmit={authStep === 'password'
-          ? (authMode === 'login' ? handleLogin : authMode === 'register' ? handleRegister : handleResetRequest)
-          : (authMode === 'reset' ? handleResetConfirm : handleVerify)}
-        style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '320px', margin: '0 auto' }}>
-        {authStep === 'password' ? (
-          <>
-            {authMode === 'register' && (
-              <>
+        <h2 id="login-card-title" className="login-card__title">
+          {authMode === 'register' ? 'Регистрация' : authMode === 'reset' ? 'Восстановление пароля' : 'Войти в экосистему Манакост'}
+        </h2>
+        <p className="login-card__intro">
+          {authMode === 'register'
+            ? 'Укажите данные профиля, затем подтвердите почту кодом.'
+            : authMode === 'reset'
+              ? 'Укажите почту, получите код и задайте новый пароль.'
+              : 'Войдите по почте, паролю и коду подтверждения.'}
+        </p>
+        {msg && (
+          <div
+            className={`login-message login-message--${msg.type}`}
+            role={msg.type === 'err' ? 'alert' : 'status'}
+            aria-live={msg.type === 'err' ? 'assertive' : 'polite'}
+          >
+            {msg.text}
+          </div>
+        )}
+        {authStep === 'password' && (
+          <div className="login-mode-tabs" aria-label="Режим авторизации">
+            {(['login', 'register'] as const).map(mode => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => { setAuthMode(mode); setMsg(null); setAuthStep('password'); }}
+                className={`login-mode-tab${authMode === mode ? ' login-mode-tab-active' : ''}`}
+                aria-pressed={authMode === mode}
+              >
+                {mode === 'login' ? 'Вход' : 'Регистрация'}
+              </button>
+            ))}
+          </div>
+        )}
+        <form
+          onSubmit={authStep === 'password'
+            ? (authMode === 'login' ? handleLogin : authMode === 'register' ? handleRegister : handleResetRequest)
+            : (authMode === 'reset' ? handleResetConfirm : handleVerify)}
+          className="login-form"
+        >
+          {authStep === 'password' ? (
+            <>
+              {authMode === 'register' && (
+                <>
+                  <label className="login-field">
+                    <span>Имя</span>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      placeholder="Имя"
+                      autoComplete="name"
+                    />
+                  </label>
+                  <label className="login-field">
+                    <span>Страна</span>
+                    <select value={country} onChange={e => setCountry(e.target.value)} required>
+                      <option value="">Выберите страну</option>
+                      {COUNTRY_OPTIONS.map(item => <option key={item} value={item}>{item}</option>)}
+                    </select>
+                  </label>
+                </>
+              )}
+              <label className="login-field">
+                <span>Email</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  autoComplete="email"
+                  autoFocus
+                />
+              </label>
+              {authMode !== 'reset' && (
+                <PasswordInput
+                  value={password}
+                  onChange={setPassword}
+                  autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
+                />
+              )}
+              {authMode === 'register' && (
+                <label className="login-consent">
+                  <input
+                    type="checkbox"
+                    checked={newsletterOptIn}
+                    onChange={e => setNewsletterOptIn(e.target.checked)}
+                    required
+                  />
+                  <span>Подтверждаю согласие получать рассылку HS-Arena с новостями, гайдами и обновлениями.</span>
+                </label>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="login-code-sent">
+                Код отправлен на <b>{email}</b>
+              </p>
+              <label className="login-field login-code-field">
+                <span>Код подтверждения</span>
                 <input
                   type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="Имя"
-                  style={ADMIN_INPUT}
-                  autoComplete="name"
+                  inputMode="numeric"
+                  value={code}
+                  onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="6-значный код"
+                  autoComplete="one-time-code"
+                  autoFocus
                 />
-                <select
-                  value={country}
-                  onChange={e => setCountry(e.target.value)}
-                  style={ADMIN_INPUT}
-                  required
-                >
-                  <option value="">Страна</option>
-                  {COUNTRY_OPTIONS.map(item => <option key={item} value={item}>{item}</option>)}
-                </select>
-              </>
-            )}
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="Email"
-              style={ADMIN_INPUT}
-              autoComplete="email"
-              autoFocus
-            />
-            {authMode !== 'reset' && <PasswordInput value={password} onChange={setPassword} />}
-            {authMode === 'register' && (
-              <label style={{
-                display: 'flex',
-                gap: '9px',
-                alignItems: 'flex-start',
-                textAlign: 'left',
-                color: '#6b4c2a',
-                fontSize: '12px',
-                lineHeight: 1.35,
-                cursor: 'pointer',
-              }}>
-                <input
-                  type="checkbox"
-                  checked={newsletterOptIn}
-                  onChange={e => setNewsletterOptIn(e.target.checked)}
-                  required
-                  style={{ marginTop: '2px', accentColor: '#8b5a1a' }}
-                />
-                <span>Подтверждаю согласие получать рассылку HS-Arena с новостями, гайдами и обновлениями.</span>
               </label>
-            )}
-          </>
-        ) : (
-          <>
-            <p style={{ color: '#8b6c42', fontSize: '12px', margin: 0 }}>
-              Код отправлен на <b>{email}</b>
-            </p>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={code}
-              onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="6-значный код"
-              style={{ ...ADMIN_INPUT, textAlign: 'center', letterSpacing: '0.18em', fontSize: '18px' }}
-              autoComplete="one-time-code"
-              autoFocus
-            />
-            <button type="button" onClick={() => { setAuthStep('password'); setCode(''); setMsg(null); }}
-              style={{ background: 'none', border: 'none', color: '#8b4513', fontSize: '12px', cursor: 'pointer' }}>
-              Изменить email или пароль
-            </button>
-            {authMode === 'reset' && (
-              <PasswordInput value={password} onChange={setPassword} placeholder="Новый пароль" />
-            )}
-          </>
-        )}
-        <button type="submit" style={{
-          background: 'linear-gradient(135deg,#2563eb,#0f4eb8)',
-          color: '#f8faff',
-          border: '1.5px solid #60a5fa',
-          borderRadius: '8px',
-          padding: '10px',
-          fontFamily: 'var(--font-display)',
-          fontSize: '15px',
-          cursor: loading ? 'wait' : 'pointer',
-          opacity: loading ? 0.75 : 1,
-        }} disabled={loading}>
-          {loading ? 'Проверяем...' : authStep === 'password' ? 'Получить код' : authMode === 'reset' ? 'Сменить пароль' : 'Войти'}
-        </button>
-      </form>
-      {authStep === 'password' && authMode === 'login' && telegramEnabled && (
-        <div style={{ maxWidth: 320, margin: '16px auto 0' }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            color: '#8b6c42',
-            fontSize: '11px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-            marginBottom: '12px',
-          }}>
-            <span style={{ flex: 1, height: 1, background: 'rgba(139,69,19,0.22)' }} />
-            <span>или</span>
-            <span style={{ flex: 1, height: 1, background: 'rgba(139,69,19,0.22)' }} />
-          </div>
-          {telegramMode === 'legacy-widget' && telegramBotUsername ? (
-            <TelegramLoginWidget
-              botUsername={telegramBotUsername}
-              authUrl={telegramLoginUrl}
-              label="Войти через Telegram"
-            />
-          ) : (
-            <a
-              href={telegramLoginUrl || '/api/auth/telegram/start'}
-              style={{
-                display: 'flex',
-                minHeight: 44,
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '10px',
-                borderRadius: '10px',
-                border: '1.5px solid #2aabee',
-                background: 'linear-gradient(135deg,#2aabee,#1d7fb8)',
-                color: '#f8fbff',
-                fontFamily: 'var(--font-display)',
-                fontSize: '14px',
-                textDecoration: 'none',
-                boxShadow: '0 10px 22px rgba(42,171,238,0.22)',
-                opacity: loading ? 0.7 : 1,
-                pointerEvents: loading ? 'none' : 'auto',
-              }}
-            >
-              <span aria-hidden="true" style={{ width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg viewBox="0 0 24 24" width="22" height="22" focusable="false" style={{ display: 'block' }}>
-                  <path fill="#ffffff" d="M21.7 3.3c.3-.9-.6-1.6-1.4-1.2L2.9 8.8c-1 .4-.9 1.8.1 2.1l4.4 1.4 1.7 5.3c.3.9 1.5 1.1 2.1.4l2.4-2.8 4.6 3.4c.8.6 1.9.1 2.1-.9l2.9-14.4ZM8.1 11.8l9.5-5.9-7.4 7.7-.3 3.2-1.8-5Z" />
-                </svg>
-              </span>
-              <span>Войти через Telegram</span>
-            </a>
+              <button
+                type="button"
+                onClick={() => { setAuthStep('password'); setCode(''); setMsg(null); }}
+                className="login-link-button"
+              >
+                Изменить email или пароль
+              </button>
+              {authMode === 'reset' && (
+                <PasswordInput value={password} onChange={setPassword} placeholder="Новый пароль" autoComplete="new-password" />
+              )}
+            </>
           )}
-        </div>
-      )}
-      {authStep === 'password' && authMode === 'login' && (
-        <button
-          type="button"
-          onClick={() => { setAuthMode('reset'); setMsg(null); }}
-          style={{ marginTop: '12px', background: 'none', border: 'none', color: '#6b4c2a', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }}
-        >
-          Забыли пароль?
-        </button>
-      )}
-      {authStep === 'password' && authMode === 'reset' && (
-        <button
-          type="button"
-          onClick={() => { setAuthMode('login'); setMsg(null); }}
-          style={{ marginTop: '12px', background: 'none', border: 'none', color: '#6b4c2a', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }}
-        >
-          Вернуться ко входу
-        </button>
-      )}
-      </div>
+          <button type="submit" className="login-submit" disabled={loading}>
+            {loading ? 'Проверяем...' : authStep === 'password' ? 'Получить код' : authMode === 'reset' ? 'Сменить пароль' : 'Войти'}
+          </button>
+        </form>
+        {authStep === 'password' && authMode === 'login' && telegramEnabled && (
+          <div className="login-telegram">
+            <div className="login-divider">
+              <span className="login-divider__line" />
+              <span>или</span>
+              <span className="login-divider__line" />
+            </div>
+            {telegramMode === 'legacy-widget' && telegramBotUsername ? (
+              <TelegramLoginWidget
+                botUsername={telegramBotUsername}
+                authUrl={telegramLoginUrl}
+                label="Войти через Telegram"
+              />
+            ) : (
+              <a
+                href={telegramLoginUrl || '/api/auth/telegram/start'}
+                className={`login-telegram-link${loading ? ' login-telegram-link--disabled' : ''}`}
+                aria-disabled={loading}
+              >
+                <span className="login-telegram-link__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="22" height="22" focusable="false">
+                    <path fill="#ffffff" d="M21.7 3.3c.3-.9-.6-1.6-1.4-1.2L2.9 8.8c-1 .4-.9 1.8.1 2.1l4.4 1.4 1.7 5.3c.3.9 1.5 1.1 2.1.4l2.4-2.8 4.6 3.4c.8.6 1.9.1 2.1-.9l2.9-14.4ZM8.1 11.8l9.5-5.9-7.4 7.7-.3 3.2-1.8-5Z" />
+                  </svg>
+                </span>
+                <span>Войти через Telegram</span>
+              </a>
+            )}
+          </div>
+        )}
+        {authStep === 'password' && authMode === 'login' && (
+          <button
+            type="button"
+            onClick={() => { setAuthMode('reset'); setMsg(null); }}
+            className="login-link-button login-link-button--footer"
+          >
+            Забыли пароль?
+          </button>
+        )}
+        {authStep === 'password' && authMode === 'reset' && (
+          <button
+            type="button"
+            onClick={() => { setAuthMode('login'); setMsg(null); }}
+            className="login-link-button login-link-button--footer"
+          >
+            Вернуться ко входу
+          </button>
+        )}
+      </section>
     </div>
   );
 }

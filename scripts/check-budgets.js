@@ -15,6 +15,7 @@ const budgets = {
   css: Number(process.env.BUDGET_CSS_BYTES || 143_000),
   routeCss: Number(process.env.BUDGET_ROUTE_CSS_BYTES || 48_000),
   deferredRoutesCss: Number(process.env.BUDGET_DEFERRED_ROUTES_CSS_BYTES || 52_000),
+  loginPanelCss: Number(process.env.BUDGET_LOGIN_PANEL_CSS_BYTES || 4_500),
   homeSectionCss: Number(process.env.BUDGET_HOME_SECTION_CSS_BYTES || 5_000),
   faqSectionCss: Number(process.env.BUDGET_FAQ_SECTION_CSS_BYTES || 4_000),
   supportPromptCss: Number(process.env.BUDGET_SUPPORT_PROMPT_CSS_BYTES || 4_000),
@@ -38,6 +39,7 @@ const routeJs = files.filter(file =>
 const css = files.find(file => /^index-.*\.css$/.test(file.name));
 const routeCss = files.find(file => /^route-parchment-.*\.css$/.test(file.name));
 const deferredRoutesCss = files.find(file => /^DeferredRoutes-.*\.css$/.test(file.name));
+const loginPanelCss = files.find(file => /^LoginPanel-.*\.css$/.test(file.name));
 const faqSectionCss = files.find(file => /^FAQSection-.*\.css$/.test(file.name));
 const supportPromptCss = files.find(file => /^SupportPrompt-.*\.css$/.test(file.name));
 const siteFooterCss = files.find(file => /^SiteFooter-.*\.css$/.test(file.name));
@@ -69,6 +71,7 @@ const checks = [
   ['initial CSS', css, budgets.css],
   ['shared route CSS', routeCss, budgets.routeCss],
   ['deferred route-owner CSS', deferredRoutesCss, budgets.deferredRoutesCss],
+  ['lazy public-auth CSS', loginPanelCss, budgets.loginPanelCss],
   ['largest lazy home-section CSS', largestHomeSectionCss, budgets.homeSectionCss],
   ['lazy FAQ-section CSS', faqSectionCss, budgets.faqSectionCss],
   ['lazy support-prompt CSS', supportPromptCss, budgets.supportPromptCss],

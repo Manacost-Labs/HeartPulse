@@ -342,6 +342,21 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
       request.abort('failed');
       return;
     }
+    if (url.pathname === '/api/auth/telegram/config') {
+      request.respond(jsonResponse({
+        enabled: true,
+        mode: 'oidc',
+        authUrl: '/api/auth/telegram/start',
+      }));
+      return;
+    }
+    if (!authenticated && url.pathname === '/api/auth/login' && request.method() === 'POST') {
+      request.respond({
+        ...jsonResponse({ error: 'Контрольная ошибка входа' }),
+        status: 401,
+      });
+      return;
+    }
     if (url.pathname === '/api/auth/me') {
       request.respond(jsonResponse(authenticated ? {
         user: {
@@ -1612,6 +1627,102 @@ for (const [device, viewport] of [
     console.log(`✓ /classes [mobile guest] paywall + axe (${violationCount} violations)`);
   } catch (error) {
     failures.push(`/classes [mobile guest]: ${error.message}`);
+  } finally {
+    await page.close();
+  }
+}
+
+// Public auth keeps one material owner across login, registration and reset.
+for (const [device, viewport] of [
+  ['desktop', { width: 1280, height: 800, deviceScaleFactor: 1 }],
+  ['mobile', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
+]) {
+  const page = await createQaPage();
+  const runtimeErrors = collectRuntimeErrors(page);
+  await page.setViewport(viewport);
+  await mockApplicationApi(page, { authenticated: false });
+  try {
+    await page.goto(`${BASE}/?login`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('.login-card', { visible: true, timeout: 20_000 });
+    await page.waitForSelector('.login-telegram-link', { visible: true, timeout: 10_000 });
+    const loginState = await page.evaluate(() => {
+      const card = document.querySelector('.login-card');
+      const emblem = document.querySelector('.login-card__emblem');
+      const input = document.querySelector('.login-field input');
+      const actionable = [...document.querySelectorAll('.login-card :is(button, a)')];
+      const cardStyle = getComputedStyle(card);
+      const inputStyle = getComputedStyle(input);
+      return {
+        stylesheetLoaded: [...document.styleSheets].some(sheet => sheet.href?.includes('/assets/LoginPanel-')),
+        borderImage: cardStyle.borderImageSource,
+        background: cardStyle.backgroundColor,
+        emblemBackground: getComputedStyle(emblem).backgroundImage,
+        inputRadius: inputStyle.borderRadius,
+        inputHeight: input.getBoundingClientRect().height,
+        smallestAction: Math.min(...actionable.map(element => element.getBoundingClientRect().height)),
+        inlineOwners: document.querySelectorAll('.login-page [style]').length,
+        horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+        labelledFields: [...document.querySelectorAll('.login-field')].every(label => Boolean(label.querySelector(':scope > span'))),
+      };
+    });
+    if (!loginState.stylesheetLoaded
+      || !loginState.borderImage.includes('main-page-rail-border.png')
+      || loginState.background !== 'rgba(248, 231, 191, 0.72)'
+      || !loginState.emblemBackground.includes('arena-rail-red.jpg')
+      || loginState.inputRadius !== '2px'
+      || loginState.inputHeight < 44
+      || loginState.smallestAction < 44
+      || loginState.inlineOwners !== 0
+      || loginState.horizontalOverflow
+      || !loginState.labelledFields) {
+      failures.push(`public auth [${device}]: material or geometry changed (${JSON.stringify(loginState)})`);
+    }
+
+    await page.evaluate(() => [...document.querySelectorAll('.login-mode-tab')]
+      .find(button => button.textContent?.includes('Регистрация'))?.click());
+    await page.waitForSelector('.login-consent');
+    const registrationState = await page.evaluate(() => ({
+      name: Boolean(document.querySelector('input[autocomplete="name"]')),
+      country: Boolean(document.querySelector('.login-field select')),
+      consentHeight: document.querySelector('.login-consent')?.getBoundingClientRect().height || 0,
+      activeMode: document.querySelector('.login-mode-tab[aria-pressed="true"]')?.textContent?.trim() || '',
+    }));
+    if (!registrationState.name || !registrationState.country || registrationState.consentHeight < 44 || registrationState.activeMode !== 'Регистрация') {
+      failures.push(`public auth [${device}]: registration fields are incomplete (${JSON.stringify(registrationState)})`);
+    }
+
+    await page.evaluate(() => [...document.querySelectorAll('.login-mode-tab')]
+      .find(button => button.textContent?.trim() === 'Вход')?.click());
+    await page.click('.login-link-button--footer');
+    await page.waitForFunction(() => document.querySelector('#login-card-title')?.textContent?.includes('Восстановление'));
+    const resetState = await page.evaluate(() => ({
+      title: document.querySelector('#login-card-title')?.textContent?.trim() || '',
+      emailLabel: document.querySelector('.login-field > span')?.textContent?.trim() || '',
+      returnTarget: document.querySelector('.login-link-button--footer')?.getBoundingClientRect().height || 0,
+    }));
+    if (!resetState.title.includes('Восстановление') || resetState.emailLabel !== 'Email' || resetState.returnTarget < 44) {
+      failures.push(`public auth [${device}]: reset mode changed (${JSON.stringify(resetState)})`);
+    }
+
+    await page.click('.login-link-button--footer');
+    await page.type('.login-field input[type="email"]', 'qa@example.test');
+    await page.type('.login-password-field input', 'qa-password');
+    await page.click('.login-submit');
+    await page.waitForFunction(() => document.querySelector('.login-message--err')?.textContent?.includes('Контрольная ошибка входа'));
+    const messageState = await page.$eval('.login-message--err', element => ({
+      role: element.getAttribute('role'),
+      radius: getComputedStyle(element).borderRadius,
+      color: getComputedStyle(element).color,
+    }));
+    if (messageState.role !== 'alert' || messageState.radius !== '2px' || messageState.color !== 'rgb(125, 34, 39)') {
+      failures.push(`public auth [${device}]: error feedback changed (${JSON.stringify(messageState)})`);
+    }
+    const violationCount = await auditAccessibility(page, `public auth [${device}]`, '.login-page');
+    if (runtimeErrors.length) failures.push(`public auth [${device}]: ${runtimeErrors.join(' | ')}`);
+    await page.screenshot({ path: `${OUT}/public-auth-${device}.png`, fullPage: false });
+    console.log(`✓ public auth login/register/reset [${device}] + axe (${violationCount} violations)`);
+  } catch (error) {
+    failures.push(`public auth [${device}]: ${error.message}`);
   } finally {
     await page.close();
   }
