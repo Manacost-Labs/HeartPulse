@@ -1121,21 +1121,45 @@ for (const [device, viewport] of [
 
     await page.goto(`${BASE}/?admin&section=users`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.contest-user-row').length === 2);
-    const usersState = await page.evaluate(() => ({
-      rows: document.querySelectorAll('.contest-user-row').length,
-      summary: document.querySelector('.contest-users-head .contest-muted')?.textContent?.replace(/\s+/g, ' ').trim() || '',
-      scrollWidth: document.documentElement.scrollWidth,
-      clientWidth: document.documentElement.clientWidth,
-    }));
+    const usersState = await page.evaluate(() => {
+      const row = document.querySelector('.contest-user-row');
+      const badges = row?.querySelector('.contest-user-badges');
+      const role = badges?.querySelector(':scope > span');
+      const menuWrap = badges?.querySelector('.contest-user-action-menu-wrap');
+      const rowStyle = row ? getComputedStyle(row) : null;
+      const badgesStyle = badges ? getComputedStyle(badges) : null;
+      const roleStyle = role ? getComputedStyle(role) : null;
+      const menuWrapStyle = menuWrap ? getComputedStyle(menuWrap) : null;
+      return {
+        rows: document.querySelectorAll('.contest-user-row').length,
+        summary: document.querySelector('.contest-users-head .contest-muted')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+        badgesDisplay: badgesStyle?.display || '',
+        badgesGap: parseFloat(badgesStyle?.gap || '0') || 0,
+        roleColor: roleStyle?.color || '',
+        rowColor: rowStyle?.color || '',
+        menuWrapDisplay: menuWrapStyle?.display || '',
+      };
+    });
     if (usersState.rows !== 2 || !usersState.summary.includes('Показано 2 из 2')) {
       failures.push(`admin users [${device}]: deterministic user list did not render`);
     }
     if (usersState.scrollWidth > usersState.clientWidth + 1) {
       failures.push(`admin users [${device}]: horizontal overflow ${usersState.scrollWidth} > ${usersState.clientWidth}`);
     }
+    if (usersState.badgesDisplay !== 'flex' || usersState.badgesGap < 5 || usersState.roleColor === usersState.rowColor || usersState.menuWrapDisplay !== 'block') {
+      failures.push(`admin users [${device}]: badge/menu cascade changed (${JSON.stringify(usersState)})`);
+    }
     await page.click('.contest-user-menu-trigger');
     await page.waitForSelector('.contest-user-menu[role="menu"]', { visible: true });
     await page.waitForFunction(() => document.activeElement?.getAttribute('role') === 'menuitem');
+    const obscuredTriggerState = await page.$$eval('.contest-user-menu-trigger[aria-expanded="false"]', triggers => (
+      triggers.map(trigger => getComputedStyle(trigger).visibility)
+    ));
+    if (obscuredTriggerState.some(visibility => visibility !== 'hidden')) {
+      failures.push(`admin users [${device}]: background menu triggers remain exposed below the open popover`);
+    }
     await page.keyboard.press('ArrowDown');
     const focusedMenuItem = await page.evaluate(() => document.activeElement?.textContent?.replace(/\s+/g, ' ').trim() || '');
     if (!focusedMenuItem.includes('Сделать администратором')) {

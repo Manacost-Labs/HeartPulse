@@ -4,7 +4,7 @@ import { join, relative } from 'node:path';
 const ROOT = process.cwd();
 const SRC = join(ROOT, 'src');
 const TOKEN_FILE = 'src/styles/tokens.css';
-const MAX_IMPORTANT_DECLARATIONS = 1887;
+const MAX_IMPORTANT_DECLARATIONS = 1880;
 const RETIRED_OWNERLESS_CSS_FRAGMENTS = [
   '.home-modern .hs-card',
   '.home-modern > section',
@@ -56,6 +56,7 @@ const RETIRED_INITIAL_CLASS_PREFIXES = [
   'arena-mobile-menu-sublink',
   'arena-sidebar-sublink',
   'home-section-heading--data',
+  'contest-user-actions',
 ];
 
 function walk(directory) {

@@ -900,10 +900,10 @@
   overflow-wrap: anywhere;
 }
 
-.contest-user-badges {
+.contest-user-row .contest-user-badges {
   flex: 0 0 auto;
   align-items: flex-end;
-  gap: 0.35rem !important;
+  gap: 0.35rem;
 }
 
 .contest-user-badges span {
@@ -919,37 +919,22 @@
   text-align: center;
 }
 
-.contest-role-admin {
+.contest-user-row .contest-role-admin {
   border: 1px solid rgba(37, 99, 235, 0.34);
   background: #dbeafe;
-  color: #1d4ed8 !important;
+  color: #1d4ed8;
 }
 
-.contest-role-user {
+.contest-user-row .contest-role-user {
   border: 1px solid rgba(148, 163, 184, 0.42);
   background: #f1f5f9;
-  color: #334155 !important;
+  color: #334155;
 }
 
-.contest-role-blocked {
+.contest-user-row .contest-role-blocked {
   border: 1px solid rgba(153, 27, 27, 0.28);
   background: #fee2e2;
-  color: #991b1b !important;
-}
-
-.contest-user-actions {
-  display: grid !important;
-  grid-template-columns: 1fr;
-  gap: 0.35rem !important;
-  margin-top: 0.15rem;
-  min-width: 150px !important;
-}
-
-.contest-user-actions .contest-secondary-button {
-  min-height: 34px;
-  padding: 0.25rem 0.65rem;
-  font-size: 0.78rem;
-  white-space: nowrap;
+  color: #991b1b;
 }
 
 .contest-danger-button {
@@ -1768,8 +1753,7 @@
 
   .contest-users-head .contest-secondary-button,
   .contest-user-badges,
-  .contest-user-badges span,
-  .contest-user-actions {
+  .contest-user-badges span {
     width: 100%;
   }
 
@@ -3504,6 +3488,13 @@
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 12px 32px rgba(12, 29, 48, 0.18);
+}
+
+/* An open popover can cover action triggers in the following rows on narrow
+   screens. Remove those obscured controls from hit testing and the a11y tree
+   until the active menu closes. */
+.contest-user-results:has(.contest-user-menu) .contest-user-menu-trigger[aria-expanded='false'] {
+  visibility: hidden;
 }
 
 .admin-workspace-page .contest-user-menu button {

@@ -117,7 +117,7 @@ export function ContestAdminUsers({
               <span className={user.subscription?.hasAccess ? 'contest-access-ok' : 'contest-access-no'}>
                 {user.lifetimeAccess ? 'бессрочно' : user.subscription?.hasAccess ? 'подписка' : 'нет доступа'}
               </span>
-              <div className="contest-user-actions contest-user-action-menu-wrap">
+              <div className="contest-user-action-menu-wrap">
                 <button
                   ref={node => {
                     if (node) menuTriggerMap.set(user.id, node);
