@@ -51,6 +51,7 @@ type Recommendation = {
   archetypeLabel: string;
   deckCode: string;
   format: MetaFormat;
+  rank: MetaRank;
   source: string;
   sourceUrl: string;
   streamer: string | null;
@@ -59,7 +60,7 @@ type Recommendation = {
   updatedAt: string | null;
   classKey: MetaClass;
   matchedArchetype: string;
-  matchMethod: 'exact' | 'alias' | 'representative';
+  matchMethod: 'exact' | 'alias';
 };
 
 type Preview = {
@@ -257,13 +258,6 @@ function DeckModal({ state, onClose }: { state: DeckModalState; onClose: () => v
                 {state.recommendation.winrate !== null && <span>{formatNumber(state.recommendation.winrate, '%')} WR</span>}
               </div>
 
-              {state.recommendation.matchMethod === 'representative' && (
-                <div className="standard-meta-modal__notice">
-                  <ShieldCheck size={18} />
-                  <span>Для архетипа пока нет точного свежего списка. Показана лучшая доступная сборка того же класса: <strong>{state.recommendation.matchedArchetype}</strong>.</span>
-                </div>
-              )}
-
               <div className="standard-meta-modal__code-block">
                 <span>Код колоды</span>
                 <code>{state.recommendation.deckCode}</code>
@@ -327,7 +321,7 @@ export default function StandardMetaPage() {
       void apiJson<{ preview: Preview }>(`/api/admin/standard-meta/preview/${encodeURIComponent(modal.preview!.hash)}`)
         .then(({ preview }) => setModal(current => {
           if (!current?.recommendation) return current;
-          deckCache.current.set(`${current.recommendation.format}:${current.item.archetype.toLowerCase()}`, {
+          deckCache.current.set(`${current.recommendation.format}:${current.recommendation.rank}:${current.item.archetype.toLowerCase()}`, {
             recommendation: current.recommendation,
             preview,
             previewError: '',
@@ -350,7 +344,7 @@ export default function StandardMetaPage() {
   }, [data.items, query]);
 
   const openDeck = async (item: MetaItem) => {
-    const cacheKey = `${format}:${item.archetype.toLowerCase()}`;
+    const cacheKey = `${format}:${rank}:${item.archetype.toLowerCase()}`;
     const cached = deckCache.current.get(cacheKey);
     if (cached) {
       setModal({
@@ -374,7 +368,7 @@ export default function StandardMetaPage() {
       previewError: '',
     });
     try {
-      const params = new URLSearchParams({ archetype: item.archetype, archetypeLabel: item.archetypeLabel, format });
+      const params = new URLSearchParams({ archetype: item.archetype, archetypeLabel: item.archetypeLabel, format, rank });
       const { recommendation } = await apiJson<{ recommendation: Recommendation }>(`/api/admin/standard-meta/recommendation?${params}`);
       setModal(current => current?.item.id === item.id ? {
         ...current,
@@ -386,7 +380,7 @@ export default function StandardMetaPage() {
       try {
         const result = await apiJson<{ preview: Preview }>('/api/admin/standard-meta/preview', {
           method: 'POST',
-          body: JSON.stringify({ archetype: item.archetype, archetypeLabel: item.archetypeLabel, format }),
+          body: JSON.stringify({ archetype: item.archetype, archetypeLabel: item.archetypeLabel, format, rank }),
         });
         setModal(current => current?.item.id === item.id ? {
           ...current,

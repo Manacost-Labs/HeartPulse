@@ -5716,7 +5716,7 @@ async function loadStandardMeta(format: StandardMetaFormat, rank: StandardMetaRa
   return data;
 }
 
-type ViciousGoldBuild = StandardMetaRecommendation & {
+type ViciousGoldBuild = Omit<StandardMetaRecommendation, 'matchMethod'> & {
   matchedArchetype: string;
   matchMethod: 'exact' | 'alias' | 'representative';
 };
@@ -5791,6 +5791,7 @@ function findViciousGoldBuild(
     archetypeLabel: deckLabel,
     deckCode: String(selected.deck_code).trim(),
     format: 'standard',
+    rank: 'legend',
     source,
     sourceUrl: String(selected.url ?? ''),
     streamer: null,
@@ -5930,11 +5931,11 @@ function standardMetaDeckQuality(candidate: Omit<StandardMetaDeckCandidate, 'qua
   const sample = Math.min(2_000, candidate.sampleGames ?? 0);
   const winrate = candidate.winrate ?? 0;
   const freshness = candidate.updatedAt ? Date.parse(candidate.updatedAt) / 1e12 : 0;
-  const sourceBonus = candidate.source === 'hsguru-streamer' ? 35 : 20;
+  const sourceBonus = candidate.source === 'hsguru-decks' ? 50 : candidate.source === 'hsguru-streamer' ? 35 : 20;
   return sample * 10 + winrate + freshness + sourceBonus;
 }
 
-function parseHsguruStreamerDecks(payload: any, archetype: string, archetypeLabel: string, format: StandardMetaFormat): StandardMetaDeckCandidate[] {
+function parseHsguruStreamerDecks(payload: any, archetype: string, archetypeLabel: string, format: StandardMetaFormat, rank: StandardMetaRank): StandardMetaDeckCandidate[] {
   const table = payload?.data?.tables?.[0] ?? payload?.tables?.[0] ?? null;
   const rows = Array.isArray(table?.rows) ? table.rows : [];
   const wanted = normalizeStandardArchetypeKey(archetype);
@@ -5953,6 +5954,7 @@ function parseHsguruStreamerDecks(payload: any, archetype: string, archetypeLabe
       archetypeLabel,
       deckCode: match[2],
       format,
+      rank,
       source: 'hsguru-streamer',
       sourceUrl: payload?.data?.url ?? payload?.url ?? '',
       streamer: String(row[1] ?? '').trim() || null,
@@ -5972,7 +5974,7 @@ function parseConstructedDecks(
   archetype: string,
   archetypeLabel: string,
   format: StandardMetaFormat,
-  matchMethod: 'exact' | 'representative' = 'exact',
+  rank: StandardMetaRank,
 ): StandardMetaDeckCandidate[] {
   const wanted = normalizeStandardArchetypeKey(archetype);
   const wantedClass = inferStandardMetaClass(archetype);
@@ -5981,7 +5983,7 @@ function parseConstructedDecks(
     const matchedArchetype = String(row?.archetype ?? '').trim();
     const rowClass = normalizeStandardMetaClass(row?.class) ?? inferStandardMetaClass(matchedArchetype);
     const isExact = normalizeStandardArchetypeKey(matchedArchetype) === wanted;
-    if (matchMethod === 'exact' ? !isExact : (isExact || !wantedClass || rowClass !== wantedClass)) return [];
+    if (!isExact) return [];
     const rowFormat = String(row?.format ?? '').trim().toLowerCase();
     if (format === 'wild' && rowFormat !== 'wild') return [];
     if (format === 'standard' && rowFormat && rowFormat !== 'standard') return [];
@@ -5996,6 +5998,7 @@ function parseConstructedDecks(
       archetypeLabel,
       deckCode,
       format,
+      rank,
       source: String(row?.source_id ?? 'constructed-decks'),
       sourceUrl: String(row?.url ?? ''),
       streamer: null,
@@ -6004,7 +6007,62 @@ function parseConstructedDecks(
       updatedAt: String(row?.updated_at ?? payload?.meta?.fetched_at ?? '').trim() || null,
       classKey,
       matchedArchetype,
-      matchMethod,
+      matchMethod: 'exact',
+    };
+    return [{ ...base, quality: standardMetaDeckQuality(base) }];
+  });
+}
+
+const STANDARD_META_HSGURU_RANK: Record<StandardMetaRank, string> = {
+  legend: 'legend',
+  diamond: 'diamond_4to1',
+  top_5k: 'top_5k',
+  top_legend: 'top_legend',
+};
+
+async function fetchExactHsguruDecks(
+  archetype: string,
+  archetypeLabel: string,
+  format: StandardMetaFormat,
+  rank: StandardMetaRank,
+): Promise<StandardMetaDeckCandidate[]> {
+  const query = new URLSearchParams({
+    archetype,
+    format_name: format,
+    rank: STANDARD_META_HSGURU_RANK[rank],
+  });
+  const response = await fetch(`${DATASET_API_ORIGIN}/v1/constructed/hsguru-deck?${query}`, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
+    signal: AbortSignal.timeout(60_000),
+  });
+  if (response.status === 404) return [];
+  if (!response.ok) throw new Error(`Exact HSGuru deck HTTP ${response.status}`);
+  const payload = await response.json();
+  const wanted = normalizeStandardArchetypeKey(archetype);
+  const rows = Array.isArray(payload?.data) ? payload.data : [];
+  return rows.flatMap((row: any) => {
+    const matchedArchetype = String(row?.archetype ?? '').trim();
+    if (normalizeStandardArchetypeKey(matchedArchetype) !== wanted) return [];
+    const deckCode = String(row?.deck_code ?? '').trim();
+    if (!/^[A-Za-z0-9+/=]{40,}$/.test(deckCode)) return [];
+    const classKey = normalizeStandardMetaClass(row?.class) ?? inferStandardMetaClass(archetype);
+    if (!classKey) return [];
+    const sampleGames = parseCount(row?.games) ?? parseDeckScore(row?.score).games;
+    const base: Omit<StandardMetaDeckCandidate, 'quality'> = {
+      archetype,
+      archetypeLabel,
+      deckCode,
+      format,
+      rank,
+      source: 'hsguru-decks',
+      sourceUrl: String(row?.url ?? ''),
+      streamer: null,
+      sampleGames,
+      winrate: parseNumber(row?.win_rate ?? row?.winrate),
+      updatedAt: String(row?.updated_at ?? payload?.meta?.fetched_at ?? '').trim() || null,
+      classKey,
+      matchedArchetype,
+      matchMethod: 'exact',
     };
     return [{ ...base, quality: standardMetaDeckQuality(base) }];
   });
@@ -6014,29 +6072,23 @@ async function findStandardMetaRecommendation(
   archetype: string,
   archetypeLabel: string,
   format: StandardMetaFormat,
+  rank: StandardMetaRank,
 ): Promise<StandardMetaRecommendation | null> {
-  const cacheKey = `${format}:${normalizeStandardArchetypeKey(archetype)}`;
+  const cacheKey = `${format}:${rank}:${normalizeStandardArchetypeKey(archetype)}`;
   const now = Date.now();
   const cached = standardMetaRecommendationCache.get(cacheKey);
   if (cached && cached.expiresAt > now) return cached.data;
-  const [constructedRows, streamerPayload] = await Promise.all([
+  const [exactHsguruDecks, constructedRows, streamerPayload] = await Promise.all([
+    fetchExactHsguruDecks(archetype, archetypeLabel, format, rank).catch(() => []),
     fetchViciousConstructedDeckRows().catch(() => []),
     fetchDataset(HSGURU_STREAMER_DECKS_DATASET).catch(() => ({ data: { tables: [] } })),
   ]);
   const constructedPayload = { data: constructedRows };
-  let candidates = [
-    ...parseHsguruStreamerDecks(streamerPayload, archetype, archetypeLabel, format),
-    ...parseConstructedDecks(constructedPayload, archetype, archetypeLabel, format),
+  const candidates = [
+    ...exactHsguruDecks,
+    ...parseHsguruStreamerDecks(streamerPayload, archetype, archetypeLabel, format, rank),
+    ...parseConstructedDecks(constructedPayload, archetype, archetypeLabel, format, rank),
   ].sort((left, right) => right.quality - left.quality);
-  if (!candidates.length) {
-    const formatRows = constructedRows.filter(row => String(row?.format ?? '').trim().toLowerCase() === format);
-    candidates = parseConstructedDecks({ data: formatRows }, archetype, archetypeLabel, format, 'representative')
-      .sort((left, right) => right.quality - left.quality);
-    if (!candidates.length && format === 'standard') {
-      candidates = parseConstructedDecks(constructedPayload, archetype, archetypeLabel, format, 'representative')
-        .sort((left, right) => right.quality - left.quality);
-    }
-  }
   const selected = candidates[0] ? (({ quality: _quality, ...recommendation }) => recommendation)(candidates[0]) : null;
   standardMetaRecommendationCache.set(cacheKey, { data: selected, expiresAt: now + STANDARD_META_RECOMMENDATION_CACHE_MS });
   return selected;

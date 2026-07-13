@@ -9,6 +9,7 @@ export type StandardMetaRecommendation = {
   archetypeLabel: string;
   deckCode: string;
   format: StandardMetaFormat;
+  rank: StandardMetaRank;
   source: string;
   sourceUrl: string;
   streamer: string | null;
@@ -17,7 +18,7 @@ export type StandardMetaRecommendation = {
   updatedAt: string | null;
   classKey: StandardMetaClassKey;
   matchedArchetype: string;
-  matchMethod: 'exact' | 'alias' | 'representative';
+  matchMethod: 'exact' | 'alias';
 };
 
 export type StandardMetaPreview = {
@@ -36,6 +37,7 @@ export type StandardMetaRouterDependencies = {
     archetype: string,
     archetypeLabel: string,
     format: StandardMetaFormat,
+    rank: StandardMetaRank,
   ) => Promise<StandardMetaRecommendation | null>;
   createPreview: (recommendation: StandardMetaRecommendation) => Promise<StandardMetaPreview>;
   getPreview: (hash: string) => Promise<StandardMetaPreview>;
@@ -100,12 +102,13 @@ export function createStandardMetaRouter(dependencies: StandardMetaRouterDepende
 
   router.get('/admin/standard-meta/recommendation', async (request, response) => {
     const format = readFormat(request.query.format);
+    const rank = readRank(request.query.rank);
     const archetype = readArchetype(request.query.archetype);
     const archetypeLabel = readArchetype(request.query.archetypeLabel) || archetype;
-    if (!format || !archetype) return response.status(400).json({ error: 'Не указан архетип или формат' });
+    if (!format || !rank || !archetype) return response.status(400).json({ error: 'Не указан архетип, формат или рейтинг' });
     try {
-      const recommendation = await dependencies.findRecommendation(archetype, archetypeLabel, format);
-      if (!recommendation) return response.status(404).json({ error: 'Для этого архетипа пока нет подходящей сборки' });
+      const recommendation = await dependencies.findRecommendation(archetype, archetypeLabel, format, rank);
+      if (!recommendation) return response.status(404).json({ error: 'Для этого архетипа пока не найден точный список' });
       return response.json({ recommendation });
     } catch (error) {
       dependencies.onError?.('recommendation', error);
@@ -115,14 +118,15 @@ export function createStandardMetaRouter(dependencies: StandardMetaRouterDepende
 
   router.post('/admin/standard-meta/preview', async (request, response) => {
     const format = readFormat(request.body?.format);
+    const rank = readRank(request.body?.rank);
     const archetype = readArchetype(request.body?.archetype);
     const archetypeLabel = readArchetype(request.body?.archetypeLabel) || archetype;
-    if (!format || !archetype) return response.status(400).json({ error: 'Не указан архетип или формат' });
+    if (!format || !rank || !archetype) return response.status(400).json({ error: 'Не указан архетип, формат или рейтинг' });
     try {
       // The deck code is deliberately resolved again on the server. Clients cannot
       // use this admin endpoint as an arbitrary KolodaHS rendering proxy.
-      const recommendation = await dependencies.findRecommendation(archetype, archetypeLabel, format);
-      if (!recommendation) return response.status(404).json({ error: 'Для этого архетипа пока нет подходящей сборки' });
+      const recommendation = await dependencies.findRecommendation(archetype, archetypeLabel, format, rank);
+      if (!recommendation) return response.status(404).json({ error: 'Для этого архетипа пока не найден точный список' });
       const preview = await dependencies.createPreview(recommendation);
       return response.status(preview.ready ? 200 : 202).json({ recommendation, preview });
     } catch (error) {

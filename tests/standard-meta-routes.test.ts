@@ -12,6 +12,7 @@ const recommendation: StandardMetaRecommendation = {
   archetypeLabel: 'Кружечный Шаман',
   deckCode: 'AAECAaoIAtDbB9lBw6vnwTTvgbRmwfwqgf8rQe8sQfLtgfDwAfTwAf3wAfH2wfK2wfN2wfa3wcAAA==',
   format: 'standard',
+  rank: 'legend',
   source: 'hsguru-streamer',
   sourceUrl: 'https://example.test/deck',
   streamer: 'Tester',
@@ -38,9 +39,9 @@ const dependencies: StandardMetaRouterDependencies = {
     calls.push('vicious-gold');
     return { games: 355561, deckDistribution: [{ deck: 'Mug Shaman', frequency: 7.36 }] };
   },
-  findRecommendation: async (archetype, _label, format) => {
-    calls.push(`recommendation:${archetype}:${format}`);
-    return archetype === recommendation.archetype ? { ...recommendation, format } : null;
+  findRecommendation: async (archetype, _label, format, rank) => {
+    calls.push(`recommendation:${archetype}:${format}:${rank}`);
+    return archetype === recommendation.archetype ? { ...recommendation, format, rank } : null;
   },
   createPreview: async selected => {
     calls.push(`preview:${selected.deckCode.slice(0, 8)}`);
@@ -92,10 +93,10 @@ try {
   assert.equal((await vicious.json() as any).deckDistribution[0].deck, 'Mug Shaman');
   assert.ok(calls.includes('vicious-gold'));
 
-  const missing = await fetch(`${origin}/admin/standard-meta/recommendation?archetype=Unknown&format=standard`, { headers: adminHeaders });
+  const missing = await fetch(`${origin}/admin/standard-meta/recommendation?archetype=Unknown&format=standard&rank=legend`, { headers: adminHeaders });
   assert.equal(missing.status, 404);
 
-  const selected = await fetch(`${origin}/admin/standard-meta/recommendation?archetype=Mug%20Shaman&archetypeLabel=Test&format=standard`, { headers: adminHeaders });
+  const selected = await fetch(`${origin}/admin/standard-meta/recommendation?archetype=Mug%20Shaman&archetypeLabel=Test&format=standard&rank=legend`, { headers: adminHeaders });
   assert.equal(selected.status, 200);
   assert.equal((await selected.json() as any).recommendation.deckCode, recommendation.deckCode);
 
@@ -106,6 +107,7 @@ try {
       archetype: 'Mug Shaman',
       archetypeLabel: 'Кружечный Шаман',
       format: 'standard',
+      rank: 'legend',
       deckCode: 'malicious-client-code-must-be-ignored',
     }),
   });

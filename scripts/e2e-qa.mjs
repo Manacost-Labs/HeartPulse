@@ -660,9 +660,11 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
     }
     if (admin && url.pathname === '/api/admin/standard-meta/recommendation' && request.method() === 'GET') {
       adminState.standardMetaRecommendationRequests = (adminState.standardMetaRecommendationRequests || 0) + 1;
+      adminState.standardMetaRecommendationRank = url.searchParams.get('rank');
       request.respond(jsonResponse({
         recommendation: {
           archetype: 'Evenlock', archetypeLabel: 'Чётный Чернокнижник', format: 'standard',
+          rank: 'legend',
           deckCode: 'AAECAf0GQaFixtureDeckCodeForBrowserQualityAssurance1234567890==',
           source: 'qa-fixture', sourceUrl: '', streamer: null, sampleGames: 6476, winrate: 61.1,
           updatedAt: '2026-07-13T00:00:00.000Z', classKey: 'warlock', matchedArchetype: 'Evenlock', matchMethod: 'exact',
@@ -672,6 +674,7 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
     }
     if (admin && url.pathname === '/api/admin/standard-meta/preview' && request.method() === 'POST') {
       adminState.standardMetaPreviewRequests = (adminState.standardMetaPreviewRequests || 0) + 1;
+      adminState.standardMetaPreviewRank = JSON.parse(request.postData() || '{}').rank;
       request.respond(jsonResponse({
         preview: { hash: 'qa-preview-hash', state: 'done', ready: true, imageUrl: '/ad/wallpaper_info.webp', error: null },
       }));
@@ -1775,8 +1778,9 @@ for (const [device, viewport] of [
     await page.click('.standard-meta-modal__close');
     await page.click('.standard-meta-card__deck-button');
     await page.waitForSelector('.standard-meta-modal__image-stage img');
-    if (adminState.standardMetaRecommendationRequests !== 1 || adminState.standardMetaPreviewRequests !== 1) {
-      failures.push(`standard meta modal [${device}]: reopening repeated API work (${JSON.stringify({ recommendations: adminState.standardMetaRecommendationRequests, previews: adminState.standardMetaPreviewRequests })})`);
+    if (adminState.standardMetaRecommendationRequests !== 1 || adminState.standardMetaPreviewRequests !== 1
+      || adminState.standardMetaRecommendationRank !== 'legend' || adminState.standardMetaPreviewRank !== 'legend') {
+      failures.push(`standard meta modal [${device}]: reopening repeated API work or rank context was lost (${JSON.stringify({ recommendations: adminState.standardMetaRecommendationRequests, previews: adminState.standardMetaPreviewRequests, recommendationRank: adminState.standardMetaRecommendationRank, previewRank: adminState.standardMetaPreviewRank })})`);
     }
     await page.click('.standard-meta-modal__close');
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
