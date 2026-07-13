@@ -129,6 +129,17 @@ const subscriber = {
   telegram: { checked: false, hasAccess: false },
 };
 const adminFixtures = {
+  '/api/admin/standard-meta': {
+    format: 'standard',
+    formatLabel: 'Стандарт',
+    rank: 'legend',
+    rankLabel: 'Легенда',
+    source: 'qa-fixture',
+    sourceUrl: '',
+    translationSource: 'qa-fixture',
+    updatedAt: '2026-07-11T00:00:00.000Z',
+    items: [],
+  },
   '/api/admin/contests': {
     contests: [{
       id: 'qa-contest',

@@ -4187,7 +4187,7 @@ const VICIOUS_BUILD_ALIASES: Record<string, { archetype: string; representative?
   'Quest Shaman': { archetype: 'Zee Quest Shaman' },
   'Animancer Warlock': { archetype: 'Demon Warlock', representative: true },
   'Unholy DeathKnight': { archetype: 'Unholy Death Knight' },
-  'Blood Warrior': { archetype: 'Control Warrior', representative: true },
+  'Blood Warrior': { archetype: 'Lo’Gosh Warrior', representative: true },
   'Thief Priest': { archetype: 'Control Priest', representative: true },
   'Ayaya Rogue': { archetype: 'Aya Rogue' },
   'Void DemonHunter': { archetype: 'Void Soul Demon Hunter' },
