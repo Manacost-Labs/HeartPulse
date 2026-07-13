@@ -1,25 +1,22 @@
-name: Scrape data
+name: Validate scraper manually
 
 # ─── Triggers ─────────────────────────────────────────────────────────────────
 on:
-  schedule:
-    # Fires at 00:15, 06:15, 12:15, 18:15 UTC every day
-    # Offset by 15 min to avoid GitHub Actions rush-hour congestion
-    - cron: '15 0,6,12,18 * * *'
-  workflow_dispatch:          # also triggerable manually from the GitHub UI
+  workflow_dispatch:
 
 # ─── Permissions ──────────────────────────────────────────────────────────────
 permissions:
-  contents: write             # needed to push the data commit
+  contents: read
 
 # ─── Job ──────────────────────────────────────────────────────────────────────
 jobs:
-  scrape:
+  scrape-diagnostic:
     runs-on: ubuntu-latest
     timeout-minutes: 30       # kill the job if scraping hangs
 
     steps:
-      # 1. Checkout with the default GITHUB_TOKEN (has write permission above)
+      # Production publishing is owned by hs-arena-scraper.timer on the host.
+      # This workflow is a read-only, operator-triggered upstream diagnostic.
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -43,19 +40,3 @@ jobs:
           BLIZZARD_CLIENT_ID:     ${{ secrets.BLIZZARD_CLIENT_ID }}
           BLIZZARD_CLIENT_SECRET: ${{ secrets.BLIZZARD_CLIENT_SECRET }}
         run: npm run scrape
-
-      # 5. Commit & push only if any data file actually changed
-      - name: Commit updated data
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add server/data/winrates.json \
-                  server/data/tierlist.json \
-                  server/data/legendaries.json
-          if git diff --staged --quiet; then
-            echo "✓ No changes — data is already up to date"
-          else
-            git commit -m "chore: auto-update scraped data [skip ci]"
-            git push
-            echo "✓ Fresh data committed and pushed"
-          fi
