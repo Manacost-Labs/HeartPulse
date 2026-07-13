@@ -1,65 +1,8 @@
-/* Battlegrounds parchment skin
- * Scoped under .arena-app-battlegrounds so Arena, editorial and admin pages keep
- * their own visual systems. Interaction and animation rules remain in
- * Battlegrounds.css and the legacy builder stylesheet.
+/* Battlegrounds component skin
+ * The route canvas lives in battlegrounds-shell.css so it can load before a
+ * subscription gate. These heavier component rules remain lazy and scoped
+ * under .arena-app-battlegrounds so other sections keep their visual systems.
  */
-
-.arena-app-battlegrounds {
-  --bg-parchment: #ead6a7;
-  --bg-parchment-light: #f7e8bf;
-  --bg-parchment-panel: rgba(255, 244, 213, 0.7);
-  --bg-parchment-panel-strong: rgba(255, 247, 224, 0.88);
-  --bg-ink: #30251c;
-  --bg-muted: #735e49;
-  --bg-violet: #8f536d;
-  --bg-violet-dark: #3d2335;
-  --bg-violet-deep: #2a1725;
-  --bg-purple: #4a2f66;
-  --bg-purple-light: #6a4b86;
-  --bg-gold: #d9ab49;
-  --bg-wood: #2e160b;
-  --bg-wood-soft: #5f371d;
-  --bg-line: rgba(89, 53, 29, 0.3);
-  background:
-    linear-gradient(90deg, rgba(45, 20, 11, 0.2), transparent 10%, transparent 90%, rgba(45, 20, 11, 0.2)),
-    url('/wallpaper/arena-parchment.jpg') center top / 865px auto repeat;
-}
-
-.arena-app-battlegrounds .arena-workspace,
-.arena-app-battlegrounds .arena-main {
-  background: transparent !important;
-}
-
-.arena-app-battlegrounds .arena-content.arena-content-open {
-  width: min(100%, 1560px) !important;
-  max-width: 1560px !important;
-  margin-inline: auto !important;
-  padding: clamp(0.75rem, 2.5vw, 2.1rem) !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  color: var(--bg-ink) !important;
-  background:
-    linear-gradient(rgba(249, 232, 191, 0.9), rgba(234, 211, 160, 0.9)),
-    url('/wallpaper/arena-parchment.jpg') center top / 865px auto repeat !important;
-  box-shadow: none !important;
-}
-
-.arena-app-battlegrounds .arena-content.arena-content-open::before {
-  content: 'Поля Сражений';
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: min(100%, 680px);
-  aspect-ratio: 4 / 1;
-  margin: 0 auto clamp(0.8rem, 2vw, 1.35rem);
-  background: url('/wallpaper/battlegrounds-bartender-header.webp') center / 100% 100% no-repeat;
-  color: #fff0c8;
-  font-family: var(--font-display, "HSDisplay", serif);
-  font-size: clamp(1.35rem, 3vw, 2rem);
-  text-shadow: 0 2px 3px rgba(45, 22, 10, 0.78);
-  transform: translateY(-1px);
-  filter: drop-shadow(0 8px 8px rgba(70, 39, 19, 0.14));
-}
 
 .arena-app-battlegrounds .bg-library-page,
 .arena-app-battlegrounds .bg-library-detail-page,

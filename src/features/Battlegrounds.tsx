@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import '../route-parchment.css';
 import './Battlegrounds.css';
+import '../battlegrounds-shell.css';
 import '../battlegrounds-parchment.css';
 import { ChevronLeft, ChevronRight, ExternalLink, Pause, Play, Search, Volume2, X } from 'lucide-react';
 

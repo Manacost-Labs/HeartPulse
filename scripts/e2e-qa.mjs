@@ -1644,6 +1644,50 @@ for (const [device, viewport] of [
   }
 }
 
+// Locked Battlegrounds routes must load their route shell skin even though the
+// paywall deliberately prevents the heavy data component from mounting.
+for (const [device, viewport] of [
+  ['desktop', { width: 1280, height: 800, deviceScaleFactor: 1 }],
+  ['mobile', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
+]) {
+  const page = await createQaPage();
+  await page.setViewport(viewport);
+  await mockApplicationApi(page, { authenticated: false });
+  try {
+    await page.goto(`${BASE}/library`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('.arena-app-battlegrounds .arena-paywall', { visible: true, timeout: 20_000 });
+    const surface = await page.evaluate(() => {
+      const app = document.querySelector('.arena-app-battlegrounds');
+      const workspace = document.querySelector('.arena-workspace');
+      const main = document.querySelector('.arena-main');
+      const content = document.querySelector('.arena-content');
+      const style = element => getComputedStyle(element);
+      return {
+        appBackground: style(app).backgroundImage,
+        appVeilBackground: getComputedStyle(app, '::after').backgroundImage,
+        workspaceBackground: style(workspace).backgroundColor,
+        workspaceImage: style(workspace).backgroundImage,
+        mainBackground: style(main).backgroundColor,
+        mainImage: style(main).backgroundImage,
+        contentBackground: style(content).backgroundImage,
+      };
+    });
+    const prefix = `/library [${device} guest]`;
+    if (!surface.appBackground.includes('arena-parchment.jpg')) failures.push(`${prefix}: BG route shell parchment is missing`);
+    if (surface.appVeilBackground !== 'none') failures.push(`${prefix}: legacy blue shell veil remains above the parchment`);
+    if (surface.workspaceBackground !== 'rgba(0, 0, 0, 0)' || surface.workspaceImage !== 'none') failures.push(`${prefix}: workspace paints a white frame`);
+    if (surface.mainBackground !== 'rgba(0, 0, 0, 0)' || surface.mainImage !== 'none') failures.push(`${prefix}: main canvas paints a white frame`);
+    if (!surface.contentBackground.includes('arena-parchment.jpg')) failures.push(`${prefix}: content parchment does not cover the locked route`);
+    await page.screenshot({ path: `${OUT}/library-guest-${device}.png`, fullPage: true });
+    const violationCount = await auditAccessibility(page, prefix);
+    console.log(`✓ ${prefix} continuous parchment + axe (${violationCount} violations)`);
+  } catch (error) {
+    failures.push(`/library [${device} guest]: ${error.message}`);
+  } finally {
+    await page.close();
+  }
+}
+
 // Public auth keeps one material owner across login, registration and reset.
 for (const [device, viewport] of [
   ['desktop', { width: 1280, height: 800, deviceScaleFactor: 1 }],

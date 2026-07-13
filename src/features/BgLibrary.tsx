@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BarChart3, ChevronDown, ExternalLink, Filter, Search } from 'lucide-react';
 import '../route-parchment.css';
+import '../battlegrounds-shell.css';
 import '../battlegrounds-parchment.css';
 
 type LibraryKind = 'minion' | 'spell' | 'anomaly' | 'quest' | 'darkmoon_prize' | 'reward' | 'trinket' | 'timewarped';

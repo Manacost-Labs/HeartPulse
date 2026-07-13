@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import '../route-parchment.css';
+import '../battlegrounds-shell.css';
 import SubscriptionPurchaseButtons from './SubscriptionPurchaseButtons';
 
 type PaywallGateProps = {
