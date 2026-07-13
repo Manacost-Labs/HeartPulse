@@ -360,6 +360,39 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
       request.respond(jsonResponse({ items: [] }));
       return;
     }
+    if (admin && adminState.boostyFailure && url.pathname === '/api/admin/boosty/status') {
+      request.respond({
+        ...jsonResponse({
+          configured: true,
+          ok: false,
+          importStatus: 'error',
+          source: 'unavailable',
+          stale: true,
+          lastErrorMessage: 'Boosty API временно недоступен.',
+          warnings: ['boosty-api-unavailable'],
+          summary: {},
+          checkedAt: '2026-07-13T03:00:00.000Z',
+        }),
+        status: 502,
+      });
+      return;
+    }
+    if (admin && adminState.boostyFailure && url.pathname === '/api/admin/boosty/subscribers') {
+      request.respond({
+        ...jsonResponse({
+          configured: true,
+          source: 'unavailable',
+          stale: true,
+          subscribers: [],
+          summary: {},
+          levels: {},
+          fetchedAt: '2026-07-13T03:00:00.000Z',
+          error: 'Не удалось загрузить подписчиков Boosty',
+        }),
+        status: 502,
+      });
+      return;
+    }
     if (admin && url.pathname === '/api/articles') {
       request.respond(jsonResponse({ articles: adminState.articles ?? adminFixtures['/api/articles'].articles }));
       return;
@@ -730,6 +763,7 @@ for (const [device, viewport] of [
   const runtimeErrors = collectRuntimeErrors(page);
   const adminState = {
     galleryEmpty: false,
+    boostyFailure: false,
     articles: structuredClone(adminFixtures['/api/articles'].articles),
     contests: structuredClone(adminFixtures['/api/admin/contests'].contests),
     users: structuredClone(adminFixtures['/api/admin/users'].users),
@@ -890,6 +924,23 @@ for (const [device, viewport] of [
     const boostyEmptyState = await page.$eval('.admin-boosty-list [role="status"]', element => element.textContent?.trim() || '');
     if (!boostyEmptyState.includes('не найдены')) failures.push(`admin Boosty [${device}]: filtered empty state is missing`);
     const boostyViolationCount = await auditAccessibility(page, `admin Boosty [${device}]`, '.admin-workspace-content');
+    adminState.boostyFailure = true;
+    await page.click('.contest-users-head .contest-secondary-button');
+    await page.waitForFunction(() => {
+      const text = document.querySelector('.admin-workspace-content')?.textContent || '';
+      return text.includes('Boosty API: ошибка') && text.includes('Не удалось загрузить подписчиков Boosty');
+    });
+    const boostyFailureState = await page.$eval('.admin-workspace-content', element => ({
+      text: element.textContent?.replace(/\s+/g, ' ').trim() || '',
+      rows: element.querySelectorAll('.admin-boosty-row').length,
+      alerts: element.querySelectorAll('[role="alert"]').length,
+    }));
+    if (boostyFailureState.rows !== 0
+      || boostyFailureState.alerts < 1
+      || /private|127\.0\.0\.1|token/i.test(boostyFailureState.text)) {
+      failures.push(`admin Boosty [${device}]: upstream failure fallback is unsafe or incomplete (${JSON.stringify(boostyFailureState)})`);
+    }
+    adminState.boostyFailure = false;
 
     await page.goto(`${BASE}/?admin&section=telegram`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-telegram-row').length === 2);

@@ -63,6 +63,7 @@ import {
   type NewsletterUnsubscribeStore,
 } from './newsletterUnsubscribeRoutes.js';
 import { createAdminUserReadRouter } from './adminUserReadRoutes.js';
+import { createAdminBoostyRouter } from './adminBoostyRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -7150,33 +7151,13 @@ app.use('/api', createAdminUserReadRouter({
 }));
 
 
-app.get('/api/admin/boosty/status', async (req, res) => {
-  const admin = adminAuth(req);
-  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  setPrivateNoStore(res);
-  res.json(await fetchBoostyServiceStatus());
-});
-
-app.get('/api/admin/boosty/subscribers', async (req, res) => {
-  const admin = adminAuth(req);
-  if (!admin) return res.status(403).json({ error: 'Недостаточно прав' });
-  setPrivateNoStore(res);
-  try {
-    const includeInactive = String(req.query.includeInactive ?? '1') !== '0';
-    res.json(await fetchBoostySubscribers(includeInactive));
-  } catch (err: any) {
-    res.status(502).json({
-      configured: Boolean(BOOSTY_AUTH_API_URL),
-      source: 'unavailable',
-      stale: true,
-      subscribers: [],
-      summary: {},
-      levels: {},
-      fetchedAt: new Date().toISOString(),
-      error: err?.message || 'Не удалось загрузить подписчиков Boosty',
-    });
-  }
-});
+app.use('/api', createAdminBoostyRouter({
+  adminAuth,
+  getStatus: fetchBoostyServiceStatus,
+  getSubscribers: fetchBoostySubscribers,
+  configured: () => Boolean(BOOSTY_AUTH_API_URL),
+  setPrivateNoStore,
+}));
 
 app.get('/api/admin/telegram/accounts', (req, res) => {
   const admin = adminAuth(req);
