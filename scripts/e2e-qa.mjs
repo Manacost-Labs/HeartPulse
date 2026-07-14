@@ -144,6 +144,41 @@ const adminFixtures = {
       durationMinutes: 5.3, climbingSpeed: 2.49,
     }],
   },
+  '/api/admin/vicious-syndicate-gold': {
+    title: 'Vicious Syndicate Gold',
+    format: 'Standard',
+    games: 355561,
+    source: 'Vicious Syndicate Live',
+    sourceUrl: 'https://www.vicioussyndicate.com/',
+    updatedAt: '2026-07-13T00:00:00.000Z',
+    minimumDeckFrequency: 0.5,
+    buildCoverage: { found: 2, total: 2 },
+    classDistribution: [
+      { class: 'warlock', classLabel: 'Чернокнижник', classIcon: 'warlock', frequency: 18.4 },
+      { class: 'shaman', classLabel: 'Шаман', classIcon: 'shaman', frequency: 13.8 },
+    ],
+    deckDistribution: [{
+      class: 'warlock', classLabel: 'Чернокнижник', classIcon: 'warlock', frequency: 7.36,
+      deck: 'Painlock', deckLabel: 'Пейнлок',
+      build: {
+        deckCode: 'AAECAf0GQaFixtureViciousDeckCodeForBrowserQualityAssurance123456==',
+        source: 'qa-fixture', sourceLabel: 'QA fixture', sourceUrl: '', matchedArchetype: 'Painlock',
+        matchMethod: 'exact', updatedAt: '2026-07-13T00:00:00.000Z', winrate: 55.2, sampleGames: 900,
+      },
+    }],
+    tierList: [{
+      rankBracket: 'All ranks', rankLabel: 'Все ранги',
+      decks: [{
+        rank: 1, class: 'warlock', classLabel: 'Чернокнижник', classIcon: 'warlock', winrate: 55.2,
+        deck: 'Painlock', deckLabel: 'Пейнлок',
+        build: {
+          deckCode: 'AAECAf0GQaFixtureViciousDeckCodeForBrowserQualityAssurance123456==',
+          source: 'qa-fixture', sourceLabel: 'QA fixture', sourceUrl: '', matchedArchetype: 'Painlock',
+          matchMethod: 'exact', updatedAt: '2026-07-13T00:00:00.000Z', winrate: 55.2, sampleGames: 900,
+        },
+      }],
+    }],
+  },
   '/api/admin/contests': {
     contests: [{
       id: 'qa-contest',
@@ -1746,6 +1781,32 @@ for (const [device, viewport] of [
     await page.click('[data-profile-admin-destination="standard-meta"]');
     await page.waitForFunction(() => window.location.pathname === '/standard/meta');
     await page.waitForSelector('.standard-meta', { timeout: 20_000 });
+    const standardMetaState = await page.evaluate(() => {
+      const pageRoot = document.querySelector('.standard-meta');
+      const masthead = document.querySelector('.standard-meta__masthead');
+      const stats = document.querySelector('.standard-meta__masthead-stats');
+      const controls = document.querySelector('.standard-meta__controls');
+      const title = document.querySelector('.standard-meta__masthead h1');
+      const mastheadRect = masthead?.getBoundingClientRect();
+      const statsStyle = stats ? getComputedStyle(stats) : null;
+      return {
+        mastheadHeight: mastheadRect?.height ?? 0,
+        titleSize: title ? parseFloat(getComputedStyle(title).fontSize) : 0,
+        statsColumns: statsStyle?.gridTemplateColumns || '',
+        statsCount: stats?.children.length ?? 0,
+        controlsVisible: Boolean(controls && controls.getBoundingClientRect().height > 0),
+        scrollWidth: pageRoot?.scrollWidth ?? 0,
+        clientWidth: pageRoot?.clientWidth ?? 0,
+      };
+    });
+    if (standardMetaState.mastheadHeight < 150 || standardMetaState.mastheadHeight > 430
+      || standardMetaState.titleSize > 68 || standardMetaState.statsCount !== 3
+      || !standardMetaState.controlsVisible
+      || standardMetaState.scrollWidth > standardMetaState.clientWidth + 1) {
+      failures.push(`standard meta [${device}]: redesigned header or panels regressed (${JSON.stringify(standardMetaState)})`);
+    }
+    const standardMetaViolationCount = await auditAccessibility(page, `standard meta [${device}]`, '.standard-meta');
+    await page.screenshot({ path: `${OUT}/standard-meta-${device}.png`, fullPage: false });
     await page.click('.standard-meta-card__deck-button');
     await page.waitForSelector('.standard-meta-modal__image-stage img');
     const metaModalState = await page.evaluate(() => {
@@ -1783,9 +1844,34 @@ for (const [device, viewport] of [
       failures.push(`standard meta modal [${device}]: reopening repeated API work or rank context was lost (${JSON.stringify({ recommendations: adminState.standardMetaRecommendationRequests, previews: adminState.standardMetaPreviewRequests, recommendationRank: adminState.standardMetaRecommendationRank, previewRank: adminState.standardMetaPreviewRank })})`);
     }
     await page.click('.standard-meta-modal__close');
+    await page.goto(`${BASE}/standard/vicious-gold`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('.vsgold__panel', { timeout: 20_000 });
+    const viciousGoldState = await page.evaluate(() => {
+      const pageRoot = document.querySelector('.vsgold');
+      const hero = document.querySelector('.vsgold__hero');
+      const stats = document.querySelector('.vsgold__hero-stats');
+      const title = document.querySelector('.vsgold__hero h1');
+      const heroRect = hero?.getBoundingClientRect();
+      return {
+        heroHeight: heroRect?.height ?? 0,
+        titleSize: title ? parseFloat(getComputedStyle(title).fontSize) : 0,
+        statsCount: stats?.children.length ?? 0,
+        panelCount: document.querySelectorAll('.vsgold__panel').length,
+        scrollWidth: pageRoot?.scrollWidth ?? 0,
+        clientWidth: pageRoot?.clientWidth ?? 0,
+      };
+    });
+    if (viciousGoldState.heroHeight < 150 || viciousGoldState.heroHeight > 430
+      || viciousGoldState.titleSize > 68 || viciousGoldState.statsCount !== 3
+      || viciousGoldState.panelCount < 3
+      || viciousGoldState.scrollWidth > viciousGoldState.clientWidth + 1) {
+      failures.push(`vicious gold [${device}]: redesigned header or panels regressed (${JSON.stringify(viciousGoldState)})`);
+    }
+    const viciousGoldViolationCount = await auditAccessibility(page, `vicious gold [${device}]`, '.vsgold');
+    await page.screenshot({ path: `${OUT}/vicious-gold-${device}.png`, fullPage: false });
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
-    console.log(`✓ admin dashboard/articles/translations/gallery/Boosty/Telegram/mailing/contests/users/profile [${device}] interactions + axe (${violationCount + articlesViolationCount + translationsViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + profileViolationCount} violations)`);
+    console.log(`✓ admin dashboard/articles/translations/gallery/Boosty/Telegram/mailing/contests/users/profile/standard panels [${device}] interactions + axe (${violationCount + articlesViolationCount + translationsViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + profileViolationCount + standardMetaViolationCount + viciousGoldViolationCount} violations)`);
   } catch (error) {
     const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
     failures.push(`admin dashboard [${device}]: ${error.message}; page: ${diagnostic}`);
