@@ -3277,6 +3277,8 @@ for (const [device, viewport] of [
         misc: Boolean(document.querySelector('[aria-controls="arena-mobile-misc"]')),
         avatarFallback: document.querySelector('.auth-avatar > span')?.textContent || '',
         avatarImageHidden: getComputedStyle(document.querySelector('.auth-avatar img')).display === 'none',
+        avatarFrame: getComputedStyle(document.querySelector('.auth-avatar')).backgroundImage,
+        avatarSurface: getComputedStyle(document.querySelector('.auth-avatar > span')).backgroundImage,
         missingRoutes: [
           '/articles', '/standard/matchups', '/classes', '/tierlist', '/legendaries',
           '/heroes', '/library', '/battlegrounds/tier-list', '/battlegrounds/strategies',
@@ -3350,6 +3352,7 @@ for (const [device, viewport] of [
     if (!openState.constructors || !openState.misc) failures.push('mobile menu: grouped navigation controls are missing');
     if (openState.missingRoutes.length) failures.push(`mobile menu: missing routes ${openState.missingRoutes.join(', ')}`);
     if (openState.avatarFallback !== 'QS' || !openState.avatarImageHidden) failures.push('mobile menu: broken avatar did not fall back to user initials');
+    if (!openState.avatarFrame.includes('conic-gradient') || !openState.avatarSurface.includes('radial-gradient')) failures.push('mobile menu: branded avatar frame or personalized surface is missing');
     if (openState.toggleSize.width < 44 || openState.toggleSize.height < 44) failures.push(`mobile menu: toggle target is ${openState.toggleSize.width}×${openState.toggleSize.height}`);
     if (openState.undersizedControls) failures.push(`mobile menu: ${openState.undersizedControls} visible controls are smaller than 44×44`);
     if (openState.topbarMinHeight !== '61px'
