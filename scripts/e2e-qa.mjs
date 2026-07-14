@@ -1795,6 +1795,7 @@ for (const [device, viewport] of [
         statsColumns: statsStyle?.gridTemplateColumns || '',
         statsCount: stats?.children.length ?? 0,
         controlsVisible: Boolean(controls && controls.getBoundingClientRect().height > 0),
+        sourcePanelPresent: Boolean(document.querySelector('.standard-meta__source-line')),
         scrollWidth: pageRoot?.scrollWidth ?? 0,
         clientWidth: pageRoot?.clientWidth ?? 0,
       };
@@ -1802,6 +1803,7 @@ for (const [device, viewport] of [
     if (standardMetaState.mastheadHeight < 150 || standardMetaState.mastheadHeight > 430
       || standardMetaState.titleSize > 68 || standardMetaState.statsCount !== 3
       || !standardMetaState.controlsVisible
+      || standardMetaState.sourcePanelPresent
       || standardMetaState.scrollWidth > standardMetaState.clientWidth + 1) {
       failures.push(`standard meta [${device}]: redesigned header or panels regressed (${JSON.stringify(standardMetaState)})`);
     }

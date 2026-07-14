@@ -224,26 +224,11 @@
   background: transparent;
 }
 
-.standard-meta__source-line {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.7rem 1.2rem;
-  align-items: center;
-  margin: 0.75rem 0 1rem;
-  padding: 0.65rem 0.15rem;
-  border-bottom: 1px solid rgba(91, 56, 27, 0.28);
-  color: #6b523a;
-  font-size: 0.73rem;
-}
-
-.standard-meta__source-line span,
-.standard-meta__source-line a { display: inline-flex; gap: 0.35rem; align-items: center; }
-.standard-meta__source-line a { margin-left: auto; color: var(--meta-purple); font-weight: 800; }
-
 .standard-meta__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.85rem;
+  margin-top: 1rem;
 }
 
 .standard-meta-card {
@@ -602,7 +587,6 @@
   .standard-meta__controls { grid-template-columns: 1fr; padding: 0.8rem; }
   .standard-meta__search { grid-column: auto; }
   .standard-meta__rank-tabs { display: grid; grid-template-columns: repeat(2, 1fr); }
-  .standard-meta__source-line a { margin-left: 0; }
   .standard-meta-card { grid-template-columns: auto auto minmax(0, 1fr); gap: 0.65rem; padding: 0.75rem; }
   .standard-meta__winrate { grid-column: 1 / -1; grid-template-columns: auto auto; justify-content: space-between; min-width: 0; }
   .standard-meta-card__metrics { grid-template-columns: repeat(2, 1fr); }

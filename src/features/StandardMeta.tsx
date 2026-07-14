@@ -126,19 +126,6 @@ async function apiJson<T>(url: string, init?: RequestInit): Promise<T> {
   return payload as T;
 }
 
-function formatDate(value: string | null): string {
-  if (!value) return 'дата не указана';
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return value;
-  return date.toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 function formatNumber(value: number | null, suffix = ''): string {
   if (value === null) return '—';
   return `${value.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}${suffix}`;
@@ -446,12 +433,6 @@ export default function StandardMetaPage() {
           <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Найти архетип…" />
         </label>
       </section>
-
-      <div className="standard-meta__source-line">
-        <span><Sparkles size={15} /> Источник: HSGuru</span>
-        <span><RefreshCw size={15} /> Обновлено {formatDate(data.updatedAt)}</span>
-        {data.sourceUrl && <a href={data.sourceUrl} target="_blank" rel="noreferrer">Открыть срез <ExternalLink size={14} /></a>}
-      </div>
 
       {loading && (
         <div className="standard-meta__feedback" role="status"><RefreshCw className="standard-meta__spinner" /> Загружаем мету…</div>
