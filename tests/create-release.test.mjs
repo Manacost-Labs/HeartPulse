@@ -15,7 +15,7 @@ try {
     mkdirSync(join(workspace, directory), { recursive: true });
   }
   writeFileSync(join(workspace, 'build/server/index.js'), 'console.log("server");\n');
-  writeFileSync(join(workspace, 'dist/index.html'), '<!doctype html>\n');
+  writeFileSync(join(workspace, 'dist/index.html'), '<!doctype html>\n<script type="module" src="/assets/index-stable.js"></script>\n');
   writeFileSync(join(workspace, 'public/asset.txt'), 'asset\n');
   writeFileSync(join(workspace, 'server/gen_legendary_image.py'), '# fixture\n');
   for (const script of ['backup-shared-data.sh', 'verify-backup.sh', 'restore-backup.sh', 'replicate-backup.sh']) {
@@ -33,6 +33,10 @@ try {
 
   const manifest = JSON.parse(readFileSync(join(output, 'release.json'), 'utf8'));
   assert.equal(manifest.sha, 'abcdef1');
+  assert.match(
+    readFileSync(join(output, 'dist/index.html'), 'utf8'),
+    /src="\/assets\/index-stable\.js\?v=abcdef1"/,
+  );
   assert.match(manifest.checksums['scripts/backup-shared-data.sh'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['scripts/verify-backup.sh'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['scripts/restore-backup.sh'], /^[a-f0-9]{64}$/);
