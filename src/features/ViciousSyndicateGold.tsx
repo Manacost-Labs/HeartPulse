@@ -17,7 +17,7 @@ type DeckBuild = {
   sourceLabel: string;
   sourceUrl: string;
   matchedArchetype: string;
-  matchMethod: 'exact' | 'alias' | 'representative';
+  matchMethod: 'exact' | 'alias';
   updatedAt: string | null;
   winrate: number | null;
   sampleGames: number | null;
@@ -110,7 +110,6 @@ function BuildActions({ deck, build, copiedDeck, onCopy }: {
   onCopy: (deck: string, code: string) => void;
 }) {
   if (!build) return <span className="vsgold__build-missing">Сборка не найдена</span>;
-  const representative = build.matchMethod === 'representative';
   return (
     <div className="vsgold__build">
       <div className="vsgold__build-copy">
@@ -124,9 +123,7 @@ function BuildActions({ deck, build, copiedDeck, onCopy }: {
           </a>
         )}
       </div>
-      <span title={representative ? `Подобрана сборка ${build.matchedArchetype}` : undefined}>
-        {representative ? `Ближайшая: ${build.matchedArchetype}` : build.sourceLabel}
-      </span>
+      <span>{build.matchMethod === 'alias' ? `${build.sourceLabel} · точный синоним` : build.sourceLabel}</span>
     </div>
   );
 }

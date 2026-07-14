@@ -105,7 +105,7 @@ function TranslationWorkspaceView({
     <div className="admin-translation-workspace">
       <div className="admin-stat-grid admin-translation-stats" aria-label="Сводка переводов">
         <div className={coverage.missing ? 'needs-attention' : 'is-complete'}>
-          <span>Покрытие матчапов</span>
+          <span>Покрытие Standard</span>
           <strong>{coverageLoading ? '…' : `${coverage.coveragePercent}%`}</strong>
           <small>{coverage.translated} из {coverage.totalObserved} актуальных</small>
         </div>
@@ -122,7 +122,7 @@ function TranslationWorkspaceView({
         <div className="admin-card-heading">
           <div>
             <h2 id="translation-coverage-title">Что ещё не переведено</h2>
-            <p className="contest-muted">Сравниваем таблицу с архетипами, которые прямо сейчас встречаются в матчапах Легенды и Алмаза 4–1.</p>
+            <p className="contest-muted">Сравниваем таблицу со всеми архетипами из матчапов и Meta HSGuru: Стандарт и Вольный, все доступные рейтинги.</p>
           </div>
           <button type="button" className="contest-secondary-button" onClick={onRetryCoverage} disabled={coverageLoading}>
             {coverageLoading ? 'Проверяем…' : 'Проверить ещё раз'}
@@ -144,7 +144,7 @@ function TranslationWorkspaceView({
             <button type="button" onClick={onRetryCoverage}>Повторить</button>
           </div>
         )}
-        {!coverageError && coverageLoading && <p className="contest-muted admin-translation-empty" role="status">Проверяем актуальные матчапы…</p>}
+        {!coverageError && coverageLoading && <p className="contest-muted admin-translation-empty" role="status">Проверяем актуальные матчапы и срезы меты…</p>}
         {!coverageError && !coverageLoading && coverage.items.length > 0 && (
           <ul className="admin-untranslated-list" aria-label="Архетипы без перевода">
             {coverage.items.map(item => (
@@ -163,7 +163,7 @@ function TranslationWorkspaceView({
         {!coverageError && !coverageLoading && coverage.items.length === 0 && (
           <div className="admin-translation-covered" role="status">
             <strong>Все актуальные архетипы переведены</strong>
-            <span>Новые названия появятся здесь автоматически после обновления матчапов.</span>
+            <span>Новые названия появятся здесь автоматически после обновления матчапов или меты.</span>
           </div>
         )}
       </section>

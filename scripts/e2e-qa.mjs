@@ -711,6 +711,13 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
       adminState.standardMetaPreviewRequests = (adminState.standardMetaPreviewRequests || 0) + 1;
       adminState.standardMetaPreviewRank = JSON.parse(request.postData() || '{}').rank;
       request.respond(jsonResponse({
+        recommendation: {
+          archetype: 'Evenlock', archetypeLabel: 'Чётный Чернокнижник', format: 'standard',
+          rank: 'legend',
+          deckCode: 'AAECAf0GQaFixtureDeckCodeForBrowserQualityAssurance1234567890==',
+          source: 'qa-fixture', sourceUrl: '', streamer: null, sampleGames: 6476, winrate: 61.1,
+          updatedAt: '2026-07-13T00:00:00.000Z', classKey: 'warlock', matchedArchetype: 'Evenlock', matchMethod: 'exact',
+        },
         preview: { hash: 'qa-preview-hash', state: 'done', ready: true, imageUrl: '/ad/wallpaper_info.webp', error: null },
       }));
       return;
@@ -1831,18 +1838,21 @@ for (const [device, viewport] of [
         portalIsBodyChild: modal?.parentElement === document.body,
       };
     });
+    const minimumDeckImageWidth = device === 'desktop' ? 500 : 250;
+    const minimumDeckImageHeight = device === 'desktop' ? 300 : 250;
     if (metaModalState.panelTop < 0 || metaModalState.panelBottom > metaModalState.viewportHeight + 1
-      || metaModalState.imageWidth < 80 || metaModalState.imageHeight < 80
+      || metaModalState.imageWidth < minimumDeckImageWidth || metaModalState.imageHeight < minimumDeckImageHeight
       || !metaModalState.code.startsWith('AA') || !metaModalState.classImage.includes('warlock-64.webp')
       || !metaModalState.bodyLocked || !metaModalState.portalIsBodyChild) {
       failures.push(`standard meta modal [${device}]: geometry, code, class, portal or scroll lock regressed (${JSON.stringify(metaModalState)})`);
     }
     await auditAccessibility(page, `standard meta modal [${device}]`, '.standard-meta-modal__panel');
+    await page.screenshot({ path: `${OUT}/standard-meta-modal-${device}.png`, fullPage: false });
     await page.click('.standard-meta-modal__close');
     await page.click('.standard-meta-card__deck-button');
     await page.waitForSelector('.standard-meta-modal__image-stage img');
-    if (adminState.standardMetaRecommendationRequests !== 1 || adminState.standardMetaPreviewRequests !== 1
-      || adminState.standardMetaRecommendationRank !== 'legend' || adminState.standardMetaPreviewRank !== 'legend') {
+    if ((adminState.standardMetaRecommendationRequests || 0) !== 0 || adminState.standardMetaPreviewRequests !== 1
+      || adminState.standardMetaPreviewRank !== 'legend') {
       failures.push(`standard meta modal [${device}]: reopening repeated API work or rank context was lost (${JSON.stringify({ recommendations: adminState.standardMetaRecommendationRequests, previews: adminState.standardMetaPreviewRequests, recommendationRank: adminState.standardMetaRecommendationRank, previewRank: adminState.standardMetaPreviewRank })})`);
     }
     await page.click('.standard-meta-modal__close');

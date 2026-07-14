@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import {
   AlertTriangle,
   ExternalLink,
+  Maximize2,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -221,7 +222,10 @@ function DeckModal({ state, onClose }: { state: DeckModalState; onClose: () => v
           <div className="standard-meta-modal__content">
             <div className="standard-meta-modal__image-stage">
               {state.preview?.ready && state.preview.imageUrl ? (
-                <img src={state.preview.imageUrl} alt={`Колода ${state.item.archetypeLabel}`} />
+                <a href={state.preview.imageUrl} target="_blank" rel="noreferrer" className="standard-meta-modal__image-link" aria-label="Открыть изображение колоды в полном размере">
+                  <img src={state.preview.imageUrl} alt={`Колода ${state.item.archetypeLabel}`} />
+                  <span><Maximize2 size={16} /> Полный размер</span>
+                </a>
               ) : state.loadingPreview || (state.preview && !state.preview.ready && state.preview.state !== 'error') ? (
                 <div className="standard-meta-modal__status" role="status">
                   <RefreshCw className="standard-meta__spinner" size={30} />
@@ -355,35 +359,18 @@ export default function StandardMetaPage() {
       previewError: '',
     });
     try {
-      const params = new URLSearchParams({ archetype: item.archetype, archetypeLabel: item.archetypeLabel, format, rank });
-      const { recommendation } = await apiJson<{ recommendation: Recommendation }>(`/api/admin/standard-meta/recommendation?${params}`);
+      const result = await apiJson<{ recommendation: Recommendation; preview: Preview }>('/api/admin/standard-meta/preview', {
+        method: 'POST',
+        body: JSON.stringify({ archetype: item.archetype, archetypeLabel: item.archetypeLabel, format, rank }),
+      });
       setModal(current => current?.item.id === item.id ? {
         ...current,
-        recommendation,
+        recommendation: result.recommendation,
+        preview: result.preview,
         loadingRecommendation: false,
-        loadingPreview: true,
+        loadingPreview: false,
       } : current);
-      deckCache.current.set(cacheKey, { recommendation, preview: null, previewError: '' });
-      try {
-        const result = await apiJson<{ preview: Preview }>('/api/admin/standard-meta/preview', {
-          method: 'POST',
-          body: JSON.stringify({ archetype: item.archetype, archetypeLabel: item.archetypeLabel, format, rank }),
-        });
-        setModal(current => current?.item.id === item.id ? {
-          ...current,
-          preview: result.preview,
-          loadingPreview: false,
-        } : current);
-        deckCache.current.set(cacheKey, { recommendation, preview: result.preview, previewError: '' });
-      } catch (cause) {
-        const previewError = cause instanceof Error ? cause.message : 'Изображение пока недоступно';
-        setModal(current => current?.item.id === item.id ? {
-          ...current,
-          loadingPreview: false,
-          previewError,
-        } : current);
-        deckCache.current.set(cacheKey, { recommendation, preview: null, previewError });
-      }
+      deckCache.current.set(cacheKey, { recommendation: result.recommendation, preview: result.preview, previewError: '' });
     } catch (cause) {
       setModal(current => current?.item.id === item.id ? {
         ...current,

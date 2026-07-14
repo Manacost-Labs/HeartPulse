@@ -165,7 +165,9 @@ const standardMatchupsApiCache = new Map<string, MemoryCacheEntry>();
 const standardMetaApiCache = new Map<string, MemoryCacheEntry>();
 const viciousSyndicateGoldApiCache = new Map<string, MemoryCacheEntry>();
 const standardMetaRecommendationCache = new Map<string, { data: StandardMetaRecommendation | null; expiresAt: number }>();
-const standardMetaPreviewCache = new Map<string, { hash: string; expiresAt: number }>();
+const standardMetaRecommendationJobs = new Map<string, Promise<StandardMetaRecommendation | null>>();
+const standardMetaPreviewCache = new Map<string, { preview: StandardMetaPreview; expiresAt: number }>();
+const standardMetaPreviewJobs = new Map<string, Promise<StandardMetaPreview>>();
 let standardMetaDeckRowsCache: { rows: any[]; expiresAt: number } | null = null;
 const STANDARD_META_PREVIEW_CACHE_FILE = join(DATA_DIR, 'standard-meta-preview-cache.json');
 
@@ -179,7 +181,16 @@ function hydrateStandardMetaPreviewCache() {
       const hash = String(entry?.hash ?? '');
       const expiresAt = Number(entry?.expiresAt);
       if (/^[a-f0-9]{64}$/.test(key) && /^[a-zA-Z0-9_-]{8,96}$/.test(hash) && expiresAt > now) {
-        standardMetaPreviewCache.set(key, { hash, expiresAt });
+        standardMetaPreviewCache.set(key, {
+          preview: {
+            hash,
+            state: String(entry?.state ?? 'queued'),
+            ready: Boolean(entry?.ready),
+            imageUrl: typeof entry?.imageUrl === 'string' && entry.imageUrl.startsWith('https://') ? entry.imageUrl : null,
+            error: entry?.error ? String(entry.error).slice(0, 300) : null,
+          },
+          expiresAt,
+        });
       }
     }
   } catch (error: any) {
@@ -193,7 +204,7 @@ function persistStandardMetaPreviewCache() {
     const now = Date.now();
     const entries = [...standardMetaPreviewCache.entries()]
       .filter(([, value]) => value.expiresAt > now)
-      .map(([key, value]) => ({ key, ...value }));
+      .map(([key, value]) => ({ key, ...value.preview, expiresAt: value.expiresAt }));
     const temporary = `${STANDARD_META_PREVIEW_CACHE_FILE}.${process.pid}.tmp`;
     writeFileSync(temporary, `${JSON.stringify({ version: 1, entries }, null, 2)}\n`, { mode: 0o640 });
     renameSync(temporary, STANDARD_META_PREVIEW_CACHE_FILE);
@@ -4227,15 +4238,11 @@ const STANDARD_META_RANK_LABEL: Record<StandardMetaRank, string> = {
 const HSGURU_STREAMER_DECKS_DATASET = 'hsguru_streamer_decks_legend_1000';
 const VICIOUS_SYNDICATE_LIVE_DATASET = 'vicious_syndicate_live_beta';
 const VICIOUS_GOLD_MIN_DECK_FREQUENCY = 0.5;
-const VICIOUS_BUILD_ALIASES: Record<string, { archetype: string; representative?: boolean }> = {
+const VICIOUS_BUILD_ALIASES: Record<string, { archetype: string }> = {
   'Two Rogue': { archetype: 'Two-Bit Rogue' },
-  'Soothsayer Priest': { archetype: 'Control Priest', representative: true },
   'Herald DeathKnight': { archetype: 'Herald Death Knight' },
   'Quest Shaman': { archetype: 'Zee Quest Shaman' },
-  'Animancer Warlock': { archetype: 'Demon Warlock', representative: true },
   'Unholy DeathKnight': { archetype: 'Unholy Death Knight' },
-  'Blood Warrior': { archetype: 'Lo’Gosh Warrior', representative: true },
-  'Thief Priest': { archetype: 'Control Priest', representative: true },
   'Ayaya Rogue': { archetype: 'Aya Rogue' },
   'Void DemonHunter': { archetype: 'Void Soul Demon Hunter' },
 };
@@ -5568,15 +5575,15 @@ function translateStandardArchetype(name: string, translations: Record<string, s
 }
 
 async function loadObservedStandardArchetypes() {
-  const ranks = Object.entries(STANDARD_MATCHUPS_DATASET_BY_RANK) as Array<[
+  const matchupRanks = Object.entries(STANDARD_MATCHUPS_DATASET_BY_RANK) as Array<[
     keyof typeof STANDARD_MATCHUPS_DATASET_BY_RANK,
     string,
   ]>;
-  const payloads = await Promise.all(ranks.map(async ([rank, datasetId]) => ({
+  const matchupPayloads = await Promise.all(matchupRanks.map(async ([rank, datasetId]) => ({
     rank,
-    payload: await fetchDataset(datasetId),
+    payload: await fetchDataset(datasetId).catch(() => null),
   })));
-  return payloads.flatMap(({ rank, payload }) => {
+  const matchupArchetypes = matchupPayloads.flatMap(({ rank, payload }) => {
     const table = payload?.data?.tables?.[0] ?? payload?.tables?.[0] ?? null;
     const headers = Array.isArray(table?.headers) ? table.headers.slice(2) : [];
     const rows = Array.isArray(table?.rows) ? table.rows.slice(1) : [];
@@ -5594,6 +5601,32 @@ async function loadObservedStandardArchetypes() {
       rank: STANDARD_MATCHUPS_RANK_LABEL[rank],
     }));
   });
+
+  const metaSources = (Object.entries(STANDARD_META_DATASET_BY_FORMAT_RANK) as Array<[
+    StandardMetaFormat,
+    Record<StandardMetaRank, string>,
+  ]>).flatMap(([format, ranks]) => (
+    (Object.entries(ranks) as Array<[StandardMetaRank, string]>).map(([rank, datasetId]) => ({ format, rank, datasetId }))
+  ));
+  const metaPayloads = await Promise.all(metaSources.map(async source => ({
+    ...source,
+    payload: await fetchDataset(source.datasetId).catch(() => null),
+  })));
+  const metaArchetypes = metaPayloads.flatMap(({ format, rank, payload }) => {
+    const table = payload?.data?.tables?.[0] ?? payload?.tables?.[0] ?? null;
+    const rows = Array.isArray(table?.rows) ? table.rows : [];
+    const uniqueNames = new Map<string, string>();
+    for (const row of rows) {
+      const nameEn = String(Array.isArray(row) ? row[0] : '').trim().replace(/\s+/g, ' ');
+      if (nameEn) uniqueNames.set(normalizeStandardArchetypeKey(nameEn), nameEn);
+    }
+    return [...uniqueNames.values()].map(nameEn => ({
+      nameEn,
+      rank: `Мета · ${STANDARD_META_FORMAT_LABEL[format]} · ${STANDARD_META_RANK_LABEL[rank]}`,
+    }));
+  });
+
+  return [...matchupArchetypes, ...metaArchetypes];
 }
 
 function transformHsguruMatchups(
@@ -5724,7 +5757,7 @@ async function loadStandardMeta(format: StandardMetaFormat, rank: StandardMetaRa
 
 type ViciousGoldBuild = Omit<StandardMetaRecommendation, 'matchMethod'> & {
   matchedArchetype: string;
-  matchMethod: 'exact' | 'alias' | 'representative';
+  matchMethod: 'exact' | 'alias';
 };
 
 function viciousPercent(value: unknown): number | null {
@@ -5806,7 +5839,7 @@ function findViciousGoldBuild(
     updatedAt: String(selected.updated_at ?? '').trim() || null,
     classKey,
     matchedArchetype,
-    matchMethod: alias?.representative ? 'representative' : alias ? 'alias' : 'exact',
+    matchMethod: alias ? 'alias' : 'exact',
   };
 }
 
@@ -6084,20 +6117,32 @@ async function findStandardMetaRecommendation(
   const now = Date.now();
   const cached = standardMetaRecommendationCache.get(cacheKey);
   if (cached && cached.expiresAt > now) return cached.data;
-  const [exactHsguruDecks, constructedRows, streamerPayload] = await Promise.all([
-    fetchExactHsguruDecks(archetype, archetypeLabel, format, rank).catch(() => []),
-    fetchViciousConstructedDeckRows().catch(() => []),
-    fetchDataset(HSGURU_STREAMER_DECKS_DATASET).catch(() => ({ data: { tables: [] } })),
-  ]);
-  const constructedPayload = { data: constructedRows };
-  const candidates = [
-    ...exactHsguruDecks,
-    ...parseHsguruStreamerDecks(streamerPayload, archetype, archetypeLabel, format, rank),
-    ...parseConstructedDecks(constructedPayload, archetype, archetypeLabel, format, rank),
-  ].sort((left, right) => right.quality - left.quality);
-  const selected = candidates[0] ? (({ quality: _quality, ...recommendation }) => recommendation)(candidates[0]) : null;
-  standardMetaRecommendationCache.set(cacheKey, { data: selected, expiresAt: now + STANDARD_META_RECOMMENDATION_CACHE_MS });
-  return selected;
+  const active = standardMetaRecommendationJobs.get(cacheKey);
+  if (active) return active;
+  const job = (async () => {
+    // Prefer the locally indexed exact decks. They respond in ~100 ms and avoid a
+    // live HSGuru scrape on every cold modal open. The live endpoint is a fallback
+    // only when the indexed sources contain no exact list for this archetype.
+    const [constructedRows, streamerPayload] = await Promise.all([
+      fetchViciousConstructedDeckRows().catch(() => []),
+      fetchDataset(HSGURU_STREAMER_DECKS_DATASET).catch(() => ({ data: { tables: [] } })),
+    ]);
+    let candidates = [
+      ...parseHsguruStreamerDecks(streamerPayload, archetype, archetypeLabel, format, rank),
+      ...parseConstructedDecks({ data: constructedRows }, archetype, archetypeLabel, format, rank),
+    ];
+    if (!candidates.length) {
+      candidates = await fetchExactHsguruDecks(archetype, archetypeLabel, format, rank).catch(() => []);
+    }
+    candidates.sort((left, right) => right.quality - left.quality);
+    const selected = candidates[0] ? (({ quality: _quality, ...recommendation }) => recommendation)(candidates[0]) : null;
+    standardMetaRecommendationCache.set(cacheKey, { data: selected, expiresAt: Date.now() + STANDARD_META_RECOMMENDATION_CACHE_MS });
+    return selected;
+  })().finally(() => {
+    standardMetaRecommendationJobs.delete(cacheKey);
+  });
+  standardMetaRecommendationJobs.set(cacheKey, job);
+  return job;
 }
 
 function normalizeStandardMetaPreview(payload: any): StandardMetaPreview {
@@ -6117,7 +6162,15 @@ async function fetchStandardMetaPreview(hash: string): Promise<StandardMetaPrevi
     signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) throw new Error(`KolodaHS HTTP ${response.status}`);
-  return normalizeStandardMetaPreview(await response.json());
+  const preview = normalizeStandardMetaPreview(await response.json());
+  let cacheChanged = false;
+  for (const [key, cached] of standardMetaPreviewCache.entries()) {
+    if (cached.preview.hash !== hash) continue;
+    standardMetaPreviewCache.set(key, { preview, expiresAt: cached.expiresAt });
+    cacheChanged = cacheChanged || preview.ready || preview.state === 'error';
+  }
+  if (cacheChanged) persistStandardMetaPreviewCache();
+  return preview;
 }
 
 async function createStandardMetaPreview(recommendation: StandardMetaRecommendation): Promise<StandardMetaPreview> {
@@ -6125,34 +6178,46 @@ async function createStandardMetaPreview(recommendation: StandardMetaRecommendat
   const cacheKey = createHash('sha256').update(recommendation.deckCode).digest('hex');
   const cached = standardMetaPreviewCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
+    if (cached.preview.ready && cached.preview.imageUrl) return cached.preview;
     try {
-      return await fetchStandardMetaPreview(cached.hash);
+      const preview = await fetchStandardMetaPreview(cached.preview.hash);
+      standardMetaPreviewCache.set(cacheKey, { preview, expiresAt: cached.expiresAt });
+      if (preview.ready || preview.state === 'error') persistStandardMetaPreviewCache();
+      return preview;
     } catch {
       standardMetaPreviewCache.delete(cacheKey);
       persistStandardMetaPreviewCache();
     }
   }
-  const response = await fetch(`${KOLODAHS_RENDER_API_BASE_URL}/v1/deck`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Kolodahs-Api-Key': KOLODAHS_API_KEY,
-      'User-Agent': 'ManacostArena/1.0',
-    },
-    body: JSON.stringify({
-      title: recommendation.archetypeLabel,
-      deck_code: recommendation.deckCode,
-      wait_seconds: 0,
-      card_data_source: 'auto',
-    }),
-    signal: AbortSignal.timeout(12_000),
+  const active = standardMetaPreviewJobs.get(cacheKey);
+  if (active) return active;
+  const job = (async () => {
+    const response = await fetch(`${KOLODAHS_RENDER_API_BASE_URL}/v1/deck`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Kolodahs-Api-Key': KOLODAHS_API_KEY,
+        'User-Agent': 'ManacostArena/1.0',
+      },
+      body: JSON.stringify({
+        title: recommendation.archetypeLabel,
+        deck_code: recommendation.deckCode,
+        wait_seconds: 0,
+        card_data_source: 'auto',
+      }),
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!response.ok) throw new Error(`KolodaHS HTTP ${response.status}`);
+    const preview = normalizeStandardMetaPreview(await response.json());
+    if (!preview.hash) throw new Error('KolodaHS returned an empty hash');
+    standardMetaPreviewCache.set(cacheKey, { preview, expiresAt: Date.now() + STANDARD_META_PREVIEW_CACHE_MS });
+    persistStandardMetaPreviewCache();
+    return preview;
+  })().finally(() => {
+    standardMetaPreviewJobs.delete(cacheKey);
   });
-  if (!response.ok) throw new Error(`KolodaHS HTTP ${response.status}`);
-  const preview = normalizeStandardMetaPreview(await response.json());
-  if (!preview.hash) throw new Error('KolodaHS returned an empty hash');
-  standardMetaPreviewCache.set(cacheKey, { hash: preview.hash, expiresAt: Date.now() + STANDARD_META_PREVIEW_CACHE_MS });
-  persistStandardMetaPreviewCache();
-  return preview;
+  standardMetaPreviewJobs.set(cacheKey, job);
+  return job;
 }
 
 function makeExternalEtag(prefix: string, source: string, data: any, now: number): string {

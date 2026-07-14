@@ -216,14 +216,14 @@
 
 @media (max-width: 720px) {
   .arena-app-shell.arena-app-standard-vicious-gold .arena-workspace .arena-content.arena-content-open { padding: 0.75rem 0.45rem 3rem; }
-  .vsgold__hero { gap: 1rem; padding: 1.1rem 0.85rem; border-width: 8px; }
+  .vsgold__hero { gap: 0.85rem; padding: 1rem 0.8rem; border-width: 8px; }
   .vsgold__eyebrow { font-size: 0.59rem; letter-spacing: 0.12em; }
-  .vsgold__hero h1 { grid-template-columns: 1fr; font-size: clamp(2rem, 10.5vw, 2.5rem); line-height: 0.98; }
+  .vsgold__hero h1 { grid-template-columns: 1fr; font-size: clamp(1.9rem, 9.5vw, 2.35rem); line-height: 0.98; }
   .vsgold__hero h1 svg { display: none; }
   .vsgold__hero-copy > p { margin: 0.65rem 0; font-size: 0.82rem; line-height: 1.45; }
   .vsgold__hero-copy > a { font-size: 0.69rem; }
-  .vsgold__hero-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); min-height: 76px; }
-  .vsgold__hero-stats div { padding: 0.55rem 0.42rem; }
+  .vsgold__hero-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); min-height: 68px; }
+  .vsgold__hero-stats div { padding: 0.42rem 0.36rem; }
   .vsgold__hero-stats strong { font-size: 0.78rem; }
   .vsgold__hero-stats span { font-size: 0.49rem; letter-spacing: 0.05em; }
   .vsgold__deck-tools { grid-template-columns: 1fr; }
