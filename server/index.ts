@@ -88,6 +88,7 @@ import { createAuthProfileRouter, type AuthProfilePatch } from './authProfileRou
 import { completePasswordReset, createPasswordResetRouter } from './passwordResetRoutes.js';
 import { authenticatedUserPayload, createAuthVerificationRouter } from './authVerificationRoutes.js';
 import { createAuthCredentialRouter, deliverCredentialCode } from './authCredentialRoutes.js';
+import { addBoundedAuthSession } from './authSessions.js';
 import { sendLocalSmtpMessage } from './localSmtp.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -292,9 +293,10 @@ const NEWSLETTER_HTML_MAX_LENGTH = Math.max(10_000, Number(process.env.NEWSLETTE
 const LOCAL_SMTP_TIMEOUT_MS = Math.max(1_000, Math.min(120_000, Number(process.env.LOCAL_SMTP_TIMEOUT_MS || 30_000)));
 const NEWSLETTER_LEGACY_MIGRATION_KEY = 'mailing_contacts_legacy_consent_migrated_v1';
 const AUTH_SESSION_TTL_MS = Math.max(
-  12 * 60 * 60 * 1000,
+  14 * ONE_DAY_MS,
   Number(process.env.AUTH_SESSION_TTL_MS || 30 * 24 * 60 * 60 * 1000),
 );
+const AUTH_MAX_SESSIONS_PER_USER = Math.max(2, Math.floor(Number(process.env.AUTH_MAX_SESSIONS_PER_USER || 8)));
 const AUTH_SESSION_REFRESH_WINDOW_MS = Math.max(
   60 * 60 * 1000,
   Math.min(
@@ -2220,15 +2222,19 @@ async function telegramOidcJwks(force = false): Promise<any[]> {
 function createAuthSession(store: AdminAuthStore, user: AdminUser): string {
   if (user.blockedAt) throw new Error('Пользователь заблокирован');
   const token = randomBytes(32).toString('hex');
-  store.sessions = store.sessions
-    .filter(item => item.expiresAt > Date.now() && item.email !== user.email)
-    .concat({
+  const now = Date.now();
+  store.sessions = addBoundedAuthSession({
+    sessions: store.sessions,
+    session: {
       tokenHash: sha256(token),
       userId: user.id,
       email: user.email,
-      expiresAt: Date.now() + AUTH_SESSION_TTL_MS,
+      expiresAt: now + AUTH_SESSION_TTL_MS,
       createdAt: new Date().toISOString(),
-    });
+    },
+    now,
+    maxSessionsPerUser: AUTH_MAX_SESSIONS_PER_USER,
+  });
   return token;
 }
 
