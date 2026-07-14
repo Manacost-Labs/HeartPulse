@@ -3172,6 +3172,13 @@ for (const [device, viewport] of [
       failures.push(`desktop sidebar: hover treatment changed (${JSON.stringify(hoveredLink)})`);
     }
     const constructorsTrigger = '[aria-controls="arena-sidebar-constructors"]';
+    await page.hover(constructorsTrigger);
+    await new Promise(resolve => setTimeout(resolve, 220));
+    const hoverGroup = await page.$eval(constructorsTrigger, element => ({
+      expanded: element.getAttribute('aria-expanded'),
+      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hidden,
+    }));
+    if (hoverGroup.expanded !== 'false' || hoverGroup.hidden !== true) failures.push('desktop sidebar: constructors group expanded on hover instead of click');
     await page.click(constructorsTrigger);
     const expandedGroup = await page.$eval(constructorsTrigger, element => ({
       expanded: element.getAttribute('aria-expanded'),
@@ -3179,15 +3186,29 @@ for (const [device, viewport] of [
     }));
     if (expandedGroup.expanded !== 'true' || expandedGroup.hidden !== false) failures.push('desktop sidebar: constructors group did not expand');
     await page.$eval(hoverTarget, element => element.focus());
-    await page.waitForFunction(selector => document.querySelector(selector)?.getAttribute('aria-expanded') === 'false', { timeout: 5_000 }, constructorsTrigger);
+    const persistedGroup = await page.$eval(constructorsTrigger, element => ({
+      expanded: element.getAttribute('aria-expanded'),
+      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hidden,
+    }));
+    if (persistedGroup.expanded !== 'true' || persistedGroup.hidden !== false) failures.push('desktop sidebar: constructors group closed without a click');
+    await page.click(constructorsTrigger);
     const collapsedGroup = await page.$eval(constructorsTrigger, element => ({
       expanded: element.getAttribute('aria-expanded'),
       hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hidden,
     }));
-    if (collapsedGroup.expanded !== 'false' || collapsedGroup.hidden !== true) failures.push('desktop sidebar: constructors group did not collapse');
+    if (collapsedGroup.expanded !== 'false' || collapsedGroup.hidden !== true) failures.push('desktop sidebar: constructors group did not collapse on the second click');
+    const miscTrigger = '[aria-controls="arena-sidebar-misc"]';
+    await page.focus(miscTrigger);
+    await page.keyboard.press('Enter');
+    const keyboardGroup = await page.$eval(miscTrigger, element => ({
+      expanded: element.getAttribute('aria-expanded'),
+      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hidden,
+    }));
+    if (keyboardGroup.expanded !== 'true' || keyboardGroup.hidden !== false) failures.push('desktop sidebar: misc group did not expand from the keyboard');
+    await page.keyboard.press('Enter');
     await auditAccessibility(page, 'desktop sidebar');
     await page.screenshot({ path: `${OUT}/desktop-sidebar.png`, fullPage: false });
-    console.log('✓ desktop sidebar frame, hover and expandable navigation');
+    console.log('✓ desktop sidebar frame, click-only expandable navigation');
   } catch (error) {
     failures.push(`desktop sidebar: ${error.message}`);
   } finally {

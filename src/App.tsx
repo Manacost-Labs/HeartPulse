@@ -1495,23 +1495,13 @@ export default function App() {
                 Поля Сражений
               </div>
               <NavigationRouteLinks routes={BG_PRIMARY_TABS} activeTab={activeTab} variant="sidebar" onNavigate={navigate} onWarm={warmRoute} />
-              <div
-                className="arena-sidebar-nav-group"
-                onMouseEnter={() => setSidebarNavGroup('constructors')}
-                onMouseLeave={(event) => {
-                  if (!event.currentTarget.contains(document.activeElement)) setSidebarNavGroup(null);
-                }}
-                onFocus={() => setSidebarNavGroup('constructors')}
-                onBlur={(event) => {
-                  if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setSidebarNavGroup(null);
-                }}
-              >
+              <div className="arena-sidebar-nav-group">
                 <button
                   type="button"
                   className={`arena-sidebar-link arena-sidebar-nav-group-trigger ${BG_BUILDER_TABS.some(tab => tab.id === activeTab) ? 'arena-sidebar-link-active' : ''}`}
                   aria-expanded={sidebarNavGroup === 'constructors'}
                   aria-controls="arena-sidebar-constructors"
-                  onClick={() => setSidebarNavGroup('constructors')}
+                  onClick={() => setSidebarNavGroup(group => group === 'constructors' ? null : 'constructors')}
                 >
                   <Grid3X3 size={19} className="arena-sidebar-link-icon flex-shrink-0" />
                   <span>Конструкторы</span>
@@ -1528,23 +1518,13 @@ export default function App() {
                   />
                 </div>
               </div>
-              <div
-                className="arena-sidebar-nav-group arena-sidebar-nav-group--misc"
-                onMouseEnter={() => setSidebarNavGroup('misc')}
-                onMouseLeave={(event) => {
-                  if (!event.currentTarget.contains(document.activeElement)) setSidebarNavGroup(null);
-                }}
-                onFocus={() => setSidebarNavGroup('misc')}
-                onBlur={(event) => {
-                  if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setSidebarNavGroup(null);
-                }}
-              >
+              <div className="arena-sidebar-nav-group arena-sidebar-nav-group--misc">
                 <button
                   type="button"
                   className={`arena-sidebar-link arena-sidebar-nav-group-trigger ${MISC_TABS.some(tab => tab.id === activeTab) ? 'arena-sidebar-link-active' : ''}`}
                   aria-expanded={sidebarNavGroup === 'misc'}
                   aria-controls="arena-sidebar-misc"
-                  onClick={() => setSidebarNavGroup('misc')}
+                  onClick={() => setSidebarNavGroup(group => group === 'misc' ? null : 'misc')}
                 >
                   <Gift size={19} className="arena-sidebar-link-icon flex-shrink-0" />
                   <span>Разное</span>
