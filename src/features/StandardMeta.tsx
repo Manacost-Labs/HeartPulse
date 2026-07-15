@@ -8,7 +8,6 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
-  Star,
   Swords,
   Trophy,
   X,
@@ -384,7 +383,7 @@ export default function StandardMetaPage() {
     <main className="standard-meta" id="main-content">
       <section className="standard-meta__masthead">
         <div className="standard-meta__masthead-copy">
-          <span className="standard-meta__eyebrow"><Star size={15} /> ЗАКРЫТАЯ BETA · ТОЛЬКО ДЛЯ АДМИНИСТРАТОРОВ</span>
+          <span className="standard-meta__eyebrow"><ShieldCheck size={15} /> Только для администраторов</span>
           <h1>Мета Hearthstone</h1>
           <p>Срезы HSGuru, переводы Манакоста и одна проверенная сборка для каждого доступного архетипа.</p>
         </div>
