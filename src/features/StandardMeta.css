@@ -333,6 +333,49 @@
   text-align: left;
 }
 
+.standard-meta-table thead th.standard-meta-table__sortable-heading { padding: 0; }
+
+.standard-meta-table__sort-button {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.72rem 0.75rem;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.standard-meta-table thead th:first-child .standard-meta-table__sort-button { justify-content: flex-start; }
+.standard-meta-table__sort-button svg {
+  flex: 0 0 auto;
+  opacity: 0.48;
+}
+
+.standard-meta-table__sort-button:hover { background: rgba(255, 237, 185, 0.08); }
+.standard-meta-table__sort-button[data-active='true'] {
+  color: #fff0bd;
+  background: linear-gradient(180deg, rgba(234, 189, 83, 0.11), rgba(74, 47, 102, 0.08));
+}
+
+.standard-meta-table__sort-button[data-active='true'] svg {
+  color: #f2c55d;
+  opacity: 1;
+  filter: drop-shadow(0 1px 2px rgba(25, 8, 10, 0.55));
+}
+
+.standard-meta-table__sort-button:focus-visible {
+  outline: 2px solid #f2c55d;
+  outline-offset: -4px;
+}
+
 .standard-meta-table tbody th,
 .standard-meta-table tbody td {
   height: 64px;

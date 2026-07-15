@@ -138,11 +138,23 @@ const adminFixtures = {
     sourceUrl: '',
     translationSource: 'qa-fixture',
     updatedAt: '2026-07-11T00:00:00.000Z',
-    items: [{
-      id: 'qa-evenlock', archetype: 'Evenlock', archetypeLabel: 'Чётный Чернокнижник', translated: true,
-      classKey: 'warlock', winrate: 61.1, popularity: 5.9, games: 6476, turns: 6.2,
-      durationMinutes: 5.3, climbingSpeed: 2.49,
-    }],
+    items: [
+      {
+        id: 'qa-evenlock', archetype: 'Evenlock', archetypeLabel: 'Чётный Чернокнижник', translated: true,
+        classKey: 'warlock', winrate: 61.1, popularity: 5.9, games: 6476, turns: 6.2,
+        durationMinutes: 5.3, climbingSpeed: 2.49,
+      },
+      {
+        id: 'qa-painlock', archetype: 'Painlock', archetypeLabel: 'Пейнлок', translated: true,
+        classKey: 'warlock', winrate: 60.4, popularity: 0.5, games: 536, turns: 6.7,
+        durationMinutes: 5.9, climbingSpeed: 2.11,
+      },
+      {
+        id: 'qa-handbuff-warrior', archetype: 'Handbuff Warrior', archetypeLabel: 'Воин на усилениях', translated: true,
+        classKey: 'warrior', winrate: 58.1, popularity: 0.1, games: 136, turns: 4.6,
+        durationMinutes: 3.7, climbingSpeed: 2.63,
+      },
+    ],
   },
   '/api/admin/vicious-syndicate-gold': {
     title: 'Vicious Syndicate Gold',
@@ -1788,6 +1800,7 @@ for (const [device, viewport] of [
     await page.click('[data-profile-admin-destination="standard-meta"]');
     await page.waitForFunction(() => window.location.pathname === '/standard/meta');
     await page.waitForSelector('.standard-meta', { timeout: 20_000 });
+    await page.waitForSelector('[data-meta-view="cards"]', { timeout: 20_000 });
     const standardMetaState = await page.evaluate(() => {
       const pageRoot = document.querySelector('.standard-meta');
       const masthead = document.querySelector('.standard-meta__masthead');
@@ -1829,16 +1842,31 @@ for (const [device, viewport] of [
       return {
         rows: table?.querySelectorAll('tbody tr').length ?? 0,
         columns: table?.querySelectorAll('thead th').length ?? 0,
+        sortControls: table?.querySelectorAll('[data-sort-key]').length ?? 0,
         scrollable: (wrapper?.scrollWidth ?? 0) > (wrapper?.clientWidth ?? 0),
         stickyPosition: stickyCell ? getComputedStyle(stickyCell).position : '',
         stickyLeft: stickyCell ? getComputedStyle(stickyCell).left : '',
         pageOverflow: (document.querySelector('.standard-meta')?.scrollWidth ?? 0) > (document.querySelector('.standard-meta')?.clientWidth ?? 0) + 1,
       };
     });
-    if (standardMetaTableState.rows !== 1 || standardMetaTableState.columns !== 8
+    if (standardMetaTableState.rows !== 3 || standardMetaTableState.columns !== 8 || standardMetaTableState.sortControls !== 7
       || standardMetaTableState.stickyPosition !== 'sticky' || standardMetaTableState.stickyLeft !== '0px'
       || standardMetaTableState.pageOverflow || (device === 'mobile' && !standardMetaTableState.scrollable)) {
       failures.push(`standard meta table [${device}]: structure or responsive containment regressed (${JSON.stringify(standardMetaTableState)})`);
+    }
+    await page.click('[data-sort-key="popularity"]');
+    const popularityDescendingState = await page.evaluate(() => ({
+      first: document.querySelector('.standard-meta-table tbody tr')?.getAttribute('data-meta-archetype') || '',
+      label: document.querySelector('[data-sort-key="popularity"]')?.getAttribute('aria-label') || '',
+    }));
+    await page.click('[data-sort-key="popularity"]');
+    const popularityAscendingState = await page.evaluate(() => ({
+      first: document.querySelector('.standard-meta-table tbody tr')?.getAttribute('data-meta-archetype') || '',
+      label: document.querySelector('[data-sort-key="popularity"]')?.getAttribute('aria-label') || '',
+    }));
+    if (popularityDescendingState.first !== 'qa-evenlock' || popularityAscendingState.first !== 'qa-handbuff-warrior'
+      || !popularityDescendingState.label.includes('по убыванию') || !popularityAscendingState.label.includes('по возрастанию')) {
+      failures.push(`standard meta table [${device}]: sorting direction or order regressed (${JSON.stringify({ popularityDescendingState, popularityAscendingState })})`);
     }
     await auditAccessibility(page, `standard meta table [${device}]`, '.standard-meta');
     await page.screenshot({ path: `${OUT}/standard-meta-table-${device}.png`, fullPage: false });

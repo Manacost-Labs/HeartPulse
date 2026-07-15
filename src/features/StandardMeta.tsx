@@ -2,6 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom';
 import {
   AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  ChevronsUpDown,
   ExternalLink,
   LayoutGrid,
   Maximize2,
@@ -21,6 +24,8 @@ import './StandardMeta.css';
 type MetaFormat = 'standard' | 'wild';
 type MetaRank = 'legend' | 'diamond' | 'top_5k' | 'top_legend';
 type MetaView = 'cards' | 'table';
+type MetaSortKey = 'archetype' | 'winrate' | 'popularity' | 'games' | 'turns' | 'durationMinutes' | 'climbingSpeed';
+type MetaSortDirection = 'asc' | 'desc';
 type MetaClass = 'deathknight' | 'demonhunter' | 'druid' | 'hunter' | 'mage' | 'paladin' | 'priest' | 'rogue' | 'shaman' | 'warlock' | 'warrior';
 
 type MetaItem = {
@@ -286,6 +291,7 @@ export default function StandardMetaPage() {
   const [rank, setRank] = useState<MetaRank>('legend');
   const [query, setQuery] = useState('');
   const [view, setView] = useState<MetaView>('cards');
+  const [sort, setSort] = useState<{ key: MetaSortKey | null; direction: MetaSortDirection }>({ key: null, direction: 'desc' });
   const [data, setData] = useState<MetaPayload>(EMPTY_DATA);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -344,6 +350,56 @@ export default function StandardMetaPage() {
     () => new Map(data.items.map((item, index) => [item.id, index + 1])),
     [data.items],
   );
+  const tableItems = useMemo(() => {
+    if (!sort.key) return filteredItems;
+    const sortKey = sort.key;
+    const multiplier = sort.direction === 'asc' ? 1 : -1;
+    return [...filteredItems].sort((left, right) => {
+      const leftValue = sortKey === 'archetype' ? left.archetypeLabel : left[sortKey];
+      const rightValue = sortKey === 'archetype' ? right.archetypeLabel : right[sortKey];
+      if (leftValue === null && rightValue === null) return (rankById.get(left.id) ?? 0) - (rankById.get(right.id) ?? 0);
+      if (leftValue === null) return 1;
+      if (rightValue === null) return -1;
+      const comparison = typeof leftValue === 'string'
+        ? leftValue.localeCompare(String(rightValue), 'ru', { sensitivity: 'base' })
+        : leftValue - Number(rightValue);
+      return comparison === 0
+        ? (rankById.get(left.id) ?? 0) - (rankById.get(right.id) ?? 0)
+        : comparison * multiplier;
+    });
+  }, [filteredItems, rankById, sort]);
+
+  const changeSort = (key: MetaSortKey) => {
+    setSort(current => current.key === key
+      ? { key, direction: current.direction === 'desc' ? 'asc' : 'desc' }
+      : { key, direction: key === 'archetype' ? 'asc' : 'desc' });
+  };
+
+  const sortableHeading = (key: MetaSortKey, label: string) => {
+    const active = sort.key === key;
+    const directionLabel = active && sort.direction === 'asc' ? 'по возрастанию' : 'по убыванию';
+    return (
+      <th
+        scope="col"
+        className="standard-meta-table__sortable-heading"
+        aria-sort={active ? (sort.direction === 'asc' ? 'ascending' : 'descending') : undefined}
+      >
+        <button
+          type="button"
+          className="standard-meta-table__sort-button"
+          data-sort-key={key}
+          data-active={active ? 'true' : 'false'}
+          onClick={() => changeSort(key)}
+          aria-label={`Сортировать по ${label.toLowerCase()}${active ? `, сейчас ${directionLabel}` : ''}`}
+        >
+          <span>{label}</span>
+          {active
+            ? (sort.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)
+            : <ChevronsUpDown size={14} />}
+        </button>
+      </th>
+    );
+  };
 
   const openDeck = async (item: MetaItem) => {
     const cacheKey = `${format}:${rank}:${item.archetype.toLowerCase()}`;
@@ -487,19 +543,19 @@ export default function StandardMetaPage() {
                 <caption className="sr-only">Мета Hearthstone: {data.formatLabel}, {data.rankLabel}</caption>
                 <thead>
                   <tr>
-                    <th scope="col">Архетип</th>
-                    <th scope="col">Винрейт</th>
-                    <th scope="col">Популярность</th>
-                    <th scope="col">Игры</th>
-                    <th scope="col">Ходы</th>
-                    <th scope="col">Длительность</th>
-                    <th scope="col">Набор</th>
+                    {sortableHeading('archetype', 'Архетип')}
+                    {sortableHeading('winrate', 'Винрейт')}
+                    {sortableHeading('popularity', 'Популярность')}
+                    {sortableHeading('games', 'Игры')}
+                    {sortableHeading('turns', 'Ходы')}
+                    {sortableHeading('durationMinutes', 'Длительность')}
+                    {sortableHeading('climbingSpeed', 'Набор')}
                     <th scope="col"><span className="sr-only">Действия</span></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredItems.map(item => (
-                    <tr key={item.id}>
+                  {tableItems.map(item => (
+                    <tr key={item.id} data-meta-archetype={item.id}>
                       <th scope="row" className="standard-meta-table__archetype">
                         <span className="standard-meta-table__rank">{rankById.get(item.id)}</span>
                         <img src={classIcon(item.classKey)} alt="" width="38" height="38" />
