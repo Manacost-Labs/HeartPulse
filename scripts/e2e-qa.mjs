@@ -1945,10 +1945,6 @@ for (const [device, viewport] of [
     await page.waitForSelector('.standard-meta-card__deck-button');
     await page.click('.standard-meta-card__deck-button');
     await page.waitForSelector('.standard-meta-modal__image-stage img');
-    await page.waitForFunction(() => {
-      const image = document.querySelector('.standard-meta-modal__copy-button img');
-      return image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0;
-    });
     const metaModalState = await page.evaluate(() => {
       const modal = document.querySelector('.standard-meta-modal');
       const panel = document.querySelector('.standard-meta-modal__panel');
@@ -1957,7 +1953,6 @@ for (const [device, viewport] of [
       const classImage = document.querySelector('.standard-meta-modal__header img');
       const code = document.querySelector('.standard-meta-modal__code-block code');
       const copyButton = document.querySelector('.standard-meta-modal__copy-button');
-      const copyImage = copyButton?.querySelector('img');
       const panelRect = panel?.getBoundingClientRect();
       const imageRect = image?.getBoundingClientRect();
       const imageStageRect = imageStage?.getBoundingClientRect();
@@ -1965,16 +1960,20 @@ for (const [device, viewport] of [
       return {
         panelTop: panelRect?.top ?? -1,
         panelBottom: panelRect?.bottom ?? -1,
+        panelWidth: panelRect?.width ?? 0,
+        panelHeight: panelRect?.height ?? 0,
+        viewportWidth: window.innerWidth,
         imageWidth: imageRect?.width ?? 0,
         imageHeight: imageRect?.height ?? 0,
         imageStageHeight: imageStageRect?.height ?? 0,
         viewportHeight: window.innerHeight,
         code: code?.textContent || '',
         classImage: classImage?.getAttribute('src') || '',
-        copyImage: copyImage?.getAttribute('src') || '',
-        copyImageLoaded: copyImage instanceof HTMLImageElement && copyImage.complete && copyImage.naturalWidth > 0,
+        copyText: copyButton?.textContent?.trim() || '',
+        copyIconPresent: Boolean(copyButton?.querySelector('svg')),
         copyButtonHeight: copyButtonRect?.height ?? 0,
         copyButtonLabel: copyButton?.getAttribute('aria-label') || '',
+        sourceVisible: /Источник|qa fixture/i.test(document.querySelector('.standard-meta-modal__details')?.textContent || ''),
         bodyLocked: getComputedStyle(document.body).position === 'fixed',
         portalIsBodyChild: modal?.parentElement === document.body,
       };
@@ -1982,12 +1981,15 @@ for (const [device, viewport] of [
     const minimumDeckImageWidth = device === 'desktop' ? 500 : 250;
     const minimumDeckImageHeight = device === 'desktop' ? 300 : 170;
     if (metaModalState.panelTop < 0 || metaModalState.panelBottom > metaModalState.viewportHeight + 1
+      || (device === 'desktop' && (metaModalState.panelWidth > 1120 || metaModalState.panelHeight > metaModalState.viewportHeight * 0.9))
+      || (device === 'mobile' && metaModalState.panelHeight > metaModalState.viewportHeight * 0.96)
       || metaModalState.imageWidth < minimumDeckImageWidth || metaModalState.imageHeight < minimumDeckImageHeight
-      || (device === 'mobile' && (metaModalState.imageStageHeight < metaModalState.viewportHeight * 0.56
-        || metaModalState.imageStageHeight > metaModalState.viewportHeight * 0.72))
+      || (device === 'mobile' && (metaModalState.imageStageHeight < metaModalState.viewportHeight * 0.45
+        || metaModalState.imageStageHeight > metaModalState.viewportHeight * 0.62))
       || !metaModalState.code.startsWith('AA') || !metaModalState.classImage.includes('warlock-64.webp')
-      || !metaModalState.copyImage.includes('deck-code-to-hearthstone.png') || !metaModalState.copyImageLoaded
+      || metaModalState.copyText !== 'Скопировать код' || !metaModalState.copyIconPresent
       || metaModalState.copyButtonHeight < 44 || metaModalState.copyButtonLabel !== 'Скопировать код колоды'
+      || metaModalState.sourceVisible
       || !metaModalState.bodyLocked || !metaModalState.portalIsBodyChild) {
       failures.push(`standard meta modal [${device}]: geometry, code, class, portal or scroll lock regressed (${JSON.stringify(metaModalState)})`);
     }

@@ -5,7 +5,7 @@ import {
   ArrowDown,
   ArrowUp,
   ChevronsUpDown,
-  ExternalLink,
+  Copy,
   LayoutGrid,
   Maximize2,
   RefreshCw,
@@ -271,7 +271,6 @@ function DeckModal({ state, onClose }: { state: DeckModalState; onClose: () => v
 
             <aside className="standard-meta-modal__details">
               <div className="standard-meta-modal__deck-meta">
-                <span><Sparkles size={15} /> {state.recommendation.source.replace(/[-_]/g, ' ')}</span>
                 {state.recommendation.streamer && <span><Trophy size={15} /> {state.recommendation.streamer}</span>}
                 {state.recommendation.sampleGames !== null && <span>{state.recommendation.sampleGames.toLocaleString('ru-RU')} игр</span>}
                 {state.recommendation.winrate !== null && <span>{formatNumber(state.recommendation.winrate, '%')} WR</span>}
@@ -289,16 +288,11 @@ function DeckModal({ state, onClose }: { state: DeckModalState; onClose: () => v
                   onClick={copyDeck}
                   aria-label={copied ? 'Код колоды скопирован' : 'Скопировать код колоды'}
                 >
-                  <img src="/assets/ui/deck-code-to-hearthstone.png" alt="" aria-hidden="true" />
+                  {copied ? <ShieldCheck size={19} aria-hidden="true" /> : <Copy size={19} aria-hidden="true" />}
                   <span className="standard-meta-modal__copy-feedback" aria-live="polite">
-                    {copied ? <><ShieldCheck size={18} /> Код скопирован</> : ''}
+                    {copied ? 'Код скопирован' : 'Скопировать код'}
                   </span>
                 </button>
-                {state.recommendation.sourceUrl && (
-                  <a href={state.recommendation.sourceUrl} target="_blank" rel="noreferrer" className="standard-meta__secondary-button">
-                    Источник <ExternalLink size={16} />
-                  </a>
-                )}
               </div>
             </aside>
           </div>
