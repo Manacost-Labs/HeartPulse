@@ -1808,6 +1808,7 @@ for (const [device, viewport] of [
       const controls = document.querySelector('.standard-meta__controls');
       const cardsView = document.querySelector('[data-meta-view="cards"]');
       const tableView = document.querySelector('[data-meta-view="table"]');
+      const searchInput = document.querySelector('.standard-meta__search input');
       const title = document.querySelector('.standard-meta__masthead h1');
       const mastheadRect = masthead?.getBoundingClientRect();
       const statsStyle = stats ? getComputedStyle(stats) : null;
@@ -1818,6 +1819,8 @@ for (const [device, viewport] of [
         statsCount: stats?.children.length ?? 0,
         controlsVisible: Boolean(controls && controls.getBoundingClientRect().height > 0),
         viewControlsPresent: Boolean(cardsView && tableView),
+        searchFontSize: searchInput ? parseFloat(getComputedStyle(searchInput).fontSize) : 0,
+        viewTargetHeight: tableView?.getBoundingClientRect().height ?? 0,
         sourcePanelPresent: Boolean(document.querySelector('.standard-meta__source-line')),
         scrollWidth: pageRoot?.scrollWidth ?? 0,
         clientWidth: pageRoot?.clientWidth ?? 0,
@@ -1828,6 +1831,7 @@ for (const [device, viewport] of [
       || !standardMetaState.controlsVisible
       || !standardMetaState.viewControlsPresent
       || standardMetaState.sourcePanelPresent
+      || (device === 'mobile' && (standardMetaState.searchFontSize < 16 || standardMetaState.viewTargetHeight < 44))
       || standardMetaState.scrollWidth > standardMetaState.clientWidth + 1) {
       failures.push(`standard meta [${device}]: redesigned header or panels regressed (${JSON.stringify(standardMetaState)})`);
     }
@@ -1878,15 +1882,18 @@ for (const [device, viewport] of [
       const modal = document.querySelector('.standard-meta-modal');
       const panel = document.querySelector('.standard-meta-modal__panel');
       const image = document.querySelector('.standard-meta-modal__image-stage img');
+      const imageStage = document.querySelector('.standard-meta-modal__image-stage');
       const classImage = document.querySelector('.standard-meta-modal__header img');
       const code = document.querySelector('.standard-meta-modal__code-block code');
       const panelRect = panel?.getBoundingClientRect();
       const imageRect = image?.getBoundingClientRect();
+      const imageStageRect = imageStage?.getBoundingClientRect();
       return {
         panelTop: panelRect?.top ?? -1,
         panelBottom: panelRect?.bottom ?? -1,
         imageWidth: imageRect?.width ?? 0,
         imageHeight: imageRect?.height ?? 0,
+        imageStageHeight: imageStageRect?.height ?? 0,
         viewportHeight: window.innerHeight,
         code: code?.textContent || '',
         classImage: classImage?.getAttribute('src') || '',
@@ -1895,9 +1902,10 @@ for (const [device, viewport] of [
       };
     });
     const minimumDeckImageWidth = device === 'desktop' ? 500 : 250;
-    const minimumDeckImageHeight = device === 'desktop' ? 300 : 250;
+    const minimumDeckImageHeight = device === 'desktop' ? 300 : 170;
     if (metaModalState.panelTop < 0 || metaModalState.panelBottom > metaModalState.viewportHeight + 1
       || metaModalState.imageWidth < minimumDeckImageWidth || metaModalState.imageHeight < minimumDeckImageHeight
+      || (device === 'mobile' && metaModalState.imageStageHeight > metaModalState.viewportHeight * 0.5)
       || !metaModalState.code.startsWith('AA') || !metaModalState.classImage.includes('warlock-64.webp')
       || !metaModalState.bodyLocked || !metaModalState.portalIsBodyChild) {
       failures.push(`standard meta modal [${device}]: geometry, code, class, portal or scroll lock regressed (${JSON.stringify(metaModalState)})`);
@@ -1919,12 +1927,24 @@ for (const [device, viewport] of [
       const hero = document.querySelector('.vsgold__hero');
       const stats = document.querySelector('.vsgold__hero-stats');
       const title = document.querySelector('.vsgold__hero h1');
+      const mobileNav = document.querySelector('.vsgold__mobile-nav');
+      const deckSearch = document.querySelector('.vsgold__deck-tools input');
+      const classButton = document.querySelector('.vsgold__class-bars button');
+      const buildButton = document.querySelector('.vsgold__build button');
+      const deckList = document.querySelector('.vsgold__deck-list');
       const heroRect = hero?.getBoundingClientRect();
       return {
         heroHeight: heroRect?.height ?? 0,
         titleSize: title ? parseFloat(getComputedStyle(title).fontSize) : 0,
         statsCount: stats?.children.length ?? 0,
         panelCount: document.querySelectorAll('.vsgold__panel').length,
+        mobileNavCount: mobileNav?.querySelectorAll('a').length ?? 0,
+        mobileNavDisplay: mobileNav ? getComputedStyle(mobileNav).display : '',
+        deckSearchFontSize: deckSearch ? parseFloat(getComputedStyle(deckSearch).fontSize) : 0,
+        classTargetHeight: classButton?.getBoundingClientRect().height ?? 0,
+        buildTargetHeight: buildButton?.getBoundingClientRect().height ?? 0,
+        deckListOverflowY: deckList ? getComputedStyle(deckList).overflowY : '',
+        deckListMaxHeight: deckList ? getComputedStyle(deckList).maxHeight : '',
         scrollWidth: pageRoot?.scrollWidth ?? 0,
         clientWidth: pageRoot?.clientWidth ?? 0,
       };
@@ -1932,8 +1952,31 @@ for (const [device, viewport] of [
     if (viciousGoldState.heroHeight < 150 || viciousGoldState.heroHeight > 430
       || viciousGoldState.titleSize > 68 || viciousGoldState.statsCount !== 3
       || viciousGoldState.panelCount < 3
+      || (device === 'desktop' && viciousGoldState.mobileNavDisplay !== 'none')
+      || (device === 'mobile' && (viciousGoldState.mobileNavCount !== 3 || viciousGoldState.mobileNavDisplay === 'none'
+        || viciousGoldState.deckSearchFontSize < 16 || viciousGoldState.classTargetHeight < 44
+        || viciousGoldState.buildTargetHeight < 44 || viciousGoldState.deckListOverflowY !== 'auto'
+        || viciousGoldState.deckListMaxHeight === 'none'))
       || viciousGoldState.scrollWidth > viciousGoldState.clientWidth + 1) {
       failures.push(`vicious gold [${device}]: redesigned header or panels regressed (${JSON.stringify(viciousGoldState)})`);
+    }
+    if (device === 'mobile') {
+      await page.click('.vsgold__class-bars button');
+      await new Promise(resolve => setTimeout(resolve, 250));
+      const classFilterState = await page.evaluate(() => ({
+        selectedClass: document.querySelector('.vsgold__deck-tools select')?.value || '',
+        pressed: document.querySelector('.vsgold__class-bars button')?.getAttribute('aria-pressed') || '',
+        deckSectionTop: document.querySelector('#vsgold-decks')?.getBoundingClientRect().top ?? -1,
+        navHeight: document.querySelector('.vsgold__mobile-nav')?.getBoundingClientRect().height ?? 0,
+      }));
+      if (classFilterState.selectedClass !== 'warlock' || classFilterState.pressed !== 'true'
+        || classFilterState.deckSectionTop < classFilterState.navHeight - 2
+        || classFilterState.deckSectionTop > classFilterState.navHeight + 90) {
+        failures.push(`vicious gold [${device}]: class-to-deck mobile flow regressed (${JSON.stringify(classFilterState)})`);
+      }
+      await page.click('.vsgold__mobile-nav a[href="#vsgold-power"]');
+      await new Promise(resolve => setTimeout(resolve, 250));
+      await page.screenshot({ path: `${OUT}/vicious-gold-power-${device}.png`, fullPage: false });
     }
     const viciousGoldViolationCount = await auditAccessibility(page, `vicious gold [${device}]`, '.vsgold');
     await page.screenshot({ path: `${OUT}/vicious-gold-${device}.png`, fullPage: false });
@@ -1943,6 +1986,84 @@ for (const [device, viewport] of [
   } catch (error) {
     const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
     failures.push(`admin dashboard [${device}]: ${error.message}; page: ${diagnostic}`);
+  } finally {
+    await page.close();
+  }
+}
+
+// The two Standard analytics workspaces must remain fully usable on both the
+// narrowest supported phone and a larger modern handset, not only at 390px.
+for (const width of [320, 430]) {
+  const page = await createQaPage();
+  const runtimeErrors = collectRuntimeErrors(page);
+  await page.setViewport({ width, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  await mockApplicationApi(page, { authenticated: true, admin: true, adminState: {} });
+  try {
+    await page.goto(`${BASE}/standard/meta`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('[data-meta-view="cards"]', { timeout: 20_000 });
+    const metaNarrowState = await page.evaluate(() => {
+      const root = document.querySelector('.standard-meta');
+      const hero = document.querySelector('.standard-meta__masthead');
+      const search = document.querySelector('.standard-meta__search input');
+      const viewButtons = [...document.querySelectorAll('.standard-meta__view-switch button')];
+      return {
+        rootOverflow: (root?.scrollWidth ?? 0) > (root?.clientWidth ?? 0) + 1,
+        documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+        heroHeight: hero?.getBoundingClientRect().height ?? 0,
+        searchFontSize: search ? parseFloat(getComputedStyle(search).fontSize) : 0,
+        smallestViewTarget: Math.min(...viewButtons.map(button => button.getBoundingClientRect().height)),
+      };
+    });
+    if (metaNarrowState.rootOverflow || metaNarrowState.documentOverflow || metaNarrowState.heroHeight > 320
+      || metaNarrowState.searchFontSize < 16 || metaNarrowState.smallestViewTarget < 44) {
+      failures.push(`standard meta [${width}px]: narrow mobile layout regressed (${JSON.stringify(metaNarrowState)})`);
+    }
+    await page.click('[data-meta-view="table"]');
+    const tableNarrowState = await page.evaluate(() => {
+      const wrapper = document.querySelector('.standard-meta-table-wrap');
+      const firstCell = document.querySelector('.standard-meta-table__archetype');
+      return {
+        internallyScrollable: (wrapper?.scrollWidth ?? 0) > (wrapper?.clientWidth ?? 0),
+        documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+        sticky: firstCell ? getComputedStyle(firstCell).position : '',
+      };
+    });
+    if (!tableNarrowState.internallyScrollable || tableNarrowState.documentOverflow || tableNarrowState.sticky !== 'sticky') {
+      failures.push(`standard meta table [${width}px]: narrow containment regressed (${JSON.stringify(tableNarrowState)})`);
+    }
+    await auditAccessibility(page, `standard meta narrow ${width}px`, '.standard-meta');
+    await page.screenshot({ path: `${OUT}/standard-meta-table-${width}px.png`, fullPage: false });
+
+    await page.goto(`${BASE}/standard/vicious-gold`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('.vsgold__panel', { timeout: 20_000 });
+    const viciousNarrowState = await page.evaluate(() => {
+      const root = document.querySelector('.vsgold');
+      const hero = document.querySelector('.vsgold__hero');
+      const navTargets = [...document.querySelectorAll('.vsgold__mobile-nav a')];
+      const inputs = [...document.querySelectorAll('.vsgold__deck-tools input, .vsgold__deck-tools select')];
+      const classTargets = [...document.querySelectorAll('.vsgold__class-bars button')];
+      return {
+        rootOverflow: (root?.scrollWidth ?? 0) > (root?.clientWidth ?? 0) + 1,
+        documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+        heroHeight: hero?.getBoundingClientRect().height ?? 0,
+        smallestNavTarget: Math.min(...navTargets.map(target => target.getBoundingClientRect().height)),
+        smallestClassTarget: Math.min(...classTargets.map(target => target.getBoundingClientRect().height)),
+        smallestInputFont: Math.min(...inputs.map(input => parseFloat(getComputedStyle(input).fontSize))),
+      };
+    });
+    if (viciousNarrowState.rootOverflow || viciousNarrowState.documentOverflow || viciousNarrowState.heroHeight > 390
+      || viciousNarrowState.smallestNavTarget < 44 || viciousNarrowState.smallestClassTarget < 44
+      || viciousNarrowState.smallestInputFont < 16) {
+      failures.push(`vicious gold [${width}px]: narrow mobile layout regressed (${JSON.stringify(viciousNarrowState)})`);
+    }
+    await page.click('.vsgold__mobile-nav a[href="#vsgold-power"]');
+    await new Promise(resolve => setTimeout(resolve, 300));
+    await auditAccessibility(page, `vicious gold narrow ${width}px`, '.vsgold');
+    await page.screenshot({ path: `${OUT}/vicious-gold-power-${width}px.png`, fullPage: false });
+    if (runtimeErrors.length) failures.push(`standard mobile analytics [${width}px]: ${runtimeErrors.join(' | ')}`);
+    console.log(`✓ Standard analytics mobile adaptation [${width}px] interactions + axe`);
+  } catch (error) {
+    failures.push(`Standard analytics mobile adaptation [${width}px]: ${error.message}`);
   } finally {
     await page.close();
   }

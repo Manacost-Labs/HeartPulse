@@ -539,6 +539,9 @@ export default function StandardMetaPage() {
             </section>
           ) : (
             <section className="standard-meta-table-wrap" aria-label={`Таблица архетипов: ${data.formatLabel}, ${data.rankLabel}`} tabIndex={0}>
+              <p className="standard-meta-table__mobile-hint">
+                <ChevronsUpDown size={15} /> Нажимайте заголовки для сортировки и листайте таблицу вбок
+              </p>
               <table className="standard-meta-table">
                 <caption className="sr-only">Мета Hearthstone: {data.formatLabel}, {data.rankLabel}</caption>
                 <thead>

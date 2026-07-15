@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ExternalLink,
@@ -136,6 +136,7 @@ export default function ViciousSyndicateGold() {
   const [deckClass, setDeckClass] = useState('all');
   const [query, setQuery] = useState('');
   const [copiedDeck, setCopiedDeck] = useState('');
+  const deckSectionRef = useRef<HTMLElement>(null);
 
   const load = async () => {
     setLoading(true);
@@ -177,6 +178,16 @@ export default function ViciousSyndicateGold() {
     window.setTimeout(() => setCopiedDeck(current => current === deck ? '' : current), 1800);
   };
 
+  const selectDeckClass = (classKey: string) => {
+    setDeckClass(classKey);
+    if (!window.matchMedia('(max-width: 1120px)').matches) return;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.requestAnimationFrame(() => deckSectionRef.current?.scrollIntoView({
+      behavior: reducedMotion ? 'auto' : 'smooth',
+      block: 'start',
+    }));
+  };
+
   if (loading) {
     return (
       <section className="vsgold vsgold__state" aria-busy="true">
@@ -213,15 +224,21 @@ export default function ViciousSyndicateGold() {
         </div>
       </header>
 
+      <nav className="vsgold__mobile-nav" aria-label="Разделы статистики">
+        <a href="#vsgold-classes">Классы</a>
+        <a href="#vsgold-decks">Колоды</a>
+        <a href="#vsgold-power">Power Tier</a>
+      </nav>
+
       <section className="vsgold__distribution-grid">
-        <article className="vsgold__panel vsgold__classes">
+        <article className="vsgold__panel vsgold__classes" id="vsgold-classes">
           <header className="vsgold__section-heading">
             <img src="/main_assets/winrate-classes.png" alt="" />
             <div><span>LIVE · STANDARD</span><h2>Распределение классов</h2></div>
           </header>
           <div className="vsgold__class-bars">
             {data.classDistribution.map(item => (
-              <button key={item.class} type="button" onClick={() => setDeckClass(item.class)}>
+              <button key={item.class} type="button" aria-pressed={deckClass === item.class} onClick={() => selectDeckClass(item.class)}>
                 <img src={classIcon(item.classIcon)} alt="" />
                 <span>{item.classLabel}</span>
                 <div><i style={{ width: `${item.frequency}%` }} /></div>
@@ -231,7 +248,7 @@ export default function ViciousSyndicateGold() {
           </div>
         </article>
 
-        <article className="vsgold__panel vsgold__decks">
+        <article ref={deckSectionRef} className="vsgold__panel vsgold__decks" id="vsgold-decks">
           <header className="vsgold__section-heading">
             <img src="/main_assets/tier-list.png" alt="" />
             <div><span>ПОРОГ ≥ {data.minimumDeckFrequency}%</span><h2>Распределение колод</h2></div>
@@ -257,7 +274,7 @@ export default function ViciousSyndicateGold() {
         </article>
       </section>
 
-      <section className="vsgold__panel vsgold__power">
+      <section className="vsgold__panel vsgold__power" id="vsgold-power">
         <header className="vsgold__power-heading">
           <div className="vsgold__section-heading">
             <img src="/main_assets/tier-list.png" alt="" />
@@ -278,9 +295,9 @@ export default function ViciousSyndicateGold() {
           ))}
         </div>
         <div className="vsgold__class-tabs" aria-label="Класс для Power Tier">
-          <button type="button" className={powerClass === 'all' ? 'active' : ''} onClick={() => setPowerClass('all')}><Swords size={15} /> Все</button>
+          <button type="button" aria-pressed={powerClass === 'all'} className={powerClass === 'all' ? 'active' : ''} onClick={() => setPowerClass('all')}><Swords size={15} /> Все</button>
           {data.classDistribution.map(item => (
-            <button key={item.class} type="button" className={powerClass === item.class ? 'active' : ''} onClick={() => setPowerClass(item.class)}>
+            <button key={item.class} type="button" aria-pressed={powerClass === item.class} className={powerClass === item.class ? 'active' : ''} onClick={() => setPowerClass(item.class)}>
               <img src={classIcon(item.classIcon)} alt="" /> {item.classLabel}
             </button>
           ))}
