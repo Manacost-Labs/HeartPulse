@@ -6,6 +6,43 @@ export interface AuthSessionRecord {
   createdAt: string;
 }
 
+export function cookieValues(cookieHeader: string | undefined, name: string): string[] {
+  if (!cookieHeader || !name) return [];
+  const values: string[] = [];
+  for (const part of cookieHeader.split(';')) {
+    const [rawKey, ...rawValue] = part.trim().split('=');
+    if (rawKey !== name) continue;
+    try {
+      values.push(decodeURIComponent(rawValue.join('=') || ''));
+    } catch {
+      // A malformed legacy cookie must not hide a valid cookie with the same name.
+    }
+  }
+  return values.filter(Boolean);
+}
+
+interface AuthTokenCandidateOptions {
+  authorization?: string;
+  cookieHeader?: string;
+  cookieName: string;
+  bodyToken?: string;
+}
+
+export function authTokenCandidates({
+  authorization,
+  cookieHeader,
+  cookieName,
+  bodyToken,
+}: AuthTokenCandidateOptions): string[] {
+  const header = String(authorization ?? '');
+  const bearer = header.toLowerCase().startsWith('bearer ') ? header.slice(7).trim() : '';
+  return [...new Set([
+    bearer,
+    ...cookieValues(cookieHeader, cookieName),
+    String(bodyToken ?? '').trim(),
+  ].filter(Boolean))];
+}
+
 interface AddAuthSessionOptions<T extends AuthSessionRecord> {
   sessions: T[];
   session: T;

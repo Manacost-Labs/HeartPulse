@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
-import { addBoundedAuthSession, type AuthSessionRecord } from '../server/authSessions.js';
+import {
+  addBoundedAuthSession,
+  authTokenCandidates,
+  cookieValues,
+  type AuthSessionRecord,
+} from '../server/authSessions.js';
 
 const now = Date.parse('2026-07-14T00:00:00.000Z');
 const day = 24 * 60 * 60 * 1000;
@@ -57,5 +62,22 @@ const legacyEmailSession = addBoundedAuthSession({
   maxSessionsPerUser: 3,
 });
 assert.equal(legacyEmailSession.length, 2, 'legacy sessions without a user id must remain associated by email');
+
+assert.deepEqual(
+  cookieValues('theme=dark; manacost_auth_token=stale; manacost_auth_token=current', 'manacost_auth_token'),
+  ['stale', 'current'],
+  'all same-name cookies must be preserved so a stale legacy cookie cannot hide a valid session',
+);
+
+assert.deepEqual(
+  authTokenCandidates({
+    authorization: 'Bearer api-token',
+    cookieHeader: 'manacost_auth_token=stale; manacost_auth_token=current',
+    cookieName: 'manacost_auth_token',
+    bodyToken: 'body-token',
+  }),
+  ['api-token', 'stale', 'current', 'body-token'],
+  'authentication must validate every available token in deterministic priority order',
+);
 
 console.log('auth session lifetime and multi-device contract tests passed');

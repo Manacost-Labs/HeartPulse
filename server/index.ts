@@ -88,7 +88,7 @@ import { createAuthProfileRouter, type AuthProfilePatch } from './authProfileRou
 import { completePasswordReset, createPasswordResetRouter } from './passwordResetRoutes.js';
 import { authenticatedUserPayload, createAuthVerificationRouter } from './authVerificationRoutes.js';
 import { createAuthCredentialRouter, deliverCredentialCode } from './authCredentialRoutes.js';
-import { addBoundedAuthSession } from './authSessions.js';
+import { addBoundedAuthSession, authTokenCandidates } from './authSessions.js';
 import { sendLocalSmtpMessage } from './localSmtp.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -2266,30 +2266,49 @@ function authCookieDomain(req: import('express').Request): string {
 function setAuthCookie(req: import('express').Request, res: import('express').Response, token: string) {
   const maxAgeSeconds = Math.floor(AUTH_SESSION_TTL_MS / 1000);
   const secure = String(req.headers['x-forwarded-proto'] ?? req.protocol).includes('https') || String(req.headers.host ?? '').includes('arena.hs-manacost.ru');
-  const cookie = [
-    `${AUTH_COOKIE_NAME}=${encodeURIComponent(token)}`,
+  const attributes = [
     'Path=/',
-    `Max-Age=${maxAgeSeconds}`,
     'HttpOnly',
     'SameSite=Lax',
     secure ? 'Secure' : '',
-    authCookieDomain(req),
-  ].filter(Boolean).join('; ');
-  res.append('Set-Cookie', cookie);
+  ].filter(Boolean);
+  const legacyDomain = authCookieDomain(req);
+  if (legacyDomain) {
+    res.append('Set-Cookie', [
+      `${AUTH_COOKIE_NAME}=`,
+      ...attributes,
+      'Max-Age=0',
+      legacyDomain,
+    ].join('; '));
+  }
+  res.append('Set-Cookie', [
+    `${AUTH_COOKIE_NAME}=${encodeURIComponent(token)}`,
+    ...attributes,
+    `Max-Age=${maxAgeSeconds}`,
+  ].join('; '));
 }
 
 function clearAuthCookie(req: import('express').Request, res: import('express').Response) {
   const secure = String(req.headers['x-forwarded-proto'] ?? req.protocol).includes('https') || String(req.headers.host ?? '').includes('arena.hs-manacost.ru');
-  const cookie = [
-    `${AUTH_COOKIE_NAME}=`,
+  const attributes = [
     'Path=/',
-    'Max-Age=0',
     'HttpOnly',
     'SameSite=Lax',
     secure ? 'Secure' : '',
-    authCookieDomain(req),
-  ].filter(Boolean).join('; ');
-  res.append('Set-Cookie', cookie);
+    'Max-Age=0',
+  ].filter(Boolean);
+  res.append('Set-Cookie', [
+    `${AUTH_COOKIE_NAME}=`,
+    ...attributes,
+  ].join('; '));
+  const legacyDomain = authCookieDomain(req);
+  if (legacyDomain) {
+    res.append('Set-Cookie', [
+      `${AUTH_COOKIE_NAME}=`,
+      ...attributes,
+      legacyDomain,
+    ].join('; '));
+  }
 }
 
 function telegramOidcCookieSecure(req: import('express').Request): boolean {
@@ -3029,29 +3048,22 @@ function resumeNewsletterCampaigns() {
   for (const row of rows) void runNewsletterCampaign(String(row.id));
 }
 
+function authTokenCandidatesFromReq(req: import('express').Request): string[] {
+  return authTokenCandidates({
+    authorization: String(req.headers.authorization ?? ''),
+    cookieHeader: String(req.headers.cookie ?? ''),
+    cookieName: AUTH_COOKIE_NAME,
+    bodyToken: String(req.body?.token ?? ''),
+  });
+}
+
 function adminTokenFromReq(req: import('express').Request): string {
-  const header = String(req.headers.authorization ?? '');
-  if (header.toLowerCase().startsWith('bearer ')) return header.slice(7).trim();
-  const cookieToken = cookieValue(req, AUTH_COOKIE_NAME);
-  if (cookieToken) return cookieToken;
-  return String(req.body?.token ?? '').trim();
+  const candidates = authTokenCandidatesFromReq(req);
+  return candidates.find(token => authenticatedSessionFromToken(token)) ?? candidates[0] ?? '';
 }
 
 function userAuth(req: import('express').Request): AdminUser | null {
-  const token = adminTokenFromReq(req);
-  if (!token) return null;
-  const store = loadAuthStore();
-  const tokenHash = sha256(token);
-  const session = store.sessions.find(item => item.tokenHash === tokenHash && item.expiresAt > Date.now());
-  if (!session) return null;
-  const user = store.users.find(item => item.id === session.userId || item.email === session.email) ?? null;
-  if (!user) return null;
-  if (user.blockedAt) {
-    store.sessions = store.sessions.filter(item => item.tokenHash !== tokenHash);
-    saveAuthStore(store);
-    return null;
-  }
-  return user;
+  return authenticatedSessionFromRequest(req)?.user ?? null;
 }
 
 function authenticatedSessionFromToken(token: string): { store: AdminAuthStore; session: AdminSession; user: AdminUser } | null {
@@ -3067,6 +3079,19 @@ function authenticatedSessionFromToken(token: string): { store: AdminAuthStore; 
     return null;
   }
   return user ? { store, session, user } : null;
+}
+
+function authenticatedSessionFromRequest(req: import('express').Request): ({
+  token: string;
+  store: AdminAuthStore;
+  session: AdminSession;
+  user: AdminUser;
+}) | null {
+  for (const token of authTokenCandidatesFromReq(req)) {
+    const activeSession = authenticatedSessionFromToken(token);
+    if (activeSession) return { token, ...activeSession };
+  }
+  return null;
 }
 
 function refreshAuthSessionIfNeeded(store: AdminAuthStore, session: AdminSession): boolean {
@@ -7080,8 +7105,8 @@ app.use('/api', createAuthCredentialRouter({
       return { ok: false, status: 401, error: 'Неверная почта или пароль' } as const;
     }
 
-    const token = adminTokenFromReq(req);
-    const activeSession = authenticatedSessionFromToken(token);
+    const activeSession = authenticatedSessionFromRequest(req);
+    const token = activeSession?.token ?? '';
     if (activeSession?.user.email === email) {
       if (refreshAuthSessionIfNeeded(activeSession.store, activeSession.session)) {
         saveAuthStore(activeSession.store);
@@ -7633,9 +7658,9 @@ app.use('/api', createAuthVerificationRouter({
 
 app.use('/api', createAuthProfileRouter({
   getSession: req => {
-    const token = adminTokenFromReq(req);
-    const activeSession = authenticatedSessionFromToken(token);
-    if (!activeSession || !token) return null;
+    const activeSession = authenticatedSessionFromRequest(req);
+    if (!activeSession) return null;
+    const { token } = activeSession;
     return {
       user: activeSession.user,
       touch: res => {

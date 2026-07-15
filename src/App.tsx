@@ -293,19 +293,44 @@ type AuthUser = {
   contestAdminAllowed?: boolean;
 };
 
-async function fetchCurrentAuthUser(signal: AbortSignal): Promise<AuthUser | null> {
-  const response = await fetch('/api/auth/me', {
-    credentials: 'same-origin',
-    signal,
+function abortableDelay(milliseconds: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'));
+      return;
+    }
+    const timeout = window.setTimeout(resolve, milliseconds);
+    signal.addEventListener('abort', () => {
+      window.clearTimeout(timeout);
+      reject(new DOMException('Aborted', 'AbortError'));
+    }, { once: true });
   });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw 0;
-  if (!data.user) return null;
-  return {
-    ...data.user,
-    adminAllowed: Boolean(data.user.adminAllowed ?? data.adminAllowed),
-    contestAdminAllowed: Boolean(data.user.contestAdminAllowed ?? data.contestAdminAllowed),
-  };
+}
+
+async function fetchCurrentAuthUser(signal: AbortSignal): Promise<AuthUser | null> {
+  let lastError: unknown = new Error('Не удалось проверить текущую сессию');
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await fetch('/api/auth/me', {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        signal,
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Не удалось проверить текущую сессию');
+      if (!data.user) return null;
+      return {
+        ...data.user,
+        adminAllowed: Boolean(data.user.adminAllowed ?? data.adminAllowed),
+        contestAdminAllowed: Boolean(data.user.contestAdminAllowed ?? data.contestAdminAllowed),
+      };
+    } catch (error) {
+      if (signal.aborted) throw error;
+      lastError = error;
+      if (attempt < 2) await abortableDelay(350 * (attempt + 1), signal);
+    }
+  }
+  throw lastError;
 }
 
 type SubscriptionStatus = {
@@ -923,9 +948,12 @@ export default function App() {
   useEffect(() => {
     const controller = new AbortController();
     const signal = controller.signal;
-    setAppAuthChecking(true);
-    void fetchCurrentAuthUser(signal)
-      .then(user => {
+    let retryTimer: number | null = null;
+
+    const verifySession = () => {
+      retryTimer = null;
+      setAppAuthChecking(true);
+      void fetchCurrentAuthUser(signal).then(user => {
         if (signal.aborted) return;
         if (!user) {
           clearAuthSessionHint();
@@ -940,15 +968,29 @@ export default function App() {
       })
       .catch(() => {
         if (signal.aborted) return;
+        if (hasAuthSessionHint()) {
+          // A deploy or a brief upstream failure is not a logout. Keep the
+          // profile state pending and retry until the server answers
+          // authoritatively with either a user or a guest response.
+          setAppHasAuthHint(true);
+          retryTimer = window.setTimeout(verifySession, 5_000);
+          return;
+        }
         clearAuthSessionHint();
         setAppHasAuthHint(false);
         setAppAuthUser(null);
         setAppSubscription(null);
       })
       .finally(() => {
-        if (!signal.aborted) setAppAuthChecking(false);
+        if (!signal.aborted && retryTimer === null) setAppAuthChecking(false);
       });
-    return () => controller.abort();
+    };
+
+    verifySession();
+    return () => {
+      controller.abort();
+      if (retryTimer !== null) window.clearTimeout(retryTimer);
+    };
   }, []);
 
   const handleAppAuthChange = useCallback((user: AuthUser | null) => {
