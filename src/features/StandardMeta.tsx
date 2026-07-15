@@ -190,9 +190,26 @@ function DeckModal({ state, onClose }: { state: DeckModalState; onClose: () => v
 
   const copyDeck = async () => {
     if (!state.recommendation?.deckCode) return;
-    await navigator.clipboard.writeText(state.recommendation.deckCode);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1800);
+    const deckCode = state.recommendation.deckCode;
+    let didCopy = false;
+    try {
+      await navigator.clipboard.writeText(deckCode);
+      didCopy = true;
+    } catch {
+      const fallback = document.createElement('textarea');
+      fallback.value = deckCode;
+      fallback.setAttribute('readonly', '');
+      fallback.style.position = 'fixed';
+      fallback.style.opacity = '0';
+      document.body.appendChild(fallback);
+      fallback.select();
+      didCopy = document.execCommand('copy');
+      fallback.remove();
+    }
+    if (didCopy) {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    }
   };
 
   const modal = (
@@ -266,9 +283,16 @@ function DeckModal({ state, onClose }: { state: DeckModalState; onClose: () => v
               </div>
 
               <div className="standard-meta-modal__actions">
-                <button type="button" className="standard-meta__primary-button" onClick={copyDeck}>
-                  {copied ? <ShieldCheck size={18} /> : <Swords size={18} />}
-                  {copied ? 'Код скопирован' : 'Скопировать код'}
+                <button
+                  type="button"
+                  className={`standard-meta-modal__copy-button${copied ? ' standard-meta-modal__copy-button--copied' : ''}`}
+                  onClick={copyDeck}
+                  aria-label={copied ? 'Код колоды скопирован' : 'Скопировать код колоды'}
+                >
+                  <img src="/assets/ui/deck-code-to-hearthstone.png" alt="" aria-hidden="true" />
+                  <span className="standard-meta-modal__copy-feedback" aria-live="polite">
+                    {copied ? <><ShieldCheck size={18} /> Код скопирован</> : ''}
+                  </span>
                 </button>
                 {state.recommendation.sourceUrl && (
                   <a href={state.recommendation.sourceUrl} target="_blank" rel="noreferrer" className="standard-meta__secondary-button">

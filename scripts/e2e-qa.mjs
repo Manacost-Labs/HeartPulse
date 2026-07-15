@@ -1878,6 +1878,10 @@ for (const [device, viewport] of [
     await page.waitForSelector('.standard-meta-card__deck-button');
     await page.click('.standard-meta-card__deck-button');
     await page.waitForSelector('.standard-meta-modal__image-stage img');
+    await page.waitForFunction(() => {
+      const image = document.querySelector('.standard-meta-modal__copy-button img');
+      return image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0;
+    });
     const metaModalState = await page.evaluate(() => {
       const modal = document.querySelector('.standard-meta-modal');
       const panel = document.querySelector('.standard-meta-modal__panel');
@@ -1885,9 +1889,12 @@ for (const [device, viewport] of [
       const imageStage = document.querySelector('.standard-meta-modal__image-stage');
       const classImage = document.querySelector('.standard-meta-modal__header img');
       const code = document.querySelector('.standard-meta-modal__code-block code');
+      const copyButton = document.querySelector('.standard-meta-modal__copy-button');
+      const copyImage = copyButton?.querySelector('img');
       const panelRect = panel?.getBoundingClientRect();
       const imageRect = image?.getBoundingClientRect();
       const imageStageRect = imageStage?.getBoundingClientRect();
+      const copyButtonRect = copyButton?.getBoundingClientRect();
       return {
         panelTop: panelRect?.top ?? -1,
         panelBottom: panelRect?.bottom ?? -1,
@@ -1897,6 +1904,10 @@ for (const [device, viewport] of [
         viewportHeight: window.innerHeight,
         code: code?.textContent || '',
         classImage: classImage?.getAttribute('src') || '',
+        copyImage: copyImage?.getAttribute('src') || '',
+        copyImageLoaded: copyImage instanceof HTMLImageElement && copyImage.complete && copyImage.naturalWidth > 0,
+        copyButtonHeight: copyButtonRect?.height ?? 0,
+        copyButtonLabel: copyButton?.getAttribute('aria-label') || '',
         bodyLocked: getComputedStyle(document.body).position === 'fixed',
         portalIsBodyChild: modal?.parentElement === document.body,
       };
@@ -1907,8 +1918,24 @@ for (const [device, viewport] of [
       || metaModalState.imageWidth < minimumDeckImageWidth || metaModalState.imageHeight < minimumDeckImageHeight
       || (device === 'mobile' && metaModalState.imageStageHeight > metaModalState.viewportHeight * 0.5)
       || !metaModalState.code.startsWith('AA') || !metaModalState.classImage.includes('warlock-64.webp')
+      || !metaModalState.copyImage.includes('deck-code-to-hearthstone.png') || !metaModalState.copyImageLoaded
+      || metaModalState.copyButtonHeight < 44 || metaModalState.copyButtonLabel !== 'Скопировать код колоды'
       || !metaModalState.bodyLocked || !metaModalState.portalIsBodyChild) {
       failures.push(`standard meta modal [${device}]: geometry, code, class, portal or scroll lock regressed (${JSON.stringify(metaModalState)})`);
+    }
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: async value => { window.__qaCopiedDeckCode = value; } },
+      });
+    });
+    await page.click('.standard-meta-modal__copy-button');
+    const copyState = await page.evaluate(() => ({
+      label: document.querySelector('.standard-meta-modal__copy-button')?.getAttribute('aria-label') || '',
+      value: window.__qaCopiedDeckCode || '',
+    }));
+    if (copyState.label !== 'Код колоды скопирован' || !copyState.value.startsWith('AA')) {
+      failures.push(`standard meta modal [${device}]: graphical copy control did not expose success state (${JSON.stringify(copyState)})`);
     }
     await auditAccessibility(page, `standard meta modal [${device}]`, '.standard-meta-modal__panel');
     await page.screenshot({ path: `${OUT}/standard-meta-modal-${device}.png`, fullPage: false });
