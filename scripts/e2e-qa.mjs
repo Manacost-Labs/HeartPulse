@@ -2016,6 +2016,10 @@ for (const [device, viewport] of [
     await page.click('.standard-meta-modal__close');
     await page.goto(`${BASE}/standard/vicious-gold`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.vsgold__panel', { timeout: 20_000 });
+    await page.waitForFunction(() => {
+      const image = document.querySelector('.vsgold__build-copy-button img');
+      return image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0;
+    });
     const viciousGoldState = await page.evaluate(() => {
       const pageRoot = document.querySelector('.vsgold');
       const hero = document.querySelector('.vsgold__hero');
@@ -2025,6 +2029,7 @@ for (const [device, viewport] of [
       const deckSearch = document.querySelector('.vsgold__deck-tools input');
       const classButton = document.querySelector('.vsgold__class-bars button');
       const buildButton = document.querySelector('.vsgold__build button');
+      const copyImage = buildButton?.querySelector('img');
       const deckList = document.querySelector('.vsgold__deck-list');
       const heroRect = hero?.getBoundingClientRect();
       return {
@@ -2037,6 +2042,9 @@ for (const [device, viewport] of [
         deckSearchFontSize: deckSearch ? parseFloat(getComputedStyle(deckSearch).fontSize) : 0,
         classTargetHeight: classButton?.getBoundingClientRect().height ?? 0,
         buildTargetHeight: buildButton?.getBoundingClientRect().height ?? 0,
+        buildButtonLabel: buildButton?.getAttribute('aria-label') || '',
+        copyImage: copyImage?.getAttribute('src') || '',
+        copyImageLoaded: copyImage instanceof HTMLImageElement && copyImage.complete && copyImage.naturalWidth > 0,
         deckListOverflowY: deckList ? getComputedStyle(deckList).overflowY : '',
         deckListMaxHeight: deckList ? getComputedStyle(deckList).maxHeight : '',
         scrollWidth: pageRoot?.scrollWidth ?? 0,
@@ -2047,6 +2055,9 @@ for (const [device, viewport] of [
       || viciousGoldState.titleSize > 68 || viciousGoldState.statsCount !== 3
       || viciousGoldState.panelCount < 3
       || (device === 'desktop' && viciousGoldState.mobileNavDisplay !== 'none')
+      || !viciousGoldState.copyImage.includes('deck-code-to-hearthstone.png')
+      || !viciousGoldState.copyImageLoaded
+      || !viciousGoldState.buildButtonLabel.startsWith('Скопировать код колоды')
       || (device === 'mobile' && (viciousGoldState.mobileNavCount !== 3 || viciousGoldState.mobileNavDisplay === 'none'
         || viciousGoldState.deckSearchFontSize < 16 || viciousGoldState.classTargetHeight < 44
         || viciousGoldState.buildTargetHeight < 44 || viciousGoldState.deckListOverflowY !== 'auto'
@@ -2054,6 +2065,22 @@ for (const [device, viewport] of [
       || viciousGoldState.scrollWidth > viciousGoldState.clientWidth + 1) {
       failures.push(`vicious gold [${device}]: redesigned header or panels regressed (${JSON.stringify(viciousGoldState)})`);
     }
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: async value => { window.__qaViciousDeckCode = value; } },
+      });
+    });
+    await page.click('.vsgold__build-copy-button');
+    await page.waitForFunction(() => document.querySelector('.vsgold__build-copy-button')?.getAttribute('aria-label') === 'Код колоды скопирован');
+    const viciousCopyState = await page.evaluate(() => ({
+      label: document.querySelector('.vsgold__build-copy-button')?.getAttribute('aria-label') || '',
+      value: window.__qaViciousDeckCode || '',
+    }));
+    if (viciousCopyState.label !== 'Код колоды скопирован' || !viciousCopyState.value.startsWith('AAECAf0G')) {
+      failures.push(`vicious gold [${device}]: graphical copy control failed (${JSON.stringify(viciousCopyState)})`);
+    }
+    await page.screenshot({ path: `${OUT}/vicious-gold-copy-${device}.png`, fullPage: false });
     if (device === 'mobile') {
       await page.click('.vsgold__class-bars button');
       await new Promise(resolve => setTimeout(resolve, 250));

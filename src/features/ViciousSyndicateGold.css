@@ -172,6 +172,54 @@
 .vsgold__build button, .vsgold__build a { display: inline-flex; gap: 0.3rem; align-items: center; justify-content: center; min-height: 30px; padding: 0 0.5rem; border: 1px solid #6d4b83; background: var(--vs-purple); color: #fff2cc; font-size: 0.68rem; font-weight: 900; text-decoration: none; }
 .vsgold__build a { width: 30px; padding: 0; }
 .vsgold__build button:hover, .vsgold__build a:hover { background: #62427d; }
+.vsgold__build .vsgold__build-copy-button {
+  position: relative;
+  display: grid;
+  width: 116px;
+  min-height: 38px;
+  place-items: center;
+  padding: 0.2rem 0.42rem;
+  overflow: hidden;
+  border: 1px solid #a47435;
+  color: #321d14;
+  background: linear-gradient(145deg, #fff0c4, #d8ad5a);
+  box-shadow: inset 0 0 0 2px rgba(83, 43, 20, 0.12), 0 2px 6px rgba(54, 28, 14, 0.2);
+  transition: transform 160ms ease, filter 160ms ease, box-shadow 160ms ease;
+}
+.vsgold__build-copy-button img { display: block; width: 100%; height: auto; }
+.vsgold__build .vsgold__build-copy-button:hover {
+  background: linear-gradient(145deg, #fff0c4, #d8ad5a);
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: inset 0 0 0 2px rgba(83, 43, 20, 0.12), 0 4px 9px rgba(54, 28, 14, 0.25);
+}
+.vsgold__build-copy-button:focus-visible { outline: 3px solid #4a2f66; outline-offset: 2px; }
+.vsgold__build .vsgold__build-copy-button--copied { background: linear-gradient(145deg, #f5df9d, #bfcf78); }
+.vsgold__build-copy-button--copied::after {
+  content: '✓';
+  position: absolute;
+  right: 0.22rem;
+  bottom: 0.18rem;
+  display: grid;
+  width: 1rem;
+  height: 1rem;
+  place-items: center;
+  border: 1px solid rgba(255, 240, 196, 0.72);
+  border-radius: 50%;
+  color: #fff0c4;
+  background: #35512f;
+  font-size: 0.62rem;
+  font-weight: 900;
+}
+.vsgold__copy-feedback {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
 .vsgold__build > span { max-width: 180px; overflow: hidden; color: #866548; font-size: 0.61rem; text-overflow: ellipsis; white-space: nowrap; }
 .vsgold__build-missing { color: #9a3c30; font-size: 0.7rem; font-weight: 800; text-align: right; }
 
@@ -303,7 +351,8 @@
   .vsgold__deck-row > b { grid-area: metric; font-size: 0.9rem; }
   .vsgold__deck-row .vsgold__build { grid-area: build; justify-items: stretch; }
   .vsgold__build-copy { width: 100%; }
-  .vsgold__build button { flex: 1; min-height: 44px; }
+  .vsgold__build .vsgold__build-copy-button { flex: 1; width: auto; min-height: 48px; padding: 0.3rem 0.55rem; }
+  .vsgold__build-copy-button img { width: min(100%, 190px); }
   .vsgold__build a { width: 44px; min-height: 44px; }
   .vsgold__build > span { max-width: 100%; text-align: left; }
   .vsgold__power { margin-top: 0.62rem; }

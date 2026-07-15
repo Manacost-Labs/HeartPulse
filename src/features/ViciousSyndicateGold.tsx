@@ -112,9 +112,16 @@ function BuildActions({ deck, build, copiedDeck, onCopy }: {
   return (
     <div className="vsgold__build">
       <div className="vsgold__build-copy">
-        <button type="button" onClick={() => onCopy(deck, build.deckCode)}>
-          {copiedDeck === deck ? <ShieldCheck size={15} /> : <Swords size={15} />}
-          {copiedDeck === deck ? 'Скопировано' : 'Код колоды'}
+        <button
+          type="button"
+          className={`vsgold__build-copy-button${copiedDeck === deck ? ' vsgold__build-copy-button--copied' : ''}`}
+          onClick={() => onCopy(deck, build.deckCode)}
+          aria-label={copiedDeck === deck ? 'Код колоды скопирован' : `Скопировать код колоды ${deck.replace(/^tier:/, '')}`}
+        >
+          <img src="/assets/ui/deck-code-to-hearthstone.png" alt="" aria-hidden="true" />
+          <span className="vsgold__copy-feedback" aria-live="polite">
+            {copiedDeck === deck ? 'Код колоды скопирован' : ''}
+          </span>
         </button>
         {build.sourceUrl && (
           <a href={build.sourceUrl} target="_blank" rel="noreferrer" aria-label={`Открыть источник сборки ${deck}`}>
@@ -173,7 +180,22 @@ export default function ViciousSyndicateGold() {
   }, [data.deckDistribution, deckClass, query]);
 
   const copyDeck = async (deck: string, code: string) => {
-    await navigator.clipboard.writeText(code);
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(code);
+      copied = true;
+    } catch {
+      const fallback = document.createElement('textarea');
+      fallback.value = code;
+      fallback.setAttribute('readonly', '');
+      fallback.style.position = 'fixed';
+      fallback.style.opacity = '0';
+      document.body.appendChild(fallback);
+      fallback.select();
+      copied = document.execCommand('copy');
+      fallback.remove();
+    }
+    if (!copied) return;
     setCopiedDeck(deck);
     window.setTimeout(() => setCopiedDeck(current => current === deck ? '' : current), 1800);
   };
