@@ -574,6 +574,15 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
         { nameEn: 'Control Warrior', ranks: ['Легенда', 'Алмаз 4-1'] },
         { nameEn: 'Rainbow Mage', ranks: ['Легенда'] },
         { nameEn: 'Void Soul DH', ranks: ['Легенда', 'Алмаз 4-1'] },
+        { nameEn: 'Starship Rogue', ranks: ['Легенда'] },
+        { nameEn: 'Discover Hunter', ranks: ['Топ-5000'] },
+        { nameEn: 'Imbue Paladin', ranks: ['Алмаз 4-1'] },
+        { nameEn: 'Protoss Priest', ranks: ['Легенда'] },
+        { nameEn: 'Zerg Death Knight', ranks: ['Топ-5000'] },
+        { nameEn: 'Spell Damage Druid', ranks: ['Алмаз 4-1'] },
+        { nameEn: 'Quest Shaman', ranks: ['Легенда'] },
+        { nameEn: 'Location Warlock', ranks: ['Топ-5000'] },
+        { nameEn: 'Menagerie Warrior', ranks: ['Легенда'] },
       ];
       const translatedKeys = translations.map(item => item.nameEn.toLocaleLowerCase('en-US'));
       const items = observed.filter(item => {
@@ -1197,8 +1206,24 @@ for (const [device, viewport] of [
 
     await page.goto(`${BASE}/?admin&section=translations`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 2);
-    await page.waitForFunction(() => document.querySelectorAll('.admin-untranslated-list li').length === 1);
+    await page.waitForFunction(() => document.querySelectorAll('.admin-untranslated-list li').length === 10);
     await page.screenshot({ path: `${OUT}/admin-translations-${device}.png`, fullPage: false });
+    const translationEditorLayout = await page.evaluate(() => {
+      const editor = document.querySelector('.admin-translation-editor');
+      const coverage = document.querySelector('.admin-translation-coverage');
+      const editorRect = editor?.getBoundingClientRect();
+      const coverageRect = coverage?.getBoundingClientRect();
+      return {
+        editorBeforeCoverage: (editorRect?.top ?? 0) < (coverageRect?.top ?? 0),
+        editorPosition: editor ? getComputedStyle(editor).position : '',
+        fields: getComputedStyle(document.querySelector('.admin-translation-editor-fields')).gridTemplateColumns.split(/\s+/).length,
+      };
+    });
+    if (!translationEditorLayout.editorBeforeCoverage
+      || translationEditorLayout.editorPosition !== (device === 'desktop' ? 'sticky' : 'static')
+      || translationEditorLayout.fields !== (device === 'desktop' ? 2 : 1)) {
+      failures.push(`admin translations [${device}]: stable editor layout regressed (${JSON.stringify(translationEditorLayout)})`);
+    }
     const missingName = await page.$eval('.admin-untranslated-list strong', element => element.textContent?.trim() || '');
     if (missingName !== 'Void Soul DH') failures.push(`admin translations [${device}]: current missing archetype was not detected`);
     await page.click('.admin-untranslated-list button');
@@ -1207,10 +1232,28 @@ for (const [device, viewport] of [
     const queuedEnglishName = await page.$eval('#admin-translation-name-en', element => element.value);
     if (queuedEnglishName !== 'Void Soul DH') failures.push(`admin translations [${device}]: missing archetype did not prefill the editor`);
     await translationInputs[1].type('Душа Бездны Охотник на демонов');
+    const translationPositionBeforeSave = await page.evaluate(() => ({
+      scrollY: window.scrollY,
+      editorTop: document.querySelector('.admin-translation-editor')?.getBoundingClientRect().top ?? 0,
+    }));
     await page.click('.admin-translation-form button[type="submit"]');
     await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Перевод добавлен'));
     await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 3);
-    await page.waitForFunction(() => document.querySelector('.admin-translation-covered')?.textContent?.includes('Все актуальные архетипы переведены'));
+    await page.waitForFunction(() => document.querySelectorAll('.admin-untranslated-list li').length === 9);
+    const translationPositionAfterSave = await page.evaluate(() => ({
+      scrollY: window.scrollY,
+      editorTop: document.querySelector('.admin-translation-editor')?.getBoundingClientRect().top ?? 0,
+      activeField: document.activeElement?.id || '',
+      englishValue: document.querySelector('#admin-translation-name-en')?.value || '',
+      russianValue: document.querySelector('#admin-translation-name-ru')?.value || '',
+    }));
+    if (Math.abs(translationPositionAfterSave.scrollY - translationPositionBeforeSave.scrollY) > 2
+      || Math.abs(translationPositionAfterSave.editorTop - translationPositionBeforeSave.editorTop) > 2
+      || translationPositionAfterSave.activeField !== 'admin-translation-name-en'
+      || translationPositionAfterSave.englishValue || translationPositionAfterSave.russianValue) {
+      failures.push(`admin translations [${device}]: save shifted the workspace or did not prepare the next entry (${JSON.stringify({ before: translationPositionBeforeSave, after: translationPositionAfterSave })})`);
+    }
+    await page.screenshot({ path: `${OUT}/admin-translations-after-add-${device}.png`, fullPage: false });
     await page.click('.admin-translation-table tbody tr:first-child button');
     await page.waitForFunction(() => document.querySelector('.admin-translation-form h2')?.textContent?.includes('Редактирование'));
     const editInputs = await page.$$('.admin-translation-form input');
@@ -1250,7 +1293,7 @@ for (const [device, viewport] of [
       clientWidth: document.documentElement.clientWidth,
     }));
     if (translationLayout.rows !== 3) failures.push(`admin translations [${device}]: create/edit/sync fixture did not persist`);
-    if (translationLayout.columns !== (device === 'desktop' ? 2 : 1)) failures.push(`admin translations [${device}]: responsive layout has ${translationLayout.columns} columns`);
+    if (translationLayout.columns !== 1) failures.push(`admin translations [${device}]: responsive layout has ${translationLayout.columns} columns`);
     if (translationLayout.scrollWidth > translationLayout.clientWidth + 1) {
       failures.push(`admin translations [${device}]: horizontal overflow ${translationLayout.scrollWidth} > ${translationLayout.clientWidth}`);
     }

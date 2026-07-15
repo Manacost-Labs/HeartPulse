@@ -74,6 +74,7 @@ type TranslationWorkspaceViewProps = {
   onRetryCoverage: () => void;
   onTranslateMissing: (nameEn: string) => void;
   onPageChange: (page: number) => void;
+  englishInputRef: React.RefObject<HTMLInputElement | null>;
   russianInputRef: React.RefObject<HTMLInputElement | null>;
 };
 
@@ -99,6 +100,7 @@ function TranslationWorkspaceView({
   onRetryCoverage,
   onTranslateMissing,
   onPageChange,
+  englishInputRef,
   russianInputRef,
 }: TranslationWorkspaceViewProps) {
   return (
@@ -117,6 +119,57 @@ function TranslationWorkspaceView({
         <div><span>Таблица переводов</span><strong>{data.stats.total}</strong><small>{data.stats.blizzcore} BlizzCore · {data.stats.manual} ручных</small></div>
         <div><span>Последняя синхронизация</span><strong className="admin-translation-date">{formatSyncDate(data.stats.lastSyncedAt)}</strong><small>источник: api.blizzcore.ru</small></div>
       </div>
+
+      <form className="contest-admin-card admin-translation-form admin-translation-editor" onSubmit={onSubmit}>
+        <div className="admin-card-heading">
+          <div>
+            <h2>{editing ? 'Редактирование перевода' : 'Добавить перевод'}</h2>
+            <p className="contest-muted">Рабочая форма остаётся на месте, пока очередь и таблица обновляются ниже.</p>
+          </div>
+          {editing && <span className="admin-source-badge is-manual">Ручной</span>}
+        </div>
+        <div className="admin-translation-editor-fields">
+          <label htmlFor="admin-translation-name-en">
+            Английское название
+            <input
+              ref={englishInputRef}
+              id="admin-translation-name-en"
+              value={draft.nameEn}
+              onChange={event => onDraftChange({ nameEn: event.target.value })}
+              placeholder="Control Warrior"
+              autoComplete="off"
+              maxLength={180}
+              required
+            />
+          </label>
+          <label htmlFor="admin-translation-name-ru">
+            Русский перевод
+            <input
+              ref={russianInputRef}
+              id="admin-translation-name-ru"
+              value={draft.nameRu}
+              onChange={event => onDraftChange({ nameRu: event.target.value })}
+              placeholder="Контроль Воин"
+              autoComplete="off"
+              maxLength={180}
+              required
+            />
+          </label>
+        </div>
+        <div className="admin-translation-editor-footer">
+          <div className="admin-form-actions">
+            <button type="submit" className="contest-primary-button" disabled={saving}>
+              {saving ? 'Сохраняем…' : editing ? 'Сохранить перевод' : 'Добавить перевод'}
+            </button>
+            {(editing || draft.nameEn || draft.nameRu) && (
+              <button type="button" className="contest-secondary-button" onClick={onCancelEdit}>
+                {editing ? 'Отмена' : 'Очистить'}
+              </button>
+            )}
+          </div>
+          <p className="admin-translation-form-note">После сохранения поля очистятся, а очередь обновится без скачка страницы.</p>
+        </div>
+      </form>
 
       <section className="contest-admin-card admin-translation-coverage" aria-labelledby="translation-coverage-title">
         <div className="admin-card-heading">
@@ -169,52 +222,6 @@ function TranslationWorkspaceView({
       </section>
 
       <div className="contest-admin-grid admin-translation-layout">
-        <form className="contest-admin-card admin-translation-form" onSubmit={onSubmit}>
-          <div className="admin-card-heading">
-            <div>
-              <h2>{editing ? 'Редактирование перевода' : 'Новый перевод'}</h2>
-              <p className="contest-muted">Ручная запись не будет перезаписана следующей синхронизацией.</p>
-            </div>
-            {editing && <span className="admin-source-badge is-manual">Ручной</span>}
-          </div>
-          <label htmlFor="admin-translation-name-en">
-            Английское название
-            <input
-              id="admin-translation-name-en"
-              value={draft.nameEn}
-              onChange={event => onDraftChange({ nameEn: event.target.value })}
-              placeholder="Control Warrior"
-              autoComplete="off"
-              maxLength={180}
-              required
-            />
-          </label>
-          <label htmlFor="admin-translation-name-ru">
-            Русский перевод
-            <input
-              ref={russianInputRef}
-              id="admin-translation-name-ru"
-              value={draft.nameRu}
-              onChange={event => onDraftChange({ nameRu: event.target.value })}
-              placeholder="Контроль Воин"
-              autoComplete="off"
-              maxLength={180}
-              required
-            />
-          </label>
-          <div className="admin-form-actions">
-            <button type="submit" className="contest-primary-button" disabled={saving}>
-              {saving ? 'Сохраняем…' : editing ? 'Сохранить перевод' : 'Добавить перевод'}
-            </button>
-            {(editing || draft.nameEn || draft.nameRu) && (
-              <button type="button" className="contest-secondary-button" onClick={onCancelEdit}>
-                {editing ? 'Отмена' : 'Очистить'}
-              </button>
-            )}
-          </div>
-          <p className="admin-translation-form-note">После сохранения очередь непереведённых обновится автоматически.</p>
-        </form>
-
         <section className="contest-admin-card admin-translation-list-card" aria-labelledby="translation-table-title">
           <div className="admin-card-heading">
             <div>
@@ -294,6 +301,7 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
   const [coverageError, setCoverageError] = useState('');
   const [editing, setEditing] = useState<ArchetypeTranslation | null>(null);
   const [draft, setDraft] = useState<TranslationDraft>(EMPTY_DRAFT);
+  const englishInputRef = useRef<HTMLInputElement>(null);
   const russianInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async (signal?: AbortSignal) => {
@@ -367,9 +375,13 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
       if (!response.ok) throw new Error(payload.error || 'Не удалось сохранить перевод');
       onMessage({ type: 'ok', text: editing ? 'Перевод обновлён.' : 'Перевод добавлен.' });
       resetEditor();
-      if (page !== 1) setPage(1);
-      else await load();
-      await loadCoverage();
+      if (page !== 1) {
+        setPage(1);
+        await loadCoverage();
+      } else {
+        await Promise.all([load(), loadCoverage()]);
+      }
+      window.requestAnimationFrame(() => englishInputRef.current?.focus({ preventScroll: true }));
     } catch (error) {
       onMessage({ type: 'err', text: error instanceof Error ? error.message : 'Не удалось сохранить перевод' });
     } finally {
@@ -417,6 +429,7 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
         window.requestAnimationFrame(() => russianInputRef.current?.focus());
       }}
       onPageChange={setPage}
+      englishInputRef={englishInputRef}
       russianInputRef={russianInputRef}
     />
   );

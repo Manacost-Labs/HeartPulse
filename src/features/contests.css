@@ -2750,7 +2750,7 @@
 }
 
 .admin-workspace-page .admin-translation-layout {
-  grid-template-columns: minmax(280px, 0.55fr) minmax(620px, 1.45fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
 
@@ -2891,6 +2891,37 @@
 .admin-translation-form {
   position: sticky;
   top: calc(var(--admin-bar-h) + 1rem);
+}
+
+.admin-translation-editor {
+  z-index: 8;
+  border-left: 4px solid #4a2f66 !important;
+  box-shadow: 0 10px 24px rgba(22, 31, 44, 0.12) !important;
+}
+
+.admin-translation-editor .admin-card-heading {
+  justify-content: space-between;
+}
+
+.admin-translation-editor-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.admin-translation-editor-footer {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.55fr) minmax(280px, 1fr);
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.admin-translation-editor-footer .admin-form-actions {
+  margin: 0;
+}
+
+.admin-translation-editor-footer .admin-translation-form-note {
+  text-align: right;
 }
 
 .admin-translation-form-note {
@@ -3990,6 +4021,15 @@
 
   .admin-translation-form {
     position: static;
+  }
+
+  .admin-translation-editor-fields,
+  .admin-translation-editor-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-translation-editor-footer .admin-translation-form-note {
+    text-align: left;
   }
 
   .admin-mailing-template-grid,
