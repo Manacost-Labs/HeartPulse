@@ -33,10 +33,14 @@ export type ObservedArchetype = {
   nameEn: string;
   rank: string;
   deckCode?: string | null;
+  format?: 'standard' | 'wild';
+  rankKey?: 'legend' | 'diamond' | 'top_5k' | 'top_legend';
 };
 
+export type UntranslatedArchetype = { nameEn: string; ranks: string[]; deckCode?: string };
+
 export type ArchetypeTranslationCoverage = {
-  items: Array<{ nameEn: string; ranks: string[]; deckCode?: string }>;
+  items: UntranslatedArchetype[];
   totalObserved: number;
   translated: number;
   missing: number;
@@ -49,6 +53,10 @@ export type AdminArchetypeTranslationRouterDependencies = {
   getDatabase: () => DatabaseSync;
   loadUpstream: () => Promise<unknown>;
   loadObservedArchetypes?: () => Promise<ObservedArchetype[]>;
+  resolveMissingDeckCodes?: (
+    items: UntranslatedArchetype[],
+    observed: ObservedArchetype[],
+  ) => Promise<UntranslatedArchetype[]>;
   ensureSeeded?: () => Promise<void>;
   setPrivateNoStore: (response: Response) => void;
   invalidateTranslations: () => void;
@@ -298,10 +306,11 @@ export function createAdminArchetypeTranslationRouter(
     }
     try {
       await dependencies.ensureSeeded?.();
-      const coverage = analyzeArchetypeTranslationCoverage(
-        dependencies.getDatabase(),
-        await dependencies.loadObservedArchetypes(),
-      );
+      const observed = await dependencies.loadObservedArchetypes();
+      const coverage = analyzeArchetypeTranslationCoverage(dependencies.getDatabase(), observed);
+      if (dependencies.resolveMissingDeckCodes && coverage.items.some(item => !item.deckCode)) {
+        coverage.items = await dependencies.resolveMissingDeckCodes(coverage.items, observed);
+      }
       return response.json(coverage);
     } catch {
       return response.status(502).json({ error: 'Не удалось проверить актуальные архетипы' });

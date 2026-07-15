@@ -46,6 +46,7 @@ let upstreamPayload: unknown = [
 ];
 let seedRuns = 0;
 let invalidations = 0;
+let deckCodeResolutionRuns = 0;
 let observedFails = false;
 const audit: string[] = [];
 const timestamp = '2026-07-13T16:30:00.000Z';
@@ -69,7 +70,14 @@ app.use('/api', createAdminArchetypeTranslationRouter({
       { nameEn: 'Tempo Mage', rank: 'Алмаз 4-1' },
       { nameEn: 'New Priest', rank: 'Легенда', deckCode: 'AAECAa0GCJbUBM/GBc/2BdiBBqmVBsekBq+oBtfSBgvLoAS7xAX7+AWi6QXt9wX7gAbGnAbCtgaAuAamnQavqAYAAA==' },
       { nameEn: 'New Priest', rank: 'Алмаз 4-1' },
+      { nameEn: 'New Rogue', rank: 'Легенда', format: 'standard', rankKey: 'legend' },
     ];
+  },
+  resolveMissingDeckCodes: async items => {
+    deckCodeResolutionRuns += 1;
+    return items.map(item => item.nameEn === 'New Rogue'
+      ? { ...item, deckCode: 'AAECAaIHBqH0BcekBoqoBq+oBr2+BqrqBgyRnwT3nwT2nwTawwXfwwW/9wXIlAbungbZogbJqAa2tQYAAA==' }
+      : item);
   },
   ensureSeeded: async () => {
     const count = Number((database.prepare('SELECT COUNT(*) AS total FROM archetype_translations').get() as any).total);
@@ -123,12 +131,17 @@ try {
       nameEn: 'New Priest',
       ranks: ['Алмаз 4-1', 'Легенда'],
       deckCode: 'AAECAa0GCJbUBM/GBc/2BdiBBqmVBsekBq+oBtfSBgvLoAS7xAX7+AWi6QXt9wX7gAbGnAbCtgaAuAamnQavqAYAAA==',
+    }, {
+      nameEn: 'New Rogue',
+      ranks: ['Легенда'],
+      deckCode: 'AAECAaIHBqH0BcekBoqoBq+oBr2+BqrqBgyRnwT3nwT2nwTawwXfwwW/9wXIlAbungbZogbJqAa2tQYAAA==',
     }],
-    totalObserved: 3,
+    totalObserved: 4,
     translated: 2,
-    missing: 1,
-    coveragePercent: 66.7,
+    missing: 2,
+    coveragePercent: 50,
   });
+  assert.equal(deckCodeResolutionRuns, 1);
   assert.deepEqual(analyzeArchetypeTranslationCoverage(database, []), {
     items: [], totalObserved: 0, translated: 0, missing: 0, coveragePercent: 100,
   });

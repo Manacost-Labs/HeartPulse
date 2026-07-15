@@ -55,6 +55,8 @@ import {
   createAdminArchetypeTranslationRouter,
   normalizeBlizzcoreArchetypes,
   syncBlizzcoreArchetypes,
+  type ObservedArchetype,
+  type UntranslatedArchetype,
 } from './adminArchetypeTranslationRoutes.js';
 import { createAdminArticleRouter, writeArticlesFile } from './adminArticleRoutes.js';
 import { createAdminContestMutationRouter } from './adminContestMutationRoutes.js';
@@ -1015,6 +1017,15 @@ function db(): DatabaseSync {
       synced_at TEXT,
       updated_by TEXT
     );
+    CREATE TABLE IF NOT EXISTS archetype_deck_codes (
+      name_en_key TEXT PRIMARY KEY,
+      name_en TEXT NOT NULL,
+      deck_code TEXT NOT NULL,
+      format TEXT NOT NULL CHECK(format IN ('standard', 'wild')),
+      rank_key TEXT NOT NULL CHECK(rank_key IN ('legend', 'diamond', 'top_5k', 'top_legend')),
+      source TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS meta (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
@@ -1028,6 +1039,7 @@ function db(): DatabaseSync {
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_mailing_deliveries_status ON mailing_deliveries(campaign_id, status, attempts);');
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_admin_audit_created ON admin_audit_log(created_at DESC);');
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_archetype_translations_source ON archetype_translations(source, updated_at DESC);');
+  ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_archetype_deck_codes_updated ON archetype_deck_codes(updated_at DESC);');
   const userColumns = new Set((ecosystemDb.prepare('PRAGMA table_info(users)').all() as any[]).map(row => String(row.name)));
   if (!userColumns.has('contact_vk_url')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN contact_vk_url TEXT');
   if (!userColumns.has('contact_telegram')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN contact_telegram TEXT');
@@ -5629,6 +5641,8 @@ async function loadObservedStandardArchetypes() {
     return [...uniqueNames.values()].map(nameEn => ({
       nameEn,
       rank: STANDARD_MATCHUPS_RANK_LABEL[rank],
+      format: 'standard' as const,
+      rankKey: 'legend' as const,
     }));
   });
 
@@ -5669,6 +5683,8 @@ async function loadObservedStandardArchetypes() {
       nameEn,
       rank: `Мета · ${STANDARD_META_FORMAT_LABEL[format]} · ${STANDARD_META_RANK_LABEL[rank]}`,
       deckCode: findExactDeckCode(nameEn, format, rank),
+      format,
+      rankKey: rank,
     }));
   });
 
@@ -6178,6 +6194,115 @@ async function fetchExactHsguruDecks(
     };
     return [{ ...base, quality: standardMetaDeckQuality(base) }];
   });
+}
+
+const archetypeDeckCodeJobs = new Map<string, Promise<string | null>>();
+
+function readCachedArchetypeDeckCode(nameEn: string): string | null {
+  const row = dbGet<{ deck_code: string }>(
+    'SELECT deck_code FROM archetype_deck_codes WHERE name_en_key = ?',
+    normalizeStandardArchetypeKey(nameEn),
+  );
+  const deckCode = String(row?.deck_code ?? '').trim();
+  return /^[A-Za-z0-9+/=]{40,}$/.test(deckCode) ? deckCode : null;
+}
+
+function persistArchetypeDeckCode(
+  nameEn: string,
+  deck: Pick<StandardMetaDeckCandidate, 'deckCode' | 'format' | 'rank' | 'source'>,
+) {
+  dbRun(`
+    INSERT INTO archetype_deck_codes (
+      name_en_key, name_en, deck_code, format, rank_key, source, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(name_en_key) DO UPDATE SET
+      name_en = excluded.name_en,
+      deck_code = excluded.deck_code,
+      format = excluded.format,
+      rank_key = excluded.rank_key,
+      source = excluded.source,
+      updated_at = excluded.updated_at
+  `,
+  normalizeStandardArchetypeKey(nameEn),
+  nameEn,
+  deck.deckCode,
+  deck.format,
+  deck.rank,
+  deck.source,
+  new Date().toISOString());
+}
+
+async function resolveExactArchetypeDeckCode(
+  nameEn: string,
+  contexts: Array<{ format: StandardMetaFormat; rank: StandardMetaRank }>,
+): Promise<string | null> {
+  const cached = readCachedArchetypeDeckCode(nameEn);
+  if (cached) return cached;
+  const key = normalizeStandardArchetypeKey(nameEn);
+  const active = archetypeDeckCodeJobs.get(key);
+  if (active) return active;
+  const job = (async () => {
+    const uniqueContexts = new Map<string, { format: StandardMetaFormat; rank: StandardMetaRank }>();
+    for (const context of contexts) uniqueContexts.set(`${context.format}:${context.rank}`, context);
+    // The observed HSGuru slices are authoritative. A legend fallback for each
+    // format also covers names that only surface in the matchup matrix.
+    for (const format of ['standard', 'wild'] as const) {
+      uniqueContexts.set(`${format}:legend`, { format, rank: 'legend' });
+    }
+    for (const context of uniqueContexts.values()) {
+      const decks = await fetchExactHsguruDecks(nameEn, nameEn, context.format, context.rank).catch(() => []);
+      const exact = decks.sort((left, right) => right.quality - left.quality)[0];
+      if (!exact) continue;
+      persistArchetypeDeckCode(nameEn, exact);
+      return exact.deckCode;
+    }
+    return null;
+  })().finally(() => {
+    archetypeDeckCodeJobs.delete(key);
+  });
+  archetypeDeckCodeJobs.set(key, job);
+  return job;
+}
+
+async function resolveUntranslatedArchetypeDeckCodes(
+  items: UntranslatedArchetype[],
+  observed: ObservedArchetype[],
+): Promise<UntranslatedArchetype[]> {
+  const contextsByName = new Map<string, Array<{ format: StandardMetaFormat; rank: StandardMetaRank }>>();
+  for (const item of observed) {
+    if (!item.format || !item.rankKey) continue;
+    const key = normalizeStandardArchetypeKey(item.nameEn);
+    const contexts = contextsByName.get(key) ?? [];
+    contexts.push({ format: item.format, rank: item.rankKey });
+    contextsByName.set(key, contexts);
+  }
+  const result = [...items];
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(5, result.length) }, async () => {
+    while (cursor < result.length) {
+      const index = cursor;
+      cursor += 1;
+      const item = result[index];
+      if (item.deckCode) {
+        const contexts = contextsByName.get(normalizeStandardArchetypeKey(item.nameEn)) ?? [];
+        const context = contexts[0] ?? { format: 'standard' as const, rank: 'legend' as const };
+        persistArchetypeDeckCode(item.nameEn, {
+          deckCode: item.deckCode,
+          format: context.format,
+          rank: context.rank,
+          source: 'constructed-decks',
+        });
+        continue;
+      }
+      const deckCode = await resolveExactArchetypeDeckCode(
+        item.nameEn,
+        contextsByName.get(normalizeStandardArchetypeKey(item.nameEn)) ?? [],
+      );
+      if (deckCode) result[index] = { ...item, deckCode };
+    }
+  });
+  await Promise.all(workers);
+  return result;
 }
 
 async function findStandardMetaRecommendation(
@@ -8251,6 +8376,7 @@ app.use('/api', createAdminArchetypeTranslationRouter({
   getDatabase: db,
   loadUpstream: fetchBlizzcoreArchetypesPayload,
   loadObservedArchetypes: loadObservedStandardArchetypes,
+  resolveMissingDeckCodes: resolveUntranslatedArchetypeDeckCodes,
   ensureSeeded: ensureArchetypeTranslationsSeeded,
   setPrivateNoStore,
   invalidateTranslations: () => {
