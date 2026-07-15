@@ -2990,6 +2990,7 @@ for (const [device, viewport] of [
       const navStyles = nav ? getComputedStyle(nav) : null;
       const sectionStyles = section ? getComputedStyle(section) : null;
       const inactiveStyles = inactiveLink ? getComputedStyle(inactiveLink) : null;
+      const inactiveIconStyles = inactiveIcon ? getComputedStyle(inactiveIcon) : null;
       const activeStyles = activeLink ? getComputedStyle(activeLink) : null;
       const statusStyles = status ? getComputedStyle(status) : null;
       const profileStyles = profile ? getComputedStyle(profile) : null;
@@ -3042,7 +3043,13 @@ for (const [device, viewport] of [
         linkWeight: inactiveStyles?.fontWeight || '',
         linkShadow: inactiveStyles?.textShadow || '',
         linkBoxShadow: inactiveStyles?.boxShadow || '',
-        iconColor: inactiveIcon ? getComputedStyle(inactiveIcon).color : '',
+        iconWidth: inactiveIconStyles?.width || '',
+        iconHeight: inactiveIconStyles?.height || '',
+        iconFlexBasis: inactiveIconStyles?.flexBasis || '',
+        iconBorder: inactiveIconStyles?.borderTopWidth || '',
+        iconRadius: inactiveIconStyles?.borderRadius || '',
+        iconColor: inactiveIconStyles?.color || '',
+        iconBackground: inactiveIconStyles?.backgroundColor || '',
         activeBorder: activeStyles?.borderLeftColor || '',
         activeColor: activeStyles?.color || '',
         activeBackground: activeStyles?.backgroundImage || '',
@@ -3124,7 +3131,13 @@ for (const [device, viewport] of [
       || sidebarState.linkWeight !== '700'
       || sidebarState.linkShadow === 'none'
       || sidebarState.linkBoxShadow !== 'none'
-      || sidebarState.iconColor !== 'rgb(224, 171, 66)'
+      || sidebarState.iconWidth !== '28px'
+      || sidebarState.iconHeight !== '28px'
+      || sidebarState.iconFlexBasis !== '28px'
+      || sidebarState.iconBorder !== '1px'
+      || sidebarState.iconRadius !== '4px'
+      || sidebarState.iconColor !== 'rgb(232, 184, 77)'
+      || sidebarState.iconBackground !== 'rgba(43, 4, 8, 0.24)'
       || sidebarState.activeBorder !== 'rgb(242, 200, 93)'
       || sidebarState.activeColor !== 'rgb(255, 247, 223)'
       || sidebarState.activeBackground === 'none'

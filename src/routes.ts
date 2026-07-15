@@ -1,17 +1,21 @@
 import {
-  BookOpen,
+  BookOpenText,
+  ChartNoAxesCombined,
+  CircleUserRound,
+  Crown,
+  Gem,
   Gift,
   Grid3X3,
   Home,
   Image as ImageIcon,
-  Library,
+  LibraryBig,
   List,
+  ListChecks,
+  ListTree,
   Scroll,
   ShieldCheck,
-  Star,
   Swords,
   Trophy,
-  UserCircle,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -33,13 +37,13 @@ export const TABS = [
     id: 'home', label: 'Главная', icon: Home, slug: '/', group: 'home', entitlement: null,
   },
   {
-    id: 'articles', label: 'Статьи', icon: BookOpen, slug: '/articles', group: 'top', entitlement: null,
+    id: 'articles', label: 'Статьи', icon: BookOpenText, slug: '/articles', group: 'top', entitlement: null,
   },
   {
     id: 'gallery', label: 'Галерея', icon: ImageIcon, slug: '/gallery', group: 'misc', entitlement: null,
   },
   {
-    id: 'guides-archive', label: 'Архив гайдов', icon: BookOpen, slug: '/guides-archive', group: 'misc', entitlement: 'guidesArchive',
+    id: 'guides-archive', label: 'Архив гайдов', icon: Scroll, slug: '/guides-archive', group: 'misc', entitlement: 'guidesArchive',
   },
   {
     id: 'contests', label: 'Конкурсы', icon: Gift, slug: '/contests', group: 'misc', entitlement: null,
@@ -48,28 +52,28 @@ export const TABS = [
     id: 'standard-matchups', label: 'Матчапы', icon: Swords, slug: '/standard/matchups', group: 'standard', entitlement: 'standard',
   },
   {
-    id: 'standard-meta', label: 'Мета · Beta', icon: Swords, slug: '/standard/meta', group: 'standard', entitlement: null, adminOnly: true,
+    id: 'standard-meta', label: 'Мета', icon: ChartNoAxesCombined, slug: '/standard/meta', group: 'standard', entitlement: null, adminOnly: true,
   },
   {
-    id: 'standard-vicious-gold', label: 'Vicious Syndicate Gold', icon: Star, slug: '/standard/vicious-gold', group: 'standard', entitlement: null, adminOnly: true,
+    id: 'standard-vicious-gold', label: 'Vicious Syndicate Gold', icon: Crown, slug: '/standard/vicious-gold', group: 'standard', entitlement: null, adminOnly: true,
   },
   {
     id: 'winrates', label: 'Классы', icon: Trophy, slug: '/classes', group: 'arena', entitlement: 'arena',
   },
   {
-    id: 'tierlist', label: 'Тир-лист', icon: Scroll, slug: '/tierlist', group: 'arena', entitlement: 'arena',
+    id: 'tierlist', label: 'Тир-лист', icon: ListChecks, slug: '/tierlist', group: 'arena', entitlement: 'arena',
   },
   {
-    id: 'legendaries', label: 'Легендарки', icon: Star, slug: '/legendaries', group: 'arena', entitlement: 'arena',
+    id: 'legendaries', label: 'Легендарки', icon: Gem, slug: '/legendaries', group: 'arena', entitlement: 'arena',
   },
   {
-    id: 'bg-heroes', label: 'Герои', icon: UserCircle, slug: '/heroes', group: 'bg-primary', entitlement: 'battlegrounds',
+    id: 'bg-heroes', label: 'Герои', icon: CircleUserRound, slug: '/heroes', group: 'bg-primary', entitlement: 'battlegrounds',
   },
   {
-    id: 'bg-library', label: 'Библиотека', icon: Library, slug: '/library', group: 'bg-primary', entitlement: 'battlegrounds',
+    id: 'bg-library', label: 'Библиотека', icon: LibraryBig, slug: '/library', group: 'bg-primary', entitlement: 'battlegrounds',
   },
   {
-    id: 'bg-tier-list', label: 'Тир-лист', icon: Scroll, slug: '/battlegrounds/tier-list', group: 'bg-primary', entitlement: 'battlegrounds',
+    id: 'bg-tier-list', label: 'Тир-лист', icon: ListTree, slug: '/battlegrounds/tier-list', group: 'bg-primary', entitlement: 'battlegrounds',
   },
   {
     id: 'bg-strategies', label: 'Конструктор стратегий', icon: Grid3X3, slug: '/battlegrounds/strategies', group: 'bg-builder', entitlement: 'battlegrounds',

@@ -562,7 +562,9 @@ function NavigationRouteLinks({
         className={`${classPrefix}-link ${sublink ? `${classPrefix}-sublink ` : ''}${active ? `${classPrefix}-link-active` : ''}`}
         style={variant === 'sidebar' ? { textDecoration: 'none' } : undefined}
       >
-        <Icon size={iconSize} className={`${variant === 'sidebar' ? 'arena-sidebar-link-icon ' : ''}flex-shrink-0`} />
+        <span className={`${classPrefix}-link-icon flex-shrink-0`} aria-hidden="true">
+          <Icon size={iconSize} strokeWidth={1.8} />
+        </span>
         <span>{tab.label}</span>
       </a>
     );
@@ -1450,7 +1452,7 @@ export default function App() {
                 aria-controls="arena-mobile-constructors"
                 onClick={() => setMobileNavGroup(group => group === 'constructors' ? null : 'constructors')}
               >
-                <Grid3X3 size={18} className="flex-shrink-0" />
+                <span className="arena-mobile-menu-link-icon flex-shrink-0" aria-hidden="true"><Grid3X3 size={18} strokeWidth={1.8} /></span>
                 <span>Конструкторы</span>
                 <ChevronDown size={16} className="arena-nav-group-chevron" />
               </button>
@@ -1473,7 +1475,7 @@ export default function App() {
                 aria-controls="arena-mobile-misc"
                 onClick={() => setMobileNavGroup(group => group === 'misc' ? null : 'misc')}
               >
-                <Gift size={18} className="flex-shrink-0" />
+                <span className="arena-mobile-menu-link-icon flex-shrink-0" aria-hidden="true"><Gift size={18} strokeWidth={1.8} /></span>
                 <span>Разное</span>
                 <ChevronDown size={16} className="arena-nav-group-chevron" />
               </button>
@@ -1545,7 +1547,7 @@ export default function App() {
                   aria-controls="arena-sidebar-constructors"
                   onClick={() => setSidebarNavGroup(group => group === 'constructors' ? null : 'constructors')}
                 >
-                  <Grid3X3 size={19} className="arena-sidebar-link-icon flex-shrink-0" />
+                  <span className="arena-sidebar-link-icon flex-shrink-0" aria-hidden="true"><Grid3X3 size={19} strokeWidth={1.8} /></span>
                   <span>Конструкторы</span>
                   <ChevronDown size={15} className="arena-nav-group-chevron" />
                 </button>
@@ -1568,7 +1570,7 @@ export default function App() {
                   aria-controls="arena-sidebar-misc"
                   onClick={() => setSidebarNavGroup(group => group === 'misc' ? null : 'misc')}
                 >
-                  <Gift size={19} className="arena-sidebar-link-icon flex-shrink-0" />
+                  <span className="arena-sidebar-link-icon flex-shrink-0" aria-hidden="true"><Gift size={19} strokeWidth={1.8} /></span>
                   <span>Разное</span>
                   <ChevronDown size={15} className="arena-nav-group-chevron" />
                 </button>
