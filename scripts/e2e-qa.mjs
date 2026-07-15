@@ -1983,7 +1983,8 @@ for (const [device, viewport] of [
     const minimumDeckImageHeight = device === 'desktop' ? 300 : 170;
     if (metaModalState.panelTop < 0 || metaModalState.panelBottom > metaModalState.viewportHeight + 1
       || metaModalState.imageWidth < minimumDeckImageWidth || metaModalState.imageHeight < minimumDeckImageHeight
-      || (device === 'mobile' && metaModalState.imageStageHeight > metaModalState.viewportHeight * 0.5)
+      || (device === 'mobile' && (metaModalState.imageStageHeight < metaModalState.viewportHeight * 0.56
+        || metaModalState.imageStageHeight > metaModalState.viewportHeight * 0.72))
       || !metaModalState.code.startsWith('AA') || !metaModalState.classImage.includes('warlock-64.webp')
       || !metaModalState.copyImage.includes('deck-code-to-hearthstone.png') || !metaModalState.copyImageLoaded
       || metaModalState.copyButtonHeight < 44 || metaModalState.copyButtonLabel !== 'Скопировать код колоды'
@@ -2005,6 +2006,7 @@ for (const [device, viewport] of [
       failures.push(`standard meta modal [${device}]: graphical copy control did not expose success state (${JSON.stringify(copyState)})`);
     }
     await auditAccessibility(page, `standard meta modal [${device}]`, '.standard-meta-modal__panel');
+    await page.$eval('.standard-meta-modal__image-stage', element => element.scrollIntoView({ block: 'start' }));
     await page.screenshot({ path: `${OUT}/standard-meta-modal-${device}.png`, fullPage: false });
     await page.click('.standard-meta-modal__close');
     await page.click('.standard-meta-card__deck-button');
