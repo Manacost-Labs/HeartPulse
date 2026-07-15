@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import '../route-parchment.css';
+import StandardMetaChart from './StandardMetaChart';
 import './StandardMeta.css';
 
 type MetaFormat = 'standard' | 'wild';
@@ -514,6 +515,16 @@ export default function StandardMetaPage() {
       )}
       {!loading && !error && (
         <>
+          <StandardMetaChart
+            items={data.items}
+            formatLabel={data.formatLabel}
+            rankLabel={data.rankLabel}
+            onOpenDeck={itemId => {
+              const item = data.items.find(candidate => candidate.id === itemId);
+              if (item) void openDeck(item);
+            }}
+          />
+
           <section className="standard-meta__results-toolbar" aria-label="Представление меты">
             <p><strong>{filteredItems.length}</strong> {filteredItems.length === 1 ? 'архетип' : 'архетипов'} в текущем срезе</p>
             <div className="standard-meta__view-switch" aria-label="Вид списка">

@@ -1902,6 +1902,41 @@ for (const [device, viewport] of [
       || standardMetaState.scrollWidth > standardMetaState.clientWidth + 1) {
       failures.push(`standard meta [${device}]: redesigned header or panels regressed (${JSON.stringify(standardMetaState)})`);
     }
+    await page.waitForSelector('.standard-meta-chart__point');
+    const standardMetaChartState = await page.evaluate(() => {
+      const chart = document.querySelector('.standard-meta-chart');
+      const viewport = document.querySelector('.standard-meta-chart__viewport');
+      const points = [...document.querySelectorAll('.standard-meta-chart__point')];
+      const labelledPoints = document.querySelectorAll('.standard-meta-chart__point text');
+      const detail = document.querySelector('.standard-meta-chart__selection');
+      const deckButton = detail?.querySelector('button');
+      return {
+        points: points.length,
+        labels: labelledPoints.length,
+        subtitle: document.querySelector('.standard-meta-chart__heading p')?.textContent || '',
+        detail: detail?.textContent || '',
+        hasAxes: document.querySelectorAll('.standard-meta-chart__axis-title').length === 2,
+        firstPointRole: points[0]?.getAttribute('role') || '',
+        deckButtonHeight: deckButton?.getBoundingClientRect().height ?? 0,
+        viewportScrollable: (viewport?.scrollWidth ?? 0) > (viewport?.clientWidth ?? 0),
+        pageOverflow: (document.querySelector('.standard-meta')?.scrollWidth ?? 0) > (document.querySelector('.standard-meta')?.clientWidth ?? 0) + 1,
+        chartVisible: Boolean(chart && chart.getBoundingClientRect().height > 0),
+      };
+    });
+    if (standardMetaChartState.points !== 3 || standardMetaChartState.labels < 1 || standardMetaChartState.labels > 3
+      || !standardMetaChartState.subtitle.includes('Стандарт') || !standardMetaChartState.subtitle.includes('Легенда')
+      || !standardMetaChartState.detail.includes('Чётный Чернокнижник') || !standardMetaChartState.hasAxes
+      || standardMetaChartState.firstPointRole !== 'button' || standardMetaChartState.deckButtonHeight < 44
+      || !standardMetaChartState.chartVisible || standardMetaChartState.pageOverflow
+      || (device === 'mobile' && !standardMetaChartState.viewportScrollable)) {
+      failures.push(`standard meta chart [${device}]: data, interaction or responsive containment regressed (${JSON.stringify(standardMetaChartState)})`);
+    }
+    await page.click('.standard-meta-chart__header-actions button');
+    if (await page.$('.standard-meta-chart__content')) {
+      failures.push(`standard meta chart [${device}]: collapse control did not hide chart content`);
+    }
+    await page.click('.standard-meta-chart__header-actions button');
+    await page.waitForSelector('.standard-meta-chart__content');
     const standardMetaViolationCount = await auditAccessibility(page, `standard meta [${device}]`, '.standard-meta');
     await page.screenshot({ path: `${OUT}/standard-meta-${device}.png`, fullPage: false });
     await page.click('[data-meta-view="table"]');
@@ -1981,11 +2016,11 @@ for (const [device, viewport] of [
     const minimumDeckImageWidth = device === 'desktop' ? 500 : 250;
     const minimumDeckImageHeight = device === 'desktop' ? 300 : 170;
     if (metaModalState.panelTop < 0 || metaModalState.panelBottom > metaModalState.viewportHeight + 1
-      || (device === 'desktop' && (metaModalState.panelWidth > 1120 || metaModalState.panelHeight > metaModalState.viewportHeight * 0.9))
-      || (device === 'mobile' && metaModalState.panelHeight > metaModalState.viewportHeight * 0.96)
+      || (device === 'desktop' && (metaModalState.panelWidth > 960 || metaModalState.panelHeight > metaModalState.viewportHeight * 0.8))
+      || (device === 'mobile' && metaModalState.panelHeight > metaModalState.viewportHeight * 0.9)
       || metaModalState.imageWidth < minimumDeckImageWidth || metaModalState.imageHeight < minimumDeckImageHeight
-      || (device === 'mobile' && (metaModalState.imageStageHeight < metaModalState.viewportHeight * 0.45
-        || metaModalState.imageStageHeight > metaModalState.viewportHeight * 0.62))
+      || (device === 'mobile' && (metaModalState.imageStageHeight < metaModalState.viewportHeight * 0.34
+        || metaModalState.imageStageHeight > metaModalState.viewportHeight * 0.52))
       || !metaModalState.code.startsWith('AA') || !metaModalState.classImage.includes('warlock-64.webp')
       || metaModalState.copyText !== 'Скопировать код' || !metaModalState.copyIconPresent
       || metaModalState.copyButtonHeight < 44 || metaModalState.copyButtonLabel !== 'Скопировать код колоды'
