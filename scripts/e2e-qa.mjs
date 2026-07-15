@@ -1793,6 +1793,8 @@ for (const [device, viewport] of [
       const masthead = document.querySelector('.standard-meta__masthead');
       const stats = document.querySelector('.standard-meta__masthead-stats');
       const controls = document.querySelector('.standard-meta__controls');
+      const cardsView = document.querySelector('[data-meta-view="cards"]');
+      const tableView = document.querySelector('[data-meta-view="table"]');
       const title = document.querySelector('.standard-meta__masthead h1');
       const mastheadRect = masthead?.getBoundingClientRect();
       const statsStyle = stats ? getComputedStyle(stats) : null;
@@ -1802,6 +1804,7 @@ for (const [device, viewport] of [
         statsColumns: statsStyle?.gridTemplateColumns || '',
         statsCount: stats?.children.length ?? 0,
         controlsVisible: Boolean(controls && controls.getBoundingClientRect().height > 0),
+        viewControlsPresent: Boolean(cardsView && tableView),
         sourcePanelPresent: Boolean(document.querySelector('.standard-meta__source-line')),
         scrollWidth: pageRoot?.scrollWidth ?? 0,
         clientWidth: pageRoot?.clientWidth ?? 0,
@@ -1810,12 +1813,37 @@ for (const [device, viewport] of [
     if (standardMetaState.mastheadHeight < 150 || standardMetaState.mastheadHeight > 430
       || standardMetaState.titleSize > 68 || standardMetaState.statsCount !== 3
       || !standardMetaState.controlsVisible
+      || !standardMetaState.viewControlsPresent
       || standardMetaState.sourcePanelPresent
       || standardMetaState.scrollWidth > standardMetaState.clientWidth + 1) {
       failures.push(`standard meta [${device}]: redesigned header or panels regressed (${JSON.stringify(standardMetaState)})`);
     }
     const standardMetaViolationCount = await auditAccessibility(page, `standard meta [${device}]`, '.standard-meta');
     await page.screenshot({ path: `${OUT}/standard-meta-${device}.png`, fullPage: false });
+    await page.click('[data-meta-view="table"]');
+    await page.waitForSelector('.standard-meta-table');
+    const standardMetaTableState = await page.evaluate(() => {
+      const wrapper = document.querySelector('.standard-meta-table-wrap');
+      const table = document.querySelector('.standard-meta-table');
+      const stickyCell = document.querySelector('.standard-meta-table__archetype');
+      return {
+        rows: table?.querySelectorAll('tbody tr').length ?? 0,
+        columns: table?.querySelectorAll('thead th').length ?? 0,
+        scrollable: (wrapper?.scrollWidth ?? 0) > (wrapper?.clientWidth ?? 0),
+        stickyPosition: stickyCell ? getComputedStyle(stickyCell).position : '',
+        stickyLeft: stickyCell ? getComputedStyle(stickyCell).left : '',
+        pageOverflow: (document.querySelector('.standard-meta')?.scrollWidth ?? 0) > (document.querySelector('.standard-meta')?.clientWidth ?? 0) + 1,
+      };
+    });
+    if (standardMetaTableState.rows !== 1 || standardMetaTableState.columns !== 8
+      || standardMetaTableState.stickyPosition !== 'sticky' || standardMetaTableState.stickyLeft !== '0px'
+      || standardMetaTableState.pageOverflow || (device === 'mobile' && !standardMetaTableState.scrollable)) {
+      failures.push(`standard meta table [${device}]: structure or responsive containment regressed (${JSON.stringify(standardMetaTableState)})`);
+    }
+    await auditAccessibility(page, `standard meta table [${device}]`, '.standard-meta');
+    await page.screenshot({ path: `${OUT}/standard-meta-table-${device}.png`, fullPage: false });
+    await page.click('[data-meta-view="cards"]');
+    await page.waitForSelector('.standard-meta-card__deck-button');
     await page.click('.standard-meta-card__deck-button');
     await page.waitForSelector('.standard-meta-modal__image-stage img');
     const metaModalState = await page.evaluate(() => {

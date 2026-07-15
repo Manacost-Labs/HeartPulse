@@ -3,12 +3,14 @@ import { createPortal } from 'react-dom';
 import {
   AlertTriangle,
   ExternalLink,
+  LayoutGrid,
   Maximize2,
   RefreshCw,
   Search,
   ShieldCheck,
   Sparkles,
   Swords,
+  TableProperties,
   Trophy,
   X,
 } from 'lucide-react';
@@ -18,6 +20,7 @@ import './StandardMeta.css';
 
 type MetaFormat = 'standard' | 'wild';
 type MetaRank = 'legend' | 'diamond' | 'top_5k' | 'top_legend';
+type MetaView = 'cards' | 'table';
 type MetaClass = 'deathknight' | 'demonhunter' | 'druid' | 'hunter' | 'mage' | 'paladin' | 'priest' | 'rogue' | 'shaman' | 'warlock' | 'warrior';
 
 type MetaItem = {
@@ -131,12 +134,16 @@ function formatNumber(value: number | null, suffix = ''): string {
   return `${value.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}${suffix}`;
 }
 
+function winrateTone(value: number | null): 'neutral' | 'strong' | 'even' | 'weak' {
+  return value === null ? 'neutral' : value >= 52 ? 'strong' : value >= 49 ? 'even' : 'weak';
+}
+
 function classIcon(classKey: MetaClass | null): string {
   return classKey ? `/class_icon/ui/${classKey}-64.webp` : '/class_icon/neutral.webp';
 }
 
 function WinrateMedallion({ value }: { value: number | null }) {
-  const tone = value === null ? 'neutral' : value >= 52 ? 'strong' : value >= 49 ? 'even' : 'weak';
+  const tone = winrateTone(value);
   return (
     <div className={`standard-meta__winrate standard-meta__winrate--${tone}`} aria-label={`Винрейт ${formatNumber(value, '%')}`}>
       <strong>{formatNumber(value, '%')}</strong>
@@ -278,6 +285,7 @@ export default function StandardMetaPage() {
   const [format, setFormat] = useState<MetaFormat>('standard');
   const [rank, setRank] = useState<MetaRank>('legend');
   const [query, setQuery] = useState('');
+  const [view, setView] = useState<MetaView>('cards');
   const [data, setData] = useState<MetaPayload>(EMPTY_DATA);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -332,6 +340,10 @@ export default function StandardMetaPage() {
     if (!normalized) return data.items;
     return data.items.filter(item => `${item.archetype} ${item.archetypeLabel}`.toLowerCase().includes(normalized));
   }, [data.items, query]);
+  const rankById = useMemo(
+    () => new Map(data.items.map((item, index) => [item.id, index + 1])),
+    [data.items],
+  );
 
   const openDeck = async (item: MetaItem) => {
     const cacheKey = `${format}:${rank}:${item.archetype.toLowerCase()}`;
@@ -427,34 +439,94 @@ export default function StandardMetaPage() {
         <div className="standard-meta__feedback standard-meta__feedback--error" role="alert"><AlertTriangle /> {error}</div>
       )}
       {!loading && !error && (
-        <section className="standard-meta__grid" aria-label={`Архетипы: ${data.formatLabel}, ${data.rankLabel}`}>
-          {filteredItems.map((item, index) => (
-            <article className="standard-meta-card" key={item.id}>
-              <div className="standard-meta-card__rank" aria-label={`Место ${index + 1}`}>{index + 1}</div>
-              <img className="standard-meta-card__class" src={classIcon(item.classKey)} alt="" width="56" height="56" />
-              <div className="standard-meta-card__title">
-                <span>{item.translated ? item.archetype : 'ПЕРЕВОД ОЖИДАЕТСЯ'}</span>
-                <h2>{item.archetypeLabel}</h2>
-              </div>
-              <WinrateMedallion value={item.winrate} />
-              <dl className="standard-meta-card__metrics">
-                <div><dt>Популярность</dt><dd>{formatNumber(item.popularity, '%')}</dd></div>
-                <div><dt>Игры</dt><dd>{item.games?.toLocaleString('ru-RU') ?? '—'}</dd></div>
-                <div><dt>Ходы</dt><dd>{formatNumber(item.turns)}</dd></div>
-                <div><dt>Длительность</dt><dd>{formatNumber(item.durationMinutes, ' мин')}</dd></div>
-              </dl>
-              <div className={`standard-meta-card__climb ${item.climbingSpeed !== null && item.climbingSpeed < 0 ? 'standard-meta-card__climb--negative' : ''}`}>
-                <Swords size={17} />
-                <span>Скорость набора</span>
-                <strong>{formatNumber(item.climbingSpeed, ' ★/ч')}</strong>
-              </div>
-              <button type="button" className="standard-meta__primary-button standard-meta-card__deck-button" onClick={() => void openDeck(item)}>
-                <Sparkles size={18} /> Показать колоду
+        <>
+          <section className="standard-meta__results-toolbar" aria-label="Представление меты">
+            <p><strong>{filteredItems.length}</strong> {filteredItems.length === 1 ? 'архетип' : 'архетипов'} в текущем срезе</p>
+            <div className="standard-meta__view-switch" aria-label="Вид списка">
+              <button type="button" data-meta-view="cards" aria-pressed={view === 'cards'} onClick={() => setView('cards')}>
+                <LayoutGrid size={17} /> Карточки
               </button>
-            </article>
-          ))}
-          {!filteredItems.length && <div className="standard-meta__feedback">По вашему запросу архетипы не найдены.</div>}
-        </section>
+              <button type="button" data-meta-view="table" aria-pressed={view === 'table'} onClick={() => setView('table')}>
+                <TableProperties size={17} /> Таблица
+              </button>
+            </div>
+          </section>
+
+          {view === 'cards' ? (
+            <section className="standard-meta__grid" aria-label={`Архетипы: ${data.formatLabel}, ${data.rankLabel}`}>
+              {filteredItems.map(item => (
+                <article className="standard-meta-card" key={item.id}>
+                  <div className="standard-meta-card__rank" aria-label={`Место ${rankById.get(item.id)}`}>{rankById.get(item.id)}</div>
+                  <img className="standard-meta-card__class" src={classIcon(item.classKey)} alt="" width="56" height="56" />
+                  <div className="standard-meta-card__title">
+                    <span>{item.translated ? item.archetype : 'ПЕРЕВОД ОЖИДАЕТСЯ'}</span>
+                    <h2>{item.archetypeLabel}</h2>
+                  </div>
+                  <WinrateMedallion value={item.winrate} />
+                  <dl className="standard-meta-card__metrics">
+                    <div><dt>Популярность</dt><dd>{formatNumber(item.popularity, '%')}</dd></div>
+                    <div><dt>Игры</dt><dd>{item.games?.toLocaleString('ru-RU') ?? '—'}</dd></div>
+                    <div><dt>Ходы</dt><dd>{formatNumber(item.turns)}</dd></div>
+                    <div><dt>Длительность</dt><dd>{formatNumber(item.durationMinutes, ' мин')}</dd></div>
+                  </dl>
+                  <div className={`standard-meta-card__climb ${item.climbingSpeed !== null && item.climbingSpeed < 0 ? 'standard-meta-card__climb--negative' : ''}`}>
+                    <Swords size={17} />
+                    <span>Скорость набора</span>
+                    <strong>{formatNumber(item.climbingSpeed, ' ★/ч')}</strong>
+                  </div>
+                  <button type="button" className="standard-meta__primary-button standard-meta-card__deck-button" onClick={() => void openDeck(item)}>
+                    <Sparkles size={18} /> Показать колоду
+                  </button>
+                </article>
+              ))}
+              {!filteredItems.length && <div className="standard-meta__feedback">По вашему запросу архетипы не найдены.</div>}
+            </section>
+          ) : (
+            <section className="standard-meta-table-wrap" aria-label={`Таблица архетипов: ${data.formatLabel}, ${data.rankLabel}`} tabIndex={0}>
+              <table className="standard-meta-table">
+                <caption className="sr-only">Мета Hearthstone: {data.formatLabel}, {data.rankLabel}</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Архетип</th>
+                    <th scope="col">Винрейт</th>
+                    <th scope="col">Популярность</th>
+                    <th scope="col">Игры</th>
+                    <th scope="col">Ходы</th>
+                    <th scope="col">Длительность</th>
+                    <th scope="col">Набор</th>
+                    <th scope="col"><span className="sr-only">Действия</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredItems.map(item => (
+                    <tr key={item.id}>
+                      <th scope="row" className="standard-meta-table__archetype">
+                        <span className="standard-meta-table__rank">{rankById.get(item.id)}</span>
+                        <img src={classIcon(item.classKey)} alt="" width="38" height="38" />
+                        <span className="standard-meta-table__name">
+                          <strong>{item.archetypeLabel}</strong>
+                          <small>{item.translated ? item.archetype : 'Перевод ожидается'}</small>
+                        </span>
+                      </th>
+                      <td><strong className={`standard-meta-table__winrate standard-meta-table__winrate--${winrateTone(item.winrate)}`}>{formatNumber(item.winrate, '%')}</strong></td>
+                      <td>{formatNumber(item.popularity, '%')}</td>
+                      <td>{item.games?.toLocaleString('ru-RU') ?? '—'}</td>
+                      <td>{formatNumber(item.turns)}</td>
+                      <td>{formatNumber(item.durationMinutes, ' мин')}</td>
+                      <td className={item.climbingSpeed !== null && item.climbingSpeed < 0 ? 'standard-meta-table__climb--negative' : 'standard-meta-table__climb'}>{formatNumber(item.climbingSpeed, ' ★/ч')}</td>
+                      <td>
+                        <button type="button" className="standard-meta__primary-button standard-meta-table__deck-button" onClick={() => void openDeck(item)} aria-label={`Показать колоду: ${item.archetypeLabel}`}>
+                          <Sparkles size={16} /> Колода
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!filteredItems.length && <div className="standard-meta__feedback">По вашему запросу архетипы не найдены.</div>}
+            </section>
+          )}
+        </>
       )}
 
       {modal && <DeckModal state={modal} onClose={closeModal} />}
