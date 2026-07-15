@@ -43,6 +43,7 @@ import {
   inferStandardMetaClass,
   normalizeStandardMetaClass,
 } from './standardMetaClasses.js';
+import { findSupplementalViciousGoldBuild } from './viciousGoldBuilds.js';
 import { createClassMatchupRouter, type ClassMatchupCacheStore } from './classMatchupRoutes.js';
 import { createLegendaryRouter } from './legendaryRoutes.js';
 import { createTierlistRouter } from './tierlistRoutes.js';
@@ -5796,6 +5797,7 @@ function viciousClassIcon(className: string): string {
 
 function viciousBuildSourceLabel(source: string): string {
   if (source === 'vicious_syndicate_radars') return 'Vicious Syndicate';
+  if (source === 'vicious_syndicate_decks') return 'Vicious Syndicate';
   if (source === 'hearthstone_decks') return 'Hearthstone Decks';
   if (source === 'metastats_decks') return 'MetaStats';
   return source.replace(/[-_]+/g, ' ');
@@ -5845,7 +5847,27 @@ function findViciousGoldBuild(
     return quality(right) - quality(left);
   });
   const selected = candidates[0];
-  if (!selected) return null;
+  if (!selected) {
+    const supplemental = findSupplementalViciousGoldBuild(deck);
+    const classKey = inferStandardMetaClass(deck);
+    if (!supplemental || !classKey) return null;
+    return {
+      archetype: deck,
+      archetypeLabel: deckLabel,
+      deckCode: supplemental.deckCode,
+      format: 'standard',
+      rank: 'legend',
+      source: supplemental.source,
+      sourceUrl: supplemental.sourceUrl,
+      streamer: null,
+      sampleGames: null,
+      winrate: null,
+      updatedAt: supplemental.updatedAt,
+      classKey,
+      matchedArchetype: supplemental.matchedArchetype,
+      matchMethod: 'exact',
+    };
+  }
   const source = String(selected.source_id ?? 'constructed-decks');
   const score = parseDeckScore(selected.score);
   const classKey = normalizeStandardMetaClass(selected.class) ?? inferStandardMetaClass(matchedArchetype);
