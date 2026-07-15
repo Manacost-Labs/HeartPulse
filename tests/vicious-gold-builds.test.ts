@@ -8,6 +8,12 @@ assert.equal(build.source, 'vicious_syndicate_decks');
 assert.equal(build.sourceUrl, 'https://www.vicioussyndicate.com/decks/prepared-soothsayer-priest/');
 assert.match(build.deckCode, /^[A-Za-z0-9+/=]{40,}$/);
 
+const bloodWarrior = findSupplementalViciousGoldBuild('Blood Warrior');
+assert.ok(bloodWarrior, 'Blood Warrior must have the exact current dashboard list');
+assert.equal(bloodWarrior.matchedArchetype, 'Blood Warrior');
+assert.equal(bloodWarrior.source, 'hsguru_decks');
+assert.match(bloodWarrior.deckCode, /^[A-Za-z0-9+/=]{40,}$/);
+
 assert.equal(
   findSupplementalViciousGoldBuild('Control Priest'),
   null,

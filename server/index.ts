@@ -5840,6 +5840,7 @@ function viciousClassIcon(className: string): string {
 function viciousBuildSourceLabel(source: string): string {
   if (source === 'vicious_syndicate_radars') return 'Vicious Syndicate';
   if (source === 'vicious_syndicate_decks') return 'Vicious Syndicate';
+  if (source === 'hsguru-decks' || source === 'hsguru_decks') return 'HSGuru';
   if (source === 'hearthstone_decks') return 'Hearthstone Decks';
   if (source === 'metastats_decks') return 'MetaStats';
   return source.replace(/[-_]+/g, ' ');
@@ -5932,6 +5933,19 @@ function findViciousGoldBuild(
   };
 }
 
+async function resolveViciousGoldBuild(
+  rows: any[],
+  deck: string,
+  deckLabel: string,
+): Promise<ViciousGoldBuild | null> {
+  const indexed = findViciousGoldBuild(rows, deck, deckLabel);
+  if (indexed) return indexed;
+  // “Other …” and “Bot …” are dashboard buckets, not playable archetypes.
+  if (/^(?:Other|Bot)\s/i.test(deck)) return null;
+  const exact = await fetchExactHsguruDecks(deck, deckLabel, 'standard', 'legend').catch(() => []);
+  return exact.sort((left, right) => right.quality - left.quality)[0] ?? null;
+}
+
 const VICIOUS_RANK_RU: Record<string, string> = {
   'All ranks': 'Все ранги',
   Legend: 'Легенда',
@@ -5957,24 +5971,28 @@ async function loadViciousSyndicateGold() {
   const rawTierList = Array.isArray(structured.tier_list) ? structured.tier_list : [];
   const classByDeck = new Map<string, string>(rawDecks.map((row: any) => [String(row?.deck ?? ''), String(row?.class ?? '')]));
   const translatedDeck = (deck: string) => translateStandardArchetype(deck, translations.map);
-  const deckDistribution = rawDecks.flatMap((row: any) => {
+  const eligibleDecks = rawDecks.flatMap((row: any) => {
     const frequency = viciousPercent(row?.frequency);
     if (frequency === null || frequency < VICIOUS_GOLD_MIN_DECK_FREQUENCY) return [];
     const deck = String(row?.deck ?? '').trim();
     const className = String(row?.class ?? '').trim();
     if (!deck || !className) return [];
-    const deckLabel = translatedDeck(deck);
-    const build = findViciousGoldBuild(constructedRows, deck, deckLabel);
     return [{
       deck,
-      deckLabel,
+      deckLabel: translatedDeck(deck),
       class: className,
       classLabel: VICIOUS_CLASS_RU[className] ?? className,
       classIcon: viciousClassIcon(className),
       frequency,
-      build: build ? { ...build, sourceLabel: viciousBuildSourceLabel(build.source) } : null,
     }];
   });
+  const deckDistribution = await Promise.all(eligibleDecks.map(async row => {
+    const build = await resolveViciousGoldBuild(constructedRows, row.deck, row.deckLabel);
+    return {
+      ...row,
+      build: build ? { ...build, sourceLabel: viciousBuildSourceLabel(build.source) } : null,
+    };
+  }));
   const buildsByDeck = new Map(deckDistribution.map((row: any) => [row.deck, row.build]));
   const tierList = rawTierList.map((section: any) => {
     const rankBracket = String(section?.rank_bracket ?? '').trim();
@@ -6028,8 +6046,8 @@ async function loadViciousSyndicateGold() {
     deckDistribution,
     tierList,
     buildCoverage: {
-      found: deckDistribution.filter((row: any) => row.build).length,
-      total: deckDistribution.length,
+      found: deckDistribution.filter((row: any) => !/^(?:Other|Bot)\s/i.test(row.deck) && row.build).length,
+      total: deckDistribution.filter((row: any) => !/^(?:Other|Bot)\s/i.test(row.deck)).length,
     },
   };
   viciousSyndicateGoldApiCache.set('standard', {

@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
-  ExternalLink,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -108,27 +107,27 @@ function BuildActions({ deck, build, copiedDeck, onCopy }: {
   copiedDeck: string;
   onCopy: (deck: string, code: string) => void;
 }) {
-  if (!build) return <span className="vsgold__build-missing">Сборка не найдена</span>;
+  if (!build) {
+    const isAggregate = /^(?:Other|Bot)\s/i.test(deck.replace(/^tier:/, ''));
+    return (
+      <span className={isAggregate ? 'vsgold__build-aggregate' : 'vsgold__build-missing'}>
+        {isAggregate ? 'Сборная категория' : 'Сборка обновляется'}
+      </span>
+    );
+  }
   return (
     <div className="vsgold__build">
-      <div className="vsgold__build-copy">
-        <button
-          type="button"
-          className={`vsgold__build-copy-button${copiedDeck === deck ? ' vsgold__build-copy-button--copied' : ''}`}
-          onClick={() => onCopy(deck, build.deckCode)}
-          aria-label={copiedDeck === deck ? 'Код колоды скопирован' : `Скопировать код колоды ${deck.replace(/^tier:/, '')}`}
-        >
-          <img src="/assets/ui/deck-code-to-hearthstone.png" alt="" aria-hidden="true" />
-          <span className="vsgold__copy-feedback" aria-live="polite">
-            {copiedDeck === deck ? 'Код колоды скопирован' : ''}
-          </span>
-        </button>
-        {build.sourceUrl && (
-          <a href={build.sourceUrl} target="_blank" rel="noreferrer" aria-label={`Открыть источник сборки ${deck}`}>
-            <ExternalLink size={15} />
-          </a>
-        )}
-      </div>
+      <button
+        type="button"
+        className={`vsgold__build-copy-button${copiedDeck === deck ? ' vsgold__build-copy-button--copied' : ''}`}
+        onClick={() => onCopy(deck, build.deckCode)}
+        aria-label={copiedDeck === deck ? 'Код колоды скопирован' : `Скопировать код колоды ${deck.replace(/^tier:/, '')}`}
+      >
+        <img src="/assets/ui/deck-code-to-hearthstone.png" alt="" aria-hidden="true" />
+        <span className="vsgold__copy-feedback" aria-live="polite">
+          {copiedDeck === deck ? 'Код колоды скопирован' : ''}
+        </span>
+      </button>
       <span>{build.matchMethod === 'alias' ? `${build.sourceLabel} · точный синоним` : build.sourceLabel}</span>
     </div>
   );
