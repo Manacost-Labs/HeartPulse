@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Check, Copy } from 'lucide-react';
 import type { AdminMessage } from './adminWorkspaceState';
 
 export type ArchetypeTranslation = {
@@ -24,7 +25,7 @@ type TranslationResponse = {
 
 type TranslationDraft = { nameEn: string; nameRu: string };
 type TranslationCoverage = {
-  items: Array<{ nameEn: string; ranks: string[] }>;
+  items: Array<{ nameEn: string; ranks: string[]; deckCode?: string }>;
   totalObserved: number;
   translated: number;
   missing: number;
@@ -52,6 +53,24 @@ function formatSyncDate(value: string | null): string {
     : value;
 }
 
+async function copyText(value: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(value);
+    return true;
+  } catch {
+    const fallback = document.createElement('textarea');
+    fallback.value = value;
+    fallback.setAttribute('readonly', '');
+    fallback.style.position = 'fixed';
+    fallback.style.opacity = '0';
+    document.body.appendChild(fallback);
+    fallback.select();
+    const copied = document.execCommand('copy');
+    fallback.remove();
+    return copied;
+  }
+}
+
 type TranslationWorkspaceViewProps = {
   data: TranslationResponse;
   loading: boolean;
@@ -73,6 +92,8 @@ type TranslationWorkspaceViewProps = {
   onSync: () => void;
   onRetryCoverage: () => void;
   onTranslateMissing: (nameEn: string) => void;
+  onCopyDeckCode: (nameEn: string, deckCode: string) => void;
+  copiedDeckName: string;
   onPageChange: (page: number) => void;
   englishInputRef: React.RefObject<HTMLInputElement | null>;
   russianInputRef: React.RefObject<HTMLInputElement | null>;
@@ -99,6 +120,8 @@ function TranslationWorkspaceView({
   onSync,
   onRetryCoverage,
   onTranslateMissing,
+  onCopyDeckCode,
+  copiedDeckName,
   onPageChange,
   englishInputRef,
   russianInputRef,
@@ -206,9 +229,22 @@ function TranslationWorkspaceView({
                   <strong>{item.nameEn}</strong>
                   <span>{item.ranks.join(' · ')}</span>
                 </div>
-                <button type="button" className="contest-primary-button" onClick={() => onTranslateMissing(item.nameEn)}>
-                  Перевести
-                </button>
+                <div className="admin-untranslated-actions">
+                  {item.deckCode && (
+                    <button
+                      type="button"
+                      className="contest-secondary-button admin-copy-deck-code"
+                      onClick={() => onCopyDeckCode(item.nameEn, item.deckCode!)}
+                      aria-label={`Скопировать код колоды ${item.nameEn}`}
+                    >
+                      {copiedDeckName === item.nameEn ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+                      <span aria-live="polite">{copiedDeckName === item.nameEn ? 'Скопировано' : 'Код колоды'}</span>
+                    </button>
+                  )}
+                  <button type="button" className="contest-primary-button" onClick={() => onTranslateMissing(item.nameEn)}>
+                    Перевести
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -301,6 +337,8 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
   const [coverageError, setCoverageError] = useState('');
   const [editing, setEditing] = useState<ArchetypeTranslation | null>(null);
   const [draft, setDraft] = useState<TranslationDraft>(EMPTY_DRAFT);
+  const [copiedDeckName, setCopiedDeckName] = useState('');
+  const copiedDeckTimerRef = useRef<number | null>(null);
   const englishInputRef = useRef<HTMLInputElement>(null);
   const russianInputRef = useRef<HTMLInputElement>(null);
 
@@ -355,6 +393,10 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
     return () => controller.abort();
   }, [loadCoverage]);
 
+  useEffect(() => () => {
+    if (copiedDeckTimerRef.current !== null) window.clearTimeout(copiedDeckTimerRef.current);
+  }, []);
+
   const resetEditor = () => {
     setEditing(null);
     setDraft(EMPTY_DRAFT);
@@ -406,6 +448,19 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
     }
   };
 
+  const copyDeckCode = async (nameEn: string, deckCode: string) => {
+    if (!await copyText(deckCode)) {
+      onMessage({ type: 'err', text: 'Не удалось скопировать код колоды.' });
+      return;
+    }
+    setCopiedDeckName(nameEn);
+    if (copiedDeckTimerRef.current !== null) window.clearTimeout(copiedDeckTimerRef.current);
+    copiedDeckTimerRef.current = window.setTimeout(() => {
+      setCopiedDeckName(current => current === nameEn ? '' : current);
+      copiedDeckTimerRef.current = null;
+    }, 1800);
+  };
+
   return (
     <TranslationWorkspaceView
       data={data} loading={loading} saving={saving} syncing={syncing}
@@ -423,6 +478,8 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
       onCancelEdit={resetEditor}
       onSync={() => void sync()}
       onRetryCoverage={() => void loadCoverage()}
+      onCopyDeckCode={(nameEn, deckCode) => void copyDeckCode(nameEn, deckCode)}
+      copiedDeckName={copiedDeckName}
       onTranslateMissing={nameEn => {
         setEditing(null);
         setDraft({ nameEn, nameRu: '' });

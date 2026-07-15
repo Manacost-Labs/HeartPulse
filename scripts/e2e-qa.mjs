@@ -573,7 +573,11 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
       const observed = [
         { nameEn: 'Control Warrior', ranks: ['Легенда', 'Алмаз 4-1'] },
         { nameEn: 'Rainbow Mage', ranks: ['Легенда'] },
-        { nameEn: 'Void Soul DH', ranks: ['Легенда', 'Алмаз 4-1'] },
+        {
+          nameEn: 'Void Soul DH',
+          ranks: ['Легенда', 'Алмаз 4-1'],
+          deckCode: 'AAECAea5AwSongaPzwbHpAbEuAYNgIUEtp8E0Z4G7Z8G7p8G17gG9OUGjfgGkfgGAAA=',
+        },
         { nameEn: 'Starship Rogue', ranks: ['Легенда'] },
         { nameEn: 'Discover Hunter', ranks: ['Топ-5000'] },
         { nameEn: 'Imbue Paladin', ranks: ['Алмаз 4-1'] },
@@ -1226,7 +1230,27 @@ for (const [device, viewport] of [
     }
     const missingName = await page.$eval('.admin-untranslated-list strong', element => element.textContent?.trim() || '');
     if (missingName !== 'Void Soul DH') failures.push(`admin translations [${device}]: current missing archetype was not detected`);
-    await page.click('.admin-untranslated-list button');
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: async value => { window.__qaTranslationDeckCode = value; } },
+      });
+      document.querySelector('.admin-copy-deck-code')?.scrollIntoView({ block: 'center' });
+    });
+    await new Promise(resolve => setTimeout(resolve, 50));
+    const translationScrollBeforeCopy = await page.evaluate(() => window.scrollY);
+    await page.click('.admin-copy-deck-code');
+    await page.waitForFunction(() => document.querySelector('.admin-copy-deck-code')?.textContent?.includes('Скопировано'));
+    const copiedTranslationDeck = await page.evaluate(() => ({
+      value: window.__qaTranslationDeckCode || '',
+      scrollY: window.scrollY,
+    }));
+    if (!copiedTranslationDeck.value.startsWith('AAECAea5')
+      || Math.abs(copiedTranslationDeck.scrollY - translationScrollBeforeCopy) > 2) {
+      failures.push(`admin translations [${device}]: exact deck code copy failed or shifted the page (${JSON.stringify(copiedTranslationDeck)})`);
+    }
+    await page.screenshot({ path: `${OUT}/admin-translations-deck-code-${device}.png`, fullPage: false });
+    await page.click('.admin-untranslated-list .contest-primary-button');
     const translationInputs = await page.$$('.admin-translation-form input');
     if (translationInputs.length !== 2) throw new Error('Translation editor fields are missing');
     const queuedEnglishName = await page.$eval('#admin-translation-name-en', element => element.value);

@@ -67,7 +67,7 @@ app.use('/api', createAdminArchetypeTranslationRouter({
     return [
       { nameEn: 'Control Warrior', rank: 'Легенда' },
       { nameEn: 'Tempo Mage', rank: 'Алмаз 4-1' },
-      { nameEn: 'New Priest', rank: 'Легенда' },
+      { nameEn: 'New Priest', rank: 'Легенда', deckCode: 'AAECAa0GCJbUBM/GBc/2BdiBBqmVBsekBq+oBtfSBgvLoAS7xAX7+AWi6QXt9wX7gAbGnAbCtgaAuAamnQavqAYAAA==' },
       { nameEn: 'New Priest', rank: 'Алмаз 4-1' },
     ];
   },
@@ -119,7 +119,11 @@ try {
   const coverage = await request('/admin/archetype-translations/untranslated', { headers: adminHeaders });
   assert.equal(coverage.response.status, 200);
   assert.deepEqual(coverage.body, {
-    items: [{ nameEn: 'New Priest', ranks: ['Алмаз 4-1', 'Легенда'] }],
+    items: [{
+      nameEn: 'New Priest',
+      ranks: ['Алмаз 4-1', 'Легенда'],
+      deckCode: 'AAECAa0GCJbUBM/GBc/2BdiBBqmVBsekBq+oBtfSBgvLoAS7xAX7+AWi6QXt9wX7gAbGnAbCtgaAuAamnQavqAYAAA==',
+    }],
     totalObserved: 3,
     translated: 2,
     missing: 1,

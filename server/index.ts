@@ -5601,6 +5601,10 @@ function translateStandardArchetype(name: string, translations: Record<string, s
 }
 
 async function loadObservedStandardArchetypes() {
+  // Start the shared deck index request alongside the HSGuru slices. The
+  // translation queue can then expose exact deck codes without one request per
+  // missing archetype.
+  const constructedRowsPromise = fetchViciousConstructedDeckRows().catch(() => []);
   const matchupRanks = Object.entries(STANDARD_MATCHUPS_DATASET_BY_RANK) as Array<[
     keyof typeof STANDARD_MATCHUPS_DATASET_BY_RANK,
     string,
@@ -5638,6 +5642,21 @@ async function loadObservedStandardArchetypes() {
     ...source,
     payload: await fetchDataset(source.datasetId).catch(() => null),
   })));
+  const constructedRows = await constructedRowsPromise;
+  const exactDeckCodes = new Map<string, string | null>();
+  const findExactDeckCode = (
+    nameEn: string,
+    format: StandardMetaFormat,
+    rank: StandardMetaRank,
+  ): string | null => {
+    const cacheKey = `${format}:${normalizeStandardArchetypeKey(nameEn)}`;
+    if (exactDeckCodes.has(cacheKey)) return exactDeckCodes.get(cacheKey) ?? null;
+    const candidates = parseConstructedDecks({ data: constructedRows }, nameEn, nameEn, format, rank)
+      .sort((left, right) => right.quality - left.quality);
+    const deckCode = candidates[0]?.deckCode ?? null;
+    exactDeckCodes.set(cacheKey, deckCode);
+    return deckCode;
+  };
   const metaArchetypes = metaPayloads.flatMap(({ format, rank, payload }) => {
     const table = payload?.data?.tables?.[0] ?? payload?.tables?.[0] ?? null;
     const rows = Array.isArray(table?.rows) ? table.rows : [];
@@ -5649,10 +5668,17 @@ async function loadObservedStandardArchetypes() {
     return [...uniqueNames.values()].map(nameEn => ({
       nameEn,
       rank: `Мета · ${STANDARD_META_FORMAT_LABEL[format]} · ${STANDARD_META_RANK_LABEL[rank]}`,
+      deckCode: findExactDeckCode(nameEn, format, rank),
     }));
   });
 
-  return [...matchupArchetypes, ...metaArchetypes];
+  return [
+    ...matchupArchetypes.map(item => ({
+      ...item,
+      deckCode: findExactDeckCode(item.nameEn, 'standard', 'legend'),
+    })),
+    ...metaArchetypes,
+  ];
 }
 
 function transformHsguruMatchups(

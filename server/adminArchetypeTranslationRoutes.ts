@@ -32,10 +32,11 @@ export type BlizzcoreArchetype = {
 export type ObservedArchetype = {
   nameEn: string;
   rank: string;
+  deckCode?: string | null;
 };
 
 export type ArchetypeTranslationCoverage = {
-  items: Array<{ nameEn: string; ranks: string[] }>;
+  items: Array<{ nameEn: string; ranks: string[]; deckCode?: string }>;
   totalObserved: number;
   translated: number;
   missing: number;
@@ -186,20 +187,26 @@ export function analyzeArchetypeTranslationCoverage(
   const translationKeys = (database.prepare('SELECT name_en_key FROM archetype_translations').all() as Array<{ name_en_key: string }>)
     .map(row => String(row.name_en_key || '').trim())
     .filter(Boolean);
-  const grouped = new Map<string, { nameEn: string; ranks: Set<string> }>();
+  const grouped = new Map<string, { nameEn: string; ranks: Set<string>; deckCode: string | null }>();
   for (const item of observed) {
     const nameEn = String(item?.nameEn || '').trim().replace(/\s+/g, ' ');
     const rank = String(item?.rank || '').trim();
     if (!nameEn || nameEn.length > MAX_NAME_LENGTH || CONTROL_CHARACTERS.test(nameEn)) continue;
     const key = nameEn.toLocaleLowerCase('en-US');
-    const current = grouped.get(key) ?? { nameEn, ranks: new Set<string>() };
+    const current = grouped.get(key) ?? { nameEn, ranks: new Set<string>(), deckCode: null };
     if (rank) current.ranks.add(rank);
+    const deckCode = String(item?.deckCode || '').trim();
+    if (!current.deckCode && /^[A-Za-z0-9+/=]{40,}$/.test(deckCode)) current.deckCode = deckCode;
     grouped.set(key, current);
   }
 
   const missing = [...grouped.entries()]
     .filter(([key]) => !translationKeys.some(translationKey => key === translationKey || key.includes(translationKey)))
-    .map(([, item]) => ({ nameEn: item.nameEn, ranks: [...item.ranks].sort((left, right) => left.localeCompare(right, 'ru')) }))
+    .map(([, item]) => ({
+      nameEn: item.nameEn,
+      ranks: [...item.ranks].sort((left, right) => left.localeCompare(right, 'ru')),
+      ...(item.deckCode ? { deckCode: item.deckCode } : {}),
+    }))
     .sort((left, right) => left.nameEn.localeCompare(right.nameEn, 'en'));
   const totalObserved = grouped.size;
   const translated = totalObserved - missing.length;

@@ -2829,22 +2829,22 @@
   background: #fffaf0;
 }
 
-.admin-untranslated-list li > div {
+.admin-untranslated-list li > div:first-child {
   min-width: 0;
 }
 
-.admin-untranslated-list strong,
-.admin-untranslated-list span {
+.admin-untranslated-list li > div:first-child strong,
+.admin-untranslated-list li > div:first-child span {
   display: block;
   overflow-wrap: anywhere;
 }
 
-.admin-untranslated-list strong {
+.admin-untranslated-list li > div:first-child strong {
   color: var(--admin-ink);
   font-size: 0.82rem;
 }
 
-.admin-untranslated-list span {
+.admin-untranslated-list li > div:first-child span {
   margin-top: 0.12rem;
   color: var(--admin-muted);
   font-size: 0.68rem;
@@ -2853,6 +2853,31 @@
 .admin-untranslated-list .contest-primary-button {
   min-height: 34px;
   padding: 0.42rem 0.65rem;
+}
+
+.admin-untranslated-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.admin-untranslated-actions .admin-copy-deck-code {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 34px;
+  padding: 0.42rem 0.6rem;
+  color: #4a2f66;
+  border-color: #bda9cd;
+  background: #fbf8ff;
+}
+
+.admin-copy-deck-code svg {
+  width: 0.88rem;
+  height: 0.88rem;
+  flex: 0 0 auto;
 }
 
 .admin-translation-covered,
@@ -4190,6 +4215,21 @@
 
   .admin-untranslated-list {
     grid-template-columns: 1fr;
+  }
+
+  .admin-untranslated-list li {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .admin-untranslated-actions {
+    justify-content: stretch;
+  }
+
+  .admin-untranslated-actions .contest-primary-button,
+  .admin-untranslated-actions .admin-copy-deck-code {
+    flex: 1 1 0;
+    min-height: 44px;
   }
 
   .admin-translation-source-filter > div {
