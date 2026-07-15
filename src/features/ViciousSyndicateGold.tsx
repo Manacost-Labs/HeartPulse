@@ -5,7 +5,6 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
-  Star,
   Swords,
 } from 'lucide-react';
 import '../route-parchment.css';
@@ -204,9 +203,8 @@ export default function ViciousSyndicateGold() {
       <header className="vsgold__hero">
         <div className="vsgold__hero-copy">
           <span className="vsgold__eyebrow"><ShieldCheck size={15} /> Только для администраторов</span>
-          <h1><Star aria-hidden="true" /><span>Vicious Syndicate <em>Gold</em></span></h1>
+          <h1><span>Vicious Syndicate <em>Gold</em></span></h1>
           <p>Живая мета Стандарта: популярность классов и архетипов, готовые сборки и Power Tier по всем доступным рангам.</p>
-          <a href={data.sourceUrl} target="_blank" rel="noreferrer">Источник: {data.source} <ExternalLink size={14} /></a>
         </div>
         <div className="vsgold__hero-stats">
           <div><strong>{data.games.toLocaleString('ru-RU')}</strong><span>партий в выборке</span></div>
