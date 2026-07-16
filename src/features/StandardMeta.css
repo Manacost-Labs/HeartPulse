@@ -187,17 +187,6 @@
   font-size: 1.05rem;
 }
 .standard-meta__panel-heading small { color: #846344; font-size: 0.65rem; }
-.standard-meta__panel-heading::after {
-  content: '';
-  flex: 1 1 240px;
-  height: 14px;
-  margin-left: auto;
-  background: linear-gradient(90deg, rgba(74, 47, 102, 0.72), rgba(180, 123, 22, 0.46));
-  -webkit-mask: url('/wallpaper/main-page-header.svg') center / 100% 100% no-repeat;
-  mask: url('/wallpaper/main-page-header.svg') center / 100% 100% no-repeat;
-  opacity: 0.58;
-}
-
 .standard-meta__control-label {
   display: block;
   margin: 0 0 0.45rem;
@@ -981,7 +970,6 @@
   .standard-meta__panel-heading > span { width: 36px; height: 36px; }
   .standard-meta__panel-heading strong { font-size: 0.92rem; }
   .standard-meta__panel-heading small { font-size: 0.58rem; }
-  .standard-meta__panel-heading::after { flex-basis: 60px; height: 10px; }
   .standard-meta__controls > div,
   .standard-meta__segmented,
   .standard-meta__rank-tabs,

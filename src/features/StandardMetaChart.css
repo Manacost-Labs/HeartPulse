@@ -18,16 +18,6 @@
   background: rgba(255, 242, 207, 0.5);
 }
 
-.standard-meta-chart__header::after {
-  content: '';
-  flex: 0 1 190px;
-  height: 13px;
-  background: linear-gradient(90deg, rgba(74, 47, 102, 0.68), rgba(180, 123, 22, 0.42));
-  -webkit-mask: url('/wallpaper/main-page-header.svg') center / 100% 100% no-repeat;
-  mask: url('/wallpaper/main-page-header.svg') center / 100% 100% no-repeat;
-  opacity: 0.52;
-}
-
 .standard-meta-chart__heading,
 .standard-meta-chart__header-actions,
 .standard-meta-chart__hint,
@@ -233,7 +223,6 @@
   .standard-meta-chart__heading h2 { font-size: 1rem; }
   .standard-meta-chart__heading p { line-height: 1.35; }
   .standard-meta-chart__header-actions { justify-content: space-between; }
-  .standard-meta-chart__header::after { display: none; }
   .standard-meta-chart__header-actions button { min-height: 44px; }
   .standard-meta-chart__content { padding: 0.55rem; }
   .standard-meta-chart__hint { align-items: flex-start; line-height: 1.35; }

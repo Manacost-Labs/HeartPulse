@@ -153,16 +153,6 @@
   padding-bottom: 0.85rem;
   border-bottom: 1px solid rgba(102, 63, 27, 0.2);
 }
-.vsgold__section-heading::after {
-  content: '';
-  flex: 1 1 220px;
-  height: 14px;
-  margin-left: auto;
-  background: linear-gradient(90deg, rgba(74, 47, 102, 0.72), rgba(180, 123, 22, 0.46));
-  -webkit-mask: url('/wallpaper/main-page-header.svg') center / 100% 100% no-repeat;
-  mask: url('/wallpaper/main-page-header.svg') center / 100% 100% no-repeat;
-  opacity: 0.58;
-}
 .vsgold__section-heading > img {
   width: 52px;
   height: 52px;
@@ -349,7 +339,6 @@
   .vsgold__decks,
   .vsgold__power { padding: 0.68rem; scroll-margin-top: 56px; }
   .vsgold__section-heading { gap: 0.55rem; padding-bottom: 0.55rem; }
-  .vsgold__section-heading::after { flex-basis: 50px; height: 10px; }
   .vsgold__section-heading > img { width: 42px; height: 42px; padding: 0.28rem; }
   .vsgold__section-heading span { font-size: 0.56rem; }
   .vsgold__section-heading h2 { font-size: 1.28rem; }
