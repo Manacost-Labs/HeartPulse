@@ -1,17 +1,24 @@
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
+  BarChart3,
   ChevronLeft,
   ChevronRight,
+  Database,
   ExternalLink,
   Grid3X3,
+  Layers3,
   List,
   RefreshCw,
   Search,
   ShieldCheck,
   Sparkles,
+  Volume2,
 } from 'lucide-react';
 import '../route-parchment.css';
+import ConstructedCardLightbox from './ConstructedCardLightbox';
+import { compareConstructedSets, constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
+import { collectConstructedCardMedia, flattenConstructedCardSounds } from './constructedCardMedia';
 import './StandardCards.css';
 
 type CardFormat = 'standard' | 'wild';
@@ -65,6 +72,7 @@ type CardRecord = {
   stats: CardStats | null;
   statsUpdatedAt?: string | null;
   statsSourceUrl?: string | null;
+  catalogPending?: boolean;
   wiki?: Record<string, any>;
 };
 
@@ -76,6 +84,10 @@ type Facets = {
   rarities: string[];
 };
 
+type FacetCount = { value: string; count: number };
+type FacetCounts = { classes: FacetCount[]; sets: FacetCount[]; mechanics: FacetCount[]; types: FacetCount[]; rarities: FacetCount[] };
+type CardCoverage = { totalCards: number; cardsWithStats: number; cardsWithoutStats: number; totalSets: number };
+
 type ListPayload = {
   format: CardFormat;
   rank: 'legend';
@@ -83,6 +95,8 @@ type ListPayload = {
   sourceUrl: string;
   cards: CardRecord[];
   facets: Facets;
+  facetCounts?: FacetCounts;
+  coverage?: CardCoverage;
   pagination: { page: number; perPage: number; total: number; totalPages: number };
 };
 
@@ -106,6 +120,7 @@ type StandardCardsProps = {
 };
 
 const EMPTY_FACETS: Facets = { classes: [], sets: [], mechanics: [], types: [], rarities: [] };
+const EMPTY_FACET_COUNTS: FacetCounts = { classes: [], sets: [], mechanics: [], types: [], rarities: [] };
 const EMPTY_FILTERS: Filters = {
   query: '', class: '', set: '', mana: '', attack: '', health: '', mechanic: '', type: '', rarity: '', sort: 'popularity', direction: 'desc',
 };
@@ -146,6 +161,10 @@ function mechanicLabel(value: string): string {
   return translatedCode(value, MECHANIC_LABELS);
 }
 
+function facetOptionLabel(value: string, count: number | undefined, label: (value: string) => string): string {
+  return `${label(value)}${typeof count === 'number' ? ` (${count.toLocaleString('ru-RU')})` : ''}`;
+}
+
 function percent(value: number | null | undefined): string {
   return value === null || value === undefined ? 'Нет данных' : `${value.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}%`;
 }
@@ -172,7 +191,9 @@ function plainText(value: string | null | undefined): string {
 function routeState(path: string): { page: 'list' | 'detail'; format: CardFormat; cardId: string | null } {
   const normalized = decodeURIComponent(path).replace(/\?.*$/, '').replace(/\/+$/, '');
   const match = normalized.match(/^\/standard\/cards\/(standard|wild)\/([a-zA-Z0-9_]{2,80})$/);
-  return match ? { page: 'detail', format: match[1] as CardFormat, cardId: match[2] } : { page: 'list', format: 'standard', cardId: null };
+  if (match) return { page: 'detail', format: match[1] as CardFormat, cardId: match[2] };
+  const listMatch = normalized.match(/^\/standard\/cards\/(standard|wild)$/);
+  return { page: 'list', format: listMatch?.[1] as CardFormat || 'standard', cardId: null };
 }
 
 function cardPath(format: CardFormat, card: CardRecord): string {
@@ -267,7 +288,7 @@ function CardTable({ cards, format, navigatePath }: { cards: CardRecord[]; forma
             <tr key={card.card_id}>
               <th scope="row"><a href={cardPath(format, card)} onClick={event => { event.preventDefault(); navigatePath(cardPath(format, card)); }}><img src={card.images?.crop || card.images?.card || ''} alt="" loading="lazy" /><span>{cardName(card)}<small>{card.name?.en}</small></span></a></th>
               <td><img className="constructed-cards__class-icon" src={classIcon(card.class)} alt="" />{classLabel(card.class || 'NEUTRAL')}</td>
-              <td>{translatedCode(card.card_set || '—')}</td><td>{number(card.mana_cost)}</td><td>{number(card.attack)}</td><td>{number(card.health)}</td>
+              <td>{card.card_set ? constructedSetLabel(card.card_set) : '—'}</td><td>{number(card.mana_cost)}</td><td>{number(card.attack)}</td><td>{number(card.health)}</td>
               <td>{percent(card.stats?.deckPopularity)}</td><td>{percent(card.stats?.deckWinrate)}</td><td>{number(card.stats?.timesPlayed)}</td>
             </tr>
           ))}
@@ -277,37 +298,46 @@ function CardTable({ cards, format, navigatePath }: { cards: CardRecord[]; forma
   );
 }
 
-function Pagination({ page, totalPages, onPage }: { page: number; totalPages: number; onPage: (page: number) => void }) {
-  if (totalPages <= 1) return null;
+function Pagination({ page, totalPages, total, perPage, onPage }: { page: number; totalPages: number; total: number; perPage: number; onPage: (page: number) => void }) {
+  if (total <= 0) return null;
   const pages = [...new Set([1, Math.max(1, page - 1), page, Math.min(totalPages, page + 1), totalPages])].sort((a, b) => a - b);
   return (
     <nav className="constructed-cards__pagination" aria-label="Страницы библиотеки">
-      <button type="button" disabled={page <= 1} onClick={() => onPage(page - 1)}><ChevronLeft size={17} /> Назад</button>
-      {pages.map((item, index) => <React.Fragment key={item}>{index > 0 && item - pages[index - 1] > 1 && <span>…</span>}<button type="button" aria-current={item === page ? 'page' : undefined} onClick={() => onPage(item)}>{item}</button></React.Fragment>)}
-      <button type="button" disabled={page >= totalPages} onClick={() => onPage(page + 1)}>Вперёд <ChevronRight size={17} /></button>
+      <span className="constructed-cards__page-summary">Страница {page} из {totalPages} · по {perPage} · всего {number(total)}</span>
+      {totalPages > 1 && <>
+        <button type="button" disabled={page <= 1} onClick={() => onPage(page - 1)}><ChevronLeft size={17} /> Назад</button>
+        {pages.map((item, index) => <React.Fragment key={item}>{index > 0 && item - pages[index - 1] > 1 && <span>…</span>}<button type="button" aria-current={item === page ? 'page' : undefined} onClick={() => onPage(item)}>{item}</button></React.Fragment>)}
+        <button type="button" disabled={page >= totalPages} onClick={() => onPage(page + 1)}>Вперёд <ChevronRight size={17} /></button>
+      </>}
     </nav>
   );
 }
 
-function CardsListPage({ navigatePath }: Pick<StandardCardsProps, 'navigatePath'>) {
-  const [format, setFormat] = useState<CardFormat>('standard');
+function CardsListPage({ initialFormat, navigatePath }: Pick<StandardCardsProps, 'navigatePath'> & { initialFormat: CardFormat }) {
+  const [format, setFormat] = useState<CardFormat>(initialFormat);
   const [view, setView] = useState<ViewMode>('gallery');
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(60);
   const [data, setData] = useState<ListPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reloadToken, setReloadToken] = useState(0);
   const deferredQuery = useDeferredValue(filters.query);
 
-  const requestKey = useMemo(() => JSON.stringify({ format, page, reloadToken, ...filters, query: deferredQuery }), [deferredQuery, filters, format, page, reloadToken]);
+  useEffect(() => {
+    setFormat(initialFormat);
+    setPage(1);
+  }, [initialFormat]);
+
+  const requestKey = useMemo(() => JSON.stringify({ format, page, perPage, reloadToken, ...filters, query: deferredQuery }), [deferredQuery, filters, format, page, perPage, reloadToken]);
   useEffect(() => {
     const controller = new AbortController();
     const load = async () => {
       setLoading(true);
       setError('');
       try {
-        const params = new URLSearchParams({ format, page: String(page), perPage: '60', sort: filters.sort, direction: filters.direction });
+        const params = new URLSearchParams({ format, page: String(page), perPage: String(perPage), sort: filters.sort, direction: filters.direction });
         Object.entries({ ...filters, query: deferredQuery }).forEach(([key, value]) => {
           if (value && key !== 'sort' && key !== 'direction') params.set(key, String(value));
         });
@@ -329,9 +359,18 @@ function CardsListPage({ navigatePath }: Pick<StandardCardsProps, 'navigatePath'
     setFilters(current => ({ ...current, [key]: value }));
     setPage(1);
   };
-  const changeFormat = (next: CardFormat) => { setFormat(next); setPage(1); };
+  const changeFormat = (next: CardFormat) => {
+    setFormat(next);
+    setData(null);
+    setPage(1);
+    navigatePath(`/standard/cards/${next}`);
+  };
   const reset = () => { setFilters(EMPTY_FILTERS); setPage(1); };
   const facets = data?.facets ?? EMPTY_FACETS;
+  const facetCounts = data?.facetCounts ?? EMPTY_FACET_COUNTS;
+  const countFor = (entries: FacetCount[], value: string) => entries.find(entry => entry.value === value)?.count;
+  const sets = [...facets.sets].sort(compareConstructedSets);
+  const coverage = data?.coverage;
 
   return (
     <div className="constructed-cards">
@@ -340,15 +379,24 @@ function CardsListPage({ navigatePath }: Pick<StandardCardsProps, 'navigatePath'
         <p>Ранг: <strong>Легенда</strong></p>
       </header>
 
+      <dl className="constructed-cards__coverage" aria-label="Покрытие библиотеки">
+        <div><dt><Database size={17} /> Карт в формате</dt><dd>{number(coverage?.totalCards)}</dd></div>
+        <div><dt><Layers3 size={17} /> Дополнений</dt><dd>{number(coverage?.totalSets)}</dd></div>
+        <div><dt><BarChart3 size={17} /> Со статистикой</dt><dd>{number(coverage?.cardsWithStats)}</dd></div>
+      </dl>
+
       <section className="constructed-cards__controls" aria-label="Фильтры библиотеки карт">
         <div className="constructed-cards__primary-controls">
           <div className="constructed-cards__format" aria-label="Формат">
             <button type="button" aria-pressed={format === 'standard'} onClick={() => changeFormat('standard')}>Стандарт</button>
-            <button type="button" aria-pressed={format === 'wild'} onClick={() => changeFormat('wild')}>Вольный</button>
+            <button type="button" aria-pressed={format === 'wild'} onClick={() => changeFormat('wild')}>Вольный · все карты</button>
           </div>
           <label className="constructed-cards__search"><Search size={18} /><input value={filters.query} onChange={event => updateFilter('query', event.target.value)} placeholder="Поиск по названию" /></label>
           <FilterSelect label="Сортировка" value={filters.sort} onChange={value => updateFilter('sort', value)}>
             <option value="popularity">Популярность</option><option value="winrate">Победы колод</option><option value="games">Сыграно партий</option><option value="mana">Мана</option><option value="attack">Атака</option><option value="health">Здоровье</option><option value="name">Название</option><option value="set">Дополнение</option><option value="class">Класс</option><option value="mechanics">Механики</option>
+          </FilterSelect>
+          <FilterSelect label="На странице" value={String(perPage)} onChange={value => { setPerPage(Number(value)); setPage(1); }}>
+            <option value="60">60 карт</option><option value="120">120 карт</option>
           </FilterSelect>
           <button type="button" className="constructed-cards__direction" onClick={() => updateFilter('direction', filters.direction === 'asc' ? 'desc' : 'asc')} aria-label="Изменить направление сортировки">{filters.direction === 'asc' ? '↑' : '↓'}</button>
           <div className="constructed-cards__view" aria-label="Вид списка">
@@ -357,8 +405,8 @@ function CardsListPage({ navigatePath }: Pick<StandardCardsProps, 'navigatePath'
           </div>
         </div>
         <div className="constructed-cards__secondary-controls">
-          <FilterSelect label="Класс" value={filters.class} onChange={value => updateFilter('class', value)}><option value="">Все классы</option>{facets.classes.map(value => <option key={value} value={value}>{classLabel(value)}</option>)}</FilterSelect>
-          <FilterSelect label="Дополнение" value={filters.set} onChange={value => updateFilter('set', value)}><option value="">Все дополнения</option>{facets.sets.map(value => <option key={value} value={value}>{translatedCode(value)}</option>)}</FilterSelect>
+          <FilterSelect label="Класс" value={filters.class} onChange={value => updateFilter('class', value)}><option value="">Все классы ({number(coverage?.totalCards)})</option>{facets.classes.map(value => <option key={value} value={value}>{facetOptionLabel(value, countFor(facetCounts.classes, value), classLabel)}</option>)}</FilterSelect>
+          <FilterSelect label={`Дополнение · ${coverage?.totalSets ?? facets.sets.length}`} value={filters.set} onChange={value => updateFilter('set', value)}><option value="">Все дополнения ({number(coverage?.totalCards)})</option>{sets.map(value => <option key={value} value={value}>{facetOptionLabel(value, countFor(facetCounts.sets, value), constructedSetLabel)}</option>)}</FilterSelect>
           <FilterSelect label="Мана" value={filters.mana} onChange={value => updateFilter('mana', value)}><option value="">Любая</option>{Array.from({ length: 11 }, (_, value) => <option key={value} value={value}>{value}</option>)}</FilterSelect>
           <FilterSelect label="Атака" value={filters.attack} onChange={value => updateFilter('attack', value)}><option value="">Любая</option>{Array.from({ length: 11 }, (_, value) => <option key={value} value={value}>{value}</option>)}</FilterSelect>
           <FilterSelect label="Здоровье" value={filters.health} onChange={value => updateFilter('health', value)}><option value="">Любое</option>{Array.from({ length: 11 }, (_, value) => <option key={value} value={value}>{value}</option>)}</FilterSelect>
@@ -376,7 +424,7 @@ function CardsListPage({ navigatePath }: Pick<StandardCardsProps, 'navigatePath'
 
       {loading ? <section className="constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={34} /><h2>Загружаем библиотеку</h2><p>Объединяем список карт и статистику Легенды.</p></section>
         : error ? <section className="constructed-cards__state" role="alert"><h2>Не удалось загрузить карты</h2><p>{error}</p><button type="button" onClick={() => setReloadToken(value => value + 1)}><RefreshCw size={16} /> Повторить</button></section>
-          : data && data.cards.length > 0 ? <>{view === 'gallery' ? <CardGallery cards={data.cards} format={format} navigatePath={navigatePath} /> : <CardTable cards={data.cards} format={format} navigatePath={navigatePath} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onPage={setPage} /></>
+          : data && data.cards.length > 0 ? <>{view === 'gallery' ? <CardGallery cards={data.cards} format={format} navigatePath={navigatePath} /> : <CardTable cards={data.cards} format={format} navigatePath={navigatePath} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} /></>
             : <section className="constructed-cards__state"><Search size={34} /><h2>Карты не найдены</h2><p>Измените фильтры или сбросьте их.</p><button type="button" onClick={reset}><RefreshCw size={16} /> Сбросить фильтры</button></section>}
     </div>
   );
@@ -386,6 +434,7 @@ function variantImages(card: CardRecord): Array<{ id: string; label: string; url
   return [
     ['normal', 'Обычная', card.images?.card], ['golden', 'Золотая', card.images?.golden],
     ['signature', 'Сигнатурная', card.images?.signature], ['diamond', 'Алмазная', card.images?.diamond],
+    ['art', 'Арт', card.images?.crop],
   ].filter((entry): entry is [string, string, string] => Boolean(entry[2])).map(([id, label, url]) => ({ id, label, url }));
 }
 
@@ -394,6 +443,7 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [variant, setVariant] = useState('normal');
+  const [lightboxIndex, setLightboxIndex] = useState(-1);
   useEffect(() => {
     const controller = new AbortController();
     const load = async () => {
@@ -403,6 +453,8 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить карту');
         setCard(payload.card as CardRecord);
+        setVariant('normal');
+        setLightboxIndex(-1);
       } catch (loadError) {
         if (!controller.signal.aborted) setError(loadError instanceof Error ? loadError.message : 'Не удалось загрузить карту');
       } finally { if (!controller.signal.aborted) setLoading(false); }
@@ -410,9 +462,14 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
     void load();
     return () => controller.abort();
   }, [cardId, format]);
+  useEffect(() => {
+    if (!card) return undefined;
+    const frame = requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
+    return () => cancelAnimationFrame(frame);
+  }, [card]);
 
   if (loading) return <section className="constructed-cards constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={36} /><h1>Загружаем карту</h1></section>;
-  if (error || !card) return <section className="constructed-cards constructed-cards__state" role="alert"><h1>Карта не найдена</h1><p>{error}</p><button type="button" onClick={() => navigatePath('/standard/cards')}><ArrowLeft size={17} /> Назад к картам</button></section>;
+  if (error || !card) return <section className="constructed-cards constructed-cards__state" role="alert"><h1>Карта не найдена</h1><p>{error}</p><button type="button" onClick={() => navigatePath(`/standard/cards/${format}`)}><ArrowLeft size={17} /> Назад к картам</button></section>;
 
   const variants = variantImages(card);
   const selectedImage = variants.find(item => item.id === variant)?.url || variants[0]?.url || '';
@@ -420,18 +477,27 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
   const mechanics = [...new Set([...(card.mechanics || []), ...(card.referenced_tags || []), ...(wiki.wiki_mechanics || []), ...(wiki.wiki_tags || [])])];
   const patchRows = (Array.isArray(wiki.patch_changes) ? wiki.patch_changes : []).flatMap((group: any) => (Array.isArray(group?.entries) ? group.entries : []).map((entry: any) => ({ ...entry, heading: group.heading })));
   const related = Array.isArray(wiki.related_cards) ? wiki.related_cards : [];
-  const gallery = Array.isArray(wiki.gallery) ? wiki.gallery : [];
-  const sounds = Array.isArray(wiki.sounds) ? wiki.sounds : [];
+  const mediaItems = collectConstructedCardMedia(card);
+  const galleryMedia = mediaItems.filter(item => item.id.startsWith('gallery-'));
+  const sounds = flattenConstructedCardSounds(wiki.sounds);
+  const soundGroups = [...new Set(sounds.map(item => item.group))].map(group => [group, sounds.filter(item => item.group === group)] as const);
   const externalLinks = Array.isArray(wiki.external_links) ? wiki.external_links : [];
+  const openMedia = (url: string) => {
+    const index = mediaItems.findIndex(item => item.url === url);
+    if (index >= 0) setLightboxIndex(index);
+  };
 
   return (
     <article className="constructed-cards constructed-card-detail">
-      <nav className="constructed-card-detail__breadcrumb" aria-label="Breadcrumb"><a href="/standard/cards" onClick={event => { event.preventDefault(); navigatePath('/standard/cards'); }}>Карты</a><span>/</span><span>{format === 'standard' ? 'Стандарт' : 'Вольный'}</span><span>/</span><strong>{cardName(card)}</strong></nav>
-      <button type="button" className="constructed-card-detail__back" onClick={() => navigatePath('/standard/cards')}><ArrowLeft size={17} /> Назад к картам</button>
+      <nav className="constructed-card-detail__breadcrumb" aria-label="Breadcrumb"><a href={`/standard/cards/${format}`} onClick={event => { event.preventDefault(); navigatePath(`/standard/cards/${format}`); }}>Карты</a><span>/</span><span>{format === 'standard' ? 'Стандарт' : 'Вольный'}</span><span>/</span><strong>{cardName(card)}</strong></nav>
+      <button type="button" className="constructed-card-detail__back" onClick={() => navigatePath(`/standard/cards/${format}`)}><ArrowLeft size={17} /> Назад к картам</button>
 
       <section className="constructed-card-detail__hero">
         <div className="constructed-card-detail__visual">
-          <img src={selectedImage} alt={cardName(card)} />
+          <button type="button" className="constructed-card-detail__visual-button" onClick={() => openMedia(selectedImage)} aria-label={`Открыть ${cardName(card)} в полном размере`}>
+            <img src={selectedImage} alt={cardName(card)} />
+            <span>Открыть в полном размере</span>
+          </button>
           <div className="constructed-card-detail__variants" aria-label="Вариант изображения">{variants.map(item => <button key={item.id} type="button" aria-pressed={variant === item.id} onClick={() => setVariant(item.id)}>{item.label}</button>)}</div>
         </div>
         <div className="constructed-card-detail__identity">
@@ -439,8 +505,12 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
           <dl className="constructed-card-detail__meta">
             <div><dt>Мана</dt><dd>{number(card.mana_cost)}</dd></div><div><dt>Класс</dt><dd>{classLabel(card.class || 'NEUTRAL')}</dd></div>
             <div><dt>Тип</dt><dd>{card.card_type?.name_ru || translatedCode(card.card_type?.slug || '—', TYPE_LABELS)}</dd></div><div><dt>Редкость</dt><dd>{translatedCode(card.rarity || '—', RARITY_LABELS)}</dd></div>
-            <div><dt>Дополнение</dt><dd>{translatedCode(card.card_set || '—')}</dd></div><div><dt>Художник</dt><dd>{card.artist || 'Не указан'}</dd></div>
+            <div><dt>Дополнение</dt><dd>{card.card_set ? constructedSetLabel(card.card_set) : 'Не указано'}</dd></div><div><dt>Художник</dt><dd>{card.artist || 'Не указан'}</dd></div>
             {card.attack !== null && card.attack !== undefined && <div><dt>Атака</dt><dd>{card.attack}</dd></div>}{card.health !== null && card.health !== undefined && <div><dt>Здоровье</dt><dd>{card.health}</dd></div>}
+            {card.durability !== null && card.durability !== undefined && <div><dt>Прочность</dt><dd>{card.durability}</dd></div>}{card.armor !== null && card.armor !== undefined && <div><dt>Броня</dt><dd>{card.armor}</dd></div>}
+            {card.minion_type && <div><dt>Тип существа</dt><dd>{translatedCode(card.minion_type)}</dd></div>}{card.spell_school && <div><dt>Школа магии</dt><dd>{translatedCode(card.spell_school)}</dd></div>}
+            <div><dt>Форматы</dt><dd>{card.formats?.map(item => item.name_ru || item.name_en || item.slug).join(', ') || (format === 'standard' ? 'Стандартный, Вольный' : 'Вольный')}</dd></div>
+            <div><dt>ID карты</dt><dd><code>{card.card_id}</code>{card.dbf ? ` · DBF ${card.dbf}` : ''}</dd></div>
           </dl>
           <div className="constructed-card-detail__copy"><h2>Описание</h2><p>{plainText(card.text?.ru || card.text?.en)}</p>{plainText(card.flavor?.ru || card.flavor?.en) && <><h3>Художественный текст</h3><blockquote>{plainText(card.flavor?.ru || card.flavor?.en)}</blockquote></>}</div>
         </div>
@@ -455,10 +525,11 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
       {related.length > 0 && <section className="constructed-card-detail__section"><h2>Связанные карты</h2><div className="constructed-card-detail__related">{related.map((item: any, index: number) => { const relatedId = item.card_id || item.id; const relatedUrl = relatedId ? `/standard/cards/${format}/${encodeURIComponent(relatedId)}` : item.url; return <a key={`${relatedId || item.title}-${index}`} href={relatedUrl || '#'} onClick={event => { if (!relatedId) return; event.preventDefault(); navigatePath(relatedUrl); }}>{item.image_url || item.image ? <img src={item.image_url || item.image} alt="" /> : <Sparkles size={24} />}<span>{item.name_ru || item.name || item.title || relatedId || 'Связанная карта'}</span></a>; })}</div></section>}
 
       <section className="constructed-card-detail__media-grid">
-        <div className="constructed-card-detail__section"><h2>Галерея</h2>{gallery.length ? <div className="constructed-card-detail__gallery">{gallery.map((item: any, index: number) => <a key={`${item.file_url}-${index}`} href={item.file_url || item.file_page_url} target="_blank" rel="noreferrer"><img src={item.thumb_url || item.file_url} alt={item.caption || `Изображение ${index + 1}`} loading="lazy" /></a>)}</div> : <p>Дополнительные изображения отсутствуют.</p>}</div>
-        <div className="constructed-card-detail__section"><h2>Звуки карты</h2>{sounds.length ? <div className="constructed-card-detail__sounds">{sounds.map((item: any, index: number) => { const url = item.url || item.file_url || item.src; return url ? <label key={`${url}-${index}`}><span>{item.label || item.name || `Звук ${index + 1}`}</span><audio controls preload="none" src={url} /></label> : null; })}</div> : <p>Звуковые файлы отсутствуют.</p>}</div>
+        <div className="constructed-card-detail__section"><h2>Галерея · {galleryMedia.length}</h2>{galleryMedia.length ? <div className="constructed-card-detail__gallery">{galleryMedia.map(item => <button key={item.id} type="button" onClick={() => openMedia(item.url)} aria-label={`Открыть ${item.label}`}><img src={item.thumbnailUrl} alt={item.label} loading="lazy" /><span>{item.label}</span></button>)}</div> : <p>Дополнительные изображения отсутствуют.</p>}</div>
+        <div className="constructed-card-detail__section"><h2><Volume2 size={19} /> Звуки карты · {sounds.length}</h2>{sounds.length ? <div className="constructed-card-detail__sounds">{soundGroups.map(([group, clips], groupIndex) => <details key={group} open={groupIndex === 0}><summary>{constructedSoundGroupLabel(group)} · {clips?.length ?? 0}</summary>{clips?.map(item => <article key={item.id}><span>{plainText(item.description) || item.title}</span><audio controls preload="metadata" src={item.url}>Ваш браузер не поддерживает воспроизведение аудио.</audio></article>)}</details>)}</div> : <p>Звуковые файлы отсутствуют в базе.</p>}</div>
         <div className="constructed-card-detail__section"><h2>Дополнительная информация</h2><div className="constructed-card-detail__links">{card.wiki_page?.url && <a href={card.wiki_page.url} target="_blank" rel="noreferrer">Hearthstone Wiki <ExternalLink size={14} /></a>}{externalLinks.map((item: any, index: number) => <a key={`${item.url}-${index}`} href={item.url} target="_blank" rel="noreferrer">{item.label || item.url} <ExternalLink size={14} /></a>)}</div></div>
       </section>
+      {lightboxIndex >= 0 && <ConstructedCardLightbox items={mediaItems} index={lightboxIndex} onClose={() => setLightboxIndex(-1)} onIndexChange={setLightboxIndex} />}
     </article>
   );
 }
@@ -467,5 +538,5 @@ export default function StandardCards({ currentPath, navigatePath }: StandardCar
   const route = routeState(currentPath);
   return route.page === 'detail' && route.cardId
     ? <DetailPage format={route.format} cardId={route.cardId} navigatePath={navigatePath} />
-    : <CardsListPage navigatePath={navigatePath} />;
+    : <CardsListPage initialFormat={route.format} navigatePath={navigatePath} />;
 }

@@ -145,6 +145,14 @@ const adminFixtures = {
       },
     })),
     facets: { classes: ['MAGE', 'WARRIOR'], sets: ['CATACLYSM', 'ESCAPEFROM_VIOLET_HOLD'], mechanics: ['BATTLECRY', 'TAUNT'], types: ['MINION', 'SPELL'], rarities: ['LEGENDARY', 'RARE'] },
+    facetCounts: {
+      classes: [{ value: 'MAGE', count: 4 }, { value: 'WARRIOR', count: 4 }],
+      sets: [{ value: 'CATACLYSM', count: 4 }, { value: 'ESCAPEFROM_VIOLET_HOLD', count: 4 }],
+      mechanics: [{ value: 'BATTLECRY', count: 4 }, { value: 'TAUNT', count: 4 }],
+      types: [{ value: 'MINION', count: 4 }, { value: 'SPELL', count: 4 }],
+      rarities: [{ value: 'LEGENDARY', count: 3 }, { value: 'RARE', count: 5 }],
+    },
+    coverage: { totalCards: 1152, cardsWithStats: 1013, cardsWithoutStats: 139, totalSets: 7 },
     pagination: { page: 1, perPage: 60, total: 8, totalPages: 1 },
   },
   '/api/admin/constructed-cards/CARD_QA_1': {
@@ -154,7 +162,7 @@ const adminFixtures = {
       text: { ru: '<b>Боевой клич:</b> возьмите карту.' }, flavor: { ru: 'Контрольный художественный текст.' },
       card_set: 'ESCAPEFROM_VIOLET_HOLD', card_type: { slug: 'SPELL', name_ru: 'Заклинание' }, class: 'WARRIOR', multi_class: [], rarity: 'LEGENDARY',
       mana_cost: 1, attack: null, health: null, artist: 'QA Artist', mechanics: ['BATTLECRY'], referenced_tags: ['TAUNT'],
-      images: { card: qaCard.imageRu, golden: qaCard.imageRu, signature: null, diamond: null, crop: qaCard.imageRu },
+      images: { card: qaCard.imageRu, golden: qaCard.imageHa, signature: null, diamond: null, crop: '/arena-logo-icon.webp?v=arena-legacy-20260629' },
       statsUpdatedAt: '2026-07-16T05:03:02.000Z', statsSourceUrl: 'https://hsreplay.net/cards/',
       stats: { deckPopularity: 18.4, deckWinrate: 56.2, averageCopies: 1.7, timesPlayed: 12400, winrateWhenPlayed: 55.8, winrateWhenDrawn: 54.6, keepPercentage: 42.1, openingHandWinrate: 53.2, averageTurnsInHand: 2.1, averageTurnPlayed: 4.4 },
       wiki_page: { title: 'QA Card 1', url: 'https://example.test/wiki' },
@@ -162,7 +170,11 @@ const adminFixtures = {
         wiki_mechanics: ['Draw cards'], wiki_tags: ['Hand-related'],
         patch_changes: [{ heading: 'Card changes', entries: [{ date: '2026-07-16', patch: 'Patch QA', items: ['Added.'] }] }],
         related_cards: [{ card_id: 'CARD_QA_2', name_ru: 'Контрольная карта 2', image_url: qaCard.imageRu }],
-        gallery: [{ caption: 'QA full art', file_url: qaCard.imageRu, thumb_url: qaCard.imageRu }], sounds: [],
+        gallery: [{ caption: 'QA full art', file_url: '/wallpaper/arena-parchment.jpg', thumb_url: '/wallpaper/arena-parchment.jpg' }],
+        sounds: [{ heading: 'Play', clips: [
+          { description: 'Контрольная реплика.', file_title: 'QA_Play.wav', file_url: 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=' },
+          { description: '<music stinger>', file_title: 'QA_Stinger.wav', file_url: 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=#stinger' },
+        ] }],
         external_links: [{ label: 'HSReplay.net', url: 'https://example.test/hsreplay' }],
       },
     },
@@ -2218,14 +2230,25 @@ for (const [device, viewport] of [
         rootOverflow: (root?.scrollWidth ?? 0) > (root?.clientWidth ?? 0) + 1,
         documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
         rankText: document.querySelector('.constructed-cards__header')?.textContent || '',
+        coverageText: (document.querySelector('.constructed-cards__coverage')?.textContent || '').replace(/\s/g, ''),
+        setOptions: document.querySelectorAll('.constructed-cards__secondary-controls select option').length,
       };
     });
     if (constructedCardsState.cards !== 8 || constructedCardsState.filters < 8 || constructedCardsState.menuLinks < 1
       || !constructedCardsState.controlsVisible || !constructedCardsState.rankText.includes('Легенда')
+      || !constructedCardsState.coverageText.includes('1152') || !constructedCardsState.coverageText.includes('1013')
+      || constructedCardsState.setOptions < 3
       || constructedCardsState.rootOverflow || constructedCardsState.documentOverflow
       || (device === 'mobile' && (constructedCardsState.searchFontSize < 16 || constructedCardsState.smallestViewTarget < 44))) {
       failures.push(`constructed cards [${device}]: menu, controls or responsive gallery regressed (${JSON.stringify(constructedCardsState)})`);
     }
+    await page.click('.constructed-cards__format button:nth-child(2)');
+    await page.waitForFunction(() => window.location.pathname === '/standard/cards/wild');
+    const wildFormatPressed = await page.$eval('.constructed-cards__format button:nth-child(2)', button => button.getAttribute('aria-pressed'));
+    if (wildFormatPressed !== 'true') failures.push(`constructed cards [${device}]: Wild format URL state regressed`);
+    await page.click('.constructed-cards__format button:first-child');
+    await page.waitForFunction(() => window.location.pathname === '/standard/cards/standard');
+    await page.waitForSelector('.constructed-cards__gallery-card');
     if (device === 'desktop') {
       await page.hover('.constructed-cards__gallery-card');
       await page.waitForSelector('.constructed-cards__tooltip');
@@ -2264,20 +2287,43 @@ for (const [device, viewport] of [
     await page.waitForSelector('.constructed-card-detail__hero');
     const constructedDetailState = await page.evaluate(() => ({
       pathname: window.location.pathname,
+      scrollY: window.scrollY,
       statsRows: document.querySelectorAll('.constructed-card-detail__statistics .constructed-cards__stats > div').length,
       variants: document.querySelectorAll('.constructed-card-detail__variants button').length,
       tags: document.querySelectorAll('.constructed-card-detail__tags span').length,
       patches: document.querySelectorAll('.constructed-card-detail__patches details').length,
       related: document.querySelectorAll('.constructed-card-detail__related a').length,
       gallery: document.querySelectorAll('.constructed-card-detail__gallery img').length,
+      sounds: document.querySelectorAll('.constructed-card-detail__sounds audio').length,
       documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     }));
-    if (constructedDetailState.pathname !== '/standard/cards/standard/CARD_QA_1' || constructedDetailState.statsRows < 8
-      || constructedDetailState.variants !== 2 || constructedDetailState.tags < 3 || constructedDetailState.patches !== 1
-      || constructedDetailState.related !== 1 || constructedDetailState.gallery !== 1 || constructedDetailState.documentOverflow) {
+    if (constructedDetailState.pathname !== '/standard/cards/standard/CARD_QA_1' || constructedDetailState.scrollY > 2 || constructedDetailState.statsRows < 8
+      || constructedDetailState.variants !== 3 || constructedDetailState.tags < 3 || constructedDetailState.patches !== 1
+      || constructedDetailState.related !== 1 || constructedDetailState.gallery !== 1 || constructedDetailState.sounds !== 2 || constructedDetailState.documentOverflow) {
       failures.push(`constructed card detail [${device}]: data sections or responsive containment regressed (${JSON.stringify(constructedDetailState)})`);
     }
+    await page.click('.constructed-card-detail__visual-button');
+    await page.waitForSelector('.constructed-card-lightbox');
+    const constructedLightboxState = await page.evaluate(() => ({
+      dialog: document.querySelector('.constructed-card-lightbox')?.getAttribute('role'),
+      media: document.querySelectorAll('.constructed-card-lightbox__media img, .constructed-card-lightbox__media video').length,
+      navigation: document.querySelectorAll('.constructed-card-lightbox__actions button').length,
+      bodyLocked: document.body.style.overflow === 'hidden',
+      documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    }));
+    if (constructedLightboxState.dialog !== 'dialog' || constructedLightboxState.media !== 1
+      || constructedLightboxState.navigation < 2 || !constructedLightboxState.bodyLocked || constructedLightboxState.documentOverflow) {
+      failures.push(`constructed card lightbox [${device}]: media dialog regressed (${JSON.stringify(constructedLightboxState)})`);
+    }
+    await page.screenshot({ path: `${OUT}/constructed-card-lightbox-${device}.png`, fullPage: false });
+    await page.click('.constructed-card-lightbox__close');
+    await page.waitForSelector('.constructed-card-lightbox', { hidden: true });
+    await page.click('.constructed-card-detail__gallery button');
+    await page.waitForSelector('.constructed-card-lightbox');
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('.constructed-card-lightbox', { hidden: true });
     const constructedDetailViolationCount = await auditAccessibility(page, `constructed card detail [${device}]`, '.constructed-card-detail');
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'auto' }));
     await page.screenshot({ path: `${OUT}/constructed-card-detail-${device}.png`, fullPage: false });
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });

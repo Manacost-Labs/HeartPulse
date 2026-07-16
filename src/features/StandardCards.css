@@ -35,6 +35,11 @@
 .constructed-cards__beta { display: flex; gap: 0.45rem; align-items: center; }
 .constructed-cards__beta span { display: inline-flex; gap: 0.28rem; align-items: center; min-height: 30px; padding: 0.25rem 0.6rem; border: 1px solid #9d7135; background: rgba(255, 239, 188, 0.7); color: #5a3419; font-size: 0.68rem; font-weight: 900; }
 .constructed-cards__beta span:first-child { border-color: #8c2528; background: var(--cards-wine); color: #ffe6b0; }
+.constructed-cards__coverage { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0.7rem 0 0; border: 1px solid rgba(120, 76, 35, 0.26); background: rgba(255, 247, 220, 0.35); }
+.constructed-cards__coverage div { display: flex; gap: 0.7rem; align-items: center; justify-content: space-between; min-height: 51px; padding: 0.5rem 0.85rem; border-right: 1px solid rgba(120, 76, 35, 0.22); }
+.constructed-cards__coverage div:last-child { border-right: 0; }
+.constructed-cards__coverage dt { display: inline-flex; gap: 0.38rem; align-items: center; color: #735234; font-size: 0.68rem; font-weight: 800; }
+.constructed-cards__coverage dd { margin: 0; font-family: var(--font-display); font-size: 1.05rem; }
 
 .constructed-cards__controls {
   margin-top: 0.8rem;
@@ -105,7 +110,8 @@
 .constructed-cards__table tbody th small { color: #86694c; font-weight: 400; }
 .constructed-cards__class-icon { width: 28px; height: 28px; margin-right: 0.35rem; object-fit: contain; vertical-align: middle; }
 
-.constructed-cards__pagination { display: flex; gap: 0.35rem; align-items: center; justify-content: center; margin-top: 1.2rem; }
+.constructed-cards__pagination { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; justify-content: center; margin-top: 1.2rem; }
+.constructed-cards__page-summary { flex: 1 0 100%; margin-bottom: 0.25rem; color: #795a3d; font-size: 0.68rem; font-weight: 800; text-align: center; }
 .constructed-cards__pagination button { display: inline-flex; gap: 0.25rem; align-items: center; justify-content: center; min-width: 40px; min-height: 40px; padding: 0 0.65rem; border: 1px solid #9f713a; color: #4b2d18; background: rgba(255, 243, 204, 0.68); font-size: 0.74rem; font-weight: 900; }
 .constructed-cards__pagination button[aria-current='page'] { border-color: #8a2024; color: #fff0c4; background: var(--cards-wine); }
 .constructed-cards__pagination button:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -124,7 +130,11 @@
 .constructed-card-detail__back { display: inline-flex; gap: 0.35rem; align-items: center; min-height: 38px; margin-bottom: 0.65rem; padding: 0 0.7rem; border: 1px solid #906232; color: #5b351b; background: rgba(255, 242, 201, 0.62); font-size: 0.72rem; font-weight: 900; }
 .constructed-card-detail__hero { display: grid; grid-template-columns: minmax(250px, 0.68fr) minmax(360px, 1fr) minmax(360px, 0.95fr); gap: clamp(1rem, 2.2vw, 2rem); align-items: start; padding: clamp(1rem, 2vw, 1.7rem); border: 1px solid #b78a51; background: linear-gradient(90deg, rgba(255, 249, 229, 0.52), rgba(236, 205, 148, 0.28)), url('/wallpaper/arena-parchment.jpg') center / cover; box-shadow: inset 0 0 0 3px rgba(255, 250, 231, 0.38); }
 .constructed-card-detail__visual { display: grid; justify-items: center; }
-.constructed-card-detail__visual > img { width: 100%; max-width: 360px; max-height: 500px; object-fit: contain; filter: drop-shadow(0 15px 11px rgba(56, 29, 12, 0.28)); }
+.constructed-card-detail__visual-button { position: relative; display: grid; width: 100%; padding: 0; border: 0; place-items: center; color: #fff0c4; background: transparent; cursor: zoom-in; }
+.constructed-card-detail__visual-button img { width: 100%; max-width: 360px; max-height: 500px; object-fit: contain; filter: drop-shadow(0 15px 11px rgba(56, 29, 12, 0.28)); }
+.constructed-card-detail__visual-button span { position: absolute; bottom: 0.45rem; left: 50%; padding: 0.35rem 0.55rem; background: rgba(50, 25, 12, 0.86); font-size: 0.62rem; font-weight: 900; opacity: 0; pointer-events: none; transform: translate(-50%, 6px); transition: opacity 140ms ease, transform 140ms ease; white-space: nowrap; }
+.constructed-card-detail__visual-button:hover span,
+.constructed-card-detail__visual-button:focus-visible span { opacity: 1; transform: translate(-50%, 0); }
 .constructed-card-detail__variants { display: flex; width: 100%; margin-top: 0.3rem; overflow-x: auto; border: 1px solid #a67940; }
 .constructed-card-detail__variants button { flex: 1 0 auto; min-height: 36px; padding: 0 0.55rem; border: 0; border-right: 1px solid #b4864c; color: #5b391f; background: rgba(255, 246, 215, 0.72); font-size: 0.65rem; font-weight: 900; }
 .constructed-card-detail__variants button:last-child { border-right: 0; }
@@ -152,7 +162,7 @@
 
 .constructed-card-detail__lower-grid { display: grid; grid-template-columns: minmax(280px, 0.72fr) minmax(460px, 1.45fr); gap: 0.65rem; margin-top: 0.65rem; }
 .constructed-card-detail__section { padding: 0.9rem 1rem; border: 1px solid #b78a51; background: rgba(255, 247, 219, 0.44); box-shadow: inset 0 0 0 2px rgba(255, 252, 236, 0.22); }
-.constructed-card-detail__section h2 { margin: 0 0 0.6rem; font-family: var(--font-display); font-size: 1.25rem; }
+.constructed-card-detail__section h2 { display: flex; gap: 0.4rem; align-items: center; margin: 0 0 0.6rem; font-family: var(--font-display); font-size: 1.25rem; }
 .constructed-card-detail__section > p { color: var(--cards-muted); font-size: 0.72rem; }
 .constructed-card-detail__tags { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .constructed-card-detail__tags span { padding: 0.35rem 0.55rem; border: 1px solid #b48b58; background: rgba(255, 246, 215, 0.62); font-size: 0.66rem; font-weight: 800; }
@@ -167,12 +177,31 @@
 .constructed-card-detail__related span { margin-top: 0.25rem; font-size: 0.66rem; font-weight: 900; }
 .constructed-card-detail__media-grid { display: grid; grid-template-columns: 1.45fr 0.8fr 0.7fr; gap: 0.65rem; margin-top: 0.65rem; }
 .constructed-card-detail__gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.45rem; }
-.constructed-card-detail__gallery img { width: 100%; height: 130px; border: 1px solid #a97b45; object-fit: cover; }
+.constructed-card-detail__gallery button { display: grid; min-width: 0; padding: 0; border: 1px solid #a97b45; color: #4a2d1b; background: rgba(255, 248, 225, 0.5); cursor: zoom-in; }
+.constructed-card-detail__gallery img { width: 100%; height: 130px; object-fit: cover; }
+.constructed-card-detail__gallery button span { overflow: hidden; padding: 0.35rem; font-size: 0.6rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
 .constructed-card-detail__sounds { display: grid; gap: 0.5rem; }
-.constructed-card-detail__sounds label { display: grid; gap: 0.25rem; color: #705138; font-size: 0.65rem; }
+.constructed-card-detail__sounds details { border: 1px solid rgba(121, 79, 38, 0.26); background: rgba(255, 250, 232, 0.34); }
+.constructed-card-detail__sounds summary { padding: 0.5rem 0.6rem; color: #5c3b24; font-size: 0.68rem; font-weight: 900; cursor: pointer; }
+.constructed-card-detail__sounds article { display: grid; gap: 0.28rem; padding: 0.5rem 0.6rem; border-top: 1px solid rgba(121, 79, 38, 0.18); color: #705138; font-size: 0.63rem; }
 .constructed-card-detail__sounds audio { width: 100%; height: 34px; }
 .constructed-card-detail__links { display: grid; gap: 0.4rem; }
 .constructed-card-detail__links a { display: flex; gap: 0.25rem; align-items: center; min-height: 28px; padding-block: 0.15rem; color: #6c1c22; font-size: 0.7rem; font-weight: 800; }
+
+.constructed-card-lightbox { position: fixed; inset: 0; z-index: 99999; display: grid; padding: clamp(0.7rem, 2vw, 1.5rem); place-items: center; font-family: var(--font-body); }
+.constructed-card-lightbox__backdrop { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: rgba(20, 11, 7, 0.88); backdrop-filter: blur(8px); }
+.constructed-card-lightbox__panel { position: relative; z-index: 1; display: grid; grid-template-rows: minmax(0, 1fr) auto; width: min(1120px, 96vw); max-height: 94dvh; overflow: hidden; border: 1px solid rgba(222, 184, 97, 0.72); color: #f8ead0; background: #1d120c; box-shadow: 0 28px 85px rgba(0, 0, 0, 0.65); }
+.constructed-card-lightbox__close { position: absolute; top: 0.7rem; right: 0.7rem; z-index: 2; display: grid; width: 44px; height: 44px; border: 1px solid rgba(222, 184, 97, 0.55); border-radius: 50%; place-items: center; color: #fff2ce; background: rgba(35, 18, 9, 0.86); }
+.constructed-card-lightbox__media { display: grid; min-height: 0; padding: clamp(0.8rem, 2vw, 1.5rem); place-items: center; overflow: auto; background: radial-gradient(circle at 50% 30%, rgba(120, 75, 35, 0.25), transparent 55%); }
+.constructed-card-lightbox__media img,
+.constructed-card-lightbox__media video { display: block; max-width: 100%; max-height: calc(94dvh - 98px); object-fit: contain; }
+.constructed-card-lightbox__footer { display: flex; gap: 1rem; align-items: center; justify-content: space-between; min-height: 72px; padding: 0.7rem 1rem; border-top: 1px solid rgba(222, 184, 97, 0.32); background: #2a190f; }
+.constructed-card-lightbox__footer > div:first-child { display: grid; min-width: 0; }
+.constructed-card-lightbox__footer strong { overflow: hidden; color: #fff0c4; font-family: var(--font-display); font-size: 1rem; text-overflow: ellipsis; white-space: nowrap; }
+.constructed-card-lightbox__footer span { color: #cdb47c; font-size: 0.65rem; }
+.constructed-card-lightbox__actions { display: flex; flex: 0 0 auto; gap: 0.4rem; align-items: center; }
+.constructed-card-lightbox__actions a,
+.constructed-card-lightbox__actions button { display: inline-flex; gap: 0.3rem; align-items: center; justify-content: center; min-width: 42px; min-height: 42px; padding: 0 0.65rem; border: 1px solid rgba(222, 184, 97, 0.5); color: #fff0c4; background: #3a2213; font-size: 0.68rem; font-weight: 900; text-decoration: none; }
 
 @media (max-width: 1240px) {
   .constructed-cards__primary-controls,
@@ -204,6 +233,10 @@
   .constructed-cards__header > p { font-size: 0.82rem; }
   .constructed-cards__beta { flex-wrap: wrap; }
   .constructed-cards__beta span { min-height: 25px; font-size: 0.57rem; }
+  .constructed-cards__coverage div { display: grid; gap: 0.15rem; align-content: center; min-height: 58px; padding: 0.4rem; text-align: center; }
+  .constructed-cards__coverage dt { justify-content: center; font-size: 0.56rem; line-height: 1.15; }
+  .constructed-cards__coverage dt svg { display: none; }
+  .constructed-cards__coverage dd { font-size: 0.9rem; }
   .constructed-cards__controls { margin-top: 0.45rem; padding: 0.55rem; }
   .constructed-cards__primary-controls,
   .constructed-cards__secondary-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; }
@@ -227,7 +260,7 @@
   .constructed-cards__pagination button { min-height: 44px; }
   .constructed-card-detail__breadcrumb { overflow: hidden; white-space: nowrap; }
   .constructed-card-detail__hero { grid-template-columns: 1fr; padding: 0.65rem; }
-  .constructed-card-detail__visual > img { max-height: 430px; }
+  .constructed-card-detail__visual-button img { max-height: 430px; }
   .constructed-card-detail__statistics { grid-column: auto; }
   .constructed-card-detail__statistics .constructed-cards__stats { grid-template-columns: 1fr; }
   .constructed-card-detail__meta { grid-template-columns: 1fr; }
@@ -236,6 +269,14 @@
   .constructed-card-detail__patches summary { grid-template-columns: 78px minmax(0, 1fr); }
   .constructed-card-detail__patches details p { margin-left: 0; }
   .constructed-card-detail__gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .constructed-card-lightbox { padding: 0; }
+  .constructed-card-lightbox__panel { width: 100vw; max-height: 100dvh; min-height: 100dvh; border-inline: 0; }
+  .constructed-card-lightbox__media img,
+  .constructed-card-lightbox__media video { max-height: calc(100dvh - 112px); }
+  .constructed-card-lightbox__footer { min-height: 92px; padding: 0.6rem; }
+  .constructed-card-lightbox__footer strong { max-width: 54vw; }
+  .constructed-card-lightbox__actions a { width: 42px; padding: 0; overflow: hidden; color: transparent; }
+  .constructed-card-lightbox__actions a svg { color: #fff0c4; }
 }
 
 @media (prefers-reduced-motion: reduce) {

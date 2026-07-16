@@ -117,6 +117,17 @@ function uniqueSorted(values: unknown[]): string[] {
     .sort((left, right) => left.localeCompare(right, 'ru', { sensitivity: 'base' }));
 }
 
+function countedValues(values: unknown[]): Array<{ value: string; count: number }> {
+  const counts = new Map<string, number>();
+  for (const rawValue of values) {
+    const value = String(rawValue ?? '').trim();
+    if (value) counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([value, count]) => ({ value, count }))
+    .sort((left, right) => left.value.localeCompare(right.value, 'ru', { sensitivity: 'base' }));
+}
+
 export function queryConstructedCards(cards: JsonRecord[], query: Record<string, unknown>) {
   const search = readFilter(query.query).toLocaleLowerCase('ru');
   const className = readFilter(query.class).toUpperCase();
@@ -157,6 +168,26 @@ export function constructedCardFacets(cards: JsonRecord[]) {
   };
 }
 
+export function constructedCardFacetCounts(cards: JsonRecord[]) {
+  return {
+    classes: countedValues(cards.flatMap(card => [card?.class, ...(Array.isArray(card?.multi_class) ? card.multi_class : [])])),
+    sets: countedValues(cards.map(card => card?.card_set)),
+    mechanics: countedValues(cards.flatMap(cardMechanics)),
+    types: countedValues(cards.map(card => card?.card_type?.slug)),
+    rarities: countedValues(cards.map(card => card?.rarity)),
+  };
+}
+
+export function constructedCardCoverage(cards: JsonRecord[]) {
+  const cardsWithStats = cards.filter(card => card?.stats !== null && card?.stats !== undefined).length;
+  return {
+    totalCards: cards.length,
+    cardsWithStats,
+    cardsWithoutStats: cards.length - cardsWithStats,
+    totalSets: new Set(cards.map(card => String(card?.card_set ?? '').trim()).filter(Boolean)).size,
+  };
+}
+
 export function normalizeConstructedCardStats(row: JsonRecord | undefined): JsonRecord | null {
   if (!row) return null;
   return {
@@ -182,12 +213,66 @@ export function mergeConstructedCardRows(catalogCards: JsonRecord[], statsCards:
     if (cardId) statsByCardId.set(cardId, row);
     if (dbf !== null) statsByDbf.set(dbf, row);
   }
-  return catalogCards.map(card => {
+  const matchedStats = new Set<JsonRecord>();
+  const representedCardIds = new Set(catalogCards.map(card => String(card?.card_id ?? '').trim().toUpperCase()).filter(Boolean));
+  const representedDbfs = new Set(catalogCards.map(card => finiteNumber(card?.dbf)).filter((value): value is number => value !== null));
+  const mergedCards: JsonRecord[] = catalogCards.map(card => {
     const cardId = String(card?.card_id ?? '').trim().toUpperCase();
     const dbf = finiteNumber(card?.dbf);
     const stats = statsByCardId.get(cardId) ?? (dbf !== null ? statsByDbf.get(dbf) : undefined);
+    if (stats) matchedStats.add(stats);
     return { ...card, stats: normalizeConstructedCardStats(stats) };
   });
+
+  // The catalog and HSReplay snapshots are refreshed independently. Keep a
+  // newly observed statistics row visible during the short window before the
+  // card database catches up instead of silently dropping it from the UI.
+  for (const row of statsCards) {
+    if (matchedStats.has(row)) continue;
+    const cardId = String(row?.id ?? '').trim();
+    if (!cardId) continue;
+    const normalizedCardId = cardId.toUpperCase();
+    const dbf = finiteNumber(row?.dbfId);
+    if (representedCardIds.has(normalizedCardId) || (dbf !== null && representedDbfs.has(dbf))) continue;
+    representedCardIds.add(normalizedCardId);
+    if (dbf !== null) representedDbfs.add(dbf);
+    mergedCards.push({
+      card_id: cardId,
+      dbf,
+      name: { ru: String(row?.name ?? '').trim() || null, en: null },
+      text: { ru: null, en: null },
+      flavor: { ru: null, en: null },
+      card_set: null,
+      card_type: { slug: String(row?.type ?? '').trim() || null, name_ru: null },
+      rarity: String(row?.rarity ?? '').trim() || null,
+      class: String(row?.cardClass ?? '').trim() || null,
+      multi_class: [],
+      mana_cost: finiteNumber(row?.cost),
+      attack: null,
+      health: null,
+      mechanics: [],
+      referenced_tags: [],
+      images: { card: null, golden: null, signature: null, diamond: null, crop: null },
+      catalogPending: true,
+      stats: normalizeConstructedCardStats(row),
+    });
+  }
+  return mergedCards;
+}
+
+export function completeConstructedCatalog(payloads: JsonRecord[]): JsonRecord[] {
+  const firstPage = payloads[0] ?? {};
+  const expectedTotal = Math.max(0, Number(firstPage?.pagination?.total ?? 0));
+  const cardsById = new Map<string, JsonRecord>();
+  for (const card of payloads.flatMap(payload => Array.isArray(payload?.data) ? payload.data : [])) {
+    const key = String(card?.card_id ?? '').trim().toUpperCase();
+    if (key) cardsById.set(key, card);
+  }
+  const cards = [...cardsById.values()];
+  if (expectedTotal > 0 && cards.length < expectedTotal) {
+    throw new Error(`Constructed catalog is incomplete: received ${cards.length} of ${expectedTotal} cards`);
+  }
+  return cards;
 }
 
 async function fetchCatalogPage(dependencies: DataServiceDependencies, format: ConstructedCardFormat, page: number): Promise<any> {
@@ -217,7 +302,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
       const remainingPages = await Promise.all(
         Array.from({ length: Math.max(0, totalPages - 1) }, (_, index) => fetchCatalogPage(dependencies, format, index + 2)),
       );
-      const catalogCards = [firstPage, ...remainingPages].flatMap(payload => Array.isArray(payload?.data) ? payload.data : []);
+      const catalogCards = completeConstructedCatalog([firstPage, ...remainingPages]);
       const statsDataset = dependencies.statsDatasetByFormat[format];
       const statsPayload = await dependencies.fetchJson(`${dependencies.statsBaseUrl.replace(/\/$/, '')}/${statsDataset}`);
       const statsCards = Array.isArray(statsPayload?.view?.cards) ? statsPayload.view.cards : [];
@@ -273,6 +358,8 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
         sourceUrl: collection.sourceUrl,
         cards: cards.slice(offset, offset + perPage),
         facets: constructedCardFacets(collection.cards),
+        facetCounts: constructedCardFacetCounts(collection.cards),
+        coverage: constructedCardCoverage(collection.cards),
         pagination: { page: safePage, perPage, total: cards.length, totalPages },
       });
     } catch (error) {

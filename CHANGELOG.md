@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Completed the administrator-only “Карты” beta: Standard and Wild now expose verified full-catalog coverage and complete translated expansion filters, retain cards during independent source refreshes, support 60/120-card pages with explicit totals, open every available artwork variant in an accessible lightbox, and correctly render grouped card voice lines from the nested wiki payload.
 - Added the administrator-only “Карты” beta under Standard: the full Standard/Wild constructed catalog is merged with the existing one-day Legend datasets, supports server-side search/filter/sort/pagination plus gallery/table modes and hover statistics, and opens complete card dossiers from db.kolodahs.ru with variants, mechanics, patch history, related cards, gallery, sounds and external sources.
 - Rebuilt the Standard meta deck modal as a viewport-safe body portal with a fully visible preview, persistent deck code and accessible focus/scroll handling; corrected `*lock` archetypes to Warlock, added same-class representative builds for complete code coverage, and persisted KolodaHS preview hashes for 30 days so releases and repeated opens do not regenerate images.
 - Fixed the Vicious Syndicate Gold build resolver so Blood Warrior uses a valid current Standard Lo’Gosh Warrior fallback from the constructed-decks API instead of MetaStats' invalid short Control Warrior code, restoring real 26/26 deck-code coverage.

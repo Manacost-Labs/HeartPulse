@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import express, { type RequestHandler } from 'express';
 import {
+  completeConstructedCatalog,
+  constructedCardCoverage,
+  constructedCardFacetCounts,
   createConstructedCardRouter,
   mergeConstructedCardRows,
   queryConstructedCards,
@@ -27,8 +30,29 @@ const mergedCards = mergeConstructedCardRows(catalogCards, [{
 assert.equal(mergedCards[0].stats.deckPopularity, 12.5);
 assert.equal(mergedCards[0].stats.deckWinrate, 54.3);
 assert.equal(mergedCards[1].stats, null, 'catalog cards without Legend statistics must remain in the library');
+const pendingCatalogCard = mergeConstructedCardRows(catalogCards, [{
+  id: 'CARD_3', dbfId: 3, name: 'Гамма', type: 'SPELL', rarity: 'EPIC', cardClass: 'PRIEST', cost: 3,
+  deck_popularity: '1.2%', times_played: 42,
+}]).find(card => card.card_id === 'CARD_3');
+assert.equal(pendingCatalogCard?.catalogPending, true, 'a fresh HSReplay card must survive catalog synchronization lag');
+assert.equal(pendingCatalogCard?.stats.deckPopularity, 1.2);
+assert.equal(
+  mergeConstructedCardRows(catalogCards, [
+    { id: 'CARD_1', dbfId: 1, deck_popularity: '2%' },
+    { id: 'CARD_1', dbfId: 1, deck_popularity: '3%' },
+  ]).length,
+  2,
+  'duplicate statistics rows must not create duplicate catalog cards',
+);
 assert.deepEqual(queryConstructedCards(mergedCards, { class: 'mage', mechanic: 'battlecry' }).map(card => card.card_id), ['CARD_1']);
 assert.deepEqual(queryConstructedCards(mergedCards, { sort: 'mana', direction: 'desc' }).map(card => card.card_id), ['CARD_2', 'CARD_1']);
+assert.deepEqual(constructedCardCoverage(mergedCards), { totalCards: 2, cardsWithStats: 1, cardsWithoutStats: 1, totalSets: 2 });
+assert.deepEqual(constructedCardFacetCounts(mergedCards).sets, [{ value: 'SET_A', count: 1 }, { value: 'SET_B', count: 1 }]);
+assert.equal(completeConstructedCatalog([{ data: catalogCards, pagination: { total: 2 } }]).length, 2);
+assert.throws(
+  () => completeConstructedCatalog([{ data: catalogCards.slice(0, 1), pagination: { total: 2 } }]),
+  /received 1 of 2 cards/,
+);
 
 const calls: string[] = [];
 const adminGuard: RequestHandler = (request, response, next) => {
@@ -81,6 +105,8 @@ try {
   assert.equal(listPayload.cards[0].card_id, 'CARD_1');
   assert.equal(listPayload.pagination.total, 1);
   assert.ok(listPayload.facets.classes.includes('WARRIOR'));
+  assert.equal(listPayload.coverage.totalCards, 2);
+  assert.deepEqual(listPayload.facetCounts.sets, [{ value: 'SET_A', count: 1 }, { value: 'SET_B', count: 1 }]);
 
   const detail = await fetch(`${origin}/CARD_1?format=wild`, { headers: adminHeaders });
   assert.equal(detail.status, 200);
