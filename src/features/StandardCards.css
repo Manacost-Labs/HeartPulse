@@ -197,15 +197,20 @@
 .constructed-card-detail__pool-toggle { display: flex; min-height: 38px; margin: 0 auto 0.65rem; padding: 0 0.9rem; border: 1px solid #7e3327; align-items: center; justify-content: center; color: #fff0c5; background: #713118; font-size: 0.66rem; font-weight: 900; }
 .constructed-card-detail__pool-toggle:hover { filter: brightness(1.08); }
 .constructed-card-detail__decks { margin-top: 0.8rem; }
-.constructed-card-detail__deck-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem; margin-bottom: 0.7rem; }
-.constructed-card-detail__deck { display: grid; min-width: 0; overflow: hidden; border: 1px solid rgba(121, 79, 38, 0.32); background: rgba(255, 250, 232, 0.42); box-shadow: 0 6px 14px rgba(67, 37, 15, 0.08); }
-.constructed-card-detail__deck-image { display: grid; min-height: 235px; padding: 0.55rem; place-items: center; overflow: hidden; border-bottom: 1px solid rgba(121, 79, 38, 0.22); background: radial-gradient(circle at 50% 38%, rgba(231, 197, 124, 0.28), rgba(99, 48, 19, 0.08)); }
-.constructed-card-detail__deck-image img { display: block; width: 100%; height: 270px; object-fit: contain; }
-.constructed-card-detail__deck-image > div { display: grid; max-width: 220px; gap: 0.55rem; justify-items: center; color: #76593e; font-size: 0.67rem; font-weight: 800; text-align: center; }
-.constructed-card-detail__deck-copy { display: grid; gap: 0.3rem; padding: 0.65rem; }
-.constructed-card-detail__deck-copy h3 { margin: 0; overflow: hidden; font-family: var(--font-display); font-size: 1rem; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+.constructed-card-detail__deck-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 430px)); gap: 0.8rem; justify-content: center; margin-bottom: 0.7rem; }
+.constructed-card-detail__deck { display: grid; grid-template-rows: auto 1fr; min-width: 0; overflow: hidden; border: 1px solid rgba(121, 79, 38, 0.32); background: rgba(255, 250, 232, 0.42); box-shadow: 0 6px 14px rgba(67, 37, 15, 0.08); }
+.constructed-card-detail__deck-image { display: grid; min-width: 0; padding: 0.5rem; place-items: center; overflow: hidden; border-bottom: 1px solid rgba(121, 79, 38, 0.22); background: radial-gradient(circle at 50% 38%, rgba(231, 197, 124, 0.28), rgba(99, 48, 19, 0.08)); }
+.constructed-card-detail__deck-preview { position: relative; display: grid; width: 100%; padding: 0; border: 0; place-items: center; overflow: hidden; color: #fff0c4; background: #101823; cursor: zoom-in; }
+.constructed-card-detail__deck-preview img { display: block; width: 100%; height: auto; object-fit: contain; }
+.constructed-card-detail__deck-preview > span { position: absolute; right: 0.45rem; bottom: 0.45rem; left: 0.45rem; padding: 0.38rem 0.5rem; background: rgba(31, 16, 9, 0.88); font-size: 0.62rem; font-weight: 900; opacity: 0; transform: translateY(5px); transition: opacity 140ms ease, transform 140ms ease; }
+.constructed-card-detail__deck-preview:hover > span,
+.constructed-card-detail__deck-preview:focus-visible > span { opacity: 1; transform: translateY(0); }
+.constructed-card-detail__deck-preview-state { display: grid; width: 100%; aspect-ratio: 1920 / 1722; gap: 0.55rem; align-content: center; justify-items: center; padding: 1rem; color: #76593e; font-size: 0.67rem; font-weight: 800; text-align: center; }
+.constructed-card-detail__deck-preview-state button { display: inline-flex; gap: 0.3rem; align-items: center; min-height: 34px; padding: 0 0.65rem; border: 1px solid #8a5330; color: #5b351e; background: rgba(255, 244, 213, 0.8); font-size: 0.64rem; font-weight: 900; }
+.constructed-card-detail__deck-copy { display: grid; grid-template-rows: auto auto 1fr; gap: 0.3rem; padding: 0.7rem; }
+.constructed-card-detail__deck-copy h3 { display: -webkit-box; min-height: 2.3em; margin: 0; overflow: hidden; font-family: var(--font-display); font-size: 1rem; line-height: 1.15; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .constructed-card-detail__deck-copy p { min-height: 1rem; margin: 0; color: var(--cards-muted); font-size: 0.63rem; }
-.constructed-card-detail__deck-copy button { display: inline-flex; gap: 0.35rem; align-items: center; justify-content: center; min-height: 39px; margin-top: 0.25rem; border: 1px solid #7e3327; color: #fff0c5; background: #713118; font-size: 0.66rem; font-weight: 900; }
+.constructed-card-detail__deck-copy > button { display: inline-flex; align-self: end; gap: 0.35rem; align-items: center; justify-content: center; width: 100%; min-height: 39px; margin-top: 0.25rem; border: 1px solid #7e3327; color: #fff0c5; background: #713118; font-size: 0.66rem; font-weight: 900; }
 .constructed-card-detail__deck-copy button:hover { filter: brightness(1.08); }
 .constructed-card-detail__media-grid { display: grid; grid-template-columns: 1.35fr 0.9fr 0.75fr; gap: 0.8rem; margin-top: 0.8rem; }
 .constructed-card-detail__media-grid--two { grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr); }
@@ -303,8 +308,7 @@
   .constructed-card-detail__pool-card { min-height: 137px; padding-inline: 0.2rem; }
   .constructed-card-detail__pool-cards img { width: 92px; height: 100px; }
   .constructed-card-detail__deck-grid { grid-template-columns: 1fr; }
-  .constructed-card-detail__deck-image { min-height: 210px; }
-  .constructed-card-detail__deck-image img { height: 245px; }
+  .constructed-card-detail__deck-image { padding: 0.35rem; }
   .constructed-card-detail__gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .constructed-card-lightbox { padding: 0; }
   .constructed-card-lightbox__panel { width: 100vw; max-height: 100dvh; min-height: 100dvh; border-inline: 0; }

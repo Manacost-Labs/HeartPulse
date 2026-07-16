@@ -20,6 +20,7 @@ export type ConstructedCardDeck = {
   id: string;
   title: string;
   archetype: string | null;
+  archetypeLabel: string;
   className: string | null;
   deckCode: string;
   source: string | null;
@@ -52,6 +53,7 @@ type DataServiceDependencies = {
   statsBaseUrl: string;
   patchesUrl?: string;
   constructedDecksUrl?: string;
+  getArchetypeTranslations?: () => Promise<Record<string, string>>;
   cacheTtlMs?: number;
 };
 
@@ -63,6 +65,19 @@ const VALID_CLASSES = new Set([
   'DEATHKNIGHT', 'DEMONHUNTER', 'DRUID', 'HUNTER', 'MAGE', 'PALADIN',
   'PRIEST', 'ROGUE', 'SHAMAN', 'WARLOCK', 'WARRIOR', 'NEUTRAL', 'DREAM',
 ]);
+const CONSTRUCTED_ARCHETYPE_FALLBACK_RU: Record<string, string> = {
+  'elwynn boar warlock': 'Чернокнижник на Эльвинских вепрях',
+  'hand warlock': 'Хендлок',
+  'herald egg warlock': 'Кхелос Чернокнижник',
+  'insanity warlock': 'Инсанити Чернокнижник',
+  'pain warlock': 'Пейнлок',
+  'rafaam warlock': 'Рафаам Чернокнижник',
+  'renathal big warlock': 'Ренатал Биг Чернокнижник',
+  'renathal reno tick tock egg warlock': 'Ренатал Рено Тик-Ток Кхелос Чернокнижник',
+  'renathal reno tick tock warlock': 'Ренатал Рено Тик-Ток Чернокнижник',
+  'renathal tick tock warlock': 'Ренатал Тик-Ток Чернокнижник',
+  'seed warlock': 'Квестлайн Чернокнижник',
+};
 
 function readFormat(value: unknown): ConstructedCardFormat | null {
   const format = String(value ?? 'standard') as ConstructedCardFormat;
@@ -387,6 +402,23 @@ function deckFormatMatches(row: JsonRecord, decodedFormat: number, format: Const
   return format === 'standard' ? decodedFormat === 2 : decodedFormat === 1;
 }
 
+export function translateConstructedArchetype(name: string, translations: Record<string, string>): string {
+  const normalizedName = name.toLocaleLowerCase('en-US').trim();
+  if (!normalizedName) return name;
+  if (translations[normalizedName]) return translations[normalizedName];
+  if (CONSTRUCTED_ARCHETYPE_FALLBACK_RU[normalizedName]) return CONSTRUCTED_ARCHETYPE_FALLBACK_RU[normalizedName];
+  let bestMatch = '';
+  let bestLength = 0;
+  for (const [source, translated] of Object.entries(translations)) {
+    const normalizedSource = source.toLocaleLowerCase('en-US').trim();
+    if (normalizedSource && normalizedName.includes(normalizedSource) && normalizedSource.length > bestLength) {
+      bestMatch = translated;
+      bestLength = normalizedSource.length;
+    }
+  }
+  return bestMatch || name;
+}
+
 export function constructedDecksContainingCard(
   rows: JsonRecord[],
   card: JsonRecord,
@@ -416,6 +448,7 @@ export function constructedDecksContainingCard(
       id,
       title,
       archetype,
+      archetypeLabel: archetype || title,
       className: String(row?.class ?? '').trim() || null,
       deckCode,
       source: String(row?.source_id ?? '').trim() || null,
@@ -566,7 +599,12 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
       const payload = await dependencies.fetchJson(url);
       const detail = payload?.data && typeof payload.data === 'object' ? payload.data : null;
       if (!detail) return null;
-      const [collection, patches, deckRows] = await Promise.all([loadCards(format), loadPatches(), loadDeckRows()]);
+      const [collection, patches, deckRows, archetypeTranslations] = await Promise.all([
+        loadCards(format),
+        loadPatches(),
+        loadDeckRows(),
+        dependencies.getArchetypeTranslations?.().catch(() => ({})) ?? Promise.resolve({}),
+      ]);
       const merged = collection.cards.find(card => String(card?.card_id ?? '').toUpperCase() === String(detail.card_id ?? '').toUpperCase());
       const catalogIds = new Set(collection.cards.map(card => String(card?.card_id ?? '').trim().toUpperCase()).filter(Boolean));
       const missingRelatedIds: string[] = [...new Set<string>((Array.isArray(detail?.wiki?.related_cards) ? detail.wiki.related_cards : [])
@@ -590,7 +628,10 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
         stats: merged?.stats ?? null,
         statsUpdatedAt: collection.updatedAt,
         statsSourceUrl: collection.sourceUrl,
-        decks: constructedDecksContainingCard(deckRows, detail, format),
+        decks: constructedDecksContainingCard(deckRows, detail, format).map(deck => ({
+          ...deck,
+          archetypeLabel: translateConstructedArchetype(deck.archetype || deck.title, archetypeTranslations),
+        })),
       };
       detailCache.set(key, { value, expiresAt: Date.now() + cacheTtlMs });
       return value;

@@ -17,7 +17,7 @@ import {
 import '../route-parchment.css';
 import ConstructedCardLightbox from './ConstructedCardLightbox';
 import { compareConstructedSets, constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
-import { collectConstructedCardMedia, flattenConstructedCardSounds } from './constructedCardMedia';
+import { collectConstructedCardMedia, flattenConstructedCardSounds, type ConstructedCardMediaItem } from './constructedCardMedia';
 import './StandardCards.css';
 
 type CardFormat = 'standard' | 'wild';
@@ -81,6 +81,7 @@ type ConstructedDeck = {
   id: string;
   title: string;
   archetype?: string | null;
+  archetypeLabel?: string | null;
   className?: string | null;
   deckCode: string;
   source?: string | null;
@@ -572,9 +573,17 @@ async function copyText(value: string): Promise<boolean> {
   }
 }
 
-function ConstructedDeckCard({ deck, cardId, format }: { key?: React.Key; deck: ConstructedDeck; cardId: string; format: CardFormat }) {
+function ConstructedDeckCard({ deck, cardId, format, onPreviewReady, onOpenPreview }: {
+  key?: React.Key;
+  deck: ConstructedDeck;
+  cardId: string;
+  format: CardFormat;
+  onPreviewReady: (deck: ConstructedDeck, imageUrl: string) => void;
+  onOpenPreview: (deck: ConstructedDeck, imageUrl: string) => void;
+}) {
   const [imageUrl, setImageUrl] = useState('');
   const [previewError, setPreviewError] = useState('');
+  const [retryToken, setRetryToken] = useState(0);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -582,20 +591,27 @@ function ConstructedDeckCard({ deck, cardId, format }: { key?: React.Key; deck: 
     const loadPreview = async () => {
       setPreviewError('');
       try {
-        const response = await fetch(`/api/admin/constructed-cards/${encodeURIComponent(cardId)}/decks/${encodeURIComponent(deck.id)}/preview?format=${format}`, {
-          method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Request': '1' },
-          body: JSON.stringify({ format }), signal: controller.signal,
-        });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok || !payload?.preview?.imageUrl) throw new Error(payload?.error || 'Превью недоступно');
-        setImageUrl(payload.preview.imageUrl);
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          const response = await fetch(`/api/admin/constructed-cards/${encodeURIComponent(cardId)}/decks/${encodeURIComponent(deck.id)}/preview?format=${format}`, {
+            method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Request': '1' },
+            body: JSON.stringify({ format }), signal: controller.signal,
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (response.ok && payload?.preview?.imageUrl) {
+            setImageUrl(payload.preview.imageUrl);
+            onPreviewReady(deck, payload.preview.imageUrl);
+            return;
+          }
+          if (response.status < 500) break;
+        }
+        throw new Error('Не удалось загрузить изображение колоды');
       } catch (error) {
-        if (!controller.signal.aborted) setPreviewError(error instanceof Error ? error.message : 'Превью недоступно');
+        if (!controller.signal.aborted) setPreviewError(error instanceof Error ? error.message : 'Не удалось загрузить изображение колоды');
       }
     };
     void loadPreview();
     return () => controller.abort();
-  }, [cardId, deck.id, format]);
+  }, [cardId, deck, format, onPreviewReady, retryToken]);
 
   const copyDeck = async () => {
     if (!await copyText(deck.deckCode)) return;
@@ -606,11 +622,11 @@ function ConstructedDeckCard({ deck, cardId, format }: { key?: React.Key; deck: 
   return (
     <article className="constructed-card-detail__deck">
       <div className="constructed-card-detail__deck-image">
-        {imageUrl ? <img src={imageUrl} alt={`Колода ${deck.archetype || deck.title}`} loading="lazy" />
-          : <div aria-busy={!previewError}><Layers3 size={28} /><span>{previewError || 'Создаём изображение DeckView…'}</span></div>}
+        {imageUrl ? <button type="button" className="constructed-card-detail__deck-preview" onClick={() => onOpenPreview(deck, imageUrl)} aria-label={`Открыть колоду ${deck.archetypeLabel || deck.archetype || deck.title} в полном размере`}><img src={imageUrl} alt={`Колода ${deck.archetypeLabel || deck.archetype || deck.title}`} loading="lazy" onError={() => { setImageUrl(''); setPreviewError('Не удалось загрузить изображение колоды'); }} /><span>Открыть в полном размере</span></button>
+          : <div className="constructed-card-detail__deck-preview-state" aria-busy={!previewError}><Layers3 size={28} /><span>{previewError || 'Создаём изображение DeckView…'}</span>{previewError && <button type="button" onClick={() => setRetryToken(value => value + 1)}><RefreshCw size={14} /> Повторить</button>}</div>}
       </div>
       <div className="constructed-card-detail__deck-copy">
-        <h3>{deck.archetype || deck.title}</h3>
+        <h3>{deck.archetypeLabel || deck.archetype || deck.title}</h3>
         <p>{[deck.className ? classLabel(deck.className.toUpperCase().replace(/\s+/g, '')) : '', deck.score || (deck.winrate != null ? `${percent(deck.winrate)} побед` : '')].filter(Boolean).join(' · ') || 'Готовая сборка'}</p>
         <button type="button" onClick={copyDeck}><Copy size={15} /> {copied ? 'Код скопирован' : 'Скопировать код'}</button>
       </div>
@@ -620,13 +636,33 @@ function ConstructedDeckCard({ deck, cardId, format }: { key?: React.Key; deck: 
 
 function ConstructedCardDecks({ decks, cardId, format }: { decks: ConstructedDeck[]; cardId: string; format: CardFormat }) {
   const [visibleCount, setVisibleCount] = useState(3);
-  useEffect(() => setVisibleCount(3), [cardId, format]);
+  const [previewImages, setPreviewImages] = useState<Record<string, string>>({});
+  const [lightboxItems, setLightboxItems] = useState<ConstructedCardMediaItem[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(-1);
+  useEffect(() => { setVisibleCount(3); setPreviewImages({}); setLightboxItems([]); setLightboxIndex(-1); }, [cardId, format]);
   const visibleDecks = decks.slice(0, visibleCount);
+  const handlePreviewReady = React.useCallback((deck: ConstructedDeck, imageUrl: string) => {
+    setPreviewImages(current => current[deck.id] === imageUrl ? current : { ...current, [deck.id]: imageUrl });
+  }, []);
+  const handleOpenPreview = (deck: ConstructedDeck, imageUrl: string) => {
+    const availableImages = { ...previewImages, [deck.id]: imageUrl };
+    const items = visibleDecks.flatMap((item): ConstructedCardMediaItem[] => availableImages[item.id] ? [{
+      id: `deck-${item.id}`,
+      label: item.archetypeLabel || item.archetype || item.title,
+      url: availableImages[item.id],
+      thumbnailUrl: availableImages[item.id],
+      sourceUrl: item.sourceUrl || null,
+      kind: 'image',
+    }] : []);
+    setLightboxItems(items);
+    setLightboxIndex(items.findIndex(item => item.id === `deck-${deck.id}`));
+  };
   return (
     <section className="constructed-card-detail__section constructed-card-detail__decks">
       <h2><Layers3 size={19} /> Колоды с этой картой · {decks.length}</h2>
-      <div className="constructed-card-detail__deck-grid">{visibleDecks.map(deck => <ConstructedDeckCard key={deck.id} deck={deck} cardId={cardId} format={format} />)}</div>
+      <div className="constructed-card-detail__deck-grid">{visibleDecks.map(deck => <ConstructedDeckCard key={deck.id} deck={deck} cardId={cardId} format={format} onPreviewReady={handlePreviewReady} onOpenPreview={handleOpenPreview} />)}</div>
       {visibleCount < decks.length && <button type="button" className="constructed-card-detail__pool-toggle" onClick={() => setVisibleCount(count => Math.min(count + 3, decks.length))}>Показать больше · ещё {Math.min(3, decks.length - visibleCount)}</button>}
+      {lightboxIndex >= 0 && <ConstructedCardLightbox items={lightboxItems} index={lightboxIndex} onClose={() => setLightboxIndex(-1)} onIndexChange={setLightboxIndex} />}
     </section>
   );
 }

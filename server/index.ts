@@ -181,6 +181,7 @@ const standardMetaRecommendationCache = new Map<string, { data: StandardMetaReco
 const standardMetaRecommendationJobs = new Map<string, Promise<StandardMetaRecommendation | null>>();
 const standardMetaPreviewCache = new Map<string, { preview: StandardMetaPreview; expiresAt: number }>();
 const standardMetaPreviewJobs = new Map<string, Promise<StandardMetaPreview>>();
+let deckviewPreviewRenderTail: Promise<void> = Promise.resolve();
 let standardMetaDeckRowsCache: { rows: any[]; expiresAt: number } | null = null;
 const STANDARD_META_PREVIEW_CACHE_FILE = join(DATA_DIR, 'standard-meta-preview-cache.json');
 
@@ -6412,15 +6413,24 @@ async function createStandardMetaPreview(recommendation: { deckCode: string; arc
   const active = standardMetaPreviewJobs.get(cacheKey);
   if (active) return active;
   const job = (async () => {
-    const preview = await renderDeckviewPreview({
-      deckCode: recommendation.deckCode,
-      deckName: recommendation.archetypeLabel,
-      hash: cacheKey,
-    }, {
-      apiBaseUrl: DECKVIEW_RENDER_API_BASE_URL,
-      publicBaseUrl: DECKVIEW_RENDER_PUBLIC_BASE_URL,
-      timeoutMs: DECKVIEW_RENDER_TIMEOUT_MS,
-    });
+    const previousRender = deckviewPreviewRenderTail;
+    let releaseRender!: () => void;
+    deckviewPreviewRenderTail = new Promise<void>(resolve => { releaseRender = resolve; });
+    await previousRender.catch(() => undefined);
+    let preview: StandardMetaPreview;
+    try {
+      preview = await renderDeckviewPreview({
+        deckCode: recommendation.deckCode,
+        deckName: recommendation.archetypeLabel,
+        hash: cacheKey,
+      }, {
+        apiBaseUrl: DECKVIEW_RENDER_API_BASE_URL,
+        publicBaseUrl: DECKVIEW_RENDER_PUBLIC_BASE_URL,
+        timeoutMs: DECKVIEW_RENDER_TIMEOUT_MS,
+      });
+    } finally {
+      releaseRender();
+    }
     standardMetaPreviewCache.set(cacheKey, { preview, expiresAt: Date.now() + STANDARD_META_PREVIEW_CACHE_MS });
     persistStandardMetaPreviewCache();
     return preview;
@@ -6723,6 +6733,7 @@ const constructedCardDataService = createConstructedCardDataService({
   statsBaseUrl: `${DATASET_API_ORIGIN}/demo/view`,
   patchesUrl: `${DATASET_API_ORIGIN}/api/patches?limit=500`,
   constructedDecksUrl: `${DATASET_API_ORIGIN}/v1/constructed/decks`,
+  getArchetypeTranslations: () => getStandardArchetypeTranslations().then(result => result.map),
   cacheTtlMs: EXTERNAL_DATASET_CACHE_MS,
 });
 
@@ -6732,7 +6743,7 @@ app.use('/api', createConstructedCardRouter({
   getMechanicTranslations: () => loadConstructedMechanicTranslationMap(db()),
   createDeckPreview: (deck: ConstructedCardDeck) => createStandardMetaPreview({
     deckCode: deck.deckCode,
-    archetypeLabel: deck.archetype || deck.title,
+    archetypeLabel: deck.archetypeLabel || deck.archetype || deck.title,
   }),
   setPrivateNoStore,
   onError: (scope, error) => console.error(

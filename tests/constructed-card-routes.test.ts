@@ -11,6 +11,7 @@ import {
   enrichConstructedRelatedCards,
   mergeConstructedCardRows,
   queryConstructedCards,
+  translateConstructedArchetype,
   type ConstructedCardRouterDependencies,
 } from '../server/constructedCardRoutes.js';
 
@@ -99,6 +100,10 @@ const decodedDecks = constructedDecksContainingCard([{
 assert.equal(decodedDecks.length, 1, 'a card must be matched through its decoded deckstring DBF id');
 assert.equal(decodedDecks[0].id, '754');
 assert.equal(decodedDecks[0].archetype, 'Face Hunter');
+assert.equal(translateConstructedArchetype('Even Warlock', { 'even warlock': 'Чётный Чернокнижник' }), 'Чётный Чернокнижник');
+assert.equal(translateConstructedArchetype('XL Even Warlock', { 'even warlock': 'Чётный Чернокнижник' }), 'Чётный Чернокнижник');
+assert.equal(translateConstructedArchetype('Pain Warlock', {}), 'Пейнлок');
+assert.equal(translateConstructedArchetype('Renathal Big Warlock', {}), 'Ренатал Биг Чернокнижник');
 assert.equal(constructedDecksContainingCard([{ ...decodedDecks[0], deck_code: decodedDecks[0].deckCode, format: 'Wild' }], { dbf: 119705 }, 'standard').length, 0);
 
 const detailWithPatches = enrichConstructedCardPatches({

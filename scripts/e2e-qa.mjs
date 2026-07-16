@@ -189,6 +189,7 @@ const adminFixtures = {
         id: `qa-deck-${index + 1}`,
         title: `Контрольная колода ${index + 1}`,
         archetype: index % 2 ? 'Face Hunter' : 'Control Warrior',
+        archetypeLabel: index % 2 ? 'Фейс Охотник' : 'Контроль Воин',
         className: index % 2 ? 'Hunter' : 'Warrior',
         deckCode: `AAECAQaFixtureDeckCode${index + 1}ForBrowserQualityAssurance1234567890==`,
         source: 'qa-fixture', sourceUrl: '', winrate: 55.4 - index, score: `${18 - index}-${8 + index}`,
@@ -848,8 +849,15 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
       return;
     }
     if (admin && /^\/api\/admin\/constructed-cards\/CARD_QA_1\/decks\/qa-deck-\d+\/preview$/.test(url.pathname) && request.method() === 'POST') {
+      const deckId = url.pathname.split('/').at(-2);
+      adminState.constructedDeckPreviewRequests ??= {};
+      adminState.constructedDeckPreviewRequests[deckId] = (adminState.constructedDeckPreviewRequests[deckId] || 0) + 1;
+      if (deckId === 'qa-deck-4' && adminState.constructedDeckPreviewRequests[deckId] === 1) {
+        request.respond({ ...jsonResponse({ error: 'Внутренняя ошибка сервера' }), status: 502 });
+        return;
+      }
       request.respond(jsonResponse({
-        preview: { hash: `qa-${url.pathname.split('/').at(-2)}`, state: 'done', ready: true, imageUrl: '/ad/wallpaper_info.webp', error: null },
+        preview: { hash: `qa-${deckId}`, state: 'done', ready: true, imageUrl: '/ad/wallpaper_info.webp', error: null },
       }));
       return;
     }
@@ -2419,6 +2427,10 @@ for (const [device, viewport] of [
       decks: document.querySelectorAll('.constructed-card-detail__deck').length,
       deckColumns: getComputedStyle(document.querySelector('.constructed-card-detail__deck-grid')).gridTemplateColumns.split(/\s+/).filter(Boolean).length,
       deckImages: document.querySelectorAll('.constructed-card-detail__deck-grid img').length,
+      deckPreviewButtons: document.querySelectorAll('.constructed-card-detail__deck-preview').length,
+      deckTitles: [...document.querySelectorAll('.constructed-card-detail__deck-copy h3')].map(element => element.textContent?.trim() || ''),
+      firstDeckWidth: document.querySelector('.constructed-card-detail__deck')?.getBoundingClientRect().width ?? 0,
+      firstDeckImageWidth: document.querySelector('.constructed-card-detail__deck-preview img')?.getBoundingClientRect().width ?? 0,
       documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     }));
     if (constructedDetailState.pathname !== '/standard/cards/standard/CARD_QA_1' || constructedDetailState.scrollY > 2 || constructedDetailState.statsRows < 8
@@ -2430,7 +2442,9 @@ for (const [device, viewport] of [
       || constructedDetailState.related !== 1 || constructedDetailState.pools !== 1 || constructedDetailState.poolCards !== constructedDetailState.poolColumns || constructedDetailState.poolCards >= 12
       || constructedDetailState.poolLabel !== 'Огненные заклинания' || constructedDetailState.poolDisplay !== 'grid' || constructedDetailState.poolOverflow
       || constructedDetailState.gallery !== 1 || constructedDetailState.sounds !== 0 || constructedDetailState.soundHeading
-      || constructedDetailState.decks !== 3 || constructedDetailState.deckImages !== 3
+      || constructedDetailState.decks !== 3 || constructedDetailState.deckImages !== 3 || constructedDetailState.deckPreviewButtons !== 3
+      || constructedDetailState.deckTitles.some(title => /Control|Face|Warrior|Hunter/i.test(title))
+      || constructedDetailState.firstDeckImageWidth < constructedDetailState.firstDeckWidth * 0.9
       || (device === 'desktop' ? constructedDetailState.deckColumns !== 3 : constructedDetailState.deckColumns !== 1)
       || constructedDetailState.documentOverflow) {
       failures.push(`constructed card detail [${device}]: data sections or responsive containment regressed (${JSON.stringify(constructedDetailState)})`);
@@ -2454,15 +2468,32 @@ for (const [device, viewport] of [
     await page.click('.constructed-card-detail__decks .constructed-card-detail__pool-toggle');
     await page.waitForFunction(() => document.querySelectorAll('.constructed-card-detail__deck').length === 6
       && document.querySelectorAll('.constructed-card-detail__deck-grid img').length === 6);
-    await page.click('.constructed-card-detail__deck button');
-    await page.waitForFunction(() => document.querySelector('.constructed-card-detail__deck button')?.textContent?.includes('Код скопирован'));
+    if (adminState.constructedDeckPreviewRequests?.['qa-deck-4'] !== 2) {
+      failures.push(`constructed card decks [${device}]: transient DeckView failure was not retried (${JSON.stringify(adminState.constructedDeckPreviewRequests)})`);
+    }
+    await page.click('.constructed-card-detail__deck-preview');
+    await page.waitForSelector('.constructed-card-lightbox');
+    const deckLightboxState = await page.evaluate(() => ({
+      title: document.querySelector('#constructed-card-lightbox-title')?.textContent?.trim(),
+      images: document.querySelectorAll('.constructed-card-lightbox__media img').length,
+      bodyLocked: document.body.style.overflow === 'hidden',
+    }));
+    if (deckLightboxState.title !== 'Контроль Воин' || deckLightboxState.images !== 1 || !deckLightboxState.bodyLocked) {
+      failures.push(`constructed card deck lightbox [${device}]: preview dialog regressed (${JSON.stringify(deckLightboxState)})`);
+    }
+    await page.screenshot({ path: `${OUT}/constructed-card-deck-lightbox-${device}.png`, fullPage: false });
+    await page.click('.constructed-card-lightbox__close');
+    await page.waitForSelector('.constructed-card-lightbox', { hidden: true });
+    await page.click('.constructed-card-detail__deck-copy > button');
+    await page.waitForFunction(() => document.querySelector('.constructed-card-detail__deck-copy > button')?.textContent?.includes('Код скопирован'));
     const expandedDeckState = await page.evaluate(() => ({
       decks: document.querySelectorAll('.constructed-card-detail__deck').length,
       images: document.querySelectorAll('.constructed-card-detail__deck-grid img').length,
-      copied: document.querySelector('.constructed-card-detail__deck button')?.textContent?.replace(/\s+/g, ' ').trim(),
+      copied: document.querySelector('.constructed-card-detail__deck-copy > button')?.textContent?.replace(/\s+/g, ' ').trim(),
+      errors: document.querySelectorAll('.constructed-card-detail__deck-preview-state button').length,
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     }));
-    if (expandedDeckState.decks !== 6 || expandedDeckState.images !== 6 || !expandedDeckState.copied?.includes('Код скопирован') || expandedDeckState.overflow) {
+    if (expandedDeckState.decks !== 6 || expandedDeckState.images !== 6 || expandedDeckState.errors !== 0 || !expandedDeckState.copied?.includes('Код скопирован') || expandedDeckState.overflow) {
       failures.push(`constructed card decks [${device}]: DeckView grid, pagination or copy flow regressed (${JSON.stringify(expandedDeckState)})`);
     }
     await page.screenshot({ path: `${OUT}/constructed-card-decks-${device}.png`, fullPage: false });
@@ -2495,6 +2526,48 @@ for (const [device, viewport] of [
   } catch (error) {
     const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
     failures.push(`admin dashboard [${device}]: ${error.message}; page: ${diagnostic}`);
+  } finally {
+    await page.close();
+  }
+}
+
+// The card dossier also needs a native wide-screen check because DeckView
+// images are portrait-ish and must not float inside oversized 600px columns.
+{
+  const page = await createQaPage();
+  const runtimeErrors = collectRuntimeErrors(page);
+  await page.setViewport({ width: 2048, height: 1152, deviceScaleFactor: 1 });
+  await mockApplicationApi(page, { authenticated: true, admin: true, adminState: {} });
+  try {
+    await page.goto(`${BASE}/standard/cards/standard/CARD_QA_1`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForFunction(() => document.querySelectorAll('.constructed-card-detail__deck-grid img').length === 3);
+    await page.$eval('.constructed-card-detail__decks', element => element.scrollIntoView({ block: 'start' }));
+    const wideDeckState = await page.evaluate(() => {
+      const grid = document.querySelector('.constructed-card-detail__deck-grid');
+      const gridRect = grid?.getBoundingClientRect();
+      const cards = [...document.querySelectorAll('.constructed-card-detail__deck')];
+      const firstCard = cards[0]?.getBoundingClientRect();
+      const firstImage = document.querySelector('.constructed-card-detail__deck-preview img')?.getBoundingClientRect();
+      const titles = [...document.querySelectorAll('.constructed-card-detail__deck-copy h3')].map(element => element.textContent?.trim() || '');
+      return {
+        columns: getComputedStyle(grid).gridTemplateColumns.split(/\s+/).filter(Boolean).length,
+        cardWidth: firstCard?.width ?? 0,
+        imageWidth: firstImage?.width ?? 0,
+        centered: Math.abs(((cards[0]?.getBoundingClientRect().left ?? 0) - (gridRect?.left ?? 0)) - ((gridRect?.right ?? 0) - (cards.at(-1)?.getBoundingClientRect().right ?? 0))) < 3,
+        titles,
+        errors: document.querySelectorAll('.constructed-card-detail__deck-preview-state button').length,
+        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      };
+    });
+    if (wideDeckState.columns !== 3 || wideDeckState.cardWidth > 432 || wideDeckState.imageWidth < wideDeckState.cardWidth * 0.9
+      || !wideDeckState.centered || wideDeckState.titles.some(title => /Control|Face|Warrior|Hunter/i.test(title))
+      || wideDeckState.errors || wideDeckState.overflow || runtimeErrors.length) {
+      failures.push(`constructed card decks [2048px]: wide alignment, translation or stability regressed (${JSON.stringify(wideDeckState)}; ${runtimeErrors.join(' | ')})`);
+    }
+    await page.screenshot({ path: `${OUT}/constructed-card-decks-wide.png`, fullPage: false });
+    console.log('✓ constructed card DeckView grid [2048px] alignment + translations');
+  } catch (error) {
+    failures.push(`constructed card decks [2048px]: ${error.message}`);
   } finally {
     await page.close();
   }
