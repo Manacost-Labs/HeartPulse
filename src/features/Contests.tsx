@@ -78,6 +78,10 @@ const ContestAdminTranslations = React.lazy(async () => {
   const module = await import('./ContestAdminTranslations');
   return { default: module.ContestAdminTranslations };
 });
+const ContestAdminMechanicTranslations = React.lazy(async () => {
+  const module = await import('./ContestAdminMechanicTranslations');
+  return { default: module.ContestAdminMechanicTranslations };
+});
 
 type AuthUser = {
   id?: string;
@@ -386,6 +390,7 @@ const ADMIN_NAV_ITEMS: ReadonlyArray<{
   { id: 'articles', label: 'Статьи', caption: 'Публикации, раздел и доступ', status: 'Сохранение по кнопке', group: 'Контент', icon: Newspaper },
   { id: 'gallery', label: 'Галерея', caption: 'Арты и оригиналы для скачивания', status: 'Сохранение по кнопке', group: 'Контент', icon: ImageIcon },
   { id: 'translations', label: 'Переводы', caption: 'Названия архетипов и синхронизация BlizzCore', status: 'Ручные правки защищены', group: 'Контент', icon: Newspaper },
+  { id: 'mechanics', label: 'Механики', caption: 'Переводы механик существ и примеры карт', status: 'Сохранение по кнопке', group: 'Контент', icon: Newspaper },
   { id: 'users', label: 'Пользователи', caption: 'Права, блокировки и контакты', status: 'Действия с подтверждением', group: 'Аудитория', icon: Users },
   { id: 'mailing', label: 'Рассылка', caption: 'Письма, шаблоны и история отправок', status: 'Безопасная очередь отправки', group: 'Аудитория', icon: Mail },
   { id: 'boosty', label: 'Boosty', caption: 'Подписчики и уровни доступа', status: 'Данные только для просмотра', group: 'Аудитория', icon: CircleDollarSign },
@@ -402,6 +407,7 @@ const ADMIN_WORKSPACE_SECTION_IDS: AdminWorkspaceSection[] = [
   'articles',
   'gallery',
   'translations',
+  'mechanics',
   'users',
   'mailing',
   'boosty',
@@ -682,6 +688,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       articles: 'Статьи',
       gallery: 'Галерея',
       translations: 'Переводы архетипов',
+      mechanics: 'Переводы механик',
       users: 'Пользователи',
       mailing: 'Рассылка',
       boosty: 'Boosty',
@@ -1692,6 +1699,12 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           {hasFullAdminAccess && adminSection === 'translations' && (
             <React.Suspense fallback={<p className="contest-muted" role="status">Загружаем управление переводами…</p>}>
               <ContestAdminTranslations onMessage={setMessage} />
+            </React.Suspense>
+          )}
+
+          {hasFullAdminAccess && adminSection === 'mechanics' && (
+            <React.Suspense fallback={<p className="contest-muted" role="status">Загружаем переводы механик…</p>}>
+              <ContestAdminMechanicTranslations onMessage={setMessage} />
             </React.Suspense>
           )}
 

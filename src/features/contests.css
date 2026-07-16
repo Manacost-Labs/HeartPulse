@@ -2973,6 +2973,17 @@
   background: #fff;
 }
 
+.admin-mechanic-toolbar { grid-template-columns: minmax(240px, 1fr) minmax(180px, 0.35fr); }
+.admin-mechanic-toolbar label { display: grid; gap: 0.35rem; color: var(--admin-muted); font-size: 0.72rem; font-weight: 800; }
+.admin-mechanic-table td:first-child { min-width: 190px; }
+.admin-mechanic-table td:first-child .admin-source-badge { width: fit-content; margin-top: 0.45rem; }
+.admin-mechanic-example { display: flex; gap: 0.65rem; min-width: 210px; align-items: center; }
+.admin-mechanic-example img { width: 68px; height: 82px; flex: 0 0 auto; object-fit: contain; filter: drop-shadow(0 5px 4px rgba(30, 12, 4, 0.22)); }
+.admin-mechanic-example span { display: grid; gap: 0.2rem; }
+.admin-mechanic-example small { color: var(--admin-muted); font-size: 0.62rem; }
+.admin-mechanic-table input { width: min(100%, 360px); min-width: 210px; min-height: 42px; padding: 0.55rem 0.7rem; border: 1px solid var(--admin-divider); border-radius: 6px; color: var(--admin-ink); background: var(--admin-surface); font: inherit; }
+.admin-mechanic-save { display: inline-flex; gap: 0.35rem; align-items: center; white-space: nowrap; }
+
 .admin-translation-toolbar {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) auto;
@@ -4304,6 +4315,25 @@
 
   .admin-translation-table td:last-child button {
     width: 100%;
+  }
+
+  .admin-mechanic-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-mechanic-table td:nth-child(2)::before {
+    content: 'Пример:';
+  }
+
+  .admin-mechanic-table td:nth-child(3)::before {
+    content: 'Перевод:';
+  }
+
+  .admin-mechanic-table input {
+    width: 100%;
+    min-width: 0;
+    margin-top: 0.35rem;
+    font-size: 16px;
   }
 }
 

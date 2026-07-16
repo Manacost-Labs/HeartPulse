@@ -18,6 +18,7 @@ export type ConstructedCardDataService = {
 export type ConstructedCardRouterDependencies = ConstructedCardDataService & {
   adminGuard: RequestHandler;
   setPrivateNoStore: (response: Response) => void;
+  getMechanicTranslations?: () => Record<string, string>;
   onError?: (scope: 'list' | 'detail', error: unknown) => void;
 };
 
@@ -33,6 +34,10 @@ const FORMATS = new Set<ConstructedCardFormat>(['standard', 'wild']);
 const DEFAULT_PAGE_SIZE = 60;
 const MAX_PAGE_SIZE = 120;
 const SORTS = new Set(['popularity', 'winrate', 'games', 'mana', 'attack', 'health', 'name', 'set', 'class', 'mechanics']);
+const VALID_CLASSES = new Set([
+  'DEATHKNIGHT', 'DEMONHUNTER', 'DRUID', 'HUNTER', 'MAGE', 'PALADIN',
+  'PRIEST', 'ROGUE', 'SHAMAN', 'WARLOCK', 'WARRIOR', 'NEUTRAL', 'DREAM',
+]);
 
 function readFormat(value: unknown): ConstructedCardFormat | null {
   const format = String(value ?? 'standard') as ConstructedCardFormat;
@@ -74,11 +79,17 @@ function searchableText(card: JsonRecord): string {
     .toLocaleLowerCase('ru');
 }
 
-function cardMechanics(card: JsonRecord): string[] {
+export function cardMechanics(card: JsonRecord): string[] {
   return [...new Set([
     ...(Array.isArray(card?.mechanics) ? card.mechanics : []),
     ...(Array.isArray(card?.referenced_tags) ? card.referenced_tags : []),
-  ].map(value => String(value).trim()).filter(Boolean))];
+  ].map(value => String(value).trim()).filter(value => Boolean(value) && !/^\d+$/.test(value)))];
+}
+
+function cardClasses(card: JsonRecord): string[] {
+  return [...new Set([card?.class, ...(Array.isArray(card?.multi_class) ? card.multi_class : [])]
+    .map(value => String(value ?? '').trim().toUpperCase())
+    .filter(value => VALID_CLASSES.has(value)))];
 }
 
 function compareNullableNumbers(left: unknown, right: unknown, direction: number): number {
@@ -143,7 +154,7 @@ export function queryConstructedCards(cards: JsonRecord[], query: Record<string,
 
   const filtered = cards.filter(card => {
     if (search && !searchableText(card).includes(search)) return false;
-    const classes = [card?.class, ...(Array.isArray(card?.multi_class) ? card.multi_class : [])].map(value => String(value).toUpperCase());
+    const classes = cardClasses(card);
     if (className && !classes.includes(className)) return false;
     if (cardSet && String(card?.card_set ?? '').toUpperCase() !== cardSet) return false;
     if (mechanic && !cardMechanics(card).map(value => value.toUpperCase()).includes(mechanic)) return false;
@@ -160,7 +171,7 @@ export function queryConstructedCards(cards: JsonRecord[], query: Record<string,
 
 export function constructedCardFacets(cards: JsonRecord[]) {
   return {
-    classes: uniqueSorted(cards.flatMap(card => [card?.class, ...(Array.isArray(card?.multi_class) ? card.multi_class : [])])),
+    classes: uniqueSorted(cards.flatMap(cardClasses)),
     sets: uniqueSorted(cards.map(card => card?.card_set)),
     mechanics: uniqueSorted(cards.flatMap(cardMechanics)),
     types: uniqueSorted(cards.map(card => card?.card_type?.slug)),
@@ -170,7 +181,7 @@ export function constructedCardFacets(cards: JsonRecord[]) {
 
 export function constructedCardFacetCounts(cards: JsonRecord[]) {
   return {
-    classes: countedValues(cards.flatMap(card => [card?.class, ...(Array.isArray(card?.multi_class) ? card.multi_class : [])])),
+    classes: countedValues(cards.flatMap(cardClasses)),
     sets: countedValues(cards.map(card => card?.card_set)),
     mechanics: countedValues(cards.flatMap(cardMechanics)),
     types: countedValues(cards.map(card => card?.card_type?.slug)),
@@ -395,6 +406,7 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
         cards: cards.slice(offset, offset + perPage),
         facets: constructedCardFacets(collection.cards),
         facetCounts: constructedCardFacetCounts(collection.cards),
+        mechanicTranslations: dependencies.getMechanicTranslations?.() ?? {},
         coverage: constructedCardCoverage(collection.cards),
         pagination: { page: safePage, perPage, total: cards.length, totalPages },
       });
@@ -412,7 +424,7 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
     try {
       const card = await dependencies.loadCardDetail(format, cardId);
       if (!card) return response.status(404).json({ error: 'Карта не найдена' });
-      return response.json({ format, rank: 'legend', card });
+      return response.json({ format, rank: 'legend', mechanicTranslations: dependencies.getMechanicTranslations?.() ?? {}, card });
     } catch (error) {
       dependencies.onError?.('detail', error);
       return response.status(502).json({ error: 'Данные карты временно недоступны' });

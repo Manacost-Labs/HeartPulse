@@ -74,6 +74,7 @@ type CardRecord = {
   statsSourceUrl?: string | null;
   catalogPending?: boolean;
   wiki?: Record<string, any>;
+  mechanicTranslations?: Record<string, string>;
 };
 
 type Facets = {
@@ -96,6 +97,7 @@ type ListPayload = {
   cards: CardRecord[];
   facets: Facets;
   facetCounts?: FacetCounts;
+  mechanicTranslations?: Record<string, string>;
   coverage?: CardCoverage;
   pagination: { page: number; perPage: number; total: number; totalPages: number };
 };
@@ -169,8 +171,9 @@ function classLabel(value: string): string {
   return translatedCode(value, CLASS_LABELS);
 }
 
-function mechanicLabel(value: string): string {
-  return translatedCode(value, MECHANIC_LABELS);
+function mechanicLabel(value: string, translations?: Record<string, string>): string {
+  const key = value.toLocaleUpperCase('en-US');
+  return translations?.[key] || translatedCode(value, MECHANIC_LABELS);
 }
 
 function generatedPoolLabel(value: unknown): string {
@@ -255,13 +258,12 @@ function StatsRows({ stats, compact = false }: { stats: CardStats | null; compac
 }
 
 function HoverTooltip({ card, rect }: { card: CardRecord; rect: DOMRect }) {
-  const width = 286;
+  const width = 320;
   const left = rect.right + width + 18 <= window.innerWidth ? rect.right + 10 : Math.max(10, rect.left - width - 10);
-  const top = Math.max(10, Math.min(rect.top + rect.height * 0.12, window.innerHeight - 340));
+  const top = Math.max(10, Math.min(rect.top + rect.height * 0.12, window.innerHeight - 390));
   return (
     <aside className="constructed-cards__tooltip" style={{ left, top, width }} role="tooltip">
-      <strong>{cardName(card)}</strong>
-      <span>Статистика · Легенда</span>
+      <div className="constructed-cards__tooltip-header"><strong>{cardName(card)}</strong><span>Статистика · Легенда</span></div>
       <StatsRows stats={card.stats} compact />
     </aside>
   );
@@ -405,8 +407,8 @@ function CardsListPage({ initialFormat, navigatePath }: Pick<StandardCardsProps,
       <section className="constructed-cards__controls" aria-label="Фильтры библиотеки карт">
         <div className="constructed-cards__primary-controls">
           <div className="constructed-cards__format" aria-label="Формат">
-            <button type="button" aria-pressed={format === 'standard'} onClick={() => changeFormat('standard')}>Стандарт</button>
-            <button type="button" aria-pressed={format === 'wild'} onClick={() => changeFormat('wild')}>Вольный · все карты</button>
+            <button type="button" aria-label="Стандарт" title="Стандарт" aria-pressed={format === 'standard'} onClick={() => changeFormat('standard')}><img src="/card-format-standard.webp" alt="" /><span className="sr-only">Стандарт</span></button>
+            <button type="button" aria-label="Вольный" title="Вольный" aria-pressed={format === 'wild'} onClick={() => changeFormat('wild')}><img src="/card-format-wild.webp" alt="" /><span className="sr-only">Вольный</span></button>
           </div>
           <label className="constructed-cards__search"><Search size={18} /><input value={filters.query} onChange={event => updateFilter('query', event.target.value)} placeholder="Поиск по названию" /></label>
           <FilterSelect label="Сортировка" value={filters.sort} onChange={value => updateFilter('sort', value)}>
@@ -423,11 +425,11 @@ function CardsListPage({ initialFormat, navigatePath }: Pick<StandardCardsProps,
         </div>
         <div className="constructed-cards__secondary-controls">
           <FilterSelect label="Класс" value={filters.class} onChange={value => updateFilter('class', value)}><option value="">Все классы ({number(coverage?.totalCards)})</option>{facets.classes.map(value => <option key={value} value={value}>{facetOptionLabel(value, countFor(facetCounts.classes, value), classLabel)}</option>)}</FilterSelect>
-          <FilterSelect label={`Дополнение · ${coverage?.totalSets ?? facets.sets.length}`} value={filters.set} onChange={value => updateFilter('set', value)}><option value="">Все дополнения ({number(coverage?.totalCards)})</option>{sets.map(value => <option key={value} value={value}>{facetOptionLabel(value, countFor(facetCounts.sets, value), constructedSetLabel)}</option>)}</FilterSelect>
+          <FilterSelect label="Дополнение" value={filters.set} onChange={value => updateFilter('set', value)}><option value="">Все дополнения</option>{sets.map(value => <option key={value} value={value}>{constructedSetLabel(value)}</option>)}</FilterSelect>
           <FilterSelect label="Мана" value={filters.mana} onChange={value => updateFilter('mana', value)}><option value="">Любая</option>{Array.from({ length: 11 }, (_, value) => <option key={value} value={value}>{value}</option>)}</FilterSelect>
           <FilterSelect label="Атака" value={filters.attack} onChange={value => updateFilter('attack', value)}><option value="">Любая</option>{Array.from({ length: 11 }, (_, value) => <option key={value} value={value}>{value}</option>)}</FilterSelect>
           <FilterSelect label="Здоровье" value={filters.health} onChange={value => updateFilter('health', value)}><option value="">Любое</option>{Array.from({ length: 11 }, (_, value) => <option key={value} value={value}>{value}</option>)}</FilterSelect>
-          <FilterSelect label="Механики" value={filters.mechanic} onChange={value => updateFilter('mechanic', value)}><option value="">Все механики</option>{facets.mechanics.map(value => <option key={value} value={value}>{mechanicLabel(value)}</option>)}</FilterSelect>
+          <FilterSelect label="Механики" value={filters.mechanic} onChange={value => updateFilter('mechanic', value)}><option value="">Все механики</option>{facets.mechanics.map(value => <option key={value} value={value}>{mechanicLabel(value, data?.mechanicTranslations)}</option>)}</FilterSelect>
           <FilterSelect label="Тип" value={filters.type} onChange={value => updateFilter('type', value)}><option value="">Все типы</option>{facets.types.map(value => <option key={value} value={value}>{translatedCode(value, TYPE_LABELS)}</option>)}</FilterSelect>
           <FilterSelect label="Редкость" value={filters.rarity} onChange={value => updateFilter('rarity', value)}><option value="">Любая</option>{facets.rarities.map(value => <option key={value} value={value}>{translatedCode(value, RARITY_LABELS)}</option>)}</FilterSelect>
           <button type="button" className="constructed-cards__reset" onClick={reset}><RefreshCw size={16} /> Сбросить</button>
@@ -505,7 +507,7 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
         const response = await fetch(`/api/admin/constructed-cards/${encodeURIComponent(cardId)}?format=${format}`, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: controller.signal });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить карту');
-        setCard(payload.card as CardRecord);
+        setCard({ ...(payload.card as CardRecord), mechanicTranslations: payload.mechanicTranslations || {} });
         setVariant('normal');
         setLightboxIndex(-1);
       } catch (loadError) {
@@ -573,7 +575,7 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
       </section>
 
       <section className="constructed-card-detail__lower-grid">
-        <div className="constructed-card-detail__section"><h2>Механики и теги</h2><div className="constructed-card-detail__tags">{mechanics.length ? mechanics.map(value => <span key={String(value)}>{mechanicLabel(String(value))}</span>) : <p>Механики не указаны.</p>}</div></div>
+        <div className="constructed-card-detail__section"><h2>Механики и теги</h2><div className="constructed-card-detail__tags">{mechanics.length ? mechanics.map(value => <span key={String(value)}>{mechanicLabel(String(value), card.mechanicTranslations)}</span>) : <p>Механики не указаны.</p>}</div></div>
         <div className="constructed-card-detail__section constructed-card-detail__patches"><h2>Изменения по патчам</h2>{patchRows.length ? <div>{patchRows.map((row: any, index: number) => <details key={`${row.patch}-${index}`}><summary><span>{row.date || 'Без даты'}</span><strong>{row.patch || row.heading || 'Изменение'}</strong></summary><p>{(Array.isArray(row.items) ? row.items : [row.items]).filter(Boolean).join(' ') || 'Описание отсутствует.'}</p></details>)}</div> : <p>История изменений не найдена.</p>}</div>
       </section>
 

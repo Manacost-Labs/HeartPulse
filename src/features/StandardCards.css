@@ -57,6 +57,9 @@
 .constructed-cards__view button { display: inline-flex; gap: 0.36rem; align-items: center; justify-content: center; min-height: 39px; padding: 0 0.8rem; border: 0; color: #5b3b24; background: transparent; font-size: 0.74rem; font-weight: 900; }
 .constructed-cards__format button[aria-pressed='true'],
 .constructed-cards__view button[aria-pressed='true'] { color: #fff0c5; background: var(--cards-wine); box-shadow: inset 0 0 0 1px rgba(255, 219, 139, 0.18); }
+.constructed-cards__format button { width: 62px; padding: 0.2rem 0.45rem; }
+.constructed-cards__format button img { display: block; width: 42px; height: 42px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(45, 20, 8, 0.35)); }
+.constructed-cards__format button[aria-pressed='true'] img { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55)) brightness(1.12); }
 .constructed-cards__search { display: flex; flex: 1 1 260px; gap: 0.4rem; align-items: center; min-width: 190px; height: 45px; padding: 0 0.7rem; border: 1px solid #aa7a40; background: rgba(255, 248, 222, 0.74); }
 .constructed-cards__search input { width: 100%; min-width: 0; border: 0; outline: 0; color: var(--cards-ink); background: transparent; font-size: 0.82rem; }
 .constructed-cards__filter { display: grid; flex: 1 1 120px; min-width: 96px; }
@@ -85,18 +88,19 @@
 .constructed-cards__gallery-stat small { font-size: 0.56rem; font-weight: 800; letter-spacing: 0.02em; }
 .constructed-cards__gallery-stat strong { color: #711d23; font-family: var(--font-display); font-size: 0.82rem; line-height: 1; }
 
-.constructed-cards__tooltip { position: fixed; z-index: 1000; padding: 0.72rem; border: 1px solid #c09250; color: #f8e8bd; background: rgba(43, 29, 20, 0.98); box-shadow: 0 12px 28px rgba(34, 17, 8, 0.35); pointer-events: none; }
-.constructed-cards__tooltip > strong { display: block; overflow: hidden; font-family: var(--font-display); font-size: 1rem; text-overflow: ellipsis; white-space: nowrap; }
-.constructed-cards__tooltip > span { display: block; margin-top: 0.15rem; color: #d6b776; font-size: 0.58rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; }
+.constructed-cards__tooltip { position: fixed; z-index: 1000; overflow: hidden; padding: 0.68rem; border: 8px solid transparent; border-image: url('/wallpaper/main-page-rail-border.png') 18 / 8px stretch; color: #3e2c20; background: linear-gradient(rgba(250, 235, 201, 0.94), rgba(226, 198, 145, 0.96)), url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat; box-shadow: 0 18px 38px rgba(48, 23, 8, 0.34); pointer-events: none; }
+.constructed-cards__tooltip-header { margin: -0.68rem -0.68rem 0.62rem; padding: 0.68rem 0.75rem 0.62rem; border-bottom: 2px solid #5c2b13; background: linear-gradient(90deg, rgba(54, 3, 6, 0.12), rgba(114, 15, 20, 0.08)), url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat; }
+.constructed-cards__tooltip-header strong { display: block; overflow: hidden; color: #fff0c4; font-family: var(--font-display); font-size: 1.05rem; text-overflow: ellipsis; text-shadow: 0 2px 3px rgba(39, 2, 5, 0.7); white-space: nowrap; }
+.constructed-cards__tooltip-header span { display: block; margin-top: 0.18rem; color: #efc568; font-size: 0.58rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; }
 .constructed-cards__stats { display: grid; margin: 0.65rem 0 0; border: 1px solid rgba(110, 70, 32, 0.24); }
 .constructed-cards__stats div { display: flex; gap: 0.75rem; align-items: center; justify-content: space-between; min-height: 38px; padding: 0.4rem 0.55rem; border-bottom: 1px solid rgba(110, 70, 32, 0.18); }
 .constructed-cards__stats div:last-child { border-bottom: 0; }
 .constructed-cards__stats dt { color: #795a3e; font-size: 0.68rem; }
 .constructed-cards__stats dd { margin: 0; font-size: 0.78rem; font-weight: 900; }
-.constructed-cards__stats--compact { border-color: rgba(219, 188, 126, 0.2); }
-.constructed-cards__stats--compact div { min-height: 35px; border-color: rgba(219, 188, 126, 0.14); }
-.constructed-cards__stats--compact dt { color: #d1b987; }
-.constructed-cards__stats--compact dd { color: #fff0c2; }
+.constructed-cards__stats--compact { margin-top: 0; border-color: rgba(91, 50, 23, 0.22); }
+.constructed-cards__stats--compact div { min-height: 35px; border-color: rgba(91, 50, 23, 0.18); background: rgba(255, 244, 216, 0.26); }
+.constructed-cards__stats--compact dt { color: #68543e; }
+.constructed-cards__stats--compact dd { color: #71141a; }
 
 .constructed-cards__table-wrap { margin-top: 1rem; overflow-x: auto; border: 1px solid #b78a51; background: rgba(255, 248, 224, 0.42); }
 .constructed-cards__table { width: 100%; min-width: 1040px; border-collapse: collapse; font-size: 0.72rem; }
@@ -183,9 +187,9 @@
 .constructed-card-detail__pool-list summary { display: flex; gap: 0.8rem; min-height: 44px; align-items: center; justify-content: space-between; padding: 0.5rem 0.7rem; color: #5c3b24; cursor: pointer; }
 .constructed-card-detail__pool-list summary strong { font-family: var(--font-display); font-size: 0.95rem; }
 .constructed-card-detail__pool-list summary span { color: var(--cards-muted); font-size: 0.64rem; font-weight: 900; }
-.constructed-card-detail__pool-cards { display: flex; gap: 0.55rem; overflow-x: auto; padding: 0.35rem 0.55rem 0.65rem; scrollbar-color: #9c6b35 rgba(255, 248, 225, 0.4); }
+.constructed-card-detail__pool-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 0.55rem; padding: 0.35rem 0.55rem 0.65rem; }
 .constructed-card-detail__pool-cards a,
-.constructed-card-detail__pool-card { display: grid; flex: 0 0 126px; min-height: 154px; align-content: center; place-items: center; padding: 0.4rem; border: 1px solid transparent; color: #4a2d1b; text-align: center; text-decoration: none; }
+.constructed-card-detail__pool-card { display: grid; min-width: 0; min-height: 154px; align-content: center; place-items: center; padding: 0.4rem; border: 1px solid transparent; color: #4a2d1b; text-align: center; text-decoration: none; }
 .constructed-card-detail__pool-cards a:hover { border-color: rgba(141, 91, 41, 0.35); background: rgba(224, 191, 117, 0.24); transform: translateY(-2px); }
 .constructed-card-detail__pool-cards img { width: 108px; height: 116px; object-fit: contain; }
 .constructed-card-detail__pool-cards span { margin-top: 0.22rem; font-size: 0.64rem; font-weight: 900; line-height: 1.25; }

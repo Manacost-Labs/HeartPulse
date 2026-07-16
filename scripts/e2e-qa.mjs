@@ -131,6 +131,7 @@ const subscriber = {
 const adminFixtures = {
   '/api/admin/constructed-cards': {
     format: 'standard', rank: 'legend', timeRange: '1d', updatedAt: '2026-07-16T05:03:02.000Z', sourceUrl: 'https://hsreplay.net/cards/',
+    mechanicTranslations: { BATTLECRY: 'Боевой клич', TAUNT: 'Провокация' },
     cards: Array.from({ length: 8 }, (_, index) => ({
       card_id: `CARD_QA_${index + 1}`, dbf: 9000 + index, name: { ru: `Контрольная карта ${index + 1}`, en: `QA Card ${index + 1}` },
       card_set: index % 2 ? 'CATACLYSM' : 'ESCAPEFROM_VIOLET_HOLD', card_type: { slug: index % 2 ? 'MINION' : 'SPELL', name_ru: index % 2 ? 'Существо' : 'Заклинание' },
@@ -156,7 +157,7 @@ const adminFixtures = {
     pagination: { page: 1, perPage: 60, total: 8, totalPages: 1 },
   },
   '/api/admin/constructed-cards/CARD_QA_1': {
-    format: 'standard', rank: 'legend',
+    format: 'standard', rank: 'legend', mechanicTranslations: { BATTLECRY: 'Боевой клич', TAUNT: 'Провокация' },
     card: {
       card_id: 'CARD_QA_1', dbf: 9000, name: { ru: 'Контрольная карта 1', en: 'QA Card 1' },
       text: { ru: '<b>Боевой клич:</b> возьмите карту.' }, flavor: { ru: 'Контрольный художественный текст.' },
@@ -329,6 +330,12 @@ const adminFixtures = {
         createdAt: '2026-07-11T00:00:00.000Z', updatedAt: '2026-07-11T00:00:00.000Z',
         syncedAt: null, updatedBy: 'qa-admin',
       },
+    ],
+  },
+  '/api/admin/mechanic-translations': {
+    items: [
+      { key: 'BATTLECRY', nameEn: 'Battlecry', nameRu: 'Боевой клич', source: 'default', cardCount: 412, updatedAt: null, example: { cardId: 'CARD_QA_2', name: { ru: 'Контрольная карта 2', en: 'QA Card 2' }, imageUrl: qaCard.imageRu, type: 'MINION' } },
+      { key: 'NEW_MECHANIC', nameEn: 'New Mechanic', nameRu: '', source: 'missing', cardCount: 7, updatedAt: null, example: { cardId: 'CARD_QA_4', name: { ru: 'Контрольная карта 4', en: 'QA Card 4' }, imageUrl: qaCard.imageRu, type: 'MINION' } },
     ],
   },
   '/api/admin/boosty/status': {
@@ -708,6 +715,33 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
     }
     if (admin && url.pathname === '/api/admin/archetype-translations/sync' && request.method() === 'POST') {
       request.respond(jsonResponse({ success: true, rows: 2, imported: 0, updated: 1, preservedManual: 1 }));
+      return;
+    }
+    if (admin && url.pathname === '/api/admin/mechanic-translations') {
+      const mechanics = adminState.mechanics ??= structuredClone(adminFixtures['/api/admin/mechanic-translations'].items);
+      const query = (url.searchParams.get('q') || '').toLocaleLowerCase('ru-RU');
+      const status = url.searchParams.get('status') || '';
+      const items = mechanics.filter(item => (!query || `${item.nameEn} ${item.nameRu} ${item.example?.name?.ru || ''}`.toLocaleLowerCase('ru-RU').includes(query))
+        && (!status || item.source === status));
+      request.respond(jsonResponse({
+        items, total: items.length, page: 1, pageSize: 40, pages: 1,
+        stats: {
+          total: mechanics.length,
+          manual: mechanics.filter(item => item.source === 'manual').length,
+          default: mechanics.filter(item => item.source === 'default').length,
+          missing: mechanics.filter(item => item.source === 'missing').length,
+        },
+      }));
+      return;
+    }
+    const mechanicEditMatch = admin && url.pathname.match(/^\/api\/admin\/mechanic-translations\/([^/]+)$/);
+    if (mechanicEditMatch && request.method() === 'PUT') {
+      const mechanics = adminState.mechanics ??= structuredClone(adminFixtures['/api/admin/mechanic-translations'].items);
+      const key = decodeURIComponent(mechanicEditMatch[1]);
+      const item = mechanics.find(row => row.key === key);
+      const payload = JSON.parse(request.postData() || '{}');
+      if (item) Object.assign(item, { nameEn: payload.nameEn, nameRu: payload.nameRu, source: 'manual', updatedAt: '2026-07-16T12:30:00.000Z' });
+      request.respond(jsonResponse({ success: true, translation: item }));
       return;
     }
     const contestEntriesMatch = admin && url.pathname.match(/^\/api\/admin\/contests\/([^/]+)\/entries$/);
@@ -1158,6 +1192,7 @@ for (const [device, viewport] of [
     contests: structuredClone(adminFixtures['/api/admin/contests'].contests),
     users: structuredClone(adminFixtures['/api/admin/users'].users),
     translations: structuredClone(adminFixtures['/api/admin/archetype-translations'].items),
+    mechanics: structuredClone(adminFixtures['/api/admin/mechanic-translations'].items),
     mailingCampaigns: structuredClone(adminFixtures['/api/admin/mailings/overview'].campaigns),
   };
   await page.setViewport(viewport);
@@ -1380,6 +1415,35 @@ for (const [device, viewport] of [
       failures.push(`admin translations [${device}]: horizontal overflow ${translationLayout.scrollWidth} > ${translationLayout.clientWidth}`);
     }
     const translationsViolationCount = await auditAccessibility(page, `admin translations [${device}]`, '.admin-workspace-content');
+
+    await page.goto(`${BASE}/?admin&section=mechanics`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForFunction(() => document.querySelectorAll('.admin-mechanic-table tbody tr').length === 2);
+    const mechanicInitialState = await page.evaluate(() => ({
+      navLabel: document.querySelector('.admin-section-header h1')?.textContent?.trim() || '',
+      rows: document.querySelectorAll('.admin-mechanic-table tbody tr').length,
+      examples: document.querySelectorAll('.admin-mechanic-example img').length,
+      inputs: document.querySelectorAll('.admin-mechanic-table input').length,
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    }));
+    if (mechanicInitialState.navLabel !== 'Механики' || mechanicInitialState.rows !== 2 || mechanicInitialState.examples !== 2
+      || mechanicInitialState.inputs !== 2 || mechanicInitialState.overflow) {
+      failures.push(`admin mechanic translations [${device}]: list, examples or containment regressed (${JSON.stringify(mechanicInitialState)})`);
+    }
+    const missingMechanicInput = await page.$('#mechanic-NEW_MECHANIC');
+    if (!missingMechanicInput) throw new Error('Missing mechanic translation input was not rendered');
+    await missingMechanicInput.type('Новая механика');
+    await page.evaluate(() => {
+      const row = [...document.querySelectorAll('.admin-mechanic-table tbody tr')]
+        .find(element => element.textContent?.includes('New Mechanic'));
+      const button = row?.querySelector('button');
+      if (!(button instanceof HTMLButtonElement)) throw new Error('Mechanic save action is missing');
+      button.click();
+    });
+    await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('New Mechanic'));
+    await page.waitForFunction(() => [...document.querySelectorAll('.admin-mechanic-table tbody tr')]
+      .some(element => element.textContent?.includes('New Mechanic') && element.textContent?.includes('Ручной')));
+    const mechanicTranslationsViolationCount = await auditAccessibility(page, `admin mechanic translations [${device}]`, '.admin-workspace-content');
+    await page.screenshot({ path: `${OUT}/admin-mechanic-translations-${device}.png`, fullPage: false });
 
     await page.goto(`${BASE}/?admin&section=gallery`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-gallery-row').length === 1);
@@ -2241,6 +2305,14 @@ for (const [device, viewport] of [
         coverageText: (document.querySelector('.constructed-cards__coverage')?.textContent || '').replace(/\s/g, ''),
         setOptions: document.querySelectorAll('.constructed-cards__secondary-controls select option').length,
         formatControls: document.querySelectorAll('.constructed-cards__format').length,
+        formatIcons: [...document.querySelectorAll('.constructed-cards__format img')].filter(image => image.complete && image.naturalWidth > 0).length,
+        formatLabels: [...document.querySelectorAll('.constructed-cards__format button')].map(button => button.getAttribute('aria-label')),
+        classOptions: [...document.querySelectorAll('.constructed-cards__secondary-controls select')][0]
+          ? [...document.querySelectorAll('.constructed-cards__secondary-controls select')[0].options].map(option => option.value) : [],
+        setLabels: [...document.querySelectorAll('.constructed-cards__secondary-controls label')]
+          .find(label => label.textContent?.includes('Дополнение'))?.querySelector('span')?.textContent || '',
+        setOptionTexts: [...document.querySelectorAll('.constructed-cards__secondary-controls select')][1]
+          ? [...document.querySelectorAll('.constructed-cards__secondary-controls select')[1].options].map(option => option.textContent || '') : [],
         deckPercentLabels: [...document.querySelectorAll('.constructed-cards__gallery-stat small')].filter(item => item.textContent?.includes('В % колод')).length,
       };
     });
@@ -2248,6 +2320,9 @@ for (const [device, viewport] of [
       || !constructedCardsState.controlsVisible || !constructedCardsState.rankText.includes('Легенда')
       || !constructedCardsState.coverageText.includes('1152') || !constructedCardsState.coverageText.includes('1013')
       || constructedCardsState.setOptions < 3 || constructedCardsState.formatControls !== 1 || constructedCardsState.deckPercentLabels !== 8
+      || constructedCardsState.formatIcons !== 2 || constructedCardsState.formatLabels.join(',') !== 'Стандарт,Вольный'
+      || constructedCardsState.classOptions.some(value => /^\d+$/.test(value)) || constructedCardsState.setLabels !== 'Дополнение'
+      || constructedCardsState.setOptionTexts.some(value => /\(\d[\d\s]*\)$/.test(value))
       || constructedCardsState.rootOverflow || constructedCardsState.documentOverflow
       || (device === 'mobile' && (constructedCardsState.searchFontSize < 16 || constructedCardsState.smallestViewTarget < 44))) {
       failures.push(`constructed cards [${device}]: menu, controls or responsive gallery regressed (${JSON.stringify(constructedCardsState)})`);
@@ -2266,8 +2341,11 @@ for (const [device, viewport] of [
         rows: document.querySelectorAll('.constructed-cards__tooltip .constructed-cards__stats > div').length,
         text: document.querySelector('.constructed-cards__tooltip')?.textContent || '',
         display: getComputedStyle(document.querySelector('.constructed-cards__tooltip')).display,
+        borderImage: getComputedStyle(document.querySelector('.constructed-cards__tooltip')).borderImageSource,
+        velvetBackground: getComputedStyle(document.querySelector('.constructed-cards__tooltip-header')).backgroundImage,
       }));
-      if (tooltipState.rows !== 6 || !tooltipState.text.includes('В % колод') || tooltipState.display === 'none') {
+      if (tooltipState.rows !== 6 || !tooltipState.text.includes('В % колод') || tooltipState.display === 'none'
+        || !tooltipState.borderImage.includes('main-page-rail-border') || !tooltipState.velvetBackground.includes('arena-rail-red')) {
         failures.push(`constructed cards tooltip [${device}]: Legend hover statistics regressed (${JSON.stringify(tooltipState)})`);
       }
       await page.screenshot({ path: `${OUT}/constructed-cards-hover-${device}.png`, fullPage: false });
@@ -2307,6 +2385,8 @@ for (const [device, viewport] of [
       pools: document.querySelectorAll('.constructed-card-detail__pool-list details').length,
       poolCards: document.querySelectorAll('.constructed-card-detail__pool-cards > *').length,
       poolLabel: document.querySelector('.constructed-card-detail__pool-list summary strong')?.textContent?.trim(),
+      poolDisplay: getComputedStyle(document.querySelector('.constructed-card-detail__pool-cards')).display,
+      poolOverflow: (document.querySelector('.constructed-card-detail__pool-cards')?.scrollWidth ?? 0) > (document.querySelector('.constructed-card-detail__pool-cards')?.clientWidth ?? 0) + 1,
       gallery: document.querySelectorAll('.constructed-card-detail__gallery img').length,
       sounds: document.querySelectorAll('.constructed-card-detail__sounds audio').length,
       documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
@@ -2314,7 +2394,8 @@ for (const [device, viewport] of [
     if (constructedDetailState.pathname !== '/standard/cards/standard/CARD_QA_1' || constructedDetailState.scrollY > 2 || constructedDetailState.statsRows < 8
       || constructedDetailState.variants !== 2 || constructedDetailState.variantLabels.includes('Арт') || constructedDetailState.tags < 3 || constructedDetailState.patches !== 1
       || constructedDetailState.related !== 1 || constructedDetailState.pools !== 1 || constructedDetailState.poolCards !== 2
-      || constructedDetailState.poolLabel !== 'Огненные заклинания' || constructedDetailState.gallery !== 1 || constructedDetailState.sounds !== 2 || constructedDetailState.documentOverflow) {
+      || constructedDetailState.poolLabel !== 'Огненные заклинания' || constructedDetailState.poolDisplay !== 'grid' || constructedDetailState.poolOverflow
+      || constructedDetailState.gallery !== 1 || constructedDetailState.sounds !== 2 || constructedDetailState.documentOverflow) {
       failures.push(`constructed card detail [${device}]: data sections or responsive containment regressed (${JSON.stringify(constructedDetailState)})`);
     }
     await page.click('.constructed-card-detail__visual-button');
@@ -2342,7 +2423,7 @@ for (const [device, viewport] of [
     await page.screenshot({ path: `${OUT}/constructed-card-detail-${device}.png`, fullPage: false });
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
-    console.log(`✓ admin dashboard/articles/translations/gallery/Boosty/Telegram/mailing/contests/users/profile/standard panels [${device}] interactions + axe (${violationCount + articlesViolationCount + translationsViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + profileViolationCount + standardMetaViolationCount + viciousGoldViolationCount + constructedCardsViolationCount + constructedDetailViolationCount} violations)`);
+    console.log(`✓ admin dashboard/articles/translations/mechanics/gallery/Boosty/Telegram/mailing/contests/users/profile/standard panels [${device}] interactions + axe (${violationCount + articlesViolationCount + translationsViolationCount + mechanicTranslationsViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + profileViolationCount + standardMetaViolationCount + viciousGoldViolationCount + constructedCardsViolationCount + constructedDetailViolationCount} violations)`);
   } catch (error) {
     const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
     failures.push(`admin dashboard [${device}]: ${error.message}; page: ${diagnostic}`);

@@ -63,6 +63,10 @@ import {
   type ObservedArchetype,
   type UntranslatedArchetype,
 } from './adminArchetypeTranslationRoutes.js';
+import {
+  createAdminMechanicTranslationRouter,
+  loadConstructedMechanicTranslationMap,
+} from './adminMechanicTranslationRoutes.js';
 import { createAdminArticleRouter, writeArticlesFile } from './adminArticleRoutes.js';
 import { createAdminContestMutationRouter } from './adminContestMutationRoutes.js';
 import {
@@ -1030,6 +1034,13 @@ function db(): DatabaseSync {
       rank_key TEXT NOT NULL CHECK(rank_key IN ('legend', 'diamond', 'top_5k', 'top_legend')),
       source TEXT NOT NULL,
       updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS mechanic_translations (
+      mechanic_key TEXT PRIMARY KEY,
+      name_en TEXT NOT NULL,
+      name_ru TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      updated_by TEXT
     );
     CREATE TABLE IF NOT EXISTS meta (
       key TEXT PRIMARY KEY,
@@ -6715,6 +6726,7 @@ const constructedCardDataService = createConstructedCardDataService({
 app.use('/api', createConstructedCardRouter({
   adminGuard: adminIdGuard,
   ...constructedCardDataService,
+  getMechanicTranslations: () => loadConstructedMechanicTranslationMap(db()),
   setPrivateNoStore,
   onError: (scope, error) => console.error(
     `[constructed-cards] ${scope} failed:`,
@@ -8407,6 +8419,21 @@ app.use('/api', createAdminArchetypeTranslationRouter({
     actor.id,
     action,
     'archetype-translation',
+    entityId,
+    details,
+  ),
+}));
+
+app.use('/api', createAdminMechanicTranslationRouter({
+  adminGuard: adminIdGuard,
+  adminAuth,
+  getDatabase: db,
+  loadCards: constructedCardDataService.loadCards,
+  setPrivateNoStore,
+  recordAudit: (actor, action, entityId, details) => recordAdminAuditByActorId(
+    actor.id,
+    action,
+    'mechanic-translation',
     entityId,
     details,
   ),

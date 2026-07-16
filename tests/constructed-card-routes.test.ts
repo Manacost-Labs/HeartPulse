@@ -19,8 +19,8 @@ const catalogCards = [
   },
   {
     card_id: 'CARD_2', dbf: 2, name: { ru: 'Бета', en: 'Beta' }, card_set: 'SET_B',
-    card_type: { slug: 'SPELL', name_ru: 'Заклинание' }, class: 'WARRIOR', multi_class: [], rarity: 'RARE',
-    mana_cost: 5, attack: null, health: null, mechanics: [], referenced_tags: ['TAUNT'], images: { card: 'beta.png' },
+    card_type: { slug: 'SPELL', name_ru: 'Заклинание' }, class: 'WARRIOR', multi_class: [5], rarity: 'RARE',
+    mana_cost: 5, attack: null, health: null, mechanics: [], referenced_tags: [5, 'TAUNT'], images: { card: 'beta.png' },
   },
 ];
 const mergedCards = mergeConstructedCardRows(catalogCards, [{
@@ -49,6 +49,8 @@ assert.deepEqual(queryConstructedCards(mergedCards, { class: 'mage', mechanic: '
 assert.deepEqual(queryConstructedCards(mergedCards, { sort: 'mana', direction: 'desc' }).map(card => card.card_id), ['CARD_2', 'CARD_1']);
 assert.deepEqual(constructedCardCoverage(mergedCards), { totalCards: 2, cardsWithStats: 1, cardsWithoutStats: 1, totalSets: 2 });
 assert.deepEqual(constructedCardFacetCounts(mergedCards).sets, [{ value: 'SET_A', count: 1 }, { value: 'SET_B', count: 1 }]);
+assert.deepEqual(constructedCardFacetCounts(mergedCards).classes, [{ value: 'MAGE', count: 1 }, { value: 'WARRIOR', count: 1 }]);
+assert.deepEqual(constructedCardFacetCounts(mergedCards).mechanics, [{ value: 'BATTLECRY', count: 1 }, { value: 'TAUNT', count: 1 }]);
 assert.equal(completeConstructedCatalog([{ data: catalogCards, pagination: { total: 2 } }]).length, 2);
 assert.throws(
   () => completeConstructedCatalog([{ data: catalogCards.slice(0, 1), pagination: { total: 2 } }]),
@@ -93,6 +95,7 @@ const dependencies: ConstructedCardRouterDependencies = {
     response.set('Cache-Control', 'no-store');
     response.vary('Cookie');
   },
+  getMechanicTranslations: () => ({ BATTLECRY: 'Боевой клич' }),
 };
 
 const app = express();
@@ -125,6 +128,7 @@ try {
   assert.equal(listPayload.pagination.total, 1);
   assert.ok(listPayload.facets.classes.includes('WARRIOR'));
   assert.equal(listPayload.coverage.totalCards, 2);
+  assert.deepEqual(listPayload.mechanicTranslations, { BATTLECRY: 'Боевой клич' });
   assert.deepEqual(listPayload.facetCounts.sets, [{ value: 'SET_A', count: 1 }, { value: 'SET_B', count: 1 }]);
 
   const detail = await fetch(`${origin}/CARD_1?format=wild`, { headers: adminHeaders });
