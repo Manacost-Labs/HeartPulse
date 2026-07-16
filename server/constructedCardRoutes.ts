@@ -275,6 +275,41 @@ export function completeConstructedCatalog(payloads: JsonRecord[]): JsonRecord[]
   return cards;
 }
 
+export function enrichConstructedCardPools(detail: JsonRecord, catalogCards: JsonRecord[]): JsonRecord {
+  const pools = detail?.wiki?.generated_card_pools;
+  if (!Array.isArray(pools)) return detail;
+
+  const catalogById = new Map(
+    catalogCards
+      .map(card => [String(card?.card_id ?? '').trim().toUpperCase(), card] as const)
+      .filter(([cardId]) => Boolean(cardId)),
+  );
+  const generatedCardPools = pools.map((pool: JsonRecord) => {
+    const rawCards = Array.isArray(pool?.cards) ? pool.cards : [];
+    const cardIds = Array.isArray(pool?.card_ids) ? pool.card_ids : [];
+    const items = rawCards.length > 0 ? rawCards : cardIds.map((cardId: unknown) => ({ card_id: cardId }));
+    const seen = new Set<string>();
+    const cards = items.flatMap((item: JsonRecord) => {
+      const cardId = String(item?.card_id ?? item?.id ?? '').trim();
+      const key = cardId.toUpperCase();
+      if (!cardId || seen.has(key)) return [];
+      seen.add(key);
+      const catalogCard = catalogById.get(key);
+      return [{
+        ...item,
+        card_id: cardId,
+        name: catalogCard?.name ?? item?.name ?? { ru: null, en: item?.title ?? null },
+        images: catalogCard?.images ?? item?.images,
+        image_url: catalogCard?.images?.card ?? item?.image_url ?? item?.image ?? null,
+        can_open: Boolean(catalogCard),
+      }];
+    });
+    return { ...pool, cards };
+  });
+
+  return { ...detail, wiki: { ...detail.wiki, generated_card_pools: generatedCardPools } };
+}
+
 async function fetchCatalogPage(dependencies: DataServiceDependencies, format: ConstructedCardFormat, page: number): Promise<any> {
   const url = new URL(`${dependencies.catalogBaseUrl.replace(/\/$/, '')}/constructed-cards`);
   url.searchParams.set('format', format);
@@ -325,7 +360,8 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     if (!detail) return null;
     const collection = await loadCards(format);
     const merged = collection.cards.find(card => String(card?.card_id ?? '').toUpperCase() === String(detail.card_id ?? '').toUpperCase());
-    return { ...detail, stats: merged?.stats ?? null, statsUpdatedAt: collection.updatedAt, statsSourceUrl: collection.sourceUrl };
+    const enrichedDetail = enrichConstructedCardPools(detail, collection.cards);
+    return { ...enrichedDetail, stats: merged?.stats ?? null, statsUpdatedAt: collection.updatedAt, statsSourceUrl: collection.sourceUrl };
   };
 
   return { loadCards, loadCardDetail };

@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Fixed Standard card popularity by consuming only HSReplay's all-decks `ALL` series instead of class-relative inclusion values, and added generated-card pool sections to constructed card dossiers with Russian catalog names, local card art and navigation.
 - Renamed the Cards beta popularity metric to the clearer “В % колод” across sorting, gallery, table, hover statistics and card details, and replaced the cramped two-number gallery caption with a focused labelled percentage while retaining the Standard/Wild split.
 - Completed the administrator-only “Карты” beta: Standard and Wild now expose verified full-catalog coverage and complete translated expansion filters, retain cards during independent source refreshes, support 60/120-card pages with explicit totals, open every available artwork variant in an accessible lightbox, and correctly render grouped card voice lines from the nested wiki payload.
 - Added the administrator-only “Карты” beta under Standard: the full Standard/Wild constructed catalog is merged with the existing one-day Legend datasets, supports server-side search/filter/sort/pagination plus gallery/table modes and hover statistics, and opens complete card dossiers from db.kolodahs.ru with variants, mechanics, patch history, related cards, gallery, sounds and external sources.

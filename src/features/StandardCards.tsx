@@ -143,6 +143,18 @@ const MECHANIC_LABELS: Record<string, string> = {
   STEALTH: 'Маскировка', FREEZE: 'Заморозка', TRADEABLE: 'Обмен', TITAN: 'Титан', COLOSSAL: 'Колосс',
   FORGE: 'Ковка', FINALE: 'Финал', OUTCAST: 'Изгой', SPELLBURST: 'Чары', HONORABLE_KILL: 'Достойная победа',
 };
+const GENERATED_POOL_LABELS: Record<string, string> = {
+  'Fire spells': 'Огненные заклинания',
+  'Arcane spells': 'Чародейские заклинания',
+  'Frost spells': 'Ледяные заклинания',
+  'Nature spells': 'Заклинания природы',
+  'Holy spells': 'Заклинания Света',
+  'Shadow spells': 'Заклинания Тьмы',
+  'Fel spells': 'Заклинания Скверны',
+  'Spell cards': 'Карты заклинаний',
+  'Minion cards': 'Карты существ',
+  'Weapon cards': 'Карты оружия',
+};
 
 function cardName(card: CardRecord): string {
   return card.name?.ru || card.name?.en || card.card_id;
@@ -159,6 +171,11 @@ function classLabel(value: string): string {
 
 function mechanicLabel(value: string): string {
   return translatedCode(value, MECHANIC_LABELS);
+}
+
+function generatedPoolLabel(value: unknown): string {
+  const label = String(value ?? '').trim();
+  return GENERATED_POOL_LABELS[label] || label || 'Сгенерированные карты';
 }
 
 function facetOptionLabel(value: string, count: number | undefined, label: (value: string) => string): string {
@@ -437,6 +454,43 @@ function variantImages(card: CardRecord): Array<{ id: string; label: string; url
   ].filter((entry): entry is [string, string, string] => Boolean(entry[2])).map(([id, label, url]) => ({ id, label, url }));
 }
 
+function GeneratedCardPools({ pools, format, navigatePath }: { pools: any[]; format: CardFormat; navigatePath: (path: string) => void }) {
+  return (
+    <section className="constructed-card-detail__section constructed-card-detail__pools">
+      <h2><Layers3 size={19} /> Пулы генерации · {pools.length}</h2>
+      <div className="constructed-card-detail__pool-list">
+        {pools.map((pool, poolIndex) => {
+          const cards = Array.isArray(pool?.cards) ? pool.cards : [];
+          return (
+            <details key={`${pool?.pool || 'pool'}-${poolIndex}`} open={poolIndex === 0}>
+              <summary><strong>{generatedPoolLabel(pool?.pool)}</strong><span>{cards.length} карт</span></summary>
+              <div className="constructed-card-detail__pool-cards">
+                {cards.map((item: any, index: number) => {
+                  const itemId = String(item?.card_id || item?.id || '').trim();
+                  const name = item?.name?.ru || item?.name?.en || item?.name_ru || item?.title || itemId || 'Карта';
+                  const image = item?.images?.card || item?.image_url || item?.image;
+                  const internalUrl = item?.can_open && itemId ? `/standard/cards/${format}/${encodeURIComponent(itemId)}` : '';
+                  const href = internalUrl || item?.url || undefined;
+                  const content = <>{image ? <img src={image} alt="" loading="lazy" /> : <Sparkles size={28} />}<span>{name}</span></>;
+                  return href ? (
+                    <a
+                      key={`${itemId || name}-${index}`}
+                      href={href}
+                      target={internalUrl ? undefined : '_blank'}
+                      rel={internalUrl ? undefined : 'noreferrer'}
+                      onClick={event => { if (!internalUrl) return; event.preventDefault(); navigatePath(internalUrl); }}
+                    >{content}</a>
+                  ) : <div className="constructed-card-detail__pool-card" key={`${itemId || name}-${index}`}>{content}</div>;
+                })}
+              </div>
+            </details>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; cardId: string; navigatePath: (path: string) => void }) {
   const [card, setCard] = useState<CardRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -476,6 +530,8 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
   const mechanics = [...new Set([...(card.mechanics || []), ...(card.referenced_tags || []), ...(wiki.wiki_mechanics || []), ...(wiki.wiki_tags || [])])];
   const patchRows = (Array.isArray(wiki.patch_changes) ? wiki.patch_changes : []).flatMap((group: any) => (Array.isArray(group?.entries) ? group.entries : []).map((entry: any) => ({ ...entry, heading: group.heading })));
   const related = Array.isArray(wiki.related_cards) ? wiki.related_cards : [];
+  const generatedPools = (Array.isArray(wiki.generated_card_pools) ? wiki.generated_card_pools : [])
+    .filter((pool: any) => Array.isArray(pool?.cards) && pool.cards.length > 0);
   const mediaItems = collectConstructedCardMedia(card);
   const galleryMedia = mediaItems.filter(item => item.id.startsWith('gallery-'));
   const sounds = flattenConstructedCardSounds(wiki.sounds);
@@ -522,6 +578,8 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
       </section>
 
       {related.length > 0 && <section className="constructed-card-detail__section"><h2>Связанные карты</h2><div className="constructed-card-detail__related">{related.map((item: any, index: number) => { const relatedId = item.card_id || item.id; const relatedUrl = relatedId ? `/standard/cards/${format}/${encodeURIComponent(relatedId)}` : item.url; return <a key={`${relatedId || item.title}-${index}`} href={relatedUrl || '#'} onClick={event => { if (!relatedId) return; event.preventDefault(); navigatePath(relatedUrl); }}>{item.image_url || item.image ? <img src={item.image_url || item.image} alt="" /> : <Sparkles size={24} />}<span>{item.name_ru || item.name || item.title || relatedId || 'Связанная карта'}</span></a>; })}</div></section>}
+
+      {generatedPools.length > 0 && <GeneratedCardPools pools={generatedPools} format={format} navigatePath={navigatePath} />}
 
       <section className="constructed-card-detail__media-grid">
         <div className="constructed-card-detail__section"><h2>Галерея · {galleryMedia.length}</h2>{galleryMedia.length ? <div className="constructed-card-detail__gallery">{galleryMedia.map(item => <button key={item.id} type="button" onClick={() => openMedia(item.url)} aria-label={`Открыть ${item.label}`}><img src={item.thumbnailUrl} alt={item.label} loading="lazy" /><span>{item.label}</span></button>)}</div> : <p>Дополнительные изображения отсутствуют.</p>}</div>

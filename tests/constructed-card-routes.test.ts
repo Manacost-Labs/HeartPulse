@@ -5,6 +5,7 @@ import {
   constructedCardCoverage,
   constructedCardFacetCounts,
   createConstructedCardRouter,
+  enrichConstructedCardPools,
   mergeConstructedCardRows,
   queryConstructedCards,
   type ConstructedCardRouterDependencies,
@@ -53,6 +54,24 @@ assert.throws(
   () => completeConstructedCatalog([{ data: catalogCards.slice(0, 1), pagination: { total: 2 } }]),
   /received 1 of 2 cards/,
 );
+const detailWithPools = enrichConstructedCardPools({
+  card_id: 'FIR_959',
+  wiki: {
+    generated_card_pools: [{
+      pool: 'Fire spells',
+      card_ids: ['CARD_1', 'TOKEN_1'],
+      cards: [
+        { card_id: 'CARD_1', title: 'Alpha', image_url: 'wiki-alpha.png' },
+        { card_id: 'TOKEN_1', title: 'Generated token', image_url: 'token.png', url: 'https://example.test/token' },
+      ],
+    }],
+  },
+}, catalogCards);
+assert.equal(detailWithPools.wiki.generated_card_pools[0].cards[0].name.ru, 'Альфа');
+assert.equal(detailWithPools.wiki.generated_card_pools[0].cards[0].image_url, 'alpha.png');
+assert.equal(detailWithPools.wiki.generated_card_pools[0].cards[0].can_open, true);
+assert.equal(detailWithPools.wiki.generated_card_pools[0].cards[1].name.en, 'Generated token');
+assert.equal(detailWithPools.wiki.generated_card_pools[0].cards[1].can_open, false);
 
 const calls: string[] = [];
 const adminGuard: RequestHandler = (request, response, next) => {

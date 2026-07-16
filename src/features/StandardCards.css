@@ -177,6 +177,18 @@
 .constructed-card-detail__related a:hover { background: rgba(224, 191, 117, 0.24); transform: translateY(-2px); }
 .constructed-card-detail__related img { width: 105px; height: 112px; object-fit: contain; }
 .constructed-card-detail__related span { margin-top: 0.25rem; font-size: 0.66rem; font-weight: 900; }
+.constructed-card-detail__pools { margin-top: 0.65rem; }
+.constructed-card-detail__pool-list { display: grid; gap: 0.55rem; }
+.constructed-card-detail__pool-list details { border: 1px solid rgba(121, 79, 38, 0.28); background: rgba(255, 250, 232, 0.3); }
+.constructed-card-detail__pool-list summary { display: flex; gap: 0.8rem; min-height: 44px; align-items: center; justify-content: space-between; padding: 0.5rem 0.7rem; color: #5c3b24; cursor: pointer; }
+.constructed-card-detail__pool-list summary strong { font-family: var(--font-display); font-size: 0.95rem; }
+.constructed-card-detail__pool-list summary span { color: var(--cards-muted); font-size: 0.64rem; font-weight: 900; }
+.constructed-card-detail__pool-cards { display: flex; gap: 0.55rem; overflow-x: auto; padding: 0.35rem 0.55rem 0.65rem; scrollbar-color: #9c6b35 rgba(255, 248, 225, 0.4); }
+.constructed-card-detail__pool-cards a,
+.constructed-card-detail__pool-card { display: grid; flex: 0 0 126px; min-height: 154px; align-content: center; place-items: center; padding: 0.4rem; border: 1px solid transparent; color: #4a2d1b; text-align: center; text-decoration: none; }
+.constructed-card-detail__pool-cards a:hover { border-color: rgba(141, 91, 41, 0.35); background: rgba(224, 191, 117, 0.24); transform: translateY(-2px); }
+.constructed-card-detail__pool-cards img { width: 108px; height: 116px; object-fit: contain; }
+.constructed-card-detail__pool-cards span { margin-top: 0.22rem; font-size: 0.64rem; font-weight: 900; line-height: 1.25; }
 .constructed-card-detail__media-grid { display: grid; grid-template-columns: 1.45fr 0.8fr 0.7fr; gap: 0.65rem; margin-top: 0.65rem; }
 .constructed-card-detail__gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.45rem; }
 .constructed-card-detail__gallery button { display: grid; min-width: 0; padding: 0; border: 1px solid #a97b45; color: #4a2d1b; background: rgba(255, 248, 225, 0.5); cursor: zoom-in; }

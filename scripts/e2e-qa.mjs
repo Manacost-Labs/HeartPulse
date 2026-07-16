@@ -170,6 +170,14 @@ const adminFixtures = {
         wiki_mechanics: ['Draw cards'], wiki_tags: ['Hand-related'],
         patch_changes: [{ heading: 'Card changes', entries: [{ date: '2026-07-16', patch: 'Patch QA', items: ['Added.'] }] }],
         related_cards: [{ card_id: 'CARD_QA_2', name_ru: 'Контрольная карта 2', image_url: qaCard.imageRu }],
+        generated_card_pools: [{
+          pool: 'Fire spells',
+          card_ids: ['CARD_QA_2', 'CARD_QA_TOKEN'],
+          cards: [
+            { card_id: 'CARD_QA_2', name: { ru: 'Контрольная карта 2', en: 'QA Card 2' }, image_url: qaCard.imageRu, can_open: true },
+            { card_id: 'CARD_QA_TOKEN', name: { ru: null, en: 'QA Token' }, image_url: qaCard.imageHa, url: 'https://example.test/token', can_open: false },
+          ],
+        }],
         gallery: [{ caption: 'QA full art', file_url: '/wallpaper/arena-parchment.jpg', thumb_url: '/wallpaper/arena-parchment.jpg' }],
         sounds: [{ heading: 'Play', clips: [
           { description: 'Контрольная реплика.', file_title: 'QA_Play.wav', file_url: 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=' },
@@ -2296,13 +2304,17 @@ for (const [device, viewport] of [
       tags: document.querySelectorAll('.constructed-card-detail__tags span').length,
       patches: document.querySelectorAll('.constructed-card-detail__patches details').length,
       related: document.querySelectorAll('.constructed-card-detail__related a').length,
+      pools: document.querySelectorAll('.constructed-card-detail__pool-list details').length,
+      poolCards: document.querySelectorAll('.constructed-card-detail__pool-cards > *').length,
+      poolLabel: document.querySelector('.constructed-card-detail__pool-list summary strong')?.textContent?.trim(),
       gallery: document.querySelectorAll('.constructed-card-detail__gallery img').length,
       sounds: document.querySelectorAll('.constructed-card-detail__sounds audio').length,
       documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     }));
     if (constructedDetailState.pathname !== '/standard/cards/standard/CARD_QA_1' || constructedDetailState.scrollY > 2 || constructedDetailState.statsRows < 8
       || constructedDetailState.variants !== 2 || constructedDetailState.variantLabels.includes('Арт') || constructedDetailState.tags < 3 || constructedDetailState.patches !== 1
-      || constructedDetailState.related !== 1 || constructedDetailState.gallery !== 1 || constructedDetailState.sounds !== 2 || constructedDetailState.documentOverflow) {
+      || constructedDetailState.related !== 1 || constructedDetailState.pools !== 1 || constructedDetailState.poolCards !== 2
+      || constructedDetailState.poolLabel !== 'Огненные заклинания' || constructedDetailState.gallery !== 1 || constructedDetailState.sounds !== 2 || constructedDetailState.documentOverflow) {
       failures.push(`constructed card detail [${device}]: data sections or responsive containment regressed (${JSON.stringify(constructedDetailState)})`);
     }
     await page.click('.constructed-card-detail__visual-button');
