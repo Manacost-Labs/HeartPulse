@@ -391,7 +391,7 @@ export function constructedDecksContainingCard(
   rows: JsonRecord[],
   card: JsonRecord,
   format: ConstructedCardFormat,
-  limit = 24,
+  limit = Number.MAX_SAFE_INTEGER,
 ): ConstructedCardDeck[] {
   const dbf = finiteNumber(card?.dbf);
   if (dbf === null) return [];
