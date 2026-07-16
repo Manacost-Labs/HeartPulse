@@ -1915,8 +1915,12 @@ for (const [device, viewport] of [
       const tableView = document.querySelector('[data-meta-view="table"]');
       const searchInput = document.querySelector('.standard-meta__search input');
       const title = document.querySelector('.standard-meta__masthead h1');
+      const firstCard = document.querySelector('.standard-meta-card');
+      const ornament = document.querySelector('.standard-meta__hero-ornament');
       const mastheadRect = masthead?.getBoundingClientRect();
       const statsStyle = stats ? getComputedStyle(stats) : null;
+      const controlsStyle = controls ? getComputedStyle(controls) : null;
+      const firstCardStyle = firstCard ? getComputedStyle(firstCard) : null;
       return {
         mastheadHeight: mastheadRect?.height ?? 0,
         titleSize: title ? parseFloat(getComputedStyle(title).fontSize) : 0,
@@ -1927,6 +1931,9 @@ for (const [device, viewport] of [
         searchFontSize: searchInput ? parseFloat(getComputedStyle(searchInput).fontSize) : 0,
         viewTargetHeight: tableView?.getBoundingClientRect().height ?? 0,
         sourcePanelPresent: Boolean(document.querySelector('.standard-meta__source-line')),
+        ornamentVisible: Boolean(ornament && ornament.getBoundingClientRect().height > 0),
+        controlsFrame: controlsStyle?.borderImageSource || '',
+        cardContentVisibility: firstCardStyle?.contentVisibility || '',
         scrollWidth: pageRoot?.scrollWidth ?? 0,
         clientWidth: pageRoot?.clientWidth ?? 0,
       };
@@ -1936,6 +1943,8 @@ for (const [device, viewport] of [
       || !standardMetaState.controlsVisible
       || !standardMetaState.viewControlsPresent
       || standardMetaState.sourcePanelPresent
+      || !standardMetaState.ornamentVisible || !standardMetaState.controlsFrame.includes('main-page-rail-border.png')
+      || standardMetaState.cardContentVisibility !== 'auto'
       || (device === 'mobile' && (standardMetaState.searchFontSize < 16 || standardMetaState.viewTargetHeight < 44))
       || standardMetaState.scrollWidth > standardMetaState.clientWidth + 1) {
       failures.push(`standard meta [${device}]: redesigned header or panels regressed (${JSON.stringify(standardMetaState)})`);
@@ -2108,6 +2117,10 @@ for (const [device, viewport] of [
       const buildButton = document.querySelector('.vsgold__build button');
       const copyImage = buildButton?.querySelector('img');
       const deckList = document.querySelector('.vsgold__deck-list');
+      const firstDeckRow = document.querySelector('.vsgold__deck-row');
+      const firstTierCard = document.querySelector('.vsgold__tier-card');
+      const firstPanel = document.querySelector('.vsgold__panel');
+      const ornament = document.querySelector('.vsgold__hero-ornament');
       const heroRect = hero?.getBoundingClientRect();
       return {
         heroHeight: heroRect?.height ?? 0,
@@ -2124,6 +2137,10 @@ for (const [device, viewport] of [
         copyImageLoaded: copyImage instanceof HTMLImageElement && copyImage.complete && copyImage.naturalWidth > 0,
         deckListOverflowY: deckList ? getComputedStyle(deckList).overflowY : '',
         deckListMaxHeight: deckList ? getComputedStyle(deckList).maxHeight : '',
+        ornamentVisible: Boolean(ornament && ornament.getBoundingClientRect().height > 0),
+        panelFrame: firstPanel ? getComputedStyle(firstPanel).borderImageSource : '',
+        deckRowContainment: firstDeckRow ? getComputedStyle(firstDeckRow).contain : '',
+        tierCardContentVisibility: firstTierCard ? getComputedStyle(firstTierCard).contentVisibility : '',
         scrollWidth: pageRoot?.scrollWidth ?? 0,
         clientWidth: pageRoot?.clientWidth ?? 0,
       };
@@ -2135,6 +2152,9 @@ for (const [device, viewport] of [
       || !viciousGoldState.copyImage.includes('deck-code-to-hearthstone.png')
       || !viciousGoldState.copyImageLoaded
       || !viciousGoldState.buildButtonLabel.startsWith('Скопировать код колоды')
+      || !viciousGoldState.ornamentVisible || !viciousGoldState.panelFrame.includes('main-page-rail-border.png')
+      || (viciousGoldState.deckRowContainment !== 'content' && !viciousGoldState.deckRowContainment.includes('layout'))
+      || viciousGoldState.tierCardContentVisibility !== 'auto'
       || (device === 'mobile' && (viciousGoldState.mobileNavCount !== 3 || viciousGoldState.mobileNavDisplay === 'none'
         || viciousGoldState.deckSearchFontSize < 16 || viciousGoldState.classTargetHeight < 44
         || viciousGoldState.buildTargetHeight < 44 || viciousGoldState.deckListOverflowY !== 'auto'

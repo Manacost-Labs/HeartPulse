@@ -89,6 +89,17 @@
   line-height: 1.52;
 }
 
+.standard-meta__hero-ornament {
+  display: block;
+  width: min(420px, 82%);
+  height: 18px;
+  margin-top: 1.15rem;
+  background: linear-gradient(90deg, var(--meta-gold), rgba(239, 197, 104, 0.34));
+  -webkit-mask: url('/wallpaper/main-page-header.svg') center / 100% 100% no-repeat;
+  mask: url('/wallpaper/main-page-header.svg') center / 100% 100% no-repeat;
+  opacity: 0.62;
+}
+
 .standard-meta__masthead-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -131,19 +142,60 @@
   gap: 1rem;
   margin-top: 1.25rem;
   padding: 1rem 1.1rem 1.1rem;
-  border: 1px solid #b98c51;
+  border: 7px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
   background:
     linear-gradient(90deg, rgba(255, 249, 226, 0.5), rgba(238, 210, 154, 0.34)),
     url('/wallpaper/arena-parchment.jpg') center / cover;
-  box-shadow: inset 0 0 0 3px rgba(255, 247, 219, 0.36), 0 9px 20px rgba(73, 42, 17, 0.11);
+  box-shadow: inset 0 0 0 1px rgba(255, 247, 219, 0.45), 0 5px 12px rgba(73, 42, 17, 0.1);
 }
 
 .standard-meta__controls::before {
   content: '';
   position: absolute;
-  inset: 0 0 auto;
+  inset: 2px 2px auto;
   height: 3px;
   background: linear-gradient(90deg, var(--meta-purple), #8f5d38 58%, var(--meta-gold));
+}
+
+.standard-meta__panel-heading {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 0.7rem;
+  align-items: center;
+  min-width: 0;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid rgba(102, 63, 27, 0.2);
+}
+
+.standard-meta__panel-heading > span {
+  display: grid;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 3px solid transparent;
+  border-image: url('/wallpaper/deck-border.png') 22 stretch;
+  color: #fff0c4;
+  background: linear-gradient(145deg, #644180, var(--meta-purple));
+}
+
+.standard-meta__panel-heading > div { display: grid; gap: 0.08rem; min-width: 0; }
+.standard-meta__panel-heading strong {
+  color: #442b1a;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+.standard-meta__panel-heading small { color: #846344; font-size: 0.65rem; }
+.standard-meta__panel-heading::after {
+  content: '';
+  flex: 1 1 240px;
+  height: 14px;
+  margin-left: auto;
+  background: linear-gradient(90deg, rgba(74, 47, 102, 0.72), rgba(180, 123, 22, 0.46));
+  -webkit-mask: url('/wallpaper/main-page-header.svg') center / 100% 100% no-repeat;
+  mask: url('/wallpaper/main-page-header.svg') center / 100% 100% no-repeat;
+  opacity: 0.58;
 }
 
 .standard-meta__control-label {
@@ -227,9 +279,12 @@
   justify-content: space-between;
   margin-top: 1rem;
   padding: 0.65rem 0.75rem;
-  border: 1px solid rgba(105, 64, 27, 0.25);
-  background: rgba(248, 229, 186, 0.46);
-  box-shadow: inset 0 1px rgba(255, 250, 230, 0.52);
+  border: 5px solid transparent;
+  border-image: url('/wallpaper/deck-border.png') 22 stretch;
+  background:
+    linear-gradient(rgba(255, 244, 211, 0.68), rgba(235, 207, 154, 0.58)),
+    url('/wallpaper/arena-parchment.jpg') center / cover;
+  box-shadow: inset 0 1px rgba(255, 250, 230, 0.52), 0 3px 8px rgba(73, 42, 17, 0.08);
 }
 
 .standard-meta__results-toolbar p {
@@ -287,11 +342,12 @@
   max-width: 100%;
   margin-top: 0.75rem;
   overflow: auto;
-  border: 1px solid #aa7d48;
+  border: 7px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
   background:
     linear-gradient(rgba(255, 247, 218, 0.76), rgba(232, 204, 151, 0.65)),
     url('/wallpaper/arena-parchment.jpg') center / cover;
-  box-shadow: inset 0 0 0 3px rgba(255, 250, 230, 0.34), 0 8px 20px rgba(72, 41, 17, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 250, 230, 0.4), 0 5px 12px rgba(72, 41, 17, 0.1);
   scrollbar-color: var(--meta-purple) rgba(112, 71, 32, 0.15);
   scrollbar-gutter: stable;
 }
@@ -472,13 +528,15 @@
   align-items: center;
   padding: 0.95rem;
   overflow: hidden;
-  border: 1px solid #bb8c53;
+  border: 5px solid transparent;
+  border-image: url('/wallpaper/deck-border.png') 22 stretch;
   background:
     linear-gradient(135deg, rgba(255, 248, 220, 0.88), rgba(230, 199, 142, 0.66)),
     url('/wallpaper/arena-parchment.jpg') center / cover;
-  box-shadow: inset 0 0 0 3px rgba(255, 250, 229, 0.38), 0 6px 16px rgba(75, 43, 18, 0.11);
+  box-shadow: inset 0 0 0 1px rgba(255, 250, 229, 0.46), 0 3px 8px rgba(75, 43, 18, 0.1);
   content-visibility: auto;
-  contain-intrinsic-size: 320px;
+  contain: layout paint style;
+  contain-intrinsic-size: 280px;
 }
 
 .standard-meta-card::after {
@@ -617,6 +675,22 @@
 .standard-meta__feedback--error { color: #7b151b; }
 .standard-meta__spinner { animation: standard-meta-spin 850ms linear infinite; }
 @keyframes standard-meta-spin { to { transform: rotate(360deg); } }
+
+.standard-meta__chart-loading {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 98px;
+  margin-top: 0.85rem;
+  border: 6px solid transparent;
+  border-image: url('/wallpaper/deck-border.png') 22 stretch;
+  color: #63472e;
+  background:
+    linear-gradient(rgba(255, 246, 217, 0.72), rgba(236, 208, 155, 0.58)),
+    url('/wallpaper/arena-parchment.jpg') center / cover;
+  font-weight: 800;
+}
 
 .standard-meta-modal {
   position: fixed;
@@ -898,10 +972,16 @@
   .standard-meta__eyebrow { gap: 0.35rem; font-size: 0.56rem; letter-spacing: 0.11em; }
   .standard-meta__masthead h1 { margin-top: 0.42rem; font-size: clamp(1.85rem, 8.8vw, 2.35rem); line-height: 0.98; }
   .standard-meta__masthead p { margin-top: 0.42rem; font-size: 0.75rem; line-height: 1.36; }
+  .standard-meta__hero-ornament { width: 100%; height: 11px; margin-top: 0.55rem; }
   .standard-meta__masthead-stats { grid-template-columns: repeat(3, 1fr); min-width: 0; min-height: 58px; }
   .standard-meta__masthead-stats span { display: grid; gap: 0.08rem; padding: 0.34rem; font-size: 0.46rem; letter-spacing: 0.04em; }
   .standard-meta__masthead-stats strong { font-size: 0.74rem; }
-  .standard-meta__controls { grid-template-columns: 1fr; gap: 0.62rem; margin-top: 0.65rem; padding: 0.68rem; }
+  .standard-meta__controls { grid-template-columns: 1fr; gap: 0.62rem; margin-top: 0.65rem; padding: 0.68rem; border-width: 5px; }
+  .standard-meta__panel-heading { gap: 0.5rem; padding-bottom: 0.55rem; }
+  .standard-meta__panel-heading > span { width: 36px; height: 36px; }
+  .standard-meta__panel-heading strong { font-size: 0.92rem; }
+  .standard-meta__panel-heading small { font-size: 0.58rem; }
+  .standard-meta__panel-heading::after { flex-basis: 60px; height: 10px; }
   .standard-meta__controls > div,
   .standard-meta__segmented,
   .standard-meta__rank-tabs,
@@ -917,11 +997,11 @@
   .standard-meta__search input { font-size: 16px; }
   .standard-meta__rank-tabs { display: flex; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: thin; }
   .standard-meta__rank-tabs button { flex: 1 0 88px; scroll-snap-align: start; }
-  .standard-meta__results-toolbar { flex-direction: column; gap: 0.48rem; align-items: stretch; margin-top: 0.65rem; padding: 0.5rem; }
+  .standard-meta__results-toolbar { flex-direction: column; gap: 0.48rem; align-items: stretch; margin-top: 0.65rem; padding: 0.5rem; border-width: 4px; }
   .standard-meta__results-toolbar p { align-self: center; }
   .standard-meta__view-switch { width: 100%; }
   .standard-meta__view-switch button { flex: 1; min-height: 44px; padding-inline: 0.5rem; }
-  .standard-meta-table-wrap { margin-top: 0.58rem; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
+  .standard-meta-table-wrap { margin-top: 0.58rem; border-width: 5px; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
   .standard-meta-table__mobile-hint {
     position: sticky;
     left: 0;
@@ -951,7 +1031,7 @@
   .standard-meta-table__archetype img { width: 31px; height: 31px; }
   .standard-meta-table__name strong { font-size: 0.76rem; }
   .standard-meta-table__name small { font-size: 0.55rem; }
-  .standard-meta-card { grid-template-columns: auto auto minmax(0, 1fr); gap: 0.55rem; margin-top: 0; padding: 0.68rem; }
+  .standard-meta-card { grid-template-columns: auto auto minmax(0, 1fr); gap: 0.55rem; margin-top: 0; padding: 0.68rem; border-width: 4px; }
   .standard-meta__grid { gap: 0.62rem; margin-top: 0.65rem; }
   .standard-meta-card__rank { width: 30px; height: 30px; }
   .standard-meta-card__class { width: 44px; height: 44px; }

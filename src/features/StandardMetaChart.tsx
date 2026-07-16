@@ -194,7 +194,7 @@ export default function StandardMetaChart({ items, formatLabel, rankLabel, onOpe
 
           {selectedItem && (
             <div className="standard-meta-chart__selection" aria-live="polite">
-              <img src={classIcon(selectedItem.classKey)} alt="" width="46" height="46" />
+              <img src={classIcon(selectedItem.classKey)} alt="" width="46" height="46" loading="lazy" decoding="async" />
               <div className="standard-meta-chart__selection-title">
                 <strong>{selectedItem.archetypeLabel}</strong>
                 <span>{selectedItem.archetype}</span>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   RefreshCw,
@@ -91,8 +91,10 @@ function formatDate(value: string | null): string {
 }
 
 function percent(value: number): string {
-  return `${value.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+  return `${PERCENT_FORMATTER.format(value)}%`;
 }
+
+const PERCENT_FORMATTER = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function powerTier(winrate: number): { id: string; label: string } {
   if (winrate >= 52) return { id: 'one', label: 'Tier 1' };
@@ -123,7 +125,7 @@ function BuildActions({ deck, build, copiedDeck, onCopy }: {
         onClick={() => onCopy(deck, build.deckCode)}
         aria-label={copiedDeck === deck ? 'Код колоды скопирован' : `Скопировать код колоды ${deck.replace(/^tier:/, '')}`}
       >
-        <img src="/assets/ui/deck-code-to-hearthstone.png" alt="" aria-hidden="true" />
+        <img src="/assets/ui/deck-code-to-hearthstone.png" alt="" aria-hidden="true" width="1557" height="571" decoding="async" />
         <span className="vsgold__copy-feedback" aria-live="polite">
           {copiedDeck === deck ? 'Код колоды скопирован' : ''}
         </span>
@@ -141,6 +143,7 @@ export default function ViciousSyndicateGold() {
   const [powerClass, setPowerClass] = useState('all');
   const [deckClass, setDeckClass] = useState('all');
   const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);
   const [copiedDeck, setCopiedDeck] = useState('');
   const deckSectionRef = useRef<HTMLElement>(null);
 
@@ -171,12 +174,12 @@ export default function ViciousSyndicateGold() {
     [selectedTier, powerClass],
   );
   const visibleDecks = useMemo(() => {
-    const needle = query.trim().toLocaleLowerCase('ru-RU');
+    const needle = deferredQuery.trim().toLocaleLowerCase('ru-RU');
     return data.deckDistribution.filter(deck => (
       (deckClass === 'all' || deck.class === deckClass)
       && (!needle || `${deck.deck} ${deck.deckLabel}`.toLocaleLowerCase('ru-RU').includes(needle))
     ));
-  }, [data.deckDistribution, deckClass, query]);
+  }, [data.deckDistribution, deckClass, deferredQuery]);
 
   const copyDeck = async (deck: string, code: string) => {
     let copied = false;
@@ -237,6 +240,7 @@ export default function ViciousSyndicateGold() {
           <span className="vsgold__eyebrow"><ShieldCheck size={15} /> Только для администраторов</span>
           <h1><span>Vicious Syndicate <em>Gold</em></span></h1>
           <p>Живая мета Стандарта: популярность классов и архетипов, готовые сборки и Power Tier по всем доступным рангам.</p>
+          <span className="vsgold__hero-ornament" aria-hidden="true" />
         </div>
         <div className="vsgold__hero-stats">
           <div><strong>{data.games.toLocaleString('ru-RU')}</strong><span>партий в выборке</span></div>
@@ -254,13 +258,13 @@ export default function ViciousSyndicateGold() {
       <section className="vsgold__distribution-grid">
         <article className="vsgold__panel vsgold__classes" id="vsgold-classes">
           <header className="vsgold__section-heading">
-            <img src="/main_assets/winrate-classes.png" alt="" />
+            <img src="/main_assets/winrate-classes.png" alt="" width="52" height="52" decoding="async" />
             <div><span>LIVE · STANDARD</span><h2>Распределение классов</h2></div>
           </header>
           <div className="vsgold__class-bars">
             {data.classDistribution.map(item => (
               <button key={item.class} type="button" aria-pressed={deckClass === item.class} onClick={() => selectDeckClass(item.class)}>
-                <img src={classIcon(item.classIcon)} alt="" />
+                <img src={classIcon(item.classIcon)} alt="" width="40" height="40" loading="lazy" decoding="async" />
                 <span>{item.classLabel}</span>
                 <div><i style={{ width: `${item.frequency}%` }} /></div>
                 <strong>{percent(item.frequency)}</strong>
@@ -271,7 +275,7 @@ export default function ViciousSyndicateGold() {
 
         <article ref={deckSectionRef} className="vsgold__panel vsgold__decks" id="vsgold-decks">
           <header className="vsgold__section-heading">
-            <img src="/main_assets/tier-list.png" alt="" />
+            <img src="/main_assets/tier-list.png" alt="" width="52" height="52" decoding="async" />
             <div><span>ПОРОГ ≥ {data.minimumDeckFrequency}%</span><h2>Распределение колод</h2></div>
           </header>
           <div className="vsgold__deck-tools">
@@ -284,7 +288,7 @@ export default function ViciousSyndicateGold() {
           <div className="vsgold__deck-list">
             {visibleDecks.map(deck => (
               <div className="vsgold__deck-row" key={deck.deck}>
-                <img src={classIcon(deck.classIcon)} alt="" />
+                <img src={classIcon(deck.classIcon)} alt="" width="40" height="40" loading="lazy" decoding="async" />
                 <div className="vsgold__deck-name"><strong>{deck.deckLabel}</strong><span>{deck.deck}</span></div>
                 <b>{percent(deck.frequency)}</b>
                 <BuildActions deck={deck.deck} build={deck.build} copiedDeck={copiedDeck} onCopy={copyDeck} />
@@ -298,7 +302,7 @@ export default function ViciousSyndicateGold() {
       <section className="vsgold__panel vsgold__power" id="vsgold-power">
         <header className="vsgold__power-heading">
           <div className="vsgold__section-heading">
-            <img src="/main_assets/tier-list.png" alt="" />
+            <img src="/main_assets/tier-list.png" alt="" width="52" height="52" loading="lazy" decoding="async" />
             <div><span>POWER RANKINGS</span><h2>Power Tier List</h2></div>
           </div>
           <p>Выберите диапазон рангов и класс. Винрейт и порядок берутся из Vicious Syndicate Live.</p>
@@ -319,7 +323,7 @@ export default function ViciousSyndicateGold() {
           <button type="button" aria-pressed={powerClass === 'all'} className={powerClass === 'all' ? 'active' : ''} onClick={() => setPowerClass('all')}><Swords size={15} /> Все</button>
           {data.classDistribution.map(item => (
             <button key={item.class} type="button" aria-pressed={powerClass === item.class} className={powerClass === item.class ? 'active' : ''} onClick={() => setPowerClass(item.class)}>
-              <img src={classIcon(item.classIcon)} alt="" /> {item.classLabel}
+              <img src={classIcon(item.classIcon)} alt="" width="24" height="24" loading="lazy" decoding="async" /> {item.classLabel}
             </button>
           ))}
         </div>
@@ -330,7 +334,7 @@ export default function ViciousSyndicateGold() {
             return (
               <article className={`vsgold__tier-card vsgold__tier-card--${tier.id}`} key={`${rankBracket}:${deck.deck}`}>
                 <span className="vsgold__tier-rank">#{deck.rank}</span>
-                <img src={classIcon(deck.classIcon)} alt="" />
+                <img src={classIcon(deck.classIcon)} alt="" width="46" height="46" loading="lazy" decoding="async" />
                 <div><small>{tier.label} · {deck.classLabel}</small><h3>{deck.deckLabel}</h3><p>{deck.deck}</p></div>
                 <strong>{percent(deck.winrate)}<span>WR</span></strong>
                 <BuildActions deck={`tier:${deck.deck}`} build={deck.build} copiedDeck={copiedDeck} onCopy={copyDeck} />

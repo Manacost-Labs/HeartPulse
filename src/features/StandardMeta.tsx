@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   AlertTriangle,
@@ -19,8 +19,9 @@ import {
 } from 'lucide-react';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import '../route-parchment.css';
-import StandardMetaChart from './StandardMetaChart';
 import './StandardMeta.css';
+
+const StandardMetaChart = React.lazy(() => import('./StandardMetaChart'));
 
 type MetaFormat = 'standard' | 'wild';
 type MetaRank = 'legend' | 'diamond' | 'top_5k' | 'top_legend';
@@ -223,7 +224,7 @@ function DeckModal({ state, onClose }: { state: DeckModalState; onClose: () => v
         </button>
 
         <header className="standard-meta-modal__header">
-          <img src={classIcon(state.recommendation?.classKey ?? state.item.classKey)} alt="" width="64" height="64" />
+          <img src={classIcon(state.recommendation?.classKey ?? state.item.classKey)} alt="" width="64" height="64" decoding="async" />
           <div>
             <span className="standard-meta__eyebrow">РЕКОМЕНДУЕМАЯ СБОРКА · BETA</span>
             <h2 id="standard-meta-deck-title">{state.item.archetypeLabel}</h2>
@@ -252,7 +253,7 @@ function DeckModal({ state, onClose }: { state: DeckModalState; onClose: () => v
             <div className="standard-meta-modal__image-stage">
               {state.preview?.ready && state.preview.imageUrl ? (
                 <a href={state.preview.imageUrl} target="_blank" rel="noreferrer" className="standard-meta-modal__image-link" aria-label="Открыть изображение колоды в полном размере">
-                  <img src={state.preview.imageUrl} alt={`Колода ${state.item.archetypeLabel}`} />
+                  <img src={state.preview.imageUrl} alt={`Колода ${state.item.archetypeLabel}`} decoding="async" />
                   <span><Maximize2 size={16} /> Полный размер</span>
                 </a>
               ) : state.loadingPreview || (state.preview && !state.preview.ready && state.preview.state !== 'error') ? (
@@ -309,6 +310,7 @@ export default function StandardMetaPage() {
   const [format, setFormat] = useState<MetaFormat>('standard');
   const [rank, setRank] = useState<MetaRank>('legend');
   const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);
   const [view, setView] = useState<MetaView>('cards');
   const [sort, setSort] = useState<{ key: MetaSortKey | null; direction: MetaSortDirection }>({ key: null, direction: 'desc' });
   const [data, setData] = useState<MetaPayload>(EMPTY_DATA);
@@ -361,10 +363,10 @@ export default function StandardMetaPage() {
   }, [modal?.preview]);
 
   const filteredItems = useMemo(() => {
-    const normalized = query.toLowerCase().trim();
+    const normalized = deferredQuery.toLowerCase().trim();
     if (!normalized) return data.items;
     return data.items.filter(item => `${item.archetype} ${item.archetypeLabel}`.toLowerCase().includes(normalized));
-  }, [data.items, query]);
+  }, [data.items, deferredQuery]);
   const rankById = useMemo(
     () => new Map(data.items.map((item, index) => [item.id, index + 1])),
     [data.items],
@@ -473,6 +475,7 @@ export default function StandardMetaPage() {
           <span className="standard-meta__eyebrow"><ShieldCheck size={15} /> Только для администраторов</span>
           <h1>Мета Hearthstone</h1>
           <p>Срезы HSGuru, переводы Манакоста и одна проверенная сборка для каждого доступного архетипа.</p>
+          <span className="standard-meta__hero-ornament" aria-hidden="true" />
         </div>
         <div className="standard-meta__masthead-stats" aria-label="Сводка">
           <span><strong>{data.items.length}</strong> архетипов</span>
@@ -482,6 +485,10 @@ export default function StandardMetaPage() {
       </section>
 
       <section className="standard-meta__controls" aria-label="Фильтры меты">
+        <div className="standard-meta__panel-heading">
+          <span aria-hidden="true"><Swords size={18} /></span>
+          <div><strong>Управление срезом</strong><small>Формат, рейтинг и быстрый поиск</small></div>
+        </div>
         <div>
           <span className="standard-meta__control-label">Формат</span>
           <div className="standard-meta__segmented">
@@ -515,15 +522,21 @@ export default function StandardMetaPage() {
       )}
       {!loading && !error && (
         <>
-          <StandardMetaChart
-            items={data.items}
-            formatLabel={data.formatLabel}
-            rankLabel={data.rankLabel}
-            onOpenDeck={itemId => {
-              const item = data.items.find(candidate => candidate.id === itemId);
-              if (item) void openDeck(item);
-            }}
-          />
+          <React.Suspense fallback={(
+            <div className="standard-meta__chart-loading" role="status">
+              <RefreshCw className="standard-meta__spinner" size={20} /> Подготавливаем карту меты…
+            </div>
+          )}>
+            <StandardMetaChart
+              items={data.items}
+              formatLabel={data.formatLabel}
+              rankLabel={data.rankLabel}
+              onOpenDeck={itemId => {
+                const item = data.items.find(candidate => candidate.id === itemId);
+                if (item) void openDeck(item);
+              }}
+            />
+          </React.Suspense>
 
           <section className="standard-meta__results-toolbar" aria-label="Представление меты">
             <p><strong>{filteredItems.length}</strong> {filteredItems.length === 1 ? 'архетип' : 'архетипов'} в текущем срезе</p>
@@ -542,7 +555,7 @@ export default function StandardMetaPage() {
               {filteredItems.map(item => (
                 <article className="standard-meta-card" key={item.id}>
                   <div className="standard-meta-card__rank" aria-label={`Место ${rankById.get(item.id)}`}>{rankById.get(item.id)}</div>
-                  <img className="standard-meta-card__class" src={classIcon(item.classKey)} alt="" width="56" height="56" />
+                  <img className="standard-meta-card__class" src={classIcon(item.classKey)} alt="" width="56" height="56" loading="lazy" decoding="async" />
                   <div className="standard-meta-card__title">
                     <span>{item.translated ? item.archetype : 'ПЕРЕВОД ОЖИДАЕТСЯ'}</span>
                     <h2>{item.archetypeLabel}</h2>
@@ -590,7 +603,7 @@ export default function StandardMetaPage() {
                     <tr key={item.id} data-meta-archetype={item.id}>
                       <th scope="row" className="standard-meta-table__archetype">
                         <span className="standard-meta-table__rank">{rankById.get(item.id)}</span>
-                        <img src={classIcon(item.classKey)} alt="" width="38" height="38" />
+                        <img src={classIcon(item.classKey)} alt="" width="38" height="38" loading="lazy" decoding="async" />
                         <span className="standard-meta-table__name">
                           <strong>{item.archetypeLabel}</strong>
                           <small>{item.translated ? item.archetype : 'Перевод ожидается'}</small>

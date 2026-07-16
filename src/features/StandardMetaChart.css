@@ -1,9 +1,10 @@
 .standard-meta-chart {
   margin-top: 0.85rem;
-  border: 1px solid rgba(102, 63, 27, 0.3);
+  border: 7px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
   color: #3a281c;
   background: rgba(247, 229, 188, 0.76);
-  box-shadow: 0 7px 18px rgba(66, 38, 14, 0.12);
+  box-shadow: 0 5px 12px rgba(66, 38, 14, 0.1);
 }
 
 .standard-meta-chart__header {
@@ -15,6 +16,16 @@
   padding: 0.8rem 0.9rem;
   border-bottom: 1px solid rgba(102, 63, 27, 0.22);
   background: rgba(255, 242, 207, 0.5);
+}
+
+.standard-meta-chart__header::after {
+  content: '';
+  flex: 0 1 190px;
+  height: 13px;
+  background: linear-gradient(90deg, rgba(74, 47, 102, 0.68), rgba(180, 123, 22, 0.42));
+  -webkit-mask: url('/wallpaper/main-page-header.svg') center / 100% 100% no-repeat;
+  mask: url('/wallpaper/main-page-header.svg') center / 100% 100% no-repeat;
+  opacity: 0.52;
 }
 
 .standard-meta-chart__heading,
@@ -215,13 +226,14 @@
 .standard-meta-chart__selection button { min-height: 44px; white-space: nowrap; }
 
 @media (max-width: 720px) {
-  .standard-meta-chart { margin-top: 0.65rem; }
+  .standard-meta-chart { margin-top: 0.65rem; border-width: 5px; }
   .standard-meta-chart__header { display: grid; gap: 0.6rem; min-height: 0; padding: 0.65rem; }
   .standard-meta-chart__heading { align-items: flex-start; }
   .standard-meta-chart__icon { width: 38px; height: 38px; }
   .standard-meta-chart__heading h2 { font-size: 1rem; }
   .standard-meta-chart__heading p { line-height: 1.35; }
   .standard-meta-chart__header-actions { justify-content: space-between; }
+  .standard-meta-chart__header::after { display: none; }
   .standard-meta-chart__header-actions button { min-height: 44px; }
   .standard-meta-chart__content { padding: 0.55rem; }
   .standard-meta-chart__hint { align-items: flex-start; line-height: 1.35; }
