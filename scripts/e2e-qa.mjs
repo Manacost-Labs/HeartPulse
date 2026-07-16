@@ -3364,6 +3364,7 @@ for (const [device, viewport] of [
         navMarginTop: navStyles?.marginTop || '',
         navPadding: navStyles?.padding || '',
         navBorderColor: navStyles?.borderTopColor || '',
+        sectionText: section?.textContent?.trim() || '',
         sectionMargin: sectionStyles?.margin || '',
         sectionColor: sectionStyles?.color || '',
         sectionSize: sectionStyles?.fontSize || '',
@@ -3432,6 +3433,7 @@ for (const [device, viewport] of [
         mainPaddingTop: mainStyles?.paddingTop || '',
       };
     });
+    if (sidebarState.sectionText !== 'Традиционный режим') failures.push(`desktop sidebar: unexpected first section label ${sidebarState.sectionText}`);
     if (Math.abs(sidebarState.width - 258) > 0.1
       || sidebarState.height < sidebarState.viewportHeight
       || sidebarState.padding !== '14.4px 11.52px'
@@ -3687,6 +3689,7 @@ for (const [device, viewport] of [
         activeColor: activeContract.color,
         activeBackground: activeContract.background,
         activeBeforeDisplay: activeContract.beforeDisplay,
+        sectionText: section?.textContent?.trim() || '',
         sectionMarginTop: section ? getComputedStyle(section).marginTop : '',
         sectionColor: section ? getComputedStyle(section).color : '',
         sectionSize: section ? getComputedStyle(section).fontSize : '',
@@ -3708,6 +3711,7 @@ for (const [device, viewport] of [
       };
     });
     if (openState.bodyPosition !== 'fixed' || openState.htmlOverflow !== 'hidden') failures.push('mobile menu: background is not scroll-locked');
+    if (openState.sectionText !== 'Традиционный режим') failures.push(`mobile menu: unexpected first section label ${openState.sectionText}`);
     if (!openState.profileWidth || openState.profileRight > openState.viewportWidth + 1) failures.push('mobile menu: profile control frame overflows');
     if (!openState.constructors || !openState.misc) failures.push('mobile menu: grouped navigation controls are missing');
     if (openState.missingRoutes.length) failures.push(`mobile menu: missing routes ${openState.missingRoutes.join(', ')}`);

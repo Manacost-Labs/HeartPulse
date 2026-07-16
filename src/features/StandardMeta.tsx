@@ -258,7 +258,7 @@ function DeckModal({ state, onClose }: { state: DeckModalState; onClose: () => v
               ) : state.loadingPreview || (state.preview && !state.preview.ready && state.preview.state !== 'error') ? (
                 <div className="standard-meta-modal__status" role="status">
                   <RefreshCw className="standard-meta__spinner" size={30} />
-                  <strong>KolodaHS рисует колоду</strong>
+                  <strong>DeckView рисует колоду</strong>
                   <span>Окно обновится автоматически.</span>
                 </div>
               ) : (

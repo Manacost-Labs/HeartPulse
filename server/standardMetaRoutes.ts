@@ -64,8 +64,9 @@ function readArchetype(value: unknown): string {
 
 function message(error: unknown, fallback: string): string {
   const code = error instanceof Error ? error.message : '';
-  if (code === 'KOLODAHS_NOT_CONFIGURED') return 'Рендер колоды пока не настроен на сервере';
-  if (code === 'KOLODAHS_TIMEOUT') return 'KolodaHS отвечает слишком долго. Попробуйте ещё раз';
+  if (code === 'DECKVIEW_TIMEOUT') return 'DeckView отвечает слишком долго. Попробуйте ещё раз';
+  if (code === 'DECKVIEW_PREVIEW_NOT_FOUND') return 'Изображение DeckView устарело. Откройте колоду заново';
+  if (code === 'DECKVIEW_RENDER_FAILED') return 'DeckView не смог создать изображение колоды';
   return fallback;
 }
 
@@ -124,7 +125,7 @@ export function createStandardMetaRouter(dependencies: StandardMetaRouterDepende
     if (!format || !rank || !archetype) return response.status(400).json({ error: 'Не указан архетип, формат или рейтинг' });
     try {
       // The deck code is deliberately resolved again on the server. Clients cannot
-      // use this admin endpoint as an arbitrary KolodaHS rendering proxy.
+      // use this admin endpoint as an arbitrary DeckView rendering proxy.
       const recommendation = await dependencies.findRecommendation(archetype, archetypeLabel, format, rank);
       if (!recommendation) return response.status(404).json({ error: 'Для этого архетипа пока не найден точный список' });
       const preview = await dependencies.createPreview(recommendation);

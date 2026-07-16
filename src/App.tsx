@@ -1432,8 +1432,8 @@ export default function App() {
           <nav ref={mobileMenuRef} id="arena-mobile-menu" className="arena-mobile-menu lg:hidden" aria-label="Мобильная навигация">
             <NavigationRouteLinks routes={TOP_LEVEL_TABS} activeTab={activeTab} variant="mobile" onNavigate={navigate} onWarm={warmRoute} />
             {appIsContestAdmin && <NavigationRouteLinks routes={ADMIN_TABS} activeTab={activeTab} variant="mobile" onNavigate={navigate} onWarm={warmRoute} />}
-            <div className="arena-mobile-menu-section" aria-label="Раздел Стандарт">
-              Стандарт
+            <div className="arena-mobile-menu-section" aria-label="Раздел Традиционный режим">
+              Традиционный режим
             </div>
             <NavigationRouteLinks routes={visibleStandardTabs} activeTab={activeTab} variant="mobile" onNavigate={navigate} onWarm={warmRoute} />
             <div className="arena-mobile-menu-section" aria-label="Раздел Арена">
@@ -1527,8 +1527,8 @@ export default function App() {
             <nav className="arena-sidebar-nav" aria-label="Разделы сайта">
               <NavigationRouteLinks routes={TOP_LEVEL_TABS} activeTab={activeTab} variant="sidebar" onNavigate={navigate} onWarm={warmRoute} />
               {appIsContestAdmin && <NavigationRouteLinks routes={ADMIN_TABS} activeTab={activeTab} variant="sidebar" onNavigate={navigate} onWarm={warmRoute} />}
-              <div className="arena-sidebar-section" aria-label="Раздел Стандарт">
-                Стандарт
+              <div className="arena-sidebar-section" aria-label="Раздел Традиционный режим">
+                Традиционный режим
               </div>
               <NavigationRouteLinks routes={visibleStandardTabs} activeTab={activeTab} variant="sidebar" onNavigate={navigate} onWarm={warmRoute} />
               <div className="arena-sidebar-section" aria-label="Раздел Арена">
