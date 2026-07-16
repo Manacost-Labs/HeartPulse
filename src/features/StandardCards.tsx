@@ -218,7 +218,7 @@ function FilterSelect({ label, value, onChange, children }: {
 
 function StatsRows({ stats, compact = false }: { stats: CardStats | null; compact?: boolean }) {
   const rows = [
-    ['Популярность в колодах', percent(stats?.deckPopularity)],
+    ['В % колод', percent(stats?.deckPopularity)],
     ['Победы колод', percent(stats?.deckWinrate)],
     ['Победы при розыгрыше', percent(stats?.winrateWhenPlayed)],
     ['Победы при получении', percent(stats?.winrateWhenDrawn)],
@@ -269,7 +269,7 @@ function CardGallery({ cards, format, navigatePath }: { cards: CardRecord[]; for
           >
             <img src={card.images?.card || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={cardName(card)} loading="lazy" />
             <span className="constructed-cards__gallery-name">{cardName(card)}</span>
-            <span className="constructed-cards__gallery-stat">{card.stats ? `${percent(card.stats.deckPopularity)} · ${percent(card.stats.deckWinrate)}` : 'Статистика недоступна'}</span>
+            <span className="constructed-cards__gallery-stat"><small>В % колод</small><strong>{percent(card.stats?.deckPopularity)}</strong></span>
           </a>
         ))}
       </div>
@@ -282,7 +282,7 @@ function CardTable({ cards, format, navigatePath }: { cards: CardRecord[]; forma
   return (
     <div className="constructed-cards__table-wrap">
       <table className="constructed-cards__table">
-        <thead><tr><th>Карта</th><th>Класс</th><th>Дополнение</th><th>Мана</th><th>Атака</th><th>Здоровье</th><th>Популярность</th><th>Победы колод</th><th>Партий</th></tr></thead>
+        <thead><tr><th>Карта</th><th>Класс</th><th>Дополнение</th><th>Мана</th><th>Атака</th><th>Здоровье</th><th>В % колод</th><th>Победы колод</th><th>Партий</th></tr></thead>
         <tbody>
           {cards.map(card => (
             <tr key={card.card_id}>
@@ -393,7 +393,7 @@ function CardsListPage({ initialFormat, navigatePath }: Pick<StandardCardsProps,
           </div>
           <label className="constructed-cards__search"><Search size={18} /><input value={filters.query} onChange={event => updateFilter('query', event.target.value)} placeholder="Поиск по названию" /></label>
           <FilterSelect label="Сортировка" value={filters.sort} onChange={value => updateFilter('sort', value)}>
-            <option value="popularity">Популярность</option><option value="winrate">Победы колод</option><option value="games">Сыграно партий</option><option value="mana">Мана</option><option value="attack">Атака</option><option value="health">Здоровье</option><option value="name">Название</option><option value="set">Дополнение</option><option value="class">Класс</option><option value="mechanics">Механики</option>
+            <option value="popularity">В % колод</option><option value="winrate">Победы колод</option><option value="games">Сыграно партий</option><option value="mana">Мана</option><option value="attack">Атака</option><option value="health">Здоровье</option><option value="name">Название</option><option value="set">Дополнение</option><option value="class">Класс</option><option value="mechanics">Механики</option>
           </FilterSelect>
           <FilterSelect label="На странице" value={String(perPage)} onChange={value => { setPerPage(Number(value)); setPage(1); }}>
             <option value="60">60 карт</option><option value="120">120 карт</option>

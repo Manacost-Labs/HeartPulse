@@ -2232,12 +2232,14 @@ for (const [device, viewport] of [
         rankText: document.querySelector('.constructed-cards__header')?.textContent || '',
         coverageText: (document.querySelector('.constructed-cards__coverage')?.textContent || '').replace(/\s/g, ''),
         setOptions: document.querySelectorAll('.constructed-cards__secondary-controls select option').length,
+        formatControls: document.querySelectorAll('.constructed-cards__format').length,
+        deckPercentLabels: [...document.querySelectorAll('.constructed-cards__gallery-stat small')].filter(item => item.textContent?.includes('В % колод')).length,
       };
     });
     if (constructedCardsState.cards !== 8 || constructedCardsState.filters < 8 || constructedCardsState.menuLinks < 1
       || !constructedCardsState.controlsVisible || !constructedCardsState.rankText.includes('Легенда')
       || !constructedCardsState.coverageText.includes('1152') || !constructedCardsState.coverageText.includes('1013')
-      || constructedCardsState.setOptions < 3
+      || constructedCardsState.setOptions < 3 || constructedCardsState.formatControls !== 1 || constructedCardsState.deckPercentLabels !== 8
       || constructedCardsState.rootOverflow || constructedCardsState.documentOverflow
       || (device === 'mobile' && (constructedCardsState.searchFontSize < 16 || constructedCardsState.smallestViewTarget < 44))) {
       failures.push(`constructed cards [${device}]: menu, controls or responsive gallery regressed (${JSON.stringify(constructedCardsState)})`);
@@ -2257,7 +2259,7 @@ for (const [device, viewport] of [
         text: document.querySelector('.constructed-cards__tooltip')?.textContent || '',
         display: getComputedStyle(document.querySelector('.constructed-cards__tooltip')).display,
       }));
-      if (tooltipState.rows !== 6 || !tooltipState.text.includes('Популярность в колодах') || tooltipState.display === 'none') {
+      if (tooltipState.rows !== 6 || !tooltipState.text.includes('В % колод') || tooltipState.display === 'none') {
         failures.push(`constructed cards tooltip [${device}]: Legend hover statistics regressed (${JSON.stringify(tooltipState)})`);
       }
       await page.screenshot({ path: `${OUT}/constructed-cards-hover-${device}.png`, fullPage: false });

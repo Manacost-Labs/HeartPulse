@@ -81,7 +81,9 @@
 .constructed-cards__gallery-card:focus-visible { z-index: 2; filter: brightness(1.05); transform: translateY(-5px); }
 .constructed-cards__gallery-card > img { width: 100%; max-width: 230px; aspect-ratio: 0.72; object-fit: contain; filter: drop-shadow(0 10px 8px rgba(56, 29, 12, 0.24)); }
 .constructed-cards__gallery-name { max-width: 100%; margin-top: -0.1rem; overflow: hidden; font-family: var(--font-display); font-size: 0.82rem; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
-.constructed-cards__gallery-stat { margin-top: 0.2rem; color: #846346; font-size: 0.58rem; font-weight: 800; }
+.constructed-cards__gallery-stat { display: flex; gap: 0.38rem; align-items: baseline; justify-content: center; min-width: 96px; margin-top: 0.38rem; padding-top: 0.32rem; border-top: 1px solid rgba(126, 82, 39, 0.22); color: #755235; }
+.constructed-cards__gallery-stat small { font-size: 0.56rem; font-weight: 800; letter-spacing: 0.02em; }
+.constructed-cards__gallery-stat strong { color: #711d23; font-family: var(--font-display); font-size: 0.82rem; line-height: 1; }
 
 .constructed-cards__tooltip { position: fixed; z-index: 1000; padding: 0.72rem; border: 1px solid #c09250; color: #f8e8bd; background: rgba(43, 29, 20, 0.98); box-shadow: 0 12px 28px rgba(34, 17, 8, 0.35); pointer-events: none; }
 .constructed-cards__tooltip > strong { display: block; overflow: hidden; font-family: var(--font-display); font-size: 1rem; text-overflow: ellipsis; white-space: nowrap; }
