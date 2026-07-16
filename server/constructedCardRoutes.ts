@@ -61,6 +61,11 @@ type DataServiceDependencies = {
 const FORMATS = new Set<ConstructedCardFormat>(['standard', 'wild']);
 const DEFAULT_PAGE_SIZE = 60;
 const MAX_PAGE_SIZE = 120;
+// One-day card slices contain a long tail with only a handful of observations.
+// Showing percentages for those rows produces technically valid but misleading
+// 75–100% leaders. Keep the sample count visible, but only publish rate metrics
+// once the card has enough observed plays to make comparisons useful.
+export const MIN_RELIABLE_CONSTRUCTED_CARD_GAMES = 100;
 const SORTS = new Set(['popularity', 'winrate', 'games', 'mana', 'attack', 'health', 'name', 'set', 'class', 'mechanics']);
 const VALID_CLASSES = new Set([
   'DEATHKNIGHT', 'DEMONHUNTER', 'DRUID', 'HUNTER', 'MAGE', 'PALADIN',
@@ -242,15 +247,17 @@ export function constructedCardCoverage(cards: JsonRecord[]) {
 
 export function normalizeConstructedCardStats(row: JsonRecord | undefined): JsonRecord | null {
   if (!row) return null;
+  const timesPlayed = finiteNumber(row.times_played);
+  const hasReliableRateSample = timesPlayed !== null && timesPlayed >= MIN_RELIABLE_CONSTRUCTED_CARD_GAMES;
   return {
     deckPopularity: percentNumber(row.deck_popularity),
-    deckWinrate: percentNumber(row.deck_winrate),
+    deckWinrate: hasReliableRateSample ? percentNumber(row.deck_winrate) : null,
     averageCopies: finiteNumber(row.avg_copies),
-    timesPlayed: finiteNumber(row.times_played),
-    winrateWhenPlayed: percentNumber(row.winrate_when_played),
-    winrateWhenDrawn: percentNumber(row.winrate_when_drawn),
-    keepPercentage: percentNumber(row.keep_percentage),
-    openingHandWinrate: percentNumber(row.opening_hand_winrate),
+    timesPlayed,
+    winrateWhenPlayed: hasReliableRateSample ? percentNumber(row.winrate_when_played) : null,
+    winrateWhenDrawn: hasReliableRateSample ? percentNumber(row.winrate_when_drawn) : null,
+    keepPercentage: hasReliableRateSample ? percentNumber(row.keep_percentage) : null,
+    openingHandWinrate: hasReliableRateSample ? percentNumber(row.opening_hand_winrate) : null,
     averageTurnsInHand: finiteNumber(row.avg_turns_in_hand),
     averageTurnPlayed: finiteNumber(row.avg_turn_played_on),
   };

@@ -11,6 +11,7 @@ import {
   enrichConstructedCardPools,
   enrichConstructedRelatedCards,
   mergeConstructedCardRows,
+  MIN_RELIABLE_CONSTRUCTED_CARD_GAMES,
   queryConstructedCards,
   translateConstructedArchetype,
   validateConstructedCardStatsDataset,
@@ -36,6 +37,24 @@ const mergedCards = mergeConstructedCardRows(catalogCards, [{
 
 assert.equal(mergedCards[0].stats.deckPopularity, 12.5);
 assert.equal(mergedCards[0].stats.deckWinrate, 54.3);
+const lowSampleCards = mergeConstructedCardRows(catalogCards, [
+  {
+    id: 'CARD_1', dbfId: 1, deck_popularity: '0.1%', deck_winrate: '100%', times_played: 3,
+    winrate_when_played: '100%', winrate_when_drawn: '100%', keep_percentage: '100%', opening_hand_winrate: '100%',
+  },
+  { id: 'CARD_2', dbfId: 2, deck_popularity: '2%', deck_winrate: '57%', times_played: MIN_RELIABLE_CONSTRUCTED_CARD_GAMES },
+]);
+assert.equal(lowSampleCards[0].stats.timesPlayed, 3, 'small samples must remain visible as context');
+assert.equal(lowSampleCards[0].stats.deckWinrate, null, 'small-sample deck winrates must not be presented as reliable percentages');
+assert.equal(lowSampleCards[0].stats.winrateWhenPlayed, null);
+assert.equal(lowSampleCards[0].stats.winrateWhenDrawn, null);
+assert.equal(lowSampleCards[0].stats.keepPercentage, null);
+assert.equal(lowSampleCards[0].stats.openingHandWinrate, null);
+assert.deepEqual(
+  queryConstructedCards(lowSampleCards, { sort: 'winrate', direction: 'desc' }).map(card => card.card_id),
+  ['CARD_2', 'CARD_1'],
+  'unreliable 100% rows must sort after cards with a sufficient sample',
+);
 assert.equal(mergedCards[1].stats, null, 'catalog cards without Legend statistics must remain in the library');
 assert.equal(
   mergeConstructedCardRows(catalogCards, [{ id: 'CARD_1', dbfId: 1, deck_popularity: '137%', deck_winrate: '54%' }])[0].stats.deckPopularity,

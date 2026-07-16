@@ -4,20 +4,25 @@
 }
 
 .traditional-deck-list .hsrdv {
-  --hsrdv-tile-height: 46px;
-  --hsrdv-gem-width: 46px;
+  --hsrdv-tile-height: 40px;
+  --hsrdv-gem-width: 40px;
   width: 100%;
 }
 
-.traditional-deck-list .hsrdv-deck {
+.traditional-deck-list .hsrdv-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.32rem;
+  gap: 0.28rem 0.38rem;
   margin: 0;
   padding: 0;
 }
 
+.traditional-deck-list .hsrdv-list > li { min-width: 0; margin: 0; }
 .traditional-deck-list .hsrdv-card-tile { min-width: 0; }
+.traditional-deck-list .hsrdv-card-name { font-size: clamp(0.78rem, 1.25vw, 1rem); }
+.traditional-deck-list .hsrdv-card-cost { font-size: 1.4rem; }
+.traditional-deck-list .hsrdv-card-count { font-size: 1.45rem; }
+.traditional-deck-list .hsrdv-card-count--copies { font-size: 1.3rem; }
 
 .traditional-deck-list--empty,
 .traditional-deck-list__error {
@@ -34,6 +39,7 @@
 .traditional-deck-list__error { min-height: 80px; color: #ffd3bf; }
 
 @media (max-width: 640px) {
-  .traditional-deck-list .hsrdv-deck { grid-template-columns: 1fr; }
-  .traditional-deck-list .hsrdv { --hsrdv-tile-height: 44px; --hsrdv-gem-width: 44px; }
+  .traditional-deck-list .hsrdv-list { grid-template-columns: 1fr; }
+  .traditional-deck-list .hsrdv { --hsrdv-tile-height: 42px; --hsrdv-gem-width: 42px; }
+  .traditional-deck-list .hsrdv-card-name { font-size: 0.94rem; }
 }

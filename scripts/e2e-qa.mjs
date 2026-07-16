@@ -2195,10 +2195,18 @@ for (const [device, viewport] of [
       || document.querySelector('.standard-meta-modal__image-stage .traditional-deck-list__error'));
     const immediateDeckState = await page.evaluate(() => ({
       tiles: document.querySelectorAll('.standard-meta-modal__image-stage .hsrdv-card-tile').length,
+      artImages: document.querySelectorAll('.standard-meta-modal__image-stage .hsrdv-card-art[src]').length,
+      titledCards: document.querySelectorAll('.standard-meta-modal__image-stage .hsrdv-card-tile[title]').length,
+      columns: getComputedStyle(document.querySelector('.standard-meta-modal__image-stage .hsrdv-list')).gridTemplateColumns.split(' ').length,
+      panelWidth: document.querySelector('.standard-meta-modal__panel')?.getBoundingClientRect().width || 0,
       dataDeckCards: document.querySelector('.standard-meta-modal__image-stage [data-deck-cards]')?.getAttribute('data-deck-cards') || '',
       text: document.querySelector('.standard-meta-modal__image-stage')?.textContent?.trim() || '',
     }));
-    if (immediateDeckState.tiles !== qaDeckCards.length || !immediateDeckState.dataDeckCards || (adminState.standardMetaPreviewRequests || 0) !== 0) {
+    const expectedDeckColumns = device === 'desktop' ? 2 : 1;
+    if (immediateDeckState.tiles !== qaDeckCards.length || immediateDeckState.artImages !== qaDeckCards.length
+      || immediateDeckState.titledCards !== qaDeckCards.length
+      || immediateDeckState.columns !== expectedDeckColumns || (device === 'desktop' && immediateDeckState.panelWidth > 840)
+      || !immediateDeckState.dataDeckCards || (adminState.standardMetaPreviewRequests || 0) !== 0) {
       failures.push(`standard meta modal [${device}]: immediate deck list triggered image rendering or lost cards (${JSON.stringify(immediateDeckState)})`);
     }
     await page.click('.standard-meta-modal__presentation button:nth-child(2)');

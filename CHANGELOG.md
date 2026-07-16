@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Removed misleading 75–100% constructed-card leaders from tiny one-day samples by requiring 100 observed games before percentage metrics participate in the UI or win-rate sorting; repaired the DeckView composition grid so card art renders in two compact columns and reduced the Standard meta deck dialog footprint.
 - Kept the complete constructed-card catalog available when an upstream statistics refresh is malformed or unavailable: invalid popularity values are removed, users see a clear degraded-data notice, and deck composition hydration continues instead of turning the whole Cards API into a 502 response.
 - Released Meta, Vicious Syndicate Gold and Cards as public Traditional-mode pages with public server contracts, prerendered metadata and sitemap coverage; replaced automatic DeckView image generation with immediate Russian deck lists plus on-demand images, added expandable Vicious builds, and introduced administrator monitoring/reset controls for Standard caches and the DeckView queue together with separate mechanic/tag translation filtering.
 - Hardened the constructed-card beta against malformed 97–100% popularity snapshots, made every gallery caption follow the active sort metric, vendored the pinned hsreplay-deck-view renderer for real `data-deck-cards` table rows, added smooth rarity-aware hover light, and rebuilt the mobile filters and table as compact accessible card records without horizontal scrolling.
