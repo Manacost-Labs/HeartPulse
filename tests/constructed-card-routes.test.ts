@@ -1,0 +1,97 @@
+import assert from 'node:assert/strict';
+import express, { type RequestHandler } from 'express';
+import {
+  createConstructedCardRouter,
+  mergeConstructedCardRows,
+  queryConstructedCards,
+  type ConstructedCardRouterDependencies,
+} from '../server/constructedCardRoutes.js';
+
+const catalogCards = [
+  {
+    card_id: 'CARD_1', dbf: 1, name: { ru: 'Альфа', en: 'Alpha' }, card_set: 'SET_A',
+    card_type: { slug: 'MINION', name_ru: 'Существо' }, class: 'MAGE', multi_class: [], rarity: 'COMMON',
+    mana_cost: 2, attack: 3, health: 4, mechanics: ['BATTLECRY'], referenced_tags: [], images: { card: 'alpha.png' },
+  },
+  {
+    card_id: 'CARD_2', dbf: 2, name: { ru: 'Бета', en: 'Beta' }, card_set: 'SET_B',
+    card_type: { slug: 'SPELL', name_ru: 'Заклинание' }, class: 'WARRIOR', multi_class: [], rarity: 'RARE',
+    mana_cost: 5, attack: null, health: null, mechanics: [], referenced_tags: ['TAUNT'], images: { card: 'beta.png' },
+  },
+];
+const mergedCards = mergeConstructedCardRows(catalogCards, [{
+  id: 'CARD_1', dbfId: 1, deck_popularity: '12.5%', deck_winrate: '54.3%', times_played: 240,
+  winrate_when_played: '57.2%', winrate_when_drawn: '55.1%', keep_percentage: '43.2%', opening_hand_winrate: '52.4%',
+}]);
+
+assert.equal(mergedCards[0].stats.deckPopularity, 12.5);
+assert.equal(mergedCards[0].stats.deckWinrate, 54.3);
+assert.equal(mergedCards[1].stats, null, 'catalog cards without Legend statistics must remain in the library');
+assert.deepEqual(queryConstructedCards(mergedCards, { class: 'mage', mechanic: 'battlecry' }).map(card => card.card_id), ['CARD_1']);
+assert.deepEqual(queryConstructedCards(mergedCards, { sort: 'mana', direction: 'desc' }).map(card => card.card_id), ['CARD_2', 'CARD_1']);
+
+const calls: string[] = [];
+const adminGuard: RequestHandler = (request, response, next) => {
+  if (request.headers['x-test-admin'] !== 'yes') return response.status(403).json({ error: 'admin only' });
+  next();
+};
+const dependencies: ConstructedCardRouterDependencies = {
+  adminGuard,
+  loadCards: async format => {
+    calls.push(`list:${format}`);
+    return { cards: mergedCards, updatedAt: '2026-07-16T05:03:02.000Z', sourceUrl: 'https://hsreplay.net/cards/' };
+  },
+  loadCardDetail: async (format, cardId) => {
+    calls.push(`detail:${format}:${cardId}`);
+    const card = mergedCards.find(item => item.card_id === cardId);
+    return card ? { ...card, wiki: { patch_changes: [] } } : null;
+  },
+  setPrivateNoStore: response => {
+    response.set('Cache-Control', 'no-store');
+    response.vary('Cookie');
+  },
+};
+
+const app = express();
+app.use('/api', createConstructedCardRouter(dependencies));
+const server = app.listen(0, '127.0.0.1');
+await new Promise<void>((resolve, reject) => {
+  server.once('listening', resolve);
+  server.once('error', reject);
+});
+const address = server.address();
+assert.ok(address && typeof address === 'object');
+const origin = `http://127.0.0.1:${address.port}/api/admin/constructed-cards`;
+const adminHeaders = { 'X-Test-Admin': 'yes' };
+
+try {
+  const denied = await fetch(origin);
+  assert.equal(denied.status, 403);
+  assert.deepEqual(calls, []);
+
+  const invalidFormat = await fetch(`${origin}?format=classic`, { headers: adminHeaders });
+  assert.equal(invalidFormat.status, 400);
+  assert.equal(invalidFormat.headers.get('cache-control'), 'no-store');
+
+  const list = await fetch(`${origin}?format=standard&class=MAGE&perPage=20`, { headers: adminHeaders });
+  assert.equal(list.status, 200);
+  const listPayload = await list.json() as any;
+  assert.equal(listPayload.rank, 'legend');
+  assert.equal(listPayload.cards.length, 1);
+  assert.equal(listPayload.cards[0].card_id, 'CARD_1');
+  assert.equal(listPayload.pagination.total, 1);
+  assert.ok(listPayload.facets.classes.includes('WARRIOR'));
+
+  const detail = await fetch(`${origin}/CARD_1?format=wild`, { headers: adminHeaders });
+  assert.equal(detail.status, 200);
+  assert.equal((await detail.json() as any).card.name.ru, 'Альфа');
+
+  const invalidCard = await fetch(`${origin}/!?format=standard`, { headers: adminHeaders });
+  assert.equal(invalidCard.status, 400);
+  const missing = await fetch(`${origin}/UNKNOWN?format=standard`, { headers: adminHeaders });
+  assert.equal(missing.status, 404);
+} finally {
+  await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+}
+
+console.log('constructed cards admin router contract tests passed');

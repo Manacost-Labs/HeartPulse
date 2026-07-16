@@ -33,6 +33,10 @@ import { createOperationalRouter } from './operationalRoutes.js';
 import { createArenaDecksRouter, type ArenaDecksCacheStore } from './arenaDeckRoutes.js';
 import { createStandardMatchupRouter } from './standardMatchupRoutes.js';
 import {
+  createConstructedCardDataService,
+  createConstructedCardRouter,
+} from './constructedCardRoutes.js';
+import {
   createStandardMetaRouter,
   type StandardMetaFormat,
   type StandardMetaPreview,
@@ -4250,6 +4254,10 @@ const STANDARD_MATCHUPS_RANK_LABEL: Record<keyof typeof STANDARD_MATCHUPS_DATASE
   legend: 'Легенда',
   diamond: 'Алмаз 4-1',
 };
+const CONSTRUCTED_CARDS_DATASET_BY_FORMAT = {
+  standard: 'hsreplay_cards_legend_1d',
+  wild: 'hsreplay_cards_wild_legend_1d',
+} as const;
 const STANDARD_META_DATASET_BY_FORMAT_RANK: Record<StandardMetaFormat, Record<StandardMetaRank, string>> = {
   standard: {
     legend: 'hsguru_meta_standard_legend',
@@ -6692,6 +6700,24 @@ app.use('/api', createStandardMatchupRouter({
   cacheHeader: CACHE_1H,
   onError: (scope, error) => console.error(
     `[standard-matchups] ${scope} failed:`,
+    error instanceof Error ? error.message : error,
+  ),
+}));
+
+const constructedCardDataService = createConstructedCardDataService({
+  fetchJson: url => fetchDataset(url),
+  catalogBaseUrl: KOLODAHS_API_BASE_URL,
+  statsDatasetByFormat: CONSTRUCTED_CARDS_DATASET_BY_FORMAT,
+  statsBaseUrl: `${DATASET_API_ORIGIN}/demo/view`,
+  cacheTtlMs: EXTERNAL_DATASET_CACHE_MS,
+});
+
+app.use('/api', createConstructedCardRouter({
+  adminGuard: adminIdGuard,
+  ...constructedCardDataService,
+  setPrivateNoStore,
+  onError: (scope, error) => console.error(
+    `[constructed-cards] ${scope} failed:`,
     error instanceof Error ? error.message : error,
   ),
 }));
