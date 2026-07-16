@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
   Volume2,
 } from 'lucide-react';
@@ -18,6 +19,8 @@ import '../route-parchment.css';
 import ConstructedCardLightbox from './ConstructedCardLightbox';
 import { compareConstructedSets, constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
 import { collectConstructedCardMedia, flattenConstructedCardSounds, type ConstructedCardMediaItem } from './constructedCardMedia';
+import '../vendor/hsreplay-deck-view/hsreplay-deck-view.js';
+import '../vendor/hsreplay-deck-view/hsreplay-deck-view.css';
 import './StandardCards.css';
 
 type CardFormat = 'standard' | 'wild';
@@ -220,6 +223,28 @@ function number(value: number | null | undefined): string {
   return value === null || value === undefined ? 'Нет данных' : value.toLocaleString('ru-RU');
 }
 
+function sortMetric(card: CardRecord, sort: string): { label: string; value: string } {
+  if (sort === 'winrate') return { label: 'Победы колод', value: percent(card.stats?.deckWinrate) };
+  if (sort === 'games') return { label: 'Сыграно партий', value: number(card.stats?.timesPlayed) };
+  if (sort === 'mana') return { label: 'Мана', value: number(card.mana_cost) };
+  if (sort === 'attack') return { label: 'Атака', value: number(card.attack) };
+  if (sort === 'health') return { label: 'Здоровье', value: number(card.health) };
+  if (sort === 'set') return { label: 'Дополнение', value: card.card_set ? constructedSetLabel(card.card_set) : 'Нет данных' };
+  if (sort === 'class') return { label: 'Класс', value: classLabel(card.class || 'NEUTRAL') };
+  if (sort === 'mechanics') {
+    const count = cardMechanicKeys(card).length;
+    return { label: 'Механики', value: count ? number(count) : 'Нет данных' };
+  }
+  if (sort === 'name') return { label: 'Название', value: card.name?.en || cardName(card) };
+  return { label: 'В % колод', value: percent(card.stats?.deckPopularity) };
+}
+
+function cardMechanicKeys(card: CardRecord): string[] {
+  return [...new Set([...(card.mechanics || []), ...(card.referenced_tags || [])]
+    .map(value => String(value).trim())
+    .filter(value => Boolean(value) && !/^\d+$/.test(value)))];
+}
+
 function formatDate(value: string | null | undefined): string {
   if (!value) return 'нет данных';
   const date = new Date(value);
@@ -315,17 +340,19 @@ function HoverTooltip({ card, rect }: { card: CardRecord; rect: DOMRect }) {
   );
 }
 
-function CardGallery({ cards, format, navigatePath }: { cards: CardRecord[]; format: CardFormat; navigatePath: (path: string) => void }) {
+function CardGallery({ cards, format, sort, navigatePath }: { cards: CardRecord[]; format: CardFormat; sort: string; navigatePath: (path: string) => void }) {
   const [hovered, setHovered] = useState<{ card: CardRecord; rect: DOMRect } | null>(null);
   const showTooltip = (card: CardRecord, element: HTMLElement) => setHovered({ card, rect: element.getBoundingClientRect() });
   return (
     <>
       <div className="constructed-cards__gallery">
-        {cards.map(card => (
-          <a
+        {cards.map(card => {
+          const metric = sortMetric(card, sort);
+          return <a
             key={card.card_id}
             href={cardPath(format, card)}
             className="constructed-cards__gallery-card"
+            data-rarity={String(card.rarity || 'COMMON').toLowerCase()}
             onMouseEnter={event => showTooltip(card, event.currentTarget)}
             onMouseLeave={() => setHovered(null)}
             onFocus={event => showTooltip(card, event.currentTarget)}
@@ -334,27 +361,60 @@ function CardGallery({ cards, format, navigatePath }: { cards: CardRecord[]; for
           >
             <img src={card.images?.card || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={cardName(card)} loading="lazy" />
             <span className="constructed-cards__gallery-name">{cardName(card)}</span>
-            <span className="constructed-cards__gallery-stat"><small>В % колод</small><strong>{percent(card.stats?.deckPopularity)}</strong></span>
-          </a>
-        ))}
+            <span className="constructed-cards__gallery-stat"><small>{metric.label}</small><strong>{metric.value}</strong></span>
+          </a>;
+        })}
       </div>
       {hovered && <HoverTooltip card={hovered.card} rect={hovered.rect} />}
     </>
   );
 }
 
-function CardTable({ cards, format, navigatePath }: { cards: CardRecord[]; format: CardFormat; navigatePath: (path: string) => void }) {
+function HsReplayDataDeckCard({ card }: { card: CardRecord }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const dbfIds = card.dbf === null || card.dbf === undefined ? '' : String(card.dbf);
+  useEffect(() => {
+    const container = containerRef.current;
+    const api = (window as any).HSReplayDeckView;
+    if (!container || !api?.renderDeck) return undefined;
+    api.renderDeck(container, [{
+      id: card.card_id,
+      dbfId: card.dbf,
+      name: cardName(card),
+      cost: card.mana_cost ?? 0,
+      rarity: card.rarity || 'COMMON',
+      elite: String(card.rarity || '').toUpperCase() === 'LEGENDARY',
+      count: 1,
+      image: card.images?.crop || `https://art.hearthstonejson.com/v1/tiles/${encodeURIComponent(card.card_id)}.webp`,
+    }], {
+      className: 'constructed-cards__hsrdv',
+      group: false,
+      sort: false,
+      clear: true,
+      showSingleCountBox: false,
+    });
+    return () => container.replaceChildren();
+  }, [card]);
+  return <div ref={containerRef} className="constructed-cards__data-deck-card" data-deck-cards={dbfIds} data-card-id={card.card_id}><span>{cardName(card)}</span></div>;
+}
+
+function sortAria(sort: string, column: string, direction: Filters['direction']): React.AriaAttributes['aria-sort'] {
+  if (sort !== column) return undefined;
+  return direction === 'asc' ? 'ascending' : 'descending';
+}
+
+function CardTable({ cards, format, sort, direction, navigatePath }: { cards: CardRecord[]; format: CardFormat; sort: string; direction: Filters['direction']; navigatePath: (path: string) => void }) {
   return (
     <div className="constructed-cards__table-wrap">
       <table className="constructed-cards__table">
-        <thead><tr><th>Карта</th><th>Класс</th><th>Дополнение</th><th>Мана</th><th>Атака</th><th>Здоровье</th><th>В % колод</th><th>Победы колод</th><th>Партий</th></tr></thead>
+        <thead><tr><th aria-sort={sortAria(sort, 'name', direction)}>Карта</th><th aria-sort={sortAria(sort, 'class', direction)}>Класс</th><th aria-sort={sortAria(sort, 'set', direction)}>Дополнение</th><th aria-sort={sortAria(sort, 'mana', direction)}>Мана</th><th aria-sort={sortAria(sort, 'attack', direction)}>Атака</th><th aria-sort={sortAria(sort, 'health', direction)}>Здоровье</th><th aria-sort={sortAria(sort, 'popularity', direction)}>В % колод</th><th aria-sort={sortAria(sort, 'winrate', direction)}>Победы колод</th><th aria-sort={sortAria(sort, 'games', direction)}>Партий</th></tr></thead>
         <tbody>
           {cards.map(card => (
             <tr key={card.card_id}>
-              <th scope="row"><a href={cardPath(format, card)} onClick={event => { event.preventDefault(); navigatePath(cardPath(format, card)); }}><img src={card.images?.crop || card.images?.card || ''} alt="" loading="lazy" /><span>{cardName(card)}<small>{card.name?.en}</small></span></a></th>
-              <td><img className="constructed-cards__class-icon" src={classIcon(card.class)} alt="" />{classLabel(card.class || 'NEUTRAL')}</td>
-              <td>{card.card_set ? constructedSetLabel(card.card_set) : '—'}</td><td>{number(card.mana_cost)}</td><td>{number(card.attack)}</td><td>{number(card.health)}</td>
-              <td>{percent(card.stats?.deckPopularity)}</td><td>{percent(card.stats?.deckWinrate)}</td><td>{number(card.stats?.timesPlayed)}</td>
+              <th scope="row"><a href={cardPath(format, card)} aria-label={`Открыть карту ${cardName(card)}`} onClick={event => { event.preventDefault(); navigatePath(cardPath(format, card)); }}><HsReplayDataDeckCard card={card} /><small>{card.name?.en}</small></a></th>
+              <td data-label="Класс"><span><img className="constructed-cards__class-icon" src={classIcon(card.class)} alt="" />{classLabel(card.class || 'NEUTRAL')}</span></td>
+              <td data-label="Дополнение">{card.card_set ? constructedSetLabel(card.card_set) : '—'}</td><td data-label="Мана">{number(card.mana_cost)}</td><td data-label="Атака">{number(card.attack)}</td><td data-label="Здоровье">{number(card.health)}</td>
+              <td data-label="В % колод">{percent(card.stats?.deckPopularity)}</td><td data-label="Победы колод">{percent(card.stats?.deckWinrate)}</td><td data-label="Партий">{number(card.stats?.timesPlayed)}</td>
             </tr>
           ))}
         </tbody>
@@ -384,6 +444,7 @@ function CardsListPage({ initialFormat, navigatePath }: Pick<StandardCardsProps,
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(60);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [data, setData] = useState<ListPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -457,13 +518,25 @@ function CardsListPage({ initialFormat, navigatePath }: Pick<StandardCardsProps,
           <FilterSelect label="На странице" value={String(perPage)} onChange={value => { setPerPage(Number(value)); setPage(1); }}>
             <option value="60">60 карт</option><option value="120">120 карт</option>
           </FilterSelect>
-          <button type="button" className="constructed-cards__direction" onClick={() => updateFilter('direction', filters.direction === 'asc' ? 'desc' : 'asc')} aria-label="Изменить направление сортировки">{filters.direction === 'asc' ? '↑' : '↓'}</button>
+          <button type="button" className="constructed-cards__direction" onClick={() => updateFilter('direction', filters.direction === 'asc' ? 'desc' : 'asc')} aria-label="Изменить направление сортировки">
+            <span aria-hidden="true">{filters.direction === 'asc' ? '↑' : '↓'}</span>
+            <span className="constructed-cards__direction-label">{filters.direction === 'asc' ? 'По возрастанию' : 'По убыванию'}</span>
+          </button>
           <div className="constructed-cards__view" aria-label="Вид списка">
             <button type="button" aria-pressed={view === 'gallery'} onClick={() => setView('gallery')}><Grid3X3 size={16} /> Галерея</button>
             <button type="button" aria-pressed={view === 'table'} onClick={() => setView('table')}><List size={17} /> Таблица</button>
           </div>
+          <button
+            type="button"
+            className="constructed-cards__advanced-toggle"
+            aria-expanded={mobileFiltersOpen}
+            aria-controls="constructed-cards-advanced-filters"
+            onClick={() => setMobileFiltersOpen(current => !current)}
+          >
+            <SlidersHorizontal size={17} /> {mobileFiltersOpen ? 'Скрыть фильтры' : 'Дополнительные фильтры'}
+          </button>
         </div>
-        <div className="constructed-cards__secondary-controls">
+        <div id="constructed-cards-advanced-filters" className={`constructed-cards__secondary-controls${mobileFiltersOpen ? ' is-open' : ''}`}>
           <FilterSelect label="Класс" value={filters.class} onChange={value => updateFilter('class', value)}><option value="">Все классы ({number(coverage?.totalCards)})</option>{facets.classes.map(value => <option key={value} value={value}>{facetOptionLabel(value, countFor(facetCounts.classes, value), classLabel)}</option>)}</FilterSelect>
           <FilterSelect label="Дополнение" value={filters.set} onChange={value => updateFilter('set', value)}><option value="">Все дополнения</option>{sets.map(value => <option key={value} value={value}>{constructedSetLabel(value)}</option>)}</FilterSelect>
           <FilterSelect label="Мана" value={filters.mana} onChange={value => updateFilter('mana', value)}><option value="">Любая</option>{Array.from({ length: 11 }, (_, value) => <option key={value} value={value}>{value}</option>)}</FilterSelect>
@@ -478,7 +551,7 @@ function CardsListPage({ initialFormat, navigatePath }: Pick<StandardCardsProps,
 
       {loading ? <section className="constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={34} /><h2>Загружаем библиотеку</h2><p>Объединяем список карт и статистику Легенды.</p></section>
         : error ? <section className="constructed-cards__state" role="alert"><h2>Не удалось загрузить карты</h2><p>{error}</p><button type="button" onClick={() => setReloadToken(value => value + 1)}><RefreshCw size={16} /> Повторить</button></section>
-          : data && data.cards.length > 0 ? <>{view === 'gallery' ? <CardGallery cards={data.cards} format={format} navigatePath={navigatePath} /> : <CardTable cards={data.cards} format={format} navigatePath={navigatePath} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} /></>
+          : data && data.cards.length > 0 ? <>{view === 'gallery' ? <CardGallery cards={data.cards} format={format} sort={filters.sort} navigatePath={navigatePath} /> : <CardTable cards={data.cards} format={format} sort={filters.sort} direction={filters.direction} navigatePath={navigatePath} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} /></>
             : <section className="constructed-cards__state"><Search size={34} /><h2>Карты не найдены</h2><p>Измените фильтры или сбросьте их.</p><button type="button" onClick={reset}><RefreshCw size={16} /> Сбросить фильтры</button></section>}
     </div>
   );

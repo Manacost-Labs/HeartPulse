@@ -104,7 +104,7 @@ function percentNumber(value: unknown): number | null {
   const raw = String(value ?? '').replace('%', '').replace(',', '.').trim();
   if (!raw || raw === '—' || raw === '-') return null;
   const parsed = Number(raw);
-  return Number.isFinite(parsed) ? parsed : null;
+  return Number.isFinite(parsed) && parsed >= 0 && parsed <= 100 ? parsed : null;
 }
 
 function finiteNumber(value: unknown): number | null {
@@ -253,6 +253,34 @@ export function normalizeConstructedCardStats(row: JsonRecord | undefined): Json
     averageTurnsInHand: finiteNumber(row.avg_turns_in_hand),
     averageTurnPlayed: finiteNumber(row.avg_turn_played_on),
   };
+}
+
+export function validateConstructedCardStatsDataset(statsCards: JsonRecord[]): void {
+  if (!statsCards.length) throw new Error('Constructed card statistics dataset is empty');
+  let invalidPopularity = 0;
+  let extremePopularity = 0;
+  let cardsWithPopularity = 0;
+  for (const row of statsCards) {
+    const raw = String(row?.deck_popularity ?? '').replace('%', '').replace(',', '.').trim();
+    if (!raw || raw === '—' || raw === '-') continue;
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value < 0 || value > 100) {
+      invalidPopularity += 1;
+      continue;
+    }
+    cardsWithPopularity += 1;
+    if (value >= 80) extremePopularity += 1;
+  }
+  if (!cardsWithPopularity) throw new Error('Constructed card statistics have no deck popularity values');
+  if (invalidPopularity > Math.max(3, Math.ceil(statsCards.length * 0.01))) {
+    throw new Error(`Constructed card statistics contain ${invalidPopularity} invalid popularity values`);
+  }
+  // A cross-class constructed sample cannot contain a large block of cards
+  // present in almost every deck. Reject a wrong column or malformed stale
+  // snapshot instead of publishing the familiar 97–100% cascade.
+  if (extremePopularity >= 10) {
+    throw new Error(`Constructed card statistics contain ${extremePopularity} implausible popularity values`);
+  }
 }
 
 export function mergeConstructedCardRows(catalogCards: JsonRecord[], statsCards: JsonRecord[]): JsonRecord[] {
@@ -576,6 +604,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
       const statsDataset = dependencies.statsDatasetByFormat[format];
       const statsPayload = await dependencies.fetchJson(`${dependencies.statsBaseUrl.replace(/\/$/, '')}/${statsDataset}`);
       const statsCards = Array.isArray(statsPayload?.view?.cards) ? statsPayload.view.cards : [];
+      validateConstructedCardStatsDataset(statsCards);
       const value = {
         cards: mergeConstructedCardRows(catalogCards, statsCards),
         updatedAt: String(statsPayload?.fetched_at ?? '') || null,

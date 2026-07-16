@@ -12,6 +12,7 @@ import {
   mergeConstructedCardRows,
   queryConstructedCards,
   translateConstructedArchetype,
+  validateConstructedCardStatsDataset,
   type ConstructedCardRouterDependencies,
 } from '../server/constructedCardRoutes.js';
 
@@ -35,6 +36,20 @@ const mergedCards = mergeConstructedCardRows(catalogCards, [{
 assert.equal(mergedCards[0].stats.deckPopularity, 12.5);
 assert.equal(mergedCards[0].stats.deckWinrate, 54.3);
 assert.equal(mergedCards[1].stats, null, 'catalog cards without Legend statistics must remain in the library');
+assert.equal(
+  mergeConstructedCardRows(catalogCards, [{ id: 'CARD_1', dbfId: 1, deck_popularity: '137%', deck_winrate: '54%' }])[0].stats.deckPopularity,
+  null,
+  'out-of-range percentages must never reach the card UI',
+);
+assert.doesNotThrow(() => validateConstructedCardStatsDataset([
+  { id: 'CARD_1', deck_popularity: '23.28%' },
+  { id: 'CARD_2', deck_popularity: '12.5%' },
+]));
+assert.throws(
+  () => validateConstructedCardStatsDataset(Array.from({ length: 10 }, (_, index) => ({ id: `BAD_${index}`, deck_popularity: `${97 + index / 10}%` }))),
+  /implausible popularity values/,
+  'a systemic 97–100% popularity cascade must be rejected as a malformed snapshot',
+);
 const pendingCatalogCard = mergeConstructedCardRows(catalogCards, [{
   id: 'CARD_3', dbfId: 3, name: 'Гамма', type: 'SPELL', rarity: 'EPIC', cardClass: 'PRIEST', cost: 3,
   deck_popularity: '1.2%', times_played: 42,

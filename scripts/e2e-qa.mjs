@@ -2337,6 +2337,11 @@ for (const [device, viewport] of [
         setOptionTexts: [...document.querySelectorAll('.constructed-cards__secondary-controls select')][1]
           ? [...document.querySelectorAll('.constructed-cards__secondary-controls select')[1].options].map(option => option.textContent || '') : [],
         deckPercentLabels: [...document.querySelectorAll('.constructed-cards__gallery-stat small')].filter(item => item.textContent?.includes('В % колод')).length,
+        rarity: document.querySelector('.constructed-cards__gallery-card')?.getAttribute('data-rarity') || '',
+        rarityGlow: getComputedStyle(document.querySelector('.constructed-cards__gallery-card'), '::before').backgroundImage,
+        hoverTransition: getComputedStyle(document.querySelector('.constructed-cards__gallery-card')).transitionDuration,
+        advancedToggleHeight: document.querySelector('.constructed-cards__advanced-toggle')?.getBoundingClientRect().height || 0,
+        advancedFiltersVisible: getComputedStyle(document.querySelector('.constructed-cards__secondary-controls')).display !== 'none',
       };
     });
     if (constructedCardsState.cards !== 8 || constructedCardsState.filters < 8 || constructedCardsState.menuLinks < 1
@@ -2346,9 +2351,33 @@ for (const [device, viewport] of [
       || constructedCardsState.formatIcons !== 2 || constructedCardsState.formatLabels.join(',') !== 'Стандарт,Вольный'
       || constructedCardsState.classOptions.some(value => /^\d+$/.test(value)) || constructedCardsState.setLabels !== 'Дополнение'
       || constructedCardsState.setOptionTexts.some(value => /\(\d[\d\s]*\)$/.test(value))
+      || !constructedCardsState.rarity || !constructedCardsState.rarityGlow.includes('radial-gradient') || constructedCardsState.hoverTransition === '0s'
       || constructedCardsState.rootOverflow || constructedCardsState.documentOverflow
-      || (device === 'mobile' && (constructedCardsState.searchFontSize < 16 || constructedCardsState.smallestViewTarget < 44))) {
+      || (device === 'mobile' && (constructedCardsState.searchFontSize < 16 || constructedCardsState.smallestViewTarget < 44
+        || constructedCardsState.advancedToggleHeight < 44 || constructedCardsState.advancedFiltersVisible))) {
       failures.push(`constructed cards [${device}]: menu, controls or responsive gallery regressed (${JSON.stringify(constructedCardsState)})`);
+    }
+    if (device === 'mobile') {
+      await page.click('.constructed-cards__advanced-toggle');
+      const advancedState = await page.evaluate(() => ({
+        expanded: document.querySelector('.constructed-cards__advanced-toggle')?.getAttribute('aria-expanded'),
+        visible: getComputedStyle(document.querySelector('.constructed-cards__secondary-controls')).display,
+      }));
+      if (advancedState.expanded !== 'true' || advancedState.visible !== 'grid') {
+        failures.push(`constructed cards filters [${device}]: advanced filters did not expand (${JSON.stringify(advancedState)})`);
+      }
+      await page.click('.constructed-cards__advanced-toggle');
+    }
+    await page.select('.constructed-cards__primary-controls .constructed-cards__filter select', 'winrate');
+    await page.waitForFunction(() => [...document.querySelectorAll('.constructed-cards__gallery-stat small')]
+      .every(element => element.textContent?.trim() === 'Победы колод'));
+    const winrateSortState = await page.evaluate(() => ({
+      labels: [...document.querySelectorAll('.constructed-cards__gallery-stat small')].map(element => element.textContent?.trim()),
+      values: [...document.querySelectorAll('.constructed-cards__gallery-stat strong')].map(element => element.textContent?.trim()),
+    }));
+    if (winrateSortState.labels.length !== 8 || winrateSortState.labels.some(label => label !== 'Победы колод')
+      || winrateSortState.values.some(value => value === '100%')) {
+      failures.push(`constructed cards sorting [${device}]: card metric did not follow deck-winrate sorting (${JSON.stringify(winrateSortState)})`);
     }
     await page.click('.constructed-cards__format button:nth-child(2)');
     await page.waitForFunction(() => window.location.pathname === '/standard/cards/wild');
@@ -2386,11 +2415,19 @@ for (const [device, viewport] of [
         columns: table?.querySelectorAll('thead th').length ?? 0,
         internallyScrollable: (wrapper?.scrollWidth ?? 0) > (wrapper?.clientWidth ?? 0),
         documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+        dataDeckCards: table?.querySelectorAll('[data-deck-cards]').length ?? 0,
+        renderedDeckTiles: table?.querySelectorAll('.hsrdv-card-tile').length ?? 0,
+        activeSort: table?.querySelector('thead th[aria-sort]')?.textContent?.trim() || '',
+        mobileRows: table ? getComputedStyle(table.querySelector('tbody')).display : '',
       };
     });
     if (constructedTableState.rows !== 8 || constructedTableState.columns !== 9 || constructedTableState.documentOverflow
-      || (device === 'mobile' && !constructedTableState.internallyScrollable)) {
+      || constructedTableState.dataDeckCards !== 8 || constructedTableState.renderedDeckTiles !== 8 || constructedTableState.activeSort !== 'Победы колод'
+      || (device === 'mobile' && (constructedTableState.internallyScrollable || constructedTableState.mobileRows !== 'grid'))) {
       failures.push(`constructed cards table [${device}]: structure or containment regressed (${JSON.stringify(constructedTableState)})`);
+    }
+    if (device === 'mobile') {
+      await page.$eval('.constructed-cards__table-wrap', element => element.scrollIntoView({ block: 'start' }));
     }
     await page.screenshot({ path: `${OUT}/constructed-cards-table-${device}.png`, fullPage: false });
     await page.click('.constructed-cards__view button:first-child');
