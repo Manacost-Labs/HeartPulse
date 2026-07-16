@@ -30,7 +30,7 @@ const qaCard = {
   imageHa: 'https://cdn.heartharena.com/images/renders/ruRU/TIME_890.webp',
   imageRu: 'https://d15f34w2p8l1cc.cloudfront.net/hearthstone/5b1c3236a936971ce184478955f9f6802837a938fba48281b953dc37cc6998ad.png',
 };
-const qaDeckCards = Array.from({ length: 8 }, (_, index) => ({
+const qaDeckCards = Array.from({ length: 17 }, (_, index) => ({
   id: `CARD_QA_${index + 1}`,
   dbfId: 1000 + index,
   name: `Контрольная карта ${index + 1}`,
@@ -39,6 +39,7 @@ const qaDeckCards = Array.from({ length: 8 }, (_, index) => ({
   elite: index === 0,
   count: index === 0 ? 1 : 2,
   image: index % 2 ? qaCard.imageRu : qaCard.imageHa,
+  cardImage: qaCard.imageRu,
 }));
 const qaClasses = [
   ['paladin', 'Паладин', '#a88a45', 54.6],
@@ -2196,18 +2197,37 @@ for (const [device, viewport] of [
     const immediateDeckState = await page.evaluate(() => ({
       tiles: document.querySelectorAll('.standard-meta-modal__image-stage .hsrdv-card-tile').length,
       artImages: document.querySelectorAll('.standard-meta-modal__image-stage .hsrdv-card-art[src]').length,
-      titledCards: document.querySelectorAll('.standard-meta-modal__image-stage .hsrdv-card-tile[title]').length,
       columns: getComputedStyle(document.querySelector('.standard-meta-modal__image-stage .hsrdv-list')).gridTemplateColumns.split(' ').length,
       panelWidth: document.querySelector('.standard-meta-modal__panel')?.getBoundingClientRect().width || 0,
+      stageOverflow: Math.max(0, (document.querySelector('.standard-meta-modal__image-stage')?.scrollHeight || 0)
+        - (document.querySelector('.standard-meta-modal__image-stage')?.clientHeight || 0)),
+      tileHeight: document.querySelector('.standard-meta-modal__image-stage .hsrdv-card-tile')?.getBoundingClientRect().height || 0,
       dataDeckCards: document.querySelector('.standard-meta-modal__image-stage [data-deck-cards]')?.getAttribute('data-deck-cards') || '',
       text: document.querySelector('.standard-meta-modal__image-stage')?.textContent?.trim() || '',
     }));
     const expectedDeckColumns = device === 'desktop' ? 2 : 1;
     if (immediateDeckState.tiles !== qaDeckCards.length || immediateDeckState.artImages !== qaDeckCards.length
-      || immediateDeckState.titledCards !== qaDeckCards.length
       || immediateDeckState.columns !== expectedDeckColumns || (device === 'desktop' && immediateDeckState.panelWidth > 840)
+      || (device === 'desktop' && (immediateDeckState.stageOverflow > 1 || immediateDeckState.tileHeight > 38))
       || !immediateDeckState.dataDeckCards || (adminState.standardMetaPreviewRequests || 0) !== 0) {
       failures.push(`standard meta modal [${device}]: immediate deck list triggered image rendering or lost cards (${JSON.stringify(immediateDeckState)})`);
+    }
+    if (device === 'desktop') {
+      await page.hover('.standard-meta-modal__image-stage .hsrdv-card-tile');
+      await page.waitForSelector('.card-preview-tooltip img');
+      await page.waitForFunction(() => {
+        const image = document.querySelector('.card-preview-tooltip img');
+        return image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0;
+      });
+      const fullCardTooltipState = await page.evaluate(() => ({
+        cardId: document.querySelector('.card-preview-tooltip')?.getAttribute('data-card-preview-id') || '',
+        alt: document.querySelector('.card-preview-tooltip img')?.getAttribute('alt') || '',
+      }));
+      if (fullCardTooltipState.cardId !== qaDeckCards[0].id || fullCardTooltipState.alt !== qaDeckCards[0].name) {
+        failures.push(`standard meta full-card tooltip [${device}]: wrong card preview (${JSON.stringify(fullCardTooltipState)})`);
+      }
+      await page.mouse.move(1, 1);
+      await page.waitForSelector('.card-preview-tooltip', { hidden: true });
     }
     await page.click('.standard-meta-modal__presentation button:nth-child(2)');
     await page.waitForSelector('.standard-meta-modal__image-stage img');
@@ -2505,14 +2525,35 @@ for (const [device, viewport] of [
         documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
         dataDeckCards: table?.querySelectorAll('[data-deck-cards]').length ?? 0,
         renderedDeckTiles: table?.querySelectorAll('.hsrdv-card-tile').length ?? 0,
+        englishSubtitles: table?.querySelectorAll('tbody th small').length ?? 0,
+        maximumRowHeight: Math.max(...[...table?.querySelectorAll('tbody tr') || []].map(row => row.getBoundingClientRect().height)),
+        firstArtCoverage: (() => {
+          const frame = table?.querySelector('.hsrdv-card-frame');
+          const art = table?.querySelector('.hsrdv-card-art');
+          return frame && art ? art.getBoundingClientRect().width / frame.getBoundingClientRect().width : 0;
+        })(),
         activeSort: table?.querySelector('thead th[aria-sort]')?.textContent?.trim() || '',
         mobileRows: table ? getComputedStyle(table.querySelector('tbody')).display : '',
       };
     });
     if (constructedTableState.rows !== 8 || constructedTableState.columns !== 9 || constructedTableState.documentOverflow
-      || constructedTableState.dataDeckCards !== 8 || constructedTableState.renderedDeckTiles !== 8 || constructedTableState.activeSort !== 'Победы колод'
+      || constructedTableState.dataDeckCards !== 8 || constructedTableState.renderedDeckTiles !== 8 || constructedTableState.englishSubtitles !== 0
+      || constructedTableState.firstArtCoverage < 0.98 || constructedTableState.activeSort !== 'Победы колод'
+      || (device === 'desktop' && constructedTableState.maximumRowHeight > 62)
       || (device === 'mobile' && (constructedTableState.internallyScrollable || constructedTableState.mobileRows !== 'grid'))) {
       failures.push(`constructed cards table [${device}]: structure or containment regressed (${JSON.stringify(constructedTableState)})`);
+    }
+    if (device === 'desktop') {
+      await page.hover('.constructed-cards__table tbody th a');
+      await page.waitForSelector('.card-preview-tooltip img');
+      const tableTooltipState = await page.evaluate(() => ({
+        cardId: document.querySelector('.card-preview-tooltip')?.getAttribute('data-card-preview-id') || '',
+        visible: getComputedStyle(document.querySelector('.card-preview-tooltip')).display !== 'none',
+      }));
+      if (tableTooltipState.cardId !== 'CARD_QA_1' || !tableTooltipState.visible) {
+        failures.push(`constructed cards table tooltip [${device}]: full-card preview regressed (${JSON.stringify(tableTooltipState)})`);
+      }
+      await page.mouse.move(1, 1);
     }
     if (device === 'mobile') {
       await page.$eval('.constructed-cards__table-wrap', element => element.scrollIntoView({ block: 'start' }));

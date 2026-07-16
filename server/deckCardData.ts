@@ -9,6 +9,7 @@ export type DeckCardData = {
   elite: boolean;
   count: number;
   image: string;
+  cardImage: string;
 };
 
 export type DeckCardCatalogRecord = Record<string, any>;
@@ -49,6 +50,7 @@ export function buildDeckCardData(deckCode: string, catalogCards: DeckCardCatalo
       elite: rarity === 'LEGENDARY',
       count,
       image: String(card?.images?.crop ?? card?.crop_image ?? `https://art.hearthstonejson.com/v1/tiles/${encodeURIComponent(id)}.webp`),
+      cardImage: String(card?.images?.card ?? card?.image ?? `https://art.hearthstonejson.com/v1/render/latest/ruRU/512x/${encodeURIComponent(id)}.png`),
     }];
   });
 }

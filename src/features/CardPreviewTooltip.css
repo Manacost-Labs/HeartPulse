@@ -1,0 +1,28 @@
+.card-preview-tooltip {
+  position: fixed;
+  z-index: 10050;
+  max-width: calc(100vw - 20px);
+  pointer-events: none;
+  animation: card-preview-tooltip-in 120ms ease-out both;
+}
+
+.card-preview-tooltip img {
+  display: block;
+  width: 100%;
+  max-height: min(76dvh, 360px);
+  object-fit: contain;
+  filter: drop-shadow(0 16px 16px rgba(24, 8, 4, 0.62));
+}
+
+@keyframes card-preview-tooltip-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 700px) {
+  .card-preview-tooltip { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-preview-tooltip { animation: none; }
+}

@@ -4,25 +4,27 @@
 }
 
 .traditional-deck-list .hsrdv {
-  --hsrdv-tile-height: 40px;
-  --hsrdv-gem-width: 40px;
+  --hsrdv-tile-height: 36px;
+  --hsrdv-gem-width: 36px;
+  --hsrdv-count-width: 34px;
   width: 100%;
 }
 
 .traditional-deck-list .hsrdv-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.28rem 0.38rem;
+  gap: 2px 0.35rem;
   margin: 0;
   padding: 0;
 }
 
 .traditional-deck-list .hsrdv-list > li { min-width: 0; margin: 0; }
 .traditional-deck-list .hsrdv-card-tile { min-width: 0; }
-.traditional-deck-list .hsrdv-card-name { font-size: clamp(0.78rem, 1.25vw, 1rem); }
-.traditional-deck-list .hsrdv-card-cost { font-size: 1.4rem; }
-.traditional-deck-list .hsrdv-card-count { font-size: 1.45rem; }
-.traditional-deck-list .hsrdv-card-count--copies { font-size: 1.3rem; }
+.traditional-deck-list .hsrdv-card-name { font-size: clamp(0.74rem, 1.15vw, 0.94rem); }
+.traditional-deck-list .hsrdv-card-cost { font-size: 1.25rem; }
+.traditional-deck-list .hsrdv-card-count { font-size: 1.3rem; }
+.traditional-deck-list .hsrdv-card-count--copies { font-size: 1.18rem; }
+.traditional-deck-list .hsrdv-card-tile:focus-visible { outline: 2px solid #ffe7a5; outline-offset: 1px; }
 
 .traditional-deck-list--empty,
 .traditional-deck-list__error {
@@ -40,6 +42,6 @@
 
 @media (max-width: 640px) {
   .traditional-deck-list .hsrdv-list { grid-template-columns: 1fr; }
-  .traditional-deck-list .hsrdv { --hsrdv-tile-height: 42px; --hsrdv-gem-width: 42px; }
-  .traditional-deck-list .hsrdv-card-name { font-size: 0.94rem; }
+  .traditional-deck-list .hsrdv { --hsrdv-tile-height: 38px; --hsrdv-gem-width: 38px; }
+  .traditional-deck-list .hsrdv-card-name { font-size: 0.9rem; }
 }

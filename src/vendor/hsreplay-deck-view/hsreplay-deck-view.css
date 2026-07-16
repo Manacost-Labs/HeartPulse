@@ -156,14 +156,15 @@
   right: 0;
   top: 0;
   height: 100%;
-  width: auto;
-  max-width: none;
+  width: 100%;
+  max-width: 100%;
   object-fit: cover;
+  object-position: center;
   background-color: var(--hsrdv-frame-bg);
 }
 
 .hsrdv-card-frame--with-count .hsrdv-card-art {
-  right: var(--hsrdv-art-right);
+  right: 0;
 }
 
 .hsrdv-card-countbox {
@@ -202,10 +203,10 @@
 .hsrdv-card-frame--with-count .hsrdv-card-fade {
   background:
     linear-gradient(
-      65deg,
-      rgb(49 49 9) 0%,
-      rgb(49 49 49) calc(100% - 216px),
-      rgb(49 49 49 / 0%) calc(100% - 90px),
+      90deg,
+      rgb(49 49 9 / 96%) 0%,
+      rgb(49 49 24 / 82%) 38%,
+      rgb(49 49 49 / 18%) 78%,
       rgb(49 49 49 / 0%) 100%
     );
 }
@@ -213,10 +214,10 @@
 .hsrdv-card-frame--without-count .hsrdv-card-fade {
   background:
     linear-gradient(
-      65deg,
-      rgb(49 49 9) 0%,
-      rgb(49 49 49) calc(100% - 190px),
-      rgb(49 49 49 / 0%) calc(100% - 68px),
+      90deg,
+      rgb(49 49 9 / 96%) 0%,
+      rgb(49 49 24 / 78%) 40%,
+      rgb(49 49 49 / 12%) 82%,
       rgb(49 49 49 / 0%) 100%
     );
 }

@@ -906,7 +906,6 @@
       `hsrdv-card-tile${card.predicted ? " hsrdv-card-tile--predicted" : ""}`
     );
     tile.setAttribute("aria-label", `${card.name}, ${card.cost} mana`);
-    tile.setAttribute("title", card.name);
     if (card.dbfId) {
       tile.dataset.dbfId = String(card.dbfId);
     }

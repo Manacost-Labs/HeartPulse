@@ -17,6 +17,7 @@ import {
   Volume2,
 } from 'lucide-react';
 import '../route-parchment.css';
+import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
 import ConstructedCardLightbox from './ConstructedCardLightbox';
 import { compareConstructedSets, constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
 import { collectConstructedCardMedia, flattenConstructedCardSounds, type ConstructedCardMediaItem } from './constructedCardMedia';
@@ -406,22 +407,40 @@ function sortAria(sort: string, column: string, direction: Filters['direction'])
 }
 
 function CardTable({ cards, format, sort, direction, navigatePath }: { cards: CardRecord[]; format: CardFormat; sort: string; direction: Filters['direction']; navigatePath: (path: string) => void }) {
+  const [preview, setPreview] = useState<CardPreviewTarget | null>(null);
+  const showPreview = (card: CardRecord, element: HTMLElement) => setPreview({
+    id: card.card_id,
+    name: cardName(card),
+    imageUrl: card.images?.card,
+    rect: element.getBoundingClientRect(),
+  });
   return (
-    <div className="constructed-cards__table-wrap">
-      <table className="constructed-cards__table">
-        <thead><tr><th aria-sort={sortAria(sort, 'name', direction)}>Карта</th><th aria-sort={sortAria(sort, 'class', direction)}>Класс</th><th aria-sort={sortAria(sort, 'set', direction)}>Дополнение</th><th aria-sort={sortAria(sort, 'mana', direction)}>Мана</th><th aria-sort={sortAria(sort, 'attack', direction)}>Атака</th><th aria-sort={sortAria(sort, 'health', direction)}>Здоровье</th><th aria-sort={sortAria(sort, 'popularity', direction)}>В % колод</th><th aria-sort={sortAria(sort, 'winrate', direction)}>Победы колод</th><th aria-sort={sortAria(sort, 'games', direction)}>Партий</th></tr></thead>
-        <tbody>
-          {cards.map(card => (
-            <tr key={card.card_id}>
-              <th scope="row"><a href={cardPath(format, card)} aria-label={`Открыть карту ${cardName(card)}`} onClick={event => { event.preventDefault(); navigatePath(cardPath(format, card)); }}><HsReplayDataDeckCard card={card} /><small>{card.name?.en}</small></a></th>
-              <td data-label="Класс"><span><img className="constructed-cards__class-icon" src={classIcon(card.class)} alt="" />{classLabel(card.class || 'NEUTRAL')}</span></td>
-              <td data-label="Дополнение">{card.card_set ? constructedSetLabel(card.card_set) : '—'}</td><td data-label="Мана">{number(card.mana_cost)}</td><td data-label="Атака">{number(card.attack)}</td><td data-label="Здоровье">{number(card.health)}</td>
-              <td data-label="В % колод">{percent(card.stats?.deckPopularity)}</td><td data-label="Победы колод">{percent(card.stats?.deckWinrate)}</td><td data-label="Партий">{number(card.stats?.timesPlayed)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <div className="constructed-cards__table-wrap">
+        <table className="constructed-cards__table">
+          <thead><tr><th aria-sort={sortAria(sort, 'name', direction)}>Карта</th><th aria-sort={sortAria(sort, 'class', direction)}>Класс</th><th aria-sort={sortAria(sort, 'set', direction)}>Дополнение</th><th aria-sort={sortAria(sort, 'mana', direction)}>Мана</th><th aria-sort={sortAria(sort, 'attack', direction)}>Атака</th><th aria-sort={sortAria(sort, 'health', direction)}>Здоровье</th><th aria-sort={sortAria(sort, 'popularity', direction)}>В % колод</th><th aria-sort={sortAria(sort, 'winrate', direction)}>Победы колод</th><th aria-sort={sortAria(sort, 'games', direction)}>Партий</th></tr></thead>
+          <tbody>
+            {cards.map(card => (
+              <tr key={card.card_id}>
+                <th scope="row"><a
+                  href={cardPath(format, card)}
+                  aria-label={`Открыть карту ${cardName(card)}`}
+                  onMouseEnter={event => showPreview(card, event.currentTarget)}
+                  onMouseLeave={() => setPreview(null)}
+                  onFocus={event => showPreview(card, event.currentTarget)}
+                  onBlur={() => setPreview(null)}
+                  onClick={event => { event.preventDefault(); navigatePath(cardPath(format, card)); }}
+                ><HsReplayDataDeckCard card={card} /></a></th>
+                <td data-label="Класс"><span><img className="constructed-cards__class-icon" src={classIcon(card.class)} alt="" />{classLabel(card.class || 'NEUTRAL')}</span></td>
+                <td data-label="Дополнение">{card.card_set ? constructedSetLabel(card.card_set) : '—'}</td><td data-label="Мана">{number(card.mana_cost)}</td><td data-label="Атака">{number(card.attack)}</td><td data-label="Здоровье">{number(card.health)}</td>
+                <td data-label="В % колод">{percent(card.stats?.deckPopularity)}</td><td data-label="Победы колод">{percent(card.stats?.deckWinrate)}</td><td data-label="Партий">{number(card.stats?.timesPlayed)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {preview && <CardPreviewTooltip preview={preview} />}
+    </>
   );
 }
 

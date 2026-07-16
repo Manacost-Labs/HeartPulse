@@ -10,11 +10,11 @@ assert.deepEqual(decodeDeckCardCounts('not-a-deck'), []);
 const first = counts[0];
 const cards = buildDeckCardData(deckCode, [{
   card_id: 'TEST_CARD', dbf: first.dbfId, name: { ru: 'Тестовая карта', en: 'Test Card' },
-  mana_cost: 3, rarity: 'LEGENDARY', images: { crop: 'https://example.test/card.webp' },
+  mana_cost: 3, rarity: 'LEGENDARY', images: { crop: 'https://example.test/crop.webp', card: 'https://example.test/card.webp' },
 }]);
 assert.deepEqual(cards, [{
   id: 'TEST_CARD', dbfId: first.dbfId, name: 'Тестовая карта', cost: 3, rarity: 'LEGENDARY', elite: true,
-  count: first.count, image: 'https://example.test/card.webp',
+  count: first.count, image: 'https://example.test/crop.webp', cardImage: 'https://example.test/card.webp',
 }]);
 
 console.log('deck card data tests passed');
