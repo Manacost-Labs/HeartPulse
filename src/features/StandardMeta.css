@@ -770,6 +770,34 @@
   scrollbar-gutter: stable;
 }
 
+.standard-meta-modal__presentation {
+  display: inline-flex;
+  align-self: center;
+  padding: 0.2rem;
+  border: 1px solid rgba(239, 197, 104, 0.34);
+  background: rgba(24, 2, 8, 0.42);
+}
+
+.standard-meta-modal__presentation button {
+  display: inline-flex;
+  min-height: 40px;
+  gap: 0.38rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid transparent;
+  color: #d8ba84;
+  background: transparent;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.standard-meta-modal__presentation button[aria-pressed='true'] {
+  border-color: rgba(239, 197, 104, 0.55);
+  color: #fff0c4;
+  background: linear-gradient(145deg, #644180, var(--meta-purple));
+}
+
 .standard-meta-modal__image-stage {
   display: grid;
   place-items: center;
@@ -777,7 +805,7 @@
   width: 100%;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
   padding: 0.45rem;
   border: 6px solid transparent;
   border-image: url('/wallpaper/deck-border.png') 28 stretch;

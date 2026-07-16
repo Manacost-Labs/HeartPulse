@@ -30,9 +30,9 @@ for (const id of BG_TAB_IDS) {
   assert.equal(PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS[id], 'battlegrounds', `${id} must require the battlegrounds entitlement`);
 }
 
-assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-meta'), true, 'Standard meta beta must stay admin-only');
-assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-vicious-gold'), true, 'Vicious Syndicate Gold must stay admin-only');
-assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-cards'), true, 'Constructed cards beta must stay admin-only');
+assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-meta'), false, 'Standard meta must be visible publicly after release');
+assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-vicious-gold'), false, 'Vicious Syndicate Gold must be visible publicly after release');
+assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-cards'), false, 'Constructed cards must be visible publicly after release');
 assert.equal(
   PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS['standard-vicious-gold'],
   undefined,

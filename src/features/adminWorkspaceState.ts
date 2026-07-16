@@ -9,6 +9,7 @@ export type AdminWorkspaceSection =
   | 'gallery'
   | 'translations'
   | 'mechanics'
+  | 'standard-data'
   | 'contests'
   | 'referrals'
   | 'boosty';

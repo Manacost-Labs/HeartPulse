@@ -177,12 +177,17 @@ await new Promise<void>((resolve, reject) => {
 const address = server.address();
 assert.ok(address && typeof address === 'object');
 const origin = `http://127.0.0.1:${address.port}/api/admin/constructed-cards`;
+const publicOrigin = `http://127.0.0.1:${address.port}/api/constructed-cards`;
 const adminHeaders = { 'X-Test-Admin': 'yes' };
 
 try {
   const denied = await fetch(origin);
   assert.equal(denied.status, 403);
   assert.deepEqual(calls, []);
+
+  const publicList = await fetch(`${publicOrigin}?format=standard&perPage=20`);
+  assert.equal(publicList.status, 200, 'the released card library must be public');
+  assert.equal((await publicList.json() as any).cards.length, 2);
 
   const invalidFormat = await fetch(`${origin}?format=classic`, { headers: adminHeaders });
   assert.equal(invalidFormat.status, 400);
@@ -218,4 +223,4 @@ try {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 }
 
-console.log('constructed cards admin router contract tests passed');
+console.log('constructed cards public/admin router contract tests passed');

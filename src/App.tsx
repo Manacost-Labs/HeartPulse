@@ -6,12 +6,10 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { X, Menu, ChevronDown, Grid3X3, LogIn, UserCircle, Gift } from 'lucide-react';
 import { getCanonicalRedirectUrl } from './config/domain';
-import HomeTab from './features/Home';
 import { usePageScrollLock } from './hooks/usePageScrollLock';
 import AuthAvatar from './components/AuthAvatar';
 import {
   ADMIN_TABS,
-  ADMIN_ONLY_TAB_IDS,
   applyPageMeta,
   ARENA_TABS,
   BG_BUILDER_TABS,
@@ -572,6 +570,7 @@ function NavigationRouteLinks({
 }
 
 const loadDeferredRoutesModule = () => import('./features/DeferredRoutes');
+const loadHomeModule = () => import('./features/Home');
 const loadBgLibraryModule = () => import('./features/BgLibrary');
 const loadGuidesArchiveModule = () => import('./features/GuidesArchive');
 const loadStandardMatchupsModule = () => import('./features/StandardMatchups');
@@ -584,6 +583,7 @@ const LazyPaywallGate = React.lazy(() => import('./components/PaywallGate'));
 const LazyFAQSection = React.lazy(() => import('./components/FAQSection'));
 const LazySupportPrompt = React.lazy(() => import('./components/SupportPrompt'));
 const LazySiteFooter = React.lazy(() => import('./components/SiteFooter'));
+const LazyHomeTab = React.lazy(loadHomeModule);
 
 const LazyWinrates = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.Winrates })));
 const LazyTierList = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.TierList })));
@@ -945,10 +945,7 @@ export default function App() {
     || appAuthUser.id === 'user_42368c85b8de'
     || appAuthUser.profileId === 'user_42368c85b8de'
   ));
-  const appIsAdmin = Boolean(appAuthUser && (appAuthUser.adminAllowed || appAuthUser.role === 'admin'));
-  const visibleStandardTabs = appIsAdmin
-    ? STANDARD_TABS
-    : STANDARD_TABS.filter(route => !ADMIN_ONLY_TAB_IDS.has(route.id));
+  const visibleStandardTabs = STANDARD_TABS;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -1363,7 +1360,7 @@ export default function App() {
   const isGameDataSurfacePage = !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'standard-meta', 'standard-vicious-gold', 'standard-cards', 'tierlist', 'legendaries'].includes(activeTab);
   const isBattlegroundsSurfacePage = !isAdminMode && !wantsLogin && BG_TAB_IDS.has(activeTab);
   const isOpenSurfacePage = !isAdminMode && (activeTab === 'home' || wantsLogin || isEditorialSurfacePage || isGameDataSurfacePage || isBattlegroundsSurfacePage);
-  const adminStandardPage = activeTab === 'standard-meta'
+  const standardPage = activeTab === 'standard-meta'
     ? <LazyStandardMetaPage />
     : activeTab === 'standard-vicious-gold'
       ? <LazyViciousSyndicateGoldPage />
@@ -1643,14 +1640,16 @@ export default function App() {
             <TabTransition tabKey={`${activeTab}:${currentPath}`}>
               <>
                 {activeTab === 'home' && (
-                  <HomeTab
-                    homeSummaryData={homeSummaryData}
-                    loadingHomeSummary={loadingHomeSummary}
-                    articles={articlesData.articles}
-                    loadingArticles={loadingArticles}
-                    onNavigate={(tab: string) => navigate(tab as TabId)}
-                    faq={<React.Suspense fallback={null}><LazyFAQSection /></React.Suspense>}
-                  />
+                  <React.Suspense fallback={<RouteFallback minHeight={720} />}>
+                    <LazyHomeTab
+                      homeSummaryData={homeSummaryData}
+                      loadingHomeSummary={loadingHomeSummary}
+                      articles={articlesData.articles}
+                      loadingArticles={loadingArticles}
+                      onNavigate={(tab: string) => navigate(tab as TabId)}
+                      faq={<React.Suspense fallback={null}><LazyFAQSection /></React.Suspense>}
+                    />
+                  </React.Suspense>
                 )}
                 {activeTab === 'standard-matchups' && (
                   renderPrivateRoute(
@@ -1658,20 +1657,8 @@ export default function App() {
                     720,
                   )
                 )}
-                {ADMIN_ONLY_TAB_IDS.has(activeTab) && (
-                  appAuthChecking ? (
-                    <RouteFallback minHeight={720} />
-                  ) : appIsAdmin ? (
-                    <React.Suspense fallback={<RouteFallback minHeight={720} />}>{adminStandardPage}</React.Suspense>
-                  ) : (
-                    <section className="section-banner-modern" role="alert">
-                      <div>
-                        <span className="uppercase text-xs font-bold tracking-widest">Закрытая beta</span>
-                        <h1>Страница доступна администраторам</h1>
-                        <p>Войдите в административный профиль, чтобы открыть этот раздел Стандарта.</p>
-                      </div>
-                    </section>
-                  )
+                {(activeTab === 'standard-meta' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards') && (
+                  <React.Suspense fallback={<RouteFallback minHeight={720} />}>{standardPage}</React.Suspense>
                 )}
 	                {activeTab === 'winrates' && (
                   renderPrivateRoute(

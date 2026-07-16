@@ -678,9 +678,10 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
     dependencies.setPrivateNoStore(response);
     next();
   };
+  router.use('/constructed-cards', protectAdminCards);
   router.use('/admin/constructed-cards', dependencies.adminGuard, protectAdminCards);
 
-  router.get('/admin/constructed-cards', async (request, response) => {
+  const listHandler: RequestHandler = async (request, response) => {
     const format = readFormat(request.query.format);
     if (!format) return response.status(400).json({ error: 'Неизвестный формат карт' });
     const page = readPositiveInteger(request.query.page, 1);
@@ -708,9 +709,11 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
       dependencies.onError?.('list', error);
       return response.status(502).json({ error: 'Библиотека карт временно недоступна' });
     }
-  });
+  };
+  router.get('/constructed-cards', listHandler);
+  router.get('/admin/constructed-cards', listHandler);
 
-  router.get('/admin/constructed-cards/:cardId', async (request, response) => {
+  const detailHandler: RequestHandler = async (request, response) => {
     const format = readFormat(request.query.format);
     const cardId = String(request.params.cardId ?? '').trim();
     if (!format) return response.status(400).json({ error: 'Неизвестный формат карт' });
@@ -723,9 +726,11 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
       dependencies.onError?.('detail', error);
       return response.status(502).json({ error: 'Данные карты временно недоступны' });
     }
-  });
+  };
+  router.get('/constructed-cards/:cardId', detailHandler);
+  router.get('/admin/constructed-cards/:cardId', detailHandler);
 
-  router.post('/admin/constructed-cards/:cardId/decks/:deckId/preview', async (request, response) => {
+  const previewHandler: RequestHandler = async (request, response) => {
     const format = readFormat(request.query.format ?? request.body?.format);
     const cardId = String(request.params.cardId ?? '').trim();
     const deckId = String(request.params.deckId ?? '').trim();
@@ -735,7 +740,7 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
     }
     if (!dependencies.createDeckPreview) return response.status(503).json({ error: 'DeckView временно недоступен' });
     try {
-      // Resolve the deck again on the server so this admin endpoint cannot be
+      // Resolve the deck again on the server so this endpoint cannot be
       // used to render an arbitrary deck code supplied by the browser.
       const card = await dependencies.loadCardDetail(format, cardId);
       const deck = (Array.isArray(card?.decks) ? card.decks : []).find((item: ConstructedCardDeck) => item.id === deckId);
@@ -745,7 +750,9 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
       dependencies.onError?.('deck-preview', error);
       return response.status(502).json({ error: 'Не удалось создать изображение колоды' });
     }
-  });
+  };
+  router.post('/constructed-cards/:cardId/decks/:deckId/preview', previewHandler);
+  router.post('/admin/constructed-cards/:cardId/decks/:deckId/preview', previewHandler);
 
   return router;
 }

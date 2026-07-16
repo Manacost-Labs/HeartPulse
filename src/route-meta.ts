@@ -26,16 +26,16 @@ export const ROUTE_META: Record<TabId, { title: string; description: string }> =
     description: 'Матрица матчапов актуальной меты Стандарта по данным HSGuru: винрейты архетипов против друг друга.',
   },
   'standard-meta': {
-    title: 'Мета Hearthstone — Beta для администраторов | Manacost Stats',
-    description: 'Закрытая мета HSGuru с переводами архетипов и сборками Hearthstone.',
+    title: 'Мета Hearthstone: архетипы и колоды | Manacost Stats',
+    description: 'Мета Стандарта и Вольного режима по данным HSGuru: винрейты, популярность, русские названия и сборки.',
   },
   'standard-vicious-gold': {
-    title: 'Vicious Syndicate Gold — закрытая статистика Стандарта | Manacost Stats',
-    description: 'Закрытые классы, архетипы, сборки и Power Tier Vicious Syndicate Live.',
+    title: 'Vicious Syndicate Gold — мета Стандарта | Manacost Stats',
+    description: 'Классы, колоды, сборки и Power Tier по всем доступным рангам Vicious Syndicate Live.',
   },
   'standard-cards': {
-    title: 'Карты Hearthstone — Beta для администраторов | Manacost Stats',
-    description: 'Закрытая библиотека карт Standard/Wild со статистикой Легенды и фильтрами.',
+    title: 'Карты Hearthstone: Стандарт и Вольный | Manacost Stats',
+    description: 'Карты Hearthstone со статистикой Легенды, фильтрами и подробными страницами.',
   },
   winrates: {
     title: 'Винрейт классов — Арена Hearthstone | HS-Arena',

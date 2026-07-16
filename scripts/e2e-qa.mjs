@@ -30,6 +30,16 @@ const qaCard = {
   imageHa: 'https://cdn.heartharena.com/images/renders/ruRU/TIME_890.webp',
   imageRu: 'https://d15f34w2p8l1cc.cloudfront.net/hearthstone/5b1c3236a936971ce184478955f9f6802837a938fba48281b953dc37cc6998ad.png',
 };
+const qaDeckCards = Array.from({ length: 8 }, (_, index) => ({
+  id: `CARD_QA_${index + 1}`,
+  dbfId: 1000 + index,
+  name: `Контрольная карта ${index + 1}`,
+  cost: index,
+  rarity: index === 0 ? 'LEGENDARY' : index % 3 === 0 ? 'EPIC' : 'COMMON',
+  elite: index === 0,
+  count: index === 0 ? 1 : 2,
+  image: index % 2 ? qaCard.imageRu : qaCard.imageHa,
+}));
 const qaClasses = [
   ['paladin', 'Паладин', '#a88a45', 54.6],
   ['hunter', 'Охотник', '#1d5921', 52.6],
@@ -244,6 +254,7 @@ const adminFixtures = {
         deckCode: 'AAECAf0GQaFixtureViciousDeckCodeForBrowserQualityAssurance123456==',
         source: 'qa-fixture', sourceLabel: 'QA fixture', sourceUrl: '', matchedArchetype: 'Painlock',
         matchMethod: 'exact', updatedAt: '2026-07-13T00:00:00.000Z', winrate: 55.2, sampleGames: 900,
+        deckCards: qaDeckCards,
       },
     }],
     tierList: [{
@@ -255,6 +266,7 @@ const adminFixtures = {
           deckCode: 'AAECAf0GQaFixtureViciousDeckCodeForBrowserQualityAssurance123456==',
           source: 'qa-fixture', sourceLabel: 'QA fixture', sourceUrl: '', matchedArchetype: 'Painlock',
           matchMethod: 'exact', updatedAt: '2026-07-13T00:00:00.000Z', winrate: 55.2, sampleGames: 900,
+          deckCards: qaDeckCards,
         },
       }],
     }],
@@ -343,9 +355,16 @@ const adminFixtures = {
   },
   '/api/admin/mechanic-translations': {
     items: [
-      { key: 'BATTLECRY', nameEn: 'Battlecry', nameRu: 'Боевой клич', source: 'default', cardCount: 412, updatedAt: null, example: { cardId: 'CARD_QA_2', name: { ru: 'Контрольная карта 2', en: 'QA Card 2' }, imageUrl: qaCard.imageRu, type: 'MINION' } },
-      { key: 'NEW_MECHANIC', nameEn: 'New Mechanic', nameRu: '', source: 'missing', cardCount: 7, updatedAt: null, example: { cardId: 'CARD_QA_4', name: { ru: 'Контрольная карта 4', en: 'QA Card 4' }, imageUrl: qaCard.imageRu, type: 'MINION' } },
+      { key: 'BATTLECRY', nameEn: 'Battlecry', nameRu: 'Боевой клич', source: 'default', kind: 'mechanic', cardCount: 412, updatedAt: null, example: { cardId: 'CARD_QA_2', name: { ru: 'Контрольная карта 2', en: 'QA Card 2' }, imageUrl: qaCard.imageRu, type: 'MINION' } },
+      { key: 'NEW_MECHANIC', nameEn: 'New Mechanic', nameRu: '', source: 'missing', kind: 'tag', cardCount: 7, updatedAt: null, example: { cardId: 'CARD_QA_4', name: { ru: 'Контрольная карта 4', en: 'QA Card 4' }, imageUrl: qaCard.imageRu, type: 'MINION' } },
     ],
+  },
+  '/api/admin/standard-operations': {
+    generatedAt: '2026-07-16T12:00:00.000Z',
+    publicRoutes: ['/standard/meta', '/standard/vicious-gold', '/standard/cards'],
+    caches: { meta: { entries: 8, fresh: 8 }, viciousGold: { entries: 1, fresh: 1 }, recommendations: { entries: 24, active: 0 }, previews: { entries: 19, activeJobs: 0 } },
+    deckView: { queued: 0, active: 0, succeeded: 31, failed: 1, timeoutMs: 30000 },
+    sources: { viciousSyndicate: 'vicious-syndicate-live-standard', cardStatistics: { standard: 'cards-standard', wild: 'cards-wild' }, renderApi: 'http://127.0.0.1:5000/deckview-api/v1' },
   },
   '/api/admin/boosty/status': {
     configured: true,
@@ -470,6 +489,13 @@ const adminFixtures = {
     sanitizedHtmlBody: '<h1>Предпросмотр QA</h1>',
     previewDigest: 'qa-preview-digest',
   },
+};
+
+const publicStandardFixtureAliases = {
+  '/api/constructed-cards': '/api/admin/constructed-cards',
+  '/api/constructed-cards/CARD_QA_1': '/api/admin/constructed-cards/CARD_QA_1',
+  '/api/standard-meta': '/api/admin/standard-meta',
+  '/api/vicious-syndicate-gold': '/api/admin/vicious-syndicate-gold',
 };
 
 mkdirSync(OUT, { recursive: true });
@@ -730,8 +756,9 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
       const mechanics = adminState.mechanics ??= structuredClone(adminFixtures['/api/admin/mechanic-translations'].items);
       const query = (url.searchParams.get('q') || '').toLocaleLowerCase('ru-RU');
       const status = url.searchParams.get('status') || '';
+      const kind = url.searchParams.get('kind') || '';
       const items = mechanics.filter(item => (!query || `${item.nameEn} ${item.nameRu} ${item.example?.name?.ru || ''}`.toLocaleLowerCase('ru-RU').includes(query))
-        && (!status || item.source === status));
+        && (!status || item.source === status) && (!kind || item.kind === kind || item.kind === 'both'));
       request.respond(jsonResponse({
         items, total: items.length, page: 1, pageSize: 40, pages: 1,
         stats: {
@@ -739,8 +766,17 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
           manual: mechanics.filter(item => item.source === 'manual').length,
           default: mechanics.filter(item => item.source === 'default').length,
           missing: mechanics.filter(item => item.source === 'missing').length,
+          mechanics: mechanics.filter(item => item.kind === 'mechanic' || item.kind === 'both').length,
+          tags: mechanics.filter(item => item.kind === 'tag' || item.kind === 'both').length,
         },
       }));
+      return;
+    }
+    if (admin && url.pathname === '/api/admin/standard-operations/reset' && request.method() === 'POST') {
+      const target = JSON.parse(request.postData() || '{}').target;
+      const status = structuredClone(adminFixtures['/api/admin/standard-operations']);
+      if (target === 'previews' || target === 'all') status.caches.previews.entries = 0;
+      request.respond(jsonResponse({ success: true, target, status }));
       return;
     }
     const mechanicEditMatch = admin && url.pathname.match(/^\/api\/admin\/mechanic-translations\/([^/]+)$/);
@@ -819,7 +855,7 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
       request.respond({ ...jsonResponse({ success: true, campaign: campaigns[0] }), status: 202 });
       return;
     }
-    if (admin && url.pathname === '/api/admin/standard-meta/recommendation' && request.method() === 'GET') {
+    if ((url.pathname === '/api/standard-meta/recommendation' || (admin && url.pathname === '/api/admin/standard-meta/recommendation')) && request.method() === 'GET') {
       adminState.standardMetaRecommendationRequests = (adminState.standardMetaRecommendationRequests || 0) + 1;
       adminState.standardMetaRecommendationRank = url.searchParams.get('rank');
       request.respond(jsonResponse({
@@ -829,11 +865,12 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
           deckCode: 'AAECAf0GQaFixtureDeckCodeForBrowserQualityAssurance1234567890==',
           source: 'qa-fixture', sourceUrl: '', streamer: null, sampleGames: 6476, winrate: 61.1,
           updatedAt: '2026-07-13T00:00:00.000Z', classKey: 'warlock', matchedArchetype: 'Evenlock', matchMethod: 'exact',
+          deckCards: qaDeckCards,
         },
       }));
       return;
     }
-    if (admin && url.pathname === '/api/admin/standard-meta/preview' && request.method() === 'POST') {
+    if ((url.pathname === '/api/standard-meta/preview' || (admin && url.pathname === '/api/admin/standard-meta/preview')) && request.method() === 'POST') {
       adminState.standardMetaPreviewRequests = (adminState.standardMetaPreviewRequests || 0) + 1;
       adminState.standardMetaPreviewRank = JSON.parse(request.postData() || '{}').rank;
       request.respond(jsonResponse({
@@ -843,12 +880,14 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
           deckCode: 'AAECAf0GQaFixtureDeckCodeForBrowserQualityAssurance1234567890==',
           source: 'qa-fixture', sourceUrl: '', streamer: null, sampleGames: 6476, winrate: 61.1,
           updatedAt: '2026-07-13T00:00:00.000Z', classKey: 'warlock', matchedArchetype: 'Evenlock', matchMethod: 'exact',
+          deckCards: qaDeckCards,
         },
         preview: { hash: 'qa-preview-hash', state: 'done', ready: true, imageUrl: '/ad/wallpaper_info.webp', error: null },
       }));
       return;
     }
-    if (admin && /^\/api\/admin\/constructed-cards\/CARD_QA_1\/decks\/qa-deck-\d+\/preview$/.test(url.pathname) && request.method() === 'POST') {
+    if ((/^\/api\/constructed-cards\/CARD_QA_1\/decks\/qa-deck-\d+\/preview$/.test(url.pathname)
+      || (admin && /^\/api\/admin\/constructed-cards\/CARD_QA_1\/decks\/qa-deck-\d+\/preview$/.test(url.pathname))) && request.method() === 'POST') {
       const deckId = url.pathname.split('/').at(-2);
       adminState.constructedDeckPreviewRequests ??= {};
       adminState.constructedDeckPreviewRequests[deckId] = (adminState.constructedDeckPreviewRequests[deckId] || 0) + 1;
@@ -861,8 +900,9 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
       }));
       return;
     }
-    if (admin && adminFixtures[url.pathname]) {
-      request.respond(jsonResponse(adminFixtures[url.pathname]));
+    const standardFixturePath = publicStandardFixtureAliases[url.pathname] || url.pathname;
+    if ((admin || Boolean(publicStandardFixtureAliases[url.pathname])) && adminFixtures[standardFixturePath]) {
+      request.respond(jsonResponse(adminFixtures[standardFixturePath]));
       return;
     }
     const fixtureKey = Object.keys(fixtures).find(key => url.pathname === key);
@@ -1466,6 +1506,23 @@ for (const [device, viewport] of [
       .some(element => element.textContent?.includes('New Mechanic') && element.textContent?.includes('Ручной')));
     const mechanicTranslationsViolationCount = await auditAccessibility(page, `admin mechanic translations [${device}]`, '.admin-workspace-content');
     await page.screenshot({ path: `${OUT}/admin-mechanic-translations-${device}.png`, fullPage: false });
+
+    await page.goto(`${BASE}/?admin&section=standard-data`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForFunction(() => document.querySelectorAll('.admin-standard-operations__routes a').length === 3);
+    const standardOperationsState = await page.evaluate(() => ({
+      title: document.querySelector('.admin-section-header h1')?.textContent?.trim() || '',
+      stats: document.querySelectorAll('.admin-standard-operations .admin-stat-grid > div').length,
+      sources: document.querySelectorAll('.admin-standard-operations__sources > div').length,
+      actions: document.querySelectorAll('.admin-standard-operations__actions button').length,
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    }));
+    if (standardOperationsState.title !== 'Данные Standard' || standardOperationsState.stats !== 4
+      || standardOperationsState.sources !== 4 || standardOperationsState.actions !== 4 || standardOperationsState.overflow) {
+      failures.push(`admin Standard operations [${device}]: status workspace regressed (${JSON.stringify(standardOperationsState)})`);
+    }
+    await page.click('.admin-standard-operations__actions button:nth-child(3)');
+    await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Кеш очищен'));
+    const standardOpsViolationCount = await auditAccessibility(page, `admin Standard operations [${device}]`, '.admin-workspace-content');
 
     await page.goto(`${BASE}/?admin&section=gallery`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-gallery-row').length === 1);
@@ -2132,6 +2189,19 @@ for (const [device, viewport] of [
     await page.click('[data-meta-view="cards"]');
     await page.waitForSelector('.standard-meta-card__deck-button');
     await page.click('.standard-meta-card__deck-button');
+    await page.waitForSelector('.standard-meta-modal__image-stage');
+    await page.waitForFunction(() => document.querySelector('.standard-meta-modal__image-stage .hsrdv-card-tile')
+      || document.querySelector('.standard-meta-modal__image-stage .traditional-deck-list--empty')
+      || document.querySelector('.standard-meta-modal__image-stage .traditional-deck-list__error'));
+    const immediateDeckState = await page.evaluate(() => ({
+      tiles: document.querySelectorAll('.standard-meta-modal__image-stage .hsrdv-card-tile').length,
+      dataDeckCards: document.querySelector('.standard-meta-modal__image-stage [data-deck-cards]')?.getAttribute('data-deck-cards') || '',
+      text: document.querySelector('.standard-meta-modal__image-stage')?.textContent?.trim() || '',
+    }));
+    if (immediateDeckState.tiles !== qaDeckCards.length || !immediateDeckState.dataDeckCards || (adminState.standardMetaPreviewRequests || 0) !== 0) {
+      failures.push(`standard meta modal [${device}]: immediate deck list triggered image rendering or lost cards (${JSON.stringify(immediateDeckState)})`);
+    }
+    await page.click('.standard-meta-modal__presentation button:nth-child(2)');
     await page.waitForSelector('.standard-meta-modal__image-stage img');
     const metaModalState = await page.evaluate(() => {
       const modal = document.querySelector('.standard-meta-modal');
@@ -2200,9 +2270,9 @@ for (const [device, viewport] of [
     await page.screenshot({ path: `${OUT}/standard-meta-modal-${device}.png`, fullPage: false });
     await page.click('.standard-meta-modal__close');
     await page.click('.standard-meta-card__deck-button');
-    await page.waitForSelector('.standard-meta-modal__image-stage img');
-    if ((adminState.standardMetaRecommendationRequests || 0) !== 0 || adminState.standardMetaPreviewRequests !== 1
-      || adminState.standardMetaPreviewRank !== 'legend') {
+    await page.waitForSelector('.standard-meta-modal__image-stage');
+    if ((adminState.standardMetaRecommendationRequests || 0) !== 1 || adminState.standardMetaPreviewRequests !== 1
+      || adminState.standardMetaRecommendationRank !== 'legend' || adminState.standardMetaPreviewRank !== 'legend') {
       failures.push(`standard meta modal [${device}]: reopening repeated API work or rank context was lost (${JSON.stringify({ recommendations: adminState.standardMetaRecommendationRequests, previews: adminState.standardMetaPreviewRequests, recommendationRank: adminState.standardMetaRecommendationRank, previewRank: adminState.standardMetaPreviewRank })})`);
     }
     await page.click('.standard-meta-modal__close');
@@ -2274,6 +2344,16 @@ for (const [device, viewport] of [
         value: { writeText: async value => { window.__qaViciousDeckCode = value; } },
       });
     });
+    await page.click('.vsgold__build-open');
+    await page.waitForSelector('.vsgold__deck-composition .hsrdv-card-tile');
+    const viciousDeckListState = await page.evaluate(() => ({
+      tiles: document.querySelectorAll('.vsgold__deck-composition .hsrdv-card-tile').length,
+      expanded: document.querySelector('.vsgold__build-open')?.getAttribute('aria-expanded'),
+      overflow: document.querySelector('.vsgold')?.scrollWidth > document.querySelector('.vsgold')?.clientWidth,
+    }));
+    if (viciousDeckListState.tiles !== qaDeckCards.length || viciousDeckListState.expanded !== 'true' || viciousDeckListState.overflow) {
+      failures.push(`vicious gold deck list [${device}]: inline composition regressed (${JSON.stringify(viciousDeckListState)})`);
+    }
     await page.click('.vsgold__build-copy-button');
     await page.waitForFunction(() => document.querySelector('.vsgold__build-copy-button')?.getAttribute('aria-label') === 'Код колоды скопирован');
     const viciousCopyState = await page.evaluate(() => ({
@@ -2559,7 +2639,7 @@ for (const [device, viewport] of [
     await page.screenshot({ path: `${OUT}/constructed-card-detail-${device}.png`, fullPage: false });
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
-    console.log(`✓ admin dashboard/articles/translations/mechanics/gallery/Boosty/Telegram/mailing/contests/users/profile/standard panels [${device}] interactions + axe (${violationCount + articlesViolationCount + translationsViolationCount + mechanicTranslationsViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + profileViolationCount + standardMetaViolationCount + viciousGoldViolationCount + constructedCardsViolationCount + constructedDetailViolationCount} violations)`);
+    console.log(`✓ admin dashboard/articles/translations/mechanics/Standard data/gallery/Boosty/Telegram/mailing/contests/users/profile/standard panels [${device}] interactions + axe (${violationCount + articlesViolationCount + translationsViolationCount + mechanicTranslationsViolationCount + standardOpsViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + profileViolationCount + standardMetaViolationCount + viciousGoldViolationCount + constructedCardsViolationCount + constructedDetailViolationCount} violations)`);
   } catch (error) {
     const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
     failures.push(`admin dashboard [${device}]: ${error.message}; page: ${diagnostic}`);
@@ -2761,6 +2841,36 @@ for (const width of [320, 430]) {
     console.log(`✓ /classes [mobile guest] paywall + axe (${violationCount} violations)`);
   } catch (error) {
     failures.push(`/classes [mobile guest]: ${error.message}`);
+  } finally {
+    await page.close();
+  }
+}
+
+// Released Traditional-mode data pages must remain usable without an account.
+for (const [path, selector] of [
+  ['/standard/meta', '.standard-meta-card'],
+  ['/standard/vicious-gold', '.vsgold__deck-row'],
+  ['/standard/cards', '.constructed-cards__gallery-card'],
+]) {
+  const page = await createQaPage();
+  await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  await mockApplicationApi(page, { authenticated: false });
+  try {
+    await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector(selector, { visible: true, timeout: 20_000 });
+    const state = await page.evaluate(() => ({
+      paywall: Boolean(document.querySelector('.arena-paywall')),
+      closedBeta: document.body.textContent?.includes('Страница доступна администраторам') || false,
+      standardLinks: document.querySelectorAll('a[href^="/standard/"]').length,
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    }));
+    if (state.paywall || state.closedBeta || state.standardLinks < 4 || state.overflow) {
+      failures.push(`${path} [mobile public]: released route is still restricted or overflowing (${JSON.stringify(state)})`);
+    }
+    await auditAccessibility(page, `${path} [mobile public]`);
+    console.log(`✓ ${path} [mobile public] open access + axe`);
+  } catch (error) {
+    failures.push(`${path} [mobile public]: ${error.message}`);
   } finally {
     await page.close();
   }

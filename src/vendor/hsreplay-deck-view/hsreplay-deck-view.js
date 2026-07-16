@@ -1,6 +1,9 @@
 (function (root, factory) {
   if (typeof module === "object" && module.exports) {
     module.exports = factory();
+    // Vite wraps UMD files in a CommonJS module even in the browser. Keep the
+    // documented global API available to framework components in that mode.
+    root.HSReplayDeckView = module.exports;
   } else {
     root.HSReplayDeckView = factory();
   }

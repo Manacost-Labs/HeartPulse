@@ -1,7 +1,7 @@
 import { Router, type Request, type RequestHandler, type Response } from 'express';
 // @ts-ignore: node:sqlite is available in the production Node 22 runtime.
 import type { DatabaseSync } from 'node:sqlite';
-import { cardMechanics, type ConstructedCardCollection } from './constructedCardRoutes.js';
+import type { ConstructedCardCollection } from './constructedCardRoutes.js';
 
 type AdminIdentity = { id: string };
 type CardFormat = 'standard' | 'wild';
@@ -88,12 +88,20 @@ export function createAdminMechanicTranslationRouter(dependencies: AdminMechanic
       const examples = new Map<string, JsonRecord>();
       const counts = new Map<string, number>();
       const observedNames = new Map<string, string>();
+      const observedKinds = new Map<string, Set<'mechanic' | 'tag'>>();
       for (const card of collection.cards) {
-        for (const rawMechanic of cardMechanics(card)) {
+        const observed = [
+          ...(Array.isArray(card?.mechanics) ? card.mechanics.map((value: unknown) => ({ value, kind: 'mechanic' as const })) : []),
+          ...(Array.isArray(card?.referenced_tags) ? card.referenced_tags.map((value: unknown) => ({ value, kind: 'tag' as const })) : []),
+        ];
+        for (const { value: rawMechanic, kind } of observed) {
           const key = mechanicKey(rawMechanic);
-          if (!key) continue;
+          if (!key || /^\d+$/.test(key)) continue;
           counts.set(key, (counts.get(key) ?? 0) + 1);
           observedNames.set(key, observedNames.get(key) ?? String(rawMechanic));
+          const kinds = observedKinds.get(key) ?? new Set<'mechanic' | 'tag'>();
+          kinds.add(kind);
+          observedKinds.set(key, kinds);
           examples.set(key, preferredExample(examples.get(key), card));
         }
       }
@@ -103,6 +111,7 @@ export function createAdminMechanicTranslationRouter(dependencies: AdminMechanic
         const savedRow = saved.get(key);
         const fallback = DEFAULT_CONSTRUCTED_MECHANIC_TRANSLATIONS[key] ?? '';
         const example = examples.get(key);
+        const kinds = observedKinds.get(key) ?? new Set<'mechanic' | 'tag'>(['tag']);
         return {
           key,
           nameEn: String(savedRow?.name_en || mechanicEnglishLabel(rawName)),
@@ -110,6 +119,7 @@ export function createAdminMechanicTranslationRouter(dependencies: AdminMechanic
           source: savedRow ? 'manual' : fallback ? 'default' : 'missing',
           cardCount: counts.get(key) ?? 0,
           updatedAt: savedRow?.updated_at ? String(savedRow.updated_at) : null,
+          kind: kinds.size > 1 ? 'both' : kinds.has('mechanic') ? 'mechanic' : 'tag',
           example: example ? {
             cardId: String(example.card_id || ''),
             name: example.name ?? null,
@@ -123,11 +133,15 @@ export function createAdminMechanicTranslationRouter(dependencies: AdminMechanic
         manual: allItems.filter(item => item.source === 'manual').length,
         default: allItems.filter(item => item.source === 'default').length,
         missing: allItems.filter(item => item.source === 'missing').length,
+        mechanics: allItems.filter(item => item.kind === 'mechanic' || item.kind === 'both').length,
+        tags: allItems.filter(item => item.kind === 'tag' || item.kind === 'both').length,
       };
       const query = String(request.query.q ?? '').trim().toLocaleLowerCase('ru-RU').slice(0, 120);
       const status = ['manual', 'default', 'missing'].includes(String(request.query.status)) ? String(request.query.status) : '';
+      const kind = ['mechanic', 'tag', 'both'].includes(String(request.query.kind)) ? String(request.query.kind) : '';
       const filtered = allItems
         .filter(item => !status || item.source === status)
+        .filter(item => !kind || item.kind === kind || item.kind === 'both')
         .filter(item => !query || `${item.nameEn} ${item.nameRu} ${item.example?.name?.ru || ''}`.toLocaleLowerCase('ru-RU').includes(query))
         .sort((left, right) => {
           const priority = { missing: 0, manual: 1, default: 2 } as const;

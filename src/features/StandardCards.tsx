@@ -375,7 +375,7 @@ function HsReplayDataDeckCard({ card }: { card: CardRecord }) {
   const dbfIds = card.dbf === null || card.dbf === undefined ? '' : String(card.dbf);
   useEffect(() => {
     const container = containerRef.current;
-    const api = (window as any).HSReplayDeckView;
+    const api = window.HSReplayDeckView;
     if (!container || !api?.renderDeck) return undefined;
     api.renderDeck(container, [{
       id: card.card_id,
@@ -467,7 +467,7 @@ function CardsListPage({ initialFormat, navigatePath }: Pick<StandardCardsProps,
         Object.entries({ ...filters, query: deferredQuery }).forEach(([key, value]) => {
           if (value && key !== 'sort' && key !== 'direction') params.set(key, String(value));
         });
-        const response = await fetch(`/api/admin/constructed-cards?${params}`, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: controller.signal });
+        const response = await fetch(`/api/constructed-cards?${params}`, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: controller.signal });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить карты');
         setData(payload as ListPayload);
@@ -501,7 +501,7 @@ function CardsListPage({ initialFormat, navigatePath }: Pick<StandardCardsProps,
   return (
     <div className="constructed-cards">
       <header className="constructed-cards__header">
-        <div><h1>Карты</h1><div className="constructed-cards__beta"><span>Бета</span><span><ShieldCheck size={14} /> Только для администратора</span></div></div>
+        <div><h1>Карты</h1><div className="constructed-cards__beta"><span>Бета</span><span><ShieldCheck size={14} /> Статистика Легенды</span></div></div>
         <p>Ранг: <strong>Легенда</strong></p>
       </header>
 
@@ -665,7 +665,7 @@ function ConstructedDeckCard({ deck, cardId, format, onPreviewReady, onOpenPrevi
       setPreviewError('');
       try {
         for (let attempt = 0; attempt < 2; attempt += 1) {
-          const response = await fetch(`/api/admin/constructed-cards/${encodeURIComponent(cardId)}/decks/${encodeURIComponent(deck.id)}/preview?format=${format}`, {
+          const response = await fetch(`/api/constructed-cards/${encodeURIComponent(cardId)}/decks/${encodeURIComponent(deck.id)}/preview?format=${format}`, {
             method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Request': '1' },
             body: JSON.stringify({ format }), signal: controller.signal,
           });
@@ -751,7 +751,7 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
     const load = async () => {
       setLoading(true); setError('');
       try {
-        const response = await fetch(`/api/admin/constructed-cards/${encodeURIComponent(cardId)}?format=${format}`, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: controller.signal });
+        const response = await fetch(`/api/constructed-cards/${encodeURIComponent(cardId)}?format=${format}`, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: controller.signal });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить карту');
         setCard({ ...(payload.card as CardRecord), mechanicTranslations: payload.mechanicTranslations || {} });

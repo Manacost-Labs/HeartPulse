@@ -12,17 +12,17 @@ assert.match(
 assert.match(
   appSource,
   /adminAllowed:\s*Boolean\(data\.user\.adminAllowed\s*\?\?\s*data\.adminAllowed\)/,
-  'the shell must preserve top-level adminAllowed from the auth contract so admin-only Standard menu items stay visible',
+  'the shell must preserve top-level adminAllowed from the auth contract for administrative tools',
 );
 assert.match(
   appSource,
-  /const visibleStandardTabs = appIsAdmin[\s\S]*?STANDARD_TABS\.filter\(route => !ADMIN_ONLY_TAB_IDS\.has\(route\.id\)\)/,
-  'full admins must receive every Standard menu item while non-admins lose admin-only routes',
+  /const visibleStandardTabs = STANDARD_TABS;/,
+  'the released Standard data pages must stay visible to both guests and administrators',
 );
 assert.match(
   profileSource,
   /href="\/standard\/meta"\s+data-profile-admin-destination="standard-meta"/,
-  'admin profile must expose a direct Standard meta beta link',
+  'admin profile must expose a direct Standard meta link',
 );
 
 console.log('standard meta profile access assertions passed');

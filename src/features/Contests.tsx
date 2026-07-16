@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } 
 import '../route-parchment.css';
 import {
   CircleDollarSign,
+  Database,
   ExternalLink,
   Gift,
   Image as ImageIcon,
@@ -81,6 +82,10 @@ const ContestAdminTranslations = React.lazy(async () => {
 const ContestAdminMechanicTranslations = React.lazy(async () => {
   const module = await import('./ContestAdminMechanicTranslations');
   return { default: module.ContestAdminMechanicTranslations };
+});
+const ContestAdminStandardOperations = React.lazy(async () => {
+  const module = await import('./ContestAdminStandardOperations');
+  return { default: module.ContestAdminStandardOperations };
 });
 
 type AuthUser = {
@@ -391,6 +396,7 @@ const ADMIN_NAV_ITEMS: ReadonlyArray<{
   { id: 'gallery', label: 'Галерея', caption: 'Арты и оригиналы для скачивания', status: 'Сохранение по кнопке', group: 'Контент', icon: ImageIcon },
   { id: 'translations', label: 'Переводы', caption: 'Названия архетипов и синхронизация BlizzCore', status: 'Ручные правки защищены', group: 'Контент', icon: Newspaper },
   { id: 'mechanics', label: 'Механики', caption: 'Переводы механик существ и примеры карт', status: 'Сохранение по кнопке', group: 'Контент', icon: Newspaper },
+  { id: 'standard-data', label: 'Данные Standard', caption: 'Источники, кеши и очередь DeckView', status: 'Публичный режим под контролем', group: 'Контент', icon: Database },
   { id: 'users', label: 'Пользователи', caption: 'Права, блокировки и контакты', status: 'Действия с подтверждением', group: 'Аудитория', icon: Users },
   { id: 'mailing', label: 'Рассылка', caption: 'Письма, шаблоны и история отправок', status: 'Безопасная очередь отправки', group: 'Аудитория', icon: Mail },
   { id: 'boosty', label: 'Boosty', caption: 'Подписчики и уровни доступа', status: 'Данные только для просмотра', group: 'Аудитория', icon: CircleDollarSign },
@@ -408,6 +414,7 @@ const ADMIN_WORKSPACE_SECTION_IDS: AdminWorkspaceSection[] = [
   'gallery',
   'translations',
   'mechanics',
+  'standard-data',
   'users',
   'mailing',
   'boosty',
@@ -689,6 +696,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       gallery: 'Галерея',
       translations: 'Переводы архетипов',
       mechanics: 'Переводы механик',
+      'standard-data': 'Данные Standard',
       users: 'Пользователи',
       mailing: 'Рассылка',
       boosty: 'Boosty',
@@ -1705,6 +1713,12 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           {hasFullAdminAccess && adminSection === 'mechanics' && (
             <React.Suspense fallback={<p className="contest-muted" role="status">Загружаем переводы механик…</p>}>
               <ContestAdminMechanicTranslations onMessage={setMessage} />
+            </React.Suspense>
+          )}
+
+          {hasFullAdminAccess && adminSection === 'standard-data' && (
+            <React.Suspense fallback={<p className="contest-muted" role="status">Загружаем состояние Traditional mode…</p>}>
+              <ContestAdminStandardOperations onMessage={setMessage} />
             </React.Suspense>
           )}
 

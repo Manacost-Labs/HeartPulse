@@ -75,6 +75,11 @@ try {
   assert.equal(denied.status, 403);
   assert.deepEqual(calls, []);
 
+  const publicMeta = await fetch(`${origin}/standard-meta?format=standard&rank=legend`);
+  assert.equal(publicMeta.status, 200, 'the released Standard meta must be public');
+  assert.equal((await publicMeta.json() as any).format, 'standard');
+  calls.length = 0;
+
   const invalid = await fetch(`${origin}/admin/standard-meta?format=classic&rank=bronze`, { headers: adminHeaders });
   assert.equal(invalid.status, 400);
   assert.equal(invalid.headers.get('cache-control'), 'no-store');
@@ -124,4 +129,4 @@ try {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 }
 
-console.log('standard meta admin router contract tests passed');
+console.log('standard meta public/admin router contract tests passed');

@@ -1,12 +1,14 @@
 import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
+  Layers3,
   RefreshCw,
   Search,
   ShieldCheck,
   Swords,
 } from 'lucide-react';
 import '../route-parchment.css';
+import HsReplayDeckList, { type HsReplayDeckCard } from './HsReplayDeckList';
 import './ViciousSyndicateGold.css';
 
 type DeckBuild = {
@@ -19,6 +21,7 @@ type DeckBuild = {
   updatedAt: string | null;
   winrate: number | null;
   sampleGames: number | null;
+  deckCards: HsReplayDeckCard[];
 };
 
 type ClassDistribution = {
@@ -103,11 +106,13 @@ function powerTier(winrate: number): { id: string; label: string } {
   return { id: 'four', label: 'Tier 4' };
 }
 
-function BuildActions({ deck, build, copiedDeck, onCopy }: {
+function BuildActions({ deck, build, copiedDeck, onCopy, onOpen, expanded }: {
   deck: string;
   build: DeckBuild | null;
   copiedDeck: string;
   onCopy: (deck: string, code: string) => void;
+  onOpen?: (deck: string) => void;
+  expanded?: boolean;
 }) {
   if (!build) {
     const isAggregate = /^(?:Other|Bot)\s/i.test(deck.replace(/^tier:/, ''));
@@ -130,6 +135,7 @@ function BuildActions({ deck, build, copiedDeck, onCopy }: {
           {copiedDeck === deck ? 'Код колоды скопирован' : ''}
         </span>
       </button>
+      {onOpen && <button type="button" className="vsgold__build-open" aria-expanded={expanded} onClick={() => onOpen(deck)}><Layers3 size={15} /> {expanded ? 'Скрыть' : 'Состав'}</button>}
       <span>{build.matchMethod === 'alias' ? `${build.sourceLabel} · точный синоним` : build.sourceLabel}</span>
     </div>
   );
@@ -145,13 +151,14 @@ export default function ViciousSyndicateGold() {
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
   const [copiedDeck, setCopiedDeck] = useState('');
+  const [openDeckKey, setOpenDeckKey] = useState('');
   const deckSectionRef = useRef<HTMLElement>(null);
 
   const load = async () => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/admin/vicious-syndicate-gold', {
+      const response = await fetch('/api/vicious-syndicate-gold', {
         credentials: 'same-origin',
         headers: { Accept: 'application/json' },
       });
@@ -237,7 +244,7 @@ export default function ViciousSyndicateGold() {
     <div className="vsgold">
       <header className="vsgold__hero">
         <div className="vsgold__hero-copy">
-          <span className="vsgold__eyebrow"><ShieldCheck size={15} /> Только для администраторов</span>
+          <span className="vsgold__eyebrow"><ShieldCheck size={15} /> Vicious Syndicate Live</span>
           <h1><span>Vicious Syndicate <em>Gold</em></span></h1>
           <p>Живая мета Стандарта: популярность классов и архетипов, готовые сборки и Power Tier по всем доступным рангам.</p>
           <span className="vsgold__hero-ornament" aria-hidden="true" />
@@ -286,14 +293,18 @@ export default function ViciousSyndicateGold() {
             </select>
           </div>
           <div className="vsgold__deck-list">
-            {visibleDecks.map(deck => (
-              <div className="vsgold__deck-row" key={deck.deck}>
+            {visibleDecks.map(deck => <React.Fragment key={deck.deck}>
+              <div className="vsgold__deck-row">
                 <img src={classIcon(deck.classIcon)} alt="" width="40" height="40" loading="lazy" decoding="async" />
                 <div className="vsgold__deck-name"><strong>{deck.deckLabel}</strong><span>{deck.deck}</span></div>
                 <b>{percent(deck.frequency)}</b>
-                <BuildActions deck={deck.deck} build={deck.build} copiedDeck={copiedDeck} onCopy={copyDeck} />
+                <BuildActions deck={deck.deck} build={deck.build} copiedDeck={copiedDeck} onCopy={copyDeck} expanded={openDeckKey === deck.deck} onOpen={key => setOpenDeckKey(current => current === key ? '' : key)} />
               </div>
-            ))}
+              {openDeckKey === deck.deck && deck.build && <section className="vsgold__deck-composition" aria-label={`Состав колоды ${deck.deckLabel}`}>
+                <header><div><span>АКТУАЛЬНАЯ СБОРКА</span><h3>{deck.deckLabel}</h3></div><a href={deck.build.sourceUrl} target="_blank" rel="noreferrer">Источник</a></header>
+                <HsReplayDeckList cards={deck.build.deckCards || []} label={`Состав колоды ${deck.deckLabel}`} />
+              </section>}
+            </React.Fragment>)}
             {!visibleDecks.length && <p className="vsgold__empty">По этому фильтру колод нет.</p>}
           </div>
         </article>

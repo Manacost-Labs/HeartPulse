@@ -189,6 +189,13 @@
 .vsgold__deck-row > b { color: #6e421e; font-family: var(--font-display); text-align: right; }
 
 .vsgold__build { display: grid; width: 128px; gap: 0.18rem; justify-items: stretch; justify-self: end; }
+.vsgold__build-open { display: inline-flex; min-height: 34px; gap: 0.3rem; align-items: center; justify-content: center; border: 1px solid #82562f; color: #5b3820; background: rgba(255, 239, 194, 0.76); font-size: 0.65rem; font-weight: 900; }
+.vsgold__build-open[aria-expanded='true'] { color: #fff0c4; background: #4a2f66; }
+.vsgold__deck-composition { padding: 0.75rem; border-bottom: 1px solid rgba(128, 82, 38, 0.24); background: linear-gradient(145deg, rgba(50, 17, 24, 0.96), rgba(28, 7, 15, 0.96)); }
+.vsgold__deck-composition > header { display: flex; gap: 0.75rem; align-items: center; justify-content: space-between; margin-bottom: 0.6rem; }
+.vsgold__deck-composition > header span { color: #d9b66d; font-size: 0.57rem; font-weight: 900; letter-spacing: 0.1em; }
+.vsgold__deck-composition > header h3 { margin: 0.08rem 0 0; color: #fff0c4; font-family: var(--font-display); font-size: 1.05rem; }
+.vsgold__deck-composition > header a { min-height: 38px; padding: 0.58rem 0.72rem; border: 1px solid rgba(233, 194, 104, 0.4); color: #f3d798; font-size: 0.65rem; font-weight: 900; text-decoration: none; }
 .vsgold__build .vsgold__build-copy-button {
   position: relative;
   display: grid;
@@ -372,9 +379,13 @@
   .vsgold__deck-row > b { grid-area: metric; font-size: 0.9rem; }
   .vsgold__deck-row .vsgold__build { grid-area: build; justify-items: stretch; }
   .vsgold__build { width: 100%; }
+  .vsgold__deck-row .vsgold__build { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .vsgold__build .vsgold__build-copy-button { flex: 1; width: auto; min-height: 48px; padding: 0.3rem 0.55rem; }
-  .vsgold__build-copy-button img { width: min(100%, 190px); }
-  .vsgold__build > span { max-width: 100%; text-align: left; }
+  .vsgold__build-open { min-height: 44px; }
+  .vsgold__deck-composition { padding: 0.55rem; }
+  .vsgold__deck-composition > header { align-items: flex-start; }
+  .vsgold__build-copy-button img { width: min(100%, 150px); max-height: 38px; object-fit: contain; }
+  .vsgold__build > span { grid-column: 1 / -1; max-width: 100%; text-align: left; }
   .vsgold__power { margin-top: 0.62rem; }
   .vsgold__power-heading { gap: 0.55rem; align-items: flex-start; flex-direction: column; }
   .vsgold__power-heading > p { font-size: 0.72rem; line-height: 1.4; text-align: left; }

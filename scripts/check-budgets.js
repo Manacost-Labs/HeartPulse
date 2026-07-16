@@ -5,14 +5,15 @@ import { gzipSync } from 'zlib';
 const distAssets = join(process.cwd(), 'dist', 'assets');
 
 const budgets = {
-  // Enforce the current production baseline first; later stabilization tasks
-  // ratchet these limits down instead of keeping permanently failing targets.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 50_000),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 266_000),
-  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 90_000),
-  vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 190_000),
+  // Route-owned icons and Home stay out of the eager dependency graph. The
+  // shell chunk may contain its own icon code, while aggregate startup limits
+  // remain stricter than the previous 266 KB raw / 90 KB gzip baseline.
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 56_000),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 252_000),
+  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_000),
+  vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 116_000),
-  css: Number(process.env.BUDGET_CSS_BYTES || 143_000),
+  css: Number(process.env.BUDGET_CSS_BYTES || 131_000),
   routeCss: Number(process.env.BUDGET_ROUTE_CSS_BYTES || 48_000),
   deferredRoutesCss: Number(process.env.BUDGET_DEFERRED_ROUTES_CSS_BYTES || 52_000),
   loginPanelCss: Number(process.env.BUDGET_LOGIN_PANEL_CSS_BYTES || 4_500),
@@ -49,13 +50,13 @@ const largestHomeSectionCss = homeSectionCssFiles.length === 3
   ? homeSectionCssFiles.sort((left, right) => right.bytes - left.bytes)[0]
   : null;
 const vendorReact = files.find(file => /^vendor-react-.*\.js$/.test(file.name));
-const initialJsFiles = [mainJs, vendorReact, files.find(file => /^vendor-icons-.*\.js$/.test(file.name))]
+const initialJsFiles = [mainJs, vendorReact]
   .filter(Boolean);
-const initialJs = initialJsFiles.length === 3 ? {
+const initialJs = initialJsFiles.length === 2 ? {
   name: initialJsFiles.map(file => file.name).join(' + '),
   bytes: initialJsFiles.reduce((sum, file) => sum + file.bytes, 0),
 } : null;
-const initialJsGzip = initialJsFiles.length === 3 ? {
+const initialJsGzip = initialJsFiles.length === 2 ? {
   name: 'gzip(' + initialJsFiles.map(file => file.name).join(' + ') + ')',
   bytes: initialJsFiles.reduce((sum, file) => (
     sum + gzipSync(readFileSync(join(distAssets, file.name)), { level: 9 }).length
@@ -92,6 +93,6 @@ for (const [label, file, budget] of checks) {
   if (!ok) failed = true;
 }
 
-console.log('[budget] initial CSS is locked below 143 KB; keep ratcheting as obsolete rules are removed.');
+console.log('[budget] aggregate startup assets are ratcheted below the previous production baseline.');
 
 if (failed) process.exit(1);

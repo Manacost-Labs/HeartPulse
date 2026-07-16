@@ -37,7 +37,7 @@ app.use('/api', createAdminMechanicTranslationRouter({
   loadCards: async () => ({
     cards: [
       { card_id: 'SPELL_1', name: { ru: 'Заклинание' }, card_type: { slug: 'SPELL' }, mechanics: ['BATTLECRY'], images: { card: 'spell.png' } },
-      { card_id: 'MINION_1', name: { ru: 'Существо-пример' }, card_type: { slug: 'MINION' }, mechanics: ['BATTLECRY', 'NEW_MECHANIC'], images: { card: 'minion.png' } },
+      { card_id: 'MINION_1', name: { ru: 'Существо-пример' }, card_type: { slug: 'MINION' }, mechanics: ['BATTLECRY', 'NEW_MECHANIC'], referenced_tags: ['DECK_RELATED'], images: { card: 'minion.png' } },
     ],
     updatedAt: null,
     sourceUrl: '',
@@ -65,11 +65,18 @@ try {
   assert.equal(initialResponse.status, 200);
   assert.equal(initialResponse.headers.get('cache-control'), 'private, no-store');
   const initial = await initialResponse.json() as any;
-  assert.equal(initial.stats.total, 2);
-  assert.equal(initial.stats.missing, 1);
+  assert.equal(initial.stats.total, 3);
+  assert.equal(initial.stats.missing, 2);
+  assert.equal(initial.stats.mechanics, 2);
+  assert.equal(initial.stats.tags, 1);
   const battlecry = initial.items.find((item: any) => item.key === 'BATTLECRY');
   assert.equal(battlecry.nameRu, 'Боевой клич');
   assert.equal(battlecry.example.cardId, 'MINION_1');
+  const tagResponse = await fetch(`${origin}?kind=tag`, { headers: adminHeaders });
+  const tags = await tagResponse.json() as any;
+  assert.equal(tags.items.length, 1);
+  assert.equal(tags.items[0].key, 'DECK_RELATED');
+  assert.equal(tags.items[0].kind, 'tag');
 
   const invalid = await fetch(`${origin}/NEW_MECHANIC`, {
     method: 'PUT', headers: adminHeaders, body: JSON.stringify({ nameEn: 'New Mechanic', nameRu: '' }),

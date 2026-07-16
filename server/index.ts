@@ -45,6 +45,7 @@ import {
   type StandardMetaRecommendation,
 } from './standardMetaRoutes.js';
 import { renderDeckviewPreview } from './deckviewPreview.js';
+import { buildDeckCardData } from './deckCardData.js';
 import {
   inferStandardMetaClass,
   normalizeStandardMetaClass,
@@ -68,6 +69,7 @@ import {
   createAdminMechanicTranslationRouter,
   loadConstructedMechanicTranslationMap,
 } from './adminMechanicTranslationRoutes.js';
+import { createAdminStandardOperationsRouter, type StandardCacheTarget } from './adminStandardOperationsRoutes.js';
 import { createAdminArticleRouter, writeArticlesFile } from './adminArticleRoutes.js';
 import { createAdminContestMutationRouter } from './adminContestMutationRoutes.js';
 import {
@@ -182,6 +184,10 @@ const standardMetaRecommendationJobs = new Map<string, Promise<StandardMetaRecom
 const standardMetaPreviewCache = new Map<string, { preview: StandardMetaPreview; expiresAt: number }>();
 const standardMetaPreviewJobs = new Map<string, Promise<StandardMetaPreview>>();
 let deckviewPreviewRenderTail: Promise<void> = Promise.resolve();
+let deckviewPreviewQueued = 0;
+let deckviewPreviewActive = 0;
+let deckviewPreviewSucceeded = 0;
+let deckviewPreviewFailed = 0;
 let standardMetaDeckRowsCache: { rows: any[]; expiresAt: number } | null = null;
 const STANDARD_META_PREVIEW_CACHE_FILE = join(DATA_DIR, 'standard-meta-preview-cache.json');
 
@@ -6011,9 +6017,10 @@ async function loadViciousSyndicateGold() {
   });
   const deckDistribution = await Promise.all(eligibleDecks.map(async row => {
     const build = await resolveViciousGoldBuild(constructedRows, row.deck, row.deckLabel);
+    const hydratedBuild = build ? await hydrateRecommendationDeckCards(build) : null;
     return {
       ...row,
-      build: build ? { ...build, sourceLabel: viciousBuildSourceLabel(build.source) } : null,
+      build: hydratedBuild ? { ...hydratedBuild, sourceLabel: viciousBuildSourceLabel(hydratedBuild.source) } : null,
     };
   }));
   const buildsByDeck = new Map(deckDistribution.map((row: any) => [row.deck, row.build]));
@@ -6374,7 +6381,8 @@ async function findStandardMetaRecommendation(
       candidates = await fetchExactHsguruDecks(archetype, archetypeLabel, format, rank).catch(() => []);
     }
     candidates.sort((left, right) => right.quality - left.quality);
-    const selected = candidates[0] ? (({ quality: _quality, ...recommendation }) => recommendation)(candidates[0]) : null;
+    const rawSelected = candidates[0] ? (({ quality: _quality, ...recommendation }) => recommendation)(candidates[0]) : null;
+    const selected = rawSelected ? await hydrateRecommendationDeckCards(rawSelected) : null;
     standardMetaRecommendationCache.set(cacheKey, { data: selected, expiresAt: Date.now() + STANDARD_META_RECOMMENDATION_CACHE_MS });
     return selected;
   })().finally(() => {
@@ -6416,7 +6424,10 @@ async function createStandardMetaPreview(recommendation: { deckCode: string; arc
     const previousRender = deckviewPreviewRenderTail;
     let releaseRender!: () => void;
     deckviewPreviewRenderTail = new Promise<void>(resolve => { releaseRender = resolve; });
+    deckviewPreviewQueued += 1;
     await previousRender.catch(() => undefined);
+    deckviewPreviewQueued = Math.max(0, deckviewPreviewQueued - 1);
+    deckviewPreviewActive += 1;
     let preview: StandardMetaPreview;
     try {
       preview = await renderDeckviewPreview({
@@ -6428,7 +6439,12 @@ async function createStandardMetaPreview(recommendation: { deckCode: string; arc
         publicBaseUrl: DECKVIEW_RENDER_PUBLIC_BASE_URL,
         timeoutMs: DECKVIEW_RENDER_TIMEOUT_MS,
       });
+      deckviewPreviewSucceeded += 1;
+    } catch (error) {
+      deckviewPreviewFailed += 1;
+      throw error;
     } finally {
+      deckviewPreviewActive = Math.max(0, deckviewPreviewActive - 1);
       releaseRender();
     }
     standardMetaPreviewCache.set(cacheKey, { preview, expiresAt: Date.now() + STANDARD_META_PREVIEW_CACHE_MS });
@@ -6736,6 +6752,16 @@ const constructedCardDataService = createConstructedCardDataService({
   getArchetypeTranslations: () => getStandardArchetypeTranslations().then(result => result.map),
   cacheTtlMs: EXTERNAL_DATASET_CACHE_MS,
 });
+
+async function hydrateRecommendationDeckCards<T extends StandardMetaRecommendation>(recommendation: T): Promise<T> {
+  try {
+    const collection = await constructedCardDataService.loadCards(recommendation.format);
+    return { ...recommendation, deckCards: buildDeckCardData(recommendation.deckCode, collection.cards) };
+  } catch (error) {
+    console.warn('[deck-cards] catalog hydration unavailable:', error instanceof Error ? error.message : error);
+    return { ...recommendation, deckCards: [] };
+  }
+}
 
 app.use('/api', createConstructedCardRouter({
   adminGuard: adminIdGuard,
@@ -8455,6 +8481,56 @@ app.use('/api', createAdminMechanicTranslationRouter({
     entityId,
     details,
   ),
+}));
+
+function standardOperationsStatus() {
+  const freshCount = (cache: Map<string, { expiresAt: number }>) => [...cache.values()].filter(item => item.expiresAt > Date.now()).length;
+  return {
+    generatedAt: new Date().toISOString(),
+    publicRoutes: ['/standard/meta', '/standard/vicious-gold', '/standard/cards'],
+    caches: {
+      meta: { entries: standardMetaApiCache.size, fresh: freshCount(standardMetaApiCache) },
+      viciousGold: { entries: viciousSyndicateGoldApiCache.size, fresh: freshCount(viciousSyndicateGoldApiCache) },
+      recommendations: { entries: standardMetaRecommendationCache.size, active: standardMetaRecommendationJobs.size },
+      previews: { entries: standardMetaPreviewCache.size, activeJobs: standardMetaPreviewJobs.size },
+    },
+    deckView: {
+      queued: deckviewPreviewQueued,
+      active: deckviewPreviewActive,
+      succeeded: deckviewPreviewSucceeded,
+      failed: deckviewPreviewFailed,
+      timeoutMs: DECKVIEW_RENDER_TIMEOUT_MS,
+    },
+    sources: {
+      viciousSyndicate: VICIOUS_SYNDICATE_LIVE_DATASET,
+      cardStatistics: CONSTRUCTED_CARDS_DATASET_BY_FORMAT,
+      renderApi: DECKVIEW_RENDER_API_BASE_URL,
+    },
+  };
+}
+
+function resetStandardCache(target: StandardCacheTarget) {
+  if (target === 'meta' || target === 'all') {
+    standardMetaApiCache.clear();
+    viciousSyndicateGoldApiCache.clear();
+  }
+  if (target === 'recommendations' || target === 'all') {
+    standardMetaRecommendationCache.clear();
+    standardMetaDeckRowsCache = null;
+  }
+  if (target === 'previews' || target === 'all') {
+    standardMetaPreviewCache.clear();
+    persistStandardMetaPreviewCache();
+  }
+}
+
+app.use('/api', createAdminStandardOperationsRouter({
+  adminGuard: adminIdGuard,
+  adminAuth,
+  getStatus: standardOperationsStatus,
+  resetCache: resetStandardCache,
+  setPrivateNoStore,
+  recordAudit: (actor, action, entityId) => recordAdminAuditByActorId(actor.id, action, 'standard-cache', entityId),
 }));
 
 app.use('/api', createAdminImageGenerationRouter({

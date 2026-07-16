@@ -1,0 +1,39 @@
+.traditional-deck-list {
+  width: 100%;
+  min-width: 0;
+}
+
+.traditional-deck-list .hsrdv {
+  --hsrdv-tile-height: 46px;
+  --hsrdv-gem-width: 46px;
+  width: 100%;
+}
+
+.traditional-deck-list .hsrdv-deck {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.32rem;
+  margin: 0;
+  padding: 0;
+}
+
+.traditional-deck-list .hsrdv-card-tile { min-width: 0; }
+
+.traditional-deck-list--empty,
+.traditional-deck-list__error {
+  display: flex;
+  min-height: 160px;
+  gap: 0.55rem;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  color: #dfc38d;
+  text-align: center;
+}
+
+.traditional-deck-list__error { min-height: 80px; color: #ffd3bf; }
+
+@media (max-width: 640px) {
+  .traditional-deck-list .hsrdv-deck { grid-template-columns: 1fr; }
+  .traditional-deck-list .hsrdv { --hsrdv-tile-height: 44px; --hsrdv-gem-width: 44px; }
+}

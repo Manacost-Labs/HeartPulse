@@ -140,6 +140,24 @@ const PAGES = {
       <p>Доступны таблицы для Легенды и Алмаза 4-1.</p>
       <p><a href="/">На главную</a> | <a href="/articles">Статьи</a> | <a href="/classes">Арена</a></p>`
   },
+  '/standard/meta': {
+    title: `Мета Hearthstone ${YEAR}: архетипы и колоды | Manacost Stats`,
+    description: 'Актуальная мета Стандарта и Вольного режима по данным HSGuru: винрейты, популярность, русские названия и готовые сборки.',
+    h1: 'Мета Hearthstone', canonical: '/standard/meta', ogType: 'website', structuredData: [],
+    noscript: '<h1>Мета Hearthstone</h1><p>Винрейты, популярность и готовые сборки актуальных архетипов Стандарта и Вольного режима.</p>'
+  },
+  '/standard/vicious-gold': {
+    title: `Vicious Syndicate Gold — мета Стандарта ${YEAR} | Manacost Stats`,
+    description: 'Распределение классов и колод, готовые сборки и Power Tier по всем доступным рангам Vicious Syndicate Live.',
+    h1: 'Vicious Syndicate Gold', canonical: '/standard/vicious-gold', ogType: 'website', structuredData: [],
+    noscript: '<h1>Vicious Syndicate Gold</h1><p>Живая статистика классов, архетипов, сборок и Power Tier Стандарта.</p>'
+  },
+  '/standard/cards': {
+    title: `Карты Hearthstone ${YEAR}: Стандарт и Вольный | Manacost Stats`,
+    description: 'Библиотека карт Hearthstone со статистикой Легенды и фильтрами по классу, дополнению, мане и механикам.',
+    h1: 'Карты Hearthstone', canonical: '/standard/cards', ogType: 'website', structuredData: [],
+    noscript: '<h1>Карты Hearthstone</h1><p>Библиотека карт Стандарта и Вольного режима со статистикой Легенды и подробными страницами.</p>'
+  },
   '/classes': {
     title: `Винрейт классов — Арена Hearthstone ${YEAR} | HS-Arena`,
     description: 'Актуальные винрейты всех 11 классов в режиме Арена Hearthstone. Рейтинг на основе миллионов партий с HSReplay и Firestone, обновляется автоматически 4 раза в сутки.',
@@ -905,6 +923,9 @@ async function main() {
       `${SITE_URL}/classes/`,
       `${SITE_URL}/tierlist/`,
       `${SITE_URL}/legendaries/`,
+      `${SITE_URL}/standard/meta/`,
+      `${SITE_URL}/standard/vicious-gold/`,
+      `${SITE_URL}/standard/cards/`,
       `${SITE_URL}/heroes/`,
       `${SITE_URL}/library/`,
       `${SITE_URL}/library/minions/`,

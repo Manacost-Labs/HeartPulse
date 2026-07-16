@@ -18,6 +18,7 @@ import {
   X,
 } from 'lucide-react';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
+import HsReplayDeckList, { type HsReplayDeckCard } from './HsReplayDeckList';
 import '../route-parchment.css';
 import './StandardMeta.css';
 
@@ -71,6 +72,7 @@ type Recommendation = {
   classKey: MetaClass;
   matchedArchetype: string;
   matchMethod: 'exact' | 'alias';
+  deckCards: HsReplayDeckCard[];
 };
 
 type Preview = {
@@ -159,11 +161,14 @@ function WinrateMedallion({ value }: { value: number | null }) {
   );
 }
 
-function DeckModal({ state, onClose }: { state: DeckModalState; onClose: () => void }) {
+function DeckModal({ state, onClose, onRenderPreview }: { state: DeckModalState; onClose: () => void; onRenderPreview: () => void }) {
   const panelRef = useRef<HTMLElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const [copied, setCopied] = useState(false);
+  const [presentation, setPresentation] = useState<'list' | 'image'>('list');
   usePageScrollLock(true);
+
+  useEffect(() => setPresentation('list'), [state.recommendation?.deckCode]);
 
   useEffect(() => {
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -250,8 +255,14 @@ function DeckModal({ state, onClose }: { state: DeckModalState; onClose: () => v
 
         {state.recommendation && (
           <div className="standard-meta-modal__content">
+            <div className="standard-meta-modal__presentation" aria-label="Представление колоды">
+              <button type="button" aria-pressed={presentation === 'list'} onClick={() => setPresentation('list')}><TableProperties size={16} /> Состав</button>
+              <button type="button" aria-pressed={presentation === 'image'} onClick={() => { setPresentation('image'); if (!state.preview && !state.loadingPreview) onRenderPreview(); }}><Maximize2 size={16} /> Изображение</button>
+            </div>
             <div className="standard-meta-modal__image-stage">
-              {state.preview?.ready && state.preview.imageUrl ? (
+              {presentation === 'list' ? (
+                <HsReplayDeckList cards={state.recommendation.deckCards || []} label={`Состав колоды ${state.item.archetypeLabel}`} />
+              ) : state.preview?.ready && state.preview.imageUrl ? (
                 <a href={state.preview.imageUrl} target="_blank" rel="noreferrer" className="standard-meta-modal__image-link" aria-label="Открыть изображение колоды в полном размере">
                   <img src={state.preview.imageUrl} alt={`Колода ${state.item.archetypeLabel}`} decoding="async" />
                   <span><Maximize2 size={16} /> Полный размер</span>
@@ -267,6 +278,7 @@ function DeckModal({ state, onClose }: { state: DeckModalState; onClose: () => v
                   <AlertTriangle size={30} />
                   <strong>Изображение пока недоступно</strong>
                   <span>{state.previewError || state.preview?.error || 'Код колоды уже можно скопировать.'}</span>
+                  <button type="button" onClick={onRenderPreview}><RefreshCw size={16} /> Повторить</button>
                 </div>
               )}
             </div>
@@ -326,7 +338,7 @@ export default function StandardMetaPage() {
     const controller = new AbortController();
     setLoading(true);
     setError('');
-    void apiJson<MetaPayload>(`/api/admin/standard-meta?format=${format}&rank=${rank}`, { signal: controller.signal })
+    void apiJson<MetaPayload>(`/api/standard-meta?format=${format}&rank=${rank}`, { signal: controller.signal })
       .then(payload => {
         if (currentRequest === requestId.current) setData(payload);
       })
@@ -343,7 +355,7 @@ export default function StandardMetaPage() {
   useEffect(() => {
     if (!modal?.preview?.hash || modal.preview.ready || modal.preview.state === 'error') return undefined;
     const timer = window.setTimeout(() => {
-      void apiJson<{ preview: Preview }>(`/api/admin/standard-meta/preview/${encodeURIComponent(modal.preview!.hash)}`)
+      void apiJson<{ preview: Preview }>(`/api/standard-meta/preview/${encodeURIComponent(modal.preview!.hash)}`)
         .then(({ preview }) => setModal(current => {
           if (!current?.recommendation) return current;
           deckCache.current.set(`${current.recommendation.format}:${current.recommendation.rank}:${current.item.archetype.toLowerCase()}`, {
@@ -447,18 +459,14 @@ export default function StandardMetaPage() {
       previewError: '',
     });
     try {
-      const result = await apiJson<{ recommendation: Recommendation; preview: Preview }>('/api/admin/standard-meta/preview', {
-        method: 'POST',
-        body: JSON.stringify({ archetype: item.archetype, archetypeLabel: item.archetypeLabel, format, rank }),
-      });
+      const params = new URLSearchParams({ archetype: item.archetype, archetypeLabel: item.archetypeLabel, format, rank });
+      const result = await apiJson<{ recommendation: Recommendation }>(`/api/standard-meta/recommendation?${params}`);
       setModal(current => current?.item.id === item.id ? {
         ...current,
         recommendation: result.recommendation,
-        preview: result.preview,
         loadingRecommendation: false,
-        loadingPreview: false,
       } : current);
-      deckCache.current.set(cacheKey, { recommendation: result.recommendation, preview: result.preview, previewError: '' });
+      deckCache.current.set(cacheKey, { recommendation: result.recommendation, preview: null, previewError: '' });
     } catch (cause) {
       setModal(current => current?.item.id === item.id ? {
         ...current,
@@ -468,11 +476,35 @@ export default function StandardMetaPage() {
     }
   };
 
+  const renderDeckPreview = async () => {
+    const current = modal;
+    if (!current?.recommendation || current.loadingPreview) return;
+    setModal(value => value ? { ...value, loadingPreview: true, previewError: '' } : value);
+    try {
+      const result = await apiJson<{ recommendation: Recommendation; preview: Preview }>('/api/standard-meta/preview', {
+        method: 'POST',
+        body: JSON.stringify({
+          archetype: current.item.archetype,
+          archetypeLabel: current.item.archetypeLabel,
+          format: current.recommendation.format,
+          rank: current.recommendation.rank,
+        }),
+      });
+      setModal(value => value?.item.id === current.item.id ? { ...value, recommendation: result.recommendation, preview: result.preview, loadingPreview: false } : value);
+      deckCache.current.set(`${current.recommendation.format}:${current.recommendation.rank}:${current.item.archetype.toLowerCase()}`, {
+        recommendation: result.recommendation, preview: result.preview, previewError: '',
+      });
+    } catch (cause) {
+      const previewError = cause instanceof Error ? cause.message : 'Не удалось создать изображение';
+      setModal(value => value?.item.id === current.item.id ? { ...value, loadingPreview: false, previewError } : value);
+    }
+  };
+
   return (
     <main className="standard-meta" id="main-content">
       <section className="standard-meta__masthead">
         <div className="standard-meta__masthead-copy">
-          <span className="standard-meta__eyebrow"><ShieldCheck size={15} /> Только для администраторов</span>
+          <span className="standard-meta__eyebrow"><ShieldCheck size={15} /> HSGuru · актуальные срезы</span>
           <h1>Мета Hearthstone</h1>
           <p>Срезы HSGuru, переводы Манакоста и одна проверенная сборка для каждого доступного архетипа.</p>
           <span className="standard-meta__hero-ornament" aria-hidden="true" />
@@ -630,7 +662,7 @@ export default function StandardMetaPage() {
         </>
       )}
 
-      {modal && <DeckModal state={modal} onClose={closeModal} />}
+      {modal && <DeckModal state={modal} onClose={closeModal} onRenderPreview={() => void renderDeckPreview()} />}
     </main>
   );
 }

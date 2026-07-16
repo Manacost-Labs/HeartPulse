@@ -3135,6 +3135,23 @@
   text-align: center;
 }
 
+.admin-standard-operations { display: grid; gap: 1rem; }
+.admin-standard-operations__card { display: grid; gap: 1rem; }
+.admin-standard-operations__card .admin-card-heading h2 { display: inline-flex; gap: 0.5rem; align-items: center; }
+.admin-standard-operations__routes { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.admin-standard-operations__routes a { display: inline-flex; min-height: 40px; gap: 0.35rem; align-items: center; padding: 0.5rem 0.7rem; border: 1px solid rgba(126, 76, 35, 0.3); color: #633d24; background: rgba(255, 245, 214, 0.62); font-weight: 800; text-decoration: none; }
+.admin-standard-operations__sources { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; border: 1px solid rgba(126, 76, 35, 0.22); }
+.admin-standard-operations__sources div { min-width: 0; padding: 0.75rem; border-bottom: 1px solid rgba(126, 76, 35, 0.14); }
+.admin-standard-operations__sources dt { color: #806044; font-size: 0.67rem; font-weight: 900; text-transform: uppercase; }
+.admin-standard-operations__sources dd { margin: 0.25rem 0 0; overflow-wrap: anywhere; color: #3d281a; font-family: ui-monospace, monospace; font-size: 0.72rem; }
+.admin-standard-operations__actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
+.admin-standard-operations__actions button { display: inline-flex; min-height: 44px; gap: 0.35rem; align-items: center; justify-content: center; border: 1px solid #8b4a32; color: #fff0c4; background: #713118; font-weight: 900; }
+
+@media (max-width: 700px) {
+  .admin-standard-operations__sources,
+  .admin-standard-operations__actions { grid-template-columns: 1fr; }
+}
+
 .admin-referral-report {
   min-width: 0;
 }

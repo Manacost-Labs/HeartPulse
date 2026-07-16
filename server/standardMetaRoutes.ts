@@ -1,5 +1,6 @@
 import { Router, type RequestHandler } from 'express';
 import type { StandardMetaClassKey } from './standardMetaClasses.js';
+import type { DeckCardData } from './deckCardData.js';
 
 export type StandardMetaFormat = 'standard' | 'wild';
 export type StandardMetaRank = 'legend' | 'diamond' | 'top_5k' | 'top_legend';
@@ -19,6 +20,7 @@ export type StandardMetaRecommendation = {
   classKey: StandardMetaClassKey;
   matchedArchetype: string;
   matchMethod: 'exact' | 'alias';
+  deckCards?: DeckCardData[];
 };
 
 export type StandardMetaPreview = {
@@ -77,10 +79,12 @@ export function createStandardMetaRouter(dependencies: StandardMetaRouterDepende
     dependencies.setPrivateNoStore(response);
     next();
   };
+  router.use('/standard-meta', protectAdminStats);
+  router.use('/vicious-syndicate-gold', protectAdminStats);
   router.use('/admin/standard-meta', dependencies.adminGuard, protectAdminStats);
   router.use('/admin/vicious-syndicate-gold', dependencies.adminGuard, protectAdminStats);
 
-  router.get('/admin/standard-meta', async (request, response) => {
+  const metaHandler: RequestHandler = async (request, response) => {
     const format = readFormat(request.query.format);
     const rank = readRank(request.query.rank);
     if (!format || !rank) return response.status(400).json({ error: 'Неизвестный формат или рейтинг' });
@@ -90,18 +94,22 @@ export function createStandardMetaRouter(dependencies: StandardMetaRouterDepende
       dependencies.onError?.('meta', error);
       return response.status(502).json({ error: 'Данные меты временно недоступны' });
     }
-  });
+  };
+  router.get('/standard-meta', metaHandler);
+  router.get('/admin/standard-meta', metaHandler);
 
-  router.get('/admin/vicious-syndicate-gold', async (_request, response) => {
+  const viciousHandler: RequestHandler = async (_request, response) => {
     try {
       return response.json(await dependencies.loadViciousGold());
     } catch (error) {
       dependencies.onError?.('vicious-gold', error);
       return response.status(502).json({ error: 'Данные Vicious Syndicate временно недоступны' });
     }
-  });
+  };
+  router.get('/vicious-syndicate-gold', viciousHandler);
+  router.get('/admin/vicious-syndicate-gold', viciousHandler);
 
-  router.get('/admin/standard-meta/recommendation', async (request, response) => {
+  const recommendationHandler: RequestHandler = async (request, response) => {
     const format = readFormat(request.query.format);
     const rank = readRank(request.query.rank);
     const archetype = readArchetype(request.query.archetype);
@@ -115,9 +123,11 @@ export function createStandardMetaRouter(dependencies: StandardMetaRouterDepende
       dependencies.onError?.('recommendation', error);
       return response.status(502).json({ error: 'Не удалось подобрать сборку' });
     }
-  });
+  };
+  router.get('/standard-meta/recommendation', recommendationHandler);
+  router.get('/admin/standard-meta/recommendation', recommendationHandler);
 
-  router.post('/admin/standard-meta/preview', async (request, response) => {
+  const previewCreateHandler: RequestHandler = async (request, response) => {
     const format = readFormat(request.body?.format);
     const rank = readRank(request.body?.rank);
     const archetype = readArchetype(request.body?.archetype);
@@ -134,9 +144,11 @@ export function createStandardMetaRouter(dependencies: StandardMetaRouterDepende
       dependencies.onError?.('preview-create', error);
       return response.status(502).json({ error: message(error, 'Не удалось создать изображение колоды') });
     }
-  });
+  };
+  router.post('/standard-meta/preview', previewCreateHandler);
+  router.post('/admin/standard-meta/preview', previewCreateHandler);
 
-  router.get('/admin/standard-meta/preview/:hash', async (request, response) => {
+  const previewReadHandler: RequestHandler = async (request, response) => {
     const hash = String(request.params.hash ?? '').trim();
     if (!/^[a-zA-Z0-9_-]{8,96}$/.test(hash)) return response.status(400).json({ error: 'Некорректный ID изображения' });
     try {
@@ -145,7 +157,9 @@ export function createStandardMetaRouter(dependencies: StandardMetaRouterDepende
       dependencies.onError?.('preview-read', error);
       return response.status(502).json({ error: message(error, 'Не удалось получить изображение колоды') });
     }
-  });
+  };
+  router.get('/standard-meta/preview/:hash', previewReadHandler);
+  router.get('/admin/standard-meta/preview/:hash', previewReadHandler);
 
   return router;
 }
