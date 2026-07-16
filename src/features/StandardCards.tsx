@@ -434,7 +434,6 @@ function variantImages(card: CardRecord): Array<{ id: string; label: string; url
   return [
     ['normal', 'Обычная', card.images?.card], ['golden', 'Золотая', card.images?.golden],
     ['signature', 'Сигнатурная', card.images?.signature], ['diamond', 'Алмазная', card.images?.diamond],
-    ['art', 'Арт', card.images?.crop],
   ].filter((entry): entry is [string, string, string] => Boolean(entry[2])).map(([id, label, url]) => ({ id, label, url }));
 }
 

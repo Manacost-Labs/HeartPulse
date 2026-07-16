@@ -2292,6 +2292,7 @@ for (const [device, viewport] of [
       scrollY: window.scrollY,
       statsRows: document.querySelectorAll('.constructed-card-detail__statistics .constructed-cards__stats > div').length,
       variants: document.querySelectorAll('.constructed-card-detail__variants button').length,
+      variantLabels: [...document.querySelectorAll('.constructed-card-detail__variants button')].map(button => button.textContent?.trim()),
       tags: document.querySelectorAll('.constructed-card-detail__tags span').length,
       patches: document.querySelectorAll('.constructed-card-detail__patches details').length,
       related: document.querySelectorAll('.constructed-card-detail__related a').length,
@@ -2300,7 +2301,7 @@ for (const [device, viewport] of [
       documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     }));
     if (constructedDetailState.pathname !== '/standard/cards/standard/CARD_QA_1' || constructedDetailState.scrollY > 2 || constructedDetailState.statsRows < 8
-      || constructedDetailState.variants !== 3 || constructedDetailState.tags < 3 || constructedDetailState.patches !== 1
+      || constructedDetailState.variants !== 2 || constructedDetailState.variantLabels.includes('Арт') || constructedDetailState.tags < 3 || constructedDetailState.patches !== 1
       || constructedDetailState.related !== 1 || constructedDetailState.gallery !== 1 || constructedDetailState.sounds !== 2 || constructedDetailState.documentOverflow) {
       failures.push(`constructed card detail [${device}]: data sections or responsive containment regressed (${JSON.stringify(constructedDetailState)})`);
     }
