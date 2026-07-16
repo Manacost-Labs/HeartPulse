@@ -9,6 +9,7 @@ export type ConstructedCardCollection = {
   cards: JsonRecord[];
   updatedAt: string | null;
   sourceUrl: string;
+  warning?: string | null;
 };
 
 export type ConstructedCardDataService = {
@@ -602,13 +603,22 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
       );
       const catalogCards = completeConstructedCatalog([firstPage, ...remainingPages]);
       const statsDataset = dependencies.statsDatasetByFormat[format];
-      const statsPayload = await dependencies.fetchJson(`${dependencies.statsBaseUrl.replace(/\/$/, '')}/${statsDataset}`);
-      const statsCards = Array.isArray(statsPayload?.view?.cards) ? statsPayload.view.cards : [];
-      validateConstructedCardStatsDataset(statsCards);
+      let statsPayload: JsonRecord = {};
+      let statsCards: JsonRecord[] = [];
+      let warning: string | null = null;
+      try {
+        statsPayload = await dependencies.fetchJson(`${dependencies.statsBaseUrl.replace(/\/$/, '')}/${statsDataset}`);
+        statsCards = Array.isArray(statsPayload?.view?.cards) ? statsPayload.view.cards : [];
+        validateConstructedCardStatsDataset(statsCards);
+      } catch (error) {
+        warning = error instanceof Error ? error.message : 'Constructed card statistics are unavailable';
+        statsCards = [];
+      }
       const value = {
         cards: mergeConstructedCardRows(catalogCards, statsCards),
         updatedAt: String(statsPayload?.fetched_at ?? '') || null,
         sourceUrl: String(statsPayload?.url ?? statsPayload?.view?.source ?? ''),
+        warning,
       };
       cache.set(format, { value, expiresAt: Date.now() + cacheTtlMs });
       return value;
@@ -703,6 +713,7 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
         facetCounts: constructedCardFacetCounts(collection.cards),
         mechanicTranslations: dependencies.getMechanicTranslations?.() ?? {},
         coverage: constructedCardCoverage(collection.cards),
+        warning: collection.warning ?? null,
         pagination: { page: safePage, perPage, total: cards.length, totalPages },
       });
     } catch (error) {

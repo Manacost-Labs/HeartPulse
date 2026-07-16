@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Kept the complete constructed-card catalog available when an upstream statistics refresh is malformed or unavailable: invalid popularity values are removed, users see a clear degraded-data notice, and deck composition hydration continues instead of turning the whole Cards API into a 502 response.
 - Released Meta, Vicious Syndicate Gold and Cards as public Traditional-mode pages with public server contracts, prerendered metadata and sitemap coverage; replaced automatic DeckView image generation with immediate Russian deck lists plus on-demand images, added expandable Vicious builds, and introduced administrator monitoring/reset controls for Standard caches and the DeckView queue together with separate mechanic/tag translation filtering.
 - Hardened the constructed-card beta against malformed 97–100% popularity snapshots, made every gallery caption follow the active sort metric, vendored the pinned hsreplay-deck-view renderer for real `data-deck-cards` table rows, added smooth rarity-aware hover light, and rebuilt the mobile filters and table as compact accessible card records without horizontal scrolling.
 - Stabilized and polished containing-deck previews in card dossiers: DeckView renders are serialized and retried after transient failures, failed images expose a manual retry, wide layouts use centered image-sized columns, deck art opens in the shared keyboard-accessible lightbox, and archetype headings now use the existing Russian translation catalog with current Wild Warlock fallbacks.

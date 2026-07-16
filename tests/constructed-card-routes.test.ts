@@ -5,6 +5,7 @@ import {
   constructedDecksContainingCard,
   constructedCardCoverage,
   constructedCardFacetCounts,
+  createConstructedCardDataService,
   createConstructedCardRouter,
   enrichConstructedCardPatches,
   enrichConstructedCardPools,
@@ -50,6 +51,18 @@ assert.throws(
   /implausible popularity values/,
   'a systemic 97–100% popularity cascade must be rejected as a malformed snapshot',
 );
+const degradedService = createConstructedCardDataService({
+  fetchJson: async url => url.includes('/constructed-cards')
+    ? { data: catalogCards, pagination: { total: catalogCards.length, total_pages: 1 } }
+    : { view: { cards: Array.from({ length: 10 }, (_, index) => ({ id: `BAD_${index}`, deck_popularity: '99%' })) } },
+  catalogBaseUrl: 'https://db.example.test/api/v1',
+  statsDatasetByFormat: { standard: 'standard-stats', wild: 'wild-stats' },
+  statsBaseUrl: 'https://stats.example.test',
+});
+const degradedCollection = await degradedService.loadCards('standard');
+assert.equal(degradedCollection.cards.length, catalogCards.length, 'a malformed statistics snapshot must not hide the card catalog');
+assert.ok(degradedCollection.cards.every(card => card.stats === null), 'malformed statistics must be removed instead of reaching the UI');
+assert.match(degradedCollection.warning || '', /implausible popularity values/);
 const pendingCatalogCard = mergeConstructedCardRows(catalogCards, [{
   id: 'CARD_3', dbfId: 3, name: 'Гамма', type: 'SPELL', rarity: 'EPIC', cardClass: 'PRIEST', cost: 3,
   deck_popularity: '1.2%', times_played: 42,

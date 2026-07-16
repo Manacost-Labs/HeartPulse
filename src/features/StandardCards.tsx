@@ -1,5 +1,6 @@
 import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AlertTriangle,
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
@@ -116,6 +117,7 @@ type ListPayload = {
   facetCounts?: FacetCounts;
   mechanicTranslations?: Record<string, string>;
   coverage?: CardCoverage;
+  warning?: string | null;
   pagination: { page: number; perPage: number; total: number; totalPages: number };
 };
 
@@ -548,6 +550,8 @@ function CardsListPage({ initialFormat, navigatePath }: Pick<StandardCardsProps,
           <button type="button" className="constructed-cards__reset" onClick={reset}><RefreshCw size={16} /> Сбросить</button>
         </div>
       </section>
+
+      {data?.warning && <div className="constructed-cards__data-warning" role="status"><AlertTriangle size={18} /><span>Список карт доступен, статистика источника временно скрыта из-за некорректного обновления.</span></div>}
 
       {loading ? <section className="constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={34} /><h2>Загружаем библиотеку</h2><p>Объединяем список карт и статистику Легенды.</p></section>
         : error ? <section className="constructed-cards__state" role="alert"><h2>Не удалось загрузить карты</h2><p>{error}</p><button type="button" onClick={() => setReloadToken(value => value + 1)}><RefreshCw size={16} /> Повторить</button></section>
