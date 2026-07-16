@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Refined the administrator card library and dossier: removed redundant coverage/result strips, rebuilt the detail header and Legend statistics as a compact wood-and-velvet ledger, collapsed every generated-card pool to one responsive row with a working “Показать все” control, deduplicated localized mechanics, and replaced unsorted English patch labels with newest-first Russian HS-Manacost articles sourced from the shared patches API.
 - Cleaned numeric catalog values out of card class/mechanic filters, removed expansion counters, replaced format text tabs with local Standard/Wild emblems, restyled card hover statistics with the Arena wood-and-velvet treatment, made generated pools wrap within the page, and added an administrator mechanic-translation workspace with card examples and live library overrides.
 - Fixed Standard card popularity by consuming only HSReplay's all-decks `ALL` series instead of class-relative inclusion values, and added generated-card pool sections to constructed card dossiers with Russian catalog names, local card art and navigation.
 - Renamed the Cards beta popularity metric to the clearer “В % колод” across sorting, gallery, table, hover statistics and card details, and replaced the cramped two-number gallery caption with a focused labelled percentage while retaining the Standard/Wild split.

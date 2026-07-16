@@ -5,6 +5,7 @@ import {
   constructedCardCoverage,
   constructedCardFacetCounts,
   createConstructedCardRouter,
+  enrichConstructedCardPatches,
   enrichConstructedCardPools,
   mergeConstructedCardRows,
   queryConstructedCards,
@@ -74,6 +75,28 @@ assert.equal(detailWithPools.wiki.generated_card_pools[0].cards[0].image_url, 'a
 assert.equal(detailWithPools.wiki.generated_card_pools[0].cards[0].can_open, true);
 assert.equal(detailWithPools.wiki.generated_card_pools[0].cards[1].name.en, 'Generated token');
 assert.equal(detailWithPools.wiki.generated_card_pools[0].cards[1].can_open, false);
+
+const detailWithPatches = enrichConstructedCardPatches({
+  wiki: {
+    patch_changes: [{
+      heading: 'Card changes',
+      entries: [
+        { date: '2024-09-10', patch: 'Patch 30.4.0.206605', items: ['Changed.'] },
+        { date: '2019-08-01', patch: 'Patch 15.0.0.32708', items: ['Added.'] },
+      ],
+    }],
+  },
+}, [{
+  version: '30.4.0.206605',
+  title: 'Обновление 30.4 уже в игре',
+  source_url: 'https://hs-manacost.ru/obnovlenie-30-4/',
+  published_at: '2024-09-10T20:00:09',
+  summary: 'Русское описание обновления.',
+}]);
+assert.equal(detailWithPatches.wiki.patch_changes[0].entries[0].manacost_title, 'Обновление 30.4 уже в игре');
+assert.equal(detailWithPatches.wiki.patch_changes[0].entries[0].manacost_url, 'https://hs-manacost.ru/obnovlenie-30-4/');
+assert.equal(detailWithPatches.wiki.patch_changes[0].entries[0].manacost_summary, 'Русское описание обновления.');
+assert.equal(detailWithPatches.wiki.patch_changes[0].entries[1].manacost_title, undefined);
 
 const calls: string[] = [];
 const adminGuard: RequestHandler = (request, response, next) => {

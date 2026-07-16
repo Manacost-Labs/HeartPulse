@@ -1,10 +1,8 @@
-import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
-  BarChart3,
   ChevronLeft,
   ChevronRight,
-  Database,
   ExternalLink,
   Grid3X3,
   Layers3,
@@ -172,8 +170,21 @@ function classLabel(value: string): string {
 }
 
 function mechanicLabel(value: string, translations?: Record<string, string>): string {
-  const key = value.toLocaleUpperCase('en-US');
-  return translations?.[key] || translatedCode(value, MECHANIC_LABELS);
+  const exactKey = value.trim().toLocaleUpperCase('en-US');
+  const canonicalKey = exactKey.replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  return translations?.[exactKey] || translations?.[canonicalKey] || translatedCode(canonicalKey || value, MECHANIC_LABELS);
+}
+
+function uniqueMechanicLabels(values: unknown[], translations?: Record<string, string>): Array<{ key: string; label: string }> {
+  const unique = new Map<string, { key: string; label: string }>();
+  for (const rawValue of values) {
+    const value = String(rawValue ?? '').trim();
+    if (!value) continue;
+    const label = mechanicLabel(value, translations).trim();
+    const normalizedLabel = label.toLocaleLowerCase('ru-RU').replace(/[^a-zа-яё0-9]+/gi, '');
+    if (normalizedLabel && !unique.has(normalizedLabel)) unique.set(normalizedLabel, { key: normalizedLabel, label });
+  }
+  return [...unique.values()];
 }
 
 function generatedPoolLabel(value: unknown): string {
@@ -199,6 +210,25 @@ function formatDate(value: string | null | undefined): string {
   return Number.isFinite(date.getTime())
     ? date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     : value;
+}
+
+function patchTimestamp(row: any): number {
+  for (const value of [row?.manacost_published_at, row?.date]) {
+    const timestamp = Date.parse(String(value ?? ''));
+    if (Number.isFinite(timestamp)) return timestamp;
+  }
+  return 0;
+}
+
+function patchDate(value: unknown): string {
+  const date = new Date(String(value ?? ''));
+  return Number.isFinite(date.getTime())
+    ? date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+    : 'Дата не указана';
+}
+
+function patchVersion(value: unknown): string {
+  return String(value ?? '').trim().replace(/^patch\s+/i, '') || 'без номера';
 }
 
 function plainText(value: string | null | undefined): string {
@@ -398,12 +428,6 @@ function CardsListPage({ initialFormat, navigatePath }: Pick<StandardCardsProps,
         <p>Ранг: <strong>Легенда</strong></p>
       </header>
 
-      <dl className="constructed-cards__coverage" aria-label="Покрытие библиотеки">
-        <div><dt><Database size={17} /> Карт в формате</dt><dd>{number(coverage?.totalCards)}</dd></div>
-        <div><dt><Layers3 size={17} /> Дополнений</dt><dd>{number(coverage?.totalSets)}</dd></div>
-        <div><dt><BarChart3 size={17} /> Со статистикой</dt><dd>{number(coverage?.cardsWithStats)}</dd></div>
-      </dl>
-
       <section className="constructed-cards__controls" aria-label="Фильтры библиотеки карт">
         <div className="constructed-cards__primary-controls">
           <div className="constructed-cards__format" aria-label="Формат">
@@ -436,11 +460,6 @@ function CardsListPage({ initialFormat, navigatePath }: Pick<StandardCardsProps,
         </div>
       </section>
 
-      <div className="constructed-cards__results-header">
-        <p>Найдено: <strong>{number(data?.pagination.total)}</strong></p>
-        <span>Статистика HSReplay · Легенда · последние сутки · обновлено {formatDate(data?.updatedAt)}</span>
-      </div>
-
       {loading ? <section className="constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={34} /><h2>Загружаем библиотеку</h2><p>Объединяем список карт и статистику Легенды.</p></section>
         : error ? <section className="constructed-cards__state" role="alert"><h2>Не удалось загрузить карты</h2><p>{error}</p><button type="button" onClick={() => setReloadToken(value => value + 1)}><RefreshCw size={16} /> Повторить</button></section>
           : data && data.cards.length > 0 ? <>{view === 'gallery' ? <CardGallery cards={data.cards} format={format} navigatePath={navigatePath} /> : <CardTable cards={data.cards} format={format} navigatePath={navigatePath} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} /></>
@@ -456,38 +475,65 @@ function variantImages(card: CardRecord): Array<{ id: string; label: string; url
   ].filter((entry): entry is [string, string, string] => Boolean(entry[2])).map(([id, label, url]) => ({ id, label, url }));
 }
 
+function GeneratedPoolCards({ pool, format, navigatePath }: { key?: React.Key; pool: any; format: CardFormat; navigatePath: (path: string) => void }) {
+  const cards = Array.isArray(pool?.cards) ? pool.cards : [];
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const [cardsPerRow, setCardsPerRow] = useState(2);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return undefined;
+    const updateCardsPerRow = () => {
+      const columns = window.getComputedStyle(grid).gridTemplateColumns.split(/\s+/).filter(Boolean).length;
+      if (columns > 0) setCardsPerRow(columns);
+    };
+    updateCardsPerRow();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateCardsPerRow);
+      return () => window.removeEventListener('resize', updateCardsPerRow);
+    }
+    const observer = new ResizeObserver(updateCardsPerRow);
+    observer.observe(grid);
+    return () => observer.disconnect();
+  }, []);
+
+  const visibleCards = expanded ? cards : cards.slice(0, cardsPerRow);
+  const hasMore = cards.length > cardsPerRow;
+
+  return (
+    <article className="constructed-card-detail__pool">
+      <header><strong>{generatedPoolLabel(pool?.pool)}</strong><span>{cards.length} карт</span></header>
+      <div className="constructed-card-detail__pool-cards" ref={gridRef}>
+        {visibleCards.map((item: any, index: number) => {
+          const itemId = String(item?.card_id || item?.id || '').trim();
+          const name = item?.name?.ru || item?.name?.en || item?.name_ru || item?.title || itemId || 'Карта';
+          const image = item?.images?.card || item?.image_url || item?.image;
+          const internalUrl = item?.can_open && itemId ? `/standard/cards/${format}/${encodeURIComponent(itemId)}` : '';
+          const href = internalUrl || item?.url || undefined;
+          const content = <>{image ? <img src={image} alt="" loading="lazy" /> : <Sparkles size={28} />}<span>{name}</span></>;
+          return href ? (
+            <a
+              key={`${itemId || name}-${index}`}
+              href={href}
+              target={internalUrl ? undefined : '_blank'}
+              rel={internalUrl ? undefined : 'noreferrer'}
+              onClick={event => { if (!internalUrl) return; event.preventDefault(); navigatePath(internalUrl); }}
+            >{content}</a>
+          ) : <div className="constructed-card-detail__pool-card" key={`${itemId || name}-${index}`}>{content}</div>;
+        })}
+      </div>
+      {hasMore && <button type="button" className="constructed-card-detail__pool-toggle" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? 'Свернуть' : `Показать все · ${cards.length}`}</button>}
+    </article>
+  );
+}
+
 function GeneratedCardPools({ pools, format, navigatePath }: { pools: any[]; format: CardFormat; navigatePath: (path: string) => void }) {
   return (
     <section className="constructed-card-detail__section constructed-card-detail__pools">
       <h2><Layers3 size={19} /> Пулы генерации · {pools.length}</h2>
       <div className="constructed-card-detail__pool-list">
-        {pools.map((pool, poolIndex) => {
-          const cards = Array.isArray(pool?.cards) ? pool.cards : [];
-          return (
-            <details key={`${pool?.pool || 'pool'}-${poolIndex}`} open={poolIndex === 0}>
-              <summary><strong>{generatedPoolLabel(pool?.pool)}</strong><span>{cards.length} карт</span></summary>
-              <div className="constructed-card-detail__pool-cards">
-                {cards.map((item: any, index: number) => {
-                  const itemId = String(item?.card_id || item?.id || '').trim();
-                  const name = item?.name?.ru || item?.name?.en || item?.name_ru || item?.title || itemId || 'Карта';
-                  const image = item?.images?.card || item?.image_url || item?.image;
-                  const internalUrl = item?.can_open && itemId ? `/standard/cards/${format}/${encodeURIComponent(itemId)}` : '';
-                  const href = internalUrl || item?.url || undefined;
-                  const content = <>{image ? <img src={image} alt="" loading="lazy" /> : <Sparkles size={28} />}<span>{name}</span></>;
-                  return href ? (
-                    <a
-                      key={`${itemId || name}-${index}`}
-                      href={href}
-                      target={internalUrl ? undefined : '_blank'}
-                      rel={internalUrl ? undefined : 'noreferrer'}
-                      onClick={event => { if (!internalUrl) return; event.preventDefault(); navigatePath(internalUrl); }}
-                    >{content}</a>
-                  ) : <div className="constructed-card-detail__pool-card" key={`${itemId || name}-${index}`}>{content}</div>;
-                })}
-              </div>
-            </details>
-          );
-        })}
+        {pools.map((pool, poolIndex) => <GeneratedPoolCards key={`${pool?.pool || 'pool'}-${poolIndex}`} pool={pool} format={format} navigatePath={navigatePath} />)}
       </div>
     </section>
   );
@@ -529,8 +575,10 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
   const variants = variantImages(card);
   const selectedImage = variants.find(item => item.id === variant)?.url || variants[0]?.url || '';
   const wiki = card.wiki || {};
-  const mechanics = [...new Set([...(card.mechanics || []), ...(card.referenced_tags || []), ...(wiki.wiki_mechanics || []), ...(wiki.wiki_tags || [])])];
-  const patchRows = (Array.isArray(wiki.patch_changes) ? wiki.patch_changes : []).flatMap((group: any) => (Array.isArray(group?.entries) ? group.entries : []).map((entry: any) => ({ ...entry, heading: group.heading })));
+  const mechanics = uniqueMechanicLabels([...(card.mechanics || []), ...(card.referenced_tags || []), ...(wiki.wiki_mechanics || []), ...(wiki.wiki_tags || [])], card.mechanicTranslations);
+  const patchRows = (Array.isArray(wiki.patch_changes) ? wiki.patch_changes : [])
+    .flatMap((group: any) => (Array.isArray(group?.entries) ? group.entries : []).map((entry: any) => ({ ...entry, heading: group.heading })))
+    .sort((left: any, right: any) => patchTimestamp(right) - patchTimestamp(left));
   const related = Array.isArray(wiki.related_cards) ? wiki.related_cards : [];
   const generatedPools = (Array.isArray(wiki.generated_card_pools) ? wiki.generated_card_pools : [])
     .filter((pool: any) => Array.isArray(pool?.cards) && pool.cards.length > 0);
@@ -575,8 +623,14 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
       </section>
 
       <section className="constructed-card-detail__lower-grid">
-        <div className="constructed-card-detail__section"><h2>Механики и теги</h2><div className="constructed-card-detail__tags">{mechanics.length ? mechanics.map(value => <span key={String(value)}>{mechanicLabel(String(value), card.mechanicTranslations)}</span>) : <p>Механики не указаны.</p>}</div></div>
-        <div className="constructed-card-detail__section constructed-card-detail__patches"><h2>Изменения по патчам</h2>{patchRows.length ? <div>{patchRows.map((row: any, index: number) => <details key={`${row.patch}-${index}`}><summary><span>{row.date || 'Без даты'}</span><strong>{row.patch || row.heading || 'Изменение'}</strong></summary><p>{(Array.isArray(row.items) ? row.items : [row.items]).filter(Boolean).join(' ') || 'Описание отсутствует.'}</p></details>)}</div> : <p>История изменений не найдена.</p>}</div>
+        <div className="constructed-card-detail__section"><h2>Механики и теги</h2><div className="constructed-card-detail__tags">{mechanics.length ? mechanics.map(item => <span key={item.key}>{item.label}</span>) : <p>Механики не указаны.</p>}</div></div>
+        <div className="constructed-card-detail__section constructed-card-detail__patches"><h2>Изменения по патчам</h2>{patchRows.length ? <div>{patchRows.map((row: any, index: number) => {
+          const dateValue = row.manacost_published_at || row.date;
+          const title = row.manacost_title || `Обновление ${patchVersion(row.patch)}`;
+          const description = row.manacost_summary || (row.manacost_url ? 'Подробности обновления доступны на HS-Manacost.' : 'Русская статья для этого обновления пока не найдена.');
+          const heading = <><span>{patchDate(dateValue)}</span><strong>{title}</strong>{row.manacost_url && <ExternalLink size={15} />}</>;
+          return <details key={`${row.patch}-${row.date}-${index}`}><summary><span className="constructed-card-detail__patch-heading">{heading}</span></summary><div className="constructed-card-detail__patch-body"><p>{description}</p>{row.manacost_url && <a href={row.manacost_url} target="_blank" rel="noreferrer">Читать на HS‑Manacost <ExternalLink size={14} /></a>}</div></details>;
+        })}</div> : <p>История изменений не найдена.</p>}</div>
       </section>
 
       {related.length > 0 && <section className="constructed-card-detail__section"><h2>Связанные карты</h2><div className="constructed-card-detail__related">{related.map((item: any, index: number) => { const relatedId = item.card_id || item.id; const relatedUrl = relatedId ? `/standard/cards/${format}/${encodeURIComponent(relatedId)}` : item.url; return <a key={`${relatedId || item.title}-${index}`} href={relatedUrl || '#'} onClick={event => { if (!relatedId) return; event.preventDefault(); navigatePath(relatedUrl); }}>{item.image_url || item.image ? <img src={item.image_url || item.image} alt="" /> : <Sparkles size={24} />}<span>{item.name_ru || item.name || item.title || relatedId || 'Связанная карта'}</span></a>; })}</div></section>}

@@ -27,6 +27,7 @@ type DataServiceDependencies = {
   catalogBaseUrl: string;
   statsDatasetByFormat: Record<ConstructedCardFormat, string>;
   statsBaseUrl: string;
+  patchesUrl?: string;
   cacheTtlMs?: number;
 };
 
@@ -321,6 +322,40 @@ export function enrichConstructedCardPools(detail: JsonRecord, catalogCards: Jso
   return { ...detail, wiki: { ...detail.wiki, generated_card_pools: generatedCardPools } };
 }
 
+function normalizedPatchVersion(value: unknown): string {
+  return String(value ?? '').trim().replace(/^patch\s+/i, '').trim().toLocaleLowerCase('en-US');
+}
+
+export function enrichConstructedCardPatches(detail: JsonRecord, patches: JsonRecord[]): JsonRecord {
+  const groups = detail?.wiki?.patch_changes;
+  if (!Array.isArray(groups) || patches.length === 0) return detail;
+
+  const patchesByVersion = new Map<string, JsonRecord>();
+  for (const patch of patches) {
+    for (const version of [patch?.version, patch?.display_version]) {
+      const key = normalizedPatchVersion(version);
+      if (key && !patchesByVersion.has(key)) patchesByVersion.set(key, patch);
+    }
+  }
+
+  const patchChanges = groups.map((group: JsonRecord) => ({
+    ...group,
+    entries: Array.isArray(group?.entries) ? group.entries.map((entry: JsonRecord) => {
+      const match = patchesByVersion.get(normalizedPatchVersion(entry?.patch));
+      if (!match) return entry;
+      return {
+        ...entry,
+        manacost_title: String(match?.title ?? '').trim() || null,
+        manacost_url: String(match?.source_url ?? '').trim() || null,
+        manacost_published_at: String(match?.published_at ?? match?.official_published_at ?? '').trim() || null,
+        manacost_summary: String(match?.summary ?? match?.excerpt ?? '').trim() || null,
+      };
+    }) : [],
+  }));
+
+  return { ...detail, wiki: { ...detail.wiki, patch_changes: patchChanges } };
+}
+
 async function fetchCatalogPage(dependencies: DataServiceDependencies, format: ConstructedCardFormat, page: number): Promise<any> {
   const url = new URL(`${dependencies.catalogBaseUrl.replace(/\/$/, '')}/constructed-cards`);
   url.searchParams.set('format', format);
@@ -334,6 +369,24 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
   const cacheTtlMs = Math.max(60_000, dependencies.cacheTtlMs ?? 15 * 60_000);
   const cache = new Map<ConstructedCardFormat, { value: ConstructedCardCollection; expiresAt: number }>();
   const jobs = new Map<ConstructedCardFormat, Promise<ConstructedCardCollection>>();
+  let patchesCache: { value: JsonRecord[]; expiresAt: number } | null = null;
+  let patchesJob: Promise<JsonRecord[]> | null = null;
+
+  const loadPatches = async (): Promise<JsonRecord[]> => {
+    if (!dependencies.patchesUrl) return [];
+    const now = Date.now();
+    if (patchesCache && patchesCache.expiresAt > now) return patchesCache.value;
+    if (patchesJob) return patchesJob;
+    patchesJob = dependencies.fetchJson(dependencies.patchesUrl)
+      .then(payload => Array.isArray(payload?.patches) ? payload.patches : [])
+      .then(value => {
+        patchesCache = { value, expiresAt: Date.now() + cacheTtlMs };
+        return value;
+      })
+      .catch(() => [])
+      .finally(() => { patchesJob = null; });
+    return patchesJob;
+  };
 
   const loadCards = async (format: ConstructedCardFormat): Promise<ConstructedCardCollection> => {
     const now = Date.now();
@@ -369,9 +422,9 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     const payload = await dependencies.fetchJson(url);
     const detail = payload?.data && typeof payload.data === 'object' ? payload.data : null;
     if (!detail) return null;
-    const collection = await loadCards(format);
+    const [collection, patches] = await Promise.all([loadCards(format), loadPatches()]);
     const merged = collection.cards.find(card => String(card?.card_id ?? '').toUpperCase() === String(detail.card_id ?? '').toUpperCase());
-    const enrichedDetail = enrichConstructedCardPools(detail, collection.cards);
+    const enrichedDetail = enrichConstructedCardPatches(enrichConstructedCardPools(detail, collection.cards), patches);
     return { ...enrichedDetail, stats: merged?.stats ?? null, statsUpdatedAt: collection.updatedAt, statsSourceUrl: collection.sourceUrl };
   };
 

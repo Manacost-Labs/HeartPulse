@@ -162,22 +162,24 @@ const adminFixtures = {
       card_id: 'CARD_QA_1', dbf: 9000, name: { ru: 'Контрольная карта 1', en: 'QA Card 1' },
       text: { ru: '<b>Боевой клич:</b> возьмите карту.' }, flavor: { ru: 'Контрольный художественный текст.' },
       card_set: 'ESCAPEFROM_VIOLET_HOLD', card_type: { slug: 'SPELL', name_ru: 'Заклинание' }, class: 'WARRIOR', multi_class: [], rarity: 'LEGENDARY',
-      mana_cost: 1, attack: null, health: null, artist: 'QA Artist', mechanics: ['BATTLECRY'], referenced_tags: ['TAUNT'],
+      mana_cost: 1, attack: null, health: null, artist: 'QA Artist', mechanics: ['BATTLECRY', 'Battlecry'], referenced_tags: ['TAUNT'],
       images: { card: qaCard.imageRu, golden: qaCard.imageHa, signature: null, diamond: null, crop: '/arena-logo-icon.webp?v=arena-legacy-20260629' },
       statsUpdatedAt: '2026-07-16T05:03:02.000Z', statsSourceUrl: 'https://hsreplay.net/cards/',
       stats: { deckPopularity: 18.4, deckWinrate: 56.2, averageCopies: 1.7, timesPlayed: 12400, winrateWhenPlayed: 55.8, winrateWhenDrawn: 54.6, keepPercentage: 42.1, openingHandWinrate: 53.2, averageTurnsInHand: 2.1, averageTurnPlayed: 4.4 },
       wiki_page: { title: 'QA Card 1', url: 'https://example.test/wiki' },
       wiki: {
-        wiki_mechanics: ['Draw cards'], wiki_tags: ['Hand-related'],
-        patch_changes: [{ heading: 'Card changes', entries: [{ date: '2026-07-16', patch: 'Patch QA', items: ['Added.'] }] }],
+        wiki_mechanics: ['Battlecry', 'Draw cards'], wiki_tags: ['Hand-related'],
+        patch_changes: [{ heading: 'Card changes', entries: [
+          { date: '2025-02-01', patch: 'Patch 35.0', items: ['Changed.'], manacost_title: 'Обновление 35.0: контрольный патч', manacost_url: 'https://hs-manacost.ru/qa-patch-35/', manacost_published_at: '2025-02-01T12:00:00', manacost_summary: 'Русское описание контрольного обновления.' },
+          { date: '2024-01-10', patch: 'Patch 34.0', items: ['Added.'], manacost_title: 'Обновление 34.0: ранний патч', manacost_url: 'https://hs-manacost.ru/qa-patch-34/', manacost_published_at: '2024-01-10T12:00:00', manacost_summary: 'Более раннее русское описание.' },
+        ] }],
         related_cards: [{ card_id: 'CARD_QA_2', name_ru: 'Контрольная карта 2', image_url: qaCard.imageRu }],
         generated_card_pools: [{
           pool: 'Fire spells',
           card_ids: ['CARD_QA_2', 'CARD_QA_TOKEN'],
-          cards: [
-            { card_id: 'CARD_QA_2', name: { ru: 'Контрольная карта 2', en: 'QA Card 2' }, image_url: qaCard.imageRu, can_open: true },
-            { card_id: 'CARD_QA_TOKEN', name: { ru: null, en: 'QA Token' }, image_url: qaCard.imageHa, url: 'https://example.test/token', can_open: false },
-          ],
+          cards: Array.from({ length: 12 }, (_, index) => index === 0
+            ? { card_id: 'CARD_QA_2', name: { ru: 'Контрольная карта 2', en: 'QA Card 2' }, image_url: qaCard.imageRu, can_open: true }
+            : { card_id: `CARD_QA_TOKEN_${index}`, name: { ru: `Контрольный токен ${index}`, en: `QA Token ${index}` }, image_url: qaCard.imageHa, url: `https://example.test/token-${index}`, can_open: false }),
         }],
         gallery: [{ caption: 'QA full art', file_url: '/wallpaper/arena-parchment.jpg', thumb_url: '/wallpaper/arena-parchment.jpg' }],
         sounds: [{ heading: 'Play', clips: [
@@ -2302,7 +2304,8 @@ for (const [device, viewport] of [
         rootOverflow: (root?.scrollWidth ?? 0) > (root?.clientWidth ?? 0) + 1,
         documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
         rankText: document.querySelector('.constructed-cards__header')?.textContent || '',
-        coverageText: (document.querySelector('.constructed-cards__coverage')?.textContent || '').replace(/\s/g, ''),
+        coveragePresent: Boolean(document.querySelector('.constructed-cards__coverage')),
+        resultsHeaderPresent: Boolean(document.querySelector('.constructed-cards__results-header')),
         setOptions: document.querySelectorAll('.constructed-cards__secondary-controls select option').length,
         formatControls: document.querySelectorAll('.constructed-cards__format').length,
         formatIcons: [...document.querySelectorAll('.constructed-cards__format img')].filter(image => image.complete && image.naturalWidth > 0).length,
@@ -2318,7 +2321,7 @@ for (const [device, viewport] of [
     });
     if (constructedCardsState.cards !== 8 || constructedCardsState.filters < 8 || constructedCardsState.menuLinks < 1
       || !constructedCardsState.controlsVisible || !constructedCardsState.rankText.includes('Легенда')
-      || !constructedCardsState.coverageText.includes('1152') || !constructedCardsState.coverageText.includes('1013')
+      || constructedCardsState.coveragePresent || constructedCardsState.resultsHeaderPresent
       || constructedCardsState.setOptions < 3 || constructedCardsState.formatControls !== 1 || constructedCardsState.deckPercentLabels !== 8
       || constructedCardsState.formatIcons !== 2 || constructedCardsState.formatLabels.join(',') !== 'Стандарт,Вольный'
       || constructedCardsState.classOptions.some(value => /^\d+$/.test(value)) || constructedCardsState.setLabels !== 'Дополнение'
@@ -2373,18 +2376,28 @@ for (const [device, viewport] of [
     await page.click('.constructed-cards__view button:first-child');
     await page.click('.constructed-cards__gallery-card');
     await page.waitForSelector('.constructed-card-detail__hero');
+    await page.waitForSelector('.constructed-card-detail__pool-toggle');
+    await page.waitForFunction(() => {
+      const grid = document.querySelector('.constructed-card-detail__pool-cards');
+      if (!grid) return false;
+      const columns = getComputedStyle(grid).gridTemplateColumns.split(/\s+/).filter(Boolean).length;
+      return columns > 0 && grid.children.length === Math.min(columns, 12);
+    });
     const constructedDetailState = await page.evaluate(() => ({
       pathname: window.location.pathname,
       scrollY: window.scrollY,
       statsRows: document.querySelectorAll('.constructed-card-detail__statistics .constructed-cards__stats > div').length,
       variants: document.querySelectorAll('.constructed-card-detail__variants button').length,
       variantLabels: [...document.querySelectorAll('.constructed-card-detail__variants button')].map(button => button.textContent?.trim()),
-      tags: document.querySelectorAll('.constructed-card-detail__tags span').length,
+      tags: [...document.querySelectorAll('.constructed-card-detail__tags span')].map(tag => tag.textContent?.trim() || ''),
       patches: document.querySelectorAll('.constructed-card-detail__patches details').length,
+      firstPatchText: document.querySelector('.constructed-card-detail__patches details:first-of-type summary')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      firstPatchHref: document.querySelector('.constructed-card-detail__patches details:first-of-type .constructed-card-detail__patch-body a')?.getAttribute('href') || '',
       related: document.querySelectorAll('.constructed-card-detail__related a').length,
-      pools: document.querySelectorAll('.constructed-card-detail__pool-list details').length,
+      pools: document.querySelectorAll('.constructed-card-detail__pool').length,
       poolCards: document.querySelectorAll('.constructed-card-detail__pool-cards > *').length,
-      poolLabel: document.querySelector('.constructed-card-detail__pool-list summary strong')?.textContent?.trim(),
+      poolColumns: getComputedStyle(document.querySelector('.constructed-card-detail__pool-cards')).gridTemplateColumns.split(/\s+/).filter(Boolean).length,
+      poolLabel: document.querySelector('.constructed-card-detail__pool > header strong')?.textContent?.trim(),
       poolDisplay: getComputedStyle(document.querySelector('.constructed-card-detail__pool-cards')).display,
       poolOverflow: (document.querySelector('.constructed-card-detail__pool-cards')?.scrollWidth ?? 0) > (document.querySelector('.constructed-card-detail__pool-cards')?.clientWidth ?? 0) + 1,
       gallery: document.querySelectorAll('.constructed-card-detail__gallery img').length,
@@ -2392,12 +2405,31 @@ for (const [device, viewport] of [
       documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     }));
     if (constructedDetailState.pathname !== '/standard/cards/standard/CARD_QA_1' || constructedDetailState.scrollY > 2 || constructedDetailState.statsRows < 8
-      || constructedDetailState.variants !== 2 || constructedDetailState.variantLabels.includes('Арт') || constructedDetailState.tags < 3 || constructedDetailState.patches !== 1
-      || constructedDetailState.related !== 1 || constructedDetailState.pools !== 1 || constructedDetailState.poolCards !== 2
+      || constructedDetailState.variants !== 2 || constructedDetailState.variantLabels.includes('Арт') || constructedDetailState.tags.length < 3
+      || new Set(constructedDetailState.tags.map(value => value.toLocaleLowerCase('ru-RU'))).size !== constructedDetailState.tags.length
+      || constructedDetailState.tags.filter(value => value.toLocaleLowerCase('ru-RU') === 'боевой клич').length !== 1
+      || constructedDetailState.patches !== 2 || !constructedDetailState.firstPatchText.includes('Обновление 35.0')
+      || !constructedDetailState.firstPatchText.includes('2025') || !constructedDetailState.firstPatchHref.startsWith('https://hs-manacost.ru/')
+      || constructedDetailState.related !== 1 || constructedDetailState.pools !== 1 || constructedDetailState.poolCards !== constructedDetailState.poolColumns || constructedDetailState.poolCards >= 12
       || constructedDetailState.poolLabel !== 'Огненные заклинания' || constructedDetailState.poolDisplay !== 'grid' || constructedDetailState.poolOverflow
       || constructedDetailState.gallery !== 1 || constructedDetailState.sounds !== 2 || constructedDetailState.documentOverflow) {
       failures.push(`constructed card detail [${device}]: data sections or responsive containment regressed (${JSON.stringify(constructedDetailState)})`);
     }
+    await page.$eval('.constructed-card-detail__lower-grid', element => element.scrollIntoView({ block: 'start' }));
+    await page.screenshot({ path: `${OUT}/constructed-card-detail-sections-${device}.png`, fullPage: false });
+    await page.$eval('.constructed-card-detail__pools', element => element.scrollIntoView({ block: 'start' }));
+    await page.screenshot({ path: `${OUT}/constructed-card-pool-collapsed-${device}.png`, fullPage: false });
+    await page.click('.constructed-card-detail__pool-toggle');
+    await page.waitForFunction(() => document.querySelectorAll('.constructed-card-detail__pool-cards > *').length === 12);
+    const expandedPoolState = await page.evaluate(() => ({
+      cards: document.querySelectorAll('.constructed-card-detail__pool-cards > *').length,
+      expanded: document.querySelector('.constructed-card-detail__pool-toggle')?.getAttribute('aria-expanded'),
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    }));
+    if (expandedPoolState.cards !== 12 || expandedPoolState.expanded !== 'true' || expandedPoolState.overflow) {
+      failures.push(`constructed card pool [${device}]: Show all flow regressed (${JSON.stringify(expandedPoolState)})`);
+    }
+    await page.screenshot({ path: `${OUT}/constructed-card-pool-expanded-${device}.png`, fullPage: false });
     await page.click('.constructed-card-detail__visual-button');
     await page.waitForSelector('.constructed-card-lightbox');
     const constructedLightboxState = await page.evaluate(() => ({

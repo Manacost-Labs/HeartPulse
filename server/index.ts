@@ -6720,6 +6720,7 @@ const constructedCardDataService = createConstructedCardDataService({
   catalogBaseUrl: KOLODAHS_API_BASE_URL,
   statsDatasetByFormat: CONSTRUCTED_CARDS_DATASET_BY_FORMAT,
   statsBaseUrl: `${DATASET_API_ORIGIN}/demo/view`,
+  patchesUrl: `${DATASET_API_ORIGIN}/api/patches?limit=500`,
   cacheTtlMs: EXTERNAL_DATASET_CACHE_MS,
 });
 
