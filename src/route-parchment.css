@@ -3,20 +3,20 @@
 /* ─── Editorial archive: articles, gallery, guides, contests ───────────── */
 
 :is(.arena-app-editorial, .arena-app-game-data) .arena-main {
-  padding: 0 !important;
+  padding: 0;
 }
 
 :is(.arena-app-editorial, .arena-app-game-data) .arena-content.arena-content-open {
-  max-width: 1480px !important;
-  padding: clamp(1rem, 2.5vw, 2.4rem) clamp(1rem, 2.8vw, 2.8rem) 3.5rem !important;
+  max-width: 1480px;
+  padding: clamp(1rem, 2.5vw, 2.4rem) clamp(1rem, 2.8vw, 2.8rem) 3.5rem;
 }
 
 .arena-app-editorial :where(.articles-page, .gallery-page, .guide-archive-page, .guide-archive-detail, .contests-page) {
-  color: var(--arena-ink) !important;
+  color: var(--arena-ink);
 }
 
 :is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern {
-  min-height: 152px !important;
+  min-height: 152px;
   height: auto !important;
   margin: 0 0 1.35rem !important;
   padding: 2rem clamp(1.35rem, 3vw, 2.7rem) !important;

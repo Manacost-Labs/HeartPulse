@@ -129,6 +129,44 @@ const subscriber = {
   telegram: { checked: false, hasAccess: false },
 };
 const adminFixtures = {
+  '/api/admin/constructed-cards': {
+    format: 'standard', rank: 'legend', timeRange: '1d', updatedAt: '2026-07-16T05:03:02.000Z', sourceUrl: 'https://hsreplay.net/cards/',
+    cards: Array.from({ length: 8 }, (_, index) => ({
+      card_id: `CARD_QA_${index + 1}`, dbf: 9000 + index, name: { ru: `Контрольная карта ${index + 1}`, en: `QA Card ${index + 1}` },
+      card_set: index % 2 ? 'CATACLYSM' : 'ESCAPEFROM_VIOLET_HOLD', card_type: { slug: index % 2 ? 'MINION' : 'SPELL', name_ru: index % 2 ? 'Существо' : 'Заклинание' },
+      class: index % 2 ? 'MAGE' : 'WARRIOR', multi_class: [], rarity: index % 3 ? 'RARE' : 'LEGENDARY',
+      mana_cost: index + 1, attack: index % 2 ? index + 1 : null, health: index % 2 ? index + 2 : null,
+      mechanics: index % 2 ? ['BATTLECRY'] : [], referenced_tags: index % 2 ? ['TAUNT'] : [],
+      images: { card: qaCard.imageRu, crop: qaCard.imageRu },
+      stats: index === 7 ? null : {
+        deckPopularity: 18.4 - index, deckWinrate: 56.2 - index * 0.4, averageCopies: 1.7, timesPlayed: 12400 - index * 800,
+        winrateWhenPlayed: 55.8, winrateWhenDrawn: 54.6, keepPercentage: 42.1, openingHandWinrate: 53.2,
+        averageTurnsInHand: 2.1, averageTurnPlayed: 4.4,
+      },
+    })),
+    facets: { classes: ['MAGE', 'WARRIOR'], sets: ['CATACLYSM', 'ESCAPEFROM_VIOLET_HOLD'], mechanics: ['BATTLECRY', 'TAUNT'], types: ['MINION', 'SPELL'], rarities: ['LEGENDARY', 'RARE'] },
+    pagination: { page: 1, perPage: 60, total: 8, totalPages: 1 },
+  },
+  '/api/admin/constructed-cards/CARD_QA_1': {
+    format: 'standard', rank: 'legend',
+    card: {
+      card_id: 'CARD_QA_1', dbf: 9000, name: { ru: 'Контрольная карта 1', en: 'QA Card 1' },
+      text: { ru: '<b>Боевой клич:</b> возьмите карту.' }, flavor: { ru: 'Контрольный художественный текст.' },
+      card_set: 'ESCAPEFROM_VIOLET_HOLD', card_type: { slug: 'SPELL', name_ru: 'Заклинание' }, class: 'WARRIOR', multi_class: [], rarity: 'LEGENDARY',
+      mana_cost: 1, attack: null, health: null, artist: 'QA Artist', mechanics: ['BATTLECRY'], referenced_tags: ['TAUNT'],
+      images: { card: qaCard.imageRu, golden: qaCard.imageRu, signature: null, diamond: null, crop: qaCard.imageRu },
+      statsUpdatedAt: '2026-07-16T05:03:02.000Z', statsSourceUrl: 'https://hsreplay.net/cards/',
+      stats: { deckPopularity: 18.4, deckWinrate: 56.2, averageCopies: 1.7, timesPlayed: 12400, winrateWhenPlayed: 55.8, winrateWhenDrawn: 54.6, keepPercentage: 42.1, openingHandWinrate: 53.2, averageTurnsInHand: 2.1, averageTurnPlayed: 4.4 },
+      wiki_page: { title: 'QA Card 1', url: 'https://example.test/wiki' },
+      wiki: {
+        wiki_mechanics: ['Draw cards'], wiki_tags: ['Hand-related'],
+        patch_changes: [{ heading: 'Card changes', entries: [{ date: '2026-07-16', patch: 'Patch QA', items: ['Added.'] }] }],
+        related_cards: [{ card_id: 'CARD_QA_2', name_ru: 'Контрольная карта 2', image_url: qaCard.imageRu }],
+        gallery: [{ caption: 'QA full art', file_url: qaCard.imageRu, thumb_url: qaCard.imageRu }], sounds: [],
+        external_links: [{ label: 'HSReplay.net', url: 'https://example.test/hsreplay' }],
+      },
+    },
+  },
   '/api/admin/standard-meta': {
     format: 'standard',
     formatLabel: 'Стандарт',
@@ -2140,9 +2178,90 @@ for (const [device, viewport] of [
     }
     const viciousGoldViolationCount = await auditAccessibility(page, `vicious gold [${device}]`, '.vsgold');
     await page.screenshot({ path: `${OUT}/vicious-gold-${device}.png`, fullPage: false });
+
+    await page.goto(`${BASE}/standard/cards`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('.constructed-cards__gallery-card', { timeout: 20_000 });
+    await page.waitForFunction(() => [...document.querySelectorAll('.constructed-cards__gallery-card > img')].every(image => image.complete && image.naturalWidth > 0));
+    const constructedCardsState = await page.evaluate(() => {
+      const root = document.querySelector('.constructed-cards');
+      const controls = document.querySelector('.constructed-cards__controls');
+      const search = document.querySelector('.constructed-cards__search input');
+      const viewButtons = [...document.querySelectorAll('.constructed-cards__view button')];
+      const menuLinks = [...document.querySelectorAll('a[href="/standard/cards"]')];
+      return {
+        cards: document.querySelectorAll('.constructed-cards__gallery-card').length,
+        filters: document.querySelectorAll('.constructed-cards__filter select').length,
+        menuLinks: menuLinks.length,
+        controlsVisible: Boolean(controls && controls.getBoundingClientRect().height > 0),
+        searchFontSize: search ? parseFloat(getComputedStyle(search).fontSize) : 0,
+        smallestViewTarget: Math.min(...viewButtons.map(button => button.getBoundingClientRect().height)),
+        rootOverflow: (root?.scrollWidth ?? 0) > (root?.clientWidth ?? 0) + 1,
+        documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+        rankText: document.querySelector('.constructed-cards__header')?.textContent || '',
+      };
+    });
+    if (constructedCardsState.cards !== 8 || constructedCardsState.filters < 8 || constructedCardsState.menuLinks < 1
+      || !constructedCardsState.controlsVisible || !constructedCardsState.rankText.includes('Легенда')
+      || constructedCardsState.rootOverflow || constructedCardsState.documentOverflow
+      || (device === 'mobile' && (constructedCardsState.searchFontSize < 16 || constructedCardsState.smallestViewTarget < 44))) {
+      failures.push(`constructed cards [${device}]: menu, controls or responsive gallery regressed (${JSON.stringify(constructedCardsState)})`);
+    }
+    if (device === 'desktop') {
+      await page.hover('.constructed-cards__gallery-card');
+      await page.waitForSelector('.constructed-cards__tooltip');
+      const tooltipState = await page.evaluate(() => ({
+        rows: document.querySelectorAll('.constructed-cards__tooltip .constructed-cards__stats > div').length,
+        text: document.querySelector('.constructed-cards__tooltip')?.textContent || '',
+        display: getComputedStyle(document.querySelector('.constructed-cards__tooltip')).display,
+      }));
+      if (tooltipState.rows !== 6 || !tooltipState.text.includes('Популярность в колодах') || tooltipState.display === 'none') {
+        failures.push(`constructed cards tooltip [${device}]: Legend hover statistics regressed (${JSON.stringify(tooltipState)})`);
+      }
+      await page.screenshot({ path: `${OUT}/constructed-cards-hover-${device}.png`, fullPage: false });
+      await page.mouse.move(1, 1);
+    }
+    const constructedCardsViolationCount = await auditAccessibility(page, `constructed cards [${device}]`, '.constructed-cards');
+    await page.screenshot({ path: `${OUT}/constructed-cards-gallery-${device}.png`, fullPage: false });
+    await page.click('.constructed-cards__view button:nth-child(2)');
+    await page.waitForSelector('.constructed-cards__table');
+    const constructedTableState = await page.evaluate(() => {
+      const wrapper = document.querySelector('.constructed-cards__table-wrap');
+      const table = document.querySelector('.constructed-cards__table');
+      return {
+        rows: table?.querySelectorAll('tbody tr').length ?? 0,
+        columns: table?.querySelectorAll('thead th').length ?? 0,
+        internallyScrollable: (wrapper?.scrollWidth ?? 0) > (wrapper?.clientWidth ?? 0),
+        documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      };
+    });
+    if (constructedTableState.rows !== 8 || constructedTableState.columns !== 9 || constructedTableState.documentOverflow
+      || (device === 'mobile' && !constructedTableState.internallyScrollable)) {
+      failures.push(`constructed cards table [${device}]: structure or containment regressed (${JSON.stringify(constructedTableState)})`);
+    }
+    await page.screenshot({ path: `${OUT}/constructed-cards-table-${device}.png`, fullPage: false });
+    await page.click('.constructed-cards__view button:first-child');
+    await page.click('.constructed-cards__gallery-card');
+    await page.waitForSelector('.constructed-card-detail__hero');
+    const constructedDetailState = await page.evaluate(() => ({
+      pathname: window.location.pathname,
+      statsRows: document.querySelectorAll('.constructed-card-detail__statistics .constructed-cards__stats > div').length,
+      variants: document.querySelectorAll('.constructed-card-detail__variants button').length,
+      tags: document.querySelectorAll('.constructed-card-detail__tags span').length,
+      patches: document.querySelectorAll('.constructed-card-detail__patches details').length,
+      related: document.querySelectorAll('.constructed-card-detail__related a').length,
+      gallery: document.querySelectorAll('.constructed-card-detail__gallery img').length,
+      documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    }));
+    if (constructedDetailState.pathname !== '/standard/cards/standard/CARD_QA_1' || constructedDetailState.statsRows < 8
+      || constructedDetailState.variants !== 2 || constructedDetailState.tags < 3 || constructedDetailState.patches !== 1
+      || constructedDetailState.related !== 1 || constructedDetailState.gallery !== 1 || constructedDetailState.documentOverflow) {
+      failures.push(`constructed card detail [${device}]: data sections or responsive containment regressed (${JSON.stringify(constructedDetailState)})`);
+    }
+    const constructedDetailViolationCount = await auditAccessibility(page, `constructed card detail [${device}]`, '.constructed-card-detail');
+    await page.screenshot({ path: `${OUT}/constructed-card-detail-${device}.png`, fullPage: false });
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
-    console.log(`✓ admin dashboard/articles/translations/gallery/Boosty/Telegram/mailing/contests/users/profile/standard panels [${device}] interactions + axe (${violationCount + articlesViolationCount + translationsViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + profileViolationCount + standardMetaViolationCount + viciousGoldViolationCount} violations)`);
+    console.log(`✓ admin dashboard/articles/translations/gallery/Boosty/Telegram/mailing/contests/users/profile/standard panels [${device}] interactions + axe (${violationCount + articlesViolationCount + translationsViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + profileViolationCount + standardMetaViolationCount + viciousGoldViolationCount + constructedCardsViolationCount + constructedDetailViolationCount} violations)`);
   } catch (error) {
     const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
     failures.push(`admin dashboard [${device}]: ${error.message}; page: ${diagnostic}`);

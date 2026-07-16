@@ -3,7 +3,7 @@ import type { TabId } from './routes';
 export const ROUTE_META: Record<TabId, { title: string; description: string }> = {
   home: {
     title: 'HS-Arena — Тир-лист и Винрейты для Арены Hearthstone',
-    description: 'Актуальная статистика Арены Hearthstone: тир-лист карт, винрейты классов, легендарные группы. Данные обновляются 4 раза в сутки.',
+    description: 'Статистика Арены Hearthstone: тир-лист карт, винрейты классов и легендарные группы.',
   },
   articles: {
     title: 'Статьи и гайды по Арене Hearthstone | HS-Arena',
@@ -27,11 +27,15 @@ export const ROUTE_META: Record<TabId, { title: string; description: string }> =
   },
   'standard-meta': {
     title: 'Мета Hearthstone — Beta для администраторов | Manacost Stats',
-    description: 'Закрытая beta-панель меты HSGuru с переводами архетипов и рекомендуемыми сборками Hearthstone.',
+    description: 'Закрытая мета HSGuru с переводами архетипов и сборками Hearthstone.',
   },
   'standard-vicious-gold': {
     title: 'Vicious Syndicate Gold — закрытая статистика Стандарта | Manacost Stats',
-    description: 'Закрытая административная страница статистики Vicious Syndicate Live: классы, архетипы, сборки и Power Tier по всем доступным рангам.',
+    description: 'Закрытые классы, архетипы, сборки и Power Tier Vicious Syndicate Live.',
+  },
+  'standard-cards': {
+    title: 'Карты Hearthstone — Beta для администраторов | Manacost Stats',
+    description: 'Закрытая библиотека карт Standard/Wild со статистикой Легенды и фильтрами.',
   },
   winrates: {
     title: 'Винрейт классов — Арена Hearthstone | HS-Arena',
@@ -51,7 +55,7 @@ export const ROUTE_META: Record<TabId, { title: string; description: string }> =
   },
   'bg-library': {
     title: 'Библиотека Полей Сражений Hearthstone | HS-Arena',
-    description: 'Библиотека существ и заклинаний Hearthstone Battlegrounds: актуальный пул, архив, фильтры, статистика и отдельные страницы карт.',
+    description: 'Существа и заклинания Hearthstone Battlegrounds: пул, архив, фильтры и статистика.',
   },
   'bg-tier-list': {
     title: 'Тир-лист Полей Сражений Hearthstone | HS-Arena',

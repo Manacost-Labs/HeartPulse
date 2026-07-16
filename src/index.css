@@ -307,22 +307,14 @@
     gap: 0.75rem;
     min-height: 64px;
     padding: 0.55rem 0.85rem;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.34);
-    background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(232, 241, 255, 0.94)),
-      radial-gradient(circle at 10% 0%, rgba(96, 165, 250, 0.18), transparent 14rem);
-    box-shadow: 0 10px 24px rgba(30, 41, 59, 0.10);
-    backdrop-filter: blur(18px);
   }
 
   .arena-mobile-brand {
     display: inline-flex;
     align-items: center;
     min-width: 0;
-    color: #1f3654;
     text-decoration: none;
     font-family: var(--font-display);
-    font-size: 1.2rem;
     line-height: 1;
   }
 
@@ -333,17 +325,6 @@
     width: 44px;
     height: 44px;
     border: 1px solid rgba(96, 165, 250, 0.32);
-    border-radius: 12px;
-    color: #1f3654;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(219, 234, 254, 0.82));
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
-    transition: border-color 160ms ease, background-color 160ms ease;
-  }
-
-  .arena-mobile-nav-toggle[aria-expanded="true"] {
-    border-color: rgba(96, 165, 250, 0.64);
-    background: linear-gradient(135deg, rgba(219, 234, 254, 0.98), rgba(186, 230, 253, 0.82));
-    box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.18);
   }
 
   .arena-mobile-drawer-backdrop {
@@ -1182,13 +1163,6 @@
     width: 100%;
     overflow-x: auto;
   }
-}
-
-.arena-mobile-topbar {
-  border-bottom-color: rgba(148, 163, 184, 0.34);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(232, 241, 255, 0.94)),
-    radial-gradient(circle at 12% 0%, rgba(96, 165, 250, 0.16), transparent 15rem);
 }
 
 .arena-mobile-menu-link {

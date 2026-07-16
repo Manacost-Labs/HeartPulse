@@ -32,6 +32,7 @@ for (const id of BG_TAB_IDS) {
 
 assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-meta'), true, 'Standard meta beta must stay admin-only');
 assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-vicious-gold'), true, 'Vicious Syndicate Gold must stay admin-only');
+assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-cards'), true, 'Constructed cards beta must stay admin-only');
 assert.equal(
   PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS['standard-vicious-gold'],
   undefined,
