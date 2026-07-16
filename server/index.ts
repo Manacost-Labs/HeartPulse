@@ -35,6 +35,7 @@ import { createStandardMatchupRouter } from './standardMatchupRoutes.js';
 import {
   createConstructedCardDataService,
   createConstructedCardRouter,
+  type ConstructedCardDeck,
 } from './constructedCardRoutes.js';
 import {
   createStandardMetaRouter,
@@ -6398,7 +6399,7 @@ async function fetchStandardMetaPreview(hash: string): Promise<StandardMetaPrevi
   throw new Error('DECKVIEW_PREVIEW_NOT_FOUND');
 }
 
-async function createStandardMetaPreview(recommendation: StandardMetaRecommendation): Promise<StandardMetaPreview> {
+async function createStandardMetaPreview(recommendation: { deckCode: string; archetypeLabel: string }): Promise<StandardMetaPreview> {
   const cacheKey = createHash('sha256').update(recommendation.deckCode).digest('hex');
   const cached = standardMetaPreviewCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now() && isDeckviewPreview(cached.preview)) return cached.preview;
@@ -6721,6 +6722,7 @@ const constructedCardDataService = createConstructedCardDataService({
   statsDatasetByFormat: CONSTRUCTED_CARDS_DATASET_BY_FORMAT,
   statsBaseUrl: `${DATASET_API_ORIGIN}/demo/view`,
   patchesUrl: `${DATASET_API_ORIGIN}/api/patches?limit=500`,
+  constructedDecksUrl: `${DATASET_API_ORIGIN}/v1/constructed/decks`,
   cacheTtlMs: EXTERNAL_DATASET_CACHE_MS,
 });
 
@@ -6728,6 +6730,10 @@ app.use('/api', createConstructedCardRouter({
   adminGuard: adminIdGuard,
   ...constructedCardDataService,
   getMechanicTranslations: () => loadConstructedMechanicTranslationMap(db()),
+  createDeckPreview: (deck: ConstructedCardDeck) => createStandardMetaPreview({
+    deckCode: deck.deckCode,
+    archetypeLabel: deck.archetype || deck.title,
+  }),
   setPrivateNoStore,
   onError: (scope, error) => console.error(
     `[constructed-cards] ${scope} failed:`,

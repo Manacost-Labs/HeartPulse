@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
+  Copy,
   ExternalLink,
   Grid3X3,
   Layers3,
@@ -73,6 +74,20 @@ type CardRecord = {
   catalogPending?: boolean;
   wiki?: Record<string, any>;
   mechanicTranslations?: Record<string, string>;
+  decks?: ConstructedDeck[];
+};
+
+type ConstructedDeck = {
+  id: string;
+  title: string;
+  archetype?: string | null;
+  className?: string | null;
+  deckCode: string;
+  source?: string | null;
+  sourceUrl?: string | null;
+  winrate?: number | null;
+  score?: string | null;
+  updatedAt?: string | null;
 };
 
 type Facets = {
@@ -539,6 +554,83 @@ function GeneratedCardPools({ pools, format, navigatePath }: { pools: any[]; for
   );
 }
 
+async function copyText(value: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(value);
+    return true;
+  } catch {
+    const fallback = document.createElement('textarea');
+    fallback.value = value;
+    fallback.setAttribute('readonly', '');
+    fallback.style.position = 'fixed';
+    fallback.style.opacity = '0';
+    document.body.appendChild(fallback);
+    fallback.select();
+    const copied = document.execCommand('copy');
+    fallback.remove();
+    return copied;
+  }
+}
+
+function ConstructedDeckCard({ deck, cardId, format }: { key?: React.Key; deck: ConstructedDeck; cardId: string; format: CardFormat }) {
+  const [imageUrl, setImageUrl] = useState('');
+  const [previewError, setPreviewError] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const loadPreview = async () => {
+      setPreviewError('');
+      try {
+        const response = await fetch(`/api/admin/constructed-cards/${encodeURIComponent(cardId)}/decks/${encodeURIComponent(deck.id)}/preview?format=${format}`, {
+          method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Request': '1' },
+          body: JSON.stringify({ format }), signal: controller.signal,
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload?.preview?.imageUrl) throw new Error(payload?.error || 'Превью недоступно');
+        setImageUrl(payload.preview.imageUrl);
+      } catch (error) {
+        if (!controller.signal.aborted) setPreviewError(error instanceof Error ? error.message : 'Превью недоступно');
+      }
+    };
+    void loadPreview();
+    return () => controller.abort();
+  }, [cardId, deck.id, format]);
+
+  const copyDeck = async () => {
+    if (!await copyText(deck.deckCode)) return;
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+
+  return (
+    <article className="constructed-card-detail__deck">
+      <div className="constructed-card-detail__deck-image">
+        {imageUrl ? <img src={imageUrl} alt={`Колода ${deck.archetype || deck.title}`} loading="lazy" />
+          : <div aria-busy={!previewError}><Layers3 size={28} /><span>{previewError || 'Создаём изображение DeckView…'}</span></div>}
+      </div>
+      <div className="constructed-card-detail__deck-copy">
+        <h3>{deck.archetype || deck.title}</h3>
+        <p>{[deck.className ? classLabel(deck.className.toUpperCase().replace(/\s+/g, '')) : '', deck.score || (deck.winrate != null ? `${percent(deck.winrate)} побед` : '')].filter(Boolean).join(' · ') || 'Готовая сборка'}</p>
+        <button type="button" onClick={copyDeck}><Copy size={15} /> {copied ? 'Код скопирован' : 'Скопировать код'}</button>
+      </div>
+    </article>
+  );
+}
+
+function ConstructedCardDecks({ decks, cardId, format }: { decks: ConstructedDeck[]; cardId: string; format: CardFormat }) {
+  const [visibleCount, setVisibleCount] = useState(3);
+  useEffect(() => setVisibleCount(3), [cardId, format]);
+  const visibleDecks = decks.slice(0, visibleCount);
+  return (
+    <section className="constructed-card-detail__section constructed-card-detail__decks">
+      <h2><Layers3 size={19} /> Колоды с этой картой · {decks.length}</h2>
+      <div className="constructed-card-detail__deck-grid">{visibleDecks.map(deck => <ConstructedDeckCard key={deck.id} deck={deck} cardId={cardId} format={format} />)}</div>
+      {visibleCount < decks.length && <button type="button" className="constructed-card-detail__pool-toggle" onClick={() => setVisibleCount(count => Math.min(count + 3, decks.length))}>Показать больше · ещё {Math.min(3, decks.length - visibleCount)}</button>}
+    </section>
+  );
+}
+
 function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; cardId: string; navigatePath: (path: string) => void }) {
   const [card, setCard] = useState<CardRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -579,7 +671,10 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
   const patchRows = (Array.isArray(wiki.patch_changes) ? wiki.patch_changes : [])
     .flatMap((group: any) => (Array.isArray(group?.entries) ? group.entries : []).map((entry: any) => ({ ...entry, heading: group.heading })))
     .sort((left: any, right: any) => patchTimestamp(right) - patchTimestamp(left));
-  const related = Array.isArray(wiki.related_cards) ? wiki.related_cards : [];
+  const related = (Array.isArray(wiki.related_cards) ? wiki.related_cards : []).filter((item: any) => {
+    const name = item?.name?.ru || item?.name?.en || (typeof item?.name === 'string' ? item.name : '') || item?.name_ru || item?.title;
+    return Boolean(item?.image_url || item?.image || name || item?.card_id || item?.id || item?.url);
+  });
   const generatedPools = (Array.isArray(wiki.generated_card_pools) ? wiki.generated_card_pools : [])
     .filter((pool: any) => Array.isArray(pool?.cards) && pool.cards.length > 0);
   const mediaItems = collectConstructedCardMedia(card);
@@ -587,6 +682,7 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
   const sounds = flattenConstructedCardSounds(wiki.sounds);
   const soundGroups = [...new Set(sounds.map(item => item.group))].map(group => [group, sounds.filter(item => item.group === group)] as const);
   const externalLinks = Array.isArray(wiki.external_links) ? wiki.external_links : [];
+  const decks = Array.isArray(card.decks) ? card.decks : [];
   const openMedia = (url: string) => {
     const index = mediaItems.findIndex(item => item.url === url);
     if (index >= 0) setLightboxIndex(index);
@@ -633,13 +729,15 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
         })}</div> : <p>История изменений не найдена.</p>}</div>
       </section>
 
-      {related.length > 0 && <section className="constructed-card-detail__section"><h2>Связанные карты</h2><div className="constructed-card-detail__related">{related.map((item: any, index: number) => { const relatedId = item.card_id || item.id; const relatedUrl = relatedId ? `/standard/cards/${format}/${encodeURIComponent(relatedId)}` : item.url; return <a key={`${relatedId || item.title}-${index}`} href={relatedUrl || '#'} onClick={event => { if (!relatedId) return; event.preventDefault(); navigatePath(relatedUrl); }}>{item.image_url || item.image ? <img src={item.image_url || item.image} alt="" /> : <Sparkles size={24} />}<span>{item.name_ru || item.name || item.title || relatedId || 'Связанная карта'}</span></a>; })}</div></section>}
+      {related.length > 0 && <section className="constructed-card-detail__section"><h2>Связанные карты</h2><div className="constructed-card-detail__related">{related.map((item: any, index: number) => { const relatedId = item.card_id || item.id; const relatedUrl = relatedId ? `/standard/cards/${format}/${encodeURIComponent(relatedId)}` : item.url; const relatedName = item?.name?.ru || item?.name?.en || (typeof item?.name === 'string' ? item.name : '') || item.name_ru || item.title || relatedId; return <a key={`${relatedId || item.title}-${index}`} href={relatedUrl || '#'} target={!relatedId && item.url ? '_blank' : undefined} rel={!relatedId && item.url ? 'noreferrer' : undefined} onClick={event => { if (!relatedId) return; event.preventDefault(); navigatePath(relatedUrl); }}>{item.image_url || item.image ? <img src={item.image_url || item.image} alt="" /> : <Sparkles size={24} />}<span>{relatedName}</span></a>; })}</div></section>}
 
       {generatedPools.length > 0 && <GeneratedCardPools pools={generatedPools} format={format} navigatePath={navigatePath} />}
 
-      <section className="constructed-card-detail__media-grid">
+      {decks.length > 0 && <ConstructedCardDecks decks={decks} cardId={cardId} format={format} />}
+
+      <section className={`constructed-card-detail__media-grid${sounds.length ? '' : ' constructed-card-detail__media-grid--two'}`}>
         <div className="constructed-card-detail__section"><h2>Галерея · {galleryMedia.length}</h2>{galleryMedia.length ? <div className="constructed-card-detail__gallery">{galleryMedia.map(item => <button key={item.id} type="button" onClick={() => openMedia(item.url)} aria-label={`Открыть ${item.label}`}><img src={item.thumbnailUrl} alt={item.label} loading="lazy" /><span>{item.label}</span></button>)}</div> : <p>Дополнительные изображения отсутствуют.</p>}</div>
-        <div className="constructed-card-detail__section"><h2><Volume2 size={19} /> Звуки карты · {sounds.length}</h2>{sounds.length ? <div className="constructed-card-detail__sounds">{soundGroups.map(([group, clips], groupIndex) => <details key={group} open={groupIndex === 0}><summary>{constructedSoundGroupLabel(group)} · {clips?.length ?? 0}</summary>{clips?.map(item => <article key={item.id}><span>{plainText(item.description) || item.title}</span><audio controls preload="metadata" src={item.url}>Ваш браузер не поддерживает воспроизведение аудио.</audio></article>)}</details>)}</div> : <p>Звуковые файлы отсутствуют в базе.</p>}</div>
+        {sounds.length > 0 && <div className="constructed-card-detail__section"><h2><Volume2 size={19} /> Звуки карты · {sounds.length}</h2><div className="constructed-card-detail__sounds">{soundGroups.map(([group, clips], groupIndex) => <details key={group} open={groupIndex === 0}><summary>{constructedSoundGroupLabel(group)} · {clips?.length ?? 0}</summary>{clips?.map(item => <article key={item.id}><span>{plainText(item.description) || item.title}</span><audio controls preload="metadata" src={item.url}>Ваш браузер не поддерживает воспроизведение аудио.</audio></article>)}</details>)}</div></div>}
         <div className="constructed-card-detail__section"><h2>Дополнительная информация</h2><div className="constructed-card-detail__links">{card.wiki_page?.url && <a href={card.wiki_page.url} target="_blank" rel="noreferrer">Hearthstone Wiki <ExternalLink size={14} /></a>}{externalLinks.map((item: any, index: number) => <a key={`${item.url}-${index}`} href={item.url} target="_blank" rel="noreferrer">{item.label || item.url} <ExternalLink size={14} /></a>)}</div></div>
       </section>
       {lightboxIndex >= 0 && <ConstructedCardLightbox items={mediaItems} index={lightboxIndex} onClose={() => setLightboxIndex(-1)} onIndexChange={setLightboxIndex} />}

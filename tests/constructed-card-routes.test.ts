@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import express, { type RequestHandler } from 'express';
 import {
   completeConstructedCatalog,
+  constructedDecksContainingCard,
   constructedCardCoverage,
   constructedCardFacetCounts,
   createConstructedCardRouter,
   enrichConstructedCardPatches,
   enrichConstructedCardPools,
+  enrichConstructedRelatedCards,
   mergeConstructedCardRows,
   queryConstructedCards,
   type ConstructedCardRouterDependencies,
@@ -76,6 +78,29 @@ assert.equal(detailWithPools.wiki.generated_card_pools[0].cards[0].can_open, tru
 assert.equal(detailWithPools.wiki.generated_card_pools[0].cards[1].name.en, 'Generated token');
 assert.equal(detailWithPools.wiki.generated_card_pools[0].cards[1].can_open, false);
 
+const detailWithRelated = enrichConstructedRelatedCards({
+  wiki: { related_cards: [{}, { card_id: 'CARD_1' }, { card_id: 'CARD_1' }, { name: 'Внешняя карта', url: 'https://example.test/card' }] },
+}, catalogCards);
+assert.equal(detailWithRelated.wiki.related_cards.length, 2, 'empty and duplicate related-card placeholders must be removed');
+assert.equal(detailWithRelated.wiki.related_cards[0].name.ru, 'Альфа');
+assert.equal(detailWithRelated.wiki.related_cards[0].image_url, 'alpha.png');
+assert.equal(detailWithRelated.wiki.related_cards[1].name.en, 'Внешняя карта');
+
+const decodedDecks = constructedDecksContainingCard([{
+  id: 754,
+  source_id: 'vicious_syndicate_radars',
+  title: 'No Hand Hunter',
+  archetype: 'Face Hunter',
+  class: 'Hunter',
+  format: 'Standard',
+  deck_code: 'AAECAR8EmacHmqcHm6cHxbEHDamfBKqfBKj9Bq+SB4WVB86bB+6fB5CnB5inB7TAB7nAB7vAB97EBwAA',
+  updated_at: '2026-07-16T12:26:18.643563+00:00',
+}], { dbf: 119705 }, 'standard');
+assert.equal(decodedDecks.length, 1, 'a card must be matched through its decoded deckstring DBF id');
+assert.equal(decodedDecks[0].id, '754');
+assert.equal(decodedDecks[0].archetype, 'Face Hunter');
+assert.equal(constructedDecksContainingCard([{ ...decodedDecks[0], deck_code: decodedDecks[0].deckCode, format: 'Wild' }], { dbf: 119705 }, 'standard').length, 0);
+
 const detailWithPatches = enrichConstructedCardPatches({
   wiki: {
     patch_changes: [{
@@ -112,8 +137,9 @@ const dependencies: ConstructedCardRouterDependencies = {
   loadCardDetail: async (format, cardId) => {
     calls.push(`detail:${format}:${cardId}`);
     const card = mergedCards.find(item => item.card_id === cardId);
-    return card ? { ...card, wiki: { patch_changes: [] } } : null;
+    return card ? { ...card, wiki: { patch_changes: [] }, decks: cardId === 'CARD_1' ? decodedDecks : [] } : null;
   },
+  createDeckPreview: async deck => ({ hash: `preview-${deck.id}`, state: 'done', ready: true, imageUrl: 'https://api.blizzcore.ru/static/generated/test.jpg', error: null }),
   setPrivateNoStore: response => {
     response.set('Cache-Control', 'no-store');
     response.vary('Cookie');
@@ -157,6 +183,12 @@ try {
   const detail = await fetch(`${origin}/CARD_1?format=wild`, { headers: adminHeaders });
   assert.equal(detail.status, 200);
   assert.equal((await detail.json() as any).card.name.ru, 'Альфа');
+
+  const preview = await fetch(`${origin}/CARD_1/decks/754/preview?format=standard`, { method: 'POST', headers: adminHeaders });
+  assert.equal(preview.status, 200);
+  assert.equal((await preview.json() as any).preview.imageUrl, 'https://api.blizzcore.ru/static/generated/test.jpg');
+  const unknownPreview = await fetch(`${origin}/CARD_1/decks/999/preview?format=standard`, { method: 'POST', headers: adminHeaders });
+  assert.equal(unknownPreview.status, 404, 'the preview route must only render a deck re-resolved for the card');
 
   const invalidCard = await fetch(`${origin}/!?format=standard`, { headers: adminHeaders });
   assert.equal(invalidCard.status, 400);

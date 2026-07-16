@@ -173,7 +173,7 @@ const adminFixtures = {
           { date: '2025-02-01', patch: 'Patch 35.0', items: ['Changed.'], manacost_title: 'Обновление 35.0: контрольный патч', manacost_url: 'https://hs-manacost.ru/qa-patch-35/', manacost_published_at: '2025-02-01T12:00:00', manacost_summary: 'Русское описание контрольного обновления.' },
           { date: '2024-01-10', patch: 'Patch 34.0', items: ['Added.'], manacost_title: 'Обновление 34.0: ранний патч', manacost_url: 'https://hs-manacost.ru/qa-patch-34/', manacost_published_at: '2024-01-10T12:00:00', manacost_summary: 'Более раннее русское описание.' },
         ] }],
-        related_cards: [{ card_id: 'CARD_QA_2', name_ru: 'Контрольная карта 2', image_url: qaCard.imageRu }],
+        related_cards: [{}, { card_id: 'CARD_QA_2', name_ru: 'Контрольная карта 2', image_url: qaCard.imageRu }],
         generated_card_pools: [{
           pool: 'Fire spells',
           card_ids: ['CARD_QA_2', 'CARD_QA_TOKEN'],
@@ -182,12 +182,18 @@ const adminFixtures = {
             : { card_id: `CARD_QA_TOKEN_${index}`, name: { ru: `Контрольный токен ${index}`, en: `QA Token ${index}` }, image_url: qaCard.imageHa, url: `https://example.test/token-${index}`, can_open: false }),
         }],
         gallery: [{ caption: 'QA full art', file_url: '/wallpaper/arena-parchment.jpg', thumb_url: '/wallpaper/arena-parchment.jpg' }],
-        sounds: [{ heading: 'Play', clips: [
-          { description: 'Контрольная реплика.', file_title: 'QA_Play.wav', file_url: 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=' },
-          { description: '<music stinger>', file_title: 'QA_Stinger.wav', file_url: 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=#stinger' },
-        ] }],
+        sounds: [],
         external_links: [{ label: 'HSReplay.net', url: 'https://example.test/hsreplay' }],
       },
+      decks: Array.from({ length: 7 }, (_, index) => ({
+        id: `qa-deck-${index + 1}`,
+        title: `Контрольная колода ${index + 1}`,
+        archetype: index % 2 ? 'Face Hunter' : 'Control Warrior',
+        className: index % 2 ? 'Hunter' : 'Warrior',
+        deckCode: `AAECAQaFixtureDeckCode${index + 1}ForBrowserQualityAssurance1234567890==`,
+        source: 'qa-fixture', sourceUrl: '', winrate: 55.4 - index, score: `${18 - index}-${8 + index}`,
+        updatedAt: `2026-07-${String(16 - index).padStart(2, '0')}T12:00:00.000Z`,
+      })),
     },
   },
   '/api/admin/standard-meta': {
@@ -838,6 +844,12 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
           updatedAt: '2026-07-13T00:00:00.000Z', classKey: 'warlock', matchedArchetype: 'Evenlock', matchMethod: 'exact',
         },
         preview: { hash: 'qa-preview-hash', state: 'done', ready: true, imageUrl: '/ad/wallpaper_info.webp', error: null },
+      }));
+      return;
+    }
+    if (admin && /^\/api\/admin\/constructed-cards\/CARD_QA_1\/decks\/qa-deck-\d+\/preview$/.test(url.pathname) && request.method() === 'POST') {
+      request.respond(jsonResponse({
+        preview: { hash: `qa-${url.pathname.split('/').at(-2)}`, state: 'done', ready: true, imageUrl: '/ad/wallpaper_info.webp', error: null },
       }));
       return;
     }
@@ -2377,6 +2389,7 @@ for (const [device, viewport] of [
     await page.click('.constructed-cards__gallery-card');
     await page.waitForSelector('.constructed-card-detail__hero');
     await page.waitForSelector('.constructed-card-detail__pool-toggle');
+    await page.waitForFunction(() => document.querySelectorAll('.constructed-card-detail__deck-grid img').length === 3);
     await page.waitForFunction(() => {
       const grid = document.querySelector('.constructed-card-detail__pool-cards');
       if (!grid) return false;
@@ -2402,6 +2415,10 @@ for (const [device, viewport] of [
       poolOverflow: (document.querySelector('.constructed-card-detail__pool-cards')?.scrollWidth ?? 0) > (document.querySelector('.constructed-card-detail__pool-cards')?.clientWidth ?? 0) + 1,
       gallery: document.querySelectorAll('.constructed-card-detail__gallery img').length,
       sounds: document.querySelectorAll('.constructed-card-detail__sounds audio').length,
+      soundHeading: [...document.querySelectorAll('.constructed-card-detail__media-grid h2')].some(element => element.textContent?.includes('Звуки карты')),
+      decks: document.querySelectorAll('.constructed-card-detail__deck').length,
+      deckColumns: getComputedStyle(document.querySelector('.constructed-card-detail__deck-grid')).gridTemplateColumns.split(/\s+/).filter(Boolean).length,
+      deckImages: document.querySelectorAll('.constructed-card-detail__deck-grid img').length,
       documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     }));
     if (constructedDetailState.pathname !== '/standard/cards/standard/CARD_QA_1' || constructedDetailState.scrollY > 2 || constructedDetailState.statsRows < 8
@@ -2412,7 +2429,10 @@ for (const [device, viewport] of [
       || !constructedDetailState.firstPatchText.includes('2025') || !constructedDetailState.firstPatchHref.startsWith('https://hs-manacost.ru/')
       || constructedDetailState.related !== 1 || constructedDetailState.pools !== 1 || constructedDetailState.poolCards !== constructedDetailState.poolColumns || constructedDetailState.poolCards >= 12
       || constructedDetailState.poolLabel !== 'Огненные заклинания' || constructedDetailState.poolDisplay !== 'grid' || constructedDetailState.poolOverflow
-      || constructedDetailState.gallery !== 1 || constructedDetailState.sounds !== 2 || constructedDetailState.documentOverflow) {
+      || constructedDetailState.gallery !== 1 || constructedDetailState.sounds !== 0 || constructedDetailState.soundHeading
+      || constructedDetailState.decks !== 3 || constructedDetailState.deckImages !== 3
+      || (device === 'desktop' ? constructedDetailState.deckColumns !== 3 : constructedDetailState.deckColumns !== 1)
+      || constructedDetailState.documentOverflow) {
       failures.push(`constructed card detail [${device}]: data sections or responsive containment regressed (${JSON.stringify(constructedDetailState)})`);
     }
     await page.$eval('.constructed-card-detail__lower-grid', element => element.scrollIntoView({ block: 'start' }));
@@ -2430,6 +2450,22 @@ for (const [device, viewport] of [
       failures.push(`constructed card pool [${device}]: Show all flow regressed (${JSON.stringify(expandedPoolState)})`);
     }
     await page.screenshot({ path: `${OUT}/constructed-card-pool-expanded-${device}.png`, fullPage: false });
+    await page.$eval('.constructed-card-detail__decks', element => element.scrollIntoView({ block: 'start' }));
+    await page.click('.constructed-card-detail__decks .constructed-card-detail__pool-toggle');
+    await page.waitForFunction(() => document.querySelectorAll('.constructed-card-detail__deck').length === 6
+      && document.querySelectorAll('.constructed-card-detail__deck-grid img').length === 6);
+    await page.click('.constructed-card-detail__deck button');
+    await page.waitForFunction(() => document.querySelector('.constructed-card-detail__deck button')?.textContent?.includes('Код скопирован'));
+    const expandedDeckState = await page.evaluate(() => ({
+      decks: document.querySelectorAll('.constructed-card-detail__deck').length,
+      images: document.querySelectorAll('.constructed-card-detail__deck-grid img').length,
+      copied: document.querySelector('.constructed-card-detail__deck button')?.textContent?.replace(/\s+/g, ' ').trim(),
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    }));
+    if (expandedDeckState.decks !== 6 || expandedDeckState.images !== 6 || !expandedDeckState.copied?.includes('Код скопирован') || expandedDeckState.overflow) {
+      failures.push(`constructed card decks [${device}]: DeckView grid, pagination or copy flow regressed (${JSON.stringify(expandedDeckState)})`);
+    }
+    await page.screenshot({ path: `${OUT}/constructed-card-decks-${device}.png`, fullPage: false });
     await page.click('.constructed-card-detail__visual-button');
     await page.waitForSelector('.constructed-card-lightbox');
     const constructedLightboxState = await page.evaluate(() => ({

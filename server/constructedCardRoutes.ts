@@ -1,4 +1,5 @@
 import { Router, type RequestHandler, type Response } from 'express';
+import { decode } from '@firestone-hs/deckstrings';
 
 export type ConstructedCardFormat = 'standard' | 'wild';
 
@@ -15,11 +16,33 @@ export type ConstructedCardDataService = {
   loadCardDetail: (format: ConstructedCardFormat, cardId: string) => Promise<JsonRecord | null>;
 };
 
+export type ConstructedCardDeck = {
+  id: string;
+  title: string;
+  archetype: string | null;
+  className: string | null;
+  deckCode: string;
+  source: string | null;
+  sourceUrl: string | null;
+  winrate: number | null;
+  score: string | null;
+  updatedAt: string | null;
+};
+
+type ConstructedCardDeckPreview = {
+  hash: string;
+  state: string;
+  ready: boolean;
+  imageUrl: string | null;
+  error: string | null;
+};
+
 export type ConstructedCardRouterDependencies = ConstructedCardDataService & {
   adminGuard: RequestHandler;
   setPrivateNoStore: (response: Response) => void;
   getMechanicTranslations?: () => Record<string, string>;
-  onError?: (scope: 'list' | 'detail', error: unknown) => void;
+  createDeckPreview?: (deck: ConstructedCardDeck) => Promise<ConstructedCardDeckPreview>;
+  onError?: (scope: 'list' | 'detail' | 'deck-preview', error: unknown) => void;
 };
 
 type DataServiceDependencies = {
@@ -28,6 +51,7 @@ type DataServiceDependencies = {
   statsDatasetByFormat: Record<ConstructedCardFormat, string>;
   statsBaseUrl: string;
   patchesUrl?: string;
+  constructedDecksUrl?: string;
   cacheTtlMs?: number;
 };
 
@@ -322,6 +346,90 @@ export function enrichConstructedCardPools(detail: JsonRecord, catalogCards: Jso
   return { ...detail, wiki: { ...detail.wiki, generated_card_pools: generatedCardPools } };
 }
 
+export function enrichConstructedRelatedCards(detail: JsonRecord, catalogCards: JsonRecord[]): JsonRecord {
+  const related = detail?.wiki?.related_cards;
+  if (!Array.isArray(related)) return detail;
+
+  const catalogById = new Map(
+    catalogCards
+      .map(card => [String(card?.card_id ?? '').trim().toUpperCase(), card] as const)
+      .filter(([cardId]) => Boolean(cardId)),
+  );
+  const seen = new Set<string>();
+  const relatedCards = related.flatMap((item: JsonRecord) => {
+    const cardId = String(item?.card_id ?? item?.id ?? '').trim();
+    const catalogCard = cardId ? catalogById.get(cardId.toUpperCase()) : undefined;
+    const imageUrl = catalogCard?.images?.card ?? item?.image_url ?? item?.image ?? null;
+    const rawName = catalogCard?.name ?? item?.name ?? null;
+    const name = rawName && typeof rawName === 'object' ? rawName : { ru: null, en: String(rawName ?? '').trim() || null };
+    const title = String(item?.name_ru ?? item?.title ?? name?.ru ?? name?.en ?? cardId).trim();
+    const url = String(item?.url ?? '').trim() || null;
+    if (!cardId && !title && !imageUrl && !url) return [];
+    const key = (cardId || url || `${title}|${imageUrl ?? ''}`).toUpperCase();
+    if (seen.has(key)) return [];
+    seen.add(key);
+    return [{
+      ...item,
+      card_id: cardId || null,
+      name,
+      name_ru: String(name?.ru ?? item?.name_ru ?? '').trim() || null,
+      image_url: imageUrl,
+      can_open: Boolean(catalogCard),
+    }];
+  });
+
+  return { ...detail, wiki: { ...detail.wiki, related_cards: relatedCards } };
+}
+
+function deckFormatMatches(row: JsonRecord, decodedFormat: number, format: ConstructedCardFormat): boolean {
+  const explicit = String(row?.format ?? '').trim().toLowerCase();
+  if (explicit === 'standard' || explicit === 'wild') return explicit === format;
+  return format === 'standard' ? decodedFormat === 2 : decodedFormat === 1;
+}
+
+export function constructedDecksContainingCard(
+  rows: JsonRecord[],
+  card: JsonRecord,
+  format: ConstructedCardFormat,
+  limit = 24,
+): ConstructedCardDeck[] {
+  const dbf = finiteNumber(card?.dbf);
+  if (dbf === null) return [];
+  const seenCodes = new Set<string>();
+  let fallbackId = 0;
+  const matches = rows.flatMap((row: JsonRecord) => {
+    const deckCode = String(row?.deck_code ?? '').trim();
+    if (!/^[A-Za-z0-9+/=]{40,}$/.test(deckCode) || seenCodes.has(deckCode)) return [];
+    try {
+      const decoded = decode(deckCode);
+      if (!deckFormatMatches(row, decoded.format, format) || !decoded.cards.some(([cardDbf]) => cardDbf === dbf)) return [];
+    } catch {
+      return [];
+    }
+    seenCodes.add(deckCode);
+    fallbackId += 1;
+    const rawId = String(row?.id ?? '').trim();
+    const id = /^[A-Za-z0-9_-]{1,80}$/.test(rawId) ? rawId : `deck-${fallbackId}`;
+    const archetype = String(row?.archetype ?? '').trim() || null;
+    const title = String(row?.title ?? '').trim() || archetype || `Колода ${fallbackId}`;
+    return [{
+      id,
+      title,
+      archetype,
+      className: String(row?.class ?? '').trim() || null,
+      deckCode,
+      source: String(row?.source_id ?? '').trim() || null,
+      sourceUrl: String(row?.url ?? '').trim() || null,
+      winrate: finiteNumber(row?.win_rate ?? row?.winrate),
+      score: String(row?.score ?? '').trim() || null,
+      updatedAt: String(row?.updated_at ?? row?.added_at ?? '').trim() || null,
+    }];
+  });
+  return matches
+    .sort((left, right) => Date.parse(right.updatedAt ?? '') - Date.parse(left.updatedAt ?? ''))
+    .slice(0, Math.max(1, limit));
+}
+
 function normalizedPatchVersion(value: unknown): string {
   return String(value ?? '').trim().replace(/^patch\s+/i, '').trim().toLocaleLowerCase('en-US');
 }
@@ -369,8 +477,12 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
   const cacheTtlMs = Math.max(60_000, dependencies.cacheTtlMs ?? 15 * 60_000);
   const cache = new Map<ConstructedCardFormat, { value: ConstructedCardCollection; expiresAt: number }>();
   const jobs = new Map<ConstructedCardFormat, Promise<ConstructedCardCollection>>();
+  const detailCache = new Map<string, { value: JsonRecord; expiresAt: number }>();
+  const detailJobs = new Map<string, Promise<JsonRecord | null>>();
   let patchesCache: { value: JsonRecord[]; expiresAt: number } | null = null;
   let patchesJob: Promise<JsonRecord[]> | null = null;
+  let decksCache: { value: JsonRecord[]; expiresAt: number } | null = null;
+  let decksJob: Promise<JsonRecord[]> | null = null;
 
   const loadPatches = async (): Promise<JsonRecord[]> => {
     if (!dependencies.patchesUrl) return [];
@@ -386,6 +498,32 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
       .catch(() => [])
       .finally(() => { patchesJob = null; });
     return patchesJob;
+  };
+
+  const loadDeckRows = async (): Promise<JsonRecord[]> => {
+    if (!dependencies.constructedDecksUrl) return [];
+    const now = Date.now();
+    if (decksCache && decksCache.expiresAt > now) return decksCache.value;
+    if (decksJob) return decksJob;
+    decksJob = (async () => {
+      const firstUrl = new URL(dependencies.constructedDecksUrl!);
+      firstUrl.searchParams.set('limit', '200');
+      firstUrl.searchParams.set('offset', '0');
+      const firstPayload = await dependencies.fetchJson(firstUrl.toString());
+      const firstRows = Array.isArray(firstPayload?.data) ? firstPayload.data : Array.isArray(firstPayload?.decks) ? firstPayload.decks : [];
+      const total = Math.max(firstRows.length, Number(firstPayload?.meta?.count ?? firstPayload?.total ?? firstRows.length));
+      const offsets = Array.from({ length: Math.max(0, Math.ceil(total / 200) - 1) }, (_, index) => (index + 1) * 200);
+      const payloads = await Promise.all(offsets.map(async offset => {
+        const url = new URL(dependencies.constructedDecksUrl!);
+        url.searchParams.set('limit', '200');
+        url.searchParams.set('offset', String(offset));
+        return dependencies.fetchJson(url.toString());
+      }));
+      const value = [firstPayload, ...payloads].flatMap(payload => Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.decks) ? payload.decks : []);
+      decksCache = { value, expiresAt: Date.now() + cacheTtlMs };
+      return value;
+    })().catch(() => []).finally(() => { decksJob = null; });
+    return decksJob;
   };
 
   const loadCards = async (format: ConstructedCardFormat): Promise<ConstructedCardCollection> => {
@@ -418,14 +556,47 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
   };
 
   const loadCardDetail = async (format: ConstructedCardFormat, cardId: string): Promise<JsonRecord | null> => {
-    const url = `${dependencies.catalogBaseUrl.replace(/\/$/, '')}/constructed-cards/${encodeURIComponent(cardId)}?include=wiki`;
-    const payload = await dependencies.fetchJson(url);
-    const detail = payload?.data && typeof payload.data === 'object' ? payload.data : null;
-    if (!detail) return null;
-    const [collection, patches] = await Promise.all([loadCards(format), loadPatches()]);
-    const merged = collection.cards.find(card => String(card?.card_id ?? '').toUpperCase() === String(detail.card_id ?? '').toUpperCase());
-    const enrichedDetail = enrichConstructedCardPatches(enrichConstructedCardPools(detail, collection.cards), patches);
-    return { ...enrichedDetail, stats: merged?.stats ?? null, statsUpdatedAt: collection.updatedAt, statsSourceUrl: collection.sourceUrl };
+    const key = `${format}:${cardId.toUpperCase()}`;
+    const cached = detailCache.get(key);
+    if (cached && cached.expiresAt > Date.now()) return cached.value;
+    const active = detailJobs.get(key);
+    if (active) return active;
+    const job = (async () => {
+      const url = `${dependencies.catalogBaseUrl.replace(/\/$/, '')}/constructed-cards/${encodeURIComponent(cardId)}?include=wiki`;
+      const payload = await dependencies.fetchJson(url);
+      const detail = payload?.data && typeof payload.data === 'object' ? payload.data : null;
+      if (!detail) return null;
+      const [collection, patches, deckRows] = await Promise.all([loadCards(format), loadPatches(), loadDeckRows()]);
+      const merged = collection.cards.find(card => String(card?.card_id ?? '').toUpperCase() === String(detail.card_id ?? '').toUpperCase());
+      const catalogIds = new Set(collection.cards.map(card => String(card?.card_id ?? '').trim().toUpperCase()).filter(Boolean));
+      const missingRelatedIds: string[] = [...new Set<string>((Array.isArray(detail?.wiki?.related_cards) ? detail.wiki.related_cards : [])
+        .map((item: JsonRecord) => String(item?.card_id ?? item?.id ?? '').trim())
+        .filter((relatedId: string) => relatedId && !catalogIds.has(relatedId.toUpperCase())))];
+      const relatedDetails = (await Promise.all(missingRelatedIds.map(async relatedId => {
+        try {
+          const relatedPayload = await dependencies.fetchJson(`${dependencies.catalogBaseUrl.replace(/\/$/, '')}/constructed-cards/${encodeURIComponent(relatedId)}`);
+          return relatedPayload?.data && typeof relatedPayload.data === 'object' ? relatedPayload.data : null;
+        } catch {
+          return null;
+        }
+      }))).filter((card): card is JsonRecord => Boolean(card));
+      const relatedCatalog = [...collection.cards, ...relatedDetails];
+      const enrichedDetail = enrichConstructedCardPatches(
+        enrichConstructedRelatedCards(enrichConstructedCardPools(detail, collection.cards), relatedCatalog),
+        patches,
+      );
+      const value = {
+        ...enrichedDetail,
+        stats: merged?.stats ?? null,
+        statsUpdatedAt: collection.updatedAt,
+        statsSourceUrl: collection.sourceUrl,
+        decks: constructedDecksContainingCard(deckRows, detail, format),
+      };
+      detailCache.set(key, { value, expiresAt: Date.now() + cacheTtlMs });
+      return value;
+    })().finally(() => detailJobs.delete(key));
+    detailJobs.set(key, job);
+    return job;
   };
 
   return { loadCards, loadCardDetail };
@@ -481,6 +652,28 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
     } catch (error) {
       dependencies.onError?.('detail', error);
       return response.status(502).json({ error: 'Данные карты временно недоступны' });
+    }
+  });
+
+  router.post('/admin/constructed-cards/:cardId/decks/:deckId/preview', async (request, response) => {
+    const format = readFormat(request.query.format ?? request.body?.format);
+    const cardId = String(request.params.cardId ?? '').trim();
+    const deckId = String(request.params.deckId ?? '').trim();
+    if (!format) return response.status(400).json({ error: 'Неизвестный формат карт' });
+    if (!/^[a-zA-Z0-9_]{2,80}$/.test(cardId) || !/^[a-zA-Z0-9_-]{1,80}$/.test(deckId)) {
+      return response.status(400).json({ error: 'Некорректный ID карты или колоды' });
+    }
+    if (!dependencies.createDeckPreview) return response.status(503).json({ error: 'DeckView временно недоступен' });
+    try {
+      // Resolve the deck again on the server so this admin endpoint cannot be
+      // used to render an arbitrary deck code supplied by the browser.
+      const card = await dependencies.loadCardDetail(format, cardId);
+      const deck = (Array.isArray(card?.decks) ? card.decks : []).find((item: ConstructedCardDeck) => item.id === deckId);
+      if (!deck) return response.status(404).json({ error: 'Колода с этой картой не найдена' });
+      return response.json({ preview: await dependencies.createDeckPreview(deck) });
+    } catch (error) {
+      dependencies.onError?.('deck-preview', error);
+      return response.status(502).json({ error: 'Не удалось создать изображение колоды' });
     }
   });
 

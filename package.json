@@ -97,6 +97,7 @@
     "changelog:post": "node scripts/post-arena-changelog.mjs"
   },
   "dependencies": {
+    "@firestone-hs/deckstrings": "^2.2.8",
     "@google/genai": "^1.29.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vercel/analytics": "^2.0.1",

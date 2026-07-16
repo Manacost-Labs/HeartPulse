@@ -196,7 +196,19 @@
 .constructed-card-detail__pool-cards span { margin-top: 0.22rem; font-size: 0.64rem; font-weight: 900; line-height: 1.25; }
 .constructed-card-detail__pool-toggle { display: flex; min-height: 38px; margin: 0 auto 0.65rem; padding: 0 0.9rem; border: 1px solid #7e3327; align-items: center; justify-content: center; color: #fff0c5; background: #713118; font-size: 0.66rem; font-weight: 900; }
 .constructed-card-detail__pool-toggle:hover { filter: brightness(1.08); }
+.constructed-card-detail__decks { margin-top: 0.8rem; }
+.constructed-card-detail__deck-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem; margin-bottom: 0.7rem; }
+.constructed-card-detail__deck { display: grid; min-width: 0; overflow: hidden; border: 1px solid rgba(121, 79, 38, 0.32); background: rgba(255, 250, 232, 0.42); box-shadow: 0 6px 14px rgba(67, 37, 15, 0.08); }
+.constructed-card-detail__deck-image { display: grid; min-height: 235px; padding: 0.55rem; place-items: center; overflow: hidden; border-bottom: 1px solid rgba(121, 79, 38, 0.22); background: radial-gradient(circle at 50% 38%, rgba(231, 197, 124, 0.28), rgba(99, 48, 19, 0.08)); }
+.constructed-card-detail__deck-image img { display: block; width: 100%; height: 270px; object-fit: contain; }
+.constructed-card-detail__deck-image > div { display: grid; max-width: 220px; gap: 0.55rem; justify-items: center; color: #76593e; font-size: 0.67rem; font-weight: 800; text-align: center; }
+.constructed-card-detail__deck-copy { display: grid; gap: 0.3rem; padding: 0.65rem; }
+.constructed-card-detail__deck-copy h3 { margin: 0; overflow: hidden; font-family: var(--font-display); font-size: 1rem; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+.constructed-card-detail__deck-copy p { min-height: 1rem; margin: 0; color: var(--cards-muted); font-size: 0.63rem; }
+.constructed-card-detail__deck-copy button { display: inline-flex; gap: 0.35rem; align-items: center; justify-content: center; min-height: 39px; margin-top: 0.25rem; border: 1px solid #7e3327; color: #fff0c5; background: #713118; font-size: 0.66rem; font-weight: 900; }
+.constructed-card-detail__deck-copy button:hover { filter: brightness(1.08); }
 .constructed-card-detail__media-grid { display: grid; grid-template-columns: 1.35fr 0.9fr 0.75fr; gap: 0.8rem; margin-top: 0.8rem; }
+.constructed-card-detail__media-grid--two { grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr); }
 .constructed-card-detail__gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.45rem; }
 .constructed-card-detail__gallery button { display: grid; min-width: 0; padding: 0; border: 1px solid #a97b45; color: #4a2d1b; background: rgba(255, 248, 225, 0.5); cursor: zoom-in; }
 .constructed-card-detail__gallery img { width: 100%; height: 130px; object-fit: cover; }
@@ -245,6 +257,7 @@
   .constructed-card-detail__statistics .constructed-cards__stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .constructed-card-detail__lower-grid,
   .constructed-card-detail__media-grid { grid-template-columns: 1fr; }
+  .constructed-card-detail__deck-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 640px) {
@@ -289,6 +302,9 @@
   .constructed-card-detail__pool-cards a,
   .constructed-card-detail__pool-card { min-height: 137px; padding-inline: 0.2rem; }
   .constructed-card-detail__pool-cards img { width: 92px; height: 100px; }
+  .constructed-card-detail__deck-grid { grid-template-columns: 1fr; }
+  .constructed-card-detail__deck-image { min-height: 210px; }
+  .constructed-card-detail__deck-image img { height: 245px; }
   .constructed-card-detail__gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .constructed-card-lightbox { padding: 0; }
   .constructed-card-lightbox__panel { width: 100vw; max-height: 100dvh; min-height: 100dvh; border-inline: 0; }
