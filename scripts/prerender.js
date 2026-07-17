@@ -137,26 +137,26 @@ const PAGES = {
     noscript: `
       <h1>Матчапы Стандарта Hearthstone</h1>
       <p>Матрица матчапов актуальной меты Стандарта по данным HSGuru: строки показывают выбранный архетип, столбцы — соперника, в ячейках винрейт.</p>
-      <p>Доступны таблицы для Легенды и Алмаза 4-1.</p>
+      <p>Доступны таблицы для Легенды и Алмаза 4-1 по подписке Манакоста уровня «Алмаз».</p>
       <p><a href="/">На главную</a> | <a href="/articles">Статьи</a> | <a href="/classes">Арена</a></p>`
   },
   '/standard/meta': {
     title: `Мета Hearthstone ${YEAR}: архетипы и колоды | Manacost Stats`,
     description: 'Актуальная мета Стандарта и Вольного режима по данным HSGuru: винрейты, популярность, русские названия и готовые сборки.',
     h1: 'Мета Hearthstone', canonical: '/standard/meta', ogType: 'website', structuredData: [],
-    noscript: '<h1>Мета Hearthstone</h1><p>Винрейты, популярность и готовые сборки актуальных архетипов Стандарта и Вольного режима.</p>'
+    noscript: '<h1>Мета Hearthstone</h1><p>Винрейты, популярность и готовые сборки актуальных архетипов Стандарта и Вольного режима доступны с тарифом «Алмаз».</p>'
   },
   '/standard/vicious-gold': {
     title: `Vicious Syndicate Gold — мета Стандарта ${YEAR} | Manacost Stats`,
     description: 'Распределение классов и колод, готовые сборки и Power Tier по всем доступным рангам Vicious Syndicate Live.',
     h1: 'Vicious Syndicate Gold', canonical: '/standard/vicious-gold', ogType: 'website', structuredData: [],
-    noscript: '<h1>Vicious Syndicate Gold</h1><p>Живая статистика классов, архетипов, сборок и Power Tier Стандарта.</p>'
+    noscript: '<h1>Vicious Syndicate Gold</h1><p>Живая статистика классов, архетипов, сборок и Power Tier Стандарта доступна с тарифом «Алмаз».</p>'
   },
   '/standard/cards': {
     title: `Карты Hearthstone ${YEAR}: Стандарт и Вольный | Manacost Stats`,
-    description: 'Библиотека карт Hearthstone со статистикой Легенды и фильтрами по классу, дополнению, мане и механикам.',
+    description: 'Открытая библиотека карт Hearthstone с фильтрами по классу, дополнению, мане и механикам. Статистика Легенды доступна с тарифом «Алмаз».',
     h1: 'Карты Hearthstone', canonical: '/standard/cards', ogType: 'website', structuredData: [],
-    noscript: '<h1>Карты Hearthstone</h1><p>Библиотека карт Стандарта и Вольного режима со статистикой Легенды и подробными страницами.</p>'
+    noscript: '<h1>Карты Hearthstone</h1><p>Открытая библиотека карт Стандарта и Вольного режима с подробными страницами. Статистика Легенды доступна с тарифом «Алмаз».</p>'
   },
   '/classes': {
     title: `Винрейт классов — Арена Hearthstone ${YEAR} | HS-Arena`,

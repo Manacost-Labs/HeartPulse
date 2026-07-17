@@ -10,6 +10,7 @@ type PaywallGateProps = {
   subscriptionStatus: { message?: string } | null;
   subscriptionLoading: boolean;
   onRefreshSubscription: () => Promise<unknown>;
+  variant?: 'default' | 'standard';
   children: ReactNode;
 };
 
@@ -30,6 +31,7 @@ export default function PaywallGate({
   subscriptionStatus,
   subscriptionLoading,
   onRefreshSubscription,
+  variant = 'default',
   children,
 }: PaywallGateProps) {
   if (!active) return <>{children}</>;
@@ -86,24 +88,32 @@ export default function PaywallGate({
             {title}
           </h3>
           <p className="arena-paywall__description" id="paywall-gate-description" style={{ margin: '0 0 14px', color: '#42566f', fontSize: '13px', lineHeight: 1.55 }}>
-            Подписка открывает закрытые инструменты Арены и помогает Манакосту держать данные свежими.
+            {variant === 'standard'
+              ? 'Тариф «Алмаз» открывает статистику традиционного режима, актуальную мету и готовые сборки.'
+              : 'Подписка открывает закрытые инструменты Арены и помогает Манакосту держать данные свежими.'}
           </p>
           <div className="arena-paywall__benefits" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '10px', margin: '0 0 14px', textAlign: 'left' }}>
             <div style={{ padding: '12px', borderRadius: '14px', background: 'linear-gradient(135deg, rgba(239,246,255,0.92), rgba(219,234,254,0.72))', border: '1px solid rgba(96,165,250,0.34)' }}>
-              <strong style={{ display: 'block', color: '#142238', fontSize: '13px', marginBottom: '5px' }}>Платная статистика HSReplay</strong>
+              <strong style={{ display: 'block', color: '#142238', fontSize: '13px', marginBottom: '5px' }}>{variant === 'standard' ? 'Мета и матчапы' : 'Платная статистика HSReplay'}</strong>
               <span style={{ color: '#4b5f78', fontSize: '12px', lineHeight: 1.45 }}>
-                Удобный доступ к платным данным по Арене: тир-листы, винрейты и быстрые срезы по текущему патчу.
+                {variant === 'standard'
+                  ? 'Распределение архетипов, винрейты и матчапы по доступным рейтингам.'
+                  : 'Удобный доступ к платным данным по Арене: тир-листы, винрейты и быстрые срезы по текущему патчу.'}
               </span>
             </div>
             <div style={{ padding: '12px', borderRadius: '14px', background: 'linear-gradient(135deg, rgba(255,247,237,0.94), rgba(254,243,199,0.62))', border: '1px solid rgba(249,115,22,0.28)' }}>
-              <strong style={{ display: 'block', color: '#142238', fontSize: '13px', marginBottom: '5px' }}>Авторские мета-отчёты</strong>
+              <strong style={{ display: 'block', color: '#142238', fontSize: '13px', marginBottom: '5px' }}>{variant === 'standard' ? 'Колоды и Power Tier' : 'Авторские мета-отчёты'}</strong>
               <span style={{ color: '#4b5f78', fontSize: '12px', lineHeight: 1.45 }}>
-                Разборы от топ-игрока и стримера Арены: что брать, чем играть и где сейчас преимущество.
+                {variant === 'standard'
+                  ? 'Готовые к копированию сборки и аналитика Vicious Syndicate Gold.'
+                  : 'Разборы от топ-игрока и стримера Арены: что брать, чем играть и где сейчас преимущество.'}
               </span>
             </div>
           </div>
           <p className="arena-paywall__note" style={{ margin: '0 0 16px', color: '#42566f', fontSize: '12px', lineHeight: 1.5 }}>
-            Доступ откроется через Boosty уровня Любитель Арены и выше или через участие в VIP Telegram-канале.
+            {variant === 'standard'
+              ? 'Доступ откроется через Boosty уровня «Алмаз» или выше.'
+              : 'Доступ откроется через Boosty уровня Любитель Арены и выше или через участие в VIP Telegram-канале.'}
           </p>
           <SubscriptionPurchaseButtons />
           <div className="arena-paywall__actions" style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>

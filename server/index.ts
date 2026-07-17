@@ -3708,6 +3708,22 @@ const requireBattlegroundsAccess = requireEntitlementAccess('battlegrounds', 'р
 const requireStandardAccess = requireEntitlementAccess('standard', 'разделу Стандарт');
 const requireGuidesArchiveAccess = requireEntitlementAccess('guidesArchive', 'архиву гайдов');
 
+async function requestHasEntitlementAccess(
+  request: express.Request,
+  entitlement: SubscriptionEntitlementKey,
+): Promise<boolean> {
+  const user = userAuth(request);
+  if (!user) return false;
+  if (isAdminUser(user)) return true;
+  try {
+    const subscription = await refreshSubscriptionForUser(user, false);
+    return Boolean(subscription.entitlements?.[entitlement]);
+  } catch (error) {
+    console.warn('[subscription] optional entitlement check failed:', error instanceof Error ? error.message : error);
+    return false;
+  }
+}
+
 function parseHttpUrl(rawUrl: unknown): URL | null {
   try {
     const url = new URL(String(rawUrl ?? '').trim());
@@ -6765,6 +6781,7 @@ async function hydrateRecommendationDeckCards<T extends StandardMetaRecommendati
 
 app.use('/api', createConstructedCardRouter({
   adminGuard: adminIdGuard,
+  canAccessStats: request => requestHasEntitlementAccess(request, 'standard'),
   ...constructedCardDataService,
   getMechanicTranslations: () => loadConstructedMechanicTranslationMap(db()),
   createDeckPreview: (deck: ConstructedCardDeck) => createStandardMetaPreview({
@@ -6780,6 +6797,7 @@ app.use('/api', createConstructedCardRouter({
 
 app.use('/api', createStandardMetaRouter({
   adminGuard: adminIdGuard,
+  accessGuard: requireStandardAccess,
   loadMeta: loadStandardMeta,
   loadViciousGold: loadViciousSyndicateGold,
   findRecommendation: findStandardMetaRecommendation,
@@ -8487,7 +8505,8 @@ function standardOperationsStatus() {
   const freshCount = (cache: Map<string, { expiresAt: number }>) => [...cache.values()].filter(item => item.expiresAt > Date.now()).length;
   return {
     generatedAt: new Date().toISOString(),
-    publicRoutes: ['/standard/meta', '/standard/vicious-gold', '/standard/cards'],
+    publicRoutes: ['/standard/cards'],
+    diamondRoutes: ['/standard/matchups', '/standard/meta', '/standard/vicious-gold'],
     caches: {
       meta: { entries: standardMetaApiCache.size, fresh: freshCount(standardMetaApiCache) },
       viciousGold: { entries: viciousSyndicateGoldApiCache.size, fresh: freshCount(viciousSyndicateGoldApiCache) },

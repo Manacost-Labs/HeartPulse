@@ -33,6 +33,7 @@ export type StandardMetaPreview = {
 
 export type StandardMetaRouterDependencies = {
   adminGuard: RequestHandler;
+  accessGuard: RequestHandler;
   loadMeta: (format: StandardMetaFormat, rank: StandardMetaRank) => Promise<unknown>;
   loadViciousGold: () => Promise<unknown>;
   findRecommendation: (
@@ -79,8 +80,8 @@ export function createStandardMetaRouter(dependencies: StandardMetaRouterDepende
     dependencies.setPrivateNoStore(response);
     next();
   };
-  router.use('/standard-meta', protectAdminStats);
-  router.use('/vicious-syndicate-gold', protectAdminStats);
+  router.use('/standard-meta', dependencies.accessGuard, protectAdminStats);
+  router.use('/vicious-syndicate-gold', dependencies.accessGuard, protectAdminStats);
   router.use('/admin/standard-meta', dependencies.adminGuard, protectAdminStats);
   router.use('/admin/vicious-syndicate-gold', dependencies.adminGuard, protectAdminStats);
 

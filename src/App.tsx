@@ -945,6 +945,12 @@ export default function App() {
     || appAuthUser.id === 'user_42368c85b8de'
     || appAuthUser.profileId === 'user_42368c85b8de'
   ));
+  const appIsAdmin = Boolean(appAuthUser && (
+    appAuthUser.adminAllowed
+    || appAuthUser.role === 'admin'
+    || appAuthUser.id === 'user_42368c85b8de'
+    || appAuthUser.profileId === 'user_42368c85b8de'
+  ));
   const visibleStandardTabs = STANDARD_TABS;
 
   useEffect(() => {
@@ -1029,7 +1035,7 @@ export default function App() {
 
   const activeTabLabel = TABS.find(tab => tab.id === activeTab)?.label || 'Раздел';
   const activeTabEntitlement = PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS[activeTab] ?? null;
-  const privateRouteActive = Boolean(activeTabEntitlement) && !appIsContestAdmin;
+  const privateRouteActive = Boolean(activeTabEntitlement) && !appIsAdmin;
   const privateRouteChecking = privateRouteActive && (appAuthChecking || (Boolean(appAuthUser) && appSubscriptionLoading && !appSubscription));
   const privateRouteLocked = privateRouteActive
     && !privateRouteChecking
@@ -1042,7 +1048,10 @@ export default function App() {
         <React.Suspense fallback={<RouteFallback minHeight={minHeight} />}>
           <LazyPaywallGate
             active
-            title={`${activeTabLabel} доступны подписчикам`}
+            title={activeTabEntitlement === 'standard'
+              ? `${activeTabLabel} доступны с тарифом «Алмаз»`
+              : `${activeTabLabel} доступны подписчикам`}
+            variant={activeTabEntitlement === 'standard' ? 'standard' : 'default'}
             authUser={appAuthUser}
             subscriptionStatus={appSubscription}
             subscriptionLoading={appSubscriptionLoading}
@@ -1054,7 +1063,7 @@ export default function App() {
       );
     }
     return children;
-  }, [activeTabLabel, appAuthUser, appSubscription, appSubscriptionLoading, fetchAppSubscription, privateRouteChecking, privateRouteLocked]);
+  }, [activeTabEntitlement, activeTabLabel, appAuthUser, appSubscription, appSubscriptionLoading, fetchAppSubscription, privateRouteChecking, privateRouteLocked]);
 
   useEffect(() => {
     if (!appAuthUser) {
@@ -1364,7 +1373,14 @@ export default function App() {
     ? <LazyStandardMetaPage />
     : activeTab === 'standard-vicious-gold'
       ? <LazyViciousSyndicateGoldPage />
-      : <LazyStandardCardsPage currentPath={currentPath} navigatePath={navigatePath} />;
+      : <LazyStandardCardsPage
+          currentPath={currentPath}
+          navigatePath={navigatePath}
+          statsAccess={appIsAdmin || hasSubscriptionEntitlement(appSubscription, 'standard')}
+          statsAccessLoading={appAuthChecking || (Boolean(appAuthUser) && appSubscriptionLoading && !appSubscription)}
+          authUser={appAuthUser}
+          onRefreshSubscription={() => fetchAppSubscription(true)}
+        />;
   usePageScrollLock(!isAdminMode && mobileMenuOpen);
   useEffect(() => {
     if (!mobileMenuOpen) return undefined;
@@ -1658,7 +1674,12 @@ export default function App() {
                   )
                 )}
                 {(activeTab === 'standard-meta' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards') && (
-                  <React.Suspense fallback={<RouteFallback minHeight={720} />}>{standardPage}</React.Suspense>
+                  activeTab === 'standard-cards'
+                    ? <React.Suspense fallback={<RouteFallback minHeight={720} />}>{standardPage}</React.Suspense>
+                    : renderPrivateRoute(
+                        <React.Suspense fallback={<RouteFallback minHeight={720} />}>{standardPage}</React.Suspense>,
+                        720,
+                      )
                 )}
 	                {activeTab === 'winrates' && (
                   renderPrivateRoute(

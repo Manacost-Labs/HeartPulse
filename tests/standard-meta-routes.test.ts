@@ -31,6 +31,10 @@ const adminGuard: RequestHandler = (request, response, next) => {
 
 const dependencies: StandardMetaRouterDependencies = {
   adminGuard,
+  accessGuard: (request, response, next) => {
+    if (request.headers['x-test-access'] !== 'allowed') return response.status(403).json({ error: 'diamond only' });
+    next();
+  },
   loadMeta: async (format, rank) => {
     calls.push(`meta:${format}:${rank}`);
     return { format, rank, items: [{ archetype: 'Mug Shaman' }] };
@@ -75,8 +79,10 @@ try {
   assert.equal(denied.status, 403);
   assert.deepEqual(calls, []);
 
-  const publicMeta = await fetch(`${origin}/standard-meta?format=standard&rank=legend`);
-  assert.equal(publicMeta.status, 200, 'the released Standard meta must be public');
+  const deniedPublicMeta = await fetch(`${origin}/standard-meta?format=standard&rank=legend`);
+  assert.equal(deniedPublicMeta.status, 403, 'Standard meta requires the Diamond entitlement');
+  const publicMeta = await fetch(`${origin}/standard-meta?format=standard&rank=legend`, { headers: { 'X-Test-Access': 'allowed' } });
+  assert.equal(publicMeta.status, 200);
   assert.equal((await publicMeta.json() as any).format, 'standard');
   calls.length = 0;
 

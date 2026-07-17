@@ -9,6 +9,7 @@ import {
   Grid3X3,
   Layers3,
   List,
+  LockKeyhole,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -113,6 +114,7 @@ type ListPayload = {
   rank: 'legend';
   updatedAt: string | null;
   sourceUrl: string;
+  statsAccess: boolean;
   cards: CardRecord[];
   facets: Facets;
   facetCounts?: FacetCounts;
@@ -139,13 +141,32 @@ type Filters = {
 type StandardCardsProps = {
   currentPath: string;
   navigatePath: (path: string) => void;
+  statsAccess: boolean;
+  statsAccessLoading: boolean;
+  authUser: object | null;
+  onRefreshSubscription: () => Promise<unknown>;
 };
 
 const EMPTY_FACETS: Facets = { classes: [], sets: [], mechanics: [], types: [], rarities: [] };
 const EMPTY_FACET_COUNTS: FacetCounts = { classes: [], sets: [], mechanics: [], types: [], rarities: [] };
 const EMPTY_FILTERS: Filters = {
-  query: '', class: '', set: '', mana: '', attack: '', health: '', mechanic: '', type: '', rarity: '', sort: 'popularity', direction: 'desc',
+  query: '', class: '', set: '', mana: '', attack: '', health: '', mechanic: '', type: '', rarity: '', sort: 'set', direction: 'asc',
 };
+const STATISTIC_SORTS = new Set(['popularity', 'winrate', 'games']);
+const LOCKED_STATS_PLACEHOLDER: CardStats = {
+  deckPopularity: 18.7,
+  deckWinrate: 53.4,
+  averageCopies: 1.8,
+  timesPlayed: 12480,
+  winrateWhenPlayed: 56.2,
+  winrateWhenDrawn: 54.1,
+  keepPercentage: 42.6,
+  openingHandWinrate: 52.8,
+  averageTurnsInHand: 2.4,
+  averageTurnPlayed: 5.3,
+};
+
+type StatsGateProps = Pick<StandardCardsProps, 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'>;
 
 const CLASS_LABELS: Record<string, string> = {
   DEATHKNIGHT: 'Рыцарь смерти', DEMONHUNTER: 'Охотник на демонов', DRUID: 'Друид', HUNTER: 'Охотник',
@@ -331,19 +352,51 @@ function StatsRows({ stats, compact = false }: { stats: CardStats | null; compac
   );
 }
 
-function HoverTooltip({ card, rect }: { card: CardRecord; rect: DOMRect }) {
+function StatsUnlockNotice({ statsAccessLoading, authUser, onRefreshSubscription, compact = false }: StatsGateProps & { compact?: boolean }) {
+  return (
+    <div className={`constructed-cards__stats-lock${compact ? ' constructed-cards__stats-lock--compact' : ''}`}>
+      <LockKeyhole size={compact ? 18 : 24} aria-hidden="true" />
+      <div>
+        <strong>Статистика доступна с тарифом «Алмаз»</strong>
+        {!compact && <span>Процент колод, винрейт и игровые показатели откроются после проверки подписки.</span>}
+      </div>
+      {!compact && (!authUser ? (
+        <a href="/?login">Войти</a>
+      ) : (
+        <button type="button" disabled={statsAccessLoading} onClick={() => { void onRefreshSubscription(); }}>
+          {statsAccessLoading ? 'Проверяем…' : 'Проверить доступ'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function LockedStatValue() {
+  return (
+    <span className="constructed-cards__locked-value" aria-label="Доступно с тарифом Алмаз">
+      <span aria-hidden="true">18,7%</span><LockKeyhole size={13} aria-hidden="true" />
+    </span>
+  );
+}
+
+function HoverTooltip({ card, rect, statsAccess, gate }: { card: CardRecord; rect: DOMRect; statsAccess: boolean; gate: StatsGateProps }) {
   const width = 320;
   const left = rect.right + width + 18 <= window.innerWidth ? rect.right + 10 : Math.max(10, rect.left - width - 10);
   const top = Math.max(10, Math.min(rect.top + rect.height * 0.12, window.innerHeight - 390));
   return (
     <aside className="constructed-cards__tooltip" style={{ left, top, width }} role="tooltip">
       <div className="constructed-cards__tooltip-header"><strong>{cardName(card)}</strong><span>Статистика · Легенда</span></div>
-      <StatsRows stats={card.stats} compact />
+      {statsAccess ? <StatsRows stats={card.stats} compact /> : (
+        <div className="constructed-cards__stats-locked-preview">
+          <div aria-hidden="true" inert><StatsRows stats={LOCKED_STATS_PLACEHOLDER} compact /></div>
+          <StatsUnlockNotice {...gate} compact />
+        </div>
+      )}
     </aside>
   );
 }
 
-function CardGallery({ cards, format, sort, navigatePath }: { cards: CardRecord[]; format: CardFormat; sort: string; navigatePath: (path: string) => void }) {
+function CardGallery({ cards, format, sort, navigatePath, statsAccess, gate }: { cards: CardRecord[]; format: CardFormat; sort: string; navigatePath: (path: string) => void; statsAccess: boolean; gate: StatsGateProps }) {
   const [hovered, setHovered] = useState<{ card: CardRecord; rect: DOMRect } | null>(null);
   const showTooltip = (card: CardRecord, element: HTMLElement) => setHovered({ card, rect: element.getBoundingClientRect() });
   return (
@@ -364,11 +417,11 @@ function CardGallery({ cards, format, sort, navigatePath }: { cards: CardRecord[
           >
             <img src={card.images?.card || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={cardName(card)} loading="lazy" />
             <span className="constructed-cards__gallery-name">{cardName(card)}</span>
-            <span className="constructed-cards__gallery-stat"><small>{metric.label}</small><strong>{metric.value}</strong></span>
+            <span className="constructed-cards__gallery-stat"><small>{metric.label}</small>{!statsAccess && STATISTIC_SORTS.has(sort) ? <LockedStatValue /> : <strong>{metric.value}</strong>}</span>
           </a>;
         })}
       </div>
-      {hovered && <HoverTooltip card={hovered.card} rect={hovered.rect} />}
+      {hovered && <HoverTooltip card={hovered.card} rect={hovered.rect} statsAccess={statsAccess} gate={gate} />}
     </>
   );
 }
@@ -406,7 +459,7 @@ function sortAria(sort: string, column: string, direction: Filters['direction'])
   return direction === 'asc' ? 'ascending' : 'descending';
 }
 
-function CardTable({ cards, format, sort, direction, navigatePath }: { cards: CardRecord[]; format: CardFormat; sort: string; direction: Filters['direction']; navigatePath: (path: string) => void }) {
+function CardTable({ cards, format, sort, direction, navigatePath, statsAccess }: { cards: CardRecord[]; format: CardFormat; sort: string; direction: Filters['direction']; navigatePath: (path: string) => void; statsAccess: boolean }) {
   const [preview, setPreview] = useState<CardPreviewTarget | null>(null);
   const showPreview = (card: CardRecord, element: HTMLElement) => setPreview({
     id: card.card_id,
@@ -418,7 +471,7 @@ function CardTable({ cards, format, sort, direction, navigatePath }: { cards: Ca
     <>
       <div className="constructed-cards__table-wrap">
         <table className="constructed-cards__table">
-          <thead><tr><th aria-sort={sortAria(sort, 'name', direction)}>Карта</th><th aria-sort={sortAria(sort, 'class', direction)}>Класс</th><th aria-sort={sortAria(sort, 'set', direction)}>Дополнение</th><th aria-sort={sortAria(sort, 'mana', direction)}>Мана</th><th aria-sort={sortAria(sort, 'attack', direction)}>Атака</th><th aria-sort={sortAria(sort, 'health', direction)}>Здоровье</th><th aria-sort={sortAria(sort, 'popularity', direction)}>В % колод</th><th aria-sort={sortAria(sort, 'winrate', direction)}>Победы колод</th><th aria-sort={sortAria(sort, 'games', direction)}>Партий</th></tr></thead>
+          <thead><tr><th aria-sort={sortAria(sort, 'name', direction)}>Карта</th><th aria-sort={sortAria(sort, 'class', direction)}>Класс</th><th aria-sort={sortAria(sort, 'set', direction)}>Дополнение</th><th aria-sort={sortAria(sort, 'mana', direction)}>Мана</th><th aria-sort={sortAria(sort, 'attack', direction)}>Атака</th><th aria-sort={sortAria(sort, 'health', direction)}>Здоровье</th><th aria-sort={sortAria(sort, 'popularity', direction)}>В % колод {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th><th aria-sort={sortAria(sort, 'winrate', direction)}>Победы колод {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th><th aria-sort={sortAria(sort, 'games', direction)}>Партий {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th></tr></thead>
           <tbody>
             {cards.map(card => (
               <tr key={card.card_id}>
@@ -433,7 +486,7 @@ function CardTable({ cards, format, sort, direction, navigatePath }: { cards: Ca
                 ><HsReplayDataDeckCard card={card} /></a></th>
                 <td data-label="Класс"><span><img className="constructed-cards__class-icon" src={classIcon(card.class)} alt="" />{classLabel(card.class || 'NEUTRAL')}</span></td>
                 <td data-label="Дополнение">{card.card_set ? constructedSetLabel(card.card_set) : '—'}</td><td data-label="Мана">{number(card.mana_cost)}</td><td data-label="Атака">{number(card.attack)}</td><td data-label="Здоровье">{number(card.health)}</td>
-                <td data-label="В % колод">{percent(card.stats?.deckPopularity)}</td><td data-label="Победы колод">{percent(card.stats?.deckWinrate)}</td><td data-label="Партий">{number(card.stats?.timesPlayed)}</td>
+                <td data-label="В % колод">{statsAccess ? percent(card.stats?.deckPopularity) : <LockedStatValue />}</td><td data-label="Победы колод">{statsAccess ? percent(card.stats?.deckWinrate) : <LockedStatValue />}</td><td data-label="Партий">{statsAccess ? number(card.stats?.timesPlayed) : <LockedStatValue />}</td>
               </tr>
             ))}
           </tbody>
@@ -459,7 +512,7 @@ function Pagination({ page, totalPages, total, perPage, onPage }: { page: number
   );
 }
 
-function CardsListPage({ initialFormat, navigatePath }: Pick<StandardCardsProps, 'navigatePath'> & { initialFormat: CardFormat }) {
+function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLoading, authUser, onRefreshSubscription }: Pick<StandardCardsProps, 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'> & { initialFormat: CardFormat }) {
   const [format, setFormat] = useState<CardFormat>(initialFormat);
   const [view, setView] = useState<ViewMode>('gallery');
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -477,7 +530,13 @@ function CardsListPage({ initialFormat, navigatePath }: Pick<StandardCardsProps,
     setPage(1);
   }, [initialFormat]);
 
-  const requestKey = useMemo(() => JSON.stringify({ format, page, perPage, reloadToken, ...filters, query: deferredQuery }), [deferredQuery, filters, format, page, perPage, reloadToken]);
+  useEffect(() => {
+    if (statsAccess || !STATISTIC_SORTS.has(filters.sort)) return;
+    setFilters(current => ({ ...current, sort: 'set', direction: 'asc' }));
+    setPage(1);
+  }, [filters.sort, statsAccess]);
+
+  const requestKey = useMemo(() => JSON.stringify({ format, page, perPage, reloadToken, statsAccess, ...filters, query: deferredQuery }), [deferredQuery, filters, format, page, perPage, reloadToken, statsAccess]);
   useEffect(() => {
     const controller = new AbortController();
     const load = async () => {
@@ -518,11 +577,13 @@ function CardsListPage({ initialFormat, navigatePath }: Pick<StandardCardsProps,
   const countFor = (entries: FacetCount[], value: string) => entries.find(entry => entry.value === value)?.count;
   const sets = [...facets.sets].sort(compareConstructedSets);
   const coverage = data?.coverage;
+  const hasStatsAccess = data ? Boolean(data.statsAccess) : statsAccess;
+  const statsGate = { statsAccessLoading, authUser, onRefreshSubscription };
 
   return (
     <div className="constructed-cards">
       <header className="constructed-cards__header">
-        <div><h1>Карты</h1><div className="constructed-cards__beta"><span>Бета</span><span><ShieldCheck size={14} /> Статистика Легенды</span></div></div>
+        <div><h1>Карты</h1><div className="constructed-cards__beta"><span>Бета</span><span>{hasStatsAccess ? <ShieldCheck size={14} /> : <LockKeyhole size={14} />} Статистика Легенды{!hasStatsAccess && ' · Алмаз'}</span></div></div>
         <p>Ранг: <strong>Легенда</strong></p>
       </header>
 
@@ -534,8 +595,9 @@ function CardsListPage({ initialFormat, navigatePath }: Pick<StandardCardsProps,
           </div>
           <label className="constructed-cards__search"><Search size={18} /><input value={filters.query} onChange={event => updateFilter('query', event.target.value)} placeholder="Поиск по названию" /></label>
           <FilterSelect label="Сортировка" value={filters.sort} onChange={value => updateFilter('sort', value)}>
-            <option value="popularity">В % колод</option><option value="winrate">Победы колод</option><option value="games">Сыграно партий</option><option value="mana">Мана</option><option value="attack">Атака</option><option value="health">Здоровье</option><option value="name">Название</option><option value="set">Дополнение</option><option value="class">Класс</option><option value="mechanics">Механики</option>
+            <option value="set">Новые дополнения</option><option value="popularity" disabled={!hasStatsAccess}>🔒 В % колод · Алмаз</option><option value="winrate" disabled={!hasStatsAccess}>🔒 Победы колод · Алмаз</option><option value="games" disabled={!hasStatsAccess}>🔒 Сыграно партий · Алмаз</option><option value="mana">Мана</option><option value="attack">Атака</option><option value="health">Здоровье</option><option value="name">Название</option><option value="class">Класс</option><option value="mechanics">Механики</option>
           </FilterSelect>
+          {!hasStatsAccess && <span className="constructed-cards__sort-lock" title="Статистические сортировки доступны с тарифом Алмаз"><LockKeyhole size={14} /> Алмаз</span>}
           <FilterSelect label="На странице" value={String(perPage)} onChange={value => { setPerPage(Number(value)); setPage(1); }}>
             <option value="60">60 карт</option><option value="120">120 карт</option>
           </FilterSelect>
@@ -570,11 +632,11 @@ function CardsListPage({ initialFormat, navigatePath }: Pick<StandardCardsProps,
         </div>
       </section>
 
-      {data?.warning && <div className="constructed-cards__data-warning" role="status"><AlertTriangle size={18} /><span>Список карт доступен, статистика источника временно скрыта из-за некорректного обновления.</span></div>}
+      {hasStatsAccess && data?.warning && <div className="constructed-cards__data-warning" role="status"><AlertTriangle size={18} /><span>Список карт доступен, статистика источника временно скрыта из-за некорректного обновления.</span></div>}
 
-      {loading ? <section className="constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={34} /><h2>Загружаем библиотеку</h2><p>Объединяем список карт и статистику Легенды.</p></section>
+      {loading ? <section className="constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={34} /><h2>Загружаем библиотеку</h2><p>Собираем полный список карт и дополнений.</p></section>
         : error ? <section className="constructed-cards__state" role="alert"><h2>Не удалось загрузить карты</h2><p>{error}</p><button type="button" onClick={() => setReloadToken(value => value + 1)}><RefreshCw size={16} /> Повторить</button></section>
-          : data && data.cards.length > 0 ? <>{view === 'gallery' ? <CardGallery cards={data.cards} format={format} sort={filters.sort} navigatePath={navigatePath} /> : <CardTable cards={data.cards} format={format} sort={filters.sort} direction={filters.direction} navigatePath={navigatePath} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} /></>
+          : data && data.cards.length > 0 ? <>{view === 'gallery' ? <CardGallery cards={data.cards} format={format} sort={filters.sort} navigatePath={navigatePath} statsAccess={hasStatsAccess} gate={statsGate} /> : <CardTable cards={data.cards} format={format} sort={filters.sort} direction={filters.direction} navigatePath={navigatePath} statsAccess={hasStatsAccess} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} /></>
             : <section className="constructed-cards__state"><Search size={34} /><h2>Карты не найдены</h2><p>Измените фильтры или сбросьте их.</p><button type="button" onClick={reset}><RefreshCw size={16} /> Сбросить фильтры</button></section>}
     </div>
   );
@@ -763,8 +825,9 @@ function ConstructedCardDecks({ decks, cardId, format }: { decks: ConstructedDec
   );
 }
 
-function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; cardId: string; navigatePath: (path: string) => void }) {
+function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoading, authUser, onRefreshSubscription }: { format: CardFormat; cardId: string } & Pick<StandardCardsProps, 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'>) {
   const [card, setCard] = useState<CardRecord | null>(null);
+  const [serverStatsAccess, setServerStatsAccess] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [variant, setVariant] = useState('normal');
@@ -778,6 +841,7 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить карту');
         setCard({ ...(payload.card as CardRecord), mechanicTranslations: payload.mechanicTranslations || {} });
+        setServerStatsAccess(payload.statsAccess === true);
         setVariant('normal');
         setLightboxIndex(-1);
       } catch (loadError) {
@@ -786,7 +850,7 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
     };
     void load();
     return () => controller.abort();
-  }, [cardId, format]);
+  }, [cardId, format, statsAccess]);
   useEffect(() => {
     if (!card) return undefined;
     const frame = requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
@@ -847,7 +911,15 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
           </dl>
           <div className="constructed-card-detail__copy"><h2>Описание</h2><p>{plainText(card.text?.ru || card.text?.en)}</p>{plainText(card.flavor?.ru || card.flavor?.en) && <><h3>Художественный текст</h3><blockquote>{plainText(card.flavor?.ru || card.flavor?.en)}</blockquote></>}</div>
         </div>
-        <div className="constructed-card-detail__statistics"><div><h2>Статистика · Легенда</h2><span>Обновлено {formatDate(card.statsUpdatedAt)}</span></div><StatsRows stats={card.stats} />{!card.stats && <p className="constructed-card-detail__no-stats">Карта есть в библиотеке, но в текущей выборке Легенды недостаточно данных.</p>}</div>
+        <div className={`constructed-card-detail__statistics${serverStatsAccess ? '' : ' is-locked'}`}>
+          <div><h2>Статистика · Легенда</h2><span>{serverStatsAccess ? `Обновлено ${formatDate(card.statsUpdatedAt)}` : 'Тариф «Алмаз»'}</span></div>
+          {serverStatsAccess ? <><StatsRows stats={card.stats} />{!card.stats && <p className="constructed-card-detail__no-stats">Карта есть в библиотеке, но в текущей выборке Легенды недостаточно данных.</p>}</> : (
+            <div className="constructed-card-detail__statistics-gate">
+              <div className="constructed-card-detail__statistics-blur" aria-hidden="true" inert><StatsRows stats={LOCKED_STATS_PLACEHOLDER} /></div>
+              <StatsUnlockNotice statsAccessLoading={statsAccessLoading} authUser={authUser} onRefreshSubscription={onRefreshSubscription} />
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="constructed-card-detail__lower-grid">
@@ -877,9 +949,10 @@ function DetailPage({ format, cardId, navigatePath }: { format: CardFormat; card
   );
 }
 
-export default function StandardCards({ currentPath, navigatePath }: StandardCardsProps) {
+export default function StandardCards(props: StandardCardsProps) {
+  const { currentPath, navigatePath } = props;
   const route = routeState(currentPath);
   return route.page === 'detail' && route.cardId
-    ? <DetailPage format={route.format} cardId={route.cardId} navigatePath={navigatePath} />
-    : <CardsListPage initialFormat={route.format} navigatePath={navigatePath} />;
+    ? <DetailPage format={route.format} cardId={route.cardId} {...props} />
+    : <CardsListPage initialFormat={route.format} {...props} />;
 }

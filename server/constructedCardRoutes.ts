@@ -1,4 +1,4 @@
-import { Router, type RequestHandler, type Response } from 'express';
+import { Router, type Request, type RequestHandler, type Response } from 'express';
 import { decode } from '@firestone-hs/deckstrings';
 
 export type ConstructedCardFormat = 'standard' | 'wild';
@@ -41,6 +41,7 @@ type ConstructedCardDeckPreview = {
 
 export type ConstructedCardRouterDependencies = ConstructedCardDataService & {
   adminGuard: RequestHandler;
+  canAccessStats?: (request: Request) => boolean | Promise<boolean>;
   setPrivateNoStore: (response: Response) => void;
   getMechanicTranslations?: () => Record<string, string>;
   createDeckPreview?: (deck: ConstructedCardDeck) => Promise<ConstructedCardDeckPreview>;
@@ -67,6 +68,20 @@ const MAX_PAGE_SIZE = 120;
 // once the card has enough observed plays to make comparisons useful.
 export const MIN_RELIABLE_CONSTRUCTED_CARD_GAMES = 100;
 const SORTS = new Set(['popularity', 'winrate', 'games', 'mana', 'attack', 'health', 'name', 'set', 'class', 'mechanics']);
+const STATISTIC_SORTS = new Set(['popularity', 'winrate', 'games']);
+const CONSTRUCTED_SET_RELEASE_ORDER = [
+  'ESCAPEFROM_VIOLET_HOLD', 'CATACLYSM', 'TIME_TRAVEL', 'THE_LOST_CITY', 'EMERALD_DREAM',
+  'SPACE', 'ISLAND_VACATION', 'WHIZBANGS_WORKSHOP', 'WILD_WEST', 'WONDERS', 'TITANS',
+  'BATTLE_OF_THE_BANDS', 'RETURN_OF_THE_LICH_KING', 'PATH_OF_ARTHAS', 'REVENDRETH',
+  'THE_SUNKEN_CITY', 'ALTERAC_VALLEY', 'STORMWIND', 'THE_BARRENS', 'DARKMOON_FAIRE',
+  'SCHOLOMANCE', 'BLACK_TEMPLE', 'YEAR_OF_THE_DRAGON', 'DRAGONS', 'ULDUM', 'DALARAN',
+  'TROLL', 'BOOMSDAY', 'GILNEAS', 'LOOTAPALOOZA', 'ICECROWN', 'UNGORO', 'GANGS',
+  'KARA', 'OG', 'LOE', 'TGT', 'BRM', 'GVG', 'NAXX', 'DEMON_HUNTER_INITIATE',
+  'EXPERT1', 'CORE', 'LEGACY', 'EVENT',
+] as const;
+const CONSTRUCTED_SET_RELEASE_INDEX = new Map<string, number>(
+  CONSTRUCTED_SET_RELEASE_ORDER.map((set, index) => [set, index]),
+);
 const VALID_CLASSES = new Set([
   'DEATHKNIGHT', 'DEMONHUNTER', 'DRUID', 'HUNTER', 'MAGE', 'PALADIN',
   'PRIEST', 'ROGUE', 'SHAMAN', 'WARLOCK', 'WARRIOR', 'NEUTRAL', 'DREAM',
@@ -151,6 +166,19 @@ function compareText(left: unknown, right: unknown, direction: number): number {
   return String(left ?? '').localeCompare(String(right ?? ''), 'ru', { sensitivity: 'base' }) * direction;
 }
 
+function compareSetRelease(left: unknown, right: unknown, direction: number): number {
+  const leftSet = String(left ?? '').trim().toUpperCase();
+  const rightSet = String(right ?? '').trim().toUpperCase();
+  const index = (set: string) => {
+    if (!set) return Number.MAX_SAFE_INTEGER;
+    // A newly released set may reach the catalog before this fallback list is
+    // updated. Keep unknown named sets ahead of known historical expansions.
+    return CONSTRUCTED_SET_RELEASE_INDEX.get(set) ?? -1;
+  };
+  return (index(leftSet) - index(rightSet)) * direction
+    || compareText(leftSet, rightSet, direction);
+}
+
 function sortCards(cards: JsonRecord[], sort: string, direction: 'asc' | 'desc'): JsonRecord[] {
   const numericDirection = direction === 'asc' ? 1 : -1;
   return [...cards].sort((left, right) => {
@@ -161,7 +189,7 @@ function sortCards(cards: JsonRecord[], sort: string, direction: 'asc' | 'desc')
     else if (sort === 'mana') result = compareNullableNumbers(left?.mana_cost, right?.mana_cost, numericDirection);
     else if (sort === 'attack') result = compareNullableNumbers(left?.attack, right?.attack, numericDirection);
     else if (sort === 'health') result = compareNullableNumbers(left?.health, right?.health, numericDirection);
-    else if (sort === 'set') result = compareText(left?.card_set, right?.card_set, numericDirection);
+    else if (sort === 'set') result = compareSetRelease(left?.card_set, right?.card_set, numericDirection);
     else if (sort === 'class') result = compareText(left?.class, right?.class, numericDirection);
     else if (sort === 'mechanics') result = compareText(cardMechanics(left).join(' '), cardMechanics(right).join(' '), numericDirection);
     else result = compareText(left?.name?.ru ?? left?.name?.en, right?.name?.ru ?? right?.name?.en, numericDirection);
@@ -195,8 +223,8 @@ export function queryConstructedCards(cards: JsonRecord[], query: Record<string,
   const mana = readNumberFilter(query.mana);
   const attack = readNumberFilter(query.attack);
   const health = readNumberFilter(query.health);
-  const sort = SORTS.has(String(query.sort)) ? String(query.sort) : 'popularity';
-  const direction = query.direction === 'asc' ? 'asc' : 'desc';
+  const sort = SORTS.has(String(query.sort)) ? String(query.sort) : 'set';
+  const direction = query.direction === 'desc' ? 'desc' : 'asc';
 
   const filtered = cards.filter(card => {
     if (search && !searchableText(card).includes(search)) return false;
@@ -242,6 +270,18 @@ export function constructedCardCoverage(cards: JsonRecord[]) {
     cardsWithStats,
     cardsWithoutStats: cards.length - cardsWithStats,
     totalSets: new Set(cards.map(card => String(card?.card_set ?? '').trim()).filter(Boolean)).size,
+  };
+}
+
+export function redactConstructedCardStatistics(card: JsonRecord): JsonRecord {
+  return {
+    ...card,
+    stats: null,
+    statsUpdatedAt: null,
+    statsSourceUrl: null,
+    decks: Array.isArray(card?.decks)
+      ? card.decks.map((deck: JsonRecord) => ({ ...deck, winrate: null, score: null }))
+      : card?.decks,
   };
 }
 
@@ -704,8 +744,13 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
     const page = readPositiveInteger(request.query.page, 1);
     const perPage = readPositiveInteger(request.query.perPage, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
     try {
+      const statsAccess = Boolean(await dependencies.canAccessStats?.(request));
       const collection = await dependencies.loadCards(format);
-      const cards = queryConstructedCards(collection.cards, request.query as Record<string, unknown>);
+      const requestedSort = String(request.query.sort ?? '');
+      const safeQuery = !statsAccess && STATISTIC_SORTS.has(requestedSort)
+        ? { ...request.query, sort: 'set', direction: 'asc' }
+        : request.query;
+      const cards = queryConstructedCards(collection.cards, safeQuery as Record<string, unknown>);
       const totalPages = Math.max(1, Math.ceil(cards.length / perPage));
       const safePage = Math.min(page, totalPages);
       const offset = (safePage - 1) * perPage;
@@ -715,7 +760,8 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
         timeRange: '1d',
         updatedAt: collection.updatedAt,
         sourceUrl: collection.sourceUrl,
-        cards: cards.slice(offset, offset + perPage),
+        statsAccess,
+        cards: cards.slice(offset, offset + perPage).map(card => statsAccess ? card : redactConstructedCardStatistics(card)),
         facets: constructedCardFacets(collection.cards),
         facetCounts: constructedCardFacetCounts(collection.cards),
         mechanicTranslations: dependencies.getMechanicTranslations?.() ?? {},
@@ -737,9 +783,16 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
     if (!format) return response.status(400).json({ error: 'Неизвестный формат карт' });
     if (!/^[a-zA-Z0-9_]{2,80}$/.test(cardId)) return response.status(400).json({ error: 'Некорректный ID карты' });
     try {
+      const statsAccess = Boolean(await dependencies.canAccessStats?.(request));
       const card = await dependencies.loadCardDetail(format, cardId);
       if (!card) return response.status(404).json({ error: 'Карта не найдена' });
-      return response.json({ format, rank: 'legend', mechanicTranslations: dependencies.getMechanicTranslations?.() ?? {}, card });
+      return response.json({
+        format,
+        rank: 'legend',
+        statsAccess,
+        mechanicTranslations: dependencies.getMechanicTranslations?.() ?? {},
+        card: statsAccess ? card : redactConstructedCardStatistics(card),
+      });
     } catch (error) {
       dependencies.onError?.('detail', error);
       return response.status(502).json({ error: 'Данные карты временно недоступны' });

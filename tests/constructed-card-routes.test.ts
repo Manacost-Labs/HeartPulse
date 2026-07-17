@@ -15,6 +15,7 @@ import {
   queryConstructedCards,
   translateConstructedArchetype,
   validateConstructedCardStatsDataset,
+  redactConstructedCardStatistics,
   type ConstructedCardRouterDependencies,
 } from '../server/constructedCardRoutes.js';
 
@@ -98,6 +99,15 @@ assert.equal(
 );
 assert.deepEqual(queryConstructedCards(mergedCards, { class: 'mage', mechanic: 'battlecry' }).map(card => card.card_id), ['CARD_1']);
 assert.deepEqual(queryConstructedCards(mergedCards, { sort: 'mana', direction: 'desc' }).map(card => card.card_id), ['CARD_2', 'CARD_1']);
+assert.deepEqual(
+  queryConstructedCards([
+    { ...catalogCards[0], card_id: 'NEW', card_set: 'ESCAPEFROM_VIOLET_HOLD' },
+    { ...catalogCards[1], card_id: 'OLD', card_set: 'TITANS' },
+  ], {}).map(card => card.card_id),
+  ['NEW', 'OLD'],
+  'the default library order must start with the latest released expansion',
+);
+assert.equal(redactConstructedCardStatistics({ stats: mergedCards[0].stats, decks: [{ winrate: 55, score: '10-5', deckCode: 'AAE' }] }).stats, null);
 assert.deepEqual(constructedCardCoverage(mergedCards), { totalCards: 2, cardsWithStats: 1, cardsWithoutStats: 1, totalSets: 2 });
 assert.deepEqual(constructedCardFacetCounts(mergedCards).sets, [{ value: 'SET_A', count: 1 }, { value: 'SET_B', count: 1 }]);
 assert.deepEqual(constructedCardFacetCounts(mergedCards).classes, [{ value: 'MAGE', count: 1 }, { value: 'WARRIOR', count: 1 }]);
@@ -182,6 +192,7 @@ const adminGuard: RequestHandler = (request, response, next) => {
 };
 const dependencies: ConstructedCardRouterDependencies = {
   adminGuard,
+  canAccessStats: request => request.headers['x-test-stats'] === 'yes' || request.headers['x-test-admin'] === 'yes',
   loadCards: async format => {
     calls.push(`list:${format}`);
     return { cards: mergedCards, updatedAt: '2026-07-16T05:03:02.000Z', sourceUrl: 'https://hsreplay.net/cards/' };
@@ -219,7 +230,25 @@ try {
 
   const publicList = await fetch(`${publicOrigin}?format=standard&perPage=20`);
   assert.equal(publicList.status, 200, 'the released card library must be public');
-  assert.equal((await publicList.json() as any).cards.length, 2);
+  const publicListPayload = await publicList.json() as any;
+  assert.equal(publicListPayload.cards.length, 2);
+  assert.equal(publicListPayload.statsAccess, false);
+  assert.equal(publicListPayload.cards[0].stats, null, 'guests must not receive blurred statistics in API JSON');
+
+  const protectedSort = await fetch(`${publicOrigin}?format=standard&perPage=20&sort=popularity&direction=desc`);
+  assert.equal((await protectedSort.json() as any).cards[0].card_id, 'CARD_1', 'locked statistical sorting must fall back to release order');
+
+  const entitledList = await fetch(`${publicOrigin}?format=standard&perPage=20&sort=popularity&direction=desc`, { headers: { 'X-Test-Stats': 'yes' } });
+  const entitledListPayload = await entitledList.json() as any;
+  assert.equal(entitledListPayload.statsAccess, true);
+  assert.equal(entitledListPayload.cards[0].stats.deckPopularity, 12.5);
+
+  const publicDetail = await fetch(`${publicOrigin}/CARD_1?format=standard`);
+  const publicDetailPayload = await publicDetail.json() as any;
+  assert.equal(publicDetailPayload.statsAccess, false);
+  assert.equal(publicDetailPayload.card.stats, null);
+  assert.equal(publicDetailPayload.card.decks[0].winrate, null);
+  assert.equal(publicDetailPayload.card.decks[0].score, null);
 
   const invalidFormat = await fetch(`${origin}?format=classic`, { headers: adminHeaders });
   assert.equal(invalidFormat.status, 400);

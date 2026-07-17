@@ -5,13 +5,14 @@ import type { AdminMessage } from './adminWorkspaceState';
 type Status = {
   generatedAt: string;
   publicRoutes: string[];
+  diamondRoutes: string[];
   caches: Record<string, { entries: number; fresh?: number; active?: number; activeJobs?: number }>;
   deckView: { queued: number; active: number; succeeded: number; failed: number; timeoutMs: number };
   sources: { viciousSyndicate: string; cardStatistics: Record<string, string>; renderApi: string };
 };
 
 const EMPTY: Status = {
-  generatedAt: '', publicRoutes: [], caches: {},
+  generatedAt: '', publicRoutes: [], diamondRoutes: [], caches: {},
   deckView: { queued: 0, active: 0, succeeded: 0, failed: 0, timeoutMs: 0 },
   sources: { viciousSyndicate: '', cardStatistics: {}, renderApi: '' },
 };
@@ -70,11 +71,12 @@ export function ContestAdminStandardOperations({ onMessage }: { onMessage: (mess
 
       <section className="contest-admin-card admin-standard-operations__card" aria-labelledby="standard-operations-title">
         <div className="admin-card-heading">
-          <div><h2 id="standard-operations-title"><ServerCog size={22} /> Данные Traditional mode</h2><p className="contest-muted">Публичные страницы, источники, кеши и очередь генерации DeckView.</p></div>
+          <div><h2 id="standard-operations-title"><ServerCog size={22} /> Данные Traditional mode</h2><p className="contest-muted">Публичный каталог, страницы тарифа «Алмаз», источники, кеши и очередь DeckView.</p></div>
           <button type="button" className="contest-secondary-button" disabled={loading} onClick={() => void load()}><RefreshCw size={16} /> Обновить</button>
         </div>
         <div className="admin-standard-operations__routes">
-          {status.publicRoutes.map(route => <a key={route} href={route} target="_blank" rel="noreferrer"><ExternalLink size={15} /> {route}</a>)}
+          {status.publicRoutes.map(route => <a key={route} data-access="public" href={route} target="_blank" rel="noreferrer"><ExternalLink size={15} /> {route} · открыто</a>)}
+          {status.diamondRoutes.map(route => <a key={route} data-access="diamond" href={route} target="_blank" rel="noreferrer"><ExternalLink size={15} /> {route} · Алмаз</a>)}
         </div>
         <dl className="admin-standard-operations__sources">
           <div><dt>Vicious Syndicate</dt><dd>{status.sources.viciousSyndicate || '—'}</dd></div>

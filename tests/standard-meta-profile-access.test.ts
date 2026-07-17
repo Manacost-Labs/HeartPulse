@@ -17,8 +17,9 @@ assert.match(
 assert.match(
   appSource,
   /const visibleStandardTabs = STANDARD_TABS;/,
-  'the released Standard data pages must stay visible to both guests and administrators',
+  'Standard navigation must stay visible so guests can reach the Diamond paywall',
 );
+assert.match(appSource, /activeTabEntitlement === 'standard'[\s\S]*тарифом «Алмаз»/, 'traditional pages must name the required Diamond plan');
 assert.match(
   profileSource,
   /href="\/standard\/meta"\s+data-profile-admin-destination="standard-meta"/,

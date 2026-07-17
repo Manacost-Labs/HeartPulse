@@ -142,6 +142,7 @@ const subscriber = {
 const adminFixtures = {
   '/api/admin/constructed-cards': {
     format: 'standard', rank: 'legend', timeRange: '1d', updatedAt: '2026-07-16T05:03:02.000Z', sourceUrl: 'https://hsreplay.net/cards/',
+    statsAccess: true,
     mechanicTranslations: { BATTLECRY: 'Боевой клич', TAUNT: 'Провокация' },
     cards: Array.from({ length: 8 }, (_, index) => ({
       card_id: `CARD_QA_${index + 1}`, dbf: 9000 + index, name: { ru: `Контрольная карта ${index + 1}`, en: `QA Card ${index + 1}` },
@@ -168,7 +169,7 @@ const adminFixtures = {
     pagination: { page: 1, perPage: 60, total: 8, totalPages: 1 },
   },
   '/api/admin/constructed-cards/CARD_QA_1': {
-    format: 'standard', rank: 'legend', mechanicTranslations: { BATTLECRY: 'Боевой клич', TAUNT: 'Провокация' },
+    format: 'standard', rank: 'legend', statsAccess: true, mechanicTranslations: { BATTLECRY: 'Боевой клич', TAUNT: 'Провокация' },
     card: {
       card_id: 'CARD_QA_1', dbf: 9000, name: { ru: 'Контрольная карта 1', en: 'QA Card 1' },
       text: { ru: '<b>Боевой клич:</b> возьмите карту.' }, flavor: { ru: 'Контрольный художественный текст.' },
@@ -362,7 +363,8 @@ const adminFixtures = {
   },
   '/api/admin/standard-operations': {
     generatedAt: '2026-07-16T12:00:00.000Z',
-    publicRoutes: ['/standard/meta', '/standard/vicious-gold', '/standard/cards'],
+    publicRoutes: ['/standard/cards'],
+    diamondRoutes: ['/standard/matchups', '/standard/meta', '/standard/vicious-gold'],
     caches: { meta: { entries: 8, fresh: 8 }, viciousGold: { entries: 1, fresh: 1 }, recommendations: { entries: 24, active: 0 }, previews: { entries: 19, activeJobs: 0 } },
     deckView: { queued: 0, active: 0, succeeded: 31, failed: 1, timeoutMs: 30000 },
     sources: { viciousSyndicate: 'vicious-syndicate-live-standard', cardStatistics: { standard: 'cards-standard', wild: 'cards-wild' }, renderApi: 'http://127.0.0.1:5000/deckview-api/v1' },
@@ -903,7 +905,16 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
     }
     const standardFixturePath = publicStandardFixtureAliases[url.pathname] || url.pathname;
     if ((admin || Boolean(publicStandardFixtureAliases[url.pathname])) && adminFixtures[standardFixturePath]) {
-      request.respond(jsonResponse(adminFixtures[standardFixturePath]));
+      const fixture = structuredClone(adminFixtures[standardFixturePath]);
+      if (!authenticated && url.pathname === '/api/constructed-cards') {
+        fixture.statsAccess = false;
+        fixture.cards = fixture.cards.map(card => ({ ...card, stats: null }));
+      }
+      if (!authenticated && url.pathname === '/api/constructed-cards/CARD_QA_1') {
+        fixture.statsAccess = false;
+        fixture.card = { ...fixture.card, stats: null, statsUpdatedAt: null };
+      }
+      request.respond(jsonResponse(fixture));
       return;
     }
     const fixtureKey = Object.keys(fixtures).find(key => url.pathname === key);
@@ -1509,7 +1520,7 @@ for (const [device, viewport] of [
     await page.screenshot({ path: `${OUT}/admin-mechanic-translations-${device}.png`, fullPage: false });
 
     await page.goto(`${BASE}/?admin&section=standard-data`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForFunction(() => document.querySelectorAll('.admin-standard-operations__routes a').length === 3);
+    await page.waitForFunction(() => document.querySelectorAll('.admin-standard-operations__routes a').length === 4);
     const standardOperationsState = await page.evaluate(() => ({
       title: document.querySelector('.admin-section-header h1')?.textContent?.trim() || '',
       stats: document.querySelectorAll('.admin-standard-operations .admin-stat-grid > div').length,
@@ -2444,7 +2455,8 @@ for (const [device, viewport] of [
           .find(label => label.textContent?.includes('Дополнение'))?.querySelector('span')?.textContent || '',
         setOptionTexts: [...document.querySelectorAll('.constructed-cards__secondary-controls select')][1]
           ? [...document.querySelectorAll('.constructed-cards__secondary-controls select')[1].options].map(option => option.textContent || '') : [],
-        deckPercentLabels: [...document.querySelectorAll('.constructed-cards__gallery-stat small')].filter(item => item.textContent?.includes('В % колод')).length,
+        setMetricLabels: [...document.querySelectorAll('.constructed-cards__gallery-stat small')].filter(item => item.textContent?.includes('Дополнение')).length,
+        defaultSort: document.querySelector('.constructed-cards__primary-controls .constructed-cards__filter select')?.value || '',
         rarity: document.querySelector('.constructed-cards__gallery-card')?.getAttribute('data-rarity') || '',
         rarityGlow: getComputedStyle(document.querySelector('.constructed-cards__gallery-card'), '::before').backgroundImage,
         hoverTransition: getComputedStyle(document.querySelector('.constructed-cards__gallery-card')).transitionDuration,
@@ -2455,7 +2467,7 @@ for (const [device, viewport] of [
     if (constructedCardsState.cards !== 8 || constructedCardsState.filters < 8 || constructedCardsState.menuLinks < 1
       || !constructedCardsState.controlsVisible || !constructedCardsState.rankText.includes('Легенда')
       || constructedCardsState.coveragePresent || constructedCardsState.resultsHeaderPresent
-      || constructedCardsState.setOptions < 3 || constructedCardsState.formatControls !== 1 || constructedCardsState.deckPercentLabels !== 8
+      || constructedCardsState.setOptions < 3 || constructedCardsState.formatControls !== 1 || constructedCardsState.setMetricLabels !== 8 || constructedCardsState.defaultSort !== 'set'
       || constructedCardsState.formatIcons !== 2 || constructedCardsState.formatLabels.join(',') !== 'Стандарт,Вольный'
       || constructedCardsState.classOptions.some(value => /^\d+$/.test(value)) || constructedCardsState.setLabels !== 'Дополнение'
       || constructedCardsState.setOptionTexts.some(value => /\(\d[\d\s]*\)$/.test(value))
@@ -2895,31 +2907,56 @@ for (const width of [320, 430]) {
   }
 }
 
-// Released Traditional-mode data pages must remain usable without an account.
-for (const [path, selector] of [
-  ['/standard/meta', '.standard-meta-card'],
-  ['/standard/vicious-gold', '.vsgold__deck-row'],
-  ['/standard/cards', '.constructed-cards__gallery-card'],
-]) {
+// Traditional analytics require Diamond, while the card catalog stays public
+// and locks only its statistical fields.
+for (const path of ['/standard/meta', '/standard/vicious-gold']) {
   const page = await createQaPage();
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   await mockApplicationApi(page, { authenticated: false });
   try {
     await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForSelector(selector, { visible: true, timeout: 20_000 });
+    await page.waitForSelector('.arena-paywall', { visible: true, timeout: 20_000 });
     const state = await page.evaluate(() => ({
-      paywall: Boolean(document.querySelector('.arena-paywall')),
-      closedBeta: document.body.textContent?.includes('Страница доступна администраторам') || false,
+      diamond: document.querySelector('.arena-paywall')?.textContent?.includes('Алмаз') || false,
+      previewInert: document.querySelector('.arena-paywall__preview')?.hasAttribute('inert') || false,
       standardLinks: document.querySelectorAll('a[href^="/standard/"]').length,
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     }));
-    if (state.paywall || state.closedBeta || state.standardLinks < 4 || state.overflow) {
-      failures.push(`${path} [mobile public]: released route is still restricted or overflowing (${JSON.stringify(state)})`);
+    if (!state.diamond || !state.previewInert || state.standardLinks < 4 || state.overflow) {
+      failures.push(`${path} [mobile guest]: Diamond paywall regressed (${JSON.stringify(state)})`);
     }
-    await auditAccessibility(page, `${path} [mobile public]`);
-    console.log(`✓ ${path} [mobile public] open access + axe`);
+    await auditAccessibility(page, `${path} [mobile guest]`);
+    await page.screenshot({ path: `${OUT}/${path.includes('vicious') ? 'vicious-gold' : 'standard-meta'}-diamond-paywall-mobile.png`, fullPage: false });
+    console.log(`✓ ${path} [mobile guest] Diamond paywall + axe`);
   } catch (error) {
-    failures.push(`${path} [mobile public]: ${error.message}`);
+    failures.push(`${path} [mobile guest]: ${error.message}`);
+  } finally {
+    await page.close();
+  }
+}
+
+{
+  const page = await createQaPage();
+  await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  await mockApplicationApi(page, { authenticated: false });
+  try {
+    await page.goto(`${BASE}/standard/cards`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('.constructed-cards__gallery-card', { visible: true, timeout: 20_000 });
+    const state = await page.evaluate(() => ({
+      fullPaywall: Boolean(document.querySelector('.arena-paywall')),
+      lockedBadge: document.querySelector('.constructed-cards__beta')?.textContent?.includes('Алмаз') || false,
+      lockedSorts: [...document.querySelectorAll('.constructed-cards__filter select option:disabled')].filter(option => option.textContent?.includes('Алмаз')).length,
+      defaultSort: document.querySelector('.constructed-cards__filter select')?.value || '',
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    }));
+    if (state.fullPaywall || !state.lockedBadge || state.lockedSorts !== 3 || state.defaultSort !== 'set' || state.overflow) {
+      failures.push(`/standard/cards [mobile guest]: partial statistics paywall regressed (${JSON.stringify(state)})`);
+    }
+    await auditAccessibility(page, '/standard/cards [mobile guest]');
+    await page.screenshot({ path: `${OUT}/constructed-cards-guest-stat-lock-mobile.png`, fullPage: false });
+    console.log('✓ /standard/cards [mobile guest] public catalog + locked statistics + axe');
+  } catch (error) {
+    failures.push(`/standard/cards [mobile guest]: ${error.message}`);
   } finally {
     await page.close();
   }

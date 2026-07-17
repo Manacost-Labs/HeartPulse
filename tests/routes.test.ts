@@ -33,10 +33,17 @@ for (const id of BG_TAB_IDS) {
 assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-meta'), false, 'Standard meta must be visible publicly after release');
 assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-vicious-gold'), false, 'Vicious Syndicate Gold must be visible publicly after release');
 assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-cards'), false, 'Constructed cards must be visible publicly after release');
+for (const id of ['standard-matchups', 'standard-meta', 'standard-vicious-gold'] as const) {
+  assert.equal(
+    PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS[id],
+    'standard',
+    `${id} must require the Diamond standard entitlement`,
+  );
+}
 assert.equal(
-  PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS['standard-vicious-gold'],
+  PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS['standard-cards'],
   undefined,
-  'admin access must not be replaced by a subscription entitlement',
+  'the card catalog must remain public because only its statistics are gated',
 );
 
 console.log(`route registry assertions passed (${TABS.length} routes)`);

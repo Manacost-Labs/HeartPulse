@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Moved every Traditional-mode analytics page behind the existing Boosty «Алмаз» entitlement while keeping the card catalog and card dossiers public: Meta, Matchups and Vicious Syndicate Gold are protected in both the shell and API; guest card responses redact every statistical field and statistical deck value; card statistics render as an accessible blurred lock with Diamond actions; popularity, win-rate and games sorting are locked; and the library now defaults to newest-expansion-first ordering.
 - Refined every constructed DeckView tile across Meta, Vicious Gold and the card table: crop art now covers the full tile without pale seams, compact 36px rows and 2px row gaps keep the final deck row visible, table rows no longer add a separate English subtitle band, and pointer/keyboard focus opens the complete Russian card as a floating preview.
 - Removed misleading 75–100% constructed-card leaders from tiny one-day samples by requiring 100 observed games before percentage metrics participate in the UI or win-rate sorting; repaired the DeckView composition grid so card art renders in two compact columns and reduced the Standard meta deck dialog footprint.
 - Kept the complete constructed-card catalog available when an upstream statistics refresh is malformed or unavailable: invalid popularity values are removed, users see a clear degraded-data notice, and deck composition hydration continues instead of turning the whole Cards API into a 502 response.
