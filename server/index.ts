@@ -67,7 +67,9 @@ import {
 } from './adminArchetypeTranslationRoutes.js';
 import {
   createAdminMechanicTranslationRouter,
+  loadConstructedMechanicOverrideMap,
   loadConstructedMechanicTranslationMap,
+  repairLegacyConstructedMechanicTranslations,
 } from './adminMechanicTranslationRoutes.js';
 import { createAdminStandardOperationsRouter, type StandardCacheTarget } from './adminStandardOperationsRoutes.js';
 import { createAdminArticleRouter, writeArticlesFile } from './adminArticleRoutes.js';
@@ -1064,6 +1066,7 @@ function db(): DatabaseSync {
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_admin_audit_created ON admin_audit_log(created_at DESC);');
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_archetype_translations_source ON archetype_translations(source, updated_at DESC);');
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_archetype_deck_codes_updated ON archetype_deck_codes(updated_at DESC);');
+  repairLegacyConstructedMechanicTranslations(ecosystemDb);
   const userColumns = new Set((ecosystemDb.prepare('PRAGMA table_info(users)').all() as any[]).map(row => String(row.name)));
   if (!userColumns.has('contact_vk_url')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN contact_vk_url TEXT');
   if (!userColumns.has('contact_telegram')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN contact_telegram TEXT');
@@ -6784,6 +6787,7 @@ app.use('/api', createConstructedCardRouter({
   canAccessStats: request => requestHasEntitlementAccess(request, 'standard'),
   ...constructedCardDataService,
   getMechanicTranslations: () => loadConstructedMechanicTranslationMap(db()),
+  getMechanicTranslationOverrides: () => loadConstructedMechanicOverrideMap(db()),
   createDeckPreview: (deck: ConstructedCardDeck) => createStandardMetaPreview({
     deckCode: deck.deckCode,
     archetypeLabel: deck.archetypeLabel || deck.archetype || deck.title,

@@ -1499,7 +1499,7 @@ for (const [device, viewport] of [
       inputs: document.querySelectorAll('.admin-mechanic-table input').length,
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     }));
-    if (mechanicInitialState.navLabel !== 'Механики' || mechanicInitialState.rows !== 2 || mechanicInitialState.examples !== 2
+    if (mechanicInitialState.navLabel !== 'Механики и теги' || mechanicInitialState.rows !== 2 || mechanicInitialState.examples !== 2
       || mechanicInitialState.inputs !== 2 || mechanicInitialState.overflow) {
       failures.push(`admin mechanic translations [${device}]: list, examples or containment regressed (${JSON.stringify(mechanicInitialState)})`);
     }

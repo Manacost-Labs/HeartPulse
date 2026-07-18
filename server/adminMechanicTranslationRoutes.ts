@@ -2,18 +2,47 @@ import { Router, type Request, type RequestHandler, type Response } from 'expres
 // @ts-ignore: node:sqlite is available in the production Node 22 runtime.
 import type { DatabaseSync } from 'node:sqlite';
 import type { ConstructedCardCollection } from './constructedCardRoutes.js';
+import {
+  CONSTRUCTED_ADMIN_WIKI_TERMS,
+  CONSTRUCTED_TRANSLATION_EXAMPLE_CARD_IDS,
+  DEFAULT_CONSTRUCTED_TERM_TRANSLATIONS,
+  isPublicConstructedTerm,
+  normalizeConstructedTranslationKey,
+} from '../shared/constructedCardTranslations.js';
 
 type AdminIdentity = { id: string };
 type CardFormat = 'standard' | 'wild';
 type JsonRecord = Record<string, any>;
 
-export const DEFAULT_CONSTRUCTED_MECHANIC_TRANSLATIONS: Record<string, string> = {
-  BATTLECRY: 'Боевой клич', DEATHRATTLE: 'Предсмертный хрип', TAUNT: 'Провокация', DIVINE_SHIELD: 'Божественный щит',
-  RUSH: 'Натиск', CHARGE: 'Рывок', LIFESTEAL: 'Похищение жизни', POISONOUS: 'Яд', REBORN: 'Перерождение',
-  DISCOVER: 'Раскопка', SECRET: 'Секрет', COMBO: 'Серия приёмов', OVERLOAD: 'Перегрузка', WINDFURY: 'Неистовство ветра',
-  STEALTH: 'Маскировка', FREEZE: 'Заморозка', TRADEABLE: 'Обмен', TITAN: 'Титан', COLOSSAL: 'Колосс',
-  FORGE: 'Ковка', FINALE: 'Финал', OUTCAST: 'Изгой', SPELLBURST: 'Чары', HONORABLE_KILL: 'Достойная победа',
-};
+export const DEFAULT_CONSTRUCTED_MECHANIC_TRANSLATIONS: Record<string, string> = DEFAULT_CONSTRUCTED_TERM_TRANSLATIONS;
+
+const LEGACY_TRANSLATION_REPAIRS = [
+  ['FRENZY', 'Замарозка', 'Бешенство'],
+  ['QUICKDRAW', 'Навсидку', 'Навскидку'],
+  ['IMBUE', 'Зарядка силы героя', 'Заряд силы героя'],
+  ['SPELLPOWER', 'Урон от заклинания', 'Урон от заклинаний'],
+  ['DEATH_KNIGHT', 'Рыцарь Смерти', 'Рыцарь смерти'],
+  ['COLLECTIONMANAGER_FILTER_MANA_EVEN', 'Четная мана', 'Чётная стоимость'],
+  ['COLLECTIONMANAGER_FILTER_MANA_ODD', 'Нечетная мана', 'Нечётная стоимость'],
+  ['KABAL', 'Кабалы', '«Кабал»'],
+  ['JADE_LOTUS', 'Нефритовые лотосы', 'Нефритовый Лотос'],
+  ['AFFECTED_BY_SPELL_POWER', 'Действие во время заклинания', 'Усиливается уроном от заклинаний'],
+  ['FINISH_ATTACK_SPELL_ON_DAMAGE', 'Переведение урона', 'Урон герою после атаки'],
+  ['QUEST', 'Квест', 'Задача'],
+] as const;
+
+export function repairLegacyConstructedMechanicTranslations(database: DatabaseSync, updatedAt = new Date().toISOString()): number {
+  const update = database.prepare(`
+    UPDATE mechanic_translations
+    SET name_ru = ?, updated_at = ?, updated_by = 'system:ru-terms-v1'
+    WHERE mechanic_key = ? AND name_ru = ?
+  `);
+  let repaired = 0;
+  for (const [key, legacy, replacement] of LEGACY_TRANSLATION_REPAIRS) {
+    repaired += Number(update.run(replacement, updatedAt, key, legacy).changes || 0);
+  }
+  return repaired;
+}
 
 export type AdminMechanicTranslationRouterDependencies = {
   adminGuard: RequestHandler;
@@ -30,7 +59,7 @@ const MAX_PAGE_SIZE = 100;
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
 
 function mechanicKey(value: unknown): string {
-  return String(value ?? '').trim().replace(/\s+/g, ' ').toLocaleUpperCase('en-US');
+  return normalizeConstructedTranslationKey(value);
 }
 
 export function mechanicEnglishLabel(value: unknown): string {
@@ -42,14 +71,21 @@ export function mechanicEnglishLabel(value: unknown): string {
   return raw.replace(/_/g, ' ');
 }
 
-export function loadConstructedMechanicTranslationMap(database: DatabaseSync): Record<string, string> {
+export function loadConstructedMechanicOverrideMap(database: DatabaseSync): Record<string, string> {
   const rows = database.prepare('SELECT mechanic_key, name_ru FROM mechanic_translations').all() as Array<{ mechanic_key: string; name_ru: string }>;
   return rows.reduce((translations, row) => {
     const key = mechanicKey(row.mechanic_key);
     const value = String(row.name_ru ?? '').trim();
     if (key && value) translations[key] = value;
     return translations;
-  }, { ...DEFAULT_CONSTRUCTED_MECHANIC_TRANSLATIONS });
+  }, {} as Record<string, string>);
+}
+
+export function loadConstructedMechanicTranslationMap(database: DatabaseSync): Record<string, string> {
+  return {
+    ...DEFAULT_CONSTRUCTED_MECHANIC_TRANSLATIONS,
+    ...loadConstructedMechanicOverrideMap(database),
+  };
 }
 
 function preferredExample(current: JsonRecord | undefined, candidate: JsonRecord): JsonRecord {
@@ -89,6 +125,7 @@ export function createAdminMechanicTranslationRouter(dependencies: AdminMechanic
       const counts = new Map<string, number>();
       const observedNames = new Map<string, string>();
       const observedKinds = new Map<string, Set<'mechanic' | 'tag'>>();
+      const cardsById = new Map(collection.cards.map(card => [String(card?.card_id ?? '').trim().toUpperCase(), card]));
       for (const card of collection.cards) {
         const observed = [
           ...(Array.isArray(card?.mechanics) ? card.mechanics.map((value: unknown) => ({ value, kind: 'mechanic' as const })) : []),
@@ -96,7 +133,7 @@ export function createAdminMechanicTranslationRouter(dependencies: AdminMechanic
         ];
         for (const { value: rawMechanic, kind } of observed) {
           const key = mechanicKey(rawMechanic);
-          if (!key || /^\d+$/.test(key)) continue;
+          if (!isPublicConstructedTerm(rawMechanic)) continue;
           counts.set(key, (counts.get(key) ?? 0) + 1);
           observedNames.set(key, observedNames.get(key) ?? String(rawMechanic));
           const kinds = observedKinds.get(key) ?? new Set<'mechanic' | 'tag'>();
@@ -105,7 +142,17 @@ export function createAdminMechanicTranslationRouter(dependencies: AdminMechanic
           examples.set(key, preferredExample(examples.get(key), card));
         }
       }
-      for (const row of savedRows) observedNames.set(mechanicKey(row.mechanic_key), String(row.name_en || row.mechanic_key));
+      for (const key of CONSTRUCTED_ADMIN_WIKI_TERMS) {
+        observedNames.set(key, mechanicEnglishLabel(key));
+        observedKinds.set(key, new Set(['tag']));
+        const example = cardsById.get(CONSTRUCTED_TRANSLATION_EXAMPLE_CARD_IDS[key]);
+        if (example) examples.set(key, example);
+      }
+      for (const row of savedRows) {
+        if (isPublicConstructedTerm(row.mechanic_key)) {
+          observedNames.set(mechanicKey(row.mechanic_key), String(row.name_en || row.mechanic_key));
+        }
+      }
 
       const allItems = [...observedNames.entries()].map(([key, rawName]) => {
         const savedRow = saved.get(key);

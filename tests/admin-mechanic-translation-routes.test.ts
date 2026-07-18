@@ -4,8 +4,10 @@ import express from 'express';
 import { DatabaseSync } from 'node:sqlite';
 import {
   createAdminMechanicTranslationRouter,
+  loadConstructedMechanicOverrideMap,
   loadConstructedMechanicTranslationMap,
   mechanicEnglishLabel,
+  repairLegacyConstructedMechanicTranslations,
 } from '../server/adminMechanicTranslationRoutes.js';
 
 assert.equal(mechanicEnglishLabel('DIVINE_SHIELD'), 'Divine Shield');
@@ -21,6 +23,37 @@ database.exec(`
     updated_by TEXT
   );
 `);
+assert.equal(loadConstructedMechanicTranslationMap(database).BATTLECRY, 'Боевой клич', 'the compatibility API map must retain defaults');
+assert.deepEqual(loadConstructedMechanicOverrideMap(database), {}, 'the override map must contain only saved admin values');
+
+const repairDatabase = new DatabaseSync(':memory:');
+repairDatabase.exec(`
+  CREATE TABLE mechanic_translations (
+    mechanic_key TEXT PRIMARY KEY,
+    name_en TEXT NOT NULL,
+    name_ru TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    updated_by TEXT
+  );
+`);
+repairDatabase.prepare(`
+  INSERT INTO mechanic_translations (mechanic_key, name_en, name_ru, updated_at, updated_by)
+  VALUES (?, ?, ?, ?, ?)
+`).run('FRENZY', 'Frenzy', 'Замарозка', '2026-07-01T00:00:00.000Z', 'legacy-admin');
+repairDatabase.prepare(`
+  INSERT INTO mechanic_translations (mechanic_key, name_en, name_ru, updated_at, updated_by)
+  VALUES (?, ?, ?, ?, ?)
+`).run('QUICKDRAW', 'Quickdraw', 'Мой редакторский вариант', '2026-07-02T00:00:00.000Z', 'admin-1');
+assert.equal(repairLegacyConstructedMechanicTranslations(repairDatabase, '2026-07-17T12:00:00.000Z'), 1);
+assert.equal(loadConstructedMechanicTranslationMap(repairDatabase).FRENZY, 'Бешенство');
+assert.equal(loadConstructedMechanicOverrideMap(repairDatabase).FRENZY, 'Бешенство');
+assert.equal(
+  loadConstructedMechanicTranslationMap(repairDatabase).QUICKDRAW,
+  'Мой редакторский вариант',
+  'the repair must not overwrite a custom admin translation',
+);
+assert.equal(repairLegacyConstructedMechanicTranslations(repairDatabase, '2026-07-17T12:00:01.000Z'), 0, 'the repair must be idempotent');
+repairDatabase.close();
 
 let auditAction = '';
 const app = express();
@@ -38,6 +71,7 @@ app.use('/api', createAdminMechanicTranslationRouter({
     cards: [
       { card_id: 'SPELL_1', name: { ru: 'Заклинание' }, card_type: { slug: 'SPELL' }, mechanics: ['BATTLECRY'], images: { card: 'spell.png' } },
       { card_id: 'MINION_1', name: { ru: 'Существо-пример' }, card_type: { slug: 'MINION' }, mechanics: ['BATTLECRY', 'NEW_MECHANIC'], referenced_tags: ['DECK_RELATED'], images: { card: 'minion.png' } },
+      { card_id: 'JAIL_430', name: { ru: 'Азалина Резец Душ' }, card_type: { slug: 'MINION' }, mechanics: [], referenced_tags: [], images: { card: 'azalina.png' } },
     ],
     updatedAt: null,
     sourceUrl: '',
@@ -65,18 +99,21 @@ try {
   assert.equal(initialResponse.status, 200);
   assert.equal(initialResponse.headers.get('cache-control'), 'private, no-store');
   const initial = await initialResponse.json() as any;
-  assert.equal(initial.stats.total, 3);
-  assert.equal(initial.stats.missing, 2);
+  assert.equal(initial.stats.total, 8);
+  assert.equal(initial.stats.missing, 1);
   assert.equal(initial.stats.mechanics, 2);
-  assert.equal(initial.stats.tags, 1);
+  assert.equal(initial.stats.tags, 6);
   const battlecry = initial.items.find((item: any) => item.key === 'BATTLECRY');
   assert.equal(battlecry.nameRu, 'Боевой клич');
   assert.equal(battlecry.example.cardId, 'MINION_1');
+  const copy = initial.items.find((item: any) => item.key === 'COPY');
+  assert.equal(copy.nameRu, 'Копирование');
+  assert.equal(copy.kind, 'tag');
+  assert.equal(copy.example.cardId, 'JAIL_430');
   const tagResponse = await fetch(`${origin}?kind=tag`, { headers: adminHeaders });
   const tags = await tagResponse.json() as any;
-  assert.equal(tags.items.length, 1);
-  assert.equal(tags.items[0].key, 'DECK_RELATED');
-  assert.equal(tags.items[0].kind, 'tag');
+  assert.equal(tags.items.length, 6);
+  assert.equal(tags.items.find((item: any) => item.key === 'DECK_RELATED').kind, 'tag');
 
   const invalid = await fetch(`${origin}/NEW_MECHANIC`, {
     method: 'PUT', headers: adminHeaders, body: JSON.stringify({ nameEn: 'New Mechanic', nameRu: '' }),

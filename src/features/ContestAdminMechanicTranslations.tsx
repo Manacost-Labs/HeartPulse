@@ -112,8 +112,8 @@ export function ContestAdminMechanicTranslations({ onMessage }: { onMessage: (me
       <section className="contest-admin-card admin-translation-list-card" aria-labelledby="mechanic-translation-title">
         <div className="admin-card-heading">
           <div>
-            <h2 id="mechanic-translation-title">Переводы механик</h2>
-            <p className="contest-muted">Английская механика, пример карты и русский перевод. Для примера в первую очередь выбирается существо.</p>
+            <h2 id="mechanic-translation-title">Переводы механик и тегов</h2>
+            <p className="contest-muted">Английский термин, пример карты и русский перевод. Внутренние технические теги в публичный фильтр не попадают.</p>
           </div>
         </div>
         <div className="admin-list-toolbar admin-translation-toolbar admin-mechanic-toolbar">
@@ -124,7 +124,7 @@ export function ContestAdminMechanicTranslations({ onMessage }: { onMessage: (me
 
         <div className="admin-translation-table-wrap" aria-busy={loading}>
           <table className="admin-translation-table admin-mechanic-table">
-            <caption className="sr-only">Переводы механик карт</caption>
+            <caption className="sr-only">Переводы механик и тегов карт</caption>
             <thead><tr><th>English</th><th>Пример карты</th><th>Русский перевод</th><th aria-label="Действия" /></tr></thead>
             <tbody>{data.items.map(item => (
               <tr key={item.key}>
@@ -135,7 +135,7 @@ export function ContestAdminMechanicTranslations({ onMessage }: { onMessage: (me
               </tr>
             ))}</tbody>
           </table>
-          {!loading && !data.items.length && <p className="contest-muted admin-translation-empty" role="status">Механики не найдены.</p>}
+          {!loading && !data.items.length && <p className="contest-muted admin-translation-empty" role="status">Термины не найдены.</p>}
           {loading && <p className="contest-muted admin-translation-empty" role="status">Загружаем механики и примеры карт…</p>}
         </div>
         {data.pages > 1 && <div className="admin-pagination"><button type="button" disabled={page <= 1 || loading} onClick={() => setPage(value => value - 1)}>Назад</button><span>Страница {data.page} из {data.pages}</span><button type="button" disabled={page >= data.pages || loading} onClick={() => setPage(value => value + 1)}>Дальше</button></div>}
