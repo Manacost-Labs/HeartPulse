@@ -73,8 +73,16 @@ export function compareConstructedSets(left: string, right: string): number {
 const SOUND_GROUP_LABELS: Record<string, string> = {
   PLAY: 'Разыгрывание', ATTACK: 'Атака', DEATH: 'Смерть', TRIGGER: 'Срабатывание',
   DRAW: 'Взятие карты', OPENING: 'Начало матча', ENTER: 'Появление', LOOP: 'Фоновый звук',
+  SUMMON: 'Призыв', OTHER: 'Другое',
+  DRUID: 'Друид', HUNTER: 'Охотник', MAGE: 'Маг', PALADIN: 'Паладин', PRIEST: 'Жрец',
+  ROGUE: 'Разбойник', SHAMAN: 'Шаман', WARLOCK: 'Чернокнижник', WARRIOR: 'Воин',
 };
 
 export function constructedSoundGroupLabel(value: string): string {
-  return SOUND_GROUP_LABELS[value.toUpperCase()] ?? value;
+  const normalized = value.trim();
+  const exact = SOUND_GROUP_LABELS[normalized.toUpperCase()];
+  if (exact) return exact;
+  if (/played against|summoned against|alternative summon/i.test(normalized)) return 'Особая реплика при встрече';
+  if (/summon/i.test(normalized)) return 'Особая реплика при призыве';
+  return normalized;
 }

@@ -22,6 +22,13 @@ import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip
 import ConstructedCardLightbox from './ConstructedCardLightbox';
 import { compareConstructedSets, constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
 import { collectConstructedCardMedia, flattenConstructedCardSounds, type ConstructedCardMediaItem } from './constructedCardMedia';
+import {
+  constructedSpellSchoolLabel,
+  constructedTribeLabel,
+  isPublicConstructedTerm,
+  mergeConstructedTranslationSources,
+  translateConstructedMechanic,
+} from '../../shared/constructedCardTranslations';
 import '../vendor/hsreplay-deck-view/hsreplay-deck-view.js';
 import '../vendor/hsreplay-deck-view/hsreplay-deck-view.css';
 import './StandardCards.css';
@@ -80,6 +87,7 @@ type CardRecord = {
   catalogPending?: boolean;
   wiki?: Record<string, any>;
   mechanicTranslations?: Record<string, string>;
+  mechanicOverrides?: Record<string, string>;
   decks?: ConstructedDeck[];
 };
 
@@ -119,6 +127,7 @@ type ListPayload = {
   facets: Facets;
   facetCounts?: FacetCounts;
   mechanicTranslations?: Record<string, string>;
+  mechanicOverrides?: Record<string, string>;
   coverage?: CardCoverage;
   warning?: string | null;
   pagination: { page: number; perPage: number; total: number; totalPages: number };
@@ -179,13 +188,6 @@ const RARITY_LABELS: Record<string, string> = {
 const TYPE_LABELS: Record<string, string> = {
   MINION: 'Существо', SPELL: 'Заклинание', WEAPON: 'Оружие', LOCATION: 'Локация', HERO: 'Герой', ENCHANTMENT: 'Эффект',
 };
-const MECHANIC_LABELS: Record<string, string> = {
-  BATTLECRY: 'Боевой клич', DEATHRATTLE: 'Предсмертный хрип', TAUNT: 'Провокация', DIVINE_SHIELD: 'Божественный щит',
-  RUSH: 'Натиск', CHARGE: 'Рывок', LIFESTEAL: 'Похищение жизни', POISONOUS: 'Яд', REBORN: 'Перерождение',
-  DISCOVER: 'Раскопка', SECRET: 'Секрет', COMBO: 'Серия приёмов', OVERLOAD: 'Перегрузка', WINDFURY: 'Неистовство ветра',
-  STEALTH: 'Маскировка', FREEZE: 'Заморозка', TRADEABLE: 'Обмен', TITAN: 'Титан', COLOSSAL: 'Колосс',
-  FORGE: 'Ковка', FINALE: 'Финал', OUTCAST: 'Изгой', SPELLBURST: 'Чары', HONORABLE_KILL: 'Достойная победа',
-};
 const GENERATED_POOL_LABELS: Record<string, string> = {
   'Fire spells': 'Огненные заклинания',
   'Arcane spells': 'Чародейские заклинания',
@@ -213,16 +215,14 @@ function classLabel(value: string): string {
 }
 
 function mechanicLabel(value: string, translations?: Record<string, string>): string {
-  const exactKey = value.trim().toLocaleUpperCase('en-US');
-  const canonicalKey = exactKey.replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-  return translations?.[exactKey] || translations?.[canonicalKey] || translatedCode(canonicalKey || value, MECHANIC_LABELS);
+  return translateConstructedMechanic(value, translations);
 }
 
 function uniqueMechanicLabels(values: unknown[], translations?: Record<string, string>): Array<{ key: string; label: string }> {
   const unique = new Map<string, { key: string; label: string }>();
   for (const rawValue of values) {
     const value = String(rawValue ?? '').trim();
-    if (!value) continue;
+    if (!isPublicConstructedTerm(value)) continue;
     const label = mechanicLabel(value, translations).trim();
     const normalizedLabel = label.toLocaleLowerCase('ru-RU').replace(/[^a-zа-яё0-9]+/gi, '');
     if (normalizedLabel && !unique.has(normalizedLabel)) unique.set(normalizedLabel, { key: normalizedLabel, label });
@@ -266,7 +266,16 @@ function sortMetric(card: CardRecord, sort: string): { label: string; value: str
 function cardMechanicKeys(card: CardRecord): string[] {
   return [...new Set([...(card.mechanics || []), ...(card.referenced_tags || [])]
     .map(value => String(value).trim())
-    .filter(value => Boolean(value) && !/^\d+$/.test(value)))];
+    .filter(isPublicConstructedTerm))];
+}
+
+function soundClipLabel(description: string, group: string, index: number): string {
+  const label = plainText(description);
+  if (!label) return `${constructedSoundGroupLabel(group)} · фрагмент ${index + 1}`;
+  if (/[A-Za-z]/.test(label) && !/[А-Яа-яЁё]/.test(label)) {
+    return `${constructedSoundGroupLabel(group)} · реплика ${index + 1}`;
+  }
+  return label;
 }
 
 function formatDate(value: string | null | undefined): string {
@@ -840,7 +849,11 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
         const response = await fetch(`/api/constructed-cards/${encodeURIComponent(cardId)}?format=${format}`, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: controller.signal });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить карту');
-        setCard({ ...(payload.card as CardRecord), mechanicTranslations: payload.mechanicTranslations || {} });
+        setCard({
+          ...(payload.card as CardRecord),
+          mechanicTranslations: payload.mechanicTranslations || {},
+          mechanicOverrides: payload.mechanicOverrides ?? payload.mechanicTranslations ?? {},
+        });
         setServerStatsAccess(payload.statsAccess === true);
         setVariant('normal');
         setLightboxIndex(-1);
@@ -863,7 +876,8 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
   const variants = variantImages(card);
   const selectedImage = variants.find(item => item.id === variant)?.url || variants[0]?.url || '';
   const wiki = card.wiki || {};
-  const mechanics = uniqueMechanicLabels([...(card.mechanics || []), ...(card.referenced_tags || []), ...(wiki.wiki_mechanics || []), ...(wiki.wiki_tags || [])], card.mechanicTranslations);
+  const effectiveTranslations = mergeConstructedTranslationSources(wiki, card.mechanicOverrides);
+  const mechanics = uniqueMechanicLabels([...(card.mechanics || []), ...(card.referenced_tags || []), ...(wiki.wiki_mechanics || []), ...(wiki.wiki_tags || [])], effectiveTranslations);
   const patchRows = (Array.isArray(wiki.patch_changes) ? wiki.patch_changes : [])
     .flatMap((group: any) => (Array.isArray(group?.entries) ? group.entries : []).map((entry: any) => ({ ...entry, heading: group.heading })))
     .sort((left: any, right: any) => patchTimestamp(right) - patchTimestamp(left));
@@ -905,7 +919,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
             <div><dt>Дополнение</dt><dd>{card.card_set ? constructedSetLabel(card.card_set) : 'Не указано'}</dd></div><div><dt>Художник</dt><dd>{card.artist || 'Не указан'}</dd></div>
             {card.attack !== null && card.attack !== undefined && <div><dt>Атака</dt><dd>{card.attack}</dd></div>}{card.health !== null && card.health !== undefined && <div><dt>Здоровье</dt><dd>{card.health}</dd></div>}
             {card.durability !== null && card.durability !== undefined && <div><dt>Прочность</dt><dd>{card.durability}</dd></div>}{card.armor !== null && card.armor !== undefined && <div><dt>Броня</dt><dd>{card.armor}</dd></div>}
-            {card.minion_type && <div><dt>Тип существа</dt><dd>{translatedCode(card.minion_type)}</dd></div>}{card.spell_school && <div><dt>Школа магии</dt><dd>{translatedCode(card.spell_school)}</dd></div>}
+            {card.minion_type && <div><dt>Тип существа</dt><dd>{constructedTribeLabel(card.minion_type)}</dd></div>}{card.spell_school && <div><dt>Школа магии</dt><dd>{constructedSpellSchoolLabel(card.spell_school)}</dd></div>}
             <div><dt>Форматы</dt><dd>{card.formats?.map(item => item.name_ru || item.name_en || item.slug).join(', ') || (format === 'standard' ? 'Стандартный, Вольный' : 'Вольный')}</dd></div>
             <div><dt>ID карты</dt><dd><code>{card.card_id}</code>{card.dbf ? ` · DBF ${card.dbf}` : ''}</dd></div>
           </dl>
@@ -941,7 +955,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
 
       <section className={`constructed-card-detail__media-grid${sounds.length ? '' : ' constructed-card-detail__media-grid--two'}`}>
         <div className="constructed-card-detail__section"><h2>Галерея · {galleryMedia.length}</h2>{galleryMedia.length ? <div className="constructed-card-detail__gallery">{galleryMedia.map(item => <button key={item.id} type="button" onClick={() => openMedia(item.url)} aria-label={`Открыть ${item.label}`}><img src={item.thumbnailUrl} alt={item.label} loading="lazy" /><span>{item.label}</span></button>)}</div> : <p>Дополнительные изображения отсутствуют.</p>}</div>
-        {sounds.length > 0 && <div className="constructed-card-detail__section"><h2><Volume2 size={19} /> Звуки карты · {sounds.length}</h2><div className="constructed-card-detail__sounds">{soundGroups.map(([group, clips], groupIndex) => <details key={group} open={groupIndex === 0}><summary>{constructedSoundGroupLabel(group)} · {clips?.length ?? 0}</summary>{clips?.map(item => <article key={item.id}><span>{plainText(item.description) || item.title}</span><audio controls preload="metadata" src={item.url}>Ваш браузер не поддерживает воспроизведение аудио.</audio></article>)}</details>)}</div></div>}
+        {sounds.length > 0 && <div className="constructed-card-detail__section"><h2><Volume2 size={19} /> Звуки карты · {sounds.length}</h2><div className="constructed-card-detail__sounds">{soundGroups.map(([group, clips], groupIndex) => <details key={group} open={groupIndex === 0}><summary>{constructedSoundGroupLabel(group)} · {clips?.length ?? 0}</summary>{clips?.map((item, clipIndex) => <article key={item.id}><span>{soundClipLabel(item.description, item.group, clipIndex)}</span><audio controls preload="metadata" src={item.url}>Ваш браузер не поддерживает воспроизведение аудио.</audio></article>)}</details>)}</div></div>}
         <div className="constructed-card-detail__section"><h2>Дополнительная информация</h2><div className="constructed-card-detail__links">{card.wiki_page?.url && <a href={card.wiki_page.url} target="_blank" rel="noreferrer">Hearthstone Wiki <ExternalLink size={14} /></a>}{externalLinks.map((item: any, index: number) => <a key={`${item.url}-${index}`} href={item.url} target="_blank" rel="noreferrer">{item.label || item.url} <ExternalLink size={14} /></a>)}</div></div>
       </section>
       {lightboxIndex >= 0 && <ConstructedCardLightbox items={mediaItems} index={lightboxIndex} onClose={() => setLightboxIndex(-1)} onIndexChange={setLightboxIndex} />}

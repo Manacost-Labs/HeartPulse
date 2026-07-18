@@ -112,6 +112,11 @@ assert.deepEqual(constructedCardCoverage(mergedCards), { totalCards: 2, cardsWit
 assert.deepEqual(constructedCardFacetCounts(mergedCards).sets, [{ value: 'SET_A', count: 1 }, { value: 'SET_B', count: 1 }]);
 assert.deepEqual(constructedCardFacetCounts(mergedCards).classes, [{ value: 'MAGE', count: 1 }, { value: 'WARRIOR', count: 1 }]);
 assert.deepEqual(constructedCardFacetCounts(mergedCards).mechanics, [{ value: 'BATTLECRY', count: 1 }, { value: 'TAUNT', count: 1 }]);
+assert.deepEqual(
+  constructedCardFacetCounts([{ ...catalogCards[0], mechanics: ['BATTLECRY', 'TRIGGER_VISUAL', 'ImmuneToSpellpower'] }]).mechanics,
+  [{ value: 'BATTLECRY', count: 1 }],
+  'internal engine and VFX tags must not appear as public mechanics filters',
+);
 assert.equal(completeConstructedCatalog([{ data: catalogCards, pagination: { total: 2 } }]).length, 2);
 assert.throws(
   () => completeConstructedCatalog([{ data: catalogCards.slice(0, 1), pagination: { total: 2 } }]),
@@ -208,6 +213,7 @@ const dependencies: ConstructedCardRouterDependencies = {
     response.vary('Cookie');
   },
   getMechanicTranslations: () => ({ BATTLECRY: 'Боевой клич' }),
+  getMechanicTranslationOverrides: () => ({ BATTLECRY: 'Редакторский боевой клич' }),
 };
 
 const app = express();
@@ -264,11 +270,15 @@ try {
   assert.ok(listPayload.facets.classes.includes('WARRIOR'));
   assert.equal(listPayload.coverage.totalCards, 2);
   assert.deepEqual(listPayload.mechanicTranslations, { BATTLECRY: 'Боевой клич' });
+  assert.deepEqual(listPayload.mechanicOverrides, { BATTLECRY: 'Редакторский боевой клич' });
   assert.deepEqual(listPayload.facetCounts.sets, [{ value: 'SET_A', count: 1 }, { value: 'SET_B', count: 1 }]);
 
   const detail = await fetch(`${origin}/CARD_1?format=wild`, { headers: adminHeaders });
   assert.equal(detail.status, 200);
-  assert.equal((await detail.json() as any).card.name.ru, 'Альфа');
+  const detailPayload = await detail.json() as any;
+  assert.equal(detailPayload.card.name.ru, 'Альфа');
+  assert.deepEqual(detailPayload.mechanicTranslations, { BATTLECRY: 'Боевой клич' });
+  assert.deepEqual(detailPayload.mechanicOverrides, { BATTLECRY: 'Редакторский боевой клич' });
 
   const preview = await fetch(`${origin}/CARD_1/decks/754/preview?format=standard`, { method: 'POST', headers: adminHeaders });
   assert.equal(preview.status, 200);

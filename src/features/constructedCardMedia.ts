@@ -1,3 +1,8 @@
+import {
+  localizeConstructedMediaLabel,
+  localizeConstructedSoundDescription,
+} from '../../shared/constructedCardTranslations';
+
 export type ConstructedCardSound = {
   id: string;
   group: string;
@@ -22,8 +27,7 @@ function mediaKind(url: string): 'image' | 'video' {
 }
 
 function readableMediaLabel(value: unknown, fallback: string): string {
-  const label = String(value ?? '').replace(/^File:/i, '').replace(/[_-]+/g, ' ').trim();
-  return label || fallback;
+  return localizeConstructedMediaLabel(value, fallback);
 }
 
 export function flattenConstructedCardSounds(rawSounds: unknown): ConstructedCardSound[] {
@@ -45,7 +49,7 @@ export function flattenConstructedCardSounds(rawSounds: unknown): ConstructedCar
       result.push({
         id: `${groupIndex}-${clipIndex}-${url}`,
         group: groupName,
-        description: String(item.description ?? item.caption ?? '').trim(),
+        description: localizeConstructedSoundDescription(item.description ?? item.caption),
         title: readableMediaLabel(item.file_title ?? item.name, `Звук ${result.length + 1}`),
         url,
       });

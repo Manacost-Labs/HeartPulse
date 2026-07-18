@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { collectConstructedCardMedia, flattenConstructedCardSounds } from '../src/features/constructedCardMedia.js';
+import { constructedSoundGroupLabel } from '../src/features/constructedCardLabels.js';
 
 const sounds = flattenConstructedCardSounds([
   {
@@ -14,8 +15,11 @@ const sounds = flattenConstructedCardSounds([
 assert.equal(sounds.length, 3);
 assert.equal(sounds[0].group, 'Play');
 assert.equal(sounds[0].description, 'For Azeroth!');
+assert.equal(sounds[1].description, 'Музыкальная заставка', 'technical sound captions must be localized for the card page');
 assert.equal(sounds[2].group, 'Death');
 assert.equal(sounds[2].url, 'https://example.test/death.wav');
+assert.equal(constructedSoundGroupLabel('Summon'), 'Призыв');
+assert.equal(constructedSoundGroupLabel('Played against Garrosh Hellscream'), 'Особая реплика при встрече');
 
 const media = collectConstructedCardMedia({
   images: {
@@ -33,5 +37,7 @@ const media = collectConstructedCardMedia({
 assert.equal(media.length, 6, 'all unique card variants and gallery art must be available to the lightbox');
 assert.equal(media.find(item => item.id === 'animated-golden')?.kind, 'video');
 assert.equal(media.find(item => item.id === 'gallery-0')?.thumbnailUrl, 'https://example.test/thumb.jpg');
+assert.equal(media.find(item => item.id === 'gallery-0')?.label, 'Полный арт', 'English wiki gallery captions must be localized');
+assert.equal(media.find(item => item.id === 'signature_cards-0')?.label, 'Сигнатурная карта', 'English card-variant labels must be localized');
 
 console.log('constructed card media normalization tests passed');

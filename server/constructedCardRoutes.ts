@@ -1,5 +1,6 @@
 import { Router, type Request, type RequestHandler, type Response } from 'express';
 import { decode } from '@firestone-hs/deckstrings';
+import { isPublicConstructedTerm } from '../shared/constructedCardTranslations.js';
 
 export type ConstructedCardFormat = 'standard' | 'wild';
 
@@ -44,6 +45,7 @@ export type ConstructedCardRouterDependencies = ConstructedCardDataService & {
   canAccessStats?: (request: Request) => boolean | Promise<boolean>;
   setPrivateNoStore: (response: Response) => void;
   getMechanicTranslations?: () => Record<string, string>;
+  getMechanicTranslationOverrides?: () => Record<string, string>;
   createDeckPreview?: (deck: ConstructedCardDeck) => Promise<ConstructedCardDeckPreview>;
   onError?: (scope: 'list' | 'detail' | 'deck-preview', error: unknown) => void;
 };
@@ -144,7 +146,7 @@ export function cardMechanics(card: JsonRecord): string[] {
   return [...new Set([
     ...(Array.isArray(card?.mechanics) ? card.mechanics : []),
     ...(Array.isArray(card?.referenced_tags) ? card.referenced_tags : []),
-  ].map(value => String(value).trim()).filter(value => Boolean(value) && !/^\d+$/.test(value)))];
+  ].map(value => String(value).trim()).filter(isPublicConstructedTerm))];
 }
 
 function cardClasses(card: JsonRecord): string[] {
@@ -765,6 +767,7 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
         facets: constructedCardFacets(collection.cards),
         facetCounts: constructedCardFacetCounts(collection.cards),
         mechanicTranslations: dependencies.getMechanicTranslations?.() ?? {},
+        mechanicOverrides: dependencies.getMechanicTranslationOverrides?.(),
         coverage: constructedCardCoverage(collection.cards),
         warning: collection.warning ?? null,
         pagination: { page: safePage, perPage, total: cards.length, totalPages },
@@ -791,6 +794,7 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
         rank: 'legend',
         statsAccess,
         mechanicTranslations: dependencies.getMechanicTranslations?.() ?? {},
+        mechanicOverrides: dependencies.getMechanicTranslationOverrides?.(),
         card: statsAccess ? card : redactConstructedCardStatistics(card),
       });
     } catch (error) {
