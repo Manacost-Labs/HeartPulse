@@ -29,6 +29,24 @@ async function uploadAdminImageFile(file: File): Promise<string> {
   return String(data.url || '');
 }
 
+async function uploadAdminImageUrl(sourceUrl: string): Promise<string> {
+  let url: URL;
+  try {
+    url = new URL(sourceUrl.trim());
+  } catch {
+    throw new Error('Укажите корректную ссылку на изображение');
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Ссылка должна начинаться с http:// или https://');
+  const response = await fetch('/api/admin/uploads/image', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' },
+    body: JSON.stringify({ sourceUrl: url.href }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'Не удалось загрузить картинку по ссылке');
+  return String(data.url || '');
+}
+
 type ContestAdminImageUploaderProps = {
   label: string;
   value: string;
@@ -60,6 +78,20 @@ export function ContestAdminImageUploader({
     }
   };
 
+  const uploadFromUrl = async () => {
+    setUploading(true);
+    setError('');
+    try {
+      onChange(await uploadAdminImageUrl(value));
+    } catch (uploadError: unknown) {
+      setError(uploadError instanceof Error ? uploadError.message : 'Не удалось загрузить картинку по ссылке');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const canImportUrl = /^https?:\/\//i.test(value.trim());
+
   return (
     <div
       className={`admin-image-uploader ${uploading ? 'admin-image-uploader-busy' : ''}`}
@@ -86,6 +118,11 @@ export function ContestAdminImageUploader({
         <span>{label}</span>
         <div className="admin-image-uploader-actions">
           {value && <button type="button" onClick={() => onChange('')} disabled={uploading}>Убрать</button>}
+          {allowExternalUrl && (
+            <button type="button" onClick={() => void uploadFromUrl()} disabled={uploading || !canImportUrl}>
+              Загрузить по ссылке
+            </button>
+          )}
           <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading}>
             {uploading ? 'Загружаем...' : 'Выбрать файл'}
           </button>
@@ -100,7 +137,10 @@ export function ContestAdminImageUploader({
         onChange={event => void uploadFile(firstImageFile(event.target.files))}
       />
       {allowExternalUrl ? (
-        <input aria-label={`${label}: URL`} value={value} onChange={event => onChange(event.target.value)} placeholder="URL или загрузка через Ctrl+V / drag and drop" style={ADMIN_INPUT} />
+        <>
+          <input aria-label={`${label}: URL`} value={value} onChange={event => { setError(''); onChange(event.target.value); }} placeholder="https://example.com/cover.jpg" style={ADMIN_INPUT} />
+          <small className="admin-field-hint">Вставьте прямую ссылку и нажмите «Загрузить по ссылке». Картинка будет сохранена на нашем сервере.</small>
+        </>
       ) : (
         <small className="admin-field-hint">Используйте загрузку файла: конкурс принимает только изображения, сохранённые на этом сайте.</small>
       )}

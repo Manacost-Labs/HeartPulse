@@ -626,6 +626,13 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
       request.respond(jsonResponse({ articles: adminState.articles ?? adminFixtures['/api/articles'].articles }));
       return;
     }
+    if (admin && url.pathname === '/api/admin/uploads/image' && request.method() === 'POST') {
+      const payload = JSON.parse(request.postData() || '{}');
+      if (payload.sourceUrl) {
+        request.respond(jsonResponse({ success: true, url: '/uploads/admin/qa-article-cover.webp' }));
+        return;
+      }
+    }
     if (admin && url.pathname === '/api/admin-articles') {
       const payload = JSON.parse(request.postData() || '{}');
       const articles = adminState.articles ??= structuredClone(adminFixtures['/api/articles'].articles);
@@ -1350,6 +1357,18 @@ for (const [device, viewport] of [
     if (editedArticleTitle !== 'Первая статья') failures.push(`admin articles [${device}]: edit did not populate the form`);
     await page.click('.admin-article-form input[required]', { clickCount: 3 });
     await page.type('.admin-article-form input[required]', 'Первая статья — обновлена');
+    const articleImageUrlInput = '.admin-article-form input[aria-label="Картинка статьи: URL"]';
+    await page.click(articleImageUrlInput, { clickCount: 3 });
+    await page.type(articleImageUrlInput, 'https://images.example.test/cover.png');
+    await page.evaluate(() => {
+      const button = [...document.querySelectorAll('.admin-article-form .admin-image-uploader-actions button')]
+        .find(element => element.textContent?.trim() === 'Загрузить по ссылке');
+      if (!(button instanceof HTMLButtonElement)) throw new Error('Remote image import action is missing');
+      button.click();
+    });
+    await page.waitForFunction(selector => (
+      document.querySelector(selector)?.value === '/uploads/admin/qa-article-cover.webp'
+    ), {}, articleImageUrlInput);
     const articleAccessOptions = await page.$$eval('.admin-article-form select option', options => options.map(option => ({
       value: option.value,
       text: option.textContent?.trim() || '',

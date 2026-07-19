@@ -99,6 +99,7 @@ import { createAdminBoostyRouter } from './adminBoostyRoutes.js';
 import { createAdminTelegramReadRouter } from './adminTelegramReadRoutes.js';
 import { createAdminContestReadRouter } from './adminContestReadRoutes.js';
 import { createAdminImageUploadRouter } from './adminImageUploadRoutes.js';
+import { fetchRemoteAdminImage } from './adminRemoteImage.js';
 import { createAdminImageGenerationRouter } from './adminImageGenerationRoutes.js';
 import { createContestRouter } from './contestRoutes.js';
 import { createSubscriptionRouter } from './subscriptionRoutes.js';
@@ -8477,6 +8478,7 @@ app.use('/api', createAdminImageUploadRouter({
   maxPixels: ADMIN_UPLOAD_MAX_PIXELS,
   maxWidth: ADMIN_UPLOAD_MAX_WIDTH,
   maxHeight: ADMIN_UPLOAD_MAX_HEIGHT,
+  fetchRemoteImage: url => fetchRemoteAdminImage(url, { maxBytes: ADMIN_UPLOAD_MAX_BYTES }),
 }));
 
 app.use('/api', createReferralRouter({

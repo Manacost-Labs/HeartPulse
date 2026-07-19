@@ -19,6 +19,7 @@ const publicDir = join(root, 'public');
 const sourceDir = join(root, 'source');
 let transformMode: 'ok' | 'large' | 'failure' = 'ok';
 let transformCalls = 0;
+const fetchedUrls: string[] = [];
 const app = express();
 app.use(express.json({ limit: '2mb' }));
 app.use('/api', createAdminImageUploadRouter({
@@ -36,6 +37,10 @@ app.use('/api', createAdminImageUploadRouter({
     transformCalls += 1;
     if (transformMode === 'failure') throw new Error('secret sharp storage path');
     return { output: Buffer.from('webp-output'), width: transformMode === 'large' ? 11 : 5, height: 5, pages: 1 };
+  },
+  fetchRemoteImage: async url => {
+    fetchedUrls.push(url);
+    return png;
   },
 }));
 
@@ -65,6 +70,11 @@ try {
   assert.equal((await readdir(publicDir).catch(() => [])).length, 0);
 
   transformMode = 'ok';
+  const remoteUpload = await post({ sourceUrl: 'https://images.example.test/cover.png' }, 'admin');
+  assert.equal(remoteUpload.status, 200);
+  assert.deepEqual(await remoteUpload.json(), { success: true, url: '/uploads/admin/fixed-upload.webp' });
+  assert.deepEqual(fetchedUrls, ['https://images.example.test/cover.png']);
+
   const contestUpload = await post({ dataUrl }, 'contest');
   assert.equal(contestUpload.status, 200);
   assert.equal(contestUpload.headers.get('cache-control'), 'private, no-store');

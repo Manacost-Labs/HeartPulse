@@ -16,6 +16,7 @@ export type AdminImageUploadDependencies = {
   maxWidth: number;
   maxHeight: number;
   createFileName?: () => string;
+  fetchRemoteImage?: (url: string) => Promise<Buffer>;
   transform?: (source: Buffer) => Promise<{ output: Buffer; width: number; height: number; pages: number }>;
 };
 
@@ -79,8 +80,19 @@ export function createAdminImageUploadRouter(dependencies: AdminImageUploadDepen
     if (!dependencies.adminAuth(request) && !dependencies.contestAdminAuth(request)) {
       return response.status(403).json({ error: 'Недостаточно прав' });
     }
-    const source = decodeAdminImageDataUrl(request.body?.dataUrl);
-    if (!source) return response.status(400).json({ error: 'Нужно передать корректное изображение в формате data URL' });
+    let source = decodeAdminImageDataUrl(request.body?.dataUrl);
+    const sourceUrl = String(request.body?.sourceUrl || '').trim();
+    if (!source && sourceUrl && dependencies.fetchRemoteImage) {
+      try {
+        source = await dependencies.fetchRemoteImage(sourceUrl);
+      } catch (error: any) {
+        const status = Number(error?.status);
+        return response.status(Number.isInteger(status) && status >= 400 && status <= 599 ? status : 502).json({
+          error: error instanceof Error ? error.message : 'Не удалось загрузить изображение по ссылке',
+        });
+      }
+    }
+    if (!source) return response.status(400).json({ error: 'Нужно передать файл или корректную ссылку на изображение' });
     if (!source.length) return response.status(400).json({ error: 'Файл пустой' });
     if (source.length > dependencies.maxBytes) {
       return response.status(413).json({ error: `Картинка больше ${Math.round(dependencies.maxBytes / 1024 / 1024)} МБ` });
