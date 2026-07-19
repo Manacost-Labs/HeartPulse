@@ -8,7 +8,9 @@ const budgets = {
   // Route-owned icons and Home stay out of the eager dependency graph. The
   // shell chunk may contain its own icon code, while aggregate startup limits
   // remain stricter than the previous 266 KB raw / 90 KB gzip baseline.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 56_000),
+  // The utility header is lazy-loaded; keep a tiny allowance for the shell loader
+  // while the stricter aggregate startup limits below remain unchanged.
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 56_500),
   initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 252_000),
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_000),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),

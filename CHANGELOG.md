@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Added a compact secondary header in the existing top content strip with deep search across article titles/excerpts and Standard/Wild card names, rules text, mechanics and metadata. Search results preserve article subscription locks and Diamond statistic labels, while a responsive FAQ panel exposes the shared help content on every public page.
 - Fixed article cards so cover artwork is displayed in full without being cropped at the top and bottom.
 - Fixed article cover creation from external links: the administrator form now has an explicit “Загрузить по ссылке” action, validates the remote response, imports supported images into local `/uploads/admin` storage and reports actionable errors. The server rejects local/private destinations, unsafe protocols, credential-bearing URLs, non-image responses, redirect abuse and oversized files before processing.
 - Added “Стандарт” and “Вольный” article access modes for Boosty «Алмаз» subscribers and higher, with matching administrator labels and entitlement checks. Extended administrator user controls from forever-only access to audited full-site grants for 7/30/90 days, one year, a custom future date or forever; expired grants now stop affecting protected routes, subscription filters and mailing lifecycle automatically, while revocation preserves the user's normal subscription.

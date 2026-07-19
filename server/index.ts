@@ -30,6 +30,7 @@ import { createArticleCoverRouter } from './articleCoverRoutes.js';
 import { createGuidesArchiveRouter } from './guidesArchiveRoutes.js';
 import { createArticleRouter } from './articleRoutes.js';
 import { articleAccessEntitlement, type ArticleAccessMode } from './articleAccess.js';
+import { createGlobalSearchRouter } from './globalSearchRoutes.js';
 import { createOperationalRouter } from './operationalRoutes.js';
 import { createArenaDecksRouter, type ArenaDecksCacheStore } from './arenaDeckRoutes.js';
 import { createStandardMatchupRouter } from './standardMatchupRoutes.js';
@@ -6809,6 +6810,18 @@ app.use('/api', createConstructedCardRouter({
   setPrivateNoStore,
   onError: (scope, error) => console.error(
     `[constructed-cards] ${scope} failed:`,
+    error instanceof Error ? error.message : error,
+  ),
+}));
+
+app.use('/api', createGlobalSearchRouter({
+  loadArticles: () => loadDataCached('articles.json'),
+  loadCards: constructedCardDataService.loadCards,
+  getArticleMode: article => articleMode(article),
+  isVipArticleUrl: isKhaVipArticleUrl,
+  cacheHeader: 'public, max-age=60, stale-while-revalidate=120',
+  onError: error => console.error(
+    '[global-search] failed:',
     error instanceof Error ? error.message : error,
   ),
 }));

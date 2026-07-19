@@ -11,6 +11,12 @@
   padding: clamp(1rem, 2.5vw, 2.4rem) clamp(1rem, 2.8vw, 2.8rem) 3.5rem;
 }
 
+@media (min-width: 1024px) {
+  :is(.arena-app-editorial, .arena-app-game-data) .arena-workspace-with-tools .arena-content.arena-content-open {
+    padding-top: 0;
+  }
+}
+
 .arena-app-editorial :where(.articles-page, .gallery-page, .guide-archive-page, .guide-archive-detail, .contests-page) {
   color: var(--arena-ink);
 }

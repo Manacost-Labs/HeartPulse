@@ -580,6 +580,7 @@ const loadStandardCardsModule = () => import('./features/StandardCards');
 const loadContestsModule = () => import('./features/Contests');
 const loadBattlegroundsModule = () => import('./features/Battlegrounds');
 const LazyPaywallGate = React.lazy(() => import('./components/PaywallGate'));
+const LazyGlobalUtilityHeader = React.lazy(() => import('./components/GlobalUtilityHeader'));
 const LazyFAQSection = React.lazy(() => import('./components/FAQSection'));
 const LazySupportPrompt = React.lazy(() => import('./components/SupportPrompt'));
 const LazySiteFooter = React.lazy(() => import('./components/SiteFooter'));
@@ -1627,7 +1628,14 @@ export default function App() {
           </aside>
         )}
 
-	        <div className={`arena-workspace ${isFullWidthBuilder ? 'arena-workspace-wide' : ''} ${isAdminMode ? 'arena-workspace-admin' : ''}`}>
+	        <div className={`arena-workspace ${!isAdminMode ? 'arena-workspace-with-tools' : ''} ${isFullWidthBuilder ? 'arena-workspace-wide' : ''} ${isAdminMode ? 'arena-workspace-admin' : ''}`}>
+	          {!isAdminMode && (
+	            <React.Suspense fallback={null}>
+	              <LazyGlobalUtilityHeader
+	                accessStatus={appIsAdmin ? true : appSubscription}
+	              />
+	            </React.Suspense>
+	          )}
 	          <main id="main-content" tabIndex={-1} className={`arena-main relative flex flex-col items-center ${isFullWidthBuilder ? 'arena-main-wide' : ''} ${isAdminMode ? 'arena-main-admin' : ''}`}>
         {/* Parchment container */}
 	        <div className={`arena-content w-full max-w-6xl mx-auto bg-parchment rounded-xl border-[3px] sm:border-[4px] border-[#6b4c2a] shadow-[inset_0_0_60px_rgba(139,69,19,0.15),0_0_0_2px_#2c1e16,0_15px_30px_rgba(0,0,0,0.6)] p-3 sm:p-6 md:p-10 relative z-0 ${isFullWidthBuilder ? 'arena-content-wide' : ''} ${isAdminMode ? 'arena-content-admin' : ''} ${isOpenSurfacePage ? 'arena-content-open' : ''}`}>

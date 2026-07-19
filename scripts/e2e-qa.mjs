@@ -128,6 +128,18 @@ const fixtures = {
   '/api/articles': {
     articles: qaArticles,
   },
+  '/api/search': {
+    query: 'контроль',
+    minimumQueryLength: 2,
+    articles: [{
+      id: 'qa-search-article', title: 'Контрольный мета-отчет', excerpt: 'Проверка поиска.', tag: 'Мета-отчет',
+      mode: 'standard', date: '2026-07-18', url: 'https://kolodahearthstone.ru/qa-vip/', image: qaArticleCover, vip: true,
+    }],
+    cards: [{
+      id: 'CARD_QA_1', name: 'Контрольная карта', nameEn: 'QA Card', text: 'Боевой клич.', image: qaCard.imageRu,
+      mana: 1, className: 'MAGE', cardType: 'Существо', formats: ['standard', 'wild'], path: '/standard/cards/standard/CARD_QA_1',
+    }],
+  },
 };
 const subscriber = {
   hasAccess: true,
@@ -1107,7 +1119,7 @@ function assertLayout(path, layout) {
     })})`);
   }
   if (layout.routeParchmentExpected && !layout.battlegroundsSurface) {
-    const expectedPadding = layout.mobile ? '16px 12.8px 40px' : '36px 40.32px 56px';
+    const expectedPadding = layout.mobile ? '16px 12.8px 40px' : '0px 40.32px 56px';
     if (layout.contentPadding !== expectedPadding) {
       failures.push(`${path}: route content padding changed (${layout.contentPadding}; expected ${expectedPadding})`);
     }
@@ -1272,6 +1284,31 @@ for (const route of authenticatedRoutes) {
       await waitForMeaningfulPage(page, route.expected);
       await page.waitForSelector(route.selector, { timeout: 20_000 });
       await assertArenaDataRoutePresentation(page, route.path, device);
+      if (route.path === '/articles') {
+        const searchInput = await page.waitForSelector('.global-search input', { visible: true, timeout: 10_000 });
+        await searchInput.type('контроль');
+        await page.waitForSelector('.global-search-result', { visible: true, timeout: 10_000 });
+        const utilityState = await page.evaluate(() => {
+          const header = document.querySelector('.global-utility-header');
+          const searchPanel = document.querySelector('.global-search-panel');
+          const headerRect = header?.getBoundingClientRect();
+          return {
+            height: headerRect?.height || 0,
+            searchVisible: Boolean(searchPanel && getComputedStyle(searchPanel).display !== 'none'),
+            resultText: searchPanel?.textContent || '',
+            overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+          };
+        });
+        if (utilityState.height > 50 || utilityState.height < 40 || !utilityState.searchVisible
+          || !utilityState.resultText.includes('Контрольный мета-отчет')
+          || !utilityState.resultText.includes('Контрольная карта') || utilityState.overflow) {
+          failures.push(`/articles [${device}]: global utility header regressed (${JSON.stringify(utilityState)})`);
+        }
+        await page.click('.global-faq-button');
+        await page.waitForSelector('.global-faq-panel details', { visible: true, timeout: 10_000 });
+        const faqExpanded = await page.$eval('.global-faq-button', button => button.getAttribute('aria-expanded'));
+        if (faqExpanded !== 'true') failures.push(`/articles [${device}]: FAQ panel did not expose expanded state`);
+      }
       const violationCount = await auditAccessibility(page, `${route.path} [${device}]`);
       const paywallVisible = await page.$eval('.arena-paywall', element => getComputedStyle(element).display !== 'none').catch(() => false);
       if (paywallVisible) failures.push(`${route.path} [${device}]: subscriber still sees paywall`);
@@ -3020,6 +3057,15 @@ for (const path of ['/standard/meta', '/standard/vicious-gold']) {
     }));
     if (state.fullPaywall || !state.lockedBadge || state.lockedSorts !== 3 || state.defaultSort !== 'set' || state.overflow) {
       failures.push(`/standard/cards [mobile guest]: partial statistics paywall regressed (${JSON.stringify(state)})`);
+    }
+    await page.type('.global-search input', 'контроль');
+    await page.waitForSelector('.global-search-result', { visible: true, timeout: 10_000 });
+    const globalPaywallState = await page.evaluate(() => ({
+      articleLocked: Boolean(document.querySelector('.global-search-result svg[aria-label="Нужна подписка"]')),
+      cardStatsLocked: Boolean(document.querySelector('.global-search-result__diamond')),
+    }));
+    if (!globalPaywallState.articleLocked || !globalPaywallState.cardStatsLocked) {
+      failures.push(`/standard/cards [mobile guest]: global search paywall regressed (${JSON.stringify(globalPaywallState)})`);
     }
     await auditAccessibility(page, '/standard/cards [mobile guest]');
     await page.screenshot({ path: `${OUT}/constructed-cards-guest-stat-lock-mobile.png`, fullPage: false });
