@@ -1429,7 +1429,7 @@
 
 .arena-app-contests .contest-empty strong { color: #3b281b !important; }
 
-.arena-app-editorial :where(a, button, input):focus-visible {
+.arena-app-editorial :where(a, button, input:not(.global-search__input)):focus-visible {
   outline: 3px solid rgba(123, 21, 27, 0.72) !important;
   outline-offset: 3px !important;
 }

@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Refined the dedicated FAQ into a tighter responsive help center with a calmer hierarchy, compact two-column mobile navigation, framed topic sections and clearer expanded answers. Removed the browser-native rounded search-field appearance and conflicting editorial focus ring so global search keeps a rectangular wooden frame while retaining an accessible focus state.
 - Polished the global search field with a compact wooden frame, clearer prompt, `/` keyboard focus and additional spacing before page content. Replaced the FAQ popover with a dedicated responsive `/faq` help center covering registration, email and Telegram login, Boosty verification, subscription levels, paywall behavior, statistics and troubleshooting. Restored golden, signature and diamond card variants by falling back to premium wiki media when catalog image fields are empty.
 - Added a compact secondary header in the existing top content strip with deep search across article titles/excerpts and Standard/Wild card names, rules text, mechanics and metadata. Search results preserve article subscription locks and Diamond statistic labels, while a responsive FAQ panel exposes the shared help content on every public page.
 - Fixed article cards so cover artwork is displayed in full without being cropped at the top and bottom.

@@ -217,6 +217,7 @@ export default function GlobalUtilityHeader({
           <Search size={17} aria-hidden="true" className="global-search__icon" />
           <input
             ref={searchInputRef}
+            className="global-search__input"
             type="search"
             value={query}
             placeholder="Найдите статью, карту или механику…"
