@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { Router, type Request, type RequestHandler, type Response } from 'express';
 import { writeJsonAtomically } from './durableJson.js';
 
-export type AdminArticleMode = 'arena' | 'battlegrounds' | 'general';
+export type AdminArticleMode = 'arena' | 'battlegrounds' | 'standard' | 'wild' | 'general';
 export type AdminArticleRecord = {
   id: string;
   title: string;

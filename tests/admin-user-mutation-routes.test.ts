@@ -6,6 +6,7 @@ import {
   mutateAdminUser,
   type AdminUserMutationAudit,
   type AdminUserMutationChanges,
+  type AdminUserManualAccess,
   type AdminUserMutationStore,
   type AdminUserMutationUser,
 } from '../server/adminUserMutationRoutes.js';
@@ -13,7 +14,7 @@ import {
 type MemoryState = {
   users: AdminUserMutationUser[];
   sessions: Array<{ userId: string; email: string }>;
-  lifetime: Set<string>;
+  manualAccess: Map<string, AdminUserManualAccess>;
   audits: Array<{ actorId: string; userId: string; details: AdminUserMutationAudit }>;
 };
 
@@ -27,7 +28,7 @@ const initialState = (): MemoryState => ({
     { userId: 'user-1', email: 'user@example.test' },
     { userId: 'admin-1', email: 'admin@example.test' },
   ],
-  lifetime: new Set(),
+  manualAccess: new Map(),
   audits: [],
 });
 
@@ -38,7 +39,7 @@ function cloneState(value: MemoryState): MemoryState {
   return {
     users: structuredClone(value.users),
     sessions: structuredClone(value.sessions),
-    lifetime: new Set(value.lifetime),
+    manualAccess: new Map([...value.manualAccess].map(([key, grant]) => [key, structuredClone(grant)])),
     audits: structuredClone(value.audits),
   };
 }
@@ -54,7 +55,7 @@ const store: AdminUserMutationStore = {
     }
   },
   listUsers: () => state.users,
-  hasLifetimeAccess: userId => state.lifetime.has(userId),
+  getManualAccess: userId => state.manualAccess.get(userId) ?? { enabled: false, expiresAt: null },
   updateUser: (userId, values) => {
     const user = state.users.find(item => item.id === userId);
     if (!user) throw new Error('missing user');
@@ -63,10 +64,9 @@ const store: AdminUserMutationStore = {
   deleteUserSessions: (userId, email) => {
     state.sessions = state.sessions.filter(session => session.userId !== userId && session.email !== email);
   },
-  setLifetimeAccess: (userId, enabled) => {
+  setManualAccess: (userId, grant) => {
     if (failLifetime) throw new Error('/private/ecosystem.sqlite');
-    if (enabled) state.lifetime.add(userId);
-    else state.lifetime.delete(userId);
+    state.manualAccess.set(userId, structuredClone(grant));
   },
   recordAudit: (actorId, userId, details) => {
     state.audits.push({ actorId, userId, details: structuredClone(details) });
@@ -75,7 +75,7 @@ const store: AdminUserMutationStore = {
 
 function mutate(actorId: string, userId: string, changes: AdminUserMutationChanges) {
   const outcome = mutateAdminUser(store, actorId, userId, changes, '2026-07-13T02:00:00.000Z');
-  return { success: true, user: outcome.user, lifetimeAccess: outcome.lifetimeAccess };
+  return { success: true, user: outcome.user, manualAccess: outcome.manualAccess, lifetimeAccess: outcome.lifetimeAccess };
 }
 
 const app = express();
@@ -113,7 +113,17 @@ try {
   assert.equal(csrfRejected.status, 403);
   assert.deepEqual(await csrfRejected.json(), { error: 'Запрос отклонён: обновите страницу и повторите действие' });
 
-  for (const body of [null, [], {}, { role: 'owner' }, { blocked: 'yes' }, { lifetimeAccess: 1 }]) {
+  for (const body of [
+    null,
+    [],
+    {},
+    { role: 'owner' },
+    { blocked: 'yes' },
+    { manualAccess: true },
+    { manualAccess: { enabled: 'yes', expiresAt: null } },
+    { manualAccess: { enabled: true, expiresAt: 'not-a-date' } },
+    { lifetimeAccess: true, manualAccess: { enabled: true, expiresAt: null } },
+  ]) {
     const invalid = await request('user-1', body);
     assert.equal(invalid.status, 400, `invalid user mutation accepted: ${JSON.stringify(body)}`);
   }
@@ -128,35 +138,59 @@ try {
   assert.deepEqual(await lastAdmin.json(), { error: 'Нельзя оставить сайт без активного администратора' });
 
   state = initialState();
-  const updated = await request('user-1', { role: 'admin', blocked: true, lifetimeAccess: true });
+  const temporaryExpiry = '2026-08-13T02:00:00.000Z';
+  const updated = await request('user-1', {
+    role: 'admin',
+    blocked: true,
+    manualAccess: { enabled: true, expiresAt: temporaryExpiry },
+  });
   assert.equal(updated.status, 200);
   assert.equal(updated.headers.get('cache-control'), 'private, no-store');
-  const updatedPayload = await updated.json() as { success: boolean; user: AdminUserMutationUser; lifetimeAccess: boolean };
+  const updatedPayload = await updated.json() as {
+    success: boolean;
+    user: AdminUserMutationUser;
+    manualAccess: AdminUserManualAccess;
+    lifetimeAccess: boolean;
+  };
   assert.equal(updatedPayload.success, true);
   assert.equal(updatedPayload.user.role, 'admin');
   assert.ok(updatedPayload.user.blockedAt);
-  assert.equal(updatedPayload.lifetimeAccess, true);
+  assert.deepEqual(updatedPayload.manualAccess, { enabled: true, expiresAt: temporaryExpiry });
+  assert.equal(updatedPayload.lifetimeAccess, false);
   assert.equal(state.sessions.some(session => session.userId === 'user-1'), false);
-  assert.equal(state.lifetime.has('user-1'), true);
+  assert.deepEqual(state.manualAccess.get('user-1'), { enabled: true, expiresAt: temporaryExpiry });
   assert.deepEqual(state.audits.at(-1), {
     actorId: 'admin-1',
     userId: 'user-1',
     details: {
       role: { from: 'user', to: 'admin' },
       blocked: { from: false, to: true },
-      lifetimeAccess: { from: false, to: true },
+      manualAccess: {
+        from: { enabled: false, expiresAt: null },
+        to: { enabled: true, expiresAt: temporaryExpiry },
+      },
     },
   });
 
-  const unblocked = await request('user-1', { blocked: false, lifetimeAccess: false });
+  const forever = await request('user-1', { manualAccess: { enabled: true, expiresAt: null } });
+  assert.equal(forever.status, 200);
+  const foreverPayload = await forever.json() as { manualAccess: AdminUserManualAccess; lifetimeAccess: boolean };
+  assert.deepEqual(foreverPayload.manualAccess, { enabled: true, expiresAt: null });
+  assert.equal(foreverPayload.lifetimeAccess, true);
+
+  const unblocked = await request('user-1', { blocked: false, manualAccess: { enabled: false, expiresAt: null } });
   assert.equal(unblocked.status, 200);
   assert.equal(state.users.find(user => user.id === 'user-1')?.blockedAt, '');
-  assert.equal(state.lifetime.has('user-1'), false);
+  assert.deepEqual(state.manualAccess.get('user-1'), { enabled: false, expiresAt: null });
+
+  const expired = await request('user-1', { manualAccess: { enabled: true, expiresAt: '2026-07-13T01:59:59.000Z' } });
+  assert.equal(expired.status, 400);
+  assert.deepEqual(await expired.json(), { error: 'Срок полного доступа должен быть в будущем' });
 
   state = initialState();
   const beforeFailure = cloneState(state);
   failLifetime = true;
-  const failed = await request('user-1', { role: 'admin', blocked: true, lifetimeAccess: true });
+  const failed = await request('user-1', { role: 'admin', blocked: true, manualAccess: { enabled: true, expiresAt: null } });
   assert.equal(failed.status, 500);
   assert.deepEqual(await failed.json(), { error: 'Не удалось обновить пользователя' });
   assert.deepEqual(state, beforeFailure, 'combined mutation was not fully rolled back');

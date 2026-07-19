@@ -445,6 +445,7 @@ const adminFixtures = {
         contactTelegram: '@first_user',
         contactEmail: 'first@example.test',
         lifetimeAccess: false,
+        manualAccess: { enabled: false, expiresAt: null },
         subscription: { hasAccess: true, source: 'qa', checkedAt: '2026-07-11T00:00:00.000Z' },
         contestEntriesCount: 2,
         createdAt: '2026-07-01T00:00:00.000Z',
@@ -461,6 +462,7 @@ const adminFixtures = {
         contactTelegram: '',
         contactEmail: 'blocked@example.test',
         lifetimeAccess: false,
+        manualAccess: { enabled: false, expiresAt: null },
         blockedAt: '2026-07-10T00:00:00.000Z',
         subscription: { hasAccess: false, source: 'qa', checkedAt: '2026-07-11T00:00:00.000Z' },
         contestEntriesCount: 0,
@@ -833,8 +835,18 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
         if (payload.role === 'admin' || payload.role === 'user') user.role = payload.role;
         if (typeof payload.blocked === 'boolean') user.blockedAt = payload.blocked ? '2026-07-13T02:00:00.000Z' : '';
         if (typeof payload.lifetimeAccess === 'boolean') user.lifetimeAccess = payload.lifetimeAccess;
+        if (payload.manualAccess && typeof payload.manualAccess.enabled === 'boolean') {
+          user.manualAccess = payload.manualAccess;
+          user.lifetimeAccess = payload.manualAccess.enabled && payload.manualAccess.expiresAt === null;
+          user.subscription = { ...user.subscription, hasAccess: payload.manualAccess.enabled || user.subscription?.hasAccess };
+        }
       }
-      request.respond(jsonResponse({ success: true, user, lifetimeAccess: Boolean(user?.lifetimeAccess) }));
+      request.respond(jsonResponse({
+        success: true,
+        user,
+        manualAccess: user?.manualAccess,
+        lifetimeAccess: Boolean(user?.lifetimeAccess),
+      }));
       return;
     }
     if (admin && url.pathname === '/api/admin/mailings/overview' && request.method() === 'GET') {
@@ -1338,15 +1350,26 @@ for (const [device, viewport] of [
     if (editedArticleTitle !== 'Первая статья') failures.push(`admin articles [${device}]: edit did not populate the form`);
     await page.click('.admin-article-form input[required]', { clickCount: 3 });
     await page.type('.admin-article-form input[required]', 'Первая статья — обновлена');
+    const articleAccessOptions = await page.$$eval('.admin-article-form select option', options => options.map(option => ({
+      value: option.value,
+      text: option.textContent?.trim() || '',
+    })));
+    if (!articleAccessOptions.some(option => option.value === 'standard' && option.text.includes('Алмаз'))
+      || !articleAccessOptions.some(option => option.value === 'wild' && option.text.includes('Алмаз'))) {
+      failures.push(`admin articles [${device}]: Standard/Wild Diamond access options are missing`);
+    }
     await page.click('.admin-article-form button[type="submit"]');
     await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Статья обновлена.'));
     await page.waitForFunction(() => [...document.querySelectorAll('.admin-article-row strong')]
       .some(element => element.textContent?.trim() === 'Первая статья — обновлена'));
 
     await page.type('.admin-article-form input[required]', 'Новая QA статья');
+    await page.select('.admin-article-form select', 'standard');
     await page.click('.admin-article-form button[type="submit"]');
     await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Статья добавлена.'));
     await page.waitForFunction(() => document.querySelectorAll('.admin-article-row').length === 3);
+    const createdArticleRow = await page.$eval('.admin-article-row:first-child', element => element.textContent?.replace(/\s+/g, ' ').trim() || '');
+    if (!createdArticleRow.includes('Стандарт')) failures.push(`admin articles [${device}]: saved Standard mode is not labelled`);
     await page.evaluate(() => { window.confirm = () => true; });
     await page.evaluate(() => {
       const row = [...document.querySelectorAll('.admin-article-row')]
@@ -1906,7 +1929,7 @@ for (const [device, viewport] of [
     const focusRestored = await page.evaluate(() => document.activeElement?.classList.contains('contest-user-menu-trigger') === true);
     if (!focusRestored) failures.push(`admin users [${device}]: Escape did not restore focus to the action trigger`);
     await page.evaluate(() => { window.confirm = () => true; });
-    for (const actionText of ['Дать бессрочную подписку', 'Сделать администратором', 'Заблокировать']) {
+    for (const actionText of ['Дать полный доступ', 'Сделать администратором', 'Заблокировать']) {
       await page.click('.contest-user-row:first-child .contest-user-menu-trigger');
       await page.waitForSelector('.contest-user-menu[role="menu"]', { visible: true });
       await page.evaluate(text => {
@@ -1915,10 +1938,15 @@ for (const [device, viewport] of [
         if (!(button instanceof HTMLButtonElement)) throw new Error(`Missing user action: ${text}`);
         button.click();
       }, actionText);
+      if (actionText === 'Дать полный доступ') {
+        await page.waitForSelector('.admin-access-dialog[role="dialog"]', { visible: true });
+        await page.select('.admin-access-dialog select', '30');
+        await page.click('.admin-access-dialog button[type="submit"]');
+      }
       await page.waitForFunction(text => {
         const row = document.querySelector('.contest-user-row:first-child');
         if (!row) return false;
-        if (text === 'Дать бессрочную подписку') return row.querySelector('.contest-access-ok')?.textContent?.includes('бессрочно');
+        if (text === 'Дать полный доступ') return row.querySelector('.contest-access-ok')?.textContent?.includes('полный доступ');
         if (text === 'Сделать администратором') return row.textContent?.includes('администратор');
         return row.querySelector('.contest-role-blocked')?.textContent?.includes('заблокирован');
       }, {}, actionText);
@@ -1928,8 +1956,8 @@ for (const [device, viewport] of [
     await page.goto(`${BASE}/?admin&section=users`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.contest-user-row').length === 2);
     const persistedUser = await page.$eval('.contest-user-row:first-child', element => element.textContent?.replace(/\s+/g, ' ').trim() || '');
-    if (!persistedUser.includes('администратор') || !persistedUser.includes('заблокирован') || !persistedUser.includes('бессрочно')) {
-      failures.push(`admin users [${device}]: role/block/lifetime mutations did not persist after navigation`);
+    if (!persistedUser.includes('администратор') || !persistedUser.includes('заблокирован') || !persistedUser.includes('полный доступ')) {
+      failures.push(`admin users [${device}]: role/block/manual-access mutations did not persist after navigation`);
     }
 
     await page.goto(`${BASE}/?login`, { waitUntil: 'domcontentloaded', timeout: 45_000 });

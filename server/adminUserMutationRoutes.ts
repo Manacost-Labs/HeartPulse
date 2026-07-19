@@ -11,27 +11,36 @@ export type AdminUserMutationUser = {
 export type AdminUserMutationChanges = {
   role?: 'admin' | 'user';
   blocked?: boolean;
+  manualAccess?: AdminUserManualAccess;
+  /** @deprecated Compatibility with the previous forever-only API. */
   lifetimeAccess?: boolean;
+};
+
+export type AdminUserManualAccess = {
+  enabled: boolean;
+  expiresAt: string | null;
 };
 
 export type AdminUserMutationAudit = {
   role?: { from: 'admin' | 'user'; to: 'admin' | 'user' };
   blocked?: { from: boolean; to: boolean };
+  manualAccess?: { from: AdminUserManualAccess; to: AdminUserManualAccess };
   lifetimeAccess?: { from: boolean; to: boolean };
 };
 
 export type AdminUserMutationStore = {
   transaction: <T>(work: () => T) => T;
   listUsers: () => AdminUserMutationUser[];
-  hasLifetimeAccess: (userId: string) => boolean;
+  getManualAccess: (userId: string) => AdminUserManualAccess;
   updateUser: (userId: string, values: Pick<AdminUserMutationUser, 'role' | 'blockedAt' | 'updatedAt'>) => void;
   deleteUserSessions: (userId: string, email: string) => void;
-  setLifetimeAccess: (userId: string, enabled: boolean, actorId: string, timestamp: string) => void;
+  setManualAccess: (userId: string, access: AdminUserManualAccess, actorId: string, timestamp: string) => void;
   recordAudit: (actorId: string, userId: string, details: AdminUserMutationAudit, timestamp: string) => void;
 };
 
 export type AdminUserMutationOutcome = {
   user: AdminUserMutationUser;
+  manualAccess: AdminUserManualAccess;
   lifetimeAccess: boolean;
 };
 
@@ -49,6 +58,13 @@ export class AdminUserMutationError extends Error {
 }
 
 const hasOwn = (value: object, key: string) => Object.prototype.hasOwnProperty.call(value, key);
+function normalizeRequestedManualAccess(changes: AdminUserMutationChanges): AdminUserManualAccess | undefined {
+  if (changes.manualAccess) return changes.manualAccess;
+  if (changes.lifetimeAccess !== undefined) {
+    return { enabled: changes.lifetimeAccess, expiresAt: null };
+  }
+  return undefined;
+}
 
 export function mutateAdminUser(
   store: AdminUserMutationStore,
@@ -78,12 +94,25 @@ export function mutateAdminUser(
     }
 
     const previousBlocked = Boolean(target.blockedAt);
-    const previousLifetime = store.hasLifetimeAccess(target.id);
+    const previousManualAccess = store.getManualAccess(target.id);
+    const requestedManualAccess = normalizeRequestedManualAccess(changes);
+    if (requestedManualAccess?.enabled && requestedManualAccess.expiresAt) {
+      const expiryMs = Date.parse(requestedManualAccess.expiresAt);
+      if (!Number.isFinite(expiryMs) || expiryMs <= Date.parse(timestamp)) {
+        throw new AdminUserMutationError(400, 'Срок полного доступа должен быть в будущем');
+      }
+    }
     const audit: AdminUserMutationAudit = {};
     if (changes.role !== undefined) audit.role = { from: target.role, to: nextRole };
     if (changes.blocked !== undefined) audit.blocked = { from: previousBlocked, to: nextBlocked };
-    if (changes.lifetimeAccess !== undefined) {
-      audit.lifetimeAccess = { from: previousLifetime, to: changes.lifetimeAccess };
+    if (requestedManualAccess) {
+      audit.manualAccess = { from: previousManualAccess, to: requestedManualAccess };
+      if (changes.lifetimeAccess !== undefined && changes.manualAccess === undefined) {
+        audit.lifetimeAccess = {
+          from: previousManualAccess.enabled && previousManualAccess.expiresAt === null,
+          to: changes.lifetimeAccess,
+        };
+      }
     }
 
     if (changes.role !== undefined || changes.blocked !== undefined) {
@@ -97,13 +126,15 @@ export function mutateAdminUser(
       });
       if (nextBlocked) store.deleteUserSessions(target.id, target.email);
     }
-    if (changes.lifetimeAccess !== undefined) {
-      store.setLifetimeAccess(target.id, changes.lifetimeAccess, actorId, timestamp);
+    if (requestedManualAccess) {
+      store.setManualAccess(target.id, requestedManualAccess, actorId, timestamp);
     }
     store.recordAudit(actorId, target.id, audit, timestamp);
     return {
       user: { ...target },
-      lifetimeAccess: changes.lifetimeAccess ?? previousLifetime,
+      manualAccess: requestedManualAccess ?? previousManualAccess,
+      lifetimeAccess: (requestedManualAccess ?? previousManualAccess).enabled
+        && (requestedManualAccess ?? previousManualAccess).expiresAt === null,
     };
   });
 }
@@ -131,6 +162,30 @@ function parseChanges(body: unknown): AdminUserMutationChanges {
       throw new AdminUserMutationError(400, 'Некорректное значение бессрочного доступа');
     }
     changes.lifetimeAccess = value.lifetimeAccess;
+  }
+  if (hasOwn(value, 'manualAccess')) {
+    if (hasOwn(value, 'lifetimeAccess')) {
+      throw new AdminUserMutationError(400, 'Передайте только один тип полного доступа');
+    }
+    if (!value.manualAccess || typeof value.manualAccess !== 'object' || Array.isArray(value.manualAccess)) {
+      throw new AdminUserMutationError(400, 'Некорректные данные полного доступа');
+    }
+    const manualAccess = value.manualAccess as Record<string, unknown>;
+    if (typeof manualAccess.enabled !== 'boolean') {
+      throw new AdminUserMutationError(400, 'Некорректное состояние полного доступа');
+    }
+    const rawExpiry = manualAccess.expiresAt;
+    if (rawExpiry !== null && rawExpiry !== undefined && typeof rawExpiry !== 'string') {
+      throw new AdminUserMutationError(400, 'Некорректный срок полного доступа');
+    }
+    const expiresAt = typeof rawExpiry === 'string' ? rawExpiry.trim() : null;
+    if (expiresAt && !Number.isFinite(Date.parse(expiresAt))) {
+      throw new AdminUserMutationError(400, 'Некорректный срок полного доступа');
+    }
+    changes.manualAccess = {
+      enabled: manualAccess.enabled,
+      expiresAt: manualAccess.enabled ? (expiresAt ? new Date(expiresAt).toISOString() : null) : null,
+    };
   }
   if (!Object.keys(changes).length) throw new AdminUserMutationError(400, 'Нет изменений');
   return changes;

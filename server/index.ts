@@ -29,6 +29,7 @@ import { createBattlegroundProxyRouter } from './battlegroundProxyRoutes.js';
 import { createArticleCoverRouter } from './articleCoverRoutes.js';
 import { createGuidesArchiveRouter } from './guidesArchiveRoutes.js';
 import { createArticleRouter } from './articleRoutes.js';
+import { articleAccessEntitlement, type ArticleAccessMode } from './articleAccess.js';
 import { createOperationalRouter } from './operationalRoutes.js';
 import { createArenaDecksRouter, type ArenaDecksCacheStore } from './arenaDeckRoutes.js';
 import { createStandardMatchupRouter } from './standardMatchupRoutes.js';
@@ -901,6 +902,7 @@ function db(): DatabaseSync {
       entitlements_json TEXT NOT NULL DEFAULT '{}',
       granted_by TEXT NOT NULL,
       granted_at TEXT NOT NULL,
+      expires_at TEXT,
       revoked_by TEXT,
       revoked_at TEXT,
       note TEXT NOT NULL DEFAULT '',
@@ -1072,6 +1074,8 @@ function db(): DatabaseSync {
   if (!userColumns.has('contact_telegram')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN contact_telegram TEXT');
   if (!userColumns.has('contact_email')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN contact_email TEXT');
   if (!userColumns.has('blocked_at')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN blocked_at TEXT');
+  const manualGrantColumns = new Set((ecosystemDb.prepare('PRAGMA table_info(manual_subscription_grants)').all() as any[]).map(row => String(row.name)));
+  if (!manualGrantColumns.has('expires_at')) ecosystemDb.exec('ALTER TABLE manual_subscription_grants ADD COLUMN expires_at TEXT');
   migrateLegacyAuthStore(ecosystemDb);
   syncKhaVipProfiles(ecosystemDb);
   syncExistingMailingContacts(ecosystemDb);
@@ -2792,14 +2796,16 @@ function mailingContactRows(): any[] {
       mc.*,
       u.blocked_at,
       COALESCE(s.has_access, 0) AS provider_access,
-      COALESCE(g.active, 0) AS lifetime_access
+      CASE WHEN COALESCE(g.active, 0) = 1 AND (
+        g.expires_at IS NULL OR g.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+      ) THEN 1 ELSE 0 END AS manual_access
     FROM mailing_contacts mc
     LEFT JOIN users u ON u.id = mc.user_id
     LEFT JOIN subscriptions s ON s.user_id = mc.user_id
     LEFT JOIN manual_subscription_grants g ON g.user_id = mc.user_id
     ORDER BY mc.updated_at DESC
   `).map(row => {
-    const active = Boolean(row.provider_access || row.lifetime_access);
+    const active = Boolean(row.provider_access || row.manual_access);
     const eligible = row.consent_status === 'subscribed'
       && Boolean(row.consented_at)
       && Boolean(row.verified_at)
@@ -3234,13 +3240,18 @@ function deriveStoredEntitlements(
 
 const subscriptionRefreshInFlight = new Map<string, Promise<SubscriptionStatus>>();
 
-function activeManualSubscriptionGrant(userId: string): { grantedBy: string; grantedAt: string } | null {
+function activeManualSubscriptionGrant(userId: string): { grantedBy: string; grantedAt: string; expiresAt: string | null } | null {
   const row = dbGet<any>(`
-    SELECT granted_by, granted_at
+    SELECT granted_by, granted_at, expires_at
     FROM manual_subscription_grants
     WHERE user_id = ? AND active = 1
-  `, userId);
-  return row ? { grantedBy: String(row.granted_by || ''), grantedAt: String(row.granted_at || '') } : null;
+      AND (expires_at IS NULL OR expires_at > ?)
+  `, userId, new Date().toISOString());
+  return row ? {
+    grantedBy: String(row.granted_by || ''),
+    grantedAt: String(row.granted_at || ''),
+    expiresAt: row.expires_at ? String(row.expires_at) : null,
+  } : null;
 }
 
 function applyManualSubscriptionGrant(userId: string, status: SubscriptionStatus | null): SubscriptionStatus | null {
@@ -3248,14 +3259,16 @@ function applyManualSubscriptionGrant(userId: string, status: SubscriptionStatus
   if (!grant) return status;
   const base = status ?? emptySubscriptionStatus();
   const source = base.source && base.source !== 'none'
-    ? `${base.source},manual-lifetime`
-    : 'manual-lifetime';
+    ? `${base.source},manual-access`
+    : 'manual-access';
   return {
     ...base,
     hasAccess: true,
     source,
     stale: false,
-    message: 'Бессрочный доступ выдан администратором.',
+    message: grant.expiresAt
+      ? `Полный доступ выдан администратором до ${new Date(grant.expiresAt).toLocaleDateString('ru-RU')}.`
+      : 'Бессрочный доступ выдан администратором.',
     entitlements: allEntitlements(),
   };
 }
@@ -6878,11 +6891,11 @@ function articleDateMs(article: any): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-type ArticleMode = 'arena' | 'battlegrounds' | 'general';
+type ArticleMode = ArticleAccessMode;
 
 function articleMode(article: Record<string, any>): ArticleMode {
   const explicitMode = String(article.mode || '').trim().toLowerCase();
-  if (explicitMode === 'arena' || explicitMode === 'battlegrounds' || explicitMode === 'general') {
+  if (explicitMode === 'arena' || explicitMode === 'battlegrounds' || explicitMode === 'standard' || explicitMode === 'wild' || explicitMode === 'general') {
     return explicitMode;
   }
   const haystack = [
@@ -6898,15 +6911,9 @@ function articleMode(article: Record<string, any>): ArticleMode {
   return 'general';
 }
 
-function articleAccessEntitlement(mode: ArticleMode): SubscriptionEntitlementKey | null {
-  if (mode === 'arena') return 'arenaArticles';
-  if (mode === 'battlegrounds') return 'battlegroundsArticles';
-  return null;
-}
-
 function normalizeArticleModeInput(value: unknown, fallbackArticle: Record<string, any>): ArticleMode {
   const raw = String(value || '').trim().toLowerCase();
-  if (raw === 'arena' || raw === 'battlegrounds' || raw === 'general') return raw;
+  if (raw === 'arena' || raw === 'battlegrounds' || raw === 'standard' || raw === 'wild' || raw === 'general') return raw;
   return articleMode(fallbackArticle);
 }
 
@@ -8050,19 +8057,23 @@ app.use('/api', createAdminUserReadRouter({
     get: (sql, ...params) => dbGet<any>(sql, ...params) ?? null,
     all: (sql, ...params) => dbAll<any>(sql, ...params),
   },
-  subscriptionForUser: (row, lifetimeAccess) => {
+  subscriptionForUser: (row, manualAccess) => {
     const boosty = normalizeBoostySubscriptionDetail(safeJsonObject(row.boosty_json));
     const telegram = normalizeTelegramSubscriptionDetail(safeJsonObject(row.telegram_json));
     const providerSource = String(row.subscription_source || 'none');
-    const source = lifetimeAccess
-      ? providerSource === 'none' ? 'manual-lifetime' : `${providerSource},manual-lifetime`
+    const source = manualAccess.enabled
+      ? providerSource === 'none' ? 'manual-access' : `${providerSource},manual-access`
       : providerSource;
-    const entitlements = lifetimeAccess
+    const entitlements = manualAccess.enabled
       ? allEntitlements()
       : deriveStoredEntitlements(Boolean(row.has_access), source, boosty, telegram);
     return {
       hasAccess: hasAnyEntitlement(entitlements), source,
-      message: lifetimeAccess ? 'Бессрочный доступ выдан администратором.' : String(row.subscription_message || ''),
+      message: manualAccess.enabled
+        ? manualAccess.expiresAt
+          ? `Полный доступ выдан администратором до ${new Date(manualAccess.expiresAt).toLocaleDateString('ru-RU')}.`
+          : 'Бессрочный доступ выдан администратором.'
+        : String(row.subscription_message || ''),
       checkedAt: row.subscription_checked_at ? String(row.subscription_checked_at) : '',
       updatedAt: row.subscription_updated_at ? String(row.subscription_updated_at) : '',
       entitlements, boosty, telegram,
@@ -8133,9 +8144,17 @@ app.use('/api', createAdminUserMutationRouter({
         blockedAt: row.blocked_at ? String(row.blocked_at) : '',
         updatedAt: String(row.updated_at),
       })),
-      hasLifetimeAccess: targetId => Boolean(database.prepare(`
-        SELECT 1 FROM manual_subscription_grants WHERE user_id = ? AND active = 1
-      `).get(targetId)),
+      getManualAccess: targetId => {
+        const row = database.prepare(`
+          SELECT expires_at
+          FROM manual_subscription_grants
+          WHERE user_id = ? AND active = 1
+            AND (expires_at IS NULL OR expires_at > ?)
+        `).get(targetId, new Date().toISOString()) as { expires_at?: string | null } | undefined;
+        return row
+          ? { enabled: true, expiresAt: row.expires_at ? String(row.expires_at) : null }
+          : { enabled: false, expiresAt: null };
+      },
       updateUser: (targetId, values) => {
         database.prepare(`
           UPDATE users SET role = ?, blocked_at = ?, updated_at = ? WHERE id = ?
@@ -8144,22 +8163,27 @@ app.use('/api', createAdminUserMutationRouter({
       deleteUserSessions: (targetId, email) => {
         database.prepare('DELETE FROM sessions WHERE user_id = ? OR email = ?').run(targetId, email);
       },
-      setLifetimeAccess: (targetId, enabled, grantedBy, timestamp) => {
-        if (enabled) {
+      setManualAccess: (targetId, access, grantedBy, timestamp) => {
+        if (access.enabled) {
+          const note = access.expiresAt
+            ? `Полный доступ до ${access.expiresAt} из админ-панели`
+            : 'Бессрочный доступ из админ-панели';
           database.prepare(`
             INSERT INTO manual_subscription_grants (
-              user_id, active, entitlements_json, granted_by, granted_at, revoked_by, revoked_at, note, updated_at
-            ) VALUES (?, 1, ?, ?, ?, NULL, NULL, ?, ?)
+              user_id, active, entitlements_json, granted_by, granted_at, expires_at,
+              revoked_by, revoked_at, note, updated_at
+            ) VALUES (?, 1, ?, ?, ?, ?, NULL, NULL, ?, ?)
             ON CONFLICT(user_id) DO UPDATE SET
               active = 1,
               entitlements_json = excluded.entitlements_json,
-              granted_by = CASE WHEN manual_subscription_grants.active = 1 THEN manual_subscription_grants.granted_by ELSE excluded.granted_by END,
-              granted_at = CASE WHEN manual_subscription_grants.active = 1 THEN manual_subscription_grants.granted_at ELSE excluded.granted_at END,
+              granted_by = excluded.granted_by,
+              granted_at = excluded.granted_at,
+              expires_at = excluded.expires_at,
               revoked_by = NULL,
               revoked_at = NULL,
-              note = CASE WHEN manual_subscription_grants.active = 1 THEN manual_subscription_grants.note ELSE excluded.note END,
+              note = excluded.note,
               updated_at = excluded.updated_at
-          `).run(targetId, JSON.stringify(allEntitlements()), grantedBy, timestamp, 'Бессрочный доступ из админ-панели', timestamp);
+          `).run(targetId, JSON.stringify(allEntitlements()), grantedBy, timestamp, access.expiresAt, note, timestamp);
         } else {
           database.prepare(`
             UPDATE manual_subscription_grants
@@ -8180,7 +8204,12 @@ app.use('/api', createAdminUserMutationRouter({
     if (!user) throw new Error('Updated user is missing');
     return {
       success: true,
-      user: { ...publicUser(user), lifetimeAccess: outcome.lifetimeAccess },
+      user: {
+        ...publicUser(user),
+        manualAccess: outcome.manualAccess,
+        lifetimeAccess: outcome.lifetimeAccess,
+      },
+      manualAccess: outcome.manualAccess,
       lifetimeAccess: outcome.lifetimeAccess,
       subscription: readSubscriptionStatus(user.id) ?? emptySubscriptionStatus(),
     };

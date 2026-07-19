@@ -9,13 +9,21 @@ export type AdminUserReadRepository = {
 export type AdminUserReadDependencies = {
   adminAuth: (request: Request) => unknown | null;
   repository: AdminUserReadRepository;
-  subscriptionForUser: (row: Record<string, unknown>, lifetimeAccess: boolean) => unknown;
+  subscriptionForUser: (
+    row: Record<string, unknown>,
+    manualAccess: { enabled: boolean; expiresAt: string | null },
+  ) => unknown;
   subscriptionForSearchUser: (row: Record<string, unknown>) => unknown;
   setPrivateNoStore: (response: Response) => void;
 };
 
 const detailedUser = (row: Record<string, unknown>, dependencies: AdminUserReadDependencies) => {
-  const lifetimeAccess = Boolean(row.lifetime_access);
+  const manualAccessEnabled = Boolean(row.manual_access);
+  const manualAccess = {
+    enabled: manualAccessEnabled,
+    expiresAt: manualAccessEnabled && row.manual_access_expires_at ? String(row.manual_access_expires_at) : null,
+  };
+  const lifetimeAccess = manualAccess.enabled && manualAccess.expiresAt === null;
   return {
     id: String(row.id), profileId: String(row.id), name: String(row.name || ''), email: String(row.email || ''),
     role: String(row.role || 'user'), country: String(row.country || ''), newsletterOptIn: Boolean(row.newsletter_opt_in),
@@ -23,8 +31,9 @@ const detailedUser = (row: Record<string, unknown>, dependencies: AdminUserReadD
     telegramUsername: String(row.telegram_username || ''), telegramOidcId: String(row.telegram_oidc_id || ''),
     photoUrl: String(row.telegram_photo_url || ''), contactVkUrl: String(row.contact_vk_url || ''),
     contactTelegram: String(row.contact_telegram || ''), contactEmail: String(row.contact_email || ''),
-    blockedAt: String(row.blocked_at || ''), lifetimeAccess, lifetimeGrantedAt: String(row.lifetime_granted_at || ''),
-    subscription: dependencies.subscriptionForUser(row, lifetimeAccess),
+    blockedAt: String(row.blocked_at || ''), manualAccess, lifetimeAccess,
+    lifetimeGrantedAt: String(row.manual_access_granted_at || ''),
+    subscription: dependencies.subscriptionForUser(row, manualAccess),
     contestEntriesCount: Number(row.contest_entries_count || 0), createdAt: String(row.created_at || ''),
     updatedAt: String(row.updated_at || ''),
   };
@@ -116,8 +125,11 @@ export function createAdminUserReadRouter(dependencies: AdminUserReadDependencie
       params.push(like, like, like, like, like, like, like, like);
     }
     if (role) { where.push('u.role = ?'); params.push(role); }
-    if (subscription === 'active') where.push('(COALESCE(s.has_access, 0) = 1 OR COALESCE(g.active, 0) = 1)');
-    if (subscription === 'inactive') where.push('(COALESCE(s.has_access, 0) = 0 AND COALESCE(g.active, 0) = 0)');
+    const activeManualGrant = `(COALESCE(g.active, 0) = 1 AND (
+      g.expires_at IS NULL OR g.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    ))`;
+    if (subscription === 'active') where.push(`(COALESCE(s.has_access, 0) = 1 OR ${activeManualGrant})`);
+    if (subscription === 'inactive') where.push(`(COALESCE(s.has_access, 0) = 0 AND NOT ${activeManualGrant})`);
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
     try {
       const total = Number(dependencies.repository.get(`
@@ -142,8 +154,11 @@ export function createAdminUserReadRouter(dependencies: AdminUserReadDependencie
           s.updated_at AS subscription_updated_at,
           s.boosty_json,
           s.telegram_json,
-          g.active AS lifetime_access,
-          g.granted_at AS lifetime_granted_at,
+          CASE WHEN COALESCE(g.active, 0) = 1 AND (
+            g.expires_at IS NULL OR g.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+          ) THEN 1 ELSE 0 END AS manual_access,
+          g.expires_at AS manual_access_expires_at,
+          g.granted_at AS manual_access_granted_at,
           (SELECT COUNT(*) FROM contest_entries e WHERE e.user_id = u.id) AS contest_entries_count
         FROM users u
         LEFT JOIN identities tg ON tg.user_id = u.id AND tg.provider = 'telegram'

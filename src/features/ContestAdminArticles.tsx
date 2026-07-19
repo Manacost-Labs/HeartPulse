@@ -10,7 +10,7 @@ export type Article = {
   image?: string;
   excerpt?: string;
   tag?: string;
-  mode?: 'arena' | 'battlegrounds' | 'general';
+  mode?: 'arena' | 'battlegrounds' | 'standard' | 'wild' | 'general';
   url?: string;
 };
 
@@ -48,6 +48,8 @@ type ContestAdminArticlesProps = {
 function articleModeLabel(mode?: Article['mode']): string {
   if (mode === 'arena') return 'Арена';
   if (mode === 'battlegrounds') return 'Поля Сражений';
+  if (mode === 'standard') return 'Стандарт';
+  if (mode === 'wild') return 'Вольный';
   return 'Общий';
 }
 
@@ -92,6 +94,8 @@ export function ContestAdminArticles({
           <select value={draft.mode} onChange={event => onDraftChange({ mode: event.target.value as ArticleDraft['mode'] })} style={ADMIN_INPUT}>
             <option value="arena">Арена — подписка на статьи Арены</option>
             <option value="battlegrounds">Поля Сражений — подписка на статьи БГ</option>
+            <option value="standard">Стандарт — план «Алмаз» и выше</option>
+            <option value="wild">Вольный — план «Алмаз» и выше</option>
             <option value="general">Общий материал</option>
           </select>
           <span className="admin-field-hint">Этот выбор определяет, какой доступ понадобится читателю.</span>

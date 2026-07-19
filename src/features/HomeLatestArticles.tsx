@@ -36,6 +36,15 @@ function ArticleImage({ src, title }: { src: string; title: string }) {
   );
 }
 
+function articleSectionLabel(article: HomeArticle): string {
+  if (article.tag) return article.tag;
+  if (article.mode === 'battlegrounds') return 'Поля Сражений';
+  if (article.mode === 'standard') return 'Стандарт';
+  if (article.mode === 'wild') return 'Вольный';
+  if (article.mode === 'arena') return 'Арена';
+  return 'Manacost';
+}
+
 export default function HomeLatestArticles({ articles, loading, onNavigate }: {
   articles: HomeArticle[];
   loading: boolean;
@@ -72,7 +81,7 @@ export default function HomeLatestArticles({ articles, loading, onNavigate }: {
               <span className="home-latest-article__image"><ArticleImage src={article.image} title={article.title} /></span>
               <span className="home-latest-article__body">
                 <span className="home-latest-article__meta">
-                  <small>{article.tag || (article.mode === 'battlegrounds' ? 'Поля Сражений' : 'Manacost')}</small>
+                  <small>{articleSectionLabel(article)}</small>
                   <time dateTime={article.date}>{formatArticleDate(article.date)}</time>
                 </span>
                 <strong>{article.title}</strong>

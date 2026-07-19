@@ -487,7 +487,7 @@ interface Article {
   image: string;
   excerpt: string;
   tag?: string;
-  mode?: 'arena' | 'battlegrounds' | 'general' | string;
+  mode?: 'arena' | 'battlegrounds' | 'standard' | 'wild' | 'general' | string;
   url: string;
 }
 interface ArticlesData {

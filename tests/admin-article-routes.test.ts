@@ -38,7 +38,7 @@ const guard: RequestHandler = (request, response, next) => {
 };
 
 const normalizeMode = (value: unknown): AdminArticleMode => (
-  value === 'arena' || value === 'battlegrounds' ? value : 'general'
+  value === 'arena' || value === 'battlegrounds' || value === 'standard' || value === 'wild' ? value : 'general'
 );
 
 const app = express();
@@ -117,7 +117,7 @@ try {
       image: '/media/article.webp',
       excerpt: '  Новый разбор  ',
       tag: '  Мета  ',
-      mode: 'battlegrounds',
+      mode: 'standard',
       url: 'https://example.com/article',
     },
   });
@@ -129,7 +129,7 @@ try {
   assert.equal(createdPayload.article.title.length, 180);
   assert.equal(createdPayload.article.excerpt, 'Новый разбор');
   assert.equal(createdPayload.article.tag, 'Мета');
-  assert.equal(createdPayload.article.mode, 'battlegrounds');
+  assert.equal(createdPayload.article.mode, 'standard');
   assert.equal(createdPayload.article.url, 'https://example.com/article');
   assert.deepEqual(document.articles.map(article => article.id), ['created-id', 'existing']);
   assert.equal(document.updatedAt, '2026-07-12T18:30:00.000Z');
@@ -148,7 +148,7 @@ try {
       image: 'https://example.com/image.webp',
       excerpt: '  Новый текст  ',
       tag: '  Гайд  ',
-      mode: 'unknown',
+      mode: 'wild',
       url: '/articles/updated',
     },
   });
@@ -156,7 +156,7 @@ try {
   const updatedPayload = await updatedResponse.json() as { article: AdminArticleRecord };
   assert.equal(updatedPayload.article.title, 'Обновлённая статья');
   assert.equal(updatedPayload.article.date, '2026-07-10');
-  assert.equal(updatedPayload.article.mode, 'general');
+  assert.equal(updatedPayload.article.mode, 'wild');
   assert.equal(updatedPayload.article.preserved, 'metadata');
   assert.equal(document.articles.find(article => article.id === 'existing')?.preserved, 'metadata');
   assert.equal(invalidations, 2);

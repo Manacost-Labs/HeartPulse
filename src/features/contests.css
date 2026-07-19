@@ -3977,6 +3977,80 @@
   animation: admin-action-spin 700ms linear infinite;
 }
 
+.admin-access-dialog-backdrop {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  padding: 1rem;
+  display: grid;
+  place-items: center;
+  background: rgba(16, 28, 40, 0.54);
+}
+
+.admin-access-dialog {
+  width: min(520px, 100%);
+  padding: 1.25rem;
+  display: grid;
+  gap: 1rem;
+  border: 1px solid #cbd6e0;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(12, 29, 48, 0.28);
+}
+
+.admin-access-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-access-dialog-head span {
+  color: var(--admin-blue-dark);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-access-dialog-head h3,
+.admin-access-dialog p {
+  margin: 0;
+}
+
+.admin-access-dialog-head button {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid #cbd6e0;
+  border-radius: 6px;
+  color: #3e5366;
+  background: #fff;
+  cursor: pointer;
+}
+
+.admin-access-dialog > p {
+  color: var(--admin-muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.admin-access-dialog > label {
+  display: grid;
+  gap: 0.4rem;
+  color: #24384a;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.admin-access-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+
 @keyframes admin-action-spin {
   to { transform: rotate(360deg); }
 }

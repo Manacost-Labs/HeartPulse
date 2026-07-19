@@ -1,5 +1,5 @@
-import React from 'react';
-import { MoreVertical, ShieldCheck, Trash2, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { CalendarClock, MoreVertical, ShieldCheck, Trash2, Users, X } from 'lucide-react';
 import { ADMIN_INPUT } from './contestAdminUi';
 
 export type AdminUserSearchResult = {
@@ -18,6 +18,10 @@ export type AdminUserSearchResult = {
   newsletterOptIn?: boolean;
   lifetimeAccess?: boolean;
   lifetimeGrantedAt?: string;
+  manualAccess?: {
+    enabled: boolean;
+    expiresAt: string | null;
+  };
   subscription: {
     hasAccess: boolean;
     source: string;
@@ -35,6 +39,10 @@ export type AdminUserPatch = {
   role?: 'admin' | 'user';
   blocked?: boolean;
   lifetimeAccess?: boolean;
+  manualAccess?: {
+    enabled: boolean;
+    expiresAt: string | null;
+  };
 };
 
 type ContestAdminUsersProps = {
@@ -76,6 +84,33 @@ export function ContestAdminUsers({
   onToggleMenu,
   onUpdateUser,
 }: ContestAdminUsersProps) {
+  const [accessTarget, setAccessTarget] = useState<AdminUserSearchResult | null>(null);
+  const [accessPeriod, setAccessPeriod] = useState('30');
+  const [customAccessEnd, setCustomAccessEnd] = useState('');
+
+  const openAccessDialog = (user: AdminUserSearchResult) => {
+    setAccessTarget(user);
+    setAccessPeriod(user.manualAccess?.expiresAt ? 'custom' : user.lifetimeAccess ? 'forever' : '30');
+    setCustomAccessEnd(user.manualAccess?.expiresAt ? String(user.manualAccess.expiresAt).slice(0, 16) : '');
+    onToggleMenu(user.id);
+  };
+
+  const submitAccess = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!accessTarget) return;
+    let expiresAt: string | null = null;
+    if (accessPeriod === 'custom') {
+      const parsed = new Date(customAccessEnd);
+      if (!customAccessEnd || !Number.isFinite(parsed.getTime()) || parsed.getTime() <= Date.now()) return;
+      expiresAt = parsed.toISOString();
+    } else if (accessPeriod !== 'forever') {
+      expiresAt = new Date(Date.now() + Number(accessPeriod) * 24 * 60 * 60 * 1000).toISOString();
+    }
+    const user = accessTarget;
+    setAccessTarget(null);
+    onUpdateUser(user, { manualAccess: { enabled: true, expiresAt } });
+  };
+
   return (
     <div className="contest-admin-card contest-admin-search admin-full-card">
       <div className="contest-users-head">
@@ -115,7 +150,11 @@ export function ContestAdminUsers({
                 {user.blockedAt ? 'заблокирован' : user.role === 'admin' ? 'админ' : 'участник'}
               </span>
               <span className={user.subscription?.hasAccess ? 'contest-access-ok' : 'contest-access-no'}>
-                {user.lifetimeAccess ? 'бессрочно' : user.subscription?.hasAccess ? 'подписка' : 'нет доступа'}
+                {user.lifetimeAccess
+                  ? 'полный доступ · навсегда'
+                  : user.manualAccess?.enabled && user.manualAccess.expiresAt
+                    ? `полный доступ · до ${formatDate(user.manualAccess.expiresAt)}`
+                    : user.subscription?.hasAccess ? 'подписка' : 'нет доступа'}
               </span>
               <div className="contest-user-action-menu-wrap">
                 <button
@@ -136,10 +175,16 @@ export function ContestAdminUsers({
                 </button>
                 {openMenuId === user.id && (
                   <div ref={menuRef} id={`user-actions-${user.id}`} className="contest-user-menu" role="menu" aria-label={`Действия: ${user.name || user.email}`}>
-                    <button type="button" role="menuitem" onClick={() => onUpdateUser(user, { lifetimeAccess: !user.lifetimeAccess })}>
-                      <ShieldCheck size={16} />
-                      <span>{user.lifetimeAccess ? 'Отозвать бессрочную подписку' : 'Дать бессрочную подписку'}<small>Доступ ко всем закрытым разделам</small></span>
+                    <button type="button" role="menuitem" onClick={() => openAccessDialog(user)}>
+                      <CalendarClock size={16} />
+                      <span>{user.manualAccess?.enabled ? 'Изменить полный доступ' : 'Дать полный доступ'}<small>На период или навсегда</small></span>
                     </button>
+                    {user.manualAccess?.enabled && (
+                      <button type="button" role="menuitem" onClick={() => onUpdateUser(user, { manualAccess: { enabled: false, expiresAt: null } })}>
+                        <ShieldCheck size={16} />
+                        <span>Отозвать полный доступ<small>Обычная подписка пользователя сохранится</small></span>
+                      </button>
+                    )}
                     <button type="button" role="menuitem" disabled={currentUserId === user.id} onClick={() => onUpdateUser(user, { role: user.role === 'admin' ? 'user' : 'admin' })}>
                       <Users size={16} />
                       <span>{user.role === 'admin' ? 'Снять права администратора' : 'Сделать администратором'}<small>Изменить уровень управления</small></span>
@@ -166,6 +211,50 @@ export function ContestAdminUsers({
           <span>Страница {page} из {pageCount}</span>
           <button type="button" disabled={page === pageCount || loading} onClick={() => onPageChange(Math.min(pageCount, page + 1))}>Далее</button>
         </nav>
+      )}
+      {accessTarget && (
+        <div className="admin-access-dialog-backdrop" role="presentation" onMouseDown={event => {
+          if (event.target === event.currentTarget) setAccessTarget(null);
+        }}>
+          <form className="admin-access-dialog" role="dialog" aria-modal="true" aria-labelledby="admin-access-dialog-title" onSubmit={submitAccess}>
+            <div className="admin-access-dialog-head">
+              <div>
+                <span>Полный доступ</span>
+                <h3 id="admin-access-dialog-title">{accessTarget.name || accessTarget.email || accessTarget.id}</h3>
+              </div>
+              <button type="button" aria-label="Закрыть" onClick={() => setAccessTarget(null)}><X size={20} /></button>
+            </div>
+            <p>Открывает все функции и закрытые разделы сайта независимо от тарифа пользователя.</p>
+            <label>
+              Срок доступа
+              <select value={accessPeriod} onChange={event => setAccessPeriod(event.target.value)} style={ADMIN_INPUT}>
+                <option value="7">7 дней</option>
+                <option value="30">30 дней</option>
+                <option value="90">90 дней</option>
+                <option value="365">1 год</option>
+                <option value="custom">До выбранной даты</option>
+                <option value="forever">Навсегда</option>
+              </select>
+            </label>
+            {accessPeriod === 'custom' && (
+              <label>
+                Доступ до
+                <input
+                  type="datetime-local"
+                  required
+                  value={customAccessEnd}
+                  min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
+                  onChange={event => setCustomAccessEnd(event.target.value)}
+                  style={ADMIN_INPUT}
+                />
+              </label>
+            )}
+            <div className="admin-access-dialog-actions">
+              <button type="button" className="contest-secondary-button" onClick={() => setAccessTarget(null)}>Отмена</button>
+              <button type="submit" className="contest-primary-button">Выдать доступ</button>
+            </div>
+          </form>
+        </div>
       )}
     </div>
   );

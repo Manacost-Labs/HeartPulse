@@ -1206,8 +1206,14 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
     const menuTrigger = userMenuTriggerMap.get(user.id);
     const willBlock = patch.blocked === true;
     const willPromote = patch.role === 'admin';
-    const actionLabel = typeof patch.lifetimeAccess === 'boolean'
-      ? patch.lifetimeAccess ? 'дать бессрочную подписку' : 'отозвать бессрочную подписку'
+    const actionLabel = patch.manualAccess
+      ? patch.manualAccess.enabled
+        ? patch.manualAccess.expiresAt
+          ? `дать полный доступ до ${formatDate(patch.manualAccess.expiresAt)}`
+          : 'дать полный доступ навсегда'
+        : 'отозвать полный доступ'
+      : typeof patch.lifetimeAccess === 'boolean'
+        ? patch.lifetimeAccess ? 'дать бессрочную подписку' : 'отозвать бессрочную подписку'
       : willBlock
         ? 'заблокировать'
         : patch.blocked === false

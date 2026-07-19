@@ -2532,7 +2532,7 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
 // ─── AdminPanel ───────────────────────────────────────────────────────────────
 
 interface AdminForm {
-  title: string; tag: string; mode: 'arena' | 'battlegrounds' | 'general'; excerpt: string; image: string; url: string;
+  title: string; tag: string; mode: 'arena' | 'battlegrounds' | 'standard' | 'wild' | 'general'; excerpt: string; image: string; url: string;
 }
 
 type AdminSectionId = 'overview' | 'users' | 'boosty' | 'add' | 'list' | 'media';
@@ -5547,7 +5547,7 @@ interface Article {
   image: string;
   excerpt: string;
   tag?: string;
-  mode?: 'arena' | 'battlegrounds' | 'general' | string;
+  mode?: 'arena' | 'battlegrounds' | 'standard' | 'wild' | 'general' | string;
   url: string;
   likes?: number;
   dislikes?: number;
@@ -5585,6 +5585,7 @@ function articleEntitlement(article: Article): SubscriptionEntitlementKey | null
   const explicitMode = String(article.mode || '').toLowerCase();
   if (explicitMode === 'battlegrounds') return 'battlegroundsArticles';
   if (explicitMode === 'arena') return 'arenaArticles';
+  if (explicitMode === 'standard' || explicitMode === 'wild') return 'standard';
   if (explicitMode === 'general') return null;
   const haystack = [article.tag, article.title, article.excerpt, article.url]
     .map(value => String(value || '').toLowerCase().replace(/ё/g, 'е'))
