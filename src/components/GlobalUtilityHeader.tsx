@@ -9,7 +9,6 @@ import {
   Search,
   X,
 } from 'lucide-react';
-import { FAQ_ITEMS } from '../content/faq';
 import './GlobalUtilityHeader.css';
 
 type SearchArticle = {
@@ -84,17 +83,17 @@ function cardFormatsLabel(formats: SearchCard['formats']): string {
 
 export default function GlobalUtilityHeader({
   accessStatus,
+  onNavigate,
 }: {
   accessStatus: true | HeaderSubscription;
+  onNavigate: (path: string) => void;
 }) {
   const rootRef = useRef<HTMLElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchPanelId = `${useId()}-search`;
-  const faqPanelId = `${useId()}-faq`;
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResponse | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [faqOpen, setFaqOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [openingArticleId, setOpeningArticleId] = useState('');
@@ -146,14 +145,21 @@ export default function GlobalUtilityHeader({
     const closeOnOutsidePointer = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) {
         setSearchOpen(false);
-        setFaqOpen(false);
       }
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      setSearchOpen(false);
-      setFaqOpen(false);
-      searchInputRef.current?.blur();
+      if (event.key === 'Escape') {
+        setSearchOpen(false);
+        searchInputRef.current?.blur();
+        return;
+      }
+      const target = event.target as HTMLElement | null;
+      const isEditing = target?.matches('input, textarea, select, [contenteditable="true"]');
+      if (event.key === '/' && !event.metaKey && !event.ctrlKey && !event.altKey && !isEditing) {
+        event.preventDefault();
+        setSearchOpen(true);
+        searchInputRef.current?.focus();
+      }
     };
     document.addEventListener('pointerdown', closeOnOutsidePointer);
     document.addEventListener('keydown', closeOnEscape);
@@ -165,7 +171,6 @@ export default function GlobalUtilityHeader({
 
   const closePanels = () => {
     setSearchOpen(false);
-    setFaqOpen(false);
   };
 
   const openArticle = async (article: SearchArticle) => {
@@ -214,16 +219,15 @@ export default function GlobalUtilityHeader({
             ref={searchInputRef}
             type="search"
             value={query}
-            placeholder="Поиск по статьям и картам"
+            placeholder="Найдите статью, карту или механику…"
             aria-label="Глобальный поиск по статьям и картам"
+            aria-keyshortcuts="/"
             onFocus={() => {
               setSearchOpen(true);
-              setFaqOpen(false);
             }}
             onChange={event => {
               setQuery(event.target.value);
               setSearchOpen(true);
-              setFaqOpen(false);
             }}
           />
           {loading && <LoaderCircle size={16} className="global-search__spinner" aria-label="Идет поиск" />}
@@ -241,6 +245,7 @@ export default function GlobalUtilityHeader({
               <X size={15} aria-hidden="true" />
             </button>
           )}
+          {!loading && !query && <kbd className="global-search__shortcut" aria-hidden="true">/</kbd>}
 
           {searchOpen && query.trim().length >= 2 && (
             <div id={searchPanelId} className="global-search-panel" role="region" aria-label="Результаты глобального поиска">
@@ -305,39 +310,19 @@ export default function GlobalUtilityHeader({
           )}
         </div>
 
-        <button
-          type="button"
+        <a
+          href="/faq"
           className="global-faq-button"
-          aria-expanded={faqOpen}
-          aria-controls={faqPanelId}
-          onClick={() => {
-            setFaqOpen(value => !value);
-            setSearchOpen(false);
+          aria-current={window.location.pathname === '/faq' ? 'page' : undefined}
+          onClick={event => {
+            event.preventDefault();
+            closePanels();
+            onNavigate('/faq');
           }}
         >
           <CircleHelp size={17} aria-hidden="true" />
           <span>FAQ</span>
-        </button>
-
-        {faqOpen && (
-          <aside id={faqPanelId} className="global-faq-panel" aria-labelledby={`${faqPanelId}-title`}>
-            <div className="global-faq-panel__heading">
-              <div>
-                <span>Помощь</span>
-                <h2 id={`${faqPanelId}-title`}>Частые вопросы</h2>
-              </div>
-              <button type="button" aria-label="Закрыть FAQ" onClick={() => setFaqOpen(false)}><X size={16} /></button>
-            </div>
-            <div className="global-faq-panel__list">
-              {FAQ_ITEMS.map(item => (
-                <details key={item.q}>
-                  <summary>{item.q}</summary>
-                  <p>{item.a}</p>
-                </details>
-              ))}
-            </div>
-          </aside>
-        )}
+        </a>
       </div>
     </header>
   );

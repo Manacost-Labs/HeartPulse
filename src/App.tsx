@@ -571,6 +571,7 @@ function NavigationRouteLinks({
 
 const loadDeferredRoutesModule = () => import('./features/DeferredRoutes');
 const loadHomeModule = () => import('./features/Home');
+const loadFAQPageModule = () => import('./features/FAQPage');
 const loadBgLibraryModule = () => import('./features/BgLibrary');
 const loadGuidesArchiveModule = () => import('./features/GuidesArchive');
 const loadStandardMatchupsModule = () => import('./features/StandardMatchups');
@@ -585,6 +586,7 @@ const LazyFAQSection = React.lazy(() => import('./components/FAQSection'));
 const LazySupportPrompt = React.lazy(() => import('./components/SupportPrompt'));
 const LazySiteFooter = React.lazy(() => import('./components/SiteFooter'));
 const LazyHomeTab = React.lazy(loadHomeModule);
+const LazyFAQPage = React.lazy(loadFAQPageModule);
 
 const LazyWinrates = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.Winrates })));
 const LazyTierList = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.TierList })));
@@ -610,6 +612,7 @@ const ROUTE_PRELOADERS: Partial<Record<TabId | 'login', () => Promise<unknown>>>
   tierlist: loadDeferredRoutesModule,
   legendaries: loadDeferredRoutesModule,
   articles: loadDeferredRoutesModule,
+  faq: loadFAQPageModule,
   gallery: loadDeferredRoutesModule,
   login: loadDeferredRoutesModule,
   'admin-panel': loadContestsModule,
@@ -1366,7 +1369,7 @@ export default function App() {
   const isFullWidthBuilder = activeTab === 'standard-matchups' || activeTab === 'standard-meta' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive';
   // Login is its own visual route. Do not inherit the surface class of the
   // page that happened to be open before the profile was requested.
-  const isEditorialSurfacePage = !isAdminMode && !wantsLogin && ['articles', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
+  const isEditorialSurfacePage = !isAdminMode && !wantsLogin && ['articles', 'faq', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
   const isGameDataSurfacePage = !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'standard-meta', 'standard-vicious-gold', 'standard-cards', 'tierlist', 'legendaries'].includes(activeTab);
   const isBattlegroundsSurfacePage = !isAdminMode && !wantsLogin && BG_TAB_IDS.has(activeTab);
   const isOpenSurfacePage = !isAdminMode && (activeTab === 'home' || wantsLogin || isEditorialSurfacePage || isGameDataSurfacePage || isBattlegroundsSurfacePage);
@@ -1633,6 +1636,7 @@ export default function App() {
 	            <React.Suspense fallback={null}>
 	              <LazyGlobalUtilityHeader
 	                accessStatus={appIsAdmin ? true : appSubscription}
+	                onNavigate={navigatePath}
 	              />
 	            </React.Suspense>
 	          )}
@@ -1812,6 +1816,11 @@ export default function App() {
                       subscriptionStatus={appSubscription}
                       subscriptionLoading={appAuthChecking || appSubscriptionLoading}
                     />
+                  </React.Suspense>
+                )}
+                {activeTab === 'faq' && (
+                  <React.Suspense fallback={<RouteFallback minHeight={760} />}>
+                    <LazyFAQPage navigatePath={navigatePath} />
                   </React.Suspense>
                 )}
                 {activeTab === 'gallery' && (

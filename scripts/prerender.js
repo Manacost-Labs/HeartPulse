@@ -105,6 +105,43 @@ const PAGES = {
         <li><a href="/contests">Конкурсы</a> — розыгрыши для подписчиков Манакоста</li>
       </ul>`
   },
+  '/faq': {
+    title: 'FAQ и помощь по Manacost Stats — вход, подписка и доступ',
+    description: 'Подробная помощь по регистрации, входу, Boosty, Telegram, уровням подписки, paywall, статистике и разделам Manacost Stats.',
+    h1: 'Частые вопросы о Manacost Stats',
+    canonical: '/faq',
+    ogType: 'website',
+    structuredData: [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Главная', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'FAQ', item: `${SITE_URL}/faq` },
+        ],
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: [
+          {
+            '@type': 'Question',
+            name: 'Как подтвердить подписку Boosty?',
+            acceptedAnswer: { '@type': 'Answer', text: 'В профиле укажите email из Boosty, подтвердите его кодом из письма и обновите статус подписки.' },
+          },
+          {
+            '@type': 'Question',
+            name: 'Как подтвердить подписку Telegram?',
+            acceptedAnswer: { '@type': 'Answer', text: 'Привяжите сам Telegram-аккаунт через вход или отправьте созданный в профиле ID-код боту.' },
+          },
+          {
+            '@type': 'Question',
+            name: 'Что открывает тариф Алмаз?',
+            acceptedAnswer: { '@type': 'Answer', text: 'Алмаз открывает все режимы, Стандарт, Вольный, закрытые статьи и статистику карт.' },
+          },
+        ],
+      },
+    ],
+    noscript: '<h1>Частые вопросы о Manacost Stats</h1><p>Помощь по регистрации, входу, подтверждению Boosty и Telegram, уровням подписки, paywall и игровой статистике.</p><p><a href="/?login">Открыть профиль</a> | <a href="/standard/cards">Карты</a> | <a href="/articles">Статьи</a></p>',
+  },
   '/standard/matchups': {
     title: `Матчапы Стандарта Hearthstone ${YEAR} | Manacost Stats`,
     description: 'Матрица матчапов актуальной меты Стандарта Hearthstone по данным HSGuru: винрейты архетипов против друг друга для Легенды и Алмаза 4-1.',

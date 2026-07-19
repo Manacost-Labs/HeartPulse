@@ -1,6 +1,7 @@
 import {
   BookOpenText,
   ChartNoAxesCombined,
+  CircleHelp,
   CircleUserRound,
   Crown,
   Gem,
@@ -38,6 +39,9 @@ export const TABS = [
   },
   {
     id: 'articles', label: 'Статьи', icon: BookOpenText, slug: '/articles', group: 'top', entitlement: null,
+  },
+  {
+    id: 'faq', label: 'FAQ', icon: CircleHelp, slug: '/faq', group: 'top', entitlement: null,
   },
   {
     id: 'gallery', label: 'Галерея', icon: ImageIcon, slug: '/gallery', group: 'misc', entitlement: null,

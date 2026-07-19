@@ -196,11 +196,12 @@ const adminFixtures = {
       text: { ru: '<b>Боевой клич:</b> возьмите карту.' }, flavor: { ru: 'Контрольный художественный текст.' },
       card_set: 'ESCAPEFROM_VIOLET_HOLD', card_type: { slug: 'SPELL', name_ru: 'Заклинание' }, class: 'WARRIOR', multi_class: [], rarity: 'LEGENDARY',
       mana_cost: 1, attack: null, health: null, artist: 'QA Artist', mechanics: ['BATTLECRY', 'Battlecry'], referenced_tags: ['TAUNT'],
-      images: { card: qaCard.imageRu, golden: qaCard.imageHa, signature: null, diamond: null, crop: '/arena-logo-icon.webp?v=arena-legacy-20260629' },
+      images: { card: qaCard.imageRu, golden: null, signature: null, diamond: null, crop: '/arena-logo-icon.webp?v=arena-legacy-20260629' },
       statsUpdatedAt: '2026-07-16T05:03:02.000Z', statsSourceUrl: 'https://hsreplay.net/cards/',
       stats: { deckPopularity: 18.4, deckWinrate: 56.2, averageCopies: 1.7, timesPlayed: 12400, winrateWhenPlayed: 55.8, winrateWhenDrawn: 54.6, keepPercentage: 42.1, openingHandWinrate: 53.2, averageTurnsInHand: 2.1, averageTurnPlayed: 4.4 },
       wiki_page: { title: 'QA Card 1', url: 'https://example.test/wiki' },
       wiki: {
+        golden_cards: [{ label: 'Golden', file_url: qaCard.imageHa }],
         wiki_mechanics: ['Battlecry', 'Draw cards'], wiki_tags: ['Hand-related'],
         patch_changes: [{ heading: 'Card changes', entries: [
           { date: '2025-02-01', patch: 'Patch 35.0', items: ['Changed.'], manacost_title: 'Обновление 35.0: контрольный патч', manacost_url: 'https://hs-manacost.ru/qa-patch-35/', manacost_published_at: '2025-02-01T12:00:00', manacost_summary: 'Русское описание контрольного обновления.' },
@@ -1156,6 +1157,7 @@ async function createQaPage() {
 
 const authenticatedRoutes = [
   { path: '/articles', expected: 'Первая статья', selector: '.article-image-shell img' },
+  { path: '/faq', expected: 'Частые вопросы', selector: '.faq-page__questions details' },
   { path: '/classes', expected: 'Паладин', selector: '.arena-app-winrates' },
   { path: '/tierlist', expected: 'Тир-лист', selector: '.hs-tier-card' },
   { path: '/legendaries', expected: 'Медив Освященный', selector: '.legendary-group-card' },
@@ -1284,6 +1286,20 @@ for (const route of authenticatedRoutes) {
       await waitForMeaningfulPage(page, route.expected);
       await page.waitForSelector(route.selector, { timeout: 20_000 });
       await assertArenaDataRoutePresentation(page, route.path, device);
+      if (route.path === '/faq') {
+        const faqPageState = await page.evaluate(() => ({
+          sections: document.querySelectorAll('.faq-page__section').length,
+          questions: document.querySelectorAll('.faq-page__questions details').length,
+          quickSteps: document.querySelectorAll('.faq-page__start li').length,
+          authLinks: document.querySelectorAll('a[href="/?login"]').length,
+          activeHeaderLink: document.querySelector('.global-faq-button')?.getAttribute('aria-current') || '',
+          overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+        }));
+        if (faqPageState.sections !== 5 || faqPageState.questions < 18 || faqPageState.quickSteps !== 3
+          || faqPageState.authLinks < 1 || faqPageState.activeHeaderLink !== 'page' || faqPageState.overflow) {
+          failures.push(`/faq [${device}]: standalone help content regressed (${JSON.stringify(faqPageState)})`);
+        }
+      }
       if (route.path === '/articles') {
         const searchInput = await page.waitForSelector('.global-search input', { visible: true, timeout: 10_000 });
         await searchInput.type('контроль');
@@ -1291,23 +1307,25 @@ for (const route of authenticatedRoutes) {
         const utilityState = await page.evaluate(() => {
           const header = document.querySelector('.global-utility-header');
           const searchPanel = document.querySelector('.global-search-panel');
+          const search = document.querySelector('.global-search');
+          const main = document.querySelector('.arena-main');
           const headerRect = header?.getBoundingClientRect();
           return {
             height: headerRect?.height || 0,
             searchVisible: Boolean(searchPanel && getComputedStyle(searchPanel).display !== 'none'),
             resultText: searchPanel?.textContent || '',
+            woodenSearchFrame: getComputedStyle(search).borderImageSource.includes('main-page-rail-border'),
+            contentGap: Number.parseFloat(getComputedStyle(main).paddingTop || '0'),
+            faqHref: document.querySelector('.global-faq-button')?.getAttribute('href') || '',
             overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
           };
         });
         if (utilityState.height > 50 || utilityState.height < 40 || !utilityState.searchVisible
           || !utilityState.resultText.includes('Контрольный мета-отчет')
-          || !utilityState.resultText.includes('Контрольная карта') || utilityState.overflow) {
+          || !utilityState.resultText.includes('Контрольная карта') || !utilityState.woodenSearchFrame
+          || utilityState.contentGap < 10 || utilityState.faqHref !== '/faq' || utilityState.overflow) {
           failures.push(`/articles [${device}]: global utility header regressed (${JSON.stringify(utilityState)})`);
         }
-        await page.click('.global-faq-button');
-        await page.waitForSelector('.global-faq-panel details', { visible: true, timeout: 10_000 });
-        const faqExpanded = await page.$eval('.global-faq-button', button => button.getAttribute('aria-expanded'));
-        if (faqExpanded !== 'true') failures.push(`/articles [${device}]: FAQ panel did not expose expanded state`);
       }
       const violationCount = await auditAccessibility(page, `${route.path} [${device}]`);
       const paywallVisible = await page.$eval('.arena-paywall', element => getComputedStyle(element).display !== 'none').catch(() => false);
@@ -2128,7 +2146,7 @@ for (const [device, viewport] of [
       || profileState.scrollWidth > profileState.clientWidth + 1) {
       failures.push(`profile [${device}]: hero asset or horizontal reflow changed (${JSON.stringify(profileState)})`);
     }
-    if (device === 'mobile' && (profileState.routeShell.mainPadding !== '0px'
+    if (device === 'mobile' && (profileState.routeShell.mainPadding !== '12px 0px 0px'
       || profileState.routeShell.contentMaxWidth !== '100%'
       || profileState.routeShell.contentPadding !== '0px 16px 32px')) {
       failures.push(`profile [${device}]: responsive route shell changed (${JSON.stringify(profileState.routeShell)})`);
@@ -4289,7 +4307,7 @@ for (const [device, viewport] of [
       || sidebarState.shellAfterBackground !== 'none'
       || !sidebarState.workspaceBackground.includes('arena-parchment.jpg')
       || !sidebarState.mainBackground.includes('arena-parchment.jpg')
-      || sidebarState.mainPaddingTop !== '0px') {
+      || sidebarState.mainPaddingTop !== '16px') {
       failures.push(`desktop sidebar: parchment frame changed (${JSON.stringify(sidebarState)})`);
     }
     const hoverTarget = '.arena-sidebar a.arena-sidebar-link:not(.arena-sidebar-link-active)';

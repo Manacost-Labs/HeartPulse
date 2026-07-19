@@ -21,7 +21,12 @@ import '../route-parchment.css';
 import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
 import ConstructedCardLightbox from './ConstructedCardLightbox';
 import { compareConstructedSets, constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
-import { collectConstructedCardMedia, flattenConstructedCardSounds, type ConstructedCardMediaItem } from './constructedCardMedia';
+import {
+  collectConstructedCardMedia,
+  collectConstructedCardVariants,
+  flattenConstructedCardSounds,
+  type ConstructedCardMediaItem,
+} from './constructedCardMedia';
 import {
   constructedSpellSchoolLabel,
   constructedTribeLabel,
@@ -651,13 +656,6 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
   );
 }
 
-function variantImages(card: CardRecord): Array<{ id: string; label: string; url: string }> {
-  return [
-    ['normal', 'Обычная', card.images?.card], ['golden', 'Золотая', card.images?.golden],
-    ['signature', 'Сигнатурная', card.images?.signature], ['diamond', 'Алмазная', card.images?.diamond],
-  ].filter((entry): entry is [string, string, string] => Boolean(entry[2])).map(([id, label, url]) => ({ id, label, url }));
-}
-
 function GeneratedPoolCards({ pool, format, navigatePath }: { key?: React.Key; pool: any; format: CardFormat; navigatePath: (path: string) => void }) {
   const cards = Array.isArray(pool?.cards) ? pool.cards : [];
   const gridRef = useRef<HTMLDivElement | null>(null);
@@ -873,7 +871,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
   if (loading) return <section className="constructed-cards constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={36} /><h1>Загружаем карту</h1></section>;
   if (error || !card) return <section className="constructed-cards constructed-cards__state" role="alert"><h1>Карта не найдена</h1><p>{error}</p><button type="button" onClick={() => navigatePath(`/standard/cards/${format}`)}><ArrowLeft size={17} /> Назад к картам</button></section>;
 
-  const variants = variantImages(card);
+  const variants = collectConstructedCardVariants(card);
   const selectedImage = variants.find(item => item.id === variant)?.url || variants[0]?.url || '';
   const wiki = card.wiki || {};
   const effectiveTranslations = mergeConstructedTranslationSources(wiki, card.mechanicOverrides);

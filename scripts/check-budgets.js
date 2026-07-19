@@ -8,9 +8,9 @@ const budgets = {
   // Route-owned icons and Home stay out of the eager dependency graph. The
   // shell chunk may contain its own icon code, while aggregate startup limits
   // remain stricter than the previous 266 KB raw / 90 KB gzip baseline.
-  // The utility header is lazy-loaded; keep a tiny allowance for the shell loader
-  // while the stricter aggregate startup limits below remain unchanged.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 56_500),
+  // Utility header and FAQ remain lazy; allow only their route-loader wiring in
+  // the shell while the stricter aggregate startup limits remain unchanged.
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 57_250),
   initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 252_000),
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_000),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
@@ -21,9 +21,11 @@ const budgets = {
   loginPanelCss: Number(process.env.BUDGET_LOGIN_PANEL_CSS_BYTES || 4_500),
   homeSectionCss: Number(process.env.BUDGET_HOME_SECTION_CSS_BYTES || 5_000),
   faqSectionCss: Number(process.env.BUDGET_FAQ_SECTION_CSS_BYTES || 4_000),
+  faqPageCss: Number(process.env.BUDGET_FAQ_PAGE_CSS_BYTES || 7_000),
+  faqPageJs: Number(process.env.BUDGET_FAQ_PAGE_JS_BYTES || 5_500),
   supportPromptCss: Number(process.env.BUDGET_SUPPORT_PROMPT_CSS_BYTES || 4_000),
   siteFooterCss: Number(process.env.BUDGET_SITE_FOOTER_CSS_BYTES || 4_000),
-  routeMetaJs: Number(process.env.BUDGET_ROUTE_META_JS_BYTES || 5_000),
+  routeMetaJs: Number(process.env.BUDGET_ROUTE_META_JS_BYTES || 5_250),
 };
 
 const files = readdirSync(distAssets)
@@ -44,6 +46,8 @@ const routeCss = files.find(file => /^route-parchment-.*\.css$/.test(file.name))
 const deferredRoutesCss = files.find(file => /^DeferredRoutes-.*\.css$/.test(file.name));
 const loginPanelCss = files.find(file => /^LoginPanel-.*\.css$/.test(file.name));
 const faqSectionCss = files.find(file => /^FAQSection-.*\.css$/.test(file.name));
+const faqPageCss = files.find(file => /^FAQPage-.*\.css$/.test(file.name));
+const faqPageJs = files.find(file => /^FAQPage-.*\.js$/.test(file.name));
 const supportPromptCss = files.find(file => /^SupportPrompt-.*\.css$/.test(file.name));
 const siteFooterCss = files.find(file => /^SiteFooter-.*\.css$/.test(file.name));
 const routeMetaJs = files.find(file => /^route-meta-.*\.js$/.test(file.name));
@@ -77,6 +81,8 @@ const checks = [
   ['lazy public-auth CSS', loginPanelCss, budgets.loginPanelCss],
   ['largest lazy home-section CSS', largestHomeSectionCss, budgets.homeSectionCss],
   ['lazy FAQ-section CSS', faqSectionCss, budgets.faqSectionCss],
+  ['lazy FAQ-page CSS', faqPageCss, budgets.faqPageCss],
+  ['lazy FAQ-page JS', faqPageJs, budgets.faqPageJs],
   ['lazy support-prompt CSS', supportPromptCss, budgets.supportPromptCss],
   ['lazy site-footer CSS', siteFooterCss, budgets.siteFooterCss],
   ['lazy route-metadata JS', routeMetaJs, budgets.routeMetaJs],

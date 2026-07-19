@@ -9,6 +9,10 @@ export const ROUTE_META: Record<TabId, { title: string; description: string }> =
     title: 'Статьи и гайды по Арене Hearthstone | HS-Arena',
     description: 'Гайды, разборы и советы по режиму Арена в Hearthstone от команды Manacost.',
   },
+  faq: {
+    title: 'FAQ и помощь по Manacost Stats — вход, подписка и доступ',
+    description: 'Подробная помощь по регистрации, входу, Boosty, Telegram, уровням подписки, paywall, статистике и разделам Manacost Stats.',
+  },
   gallery: {
     title: 'Галерея артов Hearthstone | HS-Arena',
     description: 'Публичная галерея артов Манакоста в высоком качестве: просмотр и скачивание доступны всем пользователям.',

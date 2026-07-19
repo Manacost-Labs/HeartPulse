@@ -20,6 +20,12 @@ export type ConstructedCardMediaItem = {
   kind: 'image' | 'video';
 };
 
+export type ConstructedCardVariant = {
+  id: 'normal' | 'golden' | 'signature' | 'diamond';
+  label: string;
+  url: string;
+};
+
 type JsonRecord = Record<string, any>;
 
 function mediaKind(url: string): 'image' | 'video' {
@@ -116,4 +122,21 @@ export function collectConstructedCardMedia(card: JsonRecord): ConstructedCardMe
   ));
 
   return result;
+}
+
+export function collectConstructedCardVariants(card: JsonRecord): ConstructedCardVariant[] {
+  const media = collectConstructedCardMedia(card).filter(item => item.kind === 'image');
+  const definitions = [
+    { id: 'normal', label: 'Обычная', ids: ['card-normal'] },
+    { id: 'golden', label: 'Золотая', ids: ['card-golden', 'golden_cards-'] },
+    { id: 'signature', label: 'Сигнатурная', ids: ['card-signature', 'signature_cards-'] },
+    { id: 'diamond', label: 'Алмазная', ids: ['card-diamond', 'diamond_cards-'] },
+  ] as const;
+
+  return definitions.flatMap(definition => {
+    const item = media.find(candidate => definition.ids.some(id => (
+      id.endsWith('-') ? candidate.id.startsWith(id) : candidate.id === id
+    )));
+    return item ? [{ id: definition.id, label: definition.label, url: item.url }] : [];
+  });
 }

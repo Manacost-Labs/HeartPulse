@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
-import { collectConstructedCardMedia, flattenConstructedCardSounds } from '../src/features/constructedCardMedia.js';
+import {
+  collectConstructedCardMedia,
+  collectConstructedCardVariants,
+  flattenConstructedCardSounds,
+} from '../src/features/constructedCardMedia.js';
 import { constructedSoundGroupLabel } from '../src/features/constructedCardLabels.js';
 
 const sounds = flattenConstructedCardSounds([
@@ -39,5 +43,27 @@ assert.equal(media.find(item => item.id === 'animated-golden')?.kind, 'video');
 assert.equal(media.find(item => item.id === 'gallery-0')?.thumbnailUrl, 'https://example.test/thumb.jpg');
 assert.equal(media.find(item => item.id === 'gallery-0')?.label, 'Полный арт', 'English wiki gallery captions must be localized');
 assert.equal(media.find(item => item.id === 'signature_cards-0')?.label, 'Сигнатурная карта', 'English card-variant labels must be localized');
+
+const variants = collectConstructedCardVariants({
+  images: {
+    card: 'https://example.test/card.png',
+    golden: null,
+    signature: null,
+    diamond: null,
+  },
+  wiki: {
+    golden_cards: [{ label: 'Golden', file_url: 'https://example.test/wiki-golden.png' }],
+    signature_cards: [{ label: 'Signature', file_url: 'https://example.test/wiki-signature.png' }],
+  },
+});
+assert.deepEqual(
+  variants.map(item => [item.id, item.url]),
+  [
+    ['normal', 'https://example.test/card.png'],
+    ['golden', 'https://example.test/wiki-golden.png'],
+    ['signature', 'https://example.test/wiki-signature.png'],
+  ],
+  'card detail variants must fall back to wiki premium media when the catalog premium fields are empty',
+);
 
 console.log('constructed card media normalization tests passed');

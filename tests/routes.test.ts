@@ -22,6 +22,8 @@ for (const route of TABS) {
 assert.equal(tabFromPath('/heroes/76521'), 'bg-heroes');
 assert.equal(tabFromPath('/library/archive/minions'), 'bg-library');
 assert.equal(tabFromPath('/battlegrounds/tier-list?list=spells'), 'bg-tier-list');
+assert.equal(tabFromPath('/faq'), 'faq', 'FAQ must be available as a standalone public page');
+assert.equal(isKnownPath('/faq'), true, 'FAQ route must be recognized');
 assert.equal(tabFromPath('/decks/legacy'), 'home');
 assert.equal(isKnownPath('/decks/legacy'), true);
 assert.equal(isKnownPath('/definitely-unknown'), false);
