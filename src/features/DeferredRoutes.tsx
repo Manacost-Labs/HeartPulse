@@ -5681,11 +5681,11 @@ function ArticleCard({
       onClick={openArticle}
     >
       {/* Image */}
-      <div className="article-image-shell relative h-44 w-full overflow-hidden flex-shrink-0">
+      <div className="article-image-shell relative w-full overflow-hidden flex-shrink-0">
         {!imgErr ? (
           <img src={articleImageSrc(article.image)} alt={article.title} loading="lazy"
             onError={() => setImgErr(true)}
-            className="w-full h-full object-cover" />
+            className="w-full h-full object-contain" />
         ) : (
           <div className="article-image-fallback w-full h-full flex items-center justify-center">
             <BookOpen size={36} aria-hidden="true" />

@@ -746,6 +746,7 @@
     background:
       radial-gradient(circle at 18% 12%, rgba(96, 165, 250, 0.18), transparent 16rem),
       linear-gradient(135deg, #081020, #14233b);
+    aspect-ratio: 1176 / 597;
   }
 
   .article-image-shell::after {
@@ -761,7 +762,7 @@
   }
 
   .article-card-modern:hover .article-image-shell img {
-    transform: scale(1.015);
+    transform: none;
     filter: saturate(1.06) contrast(1.04);
   }
 

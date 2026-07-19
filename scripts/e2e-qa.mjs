@@ -30,6 +30,11 @@ const qaCard = {
   imageHa: 'https://cdn.heartharena.com/images/renders/ruRU/TIME_890.webp',
   imageRu: 'https://d15f34w2p8l1cc.cloudfront.net/hearthstone/5b1c3236a936971ce184478955f9f6802837a938fba48281b953dc37cc6998ad.png',
 };
+const qaArticleCover = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="1176" height="597" viewBox="0 0 1176 597"%3E%3Crect width="1176" height="597" fill="%236d1117"/%3E%3C/svg%3E';
+const qaArticles = [
+  { id: 'qa-article-1', title: 'Первая статья', date: '2026-07-11', tag: 'Арена', excerpt: 'Контрольная статья Арены.', mode: 'arena', image: qaArticleCover, url: '/articles/qa-1' },
+  { id: 'qa-article-2', title: 'Вторая статья', date: '2026-07-10', tag: 'Общее', excerpt: 'Контрольный общий материал.', mode: 'general', image: qaArticleCover, url: '/articles/qa-2' },
+];
 const qaDeckCards = Array.from({ length: 17 }, (_, index) => ({
   id: `CARD_QA_${index + 1}`,
   dbfId: 1000 + index,
@@ -120,6 +125,9 @@ const fixtures = {
       menus: [{ slug: 'arena', label: 'Арена', count: 1 }],
     },
   },
+  '/api/articles': {
+    articles: qaArticles,
+  },
 };
 const subscriber = {
   hasAccess: true,
@@ -140,6 +148,7 @@ const subscriber = {
   telegram: { checked: false, hasAccess: false },
 };
 const adminFixtures = {
+  '/api/articles': { articles: qaArticles },
   '/api/admin/constructed-cards': {
     format: 'standard', rank: 'legend', timeRange: '1d', updatedAt: '2026-07-16T05:03:02.000Z', sourceUrl: 'https://hsreplay.net/cards/',
     statsAccess: true,
@@ -299,12 +308,6 @@ const adminFixtures = {
         email: 'pending@example.test', status: 'pending', createdAt: '2026-07-11T02:00:00.000Z',
         contact: {}, subscription: { hasAccess: true }, profileContacts: {},
       },
-    ],
-  },
-  '/api/articles': {
-    articles: [
-      { id: 'qa-article-1', title: 'Первая статья', date: '2026-07-11', tag: 'Арена', excerpt: 'Контрольная статья Арены.', mode: 'arena', image: '', url: '/articles/qa-1' },
-      { id: 'qa-article-2', title: 'Вторая статья', date: '2026-07-10', tag: 'Общее', excerpt: 'Контрольный общий материал.', mode: 'general', image: '', url: '/articles/qa-2' },
     ],
   },
   '/api/admin/gallery': {
@@ -1140,6 +1143,7 @@ async function createQaPage() {
 }
 
 const authenticatedRoutes = [
+  { path: '/articles', expected: 'Первая статья', selector: '.article-image-shell img' },
   { path: '/classes', expected: 'Паладин', selector: '.arena-app-winrates' },
   { path: '/tierlist', expected: 'Тир-лист', selector: '.hs-tier-card' },
   { path: '/legendaries', expected: 'Медив Освященный', selector: '.legendary-group-card' },
@@ -1195,10 +1199,28 @@ async function assertArenaDataRoutePresentation(page, path, device) {
         firstCardAfter: snapshot(style(".legendary-group-card[data-rank='1']", '::after')),
       };
     }
+    if (routePath === '/articles') {
+      const image = document.querySelector('.article-image-shell img');
+      const shell = image?.parentElement;
+      const imageStyle = image ? getComputedStyle(image) : null;
+      const shellRect = shell?.getBoundingClientRect();
+      return {
+        kind: 'articles',
+        objectFit: imageStyle?.objectFit || '',
+        shellRatio: shellRect?.height ? shellRect.width / shellRect.height : 0,
+        imageRatio: image?.naturalHeight ? image.naturalWidth / image.naturalHeight : 0,
+      };
+    }
     return { kind: 'other' };
   }, path);
 
   const prefix = `${path} [${device}] route materials`;
+  if (state.kind === 'articles') {
+    if (state.objectFit !== 'contain' || Math.abs(state.shellRatio - state.imageRatio) > 0.03) {
+      failures.push(`${prefix}: article cover is cropped (${JSON.stringify(state)})`);
+    }
+    return;
+  }
   if (state.kind === 'classes') {
     if (!state.winner?.backgroundImage.includes('arena-rail-red.jpg') || !state.winner?.borderImageSource.includes('main-page-rail-border.png')) {
       failures.push(`${prefix}: winner row lost its red timber material`);

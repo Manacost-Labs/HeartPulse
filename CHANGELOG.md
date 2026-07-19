@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Fixed article cards so cover artwork is displayed in full without being cropped at the top and bottom.
 - Fixed article cover creation from external links: the administrator form now has an explicit “Загрузить по ссылке” action, validates the remote response, imports supported images into local `/uploads/admin` storage and reports actionable errors. The server rejects local/private destinations, unsafe protocols, credential-bearing URLs, non-image responses, redirect abuse and oversized files before processing.
 - Added “Стандарт” and “Вольный” article access modes for Boosty «Алмаз» subscribers and higher, with matching administrator labels and entitlement checks. Extended administrator user controls from forever-only access to audited full-site grants for 7/30/90 days, one year, a custom future date or forever; expired grants now stop affecting protected routes, subscription filters and mailing lifecycle automatically, while revocation preserves the user's normal subscription.
 - Centralized constructed-card terminology around current official Russian Hearthstone wording, including mechanics, tribes, spell schools, common wiki tags, gallery labels and technical sound captions; card dossiers now reuse localized db.kolodahs terms, hide internal engine/VFX tags, and keep administrator overrides authoritative. Expanded the admin translation workspace to mechanics and tags, added representative cards for common wiki terms, and introduced an idempotent repair for known legacy typos without overwriting custom editor translations.
