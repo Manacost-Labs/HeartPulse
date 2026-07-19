@@ -313,7 +313,7 @@ export default function GlobalUtilityHeader({
         <a
           href="/faq"
           className="global-faq-button"
-          aria-current={window.location.pathname === '/faq' ? 'page' : undefined}
+          aria-current={window.location.pathname.replace(/\/+$/, '') === '/faq' ? 'page' : undefined}
           onClick={event => {
             event.preventDefault();
             closePanels();
