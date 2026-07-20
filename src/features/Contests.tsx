@@ -187,6 +187,8 @@ function authJsonHeaders(): HeadersInit {
   return { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' };
 }
 
+const SAME_ORIGIN: RequestCredentials = 'same-origin';
+
 function contestStatusLabel(status: string): string {
   if (status === 'approved') return 'Одобрено';
   if (status === 'pending') return 'На проверке';
@@ -770,7 +772,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       const res = await fetch(`/api/admin/boosty/status?t=${Date.now()}`, {
         headers: authJsonHeaders(),
         cache: 'no-store',
-        credentials: 'same-origin',
+        credentials: SAME_ORIGIN,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Не удалось загрузить статус Boosty');
@@ -802,7 +804,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       const res = await fetch(`/api/admin/boosty/subscribers?includeInactive=1&t=${Date.now()}`, {
         headers: authJsonHeaders(),
         cache: 'no-store',
-        credentials: 'same-origin',
+        credentials: SAME_ORIGIN,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Не удалось загрузить подписчиков Boosty');
@@ -839,7 +841,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       const res = await fetch(`/api/admin/telegram/accounts?t=${Date.now()}`, {
         headers: authJsonHeaders(),
         cache: 'no-store',
-        credentials: 'same-origin',
+        credentials: SAME_ORIGIN,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Не удалось загрузить Telegram-аккаунты');
@@ -881,7 +883,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       const res = await fetch(`/api/admin/mailings/overview?t=${Date.now()}`, {
         headers: authJsonHeaders(),
         cache: 'no-store',
-        credentials: 'same-origin',
+        credentials: SAME_ORIGIN,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Не удалось загрузить рассылку');
@@ -900,7 +902,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       const res = await fetch('/api/admin/mailings/preview', {
         method: 'POST',
         headers: authJsonHeaders(),
-        credentials: 'same-origin',
+        credentials: SAME_ORIGIN,
         body: JSON.stringify(draft),
       });
       const data = await res.json().catch(() => ({}));
@@ -991,7 +993,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       fetch(`/api/admin/users?${params.toString()}`, {
         headers: authJsonHeaders(),
         signal: controller.signal,
-        credentials: 'same-origin',
+        credentials: SAME_ORIGIN,
       })
         .then(async res => {
           const data = await res.json().catch(() => ({}));
@@ -1231,7 +1233,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       const res = await fetch(`/api/admin/users/${encodeURIComponent(user.id)}`, {
         method: 'PATCH',
         headers: authJsonHeaders(),
-        credentials: 'same-origin',
+        credentials: SAME_ORIGIN,
         body: JSON.stringify(patch),
       });
       const data = await res.json().catch(() => ({}));
@@ -1282,7 +1284,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       const res = await fetch('/api/admin/mailings/test', {
         method: 'POST',
         headers: authJsonHeaders(),
-        credentials: 'same-origin',
+        credentials: SAME_ORIGIN,
         body: JSON.stringify(mailingDraft),
       });
       const data = await res.json().catch(() => ({}));
@@ -1313,7 +1315,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       const res = await fetch('/api/admin/mailings/send', {
         method: 'POST',
         headers: authJsonHeaders(),
-        credentials: 'same-origin',
+        credentials: SAME_ORIGIN,
         body: JSON.stringify({
           ...mailingDraft,
           confirmation: 'SEND',

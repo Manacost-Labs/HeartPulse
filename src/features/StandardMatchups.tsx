@@ -322,7 +322,7 @@ function StandardMatchupsPage() {
               Матрица архетипов по данным HSGuru: строки показывают выбранный архетип, столбцы - соперника, в ячейках винрейт.
             </p>
           </div>
-          <div className="standard-matchups__rank-switcher flex flex-wrap gap-2" aria-label="Диапазон рейтинга">
+          <div className="standard-matchups__rank-switcher flex flex-wrap gap-2" aria-label="Диапазон рейтинга" data-tour-id="matchups-rank">
             {([
               ['legend', 'Легенда'],
               ['diamond', 'Алмаз 4-1'],
@@ -409,7 +409,7 @@ function StandardMatchupsPage() {
                       <h3 className="font-hs text-xl" style={{ color: '#3d2208' }}>Быстрый просмотр матчапов</h3>
                       <p className="text-sm text-[#6b4c2a]">Выберите архетип и сразу смотрите удобные, ровные и сложные пары.</p>
                     </div>
-                    <label className="block w-full md:w-[320px]">
+                    <label className="block w-full md:w-[320px]" data-tour-id="matchups-picker">
                       <span className="block text-xs font-bold uppercase tracking-[0.16em] text-[#8b6c42] mb-1">Архетип</span>
                       <select
                         value={activeRow.archetype}
@@ -482,7 +482,7 @@ function StandardMatchupsPage() {
                 </section>
               )}
 
-              <div className="standard-matchups__matrix-guide mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="standard-matchups__matrix-guide mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2" data-tour-id="matchups-matrix">
                 <p className="text-xs sm:text-sm text-[#6b4c2a]">
                   Полная матрица ниже. На ПК используйте кнопки или горизонтальный скролл, на телефоне удобнее быстрый просмотр выше.
                 </p>
@@ -594,7 +594,7 @@ function StandardMatchupsPage() {
 
         <aside id="matchups-summary" className="standard-matchups__summary scroll-mt-4 grid grid-cols-1 lg:grid-cols-2 gap-5">
           <section className="standard-matchups__summary-card rounded-2xl p-4 bg-[#fff8e4]/80 border border-[#d7b56e]/50">
-            <h3 className="font-hs text-xl mb-3" style={{ color: '#3d2208' }}>Лучшие архетипы</h3>
+            <h3 className="font-hs text-xl mb-3" style={{ color: '#3d2208' }} data-tour-id="matchups-summary">Лучшие архетипы</h3>
             <div className="space-y-2">
               {strongest.length ? strongest.map(item => (
                 <div key={item.archetype} className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 bg-white/55 border border-[#e2c993]/55">

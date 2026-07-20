@@ -1637,6 +1637,8 @@ export default function App() {
 	              <LazyGlobalUtilityHeader
 	                accessStatus={appIsAdmin ? true : appSubscription}
 	                onNavigate={navigatePath}
+	                pagePath={wantsLogin ? '/profile' : currentPath}
+	                authenticated={Boolean(appAuthUser)}
 	              />
 	            </React.Suspense>
 	          )}

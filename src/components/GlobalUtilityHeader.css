@@ -237,6 +237,12 @@
   white-space: nowrap;
 }
 
+.global-help {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+}
+
 .global-faq-button {
   display: inline-flex;
   align-items: center;
@@ -261,6 +267,69 @@
   background: #fff2ce;
 }
 
+.global-help-menu {
+  position: absolute;
+  top: calc(100% + 0.48rem);
+  right: 0;
+  z-index: 52;
+  width: min(330px, calc(100vw - 1rem));
+  padding: 0.42rem;
+  border: 7px solid transparent;
+  border-image-source: url('/wallpaper/main-page-rail-border.png');
+  border-image-slice: 18;
+  border-image-width: 7px;
+  border-image-repeat: stretch;
+  color: #f7e7bb;
+  background:
+    linear-gradient(rgba(48, 5, 8, 0.95), rgba(67, 8, 12, 0.97)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+  box-shadow: 0 16px 38px rgba(49, 16, 8, 0.38);
+}
+
+.global-help-menu__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  min-height: 58px;
+  box-sizing: border-box;
+  padding: 0.55rem 0.62rem;
+  border: 1px solid transparent;
+  color: #f8e9c5;
+  background: transparent;
+  text-align: left;
+  text-decoration: none;
+}
+
+.global-help-menu__item + .global-help-menu__item {
+  border-top-color: rgba(234, 195, 106, 0.18);
+}
+
+.global-help-menu__item strong,
+.global-help-menu__item small {
+  display: block;
+}
+
+.global-help-menu__item strong {
+  font: 800 0.8rem/1.25 var(--font-body);
+}
+
+.global-help-menu__item small {
+  margin-top: 0.16rem;
+  color: #ceb585;
+  font: 500 0.67rem/1.35 var(--font-body);
+}
+
+.global-help-menu__item:hover,
+.global-help-menu__item:focus-visible,
+.global-help-menu__item[aria-current='page'] {
+  outline: 0;
+  border-color: rgba(235, 195, 104, 0.38);
+  color: #fff2cc;
+  background: rgba(255, 227, 160, 0.09);
+}
+
 .arena-app-shell .arena-workspace.arena-workspace-with-tools .global-utility-header + .arena-main {
   padding-top: clamp(0.75rem, 1.2vw, 1rem);
 }
@@ -275,6 +344,7 @@
   .global-search__input { font-size: 0.76rem; }
   .global-faq-button { width: 38px; padding-inline: 0; }
   .global-faq-button span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .global-help-menu { right: -0.15rem; }
   .global-search-panel { left: -0.5rem; }
   .global-search-result { grid-template-columns: 42px minmax(0, 1fr) auto; gap: 0.45rem; }
   .global-search-result__thumb { width: 42px; height: 36px; }

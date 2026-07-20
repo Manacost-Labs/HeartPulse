@@ -263,7 +263,7 @@ export default function ViciousSyndicateGold() {
       </nav>
 
       <section className="vsgold__distribution-grid">
-        <article className="vsgold__panel vsgold__classes" id="vsgold-classes">
+        <article className="vsgold__panel vsgold__classes" id="vsgold-classes" data-tour-id="vicious-classes">
           <header className="vsgold__section-heading">
             <img src="/main_assets/winrate-classes.png" alt="" width="52" height="52" decoding="async" />
             <div><span>LIVE · STANDARD</span><h2>Распределение классов</h2></div>
@@ -280,7 +280,7 @@ export default function ViciousSyndicateGold() {
           </div>
         </article>
 
-        <article ref={deckSectionRef} className="vsgold__panel vsgold__decks" id="vsgold-decks">
+        <article ref={deckSectionRef} className="vsgold__panel vsgold__decks" id="vsgold-decks" data-tour-id="vicious-decks">
           <header className="vsgold__section-heading">
             <img src="/main_assets/tier-list.png" alt="" width="52" height="52" decoding="async" />
             <div><span>ПОРОГ ≥ {data.minimumDeckFrequency}%</span><h2>Распределение колод</h2></div>
@@ -293,8 +293,8 @@ export default function ViciousSyndicateGold() {
             </select>
           </div>
           <div className="vsgold__deck-list">
-            {visibleDecks.map(deck => <React.Fragment key={deck.deck}>
-              <div className="vsgold__deck-row">
+            {visibleDecks.map((deck, index) => <React.Fragment key={deck.deck}>
+              <div className="vsgold__deck-row" data-tour-id={index === 0 ? 'vicious-build-action' : undefined}>
                 <img src={classIcon(deck.classIcon)} alt="" width="40" height="40" loading="lazy" decoding="async" />
                 <div className="vsgold__deck-name"><strong>{deck.deckLabel}</strong><span>{deck.deck}</span></div>
                 <b>{percent(deck.frequency)}</b>
@@ -311,7 +311,7 @@ export default function ViciousSyndicateGold() {
       </section>
 
       <section className="vsgold__panel vsgold__power" id="vsgold-power">
-        <header className="vsgold__power-heading">
+        <header className="vsgold__power-heading" data-tour-id="vicious-power">
           <div className="vsgold__section-heading">
             <img src="/main_assets/tier-list.png" alt="" width="52" height="52" loading="lazy" decoding="async" />
             <div><span>POWER RANKINGS</span><h2>Power Tier List</h2></div>
@@ -319,7 +319,7 @@ export default function ViciousSyndicateGold() {
           <p>Выберите диапазон рангов и класс. Винрейт и порядок берутся из Vicious Syndicate Live.</p>
         </header>
 
-        <div className="vsgold__rank-tabs" role="tablist" aria-label="Диапазон рейтинга">
+        <div className="vsgold__rank-tabs" role="tablist" aria-label="Диапазон рейтинга" data-tour-id="vicious-power-filters">
           {data.tierList.map(section => (
             <button
               key={section.rankBracket}

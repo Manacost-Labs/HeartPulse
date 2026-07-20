@@ -516,7 +516,7 @@ export default function StandardMetaPage() {
         </div>
       </section>
 
-      <section className="standard-meta__controls" aria-label="Фильтры меты">
+      <section className="standard-meta__controls" aria-label="Фильтры меты" data-tour-id="meta-controls">
         <div className="standard-meta__panel-heading">
           <span aria-hidden="true"><Swords size={18} /></span>
           <div><strong>Управление срезом</strong><small>Формат, рейтинг и быстрый поиск</small></div>
@@ -539,7 +539,7 @@ export default function StandardMetaPage() {
             ))}
           </div>
         </div>
-        <label className="standard-meta__search">
+        <label className="standard-meta__search" data-tour-id="meta-search">
           <Search size={18} />
           <span className="sr-only">Поиск архетипа</span>
           <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Найти архетип…" />
@@ -571,8 +571,8 @@ export default function StandardMetaPage() {
           </React.Suspense>
 
           <section className="standard-meta__results-toolbar" aria-label="Представление меты">
-            <p><strong>{filteredItems.length}</strong> {filteredItems.length === 1 ? 'архетип' : 'архетипов'} в текущем срезе</p>
-            <div className="standard-meta__view-switch" aria-label="Вид списка">
+            <p data-tour-id="meta-results"><strong>{filteredItems.length}</strong> {filteredItems.length === 1 ? 'архетип' : 'архетипов'} в текущем срезе</p>
+            <div className="standard-meta__view-switch" aria-label="Вид списка" data-tour-id="meta-view-switcher">
               <button type="button" data-meta-view="cards" aria-pressed={view === 'cards'} onClick={() => setView('cards')}>
                 <LayoutGrid size={17} /> Карточки
               </button>
@@ -584,7 +584,7 @@ export default function StandardMetaPage() {
 
           {view === 'cards' ? (
             <section className="standard-meta__grid" aria-label={`Архетипы: ${data.formatLabel}, ${data.rankLabel}`}>
-              {filteredItems.map(item => (
+              {filteredItems.map((item, index) => (
                 <article className="standard-meta-card" key={item.id}>
                   <div className="standard-meta-card__rank" aria-label={`Место ${rankById.get(item.id)}`}>{rankById.get(item.id)}</div>
                   <img className="standard-meta-card__class" src={classIcon(item.classKey)} alt="" width="56" height="56" loading="lazy" decoding="async" />
@@ -604,7 +604,7 @@ export default function StandardMetaPage() {
                     <span>Скорость набора</span>
                     <strong>{formatNumber(item.climbingSpeed, ' ★/ч')}</strong>
                   </div>
-                  <button type="button" className="standard-meta__primary-button standard-meta-card__deck-button" onClick={() => void openDeck(item)}>
+                  <button type="button" className="standard-meta__primary-button standard-meta-card__deck-button" data-tour-id={index === 0 ? 'meta-deck-action' : undefined} onClick={() => void openDeck(item)}>
                     <Sparkles size={18} /> Показать колоду
                   </button>
                 </article>
@@ -631,7 +631,7 @@ export default function StandardMetaPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {tableItems.map(item => (
+                  {tableItems.map((item, index) => (
                     <tr key={item.id} data-meta-archetype={item.id}>
                       <th scope="row" className="standard-meta-table__archetype">
                         <span className="standard-meta-table__rank">{rankById.get(item.id)}</span>
@@ -648,7 +648,7 @@ export default function StandardMetaPage() {
                       <td>{formatNumber(item.durationMinutes, ' мин')}</td>
                       <td className={item.climbingSpeed !== null && item.climbingSpeed < 0 ? 'standard-meta-table__climb--negative' : 'standard-meta-table__climb'}>{formatNumber(item.climbingSpeed, ' ★/ч')}</td>
                       <td>
-                        <button type="button" className="standard-meta__primary-button standard-meta-table__deck-button" onClick={() => void openDeck(item)} aria-label={`Показать колоду: ${item.archetypeLabel}`}>
+                        <button type="button" className="standard-meta__primary-button standard-meta-table__deck-button" data-tour-id={index === 0 ? 'meta-deck-action' : undefined} onClick={() => void openDeck(item)} aria-label={`Показать колоду: ${item.archetypeLabel}`}>
                           <Sparkles size={16} /> Колода
                         </button>
                       </td>

@@ -100,8 +100,87 @@ const fixtures = {
     tierCounts: {},
     tiers: {},
   },
-  '/api/bg/library/meta': {},
-  '/api/bg/library/cards': { data: [] },
+  '/api/bg/heroes': {
+    ok: true,
+    source_id: 'qa-heroes',
+    fetched_at: '2026-07-11T00:00:00.000Z',
+    view: {
+      heroes: [{
+        tier: 'S', hero: 'Контрольный герой', dbfId: 9001,
+        avg_placement: 3.72, pick_rate: '12,4%', placement_distribution: ['18%', '16%', '14%', '13%', '12%', '10%', '9%', '8%'],
+        image: qaCard.imageRu,
+        hero_power: { card: { dbf: 9002, name: 'Контрольная сила героя', text: 'Даёт преимущество.', image: qaCard.imageRu } },
+      }],
+    },
+  },
+  '/api/bg/heroes/9001/details': {
+    ok: true,
+    fetched_at: '2026-07-11T00:00:00.000Z',
+    stats: {
+      hero: {
+        hero: 'Контрольный герой', dbfId: 9001, tier: 'S', avg_placement: 3.72, pick_rate: '12,4%',
+        best_composition: 'Звери', placement_distribution: ['18%', '16%', '14%', '13%', '12%', '10%', '9%', '8%'],
+      },
+      as_of: { hero: '2026-07-11T00:00:00.000Z' },
+      compositions: [{ name: 'Звери', avg_placement: 3.4, popularity: '11%', num_games: 120 }],
+      best_composition: { name: 'Звери', final_form_minions: [] },
+      hero_power: [{ turn: 3, tavern_tier: 2, gold: 6, invoked_rate: 61, times_invoked: 90, total_data_points: 120 }],
+      hero_power_by_turn: [{ turn: 3, invoked_rate: 61, total_data_points: 120 }, { turn: 4, invoked_rate: 72, total_data_points: 110 }],
+      tavern_up_by_turn: [{ turn: 3, recommended_tavern_tier: 2, pct_at_tier: 64 }],
+      tavern_up: [{ turn: 3, tavern_tier: 2, pct_at_tier: 64 }],
+      source_url: 'https://hsreplay.net/battlegrounds/heroes/',
+    },
+    libraryHero: {
+      name: { ru: 'Контрольный герой', en: 'QA Hero' },
+      images: { hero: qaCard.imageRu, full_art: qaCard.imageRu },
+      hero_power: { card: { dbf: 9002, name: 'Контрольная сила героя', text: { ru: 'Даёт преимущество.' }, image: qaCard.imageRu } },
+      armor: { normal: 10, duos: 8 },
+      updated_at: '2026-07-11T00:00:00.000Z',
+    },
+    cards: {},
+  },
+  '/api/bg/library/meta': {
+    creature_types: [{ slug: 'beast', name_ru: 'Зверь' }],
+    mechanics: [{ slug: 'battlecry', name_ru: 'Боевой клич' }],
+  },
+  '/api/bg/library/cards': {
+    data: [{
+      card_id: 'BG_QA_1', dbf: 9101, card_type: { slug: 'minion', name_ru: 'Существо' },
+      name: { ru: 'Контрольное существо', en: 'QA Minion' }, tavern_tier: 3,
+      creature_type: { slug: 'beast', name_ru: 'Зверь' }, attack: 4, health: 5, in_pool: true,
+      mechanics: [{ slug: 'battlecry', name_ru: 'Боевой клич' }], text: { ru: 'Боевой клич: получите преимущество.' },
+      images: { card: qaCard.imageRu, golden: qaCard.imageRu, art: qaCard.imageRu },
+      source: 'qa-fixture', updated_at: '2026-07-11T00:00:00.000Z',
+    }],
+  },
+  '/api/bg/library/cards/by-dbf/9101': {
+    card_id: 'BG_QA_1', dbf: 9101, card_type: { slug: 'minion', name_ru: 'Существо' },
+    name: { ru: 'Контрольное существо', en: 'QA Minion' }, tavern_tier: 3,
+    creature_type: { slug: 'beast', name_ru: 'Зверь' }, attack: 4, health: 5, in_pool: true,
+    mechanics: [{ slug: 'battlecry', name_ru: 'Боевой клич' }], text: { ru: 'Боевой клич: получите преимущество.' },
+    images: { card: qaCard.imageRu, golden: qaCard.imageRu, art: qaCard.imageRu },
+    source: 'qa-fixture', updated_at: '2026-07-11T00:00:00.000Z',
+  },
+  '/api/bg/library/minions/9101': {
+    dbf_id: 9101, card_id: 'BG_QA_1', name: 'QA Minion', name_ru: 'Контрольное существо', tavern_tier: 3,
+    impact: 0.42, combat_winrate: 55.1, popularity: 12.4, games_with_minion: 200, games_without_minion: 800,
+    avg_placement_with: 3.7, avg_placement_without: 4.2,
+    rounds: [
+      { combat_round: 8, games_with_minion: 90, games_without_minion: 300, avg_placement_with: 3.9, avg_placement_without: 4.3, impact: 0.4, combat_winrate: 54, wins: 49, losses: 41 },
+      { combat_round: 9, games_with_minion: 110, games_without_minion: 500, avg_placement_with: 3.6, avg_placement_without: 4.1, impact: 0.5, combat_winrate: 56, wins: 62, losses: 48 },
+    ],
+  },
+  '/api/standard/matchups': {
+    rank: 'legend', rankLabel: 'Легенда', source: 'hsguru', updatedAt: '2026-07-11T00:00:00.000Z',
+    columns: [
+      { name: 'Control Warrior', label: 'Контроль Воин', popularity: '12,4%' },
+      { name: 'Rainbow Mage', label: 'Радужный Маг', popularity: '9,8%' },
+    ],
+    rows: [
+      { archetype: 'Control Warrior', archetypeLabel: 'Контроль Воин', winrate: 52.4, cells: [{ opponent: 'Control Warrior', opponentLabel: 'Контроль Воин', winrate: 50 }, { opponent: 'Rainbow Mage', opponentLabel: 'Радужный Маг', winrate: 54.8 }] },
+      { archetype: 'Rainbow Mage', archetypeLabel: 'Радужный Маг', winrate: 49.6, cells: [{ opponent: 'Control Warrior', opponentLabel: 'Контроль Воин', winrate: 45.2 }, { opponent: 'Rainbow Mage', opponentLabel: 'Радужный Маг', winrate: 50 }] },
+    ],
+  },
   '/api/guides-archive': {
     page: 1,
     limit: 18,
@@ -1007,6 +1086,160 @@ async function auditAccessibility(page, label, context = 'document') {
   return results.violations.length;
 }
 
+async function auditPageTour(page, { label, expectedSteps = null, minSteps = 2, mobile }) {
+  await page.evaluate(() => {
+    for (const key of Object.keys(window.localStorage)) {
+      if (key.startsWith('manacost:page-tour:')) window.localStorage.removeItem(key);
+    }
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  });
+
+  await page.click('.global-faq-button');
+  await page.waitForSelector('.global-help-menu', { visible: true, timeout: 10_000 });
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('.global-help-menu', { hidden: true, timeout: 10_000 });
+  const helpFocusRestored = await page.$eval('.global-faq-button', button => document.activeElement === button);
+  if (!helpFocusRestored) failures.push(`${label}: Escape did not restore focus to the Help trigger`);
+
+  await page.click('.global-faq-button');
+  await page.waitForSelector('.global-help-menu__item.is-tour', { visible: true, timeout: 10_000 });
+  await page.click('.global-help-menu__item.is-tour');
+  await page.waitForSelector('.page-tour__dialog', { visible: true, timeout: 10_000 });
+  await page.waitForFunction(() => Boolean(
+    document.querySelector('.page-tour__progress-row')
+    && document.querySelector('.page-tour__spotlight'),
+  ), { timeout: 10_000 });
+  await page.waitForFunction(() => document.activeElement?.classList.contains('page-tour__dialog'), { timeout: 10_000 });
+  await page.keyboard.down('Shift');
+  try {
+    await page.keyboard.press('Tab');
+  } finally {
+    await page.keyboard.up('Shift');
+  }
+  const reverseTabTrapped = await page.$eval('.page-tour__dialog', dialog => (
+    dialog.contains(document.activeElement) && document.activeElement !== dialog
+  ));
+  if (!reverseTabTrapped) failures.push(`${label}: Shift+Tab escaped the guided-tour dialog from its initial focus`);
+
+  const detectedSteps = await page.$eval('.page-tour__progress-row', element => {
+    const match = (element.getAttribute('aria-label') || '').match(/из\s+(\d+)/i);
+    return match ? Number(match[1]) : 0;
+  });
+  const totalSteps = detectedSteps;
+  if ((expectedSteps !== null && detectedSteps !== expectedSteps) || detectedSteps < minSteps) {
+    failures.push(`${label}: unexpected guided-tour step count (${detectedSteps}; expected ${expectedSteps ?? `at least ${minSteps}`})`);
+  }
+
+  const violationCount = await auditAccessibility(page, `${label} guided tour`, '.page-tour__dialog');
+
+  for (let index = 0; index < totalSteps; index += 1) {
+    await page.waitForFunction(expectedIndex => {
+      const labelText = document.querySelector('.page-tour__progress-row')?.getAttribute('aria-label') || '';
+      return labelText.startsWith(`Шаг ${expectedIndex} из `);
+    }, { timeout: 10_000 }, index + 1);
+    await new Promise(resolve => setTimeout(resolve, 120));
+
+    const state = await page.evaluate(isMobile => {
+      const dialog = document.querySelector('.page-tour__dialog');
+      const spotlight = document.querySelector('.page-tour__spotlight');
+      const root = document.querySelector('#root');
+      const dialogRect = dialog?.getBoundingClientRect();
+      const spotlightRect = spotlight?.getBoundingClientRect();
+      const intersectionWidth = dialogRect && spotlightRect
+        ? Math.max(0, Math.min(dialogRect.right, spotlightRect.right) - Math.max(dialogRect.left, spotlightRect.left))
+        : 0;
+      const intersectionHeight = dialogRect && spotlightRect
+        ? Math.max(0, Math.min(dialogRect.bottom, spotlightRect.bottom) - Math.max(dialogRect.top, spotlightRect.top))
+        : 0;
+      return {
+        progress: document.querySelector('.page-tour__progress-row')?.getAttribute('aria-label') || '',
+        ariaModal: dialog?.getAttribute('aria-modal') || '',
+        placement: dialog?.getAttribute('data-placement') || '',
+        rootInert: Boolean(root?.inert && root.hasAttribute('inert')),
+        focusInside: Boolean(dialog?.contains(document.activeElement)),
+        dialogInsideViewport: Boolean(dialogRect
+          && dialogRect.left >= -1 && dialogRect.top >= -1
+          && dialogRect.right <= innerWidth + 1 && dialogRect.bottom <= innerHeight + 1),
+        spotlightInsideViewport: Boolean(spotlightRect
+          && spotlightRect.left >= -1 && spotlightRect.top >= -1
+          && spotlightRect.right <= innerWidth + 1 && spotlightRect.bottom <= innerHeight + 1),
+        overlapArea: intersectionWidth * intersectionHeight,
+        documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+        mobilePlacementCorrect: !isMobile || dialog?.getAttribute('data-placement') === 'bottom-sheet',
+      };
+    }, mobile);
+
+    if (!state.progress.includes(`из ${totalSteps}`) || state.ariaModal !== 'true'
+      || !state.rootInert || !state.focusInside || !state.dialogInsideViewport
+      || !state.spotlightInsideViewport || state.overlapArea > 1 || state.documentOverflow
+      || !state.mobilePlacementCorrect) {
+      failures.push(`${label}: step ${index + 1}/${totalSteps} geometry or accessibility regressed (${JSON.stringify(state)})`);
+    }
+
+    await page.click('.page-tour__button.is-next');
+  }
+
+  await page.waitForSelector('.page-tour__dialog', { hidden: true, timeout: 10_000 });
+  await page.waitForFunction(() => document.activeElement?.classList.contains('global-faq-button'), { timeout: 10_000 });
+  const completionState = await page.evaluate(() => {
+    const progressEntry = Object.entries(window.localStorage)
+      .find(([key]) => key.startsWith('manacost:page-tour:'));
+    let progress = null;
+    try { progress = progressEntry ? JSON.parse(progressEntry[1]) : null; } catch { progress = null; }
+    const root = document.querySelector('#root');
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    return {
+      focusRestored: document.activeElement?.classList.contains('global-faq-button') || false,
+      rootInert: Boolean(root?.inert || root?.hasAttribute('inert')),
+      status: progress?.status || '',
+    };
+  });
+  if (!completionState.focusRestored || completionState.rootInert || completionState.status !== 'completed') {
+    failures.push(`${label}: completion did not restore the page or persist progress (${JSON.stringify(completionState)})`);
+  }
+  return violationCount;
+}
+
+async function auditDelayedPageTourResume(page, label) {
+  const prepared = await page.evaluate(() => {
+    const target = document.querySelector('[data-tour-id="bg-library-search"]');
+    const storageKey = Object.keys(window.localStorage)
+      .find(key => key.startsWith('manacost:page-tour:battlegrounds-library:'));
+    if (!(target instanceof HTMLElement) || !storageKey) return false;
+    target.hidden = true;
+    window.localStorage.setItem(storageKey, JSON.stringify({ status: 'dismissed', stepId: 'search' }));
+    return true;
+  });
+  if (!prepared) {
+    failures.push(`${label}: could not prepare delayed-target resume check`);
+    return;
+  }
+
+  await page.click('.global-faq-button');
+  await page.waitForSelector('.global-help-menu__item.is-tour', { visible: true, timeout: 10_000 });
+  await page.click('.global-help-menu__item.is-tour');
+  await page.waitForFunction(() => document.querySelector('.page-tour__state')?.textContent?.includes('Готовим подсказку'), { timeout: 10_000 });
+  const pendingStep = await page.evaluate(() => {
+    const entry = Object.entries(window.localStorage)
+      .find(([key]) => key.startsWith('manacost:page-tour:battlegrounds-library:'));
+    try { return entry ? JSON.parse(entry[1]).stepId : ''; } catch { return ''; }
+  });
+  if (pendingStep !== 'search') failures.push(`${label}: delayed target overwrote the saved step before it appeared`);
+
+  await page.$eval('[data-tour-id="bg-library-search"]', target => { target.hidden = false; });
+  await page.waitForFunction(() => (
+    document.querySelector('.page-tour__progress-row')?.getAttribute('aria-label') || ''
+  ).startsWith('Шаг 2 из '), { timeout: 10_000 });
+  const restoredStep = await page.evaluate(() => {
+    const entry = Object.entries(window.localStorage)
+      .find(([key]) => key.startsWith('manacost:page-tour:battlegrounds-library:'));
+    try { return entry ? JSON.parse(entry[1]).stepId : ''; } catch { return ''; }
+  });
+  if (restoredStep !== 'search') failures.push(`${label}: delayed target did not resume at the saved step`);
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('.page-tour__dialog', { hidden: true, timeout: 10_000 });
+}
+
 async function inspectLayout(page, { mobile }) {
   return page.evaluate(isMobile => {
     const root = document.documentElement;
@@ -1155,16 +1388,25 @@ async function createQaPage() {
   return page;
 }
 
+const authenticatedRouteFilter = (process.env.QA_AUTH_ROUTE_FILTER || '')
+  .split(',')
+  .map(path => path.trim())
+  .filter(Boolean);
 const authenticatedRoutes = [
   { path: '/articles', expected: 'Первая статья', selector: '.article-image-shell img' },
   { path: '/faq', expected: 'Частые вопросы', selector: '.faq-page__questions details' },
-  { path: '/classes', expected: 'Паладин', selector: '.arena-app-winrates' },
-  { path: '/tierlist', expected: 'Тир-лист', selector: '.hs-tier-card' },
-  { path: '/legendaries', expected: 'Медив Освященный', selector: '.legendary-group-card' },
+  { path: '/classes', expected: 'Паладин', selector: '.arena-app-winrates', tour: { expectedSteps: 3 } },
+  { path: '/tierlist', expected: 'Тир-лист', selector: '.hs-tier-card', tour: { expectedSteps: 5 } },
+  { path: '/legendaries', expected: 'Медив Освященный', selector: '.legendary-group-card', tour: { expectedSteps: 3 } },
   { path: '/guides-archive', expected: 'Контрольный гайд Арены', selector: '.guide-archive-card' },
-  { path: '/battlegrounds/tier-list?list=spells', expected: 'Тир-лист заклинаний', selector: '.bg-tier-list-page' },
-  { path: '/library', expected: 'Библиотека Полей Сражений', selector: '.bg-library-page' },
-];
+  { path: '/battlegrounds/tier-list?list=spells', expected: 'Тир-лист заклинаний', selector: '.bg-tier-list-page', tour: { minSteps: 2 } },
+  { path: '/heroes', expected: 'Контрольный герой', selector: '.battleground-hero-card', tour: { expectedSteps: 4 } },
+  { path: '/heroes/9001', expected: 'Контрольный герой', selector: '.bg-hero-detail-page', tour: { minSteps: 5 } },
+  { path: '/library', expected: 'Библиотека Полей Сражений', selector: '.bg-library-page', tour: { expectedSteps: 4 } },
+  { path: '/library/minions/kontrolnoe-sushchestvo-9101', expected: 'Контрольное существо', selector: '.bg-library-detail-page', tour: { expectedSteps: 4 } },
+  { path: '/battlegrounds/strategies', expected: 'Готовые сборки', selector: '[data-tour-id="bg-strategy-builder-presets"]', tour: { expectedSteps: 7 } },
+  { path: '/battlegrounds/tier-builder', expected: 'Поиск по картам', selector: '[data-tour-id="bg-tier-builder-board"]', tour: { expectedSteps: 7 } },
+].filter(route => authenticatedRouteFilter.length === 0 || authenticatedRouteFilter.includes(route.path));
 
 async function assertArenaDataRoutePresentation(page, path, device) {
   const state = await page.evaluate(routePath => {
@@ -1282,23 +1524,27 @@ for (const route of authenticatedRoutes) {
     await page.setViewport(viewport);
     await mockApplicationApi(page, { authenticated: true });
     try {
+      console.log(`→ ${route.path} [${device}]`);
       await page.goto(BASE + route.path, { waitUntil: 'domcontentloaded', timeout: 45_000 });
       await waitForMeaningfulPage(page, route.expected);
       await page.waitForSelector(route.selector, { timeout: 20_000 });
       await assertArenaDataRoutePresentation(page, route.path, device);
       if (route.path === '/faq') {
+        await page.click('.global-faq-button');
+        await page.waitForSelector('.global-help-menu', { visible: true, timeout: 10_000 });
         const faqPageState = await page.evaluate(() => ({
           sections: document.querySelectorAll('.faq-page__section').length,
           questions: document.querySelectorAll('.faq-page__questions details').length,
           quickSteps: document.querySelectorAll('.faq-page__start li').length,
           authLinks: document.querySelectorAll('a[href="/?login"]').length,
-          activeHeaderLink: document.querySelector('.global-faq-button')?.getAttribute('aria-current') || '',
+          activeHeaderLink: document.querySelector('.global-help-menu a[href="/faq"]')?.getAttribute('aria-current') || '',
           overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
         }));
         if (faqPageState.sections !== 5 || faqPageState.questions < 18 || faqPageState.quickSteps !== 3
           || faqPageState.authLinks < 1 || faqPageState.activeHeaderLink !== 'page' || faqPageState.overflow) {
           failures.push(`/faq [${device}]: standalone help content regressed (${JSON.stringify(faqPageState)})`);
         }
+        await page.keyboard.press('Escape');
       }
       if (route.path === '/articles') {
         const searchInput = await page.waitForSelector('.global-search input', { visible: true, timeout: 10_000 });
@@ -1316,16 +1562,27 @@ for (const route of authenticatedRoutes) {
             resultText: searchPanel?.textContent || '',
             woodenSearchFrame: getComputedStyle(search).borderImageSource.includes('main-page-rail-border'),
             contentGap: Number.parseFloat(getComputedStyle(main).paddingTop || '0'),
-            faqHref: document.querySelector('.global-faq-button')?.getAttribute('href') || '',
+            helpElement: document.querySelector('.global-faq-button')?.tagName || '',
+            helpLabel: document.querySelector('.global-faq-button')?.textContent?.trim() || '',
             overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
           };
         });
         if (utilityState.height > 50 || utilityState.height < 40 || !utilityState.searchVisible
           || !utilityState.resultText.includes('Контрольный мета-отчет')
           || !utilityState.resultText.includes('Контрольная карта') || !utilityState.woodenSearchFrame
-          || utilityState.contentGap < 10 || utilityState.faqHref !== '/faq' || utilityState.overflow) {
+          || utilityState.contentGap < 10 || utilityState.helpElement !== 'BUTTON'
+          || !utilityState.helpLabel.includes('Помощь') || utilityState.overflow) {
           failures.push(`/articles [${device}]: global utility header regressed (${JSON.stringify(utilityState)})`);
         }
+        await page.click('.global-faq-button');
+        await page.waitForSelector('.global-help-menu a[href="/faq"]', { visible: true, timeout: 10_000 });
+        await page.keyboard.press('Escape');
+      }
+      const tourViolationCount = route.tour
+        ? await auditPageTour(page, { label: `${route.path} [${device}]`, mobile: device === 'mobile', ...route.tour })
+        : 0;
+      if (route.path === '/library' && device === 'desktop') {
+        await auditDelayedPageTourResume(page, '/library [desktop]');
       }
       const violationCount = await auditAccessibility(page, `${route.path} [${device}]`);
       const paywallVisible = await page.$eval('.arena-paywall', element => getComputedStyle(element).display !== 'none').catch(() => false);
@@ -1335,7 +1592,7 @@ for (const route of authenticatedRoutes) {
       const screenshotName = route.path.replace(/^\//, '').replace(/[^a-z0-9-]+/gi, '-');
       await page.screenshot({ path: `${OUT}/${screenshotName}-${device}.png`, fullPage: false });
       if (runtimeErrors.length) failures.push(`${route.path} [${device}]: ${runtimeErrors.join(' | ')}`);
-      console.log(`✓ ${route.path} [${device}] subscriber layout + axe (${violationCount} violations)`);
+      console.log(`✓ ${route.path} [${device}] subscriber layout + axe (${violationCount + tourViolationCount} violations)`);
     } catch (error) {
       const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 240).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
       failures.push(`${route.path} [${device}]: ${error.message}; page: ${diagnostic}`);
@@ -1343,6 +1600,17 @@ for (const route of authenticatedRoutes) {
       await page.close();
     }
   }
+}
+
+if (authenticatedRouteFilter.length > 0) {
+  await browser.close();
+  if (failures.length) {
+    console.error('\nFocused authenticated-route QA failures:');
+    failures.forEach(failure => console.error(`  ✗ ${failure}`));
+    process.exit(1);
+  }
+  console.log(`\nFocused authenticated-route QA passed. Screenshots: ${OUT}`);
+  process.exit(0);
 }
 
 // Full-admin dashboard: deterministic KPI rendering, empty state, quick
@@ -2179,6 +2447,11 @@ for (const [device, viewport] of [
     if (profileState.adminMetaHref !== '/standard/meta') {
       failures.push(`profile [${device}]: admin meta destination is missing or incorrect (${profileState.adminMetaHref})`);
     }
+    const profileTourViolationCount = await auditPageTour(page, {
+      label: `profile [${device}]`,
+      minSteps: 5,
+      mobile: device === 'mobile',
+    });
     await page.click('.profile-settings-form button[type="submit"]');
     await page.waitForFunction(() => document.querySelector('.profile-message--ok')?.textContent?.includes('Профиль обновлен.'));
     const successMessage = await page.$eval('.profile-message--ok', element => {
@@ -2283,6 +2556,11 @@ for (const [device, viewport] of [
     }
     await page.click('.standard-meta-chart__header-actions button');
     await page.waitForSelector('.standard-meta-chart__content');
+    const standardMetaTourViolationCount = await auditPageTour(page, {
+      label: `standard meta [${device}]`,
+      expectedSteps: 6,
+      mobile: device === 'mobile',
+    });
     const standardMetaViolationCount = await auditAccessibility(page, `standard meta [${device}]`, '.standard-meta');
     await page.screenshot({ path: `${OUT}/standard-meta-${device}.png`, fullPage: false });
     await page.click('[data-meta-view="table"]');
@@ -2439,6 +2717,13 @@ for (const [device, viewport] of [
       failures.push(`standard meta modal [${device}]: reopening repeated API work or rank context was lost (${JSON.stringify({ recommendations: adminState.standardMetaRecommendationRequests, previews: adminState.standardMetaPreviewRequests, recommendationRank: adminState.standardMetaRecommendationRank, previewRank: adminState.standardMetaPreviewRank })})`);
     }
     await page.click('.standard-meta-modal__close');
+    await page.goto(`${BASE}/standard/matchups`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('[data-tour-id="matchups-matrix"]', { timeout: 20_000 });
+    const standardMatchupsTourViolationCount = await auditPageTour(page, {
+      label: `standard matchups [${device}]`,
+      expectedSteps: 4,
+      mobile: device === 'mobile',
+    });
     await page.goto(`${BASE}/standard/vicious-gold`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.vsgold__panel', { timeout: 20_000 });
     await page.waitForFunction(() => {
@@ -2501,6 +2786,11 @@ for (const [device, viewport] of [
       || viciousGoldState.scrollWidth > viciousGoldState.clientWidth + 1) {
       failures.push(`vicious gold [${device}]: redesigned header or panels regressed (${JSON.stringify(viciousGoldState)})`);
     }
+    const viciousGoldTourViolationCount = await auditPageTour(page, {
+      label: `vicious gold [${device}]`,
+      expectedSteps: 5,
+      mobile: device === 'mobile',
+    });
     await page.evaluate(() => {
       Object.defineProperty(navigator, 'clipboard', {
         configurable: true,
@@ -2612,6 +2902,11 @@ for (const [device, viewport] of [
       }
       await page.click('.constructed-cards__advanced-toggle');
     }
+    const constructedTourViolationCount = await auditPageTour(page, {
+      label: `constructed cards [${device}]`,
+      expectedSteps: 6,
+      mobile: device === 'mobile',
+    });
     await page.select('.constructed-cards__primary-controls .constructed-cards__filter select', 'winrate');
     await page.waitForFunction(() => [...document.querySelectorAll('.constructed-cards__gallery-stat small')]
       .every(element => element.textContent?.trim() === 'Победы колод'));
@@ -2751,6 +3046,11 @@ for (const [device, viewport] of [
       || constructedDetailState.documentOverflow) {
       failures.push(`constructed card detail [${device}]: data sections or responsive containment regressed (${JSON.stringify(constructedDetailState)})`);
     }
+    const constructedDetailTourViolationCount = await auditPageTour(page, {
+      label: `constructed card detail [${device}]`,
+      expectedSteps: 6,
+      mobile: device === 'mobile',
+    });
     await page.$eval('.constructed-card-detail__lower-grid', element => element.scrollIntoView({ block: 'start' }));
     await page.screenshot({ path: `${OUT}/constructed-card-detail-sections-${device}.png`, fullPage: false });
     await page.$eval('.constructed-card-detail__pools', element => element.scrollIntoView({ block: 'start' }));
@@ -2824,7 +3124,7 @@ for (const [device, viewport] of [
     await page.screenshot({ path: `${OUT}/constructed-card-detail-${device}.png`, fullPage: false });
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
-    console.log(`✓ admin dashboard/articles/translations/mechanics/Standard data/gallery/Boosty/Telegram/mailing/contests/users/profile/standard panels [${device}] interactions + axe (${violationCount + articlesViolationCount + translationsViolationCount + mechanicTranslationsViolationCount + standardOpsViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + profileViolationCount + standardMetaViolationCount + viciousGoldViolationCount + constructedCardsViolationCount + constructedDetailViolationCount} violations)`);
+    console.log(`✓ admin dashboard/articles/translations/mechanics/Standard data/gallery/Boosty/Telegram/mailing/contests/users/profile/standard panels [${device}] interactions + axe (${violationCount + articlesViolationCount + translationsViolationCount + mechanicTranslationsViolationCount + standardOpsViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + profileViolationCount + profileTourViolationCount + standardMetaViolationCount + standardMetaTourViolationCount + standardMatchupsTourViolationCount + viciousGoldViolationCount + viciousGoldTourViolationCount + constructedCardsViolationCount + constructedTourViolationCount + constructedDetailViolationCount + constructedDetailTourViolationCount} violations)`);
   } catch (error) {
     const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
     failures.push(`admin dashboard [${device}]: ${error.message}; page: ${diagnostic}`);

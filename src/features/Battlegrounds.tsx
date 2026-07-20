@@ -571,7 +571,12 @@ function bgHeroDetailPathFromPath(path: string): string {
   return match?.[1] || '';
 }
 
-function BattlegroundHeroCard({ hero, tier, onNavigate }: { hero: BattlegroundHeroTierEntry; tier: string; onNavigate: (path: string) => void }) {
+function BattlegroundHeroCard({ hero, tier, onNavigate, tourId }: {
+  hero: BattlegroundHeroTierEntry;
+  tier: string;
+  onNavigate: (path: string) => void;
+  tourId?: string;
+}) {
   const hasHoverCards = Boolean(hero.heroPower);
   const href = hero.dbfId ? `/heroes/${hero.dbfId}` : '/heroes';
   return (
@@ -583,6 +588,7 @@ function BattlegroundHeroCard({ hero, tier, onNavigate }: { hero: BattlegroundHe
         onNavigate(href);
       }}
       data-has-related={hasHoverCards ? 'true' : 'false'}
+      data-tour-id={tourId}
       className="battleground-hero-card relative flex min-h-[252px] flex-col items-center overflow-hidden rounded-lg p-3 text-center transition-all duration-200 hover:z-30 focus:z-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d7b66a]"
     >
       <div className="relative flex w-full justify-center overflow-visible">
@@ -1083,13 +1089,21 @@ function BattlegroundHeroMediaCard({
   );
 }
 
-function BattlegroundHeroBarChart({ rows, title, valueLabel = 'Доля' }: { rows: Array<{ label: string; value: number; sub?: string; icon?: string }>; title: string; valueLabel?: string }) {
+function BattlegroundHeroBarChart({ rows, title, valueLabel = 'Доля', tourId }: {
+  rows: Array<{ label: string; value: number; sub?: string; icon?: string }>;
+  title: string;
+  valueLabel?: string;
+  tourId?: string;
+}) {
   const [activeIndex, setActiveIndex] = useState(0);
   const max = Math.max(1, ...rows.map(row => row.value));
   const activeRow = rows[activeIndex] || rows[0] || null;
   return (
     <section className="rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div
+        className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"
+        data-tour-id={tourId}
+      >
         <h3 className="font-hs text-xl text-[#3d2a1e]">{title}</h3>
         {activeRow && (
           <div className="rounded-full border border-[#d7b66a] bg-[#fff8ea] px-3 py-1 text-xs font-bold text-[#6b4c2a]">
@@ -1267,12 +1281,19 @@ function BattlegroundHeroLineChart({ rows }: { rows: any[] }) {
   );
 }
 
-function BattlegroundHeroCompositionLineup({ composition, cards }: { composition: any; cards: Record<string, any> }) {
+function BattlegroundHeroCompositionLineup({ composition, cards, tourId }: {
+  composition: any;
+  cards: Record<string, any>;
+  tourId?: string;
+}) {
   const lineup = Array.isArray(composition?.lineup) ? composition.lineup : [];
   if (!lineup.length) return null;
   return (
     <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div
+        className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"
+        data-tour-id={tourId}
+      >
         <div>
           <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Лучший состав</p>
           <h3 className="font-hs text-2xl text-[#3d2a1e]">{composition?.name || 'Состав'}</h3>
@@ -1332,10 +1353,15 @@ function BattlegroundHeroCompositionLineup({ composition, cards }: { composition
   );
 }
 
-function BattlegroundHeroDataTable({ title, rows, columns }: { title: string; rows: any[]; columns: Array<{ key: string; label: string; render?: (row: any) => React.ReactNode }> }) {
+function BattlegroundHeroDataTable({ title, rows, columns, tourId }: {
+  title: string;
+  rows: any[];
+  columns: Array<{ key: string; label: string; render?: (row: any) => React.ReactNode }>;
+  tourId?: string;
+}) {
   return (
     <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
-      <h3 className="font-hs text-xl text-[#3d2a1e]">{title}</h3>
+      <h3 className="font-hs text-xl text-[#3d2a1e]" data-tour-id={tourId}>{title}</h3>
       <div className="mt-3 space-y-3 md:hidden">
         {rows.map(row => {
           const rowKey = bgHeroTableRowKey(row, columns);
@@ -1480,15 +1506,20 @@ function BattlegroundHeroPatchChange({
   notes,
   sourceUrl,
   changes,
+  tourId,
 }: {
   notes: BattlegroundHeroPatchNote[];
   sourceUrl?: string;
   changes?: BattlegroundHeroPatchEntry[];
+  tourId?: string;
 }) {
   const patchEntries = changes || EMPTY_HERO_PATCH_ENTRIES;
   return (
     <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div
+        className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"
+        data-tour-id={tourId}
+      >
         <div>
           <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Текущий патч</p>
           <h3 className="font-hs text-xl text-[#3d2a1e]">Изменения патча</h3>
@@ -1704,16 +1735,21 @@ function BattlegroundHeroGallery({
   items,
   soundGroups,
   onOpen,
+  tourId,
 }: {
   heroName: string;
   items: BattlegroundHeroMediaItem[];
   soundGroups: BattlegroundHeroSoundGroup[];
   onOpen: (index: number) => void;
+  tourId?: string;
 }) {
   if (!items.length && !soundGroups.length) return null;
   return (
     <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+      <div
+        className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between"
+        data-tour-id={tourId}
+      >
         <div>
           <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Галерея</p>
           <h3 className="font-hs text-xl text-[#3d2a1e]">{heroName}</h3>
@@ -2003,7 +2039,10 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
           <div className="bg-hero-reliquary__identity min-w-0">
             <p className="bg-hero-reliquary__kicker font-hs text-xs uppercase tracking-[0.18em]">Поля сражений · герой</p>
             <h1 className="bg-hero-reliquary__title mt-2 font-hs text-4xl leading-tight text-[#3d2a1e] sm:text-5xl">{heroName}</h1>
-            <div className="bg-hero-stat-grid mt-4 grid grid-cols-2 gap-2 xl:grid-cols-4">
+            <div
+              className="bg-hero-stat-grid mt-4 grid grid-cols-2 gap-2 xl:grid-cols-4"
+              data-tour-id="bg-hero-detail-summary"
+            >
               <div className="bg-hero-stat-plaque rounded-2xl border border-[#d7b66a]/65 bg-[#fff8ea]/92 p-3">
                 <p className="text-[11px] uppercase">Тир</p>
                 <p className="font-hs text-2xl">{hero.tier || '—'}</p>
@@ -2021,35 +2060,53 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
                 <p className="font-hs text-xl">{hero.best_composition || '—'}</p>
               </div>
             </div>
-            <div className="mt-4 grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
-              {heroPower && <BattlegroundHeroMediaCard title="Сила героя" card={heroPower} onOpen={() => openMediaGallery(heroMediaItems, 0)} />}
-              {buddy && <BattlegroundHeroMediaCard title="Компаньон" card={buddy} onOpen={() => openMediaGallery(heroMediaItems, heroPower ? 1 : 0)} />}
-              {goldenBuddyCard && (
-                <BattlegroundHeroMediaCard
-                  title="Золотой компаньон"
-                  card={goldenBuddyCard}
-                  tone="gold"
-                  onOpen={() => openMediaGallery(heroMediaItems, heroPower && buddy ? 2 : heroPower || buddy ? 1 : 0)}
-                />
-              )}
-            </div>
+            {heroMediaItems.length > 0 && (
+              <div
+                className="mt-4 grid gap-3 lg:grid-cols-2 2xl:grid-cols-3"
+                data-tour-id="bg-hero-detail-media"
+              >
+                {heroPower && <BattlegroundHeroMediaCard title="Сила героя" card={heroPower} onOpen={() => openMediaGallery(heroMediaItems, 0)} />}
+                {buddy && <BattlegroundHeroMediaCard title="Компаньон" card={buddy} onOpen={() => openMediaGallery(heroMediaItems, heroPower ? 1 : 0)} />}
+                {goldenBuddyCard && (
+                  <BattlegroundHeroMediaCard
+                    title="Золотой компаньон"
+                    card={goldenBuddyCard}
+                    tone="gold"
+                    onOpen={() => openMediaGallery(heroMediaItems, heroPower && buddy ? 2 : heroPower || buddy ? 1 : 0)}
+                  />
+                )}
+              </div>
+            )}
           </div>
         </div>
       </section>
 
       <BattlegroundHeroProfileInfo heroName={heroName} libraryHero={libraryHero} externalLinks={externalLinks} />
 
-      <BattlegroundHeroPatchChange notes={patchNotes} sourceUrl={stats.source_url} changes={patchChanges} />
+      <BattlegroundHeroPatchChange
+        notes={patchNotes}
+        sourceUrl={stats.source_url}
+        changes={patchChanges}
+        tourId="bg-hero-detail-patches"
+      />
 
       <div className="grid items-start gap-5 xl:grid-cols-[1fr_1fr]">
         <div className="grid gap-5">
-          <BattlegroundHeroBarChart title="Распределение по местам" rows={placementRows} />
+          <BattlegroundHeroBarChart
+            title="Распределение по местам"
+            rows={placementRows}
+            tourId="bg-hero-detail-placement"
+          />
           <BattlegroundHeroLineChart rows={stats.hero_power_by_turn || []} />
         </div>
         <BattlegroundHeroBarChart title="Когда улучшать таверну" rows={tavernByTurnRows} />
       </div>
 
-      <BattlegroundHeroCompositionLineup composition={stats.best_composition} cards={cards} />
+      <BattlegroundHeroCompositionLineup
+        composition={stats.best_composition}
+        cards={cards}
+        tourId="bg-hero-detail-compositions"
+      />
 
       <div className="grid items-start gap-5 xl:grid-cols-2">
         <BattlegroundHeroTopCompositions rows={topComps} />
@@ -2058,6 +2115,7 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
 
       <BattlegroundHeroDataTable
         title="Сила героя по таверне"
+        tourId="bg-hero-detail-tables"
         rows={(stats.hero_power || []).slice(0, 24)}
         columns={[
           { key: 'turn', label: 'Ход' },
@@ -2126,6 +2184,7 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
         items={galleryMediaItems}
         soundGroups={buddySoundGroups}
         onOpen={index => openMediaGallery(galleryMediaItems, index)}
+        tourId="bg-hero-detail-gallery"
       />
 
       {lightboxIndex >= 0 && (
@@ -2152,13 +2211,14 @@ function BattlegroundHeroesRoute({ path, onNavigate }: { path: string; onNavigat
   return <BattlegroundHeroTierList onNavigate={onNavigate} />;
 }
 
-function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen }: {
+function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen, tourId }: {
   item: any;
   list: BattlegroundTierListKey;
   tier: string;
   index: number;
   highlighted?: boolean;
   onOpen: (item: BattlegroundLightboxItem) => void;
+  tourId?: string;
 }) {
   const title = bgItemTitle(item);
   const metric = bgMetricLine(item, list);
@@ -2169,6 +2229,7 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen }: 
       <article
         data-bg-strategy-highlight={highlighted ? 'true' : undefined}
         data-bg-strategy-key={item?.key || undefined}
+        data-tour-id={tourId}
         className={`bg-tier-strategy-card rounded-lg border p-3 shadow-sm transition-all duration-300 hover:shadow-[0_8px_24px_rgba(61,42,30,0.16)] ${
           highlighted
             ? 'bg-tier-strategy-card--highlighted'
@@ -2231,6 +2292,7 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen }: 
     return (
       <button
         type="button"
+        data-tour-id={tourId}
         onClick={() => lightboxItem && onOpen(lightboxItem)}
         className="bg-tier-entry-card bg-tier-entry-card--trinket group flex flex-col items-center rounded-lg border border-transparent bg-[#fff7e6]/28 p-2 text-center transition-all duration-200 hover:border-[#d7b66a]/70 hover:bg-[#fff7e6]/75 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b58a2f]"
       >
@@ -2258,6 +2320,7 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen }: 
   return (
     <button
       type="button"
+      data-tour-id={tourId}
       onClick={() => lightboxItem && onOpen(lightboxItem)}
       className="bg-tier-entry-card group flex min-h-[132px] gap-3 rounded-lg border border-[#c4a46a]/50 bg-[#fff8ea]/95 p-3 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#fffaf0] hover:shadow-[0_8px_20px_rgba(61,42,30,0.18)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b58a2f]"
     >
@@ -2404,6 +2467,10 @@ function BattlegroundTierList() {
     });
     return next;
   }, [activeList, minionRaceFilter, minionTavernFilter, tiers, trinketSizeFilter]);
+  const firstResultTier = useMemo(
+    () => BG_TIER_ORDER.find(tier => Array.isArray(displayedTiers[tier]) && displayedTiers[tier].length > 0),
+    [displayedTiers],
+  );
   const currentLightboxItem = lightboxIndex >= 0 ? lightboxItems[lightboxIndex] : null;
   usePageScrollLock(Boolean(currentLightboxItem));
   const hasStrategyHighlight = activeList === 'strategies' && Boolean(highlightStrategyKey || highlightStrategyTitle);
@@ -2469,13 +2536,17 @@ function BattlegroundTierList() {
         </p>
       </div>
 
-      <div className="bg-tier-nav-grid grid grid-cols-2 gap-2 lg:grid-cols-4">
+      <div
+        className="bg-tier-nav-grid grid grid-cols-2 gap-2 lg:grid-cols-4"
+        data-tour-id="bg-tier-list-switcher"
+      >
         {BG_TIER_LISTS.map(item => {
           const active = item.id === activeList;
           return (
             <button
               key={item.id}
               type="button"
+              data-tour-id={item.id === 'strategies' ? 'bg-tier-list-strategy' : undefined}
               onClick={() => {
                 setData(null);
                 setLoading(true);
@@ -2542,7 +2613,10 @@ function BattlegroundTierList() {
         {!loading && !error && (
           <div className="mt-4 space-y-5">
             {activeList === 'minions' && (
-              <div className="bg-tier-filter-panel rounded-lg border p-3 shadow-sm">
+              <div
+                className="bg-tier-filter-panel rounded-lg border p-3 shadow-sm"
+                data-tour-id="bg-tier-list-filters"
+              >
                 <div className="flex flex-col gap-4">
                   <div className="min-w-0">
                     <h4 className="font-hs text-lg text-[#1e293b]">Фильтры существ</h4>
@@ -2592,7 +2666,10 @@ function BattlegroundTierList() {
               </div>
             )}
             {activeList === 'trinkets' && trinketFilterOptions.sizes.length > 1 && (
-              <div className="bg-tier-filter-panel rounded-lg border p-3 shadow-sm">
+              <div
+                className="bg-tier-filter-panel rounded-lg border p-3 shadow-sm"
+                data-tour-id="bg-tier-list-filters"
+              >
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div className="min-w-0">
                     <h4 className="font-hs text-lg text-[#1e293b]">Фильтры аксессуаров</h4>
@@ -2650,6 +2727,7 @@ function BattlegroundTierList() {
                           index={idx}
                           highlighted={activeList === 'strategies' && bgStrategyMatchesDeepLink(item, highlightStrategyKey, highlightStrategyTitle)}
                           onOpen={openLightbox}
+                          tourId={tier === firstResultTier && idx === 0 ? 'bg-tier-list-results' : undefined}
                         />
                       </React.Fragment>
                     ))}
@@ -2816,7 +2894,14 @@ function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) =
         <p className="mx-auto mt-2 max-w-2xl text-sm text-[#6b4c2a]">
           Свежий тир-лист героев из HSReplay: портреты, среднее место и популярность без лишних окон.
         </p>
-        {sourceLabel && <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#8b6c42]">{sourceLabel}</p>}
+        {sourceLabel && (
+          <p
+            className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#8b6c42]"
+            data-tour-id="bg-heroes-source"
+          >
+            {sourceLabel}
+          </p>
+        )}
       </div>
 
       <section className="bg-heroes-tools">
@@ -2825,13 +2910,17 @@ function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) =
             <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Как читать рейтинг</p>
             <p className="mt-1 text-sm font-semibold text-[#6b4c2a]">Под портретом указаны среднее место и частота выбора героя.</p>
           </div>
-          <div className="bg-heroes-tools__metrics" aria-label="Обозначения показателей">
+          <div
+            className="bg-heroes-tools__metrics"
+            aria-label="Обозначения показателей"
+            data-tour-id="bg-heroes-metrics"
+          >
             <span className="bg-heroes-metric bg-heroes-metric--placement"><strong>4,06</strong>Среднее место</span>
             <span className="bg-heroes-metric bg-heroes-metric--pickrate"><strong>23.05%</strong>Выбор героя</span>
           </div>
         </div>
 
-        <label className="bg-heroes-search">
+        <label className="bg-heroes-search" data-tour-id="bg-heroes-search">
           <span className="sr-only">Поиск по героям</span>
           <Search className="h-5 w-5 shrink-0" aria-hidden="true" />
           <input
@@ -2859,7 +2948,7 @@ function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) =
               Герои не найдены
             </div>
           )}
-          {filteredSections.map(section => {
+          {filteredSections.map((section, sectionIndex) => {
             const heroes = Array.isArray(section.heroes) ? section.heroes : [];
             if (!heroes.length) return null;
             return (
@@ -2874,8 +2963,14 @@ function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) =
                   </div>
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6">
-                  {heroes.map(hero => (
-                    <MemoBattlegroundHeroCard key={`${section.tier}-${hero.dbfId || hero.name}`} hero={hero} tier={section.tier} onNavigate={onNavigate} />
+                  {heroes.map((hero, heroIndex) => (
+                    <MemoBattlegroundHeroCard
+                      key={`${section.tier}-${hero.dbfId || hero.name}`}
+                      hero={hero}
+                      tier={section.tier}
+                      onNavigate={onNavigate}
+                      tourId={sectionIndex === 0 && heroIndex === 0 ? 'bg-heroes-results' : undefined}
+                    />
                   ))}
                 </div>
               </section>
@@ -2892,7 +2987,7 @@ const BG_STRATEGY_BUILDER_HTML = String.raw`
 <main class="builder-layout bg-strategy-builder-legacy">
   <section class="builder-sidebar builder-sidebar-wide">
     <div class="builder-controls">
-      <div class="filter-block comp-import-block">
+      <div class="filter-block comp-import-block" data-tour-id="bg-strategy-builder-presets">
         <div class="filter-heading-row">
           <h3 class="filter-heading">Готовые сборки</h3>
         </div>
@@ -2907,13 +3002,13 @@ const BG_STRATEGY_BUILDER_HTML = String.raw`
         <button id="builder-comp-apply" class="download-button" type="button" disabled>Собрать на полотне</button>
       </div>
 
-      <label class="control-field">
+      <label class="control-field" data-tour-id="bg-strategy-builder-search">
         <span class="control-label">Поиск по картам (RU / EN)</span>
         <input id="builder-search" class="text-input" type="search" placeholder="Например, Морхи, murloc, deathrattle, tavern">
       </label>
 
       <details class="filter-block collapsible-filter" open>
-        <summary class="filter-heading-row">
+        <summary class="filter-heading-row" data-tour-id="bg-strategy-builder-filters">
           <h3 class="filter-heading">Источник</h3>
           <span class="filter-toggle-marker" aria-hidden="true"></span>
         </summary>
@@ -2945,7 +3040,7 @@ const BG_STRATEGY_BUILDER_HTML = String.raw`
       </details>
     </div>
 
-    <div class="library-toolbar-row">
+    <div class="library-toolbar-row" data-tour-id="bg-strategy-builder-library">
       <div id="builder-status" class="library-status">Загружаю карты...</div>
       <label class="columns-control" for="builder-library-columns" title="Сколько карт в ряду в библиотеке">
         <span class="columns-control-label">В ряду: <b id="builder-library-columns-value">3</b></span>
@@ -2956,7 +3051,7 @@ const BG_STRATEGY_BUILDER_HTML = String.raw`
   </section>
 
   <section class="builder-canvas-panel builder-canvas-panel-compact">
-    <div class="builder-canvas-head">
+    <div class="builder-canvas-head" data-tour-id="bg-strategy-builder-canvas">
       <div class="builder-canvas-title">
         <p class="eyebrow">Board</p>
         <h2 class="panel-title">Полотно стратегии</h2>
@@ -2964,7 +3059,7 @@ const BG_STRATEGY_BUILDER_HTML = String.raw`
       <div id="builder-counter" class="filter-caption">0 карт на полотне</div>
     </div>
 
-    <div class="board-toolbar">
+    <div class="board-toolbar" data-tour-id="bg-strategy-builder-tools">
       <button id="builder-clear" class="secondary-button" type="button">Очистить полотно</button>
       <button id="builder-export-png" class="download-button" type="button">Скачать PNG</button>
       <button id="builder-export-webp" class="secondary-button" type="button">Скачать WebP</button>
@@ -3003,7 +3098,7 @@ const BG_STRATEGY_BUILDER_HTML = String.raw`
       </div>
 
       <aside id="annotation-panel" class="annotation-toolbar annotation-toolbar-vertical" aria-label="Аннотации">
-        <span class="annotation-toolbar-label">Аннотации</span>
+        <span class="annotation-toolbar-label" data-tour-id="bg-strategy-builder-annotations">Аннотации</span>
         <button class="annotation-tool" data-ann-tool="arrow" type="button" aria-pressed="false"><span class="annotation-tool-glyph">→</span><span>Стрелка</span></button>
         <button class="annotation-tool" data-ann-tool="plus" type="button" aria-pressed="false"><span class="annotation-tool-glyph">+</span><span>Плюс</span></button>
         <button class="annotation-tool" data-ann-tool="equals" type="button" aria-pressed="false"><span class="annotation-tool-glyph">=</span><span>Равно</span></button>
@@ -3095,13 +3190,13 @@ const BG_TIER_BUILDER_HTML = String.raw`
 <main class="builder-layout bg-tier-builder-legacy">
   <section class="builder-sidebar builder-sidebar-wide">
     <div class="builder-controls">
-      <label class="control-field">
+      <label class="control-field" data-tour-id="bg-tier-builder-search">
         <span class="control-label">Поиск по картам (RU / EN)</span>
         <input id="tier-builder-search" class="text-input" type="search" placeholder="Например, мурлок, murloc, deathrattle, Тюремщик">
       </label>
 
       <details class="filter-block collapsible-filter" open>
-        <summary class="filter-heading-row">
+        <summary class="filter-heading-row" data-tour-id="bg-tier-builder-source">
           <h3 class="filter-heading">Источник</h3>
           <span class="filter-toggle-marker" aria-hidden="true"></span>
         </summary>
@@ -3109,7 +3204,7 @@ const BG_TIER_BUILDER_HTML = String.raw`
       </details>
 
       <details class="filter-block collapsible-filter" id="tier-builder-race-block" open>
-        <summary class="filter-heading-row">
+        <summary class="filter-heading-row" data-tour-id="bg-tier-builder-filters">
           <h3 class="filter-heading">Тип существа</h3>
           <span class="filter-toggle-marker" aria-hidden="true"></span>
         </summary>
@@ -3132,13 +3227,13 @@ const BG_TIER_BUILDER_HTML = String.raw`
         <div id="tier-builder-accessory-filters" class="chip-row" aria-label="Фильтр по размеру аксессуара"></div>
       </details>
 
-      <div class="hero-tier-toolbar">
+      <div class="hero-tier-toolbar" data-tour-id="bg-tier-builder-reset">
         <button id="tier-builder-reset" class="secondary-button" type="button">Сбросить</button>
         <button id="tier-builder-unassigned" class="download-button" type="button">Все в пул</button>
       </div>
     </div>
 
-    <div class="library-toolbar-row">
+    <div class="library-toolbar-row" data-tour-id="bg-tier-builder-library">
       <div id="tier-builder-summary" class="library-status hero-tier-summary">Загружаю библиотеку...</div>
       <label class="columns-control" for="tier-builder-library-columns" title="Сколько карт в ряду в библиотеке">
         <span class="columns-control-label">В ряду: <b id="tier-builder-library-columns-value">3</b></span>
@@ -3149,7 +3244,7 @@ const BG_TIER_BUILDER_HTML = String.raw`
   </section>
 
   <section class="hero-tier-board">
-    <div class="builder-canvas-head">
+    <div class="builder-canvas-head" data-tour-id="bg-tier-builder-board">
       <div>
         <p class="eyebrow">Drag and Drop</p>
         <h2 class="panel-title">Конструктор тир-листов</h2>
@@ -3158,7 +3253,7 @@ const BG_TIER_BUILDER_HTML = String.raw`
     </div>
 
     <div class="board-toolbar">
-      <button id="tier-builder-download-all-png" class="download-button" type="button">Скачать всё PNG</button>
+      <button id="tier-builder-download-all-png" class="download-button" type="button" data-tour-id="bg-tier-builder-export">Скачать всё PNG</button>
       <button id="tier-builder-download-all-webp" class="secondary-button" type="button">Скачать всё WebP</button>
       <div id="tier-builder-background-picker" class="background-picker" aria-label="Фон тир-листа"></div>
     </div>

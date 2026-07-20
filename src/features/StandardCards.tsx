@@ -334,11 +334,11 @@ function classIcon(cardClass?: string | null): string {
   return key === 'neutral' ? '/class_icon/neutral.webp' : `/class_icon/ui/${key}-64.webp`;
 }
 
-function FilterSelect({ label, value, onChange, children }: {
-  label: string; value: string; onChange: (value: string) => void; children: React.ReactNode;
+function FilterSelect({ label, value, onChange, children, tourId }: {
+  label: string; value: string; onChange: (value: string) => void; children: React.ReactNode; tourId?: string;
 }) {
   return (
-    <label className="constructed-cards__filter">
+    <label className="constructed-cards__filter" data-tour-id={tourId}>
       <span>{label}</span>
       <select value={value} onChange={event => onChange(event.target.value)}>{children}</select>
     </label>
@@ -416,7 +416,7 @@ function CardGallery({ cards, format, sort, navigatePath, statsAccess, gate }: {
   return (
     <>
       <div className="constructed-cards__gallery">
-        {cards.map(card => {
+        {cards.map((card, index) => {
           const metric = sortMetric(card, sort);
           return <a
             key={card.card_id}
@@ -431,7 +431,7 @@ function CardGallery({ cards, format, sort, navigatePath, statsAccess, gate }: {
           >
             <img src={card.images?.card || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={cardName(card)} loading="lazy" />
             <span className="constructed-cards__gallery-name">{cardName(card)}</span>
-            <span className="constructed-cards__gallery-stat"><small>{metric.label}</small>{!statsAccess && STATISTIC_SORTS.has(sort) ? <LockedStatValue /> : <strong>{metric.value}</strong>}</span>
+            <span className="constructed-cards__gallery-stat" data-tour-id={index === 0 ? 'cards-statistics' : undefined}><small>{metric.label}</small>{!statsAccess && STATISTIC_SORTS.has(sort) ? <LockedStatValue /> : <strong>{metric.value}</strong>}</span>
           </a>;
         })}
       </div>
@@ -487,7 +487,7 @@ function CardTable({ cards, format, sort, direction, navigatePath, statsAccess }
         <table className="constructed-cards__table">
           <thead><tr><th aria-sort={sortAria(sort, 'name', direction)}>Карта</th><th aria-sort={sortAria(sort, 'class', direction)}>Класс</th><th aria-sort={sortAria(sort, 'set', direction)}>Дополнение</th><th aria-sort={sortAria(sort, 'mana', direction)}>Мана</th><th aria-sort={sortAria(sort, 'attack', direction)}>Атака</th><th aria-sort={sortAria(sort, 'health', direction)}>Здоровье</th><th aria-sort={sortAria(sort, 'popularity', direction)}>В % колод {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th><th aria-sort={sortAria(sort, 'winrate', direction)}>Победы колод {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th><th aria-sort={sortAria(sort, 'games', direction)}>Партий {!statsAccess && <LockKeyhole size={12} aria-label="Тариф Алмаз" />}</th></tr></thead>
           <tbody>
-            {cards.map(card => (
+            {cards.map((card, index) => (
               <tr key={card.card_id}>
                 <th scope="row"><a
                   href={cardPath(format, card)}
@@ -500,7 +500,7 @@ function CardTable({ cards, format, sort, direction, navigatePath, statsAccess }
                 ><HsReplayDataDeckCard card={card} /></a></th>
                 <td data-label="Класс"><span><img className="constructed-cards__class-icon" src={classIcon(card.class)} alt="" />{classLabel(card.class || 'NEUTRAL')}</span></td>
                 <td data-label="Дополнение">{card.card_set ? constructedSetLabel(card.card_set) : '—'}</td><td data-label="Мана">{number(card.mana_cost)}</td><td data-label="Атака">{number(card.attack)}</td><td data-label="Здоровье">{number(card.health)}</td>
-                <td data-label="В % колод">{statsAccess ? percent(card.stats?.deckPopularity) : <LockedStatValue />}</td><td data-label="Победы колод">{statsAccess ? percent(card.stats?.deckWinrate) : <LockedStatValue />}</td><td data-label="Партий">{statsAccess ? number(card.stats?.timesPlayed) : <LockedStatValue />}</td>
+                <td data-label="В % колод" data-tour-id={index === 0 ? 'cards-statistics' : undefined}>{statsAccess ? percent(card.stats?.deckPopularity) : <LockedStatValue />}</td><td data-label="Победы колод">{statsAccess ? percent(card.stats?.deckWinrate) : <LockedStatValue />}</td><td data-label="Партий">{statsAccess ? number(card.stats?.timesPlayed) : <LockedStatValue />}</td>
               </tr>
             ))}
           </tbody>
@@ -603,12 +603,12 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
 
       <section className="constructed-cards__controls" aria-label="Фильтры библиотеки карт">
         <div className="constructed-cards__primary-controls">
-          <div className="constructed-cards__format" aria-label="Формат">
+          <div className="constructed-cards__format" aria-label="Формат" data-tour-id="cards-format">
             <button type="button" aria-label="Стандарт" title="Стандарт" aria-pressed={format === 'standard'} onClick={() => changeFormat('standard')}><img src="/card-format-standard.webp" alt="" /><span className="sr-only">Стандарт</span></button>
             <button type="button" aria-label="Вольный" title="Вольный" aria-pressed={format === 'wild'} onClick={() => changeFormat('wild')}><img src="/card-format-wild.webp" alt="" /><span className="sr-only">Вольный</span></button>
           </div>
-          <label className="constructed-cards__search"><Search size={18} /><input value={filters.query} onChange={event => updateFilter('query', event.target.value)} placeholder="Поиск по названию" /></label>
-          <FilterSelect label="Сортировка" value={filters.sort} onChange={value => updateFilter('sort', value)}>
+          <label className="constructed-cards__search" data-tour-id="cards-search"><Search size={18} /><input value={filters.query} onChange={event => updateFilter('query', event.target.value)} placeholder="Поиск по названию" /></label>
+          <FilterSelect label="Сортировка" value={filters.sort} onChange={value => updateFilter('sort', value)} tourId="cards-sort">
             <option value="set">Новые дополнения</option><option value="popularity" disabled={!hasStatsAccess}>🔒 В % колод · Алмаз</option><option value="winrate" disabled={!hasStatsAccess}>🔒 Победы колод · Алмаз</option><option value="games" disabled={!hasStatsAccess}>🔒 Сыграно партий · Алмаз</option><option value="mana">Мана</option><option value="attack">Атака</option><option value="health">Здоровье</option><option value="name">Название</option><option value="class">Класс</option><option value="mechanics">Механики</option>
           </FilterSelect>
           {!hasStatsAccess && <span className="constructed-cards__sort-lock" title="Статистические сортировки доступны с тарифом Алмаз"><LockKeyhole size={14} /> Алмаз</span>}
@@ -619,13 +619,14 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
             <span aria-hidden="true">{filters.direction === 'asc' ? '↑' : '↓'}</span>
             <span className="constructed-cards__direction-label">{filters.direction === 'asc' ? 'По возрастанию' : 'По убыванию'}</span>
           </button>
-          <div className="constructed-cards__view" aria-label="Вид списка">
+          <div className="constructed-cards__view" aria-label="Вид списка" data-tour-id="cards-view-switcher">
             <button type="button" aria-pressed={view === 'gallery'} onClick={() => setView('gallery')}><Grid3X3 size={16} /> Галерея</button>
             <button type="button" aria-pressed={view === 'table'} onClick={() => setView('table')}><List size={17} /> Таблица</button>
           </div>
           <button
             type="button"
             className="constructed-cards__advanced-toggle"
+            data-tour-id="cards-filters"
             aria-expanded={mobileFiltersOpen}
             aria-controls="constructed-cards-advanced-filters"
             onClick={() => setMobileFiltersOpen(current => !current)}
@@ -634,7 +635,7 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
           </button>
         </div>
         <div id="constructed-cards-advanced-filters" className={`constructed-cards__secondary-controls${mobileFiltersOpen ? ' is-open' : ''}`}>
-          <FilterSelect label="Класс" value={filters.class} onChange={value => updateFilter('class', value)}><option value="">Все классы ({number(coverage?.totalCards)})</option>{facets.classes.map(value => <option key={value} value={value}>{facetOptionLabel(value, countFor(facetCounts.classes, value), classLabel)}</option>)}</FilterSelect>
+          <FilterSelect label="Класс" value={filters.class} onChange={value => updateFilter('class', value)} tourId="cards-filters"><option value="">Все классы ({number(coverage?.totalCards)})</option>{facets.classes.map(value => <option key={value} value={value}>{facetOptionLabel(value, countFor(facetCounts.classes, value), classLabel)}</option>)}</FilterSelect>
           <FilterSelect label="Дополнение" value={filters.set} onChange={value => updateFilter('set', value)}><option value="">Все дополнения</option>{sets.map(value => <option key={value} value={value}>{constructedSetLabel(value)}</option>)}</FilterSelect>
           <FilterSelect label="Мана" value={filters.mana} onChange={value => updateFilter('mana', value)}><option value="">Любая</option>{Array.from({ length: 11 }, (_, value) => <option key={value} value={value}>{value}</option>)}</FilterSelect>
           <FilterSelect label="Атака" value={filters.attack} onChange={value => updateFilter('attack', value)}><option value="">Любая</option>{Array.from({ length: 11 }, (_, value) => <option key={value} value={value}>{value}</option>)}</FilterSelect>
@@ -712,7 +713,7 @@ function GeneratedPoolCards({ pool, format, navigatePath }: { key?: React.Key; p
 function GeneratedCardPools({ pools, format, navigatePath }: { pools: any[]; format: CardFormat; navigatePath: (path: string) => void }) {
   return (
     <section className="constructed-card-detail__section constructed-card-detail__pools">
-      <h2><Layers3 size={19} /> Пулы генерации · {pools.length}</h2>
+      <h2 data-tour-id="card-pools"><Layers3 size={19} /> Пулы генерации · {pools.length}</h2>
       <div className="constructed-card-detail__pool-list">
         {pools.map((pool, poolIndex) => <GeneratedPoolCards key={`${pool?.pool || 'pool'}-${poolIndex}`} pool={pool} format={format} navigatePath={navigatePath} />)}
       </div>
@@ -824,7 +825,7 @@ function ConstructedCardDecks({ decks, cardId, format }: { decks: ConstructedDec
   };
   return (
     <section className="constructed-card-detail__section constructed-card-detail__decks">
-      <h2><Layers3 size={19} /> Колоды с этой картой · {decks.length}</h2>
+      <h2 data-tour-id="card-decks"><Layers3 size={19} /> Колоды с этой картой · {decks.length}</h2>
       <div className="constructed-card-detail__deck-grid">{visibleDecks.map(deck => <ConstructedDeckCard key={deck.id} deck={deck} cardId={cardId} format={format} onPreviewReady={handlePreviewReady} onOpenPreview={handleOpenPreview} />)}</div>
       {visibleCount < decks.length && <button type="button" className="constructed-card-detail__pool-toggle" onClick={() => setVisibleCount(count => Math.min(count + 3, decks.length))}>Показать больше · ещё {Math.min(3, decks.length - visibleCount)}</button>}
       {lightboxIndex >= 0 && <ConstructedCardLightbox items={lightboxItems} index={lightboxIndex} onClose={() => setLightboxIndex(-1)} onIndexChange={setLightboxIndex} />}
@@ -907,10 +908,10 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
             <img src={selectedImage} alt={cardName(card)} />
             <span>Открыть в полном размере</span>
           </button>
-          <div className="constructed-card-detail__variants" aria-label="Вариант изображения">{variants.map(item => <button key={item.id} type="button" aria-pressed={variant === item.id} onClick={() => setVariant(item.id)}>{item.label}</button>)}</div>
+          <div className="constructed-card-detail__variants" aria-label="Вариант изображения" data-tour-id="card-art">{variants.map(item => <button key={item.id} type="button" aria-pressed={variant === item.id} onClick={() => setVariant(item.id)}>{item.label}</button>)}</div>
         </div>
         <div className="constructed-card-detail__identity">
-          <div className="constructed-card-detail__title"><img src={classIcon(card.class)} alt="" /><div><h1>{cardName(card)}</h1><p>{card.name?.en}</p></div></div>
+          <div className="constructed-card-detail__title" data-tour-id="card-identity"><img src={classIcon(card.class)} alt="" /><div><h1>{cardName(card)}</h1><p>{card.name?.en}</p></div></div>
           <dl className="constructed-card-detail__meta">
             <div><dt>Мана</dt><dd>{number(card.mana_cost)}</dd></div><div><dt>Класс</dt><dd>{classLabel(card.class || 'NEUTRAL')}</dd></div>
             <div><dt>Тип</dt><dd>{card.card_type?.name_ru || translatedCode(card.card_type?.slug || '—', TYPE_LABELS)}</dd></div><div><dt>Редкость</dt><dd>{translatedCode(card.rarity || '—', RARITY_LABELS)}</dd></div>
@@ -924,7 +925,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
           <div className="constructed-card-detail__copy"><h2>Описание</h2><p>{plainText(card.text?.ru || card.text?.en)}</p>{plainText(card.flavor?.ru || card.flavor?.en) && <><h3>Художественный текст</h3><blockquote>{plainText(card.flavor?.ru || card.flavor?.en)}</blockquote></>}</div>
         </div>
         <div className={`constructed-card-detail__statistics${serverStatsAccess ? '' : ' is-locked'}`}>
-          <div><h2>Статистика · Легенда</h2><span>{serverStatsAccess ? `Обновлено ${formatDate(card.statsUpdatedAt)}` : 'Тариф «Алмаз»'}</span></div>
+          <div data-tour-id="card-statistics"><h2>Статистика · Легенда</h2><span>{serverStatsAccess ? `Обновлено ${formatDate(card.statsUpdatedAt)}` : 'Тариф «Алмаз»'}</span></div>
           {serverStatsAccess ? <><StatsRows stats={card.stats} />{!card.stats && <p className="constructed-card-detail__no-stats">Карта есть в библиотеке, но в текущей выборке Легенды недостаточно данных.</p>}</> : (
             <div className="constructed-card-detail__statistics-gate">
               <div className="constructed-card-detail__statistics-blur" aria-hidden="true" inert><StatsRows stats={LOCKED_STATS_PLACEHOLDER} /></div>
@@ -936,7 +937,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
 
       <section className="constructed-card-detail__lower-grid">
         <div className="constructed-card-detail__section"><h2>Механики и теги</h2><div className="constructed-card-detail__tags">{mechanics.length ? mechanics.map(item => <span key={item.key}>{item.label}</span>) : <p>Механики не указаны.</p>}</div></div>
-        <div className="constructed-card-detail__section constructed-card-detail__patches"><h2>Изменения по патчам</h2>{patchRows.length ? <div>{patchRows.map((row: any, index: number) => {
+        <div className="constructed-card-detail__section constructed-card-detail__patches" data-tour-id="card-patches"><h2>Изменения по патчам</h2>{patchRows.length ? <div>{patchRows.map((row: any, index: number) => {
           const dateValue = row.manacost_published_at || row.date;
           const title = row.manacost_title || `Обновление ${patchVersion(row.patch)}`;
           const description = row.manacost_summary || (row.manacost_url ? 'Подробности обновления доступны на HS-Manacost.' : 'Русская статья для этого обновления пока не найдена.');

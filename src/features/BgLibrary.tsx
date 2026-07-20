@@ -907,9 +907,9 @@ function useLibraryData(kind: LibraryKind, pool: PoolMode) {
   return { cards, meta, loading, error };
 }
 
-function MetricCard({ label, value, caption, tone }: { label: string; value: string; caption?: string; tone?: string }) {
+function MetricCard({ label, value, caption, tone, tourId }: { label: string; value: string; caption?: string; tone?: string; tourId?: string }) {
   return (
-    <div className="bg-library-metric-card min-w-0 rounded-md border border-[#cbd9ed] bg-[#f8fbff] px-4 py-3 shadow-sm">
+    <div className="bg-library-metric-card min-w-0 rounded-md border border-[#cbd9ed] bg-[#f8fbff] px-4 py-3 shadow-sm" data-tour-id={tourId}>
       <p className="text-[11px] font-semibold uppercase tracking-wide text-[#60718a]">{label}</p>
       <p className={`mt-1 min-w-0 font-hs text-2xl ${tone || 'text-[#7c5b24]'}`}>{value}</p>
       {caption && <p className="mt-1 text-xs text-[#657893]">{caption}</p>}
@@ -958,6 +958,7 @@ function MiniChart({ points, color = '#f1d47b', unit = '', invert = false }: { p
       <svg
         viewBox={`0 0 ${width} ${height}`}
         role="img"
+        aria-label="График статистики карты по раундам"
         className="h-48 w-full touch-none cursor-crosshair"
         onPointerMove={moveActivePoint}
         onPointerLeave={() => setActiveIndex(null)}
@@ -1020,9 +1021,11 @@ function LibrarySectionSwitcher({
   };
 
   return (
-    <section className="bg-library-directory rounded-lg border border-[#cbd9ed] bg-[#f3f7fe] p-4 shadow-sm sm:p-5">
+    <section
+      className="bg-library-directory rounded-lg border border-[#cbd9ed] bg-[#f3f7fe] p-4 shadow-sm sm:p-5"
+    >
       <div className="bg-library-directory-head mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
+        <div data-tour-id="bg-library-directory">
           <p className="font-hs text-xs uppercase tracking-[0.18em] text-[#8a651f]">Разделы библиотеки</p>
           <h2 className="mt-1 font-hs text-2xl text-[#26374f]">{activeSection.shortTitle} · {activePoolLabel}</h2>
         </div>
@@ -1096,11 +1099,13 @@ function LibraryCardTile({
   card,
   pool,
   navigatePath,
+  tourId,
 }: {
   key?: React.Key;
   card: LibraryCard;
   pool: PoolMode;
   navigatePath: (path: string) => void;
+  tourId?: string;
 }) {
   const href = cardPath(card, pool);
   const image = primaryCardImage(card) || '/arena-logo-icon.webp?v=arena-legacy-20260629';
@@ -1112,6 +1117,7 @@ function LibraryCardTile({
       href={href}
       onClick={(event) => { event.preventDefault(); navigatePath(href); }}
       data-library-card-tile
+      data-tour-id={tourId}
       className="group relative block overflow-visible rounded-md p-1 text-center transition-transform hover:-translate-y-1"
       style={{ textDecoration: 'none' }}
     >
@@ -1314,7 +1320,7 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
 
       <section className="bg-library-filter-board rounded-lg border border-[#cbd9ed] bg-[#f3f7fe] p-4 shadow-sm sm:p-5">
         <div className="grid gap-3">
-          <label className="bg-library-search relative block">
+          <label className="bg-library-search relative block" data-tour-id="bg-library-search">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7b8da6]" size={20} />
             <input
               value={query}
@@ -1327,6 +1333,13 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
         </div>
 
         <div className="mt-4 space-y-4">
+          <div
+            className="inline-flex min-h-10 items-center gap-2 rounded-md border border-[#d6e1f1] bg-white px-3 py-2 font-hs text-sm text-[#26374f]"
+            data-tour-id="bg-library-filters"
+          >
+            <Filter size={16} aria-hidden="true" />
+            Фильтры библиотеки
+          </div>
           <details className="bg-library-filter-group rounded-md border border-[#cbd9ed] bg-[#ffffff] p-3" open>
             <summary className="flex cursor-pointer list-none items-center justify-between font-hs text-sm text-[#26374f]">
               <span>Формат</span><ChevronDown size={16} />
@@ -1419,7 +1432,7 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
         {!loading && !error && filtered.length === 0 && <div className="rounded-md border border-[#cbd9ed] bg-[#ffffff] p-8 text-center text-[#657893]">По выбранным фильтрам ничего не найдено.</div>}
 
         <div className="space-y-8">
-          {grouped.map(group => (
+          {grouped.map((group, groupIndex) => (
             <div key={group.key}>
               <div className="mb-4 flex items-center gap-3">
                 {group.tavernTier && <img src={tavernIcon(group.tavernTier)} alt="" className="h-10 w-10" loading="lazy" />}
@@ -1428,12 +1441,13 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
                 <div className="h-px flex-1 bg-[#cbd9ed]" />
               </div>
               <div className="grid overflow-visible grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-                {group.items.map(card => (
+                {group.items.map((card, cardIndex) => (
                   <LibraryCardTile
                     key={`${card.dbf}-${card.card_id}`}
                     card={card}
                     pool={pool}
                     navigatePath={navigatePath}
+                    tourId={groupIndex === 0 && cardIndex === 0 ? 'bg-library-results' : undefined}
                   />
                 ))}
               </div>
@@ -1598,7 +1612,7 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
             <img src={heroImage} alt={currentCardName} className="w-full drop-shadow-[0_22px_30px_rgba(21,31,47,0.22)]" data-fallbacks={fallbackCardImages(card, heroImage, true).join('|') || undefined} onError={fallbackBrokenHeroImage} />
           </div>
           <div className="bg-library-card-dossier__copy min-w-0 space-y-5">
-            <div>
+            <div data-tour-id="bg-library-detail-dossier">
               <p className="font-hs text-xs uppercase tracking-[0.18em] text-[#8a651f]">{section.shortTitle} · {pool === 'archive' ? 'Архив' : 'Активный пул'}</p>
               <h1 className="bg-library-card-dossier__title mt-2 font-hs text-4xl text-[#23314a] sm:text-5xl">{currentCardName}</h1>
               <p className="mt-1 text-lg text-[#657893]">{cardEnName(card)}</p>
@@ -1621,7 +1635,7 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
 
             {showStats ? (
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <MetricCard label="Impact" value={formatDecimal(mainImpact, 2)} tone={metricTone(mainImpact)} />
+                <MetricCard label="Impact" value={formatDecimal(mainImpact, 2)} tone={metricTone(mainImpact)} tourId="bg-library-detail-statistics" />
                 <MetricCard label="Среднее место" value={formatDecimal(mainAverage, 2)} />
                 <MetricCard label={kind === 'spell' ? 'Сыграно' : 'Популярность'} value={kind === 'spell' ? formatCount(mainPopularity) : formatPercent(mainPopularity, 1)} />
                 <MetricCard label="Стратегии" value={String(usedStrategies.length)} caption="где карта встречается" />
@@ -1650,7 +1664,10 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
 
       {kind === 'minion' && showStats && detail && (
         <section className="rounded-lg border border-[#cbd9ed] bg-[#f8fbff] p-4 shadow-sm sm:p-5">
-          <div className="mb-4 flex items-center gap-3">
+          <div
+            className="mb-4 flex items-center gap-3"
+            data-tour-id="bg-library-detail-rounds"
+          >
             <BarChart3 className="text-[#8a651f]" />
             <h2 className="font-hs text-2xl text-[#26374f]">Раунды и динамика</h2>
           </div>
@@ -1712,7 +1729,12 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
 
       {showStats && (
       <section className="rounded-lg border border-[#cbd9ed] bg-[#f8fbff] p-4 shadow-sm sm:p-5">
-        <h2 className="mb-4 font-hs text-2xl text-[#26374f]">Используется в стратегиях</h2>
+        <h2
+          className="mb-4 font-hs text-2xl text-[#26374f]"
+          data-tour-id="bg-library-detail-strategies"
+        >
+          Используется в стратегиях
+        </h2>
         {usedStrategies.length ? (
           <div className="grid gap-3 md:grid-cols-2">
             {usedStrategies.map(strategy => {
@@ -1758,7 +1780,12 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
 
       {showStats && similar.length > 0 && (
         <section className="rounded-lg border border-[#cbd9ed] bg-[#f8fbff] p-4 shadow-sm sm:p-5">
-          <h2 className="mb-4 font-hs text-2xl text-[#26374f]">Похожие карты</h2>
+          <h2
+            className="mb-4 font-hs text-2xl text-[#26374f]"
+            data-tour-id="bg-library-detail-similar"
+          >
+            Похожие карты
+          </h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {similar.map(item => (
               <a key={`${item.dbf}-${item.card_id}`} href={cardPath(item, pool)} onClick={(event) => { event.preventDefault(); navigatePath(cardPath(item, pool)); }} className="rounded-md p-2 text-center transition-transform hover:-translate-y-1" style={{ textDecoration: 'none' }}>

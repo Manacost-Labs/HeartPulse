@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useId, useRef, useState } from 'react';
 import {
   BookOpen,
   ChevronRight,
@@ -10,6 +10,9 @@ import {
   X,
 } from 'lucide-react';
 import './GlobalUtilityHeader.css';
+import type { PageTourAccess } from '../features/pageTour/pageTourDefinitions';
+
+const LazyPageTour = lazy(() => import('../features/pageTour/PageTour'));
 
 type SearchArticle = {
   id: string;
@@ -54,6 +57,8 @@ export type GlobalSearchAccess = {
 type HeaderSubscription = {
   hasAccess?: boolean;
   entitlements?: {
+    arena?: boolean;
+    battlegrounds?: boolean;
     standard?: boolean;
     arenaArticles?: boolean;
     battlegroundsArticles?: boolean;
@@ -84,19 +89,28 @@ function cardFormatsLabel(formats: SearchCard['formats']): string {
 export default function GlobalUtilityHeader({
   accessStatus,
   onNavigate,
+  pagePath,
+  authenticated,
 }: {
   accessStatus: true | HeaderSubscription;
   onNavigate: (path: string) => void;
+  pagePath: string;
+  authenticated: boolean;
 }) {
   const rootRef = useRef<HTMLElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const helpButtonRef = useRef<HTMLButtonElement>(null);
   const searchPanelId = `${useId()}-search`;
+  const helpPanelId = `${useId()}-help`;
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResponse | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [openingArticleId, setOpeningArticleId] = useState('');
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
+  const [tourAvailable, setTourAvailable] = useState(false);
   const admin = accessStatus === true;
   const subscriptionStatus = admin ? null : accessStatus;
   const access: GlobalSearchAccess = {
@@ -106,6 +120,33 @@ export default function GlobalUtilityHeader({
     arenaArticles: admin || Boolean(subscriptionStatus?.entitlements?.arenaArticles),
     battlegroundsArticles: admin || Boolean(subscriptionStatus?.entitlements?.battlegroundsArticles),
   };
+  const tourAccess: PageTourAccess = {
+    authenticated,
+    admin,
+    standard: admin || Boolean(subscriptionStatus?.entitlements?.standard),
+    arena: admin || Boolean(subscriptionStatus?.entitlements?.arena),
+    battlegrounds: admin || Boolean(subscriptionStatus?.entitlements?.battlegrounds),
+  };
+
+  useEffect(() => {
+    let active = true;
+    void Promise.all([
+      import('../features/pageTour/pageTourDefinitions'),
+      import('../features/pageTour/pageTourModel'),
+    ]).then(([definitions, model]) => {
+      const resolved = model.resolvePageTour(pagePath, definitions.PAGE_TOURS);
+      if (active) setTourAvailable(Boolean(resolved && (resolved.id !== 'profile' || authenticated)));
+    }).catch(() => {
+      if (active) setTourAvailable(false);
+    });
+    return () => { active = false; };
+  }, [authenticated, pagePath]);
+
+  useEffect(() => {
+    setSearchOpen(false);
+    setHelpOpen(false);
+    setTourOpen(false);
+  }, [pagePath]);
 
   useEffect(() => {
     const normalizedQuery = query.trim();
@@ -145,12 +186,16 @@ export default function GlobalUtilityHeader({
     const closeOnOutsidePointer = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) {
         setSearchOpen(false);
+        setHelpOpen(false);
       }
     };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        const restoreHelpFocus = Boolean((document.activeElement as HTMLElement | null)?.closest('.global-help-menu'));
         setSearchOpen(false);
-        searchInputRef.current?.blur();
+        setHelpOpen(false);
+        if (restoreHelpFocus) window.setTimeout(() => helpButtonRef.current?.focus(), 0);
+        else searchInputRef.current?.blur();
         return;
       }
       const target = event.target as HTMLElement | null;
@@ -171,6 +216,7 @@ export default function GlobalUtilityHeader({
 
   const closePanels = () => {
     setSearchOpen(false);
+    setHelpOpen(false);
   };
 
   const openArticle = async (article: SearchArticle) => {
@@ -311,20 +357,65 @@ export default function GlobalUtilityHeader({
           )}
         </div>
 
-        <a
-          href="/faq"
-          className="global-faq-button"
-          aria-current={window.location.pathname.replace(/\/+$/, '') === '/faq' ? 'page' : undefined}
-          onClick={event => {
-            event.preventDefault();
-            closePanels();
-            onNavigate('/faq');
-          }}
-        >
-          <CircleHelp size={17} aria-hidden="true" />
-          <span>FAQ</span>
-        </a>
+        <div className="global-help">
+          <button
+            ref={helpButtonRef}
+            type="button"
+            className="global-faq-button"
+            aria-expanded={helpOpen}
+            aria-controls={helpPanelId}
+            onClick={() => {
+              setSearchOpen(false);
+              setHelpOpen(open => !open);
+            }}
+          >
+            <CircleHelp size={17} aria-hidden="true" />
+            <span>Помощь</span>
+          </button>
+          {helpOpen && (
+            <div id={helpPanelId} className="global-help-menu" role="region" aria-label="Помощь по сайту">
+              {tourAvailable && (
+                <button
+                  type="button"
+                  className="global-help-menu__item is-tour"
+                  onClick={() => {
+                    closePanels();
+                    setTourOpen(true);
+                  }}
+                >
+                  <span><strong>Обучение по странице</strong><small>Покажем ключевые функции по шагам</small></span>
+                  <ChevronRight size={17} aria-hidden="true" />
+                </button>
+              )}
+              <a
+                href="/faq"
+                className="global-help-menu__item"
+                aria-current={window.location.pathname.replace(/\/+$/, '') === '/faq' ? 'page' : undefined}
+                onClick={event => {
+                  event.preventDefault();
+                  closePanels();
+                  onNavigate('/faq');
+                }}
+              >
+                <span><strong>FAQ и доступ</strong><small>Авторизация, подписка и ответы на вопросы</small></span>
+                <ChevronRight size={17} aria-hidden="true" />
+              </a>
+            </div>
+          )}
+        </div>
       </div>
+      {tourOpen && (
+        <Suspense fallback={null}>
+          <LazyPageTour
+            pagePath={pagePath}
+            access={tourAccess}
+            onClose={() => {
+              setTourOpen(false);
+              window.setTimeout(() => helpButtonRef.current?.focus(), 0);
+            }}
+          />
+        </Suspense>
+      )}
     </header>
   );
 }

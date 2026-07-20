@@ -89,7 +89,7 @@ export default function StandardMetaChart({ items, formatLabel, rankLabel, onOpe
 
   return (
     <section className="standard-meta-chart" aria-labelledby="standard-meta-chart-title">
-      <header className="standard-meta-chart__header">
+      <header className="standard-meta-chart__header" data-tour-id="meta-chart">
         <div className="standard-meta-chart__heading">
           <span className="standard-meta-chart__icon" aria-hidden="true"><ChartScatter size={22} /></span>
           <div>

@@ -81,17 +81,19 @@ export default function PaywallGate({
             textAlign: 'center',
           }}
         >
-          <p className="arena-paywall__eyebrow" style={{ margin: '0 0 6px', color: '#45617f', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            Раздел для подписчиков
-          </p>
-          <h3 className="arena-paywall__title" id="paywall-gate-title" style={{ margin: '0 0 10px', color: '#142238', fontFamily: 'var(--font-display)', fontSize: '1.25rem' }}>
-            {title}
-          </h3>
-          <p className="arena-paywall__description" id="paywall-gate-description" style={{ margin: '0 0 14px', color: '#42566f', fontSize: '13px', lineHeight: 1.55 }}>
-            {variant === 'standard'
-              ? 'Тариф «Алмаз» открывает статистику традиционного режима, актуальную мету и готовые сборки.'
-              : 'Подписка открывает закрытые инструменты Арены и помогает Манакосту держать данные свежими.'}
-          </p>
+          <div data-tour-id="subscription-paywall">
+            <p className="arena-paywall__eyebrow" style={{ margin: '0 0 6px', color: '#45617f', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Раздел для подписчиков
+            </p>
+            <h3 className="arena-paywall__title" id="paywall-gate-title" style={{ margin: '0 0 10px', color: '#142238', fontFamily: 'var(--font-display)', fontSize: '1.25rem' }}>
+              {title}
+            </h3>
+            <p className="arena-paywall__description" id="paywall-gate-description" style={{ margin: '0 0 14px', color: '#42566f', fontSize: '13px', lineHeight: 1.55 }}>
+              {variant === 'standard'
+                ? 'Тариф «Алмаз» открывает статистику традиционного режима, актуальную мету и готовые сборки.'
+                : 'Подписка открывает закрытые инструменты Арены и помогает Манакосту держать данные свежими.'}
+            </p>
+          </div>
           <div className="arena-paywall__benefits" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '10px', margin: '0 0 14px', textAlign: 'left' }}>
             <div style={{ padding: '12px', borderRadius: '14px', background: 'linear-gradient(135deg, rgba(239,246,255,0.92), rgba(219,234,254,0.72))', border: '1px solid rgba(96,165,250,0.34)' }}>
               <strong style={{ display: 'block', color: '#142238', fontSize: '13px', marginBottom: '5px' }}>{variant === 'standard' ? 'Мета и матчапы' : 'Платная статистика HSReplay'}</strong>

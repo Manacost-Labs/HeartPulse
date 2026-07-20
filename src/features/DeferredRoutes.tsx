@@ -841,7 +841,10 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
         onRefreshSubscription={onRefreshSubscription}
       >
       {/* UpdateBadge row */}
-      <div className="arena-classes-update flex items-center justify-end mb-6 -mt-2">
+      <div
+        className="arena-classes-update flex items-center justify-end mb-6 -mt-2"
+        data-tour-id="arena-classes-source"
+      >
         <UpdateBadge updatedAt={updatedAt} />
       </div>
 
@@ -851,7 +854,9 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
         </div>
       )}
 
-      <div className="arena-classes-board space-y-2.5 sm:space-y-3 relative">
+      <div
+        className="arena-classes-board space-y-2.5 sm:space-y-3 relative"
+      >
         <div className="arena-source-loading-overlay absolute inset-0 z-10 flex items-center justify-center rounded-2xl pointer-events-none"
           style={{
             background: 'transparent',
@@ -883,6 +888,7 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
                 <div
                   key={cls.id}
                   data-rank={index + 1}
+                  data-tour-id={index === 0 ? 'arena-classes-ranking' : undefined}
                   className="arena-class-row anim-fade-up row-hover group relative grid items-center gap-2.5 rounded-2xl overflow-hidden cursor-default sm:flex sm:gap-4"
                   style={{
                     animationDelay: delay,
@@ -909,7 +915,9 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
                   </div>
 
                   {/* Progress bar */}
-                  <div className="arena-class-meter relative h-7 sm:h-8 rounded-full overflow-hidden sm:flex-grow"
+                  <div
+                    className="arena-class-meter relative h-7 sm:h-8 rounded-full overflow-hidden sm:flex-grow"
+                    data-tour-id={index === 0 ? 'arena-classes-details' : undefined}
                     style={{
                       minWidth: 118,
                       background: 'linear-gradient(180deg,#1a0e06 0%,#2c1a0e 100%)',
@@ -1782,7 +1790,10 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
         onRefreshSubscription={onRefreshSubscription}
       >
       {/* Source toggle + UpdateBadge row */}
-      <div className="tierlist-source-row flex items-center justify-between mb-4 -mt-2 flex-wrap gap-2">
+      <div
+        className="tierlist-source-row flex items-center justify-between mb-4 -mt-2 flex-wrap gap-2"
+        data-tour-id="arena-tier-source"
+      >
         {/* Source switcher */}
         <div className="tierlist-source-toggle flex items-center gap-1 p-1 rounded-xl"
           style={{ background: 'linear-gradient(135deg,#e8d5a0,#d4b87a)', border: '1.5px solid #b8904a' }}>
@@ -1835,7 +1846,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
       ) : (
         <>
           {/* Nav bar: class icons + search */}
-          <div className="tierlist-class-nav mb-5">
+          <div className="tierlist-class-nav mb-5" data-tour-id="arena-tier-class">
             <ClassTabs
               sections={sections}
               activeId={activeClassId}
@@ -1846,7 +1857,10 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
           </div>
 
           {/* Active class header + rarity filter */}
-          <div className="tierlist-active-header flex items-center justify-between gap-3 mb-5 flex-wrap">
+          <div
+            className="tierlist-active-header flex items-center justify-between gap-3 mb-5 flex-wrap"
+            data-tour-id="arena-tier-filters"
+          >
             {activeSection && (
               <div className="flex items-center gap-3">
                 {CLASS_ICON[activeSection.id] ? (
@@ -1884,7 +1898,9 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
             )}
             <div className="tierlist-control-panel flex items-center gap-2 flex-wrap justify-end">
               {canUseTableView && (
-                <div className="tierlist-view-toggle flex items-center gap-1 p-1 rounded-xl flex-shrink-0"
+                <div
+                  className="tierlist-view-toggle flex items-center gap-1 p-1 rounded-xl flex-shrink-0"
+                  data-tour-id="arena-tier-view"
                   style={{ background: 'linear-gradient(135deg,#e8d5a0,#d4b87a)', border: '1.5px solid #b8904a' }}>
                   {([
                     { id: 'gallery' as const, label: 'Галерея', icon: Grid3X3 },
@@ -2032,6 +2048,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
                     <div
                       key={`${card.cardId}-${idx}`}
                       className="anim-scale-in"
+                      data-tour-id={tierIdx === 0 && idx === 0 ? 'arena-tier-results' : undefined}
                       style={{
                         // Cap animation delay: past 20 cards the stagger is imperceptible
                         animationDelay: idx < 20 ? `${tierIdx * 0.05 + idx * 0.015}s` : '0s',
@@ -2250,7 +2267,10 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
           transition: 'filter 180ms ease',
         }}>
       {/* Source toggle + count row */}
-      <div className="legendary-toolbar flex items-center justify-between mb-4 -mt-2 flex-wrap gap-2">
+      <div
+        className="legendary-toolbar flex items-center justify-between mb-4 -mt-2 flex-wrap gap-2"
+        data-tour-id="arena-legendaries-source"
+      >
         <div className="legendary-source-toggle flex items-center gap-1 p-1 rounded-xl"
           style={{ background: 'linear-gradient(135deg,#e8d5a0,#d4b87a)', border: '1.5px solid #b8904a' }}>
           {(['hsreplay', 'firestone'] as const).map(src => {
@@ -2274,7 +2294,7 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
       </div>
 
       {/* Class filter nav */}
-      <div className="legendary-class-nav mb-5">
+      <div className="legendary-class-nav mb-5" data-tour-id="arena-legendaries-class">
         <div
           ref={classScrollRef}
           className="legendary-class-tabs flex items-center gap-1.5 sm:gap-2 px-3 py-2.5 rounded-2xl overflow-x-auto scrollbar-hs"
@@ -2354,6 +2374,7 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
             <div
               key={`${group.keyCard.cardId}-${idx}`}
               data-rank={idx + 1}
+              data-tour-id={idx === 0 ? 'arena-legendaries-results' : undefined}
               className="legendary-group-card anim-scale-in card-hover rounded-2xl flex flex-col items-center p-4 gap-3 cursor-default"
               style={{
                 animationDelay: `${Math.min(idx, 20) * 0.04}s`,
@@ -3551,7 +3572,7 @@ export function LoginPanel({
             />
             <div className="profile-hero__body">
               <AuthAvatar user={{ ...authUser, name: profileName }} size={92} />
-              <div className="profile-hero__identity">
+              <div className="profile-hero__identity" data-tour-id="profile-summary">
                 <p className="profile-hero__eyebrow">
                   Личный кабинет
                 </p>
@@ -3585,7 +3606,7 @@ export function LoginPanel({
               className="profile-settings-form"
               onSubmit={handleProfileSave}
             >
-              <div className="profile-section-heading">
+              <div className="profile-section-heading" data-tour-id="profile-contacts">
                 <strong>Настройки и каналы связи</strong>
                 <span>
                   Укажите удобные контакты. Они будут использоваться для конкурсов, призов и важных уведомлений.
@@ -3625,7 +3646,7 @@ export function LoginPanel({
             </form>
           </section>
           <section className={`profile-subscription-panel ${subscription?.hasAccess ? 'profile-subscription-panel--active' : ''}`}>
-            <div className="profile-subscription-header">
+            <div className="profile-subscription-header" data-tour-id="profile-access-status">
               <div>
                 <p className="profile-subscription-kicker">
                   Доступ к закрытым разделам
@@ -3670,7 +3691,7 @@ export function LoginPanel({
                 </p>
                 </div>
               </div>
-              <div className="profile-subscription-source profile-subscription-source--telegram">
+              <div className="profile-subscription-source profile-subscription-source--telegram" data-tour-id="profile-telegram-access">
                 <img src="/ad/telegram.png" alt="" />
                 <div>
                 <strong>Telegram</strong>
@@ -3717,6 +3738,7 @@ export function LoginPanel({
             </p>
             <form
               className="profile-boosty-form"
+              data-tour-id="profile-boosty-access"
               onSubmit={boostyStep === 'email' ? handleBoostyEmailRequest : handleBoostyEmailConfirm}
             >
               <p>
@@ -3766,7 +3788,7 @@ export function LoginPanel({
             )}
           </section>
           <section className="profile-contests">
-            <div className="profile-contests__heading">
+            <div className="profile-contests__heading" data-tour-id="profile-contests">
               <div>
                 <strong>История участия в конкурсах</strong>
                 <span>
@@ -3816,7 +3838,7 @@ export function LoginPanel({
               </div>
             )}
           </section>
-          <div className="profile-account-actions">
+          <div className="profile-account-actions" data-tour-id="profile-account-actions">
             {(authUser.adminAllowed || authUser.role === 'admin') && (
               <>
                 <a href="/standard/meta" data-profile-admin-destination="standard-meta">
