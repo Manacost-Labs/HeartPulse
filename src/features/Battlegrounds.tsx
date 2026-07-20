@@ -589,7 +589,7 @@ function BattlegroundHeroCard({ hero, tier, onNavigate, tourId }: {
       }}
       data-has-related={hasHoverCards ? 'true' : 'false'}
       data-tour-id={tourId}
-      className="battleground-hero-card relative flex min-h-[252px] flex-col items-center overflow-hidden rounded-lg p-3 text-center transition-all duration-200 hover:z-30 focus:z-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d7b66a]"
+      className="battleground-hero-card relative flex min-h-[252px] flex-col items-center overflow-visible rounded-lg p-3 text-center transition-all duration-200 hover:z-30 focus:z-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d7b66a]"
     >
       <div className="relative flex w-full justify-center overflow-visible">
         <img

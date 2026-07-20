@@ -1483,6 +1483,12 @@ async function assertArenaDataRoutePresentation(page, path, device) {
         imageRatio: image?.naturalHeight ? image.naturalWidth / image.naturalHeight : 0,
       };
     }
+    if (routePath === '/heroes') {
+      return {
+        kind: 'heroes',
+        cardOverflow: style('.battleground-hero-card')?.overflow || '',
+      };
+    }
     return { kind: 'other' };
   }, path);
 
@@ -1501,6 +1507,10 @@ async function assertArenaDataRoutePresentation(page, path, device) {
       failures.push(`${prefix}: winner title color changed (${state.title?.color || 'missing'})`);
     }
     if (state.games?.color !== 'rgb(225, 195, 139)') failures.push(`${prefix}: winner games color changed (${state.games?.color || 'missing'})`);
+    return;
+  }
+  if (state.kind === 'heroes') {
+    if (state.cardOverflow !== 'visible') failures.push(`${prefix}: hero hover cards are clipped (${state.cardOverflow})`);
     return;
   }
   if (state.kind === 'tierlist' || state.kind === 'legendaries') {
@@ -1549,6 +1559,38 @@ for (const route of authenticatedRoutes) {
       await waitForMeaningfulPage(page, route.expected);
       await page.waitForSelector(route.selector, { timeout: 20_000 });
       await assertArenaDataRoutePresentation(page, route.path, device);
+      if (route.path === '/heroes' && device === 'desktop') {
+        await page.hover('.battleground-hero-card');
+        await page.waitForFunction(() => Number.parseFloat(getComputedStyle(document.querySelector('.battleground-hero-related-card')).opacity) > 0.9);
+        const hoverContainment = await page.evaluate(() => {
+          const clippedBy = (element) => {
+            const rect = element.getBoundingClientRect();
+            const ancestors = [];
+            for (let ancestor = element.parentElement; ancestor && ancestor !== document.body; ancestor = ancestor.parentElement) {
+              const style = getComputedStyle(ancestor);
+              const clipsX = style.overflowX === 'hidden' || style.overflowX === 'clip';
+              const clipsY = style.overflowY === 'hidden' || style.overflowY === 'clip';
+              const ancestorRect = ancestor.getBoundingClientRect();
+              if ((clipsX && (rect.left < ancestorRect.left - 1 || rect.right > ancestorRect.right + 1))
+                || (clipsY && (rect.top < ancestorRect.top - 1 || rect.bottom > ancestorRect.bottom + 1))) {
+                ancestors.push(ancestor.className || ancestor.tagName);
+              }
+            }
+            return ancestors;
+          };
+          const main = document.querySelector('.battleground-hero-main');
+          const related = document.querySelector('.battleground-hero-related-card');
+          return {
+            main: main ? clippedBy(main) : ['missing-main-card'],
+            related: related ? clippedBy(related) : ['missing-related-card'],
+          };
+        });
+        if (hoverContainment.main.length || hoverContainment.related.length) {
+          failures.push(`/heroes [desktop]: hover cards are clipped (${JSON.stringify(hoverContainment)})`);
+        }
+        await page.screenshot({ path: `${OUT}/heroes-hover-desktop.png`, fullPage: false });
+        await page.mouse.move(1, 1);
+      }
       if (route.path === '/tierlist' && device === 'desktop') {
         await page.hover('.hs-tier-card');
         await page.waitForFunction(() => getComputedStyle(document.querySelector('.hs-tier-card .hs-tier-card-inner')).filter.includes('drop-shadow'));
