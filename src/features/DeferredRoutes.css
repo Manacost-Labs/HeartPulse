@@ -490,18 +490,64 @@
       filter 0.22s ease !important;
   }
 
-  @media (hover: hover) {
-    .hs-tier-card:hover .hs-tier-card-inner,
-    .hs-tier-card:focus-within .hs-tier-card-inner {
-      filter: none !important;
-      will-change: transform;
-    }
+  .tierlist-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    justify-items: center;
+    gap: 0.75rem;
+  }
+
+  .tierlist-card-grid > .anim-scale-in {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    place-items: start center;
+  }
+
+  .hs-tier-card {
+    --tier-card-rarity-glow: rgba(218, 235, 247, 0.82);
+    display: grid;
+    width: 100%;
+    max-width: 9rem;
+    place-items: center;
+  }
+
+  .hs-tier-card[data-rarity='free'],
+  .hs-tier-card[data-rarity='common'] { --tier-card-rarity-glow: rgba(218, 235, 247, 0.82); }
+  .hs-tier-card[data-rarity='rare'] { --tier-card-rarity-glow: rgba(50, 139, 255, 0.9); }
+  .hs-tier-card[data-rarity='epic'] { --tier-card-rarity-glow: rgba(157, 78, 235, 0.9); }
+  .hs-tier-card[data-rarity='legendary'] { --tier-card-rarity-glow: rgba(255, 151, 38, 0.94); }
+
+  .hs-tier-card:hover .hs-tier-card-inner,
+  .hs-tier-card:focus-within .hs-tier-card-inner {
+    filter: drop-shadow(0 12px 10px rgba(56, 29, 12, 0.28)) drop-shadow(0 0 9px var(--tier-card-rarity-glow)) !important;
+    will-change: transform;
   }
 
   .hs-tier-card-inner img,
   .legendary-card-thumb,
   .legendary-card-thumb img {
     filter: none !important;
+  }
+
+  @media (min-width: 520px) {
+    .tierlist-card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  @media (min-width: 768px) {
+    .tierlist-card-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+
+  @media (min-width: 1180px) {
+    .tierlist-card-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  }
+
+  @media (min-width: 1280px) {
+    .tierlist-card-grid {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 0.65rem;
+    }
   }
 
   .space-y-10 > .anim-fade-up .flex-shrink-0.rounded-full.border-\[3px\] {

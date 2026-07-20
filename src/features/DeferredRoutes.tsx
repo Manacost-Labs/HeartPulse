@@ -690,6 +690,7 @@ const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabled = fa
       <div
         ref={cardRef}
         className="hs-tier-card relative z-0 flex-shrink-0 group cursor-pointer hover:z-[9999] focus-within:z-[9999]"
+        data-rarity={String(card.rarity || 'common').toLowerCase()}
         onClick={handleClick}
         onMouseEnter={showPreview}
         onMouseMove={showPreview}
@@ -714,6 +715,7 @@ const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabled = fa
     <div
       ref={cardRef}
       className="hs-tier-card relative z-0 flex-shrink-0 group cursor-pointer hover:z-[9999] focus-within:z-[9999]"
+      data-rarity={String(card.rarity || 'common').toLowerCase()}
       onClick={handleClick}
       onMouseEnter={showPreview}
       onMouseMove={showPreview}
@@ -2043,7 +2045,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
                 </div>
 
                 {/* Cards grid — cards are already merged in filteredTiers useMemo */}
-                <div className="tierlist-card-grid flex flex-wrap gap-3 md:gap-5 justify-center md:justify-start">
+                <div className="tierlist-card-grid">
                   {tierGroup.cards.map((card, idx) => (
                     <div
                       key={`${card.cardId}-${idx}`}

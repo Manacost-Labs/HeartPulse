@@ -1446,6 +1446,8 @@ async function assertArenaDataRoutePresentation(page, path, device) {
       };
     }
     if (routePath === '/tierlist') {
+      const grid = document.querySelector('.tierlist-card-grid');
+      const firstCard = document.querySelector('.hs-tier-card');
       return {
         kind: 'tierlist',
         sourceShell: snapshot(style('.tierlist-source-toggle')),
@@ -1453,6 +1455,8 @@ async function assertArenaDataRoutePresentation(page, path, device) {
         classTabs: snapshot(style('.tierlist-class-tabs')),
         activeFilter: snapshot(style(".tierlist-rarity-filter > button[data-active='true']")),
         heading: snapshot(style('.tierlist-group-heading h3')),
+        gridColumns: grid ? getComputedStyle(grid).gridTemplateColumns.split(/\s+/).filter(Boolean).length : 0,
+        firstCardRarity: firstCard?.getAttribute('data-rarity') || '',
       };
     }
     if (routePath === '/legendaries') {
@@ -1513,6 +1517,10 @@ async function assertArenaDataRoutePresentation(page, path, device) {
       failures.push(`${prefix}: active filter material changed (${JSON.stringify(state.activeFilter)})`);
     }
     if (state.heading?.color !== 'rgb(61, 41, 29)') failures.push(`${prefix}: tier heading color changed (${state.heading?.color || 'missing'})`);
+    const expectedColumns = device === 'desktop' ? 6 : 2;
+    if (state.gridColumns !== expectedColumns || state.firstCardRarity !== 'legendary') {
+      failures.push(`${prefix}: responsive card grid or rarity metadata changed (${JSON.stringify({ columns: state.gridColumns, rarity: state.firstCardRarity })})`);
+    }
   }
   if (state.kind === 'legendaries') {
     if (state.count?.backgroundColor !== 'rgb(77, 11, 16)' || state.count?.color !== 'rgb(224, 195, 141)') {
@@ -1541,6 +1549,22 @@ for (const route of authenticatedRoutes) {
       await waitForMeaningfulPage(page, route.expected);
       await page.waitForSelector(route.selector, { timeout: 20_000 });
       await assertArenaDataRoutePresentation(page, route.path, device);
+      if (route.path === '/tierlist' && device === 'desktop') {
+        await page.hover('.hs-tier-card');
+        await page.waitForFunction(() => getComputedStyle(document.querySelector('.hs-tier-card .hs-tier-card-inner')).filter.includes('drop-shadow'));
+        const rarityHoverState = await page.$eval('.hs-tier-card', card => ({
+          rarity: card.getAttribute('data-rarity') || '',
+          glow: getComputedStyle(card).getPropertyValue('--tier-card-rarity-glow').trim(),
+          cardFilter: getComputedStyle(card.querySelector('.hs-tier-card-inner')).filter,
+        }));
+        if (rarityHoverState.rarity !== 'legendary'
+          || !rarityHoverState.glow.startsWith('rgba(255, 151, 38,')
+          || !rarityHoverState.cardFilter.includes('drop-shadow')) {
+          failures.push(`/tierlist [desktop]: rarity hover glow regressed (${JSON.stringify(rarityHoverState)})`);
+        }
+        await page.mouse.move(1, 1);
+        await page.waitForSelector('.card-stats-tooltip--parchment', { hidden: true, timeout: 5_000 });
+      }
       if (route.path === '/faq') {
         await page.click('.global-faq-button');
         await page.waitForSelector('.global-help-menu', { visible: true, timeout: 10_000 });
@@ -1576,6 +1600,7 @@ for (const route of authenticatedRoutes) {
             contentGap: Number.parseFloat(getComputedStyle(main).paddingTop || '0'),
             helpElement: document.querySelector('.global-faq-button')?.tagName || '',
             helpLabel: document.querySelector('.global-faq-button')?.textContent?.trim() || '',
+            sidebarFaqLinks: document.querySelectorAll('.arena-sidebar a[href="/faq"]').length,
             overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
           };
         });
@@ -1583,7 +1608,7 @@ for (const route of authenticatedRoutes) {
           || !utilityState.resultText.includes('Контрольный мета-отчет')
           || !utilityState.resultText.includes('Контрольная карта') || !utilityState.woodenSearchFrame
           || utilityState.contentGap < 10 || utilityState.helpElement !== 'BUTTON'
-          || !utilityState.helpLabel.includes('Помощь') || utilityState.overflow) {
+          || !utilityState.helpLabel.includes('Помощь') || utilityState.sidebarFaqLinks !== 0 || utilityState.overflow) {
           failures.push(`/articles [${device}]: global utility header regressed (${JSON.stringify(utilityState)})`);
         }
         await page.click('.global-faq-button');

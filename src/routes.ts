@@ -97,7 +97,9 @@ export type TabId = (typeof TABS)[number]['id'];
 
 const routesInGroup = (group: RouteGroup) => TABS.filter(route => route.group === group);
 
-export const TOP_LEVEL_TABS = routesInGroup('top');
+// FAQ remains a public standalone route and lives in the global Help menu,
+// but it should not compete with primary product sections in either drawer.
+export const TOP_LEVEL_TABS = routesInGroup('top').filter(route => route.id !== 'faq');
 export const STANDARD_TABS = routesInGroup('standard');
 export const ARENA_TABS = routesInGroup('arena');
 export const BG_PRIMARY_TABS = routesInGroup('bg-primary');
