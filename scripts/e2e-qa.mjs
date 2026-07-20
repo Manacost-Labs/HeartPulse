@@ -1898,7 +1898,12 @@ for (const [device, viewport] of [
       button.click();
     });
     await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 3);
-    await page.click('.admin-translation-list-card > .admin-card-heading button');
+    await page.evaluate(() => {
+      const button = [...document.querySelectorAll('.admin-translation-list-card > .admin-card-heading button')]
+        .find(element => element.textContent?.includes('Обновить из BlizzCore'));
+      if (!(button instanceof HTMLButtonElement)) throw new Error('BlizzCore sync action is missing');
+      button.click();
+    });
     await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('BlizzCore синхронизирован'));
     const translationLayout = await page.evaluate(() => ({
       rows: document.querySelectorAll('.admin-translation-table tbody tr').length,
