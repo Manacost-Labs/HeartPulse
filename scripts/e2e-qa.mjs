@@ -1065,6 +1065,18 @@ async function waitForMeaningfulPage(page, expectedText) {
   ).catch(() => {});
 }
 
+async function waitForAuthenticatedShell(page) {
+  await page.waitForSelector(
+    '.arena-sidebar-profile[aria-label="Открыть профиль"]',
+    { timeout: 20_000 },
+  );
+  await page.waitForFunction(() => {
+    const shell = document.querySelector('#root > .arena-app-shell');
+    const skipLink = shell?.firstElementChild;
+    return Boolean(skipLink?.matches('.arena-skip-link') && skipLink.isConnected);
+  }, { timeout: 5_000 });
+}
+
 async function auditAccessibility(page, label, context = 'document') {
   await page.addScriptTag({ path: AXE_PATH });
   const results = await page.evaluate(async auditContext => {
@@ -2475,7 +2487,7 @@ for (const [device, viewport] of [
     const profileViolationCount = await auditAccessibility(page, `profile [${device}]`, '.profile-page');
     await page.screenshot({ path: `${OUT}/profile-${device}.png`, fullPage: false });
     await page.click('[data-profile-admin-destination="standard-meta"]');
-    await page.waitForFunction(() => window.location.pathname === '/standard/meta');
+    await page.waitForFunction(() => window.location.pathname.replace(/\/+$/, '') === '/standard/meta');
     await page.waitForSelector('.standard-meta', { timeout: 20_000 });
     await page.waitForSelector('[data-meta-view="cards"]', { timeout: 20_000 });
     const standardMetaState = await page.evaluate(() => {
@@ -4349,13 +4361,18 @@ for (const [device, viewport] of [
   await mockApplicationApi(page, { authenticated: true });
   try {
     await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.focus('.arena-skip-link');
+    await waitForAuthenticatedShell(page);
+    await page.keyboard.press('Tab');
+    await page.waitForFunction(
+      () => document.activeElement?.classList.contains('arena-skip-link'),
+      { timeout: 5_000 },
+    );
     const skipState = await page.evaluate(() => {
       const element = document.activeElement;
       const rect = element?.getBoundingClientRect();
       return {
         className: element?.className || '',
-        firstAppChild: document.querySelector('#root > .arena-app-shell')?.firstElementChild === element,
+        firstAppChild: document.querySelector('#root > .arena-app-shell')?.firstElementChild?.matches('.arena-skip-link') || false,
         width: rect?.width || 0,
         height: rect?.height || 0,
         top: rect?.top || 0,
@@ -4364,7 +4381,10 @@ for (const [device, viewport] of [
     if (!String(skipState.className).includes('arena-skip-link') || !skipState.firstAppChild) failures.push('keyboard: skip link is not the first application control');
     if (skipState.height < 44 || skipState.width < 44 || skipState.top < 0) failures.push(`keyboard: skip link is not visibly actionable (${skipState.width}×${skipState.height}, top ${skipState.top})`);
     await page.keyboard.press('Enter');
-    await page.waitForFunction(() => location.hash === '#main-content' && document.activeElement?.id === 'main-content');
+    await page.waitForFunction(
+      () => location.hash === '#main-content' && document.activeElement?.id === 'main-content',
+      { timeout: 5_000 },
+    );
     console.log('✓ keyboard skip link and main landmark focus');
   } catch (error) {
     failures.push(`keyboard skip link: ${error.message}`);
@@ -4676,6 +4696,7 @@ for (const [device, viewport] of [
   await mockApplicationApi(page, { authenticated: true });
   try {
     await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await waitForAuthenticatedShell(page);
     stage = 'open';
     await page.click('.arena-mobile-nav-toggle');
     await page.waitForSelector('.arena-mobile-menu', { visible: true });

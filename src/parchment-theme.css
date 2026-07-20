@@ -487,14 +487,17 @@
   box-shadow: 0 9px 18px rgba(39, 4, 6, 0.24);
 }
 
-.arena-app-home .home-orbit-class__icon {
+.arena-app-home .home-orbit-class__icon,
+.arena-app-home .home-orbit-class--1 .home-orbit-class__icon {
   border-color: rgba(232, 191, 94, 0.31);
   background: rgba(236, 195, 102, 0.09);
 }
 
-.arena-app-home .home-orbit-class__copy small { color: #d4ae63; }
+.arena-app-home .home-orbit-class__copy small,
+.arena-app-home .home-orbit-class--1 .home-orbit-class__copy small { color: #d4ae63; }
 .arena-app-home .home-orbit-class__copy strong { color: #fff3d3; }
-.arena-app-home .home-orbit-class__copy b { color: #e5be60; }
+.arena-app-home .home-orbit-class__copy b,
+.arena-app-home .home-orbit-class--1 .home-orbit-class__copy b { color: #e5be60; }
 
 .arena-app-home .home-orbit-action {
   display: flex;
