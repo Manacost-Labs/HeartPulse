@@ -1857,8 +1857,7 @@ for (const [device, viewport] of [
     await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 0);
     const translationEmpty = await page.$eval('.admin-translation-empty', element => element.textContent?.trim() || '');
     if (!translationEmpty.includes('не найдены')) failures.push(`admin translations [${device}]: filtered empty state is missing`);
-    await translationSearch.click({ clickCount: 3 });
-    await page.keyboard.press('Backspace');
+    await page.click('.admin-translation-search-control button[aria-label="Очистить поиск"]');
     await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 3);
     await page.evaluate(() => {
       const button = [...document.querySelectorAll('.admin-translation-source-filter button')]
