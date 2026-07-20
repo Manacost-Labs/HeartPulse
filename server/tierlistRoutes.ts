@@ -16,6 +16,7 @@ export type TierlistRouterDependencies = {
   present: (data: any) => any;
   loadFallback: (source: string) => { data: any; etag: string } | null;
   cacheHeader?: string;
+  provisionalCacheHeader?: string;
   staleCacheHeader?: string;
   fallbackCacheHeader?: string;
   now?: () => number;
@@ -25,6 +26,7 @@ export type TierlistRouterDependencies = {
 export function createTierlistRouter(dependencies: TierlistRouterDependencies): Router {
   const router = Router();
   const cacheHeader = dependencies.cacheHeader ?? 'public, max-age=3600, stale-while-revalidate=3600';
+  const provisionalCacheHeader = dependencies.provisionalCacheHeader ?? 'public, max-age=300, stale-while-revalidate=300';
   const staleCacheHeader = dependencies.staleCacheHeader ?? 'public, max-age=300, stale-while-revalidate=600';
   const fallbackCacheHeader = dependencies.fallbackCacheHeader ?? 'public, max-age=21600, stale-while-revalidate=3600';
   const now = dependencies.now ?? Date.now;
@@ -36,47 +38,51 @@ export function createTierlistRouter(dependencies: TierlistRouterDependencies): 
     const bypassCache = request.query.t !== undefined || request.query.bust === '1';
 
     if (!bypassCache && cached && cached.expiresAt > timestamp) {
+      const presented = dependencies.present(cached.data);
       return sendDatasetJsonCached(
         request,
         response,
-        dependencies.present(cached.data),
+        presented,
         cached.etag,
-        cacheHeader,
+        presented?.provisional === true ? provisionalCacheHeader : cacheHeader,
         'memory',
       );
     }
 
     try {
       const result = await dependencies.getData(source, timestamp, bypassCache);
+      const presented = dependencies.present(result.data);
       return sendDatasetJsonCached(
         request,
         response,
-        dependencies.present(result.data),
+        presented,
         result.etag,
-        cacheHeader,
+        presented?.provisional === true ? provisionalCacheHeader : cacheHeader,
         result.cacheSource,
       );
     } catch (error) {
       dependencies.onError?.(error);
       if (cached) {
+        const presented = dependencies.present({ ...cached.data, warning: 'stale' });
         return sendDatasetJsonCached(
           request,
           response,
-          dependencies.present({ ...cached.data, warning: 'stale' }),
+          presented,
           cached.etag,
-          staleCacheHeader,
+          presented?.provisional === true ? provisionalCacheHeader : staleCacheHeader,
           'memory-stale',
         );
       }
 
       const fallback = dependencies.loadFallback(source);
       if (fallback) {
+        const presented = dependencies.present({ ...fallback.data, warning: 'fallback' });
         return sendDatasetJsonCached(
           request,
           response,
-          dependencies.present({ ...fallback.data, warning: 'fallback' }),
+          presented,
           fallback.etag,
-          fallbackCacheHeader,
+          presented?.provisional === true ? provisionalCacheHeader : fallbackCacheHeader,
           'fallback',
         );
       }

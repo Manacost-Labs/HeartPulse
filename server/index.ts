@@ -56,6 +56,11 @@ import { findSupplementalViciousGoldBuild } from './viciousGoldBuilds.js';
 import { createClassMatchupRouter, type ClassMatchupCacheStore } from './classMatchupRoutes.js';
 import { createLegendaryRouter } from './legendaryRoutes.js';
 import { createTierlistRouter } from './tierlistRoutes.js';
+import {
+  normalizeTierlistEarlyStatsMetadata,
+  tierlistEarlyStatsEtagToken,
+} from './tierlistEarlyStats.js';
+import { createTierlistCacheBustRouter } from './tierlistCacheBustRoutes.js';
 import { createWinrateRouter } from './winrateRoutes.js';
 import { createHomeSummaryRouter, type HomeSummaryCacheStore } from './homeSummaryRoutes.js';
 import { createCardImageRouter, normalizeCardImageId } from './cardImageRoutes.js';
@@ -5056,8 +5061,13 @@ function normalizeHearthArenaTierlist(structured: any, updatedAt: string | null)
 function normalizeTierlistDataset(payload: any, source: keyof typeof TIERLIST_DATASET_BY_SOURCE) {
   const structured = payload?.view ?? payload?.data?.structured ?? payload?.data?.hsreplay_extracted ?? payload?.structured ?? {};
   const updatedAt = payload?.fetched_at ?? payload?.data?.fetched_at ?? structured?.last_update_date ?? null;
-  if (source === 'heartharena') return normalizeHearthArenaTierlist(structured, updatedAt);
-  return normalizeFlatTierlist(structured, source, updatedAt);
+  const normalized = source === 'heartharena'
+    ? normalizeHearthArenaTierlist(structured, updatedAt)
+    : normalizeFlatTierlist(structured, source, updatedAt);
+  return {
+    ...normalized,
+    ...normalizeTierlistEarlyStatsMetadata(payload),
+  };
 }
 
 function normalizeLegendaryCard(row: any) {
@@ -6498,7 +6508,8 @@ function makeExternalEtag(prefix: string, source: string, data: any, now: number
   const count = data?.sections?.reduce?.((sum: number, section: any) => sum + (section?.totalCards ?? 0), 0)
     ?? data?.groups?.length
     ?? 0;
-  return `"${prefix}-${source}-${token}-${count}"`;
+  const metadataToken = prefix === 'tierlist' ? `-${tierlistEarlyStatsEtagToken(data)}` : '';
+  return `"${prefix}-${source}-${token}-${count}${metadataToken}"`;
 }
 
 const app = express();
@@ -6643,11 +6654,27 @@ app.use(express.urlencoded({ extended: false, limit: '16kb' }));
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
 
+app.use('/_internal', createTierlistCacheBustRouter({
+  resolveSource: source => Object.prototype.hasOwnProperty.call(TIERLIST_DATASET_BY_SOURCE, source ?? '')
+    ? source as keyof typeof TIERLIST_DATASET_BY_SOURCE
+    : null,
+  getData: (source, now, bypassCache) => getTierlistApiData(
+    source as keyof typeof TIERLIST_DATASET_BY_SOURCE,
+    now,
+    bypassCache,
+  ),
+  onError: (source, error) => console.error(
+    `[internal/tierlist/cache-bust] ${source} failed:`,
+    error instanceof Error ? error.message : error,
+  ),
+}));
+
 // 6 h cache (aligns with scrape schedule) — stale-while-revalidate keeps UX snappy
 const CACHE_6H  = 'public, max-age=21600, stale-while-revalidate=3600';
 const CACHE_1H  = 'public, max-age=3600,  stale-while-revalidate=600';
 const CACHE_5M  = 'public, max-age=300, stale-while-revalidate=300';
 const CACHE_TIERLIST = 'public, max-age=3600, stale-while-revalidate=3600';
+const CACHE_TIERLIST_PROVISIONAL = 'public, max-age=300, stale-while-revalidate=300';
 const CACHE_TIERLIST_STALE = 'public, max-age=300, stale-while-revalidate=600';
 const ARTICLE_COVER_ALLOWED_HOSTS = new Set([
   'hs-manacost.ru',
@@ -6860,6 +6887,7 @@ app.use('/api', createTierlistRouter({
     return filename ? loadDataCached(filename) : null;
   },
   cacheHeader: CACHE_TIERLIST,
+  provisionalCacheHeader: CACHE_TIERLIST_PROVISIONAL,
   staleCacheHeader: CACHE_TIERLIST_STALE,
   fallbackCacheHeader: CACHE_6H,
   onError: error => console.error(

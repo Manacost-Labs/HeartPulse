@@ -376,6 +376,34 @@
   border-image: var(--arena-wood-divider) 1;
 }
 
+.arena-app-tierlist .tierlist-early-stats-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-left: 5px solid #b26b16;
+  border-bottom: 1px solid rgba(116, 69, 23, 0.28);
+  color: #5b3a1f;
+  background: rgba(249, 220, 151, 0.42);
+}
+
+.arena-app-tierlist .tierlist-early-stats-notice svg {
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+  color: #8d4d0d;
+}
+
+.arena-app-tierlist .tierlist-early-stats-notice p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.arena-app-tierlist .tierlist-early-stats-notice strong {
+  color: #4a2d18;
+}
+
 .arena-app-game-data :is(.tierlist-source-toggle, .legendary-source-toggle) {
   padding: 0.25rem !important;
   border: 1px solid rgba(91, 49, 22, 0.54) !important;

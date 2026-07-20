@@ -150,6 +150,13 @@ interface TierlistData {
   updatedAt: string | null;
   source:    string;
   warning?: string;
+  data_phase?: string;
+  provisional?: boolean;
+  accepted_rows?: number;
+  baseline_rows?: number;
+  coverage_ratio?: number;
+  minimum_sample?: number;
+  patch_window?: string | Record<string, unknown>;
 }
 
 interface HomeSummaryCard {
@@ -763,7 +770,9 @@ async function fetchTierlistSnapshot(src: TierlistSource, bust = false): Promise
     if (!res.ok) return null;
     const data = await res.json() as TierlistData;
     cacheSet(cacheKey, data);
-    localStorage.removeItem(`etag_${cacheKey}`);
+    const etag = res.headers.get('ETag');
+    if (etag) localStorage.setItem(`etag_${cacheKey}`, etag);
+    else localStorage.removeItem(`etag_${cacheKey}`);
     return data;
   }
 

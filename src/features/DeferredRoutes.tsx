@@ -14,6 +14,7 @@ import SubscriptionPurchaseButtons from '../components/SubscriptionPurchaseButto
 import PaywallGate from '../components/PaywallGate';
 import AuthAvatar from '../components/AuthAvatar';
 import FAQSection from '../components/FAQSection';
+import TierlistEarlyStatsNotice from './TierlistEarlyStatsNotice';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -194,6 +195,13 @@ interface TierlistData {
   updatedAt: string | null;
   source:    string;
   warning?: string;
+  data_phase?: string;
+  provisional?: boolean;
+  accepted_rows?: number;
+  baseline_rows?: number;
+  coverage_ratio?: number;
+  minimum_sample?: number;
+  patch_window?: string | Record<string, unknown>;
 }
 
 interface ArenaDeckCard {
@@ -1814,6 +1822,8 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
         </div>
         <UpdateBadge updatedAt={data.updatedAt} />
       </div>
+
+      {!loading && <TierlistEarlyStatsNotice provisional={data.provisional} />}
 
       {error && (
         <div className="flex items-center gap-2 text-[#8b6c42] text-xs mb-4 opacity-70">

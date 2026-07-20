@@ -27,7 +27,13 @@ const dependencies: TierlistRouterDependencies = {
     calls.push({ source, now, bypass });
     if (originFails) throw new Error('origin secret');
     return {
-      data: { sections: [{ source }] },
+      data: {
+        sections: [{ source }],
+        ...(source === 'firestone' ? {
+          data_phase: 'post_patch_early',
+          provisional: true,
+        } : {}),
+      },
       etag: `"${source}-origin"`,
       cacheSource: 'origin',
     };
@@ -40,6 +46,8 @@ const dependencies: TierlistRouterDependencies = {
       : null,
   now: () => timestamp,
   onError: error => errors.push(error),
+  cacheHeader: 'public, max-age=3600, stale-while-revalidate=3600',
+  provisionalCacheHeader: 'public, max-age=300, stale-while-revalidate=300',
 };
 
 function startApp(overrides: Partial<TierlistRouterDependencies> = {}) {
@@ -74,6 +82,10 @@ try {
   assert.equal(denied.status, 403);
   assert.deepEqual(calls, []);
 
+  const deniedBust = await get('/tierlist?source=hsreplay&bust=1');
+  assert.equal(deniedBust.status, 403);
+  assert.deepEqual(calls, []);
+
   cache.set('hsreplay', {
     data: { sections: [{ source: 'memory' }] },
     etag: '"memory"',
@@ -84,6 +96,7 @@ try {
   assert.equal(memory.headers.get('x-data-cache'), 'memory');
   assert.match(memory.headers.get('cache-control') || '', /^private/);
   assert.match(memory.headers.get('vary') || '', /Authorization/);
+  assert.match(memory.headers.get('cache-control') || '', /max-age=3600/);
   assert.equal((await memory.json() as any).positioned, true);
 
   const notModified = await get('/tierlist', {
@@ -94,7 +107,16 @@ try {
 
   const bust = await get('/tierlist?source=firestone&t=123', { 'X-Test-Access': 'allowed' });
   assert.equal(bust.headers.get('x-data-cache'), 'origin');
+  assert.match(bust.headers.get('cache-control') || '', /^private, max-age=300/);
+  assert.equal((await bust.clone().json() as any).provisional, true);
   assert.deepEqual(calls.at(-1), { source: 'firestone', now: 1_000, bypass: true });
+
+  const provisionalNotModified = await get('/tierlist?source=firestone&t=124', {
+    'X-Test-Access': 'allowed',
+    'If-None-Match': '"firestone-origin"',
+  });
+  assert.equal(provisionalNotModified.status, 304);
+  assert.match(provisionalNotModified.headers.get('cache-control') || '', /^private, max-age=300/);
 
   const queryBust = await get('/tierlist?source=heartharena&bust=1', { 'X-Test-Access': 'allowed' });
   assert.equal(queryBust.status, 200);
