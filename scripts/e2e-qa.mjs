@@ -1448,6 +1448,8 @@ async function assertArenaDataRoutePresentation(page, path, device) {
     if (routePath === '/tierlist') {
       const grid = document.querySelector('.tierlist-card-grid');
       const firstCard = document.querySelector('.hs-tier-card');
+      const firstImage = firstCard?.querySelector('.hs-tier-card-inner > img');
+      const firstImageStyle = firstImage ? getComputedStyle(firstImage) : null;
       return {
         kind: 'tierlist',
         sourceShell: snapshot(style('.tierlist-source-toggle')),
@@ -1456,7 +1458,13 @@ async function assertArenaDataRoutePresentation(page, path, device) {
         activeFilter: snapshot(style(".tierlist-rarity-filter > button[data-active='true']")),
         heading: snapshot(style('.tierlist-group-heading h3')),
         gridColumns: grid ? getComputedStyle(grid).gridTemplateColumns.split(/\s+/).filter(Boolean).length : 0,
+        gridGap: grid ? getComputedStyle(grid).gap : '',
+        gridPaddingInline: grid ? getComputedStyle(grid).paddingInline : '',
         firstCardRarity: firstCard?.getAttribute('data-rarity') || '',
+        firstCardMaxWidth: firstCard ? getComputedStyle(firstCard).maxWidth : '',
+        firstImageMaxWidth: firstImageStyle?.maxWidth || '',
+        firstImageAspectRatio: firstImageStyle?.aspectRatio || '',
+        firstImageObjectFit: firstImageStyle?.objectFit || '',
       };
     }
     if (routePath === '/legendaries') {
@@ -1530,6 +1538,17 @@ async function assertArenaDataRoutePresentation(page, path, device) {
     const expectedColumns = device === 'desktop' ? 6 : 2;
     if (state.gridColumns !== expectedColumns || state.firstCardRarity !== 'legendary') {
       failures.push(`${prefix}: responsive card grid or rarity metadata changed (${JSON.stringify({ columns: state.gridColumns, rarity: state.firstCardRarity })})`);
+    }
+    const expectedImageMaxWidth = device === 'desktop' ? '230px' : '190px';
+    const expectedGap = device === 'desktop' ? '17.28px' : '7.2px';
+    const expectedPaddingInline = device === 'desktop' ? '4.8px' : '0px';
+    if (state.firstCardMaxWidth !== '230px'
+      || state.firstImageMaxWidth !== expectedImageMaxWidth
+      || !state.firstImageAspectRatio.startsWith('0.72')
+      || state.firstImageObjectFit !== 'contain'
+      || state.gridGap !== expectedGap
+      || state.gridPaddingInline !== expectedPaddingInline) {
+      failures.push(`${prefix}: tier cards no longer match the constructed-card scale (${JSON.stringify(state)})`);
     }
   }
   if (state.kind === 'legendaries') {
@@ -1606,6 +1625,10 @@ for (const route of authenticatedRoutes) {
         }
         await page.mouse.move(1, 1);
         await page.waitForSelector('.card-stats-tooltip--parchment', { hidden: true, timeout: 5_000 });
+      }
+      if (route.path === '/tierlist') {
+        const firstTier = await page.$('.tierlist-group');
+        await firstTier?.screenshot({ path: `${OUT}/tierlist-cards-${device}.png` });
       }
       if (route.path === '/faq') {
         await page.click('.global-faq-button');

@@ -484,6 +484,7 @@
   }
 
   .hs-tier-card-inner {
+    width: 100%;
     filter: none !important;
     transition:
       transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
@@ -492,10 +493,11 @@
 
   .tierlist-card-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     align-items: start;
     justify-items: center;
-    gap: 0.75rem;
+    gap: clamp(0.55rem, 1.2vw, 1.1rem);
+    padding: 1.15rem 0.3rem 1rem;
   }
 
   .tierlist-card-grid > .anim-scale-in {
@@ -509,7 +511,7 @@
     --tier-card-rarity-glow: rgba(218, 235, 247, 0.82);
     display: grid;
     width: 100%;
-    max-width: 9rem;
+    max-width: 230px;
     place-items: center;
   }
 
@@ -525,29 +527,42 @@
     will-change: transform;
   }
 
+  .hs-tier-card-inner > img {
+    display: block;
+    width: 100%;
+    max-width: 230px;
+    aspect-ratio: 0.72;
+    object-fit: contain;
+  }
+
+  .hs-tier-card-inner--fallback {
+    max-width: 230px;
+    height: auto;
+    aspect-ratio: 0.72;
+  }
+
   .hs-tier-card-inner img,
   .legendary-card-thumb,
   .legendary-card-thumb img {
     filter: none !important;
   }
 
-  @media (min-width: 520px) {
-    .tierlist-card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  }
-
-  @media (min-width: 768px) {
-    .tierlist-card-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  }
-
-  @media (min-width: 1180px) {
+  @media (max-width: 1240px) {
     .tierlist-card-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   }
 
-  @media (min-width: 1280px) {
+  @media (max-width: 900px) {
+    .tierlist-card-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 640px) {
     .tierlist-card-grid {
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 0.65rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.45rem;
+      padding-inline: 0;
     }
+    .hs-tier-card-inner > img,
+    .hs-tier-card-inner--fallback { max-width: 190px; }
   }
 
   .space-y-10 > .anim-fade-up .flex-shrink-0.rounded-full.border-\[3px\] {

@@ -701,9 +701,8 @@ const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabled = fa
         tabIndex={0}
       >
         <div className="hs-tier-card-inner transform transition-all duration-200 group-hover:scale-110 group-hover:z-10">
-          <img src={thumbSrc} alt={card.name} loading="lazy" decoding="async" width={180} height={274}
-            onError={handleErr}
-            className="w-28 sm:w-32 md:w-36 h-auto" />
+          <img src={thumbSrc} alt={card.name} loading="lazy" decoding="async" width={230} height={319}
+            onError={handleErr} />
         </div>
       </div>
     );
@@ -725,7 +724,7 @@ const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabled = fa
       aria-label={card.name}
       tabIndex={0}
     >
-      <div className="hs-tier-card-inner relative w-28 h-40 sm:w-32 sm:h-48 md:w-36 md:h-52 rounded-xl flex flex-col items-center justify-center text-center transform transition-transform group-hover:scale-105 group-hover:z-10 overflow-hidden border-2 border-[#1a110a] bg-[#2c1e16]">
+      <div className="hs-tier-card-inner hs-tier-card-inner--fallback relative rounded-xl flex flex-col items-center justify-center text-center transform transition-transform group-hover:scale-105 group-hover:z-10 overflow-hidden border-2 border-[#1a110a] bg-[#2c1e16]">
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/40 to-black/90" />
         {/* Mana cost */}
         {card.cost !== undefined && (

@@ -504,7 +504,7 @@
 .arena-app-tierlist .tierlist-group-heading p { color: #725f49 !important; }
 
 .arena-app-tierlist .tierlist-card-grid {
-  padding: 0.55rem;
+  padding: 1.15rem 0.3rem 1rem;
   background: rgba(255, 244, 216, 0.18);
 }
 
@@ -560,6 +560,10 @@
   .arena-app-tierlist .tierlist-active-header { padding-inline: 0.75rem; }
   .arena-app-tierlist .tierlist-control-panel { width: 100%; justify-content: flex-start !important; }
   .arena-app-tierlist .tierlist-mana-filter { width: 100%; }
+}
+
+@media (max-width: 640px) {
+  .arena-app-tierlist .tierlist-card-grid { padding-inline: 0; }
 }
 
 /* Arena legendary groups — a ranked collection of framed first-pick sets. */
