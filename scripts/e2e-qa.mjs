@@ -1373,8 +1373,8 @@ function assertLayout(path, layout) {
   if (layout.battlegroundsSurface && !layout.battlegroundsBackground.includes('arena-parchment')) {
     failures.push(`${path}: route-owned Battlegrounds parchment CSS was not loaded`);
   }
-  if (layout.battlegroundsSurface && !layout.battlegroundsSign.includes('battlegrounds-bartender-header')) {
-    failures.push(`${path}: route-owned Battlegrounds sign CSS was not loaded`);
+  if (layout.battlegroundsSurface && layout.battlegroundsSign !== 'none') {
+    failures.push(`${path}: retired Battlegrounds section plaque returned (${layout.battlegroundsSign})`);
   }
   if (layout.bannerPosition && layout.bannerPosition !== 'relative') {
     failures.push(`${path}: banner is not a containing block (${layout.bannerPosition})`);
@@ -2377,7 +2377,9 @@ for (const [device, viewport] of [
       const bodyStyle = body ? getComputedStyle(body) : null;
       const statusStyle = status ? getComputedStyle(status) : null;
       const arenaMainStyle = getComputedStyle(document.querySelector('.arena-main'));
-      const arenaContentStyle = getComputedStyle(document.querySelector('.arena-content.arena-content-open'));
+      const arenaContent = document.querySelector('.arena-content.arena-content-open');
+      const arenaContentStyle = getComputedStyle(arenaContent);
+      const profilePlaqueStyle = getComputedStyle(arenaContent, '::before');
       const material = selector => {
         const element = document.querySelector(selector);
         if (!element) return null;
@@ -2415,6 +2417,8 @@ for (const [device, viewport] of [
           mainPadding: arenaMainStyle.padding,
           contentMaxWidth: arenaContentStyle.maxWidth,
           contentPadding: arenaContentStyle.padding,
+          plaqueContent: profilePlaqueStyle.content,
+          plaqueBackground: profilePlaqueStyle.backgroundImage,
         },
         materials: {
           settings: material('.profile-settings-form'),
@@ -2459,6 +2463,9 @@ for (const [device, viewport] of [
       || profileState.routeShell.contentMaxWidth !== '100%'
       || profileState.routeShell.contentPadding !== '0px 16px 32px')) {
       failures.push(`profile [${device}]: responsive route shell changed (${JSON.stringify(profileState.routeShell)})`);
+    }
+    if (profileState.routeShell.plaqueContent !== 'none' || profileState.routeShell.plaqueBackground !== 'none') {
+      failures.push(`profile [${device}]: retired profile plaque returned (${JSON.stringify(profileState.routeShell)})`);
     }
     const framedProfileSurfaces = [profileState.materials.settings, profileState.materials.subscription];
     if (framedProfileSurfaces.some(surface => !surface

@@ -50,20 +50,3 @@
     url('/wallpaper/arena-parchment.jpg') center top / 865px auto repeat !important;
   box-shadow: none !important;
 }
-
-.arena-app-battlegrounds .arena-content.arena-content-open::before {
-  content: 'Поля Сражений';
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: min(100%, 680px);
-  aspect-ratio: 4 / 1;
-  margin: 0 auto clamp(0.8rem, 2vw, 1.35rem);
-  background: url('/wallpaper/battlegrounds-bartender-header.webp') center / 100% 100% no-repeat;
-  color: #fff0c8;
-  font-family: var(--font-display, "HSDisplay", serif);
-  font-size: clamp(1.35rem, 3vw, 2rem);
-  text-shadow: 0 2px 3px rgba(45, 22, 10, 0.78);
-  transform: translateY(-1px);
-  filter: drop-shadow(0 8px 8px rgba(70, 39, 19, 0.14));
-}

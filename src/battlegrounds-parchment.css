@@ -1053,12 +1053,6 @@
     padding-inline: 0.55rem !important;
   }
 
-  .arena-app-battlegrounds .arena-content.arena-content-open::before {
-    min-height: 82px;
-    aspect-ratio: auto;
-    background-size: 138% 100%;
-  }
-
   .arena-app-battlegrounds .bg-heroes-tools__legend {
     align-items: flex-start;
     flex-direction: column;

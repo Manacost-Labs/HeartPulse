@@ -1961,22 +1961,6 @@
 }
 
 /* Profile material theme: one owner for the Hearthstone profile presentation. */
-.arena-app-profile .arena-content.arena-content-open::before {
-  content: 'Профиль';
-  width: min(100%, 680px);
-  aspect-ratio: 4 / 1;
-  display: flex;
-  margin: 0 auto clamp(0.8rem, 2vw, 1.35rem);
-  align-items: center;
-  justify-content: center;
-  color: #fff0c8;
-  font-family: var(--font-display, "HSDisplay", serif);
-  font-size: clamp(1.35rem, 3vw, 2rem);
-  text-shadow: 0 2px 3px rgba(45, 22, 10, 0.78);
-  background: url('/wallpaper/battlegrounds-bartender-header.webp') center / 100% 100% no-repeat;
-  filter: drop-shadow(0 8px 8px rgba(70, 39, 19, 0.14));
-}
-
 .arena-app-profile .profile-workspace {
   --profile-ink: #3b2b20;
   --profile-muted: #78634b;
@@ -2351,12 +2335,6 @@
 }
 
 @media (max-width: 760px) {
-  .arena-app-profile .arena-content.arena-content-open::before {
-    min-height: 82px;
-    aspect-ratio: auto;
-    background-size: 138% 100%;
-  }
-
   .arena-app-profile .profile-workspace .profile-hero {
     min-height: 276px;
     background-position: 66% top;
