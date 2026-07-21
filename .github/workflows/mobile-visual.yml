@@ -20,7 +20,6 @@ jobs:
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
       QA_RESPONSIVE_SCOPE: all-p0
-      QA_SCREENSHOT_DIR: ${{ runner.temp }}/mobile-visual-qa
 
     steps:
       - name: Checkout repository
@@ -36,6 +35,8 @@ jobs:
         run: npm ci
 
       - name: Run full responsive visual QA
+        env:
+          QA_SCREENSHOT_DIR: ${{ runner.temp }}/mobile-visual-qa
         run: npm run qa:responsive:all
 
       - name: Upload responsive screenshots and manifest

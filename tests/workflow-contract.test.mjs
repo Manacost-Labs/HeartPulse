@@ -28,7 +28,10 @@ assert.match(mobileVisualWorkflow, /cancel-in-progress:\s*true/);
 assert.match(mobileVisualWorkflow, /timeout-minutes:\s*30/);
 assert.match(mobileVisualWorkflow, /PUPPETEER_SKIP_DOWNLOAD:\s*'true'/);
 assert.match(mobileVisualWorkflow, /QA_RESPONSIVE_SCOPE:\s*all-p0/);
-assert.match(mobileVisualWorkflow, /QA_SCREENSHOT_DIR:\s*\$\{\{ runner\.temp \}\}\/mobile-visual-qa/);
+assert.match(
+  mobileVisualWorkflow,
+  /- name:\s*Run full responsive visual QA\s+env:\s+QA_SCREENSHOT_DIR:\s*\$\{\{ runner\.temp \}\}\/mobile-visual-qa\s+run:\s*npm run qa:responsive:all/,
+);
 assert.match(mobileVisualWorkflow, /actions\/checkout@v7/);
 assert.match(mobileVisualWorkflow, /actions\/setup-node@v6/);
 assert.match(mobileVisualWorkflow, /node-version:\s*'22'/);
