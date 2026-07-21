@@ -188,9 +188,12 @@ for (const route of inventory.routes) {
   }
   if (route.kind === 'redirect') {
     assert.equal(route.expectedStatus, 302, `${route.id} inventory redirect status`);
-    assert.match(routingSource, /TODO\(SEO-103-referral-redirect\)/,
-      'the temporary client-side redirect mismatch must remain explicit until a server handler exists');
-    expectRegexAction(path, 'try_files /index.html =404;', route.id);
+    expectRegexAction(path, 'proxy_pass http://127.0.0.1:3101;', route.id);
+    const redirectResolver = firstMatchingRegexLocation(path);
+    assert.match(redirectResolver?.body || '', /proxy_intercept_errors\s+off;/,
+      `${route.id} must preserve the authoritative redirect or missing-link status`);
+    assert.match(redirectResolver?.body || '', /X-Robots-Tag\s+"noindex, nofollow"\s+always;/,
+      `${route.id} must stay noindex before the upstream responds`);
     continue;
   }
   if (route.id === 'home') {
@@ -278,6 +281,32 @@ function requestNginx(port, path) {
 
 async function startCardSeoUpstream() {
   const responses = new Map([
+    ['/r/summer', {
+      status: 302,
+      headers: {
+        Location: '/contests?from=qa',
+        'X-Robots-Tag': 'noindex, nofollow',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+      body: '<p>referral-upstream-302</p>',
+    }],
+    ['/r/summer/', {
+      status: 302,
+      headers: {
+        Location: '/contests?from=qa',
+        'X-Robots-Tag': 'noindex, nofollow',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+      body: '<p>referral-upstream-302</p>',
+    }],
+    ['/r/missing', {
+      status: 404,
+      headers: {
+        'X-Robots-Tag': 'noindex, nofollow',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+      body: '<p>referral-upstream-404</p>',
+    }],
     ['/standard/cards/standard/CARD_OK/', {
       status: 200,
       headers: {
@@ -499,6 +528,18 @@ http {
     assert.equal(unavailableCard.headers['x-robots-tag'], 'noindex, nofollow', 'outage robots policy');
     assert.equal(unavailableCard.headers['retry-after'], '300', 'outage retry policy must pass through nginx');
     assert.match(unavailableCard.headers['cache-control'] || '', /no-store/, 'outage cache policy');
+
+    for (const referralPath of ['/r/summer', '/r/summer/']) {
+      const referral = await requestNginx(port, referralPath);
+      assert.equal(referral.status, 302, `${referralPath} must redirect without a client shell`);
+      assert.equal(referral.headers.location, '/contests?from=qa', `${referralPath} redirect target`);
+      assert.equal(referral.headers['x-robots-tag'], 'noindex, nofollow', `${referralPath} robots policy`);
+      assert.match(referral.headers['cache-control'] || '', /no-store/, `${referralPath} cache policy`);
+    }
+    const missingReferral = await requestNginx(port, '/r/missing');
+    assert.equal(missingReferral.status, 404, 'missing referral must preserve the upstream 404');
+    assert.match(missingReferral.body, /referral-upstream-404/, 'missing referral response body');
+    assert.equal(missingReferral.headers['x-robots-tag'], 'noindex, nofollow', 'missing referral robots policy');
 
     assert.equal((await requestNginx(port, '/decks/legacy')).status, 410, 'removed route must be gone');
     const missingPage = await requestNginx(port, '/definitely-unknown');

@@ -51,6 +51,7 @@
 - `SEO-101/102`: title и description 24 materialized pages перенесены в единый data-only реестр; `src/route-meta.ts` и неиспользуемый `PAGE_META` удалены.
 - `SEO-106` для static/listing слоя: CI проверяет все 24 HTML-документа, один H1, robots, canonical, OG/Twitter metadata, JSON-LD parse и отсутствие закрытых bootstrap-полей.
 - `SEO-201`: `/standard/cards/:format/:cardId` получает SSR из авторитетного каталога, self-canonical, уникальные русские метаданные и публичную card schema; неизвестная карта возвращает `404`, недоступный каталог — `503`, а закрытая статистика и колоды не входят в HTML.
+- Серверный resolver `/r/:slug` заменил клиентскую soft-redirect оболочку: активная ссылка сразу отвечает `302`, отсутствующая или приостановленная — `404`; обе ветки имеют `noindex, nofollow` и `no-store`.
 - Sitemap генерируется при prerender и содержит ровно 23 index/self-canonical URL. `/standard/matchups`, `/gallery`, `/library/archive/minions` и `/library/archive/spells` больше не теряются.
 - Недостоверные ручные `lastmod`, `changefreq` и `priority` удалены. Реальный `lastmod` появится только вместе с publication metadata сущностей.
 - Detail-карты намеренно не добавлены в materialized SEO-реестр или sitemap до отдельного `SEO-203`; SSR resolver, authoritative 404/503 и тесты на утечку уже готовы.
@@ -170,7 +171,7 @@ FAQ-разметка остаётся семантической, но план 
 - `SEO-101` и `SEO-102` завершены для materialized static/listing страниц;
 - static-часть `SEO-106` завершена и включена в общий CI;
 - entity builders, snapshots и fail-closed поведение неизвестных ID героев/BG-сущностей остаются в `SEO-202`;
-- `SEO-103–105` требуют отдельной серверной реализации и production HTTP-проверки.
+- `SEO-103–105` закрыты частично: real 404/410, admin/auth header и referral redirect покрыты серверными тестами; robots policy и one-hop host/scheme/slash normalization остаются в работе.
 
 ### Фаза 2 — динамические страницы и sitemap, недели 3–6
 

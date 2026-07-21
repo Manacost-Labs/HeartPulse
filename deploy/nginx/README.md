@@ -68,12 +68,8 @@ Format listings remain static. Syntactically valid hero or Battlegrounds detail
 URLs may still use the anonymous SPA shell until their entity resolvers are
 introduced.
 
-Two additional gaps remain explicit rather than being hidden by the contract:
+One additional gap remains explicit rather than being hidden by the contract:
 
-- `/r/:slug` is still resolved by the client and therefore returns a noindex
-  shell with `200`, while the route inventory targets a server `302`. Moving
-  target lookup into an authoritative Express redirect handler is required
-  before marking that inventory status complete.
 - An HTTP or `www` request for a known URL without its canonical slash currently
   takes a host/scheme redirect followed by the slash redirect. A route-aware
   edge redirect map is required to collapse the combined case to one hop.

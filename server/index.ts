@@ -23,7 +23,7 @@ import { decodeSignedStateCookie, encodeSignedStateCookie, safeAuthReturnTo } fr
 import { csrfRequestAllowed } from './csrf.js';
 import { configureLoopbackProxyTrust, corsOriginAllowed, getTrustedClientIp } from './networkBoundary.js';
 import { createRouteAwareJsonParser, createUploadAuthorizationGuard } from './jsonBody.js';
-import { createReferralRouter } from './referralRoutes.js';
+import { createReferralRedirectHandler, createReferralRouter } from './referralRoutes.js';
 import { createGalleryRouter } from './galleryRoutes.js';
 import { createBattlegroundProxyRouter } from './battlegroundProxyRoutes.js';
 import { createArticleCoverRouter } from './articleCoverRoutes.js';
@@ -8653,14 +8653,16 @@ app.use('/api', createAdminImageUploadRouter({
   fetchRemoteImage: url => fetchRemoteAdminImage(url, { maxBytes: ADMIN_UPLOAD_MAX_BYTES }),
 }));
 
-app.use('/api', createReferralRouter({
+const referralRouterDependencies = {
   getDatabase: db,
   adminGuard: adminIdGuard,
   adminAuth,
   appUrl: APP_URL,
   clientIp: getTrustedClientIp,
   ipHashSalt: process.env.ECOSYSTEM_INTERNAL_KEY || 'manacost-referrals',
-}));
+};
+app.get('/r/:slug', createReferralRedirectHandler(referralRouterDependencies));
+app.use('/api', createReferralRouter(referralRouterDependencies));
 
 app.use('/api', createAdminClassPositionRouter({
   adminGuard: adminIdGuard,

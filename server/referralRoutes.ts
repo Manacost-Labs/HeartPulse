@@ -37,7 +37,7 @@ export function slugifyReferral(value: unknown, now = Date.now()): string {
 
 export function normalizeReferralTarget(value: unknown, appUrl: string): string {
   const raw = String(value ?? '/').trim();
-  if (!raw || raw === '#') return '/';
+  if (!raw || raw === '#' || raw.startsWith('//') || raw.includes('\\')) return '/';
   try {
     if (raw.startsWith('http://') || raw.startsWith('https://')) {
       const url = new URL(raw);
@@ -49,6 +49,69 @@ export function normalizeReferralTarget(value: unknown, appUrl: string): string 
     return '/';
   }
   return raw.startsWith('/') ? raw : '/';
+}
+
+function trackReferralClick(
+  dependencies: ReferralRouterDependencies,
+  request: Request,
+  clickedAt: Date,
+  landingPath: string,
+): { targetPath: string } | null {
+  const rawSlug = String(request.params.slug ?? '').trim();
+  if (!rawSlug) return null;
+  const slug = slugifyReferral(rawSlug, clickedAt.getTime());
+  const database = dependencies.getDatabase();
+  const link = database.prepare("SELECT * FROM referral_links WHERE slug = ? AND status = 'active'")
+    .get(slug) as ReferralRow | undefined;
+  if (!link) return null;
+
+  const hashedIp = createHash('sha256')
+    .update(`${dependencies.ipHashSalt}:${dependencies.clientIp(request)}`)
+    .digest('hex');
+  database.prepare(`
+    INSERT INTO referral_clicks (referral_id, clicked_at, ip_hash, user_agent, referrer, landing_path)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(
+    String(link.id),
+    clickedAt.toISOString(),
+    hashedIp,
+    String(request.headers['user-agent'] || '').slice(0, 500),
+    String(request.headers.referer || request.headers.referrer || '').slice(0, 500),
+    landingPath.slice(0, 500),
+  );
+
+  return { targetPath: normalizeReferralTarget(link.target_path, dependencies.appUrl) };
+}
+
+function setReferralDocumentHeaders(response: Parameters<RequestHandler>[1]): void {
+  response.set({
+    'X-Robots-Tag': 'noindex, nofollow',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    Pragma: 'no-cache',
+    Expires: '0',
+  });
+}
+
+export function createReferralRedirectHandler(
+  dependencies: ReferralRouterDependencies,
+): RequestHandler {
+  const now = dependencies.now ?? (() => new Date());
+  return (request, response) => {
+    setReferralDocumentHeaders(response);
+    try {
+      const referral = trackReferralClick(
+        dependencies,
+        request,
+        now(),
+        request.originalUrl || request.url || '/',
+      );
+      if (!referral) return response.status(404).type('text/plain').send('Ссылка не найдена');
+      return response.redirect(302, referral.targetPath);
+    } catch (error: any) {
+      response.set('Retry-After', '60');
+      return response.status(503).type('text/plain').send(error?.message || 'Ссылка временно недоступна');
+    }
+  };
 }
 
 export function referralFromRow(row: ReferralRow, appUrl: string) {
@@ -75,33 +138,26 @@ export function createReferralRouter(dependencies: ReferralRouterDependencies): 
   const now = dependencies.now ?? (() => new Date());
   const createId = dependencies.createId ?? (() => `ref_${randomBytes(6).toString('hex')}`);
   const mapReferral = (row: ReferralRow) => referralFromRow(row, dependencies.appUrl);
-  const ipHash = (request: Request) => createHash('sha256')
-    .update(`${dependencies.ipHashSalt}:${dependencies.clientIp(request)}`)
-    .digest('hex');
 
   router.post('/referrals/track/:slug', (request, response) => {
-    const slug = slugifyReferral(request.params.slug);
-    if (!slug) return response.status(404).json({ error: 'Ссылка не найдена' });
     try {
-      const database = dependencies.getDatabase();
-      const link = database.prepare("SELECT * FROM referral_links WHERE slug = ? AND status = 'active'")
-        .get(slug) as ReferralRow | undefined;
-      if (!link) return response.status(404).json({ error: 'Ссылка не найдена', targetUrl: `${dependencies.appUrl}/` });
-
-      database.prepare(`
-        INSERT INTO referral_clicks (referral_id, clicked_at, ip_hash, user_agent, referrer, landing_path)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(
-        String(link.id),
-        now().toISOString(),
-        ipHash(request),
-        String(request.headers['user-agent'] || '').slice(0, 500),
-        String(request.headers.referer || request.headers.referrer || '').slice(0, 500),
-        String(request.body?.landingPath || request.originalUrl || '').slice(0, 500),
+      const referral = trackReferralClick(
+        dependencies,
+        request,
+        now(),
+        String(request.body?.landingPath || request.originalUrl || ''),
       );
-
-      const targetPath = normalizeReferralTarget(link.target_path, dependencies.appUrl);
-      return response.json({ success: true, targetPath, targetUrl: `${dependencies.appUrl}${targetPath}` });
+      if (!referral) {
+        return response.status(404).json({
+          error: 'Ссылка не найдена',
+          targetUrl: `${dependencies.appUrl}/`,
+        });
+      }
+      return response.json({
+        success: true,
+        targetPath: referral.targetPath,
+        targetUrl: `${dependencies.appUrl}${referral.targetPath}`,
+      });
     } catch (error: any) {
       return response.status(500).json({ error: error.message || 'Не удалось записать переход' });
     }
@@ -126,7 +182,7 @@ export function createReferralRouter(dependencies: ReferralRouterDependencies): 
         SELECT clicks.id, clicks.referral_id, links.slug, clicks.clicked_at, clicks.user_agent, clicks.referrer, clicks.landing_path
         FROM referral_clicks AS clicks
         JOIN referral_links AS links ON links.id = clicks.referral_id
-        ORDER BY clicks.clicked_at DESC
+        ORDER BY clicks.clicked_at DESC, clicks.id DESC
         LIMIT 120
       `).all() as ReferralRow[];
       return response.json({

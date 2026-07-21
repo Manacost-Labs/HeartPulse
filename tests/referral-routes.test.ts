@@ -2,13 +2,20 @@ import assert from 'node:assert/strict';
 import express from 'express';
 // @ts-ignore: node:sqlite is available in the production Node 22 runtime.
 import { DatabaseSync } from 'node:sqlite';
-import { createReferralRouter, normalizeReferralTarget, slugifyReferral } from '../server/referralRoutes.js';
+import {
+  createReferralRedirectHandler,
+  createReferralRouter,
+  normalizeReferralTarget,
+  type ReferralRouterDependencies,
+  slugifyReferral,
+} from '../server/referralRoutes.js';
 
 assert.equal(slugifyReferral('Летняя акция', 1), 'letnyaya-akciya');
 assert.equal(slugifyReferral('', 36), 'ref-10');
 assert.equal(normalizeReferralTarget('https://arena.hs-manacost.ru/contests?from=qa#entry', 'https://arena.hs-manacost.ru'), '/contests?from=qa#entry');
 assert.equal(normalizeReferralTarget('https://evil.example/contests', 'https://arena.hs-manacost.ru'), '/');
-assert.equal(normalizeReferralTarget('//evil.example', 'https://arena.hs-manacost.ru'), '//evil.example');
+assert.equal(normalizeReferralTarget('//evil.example', 'https://arena.hs-manacost.ru'), '/');
+assert.equal(normalizeReferralTarget('/\\evil.example', 'https://arena.hs-manacost.ru'), '/');
 
 const database = new DatabaseSync(':memory:');
 database.exec(`
@@ -39,7 +46,7 @@ database.exec(`
 let idSequence = 0;
 const app = express();
 app.use(express.json());
-app.use('/api', createReferralRouter({
+const referralDependencies = {
   getDatabase: () => database,
   adminGuard: (request, response, next) => {
     const identity = String(request.headers['x-test-user'] || '');
@@ -53,7 +60,9 @@ app.use('/api', createReferralRouter({
   ipHashSalt: 'test-referral-salt',
   now: () => new Date('2026-07-12T08:15:00.000Z'),
   createId: () => `ref-test-${++idSequence}`,
-}));
+} satisfies ReferralRouterDependencies;
+app.get('/r/:slug', createReferralRedirectHandler(referralDependencies));
+app.use('/api', createReferralRouter(referralDependencies));
 
 const server = app.listen(0, '127.0.0.1');
 await new Promise<void>((resolve, reject) => {
@@ -63,11 +72,17 @@ await new Promise<void>((resolve, reject) => {
 
 const address = server.address();
 assert.ok(address && typeof address === 'object');
-const baseUrl = `http://127.0.0.1:${address.port}/api`;
+const origin = `http://127.0.0.1:${address.port}`;
+const baseUrl = `${origin}/api`;
 
 async function request(path: string, options: RequestInit = {}) {
   const response = await fetch(`${baseUrl}${path}`, options);
   return { response, body: await response.json() as any };
+}
+
+async function requestRedirect(path: string) {
+  const response = await fetch(`${origin}${path}`, { redirect: 'manual' });
+  return { response, body: await response.text() };
 }
 
 try {
@@ -157,13 +172,30 @@ try {
   assert.equal(clickRow.referrer, 'https://example.test/post');
   assert.equal(clickRow.landing_path, '/source/page');
 
+  const redirected = await requestRedirect('/r/summer?utm_source=contract');
+  assert.equal(redirected.response.status, 302);
+  assert.equal(redirected.response.headers.get('location'), '/contests?from=qa');
+  assert.equal(redirected.response.headers.get('x-robots-tag'), 'noindex, nofollow');
+  assert.match(redirected.response.headers.get('cache-control') || '', /no-store/);
+
+  const redirectClick = database.prepare('SELECT * FROM referral_clicks ORDER BY id DESC LIMIT 1')
+    .get() as Record<string, unknown>;
+  assert.equal(redirectClick.referrer, '');
+  assert.equal(redirectClick.landing_path, '/r/summer?utm_source=contract');
+
+  const missingRedirect = await requestRedirect('/r/missing');
+  assert.equal(missingRedirect.response.status, 404);
+  assert.equal(missingRedirect.response.headers.get('location'), null);
+  assert.equal(missingRedirect.response.headers.get('x-robots-tag'), 'noindex, nofollow');
+  assert.match(missingRedirect.response.headers.get('cache-control') || '', /no-store/);
+
   const listed = await request('/admin/referrals', { headers: { 'X-Test-User': 'admin' } });
   assert.equal(listed.response.status, 200);
   assert.equal(listed.body.referrals.length, 1);
-  assert.equal(listed.body.referrals[0].clicks, 1);
+  assert.equal(listed.body.referrals[0].clicks, 2);
   assert.equal(listed.body.referrals[0].uniqueClicks, 1);
-  assert.equal(listed.body.recentClicks.length, 1);
-  assert.equal(listed.body.recentClicks[0].id, '1');
+  assert.equal(listed.body.recentClicks.length, 2);
+  assert.equal(listed.body.recentClicks[0].id, '2');
   assert.equal(listed.body.recentClicks[0].slug, 'summer');
 } finally {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
