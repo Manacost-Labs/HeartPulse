@@ -25,7 +25,6 @@ import {
   type ReferralDraft,
 } from './ContestAdminReferrals';
 import { contestSelectionReducer, INITIAL_CONTEST_SELECTION } from './contestSelection';
-import { ContestAdminDashboard } from './ContestAdminDashboard';
 import {
   ContestAdminArticles,
   type Article,
@@ -78,6 +77,10 @@ import {
 const ContestAdminTranslations = React.lazy(async () => {
   const module = await import('./ContestAdminTranslations');
   return { default: module.ContestAdminTranslations };
+});
+const ContestAdminDashboard = React.lazy(async () => {
+  const module = await import('./ContestAdminDashboard');
+  return { default: module.ContestAdminDashboard };
 });
 const ContestAdminMechanicTranslations = React.lazy(async () => {
   const module = await import('./ContestAdminMechanicTranslations');
@@ -1582,20 +1585,22 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
             <div className="admin-section-status"><i />{activeAdminItem?.status}</div>
           </div>
           {hasFullAdminAccess && adminSection === 'dashboard' && (
-            <ContestAdminDashboard
-              articleCount={adminArticles.length}
-              galleryCount={galleryItems.length}
-              boostyPaidCount={boostyStatus?.summary?.boostyPaid ?? boostyStatus?.summary?.activePaid ?? '—'}
-              telegramAccessCount={telegramAccounts?.summary?.access ?? '—'}
-              contestCount={contests.length}
-              contestEntryCount={totalContestEntries}
-              referralCount={referrals.length}
-              referralClickCount={totalReferralClicks}
-              recentReferralClicks={referralClicks}
-              formatDate={formatDate}
-              onNavigate={changeAdminSection}
-              onCreateContest={() => { changeAdminSection('contests'); resetContestForm(); }}
-            />
+            <React.Suspense fallback={<p className="contest-muted" role="status">Загружаем сводку…</p>}>
+              <ContestAdminDashboard
+                articleCount={adminArticles.length}
+                galleryCount={galleryItems.length}
+                boostyPaidCount={boostyStatus?.summary?.boostyPaid ?? boostyStatus?.summary?.activePaid ?? '—'}
+                telegramAccessCount={telegramAccounts?.summary?.access ?? '—'}
+                contestCount={contests.length}
+                contestEntryCount={totalContestEntries}
+                referralCount={referrals.length}
+                referralClickCount={totalReferralClicks}
+                recentReferralClicks={referralClicks}
+                formatDate={formatDate}
+                onNavigate={changeAdminSection}
+                onCreateContest={() => { changeAdminSection('contests'); resetContestForm(); }}
+              />
+            </React.Suspense>
           )}
 
           {hasFullAdminAccess && adminSection === 'users' && (

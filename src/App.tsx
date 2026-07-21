@@ -526,10 +526,6 @@ interface GalleryData {
 }
 
 // ─── Tab transition wrapper ────────────────────────────────────────────────────
-function TabTransition({ children }: { tabKey: string; children: React.ReactNode }) {
-  return <>{children}</>;
-}
-
 type NavigationRoute = (typeof TABS)[number];
 
 function NavigationRouteLinks({
@@ -1662,7 +1658,7 @@ export default function App() {
           </>}
 
           {wantsLogin ? (
-            <TabTransition tabKey="login">
+            <>
               <React.Suspense fallback={<RouteFallback minHeight={760} />}>
                 <LazyLoginPanel
                   initialAuthUser={appAuthUser}
@@ -1670,14 +1666,13 @@ export default function App() {
                   onAuthChange={handleAppAuthChange}
                 />
               </React.Suspense>
-            </TabTransition>
+            </>
           ) : isAdminMode ? (
-            <TabTransition tabKey="admin">
+            <>
 	            <React.Suspense fallback={<RouteFallback minHeight={620} />}><LazyContestAdminPanel authUser={appAuthUser} authChecking={appAuthChecking} /></React.Suspense>
-            </TabTransition>
+            </>
           ) : (
-            <TabTransition tabKey={`${activeTab}:${currentPath}`}>
-              <>
+            <>
                 {activeTab === 'home' && (
                   <React.Suspense fallback={<RouteFallback minHeight={720} />}>
                     <LazyHomeTab
@@ -1862,8 +1857,7 @@ export default function App() {
                 {activeTab === 'admin-panel' && (
 	                  <React.Suspense fallback={<RouteFallback minHeight={620} />}><LazyContestAdminPanel authUser={appAuthUser} authChecking={appAuthChecking} /></React.Suspense>
                 )}
-              </>
-            </TabTransition>
+            </>
           )}
           </div>
         </main>
