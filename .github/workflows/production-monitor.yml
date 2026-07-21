@@ -1,4 +1,4 @@
-name: Production monitor
+name: Production SEO and stability monitor
 
 on:
   schedule:
@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   probe:
-    name: External health and critical routes
+    name: External crawl and runtime contracts
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -32,4 +32,5 @@ jobs:
           MONITOR_ATTEMPTS: '2'
           MONITOR_RETRY_DELAY_MS: '5000'
           MONITOR_TIMEOUT_MS: '10000'
+          MONITOR_DEADLINE_MS: '240000'
         run: node scripts/production-monitor.mjs

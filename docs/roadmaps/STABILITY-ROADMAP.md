@@ -46,8 +46,8 @@
 | Кэши распределены по множеству `Map`/TTL | `server/index.ts` и отдельные routers | После публикации разные страницы видят разные версии | P0 |
 | Метрики процесса хранятся в памяти | `server/metrics.ts` | История теряется при restart; сложно расследовать регрессию | P0 |
 | Нет browser error tracking/RUM | Frontend | JS-ошибки пользователя не видны серверному мониторингу | P0 |
-| External synthetic workflow не установлен как production control | Есть пример workflow и `scripts/production-monitor.mjs` | Сбой снаружи может остаться незамеченным | P0 |
-| Synthetic coverage всё ещё неполный | Проверяются public HTML, пять datasets, Standard Cards list, известная и отсутствующая card detail; gated/admin сценарии ещё не включены | Ошибка paywall/admin остаётся незаметной | P0 |
+| External synthetic ещё не подключён к paging | Пятиминутный workflow и `scripts/production-monitor.mjs` версионированы, но независимый операторский alert channel и recovery drill не завершены | Сбой workflow может не разбудить дежурного | P0 |
+| Synthetic coverage всё ещё неполный | Проверяются public HTML, datasets, robots, sitemap/SSR Standard Cards, canonical и unknown detail; gated/admin сценарии ещё не включены | Ошибка paywall/admin остаётся незаметной | P0 |
 | Монолиты осложняют безопасные изменения | `server/index.ts` ~8,6 тыс. строк, `src/features/DeferredRoutes.tsx` ~6,4 тыс. строк, `src/App.tsx` ~1,8 тыс. строк | Высокий regression radius | P1 |
 | Тесты в основном кастомные `tsx` scripts | Нет единой component/coverage инфраструктуры | Неизвестное покрытие UI и ветвей ошибок | P1 |
 | CSS cascade хрупок | Более тысячи `!important` по текущему аудиту | Визуальные регрессии после локальной правки | P1 |
@@ -164,11 +164,13 @@ data
 
 Проверенное доказательство Standard Cards LKG-среза: store tests портят hash/format/future timestamp, имитируют EACCES/ENOSPC на marker/primary/recovery/marker-clear до и после atomic rename, перезапускают Store с durable degraded marker и проверяют primary-authoritative recovery; update gates пропускают 40% ротацию и реальный 6 331-card object Wild catalog, но отклоняют 1 152-card cold Wild даже при dual Standard/Wild membership, disjoint swap и неконтролируемый скачок. Page tests отклоняют пропуск pagination evidence, inconsistent totals и cross-page duplicate; 20 параллельных cold запросов выполняют ровно один трёхстраничный fanout; detail tests различают confirmed 404 и retryable transport/429/5xx/invalid, ограничивают negative cache, требуют точные deck offset/count/total и stable identity, сохраняют предыдущие deck/patch enrichments и redaction; SEO не объявляет stale absence постоянным 404; production monitor требует coherent list/known/unknown envelope отдельно для Standard и Wild.
 
+Проверенное доказательство external synthetic среза: workflow каждые пять минут запускает bounded monitor с одной повторной попыткой; contract tests покрывают aggregated failures, redaction, robots, XML uniqueness/limits, exact sitemap segments, deterministic card SSR samples, canonical/JSON-LD/private-data invariants и noindex `404`. Paging, независимый регион и forced failure/recovery drill остаются открытыми.
+
 ### Ближайший порядок P0 стабилизации
 
 1. Закрыть `STAB-202/203/206` для Arena, BG и Standard Meta; для Standard Cards добавить candidate/quarantine audit поверх уже работающего versioned raw LKG.
 2. Завершить `STAB-301–305`: единые cache keys, publication event и synthetic coherence check; polling reconciler оставить страховочной сеткой.
-3. Подключить `STAB-105/401–407`: внешний browser error collector, постоянные метрики, data freshness и production synthetic каждые пять минут.
+3. Завершить `STAB-105/401–407`: внешний browser error collector, постоянные метрики, paging для пятиминутного production synthetic и failure/recovery drill.
 4. Закрыть route/widget boundaries по inventory и добавить fault E2E для API 500, timeout, corrupt snapshot, Redis outage и vendor DeckView failure.
 5. Провести `STAB-502–505`: shadow verify, post-switch observation gate и проверяемый rollback кода вместе с совместимой schema данных.
 6. Выполнить clean-host restore drill и только после подтверждённых RPO/RTO считать платформу готовой к снятию beta-ограничений.

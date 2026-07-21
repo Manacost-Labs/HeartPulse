@@ -62,6 +62,7 @@
 - Static sitemap-сегмент генерируется при prerender и содержит ровно 23 index/self-canonical URL. `/standard/matchups`, `/gallery`, `/library/archive/minions` и `/library/archive/spells` больше не теряются.
 - Недостоверные ручные `lastmod`, `changefreq` и `priority` удалены. Standard card `lastmod` теперь хранится по semantic hash публичной SSR-проекции; первый обход дату намеренно не выставляет.
 - Standard detail-карты подключены к отдельному runtime segment. Wild, heroes, BG entities и будущие локальные articles остаются вне sitemap до своих вертикальных срезов.
+- `SEO-602` (code slice): versioned external workflow каждые пять минут проверяет robots, точный sitemap index, границы и уникальность XML, static/Standard segments, deterministic SSR card samples, canonical redirect, JSON-LD identity, noindex `404` и отсутствие private payload. Search Console/Яндекс baseline и операторский paging ещё не подключены.
 
 ### Ближайший порядок P0 SEO
 
@@ -70,7 +71,7 @@
 3. Расширить уже работающий `SEO-203/204` после crawl-проверки: добавить отдельные hero/BG/article segments, не смешивая их с готовым Standard-контрактом.
 4. Закрыть `SEO-301/302`: публичный teaser paywall и автоматический тест, доказывающий отсутствие закрытых чисел, deck codes и subscriber payload в HTML/JSON-LD.
 5. Подключить `SEO-501` и исправлять CWV только по field p75: LCP, INP и CLS отдельно для route template, mobile/desktop и release.
-6. Запустить `SEO-601/602`: Search Console + Яндекс baseline, ежедневный SEO synthetic и алерт на status/canonical/sitemap/schema regression.
+6. Завершить `SEO-601/602`: подключить Search Console + Яндекс baseline, операторский alert channel и провести failure/recovery drill для уже работающего пятиминутного SEO synthetic.
 
 Каждый пункт выходит отдельным вертикальным срезом: реализация, HTML-contract tests, crawl без JavaScript, production HTTP smoke и измеримый rollback. Массовое добавление detail URL в sitemap запрещено до прохождения этих ворот.
 

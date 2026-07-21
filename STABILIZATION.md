@@ -183,8 +183,8 @@ A task is complete only when all relevant checks below are proven.
   - [x] Required typecheck, unit-test, build, budget and docs workflow.
   - [x] Deterministic guest/subscriber browser QA at desktop and mobile widths, including dimming, overflow, menu and lightbox scroll-lock regressions.
   - [x] CI serves the built frontend locally and runs the deterministic desktop/mobile flows with axe-core WCAG 2.2 A/AA checks before a commit can pass.
-  - [x] A tested external synthetic probe validates production liveness, readiness, strict data freshness and three critical HTML routes, retrying once before it fails; a five-minute GitHub Actions workflow template is versioned for installation by an operator with `workflow` scope.
-  - [ ] Install the synthetic probe in an external scheduler and connect workflow failures to the operator alert channel.
+  - [x] A tested external synthetic probe validates production liveness, readiness, strict data freshness, critical HTML routes and the public SEO crawl contract, retrying once before it fails; the installed GitHub Actions workflow runs every five minutes.
+  - [ ] Connect workflow failures to the operator alert channel and complete a documented failure-to-recovery drill.
 - [x] Phase 2: one route registry and shared frontend components.
   - [x] One typed route registry owns navigation groups, access entitlements, path resolution and SEO metadata.
   - [x] Shared subscription purchase controls replace the first cross-bundle component duplicate.
