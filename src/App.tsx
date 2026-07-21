@@ -786,8 +786,15 @@ export default function App() {
   const [locationSearch, setLocationSearch] = useState(() => window.location.search);
   const [currentPath, setCurrentPath] = useState(() => window.location.pathname);
   const locationParams = new URLSearchParams(locationSearch);
+  const initialMetaPassRef = useRef(true);
 
   useEffect(() => {
+    const isInitialPlainHome = initialMetaPassRef.current
+      && activeTab === 'home'
+      && currentPath === '/'
+      && locationSearch === '';
+    initialMetaPassRef.current = false;
+    if (isInitialPlainHome) return;
     void applyPageMeta(activeTab, currentPath, locationSearch);
   }, [activeTab, currentPath, locationSearch]);
 
