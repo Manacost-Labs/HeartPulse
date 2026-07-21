@@ -40,6 +40,7 @@ export type AdminParserControlClient = {
 export type AdminParserControlDependencies = {
   adminGuard: RequestHandler;
   adminAuth: (request: Request) => AdminIdentity | null;
+  csrfAllowed: (request: Request) => boolean;
   client: AdminParserControlClient;
   invalidateParserDataCaches: (context: ParserCacheInvalidationContext) => Promise<void>;
   setPrivateNoStore: (response: Response) => void;
@@ -49,7 +50,11 @@ export type AdminParserControlDependencies = {
     pollIntervalMs?: number;
     timeoutMs?: number;
   };
-  onWarning?: (scope: 'cache-invalidation' | 'run-monitor', error: unknown) => void;
+  onWarning?: (
+    scope: 'cache-invalidation' | 'run-monitor' | 'audit',
+    error: unknown,
+    context?: { requestId: string | null; action?: string },
+  ) => void;
   recordAudit?: (
     actor: AdminIdentity,
     action: string,
@@ -80,6 +85,16 @@ function actorOrUnauthorized(
   return actor;
 }
 
+function csrfAllowedOrRejected(
+  request: Request,
+  response: Response,
+  csrfAllowed: AdminParserControlDependencies['csrfAllowed'],
+): boolean {
+  if (csrfAllowed(request)) return true;
+  response.status(403).json({ error: 'Запрос отклонён: обновите страницу и повторите действие' });
+  return false;
+}
+
 function normalizedRevision(value: unknown): number | null {
   const revision = Number(value);
   return Number.isInteger(revision) && revision >= 1 ? revision : null;
@@ -92,14 +107,26 @@ function normalizedIds(value: unknown, maximum = 100): string[] | null {
   return ids.every(id => ID_PATTERN.test(id)) ? ids : null;
 }
 
+const SAFE_UPSTREAM_CODE_PATTERN = /^[A-Z][A-Z0-9_]{2,63}$/;
+
 function upstreamError(response: Response, error: unknown): Response {
-  const status = typeof (error as { status?: unknown })?.status === 'number'
-    ? Number((error as { status: number }).status)
+  const source = error as { status?: unknown; code?: unknown };
+  const upstreamStatus = typeof source?.status === 'number'
+    ? Number(source.status)
     : 502;
+  if (upstreamStatus === 401 || upstreamStatus === 403) {
+    return response.status(502).json({
+      code: 'HS_DATA_API_AUTH_FAILED',
+      error: 'Сайт не смог авторизоваться в API данных. Проверьте серверный ключ HS_DATA_API_ADMIN_KEY.',
+    });
+  }
+  const status = upstreamStatus >= 400 && upstreamStatus < 600 ? upstreamStatus : 502;
+  const upstreamCode = typeof source?.code === 'string' ? source.code.trim() : '';
+  const code = SAFE_UPSTREAM_CODE_PATTERN.test(upstreamCode) ? upstreamCode : null;
   const message = error instanceof Error && error.message
     ? error.message
     : 'API данных временно недоступен';
-  return response.status(status >= 400 && status < 600 ? status : 502).json({ error: message });
+  return response.status(status).json({ ...(code ? { code } : {}), error: message });
 }
 
 const CACHE_INVALIDATION_WARNING = {
@@ -107,13 +134,98 @@ const CACHE_INVALIDATION_WARNING = {
   message: 'Настройка сохранена, но не все кеши удалось очистить. Повторите обновление статусов.',
 };
 
-function withWarning(result: unknown, warning: typeof CACHE_INVALIDATION_WARNING): unknown {
+const AUDIT_WRITE_WARNING = {
+  code: 'AUDIT_WRITE_FAILED',
+  message: 'Операция выполнена, но запись в журнал действий не создана. Сообщите разработчику.',
+};
+
+const RUN_MONITOR_WARNING = {
+  code: 'RUN_MONITOR_FAILED',
+  message: 'Запуск принят, но автоматическое наблюдение не включилось. Обновляйте историю вручную.',
+};
+
+type ParserControlResponseWarning = { code: string; message: string; requestId?: string };
+const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
+
+function requestIdOf(request: Request, response: Response): string | null {
+  const localId = String(response.locals.requestId ?? '').trim();
+  if (REQUEST_ID_PATTERN.test(localId)) return localId;
+  const header = request.headers['x-request-id'];
+  const candidate = typeof header === 'string'
+    ? header.trim()
+    : Array.isArray(header) && header.length === 1 ? String(header[0] ?? '').trim() : '';
+  return REQUEST_ID_PATTERN.test(candidate) ? candidate : null;
+}
+
+function reportWarningBestEffort(
+  dependencies: AdminParserControlDependencies,
+  scope: 'cache-invalidation' | 'run-monitor' | 'audit',
+  error: unknown,
+  context?: { requestId: string | null; action?: string },
+): void {
+  try {
+    dependencies.onWarning?.(scope, error, context);
+  } catch {
+    // Warning reporters must never roll back or mask a completed admin operation.
+  }
+}
+
+function recordAuditBestEffort(
+  dependencies: AdminParserControlDependencies,
+  request: Request,
+  response: Response,
+  actor: AdminIdentity,
+  action: string,
+  entityId: string,
+  details?: Record<string, unknown>,
+): ParserControlResponseWarning | null {
+  try {
+    dependencies.recordAudit?.(actor, action, entityId, details);
+    return null;
+  } catch (error) {
+    const requestId = requestIdOf(request, response);
+    reportWarningBestEffort(dependencies, 'audit', error, { requestId, action });
+    return { ...AUDIT_WRITE_WARNING, ...(requestId ? { requestId } : {}) };
+  }
+}
+
+function withWarnings(result: unknown, warnings: ParserControlResponseWarning[]): unknown {
+  if (!warnings.length) return result;
   if (!result || typeof result !== 'object' || Array.isArray(result)) {
-    return { data: result, warnings: [warning] };
+    return { data: result, warnings };
   }
   const source = result as Record<string, unknown>;
   const existing = Array.isArray(source.warnings) ? source.warnings : [];
-  return { ...source, warnings: [...existing, warning] };
+  const combined: unknown[] = [];
+  const indexByKey = new Map<string, number>();
+  for (const warning of [...existing, ...warnings]) {
+    const item = warning && typeof warning === 'object' && !Array.isArray(warning)
+      ? warning as Record<string, unknown>
+      : null;
+    const code = String(item?.code ?? '').trim();
+    const requestId = String(item?.requestId ?? item?.request_id ?? '').trim();
+    const message = String(item?.message ?? warning ?? '').trim();
+    const key = code
+      ? `code:${code}`
+      : requestId
+        ? `request:${requestId}`
+        : `message:${message}`;
+    const duplicateIndex = indexByKey.get(key);
+    if (duplicateIndex == null) {
+      indexByKey.set(key, combined.length);
+      combined.push(warning);
+      continue;
+    }
+    const current = combined[duplicateIndex];
+    const currentItem = current && typeof current === 'object' && !Array.isArray(current)
+      ? current as Record<string, unknown>
+      : null;
+    const currentRequestId = String(currentItem?.requestId ?? currentItem?.request_id ?? '').trim();
+    if (currentItem && requestId && !currentRequestId) {
+      combined[duplicateIndex] = { ...currentItem, requestId };
+    }
+  }
+  return { ...source, warnings: combined };
 }
 
 export function createAdminParserControlRouter(dependencies: AdminParserControlDependencies): Router {
@@ -123,7 +235,7 @@ export function createAdminParserControlRouter(dependencies: AdminParserControlD
     listRuns: dependencies.client.listRuns,
     invalidate: dependencies.invalidateParserDataCaches,
     ...dependencies.runMonitor,
-    onWarning: (_scope, error) => dependencies.onWarning?.('run-monitor', error),
+    onWarning: (_scope, error) => reportWarningBestEffort(dependencies, 'run-monitor', error),
   });
 
   router.use('/admin/parser-control', dependencies.adminGuard, (_request, response, next) => {
@@ -142,6 +254,7 @@ export function createAdminParserControlRouter(dependencies: AdminParserControlD
   router.patch('/admin/parser-control/policy', async (request, response) => {
     const actor = actorOrUnauthorized(request, response, dependencies.adminAuth);
     if (!actor) return;
+    if (!csrfAllowedOrRejected(request, response, dependencies.csrfAllowed)) return;
     const mode = String(request.body?.mode ?? '') as ParserPublicationMode;
     const expectedRevision = normalizedRevision(request.body?.expectedRevision);
     const earlyUntil = request.body?.earlyUntil == null ? null : String(request.body.earlyUntil).trim();
@@ -162,31 +275,57 @@ export function createAdminParserControlRouter(dependencies: AdminParserControlD
       expectedRevision,
       updatedBy: actor.id,
     };
+    let result: unknown;
     try {
-      const result = await dependencies.client.updatePolicy(payload);
-      dependencies.recordAudit?.(actor, 'parser-control.policy.update', mode, {
-        earlyUntil: payload.earlyUntil,
-        reason: payload.reason,
-        expectedRevision,
-      });
-      try {
-        await dependencies.invalidateParserDataCaches({ reason: 'policy-change' });
-        return response.json(result);
-      } catch (invalidationError) {
-        dependencies.onWarning?.('cache-invalidation', invalidationError);
-        dependencies.recordAudit?.(actor, 'parser-control.cache-invalidation.warning', mode, {
-          reason: invalidationError instanceof Error ? invalidationError.message : String(invalidationError),
-        });
-        return response.json(withWarning(result, CACHE_INVALIDATION_WARNING));
-      }
+      result = await dependencies.client.updatePolicy(payload);
     } catch (error) {
       return upstreamError(response, error);
     }
+    const warnings: ParserControlResponseWarning[] = [];
+    const auditWarning = recordAuditBestEffort(
+      dependencies,
+      request,
+      response,
+      actor,
+      'parser-control.policy.update',
+      mode,
+      {
+        earlyUntil: payload.earlyUntil,
+        reason: payload.reason,
+        expectedRevision,
+      },
+    );
+    if (auditWarning) warnings.push(auditWarning);
+    try {
+      await dependencies.invalidateParserDataCaches({ reason: 'policy-change' });
+    } catch (invalidationError) {
+      reportWarningBestEffort(dependencies, 'cache-invalidation', invalidationError, {
+        requestId: requestIdOf(request, response),
+        action: 'parser-control.policy.update',
+      });
+      warnings.push(CACHE_INVALIDATION_WARNING);
+      const warningAuditFailure = recordAuditBestEffort(
+        dependencies,
+        request,
+        response,
+        actor,
+        'parser-control.cache-invalidation.warning',
+        mode,
+        {
+          reason: invalidationError instanceof Error ? invalidationError.message : String(invalidationError),
+        },
+      );
+      if (warningAuditFailure && !warnings.some(warning => warning.code === warningAuditFailure.code)) {
+        warnings.push(warningAuditFailure);
+      }
+    }
+    return response.json(withWarnings(result, warnings));
   });
 
   router.patch('/admin/parser-control/sections', async (request, response) => {
     const actor = actorOrUnauthorized(request, response, dependencies.adminAuth);
     if (!actor) return;
+    if (!csrfAllowedOrRejected(request, response, dependencies.csrfAllowed)) return;
     const expectedRevision = normalizedRevision(request.body?.expectedRevision);
     const rawSections = request.body?.sections;
     if (expectedRevision == null || !rawSections || typeof rawSections !== 'object' || Array.isArray(rawSections)) {
@@ -197,16 +336,25 @@ export function createAdminParserControlRouter(dependencies: AdminParserControlD
       return response.status(400).json({ error: 'Список разделов содержит неизвестные значения' });
     }
     const sections = Object.fromEntries(entries) as Record<string, boolean>;
+    let result: unknown;
     try {
-      const result = await dependencies.client.updateSections({ sections, expectedRevision, updatedBy: actor.id });
-      dependencies.recordAudit?.(actor, 'parser-control.sections.update', 'batch', {
-        sections,
-        expectedRevision,
-      });
-      return response.json(result);
+      result = await dependencies.client.updateSections({ sections, expectedRevision, updatedBy: actor.id });
     } catch (error) {
       return upstreamError(response, error);
     }
+    const auditWarning = recordAuditBestEffort(
+      dependencies,
+      request,
+      response,
+      actor,
+      'parser-control.sections.update',
+      'batch',
+      {
+        sections,
+        expectedRevision,
+      },
+    );
+    return response.json(withWarnings(result, auditWarning ? [auditWarning] : []));
   });
 
   router.get('/admin/parser-control/runs', async (_request, response) => {
@@ -220,24 +368,44 @@ export function createAdminParserControlRouter(dependencies: AdminParserControlD
   router.post('/admin/parser-control/runs', async (request, response) => {
     const actor = actorOrUnauthorized(request, response, dependencies.adminAuth);
     if (!actor) return;
+    if (!csrfAllowedOrRejected(request, response, dependencies.csrfAllowed)) return;
     const sectionIds = normalizedIds(request.body?.sectionIds);
     const sourceIds = normalizedIds(request.body?.sourceIds);
     const reason = String(request.body?.reason ?? '').trim().slice(0, 300);
     if (!sectionIds || !sourceIds || (!sectionIds.length && !sourceIds.length)) {
       return response.status(400).json({ error: 'Выберите хотя бы один раздел или источник' });
     }
+    let result: unknown;
     try {
-      const result = await dependencies.client.createRun({ sectionIds, sourceIds, reason, requestedBy: actor.id });
-      dependencies.recordAudit?.(actor, 'parser-control.run.create', 'batch', {
-        sectionIds,
-        sourceIds,
-        reason,
-      });
-      runReconciler.observe(result);
-      return response.status(202).json(result);
+      result = await dependencies.client.createRun({ sectionIds, sourceIds, reason, requestedBy: actor.id });
     } catch (error) {
       return upstreamError(response, error);
     }
+    const warnings: ParserControlResponseWarning[] = [];
+    const auditWarning = recordAuditBestEffort(
+      dependencies,
+      request,
+      response,
+      actor,
+      'parser-control.run.create',
+      'batch',
+      {
+        sectionIds,
+        sourceIds,
+        reason,
+      },
+    );
+    if (auditWarning) warnings.push(auditWarning);
+    try {
+      runReconciler.observe(result);
+    } catch (error) {
+      reportWarningBestEffort(dependencies, 'run-monitor', error, {
+        requestId: requestIdOf(request, response),
+        action: 'parser-control.run.observe',
+      });
+      warnings.push(RUN_MONITOR_WARNING);
+    }
+    return response.status(202).json(withWarnings(result, warnings));
   });
 
   return router;

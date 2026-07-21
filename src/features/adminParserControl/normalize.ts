@@ -4,7 +4,9 @@ import type {
   ParserPublicationChannel,
   ParserPublicationMode,
   ParserRun,
+  ParserRunResult,
   ParserRunStatus,
+  ParserSchedule,
   ParserSection,
   ParserSource,
 } from './types';
@@ -26,6 +28,12 @@ function textValue(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value.trim() : fallback;
 }
 
+function textArray(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(item => textValue(item)).filter(Boolean);
+  const single = textValue(value);
+  return single ? [single] : [];
+}
+
 function dateValue(value: unknown): string | null {
   const raw = textValue(value);
   return raw && Number.isFinite(Date.parse(raw)) ? raw : null;
@@ -39,6 +47,7 @@ function boolValue(value: unknown, fallback = false): boolean {
 }
 
 function numberValue(value: unknown): number | null {
+  if (value == null || value === '' || typeof value === 'boolean') return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
@@ -96,6 +105,7 @@ function normalizeSource(value: unknown, fallbackId: string): ParserSource {
     publishedFetchedAt: dateValue(valueOf(source, 'publishedFetchedAt', 'published_fetched_at')),
     publicationChannel: normalizedPublicationChannel(valueOf(source, 'publicationChannel', 'publication_channel')),
     stableBaselineAvailable: boolValue(valueOf(source, 'stableBaselineAvailable', 'stable_baseline_available')),
+    schedule: textValue(valueOf(source, 'schedule', 'scheduleLabel', 'schedule_label', 'cadence')),
     nextRunAt: dateValue(valueOf(source, 'nextRunAt', 'next_run_at')),
     itemCount: numberValue(valueOf(source, 'itemCount', 'item_count', 'rowsTotal', 'rows_total', 'rows', 'records')),
     lastError: textValue(valueOf(source, 'lastError', 'last_error', 'error')),
@@ -103,7 +113,7 @@ function normalizeSource(value: unknown, fallbackId: string): ParserSource {
   };
 }
 
-function normalizeWarnings(value: unknown): ParserControlSnapshot['warnings'] {
+export function normalizeParserWarnings(value: unknown): ParserControlSnapshot['warnings'] {
   if (!Array.isArray(value)) return [];
   return value.map((item, index) => {
     if (typeof item === 'string') return { code: `WARNING_${index + 1}`, message: item.trim() };
@@ -111,8 +121,112 @@ function normalizeWarnings(value: unknown): ParserControlSnapshot['warnings'] {
     return {
       code: textValue(warning.code, `WARNING_${index + 1}`),
       message: textValue(valueOf(warning, 'message', 'error', 'detail')),
+      requestId: textValue(valueOf(warning, 'requestId', 'request_id')) || undefined,
     };
   }).filter(warning => warning.message);
+}
+
+function normalizeSchedule(value: unknown, fallbackId: string): ParserSchedule {
+  const schedule = record(value);
+  const id = textValue(valueOf(schedule, 'id', 'scheduleId', 'schedule_id', 'unit'), fallbackId);
+  const activeValue = valueOf(schedule, 'enabled', 'active', 'isActive', 'is_active');
+  const calendarEntries = textArray(valueOf(schedule, 'onCalendar', 'on_calendar'));
+  const explicitTrigger = textValue(valueOf(
+    schedule,
+    'trigger',
+    'schedule',
+    'calendar',
+    'cadence',
+  ));
+  return {
+    id,
+    label: textValue(valueOf(schedule, 'label', 'name', 'title'), id),
+    description: textValue(valueOf(schedule, 'description', 'caption', 'notes')),
+    enabled: activeValue == null
+      ? null
+      : boolValue(activeValue),
+    trigger: explicitTrigger || (calendarEntries.length === 1 ? calendarEntries[0] ?? '' : ''),
+    calendarEntries,
+    systemdUnit: textValue(valueOf(schedule, 'systemdUnit', 'systemd_unit', 'unit')),
+    timezone: textValue(valueOf(schedule, 'timezone', 'timeZone', 'time_zone'), 'UTC'),
+    nextRunAt: dateValue(valueOf(schedule, 'nextRunAt', 'next_run_at', 'nextAt', 'next_at')),
+    temporaryUntil: dateValue(valueOf(
+      schedule,
+      'temporaryUntil',
+      'temporary_until',
+      'expiresAt',
+      'expires_at',
+      'activeUntil',
+      'active_until',
+      'validUntil',
+      'valid_until',
+    )),
+    sectionIds: stringArray(valueOf(schedule, 'sectionIds', 'section_ids', 'sections')),
+    sourceIds: stringArray(valueOf(schedule, 'sourceIds', 'source_ids', 'sources')),
+  };
+}
+
+function normalizeSchedules(root: UnknownRecord, sections: ParserSection[]): {
+  schedules: ParserSchedule[];
+  generatedAt: string | null;
+} {
+  const inventory = valueOf(root, 'scheduleInventory', 'schedule_inventory');
+  const inventoryRecord = record(inventory);
+  const explicit = inventory != null
+    ? valueOf(inventoryRecord, 'schedules', 'items', 'entries') ?? inventory
+    : valueOf(root, 'schedules', 'schedule');
+  const schedules = objectEntries(explicit)
+    .map(([scheduleId, schedule]) => normalizeSchedule(schedule, scheduleId))
+    .filter(schedule => schedule.trigger || schedule.nextRunAt || schedule.sectionIds.length || schedule.sourceIds.length);
+  if (schedules.length) {
+    return {
+      schedules,
+      generatedAt: dateValue(valueOf(
+        inventoryRecord,
+        'generatedAt',
+        'generated_at',
+        'updatedAt',
+        'updated_at',
+      )),
+    };
+  }
+  return {
+    schedules: sections.flatMap(section => {
+      if (section.schedule || section.nextRunAt) {
+        return [{
+          id: `section:${section.id}`,
+          label: section.label,
+          description: section.description,
+          enabled: section.enabled,
+          trigger: section.schedule,
+          calendarEntries: [],
+          systemdUnit: '',
+          timezone: 'UTC',
+          nextRunAt: section.nextRunAt,
+          temporaryUntil: null,
+          sectionIds: [section.id],
+          sourceIds: section.sources.map(source => source.id),
+        }];
+      }
+      return section.sources
+        .filter(source => source.schedule || source.nextRunAt)
+        .map(source => ({
+          id: `source:${source.id}`,
+          label: source.label,
+          description: source.description,
+          enabled: section.enabled && source.enabled,
+          trigger: source.schedule,
+          calendarEntries: [],
+          systemdUnit: '',
+          timezone: 'UTC',
+          nextRunAt: source.nextRunAt,
+          temporaryUntil: null,
+          sectionIds: [section.id],
+          sourceIds: [source.id],
+        }));
+    }),
+    generatedAt: null,
+  };
 }
 
 function normalizeSection(value: unknown, fallbackId: string): ParserSection {
@@ -153,6 +267,8 @@ export function normalizeParserControl(value: unknown): ParserControlSnapshot {
     .map(([sectionId, section]) => normalizeSection(section, sectionId));
   const sources = sections.flatMap(section => section.sources);
   const upstreamSummary = record(root.summary);
+  const inventoryRecord = record(valueOf(root, 'scheduleInventory', 'schedule_inventory'));
+  const scheduleInventory = normalizeSchedules(root, sections);
   return {
     revision: numberValue(root.revision) ?? 0,
     generatedAt: dateValue(valueOf(root, 'generatedAt', 'generated_at', 'updatedAt', 'updated_at')),
@@ -166,6 +282,24 @@ export function normalizeParserControl(value: unknown): ParserControlSnapshot {
       managedBy: textValue(valueOf(policy, 'managedBy', 'managed_by')),
     },
     sections,
+    schedules: scheduleInventory.schedules,
+    schedulesGeneratedAt: scheduleInventory.generatedAt,
+    scheduleInventoryVersion: textValue(valueOf(
+      inventoryRecord,
+      'inventoryVersion',
+      'inventory_version',
+      'version',
+    )),
+    scheduleTimeSemantics: textValue(valueOf(
+      inventoryRecord,
+      'timeSemantics',
+      'time_semantics',
+    )),
+    scheduleRuntimeStateIncluded: boolValue(valueOf(
+      inventoryRecord,
+      'runtimeTimerStateIncluded',
+      'runtime_timer_state_included',
+    )),
     summary: {
       totalSources: numberValue(valueOf(upstreamSummary, 'totalSources', 'total_sources')) ?? sources.length,
       enabledSections: numberValue(valueOf(upstreamSummary, 'enabledSections', 'enabled_sections'))
@@ -176,7 +310,7 @@ export function normalizeParserControl(value: unknown): ParserControlSnapshot {
       failedSources: numberValue(valueOf(upstreamSummary, 'failedSources', 'failed_sources'))
         ?? sources.filter(source => source.status === 'error').length,
     },
-    warnings: normalizeWarnings(root.warnings),
+    warnings: normalizeParserWarnings(root.warnings),
   };
 }
 
@@ -194,10 +328,46 @@ function normalizedRunStatus(value: unknown): ParserRunStatus {
   return 'queued';
 }
 
+function normalizeRunResult(value: unknown, index: number): ParserRunResult {
+  const result = record(value);
+  const sourceId = textValue(valueOf(result, 'sourceId', 'source_id'), `source-${index + 1}`);
+  const servingCachedDataset = boolValue(valueOf(
+    result,
+    'servingCachedDataset',
+    'serving_cached_dataset',
+  ));
+  const rawState = textValue(valueOf(result, 'state', 'status', 'result'));
+  const explicitHealth = normalizedHealth(rawState);
+  const message = textValue(valueOf(result, 'error', 'message', 'detail', 'lastError', 'last_error'));
+  const errors = textArray(valueOf(result, 'errors')).filter(error => error !== message);
+  const errorsTotal = Math.max(
+    errors.length,
+    numberValue(valueOf(result, 'errorsTotal', 'errors_total')) ?? 0,
+  );
+  return {
+    sourceId,
+    label: textValue(valueOf(result, 'label', 'sourceLabel', 'source_label'), sourceId),
+    status: servingCachedDataset ? 'warning' : explicitHealth,
+    state: rawState,
+    servingCachedDataset,
+    rowsTotal: numberValue(valueOf(result, 'rowsTotal', 'rows_total', 'rows', 'records')),
+    fetchedAt: dateValue(valueOf(result, 'fetchedAt', 'fetched_at', 'finishedAt', 'finished_at')),
+    durationMs: numberValue(valueOf(result, 'durationMs', 'duration_ms', 'elapsedMs', 'elapsed_ms')),
+    message,
+    errors,
+    errorsTotal,
+    errorsTruncated: boolValue(valueOf(result, 'errorsTruncated', 'errors_truncated'))
+      || errorsTotal > errors.length,
+  };
+}
+
 function normalizeRun(value: unknown, index: number): ParserRun {
   const run = record(value);
   const sourceIds = stringArray(valueOf(run, 'sourceIds', 'source_ids'));
   const results = Array.isArray(run.results) ? run.results.map(record) : [];
+  const normalizedResults = results.map(normalizeRunResult);
+  const requestedSourceIds = stringArray(valueOf(run, 'requestedSourceIds', 'requested_source_ids'));
+  const deduplicatedSourceIds = stringArray(valueOf(run, 'deduplicatedSourceIds', 'deduplicated_source_ids'));
   const resultFailed = (result: UnknownRecord) => {
     const state = textValue(valueOf(result, 'state', 'status', 'result')).toLowerCase();
     const servingCached = boolValue(valueOf(result, 'servingCachedDataset', 'serving_cached_dataset'));
@@ -213,6 +383,10 @@ function normalizeRun(value: unknown, index: number): ParserRun {
     reason: textValue(run.reason),
     sectionIds: stringArray(valueOf(run, 'sectionIds', 'section_ids')),
     sourceIds,
+    requestedSourceIds: requestedSourceIds.length ? requestedSourceIds : sourceIds,
+    deduplicatedSourceIds,
+    deduplicated: boolValue(run.deduplicated) || deduplicatedSourceIds.length > 0,
+    results: normalizedResults,
     totalSources: numberValue(valueOf(run, 'totalSources', 'total_sources')) ?? sourceIds.length,
     completedSources: numberValue(valueOf(run, 'completedSources', 'completed_sources')) ?? results.length,
     failedSources: numberValue(valueOf(run, 'failedSources', 'failed_sources')) ?? results.filter(resultFailed).length,

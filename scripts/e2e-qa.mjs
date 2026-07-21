@@ -495,10 +495,42 @@ const adminFixtures = {
         }],
       },
     },
+    scheduleInventory: {
+      schemaVersion: 1,
+      inventoryVersion: '2026-07-21.1',
+      generatedAt: '2026-07-21T01:00:00.000Z',
+      timeSemantics: 'nominal',
+      runtimeTimerStateIncluded: false,
+      schedules: [{
+        id: 'refresh-post-patch-tierlists',
+        label: 'Каждые 5 часов с 21 по 27 июля 2026 года',
+        systemdUnit: 'hs-data-api-docker-refresh-post-patch-tierlists.timer',
+        onCalendar: [
+          '2026-07-21 00,05,10,15,20:20:00 Europe/Warsaw',
+          '2026-07-22 01,06,11,16,21:20:00 Europe/Warsaw',
+        ],
+        timezone: 'Europe/Warsaw',
+        sourceIds: ['firestone_arena_cards_normal', 'heartharena_tierlist', 'hsreplay_arena_cards_advanced'],
+        sectionIds: ['arena'],
+        nextRunAt: '2026-07-21T03:20:00+00:00',
+        validUntil: '2026-07-27T19:20:00+00:00',
+        isActive: true,
+      }],
+    },
     summary: { total_sources: 2, enabled_sections: 2, early_capable_sources: 2, active_runs: 0, failed_sources: 0 },
     warnings: [],
   },
-  '/api/admin/parser-control/runs': { runs: [] },
+  '/api/admin/parser-control/runs': {
+    runs: [{
+      id: 'qa-run-1', status: 'partial', reason: 'Проверка после патча', requested_at: '2026-07-21T00:00:00.000Z',
+      source_ids: ['hsreplay_arena'], requested_source_ids: ['hsreplay_arena', 'vicious_syndicate_live'],
+      deduplicated_source_ids: ['vicious_syndicate_live'], total_sources: 1, completed_sources: 1, failed_sources: 1,
+      results: [{
+        source_id: 'hsreplay_arena', state: 'ok', serving_cached_dataset: true, rows_total: 731,
+        error: 'Свежий ответ не прошёл проверку качества',
+      }],
+    }],
+  },
   '/api/admin/boosty/status': {
     configured: true,
     ok: true,
@@ -2212,17 +2244,35 @@ for (const [device, viewport] of [
 
     await page.goto(`${BASE}/?admin&section=standard-data`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-standard-operations__routes a').length === 4);
-    const standardOperationsState = await page.evaluate(() => ({
-      title: document.querySelector('.admin-section-header h1')?.textContent?.trim() || '',
-      parserMode: document.querySelector('.admin-parser-mode-badge')?.textContent?.replace(/\s+/g, ' ').trim() || '',
-      parserSections: document.querySelectorAll('.admin-parser-section').length,
-      stats: document.querySelectorAll('.admin-standard-operations .admin-stat-grid > div').length,
-      sources: document.querySelectorAll('.admin-standard-operations__sources > div').length,
-      actions: document.querySelectorAll('.admin-standard-operations__actions button').length,
-      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
-    }));
+    const standardOperationsState = await page.evaluate(() => {
+      const scheduleCard = document.querySelector('#parser-schedules-title')?.closest('.admin-parser-card');
+      return {
+        title: document.querySelector('.admin-section-header h1')?.textContent?.trim() || '',
+        parserMode: document.querySelector('.admin-parser-mode-badge')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+        parserSections: document.querySelectorAll('.admin-parser-section').length,
+        parserSchedules: scheduleCard?.querySelectorAll('.admin-parser-schedule').length ?? 0,
+        parserScheduleCopy: scheduleCard?.querySelector('.contest-muted')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+        parserScheduleVersion: scheduleCard?.querySelector('.admin-parser-schedule-updated')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+        parserScheduleState: scheduleCard?.querySelector('.admin-parser-schedule__state')?.textContent?.trim() || '',
+        parserScheduleRules: scheduleCard?.querySelector('.admin-parser-schedule__rules summary')?.textContent?.trim() || '',
+        parserScheduleTimer: scheduleCard?.querySelector('.admin-parser-schedule dl code')?.textContent?.trim() || '',
+        parserRunResults: document.querySelectorAll('.admin-parser-run-results li').length,
+        parserDeduplicated: document.querySelectorAll('.admin-parser-run__deduplicated').length,
+        stats: document.querySelectorAll('.admin-standard-operations .admin-stat-grid > div').length,
+        sources: document.querySelectorAll('.admin-standard-operations__sources > div').length,
+        actions: document.querySelectorAll('.admin-standard-operations__actions button').length,
+        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      };
+    });
     if (standardOperationsState.title !== 'Данные и парсеры' || standardOperationsState.parserMode !== 'Стабильная мета'
-      || standardOperationsState.parserSections !== 2 || standardOperationsState.stats !== 4
+      || standardOperationsState.parserSections !== 2 || standardOperationsState.parserSchedules !== 1
+      || !standardOperationsState.parserScheduleCopy.includes('Фактическое состояние таймеров systemd здесь не проверяется')
+      || !standardOperationsState.parserScheduleVersion.includes('версия 2026-07-21.1')
+      || standardOperationsState.parserScheduleState !== 'Запланировано'
+      || standardOperationsState.parserScheduleRules !== 'Правила systemd: 2'
+      || standardOperationsState.parserScheduleTimer !== 'hs-data-api-docker-refresh-post-patch-tierlists.timer'
+      || standardOperationsState.parserRunResults !== 1 || standardOperationsState.parserDeduplicated !== 1
+      || standardOperationsState.stats !== 4
       || standardOperationsState.sources !== 4 || standardOperationsState.actions !== 4 || standardOperationsState.overflow) {
       failures.push(`admin Standard operations [${device}]: status workspace regressed (${JSON.stringify(standardOperationsState)})`);
     }
@@ -2233,6 +2283,9 @@ for (const [device, viewport] of [
     });
     await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Кеш очищен'));
     const standardOpsViolationCount = await auditAccessibility(page, `admin Standard operations [${device}]`, '.admin-workspace-content');
+    await page.click('.admin-parser-schedule__rules summary');
+    const scheduleRuleCount = await page.$$eval('.admin-parser-schedule__rules li', elements => elements.length);
+    if (scheduleRuleCount !== 2) failures.push(`admin Standard operations [${device}]: schedule rules did not expand (${scheduleRuleCount})`);
 
     await page.goto(`${BASE}/?admin&section=gallery`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-gallery-row').length === 1);
@@ -3562,8 +3615,28 @@ for (const width of [320, 430]) {
     await new Promise(resolve => setTimeout(resolve, 300));
     await auditAccessibility(page, `vicious gold narrow ${width}px`, '.vsgold');
     await page.screenshot({ path: `${OUT}/vicious-gold-power-${width}px.png`, fullPage: false });
+
+    await page.goto(`${BASE}/?admin&section=standard-data`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('.admin-parser-control', { timeout: 20_000 });
+    const parserControlNarrowState = await page.evaluate(() => {
+      const root = document.querySelector('.admin-parser-control');
+      const reasonInput = document.querySelector('.admin-parser-run-actions input');
+      const scheduleSummary = document.querySelector('.admin-parser-schedule__rules summary');
+      return {
+        rootOverflow: (root?.scrollWidth ?? 0) > (root?.clientWidth ?? 0) + 1,
+        documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+        reasonInputFontSize: reasonInput ? parseFloat(getComputedStyle(reasonInput).fontSize) : 0,
+        scheduleSummaryHeight: scheduleSummary?.getBoundingClientRect().height ?? 0,
+      };
+    });
+    if (parserControlNarrowState.rootOverflow || parserControlNarrowState.documentOverflow
+      || parserControlNarrowState.reasonInputFontSize < 16 || parserControlNarrowState.scheduleSummaryHeight < 44) {
+      failures.push(`admin parser control [${width}px]: mobile containment or touch inputs regressed (${JSON.stringify(parserControlNarrowState)})`);
+    }
+    await auditAccessibility(page, `admin parser control narrow ${width}px`, '.admin-parser-control');
+    await page.screenshot({ path: `${OUT}/admin-parser-control-${width}px.png`, fullPage: false });
     if (runtimeErrors.length) failures.push(`standard mobile analytics [${width}px]: ${runtimeErrors.join(' | ')}`);
-    console.log(`✓ Standard analytics mobile adaptation [${width}px] interactions + axe`);
+    console.log(`✓ Standard analytics and parser control mobile adaptation [${width}px] interactions + axe`);
   } catch (error) {
     failures.push(`Standard analytics mobile adaptation [${width}px]: ${error.message}`);
   } finally {
@@ -3576,7 +3649,7 @@ for (const width of [320, 430]) {
 {
   const page = await createQaPage();
   await page.setViewport({ width: 640, height: 900, deviceScaleFactor: 2 });
-  await mockApplicationApi(page, { authenticated: true });
+  await mockApplicationApi(page, { authenticated: true, admin: true, adminState: {} });
   const client = await page.createCDPSession();
   try {
     await client.send('Emulation.setEmulatedMedia', {
@@ -3608,6 +3681,24 @@ for (const width of [320, 430]) {
     if (state.transitionSeconds > 0.001) failures.push(`reduced motion: skip-link transition still lasts ${state.transitionSeconds}s`);
     if (state.focusOutlineWidth < 2 || state.focusOutlineStyle === 'none') failures.push('forced colors: focused skip link has no durable outline');
     const violationCount = await auditAccessibility(page, '/classes [200% reflow + forced colors + reduced motion]');
+    await page.goto(`${BASE}/?admin&section=standard-data`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('.admin-parser-control', { timeout: 20_000 });
+    const parserControlReflow = await page.evaluate(() => {
+      const root = document.querySelector('.admin-parser-control');
+      const reasonInput = document.querySelector('.admin-parser-run-actions input');
+      const scheduleSummary = document.querySelector('.admin-parser-schedule__rules summary');
+      return {
+        rootOverflow: (root?.scrollWidth ?? 0) > (root?.clientWidth ?? 0) + 1,
+        documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+        reasonInputFontSize: reasonInput ? parseFloat(getComputedStyle(reasonInput).fontSize) : 0,
+        scheduleSummaryHeight: scheduleSummary?.getBoundingClientRect().height ?? 0,
+      };
+    });
+    if (parserControlReflow.rootOverflow || parserControlReflow.documentOverflow
+      || parserControlReflow.reasonInputFontSize < 16 || parserControlReflow.scheduleSummaryHeight < 44) {
+      failures.push(`admin parser control [200% reflow]: containment or touch inputs regressed (${JSON.stringify(parserControlReflow)})`);
+    }
+    await auditAccessibility(page, 'admin parser control [200% reflow + forced colors + reduced motion]', '.admin-parser-control');
     console.log(`✓ 200% reflow, forced colors and reduced motion (${violationCount} axe violations)`);
   } catch (error) {
     failures.push(`accessibility media and reflow: ${error.message}`);

@@ -1,5 +1,5 @@
-import { normalizeParserControl, normalizeParserRuns } from './normalize';
-import type { ParserControlSnapshot, ParserPublicationMode, ParserRun } from './types';
+import { normalizeParserControl, normalizeParserRuns, normalizeParserWarnings } from './normalize';
+import type { ParserControlSnapshot, ParserPublicationMode, ParserRun, ParserRunCreation } from './types';
 
 async function request(path: string, init?: RequestInit): Promise<unknown> {
   const response = await fetch(path, {
@@ -24,6 +24,17 @@ async function request(path: string, init?: RequestInit): Promise<unknown> {
 
 export async function loadParserControl(signal?: AbortSignal): Promise<ParserControlSnapshot> {
   return normalizeParserControl(await request('/api/admin/parser-control', { signal }));
+}
+
+export async function loadParserControlBundle(signal?: AbortSignal): Promise<{
+  control: PromiseSettledResult<ParserControlSnapshot>;
+  runs: PromiseSettledResult<ParserRun[]>;
+}> {
+  const [control, runs] = await Promise.allSettled([
+    loadParserControl(signal),
+    loadParserRuns(signal),
+  ]);
+  return { control, runs };
 }
 
 export async function updateParserPolicy(input: {
@@ -52,13 +63,22 @@ export async function createParserRun(input: {
   sectionIds: string[];
   sourceIds?: string[];
   reason: string;
-}): Promise<ParserRun | null> {
+}): Promise<ParserRunCreation> {
   const payload = await request('/api/admin/parser-control/runs', {
     method: 'POST',
     body: JSON.stringify(input),
   });
   const root = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
-  return normalizeParserRuns({ runs: [root.run ?? payload] })[0] ?? null;
+  const rawRun = root.run ?? payload;
+  const decoratedRun = rawRun && typeof rawRun === 'object' && !Array.isArray(rawRun)
+    ? { ...rawRun as Record<string, unknown>, deduplicated: root.deduplicated }
+    : rawRun;
+  const run = normalizeParserRuns({ runs: [decoratedRun] })[0] ?? null;
+  return {
+    run,
+    deduplicated: Boolean(root.deduplicated) || Boolean(run?.deduplicated),
+    warnings: normalizeParserWarnings(root.warnings),
+  };
 }
 
 export async function loadParserRuns(signal?: AbortSignal): Promise<ParserRun[]> {

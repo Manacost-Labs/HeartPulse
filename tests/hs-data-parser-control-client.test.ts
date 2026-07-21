@@ -116,7 +116,7 @@ await assert.rejects(
   (error: unknown) => error instanceof HsDataApiError
     && error.status === 409
     && error.message === 'Настройки уже изменил другой администратор'
-    && (error as HsDataApiError & { code?: string }).code === 'REVISION_CONFLICT',
+    && error.code === 'REVISION_CONFLICT',
 );
 
 console.log('HS data parser control client tests passed');

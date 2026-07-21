@@ -1,31 +1,75 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { AlertCircle, RefreshCw, ServerOff } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { AdminMessage } from '../adminWorkspaceState';
 import {
   createParserRun,
-  loadParserControl,
+  loadParserControlBundle,
   loadParserRuns,
   updateParserPolicy,
   updateParserSections,
 } from './client';
 import { EarlyMetaDialog } from './EarlyMetaDialog';
+import { parserControlWarningMessage, toParserControlError, type ParserControlError } from './error';
+import { ParserControlAlerts, ParserControlInitialError, ParserControlLoading } from './ParserControlStatus';
 import { ParserRunsCard } from './ParserRunsCard';
+import { ParserScheduleCard } from './ParserScheduleCard';
 import { ParserSectionsCard } from './ParserSectionsCard';
 import { PublicationPolicyCard } from './PublicationPolicyCard';
 import type { ParserControlSnapshot, ParserRun } from './types';
 
-type PanelError = { message: string; unavailable: boolean } | null;
+const ACTIVE_RUN_STATUSES = new Set<ParserRun['status']>(['queued', 'running']);
 
-function errorState(error: unknown): PanelError {
-  const value = error as Error & { code?: string; status?: number };
-  return {
-    message: value?.message || 'Не удалось загрузить управление парсерами',
-    unavailable: value?.code === 'HS_DATA_API_NOT_CONFIGURED' || value?.status === 503,
-  };
+type ParserRunsPollingOptions = {
+  signal: AbortSignal;
+  fetchRuns: (signal: AbortSignal) => Promise<ParserRun[]>;
+  onRuns: (runs: ParserRun[]) => void;
+  onError: (error: unknown) => void;
+  onSettled: () => Promise<void>;
+  intervalMs?: number;
+  wait?: (milliseconds: number, signal: AbortSignal) => Promise<void>;
+};
+
+function abortableDelay(milliseconds: number, signal: AbortSignal): Promise<void> {
+  return new Promise(resolve => {
+    const finish = () => {
+      clearTimeout(timer);
+      signal.removeEventListener('abort', finish);
+      resolve();
+    };
+    const timer = setTimeout(finish, milliseconds);
+    signal.addEventListener('abort', finish, { once: true });
+    if (signal.aborted) finish();
+  });
 }
 
-function warningMessage(snapshot: ParserControlSnapshot): string | null {
-  return snapshot.warnings.map(warning => warning.message).find(Boolean) ?? null;
+function hasActiveRuns(runs: ParserRun[]): boolean {
+  return runs.some(run => ACTIVE_RUN_STATUSES.has(run.status));
+}
+
+export async function pollActiveParserRuns({
+  signal,
+  fetchRuns,
+  onRuns,
+  onError,
+  onSettled,
+  intervalMs = 8_000,
+  wait = abortableDelay,
+}: ParserRunsPollingOptions): Promise<void> {
+  while (!signal.aborted) {
+    await wait(intervalMs, signal);
+    if (signal.aborted) return;
+    try {
+      const nextRuns = await fetchRuns(signal);
+      if (signal.aborted) return;
+      onRuns(nextRuns);
+      if (!hasActiveRuns(nextRuns)) {
+        await onSettled();
+        return;
+      }
+    } catch (caught) {
+      if (signal.aborted) return;
+      onError(caught);
+    }
+  }
 }
 
 export function ParserControlPanel({ onMessage }: { onMessage: (message: AdminMessage | null) => void }) {
@@ -33,24 +77,32 @@ export function ParserControlPanel({ onMessage }: { onMessage: (message: AdminMe
   const [runs, setRuns] = useState<ParserRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<PanelError>(null);
+  const [error, setError] = useState<ParserControlError | null>(null);
+  const [runsError, setRunsError] = useState<ParserControlError | null>(null);
   const [savingPolicy, setSavingPolicy] = useState(false);
   const [savingSections, setSavingSections] = useState(false);
   const [startingRun, setStartingRun] = useState(false);
   const [earlyDialogOpen, setEarlyDialogOpen] = useState(false);
+  const settledRefreshController = useRef<AbortController | null>(null);
+  const hasActiveRun = hasActiveRuns(runs);
 
   const load = useCallback(async (signal?: AbortSignal, quiet = false) => {
     if (quiet) setRefreshing(true); else setLoading(true);
     try {
-      const [control, recentRuns] = await Promise.all([
-        loadParserControl(signal),
-        loadParserRuns(signal).catch(() => []),
-      ]);
-      setSnapshot(control);
-      setRuns(recentRuns);
-      setError(null);
-    } catch (caught) {
-      if (!signal?.aborted) setError(errorState(caught));
+      const { control: controlResult, runs: runsResult } = await loadParserControlBundle(signal);
+      if (signal?.aborted) return;
+      if (controlResult.status === 'fulfilled') {
+        setSnapshot(controlResult.value);
+        setError(null);
+      } else {
+        setError(toParserControlError(controlResult.reason));
+      }
+      if (runsResult.status === 'fulfilled') {
+        setRuns(runsResult.value);
+        setRunsError(null);
+      } else {
+        setRunsError(toParserControlError(runsResult.reason));
+      }
     } finally {
       if (!signal?.aborted) {
         setLoading(false);
@@ -65,18 +117,39 @@ export function ParserControlPanel({ onMessage }: { onMessage: (message: AdminMe
     return () => controller.abort();
   }, [load]);
 
+  useEffect(() => () => {
+    settledRefreshController.current?.abort();
+    settledRefreshController.current = null;
+  }, []);
+
+  const refreshAfterSettledRun = useCallback(async () => {
+    const controller = new AbortController();
+    settledRefreshController.current?.abort();
+    settledRefreshController.current = controller;
+    try {
+      await load(controller.signal, true);
+    } finally {
+      if (settledRefreshController.current === controller) {
+        settledRefreshController.current = null;
+      }
+    }
+  }, [load]);
+
   useEffect(() => {
-    if (!runs.some(run => run.status === 'queued' || run.status === 'running')) return;
-    const timer = window.setInterval(() => {
-      void loadParserRuns().then(nextRuns => {
+    if (!hasActiveRun) return;
+    const controller = new AbortController();
+    void pollActiveParserRuns({
+      signal: controller.signal,
+      fetchRuns: loadParserRuns,
+      onRuns: nextRuns => {
         setRuns(nextRuns);
-        if (!nextRuns.some(run => run.status === 'queued' || run.status === 'running')) {
-          void load(undefined, true);
-        }
-      }).catch(() => undefined);
-    }, 8_000);
-    return () => window.clearInterval(timer);
-  }, [load, runs]);
+        setRunsError(null);
+      },
+      onError: caught => setRunsError(toParserControlError(caught)),
+      onSettled: refreshAfterSettledRun,
+    });
+    return () => controller.abort();
+  }, [hasActiveRun, refreshAfterSettledRun]);
 
   const savePolicy = async (mode: 'stable' | 'early', earlyUntil: string | null, reason: string) => {
     if (!snapshot) return;
@@ -85,12 +158,12 @@ export function ParserControlPanel({ onMessage }: { onMessage: (message: AdminMe
       const next = await updateParserPolicy({ mode, earlyUntil, reason, expectedRevision: snapshot.revision });
       setSnapshot(next);
       setEarlyDialogOpen(false);
-      const warning = warningMessage(next);
+      const warning = parserControlWarningMessage(next.warnings);
       onMessage(warning
         ? { type: 'err', text: warning }
         : { type: 'ok', text: mode === 'early' ? 'Ранняя мета включена.' : 'Стабильная мета включена.' });
     } catch (caught) {
-      onMessage({ type: 'err', text: errorState(caught)?.message || 'Не удалось изменить режим публикации' });
+      onMessage({ type: 'err', text: toParserControlError(caught).message || 'Не удалось изменить режим публикации' });
       if ((caught as { status?: number })?.status === 409) void load(undefined, true);
     } finally {
       setSavingPolicy(false);
@@ -103,9 +176,12 @@ export function ParserControlPanel({ onMessage }: { onMessage: (message: AdminMe
     try {
       const next = await updateParserSections({ sections, expectedRevision: snapshot.revision });
       setSnapshot(next);
-      onMessage({ type: 'ok', text: 'Настройки автообновления сохранены.' });
+      const warning = parserControlWarningMessage(next.warnings);
+      onMessage(warning
+        ? { type: 'err', text: warning }
+        : { type: 'ok', text: 'Настройки автообновления сохранены.' });
     } catch (caught) {
-      onMessage({ type: 'err', text: errorState(caught)?.message || 'Не удалось сохранить разделы' });
+      onMessage({ type: 'err', text: toParserControlError(caught).message || 'Не удалось сохранить разделы' });
       if ((caught as { status?: number })?.status === 409) void load(undefined, true);
     } finally {
       setSavingSections(false);
@@ -115,61 +191,49 @@ export function ParserControlPanel({ onMessage }: { onMessage: (message: AdminMe
   const startRun = async (sectionIds: string[], reason: string) => {
     setStartingRun(true);
     try {
-      const run = await createParserRun({ sectionIds, reason });
+      const result = await createParserRun({ sectionIds, reason });
+      const run = result.run;
       if (run) setRuns(current => [run, ...current.filter(item => item.id !== run.id)]);
-      onMessage({ type: 'ok', text: 'Выбранные разделы добавлены в очередь обновления.' });
+      const warning = parserControlWarningMessage(result.warnings);
+      if (warning) {
+        onMessage({ type: 'err', text: warning });
+      } else if (result.deduplicated) {
+        const duplicateCount = run?.deduplicatedSourceIds.length ?? 0;
+        const requestedCount = run?.requestedSourceIds.length ?? 0;
+        onMessage({
+          type: 'ok',
+          text: duplicateCount > 0 && duplicateCount < requestedCount
+            ? `Остальные источники добавлены в очередь; ${duplicateCount} уже обновляются.`
+            : 'Повторный запуск не создан: выбранные источники уже обновляются.',
+        });
+      } else {
+        onMessage({ type: 'ok', text: 'Выбранные разделы добавлены в очередь обновления.' });
+      }
     } catch (caught) {
-      onMessage({ type: 'err', text: errorState(caught)?.message || 'Не удалось запустить обновление' });
+      onMessage({ type: 'err', text: toParserControlError(caught).message || 'Не удалось запустить обновление' });
     } finally {
       setStartingRun(false);
     }
   };
 
   if (loading && !snapshot) {
-    return (
-      <section className="contest-admin-card admin-parser-loading" aria-busy="true" aria-live="polite">
-        <RefreshCw size={22} className="is-spinning" />
-        <div><strong>Загружаем управление данными</strong><span>Проверяем режим, источники и последние запуски.</span></div>
-      </section>
-    );
+    return <ParserControlLoading />;
   }
 
   if (error && !snapshot) {
-    const Icon = error.unavailable ? ServerOff : AlertCircle;
-    return (
-      <section className={`contest-admin-card admin-parser-error ${error.unavailable ? 'is-unavailable' : ''}`} role={error.unavailable ? 'status' : 'alert'}>
-        <Icon size={26} aria-hidden="true" />
-        <div>
-          <strong>{error.unavailable ? 'Управление парсерами не подключено' : 'Не удалось загрузить панель'}</strong>
-          <span>{error.message}</span>
-          {error.unavailable && <small>Добавьте серверный ключ HS_DATA_API_ADMIN_KEY. Он не передаётся в браузер.</small>}
-        </div>
-        <button type="button" className="contest-secondary-button" onClick={() => void load()}>Повторить</button>
-      </section>
-    );
+    return <ParserControlInitialError error={error} onRetry={() => void load()} />;
   }
 
   if (!snapshot) return null;
 
   return (
     <div className="admin-parser-control">
-      {error && (
-        <div className="admin-parser-inline-error" role="alert">
-          <AlertCircle size={18} aria-hidden="true" />
-          <span>{error.message}</span>
-          <button type="button" disabled={refreshing} onClick={() => void load(undefined, true)}>Повторить</button>
-        </div>
-      )}
-      {snapshot.warnings.length > 0 && (
-        <div className="admin-parser-inline-warning" role="status">
-          <AlertCircle size={18} aria-hidden="true" />
-          <div>
-            <strong>Настройки сохранены с предупреждением</strong>
-            {snapshot.warnings.map(warning => <span key={`${warning.code}:${warning.message}`}>{warning.message}</span>)}
-          </div>
-          <button type="button" disabled={refreshing} onClick={() => void load(undefined, true)}>Обновить статусы</button>
-        </div>
-      )}
+      <ParserControlAlerts
+        error={error}
+        warnings={snapshot.warnings}
+        refreshing={refreshing}
+        onRetry={() => void load(undefined, true)}
+      />
       <div className="admin-parser-overview" aria-label="Сводка управления данными">
         <div><span>Автообновление</span><strong>{snapshot.summary.enabledSections} / {snapshot.sections.length}</strong><small>разделов включено</small></div>
         <div><span>Ранняя мета</span><strong>{snapshot.summary.earlyCapableSources}</strong><small>источников поддерживают</small></div>
@@ -186,11 +250,13 @@ export function ParserControlPanel({ onMessage }: { onMessage: (message: AdminMe
         onSelectEarly={() => setEarlyDialogOpen(true)}
       />
       <ParserSectionsCard snapshot={snapshot} saving={savingSections} onSave={sections => void saveSections(sections)} />
+      {snapshot.schedules.length > 0 && <ParserScheduleCard snapshot={snapshot} />}
       <ParserRunsCard
         sections={snapshot.sections}
         runs={runs}
         starting={startingRun}
         refreshing={refreshing}
+        loadError={runsError?.message ?? null}
         onStart={(sectionIds, reason) => void startRun(sectionIds, reason)}
         onRefresh={() => void load(undefined, true)}
       />

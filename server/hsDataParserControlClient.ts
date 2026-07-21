@@ -10,11 +10,13 @@ type FetchLike = typeof fetch;
 
 export class HsDataApiError extends Error {
   status: number;
+  code?: string;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code?: string) {
     super(message);
     this.name = 'HsDataApiError';
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -81,9 +83,7 @@ export function createHsDataParserControlClient(options: {
       const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
       if (!response.ok) {
         const detail = errorDetail(payload, response.status);
-        const error = new HsDataApiError(response.status, detail.message);
-        if (detail.code) Object.assign(error, { code: detail.code });
-        throw error;
+        throw new HsDataApiError(response.status, detail.message, detail.code);
       }
       return payload;
     } catch (error) {

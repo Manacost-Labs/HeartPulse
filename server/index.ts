@@ -8688,11 +8688,12 @@ async function invalidateParserControlledDataCaches(): Promise<void> {
 app.use('/api', createAdminParserControlRouter({
   adminGuard: adminIdGuard,
   adminAuth,
+  csrfAllowed: cookieMutationCsrfAllowed,
   client: hsDataParserControlClient,
   invalidateParserDataCaches: invalidateParserControlledDataCaches,
   setPrivateNoStore,
-  onWarning: (scope, error) => console.warn(
-    `[parser-control] ${scope}:`,
+  onWarning: (scope, error, context) => console.warn(
+    `[parser-control] ${scope} requestId=${context?.requestId ?? 'unknown'} action=${context?.action ?? 'unknown'}:`,
     error instanceof Error ? error.message : error,
   ),
   recordAudit: (actor, action, entityId, details) => recordAdminAuditByActorId(

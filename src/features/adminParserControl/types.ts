@@ -6,6 +6,7 @@ export type ParserPublicationChannel = 'early' | 'stable' | 'stable_baseline' | 
 export type ParserControlWarning = {
   code: string;
   message: string;
+  requestId?: string;
 };
 
 export type ParserPublicationPolicy = {
@@ -32,6 +33,7 @@ export type ParserSource = {
   publishedFetchedAt: string | null;
   publicationChannel: ParserPublicationChannel;
   stableBaselineAvailable: boolean;
+  schedule: string;
   nextRunAt: string | null;
   itemCount: number | null;
   lastError: string;
@@ -59,13 +61,48 @@ export type ParserControlSummary = {
   failedSources: number;
 };
 
+export type ParserSchedule = {
+  id: string;
+  label: string;
+  description: string;
+  enabled: boolean | null;
+  trigger: string;
+  calendarEntries: string[];
+  systemdUnit: string;
+  timezone: string;
+  nextRunAt: string | null;
+  temporaryUntil: string | null;
+  sectionIds: string[];
+  sourceIds: string[];
+};
+
 export type ParserControlSnapshot = {
   revision: number;
   generatedAt: string | null;
   policy: ParserPublicationPolicy;
   sections: ParserSection[];
+  schedules: ParserSchedule[];
+  schedulesGeneratedAt: string | null;
+  scheduleInventoryVersion: string;
+  scheduleTimeSemantics: string;
+  scheduleRuntimeStateIncluded: boolean;
   summary: ParserControlSummary;
   warnings: ParserControlWarning[];
+};
+
+export type ParserRunResult = {
+  sourceId: string;
+  label: string;
+  status: ParserHealth;
+  state: string;
+  servingCachedDataset: boolean;
+  rowsTotal: number | null;
+  fetchedAt: string | null;
+  durationMs: number | null;
+  message: string;
+  errors: string[];
+  errorsTotal: number;
+  errorsTruncated: boolean;
 };
 
 export type ParserRun = {
@@ -78,8 +115,18 @@ export type ParserRun = {
   reason: string;
   sectionIds: string[];
   sourceIds: string[];
+  requestedSourceIds: string[];
+  deduplicatedSourceIds: string[];
+  deduplicated: boolean;
+  results: ParserRunResult[];
   totalSources: number;
   completedSources: number;
   failedSources: number;
   error: string;
+};
+
+export type ParserRunCreation = {
+  run: ParserRun | null;
+  deduplicated: boolean;
+  warnings: ParserControlWarning[];
 };
