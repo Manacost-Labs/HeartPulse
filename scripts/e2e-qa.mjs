@@ -1203,6 +1203,13 @@ async function mockApplicationApi(page, {
       }));
       return;
     }
+    if ((url.pathname === '/api/standard-meta' || (admin && url.pathname === '/api/admin/standard-meta'))
+      && request.method() === 'GET' && adminState.standardMetaReadFailureOnce) {
+      adminState.standardMetaReadFailureOnce = false;
+      adminState.standardMetaReadFailures = (adminState.standardMetaReadFailures || 0) + 1;
+      request.respond({ ...jsonResponse({ error: 'Контрольная ошибка загрузки меты' }), status: 503 });
+      return;
+    }
     const standardFixturePath = publicStandardFixtureAliases[url.pathname] || url.pathname;
     if ((admin || Boolean(publicStandardFixtureAliases[url.pathname])) && adminFixtures[standardFixturePath]) {
       const fixture = structuredClone(adminFixtures[standardFixturePath]);
@@ -3444,10 +3451,36 @@ for (const [device, viewport] of [
     adminState.profileSaveFailure = false;
     const profileViolationCount = await auditAccessibility(page, `profile [${device}]`, '.profile-page');
     await page.screenshot({ path: `${OUT}/profile-${device}.png`, fullPage: false });
+    adminState.standardMetaReadFailureOnce = true;
     await page.click('[data-profile-admin-destination="standard-meta"]');
     await page.waitForFunction(() => window.location.pathname.replace(/\/+$/, '') === '/standard/meta');
     await page.waitForSelector('.standard-meta', { timeout: 20_000 });
+    await page.waitForSelector('.standard-meta [data-recovery-state="error"]', { timeout: 20_000 });
+    await page.evaluate(() => { window.__qaStandardMetaDocumentMarker = 'preserve-on-retry'; });
+    const metaErrorState = await page.evaluate(() => {
+      const state = document.querySelector('.standard-meta [data-recovery-state="error"]');
+      const retry = state?.querySelector('button');
+      return {
+        role: state?.getAttribute('role') || '',
+        text: state?.textContent?.replace(/\s+/g, ' ').trim() || '',
+        retryHeight: retry?.getBoundingClientRect().height ?? 0,
+        shellVisible: Boolean(document.querySelector('.arena-sidebar') && document.querySelector('.global-utility-header')),
+      };
+    });
+    if (metaErrorState.role !== 'alert' || !metaErrorState.text.includes('Контрольная ошибка загрузки меты')
+      || metaErrorState.retryHeight < 44 || !metaErrorState.shellVisible || adminState.standardMetaReadFailures !== 1) {
+      failures.push(`standard meta recovery [${device}]: API error did not stay local or actionable (${JSON.stringify(metaErrorState)})`);
+    }
+    await page.click('.standard-meta [data-recovery-state="error"] button');
     await page.waitForSelector('[data-meta-view="cards"]', { timeout: 20_000 });
+    const metaRetryState = await page.evaluate(() => ({
+      marker: window.__qaStandardMetaDocumentMarker || '',
+      errorPresent: Boolean(document.querySelector('.standard-meta [data-recovery-state="error"]')),
+      shellRecoveryPresent: Boolean(document.querySelector('.app-error-shell')),
+    }));
+    if (metaRetryState.marker !== 'preserve-on-retry' || metaRetryState.errorPresent || metaRetryState.shellRecoveryPresent) {
+      failures.push(`standard meta recovery [${device}]: Retry reloaded the document or opened shell recovery (${JSON.stringify(metaRetryState)})`);
+    }
     const standardMetaState = await page.evaluate(() => {
       const pageRoot = document.querySelector('.standard-meta');
       const masthead = document.querySelector('.standard-meta__masthead');
@@ -3576,7 +3609,7 @@ for (const [device, viewport] of [
     await page.waitForSelector('.standard-meta-modal__image-stage');
     await page.waitForFunction(() => document.querySelector('.standard-meta-modal__image-stage .hsrdv-card-tile')
       || document.querySelector('.standard-meta-modal__image-stage .traditional-deck-list--empty')
-      || document.querySelector('.standard-meta-modal__image-stage .traditional-deck-list__error'));
+      || document.querySelector('.standard-meta-modal__image-stage [data-deck-render-state="error"]'));
     const immediateDeckState = await page.evaluate(() => ({
       tiles: document.querySelectorAll('.standard-meta-modal__image-stage .hsrdv-card-tile').length,
       artImages: document.querySelectorAll('.standard-meta-modal__image-stage .hsrdv-card-art[src]').length,
@@ -3680,13 +3713,54 @@ for (const [device, viewport] of [
     await page.$eval('.standard-meta-modal__image-stage', element => element.scrollIntoView({ block: 'start' }));
     await page.screenshot({ path: `${OUT}/standard-meta-modal-${device}.png`, fullPage: false });
     await page.click('.standard-meta-modal__close');
+    if (device === 'mobile') {
+      await page.setViewport({ width: 320, height: 700, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+    }
+    await page.evaluate(() => {
+      window.__qaOriginalDeckViewRender = window.HSReplayDeckView.renderDeck;
+      window.HSReplayDeckView.renderDeck = () => { throw new Error('QA DeckView render failure'); };
+    });
     await page.click('.standard-meta-card__deck-button');
     await page.waitForSelector('.standard-meta-modal__image-stage');
+    await page.waitForSelector('.standard-meta-modal [data-deck-render-state="error"]', { timeout: 10_000 });
+    const deckFailureState = await page.evaluate(expectedCards => {
+      const root = document.querySelector('.standard-meta-modal [data-deck-render-state="error"]');
+      const retry = root?.querySelector('[data-recovery-state="error"] button');
+      const stage = document.querySelector('.standard-meta-modal__image-stage');
+      return {
+        fallbackCards: root?.querySelectorAll('.traditional-deck-list__fallback li').length ?? 0,
+        expectedCards,
+        codeAvailable: (document.querySelector('.standard-meta-modal__code-block code')?.textContent || '').startsWith('AA'),
+        copyAvailable: Boolean(document.querySelector('.standard-meta-modal__copy-button')),
+        retryHeight: retry?.getBoundingClientRect().height ?? 0,
+        shellRecoveryPresent: Boolean(document.querySelector('.app-error-shell')),
+        pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+        stageOverflow: (stage?.scrollWidth ?? 0) > (stage?.clientWidth ?? 0) + 1,
+      };
+    }, qaDeckCards.length);
+    if (deckFailureState.fallbackCards !== deckFailureState.expectedCards || !deckFailureState.codeAvailable
+      || !deckFailureState.copyAvailable || deckFailureState.retryHeight < 44 || deckFailureState.shellRecoveryPresent
+      || deckFailureState.pageOverflow || deckFailureState.stageOverflow) {
+      failures.push(`DeckView local recovery [${device}]: fallback lost content, actions or containment (${JSON.stringify(deckFailureState)})`);
+    }
+    await page.evaluate(() => {
+      window.HSReplayDeckView.renderDeck = window.__qaOriginalDeckViewRender;
+    });
+    await page.click('.standard-meta-modal [data-deck-render-state="error"] [data-recovery-state="error"] button');
+    await page.waitForSelector('.standard-meta-modal__image-stage .hsrdv-card-tile', { timeout: 10_000 });
+    const recoveredDeckTileCount = await page.$$eval(
+      '.standard-meta-modal__image-stage .hsrdv-card-tile',
+      elements => elements.length,
+    );
+    if (recoveredDeckTileCount !== qaDeckCards.length) {
+      failures.push(`DeckView local recovery [${device}]: Retry restored ${recoveredDeckTileCount}/${qaDeckCards.length} cards`);
+    }
     if ((adminState.standardMetaRecommendationRequests || 0) !== 1 || adminState.standardMetaPreviewRequests !== 1
       || adminState.standardMetaRecommendationRank !== 'legend' || adminState.standardMetaPreviewRank !== 'legend') {
       failures.push(`standard meta modal [${device}]: reopening repeated API work or rank context was lost (${JSON.stringify({ recommendations: adminState.standardMetaRecommendationRequests, previews: adminState.standardMetaPreviewRequests, recommendationRank: adminState.standardMetaRecommendationRank, previewRank: adminState.standardMetaPreviewRank })})`);
     }
     await page.click('.standard-meta-modal__close');
+    if (device === 'mobile') await page.setViewport(viewport);
     await page.goto(`${BASE}/standard/matchups`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('[data-tour-id="matchups-matrix"]', { timeout: 20_000 });
     const standardMatchupsTourViolationCount = await auditPageTour(page, {

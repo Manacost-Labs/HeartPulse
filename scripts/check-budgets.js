@@ -27,6 +27,9 @@ const budgets = {
   supportPromptCss: Number(process.env.BUDGET_SUPPORT_PROMPT_CSS_BYTES || 4_000),
   siteFooterCss: Number(process.env.BUDGET_SITE_FOOTER_CSS_BYTES || 4_000),
   seoRegistryJs: Number(process.env.BUDGET_SEO_REGISTRY_JS_BYTES || 11_000),
+  deckViewVendorJs: Number(process.env.BUDGET_DECK_VIEW_VENDOR_JS_BYTES || 31_000),
+  deckListJs: Number(process.env.BUDGET_DECK_LIST_JS_BYTES || 6_500),
+  deckListCss: Number(process.env.BUDGET_DECK_LIST_CSS_BYTES || 5_200),
 };
 
 const files = readdirSync(distAssets)
@@ -52,6 +55,9 @@ const faqPageJs = files.find(file => /^FAQPage-.*\.js$/.test(file.name));
 const supportPromptCss = files.find(file => /^SupportPrompt-.*\.css$/.test(file.name));
 const siteFooterCss = files.find(file => /^SiteFooter-.*\.css$/.test(file.name));
 const seoRegistryJs = files.find(file => /^registry-.*\.js$/.test(file.name));
+const deckViewVendorJs = files.find(file => /^hsreplay-deck-view-.*\.js$/.test(file.name));
+const deckListJs = files.find(file => /^HsReplayDeckList-.*\.js$/.test(file.name));
+const deckListCss = files.find(file => /^HsReplayDeckList-.*\.css$/.test(file.name));
 const homeSectionCssFiles = files.filter(file => /^Home(?:ArenaDirectory|Battlegrounds|LatestArticles)-.*\.css$/.test(file.name));
 const largestHomeSectionCss = homeSectionCssFiles.length === 3
   ? homeSectionCssFiles.sort((left, right) => right.bytes - left.bytes)[0]
@@ -87,6 +93,9 @@ const checks = [
   ['lazy support-prompt CSS', supportPromptCss, budgets.supportPromptCss],
   ['lazy site-footer CSS', siteFooterCss, budgets.siteFooterCss],
   ['lazy SEO registry JS', seoRegistryJs, budgets.seoRegistryJs],
+  ['lazy DeckView vendor JS', deckViewVendorJs, budgets.deckViewVendorJs],
+  ['lazy deck-list adapter JS', deckListJs, budgets.deckListJs],
+  ['lazy deck-list recovery CSS', deckListCss, budgets.deckListCss],
 ];
 
 let failed = false;

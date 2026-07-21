@@ -255,6 +255,7 @@
 .standard-meta__search input {
   width: 100%;
   min-width: 0;
+  min-height: 44px;
   border: 0;
   outline: 0;
   color: #3a281c;
@@ -647,39 +648,8 @@
   box-shadow: none;
 }
 
-.standard-meta__feedback {
-  display: flex;
-  gap: 0.65rem;
-  align-items: center;
-  justify-content: center;
-  grid-column: 1 / -1;
-  min-height: 180px;
-  padding: 2rem;
-  border: 8px solid transparent;
-  border-image: url('/wallpaper/deck-border.png') 28 stretch;
-  color: #5c422e;
-  background: rgba(245, 226, 184, 0.72);
-}
-
-.standard-meta__feedback--error { color: #7b151b; }
 .standard-meta__spinner { animation: standard-meta-spin 850ms linear infinite; }
 @keyframes standard-meta-spin { to { transform: rotate(360deg); } }
-
-.standard-meta__chart-loading {
-  display: flex;
-  gap: 0.65rem;
-  align-items: center;
-  justify-content: center;
-  min-height: 98px;
-  margin-top: 0.85rem;
-  border: 6px solid transparent;
-  border-image: url('/wallpaper/deck-border.png') 22 stretch;
-  color: #63472e;
-  background:
-    linear-gradient(rgba(255, 246, 217, 0.72), rgba(236, 208, 155, 0.58)),
-    url('/wallpaper/arena-parchment.jpg') center / cover;
-  font-weight: 800;
-}
 
 .standard-meta-modal {
   position: fixed;
@@ -782,7 +752,7 @@
 
 .standard-meta-modal__presentation button {
   display: inline-flex;
-  min-height: 40px;
+  min-height: 44px;
   gap: 0.38rem;
   align-items: center;
   justify-content: center;

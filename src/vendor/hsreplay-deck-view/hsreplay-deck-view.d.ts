@@ -387,6 +387,6 @@ declare namespace HSReplayDeckView {
 
 declare global {
   interface Window {
-    HSReplayDeckView: HSReplayDeckView.Api;
+    HSReplayDeckView?: HSReplayDeckView.Api;
   }
 }

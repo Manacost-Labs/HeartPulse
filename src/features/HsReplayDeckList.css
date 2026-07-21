@@ -1,7 +1,18 @@
 .traditional-deck-list {
+  --recovery-ink: #ead3a3;
+  --recovery-heading: #fff0c4;
+  --recovery-muted: #caa875;
+  --recovery-wash: rgba(24, 13, 17, 0.58);
+  --recovery-accent: #8f5c2e;
+  --recovery-mark-ink: #fff0c4;
+  --recovery-action-border: #9b7040;
+  --recovery-action-ink: #fff0c4;
+  --recovery-action-bg: #5a0e19;
   width: 100%;
   min-width: 0;
 }
+
+.traditional-deck-list__host[data-ready='false'] { display: none; }
 
 .traditional-deck-list .hsrdv {
   --hsrdv-tile-height: 36px;
@@ -26,22 +37,52 @@
 .traditional-deck-list .hsrdv-card-count--copies { font-size: 1.18rem; }
 .traditional-deck-list .hsrdv-card-tile:focus-visible { outline: 2px solid #ffe7a5; outline-offset: 1px; }
 
-.traditional-deck-list--empty,
-.traditional-deck-list__error {
-  display: flex;
-  min-height: 160px;
-  gap: 0.55rem;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  color: #dfc38d;
-  text-align: center;
+.traditional-deck-list__fallback {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 0.35rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
 }
 
-.traditional-deck-list__error { min-height: 80px; color: #ffd3bf; }
+.traditional-deck-list__fallback li {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+  min-width: 0;
+  min-height: 38px;
+  align-items: center;
+  border: 1px solid #13090c;
+  color: #fff;
+  background: #292929;
+}
+
+.traditional-deck-list__fallback-cost,
+.traditional-deck-list__fallback li strong {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  text-shadow: 0 2px 0 #000;
+}
+
+.traditional-deck-list__fallback-cost { background: #385d86; }
+.traditional-deck-list__fallback li strong { color: #ffe95f; }
+
+.traditional-deck-list__fallback-name {
+  min-width: 0;
+  padding: 0 0.55rem;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 @media (max-width: 640px) {
   .traditional-deck-list .hsrdv-list { grid-template-columns: 1fr; }
+  .traditional-deck-list__fallback { grid-template-columns: 1fr; }
   .traditional-deck-list .hsrdv { --hsrdv-tile-height: 38px; --hsrdv-gem-width: 38px; }
   .traditional-deck-list .hsrdv-card-name { font-size: 0.9rem; }
 }

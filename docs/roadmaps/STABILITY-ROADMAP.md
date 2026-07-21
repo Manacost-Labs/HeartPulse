@@ -31,12 +31,14 @@
 - Большой набор API/security/route тестов и `scripts/e2e-qa.mjs`.
 - CI `verify:ci` с lint/typecheck, архитектурными проверками, тестами, build, smoke и budgets.
 - Разделение части `server/index.ts` на специализированные routers.
+- Shell-wide recovery boundary с разделением render/chunk failure, incident ID и безопасным retry/reload flow.
+- Локальная recovery boundary для Standard Meta и отказоустойчивый DeckView с текстовым составом.
 
 ### Основные риски
 
 | Риск | Фактическое проявление | Последствие | P |
 |---|---|---|---|
-| Нет shell-wide error boundary | Локальный boundary найден только в `src/features/Home.tsx` | Ошибка одного маршрута может оставить белый экран | P0 |
+| Route/widget boundaries покрывают не все разделы | Shell, Home и Standard Meta защищены; другие lazy features ещё мигрируют | Ошибка незакрытого виджета может заменить весь маршрут shell fallback | P0 |
 | Контракты данных нормализуются вручную | Много независимых преобразований в `server/index.ts` и routers, без общего runtime schema слоя | Невозможные проценты, пустые related cards, drift полей | P0 |
 | Data health покрывает только часть наборов | Readiness в основном ориентирован на winrates/tierlist/legendaries | Standard Cards/BG/Meta могут быть сломаны при зелёном health | P0 |
 | Кэши распределены по множеству `Map`/TTL | `server/index.ts` и отдельные routers | После публикации разные страницы видят разные версии | P0 |
@@ -131,6 +133,17 @@ data
 | STAB-004 | P0 | Назначить incident commander/on-call и канал | Команда | Есть рабочий escalation path и шаблон инцидента |
 
 Контрольная точка: до изменения порогов команда знает, какие datasets должны блокировать readiness и какой пользовательский сценарий они защищают.
+
+### Состояние frontend recovery на 21 июля 2026 года
+
+| ID | Статус | Реализовано | Что осталось |
+|---|---|---|---|
+| STAB-101 | Выполнено | `AppErrorBoundary` защищает shell; render retry выполняется без reload, chunk failure предлагает явное обновление; browser QA и unit contract зелёные | Подключить внешний browser error collector в STAB-105 |
+| STAB-102 | В работе | `RecoverableSurfaceBoundary` локализует ошибки маршрута Standard Meta и оставляет sidebar/header/footer доступными | Последовательно обернуть остальные критические lazy routes по inventory, не увеличивая eager bundle |
+| STAB-103 | В работе | Общий `HsReplayDeckList` изолирует ошибки DeckView в Standard Meta и Vicious Gold; при отказе остаются русский текстовый состав, код колоды и Retry | Перевести `StandardCards` на тот же loader; затем графики, tooltip/lightbox и рекомендации |
+| STAB-104 | В работе | Введены единые `loading`, `empty`, `error`, `stale` surfaces; Standard Meta мигрирована, кнопки не меньше 44 px, состояния имеют корректные live roles | Подключать `stale` только из versioned freshness envelope STAB-201, затем мигрировать остальные страницы |
+
+Проверенное доказательство текущего среза: production build и budgets зелёные; DeckView JS выделен в lazy chunk 30,43 КБ; initial JS 253 904/254 000 Б; детерминированный browser QA проверяет API 503→200 без reload и падение `renderDeck` на 320 px без потери shell, кода колоды или горизонтального containment.
 
 ### Фаза 1 — локализация frontend-ошибок, недели 1–3
 

@@ -19,7 +19,9 @@ import {
 } from 'lucide-react';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import HsReplayDeckList, { type HsReplayDeckCard } from './HsReplayDeckList';
+import { AsyncSurfaceState, RecoverableSurfaceBoundary } from './recovery/RecoverableSurface';
 import '../route-parchment.css';
+import './recovery/RecoverableSurface.css';
 import './StandardMeta.css';
 
 const StandardMetaChart = React.lazy(() => import('./StandardMetaChart'));
@@ -318,7 +320,7 @@ function DeckModal({ state, onClose, onRenderPreview }: { state: DeckModalState;
   return createPortal(modal, document.body);
 }
 
-export default function StandardMetaPage() {
+function StandardMetaContent() {
   const [format, setFormat] = useState<MetaFormat>('standard');
   const [rank, setRank] = useState<MetaRank>('legend');
   const [query, setQuery] = useState('');
@@ -328,6 +330,7 @@ export default function StandardMetaPage() {
   const [data, setData] = useState<MetaPayload>(EMPTY_DATA);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [metaRevision, setMetaRevision] = useState(0);
   const [modal, setModal] = useState<DeckModalState | null>(null);
   const requestId = useRef(0);
   const deckCache = useRef(new Map<string, DeckCacheEntry>());
@@ -350,7 +353,7 @@ export default function StandardMetaPage() {
         if (currentRequest === requestId.current) setLoading(false);
       });
     return () => controller.abort();
-  }, [format, rank]);
+  }, [format, rank, metaRevision]);
 
   useEffect(() => {
     if (!modal?.preview?.hash || modal.preview.ready || modal.preview.state === 'error') return undefined;
@@ -501,7 +504,7 @@ export default function StandardMetaPage() {
   };
 
   return (
-    <main className="standard-meta" id="main-content">
+    <>
       <section className="standard-meta__masthead">
         <div className="standard-meta__masthead-copy">
           <span className="standard-meta__eyebrow"><ShieldCheck size={15} /> HSGuru · актуальные срезы</span>
@@ -547,17 +550,36 @@ export default function StandardMetaPage() {
       </section>
 
       {loading && (
-        <div className="standard-meta__feedback" role="status"><RefreshCw className="standard-meta__spinner" /> Загружаем мету…</div>
+        <AsyncSurfaceState
+          variant="loading"
+          title="Загружаем мету"
+          message="Получаем актуальный срез архетипов и статистики."
+        />
       )}
       {!loading && error && (
-        <div className="standard-meta__feedback standard-meta__feedback--error" role="alert"><AlertTriangle /> {error}</div>
+        <AsyncSurfaceState
+          variant="error"
+          title="Не удалось загрузить мету"
+          message={error}
+          actionLabel="Повторить"
+          onAction={() => setMetaRevision(revision => revision + 1)}
+        />
       )}
-      {!loading && !error && (
+      {!loading && !error && data.items.length === 0 && (
+        <AsyncSurfaceState
+          variant="empty"
+          title="В этом срезе пока нет архетипов"
+          message="Попробуйте другой формат или рейтинг. Данные появятся после следующего обновления источника."
+        />
+      )}
+      {!loading && !error && data.items.length > 0 && (
         <>
           <React.Suspense fallback={(
-            <div className="standard-meta__chart-loading" role="status">
-              <RefreshCw className="standard-meta__spinner" size={20} /> Подготавливаем карту меты…
-            </div>
+            <AsyncSurfaceState
+              variant="loading"
+              title="Подготавливаем карту меты"
+              compact
+            />
           )}>
             <StandardMetaChart
               items={data.items}
@@ -582,7 +604,7 @@ export default function StandardMetaPage() {
             </div>
           </section>
 
-          {view === 'cards' ? (
+          {view === 'cards' && filteredItems.length > 0 ? (
             <section className="standard-meta__grid" aria-label={`Архетипы: ${data.formatLabel}, ${data.rankLabel}`}>
               {filteredItems.map((item, index) => (
                 <article className="standard-meta-card" key={item.id}>
@@ -609,9 +631,8 @@ export default function StandardMetaPage() {
                   </button>
                 </article>
               ))}
-              {!filteredItems.length && <div className="standard-meta__feedback">По вашему запросу архетипы не найдены.</div>}
             </section>
-          ) : (
+          ) : view === 'table' && filteredItems.length > 0 ? (
             <section className="standard-meta-table-wrap" aria-label={`Таблица архетипов: ${data.formatLabel}, ${data.rankLabel}`} tabIndex={0}>
               <p className="standard-meta-table__mobile-hint">
                 <ChevronsUpDown size={15} /> Нажимайте заголовки для сортировки и листайте таблицу вбок
@@ -656,13 +677,33 @@ export default function StandardMetaPage() {
                   ))}
                 </tbody>
               </table>
-              {!filteredItems.length && <div className="standard-meta__feedback">По вашему запросу архетипы не найдены.</div>}
             </section>
+          ) : (
+            <AsyncSurfaceState
+              variant="empty"
+              title="Архетипы не найдены"
+              message="Измените запрос или очистите строку поиска."
+              compact
+            />
           )}
         </>
       )}
 
       {modal && <DeckModal state={modal} onClose={closeModal} onRenderPreview={() => void renderDeckPreview()} />}
+    </>
+  );
+}
+
+export default function StandardMetaPage() {
+  return (
+    <main className="standard-meta" id="main-content">
+      <RecoverableSurfaceBoundary
+        scope="standard-meta"
+        title="Раздел меты временно недоступен"
+        message="Навигация и остальные разделы сайта продолжают работать. Попробуйте открыть мету ещё раз."
+      >
+        <StandardMetaContent />
+      </RecoverableSurfaceBoundary>
     </main>
   );
 }
