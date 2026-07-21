@@ -9,15 +9,17 @@ templates only: a Git checkout does not change the live nginx configuration.
 
 1. Install `arena-seo-map.conf` as
    `/etc/nginx/conf.d/31-arena-seo-map.conf`; it belongs to the `http` context.
-2. Install `arena-html-routing.conf` as
+2. Install `arena-security-headers.conf` as
+   `/etc/nginx/snippets/arena-security-headers.conf`.
+3. Install `arena-html-routing.conf` as
    `/etc/nginx/snippets/arena-html-routing.conf`.
-3. Install `arena-canonical-host-redirect.conf` as
+4. Install `arena-canonical-host-redirect.conf` as
    `/etc/nginx/snippets/arena-canonical-host-redirect.conf` and include it in
    every HTTP, `www` and legacy `hs-arena.ru` redirect server. These hosts then
    normalize the scheme, host and a known HTML route's slash in one hop.
-4. In the canonical `arena.hs-manacost.ru` HTTPS server, keep the TLS, root,
+5. In the canonical `arena.hs-manacost.ru` HTTPS server, keep the TLS, root,
    origin guard, logging, gzip and server-wide security-header configuration.
-5. Replace the existing API, static and SPA `location` blocks with
+6. Replace the existing API, static and SPA `location` blocks with
    `include /etc/nginx/snippets/arena-html-routing.conf;`. Do not keep the old
    catch-all beside the new include.
 

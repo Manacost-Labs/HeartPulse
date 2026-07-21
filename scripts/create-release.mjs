@@ -6,12 +6,26 @@ const outputArg = process.argv.find(argument => argument.startsWith('--output=')
 const shaArg = process.argv.find(argument => argument.startsWith('--sha='));
 const output = outputArg ? resolve(outputArg.slice('--output='.length)) : null;
 const sha = (shaArg?.slice('--sha='.length) || process.env.RELEASE_SHA || '').trim().toLowerCase();
+const nginxContractDefinitions = [
+  { source: 'deploy/nginx/arena-html-routing.conf', installPath: '/etc/nginx/snippets/arena-html-routing.conf', roles: ['origin'] },
+  { source: 'deploy/nginx/arena-seo-map.conf', installPath: '/etc/nginx/conf.d/31-arena-seo-map.conf', roles: ['origin'] },
+  { source: 'deploy/nginx/arena-edge-static-cache.conf', installPath: '/etc/nginx/snippets/arena-edge-static-cache.conf', roles: ['edge'] },
+  { source: 'deploy/nginx/arena-canonical-host-redirect.conf', installPath: '/etc/nginx/snippets/arena-canonical-host-redirect.conf', roles: ['origin'] },
+  { source: 'deploy/nginx/arena-security-headers.conf', installPath: '/etc/nginx/snippets/arena-security-headers.conf', roles: ['origin'] },
+];
+const nginxContractFiles = nginxContractDefinitions.map(file => file.source);
 
 if (!output) throw new Error('Usage: node scripts/create-release.mjs --output=/path/to/release --sha=<git-sha>');
 if (!/^[a-f0-9]{7,40}$/.test(sha)) throw new Error(`Invalid release SHA: ${sha || 'missing'}`);
 if (existsSync(output)) throw new Error(`Release output already exists: ${output}`);
 
-for (const required of ['build/server/index.js', 'dist/index.html', 'package.json', 'package-lock.json']) {
+for (const required of [
+  'build/server/index.js',
+  'dist/index.html',
+  'package.json',
+  'package-lock.json',
+  ...nginxContractFiles,
+]) {
   if (!existsSync(required)) throw new Error(`Required release input is missing: ${required}`);
 }
 
@@ -41,6 +55,8 @@ for (const script of ['backup-shared-data.sh', 'verify-backup.sh', 'restore-back
 }
 cpSync('package.json', join(output, 'package.json'));
 cpSync('package-lock.json', join(output, 'package-lock.json'));
+mkdirSync(join(output, 'deploy', 'nginx'), { recursive: true });
+for (const file of nginxContractFiles) cpSync(file, join(output, file));
 
 async function sha256(file) {
   const hash = createHash('sha256');
@@ -61,6 +77,7 @@ const criticalFiles = [
   'scripts/verify-backup.sh',
   'scripts/restore-backup.sh',
   'scripts/replicate-backup.sh',
+  ...nginxContractFiles,
 ];
 const checksums = Object.fromEntries(await Promise.all(
   criticalFiles.map(async file => [file, await sha256(join(output, file))]),
@@ -68,15 +85,29 @@ const checksums = Object.fromEntries(await Promise.all(
 const packageLockHash = createHash('sha256')
   .update(readFileSync(join(output, 'package-lock.json')))
   .digest('hex');
+const nginxContractEntries = nginxContractDefinitions.map(file => ({
+  ...file,
+  sha256: checksums[file.source],
+}));
+const nginxContractHash = createHash('sha256')
+  .update(nginxContractEntries
+    .map(file => `${file.source}\0${file.installPath}\0${file.roles.join(',')}\0${file.sha256}\n`)
+    .join(''))
+  .digest('hex');
 
 const manifest = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   sha,
   releaseName: sha,
   createdAt: new Date().toISOString(),
   node: process.version,
   packageLockHash,
   checksums,
+  nginxContract: {
+    schemaVersion: 1,
+    hash: nginxContractHash,
+    files: nginxContractEntries,
+  },
 };
 writeFileSync(join(output, 'release.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 

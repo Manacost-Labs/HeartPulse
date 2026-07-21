@@ -24,6 +24,7 @@
 ### Уже реализовано
 
 - Immutable releases, `current/previous`, readiness gate и автоматический rollback в `scripts/deploy-release.sh`.
+- Release manifest schema v2 включает пять versioned nginx-файлов, их install path/роль origin или edge, SHA-256 и общий `nginxContract.hash`; приложение и edge policy теперь образуют один проверяемый artifact без ложного требования edge-only snippet на origin.
 - Smoke-проверки сервера и recovery в `scripts/server-build-smoke.mjs` и `scripts/recovery-runtime-smoke.mjs`.
 - Health endpoints `/api/health/live`, `/api/health/ready`, `/api/health/data` в `server/health.ts` и `server/healthRoutes.ts`.
 - Структурированные request logs, request ID и базовые Prometheus metrics в `server/observability.ts` и `server/metrics.ts`.
@@ -251,7 +252,7 @@ Baseline измеряется на фазе 0; затем утверждаютс
 
 | ID | P | Работа | Зависимости | Критерий приёмки и тест |
 |---|---|---|---|---|
-| STAB-501 | P0 | Усилить существующий immutable deploy manifest | Текущий release flow | Manifest содержит git SHA, build hash, schema compatibility и dataset min/max version |
+| STAB-501 | P0 | Усилить существующий immutable deploy manifest | Текущий release flow | В работе: manifest v2 уже содержит git SHA и nginx contract hash; остаются build hash, schema compatibility и dataset min/max version |
 | STAB-502 | P0 | Добавить pre-switch shadow verification | Второй локальный port/unit | Новый release проходит readiness, contracts и smoke до смены symlink/upstream |
 | STAB-503 | P0 | Добавить post-switch observation gate | STAB-401–408 | 5–10 минут сравниваются 5xx, latency, JS errors и data health; превышение порога откатывает |
 | STAB-504 | P1 | Реализовать малый canary cohort | Наблюдаемость и совместимость state | 5–10% трафика или внутренний allowlist; cookie/user stickiness; automated promote/abort |
