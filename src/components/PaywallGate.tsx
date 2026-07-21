@@ -11,7 +11,8 @@ type PaywallGateProps = {
   subscriptionLoading: boolean;
   onRefreshSubscription: () => Promise<unknown>;
   variant?: 'default' | 'standard';
-  children: ReactNode;
+  children?: ReactNode;
+  previewTitle?: string;
 };
 
 const ACTION_STYLE = {
@@ -33,8 +34,10 @@ export default function PaywallGate({
   onRefreshSubscription,
   variant = 'default',
   children,
+  previewTitle,
 }: PaywallGateProps) {
-  if (!active) return <>{children}</>;
+  const preview = children ?? <SubscriptionLockedPreview title={previewTitle || title} />;
+  if (!active) return <>{preview}</>;
 
   return (
     <div className="arena-paywall" style={{ position: 'relative', minHeight: 760, paddingBottom: 48 }}>
@@ -51,7 +54,7 @@ export default function PaywallGate({
           transition: 'filter 180ms ease',
         }}
       >
-        {children}
+        {preview}
       </div>
       <div
         className="arena-paywall__overlay"
@@ -147,5 +150,37 @@ export default function PaywallGate({
         </section>
       </div>
     </div>
+  );
+}
+
+function SubscriptionLockedPreview({ title }: { title: string }) {
+  return (
+    <section
+      aria-label="Предпросмотр закрытого раздела"
+      style={{
+        minHeight: 420,
+        display: 'grid',
+        gap: 14,
+        alignContent: 'center',
+        padding: 'clamp(1rem, 3vw, 2rem)',
+      }}
+    >
+      <div className="hs-card" style={{ borderRadius: 18, padding: 'clamp(1rem, 3vw, 1.5rem)' }}>
+        <p className="modern-eyebrow" style={{ margin: '0 0 10px' }}>Раздел подписчиков</p>
+        <h1 style={{ margin: 0, fontFamily: 'var(--font-display)', color: '#1f3654', fontSize: 'clamp(1.7rem, 4vw, 2.6rem)' }}>
+          {title}
+        </h1>
+        <p style={{ maxWidth: 680, margin: '12px 0 0', color: '#52667f', lineHeight: 1.55 }}>
+          Статистика, отдельные страницы карт и инструменты Манакоста доступны подписчикам. Главная и страница конкурсов остаются открытыми для всех.
+        </p>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+        {['Проверка подписки', 'Доступ к данным', 'VIP-инструменты'].map(item => (
+          <div key={item} className="hs-card" style={{ minHeight: 92, borderRadius: 16, padding: 14, display: 'flex', alignItems: 'center', color: '#52667f', fontWeight: 800 }}>
+            {item}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }

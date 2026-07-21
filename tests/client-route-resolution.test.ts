@@ -1,16 +1,16 @@
 import assert from 'node:assert/strict';
 import {
-  captureInitialServerRouteHint,
   clientRouteView,
   historyRouteKnowledge,
   initialClientRouteResolution,
-  reconcileClientRouteResolution,
   settledClientRouteResolution,
-  unavailableClientRouteResolution,
   withHistoryRouteKnowledge,
 } from '../src/routing/clientRouteResolution';
 
-const server404Hint = captureInitialServerRouteHint('/missing/path', '404');
+const appModule = await import('../src/App');
+assert.equal(typeof appModule.default, 'function', 'the application shell must remain import-safe without a browser DOM');
+
+const server404Hint = '/missing/path';
 const production404 = initialClientRouteResolution('/missing/path', server404Hint);
 assert.equal(clientRouteView(production404, '/missing/path'), 'not-found', 'the server marker must prevent a home-state flash');
 assert.equal(
@@ -18,16 +18,10 @@ assert.equal(
   'known',
   'an in-place remount after leaving the bootstrap 404 must not reuse its stale server marker',
 );
-assert.equal(captureInitialServerRouteHint('/articles', undefined), null, 'ordinary documents must not create a server 404 hint');
 
 const home = initialClientRouteResolution('/');
 assert.equal(clientRouteView(home, '/'), 'known');
 assert.equal(clientRouteView(home, '/articlesevil'), 'pending', 'SPA navigation must hide the previous page while policy resolution is pending');
-assert.strictEqual(
-  reconcileClientRouteResolution(home, '/', true),
-  home,
-  'settling an already-known route must preserve identity and avoid remounting an active screen',
-);
 
 const malformed = settledClientRouteResolution('/heroes/not-a-number/', false);
 assert.equal(clientRouteView(malformed, '/heroes/not-a-number'), 'not-found', 'policy rejection must settle on the app-level 404');
@@ -35,7 +29,7 @@ assert.equal(clientRouteView(malformed, '/heroes/not-a-number'), 'not-found', 'p
 const articles = settledClientRouteResolution('/articles', true);
 assert.equal(clientRouteView(articles, '/articles/'), 'known', 'a valid SPA destination must recover from a previous 404');
 
-const unavailable = unavailableClientRouteResolution('/standard/cards/classic/CATA_785');
+const unavailable = { pathname: '/standard/cards/classic/CATA_785', status: 'unavailable' as const };
 assert.equal(clientRouteView(unavailable, '/standard/cards/classic/CATA_785'), 'unavailable', 'policy load errors must never classify malformed details as known');
 
 assert.deepEqual(

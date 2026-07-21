@@ -24,26 +24,22 @@ import {
   type TabId,
 } from './routes';
 import {
-  captureInitialServerRouteHint,
   clientRouteView,
   historyRouteKnowledge,
   initialClientRouteResolution,
   normalizeClientRoutePath,
-  reconcileClientRouteResolution,
   settledClientRouteResolution,
-  unavailableClientRouteResolution,
   withHistoryRouteKnowledge,
 } from './routing/clientRouteResolution';
 
 // Preserve the server response context across an in-place render retry. The
 // static 404 marker describes only the URL that bootstrapped this document;
 // it must not turn a later, valid SPA destination into another 404 on remount.
-const BOOTSTRAP_ROUTE_ROOT = typeof document === 'undefined' ? null : document.getElementById('root');
-const INITIAL_SERVER_ROUTE_HINT = captureInitialServerRouteHint(
-  typeof window === 'undefined' ? '/' : window.location.pathname,
-  BOOTSTRAP_ROUTE_ROOT?.dataset.routeStatus,
-);
-BOOTSTRAP_ROUTE_ROOT?.removeAttribute('data-route-status');
+const BOOTSTRAP_ROUTE_ROOT = globalThis.document?.getElementById('root');
+const INITIAL_SERVER_ROUTE_HINT = BOOTSTRAP_ROUTE_ROOT?.dataset.routeStatus === '404'
+  ? normalizeClientRoutePath(location.pathname)
+  : null;
+delete BOOTSTRAP_ROUTE_ROOT?.dataset.routeStatus;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -594,10 +590,6 @@ function NavigationRouteLinks({
 const loadDeferredRoutesModule = () => import('./features/DeferredRoutes');
 const loadHomeModule = () => import('./features/Home');
 const loadFAQPageModule = () => import('./features/FAQPage');
-const loadNotFoundPageModule = () => Promise.all([
-  import('./features/NotFoundPage'),
-  import('./features/NotFoundPage.css'),
-]).then(([module]) => module);
 const loadBgLibraryModule = () => import('./features/BgLibrary');
 const loadGuidesArchiveModule = () => import('./features/GuidesArchive');
 const loadStandardMatchupsModule = () => import('./features/StandardMatchups');
@@ -613,7 +605,7 @@ const LazySupportPrompt = React.lazy(() => import('./components/SupportPrompt'))
 const LazySiteFooter = React.lazy(() => import('./components/SiteFooter'));
 const LazyHomeTab = React.lazy(loadHomeModule);
 const LazyFAQPage = React.lazy(loadFAQPageModule);
-const LazyNotFoundPage = React.lazy(loadNotFoundPageModule);
+const LazyNotFoundPage = React.lazy(() => import('./features/NotFoundPageRoute'));
 
 const LazyWinrates = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.Winrates })));
 const LazyTierList = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.TierList })));
@@ -677,50 +669,6 @@ function RouteFallback({ minHeight = 520 }: { minHeight?: number }) {
     >
       Загрузка...
     </div>
-  );
-}
-
-function RouteResolutionFailure() {
-  return (
-    <section className="route-resolution-failure" role="alert">
-      <h1>Не удалось открыть страницу</h1>
-      <p>Обновите страницу, чтобы повторно загрузить таблицу маршрутов.</p>
-      <button type="button" onClick={() => window.location.reload()}>
-        Обновить страницу
-      </button>
-    </section>
-  );
-}
-
-function SubscriptionLockedPreview({ title }: { title: string }) {
-  return (
-    <section
-      aria-label="Предпросмотр закрытого раздела"
-      style={{
-        minHeight: 420,
-        display: 'grid',
-        gap: 14,
-        alignContent: 'center',
-        padding: 'clamp(1rem, 3vw, 2rem)',
-      }}
-    >
-      <div className="hs-card" style={{ borderRadius: 18, padding: 'clamp(1rem, 3vw, 1.5rem)' }}>
-        <p className="modern-eyebrow" style={{ margin: '0 0 10px' }}>Раздел подписчиков</p>
-        <h1 style={{ margin: 0, fontFamily: 'var(--font-display)', color: '#1f3654', fontSize: 'clamp(1.7rem, 4vw, 2.6rem)' }}>
-          {title}
-        </h1>
-        <p style={{ maxWidth: 680, margin: '12px 0 0', color: '#52667f', lineHeight: 1.55 }}>
-          Статистика, отдельные страницы карт и инструменты Манакоста доступны подписчикам. Главная и страница конкурсов остаются открытыми для всех.
-        </p>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
-        {['Проверка подписки', 'Доступ к данным', 'VIP-инструменты'].map(item => (
-          <div key={item} className="hs-card" style={{ minHeight: 92, borderRadius: 16, padding: 14, display: 'flex', alignItems: 'center', color: '#52667f', fontWeight: 800 }}>
-            {item}
-          </div>
-        ))}
-      </div>
-    </section>
   );
 }
 
@@ -828,9 +776,6 @@ export default function App() {
     INITIAL_SERVER_ROUTE_HINT,
   ));
   const routeView = clientRouteView(routeResolution, currentPath);
-  const routeResolutionPending = routeView === 'pending';
-  const routeResolutionUnavailable = routeView === 'unavailable';
-  const isNotFoundRoute = routeView === 'not-found';
   const locationParams = new URLSearchParams(locationSearch);
   const initialMetaPassRef = useRef(true);
 
@@ -838,7 +783,7 @@ export default function App() {
     const known = routeView === 'known' ? true : routeView === 'not-found' ? false : null;
     if (known === null || historyRouteKnowledge(window.history.state) === known) return;
     window.history.replaceState(withHistoryRouteKnowledge(window.history.state, known), '');
-  }, [currentPath, routeView]);
+  }, [routeView]);
 
   useEffect(() => {
     let active = true;
@@ -857,17 +802,14 @@ export default function App() {
         // Otherwise the stale result briefly makes the new route "pending",
         // unmounting it and discarding local filters before the next policy wins.
         if (normalizeClientRoutePath(window.location.pathname) !== policy.normalizedPathname) return;
-        setRouteResolution(previous => reconcileClientRouteResolution(
-          previous,
-          policy.normalizedPathname,
-          policy.known,
-        ));
+        setRouteResolution(settledClientRouteResolution(policy.normalizedPathname, policy.known));
       })
       .catch(() => {
-        if (!active) return;
-        setRouteResolution(previous => clientRouteView(previous, currentPath) === 'not-found'
-          ? previous
-          : unavailableClientRouteResolution(currentPath));
+        if (active) {
+          setRouteResolution(previous => clientRouteView(previous, currentPath) === 'not-found'
+            ? previous
+            : { pathname: normalizeClientRoutePath(currentPath), status: 'unavailable' });
+        }
       });
     return () => { active = false; };
   }, [activeTab, currentPath, locationSearch]);
@@ -1006,7 +948,7 @@ export default function App() {
   // Admin panel: ?admin in URL; access is checked by authenticated user ID.
   const wantsAdmin = locationParams.has('admin');
   const wantsLogin = locationParams.has('login');
-  const routeSurfaceAvailable = !routeResolutionPending && !routeResolutionUnavailable && !isNotFoundRoute;
+  const routeSurfaceAvailable = routeView === 'known';
   const isAdminMode = routeSurfaceAvailable && (wantsAdmin || activeTab === 'admin-panel');
   const [appAuthUser, setAppAuthUser] = useState<AuthUser | null>(null);
   const [appAuthChecking, setAppAuthChecking] = useState(true);
@@ -1130,9 +1072,8 @@ export default function App() {
             subscriptionStatus={appSubscription}
             subscriptionLoading={appSubscriptionLoading}
             onRefreshSubscription={() => fetchAppSubscription(true)}
-          >
-            <SubscriptionLockedPreview title={activeTabLabel} />
-          </LazyPaywallGate>
+            previewTitle={activeTabLabel}
+          />
         </React.Suspense>
       );
     }
@@ -1483,7 +1424,7 @@ export default function App() {
   }, [mobileMenuOpen]);
 
 		  return (
-    <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${isNotFoundRoute ? 'arena-app-not-found' : ''} ${activeTab === 'home' && !isAdminMode && routeSurfaceAvailable ? 'arena-app-home' : ''} ${wantsLogin && !isAdminMode && routeSurfaceAvailable ? 'arena-app-profile' : ''} ${isEditorialSurfacePage ? `arena-app-editorial arena-app-${activeTab}` : ''} ${isGameDataSurfacePage ? `arena-app-game-data arena-app-${activeTab}` : ''} ${isBattlegroundsSurfacePage ? `arena-app-battlegrounds arena-app-${activeTab}` : ''}`}>
+    <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${routeView === 'not-found' ? 'arena-app-not-found' : ''} ${activeTab === 'home' && !isAdminMode && routeSurfaceAvailable ? 'arena-app-home' : ''} ${wantsLogin && !isAdminMode && routeSurfaceAvailable ? 'arena-app-profile' : ''} ${isEditorialSurfacePage ? `arena-app-editorial arena-app-${activeTab}` : ''} ${isGameDataSurfacePage ? `arena-app-game-data arena-app-${activeTab}` : ''} ${isBattlegroundsSurfacePage ? `arena-app-battlegrounds arena-app-${activeTab}` : ''}`}>
       <a
         className="arena-skip-link"
         href="#main-content"
@@ -1722,13 +1663,11 @@ export default function App() {
             <div className="absolute bottom-0 right-0 w-8 h-8 sm:w-16 sm:h-16 border-b-2 sm:border-b-4 border-r-2 sm:border-r-4 border-gold rounded-br-xl opacity-50" />
           </>}
 
-          {routeResolutionPending ? (
-            <RouteFallback minHeight={520} />
-          ) : routeResolutionUnavailable ? (
-            <RouteResolutionFailure />
-          ) : isNotFoundRoute ? (
-            <React.Suspense fallback={<RouteFallback minHeight={520} />}>
-              <LazyNotFoundPage navigatePath={navigatePath} />
+          {routeView === 'pending' ? (
+            <RouteFallback />
+          ) : routeView === 'not-found' || routeView === 'unavailable' ? (
+            <React.Suspense fallback={<RouteFallback />}>
+              <LazyNotFoundPage state={routeView} navigatePath={navigatePath} />
             </React.Suspense>
           ) : wantsLogin ? (
             <>

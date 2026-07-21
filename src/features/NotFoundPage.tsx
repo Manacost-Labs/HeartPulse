@@ -1,17 +1,34 @@
-import { ArrowRight, Home, LibraryBig, SearchX } from 'lucide-react';
+import { ArrowRight, Home, LibraryBig, RefreshCw, SearchX } from 'lucide-react';
 import type { MouseEvent } from 'react';
 
 type NotFoundPageProps = {
   navigatePath: (path: string) => void;
+  state?: 'not-found' | 'unavailable';
 };
 
-export default function NotFoundPage({ navigatePath }: NotFoundPageProps) {
+export default function NotFoundPage({ navigatePath, state = 'not-found' }: NotFoundPageProps) {
   const navigate = (event: MouseEvent<HTMLAnchorElement>, path: string) => {
     if (event.defaultPrevented || event.button !== 0
       || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     navigatePath(path);
   };
+
+  if (state === 'unavailable') {
+    return (
+      <section className="not-found-page not-found-page--unavailable" aria-labelledby="route-unavailable-title" role="alert">
+        <div className="not-found-page__icon" aria-hidden="true"><RefreshCw /></div>
+        <p className="not-found-page__eyebrow">Ошибка загрузки</p>
+        <h1 id="route-unavailable-title">Не удалось открыть страницу</h1>
+        <p className="not-found-page__description">Обновите страницу, чтобы повторно загрузить таблицу маршрутов.</p>
+        <div className="not-found-page__actions">
+          <button className="not-found-page__primary" type="button" onClick={() => window.location.reload()}>
+            <RefreshCw aria-hidden="true" /> Обновить страницу
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="not-found-page" aria-labelledby="not-found-title">
