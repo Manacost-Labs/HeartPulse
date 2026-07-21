@@ -19,11 +19,13 @@ const nginxContractFiles = [
 ];
 
 try {
-  for (const directory of ['build/server', 'dist', 'public', 'server', 'scripts', 'deploy/nginx']) {
+  for (const directory of ['build/server', 'dist/sitemaps', 'public', 'server', 'scripts', 'deploy/nginx']) {
     mkdirSync(join(workspace, directory), { recursive: true });
   }
   writeFileSync(join(workspace, 'build/server/index.js'), 'console.log("server");\n');
   writeFileSync(join(workspace, 'dist/index.html'), '<!doctype html>\n<script type="module" src="/assets/index-stable.js"></script>\n');
+  writeFileSync(join(workspace, 'dist/sitemap.xml'), '<?xml version="1.0"?><sitemapindex/>\n');
+  writeFileSync(join(workspace, 'dist/sitemaps/static.xml'), '<?xml version="1.0"?><urlset/>\n');
   writeFileSync(join(workspace, 'public/asset.txt'), 'asset\n');
   writeFileSync(join(workspace, 'server/gen_legendary_image.py'), '# fixture\n');
   for (const script of ['backup-shared-data.sh', 'verify-backup.sh', 'restore-backup.sh', 'replicate-backup.sh']) {
@@ -59,6 +61,8 @@ try {
   assert.match(manifest.checksums['scripts/restore-backup.sh'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['scripts/replicate-backup.sh'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['scripts/verify-nginx-contract.mjs'], /^[a-f0-9]{64}$/);
+  assert.match(manifest.checksums['dist/sitemap.xml'], /^[a-f0-9]{64}$/);
+  assert.match(manifest.checksums['dist/sitemaps/static.xml'], /^[a-f0-9]{64}$/);
   assert.equal(manifest.nginxContract.schemaVersion, 1);
   assert.match(manifest.nginxContract.hash, /^[a-f0-9]{64}$/);
   assert.deepEqual(manifest.nginxContract.files.map(file => file.source), nginxContractFiles);

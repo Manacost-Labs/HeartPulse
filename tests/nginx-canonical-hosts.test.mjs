@@ -139,7 +139,15 @@ http {
       assert.equal(location.search, query, `${route.id} query preservation`);
     }
 
-    for (const unchangedPath of ['/tierlist/', '/api', '/assets/app.js', '/decks/legacy']) {
+    for (const unchangedPath of [
+      '/tierlist/',
+      '/api',
+      '/assets/app.js',
+      '/sitemap.xml',
+      '/sitemaps/static.xml',
+      '/sitemaps/standard-cards.xml',
+      '/decks/legacy',
+    ]) {
       const response = await requestRedirect(port, 'www.arena.hs-manacost.ru', unchangedPath);
       assert.equal(new URL(response.location).pathname, unchangedPath, `${unchangedPath} must not gain another slash`);
     }

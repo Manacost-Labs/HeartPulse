@@ -45,6 +45,7 @@ import {
 } from './constructedCardSeoRoutes.js';
 import { createBattlegroundHeroSeoRouter } from './battlegroundSeoRoutes.js';
 import { createBattlegroundLibrarySeoRouter } from './battlegroundLibrarySeoRoutes.js';
+import { createEntitySitemapRouter, loadStaticSitemapArtifact } from './entitySitemapRoutes.js';
 import {
   createStandardMetaRouter,
   type StandardMetaFormat,
@@ -6926,6 +6927,29 @@ const constructedCardFrontendShell = join(APP_ROOT_DIR, 'dist', 'index.html');
 const constructedCardFrontendAssets = existsSync(constructedCardFrontendShell)
   ? extractConstructedCardFrontendAssets(readFileSync(constructedCardFrontendShell, 'utf8'))
   : '';
+
+const staticSitemapCandidates = [
+  join(APP_ROOT_DIR, 'dist', 'sitemaps', 'static.xml'),
+  join(process.cwd(), 'dist', 'sitemaps', 'static.xml'),
+];
+const staticSitemapArtifact = loadStaticSitemapArtifact(staticSitemapCandidates, {
+  required: process.env.NODE_ENV === 'production' || RELEASE_SHA !== 'development',
+  onMissing: message => console.warn(`[entity-sitemap] ${message}; development server will continue without sitemap routes`),
+});
+if (staticSitemapArtifact) {
+  app.use(createEntitySitemapRouter({
+    loadStandardCards: () => constructedCardDataService.loadCards('standard').then(collection => collection.cards),
+    staticUrls: staticSitemapArtifact.urls,
+    staticLastModifiedMs: staticSitemapArtifact.modifiedAt,
+    stateDirectory: DATA_DIR,
+    cacheTtlMs: Number(process.env.SITEMAP_CACHE_TTL_MS || 10 * 60_000),
+    minimumStandardCardCount: Number(process.env.SITEMAP_STANDARD_MIN_CARDS || 500),
+    onError: error => console.error(
+      '[entity-sitemap] standard catalog refresh failed:',
+      error instanceof Error ? error.message : error,
+    ),
+  }));
+}
 
 app.use(createConstructedCardSeoRouter({
   loadCards: constructedCardDataService.loadCards,

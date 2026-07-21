@@ -35,12 +35,13 @@ SEO-, mobile- и stability-дорожные карты требуют общег
 - HTML strategy;
 - entitlement и mobile fixture.
 
-CI сверяет registry навигации и prerender с inventory. Следующие срезы подключат тот же inventory к metadata, sitemap, server redirects/noindex и synthetic checks.
+CI сверяет registry навигации и prerender с inventory. Runtime sitemap использует сгенерированный из этого registry static-сегмент, а Standard entity segment — тот же authoritative catalog и публичную проекцию, что card SSR. Следующие срезы расширят этот контракт на hero/BG/article entities и synthetic checks.
 
 ## Последствия
 
-- Текущий sitemap уже следует выбранной slash-политике; следующий срез переведёт его на генерацию из inventory и дат из датасетов.
-- Динамические Standard/Battlegrounds detail pages нельзя добавлять в sitemap до появления проверенного HTML snapshot и корректного 404.
+- Runtime sitemap index уже следует выбранной slash-политике: static-сегмент строится из SEO registry, Standard card segment — из проверенного SSR-каталога.
+- Standard cards публикуются с semantic change-only `lastmod`; первый обход дату не выдумывает, а LKG не заменяется неполным или дублированным каталогом.
+- Динамические Wild/Battlegrounds/hero detail pages нельзя добавлять в sitemap до отдельного сегмента, проверенного HTML snapshot и корректного 404.
 - Любой новый route без owner, index policy, mobile fixture и criticality ломает CI.
 - Решение не меняет entitlement: оно определяет только публичный teaser и поисковое поведение.
 
@@ -48,4 +49,5 @@ CI сверяет registry навигации и prerender с inventory. Сле�
 
 - `npm run test:route-inventory`;
 - `npm run test:routes`;
+- `npm run test:entity-sitemaps`;
 - markdownlint для `docs/**/*.md`.

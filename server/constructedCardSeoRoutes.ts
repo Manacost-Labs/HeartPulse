@@ -6,7 +6,7 @@ import type {
 
 type JsonRecord = Record<string, unknown>;
 
-type PublicConstructedCardSeoData = {
+export type PublicConstructedCardSeoData = {
   id: string;
   name: string;
   englishName: string | null;
@@ -154,7 +154,19 @@ function codeLabel(value: string | null, labels: Record<string, string>): string
     ?? normalized.toLocaleLowerCase('ru').replace(/_/g, ' ').replace(/(^|\s)\S/g, letter => letter.toLocaleUpperCase('ru'));
 }
 
-function projectPublicCard(card: JsonRecord): PublicConstructedCardSeoData {
+export function isIndexableConstructedCard(card: JsonRecord): boolean {
+  const id = text(card.card_id, 80) ?? '';
+  const name = record(card.name);
+  const publicName = text(name.ru, 180) ?? text(name.en, 180);
+  return card.catalogPending !== true
+    && /^[A-Za-z0-9_]{2,80}$/.test(id)
+    && Boolean(publicName);
+}
+
+export function projectPublicConstructedCardSeoData(
+  card: JsonRecord,
+  originValue?: string,
+): PublicConstructedCardSeoData {
   const name = record(card.name);
   const cardText = record(card.text);
   const flavor = record(card.flavor);
@@ -177,7 +189,7 @@ function projectPublicCard(card: JsonRecord): PublicConstructedCardSeoData {
     durability: finiteNumber(card.durability),
     armor: finiteNumber(card.armor),
     artist: text(card.artist, 180),
-    image: text(images.card, 1_000),
+    image: safeImageUrl(text(images.card, 1_000), canonicalOrigin(originValue)),
   };
 }
 
@@ -348,7 +360,7 @@ export function renderConstructedCardSeoDocument(options: {
   canonicalOrigin?: string;
   frontendAssets?: string;
 }): string {
-  const card = projectPublicCard(options.card);
+  const card = projectPublicConstructedCardSeoData(options.card, options.canonicalOrigin);
   const origin = canonicalOrigin(options.canonicalOrigin);
   const canonical = `${origin}/standard/cards/${options.format}/${card.id}/`;
   const image = safeImageUrl(card.image, origin);
@@ -496,8 +508,9 @@ export function createConstructedCardSeoRouter(dependencies: ConstructedCardSeoR
       if (!collection || !Array.isArray(collection.cards) || collection.cards.length === 0) {
         throw new Error('Invalid or empty constructed-card catalog');
       }
-      const card = collection.cards.find(candidate => String(candidate?.card_id ?? '') === cardId);
-      if (!card) {
+      const matches = collection.cards.filter(candidate => String(candidate?.card_id ?? '') === cardId);
+      const card = matches.length === 1 ? matches[0] : null;
+      if (!card || !isIndexableConstructedCard(card)) {
         const html = renderNoindexDocument({
           title: 'Карта не найдена | Manacost Stats',
           description: 'Запрошенная карта Hearthstone не найдена.',

@@ -26,7 +26,7 @@
 - Статические метатеги и JSON-LD в `index.html`.
 - Реестр навигации в `src/routes.ts` и единый реестр материализованных SEO-страниц в `config/public-seo-pages.json` + `src/seo/registry.ts`.
 - Клиентское обновление title, description, canonical, Open Graph и Twitter Card в `src/routes.ts`.
-- Prerender верхнеуровневых страниц и генерация `sitemap.xml` из того же реестра в `scripts/prerender.js`.
+- Prerender верхнеуровневых страниц и генерация статического sitemap-сегмента из того же реестра в `scripts/prerender.js`.
 - Статические `public/robots.txt` и `public/llms.txt`.
 - Страницы FAQ, статей, Standard, Arena и Battlegrounds.
 - Авторизация и paywall на уровне UI/API.
@@ -37,7 +37,7 @@
 | Проблема | Фактическое место | Риск | Приоритет |
 |---|---|---|---|
 | У детальных героев и BG-сущностей нет гарантированного HTML с уникальными метаданными до JS | SPA shell и текущий prerender | Пустые/неполные сниппеты, слабая индексация | P0 |
-| Sitemap пока содержит только 23 материализованные static/listing страницы | `config/public-seo-pages.json`, `scripts/prerender.js` | Качественные detail pages нельзя публиковать до появления валидированных snapshots | P0 |
+| Runtime sitemap пока включает 23 static/listing страницы и Standard-карты; hero/BG/article segments ещё не подключены | `server/entitySitemapRoutes.ts`, `scripts/prerender.js` | Остальные качественные detail pages нельзя публиковать до отдельных валидированных snapshots | P0 |
 | Versioned robots/noindex contract требует production rollout | Release v2 и deploy уже блокируют runtime drift, но активный legacy release ещё не переведён на managed contract | До разрешённого rollout production может продолжить старую index policy | P0 |
 | Detail canonical и HTTP status героев/BG-сущностей ещё не строятся из entity snapshot | SPA shell, nginx | Дубли, soft 404 и общий metadata fallback у оставшихся сущностей | P0 |
 | Schema Dataset использует дату сборки, а не дату данных | `scripts/prerender.js` | Недостоверный `dateModified` и freshness | P1 |
@@ -53,20 +53,21 @@
 - `SEO-202` для hero detail: `/heroes/:dbfId` разрешается по публичному каталогу и получает authoritative SSR 200/404/503, русские metadata/schema и whitelist без subscriber statistics; nginx сохраняет upstream status/headers, а CI проверяет identity-invariant HTML и отсутствие private sentinels.
 - `SEO-202` для базовой BG-библиотеки: detail pages существ и заклинаний разрешаются по точному DBF через полностью проверенную пару active/archive каталогов, нормализуют неправильный slug одним `301`, получают authoritative SSR 200/404/503 и не раскрывают impact, winrate, popularity, games или paywall payload. Валидированная публичная проекция кешируется в памяти на пять минут с per-kind singleflight; неуспешное обновление не превращается в ложный `404` и не кешируется.
 - `SEO-201`: `/standard/cards/:format/:cardId` получает SSR из авторитетного каталога, self-canonical, уникальные русские метаданные и публичную card schema; неизвестная карта возвращает `404`, недоступный каталог — `503`, а закрытая статистика и колоды не входят в HTML.
+- `SEO-203/204` для Standard: `/sitemap.xml` стал runtime index с отдельными `/sitemaps/static.xml` и `/sitemaps/standard-cards.xml`. Static-сегмент сохраняет ровно 23 URL из SEO-реестра, а card-сегмент использует тот же полный каталог и публичную проекцию, что SSR. Версионированный checksum-store с atomic `fsync`/rename и зеркальным LKG отклоняет пустые, неполные, дублированные и резко усечённые кандидаты; первый обход не выдумывает `lastmod`, а последующие даты меняются только вместе с semantic hash публичной карточки. Пяти–пятнадцатиминутный cache, singleflight, точный ETag, HTTP `Last-Modified` документа, безопасный LKG fallback и cold `503 Retry-After` закреплены unit/runtime/nginx tests.
 - Серверный resolver `/r/:slug` заменил клиентскую soft-redirect оболочку: активная ссылка сразу отвечает `302`, отсутствующая или приостановленная — `404`; обе ветки имеют `noindex, nofollow` и `no-store`.
 - `/api`, `/health` и `/metrics` получают `X-Robots-Tag: noindex, nofollow` на любом upstream status без изменения тела или cache policy; syntactically valid route без materialized HTML получает fail-closed SPA shell с `noindex, follow`, а не индексируемый home canonical.
 - `SEO-105`: robots policy закрывает crawl только для machine-only `/api`, `/health`, `/metrics` и `/_internal`; admin/auth HTML намеренно остаётся crawlable, чтобы бот увидел обязательный server-side `noindex`. CSS, JS, fonts и публичные изображения разрешены, а отдельный CI-контракт проверяет эту границу.
 - `SEO-104`: versioned nginx map объединяет scheme/host/slash normalization в один `301` для всех 33 route templates, сохраняет query и не добавляет slash API, assets, unknown или removed URL. CI поднимает временный nginx и проверяет canonical, `www` и legacy hosts; production DNS/TLS alias проверяется отдельно при rollout.
 - Release manifest v2 пакует полный versioned nginx contract, хранит install path/роль origin или edge, SHA-256 каждого файла и общий hash. Read-only verifier и deploy preflight проверяют artifact/runtime drift до любых мутаций; переход bootstrap/legacy/изменённого hash требует явного подтверждения N/N-1 compatibility и не может обойти drift.
-- Sitemap генерируется при prerender и содержит ровно 23 index/self-canonical URL. `/standard/matchups`, `/gallery`, `/library/archive/minions` и `/library/archive/spells` больше не теряются.
-- Недостоверные ручные `lastmod`, `changefreq` и `priority` удалены. Реальный `lastmod` появится только вместе с publication metadata сущностей.
-- Detail-карты намеренно не добавлены в materialized SEO-реестр или sitemap до отдельного `SEO-203`; SSR resolver, authoritative 404/503 и тесты на утечку уже готовы.
+- Static sitemap-сегмент генерируется при prerender и содержит ровно 23 index/self-canonical URL. `/standard/matchups`, `/gallery`, `/library/archive/minions` и `/library/archive/spells` больше не теряются.
+- Недостоверные ручные `lastmod`, `changefreq` и `priority` удалены. Standard card `lastmod` теперь хранится по semantic hash публичной SSR-проекции; первый обход дату намеренно не выставляет.
+- Standard detail-карты подключены к отдельному runtime segment. Wild, heroes, BG entities и будущие локальные articles остаются вне sitemap до своих вертикальных срезов.
 
 ### Ближайший порядок P0 SEO
 
 1. Закрыть `SEO-103–105`: server-side `noindex` для admin/auth, реальные 404/410, единый slash/redirect contract и robots policy.
 2. Реализовать `SEO-202`: SSR и валидные entity snapshots для героев и BG detail pages с fail-closed 404/503.
-3. После crawl-проверки каждого detail URL выполнить `SEO-203/204`: sitemap index по типам сущностей и настоящий `lastmod` из publication metadata.
+3. Расширить уже работающий `SEO-203/204` после crawl-проверки: добавить отдельные hero/BG/article segments, не смешивая их с готовым Standard-контрактом.
 4. Закрыть `SEO-301/302`: публичный teaser paywall и автоматический тест, доказывающий отсутствие закрытых чисел, deck codes и subscriber payload в HTML/JSON-LD.
 5. Подключить `SEO-501` и исправлять CWV только по field p75: LCP, INP и CLS отдельно для route template, mobile/desktop и release.
 6. Запустить `SEO-601/602`: Search Console + Яндекс baseline, ежедневный SEO synthetic и алерт на status/canonical/sitemap/schema regression.
@@ -185,12 +186,12 @@ FAQ-разметка остаётся семантической, но план 
 |---|---|---|---|---|
 | SEO-201 | P0 | Сделать HTML-снимки detail pages Standard-карт | SEO-101, валидированный card snapshot | До JS видны уникальные title, description, H1, картинка, card facts и canonical |
 | SEO-202 | P0 | Аналогично покрыть `/heroes/:dbfId` и detail pages `/library/**` | SEO-101 | Герои и base minion/spell details проходят 200/301/404/503/meta/schema/privacy/cache tests; остаются additional/archive detail pages |
-| SEO-203 | P0 | Генерировать sitemap index и сегменты | SEO-201, SEO-202 | Отдельные sitemap для static, standard cards, BG library, heroes и будущих articles; только 200 canonical URL |
-| SEO-204 | P0 | Использовать реальный `lastmod` | Data publication metadata | `lastmod` меняется только при значимом изменении сущности/набора, а не при каждом deploy |
+| SEO-203 | P0 | Генерировать sitemap index и сегменты | SEO-201, SEO-202 | Готовы static + Standard cards; далее отдельные BG library, heroes и будущие articles segments, только 200 canonical URL |
+| SEO-204 | P0 | Использовать реальный `lastmod` | Data publication metadata | Готов semantic-hash contract Standard; следующие entity types должны повторить change-only правило |
 | SEO-205 | P1 | Добавить динамические OG-изображения | SEO-201 | 1200×630, русское имя, режим и бренд; fallback проверен; image URL отдаёт 200 и корректный MIME |
 | SEO-206 | P1 | Устранить hard-coded ItemList counts | SEO-101 | Count/position строятся из публичного snapshot и совпадают с HTML |
 
-Текущий статус фазы 2: `SEO-201` завершён для SSR detail pages Standard/Wild-карт. В `SEO-202` завершены hero и base minion/spell details; additional/archive BG details остаются в работе. Entity sitemap не публикуется до отдельного `SEO-203` и проверки всех URL на `200`/canonical/indexability.
+Текущий статус фазы 2: `SEO-201` завершён для SSR detail pages Standard/Wild-карт. В `SEO-202` завершены hero и base minion/spell details; additional/archive BG details остаются в работе. Первый `SEO-203/204` slice публикует только Standard cards и static segment через runtime index; Wild, heroes и BG остаются за теми же воротами `200`/canonical/indexability.
 
 Контрольная точка: sitemap validator не находит redirects, 4xx, noindex или non-canonical URL; выборка detail pages корректна без JavaScript.
 

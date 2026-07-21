@@ -723,7 +723,7 @@ function escapeXml(value) {
     .replaceAll("'", '&apos;');
 }
 
-function generateSitemapXml() {
+function generateStaticSitemapXml() {
   const urls = [...SEO_PAGES.entries()]
     .filter(([, page]) => page.sitemap)
     .map(([pathname]) => {
@@ -732,6 +732,14 @@ function generateSitemapXml() {
       return `  <url><loc>${escapeXml(canonical)}</loc></url>`;
     });
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`;
+}
+
+function generateSitemapIndexXml() {
+  const locations = [
+    `${SITE_URL}/sitemaps/static.xml`,
+    `${SITE_URL}/sitemaps/standard-cards.xml`,
+  ];
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${locations.map(location => `  <sitemap><loc>${escapeXml(location)}</loc></sitemap>`).join('\n')}\n</sitemapindex>\n`;
 }
 
 const API_BASE = process.env.PRERENDER_API || 'http://127.0.0.1:3101';
@@ -1132,9 +1140,11 @@ async function main() {
     resolve(distDir, '404.html'),
   );
 
-  const sitemapPath = resolve(distDir, 'sitemap.xml');
-  writeFileSync(sitemapPath, generateSitemapXml(), 'utf-8');
-  console.log(`[prerender] ✓ sitemap.xml (${[...SEO_PAGES.values()].filter(page => page.sitemap).length} URLs)`);
+  const sitemapDirectory = resolve(distDir, 'sitemaps');
+  mkdirSync(sitemapDirectory, { recursive: true });
+  writeFileSync(resolve(sitemapDirectory, 'static.xml'), generateStaticSitemapXml(), 'utf-8');
+  writeFileSync(resolve(distDir, 'sitemap.xml'), generateSitemapIndexXml(), 'utf-8');
+  console.log(`[prerender] ✓ sitemap index + static segment (${[...SEO_PAGES.values()].filter(page => page.sitemap).length} static URLs)`);
 
   makePublicReadable(distDir);
   console.log('[prerender] ✓ Fixed dist/ permissions');

@@ -22,6 +22,8 @@ if (existsSync(output)) throw new Error(`Release output already exists: ${output
 for (const required of [
   'build/server/index.js',
   'dist/index.html',
+  'dist/sitemap.xml',
+  'dist/sitemaps/static.xml',
   'package.json',
   'package-lock.json',
   'scripts/verify-nginx-contract.mjs',
@@ -79,6 +81,8 @@ async function sha256(file) {
 const criticalFiles = [
   'build/server/index.js',
   'dist/index.html',
+  'dist/sitemap.xml',
+  'dist/sitemaps/static.xml',
   'package-lock.json',
   'scripts/backup-shared-data.sh',
   'scripts/verify-backup.sh',

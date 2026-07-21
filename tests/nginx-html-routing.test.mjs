@@ -102,6 +102,25 @@ assert.doesNotMatch(edgeStaticSource, /proxy_cache_valid\s+404|expires\s+30d|Cac
 assert.match(edgeStaticSource, /X-Proxy-Region\s+\$arena_proxy_region\s+always;/,
   'the shared edge contract must expose its configured region');
 
+for (const machinePath of ['/sitemap.xml', '/sitemaps/static.xml', '/sitemaps/standard-cards.xml']) {
+  const exact = locations.find(location => location.modifier === '=' && location.pattern === machinePath);
+  assert.match(exact?.body || '', /proxy_pass\s+http:\/\/127\.0\.0\.1:3101;/,
+    `${machinePath} must use the runtime sitemap resolver`);
+  assert.match(exact?.body || '', /proxy_intercept_errors\s+off;/,
+    `${machinePath} must preserve runtime status and cache validators`);
+  assert.doesNotMatch(exact?.body || '', /try_files|add_header\s+Cache-Control/i,
+    `${machinePath} must never fall back to a static or SPA response`);
+}
+const unknownSitemaps = locations.find(location => location.modifier === '^~' && location.pattern === '/sitemaps/');
+assert.match(unknownSitemaps?.body || '', /proxy_pass\s+http:\/\/127\.0\.0\.1:3101;/,
+  'unknown sitemap segments must reach the authoritative 404 resolver');
+assert.match(unknownSitemaps?.body || '', /proxy_intercept_errors\s+off;/,
+  'unknown sitemap 404 responses must pass through nginx');
+assert.match(routingSource, /location\s+~\s+\^\/\(robots\\\.txt\|llms\\\.txt\)\$/,
+  'robots and llms controls remain strict static files');
+assert.doesNotMatch(routingSource, /location\s+~[^\n]*sitemap\\\.xml[^\n]*\{[\s\S]*?try_files\s+\$uri/,
+  'sitemap.xml must no longer be served as a build-time static URL set');
+
 for (const path of ['/api', '/api/health/ready', '/health/live', '/metrics']) {
   if (path === '/api') {
     const exact = locations.find(location => location.modifier === '=' && location.pattern === '/api');
@@ -314,6 +333,46 @@ async function startCardSeoUpstream() {
       status: 200,
       headers: { 'Cache-Control': 'no-store' },
       body: 'arena_requests_total 1\n',
+    }],
+    ['/sitemap.xml', {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/xml; charset=utf-8',
+        'Cache-Control': 'public, max-age=600',
+        ETag: '"sitemap-index"',
+        'X-Sitemap-Source': 'static',
+      },
+      body: '<?xml version="1.0"?><sitemapindex><sitemap><loc>https://arena.hs-manacost.ru/sitemaps/static.xml</loc></sitemap></sitemapindex>',
+    }],
+    ['/sitemaps/static.xml', {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/xml; charset=utf-8',
+        'Cache-Control': 'public, max-age=600',
+        ETag: '"sitemap-static"',
+        'Last-Modified': 'Tue, 21 Jul 2026 08:00:00 GMT',
+        'X-Sitemap-Source': 'static',
+      },
+      body: '<?xml version="1.0"?><urlset><url><loc>https://arena.hs-manacost.ru/</loc></url></urlset>',
+    }],
+    ['/sitemaps/standard-cards.xml', {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/xml; charset=utf-8',
+        'Cache-Control': 'public, max-age=600',
+        ETag: '"sitemap-cards"',
+        'Last-Modified': 'Tue, 21 Jul 2026 08:05:00 GMT',
+        'X-Sitemap-Source': 'catalog',
+      },
+      body: '<?xml version="1.0"?><urlset><url><loc>https://arena.hs-manacost.ru/standard/cards/standard/CARD_OK/</loc></url></urlset>',
+    }],
+    ['/sitemaps/unknown.xml', {
+      status: 404,
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+      body: 'Sitemap not found',
     }],
     ['/r/summer', {
       status: 302,
@@ -614,6 +673,28 @@ http {
         `${technicalFixture.path} technical robots policy`);
       assert.equal(technical.headers['x-content-type-options'], 'nosniff',
         `${technicalFixture.path} shared security headers`);
+    }
+
+    for (const sitemapFixture of [
+      { path: '/sitemap.xml', status: 200, etag: '"sitemap-index"', source: 'static' },
+      { path: '/sitemaps/static.xml', status: 200, etag: '"sitemap-static"', source: 'static' },
+      { path: '/sitemaps/standard-cards.xml', status: 200, etag: '"sitemap-cards"', source: 'catalog' },
+      { path: '/sitemaps/unknown.xml', status: 404, etag: undefined, source: undefined },
+    ]) {
+      const sitemap = await requestNginx(port, sitemapFixture.path);
+      assert.equal(sitemap.status, sitemapFixture.status, `${sitemapFixture.path} runtime status`);
+      assert.equal(sitemap.headers.etag, sitemapFixture.etag, `${sitemapFixture.path} ETag passthrough`);
+      assert.equal(sitemap.headers['x-sitemap-source'], sitemapFixture.source,
+        `${sitemapFixture.path} diagnostic passthrough`);
+      if (sitemapFixture.status === 200) {
+        assert.match(sitemap.headers['content-type'] || '', /^application\/xml/i,
+          `${sitemapFixture.path} XML content type`);
+        assert.match(sitemap.headers['cache-control'] || '', /public, max-age=600/,
+          `${sitemapFixture.path} cache policy passthrough`);
+      } else {
+        assert.match(sitemap.headers['cache-control'] || '', /no-store/,
+          `${sitemapFixture.path} missing-segment cache policy`);
+      }
     }
 
     const cardRedirect = await requestNginx(

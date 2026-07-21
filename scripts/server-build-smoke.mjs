@@ -46,6 +46,11 @@ async function requestJson(path) {
   return { response, body };
 }
 
+async function requestText(path) {
+  const response = await fetch(`http://127.0.0.1:${port}${path}`);
+  return { response, body: await response.text() };
+}
+
 try {
   let live;
   for (let attempt = 0; attempt < 80; attempt += 1) {
@@ -73,6 +78,19 @@ try {
 
   const legacy = await requestJson('/api/status');
   if (legacy.response.status !== 200 || legacy.body.nextScrape !== 'каждые 6 часов') throw new Error('legacy status contract failed');
+
+  const sitemapIndex = await requestText('/sitemap.xml');
+  if (sitemapIndex.response.status !== 200
+    || !/^application\/xml/i.test(sitemapIndex.response.headers.get('content-type') || '')
+    || !sitemapIndex.body.includes('/sitemaps/static.xml')
+    || !sitemapIndex.body.includes('/sitemaps/standard-cards.xml')) {
+    throw new Error('runtime sitemap index contract failed');
+  }
+  const staticSitemap = await requestText('/sitemaps/static.xml');
+  if (staticSitemap.response.status !== 200
+    || [...staticSitemap.body.matchAll(/<url>/g)].length !== 23) {
+    throw new Error('runtime static sitemap contract failed');
+  }
 
   console.log('compiled server smoke tests passed');
 } finally {
