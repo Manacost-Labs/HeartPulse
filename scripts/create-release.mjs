@@ -24,6 +24,7 @@ for (const required of [
   'dist/index.html',
   'package.json',
   'package-lock.json',
+  'scripts/verify-nginx-contract.mjs',
   ...nginxContractFiles,
 ]) {
   if (!existsSync(required)) throw new Error(`Required release input is missing: ${required}`);
@@ -50,7 +51,13 @@ writeFileSync(indexPath, versionedIndexHtml);
 mkdirSync(join(output, 'server'), { recursive: true });
 cpSync('server/gen_legendary_image.py', join(output, 'server', 'gen_legendary_image.py'));
 mkdirSync(join(output, 'scripts'), { recursive: true });
-for (const script of ['backup-shared-data.sh', 'verify-backup.sh', 'restore-backup.sh', 'replicate-backup.sh']) {
+for (const script of [
+  'backup-shared-data.sh',
+  'verify-backup.sh',
+  'restore-backup.sh',
+  'replicate-backup.sh',
+  'verify-nginx-contract.mjs',
+]) {
   cpSync(join('scripts', script), join(output, 'scripts', script));
 }
 cpSync('package.json', join(output, 'package.json'));
@@ -77,6 +84,7 @@ const criticalFiles = [
   'scripts/verify-backup.sh',
   'scripts/restore-backup.sh',
   'scripts/replicate-backup.sh',
+  'scripts/verify-nginx-contract.mjs',
   ...nginxContractFiles,
 ];
 const checksums = Object.fromEntries(await Promise.all(

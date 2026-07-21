@@ -29,7 +29,26 @@ npm run release:create -- --output="$artifact" --sha="$sha"
 ```
 
 `release.json` records the commit, Node version, package-lock hash and SHA-256
-checksums for the compiled server, frontend entry point and lockfile.
+checksums for the compiled server, frontend entry point and lockfile. Manifest
+schema v2 also carries the five versioned nginx files, their origin/edge role,
+installation path, individual hashes and one aggregate contract hash.
+
+Before any deployment, compare the immutable release contract with the files
+actually installed on the target host. The verifier is strictly read-only: it
+does not copy configuration, reload nginx or change file metadata.
+
+```bash
+sudo node "$artifact/scripts/verify-nginx-contract.mjs" \
+  --release="$artifact" \
+  --installed-root=/ \
+  --role=origin
+```
+
+Exit code `0` means the artifact and installed files match, `1` means runtime
+drift (a file is missing or modified), and `2` means the artifact is corrupt,
+unsupported or still uses the legacy unmanaged manifest. Resolve drift through
+the reviewed infrastructure procedure and run `nginx -t`; never use the
+verifier as an installer.
 
 ## Deploy
 
@@ -53,6 +72,12 @@ The deployer:
 8. waits for direct readiness on port 3101;
 9. restores the former `current` automatically when restart/readiness fails;
 10. updates `previous` only after a healthy deployment.
+
+The application rollback only switches the release symlink. It does not roll
+back `/etc/nginx`, so a changed nginx contract must remain compatible with both
+application versions N and N-1 until a separate, tested infrastructure rollback
+is available. Do not describe a release as fully rollback-safe while those
+contracts differ without an explicit compatibility review.
 
 ## First infrastructure switch
 

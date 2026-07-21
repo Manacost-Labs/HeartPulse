@@ -29,6 +29,11 @@ try {
   for (const script of ['backup-shared-data.sh', 'verify-backup.sh', 'restore-backup.sh', 'replicate-backup.sh']) {
     writeFileSync(join(workspace, 'scripts', script), '#!/usr/bin/env bash\nexit 0\n', { mode: 0o755 });
   }
+  writeFileSync(
+    join(workspace, 'scripts/verify-nginx-contract.mjs'),
+    '#!/usr/bin/env node\nconsole.log("fixture");\n',
+    { mode: 0o755 },
+  );
   writeFileSync(join(workspace, 'package.json'), '{"name":"fixture"}\n');
   writeFileSync(join(workspace, 'package-lock.json'), '{"lockfileVersion":3}\n');
   for (const [index, file] of nginxContractFiles.entries()) {
@@ -53,6 +58,7 @@ try {
   assert.match(manifest.checksums['scripts/verify-backup.sh'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['scripts/restore-backup.sh'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['scripts/replicate-backup.sh'], /^[a-f0-9]{64}$/);
+  assert.match(manifest.checksums['scripts/verify-nginx-contract.mjs'], /^[a-f0-9]{64}$/);
   assert.equal(manifest.nginxContract.schemaVersion, 1);
   assert.match(manifest.nginxContract.hash, /^[a-f0-9]{64}$/);
   assert.deepEqual(manifest.nginxContract.files.map(file => file.source), nginxContractFiles);
@@ -84,7 +90,13 @@ try {
     );
     assert.match(manifest.checksums[file], /^[a-f0-9]{64}$/);
   }
-  for (const script of ['backup-shared-data.sh', 'verify-backup.sh', 'restore-backup.sh', 'replicate-backup.sh']) {
+  for (const script of [
+    'backup-shared-data.sh',
+    'verify-backup.sh',
+    'restore-backup.sh',
+    'replicate-backup.sh',
+    'verify-nginx-contract.mjs',
+  ]) {
     assert.ok((statSync(join(output, 'scripts', script)).mode & 0o111) !== 0, `${script} is not executable`);
   }
 } finally {
