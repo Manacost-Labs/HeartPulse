@@ -19,6 +19,7 @@ import {
   Trophy,
   type LucideIcon,
 } from 'lucide-react';
+import type { ResolvedPublicUrlPolicy } from './seo/publicUrlPolicy';
 
 export type RouteGroup = 'home' | 'top' | 'standard' | 'arena' | 'bg-primary' | 'bg-builder' | 'misc' | 'admin';
 export type RouteEntitlement = 'arena' | 'battlegrounds' | 'standard' | 'contests' | 'guidesArchive' | 'arenaArticles' | 'battlegroundsArticles';
@@ -137,7 +138,7 @@ export async function applyPageMeta(
   tabId: TabId,
   pathname = window.location.pathname,
   search = window.location.search,
-): Promise<void> {
+): Promise<ResolvedPublicUrlPolicy> {
   const [{ seoPageForExactPath, seoPageForNavigationRoute }, { applyDocumentPageMeta }] = await Promise.all([
     import('./seo/registry'),
     import('./seo/publicUrlPolicy'),
@@ -145,5 +146,5 @@ export async function applyPageMeta(
   const route = TABS.find(item => item.id === tabId) ?? TABS[0];
   const { title, description } = seoPageForExactPath(pathname)
     ?? seoPageForNavigationRoute(route.id);
-  await applyDocumentPageMeta({ title, description, pathname, search });
+  return applyDocumentPageMeta({ title, description, pathname, search });
 }

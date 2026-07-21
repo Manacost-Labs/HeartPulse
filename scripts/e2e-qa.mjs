@@ -61,8 +61,11 @@ if (requestedResponsiveWidths.some(width => !defaultResponsiveProfiles.some(prof
 const scopedResponsiveFixtures = responsiveScope === 'off'
   ? []
   : responsiveInventory.fixtures.filter(fixture => responsiveScope === 'all-p0' || fixture.representative);
-const responsiveFixtures = scopedResponsiveFixtures.filter(fixture => (fixture.transport || 'preview') === 'preview');
-const deferredResponsiveFixtures = scopedResponsiveFixtures.filter(fixture => fixture.transport === 'nginx-html');
+const responsiveFixtures = scopedResponsiveFixtures;
+const localNotFoundDocument = responsiveFixtures.some(fixture => fixture.transport === 'nginx-html')
+  && process.env.QA_PREVIEW_DIST_DIR
+  ? readFileSync(`${process.env.QA_PREVIEW_DIST_DIR.replace(/\/$/, '')}/404.html`, 'utf8')
+  : null;
 const failures = [];
 const qaCardImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="560" viewBox="0 0 400 560"%3E%3Crect width="400" height="560" rx="34" fill="%233b254b"/%3E%3Crect x="22" y="22" width="356" height="516" rx="26" fill="%23c49a55"/%3E%3Crect x="42" y="42" width="316" height="300" rx="18" fill="%236d1117"/%3E%3Ccircle cx="200" cy="188" r="92" fill="%23f0cf77"/%3E%3Cpath d="M145 235L200 105l55 130z" fill="%235b3470"/%3E%3Crect x="58" y="366" width="284" height="126" rx="18" fill="%23f7e8bf"/%3E%3Ctext x="200" y="420" text-anchor="middle" font-size="25" font-family="serif" font-weight="700" fill="%233d2a1e"%3EQA CARD%3C/text%3E%3Ctext x="200" y="458" text-anchor="middle" font-size="17" font-family="sans-serif" fill="%235c4938"%3EManacost%3C/text%3E%3C/svg%3E';
 const qaCardGoldenImage = `${qaCardImage}#golden`;
@@ -736,12 +739,35 @@ function jsonResponse(body) {
   };
 }
 
-async function mockApplicationApi(page, { authenticated, admin = false, adminState = {}, strictApi = false }) {
+async function mockApplicationApi(page, {
+  authenticated,
+  admin = false,
+  adminState = {},
+  strictApi = false,
+  notFoundDocument = null,
+}) {
   let shellChunkFailures = 0;
   let shellRenderOverrides = 0;
   await page.setRequestInterception(true);
   page.on('request', request => {
     const url = new URL(request.url());
+    if (notFoundDocument
+      && request.isNavigationRequest()
+      && request.resourceType() === 'document'
+      && request.frame() === page.mainFrame()
+      && url.origin === BASE_ORIGIN
+      && url.pathname === notFoundDocument.pathname) {
+      request.respond({
+        status: 404,
+        contentType: 'text/html; charset=utf-8',
+        headers: {
+          'cache-control': 'no-cache, no-store, must-revalidate',
+          'x-robots-tag': 'noindex, nofollow',
+        },
+        body: notFoundDocument.html,
+      });
+      return;
+    }
     if (adminState.shellRenderFailure
       && shellRenderOverrides === 0
       && /^\/assets\/GlobalUtilityHeader-[^/]+\.js$/.test(url.pathname)) {
@@ -1654,6 +1680,7 @@ async function assertResponsiveFixtureState(page, fixture, label) {
       paywallVisible: visible(paywall),
       paywallPreviewInert: Boolean(paywall?.querySelector('.arena-paywall__preview')?.hasAttribute('inert')),
       deniedText: document.querySelector('.admin-access-state')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      notFoundText: document.querySelector('.not-found-page')?.textContent?.replace(/\s+/g, ' ').trim() || '',
     };
   }, fixture.ready.selector);
 
@@ -1669,6 +1696,9 @@ async function assertResponsiveFixtureState(page, fixture, label) {
   }
   if (fixture.state === 'denied' && !state.deniedText.toLocaleLowerCase('ru').includes('недоступ')) {
     failures.push(`${label}: admin denial copy is missing (${JSON.stringify(state)})`);
+  }
+  if (fixture.state === 'not-found' && !state.notFoundText.includes('Страница не найдена')) {
+    failures.push(`${label}: not-found copy is missing (${JSON.stringify(state)})`);
   }
 }
 
@@ -2288,6 +2318,10 @@ for (const fixture of responsiveFixtures) {
     const scenarioFailureStart = failures.length;
     const label = `responsive ${fixture.id} [${profile.width}x${profile.height}]`;
     const screenshotPath = `${OUT}/responsive-${fixture.id}-${profile.id}.png`;
+    const transport = fixture.transport === 'nginx-html'
+      ? (localNotFoundDocument ? 'status-preserving-local' : 'production-nginx')
+      : 'preview';
+    let httpStatus = null;
     await page.setViewport({
       width: profile.width,
       height: profile.height,
@@ -2299,9 +2333,16 @@ for (const fixture of responsiveFixtures) {
       authenticated: fixture.access !== 'anonymous',
       admin: fixture.access === 'admin',
       strictApi: true,
+      notFoundDocument: fixture.transport === 'nginx-html' && localNotFoundDocument
+        ? { pathname: fixture.path, html: localNotFoundDocument }
+        : null,
     });
     try {
-      await page.goto(`${BASE}${fixture.path}`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+      const navigationResponse = await page.goto(`${BASE}${fixture.path}`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+      httpStatus = navigationResponse?.status() ?? null;
+      if (fixture.transport === 'nginx-html' && httpStatus !== 404) {
+        failures.push(`${label}: expected status-preserving HTTP 404, received ${httpStatus ?? 'no response'}`);
+      }
       if (fixture.access === 'subscriber') await waitForAuthenticatedShell(page);
       await page.waitForSelector(fixture.ready.selector, { visible: true, timeout: 20_000 });
       await settleResponsiveSnapshot(page, { waitForFooter: !fixture.path.startsWith('/admin') });
@@ -2327,6 +2368,44 @@ for (const fixture of responsiveFixtures) {
 
       await page.screenshot({ path: screenshotPath, fullPage: false });
       const screenshotSha256 = createHash('sha256').update(readFileSync(screenshotPath)).digest('hex');
+      if (fixture.id === 'not-found' && profile.id === 'compact-min') {
+        await page.waitForFunction(() => window.history.state?.routeKnown === false);
+        const initial404State = await page.evaluate(() => ({
+          knowledge: window.history.state?.routeKnown,
+          staleMarker: document.getElementById('root')?.hasAttribute('data-route-status') ?? false,
+        }));
+        if (initial404State.knowledge !== false || initial404State.staleMarker) {
+          failures.push(`${label}: bootstrap 404 state was not captured cleanly (${JSON.stringify(initial404State)})`);
+        }
+
+        await page.click('.not-found-page a[href="/"]');
+        await page.waitForFunction(() => window.location.pathname === '/');
+        await page.waitForSelector('.home-modern', { visible: true });
+        await page.evaluate(() => {
+          window.__qaSawHomeMutationWhileReturningTo404 = false;
+          const observer = new MutationObserver(() => {
+            if (window.location.pathname !== '/' && document.querySelector('.home-modern')) {
+              window.__qaSawHomeMutationWhileReturningTo404 = true;
+            }
+          });
+          observer.observe(document.getElementById('root'), { childList: true, subtree: true });
+          window.__qa404ReturnObserver = observer;
+          window.history.back();
+        });
+        await page.waitForFunction(path => window.location.pathname === path, {}, fixture.path);
+        await page.waitForSelector('.not-found-page', { visible: true });
+        const returned404State = await page.evaluate(() => {
+          window.__qa404ReturnObserver?.disconnect();
+          return {
+            knowledge: window.history.state?.routeKnown,
+            sawHomeMutation: Boolean(window.__qaSawHomeMutationWhileReturningTo404),
+            staleMarker: document.getElementById('root')?.hasAttribute('data-route-status') ?? false,
+          };
+        });
+        if (returned404State.knowledge !== false || returned404State.sawHomeMutation || returned404State.staleMarker) {
+          failures.push(`${label}: 404 → Home → Back recovery regressed (${JSON.stringify(returned404State)})`);
+        }
+      }
       const scenarioFailures = failures.slice(scenarioFailureStart);
       responsiveScreenshotManifest.push({
         fixture: fixture.id,
@@ -2335,6 +2414,8 @@ for (const fixture of responsiveFixtures) {
         viewport: { width: profile.width, height: profile.height },
         access: fixture.access,
         state: fixture.state,
+        transport,
+        httpStatus,
         screenshot: screenshotPath.split('/').at(-1),
         screenshotSha256,
         captureStatus: 'captured',
@@ -2353,6 +2434,8 @@ for (const fixture of responsiveFixtures) {
         viewport: { width: profile.width, height: profile.height },
         access: fixture.access,
         state: fixture.state,
+        transport,
+        httpStatus,
         screenshot: null,
         captureStatus: 'failed',
         qaStatus: 'failed',
@@ -2363,16 +2446,6 @@ for (const fixture of responsiveFixtures) {
     }
   }
 }
-for (const fixture of deferredResponsiveFixtures) {
-  responsiveScreenshotManifest.push({
-    fixture: fixture.id,
-    routeId: fixture.routeId,
-    transport: fixture.transport,
-    captureStatus: 'deferred',
-    qaStatus: 'deferred-to-nginx',
-  });
-  console.log(`↷ responsive ${fixture.id}: deferred to production-like nginx transport`);
-}
 if (responsiveScope !== 'off') {
   const responsiveManifestPath = `${OUT}/responsive-manifest.json`;
   const responsiveManifestTemporaryPath = `${responsiveManifestPath}.tmp-${process.pid}`;
@@ -2380,7 +2453,6 @@ if (responsiveScope !== 'off') {
     if (entry.captureStatus === 'captured') summary.captured += 1;
     if (entry.qaStatus === 'passed') summary.passed += 1;
     if (entry.qaStatus === 'failed') summary.failed += 1;
-    if (entry.qaStatus === 'deferred-to-nginx') summary.deferred += 1;
     summary.touchTargetsBelow44px += entry.findings?.touchTargetsBelow44px || 0;
     return summary;
   }, { captured: 0, passed: 0, failed: 0, deferred: 0, touchTargetsBelow44px: 0 });
@@ -3746,6 +3818,12 @@ for (const [device, viewport] of [
     await page.click('.constructed-cards__format button:first-child');
     await page.waitForFunction(() => window.location.pathname === '/standard/cards/standard');
     await page.waitForSelector('.constructed-cards__gallery-card');
+    await page.evaluate(() => window.history.back());
+    await page.waitForFunction(() => window.location.pathname === '/standard/cards/wild');
+    await page.evaluate(() => window.history.back());
+    await page.waitForFunction(() => window.location.pathname === '/standard/cards');
+    await page.waitForSelector('.constructed-cards__gallery-card');
+    await page.waitForFunction(() => document.querySelector('.constructed-cards__primary-controls .constructed-cards__filter select')?.value === 'winrate');
     if (device === 'desktop') {
       await page.hover('.constructed-cards__gallery-card');
       await page.waitForSelector('.constructed-cards__tooltip');

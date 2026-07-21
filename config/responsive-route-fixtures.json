@@ -354,7 +354,7 @@
       "access": "anonymous",
       "state": "not-found",
       "transport": "nginx-html",
-      "ready": { "selector": "body" },
+      "ready": { "selector": ".not-found-page", "text": "Страница не найдена" },
       "capture": { "mode": "viewport", "anchor": "top" },
       "checks": ["overflow", "runtime-errors", "axe", "targets"],
       "representative": false

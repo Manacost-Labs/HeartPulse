@@ -99,6 +99,20 @@ assert.ok(
   'responsive QA must treat failed same-origin API and asset requests as runtime failures',
 );
 assert.ok(
+  browserQa.includes("request.frame() === page.mainFrame()")
+    && browserQa.includes("url.pathname === notFoundDocument.pathname"),
+  'local 404 substitution must be limited to the exact main-frame fixture document',
+);
+assert.ok(
+  browserQa.includes('expected status-preserving HTTP 404')
+    && browserQa.includes('httpStatus = navigationResponse?.status()'),
+  'responsive QA must assert and record the not-found document HTTP status',
+);
+assert.ok(
+  !browserQa.includes('deferred-to-nginx'),
+  'the production 404 fixture must be captured rather than deferred',
+);
+assert.ok(
   browserQa.includes("createHash('sha256').update(readFileSync(screenshotPath)).digest('hex')"),
   'responsive screenshot manifest must fingerprint every captured image',
 );

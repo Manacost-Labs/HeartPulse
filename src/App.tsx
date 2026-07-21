@@ -23,6 +23,27 @@ import {
   TOP_LEVEL_TABS,
   type TabId,
 } from './routes';
+import {
+  captureInitialServerRouteHint,
+  clientRouteView,
+  historyRouteKnowledge,
+  initialClientRouteResolution,
+  normalizeClientRoutePath,
+  reconcileClientRouteResolution,
+  settledClientRouteResolution,
+  unavailableClientRouteResolution,
+  withHistoryRouteKnowledge,
+} from './routing/clientRouteResolution';
+
+// Preserve the server response context across an in-place render retry. The
+// static 404 marker describes only the URL that bootstrapped this document;
+// it must not turn a later, valid SPA destination into another 404 on remount.
+const BOOTSTRAP_ROUTE_ROOT = typeof document === 'undefined' ? null : document.getElementById('root');
+const INITIAL_SERVER_ROUTE_HINT = captureInitialServerRouteHint(
+  typeof window === 'undefined' ? '/' : window.location.pathname,
+  BOOTSTRAP_ROUTE_ROOT?.dataset.routeStatus,
+);
+BOOTSTRAP_ROUTE_ROOT?.removeAttribute('data-route-status');
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -573,6 +594,10 @@ function NavigationRouteLinks({
 const loadDeferredRoutesModule = () => import('./features/DeferredRoutes');
 const loadHomeModule = () => import('./features/Home');
 const loadFAQPageModule = () => import('./features/FAQPage');
+const loadNotFoundPageModule = () => Promise.all([
+  import('./features/NotFoundPage'),
+  import('./features/NotFoundPage.css'),
+]).then(([module]) => module);
 const loadBgLibraryModule = () => import('./features/BgLibrary');
 const loadGuidesArchiveModule = () => import('./features/GuidesArchive');
 const loadStandardMatchupsModule = () => import('./features/StandardMatchups');
@@ -588,6 +613,7 @@ const LazySupportPrompt = React.lazy(() => import('./components/SupportPrompt'))
 const LazySiteFooter = React.lazy(() => import('./components/SiteFooter'));
 const LazyHomeTab = React.lazy(loadHomeModule);
 const LazyFAQPage = React.lazy(loadFAQPageModule);
+const LazyNotFoundPage = React.lazy(loadNotFoundPageModule);
 
 const LazyWinrates = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.Winrates })));
 const LazyTierList = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.TierList })));
@@ -651,6 +677,18 @@ function RouteFallback({ minHeight = 520 }: { minHeight?: number }) {
     >
       Загрузка...
     </div>
+  );
+}
+
+function RouteResolutionFailure() {
+  return (
+    <section className="route-resolution-failure" role="alert">
+      <h1>Не удалось открыть страницу</h1>
+      <p>Обновите страницу, чтобы повторно загрузить таблицу маршрутов.</p>
+      <button type="button" onClick={() => window.location.reload()}>
+        Обновить страницу
+      </button>
+    </section>
   );
 }
 
@@ -785,17 +823,53 @@ export default function App() {
 
   const [locationSearch, setLocationSearch] = useState(() => window.location.search);
   const [currentPath, setCurrentPath] = useState(() => window.location.pathname);
+  const [routeResolution, setRouteResolution] = useState(() => initialClientRouteResolution(
+    window.location.pathname,
+    INITIAL_SERVER_ROUTE_HINT,
+  ));
+  const routeView = clientRouteView(routeResolution, currentPath);
+  const routeResolutionPending = routeView === 'pending';
+  const routeResolutionUnavailable = routeView === 'unavailable';
+  const isNotFoundRoute = routeView === 'not-found';
   const locationParams = new URLSearchParams(locationSearch);
   const initialMetaPassRef = useRef(true);
 
   useEffect(() => {
+    const known = routeView === 'known' ? true : routeView === 'not-found' ? false : null;
+    if (known === null || historyRouteKnowledge(window.history.state) === known) return;
+    window.history.replaceState(withHistoryRouteKnowledge(window.history.state, known), '');
+  }, [currentPath, routeView]);
+
+  useEffect(() => {
+    let active = true;
     const isInitialPlainHome = initialMetaPassRef.current
       && activeTab === 'home'
       && currentPath === '/'
       && locationSearch === '';
     initialMetaPassRef.current = false;
-    if (isInitialPlainHome) return;
-    void applyPageMeta(activeTab, currentPath, locationSearch);
+    if (isInitialPlainHome) return undefined;
+    void applyPageMeta(activeTab, currentPath, locationSearch)
+      .then(policy => {
+        if (!active) return;
+        // pushState is synchronous, while route metadata resolves asynchronously.
+        // Ignore a policy that belongs to the page we just left even when its
+        // effect cleanup has not run yet (for example during a startTransition).
+        // Otherwise the stale result briefly makes the new route "pending",
+        // unmounting it and discarding local filters before the next policy wins.
+        if (normalizeClientRoutePath(window.location.pathname) !== policy.normalizedPathname) return;
+        setRouteResolution(previous => reconcileClientRouteResolution(
+          previous,
+          policy.normalizedPathname,
+          policy.known,
+        ));
+      })
+      .catch(() => {
+        if (!active) return;
+        setRouteResolution(previous => clientRouteView(previous, currentPath) === 'not-found'
+          ? previous
+          : unavailableClientRouteResolution(currentPath));
+      });
+    return () => { active = false; };
   }, [activeTab, currentPath, locationSearch]);
 
   useEffect(() => {
@@ -831,9 +905,10 @@ export default function App() {
     const slug = TABS.find(t => t.id === tab)!.slug;
     preloadRouteModule(tab);
     if (window.location.pathname !== slug || window.location.search || window.location.hash) {
-      window.history.pushState({ tab }, '', slug);
+      window.history.pushState({ tab, routeKnown: true }, '', slug);
     }
     React.startTransition(() => {
+      setRouteResolution(settledClientRouteResolution(slug, true));
       setLocationSearch('');
       setCurrentPath(slug);
       setActiveTab(tab);
@@ -847,9 +922,10 @@ export default function App() {
     const tab = tabFromPath(normalizedPath);
     preloadRouteModule(tab);
     if (window.location.pathname !== normalizedPath || window.location.search || window.location.hash) {
-      window.history.pushState({ tab }, '', normalizedPath);
+      window.history.pushState({ tab, routeKnown: true }, '', normalizedPath);
     }
     React.startTransition(() => {
+      setRouteResolution(settledClientRouteResolution(normalizedPath, true));
       setLocationSearch('');
       setCurrentPath(normalizedPath);
       setActiveTab(tab);
@@ -863,9 +939,10 @@ export default function App() {
     const path = '/';
     const search = '?login';
     if (window.location.pathname !== path || window.location.search !== search || window.location.hash) {
-      window.history.pushState({ tab: activeTab, login: true }, '', `${path}${search}`);
+      window.history.pushState({ tab: activeTab, login: true, routeKnown: true }, '', `${path}${search}`);
     }
     React.startTransition(() => {
+      setRouteResolution(settledClientRouteResolution(path, true));
       setLocationSearch(search);
       setCurrentPath(path);
       setMobileMenuOpen(false);
@@ -877,7 +954,11 @@ export default function App() {
   useEffect(() => {
     const onPop = (e: PopStateEvent) => {
       const tab = e.state?.tab ?? tabFromPath(window.location.pathname);
+      const known = historyRouteKnowledge(e.state);
       React.startTransition(() => {
+        if (known !== null) {
+          setRouteResolution(settledClientRouteResolution(window.location.pathname, known));
+        }
         setLocationSearch(window.location.search);
         setCurrentPath(window.location.pathname);
         setActiveTab(tab);
@@ -925,7 +1006,8 @@ export default function App() {
   // Admin panel: ?admin in URL; access is checked by authenticated user ID.
   const wantsAdmin = locationParams.has('admin');
   const wantsLogin = locationParams.has('login');
-  const isAdminMode = wantsAdmin || activeTab === 'admin-panel';
+  const routeSurfaceAvailable = !routeResolutionPending && !routeResolutionUnavailable && !isNotFoundRoute;
+  const isAdminMode = routeSurfaceAvailable && (wantsAdmin || activeTab === 'admin-panel');
   const [appAuthUser, setAppAuthUser] = useState<AuthUser | null>(null);
   const [appAuthChecking, setAppAuthChecking] = useState(true);
   const [appHasAuthHint, setAppHasAuthHint] = useState(() => hasAuthSessionHint());
@@ -1354,13 +1436,13 @@ export default function App() {
     );
     return ids;
   }, [legendariesData]);
-  const isFullWidthBuilder = activeTab === 'standard-matchups' || activeTab === 'standard-meta' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive';
+  const isFullWidthBuilder = routeSurfaceAvailable && (activeTab === 'standard-matchups' || activeTab === 'standard-meta' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive');
   // Login is its own visual route. Do not inherit the surface class of the
   // page that happened to be open before the profile was requested.
-  const isEditorialSurfacePage = !isAdminMode && !wantsLogin && ['articles', 'faq', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
-  const isGameDataSurfacePage = !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'standard-meta', 'standard-vicious-gold', 'standard-cards', 'tierlist', 'legendaries'].includes(activeTab);
-  const isBattlegroundsSurfacePage = !isAdminMode && !wantsLogin && BG_TAB_IDS.has(activeTab);
-  const isOpenSurfacePage = !isAdminMode && (activeTab === 'home' || wantsLogin || isEditorialSurfacePage || isGameDataSurfacePage || isBattlegroundsSurfacePage);
+  const isEditorialSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['articles', 'faq', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
+  const isGameDataSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'standard-meta', 'standard-vicious-gold', 'standard-cards', 'tierlist', 'legendaries'].includes(activeTab);
+  const isBattlegroundsSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && BG_TAB_IDS.has(activeTab);
+  const isOpenSurfacePage = !isAdminMode && (!routeSurfaceAvailable || activeTab === 'home' || wantsLogin || isEditorialSurfacePage || isGameDataSurfacePage || isBattlegroundsSurfacePage);
   const standardPage = activeTab === 'standard-meta'
     ? <LazyStandardMetaPage />
     : activeTab === 'standard-vicious-gold'
@@ -1401,7 +1483,7 @@ export default function App() {
   }, [mobileMenuOpen]);
 
 		  return (
-    <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${activeTab === 'home' && !isAdminMode ? 'arena-app-home' : ''} ${wantsLogin && !isAdminMode ? 'arena-app-profile' : ''} ${isEditorialSurfacePage ? `arena-app-editorial arena-app-${activeTab}` : ''} ${isGameDataSurfacePage ? `arena-app-game-data arena-app-${activeTab}` : ''} ${isBattlegroundsSurfacePage ? `arena-app-battlegrounds arena-app-${activeTab}` : ''}`}>
+    <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${isNotFoundRoute ? 'arena-app-not-found' : ''} ${activeTab === 'home' && !isAdminMode && routeSurfaceAvailable ? 'arena-app-home' : ''} ${wantsLogin && !isAdminMode && routeSurfaceAvailable ? 'arena-app-profile' : ''} ${isEditorialSurfacePage ? `arena-app-editorial arena-app-${activeTab}` : ''} ${isGameDataSurfacePage ? `arena-app-game-data arena-app-${activeTab}` : ''} ${isBattlegroundsSurfacePage ? `arena-app-battlegrounds arena-app-${activeTab}` : ''}`}>
       <a
         className="arena-skip-link"
         href="#main-content"
@@ -1640,7 +1722,15 @@ export default function App() {
             <div className="absolute bottom-0 right-0 w-8 h-8 sm:w-16 sm:h-16 border-b-2 sm:border-b-4 border-r-2 sm:border-r-4 border-gold rounded-br-xl opacity-50" />
           </>}
 
-          {wantsLogin ? (
+          {routeResolutionPending ? (
+            <RouteFallback minHeight={520} />
+          ) : routeResolutionUnavailable ? (
+            <RouteResolutionFailure />
+          ) : isNotFoundRoute ? (
+            <React.Suspense fallback={<RouteFallback minHeight={520} />}>
+              <LazyNotFoundPage navigatePath={navigatePath} />
+            </React.Suspense>
+          ) : wantsLogin ? (
             <>
               <React.Suspense fallback={<RouteFallback minHeight={760} />}>
                 <LazyLoginPanel

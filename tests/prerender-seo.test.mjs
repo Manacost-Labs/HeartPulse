@@ -193,7 +193,10 @@ try {
     if (page.sitemap) assertIndexDocument(html, pathname, page);
     else assertNoindexDocument(html, `${pathname} prerender`, page);
   }
-  assertNoindexDocument(readOutput('404.html'), '404 fallback');
+  const notFoundHtml = readOutput('404.html');
+  assertNoindexDocument(notFoundHtml, '404 fallback');
+  assert.match(notFoundHtml, /<div id="root" data-route-status="404">/, '404 fallback must identify itself to the client router');
+  assert.doesNotMatch(readOutput('index.html'), /data-route-status="404"/, 'ordinary pages must not carry the 404 client marker');
 
   const sitemap = readOutput('sitemap.xml');
   const actualUrls = matches(sitemap, /<loc>([^<]+)<\/loc>/g).map(match => match[1]).sort();

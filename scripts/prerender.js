@@ -1019,9 +1019,10 @@ function generatePageHtml(baseHtml, pageData, path, seoSummary, policy = resolve
     )
     : html.replace(/\s*<script type="application\/ld\+json">[\s\S]*?<\/script>/, '');
 
+  const routeStatusAttribute = policy.kind === 'fallback' ? ' data-route-status="404"' : '';
   html = html.replace(
     '<div id="root"></div>',
-    `<div id="root"><noscript>${noscript}</noscript></div>`
+    `<div id="root"${routeStatusAttribute}><noscript>${noscript}</noscript></div>`
   );
 
   if (seoSummary && policy.indexPolicy === 'index') {

@@ -34,6 +34,43 @@
   transform: translateY(0);
 }
 
+.route-resolution-failure {
+  min-height: 420px;
+  padding: 1.5rem;
+  display: grid;
+  place-content: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.route-resolution-failure h1 {
+  margin: 0;
+  font: 900 clamp(1.7rem, 5vw, 2.6rem)/1.1 var(--font-display);
+}
+
+.route-resolution-failure p {
+  max-width: 540px;
+  margin: 0 auto;
+  color: #74543b;
+  line-height: 1.6;
+}
+
+.route-resolution-failure button {
+  min-height: 46px;
+  justify-self: center;
+  padding: 0.7rem 1rem;
+  border: 1px solid #692019;
+  border-radius: 0.35rem;
+  color: #fff0c2;
+  background: #741a20;
+  font-weight: 900;
+}
+
+.route-resolution-failure button:focus-visible {
+  outline: 3px solid #5a3c73;
+  outline-offset: 3px;
+}
+
 @media (forced-colors: active) {
   .arena-app-shell {
     --arena-stale-badge-bg: Canvas;
