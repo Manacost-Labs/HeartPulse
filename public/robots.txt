@@ -1,30 +1,18 @@
 User-agent: *
 Allow: /
-Disallow: /api/
-Disallow: /?admin
 
-# Sitemap location
-Sitemap: https://arena.hs-manacost.ru/sitemap.xml
+# Machine-only endpoints are not useful search documents.
+Disallow: /api
+Disallow: /health
+Disallow: /metrics
+Disallow: /_internal
 
-# Crawl rate hint
-Crawl-delay: 1
-
-# Allow indexing of all public assets
+# Public HTML, including auth/admin states, stays crawlable so its authoritative
+# X-Robots-Tag noindex policy can be observed. Public assets are not blocked.
 Allow: /assets/
 Allow: /class_icon/
 Allow: /main_assets/
 Allow: /wallpaper/
 Allow: /fonts/
 
-# Yandex specific
-User-agent: YandexBot
-Allow: /
-Disallow: /api/
-Disallow: /?admin
-Crawl-delay: 2
-
-# Google specific
-User-agent: Googlebot
-Allow: /
-Disallow: /api/
-Disallow: /?admin
+Sitemap: https://arena.hs-manacost.ru/sitemap.xml

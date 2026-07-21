@@ -31,6 +31,7 @@ Run the repository contract before installation:
 
 ```bash
 node tests/nginx-html-routing.test.mjs
+npm run test:robots-policy
 ```
 
 The test always validates the route/directive model. When an nginx binary is
