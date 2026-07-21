@@ -145,8 +145,8 @@ assert.ok(
   'browser QA preview must use an isolated ephemeral port',
 );
 assert.ok(
-  browserQaCi.includes('previewOutput.match(/Local:'),
-  'browser QA must derive its origin from the child Vite process',
+  browserQaCi.includes('stripVTControlCharacters(previewOutput).match(/Local:'),
+  'browser QA must derive and parse a colorized origin from the child Vite process',
 );
 
 console.log('QA command contract tests passed');

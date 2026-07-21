@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { stripVTControlCharacters } from 'node:util';
 
 let origin = '';
 const previewArgs = ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '0', '--strictPort'];
@@ -13,7 +14,7 @@ const preview = spawn('npm', previewArgs, {
 let previewOutput = '';
 preview.stdout.on('data', chunk => {
   previewOutput += chunk.toString();
-  const localOrigin = previewOutput.match(/Local:\s+(http:\/\/127\.0\.0\.1:\d+)\/?/);
+  const localOrigin = stripVTControlCharacters(previewOutput).match(/Local:\s+(http:\/\/127\.0\.0\.1:\d+)\/?/);
   if (localOrigin) origin = localOrigin[1];
 });
 preview.stderr.on('data', chunk => { previewOutput += chunk.toString(); });
