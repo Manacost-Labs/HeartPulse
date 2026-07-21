@@ -59,6 +59,16 @@ mkdirSync(join(sourceData, 'uploads', 'admin'), { recursive: true });
 writeFileSync(join(sourceData, 'winrates.json'), JSON.stringify({ updatedAt: now, source: 'recovery', classes: [{}] }));
 writeFileSync(join(sourceData, 'tierlist.json'), JSON.stringify({ updatedAt: now, source: 'recovery', sections: [{}] }));
 writeFileSync(join(sourceData, 'legendaries.json'), JSON.stringify({ updatedAt: now, source: 'recovery', groups: [{}] }));
+const { ConstructedCardCatalogStore } = await import('../build/server/constructedCardCatalogStore.js');
+const catalogStore = new ConstructedCardCatalogStore({ stateDirectory: sourceData });
+for (const [format, count] of [['standard', 500], ['wild', 3_000]]) {
+  catalogStore.publish(format, Array.from({ length: count }, (_, index) => ({
+    card_id: `${format.toUpperCase()}_RECOVERY_${index + 1}`,
+    dbf: (format === 'standard' ? 300_000 : 400_000) + index,
+    name: { ru: `Recovery ${index + 1}` },
+    formats: [{ slug: format }],
+  })), { expectedTotal: count, sourceUpdatedAt: now });
+}
 writeFileSync(join(sourceData, 'uploads', 'admin', 'recovered.txt'), 'recovered upload\n');
 writeFileSync(join(sourceEcosystem, 'kha-vip-profiles.json'), '{"profiles":[]}\n');
 run('sqlite3', [join(sourceEcosystem, 'users.sqlite'), 'CREATE TABLE users (id TEXT PRIMARY KEY); INSERT INTO users VALUES ("recovery-user");']);
@@ -130,7 +140,15 @@ try {
     throw new Error(`recovered runtime is not ready: ${JSON.stringify(ready.body)}`);
   }
   const data = await requestJson('/health/data');
-  if (data.response.status !== 200 || data.body.status !== 'ok' || data.body.fresh !== true) {
+  const constructedDatasets = Array.isArray(data.body.datasets)
+    ? data.body.datasets.filter(dataset => String(dataset?.name || '').startsWith('constructed-cards-'))
+    : [];
+  if (data.response.status !== 503
+    || data.body.status !== 'degraded'
+    || data.body.ready !== true
+    || data.body.fresh !== false
+    || constructedDatasets.length !== 2
+    || constructedDatasets.some(dataset => dataset.state !== 'stale' || dataset.cacheSource !== 'LKG')) {
     throw new Error(`recovered datasets are not healthy: ${JSON.stringify(data.body)}`);
   }
 

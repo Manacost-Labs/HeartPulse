@@ -23,6 +23,11 @@ import ConstructedCardLightbox from './ConstructedCardLightbox';
 import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
 import { compareConstructedSets, constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
 import {
+  constructedCardDataNotice,
+  constructedCardRequestError,
+  type ConstructedCardRequestErrorCopy,
+} from './constructedCardRequestState';
+import {
   collectConstructedCardMedia,
   collectConstructedCardVariants,
   flattenConstructedCardSounds,
@@ -136,6 +141,9 @@ type ListPayload = {
   mechanicOverrides?: Record<string, string>;
   coverage?: CardCoverage;
   warning?: string | null;
+  dataStatus: 'fresh' | 'stale';
+  partial: false;
+  datasetVersion: string;
   pagination: { page: number; perPage: number; total: number; totalPages: number };
 };
 
@@ -536,7 +544,7 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [data, setData] = useState<ListPayload | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<ConstructedCardRequestErrorCopy | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const deferredQuery = useDeferredValue(filters.query);
 
@@ -556,7 +564,7 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
     const controller = new AbortController();
     const load = async () => {
       setLoading(true);
-      setError('');
+      setError(null);
       try {
         const params = new URLSearchParams({ format, page: String(page), perPage: String(perPage), sort: filters.sort, direction: filters.direction });
         Object.entries({ ...filters, query: deferredQuery }).forEach(([key, value]) => {
@@ -564,10 +572,18 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
         });
         const response = await fetch(`/api/constructed-cards?${params}`, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: controller.signal });
         const payload = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить карты');
+        if (!response.ok) {
+          const failure = new Error(payload.error || 'Не удалось загрузить карты') as Error & { status?: number };
+          failure.status = response.status;
+          throw failure;
+        }
         setData(payload as ListPayload);
       } catch (loadError) {
-        if (!controller.signal.aborted) setError(loadError instanceof Error ? loadError.message : 'Не удалось загрузить карты');
+        if (!controller.signal.aborted) setError(constructedCardRequestError(
+          'list',
+          Number((loadError as { status?: number })?.status ?? 0),
+          loadError instanceof Error ? loadError.message : '',
+        ));
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
@@ -594,6 +610,7 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
   const coverage = data?.coverage;
   const hasStatsAccess = data ? Boolean(data.statsAccess) : statsAccess;
   const statsGate = { statsAccessLoading, authUser, onRefreshSubscription };
+  const dataNotice = data ? constructedCardDataNotice(data) : null;
 
   return (
     <div className="constructed-cards">
@@ -648,10 +665,11 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
         </div>
       </section>
 
-      {hasStatsAccess && data?.warning && <div className="constructed-cards__data-warning" role="status"><AlertTriangle size={18} /><span>Список карт доступен, статистика источника временно скрыта из-за некорректного обновления.</span></div>}
+      {dataNotice && <div className="constructed-cards__data-warning" role="status"><AlertTriangle size={18} /><span>{dataNotice}</span></div>}
+      {hasStatsAccess && data?.warning && !dataNotice && <div className="constructed-cards__data-warning" role="status"><AlertTriangle size={18} /><span>Список карт доступен, статистика источника временно скрыта из-за некорректного обновления.</span></div>}
 
       {loading ? <section className="constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={34} /><h2>Загружаем библиотеку</h2><p>Собираем полный список карт и дополнений.</p></section>
-        : error ? <section className="constructed-cards__state" role="alert"><h2>Не удалось загрузить карты</h2><p>{error}</p><button type="button" onClick={() => setReloadToken(value => value + 1)}><RefreshCw size={16} /> Повторить</button></section>
+        : error ? <section className="constructed-cards__state" role="alert"><h2>{error.title}</h2><p>{error.message}</p>{error.retry && <button type="button" onClick={() => setReloadToken(value => value + 1)}><RefreshCw size={16} /> Повторить</button>}</section>
           : data && data.cards.length > 0 ? <>{view === 'gallery' ? <CardGallery cards={data.cards} format={format} sort={filters.sort} navigatePath={navigatePath} statsAccess={hasStatsAccess} gate={statsGate} /> : <CardTable cards={data.cards} format={format} sort={filters.sort} direction={filters.direction} navigatePath={navigatePath} statsAccess={hasStatsAccess} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} /></>
             : <section className="constructed-cards__state"><Search size={34} /><h2>Карты не найдены</h2><p>Измените фильтры или сбросьте их.</p><button type="button" onClick={reset}><RefreshCw size={16} /> Сбросить фильтры</button></section>}
     </div>
@@ -838,32 +856,51 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
   const [card, setCard] = useState<CardRecord | null>(null);
   const [serverStatsAccess, setServerStatsAccess] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<ConstructedCardRequestErrorCopy | null>(null);
+  const [dataState, setDataState] = useState<{
+    dataStatus: 'fresh' | 'stale';
+    partial: boolean;
+    warning: string | null;
+  }>({ dataStatus: 'fresh', partial: false, warning: null });
+  const [reloadToken, setReloadToken] = useState(0);
   const [variant, setVariant] = useState('normal');
   const [lightboxIndex, setLightboxIndex] = useState(-1);
   useEffect(() => {
     const controller = new AbortController();
     const load = async () => {
-      setLoading(true); setError('');
+      setLoading(true); setError(null); setCard(null);
       try {
         const response = await fetch(`/api/constructed-cards/${encodeURIComponent(cardId)}?format=${format}`, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: controller.signal });
         const payload = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить карту');
+        if (!response.ok) {
+          const failure = new Error(payload.error || 'Не удалось загрузить карту') as Error & { status?: number };
+          failure.status = response.status;
+          throw failure;
+        }
         setCard({
           ...(payload.card as CardRecord),
           mechanicTranslations: payload.mechanicTranslations || {},
           mechanicOverrides: payload.mechanicOverrides ?? payload.mechanicTranslations ?? {},
         });
         setServerStatsAccess(payload.statsAccess === true);
+        setDataState({
+          dataStatus: payload.dataStatus === 'stale' ? 'stale' : 'fresh',
+          partial: payload.partial === true,
+          warning: typeof payload.warning === 'string' ? payload.warning : null,
+        });
         setVariant('normal');
         setLightboxIndex(-1);
       } catch (loadError) {
-        if (!controller.signal.aborted) setError(loadError instanceof Error ? loadError.message : 'Не удалось загрузить карту');
+        if (!controller.signal.aborted) setError(constructedCardRequestError(
+          'detail',
+          Number((loadError as { status?: number })?.status ?? 0),
+          loadError instanceof Error ? loadError.message : '',
+        ));
       } finally { if (!controller.signal.aborted) setLoading(false); }
     };
     void load();
     return () => controller.abort();
-  }, [cardId, format, statsAccess]);
+  }, [cardId, format, reloadToken, statsAccess]);
   useEffect(() => {
     if (!card) return undefined;
     const frame = requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
@@ -889,7 +926,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
   }, [card, cardId, format]);
 
   if (loading) return <section className="constructed-cards constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={36} /><h1>Загружаем карту</h1></section>;
-  if (error || !card) return <section className="constructed-cards constructed-cards__state" role="alert"><h1>Карта не найдена</h1><p>{error}</p><button type="button" onClick={() => navigatePath(`/standard/cards/${format}`)}><ArrowLeft size={17} /> Назад к картам</button></section>;
+  if (error || !card) return <section className="constructed-cards constructed-cards__state" role="alert"><h1>{error?.title || 'Данные карты временно недоступны'}</h1><p>{error?.message}</p><div className="constructed-cards__state-actions">{error?.retry && <button type="button" onClick={() => setReloadToken(value => value + 1)}><RefreshCw size={17} /> Повторить</button>}<button type="button" onClick={() => navigatePath(`/standard/cards/${format}`)}><ArrowLeft size={17} /> Назад к картам</button></div></section>;
 
   const variants = collectConstructedCardVariants(card);
   const selectedImage = variants.find(item => item.id === variant)?.url || variants[0]?.url || '';
@@ -915,11 +952,13 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
     const index = mediaItems.findIndex(item => item.url === url);
     if (index >= 0) setLightboxIndex(index);
   };
+  const dataNotice = constructedCardDataNotice(dataState);
 
   return (
     <article className="constructed-cards constructed-card-detail">
       <nav className="constructed-card-detail__breadcrumb" aria-label="Breadcrumb"><a href={`/standard/cards/${format}`} onClick={event => { event.preventDefault(); navigatePath(`/standard/cards/${format}`); }}>Карты</a><span>/</span><span>{format === 'standard' ? 'Стандарт' : 'Вольный'}</span><span>/</span><strong>{cardName(card)}</strong></nav>
       <button type="button" className="constructed-card-detail__back" onClick={() => navigatePath(`/standard/cards/${format}`)}><ArrowLeft size={17} /> Назад к картам</button>
+      {dataNotice && <div className="constructed-cards__data-warning constructed-card-detail__data-warning" role="status"><AlertTriangle size={18} /><span>{dataNotice}</span></div>}
 
       <section className="constructed-card-detail__hero">
         <div className="constructed-card-detail__visual">

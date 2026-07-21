@@ -24,6 +24,22 @@ assert.equal(stale.ready, true);
 assert.equal(stale.fresh, false);
 assert.equal(stale.datasets[1].state, 'stale');
 
+const explicitConstructedLkg = evaluateDataHealth([{
+  name: 'constructed-cards-standard',
+  updatedAt: new Date(now - 60_000).toISOString(),
+  source: 'db.kolodahs.ru:last-known-good',
+  records: 1_152,
+  state: 'stale',
+  dataStatus: 'stale',
+  cacheSource: 'LKG',
+}], { now });
+assert.equal(explicitConstructedLkg.status, 'degraded',
+  'a recently verified LKG remains degraded because upstream freshness was not confirmed');
+assert.equal(explicitConstructedLkg.fresh, false);
+assert.equal(explicitConstructedLkg.datasets[0].state, 'stale');
+assert.equal(explicitConstructedLkg.datasets[0].dataStatus, 'stale');
+assert.equal(explicitConstructedLkg.datasets[0].cacheSource, 'LKG');
+
 const missing = evaluateDataHealth([{ name: 'winrates', updatedAt: null }], { now });
 assert.equal(missing.status, 'unavailable');
 assert.equal(missing.ready, false);

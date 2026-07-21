@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import express, { type RequestHandler } from 'express';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   completeConstructedCatalog,
   constructedDecksContainingCard,
@@ -71,18 +74,22 @@ assert.throws(
   /implausible popularity values/,
   'a systemic 97–100% popularity cascade must be rejected as a malformed snapshot',
 );
+const serviceStateDirectory = mkdtempSync(join(tmpdir(), 'arena-constructed-card-routes-'));
 const degradedService = createConstructedCardDataService({
   fetchJson: async url => url.includes('/constructed-cards')
-    ? { data: catalogCards, pagination: { total: catalogCards.length, total_pages: 1 } }
+    ? { data: catalogCards, pagination: { page: 1, total: catalogCards.length, total_pages: 1 } }
     : { view: { cards: Array.from({ length: 10 }, (_, index) => ({ id: `BAD_${index}`, deck_popularity: '99%' })) } },
   catalogBaseUrl: 'https://db.example.test/api/v1',
   statsDatasetByFormat: { standard: 'standard-stats', wild: 'wild-stats' },
   statsBaseUrl: 'https://stats.example.test',
+  stateDirectory: serviceStateDirectory,
+  minimumCatalogCardsByFormat: { standard: 1, wild: 1 },
 });
 const degradedCollection = await degradedService.loadCards('standard');
 assert.equal(degradedCollection.cards.length, catalogCards.length, 'a malformed statistics snapshot must not hide the card catalog');
 assert.ok(degradedCollection.cards.every(card => card.stats === null), 'malformed statistics must be removed instead of reaching the UI');
-assert.match(degradedCollection.warning || '', /implausible popularity values/);
+assert.match(degradedCollection.warning || '', /Статистика карт временно недоступна/,
+  'public warnings must be actionable Russian copy without upstream exception details');
 const pendingCatalogCard = mergeConstructedCardRows(catalogCards, [{
   id: 'CARD_3', dbfId: 3, name: 'Гамма', type: 'SPELL', rarity: 'EPIC', cardClass: 'PRIEST', cost: 3,
   deck_popularity: '1.2%', times_played: 42,
@@ -117,9 +124,9 @@ assert.deepEqual(
   [{ value: 'BATTLECRY', count: 1 }],
   'internal engine and VFX tags must not appear as public mechanics filters',
 );
-assert.equal(completeConstructedCatalog([{ data: catalogCards, pagination: { total: 2 } }]).length, 2);
+assert.equal(completeConstructedCatalog([{ data: catalogCards, pagination: { page: 1, total: 2, total_pages: 1 } }]).length, 2);
 assert.throws(
-  () => completeConstructedCatalog([{ data: catalogCards.slice(0, 1), pagination: { total: 2 } }]),
+  () => completeConstructedCatalog([{ data: catalogCards.slice(0, 1), pagination: { page: 1, total: 2, total_pages: 1 } }]),
   /received 1 of 2 cards/,
 );
 const detailWithPools = enrichConstructedCardPools({
@@ -200,13 +207,41 @@ const dependencies: ConstructedCardRouterDependencies = {
   canAccessStats: request => request.headers['x-test-stats'] === 'yes' || request.headers['x-test-admin'] === 'yes',
   loadCards: async format => {
     calls.push(`list:${format}`);
-    return { cards: mergedCards, updatedAt: '2026-07-16T05:03:02.000Z', sourceUrl: 'https://hsreplay.net/cards/' };
+    return {
+      cards: mergedCards,
+      updatedAt: '2026-07-16T05:03:02.000Z',
+      sourceUrl: 'https://hsreplay.net/cards/',
+      cacheSource: 'fresh',
+      dataStatus: 'fresh',
+      partial: false,
+      datasetVersion: `ccc1-sha256:${'1'.repeat(64)}`,
+      catalogVerifiedAt: '2026-07-16T05:03:02.000Z',
+      catalogPublishedAt: '2026-07-16T05:03:02.000Z',
+    };
   },
   loadCardDetail: async (format, cardId) => {
     calls.push(`detail:${format}:${cardId}`);
     const card = mergedCards.find(item => item.card_id === cardId);
-    return card ? { ...card, wiki: { patch_changes: [] }, decks: cardId === 'CARD_1' ? decodedDecks : [] } : null;
+    return card ? {
+      card: { ...card, wiki: { patch_changes: [] }, decks: cardId === 'CARD_1' ? decodedDecks : [] },
+      cacheSource: 'fresh',
+      dataStatus: 'fresh',
+      partial: false,
+      warning: null,
+      datasetVersion: `ccc1-sha256:${'1'.repeat(64)}`,
+    } : null;
   },
+  getCatalogHealth: format => ({
+    format,
+    state: 'fresh',
+    dataStatus: 'fresh',
+    cacheSource: 'fresh',
+    verifiedAt: '2026-07-16T05:03:02.000Z',
+    publishedAt: '2026-07-16T05:03:02.000Z',
+    records: mergedCards.length,
+    datasetVersion: `ccc1-sha256:${'1'.repeat(64)}`,
+    warning: null,
+  }),
   createDeckPreview: async deck => ({ hash: `preview-${deck.id}`, state: 'done', ready: true, imageUrl: 'https://api.blizzcore.ru/static/generated/test.jpg', error: null }),
   setPrivateNoStore: response => {
     response.set('Cache-Control', 'no-store');
@@ -292,6 +327,7 @@ try {
   assert.equal(missing.status, 404);
 } finally {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+  rmSync(serviceStateDirectory, { recursive: true, force: true });
 }
 
 console.log('constructed cards public/admin router contract tests passed');

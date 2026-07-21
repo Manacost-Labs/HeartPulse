@@ -215,6 +215,8 @@
 .constructed-cards__state h2 { margin: 0.75rem 0 0.25rem; font-family: var(--font-display); font-size: clamp(1.6rem, 3vw, 2.2rem); }
 .constructed-cards__state p { max-width: 520px; margin: 0; color: var(--cards-muted); }
 .constructed-cards__state button { display: inline-flex; gap: 0.35rem; align-items: center; margin-top: 1rem; min-height: 42px; padding: 0 0.9rem; border: 1px solid #713118; color: #fff0c4; background: #713118; font-weight: 900; }
+.constructed-cards__state-actions { display: flex; flex-wrap: wrap; gap: 0.65rem; justify-content: center; }
+.constructed-card-detail__data-warning { margin: 0 0 0.9rem; border-radius: 2px; font-size: 0.88rem; }
 .constructed-cards__spinner { animation: constructed-cards-spin 0.85s linear infinite; }
 @keyframes constructed-cards-spin { to { transform: rotate(360deg); } }
 

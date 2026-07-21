@@ -61,7 +61,17 @@ const app = express();
 app.use(createConstructedCardSeoRouter({
   loadCards: async format => {
     calls.push(format);
-    return { cards: format === 'standard' ? cards : [cards[1]], updatedAt: null, sourceUrl: '' };
+    return {
+      cards: format === 'standard' ? cards : [cards[1]],
+      updatedAt: null,
+      sourceUrl: '',
+      cacheSource: 'fresh',
+      dataStatus: 'fresh',
+      partial: false,
+      datasetVersion: `ccc1-sha256:${'1'.repeat(64)}`,
+      catalogVerifiedAt: '2026-07-21T00:00:00.000Z',
+      catalogPublishedAt: '2026-07-21T00:00:00.000Z',
+    };
   },
   frontendAssets,
 }));
@@ -200,7 +210,17 @@ outageApp.use(createConstructedCardSeoRouter({
   loadCards: async () => {
     outageCalls += 1;
     if (outageCalls === 1) throw new Error(`upstream failed: ${privateSentinels[0]}`);
-    return { cards: [], updatedAt: null, sourceUrl: '' };
+    return {
+      cards: [],
+      updatedAt: null,
+      sourceUrl: '',
+      cacheSource: 'fresh',
+      dataStatus: 'fresh',
+      partial: false,
+      datasetVersion: `ccc1-sha256:${'1'.repeat(64)}`,
+      catalogVerifiedAt: '2026-07-21T00:00:00.000Z',
+      catalogPublishedAt: '2026-07-21T00:00:00.000Z',
+    };
   },
   frontendAssets,
 }));
@@ -255,4 +275,39 @@ try {
   assert.match(await timedOut.text(), /Библиотека карт временно недоступна/);
 } finally {
   await new Promise<void>((resolve, reject) => deadlineServer.close(error => (error ? reject(error) : resolve())));
+}
+
+const staleMembershipApp = express();
+staleMembershipApp.use(createConstructedCardSeoRouter({
+  loadCards: async () => ({
+    cards: [cards[0]],
+    updatedAt: null,
+    sourceUrl: '',
+    cacheSource: 'LKG',
+    dataStatus: 'stale',
+    partial: false,
+    datasetVersion: `ccc1-sha256:${'2'.repeat(64)}`,
+    catalogVerifiedAt: '2026-07-20T00:00:00.000Z',
+    catalogPublishedAt: '2026-07-20T00:00:00.000Z',
+  }),
+  retryAfterSeconds: 60,
+}));
+const staleMembershipServer = staleMembershipApp.listen(0, '127.0.0.1');
+await new Promise<void>((resolve, reject) => {
+  staleMembershipServer.once('listening', resolve);
+  staleMembershipServer.once('error', reject);
+});
+const staleMembershipAddress = staleMembershipServer.address();
+assert.ok(staleMembershipAddress && typeof staleMembershipAddress === 'object');
+try {
+  const staleKnown = await fetch(`http://127.0.0.1:${staleMembershipAddress.port}/standard/cards/standard/CARD_1/`);
+  assert.equal(staleKnown.status, 200, 'membership present in the LKG remains safe to render');
+  const staleUnknown = await fetch(`http://127.0.0.1:${staleMembershipAddress.port}/standard/cards/standard/UNKNOWN_STALE/`);
+  assert.equal(staleUnknown.status, 503,
+    'absence from a stale catalog is not authoritative enough for a permanent SEO 404');
+  assert.equal(staleUnknown.headers.get('retry-after'), '60');
+  assert.equal(staleUnknown.headers.get('x-robots-tag'), 'noindex, nofollow');
+  assert.match(await staleUnknown.text(), /data-route-status="503"/);
+} finally {
+  await new Promise<void>((resolve, reject) => staleMembershipServer.close(error => (error ? reject(error) : resolve())));
 }

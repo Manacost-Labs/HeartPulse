@@ -90,6 +90,12 @@ const dependencies: GlobalSearchDependencies = {
       cards: format === 'standard' ? standardCards : wildCards,
       updatedAt: '2026-07-19T00:00:00.000Z',
       sourceUrl: 'https://example.test/cards',
+      cacheSource: 'fresh',
+      dataStatus: 'fresh',
+      partial: false,
+      datasetVersion: `ccc1-sha256:${'1'.repeat(64)}`,
+      catalogVerifiedAt: '2026-07-19T00:00:00.000Z',
+      catalogPublishedAt: '2026-07-19T00:00:00.000Z',
     };
   },
   getArticleMode: article => String(article.mode || 'general'),

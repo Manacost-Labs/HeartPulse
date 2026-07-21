@@ -511,6 +511,9 @@ export function createConstructedCardSeoRouter(dependencies: ConstructedCardSeoR
       const matches = collection.cards.filter(candidate => String(candidate?.card_id ?? '') === cardId);
       const card = matches.length === 1 ? matches[0] : null;
       if (!card || !isIndexableConstructedCard(card)) {
+        if (collection.dataStatus !== 'fresh' || collection.cacheSource !== 'fresh') {
+          throw new Error('Stale constructed-card catalog cannot authoritatively confirm entity absence');
+        }
         const html = renderNoindexDocument({
           title: 'Карта не найдена | Manacost Stats',
           description: 'Запрошенная карта Hearthstone не найдена.',

@@ -5,7 +5,13 @@ import { pathToFileURL } from 'node:url';
 
 const DEFAULT_BASE_URL = 'https://arena.hs-manacost.ru';
 const DEFAULT_ROUTES = ['/', '/classes', '/battlegrounds/tier-list'];
-const REQUIRED_DATASETS = ['winrates', 'tierlist', 'legendaries'];
+const REQUIRED_DATASETS = [
+  'winrates',
+  'tierlist',
+  'legendaries',
+  'constructed-cards-standard',
+  'constructed-cards-wild',
+];
 
 function ensure(condition, message) {
   if (!condition) throw new Error(message);
@@ -60,6 +66,72 @@ async function checkHtmlRoute(baseUrl, path, fetchImpl, timeoutMs) {
   return { status: response.status, durationMs: Date.now() - startedAt };
 }
 
+function validateConstructedCardEnvelope(response, payload, label) {
+  const cacheSource = response.headers.get('x-data-cache') || '';
+  const dataStatus = String(payload?.dataStatus || '');
+  const warning = response.headers.get('warning') || '';
+  const datasetVersion = response.headers.get('x-dataset-version') || '';
+  ensure(['fresh', 'LKG'].includes(cacheSource), `${label}: invalid X-Data-Cache`);
+  ensure(/^ccc1-sha256:[a-f0-9]{64}$/i.test(datasetVersion),
+    `${label}: constructed-card dataset version is missing`);
+  ensure(String(payload?.datasetVersion || '') === datasetVersion,
+    `${label}: X-Dataset-Version does not match the response envelope`);
+  ensure((response.headers.get('cache-control') || '').includes('no-store'), `${label}: missing Cache-Control: no-store`);
+  if (cacheSource === 'fresh') {
+    ensure(dataStatus === 'fresh', `${label}: fresh cache must have dataStatus fresh`);
+    ensure(!warning, `${label}: fresh cache must not include a stale Warning`);
+  } else {
+    ensure(dataStatus === 'stale', `${label}: LKG cache must have dataStatus stale`);
+    ensure(/^110\b/.test(warning), `${label}: LKG cache must include Warning 110`);
+  }
+}
+
+async function checkConstructedCards(baseUrl, fetchImpl, timeoutMs) {
+  const checks = [];
+  for (const format of ['standard', 'wild']) {
+    const listStartedAt = Date.now();
+    const listResponse = await fetchWithTimeout(
+      new URL(`/api/constructed-cards?format=${format}&perPage=1`, baseUrl),
+      fetchImpl,
+      timeoutMs,
+    );
+    ensure(listResponse.status === 200, `constructed cards ${format} list: HTTP ${listResponse.status}`);
+    const list = await listResponse.json();
+    validateConstructedCardEnvelope(listResponse, list, `constructed cards ${format} list`);
+    ensure(list?.partial === false, `constructed cards ${format} catalog is partial`);
+    const knownId = String(list?.cards?.[0]?.card_id || '');
+    ensure(/^[A-Za-z0-9_]{2,80}$/.test(knownId), `constructed cards ${format} catalog has no monitorable card`);
+    checks.push({ label: `constructed cards ${format} list`, attempts: 1, status: 200, durationMs: Date.now() - listStartedAt });
+
+    const detailStartedAt = Date.now();
+    const detailResponse = await fetchWithTimeout(
+      new URL(`/api/constructed-cards/${encodeURIComponent(knownId)}?format=${format}`, baseUrl),
+      fetchImpl,
+      timeoutMs,
+    );
+    ensure(detailResponse.status === 200, `constructed cards ${format} known: HTTP ${detailResponse.status}`);
+    const detail = await detailResponse.json();
+    validateConstructedCardEnvelope(detailResponse, detail, `constructed cards ${format} known`);
+    ensure(String(detail?.card?.card_id || '').toUpperCase() === knownId.toUpperCase(),
+      `constructed cards ${format} known detail identity mismatch`);
+    ensure(detail?.partial === false, `constructed cards ${format} known detail is partial`);
+    checks.push({ label: `constructed cards ${format} known`, attempts: 1, status: 200, durationMs: Date.now() - detailStartedAt });
+
+    const unknownStartedAt = Date.now();
+    const unknownResponse = await fetchWithTimeout(
+      new URL(`/api/constructed-cards/MANACOST_MONITOR_ABSENT_CARD?format=${format}`, baseUrl),
+      fetchImpl,
+      timeoutMs,
+    );
+    ensure(unknownResponse.status === 404, `constructed cards ${format} unknown: HTTP ${unknownResponse.status}`);
+    ensure((unknownResponse.headers.get('cache-control') || '').includes('no-store'),
+      `constructed cards ${format} unknown: missing Cache-Control: no-store`);
+    await unknownResponse.arrayBuffer();
+    checks.push({ label: `constructed cards ${format} unknown`, attempts: 1, status: 404, durationMs: Date.now() - unknownStartedAt });
+  }
+  return checks;
+}
+
 export async function runProductionMonitor(options = {}) {
   const baseUrl = String(options.baseUrl || DEFAULT_BASE_URL).replace(/\/$/, '');
   const fetchImpl = options.fetchImpl || fetch;
@@ -106,6 +178,13 @@ export async function runProductionMonitor(options = {}) {
       }
     },
   ), attempts, retryDelayMs));
+
+  const constructedChecks = await retryCheck('constructed cards', async () => ({
+    status: 200,
+    durationMs: 0,
+    nested: await checkConstructedCards(baseUrl, fetchImpl, timeoutMs),
+  }), attempts, retryDelayMs);
+  checks.push(...constructedChecks.nested.map(check => ({ ...check, attempts: constructedChecks.attempts })));
 
   for (const route of routes) {
     checks.push(await retryCheck(

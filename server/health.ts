@@ -6,6 +6,10 @@ export interface HealthDatasetInput {
   updatedAt?: unknown;
   source?: unknown;
   records?: number;
+  state?: DatasetHealthState;
+  dataStatus?: unknown;
+  cacheSource?: unknown;
+  warning?: unknown;
 }
 
 export type DatasetHealthState = 'fresh' | 'stale' | 'missing' | 'invalid';
@@ -17,6 +21,9 @@ export interface DatasetHealth {
   source: string | null;
   ageMs: number | null;
   records: number | null;
+  dataStatus?: string | null;
+  cacheSource?: string | null;
+  warning?: string | null;
 }
 
 export interface DataHealthReport {
@@ -52,6 +59,10 @@ export function evaluateDataHealth(
       state = ageMs <= maxAgeMs ? 'fresh' : 'stale';
     }
 
+    const explicitState = input.state;
+    if (state !== 'missing' && state !== 'invalid' && explicitState === 'stale') state = 'stale';
+    if (explicitState === 'missing' || explicitState === 'invalid') state = explicitState;
+
     return {
       name: input.name,
       state,
@@ -59,6 +70,15 @@ export function evaluateDataHealth(
       source: String(input.source ?? '').trim() || null,
       ageMs,
       records: Number.isFinite(input.records) ? Math.max(0, Number(input.records)) : null,
+      ...(input.dataStatus !== undefined
+        ? { dataStatus: String(input.dataStatus ?? '').trim() || null }
+        : {}),
+      ...(input.cacheSource !== undefined
+        ? { cacheSource: String(input.cacheSource ?? '').trim() || null }
+        : {}),
+      ...(input.warning !== undefined
+        ? { warning: String(input.warning ?? '').trim() || null }
+        : {}),
     } satisfies DatasetHealth;
   });
 

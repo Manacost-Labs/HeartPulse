@@ -35,6 +35,7 @@ import { createOperationalRouter } from './operationalRoutes.js';
 import { createArenaDecksRouter, type ArenaDecksCacheStore } from './arenaDeckRoutes.js';
 import { createStandardMatchupRouter } from './standardMatchupRoutes.js';
 import {
+  ConstructedCardUpstreamError,
   createConstructedCardDataService,
   createConstructedCardRouter,
   type ConstructedCardDeck,
@@ -5579,6 +5580,29 @@ async function fetchDataset(datasetId: string, timeoutMs?: number) {
   return upstream.json();
 }
 
+async function fetchConstructedCardJson(url: string, timeoutMs = 8_000): Promise<unknown> {
+  let upstream: globalThis.Response;
+  try {
+    upstream = await fetch(datasetApiUrl(url), {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (error) {
+    throw new ConstructedCardUpstreamError('Constructed card upstream transport failed', null, { cause: error });
+  }
+  if (!upstream.ok) {
+    throw new ConstructedCardUpstreamError(
+      `Constructed card upstream returned HTTP ${upstream.status}`,
+      upstream.status,
+    );
+  }
+  try {
+    return await upstream.json();
+  } catch (error) {
+    throw new ConstructedCardUpstreamError('Constructed card upstream returned invalid JSON', null, { cause: error });
+  }
+}
+
 function parseStandardMatchupNumber(value: unknown): number | null {
   const raw = String(value ?? '').replace('%', '').replace(',', '.').trim();
   if (!raw || raw === '—' || raw === '-') return null;
@@ -6914,14 +6938,28 @@ const constructedCardDataService = createConstructedCardDataService({
   // Card-detail HTML is proxied with a 30-second nginx deadline. Each
   // sequential catalog stage therefore fails closed before the edge timeout
   // instead of leaving a detached upstream request running indefinitely.
-  fetchJson: url => fetchDataset(url, 8_000),
+  fetchJson: url => fetchConstructedCardJson(url, 8_000),
   catalogBaseUrl: KOLODAHS_API_BASE_URL,
   statsDatasetByFormat: CONSTRUCTED_CARDS_DATASET_BY_FORMAT,
   statsBaseUrl: `${DATASET_API_ORIGIN}/demo/view`,
   patchesUrl: `${DATASET_API_ORIGIN}/api/patches?limit=500`,
   constructedDecksUrl: `${DATASET_API_ORIGIN}/v1/constructed/decks`,
   getArchetypeTranslations: () => getStandardArchetypeTranslations().then(result => result.map),
+  stateDirectory: DATA_DIR,
   cacheTtlMs: EXTERNAL_DATASET_CACHE_MS,
+});
+void Promise.allSettled([
+  constructedCardDataService.loadCards('standard'),
+  constructedCardDataService.loadCards('wild'),
+]).then(results => {
+  for (const [index, result] of results.entries()) {
+    if (result.status === 'rejected') {
+      console.warn(
+        `[constructed-cards] ${index === 0 ? 'standard' : 'wild'} prewarm failed:`,
+        result.reason instanceof Error ? result.reason.message : result.reason,
+      );
+    }
+  }
 });
 const constructedCardFrontendShell = join(APP_ROOT_DIR, 'dist', 'index.html');
 const constructedCardFrontendAssets = existsSync(constructedCardFrontendShell)
@@ -7510,7 +7548,7 @@ app.use('/api', createBattlegroundProxyRouter({
 }));
 
 function criticalDataHealth() {
-  const datasets = [
+  const staticDatasets = [
     { name: 'winrates', file: 'winrates.json', collection: 'classes' },
     { name: 'tierlist', file: 'tierlist.json', collection: 'sections' },
     { name: 'legendaries', file: 'legendaries.json', collection: 'groups' },
@@ -7526,7 +7564,20 @@ function criticalDataHealth() {
       records,
     };
   });
-  return evaluateDataHealth(datasets);
+  const constructedCards = (['standard', 'wild'] as const).map(format => {
+    const health = constructedCardDataService.getCatalogHealth(format);
+    return {
+      name: `constructed-cards-${format}`,
+      updatedAt: health.dataStatus === 'unavailable' ? null : health.verifiedAt,
+      source: health.cacheSource === 'LKG' ? 'db.kolodahs.ru:last-known-good' : 'db.kolodahs.ru',
+      records: health.records,
+      state: health.dataStatus === 'unavailable' ? 'missing' as const : health.state,
+      dataStatus: health.dataStatus,
+      cacheSource: health.cacheSource,
+      warning: health.warning,
+    };
+  });
+  return evaluateDataHealth([...staticDatasets, ...constructedCards]);
 }
 
 const healthRouter = createHealthRouter({

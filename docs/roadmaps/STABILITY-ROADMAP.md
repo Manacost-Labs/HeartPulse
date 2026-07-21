@@ -42,12 +42,12 @@
 |---|---|---|---|
 | Route/widget boundaries покрывают не все разделы | Shell, Home и Standard Meta защищены; другие lazy features ещё мигрируют | Ошибка незакрытого виджета может заменить весь маршрут shell fallback | P0 |
 | Контракты данных нормализуются вручную | Много независимых преобразований в `server/index.ts` и routers, без общего runtime schema слоя | Невозможные проценты, пустые related cards, drift полей | P0 |
-| Data health покрывает только часть наборов | Readiness в основном ориентирован на winrates/tierlist/legendaries | Standard Cards/BG/Meta могут быть сломаны при зелёном health | P0 |
+| Data health покрывает только часть наборов | Readiness уже включает winrates/tierlist/legendaries и durable Standard/Wild card catalogs, но ещё не все BG/Meta datasets | BG/Meta могут быть сломаны при зелёном health | P0 |
 | Кэши распределены по множеству `Map`/TTL | `server/index.ts` и отдельные routers | После публикации разные страницы видят разные версии | P0 |
 | Метрики процесса хранятся в памяти | `server/metrics.ts` | История теряется при restart; сложно расследовать регрессию | P0 |
 | Нет browser error tracking/RUM | Frontend | JS-ошибки пользователя не видны серверному мониторингу | P0 |
 | External synthetic workflow не установлен как production control | Есть пример workflow и `scripts/production-monitor.mjs` | Сбой снаружи может остаться незамеченным | P0 |
-| Synthetic coverage узкий | Проверяются лишь несколько HTML-маршрутов и три dataset | Ошибка paywall/detail/admin остаётся незаметной | P0 |
+| Synthetic coverage всё ещё неполный | Проверяются public HTML, пять datasets, Standard Cards list, известная и отсутствующая card detail; gated/admin сценарии ещё не включены | Ошибка paywall/admin остаётся незаметной | P0 |
 | Монолиты осложняют безопасные изменения | `server/index.ts` ~8,6 тыс. строк, `src/features/DeferredRoutes.tsx` ~6,4 тыс. строк, `src/App.tsx` ~1,8 тыс. строк | Высокий regression radius | P1 |
 | Тесты в основном кастомные `tsx` scripts | Нет единой component/coverage инфраструктуры | Неизвестное покрытие UI и ветвей ошибок | P1 |
 | CSS cascade хрупок | Более тысячи `!important` по текущему аудиту | Визуальные регрессии после локальной правки | P1 |
@@ -143,7 +143,7 @@ data
 | STAB-101 | Выполнено | `AppErrorBoundary` защищает shell; render retry выполняется без reload, chunk failure предлагает явное обновление; browser QA и unit contract зелёные | Подключить внешний browser error collector в STAB-105 |
 | STAB-102 | В работе | `RecoverableSurfaceBoundary` локализует ошибки маршрута Standard Meta и оставляет sidebar/header/footer доступными | Последовательно обернуть остальные критические lazy routes по inventory, не увеличивая eager bundle |
 | STAB-103 | В работе | Общий `HsReplayDeckList` изолирует ошибки DeckView в Standard Meta и Vicious Gold; при отказе остаются русский текстовый состав, код колоды и Retry | Перевести `StandardCards` на тот же loader; затем графики, tooltip/lightbox и рекомендации |
-| STAB-104 | В работе | Введены единые `loading`, `empty`, `error`, `stale` surfaces; Standard Meta мигрирована, кнопки не меньше 44 px, состояния имеют корректные live roles | Подключать `stale` только из versioned freshness envelope STAB-201, затем мигрировать остальные страницы |
+| STAB-104 | В работе | Введены единые `loading`, `empty`, `error`, `stale` surfaces; Standard Meta и Standard Cards различают 404/503, показывают русские retry/stale/partial notices и не маскируют восстановленную карточку как «не найдено» | Мигрировать остальные страницы; добавить общий backoff/offline слой STAB-106 |
 
 Проверенное доказательство текущего среза: production build и budgets зелёные; DeckView JS выделен в lazy chunk 30,43 КБ; initial JS 253 904/254 000 Б; детерминированный browser QA проверяет API 503→200 без reload и падение `renderDeck` на 320 px без потери shell, кода колоды или горизонтального containment.
 
@@ -152,19 +152,21 @@ data
 | ID | Статус | Реализовано | Что осталось |
 |---|---|---|---|
 | STAB-201 | В работе | Standard Meta получила envelope v1, deterministic `datasetVersion`, vendor content negotiation, server outbound validation и client boundary validation с N/N-1 legacy fallback | Перенести контракт на остальные критические Standard/Arena/BG datasets и определить migration window |
-| STAB-202 | В работе | Для Standard Meta проверяются enum/ranges, уникальность, даты, полнота stable, массовые 97–100%, minimum rows и сокращение stable более чем на 50% | Добавить cross-source gates и покрыть Standard Cards, Arena и BG |
+| STAB-202 | В работе | Standard Meta проверяет enum/ranges/полноту; Standard Cards требует явный page/total/total_pages на каждой странице, понимает и проверяет string/object format evidence, но для любого production cold Wild требует минимум 3 000 карт (dual Standard/Wild membership не доказывает полноту), проверяет duplicate ID/DBF, future timestamps, 70% count continuity, 50% ID overlap относительно меньшего набора, обычный рост не выше 50%, 20k/64 MiB limits и удаляет response-only stats/deck/entitlement поля до raw persistence; controlled expansion доступен только server-side | Добавить cross-source gates и покрыть Arena и BG |
 | STAB-204 | В работе | Standard Meta переносит публикационный `early/stable` mode из конкретного upstream candidate; UI явно показывает early/partial | API данных должен закрепить publication channel как обязательное поле всех published snapshots |
 | STAB-205 | Выполнено | Full-admin панель хранит mode/scope с revision, reason и TTL; все ответы private/no-store; добавлены локальный audit log, реальное состояние systemd и mobile/reflow UI | Эксплуатационно проверить новый exporter после следующего разрешённого production deploy |
-| STAB-206 | В работе | Невалидный Standard Meta candidate не заменяет последнюю проверенную in-process версию; fallback получает реальный freshness | Добавить durable last-known-good после restart и ограниченный stale policy |
+| STAB-206 | В работе | Standard Cards имеет отдельный Standard/Wild atomic mirrored LKG, self-heal после corrupt/missing copy, five-minute singleflight и bounded 48-hour stale policy; known detail деградирует до partial dossier, cold/expired catalog даёт `503 Retry-After` | Перенести durable LKG после restart на Standard Meta, Arena и BG |
 | STAB-307 | В работе | Ручные terminal runs после restart обнаруживаются durable reconciler, coalesce одну глобальную очистку, повторяют временный сбой с backoff и карантинят повреждённый ledger | Перейти от polling к общему событию `dataset.published` для всех автоматических и ручных публикаций |
 
 Совместимость Standard Meta: новый клиент запрашивает `application/vnd.manacost.standard-meta.v1+json`; обычный `Accept` получает прежнее тело, а новый клиент строго проверяет legacy body только при полном отсутствии `schemaVersion`. Неизвестная версия никогда не маскируется как legacy.
 
 Проверенное доказательство parser-control среза: full-admin/RBAC/CSRF/no-store contract tests, retry/restart/corrupt-state/clock-rollback tests, API runtime tests, production build и browser QA на 320/430 px и 200% reflow. Runtime exporter работает без root и без доступа к Docker socket; при устаревшем снимке UI явно возвращается к номинальному плану.
 
+Проверенное доказательство Standard Cards LKG-среза: store tests портят hash/format/future timestamp, имитируют EACCES/ENOSPC на marker/primary/recovery/marker-clear до и после atomic rename, перезапускают Store с durable degraded marker и проверяют primary-authoritative recovery; update gates пропускают 40% ротацию и реальный 6 331-card object Wild catalog, но отклоняют 1 152-card cold Wild даже при dual Standard/Wild membership, disjoint swap и неконтролируемый скачок. Page tests отклоняют пропуск pagination evidence, inconsistent totals и cross-page duplicate; 20 параллельных cold запросов выполняют ровно один трёхстраничный fanout; detail tests различают confirmed 404 и retryable transport/429/5xx/invalid, ограничивают negative cache, требуют точные deck offset/count/total и stable identity, сохраняют предыдущие deck/patch enrichments и redaction; SEO не объявляет stale absence постоянным 404; production monitor требует coherent list/known/unknown envelope отдельно для Standard и Wild.
+
 ### Ближайший порядок P0 стабилизации
 
-1. Закрыть `STAB-202/203/206` для Standard Cards, Arena и BG: versioned schema, quarantine и durable last-known-good до расширения функциональности.
+1. Закрыть `STAB-202/203/206` для Arena, BG и Standard Meta; для Standard Cards добавить candidate/quarantine audit поверх уже работающего versioned raw LKG.
 2. Завершить `STAB-301–305`: единые cache keys, publication event и synthetic coherence check; polling reconciler оставить страховочной сеткой.
 3. Подключить `STAB-105/401–407`: внешний browser error collector, постоянные метрики, data freshness и production synthetic каждые пять минут.
 4. Закрыть route/widget boundaries по inventory и добавить fault E2E для API 500, timeout, corrupt snapshot, Redis outage и vendor DeckView failure.

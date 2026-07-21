@@ -16,6 +16,16 @@ writeFileSync(join(dataDir, 'winrates.json'), JSON.stringify({ updatedAt: now, s
 writeFileSync(join(dataDir, 'tierlist.json'), JSON.stringify({ updatedAt: now, source: 'smoke', sections: [{}] }));
 writeFileSync(join(dataDir, 'legendaries.json'), JSON.stringify({ updatedAt: now, source: 'smoke', groups: [{}] }));
 writeFileSync(join(temporaryRoot, 'release.json'), JSON.stringify({ sha: 'deadbee' }));
+const { ConstructedCardCatalogStore } = await import('../build/server/constructedCardCatalogStore.js');
+const catalogStore = new ConstructedCardCatalogStore({ stateDirectory: dataDir });
+for (const [format, count] of [['standard', 500], ['wild', 3_000]]) {
+  catalogStore.publish(format, Array.from({ length: count }, (_, index) => ({
+    card_id: `${format.toUpperCase()}_SMOKE_${index + 1}`,
+    dbf: (format === 'standard' ? 100_000 : 200_000) + index,
+    name: { ru: `Smoke ${index + 1}` },
+    formats: [{ slug: format }],
+  })), { expectedTotal: count, sourceUpdatedAt: now });
+}
 
 const child = spawn(process.execPath, ['build/server/index.js'], {
   cwd: root,
@@ -74,7 +84,16 @@ try {
   if (ready.response.status !== 200 || ready.body.status !== 'ready') throw new Error(`readiness contract failed: ${JSON.stringify(ready.body)}`);
 
   const data = await requestJson('/health/data');
-  if (data.response.status !== 200 || data.body.status !== 'ok') throw new Error(`data health contract failed: ${JSON.stringify(data.body)}`);
+  const constructedDatasets = Array.isArray(data.body.datasets)
+    ? data.body.datasets.filter(dataset => String(dataset?.name || '').startsWith('constructed-cards-'))
+    : [];
+  if (data.response.status !== 503
+    || data.body.status !== 'degraded'
+    || data.body.ready !== true
+    || constructedDatasets.length !== 2
+    || constructedDatasets.some(dataset => dataset.state !== 'stale' || dataset.cacheSource !== 'LKG')) {
+    throw new Error(`data health contract failed: ${JSON.stringify(data.body)}`);
+  }
 
   const legacy = await requestJson('/api/status');
   if (legacy.response.status !== 200 || legacy.body.nextScrape !== 'каждые 6 часов') throw new Error('legacy status contract failed');
