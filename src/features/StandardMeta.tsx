@@ -20,6 +20,12 @@ import {
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import HsReplayDeckList, { type HsReplayDeckCard } from './HsReplayDeckList';
 import { AsyncSurfaceState, RecoverableSurfaceBoundary } from './recovery/RecoverableSurface';
+import { datasetContractErrorMessage } from '../../shared/datasetEnvelope';
+import {
+  STANDARD_META_MEDIA_TYPE,
+  parseStandardMetaApiResponse,
+  type StandardMetaEnvelope,
+} from '../../shared/standardMetaContract';
 import '../route-parchment.css';
 import './recovery/RecoverableSurface.css';
 import './StandardMeta.css';
@@ -328,6 +334,7 @@ function StandardMetaContent() {
   const [view, setView] = useState<MetaView>('cards');
   const [sort, setSort] = useState<{ key: MetaSortKey | null; direction: MetaSortDirection }>({ key: null, direction: 'desc' });
   const [data, setData] = useState<MetaPayload>(EMPTY_DATA);
+  const [datasetEnvelope, setDatasetEnvelope] = useState<StandardMetaEnvelope | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [metaRevision, setMetaRevision] = useState(0);
@@ -341,13 +348,23 @@ function StandardMetaContent() {
     const controller = new AbortController();
     setLoading(true);
     setError('');
-    void apiJson<MetaPayload>(`/api/standard-meta?format=${format}&rank=${rank}`, { signal: controller.signal })
+    void apiJson<unknown>(`/api/standard-meta?format=${format}&rank=${rank}`, {
+      signal: controller.signal,
+      headers: { Accept: STANDARD_META_MEDIA_TYPE },
+    })
       .then(payload => {
-        if (currentRequest === requestId.current) setData(payload);
+        const verified = parseStandardMetaApiResponse(payload);
+        if (currentRequest === requestId.current) {
+          setData(verified.data);
+          setDatasetEnvelope(verified.envelope);
+        }
       })
       .catch(cause => {
         if (cause instanceof DOMException && cause.name === 'AbortError') return;
-        if (currentRequest === requestId.current) setError(cause instanceof Error ? cause.message : 'Не удалось загрузить мету');
+        if (currentRequest === requestId.current) {
+          setDatasetEnvelope(null);
+          setError(datasetContractErrorMessage(cause));
+        }
       })
       .finally(() => {
         if (currentRequest === requestId.current) setLoading(false);
@@ -518,6 +535,22 @@ function StandardMetaContent() {
           <span><strong>{data.rankLabel}</strong> рейтинг</span>
         </div>
       </section>
+
+      {datasetEnvelope && (
+        datasetEnvelope.mode === 'early'
+        || datasetEnvelope.freshness === 'aging'
+        || datasetEnvelope.freshness === 'stale'
+        || datasetEnvelope.partial
+      ) && (
+        <AsyncSurfaceState
+          variant="stale"
+          compact
+          className="standard-meta__data-notice"
+          title={datasetEnvelope.mode === 'early' ? 'Ранняя мета' : 'Данные ожидают обновления'}
+          message={datasetEnvelope.quality.warnings[0]
+            || `Источник обновлён ${new Date(datasetEnvelope.sourceUpdatedAt || datasetEnvelope.publishedAt).toLocaleString('ru-RU')}.`}
+        />
+      )}
 
       <section className="standard-meta__controls" aria-label="Фильтры меты" data-tour-id="meta-controls">
         <div className="standard-meta__panel-heading">

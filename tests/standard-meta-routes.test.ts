@@ -5,8 +5,23 @@ import {
   type StandardMetaRecommendation,
   type StandardMetaRouterDependencies,
 } from '../server/standardMetaRoutes.js';
+import { STANDARD_META_MEDIA_TYPE } from '../shared/standardMetaContract.js';
 
 const calls: string[] = [];
+const sourceUpdatedAt = '2026-07-21T05:05:30.230Z';
+const metaItems = Array.from({ length: 5 }, (_, index) => ({
+  id: `meta-${index + 1}`,
+  archetype: index === 0 ? 'Mug Shaman' : `Archetype ${index + 1}`,
+  archetypeLabel: index === 0 ? 'Кружечный Шаман' : `Архетип ${index + 1}`,
+  translated: true,
+  classKey: index === 0 ? 'shaman' : 'warrior',
+  winrate: 55 - index,
+  popularity: 20 - index,
+  games: 1_000 - index * 50,
+  turns: 8 + index / 10,
+  durationMinutes: 7 + index / 10,
+  climbingSpeed: 0.5 - index / 10,
+}));
 const recommendation: StandardMetaRecommendation = {
   archetype: 'Mug Shaman',
   archetypeLabel: 'Кружечный Шаман',
@@ -37,7 +52,22 @@ const dependencies: StandardMetaRouterDependencies = {
   },
   loadMeta: async (format, rank) => {
     calls.push(`meta:${format}:${rank}`);
-    return { format, rank, items: [{ archetype: 'Mug Shaman' }] };
+    return {
+      publicationMode: 'stable',
+      publishedAt: sourceUpdatedAt,
+      format,
+      formatLabel: format === 'standard' ? 'Стандарт' : 'Вольный',
+      rank,
+      rankLabel: rank,
+      source: 'hsguru',
+      sourceId: `hsguru-meta-${format}-${rank}`,
+      sourceUrl: 'https://example.test/meta',
+      translationSource: 'database',
+      updatedAt: sourceUpdatedAt,
+      items: rank === 'top_legend'
+        ? metaItems.map(item => ({ ...item, winrate: 100 }))
+        : metaItems,
+    };
   },
   loadViciousGold: async () => {
     calls.push('vicious-gold');
@@ -92,8 +122,38 @@ try {
 
   const meta = await fetch(`${origin}/admin/standard-meta?format=wild&rank=top_5k`, { headers: adminHeaders });
   assert.equal(meta.status, 200);
-  assert.deepEqual(await meta.json(), { format: 'wild', rank: 'top_5k', items: [{ archetype: 'Mug Shaman' }] });
+  const legacyMeta = await meta.json() as any;
+  assert.equal(legacyMeta.format, 'wild');
+  assert.equal(legacyMeta.rank, 'top_5k');
+  assert.equal(legacyMeta.items.length, 5);
+  assert.equal(legacyMeta.schemaVersion, undefined, 'ordinary Accept remains compatible with the previous response shape');
+  assert.equal(meta.headers.get('vary')?.includes('Accept'), true);
+  assert.match(meta.headers.get('x-dataset-version') ?? '', /^sm1-[a-f0-9]{20}$/);
   assert.deepEqual(calls, ['meta:wild:top_5k']);
+
+  const versionedMeta = await fetch(`${origin}/admin/standard-meta?format=standard&rank=legend`, {
+    headers: { ...adminHeaders, Accept: STANDARD_META_MEDIA_TYPE },
+  });
+  assert.equal(versionedMeta.status, 200);
+  const envelope = await versionedMeta.json() as any;
+  assert.equal(envelope.schemaVersion, 1);
+  assert.equal(envelope.dataset, 'standard-meta');
+  assert.equal(envelope.mode, 'stable');
+  assert.equal(envelope.data.items[0].archetype, 'Mug Shaman');
+  assert.equal(envelope.quality.status, 'pass');
+  assert.equal(versionedMeta.headers.get('content-type')?.startsWith(STANDARD_META_MEDIA_TYPE), true);
+
+  const declinedEnvelope = await fetch(`${origin}/admin/standard-meta?format=standard&rank=legend`, {
+    headers: { ...adminHeaders, Accept: `${STANDARD_META_MEDIA_TYPE}; q=0, application/json` },
+  });
+  assert.equal(declinedEnvelope.status, 200);
+  assert.match(declinedEnvelope.headers.get('content-type') ?? '', /^application\/json/);
+  assert.equal((await declinedEnvelope.json() as any).schemaVersion, undefined);
+
+  const rejectedMeta = await fetch(`${origin}/admin/standard-meta?format=standard&rank=top_legend`, {
+    headers: { ...adminHeaders, Accept: STANDARD_META_MEDIA_TYPE },
+  });
+  assert.equal(rejectedMeta.status, 502, 'widespread impossible winrates must fail before outbound response');
 
   const deniedVicious = await fetch(`${origin}/admin/vicious-syndicate-gold`);
   assert.equal(deniedVicious.status, 403);

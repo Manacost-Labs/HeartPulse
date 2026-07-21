@@ -46,6 +46,11 @@ import {
   type StandardMetaRank,
   type StandardMetaRecommendation,
 } from './standardMetaRoutes.js';
+import {
+  resolveStandardMetaPublication,
+  selectStandardMetaCandidate,
+  type StandardMetaPublication,
+} from './standardMetaDataset.js';
 import { renderDeckviewPreview } from './deckviewPreview.js';
 import { buildDeckCardData } from './deckCardData.js';
 import {
@@ -5855,7 +5860,11 @@ function transformHsguruMeta(
   format: StandardMetaFormat,
   rank: StandardMetaRank,
   archetypeTranslations: StandardArchetypeTranslations,
+  publication: StandardMetaPublication,
 ) {
+  const publicationMode = publication.mode;
+  const publishedAt = publication.publishedAt;
+  const sourceUpdatedAt = payload?.fetched_at ?? payload?.data?.fetched_at ?? null;
   const table = payload?.data?.tables?.[0] ?? payload?.tables?.[0] ?? null;
   const rows = Array.isArray(table?.rows) ? table.rows : [];
   const translations = archetypeTranslations.map;
@@ -5879,6 +5888,8 @@ function transformHsguruMeta(
     }];
   });
   return {
+    publicationMode,
+    publishedAt,
     format,
     formatLabel: STANDARD_META_FORMAT_LABEL[format],
     rank,
@@ -5887,7 +5898,7 @@ function transformHsguruMeta(
     sourceId: STANDARD_META_DATASET_BY_FORMAT_RANK[format][rank],
     sourceUrl: payload?.data?.url ?? payload?.url ?? '',
     translationSource: archetypeTranslations.source,
-    updatedAt: payload?.fetched_at ?? payload?.data?.fetched_at ?? null,
+    updatedAt: sourceUpdatedAt,
     items,
   };
 }
@@ -5897,17 +5908,42 @@ async function loadStandardMeta(format: StandardMetaFormat, rank: StandardMetaRa
   const now = Date.now();
   const cached = standardMetaApiCache.get(cacheKey);
   if (cached && cached.expiresAt > now) return cached.data;
-  const [payload, translations] = await Promise.all([
-    fetchDataset(STANDARD_META_DATASET_BY_FORMAT_RANK[format][rank]),
-    getStandardArchetypeTranslations(now),
-  ]);
-  const data = transformHsguruMeta(payload, format, rank, translations);
-  standardMetaApiCache.set(cacheKey, {
-    data,
-    etag: '',
-    expiresAt: now + EXTERNAL_DATASET_CACHE_MS,
-  });
-  return data;
+  try {
+    const [payload, translations] = await Promise.all([
+      fetchDataset(STANDARD_META_DATASET_BY_FORMAT_RANK[format][rank]),
+      getStandardArchetypeTranslations(now),
+    ]);
+    const sourceId = STANDARD_META_DATASET_BY_FORMAT_RANK[format][rank];
+    const publication = await resolveStandardMetaPublication(
+      payload,
+      sourceId,
+      () => hsDataParserControlClient.getControl(),
+    );
+    const data = transformHsguruMeta(payload, format, rank, translations, publication);
+    const selected = selectStandardMetaCandidate(data, cached?.data ?? null, now);
+    if (selected.rejectedError) {
+      if (!cached) throw selected.rejectedError;
+      cached.expiresAt = now + 60_000;
+      console.warn(
+        '[standard-meta] candidate rejected; serving last known good:',
+        selected.rejectedError instanceof Error ? selected.rejectedError.message : selected.rejectedError,
+      );
+      return selected.data;
+    }
+    standardMetaApiCache.set(cacheKey, {
+      data: selected.data,
+      etag: selected.envelope.datasetVersion,
+      expiresAt: now + EXTERNAL_DATASET_CACHE_MS,
+    });
+    return selected.data;
+  } catch (error) {
+    if (!cached) throw error;
+    // Keep the last validated in-process document visible while retrying the
+    // source on a short cadence. Its envelope reports the real stale age.
+    cached.expiresAt = now + 60_000;
+    console.warn('[standard-meta] candidate rejected; serving last known good:', error instanceof Error ? error.message : error);
+    return cached.data;
+  }
 }
 
 type ViciousGoldBuild = Omit<StandardMetaRecommendation, 'matchMethod'> & {

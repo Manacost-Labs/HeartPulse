@@ -1,6 +1,8 @@
 import { Router, type RequestHandler } from 'express';
 import type { StandardMetaClassKey } from './standardMetaClasses.js';
 import type { DeckCardData } from './deckCardData.js';
+import { createStandardMetaEnvelope } from './standardMetaDataset.js';
+import { STANDARD_META_MEDIA_TYPE } from '../shared/standardMetaContract.js';
 
 export type StandardMetaFormat = 'standard' | 'wild';
 export type StandardMetaRank = 'legend' | 'diamond' | 'top_5k' | 'top_legend';
@@ -73,6 +75,20 @@ function message(error: unknown, fallback: string): string {
   return fallback;
 }
 
+function acceptsMediaType(value: unknown, mediaType: string): boolean {
+  return String(value ?? '')
+    .split(',')
+    .map(part => part.trim())
+    .some(part => {
+      const [type, ...parameters] = part.split(';').map(token => token.trim().toLowerCase());
+      if (type !== mediaType) return false;
+      const quality = parameters.find(parameter => parameter.startsWith('q='));
+      if (!quality) return true;
+      const parsed = Number(quality.slice(2));
+      return Number.isFinite(parsed) && parsed > 0;
+    });
+}
+
 export function createStandardMetaRouter(dependencies: StandardMetaRouterDependencies): Router {
   const router = Router();
 
@@ -90,7 +106,13 @@ export function createStandardMetaRouter(dependencies: StandardMetaRouterDepende
     const rank = readRank(request.query.rank);
     if (!format || !rank) return response.status(400).json({ error: 'Неизвестный формат или рейтинг' });
     try {
-      return response.json(await dependencies.loadMeta(format, rank));
+      const envelope = createStandardMetaEnvelope(await dependencies.loadMeta(format, rank));
+      response.vary('Accept');
+      response.set('X-Dataset-Schema', String(envelope.schemaVersion));
+      response.set('X-Dataset-Version', envelope.datasetVersion);
+      const acceptsVersionedEnvelope = acceptsMediaType(request.headers.accept, STANDARD_META_MEDIA_TYPE);
+      response.type(acceptsVersionedEnvelope ? STANDARD_META_MEDIA_TYPE : 'application/json');
+      return response.json(acceptsVersionedEnvelope ? envelope : envelope.data);
     } catch (error) {
       dependencies.onError?.('meta', error);
       return response.status(502).json({ error: 'Данные меты временно недоступны' });

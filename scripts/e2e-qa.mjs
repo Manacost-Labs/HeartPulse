@@ -405,6 +405,16 @@ const adminFixtures = {
         classKey: 'warrior', winrate: 58.1, popularity: 0.1, games: 136, turns: 4.6,
         durationMinutes: 3.7, climbingSpeed: 2.63,
       },
+      {
+        id: 'qa-mug-shaman', archetype: 'Mug Shaman', archetypeLabel: 'Кружечный Шаман', translated: true,
+        classKey: 'shaman', winrate: 56.8, popularity: 3.4, games: 3736, turns: 7.2,
+        durationMinutes: 6.4, climbingSpeed: 1.2,
+      },
+      {
+        id: 'qa-face-hunter', archetype: 'Face Hunter', archetypeLabel: 'Фейс Охотник', translated: true,
+        classKey: 'hunter', winrate: 55.3, popularity: 2.7, games: 2980, turns: 6.8,
+        durationMinutes: 6.1, climbingSpeed: 0.9,
+      },
     ],
   },
   '/api/admin/vicious-syndicate-gold': {
@@ -1208,6 +1218,16 @@ async function mockApplicationApi(page, {
       adminState.standardMetaReadFailureOnce = false;
       adminState.standardMetaReadFailures = (adminState.standardMetaReadFailures || 0) + 1;
       request.respond({ ...jsonResponse({ error: 'Контрольная ошибка загрузки меты' }), status: 503 });
+      return;
+    }
+    if ((url.pathname === '/api/standard-meta' || (admin && url.pathname === '/api/admin/standard-meta'))
+      && request.method() === 'GET' && adminState.standardMetaContractFailureOnce) {
+      adminState.standardMetaContractFailureOnce = false;
+      request.respond(jsonResponse({
+        schemaVersion: 999,
+        dataset: 'standard-meta',
+        data: adminFixtures['/api/admin/standard-meta'],
+      }));
       return;
     }
     const standardFixturePath = publicStandardFixtureAliases[url.pathname] || url.pathname;
@@ -3481,6 +3501,33 @@ for (const [device, viewport] of [
     if (metaRetryState.marker !== 'preserve-on-retry' || metaRetryState.errorPresent || metaRetryState.shellRecoveryPresent) {
       failures.push(`standard meta recovery [${device}]: Retry reloaded the document or opened shell recovery (${JSON.stringify(metaRetryState)})`);
     }
+    adminState.standardMetaContractFailureOnce = true;
+    await page.evaluate(() => {
+      const buttons = [...document.querySelectorAll('.standard-meta__rank-tabs button')];
+      const diamond = buttons.find(button => button.textContent?.includes('Алмаз'));
+      if (diamond instanceof HTMLElement) diamond.click();
+    });
+    await page.waitForSelector('.standard-meta [data-recovery-state="error"]', { timeout: 20_000 });
+    const contractErrorState = await page.evaluate(() => {
+      const state = document.querySelector('.standard-meta [data-recovery-state="error"]');
+      return {
+        text: state?.textContent?.replace(/\s+/g, ' ').trim() || '',
+        shellVisible: Boolean(document.querySelector('.arena-sidebar') && document.querySelector('.global-utility-header')),
+        shellRecoveryPresent: Boolean(document.querySelector('.app-error-shell')),
+      };
+    });
+    if (!contractErrorState.text.includes('Формат данных обновился')
+      || !contractErrorState.shellVisible || contractErrorState.shellRecoveryPresent) {
+      failures.push(`standard meta contract [${device}]: incompatible schema was not controlled (${JSON.stringify(contractErrorState)})`);
+    }
+    await page.click('.standard-meta [data-recovery-state="error"] button');
+    await page.waitForSelector('[data-meta-view="cards"]', { timeout: 20_000 });
+    await page.evaluate(() => {
+      const buttons = [...document.querySelectorAll('.standard-meta__rank-tabs button')];
+      const legend = buttons.find(button => button.textContent?.trim() === 'Легенда');
+      if (legend instanceof HTMLElement) legend.click();
+    });
+    await page.waitForFunction(() => document.querySelector('.standard-meta-chart__heading p')?.textContent?.includes('Легенда'));
     const standardMetaState = await page.evaluate(() => {
       const pageRoot = document.querySelector('.standard-meta');
       const masthead = document.querySelector('.standard-meta__masthead');
@@ -3545,7 +3592,7 @@ for (const [device, viewport] of [
         chartVisible: Boolean(chart && chart.getBoundingClientRect().height > 0),
       };
     });
-    if (standardMetaChartState.points !== 3 || standardMetaChartState.labels < 1 || standardMetaChartState.labels > 3
+    if (standardMetaChartState.points !== 5 || standardMetaChartState.labels < 1 || standardMetaChartState.labels > 5
       || !standardMetaChartState.subtitle.includes('Стандарт') || !standardMetaChartState.subtitle.includes('Легенда')
       || !standardMetaChartState.detail.includes('Чётный Чернокнижник') || !standardMetaChartState.hasAxes
       || standardMetaChartState.firstPointRole !== 'button' || standardMetaChartState.deckButtonHeight < 44
@@ -3582,7 +3629,7 @@ for (const [device, viewport] of [
         pageOverflow: (document.querySelector('.standard-meta')?.scrollWidth ?? 0) > (document.querySelector('.standard-meta')?.clientWidth ?? 0) + 1,
       };
     });
-    if (standardMetaTableState.rows !== 3 || standardMetaTableState.columns !== 8 || standardMetaTableState.sortControls !== 7
+    if (standardMetaTableState.rows !== 5 || standardMetaTableState.columns !== 8 || standardMetaTableState.sortControls !== 7
       || standardMetaTableState.stickyPosition !== 'sticky' || standardMetaTableState.stickyLeft !== '0px'
       || standardMetaTableState.pageOverflow || (device === 'mobile' && !standardMetaTableState.scrollable)) {
       failures.push(`standard meta table [${device}]: structure or responsive containment regressed (${JSON.stringify(standardMetaTableState)})`);

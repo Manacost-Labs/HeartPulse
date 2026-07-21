@@ -145,6 +145,17 @@ data
 
 Проверенное доказательство текущего среза: production build и budgets зелёные; DeckView JS выделен в lazy chunk 30,43 КБ; initial JS 253 904/254 000 Б; детерминированный browser QA проверяет API 503→200 без reload и падение `renderDeck` на 320 px без потери shell, кода колоды или горизонтального containment.
 
+### Состояние runtime-контрактов на 21 июля 2026 года
+
+| ID | Статус | Реализовано | Что осталось |
+|---|---|---|---|
+| STAB-201 | В работе | Standard Meta получила envelope v1, deterministic `datasetVersion`, vendor content negotiation, server outbound validation и client boundary validation с N/N-1 legacy fallback | Перенести контракт на остальные критические Standard/Arena/BG datasets и определить migration window |
+| STAB-202 | В работе | Для Standard Meta проверяются enum/ranges, уникальность, даты, полнота stable, массовые 97–100%, minimum rows и сокращение stable более чем на 50% | Добавить cross-source gates и покрыть Standard Cards, Arena и BG |
+| STAB-204 | В работе | Standard Meta переносит публикационный `early/stable` mode из конкретного upstream candidate; UI явно показывает early/partial | API данных должен закрепить publication channel как обязательное поле всех published snapshots |
+| STAB-206 | В работе | Невалидный Standard Meta candidate не заменяет последнюю проверенную in-process версию; fallback получает реальный freshness | Добавить durable last-known-good после restart и ограниченный stale policy |
+
+Совместимость Standard Meta: новый клиент запрашивает `application/vnd.manacost.standard-meta.v1+json`; обычный `Accept` получает прежнее тело, а новый клиент строго проверяет legacy body только при полном отсутствии `schemaVersion`. Неизвестная версия никогда не маскируется как legacy.
+
 ### Фаза 1 — локализация frontend-ошибок, недели 1–3
 
 | ID | P | Работа | Возможные файлы | Критерий приёмки и тест |
