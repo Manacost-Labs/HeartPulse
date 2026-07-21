@@ -27,6 +27,17 @@ export default defineConfig(({mode}) => {
     build: {
       target: 'es2022',
       cssMinify: true,
+      modulePreload: {
+        resolveDependencies(filename, dependencies) {
+          // Admin subsections are opened explicitly after authentication. Do
+          // not make the public contests route speculate on their dependency
+          // trees; native ESM still loads every dependency when an admin opens
+          // the subsection.
+          return /^assets\/ContestAdmin(?:Translations|MechanicTranslations|StandardOperations)-.*\.js$/.test(filename)
+            ? []
+            : dependencies;
+        },
+      },
       rollupOptions: {
         output: {
           manualChunks: {

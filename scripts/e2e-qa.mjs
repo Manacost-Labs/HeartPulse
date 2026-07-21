@@ -464,6 +464,41 @@ const adminFixtures = {
     deckView: { queued: 0, active: 0, succeeded: 31, failed: 1, timeoutMs: 30000 },
     sources: { viciousSyndicate: 'vicious-syndicate-live-standard', cardStatistics: { standard: 'cards-standard', wild: 'cards-wild' }, renderApi: 'http://127.0.0.1:5000/deckview-api/v1' },
   },
+  '/api/admin/parser-control': {
+    revision: 3,
+    generated_at: '2026-07-21T01:00:00.000Z',
+    policy: {
+      mode: 'stable', effective_mode: 'stable', early_until: null, reason: '',
+      updated_at: '2026-07-21T00:30:00.000Z', updated_by: 'qa-admin', managed_by: 'admin',
+    },
+    sections: {
+      standard: {
+        group: 'traditional', label: 'Стандарт', description: 'Мета, матчапы и карты', enabled: true, status: 'healthy',
+        last_success_at: '2026-07-21T00:00:00.000Z', schedule: 'каждые 5 часов',
+        sources: [{
+          source_id: 'vicious_syndicate_live', label: 'Vicious Syndicate Live', enabled: true,
+          supports_early: true, can_run_manually: true, health: 'healthy',
+          last_success_at: '2026-07-21T00:00:00.000Z', published_fetched_at: '2026-07-21T00:00:00.000Z',
+          candidate_fetched_at: '2026-07-21T00:00:00.000Z', publication_channel: 'stable',
+          stable_baseline_available: true, item_count: 128, state: 'ready',
+        }],
+      },
+      arena: {
+        group: 'arena', label: 'Арена', description: 'Тир-листы и винрейты', enabled: true, status: 'healthy',
+        last_success_at: '2026-07-21T00:00:00.000Z', schedule: 'каждые 5 часов',
+        sources: [{
+          source_id: 'hsreplay_arena', label: 'HSReplay Arena', enabled: true,
+          supports_early: true, can_run_manually: true, health: 'healthy',
+          last_success_at: '2026-07-21T00:00:00.000Z', published_fetched_at: '2026-07-21T00:00:00.000Z',
+          candidate_fetched_at: '2026-07-21T00:00:00.000Z', publication_channel: 'stable',
+          stable_baseline_available: true, item_count: 731, state: 'ready',
+        }],
+      },
+    },
+    summary: { total_sources: 2, enabled_sections: 2, early_capable_sources: 2, active_runs: 0, failed_sources: 0 },
+    warnings: [],
+  },
+  '/api/admin/parser-control/runs': { runs: [] },
   '/api/admin/boosty/status': {
     configured: true,
     ok: true,
@@ -2016,16 +2051,23 @@ for (const [device, viewport] of [
     await page.waitForFunction(() => document.querySelectorAll('.admin-standard-operations__routes a').length === 4);
     const standardOperationsState = await page.evaluate(() => ({
       title: document.querySelector('.admin-section-header h1')?.textContent?.trim() || '',
+      parserMode: document.querySelector('.admin-parser-mode-badge')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      parserSections: document.querySelectorAll('.admin-parser-section').length,
       stats: document.querySelectorAll('.admin-standard-operations .admin-stat-grid > div').length,
       sources: document.querySelectorAll('.admin-standard-operations__sources > div').length,
       actions: document.querySelectorAll('.admin-standard-operations__actions button').length,
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     }));
-    if (standardOperationsState.title !== 'Данные Standard' || standardOperationsState.stats !== 4
+    if (standardOperationsState.title !== 'Данные и парсеры' || standardOperationsState.parserMode !== 'Стабильная мета'
+      || standardOperationsState.parserSections !== 2 || standardOperationsState.stats !== 4
       || standardOperationsState.sources !== 4 || standardOperationsState.actions !== 4 || standardOperationsState.overflow) {
       failures.push(`admin Standard operations [${device}]: status workspace regressed (${JSON.stringify(standardOperationsState)})`);
     }
-    await page.click('.admin-standard-operations__actions button:nth-child(3)');
+    await page.evaluate(() => {
+      const button = document.querySelector('.admin-standard-operations__actions button:nth-child(3)');
+      if (!(button instanceof HTMLButtonElement)) throw new Error('DeckView preview cache reset action is missing');
+      button.click();
+    });
     await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Кеш очищен'));
     const standardOpsViolationCount = await auditAccessibility(page, `admin Standard operations [${device}]`, '.admin-workspace-content');
 
