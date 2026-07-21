@@ -29,11 +29,11 @@
   "defaultProfiles": ["compact-min", "phone-baseline", "medium"],
   "touchTargetRatchets": {
     "all-p0": {
-      "total": 478,
+      "total": 320,
       "profiles": {
-        "compact-min": 143,
-        "phone-baseline": 143,
-        "medium": 192
+        "compact-min": 89,
+        "phone-baseline": 89,
+        "medium": 142
       }
     }
   },

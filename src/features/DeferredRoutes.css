@@ -199,7 +199,7 @@
   }
   @media (max-width: 520px) {
     .hsrdv-table-card {
-      --hsrdv-tile-height: 42px;
+      --hsrdv-tile-height: 44px;
       --hsrdv-gem-width: 40px;
       --hsrdv-count-width: 30px;
       min-width: 270px;
@@ -1092,7 +1092,7 @@
 @media (max-width: 639px) {
   .source-toggle-button,
   .dashboard-filter-button {
-    min-height: 42px !important;
+    min-height: 44px !important;
   }
 
   .tierlist-class-tabs {
@@ -1101,8 +1101,8 @@
   }
 
   .tierlist-class-button {
-    min-width: 42px;
-    min-height: 42px;
+    min-width: 44px;
+    min-height: 44px;
   }
 
   .tierlist-rarity-filter,
@@ -1112,12 +1112,8 @@
 
   .tierlist-rarity-filter > button,
   .tierlist-mana-filter > button {
-    min-width: 42px;
-    height: 42px;
-  }
-
-  .tierlist-mana-filter .tierlist-icon-filter-button:not(.w-11) {
-    width: 42px !important;
+    min-width: 44px;
+    height: 44px;
   }
 }
 

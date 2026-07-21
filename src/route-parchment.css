@@ -417,7 +417,7 @@
 }
 
 :is(.arena-app-tierlist, .arena-app-legendaries) .source-toggle-button {
-  min-height: 40px;
+  min-height: 44px;
   border-radius: 1px !important;
   color: #5c412e !important;
   background: transparent !important;
@@ -458,7 +458,7 @@
 }
 
 .arena-app-tierlist .tierlist-class-search input {
-  min-height: 40px;
+  min-height: 44px;
   border: 1px solid rgba(95, 55, 24, 0.28);
   border-radius: 1px;
   color: #3e2c20 !important;

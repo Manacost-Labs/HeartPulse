@@ -380,6 +380,7 @@ const SourceToggleButton: React.FC<{
   onClick: () => void;
 }> = ({ source, label, active, busy, onClick }) => (
     <button
+      type="button"
       onClick={onClick}
       disabled={busy && !active}
       title={label}
@@ -676,7 +677,7 @@ const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabled = fa
   ]), [card.cardId, card.imageHa, card.imageRu]);
 
   const [srcIdx, setSrcIdx] = useState(0);
-  const cardRef = useRef<HTMLDivElement | null>(null);
+  const cardRef = useRef<HTMLButtonElement | null>(null);
   const thumbSrc = sources[srcIdx] ?? null;
   const handleErr = useCallback(() => setSrcIdx(i => i + 1), []);
   const showPreview = useCallback(() => {
@@ -695,9 +696,10 @@ const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabled = fa
 
   if (thumbSrc) {
     return (
-      <div
+      <button
+        type="button"
         ref={cardRef}
-        className="hs-tier-card relative z-0 flex-shrink-0 group cursor-pointer hover:z-[9999] focus-within:z-[9999]"
+        className="hs-tier-card relative z-0 flex-shrink-0 group cursor-pointer hover:z-[9999] focus-within:z-[9999] appearance-none border-0 bg-transparent p-0 text-left"
         data-rarity={String(card.rarity || 'common').toLowerCase()}
         onClick={handleClick}
         onMouseEnter={showPreview}
@@ -705,23 +707,23 @@ const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabled = fa
         onMouseLeave={hidePreview}
         onFocus={showPreview}
         onBlur={hidePreview}
-        aria-label={card.name}
-        tabIndex={0}
+        aria-label={`Открыть карту ${card.name}`}
       >
         <div className="hs-tier-card-inner transform transition-all duration-200 group-hover:scale-110 group-hover:z-10">
           <img src={thumbSrc} alt={card.name} loading="lazy" decoding="async" width={230} height={319}
             onError={handleErr} />
         </div>
-      </div>
+      </button>
     );
   }
 
   // Fallback styled card
   const rarityIconSrc = RARITY_ICON[card.rarity] ?? null;
   return (
-    <div
+    <button
+      type="button"
       ref={cardRef}
-      className="hs-tier-card relative z-0 flex-shrink-0 group cursor-pointer hover:z-[9999] focus-within:z-[9999]"
+      className="hs-tier-card relative z-0 flex-shrink-0 group cursor-pointer hover:z-[9999] focus-within:z-[9999] appearance-none border-0 bg-transparent p-0 text-left"
       data-rarity={String(card.rarity || 'common').toLowerCase()}
       onClick={handleClick}
       onMouseEnter={showPreview}
@@ -729,8 +731,7 @@ const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabled = fa
       onMouseLeave={hidePreview}
       onFocus={showPreview}
       onBlur={hidePreview}
-      aria-label={card.name}
-      tabIndex={0}
+      aria-label={`Открыть карту ${card.name}`}
     >
       <div className="hs-tier-card-inner hs-tier-card-inner--fallback relative rounded-xl flex flex-col items-center justify-center text-center transform transition-transform group-hover:scale-105 group-hover:z-10 overflow-hidden border-2 border-[#1a110a] bg-[#2c1e16]">
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/40 to-black/90" />
@@ -751,7 +752,7 @@ const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabled = fa
           <span className="font-hs text-[#fcd34d] text-[9px] sm:text-[11px] leading-tight block text-center truncate">{card.name}</span>
         </div>
       </div>
-    </div>
+    </button>
   );
 }) as React.FC<HSCardProps>;
 
@@ -1013,12 +1014,13 @@ const ClassTabs: React.FC<{
           const isActive = activeId === ALL_CARDS_ID;
           return (
             <button
+              type="button"
               key={ALL_CARDS_ID}
               data-id={ALL_CARDS_ID}
               aria-pressed={isActive}
               onClick={() => onChange(ALL_CARDS_ID)}
               title="Все карты"
-              className="flex-shrink-0 relative transition-all duration-200"
+              className="flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center relative transition-all duration-200"
               style={{
                 transform: isActive ? 'scale(1.15)' : 'scale(1)',
                 filter: isActive ? 'none' : 'grayscale(0.2) brightness(0.85)',
@@ -1046,12 +1048,13 @@ const ClassTabs: React.FC<{
 
           return (
             <button
+              type="button"
               key={sec.id}
               data-id={sec.id}
               aria-pressed={isActive}
               onClick={() => onChange(sec.id)}
               title={sec.name}
-              className="flex-shrink-0 relative transition-all duration-200"
+              className="flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center relative transition-all duration-200"
               style={{
                 transform: isActive ? 'scale(1.15)' : 'scale(1)',
                 filter: isActive ? 'none' : 'grayscale(0.2) brightness(0.85)',
@@ -1112,12 +1115,14 @@ const ClassTabs: React.FC<{
           placeholder="Поиск: Йогг-Сарон, Рагнарос..."
           value={searchQuery}
           onChange={e => onSearchChange(e.target.value)}
-          className="w-full bg-transparent pl-8 pr-3 py-1.5 text-sm text-[#3d2a1e] placeholder-[#8b6c42]/60 outline-none"
+          className="w-full bg-transparent pl-8 pr-11 py-1.5 text-sm text-[#3d2a1e] placeholder-[#8b6c42]/60 outline-none"
         />
         {searchQuery && (
           <button
+            type="button"
+            aria-label="Очистить поиск"
             onClick={() => onSearchChange('')}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-[#8b4513]/50 hover:text-[#8b4513] transition-colors"
+            className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center text-[#8b4513]/50 hover:text-[#8b4513] transition-colors"
           >
             <X size={13} />
           </button>
@@ -1925,7 +1930,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
                         type="button"
                         onClick={() => setViewMode(item.id)}
                         data-active={active ? 'true' : 'false'}
-                        className="flex min-h-[34px] items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-hs transition-all"
+                        className="flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-hs transition-all"
                         style={active ? {
                           background: 'linear-gradient(135deg,#5a3000,#3d1e00)',
                           color: '#fcd34d',
@@ -1946,12 +1951,13 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
                   const active = selectedRarity === r.id;
                   return (
                     <button
+                      type="button"
                       key={r.id}
                       onClick={() => setSelectedRarity(r.id)}
                       title={r.name}
                       aria-pressed={active}
                       data-active={active ? 'true' : 'false'}
-                      className="tierlist-icon-filter-button flex items-center justify-center rounded-lg transition-all"
+                      className="tierlist-icon-filter-button flex min-h-11 min-w-11 items-center justify-center rounded-lg transition-all"
                       style={{
                         padding: r.icon ? '4px' : '4px 10px',
                         background: active ? 'rgba(30,64,102,0.12)' : 'transparent',
@@ -1983,7 +1989,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
                       title={mana.name}
                       aria-pressed={active}
                       data-active={active ? 'true' : 'false'}
-                      className={`tierlist-icon-filter-button relative flex h-8 items-center justify-center rounded-lg transition-all ${isAll ? 'w-11 px-2' : 'w-8 flex-shrink-0'}`}
+                      className={`tierlist-icon-filter-button relative flex h-11 w-11 items-center justify-center rounded-lg transition-all ${isAll ? 'px-2' : 'flex-shrink-0'}`}
                       style={{
                         background: active ? 'rgba(30,64,102,0.12)' : 'transparent',
                         boxShadow: active ? 'inset 0 0 0 1px rgba(96,165,250,0.35)' : 'none',
@@ -2156,10 +2162,12 @@ const LegendaryCardThumb: React.FC<{
 
   if (src) {
     return (
-      <div
-        className={`${wClass} flex-shrink-0 cursor-pointer group`}
+      <button
+        type="button"
+        className={`legendary-card-button ${wClass} flex-shrink-0 cursor-pointer group appearance-none border-0 bg-transparent p-0 text-left`}
         onClick={onClick}
         title={card.name}
+        aria-label={`Открыть карту ${card.name}`}
       >
         <div className="legendary-card-thumb transform transition-all duration-200 group-hover:scale-110">
           <img
@@ -2173,19 +2181,21 @@ const LegendaryCardThumb: React.FC<{
             className="w-full h-auto"
           />
         </div>
-      </div>
+      </button>
     );
   }
 
   return (
-    <div
-      className={`${wClass} flex-shrink-0 cursor-pointer rounded-xl bg-[#2c1e16] border-2 border-[#a88a45] flex items-center justify-center p-2 text-center`}
+    <button
+      type="button"
+      className={`legendary-card-button ${wClass} flex-shrink-0 cursor-pointer appearance-none rounded-xl bg-[#2c1e16] border-2 border-[#a88a45] flex items-center justify-center p-2 text-center`}
       style={{ minHeight: size === 'lg' ? '120px' : '72px' }}
       onClick={onClick}
       title={card.name}
+      aria-label={`Открыть карту ${card.name}`}
     >
       <span className="font-hs text-[#fcd34d] text-[10px] leading-tight">{card.name}</span>
-    </div>
+    </button>
   );
 }) as React.FC<{ card: LegendaryCard; size: 'lg' | 'sm'; onClick: () => void }>;
 
@@ -2320,11 +2330,12 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
             const iconSrc = cls.id !== 'all' && cls.id !== 'any' ? CLASS_ICON[cls.id] : null;
             return (
               <button
+                type="button"
                 key={cls.id}
                 onClick={() => setActiveClass(cls.id)}
                 title={cls.name}
                 aria-pressed={isActive}
-                className="flex-shrink-0 relative transition-all duration-200"
+                className="flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center relative transition-all duration-200"
                 style={{ transform: isActive ? 'scale(1.15)' : 'scale(1)', filter: isActive ? 'none' : 'grayscale(0.2) brightness(0.85)' }}
               >
                 <div
@@ -5465,7 +5476,7 @@ function Breadcrumbs({ items }: { items: { name: string; href: string; onClick?:
                   itemProp="item"
                   href={item.href}
                   onClick={item.onClick ? (e: React.MouseEvent) => { e.preventDefault(); item.onClick!(); } : undefined}
-                  className="hover:text-[#4a3018] transition-colors"
+                  className="inline-flex min-h-11 items-center hover:text-[#4a3018] transition-colors"
                   style={{ textDecoration: 'none', color: 'inherit' }}
                 >
                   <span itemProp="name">{item.name}</span>
@@ -5495,7 +5506,7 @@ function InternalLinks({ links }: { links: { label: string; href: string; onClic
             key={i}
             href={link.href}
             onClick={link.onClick ? (e: React.MouseEvent) => { e.preventDefault(); link.onClick!(); } : undefined}
-            className="px-4 py-2 rounded-lg text-sm font-hs transition-all hover:brightness-110"
+            className="inline-flex min-h-11 items-center px-4 py-2 rounded-lg text-sm font-hs transition-all hover:brightness-110"
             style={{
               background: 'linear-gradient(135deg,#ede0c0,#e0cc9e)',
               border: '1.5px solid #c4a46a',

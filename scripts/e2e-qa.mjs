@@ -146,7 +146,7 @@ const fixtures = {
         description: 'Контрольный тир.',
         cards: [{ ...qaCard, score: 100, winrate: 59.5, rarity: 'legendary', classKey: 'any' }],
       }],
-    }],
+    }, ...qaClasses.map(cls => ({ ...cls, tiers: [], totalCards: 0 }))],
     cards: {
       TIME_890: { cost: 10, attack: 7, health: 7, type: 'minion', rarity: 'legendary', imageHa: qaCard.imageHa, imageRu: qaCard.imageRu },
     },
@@ -2263,6 +2263,40 @@ for (const route of authenticatedRoutes) {
         }
         await page.mouse.move(1, 1);
         await page.waitForSelector('.card-stats-tooltip--parchment', { hidden: true, timeout: 5_000 });
+        await page.focus('.hs-tier-card');
+        await page.keyboard.press('Enter');
+        await page.waitForSelector('.card-modal-lightbox', { visible: true });
+        await page.keyboard.press('Escape');
+        await page.waitForSelector('.card-modal-lightbox', { hidden: true });
+      }
+      if (route.path === '/tierlist' && device === 'mobile') {
+        await page.type('.tierlist-class-search input', 'Медив');
+        await page.waitForSelector('[aria-label="Очистить поиск"]');
+        const searchTargets = await page.evaluate(() => {
+          const bounds = selector => document.querySelector(selector)?.getBoundingClientRect();
+          const input = bounds('.tierlist-class-search input');
+          const clear = bounds('[aria-label="Очистить поиск"]');
+          return { input: input ? [input.width, input.height] : null, clear: clear ? [clear.width, clear.height] : null };
+        });
+        if (!searchTargets.input || searchTargets.input[1] < 44
+          || !searchTargets.clear || searchTargets.clear[0] < 44 || searchTargets.clear[1] < 44) {
+          failures.push(`/tierlist [mobile]: search targets are smaller than 44px (${JSON.stringify(searchTargets)})`);
+        }
+        await page.click('[aria-label="Очистить поиск"]');
+        await page.waitForFunction(() => document.querySelector('.tierlist-class-search input')?.value === '');
+        await page.click('.tierlist-view-toggle button:last-child');
+        await page.waitForSelector('.hsrdv-table-card');
+        const tableCardHeight = await page.$eval('.hsrdv-table-card', element => element.getBoundingClientRect().height);
+        if (tableCardHeight < 44) failures.push(`/tierlist [mobile]: table card target is ${tableCardHeight}px high`);
+        await page.click('.tierlist-view-toggle button:first-child');
+        await page.waitForSelector('.hs-tier-card');
+      }
+      if (route.path === '/legendaries' && device === 'desktop') {
+        await page.focus('.legendary-card-button');
+        await page.keyboard.press('Enter');
+        await page.waitForSelector('.card-modal-lightbox', { visible: true });
+        await page.keyboard.press('Escape');
+        await page.waitForSelector('.card-modal-lightbox', { hidden: true });
       }
       if (route.path === '/tierlist') {
         const firstTier = await page.$('.tierlist-group');
