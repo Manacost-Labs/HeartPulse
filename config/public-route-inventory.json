@@ -399,14 +399,34 @@
       "indexPolicy": "index",
       "canonicalPolicy": "self",
       "sitemap": true,
-      "htmlStrategy": "snapshot",
+      "htmlStrategy": "server-ssr",
       "expectedStatus": 200,
       "criticality": "P0",
       "mobileFixture": "bg-library-detail",
       "entitlement": "battlegrounds",
       "pathParameters": {
         "kind": {
-          "allowedValues": ["minions", "spells", "anomalies", "quests", "rewards", "darkmoon-prizes", "trinkets", "timewarped"]
+          "allowedValues": ["minions", "spells"]
+        },
+        "slugAndDbfId": { "pattern": "^.+-[1-9][0-9]*$" }
+      }
+    },
+    {
+      "id": "bg-library-additional-detail",
+      "pattern": "/library/:additionalKind/:slugAndDbfId",
+      "kind": "detail",
+      "owner": "battlegrounds-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "snapshot",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "bg-library-additional-detail",
+      "entitlement": "battlegrounds",
+      "pathParameters": {
+        "additionalKind": {
+          "allowedValues": ["anomalies", "quests", "rewards", "darkmoon-prizes", "trinkets", "timewarped"]
         },
         "slugAndDbfId": { "pattern": "^.+-[1-9][0-9]*$" }
       }

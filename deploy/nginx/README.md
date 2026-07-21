@@ -66,14 +66,15 @@ an unchanged API readiness response. Reload nginx only after this matrix and
 the production smoke suite pass. Run the missing-asset check against every
 edge IP with `curl --resolve`; it must not contain an `immutable` cache header.
 
-Constructed-card detail routes now proxy to an authoritative server renderer:
-confirmed missing cards return `404`, catalog outages return `503` with
-`Retry-After`, and initial HTML contains only whitelisted public catalog data.
-Format listings remain static. Syntactically valid hero or Battlegrounds detail
-URLs may still use the anonymous SPA shell until their entity resolvers are
-introduced, but that fallback carries `X-Robots-Tag: noindex, follow` so the
-home canonical cannot become an indexable soft duplicate. API, health and
-metrics responses are also unconditionally `noindex, nofollow` at the edge.
+Constructed-card, hero and base Battlegrounds library detail routes proxy to
+authoritative server renderers: confirmed missing entities return `404`,
+catalog outages return `503` with `Retry-After`, and initial HTML contains only
+whitelisted public catalog data. Format/listing routes remain static. Additional
+and archive Battlegrounds detail URLs still use the anonymous SPA shell until
+their entity resolvers are introduced, but that fallback carries
+`X-Robots-Tag: noindex, follow` so the home canonical cannot become an
+indexable soft duplicate. API, health and metrics responses are also
+unconditionally `noindex, nofollow` at the edge.
 
 The redirect contract assumes DNS and TLS routing for `www.arena.hs-manacost.ru`
 already reach an nginx server that includes the versioned redirect snippet.

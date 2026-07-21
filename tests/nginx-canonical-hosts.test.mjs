@@ -26,6 +26,7 @@ function substituteRouteParameters(route) {
     cardId: 'CATA_785',
     dbfId: '76521',
     slugAndDbfId: 'example-76521',
+    additionalKind: 'anomalies',
     slug: 'invite_1',
     path: 'legacy/item',
   };

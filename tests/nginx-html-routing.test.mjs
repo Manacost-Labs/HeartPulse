@@ -70,6 +70,7 @@ function substituteRouteParameters(route) {
     cardId: 'CATA_785',
     dbfId: '76521',
     slugAndDbfId: 'example-76521',
+    additionalKind: 'anomalies',
     slug: 'invite_1',
     path: 'legacy/item',
   };
@@ -215,7 +216,7 @@ for (const route of inventory.routes) {
   const redirect = firstMatchingRegexLocation(path);
   assert.match(redirect?.body || '', /\$uri\/\$is_args\$args;/,
     `${route.id} must add the slash and preserve query in one redirect`);
-  if (route.id === 'standard-card-detail' || route.id === 'bg-hero-detail') {
+  if (route.id === 'standard-card-detail' || route.id === 'bg-hero-detail' || route.id === 'bg-library-detail') {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:3101;', `${route.id} canonical route`);
     const resolver = firstMatchingRegexLocation(`${path}/`);
     assert.doesNotMatch(resolver?.body || '', /try_files\s+[^;]*\/index\.html/,
@@ -390,6 +391,31 @@ async function startCardSeoUpstream() {
       },
       body: '<!doctype html><title>Hero catalog outage</title><p>hero-upstream-503</p>',
     }],
+    ['/library/minions/example-76521/', {
+      status: 200,
+      headers: {
+        'X-Robots-Tag': 'index, follow, max-image-preview:large',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+      body: '<!doctype html><title>BG card OK</title><p>bg-card-upstream-200</p>',
+    }],
+    ['/library/minions/missing-999999/', {
+      status: 404,
+      headers: {
+        'X-Robots-Tag': 'noindex, nofollow',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+      body: '<!doctype html><title>Missing BG card</title><p>bg-card-upstream-404</p>',
+    }],
+    ['/library/spells/outage-888888/', {
+      status: 503,
+      headers: {
+        'X-Robots-Tag': 'noindex, nofollow',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Retry-After': '300',
+      },
+      body: '<!doctype html><title>BG catalog outage</title><p>bg-card-upstream-503</p>',
+    }],
   ]);
   const server = createHttpServer((incomingRequest, response) => {
     const pathname = new URL(incomingRequest.url || '/', 'http://arena.test').pathname;
@@ -549,7 +575,9 @@ http {
 
     for (const shellPath of [
       '/standard/cards/standard/',
-      '/library/minions/example-76521/',
+      '/library/minions/',
+      '/library/anomalies/example-76521/',
+      '/library/archive/minions/example-76521/',
       '/guides-archive/guide-1/',
     ]) {
       const shell = await requestNginx(port, shellPath);
@@ -653,6 +681,40 @@ http {
     assert.equal(unavailableHero.headers['retry-after'], '300', 'hero outage retry policy must pass through nginx');
     assert.match(unavailableHero.headers['cache-control'] || '', /no-store/, 'hero outage cache policy');
 
+    const bgCardRedirect = await requestNginx(
+      port,
+      '/library/minions/example-76521?utm_source=contract',
+    );
+    assert.equal(bgCardRedirect.status, 301, 'BG card detail must normalize its slash once');
+    const bgCardRedirectTarget = new URL(bgCardRedirect.headers.location);
+    assert.equal(
+      `${bgCardRedirectTarget.pathname}${bgCardRedirectTarget.search}`,
+      '/library/minions/example-76521/?utm_source=contract',
+      'BG card detail slash normalization must preserve the query string',
+    );
+
+    const validBgCard = await requestNginx(port, '/library/minions/example-76521/');
+    assert.equal(validBgCard.status, 200, 'valid BG card SSR status must pass through nginx');
+    assert.match(validBgCard.body, /bg-card-upstream-200/, 'valid BG card SSR body must pass through nginx');
+    assert.equal(
+      validBgCard.headers['x-robots-tag'],
+      'index, follow, max-image-preview:large',
+      'valid BG card robots policy must pass through nginx',
+    );
+
+    const missingBgCard = await requestNginx(port, '/library/minions/missing-999999/');
+    assert.equal(missingBgCard.status, 404, 'missing BG card SSR status must pass through nginx');
+    assert.match(missingBgCard.body, /bg-card-upstream-404/, 'missing BG card SSR body must pass through nginx');
+    assert.equal(missingBgCard.headers['x-robots-tag'], 'noindex, nofollow', 'missing BG card robots policy');
+    assert.match(missingBgCard.headers['cache-control'] || '', /no-store/, 'missing BG card cache policy');
+
+    const unavailableBgCard = await requestNginx(port, '/library/spells/outage-888888/');
+    assert.equal(unavailableBgCard.status, 503, 'BG catalog outage status must pass through nginx');
+    assert.match(unavailableBgCard.body, /bg-card-upstream-503/, 'BG catalog outage body must pass through nginx');
+    assert.equal(unavailableBgCard.headers['x-robots-tag'], 'noindex, nofollow', 'BG outage robots policy');
+    assert.equal(unavailableBgCard.headers['retry-after'], '300', 'BG outage retry policy must pass through nginx');
+    assert.match(unavailableBgCard.headers['cache-control'] || '', /no-store/, 'BG outage cache policy');
+
     for (const referralPath of ['/r/summer', '/r/summer/']) {
       const referral = await requestNginx(port, referralPath);
       assert.equal(referral.status, 302, `${referralPath} must redirect without a client shell`);
@@ -674,6 +736,9 @@ http {
       { path: '/heroes/76521/', status: 200, robots: 'index, follow, max-image-preview:large' },
       { path: '/heroes/999999/', status: 404, robots: 'noindex, nofollow' },
       { path: '/heroes/888888/', status: 503, robots: 'noindex, nofollow' },
+      { path: '/library/minions/example-76521/', status: 200, robots: 'index, follow, max-image-preview:large' },
+      { path: '/library/minions/missing-999999/', status: 404, robots: 'noindex, nofollow' },
+      { path: '/library/spells/outage-888888/', status: 503, robots: 'noindex, nofollow' },
       { path: '/decks/legacy', status: 410, robots: 'noindex, nofollow' },
       { path: '/definitely-unknown', status: 404, robots: 'noindex, nofollow' },
     ]) {

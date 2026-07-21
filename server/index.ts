@@ -44,6 +44,7 @@ import {
   extractConstructedCardFrontendAssets,
 } from './constructedCardSeoRoutes.js';
 import { createBattlegroundHeroSeoRouter } from './battlegroundSeoRoutes.js';
+import { createBattlegroundLibrarySeoRouter } from './battlegroundLibrarySeoRoutes.js';
 import {
   createStandardMetaRouter,
   type StandardMetaFormat,
@@ -6939,6 +6940,14 @@ app.use(createBattlegroundHeroSeoRouter({
   frontendAssets: constructedCardFrontendAssets,
   onError: error => console.error(
     '[battleground-hero-seo] catalog failed:',
+    error instanceof Error ? error.message : error,
+  ),
+}));
+
+app.use(createBattlegroundLibrarySeoRouter({
+  frontendAssets: constructedCardFrontendAssets,
+  onError: error => console.error(
+    '[battleground-library-seo] catalog failed:',
     error instanceof Error ? error.message : error,
   ),
 }));

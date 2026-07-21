@@ -131,6 +131,23 @@ assert.equal(unknownRoute?.expectedStatus, 404);
 assert.equal(unknownRoute?.indexPolicy, 'noindex-nofollow');
 assert.equal(inventory.routes.at(-1)?.id, 'unknown-path', 'catch-all policy must remain last');
 
+assert.equal(byId.get('bg-library-detail')?.htmlStrategy, 'server-ssr',
+  'base BG card details must use the authoritative server resolver');
+assert.deepEqual(
+  byId.get('bg-library-detail')?.pathParameters?.kind?.allowedValues,
+  ['minions', 'spells'],
+  'the authoritative BG card resolver must stay scoped to the two base catalogs',
+);
+assert.equal(byId.get('bg-library-additional-detail')?.htmlStrategy, 'snapshot',
+  'additional BG object details must retain their existing shell strategy');
+assert.deepEqual(
+  byId.get('bg-library-additional-detail')?.pathParameters?.additionalKind?.allowedValues,
+  ['anomalies', 'quests', 'rewards', 'darkmoon-prizes', 'trinkets', 'timewarped'],
+  'additional BG object kinds must remain explicit and disjoint from base catalogs',
+);
+assert.equal(byId.get('bg-library-archive-detail')?.htmlStrategy, 'snapshot',
+  'archive BG details are outside the base SSR slice');
+
 function routeMatchesPath(route: InventoryRoute, path: string): boolean {
   if (route.kind === 'fallback') return false;
   const templateParts = route.pattern === '/' ? [] : route.pattern.slice(1).split('/');
