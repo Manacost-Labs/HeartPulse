@@ -4246,13 +4246,21 @@ for (const [device, viewport] of [
       title: document.querySelector('#constructed-card-lightbox-title')?.textContent?.trim(),
       images: document.querySelectorAll('.constructed-card-lightbox__media img').length,
       bodyLocked: document.body.style.overflow === 'hidden',
+      bodyFixed: document.body.style.position === 'fixed',
+      rootInert: document.getElementById('root')?.inert === true,
+      rootHidden: document.getElementById('root')?.getAttribute('aria-hidden') === 'true',
+      portalParent: document.querySelector('.constructed-card-lightbox')?.parentElement?.tagName || '',
+      activeLabel: document.activeElement?.getAttribute('aria-label') || '',
     }));
-    if (deckLightboxState.title !== 'Контроль Воин' || deckLightboxState.images !== 1 || !deckLightboxState.bodyLocked) {
+    if (deckLightboxState.title !== 'Контроль Воин' || deckLightboxState.images !== 1 || !deckLightboxState.bodyLocked
+      || !deckLightboxState.bodyFixed || !deckLightboxState.rootInert || !deckLightboxState.rootHidden
+      || deckLightboxState.portalParent !== 'BODY' || deckLightboxState.activeLabel !== 'Закрыть') {
       failures.push(`constructed card deck lightbox [${device}]: preview dialog regressed (${JSON.stringify(deckLightboxState)})`);
     }
     await page.screenshot({ path: `${OUT}/constructed-card-deck-lightbox-${device}.png`, fullPage: false });
     await page.click('.constructed-card-lightbox__close');
     await page.waitForSelector('.constructed-card-lightbox', { hidden: true });
+    await page.waitForFunction(() => document.activeElement?.classList.contains('constructed-card-detail__deck-preview'));
     await page.click('.constructed-card-detail__deck-copy > button');
     await page.waitForFunction(() => document.querySelector('.constructed-card-detail__deck-copy > button')?.textContent?.includes('Код скопирован'));
     const expandedDeckState = await page.evaluate(() => ({
@@ -4273,19 +4281,39 @@ for (const [device, viewport] of [
       media: document.querySelectorAll('.constructed-card-lightbox__media img, .constructed-card-lightbox__media video').length,
       navigation: document.querySelectorAll('.constructed-card-lightbox__actions button').length,
       bodyLocked: document.body.style.overflow === 'hidden',
+      bodyFixed: document.body.style.position === 'fixed',
+      rootInert: document.getElementById('root')?.inert === true,
+      rootHidden: document.getElementById('root')?.getAttribute('aria-hidden') === 'true',
+      activeLabel: document.activeElement?.getAttribute('aria-label') || '',
       documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     }));
     if (constructedLightboxState.dialog !== 'dialog' || constructedLightboxState.media !== 1
-      || constructedLightboxState.navigation < 2 || !constructedLightboxState.bodyLocked || constructedLightboxState.documentOverflow) {
+      || constructedLightboxState.navigation < 2 || !constructedLightboxState.bodyLocked || !constructedLightboxState.bodyFixed
+      || !constructedLightboxState.rootInert || !constructedLightboxState.rootHidden || constructedLightboxState.activeLabel !== 'Закрыть'
+      || constructedLightboxState.documentOverflow) {
       failures.push(`constructed card lightbox [${device}]: media dialog regressed (${JSON.stringify(constructedLightboxState)})`);
     }
     await page.screenshot({ path: `${OUT}/constructed-card-lightbox-${device}.png`, fullPage: false });
-    await page.click('.constructed-card-lightbox__close');
+    await page.keyboard.press('ArrowRight');
+    await page.waitForFunction(() => document.querySelector('.constructed-card-lightbox__footer span')?.textContent?.startsWith('2 из '));
+    await page.keyboard.press('Escape');
     await page.waitForSelector('.constructed-card-lightbox', { hidden: true });
+    await page.waitForFunction(() => document.activeElement?.classList.contains('constructed-card-detail__visual-button'));
+    const restoredLightboxState = await page.evaluate(() => ({
+      rootInert: document.getElementById('root')?.inert === true,
+      rootHidden: document.getElementById('root')?.hasAttribute('aria-hidden') === true,
+      bodyOverflow: document.body.style.overflow,
+      bodyPosition: document.body.style.position,
+    }));
+    if (restoredLightboxState.rootInert || restoredLightboxState.rootHidden
+      || restoredLightboxState.bodyOverflow || restoredLightboxState.bodyPosition) {
+      failures.push(`constructed card lightbox [${device}]: page isolation was not restored (${JSON.stringify(restoredLightboxState)})`);
+    }
     await page.click('.constructed-card-detail__gallery button');
     await page.waitForSelector('.constructed-card-lightbox');
     await page.keyboard.press('Escape');
     await page.waitForSelector('.constructed-card-lightbox', { hidden: true });
+    await page.waitForFunction(() => document.activeElement?.closest('.constructed-card-detail__gallery'));
     const constructedDetailViolationCount = await auditAccessibility(page, `constructed card detail [${device}]`, '.constructed-card-detail');
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'auto' }));
     await page.screenshot({ path: `${OUT}/constructed-card-detail-${device}.png`, fullPage: false });

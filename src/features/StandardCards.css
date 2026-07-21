@@ -331,13 +331,13 @@
 .constructed-card-detail__links { display: grid; gap: 0.4rem; }
 .constructed-card-detail__links a { display: flex; gap: 0.25rem; align-items: center; min-height: 28px; padding-block: 0.15rem; color: #6c1c22; font-size: 0.7rem; font-weight: 800; }
 
-.constructed-card-lightbox { position: fixed; inset: 0; z-index: 99999; display: grid; padding: clamp(0.7rem, 2vw, 1.5rem); place-items: center; font-family: var(--font-body); }
+.constructed-card-lightbox { z-index: 99999; display: grid; padding: max(clamp(0.7rem, 2vw, 1.5rem), env(safe-area-inset-top)) max(clamp(0.7rem, 2vw, 1.5rem), env(safe-area-inset-right)) max(clamp(0.7rem, 2vw, 1.5rem), env(safe-area-inset-bottom)) max(clamp(0.7rem, 2vw, 1.5rem), env(safe-area-inset-left)); place-items: center; font-family: var(--font-body); }
 .constructed-card-lightbox__backdrop { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: rgba(20, 11, 7, 0.88); backdrop-filter: blur(8px); }
-.constructed-card-lightbox__panel { position: relative; z-index: 1; display: grid; grid-template-rows: minmax(0, 1fr) auto; width: min(1120px, 96vw); max-height: 94dvh; overflow: hidden; border: 1px solid rgba(222, 184, 97, 0.72); color: #f8ead0; background: #1d120c; box-shadow: 0 28px 85px rgba(0, 0, 0, 0.65); }
+.constructed-card-lightbox__panel { position: relative; z-index: 1; display: grid; grid-template-rows: minmax(0, 1fr) auto; width: min(1120px, 96vw); max-height: 100%; overflow: hidden; border: 1px solid rgba(222, 184, 97, 0.72); color: #f8ead0; background: #1d120c; box-shadow: 0 28px 85px rgba(0, 0, 0, 0.65); }
 .constructed-card-lightbox__close { position: absolute; top: 0.7rem; right: 0.7rem; z-index: 2; display: grid; width: 44px; height: 44px; border: 1px solid rgba(222, 184, 97, 0.55); border-radius: 50%; place-items: center; color: #fff2ce; background: rgba(35, 18, 9, 0.86); }
 .constructed-card-lightbox__media { display: grid; min-height: 0; padding: clamp(0.8rem, 2vw, 1.5rem); place-items: center; overflow: auto; background: radial-gradient(circle at 50% 30%, rgba(120, 75, 35, 0.25), transparent 55%); }
 .constructed-card-lightbox__media img,
-.constructed-card-lightbox__media video { display: block; max-width: 100%; max-height: calc(94dvh - 98px); object-fit: contain; }
+.constructed-card-lightbox__media video { display: block; max-width: 100%; max-height: calc(var(--modal-surface-height, 100dvh) - 7rem); object-fit: contain; }
 .constructed-card-lightbox__footer { display: flex; gap: 1rem; align-items: center; justify-content: space-between; min-height: 72px; padding: 0.7rem 1rem; border-top: 1px solid rgba(222, 184, 97, 0.32); background: #2a190f; }
 .constructed-card-lightbox__footer > div:first-child { display: grid; min-width: 0; }
 .constructed-card-lightbox__footer strong { overflow: hidden; color: #fff0c4; font-family: var(--font-display); font-size: 1rem; text-overflow: ellipsis; white-space: nowrap; }
@@ -433,10 +433,10 @@
   .constructed-card-detail__deck-grid { grid-template-columns: 1fr; }
   .constructed-card-detail__deck-image { padding: 0.35rem; }
   .constructed-card-detail__gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .constructed-card-lightbox { padding: 0; }
-  .constructed-card-lightbox__panel { width: 100vw; max-height: 100dvh; min-height: 100dvh; border-inline: 0; }
+  .constructed-card-lightbox { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  .constructed-card-lightbox__panel { width: 100%; max-height: 100%; min-height: 100%; border-inline: 0; }
   .constructed-card-lightbox__media img,
-  .constructed-card-lightbox__media video { max-height: calc(100dvh - 112px); }
+  .constructed-card-lightbox__media video { max-height: calc(var(--modal-surface-height, 100dvh) - 112px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
   .constructed-card-lightbox__footer { min-height: 92px; padding: 0.6rem; }
   .constructed-card-lightbox__footer strong { max-width: 54vw; }
   .constructed-card-lightbox__actions a { width: 42px; padding: 0; overflow: hidden; color: transparent; }
