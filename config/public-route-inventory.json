@@ -1,0 +1,524 @@
+{
+  "schemaVersion": 1,
+  "canonicalOrigin": "https://arena.hs-manacost.ru",
+  "canonicalTrailingSlash": "always",
+  "requiredViewports": [320, 390, 768, 1440],
+  "routes": [
+    {
+      "id": "home",
+      "pattern": "/",
+      "kind": "static",
+      "owner": "product-shell",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "home",
+      "entitlement": null
+    },
+    {
+      "id": "articles",
+      "pattern": "/articles",
+      "kind": "static",
+      "owner": "editorial",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "articles",
+      "entitlement": null
+    },
+    {
+      "id": "faq",
+      "pattern": "/faq",
+      "kind": "static",
+      "owner": "product-shell",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "faq",
+      "entitlement": null
+    },
+    {
+      "id": "gallery",
+      "pattern": "/gallery",
+      "kind": "static",
+      "owner": "editorial",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "gallery",
+      "entitlement": null
+    },
+    {
+      "id": "guides-archive",
+      "pattern": "/guides-archive",
+      "kind": "static",
+      "owner": "editorial",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "guides-archive",
+      "entitlement": "guidesArchive"
+    },
+    {
+      "id": "guides-archive-detail",
+      "pattern": "/guides-archive/:guideSlug",
+      "kind": "detail",
+      "owner": "editorial",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "snapshot-teaser",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "guides-archive-detail-anonymous",
+      "entitlement": "guidesArchive",
+      "pathParameters": {
+        "guideSlug": { "pattern": "^[A-Za-z0-9][A-Za-z0-9._~-]*$" }
+      }
+    },
+    {
+      "id": "contests",
+      "pattern": "/contests",
+      "kind": "static",
+      "owner": "community",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "contests",
+      "entitlement": null
+    },
+    {
+      "id": "standard-matchups",
+      "pattern": "/standard/matchups",
+      "kind": "static",
+      "owner": "traditional-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender-teaser",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "standard-matchups-anonymous",
+      "entitlement": "standard"
+    },
+    {
+      "id": "standard-meta",
+      "pattern": "/standard/meta",
+      "kind": "static",
+      "owner": "traditional-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender-teaser",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "standard-meta-anonymous",
+      "entitlement": "standard"
+    },
+    {
+      "id": "standard-vicious-gold",
+      "pattern": "/standard/vicious-gold",
+      "kind": "static",
+      "owner": "traditional-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender-teaser",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "vicious-gold-anonymous",
+      "entitlement": "standard"
+    },
+    {
+      "id": "standard-cards",
+      "pattern": "/standard/cards",
+      "kind": "static",
+      "owner": "traditional-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "standard-cards",
+      "entitlement": null
+    },
+    {
+      "id": "winrates",
+      "pattern": "/classes",
+      "kind": "static",
+      "owner": "arena-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender-teaser",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "arena-classes-anonymous",
+      "entitlement": "arena"
+    },
+    {
+      "id": "tierlist",
+      "pattern": "/tierlist",
+      "kind": "static",
+      "owner": "arena-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender-teaser",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "arena-tierlist-anonymous",
+      "entitlement": "arena"
+    },
+    {
+      "id": "legendaries",
+      "pattern": "/legendaries",
+      "kind": "static",
+      "owner": "arena-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender-teaser",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "arena-legendaries-anonymous",
+      "entitlement": "arena"
+    },
+    {
+      "id": "bg-heroes",
+      "pattern": "/heroes",
+      "kind": "static",
+      "owner": "battlegrounds-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender-teaser",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "bg-heroes-anonymous",
+      "entitlement": "battlegrounds"
+    },
+    {
+      "id": "bg-library",
+      "pattern": "/library",
+      "kind": "static",
+      "owner": "battlegrounds-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender-teaser",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "bg-library-anonymous",
+      "entitlement": "battlegrounds"
+    },
+    {
+      "id": "bg-tier-list",
+      "pattern": "/battlegrounds/tier-list",
+      "kind": "static",
+      "owner": "battlegrounds-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender-teaser",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "bg-tier-list-anonymous",
+      "entitlement": "battlegrounds"
+    },
+    {
+      "id": "bg-strategies",
+      "pattern": "/battlegrounds/strategies",
+      "kind": "static",
+      "owner": "battlegrounds-tools",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender-teaser",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "bg-strategies-anonymous",
+      "entitlement": "battlegrounds"
+    },
+    {
+      "id": "bg-tier-builder",
+      "pattern": "/battlegrounds/tier-builder",
+      "kind": "static",
+      "owner": "battlegrounds-tools",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender-teaser",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "bg-tier-builder-anonymous",
+      "entitlement": "battlegrounds"
+    },
+    {
+      "id": "admin-panel",
+      "pattern": "/admin",
+      "kind": "static",
+      "owner": "admin-platform",
+      "indexPolicy": "noindex-nofollow",
+      "canonicalPolicy": "none",
+      "sitemap": false,
+      "htmlStrategy": "server-noindex",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "admin-denied",
+      "entitlement": null
+    },
+    {
+      "id": "standard-cards-format",
+      "pattern": "/standard/cards/:format",
+      "kind": "listing",
+      "owner": "traditional-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "snapshot",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "standard-cards-format",
+      "entitlement": null,
+      "pathParameters": {
+        "format": { "allowedValues": ["standard", "wild"] }
+      }
+    },
+    {
+      "id": "standard-card-detail",
+      "pattern": "/standard/cards/:format/:cardId",
+      "kind": "detail",
+      "owner": "traditional-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "snapshot",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "standard-card-detail",
+      "entitlement": null,
+      "pathParameters": {
+        "format": { "allowedValues": ["standard", "wild"] },
+        "cardId": { "pattern": "^[A-Za-z0-9_]+$" }
+      }
+    },
+    {
+      "id": "bg-hero-detail",
+      "pattern": "/heroes/:dbfId",
+      "kind": "detail",
+      "owner": "battlegrounds-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "snapshot",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "bg-hero-detail",
+      "entitlement": "battlegrounds",
+      "pathParameters": {
+        "dbfId": { "pattern": "^[1-9][0-9]*$" }
+      }
+    },
+    {
+      "id": "bg-library-archive-root",
+      "pattern": "/library/archive",
+      "kind": "listing",
+      "owner": "battlegrounds-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender-teaser",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "bg-library-archive-anonymous",
+      "entitlement": "battlegrounds"
+    },
+    {
+      "id": "bg-library-kind",
+      "pattern": "/library/:kind",
+      "kind": "listing",
+      "owner": "battlegrounds-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "snapshot",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "bg-library-kind",
+      "entitlement": "battlegrounds",
+      "pathParameters": {
+        "kind": {
+          "allowedValues": ["minions", "spells", "anomalies", "quests", "rewards", "darkmoon-prizes", "trinkets", "timewarped"]
+        }
+      }
+    },
+    {
+      "id": "bg-library-archive",
+      "pattern": "/library/archive/:kind",
+      "kind": "listing",
+      "owner": "battlegrounds-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "snapshot",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "bg-library-archive",
+      "entitlement": "battlegrounds",
+      "pathParameters": {
+        "kind": {
+          "allowedValues": ["minions", "spells", "anomalies", "quests", "rewards", "darkmoon-prizes", "trinkets"]
+        }
+      }
+    },
+    {
+      "id": "bg-library-detail",
+      "pattern": "/library/:kind/:slugAndDbfId",
+      "kind": "detail",
+      "owner": "battlegrounds-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "snapshot",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "bg-library-detail",
+      "entitlement": "battlegrounds",
+      "pathParameters": {
+        "kind": {
+          "allowedValues": ["minions", "spells", "anomalies", "quests", "rewards", "darkmoon-prizes", "trinkets", "timewarped"]
+        },
+        "slugAndDbfId": { "pattern": "^.+-[1-9][0-9]*$" }
+      }
+    },
+    {
+      "id": "bg-library-archive-detail",
+      "pattern": "/library/archive/:kind/:slugAndDbfId",
+      "kind": "detail",
+      "owner": "battlegrounds-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "snapshot",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "bg-library-archive-detail",
+      "entitlement": "battlegrounds",
+      "pathParameters": {
+        "kind": {
+          "allowedValues": ["minions", "spells", "anomalies", "quests", "rewards", "darkmoon-prizes", "trinkets"]
+        },
+        "slugAndDbfId": { "pattern": "^.+-[1-9][0-9]*$" }
+      }
+    },
+    {
+      "id": "referral-redirect",
+      "pattern": "/r/:slug",
+      "kind": "redirect",
+      "owner": "growth",
+      "indexPolicy": "noindex-nofollow",
+      "canonicalPolicy": "none",
+      "sitemap": false,
+      "htmlStrategy": "redirect",
+      "expectedStatus": 302,
+      "criticality": "P1",
+      "mobileFixture": "referral-redirect",
+      "entitlement": null,
+      "pathParameters": {
+        "slug": { "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$" }
+      }
+    },
+    {
+      "id": "removed-decks",
+      "pattern": "/decks/:path*",
+      "kind": "legacy",
+      "owner": "product-shell",
+      "indexPolicy": "noindex-nofollow",
+      "canonicalPolicy": "none",
+      "sitemap": false,
+      "htmlStrategy": "gone",
+      "expectedStatus": 410,
+      "criticality": "P1",
+      "mobileFixture": "gone",
+      "entitlement": null
+    },
+    {
+      "id": "removed-jobs",
+      "pattern": "/jobs/:path*",
+      "kind": "legacy",
+      "owner": "product-shell",
+      "indexPolicy": "noindex-nofollow",
+      "canonicalPolicy": "none",
+      "sitemap": false,
+      "htmlStrategy": "gone",
+      "expectedStatus": 410,
+      "criticality": "P1",
+      "mobileFixture": "gone",
+      "entitlement": null
+    },
+    {
+      "id": "unknown-path",
+      "pattern": "/:path*",
+      "kind": "fallback",
+      "owner": "product-shell",
+      "indexPolicy": "noindex-nofollow",
+      "canonicalPolicy": "none",
+      "sitemap": false,
+      "htmlStrategy": "not-found",
+      "expectedStatus": 404,
+      "criticality": "P0",
+      "mobileFixture": "not-found",
+      "entitlement": null
+    }
+  ],
+  "queryPolicies": [
+    {
+      "id": "auth-state",
+      "parameters": ["login", "profile", "auth", "code", "state", "returnTo"],
+      "indexPolicy": "noindex-nofollow",
+      "canonicalPolicy": "clean-path",
+      "appliesTo": ["/"]
+    },
+    {
+      "id": "admin-state",
+      "parameters": ["admin", "section", "contest", "contests"],
+      "indexPolicy": "noindex-nofollow",
+      "canonicalPolicy": "clean-path",
+      "appliesTo": ["/", "/admin"]
+    },
+    {
+      "id": "faceted-state",
+      "parameters": ["search", "sort", "filter", "class", "set", "mechanic", "page", "direction", "perPage", "query", "kind", "role", "subscription", "status"],
+      "indexPolicy": "noindex-follow",
+      "canonicalPolicy": "clean-path",
+      "appliesTo": ["/articles", "/guides-archive", "/standard/cards/:format", "/admin"]
+    },
+    {
+      "id": "battleground-deep-link",
+      "parameters": ["list", "source", "strategy", "q"],
+      "indexPolicy": "noindex-follow",
+      "canonicalPolicy": "clean-path",
+      "appliesTo": ["/battlegrounds/tier-list", "/guides-archive"]
+    }
+  ]
+}
