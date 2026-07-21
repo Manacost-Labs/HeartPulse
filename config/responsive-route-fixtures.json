@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "profiles": [
     {
       "id": "compact-min",
@@ -27,6 +27,16 @@
     }
   ],
   "defaultProfiles": ["compact-min", "phone-baseline", "medium"],
+  "touchTargetRatchets": {
+    "all-p0": {
+      "total": 478,
+      "profiles": {
+        "compact-min": 143,
+        "phone-baseline": 143,
+        "medium": 192
+      }
+    }
+  },
   "fixtures": [
     {
       "id": "home",

@@ -19,7 +19,7 @@
   gap: 0.5rem;
   width: 100%;
   min-height: 48px;
-  padding: 0.3rem clamp(0.5rem, 2vw, 1.4rem);
+  padding: 1px clamp(0.5rem, 2vw, 1.4rem);
 }
 
 .global-search {
@@ -28,9 +28,9 @@
   align-items: center;
   flex: 1 1 auto;
   min-width: 0;
-  min-height: 38px;
+  min-height: 46px;
   box-sizing: border-box;
-  border: 5px solid transparent;
+  border: 1px solid transparent;
   border-image-source: url('/wallpaper/main-page-rail-border.png');
   border-image-slice: 18;
   border-image-width: 5px;
@@ -56,8 +56,8 @@
   appearance: none;
   width: 100%;
   min-width: 0;
-  height: 27px;
-  padding: 0 2.25rem 0 0.5rem;
+  height: 44px;
+  padding: 0 2.75rem 0 0.5rem;
   border: 0;
   border-radius: 0;
   outline: 0;
@@ -103,8 +103,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 27px;
-  height: 27px;
+  width: 44px;
+  height: 44px;
   border: 0;
   color: #6f4a2b;
   background: transparent;
@@ -249,7 +249,8 @@
   justify-content: center;
   gap: 0.4rem;
   flex: 0 0 auto;
-  min-height: 34px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0.35rem 0.7rem;
   border: 1px solid rgba(137, 83, 34, 0.48);
   color: #5f351d;
@@ -342,7 +343,7 @@
 @media (max-width: 639px) {
   .global-utility-header__inner { gap: 0.35rem; min-height: 47px; }
   .global-search__input { font-size: 0.76rem; }
-  .global-faq-button { width: 38px; padding-inline: 0; }
+  .global-faq-button { width: 44px; padding-inline: 0; }
   .global-faq-button span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .global-help-menu { right: -0.15rem; }
   .global-search-panel { left: -0.5rem; }

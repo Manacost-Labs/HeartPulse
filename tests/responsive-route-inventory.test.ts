@@ -46,6 +46,12 @@ type ResponsiveInventory = {
   schemaVersion: number;
   profiles: ResponsiveProfile[];
   defaultProfiles: string[];
+  touchTargetRatchets: {
+    'all-p0': {
+      total: number;
+      profiles: Record<string, number>;
+    };
+  };
   fixtures: ResponsiveFixture[];
 };
 
@@ -58,7 +64,7 @@ const responsiveInventory = JSON.parse(readFileSync(
   'utf8',
 )) as ResponsiveInventory;
 
-assert.equal(responsiveInventory.schemaVersion, 1);
+assert.equal(responsiveInventory.schemaVersion, 2);
 
 const expectedProfiles = [
   { id: 'compact-min', width: 320, height: 568 },
@@ -87,6 +93,21 @@ for (const profile of responsiveInventory.profiles) {
 for (const profileId of responsiveInventory.defaultProfiles) {
   assert.ok(profileIds.includes(profileId), `default profile ${profileId} must exist`);
 }
+
+const allP0TouchRatchet = responsiveInventory.touchTargetRatchets['all-p0'];
+assert.deepEqual(
+  Object.keys(allP0TouchRatchet.profiles).sort(),
+  [...responsiveInventory.defaultProfiles].sort(),
+  'the all-P0 touch ratchet must cover every baseline profile',
+);
+for (const [profileId, maximum] of Object.entries(allP0TouchRatchet.profiles)) {
+  assert.ok(Number.isInteger(maximum) && maximum >= 0, `${profileId} touch ratchet must be a non-negative integer`);
+}
+assert.equal(
+  allP0TouchRatchet.total,
+  Object.values(allP0TouchRatchet.profiles).reduce((sum, maximum) => sum + maximum, 0),
+  'the all-P0 aggregate touch ratchet must equal its per-profile limits',
+);
 
 const routesById = new Map(publicInventory.routes.map(route => [route.id, route]));
 const fixtureIds = responsiveInventory.fixtures.map(fixture => fixture.id);

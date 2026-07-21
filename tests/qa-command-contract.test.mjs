@@ -83,6 +83,15 @@ assert.ok(
   'responsive QA must enforce the 44px touch target floor',
 );
 assert.ok(
+  browserQa.includes('responsiveTouchTargetRatchet')
+    && browserQa.includes('touch targets grew to'),
+  'all-P0 responsive QA must fail when the touch-target baseline grows',
+);
+assert.ok(
+  browserQa.includes('shared mobile chrome contract regressed'),
+  'responsive QA must protect the shared header and footer geometry',
+);
+assert.ok(
   browserQa.includes('responsive-manifest.json'),
   'responsive screenshots must have a machine-readable manifest',
 );

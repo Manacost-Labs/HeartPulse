@@ -58,6 +58,18 @@ const responsiveProfiles = requestedResponsiveWidths.length
 if (requestedResponsiveWidths.some(width => !defaultResponsiveProfiles.some(profile => profile.width === width))) {
   throw new Error(`QA_RESPONSIVE_VIEWPORTS contains an unknown width; expected ${defaultResponsiveProfiles.map(profile => profile.width).join(',')}`);
 }
+const responsiveTouchTargetRatchet = responsiveInventory.touchTargetRatchets?.[responsiveScope] ?? null;
+if (responsiveTouchTargetRatchet) {
+  if (!Number.isInteger(responsiveTouchTargetRatchet.total) || responsiveTouchTargetRatchet.total < 0) {
+    throw new Error(`Responsive ${responsiveScope} touch-target total ratchet must be a non-negative integer`);
+  }
+  for (const profile of defaultResponsiveProfiles) {
+    const maximum = responsiveTouchTargetRatchet.profiles?.[profile.id];
+    if (!Number.isInteger(maximum) || maximum < 0) {
+      throw new Error(`Responsive ${responsiveScope} touch-target ratchet is missing ${profile.id}`);
+    }
+  }
+}
 const scopedResponsiveFixtures = responsiveScope === 'off'
   ? []
   : responsiveInventory.fixtures.filter(fixture => responsiveScope === 'all-p0' || fixture.representative);
@@ -1664,6 +1676,46 @@ async function auditTouchTargets(page) {
   }, 44);
 }
 
+async function inspectSharedMobileChrome(page) {
+  return page.evaluate(() => {
+    const bounds = element => {
+      const rect = element?.getBoundingClientRect();
+      return rect ? { width: rect.width, height: rect.height } : null;
+    };
+    const footer = document.querySelector('.arena-footer');
+    const footerColumns = document.querySelector('.arena-footer__columns');
+    const footerLinks = [...document.querySelectorAll('.arena-footer__link')];
+    return {
+      viewportWidth: innerWidth,
+      pageOverflows: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      header: bounds(document.querySelector('.global-utility-header')),
+      searchInput: bounds(document.querySelector('.global-search__input')),
+      faqButton: bounds(document.querySelector('.global-faq-button')),
+      footer: bounds(footer),
+      footerOverflows: Boolean(footer && footer.scrollWidth > footer.clientWidth + 1),
+      footerColumnCount: footerColumns
+        ? getComputedStyle(footerColumns).gridTemplateColumns.split(/\s+/).filter(Boolean).length
+        : 0,
+      footerLinks: footerLinks.map(bounds),
+    };
+  });
+}
+
+function assertSharedMobileChrome(label, profileId, chrome) {
+  const footerHeightMaximum = { 'compact-min': 520, 'phone-baseline': 500, medium: 360 }[profileId];
+  const targetIsLargeEnough = target => target && target.width >= 44 && target.height >= 44;
+  const valid = chrome.header?.height >= 40 && chrome.header.height <= 50
+    && targetIsLargeEnough(chrome.searchInput)
+    && targetIsLargeEnough(chrome.faqButton)
+    && chrome.footerColumnCount === 2
+    && chrome.footerLinks.length === 8
+    && chrome.footerLinks.every(targetIsLargeEnough)
+    && chrome.footer?.height <= footerHeightMaximum
+    && !chrome.pageOverflows
+    && !chrome.footerOverflows;
+  if (!valid) failures.push(`${label}: shared mobile chrome contract regressed (${JSON.stringify(chrome)})`);
+}
+
 async function assertResponsiveFixtureState(page, fixture, label) {
   const state = await page.evaluate(readySelector => {
     const visible = element => {
@@ -2347,6 +2399,9 @@ for (const fixture of responsiveFixtures) {
       await page.waitForSelector(fixture.ready.selector, { visible: true, timeout: 20_000 });
       await settleResponsiveSnapshot(page, { waitForFooter: !fixture.path.startsWith('/admin') });
       await assertResponsiveFixtureState(page, fixture, label);
+      if (fixture.id === 'home') {
+        assertSharedMobileChrome(label, profile.id, await inspectSharedMobileChrome(page));
+      }
       let touchTargets = { total: 0, samples: [] };
 
       if (fixture.checks.includes('overflow')) {
@@ -2456,12 +2511,34 @@ if (responsiveScope !== 'off') {
     summary.touchTargetsBelow44px += entry.findings?.touchTargetsBelow44px || 0;
     return summary;
   }, { captured: 0, passed: 0, failed: 0, deferred: 0, touchTargetsBelow44px: 0 });
+  const touchTargetsByProfile = Object.fromEntries(responsiveProfiles.map(profile => [
+    profile.id,
+    responsiveScreenshotManifest
+      .filter(entry => entry.profile === profile.id)
+      .reduce((total, entry) => total + (entry.findings?.touchTargetsBelow44px || 0), 0),
+  ]));
+  if (responsiveTouchTargetRatchet) {
+    if (responsiveSummary.touchTargetsBelow44px > responsiveTouchTargetRatchet.total) {
+      failures.push(`responsive ${responsiveScope}: touch targets grew to ${responsiveSummary.touchTargetsBelow44px}; maximum ${responsiveTouchTargetRatchet.total}`);
+    }
+    for (const profile of responsiveProfiles) {
+      const observed = touchTargetsByProfile[profile.id];
+      const maximum = responsiveTouchTargetRatchet.profiles[profile.id];
+      if (observed > maximum) failures.push(`responsive ${responsiveScope} [${profile.id}]: touch targets grew to ${observed}; maximum ${maximum}`);
+    }
+  }
   writeFileSync(responsiveManifestTemporaryPath, `${JSON.stringify({
     schemaVersion: 2,
     scope: responsiveScope,
-    touchTargetPolicy: enforceResponsiveTargets ? 'enforce' : 'report',
+    touchTargetPolicy: enforceResponsiveTargets ? 'enforce' : responsiveTouchTargetRatchet ? 'ratchet' : 'report',
     profiles: responsiveProfiles.map(profile => profile.id),
     summary: responsiveSummary,
+    touchTargetRatchet: responsiveTouchTargetRatchet ? {
+      limits: responsiveTouchTargetRatchet,
+      observed: { total: responsiveSummary.touchTargetsBelow44px, profiles: touchTargetsByProfile },
+      passed: responsiveSummary.touchTargetsBelow44px <= responsiveTouchTargetRatchet.total
+        && responsiveProfiles.every(profile => touchTargetsByProfile[profile.id] <= responsiveTouchTargetRatchet.profiles[profile.id]),
+    } : null,
     screenshots: responsiveScreenshotManifest,
   }, null, 2)}\n`);
   renameSync(responsiveManifestTemporaryPath, responsiveManifestPath);
