@@ -138,11 +138,12 @@ export async function applyPageMeta(
   pathname = window.location.pathname,
   search = window.location.search,
 ): Promise<void> {
-  const [{ ROUTE_META }, { applyDocumentPageMeta }] = await Promise.all([
-    import('./route-meta'),
+  const [{ seoPageForExactPath, seoPageForNavigationRoute }, { applyDocumentPageMeta }] = await Promise.all([
+    import('./seo/registry'),
     import('./seo/publicUrlPolicy'),
   ]);
   const route = TABS.find(item => item.id === tabId) ?? TABS[0];
-  const { title, description } = ROUTE_META[route.id];
+  const { title, description } = seoPageForExactPath(pathname)
+    ?? seoPageForNavigationRoute(route.id);
   await applyDocumentPageMeta({ title, description, pathname, search });
 }

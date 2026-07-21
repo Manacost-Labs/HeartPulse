@@ -4817,9 +4817,9 @@ for (const [device, viewport] of [
       }
       await faqTrigger.click();
     }
-    const routeMetaLoadedInitially = await page.evaluate(() => performance.getEntriesByType('resource')
-      .some(entry => entry.name.includes('/assets/route-meta-')));
-    if (routeMetaLoadedInitially) failures.push('home lazy sections: route metadata loaded before client navigation');
+    const seoRegistryLoadedInitially = await page.evaluate(() => performance.getEntriesByType('resource')
+      .some(entry => entry.name.includes('/assets/registry-')));
+    if (seoRegistryLoadedInitially) failures.push('home lazy sections: SEO registry loaded before client navigation');
     await page.evaluate(() => window.scrollTo(0, 900));
     await page.waitForSelector('.support-prompt--collapsed', { visible: true, timeout: 5_000 });
     await page.click('.support-prompt__trigger');
@@ -4829,13 +4829,13 @@ for (const [device, viewport] of [
     await page.click('.support-prompt__close');
     await page.click('.arena-sidebar a[href="/classes"]');
     await page.waitForFunction(() => document.title.startsWith('Винрейт классов'), { timeout: 5_000 });
-    const routeMetaState = await page.evaluate(() => ({
+    const seoRegistryState = await page.evaluate(() => ({
       path: location.pathname,
       description: document.querySelector('meta[name="description"]')?.getAttribute('content') || '',
-      chunkLoaded: performance.getEntriesByType('resource').some(entry => entry.name.includes('/assets/route-meta-')),
+      chunkLoaded: performance.getEntriesByType('resource').some(entry => entry.name.includes('/assets/registry-')),
     }));
-    if (routeMetaState.path !== '/classes' || !routeMetaState.description.includes('винрейты всех 11 классов') || !routeMetaState.chunkLoaded) {
-      failures.push(`home lazy sections: client route metadata did not update (${JSON.stringify(routeMetaState)})`);
+    if (seoRegistryState.path !== '/classes' || !seoRegistryState.description.includes('винрейты всех 11 классов') || !seoRegistryState.chunkLoaded) {
+      failures.push(`home lazy sections: client route metadata did not update (${JSON.stringify(seoRegistryState)})`);
     }
     console.log('✓ home lazy sections and delayed support prompt');
   } catch (error) {

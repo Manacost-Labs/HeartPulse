@@ -8,15 +8,44 @@ const PUBLIC_ROUTE_INVENTORY = JSON.parse(readFileSync(
 if (PUBLIC_ROUTE_INVENTORY.schemaVersion !== 1) {
   throw new Error(`[prerender] Unsupported public route inventory version: ${PUBLIC_ROUTE_INVENTORY.schemaVersion}`);
 }
+const PUBLIC_SEO_REGISTRY = JSON.parse(readFileSync(
+  resolve(process.cwd(), 'config/public-seo-pages.json'),
+  'utf8',
+));
+if (PUBLIC_SEO_REGISTRY.schemaVersion !== 1
+  || !PUBLIC_SEO_REGISTRY.pages
+  || typeof PUBLIC_SEO_REGISTRY.pages !== 'object') {
+  throw new Error(`[prerender] Unsupported public SEO registry version: ${PUBLIC_SEO_REGISTRY.schemaVersion}`);
+}
 const SITE_URL = PUBLIC_ROUTE_INVENTORY.canonicalOrigin;
-const YEAR = new Date().getFullYear();
 const TODAY = new Date().toISOString().split('T')[0];
 const THIRTY_DAYS_AGO = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().split('T')[0];
 
+function renderSeoTemplate(value) {
+  return String(value).replace(/\{([a-z]+)\}/g, (_match, token) => {
+    if (token === 'year') return String(new Date().getUTCFullYear());
+    throw new Error(`[prerender] Unsupported SEO template token: {${token}}`);
+  });
+}
+
+const SEO_PAGES = new Map(Object.entries(PUBLIC_SEO_REGISTRY.pages).map(([pathname, page]) => {
+  const normalizedPathname = pathname.replace(/\/+$/, '') || '/';
+  if (!pathname.startsWith('/') || pathname !== normalizedPathname || /[?#]/.test(pathname)
+    || !page || typeof page.policyRouteId !== 'string' || !page.policyRouteId.trim()
+    || typeof page.title !== 'string' || page.title.trim().length < 10
+    || typeof page.description !== 'string' || page.description.trim().length < 40
+    || typeof page.sitemap !== 'boolean') {
+    throw new Error(`[prerender] Invalid public SEO page: ${pathname}`);
+  }
+  return [pathname, {
+    ...page,
+    title: renderSeoTemplate(page.title.trim()),
+    description: renderSeoTemplate(page.description.trim()),
+  }];
+}));
+
 const PAGES = {
   '/': {
-    title: 'HS-Arena — Тир-лист и Винрейты для Арены Hearthstone',
-    description: 'Актуальная статистика Арены Hearthstone: тир-лист карт по классам, винрейты, легендарные группы. Данные обновляются автоматически 4 раза в сутки.',
     h1: 'HS-Arena — Статистика Арены Hearthstone',
     ogType: 'website',
     structuredData: [
@@ -112,8 +141,6 @@ const PAGES = {
       </ul>`
   },
   '/faq': {
-    title: 'FAQ и помощь по Manacost Stats — вход, подписка и доступ',
-    description: 'Подробная помощь по регистрации, входу, Boosty, Telegram, уровням подписки, paywall, статистике и разделам Manacost Stats.',
     h1: 'Частые вопросы о Manacost Stats',
     ogType: 'website',
     structuredData: [
@@ -153,8 +180,6 @@ const PAGES = {
     noscript: '<h1>Частые вопросы о Manacost Stats</h1><p>Помощь по регистрации, входу, подтверждению Boosty и Telegram, уровням подписки, paywall и игровой статистике.</p><p><a href="/?login">Открыть профиль</a> | <a href="/standard/cards">Карты</a> | <a href="/articles">Статьи</a></p>',
   },
   '/standard/matchups': {
-    title: `Матчапы Стандарта Hearthstone ${YEAR} | Manacost Stats`,
-    description: 'Матрица матчапов актуальной меты Стандарта Hearthstone по данным HSGuru: винрейты архетипов против друг друга для Легенды и Алмаза 4-1.',
     h1: 'Матчапы Стандарта Hearthstone',
     ogType: 'website',
     structuredData: [
@@ -187,26 +212,18 @@ const PAGES = {
       <p><a href="/">На главную</a> | <a href="/articles">Статьи</a> | <a href="/classes">Арена</a></p>`
   },
   '/standard/meta': {
-    title: `Мета Hearthstone ${YEAR}: архетипы и колоды | Manacost Stats`,
-    description: 'Актуальная мета Стандарта и Вольного режима по данным HSGuru: винрейты, популярность, русские названия и готовые сборки.',
     h1: 'Мета Hearthstone', ogType: 'website', structuredData: [],
     noscript: '<h1>Мета Hearthstone</h1><p>Винрейты, популярность и готовые сборки актуальных архетипов Стандарта и Вольного режима доступны с тарифом «Алмаз».</p>'
   },
   '/standard/vicious-gold': {
-    title: `Vicious Syndicate Gold — мета Стандарта ${YEAR} | Manacost Stats`,
-    description: 'Распределение классов и колод, готовые сборки и Power Tier по всем доступным рангам Vicious Syndicate Live.',
     h1: 'Vicious Syndicate Gold', ogType: 'website', structuredData: [],
     noscript: '<h1>Vicious Syndicate Gold</h1><p>Живая статистика классов, архетипов, сборок и Power Tier Стандарта доступна с тарифом «Алмаз».</p>'
   },
   '/standard/cards': {
-    title: `Карты Hearthstone ${YEAR}: Стандарт и Вольный | Manacost Stats`,
-    description: 'Открытая библиотека карт Hearthstone с фильтрами по классу, дополнению, мане и механикам. Статистика Легенды доступна с тарифом «Алмаз».',
     h1: 'Карты Hearthstone', ogType: 'website', structuredData: [],
     noscript: '<h1>Карты Hearthstone</h1><p>Открытая библиотека карт Стандарта и Вольного режима с подробными страницами. Статистика Легенды доступна с тарифом «Алмаз».</p>'
   },
   '/classes': {
-    title: `Винрейт классов — Арена Hearthstone ${YEAR} | HS-Arena`,
-    description: 'Актуальные винрейты всех 11 классов в режиме Арена Hearthstone. Рейтинг на основе миллионов партий с HSReplay и Firestone, обновляется автоматически 4 раза в сутки.',
     h1: 'Винрейт классов на Арене Hearthstone',
     ogType: 'website',
     structuredData: [
@@ -239,8 +256,6 @@ const PAGES = {
       <p><a href="/">На главную</a> | <a href="/tierlist">Тир-лист карт</a> | <a href="/legendaries">Легендарки</a></p>`
   },
   '/tierlist': {
-    title: `Тир-лист карт — Арена Hearthstone ${YEAR} | HS-Arena`,
-    description: 'Полный тир-лист карт для каждого класса в режиме Арена Hearthstone. Лучшие карты текущего патча с оценками от S (авто-пик) до F. Данные с HearthArena и HSReplay.',
     ogType: 'website',
     h1: 'Тир-лист карт Арены Hearthstone',
     structuredData: [
@@ -290,8 +305,6 @@ const PAGES = {
       <p><a href="/">На главную</a> | <a href="/classes">Винрейты классов</a> | <a href="/legendaries">Легендарки</a></p>`
   },
   '/legendaries': {
-    title: 'Легендарки на Арене Hearthstone — Лучшие группы | HS-Arena',
-    description: 'Какую легендарную карту выбрать на Арене? Все группы первого выбора с процентом побед для каждого класса. Обновляется автоматически с Manacost.',
     ogType: 'website',
     h1: 'Легендарные карты на Арене Hearthstone',
     structuredData: [
@@ -330,8 +343,6 @@ const PAGES = {
       <p><a href="/">На главную</a> | <a href="/tierlist">Тир-лист карт</a> | <a href="/classes">Винрейты классов</a></p>`
   },
   '/articles': {
-    title: 'Статьи и гайды по Арене Hearthstone | HS-Arena',
-    description: 'Гайды, разборы мета и советы по режиму Арена в Hearthstone от команды Manacost. Актуальные статьи для игроков всех уровней.',
     ogType: 'website',
     h1: 'Статьи и гайды по Арене Hearthstone',
     structuredData: [
@@ -356,8 +367,6 @@ const PAGES = {
       <p><a href="/">На главную</a> | <a href="/guides-archive">Архив гайдов</a> | <a href="/contests">Конкурсы</a> | <a href="/tierlist">Тир-лист карт</a> | <a href="/classes">Винрейты классов</a></p>`
   },
   '/gallery': {
-    title: 'Галерея артов Hearthstone | HS-Arena',
-    description: 'Публичная галерея артов Манакоста в высоком качестве: просмотр и скачивание доступны всем пользователям.',
     ogType: 'website',
     h1: 'Галерея артов Манакоста',
     structuredData: [
@@ -383,8 +392,6 @@ const PAGES = {
       <p><a href="/">На главную</a> | <a href="/articles">Статьи</a> | <a href="/contests">Конкурсы</a> | <a href="/classes">Винрейты классов</a></p>`
   },
   '/guides-archive': {
-    title: 'Архив гайдов Hearthstone | Manacost Stats',
-    description: 'Архив старых гайдов, мета-отчетов и материалов Koloda Hearthstone в удобном формате для чтения.',
     ogType: 'website',
     h1: 'Архив гайдов Hearthstone',
     structuredData: [
@@ -409,8 +416,6 @@ const PAGES = {
       <p><a href="/">На главную</a> | <a href="/articles">Статьи</a> | <a href="/contests">Конкурсы</a> | <a href="/classes">Винрейты классов</a></p>`
   },
   '/contests': {
-    title: 'Конкурсы Манакоста | Manacost Stats',
-    description: 'Конкурсы для подписчиков Манакоста: участие, автоматическая проверка подписки и публикация ID победителей после завершения.',
     ogType: 'website',
     h1: 'Конкурсы Манакоста',
     structuredData: [
@@ -435,8 +440,6 @@ const PAGES = {
       <p><a href="/">На главную</a> | <a href="/articles">Статьи</a> | <a href="/classes">Винрейты классов</a></p>`
   },
   '/battlegrounds/strategies': {
-    title: 'Конструктор стратегий Полей Сражений | HS-Arena',
-    description: 'Конструктор стратегий Hearthstone Battlegrounds: собирайте и визуализируйте планы развития для Полей Сражений.',
     ogType: 'website',
     h1: 'Конструктор стратегий Полей Сражений',
     structuredData: [
@@ -466,8 +469,6 @@ const PAGES = {
       <p><a href="/">На главную</a> | <a href="/battlegrounds/tier-builder">Конструктор тир-листов</a></p>`
   },
   '/heroes': {
-    title: 'Герои Полей Сражений Hearthstone | HS-Arena',
-    description: 'Тир-лист героев Hearthstone Battlegrounds с отдельными страницами героев, силами героя, компаньонами и статистикой.',
     ogType: 'website',
     h1: 'Герои Полей Сражений',
     structuredData: [
@@ -494,8 +495,6 @@ const PAGES = {
       <p><a href="/">На главную</a> | <a href="/battlegrounds/strategies">Конструктор стратегий</a> | <a href="/battlegrounds/tier-builder">Конструктор тир-листов</a></p>`
   },
   '/library': {
-    title: 'Библиотека Полей Сражений Hearthstone | HS-Arena',
-    description: 'Библиотека существ и заклинаний Hearthstone Battlegrounds: актуальный пул, архив, фильтры, статистика и отдельные страницы карт.',
     ogType: 'website',
     h1: 'Библиотека Полей Сражений',
     structuredData: [
@@ -522,8 +521,6 @@ const PAGES = {
       <p><a href="/library/minions">Существа</a> | <a href="/library/spells">Заклинания</a> | <a href="/library/archive">Архив</a></p>`
   },
   '/library/minions': {
-    title: 'Существа Полей Сражений Hearthstone | HS-Arena',
-    description: 'Актуальные существа Hearthstone Battlegrounds: фильтры по таверне, типу существ, механикам, статистика и отдельные страницы карт.',
     ogType: 'website',
     h1: 'Существа Полей Сражений',
     structuredData: [
@@ -542,8 +539,6 @@ const PAGES = {
       <p><a href="/library">Библиотека</a> | <a href="/library/spells">Заклинания</a> | <a href="/battlegrounds/tier-list">Тир-лист</a></p>`
   },
   '/library/spells': {
-    title: 'Заклинания Полей Сражений Hearthstone | HS-Arena',
-    description: 'Актуальные заклинания Hearthstone Battlegrounds: фильтры, изображения карт, статистика и отдельные страницы.',
     ogType: 'website',
     h1: 'Заклинания Полей Сражений',
     structuredData: [
@@ -562,8 +557,6 @@ const PAGES = {
       <p><a href="/library">Библиотека</a> | <a href="/library/minions">Существа</a> | <a href="/battlegrounds/tier-list">Тир-лист</a></p>`
   },
   '/library/archive': {
-    title: 'Архив карт Полей Сражений Hearthstone | HS-Arena',
-    description: 'Архивные существа и заклинания Hearthstone Battlegrounds с отдельными страницами карт.',
     ogType: 'website',
     h1: 'Архив карт Полей Сражений',
     structuredData: [
@@ -582,8 +575,6 @@ const PAGES = {
       <p><a href="/library">Актуальная библиотека</a> | <a href="/library/archive/minions">Архив существ</a> | <a href="/library/archive/spells">Архив заклинаний</a></p>`
   },
   '/library/archive/minions': {
-    title: 'Архив существ Полей Сражений Hearthstone | HS-Arena',
-    description: 'Архив существ Hearthstone Battlegrounds: старые существа вне активного пула с карточками и поиском.',
     ogType: 'website',
     h1: 'Архив существ Полей Сражений',
     structuredData: [
@@ -602,8 +593,6 @@ const PAGES = {
       <p><a href="/library/minions">Актуальные существа</a> | <a href="/library/archive/spells">Архив заклинаний</a></p>`
   },
   '/library/archive/spells': {
-    title: 'Архив заклинаний Полей Сражений Hearthstone | HS-Arena',
-    description: 'Архив заклинаний Hearthstone Battlegrounds: старые заклинания таверны вне активного пула.',
     ogType: 'website',
     h1: 'Архив заклинаний Полей Сражений',
     structuredData: [
@@ -622,8 +611,6 @@ const PAGES = {
       <p><a href="/library/spells">Актуальные заклинания</a> | <a href="/library/archive/minions">Архив существ</a></p>`
   },
   '/battlegrounds/tier-list': {
-    title: 'Тир-лист Полей Сражений Hearthstone | HS-Arena',
-    description: 'Тир-лист Hearthstone Battlegrounds: существа, стратегии, заклинания и аксессуары с фильтрами и просмотром карт.',
     ogType: 'website',
     h1: 'Тир-лист Полей Сражений',
     structuredData: [
@@ -650,8 +637,6 @@ const PAGES = {
       <p><a href="/library">Библиотека</a> | <a href="/heroes">Герои</a> | <a href="/battlegrounds/strategies">Конструктор стратегий</a></p>`
   },
   '/battlegrounds/tier-builder': {
-    title: 'Конструктор тир-листов Полей Сражений | HS-Arena',
-    description: 'Конструктор тир-листов Hearthstone Battlegrounds: создавайте собственные списки героев, карт и стратегий Полей Сражений.',
     ogType: 'website',
     h1: 'Конструктор тир-листов Полей Сражений',
     structuredData: [
@@ -684,8 +669,6 @@ const PAGES = {
 
 const NOINDEX_PAGES = new Map([
   ['/admin', {
-    title: 'Админ-панель | Manacost Stats',
-    description: 'Закрытая административная область Manacost Stats.',
     h1: 'Админ-панель',
     ogType: 'website',
     structuredData: [],
@@ -701,6 +684,55 @@ const NOT_FOUND_PAGE = {
   structuredData: [],
   noscript: '<h1>Страница не найдена</h1><p>Проверьте адрес или вернитесь на <a href="/">главную страницу</a>.</p>',
 };
+
+function pageWithSeo(pathname, content) {
+  const seo = SEO_PAGES.get(pathname);
+  if (!seo) throw new Error(`[prerender] Missing SEO registry page: ${pathname}`);
+  return { ...content, title: seo.title, description: seo.description };
+}
+
+function assertSeoMaterializationContract() {
+  const contentPaths = new Set([...Object.keys(PAGES), ...NOINDEX_PAGES.keys()]);
+  if (contentPaths.size !== SEO_PAGES.size) {
+    throw new Error(`[prerender] SEO registry/materialized page count mismatch: ${SEO_PAGES.size}/${contentPaths.size}`);
+  }
+
+  for (const [pathname, seo] of SEO_PAGES) {
+    if (!contentPaths.has(pathname)) {
+      throw new Error(`[prerender] SEO registry page has no materialized HTML: ${pathname}`);
+    }
+    const policy = resolvePathPolicy(pathname);
+    if (policy.id !== seo.policyRouteId) {
+      throw new Error(`[prerender] ${pathname} maps to ${policy.id}, expected ${seo.policyRouteId}`);
+    }
+    if (seo.sitemap && (policy.indexPolicy !== 'index' || policy.canonicalPolicy !== 'self')) {
+      throw new Error(`[prerender] Sitemap page is not indexable and self-canonical: ${pathname}`);
+    }
+    if (!seo.sitemap && (policy.indexPolicy === 'index' || policy.canonicalPolicy !== 'none')) {
+      throw new Error(`[prerender] Non-sitemap page must be noindex without canonical: ${pathname}`);
+    }
+  }
+}
+
+function escapeXml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&apos;');
+}
+
+function generateSitemapXml() {
+  const urls = [...SEO_PAGES.entries()]
+    .filter(([, page]) => page.sitemap)
+    .map(([pathname]) => {
+      const canonical = canonicalUrlFor(pathname, resolvePathPolicy(pathname));
+      if (!canonical) throw new Error(`[prerender] Sitemap page has no canonical URL: ${pathname}`);
+      return `  <url><loc>${escapeXml(canonical)}</loc></url>`;
+    });
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`;
+}
 
 const API_BASE = process.env.PRERENDER_API || 'http://127.0.0.1:3101';
 
@@ -865,13 +897,42 @@ function buildSeoSummaries({ winrates, tierlist, legendaries }) {
 const SEO_SUMMARY_STYLE = 'background:#060c18;color:#9fb1ca;font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.6;padding:2rem 1rem 3rem;';
 const SEO_SUMMARY_INNER = 'max-width:960px;margin:0 auto;';
 
+function canonicalizeSchemaPageReferences(value, pathname, fullCanonical, parentKey = '') {
+  if (Array.isArray(value)) {
+    return value.map(item => canonicalizeSchemaPageReferences(item, pathname, fullCanonical, parentKey));
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, child]) => [
+      key,
+      canonicalizeSchemaPageReferences(child, pathname, fullCanonical, key),
+    ]));
+  }
+  if (typeof value !== 'string' || !['@id', 'item', 'url'].includes(parentKey)) return value;
+
+  try {
+    const reference = new URL(value);
+    const referencePath = normalizePathname(reference.pathname);
+    if (reference.origin === SITE_URL) {
+      const canonical = referencePath === normalizePathname(pathname)
+        ? fullCanonical
+        : SEO_PAGES.has(referencePath)
+          ? canonicalUrlFor(referencePath, resolvePathPolicy(referencePath))
+          : null;
+      if (canonical) return `${canonical}${reference.search}${reference.hash}`;
+    }
+  } catch {
+    // Schema fields can contain non-URL values; leave those untouched.
+  }
+  return value;
+}
+
 function generatePageHtml(baseHtml, pageData, path, seoSummary, policy = resolvePathPolicy(path)) {
   const { title, description, ogType, structuredData = [], noscript } = pageData;
   const fullCanonical = canonicalUrlFor(path, policy);
 
   // Enrich schema graph: breadcrumb linkage, language, dataset licensing.
   const enriched = policy.indexPolicy === 'index' && fullCanonical
-    ? structuredData.map(node => ({ ...node }))
+    ? structuredData.map(node => canonicalizeSchemaPageReferences(node, path, fullCanonical))
     : [];
   const breadcrumb = enriched.find(n => n['@type'] === 'BreadcrumbList');
   if (breadcrumb && !breadcrumb['@id']) breadcrumb['@id'] = `${fullCanonical}#breadcrumb`;
@@ -1015,13 +1076,18 @@ async function main() {
   const indexPath = resolve(distDir, 'index.html');
   const baseHtml = readFileSync(indexPath, 'utf-8');
 
-  const today = new Date().toISOString().split('T')[0];
-
-  const skipRemote = process.env.PRERENDER_SKIP_REMOTE === '1';
-  console.log(skipRemote
-    ? '[prerender] Skipping live SEO summaries (PRERENDER_SKIP_REMOTE=1).'
-    : '[prerender] Fetching live data for SEO summaries...');
-  const homeSummary = skipRemote ? null : await fetchJson(`${API_BASE}/api/home/summary`);
+  const homeSummaryFixture = process.env.PRERENDER_HOME_SUMMARY_FIXTURE?.trim();
+  const skipRemote = process.env.PRERENDER_SKIP_REMOTE === '1' && !homeSummaryFixture;
+  console.log(homeSummaryFixture
+    ? `[prerender] Loading SEO summary fixture: ${homeSummaryFixture}`
+    : skipRemote
+      ? '[prerender] Skipping live SEO summaries (PRERENDER_SKIP_REMOTE=1).'
+      : '[prerender] Fetching live data for SEO summaries...');
+  const homeSummary = homeSummaryFixture
+    ? JSON.parse(readFileSync(resolve(process.cwd(), homeSummaryFixture), 'utf8'))
+    : skipRemote
+      ? null
+      : await fetchJson(`${API_BASE}/api/home/summary`);
   const summaries = buildSeoSummaries({
     winrates: homeSummary ? {
       updatedAt: homeSummary.updatedAt,
@@ -1033,13 +1099,14 @@ async function main() {
   console.log(`[prerender] SEO summaries ready for: ${Object.keys(summaries).join(', ') || 'none (API unavailable)'}`);
 
   console.log('[prerender] Generating per-route HTML...');
+  assertSeoMaterializationContract();
 
   for (const [path, pageData] of Object.entries(PAGES)) {
     const policy = resolvePathPolicy(path);
     if (policy.indexPolicy !== 'index' || policy.canonicalPolicy !== 'self') {
       throw new Error(`[prerender] ${path} must map to an indexable, self-canonical route policy`);
     }
-    writePrerenderedPage(distDir, baseHtml, path, pageData, summaries[path], policy);
+    writePrerenderedPage(distDir, baseHtml, path, pageWithSeo(path, pageData), summaries[path], policy);
   }
 
   for (const [path, pageData] of NOINDEX_PAGES) {
@@ -1047,7 +1114,7 @@ async function main() {
     if (policy.indexPolicy === 'index' || policy.canonicalPolicy !== 'none') {
       throw new Error(`[prerender] ${path} must map to a noindex route without a canonical URL`);
     }
-    writePrerenderedPage(distDir, baseHtml, path, pageData, null, policy);
+    writePrerenderedPage(distDir, baseHtml, path, pageWithSeo(path, pageData), null, policy);
   }
 
   const notFoundPolicy = PUBLIC_ROUTE_INVENTORY.routes.find(route => route.kind === 'fallback');
@@ -1065,33 +1132,8 @@ async function main() {
   );
 
   const sitemapPath = resolve(distDir, 'sitemap.xml');
-  if (existsSync(sitemapPath)) {
-    // Only data-driven pages actually change daily; static sections keep their real lastmod.
-    const DATA_PAGES = new Set([
-      `${SITE_URL}/`,
-      `${SITE_URL}/classes/`,
-      `${SITE_URL}/tierlist/`,
-      `${SITE_URL}/legendaries/`,
-      `${SITE_URL}/standard/meta/`,
-      `${SITE_URL}/standard/vicious-gold/`,
-      `${SITE_URL}/standard/cards/`,
-      `${SITE_URL}/heroes/`,
-      `${SITE_URL}/library/`,
-      `${SITE_URL}/library/minions/`,
-      `${SITE_URL}/library/spells/`,
-      `${SITE_URL}/battlegrounds/tier-list/`,
-    ]);
-    let sitemap = readFileSync(sitemapPath, 'utf-8');
-    sitemap = sitemap.replace(/<url>([\s\S]*?)<\/url>/g, (block, inner) => {
-      const loc = (inner.match(/<loc>([^<]*)<\/loc>/) || [])[1];
-      if (loc && DATA_PAGES.has(loc)) {
-        return block.replace(/<lastmod>[^<]*<\/lastmod>/, `<lastmod>${today}</lastmod>`);
-      }
-      return block;
-    });
-    writeFileSync(sitemapPath, sitemap, 'utf-8');
-    console.log('[prerender] ✓ Updated sitemap.xml lastmod dates (data pages only)');
-  }
+  writeFileSync(sitemapPath, generateSitemapXml(), 'utf-8');
+  console.log(`[prerender] ✓ sitemap.xml (${[...SEO_PAGES.values()].filter(page => page.sitemap).length} URLs)`);
 
   makePublicReadable(distDir);
   console.log('[prerender] ✓ Fixed dist/ permissions');

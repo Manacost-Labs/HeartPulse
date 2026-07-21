@@ -26,7 +26,7 @@ const budgets = {
   faqPageJs: Number(process.env.BUDGET_FAQ_PAGE_JS_BYTES || 5_500),
   supportPromptCss: Number(process.env.BUDGET_SUPPORT_PROMPT_CSS_BYTES || 4_000),
   siteFooterCss: Number(process.env.BUDGET_SITE_FOOTER_CSS_BYTES || 4_000),
-  routeMetaJs: Number(process.env.BUDGET_ROUTE_META_JS_BYTES || 5_250),
+  seoRegistryJs: Number(process.env.BUDGET_SEO_REGISTRY_JS_BYTES || 11_000),
 };
 
 const files = readdirSync(distAssets)
@@ -51,7 +51,7 @@ const faqPageCss = files.find(file => /^FAQPage-.*\.css$/.test(file.name));
 const faqPageJs = files.find(file => /^FAQPage-.*\.js$/.test(file.name));
 const supportPromptCss = files.find(file => /^SupportPrompt-.*\.css$/.test(file.name));
 const siteFooterCss = files.find(file => /^SiteFooter-.*\.css$/.test(file.name));
-const routeMetaJs = files.find(file => /^route-meta-.*\.js$/.test(file.name));
+const seoRegistryJs = files.find(file => /^registry-.*\.js$/.test(file.name));
 const homeSectionCssFiles = files.filter(file => /^Home(?:ArenaDirectory|Battlegrounds|LatestArticles)-.*\.css$/.test(file.name));
 const largestHomeSectionCss = homeSectionCssFiles.length === 3
   ? homeSectionCssFiles.sort((left, right) => right.bytes - left.bytes)[0]
@@ -86,7 +86,7 @@ const checks = [
   ['lazy FAQ-page JS', faqPageJs, budgets.faqPageJs],
   ['lazy support-prompt CSS', supportPromptCss, budgets.supportPromptCss],
   ['lazy site-footer CSS', siteFooterCss, budgets.siteFooterCss],
-  ['lazy route-metadata JS', routeMetaJs, budgets.routeMetaJs],
+  ['lazy SEO registry JS', seoRegistryJs, budgets.seoRegistryJs],
 ];
 
 let failed = false;

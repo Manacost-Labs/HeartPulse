@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "pages": {
+    "/": {
+      "policyRouteId": "home",
+      "navigationRouteId": "home",
+      "title": "HS-Arena — Тир-лист и Винрейты для Арены Hearthstone",
+      "description": "Актуальная статистика Арены Hearthstone: тир-лист карт по классам, винрейты, легендарные группы. Данные обновляются автоматически 4 раза в сутки.",
+      "sitemap": true
+    },
+    "/faq": {
+      "policyRouteId": "faq",
+      "navigationRouteId": "faq",
+      "title": "FAQ и помощь по Manacost Stats — вход, подписка и доступ",
+      "description": "Подробная помощь по регистрации, входу, Boosty, Telegram, уровням подписки, paywall, статистике и разделам Manacost Stats.",
+      "sitemap": true
+    },
+    "/standard/matchups": {
+      "policyRouteId": "standard-matchups",
+      "navigationRouteId": "standard-matchups",
+      "title": "Матчапы Стандарта Hearthstone {year} | Manacost Stats",
+      "description": "Матрица матчапов актуальной меты Стандарта Hearthstone по данным HSGuru: винрейты архетипов против друг друга для Легенды и Алмаза 4-1.",
+      "sitemap": true
+    },
+    "/standard/meta": {
+      "policyRouteId": "standard-meta",
+      "navigationRouteId": "standard-meta",
+      "title": "Мета Hearthstone {year}: архетипы и колоды | Manacost Stats",
+      "description": "Актуальная мета Стандарта и Вольного режима по данным HSGuru: винрейты, популярность, русские названия и готовые сборки.",
+      "sitemap": true
+    },
+    "/standard/vicious-gold": {
+      "policyRouteId": "standard-vicious-gold",
+      "navigationRouteId": "standard-vicious-gold",
+      "title": "Vicious Syndicate Gold — мета Стандарта {year} | Manacost Stats",
+      "description": "Распределение классов и колод, готовые сборки и Power Tier по всем доступным рангам Vicious Syndicate Live.",
+      "sitemap": true
+    },
+    "/standard/cards": {
+      "policyRouteId": "standard-cards",
+      "navigationRouteId": "standard-cards",
+      "title": "Карты Hearthstone {year}: Стандарт и Вольный | Manacost Stats",
+      "description": "Открытая библиотека карт Hearthstone с фильтрами по классу, дополнению, мане и механикам. Статистика Легенды доступна с тарифом «Алмаз».",
+      "sitemap": true
+    },
+    "/classes": {
+      "policyRouteId": "winrates",
+      "navigationRouteId": "winrates",
+      "title": "Винрейт классов — Арена Hearthstone {year} | HS-Arena",
+      "description": "Актуальные винрейты всех 11 классов в режиме Арена Hearthstone. Рейтинг на основе миллионов партий с HSReplay и Firestone, обновляется автоматически 4 раза в сутки.",
+      "sitemap": true
+    },
+    "/tierlist": {
+      "policyRouteId": "tierlist",
+      "navigationRouteId": "tierlist",
+      "title": "Тир-лист карт — Арена Hearthstone {year} | HS-Arena",
+      "description": "Полный тир-лист карт для каждого класса в режиме Арена Hearthstone. Лучшие карты текущего патча с оценками от S (авто-пик) до F. Данные с HearthArena и HSReplay.",
+      "sitemap": true
+    },
+    "/legendaries": {
+      "policyRouteId": "legendaries",
+      "navigationRouteId": "legendaries",
+      "title": "Легендарки на Арене Hearthstone — Лучшие группы | HS-Arena",
+      "description": "Какую легендарную карту выбрать на Арене? Все группы первого выбора с процентом побед для каждого класса. Обновляется автоматически с Manacost.",
+      "sitemap": true
+    },
+    "/articles": {
+      "policyRouteId": "articles",
+      "navigationRouteId": "articles",
+      "title": "Статьи и гайды по Арене Hearthstone | HS-Arena",
+      "description": "Гайды, разборы мета и советы по режиму Арена в Hearthstone от команды Manacost. Актуальные статьи для игроков всех уровней.",
+      "sitemap": true
+    },
+    "/gallery": {
+      "policyRouteId": "gallery",
+      "navigationRouteId": "gallery",
+      "title": "Галерея артов Hearthstone | HS-Arena",
+      "description": "Публичная галерея артов Манакоста в высоком качестве: просмотр и скачивание доступны всем пользователям.",
+      "sitemap": true
+    },
+    "/guides-archive": {
+      "policyRouteId": "guides-archive",
+      "navigationRouteId": "guides-archive",
+      "title": "Архив гайдов Hearthstone | Manacost Stats",
+      "description": "Архив старых гайдов, мета-отчетов и материалов Koloda Hearthstone в удобном формате для чтения.",
+      "sitemap": true
+    },
+    "/contests": {
+      "policyRouteId": "contests",
+      "navigationRouteId": "contests",
+      "title": "Конкурсы Манакоста | Manacost Stats",
+      "description": "Конкурсы для подписчиков Манакоста: участие, автоматическая проверка подписки и публикация ID победителей после завершения.",
+      "sitemap": true
+    },
+    "/battlegrounds/strategies": {
+      "policyRouteId": "bg-strategies",
+      "navigationRouteId": "bg-strategies",
+      "title": "Конструктор стратегий Полей Сражений | HS-Arena",
+      "description": "Конструктор стратегий Hearthstone Battlegrounds: собирайте и визуализируйте планы развития для Полей Сражений.",
+      "sitemap": true
+    },
+    "/heroes": {
+      "policyRouteId": "bg-heroes",
+      "navigationRouteId": "bg-heroes",
+      "title": "Герои Полей Сражений Hearthstone | HS-Arena",
+      "description": "Тир-лист героев Hearthstone Battlegrounds с отдельными страницами героев, силами героя, компаньонами и статистикой.",
+      "sitemap": true
+    },
+    "/library": {
+      "policyRouteId": "bg-library",
+      "navigationRouteId": "bg-library",
+      "title": "Библиотека Полей Сражений Hearthstone | HS-Arena",
+      "description": "Библиотека существ и заклинаний Hearthstone Battlegrounds: актуальный пул, архив, фильтры, статистика и отдельные страницы карт.",
+      "sitemap": true
+    },
+    "/library/minions": {
+      "policyRouteId": "bg-library-kind",
+      "title": "Существа Полей Сражений Hearthstone | HS-Arena",
+      "description": "Актуальные существа Hearthstone Battlegrounds: фильтры по таверне, типу существ, механикам, статистика и отдельные страницы карт.",
+      "sitemap": true
+    },
+    "/library/spells": {
+      "policyRouteId": "bg-library-kind",
+      "title": "Заклинания Полей Сражений Hearthstone | HS-Arena",
+      "description": "Актуальные заклинания Hearthstone Battlegrounds: фильтры, изображения карт, статистика и отдельные страницы.",
+      "sitemap": true
+    },
+    "/library/archive": {
+      "policyRouteId": "bg-library-archive-root",
+      "title": "Архив карт Полей Сражений Hearthstone | HS-Arena",
+      "description": "Архивные существа и заклинания Hearthstone Battlegrounds с отдельными страницами карт.",
+      "sitemap": true
+    },
+    "/library/archive/minions": {
+      "policyRouteId": "bg-library-archive",
+      "title": "Архив существ Полей Сражений Hearthstone | HS-Arena",
+      "description": "Архив существ Hearthstone Battlegrounds: старые существа вне активного пула с карточками и поиском.",
+      "sitemap": true
+    },
+    "/library/archive/spells": {
+      "policyRouteId": "bg-library-archive",
+      "title": "Архив заклинаний Полей Сражений Hearthstone | HS-Arena",
+      "description": "Архив заклинаний Hearthstone Battlegrounds: старые заклинания таверны вне активного пула.",
+      "sitemap": true
+    },
+    "/battlegrounds/tier-list": {
+      "policyRouteId": "bg-tier-list",
+      "navigationRouteId": "bg-tier-list",
+      "title": "Тир-лист Полей Сражений Hearthstone | HS-Arena",
+      "description": "Тир-лист Hearthstone Battlegrounds: существа, стратегии, заклинания и аксессуары с фильтрами и просмотром карт.",
+      "sitemap": true
+    },
+    "/battlegrounds/tier-builder": {
+      "policyRouteId": "bg-tier-builder",
+      "navigationRouteId": "bg-tier-builder",
+      "title": "Конструктор тир-листов Полей Сражений | HS-Arena",
+      "description": "Конструктор тир-листов Hearthstone Battlegrounds: создавайте собственные списки героев, карт и стратегий Полей Сражений.",
+      "sitemap": true
+    },
+    "/admin": {
+      "policyRouteId": "admin-panel",
+      "navigationRouteId": "admin-panel",
+      "title": "Админ-панель | Manacost Stats",
+      "description": "Закрытая административная область Manacost Stats.",
+      "sitemap": false
+    }
+  }
+}

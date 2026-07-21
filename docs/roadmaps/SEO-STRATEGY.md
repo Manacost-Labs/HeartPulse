@@ -3,6 +3,7 @@
 # SEO-стратегия Manacost Stats
 
 Дата аудита: 20 июля 2026 года
+Обновлено: 21 июля 2026 года
 Горизонт: 12 недель для базовой программы, затем постоянный цикл
 Область: `arena.hs-manacost.ru`, React 19 + Vite SPA, Express API и текущий prerender
 
@@ -23,10 +24,10 @@
 ### Что уже есть
 
 - Статические метатеги и JSON-LD в `index.html`.
-- Реестр верхнеуровневых маршрутов в `src/routes.ts` и метаданные в `src/route-meta.ts`.
+- Реестр навигации в `src/routes.ts` и единый реестр материализованных SEO-страниц в `config/public-seo-pages.json` + `src/seo/registry.ts`.
 - Клиентское обновление title, description, canonical, Open Graph и Twitter Card в `src/routes.ts`.
-- Prerender верхнеуровневых страниц в `scripts/prerender.js`.
-- Статические `public/sitemap.xml`, `public/robots.txt` и `public/llms.txt`.
+- Prerender верхнеуровневых страниц и генерация `sitemap.xml` из того же реестра в `scripts/prerender.js`.
+- Статические `public/robots.txt` и `public/llms.txt`.
 - Страницы FAQ, статей, Standard, Arena и Battlegrounds.
 - Авторизация и paywall на уровне UI/API.
 - Яндекс Метрика и собственный сбор аналитики.
@@ -37,18 +38,22 @@
 |---|---|---|---|
 | Динамический URL получает canonical листинга | `src/routes.ts`, например `/standard/cards/:format/:cardId` сводится к `/standard/cards` | Детальные карточки не индексируются либо считаются дублями | P0 |
 | У детальных Standard-карт и героев нет гарантированного HTML с уникальными метаданными до JS | SPA shell и текущий prerender | Пустые/неполные сниппеты, слабая индексация | P0 |
-| Sitemap содержит только часть верхнеуровневых URL | `public/sitemap.xml` | Поисковик не получает полный список качественных detail pages | P0 |
-| `/standard/matchups`, архивы библиотеки и другие prerender-страницы не синхронизированы с sitemap | `scripts/prerender.js`, `public/sitemap.xml` | Drift между сборкой, навигацией и индексом | P0 |
+| Sitemap пока содержит только 23 материализованные static/listing страницы | `config/public-seo-pages.json`, `scripts/prerender.js` | Качественные detail pages нельзя публиковать до появления валидированных snapshots | P0 |
 | Неиндексируемые области защищены неполно | `public/robots.txt` не закрывает `/admin`; клиентский `noindex` приходит после JS | Индексация служебных страниц и soft 404 | P0 |
-| Canonical смешивает варианты со слешем и без него | prerender, клиентский meta updater, nginx | Дубли URL | P0 |
-| Метаданные имеют несколько владельцев | `src/route-meta.ts`, `src/routes.ts`, `scripts/prerender.js`; найден локальный `PAGE_META` в `src/features/DeferredRoutes.tsx` | Расхождение title/schema/canonical после релиза | P0 |
+| Detail canonical и HTTP status ещё не строятся из entity snapshot | SPA shell, nginx | Дубли, soft 404 и общий metadata fallback у сущностей | P0 |
 | Schema Dataset использует дату сборки, а не дату данных | `scripts/prerender.js` | Недостоверный `dateModified` и freshness | P1 |
 | Счётчики ItemList могут быть захардкожены | `scripts/prerender.js` | Schema расходится с видимым содержимым | P1 |
 | Нет внутренних страниц авторов и редакционной политики | Публичные маршруты | Недостаточный E-E-A-T для аналитического продукта | P1 |
 | Статьи в `server/data/articles.json` в основном ведут на внешний домен | `/articles` | Нельзя честно разметить локальную страницу как полную Article | P1 |
 | `llms.txt` описывает в основном Arena | `public/llms.txt` | Standard/BG/FAQ и методология плохо представлены AI-поиску | P2 |
 
-До удаления второго набора `PAGE_META` необходимо подтвердить, что он действительно не является runtime-владельцем метаданных для отложенных маршрутов.
+### Реализовано после аудита
+
+- `SEO-101/102`: title и description 24 materialized pages перенесены в единый data-only реестр; `src/route-meta.ts` и неиспользуемый `PAGE_META` удалены.
+- `SEO-106` для static/listing слоя: CI проверяет все 24 HTML-документа, один H1, robots, canonical, OG/Twitter metadata, JSON-LD parse и отсутствие закрытых bootstrap-полей.
+- Sitemap генерируется при prerender и содержит ровно 23 index/self-canonical URL. `/standard/matchups`, `/gallery`, `/library/archive/minions` и `/library/archive/spells` больше не теряются.
+- Недостоверные ручные `lastmod`, `changefreq` и `priority` удалены. Реальный `lastmod` появится только вместе с publication metadata сущностей.
+- Detail routes намеренно не добавлены в реестр или sitemap до реализации snapshot, authoritative 404 и тестов на утечку paywall-данных.
 
 ## 4. Целевая SEO-архитектура
 
@@ -103,7 +108,7 @@
 | Пагинация | Index только если каждая страница полезна; иначе canonical policy по ADR | Согласованно | Нельзя canonical всех страниц на page 1 при отличающемся полезном наборе |
 | Неизвестный/удалённый URL | HTTP 404/410 + noindex | Удалить | Пользовательская 404 без soft 404 |
 
-Для trailing slash принять одно правило: canonical без завершающего слеша, кроме `/`, и 301 redirect для второго варианта. Если инфраструктура требует обратного, ADR должен изменить правило одновременно в nginx, prerender, клиенте и sitemap.
+По ADR принято единое правило: canonical с завершающим слешем, кроме `/`, и один redirect hop для варианта без слеша. Правило одновременно применяется в nginx, route inventory, prerender, клиенте и sitemap.
 
 ## 6. Structured data
 
@@ -148,6 +153,13 @@ FAQ-разметка остаётся семантической, но план 
 | SEO-106 | P0 | Добавить HTML SEO-contract tests | SEO-101 | CI проверяет status, robots, canonical, уникальность title/description, OG и отсутствие закрытых чисел |
 
 Контрольная точка: выборочный crawl не содержит canonical на неверный листинг, soft 404 и индексируемые admin URL.
+
+Текущий статус фазы 1:
+
+- `SEO-101` и `SEO-102` завершены для materialized static/listing страниц;
+- static-часть `SEO-106` завершена и включена в общий CI;
+- entity builders, snapshots и fail-closed поведение неизвестных ID остаются в `SEO-201/202`;
+- `SEO-103–105` требуют отдельной серверной реализации и production HTTP-проверки.
 
 ### Фаза 2 — динамические страницы и sitemap, недели 3–6
 

@@ -8,14 +8,15 @@ import {
   TABS,
   TOP_LEVEL_TABS,
 } from '../src/routes';
-import { ROUTE_META } from '../src/route-meta';
+import { seoPageForNavigationRoute } from '../src/seo/registry';
 
 assert.equal(new Set(TABS.map(route => route.id)).size, TABS.length, 'route ids must be unique');
 assert.equal(new Set(TABS.map(route => route.slug)).size, TABS.length, 'route slugs must be unique');
 
 for (const route of TABS) {
-  assert.ok(ROUTE_META[route.id].title.length > 10, `${route.id} must define a useful title`);
-  assert.ok(ROUTE_META[route.id].description.length > 40, `${route.id} must define a useful description`);
+  const seo = seoPageForNavigationRoute(route.id);
+  assert.ok(seo.title.length > 10, `${route.id} must define a useful title`);
+  assert.ok(seo.description.length > 40, `${route.id} must define a useful description`);
   assert.equal(tabFromPath(route.slug), route.id, `${route.slug} must resolve to ${route.id}`);
   assert.equal(isKnownPath(route.slug), true, `${route.slug} must be recognized`);
 }
