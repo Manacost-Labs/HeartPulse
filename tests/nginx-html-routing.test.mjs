@@ -380,8 +380,16 @@ http {
     const missingPage = await requestNginx(port, '/definitely-unknown');
     assert.equal(missingPage.status, 404, 'unknown HTML must be a real 404');
     assert.match(missingPage.body, /<title>404<\/title>/, '404 document body');
-    assert.equal((await requestNginx(port, '/assets/missing.js')).status, 404, 'missing asset must stay 404');
-    assert.equal((await requestNginx(port, '/assets/app.js')).status, 200, 'existing asset must resolve');
+    const missingAsset = await requestNginx(port, '/assets/missing.js');
+    assert.equal(missingAsset.status, 404, 'missing asset must stay 404');
+    assert.doesNotMatch(
+      missingAsset.headers['cache-control'] || '',
+      /immutable/,
+      'a missing asset must never receive the success-only immutable cache policy',
+    );
+    const existingAsset = await requestNginx(port, '/assets/app.js');
+    assert.equal(existingAsset.status, 200, 'existing asset must resolve');
+    assert.match(existingAsset.headers['cache-control'] || '', /immutable/, 'existing asset cache policy');
     assert.equal(
       (await requestNginx(port, '/yandex_eaea2c59052dad81.html')).status,
       200,
