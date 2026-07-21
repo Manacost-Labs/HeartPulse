@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import type express from 'express';
 import type { HttpMetrics } from './metrics.js';
 
@@ -7,14 +8,31 @@ export type StructuredLogWriter = (line: string) => void;
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
 const ERROR_CODE_PATTERN = /^[A-Za-z0-9._:-]{1,80}$/;
+type RequestContext = { requestId: string; active: boolean };
+const requestContext = new AsyncLocalStorage<RequestContext>();
 
 function defaultWriter(line: string): void {
   process.stdout.write(`${line}\n`);
 }
 
 export function requestIdFromHeader(value: unknown): string {
-  const candidate = Array.isArray(value) ? value[0] : String(value ?? '').trim();
+  const candidate = Array.isArray(value)
+    ? (value.length === 1 ? String(value[0] ?? '').trim() : '')
+    : String(value ?? '').trim();
   return REQUEST_ID_PATTERN.test(candidate) ? candidate : randomUUID();
+}
+
+export function currentRequestId(): string | null {
+  const context = requestContext.getStore();
+  return context?.active ? context.requestId : null;
+}
+
+/** Add correlation only to calls whose destination is controlled by Manacost. */
+export function ownedApiHeaders(headers?: HeadersInit): Headers {
+  const result = new Headers(headers);
+  const requestId = currentRequestId();
+  if (requestId) result.set('X-Request-ID', requestId);
+  return result;
 }
 
 export function normalizeRequestPath(originalUrl: string): string {
@@ -50,6 +68,7 @@ function emit(record: StructuredLogRecord, writer: StructuredLogWriter): void {
 export function requestLoggingMiddleware(writer: StructuredLogWriter = defaultWriter, metrics?: HttpMetrics): express.RequestHandler {
   return (req, res, next) => {
     const requestId = requestIdFromHeader(req.headers['x-request-id']);
+    const context: RequestContext = { requestId, active: true };
     const startedAt = process.hrtime.bigint();
     let logged = false;
     res.locals.requestId = requestId;
@@ -59,6 +78,7 @@ export function requestLoggingMiddleware(writer: StructuredLogWriter = defaultWr
     const logRequest = (aborted: boolean) => {
       if (logged) return;
       logged = true;
+      context.active = false;
       const durationMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
       const status = aborted && res.statusCode < 400 ? 499 : res.statusCode;
       const contentLength = Number(res.getHeader('content-length'));
@@ -80,7 +100,7 @@ export function requestLoggingMiddleware(writer: StructuredLogWriter = defaultWr
     res.once('close', () => {
       if (!res.writableEnded) logRequest(true);
     });
-    next();
+    requestContext.run(context, next);
   };
 }
 

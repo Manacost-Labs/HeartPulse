@@ -4,6 +4,7 @@ import type {
   ParserRunRequest,
   ParserSectionUpdate,
 } from './adminParserControlRoutes.js';
+import { ownedApiHeaders } from './observability.js';
 
 type FetchLike = typeof fetch;
 
@@ -66,17 +67,16 @@ export function createHsDataParserControlClient(options: {
     if (!baseUrl || !apiKey) throw new HsDataApiError(503, 'Управление парсерами ещё не подключено к API данных');
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const headers = ownedApiHeaders(init.headers);
+    headers.set('Accept', 'application/json');
+    headers.set('X-API-Key', apiKey);
+    if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
     try {
       const response = await fetchImpl(`${baseUrl}${path}`, {
         ...init,
         cache: 'no-store',
         signal: controller.signal,
-        headers: {
-          Accept: 'application/json',
-          'X-API-Key': apiKey,
-          ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-          ...init.headers,
-        },
+        headers,
       });
       const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
       if (!response.ok) {

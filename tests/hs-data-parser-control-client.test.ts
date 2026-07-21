@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import express from 'express';
 import { createHsDataParserControlClient, HsDataApiError } from '../server/hsDataParserControlClient.js';
+import { requestLoggingMiddleware } from '../server/observability.js';
 
 const requests: Array<{ url: string; init: RequestInit }> = [];
 const fetchImpl: typeof fetch = async (input, init = {}) => {
@@ -25,6 +27,7 @@ await client.updateSections({
 
 assert.equal(requests[0]?.url, 'https://api.hs-manacost.ru/admin/parser-control');
 assert.equal(new Headers(requests[0]?.init.headers).get('x-api-key'), 'server-secret');
+assert.equal(new Headers(requests[0]?.init.headers).get('x-request-id'), null);
 assert.equal(requests[1]?.url, 'https://api.hs-manacost.ru/admin/parser-control/sections');
 assert.deepEqual(JSON.parse(String(requests[1]?.init.body)), {
   expectedRevision: 2,
@@ -34,6 +37,50 @@ assert.deepEqual(JSON.parse(String(requests[1]?.init.body)), {
   ],
   updatedBy: 'admin-1',
 });
+
+const correlatedRequests: Array<{ url: string; init: RequestInit }> = [];
+const correlatedClient = createHsDataParserControlClient({
+  baseUrl: 'https://api.hs-manacost.ru',
+  apiKey: 'server-secret',
+  fetchImpl: async (input, init = {}) => {
+    correlatedRequests.push({ url: String(input), init });
+    return new Response(JSON.stringify({ revision: 3 }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  },
+});
+const correlationApp = express();
+correlationApp.use(requestLoggingMiddleware(() => {}));
+correlationApp.get('/proxy', async (_request, response, next) => {
+  try {
+    response.json(await correlatedClient.getControl());
+  } catch (error) {
+    next(error);
+  }
+});
+const correlationServer = correlationApp.listen(0, '127.0.0.1');
+await new Promise<void>((resolve, reject) => {
+  correlationServer.once('listening', resolve);
+  correlationServer.once('error', reject);
+});
+try {
+  const address = correlationServer.address();
+  assert.ok(address && typeof address === 'object');
+  const response = await fetch(`http://127.0.0.1:${address.port}/proxy`, {
+    headers: { 'X-Request-ID': 'browser-to-api-request' },
+  });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('x-request-id'), 'browser-to-api-request');
+  assert.equal(
+    new Headers(correlatedRequests[0]?.init.headers).get('x-request-id'),
+    'browser-to-api-request',
+  );
+} finally {
+  await new Promise<void>((resolve, reject) => {
+    correlationServer.close(error => error ? reject(error) : resolve());
+  });
+}
 
 let calledWithoutKey = false;
 const unconfigured = createHsDataParserControlClient({
