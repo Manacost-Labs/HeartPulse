@@ -678,9 +678,30 @@ function jsonResponse(body) {
 }
 
 async function mockApplicationApi(page, { authenticated, admin = false, adminState = {} }) {
+  let shellChunkFailures = 0;
+  let shellRenderOverrides = 0;
   await page.setRequestInterception(true);
   page.on('request', request => {
     const url = new URL(request.url());
+    if (adminState.shellRenderFailure
+      && shellRenderOverrides === 0
+      && /^\/assets\/GlobalUtilityHeader-[^/]+\.js$/.test(url.pathname)) {
+      shellRenderOverrides += 1;
+      request.respond({
+        status: 200,
+        contentType: 'application/javascript; charset=utf-8',
+        headers: { 'cache-control': 'no-store' },
+        body: 'let shouldFail=true;document.addEventListener("click",event=>{if(event.target instanceof Element&&event.target.closest(".app-error-action--primary"))shouldFail=false},{capture:true});export default function QaRenderFailure(){if(shouldFail)throw new Error("QA render failure");return null}',
+      });
+      return;
+    }
+    if (adminState.shellChunkFailure
+      && shellChunkFailures === 0
+      && /^\/assets\/GlobalUtilityHeader-[^/]+\.js$/.test(url.pathname)) {
+      shellChunkFailures += 1;
+      request.abort('failed');
+      return;
+    }
     if (adminState.homeArticlesChunkFailure
       && /^\/assets\/HomeLatestArticles-[^/]+\.js$/.test(url.pathname)) {
       request.abort('failed');
@@ -1459,11 +1480,13 @@ function assertLayout(path, layout) {
   }
 }
 
-const browser = await puppeteer.launch({
+const browserLaunchOptions = {
   headless: 'new',
   executablePath: CHROMIUM_PATH,
   args: ['--no-sandbox', '--disable-dev-shm-usage'],
-});
+};
+
+const browser = await puppeteer.launch(browserLaunchOptions);
 
 async function createQaPage() {
   const page = await browser.newPage();
@@ -1763,6 +1786,119 @@ async function assertArenaDataRoutePresentation(page, path, device) {
     if (!state.selectedClass?.boxShadow.includes('rgb(239, 197, 104)')) failures.push(`${prefix}: selected class ring changed (${state.selectedClass?.boxShadow || 'missing'})`);
   }
 }
+
+async function auditShellErrorRecovery() {
+  const page = await createQaPage();
+  const adminState = { shellChunkFailure: true };
+  let documentRequests = 0;
+  page.on('request', request => {
+    if (request.resourceType() === 'document') documentRequests += 1;
+  });
+  await page.setViewport({ width: 320, height: 568, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  await mockApplicationApi(page, { authenticated: true, adminState });
+  try {
+    await page.goto(`${BASE}/articles/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('[data-app-error="shell"]', { visible: true, timeout: 20_000 });
+    await page.waitForFunction(() => document.activeElement?.classList.contains('app-error-card'), { timeout: 5_000 });
+    await new Promise(resolve => setTimeout(resolve, 750));
+
+    const state = await page.evaluate(() => {
+      const root = document.documentElement;
+      const alert = document.querySelector('[data-app-error="shell"] [role="alert"]');
+      const button = document.querySelector('.app-error-action--primary');
+      const link = document.querySelector('.app-error-action--secondary');
+      const rect = element => {
+        const bounds = element?.getBoundingClientRect();
+        return bounds ? { width: bounds.width, height: bounds.height } : null;
+      };
+      return {
+        alertLabel: alert?.getAttribute('aria-labelledby') || '',
+        title: document.querySelector('#app-error-title')?.textContent || '',
+        incidentId: document.querySelector('[data-app-error-incident]')?.textContent || '',
+        releaseId: document.querySelector('[data-app-error-release]')?.textContent || '',
+        buttonText: button?.textContent?.trim() || '',
+        button: rect(button),
+        link: rect(link),
+        focused: document.activeElement?.classList.contains('app-error-card') || false,
+        overflow: root.scrollWidth > root.clientWidth + 1,
+      };
+    });
+    const validIncident = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i
+      .test(state.incidentId);
+    const validRelease = state.releaseId === 'development' || /^[a-f0-9]{7,40}$/.test(state.releaseId);
+    if (documentRequests !== 1 || state.alertLabel !== 'app-error-title'
+      || !state.title.includes('обновить') || !validIncident || !validRelease
+      || state.buttonText !== 'Обновить страницу' || (state.button?.height || 0) < 44
+      || (state.link?.height || 0) < 44 || !state.focused || state.overflow) {
+      failures.push(`shell error recovery: fallback contract regressed (${JSON.stringify({ documentRequests, ...state })})`);
+    }
+    const violationCount = await auditAccessibility(page, 'shell error recovery');
+    await page.screenshot({ path: `${OUT}/shell-error-recovery-mobile.png`, fullPage: false });
+
+    const requestsBeforeReload = documentRequests;
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 45_000 }),
+      page.click('.app-error-action--primary'),
+    ]);
+    await waitForAuthenticatedShell(page);
+    await page.waitForSelector('.global-utility-header', { visible: true, timeout: 20_000 });
+    if (documentRequests !== requestsBeforeReload + 1) {
+      failures.push(`shell error recovery: explicit retry caused ${documentRequests - requestsBeforeReload} document requests`);
+    }
+    console.log(`✓ shell error recovery [mobile] explicit reload + axe (${violationCount} violations)`);
+  } catch (error) {
+    const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 240).replace(/\s+/g, ' ') || 'empty body')
+      .catch(() => 'unavailable body');
+    failures.push(`shell error recovery [mobile]: ${error.message}; page: ${diagnostic}`);
+  } finally {
+    await page.close();
+  }
+}
+
+await auditShellErrorRecovery();
+
+async function auditShellRenderRetry() {
+  // The preceding chunk-recovery scenario intentionally reloads the same shell
+  // module successfully. A fresh browser profile gives this scenario a cold
+  // module cache, so interception can install a deterministic render failure.
+  const isolatedBrowser = await puppeteer.launch(browserLaunchOptions);
+  const page = await isolatedBrowser.newPage();
+  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+  let documentRequests = 0;
+  page.on('request', request => {
+    if (request.resourceType() === 'document') documentRequests += 1;
+  });
+  await page.setViewport({ width: 320, height: 568, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  await mockApplicationApi(page, { authenticated: true, adminState: { shellRenderFailure: true } });
+  try {
+    await page.goto(`${BASE}/articles/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('[data-app-error="shell"]', { visible: true, timeout: 20_000 });
+    const fallback = await page.evaluate(() => ({
+      title: document.querySelector('#app-error-title')?.textContent || '',
+      action: document.querySelector('.app-error-action--primary')?.textContent?.trim() || '',
+    }));
+    if (!fallback.title.includes('ошибка интерфейса') || fallback.action !== 'Повторить' || documentRequests !== 1) {
+      failures.push(`shell render recovery: fallback contract regressed (${JSON.stringify({ documentRequests, ...fallback })})`);
+    }
+
+    const requestsBeforeRetry = documentRequests;
+    await page.click('.app-error-action--primary');
+    await page.waitForSelector('[data-app-error="shell"]', { hidden: true, timeout: 20_000 });
+    await waitForAuthenticatedShell(page);
+    if (documentRequests !== requestsBeforeRetry) {
+      failures.push(`shell render recovery: in-place retry caused ${documentRequests - requestsBeforeRetry} document requests`);
+    }
+    console.log('✓ shell render recovery [mobile] in-place retry without reload');
+  } catch (error) {
+    const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 240).replace(/\s+/g, ' ') || 'empty body')
+      .catch(() => 'unavailable body');
+    failures.push(`shell render recovery [mobile]: ${error.message}; page: ${diagnostic}`);
+  } finally {
+    await isolatedBrowser.close();
+  }
+}
+
+await auditShellRenderRetry();
 
 for (const route of authenticatedRoutes) {
   for (const [device, viewport] of [

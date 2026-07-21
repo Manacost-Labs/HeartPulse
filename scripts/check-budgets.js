@@ -8,14 +8,15 @@ const budgets = {
   // Route-owned icons and Home stay out of the eager dependency graph. The
   // shell chunk may contain its own icon code, while aggregate startup limits
   // remain stricter than the previous 266 KB raw / 90 KB gzip baseline.
-  // Utility header and FAQ remain lazy; allow only their route-loader wiring in
-  // the shell while the stricter aggregate startup limits remain unchanged.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 57_250),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 252_000),
+  // Utility header and FAQ remain lazy. The root recovery boundary is eager by
+  // design so a failed route chunk can still render; keep the compressed
+  // transfer ratchet unchanged and pin raw assets to that resilient baseline.
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 61_000),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 254_000),
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_000),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 116_000),
-  css: Number(process.env.BUDGET_CSS_BYTES || 131_000),
+  css: Number(process.env.BUDGET_CSS_BYTES || 135_000),
   routeCss: Number(process.env.BUDGET_ROUTE_CSS_BYTES || 48_000),
   deferredRoutesCss: Number(process.env.BUDGET_DEFERRED_ROUTES_CSS_BYTES || 52_000),
   loginPanelCss: Number(process.env.BUDGET_LOGIN_PANEL_CSS_BYTES || 4_500),

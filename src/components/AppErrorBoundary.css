@@ -1,0 +1,190 @@
+.app-error-shell {
+  box-sizing: border-box;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  place-items: center;
+  overflow-x: clip;
+  padding:
+    max(1rem, env(safe-area-inset-top))
+    max(1rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
+  color: var(--arena-ink, #30251c);
+  background:
+    linear-gradient(rgba(249, 235, 202, 0.76), rgba(236, 213, 166, 0.84)),
+    url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat;
+  font-family: var(--font-body, Inter, system-ui, sans-serif);
+}
+
+.app-error-card {
+  box-sizing: border-box;
+  width: min(100%, 42rem);
+  min-width: 0;
+  padding: clamp(1.25rem, 5vw, 2.6rem);
+  border: 9px solid transparent;
+  border-image-source: url('/wallpaper/main-page-rail-border.png');
+  border-image-slice: 18;
+  border-image-width: 9px;
+  border-image-repeat: stretch;
+  color: var(--arena-ink, #30251c);
+  background:
+    linear-gradient(rgba(251, 239, 211, 0.93), rgba(240, 220, 177, 0.95)),
+    url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat;
+  box-shadow: 0 24px 60px rgba(45, 18, 8, 0.3), inset 0 0 0 1px rgba(91, 47, 19, 0.18);
+  text-align: center;
+}
+
+.app-error-card:focus { outline: none; }
+
+.app-error-card:focus-visible {
+  outline: 3px solid #4a2f66;
+  outline-offset: 4px;
+}
+
+.app-error-emblem {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  margin: 0 auto 0.9rem;
+  place-items: center;
+  border: 2px solid var(--arena-gold-light, #f1d27e);
+  border-radius: 50%;
+  color: #fff1ca;
+  background: var(--arena-red-dark, #4d0b10);
+  font-family: var(--font-display, 'HSDisplay', Georgia, serif);
+  font-size: 1.8rem;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 6px 18px rgba(56, 8, 11, 0.26);
+}
+
+.app-error-eyebrow {
+  margin: 0 0 0.45rem;
+  color: var(--arena-red, #7b151b);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.app-error-card h1 {
+  margin: 0;
+  color: var(--arena-ink, #30251c);
+  font-family: var(--font-display, 'HSDisplay', Georgia, serif);
+  font-size: clamp(1.7rem, 7vw, 2.65rem);
+  line-height: 1.08;
+}
+
+.app-error-message {
+  max-width: 34rem;
+  margin: 0.85rem auto 0;
+  color: var(--arena-muted-ink, #74624d);
+  font-size: clamp(0.96rem, 3.4vw, 1.08rem);
+  line-height: 1.55;
+}
+
+.app-error-details {
+  display: grid;
+  gap: 0.55rem;
+  margin: 1.35rem 0 0;
+  text-align: left;
+}
+
+.app-error-details > div {
+  min-width: 0;
+  padding: 0.7rem 0.78rem;
+  border: 1px solid var(--arena-paper-line, rgba(84, 51, 22, 0.22));
+  background: rgba(255, 248, 229, 0.5);
+}
+
+.app-error-details dt {
+  color: var(--arena-muted-ink, #74624d);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.app-error-details dd { min-width: 0; margin: 0.22rem 0 0; }
+
+.app-error-details code {
+  display: block;
+  max-width: 100%;
+  color: var(--arena-ink, #30251c);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.app-error-actions {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1.2rem;
+}
+
+.app-error-action {
+  box-sizing: border-box;
+  display: inline-flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 0.72rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font: inherit;
+  font-weight: 850;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+.app-error-action--primary {
+  border-color: var(--arena-gold-light, #f1d27e);
+  color: #fff1ca;
+  background:
+    linear-gradient(rgba(82, 8, 13, 0.16), rgba(52, 5, 9, 0.2)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+}
+
+.app-error-action--secondary {
+  border-color: rgba(84, 51, 22, 0.34);
+  color: var(--arena-red-dark, #4d0b10);
+  background: rgba(255, 248, 229, 0.7);
+}
+
+.app-error-action:hover { filter: brightness(1.06); }
+
+.app-error-action:focus-visible {
+  outline: 3px solid #4a2f66;
+  outline-offset: 3px;
+}
+
+.app-error-support-note {
+  margin: 1rem 0 0;
+  color: var(--arena-muted-ink, #74624d);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+@media (min-width: 640px) {
+  .app-error-details,
+  .app-error-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (forced-colors: active) {
+  .app-error-shell,
+  .app-error-card,
+  .app-error-action { color: CanvasText; background: Canvas; box-shadow: none; }
+  .app-error-card,
+  .app-error-action { border: 2px solid CanvasText; border-image: none; }
+  .app-error-emblem { color: CanvasText; background: Canvas; border-color: CanvasText; }
+  .app-error-card:focus-visible,
+  .app-error-action:focus-visible { outline-color: Highlight; }
+}
