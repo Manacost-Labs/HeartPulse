@@ -330,7 +330,7 @@
       "indexPolicy": "index",
       "canonicalPolicy": "self",
       "sitemap": true,
-      "htmlStrategy": "snapshot",
+      "htmlStrategy": "server-ssr",
       "expectedStatus": 200,
       "criticality": "P0",
       "mobileFixture": "bg-hero-detail",

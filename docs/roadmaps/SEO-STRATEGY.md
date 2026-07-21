@@ -50,6 +50,7 @@
 
 - `SEO-101/102`: title и description 24 materialized pages перенесены в единый data-only реестр; `src/route-meta.ts` и неиспользуемый `PAGE_META` удалены.
 - `SEO-106` для static/listing слоя: CI проверяет все 24 HTML-документа, один H1, robots, canonical, OG/Twitter metadata, JSON-LD parse и отсутствие закрытых bootstrap-полей.
+- `SEO-202` для hero detail: `/heroes/:dbfId` разрешается по публичному каталогу и получает authoritative SSR 200/404/503, русские metadata/schema и whitelist без subscriber statistics; nginx сохраняет upstream status/headers, а CI проверяет identity-invariant HTML и отсутствие private sentinels.
 - `SEO-201`: `/standard/cards/:format/:cardId` получает SSR из авторитетного каталога, self-canonical, уникальные русские метаданные и публичную card schema; неизвестная карта возвращает `404`, недоступный каталог — `503`, а закрытая статистика и колоды не входят в HTML.
 - Серверный resolver `/r/:slug` заменил клиентскую soft-redirect оболочку: активная ссылка сразу отвечает `302`, отсутствующая или приостановленная — `404`; обе ветки имеют `noindex, nofollow` и `no-store`.
 - `/api`, `/health` и `/metrics` получают `X-Robots-Tag: noindex, nofollow` на любом upstream status без изменения тела или cache policy; syntactically valid route без materialized HTML получает fail-closed SPA shell с `noindex, follow`, а не индексируемый home canonical.
@@ -182,7 +183,7 @@ FAQ-разметка остаётся семантической, но план 
 | ID | P | Задача | Зависимости | Приёмка и проверка |
 |---|---|---|---|---|
 | SEO-201 | P0 | Сделать HTML-снимки detail pages Standard-карт | SEO-101, валидированный card snapshot | До JS видны уникальные title, description, H1, картинка, card facts и canonical |
-| SEO-202 | P0 | Аналогично покрыть `/heroes/:dbfId` и detail pages `/library/**` | SEO-101 | Один валидный и один отсутствующий ID проходят status/meta/schema tests |
+| SEO-202 | P0 | Аналогично покрыть `/heroes/:dbfId` и detail pages `/library/**` | SEO-101 | Герои выполнены и проходят 200/404/503/meta/schema/privacy tests; остаются detail pages библиотеки |
 | SEO-203 | P0 | Генерировать sitemap index и сегменты | SEO-201, SEO-202 | Отдельные sitemap для static, standard cards, BG library, heroes и будущих articles; только 200 canonical URL |
 | SEO-204 | P0 | Использовать реальный `lastmod` | Data publication metadata | `lastmod` меняется только при значимом изменении сущности/набора, а не при каждом deploy |
 | SEO-205 | P1 | Добавить динамические OG-изображения | SEO-201 | 1200×630, русское имя, режим и бренд; fallback проверен; image URL отдаёт 200 и корректный MIME |

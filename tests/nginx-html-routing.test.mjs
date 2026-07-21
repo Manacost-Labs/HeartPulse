@@ -215,13 +215,13 @@ for (const route of inventory.routes) {
   const redirect = firstMatchingRegexLocation(path);
   assert.match(redirect?.body || '', /\$uri\/\$is_args\$args;/,
     `${route.id} must add the slash and preserve query in one redirect`);
-  if (route.id === 'standard-card-detail') {
+  if (route.id === 'standard-card-detail' || route.id === 'bg-hero-detail') {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:3101;', `${route.id} canonical route`);
     const resolver = firstMatchingRegexLocation(`${path}/`);
     assert.doesNotMatch(resolver?.body || '', /try_files\s+[^;]*\/index\.html/,
-      'constructed card details must not fall back to the static listing shell');
+      `${route.id} must not fall back to a static listing shell`);
     assert.match(resolver?.body || '', /proxy_intercept_errors\s+off;/,
-      'authoritative entity 404/503 HTML and headers must pass through nginx');
+      `${route.id} authoritative 404/503 HTML and headers must pass through nginx`);
     continue;
   }
   expectRegexAction(`${path}/`, '@arena_spa_noindex;', `${route.id} canonical route`);
@@ -364,6 +364,31 @@ async function startCardSeoUpstream() {
         'Retry-After': '300',
       },
       body: '<!doctype html><title>Catalog outage</title><p>card-upstream-503</p>',
+    }],
+    ['/heroes/76521/', {
+      status: 200,
+      headers: {
+        'X-Robots-Tag': 'index, follow, max-image-preview:large',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+      body: '<!doctype html><title>Hero OK</title><p>hero-upstream-200</p>',
+    }],
+    ['/heroes/999999/', {
+      status: 404,
+      headers: {
+        'X-Robots-Tag': 'noindex, nofollow',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+      body: '<!doctype html><title>Missing hero</title><p>hero-upstream-404</p>',
+    }],
+    ['/heroes/888888/', {
+      status: 503,
+      headers: {
+        'X-Robots-Tag': 'noindex, nofollow',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Retry-After': '300',
+      },
+      body: '<!doctype html><title>Hero catalog outage</title><p>hero-upstream-503</p>',
     }],
   ]);
   const server = createHttpServer((incomingRequest, response) => {
@@ -524,7 +549,6 @@ http {
 
     for (const shellPath of [
       '/standard/cards/standard/',
-      '/heroes/76521/',
       '/library/minions/example-76521/',
       '/guides-archive/guide-1/',
     ]) {
@@ -598,6 +622,37 @@ http {
     assert.equal(unavailableCard.headers['retry-after'], '300', 'outage retry policy must pass through nginx');
     assert.match(unavailableCard.headers['cache-control'] || '', /no-store/, 'outage cache policy');
 
+    const heroRedirect = await requestNginx(port, '/heroes/76521?utm_source=contract');
+    assert.equal(heroRedirect.status, 301, 'hero detail must normalize its slash once');
+    const heroRedirectTarget = new URL(heroRedirect.headers.location);
+    assert.equal(
+      `${heroRedirectTarget.pathname}${heroRedirectTarget.search}`,
+      '/heroes/76521/?utm_source=contract',
+      'hero detail slash normalization must preserve the query string',
+    );
+
+    const validHero = await requestNginx(port, '/heroes/76521/');
+    assert.equal(validHero.status, 200, 'valid hero SSR status must pass through nginx');
+    assert.match(validHero.body, /hero-upstream-200/, 'valid hero SSR body must pass through nginx');
+    assert.equal(
+      validHero.headers['x-robots-tag'],
+      'index, follow, max-image-preview:large',
+      'valid hero robots policy must pass through nginx',
+    );
+
+    const missingHero = await requestNginx(port, '/heroes/999999/');
+    assert.equal(missingHero.status, 404, 'missing hero SSR status must pass through nginx');
+    assert.match(missingHero.body, /hero-upstream-404/, 'missing hero SSR body must pass through nginx');
+    assert.equal(missingHero.headers['x-robots-tag'], 'noindex, nofollow', 'missing hero robots policy');
+    assert.match(missingHero.headers['cache-control'] || '', /no-store/, 'missing hero cache policy');
+
+    const unavailableHero = await requestNginx(port, '/heroes/888888/');
+    assert.equal(unavailableHero.status, 503, 'hero catalog outage status must pass through nginx');
+    assert.match(unavailableHero.body, /hero-upstream-503/, 'hero catalog outage body must pass through nginx');
+    assert.equal(unavailableHero.headers['x-robots-tag'], 'noindex, nofollow', 'hero outage robots policy');
+    assert.equal(unavailableHero.headers['retry-after'], '300', 'hero outage retry policy must pass through nginx');
+    assert.match(unavailableHero.headers['cache-control'] || '', /no-store/, 'hero outage cache policy');
+
     for (const referralPath of ['/r/summer', '/r/summer/']) {
       const referral = await requestNginx(port, referralPath);
       assert.equal(referral.status, 302, `${referralPath} must redirect without a client shell`);
@@ -616,6 +671,9 @@ http {
     assert.match(missingPage.body, /<title>404<\/title>/, '404 document body');
     for (const headFixture of [
       { path: '/tierlist', status: 301 },
+      { path: '/heroes/76521/', status: 200, robots: 'index, follow, max-image-preview:large' },
+      { path: '/heroes/999999/', status: 404, robots: 'noindex, nofollow' },
+      { path: '/heroes/888888/', status: 503, robots: 'noindex, nofollow' },
       { path: '/decks/legacy', status: 410, robots: 'noindex, nofollow' },
       { path: '/definitely-unknown', status: 404, robots: 'noindex, nofollow' },
     ]) {
