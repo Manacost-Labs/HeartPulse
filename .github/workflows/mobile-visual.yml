@@ -1,0 +1,51 @@
+name: Full responsive visual QA
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-visual-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  responsive-visual:
+    name: All P0 routes and viewports
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+      QA_RESPONSIVE_SCOPE: all-p0
+      QA_SCREENSHOT_DIR: ${{ runner.temp }}/mobile-visual-qa
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run full responsive visual QA
+        run: npm run qa:responsive:all
+
+      - name: Upload responsive screenshots and manifest
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: responsive-qa-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/mobile-visual-qa/responsive-manifest.json
+            ${{ runner.temp }}/mobile-visual-qa/responsive-*.png
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
