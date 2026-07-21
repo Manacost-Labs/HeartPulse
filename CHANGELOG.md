@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Bound every immutable release to its versioned nginx contract: artifacts now include a read-only origin/edge drift verifier, and deployment stops before lock, staging, shared-data initialization, symlink switching or restart when the verifier, artifact or installed configuration is missing or modified. Bootstrap and genuine contract changes require an explicit N/N-1 compatibility acknowledgement that cannot bypass drift.
 - Hardened the full-admin parser panel with private no-store headers on every response, real systemd timer health, restart-safe manual-run reconciliation, and a responsive lazy-loaded audit journal with actor, action, revision, request correlation, timestamp and change context without exposing the data-API key.
 - Expanded Arena controls to a tested 44×44 mobile target across 320/390/768 widths, made tier-list and legendary cards keyboard-native buttons, covered every class in browser fixtures, and reduced the all-P0 undersized-target ratchet from 478 to 320 while reaching zero findings on subscriber Classes, Tier List and Legendaries pages.
 - Added authoritative server-rendered Standard/Wild card detail HTML with public-only catalog projection, unique Russian metadata and schema, strict route validation, real noindex 404/503 responses, client-safe bootstrap handling, and nginx detail proxying while format listings remain static.

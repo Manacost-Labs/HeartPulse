@@ -56,22 +56,45 @@ verifier as an installer.
 sudo scripts/deploy-release.sh "$artifact"
 ```
 
+The deployer runs the same nginx verifier automatically before it creates a
+lock or changes deployment state. Configure the host role and an alternate
+root only for an isolated test or chroot:
+
+```bash
+sudo NGINX_HOST_ROLE=origin NGINX_INSTALLED_ROOT=/ \
+  scripts/deploy-release.sh "$artifact"
+```
+
+The first managed release, a legacy current manifest and any changed
+`nginxContract.hash` are blocked by default. After the candidate configuration
+is installed, `nginx -t` passes and N/N-1 compatibility is explicitly reviewed,
+acknowledge that transition for this one command:
+
+```bash
+sudo ALLOW_NGINX_CONTRACT_CHANGE=1 scripts/deploy-release.sh "$artifact"
+```
+
+This acknowledgement cannot bypass a missing/modified installed file, a
+corrupt artifact or a tampered verifier.
+
 The deployer:
 
-1. acquires an exclusive deployment lock;
-2. initializes shared data from the workspace only when it does not exist;
-3. installs production dependencies as the unprivileged `koloda` user into a
+1. verifies the candidate verifier checksum, artifact nginx hashes, installed
+   host-role files and N/N-1 contract compatibility without writing anything;
+2. acquires an exclusive deployment lock;
+3. initializes shared data from the workspace only when it does not exist;
+4. installs production dependencies as the unprivileged `koloda` user into a
    lockfile-addressed cache, makes that cache world-readable but read-only and
    verifies module access again as `koloda` before switching;
-4. carries forward content-hashed assets from the active release without
+5. carries forward content-hashed assets from the active release without
    overwriting the new build, then removes inherited files older than 35 days;
    this keeps edge-cached HTML usable for longer than the 30-day asset TTL;
-5. makes the new release root-owned and read-only;
-6. atomically switches `current`;
-7. restarts `hs-arena.service`;
-8. waits for direct readiness on port 3101;
-9. restores the former `current` automatically when restart/readiness fails;
-10. updates `previous` only after a healthy deployment.
+6. makes the new release root-owned and read-only;
+7. atomically switches `current`;
+8. restarts `hs-arena.service`;
+9. waits for direct readiness on port 3101;
+10. restores the former `current` automatically when restart/readiness fails;
+11. updates `previous` only after a healthy deployment.
 
 The application rollback only switches the release symlink. It does not roll
 back `/etc/nginx`, so a changed nginx contract must remain compatible with both

@@ -24,19 +24,104 @@ SKIP_IMMUTABLE_PERMISSIONS=${SKIP_IMMUTABLE_PERMISSIONS:-0}
 ASSET_RETENTION_DAYS=${ASSET_RETENTION_DAYS:-35}
 DEPENDENCY_USER=${DEPENDENCY_USER:-koloda}
 DATA_USER=${DATA_USER:-koloda}
+NGINX_HOST_ROLE=${NGINX_HOST_ROLE:-origin}
+NGINX_INSTALLED_ROOT=${NGINX_INSTALLED_ROOT:-/}
+ALLOW_NGINX_CONTRACT_CHANGE=${ALLOW_NGINX_CONTRACT_CHANGE:-0}
 
 [[ -f "$SOURCE_RELEASE/release.json" ]] || { echo "release.json is missing" >&2; exit 2; }
 RELEASE_SHA=$(node -e "const m=require(process.argv[1]); if(!/^[a-f0-9]{7,40}$/.test(m.sha||'')) process.exit(2); process.stdout.write(m.sha)" "$SOURCE_RELEASE/release.json")
 [[ -f "$SOURCE_RELEASE/build/server/index.js" ]] || { echo "compiled server is missing" >&2; exit 2; }
 [[ -f "$SOURCE_RELEASE/dist/index.html" ]] || { echo "frontend artifact is missing" >&2; exit 2; }
+[[ -f "$SOURCE_RELEASE/scripts/verify-nginx-contract.mjs" ]] || {
+  echo "nginx contract verifier is missing" >&2
+  exit 2
+}
+if ! node -e '
+  const { createHash } = require("node:crypto");
+  const { readFileSync } = require("node:fs");
+  let manifest;
+  try {
+    manifest = JSON.parse(readFileSync(process.argv[1], "utf8"));
+  } catch {
+    process.exit(2);
+  }
+  const expected = manifest?.checksums?.["scripts/verify-nginx-contract.mjs"];
+  if (!/^[a-f0-9]{64}$/.test(expected || "")) process.exit(2);
+  const actual = createHash("sha256").update(readFileSync(process.argv[2])).digest("hex");
+  if (actual !== expected) process.exit(2);
+' "$SOURCE_RELEASE/release.json" "$SOURCE_RELEASE/scripts/verify-nginx-contract.mjs"; then
+  echo "nginx contract verifier checksum is missing or invalid" >&2
+  exit 2
+fi
+
+# This preflight is intentionally before mkdir, the deployment lock, shared
+# data initialization and release staging. The candidate verifier only reads
+# the immutable artifact and the installed nginx files. An override may permit
+# an explicit contract transition, but it can never bypass drift or corruption.
+NGINX_VERIFY_STATUS=0
+node "$SOURCE_RELEASE/scripts/verify-nginx-contract.mjs" \
+  "--release=$SOURCE_RELEASE" \
+  "--installed-root=$NGINX_INSTALLED_ROOT" \
+  "--role=$NGINX_HOST_ROLE" || NGINX_VERIFY_STATUS=$?
+if [[ "$NGINX_VERIFY_STATUS" -ne 0 ]]; then
+  echo "nginx contract preflight failed (status $NGINX_VERIFY_STATUS)" >&2
+  exit "$NGINX_VERIFY_STATUS"
+fi
+
+read_nginx_contract_hash() {
+  node -e '
+    const fs = require("node:fs");
+    let manifest;
+    try {
+      manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    } catch {
+      process.exit(2);
+    }
+    const contract = manifest?.nginxContract;
+    if (manifest?.schemaVersion !== 2
+      || contract?.schemaVersion !== 1
+      || !/^[a-f0-9]{64}$/.test(contract?.hash || "")
+      || !Array.isArray(contract?.files)
+      || contract.files.length === 0) {
+      process.exit(2);
+    }
+    process.stdout.write(contract.hash);
+  ' "$1"
+}
+
+CANDIDATE_NGINX_CONTRACT_HASH=''
+if ! CANDIDATE_NGINX_CONTRACT_HASH=$(read_nginx_contract_hash "$SOURCE_RELEASE/release.json"); then
+  echo "candidate nginx contract manifest is invalid" >&2
+  exit 2
+fi
+
+SOURCE_CURRENT_RELEASE=''
+if [[ -L "$CURRENT_LINK" ]]; then
+  SOURCE_CURRENT_RELEASE=$(readlink -f "$CURRENT_LINK" || true)
+fi
+
+NGINX_TRANSITION_REASON=''
+CURRENT_NGINX_CONTRACT_HASH=''
+if [[ -z "$SOURCE_CURRENT_RELEASE" || ! -f "$SOURCE_CURRENT_RELEASE/release.json" ]]; then
+  NGINX_TRANSITION_REASON='the current release has no versioned nginx contract'
+elif ! CURRENT_NGINX_CONTRACT_HASH=$(read_nginx_contract_hash "$SOURCE_CURRENT_RELEASE/release.json"); then
+  NGINX_TRANSITION_REASON='the current release nginx contract is legacy or invalid'
+elif [[ "$CURRENT_NGINX_CONTRACT_HASH" != "$CANDIDATE_NGINX_CONTRACT_HASH" ]]; then
+  NGINX_TRANSITION_REASON="nginx contract change $CURRENT_NGINX_CONTRACT_HASH -> $CANDIDATE_NGINX_CONTRACT_HASH"
+fi
+
+if [[ -n "$NGINX_TRANSITION_REASON" ]]; then
+  if [[ "$ALLOW_NGINX_CONTRACT_CHANGE" != "1" ]]; then
+    echo "$NGINX_TRANSITION_REASON; set ALLOW_NGINX_CONTRACT_CHANGE=1 after verifying N/N-1 compatibility" >&2
+    exit 2
+  fi
+  echo "nginx contract transition explicitly allowed: $NGINX_TRANSITION_REASON" >&2
+fi
 
 mkdir -p "$APP_BASE" "$RELEASES_DIR" "$RUNTIME_DIR" "$(dirname "$SHARED_DATA_DIR")"
 chmod 755 "$APP_BASE" "$RELEASES_DIR" "$RUNTIME_DIR" "$(dirname "$SHARED_DATA_DIR")"
 exec 9>"$LOCK_FILE"
 flock -n 9 || { echo "another deployment is running" >&2; exit 3; }
-
-SOURCE_CURRENT_RELEASE=''
-if [[ -L "$CURRENT_LINK" ]]; then SOURCE_CURRENT_RELEASE=$(readlink -f "$CURRENT_LINK"); fi
 
 STAGING_RELEASE=''
 DEPENDENCY_STAGING=''

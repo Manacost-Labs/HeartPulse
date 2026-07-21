@@ -38,7 +38,7 @@
 |---|---|---|---|
 | У детальных героев и BG-сущностей нет гарантированного HTML с уникальными метаданными до JS | SPA shell и текущий prerender | Пустые/неполные сниппеты, слабая индексация | P0 |
 | Sitemap пока содержит только 23 материализованные static/listing страницы | `config/public-seo-pages.json`, `scripts/prerender.js` | Качественные detail pages нельзя публиковать до появления валидированных snapshots | P0 |
-| Versioned robots/noindex contract ещё не защищён от runtime drift | Release не проверяет установленный nginx/robots against manifest | Production может продолжить старую index policy после исправления в Git | P0 |
+| Versioned robots/noindex contract требует production rollout | Release v2 и deploy уже блокируют runtime drift, но активный legacy release ещё не переведён на managed contract | До разрешённого rollout production может продолжить старую index policy | P0 |
 | Detail canonical и HTTP status героев/BG-сущностей ещё не строятся из entity snapshot | SPA shell, nginx | Дубли, soft 404 и общий metadata fallback у оставшихся сущностей | P0 |
 | Schema Dataset использует дату сборки, а не дату данных | `scripts/prerender.js` | Недостоверный `dateModified` и freshness | P1 |
 | Счётчики ItemList могут быть захардкожены | `scripts/prerender.js` | Schema расходится с видимым содержимым | P1 |
@@ -55,7 +55,7 @@
 - `/api`, `/health` и `/metrics` получают `X-Robots-Tag: noindex, nofollow` на любом upstream status без изменения тела или cache policy; syntactically valid route без materialized HTML получает fail-closed SPA shell с `noindex, follow`, а не индексируемый home canonical.
 - `SEO-105`: robots policy закрывает crawl только для machine-only `/api`, `/health`, `/metrics` и `/_internal`; admin/auth HTML намеренно остаётся crawlable, чтобы бот увидел обязательный server-side `noindex`. CSS, JS, fonts и публичные изображения разрешены, а отдельный CI-контракт проверяет эту границу.
 - `SEO-104`: versioned nginx map объединяет scheme/host/slash normalization в один `301` для всех 32 route templates, сохраняет query и не добавляет slash API, assets, unknown или removed URL. CI поднимает временный nginx и проверяет canonical, `www` и legacy hosts; production DNS/TLS alias проверяется отдельно при rollout.
-- Release manifest v2 пакует полный versioned nginx contract, хранит install path/роль origin или edge, SHA-256 каждого файла и общий hash; следующий deploy gate сможет доказать соответствие установленного конфига конкретному release без ложных cross-role ошибок.
+- Release manifest v2 пакует полный versioned nginx contract, хранит install path/роль origin или edge, SHA-256 каждого файла и общий hash. Read-only verifier и deploy preflight проверяют artifact/runtime drift до любых мутаций; переход bootstrap/legacy/изменённого hash требует явного подтверждения N/N-1 compatibility и не может обойти drift.
 - Sitemap генерируется при prerender и содержит ровно 23 index/self-canonical URL. `/standard/matchups`, `/gallery`, `/library/archive/minions` и `/library/archive/spells` больше не теряются.
 - Недостоверные ручные `lastmod`, `changefreq` и `priority` удалены. Реальный `lastmod` появится только вместе с publication metadata сущностей.
 - Detail-карты намеренно не добавлены в materialized SEO-реестр или sitemap до отдельного `SEO-203`; SSR resolver, authoritative 404/503 и тесты на утечку уже готовы.
@@ -175,7 +175,7 @@ FAQ-разметка остаётся семантической, но план 
 - `SEO-101` и `SEO-102` завершены для materialized static/listing страниц;
 - static-часть `SEO-106` завершена и включена в общий CI;
 - entity builders, snapshots и fail-closed поведение неизвестных ID героев/BG-сущностей остаются в `SEO-202`;
-- `SEO-104/105` завершены в versioned contract; `SEO-103` закрыт функционально в шаблонах real 404/410, admin/auth/technical headers, fail-closed SPA fallback и referral redirect. Фаза остаётся открытой до runtime drift guard и production-проверки DNS/TLS/HTTP matrix.
+- `SEO-103–105` закрыты в versioned contract и защищены read-only deploy drift gate: real 404/410, admin/auth/technical headers, fail-closed SPA fallback, referral redirect, canonical host/slash и robots policy. Фаза остаётся открытой только до разрешённого production rollout и проверки DNS/TLS/HTTP matrix.
 
 ### Фаза 2 — динамические страницы и sitemap, недели 3–6
 
