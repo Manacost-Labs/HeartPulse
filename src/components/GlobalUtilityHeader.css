@@ -1,6 +1,6 @@
 .global-utility-header {
-  position: sticky;
-  top: 61px;
+  position: relative;
+  top: auto;
   z-index: 34;
   flex: 0 0 auto;
   min-width: 0;
@@ -335,7 +335,7 @@
 }
 
 @media (min-width: 1024px) {
-  .global-utility-header { top: 0; }
+  .global-utility-header { position: sticky; top: 0; }
   .global-utility-header__inner { padding-inline: clamp(1rem, 2.8vw, 2.8rem); }
 }
 

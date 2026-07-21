@@ -1435,6 +1435,136 @@ async function createQaPage() {
   return page;
 }
 
+const shellViewportMatrix = [
+  ['compact portrait', { width: 320, height: 568, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
+  ['mobile portrait', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
+  ['medium portrait', { width: 768, height: 1024, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
+  ['compact desktop', { width: 1024, height: 768, deviceScaleFactor: 1 }],
+  ['desktop', { width: 1440, height: 900, deviceScaleFactor: 1 }],
+  ['mobile landscape', { width: 844, height: 390, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
+];
+
+async function inspectStickyShell(page) {
+  return page.evaluate(() => {
+    const topbar = document.querySelector('.arena-mobile-topbar');
+    const brand = document.querySelector('.arena-mobile-brand');
+    const menu = document.querySelector('.arena-mobile-nav-toggle');
+    const utility = document.querySelector('.global-utility-header');
+    const root = document.documentElement;
+    const isVisible = element => {
+      if (!(element instanceof HTMLElement)) return false;
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden'
+        && Number(style.opacity || 1) > 0 && rect.width > 0 && rect.height > 0;
+    };
+    const describe = element => {
+      if (!(element instanceof Element)) return null;
+      const names = [];
+      for (let current = element; current && current !== document.body; current = current.parentElement) {
+        const id = current.id ? `#${current.id}` : '';
+        const classes = [...current.classList].slice(0, 2).map(name => `.${name}`).join('');
+        names.unshift(`${current.tagName.toLowerCase()}${id}${classes}`);
+        if (names.length === 4) break;
+      }
+      return names.join(' > ');
+    };
+    const hasIntentionalHorizontalScroller = element => {
+      for (let ancestor = element.parentElement; ancestor && ancestor !== document.body; ancestor = ancestor.parentElement) {
+        const overflow = getComputedStyle(ancestor).overflowX;
+        if (['auto', 'scroll'].includes(overflow) && ancestor.scrollWidth > ancestor.clientWidth + 1) return true;
+      }
+      return false;
+    };
+    const visibleElements = [...document.body.querySelectorAll('*')].filter(isVisible);
+    const firstPageOverflowElement = visibleElements.find(element => {
+      const rect = element.getBoundingClientRect();
+      return (rect.left < -1 || rect.right > innerWidth + 1) && !hasIntentionalHorizontalScroller(element);
+    });
+    const firstClippedShellElement = [
+      ...document.querySelectorAll('.arena-mobile-topbar *, .global-utility-header *'),
+    ].find(element => {
+      if (!isVisible(element) || element instanceof HTMLInputElement || element instanceof SVGElement) return false;
+      const style = getComputedStyle(element);
+      const bounds = element.getBoundingClientRect();
+      const intentionallyVisuallyHidden = bounds.width <= 1.5 && bounds.height <= 1.5
+        && style.clipPath.includes('50%');
+      if (intentionallyVisuallyHidden) return false;
+      return ['hidden', 'clip'].includes(style.overflowX) && element.scrollWidth > element.clientWidth + 1;
+    });
+    const rect = element => {
+      const bounds = element?.getBoundingClientRect();
+      return bounds ? {
+        top: bounds.top,
+        right: bounds.right,
+        bottom: bounds.bottom,
+        left: bounds.left,
+        width: bounds.width,
+        height: bounds.height,
+      } : null;
+    };
+    const topbarRect = rect(topbar);
+    const utilityRect = rect(utility);
+    const topbarVisible = isVisible(topbar);
+    const utilityVisible = isVisible(utility);
+    const headerOverlap = topbarVisible && utilityVisible && topbarRect && utilityRect
+      ? Math.max(0, Math.min(topbarRect.right, utilityRect.right) - Math.max(topbarRect.left, utilityRect.left))
+        * Math.max(0, Math.min(topbarRect.bottom, utilityRect.bottom) - Math.max(topbarRect.top, utilityRect.top))
+      : 0;
+    return {
+      scrollY,
+      viewport: { width: innerWidth, height: innerHeight },
+      page: { clientWidth: root.clientWidth, scrollWidth: root.scrollWidth },
+      topbar: {
+        visible: topbarVisible,
+        position: topbar ? getComputedStyle(topbar).position : '',
+        rect: topbarRect,
+      },
+      utility: {
+        visible: utilityVisible,
+        position: utility ? getComputedStyle(utility).position : '',
+        rect: utilityRect,
+      },
+      targets: {
+        brand: rect(brand),
+        menu: rect(menu),
+      },
+      headerOverlap,
+      firstLayoutFault: firstPageOverflowElement
+        ? { kind: 'page-overflow', element: describe(firstPageOverflowElement), rect: rect(firstPageOverflowElement) }
+        : firstClippedShellElement
+          ? { kind: 'shell-clipping', element: describe(firstClippedShellElement), rect: rect(firstClippedShellElement) }
+          : null,
+    };
+  });
+}
+
+function assertStickyShellState(label, state, { afterScroll }) {
+  const compact = state.viewport.width < 1024;
+  const pageOverflows = state.page.scrollWidth > state.page.clientWidth + 1;
+  const scrollIncorrect = afterScroll && Math.abs(state.scrollY - 500) > 1;
+  const compactContractBroken = compact && (
+    !state.topbar.visible
+    || state.topbar.position !== 'sticky'
+    || Math.abs(state.topbar.rect?.top || 0) > 1
+    || state.utility.position === 'sticky'
+    || (afterScroll && (state.utility.rect?.bottom || 0) > 1)
+    || (state.targets.brand?.height || 0) < 48
+    || (state.targets.menu?.width || 0) < 44
+    || (state.targets.menu?.height || 0) < 44
+  );
+  const desktopContractBroken = !compact && (
+    state.topbar.visible
+    || !state.utility.visible
+    || state.utility.position !== 'sticky'
+    || Math.abs(state.utility.rect?.top || 0) > 1
+  );
+  if (pageOverflows || state.headerOverlap > 1 || state.firstLayoutFault
+    || scrollIncorrect || compactContractBroken || desktopContractBroken) {
+    failures.push(`shell viewport [${label}]${afterScroll ? ' after scrollY=500' : ''}: sticky/overflow contract regressed (${JSON.stringify(state)})`);
+  }
+}
+
 const authenticatedRouteFilter = (process.env.QA_AUTH_ROUTE_FILTER || '')
   .split(',')
   .map(path => path.trim())
@@ -1736,6 +1866,39 @@ for (const route of authenticatedRoutes) {
     } finally {
       await page.close();
     }
+  }
+}
+
+// The shell breakpoints are a product contract, not screenshots sampled from
+// one desktop and one phone. Verify portrait, landscape and breakpoint edges;
+// include a post-scroll pass so nested overflow cannot silently disable sticky.
+for (const [label, viewport] of shellViewportMatrix) {
+  const page = await createQaPage();
+  const runtimeErrors = collectRuntimeErrors(page);
+  await page.setViewport(viewport);
+  await mockApplicationApi(page, { authenticated: true });
+  try {
+    await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await waitForAuthenticatedShell(page);
+    await page.waitForFunction(() => document.documentElement.scrollHeight - innerHeight >= 500, { timeout: 20_000 });
+    const initial = await inspectStickyShell(page);
+    assertStickyShellState(label, initial, { afterScroll: false });
+    await page.evaluate(() => window.scrollTo({ top: 500, behavior: 'auto' }));
+    await page.waitForFunction(() => Math.abs(window.scrollY - 500) <= 1, { timeout: 5_000 });
+    const scrolled = await inspectStickyShell(page);
+    assertStickyShellState(label, scrolled, { afterScroll: true });
+    if (runtimeErrors.length) failures.push(`shell viewport [${label}]: ${runtimeErrors.join(' | ')}`);
+    console.log(`✓ shell viewport [${label}] initial + scrollY=500`);
+  } catch (error) {
+    const diagnostic = await page.evaluate(() => ({
+      scrollY: window.scrollY,
+      scrollHeight: document.documentElement.scrollHeight,
+      viewport: { width: innerWidth, height: innerHeight },
+      text: document.body?.innerText.slice(0, 180).replace(/\s+/g, ' ') || 'empty body',
+    })).catch(() => ({ unavailable: true }));
+    failures.push(`shell viewport [${label}]: ${error.message}; diagnostic=${JSON.stringify(diagnostic)}`);
+  } finally {
+    await page.close();
   }
 }
 
