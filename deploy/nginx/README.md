@@ -26,6 +26,12 @@ Run the repository contract before installation:
 node tests/nginx-html-routing.test.mjs
 ```
 
+The test always validates the route/directive model. When an nginx binary is
+available—as it is on the production host—it additionally starts an isolated
+temporary server and verifies the HTTP status, redirect, robots and static-file
+matrix. A production rollout must not rely on the model-only fallback: run the
+test on the target host before installing the snippets.
+
 Then validate the assembled host before any reload:
 
 ```bash
