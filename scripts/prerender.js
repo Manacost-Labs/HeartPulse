@@ -1,7 +1,14 @@
 import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'fs';
-import { resolve, dirname } from 'path';
+import { dirname, resolve } from 'path';
 
-const SITE_URL = 'https://arena.hs-manacost.ru';
+const PUBLIC_ROUTE_INVENTORY = JSON.parse(readFileSync(
+  resolve(process.cwd(), 'config/public-route-inventory.json'),
+  'utf8',
+));
+if (PUBLIC_ROUTE_INVENTORY.schemaVersion !== 1) {
+  throw new Error(`[prerender] Unsupported public route inventory version: ${PUBLIC_ROUTE_INVENTORY.schemaVersion}`);
+}
+const SITE_URL = PUBLIC_ROUTE_INVENTORY.canonicalOrigin;
 const YEAR = new Date().getFullYear();
 const TODAY = new Date().toISOString().split('T')[0];
 const THIRTY_DAYS_AGO = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().split('T')[0];
@@ -11,7 +18,6 @@ const PAGES = {
     title: 'HS-Arena — Тир-лист и Винрейты для Арены Hearthstone',
     description: 'Актуальная статистика Арены Hearthstone: тир-лист карт по классам, винрейты, легендарные группы. Данные обновляются автоматически 4 раза в сутки.',
     h1: 'HS-Arena — Статистика Арены Hearthstone',
-    canonical: '/',
     ogType: 'website',
     structuredData: [
       {
@@ -109,7 +115,6 @@ const PAGES = {
     title: 'FAQ и помощь по Manacost Stats — вход, подписка и доступ',
     description: 'Подробная помощь по регистрации, входу, Boosty, Telegram, уровням подписки, paywall, статистике и разделам Manacost Stats.',
     h1: 'Частые вопросы о Manacost Stats',
-    canonical: '/faq',
     ogType: 'website',
     structuredData: [
       {
@@ -151,7 +156,6 @@ const PAGES = {
     title: `Матчапы Стандарта Hearthstone ${YEAR} | Manacost Stats`,
     description: 'Матрица матчапов актуальной меты Стандарта Hearthstone по данным HSGuru: винрейты архетипов против друг друга для Легенды и Алмаза 4-1.',
     h1: 'Матчапы Стандарта Hearthstone',
-    canonical: '/standard/matchups',
     ogType: 'website',
     structuredData: [
       {
@@ -185,26 +189,25 @@ const PAGES = {
   '/standard/meta': {
     title: `Мета Hearthstone ${YEAR}: архетипы и колоды | Manacost Stats`,
     description: 'Актуальная мета Стандарта и Вольного режима по данным HSGuru: винрейты, популярность, русские названия и готовые сборки.',
-    h1: 'Мета Hearthstone', canonical: '/standard/meta', ogType: 'website', structuredData: [],
+    h1: 'Мета Hearthstone', ogType: 'website', structuredData: [],
     noscript: '<h1>Мета Hearthstone</h1><p>Винрейты, популярность и готовые сборки актуальных архетипов Стандарта и Вольного режима доступны с тарифом «Алмаз».</p>'
   },
   '/standard/vicious-gold': {
     title: `Vicious Syndicate Gold — мета Стандарта ${YEAR} | Manacost Stats`,
     description: 'Распределение классов и колод, готовые сборки и Power Tier по всем доступным рангам Vicious Syndicate Live.',
-    h1: 'Vicious Syndicate Gold', canonical: '/standard/vicious-gold', ogType: 'website', structuredData: [],
+    h1: 'Vicious Syndicate Gold', ogType: 'website', structuredData: [],
     noscript: '<h1>Vicious Syndicate Gold</h1><p>Живая статистика классов, архетипов, сборок и Power Tier Стандарта доступна с тарифом «Алмаз».</p>'
   },
   '/standard/cards': {
     title: `Карты Hearthstone ${YEAR}: Стандарт и Вольный | Manacost Stats`,
     description: 'Открытая библиотека карт Hearthstone с фильтрами по классу, дополнению, мане и механикам. Статистика Легенды доступна с тарифом «Алмаз».',
-    h1: 'Карты Hearthstone', canonical: '/standard/cards', ogType: 'website', structuredData: [],
+    h1: 'Карты Hearthstone', ogType: 'website', structuredData: [],
     noscript: '<h1>Карты Hearthstone</h1><p>Открытая библиотека карт Стандарта и Вольного режима с подробными страницами. Статистика Легенды доступна с тарифом «Алмаз».</p>'
   },
   '/classes': {
     title: `Винрейт классов — Арена Hearthstone ${YEAR} | HS-Arena`,
     description: 'Актуальные винрейты всех 11 классов в режиме Арена Hearthstone. Рейтинг на основе миллионов партий с HSReplay и Firestone, обновляется автоматически 4 раза в сутки.',
     h1: 'Винрейт классов на Арене Hearthstone',
-    canonical: '/classes',
     ogType: 'website',
     structuredData: [
       {
@@ -238,7 +241,6 @@ const PAGES = {
   '/tierlist': {
     title: `Тир-лист карт — Арена Hearthstone ${YEAR} | HS-Arena`,
     description: 'Полный тир-лист карт для каждого класса в режиме Арена Hearthstone. Лучшие карты текущего патча с оценками от S (авто-пик) до F. Данные с HearthArena и HSReplay.',
-    canonical: '/tierlist',
     ogType: 'website',
     h1: 'Тир-лист карт Арены Hearthstone',
     structuredData: [
@@ -290,7 +292,6 @@ const PAGES = {
   '/legendaries': {
     title: 'Легендарки на Арене Hearthstone — Лучшие группы | HS-Arena',
     description: 'Какую легендарную карту выбрать на Арене? Все группы первого выбора с процентом побед для каждого класса. Обновляется автоматически с Manacost.',
-    canonical: '/legendaries',
     ogType: 'website',
     h1: 'Легендарные карты на Арене Hearthstone',
     structuredData: [
@@ -331,7 +332,6 @@ const PAGES = {
   '/articles': {
     title: 'Статьи и гайды по Арене Hearthstone | HS-Arena',
     description: 'Гайды, разборы мета и советы по режиму Арена в Hearthstone от команды Manacost. Актуальные статьи для игроков всех уровней.',
-    canonical: '/articles',
     ogType: 'website',
     h1: 'Статьи и гайды по Арене Hearthstone',
     structuredData: [
@@ -358,7 +358,6 @@ const PAGES = {
   '/gallery': {
     title: 'Галерея артов Hearthstone | HS-Arena',
     description: 'Публичная галерея артов Манакоста в высоком качестве: просмотр и скачивание доступны всем пользователям.',
-    canonical: '/gallery',
     ogType: 'website',
     h1: 'Галерея артов Манакоста',
     structuredData: [
@@ -386,7 +385,6 @@ const PAGES = {
   '/guides-archive': {
     title: 'Архив гайдов Hearthstone | Manacost Stats',
     description: 'Архив старых гайдов, мета-отчетов и материалов Koloda Hearthstone в удобном формате для чтения.',
-    canonical: '/guides-archive',
     ogType: 'website',
     h1: 'Архив гайдов Hearthstone',
     structuredData: [
@@ -413,7 +411,6 @@ const PAGES = {
   '/contests': {
     title: 'Конкурсы Манакоста | Manacost Stats',
     description: 'Конкурсы для подписчиков Манакоста: участие, автоматическая проверка подписки и публикация ID победителей после завершения.',
-    canonical: '/contests',
     ogType: 'website',
     h1: 'Конкурсы Манакоста',
     structuredData: [
@@ -440,7 +437,6 @@ const PAGES = {
   '/battlegrounds/strategies': {
     title: 'Конструктор стратегий Полей Сражений | HS-Arena',
     description: 'Конструктор стратегий Hearthstone Battlegrounds: собирайте и визуализируйте планы развития для Полей Сражений.',
-    canonical: '/battlegrounds/strategies',
     ogType: 'website',
     h1: 'Конструктор стратегий Полей Сражений',
     structuredData: [
@@ -472,7 +468,6 @@ const PAGES = {
   '/heroes': {
     title: 'Герои Полей Сражений Hearthstone | HS-Arena',
     description: 'Тир-лист героев Hearthstone Battlegrounds с отдельными страницами героев, силами героя, компаньонами и статистикой.',
-    canonical: '/heroes',
     ogType: 'website',
     h1: 'Герои Полей Сражений',
     structuredData: [
@@ -501,7 +496,6 @@ const PAGES = {
   '/library': {
     title: 'Библиотека Полей Сражений Hearthstone | HS-Arena',
     description: 'Библиотека существ и заклинаний Hearthstone Battlegrounds: актуальный пул, архив, фильтры, статистика и отдельные страницы карт.',
-    canonical: '/library',
     ogType: 'website',
     h1: 'Библиотека Полей Сражений',
     structuredData: [
@@ -530,7 +524,6 @@ const PAGES = {
   '/library/minions': {
     title: 'Существа Полей Сражений Hearthstone | HS-Arena',
     description: 'Актуальные существа Hearthstone Battlegrounds: фильтры по таверне, типу существ, механикам, статистика и отдельные страницы карт.',
-    canonical: '/library/minions',
     ogType: 'website',
     h1: 'Существа Полей Сражений',
     structuredData: [
@@ -551,7 +544,6 @@ const PAGES = {
   '/library/spells': {
     title: 'Заклинания Полей Сражений Hearthstone | HS-Arena',
     description: 'Актуальные заклинания Hearthstone Battlegrounds: фильтры, изображения карт, статистика и отдельные страницы.',
-    canonical: '/library/spells',
     ogType: 'website',
     h1: 'Заклинания Полей Сражений',
     structuredData: [
@@ -572,7 +564,6 @@ const PAGES = {
   '/library/archive': {
     title: 'Архив карт Полей Сражений Hearthstone | HS-Arena',
     description: 'Архивные существа и заклинания Hearthstone Battlegrounds с отдельными страницами карт.',
-    canonical: '/library/archive',
     ogType: 'website',
     h1: 'Архив карт Полей Сражений',
     structuredData: [
@@ -593,7 +584,6 @@ const PAGES = {
   '/library/archive/minions': {
     title: 'Архив существ Полей Сражений Hearthstone | HS-Arena',
     description: 'Архив существ Hearthstone Battlegrounds: старые существа вне активного пула с карточками и поиском.',
-    canonical: '/library/archive/minions',
     ogType: 'website',
     h1: 'Архив существ Полей Сражений',
     structuredData: [
@@ -614,7 +604,6 @@ const PAGES = {
   '/library/archive/spells': {
     title: 'Архив заклинаний Полей Сражений Hearthstone | HS-Arena',
     description: 'Архив заклинаний Hearthstone Battlegrounds: старые заклинания таверны вне активного пула.',
-    canonical: '/library/archive/spells',
     ogType: 'website',
     h1: 'Архив заклинаний Полей Сражений',
     structuredData: [
@@ -635,7 +624,6 @@ const PAGES = {
   '/battlegrounds/tier-list': {
     title: 'Тир-лист Полей Сражений Hearthstone | HS-Arena',
     description: 'Тир-лист Hearthstone Battlegrounds: существа, стратегии, заклинания и аксессуары с фильтрами и просмотром карт.',
-    canonical: '/battlegrounds/tier-list',
     ogType: 'website',
     h1: 'Тир-лист Полей Сражений',
     structuredData: [
@@ -664,7 +652,6 @@ const PAGES = {
   '/battlegrounds/tier-builder': {
     title: 'Конструктор тир-листов Полей Сражений | HS-Arena',
     description: 'Конструктор тир-листов Hearthstone Battlegrounds: создавайте собственные списки героев, карт и стратегий Полей Сражений.',
-    canonical: '/battlegrounds/tier-builder',
     ogType: 'website',
     h1: 'Конструктор тир-листов Полей Сражений',
     structuredData: [
@@ -695,7 +682,80 @@ const PAGES = {
   }
 };
 
+const NOINDEX_PAGES = new Map([
+  ['/admin', {
+    title: 'Админ-панель | Manacost Stats',
+    description: 'Закрытая административная область Manacost Stats.',
+    h1: 'Админ-панель',
+    ogType: 'website',
+    structuredData: [],
+    noscript: '<h1>Админ-панель</h1><p>Для работы административной панели необходим JavaScript и авторизованный аккаунт администратора.</p>',
+  }],
+]);
+
+const NOT_FOUND_PAGE = {
+  title: 'Страница не найдена | Manacost Stats',
+  description: 'Запрошенная страница не найдена.',
+  h1: 'Страница не найдена',
+  ogType: 'website',
+  structuredData: [],
+  noscript: '<h1>Страница не найдена</h1><p>Проверьте адрес или вернитесь на <a href="/">главную страницу</a>.</p>',
+};
+
 const API_BASE = process.env.PRERENDER_API || 'http://127.0.0.1:3101';
+
+function normalizePathname(pathname) {
+  const withoutQuery = String(pathname || '/').split(/[?#]/, 1)[0] || '/';
+  const absolute = withoutQuery.startsWith('/') ? withoutQuery : `/${withoutQuery}`;
+  return absolute.replace(/\/+$/, '') || '/';
+}
+
+function routeMatchesPath(route, pathname) {
+  if (route.kind === 'fallback') return true;
+  const templateParts = route.pattern === '/' ? [] : route.pattern.slice(1).split('/');
+  const pathParts = pathname === '/' ? [] : pathname.slice(1).split('/');
+  const catchAll = templateParts.at(-1)?.endsWith('*') ?? false;
+  if ((!catchAll && templateParts.length !== pathParts.length)
+    || (catchAll && pathParts.length < templateParts.length - 1)) return false;
+
+  return templateParts.every((templatePart, index) => {
+    if (!templatePart.startsWith(':')) return templatePart === pathParts[index];
+    if (templatePart.endsWith('*')) return true;
+    let value;
+    try {
+      value = decodeURIComponent(pathParts[index] || '');
+    } catch {
+      return false;
+    }
+    if (!value) return false;
+    const constraint = route.pathParameters?.[templatePart.slice(1)];
+    if (constraint?.allowedValues && !constraint.allowedValues.includes(value)) return false;
+    if (constraint?.pattern && !new RegExp(constraint.pattern).test(value)) return false;
+    return true;
+  });
+}
+
+function resolvePathPolicy(pathname) {
+  const normalizedPathname = normalizePathname(pathname);
+  const route = PUBLIC_ROUTE_INVENTORY.routes.find(candidate => routeMatchesPath(candidate, normalizedPathname));
+  if (!route) throw new Error(`[prerender] No public URL policy for ${normalizedPathname}`);
+  return { ...route, normalizedPathname };
+}
+
+function robotsContent(indexPolicy) {
+  if (indexPolicy === 'noindex-nofollow') return 'noindex, nofollow';
+  if (indexPolicy === 'noindex-follow') return 'noindex, follow';
+  return 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
+}
+
+function canonicalUrlFor(pathname, policy) {
+  if (policy.canonicalPolicy === 'none') return null;
+  const path = normalizePathname(pathname);
+  const canonicalPath = path === '/' || PUBLIC_ROUTE_INVENTORY.canonicalTrailingSlash !== 'always'
+    ? path
+    : `${path}/`;
+  return `${SITE_URL}${canonicalPath}`;
+}
 
 async function fetchJson(url) {
   try {
@@ -805,14 +865,14 @@ function buildSeoSummaries({ winrates, tierlist, legendaries }) {
 const SEO_SUMMARY_STYLE = 'background:#060c18;color:#9fb1ca;font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.6;padding:2rem 1rem 3rem;';
 const SEO_SUMMARY_INNER = 'max-width:960px;margin:0 auto;';
 
-function generatePageHtml(baseHtml, pageData, path, seoSummary) {
-  const { title, description, canonical, ogType, structuredData, noscript, h1 } = pageData;
-  // Canonical must match the URL nginx actually serves with 200 (trailing slash).
-  const fullCanonical = canonical === '/' ? `${SITE_URL}/` : `${SITE_URL}${canonical}/`;
-  const ogImage = `${SITE_URL}/assets/og-preview.png`;
+function generatePageHtml(baseHtml, pageData, path, seoSummary, policy = resolvePathPolicy(path)) {
+  const { title, description, ogType, structuredData = [], noscript } = pageData;
+  const fullCanonical = canonicalUrlFor(path, policy);
 
   // Enrich schema graph: breadcrumb linkage, language, dataset licensing.
-  const enriched = structuredData.map(node => ({ ...node }));
+  const enriched = policy.indexPolicy === 'index' && fullCanonical
+    ? structuredData.map(node => ({ ...node }))
+    : [];
   const breadcrumb = enriched.find(n => n['@type'] === 'BreadcrumbList');
   if (breadcrumb && !breadcrumb['@id']) breadcrumb['@id'] = `${fullCanonical}#breadcrumb`;
   for (const node of enriched) {
@@ -830,10 +890,10 @@ function generatePageHtml(baseHtml, pageData, path, seoSummary) {
     }
   }
 
-  const sdJson = JSON.stringify({
+  const sdJson = enriched.length ? JSON.stringify({
     "@context": "https://schema.org",
     "@graph": enriched
-  });
+  }) : null;
 
   let html = baseHtml;
 
@@ -848,13 +908,27 @@ function generatePageHtml(baseHtml, pageData, path, seoSummary) {
   );
 
   html = html.replace(
-    /<link rel="canonical" href="[^"]*"/,
-    `<link rel="canonical" href="${fullCanonical}"`
+    /<meta name="robots" content="[^"]*"/,
+    `<meta name="robots" content="${robotsContent(policy.indexPolicy)}"`
   );
 
+  if (fullCanonical) {
+    html = html.replace(
+      /<link rel="canonical" href="[^"]*"/,
+      `<link rel="canonical" href="${fullCanonical}"`
+    );
+    html = html.replace(
+      /<meta property="og:url"\s+content="[^"]*"/,
+      `<meta property="og:url" content="${fullCanonical}"`
+    );
+  } else {
+    html = html.replace(/\s*<link rel="canonical"[^>]*>/, '');
+    html = html.replace(/\s*<meta property="og:url"[^>]*>/, '');
+  }
+
   html = html.replace(
-    /<meta property="og:url"\s+content="[^"]*"/,
-    `<meta property="og:url" content="${fullCanonical}"`
+    /<meta property="og:type"\s+content="[^"]*"/,
+    `<meta property="og:type" content="${ogType || 'website'}"`
   );
 
   html = html.replace(
@@ -877,17 +951,19 @@ function generatePageHtml(baseHtml, pageData, path, seoSummary) {
     `<meta name="twitter:description" content="${description}"`
   );
 
-  html = html.replace(
-    /<script type="application\/ld\+json">[\s\S]*?<\/script>/,
-    `<script type="application/ld+json">\n    ${sdJson}\n    </script>`
-  );
+  html = sdJson
+    ? html.replace(
+      /<script type="application\/ld\+json">[\s\S]*?<\/script>/,
+      `<script type="application/ld+json">\n    ${sdJson}\n    </script>`
+    )
+    : html.replace(/\s*<script type="application\/ld\+json">[\s\S]*?<\/script>/, '');
 
   html = html.replace(
     '<div id="root"></div>',
     `<div id="root"><noscript>${noscript}</noscript></div>`
   );
 
-  if (seoSummary) {
+  if (seoSummary && policy.indexPolicy === 'index') {
     // #root keeps 100vh min-height so this block never enters the first
     // viewport before hydration (no CLS); crawlers without JS still read it.
     html = html.replace(
@@ -917,6 +993,17 @@ function makePublicReadable(path) {
   }
 }
 
+function writePrerenderedPage(distDir, baseHtml, path, pageData, seoSummary, policy, filePathOverride) {
+  const routeDir = path === '/' ? distDir : resolve(distDir, path.slice(1));
+  const filePath = filePathOverride || resolve(routeDir, 'index.html');
+  const outputDir = filePathOverride ? dirname(filePath) : routeDir;
+
+  if (!existsSync(outputDir)) mkdirSync(outputDir, { recursive: true });
+  const pageHtml = generatePageHtml(baseHtml, pageData, path, seoSummary, policy);
+  writeFileSync(filePath, pageHtml, 'utf-8');
+  console.log(`[prerender] ✓ ${path} → ${filePath}`);
+}
+
 async function main() {
   const distDir = resolve(process.cwd(), process.env.PRERENDER_DIST_DIR || 'dist');
 
@@ -930,8 +1017,11 @@ async function main() {
 
   const today = new Date().toISOString().split('T')[0];
 
-  console.log('[prerender] Fetching live data for SEO summaries...');
-  const homeSummary = await fetchJson(`${API_BASE}/api/home/summary`);
+  const skipRemote = process.env.PRERENDER_SKIP_REMOTE === '1';
+  console.log(skipRemote
+    ? '[prerender] Skipping live SEO summaries (PRERENDER_SKIP_REMOTE=1).'
+    : '[prerender] Fetching live data for SEO summaries...');
+  const homeSummary = skipRemote ? null : await fetchJson(`${API_BASE}/api/home/summary`);
   const summaries = buildSeoSummaries({
     winrates: homeSummary ? {
       updatedAt: homeSummary.updatedAt,
@@ -945,17 +1035,34 @@ async function main() {
   console.log('[prerender] Generating per-route HTML...');
 
   for (const [path, pageData] of Object.entries(PAGES)) {
-    const routeDir = path === '/' ? distDir : resolve(distDir, path.slice(1));
-    const filePath = resolve(routeDir, 'index.html');
-
-    if (!existsSync(routeDir)) {
-      mkdirSync(routeDir, { recursive: true });
+    const policy = resolvePathPolicy(path);
+    if (policy.indexPolicy !== 'index' || policy.canonicalPolicy !== 'self') {
+      throw new Error(`[prerender] ${path} must map to an indexable, self-canonical route policy`);
     }
-
-    const pageHtml = generatePageHtml(baseHtml, pageData, path, summaries[path]);
-    writeFileSync(filePath, pageHtml, 'utf-8');
-    console.log(`[prerender] ✓ ${path} → ${filePath}`);
+    writePrerenderedPage(distDir, baseHtml, path, pageData, summaries[path], policy);
   }
+
+  for (const [path, pageData] of NOINDEX_PAGES) {
+    const policy = resolvePathPolicy(path);
+    if (policy.indexPolicy === 'index' || policy.canonicalPolicy !== 'none') {
+      throw new Error(`[prerender] ${path} must map to a noindex route without a canonical URL`);
+    }
+    writePrerenderedPage(distDir, baseHtml, path, pageData, null, policy);
+  }
+
+  const notFoundPolicy = PUBLIC_ROUTE_INVENTORY.routes.find(route => route.kind === 'fallback');
+  if (!notFoundPolicy || notFoundPolicy.indexPolicy === 'index' || notFoundPolicy.canonicalPolicy !== 'none') {
+    throw new Error('[prerender] Fallback route must be noindex and have no canonical URL');
+  }
+  writePrerenderedPage(
+    distDir,
+    baseHtml,
+    '/404',
+    NOT_FOUND_PAGE,
+    null,
+    { ...notFoundPolicy, normalizedPathname: '/404' },
+    resolve(distDir, '404.html'),
+  );
 
   const sitemapPath = resolve(distDir, 'sitemap.xml');
   if (existsSync(sitemapPath)) {

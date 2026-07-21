@@ -114,46 +114,35 @@ export const PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS = Object.fromEntries(
   TABS.filter(route => route.entitlement).map(route => [route.id, route.entitlement]),
 ) as Partial<Record<TabId, RouteEntitlement>>;
 
-const SITE_URL = 'https://arena.hs-manacost.ru';
-
 export function isRemovedPagePath(path: string): boolean {
-  return path === '/decks' || path.startsWith('/decks/') || path.startsWith('/jobs');
+  const clean = path.replace(/[?#].*$/, '').replace(/\/+$/, '') || '/';
+  return clean === '/decks' || clean.startsWith('/decks/') || clean === '/jobs' || clean.startsWith('/jobs/');
 }
 
 export function tabFromPath(path: string): TabId {
-  if (isRemovedPagePath(path)) return 'home';
-  const found = TABS.find(route => route.slug !== '/' && path.startsWith(route.slug));
+  const clean = path.replace(/[?#].*$/, '').replace(/\/+$/, '') || '/';
+  if (isRemovedPagePath(clean)) return 'home';
+  const found = TABS.find(route => route.slug !== '/'
+    && (clean === route.slug || clean.startsWith(`${route.slug}/`)));
   return found?.id ?? 'home';
 }
 
 export function isKnownPath(path: string): boolean {
-  const clean = path.replace(/\/+$/, '') || '/';
+  const clean = path.replace(/[?#].*$/, '').replace(/\/+$/, '') || '/';
   if (clean === '/' || isRemovedPagePath(clean)) return true;
   return TABS.some(route => route.slug !== '/' && (clean === route.slug || clean.startsWith(`${route.slug}/`)));
 }
 
-export async function applyPageMeta(tabId: TabId): Promise<void> {
-  const { ROUTE_META } = await import('./route-meta');
+export async function applyPageMeta(
+  tabId: TabId,
+  pathname = window.location.pathname,
+  search = window.location.search,
+): Promise<void> {
+  const [{ ROUTE_META }, { applyDocumentPageMeta }] = await Promise.all([
+    import('./route-meta'),
+    import('./seo/publicUrlPolicy'),
+  ]);
   const route = TABS.find(item => item.id === tabId) ?? TABS[0];
   const { title, description } = ROUTE_META[route.id];
-  document.title = title;
-
-  const setMeta = (selector: string, content: string) => {
-    const element = document.querySelector<HTMLMetaElement>(selector);
-    if (element) element.content = content;
-  };
-  setMeta('meta[name="description"]', description);
-  setMeta('meta[property="og:title"]', title);
-  setMeta('meta[property="og:description"]', description);
-  setMeta('meta[property="og:url"]', `${SITE_URL}${route.slug}`);
-  setMeta('meta[name="twitter:title"]', title);
-  setMeta('meta[name="twitter:description"]', description);
-
-  let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-  if (!canonical) {
-    canonical = document.createElement('link');
-    canonical.rel = 'canonical';
-    document.head.appendChild(canonical);
-  }
-  canonical.href = `${SITE_URL}${route.slug}`;
+  await applyDocumentPageMeta({ title, description, pathname, search });
 }

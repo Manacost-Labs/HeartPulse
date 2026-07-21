@@ -15,8 +15,6 @@ import {
   BG_BUILDER_TABS,
   BG_PRIMARY_TABS,
   BG_TAB_IDS,
-  isKnownPath,
-  isRemovedPagePath,
   MISC_TABS,
   PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS,
   STANDARD_TABS,
@@ -785,22 +783,13 @@ export default function App() {
   const mobileMenuRef = useRef<HTMLElement>(null);
   const mobileMenuToggleRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    if (isKnownPath(window.location.pathname)) return;
-    const existing = document.querySelector('meta[name="robots"]');
-    if (existing) {
-      existing.setAttribute('content', 'noindex, follow');
-    } else {
-      const meta = document.createElement('meta');
-      meta.name = 'robots';
-      meta.content = 'noindex, follow';
-      document.head.appendChild(meta);
-    }
-    document.title = 'Страница не найдена | HS-Arena';
-  }, []);
   const [locationSearch, setLocationSearch] = useState(() => window.location.search);
   const [currentPath, setCurrentPath] = useState(() => window.location.pathname);
   const locationParams = new URLSearchParams(locationSearch);
+
+  useEffect(() => {
+    void applyPageMeta(activeTab, currentPath, locationSearch);
+  }, [activeTab, currentPath, locationSearch]);
 
   useEffect(() => {
     if (redirectToWwwUrl) {
@@ -826,12 +815,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (isRemovedPagePath(window.location.pathname)) {
-      window.history.replaceState({ tab: 'home' }, '', '/');
-    }
-  }, []);
-
-  useEffect(() => {
     localStorage.removeItem('wr_hsreplay');
     localStorage.removeItem('etag_wr_hsreplay');
   }, []);
@@ -849,7 +832,6 @@ export default function App() {
       setActiveTab(tab);
       setMobileMenuOpen(false);
     });
-    void applyPageMeta(tab);
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, []);
 
@@ -866,7 +848,6 @@ export default function App() {
       setActiveTab(tab);
       setMobileMenuOpen(false);
     });
-    void applyPageMeta(tab);
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, []);
 
@@ -885,10 +866,6 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [activeTab]);
 
-  useEffect(() => {
-    if (activeTab !== 'home') void applyPageMeta(activeTab);
-  }, [activeTab]);
-
   /** Handle browser back / forward */
   useEffect(() => {
     const onPop = (e: PopStateEvent) => {
@@ -898,7 +875,6 @@ export default function App() {
         setCurrentPath(window.location.pathname);
         setActiveTab(tab);
       });
-      void applyPageMeta(tab);
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BarChart3, ChevronDown, ExternalLink, Filter, Search } from 'lucide-react';
+import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
 import '../route-parchment.css';
 import '../battlegrounds-shell.css';
 import '../battlegrounds-parchment.css';
@@ -123,7 +124,6 @@ interface BgLibraryProps {
   navigatePath: (path: string) => void;
 }
 
-const SITE_URL = 'https://arena.hs-manacost.ru';
 const TAVERN_TIERS = [1, 2, 3, 4, 5, 6, 7];
 const INITIAL_VISIBLE_CARDS = 96;
 const MORE_VISIBLE_CARDS = 96;
@@ -728,24 +728,7 @@ async function fetchAuxiliaryLibraryCards(kind: LibraryKind, pool: PoolMode, par
 }
 
 function setLibraryMeta(title: string, description: string, slug: string, image?: string | null): void {
-  document.title = title;
-  const metaDescription = document.querySelector<HTMLMetaElement>('meta[name="description"]');
-  if (metaDescription) metaDescription.content = description;
-  const ogTitle = document.querySelector<HTMLMetaElement>('meta[property="og:title"]');
-  if (ogTitle) ogTitle.content = title;
-  const ogDesc = document.querySelector<HTMLMetaElement>('meta[property="og:description"]');
-  if (ogDesc) ogDesc.content = description;
-  const ogUrl = document.querySelector<HTMLMetaElement>('meta[property="og:url"]');
-  if (ogUrl) ogUrl.content = `${SITE_URL}${slug}`;
-  const ogImage = document.querySelector<HTMLMetaElement>('meta[property="og:image"]');
-  if (ogImage && image) ogImage.content = image;
-  let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-  if (!canonical) {
-    canonical = document.createElement('link');
-    canonical.rel = 'canonical';
-    document.head.appendChild(canonical);
-  }
-  canonical.href = `${SITE_URL}${slug}`;
+  void applyDocumentPageMeta({ title, description, pathname: slug, search: '', image });
 }
 
 function flattenSpellStats(payload: any): FirestoneSpellStat[] {

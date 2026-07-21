@@ -29,6 +29,8 @@ assert.equal(TOP_LEVEL_TABS.map(route => String(route.id)).includes('faq'), fals
 assert.equal(tabFromPath('/decks/legacy'), 'home');
 assert.equal(isKnownPath('/decks/legacy'), true);
 assert.equal(isKnownPath('/definitely-unknown'), false);
+assert.equal(tabFromPath('/articlesevil'), 'home', 'route prefixes without a segment boundary must not match');
+assert.equal(isKnownPath('/articlesevil'), false, 'unknown lookalike paths must remain unknown');
 
 for (const id of BG_TAB_IDS) {
   assert.equal(PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS[id], 'battlegrounds', `${id} must require the battlegrounds entitlement`);

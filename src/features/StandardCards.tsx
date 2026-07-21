@@ -20,6 +20,7 @@ import {
 import '../route-parchment.css';
 import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
 import ConstructedCardLightbox from './ConstructedCardLightbox';
+import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
 import { compareConstructedSets, constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
 import {
   collectConstructedCardMedia,
@@ -868,6 +869,22 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
     const frame = requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
     return () => cancelAnimationFrame(frame);
   }, [card]);
+
+  useEffect(() => {
+    if (!card) return;
+    const name = cardName(card);
+    const rules = plainText(card.text?.ru || card.text?.en);
+    const description = rules
+      ? `${name}: ${rules}`
+      : `${name} — карта Hearthstone в библиотеке Manacost Stats.`;
+    void applyDocumentPageMeta({
+      title: `${name} — карта Hearthstone | Manacost Stats`,
+      description: description.slice(0, 300),
+      pathname: `/standard/cards/${format}/${encodeURIComponent(card.card_id || cardId)}`,
+      search: '',
+      image: card.images?.card,
+    });
+  }, [card, cardId, format]);
 
   if (loading) return <section className="constructed-cards constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={36} /><h1>Загружаем карту</h1></section>;
   if (error || !card) return <section className="constructed-cards constructed-cards__state" role="alert"><h1>Карта не найдена</h1><p>{error}</p><button type="button" onClick={() => navigatePath(`/standard/cards/${format}`)}><ArrowLeft size={17} /> Назад к картам</button></section>;

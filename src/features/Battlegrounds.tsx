@@ -1,6 +1,7 @@
 import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
+import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
 import '../route-parchment.css';
 import './Battlegrounds.css';
 import '../battlegrounds-shell.css';
@@ -1892,6 +1893,28 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
   }, [dbfId]);
 
   const { payload, loading, error } = state;
+
+  useEffect(() => {
+    const hero = payload?.stats?.hero;
+    if (!hero) return;
+    const libraryHero = payload?.libraryHero || {};
+    const heroName = libraryHero?.name?.ru || hero.hero || 'Герой';
+    const heroImage = libraryHero?.images?.hero || bgHeroImageFromMap(hero.dbfId, {});
+    const heroPower = libraryHero?.hero_power?.card;
+    const heroPowerName = heroPower?.name?.ru || heroPower?.name_ru || '';
+    const rawDescription = heroPower?.text?.ru || heroPower?.text_ru || libraryHero?.character?.description || '';
+    const publicDescription = String(rawDescription).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const description = heroPowerName
+      ? `${heroName}: сила героя «${heroPowerName}»${publicDescription ? ` — ${publicDescription}` : '.'}`
+      : `${heroName} — герой Полей сражений Hearthstone в библиотеке Manacost Stats.`;
+    void applyDocumentPageMeta({
+      title: `${heroName} — герой Полей сражений | Manacost Stats`,
+      description: description.slice(0, 300),
+      pathname: `/heroes/${dbfId}`,
+      search: '',
+      image: heroImage,
+    });
+  }, [dbfId, payload]);
 
   if (loading) return <div className="py-16 text-center font-hs text-[#6b4c2a]">Загружаем страницу героя...</div>;
   if (error || !payload?.stats?.hero) {
