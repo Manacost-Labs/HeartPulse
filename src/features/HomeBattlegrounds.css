@@ -95,7 +95,7 @@
 .arena-app-home .home-bg-directory__link small { color: #7d405b; }
 .arena-app-home .home-bg-directory__link strong,
 .arena-app-home .home-bg-directory__link[data-featured='true'] strong { color: #3e2c20; }
-.arena-app-home .home-bg-directory__link span span { color: #77634c; }
+.arena-app-home .home-bg-directory__link span span { color: #59442f; }
 .arena-app-home .home-bg-directory__link > b { color: #7d405b; }
 
 @media (max-width: 860px) {

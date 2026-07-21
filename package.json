@@ -113,6 +113,8 @@
     "qa:screens": "node scripts/screenshot-qa.mjs",
     "docs:screenshots": "node scripts/capture-github-screenshots.mjs",
     "qa:e2e": "node scripts/e2e-qa.mjs",
+    "qa:responsive": "QA_RESPONSIVE_SCOPE=representative node scripts/responsive-qa-local.mjs",
+    "qa:responsive:all": "QA_RESPONSIVE_SCOPE=all-p0 node scripts/responsive-qa-local.mjs",
     "qa:ci": "npm run build && node scripts/browser-qa-ci.mjs",
     "release:create": "node scripts/create-release.mjs",
     "changelog:post": "node scripts/post-arena-changelog.mjs"

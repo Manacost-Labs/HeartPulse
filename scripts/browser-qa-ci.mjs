@@ -1,7 +1,9 @@
 import { spawn } from 'node:child_process';
 
-const origin = 'http://127.0.0.1:4173';
-const preview = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '4173'], {
+let origin = '';
+const previewArgs = ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '0', '--strictPort'];
+if (process.env.QA_PREVIEW_DIST_DIR) previewArgs.push('--outDir', process.env.QA_PREVIEW_DIST_DIR);
+const preview = spawn('npm', previewArgs, {
   cwd: process.cwd(),
   env: process.env,
   detached: true,
@@ -9,7 +11,11 @@ const preview = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--
 });
 
 let previewOutput = '';
-preview.stdout.on('data', chunk => { previewOutput += chunk.toString(); });
+preview.stdout.on('data', chunk => {
+  previewOutput += chunk.toString();
+  const localOrigin = previewOutput.match(/Local:\s+(http:\/\/127\.0\.0\.1:\d+)\/?/);
+  if (localOrigin) origin = localOrigin[1];
+});
 preview.stderr.on('data', chunk => { previewOutput += chunk.toString(); });
 
 async function stopPreview() {
@@ -26,6 +32,10 @@ try {
   let ready = false;
   while (Date.now() < deadline) {
     if (preview.exitCode !== null) throw new Error(`Vite preview exited early\n${previewOutput}`);
+    if (!origin) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      continue;
+    }
     try {
       const response = await fetch(origin);
       if (response.ok) { ready = true; break; }
@@ -33,10 +43,14 @@ try {
     await new Promise(resolve => setTimeout(resolve, 250));
   }
   if (!ready) throw new Error(`Vite preview did not become ready\n${previewOutput}`);
+  console.log(`[browser-qa] Preview ready: ${origin}`);
 
   const qa = spawn(process.execPath, ['scripts/e2e-qa.mjs', `--url=${origin}`], {
     cwd: process.cwd(),
-    env: process.env,
+    env: {
+      ...process.env,
+      QA_RESPONSIVE_SCOPE: process.env.QA_RESPONSIVE_SCOPE || 'representative',
+    },
     stdio: 'inherit',
   });
   const status = await new Promise(resolve => qa.once('exit', code => resolve(code ?? 1)));

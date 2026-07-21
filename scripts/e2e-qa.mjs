@@ -6,7 +6,8 @@
 //   npm run qa:e2e
 //   npm run qa:e2e -- --url=http://127.0.0.1:4173
 import puppeteer from 'puppeteer';
-import { existsSync, mkdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { inspectHorizontalLayoutFault } from './mobile-layout-diagnostics.mjs';
 
@@ -23,13 +24,53 @@ if (!CHROMIUM_PATH) throw new Error('Chromium/Chrome executable is required for 
 const BASE = (process.argv.find(arg => arg.startsWith('--url=')) || '--url=https://arena.hs-manacost.ru')
   .slice(6)
   .replace(/\/$/, '');
+const BASE_ORIGIN = new URL(BASE).origin;
 const OUT = process.env.QA_SCREENSHOT_DIR || `/tmp/hs-arena-qa-${process.getuid?.() ?? 'user'}`;
+const responsiveInventory = JSON.parse(readFileSync(
+  new URL('../config/responsive-route-fixtures.json', import.meta.url),
+  'utf8',
+));
+const responsiveScope = (process.env.QA_RESPONSIVE_SCOPE || 'representative').trim();
+const enforceResponsiveTargets = process.env.QA_RESPONSIVE_ENFORCE_TARGETS === '1';
+if (!['off', 'representative', 'all-p0'].includes(responsiveScope)) {
+  throw new Error(`QA_RESPONSIVE_SCOPE must be off, representative or all-p0; received ${responsiveScope}`);
+}
+const responsiveProfilesById = new Map(responsiveInventory.profiles.map(profile => [profile.id, profile]));
+const defaultResponsiveProfiles = responsiveInventory.defaultProfiles.map(profileId => {
+  const profile = responsiveProfilesById.get(profileId);
+  if (!profile) throw new Error(`Responsive profile ${profileId} is missing`);
+  return profile;
+});
+const responsiveViewportInput = (process.env.QA_RESPONSIVE_VIEWPORTS || '').trim();
+const responsiveViewportTokens = responsiveViewportInput === ''
+  ? []
+  : responsiveViewportInput.split(',').map(value => value.trim());
+if (responsiveViewportTokens.some(value => value.length === 0 || !/^\d+$/.test(value))) {
+  throw new Error('QA_RESPONSIVE_VIEWPORTS must be a comma-separated list of non-empty integer widths');
+}
+const requestedResponsiveWidths = responsiveViewportTokens.map(Number);
+if (new Set(requestedResponsiveWidths).size !== requestedResponsiveWidths.length) {
+  throw new Error('QA_RESPONSIVE_VIEWPORTS must not contain duplicate widths');
+}
+const responsiveProfiles = requestedResponsiveWidths.length
+  ? defaultResponsiveProfiles.filter(profile => requestedResponsiveWidths.includes(profile.width))
+  : defaultResponsiveProfiles;
+if (requestedResponsiveWidths.some(width => !defaultResponsiveProfiles.some(profile => profile.width === width))) {
+  throw new Error(`QA_RESPONSIVE_VIEWPORTS contains an unknown width; expected ${defaultResponsiveProfiles.map(profile => profile.width).join(',')}`);
+}
+const scopedResponsiveFixtures = responsiveScope === 'off'
+  ? []
+  : responsiveInventory.fixtures.filter(fixture => responsiveScope === 'all-p0' || fixture.representative);
+const responsiveFixtures = scopedResponsiveFixtures.filter(fixture => (fixture.transport || 'preview') === 'preview');
+const deferredResponsiveFixtures = scopedResponsiveFixtures.filter(fixture => fixture.transport === 'nginx-html');
 const failures = [];
+const qaCardImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="560" viewBox="0 0 400 560"%3E%3Crect width="400" height="560" rx="34" fill="%233b254b"/%3E%3Crect x="22" y="22" width="356" height="516" rx="26" fill="%23c49a55"/%3E%3Crect x="42" y="42" width="316" height="300" rx="18" fill="%236d1117"/%3E%3Ccircle cx="200" cy="188" r="92" fill="%23f0cf77"/%3E%3Cpath d="M145 235L200 105l55 130z" fill="%235b3470"/%3E%3Crect x="58" y="366" width="284" height="126" rx="18" fill="%23f7e8bf"/%3E%3Ctext x="200" y="420" text-anchor="middle" font-size="25" font-family="serif" font-weight="700" fill="%233d2a1e"%3EQA CARD%3C/text%3E%3Ctext x="200" y="458" text-anchor="middle" font-size="17" font-family="sans-serif" fill="%235c4938"%3EManacost%3C/text%3E%3C/svg%3E';
+const qaCardGoldenImage = `${qaCardImage}#golden`;
 const qaCard = {
   cardId: 'TIME_890',
   name: 'Медив Освященный',
-  imageHa: 'https://cdn.heartharena.com/images/renders/ruRU/TIME_890.webp',
-  imageRu: 'https://d15f34w2p8l1cc.cloudfront.net/hearthstone/5b1c3236a936971ce184478955f9f6802837a938fba48281b953dc37cc6998ad.png',
+  imageHa: qaCardGoldenImage,
+  imageRu: qaCardImage,
 };
 const qaArticleCover = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="1176" height="597" viewBox="0 0 1176 597"%3E%3Crect width="1176" height="597" fill="%236d1117"/%3E%3C/svg%3E';
 const qaArticles = [
@@ -61,6 +102,19 @@ const qaClasses = [
   ['warrior', 'Воин', '#7a1e1e', 43.2],
 ].map(([id, name, color, winrate], index) => ({ id, name, color, winrate, games: 1500 - index * 50 }));
 const fixtures = {
+  '/api/home/summary': {
+    topClasses: qaClasses.slice(0, 3),
+    topCards: [{ ...qaCard, score: 100, rarity: 'legendary', tier: 'S', classKey: 'any', cost: 10 }],
+    topLegendaries: [{ ...qaCard, winRate: 59.5, classKey: 'priest', cost: 10 }],
+    battlegroundSpotlight: null,
+    updatedAt: {
+      winrates: '2026-07-11T00:00:00.000Z',
+      tierlist: '2026-07-11T00:00:00.000Z',
+      legendaries: '2026-07-11T00:00:00.000Z',
+      battlegrounds: '2026-07-11T00:00:00.000Z',
+    },
+    sources: { winrates: 'qa-fixture', tierlist: 'qa-fixture', legendaries: 'qa-fixture' },
+  },
   '/api/winrates': {
     classes: qaClasses,
     updatedAt: '2026-07-11T00:00:00.000Z',
@@ -667,6 +721,11 @@ const publicStandardFixtureAliases = {
 };
 
 mkdirSync(OUT, { recursive: true });
+for (const entry of readdirSync(OUT)) {
+  if (entry === 'responsive-manifest.json' || entry.startsWith('responsive-manifest.json.tmp-') || entry.startsWith('responsive-')) {
+    unlinkSync(`${OUT}/${entry}`);
+  }
+}
 
 function jsonResponse(body) {
   return {
@@ -677,7 +736,7 @@ function jsonResponse(body) {
   };
 }
 
-async function mockApplicationApi(page, { authenticated, admin = false, adminState = {} }) {
+async function mockApplicationApi(page, { authenticated, admin = false, adminState = {}, strictApi = false }) {
   let shellChunkFailures = 0;
   let shellRenderOverrides = 0;
   await page.setRequestInterception(true);
@@ -1125,11 +1184,18 @@ async function mockApplicationApi(page, { authenticated, admin = false, adminSta
       request.respond(jsonResponse(fixtures[fixtureKey]));
       return;
     }
+    if (strictApi && url.origin === BASE_ORIGIN && url.pathname.startsWith('/api/')) {
+      request.respond({
+        ...jsonResponse({ error: `Unmocked browser QA endpoint: ${url.pathname}` }),
+        status: 500,
+      });
+      return;
+    }
     request.continue();
   });
 }
 
-function collectRuntimeErrors(page) {
+function collectRuntimeErrors(page, { sameOriginNetwork = false } = {}) {
   const errors = [];
   page.on('pageerror', error => errors.push(`pageerror: ${error.message}`));
   page.on('console', message => {
@@ -1139,6 +1205,27 @@ function collectRuntimeErrors(page) {
     if (/Failed to load resource|ERR_BLOCKED_BY_CLIENT/i.test(text)) return;
     errors.push(`console: ${text}`);
   });
+  if (sameOriginNetwork) {
+    page.on('response', response => {
+      const url = new URL(response.url());
+      if (url.origin !== BASE_ORIGIN) return;
+      if (!url.pathname.startsWith('/api/') && !url.pathname.startsWith('/assets/')) return;
+      if (response.status() >= 400) {
+        errors.push(`http ${response.status()}: ${url.pathname}`);
+        return;
+      }
+      const contentType = response.headers()['content-type'] || '';
+      if (url.pathname.startsWith('/api/') && !/application\/(?:[^;]+\+)?json/i.test(contentType)) {
+        errors.push(`unexpected API content-type ${contentType || 'missing'}: ${url.pathname}`);
+      }
+    });
+    page.on('requestfailed', request => {
+      const url = new URL(request.url());
+      if (url.origin !== BASE_ORIGIN) return;
+      if (!url.pathname.startsWith('/api/') && !url.pathname.startsWith('/assets/')) return;
+      errors.push(`requestfailed: ${url.pathname} (${request.failure()?.errorText || 'unknown'})`);
+    });
+  }
   return errors;
 }
 
@@ -1477,6 +1564,111 @@ function assertLayout(path, layout) {
   if (layout.mobile && layout.bannerHeight > 260) failures.push(`${path}: mobile banner is unexpectedly tall (${layout.bannerHeight}px)`);
   if (layout.suspiciousOverlays.length) {
     failures.push(`${path}: dark viewport overlay detected (${layout.suspiciousOverlays.join(', ')})`);
+  }
+}
+
+async function settleResponsiveSnapshot(page, { waitForFooter }) {
+  if (waitForFooter) {
+    await page.waitForSelector('.arena-footer', { visible: true, timeout: 10_000 });
+  }
+  await page.waitForNetworkIdle({ idleTime: 250, timeout: 10_000 });
+  await page.evaluate(async () => {
+    await document.fonts?.ready;
+    const images = [...document.querySelectorAll('img')].filter(image => {
+      const rect = image.getBoundingClientRect();
+      const style = getComputedStyle(image);
+      return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+    });
+    await Promise.all(images.map(image => Promise.race([
+      image.decode().catch(() => {}),
+      new Promise(resolve => setTimeout(resolve, 2_000)),
+    ])));
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  });
+}
+
+async function auditTouchTargets(page) {
+  return page.evaluate(minimum => {
+    const describe = element => {
+      const id = element.id ? `#${element.id}` : '';
+      const classes = [...element.classList].slice(0, 3).map(name => `.${name}`).join('');
+      return `${element.tagName.toLowerCase()}${id}${classes}`;
+    };
+    const visible = element => {
+      if (!(element instanceof HTMLElement)) return false;
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0
+        && style.display !== 'none' && style.visibility !== 'hidden'
+        && Number(style.opacity || 1) > 0 && style.pointerEvents !== 'none'
+        && !element.closest('[inert], [aria-hidden="true"]');
+    };
+    const effectiveTarget = element => {
+      if (!(element instanceof HTMLInputElement) || !['checkbox', 'radio'].includes(element.type)) return element;
+      const wrappingLabel = element.closest('label');
+      if (wrappingLabel) return wrappingLabel;
+      if (!element.id) return element;
+      return document.querySelector(`label[for="${CSS.escape(element.id)}"]`) || element;
+    };
+    const undersized = [...document.querySelectorAll('a[href], button, input, select, textarea, summary, [role="button"]')]
+      .filter((element, index, elements) => elements.indexOf(element) === index)
+      .filter(element => visible(element))
+      .filter(element => !(element instanceof HTMLButtonElement && element.disabled))
+      .filter(element => !(element instanceof HTMLInputElement && (element.disabled || element.type === 'hidden')))
+      .filter(element => !(element instanceof HTMLSelectElement && element.disabled))
+      .filter(element => !(element instanceof HTMLTextAreaElement && element.disabled))
+      .filter(element => {
+        if (!(element instanceof HTMLAnchorElement)) return true;
+        const style = getComputedStyle(element);
+        return style.display !== 'inline';
+      })
+      .map(element => {
+        const target = effectiveTarget(element);
+        const rect = target.getBoundingClientRect();
+        return {
+          element: describe(element),
+          target: target === element ? null : describe(target),
+          width: Math.round(rect.width * 10) / 10,
+          height: Math.round(rect.height * 10) / 10,
+        };
+      })
+      .filter(target => target.width < minimum || target.height < minimum);
+    return { total: undersized.length, samples: undersized.slice(0, 8) };
+  }, 44);
+}
+
+async function assertResponsiveFixtureState(page, fixture, label) {
+  const state = await page.evaluate(readySelector => {
+    const visible = element => {
+      if (!(element instanceof HTMLElement)) return false;
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+    };
+    const paywall = document.querySelector('.arena-paywall');
+    const ready = document.querySelector(readySelector);
+    return {
+      readyVisible: visible(ready),
+      readyText: ready?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      paywallVisible: visible(paywall),
+      paywallPreviewInert: Boolean(paywall?.querySelector('.arena-paywall__preview')?.hasAttribute('inert')),
+      deniedText: document.querySelector('.admin-access-state')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    };
+  }, fixture.ready.selector);
+
+  if (!state.readyVisible) failures.push(`${label}: readiness selector is not visible (${fixture.ready.selector})`);
+  if (fixture.ready.text && !state.readyText.includes(fixture.ready.text)) {
+    failures.push(`${label}: readiness text is missing (${fixture.ready.text})`);
+  }
+  if (fixture.state === 'paywall' && (!state.paywallVisible || !state.paywallPreviewInert)) {
+    failures.push(`${label}: locked state is not an inert visible paywall (${JSON.stringify(state)})`);
+  }
+  if (fixture.state === 'content' && state.paywallVisible) {
+    failures.push(`${label}: entitled/public content is still covered by a paywall`);
+  }
+  if (fixture.state === 'denied' && !state.deniedText.toLocaleLowerCase('ru').includes('недоступ')) {
+    failures.push(`${label}: admin denial copy is missing (${JSON.stringify(state)})`);
   }
 }
 
@@ -2083,6 +2275,124 @@ if (authenticatedRouteFilter.length > 0) {
   }
   console.log(`\nFocused authenticated-route QA passed. Screenshots: ${OUT}`);
   process.exit(0);
+}
+
+const responsiveScreenshotManifest = [];
+if (responsiveFixtures.length) {
+  console.log(`\nResponsive screenshot matrix: ${responsiveScope} (${responsiveFixtures.length} fixtures × ${responsiveProfiles.length} profiles)`);
+}
+for (const fixture of responsiveFixtures) {
+  for (const profile of responsiveProfiles) {
+    const page = await createQaPage();
+    const runtimeErrors = collectRuntimeErrors(page, { sameOriginNetwork: true });
+    const scenarioFailureStart = failures.length;
+    const label = `responsive ${fixture.id} [${profile.width}x${profile.height}]`;
+    const screenshotPath = `${OUT}/responsive-${fixture.id}-${profile.id}.png`;
+    await page.setViewport({
+      width: profile.width,
+      height: profile.height,
+      deviceScaleFactor: profile.deviceScaleFactor,
+      isMobile: profile.isMobile,
+      hasTouch: profile.hasTouch,
+    });
+    await mockApplicationApi(page, {
+      authenticated: fixture.access !== 'anonymous',
+      admin: fixture.access === 'admin',
+      strictApi: true,
+    });
+    try {
+      await page.goto(`${BASE}${fixture.path}`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+      if (fixture.access === 'subscriber') await waitForAuthenticatedShell(page);
+      await page.waitForSelector(fixture.ready.selector, { visible: true, timeout: 20_000 });
+      await settleResponsiveSnapshot(page, { waitForFooter: !fixture.path.startsWith('/admin') });
+      await assertResponsiveFixtureState(page, fixture, label);
+      let touchTargets = { total: 0, samples: [] };
+
+      if (fixture.checks.includes('overflow')) {
+        const layout = await inspectLayout(page, { mobile: true });
+        if (layout.scrollWidth > layout.clientWidth + 1) {
+          failures.push(`${label}: horizontal overflow ${layout.scrollWidth} > ${layout.clientWidth}; first fault: ${JSON.stringify(layout.firstLayoutFault)}`);
+        }
+      }
+      if (fixture.checks.includes('axe')) await auditAccessibility(page, label);
+      if (fixture.checks.includes('targets')) {
+        touchTargets = await auditTouchTargets(page);
+        if (enforceResponsiveTargets && touchTargets.total) {
+          failures.push(`${label}: touch targets below 44px (${JSON.stringify(touchTargets.samples)})`);
+        }
+      }
+      if (fixture.checks.includes('runtime-errors') && runtimeErrors.length) {
+        failures.push(`${label}: ${runtimeErrors.join(' | ')}`);
+      }
+
+      await page.screenshot({ path: screenshotPath, fullPage: false });
+      const screenshotSha256 = createHash('sha256').update(readFileSync(screenshotPath)).digest('hex');
+      const scenarioFailures = failures.slice(scenarioFailureStart);
+      responsiveScreenshotManifest.push({
+        fixture: fixture.id,
+        routeId: fixture.routeId,
+        profile: profile.id,
+        viewport: { width: profile.width, height: profile.height },
+        access: fixture.access,
+        state: fixture.state,
+        screenshot: screenshotPath.split('/').at(-1),
+        screenshotSha256,
+        captureStatus: 'captured',
+        qaStatus: scenarioFailures.length ? 'failed' : 'passed',
+        failures: scenarioFailures,
+        findings: { touchTargetsBelow44px: touchTargets.total, touchTargetSamples: touchTargets.samples },
+      });
+      console.log(`${scenarioFailures.length ? '✗' : '✓'} ${label}${touchTargets.total ? ` · ${touchTargets.total} touch findings` : ''}`);
+    } catch (error) {
+      const failure = `${label}: ${error.message}`;
+      failures.push(failure);
+      responsiveScreenshotManifest.push({
+        fixture: fixture.id,
+        routeId: fixture.routeId,
+        profile: profile.id,
+        viewport: { width: profile.width, height: profile.height },
+        access: fixture.access,
+        state: fixture.state,
+        screenshot: null,
+        captureStatus: 'failed',
+        qaStatus: 'failed',
+        failures: failures.slice(scenarioFailureStart),
+      });
+    } finally {
+      await page.close();
+    }
+  }
+}
+for (const fixture of deferredResponsiveFixtures) {
+  responsiveScreenshotManifest.push({
+    fixture: fixture.id,
+    routeId: fixture.routeId,
+    transport: fixture.transport,
+    captureStatus: 'deferred',
+    qaStatus: 'deferred-to-nginx',
+  });
+  console.log(`↷ responsive ${fixture.id}: deferred to production-like nginx transport`);
+}
+if (responsiveScope !== 'off') {
+  const responsiveManifestPath = `${OUT}/responsive-manifest.json`;
+  const responsiveManifestTemporaryPath = `${responsiveManifestPath}.tmp-${process.pid}`;
+  const responsiveSummary = responsiveScreenshotManifest.reduce((summary, entry) => {
+    if (entry.captureStatus === 'captured') summary.captured += 1;
+    if (entry.qaStatus === 'passed') summary.passed += 1;
+    if (entry.qaStatus === 'failed') summary.failed += 1;
+    if (entry.qaStatus === 'deferred-to-nginx') summary.deferred += 1;
+    summary.touchTargetsBelow44px += entry.findings?.touchTargetsBelow44px || 0;
+    return summary;
+  }, { captured: 0, passed: 0, failed: 0, deferred: 0, touchTargetsBelow44px: 0 });
+  writeFileSync(responsiveManifestTemporaryPath, `${JSON.stringify({
+    schemaVersion: 2,
+    scope: responsiveScope,
+    touchTargetPolicy: enforceResponsiveTargets ? 'enforce' : 'report',
+    profiles: responsiveProfiles.map(profile => profile.id),
+    summary: responsiveSummary,
+    screenshots: responsiveScreenshotManifest,
+  }, null, 2)}\n`);
+  renameSync(responsiveManifestTemporaryPath, responsiveManifestPath);
 }
 
 // Full-admin dashboard: deterministic KPI rendering, empty state, quick
