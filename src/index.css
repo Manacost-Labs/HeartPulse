@@ -1,7 +1,7 @@
 @import "tailwindcss";
+@import "./styles/tokens.css";
 /* Local agent traces can contain copied class names and must never affect the release CSS graph. */
 @source not "../.codex-team";
-@import "./styles/tokens.css";
 
 .arena-app-shell {
   --arena-mobile-sticky-offset: 70px;
