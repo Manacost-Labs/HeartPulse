@@ -20,6 +20,13 @@ templates only: a Git checkout does not change the live nginx configuration.
    `https://arena.hs-manacost.ru$request_uri`. Combined host/scheme plus slash
    normalization remains a separate edge-policy task (see limitations below).
 
+Every public edge proxy must also install `arena-edge-static-cache.conf` as
+`/etc/nginx/snippets/arena-edge-static-cache.conf`. In its canonical HTTPS
+server, set `$arena_proxy_region` to that node's stable label and replace the
+local static-file `location` with this include. The edge caches successful
+assets internally but preserves the origin's browser cache header; in
+particular, a missing asset must stay `404` + `no-store`, never `immutable`.
+
 Run the repository contract before installation:
 
 ```bash
@@ -44,13 +51,15 @@ curl -I https://arena.hs-manacost.ru/decks/legacy
 curl -I https://arena.hs-manacost.ru/definitely-unknown
 curl -I https://arena.hs-manacost.ru/yandex_eaea2c59052dad81.html
 curl -I https://arena.hs-manacost.ru/api/health/ready
+curl -I https://arena.hs-manacost.ru/assets/definitely-missing.js
 ```
 
 Expected results are one `301` to add the canonical slash, `200` for the
 canonical public route, server-side `X-Robots-Tag: noindex, nofollow` for auth
 and admin states, `410` for removed product areas, `404` for unknown HTML and
 an unchanged API readiness response. Reload nginx only after this matrix and
-the production smoke suite pass.
+the production smoke suite pass. Run the missing-asset check against every
+edge IP with `curl --resolve`; it must not contain an `immutable` cache header.
 
 The template validates route shapes, not entity existence. A syntactically
 valid card, hero or Battlegrounds detail URL may use the anonymous SPA shell

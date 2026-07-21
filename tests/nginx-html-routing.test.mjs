@@ -22,6 +22,10 @@ const inventory = JSON.parse(readFileSync(
 ));
 const mapSource = readFileSync(join(projectRoot, 'deploy/nginx/arena-seo-map.conf'), 'utf8');
 const routingSource = readFileSync(join(projectRoot, 'deploy/nginx/arena-html-routing.conf'), 'utf8');
+const edgeStaticSource = readFileSync(
+  join(projectRoot, 'deploy/nginx/arena-edge-static-cache.conf'),
+  'utf8',
+);
 
 function parseLocationBlocks(source) {
   const blocks = [];
@@ -86,6 +90,12 @@ assert.doesNotMatch(routingSource, /location\s+\/\s*\{[\s\S]*?try_files[^}]*\/in
   'the unknown catch-all must never fall back to the SPA shell');
 assert.doesNotMatch(routingSource, /\$http_user_agent|Googlebot|YandexBot/i,
   'HTML routing must not vary content by crawler user-agent');
+assert.match(edgeStaticSource, /proxy_cache_valid\s+200\s+301\s+302\s+30d;/,
+  'edge proxies may cache successful immutable assets internally');
+assert.doesNotMatch(edgeStaticSource, /proxy_cache_valid\s+404|expires\s+30d|Cache-Control/i,
+  'edge proxies must preserve the origin no-store policy for missing assets');
+assert.match(edgeStaticSource, /X-Proxy-Region\s+\$arena_proxy_region\s+always;/,
+  'the shared edge contract must expose its configured region');
 
 for (const path of ['/api', '/api/health/ready', '/health/live', '/metrics']) {
   if (path === '/api') {
