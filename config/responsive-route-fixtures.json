@@ -1,0 +1,396 @@
+{
+  "schemaVersion": 1,
+  "profiles": [
+    {
+      "id": "compact-min",
+      "width": 320,
+      "height": 568,
+      "deviceScaleFactor": 2,
+      "isMobile": true,
+      "hasTouch": true
+    },
+    {
+      "id": "phone-baseline",
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2,
+      "isMobile": true,
+      "hasTouch": true
+    },
+    {
+      "id": "medium",
+      "width": 768,
+      "height": 1024,
+      "deviceScaleFactor": 2,
+      "isMobile": true,
+      "hasTouch": true
+    }
+  ],
+  "defaultProfiles": ["compact-min", "phone-baseline", "medium"],
+  "fixtures": [
+    {
+      "id": "home",
+      "routeId": "home",
+      "path": "/",
+      "access": "subscriber",
+      "state": "content",
+      "ready": { "selector": ".home-stage" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": true
+    },
+    {
+      "id": "articles",
+      "routeId": "articles",
+      "path": "/articles",
+      "access": "anonymous",
+      "state": "content",
+      "ready": { "selector": ".article-image-shell img" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": true
+    },
+    {
+      "id": "faq",
+      "routeId": "faq",
+      "path": "/faq",
+      "access": "anonymous",
+      "state": "content",
+      "ready": { "selector": ".faq-page__questions details" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "standard-matchups-anonymous",
+      "routeId": "standard-matchups",
+      "path": "/standard/matchups",
+      "access": "anonymous",
+      "state": "paywall",
+      "ready": { "selector": ".arena-paywall" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "standard-meta-anonymous",
+      "routeId": "standard-meta",
+      "path": "/standard/meta",
+      "access": "anonymous",
+      "state": "paywall",
+      "ready": { "selector": ".arena-paywall" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": true
+    },
+    {
+      "id": "vicious-gold-anonymous",
+      "routeId": "standard-vicious-gold",
+      "path": "/standard/vicious-gold",
+      "access": "anonymous",
+      "state": "paywall",
+      "ready": { "selector": ".arena-paywall" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "standard-cards",
+      "routeId": "standard-cards",
+      "path": "/standard/cards",
+      "access": "anonymous",
+      "state": "content",
+      "ready": { "selector": ".constructed-cards__gallery-card" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": true
+    },
+    {
+      "id": "arena-classes-anonymous",
+      "routeId": "winrates",
+      "path": "/classes",
+      "access": "anonymous",
+      "state": "paywall",
+      "ready": { "selector": ".arena-paywall" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "arena-tierlist-anonymous",
+      "routeId": "tierlist",
+      "path": "/tierlist",
+      "access": "anonymous",
+      "state": "paywall",
+      "ready": { "selector": ".arena-paywall" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "arena-legendaries-anonymous",
+      "routeId": "legendaries",
+      "path": "/legendaries",
+      "access": "anonymous",
+      "state": "paywall",
+      "ready": { "selector": ".arena-paywall" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "bg-heroes-anonymous",
+      "routeId": "bg-heroes",
+      "path": "/heroes",
+      "access": "anonymous",
+      "state": "paywall",
+      "ready": { "selector": ".arena-paywall" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "bg-library-anonymous",
+      "routeId": "bg-library",
+      "path": "/library",
+      "access": "anonymous",
+      "state": "paywall",
+      "ready": { "selector": ".arena-paywall" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "bg-tier-list-anonymous",
+      "routeId": "bg-tier-list",
+      "path": "/battlegrounds/tier-list",
+      "access": "anonymous",
+      "state": "paywall",
+      "ready": { "selector": ".arena-paywall" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "admin-denied",
+      "routeId": "admin-panel",
+      "path": "/admin",
+      "access": "anonymous",
+      "state": "denied",
+      "ready": { "selector": ".admin-access-state" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": true
+    },
+    {
+      "id": "standard-cards-format",
+      "routeId": "standard-cards-format",
+      "path": "/standard/cards/standard",
+      "access": "anonymous",
+      "state": "content",
+      "ready": { "selector": ".constructed-cards__gallery-card" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "standard-card-detail",
+      "routeId": "standard-card-detail",
+      "path": "/standard/cards/standard/CARD_QA_1",
+      "access": "anonymous",
+      "state": "content",
+      "ready": { "selector": ".constructed-card-detail__hero" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": true
+    },
+    {
+      "id": "bg-hero-detail",
+      "routeId": "bg-hero-detail",
+      "path": "/heroes/9001",
+      "access": "subscriber",
+      "state": "content",
+      "ready": { "selector": ".bg-hero-detail-page" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "bg-library-kind",
+      "routeId": "bg-library-kind",
+      "path": "/library/minions",
+      "access": "subscriber",
+      "state": "content",
+      "ready": { "selector": ".bg-library-page" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "bg-library-detail",
+      "routeId": "bg-library-detail",
+      "path": "/library/minions/kontrolnoe-sushchestvo-9101",
+      "access": "subscriber",
+      "state": "content",
+      "ready": { "selector": ".bg-library-detail-page" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": true
+    },
+    {
+      "id": "standard-matchups-subscriber",
+      "routeId": "standard-matchups",
+      "path": "/standard/matchups",
+      "access": "subscriber",
+      "state": "content",
+      "ready": { "selector": ".standard-matchups" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "vicious-gold-subscriber",
+      "routeId": "standard-vicious-gold",
+      "path": "/standard/vicious-gold",
+      "access": "subscriber",
+      "state": "content",
+      "ready": { "selector": ".vsgold" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "arena-classes-subscriber",
+      "routeId": "winrates",
+      "path": "/classes",
+      "access": "subscriber",
+      "state": "content",
+      "ready": { "selector": ".arena-class-row" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "arena-legendaries-subscriber",
+      "routeId": "legendaries",
+      "path": "/legendaries",
+      "access": "subscriber",
+      "state": "content",
+      "ready": { "selector": ".legendary-group-card" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "bg-heroes-subscriber",
+      "routeId": "bg-heroes",
+      "path": "/heroes",
+      "access": "subscriber",
+      "state": "content",
+      "ready": { "selector": ".battleground-hero-card" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "bg-library-subscriber",
+      "routeId": "bg-library",
+      "path": "/library",
+      "access": "subscriber",
+      "state": "content",
+      "ready": { "selector": ".bg-library-page" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "bg-tier-list-subscriber",
+      "routeId": "bg-tier-list",
+      "path": "/battlegrounds/tier-list",
+      "access": "subscriber",
+      "state": "content",
+      "ready": { "selector": ".bg-tier-list-page" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "bg-hero-detail-anonymous",
+      "routeId": "bg-hero-detail",
+      "path": "/heroes/9001",
+      "access": "anonymous",
+      "state": "paywall",
+      "ready": { "selector": ".arena-paywall" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "bg-library-kind-anonymous",
+      "routeId": "bg-library-kind",
+      "path": "/library/minions",
+      "access": "anonymous",
+      "state": "paywall",
+      "ready": { "selector": ".arena-paywall" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "bg-library-detail-anonymous",
+      "routeId": "bg-library-detail",
+      "path": "/library/minions/kontrolnoe-sushchestvo-9101",
+      "access": "anonymous",
+      "state": "paywall",
+      "ready": { "selector": ".arena-paywall" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "not-found",
+      "routeId": "unknown-path",
+      "path": "/qa/not-found-route",
+      "access": "anonymous",
+      "state": "not-found",
+      "transport": "nginx-html",
+      "ready": { "selector": "body" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
+      "id": "standard-meta-subscriber",
+      "routeId": "standard-meta",
+      "path": "/standard/meta",
+      "access": "subscriber",
+      "state": "content",
+      "ready": { "selector": ".standard-meta" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": true
+    },
+    {
+      "id": "arena-tierlist-subscriber",
+      "routeId": "tierlist",
+      "path": "/tierlist",
+      "access": "subscriber",
+      "state": "content",
+      "ready": { "selector": ".hs-tier-card" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": true
+    },
+    {
+      "id": "admin-parser-admin",
+      "routeId": "admin-panel",
+      "path": "/admin?section=standard-data",
+      "access": "admin",
+      "state": "content",
+      "ready": { "selector": ".admin-parser-control" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": true
+    }
+  ]
+}
