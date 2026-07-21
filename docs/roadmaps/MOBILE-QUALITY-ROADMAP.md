@@ -13,7 +13,18 @@
 - Реальный HTTP 404, overflow diagnostics, runtime errors, axe и touch-target audit входят в один проверяемый сценарий.
 - Общий header закреплён высотой 49 px; поиск и FAQ имеют touch area не меньше 44×44 px.
 - Восемь ссылок footer имеют touch area не меньше 44×44 px и двухколоночный compact layout без page overflow.
-- Число известных touch-target нарушений во всей P0-матрице снижено с 1408 до 478. Ratchet `143 / 143 / 192` по трём профилям блокирует повторный рост.
+- Число известных touch-target нарушений во всей P0-матрице снижено с 1408 до 320. Ratchet `89 / 89 / 142` по трём профилям блокирует повторный рост.
+- Ключевые Arena-страницы прошли 99 responsive-сценариев; на Classes, Tier List и Legendaries достигнуто ноль touch-target нарушений при сохранении desktop-плотности.
+- Панель парсеров проверена на 320/430 px и при 200% reflow: mode/scope, ручной запуск, runtime systemd, ошибки и audit доступны без page overflow и с целями не меньше 44 px.
+
+### Ближайший порядок P0 mobile
+
+1. Завершить shared dialog/sheet/image primitives (`MOB-101–106`) и запретить новые локальные overlay-контракты.
+2. Перенести deep search, filters и profile/auth на keyboard-safe sheet flow (`MOB-201–205`, `MOB-301`) с focus restore и browser back.
+3. Закрыть Cards/DeckView (`MOB-302–407`): card reflow, no-white-strip images, touch preview, единый lightbox, 30/40-card fixtures и flow-paywall.
+4. Пройти оставшиеся Arena/BG/Admin маршруты (`MOB-501–506`) на 320/360/390/412/768 px, landscape, long Russian copy и slow/error/empty states.
+5. Включить cross-browser и accessibility gate (`MOB-601–606`): Chromium/WebKit/Firefox, VoiceOver/TalkBack, 200% zoom, reduced motion и реальные iOS/Android устройства.
+6. Утвердить mobile performance budgets из field RUM; выпуск не проходит при регрессии p75 CWV, overflow, axe или touch ratchet.
 
 ## 1. Цель
 

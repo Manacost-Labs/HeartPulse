@@ -50,6 +50,7 @@ const client: AdminParserControlClient = {
 };
 
 const audits: Array<{ action: string; entityId: string; details?: Record<string, unknown> }> = [];
+const auditReadLimits: number[] = [];
 const adminGuard: RequestHandler = (request, response, next) => request.headers['x-admin'] === 'yes'
   ? next()
   : response.status(403).end();
@@ -65,6 +66,23 @@ app.use('/api', createAdminParserControlRouter({
   },
   setPrivateNoStore: response => response.set('Cache-Control', 'private, no-store'),
   recordAudit: (_actor, action, entityId, details) => audits.push({ action, entityId, details }),
+  listAudit: limit => {
+    auditReadLimits.push(limit);
+    return [{
+      id: 'audit-1',
+      actor: { id: 'admin-1', name: 'Администратор' },
+      action: 'parser-control.policy.update',
+      entityId: 'early',
+      details: {
+        summary: 'Включена ранняя мета',
+        revision: 5,
+        requestId: 'audit-policy-request',
+        before: { revision: 4 },
+        after: { revision: 5, mode: 'early' },
+      },
+      createdAt: '2026-07-21T10:00:00.000Z',
+    }];
+  },
 }));
 
 const server = app.listen(0, '127.0.0.1');
@@ -77,12 +95,37 @@ assert.ok(address && typeof address === 'object');
 const url = `http://127.0.0.1:${address.port}/api/admin/parser-control`;
 
 try {
-  assert.equal((await fetch(url)).status, 403, 'all parser controls stay behind full-admin guard');
+  const forbidden = await fetch(url);
+  assert.equal(forbidden.status, 403, 'all parser controls stay behind full-admin guard');
+  assert.equal(forbidden.headers.get('cache-control'), 'private, no-store');
+
+  const forbiddenAudit = await fetch(`${url}/audit`);
+  assert.equal(forbiddenAudit.status, 403, 'the audit log stays behind the same full-admin guard');
+  assert.equal(forbiddenAudit.headers.get('cache-control'), 'private, no-store');
 
   const status = await fetch(url, { headers: { 'X-Admin': 'yes' } });
   assert.equal(status.status, 200);
   assert.equal(status.headers.get('cache-control'), 'private, no-store');
   assert.deepEqual(await status.json(), { revision: 4, policy: { mode: 'stable' }, sections: [] });
+
+  const audit = await fetch(`${url}/audit?limit=250`, { headers: { 'X-Admin': 'yes' } });
+  assert.equal(audit.status, 200);
+  assert.equal(audit.headers.get('cache-control'), 'private, no-store');
+  assert.equal(auditReadLimits.at(-1), 100, 'audit limits are bounded before reaching the store');
+  assert.deepEqual((await audit.json() as { entries: unknown[] }).entries[0], {
+    id: 'audit-1',
+    actor: { id: 'admin-1', name: 'Администратор' },
+    action: 'parser-control.policy.update',
+    entityId: 'early',
+    details: {
+      summary: 'Включена ранняя мета',
+      revision: 5,
+      requestId: 'audit-policy-request',
+      before: { revision: 4 },
+      after: { revision: 5, mode: 'early' },
+    },
+    createdAt: '2026-07-21T10:00:00.000Z',
+  });
 
   const missingCsrf = await fetch(`${url}/policy`, {
     method: 'PATCH',
@@ -94,6 +137,7 @@ try {
     body: JSON.stringify({ mode: 'stable', expectedRevision: 4 }),
   });
   assert.equal(missingCsrf.status, 403, 'cookie-authenticated mutations require X-CSRF-Request');
+  assert.equal(missingCsrf.headers.get('cache-control'), 'private, no-store');
 
   const invalidCsrf = await fetch(`${url}/sections`, {
     method: 'PATCH',
@@ -116,6 +160,7 @@ try {
     body: JSON.stringify({ mode: 'instant', expectedRevision: 4 }),
   });
   assert.equal(invalidPolicy.status, 400);
+  assert.equal(invalidPolicy.headers.get('cache-control'), 'private, no-store');
 
   const invalidRevision = await fetch(`${url}/policy`, {
     method: 'PATCH',
@@ -124,12 +169,13 @@ try {
   });
   assert.equal(invalidRevision.status, 400);
 
+  const earlyUntil = new Date(Date.now() + 48 * 60 * 60_000).toISOString();
   const earlyPolicy = await fetch(`${url}/policy`, {
     method: 'PATCH',
-    headers: mutationHeaders(),
+    headers: mutationHeaders({ 'X-Request-ID': 'audit-policy-request' }),
     body: JSON.stringify({
       mode: 'early',
-      earlyUntil: new Date(Date.now() + 48 * 60 * 60_000).toISOString(),
+      earlyUntil,
       reason: 'Балансный патч',
       expectedRevision: 4,
     }),
@@ -185,6 +231,22 @@ try {
     'parser-control.sections.update',
     'parser-control.run.create',
   ]);
+  assert.deepEqual(audits[0]?.details, {
+    summary: 'Включена ранняя мета',
+    requestId: 'audit-policy-request',
+    revision: 5,
+    before: { revision: 4 },
+    after: {
+      revision: 5,
+      mode: 'early',
+      earlyUntil,
+      reason: 'Балансный патч',
+    },
+    earlyUntil,
+    reason: 'Балансный патч',
+    expectedRevision: 4,
+  });
+  assert.equal(audits[2]?.entityId, 'run-1', 'manual runs are correlated with their durable run id');
 } finally {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 }
@@ -196,6 +258,7 @@ unavailableApp.use('/api', createAdminParserControlRouter({
   csrfAllowed,
   client: { ...client, configured: false },
   invalidateParserDataCaches: async () => undefined,
+  listAudit: () => [{ id: 'offline-audit' }],
   setPrivateNoStore: response => response.set('Cache-Control', 'private, no-store'),
 }));
 const unavailableServer = unavailableApp.listen(0, '127.0.0.1');
@@ -210,12 +273,85 @@ try {
     headers: { 'X-Admin': 'yes' },
   });
   assert.equal(response.status, 503);
+  assert.equal(response.headers.get('cache-control'), 'private, no-store');
   assert.deepEqual(await response.json(), {
     code: 'HS_DATA_API_NOT_CONFIGURED',
     error: 'Управление парсерами ещё не подключено к API данных',
   });
+  const audit = await fetch(`http://127.0.0.1:${unavailableAddress.port}/api/admin/parser-control/audit`, {
+    headers: { 'X-Admin': 'yes' },
+  });
+  assert.equal(audit.status, 200, 'local audit remains readable while the data API is unconfigured');
+  assert.deepEqual(await audit.json(), { entries: [{ id: 'offline-audit' }] });
 } finally {
   await new Promise<void>((resolve, reject) => unavailableServer.close(error => error ? reject(error) : resolve()));
+}
+
+const missingIdentityApp = express();
+missingIdentityApp.use(express.json());
+missingIdentityApp.use('/api', createAdminParserControlRouter({
+  adminGuard: (_request, _response, next) => next(),
+  adminAuth: () => null,
+  csrfAllowed,
+  client,
+  invalidateParserDataCaches: async () => undefined,
+  setPrivateNoStore: response => response.set('Cache-Control', 'private, no-store'),
+}));
+const missingIdentityServer = missingIdentityApp.listen(0, '127.0.0.1');
+await new Promise<void>((resolve, reject) => {
+  missingIdentityServer.once('listening', resolve);
+  missingIdentityServer.once('error', reject);
+});
+const missingIdentityAddress = missingIdentityServer.address();
+assert.ok(missingIdentityAddress && typeof missingIdentityAddress === 'object');
+try {
+  const response = await fetch(
+    `http://127.0.0.1:${missingIdentityAddress.port}/api/admin/parser-control/policy`,
+    {
+      method: 'PATCH',
+      headers: mutationHeaders(),
+      body: JSON.stringify({ mode: 'stable', expectedRevision: 4 }),
+    },
+  );
+  assert.equal(response.status, 401);
+  assert.equal(response.headers.get('cache-control'), 'private, no-store');
+} finally {
+  await new Promise<void>((resolve, reject) => missingIdentityServer.close(error => error ? reject(error) : resolve()));
+}
+
+const auditReadWarnings: Array<{ scope: string; action?: string }> = [];
+const auditReadFailureApp = express();
+auditReadFailureApp.use('/api', createAdminParserControlRouter({
+  adminGuard,
+  adminAuth: () => ({ id: 'admin-1' }),
+  csrfAllowed,
+  client,
+  invalidateParserDataCaches: async () => undefined,
+  listAudit: () => { throw new Error('/private/admin-audit.sqlite is locked'); },
+  onWarning: (scope, _error, context) => auditReadWarnings.push({ scope, action: context?.action }),
+  setPrivateNoStore: response => response.set('Cache-Control', 'private, no-store'),
+}));
+const auditReadFailureServer = auditReadFailureApp.listen(0, '127.0.0.1');
+await new Promise<void>((resolve, reject) => {
+  auditReadFailureServer.once('listening', resolve);
+  auditReadFailureServer.once('error', reject);
+});
+const auditReadFailureAddress = auditReadFailureServer.address();
+assert.ok(auditReadFailureAddress && typeof auditReadFailureAddress === 'object');
+try {
+  const response = await fetch(
+    `http://127.0.0.1:${auditReadFailureAddress.port}/api/admin/parser-control/audit`,
+    { headers: { 'X-Admin': 'yes' } },
+  );
+  assert.equal(response.status, 503);
+  assert.equal(response.headers.get('cache-control'), 'private, no-store');
+  assert.deepEqual(await response.json(), {
+    code: 'PARSER_AUDIT_UNAVAILABLE',
+    error: 'Журнал действий временно недоступен',
+  }, 'internal database paths must not leak through the BFF');
+  assert.deepEqual(auditReadWarnings, [{ scope: 'audit', action: 'parser-control.audit.read' }]);
+} finally {
+  await new Promise<void>((resolve, reject) => auditReadFailureServer.close(error => error ? reject(error) : resolve()));
 }
 
 const warnings: Array<{ scope: string; error: unknown }> = [];

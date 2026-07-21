@@ -1,4 +1,5 @@
 import type {
+  ParserAuditEntry,
   ParserControlSnapshot,
   ParserHealth,
   ParserPublicationChannel,
@@ -15,6 +16,11 @@ type UnknownRecord = Record<string, unknown>;
 
 function record(value: unknown): UnknownRecord {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as UnknownRecord : {};
+}
+
+function optionalRecord(value: unknown): UnknownRecord | null {
+  const result = record(value);
+  return Object.keys(result).length ? result : null;
 }
 
 function valueOf(source: UnknownRecord, ...keys: string[]): unknown {
@@ -44,6 +50,14 @@ function boolValue(value: unknown, fallback = false): boolean {
   if (value === 1 || value === '1' || value === 'true') return true;
   if (value === 0 || value === '0' || value === 'false') return false;
   return fallback;
+}
+
+function nullableBoolValue(value: unknown): boolean | null {
+  if (value == null) return null;
+  if (typeof value === 'boolean') return value;
+  if (value === 1 || value === '1' || value === 'true') return true;
+  if (value === 0 || value === '0' || value === 'false') return false;
+  return null;
 }
 
 function numberValue(value: unknown): number | null {
@@ -126,10 +140,38 @@ export function normalizeParserWarnings(value: unknown): ParserControlSnapshot['
   }).filter(warning => warning.message);
 }
 
+export function normalizeParserAudit(value: unknown): ParserAuditEntry[] {
+  const root = record(value);
+  const entries = Array.isArray(value) ? value : valueOf(root, 'entries', 'audit', 'items');
+  if (!Array.isArray(entries)) return [];
+  return entries.slice(0, 100).map((item, index) => {
+    const entry = record(item);
+    const actor = record(entry.actor);
+    const details = record(entry.details);
+    const before = optionalRecord(valueOf(entry, 'before') ?? details.before);
+    const after = optionalRecord(valueOf(entry, 'after') ?? details.after);
+    return {
+      id: textValue(valueOf(entry, 'id', 'auditId', 'audit_id'), `audit-${index + 1}`),
+      actorId: textValue(valueOf(actor, 'id', 'userId', 'user_id') ?? valueOf(entry, 'actorId', 'actor_id')),
+      actorName: textValue(valueOf(actor, 'name', 'label') ?? valueOf(entry, 'actorName', 'actor_name')),
+      action: textValue(entry.action),
+      entityId: textValue(valueOf(entry, 'entityId', 'entity_id')),
+      revision: numberValue(valueOf(entry, 'revision') ?? details.revision ?? after?.revision ?? details.expectedRevision),
+      requestId: textValue(valueOf(entry, 'requestId', 'request_id') ?? valueOf(details, 'requestId', 'request_id')),
+      createdAt: dateValue(valueOf(entry, 'createdAt', 'created_at', 'timestamp', 'ts')),
+      summary: textValue(valueOf(entry, 'summary') ?? details.summary),
+      before,
+      after,
+      details,
+    };
+  });
+}
+
 function normalizeSchedule(value: unknown, fallbackId: string): ParserSchedule {
   const schedule = record(value);
   const id = textValue(valueOf(schedule, 'id', 'scheduleId', 'schedule_id', 'unit'), fallbackId);
-  const activeValue = valueOf(schedule, 'enabled', 'active', 'isActive', 'is_active');
+  const enabledValue = valueOf(schedule, 'enabled');
+  const legacyActiveValue = valueOf(schedule, 'isActive', 'is_active');
   const calendarEntries = textArray(valueOf(schedule, 'onCalendar', 'on_calendar'));
   const explicitTrigger = textValue(valueOf(
     schedule,
@@ -142,14 +184,33 @@ function normalizeSchedule(value: unknown, fallbackId: string): ParserSchedule {
     id,
     label: textValue(valueOf(schedule, 'label', 'name', 'title'), id),
     description: textValue(valueOf(schedule, 'description', 'caption', 'notes')),
-    enabled: activeValue == null
-      ? null
-      : boolValue(activeValue),
+    enabled: enabledValue !== undefined
+      ? nullableBoolValue(enabledValue)
+      : legacyActiveValue == null ? null : boolValue(legacyActiveValue),
     trigger: explicitTrigger || (calendarEntries.length === 1 ? calendarEntries[0] ?? '' : ''),
     calendarEntries,
     systemdUnit: textValue(valueOf(schedule, 'systemdUnit', 'systemd_unit', 'unit')),
     timezone: textValue(valueOf(schedule, 'timezone', 'timeZone', 'time_zone'), 'UTC'),
     nextRunAt: dateValue(valueOf(schedule, 'nextRunAt', 'next_run_at', 'nextAt', 'next_at')),
+    nominalNextRunAt: dateValue(valueOf(schedule, 'nominalNextRunAt', 'nominal_next_run_at')),
+    nextRunAtSource: textValue(valueOf(schedule, 'nextRunAtSource', 'next_run_at_source')) === 'runtime'
+      ? 'runtime'
+      : textValue(valueOf(schedule, 'nextRunAtSource', 'next_run_at_source')) === 'nominal'
+        ? 'nominal'
+        : '',
+    nominalActive: boolValue(legacyActiveValue),
+    runtimeStateAvailable: boolValue(valueOf(schedule, 'runtimeStateAvailable', 'runtime_state_available')),
+    active: nullableBoolValue(valueOf(schedule, 'active')),
+    lastRunAt: dateValue(valueOf(schedule, 'lastRunAt', 'last_run_at')),
+    failure: textValue(valueOf(schedule, 'failure')),
+    loadState: textValue(valueOf(schedule, 'loadState', 'load_state')),
+    activeState: textValue(valueOf(schedule, 'activeState', 'active_state')),
+    subState: textValue(valueOf(schedule, 'subState', 'sub_state')),
+    unitFileState: textValue(valueOf(schedule, 'unitFileState', 'unit_file_state')),
+    result: textValue(valueOf(schedule, 'result')),
+    serviceUnit: textValue(valueOf(schedule, 'serviceUnit', 'service_unit')),
+    serviceActiveState: textValue(valueOf(schedule, 'serviceActiveState', 'service_active_state')),
+    serviceResult: textValue(valueOf(schedule, 'serviceResult', 'service_result')),
     temporaryUntil: dateValue(valueOf(
       schedule,
       'temporaryUntil',
@@ -203,6 +264,21 @@ function normalizeSchedules(root: UnknownRecord, sections: ParserSection[]): {
           systemdUnit: '',
           timezone: 'UTC',
           nextRunAt: section.nextRunAt,
+          nominalNextRunAt: section.nextRunAt,
+          nextRunAtSource: 'nominal' as const,
+          nominalActive: true,
+          runtimeStateAvailable: false,
+          active: null,
+          lastRunAt: null,
+          failure: '',
+          loadState: '',
+          activeState: '',
+          subState: '',
+          unitFileState: '',
+          result: '',
+          serviceUnit: '',
+          serviceActiveState: '',
+          serviceResult: '',
           temporaryUntil: null,
           sectionIds: [section.id],
           sourceIds: section.sources.map(source => source.id),
@@ -220,6 +296,21 @@ function normalizeSchedules(root: UnknownRecord, sections: ParserSection[]): {
           systemdUnit: '',
           timezone: 'UTC',
           nextRunAt: source.nextRunAt,
+          nominalNextRunAt: source.nextRunAt,
+          nextRunAtSource: 'nominal' as const,
+          nominalActive: true,
+          runtimeStateAvailable: false,
+          active: null,
+          lastRunAt: null,
+          failure: '',
+          loadState: '',
+          activeState: '',
+          subState: '',
+          unitFileState: '',
+          result: '',
+          serviceUnit: '',
+          serviceActiveState: '',
+          serviceResult: '',
           temporaryUntil: null,
           sectionIds: [section.id],
           sourceIds: [source.id],
@@ -268,6 +359,11 @@ export function normalizeParserControl(value: unknown): ParserControlSnapshot {
   const sources = sections.flatMap(section => section.sources);
   const upstreamSummary = record(root.summary);
   const inventoryRecord = record(valueOf(root, 'scheduleInventory', 'schedule_inventory'));
+  const runtimeRecord = record(valueOf(
+    inventoryRecord,
+    'runtimeTimerState',
+    'runtime_timer_state',
+  ));
   const scheduleInventory = normalizeSchedules(root, sections);
   return {
     revision: numberValue(root.revision) ?? 0,
@@ -300,6 +396,15 @@ export function normalizeParserControl(value: unknown): ParserControlSnapshot {
       'runtimeTimerStateIncluded',
       'runtime_timer_state_included',
     )),
+    scheduleRuntimeState: {
+      provider: textValue(runtimeRecord.provider),
+      checkedAt: dateValue(valueOf(runtimeRecord, 'checkedAt', 'checked_at')),
+      available: boolValue(runtimeRecord.available),
+      status: ['ok', 'partial', 'unavailable'].includes(textValue(runtimeRecord.status))
+        ? textValue(runtimeRecord.status) as 'ok' | 'partial' | 'unavailable'
+        : '',
+      reason: textValue(runtimeRecord.reason),
+    },
     summary: {
       totalSources: numberValue(valueOf(upstreamSummary, 'totalSources', 'total_sources')) ?? sources.length,
       enabledSections: numberValue(valueOf(upstreamSummary, 'enabledSections', 'enabled_sections'))

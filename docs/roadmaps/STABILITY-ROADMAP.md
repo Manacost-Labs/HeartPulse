@@ -3,6 +3,7 @@
 # Дорожная карта стабильности Manacost Stats
 
 Дата аудита: 20 июля 2026 года
+Обновлено: 21 июля 2026 года
 Горизонт: 90 дней для P0/P1, затем квартальный цикл
 Область: frontend, Express API, данные парсеров, кэши, деплой и эксплуатация
 
@@ -152,9 +153,22 @@ data
 | STAB-201 | В работе | Standard Meta получила envelope v1, deterministic `datasetVersion`, vendor content negotiation, server outbound validation и client boundary validation с N/N-1 legacy fallback | Перенести контракт на остальные критические Standard/Arena/BG datasets и определить migration window |
 | STAB-202 | В работе | Для Standard Meta проверяются enum/ranges, уникальность, даты, полнота stable, массовые 97–100%, minimum rows и сокращение stable более чем на 50% | Добавить cross-source gates и покрыть Standard Cards, Arena и BG |
 | STAB-204 | В работе | Standard Meta переносит публикационный `early/stable` mode из конкретного upstream candidate; UI явно показывает early/partial | API данных должен закрепить publication channel как обязательное поле всех published snapshots |
+| STAB-205 | Выполнено | Full-admin панель хранит mode/scope с revision, reason и TTL; все ответы private/no-store; добавлены локальный audit log, реальное состояние systemd и mobile/reflow UI | Эксплуатационно проверить новый exporter после следующего разрешённого production deploy |
 | STAB-206 | В работе | Невалидный Standard Meta candidate не заменяет последнюю проверенную in-process версию; fallback получает реальный freshness | Добавить durable last-known-good после restart и ограниченный stale policy |
+| STAB-307 | В работе | Ручные terminal runs после restart обнаруживаются durable reconciler, coalesce одну глобальную очистку, повторяют временный сбой с backoff и карантинят повреждённый ledger | Перейти от polling к общему событию `dataset.published` для всех автоматических и ручных публикаций |
 
 Совместимость Standard Meta: новый клиент запрашивает `application/vnd.manacost.standard-meta.v1+json`; обычный `Accept` получает прежнее тело, а новый клиент строго проверяет legacy body только при полном отсутствии `schemaVersion`. Неизвестная версия никогда не маскируется как legacy.
+
+Проверенное доказательство parser-control среза: full-admin/RBAC/CSRF/no-store contract tests, retry/restart/corrupt-state/clock-rollback tests, API runtime tests, production build и browser QA на 320/430 px и 200% reflow. Runtime exporter работает без root и без доступа к Docker socket; при устаревшем снимке UI явно возвращается к номинальному плану.
+
+### Ближайший порядок P0 стабилизации
+
+1. Закрыть `STAB-202/203/206` для Standard Cards, Arena и BG: versioned schema, quarantine и durable last-known-good до расширения функциональности.
+2. Завершить `STAB-301–305`: единые cache keys, publication event и synthetic coherence check; polling reconciler оставить страховочной сеткой.
+3. Подключить `STAB-105/401–407`: внешний browser error collector, постоянные метрики, data freshness и production synthetic каждые пять минут.
+4. Закрыть route/widget boundaries по inventory и добавить fault E2E для API 500, timeout, corrupt snapshot, Redis outage и vendor DeckView failure.
+5. Провести `STAB-502–505`: shadow verify, post-switch observation gate и проверяемый rollback кода вместе с совместимой schema данных.
+6. Выполнить clean-host restore drill и только после подтверждённых RPO/RTO считать платформу готовой к снятию beta-ограничений.
 
 ### Фаза 1 — локализация frontend-ошибок, недели 1–3
 

@@ -92,6 +92,11 @@ import { createAdminStandardOperationsRouter, type StandardCacheTarget } from '.
 import { createAdminParserControlRouter } from './adminParserControlRoutes.js';
 import { createHsDataParserControlClient } from './hsDataParserControlClient.js';
 import { invalidateParserDataCaches as clearParserDataCaches } from './parserDataCacheInvalidation.js';
+import {
+  createParserRunReconciler,
+  createParserRunReconciliationFileStore,
+  startParserRunRecoveryLoop,
+} from './parserRunReconciler.js';
 import { createAdminArticleRouter, writeArticlesFile } from './adminArticleRoutes.js';
 import { createAdminContestMutationRouter } from './adminContestMutationRoutes.js';
 import {
@@ -3186,6 +3191,44 @@ function recordAdminAuditByActorId(actorUserId: string, action: string, entityTy
 
 function recordAdminAudit(actor: AdminUser, action: string, entityType: string, entityId: string, details: Record<string, unknown> = {}) {
   recordAdminAuditByActorId(actor.id, action, entityType, entityId, details);
+}
+
+function listParserControlAudit(limit: number) {
+  const safeLimit = Math.max(1, Math.min(100, Math.trunc(limit) || 30));
+  const rows = dbAll<{
+    id: number;
+    actor_user_id: string;
+    actor_name: string | null;
+    action: string;
+    entity_id: string;
+    details_json: string;
+    created_at: string;
+  }>(`
+    SELECT
+      audit.id,
+      audit.actor_user_id,
+      users.name AS actor_name,
+      audit.action,
+      audit.entity_id,
+      audit.details_json,
+      audit.created_at
+    FROM admin_audit_log AS audit
+    LEFT JOIN users ON users.id = audit.actor_user_id
+    WHERE audit.entity_type = 'parser-control'
+    ORDER BY audit.created_at DESC, audit.id DESC
+    LIMIT ?
+  `, safeLimit);
+  return rows.map(row => ({
+    id: String(row.id),
+    actor: {
+      id: String(row.actor_user_id || ''),
+      name: String(row.actor_name || '').trim(),
+    },
+    action: String(row.action || ''),
+    entityId: String(row.entity_id || ''),
+    details: safeJsonObject(row.details_json),
+    createdAt: String(row.created_at || ''),
+  }));
 }
 
 function cookieMutationCsrfAllowed(req: import('express').Request): boolean {
@@ -8742,6 +8785,16 @@ async function invalidateParserControlledDataCaches(): Promise<void> {
   });
 }
 
+const parserRunReconciler = createParserRunReconciler({
+  listRuns: hsDataParserControlClient.listRuns,
+  invalidate: invalidateParserControlledDataCaches,
+  stateStore: createParserRunReconciliationFileStore(DATA_DIR),
+  onWarning: (scope, error, runId) => console.warn(
+    `[parser-control] reconciliation scope=${scope} runId=${runId}:`,
+    error instanceof Error ? error.message : error,
+  ),
+});
+
 app.use('/api', createAdminParserControlRouter({
   adminGuard: adminIdGuard,
   adminAuth,
@@ -8749,6 +8802,7 @@ app.use('/api', createAdminParserControlRouter({
   client: hsDataParserControlClient,
   invalidateParserDataCaches: invalidateParserControlledDataCaches,
   setPrivateNoStore,
+  runReconciler: parserRunReconciler,
   onWarning: (scope, error, context) => console.warn(
     `[parser-control] ${scope} requestId=${context?.requestId ?? 'unknown'} action=${context?.action ?? 'unknown'}:`,
     error instanceof Error ? error.message : error,
@@ -8760,6 +8814,7 @@ app.use('/api', createAdminParserControlRouter({
     entityId,
     details,
   ),
+  listAudit: listParserControlAudit,
 }));
 
 app.use('/api', createAdminImageGenerationRouter({
@@ -8788,10 +8843,25 @@ cron.schedule('*/30 * * * *', async () => {
   }
 });
 
-app.listen(PORT, HOST, () => {
+const httpServer = app.listen(PORT, HOST, () => {
   console.log(`[Server] API server running on http://${HOST || 'localhost'}:${PORT}`);
   console.log(`[Server] Blizzard card images: ${blizzardCardImages.configured ? 'enabled' : 'disabled (HearthstoneJSON fallback)'}`);
   console.log('[Server] Scraping is isolated in hs-arena-scraper.service. Trigger queue: POST /api/scrape');
+
+  if (hsDataParserControlClient.configured) {
+    const parserRunRecoveryLoop = startParserRunRecoveryLoop({
+      reconciler: parserRunReconciler,
+      onWarning: error => console.warn(
+        '[parser-control] periodic reconciliation failed:',
+        error instanceof Error ? error.message : error,
+      ),
+    });
+    httpServer.once('close', () => parserRunRecoveryLoop.stop());
+    void parserRunRecoveryLoop.runNow()
+      .then(count => {
+        if (count > 0) console.log(`[parser-control] resumed or reconciled ${count} manual run(s)`);
+      });
+  }
 
   const mailingResumeTimer = setTimeout(() => resumeNewsletterCampaigns(), 1500);
   mailingResumeTimer.unref?.();

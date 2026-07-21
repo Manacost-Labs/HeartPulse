@@ -55,6 +55,17 @@
 - Недостоверные ручные `lastmod`, `changefreq` и `priority` удалены. Реальный `lastmod` появится только вместе с publication metadata сущностей.
 - Detail-карты намеренно не добавлены в materialized SEO-реестр или sitemap до отдельного `SEO-203`; SSR resolver, authoritative 404/503 и тесты на утечку уже готовы.
 
+### Ближайший порядок P0 SEO
+
+1. Закрыть `SEO-103–105`: server-side `noindex` для admin/auth, реальные 404/410, единый slash/redirect contract и robots policy.
+2. Реализовать `SEO-202`: SSR и валидные entity snapshots для героев и BG detail pages с fail-closed 404/503.
+3. После crawl-проверки каждого detail URL выполнить `SEO-203/204`: sitemap index по типам сущностей и настоящий `lastmod` из publication metadata.
+4. Закрыть `SEO-301/302`: публичный teaser paywall и автоматический тест, доказывающий отсутствие закрытых чисел, deck codes и subscriber payload в HTML/JSON-LD.
+5. Подключить `SEO-501` и исправлять CWV только по field p75: LCP, INP и CLS отдельно для route template, mobile/desktop и release.
+6. Запустить `SEO-601/602`: Search Console + Яндекс baseline, ежедневный SEO synthetic и алерт на status/canonical/sitemap/schema regression.
+
+Каждый пункт выходит отдельным вертикальным срезом: реализация, HTML-contract tests, crawl без JavaScript, production HTTP smoke и измеримый rollback. Массовое добавление detail URL в sitemap запрещено до прохождения этих ворот.
+
 ## 4. Целевая SEO-архитектура
 
 ### 4.1. Один источник правды

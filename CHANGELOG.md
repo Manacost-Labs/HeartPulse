@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Hardened the full-admin parser panel with private no-store headers on every response, real systemd timer health, restart-safe manual-run reconciliation, and a responsive lazy-loaded audit journal with actor, action, revision, request correlation, timestamp and change context without exposing the data-API key.
 - Expanded Arena controls to a tested 44×44 mobile target across 320/390/768 widths, made tier-list and legendary cards keyboard-native buttons, covered every class in browser fixtures, and reduced the all-P0 undersized-target ratchet from 478 to 320 while reaching zero findings on subscriber Classes, Tier List and Legendaries pages.
 - Added authoritative server-rendered Standard/Wild card detail HTML with public-only catalog projection, unique Russian metadata and schema, strict route validation, real noindex 404/503 responses, client-safe bootstrap handling, and nginx detail proxying while format listings remain static.
 - Added an explicit post-patch early-statistics state to Arena tier lists: provisional upstream metadata survives normalization, receives a five-minute cache policy and metadata-aware ETags, and displays a compact Russian low-sample notice without changing subscription access. A loopback-only, proxy-rejecting POST endpoint can now refresh each tier-list cache immediately after upstream publication without storing another secret or exposing the subscriber API.

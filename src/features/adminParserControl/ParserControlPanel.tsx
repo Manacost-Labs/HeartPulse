@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { AdminMessage } from '../adminWorkspaceState';
 import {
   createParserRun,
+  loadParserAudit,
   loadParserControlBundle,
   loadParserRuns,
   updateParserPolicy,
@@ -11,10 +12,19 @@ import { EarlyMetaDialog } from './EarlyMetaDialog';
 import { parserControlWarningMessage, toParserControlError, type ParserControlError } from './error';
 import { ParserControlAlerts, ParserControlInitialError, ParserControlLoading } from './ParserControlStatus';
 import { ParserRunsCard } from './ParserRunsCard';
-import { ParserScheduleCard } from './ParserScheduleCard';
 import { ParserSectionsCard } from './ParserSectionsCard';
 import { PublicationPolicyCard } from './PublicationPolicyCard';
-import type { ParserControlSnapshot, ParserRun } from './types';
+import type { ParserAuditEntry, ParserControlSnapshot, ParserRun } from './types';
+
+const ParserScheduleCard = React.lazy(async () => {
+  const module = await import('./ParserScheduleCard');
+  return { default: module.ParserScheduleCard };
+});
+
+const ParserAuditCard = React.lazy(async () => {
+  const module = await import('./ParserAuditCard');
+  return { default: module.ParserAuditCard };
+});
 
 const ACTIVE_RUN_STATUSES = new Set<ParserRun['status']>(['queued', 'running']);
 
@@ -75,21 +85,26 @@ export async function pollActiveParserRuns({
 export function ParserControlPanel({ onMessage }: { onMessage: (message: AdminMessage | null) => void }) {
   const [snapshot, setSnapshot] = useState<ParserControlSnapshot | null>(null);
   const [runs, setRuns] = useState<ParserRun[]>([]);
+  const [audit, setAudit] = useState<ParserAuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [auditLoading, setAuditLoading] = useState(true);
   const [error, setError] = useState<ParserControlError | null>(null);
   const [runsError, setRunsError] = useState<ParserControlError | null>(null);
+  const [auditError, setAuditError] = useState<ParserControlError | null>(null);
   const [savingPolicy, setSavingPolicy] = useState(false);
   const [savingSections, setSavingSections] = useState(false);
   const [startingRun, setStartingRun] = useState(false);
   const [earlyDialogOpen, setEarlyDialogOpen] = useState(false);
   const settledRefreshController = useRef<AbortController | null>(null);
+  const auditRefreshController = useRef<AbortController | null>(null);
   const hasActiveRun = hasActiveRuns(runs);
 
   const load = useCallback(async (signal?: AbortSignal, quiet = false) => {
     if (quiet) setRefreshing(true); else setLoading(true);
+    setAuditLoading(true);
     try {
-      const { control: controlResult, runs: runsResult } = await loadParserControlBundle(signal);
+      const { control: controlResult, runs: runsResult, audit: auditResult } = await loadParserControlBundle(signal);
       if (signal?.aborted) return;
       if (controlResult.status === 'fulfilled') {
         setSnapshot(controlResult.value);
@@ -103,10 +118,17 @@ export function ParserControlPanel({ onMessage }: { onMessage: (message: AdminMe
       } else {
         setRunsError(toParserControlError(runsResult.reason));
       }
+      if (auditResult.status === 'fulfilled') {
+        setAudit(auditResult.value);
+        setAuditError(null);
+      } else {
+        setAuditError(toParserControlError(auditResult.reason));
+      }
     } finally {
       if (!signal?.aborted) {
         setLoading(false);
         setRefreshing(false);
+        setAuditLoading(false);
       }
     }
   }, []);
@@ -120,6 +142,28 @@ export function ParserControlPanel({ onMessage }: { onMessage: (message: AdminMe
   useEffect(() => () => {
     settledRefreshController.current?.abort();
     settledRefreshController.current = null;
+    auditRefreshController.current?.abort();
+    auditRefreshController.current = null;
+  }, []);
+
+  const refreshAudit = useCallback(async () => {
+    const controller = new AbortController();
+    auditRefreshController.current?.abort();
+    auditRefreshController.current = controller;
+    setAuditLoading(true);
+    try {
+      const entries = await loadParserAudit(controller.signal);
+      if (controller.signal.aborted) return;
+      setAudit(entries);
+      setAuditError(null);
+    } catch (caught) {
+      if (!controller.signal.aborted) setAuditError(toParserControlError(caught));
+    } finally {
+      if (auditRefreshController.current === controller) {
+        auditRefreshController.current = null;
+        setAuditLoading(false);
+      }
+    }
   }, []);
 
   const refreshAfterSettledRun = useCallback(async () => {
@@ -162,6 +206,7 @@ export function ParserControlPanel({ onMessage }: { onMessage: (message: AdminMe
       onMessage(warning
         ? { type: 'err', text: warning }
         : { type: 'ok', text: mode === 'early' ? 'Ранняя мета включена.' : 'Стабильная мета включена.' });
+      void refreshAudit();
     } catch (caught) {
       onMessage({ type: 'err', text: toParserControlError(caught).message || 'Не удалось изменить режим публикации' });
       if ((caught as { status?: number })?.status === 409) void load(undefined, true);
@@ -180,6 +225,7 @@ export function ParserControlPanel({ onMessage }: { onMessage: (message: AdminMe
       onMessage(warning
         ? { type: 'err', text: warning }
         : { type: 'ok', text: 'Настройки автообновления сохранены.' });
+      void refreshAudit();
     } catch (caught) {
       onMessage({ type: 'err', text: toParserControlError(caught).message || 'Не удалось сохранить разделы' });
       if ((caught as { status?: number })?.status === 409) void load(undefined, true);
@@ -209,6 +255,7 @@ export function ParserControlPanel({ onMessage }: { onMessage: (message: AdminMe
       } else {
         onMessage({ type: 'ok', text: 'Выбранные разделы добавлены в очередь обновления.' });
       }
+      void refreshAudit();
     } catch (caught) {
       onMessage({ type: 'err', text: toParserControlError(caught).message || 'Не удалось запустить обновление' });
     } finally {
@@ -250,7 +297,11 @@ export function ParserControlPanel({ onMessage }: { onMessage: (message: AdminMe
         onSelectEarly={() => setEarlyDialogOpen(true)}
       />
       <ParserSectionsCard snapshot={snapshot} saving={savingSections} onSave={sections => void saveSections(sections)} />
-      {snapshot.schedules.length > 0 && <ParserScheduleCard snapshot={snapshot} />}
+      {snapshot.schedules.length > 0 && (
+        <React.Suspense fallback={<p className="admin-parser-empty" role="status">Загружаем состояние расписания…</p>}>
+          <ParserScheduleCard snapshot={snapshot} />
+        </React.Suspense>
+      )}
       <ParserRunsCard
         sections={snapshot.sections}
         runs={runs}
@@ -260,6 +311,18 @@ export function ParserControlPanel({ onMessage }: { onMessage: (message: AdminMe
         onStart={(sectionIds, reason) => void startRun(sectionIds, reason)}
         onRefresh={() => void load(undefined, true)}
       />
+      <React.Suspense fallback={(
+        <section className="contest-admin-card admin-parser-card" aria-label="Журнал изменений">
+          <p className="admin-parser-empty" role="status" aria-live="polite">Готовим журнал изменений…</p>
+        </section>
+      )}>
+        <ParserAuditCard
+          entries={audit}
+          loading={auditLoading}
+          error={auditError?.message ?? null}
+          onRefresh={() => void refreshAudit()}
+        />
+      </React.Suspense>
       <EarlyMetaDialog
         open={earlyDialogOpen}
         initialUntil={snapshot.policy.earlyUntil}

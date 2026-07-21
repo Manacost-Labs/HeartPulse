@@ -9,6 +9,21 @@ export type ParserControlWarning = {
   requestId?: string;
 };
 
+export type ParserAuditEntry = {
+  id: string;
+  actorId: string;
+  actorName: string;
+  action: string;
+  entityId: string;
+  revision: number | null;
+  requestId: string;
+  createdAt: string | null;
+  summary: string;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
+  details: Record<string, unknown>;
+};
+
 export type ParserPublicationPolicy = {
   mode: ParserPublicationMode;
   effectiveMode: ParserPublicationMode;
@@ -71,9 +86,32 @@ export type ParserSchedule = {
   systemdUnit: string;
   timezone: string;
   nextRunAt: string | null;
+  nominalNextRunAt: string | null;
+  nextRunAtSource: 'runtime' | 'nominal' | '';
+  nominalActive: boolean;
+  runtimeStateAvailable: boolean;
+  active: boolean | null;
+  lastRunAt: string | null;
+  failure: string;
+  loadState: string;
+  activeState: string;
+  subState: string;
+  unitFileState: string;
+  result: string;
+  serviceUnit: string;
+  serviceActiveState: string;
+  serviceResult: string;
   temporaryUntil: string | null;
   sectionIds: string[];
   sourceIds: string[];
+};
+
+export type ParserScheduleRuntimeState = {
+  provider: string;
+  checkedAt: string | null;
+  available: boolean;
+  status: 'ok' | 'partial' | 'unavailable' | '';
+  reason: string;
 };
 
 export type ParserControlSnapshot = {
@@ -86,6 +124,7 @@ export type ParserControlSnapshot = {
   scheduleInventoryVersion: string;
   scheduleTimeSemantics: string;
   scheduleRuntimeStateIncluded: boolean;
+  scheduleRuntimeState: ParserScheduleRuntimeState;
   summary: ParserControlSummary;
   warnings: ParserControlWarning[];
 };

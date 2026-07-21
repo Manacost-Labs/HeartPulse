@@ -576,11 +576,15 @@ const adminFixtures = {
       },
     },
     scheduleInventory: {
-      schemaVersion: 1,
-      inventoryVersion: '2026-07-21.1',
+      schemaVersion: 2,
+      inventoryVersion: '2026-07-21.2',
       generatedAt: '2026-07-21T01:00:00.000Z',
-      timeSemantics: 'nominal',
-      runtimeTimerStateIncluded: false,
+      timeSemantics: 'runtime',
+      runtimeTimerStateIncluded: true,
+      runtimeTimerState: {
+        provider: 'host-systemd', checkedAt: '2026-07-21T01:00:00.000Z',
+        available: true, status: 'ok', timingAvailable: true,
+      },
       schedules: [{
         id: 'refresh-post-patch-tierlists',
         label: 'Каждые 5 часов с 21 по 27 июля 2026 года',
@@ -592,7 +596,22 @@ const adminFixtures = {
         timezone: 'Europe/Warsaw',
         sourceIds: ['firestone_arena_cards_normal', 'heartharena_tierlist', 'hsreplay_arena_cards_advanced'],
         sectionIds: ['arena'],
-        nextRunAt: '2026-07-21T03:20:00+00:00',
+        nominalNextRunAt: '2026-07-21T03:20:00+00:00',
+        nextRunAt: '2026-07-21T03:21:00+00:00',
+        nextRunAtSource: 'runtime',
+        runtimeStateAvailable: true,
+        enabled: true,
+        active: true,
+        lastRunAt: '2026-07-20T22:20:00+00:00',
+        failure: null,
+        loadState: 'loaded',
+        activeState: 'active',
+        subState: 'waiting',
+        unitFileState: 'enabled',
+        result: 'success',
+        serviceUnit: 'hs-data-api-docker-refresh-post-patch-tierlists.service',
+        serviceActiveState: 'inactive',
+        serviceResult: 'success',
         validUntil: '2026-07-27T19:20:00+00:00',
         isActive: true,
       }],
@@ -609,6 +628,22 @@ const adminFixtures = {
         source_id: 'hsreplay_arena', state: 'ok', serving_cached_dataset: true, rows_total: 731,
         error: 'Свежий ответ не прошёл проверку качества',
       }],
+    }],
+  },
+  '/api/admin/parser-control/audit': {
+    entries: [{
+      id: 'qa-audit-1',
+      actor: { id: 'qa-admin', name: 'QA администратор' },
+      action: 'parser-control.policy.update',
+      entityId: 'stable',
+      details: {
+        summary: 'Включена стабильная мета',
+        revision: 3,
+        requestId: 'qa-parser-audit-request',
+        before: { revision: 2, mode: 'early' },
+        after: { revision: 3, mode: 'stable' },
+      },
+      createdAt: '2026-07-21T01:00:00.000Z',
     }],
   },
   '/api/admin/boosty/status': {
@@ -2904,6 +2939,7 @@ for (const [device, viewport] of [
 
     await page.goto(`${BASE}/?admin&section=standard-data`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-standard-operations__routes a').length === 4);
+    await page.waitForSelector('.admin-parser-schedule', { timeout: 20_000 });
     const standardOperationsState = await page.evaluate(() => {
       const scheduleCard = document.querySelector('#parser-schedules-title')?.closest('.admin-parser-card');
       return {
@@ -2926,9 +2962,9 @@ for (const [device, viewport] of [
     });
     if (standardOperationsState.title !== 'Данные и парсеры' || standardOperationsState.parserMode !== 'Стабильная мета'
       || standardOperationsState.parserSections !== 2 || standardOperationsState.parserSchedules !== 1
-      || !standardOperationsState.parserScheduleCopy.includes('Фактическое состояние таймеров systemd здесь не проверяется')
-      || !standardOperationsState.parserScheduleVersion.includes('версия 2026-07-21.1')
-      || standardOperationsState.parserScheduleState !== 'Запланировано'
+      || !standardOperationsState.parserScheduleCopy.includes('Фактическое состояние systemd проверено')
+      || !standardOperationsState.parserScheduleVersion.includes('версия 2026-07-21.2')
+      || standardOperationsState.parserScheduleState !== 'Активен'
       || standardOperationsState.parserScheduleRules !== 'Правила systemd: 2'
       || standardOperationsState.parserScheduleTimer !== 'hs-data-api-docker-refresh-post-patch-tierlists.timer'
       || standardOperationsState.parserRunResults !== 1 || standardOperationsState.parserDeduplicated !== 1
@@ -4378,19 +4414,26 @@ for (const width of [320, 430]) {
 
     await page.goto(`${BASE}/?admin&section=standard-data`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.admin-parser-control', { timeout: 20_000 });
+    await page.waitForSelector('.admin-parser-audit__entry', { timeout: 20_000 });
+    await page.click('.admin-parser-audit__details summary');
     const parserControlNarrowState = await page.evaluate(() => {
       const root = document.querySelector('.admin-parser-control');
       const reasonInput = document.querySelector('.admin-parser-run-actions input');
       const scheduleSummary = document.querySelector('.admin-parser-schedule__rules summary');
+      const scheduleState = document.querySelector('.admin-parser-schedule__state');
+      const auditSummary = document.querySelector('.admin-parser-audit__details summary');
       return {
         rootOverflow: (root?.scrollWidth ?? 0) > (root?.clientWidth ?? 0) + 1,
         documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
         reasonInputFontSize: reasonInput ? parseFloat(getComputedStyle(reasonInput).fontSize) : 0,
         scheduleSummaryHeight: scheduleSummary?.getBoundingClientRect().height ?? 0,
+        scheduleStateText: scheduleState?.textContent?.trim() ?? '',
+        auditSummaryHeight: auditSummary?.getBoundingClientRect().height ?? 0,
       };
     });
     if (parserControlNarrowState.rootOverflow || parserControlNarrowState.documentOverflow
-      || parserControlNarrowState.reasonInputFontSize < 16 || parserControlNarrowState.scheduleSummaryHeight < 44) {
+      || parserControlNarrowState.reasonInputFontSize < 16 || parserControlNarrowState.scheduleSummaryHeight < 44
+      || parserControlNarrowState.auditSummaryHeight < 44 || parserControlNarrowState.scheduleStateText !== 'Активен') {
       failures.push(`admin parser control [${width}px]: mobile containment or touch inputs regressed (${JSON.stringify(parserControlNarrowState)})`);
     }
     await auditAccessibility(page, `admin parser control narrow ${width}px`, '.admin-parser-control');
@@ -4443,19 +4486,26 @@ for (const width of [320, 430]) {
     const violationCount = await auditAccessibility(page, '/classes [200% reflow + forced colors + reduced motion]');
     await page.goto(`${BASE}/?admin&section=standard-data`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.admin-parser-control', { timeout: 20_000 });
+    await page.waitForSelector('.admin-parser-audit__entry', { timeout: 20_000 });
+    await page.click('.admin-parser-audit__details summary');
     const parserControlReflow = await page.evaluate(() => {
       const root = document.querySelector('.admin-parser-control');
       const reasonInput = document.querySelector('.admin-parser-run-actions input');
       const scheduleSummary = document.querySelector('.admin-parser-schedule__rules summary');
+      const scheduleState = document.querySelector('.admin-parser-schedule__state');
+      const auditSummary = document.querySelector('.admin-parser-audit__details summary');
       return {
         rootOverflow: (root?.scrollWidth ?? 0) > (root?.clientWidth ?? 0) + 1,
         documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
         reasonInputFontSize: reasonInput ? parseFloat(getComputedStyle(reasonInput).fontSize) : 0,
         scheduleSummaryHeight: scheduleSummary?.getBoundingClientRect().height ?? 0,
+        scheduleStateText: scheduleState?.textContent?.trim() ?? '',
+        auditSummaryHeight: auditSummary?.getBoundingClientRect().height ?? 0,
       };
     });
     if (parserControlReflow.rootOverflow || parserControlReflow.documentOverflow
-      || parserControlReflow.reasonInputFontSize < 16 || parserControlReflow.scheduleSummaryHeight < 44) {
+      || parserControlReflow.reasonInputFontSize < 16 || parserControlReflow.scheduleSummaryHeight < 44
+      || parserControlReflow.auditSummaryHeight < 44 || parserControlReflow.scheduleStateText !== 'Активен') {
       failures.push(`admin parser control [200% reflow]: containment or touch inputs regressed (${JSON.stringify(parserControlReflow)})`);
     }
     await auditAccessibility(page, 'admin parser control [200% reflow + forced colors + reduced motion]', '.admin-parser-control');

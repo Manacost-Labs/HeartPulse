@@ -6,7 +6,8 @@ import {
   parserControlWarningMessage,
   toParserControlError,
 } from '../src/features/adminParserControl/error.js';
-import { normalizeParserControl, normalizeParserRuns } from '../src/features/adminParserControl/normalize.js';
+import { normalizeParserAudit, normalizeParserControl, normalizeParserRuns } from '../src/features/adminParserControl/normalize.js';
+import { ParserAuditCard } from '../src/features/adminParserControl/ParserAuditCard.js';
 import { pollActiveParserRuns } from '../src/features/adminParserControl/ParserControlPanel.js';
 import { ParserControlInitialError } from '../src/features/adminParserControl/ParserControlStatus.js';
 import { ParserRunsCard } from '../src/features/adminParserControl/ParserRunsCard.js';
@@ -22,18 +23,33 @@ const snapshot = normalizeParserControl({
     sources: [{ id: 'hsreplay_arena', label: 'HSReplay Arena', status: 'healthy' }],
   }],
   scheduleInventory: {
-    inventoryVersion: '2026-07-21.1',
+    inventoryVersion: '2026-07-21.2',
     generatedAt: '2026-07-21T03:00:00Z',
-    timeSemantics: 'nominal',
-    runtimeTimerStateIncluded: false,
+    timeSemantics: 'runtime',
+    runtimeTimerStateIncluded: true,
+    runtimeTimerState: {
+      provider: 'host-systemd',
+      checkedAt: '2026-07-21T03:00:00Z',
+      available: true,
+      status: 'ok',
+    },
     schedules: [{
       id: 'arena-five-hour',
       label: 'Арена каждые пять часов',
       systemdUnit: 'hs-data-api-docker-refresh-post-patch-tierlists.timer',
       onCalendar: ['2026-07-21 00,05,10,15,20:20:00 Europe/Warsaw', '2026-07-22 01,06,11,16,21:20:00 Europe/Warsaw'],
       isActive: true,
+      runtimeStateAvailable: true,
+      enabled: true,
+      active: true,
+      lastRunAt: '2026-07-21T00:20:00Z',
+      nominalNextRunAt: '2026-07-21T05:00:00Z',
       validUntil: '2026-07-27T19:20:00Z',
-      nextRunAt: '2026-07-21T05:00:00Z',
+      nextRunAt: '2026-07-21T05:20:00Z',
+      nextRunAtSource: 'runtime',
+      serviceUnit: 'hs-data-api-docker-refresh-post-patch-tierlists.service',
+      serviceActiveState: 'inactive',
+      serviceResult: 'success',
       sectionIds: ['arena'],
       sourceIds: ['hsreplay_arena'],
     }],
@@ -101,14 +117,93 @@ assert.doesNotMatch(
 );
 
 const scheduleMarkup = renderToStaticMarkup(<ParserScheduleCard snapshot={snapshot} />);
-assert.match(scheduleMarkup, /Плановое расписание/);
+assert.match(scheduleMarkup, /Расписание и состояние/);
 assert.match(scheduleMarkup, /Только чтение/);
 assert.match(scheduleMarkup, /Арена каждые пять часов/);
-assert.match(scheduleMarkup, /Фактическое состояние таймеров systemd здесь не проверяется/);
-assert.match(scheduleMarkup, /Запланировано/);
+assert.match(scheduleMarkup, /Фактическое состояние systemd проверено/);
+assert.match(scheduleMarkup, /Активен/);
+assert.match(scheduleMarkup, /Последний запуск/);
+assert.match(scheduleMarkup, /systemd/);
 assert.match(scheduleMarkup, /Правила systemd: 2/);
-assert.match(scheduleMarkup, /версия 2026-07-21.1/);
+assert.match(scheduleMarkup, /версия 2026-07-21.2/);
+assert.match(scheduleMarkup, /host-systemd/);
 assert.match(scheduleMarkup, /role="list"/);
+
+const nominalSnapshot = normalizeParserControl({
+  revision: 1,
+  policy: { mode: 'stable' },
+  sections: [],
+  scheduleInventory: {
+    inventoryVersion: '2026-07-21.2',
+    generatedAt: '2026-07-21T03:00:00Z',
+    timeSemantics: 'nominal',
+    runtimeTimerStateIncluded: false,
+    runtimeTimerState: {
+      provider: 'systemd',
+      checkedAt: '2026-07-21T03:00:00Z',
+      available: false,
+      status: 'unavailable',
+      reason: 'host-snapshot-stale',
+    },
+    schedules: [{
+      id: 'fallback-schedule',
+      label: 'Резервное расписание',
+      isActive: true,
+      enabled: null,
+      runtimeStateAvailable: false,
+      nextRunAt: '2026-07-21T05:00:00Z',
+      nextRunAtSource: 'nominal',
+      sectionIds: ['arena'],
+    }],
+  },
+});
+const nominalScheduleMarkup = renderToStaticMarkup(<ParserScheduleCard snapshot={nominalSnapshot} />);
+assert.match(nominalScheduleMarkup, /Показан только версионный план: снимок состояния устарел/);
+assert.match(nominalScheduleMarkup, /По плану/);
+
+const auditEntries = normalizeParserAudit({
+  entries: [{
+    id: 'audit-1',
+    actor: { id: 'admin-1', name: 'Главный администратор' },
+    action: 'parser-control.policy.update',
+    entityId: 'early',
+    details: {
+      summary: 'Включена ранняя мета',
+      revision: 7,
+      requestId: 'request-audit-7',
+      before: { revision: 6 },
+      after: { revision: 7, mode: 'early' },
+    },
+    createdAt: '2026-07-21T12:30:00.000Z',
+  }],
+});
+assert.equal(auditEntries[0]?.actorName, 'Главный администратор');
+assert.equal(auditEntries[0]?.revision, 7);
+assert.equal(auditEntries[0]?.requestId, 'request-audit-7');
+assert.deepEqual(auditEntries[0]?.before, { revision: 6 });
+assert.deepEqual(auditEntries[0]?.after, { revision: 7, mode: 'early' });
+
+const auditMarkup = renderToStaticMarkup(
+  <ParserAuditCard entries={auditEntries} loading={false} error={null} onRefresh={() => undefined} />,
+);
+assert.match(auditMarkup, /Журнал изменений/);
+assert.match(auditMarkup, /Главный администратор/);
+assert.match(auditMarkup, /Ревизия 7/);
+assert.match(auditMarkup, /request-audit-7/);
+assert.match(auditMarkup, /Показать состояние до и после/);
+assert.match(auditMarkup, /dateTime="2026-07-21T12:30:00.000Z"/);
+
+const auditErrorMarkup = renderToStaticMarkup(
+  <ParserAuditCard entries={[]} loading={false} error="Журнал временно недоступен" onRefresh={() => undefined} />,
+);
+assert.match(auditErrorMarkup, /role="alert"/);
+assert.match(auditErrorMarkup, /Повторить/);
+assert.doesNotMatch(auditErrorMarkup, /Изменений в панели ещё не было/);
+
+const auditEmptyMarkup = renderToStaticMarkup(
+  <ParserAuditCard entries={[]} loading={false} error={null} onRefresh={() => undefined} />,
+);
+assert.match(auditEmptyMarkup, /Изменений в панели ещё не было/);
 
 const initialError = toParserControlError(new TypeError('Failed to fetch'));
 assert.match(initialError.message, /Нет связи с сервером данных/);

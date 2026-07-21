@@ -2,6 +2,7 @@ import { Router, type Request, type RequestHandler, type Response } from 'expres
 import {
   createParserRunReconciler,
   type ParserCacheInvalidationContext,
+  type ParserRunReconciler,
 } from './parserRunReconciler.js';
 
 type AdminIdentity = { id: string };
@@ -44,6 +45,7 @@ export type AdminParserControlDependencies = {
   client: AdminParserControlClient;
   invalidateParserDataCaches: (context: ParserCacheInvalidationContext) => Promise<void>;
   setPrivateNoStore: (response: Response) => void;
+  runReconciler?: ParserRunReconciler;
   runMonitor?: {
     wait?: (milliseconds: number) => Promise<void>;
     now?: () => number;
@@ -61,6 +63,7 @@ export type AdminParserControlDependencies = {
     entityId: string,
     details?: Record<string, unknown>,
   ) => void;
+  listAudit?: (limit: number) => Promise<unknown[]> | unknown[];
 };
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,95}$/i;
@@ -98,6 +101,21 @@ function csrfAllowedOrRejected(
 function normalizedRevision(value: unknown): number | null {
   const revision = Number(value);
   return Number.isInteger(revision) && revision >= 1 ? revision : null;
+}
+
+function responseRevision(value: unknown): number | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const revision = Number((value as Record<string, unknown>).revision);
+  return Number.isInteger(revision) && revision >= 1 ? revision : null;
+}
+
+function responseRun(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const root = value as Record<string, unknown>;
+  const candidate = root.run ?? value;
+  return candidate && typeof candidate === 'object' && !Array.isArray(candidate)
+    ? candidate as Record<string, unknown>
+    : {};
 }
 
 function normalizedIds(value: unknown, maximum = 100): string[] | null {
@@ -231,17 +249,45 @@ function withWarnings(result: unknown, warnings: ParserControlResponseWarning[])
 export function createAdminParserControlRouter(dependencies: AdminParserControlDependencies): Router {
   const router = Router();
   const ensureConfigured = configuredGuard(dependencies.client);
-  const runReconciler = createParserRunReconciler({
+  const runReconciler = dependencies.runReconciler ?? createParserRunReconciler({
     listRuns: dependencies.client.listRuns,
     invalidate: dependencies.invalidateParserDataCaches,
     ...dependencies.runMonitor,
     onWarning: (_scope, error) => reportWarningBestEffort(dependencies, 'run-monitor', error),
   });
 
-  router.use('/admin/parser-control', dependencies.adminGuard, (_request, response, next) => {
+  router.use('/admin/parser-control', (_request, response, next) => {
     dependencies.setPrivateNoStore(response);
     next();
-  }, ensureConfigured);
+  }, dependencies.adminGuard);
+
+  router.get('/admin/parser-control/audit', async (request, response) => {
+    if (!dependencies.listAudit) {
+      return response.status(503).json({
+        code: 'PARSER_AUDIT_UNAVAILABLE',
+        error: 'Журнал действий временно недоступен',
+      });
+    }
+    const requestedLimit = Number(request.query.limit);
+    const limit = Number.isInteger(requestedLimit)
+      ? Math.max(1, Math.min(100, requestedLimit))
+      : 30;
+    try {
+      const entries = await dependencies.listAudit(limit);
+      return response.json({ entries: Array.isArray(entries) ? entries : [] });
+    } catch (error) {
+      reportWarningBestEffort(dependencies, 'audit', error, {
+        requestId: requestIdOf(request, response),
+        action: 'parser-control.audit.read',
+      });
+      return response.status(503).json({
+        code: 'PARSER_AUDIT_UNAVAILABLE',
+        error: 'Журнал действий временно недоступен',
+      });
+    }
+  });
+
+  router.use('/admin/parser-control', ensureConfigured);
 
   router.get('/admin/parser-control', async (_request, response) => {
     try {
@@ -282,6 +328,8 @@ export function createAdminParserControlRouter(dependencies: AdminParserControlD
       return upstreamError(response, error);
     }
     const warnings: ParserControlResponseWarning[] = [];
+    const revision = responseRevision(result);
+    const requestId = requestIdOf(request, response);
     const auditWarning = recordAuditBestEffort(
       dependencies,
       request,
@@ -290,6 +338,16 @@ export function createAdminParserControlRouter(dependencies: AdminParserControlD
       'parser-control.policy.update',
       mode,
       {
+        summary: mode === 'early' ? 'Включена ранняя мета' : 'Включена стабильная мета',
+        requestId,
+        revision,
+        before: { revision: expectedRevision },
+        after: {
+          revision,
+          mode,
+          earlyUntil: payload.earlyUntil,
+          reason: payload.reason,
+        },
         earlyUntil: payload.earlyUntil,
         reason: payload.reason,
         expectedRevision,
@@ -312,6 +370,11 @@ export function createAdminParserControlRouter(dependencies: AdminParserControlD
         'parser-control.cache-invalidation.warning',
         mode,
         {
+          summary: 'Не удалось очистить все кеши после смены режима',
+          requestId,
+          revision,
+          before: { revision: expectedRevision },
+          after: { revision, cacheInvalidation: 'failed' },
           reason: invalidationError instanceof Error ? invalidationError.message : String(invalidationError),
         },
       );
@@ -342,6 +405,10 @@ export function createAdminParserControlRouter(dependencies: AdminParserControlD
     } catch (error) {
       return upstreamError(response, error);
     }
+    const revision = responseRevision(result);
+    const requestId = requestIdOf(request, response);
+    const enabledCount = entries.filter(([, enabled]) => enabled).length;
+    const disabledCount = entries.length - enabledCount;
     const auditWarning = recordAuditBestEffort(
       dependencies,
       request,
@@ -350,6 +417,11 @@ export function createAdminParserControlRouter(dependencies: AdminParserControlD
       'parser-control.sections.update',
       'batch',
       {
+        summary: `Автообновление: включено ${enabledCount}, выключено ${disabledCount}`,
+        requestId,
+        revision,
+        before: { revision: expectedRevision },
+        after: { revision, sections },
         sections,
         expectedRevision,
       },
@@ -381,6 +453,9 @@ export function createAdminParserControlRouter(dependencies: AdminParserControlD
     } catch (error) {
       return upstreamError(response, error);
     }
+    const run = responseRun(result);
+    const runId = String(run.id ?? '').trim() || 'batch';
+    const requestId = requestIdOf(request, response);
     const warnings: ParserControlResponseWarning[] = [];
     const auditWarning = recordAuditBestEffort(
       dependencies,
@@ -388,8 +463,16 @@ export function createAdminParserControlRouter(dependencies: AdminParserControlD
       response,
       actor,
       'parser-control.run.create',
-      'batch',
+      runId,
       {
+        summary: reason || 'Запущено ручное обновление данных',
+        requestId,
+        revision: null,
+        before: { status: 'not-requested' },
+        after: {
+          runId: runId === 'batch' ? null : runId,
+          status: String(run.status ?? '').trim() || null,
+        },
         sectionIds,
         sourceIds,
         reason,

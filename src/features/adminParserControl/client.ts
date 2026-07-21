@@ -1,5 +1,11 @@
-import { normalizeParserControl, normalizeParserRuns, normalizeParserWarnings } from './normalize';
-import type { ParserControlSnapshot, ParserPublicationMode, ParserRun, ParserRunCreation } from './types';
+import { normalizeParserAudit, normalizeParserControl, normalizeParserRuns, normalizeParserWarnings } from './normalize';
+import type {
+  ParserAuditEntry,
+  ParserControlSnapshot,
+  ParserPublicationMode,
+  ParserRun,
+  ParserRunCreation,
+} from './types';
 
 async function request(path: string, init?: RequestInit): Promise<unknown> {
   const response = await fetch(path, {
@@ -29,12 +35,14 @@ export async function loadParserControl(signal?: AbortSignal): Promise<ParserCon
 export async function loadParserControlBundle(signal?: AbortSignal): Promise<{
   control: PromiseSettledResult<ParserControlSnapshot>;
   runs: PromiseSettledResult<ParserRun[]>;
+  audit: PromiseSettledResult<ParserAuditEntry[]>;
 }> {
-  const [control, runs] = await Promise.allSettled([
+  const [control, runs, audit] = await Promise.allSettled([
     loadParserControl(signal),
     loadParserRuns(signal),
+    loadParserAudit(signal),
   ]);
-  return { control, runs };
+  return { control, runs, audit };
 }
 
 export async function updateParserPolicy(input: {
@@ -83,4 +91,8 @@ export async function createParserRun(input: {
 
 export async function loadParserRuns(signal?: AbortSignal): Promise<ParserRun[]> {
   return normalizeParserRuns(await request('/api/admin/parser-control/runs', { signal }));
+}
+
+export async function loadParserAudit(signal?: AbortSignal): Promise<ParserAuditEntry[]> {
+  return normalizeParserAudit(await request('/api/admin/parser-control/audit?limit=30', { signal }));
 }
