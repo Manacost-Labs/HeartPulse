@@ -16,6 +16,7 @@ export type ConstructedCardCollection = {
 export type ConstructedCardDataService = {
   loadCards: (format: ConstructedCardFormat) => Promise<ConstructedCardCollection>;
   loadCardDetail: (format: ConstructedCardFormat, cardId: string) => Promise<JsonRecord | null>;
+  invalidate?: () => void;
 };
 
 export type ConstructedCardDeck = {
@@ -594,21 +595,24 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
   let patchesJob: Promise<JsonRecord[]> | null = null;
   let decksCache: { value: JsonRecord[]; expiresAt: number } | null = null;
   let decksJob: Promise<JsonRecord[]> | null = null;
+  let generation = 0;
 
   const loadPatches = async (): Promise<JsonRecord[]> => {
     if (!dependencies.patchesUrl) return [];
     const now = Date.now();
     if (patchesCache && patchesCache.expiresAt > now) return patchesCache.value;
     if (patchesJob) return patchesJob;
-    patchesJob = dependencies.fetchJson(dependencies.patchesUrl)
+    const jobGeneration = generation;
+    const job = dependencies.fetchJson(dependencies.patchesUrl)
       .then(payload => Array.isArray(payload?.patches) ? payload.patches : [])
       .then(value => {
-        patchesCache = { value, expiresAt: Date.now() + cacheTtlMs };
+        if (generation === jobGeneration) patchesCache = { value, expiresAt: Date.now() + cacheTtlMs };
         return value;
       })
       .catch(() => [])
-      .finally(() => { patchesJob = null; });
-    return patchesJob;
+      .finally(() => { if (patchesJob === job) patchesJob = null; });
+    patchesJob = job;
+    return job;
   };
 
   const loadDeckRows = async (): Promise<JsonRecord[]> => {
@@ -616,7 +620,8 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     const now = Date.now();
     if (decksCache && decksCache.expiresAt > now) return decksCache.value;
     if (decksJob) return decksJob;
-    decksJob = (async () => {
+    const jobGeneration = generation;
+    const job = (async () => {
       const firstUrl = new URL(dependencies.constructedDecksUrl!);
       firstUrl.searchParams.set('limit', '200');
       firstUrl.searchParams.set('offset', '0');
@@ -631,10 +636,11 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
         return dependencies.fetchJson(url.toString());
       }));
       const value = [firstPayload, ...payloads].flatMap(payload => Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.decks) ? payload.decks : []);
-      decksCache = { value, expiresAt: Date.now() + cacheTtlMs };
+      if (generation === jobGeneration) decksCache = { value, expiresAt: Date.now() + cacheTtlMs };
       return value;
-    })().catch(() => []).finally(() => { decksJob = null; });
-    return decksJob;
+    })().catch(() => []).finally(() => { if (decksJob === job) decksJob = null; });
+    decksJob = job;
+    return job;
   };
 
   const loadCards = async (format: ConstructedCardFormat): Promise<ConstructedCardCollection> => {
@@ -644,6 +650,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     const active = jobs.get(format);
     if (active) return active;
 
+    const jobGeneration = generation;
     const job = (async () => {
       const firstPage = await fetchCatalogPage(dependencies, format, 1);
       const totalPages = Math.max(1, Number(firstPage?.pagination?.total_pages ?? 1));
@@ -669,9 +676,9 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
         sourceUrl: String(statsPayload?.url ?? statsPayload?.view?.source ?? ''),
         warning,
       };
-      cache.set(format, { value, expiresAt: Date.now() + cacheTtlMs });
+      if (generation === jobGeneration) cache.set(format, { value, expiresAt: Date.now() + cacheTtlMs });
       return value;
-    })().finally(() => jobs.delete(format));
+    })().finally(() => { if (jobs.get(format) === job) jobs.delete(format); });
     jobs.set(format, job);
     return job;
   };
@@ -682,6 +689,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     if (cached && cached.expiresAt > Date.now()) return cached.value;
     const active = detailJobs.get(key);
     if (active) return active;
+    const jobGeneration = generation;
     const job = (async () => {
       const url = `${dependencies.catalogBaseUrl.replace(/\/$/, '')}/constructed-cards/${encodeURIComponent(cardId)}?include=wiki`;
       const payload = await dependencies.fetchJson(url);
@@ -721,14 +729,26 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
           archetypeLabel: translateConstructedArchetype(deck.archetype || deck.title, archetypeTranslations),
         })),
       };
-      detailCache.set(key, { value, expiresAt: Date.now() + cacheTtlMs });
+      if (generation === jobGeneration) detailCache.set(key, { value, expiresAt: Date.now() + cacheTtlMs });
       return value;
-    })().finally(() => detailJobs.delete(key));
+    })().finally(() => { if (detailJobs.get(key) === job) detailJobs.delete(key); });
     detailJobs.set(key, job);
     return job;
   };
 
-  return { loadCards, loadCardDetail };
+  const invalidate = () => {
+    generation += 1;
+    cache.clear();
+    jobs.clear();
+    detailCache.clear();
+    detailJobs.clear();
+    patchesCache = null;
+    patchesJob = null;
+    decksCache = null;
+    decksJob = null;
+  };
+
+  return { loadCards, loadCardDetail, invalidate };
 }
 
 export function createConstructedCardRouter(dependencies: ConstructedCardRouterDependencies): Router {

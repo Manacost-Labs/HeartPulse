@@ -398,7 +398,7 @@ const ADMIN_NAV_ITEMS: ReadonlyArray<{
   { id: 'gallery', label: 'Галерея', caption: 'Арты и оригиналы для скачивания', status: 'Сохранение по кнопке', group: 'Контент', icon: ImageIcon },
   { id: 'translations', label: 'Переводы', caption: 'Названия архетипов и синхронизация BlizzCore', status: 'Ручные правки защищены', group: 'Контент', icon: Newspaper },
   { id: 'mechanics', label: 'Механики и теги', caption: 'Русские переводы, примеры карт и контроль покрытия', status: 'Сохранение по кнопке', group: 'Контент', icon: Newspaper },
-  { id: 'standard-data', label: 'Данные Standard', caption: 'Источники, кеши и очередь DeckView', status: 'Публичный режим под контролем', group: 'Контент', icon: Database },
+  { id: 'standard-data', label: 'Данные и парсеры', caption: 'Режим меты, автообновление и очереди', status: 'Центр управления данными', group: 'Система', icon: Database },
   { id: 'users', label: 'Пользователи', caption: 'Права, блокировки и контакты', status: 'Действия с подтверждением', group: 'Аудитория', icon: Users },
   { id: 'mailing', label: 'Рассылка', caption: 'Письма, шаблоны и история отправок', status: 'Безопасная очередь отправки', group: 'Аудитория', icon: Mail },
   { id: 'boosty', label: 'Boosty', caption: 'Подписчики и уровни доступа', status: 'Данные только для просмотра', group: 'Аудитория', icon: CircleDollarSign },
@@ -698,7 +698,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       gallery: 'Галерея',
       translations: 'Переводы архетипов',
       mechanics: 'Переводы механик и тегов',
-      'standard-data': 'Данные Standard',
+      'standard-data': 'Данные и парсеры',
       users: 'Пользователи',
       mailing: 'Рассылка',
       boosty: 'Boosty',
@@ -1725,7 +1725,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           )}
 
           {hasFullAdminAccess && adminSection === 'standard-data' && (
-            <React.Suspense fallback={<p className="contest-muted" role="status">Загружаем состояние Traditional mode…</p>}>
+            <React.Suspense fallback={<p className="contest-muted" role="status">Загружаем управление данными…</p>}>
               <ContestAdminStandardOperations onMessage={setMessage} />
             </React.Suspense>
           )}

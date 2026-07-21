@@ -113,3 +113,13 @@ export function tierlistEarlyStatsEtagToken(metadata: TierlistEarlyStatsMetadata
   );
   return createHash('sha1').update(stableSerialize(normalized)).digest('hex').slice(0, 12);
 }
+
+export function tierlistRedisTtlSeconds(
+  payload: unknown,
+  defaultTtlSeconds: number,
+  provisionalTtlSeconds = 300,
+): number {
+  const safeDefault = Math.max(60, Math.floor(defaultTtlSeconds));
+  if (normalizeTierlistEarlyStatsMetadata(payload).provisional !== true) return safeDefault;
+  return Math.min(safeDefault, Math.max(60, Math.floor(provisionalTtlSeconds)));
+}

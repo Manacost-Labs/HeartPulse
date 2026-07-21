@@ -10,3 +10,4 @@ screenshot/
 *.log
 .env
 .env.*
+!.env.example

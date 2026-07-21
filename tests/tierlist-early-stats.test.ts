@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import {
   normalizeTierlistEarlyStatsMetadata,
   tierlistEarlyStatsEtagToken,
+  tierlistRedisTtlSeconds,
 } from '../server/tierlistEarlyStats.js';
 import TierlistEarlyStatsNotice from '../src/features/TierlistEarlyStatsNotice.js';
 
@@ -63,6 +64,9 @@ assert.notEqual(
   provisionalToken,
   tierlistEarlyStatsEtagToken({ ...normalized, accepted_rows: 75 }),
 );
+assert.equal(tierlistRedisTtlSeconds(normalized, 21_600), 300);
+assert.equal(tierlistRedisTtlSeconds({ provisional: false }, 21_600), 21_600);
+assert.equal(tierlistRedisTtlSeconds(normalized, 120), 120);
 
 const hiddenNotice = renderToStaticMarkup(React.createElement(TierlistEarlyStatsNotice, {
   provisional: false,

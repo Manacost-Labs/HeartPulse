@@ -59,6 +59,7 @@ import { createTierlistRouter } from './tierlistRoutes.js';
 import {
   normalizeTierlistEarlyStatsMetadata,
   tierlistEarlyStatsEtagToken,
+  tierlistRedisTtlSeconds,
 } from './tierlistEarlyStats.js';
 import { createTierlistCacheBustRouter } from './tierlistCacheBustRoutes.js';
 import { createWinrateRouter } from './winrateRoutes.js';
@@ -79,6 +80,9 @@ import {
   repairLegacyConstructedMechanicTranslations,
 } from './adminMechanicTranslationRoutes.js';
 import { createAdminStandardOperationsRouter, type StandardCacheTarget } from './adminStandardOperationsRoutes.js';
+import { createAdminParserControlRouter } from './adminParserControlRoutes.js';
+import { createHsDataParserControlClient } from './hsDataParserControlClient.js';
+import { invalidateParserDataCaches as clearParserDataCaches } from './parserDataCacheInvalidation.js';
 import { createAdminArticleRouter, writeArticlesFile } from './adminArticleRoutes.js';
 import { createAdminContestMutationRouter } from './adminContestMutationRoutes.js';
 import {
@@ -193,6 +197,7 @@ const standardMetaRecommendationCache = new Map<string, { data: StandardMetaReco
 const standardMetaRecommendationJobs = new Map<string, Promise<StandardMetaRecommendation | null>>();
 const standardMetaPreviewCache = new Map<string, { preview: StandardMetaPreview; expiresAt: number }>();
 const standardMetaPreviewJobs = new Map<string, Promise<StandardMetaPreview>>();
+let parserDataCacheGeneration = 0;
 let deckviewPreviewRenderTail: Promise<void> = Promise.resolve();
 let deckviewPreviewQueued = 0;
 let deckviewPreviewActive = 0;
@@ -636,14 +641,18 @@ function redisHashedDataKey(kind: string, value: string): string {
   return redisDataKey(kind, createHash('sha1').update(value).digest('hex').slice(0, 32));
 }
 
-async function clearRedisDataCache(): Promise<void> {
+async function clearRedisDataCache(options: { throwOnError?: boolean } = {}): Promise<void> {
   try {
     const client = await getRedisClient();
-    if (!client) return;
+    if (!client) {
+      if (options.throwOnError && REDIS_ENABLED) throw new Error('Redis недоступен для очистки кеша');
+      return;
+    }
     const keys = await client.keys(`${REDIS_CACHE_PREFIX}:data:*`);
     if (keys.length) await client.del(keys);
   } catch (err: any) {
     console.warn('[redis] clear failed:', err?.message ?? err);
+    if (options.throwOnError) throw err;
   }
 }
 
@@ -4292,6 +4301,11 @@ async function fetchArenaDecksData(limit = ARENA_DECKS_MAX_LIMIT) {
 
 const DATASET_API_ORIGIN = 'https://api.hs-manacost.ru';
 const DATASET_API_BASE = `${DATASET_API_ORIGIN}/datasets`;
+const hsDataParserControlClient = createHsDataParserControlClient({
+  baseUrl: process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN,
+  apiKey: process.env.HS_DATA_API_ADMIN_KEY || '',
+  timeoutMs: Number(process.env.HS_DATA_API_ADMIN_TIMEOUT_MS || 15_000),
+});
 const HEARTHSTONEJSON_RU_CARDS_URL = 'https://api.hearthstonejson.com/v1/latest/ruRU/cards.collectible.json';
 const EXTERNAL_DATASET_CACHE_MS = DATASET_MEMORY_CACHE_MS;
 const TIERLIST_API_CACHE_MS = DATASET_MEMORY_CACHE_MS;
@@ -5315,7 +5329,7 @@ async function getTierlistApiData(
   const data = normalizeTierlistDataset(payload, source);
   const etag = makeExternalEtag('tierlist', source, data, now);
   tierlistApiCache.set(source, { data, etag, expiresAt: now + TIERLIST_API_CACHE_MS });
-  void redisSetCache(redisKey, data, etag, REDIS_DATASET_TTL_SECONDS);
+  void redisSetCache(redisKey, data, etag, tierlistRedisTtlSeconds(data, REDIS_DATASET_TTL_SECONDS));
   return { data, etag, cacheSource: 'origin' };
 }
 
@@ -5924,6 +5938,7 @@ async function fetchViciousConstructedDeckRows(): Promise<any[]> {
   if (standardMetaDeckRowsCache && standardMetaDeckRowsCache.expiresAt > now) {
     return standardMetaDeckRowsCache.rows;
   }
+  const generation = parserDataCacheGeneration;
   const offsets = [0, 200, 400, 600];
   const pages = await Promise.all(offsets.map(async offset => {
     const response = await fetch(`${DATASET_API_ORIGIN}/v1/constructed/decks?limit=200&offset=${offset}`, {
@@ -5935,7 +5950,9 @@ async function fetchViciousConstructedDeckRows(): Promise<any[]> {
     return Array.isArray(payload?.data) ? payload.data : [];
   }));
   const rows = pages.flat();
-  standardMetaDeckRowsCache = { rows, expiresAt: now + STANDARD_META_RECOMMENDATION_CACHE_MS };
+  if (generation === parserDataCacheGeneration) {
+    standardMetaDeckRowsCache = { rows, expiresAt: now + STANDARD_META_RECOMMENDATION_CACHE_MS };
+  }
   return rows;
 }
 
@@ -6409,6 +6426,7 @@ async function findStandardMetaRecommendation(
   if (cached && cached.expiresAt > now) return cached.data;
   const active = standardMetaRecommendationJobs.get(cacheKey);
   if (active) return active;
+  const generation = parserDataCacheGeneration;
   const job = (async () => {
     // Prefer the locally indexed exact decks. They respond in ~100 ms and avoid a
     // live HSGuru scrape on every cold modal open. The live endpoint is a fallback
@@ -6427,10 +6445,12 @@ async function findStandardMetaRecommendation(
     candidates.sort((left, right) => right.quality - left.quality);
     const rawSelected = candidates[0] ? (({ quality: _quality, ...recommendation }) => recommendation)(candidates[0]) : null;
     const selected = rawSelected ? await hydrateRecommendationDeckCards(rawSelected) : null;
-    standardMetaRecommendationCache.set(cacheKey, { data: selected, expiresAt: Date.now() + STANDARD_META_RECOMMENDATION_CACHE_MS });
+    if (generation === parserDataCacheGeneration) {
+      standardMetaRecommendationCache.set(cacheKey, { data: selected, expiresAt: Date.now() + STANDARD_META_RECOMMENDATION_CACHE_MS });
+    }
     return selected;
   })().finally(() => {
-    standardMetaRecommendationJobs.delete(cacheKey);
+    if (standardMetaRecommendationJobs.get(cacheKey) === job) standardMetaRecommendationJobs.delete(cacheKey);
   });
   standardMetaRecommendationJobs.set(cacheKey, job);
   return job;
@@ -6625,7 +6645,7 @@ app.use((req, res, next) => {
       // Invalid Origin headers are ignored and handled as non-CORS requests.
     }
   }
-  res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Request');
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
@@ -6673,7 +6693,7 @@ app.use('/_internal', createTierlistCacheBustRouter({
 const CACHE_6H  = 'public, max-age=21600, stale-while-revalidate=3600';
 const CACHE_1H  = 'public, max-age=3600,  stale-while-revalidate=600';
 const CACHE_5M  = 'public, max-age=300, stale-while-revalidate=300';
-const CACHE_TIERLIST = 'public, max-age=3600, stale-while-revalidate=3600';
+const CACHE_TIERLIST = 'public, max-age=300, stale-while-revalidate=300';
 const CACHE_TIERLIST_PROVISIONAL = 'public, max-age=300, stale-while-revalidate=300';
 const CACHE_TIERLIST_STALE = 'public, max-age=300, stale-while-revalidate=600';
 const ARTICLE_COVER_ALLOWED_HOSTS = new Set([
@@ -6868,6 +6888,15 @@ app.use('/api', createStandardMetaRouter({
   ),
 }));
 
+async function tierlistDataAllowedByPublicationPolicy(_source: string, data: any): Promise<boolean> {
+  if (normalizeTierlistEarlyStatsMetadata(data).provisional !== true) return true;
+  if (!hsDataParserControlClient.configured) return false;
+  const control = await hsDataParserControlClient.getControl() as Record<string, any>;
+  const policy = control?.policy && typeof control.policy === 'object' ? control.policy : {};
+  const effectiveMode = String(policy.effectiveMode ?? policy.effective_mode ?? policy.mode ?? 'stable').toLowerCase();
+  return effectiveMode === 'early';
+}
+
 app.use('/api', createTierlistRouter({
   accessGuard: requireArenaAccess,
   cache: tierlistApiCache,
@@ -6886,6 +6915,8 @@ app.use('/api', createTierlistRouter({
         : null;
     return filename ? loadDataCached(filename) : null;
   },
+  allowData: tierlistDataAllowedByPublicationPolicy,
+  allowFallback: tierlistDataAllowedByPublicationPolicy,
   cacheHeader: CACHE_TIERLIST,
   provisionalCacheHeader: CACHE_TIERLIST_PROVISIONAL,
   staleCacheHeader: CACHE_TIERLIST_STALE,
@@ -8626,6 +8657,51 @@ app.use('/api', createAdminStandardOperationsRouter({
   resetCache: resetStandardCache,
   setPrivateNoStore,
   recordAudit: (actor, action, entityId) => recordAdminAuditByActorId(actor.id, action, 'standard-cache', entityId),
+}));
+
+async function invalidateParserControlledDataCaches(): Promise<void> {
+  await clearParserDataCaches({
+    memoryCaches: [
+      dataCache,
+      winratesApiCache,
+      tierlistApiCache,
+      legendariesApiCache,
+      standardMatchupsApiCache,
+      standardMetaApiCache,
+      viciousSyndicateGoldApiCache,
+      battlegroundAppProxyCache,
+    ],
+    singletonCaches: [homeSummaryApiCache, classMatchupsCache, arenaDecksCache],
+    invalidateCards: () => constructedCardDataService.invalidate?.(),
+    invalidateDerived: () => {
+      parserDataCacheGeneration += 1;
+      standardMetaRecommendationCache.clear();
+      standardMetaRecommendationJobs.clear();
+      standardMetaDeckRowsCache = null;
+      standardMetaPreviewCache.clear();
+      persistStandardMetaPreviewCache();
+    },
+    clearRedis: () => clearRedisDataCache({ throwOnError: true }),
+  });
+}
+
+app.use('/api', createAdminParserControlRouter({
+  adminGuard: adminIdGuard,
+  adminAuth,
+  client: hsDataParserControlClient,
+  invalidateParserDataCaches: invalidateParserControlledDataCaches,
+  setPrivateNoStore,
+  onWarning: (scope, error) => console.warn(
+    `[parser-control] ${scope}:`,
+    error instanceof Error ? error.message : error,
+  ),
+  recordAudit: (actor, action, entityId, details) => recordAdminAuditByActorId(
+    actor.id,
+    action,
+    'parser-control',
+    entityId,
+    details,
+  ),
 }));
 
 app.use('/api', createAdminImageGenerationRouter({

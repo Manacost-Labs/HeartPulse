@@ -62,7 +62,26 @@ const unavailableServer = startApp({
   getData: async () => { throw new Error('never expose me'); },
   loadFallback: () => null,
 });
-await Promise.all([server, unavailableServer].map(instance => new Promise<void>((resolve, reject) => {
+const stablePolicyFallbackServer = startApp({
+  cache: new Map(),
+  getData: async () => { throw new Error('stable origin unavailable'); },
+  loadFallback: () => ({
+    data: { sections: [{ source: 'old-early-candidate' }], provisional: true },
+    etag: '"old-early-candidate"',
+  }),
+  allowFallback: (_source, data) => data?.provisional !== true,
+});
+const stablePolicyCacheServer = startApp({
+  cache: new Map([['hsreplay', {
+    data: { sections: [{ source: 'cached-early-candidate' }], provisional: true },
+    etag: '"cached-early-candidate"',
+    expiresAt: 10_000,
+  }]]),
+  getData: async () => { throw new Error('stable origin unavailable'); },
+  loadFallback: () => null,
+  allowData: (_source, data) => data?.provisional !== true,
+});
+await Promise.all([server, unavailableServer, stablePolicyFallbackServer, stablePolicyCacheServer].map(instance => new Promise<void>((resolve, reject) => {
   instance.once('listening', resolve);
   instance.once('error', reject);
 })));
@@ -141,8 +160,20 @@ try {
   });
   assert.equal(unavailable.status, 502);
   assert.deepEqual(await unavailable.json(), { error: 'Tierlist unavailable' });
+
+  const blockedProvisionalFallback = await fetch(`${origin(stablePolicyFallbackServer)}/tierlist?source=hsreplay`, {
+    headers: { 'X-Test-Access': 'allowed' },
+  });
+  assert.equal(blockedProvisionalFallback.status, 502);
+  assert.deepEqual(await blockedProvisionalFallback.json(), { error: 'Tierlist unavailable' });
+
+  const blockedProvisionalCache = await fetch(`${origin(stablePolicyCacheServer)}/tierlist?source=hsreplay`, {
+    headers: { 'X-Test-Access': 'allowed' },
+  });
+  assert.equal(blockedProvisionalCache.status, 502);
+  assert.deepEqual(await blockedProvisionalCache.json(), { error: 'Tierlist unavailable' });
 } finally {
-  await Promise.all([server, unavailableServer].map(instance => new Promise<void>((resolve, reject) => (
+  await Promise.all([server, unavailableServer, stablePolicyFallbackServer, stablePolicyCacheServer].map(instance => new Promise<void>((resolve, reject) => (
     instance.close(error => error ? reject(error) : resolve())
   ))));
 }

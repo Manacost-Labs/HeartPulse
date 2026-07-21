@@ -15,6 +15,8 @@ export type TierlistRouterDependencies = {
   getData: (source: string, now: number, bypassCache: boolean) => Promise<TierlistDataResult>;
   present: (data: any) => any;
   loadFallback: (source: string) => { data: any; etag: string } | null;
+  allowData?: (source: string, data: any) => boolean | Promise<boolean>;
+  allowFallback?: (source: string, data: any) => boolean | Promise<boolean>;
   cacheHeader?: string;
   provisionalCacheHeader?: string;
   staleCacheHeader?: string;
@@ -36,8 +38,17 @@ export function createTierlistRouter(dependencies: TierlistRouterDependencies): 
     const timestamp = now();
     const cached = dependencies.cache.get(source);
     const bypassCache = request.query.t !== undefined || request.query.bust === '1';
+    const dataAllowed = async (data: any): Promise<boolean> => {
+      if (!dependencies.allowData) return true;
+      try {
+        return await dependencies.allowData(source, data);
+      } catch (guardError) {
+        dependencies.onError?.(guardError);
+        return false;
+      }
+    };
 
-    if (!bypassCache && cached && cached.expiresAt > timestamp) {
+    if (!bypassCache && cached && cached.expiresAt > timestamp && await dataAllowed(cached.data)) {
       const presented = dependencies.present(cached.data);
       return sendDatasetJsonCached(
         request,
@@ -51,6 +62,7 @@ export function createTierlistRouter(dependencies: TierlistRouterDependencies): 
 
     try {
       const result = await dependencies.getData(source, timestamp, bypassCache);
+      if (!await dataAllowed(result.data)) throw new Error('Tierlist publication policy rejected provisional data');
       const presented = dependencies.present(result.data);
       return sendDatasetJsonCached(
         request,
@@ -62,7 +74,7 @@ export function createTierlistRouter(dependencies: TierlistRouterDependencies): 
       );
     } catch (error) {
       dependencies.onError?.(error);
-      if (cached) {
+      if (cached && await dataAllowed(cached.data)) {
         const presented = dependencies.present({ ...cached.data, warning: 'stale' });
         return sendDatasetJsonCached(
           request,
@@ -75,7 +87,18 @@ export function createTierlistRouter(dependencies: TierlistRouterDependencies): 
       }
 
       const fallback = dependencies.loadFallback(source);
+      let fallbackAllowed = Boolean(fallback);
       if (fallback) {
+        try {
+          fallbackAllowed = dependencies.allowFallback
+            ? await dependencies.allowFallback(source, fallback.data)
+            : await dataAllowed(fallback.data);
+        } catch (guardError) {
+          dependencies.onError?.(guardError);
+          fallbackAllowed = false;
+        }
+      }
+      if (fallback && fallbackAllowed) {
         const presented = dependencies.present({ ...fallback.data, warning: 'fallback' });
         return sendDatasetJsonCached(
           request,
