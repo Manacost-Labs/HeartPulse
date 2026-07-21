@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 
 const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 const browserQa = readFileSync(new URL('../scripts/e2e-qa.mjs', import.meta.url), 'utf8');
+const applicationCss = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
 const { scripts } = packageJson;
 
 assert.equal(
@@ -41,6 +42,10 @@ assert.ok(browserQa.includes('firstLayoutFault'), 'browser QA must report the fi
 assert.ok(
   browserQa.includes("rect: rect(firstPageOverflowElement)"),
   'browser QA overflow diagnostics must include the failing element bounding box',
+);
+assert.ok(
+  applicationCss.includes('@source not "../.codex-team";'),
+  'Tailwind must ignore local agent traces so release CSS is reproducible',
 );
 
 console.log('QA command contract tests passed');
