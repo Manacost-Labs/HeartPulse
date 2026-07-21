@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 
 const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 const browserQa = readFileSync(new URL('../scripts/e2e-qa.mjs', import.meta.url), 'utf8');
+const layoutDiagnostics = readFileSync(new URL('../scripts/mobile-layout-diagnostics.mjs', import.meta.url), 'utf8');
 const applicationCss = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
 const { scripts } = packageJson;
 
@@ -42,6 +43,22 @@ assert.ok(browserQa.includes('firstLayoutFault'), 'browser QA must report the fi
 assert.ok(
   browserQa.includes("rect: rect(firstPageOverflowElement)"),
   'browser QA overflow diagnostics must include the failing element bounding box',
+);
+assert.ok(
+  layoutDiagnostics.includes("viewport: { width: innerWidth, height: innerHeight }"),
+  'route overflow diagnostics must include the exact viewport',
+);
+assert.ok(
+  browserQa.includes("first fault: ${JSON.stringify(layout.firstLayoutFault)}"),
+  'route overflow failures must print the first offending element',
+);
+assert.ok(
+  layoutDiagnostics.includes("&& !hasIntentionalHorizontalScroller(element)"),
+  'route overflow diagnostics must ignore intentional horizontal scrollers',
+);
+assert.ok(
+  layoutDiagnostics.includes("if (!(element instanceof Element)) return false;"),
+  'route overflow diagnostics must include SVG and other visible element types',
 );
 assert.ok(
   applicationCss.includes('@source not "../.codex-team";'),

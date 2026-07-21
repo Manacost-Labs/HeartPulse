@@ -8,6 +8,7 @@
 import puppeteer from 'puppeteer';
 import { existsSync, mkdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { inspectHorizontalLayoutFault } from './mobile-layout-diagnostics.mjs';
 
 const require = createRequire(import.meta.url);
 const AXE_PATH = require.resolve('axe-core/axe.min.js');
@@ -1320,7 +1321,7 @@ async function auditDelayedPageTourResume(page, label) {
 }
 
 async function inspectLayout(page, { mobile }) {
-  return page.evaluate(isMobile => {
+  const layout = await page.evaluate(isMobile => {
     const root = document.documentElement;
     const shell = document.querySelector('.arena-app-shell');
     const banner = document.querySelector('.section-banner-modern');
@@ -1387,12 +1388,15 @@ async function inspectLayout(page, { mobile }) {
       mobile: isMobile,
     };
   }, mobile);
+  const diagnostic = await page.evaluate(inspectHorizontalLayoutFault);
+  return { ...layout, ...diagnostic };
 }
 
 function assertLayout(path, layout) {
   if (!layout.title || layout.textLength < 100) failures.push(`${path}: blank or unidentified page`);
   if (layout.scrollWidth > layout.clientWidth + 1) {
-    failures.push(`${path}: horizontal overflow ${layout.scrollWidth} > ${layout.clientWidth}`);
+    failures.push(`${path}: horizontal overflow at ${layout.viewport.width}x${layout.viewport.height} `
+      + `${layout.scrollWidth} > ${layout.clientWidth}; first fault: ${JSON.stringify(layout.firstLayoutFault)}`);
   }
   if (!layout.mobile && layout.wideWorkspace && (
     Math.abs(layout.workspaceRight - layout.clientWidth) > 0.5
