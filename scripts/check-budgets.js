@@ -11,8 +11,12 @@ const budgets = {
   // Utility header and FAQ remain lazy. The root recovery boundary is eager by
   // design so a failed route chunk can still render; keep the compressed
   // transfer ratchet unchanged and pin raw assets to that resilient baseline.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 61_000),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 254_000),
+  // The accessible shared modal and optional DeckView preview now produce
+  // separate lazy assets. Vite records those filenames in its eager preload
+  // map (+117 raw bytes versus a6863c2), while compressed startup transfer
+  // stays below the existing 80 KB ratchet.
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 61_100),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 254_120),
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_000),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 116_000),
@@ -30,6 +34,12 @@ const budgets = {
   deckViewVendorJs: Number(process.env.BUDGET_DECK_VIEW_VENDOR_JS_BYTES || 31_000),
   deckListJs: Number(process.env.BUDGET_DECK_LIST_JS_BYTES || 6_500),
   deckListCss: Number(process.env.BUDGET_DECK_LIST_CSS_BYTES || 5_200),
+  deckPreviewControllerJs: Number(process.env.BUDGET_DECK_PREVIEW_CONTROLLER_JS_BYTES || 4_300),
+  deckPreviewControllerCss: Number(process.env.BUDGET_DECK_PREVIEW_CONTROLLER_CSS_BYTES || 800),
+  cardPreviewSheetJs: Number(process.env.BUDGET_CARD_PREVIEW_SHEET_JS_BYTES || 1_650),
+  cardPreviewSheetCss: Number(process.env.BUDGET_CARD_PREVIEW_SHEET_CSS_BYTES || 3_100),
+  cardPreviewTooltipJs: Number(process.env.BUDGET_CARD_PREVIEW_TOOLTIP_JS_BYTES || 900),
+  cardPreviewTooltipCss: Number(process.env.BUDGET_CARD_PREVIEW_TOOLTIP_CSS_BYTES || 650),
 };
 
 const files = readdirSync(distAssets)
@@ -58,6 +68,12 @@ const seoRegistryJs = files.find(file => /^registry-.*\.js$/.test(file.name));
 const deckViewVendorJs = files.find(file => /^hsreplay-deck-view-.*\.js$/.test(file.name));
 const deckListJs = files.find(file => /^HsReplayDeckList-.*\.js$/.test(file.name));
 const deckListCss = files.find(file => /^HsReplayDeckList-.*\.css$/.test(file.name));
+const deckPreviewControllerJs = files.find(file => /^HsReplayDeckPreviewController-.*\.js$/.test(file.name));
+const deckPreviewControllerCss = files.find(file => /^HsReplayDeckPreviewController-.*\.css$/.test(file.name));
+const cardPreviewSheetJs = files.find(file => /^CardPreviewSheet-.*\.js$/.test(file.name));
+const cardPreviewSheetCss = files.find(file => /^CardPreviewSheet-.*\.css$/.test(file.name));
+const cardPreviewTooltipJs = files.find(file => /^CardPreviewTooltip-.*\.js$/.test(file.name));
+const cardPreviewTooltipCss = files.find(file => /^CardPreviewTooltip-.*\.css$/.test(file.name));
 const homeSectionCssFiles = files.filter(file => /^Home(?:ArenaDirectory|Battlegrounds|LatestArticles)-.*\.css$/.test(file.name));
 const largestHomeSectionCss = homeSectionCssFiles.length === 3
   ? homeSectionCssFiles.sort((left, right) => right.bytes - left.bytes)[0]
@@ -96,6 +112,12 @@ const checks = [
   ['lazy DeckView vendor JS', deckViewVendorJs, budgets.deckViewVendorJs],
   ['lazy deck-list adapter JS', deckListJs, budgets.deckListJs],
   ['lazy deck-list recovery CSS', deckListCss, budgets.deckListCss],
+  ['lazy deck-preview controller JS', deckPreviewControllerJs, budgets.deckPreviewControllerJs],
+  ['lazy deck-preview controller CSS', deckPreviewControllerCss, budgets.deckPreviewControllerCss],
+  ['lazy card-preview sheet JS', cardPreviewSheetJs, budgets.cardPreviewSheetJs],
+  ['lazy card-preview sheet CSS', cardPreviewSheetCss, budgets.cardPreviewSheetCss],
+  ['lazy card-preview tooltip JS', cardPreviewTooltipJs, budgets.cardPreviewTooltipJs],
+  ['lazy card-preview tooltip CSS', cardPreviewTooltipCss, budgets.cardPreviewTooltipCss],
 ];
 
 let failed = false;

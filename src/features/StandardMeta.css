@@ -664,17 +664,24 @@
   padding: 2rem;
   overflow: hidden;
   overscroll-behavior: contain;
+}
+
+.standard-meta-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
   background: rgba(20, 8, 18, 0.78);
   backdrop-filter: blur(8px);
 }
 
 .standard-meta-modal__panel {
   position: relative;
+  z-index: 1;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   width: min(100%, 820px);
-  height: min(620px, calc(100dvh - 3rem));
-  max-height: calc(100dvh - 3rem);
+  height: min(620px, 100%);
+  max-height: 100%;
   padding: clamp(0.7rem, 1.7vw, 1.2rem);
   overflow: hidden;
   overscroll-behavior: contain;
@@ -1037,7 +1044,7 @@
   .standard-meta-card__climb { grid-column: 1 / -1; }
   .standard-meta-card__deck-button { grid-column: 1 / -1; width: 100%; min-height: 46px; }
   .standard-meta-modal { place-items: center; padding: 0.5rem; }
-  .standard-meta-modal__panel { width: min(100%, 440px); height: min(640px, calc(100dvh - 1rem)); max-height: calc(100dvh - 1rem); padding: 0.48rem; border-width: 6px; }
+  .standard-meta-modal__panel { width: min(100%, 440px); height: min(640px, 100%); max-height: 100%; padding: 0.48rem; border-width: 6px; }
   .standard-meta-modal__close { top: 0.42rem; right: 0.42rem; width: 44px; height: 44px; }
   .standard-meta-modal__header { gap: 0.48rem; align-items: center; min-height: 54px; padding-right: 3.05rem; padding-bottom: 0.48rem; }
   .standard-meta-modal__header img { width: 38px; height: 38px; }

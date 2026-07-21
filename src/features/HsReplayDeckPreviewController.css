@@ -1,0 +1,28 @@
+.deck-card-preview-status {
+  position: fixed;
+  right: max(0.75rem, env(safe-area-inset-right));
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
+  z-index: 10065;
+  display: grid;
+  width: min(calc(100vw - 1.5rem), 26rem);
+  gap: 0.35rem;
+  padding: 0.85rem;
+  border: 2px solid #a6793b;
+  color: #f6e3b7;
+  background: linear-gradient(145deg, #5d1020, #31070f);
+  box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 46%);
+}
+
+.deck-card-preview-status > span { color: #d8bd88; font-size: 0.82rem; }
+.deck-card-preview-status > div { display: flex; gap: 0.45rem; margin-top: 0.25rem; }
+.deck-card-preview-status button {
+  flex: 1;
+  min-height: 44px;
+  border: 1px solid #c49a55;
+  color: #fff1c3;
+  background: #4b0a16;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.deck-card-preview-status button:focus-visible { outline: 3px solid #fff1a8; outline-offset: 2px; }

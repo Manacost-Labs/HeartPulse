@@ -1,5 +1,4 @@
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import {
   AlertTriangle,
   ArrowDown,
@@ -17,7 +16,7 @@ import {
   Trophy,
   X,
 } from 'lucide-react';
-import { usePageScrollLock } from '../hooks/usePageScrollLock';
+import ModalSurface from '../components/ModalSurface/ModalSurface';
 import HsReplayDeckList, { type HsReplayDeckCard } from './HsReplayDeckList';
 import { AsyncSurfaceState, RecoverableSurfaceBoundary } from './recovery/RecoverableSurface';
 import { datasetContractErrorMessage } from '../../shared/datasetEnvelope';
@@ -169,39 +168,12 @@ function WinrateMedallion({ value }: { value: number | null }) {
   );
 }
 
-function DeckModal({ state, onClose, onRenderPreview }: { state: DeckModalState; onClose: () => void; onRenderPreview: () => void }) {
-  const panelRef = useRef<HTMLElement | null>(null);
+export function DeckModal({ state, onClose, onRenderPreview }: { state: DeckModalState; onClose: () => void; onRenderPreview: () => void }) {
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const [copied, setCopied] = useState(false);
   const [presentation, setPresentation] = useState<'list' | 'image'>('list');
-  usePageScrollLock(true);
 
   useEffect(() => setPresentation('list'), [state.recommendation?.deckCode]);
-
-  useEffect(() => {
-    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    closeRef.current?.focus();
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-      if (event.key !== 'Tab' || !panelRef.current) return;
-      const focusable = [...panelRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])')];
-      if (!focusable.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      previouslyFocused?.focus();
-    };
-  }, [onClose]);
 
   const copyDeck = async () => {
     if (!state.recommendation?.deckCode) return;
@@ -227,11 +199,16 @@ function DeckModal({ state, onClose, onRenderPreview }: { state: DeckModalState;
     }
   };
 
-  const modal = (
-    <div className="standard-meta-modal" role="presentation" onMouseDown={event => {
-      if (event.target === event.currentTarget) onClose();
-    }}>
-      <section ref={panelRef} className="standard-meta-modal__panel" role="dialog" aria-modal="true" aria-labelledby="standard-meta-deck-title">
+  return (
+    <ModalSurface
+      className="standard-meta-modal"
+      panelClassName="standard-meta-modal__panel"
+      backdropClassName="standard-meta-modal__backdrop"
+      ariaLabelledBy="standard-meta-deck-title"
+      closeLabel="Закрыть окно сборки"
+      initialFocusRef={closeRef}
+      onClose={onClose}
+    >
         <button ref={closeRef} type="button" className="standard-meta-modal__close" onClick={onClose} aria-label="Закрыть окно">
           <X size={22} />
         </button>
@@ -319,11 +296,8 @@ function DeckModal({ state, onClose, onRenderPreview }: { state: DeckModalState;
             </aside>
           </div>
         )}
-      </section>
-    </div>
+    </ModalSurface>
   );
-
-  return createPortal(modal, document.body);
 }
 
 function StandardMetaContent() {

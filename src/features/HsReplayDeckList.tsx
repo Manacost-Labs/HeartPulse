@@ -1,9 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentType } from 'react';
 import type { AppErrorKind } from '../components/appErrorRecovery';
 import { classifyAppError } from '../components/appErrorRecovery';
 import '../vendor/hsreplay-deck-view/hsreplay-deck-view.css';
-import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
 import HsReplayDeckFallback from './HsReplayDeckFallback';
+import type {
+  CardPreviewModuleLoader,
+} from './HsReplayDeckPreviewController';
 import { AsyncSurfaceState } from './recovery/RecoverableSurface';
 import './recovery/RecoverableSurface.css';
 import './HsReplayDeckList.css';
@@ -24,10 +26,33 @@ type HsReplayDeckListProps = {
   cards: HsReplayDeckCard[];
   className?: string;
   label?: string;
+  previewModuleLoader?: CardPreviewModuleLoader;
+  previewControllerLoader?: DeckPreviewControllerLoader;
 };
 
 type DeckViewApi = NonNullable<typeof window.HSReplayDeckView>;
 type DeckRenderState = 'loading' | 'ready' | 'error';
+type DeckPreviewState = 'loading' | 'ready' | 'error';
+type DeckPreviewControllerProps = {
+  cards: HsReplayDeckCard[];
+  container: HTMLElement;
+  previewModuleLoader?: CardPreviewModuleLoader;
+};
+type DeckPreviewController = ComponentType<DeckPreviewControllerProps>;
+type DeckPreviewControllerModule = { default: DeckPreviewController };
+type DeckPreviewControllerLoader = () => Promise<DeckPreviewControllerModule>;
+
+let deckPreviewControllerPromise: Promise<DeckPreviewControllerModule> | null = null;
+
+function loadDeckPreviewController(): Promise<DeckPreviewControllerModule> {
+  if (!deckPreviewControllerPromise) {
+    deckPreviewControllerPromise = import('./HsReplayDeckPreviewController').catch(cause => {
+      deckPreviewControllerPromise = null;
+      throw cause;
+    });
+  }
+  return deckPreviewControllerPromise;
+}
 
 let deckViewLoader: Promise<DeckViewApi> | null = null;
 
@@ -54,21 +79,31 @@ function loadDeckView(): Promise<DeckViewApi> {
   return deckViewLoader;
 }
 
-export default function HsReplayDeckList({ cards, className = '', label = 'Состав колоды' }: HsReplayDeckListProps) {
+export default function HsReplayDeckList({
+  cards,
+  className = '',
+  label = 'Состав колоды',
+  previewModuleLoader,
+  previewControllerLoader = loadDeckPreviewController,
+}: HsReplayDeckListProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const previewRequestRef = useRef(0);
   const [error, setError] = useState('');
   const [errorKind, setErrorKind] = useState<AppErrorKind>('render');
   const [renderState, setRenderState] = useState<DeckRenderState>('loading');
   const [renderRevision, setRenderRevision] = useState(0);
-  const [preview, setPreview] = useState<CardPreviewTarget | null>(null);
+  const [previewState, setPreviewState] = useState<DeckPreviewState>('loading');
+  const [previewRevision, setPreviewRevision] = useState(0);
+  const [previewController, setPreviewController] = useState<DeckPreviewController | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !cards.length) return undefined;
     let active = true;
-    let cleanups: Array<() => void> = [];
     container.replaceChildren();
-    setPreview(null);
+    previewRequestRef.current += 1;
+    setPreviewController(null);
+    setPreviewState('loading');
     setError('');
     setRenderState('loading');
     void loadDeckView()
@@ -84,25 +119,18 @@ export default function HsReplayDeckList({ cards, className = '', label = 'Со�
         if (!container.querySelector('.hsrdv-card-tile')) {
           throw new Error('HSReplay DeckView returned an empty composition');
         }
-        const cardsById = new Map(cards.map(card => [card.id, card]));
-        cleanups = [...container.querySelectorAll<HTMLElement>('.hsrdv-card-tile')].map(tile => {
-          const card = cardsById.get(tile.dataset.cardId || '');
-          if (!card) return () => undefined;
-          tile.tabIndex = 0;
-          const showPreview = () => setPreview({ id: card.id, name: card.name, imageUrl: card.cardImage, rect: tile.getBoundingClientRect() });
-          const hidePreview = () => setPreview(current => current?.id === card.id ? null : current);
-          tile.addEventListener('mouseenter', showPreview);
-          tile.addEventListener('mouseleave', hidePreview);
-          tile.addEventListener('focus', showPreview);
-          tile.addEventListener('blur', hidePreview);
-          return () => {
-            tile.removeEventListener('mouseenter', showPreview);
-            tile.removeEventListener('mouseleave', hidePreview);
-            tile.removeEventListener('focus', showPreview);
-            tile.removeEventListener('blur', hidePreview);
-          };
-        });
         setRenderState('ready');
+        setPreviewState('loading');
+        const request = ++previewRequestRef.current;
+        void previewControllerLoader()
+          .then(module => {
+            if (!active || request !== previewRequestRef.current) return;
+            setPreviewController(() => module.default);
+            setPreviewState('ready');
+          })
+          .catch(() => {
+            if (active && request === previewRequestRef.current) setPreviewState('error');
+          });
       })
       .catch(cause => {
         if (!active) return;
@@ -116,10 +144,10 @@ export default function HsReplayDeckList({ cards, className = '', label = 'Со�
       });
     return () => {
       active = false;
-      cleanups.forEach(cleanup => cleanup());
+      previewRequestRef.current += 1;
       container.replaceChildren();
     };
-  }, [cards, renderRevision]);
+  }, [cards, previewControllerLoader, previewRevision, renderRevision]);
 
   if (!cards.length) {
     return (
@@ -133,8 +161,14 @@ export default function HsReplayDeckList({ cards, className = '', label = 'Со�
       </div>
     );
   }
+  const PreviewController = previewController;
+  const previewContainer = containerRef.current;
   return (
-    <div className={`traditional-deck-list ${className}`} aria-label={label} data-deck-render-state={renderState}>
+    <div
+      className={`traditional-deck-list ${className}`}
+      aria-label={label}
+      data-deck-render-state={renderState}
+    >
       {renderState === 'loading' && (
         <AsyncSurfaceState variant="loading" title="Рисуем состав колоды" compact />
       )}
@@ -160,7 +194,24 @@ export default function HsReplayDeckList({ cards, className = '', label = 'Со�
         data-ready={renderState === 'ready' ? 'true' : 'false'}
         data-deck-cards={cards.flatMap(card => Array.from({ length: card.count }, () => card.dbfId)).join(',')}
       />
-      {preview && <CardPreviewTooltip preview={preview} />}
+      {renderState === 'ready' && previewState === 'error' && (
+        <div className="traditional-deck-list__preview-recovery" data-deck-preview-controller-state="error">
+          <AsyncSurfaceState
+            variant="stale"
+            title="Карты не открылись"
+            actionLabel="Повторить"
+            onAction={() => setPreviewRevision(revision => revision + 1)}
+            compact
+          />
+        </div>
+      )}
+      {previewState === 'ready' && PreviewController && previewContainer && (
+        <PreviewController
+          cards={cards}
+          container={previewContainer}
+          previewModuleLoader={previewModuleLoader}
+        />
+      )}
     </div>
   );
 }
