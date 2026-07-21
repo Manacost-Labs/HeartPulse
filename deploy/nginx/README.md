@@ -66,7 +66,9 @@ confirmed missing cards return `404`, catalog outages return `503` with
 `Retry-After`, and initial HTML contains only whitelisted public catalog data.
 Format listings remain static. Syntactically valid hero or Battlegrounds detail
 URLs may still use the anonymous SPA shell until their entity resolvers are
-introduced.
+introduced, but that fallback carries `X-Robots-Tag: noindex, follow` so the
+home canonical cannot become an indexable soft duplicate. API, health and
+metrics responses are also unconditionally `noindex, nofollow` at the edge.
 
 One additional gap remains explicit rather than being hidden by the contract:
 

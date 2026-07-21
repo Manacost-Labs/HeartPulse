@@ -112,6 +112,14 @@ for (const path of ['/api', '/api/health/ready', '/health/live', '/metrics']) {
     assert.match(prefix?.body || exact?.body || '', /proxy_pass\s+http:\/\/127\.0\.0\.1:3101;/,
       `${path} must bypass HTML routing`);
   }
+  const technicalLocation = path === '/api'
+    ? locations.find(location => location.modifier === '=' && location.pattern === '/api')
+    : locations.find(location => location.modifier === '^~' && path.startsWith(location.pattern))
+      || locations.find(location => location.modifier === '=' && location.pattern === path);
+  assert.match(technicalLocation?.body || '', /X-Robots-Tag\s+"noindex, nofollow"\s+always;/,
+    `${path} must be server-side noindex for every upstream status`);
+  assert.match(technicalLocation?.body || '', /arena-security-headers\.conf/,
+    `${path} must retain the shared security headers when adding robots policy`);
 }
 
 for (const path of ['/assets/app.js', '/uploads/example.png']) {
@@ -216,14 +224,19 @@ for (const route of inventory.routes) {
       'authoritative entity 404/503 HTML and headers must pass through nginx');
     continue;
   }
-  expectRegexAction(`${path}/`, '/index.html =404;', `${route.id} canonical route`);
+  expectRegexAction(`${path}/`, '@arena_spa_noindex;', `${route.id} canonical route`);
 }
 
 const standardCardsListing = firstMatchingRegexLocation('/standard/cards/standard/');
-assert.match(standardCardsListing?.body || '', /try_files\s+\$uri\/index\.html\s+\/index\.html\s+=404;/,
-  'constructed-card format listings must remain static SPA documents');
+assert.match(standardCardsListing?.body || '', /try_files\s+\$uri\/index\.html\s+@arena_spa_noindex;/,
+  'constructed-card format listings must use the fail-closed SPA fallback');
 assert.doesNotMatch(standardCardsListing?.body || '', /proxy_pass/,
   'constructed-card format listings must not be sent through the detail resolver');
+const spaFallback = locations.find(location => location.pattern === '@arena_spa_noindex');
+assert.match(spaFallback?.body || '', /X-Robots-Tag\s+"noindex, follow"\s+always;/,
+  'the SPA fallback must be noindex until a materialized document exists');
+assert.match(spaFallback?.body || '', /try_files\s+\/index\.html\s+=404;/,
+  'the SPA fallback itself must fail closed when the application shell is missing');
 
 for (const invalidPath of [
   '/articlesevil',
@@ -238,7 +251,7 @@ for (const invalidPath of [
   '/admin/unknown',
 ]) {
   const htmlMatch = matchingRegexLocations(invalidPath)
-    .some(location => location.body.includes('return 301') || location.body.includes('/index.html =404;'));
+    .some(location => location.body.includes('return 301') || location.body.includes('@arena_spa_noindex;'));
   assert.equal(htmlMatch, false, `${invalidPath} must reach the real 404 catch-all`);
 }
 
@@ -257,13 +270,13 @@ async function reserveAvailablePort() {
   return address.port;
 }
 
-function requestNginx(port, path) {
+function requestNginx(port, path, method = 'GET') {
   return new Promise((resolveRequest, rejectRequest) => {
     const pending = request({
       host: '127.0.0.1',
       port,
       path,
-      method: 'GET',
+      method,
       headers: { Host: 'arena.test' },
     }, response => {
       const chunks = [];
@@ -281,6 +294,26 @@ function requestNginx(port, path) {
 
 async function startCardSeoUpstream() {
   const responses = new Map([
+    ['/api', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, max-age=17' },
+      body: '{"api":true}',
+    }],
+    ['/api/missing', {
+      status: 404,
+      headers: { 'Cache-Control': 'private, max-age=11' },
+      body: '{"error":"missing"}',
+    }],
+    ['/health/live', {
+      status: 200,
+      headers: { 'Cache-Control': 'no-store' },
+      body: '{"status":"ok"}',
+    }],
+    ['/metrics', {
+      status: 200,
+      headers: { 'Cache-Control': 'no-store' },
+      body: 'arena_requests_total 1\n',
+    }],
     ['/r/summer', {
       status: 302,
       headers: {
@@ -418,9 +451,11 @@ async function runNginxContractCheck() {
     const www = join(root, 'www');
     mkdirSync(www, { recursive: true });
     mkdirSync(join(www, 'assets'), { recursive: true });
+    mkdirSync(join(www, 'tierlist'), { recursive: true });
     writeFileSync(join(www, 'index.html'), '<!doctype html><title>SPA</title>');
     writeFileSync(join(www, '404.html'), '<!doctype html><title>404</title>');
     writeFileSync(join(www, 'assets', 'app.js'), 'window.arena = true;');
+    writeFileSync(join(www, 'tierlist', 'index.html'), '<!doctype html><title>Tierlist</title>');
     copyFileSync(
       join(projectRoot, 'public/yandex_eaea2c59052dad81.html'),
       join(www, 'yandex_eaea2c59052dad81.html'),
@@ -481,7 +516,24 @@ http {
     const routeRedirect = await requestNginx(port, '/tierlist');
     assert.equal(routeRedirect.status, 301, 'known public route must normalize its slash');
     assert.match(routeRedirect.headers.location || '', /\/tierlist\/$/, 'slash redirect target');
-    assert.equal((await requestNginx(port, '/tierlist/')).status, 200, 'canonical public route');
+    const materializedRoute = await requestNginx(port, '/tierlist/');
+    assert.equal(materializedRoute.status, 200, 'canonical public route');
+    assert.match(materializedRoute.body, /<title>Tierlist<\/title>/, 'materialized route document');
+    assert.equal(materializedRoute.headers['x-robots-tag'], undefined,
+      'materialized indexable route must not inherit fallback noindex');
+
+    for (const shellPath of [
+      '/standard/cards/standard/',
+      '/heroes/76521/',
+      '/library/minions/example-76521/',
+      '/guides-archive/guide-1/',
+    ]) {
+      const shell = await requestNginx(port, shellPath);
+      assert.equal(shell.status, 200, `${shellPath} must retain client navigation before its SSR resolver exists`);
+      assert.match(shell.body, /<title>SPA<\/title>/, `${shellPath} fallback shell`);
+      assert.equal(shell.headers['x-robots-tag'], 'noindex, follow', `${shellPath} fail-closed robots policy`);
+      assert.match(shell.headers['cache-control'] || '', /no-store/, `${shellPath} fallback cache policy`);
+    }
 
     const authState = await requestNginx(port, '/?login');
     assert.equal(authState.headers['x-robots-tag'], 'noindex, nofollow', 'auth state robots header');
@@ -494,6 +546,23 @@ http {
     const adminResponse = await requestNginx(port, '/admin/');
     assert.equal(adminResponse.status, 200, 'admin document');
     assert.equal(adminResponse.headers['x-robots-tag'], 'noindex, nofollow', 'admin document robots');
+
+    for (const technicalFixture of [
+      { path: '/api', status: 200, body: /"api":true/, cache: /max-age=17/ },
+      { path: '/api/missing', status: 404, body: /"error":"missing"/, cache: /max-age=11/ },
+      { path: '/health/live', status: 200, body: /"status":"ok"/, cache: /no-store/ },
+      { path: '/metrics', status: 200, body: /arena_requests_total/, cache: /no-store/ },
+    ]) {
+      const technical = await requestNginx(port, technicalFixture.path);
+      assert.equal(technical.status, technicalFixture.status, `${technicalFixture.path} upstream status`);
+      assert.match(technical.body, technicalFixture.body, `${technicalFixture.path} upstream body`);
+      assert.match(technical.headers['cache-control'] || '', technicalFixture.cache,
+        `${technicalFixture.path} upstream cache policy`);
+      assert.equal(technical.headers['x-robots-tag'], 'noindex, nofollow',
+        `${technicalFixture.path} technical robots policy`);
+      assert.equal(technical.headers['x-content-type-options'], 'nosniff',
+        `${technicalFixture.path} shared security headers`);
+    }
 
     const cardRedirect = await requestNginx(
       port,
@@ -545,6 +614,17 @@ http {
     const missingPage = await requestNginx(port, '/definitely-unknown');
     assert.equal(missingPage.status, 404, 'unknown HTML must be a real 404');
     assert.match(missingPage.body, /<title>404<\/title>/, '404 document body');
+    for (const headFixture of [
+      { path: '/tierlist', status: 301 },
+      { path: '/decks/legacy', status: 410, robots: 'noindex, nofollow' },
+      { path: '/definitely-unknown', status: 404, robots: 'noindex, nofollow' },
+    ]) {
+      const head = await requestNginx(port, headFixture.path, 'HEAD');
+      assert.equal(head.status, headFixture.status, `${headFixture.path} HEAD status`);
+      assert.equal(head.body, '', `${headFixture.path} HEAD body`);
+      if (headFixture.robots) assert.equal(head.headers['x-robots-tag'], headFixture.robots,
+        `${headFixture.path} HEAD robots policy`);
+    }
     const missingAsset = await requestNginx(port, '/assets/missing.js');
     assert.equal(missingAsset.status, 404, 'missing asset must stay 404');
     assert.doesNotMatch(
