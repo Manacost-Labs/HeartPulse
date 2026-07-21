@@ -113,6 +113,11 @@ assert.deepEqual(
   ['standard', 'wild'],
   'constructed card format must only accept standard and wild',
 );
+assert.equal(
+  byId.get('standard-card-detail')?.pathParameters?.cardId?.pattern,
+  '^[A-Za-z0-9_]{2,80}$',
+  'constructed card detail IDs must use the same bounded public resolver contract',
+);
 assert.equal(byId.get('bg-hero-detail')?.pathParameters?.dbfId?.pattern, '^[1-9][0-9]*$',
   'hero detail dbfId must be a positive integer');
 assert.deepEqual(

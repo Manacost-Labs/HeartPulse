@@ -36,11 +36,10 @@
 
 | Проблема | Фактическое место | Риск | Приоритет |
 |---|---|---|---|
-| Динамический URL получает canonical листинга | `src/routes.ts`, например `/standard/cards/:format/:cardId` сводится к `/standard/cards` | Детальные карточки не индексируются либо считаются дублями | P0 |
-| У детальных Standard-карт и героев нет гарантированного HTML с уникальными метаданными до JS | SPA shell и текущий prerender | Пустые/неполные сниппеты, слабая индексация | P0 |
+| У детальных героев и BG-сущностей нет гарантированного HTML с уникальными метаданными до JS | SPA shell и текущий prerender | Пустые/неполные сниппеты, слабая индексация | P0 |
 | Sitemap пока содержит только 23 материализованные static/listing страницы | `config/public-seo-pages.json`, `scripts/prerender.js` | Качественные detail pages нельзя публиковать до появления валидированных snapshots | P0 |
 | Неиндексируемые области защищены неполно | `public/robots.txt` не закрывает `/admin`; клиентский `noindex` приходит после JS | Индексация служебных страниц и soft 404 | P0 |
-| Detail canonical и HTTP status ещё не строятся из entity snapshot | SPA shell, nginx | Дубли, soft 404 и общий metadata fallback у сущностей | P0 |
+| Detail canonical и HTTP status героев/BG-сущностей ещё не строятся из entity snapshot | SPA shell, nginx | Дубли, soft 404 и общий metadata fallback у оставшихся сущностей | P0 |
 | Schema Dataset использует дату сборки, а не дату данных | `scripts/prerender.js` | Недостоверный `dateModified` и freshness | P1 |
 | Счётчики ItemList могут быть захардкожены | `scripts/prerender.js` | Schema расходится с видимым содержимым | P1 |
 | Нет внутренних страниц авторов и редакционной политики | Публичные маршруты | Недостаточный E-E-A-T для аналитического продукта | P1 |
@@ -51,9 +50,10 @@
 
 - `SEO-101/102`: title и description 24 materialized pages перенесены в единый data-only реестр; `src/route-meta.ts` и неиспользуемый `PAGE_META` удалены.
 - `SEO-106` для static/listing слоя: CI проверяет все 24 HTML-документа, один H1, robots, canonical, OG/Twitter metadata, JSON-LD parse и отсутствие закрытых bootstrap-полей.
+- `SEO-201`: `/standard/cards/:format/:cardId` получает SSR из авторитетного каталога, self-canonical, уникальные русские метаданные и публичную card schema; неизвестная карта возвращает `404`, недоступный каталог — `503`, а закрытая статистика и колоды не входят в HTML.
 - Sitemap генерируется при prerender и содержит ровно 23 index/self-canonical URL. `/standard/matchups`, `/gallery`, `/library/archive/minions` и `/library/archive/spells` больше не теряются.
 - Недостоверные ручные `lastmod`, `changefreq` и `priority` удалены. Реальный `lastmod` появится только вместе с publication metadata сущностей.
-- Detail routes намеренно не добавлены в реестр или sitemap до реализации snapshot, authoritative 404 и тестов на утечку paywall-данных.
+- Detail-карты намеренно не добавлены в materialized SEO-реестр или sitemap до отдельного `SEO-203`; SSR resolver, authoritative 404/503 и тесты на утечку уже готовы.
 
 ## 4. Целевая SEO-архитектура
 
@@ -158,7 +158,7 @@ FAQ-разметка остаётся семантической, но план 
 
 - `SEO-101` и `SEO-102` завершены для materialized static/listing страниц;
 - static-часть `SEO-106` завершена и включена в общий CI;
-- entity builders, snapshots и fail-closed поведение неизвестных ID остаются в `SEO-201/202`;
+- entity builders, snapshots и fail-closed поведение неизвестных ID героев/BG-сущностей остаются в `SEO-202`;
 - `SEO-103–105` требуют отдельной серверной реализации и production HTTP-проверки.
 
 ### Фаза 2 — динамические страницы и sitemap, недели 3–6
@@ -172,6 +172,8 @@ FAQ-разметка остаётся семантической, но план 
 | SEO-205 | P1 | Добавить динамические OG-изображения | SEO-201 | 1200×630, русское имя, режим и бренд; fallback проверен; image URL отдаёт 200 и корректный MIME |
 | SEO-206 | P1 | Устранить hard-coded ItemList counts | SEO-101 | Count/position строятся из публичного snapshot и совпадают с HTML |
 
+Текущий статус фазы 2: `SEO-201` завершён для SSR detail pages Standard/Wild-карт. `SEO-202–206` остаются в работе; card sitemap не публикуется до отдельного `SEO-203` и проверки всех URL на `200`/canonical/indexability.
+
 Контрольная точка: sitemap validator не находит redirects, 4xx, noindex или non-canonical URL; выборка detail pages корректна без JavaScript.
 
 ### Фаза 3 — schema и безопасный paywall, недели 5–7
@@ -184,6 +186,8 @@ FAQ-разметка остаётся семантической, но план 
 | SEO-304 | P1 | Добавить card entity schema | SEO-201 | Валидный `CreativeWork`/`Thing`, стабильный `@id`, русское и английское имя, ID и дополнение |
 | SEO-305 | P1 | Добавить авторов и Article schema | Полные локальные статьи | Schema только на локальных article pages; внешние статьи остаются ItemList links |
 | SEO-306 | P1 | Сверить FAQPage с видимым FAQ | Контент-владелец | Ни одного скрытого/устаревшего вопроса в schema; тест JSON-LD ↔ DOM |
+
+Базовый Standard/Wild-срез `SEO-304` реализован вместе с `SEO-201`: SSR содержит только публичные `CreativeWork`, `BreadcrumbList` и `PropertyValue`. Расширение schema для других entity templates остаётся частью следующих срезов.
 
 Контрольная точка: валидатор структурированных данных и ручная проверка URL Inspection не показывают критических ошибок; paywall не раскрыт.
 

@@ -40,6 +40,10 @@ import {
   type ConstructedCardDeck,
 } from './constructedCardRoutes.js';
 import {
+  createConstructedCardSeoRouter,
+  extractConstructedCardFrontendAssets,
+} from './constructedCardSeoRoutes.js';
+import {
   createStandardMetaRouter,
   type StandardMetaFormat,
   type StandardMetaPreview,
@@ -5520,9 +5524,10 @@ function datasetApiUrl(datasetId: string): string {
   return `${DATASET_API_BASE}/${path}`;
 }
 
-async function fetchDataset(datasetId: string) {
+async function fetchDataset(datasetId: string, timeoutMs?: number) {
   const upstream = await fetch(datasetApiUrl(datasetId), {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
+    ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
   });
   if (!upstream.ok) throw new Error(`Upstream HTTP ${upstream.status}`);
   return upstream.json();
@@ -6860,7 +6865,10 @@ app.use('/api', createStandardMatchupRouter({
 }));
 
 const constructedCardDataService = createConstructedCardDataService({
-  fetchJson: url => fetchDataset(url),
+  // Card-detail HTML is proxied with a 30-second nginx deadline. Each
+  // sequential catalog stage therefore fails closed before the edge timeout
+  // instead of leaving a detached upstream request running indefinitely.
+  fetchJson: url => fetchDataset(url, 8_000),
   catalogBaseUrl: KOLODAHS_API_BASE_URL,
   statsDatasetByFormat: CONSTRUCTED_CARDS_DATASET_BY_FORMAT,
   statsBaseUrl: `${DATASET_API_ORIGIN}/demo/view`,
@@ -6869,6 +6877,19 @@ const constructedCardDataService = createConstructedCardDataService({
   getArchetypeTranslations: () => getStandardArchetypeTranslations().then(result => result.map),
   cacheTtlMs: EXTERNAL_DATASET_CACHE_MS,
 });
+const constructedCardFrontendShell = join(APP_ROOT_DIR, 'dist', 'index.html');
+const constructedCardFrontendAssets = existsSync(constructedCardFrontendShell)
+  ? extractConstructedCardFrontendAssets(readFileSync(constructedCardFrontendShell, 'utf8'))
+  : '';
+
+app.use(createConstructedCardSeoRouter({
+  loadCards: constructedCardDataService.loadCards,
+  frontendAssets: constructedCardFrontendAssets,
+  onError: error => console.error(
+    '[constructed-card-seo] catalog failed:',
+    error instanceof Error ? error.message : error,
+  ),
+}));
 
 async function hydrateRecommendationDeckCards<T extends StandardMetaRecommendation>(recommendation: T): Promise<T> {
   try {

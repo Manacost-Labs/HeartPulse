@@ -312,14 +312,14 @@
       "indexPolicy": "index",
       "canonicalPolicy": "self",
       "sitemap": true,
-      "htmlStrategy": "snapshot",
+      "htmlStrategy": "server-ssr",
       "expectedStatus": 200,
       "criticality": "P0",
       "mobileFixture": "standard-card-detail",
       "entitlement": null,
       "pathParameters": {
         "format": { "allowedValues": ["standard", "wild"] },
-        "cardId": { "pattern": "^[A-Za-z0-9_]+$" }
+        "cardId": { "pattern": "^[A-Za-z0-9_]{2,80}$" }
       }
     },
     {

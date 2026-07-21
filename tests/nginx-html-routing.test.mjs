@@ -9,7 +9,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { request } from 'node:http';
+import { createServer as createHttpServer, request } from 'node:http';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -29,7 +29,7 @@ const edgeStaticSource = readFileSync(
 
 function parseLocationBlocks(source) {
   const blocks = [];
-  const matcher = /location\s+(=|\^~|~\*|~)?\s*([^\s{]+)\s*\{/g;
+  const matcher = /location\s+(=|\^~|~\*|~)?\s*(?:"([^"]+)"|([^\s{]+))\s*\{/g;
   for (const match of source.matchAll(matcher)) {
     let depth = 1;
     let cursor = match.index + match[0].length;
@@ -41,7 +41,7 @@ function parseLocationBlocks(source) {
     assert.equal(depth, 0, `unclosed nginx location ${match[2]}`);
     blocks.push({
       modifier: match[1] || '',
-      pattern: match[2],
+      pattern: match[2] || match[3],
       body: source.slice(match.index + match[0].length, cursor - 1),
     });
   }
@@ -58,6 +58,10 @@ const regexLocations = locations
 
 function matchingRegexLocations(pathname) {
   return regexLocations.filter(location => location.regex.test(pathname));
+}
+
+function firstMatchingRegexLocation(pathname) {
+  return regexLocations.find(location => location.regex.test(pathname));
 }
 
 function substituteRouteParameters(route) {
@@ -77,9 +81,9 @@ function substituteRouteParameters(route) {
 }
 
 function expectRegexAction(pathname, directive, message) {
-  const matches = matchingRegexLocations(pathname);
-  assert.ok(matches.some(location => location.body.includes(directive)),
-    `${message}: ${pathname} must match a location containing ${directive}`);
+  const match = firstMatchingRegexLocation(pathname);
+  assert.ok(match?.body.includes(directive),
+    `${message}: first matching regex for ${pathname} must contain ${directive}; got ${match?.pattern || 'none'}`);
 }
 
 assert.match(routingSource, /error_page\s+404\s+=404\s+\/404\.html;/,
@@ -126,7 +130,7 @@ assert.match(yandexVerification?.body || '', /try_files\s+\$uri\s+=404;/,
 
 for (const removed of ['/decks', '/decks/legacy/item', '/jobs', '/jobs/archive']) {
   expectRegexAction(removed, 'return 410;', 'removed route');
-  const location = matchingRegexLocations(removed).find(candidate => candidate.body.includes('return 410;'));
+  const location = firstMatchingRegexLocation(removed);
   assert.match(location?.body || '', /X-Robots-Tag\s+"noindex, nofollow"\s+always;/,
     `${removed} must be noindex`);
 }
@@ -197,16 +201,33 @@ for (const route of inventory.routes) {
   if (route.id === 'admin-panel') continue;
 
   expectRegexAction(path, 'return 301', `${route.id} non-canonical route`);
-  const redirect = matchingRegexLocations(path).find(location => location.body.includes('return 301'));
+  const redirect = firstMatchingRegexLocation(path);
   assert.match(redirect?.body || '', /\$uri\/\$is_args\$args;/,
     `${route.id} must add the slash and preserve query in one redirect`);
+  if (route.id === 'standard-card-detail') {
+    expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:3101;', `${route.id} canonical route`);
+    const resolver = firstMatchingRegexLocation(`${path}/`);
+    assert.doesNotMatch(resolver?.body || '', /try_files\s+[^;]*\/index\.html/,
+      'constructed card details must not fall back to the static listing shell');
+    assert.match(resolver?.body || '', /proxy_intercept_errors\s+off;/,
+      'authoritative entity 404/503 HTML and headers must pass through nginx');
+    continue;
+  }
   expectRegexAction(`${path}/`, '/index.html =404;', `${route.id} canonical route`);
 }
+
+const standardCardsListing = firstMatchingRegexLocation('/standard/cards/standard/');
+assert.match(standardCardsListing?.body || '', /try_files\s+\$uri\/index\.html\s+\/index\.html\s+=404;/,
+  'constructed-card format listings must remain static SPA documents');
+assert.doesNotMatch(standardCardsListing?.body || '', /proxy_pass/,
+  'constructed-card format listings must not be sent through the detail resolver');
 
 for (const invalidPath of [
   '/articlesevil',
   '/standard/cards/classic',
   '/standard/cards/standard/CATA-785',
+  '/standard/cards/standard/A',
+  `/standard/cards/standard/${'A'.repeat(81)}`,
   '/heroes/0',
   '/heroes/not-a-number',
   '/library/weapons',
@@ -252,6 +273,64 @@ function requestNginx(port, path) {
     });
     pending.once('error', rejectRequest);
     pending.end();
+  });
+}
+
+async function startCardSeoUpstream() {
+  const responses = new Map([
+    ['/standard/cards/standard/CARD_OK/', {
+      status: 200,
+      headers: {
+        'X-Robots-Tag': 'index, follow, max-image-preview:large',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+      body: '<!doctype html><title>Card OK</title><p>card-upstream-200</p>',
+    }],
+    ['/standard/cards/standard/MISSING_1/', {
+      status: 404,
+      headers: {
+        'X-Robots-Tag': 'noindex, nofollow',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+      body: '<!doctype html><title>Missing card</title><p>card-upstream-404</p>',
+    }],
+    ['/standard/cards/standard/OUTAGE_1/', {
+      status: 503,
+      headers: {
+        'X-Robots-Tag': 'noindex, nofollow',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Retry-After': '300',
+      },
+      body: '<!doctype html><title>Catalog outage</title><p>card-upstream-503</p>',
+    }],
+  ]);
+  const server = createHttpServer((incomingRequest, response) => {
+    const pathname = new URL(incomingRequest.url || '/', 'http://arena.test').pathname;
+    const fixture = responses.get(pathname);
+    if (!fixture) {
+      response.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+      response.end(`unexpected upstream path: ${pathname}`);
+      return;
+    }
+    response.writeHead(fixture.status, {
+      'Content-Type': 'text/html; charset=utf-8',
+      ...fixture.headers,
+    });
+    response.end(fixture.body);
+  });
+  await new Promise((resolveListen, rejectListen) => {
+    server.once('error', rejectListen);
+    server.listen(0, '127.0.0.1', resolveListen);
+  });
+  const address = server.address();
+  assert.notEqual(address, null, 'card SEO mock upstream must bind a port');
+  assert.equal(typeof address, 'object', 'card SEO mock upstream must use a TCP port');
+  return { server, port: address.port };
+}
+
+function stopHttpServer(server) {
+  return new Promise((resolveClose, rejectClose) => {
+    server.close(error => (error ? rejectClose(error) : resolveClose()));
   });
 }
 
@@ -304,7 +383,9 @@ async function runNginxContractCheck() {
 
   const root = mkdtempSync(join(tmpdir(), 'arena-nginx-contract-'));
   let nginxProcess = null;
+  let upstream = null;
   try {
+    upstream = await startCardSeoUpstream();
     const www = join(root, 'www');
     mkdirSync(www, { recursive: true });
     mkdirSync(join(www, 'assets'), { recursive: true });
@@ -322,10 +403,9 @@ async function runNginxContractCheck() {
       'add_header X-Frame-Options "SAMEORIGIN" always;',
     ].join('\n'));
     const testRouting = join(root, 'arena-html-routing.conf');
-    writeFileSync(testRouting, routingSource.replaceAll(
-      '/etc/nginx/snippets/arena-security-headers.conf',
-      securitySnippet,
-    ));
+    writeFileSync(testRouting, routingSource
+      .replaceAll('/etc/nginx/snippets/arena-security-headers.conf', securitySnippet)
+      .replaceAll('http://127.0.0.1:3101', `http://127.0.0.1:${upstream.port}`));
     const testMap = join(root, 'arena-seo-map.conf');
     writeFileSync(testMap, mapSource);
 
@@ -386,6 +466,40 @@ http {
     assert.equal(adminResponse.status, 200, 'admin document');
     assert.equal(adminResponse.headers['x-robots-tag'], 'noindex, nofollow', 'admin document robots');
 
+    const cardRedirect = await requestNginx(
+      port,
+      '/standard/cards/standard/CARD_OK?utm_source=contract',
+    );
+    assert.equal(cardRedirect.status, 301, 'card detail must normalize its slash once');
+    const cardRedirectTarget = new URL(cardRedirect.headers.location);
+    assert.equal(
+      `${cardRedirectTarget.pathname}${cardRedirectTarget.search}`,
+      '/standard/cards/standard/CARD_OK/?utm_source=contract',
+      'card detail slash normalization must preserve the query string',
+    );
+
+    const validCard = await requestNginx(port, '/standard/cards/standard/CARD_OK/');
+    assert.equal(validCard.status, 200, 'valid card SSR status must pass through nginx');
+    assert.match(validCard.body, /card-upstream-200/, 'valid card SSR body must pass through nginx');
+    assert.equal(
+      validCard.headers['x-robots-tag'],
+      'index, follow, max-image-preview:large',
+      'valid card robots policy must pass through nginx',
+    );
+
+    const missingCard = await requestNginx(port, '/standard/cards/standard/MISSING_1/');
+    assert.equal(missingCard.status, 404, 'missing card SSR status must pass through nginx');
+    assert.match(missingCard.body, /card-upstream-404/, 'missing card SSR body must pass through nginx');
+    assert.equal(missingCard.headers['x-robots-tag'], 'noindex, nofollow', 'missing card robots policy');
+    assert.match(missingCard.headers['cache-control'] || '', /no-store/, 'missing card cache policy');
+
+    const unavailableCard = await requestNginx(port, '/standard/cards/standard/OUTAGE_1/');
+    assert.equal(unavailableCard.status, 503, 'card catalog outage status must pass through nginx');
+    assert.match(unavailableCard.body, /card-upstream-503/, 'card catalog outage body must pass through nginx');
+    assert.equal(unavailableCard.headers['x-robots-tag'], 'noindex, nofollow', 'outage robots policy');
+    assert.equal(unavailableCard.headers['retry-after'], '300', 'outage retry policy must pass through nginx');
+    assert.match(unavailableCard.headers['cache-control'] || '', /no-store/, 'outage cache policy');
+
     assert.equal((await requestNginx(port, '/decks/legacy')).status, 410, 'removed route must be gone');
     const missingPage = await requestNginx(port, '/definitely-unknown');
     assert.equal(missingPage.status, 404, 'unknown HTML must be a real 404');
@@ -409,6 +523,7 @@ http {
     console.log('nginx syntax and runtime HTTP contract passed for the temporary configuration');
   } finally {
     if (nginxProcess) await stopNginx(nginxProcess);
+    if (upstream) await stopHttpServer(upstream.server);
     rmSync(root, { recursive: true, force: true });
   }
 }

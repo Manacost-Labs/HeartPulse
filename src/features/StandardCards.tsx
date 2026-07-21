@@ -873,14 +873,16 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
   useEffect(() => {
     if (!card) return;
     const name = cardName(card);
+    const formatLabel = format === 'standard' ? 'Стандарт' : 'Вольный формат';
+    const resolvedCardId = card.card_id || cardId;
     const rules = plainText(card.text?.ru || card.text?.en);
     const description = rules
-      ? `${name}: ${rules}`
-      : `${name} — карта Hearthstone в библиотеке Manacost Stats.`;
+      ? `${name} (${formatLabel}, ID ${resolvedCardId}): ${rules}`
+      : `${name} — карта Hearthstone (${formatLabel}, ID ${resolvedCardId}) в библиотеке Manacost Stats.`;
     void applyDocumentPageMeta({
-      title: `${name} — карта Hearthstone | Manacost Stats`,
+      title: `${name} — карта Hearthstone (${formatLabel}, ${resolvedCardId}) | Manacost Stats`,
       description: description.slice(0, 300),
-      pathname: `/standard/cards/${format}/${encodeURIComponent(card.card_id || cardId)}`,
+      pathname: `/standard/cards/${format}/${encodeURIComponent(resolvedCardId)}`,
       search: '',
       image: card.images?.card,
     });

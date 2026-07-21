@@ -19,6 +19,14 @@ export function initialClientRouteResolution(path: string, hint: InitialServerRo
   };
 }
 
+export function shouldPreserveInitialServerMeta(
+  path: string,
+  hint: InitialServerRouteHint,
+  isInitialMetaPass: boolean,
+): boolean {
+  return isInitialMetaPass && hint === normalizeClientRoutePath(path);
+}
+
 export function withHistoryRouteKnowledge(state: unknown, known: boolean): Record<string, unknown> {
   const existing = state && typeof state === 'object'
     ? state as Record<string, unknown>

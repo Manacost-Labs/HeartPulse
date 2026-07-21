@@ -61,11 +61,12 @@ an unchanged API readiness response. Reload nginx only after this matrix and
 the production smoke suite pass. Run the missing-asset check against every
 edge IP with `curl --resolve`; it must not contain an `immutable` cache header.
 
-The template validates route shapes, not entity existence. A syntactically
-valid card, hero or Battlegrounds detail URL may use the anonymous SPA shell
-until an authoritative server-side entity resolver is introduced. The resolver
-must distinguish a confirmed missing entity (`404`) from an unavailable data
-source (`503`) and must never expose subscriber-only data in initial HTML.
+Constructed-card detail routes now proxy to an authoritative server renderer:
+confirmed missing cards return `404`, catalog outages return `503` with
+`Retry-After`, and initial HTML contains only whitelisted public catalog data.
+Format listings remain static. Syntactically valid hero or Battlegrounds detail
+URLs may still use the anonymous SPA shell until their entity resolvers are
+introduced.
 
 Two additional gaps remain explicit rather than being hidden by the contract:
 

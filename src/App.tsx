@@ -29,14 +29,15 @@ import {
   initialClientRouteResolution,
   normalizeClientRoutePath,
   settledClientRouteResolution,
+  shouldPreserveInitialServerMeta,
   withHistoryRouteKnowledge,
 } from './routing/clientRouteResolution';
 
-// Preserve the server response context across an in-place render retry. The
-// static 404 marker describes only the URL that bootstrapped this document;
-// it must not turn a later, valid SPA destination into another 404 on remount.
+// Preserve authoritative entity metadata/404 context through the first client
+// pass. The marker belongs only to the URL that bootstrapped this document.
 const BOOTSTRAP_ROUTE_ROOT = globalThis.document?.getElementById('root');
-const INITIAL_SERVER_ROUTE_HINT = BOOTSTRAP_ROUTE_ROOT?.dataset.routeStatus === '404'
+const INITIAL_SERVER_ROUTE_STATUS = BOOTSTRAP_ROUTE_ROOT?.dataset.routeStatus;
+const INITIAL_SERVER_META_HINT = INITIAL_SERVER_ROUTE_STATUS
   ? normalizeClientRoutePath(location.pathname)
   : null;
 delete BOOTSTRAP_ROUTE_ROOT?.dataset.routeStatus;
@@ -773,7 +774,7 @@ export default function App() {
   const [currentPath, setCurrentPath] = useState(() => window.location.pathname);
   const [routeResolution, setRouteResolution] = useState(() => initialClientRouteResolution(
     window.location.pathname,
-    INITIAL_SERVER_ROUTE_HINT,
+    INITIAL_SERVER_ROUTE_STATUS === '404' ? INITIAL_SERVER_META_HINT : null,
   ));
   const routeView = clientRouteView(routeResolution, currentPath);
   const locationParams = new URLSearchParams(locationSearch);
@@ -787,12 +788,17 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
+    const preserveInitialServerMeta = shouldPreserveInitialServerMeta(
+      currentPath,
+      INITIAL_SERVER_META_HINT,
+      initialMetaPassRef.current,
+    );
     const isInitialPlainHome = initialMetaPassRef.current
       && activeTab === 'home'
       && currentPath === '/'
       && locationSearch === '';
     initialMetaPassRef.current = false;
-    if (isInitialPlainHome) return undefined;
+    if (isInitialPlainHome || preserveInitialServerMeta) return undefined;
     void applyPageMeta(activeTab, currentPath, locationSearch)
       .then(policy => {
         if (!active) return;

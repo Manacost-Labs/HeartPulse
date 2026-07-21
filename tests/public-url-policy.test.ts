@@ -59,6 +59,8 @@ for (const invalidPath of [
   '/heroes/not-a-number',
   '/standard/cards/classic/CATA_785',
   '/standard/cards/standard/bad-id!',
+  '/standard/cards/standard/A',
+  `/standard/cards/standard/${'A'.repeat(81)}`,
 ]) {
   await expectPolicy(invalidPath, {
     routeId: 'unknown-path',
@@ -118,6 +120,11 @@ trackedNode('link[rel="canonical"]');
 trackedNode('meta[property="og:url"]');
 let structuredDataRemoved = false;
 const structuredDataNode = { remove: () => { structuredDataRemoved = true; } };
+let entityStructuredDataRemoved = false;
+const entityStructuredDataNode = {
+  dataset: { entityPath: '/standard/cards/standard/CARD_1' },
+  remove: () => { entityStructuredDataRemoved = true; },
+};
 const fakeDocument: any = {
   title: '',
   head: {
@@ -144,6 +151,9 @@ const fakeDocument: any = {
   },
   querySelector(selector: string) { return nodes.get(selector) ?? null; },
   querySelectorAll(selector: string) {
+    if (selector === 'script[data-server-entity-jsonld]' && !entityStructuredDataRemoved) {
+      return [entityStructuredDataNode];
+    }
     return selector === 'script[type="application/ld+json"]' && !structuredDataRemoved
       ? [structuredDataNode]
       : [];
@@ -152,9 +162,28 @@ const fakeDocument: any = {
 Object.defineProperty(globalThis, 'document', { configurable: true, value: fakeDocument });
 Object.defineProperty(globalThis, 'window', {
   configurable: true,
-  value: { location: { pathname: '/articlesevil', search: '' } },
+  value: { location: { pathname: '/articles', search: '' } },
 });
 try {
+  await applyDocumentPageMeta({
+    title: 'Статьи',
+    description: 'Описание статей',
+    pathname: '/articles',
+    search: '',
+    image: 'javascript:alert(1)',
+  });
+  assert.equal(entityStructuredDataRemoved, true,
+    'indexable SPA navigation must remove JSON-LD belonging to the previous entity path');
+  assert.equal(structuredDataRemoved, false,
+    'indexable SPA navigation must not remove unrelated structured data globally');
+  assert.equal(
+    nodes.get('meta[property="og:image"]')?.content,
+    `${ORIGIN}/assets/og-preview.png`,
+    'unsafe client image protocols must fall back to the public preview image',
+  );
+  assert.equal(nodes.get('meta[name="twitter:image"]')?.content, `${ORIGIN}/assets/og-preview.png`);
+
+  (globalThis.window as any).location.pathname = '/articlesevil';
   await applyDocumentPageMeta({
     title: 'Статьи',
     description: 'Описание статей',

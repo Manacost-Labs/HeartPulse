@@ -4,6 +4,7 @@ import {
   historyRouteKnowledge,
   initialClientRouteResolution,
   settledClientRouteResolution,
+  shouldPreserveInitialServerMeta,
   withHistoryRouteKnowledge,
 } from '../src/routing/clientRouteResolution';
 
@@ -17,6 +18,21 @@ assert.equal(
   clientRouteView(initialClientRouteResolution('/', server404Hint), '/'),
   'known',
   'an in-place remount after leaving the bootstrap 404 must not reuse its stale server marker',
+);
+assert.equal(
+  shouldPreserveInitialServerMeta('/missing/path/', server404Hint, true),
+  true,
+  'the first metadata pass must not replace an authoritative server 404 with inventory-only index metadata',
+);
+assert.equal(
+  shouldPreserveInitialServerMeta('/articles', server404Hint, false),
+  false,
+  'later SPA navigation must be free to resolve normal metadata after the bootstrap 404',
+);
+assert.equal(
+  shouldPreserveInitialServerMeta('/standard/cards/standard/CARD_1', '/standard/cards/standard/CARD_1', true),
+  true,
+  'the first metadata pass must preserve authoritative entity metadata until detail hydration',
 );
 
 const home = initialClientRouteResolution('/');

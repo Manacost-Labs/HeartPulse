@@ -178,7 +178,10 @@ function upsertCanonical(href: string | null): void {
 function absoluteImageUrl(image: string | null | undefined, baseUrl: string | null): string {
   if (!image) return DEFAULT_OG_IMAGE_URL;
   try {
-    return new URL(image, baseUrl ?? `${DEFAULT_ORIGIN}/`).href;
+    const parsed = new URL(image, baseUrl ?? `${DEFAULT_ORIGIN}/`);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:'
+      ? parsed.href
+      : DEFAULT_OG_IMAGE_URL;
   } catch {
     return DEFAULT_OG_IMAGE_URL;
   }
@@ -206,6 +209,11 @@ export async function applyDocumentPageMeta(meta: DocumentPageMeta): Promise<Res
   upsertMeta('meta[name="twitter:title"]', 'name', 'twitter:title', title);
   upsertMeta('meta[name="twitter:description"]', 'name', 'twitter:description', description);
   upsertCanonical(policy.canonicalUrl);
+
+  document.querySelectorAll<HTMLScriptElement>('script[data-server-entity-jsonld]')
+    .forEach(element => {
+      if (element.dataset.entityPath !== policy.normalizedPathname) element.remove();
+    });
 
   if (policy.indexPolicy !== 'index') {
     document.querySelectorAll('script[type="application/ld+json"]').forEach(element => element.remove());
