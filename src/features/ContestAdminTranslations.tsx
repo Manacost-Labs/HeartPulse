@@ -32,6 +32,15 @@ type TranslationCoverage = {
   coveragePercent: number;
 };
 type MessageHandler = (message: AdminMessage | null) => void;
+type LatestRequestLease = {
+  signal: AbortSignal;
+  isCurrent: () => boolean;
+  release: () => void;
+};
+type LatestRequestCoordinator = {
+  begin: () => LatestRequestLease;
+  cancel: () => void;
+};
 const EMPTY_DRAFT: TranslationDraft = { nameEn: '', nameRu: '' };
 const EMPTY_RESPONSE: TranslationResponse = {
   items: [], total: 0, page: 1, pageSize: 40, pages: 1,
@@ -40,6 +49,32 @@ const EMPTY_RESPONSE: TranslationResponse = {
 const EMPTY_COVERAGE: TranslationCoverage = {
   items: [], totalObserved: 0, translated: 0, missing: 0, coveragePercent: 100,
 };
+
+export function createLatestRequestCoordinator(): LatestRequestCoordinator {
+  let requestId = 0;
+  let activeController: AbortController | null = null;
+
+  return {
+    begin() {
+      activeController?.abort();
+      const controller = new AbortController();
+      const currentRequestId = ++requestId;
+      activeController = controller;
+      return {
+        signal: controller.signal,
+        isCurrent: () => currentRequestId === requestId && !controller.signal.aborted,
+        release: () => {
+          if (currentRequestId === requestId) activeController = null;
+        },
+      };
+    },
+    cancel() {
+      requestId += 1;
+      activeController?.abort();
+      activeController = null;
+    },
+  };
+}
 
 function requestHeaders(): HeadersInit {
   return { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' };
@@ -341,25 +376,30 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
   const copiedDeckTimerRef = useRef<number | null>(null);
   const englishInputRef = useRef<HTMLInputElement>(null);
   const russianInputRef = useRef<HTMLInputElement>(null);
+  const loadCoordinatorRef = useRef<LatestRequestCoordinator | null>(null);
+  if (!loadCoordinatorRef.current) loadCoordinatorRef.current = createLatestRequestCoordinator();
 
-  const load = useCallback(async (signal?: AbortSignal) => {
+  const load = useCallback(async () => {
+    const request = loadCoordinatorRef.current!.begin();
     setLoading(true);
     const params = new URLSearchParams({ page: String(page), pageSize: '40' });
     if (query.trim()) params.set('q', query.trim());
     if (source) params.set('source', source);
     try {
       const response = await fetch(`/api/admin/archetype-translations?${params}`, {
-        headers: requestHeaders(), cache: 'no-store', credentials: 'same-origin', signal,
+        headers: requestHeaders(), cache: 'no-store', credentials: 'same-origin', signal: request.signal,
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить переводы');
+      if (!request.isCurrent()) return;
       setData(payload as TranslationResponse);
     } catch (error) {
-      if (signal?.aborted) return;
+      if (!request.isCurrent()) return;
       onMessage({ type: 'err', text: error instanceof Error ? error.message : 'Не удалось загрузить переводы' });
       setData(EMPTY_RESPONSE);
     } finally {
-      if (!signal?.aborted) setLoading(false);
+      if (request.isCurrent()) setLoading(false);
+      request.release();
     }
   }, [onMessage, page, query, source]);
 
@@ -382,9 +422,11 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => void load(controller.signal), query.trim() ? 220 : 0);
-    return () => { window.clearTimeout(timer); controller.abort(); };
+    const timer = window.setTimeout(() => void load(), query.trim() ? 220 : 0);
+    return () => {
+      window.clearTimeout(timer);
+      loadCoordinatorRef.current?.cancel();
+    };
   }, [load]);
 
   useEffect(() => {
@@ -406,6 +448,7 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
     event.preventDefault();
     setSaving(true);
     try {
+      const successMessage = editing ? 'Перевод обновлён.' : 'Перевод добавлен.';
       const response = await fetch(editing
         ? `/api/admin/archetype-translations/${editing.id}`
         : '/api/admin/archetype-translations', {
@@ -415,7 +458,6 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'Не удалось сохранить перевод');
-      onMessage({ type: 'ok', text: editing ? 'Перевод обновлён.' : 'Перевод добавлен.' });
       resetEditor();
       if (page !== 1) {
         setPage(1);
@@ -423,7 +465,19 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
       } else {
         await Promise.all([load(), loadCoverage()]);
       }
-      window.requestAnimationFrame(() => englishInputRef.current?.focus({ preventScroll: true }));
+      await new Promise<void>(resolve => {
+        window.requestAnimationFrame(() => {
+          const activeElement = document.activeElement;
+          const focusRemainsInEditor = activeElement instanceof Element
+            && Boolean(activeElement.closest('.admin-translation-form'));
+          const focusMayBeRestored = !activeElement
+            || activeElement === document.body
+            || focusRemainsInEditor;
+          if (focusMayBeRestored) englishInputRef.current?.focus({ preventScroll: true });
+          resolve();
+        });
+      });
+      onMessage({ type: 'ok', text: successMessage });
     } catch (error) {
       onMessage({ type: 'err', text: error instanceof Error ? error.message : 'Не удалось сохранить перевод' });
     } finally {
