@@ -11,6 +11,7 @@ import { dirname, join, resolve } from 'path';
 import { createHash, createHmac, createPublicKey, randomBytes, randomInt, scryptSync, timingSafeEqual, verify } from 'crypto';
 // @ts-ignore: node:sqlite is available in the production Node 22 runtime.
 import { DatabaseSync } from 'node:sqlite';
+import { configureWritableSqliteConnection } from './sqliteConnection.js';
 import { loadSnapshot } from './snapshots.js';
 import { HSREPLAY_NO_ARENASMITH_TIER, normalizeArenasmithTier, tierFromArenasmithScore } from './hsreplayArenasmith.js';
 import { createBlizzardCardImageClient, isBlizzardImageContentType } from './blizzardCards.js';
@@ -845,7 +846,7 @@ function db(): DatabaseSync {
   if (ecosystemDb) return ecosystemDb;
   mkdirSync(ECOSYSTEM_DIR, { recursive: true });
   ecosystemDb = new DatabaseSync(ECOSYSTEM_DB_FILE);
-  ecosystemDb.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
+  configureWritableSqliteConnection(ecosystemDb);
   ecosystemDb.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
