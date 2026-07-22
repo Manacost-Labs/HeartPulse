@@ -59,6 +59,10 @@ import {
   type StandardMetaRecommendation,
 } from './standardMetaRoutes.js';
 import {
+  cacheSuccessfulRecommendation,
+  type StandardMetaRecommendationCacheEntry,
+} from './standardMetaRecommendationCache.js';
+import {
   resolveStandardMetaPublication,
   selectStandardMetaCandidate,
   type StandardMetaPublication,
@@ -221,7 +225,7 @@ const legendariesApiCache = new Map<string, MemoryCacheEntry>();
 const standardMatchupsApiCache = new Map<string, MemoryCacheEntry>();
 const standardMetaApiCache = new Map<string, MemoryCacheEntry>();
 const viciousSyndicateGoldApiCache = new Map<string, MemoryCacheEntry>();
-const standardMetaRecommendationCache = new Map<string, { data: StandardMetaRecommendation | null; expiresAt: number }>();
+const standardMetaRecommendationCache = new Map<string, StandardMetaRecommendationCacheEntry<StandardMetaRecommendation>>();
 const standardMetaRecommendationJobs = new Map<string, Promise<StandardMetaRecommendation | null>>();
 const standardMetaStreamerDeckInfoCache = new Map<string, HsguruDeckInfo>();
 let standardMetaStreamerDeckInfoExpiresAt = 0;
@@ -6713,7 +6717,12 @@ async function findStandardMetaRecommendation(
       : null;
     const selected = rawSelected ? await hydrateRecommendationDeckCards(rawSelected) : null;
     if (generation === parserDataCacheGeneration) {
-      standardMetaRecommendationCache.set(cacheKey, { data: selected, expiresAt: Date.now() + STANDARD_META_RECOMMENDATION_CACHE_MS });
+      cacheSuccessfulRecommendation(
+        standardMetaRecommendationCache,
+        cacheKey,
+        selected,
+        Date.now() + STANDARD_META_RECOMMENDATION_CACHE_MS,
+      );
     }
     return selected;
   })().finally(() => {

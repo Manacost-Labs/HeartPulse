@@ -54,7 +54,7 @@
     "test:entity-sitemaps": "tsx tests/entity-sitemap-catalog.test.ts && tsx tests/entity-sitemap-store.test.ts && tsx tests/entity-sitemap-routes.test.ts",
     "test:constructed-card-translations": "tsx tests/constructed-card-translations.test.ts",
     "test:constructed-card-media": "tsx tests/constructed-card-media.test.ts",
-    "test:standard-meta-routes": "tsx tests/standard-meta-routes.test.ts && tsx tests/standard-meta-contract.test.ts && tsx tests/hsguru-deck-info.test.ts",
+    "test:standard-meta-routes": "tsx tests/standard-meta-routes.test.ts && tsx tests/standard-meta-contract.test.ts && tsx tests/hsguru-deck-info.test.ts && tsx tests/standard-meta-recommendation-cache.test.ts",
     "test:standard-meta-contract": "tsx tests/standard-meta-contract.test.ts",
     "test:hsguru-deck-info": "tsx tests/hsguru-deck-info.test.ts",
     "test:deckview-preview": "tsx tests/deckview-preview.test.ts",
