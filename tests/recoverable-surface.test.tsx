@@ -77,6 +77,7 @@ assert.match(metaSource, /scope="standard-meta"/);
 assert.match(metaSource, /setMetaRevision\(revision => revision \+ 1\)/);
 assert.match(metaSource, /variant="empty"/);
 assert.match(metaSource, /useState<MetaRank>\('legend'\)/, 'Standard meta must open on Legend by default');
+assert.match(metaSource, /useState<MetaPeriod>\('past_6_hours'\)/, 'Standard meta must open on the latest six hours');
 assert.match(metaSource, /useState<MetaMinGames>\(500\)/, 'Standard meta must open with 500 minimum games');
 
 console.log('Recoverable surface tests passed');

@@ -140,7 +140,7 @@ const EMPTY_DATA: MetaPayload = {
   formatLabel: 'Стандарт',
   rank: 'legend',
   rankLabel: 'Легенда',
-  period: 'past_day',
+  period: 'past_6_hours',
   coin: 'any_player',
   minGames: 500,
   source: 'hsguru',
@@ -323,7 +323,7 @@ export function DeckModal({ state, onClose, onRenderPreview }: { state: DeckModa
 function StandardMetaContent() {
   const [format, setFormat] = useState<MetaFormat>('standard');
   const [rank, setRank] = useState<MetaRank>('legend');
-  const [period, setPeriod] = useState<MetaPeriod>('past_day');
+  const [period, setPeriod] = useState<MetaPeriod>('past_6_hours');
   const coin: MetaCoin = 'any_player';
   const [minGames, setMinGames] = useState<MetaMinGames>(500);
   const [query, setQuery] = useState('');
