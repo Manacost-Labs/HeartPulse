@@ -12,6 +12,10 @@ import { createHash, createHmac, createPublicKey, randomBytes, randomInt, scrypt
 // @ts-ignore: node:sqlite is available in the production Node 22 runtime.
 import { DatabaseSync } from 'node:sqlite';
 import { configureWritableSqliteConnection } from './sqliteConnection.js';
+import {
+  ARCHETYPE_DECK_CODES_TABLE_SQL,
+  ensureArchetypeDeckCodesAllRank,
+} from './archetypeDeckCodesSchema.js';
 import { loadSnapshot } from './snapshots.js';
 import { HSREPLAY_NO_ARENASMITH_TIER, normalizeArenasmithTier, tierFromArenasmithScore } from './hsreplayArenasmith.js';
 import { createBlizzardCardImageClient, isBlizzardImageContentType } from './blizzardCards.js';
@@ -1089,15 +1093,7 @@ function db(): DatabaseSync {
       synced_at TEXT,
       updated_by TEXT
     );
-    CREATE TABLE IF NOT EXISTS archetype_deck_codes (
-      name_en_key TEXT PRIMARY KEY,
-      name_en TEXT NOT NULL,
-      deck_code TEXT NOT NULL,
-      format TEXT NOT NULL CHECK(format IN ('standard', 'wild')),
-      rank_key TEXT NOT NULL CHECK(rank_key IN ('legend', 'diamond', 'top_5k', 'top_legend')),
-      source TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
+    ${ARCHETYPE_DECK_CODES_TABLE_SQL};
     CREATE TABLE IF NOT EXISTS mechanic_translations (
       mechanic_key TEXT PRIMARY KEY,
       name_en TEXT NOT NULL,
@@ -1110,6 +1106,7 @@ function db(): DatabaseSync {
       value TEXT NOT NULL
     );
   `);
+  ensureArchetypeDeckCodesAllRank(ecosystemDb);
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_referral_clicks_referral_time ON referral_clicks(referral_id, clicked_at DESC);');
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_article_votes_article ON article_votes(article_id);');
   ecosystemDb.exec('CREATE INDEX IF NOT EXISTS idx_mailing_contacts_status ON mailing_contacts(consent_status, account_state);');
