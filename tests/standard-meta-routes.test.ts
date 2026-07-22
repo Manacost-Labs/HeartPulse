@@ -75,6 +75,7 @@ const dependencies: StandardMetaRouterDependencies = {
   },
   findRecommendation: async (archetype, _label, format, rank) => {
     calls.push(`recommendation:${archetype}:${format}:${rank}`);
+    if (archetype === 'Upstream Failure') throw new Error('temporary upstream failure');
     return archetype === recommendation.archetype ? { ...recommendation, format, rank } : null;
   },
   createPreview: async selected => {
@@ -175,6 +176,10 @@ try {
 
   const missing = await fetch(`${origin}/admin/standard-meta/recommendation?archetype=Unknown&format=standard&rank=legend`, { headers: adminHeaders });
   assert.equal(missing.status, 404);
+
+  const upstreamFailure = await fetch(`${origin}/admin/standard-meta/recommendation?archetype=Upstream%20Failure&format=standard&rank=legend`, { headers: adminHeaders });
+  assert.equal(upstreamFailure.status, 502, 'a transient lookup failure must not be presented as a missing deck');
+  assert.deepEqual(await upstreamFailure.json(), { error: 'Не удалось подобрать сборку' });
 
   const selected = await fetch(`${origin}/admin/standard-meta/recommendation?archetype=Mug%20Shaman&archetypeLabel=Test&format=standard&rank=legend`, { headers: adminHeaders });
   assert.equal(selected.status, 200);

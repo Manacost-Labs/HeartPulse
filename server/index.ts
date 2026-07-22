@@ -6435,7 +6435,7 @@ async function fetchExactHsguruDecks(
   });
   const response = await fetch(`${DATASET_API_ORIGIN}/v1/constructed/hsguru-deck?${query}`, {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
-    signal: AbortSignal.timeout(60_000),
+    signal: AbortSignal.timeout(30_000),
   });
   if (response.status === 404) return [];
   if (!response.ok) throw new Error(`Exact HSGuru deck HTTP ${response.status}`);
@@ -6605,7 +6605,10 @@ async function findStandardMetaRecommendation(
       ...parseConstructedDecks({ data: constructedRows }, archetype, archetypeLabel, format, rank),
     ];
     if (!candidates.length) {
-      candidates = await fetchExactHsguruDecks(archetype, archetypeLabel, format, rank).catch(() => []);
+      // A transient live-lookup failure is not evidence that a deck does not
+      // exist. Let the route return 502 so the client can retry instead of
+      // caching a false 404 for fifteen minutes.
+      candidates = await fetchExactHsguruDecks(archetype, archetypeLabel, format, rank);
     }
     candidates.sort((left, right) => right.quality - left.quality);
     const rawSelected = candidates[0] ? (({ quality: _quality, ...recommendation }) => recommendation)(candidates[0]) : null;
