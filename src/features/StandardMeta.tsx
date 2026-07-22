@@ -338,7 +338,14 @@ function StandardMetaContent() {
   const [modal, setModal] = useState<DeckModalState | null>(null);
   const requestId = useRef(0);
   const deckCache = useRef(new Map<string, DeckCacheEntry>());
+  const deckRequestJobs = useRef(new Map<string, Promise<Recommendation>>());
+  const deckPrefetchTimers = useRef(new Map<string, number>());
   const closeModal = useCallback(() => setModal(null), []);
+
+  useEffect(() => () => {
+    for (const timer of deckPrefetchTimers.current.values()) window.clearTimeout(timer);
+    deckPrefetchTimers.current.clear();
+  }, [format, rank]);
 
   useEffect(() => {
     const currentRequest = ++requestId.current;
@@ -458,6 +465,49 @@ function StandardMetaContent() {
     );
   };
 
+  const deckCacheKey = (item: MetaItem) => `${format}:${rank}:${item.archetype.toLowerCase()}`;
+
+  const loadDeckRecommendation = (item: MetaItem): Promise<Recommendation> => {
+    const cacheKey = deckCacheKey(item);
+    const cached = deckCache.current.get(cacheKey);
+    if (cached) return Promise.resolve(cached.recommendation);
+    const active = deckRequestJobs.current.get(cacheKey);
+    if (active) return active;
+    const params = new URLSearchParams({ archetype: item.archetype, archetypeLabel: item.archetypeLabel, format, rank });
+    const job = apiJson<{ recommendation: Recommendation }>(`/api/standard-meta/recommendation?${params}`)
+      .then(result => {
+        deckCache.current.set(cacheKey, { recommendation: result.recommendation, preview: null, previewError: '' });
+        return result.recommendation;
+      })
+      .finally(() => {
+        if (deckRequestJobs.current.get(cacheKey) === job) deckRequestJobs.current.delete(cacheKey);
+      });
+    deckRequestJobs.current.set(cacheKey, job);
+    return job;
+  };
+
+  const prefetchDeck = (item: MetaItem) => {
+    void loadDeckRecommendation(item).catch(() => undefined);
+  };
+
+  const scheduleDeckPrefetch = (item: MetaItem) => {
+    const cacheKey = deckCacheKey(item);
+    if (deckCache.current.has(cacheKey) || deckRequestJobs.current.has(cacheKey) || deckPrefetchTimers.current.has(cacheKey)) return;
+    const timer = window.setTimeout(() => {
+      deckPrefetchTimers.current.delete(cacheKey);
+      prefetchDeck(item);
+    }, 700);
+    deckPrefetchTimers.current.set(cacheKey, timer);
+  };
+
+  const cancelDeckPrefetch = (item: MetaItem) => {
+    const cacheKey = deckCacheKey(item);
+    const timer = deckPrefetchTimers.current.get(cacheKey);
+    if (timer === undefined) return;
+    window.clearTimeout(timer);
+    deckPrefetchTimers.current.delete(cacheKey);
+  };
+
   const openDeck = async (item: MetaItem) => {
     const cacheKey = `${format}:${rank}:${item.archetype.toLowerCase()}`;
     const cached = deckCache.current.get(cacheKey);
@@ -483,14 +533,12 @@ function StandardMetaContent() {
       previewError: '',
     });
     try {
-      const params = new URLSearchParams({ archetype: item.archetype, archetypeLabel: item.archetypeLabel, format, rank });
-      const result = await apiJson<{ recommendation: Recommendation }>(`/api/standard-meta/recommendation?${params}`);
+      const recommendation = await loadDeckRecommendation(item);
       setModal(current => current?.item.id === item.id ? {
         ...current,
-        recommendation: result.recommendation,
+        recommendation,
         loadingRecommendation: false,
       } : current);
-      deckCache.current.set(cacheKey, { recommendation: result.recommendation, preview: null, previewError: '' });
     } catch (cause) {
       setModal(current => current?.item.id === item.id ? {
         ...current,
@@ -677,7 +725,15 @@ function StandardMetaContent() {
                     <span>Скорость набора</span>
                     <strong>{formatNumber(item.climbingSpeed, ' ★/ч')}</strong>
                   </div>
-                  <button type="button" className="standard-meta__primary-button standard-meta-card__deck-button" data-tour-id={index === 0 ? 'meta-deck-action' : undefined} onClick={() => void openDeck(item)}>
+                  <button
+                    type="button"
+                    className="standard-meta__primary-button standard-meta-card__deck-button"
+                    data-tour-id={index === 0 ? 'meta-deck-action' : undefined}
+                    onPointerEnter={() => scheduleDeckPrefetch(item)}
+                    onPointerLeave={() => cancelDeckPrefetch(item)}
+                    onPointerDown={event => { if (event.button === 0) prefetchDeck(item); }}
+                    onClick={() => void openDeck(item)}
+                  >
                     <Sparkles size={18} /> Показать колоду
                   </button>
                 </article>
@@ -720,7 +776,16 @@ function StandardMetaContent() {
                       <td>{formatNumber(item.durationMinutes, ' мин')}</td>
                       <td className={item.climbingSpeed !== null && item.climbingSpeed < 0 ? 'standard-meta-table__climb--negative' : 'standard-meta-table__climb'}>{formatNumber(item.climbingSpeed, ' ★/ч')}</td>
                       <td>
-                        <button type="button" className="standard-meta__primary-button standard-meta-table__deck-button" data-tour-id={index === 0 ? 'meta-deck-action' : undefined} onClick={() => void openDeck(item)} aria-label={`Показать колоду: ${item.archetypeLabel}`}>
+                        <button
+                          type="button"
+                          className="standard-meta__primary-button standard-meta-table__deck-button"
+                          data-tour-id={index === 0 ? 'meta-deck-action' : undefined}
+                          onPointerEnter={() => scheduleDeckPrefetch(item)}
+                          onPointerLeave={() => cancelDeckPrefetch(item)}
+                          onPointerDown={event => { if (event.button === 0) prefetchDeck(item); }}
+                          onClick={() => void openDeck(item)}
+                          aria-label={`Показать колоду: ${item.archetypeLabel}`}
+                        >
                           <Sparkles size={16} /> Колода
                         </button>
                       </td>

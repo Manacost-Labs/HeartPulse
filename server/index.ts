@@ -66,6 +66,12 @@ import {
 import { renderDeckviewPreview } from './deckviewPreview.js';
 import { buildDeckCardData } from './deckCardData.js';
 import {
+  hsguruStreamerArchetype,
+  hsguruStreamerDeckCodes,
+  hsguruStreamerRows,
+  type HsguruDeckInfo,
+} from './hsguruDeckInfo.js';
+import {
   inferStandardMetaClass,
   normalizeStandardMetaClass,
 } from './standardMetaClasses.js';
@@ -217,6 +223,9 @@ const standardMetaApiCache = new Map<string, MemoryCacheEntry>();
 const viciousSyndicateGoldApiCache = new Map<string, MemoryCacheEntry>();
 const standardMetaRecommendationCache = new Map<string, { data: StandardMetaRecommendation | null; expiresAt: number }>();
 const standardMetaRecommendationJobs = new Map<string, Promise<StandardMetaRecommendation | null>>();
+const standardMetaStreamerDeckInfoCache = new Map<string, HsguruDeckInfo>();
+let standardMetaStreamerDeckInfoExpiresAt = 0;
+let standardMetaStreamerDeckInfoJob: Promise<Map<string, HsguruDeckInfo>> | null = null;
 const standardMetaPreviewCache = new Map<string, { preview: StandardMetaPreview; expiresAt: number }>();
 const standardMetaPreviewJobs = new Map<string, Promise<StandardMetaPreview>>();
 let parserDataCacheGeneration = 0;
@@ -4441,7 +4450,9 @@ const VICIOUS_CLASS_RU: Record<string, string> = {
   Warlock: 'Чернокнижник',
   Warrior: 'Воин',
 };
-const STANDARD_META_RECOMMENDATION_CACHE_MS = 15 * 60_000;
+const STANDARD_META_RECOMMENDATION_CACHE_MS = 6 * 60 * 60_000;
+const STANDARD_META_PERSISTED_RECOMMENDATION_MAX_AGE_MS = 24 * 60 * 60_000;
+const HSGURU_DECK_INFO_API_URL = 'https://api.hsguru.com/api/deck-info';
 const STANDARD_META_PREVIEW_CACHE_MS = 30 * 24 * 60 * 60_000;
 const DECKVIEW_RENDER_API_BASE_URL = (process.env.DECKVIEW_RENDER_API_BASE_URL || 'http://127.0.0.1:5000/deckview-api/v1').replace(/\/+$/, '');
 const DECKVIEW_RENDER_PUBLIC_BASE_URL = (process.env.DECKVIEW_RENDER_PUBLIC_BASE_URL || 'https://api.blizzcore.ru').replace(/\/+$/, '');
@@ -6313,7 +6324,40 @@ async function loadViciousSyndicateGold() {
   return data;
 }
 
-type StandardMetaDeckCandidate = StandardMetaRecommendation & { quality: number };
+type StandardMetaDeckCandidate = StandardMetaRecommendation & { quality: number; persisted?: boolean };
+
+async function fetchHsguruStreamerDeckInfo(payload: any): Promise<Map<string, HsguruDeckInfo>> {
+  const now = Date.now();
+  if (standardMetaStreamerDeckInfoExpiresAt > now) return standardMetaStreamerDeckInfoCache;
+  if (standardMetaStreamerDeckInfoJob) return standardMetaStreamerDeckInfoJob;
+  const codes = hsguruStreamerDeckCodes(payload);
+  if (!codes.length) return new Map();
+  standardMetaStreamerDeckInfoJob = (async () => {
+    const response = await fetch(HSGURU_DECK_INFO_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)',
+      },
+      body: JSON.stringify({ decks: codes }),
+      signal: AbortSignal.timeout(2_500),
+    });
+    if (!response.ok) throw new Error(`HSGuru deck-info HTTP ${response.status}`);
+    const payloadByCode = await response.json() as Record<string, any>;
+    standardMetaStreamerDeckInfoCache.clear();
+    for (const code of codes) {
+      const item = payloadByCode?.[code];
+      const archetype = String(item?.archetype ?? '').trim();
+      const name = String(item?.name ?? '').trim();
+      if (archetype || name) standardMetaStreamerDeckInfoCache.set(code, { archetype, name });
+    }
+    standardMetaStreamerDeckInfoExpiresAt = Date.now() + STANDARD_META_RECOMMENDATION_CACHE_MS;
+    return standardMetaStreamerDeckInfoCache;
+  })().finally(() => {
+    standardMetaStreamerDeckInfoJob = null;
+  });
+  return standardMetaStreamerDeckInfoJob;
+}
 
 function parseDeckScore(value: unknown): { games: number | null; winrate: number | null } {
   const raw = String(value ?? '').trim();
@@ -6336,15 +6380,23 @@ function standardMetaDeckQuality(candidate: Omit<StandardMetaDeckCandidate, 'qua
   return sample * 10 + winrate + freshness + sourceBonus;
 }
 
-function parseHsguruStreamerDecks(payload: any, archetype: string, archetypeLabel: string, format: StandardMetaFormat, rank: StandardMetaRank): StandardMetaDeckCandidate[] {
-  const table = payload?.data?.tables?.[0] ?? payload?.tables?.[0] ?? null;
-  const rows = Array.isArray(table?.rows) ? table.rows : [];
+function parseHsguruStreamerDecks(
+  payload: any,
+  archetype: string,
+  archetypeLabel: string,
+  format: StandardMetaFormat,
+  rank: StandardMetaRank,
+  deckInfo: Map<string, HsguruDeckInfo> = new Map(),
+): StandardMetaDeckCandidate[] {
+  const rows = hsguruStreamerRows(payload);
   const wanted = normalizeStandardArchetypeKey(archetype);
   return rows.flatMap((row: unknown) => {
     if (!Array.isArray(row)) return [];
     const deckCell = String(row[0] ?? '').trim();
     const match = deckCell.match(/^###\s+(.+?)\s+([A-Za-z0-9+/=]{40,})\s+#/);
-    if (!match || normalizeStandardArchetypeKey(match[1]) !== wanted) return [];
+    if (!match) return [];
+    const canonicalArchetype = hsguruStreamerArchetype(match[2], match[1], deckInfo);
+    if (normalizeStandardArchetypeKey(canonicalArchetype) !== wanted) return [];
     const rowFormat = String(row[2] ?? '').trim().toLowerCase();
     if (rowFormat !== format) return [];
     const score = parseDeckScore(row[6]);
@@ -6363,7 +6415,7 @@ function parseHsguruStreamerDecks(payload: any, archetype: string, archetypeLabe
       winrate: score.winrate,
       updatedAt: String(row[8] ?? '').trim() || payload?.fetched_at || null,
       classKey,
-      matchedArchetype: archetype,
+      matchedArchetype: canonicalArchetype,
       matchMethod: 'exact',
     };
     return [{ ...base, quality: standardMetaDeckQuality(base) }];
@@ -6479,6 +6531,40 @@ function readCachedArchetypeDeckCode(nameEn: string): string | null {
   );
   const deckCode = String(row?.deck_code ?? '').trim();
   return /^[A-Za-z0-9+/=]{40,}$/.test(deckCode) ? deckCode : null;
+}
+
+function readPersistedStandardMetaDeck(
+  archetype: string,
+  archetypeLabel: string,
+  format: StandardMetaFormat,
+  rank: StandardMetaRank,
+): StandardMetaDeckCandidate | null {
+  const cutoff = new Date(Date.now() - STANDARD_META_PERSISTED_RECOMMENDATION_MAX_AGE_MS).toISOString();
+  const row = dbGet<{ deck_code: string; source: string; updated_at: string }>(`
+    SELECT deck_code, source, updated_at
+    FROM archetype_deck_codes
+    WHERE name_en_key = ? AND format = ? AND updated_at >= ?
+  `, normalizeStandardArchetypeKey(archetype), format, cutoff);
+  const deckCode = String(row?.deck_code ?? '').trim();
+  const classKey = inferStandardMetaClass(archetype);
+  if (!/^[A-Za-z0-9+/=]{40,}$/.test(deckCode) || !classKey) return null;
+  const base: Omit<StandardMetaDeckCandidate, 'quality' | 'persisted'> = {
+    archetype,
+    archetypeLabel,
+    deckCode,
+    format,
+    rank,
+    source: String(row?.source ?? 'hsguru-decks'),
+    sourceUrl: '',
+    streamer: null,
+    sampleGames: null,
+    winrate: null,
+    updatedAt: String(row?.updated_at ?? '') || null,
+    classKey,
+    matchedArchetype: archetype,
+    matchMethod: 'exact',
+  };
+  return { ...base, quality: standardMetaDeckQuality(base), persisted: true };
 }
 
 function persistArchetypeDeckCode(
@@ -6600,10 +6686,19 @@ async function findStandardMetaRecommendation(
       fetchViciousConstructedDeckRows().catch(() => []),
       fetchDataset(HSGURU_STREAMER_DECKS_DATASET).catch(() => ({ data: { tables: [] } })),
     ]);
+    const persisted = readPersistedStandardMetaDeck(archetype, archetypeLabel, format, rank);
     let candidates = [
+      ...(persisted ? [persisted] : []),
       ...parseHsguruStreamerDecks(streamerPayload, archetype, archetypeLabel, format, rank),
       ...parseConstructedDecks({ data: constructedRows }, archetype, archetypeLabel, format, rank),
     ];
+    if (!candidates.length) {
+      // HSGuru/D0nkey canonicalizes build titles such as “XL Rafaamlock” to
+      // their aggregate archetype in one small batch request. This reuses the
+      // already fetched streamer deck codes and does not consume Firecrawl.
+      const streamerDeckInfo = await fetchHsguruStreamerDeckInfo(streamerPayload).catch(() => new Map());
+      candidates = parseHsguruStreamerDecks(streamerPayload, archetype, archetypeLabel, format, rank, streamerDeckInfo);
+    }
     if (!candidates.length) {
       // A transient live-lookup failure is not evidence that a deck does not
       // exist. Let the route return 502 so the client can retry instead of
@@ -6611,7 +6706,11 @@ async function findStandardMetaRecommendation(
       candidates = await fetchExactHsguruDecks(archetype, archetypeLabel, format, rank);
     }
     candidates.sort((left, right) => right.quality - left.quality);
-    const rawSelected = candidates[0] ? (({ quality: _quality, ...recommendation }) => recommendation)(candidates[0]) : null;
+    const chosen = candidates[0] ?? null;
+    if (chosen && !chosen.persisted) persistArchetypeDeckCode(archetype, chosen);
+    const rawSelected = chosen
+      ? (({ quality: _quality, persisted: _persisted, ...recommendation }) => recommendation)(chosen)
+      : null;
     const selected = rawSelected ? await hydrateRecommendationDeckCards(rawSelected) : null;
     if (generation === parserDataCacheGeneration) {
       standardMetaRecommendationCache.set(cacheKey, { data: selected, expiresAt: Date.now() + STANDARD_META_RECOMMENDATION_CACHE_MS });
