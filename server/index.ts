@@ -51,6 +51,9 @@ import { createEntitySitemapRouter, loadStaticSitemapArtifact } from './entitySi
 import {
   createStandardMetaRouter,
   type StandardMetaFormat,
+  type StandardMetaCoin,
+  type StandardMetaMinGames,
+  type StandardMetaPeriod,
   type StandardMetaPreview,
   type StandardMetaRank,
   type StandardMetaRecommendation,
@@ -5979,23 +5982,69 @@ function transformHsguruMeta(
   };
 }
 
-async function loadStandardMeta(format: StandardMetaFormat, rank: StandardMetaRank) {
-  const cacheKey = `${format}:${rank}`;
+async function loadStandardMeta(
+  format: StandardMetaFormat,
+  rank: StandardMetaRank,
+  period: StandardMetaPeriod,
+  coin: StandardMetaCoin,
+  minGames: StandardMetaMinGames,
+) {
+  const cacheKey = `${format}:${rank}:${period}:${coin}:${minGames}`;
   const now = Date.now();
   const cached = standardMetaApiCache.get(cacheKey);
   if (cached && cached.expiresAt > now) return cached.data;
   try {
+    const upstreamRank = rank === 'diamond' ? 'diamond_4to1' : rank;
+    const query = new URLSearchParams({
+      format,
+      rank: upstreamRank,
+      period,
+      coin,
+      min_games: String(minGames),
+    });
     const [payload, translations] = await Promise.all([
-      fetchDataset(STANDARD_META_DATASET_BY_FORMAT_RANK[format][rank]),
+      fetchDataset(`v1/hsguru/meta?${query}`, 20_000),
       getStandardArchetypeTranslations(now),
     ]);
-    const sourceId = STANDARD_META_DATASET_BY_FORMAT_RANK[format][rank];
-    const publication = await resolveStandardMetaPublication(
-      payload,
-      sourceId,
-      () => hsDataParserControlClient.getControl(),
-    );
-    const data = transformHsguruMeta(payload, format, rank, translations, publication);
+    const sourceUpdatedAt = payload?.meta?.fetched_at ?? null;
+    if (!sourceUpdatedAt || !Number.isFinite(Date.parse(sourceUpdatedAt))) {
+      throw new Error('HSGuru matrix timestamp is invalid');
+    }
+    const rows = Array.isArray(payload?.data?.items) ? payload.data.items : [];
+    const data = {
+      publicationMode: 'stable' as const,
+      publishedAt: sourceUpdatedAt,
+      format,
+      formatLabel: STANDARD_META_FORMAT_LABEL[format],
+      rank,
+      rankLabel: STANDARD_META_RANK_LABEL[rank],
+      period,
+      coin,
+      minGames,
+      source: 'hsguru',
+      sourceId: 'hsguru_meta_matrix',
+      sourceUrl: String(payload?.data?.source_url ?? ''),
+      translationSource: translations.source,
+      updatedAt: sourceUpdatedAt,
+      items: rows.flatMap((row: any) => {
+        const archetype = String(row?.archetype ?? '').trim().replace(/\s+/g, ' ');
+        if (!archetype) return [];
+        const archetypeLabel = translateStandardArchetype(archetype, translations.map);
+        return [{
+          id: createHash('sha1').update(`${format}:${archetype.toLowerCase()}`).digest('hex').slice(0, 12),
+          archetype,
+          archetypeLabel,
+          translated: archetypeLabel !== archetype,
+          classKey: inferStandardMetaClass(archetype),
+          winrate: parseNumber(row.winrate),
+          popularity: parseNumber(row.popularity),
+          games: parseCount(row.games),
+          turns: parseNumber(row.turns),
+          durationMinutes: parseNumber(row.duration_minutes),
+          climbingSpeed: parseNumber(row.climbing_speed),
+        }];
+      }),
+    };
     const selected = selectStandardMetaCandidate(data, cached?.data ?? null, now);
     if (selected.rejectedError) {
       if (!cached) throw selected.rejectedError;

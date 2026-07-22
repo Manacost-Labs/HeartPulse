@@ -10,6 +10,9 @@ export const STANDARD_META_MEDIA_TYPE = 'application/vnd.manacost.standard-meta.
 
 export type StandardMetaFormat = 'standard' | 'wild';
 export type StandardMetaRank = 'legend' | 'diamond' | 'top_5k' | 'top_legend';
+export type StandardMetaPeriod = 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks';
+export type StandardMetaCoin = 'going_first' | 'on_coin';
+export type StandardMetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 export type StandardMetaClass = 'deathknight' | 'demonhunter' | 'druid' | 'hunter' | 'mage' | 'paladin'
   | 'priest' | 'rogue' | 'shaman' | 'warlock' | 'warrior';
 
@@ -32,6 +35,9 @@ export type StandardMetaData = {
   formatLabel: string;
   rank: StandardMetaRank;
   rankLabel: string;
+  period: StandardMetaPeriod;
+  coin: StandardMetaCoin;
+  minGames: StandardMetaMinGames;
   source: string;
   sourceId?: string;
   sourceUrl: string;
@@ -44,6 +50,9 @@ export type StandardMetaEnvelope = DatasetEnvelope<StandardMetaData>;
 
 const FORMATS = new Set<StandardMetaFormat>(['standard', 'wild']);
 const RANKS = new Set<StandardMetaRank>(['legend', 'diamond', 'top_5k', 'top_legend']);
+const PERIODS = new Set<StandardMetaPeriod>(['past_day', 'past_3_days', 'past_week', 'past_2_weeks']);
+const COINS = new Set<StandardMetaCoin>(['going_first', 'on_coin']);
+const MIN_GAMES = new Set<StandardMetaMinGames>([100, 250, 500, 1000, 2500, 5000]);
 const CLASSES = new Set<StandardMetaClass>([
   'deathknight', 'demonhunter', 'druid', 'hunter', 'mage', 'paladin',
   'priest', 'rogue', 'shaman', 'warlock', 'warrior',
@@ -105,6 +114,12 @@ export function parseStandardMetaData(value: unknown): StandardMetaData {
   const data = dataRecord(value, 'data');
   if (!FORMATS.has(data.format as StandardMetaFormat)) invalid('format is unsupported');
   if (!RANKS.has(data.rank as StandardMetaRank)) invalid('rank is unsupported');
+  const period = (data.period ?? 'past_day') as StandardMetaPeriod;
+  const coin = (data.coin ?? 'going_first') as StandardMetaCoin;
+  const minGames = Number(data.minGames ?? 100) as StandardMetaMinGames;
+  if (!PERIODS.has(period)) invalid('period is unsupported');
+  if (!COINS.has(coin)) invalid('coin is unsupported');
+  if (!MIN_GAMES.has(minGames)) invalid('minGames is unsupported');
   if (!Array.isArray(data.items)) invalid('items must be an array');
   if (data.items.length > 500) invalid('items exceeds the 500-record safety limit');
   const items = data.items.map(parseItem);
@@ -124,6 +139,9 @@ export function parseStandardMetaData(value: unknown): StandardMetaData {
     formatLabel: dataString(data.formatLabel, 'formatLabel', 80),
     rank: data.rank as StandardMetaRank,
     rankLabel: dataString(data.rankLabel, 'rankLabel', 80),
+    period,
+    coin,
+    minGames,
     source: dataString(data.source, 'source', 80),
     ...(typeof data.sourceId === 'string' && data.sourceId.trim()
       ? { sourceId: dataString(data.sourceId, 'sourceId', 160) }
@@ -139,7 +157,7 @@ export function assessStandardMetaData(data: StandardMetaData, mode: DatasetMode
   partial: boolean;
   quality: StandardMetaEnvelope['quality'];
 } {
-  const minimumItems = mode === 'early' ? 1 : 5;
+  const minimumItems = data.minGames > 100 ? 0 : mode === 'early' ? 1 : 5;
   if (data.items.length < minimumItems) invalid(`${mode} snapshot has only ${data.items.length} items`);
   if (!data.updatedAt) invalid('published snapshot has no source timestamp');
 
@@ -171,9 +189,10 @@ export function assessStandardMetaData(data: StandardMetaData, mode: DatasetMode
     item.durationMinutes,
     item.climbingSpeed,
   ].filter(value => value !== null).length, 0);
-  const coverage = metricSlots === 0 ? 0 : Math.round((presentMetrics / metricSlots) * 10_000) / 10_000;
+  const coverage = metricSlots === 0 ? 1 : Math.round((presentMetrics / metricSlots) * 10_000) / 10_000;
   const warnings: string[] = [];
   if (mode === 'early') warnings.push('Ранняя мета: выборка и позиции ещё могут заметно измениться');
+  if (data.items.length === 0) warnings.push('Нет архетипов с выбранным минимальным количеством игр');
   if (coverage < 0.95) warnings.push('Часть метрик источника пока недоступна');
   if (mode === 'stable' && coverage < 0.9) invalid(`stable metric coverage ${coverage} is below 0.9`);
   const partial = mode === 'early' || coverage < 0.95;

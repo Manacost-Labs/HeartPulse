@@ -6,6 +6,9 @@ import { STANDARD_META_MEDIA_TYPE } from '../shared/standardMetaContract.js';
 
 export type StandardMetaFormat = 'standard' | 'wild';
 export type StandardMetaRank = 'legend' | 'diamond' | 'top_5k' | 'top_legend';
+export type StandardMetaPeriod = 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks';
+export type StandardMetaCoin = 'going_first' | 'on_coin';
+export type StandardMetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 
 export type StandardMetaRecommendation = {
   archetype: string;
@@ -36,7 +39,13 @@ export type StandardMetaPreview = {
 export type StandardMetaRouterDependencies = {
   adminGuard: RequestHandler;
   accessGuard: RequestHandler;
-  loadMeta: (format: StandardMetaFormat, rank: StandardMetaRank) => Promise<unknown>;
+  loadMeta: (
+    format: StandardMetaFormat,
+    rank: StandardMetaRank,
+    period: StandardMetaPeriod,
+    coin: StandardMetaCoin,
+    minGames: StandardMetaMinGames,
+  ) => Promise<unknown>;
   loadViciousGold: () => Promise<unknown>;
   findRecommendation: (
     archetype: string,
@@ -52,6 +61,9 @@ export type StandardMetaRouterDependencies = {
 
 const FORMATS = new Set<StandardMetaFormat>(['standard', 'wild']);
 const RANKS = new Set<StandardMetaRank>(['legend', 'diamond', 'top_5k', 'top_legend']);
+const PERIODS = new Set<StandardMetaPeriod>(['past_day', 'past_3_days', 'past_week', 'past_2_weeks']);
+const COINS = new Set<StandardMetaCoin>(['going_first', 'on_coin']);
+const MIN_GAMES = new Set<StandardMetaMinGames>([100, 250, 500, 1000, 2500, 5000]);
 
 function readFormat(value: unknown): StandardMetaFormat | null {
   const format = String(value ?? 'standard') as StandardMetaFormat;
@@ -61,6 +73,21 @@ function readFormat(value: unknown): StandardMetaFormat | null {
 function readRank(value: unknown): StandardMetaRank | null {
   const rank = String(value ?? 'legend') as StandardMetaRank;
   return RANKS.has(rank) ? rank : null;
+}
+
+function readPeriod(value: unknown): StandardMetaPeriod | null {
+  const period = String(value ?? 'past_day') as StandardMetaPeriod;
+  return PERIODS.has(period) ? period : null;
+}
+
+function readCoin(value: unknown): StandardMetaCoin | null {
+  const coin = String(value ?? 'going_first') as StandardMetaCoin;
+  return COINS.has(coin) ? coin : null;
+}
+
+function readMinGames(value: unknown): StandardMetaMinGames | null {
+  const minGames = Number(value ?? 100) as StandardMetaMinGames;
+  return MIN_GAMES.has(minGames) ? minGames : null;
 }
 
 function readArchetype(value: unknown): string {
@@ -104,9 +131,16 @@ export function createStandardMetaRouter(dependencies: StandardMetaRouterDepende
   const metaHandler: RequestHandler = async (request, response) => {
     const format = readFormat(request.query.format);
     const rank = readRank(request.query.rank);
-    if (!format || !rank) return response.status(400).json({ error: 'Неизвестный формат или рейтинг' });
+    const period = readPeriod(request.query.period);
+    const coin = readCoin(request.query.coin);
+    const minGames = readMinGames(request.query.min_games);
+    if (!format || !rank || !period || !coin || !minGames) {
+      return response.status(400).json({ error: 'Неизвестный фильтр меты' });
+    }
     try {
-      const envelope = createStandardMetaEnvelope(await dependencies.loadMeta(format, rank));
+      const envelope = createStandardMetaEnvelope(
+        await dependencies.loadMeta(format, rank, period, coin, minGames),
+      );
       response.vary('Accept');
       response.set('X-Dataset-Schema', String(envelope.schemaVersion));
       response.set('X-Dataset-Version', envelope.datasetVersion);

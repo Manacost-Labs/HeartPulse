@@ -50,8 +50,8 @@ const dependencies: StandardMetaRouterDependencies = {
     if (request.headers['x-test-access'] !== 'allowed') return response.status(403).json({ error: 'diamond only' });
     next();
   },
-  loadMeta: async (format, rank) => {
-    calls.push(`meta:${format}:${rank}`);
+  loadMeta: async (format, rank, period, coin, minGames) => {
+    calls.push(`meta:${format}:${rank}:${period}:${coin}:${minGames}`);
     return {
       publicationMode: 'stable',
       publishedAt: sourceUpdatedAt,
@@ -120,7 +120,7 @@ try {
   assert.equal(invalid.status, 400);
   assert.equal(invalid.headers.get('cache-control'), 'no-store');
 
-  const meta = await fetch(`${origin}/admin/standard-meta?format=wild&rank=top_5k`, { headers: adminHeaders });
+  const meta = await fetch(`${origin}/admin/standard-meta?format=wild&rank=top_5k&period=past_2_weeks&coin=on_coin&min_games=5000`, { headers: adminHeaders });
   assert.equal(meta.status, 200);
   const legacyMeta = await meta.json() as any;
   assert.equal(legacyMeta.format, 'wild');
@@ -129,7 +129,10 @@ try {
   assert.equal(legacyMeta.schemaVersion, undefined, 'ordinary Accept remains compatible with the previous response shape');
   assert.equal(meta.headers.get('vary')?.includes('Accept'), true);
   assert.match(meta.headers.get('x-dataset-version') ?? '', /^sm1-[a-f0-9]{20}$/);
-  assert.deepEqual(calls, ['meta:wild:top_5k']);
+  assert.deepEqual(calls, ['meta:wild:top_5k:past_2_weeks:on_coin:5000']);
+
+  const removedThreshold = await fetch(`${origin}/admin/standard-meta?format=standard&rank=legend&period=past_day&coin=going_first&min_games=7500`, { headers: adminHeaders });
+  assert.equal(removedThreshold.status, 400);
 
   const versionedMeta = await fetch(`${origin}/admin/standard-meta?format=standard&rank=legend`, {
     headers: { ...adminHeaders, Accept: STANDARD_META_MEDIA_TYPE },

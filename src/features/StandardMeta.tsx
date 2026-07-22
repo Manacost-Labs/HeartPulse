@@ -33,6 +33,9 @@ const StandardMetaChart = React.lazy(() => import('./StandardMetaChart'));
 
 type MetaFormat = 'standard' | 'wild';
 type MetaRank = 'legend' | 'diamond' | 'top_5k' | 'top_legend';
+type MetaPeriod = 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks';
+type MetaCoin = 'going_first' | 'on_coin';
+type MetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 type MetaView = 'cards' | 'table';
 type MetaSortKey = 'archetype' | 'winrate' | 'popularity' | 'games' | 'turns' | 'durationMinutes' | 'climbingSpeed';
 type MetaSortDirection = 'asc' | 'desc';
@@ -57,6 +60,9 @@ type MetaPayload = {
   formatLabel: string;
   rank: MetaRank;
   rankLabel: string;
+  period: MetaPeriod;
+  coin: MetaCoin;
+  minGames: MetaMinGames;
   source: string;
   sourceUrl: string;
   translationSource: string;
@@ -118,11 +124,28 @@ const RANKS: Array<{ id: MetaRank; label: string }> = [
   { id: 'top_legend', label: 'Высшая легенда' },
 ];
 
+const PERIODS: Array<{ id: MetaPeriod; label: string }> = [
+  { id: 'past_day', label: 'Прошедший день' },
+  { id: 'past_3_days', label: 'Последние 3 дня' },
+  { id: 'past_week', label: 'Последняя неделя' },
+  { id: 'past_2_weeks', label: 'Последние 2 недели' },
+];
+
+const COINS: Array<{ id: MetaCoin; label: string }> = [
+  { id: 'going_first', label: 'Ходит первым' },
+  { id: 'on_coin', label: 'С монеткой' },
+];
+
+const MIN_GAMES: MetaMinGames[] = [100, 250, 500, 1000, 2500, 5000];
+
 const EMPTY_DATA: MetaPayload = {
   format: 'standard',
   formatLabel: 'Стандарт',
   rank: 'legend',
   rankLabel: 'Легенда',
+  period: 'past_day',
+  coin: 'going_first',
+  minGames: 100,
   source: 'hsguru',
   sourceUrl: '',
   translationSource: '',
@@ -303,6 +326,9 @@ export function DeckModal({ state, onClose, onRenderPreview }: { state: DeckModa
 function StandardMetaContent() {
   const [format, setFormat] = useState<MetaFormat>('standard');
   const [rank, setRank] = useState<MetaRank>('legend');
+  const [period, setPeriod] = useState<MetaPeriod>('past_day');
+  const [coin, setCoin] = useState<MetaCoin>('going_first');
+  const [minGames, setMinGames] = useState<MetaMinGames>(100);
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
   const [view, setView] = useState<MetaView>('cards');
@@ -322,7 +348,14 @@ function StandardMetaContent() {
     const controller = new AbortController();
     setLoading(true);
     setError('');
-    void apiJson<unknown>(`/api/standard-meta?format=${format}&rank=${rank}`, {
+    const params = new URLSearchParams({
+      format,
+      rank,
+      period,
+      coin,
+      min_games: String(minGames),
+    });
+    void apiJson<unknown>(`/api/standard-meta?${params}`, {
       signal: controller.signal,
       headers: { Accept: STANDARD_META_MEDIA_TYPE },
     })
@@ -344,7 +377,7 @@ function StandardMetaContent() {
         if (currentRequest === requestId.current) setLoading(false);
       });
     return () => controller.abort();
-  }, [format, rank, metaRevision]);
+  }, [format, rank, period, coin, minGames, metaRevision]);
 
   useEffect(() => {
     if (!modal?.preview?.hash || modal.preview.ready || modal.preview.state === 'error') return undefined;
@@ -529,7 +562,7 @@ function StandardMetaContent() {
       <section className="standard-meta__controls" aria-label="Фильтры меты" data-tour-id="meta-controls">
         <div className="standard-meta__panel-heading">
           <span aria-hidden="true"><Swords size={18} /></span>
-          <div><strong>Управление срезом</strong><small>Формат, рейтинг и быстрый поиск</small></div>
+          <div><strong>Управление срезом</strong><small>Формат, рейтинг, период, выборка и порядок хода</small></div>
         </div>
         <div>
           <span className="standard-meta__control-label">Формат</span>
@@ -549,11 +582,31 @@ function StandardMetaContent() {
             ))}
           </div>
         </div>
-        <label className="standard-meta__search" data-tour-id="meta-search">
-          <Search size={18} />
-          <span className="sr-only">Поиск архетипа</span>
-          <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Найти архетип…" />
-        </label>
+        <div className="standard-meta__secondary-filters">
+          <label className="standard-meta__select">
+            <span className="standard-meta__control-label">Период</span>
+            <select value={period} onChange={event => setPeriod(event.target.value as MetaPeriod)}>
+              {PERIODS.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+            </select>
+          </label>
+          <label className="standard-meta__select">
+            <span className="standard-meta__control-label">Минимум игр</span>
+            <select value={minGames} onChange={event => setMinGames(Number(event.target.value) as MetaMinGames)}>
+              {MIN_GAMES.map(value => <option key={value} value={value}>{value.toLocaleString('ru-RU')}</option>)}
+            </select>
+          </label>
+          <label className="standard-meta__select">
+            <span className="standard-meta__control-label">Монетка</span>
+            <select value={coin} onChange={event => setCoin(event.target.value as MetaCoin)}>
+              {COINS.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+            </select>
+          </label>
+          <label className="standard-meta__search" data-tour-id="meta-search">
+            <Search size={18} />
+            <span className="sr-only">Поиск архетипа</span>
+            <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Найти архетип…" />
+          </label>
+        </div>
       </section>
 
       {loading && (
