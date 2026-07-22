@@ -76,5 +76,7 @@ const metaSource = readFileSync(new URL('../src/features/StandardMeta.tsx', impo
 assert.match(metaSource, /scope="standard-meta"/);
 assert.match(metaSource, /setMetaRevision\(revision => revision \+ 1\)/);
 assert.match(metaSource, /variant="empty"/);
+assert.match(metaSource, /useState<MetaRank>\('legend'\)/, 'Standard meta must open on Legend by default');
+assert.match(metaSource, /useState<MetaMinGames>\(500\)/, 'Standard meta must open with 500 minimum games');
 
 console.log('Recoverable surface tests passed');

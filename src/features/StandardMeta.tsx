@@ -138,11 +138,11 @@ const MIN_GAMES: MetaMinGames[] = [100, 250, 500, 1000, 2500, 5000];
 const EMPTY_DATA: MetaPayload = {
   format: 'standard',
   formatLabel: 'Стандарт',
-  rank: 'all',
-  rankLabel: 'Все ранги',
+  rank: 'legend',
+  rankLabel: 'Легенда',
   period: 'past_day',
   coin: 'any_player',
-  minGames: 100,
+  minGames: 500,
   source: 'hsguru',
   sourceUrl: '',
   translationSource: '',
@@ -322,10 +322,10 @@ export function DeckModal({ state, onClose, onRenderPreview }: { state: DeckModa
 
 function StandardMetaContent() {
   const [format, setFormat] = useState<MetaFormat>('standard');
-  const [rank, setRank] = useState<MetaRank>('all');
+  const [rank, setRank] = useState<MetaRank>('legend');
   const [period, setPeriod] = useState<MetaPeriod>('past_day');
   const coin: MetaCoin = 'any_player';
-  const [minGames, setMinGames] = useState<MetaMinGames>(100);
+  const [minGames, setMinGames] = useState<MetaMinGames>(500);
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
   const [view, setView] = useState<MetaView>('cards');
