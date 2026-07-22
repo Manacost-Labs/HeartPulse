@@ -252,6 +252,10 @@ assert.equal(
   'any_player',
 );
 assert.throws(
+  () => parseStandardMetaApiResponse(candidate({ coin: 'on_coin' }), now),
+  /coin is unsupported/,
+);
+assert.throws(
   () => parseStandardMetaApiResponse(candidate({
     items: (candidate().items as any[]).map(item => ({ ...item, winrate: 97 })),
   }), now),

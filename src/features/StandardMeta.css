@@ -242,7 +242,7 @@
 .standard-meta__secondary-filters {
   display: grid;
   grid-column: 1 / -1;
-  grid-template-columns: repeat(3, minmax(150px, 1fr)) minmax(220px, 1.25fr);
+  grid-template-columns: repeat(2, minmax(150px, 1fr)) minmax(220px, 1.25fr);
   gap: 0.75rem;
   align-items: end;
 }

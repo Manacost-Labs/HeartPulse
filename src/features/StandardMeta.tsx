@@ -34,7 +34,7 @@ const StandardMetaChart = React.lazy(() => import('./StandardMetaChart'));
 type MetaFormat = 'standard' | 'wild';
 type MetaRank = 'all' | 'legend' | 'diamond' | 'top_5k' | 'top_legend';
 type MetaPeriod = 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks';
-type MetaCoin = 'any_player' | 'going_first' | 'on_coin';
+type MetaCoin = 'any_player';
 type MetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 type MetaView = 'cards' | 'table';
 type MetaSortKey = 'archetype' | 'winrate' | 'popularity' | 'games' | 'turns' | 'durationMinutes' | 'climbingSpeed';
@@ -130,12 +130,6 @@ const PERIODS: Array<{ id: MetaPeriod; label: string }> = [
   { id: 'past_3_days', label: 'Последние 3 дня' },
   { id: 'past_week', label: 'Последняя неделя' },
   { id: 'past_2_weeks', label: 'Последние 2 недели' },
-];
-
-const COINS: Array<{ id: MetaCoin; label: string }> = [
-  { id: 'any_player', label: 'Все игроки' },
-  { id: 'going_first', label: 'Ходит первым' },
-  { id: 'on_coin', label: 'С монеткой' },
 ];
 
 const MIN_GAMES: MetaMinGames[] = [100, 250, 500, 1000, 2500, 5000];
@@ -329,7 +323,7 @@ function StandardMetaContent() {
   const [format, setFormat] = useState<MetaFormat>('standard');
   const [rank, setRank] = useState<MetaRank>('all');
   const [period, setPeriod] = useState<MetaPeriod>('past_day');
-  const [coin, setCoin] = useState<MetaCoin>('any_player');
+  const coin: MetaCoin = 'any_player';
   const [minGames, setMinGames] = useState<MetaMinGames>(100);
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
@@ -379,7 +373,7 @@ function StandardMetaContent() {
         if (currentRequest === requestId.current) setLoading(false);
       });
     return () => controller.abort();
-  }, [format, rank, period, coin, minGames, metaRevision]);
+  }, [format, rank, period, minGames, metaRevision]);
 
   useEffect(() => {
     if (!modal?.preview?.hash || modal.preview.ready || modal.preview.state === 'error') return undefined;
@@ -595,12 +589,6 @@ function StandardMetaContent() {
             <span className="standard-meta__control-label">Минимум игр</span>
             <select value={minGames} onChange={event => setMinGames(Number(event.target.value) as MetaMinGames)}>
               {MIN_GAMES.map(value => <option key={value} value={value}>{value.toLocaleString('ru-RU')}</option>)}
-            </select>
-          </label>
-          <label className="standard-meta__select">
-            <span className="standard-meta__control-label">Монетка</span>
-            <select value={coin} onChange={event => setCoin(event.target.value as MetaCoin)}>
-              {COINS.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
             </select>
           </label>
           <label className="standard-meta__search" data-tour-id="meta-search">

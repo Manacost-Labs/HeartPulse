@@ -14,11 +14,11 @@ import {
   type StandardMetaEnvelope,
 } from '../shared/standardMetaContract.js';
 
-// HSGuru is scheduled every five hours during the accelerated patch window.
-// One missed run is "aging"; after three missed runs the response is stale.
+// HSGuru is scheduled every six hours. A small grace period prevents a normal
+// timer run from looking old; three missed runs make the response stale.
 export const STANDARD_META_FRESHNESS_POLICY = {
-  freshForMs: 6 * 60 * 60 * 1000,
-  agingForMs: 15 * 60 * 60 * 1000,
+  freshForMs: 7 * 60 * 60 * 1000,
+  agingForMs: 19 * 60 * 60 * 1000,
 } as const;
 
 type PublishedStandardMetaCandidate = Record<string, unknown> & {
