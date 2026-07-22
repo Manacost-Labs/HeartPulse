@@ -251,6 +251,10 @@ assert.equal(
   parseStandardMetaApiResponse(candidate({ rank: 'all', rankLabel: 'Все ранги', coin: 'any_player' }), now).data.coin,
   'any_player',
 );
+assert.equal(
+  parseStandardMetaApiResponse(candidate({ period: 'past_6_hours' }), now).data.period,
+  'past_6_hours',
+);
 assert.throws(
   () => parseStandardMetaApiResponse(candidate({ coin: 'on_coin' }), now),
   /coin is unsupported/,

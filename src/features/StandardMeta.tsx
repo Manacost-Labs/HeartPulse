@@ -33,7 +33,7 @@ const StandardMetaChart = React.lazy(() => import('./StandardMetaChart'));
 
 type MetaFormat = 'standard' | 'wild';
 type MetaRank = 'all' | 'legend' | 'diamond' | 'top_5k' | 'top_legend';
-type MetaPeriod = 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks';
+type MetaPeriod = 'past_6_hours' | 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks';
 type MetaCoin = 'any_player';
 type MetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 type MetaView = 'cards' | 'table';
@@ -126,6 +126,7 @@ const RANKS: Array<{ id: MetaRank; label: string }> = [
 ];
 
 const PERIODS: Array<{ id: MetaPeriod; label: string }> = [
+  { id: 'past_6_hours', label: 'Последние 6 часов' },
   { id: 'past_day', label: 'Прошедший день' },
   { id: 'past_3_days', label: 'Последние 3 дня' },
   { id: 'past_week', label: 'Последняя неделя' },

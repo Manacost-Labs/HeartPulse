@@ -59,6 +59,9 @@ const dependencies: StandardMetaRouterDependencies = {
       formatLabel: format === 'standard' ? 'Стандарт' : 'Вольный',
       rank,
       rankLabel: rank,
+      period,
+      coin,
+      minGames,
       source: 'hsguru',
       sourceId: `hsguru-meta-${format}-${rank}`,
       sourceUrl: 'https://example.test/meta',
@@ -121,6 +124,12 @@ try {
   assert.equal(aggregateMeta.status, 200);
   assert.equal((await aggregateMeta.json() as any).rank, 'all');
   assert.deepEqual(calls, ['meta:standard:all:past_day:any_player:100']);
+  calls.length = 0;
+
+  const sixHourMeta = await fetch(`${origin}/standard-meta?format=wild&rank=legend&period=past_6_hours&coin=any_player&min_games=500`, { headers: { 'X-Test-Access': 'allowed' } });
+  assert.equal(sixHourMeta.status, 200);
+  assert.equal((await sixHourMeta.json() as any).period, 'past_6_hours');
+  assert.deepEqual(calls, ['meta:wild:legend:past_6_hours:any_player:500']);
   calls.length = 0;
 
   const invalid = await fetch(`${origin}/admin/standard-meta?format=classic&rank=bronze`, { headers: adminHeaders });
