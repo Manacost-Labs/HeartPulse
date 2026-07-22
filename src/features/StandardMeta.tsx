@@ -558,7 +558,7 @@ function StandardMetaContent() {
       <section className="standard-meta__controls" aria-label="Фильтры меты" data-tour-id="meta-controls">
         <div className="standard-meta__panel-heading">
           <span aria-hidden="true"><Swords size={18} /></span>
-          <div><strong>Управление срезом</strong><small>Формат, рейтинг, период, выборка и порядок хода</small></div>
+          <div><strong>Управление срезом</strong><small>Формат, рейтинг, период и минимальная выборка</small></div>
         </div>
         <div>
           <span className="standard-meta__control-label">Формат</span>
