@@ -4392,12 +4392,14 @@ const CONSTRUCTED_CARDS_DATASET_BY_FORMAT = {
 } as const;
 const STANDARD_META_DATASET_BY_FORMAT_RANK: Record<StandardMetaFormat, Record<StandardMetaRank, string>> = {
   standard: {
+    all: 'hsguru_meta_standard_legend',
     legend: 'hsguru_meta_standard_legend',
     diamond: 'hsguru_meta_standard_diamond_4to1',
     top_5k: 'hsguru_meta_standard_top_5k',
     top_legend: 'hsguru_meta_standard_top_legend',
   },
   wild: {
+    all: 'hsguru_meta_wild_legend',
     legend: 'hsguru_meta_wild_legend',
     diamond: 'hsguru_meta_wild_diamond_4to1',
     top_5k: 'hsguru_meta_wild_top_5k',
@@ -4409,6 +4411,7 @@ const STANDARD_META_FORMAT_LABEL: Record<StandardMetaFormat, string> = {
   wild: 'Вольный',
 };
 const STANDARD_META_RANK_LABEL: Record<StandardMetaRank, string> = {
+  all: 'Все ранги',
   legend: 'Легенда',
   diamond: 'Алмаз 4-1',
   top_5k: 'Топ-5000',
@@ -6412,6 +6415,7 @@ function parseConstructedDecks(
 }
 
 const STANDARD_META_HSGURU_RANK: Record<StandardMetaRank, string> = {
+  all: 'all',
   legend: 'legend',
   diamond: 'diamond_4to1',
   top_5k: 'top_5k',

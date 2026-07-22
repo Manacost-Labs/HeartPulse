@@ -9,9 +9,9 @@ export const STANDARD_META_DATASET = 'standard-meta';
 export const STANDARD_META_MEDIA_TYPE = 'application/vnd.manacost.standard-meta.v1+json';
 
 export type StandardMetaFormat = 'standard' | 'wild';
-export type StandardMetaRank = 'legend' | 'diamond' | 'top_5k' | 'top_legend';
+export type StandardMetaRank = 'all' | 'legend' | 'diamond' | 'top_5k' | 'top_legend';
 export type StandardMetaPeriod = 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks';
-export type StandardMetaCoin = 'going_first' | 'on_coin';
+export type StandardMetaCoin = 'any_player' | 'going_first' | 'on_coin';
 export type StandardMetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 export type StandardMetaClass = 'deathknight' | 'demonhunter' | 'druid' | 'hunter' | 'mage' | 'paladin'
   | 'priest' | 'rogue' | 'shaman' | 'warlock' | 'warrior';
@@ -49,9 +49,9 @@ export type StandardMetaData = {
 export type StandardMetaEnvelope = DatasetEnvelope<StandardMetaData>;
 
 const FORMATS = new Set<StandardMetaFormat>(['standard', 'wild']);
-const RANKS = new Set<StandardMetaRank>(['legend', 'diamond', 'top_5k', 'top_legend']);
+const RANKS = new Set<StandardMetaRank>(['all', 'legend', 'diamond', 'top_5k', 'top_legend']);
 const PERIODS = new Set<StandardMetaPeriod>(['past_day', 'past_3_days', 'past_week', 'past_2_weeks']);
-const COINS = new Set<StandardMetaCoin>(['going_first', 'on_coin']);
+const COINS = new Set<StandardMetaCoin>(['any_player', 'going_first', 'on_coin']);
 const MIN_GAMES = new Set<StandardMetaMinGames>([100, 250, 500, 1000, 2500, 5000]);
 const CLASSES = new Set<StandardMetaClass>([
   'deathknight', 'demonhunter', 'druid', 'hunter', 'mage', 'paladin',
@@ -115,7 +115,7 @@ export function parseStandardMetaData(value: unknown): StandardMetaData {
   if (!FORMATS.has(data.format as StandardMetaFormat)) invalid('format is unsupported');
   if (!RANKS.has(data.rank as StandardMetaRank)) invalid('rank is unsupported');
   const period = (data.period ?? 'past_day') as StandardMetaPeriod;
-  const coin = (data.coin ?? 'going_first') as StandardMetaCoin;
+  const coin = (data.coin ?? 'any_player') as StandardMetaCoin;
   const minGames = Number(data.minGames ?? 100) as StandardMetaMinGames;
   if (!PERIODS.has(period)) invalid('period is unsupported');
   if (!COINS.has(coin)) invalid('coin is unsupported');

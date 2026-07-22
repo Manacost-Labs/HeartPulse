@@ -5,9 +5,9 @@ import { createStandardMetaEnvelope } from './standardMetaDataset.js';
 import { STANDARD_META_MEDIA_TYPE } from '../shared/standardMetaContract.js';
 
 export type StandardMetaFormat = 'standard' | 'wild';
-export type StandardMetaRank = 'legend' | 'diamond' | 'top_5k' | 'top_legend';
+export type StandardMetaRank = 'all' | 'legend' | 'diamond' | 'top_5k' | 'top_legend';
 export type StandardMetaPeriod = 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks';
-export type StandardMetaCoin = 'going_first' | 'on_coin';
+export type StandardMetaCoin = 'any_player' | 'going_first' | 'on_coin';
 export type StandardMetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 
 export type StandardMetaRecommendation = {
@@ -60,9 +60,9 @@ export type StandardMetaRouterDependencies = {
 };
 
 const FORMATS = new Set<StandardMetaFormat>(['standard', 'wild']);
-const RANKS = new Set<StandardMetaRank>(['legend', 'diamond', 'top_5k', 'top_legend']);
+const RANKS = new Set<StandardMetaRank>(['all', 'legend', 'diamond', 'top_5k', 'top_legend']);
 const PERIODS = new Set<StandardMetaPeriod>(['past_day', 'past_3_days', 'past_week', 'past_2_weeks']);
-const COINS = new Set<StandardMetaCoin>(['going_first', 'on_coin']);
+const COINS = new Set<StandardMetaCoin>(['any_player', 'going_first', 'on_coin']);
 const MIN_GAMES = new Set<StandardMetaMinGames>([100, 250, 500, 1000, 2500, 5000]);
 
 function readFormat(value: unknown): StandardMetaFormat | null {
@@ -71,7 +71,7 @@ function readFormat(value: unknown): StandardMetaFormat | null {
 }
 
 function readRank(value: unknown): StandardMetaRank | null {
-  const rank = String(value ?? 'legend') as StandardMetaRank;
+  const rank = String(value ?? 'all') as StandardMetaRank;
   return RANKS.has(rank) ? rank : null;
 }
 
@@ -81,7 +81,7 @@ function readPeriod(value: unknown): StandardMetaPeriod | null {
 }
 
 function readCoin(value: unknown): StandardMetaCoin | null {
-  const coin = String(value ?? 'going_first') as StandardMetaCoin;
+  const coin = String(value ?? 'any_player') as StandardMetaCoin;
   return COINS.has(coin) ? coin : null;
 }
 

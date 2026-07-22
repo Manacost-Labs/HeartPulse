@@ -247,6 +247,10 @@ const legacy = parseStandardMetaApiResponse(envelope.data, now);
 assert.equal(legacy.legacy, true);
 assert.equal(legacy.envelope, null);
 assert.equal(legacy.data.items.length, 5);
+assert.equal(
+  parseStandardMetaApiResponse(candidate({ rank: 'all', rankLabel: 'Все ранги', coin: 'any_player' }), now).data.coin,
+  'any_player',
+);
 assert.throws(
   () => parseStandardMetaApiResponse(candidate({
     items: (candidate().items as any[]).map(item => ({ ...item, winrate: 97 })),

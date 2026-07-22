@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Added aggregate `ALL` rank and `Any Player` HSGuru meta filters for Standard and Wild, made the aggregate slice the default, and hardened statistics ingestion by mapping every metric by its source column heading and rejecting incomplete or invalid rows.
 - Expanded HSGuru meta filters for Standard and Wild with four daily-to-two-week periods, Going First/On Coin splits and local 100–5000 game thresholds backed by one atomic daily Firecrawl matrix; removed the 3/6-hour and 7500-game choices.
 - Fixed transient administrator user-access failures by making the shared SQLite connection wait briefly for concurrent writers; a real lock-contention regression test now covers the production failure mode.
 - Installed a versioned five-minute production SEO/stability workflow. Its bounded, privacy-safe monitor now aggregates failures across health, dataset freshness, public routes, robots, exact sitemap segments, deterministic Standard card SSR samples, canonical/JSON-LD contracts and unknown-card noindex behavior; an operator runbook documents triage and rollback while paging integration remains explicitly open.

@@ -116,6 +116,12 @@ try {
   assert.equal((await publicMeta.json() as any).format, 'standard');
   calls.length = 0;
 
+  const aggregateMeta = await fetch(`${origin}/standard-meta?format=standard&rank=all&period=past_day&coin=any_player&min_games=100`, { headers: { 'X-Test-Access': 'allowed' } });
+  assert.equal(aggregateMeta.status, 200);
+  assert.equal((await aggregateMeta.json() as any).rank, 'all');
+  assert.deepEqual(calls, ['meta:standard:all:past_day:any_player:100']);
+  calls.length = 0;
+
   const invalid = await fetch(`${origin}/admin/standard-meta?format=classic&rank=bronze`, { headers: adminHeaders });
   assert.equal(invalid.status, 400);
   assert.equal(invalid.headers.get('cache-control'), 'no-store');

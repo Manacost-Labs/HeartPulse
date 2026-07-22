@@ -32,9 +32,9 @@ import './StandardMeta.css';
 const StandardMetaChart = React.lazy(() => import('./StandardMetaChart'));
 
 type MetaFormat = 'standard' | 'wild';
-type MetaRank = 'legend' | 'diamond' | 'top_5k' | 'top_legend';
+type MetaRank = 'all' | 'legend' | 'diamond' | 'top_5k' | 'top_legend';
 type MetaPeriod = 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks';
-type MetaCoin = 'going_first' | 'on_coin';
+type MetaCoin = 'any_player' | 'going_first' | 'on_coin';
 type MetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 type MetaView = 'cards' | 'table';
 type MetaSortKey = 'archetype' | 'winrate' | 'popularity' | 'games' | 'turns' | 'durationMinutes' | 'climbingSpeed';
@@ -118,6 +118,7 @@ const FORMATS: Array<{ id: MetaFormat; label: string; description: string }> = [
 ];
 
 const RANKS: Array<{ id: MetaRank; label: string }> = [
+  { id: 'all', label: 'Все ранги' },
   { id: 'legend', label: 'Легенда' },
   { id: 'diamond', label: 'Алмаз 4-1' },
   { id: 'top_5k', label: 'Топ-5000' },
@@ -132,6 +133,7 @@ const PERIODS: Array<{ id: MetaPeriod; label: string }> = [
 ];
 
 const COINS: Array<{ id: MetaCoin; label: string }> = [
+  { id: 'any_player', label: 'Все игроки' },
   { id: 'going_first', label: 'Ходит первым' },
   { id: 'on_coin', label: 'С монеткой' },
 ];
@@ -141,10 +143,10 @@ const MIN_GAMES: MetaMinGames[] = [100, 250, 500, 1000, 2500, 5000];
 const EMPTY_DATA: MetaPayload = {
   format: 'standard',
   formatLabel: 'Стандарт',
-  rank: 'legend',
-  rankLabel: 'Легенда',
+  rank: 'all',
+  rankLabel: 'Все ранги',
   period: 'past_day',
-  coin: 'going_first',
+  coin: 'any_player',
   minGames: 100,
   source: 'hsguru',
   sourceUrl: '',
@@ -325,9 +327,9 @@ export function DeckModal({ state, onClose, onRenderPreview }: { state: DeckModa
 
 function StandardMetaContent() {
   const [format, setFormat] = useState<MetaFormat>('standard');
-  const [rank, setRank] = useState<MetaRank>('legend');
+  const [rank, setRank] = useState<MetaRank>('all');
   const [period, setPeriod] = useState<MetaPeriod>('past_day');
-  const [coin, setCoin] = useState<MetaCoin>('going_first');
+  const [coin, setCoin] = useState<MetaCoin>('any_player');
   const [minGames, setMinGames] = useState<MetaMinGames>(100);
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
