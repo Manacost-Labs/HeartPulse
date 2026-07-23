@@ -38,7 +38,10 @@ import { articleAccessEntitlement, type ArticleAccessMode } from './articleAcces
 import { createGlobalSearchRouter } from './globalSearchRoutes.js';
 import { createOperationalRouter } from './operationalRoutes.js';
 import { createArenaDecksRouter, type ArenaDecksCacheStore } from './arenaDeckRoutes.js';
-import { createStandardMatchupRouter } from './standardMatchupRoutes.js';
+import {
+  createStandardMatchupRouter,
+  type StandardMatchupFormat,
+} from './standardMatchupRoutes.js';
 import {
   ConstructedCardUpstreamError,
   createConstructedCardDataService,
@@ -4392,6 +4395,14 @@ const STANDARD_MATCHUPS_DATASET_BY_RANK = {
   legend: 'hsguru_matchups_legend',
   diamond: 'hsguru_matchups_diamond_4to1',
 } as const;
+const STANDARD_MATCHUPS_DATASET_BY_FORMAT: Record<StandardMatchupFormat, string> = {
+  standard: 'hsguru_matchups_legend',
+  wild: 'hsguru_matchups_wild_legend',
+};
+const STANDARD_MATCHUPS_FORMAT_LABEL: Record<StandardMatchupFormat, string> = {
+  standard: 'Стандарт',
+  wild: 'Вольный',
+};
 const STANDARD_MATCHUPS_RANK_LABEL: Record<keyof typeof STANDARD_MATCHUPS_DATASET_BY_RANK, string> = {
   legend: 'Легенда',
   diamond: 'Алмаз 4-1',
@@ -5885,7 +5896,7 @@ async function loadObservedStandardArchetypes() {
 
 function transformHsguruMatchups(
   payload: any,
-  rank: keyof typeof STANDARD_MATCHUPS_DATASET_BY_RANK,
+  format: StandardMatchupFormat,
   archetypeTranslations: StandardArchetypeTranslations,
 ) {
   const table = payload?.data?.tables?.[0] ?? payload?.tables?.[0] ?? null;
@@ -5928,10 +5939,12 @@ function transformHsguruMatchups(
   }
 
   return {
-    rank,
-    rankLabel: STANDARD_MATCHUPS_RANK_LABEL[rank],
+    format,
+    formatLabel: STANDARD_MATCHUPS_FORMAT_LABEL[format],
+    rank: 'legend',
+    rankLabel: 'Легенда',
     source: 'hsguru',
-    sourceId: STANDARD_MATCHUPS_DATASET_BY_RANK[rank],
+    sourceId: STANDARD_MATCHUPS_DATASET_BY_FORMAT[format],
     sourceUrl: payload?.data?.url ?? payload?.url ?? '',
     translationSource: archetypeTranslations.source,
     updatedAt: payload?.fetched_at ?? payload?.data?.fetched_at ?? null,
@@ -7081,10 +7094,10 @@ app.use('/api', createClassMatchupRouter({
 app.use('/api', createStandardMatchupRouter({
   accessGuard: requireStandardAccess,
   memoryCache: standardMatchupsApiCache,
-  redisKey: rank => redisDataKey('standard-matchups', rank),
+  redisKey: format => redisDataKey('standard-matchups', format),
   redisGet: redisGetCache,
   redisSet: redisSetCache,
-  fetchPayload: rank => fetchDataset(STANDARD_MATCHUPS_DATASET_BY_RANK[rank]),
+  fetchPayload: format => fetchDataset(STANDARD_MATCHUPS_DATASET_BY_FORMAT[format]),
   getTranslations: getStandardArchetypeTranslations,
   transform: transformHsguruMatchups,
   memoryTtlMs: EXTERNAL_DATASET_CACHE_MS,

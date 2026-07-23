@@ -51,9 +51,9 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
     ],
   },
   {
-    id: 'standard-matchups', version: 1, paths: ['/standard/matchups'], title: 'Как читать матчапы',
+    id: 'standard-matchups', version: 2, paths: ['/standard/matchups'], title: 'Как читать матчапы',
     steps: [
-      { id: 'rank', target: 'matchups-rank', title: 'Выберите диапазон рейтинга', description: 'Матчапы зависят от уровня игры. Переключатель обновляет всю матрицу для выбранного диапазона рейтинга.', audience: 'standard' },
+      { id: 'rank', target: 'matchups-rank', title: 'Выберите формат', description: 'Переключайтесь между Стандартом и Вольным режимом. Обе матрицы собраны для ранга Легенда.', audience: 'standard' },
       { id: 'picker', target: 'matchups-picker', title: 'Найдите свою колоду', description: 'Выберите здесь архетип, которым играете. Быстрый обзор ниже покажет его результаты против остальных колод меты.', audience: 'standard', preferredPlacement: 'bottom' },
       { id: 'matrix', target: 'matchups-matrix', title: 'Как читать матрицу', description: 'Строка — ваша колода, столбец — соперник. На телефоне используйте быстрый просмотр выше, а полную матрицу листайте горизонтально.', audience: 'standard', preferredPlacement: 'top' },
       { id: 'summary', target: 'matchups-summary', title: 'Сильные и слабые соперники', description: 'В итоговой сводке ниже автоматически выделены лучшие и худшие встречи, чтобы быстрее выбрать колоду или подготовить план игры.', audience: 'standard', preferredPlacement: 'top' },

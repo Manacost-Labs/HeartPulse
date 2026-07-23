@@ -1,19 +1,19 @@
 import { Router, type RequestHandler } from 'express';
 import { sendDatasetJsonCached } from './datasetCacheResponse.js';
 
-export type StandardMatchupRank = 'legend' | 'diamond';
+export type StandardMatchupFormat = 'standard' | 'wild';
 type CacheEntry = { data: any; etag: string; expiresAt: number };
 type RedisEntry = { data: any; etag: string };
 
 export type StandardMatchupRouterDependencies = {
   accessGuard: RequestHandler;
   memoryCache: Map<string, CacheEntry>;
-  redisKey: (rank: StandardMatchupRank) => string;
+  redisKey: (format: StandardMatchupFormat) => string;
   redisGet: (key: string) => Promise<RedisEntry | null>;
   redisSet: (key: string, data: any, etag: string, ttlSeconds: number) => Promise<unknown> | unknown;
-  fetchPayload: (rank: StandardMatchupRank) => Promise<any>;
+  fetchPayload: (format: StandardMatchupFormat) => Promise<any>;
   getTranslations: (now: number) => Promise<any>;
-  transform: (payload: any, rank: StandardMatchupRank, translations: any) => any;
+  transform: (payload: any, format: StandardMatchupFormat, translations: any) => any;
   memoryTtlMs: number;
   redisTtlSeconds: number;
   cacheHeader?: string;
@@ -27,18 +27,18 @@ export function createStandardMatchupRouter(dependencies: StandardMatchupRouterD
   const now = dependencies.now ?? Date.now;
 
   router.get('/standard/matchups', dependencies.accessGuard, async (request, response) => {
-    const rank: StandardMatchupRank = request.query.rank === 'diamond' ? 'diamond' : 'legend';
+    const format: StandardMatchupFormat = request.query.format === 'wild' ? 'wild' : 'standard';
     const timestamp = now();
-    const cached = dependencies.memoryCache.get(rank);
+    const cached = dependencies.memoryCache.get(format);
     if (cached && cached.expiresAt > timestamp) {
       return sendDatasetJsonCached(request, response, cached.data, cached.etag, cacheHeader, 'memory');
     }
 
-    const key = dependencies.redisKey(rank);
+    const key = dependencies.redisKey(format);
     try {
       const redisCached = await dependencies.redisGet(key);
       if (redisCached) {
-        dependencies.memoryCache.set(rank, {
+        dependencies.memoryCache.set(format, {
           data: redisCached.data,
           etag: redisCached.etag,
           expiresAt: timestamp + dependencies.memoryTtlMs,
@@ -51,14 +51,14 @@ export function createStandardMatchupRouter(dependencies: StandardMatchupRouterD
 
     try {
       const [payload, translations] = await Promise.all([
-        dependencies.fetchPayload(rank),
+        dependencies.fetchPayload(format),
         dependencies.getTranslations(timestamp),
       ]);
-      const data = dependencies.transform(payload, rank, translations);
+      const data = dependencies.transform(payload, format, translations);
       const updatedMs = data.updatedAt ? Date.parse(data.updatedAt) : Number.NaN;
       const updatedToken = Number.isFinite(updatedMs) ? updatedMs.toString(36) : timestamp.toString(36);
-      const etag = `"standard-matchups-v4-${rank}-${updatedToken}-${data.rows.length}-${data.columns.length}-${data.translationSource}"`;
-      dependencies.memoryCache.set(rank, {
+      const etag = `"standard-matchups-v5-${format}-${updatedToken}-${data.rows.length}-${data.columns.length}-${data.translationSource}"`;
+      dependencies.memoryCache.set(format, {
         data,
         etag,
         expiresAt: timestamp + dependencies.memoryTtlMs,

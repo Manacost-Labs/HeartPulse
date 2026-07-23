@@ -2,14 +2,14 @@ import assert from 'node:assert/strict';
 import express, { type RequestHandler } from 'express';
 import {
   createStandardMatchupRouter,
-  type StandardMatchupRank,
+  type StandardMatchupFormat,
   type StandardMatchupRouterDependencies,
 } from '../server/standardMatchupRoutes.js';
 
 let now = 1_000;
 let redisMode: 'miss' | 'hit' | 'error' = 'miss';
 let originFails = false;
-const fetchRanks: StandardMatchupRank[] = [];
+const fetchFormats: StandardMatchupFormat[] = [];
 const translationTimes: number[] = [];
 const redisWrites: any[] = [];
 const errors: Array<{ scope: string; error: unknown }> = [];
@@ -24,33 +24,33 @@ const accessGuard: RequestHandler = (request, response, next) => {
 const dependencies: StandardMatchupRouterDependencies = {
   accessGuard,
   memoryCache,
-  redisKey: rank => `standard:${rank}`,
+  redisKey: format => `standard:${format}`,
   redisGet: async key => {
     if (redisMode === 'error') throw new Error('redis secret');
     if (redisMode === 'hit') {
-      const rank = key.endsWith('diamond') ? 'diamond' : 'legend';
+      const format = key.endsWith('wild') ? 'wild' : 'standard';
       return {
-        etag: `"redis-${rank}"`,
-        data: { rows: [{ id: rank }], columns: ['one'], translationSource: 'redis', updatedAt: null },
+        etag: `"redis-${format}"`,
+        data: { rows: [{ id: format }], columns: ['one'], translationSource: 'redis', updatedAt: null },
       };
     }
     return null;
   },
   redisSet: async (key, data, etag, ttl) => { redisWrites.push({ key, data, etag, ttl }); },
-  fetchPayload: async rank => {
-    fetchRanks.push(rank);
+  fetchPayload: async format => {
+    fetchFormats.push(format);
     if (originFails) throw new Error('origin secret');
-    return { rank };
+    return { format };
   },
   getTranslations: async timestamp => {
     translationTimes.push(timestamp);
     return { source: 'translations' };
   },
-  transform: (payload, rank) => ({
-    rows: [{ id: `${payload.rank}-row` }],
+  transform: (payload, format) => ({
+    rows: [{ id: `${payload.format}-row` }],
     columns: ['left', 'right'],
     translationSource: 'local',
-    updatedAt: rank === 'diamond' ? '2026-07-12T12:00:00.000Z' : null,
+    updatedAt: format === 'wild' ? '2026-07-12T12:00:00.000Z' : null,
   }),
   memoryTtlMs: 100,
   redisTtlSeconds: 600,
@@ -89,14 +89,14 @@ async function get(path: string, headers: Record<string, string> = {}) {
 try {
   const denied = await get('/standard/matchups');
   assert.equal(denied.status, 403);
-  assert.deepEqual(fetchRanks, []);
+  assert.deepEqual(fetchFormats, []);
 
-  memoryCache.set('legend', {
+  memoryCache.set('standard', {
     data: { rows: [{ id: 'memory' }], columns: [], translationSource: 'memory' },
-    etag: '"memory-legend"',
+    etag: '"memory-standard"',
     expiresAt: 1_100,
   });
-  const memory = await get('/standard/matchups?rank=unknown', { 'X-Test-Access': 'allowed' });
+  const memory = await get('/standard/matchups?format=unknown', { 'X-Test-Access': 'allowed' });
   assert.equal(memory.status, 200);
   assert.equal(memory.headers.get('x-data-cache'), 'memory');
   assert.match(memory.headers.get('cache-control') || '', /^private/);
@@ -105,35 +105,35 @@ try {
 
   const notModified = await get('/standard/matchups', {
     'X-Test-Access': 'allowed',
-    'If-None-Match': '"memory-legend"',
+    'If-None-Match': '"memory-standard"',
   });
   assert.equal(notModified.status, 304);
 
   redisMode = 'hit';
-  const redis = await get('/standard/matchups?rank=diamond', { 'X-Test-Access': 'allowed' });
+  const redis = await get('/standard/matchups?format=wild', { 'X-Test-Access': 'allowed' });
   assert.equal(redis.headers.get('x-data-cache'), 'redis');
-  assert.equal(redis.headers.get('etag'), '"redis-diamond"');
-  assert.equal((await redis.json() as any).rows[0].id, 'diamond');
-  assert.equal(memoryCache.get('diamond')?.expiresAt, 1_100);
+  assert.equal(redis.headers.get('etag'), '"redis-wild"');
+  assert.equal((await redis.json() as any).rows[0].id, 'wild');
+  assert.equal(memoryCache.get('wild')?.expiresAt, 1_100);
 
   memoryCache.clear();
   redisMode = 'error';
-  const fromOrigin = await get('/standard/matchups?rank=diamond', { 'X-Test-Access': 'allowed' });
+  const fromOrigin = await get('/standard/matchups?format=wild', { 'X-Test-Access': 'allowed' });
   assert.equal(fromOrigin.status, 200);
   assert.equal(fromOrigin.headers.get('x-data-cache'), 'origin');
-  assert.match(fromOrigin.headers.get('etag') || '', /^"standard-matchups-v4-diamond-/);
-  assert.equal((await fromOrigin.json() as any).rows[0].id, 'diamond-row');
+  assert.match(fromOrigin.headers.get('etag') || '', /^"standard-matchups-v5-wild-/);
+  assert.equal((await fromOrigin.json() as any).rows[0].id, 'wild-row');
   await new Promise(resolve => setImmediate(resolve));
-  assert.deepEqual(fetchRanks, ['diamond']);
+  assert.deepEqual(fetchFormats, ['wild']);
   assert.deepEqual(translationTimes, [1_000]);
-  assert.equal(redisWrites[0].key, 'standard:diamond');
+  assert.equal(redisWrites[0].key, 'standard:wild');
   assert.equal(redisWrites[0].ttl, 600);
   assert.equal(errors[0].scope, 'redis-read');
 
   now = 1_101;
   redisMode = 'miss';
   originFails = true;
-  const stale = await get('/standard/matchups?rank=diamond', { 'X-Test-Access': 'allowed' });
+  const stale = await get('/standard/matchups?format=wild', { 'X-Test-Access': 'allowed' });
   assert.equal(stale.status, 200);
   assert.equal(stale.headers.get('x-data-cache'), 'memory-stale');
   assert.equal((await stale.json() as any).warning, 'stale');

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import '../route-parchment.css';
 
-type StandardMatchupsRank = 'legend' | 'diamond';
+type StandardMatchupsFormat = 'standard' | 'wild';
 
 interface StandardMatchupsColumn {
   name: string;
@@ -24,7 +24,9 @@ interface StandardMatchupsRow {
 }
 
 interface StandardMatchupsData {
-  rank: StandardMatchupsRank;
+  format: StandardMatchupsFormat;
+  formatLabel: string;
+  rank: 'legend';
   rankLabel: string;
   source: string;
   sourceId?: string;
@@ -83,6 +85,8 @@ async function fetchWithETag(url: string, cacheKey: string): Promise<{ data: any
 }
 
 const EMPTY_STANDARD_MATCHUPS: StandardMatchupsData = {
+  format: 'standard',
+  formatLabel: 'Стандарт',
   rank: 'legend',
   rankLabel: 'Легенда',
   source: 'hsguru',
@@ -200,7 +204,7 @@ function standardMatchupTone(value: number | null): React.CSSProperties {
 }
 
 function StandardMatchupsPage() {
-  const [rank, setRank] = useState<StandardMatchupsRank>('legend');
+  const [format, setFormat] = useState<StandardMatchupsFormat>('standard');
   const [selectedArchetype, setSelectedArchetype] = useState('');
   const [data, setData] = useState<StandardMatchupsData>(EMPTY_STANDARD_MATCHUPS);
   const [loading, setLoading] = useState(true);
@@ -213,12 +217,15 @@ function StandardMatchupsPage() {
       setLoading(true);
       setError(false);
       try {
-        const result = await fetchWithETag(`/api/standard/matchups?rank=${rank}`, `standard_matchups_ru_v4_${rank}`);
+        const result = await fetchWithETag(
+          `/api/standard/matchups?format=${format}`,
+          `standard_matchups_ru_v5_${format}`,
+        );
         if (!cancelled && result?.data) {
           setData(result.data as StandardMatchupsData);
         }
       } catch (err) {
-        console.error('Не удалось загрузить матчапы Стандарта', err);
+        console.error('Не удалось загрузить матчапы', err);
         if (!cancelled) setError(true);
       } finally {
         if (!cancelled) setLoading(false);
@@ -228,7 +235,7 @@ function StandardMatchupsPage() {
     return () => {
       cancelled = true;
     };
-  }, [rank]);
+  }, [format]);
 
   const scrollMatrix = useCallback((direction: -1 | 1) => {
     const node = matrixScrollRef.current;
@@ -316,26 +323,26 @@ function StandardMatchupsPage() {
       >
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
           <div>
-            <div className="uppercase tracking-[0.28em] text-xs font-bold text-[#8b6c42] mb-2">Стандарт</div>
+            <div className="uppercase tracking-[0.28em] text-xs font-bold text-[#8b6c42] mb-2">{data.formatLabel}</div>
             <h1 className="font-hs text-4xl sm:text-5xl leading-tight" style={{ color: '#3d2208' }}>Матчапы</h1>
             <p className="mt-3 max-w-3xl text-base sm:text-lg text-[#6b4c2a]">
               Матрица архетипов по данным HSGuru: строки показывают выбранный архетип, столбцы - соперника, в ячейках винрейт.
             </p>
           </div>
-          <div className="standard-matchups__rank-switcher flex flex-wrap gap-2" aria-label="Диапазон рейтинга" data-tour-id="matchups-rank">
+          <div className="standard-matchups__rank-switcher flex flex-wrap gap-2" aria-label="Формат игры" data-tour-id="matchups-rank">
             {([
-              ['legend', 'Легенда'],
-              ['diamond', 'Алмаз 4-1'],
+              ['standard', 'Стандарт'],
+              ['wild', 'Вольный'],
             ] as const).map(([value, label]) => (
               <button
                 key={value}
                 type="button"
-                onClick={() => setRank(value)}
-                aria-pressed={rank === value}
-                className={`px-4 py-2 rounded-full font-bold transition ${rank === value ? 'text-[#2c1e16]' : 'text-[#6b4c2a]'}`}
+                onClick={() => setFormat(value)}
+                aria-pressed={format === value}
+                className={`px-4 py-2 rounded-full font-bold transition ${format === value ? 'text-[#2c1e16]' : 'text-[#6b4c2a]'}`}
                 style={{
-                  background: rank === value ? 'linear-gradient(135deg,#f4d06f,#d6a848)' : 'rgba(255,255,255,0.55)',
-                  border: rank === value ? '1.5px solid #b8904a' : '1px solid rgba(107,76,42,0.18)',
+                  background: format === value ? 'linear-gradient(135deg,#f4d06f,#d6a848)' : 'rgba(255,255,255,0.55)',
+                  border: format === value ? '1.5px solid #b8904a' : '1px solid rgba(107,76,42,0.18)',
                 }}
               >
                 {label}
@@ -375,7 +382,7 @@ function StandardMatchupsPage() {
         >
           <div className="standard-matchups__ledger-heading flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
-              <h2 className="font-hs text-2xl" style={{ color: '#3d2208' }}>Матрица {data.rankLabel}</h2>
+              <h2 className="font-hs text-2xl" style={{ color: '#3d2208' }}>Матрица · {data.formatLabel} · {data.rankLabel}</h2>
               <p className="text-sm text-[#7a5a35]">Цвет показывает силу матчапа: зеленый - хороший, красный - плохой.</p>
             </div>
             <div className="standard-matchups__updated flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs"
@@ -507,7 +514,7 @@ function StandardMatchupsPage() {
                 ref={matrixScrollRef}
                 id="matchups-matrix"
                 tabIndex={0}
-                aria-label="Прокручиваемая таблица матчапов Стандарта"
+                aria-label={`Прокручиваемая таблица матчапов: ${data.formatLabel}, ${data.rankLabel}`}
                 className="standard-matchups__matrix scroll-mt-4 overflow-x-auto pb-2 scrollbar-hs rounded-xl border border-[#b8904a]/45 bg-[#fffdf4]/78 focus:outline-none focus:ring-2 focus:ring-[#d6a848]"
                 style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain', touchAction: 'pan-x' }}
               >
