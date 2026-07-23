@@ -3981,10 +3981,72 @@ for (const [device, viewport] of [
         return Boolean(matrix && matrix.scrollWidth > matrix.clientWidth);
       })(),
       firstRow: document.querySelector('#matchups-matrix tbody th')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      topScrollbar: Boolean(document.querySelector('.standard-matchups__matrix-scrollbar--top')),
+      bottomScrollbar: Boolean(document.querySelector('.standard-matchups__matrix-scrollbar--bottom')),
+      interactiveCells: document.querySelectorAll('#matchups-matrix [data-matchup-cell]').length,
     }));
     if (matrixState.rowCount !== 3 || matrixState.columnCount !== 4
-      || !matrixState.scrollable || !matrixState.firstRow.includes('Вольный Контроль Разбойник')) {
+      || !matrixState.scrollable || !matrixState.firstRow.includes('Вольный Контроль Разбойник')
+      || !matrixState.topScrollbar || !matrixState.bottomScrollbar || matrixState.interactiveCells !== 9) {
       failures.push(`standard matchups matrix [${device}]: on-demand Wild matrix is incomplete (${JSON.stringify(matrixState)})`);
+    }
+    const scrollbarSyncState = await page.evaluate(async () => {
+      const matrix = document.querySelector('#matchups-matrix');
+      const top = document.querySelector('.standard-matchups__matrix-scrollbar--top');
+      const bottom = document.querySelector('.standard-matchups__matrix-scrollbar--bottom');
+      if (!(matrix instanceof HTMLElement) || !(top instanceof HTMLElement) || !(bottom instanceof HTMLElement)) {
+        return { available: false, matrixLeft: 0, topLeft: 0, bottomLeft: 0 };
+      }
+      top.scrollLeft = Math.min(180, top.scrollWidth - top.clientWidth);
+      top.dispatchEvent(new Event('scroll'));
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      return {
+        available: true,
+        matrixLeft: Math.round(matrix.scrollLeft),
+        topLeft: Math.round(top.scrollLeft),
+        bottomLeft: Math.round(bottom.scrollLeft),
+      };
+    });
+    if (!scrollbarSyncState.available || scrollbarSyncState.topLeft <= 0
+      || scrollbarSyncState.matrixLeft !== scrollbarSyncState.topLeft
+      || scrollbarSyncState.bottomLeft !== scrollbarSyncState.topLeft) {
+      failures.push(`standard matchups scrollbars [${device}]: synchronized rails regressed (${JSON.stringify(scrollbarSyncState)})`);
+    }
+    await page.click('#matchups-matrix [data-matchup-cell]');
+    await page.waitForSelector('#standard-matchups-cell-dialog');
+    const matchupTooltipState = await page.evaluate(() => {
+      const dialog = document.querySelector('#standard-matchups-cell-dialog');
+      const rect = dialog?.getBoundingClientRect();
+      const activeCell = document.querySelector('#matchups-matrix [data-matchup-cell][aria-expanded="true"]');
+      return {
+        text: dialog?.textContent?.replace(/\s+/g, ' ').trim() || '',
+        visible: Boolean(rect && rect.width > 0 && rect.height > 0),
+        withinViewport: Boolean(rect
+          && rect.left >= 0 && rect.right <= window.innerWidth + 1
+          && rect.top >= 0 && rect.bottom <= window.innerHeight + 1),
+        activeCell: Boolean(activeCell),
+        closeHeight: dialog?.querySelector('button')?.getBoundingClientRect().height ?? 0,
+        pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      };
+    });
+    if (!matchupTooltipState.visible || !matchupTooltipState.withinViewport
+      || !matchupTooltipState.text.includes('Матчап')
+      || !matchupTooltipState.text.includes('против')
+      || !matchupTooltipState.text.includes('%')
+      || !matchupTooltipState.activeCell || matchupTooltipState.closeHeight < 42
+      || matchupTooltipState.pageOverflow) {
+      failures.push(`standard matchups tooltip [${device}]: content, geometry or touch target regressed (${JSON.stringify(matchupTooltipState)})`);
+    }
+    await auditAccessibility(page, `standard matchups tooltip [${device}]`, '#standard-matchups-cell-dialog');
+    await page.screenshot({ path: `${OUT}/standard-matchups-tooltip-${device}.png`, fullPage: false });
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.querySelector('#standard-matchups-cell-dialog'));
+    const tooltipKeyboardState = await page.evaluate(() => ({
+      restoredFocus: document.activeElement?.hasAttribute('data-matchup-cell') ?? false,
+      expandedCells: document.querySelectorAll('#matchups-matrix [data-matchup-cell][aria-expanded="true"]').length,
+    }));
+    if (!tooltipKeyboardState.restoredFocus || tooltipKeyboardState.expandedCells !== 0) {
+      failures.push(`standard matchups tooltip keyboard [${device}]: Escape did not close and restore focus (${JSON.stringify(tooltipKeyboardState)})`);
     }
     await auditAccessibility(page, `standard matchups Wild matrix [${device}]`, '.standard-matchups');
     await page.screenshot({ path: `${OUT}/standard-matchups-wild-${device}.png`, fullPage: false });

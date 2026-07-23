@@ -1,5 +1,5 @@
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, Grid3X3, ListFilter, RefreshCw, Search } from 'lucide-react';
+import { AlertTriangle, Grid3X3, ListFilter, RefreshCw, Search, X } from 'lucide-react';
 import '../route-parchment.css';
 import './StandardMatchups.css';
 
@@ -38,6 +38,17 @@ interface StandardMatchupsData {
   columns: StandardMatchupsColumn[];
   rows: StandardMatchupsRow[];
   warning?: string;
+}
+
+interface ActiveMatrixMatchup {
+  row: StandardMatchupsRow;
+  cell: StandardMatchupsCell;
+  rowLabel: string;
+  opponentLabel: string;
+  anchor: HTMLButtonElement;
+  left: number;
+  top: number;
+  placement: 'above' | 'below';
 }
 
 function formatDate(iso: string | null): string {
@@ -219,6 +230,46 @@ function standardMatchupTone(value: number | null): React.CSSProperties {
   };
 }
 
+function standardMatchupAssessment(value: number | null): {
+  label: string;
+  detail: string;
+  tone: 'strong' | 'good' | 'even' | 'weak' | 'empty';
+} {
+  if (value === null) {
+    return {
+      label: 'Нет данных',
+      detail: 'Для этой пары пока недостаточно сыгранных матчей.',
+      tone: 'empty',
+    };
+  }
+  if (value >= 55) {
+    return {
+      label: 'Сильное преимущество',
+      detail: 'Архетип заметно чаще выигрывает эту пару.',
+      tone: 'strong',
+    };
+  }
+  if (value >= 52) {
+    return {
+      label: 'Преимущество',
+      detail: 'Матчап складывается в пользу выбранного архетипа.',
+      tone: 'good',
+    };
+  }
+  if (value >= 48) {
+    return {
+      label: 'Ровный матчап',
+      detail: 'Шансы сторон близки, исход сильнее зависит от игры.',
+      tone: 'even',
+    };
+  }
+  return {
+    label: 'Сложный матчап',
+    detail: 'Соперник чаще выигрывает эту пару.',
+    tone: 'weak',
+  };
+}
+
 function StandardMatchupsPage() {
   const [format, setFormat] = useState<StandardMatchupsFormat>('standard');
   const [view, setView] = useState<StandardMatchupsView>('overview');
@@ -233,6 +284,12 @@ function StandardMatchupsPage() {
   const [error, setError] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
   const matrixScrollRef = useRef<HTMLDivElement | null>(null);
+  const matrixTopScrollRef = useRef<HTMLDivElement | null>(null);
+  const matrixBottomScrollRef = useRef<HTMLDivElement | null>(null);
+  const matrixTableRef = useRef<HTMLTableElement | null>(null);
+  const matchupTooltipRef = useRef<HTMLDivElement | null>(null);
+  const [matrixScrollWidth, setMatrixScrollWidth] = useState(0);
+  const [activeMatrixMatchup, setActiveMatrixMatchup] = useState<ActiveMatrixMatchup | null>(null);
   const deferredMatchupSearch = useDeferredValue(matchupSearch.trim().toLocaleLowerCase('ru-RU'));
   const deferredMatrixSearch = useDeferredValue(matrixSearch.trim().toLocaleLowerCase('ru-RU'));
   const data = datasets[format] ?? emptyMatchups(format);
@@ -290,7 +347,21 @@ function StandardMatchupsPage() {
     setMatchupFilter('all');
     setMatchupSearch('');
     setMatrixSearch('');
+    setActiveMatrixMatchup(null);
   }, [format]);
+
+  const syncMatrixScroll = useCallback((source: HTMLDivElement) => {
+    const nextLeft = source.scrollLeft;
+    for (const target of [
+      matrixTopScrollRef.current,
+      matrixScrollRef.current,
+      matrixBottomScrollRef.current,
+    ]) {
+      if (target && target !== source && Math.abs(target.scrollLeft - nextLeft) > 1) {
+        target.scrollLeft = nextLeft;
+      }
+    }
+  }, []);
 
   const scrollMatrix = useCallback((direction: -1 | 1) => {
     const node = matrixScrollRef.current;
@@ -300,6 +371,90 @@ function StandardMatchupsPage() {
       behavior: 'smooth',
     });
   }, []);
+
+  const closeMatrixMatchup = useCallback((restoreFocus = false) => {
+    setActiveMatrixMatchup(current => {
+      if (restoreFocus) window.requestAnimationFrame(() => current?.anchor.focus());
+      return null;
+    });
+  }, []);
+
+  const openMatrixMatchup = useCallback((
+    event: React.MouseEvent<HTMLButtonElement> | React.KeyboardEvent<HTMLButtonElement>,
+    row: StandardMatchupsRow,
+    cell: StandardMatchupsCell,
+    rowLabel: string,
+    opponentLabel: string,
+  ) => {
+    const anchor = event.currentTarget;
+    const rect = anchor.getBoundingClientRect();
+    const tooltipWidth = Math.min(360, Math.max(280, window.innerWidth - 24));
+    const estimatedHeight = 258;
+    const left = Math.min(
+      Math.max(12, rect.left + (rect.width / 2) - (tooltipWidth / 2)),
+      Math.max(12, window.innerWidth - tooltipWidth - 12),
+    );
+    const hasRoomBelow = rect.bottom + estimatedHeight + 16 <= window.innerHeight;
+
+    setActiveMatrixMatchup({
+      row,
+      cell,
+      rowLabel,
+      opponentLabel,
+      anchor,
+      left,
+      top: hasRoomBelow ? rect.bottom + 10 : rect.top - 10,
+      placement: hasRoomBelow ? 'below' : 'above',
+    });
+  }, []);
+
+  useEffect(() => {
+    if (view !== 'matrix') return undefined;
+    const table = matrixTableRef.current;
+    const viewport = matrixScrollRef.current;
+    if (!table || !viewport) return undefined;
+
+    const updateWidth = () => setMatrixScrollWidth(table.scrollWidth);
+    updateWidth();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateWidth);
+      return () => window.removeEventListener('resize', updateWidth);
+    }
+
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(table);
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, [data.columns?.length, data.rows?.length, view]);
+
+  useEffect(() => {
+    if (!activeMatrixMatchup) return undefined;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (
+        matchupTooltipRef.current?.contains(target)
+        || activeMatrixMatchup.anchor.contains(target)
+      ) return;
+      closeMatrixMatchup();
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeMatrixMatchup(true);
+    };
+    const handleViewportChange = () => closeMatrixMatchup();
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', handleViewportChange);
+    document.addEventListener('scroll', handleViewportChange, true);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', handleViewportChange);
+      document.removeEventListener('scroll', handleViewportChange, true);
+    };
+  }, [activeMatrixMatchup, closeMatrixMatchup]);
 
   const rows = useMemo(() => data.rows ?? [], [data.rows]);
   const columns = useMemo(() => data.columns ?? [], [data.columns]);
@@ -678,14 +833,25 @@ function StandardMatchupsPage() {
                 </div>
               </div>
               <div
+                ref={matrixTopScrollRef}
+                className="standard-matchups__matrix-scrollbar standard-matchups__matrix-scrollbar--top scrollbar-hs"
+                tabIndex={0}
+                role="region"
+                aria-label="Верхняя горизонтальная прокрутка матрицы"
+                onScroll={event => syncMatrixScroll(event.currentTarget)}
+              >
+                <div aria-hidden="true" style={{ width: matrixScrollWidth, height: 1 }} />
+              </div>
+              <div
                 ref={matrixScrollRef}
                 id="matchups-matrix"
                 tabIndex={0}
                 aria-label={`Прокручиваемая таблица матчапов: ${formatLabel}, ${data.rankLabel}`}
                 className="standard-matchups__matrix scroll-mt-4 overflow-x-auto pb-2 scrollbar-hs rounded-xl border border-[#b8904a]/45 bg-[#fffdf4]/78 focus:outline-none focus:ring-2 focus:ring-[#d6a848]"
                 style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain', touchAction: 'pan-x' }}
+                onScroll={event => syncMatrixScroll(event.currentTarget)}
               >
-              <table className="w-full min-w-[980px] sm:min-w-[1280px] border-separate border-spacing-0">
+              <table ref={matrixTableRef} className="w-full min-w-[980px] sm:min-w-[1280px] border-separate border-spacing-0">
                 <thead>
                   <tr>
                     <th scope="col" className="sticky top-0 left-0 z-30 text-left px-3 sm:px-4 py-3 min-w-[190px] sm:min-w-[250px]"
@@ -744,15 +910,24 @@ function StandardMatchupsPage() {
                         </th>
                         {row.cells.map(cell => {
                           const opponentLabel = getStandardArchetypeLabel(cell.opponent, cell.opponentLabel);
+                          const isActive = activeMatrixMatchup?.row.archetype === row.archetype
+                            && activeMatrixMatchup.cell.opponent === cell.opponent;
                           return (
                             <td key={`${row.archetype}-${cell.opponent}`} className="p-1.5 text-center align-middle">
-                              <div
-                                className="h-9 sm:h-10 rounded-lg flex items-center justify-center font-bold text-xs sm:text-sm"
+                              <button
+                                type="button"
+                                className="standard-matchups__matrix-cell h-9 sm:h-10 rounded-lg flex items-center justify-center font-bold text-xs sm:text-sm"
                                 title={`${rowLabel} против ${opponentLabel}: ${cell.winrate !== null ? `${cell.winrate.toFixed(1)}%` : 'нет данных'}`}
+                                aria-label={`Открыть матчап: ${rowLabel} против ${opponentLabel}, ${cell.winrate !== null ? `${cell.winrate.toFixed(1)} процента` : 'нет данных'}`}
+                                aria-haspopup="dialog"
+                                aria-expanded={isActive}
+                                aria-controls={isActive ? 'standard-matchups-cell-dialog' : undefined}
+                                data-matchup-cell={`${row.archetype}::${cell.opponent}`}
+                                onClick={event => openMatrixMatchup(event, row, cell, rowLabel, opponentLabel)}
                                 style={standardMatchupTone(cell.winrate)}
                               >
                                 {cell.winrate !== null ? `${cell.winrate.toFixed(1)}%` : '—'}
-                              </div>
+                              </button>
                             </td>
                           );
                         })}
@@ -762,6 +937,68 @@ function StandardMatchupsPage() {
                 </tbody>
               </table>
               </div>
+              <div
+                ref={matrixBottomScrollRef}
+                className="standard-matchups__matrix-scrollbar standard-matchups__matrix-scrollbar--bottom scrollbar-hs"
+                tabIndex={0}
+                role="region"
+                aria-label="Нижняя горизонтальная прокрутка матрицы"
+                onScroll={event => syncMatrixScroll(event.currentTarget)}
+              >
+                <div aria-hidden="true" style={{ width: matrixScrollWidth, height: 1 }} />
+              </div>
+              {activeMatrixMatchup && (() => {
+                const assessment = standardMatchupAssessment(activeMatrixMatchup.cell.winrate);
+                const tooltipStyle: React.CSSProperties = {
+                  left: activeMatrixMatchup.left,
+                  top: activeMatrixMatchup.top,
+                  transform: activeMatrixMatchup.placement === 'above' ? 'translateY(-100%)' : undefined,
+                };
+                return (
+                  <div
+                    ref={matchupTooltipRef}
+                    id="standard-matchups-cell-dialog"
+                    role="dialog"
+                    aria-modal="false"
+                    aria-label={`Матчап: ${activeMatrixMatchup.rowLabel} против ${activeMatrixMatchup.opponentLabel}`}
+                    className={`standard-matchups__tooltip standard-matchups__tooltip--${activeMatrixMatchup.placement}`}
+                    style={tooltipStyle}
+                  >
+                    <div className="standard-matchups__tooltip-cloth">
+                      <div className="standard-matchups__tooltip-heading">
+                        <div>
+                          <span className="standard-matchups__tooltip-kicker">Матчап · {formatLabel} · {data.rankLabel}</span>
+                          <h3>{activeMatrixMatchup.rowLabel}</h3>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => closeMatrixMatchup(true)}
+                          aria-label="Закрыть карточку матчапа"
+                        >
+                          <X size={18} aria-hidden="true" />
+                        </button>
+                      </div>
+                      <div className="standard-matchups__tooltip-opponent">
+                        <span>против</span>
+                        <strong>{activeMatrixMatchup.opponentLabel}</strong>
+                      </div>
+                      <div className="standard-matchups__tooltip-result">
+                        <strong>{activeMatrixMatchup.cell.winrate !== null ? `${activeMatrixMatchup.cell.winrate.toFixed(1)}%` : '—'}</strong>
+                        <span className={`standard-matchups__tooltip-badge standard-matchups__tooltip-badge--${assessment.tone}`}>
+                          {assessment.label}
+                        </span>
+                      </div>
+                      <p>{assessment.detail}</p>
+                      {(activeMatrixMatchup.rowLabel !== activeMatrixMatchup.row.archetype
+                        || activeMatrixMatchup.opponentLabel !== activeMatrixMatchup.cell.opponent) && (
+                        <small>
+                          {activeMatrixMatchup.row.archetype} vs {activeMatrixMatchup.cell.opponent}
+                        </small>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
               </>
               )}
             </>
