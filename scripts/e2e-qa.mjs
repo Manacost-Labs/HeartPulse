@@ -4071,6 +4071,10 @@ for (const [device, viewport] of [
     if (!tooltipKeyboardState.restoredFocus || tooltipKeyboardState.expandedCells !== 0) {
       failures.push(`standard matchups tooltip keyboard [${device}]: Escape did not close and restore focus (${JSON.stringify(tooltipKeyboardState)})`);
     }
+    await page.$eval('#matchups-matrix', element => {
+      element.scrollLeft = 0;
+      element.dispatchEvent(new Event('scroll'));
+    });
     await page.$eval('#matchups-matrix tfoot', element => element.scrollIntoView({ block: 'end' }));
     await new Promise(resolve => setTimeout(resolve, 180));
     const bottomPanelState = await page.evaluate(() => {
