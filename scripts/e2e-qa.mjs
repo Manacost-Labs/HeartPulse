@@ -3962,6 +3962,36 @@ for (const [device, viewport] of [
       document.querySelector('.standard-matchups__ledger-heading h2')?.textContent?.includes('Стандарт')
       && document.querySelector('#matchups-picker select')?.value === 'Control Warrior'
     ), { timeout: 10_000 });
+    await page.click('.standard-matchups__filter-chips button:nth-child(2)');
+    await page.waitForFunction(() => (
+      document.querySelector('.standard-matchups__filter-chips button:nth-child(2)')?.getAttribute('aria-pressed') === 'true'
+    ));
+    const focusedMatchupsState = await page.evaluate(() => {
+      const group = document.querySelector('.standard-matchups__groups--focused .standard-matchups__group');
+      const list = group?.querySelector('.standard-matchups__group-list');
+      const card = list?.querySelector('.standard-matchups__group-item');
+      const groupRect = group?.getBoundingClientRect();
+      const cardRect = card?.getBoundingClientRect();
+      const listStyle = list ? getComputedStyle(list) : null;
+      return {
+        groups: document.querySelectorAll('.standard-matchups__groups--focused .standard-matchups__group').length,
+        cards: document.querySelectorAll('.standard-matchups__groups--focused .standard-matchups__group-item').length,
+        display: listStyle?.display || '',
+        columns: listStyle?.gridTemplateColumns.split(/\s+/).filter(Boolean).length ?? 0,
+        groupWidth: groupRect?.width ?? 0,
+        cardWidth: cardRect?.width ?? 0,
+        pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      };
+    });
+    if (focusedMatchupsState.groups !== 1 || focusedMatchupsState.cards !== 1
+      || focusedMatchupsState.display !== 'grid' || focusedMatchupsState.cardWidth <= 0
+      || focusedMatchupsState.cardWidth > 354 || focusedMatchupsState.pageOverflow
+      || (device === 'desktop' && (focusedMatchupsState.columns < 2
+        || focusedMatchupsState.cardWidth >= focusedMatchupsState.groupWidth * 0.7))
+      || (device === 'mobile' && focusedMatchupsState.columns !== 1)) {
+      failures.push(`standard matchups focused columns [${device}]: cards stretched or stopped using the responsive grid (${JSON.stringify(focusedMatchupsState)})`);
+    }
+    await page.screenshot({ path: `${OUT}/standard-matchups-focused-${device}.png`, fullPage: false });
     await page.click('button[aria-label="Показать матчапы: Вольный"]');
     await page.waitForFunction(() => (
       document.querySelector('button[aria-label="Показать матчапы: Вольный"]')?.getAttribute('aria-pressed') === 'true'
@@ -4006,7 +4036,7 @@ for (const [device, viewport] of [
     }));
     if (matrixState.rowCount !== 3 || matrixState.columnCount !== 4
       || !matrixState.scrollable || !matrixState.firstRow.includes('Вольный Контроль Разбойник')
-      || !matrixState.topScrollbar || !matrixState.bottomScrollbar || matrixState.interactiveCells !== 9
+      || !matrixState.topScrollbar || matrixState.bottomScrollbar || matrixState.interactiveCells !== 9
       || matrixState.bottomArchetypes !== 3
       || !matrixState.bottomPanelText.includes('Вольный Контроль Разбойник')
       || matrixState.otherAggregateVisible) {
@@ -4015,9 +4045,8 @@ for (const [device, viewport] of [
     const scrollbarSyncState = await page.evaluate(async () => {
       const matrix = document.querySelector('#matchups-matrix');
       const top = document.querySelector('.standard-matchups__matrix-scrollbar--top');
-      const bottom = document.querySelector('.standard-matchups__matrix-scrollbar--bottom');
-      if (!(matrix instanceof HTMLElement) || !(top instanceof HTMLElement) || !(bottom instanceof HTMLElement)) {
-        return { available: false, matrixLeft: 0, topLeft: 0, bottomLeft: 0 };
+      if (!(matrix instanceof HTMLElement) || !(top instanceof HTMLElement)) {
+        return { available: false, matrixLeft: 0, topLeft: 0 };
       }
       top.scrollLeft = Math.min(180, top.scrollWidth - top.clientWidth);
       top.dispatchEvent(new Event('scroll'));
@@ -4026,13 +4055,11 @@ for (const [device, viewport] of [
         available: true,
         matrixLeft: Math.round(matrix.scrollLeft),
         topLeft: Math.round(top.scrollLeft),
-        bottomLeft: Math.round(bottom.scrollLeft),
       };
     });
     if (!scrollbarSyncState.available || scrollbarSyncState.topLeft <= 0
-      || scrollbarSyncState.matrixLeft !== scrollbarSyncState.topLeft
-      || scrollbarSyncState.bottomLeft !== scrollbarSyncState.topLeft) {
-      failures.push(`standard matchups scrollbars [${device}]: synchronized rails regressed (${JSON.stringify(scrollbarSyncState)})`);
+      || scrollbarSyncState.matrixLeft !== scrollbarSyncState.topLeft) {
+      failures.push(`standard matchups scrollbar [${device}]: the upper rail stopped controlling the matrix (${JSON.stringify(scrollbarSyncState)})`);
     }
     await page.$eval('#matchups-matrix [data-matchup-cell]', element => element.click());
     await page.waitForSelector('#standard-matchups-cell-dialog');

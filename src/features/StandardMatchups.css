@@ -119,8 +119,23 @@
 }
 
 .arena-app-standard-matchups .standard-matchups__group-list {
+  display: grid;
+  gap: 0.5rem;
   max-height: 360px;
   overflow-y: auto;
+}
+
+.arena-app-standard-matchups .standard-matchups__groups--focused .standard-matchups__group-list {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 22rem));
+  align-items: stretch;
+  justify-content: start;
+  max-height: none;
+  overflow: visible;
+}
+
+.arena-app-standard-matchups .standard-matchups__group-item {
+  min-width: 0;
+  min-height: 48px;
 }
 
 .arena-app-standard-matchups .standard-matchups__show-group {
@@ -160,16 +175,6 @@
 
 .arena-app-standard-matchups .standard-matchups__matrix-scrollbar--top {
   margin-bottom: 0.4rem;
-}
-
-.arena-app-standard-matchups .standard-matchups__matrix-scrollbar--bottom {
-  position: sticky;
-  z-index: 34;
-  bottom: 0.5rem;
-  margin-top: 0.4rem;
-  box-shadow:
-    0 4px 12px rgba(46, 22, 11, 0.22),
-    inset 0 1px 2px rgba(70, 37, 13, 0.14);
 }
 
 .arena-app-standard-matchups .standard-matchups__matrix-cell {
@@ -468,6 +473,10 @@
     overflow-y: visible;
   }
 
+  .arena-app-standard-matchups .standard-matchups__groups--focused .standard-matchups__group-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .arena-app-standard-matchups .standard-matchups__matrix-guide {
     align-items: stretch;
   }
@@ -488,10 +497,6 @@
   .arena-app-standard-matchups .standard-matchups__matrix {
     max-height: 72vh;
     overflow: auto !important;
-  }
-
-  .arena-app-standard-matchups .standard-matchups__matrix-scrollbar--bottom {
-    bottom: 0.25rem;
   }
 
   .arena-app-standard-matchups .standard-matchups__matrix-scrollbar-sizer {

@@ -29,11 +29,16 @@ assert.deepEqual(
 assert.equal(PAGE_TOURS.length, requiredTours.length, 'requiredTours must enumerate the complete page-tour registry');
 
 const matchupTour = PAGE_TOURS.find(tour => tour.id === 'standard-matchups');
-assert.ok(matchupTour && matchupTour.version >= 3, 'matchup interaction guidance must invalidate the older saved tour');
+assert.ok(matchupTour && matchupTour.version >= 4, 'matchup matrix controls guidance must invalidate the older saved tour');
 assert.match(
   matchupTour.steps.find(step => step.id === 'matrix')?.description ?? '',
   /Нажмите на любую цветную ячейку/,
   'the matchup tour must explain that matrix cells open matchup details',
+);
+assert.doesNotMatch(
+  matchupTour.steps.find(step => step.id === 'matrix')?.description ?? '',
+  /прокрутка продублирована снизу|полосы сверху и снизу/i,
+  'the matchup tour must not advertise the removed lower scrollbar',
 );
 
 for (const tour of PAGE_TOURS) {

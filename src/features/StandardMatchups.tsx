@@ -289,7 +289,6 @@ function StandardMatchupsPage() {
   const [reloadToken, setReloadToken] = useState(0);
   const matrixScrollRef = useRef<HTMLDivElement | null>(null);
   const matrixTopScrollRef = useRef<HTMLDivElement | null>(null);
-  const matrixBottomScrollRef = useRef<HTMLDivElement | null>(null);
   const matchupTooltipRef = useRef<HTMLDivElement | null>(null);
   const [activeMatrixMatchup, setActiveMatrixMatchup] = useState<ActiveMatrixMatchup | null>(null);
   const deferredMatchupSearch = useDeferredValue(matchupSearch.trim().toLocaleLowerCase('ru-RU'));
@@ -357,7 +356,6 @@ function StandardMatchupsPage() {
     for (const target of [
       matrixTopScrollRef.current,
       matrixScrollRef.current,
-      matrixBottomScrollRef.current,
     ]) {
       if (target && target !== source && Math.abs(target.scrollLeft - nextLeft) > 1) {
         target.scrollLeft = nextLeft;
@@ -755,7 +753,7 @@ function StandardMatchupsPage() {
                     </div>
                   </div>
 
-                  <div className={`standard-matchups__groups mt-4 grid grid-cols-1 gap-3 ${matchupFilter === 'all' ? 'lg:grid-cols-3' : ''}`}>
+                  <div className={`standard-matchups__groups mt-4 grid grid-cols-1 gap-3 ${matchupFilter === 'all' ? 'lg:grid-cols-3' : 'standard-matchups__groups--focused'}`}>
                     {filteredMatchupGroups.map(group => {
                       const visibleItems = matchupFilter === 'all' && !deferredMatchupSearch
                         ? group.items.slice(0, 8)
@@ -772,9 +770,9 @@ function StandardMatchupsPage() {
                           </span>
                         </div>
                         {visibleItems.length ? (
-                          <div className="standard-matchups__group-list space-y-2 lg:pr-1 scrollbar-hs">
+                          <div className="standard-matchups__group-list lg:pr-1 scrollbar-hs">
                             {visibleItems.map(cell => (
-                              <div key={`${group.title}-${cell.opponent}`} className="flex items-center justify-between gap-3 rounded-lg bg-white/60 border border-[#e2c993]/55 px-3 py-2">
+                              <div key={`${group.title}-${cell.opponent}`} className="standard-matchups__group-item flex items-center justify-between gap-3 rounded-lg bg-white/60 border border-[#e2c993]/55 px-3 py-2">
                                 <span className="text-sm font-bold text-[#3d2208] leading-tight">
                                   {getStandardArchetypeLabel(cell.opponent, cell.opponentLabel)}
                                 </span>
@@ -970,23 +968,6 @@ function StandardMatchupsPage() {
                   </tr>
                 </tfoot>
               </table>
-              </div>
-              <div
-                ref={matrixBottomScrollRef}
-                className="standard-matchups__matrix-scrollbar standard-matchups__matrix-scrollbar--bottom scrollbar-hs"
-                tabIndex={0}
-                role="region"
-                aria-label="Нижняя горизонтальная прокрутка матрицы"
-                onScroll={event => syncMatrixScroll(event.currentTarget)}
-              >
-                <div
-                  className="standard-matchups__matrix-scrollbar-sizer"
-                  aria-hidden="true"
-                  style={{
-                    '--matrix-desktop-width': `${Math.max(1280, 250 + (columns.length * 130))}px`,
-                    '--matrix-mobile-width': `${Math.max(940, 190 + (columns.length * 96))}px`,
-                  } as React.CSSProperties}
-                />
               </div>
               {activeMatrixMatchup && (() => {
                 const assessment = standardMatchupAssessment(activeMatrixMatchup.cell.winrate);
