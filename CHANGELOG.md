@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Repeated opponent archetype headers at the bottom of the matchup matrix, removed aggregate `Other <class>` rows and columns, and refreshed the page tour to explain interactive cells and both horizontal controls.
 - Added synchronized horizontal controls above and below the full matchup matrix, plus keyboard-accessible, mobile-safe matchup cards on every cell using the Arena parchment, timber and red-cloth visual language.
 - Fixed the Standard/Wild matchup switch after an older API image dropped the Wild source, made format changes visibly stateful with actionable retry errors, and rebuilt the responsive page around a lightweight archetype overview, strength/search filters and an on-demand searchable full matrix.
 - Replaced the stale Standard-only matchup slices with daily Firecrawl-backed HSGuru Legend matrices for both Standard and Wild, using minimum samples of 100 archetype games and 25 matchup games; the Matchups page now switches formats while preserving cached, translated and responsive matrix views.
