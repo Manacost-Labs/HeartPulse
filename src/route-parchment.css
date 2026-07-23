@@ -168,7 +168,7 @@
   background: transparent !important;
 }
 
-.arena-app-standard-matchups .standard-matchups__index a {
+.arena-app-standard-matchups .standard-matchups__index :is(a, button) {
   min-height: 42px;
   border: 0 !important;
   border-left: 1px solid var(--arena-paper-line) !important;
@@ -177,7 +177,7 @@
   background: rgba(255, 244, 214, 0.32) !important;
 }
 
-.arena-app-standard-matchups .standard-matchups__index a:hover {
+.arena-app-standard-matchups .standard-matchups__index :is(a, button):hover {
   color: var(--arena-red) !important;
   background: rgba(255, 248, 226, 0.68) !important;
 }

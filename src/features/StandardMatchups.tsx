@@ -1,8 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { AlertTriangle, Grid3X3, ListFilter, RefreshCw, Search } from 'lucide-react';
 import '../route-parchment.css';
+import './StandardMatchups.css';
 
 type StandardMatchupsFormat = 'standard' | 'wild';
+type StandardMatchupsView = 'overview' | 'matrix';
+type StandardMatchupsFilter = 'all' | 'strong' | 'even' | 'weak';
 
 interface StandardMatchupsColumn {
   name: string;
@@ -94,6 +97,19 @@ const EMPTY_STANDARD_MATCHUPS: StandardMatchupsData = {
   columns: [],
   rows: [],
 };
+
+const MATCHUP_FORMAT_LABELS: Record<StandardMatchupsFormat, string> = {
+  standard: 'Стандарт',
+  wild: 'Вольный',
+};
+
+function emptyMatchups(format: StandardMatchupsFormat): StandardMatchupsData {
+  return {
+    ...EMPTY_STANDARD_MATCHUPS,
+    format,
+    formatLabel: MATCHUP_FORMAT_LABELS[format],
+  };
+}
 
 const STANDARD_ARCHETYPE_LABELS_RU: Record<string, string> = {
   'Ace Hunter': 'Эйс Охотник',
@@ -205,25 +221,57 @@ function standardMatchupTone(value: number | null): React.CSSProperties {
 
 function StandardMatchupsPage() {
   const [format, setFormat] = useState<StandardMatchupsFormat>('standard');
+  const [view, setView] = useState<StandardMatchupsView>('overview');
+  const [matchupFilter, setMatchupFilter] = useState<StandardMatchupsFilter>('all');
+  const [matchupSearch, setMatchupSearch] = useState('');
+  const [matrixSearch, setMatrixSearch] = useState('');
   const [selectedArchetype, setSelectedArchetype] = useState('');
-  const [data, setData] = useState<StandardMatchupsData>(EMPTY_STANDARD_MATCHUPS);
+  const [datasets, setDatasets] = useState<Partial<Record<StandardMatchupsFormat, StandardMatchupsData>>>({
+    standard: EMPTY_STANDARD_MATCHUPS,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
   const matrixScrollRef = useRef<HTMLDivElement | null>(null);
+  const deferredMatchupSearch = useDeferredValue(matchupSearch.trim().toLocaleLowerCase('ru-RU'));
+  const deferredMatrixSearch = useDeferredValue(matrixSearch.trim().toLocaleLowerCase('ru-RU'));
+  const data = datasets[format] ?? emptyMatchups(format);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      setLoading(true);
+      const cacheKey = `standard_matchups_ru_v6_${format}`;
+      const cached = cacheGet<StandardMatchupsData>(cacheKey);
+      if (cached?.rows?.length) {
+        setDatasets(current => ({
+          ...current,
+          [format]: {
+            ...cached,
+            format,
+            formatLabel: MATCHUP_FORMAT_LABELS[format],
+          },
+        }));
+      }
+      setLoading(!cached?.rows?.length);
       setError(false);
       try {
         const result = await fetchWithETag(
           `/api/standard/matchups?format=${format}`,
-          `standard_matchups_ru_v5_${format}`,
+          cacheKey,
         );
-        if (!cancelled && result?.data) {
-          setData(result.data as StandardMatchupsData);
+        if (!result?.data) throw new Error(`Matchup dataset ${format} is unavailable`);
+        const payload = result.data as StandardMatchupsData;
+        if (payload.format && payload.format !== format) {
+          throw new Error(`Expected ${format} dataset, received ${payload.format}`);
         }
+        if (!cancelled) setDatasets(current => ({
+          ...current,
+          [format]: {
+            ...payload,
+            format,
+            formatLabel: MATCHUP_FORMAT_LABELS[format],
+          },
+        }));
       } catch (err) {
         console.error('Не удалось загрузить матчапы', err);
         if (!cancelled) setError(true);
@@ -235,6 +283,13 @@ function StandardMatchupsPage() {
     return () => {
       cancelled = true;
     };
+  }, [format, reloadToken]);
+
+  useEffect(() => {
+    setSelectedArchetype('');
+    setMatchupFilter('all');
+    setMatchupSearch('');
+    setMatrixSearch('');
   }, [format]);
 
   const scrollMatrix = useCallback((direction: -1 | 1) => {
@@ -304,12 +359,40 @@ function StandardMatchupsPage() {
       else weak.push(cell);
     }
     return [
-      { title: 'Хорошие', hint: '52%+', items: strong, color: '#1f7a3d' },
-      { title: 'Ровные', hint: '48-52%', items: even, color: '#8b6c42' },
-      { title: 'Сложные', hint: 'ниже 48%', items: weak, color: '#8b2f2f' },
+      { id: 'strong' as const, title: 'Хорошие', hint: '52%+', items: strong, color: '#1f7a3d' },
+      { id: 'even' as const, title: 'Ровные', hint: '48-52%', items: even, color: '#8b6c42' },
+      { id: 'weak' as const, title: 'Сложные', hint: 'ниже 48%', items: weak, color: '#8b2f2f' },
     ];
   }, [activeMatchups]);
+  const filteredMatchupGroups = useMemo(() => matchupGroups
+    .filter(group => matchupFilter === 'all' || group.id === matchupFilter)
+    .map(group => ({
+      ...group,
+      items: group.items.filter(cell => {
+        if (!deferredMatchupSearch) return true;
+        const label = getStandardArchetypeLabel(cell.opponent, cell.opponentLabel);
+        return `${label} ${cell.opponent}`.toLocaleLowerCase('ru-RU').includes(deferredMatchupSearch);
+      }),
+    })), [deferredMatchupSearch, matchupFilter, matchupGroups]);
+  const matrixRows = useMemo(() => {
+    if (!deferredMatrixSearch) return rows;
+    return rows.filter(row => {
+      const label = getStandardArchetypeLabel(row.archetype, row.archetypeLabel);
+      return `${label} ${row.archetype}`.toLocaleLowerCase('ru-RU').includes(deferredMatrixSearch);
+    });
+  }, [deferredMatrixSearch, rows]);
   const quickRows = useMemo(() => rows.slice(0, 8), [rows]);
+  const formatLabel = MATCHUP_FORMAT_LABELS[format];
+
+  const openMatrix = useCallback(() => {
+    setView('matrix');
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => document.getElementById('matchups-matrix')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      }));
+    });
+  }, []);
 
   return (
     <section className="standard-matchups space-y-5 sm:space-y-6" id="matchups-overview">
@@ -323,10 +406,11 @@ function StandardMatchupsPage() {
       >
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
           <div>
-            <div className="uppercase tracking-[0.28em] text-xs font-bold text-[#8b6c42] mb-2">{data.formatLabel}</div>
+            <div className="uppercase tracking-[0.28em] text-xs font-bold text-[#8b6c42] mb-2">{formatLabel}</div>
             <h1 className="font-hs text-4xl sm:text-5xl leading-tight" style={{ color: '#3d2208' }}>Матчапы</h1>
             <p className="mt-3 max-w-3xl text-base sm:text-lg text-[#6b4c2a]">
-              Матрица архетипов по данным HSGuru: строки показывают выбранный архетип, столбцы - соперника, в ячейках винрейт.
+              <span className="sm:hidden">Сравнение винрейтов архетипов по данным HSGuru.</span>
+              <span className="hidden sm:inline">Матрица архетипов по данным HSGuru: строки показывают выбранный архетип, столбцы - соперника, в ячейках винрейт.</span>
             </p>
           </div>
           <div className="standard-matchups__rank-switcher flex flex-wrap gap-2" aria-label="Формат игры" data-tour-id="matchups-rank">
@@ -339,6 +423,7 @@ function StandardMatchupsPage() {
                 type="button"
                 onClick={() => setFormat(value)}
                 aria-pressed={format === value}
+                aria-label={`Показать матчапы: ${label}`}
                 className={`px-4 py-2 rounded-full font-bold transition ${format === value ? 'text-[#2c1e16]' : 'text-[#6b4c2a]'}`}
                 style={{
                   background: format === value ? 'linear-gradient(135deg,#f4d06f,#d6a848)' : 'rgba(255,255,255,0.55)',
@@ -358,7 +443,6 @@ function StandardMatchupsPage() {
       >
         {[
           ['#matchups-picker', 'Подбор'],
-          ['#matchups-matrix', 'Матрица'],
           ['#matchups-summary', 'Сводка'],
         ].map(([href, label]) => (
           <a
@@ -369,11 +453,19 @@ function StandardMatchupsPage() {
             {label}
           </a>
         ))}
+        <button
+          type="button"
+          onClick={openMatrix}
+          className="shrink-0 rounded-xl border border-[#d7b56e]/70 bg-white/75 px-4 py-2 text-sm font-black text-[#3d2208] transition hover:bg-[#fff3c4] focus:outline-none focus:ring-2 focus:ring-[#d6a848]"
+        >
+          Полная матрица
+        </button>
       </nav>
 
       <div className="grid grid-cols-1 gap-5">
         <section
           className="standard-matchups__ledger rounded-2xl p-4 sm:p-5"
+          aria-busy={loading}
           style={{
             background: 'linear-gradient(135deg,#f4e8cc,#e4c98f)',
             border: '1.5px solid #b8904a',
@@ -382,7 +474,7 @@ function StandardMatchupsPage() {
         >
           <div className="standard-matchups__ledger-heading flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
-              <h2 className="font-hs text-2xl" style={{ color: '#3d2208' }}>Матрица · {data.formatLabel} · {data.rankLabel}</h2>
+              <h2 className="font-hs text-2xl" style={{ color: '#3d2208' }}>Матчапы · {formatLabel} · {data.rankLabel}</h2>
               <p className="text-sm text-[#7a5a35]">Цвет показывает силу матчапа: зеленый - хороший, красный - плохой.</p>
             </div>
             <div className="standard-matchups__updated flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs"
@@ -393,13 +485,15 @@ function StandardMatchupsPage() {
                 boxShadow: '0 2px 6px rgba(0,0,0,0.32)',
               }}>
               <RefreshCw size={11} className="text-[#a88a45]" />
-              <span>{data.updatedAt ? formatDate(data.updatedAt) : loading ? 'Загрузка...' : 'нет данных'}</span>
+              <span aria-live="polite">{loading ? `Обновляем ${formatLabel.toLocaleLowerCase('ru-RU')}...` : data.updatedAt ? formatDate(data.updatedAt) : 'нет данных'}</span>
             </div>
           </div>
 
           {(error || data.warning) && (
-            <div className="flex items-center gap-2 text-[#8b2f2f] text-sm mb-4 px-3 py-2 rounded-lg bg-[#8b2f2f]/10 border border-[#8b2f2f]/20">
-              <AlertTriangle size={15} /><span>Матчапы временно не обновились. Попробуйте обновить страницу позже.</span>
+            <div className="standard-matchups__error flex flex-wrap items-center gap-2 text-[#8b2f2f] text-sm mb-4 px-3 py-2 rounded-lg bg-[#8b2f2f]/10 border border-[#8b2f2f]/20" role="alert">
+              <AlertTriangle size={15} />
+              <span>Не удалось загрузить формат «{formatLabel}».</span>
+              <button type="button" onClick={() => setReloadToken(value => value + 1)}>Повторить</button>
             </div>
           )}
 
@@ -409,7 +503,28 @@ function StandardMatchupsPage() {
             <div className="py-16 text-center text-[#7a5a35]">Данные матчапов пока недоступны.</div>
           ) : (
             <>
-              {activeRow && (
+              <div className="standard-matchups__view-switcher mb-4" role="group" aria-label="Режим просмотра">
+                <button
+                  type="button"
+                  aria-pressed={view === 'overview'}
+                  onClick={() => setView('overview')}
+                >
+                  <ListFilter size={17} aria-hidden="true" />
+                  Обзор архетипа
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={view === 'matrix'}
+                  onClick={() => setView('matrix')}
+                  data-tour-id="matchups-matrix"
+                >
+                  <Grid3X3 size={17} aria-hidden="true" />
+                  Полная матрица
+                  <span>{rows.length}</span>
+                </button>
+              </div>
+
+              {view === 'overview' && activeRow && (
                 <section id="matchups-picker" className="standard-matchups__picker scroll-mt-4 mb-4 rounded-xl border border-[#d7b56e]/60 bg-white/55 p-3 sm:p-4">
                   <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
                     <div>
@@ -455,8 +570,42 @@ function StandardMatchupsPage() {
                     })}
                   </div>
 
-                  <div className="standard-matchups__groups mt-4 grid grid-cols-1 lg:grid-cols-3 gap-3">
-                    {matchupGroups.map(group => (
+                  <div className="standard-matchups__matchup-tools mt-4">
+                    <label className="standard-matchups__search">
+                      <Search size={17} aria-hidden="true" />
+                      <span className="sr-only">Найти соперника</span>
+                      <input
+                        type="search"
+                        value={matchupSearch}
+                        onChange={event => setMatchupSearch(event.target.value)}
+                        placeholder="Найти соперника"
+                      />
+                    </label>
+                    <div className="standard-matchups__filter-chips" role="group" aria-label="Сила матчапа">
+                      {([
+                        ['all', 'Все', activeMatchups.length],
+                        ['strong', 'Хорошие', matchupGroups[0]?.items.length ?? 0],
+                        ['even', 'Ровные', matchupGroups[1]?.items.length ?? 0],
+                        ['weak', 'Сложные', matchupGroups[2]?.items.length ?? 0],
+                      ] as const).map(([id, label, count]) => (
+                        <button
+                          key={id}
+                          type="button"
+                          aria-pressed={matchupFilter === id}
+                          onClick={() => setMatchupFilter(id)}
+                        >
+                          {label}<span>{count}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className={`standard-matchups__groups mt-4 grid grid-cols-1 gap-3 ${matchupFilter === 'all' ? 'lg:grid-cols-3' : ''}`}>
+                    {filteredMatchupGroups.map(group => {
+                      const visibleItems = matchupFilter === 'all' && !deferredMatchupSearch
+                        ? group.items.slice(0, 8)
+                        : group.items;
+                      return (
                       <div key={group.title} className="standard-matchups__group rounded-xl border border-[#e2c993]/70 bg-[#fff8e4]/72 p-3">
                         <div className="flex items-center justify-between gap-2 mb-2">
                           <div className="font-hs text-lg" style={{ color: '#3d2208' }}>{group.title}</div>
@@ -467,9 +616,9 @@ function StandardMatchupsPage() {
                             {group.hint}
                           </span>
                         </div>
-                        {group.items.length ? (
-                          <div className="space-y-2 max-h-none lg:max-h-[320px] lg:overflow-y-auto lg:pr-1 scrollbar-hs">
-                            {group.items.map(cell => (
+                        {visibleItems.length ? (
+                          <div className="standard-matchups__group-list space-y-2 lg:pr-1 scrollbar-hs">
+                            {visibleItems.map(cell => (
                               <div key={`${group.title}-${cell.opponent}`} className="flex items-center justify-between gap-3 rounded-lg bg-white/60 border border-[#e2c993]/55 px-3 py-2">
                                 <span className="text-sm font-bold text-[#3d2208] leading-tight">
                                   {getStandardArchetypeLabel(cell.opponent, cell.opponentLabel)}
@@ -479,21 +628,39 @@ function StandardMatchupsPage() {
                                 </span>
                               </div>
                             ))}
+                            {group.items.length > visibleItems.length && (
+                              <button
+                                type="button"
+                                className="standard-matchups__show-group"
+                                onClick={() => setMatchupFilter(group.id)}
+                              >
+                                Показать ещё {group.items.length - visibleItems.length}
+                              </button>
+                            )}
                           </div>
                         ) : (
-                          <p className="text-sm text-[#7a5a35]">Нет матчапов в этой группе.</p>
+                          <p className="text-sm text-[#7a5a35]">По этому фильтру ничего не найдено.</p>
                         )}
                       </div>
-                    ))}
+                    )})}
                   </div>
                 </section>
               )}
 
-              <div className="standard-matchups__matrix-guide mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2" data-tour-id="matchups-matrix">
-                <p className="text-xs sm:text-sm text-[#6b4c2a]">
-                  Полная матрица ниже. На ПК используйте кнопки или горизонтальный скролл, на телефоне удобнее быстрый просмотр выше.
-                </p>
-                <div className="flex gap-2">
+              {view === 'matrix' && (
+              <>
+              <div className="standard-matchups__matrix-guide mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <label className="standard-matchups__matrix-search">
+                  <Search size={16} aria-hidden="true" />
+                  <span className="sr-only">Найти архетип в матрице</span>
+                  <input
+                    type="search"
+                    value={matrixSearch}
+                    onChange={event => setMatrixSearch(event.target.value)}
+                    placeholder="Найти строку архетипа"
+                  />
+                </label>
+                <div className="standard-matchups__matrix-arrows flex gap-2">
                   <button
                     type="button"
                     onClick={() => scrollMatrix(-1)}
@@ -514,7 +681,7 @@ function StandardMatchupsPage() {
                 ref={matrixScrollRef}
                 id="matchups-matrix"
                 tabIndex={0}
-                aria-label={`Прокручиваемая таблица матчапов: ${data.formatLabel}, ${data.rankLabel}`}
+                aria-label={`Прокручиваемая таблица матчапов: ${formatLabel}, ${data.rankLabel}`}
                 className="standard-matchups__matrix scroll-mt-4 overflow-x-auto pb-2 scrollbar-hs rounded-xl border border-[#b8904a]/45 bg-[#fffdf4]/78 focus:outline-none focus:ring-2 focus:ring-[#d6a848]"
                 style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain', touchAction: 'pan-x' }}
               >
@@ -549,7 +716,7 @@ function StandardMatchupsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row, rowIndex) => {
+                  {matrixRows.map((row, rowIndex) => {
                     const rowLabel = getStandardArchetypeLabel(row.archetype, row.archetypeLabel);
                     return (
                       <tr key={row.archetype} style={{ background: rowIndex % 2 === 0 ? 'rgba(255,255,255,0.20)' : 'rgba(80,42,12,0.06)' }}>
@@ -595,6 +762,8 @@ function StandardMatchupsPage() {
                 </tbody>
               </table>
               </div>
+              </>
+              )}
             </>
           )}
         </section>

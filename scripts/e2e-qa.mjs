@@ -241,6 +241,7 @@ const fixtures = {
     ],
   },
   '/api/standard/matchups': {
+    format: 'standard', formatLabel: 'Стандарт',
     rank: 'legend', rankLabel: 'Легенда', source: 'hsguru', updatedAt: '2026-07-11T00:00:00.000Z',
     columns: [
       { name: 'Control Warrior', label: 'Контроль Воин', popularity: '12,4%' },
@@ -773,6 +774,52 @@ const adminFixtures = {
   },
 };
 
+const wildMatchupsFixture = {
+  format: 'wild',
+  formatLabel: 'Вольный',
+  rank: 'legend',
+  rankLabel: 'Легенда',
+  source: 'hsguru',
+  updatedAt: '2026-07-12T00:00:00.000Z',
+  columns: [
+    { name: 'Wild Control Rogue', label: 'Вольный Контроль Разбойник', popularity: '14,2%' },
+    { name: 'Wild Reno Mage', label: 'Вольный Рено Маг', popularity: '8,1%' },
+    { name: 'Wild Pirate Warrior', label: 'Вольный Пират Воин', popularity: '6,7%' },
+  ],
+  rows: [
+    {
+      archetype: 'Wild Control Rogue',
+      archetypeLabel: 'Вольный Контроль Разбойник',
+      winrate: 55.6,
+      cells: [
+        { opponent: 'Wild Control Rogue', opponentLabel: 'Вольный Контроль Разбойник', winrate: 50 },
+        { opponent: 'Wild Reno Mage', opponentLabel: 'Вольный Рено Маг', winrate: 57.2 },
+        { opponent: 'Wild Pirate Warrior', opponentLabel: 'Вольный Пират Воин', winrate: 45.4 },
+      ],
+    },
+    {
+      archetype: 'Wild Reno Mage',
+      archetypeLabel: 'Вольный Рено Маг',
+      winrate: 51.8,
+      cells: [
+        { opponent: 'Wild Control Rogue', opponentLabel: 'Вольный Контроль Разбойник', winrate: 42.8 },
+        { opponent: 'Wild Reno Mage', opponentLabel: 'Вольный Рено Маг', winrate: 50 },
+        { opponent: 'Wild Pirate Warrior', opponentLabel: 'Вольный Пират Воин', winrate: 53.9 },
+      ],
+    },
+    {
+      archetype: 'Wild Pirate Warrior',
+      archetypeLabel: 'Вольный Пират Воин',
+      winrate: 49.7,
+      cells: [
+        { opponent: 'Wild Control Rogue', opponentLabel: 'Вольный Контроль Разбойник', winrate: 54.6 },
+        { opponent: 'Wild Reno Mage', opponentLabel: 'Вольный Рено Маг', winrate: 46.1 },
+        { opponent: 'Wild Pirate Warrior', opponentLabel: 'Вольный Пират Воин', winrate: 50 },
+      ],
+    },
+  ],
+};
+
 const publicStandardFixtureAliases = {
   '/api/constructed-cards': '/api/admin/constructed-cards',
   '/api/constructed-cards/CARD_QA_1': '/api/admin/constructed-cards/CARD_QA_1',
@@ -1277,6 +1324,17 @@ async function mockApplicationApi(page, {
         fixture.card = { ...fixture.card, stats: null, statsUpdatedAt: null };
       }
       request.respond(jsonResponse(fixture));
+      return;
+    }
+    if (url.pathname === '/api/standard/matchups') {
+      const requestedFormat = url.searchParams.get('format') === 'wild' ? 'wild' : 'standard';
+      adminState.matchupFormats ??= [];
+      adminState.matchupFormats.push(requestedFormat);
+      request.respond(jsonResponse(
+        requestedFormat === 'wild'
+          ? wildMatchupsFixture
+          : fixtures['/api/standard/matchups'],
+      ));
       return;
     }
     const fixtureKey = Object.keys(fixtures).find(key => url.pathname === key);
@@ -3885,6 +3943,51 @@ for (const [device, viewport] of [
       expectedSteps: 4,
       mobile: device === 'mobile',
     });
+    await page.waitForFunction(() => (
+      document.querySelector('.standard-matchups__ledger-heading h2')?.textContent?.includes('Стандарт')
+      && document.querySelector('#matchups-picker select')?.value === 'Control Warrior'
+    ), { timeout: 10_000 });
+    await page.click('button[aria-label="Показать матчапы: Вольный"]');
+    await page.waitForFunction(() => (
+      document.querySelector('button[aria-label="Показать матчапы: Вольный"]')?.getAttribute('aria-pressed') === 'true'
+      && document.querySelector('.standard-matchups__ledger-heading h2')?.textContent?.includes('Вольный')
+      && document.querySelector('#matchups-picker select')?.value === 'Wild Control Rogue'
+    ), { timeout: 10_000 });
+    const wildMatchupsState = await page.evaluate(() => ({
+      heading: document.querySelector('.standard-matchups__ledger-heading h2')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      selectedFormat: document.querySelector('button[aria-label="Показать матчапы: Вольный"]')?.getAttribute('aria-pressed') || '',
+      selectedArchetype: document.querySelector('#matchups-picker select')?.value || '',
+      overviewCards: document.querySelectorAll('.standard-matchups__group-list > div').length,
+      matrixDeferred: !document.querySelector('#matchups-matrix'),
+      pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    }));
+    if (!wildMatchupsState.heading.includes('Вольный')
+      || wildMatchupsState.selectedFormat !== 'true'
+      || wildMatchupsState.selectedArchetype !== 'Wild Control Rogue'
+      || wildMatchupsState.overviewCards !== 2
+      || !wildMatchupsState.matrixDeferred
+      || wildMatchupsState.pageOverflow
+      || !adminState.matchupFormats?.includes('wild')) {
+      failures.push(`standard matchups format switch [${device}]: Wild data or responsive overview did not replace Standard (${JSON.stringify(wildMatchupsState)})`);
+    }
+    await page.screenshot({ path: `${OUT}/standard-matchups-wild-overview-${device}.png`, fullPage: false });
+    await page.click('.standard-matchups__view-switcher button[aria-pressed="false"]');
+    await page.waitForSelector('#matchups-matrix');
+    const matrixState = await page.evaluate(() => ({
+      rowCount: document.querySelectorAll('#matchups-matrix tbody tr').length,
+      columnCount: document.querySelectorAll('#matchups-matrix thead th').length,
+      scrollable: (() => {
+        const matrix = document.querySelector('#matchups-matrix');
+        return Boolean(matrix && matrix.scrollWidth > matrix.clientWidth);
+      })(),
+      firstRow: document.querySelector('#matchups-matrix tbody th')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    }));
+    if (matrixState.rowCount !== 3 || matrixState.columnCount !== 4
+      || !matrixState.scrollable || !matrixState.firstRow.includes('Вольный Контроль Разбойник')) {
+      failures.push(`standard matchups matrix [${device}]: on-demand Wild matrix is incomplete (${JSON.stringify(matrixState)})`);
+    }
+    await auditAccessibility(page, `standard matchups Wild matrix [${device}]`, '.standard-matchups');
+    await page.screenshot({ path: `${OUT}/standard-matchups-wild-${device}.png`, fullPage: false });
     await page.goto(`${BASE}/standard/vicious-gold`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.vsgold__panel', { timeout: 20_000 });
     await page.waitForFunction(() => {

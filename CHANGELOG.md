@@ -2,6 +2,7 @@
 
 ## v1.0.0 - 2026-07-05
 
+- Fixed the Standard/Wild matchup switch after an older API image dropped the Wild source, made format changes visibly stateful with actionable retry errors, and rebuilt the responsive page around a lightweight archetype overview, strength/search filters and an on-demand searchable full matrix.
 - Replaced the stale Standard-only matchup slices with daily Firecrawl-backed HSGuru Legend matrices for both Standard and Wild, using minimum samples of 100 archetype games and 25 matchup games; the Matchups page now switches formats while preserving cached, translated and responsive matrix views.
 - Fixed Standard meta deck recommendations that waited up to a minute and then cached a false “not found” result: exact HSGuru lookups now use the cached Firecrawl path with a bounded request, and transient upstream failures remain retryable instead of being treated as missing decks.
 - Added aggregate `ALL` rank and `Any Player` HSGuru meta filters for Standard and Wild, made the aggregate slice the default, and hardened statistics ingestion by mapping every metric by its source column heading and rejecting incomplete or invalid rows.

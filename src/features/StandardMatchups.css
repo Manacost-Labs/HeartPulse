@@ -1,0 +1,239 @@
+.arena-app-standard-matchups .standard-matchups__error button {
+  min-height: 36px;
+  margin-left: auto;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid rgba(139, 47, 47, 0.35);
+  color: #6f2025;
+  background: rgba(255, 248, 228, 0.72);
+  font-weight: 800;
+}
+
+.arena-app-standard-matchups .standard-matchups__view-switcher {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(100%, 580px);
+  border: 1px solid rgba(99, 58, 26, 0.35);
+  background: rgba(255, 244, 216, 0.42);
+}
+
+.arena-app-standard-matchups .standard-matchups__view-switcher button {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  border-left: 1px solid var(--arena-paper-line);
+  color: #5b412e;
+  font-weight: 900;
+}
+
+.arena-app-standard-matchups .standard-matchups__view-switcher button:first-child {
+  border-left: 0;
+}
+
+.arena-app-standard-matchups .standard-matchups__view-switcher button[aria-pressed='true'] {
+  color: #fff0c4;
+  background: #6d1117;
+  box-shadow: inset 0 -3px #efc568;
+}
+
+.arena-app-standard-matchups .standard-matchups__view-switcher button > span {
+  min-width: 1.7rem;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid currentColor;
+  color: inherit;
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.arena-app-standard-matchups .standard-matchups__matchup-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.arena-app-standard-matchups :is(.standard-matchups__search, .standard-matchups__matrix-search) {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid rgba(99, 58, 26, 0.38);
+  color: #755337;
+  background: rgba(255, 249, 232, 0.76);
+}
+
+.arena-app-standard-matchups :is(.standard-matchups__search, .standard-matchups__matrix-search) input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: #3e291c;
+  background: transparent;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.arena-app-standard-matchups .standard-matchups__search {
+  width: min(100%, 320px);
+}
+
+.arena-app-standard-matchups .standard-matchups__matrix-search {
+  width: min(100%, 340px);
+}
+
+.arena-app-standard-matchups .standard-matchups__filter-chips {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.1rem;
+}
+
+.arena-app-standard-matchups .standard-matchups__filter-chips button {
+  display: inline-flex;
+  min-height: 42px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgba(99, 58, 26, 0.28);
+  color: #5b412e;
+  background: rgba(255, 249, 232, 0.54);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.arena-app-standard-matchups .standard-matchups__filter-chips button[aria-pressed='true'] {
+  border-color: #efc568;
+  color: #fff0c4;
+  background: #6d1117;
+}
+
+.arena-app-standard-matchups .standard-matchups__filter-chips button span {
+  min-width: 1.35rem;
+  padding: 0.08rem 0.28rem;
+  border: 1px solid currentColor;
+  font-size: 0.7rem;
+  line-height: 1.2;
+}
+
+.arena-app-standard-matchups .standard-matchups__group-list {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.arena-app-standard-matchups .standard-matchups__show-group {
+  width: 100%;
+  min-height: 40px;
+  border: 1px dashed rgba(99, 58, 26, 0.35);
+  color: #6d1117;
+  background: rgba(255, 249, 232, 0.4);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.arena-app-standard-matchups .standard-matchups__matrix-arrows button {
+  min-height: 44px;
+}
+
+@media (max-width: 720px) {
+  .arena-app-standard-matchups .standard-matchups__masthead {
+    padding: 1rem 0.9rem !important;
+    border-width: 7px !important;
+    border-image-width: 7px !important;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__masthead h1 {
+    font-size: 2.65rem !important;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__masthead p {
+    margin-top: 0.5rem !important;
+    font-size: 0.95rem !important;
+    line-height: 1.42 !important;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__rank-switcher {
+    margin-top: 0.15rem;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__index {
+    display: none;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__ledger-heading {
+    gap: 0.5rem !important;
+    padding-top: 0.2rem !important;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__ledger-heading h2 {
+    font-size: 1.65rem !important;
+    line-height: 1.12 !important;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__ledger-heading p {
+    font-size: 0.82rem !important;
+    line-height: 1.4;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__updated {
+    width: fit-content;
+    min-height: 36px;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__view-switcher {
+    width: 100%;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__view-switcher button {
+    min-height: 52px;
+    padding-inline: 0.55rem;
+    font-size: 0.82rem;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__matchup-tools {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__search {
+    width: 100%;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__filter-chips {
+    margin-inline: -1rem;
+    padding-inline: 1rem;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__group-list {
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__matrix-guide {
+    align-items: stretch;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__matrix-search {
+    width: 100%;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__matrix-arrows {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .arena-app-standard-matchups .standard-matchups__matrix-arrows button {
+    width: 100%;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__matrix {
+    max-height: 72vh;
+    overflow: auto !important;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__matrix table {
+    min-width: 940px !important;
+  }
+}
