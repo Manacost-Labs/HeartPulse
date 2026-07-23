@@ -152,8 +152,10 @@
   scrollbar-width: auto;
 }
 
-.arena-app-standard-matchups .standard-matchups__matrix-scrollbar > div {
+.arena-app-standard-matchups .standard-matchups__matrix-scrollbar-sizer {
+  width: var(--matrix-desktop-width);
   min-width: 100%;
+  height: 1px;
 }
 
 .arena-app-standard-matchups .standard-matchups__matrix-scrollbar--top {
@@ -452,6 +454,10 @@
 
   .arena-app-standard-matchups .standard-matchups__matrix-scrollbar--bottom {
     bottom: 0.25rem;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__matrix-scrollbar-sizer {
+    width: var(--matrix-mobile-width);
   }
 
   .arena-app-standard-matchups .standard-matchups__tooltip {

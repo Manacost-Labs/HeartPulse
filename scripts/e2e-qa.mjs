@@ -4012,7 +4012,7 @@ for (const [device, viewport] of [
       || scrollbarSyncState.bottomLeft !== scrollbarSyncState.topLeft) {
       failures.push(`standard matchups scrollbars [${device}]: synchronized rails regressed (${JSON.stringify(scrollbarSyncState)})`);
     }
-    await page.click('#matchups-matrix [data-matchup-cell]');
+    await page.$eval('#matchups-matrix [data-matchup-cell]', element => element.click());
     await page.waitForSelector('#standard-matchups-cell-dialog');
     const matchupTooltipState = await page.evaluate(() => {
       const dialog = document.querySelector('#standard-matchups-cell-dialog');

@@ -286,9 +286,7 @@ function StandardMatchupsPage() {
   const matrixScrollRef = useRef<HTMLDivElement | null>(null);
   const matrixTopScrollRef = useRef<HTMLDivElement | null>(null);
   const matrixBottomScrollRef = useRef<HTMLDivElement | null>(null);
-  const matrixTableRef = useRef<HTMLTableElement | null>(null);
   const matchupTooltipRef = useRef<HTMLDivElement | null>(null);
-  const [matrixScrollWidth, setMatrixScrollWidth] = useState(0);
   const [activeMatrixMatchup, setActiveMatrixMatchup] = useState<ActiveMatrixMatchup | null>(null);
   const deferredMatchupSearch = useDeferredValue(matchupSearch.trim().toLocaleLowerCase('ru-RU'));
   const deferredMatrixSearch = useDeferredValue(matrixSearch.trim().toLocaleLowerCase('ru-RU'));
@@ -407,26 +405,6 @@ function StandardMatchupsPage() {
       placement: hasRoomBelow ? 'below' : 'above',
     });
   }, []);
-
-  useEffect(() => {
-    if (view !== 'matrix') return undefined;
-    const table = matrixTableRef.current;
-    const viewport = matrixScrollRef.current;
-    if (!table || !viewport) return undefined;
-
-    const updateWidth = () => setMatrixScrollWidth(table.scrollWidth);
-    updateWidth();
-
-    if (typeof ResizeObserver === 'undefined') {
-      window.addEventListener('resize', updateWidth);
-      return () => window.removeEventListener('resize', updateWidth);
-    }
-
-    const observer = new ResizeObserver(updateWidth);
-    observer.observe(table);
-    observer.observe(viewport);
-    return () => observer.disconnect();
-  }, [data.columns?.length, data.rows?.length, view]);
 
   useEffect(() => {
     if (!activeMatrixMatchup) return undefined;
@@ -840,7 +818,14 @@ function StandardMatchupsPage() {
                 aria-label="Верхняя горизонтальная прокрутка матрицы"
                 onScroll={event => syncMatrixScroll(event.currentTarget)}
               >
-                <div aria-hidden="true" style={{ width: matrixScrollWidth, height: 1 }} />
+                <div
+                  className="standard-matchups__matrix-scrollbar-sizer"
+                  aria-hidden="true"
+                  style={{
+                    '--matrix-desktop-width': `${Math.max(1280, 250 + (columns.length * 130))}px`,
+                    '--matrix-mobile-width': `${Math.max(940, 190 + (columns.length * 96))}px`,
+                  } as React.CSSProperties}
+                />
               </div>
               <div
                 ref={matrixScrollRef}
@@ -851,7 +836,7 @@ function StandardMatchupsPage() {
                 style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain', touchAction: 'pan-x' }}
                 onScroll={event => syncMatrixScroll(event.currentTarget)}
               >
-              <table ref={matrixTableRef} className="w-full min-w-[980px] sm:min-w-[1280px] border-separate border-spacing-0">
+              <table className="w-full min-w-[980px] sm:min-w-[1280px] border-separate border-spacing-0">
                 <thead>
                   <tr>
                     <th scope="col" className="sticky top-0 left-0 z-30 text-left px-3 sm:px-4 py-3 min-w-[190px] sm:min-w-[250px]"
@@ -945,7 +930,14 @@ function StandardMatchupsPage() {
                 aria-label="Нижняя горизонтальная прокрутка матрицы"
                 onScroll={event => syncMatrixScroll(event.currentTarget)}
               >
-                <div aria-hidden="true" style={{ width: matrixScrollWidth, height: 1 }} />
+                <div
+                  className="standard-matchups__matrix-scrollbar-sizer"
+                  aria-hidden="true"
+                  style={{
+                    '--matrix-desktop-width': `${Math.max(1280, 250 + (columns.length * 130))}px`,
+                    '--matrix-mobile-width': `${Math.max(940, 190 + (columns.length * 96))}px`,
+                  } as React.CSSProperties}
+                />
               </div>
               {activeMatrixMatchup && (() => {
                 const assessment = standardMatchupAssessment(activeMatrixMatchup.cell.winrate);
