@@ -86,6 +86,8 @@ for (const authParameter of ['login', 'profile', 'auth', 'code', 'state', 'retur
 }
 assert.match(htmlRouting, /location\s+=\s+\/admin\/\s*\{[\s\S]*?X-Robots-Tag\s+"noindex, nofollow"\s+always;/,
   'admin must stay crawlable but return a server-side noindex header');
+assert.match(htmlRouting, /location\s+=\s+\/deck-builder\/\s*\{[\s\S]*?X-Robots-Tag\s+"noindex, nofollow"\s+always;/,
+  'deck-builder must stay crawlable but return a server-side noindex header');
 for (const endpoint of ['api', 'health', 'metrics']) {
   assert.match(htmlRouting, new RegExp(`location\\s+=\\s+/${endpoint}\\s*\\{[\\s\\S]*?X-Robots-Tag\\s+"noindex, nofollow"\\s+always;`),
     `/${endpoint} must combine crawl blocking with an X-Robots-Tag response`);

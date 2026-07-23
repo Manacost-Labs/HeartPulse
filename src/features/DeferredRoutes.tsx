@@ -7,7 +7,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo, memo, useDefe
 import { createPortal } from 'react-dom';
 import '../route-parchment.css';
 import './DeferredRoutes.css';
-import { Trophy, Scroll, RefreshCw, AlertTriangle, X, Search, Star, Home, BookOpen, Menu, ChevronLeft, ChevronRight, Grid3X3, List, LogIn, Eye, EyeOff, UserCircle, ThumbsUp, ThumbsDown, ShieldCheck, Download, Image as ImageIcon, Maximize2 } from 'lucide-react';
+import { Trophy, Scroll, RefreshCw, AlertTriangle, X, Search, Star, Home, BookOpen, Menu, ChevronLeft, ChevronRight, Grid3X3, List, LogIn, Eye, EyeOff, UserCircle, ThumbsUp, ThumbsDown, ShieldCheck, Download, Image as ImageIcon, Maximize2, ArrowDown, ArrowUp, ChevronDown } from 'lucide-react';
 import { getCanonicalRedirectUrl } from '../config/domain';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import SubscriptionPurchaseButtons from '../components/SubscriptionPurchaseButtons';
@@ -173,8 +173,17 @@ interface LegendaryGroup {
   winRate: number | null;
   pickRate?: number | null;
   offerRate?: number | null;
+  score?: number | null;
   classKey: string;
 }
+
+type LegendarySortKey = 'winRate' | 'pickRate' | 'offerRate' | 'score';
+const LEGENDARY_SORT_OPTIONS: Array<{ id: LegendarySortKey; label: string }> = [
+  { id: 'winRate', label: 'Винрейт' },
+  { id: 'pickRate', label: 'Частота выбора' },
+  { id: 'offerRate', label: 'Частота предложения' },
+  { id: 'score', label: 'Очки ArenaSmith' },
+];
 interface LegendariesData {
   groups: LegendaryGroup[];
   updatedAt: string | null;
@@ -2199,7 +2208,7 @@ const LegendaryCardThumb: React.FC<{
   );
 }) as React.FC<{ card: LegendaryCard; size: 'lg' | 'sm'; onClick: () => void }>;
 
-// CLASS_SECTIONS_LEGEND: sections for legend tab (no neutral)
+// HSReplay-style class tabs: picking a class shows class cards + neutrals.
 const LEGEND_CLASSES: Array<{ id: string; name: string; color: string }> = [
   { id: 'all',           name: 'Все',               color: '#4a4a4a' },
   { id: 'death-knight',  name: 'Рыцарь смерти',     color: '#1f252d' },
@@ -2213,8 +2222,31 @@ const LEGEND_CLASSES: Array<{ id: string; name: string; color: string }> = [
   { id: 'shaman',        name: 'Шаман',              color: '#2a2e6b' },
   { id: 'warlock',       name: 'Чернокнижник',       color: '#5c265c' },
   { id: 'warrior',       name: 'Воин',               color: '#7a1e1e' },
-  { id: 'any',           name: 'Нейтральные',        color: '#6b6b6b' },
 ];
+
+function legendarySortValue(group: LegendaryGroup, key: LegendarySortKey): number {
+  const raw =
+    key === 'winRate' ? group.winRate
+    : key === 'pickRate' ? (group.pickRate ?? group.keyCard.pickRate)
+    : key === 'offerRate' ? (group.offerRate ?? group.keyCard.offerRate)
+    : (group.score ?? group.keyCard.arenaScore);
+  return typeof raw === 'number' && Number.isFinite(raw) ? raw : Number.NEGATIVE_INFINITY;
+}
+
+function formatLegendaryStat(value: number | null | undefined, kind: 'pct' | 'score'): string {
+  if (value == null || !Number.isFinite(value)) return '—';
+  if (kind === 'score') return Number.isInteger(value) ? String(value) : value.toFixed(1);
+  return `${value.toFixed(1)}%`;
+}
+
+function legendaryGroupStats(group: LegendaryGroup) {
+  return {
+    winRate: group.winRate,
+    pickRate: group.pickRate ?? group.keyCard.pickRate ?? null,
+    offerRate: group.offerRate ?? group.keyCard.offerRate ?? null,
+    score: group.score ?? group.keyCard.arenaScore ?? null,
+  };
+}
 
 export function Legendaries({ data, loading, error, legendarySource, onLegendarySourceChange, switchingLegendarySource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription }: {
   data: LegendariesData; loading: boolean; error: boolean;
@@ -2228,14 +2260,49 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
   onRefreshSubscription: () => Promise<SubscriptionStatus | null>;
 }) {
   const [activeClass, setActiveClass] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<LegendarySortKey>('winRate');
+  const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [modalCard, setModalCard] = useState<{ card: CardData; tier: string } | null>(null);
   const classScrollRef = useRef<HTMLDivElement>(null);
+  const sortMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!sortMenuOpen) return;
+    const onDocClick = (event: MouseEvent) => {
+      if (!sortMenuRef.current?.contains(event.target as Node)) setSortMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [sortMenuOpen]);
 
   const filtered = useMemo(() => {
     const groups = data.groups ?? [];
-    const base = activeClass === 'all' ? groups : groups.filter(g => g.classKey === activeClass);
-    return [...base].sort((a, b) => (b.winRate ?? 0) - (a.winRate ?? 0));
-  }, [data.groups, activeClass]);
+    const q = searchQuery.trim().toLowerCase();
+    const base = groups.filter(g => {
+      const classOk =
+        activeClass === 'all'
+          ? true
+          : g.classKey === activeClass || g.classKey === 'any';
+      if (!classOk) return false;
+      if (!q) return true;
+      const hay = [
+        g.keyCard.name,
+        ...g.cards.map(c => c.name),
+      ].join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+    const dir = sortDir === 'desc' ? -1 : 1;
+    return [...base].sort((a, b) => {
+      const av = legendarySortValue(a, sortBy);
+      const bv = legendarySortValue(b, sortBy);
+      if (av === bv) return (b.winRate ?? 0) - (a.winRate ?? 0);
+      if (av === Number.NEGATIVE_INFINITY) return 1;
+      if (bv === Number.NEGATIVE_INFINITY) return -1;
+      return av > bv ? dir : -dir;
+    });
+  }, [data.groups, activeClass, sortBy, sortDir, searchQuery]);
 
   const toLegendaryCardData = useCallback((lc: LegendaryCard): CardData => ({
     name:     lc.name,
@@ -2276,8 +2343,8 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
         <p className="text-[#6b4c2a] text-sm leading-relaxed mb-5 px-1"
           style={{ borderLeft: '3px solid #c4a46a', paddingLeft: '12px' }}>
           На Арене Hearthstone легендарная карта предлагается в качестве первого выбора.
-          На этой странице собраны все группы первого выбора с винрейтом каждой группы.
-          Выбирайте группу с наивысшим процентом побед для максимальной эффективности на текущем патче.
+          На этой странице собраны все группы первого выбора с винрейтом и метриками ArenaSmith.
+          Фильтр класса показывает классовые легендарки вместе с нейтральными.
         </p>
       </section>
       <div className="legendary-access-shell" style={{ position: 'relative' }}>
@@ -2311,6 +2378,91 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
         <div className="legendary-count-pill text-sm font-bold px-3 py-1.5 rounded-full flex-shrink-0"
           style={{ background: 'linear-gradient(135deg,#ede0c0,#e0cc9e)', border: '1.5px solid #c4a46a' }}>
           {filtered.length} групп
+        </div>
+      </div>
+
+      <div className="legendary-sort-bar mb-4 flex flex-wrap items-center gap-2" data-tour-id="arena-legendaries-sort">
+        <span className="text-sm font-semibold text-[#6b4c2a]">Сортировка:</span>
+        <div className="relative" ref={sortMenuRef}>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold text-[#3d2208]"
+            style={{ background: 'linear-gradient(135deg,#f7e8bf,#ead6a7)', border: '1.5px solid #b8904a' }}
+            onClick={() => setSortMenuOpen(open => !open)}
+            aria-expanded={sortMenuOpen}
+          >
+            {LEGENDARY_SORT_OPTIONS.find(opt => opt.id === sortBy)?.label ?? 'Винрейт'}
+            <ChevronDown size={14} />
+          </button>
+          {sortMenuOpen && (
+            <div
+              className="absolute left-0 z-20 mt-1 min-w-[230px] overflow-hidden rounded-xl shadow-lg"
+              style={{ background: '#f7e8bf', border: '1.5px solid #b8904a' }}
+            >
+              {LEGENDARY_SORT_OPTIONS.map(opt => {
+                const active = opt.id === sortBy;
+                return (
+                  <button
+                    type="button"
+                    key={opt.id}
+                    className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm ${active ? 'font-bold text-[#5d0d13]' : 'text-[#3d2208] hover:bg-[#ead6a7]'}`}
+                    style={active ? { background: 'rgba(141,23,29,0.12)' } : undefined}
+                    onClick={() => { setSortBy(opt.id); setSortMenuOpen(false); }}
+                  >
+                    <span>{opt.label}</span>
+                    <span
+                      className="h-3.5 w-3.5 rounded-full border"
+                      style={{
+                        borderColor: active ? '#8d171d' : '#a88a45',
+                        background: active ? '#8d171d' : 'transparent',
+                      }}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        <div className="inline-flex overflow-hidden rounded-lg" style={{ border: '1.5px solid #b8904a' }}>
+          <button
+            type="button"
+            title="По убыванию"
+            aria-pressed={sortDir === 'desc'}
+            className="px-2.5 py-1.5"
+            style={{
+              background: sortDir === 'desc' ? '#8d171d' : '#f7e8bf',
+              color: sortDir === 'desc' ? '#fff0c8' : '#3d2208',
+            }}
+            onClick={() => setSortDir('desc')}
+          >
+            <ArrowDown size={14} />
+          </button>
+          <button
+            type="button"
+            title="По возрастанию"
+            aria-pressed={sortDir === 'asc'}
+            className="px-2.5 py-1.5"
+            style={{
+              background: sortDir === 'asc' ? '#8d171d' : '#f7e8bf',
+              color: sortDir === 'asc' ? '#fff0c8' : '#3d2208',
+            }}
+            onClick={() => setSortDir('asc')}
+          >
+            <ArrowUp size={14} />
+          </button>
+        </div>
+        <div className="relative min-w-[220px] flex-1">
+          <label className="sr-only" htmlFor="legendary-search">Поиск легендарок</label>
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b6c42]" />
+          <input
+            id="legendary-search"
+            type="search"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Поиск: Йогг-Сарон, Фиракк…"
+            className="w-full rounded-lg py-2 pl-9 pr-3 text-sm text-[#3d2208] outline-none"
+            style={{ background: '#f7e8bf', border: '1.5px solid #b8904a' }}
+          />
         </div>
       </div>
 
@@ -2392,7 +2544,15 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
         </div>
       ) : (
         <div className="legendary-groups-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((group, idx) => (
+          {filtered.map((group, idx) => {
+            const stats = legendaryGroupStats(group);
+            const footer = [
+              { label: 'Винрейт', value: formatLegendaryStat(stats.winRate, 'pct'), tone: metricTone(stats.winRate, 'pct') },
+              { label: 'Частота выбора', value: formatLegendaryStat(stats.pickRate, 'pct'), tone: metricTone(stats.pickRate, 'pct') },
+              { label: 'Частота предложения', value: formatLegendaryStat(stats.offerRate, 'pct'), tone: metricTone(stats.offerRate, 'pct') },
+              { label: 'Очки ArenaSmith', value: formatLegendaryStat(stats.score, 'score'), tone: metricTone(stats.score, 'score') },
+            ];
+            return (
             <div
               key={`${group.keyCard.cardId}-${idx}`}
               data-rank={idx + 1}
@@ -2405,14 +2565,12 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
               }}
             >
               <span className="legendary-group-rank" aria-label={`Место ${idx + 1}`}>{idx + 1}</span>
-              {/* Key card image */}
               <LegendaryCardThumb
                 card={group.keyCard}
                 size="lg"
                 onClick={() => setModalCard({ card: toLegendaryCardData(group.keyCard), tier: 'S' })}
               />
 
-              {/* Key card name + win rate */}
               <div className="flex flex-col items-center gap-1 w-full">
                 <span className="font-hs text-[#3d2208] text-base text-center leading-tight">{group.keyCard.name}</span>
                 <span
@@ -2425,10 +2583,7 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
 
               {group.cards.length > 0 && (
                 <>
-                  {/* Divider */}
                   <div className="legendary-group-divider w-full h-px" />
-
-                  {/* Package cards */}
                   <div className="flex gap-2 justify-center flex-wrap">
                     {group.cards.map((pc, ci) => (
                       <div key={`${pc.cardId}-${ci}`} className="flex flex-col items-center gap-0.5">
@@ -2443,8 +2598,25 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
                   </div>
                 </>
               )}
+
+              <div className="legendary-stats-footer w-full grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1">
+                {footer.map(stat => (
+                  <div
+                    key={stat.label}
+                    className="min-w-0 rounded px-1.5 py-1.5 text-center"
+                    style={{
+                      background: 'rgba(247, 232, 191, 0.55)',
+                      border: '1px solid rgba(97, 56, 24, 0.22)',
+                    }}
+                  >
+                    <div className="truncate text-[10px] leading-tight text-[#735e49]">{stat.label}</div>
+                    <div className={`text-sm font-black leading-tight ${stat.tone}`}>{stat.value}</div>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

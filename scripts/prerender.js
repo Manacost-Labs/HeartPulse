@@ -674,6 +674,12 @@ const NOINDEX_PAGES = new Map([
     structuredData: [],
     noscript: '<h1>Админ-панель</h1><p>Для работы административной панели необходим JavaScript и авторизованный аккаунт администратора.</p>',
   }],
+  ['/deck-builder', {
+    h1: 'Конструктор колоды',
+    ogType: 'website',
+    structuredData: [],
+    noscript: '<h1>Конструктор колоды</h1><p>Административный конструктор колод доступен только после входа в аккаунт администратора и при включённом JavaScript.</p>',
+  }],
 ]);
 
 const NOT_FOUND_PAGE = {

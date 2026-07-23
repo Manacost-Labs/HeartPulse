@@ -163,6 +163,13 @@
       "title": "Админ-панель | Manacost Stats",
       "description": "Закрытая административная область Manacost Stats.",
       "sitemap": false
+    },
+    "/deck-builder": {
+      "policyRouteId": "deck-builder",
+      "navigationRouteId": "deck-builder",
+      "title": "Конструктор колоды | Manacost Stats",
+      "description": "Административный конструктор колод Hearthstone в русском интерфейсе: код колоды, класс, формат и подбор карт.",
+      "sitemap": false
     }
   }
 }

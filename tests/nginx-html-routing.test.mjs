@@ -174,6 +174,17 @@ assert.match(adminRedirect?.body || '', /return\s+301\s+\/admin\/\$is_args\$args
 assert.match(adminDocument?.body || '', /try_files\s+\/admin\/index\.html\s+\/index\.html\s+=404;/,
   'canonical admin route must be allowed to use the SPA shell');
 
+const deckBuilderRedirect = locations.find(location => location.modifier === '=' && location.pattern === '/deck-builder');
+const deckBuilderDocument = locations.find(location => location.modifier === '=' && location.pattern === '/deck-builder/');
+for (const location of [deckBuilderRedirect, deckBuilderDocument]) {
+  assert.match(location?.body || '', /X-Robots-Tag\s+"noindex, nofollow"\s+always;/,
+    'deck-builder responses must carry a server-side noindex header');
+}
+assert.match(deckBuilderRedirect?.body || '', /return\s+301\s+\/deck-builder\/\$is_args\$args;/,
+  'deck-builder slash normalization must preserve the query string in one redirect');
+assert.match(deckBuilderDocument?.body || '', /try_files\s+\/deck-builder\/index\.html\s+\/index\.html\s+=404;/,
+  'canonical deck-builder route must serve its prerendered document');
+
 const authQueryPolicy = inventory.queryPolicies.find(policy => policy.id === 'auth-state');
 const adminQueryPolicy = inventory.queryPolicies.find(policy => policy.id === 'admin-state');
 assert.match(mapSource, /map\s+\$request_uri\s+\$arena_auth_query_robots\s*\{/,
@@ -230,6 +241,7 @@ for (const route of inventory.routes) {
     continue;
   }
   if (route.id === 'admin-panel') continue;
+  if (route.id === 'deck-builder') continue;
 
   expectRegexAction(path, 'return 301', `${route.id} non-canonical route`);
   const redirect = firstMatchingRegexLocation(path);
@@ -657,6 +669,13 @@ http {
     const adminResponse = await requestNginx(port, '/admin/');
     assert.equal(adminResponse.status, 200, 'admin document');
     assert.equal(adminResponse.headers['x-robots-tag'], 'noindex, nofollow', 'admin document robots');
+
+    const deckBuilderRedirectResponse = await requestNginx(port, '/deck-builder');
+    assert.equal(deckBuilderRedirectResponse.status, 301, 'deck-builder slash redirect');
+    assert.equal(deckBuilderRedirectResponse.headers['x-robots-tag'], 'noindex, nofollow', 'deck-builder redirect robots');
+    const deckBuilderResponse = await requestNginx(port, '/deck-builder/');
+    assert.equal(deckBuilderResponse.status, 200, 'deck-builder document');
+    assert.equal(deckBuilderResponse.headers['x-robots-tag'], 'noindex, nofollow', 'deck-builder document robots');
 
     for (const technicalFixture of [
       { path: '/api', status: 200, body: /"api":true/, cache: /max-age=17/ },

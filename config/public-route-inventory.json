@@ -288,6 +288,20 @@
       "entitlement": null
     },
     {
+      "id": "deck-builder",
+      "pattern": "/deck-builder",
+      "kind": "static",
+      "owner": "admin-platform",
+      "indexPolicy": "noindex-nofollow",
+      "canonicalPolicy": "none",
+      "sitemap": false,
+      "htmlStrategy": "server-noindex",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "deck-builder-denied",
+      "entitlement": null
+    },
+    {
       "id": "standard-cards-format",
       "pattern": "/standard/cards/:format",
       "kind": "listing",

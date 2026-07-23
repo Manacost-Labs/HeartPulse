@@ -712,6 +712,19 @@
   text-shadow: 0 2px 3px rgba(35, 2, 5, 0.72);
 }
 
+.arena-app-legendaries .legendary-stats-footer {
+  margin-top: 0.15rem;
+}
+
+.arena-app-legendaries .legendary-group-card[data-rank='1'] .legendary-stats-footer > div {
+  background: rgba(35, 2, 5, 0.28) !important;
+  border-color: rgba(239, 197, 104, 0.28) !important;
+}
+
+.arena-app-legendaries .legendary-group-card[data-rank='1'] .legendary-stats-footer .text-\[\#735e49\] {
+  color: #efc96f !important;
+}
+
 .arena-app-legendaries .legendary-empty {
   border: 8px solid transparent !important;
   border-image-source: url('/wallpaper/main-page-rail-border.png') !important;

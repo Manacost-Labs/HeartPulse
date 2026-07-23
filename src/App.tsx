@@ -9,6 +9,7 @@ import { getCanonicalRedirectUrl } from './config/domain';
 import { usePageScrollLock } from './hooks/usePageScrollLock';
 import AuthAvatar from './components/AuthAvatar';
 import {
+  ADMIN_ONLY_TAB_IDS,
   ADMIN_TABS,
   applyPageMeta,
   ARENA_TABS,
@@ -144,6 +145,7 @@ interface LegendaryGroup {
   winRate: number | null;
   pickRate?: number | null;
   offerRate?: number | null;
+  score?: number | null;
   classKey: string;
 }
 interface LegendariesData {
@@ -622,6 +624,8 @@ const LazyViciousSyndicateGoldPage = React.lazy(loadViciousSyndicateGoldModule);
 const LazyStandardCardsPage = React.lazy(loadStandardCardsModule);
 const LazyContestsPage = React.lazy(() => loadContestsModule().then(module => ({ default: module.ContestsPage })));
 const LazyContestAdminPanel = React.lazy(() => loadContestsModule().then(module => ({ default: module.ContestAdminPanel })));
+const loadDeckBuilderModule = () => import('./features/DeckBuilder');
+const LazyDeckBuilder = React.lazy(loadDeckBuilderModule);
 const LazyBattlegroundHeroesRoute = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundHeroesRoute })));
 const LazyBattlegroundTierList = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundTierList })));
 const LazyBattlegroundStrategyBuilderEmbed = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundStrategyBuilderEmbed })));
@@ -637,6 +641,7 @@ const ROUTE_PRELOADERS: Partial<Record<TabId | 'login', () => Promise<unknown>>>
   login: loadDeferredRoutesModule,
   'admin-panel': loadContestsModule,
   contests: loadContestsModule,
+  'deck-builder': loadDeckBuilderModule,
   'standard-matchups': loadStandardMatchupsModule,
   'standard-meta': loadStandardMetaModule,
   'standard-vicious-gold': loadViciousSyndicateGoldModule,
@@ -974,6 +979,10 @@ export default function App() {
     || appAuthUser.profileId === 'user_42368c85b8de'
   ));
   const visibleStandardTabs = STANDARD_TABS;
+  const visibleMiscTabs = useMemo(
+    () => MISC_TABS.filter(tab => !ADMIN_ONLY_TAB_IDS.has(tab.id) || appIsAdmin),
+    [appIsAdmin],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -1383,7 +1392,7 @@ export default function App() {
     );
     return ids;
   }, [legendariesData]);
-  const isFullWidthBuilder = routeSurfaceAvailable && (activeTab === 'standard-matchups' || activeTab === 'standard-meta' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive');
+  const isFullWidthBuilder = routeSurfaceAvailable && (activeTab === 'standard-matchups' || activeTab === 'standard-meta' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive' || activeTab === 'deck-builder');
   // Login is its own visual route. Do not inherit the surface class of the
   // page that happened to be open before the profile was requested.
   const isEditorialSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['articles', 'faq', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
@@ -1512,7 +1521,7 @@ export default function App() {
             <div className="arena-mobile-menu-group arena-mobile-menu-group--misc">
               <button
                 type="button"
-                className={`arena-mobile-menu-link arena-mobile-menu-group-trigger ${MISC_TABS.some(tab => tab.id === activeTab) ? 'arena-mobile-menu-link-active' : ''}`}
+                className={`arena-mobile-menu-link arena-mobile-menu-group-trigger ${visibleMiscTabs.some(tab => tab.id === activeTab) ? 'arena-mobile-menu-link-active' : ''}`}
                 aria-expanded={mobileNavGroup === 'misc'}
                 aria-controls="arena-mobile-misc"
                 onClick={() => setMobileNavGroup(group => group === 'misc' ? null : 'misc')}
@@ -1523,7 +1532,7 @@ export default function App() {
               </button>
               <div id="arena-mobile-misc" className="arena-mobile-menu-group-items" hidden={mobileNavGroup !== 'misc'}>
                 <NavigationRouteLinks
-                  routes={MISC_TABS}
+                  routes={visibleMiscTabs}
                   activeTab={activeTab}
                   variant="mobile"
                   sublink
@@ -1607,7 +1616,7 @@ export default function App() {
               <div className="arena-sidebar-nav-group arena-sidebar-nav-group--misc">
                 <button
                   type="button"
-                  className={`arena-sidebar-link arena-sidebar-nav-group-trigger ${MISC_TABS.some(tab => tab.id === activeTab) ? 'arena-sidebar-link-active' : ''}`}
+                  className={`arena-sidebar-link arena-sidebar-nav-group-trigger ${visibleMiscTabs.some(tab => tab.id === activeTab) ? 'arena-sidebar-link-active' : ''}`}
                   aria-expanded={sidebarNavGroup === 'misc'}
                   aria-controls="arena-sidebar-misc"
                   onClick={() => setSidebarNavGroup(group => group === 'misc' ? null : 'misc')}
@@ -1618,7 +1627,7 @@ export default function App() {
                 </button>
                 <div id="arena-sidebar-misc" className="arena-sidebar-nav-group-items" hidden={sidebarNavGroup !== 'misc'}>
                   <NavigationRouteLinks
-                    routes={MISC_TABS}
+                    routes={visibleMiscTabs}
                     activeTab={activeTab}
                     variant="sidebar"
                     sublink
@@ -1871,6 +1880,11 @@ export default function App() {
                     subscriptionLoading={appAuthChecking || appSubscriptionLoading}
                     onRefreshSubscription={() => fetchAppSubscription(true)}
                   /></React.Suspense>
+                )}
+                {activeTab === 'deck-builder' && (
+                  <React.Suspense fallback={<RouteFallback minHeight={720} />}>
+                    <LazyDeckBuilder isAdmin={appIsAdmin} authChecking={appAuthChecking} />
+                  </React.Suspense>
                 )}
                 {activeTab === 'admin-panel' && (
 	                  <React.Suspense fallback={<RouteFallback minHeight={620} />}><LazyContestAdminPanel authUser={appAuthUser} authChecking={appAuthChecking} /></React.Suspense>

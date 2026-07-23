@@ -5012,3 +5012,123 @@
   }
 
 }
+
+.admin-fun-decks__stats { margin-top: 0.15rem; }
+.admin-fun-decks__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.admin-fun-decks__filters button {
+  min-height: 40px;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--admin-divider);
+  border-radius: 6px;
+  color: #253b50;
+  background: #fff;
+  font-size: 0.74rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.admin-fun-decks__filters button.is-active {
+  border-color: var(--admin-blue);
+  background: #eff8fe;
+  box-shadow: inset 3px 0 0 var(--admin-blue);
+}
+.admin-fun-decks__list {
+  display: grid;
+  gap: 0.75rem;
+}
+.admin-fun-decks__item {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--admin-divider);
+  border-radius: 8px;
+  background: var(--admin-surface);
+}
+.admin-fun-decks__item-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.admin-fun-decks__item-head h3 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+.admin-fun-decks__item-head p {
+  margin: 0.28rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  color: var(--admin-muted);
+  font-size: 0.72rem;
+}
+.admin-fun-decks__item-head p span {
+  padding: 0.12rem 0.42rem;
+  border: 1px solid #d5dee7;
+  border-radius: 999px;
+  background: #f7f9fb;
+}
+.admin-fun-decks__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: flex-start;
+}
+.admin-fun-decks__metrics span {
+  min-height: 28px;
+  padding: 0.22rem 0.5rem;
+  border: 1px solid #d7e0e8;
+  border-radius: 6px;
+  color: #31485c;
+  background: #f8fafc;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+.admin-fun-decks__reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.admin-fun-decks__reasons span {
+  padding: 0.18rem 0.45rem;
+  border-radius: 4px;
+  color: #5a3b76;
+  background: #f7f2fb;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+.admin-fun-decks__code-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.45rem;
+  align-items: center;
+}
+.admin-fun-decks__code-row code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #c9d4de;
+  border-radius: 6px;
+  background: #101820;
+  color: #d7e8f7;
+  font-size: 0.72rem;
+}
+.admin-fun-decks__code-row .contest-secondary-button {
+  min-height: 40px;
+  gap: 0.3rem;
+  white-space: nowrap;
+}
+@media (max-width: 720px) {
+  .admin-fun-decks__code-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-fun-decks__code-row .contest-secondary-button {
+    width: 100%;
+  }
+}
+

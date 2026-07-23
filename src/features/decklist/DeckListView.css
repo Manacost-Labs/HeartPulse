@@ -1,0 +1,386 @@
+.deck-list-view {
+  --deck-tile-height: 28px;
+  /* Mana crystal (authentic HS blue) */
+  --deck-mana-top: #3f7bc4;
+  --deck-mana-bottom: #163f6d;
+  --deck-gold: #f4cf67;
+  --deck-gold-deep: #a9791d;
+  width: 100%;
+  min-width: 0;
+}
+
+/* ───────────────────────── Header ───────────────────────── */
+.deck-list-view__head {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.6rem 0.8rem;
+  color: #fff;
+  font-weight: 700;
+  /* Class color arrives via inline style; layer depth on top of it */
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 42%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.28));
+  background-color: #4b5560;
+  font-family: var(--font-hs, "HSDisplay", "Belwe Bd BT", serif);
+  letter-spacing: 0.01em;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.deck-list-view__head::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(244, 207, 103, 0.65) 20%, rgba(244, 207, 103, 0.65) 80%, transparent);
+}
+
+.deck-list-view__head strong {
+  display: block;
+  font-size: 1.08rem;
+  font-weight: 700;
+  font-family: inherit;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+}
+
+.deck-list-view__head > span {
+  flex: 0 0 auto;
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  padding: 0.14rem 0.55rem;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.deck-list-view__subtitle {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  opacity: 0.9;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+
+.deck-list-view__empty {
+  margin: 0;
+  padding: 1rem 0.8rem;
+  color: #f6dfb0;
+}
+
+.deck-list-view__body {
+  min-width: 0;
+}
+
+/* ───────────────────────── List ───────────────────────── */
+.deck-list-view__list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1px;
+  margin: 0;
+  padding: 0.4rem;
+  list-style: none;
+  max-height: none;
+  overflow: visible;
+  background:
+    radial-gradient(120% 100% at 50% 0%, rgba(70, 40, 30, 0.35), transparent 60%),
+    rgb(22, 13, 11);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.55);
+}
+
+/*
+ * Tile layers (HSGuru-derived + polish):
+ *  1) class-color body with a vertical gradient + bevel  (depth)
+ *  2) official tile bitmap on the right (white left edge cropped)
+ *  3) fade overlay: solid over the name, short blend into the art
+ *  4) mana crystal + rarity count on top
+ */
+.deck-tile {
+  --deck-tile-rarity: rgb(99, 99, 99);
+  --deck-tile-fill: rgb(99, 99, 99);
+  --deck-tile-border: rgb(40, 40, 40);
+  --deck-tile-art: none;
+  --deck-tile-mana-w: 3ch;
+  --deck-tile-count-w: 2.2ch;
+  /* Natural height-fit width of a 256×59 tile ≈ 104px */
+  --deck-tile-art-w: 112px;
+  /* Drop the baked-in white left columns only */
+  --deck-tile-art-crop: 18px;
+  /* Keep clear face on the right; short blend on the left of the art */
+  --deck-tile-art-clear: 58px;
+  --deck-tile-art-blend: 26px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: var(--deck-tile-height);
+  margin: 0;
+  padding: 1px;
+  border: 1px solid var(--deck-tile-border);
+  box-sizing: content-box;
+  /* Vertical sheen over the flat class color = metal bar look */
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 45%, rgba(0, 0, 0, 0.28)),
+    var(--deck-tile-fill);
+  color: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: default;
+  overflow: hidden;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+}
+
+button.deck-tile {
+  cursor: pointer;
+}
+
+button.deck-tile:hover,
+button.deck-tile:focus-visible {
+  transform: translateX(2px);
+  filter: brightness(1.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(244, 207, 103, 0.6),
+    0 2px 8px rgba(0, 0, 0, 0.45);
+  outline: none;
+  z-index: 5;
+}
+
+button.deck-tile:hover .deck-tile__art,
+button.deck-tile:focus-visible .deck-tile__art {
+  filter: brightness(1.14) saturate(1.08);
+}
+
+.deck-tile.is-sideboard {
+  margin-left: 0.5rem;
+  width: calc(100% - 0.5rem);
+}
+
+.deck-tile.is-sideboard::before {
+  content: "";
+  position: absolute;
+  left: -0.5rem;
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(244, 207, 103, 0.7), rgba(169, 121, 29, 0.4));
+  border-radius: 2px;
+}
+
+.deck-tile__art {
+  position: absolute;
+  z-index: 1;
+  top: 1px;
+  right: var(--deck-tile-count-w);
+  /* Narrower than the bitmap → right-aligned image clips the white left edge */
+  width: calc(var(--deck-tile-art-w) - var(--deck-tile-art-crop));
+  height: calc(var(--deck-tile-height) - 2px);
+  overflow: hidden;
+  background-image: var(--deck-tile-art);
+  background-repeat: no-repeat;
+  background-position: right center;
+  background-size: auto 100%;
+  pointer-events: none;
+  transition: filter 120ms ease;
+}
+
+/* Class fill over the name; short blend into the art so the face stays open */
+.deck-tile__fade {
+  position: absolute;
+  z-index: 2;
+  top: 1px;
+  bottom: 1px;
+  left: var(--deck-tile-mana-w);
+  right: var(--deck-tile-count-w);
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    var(--deck-tile-fill) 0%,
+    var(--deck-tile-fill) calc(100% - var(--deck-tile-art-clear) - var(--deck-tile-art-blend)),
+    transparent calc(100% - var(--deck-tile-art-clear))
+  );
+}
+
+/* ── Mana crystal (blue, authentic HS) ── */
+.deck-tile__mana {
+  position: relative;
+  z-index: 4;
+  flex: 0 0 auto;
+  width: var(--deck-tile-mana-w);
+  min-width: 30px;
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  font-weight: 800;
+  font-size: 0.94rem;
+  line-height: 1;
+  color: #fff;
+  background:
+    radial-gradient(120% 90% at 50% 12%, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, var(--deck-mana-top), var(--deck-mana-bottom));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.5),
+    inset -1px 0 0 rgba(0, 0, 0, 0.4);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+}
+
+/* ── Count / rarity gem (right) ── */
+.deck-tile__count {
+  position: relative;
+  z-index: 4;
+  flex: 0 0 auto;
+  width: var(--deck-tile-count-w);
+  min-width: 26px;
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  font-weight: 800;
+  font-size: 0.9rem;
+  line-height: 1;
+  color: #fff;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 45%, rgba(0, 0, 0, 0.3)),
+    var(--deck-tile-rarity);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 1px 0 0 rgba(0, 0, 0, 0.4),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.45);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+}
+
+.deck-tile--legendary .deck-tile__count {
+  color: #fff6d8;
+  background:
+    radial-gradient(120% 90% at 50% 12%, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, var(--deck-gold), var(--deck-gold-deep));
+  text-shadow: 0 1px 2px rgba(90, 55, 0, 0.9);
+}
+
+.deck-tile__name {
+  position: relative;
+  z-index: 3;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  padding: 0 0.6ch;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.86rem;
+  font-weight: 750;
+  letter-spacing: 0.005em;
+  background: transparent;
+}
+
+/* ───────────────────────── Sideboard ───────────────────────── */
+.deck-list-view__sideboard {
+  margin: 0.35rem 0.4rem 0.5rem;
+}
+
+.deck-list-view__sideboard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.15rem 0.35rem;
+  color: var(--deck-gold);
+  font-size: 0.76rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.deck-list-view__sideboard-head::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 12px;
+  height: 1px;
+  margin-right: 0.15rem;
+  background: linear-gradient(90deg, var(--deck-gold), transparent);
+}
+
+.deck-list-view__sideboard-head span:first-of-type {
+  flex: 1 1 auto;
+}
+
+.deck-list-view__sideboard-head span:last-of-type {
+  flex: 0 0 auto;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #ffe9b8;
+}
+
+.deck-list-view__sideboard .deck-list-view__list {
+  max-height: none;
+  padding: 0.25rem 0.15rem 0.15rem;
+  background: none;
+  box-shadow: none;
+  gap: 1px;
+}
+
+/* ───────────────────────── Copy button ───────────────────────── */
+.deck-list-view__actions {
+  margin: 0.5rem;
+  padding: 0.2rem 0 0.35rem;
+}
+
+.deck-list-view__copy-btn {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgba(244, 207, 103, 0.4);
+  border-radius: 4px;
+  color: #fff2cf;
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.9rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 45%),
+    linear-gradient(180deg, #8a2328, #571117);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  transition: filter 120ms ease, transform 90ms ease;
+}
+
+.deck-list-view__copy-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.deck-list-view__copy-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.deck-list-view__copy-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
