@@ -51,11 +51,11 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
     ],
   },
   {
-    id: 'standard-matchups', version: 2, paths: ['/standard/matchups'], title: 'Как читать матчапы',
+    id: 'standard-matchups', version: 3, paths: ['/standard/matchups'], title: 'Как читать матчапы',
     steps: [
       { id: 'rank', target: 'matchups-rank', title: 'Выберите формат', description: 'Переключайтесь между Стандартом и Вольным режимом. Обе матрицы собраны для ранга Легенда.', audience: 'standard' },
       { id: 'picker', target: 'matchups-picker', title: 'Найдите свою колоду', description: 'Выберите здесь архетип, которым играете. Быстрый обзор ниже покажет его результаты против остальных колод меты.', audience: 'standard', preferredPlacement: 'bottom' },
-      { id: 'matrix', target: 'matchups-matrix', title: 'Как читать матрицу', description: 'Строка — ваша колода, столбец — соперник. На телефоне используйте быстрый просмотр выше, а полную матрицу листайте горизонтально.', audience: 'standard', preferredPlacement: 'top' },
+      { id: 'matrix', target: 'matchups-matrix', title: 'Интерактивная матрица', description: 'Откройте полную матрицу: строка — ваша колода, столбец — соперник. Нажмите на любую цветную ячейку, чтобы увидеть подробности матчапа. Названия соперников и горизонтальная прокрутка продублированы снизу.', mobileDescription: 'Откройте полную матрицу и нажмите на цветную ячейку — появится карточка матчапа. Нижняя строка повторяет названия соперников, а полосы сверху и снизу помогают листать таблицу.', audience: 'standard', preferredPlacement: 'top' },
       { id: 'summary', target: 'matchups-summary', title: 'Сильные и слабые соперники', description: 'В итоговой сводке ниже автоматически выделены лучшие и худшие встречи, чтобы быстрее выбрать колоду или подготовить план игры.', audience: 'standard', preferredPlacement: 'top' },
     ],
   },

@@ -187,6 +187,10 @@ function getStandardArchetypeLabel(name: string, label?: string): string {
   return label || STANDARD_ARCHETYPE_LABELS_RU[name] || name;
 }
 
+function isOtherStandardArchetype(name: string): boolean {
+  return /^other(?:\s|$)/i.test(name.trim());
+}
+
 function standardMatchupTone(value: number | null): React.CSSProperties {
   if (value === null) {
     return {
@@ -295,7 +299,7 @@ function StandardMatchupsPage() {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const cacheKey = `standard_matchups_ru_v6_${format}`;
+      const cacheKey = `standard_matchups_ru_v7_${format}`;
       const cached = cacheGet<StandardMatchupsData>(cacheKey);
       if (cached?.rows?.length) {
         setDatasets(current => ({
@@ -434,8 +438,26 @@ function StandardMatchupsPage() {
     };
   }, [activeMatrixMatchup, closeMatrixMatchup]);
 
-  const rows = useMemo(() => data.rows ?? [], [data.rows]);
-  const columns = useMemo(() => data.columns ?? [], [data.columns]);
+  const columns = useMemo(
+    () => (data.columns ?? []).filter(column => !isOtherStandardArchetype(column.name)),
+    [data.columns],
+  );
+  const visibleOpponentNames = useMemo(
+    () => new Set(columns.map(column => column.name)),
+    [columns],
+  );
+  const rows = useMemo(
+    () => (data.rows ?? [])
+      .filter(row => !isOtherStandardArchetype(row.archetype))
+      .map(row => ({
+        ...row,
+        cells: row.cells.filter(cell => (
+          !isOtherStandardArchetype(cell.opponent)
+          && visibleOpponentNames.has(cell.opponent)
+        )),
+      })),
+    [data.rows, visibleOpponentNames],
+  );
   const strongest = useMemo(() => {
     const candidates: StandardMatchupsRow[] = [];
     for (const row of rows) {
@@ -920,6 +942,33 @@ function StandardMatchupsPage() {
                     );
                   })}
                 </tbody>
+                <tfoot className="standard-matchups__matrix-footer">
+                  <tr>
+                    <th scope="col" className="text-left px-3 sm:px-4 py-3 min-w-[190px] sm:min-w-[250px]">
+                      <span className="block text-sm font-black">Соперники</span>
+                      <span className="standard-matchups__matrix-footer-hint block text-[11px] mt-0.5">нижняя панель архетипов</span>
+                    </th>
+                    {columns.map(column => {
+                      const columnLabel = getStandardArchetypeLabel(column.name, column.label);
+                      return (
+                        <th
+                          key={`footer-${column.name}`}
+                          scope="col"
+                          className="px-2 sm:px-3 py-3 text-center min-w-[96px] sm:min-w-[130px]"
+                          data-matchups-bottom-archetype={column.name}
+                        >
+                          <span
+                            className="block text-[10px] sm:text-xs leading-tight"
+                            title={columnLabel !== column.name ? `${columnLabel} (${column.name})` : column.name}
+                          >
+                            {columnLabel}
+                          </span>
+                          {column.popularity && <span className="standard-matchups__matrix-footer-popularity block text-[10px] mt-1">{column.popularity}</span>}
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </tfoot>
               </table>
               </div>
               <div

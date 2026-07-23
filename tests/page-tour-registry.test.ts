@@ -28,6 +28,14 @@ assert.deepEqual(
 );
 assert.equal(PAGE_TOURS.length, requiredTours.length, 'requiredTours must enumerate the complete page-tour registry');
 
+const matchupTour = PAGE_TOURS.find(tour => tour.id === 'standard-matchups');
+assert.ok(matchupTour && matchupTour.version >= 3, 'matchup interaction guidance must invalidate the older saved tour');
+assert.match(
+  matchupTour.steps.find(step => step.id === 'matrix')?.description ?? '',
+  /Нажмите на любую цветную ячейку/,
+  'the matchup tour must explain that matrix cells open matchup details',
+);
+
 for (const tour of PAGE_TOURS) {
   assert.ok(tour.version >= 1, `${tour.id}: version must be positive`);
   assert.ok(tour.paths.length >= 1, `${tour.id}: at least one path is required`);

@@ -785,6 +785,7 @@ const wildMatchupsFixture = {
     { name: 'Wild Control Rogue', label: 'Вольный Контроль Разбойник', popularity: '14,2%' },
     { name: 'Wild Reno Mage', label: 'Вольный Рено Маг', popularity: '8,1%' },
     { name: 'Wild Pirate Warrior', label: 'Вольный Пират Воин', popularity: '6,7%' },
+    { name: 'Other Rogue', label: 'Other Rogue', popularity: '2,4%' },
   ],
   rows: [
     {
@@ -795,6 +796,7 @@ const wildMatchupsFixture = {
         { opponent: 'Wild Control Rogue', opponentLabel: 'Вольный Контроль Разбойник', winrate: 50 },
         { opponent: 'Wild Reno Mage', opponentLabel: 'Вольный Рено Маг', winrate: 57.2 },
         { opponent: 'Wild Pirate Warrior', opponentLabel: 'Вольный Пират Воин', winrate: 45.4 },
+        { opponent: 'Other Rogue', opponentLabel: 'Other Rogue', winrate: 52.1 },
       ],
     },
     {
@@ -805,6 +807,7 @@ const wildMatchupsFixture = {
         { opponent: 'Wild Control Rogue', opponentLabel: 'Вольный Контроль Разбойник', winrate: 42.8 },
         { opponent: 'Wild Reno Mage', opponentLabel: 'Вольный Рено Маг', winrate: 50 },
         { opponent: 'Wild Pirate Warrior', opponentLabel: 'Вольный Пират Воин', winrate: 53.9 },
+        { opponent: 'Other Rogue', opponentLabel: 'Other Rogue', winrate: 48.4 },
       ],
     },
     {
@@ -815,6 +818,18 @@ const wildMatchupsFixture = {
         { opponent: 'Wild Control Rogue', opponentLabel: 'Вольный Контроль Разбойник', winrate: 54.6 },
         { opponent: 'Wild Reno Mage', opponentLabel: 'Вольный Рено Маг', winrate: 46.1 },
         { opponent: 'Wild Pirate Warrior', opponentLabel: 'Вольный Пират Воин', winrate: 50 },
+        { opponent: 'Other Rogue', opponentLabel: 'Other Rogue', winrate: 51.3 },
+      ],
+    },
+    {
+      archetype: 'Other Rogue',
+      archetypeLabel: 'Other Rogue',
+      winrate: 49.1,
+      cells: [
+        { opponent: 'Wild Control Rogue', opponentLabel: 'Вольный Контроль Разбойник', winrate: 47.9 },
+        { opponent: 'Wild Reno Mage', opponentLabel: 'Вольный Рено Маг', winrate: 51.6 },
+        { opponent: 'Wild Pirate Warrior', opponentLabel: 'Вольный Пират Воин', winrate: 48.7 },
+        { opponent: 'Other Rogue', opponentLabel: 'Other Rogue', winrate: 50 },
       ],
     },
   ],
@@ -3984,10 +3999,17 @@ for (const [device, viewport] of [
       topScrollbar: Boolean(document.querySelector('.standard-matchups__matrix-scrollbar--top')),
       bottomScrollbar: Boolean(document.querySelector('.standard-matchups__matrix-scrollbar--bottom')),
       interactiveCells: document.querySelectorAll('#matchups-matrix [data-matchup-cell]').length,
+      bottomArchetypes: document.querySelectorAll('#matchups-matrix [data-matchups-bottom-archetype]').length,
+      bottomPanelText: document.querySelector('#matchups-matrix tfoot')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      otherAggregateVisible: /Other\s+(?:DK|Priest|Rogue|Druid|Hunter|Mage|Paladin|Shaman|Warlock|Warrior)/i
+        .test(document.querySelector('#matchups-matrix')?.textContent || ''),
     }));
     if (matrixState.rowCount !== 3 || matrixState.columnCount !== 4
       || !matrixState.scrollable || !matrixState.firstRow.includes('Вольный Контроль Разбойник')
-      || !matrixState.topScrollbar || !matrixState.bottomScrollbar || matrixState.interactiveCells !== 9) {
+      || !matrixState.topScrollbar || !matrixState.bottomScrollbar || matrixState.interactiveCells !== 9
+      || matrixState.bottomArchetypes !== 3
+      || !matrixState.bottomPanelText.includes('Вольный Контроль Разбойник')
+      || matrixState.otherAggregateVisible) {
       failures.push(`standard matchups matrix [${device}]: on-demand Wild matrix is incomplete (${JSON.stringify(matrixState)})`);
     }
     const scrollbarSyncState = await page.evaluate(async () => {

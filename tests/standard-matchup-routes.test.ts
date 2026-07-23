@@ -2,9 +2,48 @@ import assert from 'node:assert/strict';
 import express, { type RequestHandler } from 'express';
 import {
   createStandardMatchupRouter,
+  excludeOtherStandardMatchups,
   type StandardMatchupFormat,
   type StandardMatchupRouterDependencies,
 } from '../server/standardMatchupRoutes.js';
+
+const filteredFixture = excludeOtherStandardMatchups({
+  columns: [
+    { name: 'Control Priest' },
+    { name: 'Other Priest' },
+    { name: 'Tempo Rogue' },
+    { name: 'Other DK' },
+  ],
+  rows: [
+    {
+      archetype: 'Control Priest',
+      cells: [
+        { opponent: 'Control Priest', winrate: 50 },
+        { opponent: 'Other Priest', winrate: 55 },
+        { opponent: 'Tempo Rogue', winrate: 47 },
+        { opponent: 'Other DK', winrate: 51 },
+      ],
+    },
+    { archetype: 'Other Priest', cells: [] },
+    { archetype: 'Other Rogue', cells: [] },
+    {
+      archetype: 'Tempo Rogue',
+      cells: [
+        { opponent: 'Control Priest', winrate: 53 },
+        { opponent: 'Other Priest', winrate: 45 },
+        { opponent: 'Tempo Rogue', winrate: 50 },
+        { opponent: 'Other DK', winrate: 49 },
+      ],
+    },
+  ],
+});
+assert.deepEqual(filteredFixture.columns.map((column: any) => column.name), ['Control Priest', 'Tempo Rogue']);
+assert.deepEqual(filteredFixture.rows.map((row: any) => row.archetype), ['Control Priest', 'Tempo Rogue']);
+assert.deepEqual(
+  filteredFixture.rows.map((row: any) => row.cells.map((cell: any) => cell.opponent)),
+  [['Control Priest', 'Tempo Rogue'], ['Control Priest', 'Tempo Rogue']],
+  'Other class aggregates must be removed from rows, columns and cells',
+);
 
 let now = 1_000;
 let redisMode: 'miss' | 'hit' | 'error' = 'miss';
@@ -28,7 +67,7 @@ const dependencies: StandardMatchupRouterDependencies = {
   redisGet: async key => {
     if (redisMode === 'error') throw new Error('redis secret');
     if (redisMode === 'hit') {
-      const format = key.endsWith('wild') ? 'wild' : 'standard';
+      const format = key.includes(':wild') ? 'wild' : 'standard';
       return {
         etag: `"redis-${format}"`,
         data: { rows: [{ id: format }], columns: ['one'], translationSource: 'redis', updatedAt: null },
@@ -121,12 +160,12 @@ try {
   const fromOrigin = await get('/standard/matchups?format=wild', { 'X-Test-Access': 'allowed' });
   assert.equal(fromOrigin.status, 200);
   assert.equal(fromOrigin.headers.get('x-data-cache'), 'origin');
-  assert.match(fromOrigin.headers.get('etag') || '', /^"standard-matchups-v5-wild-/);
+  assert.match(fromOrigin.headers.get('etag') || '', /^"standard-matchups-v6-wild-/);
   assert.equal((await fromOrigin.json() as any).rows[0].id, 'wild-row');
   await new Promise(resolve => setImmediate(resolve));
   assert.deepEqual(fetchFormats, ['wild']);
   assert.deepEqual(translationTimes, [1_000]);
-  assert.equal(redisWrites[0].key, 'standard:wild');
+  assert.equal(redisWrites[0].key, 'standard:wild:without-other-v1');
   assert.equal(redisWrites[0].ttl, 600);
   assert.equal(errors[0].scope, 'redis-read');
 

@@ -21,6 +21,42 @@ export type StandardMatchupRouterDependencies = {
   onError?: (scope: 'redis-read' | 'redis-write' | 'origin', error: unknown) => void;
 };
 
+function isOtherArchetype(value: unknown): boolean {
+  return /^other(?:\s|$)/i.test(String(value ?? '').trim());
+}
+
+export function excludeOtherStandardMatchups(data: any): any {
+  if (!data || typeof data !== 'object') return data;
+
+  const columns = Array.isArray(data.columns)
+    ? data.columns.filter((column: any) => !isOtherArchetype(column?.name ?? column))
+    : data.columns;
+  const visibleColumns = new Set(
+    Array.isArray(columns)
+      ? columns
+        .map((column: any) => String(column?.name ?? column ?? '').trim())
+        .filter(Boolean)
+      : [],
+  );
+  const rows = Array.isArray(data.rows)
+    ? data.rows
+      .filter((row: any) => !isOtherArchetype(row?.archetype))
+      .map((row: any) => {
+        if (!Array.isArray(row?.cells)) return row;
+        return {
+          ...row,
+          cells: row.cells.filter((cell: any) => {
+            const opponent = String(cell?.opponent ?? '').trim();
+            if (isOtherArchetype(opponent)) return false;
+            return !opponent || visibleColumns.size === 0 || visibleColumns.has(opponent);
+          }),
+        };
+      })
+    : data.rows;
+
+  return { ...data, columns, rows };
+}
+
 export function createStandardMatchupRouter(dependencies: StandardMatchupRouterDependencies): Router {
   const router = Router();
   const cacheHeader = dependencies.cacheHeader ?? 'public, max-age=3600, stale-while-revalidate=600';
@@ -31,19 +67,27 @@ export function createStandardMatchupRouter(dependencies: StandardMatchupRouterD
     const timestamp = now();
     const cached = dependencies.memoryCache.get(format);
     if (cached && cached.expiresAt > timestamp) {
-      return sendDatasetJsonCached(request, response, cached.data, cached.etag, cacheHeader, 'memory');
+      return sendDatasetJsonCached(
+        request,
+        response,
+        excludeOtherStandardMatchups(cached.data),
+        cached.etag,
+        cacheHeader,
+        'memory',
+      );
     }
 
-    const key = dependencies.redisKey(format);
+    const key = `${dependencies.redisKey(format)}:without-other-v1`;
     try {
       const redisCached = await dependencies.redisGet(key);
       if (redisCached) {
+        const filteredData = excludeOtherStandardMatchups(redisCached.data);
         dependencies.memoryCache.set(format, {
-          data: redisCached.data,
+          data: filteredData,
           etag: redisCached.etag,
           expiresAt: timestamp + dependencies.memoryTtlMs,
         });
-        return sendDatasetJsonCached(request, response, redisCached.data, redisCached.etag, cacheHeader, 'redis');
+        return sendDatasetJsonCached(request, response, filteredData, redisCached.etag, cacheHeader, 'redis');
       }
     } catch (error) {
       dependencies.onError?.('redis-read', error);
@@ -54,10 +98,10 @@ export function createStandardMatchupRouter(dependencies: StandardMatchupRouterD
         dependencies.fetchPayload(format),
         dependencies.getTranslations(timestamp),
       ]);
-      const data = dependencies.transform(payload, format, translations);
+      const data = excludeOtherStandardMatchups(dependencies.transform(payload, format, translations));
       const updatedMs = data.updatedAt ? Date.parse(data.updatedAt) : Number.NaN;
       const updatedToken = Number.isFinite(updatedMs) ? updatedMs.toString(36) : timestamp.toString(36);
-      const etag = `"standard-matchups-v5-${format}-${updatedToken}-${data.rows.length}-${data.columns.length}-${data.translationSource}"`;
+      const etag = `"standard-matchups-v6-${format}-${updatedToken}-${data.rows.length}-${data.columns.length}-${data.translationSource}"`;
       dependencies.memoryCache.set(format, {
         data,
         etag,
@@ -72,7 +116,7 @@ export function createStandardMatchupRouter(dependencies: StandardMatchupRouterD
         return sendDatasetJsonCached(
           request,
           response,
-          { ...cached.data, warning: 'stale' },
+          { ...excludeOtherStandardMatchups(cached.data), warning: 'stale' },
           cached.etag,
           cacheHeader,
           'memory-stale',
