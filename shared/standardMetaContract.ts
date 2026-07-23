@@ -9,7 +9,7 @@ export const STANDARD_META_DATASET = 'standard-meta';
 export const STANDARD_META_MEDIA_TYPE = 'application/vnd.manacost.standard-meta.v1+json';
 
 export type StandardMetaFormat = 'standard' | 'wild';
-export type StandardMetaRank = 'all' | 'legend' | 'diamond' | 'top_5k' | 'top_legend';
+export type StandardMetaRank = 'all' | 'legend' | 'diamond' | 'top_5k' | 'top_500' | 'top_100' | 'top_legend';
 export type StandardMetaPeriod = 'past_6_hours' | 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks';
 export type StandardMetaCoin = 'any_player';
 export type StandardMetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
@@ -49,7 +49,7 @@ export type StandardMetaData = {
 export type StandardMetaEnvelope = DatasetEnvelope<StandardMetaData>;
 
 const FORMATS = new Set<StandardMetaFormat>(['standard', 'wild']);
-const RANKS = new Set<StandardMetaRank>(['all', 'legend', 'diamond', 'top_5k', 'top_legend']);
+const RANKS = new Set<StandardMetaRank>(['all', 'legend', 'diamond', 'top_5k', 'top_500', 'top_100', 'top_legend']);
 const PERIODS = new Set<StandardMetaPeriod>(['past_6_hours', 'past_day', 'past_3_days', 'past_week', 'past_2_weeks']);
 const COINS = new Set<StandardMetaCoin>(['any_player']);
 const MIN_GAMES = new Set<StandardMetaMinGames>([100, 250, 500, 1000, 2500, 5000]);

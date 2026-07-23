@@ -1,10 +1,21 @@
 # HS-Arena Changelog
 
+## v1.0.2 - 2026-07-23
+
+- Renamed Standard meta rank «Высшая легенда» to «Топ-1000 легенда», made it the default rank, and lowered the default minimum-games filter to 100.
+
+## v1.0.1 - 2026-07-23
+
+- Expanded Standard/Wild meta rank filters with HSGuru profile ranks **Топ-100** and **Топ-500**, wired through the unified Firecrawl meta matrix API.
+
 ## v1.0.0 - 2026-07-05
 
 - Repeated opponent archetype headers at the bottom of the matchup matrix, removed aggregate `Other <class>` rows and columns, and refreshed the page tour to explain interactive cells and both horizontal controls.
 - Added synchronized horizontal controls above and below the full matchup matrix, plus keyboard-accessible, mobile-safe matchup cards on every cell using the Arena parchment, timber and red-cloth visual language.
 - Kept filtered matchup cards compact in responsive columns and removed the redundant lower matrix scrollbar.
+- Hardened the Fun/off-meta admin panel: local hs-data-api fetch, dedicated styles, and concept-v4 card-package detection (Reno/Quest/Yogg/Mecha’thun and related markers) with a refreshed 40+ deck list.
+- Added an administrator Fun/off-meta decks panel under «Данные и парсеры» with deck codes, format filters, copy buttons and hourly refresh cadence from `hsguru_fun_decks`.
+- Added an administrator-only «Конструктор колоды» page under Разное (`/deck-builder`): Russian HSGuru-style class/format picker and deck workspace, wooden timber/deck frames from `assets.md`, constructed-card catalog browsing, deck-code paste/copy and 30-card editing, with noindex SEO and nav visibility limited to admins.
 - Fixed the Standard/Wild matchup switch after an older API image dropped the Wild source, made format changes visibly stateful with actionable retry errors, and rebuilt the responsive page around a lightweight archetype overview, strength/search filters and an on-demand searchable full matrix.
 - Replaced the stale Standard-only matchup slices with daily Firecrawl-backed HSGuru Legend matrices for both Standard and Wild, using minimum samples of 100 archetype games and 25 matchup games; the Matchups page now switches formats while preserving cached, translated and responsive matrix views.
 - Fixed Standard meta deck recommendations that waited up to a minute and then cached a false “not found” result: exact HSGuru lookups now use the cached Firecrawl path with a bounded request, and transient upstream failures remain retryable instead of being treated as missing decks.

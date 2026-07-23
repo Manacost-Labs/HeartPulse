@@ -5,7 +5,7 @@ import { createStandardMetaEnvelope } from './standardMetaDataset.js';
 import { STANDARD_META_MEDIA_TYPE } from '../shared/standardMetaContract.js';
 
 export type StandardMetaFormat = 'standard' | 'wild';
-export type StandardMetaRank = 'all' | 'legend' | 'diamond' | 'top_5k' | 'top_legend';
+export type StandardMetaRank = 'all' | 'legend' | 'diamond' | 'top_5k' | 'top_500' | 'top_100' | 'top_legend';
 export type StandardMetaPeriod = 'past_6_hours' | 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks';
 export type StandardMetaCoin = 'any_player';
 export type StandardMetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
@@ -60,7 +60,7 @@ export type StandardMetaRouterDependencies = {
 };
 
 const FORMATS = new Set<StandardMetaFormat>(['standard', 'wild']);
-const RANKS = new Set<StandardMetaRank>(['all', 'legend', 'diamond', 'top_5k', 'top_legend']);
+const RANKS = new Set<StandardMetaRank>(['all', 'legend', 'diamond', 'top_5k', 'top_500', 'top_100', 'top_legend']);
 const PERIODS = new Set<StandardMetaPeriod>(['past_6_hours', 'past_day', 'past_3_days', 'past_week', 'past_2_weeks']);
 const COINS = new Set<StandardMetaCoin>(['any_player']);
 const MIN_GAMES = new Set<StandardMetaMinGames>([100, 250, 500, 1000, 2500, 5000]);

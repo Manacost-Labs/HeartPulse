@@ -32,7 +32,7 @@ import './StandardMeta.css';
 const StandardMetaChart = React.lazy(() => import('./StandardMetaChart'));
 
 type MetaFormat = 'standard' | 'wild';
-type MetaRank = 'all' | 'legend' | 'diamond' | 'top_5k' | 'top_legend';
+type MetaRank = 'all' | 'legend' | 'diamond' | 'top_5k' | 'top_500' | 'top_100' | 'top_legend';
 type MetaPeriod = 'past_6_hours' | 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks';
 type MetaCoin = 'any_player';
 type MetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
@@ -122,7 +122,9 @@ const RANKS: Array<{ id: MetaRank; label: string }> = [
   { id: 'legend', label: 'Легенда' },
   { id: 'diamond', label: 'Алмаз 4-1' },
   { id: 'top_5k', label: 'Топ-5000' },
-  { id: 'top_legend', label: 'Высшая легенда' },
+  { id: 'top_500', label: 'Топ-500' },
+  { id: 'top_100', label: 'Топ-100' },
+  { id: 'top_legend', label: 'Топ-1000 легенда' },
 ];
 
 const PERIODS: Array<{ id: MetaPeriod; label: string }> = [
@@ -138,11 +140,11 @@ const MIN_GAMES: MetaMinGames[] = [100, 250, 500, 1000, 2500, 5000];
 const EMPTY_DATA: MetaPayload = {
   format: 'standard',
   formatLabel: 'Стандарт',
-  rank: 'legend',
-  rankLabel: 'Легенда',
+  rank: 'top_legend',
+  rankLabel: 'Топ-1000 легенда',
   period: 'past_6_hours',
   coin: 'any_player',
-  minGames: 500,
+  minGames: 100,
   source: 'hsguru',
   sourceUrl: '',
   translationSource: '',
@@ -322,10 +324,10 @@ export function DeckModal({ state, onClose, onRenderPreview }: { state: DeckModa
 
 function StandardMetaContent() {
   const [format, setFormat] = useState<MetaFormat>('standard');
-  const [rank, setRank] = useState<MetaRank>('legend');
+  const [rank, setRank] = useState<MetaRank>('top_legend');
   const [period, setPeriod] = useState<MetaPeriod>('past_6_hours');
   const coin: MetaCoin = 'any_player';
-  const [minGames, setMinGames] = useState<MetaMinGames>(500);
+  const [minGames, setMinGames] = useState<MetaMinGames>(100);
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
   const [view, setView] = useState<MetaView>('cards');

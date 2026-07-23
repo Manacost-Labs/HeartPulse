@@ -4417,6 +4417,8 @@ const STANDARD_META_DATASET_BY_FORMAT_RANK: Record<StandardMetaFormat, Record<St
     legend: 'hsguru_meta_standard_legend',
     diamond: 'hsguru_meta_standard_diamond_4to1',
     top_5k: 'hsguru_meta_standard_top_5k',
+    top_500: 'hsguru_meta_standard_top_legend',
+    top_100: 'hsguru_meta_standard_top_legend',
     top_legend: 'hsguru_meta_standard_top_legend',
   },
   wild: {
@@ -4424,6 +4426,8 @@ const STANDARD_META_DATASET_BY_FORMAT_RANK: Record<StandardMetaFormat, Record<St
     legend: 'hsguru_meta_wild_legend',
     diamond: 'hsguru_meta_wild_diamond_4to1',
     top_5k: 'hsguru_meta_wild_top_5k',
+    top_500: 'hsguru_meta_wild_top_legend',
+    top_100: 'hsguru_meta_wild_top_legend',
     top_legend: 'hsguru_meta_wild_top_legend',
   },
 };
@@ -4436,7 +4440,9 @@ const STANDARD_META_RANK_LABEL: Record<StandardMetaRank, string> = {
   legend: 'Легенда',
   diamond: 'Алмаз 4-1',
   top_5k: 'Топ-5000',
-  top_legend: 'Высшая легенда',
+  top_500: 'Топ-500',
+  top_100: 'Топ-100',
+  top_legend: 'Топ-1000 легенда',
 };
 const HSGURU_STREAMER_DECKS_DATASET = 'hsguru_streamer_decks_legend_1000';
 const VICIOUS_SYNDICATE_LIVE_DATASET = 'vicious_syndicate_live_beta';
@@ -6485,6 +6491,8 @@ const STANDARD_META_HSGURU_RANK: Record<StandardMetaRank, string> = {
   legend: 'legend',
   diamond: 'diamond_4to1',
   top_5k: 'top_5k',
+  top_500: 'top_500',
+  top_100: 'top_100',
   top_legend: 'top_legend',
 };
 
