@@ -550,6 +550,73 @@ function bgLightboxItem(item: any, list: BattlegroundTierListKey, tier: string, 
   };
 }
 
+type BattlegroundStrategyPreviewGroup = {
+  key: 'core' | 'addon';
+  label: string;
+  cards: any[];
+};
+
+type BattlegroundStrategyPreviewEntry = {
+  groupKey: 'core' | 'addon';
+  groupLabel: string;
+  card: any;
+  thumb: string;
+  lightbox: BattlegroundLightboxItem;
+};
+
+/** Same grouping as strategy card tiles — keep lightbox keys in sync with clicks. */
+function bgStrategyPreviewGroups(item: any): BattlegroundStrategyPreviewGroup[] {
+  const allCards = Array.isArray(item?.cards) ? item.cards : [];
+  const coreCards = (
+    Array.isArray(item?.coreCards)
+      ? item.coreCards
+      : allCards.filter((card: any) => String(card?.role || '').toUpperCase() === 'CORE')
+  ).slice(0, 6);
+  const additionalCards = (
+    Array.isArray(item?.additionalCards)
+      ? item.additionalCards
+      : allCards.filter((card: any) => String(card?.role || '').toUpperCase() !== 'CORE')
+  ).slice(0, 8);
+  return [
+    { key: 'core' as const, label: 'Ключевые', cards: coreCards },
+    { key: 'addon' as const, label: 'Дополнительные', cards: additionalCards },
+  ].filter((group) => group.cards.length > 0);
+}
+
+function bgStrategyPreviewEntries(entry: any, tier: string): BattlegroundStrategyPreviewEntry[] {
+  const strategyTitle = bgItemTitle(entry);
+  const metric = bgMetricLine(entry, 'strategies');
+  const strategyKey = entry?.key || entry?.title;
+  const items: BattlegroundStrategyPreviewEntry[] = [];
+  bgStrategyPreviewGroups(entry).forEach((group) => {
+    group.cards.forEach((card: any, cardIdx: number) => {
+      const thumb = card.frame || card.card || card.fallback || '';
+      const cardImage = card.card || card.frame || card.fallback || '';
+      if (!cardImage && !thumb) return;
+      const rawText = String(card.ruText || card.text || '');
+      items.push({
+        groupKey: group.key,
+        groupLabel: group.label,
+        card,
+        thumb: thumb || cardImage,
+        lightbox: {
+          key: `strategy-${tier}-${strategyKey}-${group.key}-${card.id || card.name}-${cardIdx}`,
+          title: bgItemTitle(card),
+          image: cardImage || thumb,
+          kicker: `${tier}-тир · ${strategyTitle}`,
+          meta: [group.label, metric].filter(Boolean).join(' · '),
+          text: /[А-Яа-яЁё]/.test(rawText) ? rawText : '',
+        },
+      });
+    });
+  });
+  return items;
+}
+
+function bgStrategyLightboxItems(entry: any, tier: string): BattlegroundLightboxItem[] {
+  return bgStrategyPreviewEntries(entry, tier).map((item) => item.lightbox);
+}
+
 function BattlegroundHeroHoverCard({ card, label, className = '' }: { card: BattlegroundHeroRelatedCard; label: string; className?: string }) {
   const image = card.image || card.imageGold || card.cropImage || '';
   if (!image) return null;
@@ -2247,7 +2314,16 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen, to
   const metric = bgMetricLine(item, list);
   const chips = bgStatChips(item, list);
   if (list === 'strategies') {
-    const cards = Array.isArray(item?.cards) ? item.cards.slice(0, 4) : [];
+    const previewEntries = bgStrategyPreviewEntries(item, tier);
+    const previewGroups = previewEntries.reduce<Array<{ key: string; label: string; entries: BattlegroundStrategyPreviewEntry[] }>>((groups, entry) => {
+      const existing = groups.find((group) => group.key === entry.groupKey);
+      if (existing) {
+        existing.entries.push(entry);
+        return groups;
+      }
+      groups.push({ key: entry.groupKey, label: entry.groupLabel, entries: [entry] });
+      return groups;
+    }, []);
     return (
       <article
         data-bg-strategy-highlight={highlighted ? 'true' : undefined}
@@ -2270,40 +2346,30 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen, to
             </span>
           )}
         </div>
-        {cards.length > 0 && (
-          <div className="mt-3 grid grid-cols-4 gap-1.5 sm:grid-cols-6 lg:grid-cols-8">
-            {cards.map((card: any, idx: number) => {
-              const cardThumb = card.frame || card.card || card.fallback;
-              const cardImage = card.card || card.frame || card.fallback;
-              const cardTitle = bgItemTitle(card);
-              const lightboxItem: BattlegroundLightboxItem = {
-                key: `strategy-${tier}-${item.key || item.title}-${card.id || card.name}-${idx}`,
-                title: cardTitle,
-                image: cardImage,
-                kicker: `${tier}-тир · ${title}`,
-                meta: [card.role ? `Роль: ${card.role}` : '', metric].filter(Boolean).join(' · '),
-                text: /[А-Яа-яЁё]/.test(String(card.ruText || card.text || '')) ? String(card.ruText || card.text || '') : '',
-              };
-              return (
-              <button
-                key={`${card.id || card.name}-${idx}`}
-                type="button"
-                onClick={() => onOpen(lightboxItem)}
-                className="group rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b58a2f] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fff7e6]"
-                title={cardTitle}
-              >
-                <img
-                  src={cardThumb}
-                  alt={cardTitle}
-                  loading="lazy"
-                  decoding="async"
-                  className="aspect-[3/4] w-full rounded-md object-cover shadow-[0_2px_8px_rgba(0,0,0,0.25)] transition-transform duration-200 group-hover:-translate-y-0.5"
-                />
-              </button>
-              );
-            })}
+        {previewGroups.map((group) => (
+          <div key={group.key} className="mt-3">
+            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-[#8b6c42]">{group.label}</p>
+            <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6 lg:grid-cols-8">
+              {group.entries.map((entry) => (
+                <button
+                  key={entry.lightbox.key}
+                  type="button"
+                  onClick={() => onOpen(entry.lightbox)}
+                  className="group rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b58a2f] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fff7e6]"
+                  title={entry.lightbox.title}
+                >
+                  <img
+                    src={entry.thumb}
+                    alt={entry.lightbox.title}
+                    loading="lazy"
+                    decoding="async"
+                    className="aspect-[3/4] w-full rounded-md object-cover shadow-[0_2px_8px_rgba(0,0,0,0.25)] transition-transform duration-200 group-hover:-translate-y-0.5"
+                  />
+                </button>
+              ))}
+            </div>
           </div>
-        )}
+        ))}
       </article>
     );
   }
@@ -2504,18 +2570,7 @@ function BattlegroundTierList() {
       const items = Array.isArray(displayedTiers[tier]) ? displayedTiers[tier] : [];
       items.forEach((entry: any, idx: number) => {
         if (activeList === 'strategies') {
-          (Array.isArray(entry.cards) ? entry.cards : []).forEach((card: any, cardIdx: number) => {
-            const cardImage = card.card || card.frame || card.fallback;
-            if (!cardImage) return;
-            gallery.push({
-              key: `strategy-${tier}-${entry.key || entry.title}-${card.id || card.name}-${cardIdx}`,
-              title: bgItemTitle(card),
-              image: cardImage,
-              kicker: `${tier}-тир · ${bgItemTitle(entry)}`,
-              meta: [card.role ? `Роль: ${card.role}` : '', bgMetricLine(entry, activeList)].filter(Boolean).join(' · '),
-              text: card.ruText || card.text || '',
-            });
-          });
+          gallery.push(...bgStrategyLightboxItems(entry, tier));
         } else {
           const lightboxEntry = bgLightboxItem(entry, activeList, tier, idx);
           if (lightboxEntry) gallery.push(lightboxEntry);
@@ -2523,10 +2578,15 @@ function BattlegroundTierList() {
       });
     });
 
-    const nextItems = gallery.length ? gallery : [item];
-    const foundIndex = nextItems.findIndex(entry => entry.key === item.key);
-    setLightboxItems(nextItems);
-    setLightboxIndex(foundIndex >= 0 ? foundIndex : 0);
+    const foundIndex = gallery.findIndex(entry => entry.key === item.key);
+    if (foundIndex >= 0) {
+      setLightboxItems(gallery);
+      setLightboxIndex(foundIndex);
+      return;
+    }
+    // Key miss (stale UI / schema drift): still open the clicked card, not gallery[0].
+    setLightboxItems(gallery.length ? [item, ...gallery.filter(entry => entry.key !== item.key)] : [item]);
+    setLightboxIndex(0);
   }, [activeList, displayedTiers]);
 
   useEffect(() => {
