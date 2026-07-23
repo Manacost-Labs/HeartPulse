@@ -4063,6 +4063,7 @@ for (const [device, viewport] of [
     await page.screenshot({ path: `${OUT}/standard-matchups-tooltip-${device}.png`, fullPage: false });
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => !document.querySelector('#standard-matchups-cell-dialog'));
+    await page.waitForFunction(() => document.activeElement?.hasAttribute('data-matchup-cell'));
     const tooltipKeyboardState = await page.evaluate(() => ({
       restoredFocus: document.activeElement?.hasAttribute('data-matchup-cell') ?? false,
       expandedCells: document.querySelectorAll('#matchups-matrix [data-matchup-cell][aria-expanded="true"]').length,
@@ -4070,6 +4071,25 @@ for (const [device, viewport] of [
     if (!tooltipKeyboardState.restoredFocus || tooltipKeyboardState.expandedCells !== 0) {
       failures.push(`standard matchups tooltip keyboard [${device}]: Escape did not close and restore focus (${JSON.stringify(tooltipKeyboardState)})`);
     }
+    await page.$eval('#matchups-matrix tfoot', element => element.scrollIntoView({ block: 'end' }));
+    await new Promise(resolve => setTimeout(resolve, 180));
+    const bottomPanelState = await page.evaluate(() => {
+      const matrix = document.querySelector('#matchups-matrix');
+      const footer = matrix?.querySelector('tfoot');
+      const matrixRect = matrix?.getBoundingClientRect();
+      const footerRect = footer?.getBoundingClientRect();
+      return {
+        visible: Boolean(matrixRect && footerRect
+          && footerRect.bottom > matrixRect.top
+          && footerRect.top < matrixRect.bottom),
+        sticky: footer ? getComputedStyle(footer.querySelector('th')).position === 'sticky' : false,
+        labels: footer?.querySelectorAll('[data-matchups-bottom-archetype]').length ?? 0,
+      };
+    });
+    if (!bottomPanelState.visible || !bottomPanelState.sticky || bottomPanelState.labels !== 3) {
+      failures.push(`standard matchups bottom archetypes [${device}]: repeated footer is not visible or sticky (${JSON.stringify(bottomPanelState)})`);
+    }
+    await page.screenshot({ path: `${OUT}/standard-matchups-bottom-${device}.png`, fullPage: false });
     await auditAccessibility(page, `standard matchups Wild matrix [${device}]`, '.standard-matchups');
     await page.screenshot({ path: `${OUT}/standard-matchups-wild-${device}.png`, fullPage: false });
     await page.goto(`${BASE}/standard/vicious-gold`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
