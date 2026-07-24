@@ -314,6 +314,15 @@ function CardStatsPanel({ analysis }: { analysis: ConstructedAnalysis | null }) 
     [analysis?.cardStats, sort],
   );
   const visibleRows = showAll ? rows : rows.slice(0, 15);
+  const selectedPreviewCard = useMemo(() => (
+    selectedCard?.cardId
+      ? {
+        id: selectedCard.cardId,
+        name: selectedCard.cardName,
+        imageUrl: cardRenderUrl(selectedCard.cardId),
+      }
+      : null
+  ), [selectedCard]);
   const changeSort = (key: HsguruCardStatSortKey) => {
     setSort(current => current.key === key
       ? { key, direction: current.direction === 'desc' ? 'asc' : 'desc' }
@@ -387,8 +396,8 @@ function CardStatsPanel({ analysis }: { analysis: ConstructedAnalysis | null }) 
           </div>
 
           <div className="constructed-card-stats__mobile">
-            <div className="constructed-card-stats__mobile-sort" role="group" aria-label="Сортировка статистики карт">
-              <span>Сортировать</span>
+            <fieldset className="constructed-card-stats__mobile-sort">
+              <legend>Сортировать</legend>
               {MOBILE_METRICS.map(metric => (
                 <button
                   key={metric.key}
@@ -400,7 +409,7 @@ function CardStatsPanel({ analysis }: { analysis: ConstructedAnalysis | null }) 
                   <ArrowDownUp aria-hidden="true" />
                 </button>
               ))}
-            </div>
+            </fieldset>
             <ol className="constructed-card-stats__cards">
               {visibleRows.map((row, index) => (
                 <li key={`mobile-${row.cardId || row.dbfId || `${row.cardName}-${index}`}`}>
@@ -444,14 +453,10 @@ function CardStatsPanel({ analysis }: { analysis: ConstructedAnalysis | null }) 
         ) : null}
       </footer>
       {preview ? <CardPreviewTooltip preview={preview} /> : null}
-      {selectedCard?.cardId ? (
+      {selectedPreviewCard ? (
         <React.Suspense fallback={null}>
           <CardPreviewSheet
-            card={{
-              id: selectedCard.cardId,
-              name: selectedCard.cardName,
-              imageUrl: cardRenderUrl(selectedCard.cardId),
-            }}
+            card={selectedPreviewCard}
             onClose={() => setSelectedCard(null)}
           />
         </React.Suspense>

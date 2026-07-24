@@ -574,14 +574,17 @@ button.constructed-card-tile:focus-visible .constructed-card-tile__art {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.35rem;
-    margin-bottom: 0.55rem;
+    min-width: 0;
+    margin: 0 0 0.55rem;
     padding: 0.55rem;
     border: 1px solid rgba(92, 54, 24, 0.22);
     background: rgba(255, 248, 219, 0.56);
   }
 
-  .constructed-card-stats__mobile-sort > span {
+  .constructed-card-stats__mobile-sort > legend {
     grid-column: 1 / -1;
+    width: 100%;
+    padding: 0 0 0.2rem;
     color: var(--archetype-muted);
     font-size: 0.58rem;
     font-weight: 900;
