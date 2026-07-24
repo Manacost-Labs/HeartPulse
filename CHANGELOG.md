@@ -1,5 +1,10 @@
 # HS-Arena Changelog
 
+## v1.0.39 - 2026-07-24
+
+- Replaced the Windows-only Claude post-push review agent with a deterministic Linux command hook that validates standalone successful pushes, the GitHub origin, and the exact published SHA before reviewing; it uses Claude when an Anthropic runtime is configured and falls back to the authenticated Codex commit reviewer otherwise.
+- Added secret-path/content guards, duplicate-comment prevention, bounded review output, and a no-post dry-run test integrated into the project test suite.
+
 ## v1.0.38 - 2026-07-24
 
 - Connected the shared Miro board as mandatory visual context for AI-agent work on layouts, UX, navigation, mockups, and project diagrams.
