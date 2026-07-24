@@ -375,7 +375,7 @@
       "path": "/standard/meta",
       "access": "subscriber",
       "state": "content",
-      "ready": { "selector": ".standard-meta-card", "text": "Чётный Чернокнижник" },
+      "ready": { "selector": ".archetype-row", "text": "Чётный Чернокнижник" },
       "capture": { "mode": "viewport", "anchor": "top" },
       "checks": ["overflow", "runtime-errors", "axe", "targets"],
       "representative": true

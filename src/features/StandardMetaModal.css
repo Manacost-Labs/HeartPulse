@@ -1,0 +1,76 @@
+.standard-meta-modal {
+  --meta-purple: #4a2f66;
+  --meta-gold: #d9ab49;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.standard-meta-modal__backdrop { position: absolute; inset: 0; border: 0; background: rgba(20, 8, 18, 0.78); backdrop-filter: blur(8px); }
+.standard-meta-modal__panel {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(100%, 820px);
+  height: min(620px, 100%);
+  max-height: 100%;
+  padding: clamp(0.7rem, 1.7vw, 1.2rem);
+  overflow: hidden;
+  border: 14px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
+  color: #f2dba9;
+  background: linear-gradient(140deg, rgba(48, 7, 13, 0.86), rgba(44, 23, 61, 0.74)), url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.5);
+}
+
+.standard-meta-modal__close { position: absolute; top: 0.75rem; right: 0.75rem; z-index: 2; display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid rgba(239, 197, 104, 0.45); color: #ffe9b6; background: rgba(35, 3, 8, 0.64); cursor: pointer; }
+.standard-meta-modal__header { display: flex; gap: 0.7rem; align-items: center; padding-right: 3rem; padding-bottom: 0.65rem; border-bottom: 1px solid rgba(239, 197, 104, 0.22); }
+.standard-meta-modal__header img { width: 52px; height: 52px; filter: drop-shadow(0 5px 7px rgba(0, 0, 0, 0.38)); }
+.standard-meta-modal__eyebrow { color: var(--meta-gold); font-size: 0.6rem; font-weight: 900; letter-spacing: 0.1em; }
+.standard-meta-modal__header h2 { margin: 0.08rem 0 0; color: #fff0c4; font-family: var(--font-display); font-size: clamp(1.45rem, 3vw, 2.15rem); line-height: 1; }
+.standard-meta-modal__header p { margin: 0.1rem 0 0; color: #caa875; }
+.standard-meta-modal__content { display: grid; grid-template-columns: minmax(0, 1fr) minmax(195px, 0.3fr); grid-template-rows: auto minmax(0, 1fr); gap: 0.75rem; min-height: 0; overflow: hidden; padding-top: 0.75rem; }
+.standard-meta-modal__presentation { display: inline-flex; grid-column: 1 / -1; justify-self: center; padding: 0.2rem; border: 1px solid rgba(239, 197, 104, 0.34); background: rgba(24, 2, 8, 0.42); }
+.standard-meta-modal__presentation button { display: inline-flex; gap: 0.38rem; align-items: center; justify-content: center; min-height: 44px; padding: 0.45rem 0.8rem; border: 1px solid transparent; color: #d8ba84; background: transparent; font-size: 0.7rem; font-weight: 900; }
+.standard-meta-modal__presentation button[aria-pressed='true'] { border-color: rgba(239, 197, 104, 0.55); color: #fff0c4; background: var(--meta-purple); }
+.standard-meta-modal__image-stage { display: grid; place-items: center; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: auto; padding: 0.45rem; border: 6px solid transparent; border-image: url('/wallpaper/deck-border.png') 28 stretch; background: rgba(25, 4, 10, 0.45); }
+.standard-meta-modal__image-stage img { display: block; width: 100%; max-width: 100%; height: 100%; max-height: 100%; object-fit: contain; }
+.standard-meta-modal__image-link { position: relative; display: grid; place-items: center; width: 100%; height: 100%; color: #fff0c4; text-decoration: none; }
+.standard-meta-modal__image-link > span { position: absolute; right: 0.65rem; bottom: 0.65rem; display: inline-flex; gap: 0.35rem; align-items: center; padding: 0.48rem 0.65rem; border: 1px solid rgba(239, 197, 104, 0.48); background: rgba(25, 3, 9, 0.82); font-size: 0.7rem; font-weight: 900; }
+.standard-meta-modal__details { display: grid; align-content: start; gap: 0.65rem; min-width: 0; min-height: 0; overflow-y: auto; }
+.standard-meta-modal__deck-meta { display: flex; flex-wrap: wrap; gap: 0.55rem; }
+.standard-meta-modal__deck-meta span { display: inline-flex; gap: 0.35rem; align-items: center; padding: 0.45rem 0.65rem; border: 1px solid rgba(239, 197, 104, 0.24); color: #e6ca93; background: rgba(31, 3, 8, 0.35); font-size: 0.7rem; }
+.standard-meta-modal__code-block { display: grid; gap: 0.4rem; padding: 0.65rem 0.75rem; border: 1px solid rgba(239, 197, 104, 0.28); background: rgba(24, 2, 8, 0.42); }
+.standard-meta-modal__code-block > span { color: var(--meta-gold); font-size: 0.65rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
+.standard-meta-modal__code-block code { display: block; max-height: 5.2rem; overflow: auto; color: #f7e7bd; font-size: 0.68rem; line-height: 1.45; overflow-wrap: anywhere; white-space: normal; user-select: all; }
+.standard-meta-modal__status { display: grid; place-items: center; gap: 0.45rem; min-height: 190px; padding: 1.5rem; color: #e8cc96; text-align: center; }
+.standard-meta-modal__status--full { align-self: stretch; min-height: 0; }
+.standard-meta-modal__status strong { color: #fff0c4; font-family: var(--font-display); font-size: 1.2rem; }
+.standard-meta-modal__status span { max-width: 470px; color: #caa875; font-size: 0.8rem; }
+.standard-meta-modal__status--warning { color: #efc568; }
+.standard-meta-modal__copy-button { display: inline-flex; gap: 0.5rem; align-items: center; justify-content: center; min-height: 48px; padding: 0.65rem 1rem; border: 1px solid rgba(239, 197, 104, 0.58); color: #fff0c4; background: var(--meta-purple); font-size: 0.78rem; font-weight: 900; cursor: pointer; }
+.standard-meta-modal__copy-button--copied { border-color: rgba(202, 230, 160, 0.72); background: #35512f; }
+.standard-meta-modal__spinner { animation: standard-meta-modal-spin 850ms linear infinite; }
+@keyframes standard-meta-modal-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 720px) {
+  .standard-meta-modal { padding: 0.5rem; }
+  .standard-meta-modal__panel { width: min(100%, 440px); height: min(640px, 100%); padding: 0.48rem; border-width: 6px; }
+  .standard-meta-modal__close { top: 0.42rem; right: 0.42rem; width: 44px; height: 44px; }
+  .standard-meta-modal__header { min-height: 54px; padding-right: 3.05rem; }
+  .standard-meta-modal__header img { width: 38px; height: 38px; }
+  .standard-meta-modal__content { display: flex; flex-direction: column; gap: 0.55rem; overflow-y: auto; }
+  .standard-meta-modal__image-stage { flex: 0 0 clamp(270px, 43dvh, 390px); height: auto; padding: 0.18rem; border-width: 5px; }
+  .standard-meta-modal__details { flex: 0 0 auto; overflow: visible; }
+  .standard-meta-modal__copy-button { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .standard-meta-modal__spinner { animation-duration: 1.8s; }
+}

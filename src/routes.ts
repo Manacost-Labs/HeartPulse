@@ -67,7 +67,7 @@ export const TABS = [
     id: 'standard-matchups', label: 'Матчапы', icon: Swords, slug: '/standard/matchups', group: 'standard', entitlement: 'standard',
   },
   {
-    id: 'standard-meta', label: 'Мета', icon: ChartNoAxesCombined, slug: '/standard/meta', group: 'standard', entitlement: 'standard',
+    id: 'standard-meta', label: 'Архетипы', icon: ChartNoAxesCombined, slug: '/standard/meta', group: 'standard', entitlement: 'standard',
   },
   {
     id: 'standard-vicious-gold', label: 'Vicious Syndicate Gold', icon: Crown, slug: '/standard/vicious-gold', group: 'standard', entitlement: 'standard',

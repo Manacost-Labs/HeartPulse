@@ -1400,7 +1400,7 @@ export default function App() {
   const isBattlegroundsSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && BG_TAB_IDS.has(activeTab);
   const isOpenSurfacePage = !isAdminMode && (!routeSurfaceAvailable || activeTab === 'home' || wantsLogin || isEditorialSurfacePage || isGameDataSurfacePage || isBattlegroundsSurfacePage);
   const standardPage = activeTab === 'standard-meta'
-    ? <LazyStandardMetaPage />
+    ? <LazyStandardMetaPage currentPath={currentPath} navigatePath={navigatePath} />
     : activeTab === 'standard-vicious-gold'
       ? <LazyViciousSyndicateGoldPage />
       : <LazyStandardCardsPage

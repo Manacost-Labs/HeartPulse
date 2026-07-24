@@ -134,6 +134,24 @@
       "entitlement": "standard"
     },
     {
+      "id": "standard-meta-detail",
+      "pattern": "/standard/meta/:format/:archetypeSlug",
+      "kind": "detail",
+      "owner": "traditional-data",
+      "indexPolicy": "noindex-follow",
+      "canonicalPolicy": "self",
+      "sitemap": false,
+      "htmlStrategy": "spa-shell",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "standard-meta-anonymous",
+      "entitlement": "standard",
+      "pathParameters": {
+        "format": { "allowedValues": ["standard", "wild"] },
+        "archetypeSlug": { "pattern": "^[a-z0-9][a-z0-9-]{0,119}$" }
+      }
+    },
+    {
       "id": "standard-vicious-gold",
       "pattern": "/standard/vicious-gold",
       "kind": "static",

@@ -66,6 +66,13 @@ import {
   type StandardMetaRecommendation,
 } from './standardMetaRoutes.js';
 import {
+  createConstructedArchetypeRouter,
+  constructedArchetypeSlug,
+  type ConstructedArchetypeCatalog,
+  type ConstructedArchetypeFormat,
+  type ConstructedArchetypeHistoryPoint,
+} from './constructedArchetypeRoutes.js';
+import {
   cacheSuccessfulRecommendation,
   type StandardMetaRecommendationCacheEntry,
 } from './standardMetaRecommendationCache.js';
@@ -231,6 +238,8 @@ const tierlistApiCache = new Map<string, MemoryCacheEntry>();
 const legendariesApiCache = new Map<string, MemoryCacheEntry>();
 const standardMatchupsApiCache = new Map<string, MemoryCacheEntry>();
 const standardMetaApiCache = new Map<string, MemoryCacheEntry>();
+const constructedArchetypeCatalogCache = new Map<string, MemoryCacheEntry>();
+const constructedArchetypeHistoryCache = new Map<string, MemoryCacheEntry>();
 const viciousSyndicateGoldApiCache = new Map<string, MemoryCacheEntry>();
 const standardMetaRecommendationCache = new Map<string, StandardMetaRecommendationCacheEntry<StandardMetaRecommendation>>();
 const standardMetaRecommendationJobs = new Map<string, Promise<StandardMetaRecommendation | null>>();
@@ -441,6 +450,7 @@ const KOLODAHS_API_BASE_URL = (process.env.KOLODAHS_API_BASE_URL || 'https://db.
 const OLD_GUIDES_DB_FILE = process.env.OLD_GUIDES_DB_FILE || '/var/www/koloda/data/old-sites/kolodahearthstone.ru_old/db/guides.sqlite';
 const OLD_GUIDES_PUBLIC_URL = (process.env.OLD_GUIDES_PUBLIC_URL || 'https://old.kolodahearthstone.ru').replace(/\/$/, '');
 const EXTRA_BG_LIBRARY_ENDPOINTS: Record<string, string> = {
+  heroes: '/heroes',
   anomaly: '/anomalies',
   quest: '/quests',
   darkmoon_prize: '/darkmoon-prizes',
@@ -6105,6 +6115,111 @@ async function loadStandardMeta(
   }
 }
 
+async function loadConstructedArchetypeCatalog(
+  format: ConstructedArchetypeFormat,
+): Promise<ConstructedArchetypeCatalog> {
+  const now = Date.now();
+  const cached = constructedArchetypeCatalogCache.get(format);
+  if (cached && cached.expiresAt > now) return cached.data as ConstructedArchetypeCatalog;
+  const query = new URLSearchParams({
+    format,
+    min_games: '50',
+    has_decks: 'true',
+    sort: 'games',
+    order: 'desc',
+    limit: '500',
+  });
+  const [payload, translations] = await Promise.all([
+    fetchDataset(`v1/hsguru/archetypes?${query}`, 20_000),
+    getStandardArchetypeTranslations(),
+  ]);
+  const items = (Array.isArray(payload?.data) ? payload.data : []).flatMap((row: any) => {
+    const archetype = String(row?.archetype ?? '').trim().replace(/\s+/g, ' ');
+    if (!archetype) return [];
+    const archetypeLabel = translateStandardArchetype(archetype, translations.map);
+    const builds = (Array.isArray(row?.decks) ? row.decks : []).flatMap((deck: any) => {
+      const deckCode = String(deck?.deck_code ?? '').trim();
+      if (!deckCode) return [];
+      return [{
+        deckCode,
+        games: parseCount(deck?.games),
+        winrate: parseNumber(deck?.win_rate),
+        sourceUrl: String(deck?.url ?? ''),
+        updatedAt: String(deck?.updated_at ?? '') || null,
+        classKey: normalizeStandardMetaClass(deck?.class) ?? inferStandardMetaClass(archetype),
+        sampleRank: String(deck?.sample_rank ?? 'all'),
+        samplePeriod: String(deck?.sample_period ?? 'past_30_days'),
+      }];
+    }).sort((left: any, right: any) => (right.games ?? -1) - (left.games ?? -1));
+    return [{
+      slug: constructedArchetypeSlug(archetype),
+      archetype,
+      archetypeLabel,
+      translated: archetypeLabel !== archetype,
+      classKey: inferStandardMetaClass(archetype)
+        ?? normalizeStandardMetaClass(builds[0]?.classKey),
+      format,
+      games: parseCount(row?.games) ?? 0,
+      winrate: parseNumber(row?.winrate),
+      popularity: parseNumber(row?.popularity_pct),
+      turns: parseNumber(row?.avg_turns),
+      durationMinutes: parseNumber(row?.avg_duration_minutes),
+      climbingSpeed: parseNumber(row?.climbing_speed_stars_per_hour),
+      deckCount: builds.length,
+      builds,
+      sourceUrl: String(row?.archetype_url ?? row?.source_url ?? ''),
+    }];
+  });
+  const criteria = payload?.criteria && typeof payload.criteria === 'object' ? payload.criteria : {};
+  const catalog: ConstructedArchetypeCatalog = {
+    format,
+    formatLabel: STANDARD_META_FORMAT_LABEL[format],
+    patch: String(criteria.period ?? '').replace(/^patch_/, ''),
+    minimumGames: parseCount(criteria.minimum_games) ?? 50,
+    updatedAt: String(payload?.meta?.fetched_at ?? '') || null,
+    coverage: payload?.coverage && typeof payload.coverage === 'object' ? payload.coverage : {},
+    items,
+  };
+  constructedArchetypeCatalogCache.set(format, {
+    data: catalog,
+    etag: catalog.updatedAt ?? `hsguru-${format}`,
+    expiresAt: now + EXTERNAL_DATASET_CACHE_MS,
+  });
+  return catalog;
+}
+
+async function loadConstructedArchetypeHistory(
+  format: ConstructedArchetypeFormat,
+  archetype: string,
+): Promise<ConstructedArchetypeHistoryPoint[]> {
+  const cacheKey = `${format}:${archetype}`;
+  const now = Date.now();
+  const cached = constructedArchetypeHistoryCache.get(cacheKey);
+  if (cached && cached.expiresAt > now) return cached.data as ConstructedArchetypeHistoryPoint[];
+  const query = new URLSearchParams({ format, archetype, limit: '180' });
+  const payload = await fetchDataset(`v1/hsguru/archetypes/history?${query}`, 20_000);
+  const points = (Array.isArray(payload?.data) ? payload.data : []).flatMap((row: any) => {
+    const recordedAt = String(row?.recorded_at ?? '');
+    if (!recordedAt || !Number.isFinite(Date.parse(recordedAt))) return [];
+    return [{
+      recordedAt,
+      games: parseCount(row?.games) ?? 0,
+      winrate: parseNumber(row?.winrate),
+      popularity: parseNumber(row?.popularity_pct),
+      turns: parseNumber(row?.avg_turns),
+      durationMinutes: parseNumber(row?.avg_duration_minutes),
+      climbingSpeed: parseNumber(row?.climbing_speed_stars_per_hour),
+    }];
+  });
+  points.sort((left, right) => Date.parse(left.recordedAt) - Date.parse(right.recordedAt));
+  constructedArchetypeHistoryCache.set(cacheKey, {
+    data: points,
+    etag: points.at(-1)?.recordedAt ?? `hsguru-history-${format}`,
+    expiresAt: now + EXTERNAL_DATASET_CACHE_MS,
+  });
+  return points;
+}
+
 type ViciousGoldBuild = Omit<StandardMetaRecommendation, 'matchMethod'> & {
   matchedArchetype: string;
   matchMethod: 'exact' | 'alias';
@@ -7247,6 +7362,17 @@ app.use('/api', createStandardMetaRouter({
   setPrivateNoStore,
   onError: (scope, error) => console.error(
     `[standard-meta] ${scope} failed:`,
+    error instanceof Error ? error.message : error,
+  ),
+}));
+
+app.use('/api', createConstructedArchetypeRouter({
+  accessGuard: requireStandardAccess,
+  loadCatalog: loadConstructedArchetypeCatalog,
+  loadHistory: loadConstructedArchetypeHistory,
+  setPrivateNoStore,
+  onError: (scope, error) => console.error(
+    `[constructed-archetypes] ${scope} failed:`,
     error instanceof Error ? error.message : error,
   ),
 }));
@@ -9046,6 +9172,8 @@ async function invalidateParserControlledDataCaches(): Promise<void> {
       legendariesApiCache,
       standardMatchupsApiCache,
       standardMetaApiCache,
+      constructedArchetypeCatalogCache,
+      constructedArchetypeHistoryCache,
       viciousSyndicateGoldApiCache,
       battlegroundAppProxyCache,
     ],

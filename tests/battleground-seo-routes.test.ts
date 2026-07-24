@@ -56,6 +56,39 @@ const catalog = {
   },
 };
 
+const duoCatalog = {
+  type: 'bg_heroes',
+  mode: 'duos',
+  heroes: [
+    {
+      hero: 'Madam Goya',
+      dbfId: 107183,
+      id: 'BGDUO_HERO_104',
+      tier: 'A',
+      pick_rate: privateSentinels[0],
+      placement_distribution: [privateSentinels[1]],
+    },
+  ],
+};
+
+const duoLibraryHero = {
+  data: [
+    {
+      card_id: 'BGDUO_HERO_104',
+      dbf: 107183,
+      name: { ru: 'Мадам Гойя', en: 'Madam Goya' },
+      images: { hero: 'https://cdn.example.test/heroes/madam-goya.png' },
+      hero_power: {
+        card: {
+          name: 'Выгодный обмен',
+          text: '<b>Передает</b> незолотое существо.',
+          image: 'https://cdn.example.test/cards/madam-goya-power.png',
+        },
+      },
+    },
+  ],
+};
+
 const frontendAssets = [
   '<script type="module" crossorigin src="/assets/index-safe.js"></script>',
   '<link rel="stylesheet" crossorigin href="/assets/index-safe.css">',
@@ -67,7 +100,10 @@ const app = express();
 app.use(createBattlegroundHeroSeoRouter({
   fetchImpl: async (url, init) => {
     calls.push({ url: String(url), init });
-    return new Response(JSON.stringify(catalog), {
+    const payload = String(url).includes('db.kolodahs.ru')
+      ? duoLibraryHero
+      : (String(url).includes('mode=duos') ? duoCatalog : catalog);
+    return new Response(JSON.stringify(payload), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -176,6 +212,15 @@ try {
   assert.match(unsafeImageHtml, /https:\/\/arena\.hs-manacost\.ru\/assets\/og-preview\.png/,
     'unsafe hero and hero-power image schemes must use the public fallback');
   assertNoPrivateData(unsafeImageHtml, 'unsafe-image hero');
+
+  const duoHero = await fetch(`${origin}/heroes/107183/`);
+  assert.equal(duoHero.status, 200);
+  const duoHeroHtml = await duoHero.text();
+  assert.match(duoHeroHtml, /<h1>Мадам Гойя<\/h1>/);
+  assert.match(duoHeroHtml, /Выгодный обмен/);
+  assert.match(duoHeroHtml, /Передает незолотое существо\./);
+  assert.match(duoHeroHtml, /https:\/\/cdn\.example\.test\/heroes\/madam-goya\.png/);
+  assertNoPrivateData(duoHeroHtml, 'duo hero');
 
   const missing = await fetch(`${origin}/heroes/999999/`);
   assert.equal(missing.status, 404);

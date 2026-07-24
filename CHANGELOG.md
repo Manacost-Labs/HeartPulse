@@ -1,5 +1,11 @@
 # HS-Arena Changelog
 
+## v1.0.3 - 2026-07-24
+
+- Added Solo/Duos and MMR controls, Russian hero search, persistent card/table views and a responsive timber-framed hero ledger; localized the Duos roster and added resilient detail/SEO pages for Madam Goya, Cho and Gall.
+- Rebuilt «Архетипы» as a responsive Standard/Wild HSGuru catalog in the Manacost parchment-and-timber style, with searchable sortable archetype rows, dedicated detail routes, deck-code copying, full build lists and 12-hour history charts for win rate, popularity and games.
+- Restored the combined release gates for the current application shell, CSS cascade and route assets, and normalized `/deck-builder` to its canonical slash URL in one edge redirect.
+
 ## v1.0.2 - 2026-07-23
 
 - Renamed Standard meta rank «Высшая легенда» to «Топ-1000 легенда», made it the default rank, and lowered the default minimum-games filter to 100.

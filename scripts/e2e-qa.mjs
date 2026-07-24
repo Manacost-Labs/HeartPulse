@@ -116,6 +116,65 @@ const qaClasses = [
   ['druid', 'Друид', '#704a16', 44.3],
   ['warrior', 'Воин', '#7a1e1e', 43.2],
 ].map(([id, name, color, winrate], index) => ({ id, name, color, winrate, games: 1500 - index * 50 }));
+const qaArchetypeItems = [
+  ['qa-evenlock', 'Evenlock', 'Чётный Чернокнижник', 'warlock', 6476, 61.1, 5.9, 14],
+  ['qa-painlock', 'Painlock', 'Пейнлок', 'warlock', 536, 60.4, 0.5, 7],
+  ['qa-handbuff-warrior', 'Handbuff Warrior', 'Воин на усилениях', 'warrior', 136, 58.1, 0.1, 5],
+  ['qa-mug-shaman', 'Mug Shaman', 'Кружечный Шаман', 'shaman', 3736, 56.8, 3.4, 9],
+  ['qa-face-hunter', 'Face Hunter', 'Фейс Охотник', 'hunter', 2980, 55.3, 2.7, 8],
+].map(([slug, archetype, archetypeLabel, classKey, games, winrate, popularity, deckCount]) => ({
+  slug,
+  archetype,
+  archetypeLabel,
+  translated: true,
+  classKey,
+  format: 'standard',
+  games,
+  winrate,
+  popularity,
+  turns: 6.2,
+  durationMinutes: 5.3,
+  climbingSpeed: 2.49,
+  deckCount,
+  builds: [],
+  sourceUrl: `https://www.hsguru.com/archetype/${archetype}`,
+}));
+const qaArchetypeBuilds = Array.from({ length: 14 }, (_, index) => ({
+  deckCode: `AAECAf0GQaFixtureArchetypeDeckCode${index + 1}ForBrowserQualityAssurance==`,
+  games: 1200 - index * 45,
+  winrate: 61.1 - index * 0.3,
+  sourceUrl: `https://www.hsguru.com/deck/${index + 1}`,
+  updatedAt: '2026-07-24T00:00:00.000Z',
+  classKey: 'warlock',
+  sampleRank: 'all',
+  samplePeriod: 'past_30_days',
+}));
+const qaArchetypeCatalog = {
+  format: 'standard',
+  formatLabel: 'Стандарт',
+  patch: '36.0.3',
+  minimumGames: 50,
+  updatedAt: '2026-07-24T00:00:00.000Z',
+  coverage: { archetypes: qaArchetypeItems.length, builds: 43 },
+  items: qaArchetypeItems,
+};
+const qaArchetypeDetail = {
+  format: 'standard',
+  formatLabel: 'Стандарт',
+  patch: '36.0.3',
+  minimumGames: 50,
+  updatedAt: '2026-07-24T00:00:00.000Z',
+  item: { ...qaArchetypeItems[0], builds: qaArchetypeBuilds },
+  history: Array.from({ length: 4 }, (_, index) => ({
+    recordedAt: `2026-07-${String(21 + index).padStart(2, '0')}T00:00:00.000Z`,
+    games: 5900 + index * 192,
+    winrate: 59.9 + index * 0.4,
+    popularity: 5.3 + index * 0.2,
+    turns: 6.2,
+    durationMinutes: 5.3,
+    climbingSpeed: 2.49,
+  })),
+};
 const fixtures = {
   '/api/home/summary': {
     topClasses: qaClasses.slice(0, 3),
@@ -208,6 +267,25 @@ const fixtures = {
       updated_at: '2026-07-11T00:00:00.000Z',
     },
     cards: {},
+  },
+  '/api/bg/library/extra/heroes': {
+    data: [{
+      card_id: 'BG_HERO_QA_9001',
+      dbf: 9001,
+      name: { ru: 'Контрольный герой', en: 'QA Hero' },
+      images: { hero: qaCard.imageRu, full_art: qaCard.imageRu },
+      hero_power: {
+        card: {
+          dbf: 9002,
+          name: 'Контрольная сила героя',
+          text: 'Даёт преимущество.',
+          image: qaCard.imageRu,
+        },
+      },
+      armor: { normal: 10, duos: 8 },
+      updated_at: '2026-07-11T00:00:00.000Z',
+    }],
+    pagination: { page: 1, perPage: 200, total: 1, totalPages: 1 },
   },
   '/api/bg/library/meta': {
     creature_types: [{ slug: 'beast', name_ru: 'Зверь' }],
@@ -1308,6 +1386,26 @@ async function mockApplicationApi(page, {
       request.respond(jsonResponse({
         preview: { hash: `qa-${deckId}`, state: 'done', ready: true, imageUrl: '/ad/wallpaper_info.webp', error: null },
       }));
+      return;
+    }
+    if (url.pathname === '/api/constructed-archetypes' && request.method() === 'GET') {
+      if (adminState.standardMetaReadFailureOnce) {
+        adminState.standardMetaReadFailureOnce = false;
+        adminState.standardMetaReadFailures = (adminState.standardMetaReadFailures || 0) + 1;
+        request.respond({ ...jsonResponse({ error: 'Контрольная ошибка загрузки меты' }), status: 503 });
+        return;
+      }
+      const requestedFormat = url.searchParams.get('format') === 'wild' ? 'wild' : 'standard';
+      request.respond(jsonResponse({
+        ...qaArchetypeCatalog,
+        format: requestedFormat,
+        formatLabel: requestedFormat === 'wild' ? 'Вольный' : 'Стандарт',
+        items: qaArchetypeCatalog.items.map(item => ({ ...item, format: requestedFormat })),
+      }));
+      return;
+    }
+    if (url.pathname === '/api/constructed-archetypes/standard/qa-evenlock' && request.method() === 'GET') {
+      request.respond(jsonResponse(qaArchetypeDetail));
       return;
     }
     if ((url.pathname === '/api/standard-meta' || (admin && url.pathname === '/api/admin/standard-meta'))
@@ -3614,6 +3712,114 @@ for (const [device, viewport] of [
     adminState.profileSaveFailure = false;
     const profileViolationCount = await auditAccessibility(page, `profile [${device}]`, '.profile-page');
     await page.screenshot({ path: `${OUT}/profile-${device}.png`, fullPage: false });
+
+    adminState.standardMetaReadFailureOnce = true;
+    await page.click('[data-profile-admin-destination="standard-meta"]');
+    await page.waitForFunction(() => window.location.pathname.replace(/\/+$/, '') === '/standard/meta');
+    await page.waitForSelector('.archetypes-page [data-recovery-state="error"]', { timeout: 20_000 });
+    await page.evaluate(() => { window.__qaStandardMetaDocumentMarker = 'preserve-on-retry'; });
+    const metaErrorState = await page.evaluate(() => {
+      const state = document.querySelector('.archetypes-page [data-recovery-state="error"]');
+      const retry = state?.querySelector('button');
+      return {
+        role: state?.getAttribute('role') || '',
+        text: state?.textContent?.replace(/\s+/g, ' ').trim() || '',
+        retryHeight: retry?.getBoundingClientRect().height ?? 0,
+        shellVisible: Boolean(document.querySelector('.arena-sidebar') && document.querySelector('.global-utility-header')),
+      };
+    });
+    if (metaErrorState.role !== 'alert' || !metaErrorState.text.includes('Контрольная ошибка загрузки меты')
+      || metaErrorState.retryHeight < 43.5 || !metaErrorState.shellVisible || adminState.standardMetaReadFailures !== 1) {
+      failures.push(`archetype catalog recovery [${device}]: API error did not stay local or actionable (${JSON.stringify(metaErrorState)})`);
+    }
+    await page.click('.archetypes-page [data-recovery-state="error"] button');
+    await page.waitForSelector('.archetype-row', { timeout: 20_000 });
+    const metaRetryState = await page.evaluate(() => ({
+      marker: window.__qaStandardMetaDocumentMarker || '',
+      errorPresent: Boolean(document.querySelector('.archetypes-page [data-recovery-state="error"]')),
+      shellRecoveryPresent: Boolean(document.querySelector('.app-error-shell')),
+    }));
+    if (metaRetryState.marker !== 'preserve-on-retry' || metaRetryState.errorPresent || metaRetryState.shellRecoveryPresent) {
+      failures.push(`archetype catalog recovery [${device}]: retry reloaded the document or opened shell recovery (${JSON.stringify(metaRetryState)})`);
+    }
+    const archetypeCatalogState = await page.evaluate(() => {
+      const root = document.querySelector('.archetypes-page');
+      const hero = document.querySelector('.archetypes-hero');
+      const search = document.querySelector('.archetypes-search input');
+      const formatButtons = [...document.querySelectorAll('.archetypes-format-switch button')];
+      const openButtons = [...document.querySelectorAll('.archetype-row__open')];
+      return {
+        heading: root?.querySelector('h1')?.textContent?.trim() || '',
+        rows: document.querySelectorAll('.archetype-row').length,
+        formats: formatButtons.length,
+        summaryItems: document.querySelectorAll('.archetypes-hero__summary div').length,
+        heroHeight: hero?.getBoundingClientRect().height ?? 0,
+        searchFontSize: search ? parseFloat(getComputedStyle(search).fontSize) : 0,
+        smallestFormatTarget: Math.min(...formatButtons.map(button => button.getBoundingClientRect().height)),
+        smallestOpenTarget: Math.min(...openButtons.map(button => button.getBoundingClientRect().height)),
+        rootOverflow: (root?.scrollWidth ?? 0) > (root?.clientWidth ?? 0) + 1,
+        documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      };
+    });
+    if (!archetypeCatalogState.heading.includes('Архетипы') || archetypeCatalogState.rows !== qaArchetypeItems.length
+      || archetypeCatalogState.formats !== 2 || archetypeCatalogState.summaryItems !== 3
+      || archetypeCatalogState.heroHeight < 120 || archetypeCatalogState.heroHeight > 620
+      || (device === 'mobile' && archetypeCatalogState.searchFontSize < 16)
+      || archetypeCatalogState.smallestFormatTarget < 44 || archetypeCatalogState.smallestOpenTarget < 42
+      || archetypeCatalogState.rootOverflow || archetypeCatalogState.documentOverflow) {
+      failures.push(`archetype catalog [${device}]: layout, content or controls regressed (${JSON.stringify(archetypeCatalogState)})`);
+    }
+    const standardMetaTourViolationCount = await auditPageTour(page, {
+      label: `archetype catalog [${device}]`,
+      expectedSteps: 3,
+      mobile: device === 'mobile',
+    });
+    const standardMetaViolationCount = await auditAccessibility(page, `archetype catalog [${device}]`, '.archetypes-page');
+    await page.screenshot({ path: `${OUT}/archetype-catalog-${device}.png`, fullPage: false });
+
+    await page.click('.archetype-row__open');
+    await page.waitForSelector('.archetype-detail-page .archetype-trend', { timeout: 20_000 });
+    const archetypeDetailState = await page.evaluate(() => {
+      const root = document.querySelector('.archetype-detail-page');
+      const copyButton = document.querySelector('.archetype-main-build .archetype-copy-button');
+      return {
+        title: root?.querySelector('h1')?.textContent?.trim() || '',
+        charts: root?.querySelectorAll('.archetype-trend').length ?? 0,
+        builds: root?.querySelectorAll('.archetype-build-row').length ?? 0,
+        code: root?.querySelector('.archetype-main-build code')?.textContent || '',
+        copyHeight: copyButton?.getBoundingClientRect().height ?? 0,
+        documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      };
+    });
+    if (!archetypeDetailState.title.includes('Чётный') || archetypeDetailState.charts !== 3
+      || archetypeDetailState.builds !== 12 || !archetypeDetailState.code.startsWith('AA')
+      || archetypeDetailState.copyHeight < 42 || archetypeDetailState.documentOverflow) {
+      failures.push(`archetype detail [${device}]: charts, builds, code or containment regressed (${JSON.stringify(archetypeDetailState)})`);
+    }
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: async value => { window.__qaCopiedDeckCode = value; } },
+      });
+    });
+    await page.click('.archetype-main-build .archetype-copy-button');
+    await page.waitForFunction(() => document.querySelector('.archetype-main-build .archetype-copy-button')
+      ?.getAttribute('aria-label') === 'Код колоды скопирован');
+    const archetypeCopyState = await page.evaluate(() => ({
+      label: document.querySelector('.archetype-main-build .archetype-copy-button')?.getAttribute('aria-label') || '',
+      value: window.__qaCopiedDeckCode || '',
+    }));
+    if (archetypeCopyState.label !== 'Код колоды скопирован' || !archetypeCopyState.value.startsWith('AA')) {
+      failures.push(`archetype detail [${device}]: deck code copy did not expose success (${JSON.stringify(archetypeCopyState)})`);
+    }
+    await page.click('.archetype-builds__more');
+    await page.waitForFunction(() => document.querySelectorAll('.archetype-build-row').length === 14);
+    await auditAccessibility(page, `archetype detail [${device}]`, '.archetype-detail-page');
+    await page.screenshot({ path: `${OUT}/archetype-detail-${device}.png`, fullPage: false });
+    await page.click('.archetype-breadcrumb a');
+    await page.waitForSelector('.archetype-row', { timeout: 20_000 });
+
+    /* Legacy Standard Meta dashboard QA retained as migration context.
     adminState.standardMetaReadFailureOnce = true;
     await page.click('[data-profile-admin-destination="standard-meta"]');
     await page.waitForFunction(() => window.location.pathname.replace(/\/+$/, '') === '/standard/meta');
@@ -3951,6 +4157,7 @@ for (const [device, viewport] of [
     }
     await page.click('.standard-meta-modal__close');
     if (device === 'mobile') await page.setViewport(viewport);
+    */
     await page.goto(`${BASE}/standard/matchups`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('[data-tour-id="matchups-matrix"]', { timeout: 20_000 });
     const standardMatchupsTourViolationCount = await auditPageTour(page, {
@@ -4617,39 +4824,30 @@ for (const width of [320, 430]) {
   await mockApplicationApi(page, { authenticated: true, admin: true, adminState: {} });
   try {
     await page.goto(`${BASE}/standard/meta`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForSelector('[data-meta-view="cards"]', { timeout: 20_000 });
+    await page.waitForSelector('.archetype-row', { timeout: 20_000 });
     const metaNarrowState = await page.evaluate(() => {
-      const root = document.querySelector('.standard-meta');
-      const hero = document.querySelector('.standard-meta__masthead');
-      const search = document.querySelector('.standard-meta__search input');
-      const viewButtons = [...document.querySelectorAll('.standard-meta__view-switch button')];
+      const root = document.querySelector('.archetypes-page');
+      const hero = document.querySelector('.archetypes-hero');
+      const search = document.querySelector('.archetypes-search input');
+      const formatButtons = [...document.querySelectorAll('.archetypes-format-switch button')];
+      const openButtons = [...document.querySelectorAll('.archetype-row__open')];
       return {
         rootOverflow: (root?.scrollWidth ?? 0) > (root?.clientWidth ?? 0) + 1,
         documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
         heroHeight: hero?.getBoundingClientRect().height ?? 0,
         searchFontSize: search ? parseFloat(getComputedStyle(search).fontSize) : 0,
-        smallestViewTarget: Math.min(...viewButtons.map(button => button.getBoundingClientRect().height)),
+        smallestFormatTarget: Math.min(...formatButtons.map(button => button.getBoundingClientRect().height)),
+        smallestOpenTarget: Math.min(...openButtons.map(button => button.getBoundingClientRect().height)),
+        rows: document.querySelectorAll('.archetype-row').length,
       };
     });
-    if (metaNarrowState.rootOverflow || metaNarrowState.documentOverflow || metaNarrowState.heroHeight > 320
-      || metaNarrowState.searchFontSize < 16 || metaNarrowState.smallestViewTarget < 44) {
-      failures.push(`standard meta [${width}px]: narrow mobile layout regressed (${JSON.stringify(metaNarrowState)})`);
+    if (metaNarrowState.rootOverflow || metaNarrowState.documentOverflow || metaNarrowState.heroHeight > 620
+      || metaNarrowState.searchFontSize < 16 || metaNarrowState.smallestFormatTarget < 44
+      || metaNarrowState.smallestOpenTarget < 42 || metaNarrowState.rows !== qaArchetypeItems.length) {
+      failures.push(`archetype catalog [${width}px]: narrow mobile layout regressed (${JSON.stringify(metaNarrowState)})`);
     }
-    await page.click('[data-meta-view="table"]');
-    const tableNarrowState = await page.evaluate(() => {
-      const wrapper = document.querySelector('.standard-meta-table-wrap');
-      const firstCell = document.querySelector('.standard-meta-table__archetype');
-      return {
-        internallyScrollable: (wrapper?.scrollWidth ?? 0) > (wrapper?.clientWidth ?? 0),
-        documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
-        sticky: firstCell ? getComputedStyle(firstCell).position : '',
-      };
-    });
-    if (!tableNarrowState.internallyScrollable || tableNarrowState.documentOverflow || tableNarrowState.sticky !== 'sticky') {
-      failures.push(`standard meta table [${width}px]: narrow containment regressed (${JSON.stringify(tableNarrowState)})`);
-    }
-    await auditAccessibility(page, `standard meta narrow ${width}px`, '.standard-meta');
-    await page.screenshot({ path: `${OUT}/standard-meta-table-${width}px.png`, fullPage: false });
+    await auditAccessibility(page, `archetype catalog narrow ${width}px`, '.archetypes-page');
+    await page.screenshot({ path: `${OUT}/archetype-catalog-${width}px.png`, fullPage: false });
 
     await page.goto(`${BASE}/standard/vicious-gold`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.vsgold__panel', { timeout: 20_000 });

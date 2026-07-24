@@ -6,7 +6,18 @@ import '../route-parchment.css';
 import './Battlegrounds.css';
 import '../battlegrounds-shell.css';
 import '../battlegrounds-parchment.css';
-import { ChevronLeft, ChevronRight, ExternalLink, Pause, Play, Search, Volume2, X } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  LayoutGrid,
+  List,
+  Pause,
+  Play,
+  Search,
+  Volume2,
+  X,
+} from 'lucide-react';
 
 const BG_FALLBACK_ICON = '/arena-logo-icon.webp?v=mana-swirl-20260624';
 
@@ -23,6 +34,20 @@ function formatDate(iso: string | null): string {
 type BattlegroundTierListKey = 'minions' | 'strategies' | 'spells' | 'trinkets';
 type BattlegroundStrategySource = 'hsreplay' | 'firestone';
 type BattlegroundTierCache = Record<string, any>;
+type BattlegroundHeroMode = 'solo' | 'duos';
+type BattlegroundHeroMmr = 'TOP_50_PERCENT' | 'TOP_20_PERCENT' | 'TOP_5_PERCENT' | 'TOP_1_PERCENT';
+type BattlegroundHeroView = 'grid' | 'table';
+
+const BG_HERO_MODES: Array<{ id: BattlegroundHeroMode; label: string; hint: string }> = [
+  { id: 'solo', label: 'Соло', hint: 'Обычные матчи' },
+  { id: 'duos', label: 'Дуо', hint: 'Командные матчи' },
+];
+const BG_HERO_MMR_OPTIONS: Array<{ id: BattlegroundHeroMmr; label: string }> = [
+  { id: 'TOP_50_PERCENT', label: 'Топ 50%' },
+  { id: 'TOP_20_PERCENT', label: 'Топ 20%' },
+  { id: 'TOP_5_PERCENT', label: 'Топ 5%' },
+  { id: 'TOP_1_PERCENT', label: 'Топ 1%' },
+];
 
 type BattlegroundLightboxItem = {
   key: string;
@@ -111,11 +136,13 @@ const BG_TIER_BADGES: Record<string, string> = {
 
 interface BattlegroundHeroTierEntry {
   name: string;
+  originalName?: string;
   popularity?: string;
   averagePlace?: string;
   image: string;
   dbfId?: number;
   placementDistribution?: string[];
+  bestComposition?: string;
   sourceId?: string;
   heroPower?: BattlegroundHeroRelatedCard | null;
 }
@@ -145,6 +172,82 @@ interface BattlegroundHeroTierSection {
 
 const BG_HEROES_CLIENT_CACHE = new Map<string, { sections: BattlegroundHeroTierSection[]; sourceLabel: string }>();
 const BG_HERO_DETAIL_CLIENT_CACHE = new Map<string, BattlegroundHeroDetailPayload>();
+const BG_DUO_FALLBACK_DETAIL_IDS = new Set(['107183', '104981', '104982']);
+let bgHeroLibraryClientCache: Map<number, any> | null = null;
+let bgHeroLibraryRequest: Promise<Map<number, any>> | null = null;
+let bgHeroImageMapClientCache: Record<string, string> | null = null;
+
+function bgHeroModeFromValue(value: unknown): BattlegroundHeroMode {
+  return String(value || '').toLowerCase() === 'duos' ? 'duos' : 'solo';
+}
+
+function bgHeroMmrFromValue(value: unknown): BattlegroundHeroMmr {
+  const normalized = String(value || '').toUpperCase();
+  return BG_HERO_MMR_OPTIONS.some(option => option.id === normalized)
+    ? normalized as BattlegroundHeroMmr
+    : 'TOP_50_PERCENT';
+}
+
+function bgHeroViewFromValue(value: unknown): BattlegroundHeroView {
+  return String(value || '').toLowerCase() === 'table' ? 'table' : 'grid';
+}
+
+function bgHeroListUrlState(): {
+  mode: BattlegroundHeroMode;
+  mmr: BattlegroundHeroMmr;
+  view: BattlegroundHeroView;
+  search: string;
+} {
+  const params = new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search);
+  return {
+    mode: bgHeroModeFromValue(params.get('mode')),
+    mmr: bgHeroMmrFromValue(params.get('mmr')),
+    view: bgHeroViewFromValue(params.get('view')),
+    search: String(params.get('q') || '').slice(0, 120),
+  };
+}
+
+function bgHeroApiUrl(mode: BattlegroundHeroMode, mmr: BattlegroundHeroMmr): string {
+  const params = new URLSearchParams({ mode, mmr });
+  return `/api/bg/heroes?${params.toString()}`;
+}
+
+async function bgLoadHeroLibrary(): Promise<Map<number, any>> {
+  if (bgHeroLibraryClientCache) return bgHeroLibraryClientCache;
+  if (bgHeroLibraryRequest) return bgHeroLibraryRequest;
+
+  bgHeroLibraryRequest = fetch('/api/bg/library/extra/heroes?per_page=200')
+    .then(async response => {
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error || 'Русская библиотека героев недоступна');
+      const rows = Array.isArray(payload?.data) ? payload.data : [];
+      const index = new Map<number, any>();
+      rows.forEach((hero: any) => {
+        const dbfId = Number(hero?.dbf ?? hero?.dbfId);
+        if (Number.isFinite(dbfId)) index.set(dbfId, hero);
+      });
+      if (!index.size) throw new Error('Русская библиотека героев вернула пустой список');
+      bgHeroLibraryClientCache = index;
+      return index;
+    })
+    .finally(() => {
+      bgHeroLibraryRequest = null;
+    });
+  return bgHeroLibraryRequest;
+}
+
+async function bgLoadHeroImageMap(): Promise<Record<string, string>> {
+  if (bgHeroImageMapClientCache) return bgHeroImageMapClientCache;
+  try {
+    const response = await fetch('/bg-legacy/hero-tiers-data.js?v=heroes-20260626');
+    if (!response.ok) return {};
+    const parsed = parseLegacyHeroStatic(await response.text());
+    bgHeroImageMapClientCache = parsed.imageByDbfId || {};
+    return bgHeroImageMapClientCache;
+  } catch {
+    return {};
+  }
+}
 
 function parseLegacyHeroTierData(source: string): BattlegroundHeroTierSection[] {
   const match = source.match(/window\.tierData\s*=\s*([\s\S]*?);\s*$/);
@@ -170,9 +273,15 @@ function parseLegacyHeroStatic(source: string): { imageByDbfId?: Record<string, 
 
 function bgHeroImageFromMap(dbfId: unknown, imageByDbfId: Record<string, string>): string {
   const raw = imageByDbfId[String(dbfId)] || '';
-  if (!raw) return BG_FALLBACK_ICON;
+  if (!raw) return '';
   if (raw.startsWith('/')) return raw;
   return `/bg-legacy/${raw.replace(/^\.\//, '')}`;
+}
+
+function bgHeroCardImage(cardId: unknown): string {
+  const normalized = String(cardId || '').trim();
+  if (!/^[A-Za-z0-9_]+$/.test(normalized)) return '';
+  return `/api/card-image/${encodeURIComponent(normalized)}/full.webp?v=bg-heroes-20260723`;
 }
 
 function bgHeroTierTitle(tier: string): string {
@@ -196,9 +305,11 @@ function bgHeroRelatedCard(value: any): BattlegroundHeroRelatedCard | null {
 function bgHeroSearchText(hero: BattlegroundHeroTierEntry, tier: string): string {
   return [
     hero.name,
+    hero.originalName,
     tier,
     hero.averagePlace,
     hero.popularity,
+    hero.bestComposition,
     hero.heroPower?.name,
     hero.heroPower?.text,
   ].filter(Boolean).join(' ');
@@ -213,21 +324,43 @@ function bgNormalizeHeroSearch(value: any): string {
     .trim();
 }
 
-function groupBgHeroesFromApi(payload: any, imageByDbfId: Record<string, string>): BattlegroundHeroTierSection[] {
-  const heroes = Array.isArray(payload?.view?.heroes) ? payload.view.heroes : [];
+function bgHeroCompositionName(value: any): string {
+  if (typeof value === 'string') return value.trim();
+  return String(value?.name || value?.composition || '').trim();
+}
+
+function groupBgHeroesFromApi(
+  payload: any,
+  imageByDbfId: Record<string, string>,
+  libraryByDbfId: Map<number, any> = new Map(),
+): BattlegroundHeroTierSection[] {
+  const heroes = Array.isArray(payload?.heroes)
+    ? payload.heroes
+    : (Array.isArray(payload?.view?.heroes) ? payload.view.heroes : []);
   const grouped = new Map<string, BattlegroundHeroTierEntry[]>();
   heroes.forEach((hero: any) => {
     const tier = String(hero?.tier || 'D').trim().toUpperCase();
+    const dbfId = Number(hero?.dbfId ?? hero?.dbf ?? hero?.dbf_id);
+    const libraryHero = Number.isFinite(dbfId) ? libraryByDbfId.get(dbfId) : null;
+    const originalName = String(hero?.hero || hero?.name || libraryHero?.name?.en || '').trim();
+    const localizedName = String(libraryHero?.name?.ru || '').trim();
     if (!grouped.has(tier)) grouped.set(tier, []);
     grouped.get(tier)!.push({
-      name: String(hero?.hero || hero?.name || 'Без имени'),
+      name: localizedName || originalName || 'Без имени',
+      originalName: originalName && originalName !== localizedName ? originalName : undefined,
       popularity: hero?.pick_rate ? String(hero.pick_rate) : undefined,
       averagePlace: hero?.avg_placement ? String(hero.avg_placement).replace('.', ',') : undefined,
-      image: hero?.image || hero?.images?.hero || bgHeroImageFromMap(hero?.dbfId, imageByDbfId),
-      dbfId: Number.isFinite(Number(hero?.dbfId)) ? Number(hero.dbfId) : undefined,
+      image: hero?.image
+        || hero?.images?.hero
+        || bgHeroImageFromMap(dbfId, imageByDbfId)
+        || bgHeroCardImage(libraryHero?.card_id)
+        || libraryHero?.images?.hero
+        || BG_FALLBACK_ICON,
+      dbfId: Number.isFinite(dbfId) ? dbfId : undefined,
       placementDistribution: Array.isArray(hero?.placement_distribution) ? hero.placement_distribution.map(String) : undefined,
-      sourceId: payload?.source_id ? String(payload.source_id) : undefined,
-      heroPower: bgHeroRelatedCard(hero?.hero_power),
+      bestComposition: bgHeroCompositionName(hero?.best_composition),
+      sourceId: payload?.source_id ? String(payload.source_id) : String(payload?.source?.backend || ''),
+      heroPower: bgHeroRelatedCard(hero?.hero_power) || bgHeroRelatedCard(libraryHero?.hero_power),
     });
   });
 
@@ -236,6 +369,96 @@ function groupBgHeroesFromApi(payload: any, imageByDbfId: Record<string, string>
     entries.sort((a, b) => Number(String(a.averagePlace || '99').replace(',', '.')) - Number(String(b.averagePlace || '99').replace(',', '.')));
     return entries.length ? [{ tier, title: bgHeroTierTitle(tier), heroes: entries }] : [];
   });
+}
+
+function bgHeroLibraryForDetail(libraryHero: any): any {
+  const skinGroups = Array.isArray(libraryHero?.wiki?.hero_skins) ? libraryHero.wiki.hero_skins : [];
+  const skins = skinGroups.flatMap((group: any) => Array.isArray(group?.cards) ? group.cards : [])
+    .flatMap((skin: any) => {
+      const image = String(skin?.image_url || skin?.image || '').trim();
+      if (!image) return [];
+      return [{
+        card_id: skin?.card_id || '',
+        title: skin?.title || 'Скин героя',
+        image: bgHeroCardImage(skin?.card_id) || image,
+        url: skin?.url || '',
+      }];
+    });
+  const buddyCard = libraryHero?.buddy?.card;
+  const goldenBuddy = libraryHero?.buddy?.golden || buddyCard?.golden || null;
+  const goldenBuddyImage = bgHeroCardImage(goldenBuddy?.card_id);
+  const heroImage = bgHeroCardImage(libraryHero?.card_id) || libraryHero?.images?.hero || BG_FALLBACK_ICON;
+  return {
+    ...libraryHero,
+    images: {
+      ...libraryHero?.images,
+      hero: heroImage,
+      full_art: heroImage,
+    },
+    skins,
+    buddy: libraryHero?.buddy
+      ? {
+          ...libraryHero.buddy,
+          card: buddyCard
+            ? {
+                ...buddyCard,
+                image_gold: goldenBuddyImage || buddyCard?.image_gold || null,
+              }
+            : null,
+          golden: goldenBuddy
+            ? {
+                ...goldenBuddy,
+                image: goldenBuddyImage || goldenBuddy?.image || null,
+                image_gold: goldenBuddyImage || goldenBuddy?.image_gold || null,
+              }
+            : null,
+        }
+      : null,
+  };
+}
+
+async function bgHeroDetailFallback(dbfId: string): Promise<BattlegroundHeroDetailPayload> {
+  const libraryByDbfId = await bgLoadHeroLibrary();
+  const libraryHeroRaw = libraryByDbfId.get(Number(dbfId));
+  if (!libraryHeroRaw) throw new Error('Герой не найден в русской библиотеке');
+
+  const cardId = String(libraryHeroRaw?.card_id || '');
+  const mode: BattlegroundHeroMode = cardId.startsWith('BGDUO_') ? 'duos' : 'solo';
+  const response = await fetch(bgHeroApiUrl(mode, 'TOP_50_PERCENT'));
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload?.ok === false) {
+    throw new Error(payload?.error || 'Статистика героя временно недоступна');
+  }
+  const heroes = Array.isArray(payload?.heroes)
+    ? payload.heroes
+    : (Array.isArray(payload?.view?.heroes) ? payload.view.heroes : []);
+  const sourceHero = heroes.find((hero: any) => Number(hero?.dbfId ?? hero?.dbf ?? hero?.dbf_id) === Number(dbfId));
+  if (!sourceHero) throw new Error('Для героя пока нет статистики в выбранном режиме');
+
+  const bestComposition = typeof sourceHero?.best_composition === 'object'
+    ? sourceHero.best_composition
+    : null;
+  const hero = {
+    ...sourceHero,
+    best_composition: bgHeroCompositionName(sourceHero?.best_composition),
+  };
+  return {
+    ok: true,
+    stats: {
+      hero,
+      as_of: { heroes: payload?.fetched_at || null },
+      source_url: '',
+      best_composition: bestComposition,
+      compositions: bestComposition ? [bestComposition] : [],
+      tavern_up_by_turn: [],
+      hero_power_by_turn: [],
+      tavern_up: [],
+      hero_power: [],
+    },
+    libraryHero: bgHeroLibraryForDetail(libraryHeroRaw),
+    cards: {},
+    fetched_at: payload?.fetched_at || '',
+  };
 }
 const BG_RACE_NAMES: Record<string, string> = {
   ALL: 'Все типы',
@@ -404,6 +627,8 @@ function bgDetailCardTooltipText(value: any): string {
   return String(value || '')
     .replace(/\s+EN:\s*[\s\S]*$/i, '')
     .replace(/\s+Механики:\s*[\s\S]*$/i, '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;|&#160;/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -697,6 +922,133 @@ function BattlegroundHeroCard({ hero, tier, onNavigate, tourId }: {
 }
 
 const MemoBattlegroundHeroCard = memo(BattlegroundHeroCard);
+
+function bgHeroMetricNumber(value: unknown): number | null {
+  const parsed = Number.parseFloat(String(value || '').replace(',', '.').replace('%', ''));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function bgHeroCountLabel(count: number): string {
+  const mod100 = count % 100;
+  const mod10 = count % 10;
+  const noun = mod10 === 1 && mod100 !== 11
+    ? 'герой'
+    : (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14) ? 'героя' : 'героев');
+  return `${count} ${noun}`;
+}
+
+function bgHeroPlainText(value: unknown): string {
+  return String(value || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;|&#160;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function BattlegroundHeroDistribution({ values }: { values?: string[] }) {
+  const points = (values || []).map(value => bgHeroMetricNumber(value) || 0);
+  const maximum = Math.max(...points, 1);
+  if (!points.length) return <span className="bg-hero-ledger__empty">—</span>;
+  return (
+    <div className="bg-hero-distribution" aria-label={`Распределение мест: ${values?.join(', ')}`}>
+      {points.map((value, index) => (
+        <span
+          key={`${index}-${value}`}
+          className="bg-hero-distribution__place"
+          title={`${index + 1} место: ${values?.[index] || '—'}`}
+        >
+          <span style={{ height: `${Math.max(10, (value / maximum) * 100)}%` }} />
+          <small>{index + 1}</small>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function BattlegroundHeroLedger({
+  sections,
+  onNavigate,
+}: {
+  sections: BattlegroundHeroTierSection[];
+  onNavigate: (path: string) => void;
+}) {
+  return (
+    <div className="bg-hero-ledger" role="table" aria-label="Таблица героев Полей сражений">
+      <div className="bg-hero-ledger__header" role="row">
+        <span role="columnheader">Tier</span>
+        <span role="columnheader">Герой</span>
+        <span role="columnheader">Частота выбора</span>
+        <span role="columnheader">Лучший состав</span>
+        <span role="columnheader">Среднее место</span>
+        <span role="columnheader">Распределение мест</span>
+      </div>
+      {sections.map(section => (
+        <section key={section.tier} className="bg-hero-ledger__tier" role="rowgroup" aria-label={`Тир ${section.tier}`}>
+          <div className={`bg-hero-ledger__tier-mark bg-hero-ledger__tier-mark--${section.tier.toLowerCase()}`} role="rowheader">
+            <strong>{section.tier}</strong>
+            <span>{bgHeroCountLabel(section.heroes.length)}</span>
+          </div>
+          <div className="bg-hero-ledger__rows">
+            {section.heroes.map(hero => {
+              const href = hero.dbfId ? `/heroes/${hero.dbfId}` : '/heroes';
+              const pickRate = bgHeroMetricNumber(hero.popularity);
+              const averagePlace = bgHeroMetricNumber(hero.averagePlace);
+              const heroPowerText = bgHeroPlainText(hero.heroPower?.text);
+              return (
+                <div
+                  key={`${section.tier}-${hero.dbfId || hero.name}`}
+                  className="bg-hero-ledger__row"
+                  role="row"
+                >
+                  <div className="bg-hero-ledger__hero" role="cell">
+                    <a
+                      href={href}
+                      onClick={(event) => {
+                        if (!hero.dbfId) return;
+                        event.preventDefault();
+                        onNavigate(href);
+                      }}
+                    >
+                      <img src={hero.image} alt="" loading="lazy" decoding="async" />
+                      <span>
+                        <strong>{hero.name}</strong>
+                        {hero.originalName && <small>{hero.originalName}</small>}
+                        {hero.heroPower && (
+                          <span className="bg-hero-ledger__power">
+                            <b>{hero.heroPower.name}</b>
+                            {heroPowerText && <small>{heroPowerText}</small>}
+                          </span>
+                        )}
+                      </span>
+                    </a>
+                  </div>
+                  <div className="bg-hero-ledger__metric bg-hero-ledger__metric--pick" role="cell">
+                    <small>Частота выбора</small>
+                    <strong>{hero.popularity || '—'}</strong>
+                    <span aria-hidden="true"><i style={{ width: `${Math.max(0, Math.min(100, pickRate || 0))}%` }} /></span>
+                  </div>
+                  <div className="bg-hero-ledger__composition" role="cell">
+                    <small>Лучший состав</small>
+                    <strong>{hero.bestComposition || '—'}</strong>
+                  </div>
+                  <div className="bg-hero-ledger__metric bg-hero-ledger__metric--placement" role="cell">
+                    <small>Среднее место</small>
+                    <strong>{hero.averagePlace || '—'}</strong>
+                    <span aria-hidden="true"><i style={{ width: `${averagePlace ? Math.max(8, 100 - ((averagePlace - 1) / 7) * 100) : 0}%` }} /></span>
+                  </div>
+                  <div className="bg-hero-ledger__distribution" role="cell">
+                    <small>Распределение мест</small>
+                    <BattlegroundHeroDistribution values={hero.placementDistribution} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
 
 const BG_DETAIL_RACE_ICON_BY_RU: Record<string, string> = {
   Механизмы: '/bg-legacy/assset/механизмы.webp',
@@ -1946,10 +2298,18 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
     }
 
     setState(current => current.loading && !current.payload ? current : { payload: null, loading: true, error: '' });
-    fetch(`/api/bg/heroes/${dbfId}/details`)
-      .then(async response => {
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data?.ok) throw new Error(data?.error || 'Не удалось загрузить героя');
+    const detailRequest = BG_DUO_FALLBACK_DETAIL_IDS.has(dbfId)
+      ? bgHeroDetailFallback(dbfId)
+      : fetch(`/api/bg/heroes/${dbfId}/details`)
+          .then(async response => {
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data?.ok) throw new Error(data?.error || 'Не удалось загрузить героя');
+            return data as BattlegroundHeroDetailPayload;
+          })
+          .catch(() => bgHeroDetailFallback(dbfId));
+
+    detailRequest
+      .then(data => {
         BG_HERO_DETAIL_CLIENT_CACHE.set(dbfId, data);
         if (alive) setState({ payload: data, loading: false, error: '' });
       })
@@ -1966,7 +2326,7 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
     if (!hero) return;
     const libraryHero = payload?.libraryHero || {};
     const heroName = libraryHero?.name?.ru || hero.hero || 'Герой';
-    const heroImage = libraryHero?.images?.hero || bgHeroImageFromMap(hero.dbfId, {});
+    const heroImage = libraryHero?.images?.hero || bgHeroImageFromMap(hero.dbfId, {}) || BG_FALLBACK_ICON;
     const heroPower = libraryHero?.hero_power?.card;
     const heroPowerName = heroPower?.name?.ru || heroPower?.name_ru || '';
     const rawDescription = heroPower?.text?.ru || heroPower?.text_ru || libraryHero?.character?.description || '';
@@ -2000,7 +2360,7 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
   const libraryHero = payload.libraryHero || {};
   const cards = payload.cards || {};
   const heroName = libraryHero?.name?.ru || hero.hero || 'Герой';
-  const heroImage = libraryHero?.images?.hero || bgHeroImageFromMap(hero.dbfId, {});
+  const heroImage = libraryHero?.images?.hero || bgHeroImageFromMap(hero.dbfId, {}) || BG_FALLBACK_ICON;
   const fullArt = libraryHero?.images?.full_art || heroImage;
   const heroPower = libraryHero?.hero_power?.card;
   const buddy = libraryHero?.buddy?.card;
@@ -2900,19 +3260,28 @@ function BattlegroundTierList() {
 }
 
 function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) => void }) {
-  const initialHeroesCache = BG_HEROES_CLIENT_CACHE.get('heroes');
+  const initialUrlState = useMemo(bgHeroListUrlState, []);
+  const initialCacheKey = `${initialUrlState.mode}:${initialUrlState.mmr}`;
+  const initialHeroesCache = BG_HEROES_CLIENT_CACHE.get(initialCacheKey);
   const [sections, setSections] = useState<BattlegroundHeroTierSection[]>(() => initialHeroesCache?.sections || []);
   const [sourceLabel, setSourceLabel] = useState(() => initialHeroesCache?.sourceLabel || '');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [mode, setMode] = useState<BattlegroundHeroMode>(initialUrlState.mode);
+  const [mmr, setMmr] = useState<BattlegroundHeroMmr>(initialUrlState.mmr);
+  const [view, setView] = useState<BattlegroundHeroView>(initialUrlState.view);
+  const [searchTerm, setSearchTerm] = useState(initialUrlState.search);
   const [loading, setLoading] = useState(() => !initialHeroesCache);
   const [error, setError] = useState('');
   const deferredSearchTerm = useDeferredValue(searchTerm);
 
   useEffect(() => {
     let alive = true;
-    const cacheKey = 'heroes';
+    const cacheKey = `${mode}:${mmr}`;
     const cached = BG_HEROES_CLIENT_CACHE.get(cacheKey);
     if (cached) {
+      setSections(cached.sections);
+      setSourceLabel(cached.sourceLabel);
+      setLoading(false);
+      setError('');
       return () => { alive = false; };
     }
 
@@ -2921,21 +3290,30 @@ function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) =
 
     async function loadHeroes() {
       try {
-        const apiPayload = await fetch('/api/bg/heroes')
-          .then(async response => {
+        const [apiPayload, libraryByDbfId, imageByDbfId] = await Promise.all([
+          fetch(bgHeroApiUrl(mode, mmr)).then(async response => {
             const payload = await response.json().catch(() => ({}));
-            if (!response.ok || !payload?.ok) throw new Error(payload?.error || 'API героев временно недоступен');
+            if (!response.ok || payload?.ok === false) throw new Error(payload?.error || 'API героев временно недоступен');
             return payload;
-          });
+          }),
+          bgLoadHeroLibrary(),
+          bgLoadHeroImageMap(),
+        ]);
 
-        const apiSections = groupBgHeroesFromApi(apiPayload, {});
+        const apiSections = groupBgHeroesFromApi(apiPayload, imageByDbfId, libraryByDbfId);
         if (!apiSections.length) throw new Error('API героев вернул пустой список');
-        const nextSourceLabel = `HSReplay · обновлено ${formatDate(apiPayload.fetched_at)}`;
+        const modeLabel = mode === 'duos' ? 'Дуо' : 'Соло';
+        const mmrLabel = BG_HERO_MMR_OPTIONS.find(option => option.id === mmr)?.label || '';
+        const nextSourceLabel = `HSReplay · ${modeLabel} · ${mmrLabel} · обновлено ${formatDate(apiPayload.fetched_at)}`;
         BG_HEROES_CLIENT_CACHE.set(cacheKey, { sections: apiSections, sourceLabel: nextSourceLabel });
         if (!alive) return;
         setSections(apiSections);
         setSourceLabel(nextSourceLabel);
       } catch (apiError) {
+        if (mode === 'duos') {
+          if (alive) setError((apiError as Error)?.message || 'Не удалось загрузить героев дуо');
+          return;
+        }
         try {
           const response = await fetch('/bg-legacy/tier-data.js?v=heroes-20260626', { cache: 'no-store' });
           if (!response.ok) throw new Error('Не удалось загрузить резервный тир-лист героев');
@@ -2956,7 +3334,19 @@ function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) =
 
     void loadHeroes();
     return () => { alive = false; };
-  }, []);
+  }, [mmr, mode]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams();
+    if (mode !== 'solo') params.set('mode', mode);
+    if (mmr !== 'TOP_50_PERCENT') params.set('mmr', mmr);
+    if (view !== 'grid') params.set('view', view);
+    const normalizedQuery = searchTerm.trim();
+    if (normalizedQuery) params.set('q', normalizedQuery);
+    const nextUrl = `${window.location.pathname}${params.size ? `?${params.toString()}` : ''}${window.location.hash}`;
+    window.history.replaceState(window.history.state, '', nextUrl);
+  }, [mmr, mode, searchTerm, view]);
 
   const normalizedSearch = bgNormalizeHeroSearch(deferredSearchTerm);
   const filteredSections = useMemo(() => {
@@ -2975,7 +3365,7 @@ function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) =
         <p className="font-hs text-xs uppercase tracking-[0.18em] text-[#8b6c42]">Поля сражений</p>
         <h2 className="mt-2 font-hs text-3xl text-[#3d2a1e] sm:text-4xl">Герои</h2>
         <p className="mx-auto mt-2 max-w-2xl text-sm text-[#6b4c2a]">
-          Свежий тир-лист героев из HSReplay: портреты, среднее место и популярность без лишних окон.
+          Рейтинг героев HSReplay для соло и дуо: выберите диапазон MMR и удобный вид списка.
         </p>
         {sourceLabel && (
           <p
@@ -2988,10 +3378,77 @@ function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) =
       </div>
 
       <section className="bg-heroes-tools">
+        <div className="bg-heroes-controls">
+          <fieldset className="bg-heroes-control-group">
+            <legend>Тип игры</legend>
+            <div className="bg-heroes-segmented">
+              {BG_HERO_MODES.map(option => (
+                <button
+                  key={option.id}
+                  type="button"
+                  aria-pressed={mode === option.id}
+                  title={option.hint}
+                  onClick={() => setMode(option.id)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset className="bg-heroes-control-group bg-heroes-control-group--mmr">
+            <legend>Рейтинг игроков</legend>
+            <div className="bg-heroes-segmented">
+              {BG_HERO_MMR_OPTIONS.map(option => (
+                <button
+                  key={option.id}
+                  type="button"
+                  aria-pressed={mmr === option.id}
+                  onClick={() => setMmr(option.id)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset className="bg-heroes-control-group bg-heroes-control-group--view">
+            <legend>Вид списка</legend>
+            <div className="bg-heroes-segmented bg-heroes-view-toggle">
+              <button
+                type="button"
+                aria-pressed={view === 'grid'}
+                aria-label="Показать карточками"
+                title="Карточки"
+                onClick={() => setView('grid')}
+              >
+                <LayoutGrid aria-hidden="true" />
+                <span>Карточки</span>
+              </button>
+              <button
+                type="button"
+                aria-pressed={view === 'table'}
+                aria-label="Показать таблицей"
+                title="Таблица"
+                onClick={() => setView('table')}
+              >
+                <List aria-hidden="true" />
+                <span>Таблица</span>
+              </button>
+            </div>
+          </fieldset>
+        </div>
+
         <div className="bg-heroes-tools__legend">
           <div className="bg-heroes-tools__explanation">
-            <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">Как читать рейтинг</p>
-            <p className="mt-1 text-sm font-semibold text-[#6b4c2a]">Под портретом указаны среднее место и частота выбора героя.</p>
+            <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">
+              {mode === 'duos' ? 'Командный рейтинг' : 'Одиночный рейтинг'}
+            </p>
+            <p className="mt-1 text-sm font-semibold text-[#6b4c2a]">
+              {view === 'table'
+                ? 'Таблица объединяет силу героя, состав и распределение мест в одной строке.'
+                : 'На карточках указаны среднее место и частота выбора героя.'}
+            </p>
           </div>
           <div
             className="bg-heroes-tools__metrics"
@@ -3010,55 +3467,57 @@ function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) =
             type="search"
             value={searchTerm}
             onChange={event => setSearchTerm(event.target.value)}
-            placeholder="Найти героя, тир или силу героя"
+            placeholder="Герой, сила героя или состав — на русском и английском"
             className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
           />
           {searchTerm && <button type="button" onClick={() => setSearchTerm('')} className="bg-heroes-search__reset">Сбросить</button>}
           <span className="bg-heroes-search__count">
-            {normalizedSearch ? `${visibleHeroes} / ${totalHeroes}` : `${totalHeroes}`} героев
+            {normalizedSearch ? `${visibleHeroes} / ${bgHeroCountLabel(totalHeroes)}` : bgHeroCountLabel(totalHeroes)}
           </span>
         </label>
       </section>
 
-      {loading && <div className="py-12 text-center font-hs text-[#6b4c2a]">Загружаем героев...</div>}
+      {loading && <div className="py-12 text-center font-hs text-[#6b4c2a]" role="status">Загружаем героев...</div>}
       {error && !loading && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm font-semibold text-red-700">{error}</div>
+        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm font-semibold text-red-700" role="alert">{error}</div>
       )}
       {!loading && !error && (
-        <div className="space-y-5">
+        <div className={view === 'grid' ? 'space-y-5' : ''}>
           {filteredSections.length === 0 && (
             <div className="rounded-2xl border border-[#d7b66a]/65 bg-[#fff9ed] p-6 text-center font-hs text-[#6b4c2a]">
               Герои не найдены
             </div>
           )}
-          {filteredSections.map((section, sectionIndex) => {
-            const heroes = Array.isArray(section.heroes) ? section.heroes : [];
-            if (!heroes.length) return null;
-            return (
-              <section key={section.tier} className="rounded-lg border border-[#c4a46a]/35 bg-[#fff3d8]/65 p-3 sm:p-4">
-                <div className="mb-3 flex items-center gap-3">
-                  <span className={`inline-flex h-11 w-11 items-center justify-center rounded-full border-2 text-lg font-hs shadow ${BG_TIER_BADGES[section.tier] || BG_TIER_BADGES.C}`}>
-                    {section.tier}
-                  </span>
-                  <div>
-                    <h3 className="font-hs text-lg text-[#3d2a1e]">{section.title || `Тир ${section.tier}`}</h3>
-                    <p className="text-xs text-[#8b6c42]">{heroes.length} героев</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6">
-                  {heroes.map((hero, heroIndex) => (
-                    <MemoBattlegroundHeroCard
-                      key={`${section.tier}-${hero.dbfId || hero.name}`}
-                      hero={hero}
-                      tier={section.tier}
-                      onNavigate={onNavigate}
-                      tourId={sectionIndex === 0 && heroIndex === 0 ? 'bg-heroes-results' : undefined}
-                    />
-                  ))}
-                </div>
-              </section>
-            );
-          })}
+          {view === 'table' && filteredSections.length > 0
+            ? <BattlegroundHeroLedger sections={filteredSections} onNavigate={onNavigate} />
+            : filteredSections.map((section, sectionIndex) => {
+                const heroes = Array.isArray(section.heroes) ? section.heroes : [];
+                if (!heroes.length) return null;
+                return (
+                  <section key={section.tier} className="rounded-lg border border-[#c4a46a]/35 bg-[#fff3d8]/65 p-3 sm:p-4">
+                    <div className="mb-3 flex items-center gap-3">
+                      <span className={`inline-flex h-11 w-11 items-center justify-center rounded-full border-2 text-lg font-hs shadow ${BG_TIER_BADGES[section.tier] || BG_TIER_BADGES.C}`}>
+                        {section.tier}
+                      </span>
+                      <div>
+                        <h3 className="font-hs text-lg text-[#3d2a1e]">{section.title || `Тир ${section.tier}`}</h3>
+                        <p className="text-xs text-[#8b6c42]">{bgHeroCountLabel(heroes.length)}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6">
+                      {heroes.map((hero, heroIndex) => (
+                        <MemoBattlegroundHeroCard
+                          key={`${section.tier}-${hero.dbfId || hero.name}`}
+                          hero={hero}
+                          tier={section.tier}
+                          onNavigate={onNavigate}
+                          tourId={sectionIndex === 0 && heroIndex === 0 ? 'bg-heroes-results' : undefined}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
         </div>
       )}
     </div>

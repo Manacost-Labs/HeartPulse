@@ -41,6 +41,9 @@ try {
   const cards = await fetch(`${baseUrl}/bg/library/cards`, { headers: authorized });
   assert.deepEqual(await cards.json(), { kind: 'app', upstream: '/api/bg/library/cards' });
 
+  const heroesLibrary = await fetch(`${baseUrl}/bg/library/extra/heroes?per_page=200`, { headers: authorized });
+  assert.deepEqual(await heroesLibrary.json(), { kind: 'extra', library: 'heroes' });
+
   const encoded = await fetch(`${baseUrl}/bg/library/minions/123%2F456/history`, { headers: authorized });
   assert.deepEqual(await encoded.json(), { kind: 'app', upstream: '/api/bg/library/minions/123%2F456/history' });
 
@@ -53,6 +56,7 @@ try {
   assert.deepEqual(calls, [
     { kind: 'legacy', upstream: '/api/battlegrounds-spells', enriched: false },
     { kind: 'app', upstream: '/api/bg/library/cards', enriched: false },
+    { kind: 'extra', upstream: 'heroes', enriched: false },
     { kind: 'app', upstream: '/api/bg/library/minions/123%2F456/history', enriched: false },
     { kind: 'app', upstream: '/api/bg/heroes/777/details', enriched: true },
     { kind: 'extra', upstream: 'trinket', enriched: false },

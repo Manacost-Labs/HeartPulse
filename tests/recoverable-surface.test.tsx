@@ -74,10 +74,11 @@ assert.match(deckSource, /data-deck-render-state=\{renderState\}/);
 
 const metaSource = readFileSync(new URL('../src/features/StandardMeta.tsx', import.meta.url), 'utf8');
 assert.match(metaSource, /scope="standard-meta"/);
-assert.match(metaSource, /setMetaRevision\(revision => revision \+ 1\)/);
+assert.match(metaSource, /setRevision\(value => value \+ 1\)/);
 assert.match(metaSource, /variant="empty"/);
-assert.match(metaSource, /useState<MetaRank>\('legend'\)/, 'Standard meta must open on Legend by default');
-assert.match(metaSource, /useState<MetaPeriod>\('past_6_hours'\)/, 'Standard meta must open on the latest six hours');
-assert.match(metaSource, /useState<MetaMinGames>\(500\)/, 'Standard meta must open with 500 minimum games');
+assert.match(metaSource, /\/api\/constructed-archetypes\?format=/);
+assert.match(metaSource, /initialFormat.*=== 'wild' \? 'wild' : 'standard'/);
+assert.match(metaSource, /detailMatch = currentPath\.match/);
+assert.match(metaSource, /\(standard\|wild\)/);
 
 console.log('Recoverable surface tests passed');

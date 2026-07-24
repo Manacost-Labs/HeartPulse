@@ -60,14 +60,11 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
     ],
   },
   {
-    id: 'standard-meta', version: 1, paths: ['/standard/meta'], title: 'Как пользоваться разделом «Мета»',
+    id: 'standard-meta', version: 2, paths: ['/standard/meta'], title: 'Как пользоваться разделом «Архетипы»',
     steps: [
-      { id: 'controls', target: 'meta-controls', title: 'Формат и рейтинг', description: 'Выберите формат и диапазон рейтинга — все показатели, график и список архетипов обновятся под этот срез.', audience: 'standard', preferredPlacement: 'bottom' },
+      { id: 'controls', target: 'meta-controls', title: 'Стандарт или Вольный', description: 'Переключайте формат — сводка и каталог сразу обновятся для выбранной меты.', audience: 'standard', preferredPlacement: 'bottom' },
       { id: 'search', target: 'meta-search', title: 'Поиск архетипа', description: 'Начните вводить название класса или колоды, чтобы быстро оставить в результатах только нужные архетипы.', audience: 'standard' },
-      { id: 'chart', target: 'meta-chart', title: 'Карта меты', description: 'График под этим заголовком: чем правее точка, тем выше винрейт; чем выше — тем популярнее архетип. Точку можно выбрать мышью или клавиатурой.', audience: 'standard', preferredPlacement: 'bottom' },
-      { id: 'view', target: 'meta-view-switcher', title: 'Галерея или таблица', description: 'Галерея удобна для быстрого обзора, а таблица — для точного сравнения винрейта, популярности и скорости набора рейтинга.', audience: 'standard' },
       { id: 'results', target: 'meta-results', title: 'Актуальные архетипы', description: 'Счётчик показывает объём текущей выдачи. Результаты ниже содержат размер выборки, популярность и винрейт каждого архетипа.', audience: 'standard', preferredPlacement: 'top' },
-      { id: 'deck', target: 'meta-deck-action', title: 'Рекомендуемая сборка', description: 'Откройте актуальный состав архетипа, изучите карты и скопируйте код, чтобы сразу импортировать колоду в Hearthstone.', audience: 'standard', preferredPlacement: 'left' },
     ],
   },
   {
