@@ -10,6 +10,9 @@
   large browser SDK on ordinary page views.
 - Restricted Sentry metric attributes to bounded rating/navigation values,
   added configurable RUM sampling, and expanded privacy and telemetry tests.
+- Activated the production Sentry project and corrected the shared Codex/Claude
+  MCP contract to use Sentry's canonical OAuth endpoint without stale query
+  parameters.
 
 ## v1.0.47 - 2026-07-24
 

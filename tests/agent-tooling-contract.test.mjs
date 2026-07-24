@@ -25,7 +25,7 @@ test('project MCP config uses the guarded Chrome DevTools launcher', () => {
   });
   assert.deepEqual(config.mcpServers.sentry, {
     type: 'http',
-    url: 'https://mcp.sentry.dev/mcp?skills=inspect,triage',
+    url: 'https://mcp.sentry.dev/mcp',
   });
 });
 

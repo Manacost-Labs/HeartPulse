@@ -54,7 +54,7 @@ The repository includes project-scoped tools for safer implementation:
   baseline is classified.
 - Sentry is opt-in only. Never add a DSN or auth token to the repository.
   Preserve `sendDefaultPii: false`, the event scrubber, zero default trace
-  sampling, and the limited `inspect,triage` OAuth MCP scope.
+  sampling, and OAuth-only access to the official Sentry MCP endpoint.
 
 Do not connect Chrome DevTools MCP to a personal browser profile or enable
 unrestricted filesystem paths.
