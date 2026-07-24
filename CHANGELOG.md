@@ -1,5 +1,16 @@
 # HS-Arena Changelog
 
+## v1.0.41 - 2026-07-24
+
+- Added a pinned, telemetry-free React Doctor regression gate for changed
+  authored frontend code, with deterministic Git-base resolution for local,
+  pull-request, and push runs.
+- Recorded the 773-finding historical baseline without making it a CI failure,
+  and added contract tests plus an intentional failing fixture check for new
+  React errors.
+- Updated CI checkout depth so changed-scope analysis can resolve the correct
+  base commit while leaving historical warnings available for separate triage.
+
 ## v1.0.40 - 2026-07-24
 
 - Localized HSGuru mulligan card rows through the live Russian HearthstoneJSON catalog and added mana, card art, hover previews, and full Russian card sheets.
