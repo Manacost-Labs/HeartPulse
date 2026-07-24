@@ -1,5 +1,11 @@
 # HS-Arena Changelog
 
+## v1.0.40 - 2026-07-24
+
+- Localized HSGuru mulligan card rows through the live Russian HearthstoneJSON catalog and added mana, card art, hover previews, and full Russian card sheets.
+- Replaced the 1110px mobile mulligan table with readable sortable card panels while retaining the dense sticky-column table on larger screens.
+- Hardened the complete archetype catalog and detail layout across 320, 375, 768, 1024, and 1440px viewports with overflow, touch-target, accessibility, and browser coverage.
+
 ## v1.0.39 - 2026-07-24
 
 - Replaced the Windows-only Claude post-push review agent with a deterministic Linux command hook that validates standalone successful pushes, the GitHub origin, and the exact published SHA before reviewing; it uses Claude when an Anthropic runtime is configured and falls back to the authenticated Codex commit reviewer otherwise.

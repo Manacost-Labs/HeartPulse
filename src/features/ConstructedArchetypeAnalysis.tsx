@@ -8,6 +8,7 @@ import {
   Swords,
 } from 'lucide-react';
 import { classIconUrl, useNeutralClassIcon } from './classIcons';
+import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
 import {
   hsguruImpactTone,
   hsguruMatchupTone,
@@ -16,6 +17,8 @@ import {
   type HsguruCardStatSortKey,
 } from './archetypeDetailModel';
 import './ConstructedArchetypeAnalysis.css';
+
+const CardPreviewSheet = React.lazy(() => import('./CardPreviewSheet'));
 
 type ArchetypeClass =
   | 'deathknight'
@@ -42,6 +45,7 @@ export type ConstructedCardStat = {
   cardId: string | null;
   dbfId: number | null;
   cardName: string;
+  cost: number | null;
   mulliganImpact: number | null;
   mulliganCount: number;
   drawnImpact: number | null;
@@ -130,6 +134,10 @@ function formatDate(value: string | null): string {
 
 function cardTileUrl(cardId: string): string {
   return `https://art.hearthstonejson.com/v1/tiles/${encodeURIComponent(cardId)}.webp`;
+}
+
+function cardRenderUrl(cardId: string): string {
+  return `https://art.hearthstonejson.com/v1/render/latest/ruRU/512x/${encodeURIComponent(cardId)}.png`;
 }
 
 function InfoTip({ label, description }: { label: string; description: string }) {
@@ -242,9 +250,65 @@ function ImpactValue({ value }: { value: number | null }) {
   return <strong data-impact={hsguruImpactTone(value)}>{formatPercent(value, true)}</strong>;
 }
 
+function CardTile({
+  row,
+  onOpen,
+  onPreview,
+  onPreviewEnd,
+}: {
+  row: ConstructedCardStat;
+  onOpen: (row: ConstructedCardStat) => void;
+  onPreview: (row: ConstructedCardStat, target: HTMLElement) => void;
+  onPreviewEnd: () => void;
+}) {
+  const style = row.cardId
+    ? { '--card-tile': `url("${cardTileUrl(row.cardId)}")` } as React.CSSProperties
+    : undefined;
+  const content = (
+    <>
+      <span className="constructed-card-tile__art" aria-hidden="true" />
+      <span className="constructed-card-tile__fade" aria-hidden="true" />
+      <span className="constructed-card-tile__mana" aria-hidden="true">{row.cost ?? '—'}</span>
+      <strong>{row.cardName}</strong>
+      {row.cardId ? <span className="constructed-card-tile__open" aria-hidden="true">Карта</span> : null}
+    </>
+  );
+
+  if (!row.cardId) {
+    return <span className="constructed-card-tile" style={style}>{content}</span>;
+  }
+
+  return (
+    <button
+      type="button"
+      className="constructed-card-tile"
+      style={style}
+      onClick={() => onOpen(row)}
+      onMouseEnter={event => onPreview(row, event.currentTarget)}
+      onMouseLeave={onPreviewEnd}
+      onFocus={event => onPreview(row, event.currentTarget)}
+      onBlur={onPreviewEnd}
+      aria-label={`${row.cardName}, ${row.cost ?? 'неизвестная стоимость'} маны. Открыть полную карту`}
+    >
+      {content}
+    </button>
+  );
+}
+
+const MOBILE_METRICS = [
+  { key: 'mulliganImpact', label: 'В муллигане', impact: true },
+  { key: 'mulliganCount', label: 'Муллиганов', impact: false },
+  { key: 'drawnImpact', label: 'При доборе', impact: true },
+  { key: 'drawnCount', label: 'Доборов', impact: false },
+  { key: 'keptImpact', label: 'При оставлении', impact: true },
+  { key: 'keptCount', label: 'Оставлений', impact: false },
+] as const;
+
 function CardStatsPanel({ analysis }: { analysis: ConstructedAnalysis | null }) {
   const [sort, setSort] = useState<HsguruCardStatSort>({ key: 'mulliganImpact', direction: 'desc' });
   const [showAll, setShowAll] = useState(false);
+  const [preview, setPreview] = useState<CardPreviewTarget | null>(null);
+  const [selectedCard, setSelectedCard] = useState<ConstructedCardStat | null>(null);
   const rows = useMemo(
     () => sortHsguruCardStats(analysis?.cardStats ?? [], sort),
     [analysis?.cardStats, sort],
@@ -255,6 +319,23 @@ function CardStatsPanel({ analysis }: { analysis: ConstructedAnalysis | null }) 
       ? { key, direction: current.direction === 'desc' ? 'asc' : 'desc' }
       : { key, direction: 'desc' });
   };
+  const showPreview = (row: ConstructedCardStat, target: HTMLElement) => {
+    if (!row.cardId) return;
+    setPreview({
+      id: row.cardId,
+      name: row.cardName,
+      imageUrl: cardRenderUrl(row.cardId),
+      rect: target.getBoundingClientRect(),
+    });
+  };
+  const cardTile = (row: ConstructedCardStat) => (
+    <CardTile
+      row={row}
+      onOpen={setSelectedCard}
+      onPreview={showPreview}
+      onPreviewEnd={() => setPreview(null)}
+    />
+  );
 
   return (
     <section className="constructed-analysis-panel constructed-card-stats" aria-labelledby="constructed-card-stats-title">
@@ -275,42 +356,76 @@ function CardStatsPanel({ analysis }: { analysis: ConstructedAnalysis | null }) 
       </header>
 
       {visibleRows.length ? (
-        <div className="constructed-card-stats__scroll" role="region" aria-label="Сортируемая статистика карт" tabIndex={0}>
-          <table>
-            <thead>
-              <tr>
-                <th scope="col" className="constructed-card-stats__card-heading">Карта</th>
-                <SortHeading column="mulliganImpact" sort={sort} onSort={changeSort} />
-                <SortHeading column="mulliganCount" sort={sort} onSort={changeSort} />
-                <SortHeading column="drawnImpact" sort={sort} onSort={changeSort} />
-                <SortHeading column="drawnCount" sort={sort} onSort={changeSort} />
-                <SortHeading column="keptImpact" sort={sort} onSort={changeSort} />
-                <SortHeading column="keptCount" sort={sort} onSort={changeSort} />
-              </tr>
-            </thead>
-            <tbody>
-              {visibleRows.map((row, index) => (
-                <tr key={row.cardId || row.dbfId || `${row.cardName}-${index}`}>
-                  <th scope="row">
-                    <span
-                      className="constructed-card-stats__card"
-                      style={row.cardId ? { '--card-tile': `url("${cardTileUrl(row.cardId)}")` } as React.CSSProperties : undefined}
-                    >
-                      <span aria-hidden="true" />
-                      <strong>{row.cardName}</strong>
-                    </span>
-                  </th>
-                  <td><ImpactValue value={row.mulliganImpact} /></td>
-                  <td>{formatNumber(row.mulliganCount)}</td>
-                  <td><ImpactValue value={row.drawnImpact} /></td>
-                  <td>{formatNumber(row.drawnCount)}</td>
-                  <td><ImpactValue value={row.keptImpact} /></td>
-                  <td>{formatNumber(row.keptCount)}</td>
+        <>
+          <div className="constructed-card-stats__scroll" role="region" aria-label="Сортируемая статистика карт" tabIndex={0}>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col" className="constructed-card-stats__card-heading">Карта</th>
+                  <SortHeading column="mulliganImpact" sort={sort} onSort={changeSort} />
+                  <SortHeading column="mulliganCount" sort={sort} onSort={changeSort} />
+                  <SortHeading column="drawnImpact" sort={sort} onSort={changeSort} />
+                  <SortHeading column="drawnCount" sort={sort} onSort={changeSort} />
+                  <SortHeading column="keptImpact" sort={sort} onSort={changeSort} />
+                  <SortHeading column="keptCount" sort={sort} onSort={changeSort} />
                 </tr>
+              </thead>
+              <tbody>
+                {visibleRows.map((row, index) => (
+                  <tr key={row.cardId || row.dbfId || `${row.cardName}-${index}`}>
+                    <th scope="row">{cardTile(row)}</th>
+                    <td><ImpactValue value={row.mulliganImpact} /></td>
+                    <td>{formatNumber(row.mulliganCount)}</td>
+                    <td><ImpactValue value={row.drawnImpact} /></td>
+                    <td>{formatNumber(row.drawnCount)}</td>
+                    <td><ImpactValue value={row.keptImpact} /></td>
+                    <td>{formatNumber(row.keptCount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="constructed-card-stats__mobile">
+            <div className="constructed-card-stats__mobile-sort" role="group" aria-label="Сортировка статистики карт">
+              <span>Сортировать</span>
+              {MOBILE_METRICS.map(metric => (
+                <button
+                  key={metric.key}
+                  type="button"
+                  aria-pressed={sort.key === metric.key}
+                  onClick={() => changeSort(metric.key)}
+                >
+                  {metric.label}
+                  <ArrowDownUp aria-hidden="true" />
+                </button>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+            <ol className="constructed-card-stats__cards">
+              {visibleRows.map((row, index) => (
+                <li key={`mobile-${row.cardId || row.dbfId || `${row.cardName}-${index}`}`}>
+                  <header>
+                    <span className="constructed-card-stats__rank" aria-label={`Позиция ${index + 1}`}>{index + 1}</span>
+                    {cardTile(row)}
+                  </header>
+                  <dl>
+                    {MOBILE_METRICS.map(metric => {
+                      const value = row[metric.key];
+                      return (
+                        <div key={metric.key}>
+                          <dt>{metric.label}</dt>
+                          <dd>{metric.impact
+                            ? <ImpactValue value={value} />
+                            : formatNumber(value)}</dd>
+                        </div>
+                      );
+                    })}
+                  </dl>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </>
       ) : (
         <p className="constructed-analysis-empty">Статистика карт появится после первого ежедневного среза.</p>
       )}
@@ -328,6 +443,19 @@ function CardStatsPanel({ analysis }: { analysis: ConstructedAnalysis | null }) 
           </a>
         ) : null}
       </footer>
+      {preview ? <CardPreviewTooltip preview={preview} /> : null}
+      {selectedCard?.cardId ? (
+        <React.Suspense fallback={null}>
+          <CardPreviewSheet
+            card={{
+              id: selectedCard.cardId,
+              name: selectedCard.cardName,
+              imageUrl: cardRenderUrl(selectedCard.cardId),
+            }}
+            onClose={() => setSelectedCard(null)}
+          />
+        </React.Suspense>
+      ) : null}
     </section>
   );
 }

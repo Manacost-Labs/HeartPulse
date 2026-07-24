@@ -83,24 +83,29 @@ const detail = {
       { classKey: 'druid', classLabel: 'Друид', winrate: 58.4, games: 938, share: 6.8 },
       { classKey: 'warlock', classLabel: 'Чернокнижник', winrate: 61.7, games: 721, share: 5.2 },
     ],
-    cardStats: Array.from({ length: 18 }, (_, index) => ({
-      cardId: `CORE_FIXTURE_${String(index + 1).padStart(3, '0')}`,
-      dbfId: 95_000 + index,
-      cardName: [
-        'Дар видений',
-        'Теневой вор',
-        'Украденная реликвия',
-        'Мастер иллюзий',
-        'Создание протокола',
-        'Слово Тьмы: Пожирание',
-      ][index % 6],
+    cardStats: Array.from({ length: 18 }, (_, index) => {
+      const cards = [
+        { id: 'JAIL_732', dbfId: 126_662, name: 'Душа Бездны', cost: 1 },
+        { id: 'JAIL_733', dbfId: 126_663, name: 'Злобный пусточешуйник', cost: 3 },
+        { id: 'TLC_603', dbfId: 117_719, name: 'Клювозавр', cost: 1 },
+        { id: 'JAIL_730', dbfId: 126_660, name: 'Коса звёздной пыли', cost: 2 },
+        { id: 'EDR_840', dbfId: 114_654, name: 'Мрачная жатва', cost: 2 },
+        { id: 'SW_072', dbfId: 64_720, name: 'Гадюка Ржавого Гнилья', cost: 3 },
+      ];
+      const card = cards[index % cards.length];
+      return {
+      cardId: card.id,
+      dbfId: card.dbfId,
+      cardName: card.name,
+      cost: card.cost,
       mulliganImpact: 6.8 - index * 0.62,
       mulliganCount: 3_480 - index * 91,
       drawnImpact: 4.9 - index * 0.51,
       drawnCount: 4_210 - index * 103,
       keptImpact: 7.4 - index * 0.69,
       keptCount: 2_760 - index * 77,
-    })),
+    };
+    }),
   },
 };
 

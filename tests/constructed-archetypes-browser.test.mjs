@@ -76,6 +76,22 @@ try {
   assert.ok(await page.$('[data-tour-id="meta-results"]'));
   await page.screenshot({ path: `${screenshotPrefix}-desktop.png`, fullPage: true });
 
+  for (const width of [1024, 768, 375, 320]) {
+    await page.setViewport({ width, height: 900, deviceScaleFactor: 1 });
+    const responsiveCatalog = await page.evaluate(() => ({
+      overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      minFormatButtonHeight: Math.min(...[...document.querySelectorAll('.archetypes-format-switch button')].map(element => element.getBoundingClientRect().height)),
+      minOpenHeight: Math.min(...[...document.querySelectorAll('.archetype-row__open')].map(element => element.getBoundingClientRect().height)),
+    }));
+    assert.ok(responsiveCatalog.overflow <= 1, `catalog overflowed by ${responsiveCatalog.overflow}px at ${width}px`);
+    assert.ok(responsiveCatalog.minFormatButtonHeight >= 44, `format target too small at ${width}px`);
+    assert.ok(
+      responsiveCatalog.minOpenHeight >= 42,
+      `open target was ${responsiveCatalog.minOpenHeight}px at ${width}px`,
+    );
+  }
+
+  await page.setViewport({ width: 1440, height: 1100, deviceScaleFactor: 1 });
   await page.click('.archetype-row__open');
   await page.waitForSelector('.archetype-detail-page .archetype-trend');
   await page.waitForSelector('.archetype-deck-card .deck-tile');
@@ -87,6 +103,14 @@ try {
   assert.equal(await page.$$eval('.archetype-deck-card .deck-tile', cards => cards.length), 56);
   assert.equal(await page.$$eval('.constructed-matchup-ledger li', rows => rows.length), 11);
   assert.equal(await page.$$eval('.constructed-card-stats tbody tr', rows => rows.length), 15);
+  assert.equal(
+    await page.$eval('.constructed-card-stats tbody tr:first-child .constructed-card-tile strong', node => node.textContent),
+    'Душа Бездны',
+  );
+  assert.equal(
+    await page.$eval('.constructed-card-stats tbody tr:first-child .constructed-card-tile__mana', node => node.textContent),
+    '1',
+  );
   assert.ok(await page.$('.archetype-deck-card__builder[href*="/deck-builder?"]'));
   assert.ok(await page.$('.archetype-main-build .deck-list-view'));
   await page.evaluate(() => {
@@ -136,7 +160,39 @@ try {
   assert.ok(detailMobile.builderHeight >= 44);
   assert.equal(detailMobile.deckColumnCount, 7);
   assert.equal(detailMobile.matchupCount, 11);
+  const mobileCardStats = await page.evaluate(() => ({
+    cardCount: document.querySelectorAll('.constructed-card-stats__cards > li').length,
+    desktopTableDisplay: getComputedStyle(document.querySelector('.constructed-card-stats__scroll')).display,
+    minTileHeight: Math.min(...[...document.querySelectorAll('.constructed-card-stats__cards .constructed-card-tile')].map(element => element.getBoundingClientRect().height)),
+    minSortHeight: Math.min(...[...document.querySelectorAll('.constructed-card-stats__mobile-sort button')].map(element => element.getBoundingClientRect().height)),
+  }));
+  assert.equal(mobileCardStats.cardCount, 15);
+  assert.equal(mobileCardStats.desktopTableDisplay, 'none');
+  assert.ok(mobileCardStats.minTileHeight >= 44);
+  assert.ok(mobileCardStats.minSortHeight >= 44);
+  await page.click('.constructed-card-stats__cards .constructed-card-tile');
+  await page.waitForSelector('.card-preview-sheet__panel');
+  assert.equal(await page.$eval('.card-preview-sheet__header h2', node => node.textContent), 'Душа Бездны');
+  await page.click('.card-preview-sheet__close');
+  await page.waitForSelector('.card-preview-sheet__panel', { hidden: true });
   await page.screenshot({ path: `${screenshotPrefix}-detail-mobile.png`, fullPage: true });
+
+  for (const width of [1024, 768, 375, 320, 1440]) {
+    await page.setViewport({ width, height: 900, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
+    const responsiveDetail = await page.evaluate(() => ({
+      overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      mobileCardsDisplay: getComputedStyle(document.querySelector('.constructed-card-stats__mobile')).display,
+      tableDisplay: getComputedStyle(document.querySelector('.constructed-card-stats__scroll')).display,
+    }));
+    assert.ok(responsiveDetail.overflow <= 1, `detail overflowed by ${responsiveDetail.overflow}px at ${width}px`);
+    if (width <= 820) {
+      assert.notEqual(responsiveDetail.mobileCardsDisplay, 'none', `mobile cards hidden at ${width}px`);
+      assert.equal(responsiveDetail.tableDisplay, 'none', `desktop table visible at ${width}px`);
+    } else {
+      assert.equal(responsiveDetail.mobileCardsDisplay, 'none', `mobile cards visible at ${width}px`);
+      assert.notEqual(responsiveDetail.tableDisplay, 'none', `desktop table hidden at ${width}px`);
+    }
+  }
 
   await page.addScriptTag({ path: axePath });
   const violations = await page.evaluate(async () => {
