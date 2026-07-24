@@ -1,0 +1,10 @@
+.git/
+node_modules/
+build/
+dist/
+coverage/
+public/
+screenshot/
+src/vendor/
+server/data/
+data/

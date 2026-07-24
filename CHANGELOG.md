@@ -1,5 +1,18 @@
 # HS-Arena Changelog
 
+## v1.0.44 - 2026-07-24
+
+- Added a project-scoped Chrome DevTools MCP integration with an isolated
+  temporary profile, disabled telemetry and CrUX, redacted network headers,
+  bounded WebP screenshots, and a strict Manacost/local-development URL
+  allowlist.
+- Added a pinned, telemetry-free Semgrep CE changed-file scanner with
+  nonblocking baseline and explicit strict modes, plus contract tests and
+  agent-facing operating documentation.
+- Verified the MCP against the production Battlegrounds trinket page and ran
+  the complete typecheck, test, build, recovery, budget, browser, accessibility,
+  and documentation pipeline.
+
 ## v1.0.43 - 2026-07-24
 
 - Added responsive archetype-specific hero artwork chosen from the archetype card sample, with a high-resolution local Vicious Voidscale treatment for Void Soul DH.

@@ -30,6 +30,25 @@ The task database is the shared source of truth for both Codex and Claude.
 Do not silently skip tracking. If the Notion connector is unavailable, report
 that as a blocker and record the task as soon as access is restored.
 
+## Required Agent Quality Tooling
+
+The repository includes project-scoped tools for safer implementation:
+
+- Chrome DevTools MCP is declared in `.mcp.json` and launched through
+  `scripts/chrome-devtools-mcp.mjs`. Use it for production or local runtime,
+  network, console, accessibility, and performance investigation. Keep its
+  isolated profile, telemetry/CrUX opt-outs, redacted headers, and URL
+  allowlist enabled.
+- For authored JavaScript or TypeScript changes, run
+  `npm run security:semgrep` before finishing. It scans only changed files and
+  is nonblocking while the project baseline is being established. Use
+  `npm run security:semgrep:strict` when the matching Notion task explicitly
+  requires a clean strict gate.
+- Run `npm run test:agent-tooling` after changing either integration.
+
+Do not connect Chrome DevTools MCP to a personal browser profile or enable
+unrestricted filesystem paths.
+
 ## Required Miro Design Context
 
 The shared Miro board is the persistent source of visual context for ideas,
