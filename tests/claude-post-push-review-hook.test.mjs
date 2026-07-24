@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -31,6 +33,11 @@ function postBash(command, overrides = {}) {
       ...overrides,
     },
   };
+}
+
+function git(cwd, ...args) {
+  const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
 }
 
 test('only accepts a standalone successful git push', () => {
@@ -90,23 +97,38 @@ test('blocks sensitive paths and likely credential content', () => {
 });
 
 test('Linux dry-run resolves the repository and current SHA without posting', () => {
-  const result = spawnSync(process.execPath, [scriptPath], {
-    cwd: repositoryRoot,
-    encoding: 'utf8',
-    env: {
-      ...process.env,
-      CLAUDE_REVIEW_DRY_RUN: '1',
-      CLAUDE_REVIEW_SKIP_REMOTE_VERIFY: '1',
-      CLAUDE_REVIEW_FAKE_REVIEW: 'No material issues found.',
-    },
-    input: JSON.stringify(postBash('git push origin main')),
-  });
+  const fixture = mkdtempSync(path.join(tmpdir(), 'manacost-post-push-'));
+  try {
+    git(fixture, 'init');
+    git(fixture, 'config', 'user.name', 'Manacost CI');
+    git(fixture, 'config', 'user.email', 'ci@example.invalid');
+    writeFileSync(path.join(fixture, 'safe.txt'), 'safe fixture\n');
+    git(fixture, 'add', 'safe.txt');
+    git(fixture, 'commit', '-m', 'test: safe post-push fixture');
+    git(fixture, 'remote', 'add', 'origin', 'https://github.com/Zulut30/manacost-arena.git');
 
-  assert.equal(result.status, 0, result.stderr);
-  const output = JSON.parse(result.stdout);
-  assert.equal(output.action, 'dry-run');
-  assert.equal(output.repository, 'Zulut30/manacost-arena');
-  assert.match(output.sha, /^[a-f0-9]{40}$/);
-  assert.equal(typeof output.files, 'number');
-  assert.equal(output.engine, 'fixture');
+    const event = postBash('git push origin main');
+    event.cwd = fixture;
+    const result = spawnSync(process.execPath, [scriptPath], {
+      cwd: fixture,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        CLAUDE_REVIEW_DRY_RUN: '1',
+        CLAUDE_REVIEW_SKIP_REMOTE_VERIFY: '1',
+        CLAUDE_REVIEW_FAKE_REVIEW: 'No material issues found.',
+      },
+      input: JSON.stringify(event),
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    const output = JSON.parse(result.stdout);
+    assert.equal(output.action, 'dry-run');
+    assert.equal(output.repository, 'Zulut30/manacost-arena');
+    assert.match(output.sha, /^[a-f0-9]{40}$/);
+    assert.equal(output.files, 1);
+    assert.equal(output.engine, 'fixture');
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
 });
