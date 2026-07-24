@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { classIconUrl, normalizeClassKey } from '../src/features/classIcons.js';
 import {
+  hsguruImpactTone,
+  hsguruMatchupTone,
+  sortHsguruCardStats,
   sortMulliganRows,
   type MulliganSort,
 } from '../src/features/archetypeDetailModel.js';
@@ -25,5 +28,26 @@ assert.deepEqual(ids({ key: 'hsreplay_rank', direction: 'asc' }), [3, 2, 1, 4]);
 assert.deepEqual(ids({ key: 'keep_percentage', direction: 'desc' }), [2, 4, 1, 3]);
 assert.deepEqual(ids({ key: 'avg_turn_played_on', direction: 'asc' }), [2, 4, 1, 3]);
 assert.deepEqual(ids({ key: 'avg_turn_played_on', direction: 'desc' }), [1, 4, 2, 3]);
+
+const cardStats = [
+  { cardName: 'Альфа', mulliganImpact: 2.4, mulliganCount: 800 },
+  { cardName: 'Бета', mulliganImpact: -1.2, mulliganCount: 1_500 },
+  { cardName: 'Гамма', mulliganImpact: null, mulliganCount: 300 },
+];
+
+assert.deepEqual(
+  sortHsguruCardStats(cardStats, { key: 'mulliganImpact', direction: 'desc' }).map(row => row.cardName),
+  ['Альфа', 'Бета', 'Гамма'],
+);
+assert.deepEqual(
+  sortHsguruCardStats(cardStats, { key: 'mulliganCount', direction: 'desc' }).map(row => row.cardName),
+  ['Бета', 'Альфа', 'Гамма'],
+);
+assert.equal(hsguruImpactTone(1.2), 'positive');
+assert.equal(hsguruImpactTone(-0.8), 'negative');
+assert.equal(hsguruImpactTone(null), 'unknown');
+assert.equal(hsguruMatchupTone(52), 'favored');
+assert.equal(hsguruMatchupTone(49.5), 'even');
+assert.equal(hsguruMatchupTone(47.9), 'unfavored');
 
 console.log('archetype detail model tests passed');

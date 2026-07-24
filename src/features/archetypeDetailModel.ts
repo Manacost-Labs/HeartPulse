@@ -39,3 +39,53 @@ export function sortMulliganRows<T extends SortableMulliganRow>(
     })
     .map(item => item.row);
 }
+
+export type HsguruCardStatSortKey =
+  | 'mulliganImpact'
+  | 'mulliganCount'
+  | 'drawnImpact'
+  | 'drawnCount'
+  | 'keptImpact'
+  | 'keptCount';
+
+export type HsguruCardStatSort = {
+  key: HsguruCardStatSortKey;
+  direction: 'asc' | 'desc';
+};
+
+type SortableHsguruCardStat = {
+  cardName: string;
+} & Partial<Record<HsguruCardStatSortKey, number | null>>;
+
+export function sortHsguruCardStats<T extends SortableHsguruCardStat>(
+  rows: readonly T[],
+  sort: HsguruCardStatSort,
+): T[] {
+  return rows
+    .map((row, index) => ({ row, index, value: sortableNumber(row[sort.key]) }))
+    .sort((left, right) => {
+      if (left.value === null && right.value === null) {
+        return left.row.cardName.localeCompare(right.row.cardName, 'ru') || left.index - right.index;
+      }
+      if (left.value === null) return 1;
+      if (right.value === null) return -1;
+      const difference = left.value - right.value;
+      if (difference !== 0) return sort.direction === 'asc' ? difference : -difference;
+      return left.row.cardName.localeCompare(right.row.cardName, 'ru') || left.index - right.index;
+    })
+    .map(item => item.row);
+}
+
+export function hsguruImpactTone(value: number | null): 'positive' | 'neutral' | 'negative' | 'unknown' {
+  if (value === null || !Number.isFinite(value)) return 'unknown';
+  if (value > 0.25) return 'positive';
+  if (value < -0.25) return 'negative';
+  return 'neutral';
+}
+
+export function hsguruMatchupTone(winrate: number | null): 'favored' | 'even' | 'unfavored' | 'unknown' {
+  if (winrate === null || !Number.isFinite(winrate)) return 'unknown';
+  if (winrate >= 52) return 'favored';
+  if (winrate >= 48) return 'even';
+  return 'unfavored';
+}
