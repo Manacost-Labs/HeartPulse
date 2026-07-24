@@ -46,7 +46,7 @@ const detail = {
   },
   mulligan,
   matchups: [
-    { opponent_archetype_id: 1, opponent_name: 'Контроль Воин', opponent_class: 'WARRIOR', win_rate: 58.4, total_games: 4321 },
+    { opponent_archetype_id: 1, opponent_name: 'Контроль Воин', opponent_class: 'WARRIOR', win_rate: 58.4, total_games: null },
     { opponent_archetype_id: 2, opponent_name: 'Агро Охотник', opponent_class: 'HUNTER', win_rate: 54.1, total_games: 6218 },
     { opponent_archetype_id: 3, opponent_name: 'Миракл Разбойник', opponent_class: 'ROGUE', win_rate: 50.2, total_games: 3840 },
     { opponent_archetype_id: 4, opponent_name: 'Дракон Жрец', opponent_class: 'PRIEST', win_rate: 49.1, total_games: 2937 },

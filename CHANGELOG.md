@@ -1,5 +1,10 @@
 # HS-Arena Changelog
 
+## v1.0.36 - 2026-07-24
+
+- Replaced the tall one-column matchup ledger with a compact responsive tile grid: three columns on wide screens, two on tablets, and one on phones.
+- Fixed unavailable HSGuru matchup sample sizes being rendered as fabricated zero-game values; unknown game counts are now omitted while real samples remain visible.
+
 ## v1.0.35 - 2026-07-24
 
 - Replaced the horizontal archetype matchup matrix with a compact full-width opponent list that places every matchup on its own row without repeating the selected archetype.

@@ -95,13 +95,26 @@ try {
     true,
     'class icons should resolve to real lowercase asset paths',
   );
+  assert.equal(
+    await page.$$eval(
+      '.archetype-matchup-row__identity span',
+      captions => captions.some(caption => caption.textContent?.replace(/\s+/g, ' ').trim() === '0 игр'),
+    ),
+    false,
+    'an unavailable HSGuru matchup sample must not be presented as zero games',
+  );
+  assert.equal(
+    await page.$eval('.archetype-matchup-row:first-child .archetype-matchup-row__identity', identity => identity.querySelector('span')),
+    null,
+    'the games caption must be omitted when HSGuru does not publish a matchup sample',
+  );
   const matchupRows = await page.$$eval('.archetype-matchup-row', rows => rows.map(row => {
     const box = row.getBoundingClientRect();
     return { top: Math.round(box.top), left: Math.round(box.left), width: Math.round(box.width) };
   }));
-  assert.equal(new Set(matchupRows.map(row => row.top)).size, 6, 'each matchup should occupy its own row');
-  assert.equal(new Set(matchupRows.map(row => row.left)).size, 1, 'matchup rows should share one left edge');
-  assert.ok(matchupRows.every(row => row.width === matchupRows[0].width), 'matchup rows should share one full width');
+  assert.equal(new Set(matchupRows.map(row => row.top)).size, 2, 'six matchups should occupy two compact desktop rows');
+  assert.equal(new Set(matchupRows.map(row => row.left)).size, 3, 'desktop matchups should form three tile columns');
+  assert.ok(matchupRows.every(row => Math.abs(row.width - matchupRows[0].width) <= 1), 'matchup tiles should share one width');
 
   const desktopDeckRows = await page.$$eval('.archetype-deck-card', cards => (
     new Set(cards.map(card => Math.round(card.getBoundingClientRect().top))).size
@@ -149,6 +162,16 @@ try {
   });
   assert.deepEqual(desktopViolations, []);
 
+  await page.setViewport({ width: 900, height: 900, deviceScaleFactor: 1 });
+  await page.reload({ waitUntil: 'networkidle0' });
+  await page.waitForSelector('.archetype-matchup-row');
+  const tabletMatchups = await page.$$eval('.archetype-matchup-row', rows => rows.map(row => {
+    const box = row.getBoundingClientRect();
+    return { top: Math.round(box.top), left: Math.round(box.left) };
+  }));
+  assert.equal(new Set(tabletMatchups.map(row => row.top)).size, 3, 'tablet matchups should occupy three compact rows');
+  assert.equal(new Set(tabletMatchups.map(row => row.left)).size, 2, 'tablet matchups should form two tile columns');
+
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
   await page.reload({ waitUntil: 'networkidle0' });
   await page.waitForSelector('.archetype-mulligan-table');
@@ -158,12 +181,15 @@ try {
     minSortTarget: Math.min(...[...document.querySelectorAll('[data-mulligan-sort]')].map(element => element.getBoundingClientRect().height)),
     builderTarget: document.querySelector('.archetype-builder-link')?.getBoundingClientRect().height || 0,
     matchupRows: document.querySelectorAll('.archetype-matchup-row').length,
+    matchupTopPositions: [...document.querySelectorAll('.archetype-matchup-row')]
+      .map(element => Math.round(element.getBoundingClientRect().top)),
   }));
   assert.ok(mobile.overflow <= 1, `mobile detail overflowed by ${mobile.overflow}px`);
   assert.ok(mobile.minMulliganTarget >= 44);
   assert.ok(mobile.minSortTarget >= 44);
   assert.ok(mobile.builderTarget >= 44);
   assert.equal(mobile.matchupRows, 6);
+  assert.equal(new Set(mobile.matchupTopPositions).size, 6, 'mobile matchups should stack as one tile per row');
   await page.screenshot({ path: `${screenshotPrefix}-detail-mobile.png`, fullPage: true });
 
   await page.setViewport({ width: 1440, height: 1050, deviceScaleFactor: 1 });
