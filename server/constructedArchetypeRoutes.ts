@@ -55,6 +55,7 @@ export type ConstructedArchetypeCardStat = {
   cardId: string | null;
   dbfId: number | null;
   cardName: string;
+  cost: number | null;
   mulliganImpact: number | null;
   mulliganCount: number;
   drawnImpact: number | null;

@@ -4699,6 +4699,7 @@ const TIER_ALIAS_TO_LETTER: Record<string, string> = {
 };
 let hearthstoneJsonRuCards: Record<string, any> | null = null;
 let hearthstoneJsonRuCardsPromise: Promise<Record<string, any>> | null = null;
+let hearthstoneJsonRuCardsByDbf: Map<number, any> | null = null;
 
 async function ensureRuCardsData(): Promise<Record<string, any>> {
   if (hearthstoneJsonRuCards) return hearthstoneJsonRuCards;
@@ -4722,6 +4723,12 @@ async function ensureRuCardsData(): Promise<Record<string, any>> {
       })
       .then((map) => {
         hearthstoneJsonRuCards = map;
+        hearthstoneJsonRuCardsByDbf = new Map(
+          Object.values(map).flatMap((card: any) => {
+            const dbfId = Number(card?.dbf);
+            return Number.isFinite(dbfId) ? [[dbfId, card]] : [];
+          }),
+        );
         return map;
       })
       .catch((err) => {
@@ -6328,7 +6335,10 @@ async function loadConstructedArchetypeAnalysis(
     return cached.data as ConstructedArchetypeAnalysis | null;
   }
   const query = new URLSearchParams({ format, archetype });
-  const payload = await fetchDataset(`v1/hsguru/archetypes/analysis?${query}`, 20_000);
+  const [payload, ruCards] = await Promise.all([
+    fetchDataset(`v1/hsguru/archetypes/analysis?${query}`, 20_000),
+    ensureRuCardsData(),
+  ]);
   const row = payload?.data && typeof payload.data === 'object' ? payload.data : null;
   if (!row) return null;
   const classMatchups = (Array.isArray(row.class_matchups) ? row.class_matchups : []).flatMap((matchup: any) => {
@@ -6345,13 +6355,19 @@ async function loadConstructedArchetypeAnalysis(
     }];
   });
   const cardStats = (Array.isArray(row.card_stats) ? row.card_stats : []).flatMap((card: any) => {
-    const cardName = String(card?.card_name ?? '').trim();
+    const cardId = String(card?.card_id ?? '').trim();
+    const dbfId = parseCount(card?.dbf_id);
+    const localizedCard = (cardId ? ruCards[cardId] : null)
+      ?? (dbfId === null ? null : hearthstoneJsonRuCardsByDbf?.get(dbfId))
+      ?? null;
+    const cardName = String(localizedCard?.name ?? card?.card_name ?? '').trim();
     const mulliganCount = parseCount(card?.mulligan_count);
     if (!cardName || mulliganCount === null) return [];
     return [{
-      cardId: String(card?.card_id ?? '').trim() || null,
-      dbfId: parseCount(card?.dbf_id),
+      cardId: cardId || null,
+      dbfId,
       cardName,
+      cost: parseCount(localizedCard?.mana),
       mulliganImpact: parseNumber(card?.mulligan_impact),
       mulliganCount,
       drawnImpact: parseNumber(card?.drawn_impact),

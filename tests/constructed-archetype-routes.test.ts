@@ -87,6 +87,7 @@ const dependencies: ConstructedArchetypeRouterDependencies = {
       cardId: 'TOY_330',
       dbfId: 123,
       cardName: 'Гость из Бездны',
+      cost: 3,
       mulliganImpact: 4.8,
       mulliganCount: 1_250,
       drawnImpact: -1.2,
@@ -129,6 +130,7 @@ try {
   assert.equal(detailBody.analysis.rank, 'legend');
   assert.equal(detailBody.analysis.classMatchups[0].classKey, 'mage');
   assert.equal(detailBody.analysis.cardStats[0].mulliganImpact, 4.8);
+  assert.equal(detailBody.analysis.cardStats[0].cost, 3);
 
   assert.equal((await fetch(`${origin}/classic/thief-priest`, { headers })).status, 400);
   assert.equal((await fetch(`${origin}/wild/missing`, { headers })).status, 404);
