@@ -1,0 +1,25 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "api/*.js",
+    "scripts/*.{js,mjs}"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx,css}",
+    "server/**/*.ts",
+    "api/*.js",
+    "scripts/*.{js,mjs}"
+  ],
+  "ignore": [
+    "public/**",
+    "database/**",
+    "asset-archive/**"
+  ],
+  "ignoreDependencies": [
+    "chrome-devtools-mcp",
+    "react-doctor"
+  ],
+  "ignoreBinaries": [
+    "codex"
+  ]
+}

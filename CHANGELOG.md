@@ -1,5 +1,18 @@
 # HS-Arena Changelog
 
+## v1.0.45 - 2026-07-24
+
+- Added immutable GitHub security workflows for CodeQL, full-history Gitleaks,
+  OSV dependency scanning and OpenSSF Scorecard, plus grouped Dependabot
+  updates and a private vulnerability reporting policy.
+- Added reproducible fast-check parser-boundary properties and a blocking Knip
+  dependency gate; removed six confirmed unused packages from the install.
+- Cleared the initial OSV baseline by overriding vulnerable transitive
+  `postcss` and `js-yaml` releases to their fixed compatible versions.
+- Integrated opt-in Sentry React/Node SDKs and a limited OAuth Sentry MCP with
+  PII-disabled defaults, zero tracing by default, event redaction and focused
+  privacy/contract tests.
+
 ## v1.0.44 - 2026-07-24
 
 - Added a project-scoped Chrome DevTools MCP integration with an isolated

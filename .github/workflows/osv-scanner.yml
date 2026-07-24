@@ -1,0 +1,34 @@
+name: OSV dependency scan
+
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: "47 2 * * 2"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  scan-pr:
+    name: Block newly introduced vulnerabilities
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
+    with:
+      scan-args: |-
+        --lockfile=./package-lock.json
+
+  scan-full:
+    name: Publish the complete vulnerability inventory
+    if: github.event_name != 'pull_request' && github.event_name != 'merge_group'
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
+    with:
+      scan-args: |-
+        --lockfile=./package-lock.json

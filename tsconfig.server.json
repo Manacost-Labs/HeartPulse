@@ -14,6 +14,7 @@
   },
   "include": [
     "server/index.ts",
+    "server/sentry.ts",
     "server/scraper.ts",
     "server/blizzardCards.ts",
     "server/hsreplayArenasmith.ts",
@@ -28,6 +29,7 @@
     "server/referrals.ts",
     "server/scrapeQueue.ts",
     "server/snapshots.ts",
-    "server/guides/**/*.ts"
+    "server/guides/**/*.ts",
+    "src/telemetry/sentryPrivacy.ts"
   ]
 }

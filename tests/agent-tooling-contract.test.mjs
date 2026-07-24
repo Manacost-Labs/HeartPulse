@@ -12,12 +12,20 @@ import {
   isSemgrepSource,
   resolveSemgrepBase,
 } from '../scripts/semgrep-changed.mjs';
+import {
+  GITLEAKS_IMAGE,
+  buildGitleaksArgs,
+} from '../scripts/gitleaks.mjs';
 
 test('project MCP config uses the guarded Chrome DevTools launcher', () => {
   const config = JSON.parse(readFileSync('.mcp.json', 'utf8'));
   assert.deepEqual(config.mcpServers['chrome-devtools'], {
     command: 'node',
     args: ['scripts/chrome-devtools-mcp.mjs'],
+  });
+  assert.deepEqual(config.mcpServers.sentry, {
+    type: 'http',
+    url: 'https://mcp.sentry.dev/mcp?skills=inspect,triage',
   });
 });
 
@@ -84,4 +92,25 @@ test('Semgrep base priority is deterministic', () => {
   assert.equal(resolveSemgrepBase({ SEMGREP_BASE: 'release-base' }, resolveRef), 'a'.repeat(40));
   assert.equal(resolveSemgrepBase({ GITHUB_BASE_REF: 'release' }, resolveRef), 'c'.repeat(40));
   assert.equal(resolveSemgrepBase({}, resolveRef), 'b'.repeat(40));
+});
+
+test('Gitleaks scans the complete repository history with a pinned image and redaction', () => {
+  assert.match(GITLEAKS_IMAGE, /@sha256:[a-f0-9]{64}$/);
+  const args = buildGitleaksArgs('/workspace/manacost-arena');
+  assert.deepEqual(args.slice(0, 7), [
+    'run',
+    '--rm',
+    '-v',
+    '/workspace/manacost-arena:/repo',
+    '-w',
+    '/repo',
+    GITLEAKS_IMAGE,
+  ]);
+  assert.ok(args.includes('git'));
+  assert.ok(args.includes('--redact'));
+  assert.ok(args.includes('--verbose'));
+  assert.ok(!args.includes('--no-redact'));
+  const workingTreeArgs = buildGitleaksArgs('/workspace/manacost-arena', 'dir');
+  assert.ok(workingTreeArgs.includes('dir'));
+  assert.equal(workingTreeArgs.at(-1), '.');
 });

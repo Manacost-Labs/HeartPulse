@@ -5,6 +5,10 @@
       "args": [
         "scripts/chrome-devtools-mcp.mjs"
       ]
+    },
+    "sentry": {
+      "type": "http",
+      "url": "https://mcp.sentry.dev/mcp?skills=inspect,triage"
     }
   }
 }

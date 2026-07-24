@@ -1,3 +1,4 @@
+import { installSentryExpressErrorHandler } from './sentry.js';
 import express from 'express';
 import cron from 'node-cron';
 import compression from 'compression';
@@ -9554,6 +9555,7 @@ app.use('/api', createAdminImageGenerationRouter({
   },
 }));
 
+installSentryExpressErrorHandler(app);
 app.use(structuredErrorMiddleware());
 
 cron.schedule('*/30 * * * *', async () => {

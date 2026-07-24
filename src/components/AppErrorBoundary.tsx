@@ -42,6 +42,15 @@ export default class AppErrorBoundary extends React.Component<
     const { failure } = this.state;
     if (!failure) return;
     registerAppIncident(failure.incidentId);
+    if (import.meta.env.VITE_SENTRY_DSN) {
+      const error: unknown = arguments[0];
+      void import('../telemetry/sentry').then(({ captureClientException }) => {
+        captureClientException(error, {
+          incidentId: failure.incidentId,
+          incidentKind: failure.kind,
+        });
+      });
+    }
     console.error('[app-error-boundary]', JSON.stringify({
       kind: failure.kind,
       incidentId: failure.incidentId,

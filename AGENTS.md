@@ -45,6 +45,16 @@ The repository includes project-scoped tools for safer implementation:
   `npm run security:semgrep:strict` when the matching Notion task explicitly
   requires a clean strict gate.
 - Run `npm run test:agent-tooling` after changing either integration.
+- Run `npm run security:gitleaks` before publishing security-sensitive changes.
+  Keep the pinned image digest, `--redact`, full-history scan, and artifact/
+  comment opt-outs intact.
+- Run `npm run quality:knip`, `npm run test:property`, and
+  `npm run test:sentry` after dependency, parser-boundary, or telemetry changes.
+  The broader `quality:knip:full` report is advisory until its file/export
+  baseline is classified.
+- Sentry is opt-in only. Never add a DSN or auth token to the repository.
+  Preserve `sendDefaultPii: false`, the event scrubber, zero default trace
+  sampling, and the limited `inspect,triage` OAuth MCP scope.
 
 Do not connect Chrome DevTools MCP to a personal browser profile or enable
 unrestricted filesystem paths.
@@ -91,4 +101,4 @@ When the work changes behavior, also update `CHANGELOG.md` under the current ver
 
 ## Release Version
 
-Current public version: `v1.0.0`.
+Current public version: `v1.0.45`.
