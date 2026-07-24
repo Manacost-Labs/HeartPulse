@@ -1,5 +1,10 @@
 # HS-Arena Changelog
 
+## v1.0.38 - 2026-07-24
+
+- Connected the shared Miro board as mandatory visual context for AI-agent work on layouts, UX, navigation, mockups, and project diagrams.
+- Added a read-only-by-default policy: agents may change board content only after an explicit user request and must track unavailable Miro context as a blocker in Notion.
+
 ## v1.0.37 - 2026-07-24
 
 - Added mandatory shared Notion task tracking for every AI-agent change to arena.hs-manacost.ru and its parser pipelines, including priority, status, acceptance criteria, blockers, commits, and production revisions.
