@@ -153,6 +153,11 @@ export default function DeckListView({
   const [preview, setPreview] = useState<CardPreviewTarget | null>(null);
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'error'>('idle');
   const count = totalCards ?? cards.reduce((sum, card) => sum + card.count, 0);
+  const copyLabel = copyState === 'ok'
+    ? 'Код колоды скопирован'
+    : copyState === 'error'
+      ? 'Не удалось скопировать код'
+      : 'Скопировать код колоды';
 
   const sections = useMemo(() => ({
     main: cards,
@@ -245,9 +250,10 @@ export default function DeckListView({
             className="deck-list-view__copy-btn"
             onClick={() => void copyCode()}
             disabled={!deckCode}
+            aria-label={copyLabel}
           >
             <Copy size={15} aria-hidden="true" />
-            {copyState === 'ok' ? 'Код скопирован' : copyState === 'error' ? 'Не удалось скопировать' : 'Скопировать код колоды'}
+            {copyLabel}
           </button>
         </div>
       ) : null}

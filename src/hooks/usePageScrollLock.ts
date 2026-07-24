@@ -10,8 +10,7 @@ let lockedScrollY = 0;
 let savedStyles: SavedInlineStyles | null = null;
 
 function lockPageScroll() {
-  lockCount += 1;
-  if (lockCount > 1) return;
+  if (lockCount++) return;
 
   const body = document.body;
   const html = document.documentElement;
@@ -44,8 +43,7 @@ function lockPageScroll() {
 }
 
 function unlockPageScroll() {
-  lockCount = Math.max(0, lockCount - 1);
-  if (lockCount > 0 || !savedStyles) return;
+  if ((lockCount && --lockCount) || !savedStyles) return;
 
   const body = document.body;
   const html = document.documentElement;

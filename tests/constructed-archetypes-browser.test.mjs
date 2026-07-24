@@ -89,6 +89,16 @@ try {
   assert.equal(await page.$$eval('.constructed-card-stats tbody tr', rows => rows.length), 15);
   assert.ok(await page.$('.archetype-deck-card__builder[href*="/deck-builder?"]'));
   assert.ok(await page.$('.archetype-main-build .deck-list-view'));
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: async value => { window.__qaCopiedDeckCode = value; } },
+    });
+  });
+  await page.click('.archetype-main-build .deck-list-view__copy-btn');
+  await page.waitForFunction(() => document.querySelector('.archetype-main-build .deck-list-view__copy-btn')
+    ?.getAttribute('aria-label') === 'Код колоды скопирован');
+  assert.match(await page.evaluate(() => window.__qaCopiedDeckCode || ''), /^AA/);
   await page.click('.constructed-card-stats__more');
   await page.waitForFunction(() => document.querySelectorAll('.constructed-card-stats tbody tr').length === 18);
   await page.click('.archetype-builds__more');
