@@ -1,4 +1,7 @@
-import { installSentryExpressErrorHandler } from './sentry.js';
+import {
+  captureServerWebVital,
+  installSentryExpressErrorHandler,
+} from './sentry.js';
 import express from 'express';
 import cron from 'node-cron';
 import compression from 'compression';
@@ -23,6 +26,7 @@ import { createBlizzardCardImageClient, isBlizzardImageContentType } from './bli
 import { evaluateDataHealth } from './health.js';
 import { createHealthRouter } from './healthRoutes.js';
 import { createMetricsRouter, HttpMetrics } from './metrics.js';
+import { createWebVitalsRouter } from './webVitalsRoutes.js';
 import { requestLoggingMiddleware, structuredErrorMiddleware } from './observability.js';
 import { createScrapeQueueHandler } from './scrapeQueue.js';
 import { decodeSignedStateCookie, encodeSignedStateCookie, safeAuthReturnTo } from './authRedirect.js';
@@ -8115,6 +8119,7 @@ const metricsRouter = createMetricsRouter({
 });
 app.use('/metrics', metricsRouter);
 app.use('/api/metrics', metricsRouter);
+app.use('/api', createWebVitalsRouter({ capture: captureServerWebVital }));
 
 app.use('/api', createOperationalRouter({
   loadDataset: filename => loadDataCached(filename),

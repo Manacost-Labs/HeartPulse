@@ -1,5 +1,16 @@
 # HS-Arena Changelog
 
+## v1.0.48 - 2026-07-24
+
+- Made the installed design, React, browser, performance, observability,
+  CodeGraph, Context7 and evidence-driven skills mandatory through a tested
+  task-routing contract for Codex and Claude.
+- Added idle-loaded, batched real-user Web Vitals collection for LCP, CLS, INP,
+  FCP and TTFB through the existing server-side Sentry SDK without loading the
+  large browser SDK on ordinary page views.
+- Restricted Sentry metric attributes to bounded rating/navigation values,
+  added configurable RUM sampling, and expanded privacy and telemetry tests.
+
 ## v1.0.47 - 2026-07-24
 
 - Added immutable Trivy repository scanning for high/critical dependency

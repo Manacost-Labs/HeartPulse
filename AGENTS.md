@@ -59,6 +59,29 @@ The repository includes project-scoped tools for safer implementation:
 Do not connect Chrome DevTools MCP to a personal browser profile or enable
 unrestricted filesystem paths.
 
+## Required Skill Routing
+
+The server-wide skills are installed under `/opt/ai-agent-resources` and the
+Codex plugin cache. Installing them is not sufficient: agents must select and
+read the applicable `SKILL.md` completely before implementation.
+
+| Task | Required skills/resources |
+| --- | --- |
+| Any codebase investigation | `codegraph` first when `.codegraph/` exists; `context7` for current library/framework/API documentation |
+| UI, UX, layout or responsive work | `frontend-design`, TypeUI fundamentals at `/opt/ai-agent-resources/repos/typeui/skills/fundamentals/SKILL.md`, and `agent-skills:browser-testing-with-devtools` |
+| React implementation or review | `build-web-apps:react-best-practices` and `build-web-apps:frontend-testing-debugging` |
+| Performance or loading work | `agent-skills:performance-optimization` plus the audit, performance, Core Web Vitals and accessibility skills under `/opt/ai-agent-resources/repos/web-quality-skills/skills/` |
+| Telemetry, errors, metrics or production diagnostics | `agent-skills:observability-and-instrumentation` |
+| Source integration or uncertain behavior | `agent-skills:source-driven-development` and `agent-skills:doubt-driven-development` |
+
+For every browser-facing change, the agent must perform a real-browser review
+with Chrome DevTools MCP after automated checks. The review must cover the
+affected viewports, visible overflow or clipping, console errors/warnings,
+failed network requests, accessibility structure and relevant performance
+signals. A text-only code review is not an acceptable visual verification.
+
+Run `npm run test:agent-tooling` after changing this routing contract.
+
 ## Required Miro Design Context
 
 The shared Miro board is the persistent source of visual context for ideas,
@@ -101,4 +124,4 @@ When the work changes behavior, also update `CHANGELOG.md` under the current ver
 
 ## Release Version
 
-Current public version: `v1.0.47`.
+Current public version: `v1.0.48`.

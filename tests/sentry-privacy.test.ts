@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   boundedSampleRate,
   redactSentryEvent,
+  redactSentryMetric,
   redactSentryText,
   sentryPathOnly,
 } from '../src/telemetry/sentryPrivacy.js';
@@ -50,5 +51,22 @@ assert.deepEqual(sanitized.breadcrumbs, [{
   message: '[redacted]',
   timestamp: undefined,
 }]);
+
+const sanitizedMetric = redactSentryMetric({
+  name: 'web.vital.inp',
+  type: 'distribution',
+  value: 123,
+  unit: 'millisecond',
+  attributes: {
+    rating: 'good',
+    navigation_type: 'navigate',
+    url: 'https://arena.hs-manacost.ru/admin?token=secret',
+    user_id: '42',
+  },
+});
+assert.deepEqual(sanitizedMetric.attributes, {
+  rating: 'good',
+  navigation_type: 'navigate',
+});
 
 console.log('Sentry privacy tests passed');

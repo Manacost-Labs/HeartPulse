@@ -4,6 +4,26 @@
 локального статического анализа. Инструменты не используют пользовательский
 профиль браузера и не отправляют исходный код во внешние AI-сервисы.
 
+## Обязательная маршрутизация навыков
+
+Навыки установлены на сервере, но агент обязан выбирать их по типу задачи:
+
+- исследование кода — CodeGraph, а для актуальной документации библиотек —
+  Context7;
+- интерфейс и адаптивность — `frontend-design`, TypeUI fundamentals и
+  `browser-testing-with-devtools`;
+- React — `react-best-practices` и `frontend-testing-debugging`;
+- скорость — `performance-optimization` и web-quality skills для performance,
+  Core Web Vitals и accessibility;
+- телеметрия — `observability-and-instrumentation`;
+- внешние источники и сомнительные предположения — `source-driven-development`
+  и `doubt-driven-development`.
+
+Точные пути и обязательный порядок закреплены в `AGENTS.md`. После любого
+изменения интерфейса агент должен открыть реальную страницу через Chrome
+DevTools MCP, проверить целевые разрешения, overflow, консоль, сеть,
+accessibility tree и показатели производительности.
+
 ## Chrome DevTools MCP
 
 Файл `.mcp.json` подключает Chrome DevTools MCP через локальную зафиксированную
@@ -124,7 +144,7 @@ CLI-пакеты Chrome DevTools MCP и React Doctor внесены в явны�
 npm run quality:knip:full
 ```
 
-## Sentry SDK и MCP
+## Sentry SDK, Web Vitals и MCP
 
 Клиентский и серверный Sentry SDK полностью отключены, пока не задан
 соответствующий DSN. `sendDefaultPii` выключен; перед отправкой удаляются
@@ -133,9 +153,22 @@ npm run quality:knip:full
 редактируются также в сообщениях ошибок. Session Replay не включён, а tracing
 по умолчанию равен нулю.
 
+Клиент в idle-время лениво загружает небольшой `web-vitals` chunk и группирует
+LCP, CLS, INP, FCP и TTFB в один credential-free same-origin запрос. Сервер
+валидирует фиксированную схему и при наличии server-only `SENTRY_DSN` отправляет
+в Sentry distribution-метрики: `web.vital.lcp`, `web.vital.cls`,
+`web.vital.inp`, `web.vital.fcp` и `web.vital.ttfb`. Большой browser Sentry SDK
+не загружается ради RUM и остаётся ленивым аварийным контуром. В атрибуты
+попадают только ограниченные значения `rating` и `navigation_type`; URL, metric
+id, DOM target, cookies, пользователь и другие высококардинальные/чувствительные
+данные не отправляются.
+
 Для активации error monitoring задайте server-only `SENTRY_DSN` и, при
-необходимости, публичный browser DSN `VITE_SENTRY_DSN`. Sampling повышайте
-только после проверки событий в тестовом Sentry environment:
+необходимости, публичный browser DSN `VITE_SENTRY_DSN` для клиентских ошибок.
+RUM требует только server-only DSN и по умолчанию собирается для всех page
+views; объём можно ограничить через `VITE_SENTRY_WEB_VITALS_SAMPLE_RATE` от `0`
+до `1`. Tracing sampling повышайте только после проверки событий в тестовом
+Sentry environment:
 
 ```bash
 npm run test:sentry

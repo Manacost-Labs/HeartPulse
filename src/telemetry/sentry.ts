@@ -1,4 +1,8 @@
-import { boundedSampleRate, redactSentryEvent } from './sentryPrivacy';
+import {
+  boundedSampleRate,
+  redactSentryEvent,
+  redactSentryMetric,
+} from './sentryPrivacy';
 
 type SentryModule = typeof import('@sentry/react');
 let initialization: Promise<SentryModule | null> | null = null;
@@ -16,6 +20,7 @@ function initializeClientSentry(): Promise<SentryModule | null> {
       tracesSampleRate: boundedSampleRate(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE),
       beforeSend: event => redactSentryEvent(event),
       beforeSendTransaction: event => redactSentryEvent(event),
+      beforeSendMetric: metric => redactSentryMetric(metric),
     });
     return Sentry;
   }).catch(error => {

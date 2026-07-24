@@ -2,7 +2,8 @@ import { readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { gzipSync } from 'zlib';
 
-const distAssets = join(process.cwd(), 'dist', 'assets');
+const distRoot = join(process.cwd(), 'dist');
+const distAssets = join(distRoot, 'assets');
 
 const budgets = {
   // Route-owned icons and Home stay out of the eager dependency graph. The
@@ -20,9 +21,12 @@ const budgets = {
   // route. v1.0.32 adds trinket filters to the Battlegrounds route and a lazy
   // constructed-deck gallery. The BG thumbnail optimizer adds 409 raw bytes
   // only to that lazy route while removing about 73 KB from every sample card
-  // transfer. Compressed startup remains under 80 KB.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 63_820),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 256_840),
+  // transfer. Compressed startup remains under 80 KB. v1.0.48 adds a 0.7 KB
+  // opt-in RUM bootstrap while keeping both web-vitals and the 482 KB Sentry
+  // SDK outside the startup graph; raw budgets include only that measured
+  // bootstrap and the compressed 80 KB transfer ratchet remains unchanged.
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 64_600),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 257_700),
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_000),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 118_000),
@@ -52,10 +56,13 @@ const files = readdirSync(distAssets)
   .map(name => ({ name, bytes: statSync(join(distAssets, name)).size }))
   .sort((a, b) => b.bytes - a.bytes);
 
-const mainJs = files.find(file =>
-  /^index-.*\.js$/.test(file.name)
-  && !file.name.startsWith('vendor-')
+const entryHtml = readFileSync(join(distRoot, 'index.html'), 'utf8');
+const entryMatch = entryHtml.match(
+  /<script\b[^>]*\btype=["']module["'][^>]*\bsrc=["'][^"']*\/assets\/(index-[^"']+\.js)["']/i,
 );
+const mainJs = entryMatch
+  ? files.find(file => file.name === entryMatch[1])
+  : null;
 const routeJs = files.filter(file =>
   /\.js$/.test(file.name)
   && !/^index-/.test(file.name)

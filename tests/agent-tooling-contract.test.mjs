@@ -29,6 +29,29 @@ test('project MCP config uses the guarded Chrome DevTools launcher', () => {
   });
 });
 
+test('AGENTS routes browser, React, performance and telemetry work through installed skills', () => {
+  const instructions = readFileSync('AGENTS.md', 'utf8');
+  for (const requiredSkill of [
+    'frontend-design',
+    'typeui/skills/fundamentals/SKILL.md',
+    'agent-skills:browser-testing-with-devtools',
+    'build-web-apps:react-best-practices',
+    'build-web-apps:frontend-testing-debugging',
+    'agent-skills:performance-optimization',
+    'web-quality-skills/skills/',
+    'agent-skills:observability-and-instrumentation',
+    'agent-skills:source-driven-development',
+    'agent-skills:doubt-driven-development',
+    '`codegraph`',
+    '`context7`',
+  ]) {
+    assert.match(instructions, new RegExp(requiredSkill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  assert.match(instructions, /real-browser review/);
+  assert.match(instructions, /console errors\/warnings/);
+  assert.match(instructions, /accessibility structure/);
+});
+
 test('Chrome DevTools defaults isolate sessions and minimize data exposure', () => {
   const args = buildChromeDevtoolsArgs({}, () => true);
   assert.match(resolveChromeExecutable({}, () => true), /google-chrome/);

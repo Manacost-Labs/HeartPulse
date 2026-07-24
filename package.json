@@ -41,7 +41,7 @@
     "test:agent-tooling": "node --test tests/agent-tooling-contract.test.mjs",
     "test:security-tooling": "node --test tests/security-tooling-contract.test.mjs",
     "test:property": "tsx tests/parser-normalization-property.test.ts",
-    "test:sentry": "tsx tests/sentry-privacy.test.ts",
+    "test:sentry": "tsx tests/sentry-privacy.test.ts && tsx tests/web-vitals-sentry.test.ts && tsx tests/web-vitals-routes.test.ts",
     "test:mobile-layout-diagnostics": "node tests/mobile-layout-diagnostics.test.mjs",
     "test:modal-surface": "tsx tests/modal-surface-model.test.ts && node tests/modal-surface-browser.test.mjs",
     "test:app-error-boundary": "tsx tests/app-error-boundary.test.tsx",
@@ -169,7 +169,8 @@
     "react-dom": "^19.0.0",
     "redis": "^4.7.1",
     "sanitize-html": "2.17.5",
-    "sharp": "0.35.3"
+    "sharp": "0.35.3",
+    "web-vitals": "^6.0.0"
   },
   "devDependencies": {
     "@google/design.md": "0.3.0",

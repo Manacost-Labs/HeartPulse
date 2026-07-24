@@ -1,5 +1,6 @@
 const REDACTED = '[redacted]';
 const SAFE_TAG_KEYS = new Set(['incidentId', 'incidentKind', 'surface']);
+const SAFE_METRIC_ATTRIBUTE_KEYS = new Set(['rating', 'navigation_type']);
 
 export type SentryEventLike = {
   breadcrumbs?: Array<Record<string, unknown>>;
@@ -22,6 +23,15 @@ export type SentryEventLike = {
   tags?: Record<string, unknown>;
   transaction?: string;
   user?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+export type SentryMetricLike = {
+  attributes?: Record<string, unknown>;
+  name: string;
+  type: string;
+  unit?: string;
+  value: number;
   [key: string]: unknown;
 };
 
@@ -84,6 +94,16 @@ export function redactSentryEvent<T>(event: T): T {
     );
   }
 
+  return safe as T;
+}
+
+export function redactSentryMetric<T>(metric: T): T {
+  const safe = { ...(metric as SentryMetricLike) };
+  if (safe.attributes) {
+    safe.attributes = Object.fromEntries(
+      Object.entries(safe.attributes).filter(([key]) => SAFE_METRIC_ATTRIBUTE_KEYS.has(key)),
+    );
+  }
   return safe as T;
 }
 

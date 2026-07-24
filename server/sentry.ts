@@ -1,6 +1,10 @@
 import * as Sentry from '@sentry/node';
 import type { Express } from 'express';
-import { boundedSampleRate, redactSentryEvent } from '../src/telemetry/sentryPrivacy.js';
+import {
+  boundedSampleRate,
+  redactSentryEvent,
+  redactSentryMetric,
+} from '../src/telemetry/sentryPrivacy.js';
 
 const dsn = process.env.SENTRY_DSN?.trim();
 
@@ -16,10 +20,30 @@ if (dsn) {
     tracesSampleRate: boundedSampleRate(process.env.SENTRY_TRACES_SAMPLE_RATE),
     beforeSend: event => redactSentryEvent(event),
     beforeSendTransaction: event => redactSentryEvent(event),
+    beforeSendMetric: metric => redactSentryMetric(metric),
   });
 }
 
 export const serverSentryConfigured = Boolean(dsn);
+
+export type ServerWebVitalMetric = {
+  name: 'CLS' | 'FCP' | 'INP' | 'LCP' | 'TTFB';
+  value: number;
+  rating: 'good' | 'needs-improvement' | 'poor';
+  navigationType: string;
+};
+
+export function captureServerWebVital(metric: ServerWebVitalMetric): boolean {
+  if (!serverSentryConfigured) return false;
+  Sentry.metrics.distribution(`web.vital.${metric.name.toLowerCase()}`, metric.value, {
+    unit: metric.name === 'CLS' ? undefined : 'millisecond',
+    attributes: {
+      rating: metric.rating,
+      navigation_type: metric.navigationType,
+    },
+  });
+  return true;
+}
 
 export function installSentryExpressErrorHandler(app: Express): boolean {
   if (!serverSentryConfigured) return false;

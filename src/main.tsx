@@ -15,3 +15,20 @@ createRoot(document.getElementById('root')!).render(
     </AppErrorBoundary>
   </StrictMode>,
 );
+
+const startClientRum = () => {
+  void import('./telemetry/webVitals')
+    .then(({ startWebVitalsReporting }) => startWebVitalsReporting())
+    .catch(error => {
+      console.warn(
+        '[telemetry] web-vitals initialization failed:',
+        error instanceof Error ? error.message : error,
+      );
+    });
+};
+
+if ('requestIdleCallback' in window) {
+  window.requestIdleCallback(startClientRum, { timeout: 1_500 });
+} else {
+  globalThis.setTimeout(startClientRum, 0);
+}
