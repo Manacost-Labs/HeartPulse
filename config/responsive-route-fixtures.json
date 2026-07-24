@@ -94,6 +94,17 @@
       "representative": true
     },
     {
+      "id": "constructed-archetypes-anonymous",
+      "routeId": "constructed-archetypes",
+      "path": "/standard/archetypes",
+      "access": "anonymous",
+      "state": "paywall",
+      "ready": { "selector": ".arena-paywall" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
+    },
+    {
       "id": "vicious-gold-anonymous",
       "routeId": "standard-vicious-gold",
       "path": "/standard/vicious-gold",
@@ -375,10 +386,21 @@
       "path": "/standard/meta",
       "access": "subscriber",
       "state": "content",
-      "ready": { "selector": ".archetype-row", "text": "Чётный Чернокнижник" },
+      "ready": { "selector": ".standard-meta-card", "text": "Чётный Чернокнижник" },
       "capture": { "mode": "viewport", "anchor": "top" },
       "checks": ["overflow", "runtime-errors", "axe", "targets"],
       "representative": true
+    },
+    {
+      "id": "constructed-archetypes-subscriber",
+      "routeId": "constructed-archetypes",
+      "path": "/standard/archetypes",
+      "access": "subscriber",
+      "state": "content",
+      "ready": { "selector": ".archetype-row", "text": "Чётный Чернокнижник" },
+      "capture": { "mode": "viewport", "anchor": "top" },
+      "checks": ["overflow", "runtime-errors", "axe", "targets"],
+      "representative": false
     },
     {
       "id": "arena-tierlist-subscriber",

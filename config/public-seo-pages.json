@@ -25,6 +25,13 @@
     "/standard/meta": {
       "policyRouteId": "standard-meta",
       "navigationRouteId": "standard-meta",
+      "title": "Мета Hearthstone {year}: архетипы и колоды | Manacost Stats",
+      "description": "Актуальная мета Стандарта и Вольного режима по данным HSGuru: тир-листы, винрейты, популярность, русские названия и готовые сборки.",
+      "sitemap": true
+    },
+    "/standard/archetypes": {
+      "policyRouteId": "constructed-archetypes",
+      "navigationRouteId": "constructed-archetypes",
       "title": "Архетипы Hearthstone {year}: Стандарт и Вольный | Manacost Stats",
       "description": "Актуальные архетипы Стандарта и Вольного режима по данным HSGuru: винрейты, популярность, отдельные страницы, история и готовые сборки.",
       "sitemap": true

@@ -1,6 +1,6 @@
 import { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import StandardMeta from '../../src/features/StandardMeta';
+import ConstructedArchetypes from '../../src/features/ConstructedArchetypes';
 import '../../src/index.css';
 
 const builds = Array.from({ length: 14 }, (_, index) => ({
@@ -71,8 +71,8 @@ globalThis.fetch = (async (input: RequestInfo | URL) => {
 }) as typeof fetch;
 
 function Harness() {
-  const [path, setPath] = useState('/standard/meta');
-  return <StandardMeta currentPath={path} navigatePath={setPath} />;
+  const [path, setPath] = useState('/standard/archetypes');
+  return <ConstructedArchetypes currentPath={path} navigatePath={setPath} />;
 }
 
 createRoot(document.getElementById('root')!).render(<StrictMode><Harness /></StrictMode>);

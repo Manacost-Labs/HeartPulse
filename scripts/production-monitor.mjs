@@ -467,7 +467,7 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
   );
   assertXmlResponse(staticResponse, 'static sitemap');
   const staticLocations = sitemapLocations(staticXml, 'urlset', 'static sitemap');
-  ensure(staticLocations.length === 23, `static sitemap contains ${staticLocations.length}/23 URLs`);
+  ensure(staticLocations.length === 24, `static sitemap contains ${staticLocations.length}/24 URLs`);
   for (const location of staticLocations) {
     const parsed = new URL(location);
     ensure(parsed.origin === origin && !parsed.search && !parsed.hash

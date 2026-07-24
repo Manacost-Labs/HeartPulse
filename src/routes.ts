@@ -76,7 +76,10 @@ export const TABS = [
     id: 'standard-matchups', label: 'Матчапы', icon: Swords, slug: '/standard/matchups', group: 'standard', entitlement: 'standard',
   },
   {
-    id: 'standard-meta', label: 'Архетипы', icon: ChartNoAxesCombined, slug: '/standard/meta', group: 'standard', entitlement: 'standard',
+    id: 'standard-meta', label: 'Мета', icon: ChartNoAxesCombined, slug: '/standard/meta', group: 'standard', entitlement: 'standard',
+  },
+  {
+    id: 'constructed-archetypes', label: 'Архетипы', icon: ListTree, slug: '/standard/archetypes', group: 'standard', entitlement: 'standard',
   },
   {
     id: 'standard-vicious-gold', label: 'Vicious Syndicate Gold', icon: Crown, slug: '/standard/vicious-gold', group: 'standard', entitlement: 'standard',
@@ -142,6 +145,9 @@ export function isRemovedPagePath(path: string): boolean {
 export function tabFromPath(path: string): TabId {
   const clean = path.replace(/[?#].*$/, '').replace(/\/+$/, '') || '/';
   if (isRemovedPagePath(clean)) return 'home';
+  if (/^\/standard\/meta\/(?:standard|wild)\/[a-z0-9][a-z0-9-]{0,119}$/.test(clean)) {
+    return 'constructed-archetypes';
+  }
   const found = TABS.find(route => route.slug !== '/'
     && (clean === route.slug || clean.startsWith(`${route.slug}/`)));
   return found?.id ?? 'home';

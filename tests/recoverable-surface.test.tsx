@@ -74,11 +74,15 @@ assert.match(deckSource, /data-deck-render-state=\{renderState\}/);
 
 const metaSource = readFileSync(new URL('../src/features/StandardMeta.tsx', import.meta.url), 'utf8');
 assert.match(metaSource, /scope="standard-meta"/);
-assert.match(metaSource, /setRevision\(value => value \+ 1\)/);
-assert.match(metaSource, /variant="empty"/);
-assert.match(metaSource, /\/api\/constructed-archetypes\?format=/);
-assert.match(metaSource, /initialFormat.*=== 'wild' \? 'wild' : 'standard'/);
-assert.match(metaSource, /detailMatch = currentPath\.match/);
-assert.match(metaSource, /\(standard\|wild\)/);
+assert.match(metaSource, /\/api\/standard-meta\?/);
+
+const archetypesSource = readFileSync(new URL('../src/features/ConstructedArchetypes.tsx', import.meta.url), 'utf8');
+assert.match(archetypesSource, /scope="constructed-archetypes"/);
+assert.match(archetypesSource, /setRevision\(value => value \+ 1\)/);
+assert.match(archetypesSource, /variant="empty"/);
+assert.match(archetypesSource, /\/api\/constructed-archetypes\?format=/);
+assert.match(archetypesSource, /initialFormat.*=== 'wild' \? 'wild' : 'standard'/);
+assert.match(archetypesSource, /detailMatch = currentPath\.match/);
+assert.match(archetypesSource, /\(standard\|wild\)/);
 
 console.log('Recoverable surface tests passed');

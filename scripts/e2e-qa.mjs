@@ -1389,9 +1389,9 @@ async function mockApplicationApi(page, {
       return;
     }
     if (url.pathname === '/api/constructed-archetypes' && request.method() === 'GET') {
-      if (adminState.standardMetaReadFailureOnce) {
-        adminState.standardMetaReadFailureOnce = false;
-        adminState.standardMetaReadFailures = (adminState.standardMetaReadFailures || 0) + 1;
+      if (adminState.constructedArchetypeReadFailureOnce) {
+        adminState.constructedArchetypeReadFailureOnce = false;
+        adminState.constructedArchetypeReadFailures = (adminState.constructedArchetypeReadFailures || 0) + 1;
         request.respond({ ...jsonResponse({ error: 'Контрольная ошибка загрузки меты' }), status: 503 });
         return;
       }
@@ -3713,12 +3713,12 @@ for (const [device, viewport] of [
     const profileViolationCount = await auditAccessibility(page, `profile [${device}]`, '.profile-page');
     await page.screenshot({ path: `${OUT}/profile-${device}.png`, fullPage: false });
 
-    adminState.standardMetaReadFailureOnce = true;
-    await page.click('[data-profile-admin-destination="standard-meta"]');
-    await page.waitForFunction(() => window.location.pathname.replace(/\/+$/, '') === '/standard/meta');
+    adminState.constructedArchetypeReadFailureOnce = true;
+    await page.goto(`${BASE}/standard/archetypes`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForFunction(() => window.location.pathname.replace(/\/+$/, '') === '/standard/archetypes');
     await page.waitForSelector('.archetypes-page [data-recovery-state="error"]', { timeout: 20_000 });
     await page.evaluate(() => { window.__qaStandardMetaDocumentMarker = 'preserve-on-retry'; });
-    const metaErrorState = await page.evaluate(() => {
+    const archetypeErrorState = await page.evaluate(() => {
       const state = document.querySelector('.archetypes-page [data-recovery-state="error"]');
       const retry = state?.querySelector('button');
       return {
@@ -3728,19 +3728,19 @@ for (const [device, viewport] of [
         shellVisible: Boolean(document.querySelector('.arena-sidebar') && document.querySelector('.global-utility-header')),
       };
     });
-    if (metaErrorState.role !== 'alert' || !metaErrorState.text.includes('Контрольная ошибка загрузки меты')
-      || metaErrorState.retryHeight < 43.5 || !metaErrorState.shellVisible || adminState.standardMetaReadFailures !== 1) {
-      failures.push(`archetype catalog recovery [${device}]: API error did not stay local or actionable (${JSON.stringify(metaErrorState)})`);
+    if (archetypeErrorState.role !== 'alert' || !archetypeErrorState.text.includes('Контрольная ошибка загрузки меты')
+      || archetypeErrorState.retryHeight < 43.5 || !archetypeErrorState.shellVisible || adminState.constructedArchetypeReadFailures !== 1) {
+      failures.push(`archetype catalog recovery [${device}]: API error did not stay local or actionable (${JSON.stringify(archetypeErrorState)})`);
     }
     await page.click('.archetypes-page [data-recovery-state="error"] button');
     await page.waitForSelector('.archetype-row', { timeout: 20_000 });
-    const metaRetryState = await page.evaluate(() => ({
+    const archetypeRetryState = await page.evaluate(() => ({
       marker: window.__qaStandardMetaDocumentMarker || '',
       errorPresent: Boolean(document.querySelector('.archetypes-page [data-recovery-state="error"]')),
       shellRecoveryPresent: Boolean(document.querySelector('.app-error-shell')),
     }));
-    if (metaRetryState.marker !== 'preserve-on-retry' || metaRetryState.errorPresent || metaRetryState.shellRecoveryPresent) {
-      failures.push(`archetype catalog recovery [${device}]: retry reloaded the document or opened shell recovery (${JSON.stringify(metaRetryState)})`);
+    if (archetypeRetryState.marker !== 'preserve-on-retry' || archetypeRetryState.errorPresent || archetypeRetryState.shellRecoveryPresent) {
+      failures.push(`archetype catalog recovery [${device}]: retry reloaded the document or opened shell recovery (${JSON.stringify(archetypeRetryState)})`);
     }
     const archetypeCatalogState = await page.evaluate(() => {
       const root = document.querySelector('.archetypes-page');
@@ -3769,12 +3769,12 @@ for (const [device, viewport] of [
       || archetypeCatalogState.rootOverflow || archetypeCatalogState.documentOverflow) {
       failures.push(`archetype catalog [${device}]: layout, content or controls regressed (${JSON.stringify(archetypeCatalogState)})`);
     }
-    const standardMetaTourViolationCount = await auditPageTour(page, {
+    const archetypeTourViolationCount = await auditPageTour(page, {
       label: `archetype catalog [${device}]`,
       expectedSteps: 3,
       mobile: device === 'mobile',
     });
-    const standardMetaViolationCount = await auditAccessibility(page, `archetype catalog [${device}]`, '.archetypes-page');
+    const archetypeViolationCount = await auditAccessibility(page, `archetype catalog [${device}]`, '.archetypes-page');
     await page.screenshot({ path: `${OUT}/archetype-catalog-${device}.png`, fullPage: false });
 
     await page.click('.archetype-row__open');
@@ -3819,9 +3819,8 @@ for (const [device, viewport] of [
     await page.click('.archetype-breadcrumb a');
     await page.waitForSelector('.archetype-row', { timeout: 20_000 });
 
-    /* Legacy Standard Meta dashboard QA retained as migration context.
     adminState.standardMetaReadFailureOnce = true;
-    await page.click('[data-profile-admin-destination="standard-meta"]');
+    await page.goto(`${BASE}/standard/meta`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => window.location.pathname.replace(/\/+$/, '') === '/standard/meta');
     await page.waitForSelector('.standard-meta', { timeout: 20_000 });
     await page.waitForSelector('.standard-meta [data-recovery-state="error"]', { timeout: 20_000 });
@@ -3987,12 +3986,20 @@ for (const [device, viewport] of [
       || standardMetaTableState.pageOverflow || (device === 'mobile' && !standardMetaTableState.scrollable)) {
       failures.push(`standard meta table [${device}]: structure or responsive containment regressed (${JSON.stringify(standardMetaTableState)})`);
     }
-    await page.click('[data-sort-key="popularity"]');
+    await page.$eval('[data-sort-key="popularity"]', button => button.click());
+    await page.waitForFunction(() => ['ascending', 'descending'].includes(
+      document.querySelector('[data-sort-key="popularity"]')?.closest('th')?.getAttribute('aria-sort') || '',
+    ));
+    if (await page.$eval('[data-sort-key="popularity"]', button => button.closest('th')?.getAttribute('aria-sort')) !== 'descending') {
+      await page.$eval('[data-sort-key="popularity"]', button => button.click());
+      await page.waitForFunction(() => document.querySelector('[data-sort-key="popularity"]')?.closest('th')?.getAttribute('aria-sort') === 'descending');
+    }
     const popularityDescendingState = await page.evaluate(() => ({
       first: document.querySelector('.standard-meta-table tbody tr')?.getAttribute('data-meta-archetype') || '',
       label: document.querySelector('[data-sort-key="popularity"]')?.getAttribute('aria-label') || '',
     }));
-    await page.click('[data-sort-key="popularity"]');
+    await page.$eval('[data-sort-key="popularity"]', button => button.click());
+    await page.waitForFunction(() => document.querySelector('[data-sort-key="popularity"]')?.closest('th')?.getAttribute('aria-sort') === 'ascending');
     const popularityAscendingState = await page.evaluate(() => ({
       first: document.querySelector('.standard-meta-table tbody tr')?.getAttribute('data-meta-archetype') || '',
       label: document.querySelector('[data-sort-key="popularity"]')?.getAttribute('aria-label') || '',
@@ -4164,7 +4171,6 @@ for (const [device, viewport] of [
     }
     await page.click('.standard-meta-modal__close');
     if (device === 'mobile') await page.setViewport(viewport);
-    */
     await page.goto(`${BASE}/standard/matchups`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('[data-tour-id="matchups-matrix"]', { timeout: 20_000 });
     const standardMatchupsTourViolationCount = await auditPageTour(page, {
@@ -4771,7 +4777,7 @@ for (const [device, viewport] of [
     await page.screenshot({ path: `${OUT}/constructed-card-detail-${device}.png`, fullPage: false });
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
-    console.log(`✓ admin dashboard/articles/translations/mechanics/Standard data/gallery/Boosty/Telegram/mailing/contests/users/profile/standard panels [${device}] interactions + axe (${violationCount + articlesViolationCount + translationsViolationCount + mechanicTranslationsViolationCount + standardOpsViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + profileViolationCount + profileTourViolationCount + standardMetaViolationCount + standardMetaTourViolationCount + standardMatchupsTourViolationCount + viciousGoldViolationCount + viciousGoldTourViolationCount + constructedCardsViolationCount + constructedTourViolationCount + constructedDetailViolationCount + constructedDetailTourViolationCount} violations)`);
+    console.log(`✓ admin dashboard/articles/translations/mechanics/Standard data/gallery/Boosty/Telegram/mailing/contests/users/profile/standard panels [${device}] interactions + axe (${violationCount + articlesViolationCount + translationsViolationCount + mechanicTranslationsViolationCount + standardOpsViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + profileViolationCount + profileTourViolationCount + archetypeViolationCount + archetypeTourViolationCount + standardMetaViolationCount + standardMetaTourViolationCount + standardMatchupsTourViolationCount + viciousGoldViolationCount + viciousGoldTourViolationCount + constructedCardsViolationCount + constructedTourViolationCount + constructedDetailViolationCount + constructedDetailTourViolationCount} violations)`);
   } catch (error) {
     const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
     failures.push(`admin dashboard [${device}]: ${error.message}; page: ${diagnostic}`);
@@ -4830,7 +4836,7 @@ for (const width of [320, 430]) {
   await page.setViewport({ width, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   await mockApplicationApi(page, { authenticated: true, admin: true, adminState: {} });
   try {
-    await page.goto(`${BASE}/standard/meta`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.goto(`${BASE}/standard/archetypes`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.archetype-row', { timeout: 20_000 });
     const metaNarrowState = await page.evaluate(() => {
       const root = document.querySelector('.archetypes-page');

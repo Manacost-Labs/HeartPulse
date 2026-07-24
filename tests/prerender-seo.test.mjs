@@ -216,7 +216,7 @@ try {
     .sort();
   assert.deepEqual(actualUrls, expectedUrls, 'sitemap URLs must exactly match materialized registry pages');
   assert.equal(new Set(actualUrls).size, actualUrls.length, 'sitemap URLs must be unique');
-  assert.equal(actualUrls.length, 23, 'the static segment must preserve the existing 23 canonical pages');
+  assert.equal(actualUrls.length, 24, 'the static segment must include all 24 canonical pages');
   assert.doesNotMatch(staticSitemap, /[?&#](?:preview|page|sort)=/i, 'sitemap must not contain query URLs');
   assert.doesNotMatch(staticSitemap, new RegExp(`${escapePattern(routeInventory.canonicalOrigin)}/(?:admin|404)/`));
   assert.doesNotMatch(staticSitemap, /<(?:lastmod|changefreq|priority)>/i, 'sitemap must not invent freshness metadata');

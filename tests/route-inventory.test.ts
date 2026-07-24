@@ -97,6 +97,7 @@ for (const route of inventory.routes) {
 
 for (const requiredPattern of [
   '/guides-archive/:guideSlug',
+  '/standard/archetypes/:format/:archetypeSlug',
   '/standard/meta/:format/:archetypeSlug',
   '/standard/cards/:format/:cardId',
   '/heroes/:dbfId',
@@ -115,12 +116,12 @@ assert.deepEqual(
   'constructed card format must only accept standard and wild',
 );
 assert.deepEqual(
-  byId.get('standard-meta-detail')?.pathParameters?.format?.allowedValues,
+  byId.get('constructed-archetype-detail')?.pathParameters?.format?.allowedValues,
   ['standard', 'wild'],
   'archetype details must only accept standard and wild',
 );
 assert.equal(
-  byId.get('standard-meta-detail')?.pathParameters?.archetypeSlug?.pattern,
+  byId.get('constructed-archetype-detail')?.pathParameters?.archetypeSlug?.pattern,
   '^[a-z0-9][a-z0-9-]{0,119}$',
   'archetype detail slugs must use the parser-compatible bounded contract',
 );

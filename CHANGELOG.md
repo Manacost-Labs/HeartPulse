@@ -1,5 +1,11 @@
 # HS-Arena Changelog
 
+## v1.0.30 - 2026-07-24
+
+- Restored `/standard/meta/` as the full HSGuru meta tier-list with rank, period, sample-size, chart, card/table, and recommended-deck controls.
+- Moved the Standard/Wild archetype catalog and its build/statistics history pages to `/standard/archetypes/`, with direct navigation between both sections and backward-compatible legacy detail URLs.
+- Extended route, SEO, prerender, responsive, page-tour, and nginx contracts for the split while preserving the concurrent administrator archetype redesign.
+
 ## v1.0.29 - 2026-07-24
 
 - Rebuilt the subscriber «Архетипы» page as a responsive Standard/Wild HSGuru catalog with searchable sortable rows, dedicated detail routes, deck-code copying, complete build lists, and 12-hour history charts for win rate, popularity, and games.

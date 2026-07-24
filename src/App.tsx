@@ -603,6 +603,7 @@ const loadBgLibraryModule = () => import('./features/BgLibrary');
 const loadGuidesArchiveModule = () => import('./features/GuidesArchive');
 const loadStandardMatchupsModule = () => import('./features/StandardMatchups');
 const loadStandardMetaModule = () => import('./features/StandardMeta');
+const loadConstructedArchetypesModule = () => import('./features/ConstructedArchetypes');
 const loadViciousSyndicateGoldModule = () => import('./features/ViciousSyndicateGold');
 const loadStandardCardsModule = () => import('./features/StandardCards');
 const loadContestsModule = () => import('./features/Contests');
@@ -626,6 +627,7 @@ const LazyBgLibrary = React.lazy(loadBgLibraryModule);
 const LazyGuidesArchive = React.lazy(loadGuidesArchiveModule);
 const LazyStandardMatchupsPage = React.lazy(loadStandardMatchupsModule);
 const LazyStandardMetaPage = React.lazy(loadStandardMetaModule);
+const LazyConstructedArchetypesPage = React.lazy(loadConstructedArchetypesModule);
 const LazyViciousSyndicateGoldPage = React.lazy(loadViciousSyndicateGoldModule);
 const LazyStandardCardsPage = React.lazy(loadStandardCardsModule);
 const LazyContestsPage = React.lazy(() => loadContestsModule().then(module => ({ default: module.ContestsPage })));
@@ -653,6 +655,7 @@ const ROUTE_PRELOADERS: Partial<Record<TabId | 'login', () => Promise<unknown>>>
   archetypes: loadArchetypesModule,
   'standard-matchups': loadStandardMatchupsModule,
   'standard-meta': loadStandardMetaModule,
+  'constructed-archetypes': loadConstructedArchetypesModule,
   'standard-vicious-gold': loadViciousSyndicateGoldModule,
   'standard-cards': loadStandardCardsModule,
   'bg-strategies': loadBattlegroundsModule,
@@ -1401,16 +1404,18 @@ export default function App() {
     );
     return ids;
   }, [legendariesData]);
-  const isFullWidthBuilder = routeSurfaceAvailable && (activeTab === 'standard-matchups' || activeTab === 'standard-meta' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive' || activeTab === 'deck-builder' || activeTab === 'archetypes');
+  const isFullWidthBuilder = routeSurfaceAvailable && (activeTab === 'standard-matchups' || activeTab === 'standard-meta' || activeTab === 'constructed-archetypes' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive' || activeTab === 'deck-builder' || activeTab === 'archetypes');
   // Login is its own visual route. Do not inherit the surface class of the
   // page that happened to be open before the profile was requested.
   const isEditorialSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['articles', 'faq', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
-  const isGameDataSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'standard-meta', 'standard-vicious-gold', 'standard-cards', 'tierlist', 'legendaries', 'archetypes'].includes(activeTab);
+  const isGameDataSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'standard-meta', 'constructed-archetypes', 'standard-vicious-gold', 'standard-cards', 'tierlist', 'legendaries', 'archetypes'].includes(activeTab);
   const isBattlegroundsSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && BG_TAB_IDS.has(activeTab);
   const isOpenSurfacePage = !isAdminMode && (!routeSurfaceAvailable || activeTab === 'home' || wantsLogin || isEditorialSurfacePage || isGameDataSurfacePage || isBattlegroundsSurfacePage);
   const standardPage = activeTab === 'standard-meta'
-    ? <LazyStandardMetaPage currentPath={currentPath} navigatePath={navigatePath} />
-    : activeTab === 'standard-vicious-gold'
+    ? <LazyStandardMetaPage />
+    : activeTab === 'constructed-archetypes'
+      ? <LazyConstructedArchetypesPage currentPath={currentPath} navigatePath={navigatePath} />
+      : activeTab === 'standard-vicious-gold'
       ? <LazyViciousSyndicateGoldPage />
       : <LazyStandardCardsPage
           currentPath={currentPath}
@@ -1727,7 +1732,7 @@ export default function App() {
                     720,
                   )
                 )}
-                {(activeTab === 'standard-meta' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards') && (
+                {(activeTab === 'standard-meta' || activeTab === 'constructed-archetypes' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards') && (
                   activeTab === 'standard-cards'
                     ? <React.Suspense fallback={<RouteFallback minHeight={720} />}>{standardPage}</React.Suspense>
                     : renderPrivateRoute(

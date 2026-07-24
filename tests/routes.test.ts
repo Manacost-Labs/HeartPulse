@@ -38,12 +38,14 @@ for (const id of BG_TAB_IDS) {
 }
 
 assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-meta'), false, 'Standard meta must be visible publicly after release');
+assert.equal(ADMIN_ONLY_TAB_IDS.has('constructed-archetypes'), false, 'Constructed archetypes must be visible publicly after release');
 assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-vicious-gold'), false, 'Vicious Syndicate Gold must be visible publicly after release');
 assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-cards'), false, 'Constructed cards must be visible publicly after release');
 assert.equal(ADMIN_ONLY_TAB_IDS.has('deck-builder'), true, 'Deck builder must stay administrator-only under Разное');
 assert.equal(tabFromPath('/deck-builder'), 'deck-builder');
 assert.equal(isKnownPath('/deck-builder'), true);
-for (const id of ['standard-matchups', 'standard-meta', 'standard-vicious-gold'] as const) {
+assert.equal(tabFromPath('/standard/meta/standard/legacy-slug'), 'constructed-archetypes', 'legacy archetype details must keep opening the catalog');
+for (const id of ['standard-matchups', 'standard-meta', 'constructed-archetypes', 'standard-vicious-gold'] as const) {
   assert.equal(
     PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS[id],
     'standard',

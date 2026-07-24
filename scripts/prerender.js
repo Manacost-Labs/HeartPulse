@@ -213,7 +213,11 @@ const PAGES = {
   },
   '/standard/meta': {
     h1: 'Мета Hearthstone', ogType: 'website', structuredData: [],
-    noscript: '<h1>Мета Hearthstone</h1><p>Винрейты, популярность и готовые сборки актуальных архетипов Стандарта и Вольного режима доступны с тарифом «Алмаз».</p>'
+    noscript: '<h1>Мета Hearthstone</h1><p>Тир-листы, винрейты, популярность и готовые сборки актуальной меты Стандарта и Вольного режима доступны с тарифом «Алмаз».</p>'
+  },
+  '/standard/archetypes': {
+    h1: 'Архетипы Hearthstone', ogType: 'website', structuredData: [],
+    noscript: '<h1>Архетипы Hearthstone</h1><p>Каталог актуальных архетипов Стандарта и Вольного режима с отдельными страницами, сборками и историей статистики доступен с тарифом «Алмаз».</p>'
   },
   '/standard/vicious-gold': {
     h1: 'Vicious Syndicate Gold', ogType: 'website', structuredData: [],

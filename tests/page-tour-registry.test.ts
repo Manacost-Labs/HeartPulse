@@ -6,6 +6,7 @@ const requiredTours = [
   'profile',
   'standard-matchups',
   'standard-meta',
+  'constructed-archetypes',
   'standard-vicious-gold',
   'standard-cards',
   'standard-card-detail',
