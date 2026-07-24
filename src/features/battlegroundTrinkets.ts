@@ -1,8 +1,25 @@
 type TrinketMetricItem = {
   avgPlacement?: number | string | null;
   pickRate?: number | string | null;
+  games?: number | string | null;
   name?: string | null;
 };
+
+export type TrinketMmr = 'ALL' | 'TOP_50_PERCENT' | 'TOP_20_PERCENT' | 'TOP_5_PERCENT' | 'TOP_1_PERCENT';
+export type TrinketTimeRange = 'CURRENT_BATTLEGROUNDS_PATCH' | 'LAST_7_DAYS';
+
+export const TRINKET_MMR_OPTIONS: Array<{ id: TrinketMmr; label: string }> = [
+  { id: 'ALL', label: 'Все игроки' },
+  { id: 'TOP_50_PERCENT', label: 'Топ 50%' },
+  { id: 'TOP_20_PERCENT', label: 'Топ 20%' },
+  { id: 'TOP_5_PERCENT', label: 'Топ 5%' },
+  { id: 'TOP_1_PERCENT', label: 'Топ 1%' },
+];
+
+export const TRINKET_TIME_RANGE_OPTIONS: Array<{ id: TrinketTimeRange; label: string }> = [
+  { id: 'LAST_7_DAYS', label: '7 дней' },
+  { id: 'CURRENT_BATTLEGROUNDS_PATCH', label: 'Текущий патч' },
+];
 
 function metricNumber(value: unknown): number | null {
   const parsed = Number.parseFloat(String(value ?? '').replace(',', '.').replace('%', ''));
@@ -20,6 +37,35 @@ function percentLabel(value: unknown): string {
   const raw = String(value ?? '').trim();
   const decimals = raw.match(/[.,](\d+)/)?.[1]?.length ?? 1;
   return `${parsed.toFixed(Math.min(2, Math.max(0, decimals))).replace('.', ',')}%`;
+}
+
+function gamesLabel(value: unknown): string {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return '—';
+  return `≥ ${parsed.toLocaleString('ru-RU').replace(/\s/g, ' ')}`;
+}
+
+export function normalizeTrinketMmr(value: unknown): TrinketMmr {
+  const normalized = String(value || '').toUpperCase();
+  return TRINKET_MMR_OPTIONS.some(option => option.id === normalized)
+    ? normalized as TrinketMmr
+    : 'TOP_1_PERCENT';
+}
+
+export function normalizeTrinketTimeRange(value: unknown): TrinketTimeRange {
+  const normalized = String(value || '').toUpperCase();
+  return TRINKET_TIME_RANGE_OPTIONS.some(option => option.id === normalized)
+    ? normalized as TrinketTimeRange
+    : 'LAST_7_DAYS';
+}
+
+export function buildTrinketStatsRequest(mmr: TrinketMmr, timeRange: TrinketTimeRange): string {
+  const params = new URLSearchParams({
+    list: 'trinkets',
+    mmr,
+    timeRange,
+  });
+  return `/api/bg/tier-lists?${params.toString()}`;
 }
 
 export function sortTrinketTierItems<T extends TrinketMetricItem>(items: T[]): T[] {
@@ -41,9 +87,11 @@ export function sortTrinketTierItems<T extends TrinketMetricItem>(items: T[]): T
 export function trinketMetricView(item: TrinketMetricItem): {
   averagePlacement: string;
   pickRate: string;
+  games: string;
 } {
   return {
     averagePlacement: decimalLabel(item.avgPlacement),
     pickRate: percentLabel(item.pickRate),
+    games: gamesLabel(item.games),
   };
 }

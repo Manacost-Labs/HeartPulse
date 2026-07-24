@@ -2,7 +2,17 @@ import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef,
 import { createPortal } from 'react-dom';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
-import { sortTrinketTierItems, trinketMetricView } from './battlegroundTrinkets';
+import {
+  buildTrinketStatsRequest,
+  normalizeTrinketMmr,
+  normalizeTrinketTimeRange,
+  sortTrinketTierItems,
+  TRINKET_MMR_OPTIONS,
+  TRINKET_TIME_RANGE_OPTIONS,
+  trinketMetricView,
+  type TrinketMmr,
+  type TrinketTimeRange,
+} from './battlegroundTrinkets';
 import '../route-parchment.css';
 import './Battlegrounds.css';
 import '../battlegrounds-shell.css';
@@ -101,6 +111,8 @@ function bgTierListUrlState(): {
   list: BattlegroundTierListKey;
   source: BattlegroundStrategySource;
   trinketSize: BattlegroundTrinketSize;
+  trinketMmr: TrinketMmr;
+  trinketTimeRange: TrinketTimeRange;
   strategyKey: string;
   strategyTitle: string;
 } {
@@ -113,6 +125,8 @@ function bgTierListUrlState(): {
     trinketSize: requestedSize === 'ALL' || requestedSize === 'SMALL' || requestedSize === 'LARGE'
       ? requestedSize
       : (list === 'trinkets' ? 'LARGE' : 'ALL'),
+    trinketMmr: normalizeTrinketMmr(params.get('mmr')),
+    trinketTimeRange: normalizeTrinketTimeRange(params.get('timeRange')),
     strategyKey: params.get('strategy') || '',
     strategyTitle: params.get('q') || '',
   };
@@ -3138,14 +3152,21 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen, to
             {raceLabel}
           </span>
         )}
-        <span className="mt-1 grid w-full grid-cols-2 overflow-hidden rounded-md border border-[#d7b66a]/70 bg-[#fff3c4] text-[#3d2a1e] shadow-sm">
+        <span className="mt-1 grid w-full grid-cols-3 overflow-hidden rounded-md border border-[#d7b66a]/70 bg-[#fff3c4] text-[#3d2a1e] shadow-sm">
           <span className="border-r border-[#d7b66a]/55 px-1.5 py-1.5">
             <small className="block text-[9px] font-bold uppercase tracking-wide text-[#76542f]">Среднее место</small>
             <strong className="mt-0.5 block font-hs text-sm leading-none">{metrics.averagePlacement}</strong>
           </span>
-          <span className="px-1.5 py-1.5">
+          <span className="border-r border-[#d7b66a]/55 px-1.5 py-1.5">
             <small className="block text-[9px] font-bold uppercase tracking-wide text-[#76542f]">Частота выбора</small>
             <strong className="mt-0.5 block font-hs text-sm leading-none">{metrics.pickRate}</strong>
+          </span>
+          <span
+            className="px-1.5 py-1.5"
+            title="Минимальное число игр, совместимое с округлённым распределением мест HSReplay"
+          >
+            <small className="block text-[9px] font-bold uppercase tracking-wide text-[#76542f]">Мин. игр</small>
+            <strong className="mt-0.5 block font-hs text-sm leading-none">{metrics.games}</strong>
           </span>
         </span>
       </button>
@@ -3202,10 +3223,24 @@ function BattlegroundTierList() {
   const [minionRaceFilter, setMinionRaceFilter] = useState('ALL');
   const [minionTavernFilter, setMinionTavernFilter] = useState('ALL');
   const [trinketSizeFilter, setTrinketSizeFilter] = useState<BattlegroundTrinketSize>(initialUrlState.trinketSize);
+  const [trinketMmr, setTrinketMmr] = useState<TrinketMmr>(initialUrlState.trinketMmr);
+  const [trinketTimeRange, setTrinketTimeRange] = useState<TrinketTimeRange>(initialUrlState.trinketTimeRange);
   const [visibleLimits, setVisibleLimits] = useState<Record<string, number>>({});
   const dataCacheRef = useRef<BattlegroundTierCache>({});
   const tierListRequestKeyRef = useRef('');
   const activeMeta = BG_TIER_LISTS.find(item => item.id === activeList)!;
+  const updateTrinketUrlState = useCallback((updates: {
+    size?: BattlegroundTrinketSize;
+    mmr?: TrinketMmr;
+    timeRange?: TrinketTimeRange;
+  }) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('list', 'trinkets');
+    if (updates.size) params.set('size', updates.size);
+    if (updates.mmr) params.set('mmr', updates.mmr);
+    if (updates.timeRange) params.set('timeRange', updates.timeRange);
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}?${params.toString()}`);
+  }, []);
 
   useEffect(() => {
     const syncFromUrl = () => {
@@ -3213,6 +3248,8 @@ function BattlegroundTierList() {
       setActiveList(next.list);
       setStrategySource(next.source);
       setTrinketSizeFilter(next.trinketSize);
+      setTrinketMmr(next.trinketMmr);
+      setTrinketTimeRange(next.trinketTimeRange);
       setHighlightStrategyKey(next.strategyKey);
       setHighlightStrategyTitle(next.strategyTitle);
     };
@@ -3225,7 +3262,10 @@ function BattlegroundTierList() {
     setError('');
     const params = new URLSearchParams({ list: activeList });
     if (activeList === 'strategies') params.set('source', strategySource);
-    const cacheKey = params.toString();
+    const requestUrl = activeList === 'trinkets'
+      ? buildTrinketStatsRequest(trinketMmr, trinketTimeRange)
+      : `/api/bg/tier-lists?${params.toString()}`;
+    const cacheKey = requestUrl;
     tierListRequestKeyRef.current = cacheKey;
     const cached = dataCacheRef.current[cacheKey];
     if (cached && (!cached?.list || cached.list === activeList)) {
@@ -3235,7 +3275,7 @@ function BattlegroundTierList() {
       setData(null);
       setLoading(true);
     }
-    fetch(`/api/bg/tier-lists?${params.toString()}`)
+    fetch(requestUrl)
       .then(async res => {
         const payload = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(payload.error || 'Не удалось загрузить BG тир-лист');
@@ -3252,7 +3292,7 @@ function BattlegroundTierList() {
         if (alive && tierListRequestKeyRef.current === cacheKey) setLoading(false);
       });
     return () => { alive = false; };
-  }, [activeList, strategySource]);
+  }, [activeList, strategySource, trinketMmr, trinketTimeRange]);
 
   const activeData = data?.list === activeList ? data : null;
   const tiers = useMemo(() => activeData?.tiers || {}, [activeData?.tiers]);
@@ -3403,8 +3443,15 @@ function BattlegroundTierList() {
                 const params = new URLSearchParams(window.location.search);
                 params.set('list', item.id);
                 if (item.id !== 'strategies') params.delete('source');
-                if (item.id === 'trinkets') params.set('size', 'LARGE');
-                else params.delete('size');
+                if (item.id === 'trinkets') {
+                  params.set('size', 'LARGE');
+                  params.set('mmr', trinketMmr);
+                  params.set('timeRange', trinketTimeRange);
+                } else {
+                  params.delete('size');
+                  params.delete('mmr');
+                  params.delete('timeRange');
+                }
                 window.history.pushState(null, '', `${window.location.pathname}?${params.toString()}`);
               }}
               className="bg-tier-nav-card rounded-lg border px-3 py-3 text-left transition-all"
@@ -3514,13 +3561,56 @@ function BattlegroundTierList() {
                 className="bg-tier-filter-panel rounded-lg border p-3 shadow-sm"
                 data-tour-id="bg-tier-list-filters"
               >
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-col gap-4">
                   <div className="min-w-0">
                     <h4 className="font-hs text-lg text-[#1e293b]">Фильтры аксессуаров</h4>
-                    <p className="text-xs text-[#475569]">Переключение между малыми и большими аксессуарами без перезагрузки списка.</p>
+                    <p className="text-xs text-[#475569]">
+                      Размер применяется локально, а MMR и период загружают соответствующий срез HSReplay.
+                    </p>
                   </div>
-                  <div>
-                    <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-[#334155]">Размер аксессуара</p>
+                  <div className="grid gap-3 xl:grid-cols-[1fr_auto_auto]">
+                    <fieldset className="min-w-0">
+                      <legend className="mb-1.5 text-xs font-bold uppercase tracking-wide text-[#334155]">MMR игроков</legend>
+                      <div className="bg-tier-filter-well flex max-w-full flex-wrap gap-1.5 rounded-lg border p-1.5">
+                        {TRINKET_MMR_OPTIONS.map(option => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => {
+                              setTrinketMmr(option.id);
+                              setVisibleLimits({});
+                              updateTrinketUrlState({ mmr: option.id });
+                            }}
+                            aria-pressed={trinketMmr === option.id}
+                            className={`flex h-12 items-center justify-center rounded-md border px-3 text-sm font-bold transition-colors ${trinketMmr === option.id ? BG_FILTER_ACTIVE_CLASS : BG_FILTER_IDLE_CLASS}`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </fieldset>
+                    <fieldset>
+                      <legend className="mb-1.5 text-xs font-bold uppercase tracking-wide text-[#334155]">Период</legend>
+                      <div className="bg-tier-filter-well flex max-w-full flex-wrap gap-1.5 rounded-lg border p-1.5">
+                        {TRINKET_TIME_RANGE_OPTIONS.map(option => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => {
+                              setTrinketTimeRange(option.id);
+                              setVisibleLimits({});
+                              updateTrinketUrlState({ timeRange: option.id });
+                            }}
+                            aria-pressed={trinketTimeRange === option.id}
+                            className={`flex h-12 items-center justify-center rounded-md border px-3 text-sm font-bold transition-colors ${trinketTimeRange === option.id ? BG_FILTER_ACTIVE_CLASS : BG_FILTER_IDLE_CLASS}`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </fieldset>
+                    <fieldset>
+                    <legend className="mb-1.5 text-xs font-bold uppercase tracking-wide text-[#334155]">Размер аксессуара</legend>
 	                    <div className="bg-tier-filter-well flex max-w-full flex-wrap gap-1.5 rounded-lg border p-1.5">
                       {trinketFilterOptions.sizes.map(rawSize => {
                         const size = rawSize as BattlegroundTrinketSize;
@@ -3531,10 +3621,7 @@ function BattlegroundTierList() {
                           type="button"
                           onClick={() => {
                             setTrinketSizeFilter(size);
-                            const params = new URLSearchParams(window.location.search);
-                            params.set('list', 'trinkets');
-                            params.set('size', size);
-                            window.history.replaceState(window.history.state, '', `${window.location.pathname}?${params.toString()}`);
+                            updateTrinketUrlState({ size });
                           }}
                           aria-pressed={trinketSizeFilter === size}
 	                          className={`flex h-12 items-center justify-center rounded-md border px-4 text-sm font-bold transition-colors ${trinketSizeFilter === size ? BG_FILTER_ACTIVE_CLASS : BG_FILTER_IDLE_CLASS}`}
@@ -3545,7 +3632,11 @@ function BattlegroundTierList() {
                         );
                       })}
                     </div>
+                    </fieldset>
                   </div>
+                  <p className="text-[11px] leading-relaxed text-[#6b4c2a]">
+                    «Мин. игр» — нижняя граница размера выборки, восстановленная из округлённого распределения мест HSReplay.
+                  </p>
                 </div>
               </div>
             )}
