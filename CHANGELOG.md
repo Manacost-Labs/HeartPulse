@@ -1,5 +1,10 @@
 # HS-Arena Changelog
 
+## v1.0.37 - 2026-07-24
+
+- Added mandatory shared Notion task tracking for every AI-agent change to arena.hs-manacost.ru and its parser pipelines, including priority, status, acceptance criteria, blockers, commits, and production revisions.
+- Removed the task assignee field and replaced the Codex-only queue with a shared priority view so Codex and Claude use the same source of truth.
+
 ## v1.0.36 - 2026-07-24
 
 - Replaced the tall one-column matchup ledger with a compact responsive tile grid: three columns on wide screens, two on tablets, and one on phones.
