@@ -7,7 +7,6 @@ import {
   Check,
   ChevronDown,
   Clock3,
-  Copy,
   ExternalLink,
   Gamepad2,
   Search,
@@ -17,6 +16,9 @@ import {
 } from 'lucide-react';
 import '../route-parchment.css';
 import './ConstructedArchetypes.css';
+import ConstructedArchetypeAnalysis, {
+  type ConstructedAnalysis,
+} from './ConstructedArchetypeAnalysis';
 import ConstructedArchetypeDeckGallery from './ConstructedArchetypeDeckGallery';
 import {
   AsyncSurfaceState,
@@ -89,6 +91,7 @@ type HistoryPoint = {
 type ArchetypeDetail = Omit<ArchetypeCatalog, 'coverage' | 'items'> & {
   item: ArchetypeItem;
   history: HistoryPoint[];
+  analysis: ConstructedAnalysis | null;
 };
 
 type SortKey = 'games' | 'winrate' | 'popularity' | 'decks' | 'name';
@@ -165,44 +168,6 @@ function winrateTone(value: number | null): 'strong' | 'even' | 'weak' | 'neutra
   if (value >= 52) return 'strong';
   if (value >= 49) return 'even';
   return 'weak';
-}
-
-function CopyDeckCodeButton({ code, compact = false }: { code: string; compact?: boolean }) {
-  const [copied, setCopied] = useState(false);
-
-  const copy = async () => {
-    let success = false;
-    try {
-      await navigator.clipboard.writeText(code);
-      success = true;
-    } catch {
-      const input = document.createElement('textarea');
-      input.value = code;
-      input.setAttribute('readonly', '');
-      input.style.position = 'fixed';
-      input.style.opacity = '0';
-      document.body.appendChild(input);
-      input.select();
-      success = document.execCommand('copy');
-      input.remove();
-    }
-    if (success) {
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
-    }
-  };
-
-  return (
-    <button
-      type="button"
-      className={`archetype-copy-button${compact ? ' archetype-copy-button--compact' : ''}${copied ? ' archetype-copy-button--copied' : ''}`}
-      onClick={copy}
-      aria-label={copied ? 'Код колоды скопирован' : 'Скопировать код колоды'}
-    >
-      {copied ? <Check size={17} aria-hidden="true" /> : <Copy size={17} aria-hidden="true" />}
-      <span aria-live="polite">{copied ? 'Скопировано' : 'Скопировать код'}</span>
-    </button>
-  );
 }
 
 function LoadingState({ detail = false }: { detail?: boolean }) {
@@ -531,7 +496,8 @@ function ArchetypeDetailPage({
 
   const { item, history } = detail;
   const mainBuild = item.builds[0] ?? null;
-  const shownBuilds = item.builds.slice(0, visibleBuilds);
+  const secondaryBuilds = item.builds.slice(1);
+  const shownBuilds = secondaryBuilds.slice(0, visibleBuilds);
 
   return (
     <main className="archetypes-page archetype-detail-page" id="main-content" tabIndex={-1}>
@@ -577,16 +543,20 @@ function ArchetypeDetailPage({
               <span>{mainBuild.games?.toLocaleString('ru-RU') ?? '—'} игр</span>
             </div>
           </header>
-          <div className="archetype-main-build__code">
-            <code>{mainBuild.deckCode}</code>
-            <CopyDeckCodeButton code={mainBuild.deckCode} />
-          </div>
+          <ConstructedArchetypeDeckGallery
+            builds={[mainBuild]}
+            format={item.format}
+            archetype={item.archetype}
+            classKey={item.classKey}
+          />
           <footer>
             <span><Clock3 size={15} /> Выборка: последние 30 дней, все ранги</span>
             {mainBuild.sourceUrl && <a href={mainBuild.sourceUrl} target="_blank" rel="noreferrer">Открыть на HSGuru <ExternalLink size={15} /></a>}
           </footer>
         </section>
       )}
+
+      <ConstructedArchetypeAnalysis analysis={detail.analysis} />
 
       <section className="archetype-history" aria-labelledby="archetype-history-title">
         <header className="archetype-section-heading">
@@ -604,28 +574,30 @@ function ArchetypeDetailPage({
         </div>
       </section>
 
-      <section className="archetype-builds" aria-labelledby="archetype-builds-title">
-        <header className="archetype-section-heading">
-          <div>
-            <span className="archetypes-eyebrow"><Gamepad2 size={15} /> Сборки HSGuru</span>
-            <h2 id="archetype-builds-title">Колоды архетипа</h2>
-            <p>Сборки отсортированы по размеру выборки. Код можно скопировать и сразу импортировать в Hearthstone.</p>
-          </div>
-          <span className="archetype-section-heading__count">{item.deckCount} сборок</span>
-        </header>
-        <ConstructedArchetypeDeckGallery
-          builds={shownBuilds}
-          format={item.format}
-          archetype={item.archetype}
-          classKey={item.classKey}
-        />
-        {visibleBuilds < item.builds.length && (
-          <button type="button" className="archetype-builds__more" onClick={() => setVisibleBuilds(value => value + 6)}>
-            Показать ещё {Math.min(6, item.builds.length - visibleBuilds)}
-            <ChevronDown size={17} />
-          </button>
-        )}
-      </section>
+      {secondaryBuilds.length > 0 && (
+        <section className="archetype-builds" aria-labelledby="archetype-builds-title">
+          <header className="archetype-section-heading">
+            <div>
+              <span className="archetypes-eyebrow"><Gamepad2 size={15} /> Сборки HSGuru</span>
+              <h2 id="archetype-builds-title">Другие сборки архетипа</h2>
+              <p>Сборки отсортированы по размеру выборки. Код можно скопировать и сразу импортировать в Hearthstone.</p>
+            </div>
+            <span className="archetype-section-heading__count">{secondaryBuilds.length} сборок</span>
+          </header>
+          <ConstructedArchetypeDeckGallery
+            builds={shownBuilds}
+            format={item.format}
+            archetype={item.archetype}
+            classKey={item.classKey}
+          />
+          {visibleBuilds < secondaryBuilds.length && (
+            <button type="button" className="archetype-builds__more" onClick={() => setVisibleBuilds(value => value + 6)}>
+              Показать ещё {Math.min(6, secondaryBuilds.length - visibleBuilds)}
+              <ChevronDown size={17} />
+            </button>
+          )}
+        </section>
+      )}
 
       <section className="archetype-methodology">
         <BarChart3 size={24} aria-hidden="true" />

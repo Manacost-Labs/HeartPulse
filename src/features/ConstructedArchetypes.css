@@ -548,7 +548,7 @@
 
 .archetype-copy-button--compact { min-height: 40px; }
 .archetype-copy-button--copied { border-color: #41663e; background: #315b34; }
-.archetype-main-build footer {
+.archetype-main-build > footer {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
@@ -559,9 +559,15 @@
   font-size: 0.68rem;
 }
 
-.archetype-main-build footer span,
-.archetype-main-build footer a { display: inline-flex; gap: 0.35rem; align-items: center; }
-.archetype-main-build footer a { color: #8d171d; font-weight: 900; text-decoration: none; }
+.archetype-main-build > footer span,
+.archetype-main-build > footer a { display: inline-flex; gap: 0.35rem; align-items: center; }
+.archetype-main-build > footer a { color: #8d171d; font-weight: 900; text-decoration: none; }
+
+.archetype-main-build .archetype-deck-gallery {
+  grid-template-columns: minmax(300px, 460px);
+  justify-content: center;
+  padding: 0.85rem 0;
+}
 
 .archetype-section-heading {
   display: flex;
@@ -906,8 +912,7 @@
   .archetype-main-build > header,
   .archetype-section-heading { align-items: flex-start; flex-direction: column; }
   .archetype-main-build__sample { min-width: 0; padding: 0; border-left: 0; text-align: left; }
-  .archetype-main-build__code { grid-template-columns: 1fr; }
-  .archetype-main-build__code .archetype-copy-button { width: 100%; }
+  .archetype-main-build .archetype-deck-gallery { grid-template-columns: 1fr; padding: 0.55rem 0; }
   .archetype-history__charts { padding: 0.55rem; }
   .archetype-deck-gallery { grid-template-columns: 1fr; padding: 0.55rem; }
   .archetype-deck-card__state { min-height: 360px; }
