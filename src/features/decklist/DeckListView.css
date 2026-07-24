@@ -100,6 +100,10 @@
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.55);
 }
 
+.deck-list-view__list > li {
+  min-width: 0;
+}
+
 /*
  * Tile layers (HSGuru-derived + polish):
  *  1) class-color body with a vertical gradient + bevel  (depth)
@@ -129,7 +133,7 @@
   margin: 0;
   padding: 1px;
   border: 1px solid var(--deck-tile-border);
-  box-sizing: content-box;
+  box-sizing: border-box;
   /* Vertical sheen over the flat class color = metal bar look */
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 45%, rgba(0, 0, 0, 0.28)),
@@ -272,6 +276,57 @@ button.deck-tile:focus-visible .deck-tile__art {
     radial-gradient(120% 90% at 50% 12%, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 55%),
     linear-gradient(180deg, var(--deck-gold), var(--deck-gold-deep));
   text-shadow: 0 1px 2px rgba(90, 55, 0, 0.9);
+}
+
+.deck-tile.has-controls {
+  --deck-tile-count-w: 116px;
+}
+
+.deck-tile__controls {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: 44px 28px 44px;
+  align-self: stretch;
+  flex: 0 0 116px;
+  margin-left: auto;
+  color: #fff;
+  background: rgba(21, 12, 10, 0.82);
+  box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.5);
+  text-shadow: none;
+}
+
+.deck-tile__controls > span {
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  background: var(--deck-tile-rarity);
+}
+
+.deck-tile__controls button {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  color: #fff4d4;
+  border: 0;
+  background: rgba(46, 19, 18, 0.94);
+  font: 800 1.2rem/1 var(--font-ui, Inter, sans-serif);
+  cursor: pointer;
+}
+
+.deck-tile__controls button:hover:not(:disabled),
+.deck-tile__controls button:focus-visible {
+  color: #fff;
+  background: #7f171e;
+  outline: 2px solid var(--deck-gold);
+  outline-offset: -2px;
+}
+
+.deck-tile__controls button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
 }
 
 .deck-tile__name {

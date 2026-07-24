@@ -3,6 +3,7 @@ import { decode } from '@firestone-hs/deckstrings';
 import {
   ArrowLeft,
   Copy,
+  ChevronDown,
   LayoutGrid,
   LockKeyhole,
   RefreshCw,
@@ -10,8 +11,10 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Trash2,
+  Undo2,
 } from 'lucide-react';
 import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
+import DeckManaCurve from './DeckManaCurve';
 import {
   CONSTRUCTED_HERO_BY_DBF,
   encodeConstructedDeck,
@@ -19,6 +22,18 @@ import {
   type ConstructedHeroClass as HeroClass,
 } from './constructedDeckCode';
 import DeckListView, { type DeckListSideboard } from './decklist/DeckListView';
+import {
+  readDeckBuilderDraft,
+  writeDeckBuilderDraft,
+} from './deckBuilderDraft';
+import {
+  deckCompletionLabel,
+  deckSizeLimit,
+  isCatalogCardLegalForHero,
+  maxCardCopies,
+  totalDeckCards,
+  type DeckBuilderEntry as DeckEntry,
+} from './deckBuilderRules';
 import './DeckBuilder.css';
 
 type CatalogCard = {
@@ -36,18 +51,6 @@ type CatalogCard = {
   images?: { card?: string | null; crop?: string | null };
 };
 
-type DeckEntry = {
-  id: string;
-  dbfId: number;
-  name: string;
-  cost: number;
-  rarity: string;
-  elite: boolean;
-  count: number;
-  image: string;
-  cardImage: string;
-};
-
 type ArchetypeInfo = {
   archetype: string;
   archetypeLabel: string;
@@ -58,14 +61,6 @@ type DeckBuilderProps = {
   isAdmin: boolean;
   authChecking?: boolean;
 };
-
-const XL_DECK_DBF_IDS = new Set([
-  79767, // Prince Renathal
-  111689,
-  119432, // Rafaam, Time Thief
-  52119,
-  111455,
-]);
 
 const CLASS_OPTIONS: Array<{
   id: HeroClass;
@@ -154,20 +149,6 @@ const MAX_DBF_ID = 10_000_000;
 
 function cardName(card: Pick<CatalogCard, 'name' | 'card_id'>): string {
   return card.name?.ru || card.name?.en || card.card_id;
-}
-
-function maxCopies(rarity: string): number {
-  return rarity.toUpperCase() === 'LEGENDARY' ? 1 : 2;
-}
-
-function totalCards(entries: DeckEntry[]): number {
-  return entries.reduce((sum, entry) => sum + entry.count, 0);
-}
-
-function deckSizeLimit(entries: DeckEntry[]): 30 | 40 {
-  if (totalCards(entries) > 30) return 40;
-  if (entries.some(entry => XL_DECK_DBF_IDS.has(entry.dbfId))) return 40;
-  return 30;
 }
 
 function sortEntries(entries: DeckEntry[]): DeckEntry[] {
@@ -260,19 +241,32 @@ function LoadingGate() {
 }
 
 export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuilderProps) {
-  const [heroClass, setHeroClass] = useState<HeroClass | null>(null);
-  const [format, setFormat] = useState<DeckFormat>('standard');
-  const [entries, setEntries] = useState<DeckEntry[]>([]);
-  const [sideboards, setSideboards] = useState<DeckListSideboard[]>([]);
-  const [archetype, setArchetype] = useState<ArchetypeInfo | null>(null);
   const [initialDeckCode] = useState(() => (
     typeof window === 'undefined'
       ? ''
       : new URLSearchParams(window.location.search).get('code')?.trim() || ''
   ));
+  const [initialDraft] = useState(() => (
+    typeof window === 'undefined' || initialDeckCode
+      ? null
+      : readDeckBuilderDraft(window.localStorage)
+  ));
+  const [heroClass, setHeroClass] = useState<HeroClass | null>(initialDraft?.heroClass ?? null);
+  const [format, setFormat] = useState<DeckFormat>(initialDraft?.format ?? 'standard');
+  const [entries, setEntries] = useState<DeckEntry[]>(initialDraft?.entries ?? []);
+  const [sideboards, setSideboards] = useState<DeckListSideboard[]>(initialDraft?.sideboards ?? []);
+  const [archetype, setArchetype] = useState<ArchetypeInfo | null>(null);
   const [pasteCode, setPasteCode] = useState(initialDeckCode);
   const [pasteError, setPasteError] = useState('');
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'error'>('idle');
+  const [draftState, setDraftState] = useState<'idle' | 'saving' | 'saved' | 'error'>(
+    initialDraft ? 'saved' : 'idle',
+  );
+  const [notice, setNotice] = useState('');
+  const [undoEntries, setUndoEntries] = useState<DeckEntry[] | null>(null);
+  const [confirmingReset, setConfirmingReset] = useState(false);
+  const [mobilePanel, setMobilePanel] = useState<'cards' | 'deck'>('cards');
+  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
   const [filterClass, setFilterClass] = useState('');
@@ -313,11 +307,11 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
     }) : ''),
     [entries, format, heroClass, sideboards],
   );
-  const cardCount = totalCards(entries);
+  const cardCount = totalDeckCards(entries);
   const sizeLimit = deckSizeLimit(entries);
   const sortedEntries = useMemo(() => sortEntries(entries), [entries]);
   const activeFilterCount = [
-    filterClass !== (heroClass || ''),
+    filterClass !== '',
     filterMana !== '',
     filterRarity,
     filterType,
@@ -326,11 +320,23 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
     filterMechanic,
     query.trim(),
   ].filter(Boolean).length;
+  const deckReady = cardCount === sizeLimit;
+  const completionLabel = deckCompletionLabel(cardCount, sizeLimit);
 
   useEffect(() => {
-    if (!heroClass) return;
-    setFilterClass(current => current || heroClass);
-  }, [heroClass]);
+    if (!heroClass || typeof window === 'undefined') return undefined;
+    setDraftState('saving');
+    const timer = window.setTimeout(() => {
+      const saved = writeDeckBuilderDraft(window.localStorage, {
+        heroClass,
+        format,
+        entries,
+        sideboards,
+      });
+      setDraftState(saved ? 'saved' : 'error');
+    }, 240);
+    return () => window.clearTimeout(timer);
+  }, [entries, format, heroClass, sideboards]);
 
   useEffect(() => {
     if (!heroClass) return undefined;
@@ -339,6 +345,7 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
     setCardsError('');
     const params = new URLSearchParams({
       format,
+      deckClass: heroClass,
       page: String(page),
       perPage: '60',
       sort: 'mana',
@@ -519,10 +526,13 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
     setEntries([]);
     setSideboards([]);
     setArchetype(null);
-    setFilterClass(nextClass);
+    setFilterClass('');
     setPage(1);
     setPasteError('');
     setCopyState('idle');
+    setUndoEntries(null);
+    setNotice(`Новая колода: ${CLASS_LABELS[nextClass]}, ${FORMAT_LABELS[nextFormat]}.`);
+    setMobilePanel('cards');
   };
 
   async function applyPaste(rawOverride?: string) {
@@ -553,8 +563,10 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
       setFormat(nextFormat);
       setEntries(sortEntries(nextEntries));
       setSideboards(toSideboards(payload.sideboards));
-      setFilterClass(nextClass);
+      setFilterClass('');
       setPage(1);
+      setUndoEntries(entries);
+      setNotice(`Колода загружена: ${nextEntries.reduce((sum, entry) => sum + entry.count, 0)} карт.`);
       setArchetype(payload.archetype?.archetypeLabel
         ? {
           archetype: String(payload.archetype.archetype),
@@ -593,8 +605,10 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
         setFormat(nextFormat);
         setEntries(sortEntries(nextEntries));
         setSideboards([]);
-        setFilterClass(nextClass);
+        setFilterClass('');
         setPage(1);
+        setUndoEntries(entries);
+        setNotice('Колода загружена частично. Названия карт уточняются.');
         setPasteError(error instanceof Error ? error.message : 'Частичная загрузка без серверного резолва');
       } catch {
         setPasteError(error instanceof Error ? error.message : 'Некорректный код колоды');
@@ -604,26 +618,62 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
 
   const addCard = (card: CatalogCard) => {
     const base = catalogToEntry(card);
-    if (!base) return;
-    setEntries(current => {
-      const limit = deckSizeLimit([...current, base]);
-      if (totalCards(current) >= limit) return current;
-      const existing = current.find(entry => entry.dbfId === base.dbfId);
-      if (!existing) return sortEntries([...current, base]);
-      if (existing.count >= maxCopies(existing.rarity)) return current;
-      if (totalCards(current) >= limit) return current;
-      return sortEntries(current.map(entry => (
+    if (!base || !heroClass) {
+      setNotice('Эту карту нельзя добавить в колоду.');
+      return;
+    }
+    if (!isCatalogCardLegalForHero(card, heroClass)) {
+      setNotice(`«${base.name}» недоступна классу ${CLASS_LABELS[heroClass]}.`);
+      return;
+    }
+    const existing = entries.find(entry => entry.dbfId === base.dbfId);
+    if (existing && existing.count >= maxCardCopies(existing.rarity)) {
+      setNotice(`Достигнут лимит копий карты «${base.name}».`);
+      return;
+    }
+    const nextLimit = deckSizeLimit(existing ? entries : [...entries, base]);
+    if (cardCount >= nextLimit) {
+      setNotice(`В колоде уже ${nextLimit} карт.`);
+      return;
+    }
+    setUndoEntries(entries);
+    setConfirmingReset(false);
+    setEntries(existing
+      ? sortEntries(entries.map(entry => (
         entry.dbfId === base.dbfId ? { ...entry, count: entry.count + 1 } : entry
-      )));
-    });
+      )))
+      : sortEntries([...entries, base]));
+    setNotice(`Добавлена карта «${base.name}».`);
   };
 
   const removeCard = (dbfId: number) => {
-    setEntries(current => current.flatMap(entry => {
+    const removed = entries.find(entry => entry.dbfId === dbfId);
+    if (!removed) return;
+    setUndoEntries(entries);
+    setEntries(entries.flatMap(entry => {
       if (entry.dbfId !== dbfId) return [entry];
       if (entry.count <= 1) return [];
       return [{ ...entry, count: entry.count - 1 }];
     }));
+    setNotice(`Убрана одна копия «${removed.name}».`);
+  };
+
+  const incrementCard = (dbfId: number) => {
+    const entry = entries.find(item => item.dbfId === dbfId);
+    if (!entry) return;
+    if (entry.count >= maxCardCopies(entry.rarity)) {
+      setNotice(`Достигнут лимит копий карты «${entry.name}».`);
+      return;
+    }
+    if (cardCount >= sizeLimit) {
+      setNotice(`В колоде уже ${sizeLimit} карт.`);
+      return;
+    }
+    setUndoEntries(entries);
+    setEntries(sortEntries(entries.map(item => (
+      item.dbfId === dbfId ? { ...item, count: item.count + 1 } : item
+    ))));
+    setNotice(`Добавлена ещё одна копия «${entry.name}».`);
   };
 
   const copyCode = async () => {
@@ -631,17 +681,37 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
     try {
       await navigator.clipboard.writeText(deckCode);
       setCopyState('ok');
+      setNotice(deckReady ? 'Код готовой колоды скопирован.' : `Код черновика скопирован. ${completionLabel}.`);
       window.setTimeout(() => setCopyState('idle'), 1600);
     } catch {
       setCopyState('error');
+      setNotice('Не удалось скопировать код колоды.');
     }
   };
 
   const resetDeck = () => {
+    if (!confirmingReset) {
+      setConfirmingReset(true);
+      setNotice('Нажмите «Точно очистить» ещё раз. Действие можно будет отменить.');
+      window.setTimeout(() => setConfirmingReset(false), 4000);
+      return;
+    }
+    setUndoEntries(entries);
     setEntries([]);
     setSideboards([]);
     setArchetype(null);
     setCopyState('idle');
+    setConfirmingReset(false);
+    setNotice('Колода очищена. При необходимости отмените действие.');
+  };
+
+  const undoLastChange = () => {
+    if (!undoEntries) return;
+    const current = entries;
+    setEntries(undoEntries);
+    setUndoEntries(current);
+    setConfirmingReset(false);
+    setNotice('Последнее изменение отменено.');
   };
 
   const leaveBuilder = () => {
@@ -660,6 +730,8 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
     setFilterMechanic('');
     setPage(1);
     setPreview(null);
+    setMobilePanel('cards');
+    setAdvancedFiltersOpen(false);
   };
 
   const showCardPreview = (entry: DeckEntry, target: HTMLElement) => {
@@ -680,7 +752,7 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
 
   const clearCatalogFilters = () => {
     clearCardPreview();
-    setFilterClass(heroClass || '');
+    setFilterClass('');
     setFilterMana('');
     setFilterRarity('');
     setFilterType('');
@@ -703,11 +775,6 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
             <h1 id="deck-builder-title">Соберите колоду</h1>
             <p>Начните с класса или вставьте готовый код. Формат и архетип определятся автоматически.</p>
           </div>
-          <ol className="deck-builder__steps" aria-label="Как создать колоду">
-            <li><span>1</span> Выберите класс</li>
-            <li><span>2</span> Добавьте карты</li>
-            <li><span>3</span> Скопируйте код</li>
-          </ol>
         </header>
 
         <div className="deck-builder__paste hs-deck-frame">
@@ -737,18 +804,31 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
         <div className="deck-builder__section-heading">
           <div>
             <span className="deck-builder__eyebrow">Новая колода</span>
-            <h2>Выберите класс и формат</h2>
+            <h2>Выберите формат и класс</h2>
           </div>
-          <p>Стандарт использует актуальные наборы, Вольный — всю коллекцию.</p>
+          <div className="deck-builder__format-picker" aria-label="Формат новой колоды">
+            {(['standard', 'wild'] as const).map(value => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={format === value}
+                onClick={() => setFormat(value)}
+              >
+                {FORMAT_LABELS[value]}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="deck-builder__class-grid" role="list">
+        <div className="deck-builder__class-grid">
           {CLASS_OPTIONS.map(option => (
-            <div
+            <button
+              type="button"
               key={option.id}
               className="deck-builder__class-card hs-deck-frame"
-              role="listitem"
               style={{ '--class-accent': option.color } as React.CSSProperties}
+              onClick={() => startEmpty(option.id, format)}
+              aria-label={`${option.label}: создать колоду формата ${FORMAT_LABELS[format]}`}
             >
               <div className="deck-builder__class-identity">
                 <div className="deck-builder__class-seal">
@@ -759,25 +839,8 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
                   <p>{option.description}</p>
                 </div>
               </div>
-              <div className="deck-builder__format-actions">
-                <button
-                  type="button"
-                  className="deck-builder__class-btn"
-                  onClick={() => startEmpty(option.id, 'standard')}
-                  aria-label={`${option.label}: создать колоду формата Стандарт`}
-                >
-                  <span>Стандарт</span>
-                </button>
-                <button
-                  type="button"
-                  className="deck-builder__class-btn deck-builder__class-btn--wild"
-                  onClick={() => startEmpty(option.id, 'wild')}
-                  aria-label={`${option.label}: создать колоду формата Вольный`}
-                >
-                  <span>Вольный</span>
-                </button>
-              </div>
-            </div>
+              <span className="deck-builder__class-action">Создать</span>
+            </button>
           ))}
         </div>
       </section>
@@ -815,7 +878,17 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
           <div>
             <span className="deck-builder__eyebrow">{FORMAT_LABELS[format]} · {classMeta.label}</span>
             <h1 id="deck-builder-workspace-title">{archetype?.archetypeLabel || 'Новая колода'}</h1>
-            <p>{archetype?.archetypeLabel ? `Архетип определён по составу · ${Math.round(archetype.score * 100)}% совпадения` : 'Добавляйте карты — архетип появится автоматически.'}</p>
+            <p>
+              {archetype?.archetypeLabel
+                ? `Архетип определён по составу · ${Math.round(archetype.score * 100)}% совпадения`
+                : completionLabel}
+              {' · '}
+              {draftState === 'saving'
+                ? 'сохраняем черновик'
+                : draftState === 'error'
+                  ? 'черновик не сохранён'
+                  : draftState === 'idle' ? 'черновик подготовлен' : 'черновик сохранён'}
+            </p>
           </div>
         </div>
         <div
@@ -827,22 +900,46 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
           <span>из {sizeLimit} карт</span>
         </div>
         <div className="deck-builder__header-actions">
+          <button type="button" className="deck-builder__ghost-btn" onClick={undoLastChange} disabled={!undoEntries}>
+            <Undo2 size={15} aria-hidden="true" />
+            Отменить
+          </button>
           <button type="button" className="deck-builder__ghost-btn" onClick={resetDeck} disabled={!entries.length}>
             <Trash2 size={15} aria-hidden="true" />
-            Очистить
+            {confirmingReset ? 'Точно очистить' : 'Очистить'}
           </button>
           <button type="button" className="deck-builder__primary-btn" onClick={() => void copyCode()} disabled={!deckCode || !entries.length}>
             <Copy size={15} aria-hidden="true" />
             {copyState === 'ok' ? 'Скопировано' : copyState === 'error' ? 'Ошибка' : 'Копировать код'}
           </button>
         </div>
+        <p className="deck-builder__notice" role="status" aria-live="polite">
+          {notice || completionLabel}
+        </p>
       </header>
 
-      <div className="deck-builder__layout">
+      <div className="deck-builder__mobile-tabs" aria-label="Раздел конструктора">
+        <button
+          type="button"
+          aria-pressed={mobilePanel === 'cards'}
+          onClick={() => setMobilePanel('cards')}
+        >
+          Карты
+        </button>
+        <button
+          type="button"
+          aria-pressed={mobilePanel === 'deck'}
+          onClick={() => setMobilePanel('deck')}
+        >
+          Колода <span>{cardCount}/{sizeLimit}</span>
+        </button>
+      </div>
+
+      <div className={`deck-builder__layout is-${mobilePanel}`}>
         <aside className="deck-builder__deck hs-deck-frame" aria-label="Состав колоды">
           <div className="deck-builder__panel-heading">
             <span className="deck-builder__eyebrow">Ваша колода</span>
-            <strong>Нажмите на карту, чтобы убрать её</strong>
+            <strong>{completionLabel}</strong>
           </div>
           <DeckListView
             cards={sortedEntries}
@@ -852,11 +949,12 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
             totalCards={cardCount}
             deckSizeLimit={sizeLimit}
             deckCode={entries.length ? deckCode : ''}
-            showCopy
             interactive
-            onCardClick={card => removeCard(card.dbfId)}
+            onCardIncrement={card => incrementCard(card.dbfId)}
+            onCardDecrement={card => removeCard(card.dbfId)}
             emptyText="Добавьте карты из каталога."
           />
+          {entries.length ? <DeckManaCurve cards={entries} /> : null}
         </aside>
 
         <div className="deck-builder__catalog hs-deck-frame">
@@ -912,7 +1010,19 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
                 </div>
               </fieldset>
 
-              <fieldset className="deck-builder__filter-group deck-builder__filter-group--rarity">
+              <button
+                type="button"
+                className="deck-builder__advanced-toggle"
+                aria-expanded={advancedFiltersOpen}
+                onClick={() => setAdvancedFiltersOpen(open => !open)}
+              >
+                <SlidersHorizontal size={16} aria-hidden="true" />
+                Дополнительные фильтры
+                <ChevronDown size={16} aria-hidden="true" />
+              </button>
+
+              <div className={`deck-builder__advanced-filters ${advancedFiltersOpen ? 'is-open' : ''}`}>
+                <fieldset className="deck-builder__filter-group deck-builder__filter-group--rarity">
                 <legend>Редкость</legend>
                 <div className="deck-builder__rarity-options">
                   {RARITY_FILTERS.map(value => (
@@ -938,40 +1048,39 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
                     </button>
                   ))}
                 </div>
-              </fieldset>
+                </fieldset>
 
-              <fieldset className="deck-builder__filter-group deck-builder__filter-group--type">
-                <legend>Тип карты</legend>
-                <div className="deck-builder__type-options">
-                  {CARD_TYPE_FILTERS.map(value => (
-                    <button
-                      key={value || 'all'}
-                      type="button"
-                      className="deck-builder__type-filter"
-                      aria-pressed={filterType === value}
-                      onClick={() => {
-                        setFilterType(value);
-                        if (value !== 'SPELL') setFilterSpellSchool('');
-                        if (value !== 'MINION') setFilterMinionType('');
-                        setPage(1);
-                      }}
-                    >
-                      {value ? TYPE_LABELS[value] : 'Все'}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-
-              <div className="deck-builder__filters">
-                <label>
-                  Класс
-                  <select value={filterClass} onChange={event => { setFilterClass(event.target.value); setPage(1); }}>
-                    <option value="">Любой класс</option>
-                    {(facets.classes.length ? facets.classes : [...CLASS_OPTIONS.map(item => item.id), 'NEUTRAL']).map(value => (
-                      <option key={value} value={value}>{CLASS_LABELS[value] || value}</option>
+                <fieldset className="deck-builder__filter-group deck-builder__filter-group--type">
+                  <legend>Тип карты</legend>
+                  <div className="deck-builder__type-options">
+                    {CARD_TYPE_FILTERS.map(value => (
+                      <button
+                        key={value || 'all'}
+                        type="button"
+                        className="deck-builder__type-filter"
+                        aria-pressed={filterType === value}
+                        onClick={() => {
+                          setFilterType(value);
+                          if (value !== 'SPELL') setFilterSpellSchool('');
+                          if (value !== 'MINION') setFilterMinionType('');
+                          setPage(1);
+                        }}
+                      >
+                        {value ? TYPE_LABELS[value] : 'Все'}
+                      </button>
                     ))}
-                  </select>
-                </label>
+                  </div>
+                </fieldset>
+
+                <div className="deck-builder__filters">
+                  <label>
+                    Принадлежность
+                    <select value={filterClass} onChange={event => { setFilterClass(event.target.value); setPage(1); }}>
+                      <option value="">Все доступные</option>
+                      <option value={heroClass}>{CLASS_LABELS[heroClass]}</option>
+                      <option value="NEUTRAL">Нейтральные</option>
+                    </select>
+                  </label>
                 <label>
                   Школа заклинания
                   <select
@@ -1014,15 +1123,16 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
                     ))}
                   </select>
                 </label>
-                <label>
-                  Эффект карты
-                  <select value={filterMechanic} onChange={event => { setFilterMechanic(event.target.value); setPage(1); }}>
-                    <option value="">Любой эффект</option>
-                    {mechanicOptions.map(value => (
-                      <option key={value} value={value}>{mechanicLabels[value] || value}</option>
-                    ))}
-                  </select>
-                </label>
+                  <label>
+                    Эффект карты
+                    <select value={filterMechanic} onChange={event => { setFilterMechanic(event.target.value); setPage(1); }}>
+                      <option value="">Любой эффект</option>
+                      {mechanicOptions.map(value => (
+                        <option key={value} value={value}>{mechanicLabels[value] || value}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -1045,13 +1155,17 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
             ) : cards.map(card => {
               const entry = catalogToEntry(card);
               const inDeck = entry ? entries.find(item => item.dbfId === entry.dbfId) : null;
-              const atCap = Boolean(inDeck && inDeck.count >= maxCopies(inDeck.rarity));
+              const atCap = Boolean(inDeck && inDeck.count >= maxCardCopies(inDeck.rarity));
               const deckFull = cardCount >= sizeLimit;
+              const illegal = !isCatalogCardLegalForHero(card, heroClass);
+              const disabledReason = illegal
+                ? `Недоступна классу ${classMeta.label}`
+                : atCap ? 'Достигнут лимит копий' : deckFull ? `В колоде уже ${sizeLimit} карт` : '';
               return (
                 <button
                   key={card.card_id}
                   type="button"
-                  className={`deck-builder__card ${atCap || deckFull ? 'is-disabled' : ''} ${inDeck ? 'is-in-deck' : ''}`}
+                  className={`deck-builder__card ${disabledReason ? 'is-disabled' : ''} ${inDeck ? 'is-in-deck' : ''}`}
                   onClick={() => {
                     clearCardPreview();
                     addCard(card);
@@ -1062,8 +1176,8 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
                   onPointerLeave={clearCardPreview}
                   onFocus={event => entry && showCardPreview(entry, event.currentTarget)}
                   onBlur={clearCardPreview}
-                  disabled={!entry || atCap || deckFull}
-                  title={cardName(card)}
+                  aria-disabled={Boolean(!entry || disabledReason)}
+                  title={disabledReason ? `${cardName(card)} — ${disabledReason}` : cardName(card)}
                 >
                   <img
                     src={entry?.cardImage || ''}

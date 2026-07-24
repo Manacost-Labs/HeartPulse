@@ -108,6 +108,15 @@ assert.equal(
   'duplicate statistics rows must not create duplicate catalog cards',
 );
 assert.deepEqual(queryConstructedCards(mergedCards, { class: 'mage', mechanic: 'battlecry' }).map(card => card.card_id), ['CARD_1']);
+assert.deepEqual(
+  queryConstructedCards([
+    catalogCards[0],
+    catalogCards[1],
+    { ...catalogCards[0], card_id: 'CARD_NEUTRAL', dbf: 3, class: 'NEUTRAL' },
+  ], { deckClass: 'mage' }).map(card => card.card_id),
+  ['CARD_1', 'CARD_NEUTRAL'],
+  'a deck-class catalog must contain selected-class and neutral cards but exclude other classes',
+);
 assert.deepEqual(queryConstructedCards(mergedCards, { minionType: 'beast' }).map(card => card.card_id), ['CARD_1']);
 assert.deepEqual(queryConstructedCards(mergedCards, { spellSchool: 'fire' }).map(card => card.card_id), ['CARD_2']);
 assert.deepEqual(

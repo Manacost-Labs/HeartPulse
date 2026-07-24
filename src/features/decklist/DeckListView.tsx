@@ -36,6 +36,8 @@ export type DeckListViewProps = {
   showCopy?: boolean;
   interactive?: boolean;
   onCardClick?: (card: DeckListCard) => void;
+  onCardIncrement?: (card: DeckListCard) => void;
+  onCardDecrement?: (card: DeckListCard) => void;
   className?: string;
   emptyText?: string;
 };
@@ -61,6 +63,8 @@ function DeckTile({
   indented,
   classColor,
   onClick,
+  onIncrement,
+  onDecrement,
   onPreview,
   onPreviewEnd,
 }: {
@@ -69,6 +73,8 @@ function DeckTile({
   indented?: boolean;
   classColor?: string;
   onClick?: () => void;
+  onIncrement?: () => void;
+  onDecrement?: () => void;
   onPreview: (card: DeckListCard, el: HTMLElement) => void;
   onPreviewEnd: () => void;
 }) {
@@ -81,7 +87,8 @@ function DeckTile({
     ['--deck-tile-border' as string]: 'rgb(32, 32, 32)',
     ['--deck-tile-art' as string]: card.image ? `url(${JSON.stringify(card.image)})` : 'none',
   };
-  const className = `deck-tile deck-tile--${rarityKey(card.rarity)}${indented ? ' is-sideboard' : ''}`;
+  const hasControls = Boolean(interactive && (onIncrement || onDecrement));
+  const className = `deck-tile deck-tile--${rarityKey(card.rarity)}${indented ? ' is-sideboard' : ''}${hasControls ? ' has-controls' : ''}`;
   const countLabel = card.elite ? '★' : String(card.count);
 
   const body = (
@@ -91,9 +98,49 @@ function DeckTile({
       <span className="deck-tile__fade" aria-hidden="true" />
       <span className="deck-tile__mana" aria-hidden="true">{card.cost}</span>
       <span className="deck-tile__name">{card.name}</span>
-      <span className="deck-tile__count" aria-hidden="true">{countLabel}</span>
+      {!hasControls ? <span className="deck-tile__count" aria-hidden="true">{countLabel}</span> : null}
     </>
   );
+
+  if (hasControls) {
+    const atCopyLimit = card.count >= (card.elite || rarityKey(card.rarity) === 'legendary' ? 1 : 2);
+    return (
+      <div
+        className={className}
+        style={style}
+        onMouseEnter={event => onPreview(card, event.currentTarget)}
+        onMouseLeave={onPreviewEnd}
+        onFocus={event => onPreview(card, event.currentTarget)}
+        onBlur={event => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) onPreviewEnd();
+        }}
+        data-card-id={card.id}
+        data-dbf-id={card.dbfId}
+      >
+        {body}
+        <span className="deck-tile__controls">
+          <button
+            type="button"
+            onClick={onDecrement}
+            aria-label={`Убрать одну копию: ${card.name}`}
+            title="Убрать одну копию"
+          >
+            −
+          </button>
+          <span aria-label={`${card.count} копий`}>{card.count}</span>
+          <button
+            type="button"
+            onClick={onIncrement}
+            disabled={atCopyLimit}
+            aria-label={`Добавить ещё одну копию: ${card.name}`}
+            title={atCopyLimit ? 'Достигнут лимит копий' : 'Добавить ещё одну копию'}
+          >
+            +
+          </button>
+        </span>
+      </div>
+    );
+  }
 
   if (interactive) {
     return (
@@ -147,6 +194,8 @@ export default function DeckListView({
   showCopy = false,
   interactive = false,
   onCardClick,
+  onCardIncrement,
+  onCardDecrement,
   className = '',
   emptyText = 'Колода пуста.',
 }: DeckListViewProps) {
@@ -210,6 +259,8 @@ export default function DeckListView({
                   interactive={interactive}
                   classColor={headerColor}
                   onClick={onCardClick ? () => onCardClick(card) : undefined}
+                  onIncrement={onCardIncrement ? () => onCardIncrement(card) : undefined}
+                  onDecrement={onCardDecrement ? () => onCardDecrement(card) : undefined}
                   onPreview={showPreview}
                   onPreviewEnd={() => setPreview(null)}
                 />

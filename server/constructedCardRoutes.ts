@@ -296,6 +296,7 @@ function countedValues(values: unknown[]): Array<{ value: string; count: number 
 export function queryConstructedCards(cards: JsonRecord[], query: Record<string, unknown>) {
   const search = readFilter(query.query).toLocaleLowerCase('ru');
   const className = readFilter(query.class).toUpperCase();
+  const deckClass = readFilter(query.deckClass).toUpperCase();
   const cardSet = readFilter(query.set).toUpperCase();
   const mechanic = readFilter(query.mechanic).toUpperCase();
   const minionType = readFilter(query.minionType).toUpperCase();
@@ -313,6 +314,7 @@ export function queryConstructedCards(cards: JsonRecord[], query: Record<string,
   const filtered = cards.filter(card => {
     if (search && !searchableText(card).includes(search)) return false;
     const classes = cardClasses(card);
+    if (deckClass && !classes.includes(deckClass) && !classes.includes('NEUTRAL')) return false;
     if (className && !classes.includes(className)) return false;
     if (cardSet && String(card?.card_set ?? '').toUpperCase() !== cardSet) return false;
     if (mechanic && !cardMechanics(card).map(value => value.toUpperCase()).includes(mechanic)) return false;

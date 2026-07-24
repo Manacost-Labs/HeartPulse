@@ -1,5 +1,17 @@
 # HS-Arena Changelog
 
+## v1.0.46 - 2026-07-24
+
+- Rebuilt the constructed deck-builder flow around one format choice and compact
+  class selection, with responsive card/deck tabs, a mana curve and 44px touch
+  targets from 320px through desktop.
+- Fixed deck legality so ordinary decks stay capped at 30 cards, XL cards alone
+  enable 40, and each catalog includes the selected class plus legal neutral and
+  multiclass cards.
+- Added validated local drafts, one-step undo, confirmed reset, explicit copy
+  controls and clearer completion/error feedback, with TypeScript, React Doctor,
+  route, browser and accessibility regression coverage.
+
 ## v1.0.45 - 2026-07-24
 
 - Added immutable GitHub security workflows for CodeQL, full-history Gitleaks,

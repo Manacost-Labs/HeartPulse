@@ -216,6 +216,73 @@ try {
   assert.equal(await page.$eval('#deck-builder-workspace-title', heading => heading.textContent), 'Маг на элементалях');
   assert.equal(await page.$$eval('.deck-builder__deck .deck-tile', cards => cards.length), 3);
 
+  await page.setViewport({ width: 320, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
+  await page.reload({ waitUntil: 'networkidle0' });
+  await page.waitForSelector('.deck-builder--workspace');
+  await page.click('.deck-builder__advanced-toggle');
+  const builderMobile = await page.evaluate(() => {
+    const visibleControls = [...document.querySelectorAll('.deck-builder button, .deck-builder input, .deck-builder select')]
+      .filter(element => {
+        const style = getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+      });
+    return {
+      overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      offscreenControls: visibleControls.filter(element => {
+        const rect = element.getBoundingClientRect();
+        return rect.left < -1 || rect.right > innerWidth + 1;
+      }).length,
+      minTarget: Math.min(...visibleControls.map(element => element.getBoundingClientRect().height)),
+      deckVisible: getComputedStyle(document.querySelector('.deck-builder__deck')).display !== 'none',
+      catalogVisible: getComputedStyle(document.querySelector('.deck-builder__catalog')).display !== 'none',
+    };
+  });
+  assert.ok(builderMobile.overflow <= 1, `mobile deck builder overflowed by ${builderMobile.overflow}px`);
+  assert.equal(builderMobile.offscreenControls, 0, 'mobile deck-builder controls must stay inside the viewport');
+  assert.ok(builderMobile.minTarget >= 44, `mobile deck-builder target is only ${builderMobile.minTarget}px high`);
+  assert.equal(builderMobile.deckVisible, false);
+  assert.equal(builderMobile.catalogVisible, true);
+
+  await page.click('.deck-builder__mobile-tabs button:nth-child(2)');
+  assert.equal(
+    await page.$eval('.deck-builder__deck', element => getComputedStyle(element).display !== 'none'),
+    true,
+  );
+  assert.ok(await page.$$eval(
+    '.deck-tile__controls button',
+    buttons => buttons.every(button => button.getBoundingClientRect().height >= 44),
+  ));
+
+  await page.click('.deck-builder__workspace-header > .deck-builder__ghost-btn');
+  await page.waitForSelector('.deck-builder__class-grid');
+  assert.equal(await page.$$eval('.deck-builder__class-card', cards => cards.length), 11);
+  assert.equal(await page.$$eval('.deck-builder__format-picker button', buttons => buttons.length), 2);
+  assert.ok(
+    await page.evaluate(() => document.body.scrollHeight < 2_200),
+    'mobile builder landing must not be a four-thousand-pixel list of repeated format buttons',
+  );
+
+  await page.click('.deck-builder__class-card[aria-label^="Маг:"]');
+  await page.waitForSelector('.deck-builder__gallery .deck-builder__card');
+  await page.click('.deck-builder__gallery .deck-builder__card');
+  await new Promise(resolve => setTimeout(resolve, 400));
+  assert.equal(await page.$eval('.deck-builder__deck-counter strong', node => node.textContent), '1');
+  await page.goto(`${origin}/tests/fixtures/deck-builder-autoload.html`, { waitUntil: 'networkidle0' });
+  await page.waitForSelector('.deck-builder--workspace');
+  assert.equal(
+    await page.$eval('.deck-builder__deck-counter strong', node => node.textContent),
+    '1',
+    'the saved draft must survive a reload',
+  );
+
+  await page.addScriptTag({ path: axePath });
+  const builderViolations = await page.evaluate(async () => {
+    const result = await globalThis.axe.run(document.querySelector('.deck-builder'));
+    return result.violations.filter(violation => ['serious', 'critical'].includes(violation.impact));
+  });
+  assert.deepEqual(builderViolations, []);
+
   assert.deepEqual(runtimeErrors, []);
   console.log('Archetype detail browser tests passed');
 } finally {
