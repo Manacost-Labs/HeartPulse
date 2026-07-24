@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import '../route-parchment.css';
 import './ConstructedArchetypes.css';
+import ConstructedArchetypeDeckGallery from './ConstructedArchetypeDeckGallery';
 import {
   AsyncSurfaceState,
   RecoverableSurfaceBoundary,
@@ -492,7 +493,7 @@ function ArchetypeDetailPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
-  const [visibleBuilds, setVisibleBuilds] = useState(12);
+  const [visibleBuilds, setVisibleBuilds] = useState(6);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -612,29 +613,15 @@ function ArchetypeDetailPage({
           </div>
           <span className="archetype-section-heading__count">{item.deckCount} сборок</span>
         </header>
-        <div className="archetype-builds__list">
-          {shownBuilds.map((build, index) => (
-            <article className="archetype-build-row" key={build.deckCode}>
-              <span className="archetype-build-row__rank">{index + 1}</span>
-              <div className="archetype-build-row__summary">
-                <strong>Сборка #{index + 1}</strong>
-                <span>{build.games?.toLocaleString('ru-RU') ?? '—'} игр · {formatNumber(build.winrate, '%')} WR</span>
-              </div>
-              <code>{build.deckCode}</code>
-              <div className="archetype-build-row__actions">
-                <CopyDeckCodeButton code={build.deckCode} compact />
-                {build.sourceUrl && (
-                  <a href={build.sourceUrl} target="_blank" rel="noreferrer" aria-label={`Открыть сборку ${index + 1} на HSGuru`}>
-                    <ExternalLink size={18} />
-                  </a>
-                )}
-              </div>
-            </article>
-          ))}
-        </div>
+        <ConstructedArchetypeDeckGallery
+          builds={shownBuilds}
+          format={item.format}
+          archetype={item.archetype}
+          classKey={item.classKey}
+        />
         {visibleBuilds < item.builds.length && (
-          <button type="button" className="archetype-builds__more" onClick={() => setVisibleBuilds(value => value + 12)}>
-            Показать ещё {Math.min(12, item.builds.length - visibleBuilds)}
+          <button type="button" className="archetype-builds__more" onClick={() => setVisibleBuilds(value => value + 6)}>
+            Показать ещё {Math.min(6, item.builds.length - visibleBuilds)}
             <ChevronDown size={17} />
           </button>
         )}

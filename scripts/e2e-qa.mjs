@@ -1408,6 +1408,24 @@ async function mockApplicationApi(page, {
       request.respond(jsonResponse(qaArchetypeDetail));
       return;
     }
+    if (url.pathname === '/api/deck/resolve' && request.method() === 'GET') {
+      request.respond(jsonResponse({
+        ok: true,
+        format: url.searchParams.get('format') === 'wild' ? 'wild' : 'standard',
+        deckCode: url.searchParams.get('code') || '',
+        cards: qaDeckCards,
+        sideboards: [],
+        totalCards: 30,
+        deckSizeLimit: 30,
+        archetype: {
+          archetype: url.searchParams.get('archetype') || 'Evenlock',
+          archetypeLabel: 'Чётный Чернокнижник',
+          score: 1,
+          deckCode: url.searchParams.get('code') || '',
+        },
+      }));
+      return;
+    }
     if ((url.pathname === '/api/standard-meta' || (admin && url.pathname === '/api/admin/standard-meta'))
       && request.method() === 'GET' && adminState.standardMetaReadFailureOnce) {
       adminState.standardMetaReadFailureOnce = false;
@@ -3779,20 +3797,24 @@ for (const [device, viewport] of [
 
     await page.click('.archetype-row__open');
     await page.waitForSelector('.archetype-detail-page .archetype-trend', { timeout: 20_000 });
+    await page.waitForSelector('.archetype-deck-card .deck-tile', { timeout: 20_000 });
     const archetypeDetailState = await page.evaluate(() => {
       const root = document.querySelector('.archetype-detail-page');
       const copyButton = document.querySelector('.archetype-main-build .archetype-copy-button');
       return {
         title: root?.querySelector('h1')?.textContent?.trim() || '',
         charts: root?.querySelectorAll('.archetype-trend').length ?? 0,
-        builds: root?.querySelectorAll('.archetype-build-row').length ?? 0,
+        builds: root?.querySelectorAll('.archetype-deck-card').length ?? 0,
+        deckCards: root?.querySelectorAll('.archetype-deck-card .deck-tile').length ?? 0,
+        builderLinks: root?.querySelectorAll('.archetype-deck-card__builder').length ?? 0,
         code: root?.querySelector('.archetype-main-build code')?.textContent || '',
         copyHeight: copyButton?.getBoundingClientRect().height ?? 0,
         documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
       };
     });
     if (!archetypeDetailState.title.includes('Чётный') || archetypeDetailState.charts !== 3
-      || archetypeDetailState.builds !== 12 || !archetypeDetailState.code.startsWith('AA')
+      || archetypeDetailState.builds !== 6 || archetypeDetailState.deckCards !== 102
+      || archetypeDetailState.builderLinks !== 6 || !archetypeDetailState.code.startsWith('AA')
       || archetypeDetailState.copyHeight < 42 || archetypeDetailState.documentOverflow) {
       failures.push(`archetype detail [${device}]: charts, builds, code or containment regressed (${JSON.stringify(archetypeDetailState)})`);
     }
@@ -3813,7 +3835,7 @@ for (const [device, viewport] of [
       failures.push(`archetype detail [${device}]: deck code copy did not expose success (${JSON.stringify(archetypeCopyState)})`);
     }
     await page.click('.archetype-builds__more');
-    await page.waitForFunction(() => document.querySelectorAll('.archetype-build-row').length === 14);
+    await page.waitForFunction(() => document.querySelectorAll('.archetype-deck-card').length === 12);
     await auditAccessibility(page, `archetype detail [${device}]`, '.archetype-detail-page');
     await page.screenshot({ path: `${OUT}/archetype-detail-${device}.png`, fullPage: false });
     await page.click('.archetype-breadcrumb a');

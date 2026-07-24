@@ -7,6 +7,7 @@ import puppeteer from 'puppeteer';
 
 const require = createRequire(import.meta.url);
 const axePath = require.resolve('axe-core/axe.min.js');
+const screenshotPrefix = `/tmp/manacost-admin-archetype-${process.pid}`;
 const chromiumPath = [
   process.env.CHROMIUM_PATH,
   '/usr/bin/chromium',
@@ -89,7 +90,7 @@ try {
 
   await page.click('.archetype-analysis-panel__more');
   assert.equal(await page.$$eval('.archetype-deck-folio', rows => rows.length), 5);
-  await page.screenshot({ path: '/tmp/manacost-admin-archetype-detail-desktop.png', fullPage: true });
+  await page.screenshot({ path: `${screenshotPrefix}-detail-desktop.png`, fullPage: true });
 
   await page.addScriptTag({ path: axePath });
   const desktopViolations = await page.evaluate(async () => {
@@ -111,7 +112,7 @@ try {
   assert.ok(mobile.minMulliganTarget >= 44);
   assert.ok(mobile.minDeckSummary >= 44);
   assert.ok(mobile.builderTarget >= 44);
-  await page.screenshot({ path: '/tmp/manacost-admin-archetype-detail-mobile.png', fullPage: true });
+  await page.screenshot({ path: `${screenshotPrefix}-detail-mobile.png`, fullPage: true });
 
   const code = new URL(builderHref, origin).searchParams.get('code');
   await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });

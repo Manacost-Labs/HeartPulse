@@ -61,9 +61,34 @@ const detail = {
   ],
 };
 
+const resolvedDeck = {
+  ok: true,
+  format: 'wild',
+  deckCode: builds[0].deckCode,
+  totalCards: 30,
+  deckSizeLimit: 30,
+  cards: Array.from({ length: 8 }, (_, index) => ({
+    id: `FIXTURE_${index + 1}`,
+    dbfId: 90_000 + index,
+    name: ['Дар видений', 'Теневой вор', 'Украденная реликвия', 'Мастер иллюзий'][index % 4],
+    cost: index % 7,
+    rarity: index === 0 ? 'LEGENDARY' : index % 3 === 0 ? 'RARE' : 'COMMON',
+    elite: index === 0,
+    count: index === 0 ? 1 : 2,
+    image: '',
+    cardImage: '',
+    sideboardKeyDbfId: null,
+  })),
+  sideboards: [],
+};
+
 globalThis.fetch = (async (input: RequestInfo | URL) => {
   const url = String(input);
-  const payload = url.includes('/wild/thief-priest') ? detail : catalog;
+  const payload = url.includes('/api/deck/resolve')
+    ? { ...resolvedDeck, deckCode: new URL(url, window.location.origin).searchParams.get('code') }
+    : url.includes('/wild/thief-priest')
+      ? detail
+      : catalog;
   return new Response(JSON.stringify(payload), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },

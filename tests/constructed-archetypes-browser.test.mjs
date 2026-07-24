@@ -7,6 +7,7 @@ import puppeteer from 'puppeteer';
 
 const require = createRequire(import.meta.url);
 const axePath = require.resolve('axe-core/axe.min.js');
+const screenshotPrefix = `/tmp/manacost-archetypes-${process.pid}`;
 const chromiumPath = [
   process.env.CHROMIUM_PATH,
   '/usr/bin/chromium',
@@ -73,15 +74,20 @@ try {
   assert.ok(await page.$('[data-tour-id="meta-controls"]'));
   assert.ok(await page.$('[data-tour-id="meta-search"]'));
   assert.ok(await page.$('[data-tour-id="meta-results"]'));
-  await page.screenshot({ path: '/tmp/manacost-archetypes-desktop.png', fullPage: true });
+  await page.screenshot({ path: `${screenshotPrefix}-desktop.png`, fullPage: true });
 
   await page.click('.archetype-row__open');
   await page.waitForSelector('.archetype-detail-page .archetype-trend');
+  await page.waitForSelector('.archetype-deck-card .deck-tile');
   assert.equal(await page.$eval('h1', heading => heading.textContent), 'Воровской Жрец');
   assert.equal(await page.$$eval('.archetype-trend', charts => charts.length), 3);
-  assert.equal(await page.$$eval('.archetype-build-row', rows => rows.length), 12);
+  assert.equal(await page.$$eval('.archetype-deck-card', cards => cards.length), 6);
+  assert.equal(await page.$$eval('.archetype-deck-card .deck-tile', cards => cards.length), 48);
+  assert.ok(await page.$('.archetype-deck-card__builder[href*="/deck-builder?"]'));
+  await page.click('.archetype-builds__more');
+  await page.waitForFunction(() => document.querySelectorAll('.archetype-deck-card').length === 12);
   assert.ok(await page.$('.archetype-main-build__code code'));
-  await page.screenshot({ path: '/tmp/manacost-archetype-detail-desktop.png', fullPage: true });
+  await page.screenshot({ path: `${screenshotPrefix}-detail-desktop.png`, fullPage: true });
 
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
   await page.reload({ waitUntil: 'networkidle0' });
@@ -94,19 +100,24 @@ try {
   assert.ok(catalogMobile.overflow <= 1, `catalog overflowed by ${catalogMobile.overflow}px`);
   assert.ok(catalogMobile.minFormatButtonHeight >= 44);
   assert.ok(catalogMobile.minOpenHeight >= 42);
-  await page.screenshot({ path: '/tmp/manacost-archetypes-mobile.png', fullPage: true });
+  await page.screenshot({ path: `${screenshotPrefix}-mobile.png`, fullPage: true });
 
   await page.click('.archetype-row__open');
   await page.waitForSelector('.archetype-detail-page .archetype-trend');
+  await page.waitForSelector('.archetype-deck-card .deck-tile');
   const detailMobile = await page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     chartCount: document.querySelectorAll('.archetype-trend').length,
     copyHeight: document.querySelector('.archetype-copy-button')?.getBoundingClientRect().height ?? 0,
+    builderHeight: document.querySelector('.archetype-deck-card__builder')?.getBoundingClientRect().height ?? 0,
+    deckColumnCount: document.querySelectorAll('.archetype-deck-card').length,
   }));
   assert.ok(detailMobile.overflow <= 1, `detail overflowed by ${detailMobile.overflow}px`);
   assert.equal(detailMobile.chartCount, 3);
   assert.ok(detailMobile.copyHeight >= 42);
-  await page.screenshot({ path: '/tmp/manacost-archetype-detail-mobile.png', fullPage: true });
+  assert.ok(detailMobile.builderHeight >= 44);
+  assert.equal(detailMobile.deckColumnCount, 6);
+  await page.screenshot({ path: `${screenshotPrefix}-detail-mobile.png`, fullPage: true });
 
   await page.addScriptTag({ path: axePath });
   const violations = await page.evaluate(async () => {

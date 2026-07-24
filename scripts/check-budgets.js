@@ -17,13 +17,14 @@ const budgets = {
   // stays below the existing 80 KB ratchet.
   // v1.0.30 separates the subscriber archetype catalog into an explicit lazy
   // route; v1.0.31 adds the administrator detail stylesheet to its own lazy
-  // route. Compressed startup remains under the existing 80 KB ceiling.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 63_780),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 256_800),
+  // route. v1.0.32 adds trinket filters to the Battlegrounds route and a lazy
+  // constructed-deck gallery. Compressed startup remains under 80 KB.
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 63_820),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 256_840),
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_000),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
-  routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 116_000),
-  css: Number(process.env.BUDGET_CSS_BYTES || 135_360),
+  routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 117_500),
+  css: Number(process.env.BUDGET_CSS_BYTES || 135_500),
   routeCss: Number(process.env.BUDGET_ROUTE_CSS_BYTES || 48_350),
   deferredRoutesCss: Number(process.env.BUDGET_DEFERRED_ROUTES_CSS_BYTES || 52_000),
   loginPanelCss: Number(process.env.BUDGET_LOGIN_PANEL_CSS_BYTES || 4_500),

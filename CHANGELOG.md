@@ -1,5 +1,11 @@
 # HS-Arena Changelog
 
+## v1.0.32 - 2026-07-24
+
+- Replaced raw HSGuru build-code rows on constructed archetype pages with responsive Hearthstone deck lists resolved by the site's own deck-builder catalog, including Russian card names, mana, rarity, art, sideboards, and full-card previews.
+- Added one-click code copying, HSGuru source links, direct deck-builder loading from the «Разное» section, recoverable per-deck loading states, and desktop/mobile accessibility coverage.
+- Preserved and jointly validated the concurrent Battlegrounds trinket MMR and period filters.
+
 ## v1.0.31 - 2026-07-24
 
 - Rebuilt administrator archetype details with card-art mulligan rows and full-card hover previews, readable favored/even/difficult matchup ledgers, expandable deck compositions, and one-click deep links that load the selected build directly in the deck builder.

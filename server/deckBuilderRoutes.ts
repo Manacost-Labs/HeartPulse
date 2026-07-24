@@ -93,6 +93,10 @@ function readDeckCode(value: unknown): string {
   return decodeURIComponent((fromUrl?.[1] || raw).replace(/ /g, '+')).trim();
 }
 
+function readArchetype(value: unknown): string {
+  return String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, 120);
+}
+
 function loadArchetypeCandidates(database: DatabaseSync): Array<{ nameEn: string; deckCode: string }> {
   try {
     const rows = database.prepare(`
@@ -134,13 +138,16 @@ async function resolveDeckPayload(
   dependencies: DeckBuilderRouterDependencies,
   deckCode: string,
   preferredFormat: DeckBuilderFormat,
+  preferredArchetypeName = '',
 ): Promise<DeckBuilderResolveResult> {
   const [standardCards, wildCards, translations, hsjson, hsGuruArchetype] = await Promise.all([
     dependencies.loadCatalogCards('standard'),
     dependencies.loadCatalogCards('wild'),
     Promise.resolve(dependencies.loadArchetypeTranslations()),
     loadHsjsonAllCards().catch(() => null),
-    fetchHsGuruArchetype(deckCode),
+    preferredArchetypeName
+      ? Promise.resolve(preferredArchetypeName)
+      : fetchHsGuruArchetype(deckCode),
   ]);
   const cardsRuLocal = dependencies.loadCardsRu() || {};
   const cardsRu = { ...cardsRuLocal, ...(hsjson?.byId || {}) };
@@ -190,8 +197,17 @@ export function createDeckBuilderRouter(dependencies: DeckBuilderRouterDependenc
     );
     if (!deckCode) return response.status(400).json({ error: 'Нужен код колоды' });
     const preferredFormat = readFormat(request.body?.format ?? request.query?.format);
+    const preferredArchetypeName = readArchetype(
+      request.body?.archetype
+      ?? request.query?.archetype,
+    );
     try {
-      const resolved = await resolveDeckPayload(dependencies, deckCode, preferredFormat);
+      const resolved = await resolveDeckPayload(
+        dependencies,
+        deckCode,
+        preferredFormat,
+        preferredArchetypeName,
+      );
       return response.json({ ok: true, ...resolved });
     } catch (error: any) {
       const status = Number(error?.status) || 503;
