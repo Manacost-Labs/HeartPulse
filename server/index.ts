@@ -40,6 +40,7 @@ import { createOperationalRouter } from './operationalRoutes.js';
 import { createArenaDecksRouter, type ArenaDecksCacheStore } from './arenaDeckRoutes.js';
 import {
   createStandardMatchupRouter,
+  excludeOtherStandardMatchups,
   type StandardMatchupFormat,
 } from './standardMatchupRoutes.js';
 import {
@@ -116,6 +117,10 @@ import {
 } from './adminArchetypeTranslationRoutes.js';
 import { createAdminArchetypesRouter } from './adminArchetypesRoutes.js';
 import { createDeckBuilderRouter } from './deckBuilderRoutes.js';
+import {
+  loadArchetypeDeckCandidates,
+  resolveArchetypeDeckIdentity,
+} from './archetypeDeckIdentity.js';
 import {
   createAdminMechanicTranslationRouter,
   loadConstructedMechanicOverrideMap,
@@ -6024,6 +6029,36 @@ function transformHsguruMatchups(
   };
 }
 
+async function loadHsguruMatchupRow(archetypeName: string) {
+  const now = Date.now();
+  const cached = standardMatchupsApiCache.get('standard');
+  let data = cached?.data;
+  if (!data) {
+    const [payload, translations] = await Promise.all([
+      fetchDataset(STANDARD_MATCHUPS_DATASET_BY_FORMAT.standard),
+      getStandardArchetypeTranslations(now),
+    ]);
+    data = excludeOtherStandardMatchups(transformHsguruMatchups(payload, 'standard', translations));
+    standardMatchupsApiCache.set('standard', {
+      data,
+      etag: `"standard-matchups-v6-standard-admin-${now.toString(36)}"`,
+      expiresAt: now + EXTERNAL_DATASET_CACHE_MS,
+    });
+  }
+  const wanted = normalizeStandardArchetypeKey(archetypeName);
+  const row = (Array.isArray(data?.rows) ? data.rows : [])
+    .find((candidate: any) => normalizeStandardArchetypeKey(String(candidate?.archetype || '')) === wanted);
+  if (!row || !Array.isArray(row.cells)) return null;
+  return row.cells.map((cell: any, index: number) => ({
+    opponent_archetype_id: index + 1,
+    opponent_name: String(cell?.opponentLabel || cell?.opponent || `Архетип ${index + 1}`),
+    opponent_name_en: String(cell?.opponent || ''),
+    opponent_class: inferStandardMetaClass(String(cell?.opponent || '')),
+    win_rate: parseNumber(cell?.winrate),
+    total_games: null,
+  }));
+}
+
 function parseStandardMetaPopularity(value: unknown): { popularity: number | null; games: number | null } {
   const raw = String(value ?? '').trim();
   const match = raw.match(/(-?[\d.,]+)\s*%?\s*(?:\(([\d\s.,]+)\))?/);
@@ -9231,6 +9266,15 @@ app.use('/api', createAdminArchetypesRouter({
     const translations = await getStandardArchetypeTranslations();
     return translateStandardArchetype(name, translations.map);
   },
+  resolveCanonicalArchetype: async ({ detail }) => {
+    const translations = await getStandardArchetypeTranslations();
+    return resolveArchetypeDeckIdentity({
+      payload: detail as any,
+      candidates: loadArchetypeDeckCandidates(db(), 'standard'),
+      translate: name => translateStandardArchetype(name, translations.map),
+    });
+  },
+  loadCanonicalMatchups: loadHsguruMatchupRow,
 }));
 
 app.use('/api', createDeckBuilderRouter({

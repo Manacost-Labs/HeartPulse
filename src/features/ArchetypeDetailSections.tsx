@@ -1,13 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  ArrowDownUp,
   BarChart3,
-  ChevronDown,
   ExternalLink,
   LayoutGrid,
   Sparkles,
   Swords,
 } from 'lucide-react';
 import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
+import {
+  sortMulliganRows,
+  type MulliganSort,
+  type MulliganSortKey,
+} from './archetypeDetailModel';
+import { classIconUrl, useNeutralClassIcon } from './classIcons';
 import {
   encodeConstructedDeck,
   normalizeConstructedHeroClass,
@@ -18,6 +24,10 @@ import './ArchetypeDetailSections.css';
 export type ArchetypeSnapshot = {
   name?: string | null;
   nameRu?: string | null;
+  canonicalNameEn?: string | null;
+  canonicalNameRu?: string | null;
+  identitySource?: 'hsguru' | 'local-deck-match' | 'hsreplay' | null;
+  identityConfidence?: number | null;
   player_class?: string | null;
   region?: string | null;
   rank_range?: string | null;
@@ -127,13 +137,6 @@ function cardRenderUrl(cardId: string): string {
   return `https://art.hearthstonejson.com/v1/render/latest/ruRU/512x/${encodeURIComponent(cardId)}.png`;
 }
 
-function classIcon(value: unknown): string {
-  const normalized = String(value ?? '').trim().toLowerCase().replace(/[\s_-]+/g, '');
-  return normalized && normalized !== 'unknown'
-    ? `/class_icon/ui/${normalized}-64.webp`
-    : '/class_icon/neutral.webp';
-}
-
 function matchupTone(value: number | null): {
   key: 'favored' | 'even' | 'unfavored' | 'unknown';
   label: string;
@@ -230,7 +233,35 @@ export function ArchetypeMulliganPanel({
   snapshot: ArchetypeSnapshot;
 }) {
   const { preview, setPreview } = useCardPreview();
-  const visibleRows = rows.filter(row => Number.isSafeInteger(Number(row.dbf_id)));
+  const [sort, setSort] = useState<MulliganSort>({ key: 'hsreplay_rank', direction: 'asc' });
+  const visibleRows = useMemo(() => sortMulliganRows(
+    rows.filter(row => Number.isSafeInteger(Number(row.dbf_id))),
+    sort,
+  ), [rows, sort]);
+  const changeSort = (key: MulliganSortKey) => {
+    setSort(current => current.key === key
+      ? { key, direction: current.direction === 'asc' ? 'desc' : 'asc' }
+      : { key, direction: key === 'avg_turn_played_on' || key === 'hsreplay_rank' ? 'asc' : 'desc' });
+  };
+  const sortButton = (key: MulliganSortKey, label: string, hint?: string) => {
+    const active = sort.key === key;
+    return (
+      <button
+        type="button"
+        data-mulligan-sort={key}
+        data-active={active ? 'true' : undefined}
+        aria-label={`${label}. ${active ? `Сортировка ${sort.direction === 'asc' ? 'по возрастанию' : 'по убыванию'}` : 'Сортировать'}`}
+        onClick={() => changeSort(key)}
+      >
+        <span>{label}</span>
+        {hint ? <small>{hint}</small> : null}
+        <ArrowDownUp aria-hidden="true" />
+      </button>
+    );
+  };
+  const ariaSort = (key: MulliganSortKey): 'ascending' | 'descending' | 'none' => (
+    sort.key === key ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'
+  );
 
   return (
     <section className="archetypes-detail__panel archetype-analysis-panel" aria-labelledby="archetype-mulligan-title">
@@ -241,60 +272,82 @@ export function ArchetypeMulliganPanel({
         </div>
         <p>
           HSReplay · {snapshot.region === 'REGION_EU' ? 'Европа' : snapshot.region || 'Все регионы'} ·
-          {' '}{snapshot.rank_range || 'Легенда'} · последние 30 дней
+          {' '}{snapshot.rank_range || 'Легенда'} · последние 30 дней · нажмите на заголовок для сортировки
         </p>
       </header>
 
       {visibleRows.length ? (
-        <ol className="archetype-mulligan-list">
-          {visibleRows.map((row, index) => {
-            const keepRate = finite(row.keep_percentage);
-            const keepWidth = keepRate === null ? 0 : clamp(keepRate, 0, 100);
-            return (
-              <li key={row.dbf_id} className="archetype-mulligan-row">
-                <span className="archetype-mulligan-row__rank" aria-label={`Позиция ${row.hsreplay_rank || index + 1}`}>
-                  {row.hsreplay_rank || index + 1}
-                </span>
-
-                <MulliganCard
-                  row={row}
-                  onPreview={setPreview}
-                  onPreviewEnd={() => setPreview(null)}
-                />
-
-                <div className="archetype-keep-rate">
-                  <div>
-                    <span>Оставляют</span>
-                    <strong>{formatPercent(keepRate)}</strong>
-                  </div>
-                  <span className="archetype-keep-rate__track" aria-hidden="true">
-                    <span style={{ width: `${keepWidth}%` }} />
-                  </span>
-                  <small>{formatNumber(row.times_kept)} из {formatNumber(row.times_presented_in_initial_cards)} предложений</small>
-                </div>
-
-                <dl className="archetype-mulligan-metrics">
-                  <div>
-                    <dt>В стартовой</dt>
-                    <dd>{formatPercent(row.opening_hand_winrate)}</dd>
-                  </div>
-                  <div>
-                    <dt>При взятии</dt>
-                    <dd>{formatPercent(row.winrate_when_drawn)}</dd>
-                  </div>
-                  <div>
-                    <dt>При розыгрыше</dt>
-                    <dd>{formatPercent(row.winrate_when_played)}</dd>
-                  </div>
-                  <div>
-                    <dt>Средний ход</dt>
-                    <dd>{finite(row.avg_turn_played_on)?.toLocaleString('ru-RU', { maximumFractionDigits: 1 }) ?? '—'}</dd>
-                  </div>
-                </dl>
-              </li>
-            );
-          })}
-        </ol>
+        <div
+          className="archetype-mulligan-table__scroll"
+          role="region"
+          aria-label="Сортируемая статистика муллигана"
+          tabIndex={0}
+        >
+          <table className="archetype-mulligan-table">
+            <thead>
+              <tr>
+                <th scope="col" aria-sort={ariaSort('hsreplay_rank')}>
+                  {sortButton('hsreplay_rank', '№')}
+                </th>
+                <th scope="col" className="archetype-mulligan-table__card-heading">Карта</th>
+                <th scope="col" aria-sort={ariaSort('keep_percentage')}>
+                  {sortButton('keep_percentage', 'Оставляют')}
+                </th>
+                <th scope="col" aria-sort={ariaSort('opening_hand_winrate')}>
+                  {sortButton('opening_hand_winrate', 'В стартовой', 'винрейт')}
+                </th>
+                <th scope="col" aria-sort={ariaSort('winrate_when_drawn')}>
+                  {sortButton('winrate_when_drawn', 'При взятии', 'винрейт')}
+                </th>
+                <th scope="col" aria-sort={ariaSort('winrate_when_played')}>
+                  {sortButton('winrate_when_played', 'При розыгрыше', 'винрейт')}
+                </th>
+                <th scope="col" aria-sort={ariaSort('avg_turn_played_on')}>
+                  {sortButton('avg_turn_played_on', 'Средний ход')}
+                </th>
+                <th scope="col" aria-sort={ariaSort('times_presented_in_initial_cards')}>
+                  {sortButton('times_presented_in_initial_cards', 'Предложено')}
+                </th>
+                <th scope="col" aria-sort={ariaSort('times_card_played')}>
+                  {sortButton('times_card_played', 'Разыграно')}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleRows.map((row, index) => {
+                const keepRate = finite(row.keep_percentage);
+                const keepWidth = keepRate === null ? 0 : clamp(keepRate, 0, 100);
+                return (
+                  <tr key={row.dbf_id}>
+                    <td className="archetype-mulligan-table__rank" aria-label={`Позиция ${row.hsreplay_rank || index + 1}`}>
+                      {row.hsreplay_rank || index + 1}
+                    </td>
+                    <th scope="row" className="archetype-mulligan-table__card">
+                      <MulliganCard
+                        row={row}
+                        onPreview={setPreview}
+                        onPreviewEnd={() => setPreview(null)}
+                      />
+                    </th>
+                    <td className="archetype-mulligan-table__keep">
+                      <strong>{formatPercent(keepRate)}</strong>
+                      <span className="archetype-keep-rate__track" aria-hidden="true">
+                        <span style={{ width: `${keepWidth}%` }} />
+                      </span>
+                      <small>{formatNumber(row.times_kept)} оставлено</small>
+                    </td>
+                    <td>{formatPercent(row.opening_hand_winrate)}</td>
+                    <td>{formatPercent(row.winrate_when_drawn)}</td>
+                    <td>{formatPercent(row.winrate_when_played)}</td>
+                    <td>{finite(row.avg_turn_played_on)?.toLocaleString('ru-RU', { maximumFractionDigits: 1 }) ?? '—'}</td>
+                    <td>{formatNumber(row.times_presented_in_initial_cards)}</td>
+                    <td>{formatNumber(row.times_card_played)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       ) : (
         <p className="archetype-analysis-panel__empty">Для текущего среза статистика муллигана ещё не собрана.</p>
       )}
@@ -304,7 +357,13 @@ export function ArchetypeMulliganPanel({
   );
 }
 
-export function ArchetypeMatchupsPanel({ rows }: { rows: ArchetypeMatchupRow[] }) {
+export function ArchetypeMatchupsPanel({
+  rows,
+  snapshot,
+}: {
+  rows: ArchetypeMatchupRow[];
+  snapshot: ArchetypeSnapshot;
+}) {
   const sortedRows = useMemo(() => [...rows].sort((left, right) => (
     (finite(right.win_rate) ?? -1) - (finite(left.win_rate) ?? -1)
     || (finite(right.total_games) ?? 0) - (finite(left.total_games) ?? 0)
@@ -318,7 +377,7 @@ export function ArchetypeMatchupsPanel({ rows }: { rows: ArchetypeMatchupRow[] }
     <section className="archetypes-detail__panel archetype-analysis-panel" aria-labelledby="archetype-matchups-title">
       <header className="archetype-analysis-panel__heading archetype-analysis-panel__heading--matchups">
         <div>
-          <span className="archetype-analysis-panel__eyebrow"><Swords aria-hidden="true" /> Карта противников</span>
+          <span className="archetype-analysis-panel__eyebrow"><Swords aria-hidden="true" /> HSGuru · карта противников</span>
           <h2 id="archetype-matchups-title">Матчапы <span>{sortedRows.length}</span></h2>
         </div>
         <dl className="archetype-matchup-summary" aria-label="Сводка матчапов">
@@ -329,27 +388,67 @@ export function ArchetypeMatchupsPanel({ rows }: { rows: ArchetypeMatchupRow[] }
       </header>
 
       {sortedRows.length ? (
-        <ol className="archetype-matchup-list">
-          {sortedRows.map(row => {
-            const winrate = finite(row.win_rate);
-            const tone = matchupTone(winrate);
-            return (
-              <li key={row.opponent_archetype_id} className="archetype-matchup-row" data-tone={tone.key}>
-                <img src={classIcon(row.opponent_class)} alt="" width="46" height="46" loading="lazy" decoding="async" />
-                <div className="archetype-matchup-row__identity">
-                  <strong>{row.opponent_name || `Архетип #${row.opponent_archetype_id}`}</strong>
-                  <span>{formatNumber(row.total_games)} игр</span>
-                </div>
-                <span className="archetype-matchup-row__tone">{tone.label}</span>
-                <div className="archetype-matchup-row__meter" aria-hidden="true">
-                  <span style={{ width: `${winrate === null ? 0 : clamp(winrate, 0, 100)}%` }} />
-                  <i />
-                </div>
-                <strong className="archetype-matchup-row__winrate">{formatPercent(winrate)}</strong>
-              </li>
-            );
-          })}
-        </ol>
+        <div
+          className="archetype-matchup-matrix__scroll"
+          role="region"
+          aria-label="Матрица матчапов, прокрутка по горизонтали"
+          tabIndex={0}
+        >
+          <table
+            className="archetype-matchup-matrix"
+            style={{ '--matchup-columns': sortedRows.length } as React.CSSProperties}
+          >
+            <thead>
+              <tr>
+                <th scope="col" className="archetype-matchup-matrix__corner">
+                  Архетип
+                  <small>против соперника</small>
+                </th>
+                {sortedRows.map(row => (
+                  <th scope="col" key={row.opponent_archetype_id}>
+                    <img
+                      src={classIconUrl(row.opponent_class)}
+                      alt=""
+                      width="34"
+                      height="34"
+                      loading="lazy"
+                      decoding="async"
+                      onError={event => useNeutralClassIcon(event.currentTarget)}
+                    />
+                    <span>{row.opponent_name || `Архетип #${row.opponent_archetype_id}`}</span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">
+                  <strong>{snapshot.canonicalNameRu || snapshot.nameRu || snapshot.name || 'Текущий архетип'}</strong>
+                  <small>винрейт матча</small>
+                </th>
+                {sortedRows.map(row => {
+                  const winrate = finite(row.win_rate);
+                  const games = finite(row.total_games);
+                  const tone = matchupTone(winrate);
+                  const opponentName = row.opponent_name || `Архетип #${row.opponent_archetype_id}`;
+                  return (
+                    <td key={row.opponent_archetype_id}>
+                      <div
+                        className="archetype-matchup-matrix__cell"
+                        data-tone={tone.key}
+                        title={`${opponentName}: ${formatPercent(winrate)}${games === null ? '' : `, ${formatNumber(games)} игр`}`}
+                      >
+                        <strong>{formatPercent(winrate)}</strong>
+                        <small>{tone.label}</small>
+                        {games === null ? null : <span>{formatNumber(games)} игр</span>}
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
+            </tbody>
+          </table>
+        </div>
       ) : (
         <p className="archetype-analysis-panel__empty">Для текущего среза матчапы ещё не собраны.</p>
       )}
@@ -397,7 +496,7 @@ export function ArchetypeDecksPanel({
   decks: ArchetypeDeck[];
   classKey: unknown;
 }) {
-  const [visibleCount, setVisibleCount] = useState(4);
+  const [visibleCount, setVisibleCount] = useState(3);
   const normalizedClass = normalizeConstructedHeroClass(classKey);
   const classColor = normalizedClass ? CLASS_COLORS[normalizedClass] : '#67131c';
   const visibleDecks = decks.slice(0, visibleCount);
@@ -409,11 +508,11 @@ export function ArchetypeDecksPanel({
           <span className="archetype-analysis-panel__eyebrow"><LayoutGrid aria-hidden="true" /> Готовые сборки</span>
           <h2 id="archetype-decks-title">Сборки колод <span>{decks.length}</span></h2>
         </div>
-        <p>Раскройте сборку, изучите карты и продолжите редактирование в конструкторе из раздела «Разное».</p>
+        <p>Сравните готовые составы и откройте подходящий вариант в конструкторе колод.</p>
       </header>
 
       {visibleDecks.length ? (
-        <div className="archetype-deck-folios">
+        <div className="archetype-deck-grid">
           {visibleDecks.map((deck, index) => {
             const cards = (deck.cards || []).filter(card => !card.sideboard).flatMap(card => {
               const resolved = deckListCard(card);
@@ -424,8 +523,8 @@ export function ArchetypeDecksPanel({
             const builderHref = deckCode ? `/deck-builder?code=${encodeURIComponent(deckCode)}` : '';
 
             return (
-              <details className="archetype-deck-folio" key={deck.id || deck.deck_id || index} open={index === 0}>
-                <summary>
+              <article className="archetype-deck-card" key={deck.id || deck.deck_id || index}>
+                <header className="archetype-deck-card__summary">
                   <span className="archetype-deck-folio__number">#{index + 1}</span>
                   <span className="archetype-deck-folio__title">
                     <strong>Сборка {index + 1}</strong>
@@ -439,45 +538,44 @@ export function ArchetypeDecksPanel({
                     <small>Ходов</small>
                     <strong>{finite(deck.avg_num_player_turns)?.toLocaleString('ru-RU', { maximumFractionDigits: 1 }) ?? '—'}</strong>
                   </span>
-                  <ChevronDown aria-hidden="true" />
-                </summary>
+                </header>
 
-                <div className="archetype-deck-folio__body">
-                  <DeckListView
-                    cards={cards}
-                    title={`Сборка ${index + 1}`}
-                    subtitle={sideboardCount ? `${sideboardCount} карт сайдборда не включены в код` : 'Стандарт'}
-                    headerColor={classColor}
-                    totalCards={cards.reduce((sum, card) => sum + card.count, 0)}
-                    deckCode={deckCode}
-                    showCopy={Boolean(deckCode)}
-                    emptyText="Состав этой сборки пока недоступен."
-                  />
+                <DeckListView
+                  cards={cards}
+                  title={`Сборка ${index + 1}`}
+                  subtitle={sideboardCount ? `${sideboardCount} карт сайдборда не включены в код` : 'Стандарт'}
+                  headerColor={classColor}
+                  totalCards={cards.reduce((sum, card) => sum + card.count, 0)}
+                  deckCode={deckCode}
+                  showCopy={Boolean(deckCode)}
+                  emptyText="Состав этой сборки пока недоступен."
+                />
 
-                  <div className="archetype-deck-folio__actions">
-                    <div className="archetype-deck-folio__action-copy">
-                      <strong>Продолжить работу со сборкой</strong>
-                      <p>Код и состав автоматически перенесутся в админский конструктор колод.</p>
-                    </div>
-                    {builderHref ? (
-                      <a className="archetype-builder-link" href={builderHref}>
-                        <LayoutGrid aria-hidden="true" />
-                        Открыть в конструкторе
-                      </a>
-                    ) : (
-                      <span className="archetype-builder-link is-disabled" aria-disabled="true">
-                        <LayoutGrid aria-hidden="true" />
-                        Код сборки недоступен
-                      </span>
-                    )}
-                    {deck.url ? (
-                      <a className="archetype-source-link" href={deck.url} target="_blank" rel="noreferrer">
-                        Источник HSReplay <ExternalLink aria-hidden="true" />
-                      </a>
-                    ) : null}
-                  </div>
-                </div>
-              </details>
+                <footer className="archetype-deck-card__actions">
+                  {builderHref ? (
+                    <a className="archetype-builder-link" href={builderHref}>
+                      <LayoutGrid aria-hidden="true" />
+                      В конструктор
+                    </a>
+                  ) : (
+                    <span className="archetype-builder-link is-disabled" aria-disabled="true">
+                      <LayoutGrid aria-hidden="true" />
+                      Код недоступен
+                    </span>
+                  )}
+                  {deck.url ? (
+                    <a
+                      className="archetype-source-link"
+                      href={deck.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`Открыть источник сборки ${index + 1} на HSReplay`}
+                    >
+                      HSReplay <ExternalLink aria-hidden="true" />
+                    </a>
+                  ) : null}
+                </footer>
+              </article>
             );
           })}
         </div>
@@ -489,7 +587,7 @@ export function ArchetypeDecksPanel({
         <button
           type="button"
           className="archetype-analysis-panel__more"
-          onClick={() => setVisibleCount(count => Math.min(decks.length, count + 4))}
+          onClick={() => setVisibleCount(count => Math.min(decks.length, count + 3))}
         >
           <BarChart3 aria-hidden="true" />
           Показать ещё сборки

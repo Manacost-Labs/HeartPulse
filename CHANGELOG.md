@@ -1,5 +1,11 @@
 # HS-Arena Changelog
 
+## v1.0.33 - 2026-07-24
+
+- Rebuilt administrator archetype details with a keyboard-sortable mulligan table, retained full-card previews, and converted matchups into a horizontally scrollable HSGuru matrix.
+- Replaced expandable two-column build folios with compact responsive deck columns and direct deck-builder/source actions, removing the oversized explanatory panel.
+- Fixed Linux-sensitive class icon paths and now resolves HSReplay snapshots to canonical HSGuru archetype names by deck code before applying the Manacost translation dictionary.
+
 ## v1.0.32 - 2026-07-24
 
 - Replaced raw HSGuru build-code rows on constructed archetype pages with responsive Hearthstone deck lists resolved by the site's own deck-builder catalog, including Russian card names, mana, rarity, art, sideboards, and full-card previews.

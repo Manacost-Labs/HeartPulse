@@ -4,6 +4,9 @@ export type AdminArchetypeRow = {
   id: number | null;
   nameEn: string;
   nameRu: string;
+  sourceNameEn?: string;
+  identitySource?: 'hsguru' | 'local-deck-match' | 'hsreplay';
+  identityConfidence?: number;
   translated: boolean;
   classKey: string;
   classLabel: string;
@@ -53,6 +56,25 @@ export type AdminArchetypesRouterDependencies = {
   loadWildDecks: (archetype: string) => Promise<unknown>;
   loadDetail: (archetypeId: number) => Promise<{ status: number; payload: unknown }>;
   translateArchetype: (name: string) => Promise<string> | string;
+  resolveCanonicalArchetype?: (input: {
+    archetypeId: number;
+    sourceNameEn: string;
+    detail: unknown;
+  }) => Promise<{
+    sourceNameEn: string;
+    canonicalNameEn: string;
+    canonicalNameRu: string;
+    identitySource: 'hsguru' | 'local-deck-match' | 'hsreplay';
+    identityConfidence: number;
+  } | null>;
+  loadCanonicalMatchups?: (canonicalNameEn: string) => Promise<Array<{
+    opponent_archetype_id: number;
+    opponent_name: string;
+    opponent_name_en?: string;
+    opponent_class?: string | null;
+    win_rate: number | null;
+    total_games: number | null;
+  }> | null>;
   classLabel?: (classKey: string) => string;
 };
 
@@ -89,6 +111,24 @@ function classFromArchetypeName(name: string): string {
     ['SHAMAN', 'SHAMAN'], ['WARLOCK', 'WARLOCK'], ['WARRIOR', 'WARRIOR'],
   ];
   return aliases.find(([label]) => normalized.includes(` ${label} `))?.[1] || 'UNKNOWN';
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await mapper(items[index], index);
+    }
+  });
+  await Promise.all(workers);
+  return results;
 }
 
 export function createAdminArchetypesRouter(deps: AdminArchetypesRouterDependencies) {
@@ -155,15 +195,39 @@ export function createAdminArchetypesRouter(deps: AdminArchetypesRouterDependenc
       // every row has a real detail page, instead of linking 700+ historical
       // dictionary entries to an empty state.
       const rows = await deps.loadStandardSnapshots();
-      const items = (await Promise.all(rows.map(async (row): Promise<AdminArchetypeRow | null> => {
-        const nameEn = String(row?.name || '').trim();
-        if (!nameEn) return null;
-        const nameRu = String(await deps.translateArchetype(nameEn) || nameEn).trim() || nameEn;
+      const items = (await mapWithConcurrency(rows, 6, async (row): Promise<AdminArchetypeRow | null> => {
+        const sourceNameEn = String(row?.name || '').trim();
+        if (!sourceNameEn) return null;
+        const archetypeId = typeof row?.archetype_id === 'number' ? row.archetype_id : Number(row?.archetype_id) || null;
+        let identity: Awaited<ReturnType<NonNullable<typeof deps.resolveCanonicalArchetype>>> = null;
+        if (archetypeId && deps.resolveCanonicalArchetype) {
+          try {
+            const detailResponse = await deps.loadDetail(archetypeId);
+            if (detailResponse.status >= 200 && detailResponse.status < 300 && detailResponse.payload) {
+              identity = await deps.resolveCanonicalArchetype({
+                archetypeId,
+                sourceNameEn,
+                detail: detailResponse.payload,
+              });
+            }
+          } catch {
+            // One unresolved deck must not make the whole admin catalogue fail.
+          }
+        }
+        const nameEn = String(identity?.canonicalNameEn || sourceNameEn).trim() || sourceNameEn;
+        const nameRu = String(
+          identity?.canonicalNameRu
+          || await deps.translateArchetype(nameEn)
+          || nameEn,
+        ).trim() || nameEn;
         const classKey = String(row?.player_class || '').trim().toUpperCase() || 'UNKNOWN';
         return {
-          id: typeof row?.archetype_id === 'number' ? row.archetype_id : Number(row?.archetype_id) || null,
+          id: archetypeId,
           nameEn,
           nameRu,
+          sourceNameEn,
+          identitySource: identity?.identitySource || 'hsreplay',
+          identityConfidence: identity?.identityConfidence || 0,
           translated: nameRu !== nameEn,
           classKey,
           classLabel: resolveClassLabel(classKey),
@@ -179,7 +243,7 @@ export function createAdminArchetypesRouter(deps: AdminArchetypesRouterDependenc
             climbingSpeed: null,
           },
         };
-      }))).filter((item): item is AdminArchetypeRow => item !== null);
+      })).filter((item): item is AdminArchetypeRow => item !== null);
       items.sort((a, b) => {
         const classCmp = a.classLabel.localeCompare(b.classLabel, 'ru');
         if (classCmp !== 0) return classCmp;
@@ -243,7 +307,28 @@ export function createAdminArchetypesRouter(deps: AdminArchetypesRouterDependenc
       if (payload && typeof payload === 'object' && (payload as any).snapshot) {
         const snapshot = (payload as any).snapshot;
         const nameEn = String(snapshot?.name || '').trim();
-        if (nameEn) snapshot.nameRu = String(await deps.translateArchetype(nameEn) || nameEn).trim() || nameEn;
+        if (nameEn) {
+          snapshot.nameRu = String(await deps.translateArchetype(nameEn) || nameEn).trim() || nameEn;
+          const identity = deps.resolveCanonicalArchetype
+            ? await deps.resolveCanonicalArchetype({
+              archetypeId,
+              sourceNameEn: nameEn,
+              detail: payload,
+            }).catch(() => null)
+            : null;
+          snapshot.canonicalNameEn = identity?.canonicalNameEn || nameEn;
+          snapshot.canonicalNameRu = identity?.canonicalNameRu || snapshot.nameRu;
+          snapshot.identitySource = identity?.identitySource || 'hsreplay';
+          snapshot.identityConfidence = identity?.identityConfidence || 0;
+          if (deps.loadCanonicalMatchups && snapshot.canonicalNameEn) {
+            const canonicalMatchups = await deps.loadCanonicalMatchups(snapshot.canonicalNameEn)
+              .catch(() => null);
+            if (canonicalMatchups?.length) {
+              (payload as any).matchups = canonicalMatchups;
+              (payload as any).matchupsSource = 'hsguru';
+            }
+          }
+        }
       }
       return res.json({ format, available: true, data: payload });
     } catch (error: any) {

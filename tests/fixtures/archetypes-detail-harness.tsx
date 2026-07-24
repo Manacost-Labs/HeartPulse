@@ -31,6 +31,10 @@ const detail = {
   snapshot: {
     name: 'Elemental Mage',
     nameRu: 'Маг на элементалях',
+    canonicalNameEn: 'Burn Mage',
+    canonicalNameRu: 'Берн Маг',
+    identitySource: 'hsguru',
+    identityConfidence: 1,
     player_class: 'MAGE',
     region: 'REGION_EU',
     rank_range: 'LEGEND',

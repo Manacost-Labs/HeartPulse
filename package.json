@@ -56,7 +56,7 @@
     "test:constructed-card-media": "tsx tests/constructed-card-media.test.ts",
     "test:standard-meta-routes": "tsx tests/standard-meta-routes.test.ts && tsx tests/standard-meta-contract.test.ts && tsx tests/hsguru-deck-info.test.ts && tsx tests/standard-meta-recommendation-cache.test.ts",
     "test:constructed-archetype-routes": "tsx tests/constructed-archetype-routes.test.ts && node tests/constructed-archetypes-browser.test.mjs",
-    "test:archetypes-detail": "tsx tests/constructed-deck-code.test.ts && node tests/archetypes-detail-browser.test.mjs",
+    "test:archetypes-detail": "tsx tests/constructed-deck-code.test.ts && tsx tests/archetype-detail-model.test.ts && tsx tests/archetype-deck-identity.test.ts && tsx tests/admin-archetypes-routes.test.ts && node tests/archetypes-detail-browser.test.mjs",
     "test:standard-meta-contract": "tsx tests/standard-meta-contract.test.ts",
     "test:hsguru-deck-info": "tsx tests/hsguru-deck-info.test.ts",
     "test:deckview-preview": "tsx tests/deckview-preview.test.ts",

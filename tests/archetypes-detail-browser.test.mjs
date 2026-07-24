@@ -67,20 +67,47 @@ try {
 
   await page.setViewport({ width: 1440, height: 1050, deviceScaleFactor: 1 });
   await page.goto(`${origin}/tests/fixtures/archetypes-detail.html`, { waitUntil: 'networkidle0' });
-  await page.waitForSelector('.archetype-mulligan-row');
+  await page.waitForSelector('.archetype-mulligan-table');
 
-  assert.equal(await page.$eval('h1', heading => heading.textContent), 'Маг на элементалях');
-  assert.equal(await page.$$eval('.archetype-mulligan-row', rows => rows.length), 8);
-  assert.equal(await page.$$eval('.archetype-matchup-row', rows => rows.length), 6);
-  assert.equal(await page.$$eval('.archetype-deck-folio', rows => rows.length), 4);
-  assert.deepEqual(
-    await page.$$eval('.archetype-matchup-row__tone', nodes => [...new Set(nodes.map(node => node.textContent))].sort()),
-    ['Выгодный', 'Ровный', 'Сложный'],
+  assert.equal(await page.$eval('h1', heading => heading.textContent), 'Берн Маг');
+  assert.equal(await page.$$eval('.archetype-mulligan-table tbody tr', rows => rows.length), 8);
+  assert.equal(await page.$$eval('.archetype-matchup-matrix__cell', rows => rows.length), 6);
+  assert.equal(await page.$$eval('.archetype-deck-card', rows => rows.length), 3);
+  assert.equal(await page.$$eval('.archetype-deck-folio__action-copy', rows => rows.length), 0);
+  assert.equal(
+    await page.$$eval('.archetype-matchup-matrix thead img', images => images.every(image => image.complete && image.naturalWidth > 0)),
+    true,
+    'class icons should resolve to real lowercase asset paths',
   );
+
+  const desktopDeckRows = await page.$$eval('.archetype-deck-card', cards => (
+    new Set(cards.map(card => Math.round(card.getBoundingClientRect().top))).size
+  ));
+  assert.equal(desktopDeckRows, 1, 'the first three builds should share one desktop row');
+
+  const averageTurnSort = '[data-mulligan-sort="avg_turn_played_on"]';
+  await page.click(averageTurnSort);
+  assert.equal(
+    await page.$eval('.archetype-mulligan-table tbody tr:first-child .archetype-mulligan-card strong', node => node.textContent),
+    'Чародейский интеллект',
+  );
+  assert.equal(await page.$eval(averageTurnSort, button => button.closest('th')?.getAttribute('aria-sort')), 'ascending');
+  await page.click(averageTurnSort);
+  assert.equal(
+    await page.$eval('.archetype-mulligan-table tbody tr:first-child .archetype-mulligan-card strong', node => node.textContent),
+    'Ледяная стрела',
+  );
+  assert.equal(await page.$eval(averageTurnSort, button => button.closest('th')?.getAttribute('aria-sort')), 'descending');
 
   await page.hover('.archetype-mulligan-card');
   await page.waitForSelector('.card-preview-tooltip');
-  assert.equal(await page.$eval('.card-preview-tooltip', node => node.getAttribute('data-card-preview-id')), 'CORE_CS2_023');
+  assert.equal(await page.$eval('.card-preview-tooltip', node => node.getAttribute('data-card-preview-id')), 'CORE_CS2_024');
+  await page.mouse.move(0, 0);
+  await page.waitForSelector('.card-preview-tooltip', { hidden: true });
+
+  await page.hover('.archetype-deck-card .deck-tile');
+  await page.waitForSelector('.card-preview-tooltip');
+  assert.ok(await page.$eval('.card-preview-tooltip', node => Boolean(node.getAttribute('data-card-preview-id'))));
   await page.mouse.move(0, 0);
   await page.waitForSelector('.card-preview-tooltip', { hidden: true });
 
@@ -89,7 +116,7 @@ try {
   assert.ok(new URL(builderHref, origin).searchParams.get('code')?.length > 20);
 
   await page.click('.archetype-analysis-panel__more');
-  assert.equal(await page.$$eval('.archetype-deck-folio', rows => rows.length), 5);
+  assert.equal(await page.$$eval('.archetype-deck-card', rows => rows.length), 5);
   await page.screenshot({ path: `${screenshotPrefix}-detail-desktop.png`, fullPage: true });
 
   await page.addScriptTag({ path: axePath });
@@ -101,17 +128,22 @@ try {
 
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
   await page.reload({ waitUntil: 'networkidle0' });
-  await page.waitForSelector('.archetype-mulligan-row');
+  await page.waitForSelector('.archetype-mulligan-table');
   const mobile = await page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     minMulliganTarget: Math.min(...[...document.querySelectorAll('.archetype-mulligan-card')].map(element => element.getBoundingClientRect().height)),
-    minDeckSummary: Math.min(...[...document.querySelectorAll('.archetype-deck-folio > summary')].map(element => element.getBoundingClientRect().height)),
+    minSortTarget: Math.min(...[...document.querySelectorAll('[data-mulligan-sort]')].map(element => element.getBoundingClientRect().height)),
     builderTarget: document.querySelector('.archetype-builder-link')?.getBoundingClientRect().height || 0,
+    matrixScrolls: (() => {
+      const matrix = document.querySelector('.archetype-matchup-matrix__scroll');
+      return matrix ? matrix.scrollWidth > matrix.clientWidth : false;
+    })(),
   }));
   assert.ok(mobile.overflow <= 1, `mobile detail overflowed by ${mobile.overflow}px`);
   assert.ok(mobile.minMulliganTarget >= 44);
-  assert.ok(mobile.minDeckSummary >= 44);
+  assert.ok(mobile.minSortTarget >= 44);
   assert.ok(mobile.builderTarget >= 44);
+  assert.equal(mobile.matrixScrolls, true);
   await page.screenshot({ path: `${screenshotPrefix}-detail-mobile.png`, fullPage: true });
 
   const code = new URL(builderHref, origin).searchParams.get('code');

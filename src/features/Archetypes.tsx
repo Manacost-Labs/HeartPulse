@@ -8,11 +8,17 @@ import {
   type ArchetypeDetailData,
 } from './ArchetypeDetailSections';
 import ArchetypeHistoryChart from './ArchetypeHistoryChart';
+import {
+  classIconUrl,
+  normalizeClassKey,
+  useNeutralClassIcon,
+} from './classIcons';
 
 type ArchetypeRow = {
   id: number | null;
   nameEn: string;
   nameRu: string;
+  sourceNameEn?: string;
   translated: boolean;
   classKey: string;
   classLabel: string;
@@ -113,7 +119,7 @@ export default function ArchetypesPage({
     const map = new Map<string, { classKey: string; items: ArchetypeRow[] }>();
     for (const item of data?.items || []) {
       if (!item.standard) continue;
-      const searchable = `${item.nameRu} ${item.nameEn} ${item.classLabel} ${item.id ?? ''}`.toLocaleLowerCase('ru-RU');
+      const searchable = `${item.nameRu} ${item.nameEn} ${item.sourceNameEn || ''} ${item.classLabel} ${item.id ?? ''}`.toLocaleLowerCase('ru-RU');
       if (normalizedQuery && !searchable.includes(normalizedQuery)) continue;
       const group = map.get(item.classLabel) || { classKey: item.classKey, items: [] };
       group.items.push(item);
@@ -178,8 +184,8 @@ export default function ArchetypesPage({
         <header className="archetypes-hero hs-timber-frame">
           <div className="archetypes-hero__copy">
             <a className="archetypes-back" href="/archetypes/"><ArrowLeft aria-hidden="true" /> Все архетипы</a>
-            <div className="archetypes-hero__kicker"><BookOpenText aria-hidden="true" /> HSReplay · подробная статистика</div>
-            <h1>{detail?.snapshot?.nameRu || detail?.snapshot?.name || `Архетип #${detailId}`}</h1>
+            <div className="archetypes-hero__kicker"><BookOpenText aria-hidden="true" /> HSReplay + HSGuru · подробная статистика</div>
+            <h1>{detail?.snapshot?.canonicalNameRu || detail?.snapshot?.nameRu || detail?.snapshot?.name || `Архетип #${detailId}`}</h1>
           </div>
           <div className="archetypes-format-badge"><Sparkles aria-hidden="true" /><span>Формат</span><strong>Стандарт</strong></div>
         </header>
@@ -196,7 +202,7 @@ export default function ArchetypesPage({
             </section>
 
             <ArchetypeMulliganPanel rows={detail.mulligan} snapshot={detail.snapshot} />
-            <ArchetypeMatchupsPanel rows={detail.matchups} />
+            <ArchetypeMatchupsPanel rows={detail.matchups} snapshot={detail.snapshot} />
             <ArchetypeDecksPanel decks={detail.decks} classKey={detail.snapshot.player_class} />
 
             <section className="archetypes-detail__panel">
@@ -216,8 +222,8 @@ export default function ArchetypesPage({
           <div className="archetypes-hero__kicker"><BookOpenText aria-hidden="true" /> Справочник администрации · Стандарт</div>
           <h1>Архетипы</h1>
           <p>
-            Актуальный каталог Стандарта из HSReplay с полной доступной статистикой.
-            Русское название показываем только при наличии перевода в словаре Манакоста.
+            Статистика актуальных архетипов Стандарта из HSReplay.
+            Названия сверяем по коду колоды с HSGuru и показываем в переводе Манакоста.
           </p>
           <div className="archetypes-hero__rule" />
         </div>
@@ -268,9 +274,17 @@ export default function ArchetypesPage({
         {!loading && !error && groups.length > 0 && (
           <div className="archetypes-grid">
           {groups.map(({ classLabel, classKey, items }) => (
-          <section key={classLabel} className="archetypes-class" data-class={classKey}>
+          <section key={classLabel} className="archetypes-class" data-class={normalizeClassKey(classKey)}>
             <header className="archetypes-class__heading">
-              <img src={`/class_icon/ui/${classKey}-64.webp`} alt="" width="56" height="56" loading="lazy" decoding="async" />
+              <img
+                src={classIconUrl(classKey)}
+                alt=""
+                width="56"
+                height="56"
+                loading="lazy"
+                decoding="async"
+                onError={event => useNeutralClassIcon(event.currentTarget)}
+              />
               <div>
                 <span>{formatArchetypeCount(items.length)}</span>
                 <h3>{classLabel}</h3>

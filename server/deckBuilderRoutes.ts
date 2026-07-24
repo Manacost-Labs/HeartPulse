@@ -4,6 +4,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import {
   indexCardsByDbf,
   indexCardsRuByDbf,
+  matchArchetypeByDeckCode,
   normalizeArchetypeKey,
   resolveDeckCard,
   resolveDeckFromCode,
@@ -12,6 +13,10 @@ import {
   type DeckBuilderResolvedCard,
   type DeckBuilderResolveResult,
 } from './deckBuilderResolve.js';
+import {
+  fetchHsGuruArchetypeName,
+  loadArchetypeDeckCandidates,
+} from './archetypeDeckIdentity.js';
 
 type DeckBuilderRouterDependencies = {
   adminGuard: RequestHandler;
@@ -97,43 +102,6 @@ function readArchetype(value: unknown): string {
   return String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, 120);
 }
 
-function loadArchetypeCandidates(database: DatabaseSync): Array<{ nameEn: string; deckCode: string }> {
-  try {
-    const rows = database.prepare(`
-      SELECT name_en AS nameEn, deck_code AS deckCode
-      FROM archetype_deck_codes
-      WHERE deck_code IS NOT NULL AND length(trim(deck_code)) >= 20
-      ORDER BY updated_at DESC
-      LIMIT 500
-    `).all() as Array<{ nameEn?: string; deckCode?: string }>;
-    return rows.flatMap(row => {
-      const nameEn = String(row.nameEn ?? '').trim();
-      const deckCode = String(row.deckCode ?? '').trim();
-      return nameEn && deckCode ? [{ nameEn, deckCode }] : [];
-    });
-  } catch {
-    return [];
-  }
-}
-
-async function fetchHsGuruArchetype(deckCode: string): Promise<string | null> {
-  try {
-    const response = await fetch(`https://www.hsguru.com/api/deck-info/${encodeURIComponent(deckCode)}`, {
-      headers: {
-        Accept: 'application/json',
-        'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)',
-      },
-      signal: AbortSignal.timeout(6_000),
-    });
-    if (!response.ok) return null;
-    const payload = await response.json() as { archetype?: string; name?: string };
-    const name = String(payload?.archetype || payload?.name || '').trim();
-    return name || null;
-  } catch {
-    return null;
-  }
-}
-
 async function resolveDeckPayload(
   dependencies: DeckBuilderRouterDependencies,
   deckCode: string,
@@ -145,13 +113,18 @@ async function resolveDeckPayload(
     dependencies.loadCatalogCards('wild'),
     Promise.resolve(dependencies.loadArchetypeTranslations()),
     loadHsjsonAllCards().catch(() => null),
-    preferredArchetypeName
-      ? Promise.resolve(preferredArchetypeName)
-      : fetchHsGuruArchetype(deckCode),
+    fetchHsGuruArchetypeName(deckCode),
   ]);
   const cardsRuLocal = dependencies.loadCardsRu() || {};
   const cardsRu = { ...cardsRuLocal, ...(hsjson?.byId || {}) };
-  const candidates = loadArchetypeCandidates(dependencies.getDatabase());
+  const candidates = loadArchetypeDeckCandidates(dependencies.getDatabase(), preferredFormat);
+  const localHintMatch = preferredArchetypeName
+    ? matchArchetypeByDeckCode(deckCode, candidates)
+    : null;
+  const verifiedPreferredArchetype = localHintMatch
+    && normalizeArchetypeKey(localHintMatch.nameEn) === normalizeArchetypeKey(preferredArchetypeName)
+    ? localHintMatch.nameEn
+    : '';
   const translationMap = Object.fromEntries(
     Object.entries(translations).map(([key, value]) => [normalizeArchetypeKey(key), value]),
   );
@@ -165,7 +138,7 @@ async function resolveDeckPayload(
     cardsRu,
     archetypeCandidates: candidates,
     archetypeTranslations: translationMap,
-    preferredArchetypeName: hsGuruArchetype,
+    preferredArchetypeName: hsGuruArchetype || verifiedPreferredArchetype,
   });
   if (!resolved) throw Object.assign(new Error('Некорректный код колоды'), { status: 400 });
   if (!resolved.archetype) {
