@@ -11,7 +11,6 @@ import {
   Gamepad2,
   Search,
   Sparkles,
-  Swords,
   TrendingUp,
 } from 'lucide-react';
 import '../route-parchment.css';
@@ -132,6 +131,25 @@ const CLASS_LABELS: Record<ArchetypeClass, string> = {
   warlock: 'Чернокнижник',
   warrior: 'Воин',
 };
+
+const ARCHETYPE_HERO_ART_OVERRIDES: Record<string, string> = {
+  'void-soul-dh': '/archetype-art/void-soul-dh.webp',
+};
+
+function archetypeHeroArt(slug: string, analysis: ConstructedAnalysis | null): string | null {
+  const override = ARCHETYPE_HERO_ART_OVERRIDES[slug];
+  if (override) return override;
+
+  const representativeCard = (analysis?.cardStats ?? []).reduce<(typeof analysis.cardStats)[number] | null>(
+    (best, card) => (
+      card.cardId && (!best || card.mulliganCount > best.mulliganCount) ? card : best
+    ),
+    null,
+  );
+  return representativeCard?.cardId
+    ? `https://art.hearthstonejson.com/v1/512x/${encodeURIComponent(representativeCard.cardId)}.jpg`
+    : null;
+}
 
 async function apiJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(url, {
@@ -498,6 +516,7 @@ function ArchetypeDetailPage({
   const mainBuild = item.builds[0] ?? null;
   const secondaryBuilds = item.builds.slice(1);
   const shownBuilds = secondaryBuilds.slice(0, visibleBuilds);
+  const heroArt = archetypeHeroArt(item.slug, detail.analysis);
 
   return (
     <main className="archetypes-page archetype-detail-page" id="main-content" tabIndex={-1}>
@@ -512,14 +531,19 @@ function ArchetypeDetailPage({
       </nav>
 
       <section className="archetype-dossier">
+        {heroArt ? (
+          <img
+            className="archetype-dossier__art"
+            src={heroArt}
+            alt=""
+            aria-hidden="true"
+            decoding="async"
+            fetchPriority="high"
+          />
+        ) : null}
         <div className="archetype-dossier__identity">
           <img src={classIcon(item.classKey)} alt="" width="92" height="92" />
-          <div>
-            <span className="archetypes-eyebrow"><Swords size={15} /> {detail.formatLabel} · патч {detail.patch}</span>
-            <h1>{item.archetypeLabel}</h1>
-            {item.translated && <p>{item.archetype}</p>}
-            <small>{item.classKey ? CLASS_LABELS[item.classKey] : 'Смешанный класс'} · данные HSGuru</small>
-          </div>
+          <h1>{item.archetypeLabel}</h1>
         </div>
         <dl className="archetype-dossier__metrics">
           <div><dt>Винрейт</dt><dd className={`metric-${winrateTone(item.winrate)}`}>{formatNumber(item.winrate, '%')}</dd></div>

@@ -104,6 +104,12 @@ try {
   assert.equal(await page.$$eval('.constructed-matchup-ledger li', rows => rows.length), 11);
   assert.equal(await page.$$eval('.constructed-card-stats tbody tr', rows => rows.length), 15);
   assert.equal(
+    await page.$eval('.archetype-dossier__art', image => new URL(image.src).pathname),
+    '/v1/512x/JAIL_732.jpg',
+  );
+  assert.equal(await page.$$eval('.archetype-dossier .archetypes-eyebrow', nodes => nodes.length), 0);
+  assert.equal(await page.$$eval('.archetype-dossier__identity p, .archetype-dossier__identity small', nodes => nodes.length), 0);
+  assert.equal(
     await page.$eval('.constructed-card-stats tbody tr:first-child .constructed-card-tile strong', node => node.textContent),
     'Душа Бездны',
   );
@@ -208,6 +214,21 @@ try {
       assert.notEqual(responsiveDetail.tableDisplay, 'none', `desktop table hidden at ${width}px`);
     }
   }
+
+  await page.click('.archetype-breadcrumb a');
+  await page.waitForSelector('.archetype-row');
+  await page.$$eval('.archetype-row', rows => {
+    rows
+      .find(row => row.textContent?.includes('Охотник на демонов Бездны'))
+      ?.querySelector('.archetype-row__open')
+      ?.click();
+  });
+  await page.waitForSelector('.archetype-dossier__art');
+  assert.equal(
+    await page.$eval('.archetype-dossier__art', image => new URL(image.src).pathname),
+    '/archetype-art/void-soul-dh.webp',
+  );
+  await page.screenshot({ path: `${screenshotPrefix}-detail-void-soul.png`, fullPage: true });
 
   await page.addScriptTag({ path: axePath });
   const violations = await page.evaluate(async () => {

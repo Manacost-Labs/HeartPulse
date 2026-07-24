@@ -413,20 +413,52 @@
 .archetype-breadcrumb strong { min-width: 0; color: #4a3323; overflow-wrap: anywhere; }
 
 .archetype-dossier {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(280px, 1fr) minmax(480px, 1.25fr);
   gap: 1.2rem;
   align-items: center;
+  overflow: hidden;
   padding: clamp(1rem, 2.5vw, 1.75rem);
   border: 12px solid transparent;
   border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
   color: #fff0c8;
-  background:
-    linear-gradient(110deg, rgba(70, 5, 12, 0.97), rgba(98, 13, 21, 0.9)),
-    url('/wallpaper/arena-rail-red.jpg') center / auto 180px repeat;
+  background: #4b0710;
+  isolation: isolate;
+}
+
+.archetype-dossier::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    #4b0710 0%,
+    rgba(75, 7, 16, 0.96) 30%,
+    rgba(75, 7, 16, 0.62) 62%,
+    rgba(48, 4, 10, 0.82) 100%
+  );
+  content: '';
+  pointer-events: none;
+}
+
+.archetype-dossier__art {
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  right: 0;
+  width: min(60%, 760px);
+  height: 180%;
+  object-fit: cover;
+  object-position: 50% 34%;
+  opacity: 0.82;
+  filter: saturate(0.88) contrast(1.06);
+  transform: translateY(-50%);
 }
 
 .archetype-dossier__identity {
+  position: relative;
+  z-index: 2;
   display: flex;
   gap: 1rem;
   align-items: center;
@@ -441,22 +473,22 @@
 }
 
 .archetype-dossier h1 {
-  margin: 0.3rem 0 0;
+  margin: 0;
   overflow-wrap: anywhere;
   font-family: var(--font-display);
   font-size: clamp(1.9rem, 4vw, 3.3rem);
   line-height: 0.95;
+  text-shadow: 0 3px 14px rgba(21, 1, 5, 0.7);
 }
 
-.archetype-dossier__identity p { margin: 0.35rem 0 0; color: #d4b885; font-size: 0.75rem; }
-.archetype-dossier__identity small { display: block; margin-top: 0.45rem; color: #e3c892; font-size: 0.68rem; }
-
 .archetype-dossier__metrics {
+  position: relative;
+  z-index: 2;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 0;
   border: 1px solid rgba(239, 201, 111, 0.3);
-  background: rgba(29, 3, 8, 0.35);
+  background: rgba(29, 3, 8, 0.62);
 }
 
 .archetype-dossier__metrics div { min-width: 0; padding: 0.7rem; border-right: 1px solid rgba(239, 201, 111, 0.17); border-bottom: 1px solid rgba(239, 201, 111, 0.17); }
@@ -901,6 +933,15 @@
   .archetype-row__metrics div:nth-child(2) { border-right: 0; }
   .archetype-row__metrics div:nth-child(-n + 2) { border-bottom: 1px solid rgba(92, 54, 24, 0.14); }
   .archetype-dossier { gap: 0.85rem; padding: 0.8rem; border-width: 8px; }
+  .archetype-dossier::after {
+    background: linear-gradient(
+      180deg,
+      rgba(75, 7, 16, 0.7) 0%,
+      rgba(75, 7, 16, 0.9) 48%,
+      #4b0710 100%
+    );
+  }
+  .archetype-dossier__art { top: 0; width: 100%; height: 68%; object-position: 50% 30%; transform: none; }
   .archetype-dossier__identity { align-items: flex-start; gap: 0.65rem; }
   .archetype-dossier__identity > img { width: 62px; height: 62px; }
   .archetype-dossier h1 { font-size: clamp(1.65rem, 9vw, 2.35rem); }

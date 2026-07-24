@@ -1,5 +1,11 @@
 # HS-Arena Changelog
 
+## v1.0.43 - 2026-07-24
+
+- Added responsive archetype-specific hero artwork chosen from the archetype card sample, with a high-resolution local Vicious Voidscale treatment for Void Soul DH.
+- Removed the duplicate format/patch eyebrow and English/source captions from the hero, retaining the same context in the breadcrumb and page data while reducing visual noise.
+- Added browser coverage for representative hero art selection and the simplified identity block.
+
 ## v1.0.42 - 2026-07-24
 
 - Simplified mulligan mana costs into compact flat tokens, removed the redundant «Карта» badge, and let desktop statistic columns expand to the full panel width without a blank strip.

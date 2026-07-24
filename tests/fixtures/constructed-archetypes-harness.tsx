@@ -32,6 +32,17 @@ const item = {
   sourceUrl: 'https://www.hsguru.com/meta',
 };
 
+const voidSoulItem = {
+  ...item,
+  slug: 'void-soul-dh',
+  archetype: 'Void Soul DH',
+  archetypeLabel: 'Охотник на демонов Бездны',
+  classKey: 'demonhunter',
+  games: 28_406,
+  winrate: 60.4,
+  popularity: 12.8,
+};
+
 const catalog = {
   format: 'wild',
   formatLabel: 'Вольный',
@@ -42,7 +53,7 @@ const catalog = {
   items: [
     item,
     { ...item, slug: 'quest-mage', archetype: 'Quest Mage', archetypeLabel: 'Квест Маг', classKey: 'mage', games: 18_404, winrate: 52.4, popularity: 7.8, deckCount: 8, builds: builds.slice(0, 8) },
-    { ...item, slug: 'pirate-rogue', archetype: 'Pirate Rogue', archetypeLabel: 'Пират Разбойник', classKey: 'rogue', games: 12_109, winrate: 50.8, popularity: 5.1, deckCount: 5, builds: builds.slice(0, 5) },
+    voidSoulItem,
   ],
 };
 
@@ -134,6 +145,8 @@ globalThis.fetch = (async (input: RequestInfo | URL) => {
   const url = String(input);
   const payload = url.includes('/api/deck/resolve')
     ? { ...resolvedDeck, deckCode: new URL(url, window.location.origin).searchParams.get('code') }
+    : url.includes('/wild/void-soul-dh')
+      ? { ...detail, item: voidSoulItem }
     : url.includes('/wild/thief-priest')
       ? detail
       : catalog;
