@@ -75,6 +75,7 @@ import {
   createConstructedArchetypeRouter,
   constructedArchetypeSlug,
   type ConstructedArchetypeCatalog,
+  type ConstructedArchetypeAnalysis,
   type ConstructedArchetypeFormat,
   type ConstructedArchetypeHistoryPoint,
 } from './constructedArchetypeRoutes.js';
@@ -252,6 +253,7 @@ const standardMatchupsApiCache = new Map<string, MemoryCacheEntry>();
 const standardMetaApiCache = new Map<string, MemoryCacheEntry>();
 const constructedArchetypeCatalogCache = new Map<string, MemoryCacheEntry>();
 const constructedArchetypeHistoryCache = new Map<string, MemoryCacheEntry>();
+const constructedArchetypeAnalysisCache = new Map<string, MemoryCacheEntry>();
 const viciousSyndicateGoldApiCache = new Map<string, MemoryCacheEntry>();
 const standardMetaRecommendationCache = new Map<string, StandardMetaRecommendationCacheEntry<StandardMetaRecommendation>>();
 const standardMetaRecommendationJobs = new Map<string, Promise<StandardMetaRecommendation | null>>();
@@ -6315,6 +6317,75 @@ async function loadConstructedArchetypeHistory(
   return points;
 }
 
+async function loadConstructedArchetypeAnalysis(
+  format: ConstructedArchetypeFormat,
+  archetype: string,
+): Promise<ConstructedArchetypeAnalysis | null> {
+  const cacheKey = `${format}:${archetype}`;
+  const now = Date.now();
+  const cached = constructedArchetypeAnalysisCache.get(cacheKey);
+  if (cached && cached.expiresAt > now) {
+    return cached.data as ConstructedArchetypeAnalysis | null;
+  }
+  const query = new URLSearchParams({ format, archetype });
+  const payload = await fetchDataset(`v1/hsguru/archetypes/analysis?${query}`, 20_000);
+  const row = payload?.data && typeof payload.data === 'object' ? payload.data : null;
+  if (!row) return null;
+  const classMatchups = (Array.isArray(row.class_matchups) ? row.class_matchups : []).flatMap((matchup: any) => {
+    const classKey = normalizeStandardMetaClass(matchup?.class_key);
+    const winrate = parseNumber(matchup?.winrate);
+    const games = parseCount(matchup?.games);
+    if (!classKey || winrate === null || games === null) return [];
+    return [{
+      classKey,
+      classLabel: String(matchup?.class_label ?? ''),
+      winrate,
+      games,
+      share: parseNumber(matchup?.share_pct),
+    }];
+  });
+  const cardStats = (Array.isArray(row.card_stats) ? row.card_stats : []).flatMap((card: any) => {
+    const cardName = String(card?.card_name ?? '').trim();
+    const mulliganCount = parseCount(card?.mulligan_count);
+    if (!cardName || mulliganCount === null) return [];
+    return [{
+      cardId: String(card?.card_id ?? '').trim() || null,
+      dbfId: parseCount(card?.dbf_id),
+      cardName,
+      mulliganImpact: parseNumber(card?.mulligan_impact),
+      mulliganCount,
+      drawnImpact: parseNumber(card?.drawn_impact),
+      drawnCount: parseCount(card?.drawn_count),
+      keptImpact: parseNumber(card?.kept_impact),
+      keptCount: parseCount(card?.kept_count),
+    }];
+  });
+  const sourceUrls = row.source_urls && typeof row.source_urls === 'object'
+    ? row.source_urls
+    : {};
+  const state = row.state === 'ok' || row.state === 'error' ? row.state : 'partial';
+  const analysis: ConstructedArchetypeAnalysis = {
+    rank: 'legend',
+    period: 'past_week',
+    state,
+    updatedAt: String(row.updated_at ?? '') || null,
+    matchupsUpdatedAt: String(row.matchups_updated_at ?? '') || null,
+    cardStatsUpdatedAt: String(row.card_stats_updated_at ?? '') || null,
+    sourceUrls: {
+      matchups: String(sourceUrls.matchups ?? ''),
+      cards: String(sourceUrls.cards ?? ''),
+    },
+    classMatchups,
+    cardStats,
+  };
+  constructedArchetypeAnalysisCache.set(cacheKey, {
+    data: analysis,
+    etag: analysis.updatedAt ?? `hsguru-analysis-${cacheKey}`,
+    expiresAt: now + EXTERNAL_DATASET_CACHE_MS,
+  });
+  return analysis;
+}
+
 type ViciousGoldBuild = Omit<StandardMetaRecommendation, 'matchMethod'> & {
   matchedArchetype: string;
   matchMethod: 'exact' | 'alias';
@@ -7467,6 +7538,7 @@ app.use('/api', createConstructedArchetypeRouter({
   accessGuard: requireStandardAccess,
   loadCatalog: loadConstructedArchetypeCatalog,
   loadHistory: loadConstructedArchetypeHistory,
+  loadAnalysis: loadConstructedArchetypeAnalysis,
   setPrivateNoStore,
   onError: (scope, error) => console.error(
     `[constructed-archetypes] ${scope} failed:`,
@@ -9402,6 +9474,7 @@ async function invalidateParserControlledDataCaches(): Promise<void> {
       standardMetaApiCache,
       constructedArchetypeCatalogCache,
       constructedArchetypeHistoryCache,
+      constructedArchetypeAnalysisCache,
       viciousSyndicateGoldApiCache,
       battlegroundAppProxyCache,
     ],
