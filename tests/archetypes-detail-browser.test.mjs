@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { createServer } from 'node:net';
 import { stripVTControlCharacters } from 'node:util';
 import puppeteer from 'puppeteer';
 
@@ -16,10 +17,24 @@ const chromiumPath = [
 ].find(candidate => candidate && existsSync(candidate));
 if (!chromiumPath) throw new Error('Chromium/Chrome executable is required for archetype detail browser tests');
 
+const vitePort = await new Promise((resolve, reject) => {
+  const probe = createServer();
+  probe.once('error', reject);
+  probe.listen(0, '127.0.0.1', () => {
+    const address = probe.address();
+    if (!address || typeof address === 'string') {
+      probe.close();
+      reject(new Error('Could not reserve a browser-test port'));
+      return;
+    }
+    probe.close(error => error ? reject(error) : resolve(address.port));
+  });
+});
+
 const vite = spawn('./node_modules/.bin/vite', [
   '--config', 'tests/fixtures/vite.modal.config.ts',
   '--host', '127.0.0.1',
-  '--port', '0',
+  '--port', String(vitePort),
   '--strictPort',
 ], {
   cwd: process.cwd(),
@@ -71,14 +86,22 @@ try {
 
   assert.equal(await page.$eval('h1', heading => heading.textContent), 'Берн Маг');
   assert.equal(await page.$$eval('.archetype-mulligan-table tbody tr', rows => rows.length), 8);
-  assert.equal(await page.$$eval('.archetype-matchup-matrix__cell', rows => rows.length), 6);
+  assert.equal(await page.$$eval('.archetype-matchup-row', rows => rows.length), 6);
+  assert.equal(await page.$$eval('.archetype-matchup-matrix', rows => rows.length), 0);
   assert.equal(await page.$$eval('.archetype-deck-card', rows => rows.length), 3);
   assert.equal(await page.$$eval('.archetype-deck-folio__action-copy', rows => rows.length), 0);
   assert.equal(
-    await page.$$eval('.archetype-matchup-matrix thead img', images => images.every(image => image.complete && image.naturalWidth > 0)),
+    await page.$$eval('.archetype-matchup-row > img', images => images.every(image => image.complete && image.naturalWidth > 0)),
     true,
     'class icons should resolve to real lowercase asset paths',
   );
+  const matchupRows = await page.$$eval('.archetype-matchup-row', rows => rows.map(row => {
+    const box = row.getBoundingClientRect();
+    return { top: Math.round(box.top), left: Math.round(box.left), width: Math.round(box.width) };
+  }));
+  assert.equal(new Set(matchupRows.map(row => row.top)).size, 6, 'each matchup should occupy its own row');
+  assert.equal(new Set(matchupRows.map(row => row.left)).size, 1, 'matchup rows should share one left edge');
+  assert.ok(matchupRows.every(row => row.width === matchupRows[0].width), 'matchup rows should share one full width');
 
   const desktopDeckRows = await page.$$eval('.archetype-deck-card', cards => (
     new Set(cards.map(card => Math.round(card.getBoundingClientRect().top))).size
@@ -134,17 +157,31 @@ try {
     minMulliganTarget: Math.min(...[...document.querySelectorAll('.archetype-mulligan-card')].map(element => element.getBoundingClientRect().height)),
     minSortTarget: Math.min(...[...document.querySelectorAll('[data-mulligan-sort]')].map(element => element.getBoundingClientRect().height)),
     builderTarget: document.querySelector('.archetype-builder-link')?.getBoundingClientRect().height || 0,
-    matrixScrolls: (() => {
-      const matrix = document.querySelector('.archetype-matchup-matrix__scroll');
-      return matrix ? matrix.scrollWidth > matrix.clientWidth : false;
-    })(),
+    matchupRows: document.querySelectorAll('.archetype-matchup-row').length,
   }));
   assert.ok(mobile.overflow <= 1, `mobile detail overflowed by ${mobile.overflow}px`);
   assert.ok(mobile.minMulliganTarget >= 44);
   assert.ok(mobile.minSortTarget >= 44);
   assert.ok(mobile.builderTarget >= 44);
-  assert.equal(mobile.matrixScrolls, true);
+  assert.equal(mobile.matchupRows, 6);
   await page.screenshot({ path: `${screenshotPrefix}-detail-mobile.png`, fullPage: true });
+
+  await page.setViewport({ width: 1440, height: 1050, deviceScaleFactor: 1 });
+  await page.goto(`${origin}/tests/fixtures/archetypes-detail.html?catalog=1`, { waitUntil: 'networkidle0' });
+  await page.waitForSelector('.archetypes-class');
+  const headerCopy = await page.$$eval('.archetypes-hero__description p', paragraphs => (
+    paragraphs.map(paragraph => paragraph.textContent?.replace(/\s+/g, ' ').trim())
+  ));
+  assert.deepEqual(headerCopy, [
+    'В этом разделе вы найдете все архетипы, представленные на HSReplay, а также все сборки этих архетипов, динамику их популярности и процента побед.',
+    'Кроме того, здесь доступна подробная аналитика по муллигану, включая платные данные, которые есть только у пользователей с подпиской HSReplay.',
+  ]);
+  assert.equal(await page.$$eval('.archetypes-row__stats', rows => rows.some(row => row.textContent?.includes('—'))), false);
+  await page.screenshot({ path: `${screenshotPrefix}-catalog-desktop.png`, fullPage: true });
+  await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
+  await page.reload({ waitUntil: 'networkidle0' });
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1));
+  await page.screenshot({ path: `${screenshotPrefix}-catalog-mobile.png`, fullPage: true });
 
   const code = new URL(builderHref, origin).searchParams.get('code');
   await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });

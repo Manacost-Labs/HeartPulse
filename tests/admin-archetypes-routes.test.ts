@@ -15,22 +15,41 @@ app.use('/api', createAdminArchetypesRouter({
   adminGuard: (_request, _response, next) => next(),
   setPrivateNoStore: response => response.set('Cache-Control', 'private, no-store'),
   loadArchetypes: async () => [],
-  loadStandardSnapshots: async () => [{
-    archetype_id: 856,
-    name: 'HSReplay Mage',
-    player_class: 'MAGE',
-    win_rate: 53,
-    total_games: 10_000,
-  }],
+  loadStandardSnapshots: async () => [
+    {
+      archetype_id: 856,
+      name: 'HSReplay Mage',
+      player_class: 'MAGE',
+      win_rate: 53,
+      pct_of_total: 1,
+      total_games: 10_000,
+    },
+    {
+      archetype_id: 857,
+      name: 'HSReplay Fire Mage',
+      player_class: 'MAGE',
+      win_rate: 54,
+      pct_of_total: 2.5,
+      total_games: 25_000,
+    },
+    {
+      archetype_id: 858,
+      name: 'HSReplay Empty Mage',
+      player_class: 'MAGE',
+      win_rate: null,
+      pct_of_total: null,
+      total_games: null,
+    },
+  ],
   loadWildMeta: async () => [],
   loadWildDecks: async () => [],
   loadDetail: async () => ({ status: 200, payload: structuredClone(detailPayload) }),
   translateArchetype: name => name === 'Burn Mage' ? 'Берн Маг' : name,
-  resolveCanonicalArchetype: async ({ archetypeId, detail }) => {
-    assert.equal(archetypeId, 856);
+  resolveCanonicalArchetype: async ({ archetypeId, sourceNameEn, detail }) => {
+    assert.notEqual(archetypeId, 858, 'rows without catalog statistics should be filtered before identity requests');
     assert.ok(detail);
     return {
-      sourceNameEn: 'HSReplay Mage',
+      sourceNameEn,
       canonicalNameEn: 'Burn Mage',
       canonicalNameRu: 'Берн Маг',
       identitySource: 'local-deck-match',
@@ -63,10 +82,14 @@ try {
   const catalog = await fetch(`${origin}?format=standard`);
   assert.equal(catalog.status, 200);
   const catalogBody = await catalog.json() as any;
+  assert.equal(catalogBody.count, 1);
+  assert.equal(catalogBody.items.length, 1);
+  assert.equal(catalogBody.items[0].id, 857);
   assert.equal(catalogBody.items[0].nameEn, 'Burn Mage');
   assert.equal(catalogBody.items[0].nameRu, 'Берн Маг');
-  assert.equal(catalogBody.items[0].sourceNameEn, 'HSReplay Mage');
+  assert.equal(catalogBody.items[0].sourceNameEn, 'HSReplay Fire Mage');
   assert.equal(catalogBody.items[0].identitySource, 'local-deck-match');
+  assert.equal(catalogBody.items[0].stats.games, 25_000);
 
   const detail = await fetch(`${origin}/856?format=standard`);
   assert.equal(detail.status, 200);

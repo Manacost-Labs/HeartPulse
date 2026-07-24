@@ -1,5 +1,11 @@
 # HS-Arena Changelog
 
+## v1.0.35 - 2026-07-24
+
+- Replaced the horizontal archetype matchup matrix with a compact full-width opponent list that places every matchup on its own row without repeating the selected archetype.
+- Deduplicated Standard catalog entries by canonical HSGuru identity, retained the most representative HSReplay snapshot, and removed rows without complete win-rate, game-count, and meta-share statistics.
+- Updated the archetype directory header with a clear description of builds, popularity and win-rate history, mulligan analytics, and subscriber-only HSReplay data.
+
 ## v1.0.34 - 2026-07-24
 
 - Added bounded same-origin WebP optimization and immutable caching for Battlegrounds tier-list thumbnails while retaining full-resolution images in the lightbox.

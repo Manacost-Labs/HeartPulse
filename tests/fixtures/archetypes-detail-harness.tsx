@@ -79,7 +79,30 @@ globalThis.fetch = (async (input: RequestInfo | URL) => {
   const url = String(input);
   const payload = url.includes('/api/admin/archetypes/856')
     ? { format: 'standard', available: true, data: detail }
-    : { count: 1, translated: 1, items: [] };
+    : {
+        count: 1,
+        translated: 1,
+        items: [{
+          id: 856,
+          nameEn: 'Burn Mage',
+          nameRu: 'Берн Маг',
+          sourceNameEn: 'HSReplay Mage',
+          translated: true,
+          classKey: 'MAGE',
+          classLabel: 'Маг',
+          url: null,
+          standard: true,
+          stats: {
+            winRate: 53.84,
+            totalGames: 48_219,
+            games: 48_219,
+            popularity: 8.41,
+            turns: 8.2,
+            durationMinutes: null,
+            climbingSpeed: null,
+          },
+        }],
+      };
   return new Response(JSON.stringify(payload), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
@@ -88,6 +111,10 @@ globalThis.fetch = (async (input: RequestInfo | URL) => {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ArchetypesPage isAdmin authChecking={false} currentPath="/archetypes/856/" />
+    <ArchetypesPage
+      isAdmin
+      authChecking={false}
+      currentPath={new URLSearchParams(window.location.search).has('catalog') ? '/archetypes/' : '/archetypes/856/'}
+    />
   </StrictMode>,
 );

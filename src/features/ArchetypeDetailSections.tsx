@@ -357,13 +357,7 @@ export function ArchetypeMulliganPanel({
   );
 }
 
-export function ArchetypeMatchupsPanel({
-  rows,
-  snapshot,
-}: {
-  rows: ArchetypeMatchupRow[];
-  snapshot: ArchetypeSnapshot;
-}) {
+export function ArchetypeMatchupsPanel({ rows }: { rows: ArchetypeMatchupRow[] }) {
   const sortedRows = useMemo(() => [...rows].sort((left, right) => (
     (finite(right.win_rate) ?? -1) - (finite(left.win_rate) ?? -1)
     || (finite(right.total_games) ?? 0) - (finite(left.total_games) ?? 0)
@@ -377,7 +371,7 @@ export function ArchetypeMatchupsPanel({
     <section className="archetypes-detail__panel archetype-analysis-panel" aria-labelledby="archetype-matchups-title">
       <header className="archetype-analysis-panel__heading archetype-analysis-panel__heading--matchups">
         <div>
-          <span className="archetype-analysis-panel__eyebrow"><Swords aria-hidden="true" /> HSGuru · карта противников</span>
+          <span className="archetype-analysis-panel__eyebrow"><Swords aria-hidden="true" /> HSGuru · статистика противников</span>
           <h2 id="archetype-matchups-title">Матчапы <span>{sortedRows.length}</span></h2>
         </div>
         <dl className="archetype-matchup-summary" aria-label="Сводка матчапов">
@@ -388,67 +382,36 @@ export function ArchetypeMatchupsPanel({
       </header>
 
       {sortedRows.length ? (
-        <div
-          className="archetype-matchup-matrix__scroll"
-          role="region"
-          aria-label="Матрица матчапов, прокрутка по горизонтали"
-          tabIndex={0}
-        >
-          <table
-            className="archetype-matchup-matrix"
-            style={{ '--matchup-columns': sortedRows.length } as React.CSSProperties}
-          >
-            <thead>
-              <tr>
-                <th scope="col" className="archetype-matchup-matrix__corner">
-                  Архетип
-                  <small>против соперника</small>
-                </th>
-                {sortedRows.map(row => (
-                  <th scope="col" key={row.opponent_archetype_id}>
-                    <img
-                      src={classIconUrl(row.opponent_class)}
-                      alt=""
-                      width="34"
-                      height="34"
-                      loading="lazy"
-                      decoding="async"
-                      onError={event => useNeutralClassIcon(event.currentTarget)}
-                    />
-                    <span>{row.opponent_name || `Архетип #${row.opponent_archetype_id}`}</span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <th scope="row">
-                  <strong>{snapshot.canonicalNameRu || snapshot.nameRu || snapshot.name || 'Текущий архетип'}</strong>
-                  <small>винрейт матча</small>
-                </th>
-                {sortedRows.map(row => {
-                  const winrate = finite(row.win_rate);
-                  const games = finite(row.total_games);
-                  const tone = matchupTone(winrate);
-                  const opponentName = row.opponent_name || `Архетип #${row.opponent_archetype_id}`;
-                  return (
-                    <td key={row.opponent_archetype_id}>
-                      <div
-                        className="archetype-matchup-matrix__cell"
-                        data-tone={tone.key}
-                        title={`${opponentName}: ${formatPercent(winrate)}${games === null ? '' : `, ${formatNumber(games)} игр`}`}
-                      >
-                        <strong>{formatPercent(winrate)}</strong>
-                        <small>{tone.label}</small>
-                        {games === null ? null : <span>{formatNumber(games)} игр</span>}
-                      </div>
-                    </td>
-                  );
-                })}
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <ol className="archetype-matchup-list">
+          {sortedRows.map(row => {
+            const winrate = finite(row.win_rate);
+            const games = finite(row.total_games);
+            const tone = matchupTone(winrate);
+            return (
+              <li key={row.opponent_archetype_id} className="archetype-matchup-row" data-tone={tone.key}>
+                <img
+                  src={classIconUrl(row.opponent_class)}
+                  alt=""
+                  width="46"
+                  height="46"
+                  loading="lazy"
+                  decoding="async"
+                  onError={event => useNeutralClassIcon(event.currentTarget)}
+                />
+                <div className="archetype-matchup-row__identity">
+                  <strong>{row.opponent_name || `Архетип #${row.opponent_archetype_id}`}</strong>
+                  {games === null ? null : <span>{formatNumber(games)} игр</span>}
+                </div>
+                <span className="archetype-matchup-row__tone">{tone.label}</span>
+                <div className="archetype-matchup-row__meter" aria-hidden="true">
+                  <span style={{ width: `${winrate === null ? 0 : clamp(winrate, 0, 100)}%` }} />
+                  <i />
+                </div>
+                <strong className="archetype-matchup-row__winrate">{formatPercent(winrate)}</strong>
+              </li>
+            );
+          })}
+        </ol>
       ) : (
         <p className="archetype-analysis-panel__empty">Для текущего среза матчапы ещё не собраны.</p>
       )}

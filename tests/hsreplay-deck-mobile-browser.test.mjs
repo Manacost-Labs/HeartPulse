@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { createServer } from 'node:net';
 import { stripVTControlCharacters } from 'node:util';
 import puppeteer from 'puppeteer';
 
@@ -15,10 +16,24 @@ const chromiumPath = [
 ].find(candidate => candidate && existsSync(candidate));
 if (!chromiumPath) throw new Error('Chromium/Chrome executable is required for DeckView mobile tests');
 
+const vitePort = await new Promise((resolve, reject) => {
+  const probe = createServer();
+  probe.once('error', reject);
+  probe.listen(0, '127.0.0.1', () => {
+    const address = probe.address();
+    if (!address || typeof address === 'string') {
+      probe.close();
+      reject(new Error('Could not reserve a DeckView browser-test port'));
+      return;
+    }
+    probe.close(error => error ? reject(error) : resolve(address.port));
+  });
+});
+
 const vite = spawn('./node_modules/.bin/vite', [
   '--config', 'tests/fixtures/vite.modal.config.ts',
   '--host', '127.0.0.1',
-  '--port', '0',
+  '--port', String(vitePort),
   '--strictPort',
 ], {
   cwd: process.cwd(),

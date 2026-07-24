@@ -120,12 +120,20 @@
   text-shadow: 0 3px 5px rgba(38, 4, 6, 0.72);
 }
 
-.archetypes-hero__copy > p {
+.archetypes-hero__description {
   max-width: 44rem;
   margin: 1rem 0 0;
   color: rgba(255, 240, 200, 0.83);
   font-size: clamp(0.85rem, 1.3vw, 0.98rem);
   line-height: 1.6;
+}
+
+.archetypes-hero__description p {
+  margin: 0;
+}
+
+.archetypes-hero__description p + p {
+  margin-top: 0.65rem;
 }
 
 .archetypes-hero__rule {

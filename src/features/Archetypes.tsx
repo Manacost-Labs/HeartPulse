@@ -202,7 +202,7 @@ export default function ArchetypesPage({
             </section>
 
             <ArchetypeMulliganPanel rows={detail.mulligan} snapshot={detail.snapshot} />
-            <ArchetypeMatchupsPanel rows={detail.matchups} snapshot={detail.snapshot} />
+            <ArchetypeMatchupsPanel rows={detail.matchups} />
             <ArchetypeDecksPanel decks={detail.decks} classKey={detail.snapshot.player_class} />
 
             <section className="archetypes-detail__panel">
@@ -221,10 +221,16 @@ export default function ArchetypesPage({
         <div className="archetypes-hero__copy">
           <div className="archetypes-hero__kicker"><BookOpenText aria-hidden="true" /> Справочник администрации · Стандарт</div>
           <h1>Архетипы</h1>
-          <p>
-            Статистика актуальных архетипов Стандарта из HSReplay.
-            Названия сверяем по коду колоды с HSGuru и показываем в переводе Манакоста.
-          </p>
+          <div className="archetypes-hero__description">
+            <p>
+              В этом разделе вы найдете все архетипы, представленные на HSReplay, а также все сборки этих архетипов,
+              динамику их популярности и процента побед.
+            </p>
+            <p>
+              Кроме того, здесь доступна подробная аналитика по муллигану, включая платные данные,
+              которые есть только у пользователей с подпиской HSReplay.
+            </p>
+          </div>
           <div className="archetypes-hero__rule" />
         </div>
         <div className="archetypes-hero__summary" aria-label="Статистика каталога">

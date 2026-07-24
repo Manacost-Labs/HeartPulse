@@ -131,6 +131,52 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
+function hasCompleteCatalogStats(row: {
+  win_rate?: number | null;
+  pct_of_total?: number | null;
+  total_games?: number | null;
+}): boolean {
+  return Number.isFinite(row.win_rate)
+    && Number.isFinite(row.pct_of_total)
+    && Number.isFinite(row.total_games)
+    && Number(row.total_games) > 0;
+}
+
+function canonicalCatalogKey(item: AdminArchetypeRow): string {
+  const normalizedName = item.nameEn.trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US');
+  return `${item.classKey.trim().toUpperCase()}\u0000${normalizedName}`;
+}
+
+function catalogPriority(item: AdminArchetypeRow): [number, number, number, number] {
+  return [
+    item.stats?.games ?? -1,
+    item.stats?.popularity ?? -1,
+    item.stats?.winRate ?? -1,
+    -(item.id ?? Number.MAX_SAFE_INTEGER),
+  ];
+}
+
+function isHigherPriorityCatalogItem(candidate: AdminArchetypeRow, current: AdminArchetypeRow): boolean {
+  const candidatePriority = catalogPriority(candidate);
+  const currentPriority = catalogPriority(current);
+  for (let index = 0; index < candidatePriority.length; index += 1) {
+    if (candidatePriority[index] !== currentPriority[index]) {
+      return candidatePriority[index] > currentPriority[index];
+    }
+  }
+  return false;
+}
+
+export function dedupeCanonicalArchetypes(items: AdminArchetypeRow[]): AdminArchetypeRow[] {
+  const unique = new Map<string, AdminArchetypeRow>();
+  for (const item of items) {
+    const key = canonicalCatalogKey(item);
+    const current = unique.get(key);
+    if (!current || isHigherPriorityCatalogItem(item, current)) unique.set(key, item);
+  }
+  return [...unique.values()];
+}
+
 export function createAdminArchetypesRouter(deps: AdminArchetypesRouterDependencies) {
   const router = Router();
   const resolveClassLabel = deps.classLabel || defaultClassLabel;
@@ -194,8 +240,8 @@ export function createAdminArchetypesRouter(deps: AdminArchetypesRouterDependenc
       // The Standard directory is intentionally the current snapshot set:
       // every row has a real detail page, instead of linking 700+ historical
       // dictionary entries to an empty state.
-      const rows = await deps.loadStandardSnapshots();
-      const items = (await mapWithConcurrency(rows, 6, async (row): Promise<AdminArchetypeRow | null> => {
+      const rows = (await deps.loadStandardSnapshots()).filter(hasCompleteCatalogStats);
+      const resolvedItems = (await mapWithConcurrency(rows, 6, async (row): Promise<AdminArchetypeRow | null> => {
         const sourceNameEn = String(row?.name || '').trim();
         if (!sourceNameEn) return null;
         const archetypeId = typeof row?.archetype_id === 'number' ? row.archetype_id : Number(row?.archetype_id) || null;
@@ -244,6 +290,7 @@ export function createAdminArchetypesRouter(deps: AdminArchetypesRouterDependenc
           },
         };
       })).filter((item): item is AdminArchetypeRow => item !== null);
+      const items = dedupeCanonicalArchetypes(resolvedItems);
       items.sort((a, b) => {
         const classCmp = a.classLabel.localeCompare(b.classLabel, 'ru');
         if (classCmp !== 0) return classCmp;

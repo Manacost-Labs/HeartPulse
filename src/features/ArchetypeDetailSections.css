@@ -330,7 +330,7 @@ button.archetype-mulligan-card:focus-visible {
 
 .archetype-matchup-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 1px;
   border: 1px solid var(--analysis-rule);
   background: var(--analysis-rule);
@@ -667,8 +667,7 @@ button.archetype-mulligan-card:focus-visible {
 }
 
 /* Sortable mulligan table */
-.archetype-mulligan-table__scroll,
-.archetype-matchup-matrix__scroll {
+.archetype-mulligan-table__scroll {
   width: 100%;
   min-width: 0;
   max-width: 100%;
@@ -680,8 +679,7 @@ button.archetype-mulligan-card:focus-visible {
   overscroll-behavior-x: contain;
 }
 
-.archetype-mulligan-table__scroll:focus-visible,
-.archetype-matchup-matrix__scroll:focus-visible {
+.archetype-mulligan-table__scroll:focus-visible {
   outline: 3px solid rgba(103, 19, 28, 0.24);
   outline-offset: 2px;
 }
@@ -852,146 +850,6 @@ button.archetype-mulligan-card:focus-visible {
   font-weight: 700;
 }
 
-/* One-row matrix: the selected archetype against every available opponent. */
-.archetype-matchup-matrix {
-  width: max(100%, calc(210px + (var(--matchup-columns) * 132px)));
-  min-width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  table-layout: fixed;
-}
-
-.archetype-matchup-matrix th,
-.archetype-matchup-matrix td {
-  min-width: 132px;
-  border-right: 1px solid var(--analysis-rule);
-}
-
-.archetype-matchup-matrix tr > *:last-child {
-  border-right: 0;
-}
-
-.archetype-matchup-matrix thead th {
-  height: 92px;
-  padding: 0.55rem;
-  color: #fff0c8;
-  vertical-align: middle;
-  background:
-    linear-gradient(135deg, rgba(78, 22, 22, 0.98), rgba(49, 10, 12, 0.98)),
-    url('/wallpaper/arena-rail-red.jpg') center / 260px auto;
-}
-
-.archetype-matchup-matrix thead th img,
-.archetype-matchup-matrix thead th span {
-  display: block;
-  margin-inline: auto;
-}
-
-.archetype-matchup-matrix thead th img {
-  object-fit: contain;
-  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.35));
-}
-
-.archetype-matchup-matrix thead th span {
-  margin-top: 0.25rem;
-  overflow: hidden;
-  font-size: 0.62rem;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.archetype-matchup-matrix .archetype-matchup-matrix__corner,
-.archetype-matchup-matrix tbody th {
-  position: sticky;
-  left: 0;
-  z-index: 3;
-  width: 210px;
-  min-width: 210px;
-  padding: 0.75rem 0.9rem;
-  text-align: left;
-  box-shadow: 6px 0 12px rgba(72, 42, 9, 0.12);
-}
-
-.archetype-matchup-matrix__corner small,
-.archetype-matchup-matrix tbody th small {
-  display: block;
-  margin-top: 0.2rem;
-  color: rgba(255, 240, 200, 0.64);
-  font-size: 0.54rem;
-}
-
-.archetype-matchup-matrix tbody th {
-  color: var(--analysis-ink);
-  background:
-    linear-gradient(135deg, rgba(244, 228, 186, 0.98), rgba(225, 198, 137, 0.98)),
-    url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat;
-}
-
-.archetype-matchup-matrix tbody th strong {
-  display: block;
-  font-family: var(--font-hs, Georgia, serif);
-  font-size: 0.82rem;
-}
-
-.archetype-matchup-matrix tbody th small {
-  color: var(--analysis-muted);
-}
-
-.archetype-matchup-matrix td {
-  padding: 0.45rem;
-  background: rgba(255, 250, 231, 0.48);
-}
-
-.archetype-matchup-matrix__cell {
-  display: grid;
-  place-items: center;
-  min-height: 76px;
-  padding: 0.5rem;
-  border: 1px solid currentColor;
-  color: var(--analysis-muted);
-  background: rgba(95, 55, 29, 0.08);
-}
-
-.archetype-matchup-matrix__cell strong,
-.archetype-matchup-matrix__cell small,
-.archetype-matchup-matrix__cell span {
-  display: block;
-}
-
-.archetype-matchup-matrix__cell strong {
-  font-family: var(--font-hs, Georgia, serif);
-  font-size: 1rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.archetype-matchup-matrix__cell small {
-  font-size: 0.53rem;
-  font-weight: 900;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.archetype-matchup-matrix__cell span {
-  color: var(--analysis-muted);
-  font-size: 0.54rem;
-}
-
-.archetype-matchup-matrix__cell[data-tone='favored'] {
-  color: #2d6a39;
-  background: rgba(45, 106, 57, 0.1);
-}
-
-.archetype-matchup-matrix__cell[data-tone='even'] {
-  color: #8a611d;
-  background: rgba(138, 97, 29, 0.1);
-}
-
-.archetype-matchup-matrix__cell[data-tone='unfavored'] {
-  color: #8c2630;
-  background: rgba(140, 38, 48, 0.1);
-}
-
 /* Compact deck columns: composition and actions stay in one card. */
 .archetype-analysis-panel .archetype-deck-grid {
   display: grid;
@@ -1124,21 +982,6 @@ button.archetype-mulligan-card:focus-visible {
 @media (max-width: 700px) {
   .archetype-analysis-panel .archetype-deck-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .archetype-matchup-matrix {
-    width: max(100%, calc(170px + (var(--matchup-columns) * 112px)));
-  }
-
-  .archetype-matchup-matrix th,
-  .archetype-matchup-matrix td {
-    min-width: 112px;
-  }
-
-  .archetype-matchup-matrix .archetype-matchup-matrix__corner,
-  .archetype-matchup-matrix tbody th {
-    width: 170px;
-    min-width: 170px;
   }
 }
 
