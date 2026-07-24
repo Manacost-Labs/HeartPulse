@@ -65,6 +65,36 @@ const dependencies: ConstructedArchetypeRouterDependencies = {
     durationMinutes: 8,
     climbingSpeed: 1.24,
   }],
+  loadAnalysis: async () => ({
+    rank: 'legend',
+    period: 'past_week',
+    state: 'ok',
+    updatedAt: '2026-07-24T13:00:00.000Z',
+    matchupsUpdatedAt: '2026-07-24T13:00:00.000Z',
+    cardStatsUpdatedAt: '2026-07-24T13:00:00.000Z',
+    sourceUrls: {
+      matchups: 'https://www.hsguru.com/archetype/Thief%20Priest?rank=legend',
+      cards: 'https://www.hsguru.com/card-stats?archetype=Thief+Priest&rank=legend',
+    },
+    classMatchups: [{
+      classKey: 'mage',
+      classLabel: 'Mage',
+      winrate: 54.2,
+      games: 320,
+      share: 12.4,
+    }],
+    cardStats: [{
+      cardId: 'TOY_330',
+      dbfId: 123,
+      cardName: 'Гость из Бездны',
+      mulliganImpact: 4.8,
+      mulliganCount: 1_250,
+      drawnImpact: -1.2,
+      drawnCount: 980,
+      keptImpact: 6.1,
+      keptCount: 740,
+    }],
+  }),
 };
 
 const app = express();
@@ -96,6 +126,9 @@ try {
   const detailBody = await detail.json() as any;
   assert.equal(detailBody.item.archetype, 'Thief Priest');
   assert.equal(detailBody.history.length, 1);
+  assert.equal(detailBody.analysis.rank, 'legend');
+  assert.equal(detailBody.analysis.classMatchups[0].classKey, 'mage');
+  assert.equal(detailBody.analysis.cardStats[0].mulliganImpact, 4.8);
 
   assert.equal((await fetch(`${origin}/classic/thief-priest`, { headers })).status, 400);
   assert.equal((await fetch(`${origin}/wild/missing`, { headers })).status, 404);
