@@ -1,5 +1,5 @@
 import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { decode, encode, type FormatType } from '@firestone-hs/deckstrings';
+import { decode } from '@firestone-hs/deckstrings';
 import {
   ArrowLeft,
   Copy,
@@ -12,22 +12,14 @@ import {
   Trash2,
 } from 'lucide-react';
 import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
+import {
+  CONSTRUCTED_HERO_BY_DBF,
+  encodeConstructedDeck,
+  type ConstructedDeckFormat as DeckFormat,
+  type ConstructedHeroClass as HeroClass,
+} from './constructedDeckCode';
 import DeckListView, { type DeckListSideboard } from './decklist/DeckListView';
 import './DeckBuilder.css';
-
-type DeckFormat = 'standard' | 'wild';
-type HeroClass =
-  | 'DEATHKNIGHT'
-  | 'DEMONHUNTER'
-  | 'DRUID'
-  | 'HUNTER'
-  | 'MAGE'
-  | 'PALADIN'
-  | 'PRIEST'
-  | 'ROGUE'
-  | 'SHAMAN'
-  | 'WARLOCK'
-  | 'WARRIOR';
 
 type CatalogCard = {
   card_id: string;
@@ -96,24 +88,6 @@ const CLASS_OPTIONS: Array<{
   { id: 'WARRIOR', label: 'Воин', short: 'Воин', color: '#832b24', icon: '/class_icon/ui/warrior-64.webp', description: 'Броня, оружие и натиск' },
 ];
 
-const HERO_DBF: Record<HeroClass, number> = {
-  WARRIOR: 7,
-  SHAMAN: 1066,
-  ROGUE: 930,
-  PALADIN: 671,
-  HUNTER: 31,
-  DRUID: 274,
-  WARLOCK: 893,
-  MAGE: 637,
-  PRIEST: 813,
-  DEMONHUNTER: 56550,
-  DEATHKNIGHT: 78065,
-};
-
-const HERO_BY_DBF = new Map(
-  Object.entries(HERO_DBF).map(([heroClass, dbfId]) => [dbfId, heroClass as HeroClass]),
-);
-
 const CLASS_LABELS: Record<string, string> = Object.fromEntries([
   ...CLASS_OPTIONS.map(item => [item.id, item.label]),
   ['NEUTRAL', 'Нейтральные'],
@@ -178,10 +152,6 @@ const FORMAT_LABELS: Record<DeckFormat, string> = {
 
 const MAX_DBF_ID = 10_000_000;
 
-function formatType(format: DeckFormat): FormatType {
-  return format === 'standard' ? 2 : 1;
-}
-
 function cardName(card: Pick<CatalogCard, 'name' | 'card_id'>): string {
   return card.name?.ru || card.name?.en || card.card_id;
 }
@@ -209,27 +179,6 @@ function sortEntries(entries: DeckEntry[]): DeckEntry[] {
 
 function isValidDbf(dbfId: number): boolean {
   return Number.isSafeInteger(dbfId) && dbfId > 0 && dbfId <= MAX_DBF_ID;
-}
-
-function encodeDeck(
-  heroClass: HeroClass,
-  format: DeckFormat,
-  entries: DeckEntry[],
-  sideboards: DeckListSideboard[],
-): string {
-  return encode({
-    format: formatType(format),
-    heroes: [HERO_DBF[heroClass]],
-    cards: entries.filter(entry => isValidDbf(entry.dbfId)).map(entry => [entry.dbfId, entry.count]),
-    sideboards: sideboards
-      .filter(sideboard => sideboard.keyCardDbfId > 0 && sideboard.cards.length > 0)
-      .map(sideboard => ({
-        keyCardDbfId: sideboard.keyCardDbfId,
-        cards: sideboard.cards
-          .filter(card => isValidDbf(card.dbfId))
-          .map(card => [card.dbfId, card.count] as [number, number]),
-      })),
-  });
 }
 
 function catalogToEntry(card: CatalogCard): DeckEntry | null {
@@ -316,7 +265,12 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
   const [entries, setEntries] = useState<DeckEntry[]>([]);
   const [sideboards, setSideboards] = useState<DeckListSideboard[]>([]);
   const [archetype, setArchetype] = useState<ArchetypeInfo | null>(null);
-  const [pasteCode, setPasteCode] = useState('');
+  const [initialDeckCode] = useState(() => (
+    typeof window === 'undefined'
+      ? ''
+      : new URLSearchParams(window.location.search).get('code')?.trim() || ''
+  ));
+  const [pasteCode, setPasteCode] = useState(initialDeckCode);
   const [pasteError, setPasteError] = useState('');
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'error'>('idle');
   const [query, setQuery] = useState('');
@@ -348,9 +302,15 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
   const [reloadToken, setReloadToken] = useState(0);
   const [preview, setPreview] = useState<CardPreviewTarget | null>(null);
   const previewOwnerRef = useRef<HTMLElement | null>(null);
+  const initialDeckLoadRef = useRef(false);
 
   const deckCode = useMemo(
-    () => (heroClass ? encodeDeck(heroClass, format, entries, sideboards) : ''),
+    () => (heroClass ? encodeConstructedDeck({
+      heroClass,
+      format,
+      cards: entries,
+      sideboards,
+    }) : ''),
     [entries, format, heroClass, sideboards],
   );
   const cardCount = totalCards(entries);
@@ -544,6 +504,12 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
     page,
   ]);
 
+  useEffect(() => {
+    if (authChecking || !isAdmin || !initialDeckCode || initialDeckLoadRef.current) return;
+    initialDeckLoadRef.current = true;
+    void applyPaste(initialDeckCode);
+  }, [authChecking, initialDeckCode, isAdmin]);
+
   if (authChecking) return <LoadingGate />;
   if (!isAdmin) return <AccessDenied />;
 
@@ -559,8 +525,8 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
     setCopyState('idle');
   };
 
-  const applyPaste = async () => {
-    const raw = pasteCode.trim();
+  async function applyPaste(rawOverride?: string) {
+    const raw = (rawOverride ?? pasteCode).trim();
     if (!raw) {
       setPasteError('Вставьте код колоды или ссылку HSGuru');
       return;
@@ -576,7 +542,7 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'Некорректный код колоды');
 
-      const nextClass = HERO_BY_DBF.get(Number(payload.heroDbfId));
+      const nextClass = CONSTRUCTED_HERO_BY_DBF.get(Number(payload.heroDbfId));
       if (!nextClass) throw new Error('Не удалось определить класс героя');
       const nextFormat: DeckFormat = payload.format === 'wild' ? 'wild' : 'standard';
       const nextEntries: DeckEntry[] = Array.isArray(payload.cards)
@@ -603,7 +569,7 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
         const code = decodeURIComponent((fromUrl?.[1] || raw).replace(/ /g, '+'));
         const decoded = decode(code);
         const heroDbf = Number(decoded.heroes?.[0]);
-        const nextClass = HERO_BY_DBF.get(heroDbf);
+        const nextClass = CONSTRUCTED_HERO_BY_DBF.get(heroDbf);
         if (!nextClass) throw new Error('class');
         const nextFormat: DeckFormat = decoded.format === 1 ? 'wild' : 'standard';
         const nextEntries: DeckEntry[] = [];
@@ -634,7 +600,7 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
         setPasteError(error instanceof Error ? error.message : 'Некорректный код колоды');
       }
     }
-  };
+  }
 
   const addCard = (card: CatalogCard) => {
     const base = catalogToEntry(card);

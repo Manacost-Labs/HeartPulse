@@ -1,6 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, BookOpenText, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowLeft, BookOpenText, Search, ShieldCheck, Sparkles } from 'lucide-react';
 import './Archetypes.css';
+import {
+  ArchetypeDecksPanel,
+  ArchetypeMatchupsPanel,
+  ArchetypeMulliganPanel,
+  type ArchetypeDetailData,
+} from './ArchetypeDetailSections';
 import ArchetypeHistoryChart from './ArchetypeHistoryChart';
 
 type ArchetypeRow = {
@@ -12,7 +18,6 @@ type ArchetypeRow = {
   classLabel: string;
   url: string | null;
   standard: boolean;
-  wild: boolean;
   stats?: {
     winRate: number | null;
     popularity: number | null;
@@ -29,36 +34,37 @@ type ArchetypesResponse = {
   items: ArchetypeRow[];
 };
 
-type ArchetypeDetail = {
-  snapshot: Record<string, any>;
-  matchups: Array<Record<string, any>>;
-  mulligan: Array<Record<string, any>>;
-  decks: Array<Record<string, any>>;
-  history: Array<Record<string, any>>;
-};
-
 const formatPercent = (value: unknown) => typeof value === 'number' ? `${value.toFixed(2)}%` : '—';
 const formatNumber = (value: unknown) => typeof value === 'number' ? value.toLocaleString('ru-RU') : '—';
+const formatArchetypeCount = (count: number) => {
+  const lastTwo = count % 100;
+  const last = count % 10;
+  const noun = lastTwo >= 11 && lastTwo <= 14
+    ? 'архетипов'
+    : last === 1
+      ? 'архетип'
+      : last >= 2 && last <= 4
+        ? 'архетипа'
+        : 'архетипов';
+  return `${count} ${noun}`;
+};
 
 export default function ArchetypesPage({
   isAdmin = false,
   authChecking = false,
+  currentPath = window.location.pathname,
 }: {
   isAdmin?: boolean;
   authChecking?: boolean;
+  currentPath?: string;
 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<ArchetypesResponse | null>(null);
-  const detailId = Number(window.location.pathname.match(/^\/archetypes\/(\d+)\/?$/)?.[1] || 0) || null;
-  const wildDetail = window.location.pathname.replace(/\/+$/, '') === '/archetypes/wild';
-  const wildArchetype = wildDetail ? new URLSearchParams(window.location.search).get('archetype') : null;
-  const format = new URLSearchParams(window.location.search).get('format') === 'wild' ? 'wild' : 'standard';
-  const [detail, setDetail] = useState<ArchetypeDetail | null>(null);
+  const [query, setQuery] = useState('');
+  const detailId = Number(currentPath.match(/^\/archetypes\/(\d+)\/?$/)?.[1] || 0) || null;
+  const [detail, setDetail] = useState<ArchetypeDetailData | null>(null);
   const [detailUnavailable, setDetailUnavailable] = useState<string | null>(null);
-  const [wildDecks, setWildDecks] = useState<Array<Record<string, any>>>([]);
-  const [wildDecksLoading, setWildDecksLoading] = useState(false);
-  const [wildDecksError, setWildDecksError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authChecking || !isAdmin) return;
@@ -80,7 +86,7 @@ export default function ArchetypesPage({
          * Do not fetch HSReplay from the browser: it is Cloudflare-protected
          * and its authenticated session belongs only to the data API.
          */
-        const response = await fetch(`/api/admin/archetypes?format=${format}`, {
+        const response = await fetch('/api/admin/archetypes?format=standard', {
           credentials: 'include',
           headers: {
             Accept: 'application/json',
@@ -100,23 +106,21 @@ export default function ArchetypesPage({
       }
     })();
     return () => { cancelled = true; };
-  }, [authChecking, format, isAdmin]);
+  }, [authChecking, isAdmin]);
 
   const groups = useMemo(() => {
-    const map = new Map<string, ArchetypeRow[]>();
+    const normalizedQuery = query.trim().toLocaleLowerCase('ru-RU');
+    const map = new Map<string, { classKey: string; items: ArchetypeRow[] }>();
     for (const item of data?.items || []) {
-      /*
-       * The server returns the HSReplay reference catalogue for Standard and
-       * an HSGuru Wild-meta slice for Wild, so do not infer the format from a
-       * historical HSReplay signature.
-       */
-      if (format === 'standard' && !item.standard) continue;
-      const list = map.get(item.classLabel) || [];
-      list.push(item);
-      map.set(item.classLabel, list);
+      if (!item.standard) continue;
+      const searchable = `${item.nameRu} ${item.nameEn} ${item.classLabel} ${item.id ?? ''}`.toLocaleLowerCase('ru-RU');
+      if (normalizedQuery && !searchable.includes(normalizedQuery)) continue;
+      const group = map.get(item.classLabel) || { classKey: item.classKey, items: [] };
+      group.items.push(item);
+      map.set(item.classLabel, group);
     }
-    return [...map.entries()];
-  }, [data, format]);
+    return [...map.entries()].map(([classLabel, group]) => ({ classLabel, ...group }));
+  }, [data, query]);
 
   useEffect(() => {
     if (authChecking || !isAdmin || !detailId) return;
@@ -127,7 +131,7 @@ export default function ArchetypesPage({
       setDetail(null);
       setDetailUnavailable(null);
       try {
-        const response = await fetch(`/api/admin/archetypes/${detailId}?format=${format}`, {
+        const response = await fetch(`/api/admin/archetypes/${detailId}?format=standard`, {
           credentials: 'include',
           headers: { Accept: 'application/json', 'X-CSRF-Request': '1' },
         });
@@ -136,7 +140,7 @@ export default function ArchetypesPage({
         if (!payload?.available) {
           if (!cancelled) setDetailUnavailable(payload?.reason || 'Статистика недоступна.');
         } else if (!cancelled) {
-          setDetail(payload.data as ArchetypeDetail);
+          setDetail(payload.data as ArchetypeDetailData);
         }
       } catch (err: any) {
         if (!cancelled) setError(err?.message || 'Не удалось загрузить статистику архетипа');
@@ -145,30 +149,7 @@ export default function ArchetypesPage({
       }
     })();
     return () => { cancelled = true; };
-  }, [authChecking, detailId, format, isAdmin]);
-
-  useEffect(() => {
-    if (authChecking || !isAdmin || !wildArchetype) return;
-    let cancelled = false;
-    (async () => {
-      setWildDecksLoading(true);
-      setWildDecksError(null);
-      try {
-        const response = await fetch(`/api/admin/archetypes/wild/decks?archetype=${encodeURIComponent(wildArchetype)}`, {
-          credentials: 'include',
-          headers: { Accept: 'application/json', 'X-CSRF-Request': '1' },
-        });
-        const payload = await response.json().catch(() => null);
-        if (!response.ok) throw new Error(payload?.error || `HTTP ${response.status}`);
-        if (!cancelled) setWildDecks(Array.isArray(payload?.decks) ? payload.decks : []);
-      } catch (err: any) {
-        if (!cancelled) setWildDecksError(err?.message || 'Не удалось загрузить сборки');
-      } finally {
-        if (!cancelled) setWildDecksLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [authChecking, isAdmin, wildArchetype]);
+  }, [authChecking, detailId, isAdmin]);
 
   if (authChecking) {
     return (
@@ -191,21 +172,16 @@ export default function ArchetypesPage({
     );
   }
 
-  const FormatTabs = () => (
-    <nav className="archetypes-format-tabs" aria-label="Формат архетипов">
-      <a className={format === 'standard' ? 'is-active' : ''} href={detailId ? `/archetypes/${detailId}/?format=standard` : '/archetypes/?format=standard'}>Стандарт</a>
-      <a className={format === 'wild' ? 'is-active' : ''} href={detailId ? `/archetypes/${detailId}/?format=wild` : '/archetypes/?format=wild'}>Вольный</a>
-    </nav>
-  );
-
   if (detailId) {
     return (
       <section className="archetypes-page">
         <header className="archetypes-hero hs-timber-frame">
-          <a className="archetypes-back" href={`/archetypes/?format=${format}`}><ArrowLeft aria-hidden="true" /> Все архетипы</a>
-          <div className="archetypes-hero__kicker"><BookOpenText aria-hidden="true" /> HSReplay · подробная статистика</div>
-          <h1>{detail?.snapshot?.nameRu || detail?.snapshot?.name || `Архетип #${detailId}`}</h1>
-          <FormatTabs />
+          <div className="archetypes-hero__copy">
+            <a className="archetypes-back" href="/archetypes/"><ArrowLeft aria-hidden="true" /> Все архетипы</a>
+            <div className="archetypes-hero__kicker"><BookOpenText aria-hidden="true" /> HSReplay · подробная статистика</div>
+            <h1>{detail?.snapshot?.nameRu || detail?.snapshot?.name || `Архетип #${detailId}`}</h1>
+          </div>
+          <div className="archetypes-format-badge"><Sparkles aria-hidden="true" /><span>Формат</span><strong>Стандарт</strong></div>
         </header>
         {loading && <div className="archetypes-status">Загрузка статистики…</div>}
         {error && !loading && <p className="archetypes-error">{error}</p>}
@@ -219,38 +195,9 @@ export default function ArchetypesPage({
               <div><strong>{detail.snapshot.as_of_popularity ? new Date(detail.snapshot.as_of_popularity).toLocaleDateString('ru-RU') : '—'}</strong><span>данные на</span></div>
             </section>
 
-            <section className="archetypes-detail__panel">
-              <h2>Сборки колод <span>{detail.decks.length}</span></h2>
-              {detail.decks.map(deck => (
-                <article className="archetypes-deck" key={deck.id}>
-                  <div className="archetypes-deck__meta">
-                    <strong>{formatPercent(deck.win_rate)}</strong><span>{formatNumber(deck.total_games)} игр</span>
-                    <span>{deck.avg_num_player_turns ? `${Number(deck.avg_num_player_turns).toFixed(1)} ходов` : '—'}</span>
-                    {deck.url && <a href={deck.url} target="_blank" rel="noreferrer">Открыть на HSReplay</a>}
-                  </div>
-                  <div className="archetypes-deck__cards">{(deck.cards || []).filter((card: any) => !card.sideboard).map((card: any) => <span key={`${card.id}-${card.dbf_id}`}>{card.count > 1 ? `${card.count}× ` : ''}{card.card_name || card.card_name_en}</span>)}</div>
-                </article>
-              ))}
-              {!detail.decks.length && <p>Для текущего среза сборки не найдены.</p>}
-            </section>
-
-            <section className="archetypes-detail__panel">
-              <h2>Муллиган <span>{detail.mulligan.length}</span></h2>
-              <p className="archetypes-detail__source">
-                HSReplay · {detail.snapshot.region === 'REGION_EU' ? 'Европа' : detail.snapshot.region || '—'} ·
-                {' '}{detail.snapshot.rank_range || 'LEGEND'} · {detail.snapshot.mulligan_time_range === 'LAST_30_DAYS' ? 'последние 30 дней' : detail.snapshot.mulligan_time_range || '—'}
-              </p>
-              <div className="archetypes-table-wrap"><table><thead><tr>
-                <th>#</th><th>Карта</th><th>Винрейт в стартовой</th><th>Оставляют</th><th>Винрейт при взятии</th><th>Винрейт при розыгрыше</th><th>Появлений</th><th>Оставили</th><th>Взяли</th><th>Разыграли</th><th>В руке, ходов</th><th>Ход розыгрыша</th>
-              </tr></thead><tbody>{detail.mulligan.map(row => <tr key={row.dbf_id}>
-                <td>{row.hsreplay_rank ?? '—'}</td><td>{row.card_name || row.card_name_en}</td><td>{formatPercent(row.opening_hand_winrate)}</td><td>{formatPercent(row.keep_percentage)}</td><td>{formatPercent(row.winrate_when_drawn)}</td><td>{formatPercent(row.winrate_when_played)}</td><td>{formatNumber(row.times_presented_in_initial_cards)}</td><td>{formatNumber(row.times_kept)}</td><td>{formatNumber(row.times_card_drawn)}</td><td>{formatNumber(row.times_card_played)}</td><td>{typeof row.avg_turns_in_hand === 'number' ? row.avg_turns_in_hand.toFixed(1) : '—'}</td><td>{typeof row.avg_turn_played_on === 'number' ? row.avg_turn_played_on.toFixed(1) : '—'}</td>
-              </tr>)}</tbody></table></div>
-            </section>
-
-            <section className="archetypes-detail__panel">
-              <h2>Матчапы <span>{detail.matchups.length}</span></h2>
-              <div className="archetypes-table-wrap"><table><thead><tr><th>Соперник</th><th>Винрейт</th><th>Игр</th></tr></thead><tbody>{detail.matchups.map(row => <tr key={row.opponent_archetype_id}><td>{row.opponent_name}</td><td>{formatPercent(row.win_rate)}</td><td>{formatNumber(row.total_games)}</td></tr>)}</tbody></table></div>
-            </section>
+            <ArchetypeMulliganPanel rows={detail.mulligan} snapshot={detail.snapshot} />
+            <ArchetypeMatchupsPanel rows={detail.matchups} />
+            <ArchetypeDecksPanel decks={detail.decks} classKey={detail.snapshot.player_class} />
 
             <section className="archetypes-detail__panel">
               <h2>История показателей <span>{detail.history.length}</span></h2>
@@ -262,62 +209,45 @@ export default function ArchetypesPage({
     );
   }
 
-  if (wildArchetype) {
-    return (
-      <section className="archetypes-page">
-        <header className="archetypes-hero hs-timber-frame">
-          <a className="archetypes-back" href="/archetypes/?format=wild"><ArrowLeft aria-hidden="true" /> Все архетипы Вольного</a>
-          <div className="archetypes-hero__kicker"><BookOpenText aria-hidden="true" /> HSGuru · сборки Вольного</div>
-          <h1>{wildArchetype}</h1>
-        </header>
-        <div className="archetypes-detail">
-          <section className="archetypes-detail__panel">
-            <h2>Сборки колод <span>{wildDecks.length || '—'}</span></h2>
-            {wildDecksLoading && <p>Загрузка сборок…</p>}
-            {wildDecksError && <p className="archetypes-error">{wildDecksError}</p>}
-            {!wildDecksLoading && !wildDecksError && wildDecks.map((deck, index) => (
-              <article className="archetypes-deck" key={`${deck.url || deck.deck_code || index}`}>
-                <div className="archetypes-deck__meta">
-                  <strong>{formatPercent(deck.win_rate)}</strong>
-                  <span>{formatNumber(deck.games)} игр</span>
-                  {deck.url && <a href={deck.url} target="_blank" rel="noreferrer">Открыть на HSGuru</a>}
-                </div>
-                {deck.deck_code && <code className="archetypes-deck__code">{deck.deck_code}</code>}
-              </article>
-            ))}
-            {!wildDecksLoading && !wildDecksError && !wildDecks.length && <p>Сборки с достаточной выборкой пока не найдены.</p>}
-          </section>
-        </div>
-      </section>
-    );
-  }
-
   return (
     <section className="archetypes-page">
       <header className="archetypes-hero hs-timber-frame">
-        <div className="archetypes-hero__kicker"><BookOpenText aria-hidden="true" /> Справочник администрации</div>
-        <h1>Архетипы</h1>
-        <p>
-          {format === 'wild'
-            ? 'Актуальная мета Вольного: HSGuru · все ранги · последние сутки · минимум 100 игр.'
-            : 'Актуальные архетипы Стандарта из HSReplay с полной доступной статистикой. Русское название показываем только при наличии перевода в словаре Манакоста.'}
-        </p>
-        <div className="archetypes-hero__rule" />
-        <FormatTabs />
+        <div className="archetypes-hero__copy">
+          <div className="archetypes-hero__kicker"><BookOpenText aria-hidden="true" /> Справочник администрации · Стандарт</div>
+          <h1>Архетипы</h1>
+          <p>
+            Актуальный каталог Стандарта из HSReplay с полной доступной статистикой.
+            Русское название показываем только при наличии перевода в словаре Манакоста.
+          </p>
+          <div className="archetypes-hero__rule" />
+        </div>
         <div className="archetypes-hero__summary" aria-label="Статистика каталога">
-          <div><strong>{groups.reduce((total, [, items]) => total + items.length, 0) || '—'}</strong><span>в формате</span></div>
-          <div><strong>{data ? data.items.filter(item => item.translated).length : '—'}</strong><span>с переводом</span></div>
-          <div><strong>{data ? data.items.filter(item => !item.translated).length : '—'}</strong><span>на английском</span></div>
+          <div className="archetypes-hero__summary-primary">
+            <strong>{data ? data.items.filter(item => item.standard).length : '—'}</strong>
+            <span>архетипов Стандарта</span>
+          </div>
+          <div><strong>{data ? data.items.filter(item => item.standard && item.translated).length : '—'}</strong><span>с переводом</span></div>
+          <div><strong>{data ? data.items.filter(item => item.standard && !item.translated).length : '—'}</strong><span>ожидают перевода</span></div>
         </div>
       </header>
 
       <div className="archetypes-directory">
         <div className="archetypes-directory__heading">
           <div>
-            <span className="archetypes-kicker">HSReplay · полный словарь</span>
-            <h2>Все архетипы по классам</h2>
+            <span className="archetypes-kicker">Каталог Стандарта</span>
+            <h2>По классам</h2>
           </div>
-          <Sparkles aria-hidden="true" />
+          <label className="archetypes-search">
+            <Search aria-hidden="true" />
+            <span className="sr-only">Найти архетип</span>
+            <input
+              type="search"
+              value={query}
+              onChange={event => setQuery(event.target.value)}
+              placeholder="Название, класс или ID"
+              autoComplete="off"
+            />
+          </label>
         </div>
 
         {loading && <div className="archetypes-status">Загрузка архетипов…</div>}
@@ -327,20 +257,33 @@ export default function ArchetypesPage({
         </p>
       )}
 
-        {!loading && !error && groups.map(([classLabel, items]) => (
-          <section key={classLabel} className="archetypes-class">
-            <h3>
-              {classLabel} <span>{items.length}</span>
-            </h3>
+        {!loading && !error && groups.length === 0 && (
+          <div className="archetypes-empty">
+            <Search aria-hidden="true" />
+            <strong>Ничего не найдено</strong>
+            <span>Попробуйте другое название, класс или номер архетипа.</span>
+          </div>
+        )}
+
+        {!loading && !error && groups.length > 0 && (
+          <div className="archetypes-grid">
+          {groups.map(({ classLabel, classKey, items }) => (
+          <section key={classLabel} className="archetypes-class" data-class={classKey}>
+            <header className="archetypes-class__heading">
+              <img src={`/class_icon/ui/${classKey}-64.webp`} alt="" width="56" height="56" loading="lazy" decoding="async" />
+              <div>
+                <span>{formatArchetypeCount(items.length)}</span>
+                <h3>{classLabel}</h3>
+              </div>
+            </header>
             <ol>
               {items.map((item, index) => (
                 <li key={`${item.classKey}-${item.id ?? item.nameEn}`}>
                   <span className="archetypes-row__index">{index + 1}.</span>
                   <a
                     className="archetypes-row__name"
-                    href={item.id != null
-                      ? `/archetypes/${item.id}/?format=${format}`
-                      : `/archetypes/wild/?archetype=${encodeURIComponent(item.nameEn)}`}
+                    href={item.id != null ? `/archetypes/${item.id}/` : undefined}
+                    aria-disabled={item.id == null ? 'true' : undefined}
                   >
                     <strong>{item.nameRu}</strong>
                     {item.translated && item.nameRu !== item.nameEn && <small>{item.nameEn}</small>}
@@ -354,7 +297,9 @@ export default function ArchetypesPage({
               ))}
             </ol>
           </section>
-        ))}
+          ))}
+          </div>
+        )}
       </div>
     </section>
   );

@@ -15,11 +15,11 @@ const budgets = {
   // separate lazy assets. Vite records those filenames in its eager preload
   // map (+117 raw bytes versus a6863c2), while compressed startup transfer
   // stays below the existing 80 KB ratchet.
-  // v1.0.30 adds one explicit lazy route and SEO record for the separated
-  // archetype catalog. Compressed startup remains under the existing 80 KB
-  // ceiling; keep narrow raw headroom so later growth is still reviewed.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 63_720),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 256_740),
+  // v1.0.30 separates the subscriber archetype catalog into an explicit lazy
+  // route; v1.0.31 adds the administrator detail stylesheet to its own lazy
+  // route. Compressed startup remains under the existing 80 KB ceiling.
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 63_780),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 256_800),
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_000),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 116_000),

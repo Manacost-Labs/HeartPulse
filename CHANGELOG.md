@@ -1,5 +1,10 @@
 # HS-Arena Changelog
 
+## v1.0.31 - 2026-07-24
+
+- Rebuilt administrator archetype details with card-art mulligan rows and full-card hover previews, readable favored/even/difficult matchup ledgers, expandable deck compositions, and one-click deep links that load the selected build directly in the deck builder.
+- Added responsive and accessibility browser coverage for desktop/mobile detail views, card previews, matchup labels, deck expansion, generated deck codes, and constructor auto-loading.
+
 ## v1.0.30 - 2026-07-24
 
 - Restored `/standard/meta/` as the full HSGuru meta tier-list with rank, period, sample-size, chart, card/table, and recommended-deck controls.
