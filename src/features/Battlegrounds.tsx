@@ -13,6 +13,7 @@ import {
   type TrinketMmr,
   type TrinketTimeRange,
 } from './battlegroundTrinkets';
+import { optimizedBattlegroundThumbnailUrl } from './battlegroundImageUrls';
 import '../route-parchment.css';
 import './Battlegrounds.css';
 import '../battlegrounds-shell.css';
@@ -142,10 +143,10 @@ function bgStrategyMatchesDeepLink(item: any, key: string, title: string): boole
 
 const BG_TIER_ORDER = ['S', 'A', 'B', 'C', 'D'];
 const BG_TIER_INITIAL_VISIBLE: Record<BattlegroundTierListKey, number> = {
-  minions: 18,
+  minions: 12,
   strategies: 6,
-  spells: 12,
-  trinkets: 12,
+  spells: 8,
+  trinkets: 6,
 };
 const BG_TIER_VISIBLE_STEP: Record<BattlegroundTierListKey, number> = {
   minions: 24,
@@ -916,6 +917,11 @@ function bgMetricLine(item: any, list: BattlegroundTierListKey): string {
 function bgImageForItem(item: any, list: BattlegroundTierListKey): string {
   if (list === 'strategies') return '';
   return String(item?.image256 || item?.image || item?.imageFallback || '');
+}
+
+function bgThumbnailForItem(item: any, list: BattlegroundTierListKey): string {
+  const width = list === 'trinkets' ? 220 : 160;
+  return optimizedBattlegroundThumbnailUrl(bgImageForItem(item, list), width);
 }
 
 function bgLightboxItem(item: any, list: BattlegroundTierListKey, tier: string, index = 0): BattlegroundLightboxItem | null {
@@ -3126,7 +3132,7 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen, to
     );
   }
 
-  const image = bgImageForItem(item, list);
+  const image = bgThumbnailForItem(item, list);
   const lightboxItem = bgLightboxItem(item, list, tier, index);
   if (list === 'trinkets') {
     const raceLabel = bgRaceLabelForItem(item);
@@ -3142,6 +3148,8 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen, to
           <img
             src={image}
             alt={title}
+            width={220}
+            height={293}
             loading="lazy"
             decoding="async"
             className="aspect-[3/4] w-full max-w-[184px] object-contain drop-shadow-[0_7px_14px_rgba(0,0,0,0.4)] transition-transform duration-200 group-hover:-translate-y-1"
@@ -3184,6 +3192,8 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen, to
         <img
           src={image}
           alt={title}
+          width={160}
+          height={216}
           loading="lazy"
           decoding="async"
           className="h-[108px] w-[80px] flex-shrink-0 rounded-md object-cover shadow-[0_2px_8px_rgba(0,0,0,0.28)] transition-transform duration-200 group-hover:scale-[1.02]"

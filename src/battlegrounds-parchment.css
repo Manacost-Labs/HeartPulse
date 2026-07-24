@@ -1456,6 +1456,13 @@
     linear-gradient(135deg, rgba(229, 199, 139, 0.94), rgba(197, 154, 94, 0.88)),
     url('/wallpaper/arena-parchment.jpg') center / 865px auto repeat !important;
   box-shadow: inset 0 1px rgba(255, 235, 185, 0.32), 0 9px 18px rgba(25, 11, 8, 0.22) !important;
+  content-visibility: auto;
+  contain: layout paint style;
+  contain-intrinsic-size: auto 620px;
+}
+
+.arena-app-battlegrounds .bg-tier-list-page > .bg-tier-index-panel {
+  min-height: min(1100px, 78vh);
 }
 
 .arena-app-battlegrounds .bg-tier-list-page .bg-tier-strategy-card,

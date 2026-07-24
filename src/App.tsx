@@ -1843,8 +1843,8 @@ export default function App() {
                 )}
                 {activeTab === 'bg-tier-list' && (
                   renderPrivateRoute(
-                    <React.Suspense fallback={<RouteFallback minHeight={760} />}><LazyBattlegroundTierList /></React.Suspense>,
-                    760,
+                    <React.Suspense fallback={<RouteFallback minHeight={1100} />}><LazyBattlegroundTierList /></React.Suspense>,
+                    1100,
                   )
                 )}
                 {activeTab === 'bg-tier-builder' && (

@@ -1,5 +1,11 @@
 # HS-Arena Changelog
 
+## v1.0.34 - 2026-07-24
+
+- Added bounded same-origin WebP optimization and immutable caching for Battlegrounds tier-list thumbnails while retaining full-resolution images in the lightbox.
+- Reduced the initial cards rendered per tier and deferred off-screen tier layout work, cutting first-view image and DOM pressure without removing access to the remaining entries.
+- Reserved the tier-list loading/result height to prevent the footer shift, and added real image compression, URL, responsive, accessibility, release, and recovery coverage.
+
 ## v1.0.33 - 2026-07-24
 
 - Rebuilt administrator archetype details with a keyboard-sortable mulligan table, retained full-card previews, and converted matchups into a horizontally scrollable HSGuru matrix.

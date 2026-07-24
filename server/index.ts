@@ -31,6 +31,11 @@ import { createRouteAwareJsonParser, createUploadAuthorizationGuard } from './js
 import { createReferralRedirectHandler, createReferralRouter } from './referralRoutes.js';
 import { createGalleryRouter } from './galleryRoutes.js';
 import { createBattlegroundProxyRouter } from './battlegroundProxyRoutes.js';
+import {
+  battlegroundImageTransformCacheKey,
+  battlegroundImageTransformFromQuery,
+  optimizeBattlegroundImage,
+} from './battlegroundImageOptimization.js';
 import { createArticleCoverRouter } from './articleCoverRoutes.js';
 import { createGuidesArchiveRouter } from './guidesArchiveRoutes.js';
 import { createArticleRouter } from './articleRoutes.js';
@@ -308,6 +313,7 @@ function persistStandardMetaPreviewCache() {
 
 hydrateStandardMetaPreviewCache();
 const battlegroundAppProxyCache = new Map<string, ProxyBodyCacheEntry>();
+const MAX_BG_OPTIMIZED_IMAGE_CACHE_ENTRIES = 320;
 const homeSummaryApiCache: HomeSummaryCacheStore = { current: null };
 const arenaDecksCache: ArenaDecksCacheStore = { current: null };
 type CardImageSource = 'blizzard' | 'fallback' | 'placeholder';
@@ -7708,7 +7714,12 @@ app.use('/api', createArticleCoverRouter({
 async function proxyLegacyBattlegroundEndpoint(req: express.Request, res: express.Response, upstreamPath: string) {
   try {
     const upstreamUrl = new URL(upstreamPath, 'http://127.0.0.1:3107');
+    const isImageEndpoint = upstreamPath === '/api/remote-image' || upstreamPath === '/api/card-art';
+    const imageTransform = isImageEndpoint
+      ? battlegroundImageTransformFromQuery(req.query as Record<string, unknown>)
+      : null;
     for (const [key, value] of Object.entries(req.query)) {
+      if (imageTransform && (key === 'width' || key === 'quality' || key === 'format')) continue;
       if (Array.isArray(value)) {
         value.forEach(item => upstreamUrl.searchParams.append(key, String(item)));
       } else if (value !== undefined) {
@@ -7716,13 +7727,16 @@ async function proxyLegacyBattlegroundEndpoint(req: express.Request, res: expres
       }
     }
 
-    const cacheKey = `legacy:${upstreamUrl.href}`;
+    const transformCacheKey = imageTransform
+      ? `:${battlegroundImageTransformCacheKey(imageTransform)}`
+      : '';
+    const cacheKey = `legacy:${upstreamUrl.href}${transformCacheKey}`;
     const redisKey = redisHashedDataKey('bg-legacy-proxy', cacheKey);
     const cached = battlegroundAppProxyCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       res.status(cached.status);
       res.setHeader('Content-Type', cached.contentType);
-      res.setHeader('Cache-Control', cached.contentType.includes('image/')
+      res.setHeader('Cache-Control', isImageEndpoint || cached.contentType.includes('image/')
         ? BG_IMAGE_CACHE_CONTROL
         : BG_JSON_CACHE_CONTROL);
       res.setHeader('ETag', cached.etag);
@@ -7738,7 +7752,7 @@ async function proxyLegacyBattlegroundEndpoint(req: express.Request, res: expres
       });
       res.status(redisCached.status);
       res.setHeader('Content-Type', redisCached.contentType);
-      res.setHeader('Cache-Control', redisCached.contentType.includes('image/')
+      res.setHeader('Cache-Control', isImageEndpoint || redisCached.contentType.includes('image/')
         ? BG_IMAGE_CACHE_CONTROL
         : BG_JSON_CACHE_CONTROL);
       res.setHeader('ETag', redisCached.etag);
@@ -7748,10 +7762,23 @@ async function proxyLegacyBattlegroundEndpoint(req: express.Request, res: expres
     }
 
     const upstream = await fetch(upstreamUrl, { signal: AbortSignal.timeout(20_000) });
-    const body = Buffer.from(await upstream.arrayBuffer());
-    const contentType = upstream.headers.get('content-type') || 'application/octet-stream';
+    let body = Buffer.from(await upstream.arrayBuffer());
+    let contentType = upstream.headers.get('content-type') || 'application/octet-stream';
+    if (imageTransform && upstream.status >= 200 && upstream.status < 300) {
+      try {
+        const optimized = await optimizeBattlegroundImage(body, imageTransform);
+        body = optimized.body;
+        contentType = optimized.contentType;
+      } catch (error: any) {
+        console.warn('[bg image optimizer] using original image:', error?.message ?? error);
+      }
+    }
     const etag = `"bg-legacy-${createHash('sha1').update(cacheKey).update(body).digest('hex').slice(0, 16)}"`;
-    if (upstream.status >= 200 && upstream.status < 300 && !contentType.toLowerCase().includes('image/')) {
+    if (
+      upstream.status >= 200
+      && upstream.status < 300
+      && (Boolean(imageTransform) || (!isImageEndpoint && !contentType.toLowerCase().includes('image/')))
+    ) {
       const cacheEntry = {
         body,
         contentType,
@@ -7762,11 +7789,17 @@ async function proxyLegacyBattlegroundEndpoint(req: express.Request, res: expres
         ...cacheEntry,
         expiresAt: Date.now() + BG_DATA_CACHE_MS,
       });
+      if (imageTransform) {
+        const optimizedKeys = [...battlegroundAppProxyCache.keys()]
+          .filter(key => key.startsWith('legacy:') && /:webp:w\d+:q\d+$/.test(key));
+        const overflow = optimizedKeys.length - MAX_BG_OPTIMIZED_IMAGE_CACHE_ENTRIES;
+        if (overflow > 0) optimizedKeys.slice(0, overflow).forEach(key => battlegroundAppProxyCache.delete(key));
+      }
       void redisSetProxyCache(redisKey, cacheEntry, Math.max(60, Math.ceil(BG_DATA_CACHE_MS / 1000)));
     }
     res.status(upstream.status);
     res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', contentType.includes('image/')
+    res.setHeader('Cache-Control', isImageEndpoint || contentType.includes('image/')
       ? BG_IMAGE_CACHE_CONTROL
       : BG_JSON_CACHE_CONTROL);
     res.setHeader('ETag', etag);
