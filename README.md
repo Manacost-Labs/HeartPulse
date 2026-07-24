@@ -18,9 +18,12 @@
 
 <p align="center">
   <a href="https://arena.hs-manacost.ru"><strong>Открыть сайт</strong></a> ·
+  <a href="#быстрый-старт">Быстрый старт</a> ·
   <a href="STABILIZATION.md">Надёжность</a> ·
   <a href="assets.md">Дизайн и ассеты</a> ·
-  <a href="DEPLOYMENT.md">Деплой</a>
+  <a href="DEPLOYMENT.md">Деплой</a> ·
+  <a href="CONTRIBUTING.md">Вклад в проект</a> ·
+  <a href="SECURITY.md">Безопасность</a>
 </p>
 
 <p align="center">
@@ -28,6 +31,29 @@
     <img alt="CI"
       src="https://github.com/Zulut30/manacost-arena/actions/workflows/ci.yml/badge.svg?branch=main">
   </a>
+  <a href="https://github.com/Zulut30/manacost-arena/actions/workflows/codeql.yml">
+    <img alt="CodeQL"
+      src="https://github.com/Zulut30/manacost-arena/actions/workflows/codeql.yml/badge.svg?branch=main">
+  </a>
+  <a href="https://github.com/Zulut30/manacost-arena/actions/workflows/gitleaks.yml">
+    <img alt="Gitleaks"
+      src="https://github.com/Zulut30/manacost-arena/actions/workflows/gitleaks.yml/badge.svg?branch=main">
+  </a>
+  <a href="https://github.com/Zulut30/manacost-arena/actions/workflows/osv-scanner.yml">
+    <img alt="OSV-Scanner"
+      src="https://github.com/Zulut30/manacost-arena/actions/workflows/osv-scanner.yml/badge.svg?branch=main">
+  </a>
+  <a href="https://github.com/Zulut30/manacost-arena/actions/workflows/trivy.yml">
+    <img alt="Trivy"
+      src="https://github.com/Zulut30/manacost-arena/actions/workflows/trivy.yml/badge.svg?branch=main">
+  </a>
+  <a href="https://github.com/Zulut30/manacost-arena/actions/workflows/scorecard.yml">
+    <img alt="OpenSSF Scorecard"
+      src="https://github.com/Zulut30/manacost-arena/actions/workflows/scorecard.yml/badge.svg?branch=main">
+  </a>
+</p>
+
+<p align="center">
   <a href="https://arena.hs-manacost.ru/api/health/ready">
     <img alt="Production health"
       src="https://img.shields.io/website?url=https%3A%2F%2Farena.hs-manacost.ru%2Fapi%2Fhealth%2Fready&up_message=healthy&down_message=unavailable&label=production&color=4A2F66">
@@ -64,7 +90,7 @@
 </table>
 
 > Один репозиторий объединяет React-интерфейс, Express API, durable snapshots,
-> immutable-релизы и обязательный desktop/mobile quality gate.
+> immutable-релизы и многоуровневый desktop/mobile/security quality gate.
 
 ## Зачем этот проект
 
@@ -180,6 +206,16 @@ npm run verify:ci
 - axe accessibility audit, 200% reflow, keyboard и modal scroll-lock;
 - проверку документации и дизайн-системы.
 
+Отдельные GitHub-проверки защищают цепочку поставки и репозиторий:
+
+- **CodeQL и Semgrep** ищут уязвимые потоки данных и небезопасные конструкции;
+- **Gitleaks** проверяет полную Git-историю и рабочее дерево на секреты;
+- **Dependabot, OSV-Scanner и Dependency Review** контролируют lockfile,
+  новые зависимости, известные уязвимости, лицензии и здоровье пакетов;
+- **Trivy** блокирует `HIGH`/`CRITICAL` уязвимости и ошибки конфигурации;
+- **OpenSSF Scorecard** оценивает security posture репозитория;
+- **Sentry** опционально собирает очищенные от PII frontend/server ошибки.
+
 После выкладки production дополнительно проверяется командами:
 
 ```bash
@@ -190,7 +226,25 @@ npm run qa:e2e
 Подробные SLO, stop-the-line правила и текущий прогресс находятся в
 [STABILIZATION.md](STABILIZATION.md).
 
-## Локальный запуск
+## Стек и инструменты
+
+| Контур | Используемые инструменты |
+| --- | --- |
+| Интерфейс | React 19, TypeScript strict, Vite 6, Tailwind CSS 4, Lucide, responsive CSS |
+| API и данные | Node.js 22, Express, Redis, SQLite, Sharp, Puppeteer, node-cron, Hearthstone deckstrings |
+| Тестирование | Node test runner, tsx, fast-check, Puppeteer E2E, axe-core, browser contract tests |
+| Качество кода | TypeScript, React Doctor, Knip, markdownlint, design.md, архитектурные и bundle-budget проверки |
+| AppSec | CodeQL, Semgrep CE, Gitleaks, Trivy, GitHub Private Vulnerability Reporting |
+| Supply chain | Dependabot, OSV-Scanner, Dependency Review, npm audit, OpenSSF Scorecard |
+| Наблюдаемость | Sentry React/Node SDK, Sentry MCP, Chrome DevTools MCP, readiness/metrics и production monitor |
+| Delivery | GitHub Actions, immutable artifacts, Nginx, systemd, atomic symlink switch, rollback и encrypted backups |
+| Контекст команды | Notion для задач, Miro для схем и UX-контекста, Codex/Claude post-push review |
+
+Все security Actions закреплены полными commit SHA, а чувствительные интеграции
+остаются выключенными без явной серверной конфигурации. Подробности и команды
+для AI-агентов собраны в [docs/agent-tooling.md](docs/agent-tooling.md).
+
+## Быстрый старт
 
 Требуются Node.js 22+, npm и Chromium/Google Chrome для browser QA и scraper.
 
@@ -216,6 +270,9 @@ Frontend доступен на `http://localhost:3000`, API запускаетс
 | `npm run qa:e2e` | Полный desktop/mobile browser QA |
 | `npm run budget` | Контроль размеров JS и CSS |
 | `npm run scrape` | Ручной запуск scraper в разработке |
+| `npm run security:gitleaks` | Локальная проверка истории и рабочего дерева |
+| `npm run security:semgrep` | Статический анализ изменённых JS/TS-файлов |
+| `npm run quality:knip` | Проверка dependency-контуров |
 | `npm run verify:ci` | Полный обязательный gate |
 
 ## Production-релиз
@@ -233,6 +290,16 @@ sudo scripts/deploy-release.sh "$artifact"
 
 Полная инструкция, включая recovery, encrypted backup и off-site replication,
 находится в [DEPLOYMENT.md](DEPLOYMENT.md).
+
+## Участие в проекте
+
+Ошибки и идеи принимаются через
+[структурированные GitHub Issues](https://github.com/Zulut30/manacost-arena/issues/new/choose).
+Перед pull request прочитайте [CONTRIBUTING.md](CONTRIBUTING.md) и выполните
+`npm run verify:ci`. Уязвимости нужно отправлять только через
+[приватный security advisory](https://github.com/Zulut30/manacost-arena/security/advisories/new).
+
+История пользовательских изменений ведётся в [CHANGELOG.md](CHANGELOG.md).
 
 ## Дизайн-система
 

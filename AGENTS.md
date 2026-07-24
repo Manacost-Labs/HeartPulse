@@ -101,4 +101,4 @@ When the work changes behavior, also update `CHANGELOG.md` under the current ver
 
 ## Release Version
 
-Current public version: `v1.0.45`.
+Current public version: `v1.0.47`.

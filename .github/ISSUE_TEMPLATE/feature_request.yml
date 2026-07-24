@@ -1,0 +1,39 @@
+name: Предложить улучшение
+description: Идея для сайта, данных или инструментов Manacost Arena
+title: "[Idea]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какая проблема решается
+      description: Опишите пользовательскую задачу, а не только желаемую кнопку.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Предлагаемое решение
+      description: Как, по вашему мнению, должен работать результат?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Раздел
+      options:
+        - Арена
+        - Поля Сражений
+        - Стандарт / Вольный
+        - Статьи и гайды
+        - Профиль
+        - Данные и парсеры
+        - Другое
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: Примеры и макеты
+      description: Ссылки, скриншоты или похожие решения без приватных данных.

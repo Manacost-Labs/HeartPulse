@@ -48,3 +48,30 @@ test('Dependabot groups routine npm and Actions updates without assignees', () =
   assert.match(config, /development-minor-and-patch/);
   assert.doesNotMatch(config, /assignees:/);
 });
+
+test('Dependency Review blocks risky dependency changes with an immutable action', () => {
+  const workflow = read('.github/workflows/dependency-review.yml');
+  const config = read('.github/dependency-review-config.yml');
+  assert.match(workflow, /actions\/dependency-review-action@[a-f0-9]{40}/);
+  assert.match(workflow, /config-file:\s*\.\/\.github\/dependency-review-config\.yml/);
+  assert.match(workflow, /permissions:\s*\n\s*contents:\s*read/);
+  assert.doesNotMatch(workflow, /pull-requests:\s*write/);
+  assert.match(config, /fail-on-severity:\s*high/);
+  assert.match(config, /license-check:\s*true/);
+  assert.match(config, /vulnerability-check:\s*true/);
+  assert.match(config, /comment-summary-in-pr:\s*never/);
+  assert.doesNotMatch(config, /allow-ghsas:/);
+});
+
+test('Trivy blocks high-risk repository findings and publishes a redacted SARIF surface', () => {
+  const workflow = read('.github/workflows/trivy.yml');
+  assert.match(workflow, /aquasecurity\/trivy-action@[a-f0-9]{40}/);
+  assert.match(workflow, /version:\s*v0\.72\.0/);
+  assert.match(workflow, /scan-type:\s*fs/);
+  assert.match(workflow, /scanners:\s*vuln,misconfig/);
+  assert.match(workflow, /severity:\s*HIGH,CRITICAL/);
+  assert.match(workflow, /exit-code:\s*"1"/);
+  assert.match(workflow, /limit-severities-for-sarif:\s*true/);
+  assert.match(workflow, /github\/codeql-action\/upload-sarif@[a-f0-9]{40}/);
+  assert.doesNotMatch(workflow, /id-token:\s*write/);
+});

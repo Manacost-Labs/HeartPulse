@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Приватный отчёт об уязвимости
+    url: https://github.com/Zulut30/manacost-arena/security/advisories/new
+    about: Не публикуйте сведения об уязвимости в открытом issue.
+  - name: Manacost в Telegram
+    url: https://t.me/manacost_ru
+    about: Новости проекта и связь с редакцией.

@@ -1,5 +1,16 @@
 # HS-Arena Changelog
 
+## v1.0.47 - 2026-07-24
+
+- Added immutable Trivy repository scanning for high/critical dependency
+  vulnerabilities and configuration errors, with SARIF publication to GitHub
+  Code Scanning.
+- Added GitHub Dependency Review with vulnerability, dependency-scope,
+  license-allowlist and OpenSSF package-health checks for pull requests.
+- Rebuilt the GitHub project presentation with a complete toolchain inventory,
+  security badges, contribution guidance, structured issue forms and a pull
+  request checklist.
+
 ## v1.0.46 - 2026-07-24
 
 - Rebuilt the constructed deck-builder flow around one format choice and compact

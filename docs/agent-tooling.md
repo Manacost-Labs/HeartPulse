@@ -72,7 +72,7 @@ GitHub Actions повторяет полную проверку на pull reques
 и вручную. Комментарии и выгрузка артефактов отключены, чтобы найденное значение
 не копировалось в дополнительные поверхности.
 
-## CodeQL, OSV и OpenSSF Scorecard
+## CodeQL, OSV, Dependency Review, Trivy и OpenSSF Scorecard
 
 - CodeQL запускает `security-extended` для JavaScript/TypeScript на pull
   request, `main` и по расписанию.
@@ -83,9 +83,17 @@ GitHub Actions повторяет полную проверку на pull reques
   SARIF в GitHub Security. Публичная публикация результата и OIDC отключены.
 - Dependabot еженедельно группирует minor/patch обновления production,
   development и GitHub Actions; major-обновления остаются отдельными PR.
+- Dependency Review блокирует pull request, если он добавляет `HIGH` или
+  `CRITICAL` уязвимость, неизвестный scope либо лицензию вне утверждённого
+  SPDX allowlist. Исключения GHSA отсутствуют; комментарии в PR отключены.
+- Trivy проверяет файловую систему проекта на package-уязвимости и
+  misconfiguration. `HIGH`/`CRITICAL` findings блокируют workflow, а SARIF
+  отправляется в GitHub Code Scanning. Secret scanner Trivy намеренно не
+  дублирует Gitleaks.
 
 Внешние GitHub Actions закреплены полными SHA. Dependabot и OSV не заменяют
-`npm audit`: они добавляют независимую базу уязвимостей и обновления lockfile.
+`npm audit`: они добавляют независимые базы уязвимостей, проверку изменений
+dependency graph, конфигураций и обновления lockfile.
 
 ## fast-check
 
