@@ -79,14 +79,20 @@ try {
   await page.click('.archetype-row__open');
   await page.waitForSelector('.archetype-detail-page .archetype-trend');
   await page.waitForSelector('.archetype-deck-card .deck-tile');
+  await page.waitForSelector('.constructed-matchup-ledger li');
+  await page.waitForSelector('.constructed-card-stats tbody tr');
   assert.equal(await page.$eval('h1', heading => heading.textContent), 'Воровской Жрец');
   assert.equal(await page.$$eval('.archetype-trend', charts => charts.length), 3);
-  assert.equal(await page.$$eval('.archetype-deck-card', cards => cards.length), 6);
-  assert.equal(await page.$$eval('.archetype-deck-card .deck-tile', cards => cards.length), 48);
+  assert.equal(await page.$$eval('.archetype-deck-card', cards => cards.length), 7);
+  assert.equal(await page.$$eval('.archetype-deck-card .deck-tile', cards => cards.length), 56);
+  assert.equal(await page.$$eval('.constructed-matchup-ledger li', rows => rows.length), 11);
+  assert.equal(await page.$$eval('.constructed-card-stats tbody tr', rows => rows.length), 15);
   assert.ok(await page.$('.archetype-deck-card__builder[href*="/deck-builder?"]'));
+  assert.ok(await page.$('.archetype-main-build .deck-list-view'));
+  await page.click('.constructed-card-stats__more');
+  await page.waitForFunction(() => document.querySelectorAll('.constructed-card-stats tbody tr').length === 18);
   await page.click('.archetype-builds__more');
-  await page.waitForFunction(() => document.querySelectorAll('.archetype-deck-card').length === 12);
-  assert.ok(await page.$('.archetype-main-build__code code'));
+  await page.waitForFunction(() => document.querySelectorAll('.archetype-deck-card').length === 13);
   await page.screenshot({ path: `${screenshotPrefix}-detail-desktop.png`, fullPage: true });
 
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
@@ -105,18 +111,21 @@ try {
   await page.click('.archetype-row__open');
   await page.waitForSelector('.archetype-detail-page .archetype-trend');
   await page.waitForSelector('.archetype-deck-card .deck-tile');
+  await page.waitForSelector('.constructed-matchup-ledger li');
   const detailMobile = await page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     chartCount: document.querySelectorAll('.archetype-trend').length,
-    copyHeight: document.querySelector('.archetype-copy-button')?.getBoundingClientRect().height ?? 0,
+    copyHeight: document.querySelector('.archetype-main-build .deck-list-view__copy-btn')?.getBoundingClientRect().height ?? 0,
     builderHeight: document.querySelector('.archetype-deck-card__builder')?.getBoundingClientRect().height ?? 0,
     deckColumnCount: document.querySelectorAll('.archetype-deck-card').length,
+    matchupCount: document.querySelectorAll('.constructed-matchup-ledger li').length,
   }));
   assert.ok(detailMobile.overflow <= 1, `detail overflowed by ${detailMobile.overflow}px`);
   assert.equal(detailMobile.chartCount, 3);
   assert.ok(detailMobile.copyHeight >= 42);
   assert.ok(detailMobile.builderHeight >= 44);
-  assert.equal(detailMobile.deckColumnCount, 6);
+  assert.equal(detailMobile.deckColumnCount, 7);
+  assert.equal(detailMobile.matchupCount, 11);
   await page.screenshot({ path: `${screenshotPrefix}-detail-mobile.png`, fullPage: true });
 
   await page.addScriptTag({ path: axePath });
