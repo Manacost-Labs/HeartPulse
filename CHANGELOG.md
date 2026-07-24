@@ -1,5 +1,97 @@
 # HS-Arena Changelog
 
+## v1.0.28 - 2026-07-24
+
+- Made Solo/Duos and MMR switching near-instant by deduplicating requests and preloading every rating slice in the background; reused one compact composition reference so alternate MMR and Duos rows no longer lose their best-composition labels.
+
+## v1.0.27 - 2026-07-24
+
+- Replaced per-hero Battleground composition requests with one cached compact response and rebuilt the hero table layout for phones and tablets without horizontal scrolling.
+
+## v1.0.26 - 2026-07-23
+
+- Improved the Battlegrounds hero table with a redesigned tier emblem, real best-composition data, interactive placement distribution, and sorting by tier, pick rate, or average placement on desktop and mobile.
+
+## v1.0.25 - 2026-07-23
+
+- Removed the empty “All ranks” Standard meta filter and made Diamond the default slice so the page opens with populated HSGuru data.
+
+## v1.0.24 - 2026-07-23
+
+- Reworked the Battlegrounds heroes page with Solo/Duos and MMR controls, Russian/English hero search, card/table views, fully localized Duos names, and dedicated Madam Goya, Cho and Gall pages.
+
+## v1.0.22 - 2026-07-23
+
+- Replaced the deck-builder rarity filter's CSS gems with the existing Hearthstone rarity image assets already shared by the tier list and card details.
+
+## v1.0.21 - 2026-07-23
+
+- Replaced the circular mana crystals in the deck-builder catalog with compact rectangular mana buttons while preserving clear selected and keyboard-focus states.
+
+## v1.0.20 - 2026-07-23
+
+- Rebuilt deck-builder filters as Hearthstone controls: mana crystals including 10+, rarity gems, card-type segments, and compatible selectors for spell school, minion type and translated card mechanics; extended the catalog API with additive filters and facets for those attributes.
+
+## v1.0.19 - 2026-07-23
+
+- Enlarged the Standard meta deck modal again and replaced the composition/image tabs with a simultaneous split view: the generated deck image stays on the left, while the shared deck-builder composition stays visible on the right.
+
+## v1.0.18 - 2026-07-23
+
+- Prevented deck-builder card previews from sticking after clicks, scrolling, resizing or rapid card changes, and rebuilt the card catalog controls as a compact search-first command menu with a filter summary, one-click reset and bounded mobile gallery.
+
+## v1.0.17 - 2026-07-23
+
+- Enlarged and simplified the Standard meta deck modal: the raw deck code is hidden, the copy action sits below a centered preview, and the composition tab now reuses the live DeckListView component from the deck builder.
+
+## v1.0.16 - 2026-07-23
+
+- Added frame-safe spacing to every deck-builder class plaque so long class names and both Standard/Wild actions remain fully visible inside the gold frame on desktop, tablet and mobile.
+
+## v1.0.15 - 2026-07-23
+
+- Reduced the visible `<CODE/> → Hearthstone` deck image substantially in the Standard meta chart, cards and table while retaining a 44px interactive target where space is tight.
+
+## v1.0.14 - 2026-07-23
+
+- Replaced every Standard meta deck text action with the supplied `<CODE/> → Hearthstone` image while preserving the existing accessible button behavior and responsive chart/table/card sizing.
+
+## v1.0.13 - 2026-07-23
+
+- Added visible spacing between deck-builder class plaques and simplified the format actions to full-height Standard/Wild buttons that remain unobstructed by the gold frame on desktop and mobile.
+
+## v1.0.11 - 2026-07-23
+
+- Audited every HSGuru Standard rank across all periods and minimum-game filters, redesigned the deck action as a gold-edged tavern button with clearer copy and accessible responsive states, and corrected the guided-tour spotlight for the expanded rank selector.
+
+## v1.0.10 - 2026-07-23
+
+- Replaced the deck builder's light interior with red tavern cloth, restored parchment only to the outer page canvas and rebuilt every class choice as an in-game profile plaque with a real crest and asset-backed deck frame.
+
+## v1.0.8 - 2026-07-23
+
+- Rebuilt the administrator deck builder as a parchment workshop: real Hearthstone class crests, direct Standard/Wild actions, a clearer import flow, sticky deck ledger, paper card catalog, responsive two-column mobile class picker and accessible high-contrast controls.
+
+## v1.0.7 - 2026-07-23
+
+- Expanded the HSGuru rank selector to the requested eight slices: all ranks, Diamond, Diamond 1–4, Diamond–Legend, Legend, Top-1000, Top-500 and Top-100. The page now opens on the populated all-ranks slice.
+
+## v1.0.6 - 2026-07-23
+
+- Added the HSGuru `Diamond–Legend` rank slice to the Standard meta filter under the Russian label «Алмаз — Легенда».
+
+## v1.0.5 - 2026-07-23
+
+- Restored the administrator-only deck builder at `/deck-builder`: class/format selection, card catalog filters, deck-code import/export and archetype resolution are active again, while navigation, page state and mutation endpoints remain restricted to administrators.
+
+## v1.0.4 - 2026-07-23
+
+- Fixed sparse meta slices: valid responses with fewer than five archetypes now show the empty/limited result instead of a false server-unavailable error.
+
+## v1.0.3 - 2026-07-23
+
+- Renamed Standard meta rank «Топ-1000 легенда» to «Топ-1000» and ordered top ranks as 5000 → 1000 → 500 → 100.
+
 ## v1.0.2 - 2026-07-23
 
 - Renamed Standard meta rank «Высшая легенда» to «Топ-1000 легенда», made it the default rank, and lowered the default minimum-games filter to 100.

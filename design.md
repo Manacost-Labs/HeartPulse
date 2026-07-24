@@ -58,7 +58,7 @@ spacing:
 
 ## Product Direction
 
-HS-Arena is a Hearthstone statistics product presented as a readable game compendium. The interface uses real Hearthstone materials without copying the game client: continuous parchment for content, a red textured navigation rail, wood for separators and frames, and one restrained accent per game mode.
+HS-Arena is a Hearthstone statistics product presented as a readable game compendium. The interface uses real Hearthstone materials without copying the game client: continuous parchment for content, a red textured navigation rail, wood for separators and frames, and one restrained accent per game mode. Cold white, milk-white and blue-white page backgrounds are never valid: every exposed page surface must be parchment, wood, red tavern cloth or the assigned game-mode material.
 
 The design must feel authored and useful, not like a collection of unrelated rounded dashboard cards.
 
@@ -69,6 +69,7 @@ Primary goals:
 - Real card, class and hero assets carry most of the visual energy.
 - Decorative assets frame information; they never reduce legibility or steal interaction space.
 - Existing filters, lightboxes, tier grids, drag/drop builders, exports and media behavior remain intact during visual passes.
+- Deck-builder pages keep parchment only on the outer page canvas. Their framed work surface is red tavern cloth, and class choices use real crests inside profile-like deck frames rather than light dashboard cards.
 
 ## Material And Color Tokens
 

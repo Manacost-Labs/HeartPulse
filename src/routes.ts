@@ -64,6 +64,15 @@ export const TABS = [
     adminOnly: true,
   },
   {
+    id: 'archetypes',
+    label: 'Архетипы',
+    icon: ListTree,
+    slug: '/archetypes',
+    group: 'misc',
+    entitlement: null,
+    adminOnly: true,
+  },
+  {
     id: 'standard-matchups', label: 'Матчапы', icon: Swords, slug: '/standard/matchups', group: 'standard', entitlement: 'standard',
   },
   {

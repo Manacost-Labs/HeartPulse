@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChartScatter, ChevronDown, ChevronUp, MousePointer2, Sparkles } from 'lucide-react';
+import { ChartScatter, ChevronDown, ChevronUp, MousePointer2 } from 'lucide-react';
 import './StandardMetaChart.css';
 
 export type StandardMetaChartItem = {
@@ -204,7 +204,20 @@ export default function StandardMetaChart({ items, formatLabel, rankLabel, onOpe
                 <div><dt>Популярность</dt><dd>{formatPercent(selectedItem.popularity)}</dd></div>
                 <div><dt>Игры</dt><dd>{selectedItem.games?.toLocaleString('ru-RU') ?? '—'}</dd></div>
               </dl>
-              <button type="button" onClick={() => onOpenDeck(selectedItem.id)}><Sparkles size={17} /> Показать колоду</button>
+              <button
+                type="button"
+                className="standard-meta-chart__deck-action"
+                onClick={() => onOpenDeck(selectedItem.id)}
+                aria-label={`Открыть колоду: ${selectedItem.archetypeLabel}`}
+              >
+                <img
+                  src="/assets/ui/deck-code-button.png"
+                  width="203"
+                  height="81"
+                  alt=""
+                  decoding="async"
+                />
+              </button>
             </div>
           )}
         </div>

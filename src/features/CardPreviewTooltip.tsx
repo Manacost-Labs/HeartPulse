@@ -20,9 +20,14 @@ export function fallbackCardRender(id: string): string {
 export default function CardPreviewTooltip({ preview }: { preview: CardPreviewTarget }) {
   const fallback = fallbackCardRender(preview.id);
   const [source, setSource] = useState(preview.imageUrl || fallback);
+  const [imageFailed, setImageFailed] = useState(false);
 
-  useEffect(() => setSource(preview.imageUrl || fallback), [fallback, preview.imageUrl]);
+  useEffect(() => {
+    setSource(preview.imageUrl || fallback);
+    setImageFailed(false);
+  }, [fallback, preview.imageUrl]);
   if (typeof document === 'undefined') return null;
+  if (imageFailed) return null;
 
   const canOpenRight = preview.rect.right + TOOLTIP_GAP + TOOLTIP_WIDTH <= window.innerWidth - TOOLTIP_GAP;
   const left = canOpenRight
@@ -46,6 +51,7 @@ export default function CardPreviewTooltip({ preview }: { preview: CardPreviewTa
         alt={preview.name}
         onError={() => {
           if (source !== fallback) setSource(fallback);
+          else setImageFailed(true);
         }}
       />
     </aside>,

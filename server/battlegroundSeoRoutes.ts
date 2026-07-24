@@ -25,6 +25,8 @@ export type BattlegroundHeroSeoRouterDependencies = {
 };
 
 const CATALOG_URL = 'http://127.0.0.1:3108/api/bg/heroes';
+const DUOS_CATALOG_URL = `${CATALOG_URL}?mode=duos`;
+const HERO_LIBRARY_URL = 'https://db.kolodahs.ru/api/v1/heroes';
 const CANONICAL_ORIGIN = 'https://arena.hs-manacost.ru';
 const INDEX_ROBOTS = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
 const NOINDEX_ROBOTS = 'noindex, nofollow';
@@ -116,7 +118,7 @@ function projectHero(value: unknown): PublicBattlegroundHero | null {
 function parseCatalog(payload: unknown): PublicBattlegroundHero[] {
   const root = record(payload);
   if (root.ok === false) throw new Error('Battleground hero catalog reported an error');
-  const heroes = record(root.view).heroes;
+  const heroes = Array.isArray(root.heroes) ? root.heroes : record(root.view).heroes;
   if (!Array.isArray(heroes) || heroes.length === 0) {
     throw new Error('Invalid or empty battleground hero catalog');
   }
@@ -131,6 +133,45 @@ function parseCatalog(payload: unknown): PublicBattlegroundHero[] {
     throw new Error('Battleground hero catalog contains duplicate identifiers');
   }
   return result;
+}
+
+function projectLibraryHero(value: unknown): PublicBattlegroundHero | null {
+  const hero = record(value);
+  if (!isPositiveDbfId(hero.dbf)) return null;
+  const names = record(hero.name);
+  const images = record(hero.images);
+  const power = record(hero.hero_power);
+  const powerCard = record(power.card);
+  const name = plainCatalogText(names.ru ?? names.en, 180);
+  if (!name) return null;
+  const powerName = plainCatalogText(powerCard.name, 180);
+  return {
+    dbfId: Number(hero.dbf),
+    cardId: text(hero.card_id, 100),
+    name,
+    image: text(images.hero, 1_000),
+    heroPower: powerName
+      ? {
+          name: powerName,
+          text: plainCatalogText(powerCard.text, 500),
+          image: text(powerCard.image, 1_000),
+        }
+      : null,
+  };
+}
+
+function mergeLibraryHero(hero: PublicBattlegroundHero, payload: unknown): PublicBattlegroundHero {
+  const root = record(payload);
+  const rows = Array.isArray(root.data) ? root.data : [];
+  const localized = rows.map(projectLibraryHero).find(candidate => candidate?.dbfId === hero.dbfId);
+  if (!localized) return hero;
+  return {
+    dbfId: hero.dbfId,
+    cardId: localized.cardId || hero.cardId,
+    name: localized.name || hero.name,
+    image: localized.image || hero.image,
+    heroPower: localized.heroPower || hero.heroPower,
+  };
 }
 
 function jsonLd(value: unknown): string {
@@ -364,8 +405,8 @@ export function createBattlegroundHeroSeoRouter(
 
     const controller = new AbortController();
     try {
-      const heroes = await withDeadline((async () => {
-        const upstream = await fetchImpl(CATALOG_URL, {
+      const fetchCatalog = async (url: string): Promise<PublicBattlegroundHero[]> => {
+        const upstream = await fetchImpl(url, {
           signal: controller.signal,
           headers: {
             Accept: 'application/json',
@@ -374,8 +415,33 @@ export function createBattlegroundHeroSeoRouter(
         });
         if (!upstream.ok) throw new Error(`Battleground hero catalog HTTP ${upstream.status}`);
         return parseCatalog(await upstream.json());
-      })(), catalogTimeoutMs, controller);
-      const hero = heroes.find(candidate => String(candidate.dbfId) === dbfId);
+      };
+      const soloHeroes = await withDeadline(fetchCatalog(CATALOG_URL), catalogTimeoutMs, controller);
+      let hero = soloHeroes.find(candidate => String(candidate.dbfId) === dbfId);
+      if (!hero) {
+        const duoHeroes = await withDeadline(fetchCatalog(DUOS_CATALOG_URL), catalogTimeoutMs, controller);
+        hero = duoHeroes.find(candidate => String(candidate.dbfId) === dbfId);
+        if (hero) {
+          try {
+            const libraryUrl = new URL(HERO_LIBRARY_URL);
+            libraryUrl.searchParams.set('dbf', dbfId);
+            const libraryResponse = await withDeadline(fetchImpl(libraryUrl, {
+              signal: controller.signal,
+              headers: {
+                Accept: 'application/json',
+                'User-Agent': 'ManacostArena/BattlegroundHeroSEO',
+              },
+            }), catalogTimeoutMs, controller);
+            if (libraryResponse.ok) hero = mergeLibraryHero(hero, await libraryResponse.json());
+          } catch (libraryError) {
+            try {
+              dependencies.onError?.(libraryError);
+            } catch {
+              // Optional localization diagnostics must not replace a valid hero page.
+            }
+          }
+        }
+      }
       if (!hero) {
         return sendHtml(response, 404, NOINDEX_ROBOTS, renderNoindexDocument({
           title: 'Герой не найден | Manacost Stats',

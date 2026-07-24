@@ -170,6 +170,13 @@
       "title": "Конструктор колоды | Manacost Stats",
       "description": "Административный конструктор колод Hearthstone в русском интерфейсе: код колоды, класс, формат и подбор карт.",
       "sitemap": false
+    },
+    "/archetypes": {
+      "policyRouteId": "archetypes",
+      "navigationRouteId": "archetypes",
+      "title": "Архетипы | Manacost Stats",
+      "description": "Административный каталог архетипов HSReplay с русскими переводами Manacost.",
+      "sitemap": false
     }
   }
 }

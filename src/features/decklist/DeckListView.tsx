@@ -79,7 +79,7 @@ function DeckTile({
     ['--deck-tile-rarity' as string]: rarity,
     ['--deck-tile-fill' as string]: fill,
     ['--deck-tile-border' as string]: 'rgb(32, 32, 32)',
-    ['--deck-tile-art' as string]: card.image ? `url(${card.image})` : 'none',
+    ['--deck-tile-art' as string]: card.image ? `url(${JSON.stringify(card.image)})` : 'none',
   };
   const className = `deck-tile deck-tile--${rarityKey(card.rarity)}${indented ? ' is-sideboard' : ''}`;
   const countLabel = card.elite ? '★' : String(card.count);

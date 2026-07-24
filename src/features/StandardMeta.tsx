@@ -10,14 +10,12 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
-  Sparkles,
   Swords,
   TableProperties,
   Trophy,
   X,
 } from 'lucide-react';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
-import HsReplayDeckList, { type HsReplayDeckCard } from './HsReplayDeckList';
 import { AsyncSurfaceState, RecoverableSurfaceBoundary } from './recovery/RecoverableSurface';
 import { datasetContractErrorMessage } from '../../shared/datasetEnvelope';
 import {
@@ -25,6 +23,7 @@ import {
   parseStandardMetaApiResponse,
   type StandardMetaEnvelope,
 } from '../../shared/standardMetaContract';
+import DeckListView, { type DeckListCard } from './decklist/DeckListView';
 import '../route-parchment.css';
 import './recovery/RecoverableSurface.css';
 import './StandardMeta.css';
@@ -32,7 +31,8 @@ import './StandardMeta.css';
 const StandardMetaChart = React.lazy(() => import('./StandardMetaChart'));
 
 type MetaFormat = 'standard' | 'wild';
-type MetaRank = 'all' | 'legend' | 'diamond' | 'top_5k' | 'top_500' | 'top_100' | 'top_legend';
+type MetaRank = 'all' | 'diamond_all' | 'diamond' | 'diamond_legend' | 'legend'
+  | 'top_5k' | 'top_500' | 'top_100' | 'top_legend';
 type MetaPeriod = 'past_6_hours' | 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks';
 type MetaCoin = 'any_player';
 type MetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
@@ -85,7 +85,7 @@ type Recommendation = {
   classKey: MetaClass;
   matchedArchetype: string;
   matchMethod: 'exact' | 'alias';
-  deckCards: HsReplayDeckCard[];
+  deckCards: DeckListCard[];
 };
 
 type Preview = {
@@ -118,13 +118,13 @@ const FORMATS: Array<{ id: MetaFormat; label: string; description: string }> = [
 ];
 
 const RANKS: Array<{ id: MetaRank; label: string }> = [
-  { id: 'all', label: 'Все ранги' },
+  { id: 'diamond_all', label: 'Алмаз' },
+  { id: 'diamond', label: 'Алмаз 1–4' },
+  { id: 'diamond_legend', label: 'Алмаз — Легенда' },
   { id: 'legend', label: 'Легенда' },
-  { id: 'diamond', label: 'Алмаз 4-1' },
-  { id: 'top_5k', label: 'Топ-5000' },
+  { id: 'top_legend', label: 'Топ-1000' },
   { id: 'top_500', label: 'Топ-500' },
   { id: 'top_100', label: 'Топ-100' },
-  { id: 'top_legend', label: 'Топ-1000 легенда' },
 ];
 
 const PERIODS: Array<{ id: MetaPeriod; label: string }> = [
@@ -136,12 +136,25 @@ const PERIODS: Array<{ id: MetaPeriod; label: string }> = [
 ];
 
 const MIN_GAMES: MetaMinGames[] = [100, 250, 500, 1000, 2500, 5000];
+const DECK_CLASS_COLORS: Record<MetaClass, string> = {
+  deathknight: '#43596b',
+  demonhunter: '#17613d',
+  druid: '#9a541d',
+  hunter: '#3f7821',
+  mage: '#39779b',
+  paladin: '#9b771c',
+  priest: '#727984',
+  rogue: '#4a5058',
+  shaman: '#28568b',
+  warlock: '#68417d',
+  warrior: '#832b24',
+};
 
 const EMPTY_DATA: MetaPayload = {
   format: 'standard',
   formatLabel: 'Стандарт',
-  rank: 'top_legend',
-  rankLabel: 'Топ-1000 легенда',
+  rank: 'diamond_all',
+  rankLabel: 'Алмаз',
   period: 'past_6_hours',
   coin: 'any_player',
   minGames: 100,
@@ -192,10 +205,27 @@ function WinrateMedallion({ value }: { value: number | null }) {
 
 export function DeckModal({ state, onClose, onRenderPreview }: { state: DeckModalState; onClose: () => void; onRenderPreview: () => void }) {
   const closeRef = useRef<HTMLButtonElement | null>(null);
+  const autoPreviewKeyRef = useRef<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [presentation, setPresentation] = useState<'list' | 'image'>('list');
+  const deckCards = state.recommendation?.deckCards ?? [];
+  const deckTotal = deckCards.reduce((sum, card) => sum + card.count, 0);
+  const deckLimit = deckTotal > 30 ? 40 : 30;
+  const deckClass = state.recommendation?.classKey ?? state.item.classKey;
+  const deckClassColor = deckClass ? DECK_CLASS_COLORS[deckClass] : '#4b5560';
 
-  useEffect(() => setPresentation('list'), [state.recommendation?.deckCode]);
+  useEffect(() => {
+    const deckCode = state.recommendation?.deckCode ?? null;
+    if (deckCode && autoPreviewKeyRef.current !== deckCode && !state.preview && !state.loadingPreview && !state.previewError) {
+      autoPreviewKeyRef.current = deckCode;
+      onRenderPreview();
+    }
+  }, [
+    onRenderPreview,
+    state.loadingPreview,
+    state.preview,
+    state.previewError,
+    state.recommendation?.deckCode,
+  ]);
 
   const copyDeck = async () => {
     if (!state.recommendation?.deckCode) return;
@@ -262,60 +292,64 @@ export function DeckModal({ state, onClose, onRenderPreview }: { state: DeckModa
 
         {state.recommendation && (
           <div className="standard-meta-modal__content">
-            <div className="standard-meta-modal__presentation" aria-label="Представление колоды">
-              <button type="button" aria-pressed={presentation === 'list'} onClick={() => setPresentation('list')}><TableProperties size={16} /> Состав</button>
-              <button type="button" aria-pressed={presentation === 'image'} onClick={() => { setPresentation('image'); if (!state.preview && !state.loadingPreview) onRenderPreview(); }}><Maximize2 size={16} /> Изображение</button>
+            <div className="standard-meta-modal__deck-meta">
+              {state.recommendation.streamer && <span><Trophy size={15} /> {state.recommendation.streamer}</span>}
+              {state.recommendation.sampleGames !== null && <span>{state.recommendation.sampleGames.toLocaleString('ru-RU')} игр</span>}
+              {state.recommendation.winrate !== null && <span>{formatNumber(state.recommendation.winrate, '%')} WR</span>}
             </div>
-            <div className="standard-meta-modal__image-stage">
-              {presentation === 'list' ? (
-                <HsReplayDeckList cards={state.recommendation.deckCards || []} label={`Состав колоды ${state.item.archetypeLabel}`} />
-              ) : state.preview?.ready && state.preview.imageUrl ? (
-                <a href={state.preview.imageUrl} target="_blank" rel="noreferrer" className="standard-meta-modal__image-link" aria-label="Открыть изображение колоды в полном размере">
-                  <img src={state.preview.imageUrl} alt={`Колода ${state.item.archetypeLabel}`} decoding="async" />
-                  <span><Maximize2 size={16} /> Полный размер</span>
-                </a>
-              ) : state.loadingPreview || (state.preview && !state.preview.ready && state.preview.state !== 'error') ? (
-                <div className="standard-meta-modal__status" role="status">
-                  <RefreshCw className="standard-meta__spinner" size={30} />
-                  <strong>DeckView рисует колоду</strong>
-                  <span>Окно обновится автоматически.</span>
+            <div className="standard-meta-modal__workspace">
+              <section className="standard-meta-modal__visual-pane" aria-label="Изображение колоды">
+                <div className="standard-meta-modal__image-stage">
+                  {state.preview?.ready && state.preview.imageUrl ? (
+                    <a href={state.preview.imageUrl} target="_blank" rel="noreferrer" className="standard-meta-modal__image-link" aria-label="Открыть изображение колоды в полном размере">
+                      <img src={state.preview.imageUrl} alt={`Колода ${state.item.archetypeLabel}`} decoding="async" />
+                      <span><Maximize2 size={16} /> Полный размер</span>
+                    </a>
+                  ) : state.loadingPreview || (state.preview && !state.preview.ready && state.preview.state !== 'error') ? (
+                    <div className="standard-meta-modal__status" role="status">
+                      <RefreshCw className="standard-meta__spinner" size={30} />
+                      <strong>DeckView рисует колоду</strong>
+                      <span>Окно обновится автоматически.</span>
+                    </div>
+                  ) : (
+                    <div className="standard-meta-modal__status standard-meta-modal__status--warning">
+                      <AlertTriangle size={30} />
+                      <strong>Изображение пока недоступно</strong>
+                      <span>{state.previewError || state.preview?.error || 'Код колоды уже можно скопировать.'}</span>
+                      <button type="button" onClick={onRenderPreview}><RefreshCw size={16} /> Повторить</button>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="standard-meta-modal__status standard-meta-modal__status--warning">
-                  <AlertTriangle size={30} />
-                  <strong>Изображение пока недоступно</strong>
-                  <span>{state.previewError || state.preview?.error || 'Код колоды уже можно скопировать.'}</span>
-                  <button type="button" onClick={onRenderPreview}><RefreshCw size={16} /> Повторить</button>
+
+                <div className="standard-meta-modal__actions">
+                  <button
+                    type="button"
+                    className={`standard-meta-modal__copy-button${copied ? ' standard-meta-modal__copy-button--copied' : ''}`}
+                    onClick={copyDeck}
+                    aria-label={copied ? 'Код колоды скопирован' : 'Скопировать код колоды'}
+                  >
+                    {copied ? <ShieldCheck size={19} aria-hidden="true" /> : <Copy size={19} aria-hidden="true" />}
+                    <span className="standard-meta-modal__copy-feedback" aria-live="polite">
+                      {copied ? 'Код скопирован' : 'Скопировать код'}
+                    </span>
+                  </button>
                 </div>
-              )}
+              </section>
+
+              <section className="standard-meta-modal__composition-pane" aria-label="Состав колоды" tabIndex={0}>
+                <div className="standard-meta-modal__builder-deck">
+                  <DeckListView
+                    cards={deckCards}
+                    title={state.item.archetypeLabel}
+                    subtitle="Состав из конструктора колод"
+                    headerColor={deckClassColor}
+                    totalCards={deckTotal}
+                    deckSizeLimit={deckLimit}
+                    emptyText="Состав колоды обновляется."
+                  />
+                </div>
+              </section>
             </div>
-
-            <aside className="standard-meta-modal__details">
-              <div className="standard-meta-modal__deck-meta">
-                {state.recommendation.streamer && <span><Trophy size={15} /> {state.recommendation.streamer}</span>}
-                {state.recommendation.sampleGames !== null && <span>{state.recommendation.sampleGames.toLocaleString('ru-RU')} игр</span>}
-                {state.recommendation.winrate !== null && <span>{formatNumber(state.recommendation.winrate, '%')} WR</span>}
-              </div>
-
-              <div className="standard-meta-modal__code-block">
-                <span>Код колоды</span>
-                <code>{state.recommendation.deckCode}</code>
-              </div>
-
-              <div className="standard-meta-modal__actions">
-                <button
-                  type="button"
-                  className={`standard-meta-modal__copy-button${copied ? ' standard-meta-modal__copy-button--copied' : ''}`}
-                  onClick={copyDeck}
-                  aria-label={copied ? 'Код колоды скопирован' : 'Скопировать код колоды'}
-                >
-                  {copied ? <ShieldCheck size={19} aria-hidden="true" /> : <Copy size={19} aria-hidden="true" />}
-                  <span className="standard-meta-modal__copy-feedback" aria-live="polite">
-                    {copied ? 'Код скопирован' : 'Скопировать код'}
-                  </span>
-                </button>
-              </div>
-            </aside>
           </div>
         )}
     </ModalSurface>
@@ -324,7 +358,7 @@ export function DeckModal({ state, onClose, onRenderPreview }: { state: DeckModa
 
 function StandardMetaContent() {
   const [format, setFormat] = useState<MetaFormat>('standard');
-  const [rank, setRank] = useState<MetaRank>('top_legend');
+  const [rank, setRank] = useState<MetaRank>('diamond_all');
   const [period, setPeriod] = useState<MetaPeriod>('past_6_hours');
   const coin: MetaCoin = 'any_player';
   const [minGames, setMinGames] = useState<MetaMinGames>(100);
@@ -606,7 +640,7 @@ function StandardMetaContent() {
         />
       )}
 
-      <section className="standard-meta__controls" aria-label="Фильтры меты" data-tour-id="meta-controls">
+      <section className="standard-meta__controls" aria-label="Фильтры меты">
         <div className="standard-meta__panel-heading">
           <span aria-hidden="true"><Swords size={18} /></span>
           <div><strong>Управление срезом</strong><small>Формат, рейтинг, период и минимальная выборка</small></div>
@@ -623,7 +657,7 @@ function StandardMetaContent() {
         </div>
         <div>
           <span className="standard-meta__control-label">Рейтинг</span>
-          <div className="standard-meta__rank-tabs">
+          <div className="standard-meta__rank-tabs" data-tour-id="meta-controls">
             {RANKS.map(option => (
               <button key={option.id} type="button" aria-pressed={rank === option.id} onClick={() => setRank(option.id)}>{option.label}</button>
             ))}
@@ -729,14 +763,22 @@ function StandardMetaContent() {
                   </div>
                   <button
                     type="button"
-                    className="standard-meta__primary-button standard-meta-card__deck-button"
+                    className="standard-meta__primary-button standard-meta__deck-action standard-meta-card__deck-button"
                     data-tour-id={index === 0 ? 'meta-deck-action' : undefined}
                     onPointerEnter={() => scheduleDeckPrefetch(item)}
                     onPointerLeave={() => cancelDeckPrefetch(item)}
                     onPointerDown={event => { if (event.button === 0) prefetchDeck(item); }}
                     onClick={() => void openDeck(item)}
+                    aria-label={`Открыть колоду: ${item.archetypeLabel}`}
                   >
-                    <Sparkles size={18} /> Показать колоду
+                    <img
+                      className="standard-meta__deck-action-image"
+                      src="/assets/ui/deck-code-button.png"
+                      width="203"
+                      height="81"
+                      alt=""
+                      decoding="async"
+                    />
                   </button>
                 </article>
               ))}
@@ -780,7 +822,7 @@ function StandardMetaContent() {
                       <td>
                         <button
                           type="button"
-                          className="standard-meta__primary-button standard-meta-table__deck-button"
+                          className="standard-meta__primary-button standard-meta__deck-action standard-meta__deck-action--compact standard-meta-table__deck-button"
                           data-tour-id={index === 0 ? 'meta-deck-action' : undefined}
                           onPointerEnter={() => scheduleDeckPrefetch(item)}
                           onPointerLeave={() => cancelDeckPrefetch(item)}
@@ -788,7 +830,15 @@ function StandardMetaContent() {
                           onClick={() => void openDeck(item)}
                           aria-label={`Показать колоду: ${item.archetypeLabel}`}
                         >
-                          <Sparkles size={16} /> Колода
+                          <img
+                            className="standard-meta__deck-action-image"
+                            src="/assets/ui/deck-code-button.png"
+                            width="203"
+                            height="81"
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                          />
                         </button>
                       </td>
                     </tr>

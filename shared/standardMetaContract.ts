@@ -9,7 +9,8 @@ export const STANDARD_META_DATASET = 'standard-meta';
 export const STANDARD_META_MEDIA_TYPE = 'application/vnd.manacost.standard-meta.v1+json';
 
 export type StandardMetaFormat = 'standard' | 'wild';
-export type StandardMetaRank = 'all' | 'legend' | 'diamond' | 'top_5k' | 'top_500' | 'top_100' | 'top_legend';
+export type StandardMetaRank = 'all' | 'diamond_all' | 'diamond' | 'diamond_legend' | 'legend'
+  | 'top_5k' | 'top_500' | 'top_100' | 'top_legend';
 export type StandardMetaPeriod = 'past_6_hours' | 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks';
 export type StandardMetaCoin = 'any_player';
 export type StandardMetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
@@ -49,7 +50,10 @@ export type StandardMetaData = {
 export type StandardMetaEnvelope = DatasetEnvelope<StandardMetaData>;
 
 const FORMATS = new Set<StandardMetaFormat>(['standard', 'wild']);
-const RANKS = new Set<StandardMetaRank>(['all', 'legend', 'diamond', 'top_5k', 'top_500', 'top_100', 'top_legend']);
+const RANKS = new Set<StandardMetaRank>([
+  'all', 'diamond_all', 'diamond', 'diamond_legend', 'legend',
+  'top_5k', 'top_500', 'top_100', 'top_legend',
+]);
 const PERIODS = new Set<StandardMetaPeriod>(['past_6_hours', 'past_day', 'past_3_days', 'past_week', 'past_2_weeks']);
 const COINS = new Set<StandardMetaCoin>(['any_player']);
 const MIN_GAMES = new Set<StandardMetaMinGames>([100, 250, 500, 1000, 2500, 5000]);
@@ -157,7 +161,10 @@ export function assessStandardMetaData(data: StandardMetaData, mode: DatasetMode
   partial: boolean;
   quality: StandardMetaEnvelope['quality'];
 } {
-  const minimumItems = data.minGames > 100 ? 0 : mode === 'early' ? 1 : 5;
+  // Narrow rank/period combinations can legitimately contain no archetypes.
+  // Keep the empty result visible so the client can render its dedicated
+  // empty state instead of turning a successful upstream response into 502.
+  const minimumItems = mode === 'early' ? 1 : 0;
   if (data.items.length < minimumItems) invalid(`${mode} snapshot has only ${data.items.length} items`);
   if (!data.updatedAt) invalid('published snapshot has no source timestamp');
 

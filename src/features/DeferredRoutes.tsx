@@ -174,6 +174,12 @@ interface LegendaryGroup {
   pickRate?: number | null;
   offerRate?: number | null;
   score?: number | null;
+  byClass?: Record<string, {
+    winRate: number | null;
+    pickRate: number | null;
+    offerRate: number | null;
+    score: number | null;
+  }>;
   classKey: string;
 }
 
@@ -2224,13 +2230,17 @@ const LEGEND_CLASSES: Array<{ id: string; name: string; color: string }> = [
   { id: 'warrior',       name: 'Воин',               color: '#7a1e1e' },
 ];
 
-function legendarySortValue(group: LegendaryGroup, key: LegendarySortKey): number {
-  const raw =
-    key === 'winRate' ? group.winRate
-    : key === 'pickRate' ? (group.pickRate ?? group.keyCard.pickRate)
-    : key === 'offerRate' ? (group.offerRate ?? group.keyCard.offerRate)
-    : (group.score ?? group.keyCard.arenaScore);
-  return typeof raw === 'number' && Number.isFinite(raw) ? raw : Number.NEGATIVE_INFINITY;
+function legendaryGroupStats(group: LegendaryGroup, activeClass = 'all') {
+  const classStats =
+    activeClass !== 'all'
+      ? group.byClass?.[activeClass]
+      : (group.byClass?.all ?? null);
+  return {
+    winRate: classStats?.winRate ?? group.winRate,
+    pickRate: classStats?.pickRate ?? group.pickRate ?? group.keyCard.pickRate ?? null,
+    offerRate: classStats?.offerRate ?? group.offerRate ?? group.keyCard.offerRate ?? null,
+    score: classStats?.score ?? group.score ?? group.keyCard.arenaScore ?? null,
+  };
 }
 
 function formatLegendaryStat(value: number | null | undefined, kind: 'pct' | 'score'): string {
@@ -2239,13 +2249,14 @@ function formatLegendaryStat(value: number | null | undefined, kind: 'pct' | 'sc
   return `${value.toFixed(1)}%`;
 }
 
-function legendaryGroupStats(group: LegendaryGroup) {
-  return {
-    winRate: group.winRate,
-    pickRate: group.pickRate ?? group.keyCard.pickRate ?? null,
-    offerRate: group.offerRate ?? group.keyCard.offerRate ?? null,
-    score: group.score ?? group.keyCard.arenaScore ?? null,
-  };
+function legendarySortValue(group: LegendaryGroup, key: LegendarySortKey, activeClass = 'all'): number {
+  const stats = legendaryGroupStats(group, activeClass);
+  const raw =
+    key === 'winRate' ? stats.winRate
+    : key === 'pickRate' ? stats.pickRate
+    : key === 'offerRate' ? stats.offerRate
+    : stats.score;
+  return typeof raw === 'number' && Number.isFinite(raw) ? raw : Number.NEGATIVE_INFINITY;
 }
 
 export function Legendaries({ data, loading, error, legendarySource, onLegendarySourceChange, switchingLegendarySource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription }: {
@@ -2295,9 +2306,13 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
     });
     const dir = sortDir === 'desc' ? -1 : 1;
     return [...base].sort((a, b) => {
-      const av = legendarySortValue(a, sortBy);
-      const bv = legendarySortValue(b, sortBy);
-      if (av === bv) return (b.winRate ?? 0) - (a.winRate ?? 0);
+      const av = legendarySortValue(a, sortBy, activeClass);
+      const bv = legendarySortValue(b, sortBy, activeClass);
+      if (av === bv) {
+        const aw = legendaryGroupStats(a, activeClass).winRate ?? 0;
+        const bw = legendaryGroupStats(b, activeClass).winRate ?? 0;
+        return bw - aw;
+      }
       if (av === Number.NEGATIVE_INFINITY) return 1;
       if (bv === Number.NEGATIVE_INFINITY) return -1;
       return av > bv ? dir : -dir;
@@ -2545,7 +2560,7 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
       ) : (
         <div className="legendary-groups-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((group, idx) => {
-            const stats = legendaryGroupStats(group);
+            const stats = legendaryGroupStats(group, activeClass);
             const footer = [
               { label: 'Винрейт', value: formatLegendaryStat(stats.winRate, 'pct'), tone: metricTone(stats.winRate, 'pct') },
               { label: 'Частота выбора', value: formatLegendaryStat(stats.pickRate, 'pct'), tone: metricTone(stats.pickRate, 'pct') },
@@ -2575,9 +2590,9 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
                 <span className="font-hs text-[#3d2208] text-base text-center leading-tight">{group.keyCard.name}</span>
                 <span
                   className="legendary-winrate-badge px-3 py-1 rounded-full text-white text-xs font-bold shadow-md"
-                  style={{ background: winRateBadgeColor(group.winRate) }}
+                  style={{ background: winRateBadgeColor(stats.winRate) }}
                 >
-                  {group.winRate != null ? `${group.winRate.toFixed(1)}%` : '—'} винрейт
+                  {stats.winRate != null ? `${stats.winRate.toFixed(1)}%` : '—'} винрейт
                 </span>
               </div>
 

@@ -58,6 +58,7 @@
     "test:standard-meta-contract": "tsx tests/standard-meta-contract.test.ts",
     "test:hsguru-deck-info": "tsx tests/hsguru-deck-info.test.ts",
     "test:deckview-preview": "tsx tests/deckview-preview.test.ts",
+    "test:deck-builder": "tsx tests/deck-builder-resolve.test.ts",
     "test:hsreplay-deck-mobile": "node tests/hsreplay-deck-mobile-browser.test.mjs",
     "test:deck-card-data": "tsx tests/deck-card-data.test.ts",
     "test:vicious-gold-builds": "tsx tests/vicious-gold-builds.test.ts",

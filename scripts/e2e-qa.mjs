@@ -3647,7 +3647,7 @@ for (const [device, viewport] of [
     adminState.standardMetaContractFailureOnce = true;
     await page.evaluate(() => {
       const buttons = [...document.querySelectorAll('.standard-meta__rank-tabs button')];
-      const diamond = buttons.find(button => button.textContent?.includes('Алмаз'));
+      const diamond = buttons.find(button => button.textContent?.trim() === 'Алмаз 1–4');
       if (diamond instanceof HTMLElement) diamond.click();
     });
     await page.waitForSelector('.standard-meta [data-recovery-state="error"]', { timeout: 20_000 });
@@ -3682,6 +3682,7 @@ for (const [device, viewport] of [
       const title = document.querySelector('.standard-meta__masthead h1');
       const firstCard = document.querySelector('.standard-meta-card');
       const ornament = document.querySelector('.standard-meta__hero-ornament');
+      const rankButtons = [...document.querySelectorAll('.standard-meta__rank-tabs button')];
       const mastheadRect = masthead?.getBoundingClientRect();
       const statsStyle = stats ? getComputedStyle(stats) : null;
       const controlsStyle = controls ? getComputedStyle(controls) : null;
@@ -3693,6 +3694,8 @@ for (const [device, viewport] of [
         statsCount: stats?.children.length ?? 0,
         controlsVisible: Boolean(controls && controls.getBoundingClientRect().height > 0),
         viewControlsPresent: Boolean(cardsView && tableView),
+        rankLabels: rankButtons.map(button => button.textContent?.trim() || ''),
+        allRanksPresent: rankButtons.some(button => button.textContent?.trim() === 'Все ранги'),
         searchFontSize: searchInput ? parseFloat(getComputedStyle(searchInput).fontSize) : 0,
         viewTargetHeight: tableView?.getBoundingClientRect().height ?? 0,
         sourcePanelPresent: Boolean(document.querySelector('.standard-meta__source-line')),
@@ -3707,6 +3710,7 @@ for (const [device, viewport] of [
       || standardMetaState.titleSize > 68 || standardMetaState.statsCount !== 3
       || !standardMetaState.controlsVisible
       || !standardMetaState.viewControlsPresent
+      || standardMetaState.allRanksPresent || standardMetaState.rankLabels[0] !== 'Алмаз'
       || standardMetaState.sourcePanelPresent
       || !standardMetaState.ornamentVisible || !standardMetaState.controlsFrame.includes('main-page-rail-border.png')
       || standardMetaState.cardContentVisibility !== 'auto'
@@ -3797,29 +3801,35 @@ for (const [device, viewport] of [
     await page.waitForSelector('.standard-meta-card__deck-button');
     await page.click('.standard-meta-card__deck-button');
     await page.waitForSelector('.standard-meta-modal__image-stage');
-    await page.waitForFunction(() => document.querySelector('.standard-meta-modal__image-stage .hsrdv-card-tile')
-      || document.querySelector('.standard-meta-modal__image-stage .traditional-deck-list--empty')
-      || document.querySelector('.standard-meta-modal__image-stage [data-deck-render-state="error"]'));
+    await page.waitForFunction(() => document.querySelector('.standard-meta-modal__composition-pane .deck-list-view .deck-tile')
+      || document.querySelector('.standard-meta-modal__composition-pane .deck-list-view__empty'));
+    await page.waitForSelector('.standard-meta-modal__image-stage img');
     const immediateDeckState = await page.evaluate(() => ({
-      tiles: document.querySelectorAll('.standard-meta-modal__image-stage .hsrdv-card-tile').length,
-      artImages: document.querySelectorAll('.standard-meta-modal__image-stage .hsrdv-card-art[src]').length,
-      columns: getComputedStyle(document.querySelector('.standard-meta-modal__image-stage .hsrdv-list')).gridTemplateColumns.split(' ').length,
+      tiles: document.querySelectorAll('.standard-meta-modal__composition-pane .deck-tile').length,
+      artTiles: [...document.querySelectorAll('.standard-meta-modal__composition-pane .deck-tile__art')]
+        .filter(art => getComputedStyle(art).backgroundImage !== 'none').length,
+      columns: getComputedStyle(document.querySelector('.standard-meta-modal__composition-pane .deck-list-view__list')).gridTemplateColumns.split(' ').length,
       panelWidth: document.querySelector('.standard-meta-modal__panel')?.getBoundingClientRect().width || 0,
-      stageOverflow: Math.max(0, (document.querySelector('.standard-meta-modal__image-stage')?.scrollHeight || 0)
-        - (document.querySelector('.standard-meta-modal__image-stage')?.clientHeight || 0)),
-      tileHeight: document.querySelector('.standard-meta-modal__image-stage .hsrdv-card-tile')?.getBoundingClientRect().height || 0,
-      dataDeckCards: document.querySelector('.standard-meta-modal__image-stage [data-deck-cards]')?.getAttribute('data-deck-cards') || '',
-      text: document.querySelector('.standard-meta-modal__image-stage')?.textContent?.trim() || '',
+      panelHeight: document.querySelector('.standard-meta-modal__panel')?.getBoundingClientRect().height || 0,
+      stageHorizontalOverflow: (document.querySelector('.standard-meta-modal__image-stage')?.scrollWidth || 0)
+        > (document.querySelector('.standard-meta-modal__image-stage')?.clientWidth || 0) + 1,
+      tileHeight: document.querySelector('.standard-meta-modal__composition-pane .deck-tile')?.getBoundingClientRect().height || 0,
+      builderHeader: document.querySelector('.standard-meta-modal__composition-pane .deck-list-view__head')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      imagePresent: Boolean(document.querySelector('.standard-meta-modal__image-stage img')),
+      tabsPresent: Boolean(document.querySelector('.standard-meta-modal__presentation')),
     }));
-    const expectedDeckColumns = device === 'desktop' ? 2 : 1;
-    if (immediateDeckState.tiles !== qaDeckCards.length || immediateDeckState.artImages !== qaDeckCards.length
-      || immediateDeckState.columns !== expectedDeckColumns || (device === 'desktop' && immediateDeckState.panelWidth > 840)
-      || (device === 'desktop' && (immediateDeckState.stageOverflow > 1 || immediateDeckState.tileHeight > 38))
-      || !immediateDeckState.dataDeckCards || (adminState.standardMetaPreviewRequests || 0) !== 0) {
-      failures.push(`standard meta modal [${device}]: immediate deck list triggered image rendering or lost cards (${JSON.stringify(immediateDeckState)})`);
+    if (immediateDeckState.tiles !== qaDeckCards.length || immediateDeckState.artTiles !== qaDeckCards.length
+      || immediateDeckState.columns !== 1
+      || (device === 'desktop' && (immediateDeckState.panelWidth < 1300 || immediateDeckState.panelWidth > 1410
+        || immediateDeckState.panelHeight < 820))
+      || immediateDeckState.stageHorizontalOverflow || immediateDeckState.tileHeight > 38
+      || !immediateDeckState.builderHeader.includes('Состав из конструктора колод')
+      || !immediateDeckState.imagePresent || immediateDeckState.tabsPresent
+      || adminState.standardMetaPreviewRequests !== 1) {
+      failures.push(`standard meta modal [${device}]: simultaneous split layout or enlarged panel regressed (${JSON.stringify(immediateDeckState)})`);
     }
     if (device === 'desktop') {
-      await page.hover('.standard-meta-modal__image-stage .hsrdv-card-tile');
+      await page.hover('.standard-meta-modal__composition-pane .deck-tile');
       await page.waitForSelector('.card-preview-tooltip img');
       await page.waitForFunction(() => {
         const image = document.querySelector('.card-preview-tooltip img');
@@ -3835,19 +3845,20 @@ for (const [device, viewport] of [
       await page.mouse.move(1, 1);
       await page.waitForSelector('.card-preview-tooltip', { hidden: true });
     }
-    await page.click('.standard-meta-modal__presentation button:nth-child(2)');
-    await page.waitForSelector('.standard-meta-modal__image-stage img');
     const metaModalState = await page.evaluate(() => {
       const modal = document.querySelector('.standard-meta-modal');
       const panel = document.querySelector('.standard-meta-modal__panel');
       const image = document.querySelector('.standard-meta-modal__image-stage img');
       const imageStage = document.querySelector('.standard-meta-modal__image-stage');
+      const composition = document.querySelector('.standard-meta-modal__composition-pane');
+      const visualPane = document.querySelector('.standard-meta-modal__visual-pane');
       const classImage = document.querySelector('.standard-meta-modal__header img');
-      const code = document.querySelector('.standard-meta-modal__code-block code');
       const copyButton = document.querySelector('.standard-meta-modal__copy-button');
       const panelRect = panel?.getBoundingClientRect();
       const imageRect = image?.getBoundingClientRect();
       const imageStageRect = imageStage?.getBoundingClientRect();
+      const compositionRect = composition?.getBoundingClientRect();
+      const visualPaneRect = visualPane?.getBoundingClientRect();
       const copyButtonRect = copyButton?.getBoundingClientRect();
       return {
         panelTop: panelRect?.top ?? -1,
@@ -3859,31 +3870,46 @@ for (const [device, viewport] of [
         imageHeight: imageRect?.height ?? 0,
         imageStageHeight: imageStageRect?.height ?? 0,
         viewportHeight: window.innerHeight,
-        code: code?.textContent || '',
+        rawCodeVisible: Boolean(document.querySelector('.standard-meta-modal__code-block, .standard-meta-modal code')),
         classImage: classImage?.getAttribute('src') || '',
         copyText: copyButton?.textContent?.trim() || '',
         copyIconPresent: Boolean(copyButton?.querySelector('svg')),
         copyButtonHeight: copyButtonRect?.height ?? 0,
         copyButtonLabel: copyButton?.getAttribute('aria-label') || '',
-        sourceVisible: /Источник|qa fixture/i.test(document.querySelector('.standard-meta-modal__details')?.textContent || ''),
+        copyBelowStage: Boolean(copyButtonRect && imageStageRect && copyButtonRect.top >= imageStageRect.bottom - 1),
+        copyCentered: Boolean(copyButtonRect && visualPaneRect
+          && Math.abs((copyButtonRect.left + copyButtonRect.width / 2) - (visualPaneRect.left + visualPaneRect.width / 2)) < 3),
+        imageCentered: Boolean(imageRect && imageStageRect
+          && Math.abs((imageRect.left + imageRect.width / 2) - (imageStageRect.left + imageStageRect.width / 2)) < 3),
+        compositionRightOfImage: Boolean(compositionRect && imageStageRect
+          && compositionRect.left >= imageStageRect.right - 1),
+        compositionBelowImage: Boolean(compositionRect && visualPaneRect
+          && compositionRect.top >= visualPaneRect.bottom - 1),
+        compositionWidth: compositionRect?.width ?? 0,
+        compositionHeight: compositionRect?.height ?? 0,
         bodyLocked: getComputedStyle(document.body).position === 'fixed',
         portalIsBodyChild: modal?.parentElement === document.body,
       };
     });
-    const minimumDeckImageWidth = device === 'desktop' ? 500 : 250;
+    const minimumDeckImageWidth = device === 'desktop' ? 700 : 250;
     const minimumDeckImageHeight = device === 'desktop' ? 300 : 170;
     if (metaModalState.panelTop < 0 || metaModalState.panelBottom > metaModalState.viewportHeight + 1
-      || (device === 'desktop' && (metaModalState.panelWidth > 960 || metaModalState.panelHeight > metaModalState.viewportHeight * 0.8))
-      || (device === 'mobile' && metaModalState.panelHeight > metaModalState.viewportHeight * 0.9)
+      || (device === 'desktop' && (metaModalState.panelWidth < 1300 || metaModalState.panelWidth > 1410
+        || metaModalState.panelHeight < metaModalState.viewportHeight * 0.9
+        || metaModalState.panelHeight > metaModalState.viewportHeight))
+      || (device === 'mobile' && metaModalState.panelHeight > metaModalState.viewportHeight)
       || metaModalState.imageWidth < minimumDeckImageWidth || metaModalState.imageHeight < minimumDeckImageHeight
       || (device === 'mobile' && (metaModalState.imageStageHeight < metaModalState.viewportHeight * 0.34
-        || metaModalState.imageStageHeight > metaModalState.viewportHeight * 0.52))
-      || !metaModalState.code.startsWith('AA') || !metaModalState.classImage.includes('warlock-64.webp')
+        || metaModalState.imageStageHeight > metaModalState.viewportHeight * 0.58))
+      || metaModalState.rawCodeVisible || !metaModalState.classImage.includes('warlock-64.webp')
       || metaModalState.copyText !== 'Скопировать код' || !metaModalState.copyIconPresent
       || metaModalState.copyButtonHeight < 44 || metaModalState.copyButtonLabel !== 'Скопировать код колоды'
-      || metaModalState.sourceVisible
+      || !metaModalState.copyBelowStage || !metaModalState.copyCentered || !metaModalState.imageCentered
+      || metaModalState.compositionWidth < (device === 'desktop' ? 360 : 250)
+      || metaModalState.compositionHeight < 200
+      || (device === 'desktop' ? !metaModalState.compositionRightOfImage : !metaModalState.compositionBelowImage)
       || !metaModalState.bodyLocked || !metaModalState.portalIsBodyChild) {
-      failures.push(`standard meta modal [${device}]: geometry, code, class, portal or scroll lock regressed (${JSON.stringify(metaModalState)})`);
+      failures.push(`standard meta modal [${device}]: simultaneous image/composition geometry, hidden code or copy placement regressed (${JSON.stringify(metaModalState)})`);
     }
     await page.evaluate(() => {
       Object.defineProperty(navigator, 'clipboard', {
@@ -3900,50 +3926,31 @@ for (const [device, viewport] of [
       failures.push(`standard meta modal [${device}]: graphical copy control did not expose success state (${JSON.stringify(copyState)})`);
     }
     await auditAccessibility(page, `standard meta modal [${device}]`, '.standard-meta-modal__panel');
-    await page.$eval('.standard-meta-modal__image-stage', element => element.scrollIntoView({ block: 'start' }));
     await page.screenshot({ path: `${OUT}/standard-meta-modal-${device}.png`, fullPage: false });
     await page.click('.standard-meta-modal__close');
     if (device === 'mobile') {
       await page.setViewport({ width: 320, height: 700, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
     }
-    await page.evaluate(() => {
-      window.__qaOriginalDeckViewRender = window.HSReplayDeckView.renderDeck;
-      window.HSReplayDeckView.renderDeck = () => { throw new Error('QA DeckView render failure'); };
-    });
     await page.click('.standard-meta-card__deck-button');
     await page.waitForSelector('.standard-meta-modal__image-stage');
-    await page.waitForSelector('.standard-meta-modal [data-deck-render-state="error"]', { timeout: 10_000 });
-    const deckFailureState = await page.evaluate(expectedCards => {
-      const root = document.querySelector('.standard-meta-modal [data-deck-render-state="error"]');
-      const retry = root?.querySelector('[data-recovery-state="error"] button');
-      const stage = document.querySelector('.standard-meta-modal__image-stage');
+    await page.waitForSelector('.standard-meta-modal__composition-pane .deck-list-view .deck-tile', { timeout: 10_000 });
+    const sharedBuilderState = await page.evaluate(expectedCards => {
+      const stage = document.querySelector('.standard-meta-modal__composition-pane');
       return {
-        fallbackCards: root?.querySelectorAll('.traditional-deck-list__fallback li').length ?? 0,
+        cards: stage?.querySelectorAll('.deck-list-view .deck-tile').length ?? 0,
         expectedCards,
-        codeAvailable: (document.querySelector('.standard-meta-modal__code-block code')?.textContent || '').startsWith('AA'),
+        sharedBuilderPresent: Boolean(stage?.querySelector('.deck-list-view')),
+        rawCodeVisible: Boolean(document.querySelector('.standard-meta-modal__code-block, .standard-meta-modal code')),
         copyAvailable: Boolean(document.querySelector('.standard-meta-modal__copy-button')),
-        retryHeight: retry?.getBoundingClientRect().height ?? 0,
         shellRecoveryPresent: Boolean(document.querySelector('.app-error-shell')),
         pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
         stageOverflow: (stage?.scrollWidth ?? 0) > (stage?.clientWidth ?? 0) + 1,
       };
     }, qaDeckCards.length);
-    if (deckFailureState.fallbackCards !== deckFailureState.expectedCards || !deckFailureState.codeAvailable
-      || !deckFailureState.copyAvailable || deckFailureState.retryHeight < 44 || deckFailureState.shellRecoveryPresent
-      || deckFailureState.pageOverflow || deckFailureState.stageOverflow) {
-      failures.push(`DeckView local recovery [${device}]: fallback lost content, actions or containment (${JSON.stringify(deckFailureState)})`);
-    }
-    await page.evaluate(() => {
-      window.HSReplayDeckView.renderDeck = window.__qaOriginalDeckViewRender;
-    });
-    await page.click('.standard-meta-modal [data-deck-render-state="error"] [data-recovery-state="error"] button');
-    await page.waitForSelector('.standard-meta-modal__image-stage .hsrdv-card-tile', { timeout: 10_000 });
-    const recoveredDeckTileCount = await page.$$eval(
-      '.standard-meta-modal__image-stage .hsrdv-card-tile',
-      elements => elements.length,
-    );
-    if (recoveredDeckTileCount !== qaDeckCards.length) {
-      failures.push(`DeckView local recovery [${device}]: Retry restored ${recoveredDeckTileCount}/${qaDeckCards.length} cards`);
+    if (sharedBuilderState.cards !== sharedBuilderState.expectedCards || !sharedBuilderState.sharedBuilderPresent
+      || sharedBuilderState.rawCodeVisible || !sharedBuilderState.copyAvailable || sharedBuilderState.shellRecoveryPresent
+      || sharedBuilderState.pageOverflow || sharedBuilderState.stageOverflow) {
+      failures.push(`shared deck-builder composition [${device}]: content, hidden code or containment regressed (${JSON.stringify(sharedBuilderState)})`);
     }
     if ((adminState.standardMetaRecommendationRequests || 0) !== 1 || adminState.standardMetaPreviewRequests !== 1
       || adminState.standardMetaRecommendationRank !== 'legend' || adminState.standardMetaPreviewRank !== 'legend') {

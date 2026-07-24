@@ -1,0 +1,37 @@
+.archetype-history-chart {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.archetype-history-chart__series {
+  overflow: hidden;
+  border: 1px solid rgba(95, 55, 29, .28);
+  background: rgba(255, 248, 222, .45);
+}
+
+.archetype-history-chart__series header {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .55rem .7rem;
+  color: #5d0d13;
+  font-size: .8rem;
+  font-weight: 800;
+  border-bottom: 1px solid rgba(95, 55, 29, .2);
+}
+
+.archetype-history-chart__series header span { width: .65rem; height: .65rem; border-radius: 50%; }
+.archetype-history-chart__series header strong { margin-left: auto; color: #30251c; font-variant-numeric: tabular-nums; }
+.archetype-history-chart svg { display: block; width: 100%; min-width: 360px; height: auto; overflow: visible; }
+.archetype-history-chart text { fill: #806244; font: 11px var(--font-body, sans-serif); }
+.archetype-history-chart__grid { stroke: rgba(95, 55, 29, .17); stroke-dasharray: 3 4; }
+.archetype-history-chart__line { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.archetype-history-chart__cursor { stroke: rgba(48, 37, 28, .42); stroke-dasharray: 3 3; }
+.archetype-history-chart rect { cursor: crosshair; }
+.archetype-history-chart__date { grid-column: 1 / -1; margin: -.45rem 0 0; color: #735e49; font-size: .74rem; text-align: center; }
+
+@media (max-width: 760px) {
+  .archetype-history-chart { grid-template-columns: 1fr; }
+  .archetype-history-chart__series { overflow-x: auto; }
+}

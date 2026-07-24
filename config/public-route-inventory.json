@@ -302,6 +302,51 @@
       "entitlement": null
     },
     {
+      "id": "archetypes",
+      "pattern": "/archetypes",
+      "kind": "static",
+      "owner": "admin-platform",
+      "indexPolicy": "noindex-nofollow",
+      "canonicalPolicy": "none",
+      "sitemap": false,
+      "htmlStrategy": "server-noindex",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "archetypes-denied",
+      "entitlement": null
+    },
+    {
+      "id": "archetype-detail",
+      "pattern": "/archetypes/:archetypeId",
+      "kind": "detail",
+      "owner": "admin-platform",
+      "indexPolicy": "noindex-nofollow",
+      "canonicalPolicy": "none",
+      "sitemap": false,
+      "htmlStrategy": "server-noindex",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "archetypes-denied",
+      "entitlement": null,
+      "pathParameters": {
+        "archetypeId": { "pattern": "^[1-9][0-9]*$" }
+      }
+    },
+    {
+      "id": "wild-archetype-decks",
+      "pattern": "/archetypes/wild",
+      "kind": "detail",
+      "owner": "admin-platform",
+      "indexPolicy": "noindex-nofollow",
+      "canonicalPolicy": "none",
+      "sitemap": false,
+      "htmlStrategy": "server-noindex",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "archetypes-denied",
+      "entitlement": null
+    },
+    {
       "id": "standard-cards-format",
       "pattern": "/standard/cards/:format",
       "kind": "listing",

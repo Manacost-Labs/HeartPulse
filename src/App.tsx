@@ -146,6 +146,12 @@ interface LegendaryGroup {
   pickRate?: number | null;
   offerRate?: number | null;
   score?: number | null;
+  byClass?: Record<string, {
+    winRate: number | null;
+    pickRate: number | null;
+    offerRate: number | null;
+    score: number | null;
+  }>;
   classKey: string;
 }
 interface LegendariesData {
@@ -626,6 +632,8 @@ const LazyContestsPage = React.lazy(() => loadContestsModule().then(module => ({
 const LazyContestAdminPanel = React.lazy(() => loadContestsModule().then(module => ({ default: module.ContestAdminPanel })));
 const loadDeckBuilderModule = () => import('./features/DeckBuilder');
 const LazyDeckBuilder = React.lazy(loadDeckBuilderModule);
+const loadArchetypesModule = () => import('./features/Archetypes');
+const LazyArchetypes = React.lazy(loadArchetypesModule);
 const LazyBattlegroundHeroesRoute = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundHeroesRoute })));
 const LazyBattlegroundTierList = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundTierList })));
 const LazyBattlegroundStrategyBuilderEmbed = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundStrategyBuilderEmbed })));
@@ -642,6 +650,7 @@ const ROUTE_PRELOADERS: Partial<Record<TabId | 'login', () => Promise<unknown>>>
   'admin-panel': loadContestsModule,
   contests: loadContestsModule,
   'deck-builder': loadDeckBuilderModule,
+  archetypes: loadArchetypesModule,
   'standard-matchups': loadStandardMatchupsModule,
   'standard-meta': loadStandardMetaModule,
   'standard-vicious-gold': loadViciousSyndicateGoldModule,
@@ -1392,11 +1401,11 @@ export default function App() {
     );
     return ids;
   }, [legendariesData]);
-  const isFullWidthBuilder = routeSurfaceAvailable && (activeTab === 'standard-matchups' || activeTab === 'standard-meta' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive' || activeTab === 'deck-builder');
+  const isFullWidthBuilder = routeSurfaceAvailable && (activeTab === 'standard-matchups' || activeTab === 'standard-meta' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive' || activeTab === 'deck-builder' || activeTab === 'archetypes');
   // Login is its own visual route. Do not inherit the surface class of the
   // page that happened to be open before the profile was requested.
   const isEditorialSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['articles', 'faq', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
-  const isGameDataSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'standard-meta', 'standard-vicious-gold', 'standard-cards', 'tierlist', 'legendaries'].includes(activeTab);
+  const isGameDataSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'standard-meta', 'standard-vicious-gold', 'standard-cards', 'tierlist', 'legendaries', 'archetypes'].includes(activeTab);
   const isBattlegroundsSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && BG_TAB_IDS.has(activeTab);
   const isOpenSurfacePage = !isAdminMode && (!routeSurfaceAvailable || activeTab === 'home' || wantsLogin || isEditorialSurfacePage || isGameDataSurfacePage || isBattlegroundsSurfacePage);
   const standardPage = activeTab === 'standard-meta'
@@ -1439,7 +1448,7 @@ export default function App() {
   }, [mobileMenuOpen]);
 
 		  return (
-    <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${routeView === 'not-found' ? 'arena-app-not-found' : ''} ${activeTab === 'home' && !isAdminMode && routeSurfaceAvailable ? 'arena-app-home' : ''} ${wantsLogin && !isAdminMode && routeSurfaceAvailable ? 'arena-app-profile' : ''} ${isEditorialSurfacePage ? `arena-app-editorial arena-app-${activeTab}` : ''} ${isGameDataSurfacePage ? `arena-app-game-data arena-app-${activeTab}` : ''} ${isBattlegroundsSurfacePage ? `arena-app-battlegrounds arena-app-${activeTab}` : ''}`}>
+    <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${routeView === 'not-found' ? 'arena-app-not-found' : ''} ${activeTab === 'home' && !isAdminMode && routeSurfaceAvailable ? 'arena-app-home' : ''} ${wantsLogin && !isAdminMode && routeSurfaceAvailable ? 'arena-app-profile' : ''} ${activeTab === 'deck-builder' && routeSurfaceAvailable ? 'arena-app-deck-builder' : ''} ${isEditorialSurfacePage ? `arena-app-editorial arena-app-${activeTab}` : ''} ${isGameDataSurfacePage ? `arena-app-game-data arena-app-${activeTab}` : ''} ${isBattlegroundsSurfacePage ? `arena-app-battlegrounds arena-app-${activeTab}` : ''}`}>
       <a
         className="arena-skip-link"
         href="#main-content"
@@ -1884,6 +1893,11 @@ export default function App() {
                 {activeTab === 'deck-builder' && (
                   <React.Suspense fallback={<RouteFallback minHeight={720} />}>
                     <LazyDeckBuilder isAdmin={appIsAdmin} authChecking={appAuthChecking} />
+                  </React.Suspense>
+                )}
+                {activeTab === 'archetypes' && (
+                  <React.Suspense fallback={<RouteFallback minHeight={720} />}>
+                    <LazyArchetypes isAdmin={appIsAdmin} authChecking={appAuthChecking} />
                   </React.Suspense>
                 )}
                 {activeTab === 'admin-panel' && (

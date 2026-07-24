@@ -11,6 +11,31 @@ export type BattlegroundProxyRouterDependencies = {
   enrichHeroPayload: PayloadEnricher;
 };
 
+export function compactBattlegroundHeroCompositionsPayload(payload: any): any {
+  const heroes = Array.isArray(payload?.heroes) ? payload.heroes : [];
+  const compositions: Record<string, string> = {};
+  const compositionNames: Record<string, string> = {};
+
+  for (const hero of heroes) {
+    const dbfId = Number(hero?.dbfId ?? hero?.dbf ?? hero?.dbf_id);
+    const bestComposition = hero?.best_composition;
+    const name = typeof bestComposition === 'string'
+      ? bestComposition.trim()
+      : String(bestComposition?.name || bestComposition?.composition || '').trim();
+    const compositionId = Number(bestComposition?.composition_id ?? bestComposition?.id ?? hero?.best_composition_id);
+
+    if (Number.isFinite(dbfId) && name) compositions[String(dbfId)] = name;
+    if (Number.isFinite(compositionId) && name) compositionNames[String(compositionId)] = name;
+  }
+
+  return {
+    ok: payload?.ok !== false,
+    fetched_at: payload?.fetched_at || null,
+    compositions,
+    composition_names: compositionNames,
+  };
+}
+
 export function createBattlegroundProxyRouter(dependencies: BattlegroundProxyRouterDependencies): Router {
   const router = Router();
   const legacyRoutes: Array<[string, string]> = [
@@ -36,6 +61,12 @@ export function createBattlegroundProxyRouter(dependencies: BattlegroundProxyRou
   for (const [route, upstream] of applicationRoutes) {
     router.get(route, dependencies.requireAccess, (request, response) => dependencies.proxyApp(request, response, upstream));
   }
+  router.get('/bg/heroes/compositions', dependencies.requireAccess, (request, response) => dependencies.proxyApp(
+    request,
+    response,
+    'https://api.hs-manacost.ru/api/bg/heroes',
+    compactBattlegroundHeroCompositionsPayload,
+  ));
   router.get('/bg/heroes/:dbfId/details', dependencies.requireAccess, (request, response) => dependencies.proxyApp(
     request,
     response,

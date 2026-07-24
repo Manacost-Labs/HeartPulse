@@ -438,6 +438,19 @@
 
 .arena-app-battlegrounds .bg-heroes-page > .bg-heroes-tools::after { display: none !important; }
 
+.arena-app-battlegrounds .bg-heroes-refresh-status {
+  width: fit-content;
+  margin: -0.25rem auto 0;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid rgba(126, 76, 36, 0.28);
+  border-radius: 999px;
+  color: #66482f;
+  background: rgba(255, 242, 205, 0.9);
+  box-shadow: 0 4px 12px rgba(72, 42, 22, 0.08);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
 .arena-app-battlegrounds .bg-heroes-tools__legend {
   display: flex;
   align-items: center;
@@ -539,6 +552,597 @@
   border-color: rgba(143, 83, 109, 0.7) !important;
   background: linear-gradient(180deg, rgba(255, 249, 230, 0.72), rgba(218, 181, 126, 0.4));
   box-shadow: 0 15px 25px rgba(68, 38, 19, 0.16);
+}
+
+.arena-app-battlegrounds .bg-heroes-controls {
+  display: grid;
+  grid-template-columns: max-content minmax(24rem, 1fr) max-content;
+  gap: 0.8rem;
+  align-items: end;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid rgba(91, 52, 29, 0.2);
+}
+
+.arena-app-battlegrounds .bg-heroes-control-group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.arena-app-battlegrounds .bg-heroes-control-group legend {
+  margin: 0 0 0.38rem;
+  padding: 0;
+  color: #735e49;
+  font-family: var(--font-display, "HSDisplay", serif);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.arena-app-battlegrounds .bg-heroes-segmented {
+  display: inline-flex;
+  min-height: 46px;
+  padding: 3px;
+  border: 1px solid rgba(79, 42, 24, 0.42);
+  border-radius: 0.32rem;
+  background:
+    linear-gradient(180deg, rgba(61, 35, 27, 0.96), rgba(39, 22, 18, 0.98)),
+    url('/wallpaper/arena-rail-red.jpg') center / 420px auto repeat;
+  box-shadow:
+    inset 0 1px rgba(255, 230, 177, 0.08),
+    0 3px 7px rgba(55, 28, 16, 0.13);
+}
+
+.arena-app-battlegrounds .bg-heroes-segmented button {
+  display: inline-flex;
+  min-width: 4.5rem;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.72rem;
+  border: 1px solid transparent;
+  border-radius: 0.22rem;
+  color: #ead9b2;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  transition: border-color 150ms ease, color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.arena-app-battlegrounds .bg-heroes-segmented button:hover {
+  color: #fff0c8;
+  background: rgba(143, 83, 109, 0.2);
+}
+
+.arena-app-battlegrounds .bg-heroes-segmented button[aria-pressed="true"] {
+  border-color: rgba(239, 201, 111, 0.58);
+  color: #fff0c8;
+  background: linear-gradient(180deg, rgba(143, 83, 109, 0.94), rgba(91, 47, 70, 0.96));
+  box-shadow: inset 0 1px rgba(255, 240, 200, 0.16), 0 0 0 1px rgba(42, 23, 37, 0.42);
+}
+
+.arena-app-battlegrounds .bg-heroes-segmented button:focus-visible {
+  outline: 2px solid #efc96f;
+  outline-offset: 2px;
+}
+
+.arena-app-battlegrounds .bg-heroes-view-toggle button {
+  min-width: 3rem;
+}
+
+.arena-app-battlegrounds .bg-heroes-view-toggle svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger {
+  --hero-ledger-columns:
+    minmax(18rem, 2.3fr)
+    minmax(7.5rem, 0.9fr)
+    minmax(8.5rem, 1fr)
+    minmax(7.5rem, 0.85fr)
+    minmax(11rem, 1.15fr);
+  position: relative;
+  padding: clamp(1rem, 1.7vw, 1.35rem);
+  color: #30251c;
+  background:
+    url('/wallpaper/main-page-rail-border.png') center / 100% 100% no-repeat,
+    linear-gradient(180deg, #472732, #29171d);
+  box-shadow: 0 16px 30px rgba(54, 27, 17, 0.18);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__header {
+  display: grid;
+  grid-template-columns: 4.7rem var(--hero-ledger-columns);
+  min-height: 48px;
+  align-items: center;
+  border: 1px solid rgba(228, 184, 91, 0.28);
+  border-bottom: 0;
+  color: #f3dfb0;
+  background:
+    linear-gradient(180deg, rgba(87, 42, 55, 0.96), rgba(53, 26, 37, 0.98)),
+    url('/wallpaper/arena-rail-red.jpg') center / 540px auto repeat;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__header span {
+  min-width: 0;
+  padding: 0.7rem 0.8rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__header span:has(.bg-hero-ledger__sort-button) {
+  padding: 0;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__sort-button {
+  display: inline-flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  padding: 0.65rem 0.8rem;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-weight: 800;
+  letter-spacing: inherit;
+  text-align: left;
+  text-transform: uppercase;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__sort-button svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex: 0 0 auto;
+  opacity: 0.62;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__sort-button:hover,
+.arena-app-battlegrounds .bg-hero-ledger__sort-button[data-active="true"] {
+  color: #fff0c8;
+  background: rgba(239, 201, 111, 0.1);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__sort-button[data-active="true"] svg {
+  color: #efc96f;
+  opacity: 1;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__sort-button:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid #efc96f;
+  outline-offset: -3px;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__mobile-sort {
+  display: none;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__tier {
+  display: grid;
+  grid-template-columns: 4.7rem minmax(0, 1fr);
+  border: 1px solid rgba(79, 47, 28, 0.28);
+  border-top: 0;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__tier + .bg-hero-ledger__tier {
+  margin-top: 0.8rem;
+  border-top: 1px solid rgba(79, 47, 28, 0.28);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__tier-mark {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.2rem;
+  border-right: 1px solid rgba(60, 34, 22, 0.34);
+  color: #fff0c8;
+  background: linear-gradient(150deg, #6a4053, #35202d);
+  text-shadow: 0 1px 2px rgba(23, 10, 13, 0.75);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__tier-emblem {
+  position: relative;
+  display: grid;
+  width: 3.35rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 2px solid rgba(255, 235, 178, 0.72);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 28%, rgba(255, 246, 207, 0.32), transparent 34%),
+    linear-gradient(145deg, rgba(126, 75, 91, 0.96), rgba(48, 25, 36, 0.98));
+  box-shadow:
+    inset 0 0 0 3px rgba(55, 27, 35, 0.46),
+    inset 0 0 12px rgba(255, 231, 166, 0.18),
+    0 4px 8px rgba(40, 20, 18, 0.28);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__tier-emblem::before,
+.arena-app-battlegrounds .bg-hero-ledger__tier-emblem::after {
+  position: absolute;
+  width: 0.42rem;
+  height: 0.42rem;
+  border: 1px solid rgba(255, 235, 178, 0.78);
+  background: #71435a;
+  content: "";
+  transform: rotate(45deg);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__tier-emblem::before { left: -0.3rem; }
+.arena-app-battlegrounds .bg-hero-ledger__tier-emblem::after { right: -0.3rem; }
+
+.arena-app-battlegrounds .bg-hero-ledger__tier-emblem strong {
+  font-family: var(--font-display, "HSDisplay", serif);
+  font-size: 1.6rem;
+  line-height: 1;
+  transform: translateY(-0.02em);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__tier-count {
+  color: rgba(255, 240, 200, 0.7);
+  font-size: 0.67rem;
+  font-weight: 800;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__tier-mark--s {
+  color: #fff2c1;
+  background:
+    linear-gradient(150deg, #593642, #291923),
+    url('/wallpaper/arena-rail-red.jpg') center / 320px auto repeat;
+  text-shadow: 0 1px 2px rgba(35, 17, 17, 0.82);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__tier-mark--s .bg-hero-ledger__tier-emblem {
+  border-color: #ffe8a4;
+  color: #3b291a;
+  background:
+    radial-gradient(circle at 35% 28%, #fff5c9 0 10%, transparent 34%),
+    linear-gradient(145deg, #f2cf73, #a66d25);
+  box-shadow:
+    inset 0 0 0 3px rgba(102, 56, 21, 0.42),
+    inset 0 0 12px rgba(255, 244, 200, 0.48),
+    0 4px 10px rgba(33, 16, 13, 0.38);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__tier-mark--s .bg-hero-ledger__tier-emblem::before,
+.arena-app-battlegrounds .bg-hero-ledger__tier-mark--s .bg-hero-ledger__tier-emblem::after {
+  border-color: #fff0b7;
+  background: #c8953d;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__tier-mark--a {
+  background: linear-gradient(150deg, #7d9c45, #496528);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__tier-mark--b {
+  background: linear-gradient(150deg, #637f99, #3c526b);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__tier-mark--c {
+  background: linear-gradient(150deg, #926247, #5e3929);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__tier-mark--d {
+  background: linear-gradient(150deg, #695b56, #403533);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__row {
+  display: grid;
+  grid-template-columns: var(--hero-ledger-columns);
+  min-height: 116px;
+  align-items: stretch;
+  background:
+    linear-gradient(90deg, rgba(255, 248, 226, 0.91), rgba(234, 214, 167, 0.92)),
+    url('/wallpaper/arena-parchment.jpg') center / 865px auto repeat;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__flat {
+  border: 1px solid rgba(79, 47, 28, 0.28);
+  border-top: 0;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__row--flat {
+  grid-template-columns: 4.7rem var(--hero-ledger-columns);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__tier-cell {
+  justify-content: center;
+  padding: 0.5rem;
+  border-right: 1px solid rgba(60, 34, 22, 0.28);
+  color: #fff0c8;
+  background: linear-gradient(150deg, #6a4053, #35202d);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__tier-cell .bg-hero-ledger__tier-emblem {
+  width: 2.8rem;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__tier-cell .bg-hero-ledger__tier-emblem strong {
+  font-size: 1.3rem;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__row + .bg-hero-ledger__row {
+  border-top: 1px solid rgba(73, 43, 25, 0.22);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__row > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  padding: 0.65rem 0.75rem;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__row > div + div {
+  border-left: 1px solid rgba(91, 55, 31, 0.13);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__hero a {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+  color: #30251c;
+  text-decoration: none;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__hero a:hover strong,
+.arena-app-battlegrounds .bg-hero-ledger__hero a:focus-visible strong {
+  color: #71344f;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__hero a:focus-visible {
+  border-radius: 0.2rem;
+  outline: 2px solid #8f536d;
+  outline-offset: 3px;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__hero img {
+  width: 72px;
+  height: 88px;
+  object-fit: contain;
+  filter: drop-shadow(0 7px 6px rgba(50, 26, 16, 0.22));
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__hero a > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__hero strong {
+  font-family: var(--font-display, "HSDisplay", serif);
+  font-size: 1.05rem;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+  transition: color 150ms ease;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__hero a > span > small {
+  margin-top: 0.18rem;
+  color: #856b50;
+  font-size: 0.67rem;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__power {
+  display: flex;
+  min-width: 0;
+  margin-top: 0.45rem;
+  flex-direction: column;
+  color: #5d4432;
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__power b {
+  color: #71435a;
+  font-size: 0.72rem;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__power small {
+  display: -webkit-box;
+  margin-top: 0.12rem;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__metric,
+.arena-app-battlegrounds .bg-hero-ledger__composition,
+.arena-app-battlegrounds .bg-hero-ledger__distribution {
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__metric > small,
+.arena-app-battlegrounds .bg-hero-ledger__composition > small,
+.arena-app-battlegrounds .bg-hero-ledger__distribution > small {
+  display: none;
+  color: #7a624a;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__metric > strong {
+  color: #62364d;
+  font-family: var(--font-display, "HSDisplay", serif);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__metric--placement > strong {
+  color: #2f7a3e;
+  font-size: 1.25rem;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__metric > span {
+  width: min(100%, 7.6rem);
+  height: 0.42rem;
+  margin-top: 0.45rem;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(66, 39, 28, 0.13);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__metric > span i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #8f536d, #bd83a0);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__metric--placement > span i {
+  background: linear-gradient(90deg, #477a3f, #86bd67);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__composition strong {
+  display: inline-flex;
+  min-height: 2.6rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgba(143, 83, 109, 0.25);
+  border-radius: 0.25rem;
+  color: #62364d;
+  background: rgba(143, 83, 109, 0.1);
+  font-size: 0.77rem;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__composition-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__composition-value--loading {
+  color: #806a54;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__composition-value--pending {
+  min-width: 1.5rem;
+  color: #806a54;
+  font-size: 1rem;
+  letter-spacing: 0.15em;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__composition-value--empty {
+  color: #806a54;
+  font-size: 0.7rem;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__empty {
+  color: #806a54;
+  font-weight: 800;
+}
+
+.arena-app-battlegrounds .bg-hero-distribution {
+  display: grid;
+  width: 100%;
+  max-width: 12rem;
+  min-height: 78px;
+  grid-template-rows: 54px auto;
+  gap: 0.18rem;
+  padding: 0.35rem 0.32rem 0.3rem;
+  border: 1px solid rgba(75, 43, 27, 0.2);
+  border-radius: 0.25rem;
+  background: rgba(58, 33, 27, 0.08);
+}
+
+.arena-app-battlegrounds .bg-hero-distribution__plot {
+  display: flex;
+  min-width: 0;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.2rem;
+}
+
+.arena-app-battlegrounds .bg-hero-distribution__place {
+  display: grid;
+  min-height: 44px;
+  min-width: 0;
+  height: 100%;
+  flex: 1 1 0;
+  grid-template-rows: 1fr auto;
+  align-items: end;
+  gap: 0.12rem;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.arena-app-battlegrounds .bg-hero-distribution__place > span {
+  display: block;
+  width: 100%;
+  min-height: 4px;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(180deg, #bd83a0, #76506a);
+  transform-origin: bottom;
+  transition: filter 140ms ease, transform 140ms ease;
+}
+
+.arena-app-battlegrounds .bg-hero-distribution__place:first-child > span {
+  background: linear-gradient(180deg, #efc96f, #b68432);
+}
+
+.arena-app-battlegrounds .bg-hero-distribution__place:hover > span,
+.arena-app-battlegrounds .bg-hero-distribution__place:focus-visible > span,
+.arena-app-battlegrounds .bg-hero-distribution__place[aria-pressed="true"] > span {
+  filter: saturate(1.22) brightness(1.08);
+  transform: scaleX(1.08);
+}
+
+.arena-app-battlegrounds .bg-hero-distribution__place:focus-visible {
+  border-radius: 0.15rem;
+  outline: 2px solid #8f536d;
+  outline-offset: 1px;
+}
+
+.arena-app-battlegrounds .bg-hero-distribution__place small {
+  color: #79614a;
+  font-size: 0.55rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.arena-app-battlegrounds .bg-hero-distribution__place[aria-pressed="true"] small {
+  color: #5d2f47;
+}
+
+.arena-app-battlegrounds .bg-hero-distribution__value {
+  display: block;
+  color: #725a43;
+  font-size: 0.61rem;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+}
+
+.arena-app-battlegrounds .bg-hero-distribution__value strong {
+  color: #5d2f47;
 }
 
 .arena-app-battlegrounds .bg-hero-detail-page :is([class*="bg-[#dbeafe]"], [class*="bg-[#eff6ff]"]) {
@@ -1048,6 +1652,258 @@
   border-radius: 0.3rem !important;
 }
 
+@media (max-width: 1180px) {
+  .arena-app-battlegrounds .bg-heroes-controls {
+    grid-template-columns: max-content minmax(20rem, 1fr);
+  }
+
+  .arena-app-battlegrounds .bg-heroes-control-group--view {
+    grid-column: 1 / -1;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger {
+    --hero-ledger-columns:
+      minmax(15rem, 2fr)
+      minmax(6.5rem, 0.85fr)
+      minmax(7.5rem, 0.95fr)
+      minmax(6.5rem, 0.8fr)
+      minmax(9rem, 1fr);
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__header span,
+  .arena-app-battlegrounds .bg-hero-ledger__row > div {
+    padding-inline: 0.55rem;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__hero a {
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 0.55rem;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__hero img {
+    width: 58px;
+    height: 76px;
+  }
+}
+
+@media (max-width: 1120px) {
+  .arena-app-battlegrounds .bg-heroes-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .arena-app-battlegrounds .bg-heroes-control-group--view {
+    grid-column: auto;
+  }
+
+  .arena-app-battlegrounds .bg-heroes-segmented {
+    display: flex;
+    width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+  }
+
+  .arena-app-battlegrounds .bg-heroes-segmented button {
+    flex: 1 0 auto;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    padding: 0.7rem;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__header {
+    display: none;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__mobile-sort {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-bottom: 0.65rem;
+    overflow: hidden;
+    border: 1px solid rgba(228, 184, 91, 0.28);
+    border-radius: 0.28rem;
+    color: #f3dfb0;
+    background:
+      linear-gradient(180deg, rgba(87, 42, 55, 0.96), rgba(53, 26, 37, 0.98)),
+      url('/wallpaper/arena-rail-red.jpg') center / 540px auto repeat;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__mobile-sort .bg-hero-ledger__sort-button {
+    min-width: 0;
+    min-height: 46px;
+    padding-inline: 0.65rem;
+    font-size: 0.68rem;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__mobile-sort .bg-hero-ledger__sort-button + .bg-hero-ledger__sort-button {
+    border-left: 1px solid rgba(228, 184, 91, 0.18);
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__tier {
+    display: block;
+    border-top: 1px solid rgba(79, 47, 28, 0.28);
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__tier-mark {
+    min-height: 44px;
+    flex-direction: row;
+    border-right: 0;
+    border-bottom: 1px solid rgba(60, 34, 22, 0.34);
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__tier-mark strong {
+    font-size: 1.35rem;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__tier-mark .bg-hero-ledger__tier-emblem {
+    width: 2.65rem;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__row {
+    grid-template-areas:
+      "hero hero hero"
+      "pick composition placement"
+      "distribution distribution distribution";
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    min-height: 0;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__row--flat {
+    grid-template-areas:
+      "tier tier tier"
+      "hero hero hero"
+      "pick composition placement"
+      "distribution distribution distribution";
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__row--flat .bg-hero-ledger__tier-cell {
+    grid-area: tier;
+    grid-column: 1 / -1;
+    min-height: 42px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(60, 34, 22, 0.25);
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__row--flat .bg-hero-ledger__tier-cell .bg-hero-ledger__tier-emblem {
+    width: 2.25rem;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__row > div {
+    padding: 0.75rem;
+    border-left: 0;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__hero {
+    grid-area: hero;
+    grid-column: 1 / -1;
+    border-bottom: 1px solid rgba(91, 55, 31, 0.13);
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__metric--pick {
+    grid-area: pick;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__composition {
+    grid-area: composition;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__metric--placement {
+    grid-area: placement;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__metric,
+  .arena-app-battlegrounds .bg-hero-ledger__composition,
+  .arena-app-battlegrounds .bg-hero-ledger__distribution {
+    min-height: 76px;
+    border-bottom: 1px solid rgba(91, 55, 31, 0.13);
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__composition,
+  .arena-app-battlegrounds .bg-hero-ledger__metric--placement,
+  .arena-app-battlegrounds .bg-hero-ledger__distribution {
+    border-left: 1px solid rgba(91, 55, 31, 0.13);
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__distribution {
+    grid-area: distribution;
+    grid-column: 1 / -1;
+    min-height: 100px;
+    border-left: 0;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__metric > small,
+  .arena-app-battlegrounds .bg-hero-ledger__composition > small,
+  .arena-app-battlegrounds .bg-hero-ledger__distribution > small {
+    display: block;
+    margin-bottom: 0.35rem;
+  }
+
+  .arena-app-battlegrounds .bg-hero-distribution {
+    max-width: 18rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .arena-app-battlegrounds .bg-hero-ledger {
+    padding: 0.45rem;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__mobile-sort {
+    position: sticky;
+    top: 0.35rem;
+    z-index: 3;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__row {
+    grid-template-areas:
+      "hero hero"
+      "pick placement"
+      "composition composition"
+      "distribution distribution";
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__row--flat {
+    grid-template-areas:
+      "tier tier"
+      "hero hero"
+      "pick placement"
+      "composition composition"
+      "distribution distribution";
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__row > div {
+    padding: 0.65rem;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__hero a {
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: 0.65rem;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__hero img {
+    width: 56px;
+    height: 68px;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__composition {
+    min-height: 60px;
+    border-left: 0;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__composition strong {
+    width: min(100%, 14rem);
+    min-height: 2.15rem;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger__distribution {
+    min-height: 96px;
+  }
+}
+
 @media (max-width: 720px) {
   .arena-app-battlegrounds .arena-content.arena-content-open {
     padding-inline: 0.55rem !important;
@@ -1067,6 +1923,18 @@
   .arena-app-battlegrounds .bg-heroes-search { flex-wrap: wrap; }
   .arena-app-battlegrounds .bg-heroes-search input { flex-basis: calc(100% - 2.5rem); }
   .arena-app-battlegrounds .bg-heroes-search__count { margin-left: auto; }
+
+  .arena-app-battlegrounds .bg-heroes-control-group legend {
+    font-size: 0.68rem;
+  }
+
+  .arena-app-battlegrounds .bg-heroes-view-toggle span {
+    display: inline;
+  }
+
+  .arena-app-battlegrounds .bg-hero-ledger {
+    padding: 0.72rem;
+  }
 
   .arena-app-battlegrounds .bg-library-page > section,
   .arena-app-battlegrounds .bg-library-detail-page > section,
@@ -1185,7 +2053,9 @@
   .arena-app-battlegrounds .bg-library-page [data-library-card-tile],
   .arena-app-battlegrounds .bg-library-page [data-library-card-tile] img,
   .arena-app-battlegrounds .battleground-hero-card,
-  .arena-app-battlegrounds .battleground-hero-card img {
+  .arena-app-battlegrounds .battleground-hero-card img,
+  .arena-app-battlegrounds .bg-hero-distribution__place > span {
     transition-duration: 0.01ms !important;
   }
+
 }

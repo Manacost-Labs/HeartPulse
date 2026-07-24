@@ -1,7 +1,7 @@
 import { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { DeckModal } from '../../src/features/StandardMeta';
-import type { HsReplayDeckCard } from '../../src/features/HsReplayDeckList';
+import type { DeckListCard } from '../../src/features/decklist/DeckListView';
 
 const pixel = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 const fullCard = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
@@ -11,7 +11,7 @@ const fullCard = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
     <text x="256" y="356" fill="#fff3c4" font-family="serif" font-size="36" text-anchor="middle">Тестовая карта</text>
   </svg>
 `)}`;
-const deckCards: HsReplayDeckCard[] = Array.from({ length: 30 }, (_, index) => ({
+const deckCards: DeckListCard[] = Array.from({ length: 30 }, (_, index) => ({
   id: `NESTED_TEST_${String(index + 1).padStart(2, '0')}`,
   dbfId: 91_000 + index,
   name: `Тестовая карта ${index + 1}`,

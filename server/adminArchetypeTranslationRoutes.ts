@@ -34,7 +34,8 @@ export type ObservedArchetype = {
   rank: string;
   deckCode?: string | null;
   format?: 'standard' | 'wild';
-  rankKey?: 'all' | 'legend' | 'diamond' | 'top_5k' | 'top_500' | 'top_100' | 'top_legend';
+  rankKey?: 'all' | 'diamond_all' | 'diamond' | 'diamond_legend' | 'legend'
+    | 'top_5k' | 'top_500' | 'top_100' | 'top_legend';
 };
 
 export type UntranslatedArchetype = { nameEn: string; ranks: string[]; deckCode?: string };

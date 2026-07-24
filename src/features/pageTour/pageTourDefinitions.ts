@@ -62,7 +62,7 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
   {
     id: 'standard-meta', version: 1, paths: ['/standard/meta'], title: 'Как пользоваться разделом «Мета»',
     steps: [
-      { id: 'controls', target: 'meta-controls', title: 'Формат и рейтинг', description: 'Выберите формат и диапазон рейтинга — все показатели, график и список архетипов обновятся под этот срез.', audience: 'standard', preferredPlacement: 'bottom' },
+      { id: 'controls', target: 'meta-controls', title: 'Диапазон рейтинга', description: 'Выберите нужный ранг — все показатели, график и список архетипов обновятся под этот срез. Формат меняется соседним переключателем.', audience: 'standard', preferredPlacement: 'bottom' },
       { id: 'search', target: 'meta-search', title: 'Поиск архетипа', description: 'Начните вводить название класса или колоды, чтобы быстро оставить в результатах только нужные архетипы.', audience: 'standard' },
       { id: 'chart', target: 'meta-chart', title: 'Карта меты', description: 'График под этим заголовком: чем правее точка, тем выше винрейт; чем выше — тем популярнее архетип. Точку можно выбрать мышью или клавиатурой.', audience: 'standard', preferredPlacement: 'bottom' },
       { id: 'view', target: 'meta-view-switcher', title: 'Галерея или таблица', description: 'Галерея удобна для быстрого обзора, а таблица — для точного сравнения винрейта, популярности и скорости набора рейтинга.', audience: 'standard' },

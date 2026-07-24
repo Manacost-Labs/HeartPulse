@@ -76,8 +76,9 @@ const metaSource = readFileSync(new URL('../src/features/StandardMeta.tsx', impo
 assert.match(metaSource, /scope="standard-meta"/);
 assert.match(metaSource, /setMetaRevision\(revision => revision \+ 1\)/);
 assert.match(metaSource, /variant="empty"/);
-assert.match(metaSource, /useState<MetaRank>\('legend'\)/, 'Standard meta must open on Legend by default');
+assert.match(metaSource, /useState<MetaRank>\('diamond_all'\)/, 'Standard meta must open on Diamond by default');
+assert.doesNotMatch(metaSource, /\{ id: 'all', label: 'Все ранги' \}/, 'The empty all-ranks filter must stay hidden');
 assert.match(metaSource, /useState<MetaPeriod>\('past_6_hours'\)/, 'Standard meta must open on the latest six hours');
-assert.match(metaSource, /useState<MetaMinGames>\(500\)/, 'Standard meta must open with 500 minimum games');
+assert.match(metaSource, /useState<MetaMinGames>\(100\)/, 'Standard meta must open with 100 minimum games');
 
 console.log('Recoverable surface tests passed');

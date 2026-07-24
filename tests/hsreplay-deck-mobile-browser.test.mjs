@@ -257,30 +257,24 @@ try {
   await page.goto(`${origin}/tests/fixtures/standard-meta-nested-modal.html`, { waitUntil: 'networkidle0' });
   await page.click('#open-standard-meta');
   await page.waitForSelector('.standard-meta-modal[data-modal-surface-state="top"]');
-  await waitForDeck(page, 30);
-  await page.focus('.standard-meta-modal .hsrdv-card-tile');
-  const nestedTriggerId = await page.evaluate(() => document.activeElement?.getAttribute('data-card-id'));
-  await page.keyboard.press('Enter');
-  await page.waitForSelector('.card-preview-sheet[data-modal-surface-state="top"]');
-  assert.deepEqual(await page.evaluate(() => {
-    const parent = document.querySelector('.standard-meta-modal');
-    return {
-      inert: parent?.inert,
-      ariaHidden: parent?.getAttribute('aria-hidden'),
-      state: parent?.getAttribute('data-modal-surface-state'),
-    };
-  }), { inert: true, ariaHidden: 'true', state: 'covered' });
-  await page.keyboard.press('Escape');
-  await page.waitForSelector('.card-preview-sheet', { hidden: true });
-  assert.deepEqual(await page.evaluate(() => {
-    const parent = document.querySelector('.standard-meta-modal');
-    return {
-      inert: parent?.inert,
-      ariaHidden: parent?.getAttribute('aria-hidden'),
-      state: parent?.getAttribute('data-modal-surface-state'),
-      activeCard: document.activeElement?.getAttribute('data-card-id'),
-    };
-  }), { inert: false, ariaHidden: null, state: 'top', activeCard: nestedTriggerId });
+  await page.waitForSelector('.standard-meta-modal .deck-list-view .deck-tile');
+  assert.deepEqual(await page.evaluate(() => ({
+    cards: document.querySelectorAll('.standard-meta-modal .deck-list-view .deck-tile').length,
+    imagePane: Boolean(document.querySelector('.standard-meta-modal__image-stage')),
+    compositionPane: Boolean(document.querySelector('.standard-meta-modal__composition-pane .deck-list-view')),
+    tabsPresent: Boolean(document.querySelector('.standard-meta-modal__presentation')),
+    rawCodeVisible: Boolean(document.querySelector('.standard-meta-modal__code-block, .standard-meta-modal code')),
+    copyAvailable: Boolean(document.querySelector('.standard-meta-modal__copy-button')),
+    state: document.querySelector('.standard-meta-modal')?.getAttribute('data-modal-surface-state'),
+  })), {
+    cards: 30,
+    imagePane: true,
+    compositionPane: true,
+    tabsPresent: false,
+    rawCodeVisible: false,
+    copyAvailable: true,
+    state: 'top',
+  });
   await page.keyboard.press('Escape');
   await page.waitForSelector('.standard-meta-modal', { hidden: true });
   assert.equal(await page.evaluate(() => document.activeElement?.id), 'open-standard-meta');

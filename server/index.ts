@@ -107,6 +107,8 @@ import {
   type ObservedArchetype,
   type UntranslatedArchetype,
 } from './adminArchetypeTranslationRoutes.js';
+import { createAdminArchetypesRouter } from './adminArchetypesRoutes.js';
+import { createDeckBuilderRouter } from './deckBuilderRoutes.js';
 import {
   createAdminMechanicTranslationRouter,
   loadConstructedMechanicOverrideMap,
@@ -441,6 +443,7 @@ const KOLODAHS_API_BASE_URL = (process.env.KOLODAHS_API_BASE_URL || 'https://db.
 const OLD_GUIDES_DB_FILE = process.env.OLD_GUIDES_DB_FILE || '/var/www/koloda/data/old-sites/kolodahearthstone.ru_old/db/guides.sqlite';
 const OLD_GUIDES_PUBLIC_URL = (process.env.OLD_GUIDES_PUBLIC_URL || 'https://old.kolodahearthstone.ru').replace(/\/$/, '');
 const EXTRA_BG_LIBRARY_ENDPOINTS: Record<string, string> = {
+  heroes: '/heroes',
   anomaly: '/anomalies',
   quest: '/quests',
   darkmoon_prize: '/darkmoon-prizes',
@@ -4414,6 +4417,8 @@ const CONSTRUCTED_CARDS_DATASET_BY_FORMAT = {
 const STANDARD_META_DATASET_BY_FORMAT_RANK: Record<StandardMetaFormat, Record<StandardMetaRank, string>> = {
   standard: {
     all: 'hsguru_meta_standard_legend',
+    diamond_all: 'hsguru_meta_standard_diamond_4to1',
+    diamond_legend: 'hsguru_meta_standard_legend',
     legend: 'hsguru_meta_standard_legend',
     diamond: 'hsguru_meta_standard_diamond_4to1',
     top_5k: 'hsguru_meta_standard_top_5k',
@@ -4423,6 +4428,8 @@ const STANDARD_META_DATASET_BY_FORMAT_RANK: Record<StandardMetaFormat, Record<St
   },
   wild: {
     all: 'hsguru_meta_wild_legend',
+    diamond_all: 'hsguru_meta_wild_diamond_4to1',
+    diamond_legend: 'hsguru_meta_wild_legend',
     legend: 'hsguru_meta_wild_legend',
     diamond: 'hsguru_meta_wild_diamond_4to1',
     top_5k: 'hsguru_meta_wild_top_5k',
@@ -4437,12 +4444,25 @@ const STANDARD_META_FORMAT_LABEL: Record<StandardMetaFormat, string> = {
 };
 const STANDARD_META_RANK_LABEL: Record<StandardMetaRank, string> = {
   all: 'Все ранги',
+  diamond_all: 'Алмаз',
+  diamond: 'Алмаз 1–4',
+  diamond_legend: 'Алмаз — Легенда',
   legend: 'Легенда',
-  diamond: 'Алмаз 4-1',
   top_5k: 'Топ-5000',
   top_500: 'Топ-500',
   top_100: 'Топ-100',
-  top_legend: 'Топ-1000 легенда',
+  top_legend: 'Топ-1000',
+};
+const STANDARD_META_UPSTREAM_RANK: Record<StandardMetaRank, string> = {
+  all: 'all',
+  diamond_all: 'diamond',
+  diamond: 'diamond_4to1',
+  diamond_legend: 'diamond_to_legend',
+  legend: 'legend',
+  top_5k: 'top_5k',
+  top_legend: 'top_legend',
+  top_500: 'top_500',
+  top_100: 'top_100',
 };
 const HSGURU_STREAMER_DECKS_DATASET = 'hsguru_streamer_decks_legend_1000';
 const VICIOUS_SYNDICATE_LIVE_DATASET = 'vicious_syndicate_live_beta';
@@ -5200,15 +5220,39 @@ function normalizeLegendaryCard(row: any) {
 
 function normalizeLegendaryGroupStats(row: any, source: keyof typeof LEGENDARIES_DATASET_BY_SOURCE) {
   const winRate = parsePercentish(row?.winrate ?? row?.win_rate ?? row?.deck_winrate);
+  const arenaScore = parseNumber(row?.score ?? row?.arena_score ?? row?.arenaScore);
   return {
     source,
     winrate: winRate ?? undefined,
     deckWinrate: winRate,
     pickRate: parsePercentish(row?.pick_rate ?? row?.pickRate),
     offerRate: parsePercentish(row?.offer_rate ?? row?.offerRate),
+    arenaScore: arenaScore ?? undefined,
     totalGames: parseCount(row?.total_games ?? row?.totalGames ?? row?.games),
     statsContext: 'legendary',
   };
+}
+
+function normalizeLegendaryClassMetrics(row: any) {
+  if (!row || typeof row !== 'object') return null;
+  const winRate = parsePercentish(row?.winrate ?? row?.win_rate);
+  const pickRate = parsePercentish(row?.pick_rate ?? row?.pickRate);
+  const offerRate = parsePercentish(row?.offer_rate ?? row?.offerRate);
+  const score = parseNumber(row?.score ?? row?.arena_score ?? row?.arenaScore);
+  if (winRate == null && pickRate == null && offerRate == null && score == null) return null;
+  return { winRate, pickRate, offerRate, score };
+}
+
+function normalizeLegendaryByClass(raw: any) {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const out: Record<string, { winRate: number | null; pickRate: number | null; offerRate: number | null; score: number | null }> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    const classKey = key === 'all' || key === 'ALL' ? 'all' : normalizeArenaClassId(key);
+    const metrics = normalizeLegendaryClassMetrics(value);
+    if (!metrics) continue;
+    out[classKey] = metrics;
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 function buildTierlistCardStatsMap(tierlistData: any) {
@@ -5245,6 +5289,9 @@ function enrichLegendaryCardWithTierlistStats(card: any, tierStatsByCardId: Map<
     cost: card.cost ?? stats.cost,
     imageHa: card.imageHa || stats.imageHa || '',
     imageRu: card.imageRu ?? stats.imageRu ?? null,
+    pickRate: card.pickRate ?? stats.pickRate ?? null,
+    offerRate: card.offerRate ?? stats.offerRate ?? null,
+    arenaScore: card.arenaScore ?? stats.arenaScore ?? null,
   };
 }
 
@@ -5253,11 +5300,17 @@ function enrichLegendariesWithTierlistStats(legendariesData: any, tierlistData: 
   if (!tierStatsByCardId.size) return legendariesData;
   return {
     ...legendariesData,
-    groups: (legendariesData?.groups ?? []).map((group: any) => ({
-      ...group,
-      keyCard: enrichLegendaryCardWithTierlistStats(group.keyCard, tierStatsByCardId),
-      cards: (group.cards ?? []).map((card: any) => enrichLegendaryCardWithTierlistStats(card, tierStatsByCardId)),
-    })),
+    groups: (legendariesData?.groups ?? []).map((group: any) => {
+      const keyCard = enrichLegendaryCardWithTierlistStats(group.keyCard, tierStatsByCardId);
+      return {
+        ...group,
+        keyCard,
+        cards: (group.cards ?? []).map((card: any) => enrichLegendaryCardWithTierlistStats(card, tierStatsByCardId)),
+        pickRate: group.pickRate ?? keyCard?.pickRate ?? null,
+        offerRate: group.offerRate ?? keyCard?.offerRate ?? null,
+        score: group.score ?? keyCard?.arenaScore ?? null,
+      };
+    }),
   };
 }
 
@@ -5288,6 +5341,7 @@ function normalizeLegendariesDataset(
             winRate,
             pickRate: parsePercentish(row?.pick_rate ?? row?.pickRate),
             offerRate: parsePercentish(row?.offer_rate ?? row?.offerRate),
+            score: parseNumber(row?.score ?? row?.arena_score ?? row?.arenaScore),
             classKey,
           };
         })
@@ -5317,6 +5371,8 @@ function normalizeLegendariesDataset(
           winRate,
           pickRate: parsePercentish(row?.pick_rate ?? row?.pickRate),
           offerRate: parsePercentish(row?.offer_rate ?? row?.offerRate),
+          score: parseNumber(row?.score ?? row?.arena_score ?? row?.arenaScore),
+          byClass: normalizeLegendaryByClass(row?.by_class ?? row?.byClass),
           classKey,
         };
       })
@@ -6028,10 +6084,9 @@ async function loadStandardMeta(
   const cached = standardMetaApiCache.get(cacheKey);
   if (cached && cached.expiresAt > now) return cached.data;
   try {
-    const upstreamRank = rank === 'diamond' ? 'diamond_4to1' : rank;
     const query = new URLSearchParams({
       format,
-      rank: upstreamRank,
+      rank: STANDARD_META_UPSTREAM_RANK[rank],
       period,
       coin,
       min_games: String(minGames),
@@ -6488,8 +6543,10 @@ function parseConstructedDecks(
 
 const STANDARD_META_HSGURU_RANK: Record<StandardMetaRank, string> = {
   all: 'all',
+  diamond_all: 'diamond_4to1',
   legend: 'legend',
   diamond: 'diamond_4to1',
+  diamond_legend: 'all',
   top_5k: 'top_5k',
   top_500: 'top_500',
   top_100: 'top_100',
@@ -8969,6 +9026,101 @@ app.use('/api', createAdminArchetypeTranslationRouter({
     entityId,
     details,
   ),
+}));
+
+app.use('/api', createAdminArchetypesRouter({
+  adminGuard: adminIdGuard,
+  setPrivateNoStore,
+  loadArchetypes: async () => {
+    /*
+     * `hs-data-api` is the only HSReplay client on this path. It owns the
+     * authenticated request/session and returns a normalized `{ id, name,
+     * class, url }` dictionary. Keeping it out of the browser avoids both
+     * Cloudflare failures and leaking HSReplay session details.
+     */
+    const base = (process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN).replace(/\/+$/, '');
+    const response = await fetch(`${base}/api/hsreplay/archetypes?hl=en`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
+      signal: AbortSignal.timeout(Number(process.env.HS_DATA_API_ADMIN_TIMEOUT_MS || 30_000)),
+    });
+    if (!response.ok) throw new Error(`HS data API archetypes HTTP ${response.status}`);
+    const payload = await response.json();
+    return Array.isArray(payload?.archetypes) ? payload.archetypes : [];
+  },
+  loadStandardSnapshots: async () => {
+    const base = (process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN).replace(/\/+$/, '');
+    const response = await fetch(
+      `${base}/api/db/archetypes?game_type=RANKED_STANDARD&rank_range=LEGEND&limit=500`,
+      {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
+        signal: AbortSignal.timeout(Number(process.env.HS_DATA_API_ADMIN_TIMEOUT_MS || 30_000)),
+      },
+    );
+    if (!response.ok) throw new Error(`HS data API Standard archetypes HTTP ${response.status}`);
+    const payload = await response.json();
+    return Array.isArray(payload?.archetypes) ? payload.archetypes : [];
+  },
+  loadWildMeta: async () => {
+    /*
+     * HSReplay does not publish named Wild-archetype analytics via its
+     * per-archetype endpoints. HSGuru is our existing Wild meta source and
+     * supplies the aggregate metrics shown in the admin catalogue.
+     */
+    const base = (process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN).replace(/\/+$/, '');
+    const response = await fetch(
+      `${base}/v1/hsguru/meta?format=wild&rank=all&period=past_day&min_games=100`,
+      {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
+        signal: AbortSignal.timeout(Number(process.env.HS_DATA_API_ADMIN_TIMEOUT_MS || 30_000)),
+      },
+    );
+    if (!response.ok) throw new Error(`HS data API Wild meta HTTP ${response.status}`);
+    const payload = await response.json();
+    return Array.isArray(payload?.data?.items) ? payload.data.items : [];
+  },
+  loadWildDecks: async (archetype) => {
+    const base = (process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN).replace(/\/+$/, '');
+    const query = new URLSearchParams({ archetype, format_name: 'wild', rank: 'all' });
+    const response = await fetch(`${base}/v1/constructed/hsguru-deck?${query}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
+      signal: AbortSignal.timeout(Number(process.env.HS_DATA_API_ADMIN_TIMEOUT_MS || 30_000)),
+    });
+    if (!response.ok) throw new Error(`HS data API Wild decks HTTP ${response.status}`);
+    const payload = await response.json();
+    return Array.isArray(payload?.data) ? payload.data : [];
+  },
+  loadDetail: async (archetypeId) => {
+    const base = (process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN).replace(/\/+$/, '');
+    const response = await fetch(
+      `${base}/api/db/archetypes/${encodeURIComponent(String(archetypeId))}?game_type=RANKED_STANDARD&rank_range=LEGEND`,
+      {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
+        signal: AbortSignal.timeout(Number(process.env.HS_DATA_API_ADMIN_TIMEOUT_MS || 30_000)),
+      },
+    );
+    return { status: response.status, payload: await response.json().catch(() => null) };
+  },
+  translateArchetype: async (name) => {
+    // The translation source is Arena's DB/manual overrides plus fallback map.
+    // A missing label intentionally returns the English HSReplay name unchanged.
+    const translations = await getStandardArchetypeTranslations();
+    return translateStandardArchetype(name, translations.map);
+  },
+}));
+
+app.use('/api', createDeckBuilderRouter({
+  adminGuard: adminIdGuard,
+  setPrivateNoStore,
+  getDatabase: db,
+  loadCatalogCards: async format => {
+    const collection = await constructedCardDataService.loadCards(format);
+    return collection.cards as any[];
+  },
+  loadCardsRu: () => loadDataCached('cards_ru.json')?.data ?? null,
+  loadArchetypeTranslations: async () => {
+    const translations = await getStandardArchetypeTranslations();
+    return translations.map;
+  },
 }));
 
 app.use('/api', createAdminMechanicTranslationRouter({

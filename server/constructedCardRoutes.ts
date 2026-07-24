@@ -224,6 +224,15 @@ function cardClasses(card: JsonRecord): string[] {
     .filter(value => VALID_CLASSES.has(value)))];
 }
 
+function cardMinionTypes(card: JsonRecord): string[] {
+  return [...new Set([
+    card?.minion_type,
+    ...(Array.isArray(card?.minion_types) ? card.minion_types : []),
+  ]
+    .map(value => String(value ?? '').trim().toUpperCase())
+    .filter(Boolean))];
+}
+
 function compareNullableNumbers(left: unknown, right: unknown, direction: number): number {
   const a = finiteNumber(left);
   const b = finiteNumber(right);
@@ -289,9 +298,13 @@ export function queryConstructedCards(cards: JsonRecord[], query: Record<string,
   const className = readFilter(query.class).toUpperCase();
   const cardSet = readFilter(query.set).toUpperCase();
   const mechanic = readFilter(query.mechanic).toUpperCase();
+  const minionType = readFilter(query.minionType).toUpperCase();
+  const spellSchool = readFilter(query.spellSchool).toUpperCase();
   const type = readFilter(query.type).toUpperCase();
   const rarity = readFilter(query.rarity).toUpperCase();
-  const mana = readNumberFilter(query.mana);
+  const manaFilter = readFilter(query.mana).toUpperCase();
+  const manaTenPlus = manaFilter === '10+';
+  const mana = manaTenPlus ? null : readNumberFilter(query.mana);
   const attack = readNumberFilter(query.attack);
   const health = readNumberFilter(query.health);
   const sort = SORTS.has(String(query.sort)) ? String(query.sort) : 'set';
@@ -303,8 +316,11 @@ export function queryConstructedCards(cards: JsonRecord[], query: Record<string,
     if (className && !classes.includes(className)) return false;
     if (cardSet && String(card?.card_set ?? '').toUpperCase() !== cardSet) return false;
     if (mechanic && !cardMechanics(card).map(value => value.toUpperCase()).includes(mechanic)) return false;
+    if (minionType && !cardMinionTypes(card).includes(minionType)) return false;
+    if (spellSchool && String(card?.spell_school ?? '').toUpperCase() !== spellSchool) return false;
     if (type && String(card?.card_type?.slug ?? '').toUpperCase() !== type) return false;
     if (rarity && String(card?.rarity ?? '').toUpperCase() !== rarity) return false;
+    if (manaTenPlus && (finiteNumber(card?.mana_cost) ?? -1) < 10) return false;
     if (mana !== null && finiteNumber(card?.mana_cost) !== mana) return false;
     if (attack !== null && finiteNumber(card?.attack) !== attack) return false;
     if (health !== null && finiteNumber(card?.health) !== health) return false;
@@ -319,6 +335,8 @@ export function constructedCardFacets(cards: JsonRecord[]) {
     classes: uniqueSorted(cards.flatMap(cardClasses)),
     sets: uniqueSorted(cards.map(card => card?.card_set)),
     mechanics: uniqueSorted(cards.flatMap(cardMechanics)),
+    minionTypes: uniqueSorted(cards.flatMap(cardMinionTypes)),
+    spellSchools: uniqueSorted(cards.map(card => card?.spell_school)),
     types: uniqueSorted(cards.map(card => card?.card_type?.slug)),
     rarities: uniqueSorted(cards.map(card => card?.rarity)),
   };
@@ -329,6 +347,8 @@ export function constructedCardFacetCounts(cards: JsonRecord[]) {
     classes: countedValues(cards.flatMap(cardClasses)),
     sets: countedValues(cards.map(card => card?.card_set)),
     mechanics: countedValues(cards.flatMap(cardMechanics)),
+    minionTypes: countedValues(cards.flatMap(cardMinionTypes)),
+    spellSchools: countedValues(cards.map(card => card?.spell_school)),
     types: countedValues(cards.map(card => card?.card_type?.slug)),
     rarities: countedValues(cards.map(card => card?.rarity)),
   };
