@@ -43,6 +43,41 @@ export type ConstructedArchetypeHistoryPoint = {
   climbingSpeed: number | null;
 };
 
+export type ConstructedArchetypeClassMatchup = {
+  classKey: StandardMetaClassKey;
+  classLabel: string;
+  winrate: number;
+  games: number;
+  share: number | null;
+};
+
+export type ConstructedArchetypeCardStat = {
+  cardId: string | null;
+  dbfId: number | null;
+  cardName: string;
+  mulliganImpact: number | null;
+  mulliganCount: number;
+  drawnImpact: number | null;
+  drawnCount: number | null;
+  keptImpact: number | null;
+  keptCount: number | null;
+};
+
+export type ConstructedArchetypeAnalysis = {
+  rank: 'legend';
+  period: 'past_week';
+  state: 'ok' | 'partial' | 'error';
+  updatedAt: string | null;
+  matchupsUpdatedAt: string | null;
+  cardStatsUpdatedAt: string | null;
+  sourceUrls: {
+    matchups: string;
+    cards: string;
+  };
+  classMatchups: ConstructedArchetypeClassMatchup[];
+  cardStats: ConstructedArchetypeCardStat[];
+};
+
 export type ConstructedArchetypeCatalog = {
   format: ConstructedArchetypeFormat;
   formatLabel: string;
@@ -61,7 +96,11 @@ export type ConstructedArchetypeRouterDependencies = {
     format: ConstructedArchetypeFormat,
     archetype: string,
   ) => Promise<ConstructedArchetypeHistoryPoint[]>;
-  onError?: (scope: 'catalog' | 'detail' | 'history', error: unknown) => void;
+  loadAnalysis: (
+    format: ConstructedArchetypeFormat,
+    archetype: string,
+  ) => Promise<ConstructedArchetypeAnalysis | null>;
+  onError?: (scope: 'catalog' | 'detail' | 'history' | 'analysis', error: unknown) => void;
 };
 
 const FORMATS = new Set<ConstructedArchetypeFormat>(['standard', 'wild']);
@@ -130,7 +169,13 @@ export function createConstructedArchetypeRouter(
       const catalog = await dependencies.loadCatalog(format);
       const item = catalog.items.find(row => row.slug === slug);
       if (!item) return response.status(404).json({ error: 'Архетип не найден в текущей мете' });
-      const history = await dependencies.loadHistory(format, item.archetype);
+      const [history, analysis] = await Promise.all([
+        dependencies.loadHistory(format, item.archetype),
+        dependencies.loadAnalysis(format, item.archetype).catch(error => {
+          dependencies.onError?.('analysis', error);
+          return null;
+        }),
+      ]);
       return response.json({
         format: catalog.format,
         formatLabel: catalog.formatLabel,
@@ -139,6 +184,7 @@ export function createConstructedArchetypeRouter(
         updatedAt: catalog.updatedAt,
         item,
         history,
+        analysis,
       });
     } catch (error) {
       dependencies.onError?.('detail', error);
