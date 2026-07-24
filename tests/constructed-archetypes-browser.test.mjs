@@ -111,6 +111,21 @@ try {
     await page.$eval('.constructed-card-stats tbody tr:first-child .constructed-card-tile__mana', node => node.textContent),
     '1',
   );
+  const desktopCardStats = await page.evaluate(() => {
+    const scroll = document.querySelector('.constructed-card-stats__scroll');
+    const table = scroll?.querySelector('table');
+    const mana = table?.querySelector('.constructed-card-tile__mana');
+    return {
+      tableGap: Math.abs((scroll?.clientWidth ?? 0) - (table?.getBoundingClientRect().width ?? 0)),
+      manaWidth: mana?.getBoundingClientRect().width ?? 0,
+      manaHeight: mana?.getBoundingClientRect().height ?? 0,
+      openBadges: table?.querySelectorAll('.constructed-card-tile__open').length ?? -1,
+    };
+  });
+  assert.ok(desktopCardStats.tableGap <= 1, `desktop table left a ${desktopCardStats.tableGap}px gap`);
+  assert.ok(desktopCardStats.manaWidth >= 24 && desktopCardStats.manaWidth <= 28);
+  assert.ok(desktopCardStats.manaHeight >= 24 && desktopCardStats.manaHeight <= 28);
+  assert.equal(desktopCardStats.openBadges, 0);
   assert.ok(await page.$('.archetype-deck-card__builder[href*="/deck-builder?"]'));
   assert.ok(await page.$('.archetype-main-build .deck-list-view'));
   await page.evaluate(() => {

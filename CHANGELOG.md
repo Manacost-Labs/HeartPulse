@@ -1,5 +1,10 @@
 # HS-Arena Changelog
 
+## v1.0.42 - 2026-07-24
+
+- Simplified mulligan mana costs into compact flat tokens, removed the redundant «Карта» badge, and let desktop statistic columns expand to the full panel width without a blank strip.
+- Added browser regression coverage for the mana token dimensions, removed badge, and full-width desktop table.
+
 ## v1.0.41 - 2026-07-24
 
 - Added a pinned, telemetry-free React Doctor regression gate for changed

@@ -270,7 +270,6 @@ function CardTile({
       <span className="constructed-card-tile__fade" aria-hidden="true" />
       <span className="constructed-card-tile__mana" aria-hidden="true">{row.cost ?? '—'}</span>
       <strong>{row.cardName}</strong>
-      {row.cardId ? <span className="constructed-card-tile__open" aria-hidden="true">Карта</span> : null}
     </>
   );
 
