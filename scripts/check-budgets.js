@@ -15,14 +15,14 @@ const budgets = {
   // separate lazy assets. Vite records those filenames in its eager preload
   // map (+117 raw bytes versus a6863c2), while compressed startup transfer
   // stays below the existing 80 KB ratchet.
-  // v1.0.3 combined release baseline. Keep only a few bytes of deterministic
+  // v1.0.29 merged production baseline. Keep only a few bytes of deterministic
   // build headroom so later growth still has to be reviewed explicitly.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 62_200),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 255_220),
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 62_860),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 255_880),
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_000),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 116_000),
-  css: Number(process.env.BUDGET_CSS_BYTES || 135_200),
+  css: Number(process.env.BUDGET_CSS_BYTES || 135_360),
   routeCss: Number(process.env.BUDGET_ROUTE_CSS_BYTES || 48_350),
   deferredRoutesCss: Number(process.env.BUDGET_DEFERRED_ROUTES_CSS_BYTES || 52_000),
   loginPanelCss: Number(process.env.BUDGET_LOGIN_PANEL_CSS_BYTES || 4_500),
@@ -32,7 +32,7 @@ const budgets = {
   faqPageJs: Number(process.env.BUDGET_FAQ_PAGE_JS_BYTES || 5_500),
   supportPromptCss: Number(process.env.BUDGET_SUPPORT_PROMPT_CSS_BYTES || 4_000),
   siteFooterCss: Number(process.env.BUDGET_SITE_FOOTER_CSS_BYTES || 4_000),
-  seoRegistryJs: Number(process.env.BUDGET_SEO_REGISTRY_JS_BYTES || 11_300),
+  seoRegistryJs: Number(process.env.BUDGET_SEO_REGISTRY_JS_BYTES || 11_550),
   deckViewVendorJs: Number(process.env.BUDGET_DECK_VIEW_VENDOR_JS_BYTES || 31_000),
   deckListJs: Number(process.env.BUDGET_DECK_LIST_JS_BYTES || 6_500),
   deckListCss: Number(process.env.BUDGET_DECK_LIST_CSS_BYTES || 5_200),

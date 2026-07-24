@@ -680,6 +680,12 @@ const NOINDEX_PAGES = new Map([
     structuredData: [],
     noscript: '<h1>Конструктор колоды</h1><p>Административный конструктор колод доступен только после входа в аккаунт администратора и при включённом JavaScript.</p>',
   }],
+  ['/archetypes', {
+    h1: 'Архетипы',
+    ogType: 'website',
+    structuredData: [],
+    noscript: '<h1>Архетипы</h1><p>Административный каталог архетипов доступен только после входа в аккаунт администратора и при включённом JavaScript.</p>',
+  }],
 ]);
 
 const NOT_FOUND_PAGE = {

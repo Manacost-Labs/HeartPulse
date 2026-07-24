@@ -214,6 +214,25 @@
 .standard-meta-chart__selection dt { color: #806244; font-size: 0.56rem; text-transform: uppercase; }
 .standard-meta-chart__selection dd { margin: 0.08rem 0 0; font-size: 0.78rem; font-weight: 900; }
 .standard-meta-chart__selection button { min-height: 44px; white-space: nowrap; }
+.standard-meta-chart__selection .standard-meta-chart__deck-action {
+  width: 78px;
+  min-height: 44px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  line-height: 0;
+}
+.standard-meta-chart__selection .standard-meta-chart__deck-action:hover {
+  background: transparent;
+  filter: brightness(1.05);
+}
+.standard-meta-chart__deck-action img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
 
 @media (max-width: 720px) {
   .standard-meta-chart { margin-top: 0.65rem; border-width: 5px; }
@@ -231,6 +250,7 @@
   .standard-meta-chart__selection dl { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; }
   .standard-meta-chart__selection dl div { min-width: 0; padding-inline: 0.45rem; }
   .standard-meta-chart__selection button { grid-column: 1 / -1; width: 100%; }
+  .standard-meta-chart__selection .standard-meta-chart__deck-action { width: min(78px, 100%); }
 }
 
 @media (prefers-reduced-motion: reduce) {

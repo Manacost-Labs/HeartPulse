@@ -6,7 +6,7 @@ The canonical design specification is stored in [`design.md`](./design.md). This
 
 ## Product Direction
 
-HS-Arena is a Hearthstone statistics product presented as a readable game compendium. Use a continuous parchment canvas, red textured navigation, thin wood separators, real game assets and a restrained game-mode accent. Existing filters, lightboxes, tier grids, drag/drop builders, exports and protected animations must remain intact during visual work.
+HS-Arena is a Hearthstone statistics product presented as a readable game compendium. Use a continuous parchment canvas, red textured navigation, thin wood separators, real game assets and a restrained game-mode accent. Existing filters, lightboxes, tier grids, drag/drop builders, exports and protected animations must remain intact during visual work. Cold white, milk-white and blue-white page backgrounds are forbidden: every exposed page surface must read as parchment, wood, red tavern cloth or the assigned game-mode material.
 
 ## Canonical Tokens
 
@@ -38,6 +38,7 @@ Do not hotlink wiki assets at runtime.
 - Locked subscription routes show one complete access panel on mobile instead of a scrollable dimmed preview.
 - Mobile drawers and every content lightbox lock the iOS body at the current scroll position and restore it exactly on close.
 - Profile hierarchy uses the large wood frame for hero/settings/access, the deck frame for short statuses and subscription sources, and plain parchment inputs for readability.
+- Deck-builder pages use parchment only as the outer page canvas; the framed builder interior is red tavern cloth. Class choices must read as in-game profile plaques with a real class crest, dark red field and asset-backed deck frame, never as plain parchment dashboard cards.
 - The public footer is global to `.arena-app-shell` and always uses red tavern cloth, a wooden top rule, cream links and muted gold legal copy.
 
 ## Home Rules

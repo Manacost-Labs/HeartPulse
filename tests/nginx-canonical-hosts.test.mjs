@@ -23,6 +23,7 @@ assert.match(redirectSource,
 function substituteRouteParameters(route) {
   const defaults = {
     guideSlug: 'guide-1',
+    archetypeId: '123',
     cardId: 'CATA_785',
     dbfId: '76521',
     slugAndDbfId: 'example-76521',

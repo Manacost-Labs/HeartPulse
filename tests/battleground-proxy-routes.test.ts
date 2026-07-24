@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import express from 'express';
-import { createBattlegroundProxyRouter } from '../server/battlegroundProxyRoutes.js';
+import {
+  compactBattlegroundHeroCompositionsPayload,
+  createBattlegroundProxyRouter,
+} from '../server/battlegroundProxyRoutes.js';
 
 const calls: Array<{ kind: string; upstream: string; enriched: boolean }> = [];
 const app = express();
@@ -50,6 +53,14 @@ try {
   const hero = await fetch(`${baseUrl}/bg/heroes/777/details`, { headers: authorized });
   assert.deepEqual(await hero.json(), { kind: 'app', upstream: '/api/bg/heroes/777/details', enriched: true });
 
+  const compositions = await fetch(`${baseUrl}/bg/heroes/compositions?mode=solo&mmr=TOP_50_PERCENT`, { headers: authorized });
+  assert.deepEqual(await compositions.json(), {
+    ok: true,
+    fetched_at: null,
+    compositions: {},
+    composition_names: {},
+  });
+
   const extra = await fetch(`${baseUrl}/bg/library/extra/trinket`, { headers: authorized });
   assert.deepEqual(await extra.json(), { kind: 'extra', library: 'trinket' });
 
@@ -59,10 +70,32 @@ try {
     { kind: 'extra', upstream: 'heroes', enriched: false },
     { kind: 'app', upstream: '/api/bg/library/minions/123%2F456/history', enriched: false },
     { kind: 'app', upstream: '/api/bg/heroes/777/details', enriched: true },
+    { kind: 'app', upstream: 'https://api.hs-manacost.ru/api/bg/heroes', enriched: false },
     { kind: 'extra', upstream: 'trinket', enriched: false },
   ]);
 } finally {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 }
+
+assert.deepEqual(compactBattlegroundHeroCompositionsPayload({
+  ok: true,
+  fetched_at: '2026-07-24T00:00:00Z',
+  heroes: [
+    { dbfId: 57946, best_composition_id: 17, best_composition: { composition_id: 17, name: 'Механизмы' } },
+    { dbf_id: 57947, best_composition_id: 18, best_composition: { id: 18, composition: 'Пираты' } },
+    { dbf: 57948, best_composition_id: 19 },
+  ],
+}), {
+  ok: true,
+  fetched_at: '2026-07-24T00:00:00Z',
+  compositions: {
+    57946: 'Механизмы',
+    57947: 'Пираты',
+  },
+  composition_names: {
+    17: 'Механизмы',
+    18: 'Пираты',
+  },
+});
 
 console.log('battleground proxy router contract tests passed');

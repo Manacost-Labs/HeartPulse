@@ -252,6 +252,18 @@ assert.equal(
   'any_player',
 );
 assert.equal(
+  parseStandardMetaApiResponse(candidate({ rank: 'all', rankLabel: 'Все ранги' }), now).data.rankLabel,
+  'Все ранги',
+);
+assert.equal(
+  parseStandardMetaApiResponse(candidate({ rank: 'diamond_all', rankLabel: 'Алмаз' }), now).data.rank,
+  'diamond_all',
+);
+assert.equal(
+  parseStandardMetaApiResponse(candidate({ rank: 'diamond_legend', rankLabel: 'Алмаз — Легенда' }), now).data.rank,
+  'diamond_legend',
+);
+assert.equal(
   parseStandardMetaApiResponse(candidate({ period: 'past_6_hours' }), now).data.period,
   'past_6_hours',
 );
@@ -341,6 +353,11 @@ assert.equal(early.mode, 'early');
 assert.equal(early.partial, true);
 assert.equal(early.quality.status, 'warning');
 assert.match(early.quality.warnings[0], /Ранняя мета/);
+
+const emptyStable = createStandardMetaEnvelope(candidate({ items: [] }), now);
+assert.equal(emptyStable.partial, false);
+assert.equal(emptyStable.quality.status, 'warning');
+assert.match(emptyStable.quality.warnings[0], /Нет архетипов/);
 
 const largeStable = createStandardMetaEnvelope(candidate({
   items: Array.from({ length: 12 }, (_, index) => ({

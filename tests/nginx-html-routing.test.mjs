@@ -67,6 +67,7 @@ function firstMatchingRegexLocation(pathname) {
 function substituteRouteParameters(route) {
   const defaults = {
     guideSlug: 'guide-1',
+    archetypeId: '123',
     cardId: 'CATA_785',
     dbfId: '76521',
     slugAndDbfId: 'example-76521',
@@ -242,11 +243,16 @@ for (const route of inventory.routes) {
   }
   if (route.id === 'admin-panel') continue;
   if (route.id === 'deck-builder') continue;
+  if (route.id === 'archetypes') continue;
 
   expectRegexAction(path, 'return 301', `${route.id} non-canonical route`);
   const redirect = firstMatchingRegexLocation(path);
   assert.match(redirect?.body || '', /\$uri\/\$is_args\$args;/,
     `${route.id} must add the slash and preserve query in one redirect`);
+  if (route.id === 'archetype-detail' || route.id === 'wild-archetype-decks') {
+    expectRegexAction(`${path}/`, 'try_files /archetypes/index.html /index.html =404;', `${route.id} canonical route`);
+    continue;
+  }
   if (route.id === 'standard-card-detail' || route.id === 'bg-hero-detail' || route.id === 'bg-library-detail') {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:3101;', `${route.id} canonical route`);
     const resolver = firstMatchingRegexLocation(`${path}/`);

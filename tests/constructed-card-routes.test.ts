@@ -7,6 +7,7 @@ import {
   completeConstructedCatalog,
   constructedDecksContainingCard,
   constructedCardCoverage,
+  constructedCardFacets,
   constructedCardFacetCounts,
   createConstructedCardDataService,
   createConstructedCardRouter,
@@ -26,12 +27,14 @@ const catalogCards = [
   {
     card_id: 'CARD_1', dbf: 1, name: { ru: 'Альфа', en: 'Alpha' }, card_set: 'SET_A',
     card_type: { slug: 'MINION', name_ru: 'Существо' }, class: 'MAGE', multi_class: [], rarity: 'COMMON',
-    mana_cost: 2, attack: 3, health: 4, mechanics: ['BATTLECRY'], referenced_tags: [], images: { card: 'alpha.png' },
+    mana_cost: 2, attack: 3, health: 4, minion_type: 'BEAST', spell_school: null,
+    mechanics: ['BATTLECRY'], referenced_tags: [], images: { card: 'alpha.png' },
   },
   {
     card_id: 'CARD_2', dbf: 2, name: { ru: 'Бета', en: 'Beta' }, card_set: 'SET_B',
     card_type: { slug: 'SPELL', name_ru: 'Заклинание' }, class: 'WARRIOR', multi_class: [5], rarity: 'RARE',
-    mana_cost: 5, attack: null, health: null, mechanics: [], referenced_tags: [5, 'TAUNT'], images: { card: 'beta.png' },
+    mana_cost: 5, attack: null, health: null, minion_type: null, spell_school: 'FIRE',
+    mechanics: [], referenced_tags: [5, 'TAUNT'], images: { card: 'beta.png' },
   },
 ];
 const mergedCards = mergeConstructedCardRows(catalogCards, [{
@@ -105,6 +108,13 @@ assert.equal(
   'duplicate statistics rows must not create duplicate catalog cards',
 );
 assert.deepEqual(queryConstructedCards(mergedCards, { class: 'mage', mechanic: 'battlecry' }).map(card => card.card_id), ['CARD_1']);
+assert.deepEqual(queryConstructedCards(mergedCards, { minionType: 'beast' }).map(card => card.card_id), ['CARD_1']);
+assert.deepEqual(queryConstructedCards(mergedCards, { spellSchool: 'fire' }).map(card => card.card_id), ['CARD_2']);
+assert.deepEqual(
+  queryConstructedCards([{ ...catalogCards[0], mana_cost: 10 }, { ...catalogCards[1], mana_cost: 12 }], { mana: '10+' })
+    .map(card => card.card_id),
+  ['CARD_1', 'CARD_2'],
+);
 assert.deepEqual(queryConstructedCards(mergedCards, { sort: 'mana', direction: 'desc' }).map(card => card.card_id), ['CARD_2', 'CARD_1']);
 assert.deepEqual(
   queryConstructedCards([
@@ -119,6 +129,10 @@ assert.deepEqual(constructedCardCoverage(mergedCards), { totalCards: 2, cardsWit
 assert.deepEqual(constructedCardFacetCounts(mergedCards).sets, [{ value: 'SET_A', count: 1 }, { value: 'SET_B', count: 1 }]);
 assert.deepEqual(constructedCardFacetCounts(mergedCards).classes, [{ value: 'MAGE', count: 1 }, { value: 'WARRIOR', count: 1 }]);
 assert.deepEqual(constructedCardFacetCounts(mergedCards).mechanics, [{ value: 'BATTLECRY', count: 1 }, { value: 'TAUNT', count: 1 }]);
+assert.deepEqual(constructedCardFacetCounts(mergedCards).minionTypes, [{ value: 'BEAST', count: 1 }]);
+assert.deepEqual(constructedCardFacetCounts(mergedCards).spellSchools, [{ value: 'FIRE', count: 1 }]);
+assert.deepEqual(constructedCardFacets(mergedCards).minionTypes, ['BEAST']);
+assert.deepEqual(constructedCardFacets(mergedCards).spellSchools, ['FIRE']);
 assert.deepEqual(
   constructedCardFacetCounts([{ ...catalogCards[0], mechanics: ['BATTLECRY', 'TRIGGER_VISUAL', 'ImmuneToSpellpower'] }]).mechanics,
   [{ value: 'BATTLECRY', count: 1 }],
