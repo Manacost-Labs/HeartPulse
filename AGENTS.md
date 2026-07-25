@@ -65,14 +65,41 @@ The server-wide skills are installed under `/opt/ai-agent-resources` and the
 Codex plugin cache. Installing them is not sufficient: agents must select and
 read the applicable `SKILL.md` completely before implementation.
 
+The routing step itself is mandatory for every repository task:
+
+1. Read `agent-resource-index` and `agent-skills:using-agent-skills` before
+   investigation or implementation.
+2. Classify the task against the table below and list the selected skills in
+   the working plan. Every matching row is required, not optional.
+3. Read every selected `SKILL.md` completely before taking actions governed by
+   that skill. Follow its workflow and verification steps; merely mentioning a
+   skill does not satisfy this rule.
+4. Load only matching skills. Do not read the whole catalog into context when
+   it is unrelated to the current task.
+5. If a required skill is missing or unreadable, record the blocker in the
+   matching Notion task and continue only when a safe documented fallback
+   exists.
+
 | Task | Required skills/resources |
 | --- | --- |
+| Every repository task | `agent-resource-index`, `agent-skills:using-agent-skills`, and `agent-skills:context-engineering` |
 | Any codebase investigation | `codegraph` first when `.codegraph/` exists; `context7` for current library/framework/API documentation |
+| New feature or non-trivial behavior change | `agent-skills:spec-driven-development`; add `agent-skills:planning-and-task-breakdown` when the work has multiple independently verifiable steps |
+| Any code implementation | `agent-skills:incremental-implementation` and `agent-skills:test-driven-development` |
+| Bug diagnosis or fix | `agent-skills:debugging-and-error-recovery` and `agent-skills:test-driven-development` |
 | UI, UX, layout or responsive work | `frontend-design`, TypeUI fundamentals at `/opt/ai-agent-resources/repos/typeui/skills/fundamentals/SKILL.md`, and `agent-skills:browser-testing-with-devtools` |
 | React implementation or review | `build-web-apps:react-best-practices` and `build-web-apps:frontend-testing-debugging` |
+| API, data contract, parser boundary or external integration | `agent-skills:api-and-interface-design`, `agent-skills:source-driven-development`, and `agent-skills:doubt-driven-development` |
 | Performance or loading work | `agent-skills:performance-optimization` plus the audit, performance, Core Web Vitals and accessibility skills under `/opt/ai-agent-resources/repos/web-quality-skills/skills/` |
 | Telemetry, errors, metrics or production diagnostics | `agent-skills:observability-and-instrumentation` |
 | Source integration or uncertain behavior | `agent-skills:source-driven-development` and `agent-skills:doubt-driven-development` |
+| Security, authentication, authorization, secrets, admin access or dependency-risk work | `agent-skills:security-and-hardening` |
+| CI, automation or quality-gate work | `agent-skills:ci-cd-and-automation` |
+| Migration or deprecation | `agent-skills:deprecation-and-migration` |
+| Documentation or architecture decision | `agent-skills:documentation-and-adrs` |
+| Commit, branch, merge or release history | `agent-skills:git-workflow-and-versioning` |
+| Every completed code change before handoff | `agent-skills:code-review-and-quality` followed by `agent-skills:code-simplification` |
+| Production deployment or launch | `agent-skills:shipping-and-launch` |
 
 For every browser-facing change, the agent must perform a real-browser review
 with Chrome DevTools MCP after automated checks. The review must cover the

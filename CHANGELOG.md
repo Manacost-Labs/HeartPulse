@@ -3,8 +3,9 @@
 ## v1.0.48 - 2026-07-24
 
 - Made the installed design, React, browser, performance, observability,
-  CodeGraph, Context7 and evidence-driven skills mandatory through a tested
-  task-routing contract for Codex and Claude.
+  specification, implementation, testing, review, security, documentation,
+  Git and release skills mandatory through a tested task-routing contract,
+  with `AGENTS.md` as the shared source of truth for Codex and Claude.
 - Added idle-loaded, batched real-user Web Vitals collection for LCP, CLS, INP,
   FCP and TTFB through the existing server-side Sentry SDK without loading the
   large browser SDK on ordinary page views.

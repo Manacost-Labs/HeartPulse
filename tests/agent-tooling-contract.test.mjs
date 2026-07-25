@@ -29,27 +29,53 @@ test('project MCP config uses the guarded Chrome DevTools launcher', () => {
   });
 });
 
-test('AGENTS routes browser, React, performance and telemetry work through installed skills', () => {
+test('AGENTS enforces the installed skill router and task-specific quality skills', () => {
   const instructions = readFileSync('AGENTS.md', 'utf8');
   for (const requiredSkill of [
+    'agent-resource-index',
+    'agent-skills:using-agent-skills',
+    'agent-skills:context-engineering',
+    'agent-skills:spec-driven-development',
+    'agent-skills:planning-and-task-breakdown',
+    'agent-skills:incremental-implementation',
+    'agent-skills:test-driven-development',
+    'agent-skills:debugging-and-error-recovery',
     'frontend-design',
     'typeui/skills/fundamentals/SKILL.md',
     'agent-skills:browser-testing-with-devtools',
     'build-web-apps:react-best-practices',
     'build-web-apps:frontend-testing-debugging',
+    'agent-skills:api-and-interface-design',
     'agent-skills:performance-optimization',
     'web-quality-skills/skills/',
     'agent-skills:observability-and-instrumentation',
     'agent-skills:source-driven-development',
     'agent-skills:doubt-driven-development',
+    'agent-skills:security-and-hardening',
+    'agent-skills:ci-cd-and-automation',
+    'agent-skills:deprecation-and-migration',
+    'agent-skills:documentation-and-adrs',
+    'agent-skills:git-workflow-and-versioning',
+    'agent-skills:code-review-and-quality',
+    'agent-skills:code-simplification',
+    'agent-skills:shipping-and-launch',
     '`codegraph`',
     '`context7`',
   ]) {
     assert.match(instructions, new RegExp(requiredSkill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
+  assert.match(instructions, /Every matching row is required, not optional/);
+  assert.match(instructions, /read every selected `SKILL\.md` completely/i);
   assert.match(instructions, /real-browser review/);
   assert.match(instructions, /console errors\/warnings/);
   assert.match(instructions, /accessibility structure/);
+});
+
+test('Claude uses AGENTS as the shared mandatory project contract', () => {
+  const instructions = readFileSync('CLAUDE.md', 'utf8');
+  assert.match(instructions, /read and follow \[AGENTS\.md\]\(AGENTS\.md\) completely/i);
+  assert.match(instructions, /single source of truth/i);
+  assert.match(instructions, /mandatory skill routing/i);
 });
 
 test('Chrome DevTools defaults isolate sessions and minimize data exposure', () => {
