@@ -25,7 +25,7 @@ const deckCards: HsReplayDeckCard[] = Array.from({ length: 30 }, (_, index) => (
 
 const modalState = {
   item: {
-    id: 'nested-meta', archetype: 'Nested Shaman', archetypeLabel: 'Вложенный Шаман', translated: true,
+    id: 'nested-meta', slug: 'nested-shaman', archetype: 'Nested Shaman', archetypeLabel: 'Вложенный Шаман', translated: true,
     classKey: 'shaman', winrate: 52, popularity: 5, games: 100, turns: 8, durationMinutes: 7, climbingSpeed: 0.2,
   },
   recommendation: {

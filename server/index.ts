@@ -6108,6 +6108,7 @@ function transformHsguruMeta(
     const { popularity, games } = parseStandardMetaPopularity(row[2]);
     return [{
       id: createHash('sha1').update(`${format}:${archetype.toLowerCase()}`).digest('hex').slice(0, 12),
+      slug: constructedArchetypeSlug(archetype),
       archetype,
       archetypeLabel: translateStandardArchetype(archetype, translations),
       translated: translateStandardArchetype(archetype, translations) !== archetype,
@@ -6194,6 +6195,7 @@ async function loadStandardMeta(
         const archetypeLabel = translateStandardArchetype(archetype, translations.map);
         return [{
           id: createHash('sha1').update(`${format}:${archetype.toLowerCase()}`).digest('hex').slice(0, 12),
+          slug: constructedArchetypeSlug(archetype),
           archetype,
           archetypeLabel,
           translated: archetypeLabel !== archetype,

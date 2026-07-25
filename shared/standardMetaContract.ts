@@ -20,6 +20,7 @@ export type StandardMetaClass = 'deathknight' | 'demonhunter' | 'druid' | 'hunte
 
 export type StandardMetaItem = {
   id: string;
+  slug: string;
   archetype: string;
   archetypeLabel: string;
   translated: boolean;
@@ -116,6 +117,7 @@ function parseItem(value: unknown, index: number): StandardMetaItem {
   if (typeof item.translated !== 'boolean') invalid(`items[${index}].translated must be boolean`);
   return {
     id: dataString(item.id, `items[${index}].id`, 80),
+    slug: dataString(item.slug, `items[${index}].slug`, 80),
     archetype: dataString(item.archetype, `items[${index}].archetype`, 160),
     archetypeLabel: dataString(item.archetypeLabel, `items[${index}].archetypeLabel`, 160),
     translated: item.translated,

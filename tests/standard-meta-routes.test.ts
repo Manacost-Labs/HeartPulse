@@ -11,6 +11,7 @@ const calls: string[] = [];
 const sourceUpdatedAt = '2026-07-21T05:05:30.230Z';
 const metaItems = Array.from({ length: 5 }, (_, index) => ({
   id: `meta-${index + 1}`,
+  slug: index === 0 ? 'mug-shaman' : `archetype-${index + 1}`,
   archetype: index === 0 ? 'Mug Shaman' : `Archetype ${index + 1}`,
   archetypeLabel: index === 0 ? 'Кружечный Шаман' : `Архетип ${index + 1}`,
   translated: true,

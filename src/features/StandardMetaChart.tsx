@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChartScatter, ChevronDown, ChevronUp, MousePointer2 } from 'lucide-react';
+import { ArrowRight, ChartScatter, ChevronDown, ChevronUp, MousePointer2 } from 'lucide-react';
 import './StandardMetaChart.css';
 
 export type StandardMetaChartItem = {
   id: string;
+  slug: string;
   archetype: string;
   archetypeLabel: string;
   classKey: string | null;
@@ -15,9 +16,9 @@ export type StandardMetaChartItem = {
 
 type StandardMetaChartProps = {
   items: StandardMetaChartItem[];
+  format: 'standard' | 'wild';
   formatLabel: string;
   rankLabel: string;
-  onOpenDeck: (itemId: string) => void;
 };
 
 const VIEWBOX_WIDTH = 1000;
@@ -47,7 +48,7 @@ function classIcon(classKey: string | null): string {
   return classKey ? `/class_icon/ui/${classKey}-64.webp` : '/class_icon/neutral.webp';
 }
 
-export default function StandardMetaChart({ items, formatLabel, rankLabel, onOpenDeck }: StandardMetaChartProps) {
+export default function StandardMetaChart({ items, format, formatLabel, rankLabel }: StandardMetaChartProps) {
   const points = useMemo(
     () => items.filter((item): item is StandardMetaChartItem & { winrate: number; popularity: number } => (
       Number.isFinite(item.winrate) && Number.isFinite(item.popularity)
@@ -204,20 +205,14 @@ export default function StandardMetaChart({ items, formatLabel, rankLabel, onOpe
                 <div><dt>Популярность</dt><dd>{formatPercent(selectedItem.popularity)}</dd></div>
                 <div><dt>Игры</dt><dd>{selectedItem.games?.toLocaleString('ru-RU') ?? '—'}</dd></div>
               </dl>
-              <button
-                type="button"
+              <a
                 className="standard-meta-chart__deck-action"
-                onClick={() => onOpenDeck(selectedItem.id)}
-                aria-label={`Открыть колоду: ${selectedItem.archetypeLabel}`}
+                href={`/standard/archetypes/${format}/${selectedItem.slug}`}
+                aria-label={`Открыть страницу архетипа: ${selectedItem.archetypeLabel}`}
               >
-                <img
-                  src="/assets/ui/deck-code-button.png"
-                  width="203"
-                  height="81"
-                  alt=""
-                  decoding="async"
-                />
-              </button>
+                <span>Архетип</span>
+                <ArrowRight size={17} aria-hidden="true" />
+              </a>
             </div>
           )}
         </div>

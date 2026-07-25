@@ -213,25 +213,29 @@
 
 .standard-meta-chart__selection dt { color: #806244; font-size: 0.56rem; text-transform: uppercase; }
 .standard-meta-chart__selection dd { margin: 0.08rem 0 0; font-size: 0.78rem; font-weight: 900; }
-.standard-meta-chart__selection button { min-height: 44px; white-space: nowrap; }
+.standard-meta-chart__selection button,
+.standard-meta-chart__selection a { min-height: 44px; white-space: nowrap; }
 .standard-meta-chart__selection .standard-meta-chart__deck-action {
-  width: 78px;
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  justify-content: center;
+  width: auto;
   min-height: 44px;
-  padding: 0;
-  overflow: hidden;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  line-height: 0;
+  padding: 0.58rem 0.78rem;
+  border: 1px solid #76512e;
+  color: #fff0c4;
+  background: linear-gradient(145deg, #6a4587, #4e326b);
+  box-shadow: inset 0 0 0 2px rgba(255, 236, 174, 0.08), 0 3px 7px rgba(44, 23, 61, 0.2);
+  font-size: 0.7rem;
+  font-weight: 900;
+  line-height: 1;
+  text-decoration: none;
 }
 .standard-meta-chart__selection .standard-meta-chart__deck-action:hover {
-  background: transparent;
+  color: #fff7dc;
+  background: linear-gradient(145deg, #7c519d, #553675);
   filter: brightness(1.05);
-}
-.standard-meta-chart__deck-action img {
-  display: block;
-  width: 100%;
-  height: auto;
 }
 
 @media (max-width: 720px) {
@@ -249,11 +253,13 @@
   .standard-meta-chart__selection { grid-template-columns: auto minmax(0, 1fr); gap: 0.55rem; }
   .standard-meta-chart__selection dl { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; }
   .standard-meta-chart__selection dl div { min-width: 0; padding-inline: 0.45rem; }
-  .standard-meta-chart__selection button { grid-column: 1 / -1; width: 100%; }
-  .standard-meta-chart__selection .standard-meta-chart__deck-action { width: min(78px, 100%); }
+  .standard-meta-chart__selection button,
+  .standard-meta-chart__selection a { grid-column: 1 / -1; width: 100%; }
+  .standard-meta-chart__selection .standard-meta-chart__deck-action { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .standard-meta-chart__header-actions button,
-  .standard-meta-chart__selection button { transition: none; }
+  .standard-meta-chart__selection button,
+  .standard-meta-chart__selection a { transition: none; }
 }

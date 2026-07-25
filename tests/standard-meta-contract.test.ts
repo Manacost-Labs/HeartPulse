@@ -33,6 +33,7 @@ function candidate(overrides: Record<string, unknown> = {}) {
     updatedAt: sourceUpdatedAt,
     items: Array.from({ length: 5 }, (_, index) => ({
       id: `deck-${index}`,
+      slug: `deck-${index}`,
       archetype: `Deck ${index}`,
       archetypeLabel: `Колода ${index}`,
       translated: true,
@@ -379,6 +380,7 @@ const largeStable = createStandardMetaEnvelope(candidate({
   items: Array.from({ length: 12 }, (_, index) => ({
     ...(candidate().items as any[])[index % 5],
     id: `large-${index}`,
+    slug: `large-deck-${index}`,
     archetype: `Large Deck ${index}`,
     archetypeLabel: `Большая колода ${index}`,
   })),
@@ -412,6 +414,7 @@ assert.throws(
     items: Array.from({ length: 501 }, (_, index) => ({
       ...(candidate().items as any[])[index % 5],
       id: `oversized-${index}`,
+      slug: `oversized-deck-${index}`,
       archetype: `Oversized Deck ${index}`,
       archetypeLabel: `Слишком большая колода ${index}`,
     })),

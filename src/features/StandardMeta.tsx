@@ -1,7 +1,8 @@
-import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowDown,
+  ArrowRight,
   ArrowUp,
   ChevronsUpDown,
   Copy,
@@ -48,6 +49,7 @@ type MetaClass = 'deathknight' | 'demonhunter' | 'druid' | 'hunter' | 'mage' | '
 
 type MetaItem = {
   id: string;
+  slug: string;
   archetype: string;
   archetypeLabel: string;
   translated: boolean;
@@ -113,12 +115,6 @@ type DeckModalState = {
   previewError: string;
 };
 
-type DeckCacheEntry = {
-  recommendation: Recommendation;
-  preview: Preview | null;
-  previewError: string;
-};
-
 const FORMATS: Array<{ id: MetaFormat; label: string; description: string; icon: typeof Shield }> = [
   { id: 'standard', label: 'Стандарт', description: 'Текущая ротация', icon: Shield },
   { id: 'wild', label: 'Вольный', description: 'Все дополнения', icon: Sparkles },
@@ -140,15 +136,15 @@ const RANK_GROUPS: Array<{ label: string; icon: typeof Gem; ranks: MetaRank[] }>
 ];
 
 const PERIOD_LABELS: Partial<Record<MetaPeriod, string>> = {
-  past_day: 'Прошедший день',
-  past_3_days: 'Последние 3 дня',
-  past_week: 'Последняя неделя',
-  past_2_weeks: 'Последние 2 недели',
-  violet_hold: 'Побег из Аметистовой крепости',
+  past_day: 'За прошедший день',
+  past_3_days: 'За последние 3 дня',
+  past_week: 'За последнюю неделю',
+  past_2_weeks: 'За последние 2 недели',
+  violet_hold: 'За всё дополнение — Побег из Аметистовой крепости',
 };
 
 function standardMetaPeriodLabel(period: MetaPeriod): string {
-  if (period.startsWith('patch_')) return `Патч ${period.slice('patch_'.length)}`;
+  if (period.startsWith('patch_')) return `За весь патч ${period.slice('patch_'.length)}`;
   return PERIOD_LABELS[period] ?? period;
 }
 
@@ -390,17 +386,7 @@ function StandardMetaContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [metaRevision, setMetaRevision] = useState(0);
-  const [modal, setModal] = useState<DeckModalState | null>(null);
   const requestId = useRef(0);
-  const deckCache = useRef(new Map<string, DeckCacheEntry>());
-  const deckRequestJobs = useRef(new Map<string, Promise<Recommendation>>());
-  const deckPrefetchTimers = useRef(new Map<string, number>());
-  const closeModal = useCallback(() => setModal(null), []);
-
-  useEffect(() => () => {
-    for (const timer of deckPrefetchTimers.current.values()) window.clearTimeout(timer);
-    deckPrefetchTimers.current.clear();
-  }, [format, rank]);
 
   useEffect(() => {
     const currentRequest = ++requestId.current;
@@ -438,28 +424,6 @@ function StandardMetaContent() {
     return () => controller.abort();
   }, [format, rank, period, minGames, metaRevision]);
 
-  useEffect(() => {
-    if (!modal?.preview?.hash || modal.preview.ready || modal.preview.state === 'error') return undefined;
-    const timer = window.setTimeout(() => {
-      void apiJson<{ preview: Preview }>(`/api/standard-meta/preview/${encodeURIComponent(modal.preview!.hash)}`)
-        .then(({ preview }) => setModal(current => {
-          if (!current?.recommendation) return current;
-          deckCache.current.set(`${current.recommendation.format}:${current.recommendation.rank}:${current.item.archetype.toLowerCase()}`, {
-            recommendation: current.recommendation,
-            preview,
-            previewError: '',
-          });
-          return { ...current, preview, loadingPreview: false };
-        }))
-        .catch(cause => setModal(current => current ? {
-          ...current,
-          loadingPreview: false,
-          previewError: cause instanceof Error ? cause.message : 'Не удалось обновить изображение',
-        } : current));
-    }, 1600);
-    return () => window.clearTimeout(timer);
-  }, [modal?.preview]);
-
   const filteredItems = useMemo(() => {
     const normalized = deferredQuery.toLowerCase().trim();
     if (!normalized) return data.items;
@@ -493,7 +457,8 @@ function StandardMetaContent() {
   );
   const currentPatchLabel = data.currentPatchPeriod
     ? standardMetaPeriodLabel(data.currentPatchPeriod)
-    : 'Определяется автоматически';
+    : 'Период появится автоматически';
+  const expansionPeriodAvailable = data.availablePeriods.includes('violet_hold');
 
   const changeSort = (key: MetaSortKey) => {
     setSort(current => current.key === key
@@ -527,112 +492,7 @@ function StandardMetaContent() {
     );
   };
 
-  const deckCacheKey = (item: MetaItem) => `${format}:${rank}:${item.archetype.toLowerCase()}`;
-
-  const loadDeckRecommendation = (item: MetaItem): Promise<Recommendation> => {
-    const cacheKey = deckCacheKey(item);
-    const cached = deckCache.current.get(cacheKey);
-    if (cached) return Promise.resolve(cached.recommendation);
-    const active = deckRequestJobs.current.get(cacheKey);
-    if (active) return active;
-    const params = new URLSearchParams({ archetype: item.archetype, archetypeLabel: item.archetypeLabel, format, rank });
-    const job = apiJson<{ recommendation: Recommendation }>(`/api/standard-meta/recommendation?${params}`)
-      .then(result => {
-        deckCache.current.set(cacheKey, { recommendation: result.recommendation, preview: null, previewError: '' });
-        return result.recommendation;
-      })
-      .finally(() => {
-        if (deckRequestJobs.current.get(cacheKey) === job) deckRequestJobs.current.delete(cacheKey);
-      });
-    deckRequestJobs.current.set(cacheKey, job);
-    return job;
-  };
-
-  const prefetchDeck = (item: MetaItem) => {
-    void loadDeckRecommendation(item).catch(() => undefined);
-  };
-
-  const scheduleDeckPrefetch = (item: MetaItem) => {
-    const cacheKey = deckCacheKey(item);
-    if (deckCache.current.has(cacheKey) || deckRequestJobs.current.has(cacheKey) || deckPrefetchTimers.current.has(cacheKey)) return;
-    const timer = window.setTimeout(() => {
-      deckPrefetchTimers.current.delete(cacheKey);
-      prefetchDeck(item);
-    }, 700);
-    deckPrefetchTimers.current.set(cacheKey, timer);
-  };
-
-  const cancelDeckPrefetch = (item: MetaItem) => {
-    const cacheKey = deckCacheKey(item);
-    const timer = deckPrefetchTimers.current.get(cacheKey);
-    if (timer === undefined) return;
-    window.clearTimeout(timer);
-    deckPrefetchTimers.current.delete(cacheKey);
-  };
-
-  const openDeck = async (item: MetaItem) => {
-    const cacheKey = `${format}:${rank}:${item.archetype.toLowerCase()}`;
-    const cached = deckCache.current.get(cacheKey);
-    if (cached) {
-      setModal({
-        item,
-        recommendation: cached.recommendation,
-        preview: cached.preview,
-        loadingRecommendation: false,
-        loadingPreview: Boolean(cached.preview && !cached.preview.ready && cached.preview.state !== 'error'),
-        error: '',
-        previewError: cached.previewError,
-      });
-      return;
-    }
-    setModal({
-      item,
-      recommendation: null,
-      preview: null,
-      loadingRecommendation: true,
-      loadingPreview: false,
-      error: '',
-      previewError: '',
-    });
-    try {
-      const recommendation = await loadDeckRecommendation(item);
-      setModal(current => current?.item.id === item.id ? {
-        ...current,
-        recommendation,
-        loadingRecommendation: false,
-      } : current);
-    } catch (cause) {
-      setModal(current => current?.item.id === item.id ? {
-        ...current,
-        loadingRecommendation: false,
-        error: cause instanceof Error ? cause.message : 'Сборка пока не найдена',
-      } : current);
-    }
-  };
-
-  const renderDeckPreview = async () => {
-    const current = modal;
-    if (!current?.recommendation || current.loadingPreview) return;
-    setModal(value => value ? { ...value, loadingPreview: true, previewError: '' } : value);
-    try {
-      const result = await apiJson<{ recommendation: Recommendation; preview: Preview }>('/api/standard-meta/preview', {
-        method: 'POST',
-        body: JSON.stringify({
-          archetype: current.item.archetype,
-          archetypeLabel: current.item.archetypeLabel,
-          format: current.recommendation.format,
-          rank: current.recommendation.rank,
-        }),
-      });
-      setModal(value => value?.item.id === current.item.id ? { ...value, recommendation: result.recommendation, preview: result.preview, loadingPreview: false } : value);
-      deckCache.current.set(`${current.recommendation.format}:${current.recommendation.rank}:${current.item.archetype.toLowerCase()}`, {
-        recommendation: result.recommendation, preview: result.preview, previewError: '',
-      });
-    } catch (cause) {
-      const previewError = cause instanceof Error ? cause.message : 'Не удалось создать изображение';
-      setModal(value => value?.item.id === current.item.id ? { ...value, loadingPreview: false, previewError } : value);
-    }
-  };
+  const archetypeHref = (item: MetaItem) => `/standard/archetypes/${format}/${item.slug}`;
 
   return (
     <>
@@ -675,17 +535,27 @@ function StandardMetaContent() {
           <span aria-hidden="true"><Swords size={18} /></span>
           <div><strong>Управление срезом</strong><small>Выберите формат, рейтинг и временной диапазон</small></div>
         </div>
-        <div className="standard-meta__season-context" aria-label="Текущий сезон меты">
-          <div>
+        <div className="standard-meta__season-context" aria-label="Периоды текущего сезона">
+          <button
+            type="button"
+            disabled={!data.currentPatchPeriod}
+            aria-pressed={Boolean(data.currentPatchPeriod && period === data.currentPatchPeriod)}
+            onClick={() => { if (data.currentPatchPeriod) setPeriod(data.currentPatchPeriod); }}
+          >
             <ShieldCheck size={17} aria-hidden="true" />
-            <span>Активный патч</span>
+            <span>Период меты</span>
             <strong>{currentPatchLabel}</strong>
-          </div>
-          <div>
+          </button>
+          <button
+            type="button"
+            disabled={!expansionPeriodAvailable}
+            aria-pressed={period === 'violet_hold'}
+            onClick={() => { if (expansionPeriodAvailable) setPeriod('violet_hold'); }}
+          >
             <Sparkles size={17} aria-hidden="true" />
-            <span>Дополнение</span>
-            <strong>Побег из Аметистовой крепости</strong>
-          </div>
+            <span>Период меты</span>
+            <strong>За всё дополнение — Побег из Аметистовой крепости</strong>
+          </button>
         </div>
         <div>
           <span className="standard-meta__control-label">Формат</span>
@@ -788,12 +658,9 @@ function StandardMetaContent() {
           )}>
             <StandardMetaChart
               items={data.items}
+              format={format}
               formatLabel={data.formatLabel}
               rankLabel={data.rankLabel}
-              onOpenDeck={itemId => {
-                const item = data.items.find(candidate => candidate.id === itemId);
-                if (item) void openDeck(item);
-              }}
             />
           </React.Suspense>
 
@@ -831,25 +698,15 @@ function StandardMetaContent() {
                     <span>Скорость набора</span>
                     <strong>{formatNumber(item.climbingSpeed, ' ★/ч')}</strong>
                   </div>
-                  <button
-                    type="button"
+                  <a
                     className="standard-meta__primary-button standard-meta__deck-action standard-meta-card__deck-button"
                     data-tour-id={index === 0 ? 'meta-deck-action' : undefined}
-                    onPointerEnter={() => scheduleDeckPrefetch(item)}
-                    onPointerLeave={() => cancelDeckPrefetch(item)}
-                    onPointerDown={event => { if (event.button === 0) prefetchDeck(item); }}
-                    onClick={() => void openDeck(item)}
-                    aria-label={`Открыть колоду: ${item.archetypeLabel}`}
+                    href={archetypeHref(item)}
+                    aria-label={`Открыть страницу архетипа: ${item.archetypeLabel}`}
                   >
-                    <img
-                      className="standard-meta__deck-action-image"
-                      src="/assets/ui/deck-code-button.png"
-                      width="203"
-                      height="81"
-                      alt=""
-                      decoding="async"
-                    />
-                  </button>
+                    <span>Архетип</span>
+                    <ArrowRight size={17} aria-hidden="true" />
+                  </a>
                 </article>
               ))}
             </section>
@@ -890,26 +747,15 @@ function StandardMetaContent() {
                       <td>{formatNumber(item.durationMinutes, ' мин')}</td>
                       <td className={item.climbingSpeed !== null && item.climbingSpeed < 0 ? 'standard-meta-table__climb--negative' : 'standard-meta-table__climb'}>{formatNumber(item.climbingSpeed, ' ★/ч')}</td>
                       <td>
-                        <button
-                          type="button"
+                        <a
                           className="standard-meta__primary-button standard-meta__deck-action standard-meta__deck-action--compact standard-meta-table__deck-button"
                           data-tour-id={index === 0 ? 'meta-deck-action' : undefined}
-                          onPointerEnter={() => scheduleDeckPrefetch(item)}
-                          onPointerLeave={() => cancelDeckPrefetch(item)}
-                          onPointerDown={event => { if (event.button === 0) prefetchDeck(item); }}
-                          onClick={() => void openDeck(item)}
-                          aria-label={`Показать колоду: ${item.archetypeLabel}`}
+                          href={archetypeHref(item)}
+                          aria-label={`Открыть страницу архетипа: ${item.archetypeLabel}`}
                         >
-                          <img
-                            className="standard-meta__deck-action-image"
-                            src="/assets/ui/deck-code-button.png"
-                            width="203"
-                            height="81"
-                            alt=""
-                            loading="lazy"
-                            decoding="async"
-                          />
-                        </button>
+                          <span className="sr-only">Открыть архетип</span>
+                          <ArrowRight size={18} aria-hidden="true" />
+                        </a>
                       </td>
                     </tr>
                   ))}
@@ -927,7 +773,6 @@ function StandardMetaContent() {
         </>
       )}
 
-      {modal && <DeckModal state={modal} onClose={closeModal} onRenderPreview={() => void renderDeckPreview()} />}
     </>
   );
 }

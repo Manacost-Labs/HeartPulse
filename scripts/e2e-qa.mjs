@@ -473,27 +473,27 @@ const adminFixtures = {
     updatedAt: '2026-07-11T00:00:00.000Z',
     items: [
       {
-        id: 'qa-evenlock', archetype: 'Evenlock', archetypeLabel: 'Чётный Чернокнижник', translated: true,
+        id: 'qa-evenlock', slug: 'qa-evenlock', archetype: 'Evenlock', archetypeLabel: 'Чётный Чернокнижник', translated: true,
         classKey: 'warlock', winrate: 61.1, popularity: 5.9, games: 6476, turns: 6.2,
         durationMinutes: 5.3, climbingSpeed: 2.49,
       },
       {
-        id: 'qa-painlock', archetype: 'Painlock', archetypeLabel: 'Пейнлок', translated: true,
+        id: 'qa-painlock', slug: 'qa-painlock', archetype: 'Painlock', archetypeLabel: 'Пейнлок', translated: true,
         classKey: 'warlock', winrate: 60.4, popularity: 0.5, games: 536, turns: 6.7,
         durationMinutes: 5.9, climbingSpeed: 2.11,
       },
       {
-        id: 'qa-handbuff-warrior', archetype: 'Handbuff Warrior', archetypeLabel: 'Воин на усилениях', translated: true,
+        id: 'qa-handbuff-warrior', slug: 'qa-handbuff-warrior', archetype: 'Handbuff Warrior', archetypeLabel: 'Воин на усилениях', translated: true,
         classKey: 'warrior', winrate: 58.1, popularity: 0.1, games: 136, turns: 4.6,
         durationMinutes: 3.7, climbingSpeed: 2.63,
       },
       {
-        id: 'qa-mug-shaman', archetype: 'Mug Shaman', archetypeLabel: 'Кружечный Шаман', translated: true,
+        id: 'qa-mug-shaman', slug: 'qa-mug-shaman', archetype: 'Mug Shaman', archetypeLabel: 'Кружечный Шаман', translated: true,
         classKey: 'shaman', winrate: 56.8, popularity: 3.4, games: 3736, turns: 7.2,
         durationMinutes: 6.4, climbingSpeed: 1.2,
       },
       {
-        id: 'qa-face-hunter', archetype: 'Face Hunter', archetypeLabel: 'Фейс Охотник', translated: true,
+        id: 'qa-face-hunter', slug: 'qa-face-hunter', archetype: 'Face Hunter', archetypeLabel: 'Фейс Охотник', translated: true,
         classKey: 'hunter', winrate: 55.3, popularity: 2.7, games: 2980, turns: 6.8,
         durationMinutes: 6.1, climbingSpeed: 0.9,
       },
@@ -3931,6 +3931,7 @@ for (const [device, viewport] of [
         rankLabels: rankButtons.map(button => button.textContent?.trim() || ''),
         formatIconCount: formatButtons.filter(button => button.querySelector('svg')).length,
         seasonContext: document.querySelector('.standard-meta__season-context')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+        seasonPeriodButtons: document.querySelectorAll('.standard-meta__season-context > button').length,
         periodLabels: periodSelect ? [...periodSelect.options].map(option => option.textContent?.trim() || '') : [],
         rankSelectVisible: Boolean(rankSelect && rankSelect.getBoundingClientRect().height >= 44),
         allRanksPresent: rankButtons.some(button => button.textContent?.trim() === 'Все ранги'),
@@ -3950,10 +3951,11 @@ for (const [device, viewport] of [
       || !standardMetaState.viewControlsPresent
       || standardMetaState.allRanksPresent || standardMetaState.rankLabels[0] !== 'Алмаз'
       || standardMetaState.formatIconCount !== 2
+      || standardMetaState.seasonPeriodButtons !== 2
       || !standardMetaState.seasonContext.includes('Патч 36.0.3')
       || !standardMetaState.seasonContext.includes('Побег из Аметистовой крепости')
-      || !standardMetaState.periodLabels.includes('Патч 36.0.3')
-      || !standardMetaState.periodLabels.includes('Побег из Аметистовой крепости')
+      || !standardMetaState.periodLabels.includes('За весь патч 36.0.3')
+      || !standardMetaState.periodLabels.includes('За всё дополнение — Побег из Аметистовой крепости')
       || (device === 'mobile' && !standardMetaState.rankSelectVisible)
       || (device !== 'mobile' && standardMetaState.rankSelectVisible)
       || standardMetaState.sourcePanelPresent
@@ -3970,7 +3972,7 @@ for (const [device, viewport] of [
       const points = [...document.querySelectorAll('.standard-meta-chart__point')];
       const labelledPoints = document.querySelectorAll('.standard-meta-chart__point text');
       const detail = document.querySelector('.standard-meta-chart__selection');
-      const deckButton = detail?.querySelector('button');
+      const archetypeLink = detail?.querySelector('.standard-meta-chart__deck-action');
       return {
         points: points.length,
         labels: labelledPoints.length,
@@ -3978,7 +3980,8 @@ for (const [device, viewport] of [
         detail: detail?.textContent || '',
         hasAxes: document.querySelectorAll('.standard-meta-chart__axis-title').length === 2,
         firstPointRole: points[0]?.getAttribute('role') || '',
-        deckButtonHeight: deckButton?.getBoundingClientRect().height ?? 0,
+        archetypeLinkHeight: archetypeLink?.getBoundingClientRect().height ?? 0,
+        archetypeHref: archetypeLink?.getAttribute('href') || '',
         viewportScrollable: (viewport?.scrollWidth ?? 0) > (viewport?.clientWidth ?? 0),
         pageOverflow: (document.querySelector('.standard-meta')?.scrollWidth ?? 0) > (document.querySelector('.standard-meta')?.clientWidth ?? 0) + 1,
         chartVisible: Boolean(chart && chart.getBoundingClientRect().height > 0),
@@ -3987,7 +3990,8 @@ for (const [device, viewport] of [
     if (standardMetaChartState.points !== 5 || standardMetaChartState.labels < 1 || standardMetaChartState.labels > 5
       || !standardMetaChartState.subtitle.includes('Стандарт') || !standardMetaChartState.subtitle.includes('Легенда')
       || !standardMetaChartState.detail.includes('Чётный Чернокнижник') || !standardMetaChartState.hasAxes
-      || standardMetaChartState.firstPointRole !== 'button' || standardMetaChartState.deckButtonHeight < 44
+      || standardMetaChartState.firstPointRole !== 'button' || standardMetaChartState.archetypeLinkHeight < 44
+      || standardMetaChartState.archetypeHref !== '/standard/archetypes/standard/qa-evenlock'
       || !standardMetaChartState.chartVisible || standardMetaChartState.pageOverflow
       || (device === 'mobile' && !standardMetaChartState.viewportScrollable)) {
       failures.push(`standard meta chart [${device}]: data, interaction or responsive containment regressed (${JSON.stringify(standardMetaChartState)})`);
@@ -4011,6 +4015,7 @@ for (const [device, viewport] of [
       const wrapper = document.querySelector('.standard-meta-table-wrap');
       const table = document.querySelector('.standard-meta-table');
       const stickyCell = document.querySelector('.standard-meta-table__archetype');
+      const archetypeLink = document.querySelector('.standard-meta-table__deck-button');
       return {
         rows: table?.querySelectorAll('tbody tr').length ?? 0,
         columns: table?.querySelectorAll('thead th').length ?? 0,
@@ -4018,11 +4023,13 @@ for (const [device, viewport] of [
         scrollable: (wrapper?.scrollWidth ?? 0) > (wrapper?.clientWidth ?? 0),
         stickyPosition: stickyCell ? getComputedStyle(stickyCell).position : '',
         stickyLeft: stickyCell ? getComputedStyle(stickyCell).left : '',
+        archetypeHref: archetypeLink?.getAttribute('href') || '',
         pageOverflow: (document.querySelector('.standard-meta')?.scrollWidth ?? 0) > (document.querySelector('.standard-meta')?.clientWidth ?? 0) + 1,
       };
     });
     if (standardMetaTableState.rows !== 5 || standardMetaTableState.columns !== 8 || standardMetaTableState.sortControls !== 7
       || standardMetaTableState.stickyPosition !== 'sticky' || standardMetaTableState.stickyLeft !== '0px'
+      || standardMetaTableState.archetypeHref !== '/standard/archetypes/standard/qa-evenlock'
       || standardMetaTableState.pageOverflow || (device === 'mobile' && !standardMetaTableState.scrollable)) {
       failures.push(`standard meta table [${device}]: structure or responsive containment regressed (${JSON.stringify(standardMetaTableState)})`);
     }
@@ -4052,6 +4059,29 @@ for (const [device, viewport] of [
     await page.screenshot({ path: `${OUT}/standard-meta-table-${device}.png`, fullPage: false });
     await page.click('[data-meta-view="cards"]');
     await page.waitForSelector('.standard-meta-card__deck-button');
+    const metaArchetypeLinkState = await page.evaluate(() => {
+      const link = document.querySelector('.standard-meta-card__deck-button');
+      return {
+        tag: link?.tagName || '',
+        href: link?.getAttribute('href') || '',
+        label: link?.getAttribute('aria-label') || '',
+        height: link?.getBoundingClientRect().height ?? 0,
+        modalPresent: Boolean(document.querySelector('.standard-meta-modal')),
+      };
+    });
+    if (metaArchetypeLinkState.tag !== 'A'
+      || metaArchetypeLinkState.href !== '/standard/archetypes/standard/qa-evenlock'
+      || !metaArchetypeLinkState.label.includes('Открыть страницу архетипа')
+      || metaArchetypeLinkState.height < 44 || metaArchetypeLinkState.modalPresent) {
+      failures.push(`standard meta archetype link [${device}]: action did not become a direct accessible route (${JSON.stringify(metaArchetypeLinkState)})`);
+    }
+    await page.click('.standard-meta-card__deck-button');
+    await page.waitForFunction(() => window.location.pathname === '/standard/archetypes/standard/qa-evenlock');
+    await page.waitForSelector('.archetype-detail-page', { timeout: 20_000 });
+    if (adminState.standardMetaRecommendationRequests || adminState.standardMetaPreviewRequests) {
+      failures.push(`standard meta archetype link [${device}]: direct navigation still requested the legacy modal (${JSON.stringify({ recommendations: adminState.standardMetaRecommendationRequests, previews: adminState.standardMetaPreviewRequests })})`);
+    }
+    if (process.env.QA_VALIDATE_LEGACY_META_MODAL === '1') {
     await page.click('.standard-meta-card__deck-button');
     await page.waitForSelector('.standard-meta-modal__image-stage');
     await page.waitForFunction(() => document.querySelector('.standard-meta-modal__composition-pane .deck-list-view .deck-tile')
@@ -4210,6 +4240,7 @@ for (const [device, viewport] of [
       failures.push(`standard meta modal [${device}]: reopening repeated API work or rank context was lost (${JSON.stringify({ recommendations: adminState.standardMetaRecommendationRequests, previews: adminState.standardMetaPreviewRequests, recommendationRank: adminState.standardMetaRecommendationRank, previewRank: adminState.standardMetaPreviewRank })})`);
     }
     await page.click('.standard-meta-modal__close');
+    }
     if (device === 'mobile') await page.setViewport(viewport);
     await page.goto(`${BASE}/standard/matchups`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('[data-tour-id="matchups-matrix"]', { timeout: 20_000 });
