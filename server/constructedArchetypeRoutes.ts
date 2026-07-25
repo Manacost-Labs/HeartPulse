@@ -133,10 +133,78 @@ function responseGuard(dependencies: ConstructedArchetypeRouterDependencies): Re
   };
 }
 
+function publicTeaser(response: import('express').Response): void {
+  response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=900');
+  response.set('X-Content-Type-Options', 'nosniff');
+}
+
+function teaserItem(item: ConstructedArchetypeItem): ConstructedArchetypeItem {
+  return { ...item, builds: [] };
+}
+
 export function createConstructedArchetypeRouter(
   dependencies: ConstructedArchetypeRouterDependencies,
 ): Router {
   const router = Router();
+
+  router.get('/constructed-archetypes/teaser', async (request, response) => {
+    const format = readFormat(request.query.format);
+    if (!format) return response.status(400).json({ error: 'Неизвестный формат' });
+    try {
+      const catalog = await dependencies.loadCatalog(format);
+      const query = readSearch(request.query.q).toLocaleLowerCase('ru-RU');
+      const items = query
+        ? catalog.items.filter(item => (
+          `${item.archetype} ${item.archetypeLabel}`.toLocaleLowerCase('ru-RU').includes(query)
+        ))
+        : catalog.items;
+      publicTeaser(response);
+      return response.json({
+        ...catalog,
+        coverage: {},
+        items: items.map(teaserItem),
+      });
+    } catch (error) {
+      dependencies.onError?.('catalog', error);
+      return response.status(502).json({ error: 'Каталог архетипов временно недоступен' });
+    }
+  });
+
+  router.get('/constructed-archetypes/teaser/:format/:slug', async (request, response) => {
+    const format = readFormat(request.params.format);
+    const slug = String(request.params.slug ?? '').trim().toLowerCase();
+    if (!format || !/^[a-z0-9-]{1,90}$/.test(slug)) {
+      return response.status(400).json({ error: 'Некорректный адрес архетипа' });
+    }
+    try {
+      const catalog = await dependencies.loadCatalog(format);
+      const item = catalog.items.find(row => row.slug === slug);
+      if (!item) return response.status(404).json({ error: 'Архетип не найден в текущей мете' });
+      const build = item.builds[0] ?? null;
+      publicTeaser(response);
+      return response.json({
+        format: catalog.format,
+        formatLabel: catalog.formatLabel,
+        patch: catalog.patch,
+        minimumGames: catalog.minimumGames,
+        updatedAt: catalog.updatedAt,
+        item: teaserItem(item),
+        featuredBuild: build ? {
+          games: build.games,
+          winrate: build.winrate,
+          updatedAt: build.updatedAt,
+          sampleRank: build.sampleRank,
+          samplePeriod: build.samplePeriod,
+        } : null,
+        history: [],
+        analysis: null,
+      });
+    } catch (error) {
+      dependencies.onError?.('detail', error);
+      return response.status(502).json({ error: 'Страница архетипа временно недоступна' });
+    }
+  });
+
   router.use('/constructed-archetypes', dependencies.accessGuard, responseGuard(dependencies));
 
   router.get('/constructed-archetypes', async (request, response) => {
@@ -152,7 +220,7 @@ export function createConstructedArchetypeRouter(
         : catalog.items;
       return response.json({
         ...catalog,
-        items: items.map(item => ({ ...item, builds: [] })),
+        items: items.map(teaserItem),
       });
     } catch (error) {
       dependencies.onError?.('catalog', error);

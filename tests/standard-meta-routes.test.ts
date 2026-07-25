@@ -112,6 +112,15 @@ const origin = `http://127.0.0.1:${address.port}/api`;
 const adminHeaders = { 'X-Test-Admin': 'yes' };
 
 try {
+  const teaser = await fetch(`${origin}/standard-meta/teaser?format=standard&rank=diamond_legend&period=patch_36.0.3`);
+  assert.equal(teaser.status, 200, 'The real three-row teaser is public');
+  assert.match(teaser.headers.get('cache-control') ?? '', /^public,/);
+  const teaserBody = await teaser.json() as any;
+  assert.equal(teaserBody.rank, 'diamond_legend');
+  assert.equal(teaserBody.items.length, 3);
+  assert.deepEqual(teaserBody.items.map((item: any) => item.id), ['meta-1', 'meta-2', 'meta-3']);
+  calls.length = 0;
+
   const denied = await fetch(`${origin}/admin/standard-meta`);
   assert.equal(denied.status, 403);
   assert.deepEqual(calls, []);

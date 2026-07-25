@@ -1,5 +1,15 @@
 # HS-Arena Changelog
 
+## v1.0.49 - 2026-07-25
+
+- Replaced the full-screen Standard paywall on Meta and constructed archetype
+  routes with contextual parchment prompts after real, useful teaser data.
+- Added public, cacheable teaser contracts that expose three meta leaders, the
+  complete archetype catalog and a safe archetype hero/build summary without
+  deck codes, history, matchups or mulligan data.
+- Preserved server-side Diamond entitlement checks for every full dataset and
+  added route, UI-contract, responsive browser and accessibility coverage.
+
 ## v1.0.48 - 2026-07-24
 
 - Simplified the constructed-meta filters: removed duplicate season plaques,

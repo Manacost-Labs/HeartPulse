@@ -74,13 +74,15 @@ assert.match(deckSource, /data-deck-render-state=\{renderState\}/);
 
 const metaSource = readFileSync(new URL('../src/features/StandardMeta.tsx', import.meta.url), 'utf8');
 assert.match(metaSource, /scope="standard-meta"/);
-assert.match(metaSource, /\/api\/standard-meta\?/);
+assert.match(metaSource, /'\/api\/standard-meta'/);
+assert.match(metaSource, /'\/api\/standard-meta\/teaser'/);
 
 const archetypesSource = readFileSync(new URL('../src/features/ConstructedArchetypes.tsx', import.meta.url), 'utf8');
 assert.match(archetypesSource, /scope="constructed-archetypes"/);
 assert.match(archetypesSource, /setRevision\(value => value \+ 1\)/);
 assert.match(archetypesSource, /variant="empty"/);
-assert.match(archetypesSource, /\/api\/constructed-archetypes\?format=/);
+assert.match(archetypesSource, /'\/api\/constructed-archetypes'/);
+assert.match(archetypesSource, /'\/api\/constructed-archetypes\/teaser'/);
 assert.match(archetypesSource, /initialFormat.*=== 'wild' \? 'wild' : 'standard'/);
 assert.match(archetypesSource, /detailMatch = currentPath\.match/);
 assert.match(archetypesSource, /\(standard\|wild\)/);

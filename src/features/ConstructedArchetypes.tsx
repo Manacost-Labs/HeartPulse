@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import '../route-parchment.css';
 import './ConstructedArchetypes.css';
+import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
 import ConstructedArchetypeAnalysis, {
   type ConstructedAnalysis,
 } from './ConstructedArchetypeAnalysis';
@@ -91,6 +92,7 @@ type ArchetypeDetail = Omit<ArchetypeCatalog, 'coverage' | 'items'> & {
   item: ArchetypeItem;
   history: HistoryPoint[];
   analysis: ConstructedAnalysis | null;
+  featuredBuild?: Pick<ArchetypeBuild, 'games' | 'winrate' | 'updatedAt' | 'sampleRank' | 'samplePeriod'> | null;
 };
 
 type SortKey = 'games' | 'winrate' | 'popularity' | 'decks' | 'name';
@@ -117,6 +119,13 @@ const SORTS: Array<{ id: SortKey; label: string }> = [
   { id: 'decks', label: 'По числу сборок' },
   { id: 'name', label: 'По названию' },
 ];
+
+const DEFAULT_PAYWALL_ACCESS: PaywallAccessState = {
+  authUser: null,
+  subscriptionStatus: null,
+  subscriptionLoading: false,
+  onRefreshSubscription: async () => null,
+};
 
 const CLASS_LABELS: Record<ArchetypeClass, string> = {
   deathknight: 'Рыцарь смерти',
@@ -298,8 +307,10 @@ function TrendChart({
 
 function ArchetypeCatalogPage({
   navigatePath,
+  hasFullAccess,
 }: {
   navigatePath: (path: string) => void;
+  hasFullAccess: boolean;
 }) {
   const initialFormat = new URLSearchParams(window.location.search).get('format') === 'wild' ? 'wild' : 'standard';
   const [format, setFormat] = useState<ArchetypeFormat>(initialFormat);
@@ -307,26 +318,31 @@ function ArchetypeCatalogPage({
   const deferredQuery = useDeferredValue(query);
   const [sort, setSort] = useState<SortKey>('games');
   const [catalog, setCatalog] = useState<ArchetypeCatalog | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
+  const requestKey = `${format}:${revision}:${hasFullAccess ? 'full' : 'teaser'}`;
+  const [resolvedRequestKey, setResolvedRequestKey] = useState('');
+  const [requestError, setRequestError] = useState<{ key: string; message: string } | null>(null);
+  const loading = resolvedRequestKey !== requestKey;
+  const error = requestError?.key === requestKey ? requestError.message : '';
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
-    setError('');
-    void apiJson<ArchetypeCatalog>(`/api/constructed-archetypes?format=${format}`, controller.signal)
+    const endpoint = hasFullAccess ? '/api/constructed-archetypes' : '/api/constructed-archetypes/teaser';
+    void apiJson<ArchetypeCatalog>(`${endpoint}?format=${format}`, controller.signal)
       .then(setCatalog)
       .catch(cause => {
         if (!(cause instanceof DOMException && cause.name === 'AbortError')) {
-          setError(cause instanceof Error ? cause.message : 'Не удалось загрузить каталог');
+          setRequestError({
+            key: requestKey,
+            message: cause instanceof Error ? cause.message : 'Не удалось загрузить каталог',
+          });
         }
       })
       .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+        if (!controller.signal.aborted) setResolvedRequestKey(requestKey);
       });
     return () => controller.abort();
-  }, [format, revision]);
+  }, [format, revision, hasFullAccess, requestKey]);
 
   const selectFormat = (next: ArchetypeFormat) => {
     setFormat(next);
@@ -467,36 +483,45 @@ function ArchetypeDetailPage({
   format,
   slug,
   navigatePath,
+  hasFullAccess,
+  paywall,
 }: {
   format: ArchetypeFormat;
   slug: string;
   navigatePath: (path: string) => void;
+  hasFullAccess: boolean;
+  paywall: PaywallAccessState;
 }) {
   const [detail, setDetail] = useState<ArchetypeDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
   const [visibleBuilds, setVisibleBuilds] = useState(6);
+  const requestKey = `${format}:${slug}:${revision}:${hasFullAccess ? 'full' : 'teaser'}`;
+  const [resolvedRequestKey, setResolvedRequestKey] = useState('');
+  const [requestError, setRequestError] = useState<{ key: string; message: string } | null>(null);
+  const loading = resolvedRequestKey !== requestKey;
+  const error = requestError?.key === requestKey ? requestError.message : '';
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
-    setError('');
-    void apiJson<ArchetypeDetail>(`/api/constructed-archetypes/${format}/${slug}`, controller.signal)
+    const endpoint = hasFullAccess ? '/api/constructed-archetypes' : '/api/constructed-archetypes/teaser';
+    void apiJson<ArchetypeDetail>(`${endpoint}/${format}/${slug}`, controller.signal)
       .then(payload => {
         setDetail(payload);
         document.title = `${payload.item.archetypeLabel} — сборки и статистика | Manacost Stats`;
       })
       .catch(cause => {
         if (!(cause instanceof DOMException && cause.name === 'AbortError')) {
-          setError(cause instanceof Error ? cause.message : 'Не удалось открыть архетип');
+          setRequestError({
+            key: requestKey,
+            message: cause instanceof Error ? cause.message : 'Не удалось открыть архетип',
+          });
         }
       })
       .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+        if (!controller.signal.aborted) setResolvedRequestKey(requestKey);
       });
     return () => controller.abort();
-  }, [format, slug, revision]);
+  }, [format, slug, revision, hasFullAccess, requestKey]);
 
   if (loading) {
     return <main className="archetypes-page archetype-detail-page" id="main-content" tabIndex={-1}><LoadingState detail /></main>;
@@ -580,9 +605,35 @@ function ArchetypeDetailPage({
         </section>
       )}
 
-      <ConstructedArchetypeAnalysis analysis={detail.analysis} />
+      {!hasFullAccess && detail.featuredBuild ? (
+        <section className="archetype-build-preview" aria-labelledby="archetype-build-preview-title">
+          <div>
+            <span className="archetypes-eyebrow"><Sparkles size={14} /> Главная сборка</span>
+            <h2 id="archetype-build-preview-title">Самая большая подтверждённая выборка</h2>
+            <p>Состав и код колоды доступны подписчикам тарифа «Алмаз».</p>
+          </div>
+          <dl>
+            <div><dt>Винрейт</dt><dd>{formatNumber(detail.featuredBuild.winrate, '%')}</dd></div>
+            <div><dt>Игры</dt><dd>{detail.featuredBuild.games?.toLocaleString('ru-RU') ?? '—'}</dd></div>
+          </dl>
+        </section>
+      ) : null}
 
-      <section className="archetype-history" aria-labelledby="archetype-history-title">
+      {!hasFullAccess ? (
+        <PaywallGate
+          active
+          presentation="inline"
+          surface="archetype"
+          variant="standard"
+          title="Колоды, матчапы и муллиган"
+          {...paywall}
+        />
+      ) : null}
+
+      {hasFullAccess ? <ConstructedArchetypeAnalysis analysis={detail.analysis} /> : null}
+
+      {hasFullAccess ? (
+        <section className="archetype-history" aria-labelledby="archetype-history-title">
         <header className="archetype-section-heading">
           <div>
             <span className="archetypes-eyebrow"><TrendingUp size={15} /> Накопительная статистика</span>
@@ -596,9 +647,10 @@ function ArchetypeDetailPage({
           <TrendChart title="Популярность" unit="%" points={history} value={point => point.popularity} color="#8d171d" />
           <TrendChart title="Количество игр" unit="" points={history} value={point => point.games} color="#8a5b24" />
         </div>
-      </section>
+        </section>
+      ) : null}
 
-      {secondaryBuilds.length > 0 && (
+      {hasFullAccess && secondaryBuilds.length > 0 && (
         <section className="archetype-builds" aria-labelledby="archetype-builds-title">
           <header className="archetype-section-heading">
             <div>
@@ -637,9 +689,13 @@ function ArchetypeDetailPage({
 export default function ConstructedArchetypes({
   currentPath = window.location.pathname,
   navigatePath = path => window.location.assign(path),
+  hasFullAccess = true,
+  paywall = DEFAULT_PAYWALL_ACCESS,
 }: {
   currentPath?: string;
   navigatePath?: (path: string) => void;
+  hasFullAccess?: boolean;
+  paywall?: PaywallAccessState;
 }) {
   const detailMatch = currentPath.match(/^\/standard\/(?:archetypes|meta)\/(standard|wild)\/([a-z0-9-]+)\/?$/);
   const content = detailMatch
@@ -648,9 +704,11 @@ export default function ConstructedArchetypes({
         format={detailMatch[1] as ArchetypeFormat}
         slug={detailMatch[2]}
         navigatePath={navigatePath}
+        hasFullAccess={hasFullAccess}
+        paywall={paywall}
       />
     )
-    : <ArchetypeCatalogPage navigatePath={navigatePath} />;
+    : <ArchetypeCatalogPage navigatePath={navigatePath} hasFullAccess={hasFullAccess} />;
   return (
     <RecoverableSurfaceBoundary scope="constructed-archetypes">
       {content}

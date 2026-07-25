@@ -1,9 +1,11 @@
 import type { ReactNode } from 'react';
+import { ArrowUpRight, Check, LockKeyhole, RefreshCw } from 'lucide-react';
 import '../route-parchment.css';
 import '../battlegrounds-shell.css';
+import './PaywallGate.css';
 import SubscriptionPurchaseButtons from './SubscriptionPurchaseButtons';
 
-type PaywallGateProps = {
+export type PaywallGateProps = {
   active: boolean;
   title: string;
   authUser: object | null;
@@ -13,7 +15,17 @@ type PaywallGateProps = {
   variant?: 'default' | 'standard';
   children?: ReactNode;
   previewTitle?: string;
+  presentation?: 'overlay' | 'inline';
+  surface?: 'meta' | 'archetype';
+  description?: string;
+  benefits?: string[];
+  actionLabel?: string;
 };
+
+export type PaywallAccessState = Pick<
+  PaywallGateProps,
+  'authUser' | 'subscriptionStatus' | 'subscriptionLoading' | 'onRefreshSubscription'
+>;
 
 const ACTION_STYLE = {
   background: 'rgba(37,99,235,0.08)',
@@ -35,9 +47,29 @@ export default function PaywallGate({
   variant = 'default',
   children,
   previewTitle,
+  presentation = 'overlay',
+  surface = 'meta',
+  description,
+  benefits,
+  actionLabel,
 }: PaywallGateProps) {
   const preview = children ?? <SubscriptionLockedPreview title={previewTitle || title} />;
   if (!active) return <>{preview}</>;
+  if (presentation === 'inline') {
+    return (
+      <InlineSubscriptionPaywall
+        title={title}
+        surface={surface}
+        description={description}
+        benefits={benefits}
+        actionLabel={actionLabel}
+        authUser={authUser}
+        subscriptionStatus={subscriptionStatus}
+        subscriptionLoading={subscriptionLoading}
+        onRefreshSubscription={onRefreshSubscription}
+      />
+    );
+  }
 
   return (
     <div className="arena-paywall" style={{ position: 'relative', minHeight: 760, paddingBottom: 48 }}>
@@ -150,6 +182,98 @@ export default function PaywallGate({
         </section>
       </div>
     </div>
+  );
+}
+
+function InlineSubscriptionPaywall({
+  title,
+  surface,
+  description,
+  benefits,
+  actionLabel,
+  authUser,
+  subscriptionStatus,
+  subscriptionLoading,
+  onRefreshSubscription,
+}: {
+  title: string;
+  surface: 'meta' | 'archetype';
+  description?: string;
+  benefits?: string[];
+  actionLabel?: string;
+  authUser: object | null;
+  subscriptionStatus: { message?: string } | null;
+  subscriptionLoading: boolean;
+  onRefreshSubscription: () => Promise<unknown>;
+}) {
+  const copy = surface === 'meta'
+    ? {
+      description: 'Сейчас показан короткий срез текущего патча. Полный список, все рейтинги и готовые сборки доступны с тарифом «Алмаз».',
+      benefits: ['Все архетипы и рейтинги', 'Периоды патча и дополнения', 'Готовые сборки и коды колод'],
+      actionLabel: 'Открыть всю мету',
+    }
+    : {
+      description: 'Откройте все сборки архетипа, статистику против классов и влияние карт на винрейт.',
+      benefits: ['Все сборки и коды колод', 'Матчапы на ранге Легенда', 'Муллиган и история показателей'],
+      actionLabel: 'Открыть статистику архетипа',
+    };
+
+  return (
+    <section
+      className={`arena-inline-paywall arena-inline-paywall--${surface}`}
+      aria-labelledby={`arena-inline-paywall-${surface}-title`}
+      aria-describedby={`arena-inline-paywall-${surface}-description`}
+      data-tour-id="subscription-paywall"
+    >
+      <div className="arena-inline-paywall__seal" aria-hidden="true">
+        <LockKeyhole size={24} strokeWidth={2.1} />
+      </div>
+      <div className="arena-inline-paywall__copy">
+        <span className="arena-inline-paywall__eyebrow">Тариф «Алмаз»</span>
+        <h2 id={`arena-inline-paywall-${surface}-title`}>{title}</h2>
+        <p id={`arena-inline-paywall-${surface}-description`}>{description ?? copy.description}</p>
+        <ul aria-label="Что входит в подписку">
+          {(benefits ?? copy.benefits).map(item => (
+            <li key={item}><Check size={16} aria-hidden="true" />{item}</li>
+          ))}
+        </ul>
+      </div>
+      <div className="arena-inline-paywall__actions">
+        <a
+          className="arena-inline-paywall__primary"
+          href="https://boosty.to/kolodahearthstone"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span>{actionLabel ?? copy.actionLabel}</span>
+          <ArrowUpRight size={18} aria-hidden="true" />
+        </a>
+        <a
+          className="arena-inline-paywall__payment-link"
+          href="https://web.tribute.tg/s/xz9"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Оформить через Telegram
+        </a>
+        {!authUser ? (
+          <a className="arena-inline-paywall__account-link" href="/?login">Уже подписаны? Войти</a>
+        ) : (
+          <button
+            type="button"
+            className="arena-inline-paywall__refresh"
+            onClick={() => { void onRefreshSubscription(); }}
+            disabled={subscriptionLoading}
+          >
+            <RefreshCw size={15} aria-hidden="true" />
+            {subscriptionLoading ? 'Проверяем доступ…' : 'Обновить доступ'}
+          </button>
+        )}
+        {subscriptionStatus?.message ? (
+          <p className="arena-inline-paywall__status" role="status">{subscriptionStatus.message}</p>
+        ) : null}
+      </div>
+    </section>
   );
 }
 

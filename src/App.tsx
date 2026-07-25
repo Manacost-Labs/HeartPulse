@@ -641,6 +641,8 @@ const LazyBattlegroundTierList = React.lazy(() => loadBattlegroundsModule().then
 const LazyBattlegroundStrategyBuilderEmbed = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundStrategyBuilderEmbed })));
 const LazyBattlegroundTierBuilderEmbed = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundTierBuilderEmbed })));
 
+const STANDARD_SOFT_PAYWALL_TABS = new Set<TabId>(['standard-meta', 'constructed-archetypes']);
+
 const ROUTE_PRELOADERS: Partial<Record<TabId | 'login', () => Promise<unknown>>> = {
   winrates: loadDeferredRoutesModule,
   tierlist: loadDeferredRoutesModule,
@@ -1411,10 +1413,24 @@ export default function App() {
   const isGameDataSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'standard-meta', 'constructed-archetypes', 'standard-vicious-gold', 'standard-cards', 'tierlist', 'legendaries', 'archetypes'].includes(activeTab);
   const isBattlegroundsSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && BG_TAB_IDS.has(activeTab);
   const isOpenSurfacePage = !isAdminMode && (!routeSurfaceAvailable || activeTab === 'home' || wantsLogin || isEditorialSurfacePage || isGameDataSurfacePage || isBattlegroundsSurfacePage);
+  const standardAccessGranted = appIsAdmin || hasSubscriptionEntitlement(appSubscription, 'standard');
+  const standardPaywallAccess = useMemo(() => ({
+    authUser: appAuthUser,
+    subscriptionStatus: appSubscription,
+    subscriptionLoading: appSubscriptionLoading,
+    onRefreshSubscription: () => fetchAppSubscription(true),
+  }), [appAuthUser, appSubscription, appSubscriptionLoading, fetchAppSubscription]);
   const standardPage = activeTab === 'standard-meta'
-    ? <LazyStandardMetaPage />
+    ? <LazyStandardMetaPage hasFullAccess={standardAccessGranted} paywall={standardPaywallAccess} />
     : activeTab === 'constructed-archetypes'
-      ? <LazyConstructedArchetypesPage currentPath={currentPath} navigatePath={navigatePath} />
+      ? (
+        <LazyConstructedArchetypesPage
+          currentPath={currentPath}
+          navigatePath={navigatePath}
+          hasFullAccess={standardAccessGranted}
+          paywall={standardPaywallAccess}
+        />
+      )
       : activeTab === 'standard-vicious-gold'
       ? <LazyViciousSyndicateGoldPage />
       : <LazyStandardCardsPage
@@ -1735,7 +1751,13 @@ export default function App() {
                 {(activeTab === 'standard-meta' || activeTab === 'constructed-archetypes' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards') && (
                   activeTab === 'standard-cards'
                     ? <React.Suspense fallback={<RouteFallback minHeight={720} />}>{standardPage}</React.Suspense>
-                    : renderPrivateRoute(
+                    : STANDARD_SOFT_PAYWALL_TABS.has(activeTab)
+                      ? (
+                        privateRouteChecking
+                          ? <RouteFallback minHeight={720} />
+                          : <React.Suspense fallback={<RouteFallback minHeight={720} />}>{standardPage}</React.Suspense>
+                      )
+                      : renderPrivateRoute(
                         <React.Suspense fallback={<RouteFallback minHeight={720} />}>{standardPage}</React.Suspense>,
                         720,
                       )

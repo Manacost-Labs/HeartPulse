@@ -601,6 +601,50 @@
   padding: 0.85rem 0;
 }
 
+.archetype-build-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 1rem;
+  padding: clamp(0.9rem, 2vw, 1.2rem);
+  border: 8px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
+  background:
+    linear-gradient(rgba(250, 235, 197, 0.92), rgba(229, 199, 144, 0.82)),
+    url('/wallpaper/arena-parchment.jpg') center / cover;
+}
+
+.archetype-build-preview h2 {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 2.5vw, 1.65rem);
+}
+
+.archetype-build-preview p {
+  margin: 0.35rem 0 0;
+  color: var(--archetype-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.archetype-build-preview dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(92px, 1fr));
+  margin: 0;
+  border: 1px solid rgba(92, 54, 24, 0.2);
+  background: rgba(255, 248, 219, 0.46);
+}
+
+.archetype-build-preview dl div {
+  padding: 0.65rem 0.75rem;
+  border-right: 1px solid rgba(92, 54, 24, 0.16);
+}
+
+.archetype-build-preview dl div:last-child { border-right: 0; }
+.archetype-build-preview dt { color: var(--archetype-muted); font-size: 0.58rem; font-weight: 900; text-transform: uppercase; }
+.archetype-build-preview dd { margin: 0.14rem 0 0; color: #2f6e39; font-family: var(--font-display); font-size: 1rem; }
+
 .archetype-section-heading {
   display: flex;
   gap: 1rem;
@@ -952,6 +996,8 @@
   .archetype-dossier__metrics div:nth-last-child(-n + 2) { border-bottom: 0; }
   .archetype-main-build > header,
   .archetype-section-heading { align-items: flex-start; flex-direction: column; }
+  .archetype-build-preview { grid-template-columns: 1fr; }
+  .archetype-build-preview dl { width: 100%; }
   .archetype-section-heading__count { align-self: flex-start; }
   .archetype-main-build__sample { min-width: 0; padding: 0; border-left: 0; text-align: left; }
   .archetype-main-build__code { grid-template-columns: 1fr; }
@@ -979,6 +1025,7 @@
   .archetype-dossier__identity > img { width: 52px; height: 52px; }
   .archetype-dossier__metrics div { padding: 0.55rem; }
   .archetype-main-build,
+  .archetype-build-preview,
   .archetype-history,
   .archetype-builds,
   .archetype-methodology { border-width: 5px; }

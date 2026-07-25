@@ -132,6 +132,31 @@ function acceptsMediaType(value: unknown, mediaType: string): boolean {
 export function createStandardMetaRouter(dependencies: StandardMetaRouterDependencies): Router {
   const router = Router();
 
+  router.get('/standard-meta/teaser', async (request, response) => {
+    const format = readFormat(request.query.format);
+    const rank = readRank(request.query.rank);
+    const period = readPeriod(request.query.period);
+    const coin = readCoin(request.query.coin);
+    const minGames = readMinGames(request.query.min_games);
+    if (!format || !rank || !period || !coin || !minGames) {
+      return response.status(400).json({ error: 'Неизвестный фильтр меты' });
+    }
+    try {
+      const envelope = createStandardMetaEnvelope(
+        await dependencies.loadMeta(format, rank, period, coin, minGames),
+      );
+      response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=900');
+      response.set('X-Content-Type-Options', 'nosniff');
+      return response.json({
+        ...envelope.data,
+        items: envelope.data.items.slice(0, 3),
+      });
+    } catch (error) {
+      dependencies.onError?.('meta', error);
+      return response.status(502).json({ error: 'Данные меты временно недоступны' });
+    }
+  });
+
   const protectAdminStats: RequestHandler = (_request, response, next) => {
     dependencies.setPrivateNoStore(response);
     next();

@@ -112,6 +112,30 @@ const headers = { 'X-Test-Access': 'allowed' };
 
 try {
   assert.equal(constructedArchetypeSlug('Thief Priest'), 'thief-priest');
+
+  const teaserListing = await fetch(`${origin}/teaser?format=wild`);
+  assert.equal(teaserListing.status, 200, 'The archetype catalog teaser is public');
+  assert.match(teaserListing.headers.get('cache-control') ?? '', /^public,/);
+  const teaserListingBody = await teaserListing.json() as any;
+  assert.equal(teaserListingBody.items.length, 1);
+  assert.deepEqual(teaserListingBody.items[0].builds, []);
+  assert.equal(JSON.stringify(teaserListingBody).includes('AAEBAa0GValidDeckCode'), false);
+
+  const teaserDetail = await fetch(`${origin}/teaser/wild/thief-priest`);
+  assert.equal(teaserDetail.status, 200, 'The detail hero teaser is public');
+  const teaserDetailBody = await teaserDetail.json() as any;
+  assert.deepEqual(teaserDetailBody.item.builds, []);
+  assert.deepEqual(teaserDetailBody.history, []);
+  assert.equal(teaserDetailBody.analysis, null);
+  assert.deepEqual(teaserDetailBody.featuredBuild, {
+    games: 2_216,
+    winrate: 57.1,
+    updatedAt: '2026-07-22T21:05:32.877Z',
+    sampleRank: 'all',
+    samplePeriod: 'past_30_days',
+  });
+  assert.equal(JSON.stringify(teaserDetailBody).includes('AAEBAa0GValidDeckCode'), false);
+
   assert.equal((await fetch(`${origin}?format=wild`)).status, 403);
 
   const listing = await fetch(`${origin}?format=wild&q=thief`, { headers });

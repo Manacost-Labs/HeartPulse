@@ -19,6 +19,7 @@ import {
   X,
 } from 'lucide-react';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
+import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
 import { AsyncSurfaceState, RecoverableSurfaceBoundary } from './recovery/RecoverableSurface';
 import { datasetContractErrorMessage } from '../../shared/datasetEnvelope';
 import {
@@ -380,7 +381,20 @@ export function DeckModal({ state, onClose, onRenderPreview }: { state: DeckModa
   );
 }
 
-function StandardMetaContent() {
+const DEFAULT_PAYWALL_ACCESS: PaywallAccessState = {
+  authUser: null,
+  subscriptionStatus: null,
+  subscriptionLoading: false,
+  onRefreshSubscription: async () => null,
+};
+
+function StandardMetaContent({
+  hasFullAccess,
+  paywall,
+}: {
+  hasFullAccess: boolean;
+  paywall: PaywallAccessState;
+}) {
   const [format, setFormat] = useState<MetaFormat>('standard');
   const [rank, setRank] = useState<MetaRank>('diamond_legend');
   const [period, setPeriod] = useState<MetaPeriod | null>(null);
@@ -392,17 +406,18 @@ function StandardMetaContent() {
   const [sort, setSort] = useState<{ key: MetaSortKey | null; direction: MetaSortDirection }>({ key: null, direction: 'desc' });
   const [data, setData] = useState<MetaPayload>(EMPTY_DATA);
   const [datasetEnvelope, setDatasetEnvelope] = useState<StandardMetaEnvelope | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [metaRevision, setMetaRevision] = useState(0);
+  const requestKey = `${format}:${rank}:${period ?? 'auto'}:${minGames}:${metaRevision}:${hasFullAccess ? 'full' : 'teaser'}`;
+  const [resolvedRequestKey, setResolvedRequestKey] = useState('');
+  const [requestError, setRequestError] = useState<{ key: string; message: string } | null>(null);
+  const loading = resolvedRequestKey !== requestKey;
+  const error = requestError?.key === requestKey ? requestError.message : '';
   const requestId = useRef(0);
 
   useEffect(() => {
     const currentRequest = ++requestId.current;
     const controller = new AbortController();
     let redirectedToCurrentPatch = false;
-    setLoading(true);
-    setError('');
     const params = new URLSearchParams({
       format,
       rank,
@@ -410,7 +425,8 @@ function StandardMetaContent() {
       min_games: String(minGames),
     });
     if (period) params.set('period', period);
-    void apiJson<unknown>(`/api/standard-meta?${params}`, {
+    const endpoint = hasFullAccess ? '/api/standard-meta' : '/api/standard-meta/teaser';
+    void apiJson<unknown>(`${endpoint}?${params}`, {
       signal: controller.signal,
       headers: { Accept: STANDARD_META_MEDIA_TYPE },
     })
@@ -431,29 +447,35 @@ function StandardMetaContent() {
         if (cause instanceof DOMException && cause.name === 'AbortError') return;
         if (currentRequest === requestId.current) {
           setDatasetEnvelope(null);
-          setError(datasetContractErrorMessage(cause));
+          setRequestError({ key: requestKey, message: datasetContractErrorMessage(cause) });
         }
       })
       .finally(() => {
-        if (currentRequest === requestId.current && !redirectedToCurrentPatch) setLoading(false);
+        if (currentRequest === requestId.current && !redirectedToCurrentPatch) {
+          setResolvedRequestKey(requestKey);
+        }
       });
     return () => controller.abort();
-  }, [format, rank, period, minGames, metaRevision]);
+  }, [format, rank, period, minGames, metaRevision, hasFullAccess, requestKey]);
 
   const filteredItems = useMemo(() => {
     const normalized = deferredQuery.toLowerCase().trim();
     if (!normalized) return data.items;
     return data.items.filter(item => `${item.archetype} ${item.archetypeLabel}`.toLowerCase().includes(normalized));
   }, [data.items, deferredQuery]);
+  const visibleItems = useMemo(
+    () => hasFullAccess ? filteredItems : filteredItems.slice(0, 3),
+    [filteredItems, hasFullAccess],
+  );
   const rankById = useMemo(
     () => new Map(data.items.map((item, index) => [item.id, index + 1])),
     [data.items],
   );
   const tableItems = useMemo(() => {
-    if (!sort.key) return filteredItems;
+    if (!sort.key) return visibleItems;
     const sortKey = sort.key;
     const multiplier = sort.direction === 'asc' ? 1 : -1;
-    return [...filteredItems].sort((left, right) => {
+    return [...visibleItems].sort((left, right) => {
       const leftValue = sortKey === 'archetype' ? left.archetypeLabel : left[sortKey];
       const rightValue = sortKey === 'archetype' ? right.archetypeLabel : right[sortKey];
       if (leftValue === null && rightValue === null) return (rankById.get(left.id) ?? 0) - (rankById.get(right.id) ?? 0);
@@ -466,7 +488,7 @@ function StandardMetaContent() {
         ? (rankById.get(left.id) ?? 0) - (rankById.get(right.id) ?? 0)
         : comparison * multiplier;
     });
-  }, [filteredItems, rankById, sort]);
+  }, [visibleItems, rankById, sort]);
   const periodOptions = useMemo(
     () => orderStandardMetaPeriods(data.availablePeriods, data.currentPatchPeriod)
       .map(id => ({ id, label: standardMetaPeriodLabel(id) })),
@@ -522,7 +544,7 @@ function StandardMetaContent() {
           <span className="standard-meta__hero-ornament" aria-hidden="true" />
         </div>
         <div className="standard-meta__masthead-stats" aria-label="Сводка">
-          <span><strong>{data.items.length}</strong> архетипов</span>
+          <span><strong>{data.items.length}</strong> {hasFullAccess ? 'архетипов' : 'в предпросмотре'}</span>
           <span><strong>{data.formatLabel}</strong> формат</span>
           <span><strong>{data.rankLabel}</strong> рейтинг</span>
         </div>
@@ -648,7 +670,7 @@ function StandardMetaContent() {
             />
           )}>
             <StandardMetaChart
-              items={data.items}
+              items={visibleItems}
               format={format}
               formatLabel={data.formatLabel}
               rankLabel={data.rankLabel}
@@ -656,7 +678,9 @@ function StandardMetaContent() {
           </React.Suspense>
 
           <section className="standard-meta__results-toolbar" aria-label="Представление меты">
-            <p data-tour-id="meta-results"><strong>{filteredItems.length}</strong> {filteredItems.length === 1 ? 'архетип' : 'архетипов'} в текущем срезе</p>
+            <p data-tour-id="meta-results">
+              <strong>{visibleItems.length}</strong> {hasFullAccess ? 'архетипов в текущем срезе' : 'лидера текущего среза'}
+            </p>
             <div className="standard-meta__view-switch" aria-label="Вид списка" data-tour-id="meta-view-switcher">
               <button type="button" data-meta-view="cards" aria-pressed={view === 'cards'} onClick={() => setView('cards')}>
                 <LayoutGrid size={17} /> Карточки
@@ -667,9 +691,9 @@ function StandardMetaContent() {
             </div>
           </section>
 
-          {view === 'cards' && filteredItems.length > 0 ? (
+          {view === 'cards' && visibleItems.length > 0 ? (
             <section className="standard-meta__grid" aria-label={`Архетипы: ${data.formatLabel}, ${data.rankLabel}`}>
-              {filteredItems.map((item, index) => (
+              {visibleItems.map((item, index) => (
                 <article className="standard-meta-card" key={item.id}>
                   <div className="standard-meta-card__rank" aria-label={`Место ${rankById.get(item.id)}`}>{rankById.get(item.id)}</div>
                   <img className="standard-meta-card__class" src={classIcon(item.classKey)} alt="" width="56" height="56" loading="lazy" decoding="async" />
@@ -701,7 +725,7 @@ function StandardMetaContent() {
                 </article>
               ))}
             </section>
-          ) : view === 'table' && filteredItems.length > 0 ? (
+          ) : view === 'table' && visibleItems.length > 0 ? (
             <section className="standard-meta-table-wrap" aria-label={`Таблица архетипов: ${data.formatLabel}, ${data.rankLabel}`} tabIndex={0}>
               <p className="standard-meta-table__mobile-hint">
                 <ChevronsUpDown size={15} /> Нажимайте заголовки для сортировки и листайте таблицу вбок
@@ -761,6 +785,17 @@ function StandardMetaContent() {
               compact
             />
           )}
+
+          {!hasFullAccess ? (
+            <PaywallGate
+              active
+              presentation="inline"
+              surface="meta"
+              variant="standard"
+              title="Вся мета — по рангам, периодам и форматам"
+              {...paywall}
+            />
+          ) : null}
         </>
       )}
 
@@ -768,7 +803,13 @@ function StandardMetaContent() {
   );
 }
 
-export default function StandardMetaPage() {
+export default function StandardMetaPage({
+  hasFullAccess = true,
+  paywall = DEFAULT_PAYWALL_ACCESS,
+}: {
+  hasFullAccess?: boolean;
+  paywall?: PaywallAccessState;
+}) {
   return (
     <main className="standard-meta" id="main-content">
       <RecoverableSurfaceBoundary
@@ -776,7 +817,7 @@ export default function StandardMetaPage() {
         title="Раздел меты временно недоступен"
         message="Навигация и остальные разделы сайта продолжают работать. Попробуйте открыть мету ещё раз."
       >
-        <StandardMetaContent />
+        <StandardMetaContent hasFullAccess={hasFullAccess} paywall={paywall} />
       </RecoverableSurfaceBoundary>
     </main>
   );
