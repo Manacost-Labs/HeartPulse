@@ -55,6 +55,14 @@ The repository includes project-scoped tools for safer implementation:
 - Sentry is opt-in only. Never add a DSN or auth token to the repository.
   Preserve `sendDefaultPii: false`, the event scrubber, zero default trace
   sampling, and OAuth-only access to the official Sentry MCP endpoint.
+- Storybook is the required component workshop for authored React UI. Before
+  creating or changing a story, start `npm run storybook`, use the local
+  Storybook MCP at `http://127.0.0.1:6006/mcp` to read its current story
+  instructions, and preview every changed state. Add or update a colocated
+  `*.stories.tsx` file whenever a reusable component gains a meaningful visual
+  state. Before finishing, run `npm run test:storybook` and
+  `npm run build-storybook`. Keep Storybook development-only and never expose
+  its MCP endpoint through production Nginx.
 
 Do not connect Chrome DevTools MCP to a personal browser profile or enable
 unrestricted filesystem paths.

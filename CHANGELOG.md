@@ -2,6 +2,11 @@
 
 ## v1.0.48 - 2026-07-24
 
+- Added Storybook 10 with React/Vite, docs and accessibility addons, plus the
+  official local Storybook MCP for AI-assisted component discovery and review.
+- Added colocated component stories, interaction coverage, a static Storybook
+  build gate, and mandatory Codex/Claude instructions for browser-previewing
+  changed visual states without exposing Storybook in production.
 - Made the installed design, React, browser, performance, observability,
   specification, implementation, testing, review, security, documentation,
   Git and release skills mandatory through a tested task-routing contract,

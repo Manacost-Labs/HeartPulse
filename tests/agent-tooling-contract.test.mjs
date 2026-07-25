@@ -27,6 +27,10 @@ test('project MCP config uses the guarded Chrome DevTools launcher', () => {
     type: 'http',
     url: 'https://mcp.sentry.dev/mcp',
   });
+  assert.deepEqual(config.mcpServers.storybook, {
+    type: 'http',
+    url: 'http://127.0.0.1:6006/mcp',
+  });
 });
 
 test('AGENTS enforces the installed skill router and task-specific quality skills', () => {
@@ -69,6 +73,10 @@ test('AGENTS enforces the installed skill router and task-specific quality skill
   assert.match(instructions, /real-browser review/);
   assert.match(instructions, /console errors\/warnings/);
   assert.match(instructions, /accessibility structure/);
+  assert.match(instructions, /Storybook is the required component workshop/);
+  assert.match(instructions, /npm run test:storybook/);
+  assert.match(instructions, /npm run build-storybook/);
+  assert.match(instructions, /never expose[\s\S]*MCP endpoint through production Nginx/i);
 });
 
 test('Claude uses AGENTS as the shared mandatory project contract', () => {
