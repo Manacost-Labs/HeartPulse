@@ -1224,7 +1224,7 @@
   .standard-meta-card__metrics div:nth-child(2) { border-right: 0; }
   .standard-meta-card__metrics div:nth-child(-n+2) { border-bottom: 1px solid rgba(95, 58, 27, 0.16); }
   .standard-meta-card__climb { grid-column: 1 / -1; }
-  .standard-meta-card__deck-button { grid-column: 1 / -1; width: min(118px, 100%); min-height: 0; }
+  .standard-meta-card__deck-button { grid-column: 1 / -1; width: min(140px, 100%); min-height: 44px; }
   .standard-meta-modal { place-items: center; padding: 0.5rem; }
   .standard-meta-modal__panel { width: 100%; height: calc(100dvh - 1rem); max-height: calc(100dvh - 1rem); padding: 0.48rem; border-width: 6px; }
   .standard-meta-modal__close { top: 0.42rem; right: 0.42rem; width: 44px; height: 44px; }

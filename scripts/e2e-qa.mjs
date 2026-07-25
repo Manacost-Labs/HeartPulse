@@ -3952,7 +3952,7 @@ for (const [device, viewport] of [
       || standardMetaState.allRanksPresent || standardMetaState.rankLabels[0] !== 'Алмаз'
       || standardMetaState.formatIconCount !== 2
       || standardMetaState.seasonPeriodButtons !== 2
-      || !standardMetaState.seasonContext.includes('Патч 36.0.3')
+      || !standardMetaState.seasonContext.includes('патч 36.0.3')
       || !standardMetaState.seasonContext.includes('Побег из Аметистовой крепости')
       || !standardMetaState.periodLabels.includes('За весь патч 36.0.3')
       || !standardMetaState.periodLabels.includes('За всё дополнение — Побег из Аметистовой крепости')
