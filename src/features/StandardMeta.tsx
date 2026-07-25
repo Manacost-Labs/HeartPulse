@@ -5,8 +5,12 @@ import {
   ArrowUp,
   ChevronsUpDown,
   Copy,
+  Crown,
+  Gem,
   LayoutGrid,
   Maximize2,
+  Shield,
+  Sparkles,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -22,6 +26,7 @@ import {
   STANDARD_META_MEDIA_TYPE,
   parseStandardMetaApiResponse,
   type StandardMetaEnvelope,
+  type StandardMetaPeriod,
 } from '../../shared/standardMetaContract';
 import DeckListView, { type DeckListCard } from './decklist/DeckListView';
 import '../route-parchment.css';
@@ -33,7 +38,7 @@ const StandardMetaChart = React.lazy(() => import('./StandardMetaChart'));
 type MetaFormat = 'standard' | 'wild';
 type MetaRank = 'all' | 'diamond_all' | 'diamond' | 'diamond_legend' | 'legend'
   | 'top_5k' | 'top_500' | 'top_100' | 'top_legend';
-type MetaPeriod = 'past_6_hours' | 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks';
+type MetaPeriod = StandardMetaPeriod;
 type MetaCoin = 'any_player';
 type MetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 type MetaView = 'cards' | 'table';
@@ -61,6 +66,8 @@ type MetaPayload = {
   rank: MetaRank;
   rankLabel: string;
   period: MetaPeriod;
+  availablePeriods: MetaPeriod[];
+  currentPatchPeriod: MetaPeriod | null;
   coin: MetaCoin;
   minGames: MetaMinGames;
   source: string;
@@ -112,9 +119,9 @@ type DeckCacheEntry = {
   previewError: string;
 };
 
-const FORMATS: Array<{ id: MetaFormat; label: string; description: string }> = [
-  { id: 'standard', label: 'Стандарт', description: 'Текущая ротация' },
-  { id: 'wild', label: 'Вольный', description: 'Все дополнения' },
+const FORMATS: Array<{ id: MetaFormat; label: string; description: string; icon: typeof Shield }> = [
+  { id: 'standard', label: 'Стандарт', description: 'Текущая ротация', icon: Shield },
+  { id: 'wild', label: 'Вольный', description: 'Все дополнения', icon: Sparkles },
 ];
 
 const RANKS: Array<{ id: MetaRank; label: string }> = [
@@ -127,13 +134,23 @@ const RANKS: Array<{ id: MetaRank; label: string }> = [
   { id: 'top_100', label: 'Топ-100' },
 ];
 
-const PERIODS: Array<{ id: MetaPeriod; label: string }> = [
-  { id: 'past_6_hours', label: 'Последние 6 часов' },
-  { id: 'past_day', label: 'Прошедший день' },
-  { id: 'past_3_days', label: 'Последние 3 дня' },
-  { id: 'past_week', label: 'Последняя неделя' },
-  { id: 'past_2_weeks', label: 'Последние 2 недели' },
+const RANK_GROUPS: Array<{ label: string; icon: typeof Gem; ranks: MetaRank[] }> = [
+  { label: 'Алмаз', icon: Gem, ranks: ['diamond_all', 'diamond', 'diamond_legend'] },
+  { label: 'Легенда', icon: Crown, ranks: ['legend', 'top_legend', 'top_500', 'top_100'] },
 ];
+
+const PERIOD_LABELS: Partial<Record<MetaPeriod, string>> = {
+  past_day: 'Прошедший день',
+  past_3_days: 'Последние 3 дня',
+  past_week: 'Последняя неделя',
+  past_2_weeks: 'Последние 2 недели',
+  violet_hold: 'Побег из Аметистовой крепости',
+};
+
+function standardMetaPeriodLabel(period: MetaPeriod): string {
+  if (period.startsWith('patch_')) return `Патч ${period.slice('patch_'.length)}`;
+  return PERIOD_LABELS[period] ?? period;
+}
 
 const MIN_GAMES: MetaMinGames[] = [100, 250, 500, 1000, 2500, 5000];
 const DECK_CLASS_COLORS: Record<MetaClass, string> = {
@@ -155,7 +172,9 @@ const EMPTY_DATA: MetaPayload = {
   formatLabel: 'Стандарт',
   rank: 'diamond_all',
   rankLabel: 'Алмаз',
-  period: 'past_6_hours',
+  period: 'past_day',
+  availablePeriods: ['past_day', 'past_3_days', 'past_week', 'past_2_weeks'],
+  currentPatchPeriod: null,
   coin: 'any_player',
   minGames: 100,
   source: 'hsguru',
@@ -359,7 +378,7 @@ export function DeckModal({ state, onClose, onRenderPreview }: { state: DeckModa
 function StandardMetaContent() {
   const [format, setFormat] = useState<MetaFormat>('standard');
   const [rank, setRank] = useState<MetaRank>('diamond_all');
-  const [period, setPeriod] = useState<MetaPeriod>('past_6_hours');
+  const [period, setPeriod] = useState<MetaPeriod>('past_day');
   const coin: MetaCoin = 'any_player';
   const [minGames, setMinGames] = useState<MetaMinGames>(100);
   const [query, setQuery] = useState('');
@@ -468,6 +487,13 @@ function StandardMetaContent() {
         : comparison * multiplier;
     });
   }, [filteredItems, rankById, sort]);
+  const periodOptions = useMemo(
+    () => data.availablePeriods.map(id => ({ id, label: standardMetaPeriodLabel(id) })),
+    [data.availablePeriods],
+  );
+  const currentPatchLabel = data.currentPatchPeriod
+    ? standardMetaPeriodLabel(data.currentPatchPeriod)
+    : 'Определяется автоматически';
 
   const changeSort = (key: MetaSortKey) => {
     setSort(current => current.key === key
@@ -647,31 +673,71 @@ function StandardMetaContent() {
       <section className="standard-meta__controls" aria-label="Фильтры меты">
         <div className="standard-meta__panel-heading">
           <span aria-hidden="true"><Swords size={18} /></span>
-          <div><strong>Управление срезом</strong><small>Формат, рейтинг, период и минимальная выборка</small></div>
+          <div><strong>Управление срезом</strong><small>Выберите формат, рейтинг и временной диапазон</small></div>
+        </div>
+        <div className="standard-meta__season-context" aria-label="Текущий сезон меты">
+          <div>
+            <ShieldCheck size={17} aria-hidden="true" />
+            <span>Активный патч</span>
+            <strong>{currentPatchLabel}</strong>
+          </div>
+          <div>
+            <Sparkles size={17} aria-hidden="true" />
+            <span>Дополнение</span>
+            <strong>Побег из Аметистовой крепости</strong>
+          </div>
         </div>
         <div>
           <span className="standard-meta__control-label">Формат</span>
           <div className="standard-meta__segmented">
-            {FORMATS.map(option => (
-              <button key={option.id} type="button" aria-pressed={format === option.id} onClick={() => setFormat(option.id)}>
-                <strong>{option.label}</strong><span>{option.description}</span>
-              </button>
-            ))}
+            {FORMATS.map(option => {
+              const FormatIcon = option.icon;
+              return (
+                <button key={option.id} type="button" aria-pressed={format === option.id} onClick={() => setFormat(option.id)}>
+                  <FormatIcon size={19} aria-hidden="true" />
+                  <span><strong>{option.label}</strong><small>{option.description}</small></span>
+                </button>
+              );
+            })}
           </div>
         </div>
-        <div>
+        <div data-tour-id="meta-controls">
           <span className="standard-meta__control-label">Рейтинг</span>
-          <div className="standard-meta__rank-tabs" data-tour-id="meta-controls">
-            {RANKS.map(option => (
-              <button key={option.id} type="button" aria-pressed={rank === option.id} onClick={() => setRank(option.id)}>{option.label}</button>
-            ))}
+          <div className="standard-meta__rank-groups">
+            {RANK_GROUPS.map(group => {
+              const GroupIcon = group.icon;
+              return (
+                <div className="standard-meta__rank-group" key={group.label}>
+                  <span><GroupIcon size={14} aria-hidden="true" />{group.label}</span>
+                  <fieldset className="standard-meta__rank-tabs">
+                    <legend className="sr-only">{`Ранги: ${group.label}`}</legend>
+                    {group.ranks.map(rankId => {
+                      const option = RANKS.find(candidate => candidate.id === rankId)!;
+                      return (
+                        <button key={option.id} type="button" aria-pressed={rank === option.id} onClick={() => setRank(option.id)}>
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </fieldset>
+                </div>
+              );
+            })}
           </div>
+          <select
+            className="standard-meta__rank-select"
+            value={rank}
+            onChange={event => setRank(event.target.value as MetaRank)}
+            aria-label="Рейтинг"
+          >
+            {RANKS.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+          </select>
         </div>
         <div className="standard-meta__secondary-filters">
           <label className="standard-meta__select">
             <span className="standard-meta__control-label">Период</span>
             <select value={period} onChange={event => setPeriod(event.target.value as MetaPeriod)}>
-              {PERIODS.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+              {periodOptions.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
             </select>
           </label>
           <label className="standard-meta__select">

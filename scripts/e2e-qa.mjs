@@ -464,6 +464,9 @@ const adminFixtures = {
     formatLabel: 'Стандарт',
     rank: 'legend',
     rankLabel: 'Легенда',
+    period: 'past_day',
+    availablePeriods: ['past_day', 'past_3_days', 'past_week', 'past_2_weeks', 'patch_36.0.3', 'violet_hold'],
+    currentPatchPeriod: 'patch_36.0.3',
     source: 'qa-fixture',
     sourceUrl: '',
     translationSource: 'qa-fixture',
@@ -3911,6 +3914,9 @@ for (const [device, viewport] of [
       const firstCard = document.querySelector('.standard-meta-card');
       const ornament = document.querySelector('.standard-meta__hero-ornament');
       const rankButtons = [...document.querySelectorAll('.standard-meta__rank-tabs button')];
+      const formatButtons = [...document.querySelectorAll('.standard-meta__segmented button')];
+      const periodSelect = document.querySelector('.standard-meta__secondary-filters select');
+      const rankSelect = document.querySelector('.standard-meta__rank-select');
       const mastheadRect = masthead?.getBoundingClientRect();
       const statsStyle = stats ? getComputedStyle(stats) : null;
       const controlsStyle = controls ? getComputedStyle(controls) : null;
@@ -3923,6 +3929,10 @@ for (const [device, viewport] of [
         controlsVisible: Boolean(controls && controls.getBoundingClientRect().height > 0),
         viewControlsPresent: Boolean(cardsView && tableView),
         rankLabels: rankButtons.map(button => button.textContent?.trim() || ''),
+        formatIconCount: formatButtons.filter(button => button.querySelector('svg')).length,
+        seasonContext: document.querySelector('.standard-meta__season-context')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+        periodLabels: periodSelect ? [...periodSelect.options].map(option => option.textContent?.trim() || '') : [],
+        rankSelectVisible: Boolean(rankSelect && rankSelect.getBoundingClientRect().height >= 44),
         allRanksPresent: rankButtons.some(button => button.textContent?.trim() === 'Все ранги'),
         searchFontSize: searchInput ? parseFloat(getComputedStyle(searchInput).fontSize) : 0,
         viewTargetHeight: tableView?.getBoundingClientRect().height ?? 0,
@@ -3939,6 +3949,13 @@ for (const [device, viewport] of [
       || !standardMetaState.controlsVisible
       || !standardMetaState.viewControlsPresent
       || standardMetaState.allRanksPresent || standardMetaState.rankLabels[0] !== 'Алмаз'
+      || standardMetaState.formatIconCount !== 2
+      || !standardMetaState.seasonContext.includes('Патч 36.0.3')
+      || !standardMetaState.seasonContext.includes('Побег из Аметистовой крепости')
+      || !standardMetaState.periodLabels.includes('Патч 36.0.3')
+      || !standardMetaState.periodLabels.includes('Побег из Аметистовой крепости')
+      || (device === 'mobile' && !standardMetaState.rankSelectVisible)
+      || (device !== 'mobile' && standardMetaState.rankSelectVisible)
       || standardMetaState.sourcePanelPresent
       || !standardMetaState.ornamentVisible || !standardMetaState.controlsFrame.includes('main-page-rail-border.png')
       || standardMetaState.cardContentVisibility !== 'auto'

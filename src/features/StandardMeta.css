@@ -155,7 +155,7 @@
 .standard-meta__controls {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr 1.35fr minmax(220px, 0.65fr);
+  grid-template-columns: minmax(280px, 0.72fr) minmax(520px, 1.28fr);
   gap: 1rem;
   margin-top: 1.25rem;
   padding: 1rem 1.1rem 1.1rem;
@@ -208,6 +208,46 @@
   font-size: 1.05rem;
 }
 .standard-meta__panel-heading small { color: #846344; font-size: 0.65rem; }
+
+.standard-meta__season-context {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid rgba(102, 63, 27, 0.18);
+  background: rgba(255, 249, 226, 0.34);
+}
+
+.standard-meta__season-context > div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.08rem 0.55rem;
+  align-items: center;
+  min-width: 0;
+  min-height: 54px;
+  padding: 0.55rem 0.7rem;
+}
+
+.standard-meta__season-context > div + div { border-left: 1px solid rgba(102, 63, 27, 0.18); }
+.standard-meta__season-context svg {
+  grid-row: 1 / 3;
+  color: var(--meta-purple);
+}
+.standard-meta__season-context span {
+  color: #806044;
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.standard-meta__season-context strong {
+  overflow: hidden;
+  color: #452e1e;
+  font-size: 0.74rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .standard-meta__control-label {
   display: block;
   margin: 0 0 0.45rem;
@@ -221,7 +261,9 @@
 .standard-meta__segmented,
 .standard-meta__rank-tabs {
   display: flex;
+  min-width: 0;
   min-height: 48px;
+  margin: 0;
   padding: 0.25rem;
   border: 1px solid rgba(92, 54, 24, 0.24);
   background: rgba(105, 65, 29, 0.08);
@@ -239,6 +281,20 @@
   transition: background 150ms ease, color 150ms ease, transform 150ms ease;
 }
 
+.standard-meta__segmented button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.55rem;
+  align-items: center;
+  text-align: left;
+}
+
+.standard-meta__segmented button > svg {
+  color: var(--meta-purple);
+}
+
+.standard-meta__segmented button[aria-pressed='true'] > svg { color: #f4cf78; }
+
 .standard-meta__segmented button:hover,
 .standard-meta__rank-tabs button:hover { background: rgba(255, 245, 214, 0.55); }
 
@@ -250,11 +306,39 @@
   box-shadow: inset 0 0 0 1px rgba(255, 239, 191, 0.1), 0 3px 8px rgba(44, 23, 61, 0.24);
 }
 
+.standard-meta__segmented button > span,
 .standard-meta__segmented strong,
-.standard-meta__segmented span { display: block; }
+.standard-meta__segmented small { display: block; }
 .standard-meta__segmented strong { font-size: 0.84rem; }
-.standard-meta__segmented span { margin-top: 0.1rem; font-size: 0.66rem; opacity: 0.75; }
+.standard-meta__segmented small { margin-top: 0.1rem; font-size: 0.66rem; opacity: 0.75; }
 .standard-meta__rank-tabs button { font-size: 0.72rem; font-weight: 800; }
+
+.standard-meta__rank-groups {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.9fr) minmax(350px, 1.1fr);
+  gap: 0.5rem;
+}
+
+.standard-meta__rank-group {
+  display: grid;
+  gap: 0.22rem;
+  min-width: 0;
+}
+
+.standard-meta__rank-group > span {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  color: #765536;
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.standard-meta__rank-group > span svg { color: var(--meta-purple); }
+.standard-meta__rank-group .standard-meta__rank-tabs { min-height: 44px; }
+.standard-meta__rank-select { display: none; }
 
 .standard-meta__secondary-filters {
   display: grid;
@@ -1008,6 +1092,7 @@
   .standard-meta__masthead { grid-template-columns: 1fr; }
   .standard-meta__masthead-stats { min-height: 88px; }
   .standard-meta__controls { grid-template-columns: 1fr 1fr; }
+  .standard-meta__rank-groups { grid-template-columns: 1fr; }
   .standard-meta__search { grid-column: 1 / -1; }
   .standard-meta__secondary-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .standard-meta__grid { grid-template-columns: 1fr; }
@@ -1041,10 +1126,16 @@
   .standard-meta__panel-heading > span { width: 36px; height: 36px; }
   .standard-meta__panel-heading strong { font-size: 0.92rem; }
   .standard-meta__panel-heading small { font-size: 0.58rem; }
+  .standard-meta__season-context { grid-template-columns: 1fr; }
+  .standard-meta__season-context > div { min-height: 48px; padding: 0.45rem 0.55rem; }
+  .standard-meta__season-context > div + div {
+    border-top: 1px solid rgba(102, 63, 27, 0.18);
+    border-left: 0;
+  }
   .standard-meta__controls > div,
   .standard-meta__secondary-filters,
   .standard-meta__segmented,
-  .standard-meta__rank-tabs,
+  .standard-meta__rank-groups,
   .standard-meta__search { width: 100%; min-width: 0; max-width: 100%; }
   .standard-meta__control-label { margin-bottom: 0.3rem; font-size: 0.6rem; }
   .standard-meta__segmented,
@@ -1052,13 +1143,25 @@
   .standard-meta__segmented button,
   .standard-meta__rank-tabs button { min-height: 44px; padding: 0.3rem 0.48rem; }
   .standard-meta__segmented strong { font-size: 0.76rem; }
-  .standard-meta__segmented span { font-size: 0.6rem; }
+  .standard-meta__segmented small { font-size: 0.6rem; }
   .standard-meta__search { grid-column: auto; }
   .standard-meta__secondary-filters { grid-template-columns: 1fr; gap: 0.55rem; }
   .standard-meta__select select { min-height: 44px; font-size: 16px; }
   .standard-meta__search input { font-size: 16px; }
-  .standard-meta__rank-tabs { display: flex; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: thin; }
-  .standard-meta__rank-tabs button { flex: 1 0 88px; scroll-snap-align: start; }
+  .standard-meta__rank-groups { display: none; }
+  .standard-meta__rank-select {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 2.25rem 0 0.75rem;
+    border: 1px solid rgba(92, 54, 24, 0.28);
+    border-radius: 0;
+    color: #3a281c;
+    background: rgba(255, 249, 230, 0.66);
+    font: inherit;
+    font-size: 16px;
+    font-weight: 800;
+  }
   .standard-meta__results-toolbar { flex-direction: column; gap: 0.48rem; align-items: stretch; margin-top: 0.65rem; padding: 0.5rem; border-width: 4px; }
   .standard-meta__results-toolbar p { align-self: center; }
   .standard-meta__view-switch { width: 100%; }
