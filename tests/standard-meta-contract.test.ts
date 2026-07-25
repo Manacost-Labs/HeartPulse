@@ -23,6 +23,9 @@ function candidate(overrides: Record<string, unknown> = {}) {
     formatLabel: 'Стандарт',
     rank: 'legend',
     rankLabel: 'Легенда',
+    period: 'past_day',
+    availablePeriods: ['past_day', 'past_3_days', 'past_week', 'past_2_weeks', 'patch_36.0.3', 'violet_hold'],
+    currentPatchPeriod: 'patch_36.0.3',
     source: 'hsguru',
     sourceId: 'hsguru_meta_standard_legend',
     sourceUrl: 'https://www.hsguru.com/meta',
@@ -264,9 +267,22 @@ assert.equal(
   'diamond_legend',
 );
 assert.equal(
-  parseStandardMetaApiResponse(candidate({ period: 'past_6_hours' }), now).data.period,
-  'past_6_hours',
+  parseStandardMetaApiResponse(candidate({ period: 'patch_36.0.3' }), now).data.period,
+  'patch_36.0.3',
 );
+assert.equal(
+  parseStandardMetaApiResponse(candidate({ period: 'violet_hold' }), now).data.period,
+  'violet_hold',
+);
+assert.deepEqual(parseStandardMetaApiResponse(candidate(), now).data.availablePeriods, [
+  'past_day',
+  'past_3_days',
+  'past_week',
+  'past_2_weeks',
+  'patch_36.0.3',
+  'violet_hold',
+]);
+assert.equal(parseStandardMetaApiResponse(candidate(), now).data.currentPatchPeriod, 'patch_36.0.3');
 assert.throws(
   () => parseStandardMetaApiResponse(candidate({ coin: 'on_coin' }), now),
   /coin is unsupported/,

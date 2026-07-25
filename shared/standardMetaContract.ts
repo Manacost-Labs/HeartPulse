@@ -11,7 +11,8 @@ export const STANDARD_META_MEDIA_TYPE = 'application/vnd.manacost.standard-meta.
 export type StandardMetaFormat = 'standard' | 'wild';
 export type StandardMetaRank = 'all' | 'diamond_all' | 'diamond' | 'diamond_legend' | 'legend'
   | 'top_5k' | 'top_500' | 'top_100' | 'top_legend';
-export type StandardMetaPeriod = 'past_6_hours' | 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks';
+export type StandardMetaPeriod = 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks'
+  | 'violet_hold' | `patch_${string}`;
 export type StandardMetaCoin = 'any_player';
 export type StandardMetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 export type StandardMetaClass = 'deathknight' | 'demonhunter' | 'druid' | 'hunter' | 'mage' | 'paladin'
@@ -37,6 +38,8 @@ export type StandardMetaData = {
   rank: StandardMetaRank;
   rankLabel: string;
   period: StandardMetaPeriod;
+  availablePeriods: StandardMetaPeriod[];
+  currentPatchPeriod: StandardMetaPeriod | null;
   coin: StandardMetaCoin;
   minGames: StandardMetaMinGames;
   source: string;
@@ -54,7 +57,14 @@ const RANKS = new Set<StandardMetaRank>([
   'all', 'diamond_all', 'diamond', 'diamond_legend', 'legend',
   'top_5k', 'top_500', 'top_100', 'top_legend',
 ]);
-const PERIODS = new Set<StandardMetaPeriod>(['past_6_hours', 'past_day', 'past_3_days', 'past_week', 'past_2_weeks']);
+const FIXED_PERIODS = new Set<StandardMetaPeriod>([
+  'past_day',
+  'past_3_days',
+  'past_week',
+  'past_2_weeks',
+  'violet_hold',
+]);
+const DEFAULT_PERIODS: StandardMetaPeriod[] = ['past_day', 'past_3_days', 'past_week', 'past_2_weeks'];
 const COINS = new Set<StandardMetaCoin>(['any_player']);
 const MIN_GAMES = new Set<StandardMetaMinGames>([100, 250, 500, 1000, 2500, 5000]);
 const CLASSES = new Set<StandardMetaClass>([
@@ -64,6 +74,11 @@ const CLASSES = new Set<StandardMetaClass>([
 
 function invalid(message: string): never {
   throw new DatasetContractError('INVALID_DATA', `standard-meta: ${message}`);
+}
+
+function isPeriod(value: unknown): value is StandardMetaPeriod {
+  return typeof value === 'string'
+    && (FIXED_PERIODS.has(value as StandardMetaPeriod) || /^patch_\d+(?:\.\d+){1,3}$/.test(value));
 }
 
 function dataRecord(value: unknown, label: string): Record<string, unknown> {
@@ -121,7 +136,7 @@ export function parseStandardMetaData(value: unknown): StandardMetaData {
   const period = (data.period ?? 'past_day') as StandardMetaPeriod;
   const coin = (data.coin ?? 'any_player') as StandardMetaCoin;
   const minGames = Number(data.minGames ?? 100) as StandardMetaMinGames;
-  if (!PERIODS.has(period)) invalid('period is unsupported');
+  if (!isPeriod(period)) invalid('period is unsupported');
   if (!COINS.has(coin)) invalid('coin is unsupported');
   if (!MIN_GAMES.has(minGames)) invalid('minGames is unsupported');
   if (!Array.isArray(data.items)) invalid('items must be an array');
@@ -138,12 +153,31 @@ export function parseStandardMetaData(value: unknown): StandardMetaData {
   }
   const updatedAt = data.updatedAt === null ? null : dataString(data.updatedAt, 'updatedAt', 64);
   if (updatedAt !== null && !Number.isFinite(Date.parse(updatedAt))) invalid('updatedAt must be an ISO date or null');
+  const rawAvailablePeriods = data.availablePeriods ?? DEFAULT_PERIODS;
+  if (!Array.isArray(rawAvailablePeriods) || rawAvailablePeriods.length > 12) {
+    invalid('availablePeriods must be an array with at most 12 entries');
+  }
+  const availablePeriods = rawAvailablePeriods.map((value, index) => {
+    if (!isPeriod(value)) invalid(`availablePeriods[${index}] is unsupported`);
+    return value;
+  });
+  if (!availablePeriods.includes(period)) availablePeriods.push(period);
+  const rawCurrentPatchPeriod = data.currentPatchPeriod ?? null;
+  if (rawCurrentPatchPeriod !== null && (
+    !isPeriod(rawCurrentPatchPeriod)
+    || !rawCurrentPatchPeriod.startsWith('patch_')
+    || !availablePeriods.includes(rawCurrentPatchPeriod)
+  )) {
+    invalid('currentPatchPeriod must reference an available patch period');
+  }
   return {
     format: data.format as StandardMetaFormat,
     formatLabel: dataString(data.formatLabel, 'formatLabel', 80),
     rank: data.rank as StandardMetaRank,
     rankLabel: dataString(data.rankLabel, 'rankLabel', 80),
     period,
+    availablePeriods,
+    currentPatchPeriod: rawCurrentPatchPeriod as StandardMetaPeriod | null,
     coin,
     minGames,
     source: dataString(data.source, 'source', 80),

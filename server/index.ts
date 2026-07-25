@@ -6164,6 +6164,13 @@ async function loadStandardMeta(
       throw new Error('HSGuru matrix timestamp is invalid');
     }
     const rows = Array.isArray(payload?.data?.items) ? payload.data.items : [];
+    const availablePeriods = (Array.isArray(payload?.meta?.available_periods)
+      ? payload.meta.available_periods
+      : ['past_day', 'past_3_days', 'past_week', 'past_2_weeks'])
+      .map((value: unknown) => String(value));
+    const currentPatchPeriod = typeof payload?.meta?.current_patch_period === 'string'
+      ? payload.meta.current_patch_period
+      : null;
     const data = {
       publicationMode: 'stable' as const,
       publishedAt: sourceUpdatedAt,
@@ -6172,6 +6179,8 @@ async function loadStandardMeta(
       rank,
       rankLabel: STANDARD_META_RANK_LABEL[rank],
       period,
+      availablePeriods,
+      currentPatchPeriod,
       coin,
       minGames,
       source: 'hsguru',

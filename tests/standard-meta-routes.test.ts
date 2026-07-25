@@ -60,6 +60,8 @@ const dependencies: StandardMetaRouterDependencies = {
       rank,
       rankLabel: rank,
       period,
+      availablePeriods: ['past_day', 'past_3_days', 'past_week', 'past_2_weeks', 'patch_36.0.3', 'violet_hold'],
+      currentPatchPeriod: 'patch_36.0.3',
       coin,
       minGames,
       source: 'hsguru',
@@ -143,11 +145,21 @@ try {
     calls.length = 0;
   }
 
-  const sixHourMeta = await fetch(`${origin}/standard-meta?format=wild&rank=legend&period=past_6_hours&coin=any_player&min_games=500`, { headers: { 'X-Test-Access': 'allowed' } });
-  assert.equal(sixHourMeta.status, 200);
-  assert.equal((await sixHourMeta.json() as any).period, 'past_6_hours');
-  assert.deepEqual(calls, ['meta:wild:legend:past_6_hours:any_player:500']);
+  const patchMeta = await fetch(`${origin}/standard-meta?format=wild&rank=legend&period=patch_36.0.3&coin=any_player&min_games=500`, { headers: { 'X-Test-Access': 'allowed' } });
+  assert.equal(patchMeta.status, 200);
+  assert.equal((await patchMeta.json() as any).period, 'patch_36.0.3');
+  assert.deepEqual(calls, ['meta:wild:legend:patch_36.0.3:any_player:500']);
   calls.length = 0;
+
+  const expansionMeta = await fetch(`${origin}/standard-meta?format=standard&rank=legend&period=violet_hold&coin=any_player&min_games=500`, { headers: { 'X-Test-Access': 'allowed' } });
+  assert.equal(expansionMeta.status, 200);
+  assert.equal((await expansionMeta.json() as any).period, 'violet_hold');
+  assert.deepEqual(calls, ['meta:standard:legend:violet_hold:any_player:500']);
+  calls.length = 0;
+
+  const removedSixHourMeta = await fetch(`${origin}/standard-meta?format=wild&rank=legend&period=past_6_hours&coin=any_player&min_games=500`, { headers: { 'X-Test-Access': 'allowed' } });
+  assert.equal(removedSixHourMeta.status, 400);
+  assert.deepEqual(calls, []);
 
   const invalid = await fetch(`${origin}/admin/standard-meta?format=classic&rank=bronze`, { headers: adminHeaders });
   assert.equal(invalid.status, 400);

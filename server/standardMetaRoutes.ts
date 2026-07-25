@@ -7,7 +7,8 @@ import { STANDARD_META_MEDIA_TYPE } from '../shared/standardMetaContract.js';
 export type StandardMetaFormat = 'standard' | 'wild';
 export type StandardMetaRank = 'all' | 'diamond_all' | 'diamond' | 'diamond_legend' | 'legend'
   | 'top_5k' | 'top_500' | 'top_100' | 'top_legend';
-export type StandardMetaPeriod = 'past_6_hours' | 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks';
+export type StandardMetaPeriod = 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks'
+  | 'violet_hold' | `patch_${string}`;
 export type StandardMetaCoin = 'any_player';
 export type StandardMetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 
@@ -65,7 +66,13 @@ const RANKS = new Set<StandardMetaRank>([
   'all', 'diamond_all', 'diamond', 'diamond_legend', 'legend',
   'top_5k', 'top_500', 'top_100', 'top_legend',
 ]);
-const PERIODS = new Set<StandardMetaPeriod>(['past_6_hours', 'past_day', 'past_3_days', 'past_week', 'past_2_weeks']);
+const PERIODS = new Set<StandardMetaPeriod>([
+  'past_day',
+  'past_3_days',
+  'past_week',
+  'past_2_weeks',
+  'violet_hold',
+]);
 const COINS = new Set<StandardMetaCoin>(['any_player']);
 const MIN_GAMES = new Set<StandardMetaMinGames>([100, 250, 500, 1000, 2500, 5000]);
 
@@ -80,8 +87,10 @@ function readRank(value: unknown): StandardMetaRank | null {
 }
 
 function readPeriod(value: unknown): StandardMetaPeriod | null {
-  const period = String(value ?? 'past_day') as StandardMetaPeriod;
-  return PERIODS.has(period) ? period : null;
+  const period = String(value ?? 'past_day');
+  return PERIODS.has(period as StandardMetaPeriod) || /^patch_\d+(?:\.\d+){1,3}$/.test(period)
+    ? period as StandardMetaPeriod
+    : null;
 }
 
 function readCoin(value: unknown): StandardMetaCoin | null {
