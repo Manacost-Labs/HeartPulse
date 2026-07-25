@@ -59,7 +59,7 @@ export default function StandardMetaChart({ items, format, formatLabel, rankLabe
     () => [...points].sort((left, right) => right.popularity - left.popularity),
     [points],
   );
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [selectedId, setSelectedId] = useState('');
   const [hoveredId, setHoveredId] = useState('');
   const pointRefs = useRef(new Map<string, SVGGElement>());

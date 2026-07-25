@@ -10,8 +10,6 @@ import {
   Gem,
   LayoutGrid,
   Maximize2,
-  Shield,
-  Sparkles,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -30,6 +28,7 @@ import {
   type StandardMetaPeriod,
 } from '../../shared/standardMetaContract';
 import DeckListView, { type DeckListCard } from './decklist/DeckListView';
+import { orderStandardMetaPeriods } from './standardMetaFilterModel';
 import '../route-parchment.css';
 import './recovery/RecoverableSurface.css';
 import './StandardMeta.css';
@@ -115,9 +114,19 @@ type DeckModalState = {
   previewError: string;
 };
 
-const FORMATS: Array<{ id: MetaFormat; label: string; description: string; icon: typeof Shield }> = [
-  { id: 'standard', label: 'Стандарт', description: 'Текущая ротация', icon: Shield },
-  { id: 'wild', label: 'Вольный', description: 'Все дополнения', icon: Sparkles },
+const FORMATS: Array<{ id: MetaFormat; label: string; description: string; asset: string }> = [
+  {
+    id: 'standard',
+    label: 'Стандарт',
+    description: 'Текущая ротация',
+    asset: '/card-format-standard.webp',
+  },
+  {
+    id: 'wild',
+    label: 'Вольный',
+    description: 'Все дополнения',
+    asset: '/card-format-wild.webp',
+  },
 ];
 
 const RANKS: Array<{ id: MetaRank; label: string }> = [
@@ -166,8 +175,8 @@ const DECK_CLASS_COLORS: Record<MetaClass, string> = {
 const EMPTY_DATA: MetaPayload = {
   format: 'standard',
   formatLabel: 'Стандарт',
-  rank: 'diamond_all',
-  rankLabel: 'Алмаз',
+  rank: 'diamond_legend',
+  rankLabel: 'Алмаз — Легенда',
   period: 'past_day',
   availablePeriods: ['past_day', 'past_3_days', 'past_week', 'past_2_weeks'],
   currentPatchPeriod: null,
@@ -373,8 +382,8 @@ export function DeckModal({ state, onClose, onRenderPreview }: { state: DeckModa
 
 function StandardMetaContent() {
   const [format, setFormat] = useState<MetaFormat>('standard');
-  const [rank, setRank] = useState<MetaRank>('diamond_all');
-  const [period, setPeriod] = useState<MetaPeriod>('past_day');
+  const [rank, setRank] = useState<MetaRank>('diamond_legend');
+  const [period, setPeriod] = useState<MetaPeriod | null>(null);
   const coin: MetaCoin = 'any_player';
   const [minGames, setMinGames] = useState<MetaMinGames>(100);
   const [query, setQuery] = useState('');
@@ -391,15 +400,16 @@ function StandardMetaContent() {
   useEffect(() => {
     const currentRequest = ++requestId.current;
     const controller = new AbortController();
+    let redirectedToCurrentPatch = false;
     setLoading(true);
     setError('');
     const params = new URLSearchParams({
       format,
       rank,
-      period,
       coin,
       min_games: String(minGames),
     });
+    if (period) params.set('period', period);
     void apiJson<unknown>(`/api/standard-meta?${params}`, {
       signal: controller.signal,
       headers: { Accept: STANDARD_META_MEDIA_TYPE },
@@ -407,6 +417,12 @@ function StandardMetaContent() {
       .then(payload => {
         const verified = parseStandardMetaApiResponse(payload);
         if (currentRequest === requestId.current) {
+          if (!period && verified.data.currentPatchPeriod) {
+            redirectedToCurrentPatch = true;
+            setPeriod(verified.data.currentPatchPeriod);
+            return;
+          }
+          if (!period) setPeriod(verified.data.period);
           setData(verified.data);
           setDatasetEnvelope(verified.envelope);
         }
@@ -419,7 +435,7 @@ function StandardMetaContent() {
         }
       })
       .finally(() => {
-        if (currentRequest === requestId.current) setLoading(false);
+        if (currentRequest === requestId.current && !redirectedToCurrentPatch) setLoading(false);
       });
     return () => controller.abort();
   }, [format, rank, period, minGames, metaRevision]);
@@ -452,13 +468,11 @@ function StandardMetaContent() {
     });
   }, [filteredItems, rankById, sort]);
   const periodOptions = useMemo(
-    () => data.availablePeriods.map(id => ({ id, label: standardMetaPeriodLabel(id) })),
-    [data.availablePeriods],
+    () => orderStandardMetaPeriods(data.availablePeriods, data.currentPatchPeriod)
+      .map(id => ({ id, label: standardMetaPeriodLabel(id) })),
+    [data.availablePeriods, data.currentPatchPeriod],
   );
-  const currentPatchLabel = data.currentPatchPeriod
-    ? standardMetaPeriodLabel(data.currentPatchPeriod)
-    : 'Период появится автоматически';
-  const expansionPeriodAvailable = data.availablePeriods.includes('violet_hold');
+  const selectedPeriod = period ?? data.currentPatchPeriod ?? data.period;
 
   const changeSort = (key: MetaSortKey) => {
     setSort(current => current.key === key
@@ -535,36 +549,13 @@ function StandardMetaContent() {
           <span aria-hidden="true"><Swords size={18} /></span>
           <div><strong>Управление срезом</strong><small>Выберите формат, рейтинг и временной диапазон</small></div>
         </div>
-        <div className="standard-meta__season-context" aria-label="Периоды текущего сезона">
-          <button
-            type="button"
-            disabled={!data.currentPatchPeriod}
-            aria-pressed={Boolean(data.currentPatchPeriod && period === data.currentPatchPeriod)}
-            onClick={() => { if (data.currentPatchPeriod) setPeriod(data.currentPatchPeriod); }}
-          >
-            <ShieldCheck size={17} aria-hidden="true" />
-            <span>Период меты</span>
-            <strong>{currentPatchLabel}</strong>
-          </button>
-          <button
-            type="button"
-            disabled={!expansionPeriodAvailable}
-            aria-pressed={period === 'violet_hold'}
-            onClick={() => { if (expansionPeriodAvailable) setPeriod('violet_hold'); }}
-          >
-            <Sparkles size={17} aria-hidden="true" />
-            <span>Период меты</span>
-            <strong>За всё дополнение — Побег из Аметистовой крепости</strong>
-          </button>
-        </div>
         <div>
           <span className="standard-meta__control-label">Формат</span>
           <div className="standard-meta__segmented">
             {FORMATS.map(option => {
-              const FormatIcon = option.icon;
               return (
                 <button key={option.id} type="button" aria-pressed={format === option.id} onClick={() => setFormat(option.id)}>
-                  <FormatIcon size={19} aria-hidden="true" />
+                  <img src={option.asset} alt="" width="32" height="36" aria-hidden="true" />
                   <span><strong>{option.label}</strong><small>{option.description}</small></span>
                 </button>
               );
@@ -606,7 +597,7 @@ function StandardMetaContent() {
         <div className="standard-meta__secondary-filters">
           <label className="standard-meta__select">
             <span className="standard-meta__control-label">Период</span>
-            <select value={period} onChange={event => setPeriod(event.target.value as MetaPeriod)}>
+            <select value={selectedPeriod} onChange={event => setPeriod(event.target.value as MetaPeriod)}>
               {periodOptions.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
             </select>
           </label>

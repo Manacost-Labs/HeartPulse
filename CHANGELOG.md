@@ -2,6 +2,10 @@
 
 ## v1.0.48 - 2026-07-24
 
+- Simplified the constructed-meta filters: removed duplicate season plaques,
+  made the current patch and Diamond-to-Legend the defaults, moved patch and
+  expansion periods to the top, added the local Standard/Wild game assets, and
+  collapsed the meta map on first load.
 - Made the installed design, React, browser, performance, observability,
   specification, implementation, testing, review, security, documentation,
   Git and release skills mandatory through a tested task-routing contract,
