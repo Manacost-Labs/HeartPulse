@@ -28,7 +28,6 @@ const meta = {
   args: {
     item: hero,
     navigatePath: fn(),
-    reducedMotion: false,
   },
   parameters: {
     layout: 'centered',
@@ -45,9 +44,11 @@ export const Static: Story = {
   },
 };
 
-export const ReducedMotion: Story = {
-  args: {
-    reducedMotion: true,
+export const NoHoverAnimation: Story = {
+  play: async ({ canvas }) => {
+    const card = canvas.getByRole('link', { name: /Керриган-арахнид/i });
+    await userEvent.hover(card);
+    await expect(canvas.queryByLabelText(/Анимация скина/i)).not.toBeInTheDocument();
   },
 };
 

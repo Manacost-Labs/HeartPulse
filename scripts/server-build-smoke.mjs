@@ -107,7 +107,7 @@ try {
   }
   const staticSitemap = await requestText('/sitemaps/static.xml');
   if (staticSitemap.response.status !== 200
-    || [...staticSitemap.body.matchAll(/<url>/g)].length !== 25) {
+    || [...staticSitemap.body.matchAll(/<url>/g)].length !== 29) {
     throw new Error('runtime static sitemap contract failed');
   }
 

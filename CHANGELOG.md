@@ -1,5 +1,18 @@
 # HS-Arena Changelog
 
+## v1.0.55 - 2026-07-26
+
+- Reworked the hero-skin, coin and pet catalogs into frameless transparent
+  galleries on the shared parchment surface, with names beneath the artwork
+  and a restrained gold hover/focus highlight without movement or video.
+- Moved hero full art and animation into a dark, keyboard-accessible lightbox
+  with focus restoration, mobile viewport support and reduced-motion handling.
+- Added an allowlisted same-origin media proxy with range requests and
+  week-long stale caching so Hearthstone Wiki art, animation, gallery media and
+  voice tracks load reliably instead of being blocked by cross-origin policy.
+- Added focused UI, route and Storybook coverage for the transparent gallery,
+  no-hover-animation contract and both lightbox media modes.
+
 ## v1.0.54 - 2026-07-26
 
 - Added a public Hearthstone cosmetics library under “Разное” with 726 localized

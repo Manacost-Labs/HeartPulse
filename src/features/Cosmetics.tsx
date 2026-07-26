@@ -1,6 +1,7 @@
 import React, {
   useDeferredValue,
   useEffect,
+  useId,
   useMemo,
   useReducer,
   useRef,
@@ -15,12 +16,16 @@ import {
   Coins,
   ExternalLink,
   Image as ImageIcon,
+  Maximize2,
   PawPrint,
+  Play,
   Search,
   Sparkles,
   Volume2,
+  X,
 } from 'lucide-react';
 import '../route-parchment.css';
+import ModalSurface from '../components/ModalSurface/ModalSurface';
 import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
 import './Cosmetics.css';
 
@@ -111,6 +116,17 @@ function cachedCardImage(cardId: string, variant: 'thumb' | 'full' = 'full') {
   return `/api/card-image/${encodeURIComponent(cardId)}/${variant}.webp?v=${CARD_IMAGE_VERSION}`;
 }
 
+function cosmeticMediaSource(source: string | null | undefined) {
+  if (!source) return '';
+  try {
+    return new URL(source).hostname.toLowerCase() === 'hearthstone.wiki.gg'
+      ? `/api/cosmetics/media?url=${encodeURIComponent(source)}`
+      : source;
+  } catch {
+    return source;
+  }
+}
+
 type HeroFilters = {
   q: string;
   classSlug: string;
@@ -188,7 +204,7 @@ const KIND_META: Record<CosmeticKind, {
   heroes: {
     label: 'Скины героев',
     title: 'Скины героев',
-    description: 'Портреты всех классов с редкостью, способом получения и анимированным предпросмотром.',
+    description: 'Портреты всех классов с редкостью, способом получения, полными артами и анимациями на отдельных страницах.',
     icon: CircleUserRound,
   },
   coins: {
@@ -310,38 +326,78 @@ function CatalogTabs({ active, navigatePath }: { active: CosmeticKind; navigateP
   );
 }
 
+export type CosmeticsMediaItem = {
+  type: 'image' | 'video';
+  src: string;
+  title: string;
+  poster?: string | null;
+  autoPlay?: boolean;
+};
+
+export function CosmeticsMediaLightbox({
+  media,
+  onClose,
+}: {
+  media: CosmeticsMediaItem;
+  onClose: () => void;
+}) {
+  const titleId = useId();
+  const closeRef = useRef<HTMLButtonElement>(null);
+  return (
+    <ModalSurface
+      className="cosmetics-media-lightbox"
+      panelClassName="cosmetics-media-lightbox__panel"
+      backdropClassName="cosmetics-media-lightbox__backdrop"
+      ariaLabelledBy={titleId}
+      initialFocusRef={closeRef}
+      onClose={onClose}
+    >
+      <button
+        ref={closeRef}
+        type="button"
+        className="cosmetics-media-lightbox__close"
+        aria-label="Закрыть просмотр"
+        onClick={onClose}
+      >
+        <X size={24} aria-hidden="true" />
+      </button>
+      <div className="cosmetics-media-lightbox__media">
+        {media.type === 'video' ? (
+          <video
+            src={cosmeticMediaSource(media.src)}
+            poster={cosmeticMediaSource(media.poster) || undefined}
+            controls
+            autoPlay={media.autoPlay}
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            aria-label={media.title}
+          />
+        ) : (
+          <img src={cosmeticMediaSource(media.src)} alt={media.title} decoding="async" />
+        )}
+      </div>
+      <div className="cosmetics-media-lightbox__caption">
+        <strong id={titleId}>{media.title}</strong>
+      </div>
+    </ModalSurface>
+  );
+}
+
 export function HeroSkinCard({
   item,
   navigatePath,
-  reducedMotion,
 }: {
   item: HeroSummary;
   navigatePath: (path: string) => void;
-  reducedMotion: boolean;
 }) {
-  const [animationReady, setAnimationReady] = useState(false);
-  const [animationFailed, setAnimationFailed] = useState(false);
-  const hoverTimer = useRef<number | null>(null);
   const href = `/cosmetics/heroes/${encodeURIComponent(item.cardId)}`;
-
-  const revealAnimation = () => {
-    if (reducedMotion || animationFailed || !item.images.animated) return;
-    hoverTimer.current = window.setTimeout(() => setAnimationReady(true), 140);
-  };
-  const hideAnimation = () => {
-    if (hoverTimer.current !== null) window.clearTimeout(hoverTimer.current);
-    hoverTimer.current = null;
-  };
-
-  useEffect(() => () => hideAnimation(), []);
 
   return (
     <a
       href={href}
       className="cosmetics-card cosmetics-hero-card"
-      onPointerEnter={revealAnimation}
-      onPointerLeave={hideAnimation}
-      onFocus={revealAnimation}
       onClick={(event) => {
         event.preventDefault();
         navigatePath(href);
@@ -358,31 +414,8 @@ export function HeroSkinCard({
             height="768"
           />
         ) : <span className="cosmetics-media-placeholder"><ImageIcon aria-hidden="true" /></span>}
-        {animationReady && item.images.animated && !animationFailed && (
-          <video
-            className="cosmetics-hover-video"
-            src={item.images.animated}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="none"
-            aria-label={`Анимация скина «${item.name.ru}»`}
-            onError={() => setAnimationFailed(true)}
-          />
-        )}
-        {item.images.animated && !reducedMotion && (
-          <span className="cosmetics-animated-badge"><Sparkles size={13} aria-hidden="true" /> Анимация</span>
-        )}
       </span>
-      <span className="cosmetics-card-copy">
-        <strong>{item.name.ru}</strong>
-        {item.name.en && item.name.en !== item.name.ru && <small>{item.name.en}</small>}
-        <span className="cosmetics-card-meta">
-          <span>{item.class.nameRu}</span>
-          <span>{item.rarity.nameRu}</span>
-        </span>
-      </span>
+      <strong className="cosmetics-card-name">{item.name.ru}</strong>
     </a>
   );
 }
@@ -408,10 +441,7 @@ function CoinCard({ item, navigatePath }: { item: CoinSummary; navigatePath: (pa
           height="768"
         />
       </span>
-      <span className="cosmetics-card-copy">
-        <strong>{item.name.en || item.name.ru}</strong>
-        <small>{item.cardId}</small>
-      </span>
+      <strong className="cosmetics-card-name">{item.name.en || item.name.ru}</strong>
     </a>
   );
 }
@@ -432,10 +462,7 @@ function PetCard({ item, navigatePath }: { item: PetVariant; navigatePath: (path
           <img src={item.images.card} alt={`Питомец «${item.name}»`} loading="lazy" decoding="async" width="512" height="768" />
         ) : <span className="cosmetics-media-placeholder"><PawPrint aria-hidden="true" /></span>}
       </span>
-      <span className="cosmetics-card-copy">
-        <strong>{item.name}</strong>
-        <small>{item.level ? `Раскраска ${item.level}` : item.cardId}</small>
-      </span>
+      <strong className="cosmetics-card-name">{item.name}</strong>
     </a>
   );
 }
@@ -572,8 +599,6 @@ function CatalogView({
   const payload = currentRequest?.payload ?? null;
   const error = currentRequest?.error ?? null;
   const loading = currentRequest === null;
-  const reducedMotion = useReducedMotion();
-
   useEffect(() => {
     window.history.replaceState(
       window.history.state,
@@ -629,7 +654,7 @@ function CatalogView({
           </div>
           <div className={`cosmetics-grid cosmetics-grid-${kind}`} aria-busy={loading}>
             {kind === 'heroes' && (items as HeroSummary[]).map(item => (
-              <HeroSkinCard key={item.cardId} item={item} navigatePath={navigatePath} reducedMotion={reducedMotion} />
+              <HeroSkinCard key={item.cardId} item={item} navigatePath={navigatePath} />
             ))}
             {kind === 'coins' && (items as CoinSummary[]).map(item => (
               <CoinCard key={item.cardId} item={item} navigatePath={navigatePath} />
@@ -678,7 +703,7 @@ function DetailGallery({ items, title }: { items: Array<{ url: string; caption: 
         {items.map((item, index) => (
           <figure key={`${item.url}-${index}`}>
             <a href={item.url} target="_blank" rel="noreferrer">
-              <img src={item.url} alt={item.caption || `${title}, изображение ${index + 1}`} loading="lazy" decoding="async" />
+              <img src={cosmeticMediaSource(item.url)} alt={item.caption || `${title}, изображение ${index + 1}`} loading="lazy" decoding="async" />
             </a>
             {item.caption && <figcaption>{item.caption}</figcaption>}
           </figure>
@@ -690,6 +715,7 @@ function DetailGallery({ items, title }: { items: Array<{ url: string; caption: 
 
 function HeroDetailView({ detail }: { detail: HeroDetail }) {
   const reducedMotion = useReducedMotion();
+  const [activeMedia, setActiveMedia] = useState<CosmeticsMediaItem | null>(null);
   return (
     <>
       <div className="cosmetics-detail-hero">
@@ -720,20 +746,38 @@ function HeroDetailView({ detail }: { detail: HeroDetail }) {
         <section className="cosmetics-detail-section">
           <h2>Анимация и полный арт</h2>
           <div className="cosmetics-featured-media">
-            {detail.images.animated && !reducedMotion && (
-              <video
-                controls
-                loop
-                muted
-                playsInline
-                preload="metadata"
-                poster={detail.images.static || undefined}
-                aria-label={`Анимация скина «${detail.name.ru}»`}
+            {detail.images.animated && (
+              <button
+                type="button"
+                className="cosmetics-media-trigger"
+                onClick={() => setActiveMedia({
+                  type: 'video',
+                  src: detail.images.animated!,
+                  poster: detail.images.static,
+                  title: `Анимация скина «${detail.name.ru}»`,
+                  autoPlay: !reducedMotion,
+                })}
               >
-                <source src={detail.images.animated} />
-              </video>
+                {detail.images.static
+                  ? <img src={detail.images.static} alt="" loading="lazy" decoding="async" />
+                  : <span className="cosmetics-media-placeholder"><Play aria-hidden="true" /></span>}
+                <span><Play size={18} aria-hidden="true" /> Анимация скина</span>
+              </button>
             )}
-            {detail.images.fullArt && <img src={detail.images.fullArt} alt={`Полный арт «${detail.name.ru}»`} loading="lazy" decoding="async" />}
+            {detail.images.fullArt && (
+              <button
+                type="button"
+                className="cosmetics-media-trigger"
+                onClick={() => setActiveMedia({
+                  type: 'image',
+                  src: detail.images.fullArt!,
+                  title: `Полный арт «${detail.name.ru}»`,
+                })}
+              >
+                <img src={cosmeticMediaSource(detail.images.fullArt)} alt="" loading="lazy" decoding="async" />
+                <span><Maximize2 size={18} aria-hidden="true" /> Полный арт</span>
+              </button>
+            )}
           </div>
         </section>
       )}
@@ -747,7 +791,7 @@ function HeroDetailView({ detail }: { detail: HeroDetail }) {
                 <audio
                   controls
                   preload="none"
-                  src={sound.url}
+                  src={cosmeticMediaSource(sound.url)}
                   aria-label={`${sound.type}: ${sound.transcript || `дорожка ${index + 1}`}`}
                 >
                   Ваш браузер не поддерживает аудио.
@@ -758,6 +802,7 @@ function HeroDetailView({ detail }: { detail: HeroDetail }) {
         </section>
       )}
       <DetailGallery items={detail.gallery} title="Галерея" />
+      {activeMedia && <CosmeticsMediaLightbox media={activeMedia} onClose={() => setActiveMedia(null)} />}
     </>
   );
 }

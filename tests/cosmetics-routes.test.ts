@@ -3,6 +3,7 @@ import express from 'express';
 import { createCosmeticsRouter } from '../server/cosmeticsRoutes.js';
 
 const calls: Array<{ method: string; kind: string; value?: unknown }> = [];
+const mediaCalls: string[] = [];
 const app = express();
 app.use('/api', createCosmeticsRouter({
   loadCatalog: async (kind, query) => {
@@ -18,6 +19,18 @@ app.use('/api', createCosmeticsRouter({
   loadDetail: async (kind, cardId) => {
     calls.push({ method: 'detail', kind, value: cardId });
     return cardId === 'missing' ? null : { cardId, kind, sounds: [{ type: 'Start' }] };
+  },
+}, {
+  fetchMedia: async (url) => {
+    mediaCalls.push(url);
+    return new Response(new Uint8Array([1, 2, 3]), {
+      status: 200,
+      headers: {
+        'content-type': 'image/jpeg',
+        'content-length': '3',
+        etag: '"upstream-media"',
+      },
+    });
   },
 }));
 
@@ -66,6 +79,20 @@ try {
 
   const missing = await fetch(`${baseUrl}/heroes/missing`);
   assert.equal(missing.status, 404);
+
+  const mediaUrl = 'https://hearthstone.wiki.gg/images/Arachnid_Kerrigan_full.jpg';
+  const media = await fetch(`${baseUrl}/media?url=${encodeURIComponent(mediaUrl)}`);
+  assert.equal(media.status, 200);
+  assert.equal(media.headers.get('content-type'), 'image/jpeg');
+  assert.equal(media.headers.get('content-length'), '3');
+  assert.match(media.headers.get('cache-control') ?? '', /stale-while-revalidate/);
+  assert.equal(media.headers.get('cross-origin-resource-policy'), 'same-origin');
+  assert.deepEqual([...new Uint8Array(await media.arrayBuffer())], [1, 2, 3]);
+  assert.deepEqual(mediaCalls, [mediaUrl]);
+
+  const rejectedMedia = await fetch(`${baseUrl}/media?url=${encodeURIComponent('https://evil.example/full.jpg')}`);
+  assert.equal(rejectedMedia.status, 400);
+  assert.deepEqual(mediaCalls, [mediaUrl], 'rejected media hosts must never reach the network');
 } finally {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 }

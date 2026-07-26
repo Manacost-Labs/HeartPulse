@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import { Router, type Request, type Response } from 'express';
+import { Readable, Transform } from 'node:stream';
+import { Router, type Request, type Response as ExpressResponse } from 'express';
 
 type JsonRecord = Record<string, any>;
 export type CosmeticKind = 'heroes' | 'coins' | 'pets';
@@ -492,7 +493,7 @@ const readCatalogQuery = (request: Request, kind: CosmeticKind): CosmeticsCatalo
   };
 };
 
-const sendCachedJson = (request: Request, response: Response, payload: JsonRecord) => {
+const sendCachedJson = (request: Request, response: ExpressResponse, payload: JsonRecord) => {
   const body = JSON.stringify(payload);
   const etag = `"cosmetics-${createHash('sha1').update(body).digest('hex').slice(0, 18)}"`;
   response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600');
@@ -503,10 +504,85 @@ const sendCachedJson = (request: Request, response: Response, payload: JsonRecor
 };
 
 const CARD_ID_PATTERN = /^[A-Za-z0-9_-]{1,100}$/;
+const MAX_COSMETIC_MEDIA_BYTES = 32 * 1024 * 1024;
+const MEDIA_CONTENT_TYPE_PATTERN = /^(?:image|video|audio)\//i;
 
-export function createCosmeticsRouter(service: CosmeticsDataService): Router {
+type CosmeticsRouterOptions = {
+  fetchMedia?: (url: string, init?: RequestInit) => Promise<Response>;
+};
+
+export function createCosmeticsRouter(
+  service: CosmeticsDataService,
+  options: CosmeticsRouterOptions = {},
+): Router {
   const router = Router();
   const kindPattern = ':kind(heroes|coins|pets)';
+
+  router.get('/cosmetics/media', async (request, response) => {
+    const mediaUrl = normalizeCosmeticMediaUrl(request.query.url);
+    if (!mediaUrl) return response.status(400).json({ error: 'Некорректный адрес медиа' });
+    if (!options.fetchMedia) return response.status(503).json({ error: 'Медиапрокси недоступен' });
+
+    try {
+      const upstream = await options.fetchMedia(mediaUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)',
+          ...(request.headers.range ? { Range: request.headers.range } : {}),
+        },
+        redirect: 'follow',
+        signal: AbortSignal.timeout(20_000),
+      });
+      const finalUrl = normalizeCosmeticMediaUrl(upstream.url || mediaUrl);
+      const contentType = cleanText(upstream.headers.get('content-type'), 160).toLowerCase();
+      const contentLength = Number(upstream.headers.get('content-length'));
+      if (
+        !upstream.ok
+        || !finalUrl
+        || !MEDIA_CONTENT_TYPE_PATTERN.test(contentType)
+        || (Number.isFinite(contentLength) && contentLength > MAX_COSMETIC_MEDIA_BYTES)
+      ) {
+        await upstream.body?.cancel();
+        return response.status(502).json({ error: 'Медиаисточник вернул некорректный ответ' });
+      }
+
+      response.status(upstream.status);
+      response.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+      response.set('Content-Type', contentType);
+      response.set('Cross-Origin-Resource-Policy', 'same-origin');
+      response.set('X-Content-Type-Options', 'nosniff');
+      for (const header of ['accept-ranges', 'content-length', 'content-range', 'etag', 'last-modified'] as const) {
+        const value = upstream.headers.get(header);
+        if (value) response.set(header, value);
+      }
+      if (!upstream.body) return response.end();
+      let streamedBytes = 0;
+      const sizeLimiter = new Transform({
+        transform(chunk, _encoding, callback) {
+          streamedBytes += chunk.length;
+          if (streamedBytes > MAX_COSMETIC_MEDIA_BYTES) {
+            callback(new Error('Cosmetic media exceeded the streaming size limit'));
+            return;
+          }
+          callback(null, chunk);
+        },
+      });
+      const stream = Readable.fromWeb(upstream.body as any);
+      const handleStreamError = (error: Error) => {
+        console.warn('[cosmetics] media stream interrupted', mediaUrl, error);
+        response.destroy(error as Error);
+      };
+      stream.on('error', handleStreamError);
+      sizeLimiter.on('error', handleStreamError);
+      response.once('close', () => {
+        stream.destroy();
+        sizeLimiter.destroy();
+      });
+      return stream.pipe(sizeLimiter).pipe(response);
+    } catch (error) {
+      console.warn('[cosmetics] media unavailable', mediaUrl, error);
+      return response.status(502).json({ error: 'Медиаисточник временно недоступен' });
+    }
+  });
 
   router.get(`/cosmetics/${kindPattern}`, async (request, response) => {
     const kind = String(request.params.kind) as CosmeticKind;

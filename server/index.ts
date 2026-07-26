@@ -7805,7 +7805,7 @@ const cosmeticsDataService = createCosmeticsDataService({
     return upstream.json();
   },
 });
-app.use('/api', createCosmeticsRouter(cosmeticsDataService));
+app.use('/api', createCosmeticsRouter(cosmeticsDataService, { fetchMedia: fetch }));
 app.use(createCosmeticsSeoRouter({
   loadDetail: cosmeticsDataService.loadDetail,
   frontendAssets: constructedCardFrontendAssets,
