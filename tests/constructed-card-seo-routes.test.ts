@@ -26,6 +26,66 @@ const cards = [
     health: 9,
     artist: 'Тестовый художник',
     images: { card: 'https://cdn.example.test/cards/CARD_1.png' },
+    related_cards_localized: [{
+      heading: { ru: 'Награды за задание', en: 'Quest rewards' },
+      cards: [
+        {
+          card_id: 'CARD_1t1',
+          name: { ru: 'Первая награда <img src=x>', en: 'First Reward' },
+          text: { ru: '<b>Боевой клич:</b> получите награду.' },
+          mana_cost: 1,
+          attack: 2,
+          health: 3,
+          artist: 'Художник токена',
+          images: {
+            card: 'https://cdn.example.test/cards/CARD_1t1.png',
+            art: 'https://cdn.example.test/wiki-full/CARD_1-shared.jpg',
+            art_metadata: {
+              file_page_url: 'https://hearthstone.wiki.gg/wiki/File:CARD_1_shared_full.jpg',
+              width: 760,
+              height: 1016,
+              sha1: 'shared-art-sha1',
+            },
+            crop: 'https://cdn.example.test/game-crop/QA_CROP_MUST_NOT_RENDER.jpg',
+          },
+          relationship: { wiki_url: 'https://hearthstone.wiki.gg/wiki/CARD_1t1' },
+        },
+        {
+          card_id: 'CARD_1t2',
+          name: { ru: 'Вторая награда', en: 'Second Reward' },
+          text: { ru: 'Продолжение задания.' },
+          mana_cost: 2,
+          images: {
+            card: 'https://cdn.example.test/cards/CARD_1t2.png',
+            art: 'https://cdn.example.test/wiki-full/CARD_1-shared-duplicate.jpg',
+            art_metadata: {
+              file_page_url: 'https://hearthstone.wiki.gg/wiki/File:CARD_1_shared_full.jpg',
+              width: 760,
+              height: 1016,
+              sha1: 'shared-art-sha1',
+            },
+          },
+        },
+        {
+          card_id: 'CARD_1t3',
+          name: { ru: 'Финальная награда', en: 'Final Reward' },
+          text: { ru: 'Завершает задание.' },
+          mana_cost: 5,
+          attack: 8,
+          health: 8,
+          images: {
+            card: 'https://cdn.example.test/cards/CARD_1t3.png',
+            art: 'https://cdn.example.test/wiki-full/CARD_1-final.jpg',
+            art_metadata: {
+              file_page_url: 'https://hearthstone.wiki.gg/wiki/File:CARD_1_final_full.jpg',
+              width: 1200,
+              height: 900,
+              sha1: 'final-art-sha1',
+            },
+          },
+        },
+      ],
+    }],
     stats: { deckWinrate: privateSentinels[0] },
     decks: [{ deckCode: privateSentinels[1] }],
     deckCode: privateSentinels[1],
@@ -136,6 +196,31 @@ try {
   assert.match(html, /<dt>ID карты<\/dt><dd><code>CARD_1<\/code><\/dd>/);
   assert.match(html, /Наносит 5 урона &amp; оглушает противника\./,
     'rules text must be useful but stripped of upstream markup');
+  assert.match(html, /Токены, награды и связанные карты · 3/,
+    'server-rendered detail must expose all localized related cards');
+  assert.match(html, /<h3>Награды за задание<\/h3>/);
+  assert.match(html, /<p lang="en">Quest rewards<\/p>/);
+  assert.equal(occurrences(html, /<article class="card-seo__related-card">/g), 3);
+  assert.match(html, /Первая награда &lt;img src=x&gt;/,
+    'related card names must remain escaped');
+  assert.match(html, /Боевой клич: получите награду\./,
+    'related rules text must be stripped of upstream markup');
+  assert.match(html, /<dt>Мана<\/dt><dd>1<\/dd>/);
+  assert.match(html, /<code>CARD_1t1<\/code>/);
+  assert.match(html, /href="https:\/\/hearthstone\.wiki\.gg\/wiki\/CARD_1t1"/);
+  assert.match(html, /Полноразмерные арты · 2/,
+    'shared Wiki art must be deduplicated by exact SHA-1');
+  assert.equal(occurrences(html, /<figure class="card-seo__art">/g), 2);
+  assert.match(html, /wiki-full\/CARD_1-shared\.jpg/);
+  assert.match(html, /wiki-full\/CARD_1-final\.jpg/);
+  assert.match(html, /Карты: CARD_1t1, CARD_1t2/);
+  assert.match(html, /Оригинал: 760×1016/);
+  assert.match(html, /object-fit:contain/,
+    'full Wiki art must be shown uncropped');
+  assert.doesNotMatch(html, /CARD_1-shared-duplicate\.jpg/,
+    'a shared full art duplicate must not create a second gallery item');
+  assert.doesNotMatch(html, /QA_CROP_MUST_NOT_RENDER/,
+    'game crop images must never enter the full-art gallery');
   assert.match(html, /src="\/assets\/index-safe\.js"/,
     'the client app entry must remain available after SSR');
   assert.match(html, /<div id="root" data-route-status="200">/,

@@ -3,6 +3,11 @@ import type {
   ConstructedCardCollection,
   ConstructedCardFormat,
 } from './constructedCardRoutes.js';
+import {
+  normalizeConstructedRelatedCardGroups,
+  type ConstructedRelatedCard,
+  type ConstructedRelatedCardGroup,
+} from '../src/features/constructedRelatedCards.js';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -223,6 +228,117 @@ function safeImageUrl(value: string | null, origin: string): string {
   }
 }
 
+function safeOptionalMediaUrl(value: string | null, origin: string): string | null {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value, `${origin}/`);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.href : null;
+  } catch {
+    return null;
+  }
+}
+
+function renderRelatedCardFacts(card: ConstructedRelatedCard): string {
+  const facts: Array<[string, number | null]> = [
+    ['Мана', card.manaCost],
+    ['Атака', card.attack],
+    ['Здоровье', card.health],
+  ];
+  return facts
+    .filter((entry): entry is [string, number] => entry[1] !== null)
+    .map(([label, value]) => `<div><dt>${label}</dt><dd>${escapeHtml(value)}</dd></div>`)
+    .join('');
+}
+
+function renderRelatedCards(card: JsonRecord, origin: string): string {
+  const groups = normalizeConstructedRelatedCardGroups(card);
+  if (groups.length === 0) return '';
+
+  const total = groups.reduce((sum, group) => sum + group.cards.length, 0);
+  const groupHtml = groups.map((group: ConstructedRelatedCardGroup) => {
+    const cards = group.cards.map(item => {
+      const name = item.nameRu ?? item.nameEn ?? item.cardId ?? 'Связанная карта';
+      const cardImage = safeOptionalMediaUrl(item.cardImageUrl, origin);
+      const wikiUrl = safeOptionalMediaUrl(item.wikiUrl, origin);
+      const rules = plainCatalogText(item.textRu ?? item.textEn, 500);
+      const facts = renderRelatedCardFacts(item);
+      return `<article class="card-seo__related-card">
+          <div class="card-seo__related-card-image">${cardImage
+            ? `<img src="${escapeHtml(cardImage)}" alt="Карта Hearthstone «${escapeHtml(name)}»" loading="lazy">`
+            : '<span aria-hidden="true">✦</span>'}</div>
+          <div class="card-seo__related-card-copy">
+            <h4>${escapeHtml(name)}</h4>
+            ${item.nameEn && item.nameEn !== name ? `<p lang="en">${escapeHtml(item.nameEn)}</p>` : ''}
+            ${facts ? `<dl>${facts}</dl>` : ''}
+            ${rules ? `<p>${escapeHtml(rules)}</p>` : ''}
+            ${item.cardId ? `<code>${escapeHtml(item.cardId)}</code>` : ''}
+            ${wikiUrl ? `<a href="${escapeHtml(wikiUrl)}" target="_blank" rel="noreferrer">Hearthstone Wiki</a>` : ''}
+          </div>
+        </article>`;
+    }).join('');
+    return `<section class="card-seo__related-group">
+        <header><div><h3>${escapeHtml(group.headingRu)}</h3>${group.headingEn && group.headingEn !== group.headingRu
+          ? `<p lang="en">${escapeHtml(group.headingEn)}</p>`
+          : ''}</div><strong>${group.cards.length}</strong></header>
+        <div class="card-seo__related-grid">${cards}</div>
+      </section>`;
+  }).join('');
+
+  const arts = new Map<string, {
+    card: ConstructedRelatedCard;
+    cardIds: string[];
+    names: string[];
+    artUrl: string;
+  }>();
+  for (const group of groups) {
+    for (const item of group.cards) {
+      const artUrl = safeOptionalMediaUrl(item.artUrl, origin);
+      if (!artUrl) continue;
+      const sha1 = item.artMetadata?.sha1?.toLocaleLowerCase('en-US');
+      const key = sha1 ? `sha1:${sha1}` : `url:${artUrl}`;
+      const name = item.nameRu ?? item.nameEn ?? item.cardId ?? 'Связанная карта';
+      const existing = arts.get(key);
+      if (existing) {
+        if (item.cardId && !existing.cardIds.includes(item.cardId)) existing.cardIds.push(item.cardId);
+        if (!existing.names.includes(name)) existing.names.push(name);
+        continue;
+      }
+      arts.set(key, {
+        card: item,
+        cardIds: item.cardId ? [item.cardId] : [],
+        names: [name],
+        artUrl,
+      });
+    }
+  }
+  const gallery = [...arts.values()].map(entry => {
+    const sourceUrl = safeOptionalMediaUrl(
+      entry.card.artMetadata?.filePageUrl ?? entry.card.wikiUrl,
+      origin,
+    );
+    const dimensions = entry.card.artMetadata?.width && entry.card.artMetadata?.height
+      ? `${entry.card.artMetadata.width}×${entry.card.artMetadata.height}`
+      : null;
+    const label = `${entry.names.join(', ')} — ${entry.cardIds.length > 1 ? 'общий полный арт' : 'полный арт'}`;
+    return `<figure class="card-seo__art">
+        <a href="${escapeHtml(entry.artUrl)}" target="_blank" rel="noreferrer">
+          <img src="${escapeHtml(entry.artUrl)}" alt="${escapeHtml(label)}" loading="lazy">
+        </a>
+        <figcaption><strong>${escapeHtml(label)}</strong>${entry.cardIds.length
+          ? `<span>Карты: ${escapeHtml(entry.cardIds.join(', '))}</span>`
+          : ''}${dimensions ? `<span>Оригинал: ${escapeHtml(dimensions)}</span>` : ''}${sourceUrl
+          ? `<a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer">Источник на Hearthstone Wiki</a>`
+          : ''}</figcaption>
+      </figure>`;
+  }).join('');
+
+  return `<section class="card-seo__related">
+      <h2>Токены, награды и связанные карты · ${total}</h2>
+      <div class="card-seo__related-groups">${groupHtml}</div>
+      ${gallery ? `<section class="card-seo__art-gallery"><h3>Полноразмерные арты · ${arts.size}</h3><div>${gallery}</div></section>` : ''}
+    </section>`;
+}
+
 function isBuildAssetPath(value: string): boolean {
   return /^\/assets\/[A-Za-z0-9][A-Za-z0-9._/-]*(?:\?v=[a-f0-9]{7,40})?$/i.test(value)
     && !value.includes('..')
@@ -345,7 +461,19 @@ function baseDocument(options: {
       .card-seo__image{display:block;width:100%;height:auto;max-height:520px;object-fit:contain}.card-seo h1{font-size:clamp(2rem,5vw,3.5rem);line-height:1.05;margin:.35em 0}
       .card-seo dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.card-seo dl div{padding:10px;background:#f3e0b9;border:1px solid #b68a4f}
       .card-seo dt{font-size:.8rem;color:#69482e}.card-seo dd{margin:2px 0 0;font-weight:700}.card-seo__copy{font-size:1.05rem;line-height:1.6}
-      @media(max-width:680px){.card-seo__hero{grid-template-columns:1fr}.card-seo__image{max-height:420px}.card-seo dl{grid-template-columns:1fr}}
+      .card-seo__related{margin-top:40px}.card-seo__related>h2,.card-seo__art-gallery>h3{font-size:1.55rem}
+      .card-seo__related-groups{display:grid;gap:18px}.card-seo__related-group{border:1px solid #b68a4f;background:#fffaf0}
+      .card-seo__related-group>header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 16px;background:#f3e0b9}
+      .card-seo__related-group h3,.card-seo__related-group p,.card-seo__related-card h4,.card-seo__related-card p{margin:0}.card-seo__related-group header p{color:#69482e}
+      .card-seo__related-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;padding:12px}
+      .card-seo__related-card{display:grid;grid-template-columns:126px minmax(0,1fr);border:1px solid #d7bb83;background:#fff}
+      .card-seo__related-card-image{display:grid;min-height:184px;place-items:center;background:#f7edd8}.card-seo__related-card-image img{width:124px;height:184px;object-fit:contain}
+      .card-seo__related-card-copy{display:grid;align-content:center;gap:6px;padding:10px}.card-seo__related-card-copy dl{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin:0}
+      .card-seo__related-card-copy dl div{min-width:0;padding:4px}.card-seo__related-card-copy dt{font-size:.68rem}.card-seo__related-card-copy>p{font-size:.9rem;line-height:1.4}.card-seo__related-card-copy code{font-size:.8rem}
+      .card-seo__art-gallery{margin-top:28px}.card-seo__art-gallery>div{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+      .card-seo__art{display:grid;margin:0;border:1px solid #b68a4f;background:#17110d}.card-seo__art>a:first-child{display:grid;min-height:320px;place-items:center}
+      .card-seo__art img{display:block;width:100%;height:360px;object-fit:contain}.card-seo__art figcaption{display:grid;gap:4px;padding:12px;color:#f8e9c7}.card-seo__art figcaption span{font-size:.85rem;color:#ddcba5}.card-seo__art figcaption a{color:#f2c66d}
+      @media(max-width:680px){.card-seo__hero{grid-template-columns:1fr}.card-seo__image{max-height:420px}.card-seo dl{grid-template-columns:1fr}.card-seo__related-grid{grid-template-columns:1fr}.card-seo__related-card{grid-template-columns:104px minmax(0,1fr)}.card-seo__related-card-image{min-height:156px}.card-seo__related-card-image img{width:100px;height:154px}.card-seo__related-card-copy dl{grid-template-columns:repeat(3,minmax(0,1fr))}.card-seo__art img{height:320px}}
     </style>
   </head>
   <body>
@@ -419,6 +547,7 @@ export function renderConstructedCardSeoDocument(options: {
           ${card.flavorText ? `<section class="card-seo__copy"><h2>Художественный текст</h2><p>${escapeHtml(card.flavorText)}</p></section>` : ''}
         </div>
       </article>
+      ${renderRelatedCards(options.card, origin)}
     </main>`;
   return baseDocument({
     title,
