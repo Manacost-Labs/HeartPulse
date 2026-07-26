@@ -24,16 +24,26 @@ type UseResolvedDeckState = {
   reload: () => void;
 };
 
+type UseResolvedDeckOptions = {
+  format?: 'standard' | 'wild';
+  archetype?: string;
+};
+
 /**
  * Instant deck card list for embeds.
  * Uses public `GET/POST /api/deck/resolve`.
  */
-export function useResolvedDeck(deckCode: string | null | undefined): UseResolvedDeckState {
+export function useResolvedDeck(
+  deckCode: string | null | undefined,
+  options: UseResolvedDeckOptions = {},
+): UseResolvedDeckState {
   const [data, setData] = useState<ResolvedDeckPayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [reloadToken, setReloadToken] = useState(0);
   const code = String(deckCode || '').trim();
+  const format = options.format === 'wild' ? 'wild' : 'standard';
+  const archetype = String(options.archetype || '').trim();
 
   useEffect(() => {
     if (!code) {
@@ -43,9 +53,11 @@ export function useResolvedDeck(deckCode: string | null | undefined): UseResolve
       return undefined;
     }
     const controller = new AbortController();
+    const query = new URLSearchParams({ code, format });
+    if (archetype) query.set('archetype', archetype);
     setLoading(true);
     setError('');
-    void fetch(`/api/deck/resolve?code=${encodeURIComponent(code)}`, {
+    void fetch(`/api/deck/resolve?${query}`, {
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
       signal: controller.signal,
@@ -80,7 +92,7 @@ export function useResolvedDeck(deckCode: string | null | undefined): UseResolve
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [code, reloadToken]);
+  }, [archetype, code, format, reloadToken]);
 
   return {
     data,

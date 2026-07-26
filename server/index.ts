@@ -138,7 +138,10 @@ import {
   loadConstructedMechanicTranslationMap,
   repairLegacyConstructedMechanicTranslations,
 } from './adminMechanicTranslationRoutes.js';
-import { createAdminFunDecksRouter } from './adminFunDecksRoutes.js';
+import {
+  createAdminFunDecksRouter,
+  createPublicFunDecksRouter,
+} from './adminFunDecksRoutes.js';
 import { createAdminStandardOperationsRouter, type StandardCacheTarget } from './adminStandardOperationsRoutes.js';
 import { createAdminParserControlRouter } from './adminParserControlRoutes.js';
 import { createHsDataParserControlClient } from './hsDataParserControlClient.js';
@@ -9497,18 +9500,25 @@ app.use('/api', createAdminStandardOperationsRouter({
   recordAudit: (actor, action, entityId) => recordAdminAuditByActorId(actor.id, action, 'standard-cache', entityId),
 }));
 
+async function loadFunDecksDataset(): Promise<unknown> {
+  const base = (process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN).replace(/\/+$/, '');
+  const response = await fetch(`${base}/datasets/hsguru_fun_decks`, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
+    signal: AbortSignal.timeout(Number(process.env.HS_DATA_API_ADMIN_TIMEOUT_MS || 30_000)),
+  });
+  if (!response.ok) throw new Error(`HS data API fun decks HTTP ${response.status}`);
+  return response.json();
+}
+
+app.use('/api', createPublicFunDecksRouter({
+  loadFunDecks: loadFunDecksDataset,
+  onError: error => console.error('[public fun decks]', error instanceof Error ? error.message : error),
+}));
+
 app.use('/api', createAdminFunDecksRouter({
   adminGuard: adminIdGuard,
   setPrivateNoStore,
-  loadFunDecks: async () => {
-    const base = (process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN).replace(/\/+$/, '');
-    const response = await fetch(`${base}/datasets/hsguru_fun_decks`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
-      signal: AbortSignal.timeout(Number(process.env.HS_DATA_API_ADMIN_TIMEOUT_MS || 30_000)),
-    });
-    if (!response.ok) throw new Error(`HS data API fun decks HTTP ${response.status}`);
-    return response.json();
-  },
+  loadFunDecks: loadFunDecksDataset,
   onError: error => console.error('[admin fun decks]', error instanceof Error ? error.message : error),
 }));
 

@@ -41,6 +41,9 @@ assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-meta'), false, 'Standard meta must
 assert.equal(ADMIN_ONLY_TAB_IDS.has('constructed-archetypes'), false, 'Constructed archetypes must be visible publicly after release');
 assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-vicious-gold'), false, 'Vicious Syndicate Gold must be visible publicly after release');
 assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-cards'), false, 'Constructed cards must be visible publicly after release');
+assert.equal(ADMIN_ONLY_TAB_IDS.has('fun-decks'), false, 'Fun decks must stay visible publicly');
+assert.equal(PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS['fun-decks'], undefined, 'Fun decks must remain free');
+assert.equal(tabFromPath('/standard/fun-decks'), 'fun-decks');
 assert.equal(ADMIN_ONLY_TAB_IDS.has('deck-builder'), true, 'Deck builder must stay administrator-only under Разное');
 assert.equal(tabFromPath('/deck-builder'), 'deck-builder');
 assert.equal(isKnownPath('/deck-builder'), true);

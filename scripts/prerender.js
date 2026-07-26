@@ -215,6 +215,32 @@ const PAGES = {
     h1: 'Мета Hearthstone', ogType: 'website', structuredData: [],
     noscript: '<h1>Мета Hearthstone</h1><p>Тир-листы, винрейты, популярность и готовые сборки актуальной меты Стандарта и Вольного режима доступны с тарифом «Алмаз».</p>'
   },
+  '/standard/fun-decks': {
+    h1: 'Фан-колоды Hearthstone',
+    ogType: 'website',
+    structuredData: [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Главная", "item": SITE_URL },
+          { "@type": "ListItem", "position": 2, "name": "Традиционный режим", "item": `${SITE_URL}/standard/fun-decks` },
+          { "@type": "ListItem", "position": 3, "name": "Фан-колоды", "item": `${SITE_URL}/standard/fun-decks` }
+        ]
+      },
+      {
+        "@type": "CollectionPage",
+        "@id": `${SITE_URL}/standard/fun-decks#collection`,
+        "name": "Фан-колоды Hearthstone",
+        "description": "Подборка необычных колод Стандарта и Вольного режима с готовыми кодами и составами карт.",
+        "url": `${SITE_URL}/standard/fun-decks`,
+        "inLanguage": "ru"
+      }
+    ],
+    noscript: `
+      <h1>Фан-колоды Hearthstone</h1>
+      <p>Свежая подборка необычных и off-meta колод для Стандарта и Вольного режима: составы карт, винрейт, число игр и готовые коды.</p>
+      <p><a href="/standard/meta">Мета</a> | <a href="/standard/archetypes">Архетипы</a> | <a href="/standard/cards">Карты</a></p>`
+  },
   '/standard/archetypes': {
     h1: 'Архетипы Hearthstone', ogType: 'website', structuredData: [],
     noscript: '<h1>Архетипы Hearthstone</h1><p>Каталог актуальных архетипов Стандарта и Вольного режима с отдельными страницами, сборками и историей статистики доступен с тарифом «Алмаз».</p>'

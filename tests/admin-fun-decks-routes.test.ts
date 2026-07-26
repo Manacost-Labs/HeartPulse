@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import {
   createAdminFunDecksRouter,
+  createPublicFunDecksRouter,
   normalizeFunDecksPayload,
+  normalizePublicFunDecksPayload,
 } from '../server/adminFunDecksRoutes.js';
 
 const normalized = normalizeFunDecksPayload({
@@ -50,9 +52,35 @@ assert.equal(normalized.decks[0].games, 120);
 assert.deepEqual(normalized.decks[1].reasons, ['card_package']);
 assert.equal(normalized.cadence.timers.length, 2);
 
+const publicPayload = normalizePublicFunDecksPayload({
+  source_id: 'hsguru_fun_decks',
+  fetched_at: '2026-07-25T01:15:16.225405+00:00',
+  data: {
+    structured: {
+      rows: [
+        { title: 'Standard', deck_code: 'S'.repeat(24), format: 'Standard' },
+        { title: 'Wild', deck_code: 'W'.repeat(24), format: 'Wild' },
+      ],
+    },
+  },
+});
+assert.deepEqual(publicPayload.stats, { total: 2, standard: 1, wild: 1 });
+assert.equal(publicPayload.fetchedAt, '2026-07-25T01:15:16.225405+00:00');
+
 let upstreamFails = false;
 let reportedError: unknown;
 const app = express();
+const loadFunDecks = async () => {
+  if (upstreamFails) throw new Error('secret upstream location');
+  return {
+    source_id: 'hsguru_fun_decks',
+    data: { structured: { rows: [{ title: 'Deck', deck_code: 'A'.repeat(24), format: 'Standard' }] } },
+  };
+};
+app.use('/api', createPublicFunDecksRouter({
+  loadFunDecks,
+  onError: error => { reportedError = error; },
+}));
 app.use('/api', createAdminFunDecksRouter({
   adminGuard: (request, response, next) => (
     request.headers['x-test-admin'] === '1'
@@ -60,13 +88,7 @@ app.use('/api', createAdminFunDecksRouter({
       : response.status(401).json({ error: 'Требуется вход' })
   ),
   setPrivateNoStore: response => response.set('Cache-Control', 'private, no-store'),
-  loadFunDecks: async () => {
-    if (upstreamFails) throw new Error('secret upstream location');
-    return {
-      source_id: 'hsguru_fun_decks',
-      data: { structured: { rows: [{ title: 'Deck', deck_code: 'A'.repeat(24) }] } },
-    };
-  },
+  loadFunDecks,
   onError: error => { reportedError = error; },
 }));
 
@@ -80,6 +102,14 @@ assert.ok(address && typeof address === 'object');
 const endpoint = `http://127.0.0.1:${address.port}/api/admin/fun-decks`;
 
 try {
+  const publicResponse = await fetch(`http://127.0.0.1:${address.port}/api/fun-decks`);
+  assert.equal(publicResponse.status, 200);
+  assert.match(publicResponse.headers.get('cache-control') || '', /public, max-age=300/);
+  const publicResponsePayload = await publicResponse.json() as any;
+  assert.deepEqual(publicResponsePayload.stats, { total: 1, standard: 1, wild: 0 });
+  assert.equal('cadence' in publicResponsePayload, false);
+  assert.equal('filters' in publicResponsePayload, false);
+
   assert.equal((await fetch(endpoint)).status, 401);
 
   const response = await fetch(endpoint, { headers: { 'X-Test-Admin': '1' } });
@@ -95,6 +125,11 @@ try {
   assert.equal(failure.error, 'Не удалось загрузить фановые колоды');
   assert.ok(reportedError instanceof Error);
   assert.equal(JSON.stringify(failure).includes('secret upstream location'), false);
+
+  const publicFailure = await fetch(`http://127.0.0.1:${address.port}/api/fun-decks`);
+  assert.equal(publicFailure.status, 502);
+  assert.equal(publicFailure.headers.get('cache-control'), 'no-store');
+  assert.equal(JSON.stringify(await publicFailure.json()).includes('secret upstream location'), false);
 } finally {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 }

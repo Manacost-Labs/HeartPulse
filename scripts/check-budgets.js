@@ -25,8 +25,12 @@ const budgets = {
   // opt-in RUM bootstrap while keeping both web-vitals and the 482 KB Sentry
   // SDK outside the startup graph; raw budgets include only that measured
   // bootstrap and the compressed 80 KB transfer ratchet remains unchanged.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 64_600),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 257_700),
+  // The public Fun Decks route adds one navigation definition and one lazy
+  // module pointer to the shell, plus one materialized SEO registry entry.
+  // Keep those measured raw additions explicit while preserving the stricter
+  // compressed startup ceiling.
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 65_200),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 258_250),
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_000),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 118_000),
@@ -40,7 +44,7 @@ const budgets = {
   faqPageJs: Number(process.env.BUDGET_FAQ_PAGE_JS_BYTES || 5_500),
   supportPromptCss: Number(process.env.BUDGET_SUPPORT_PROMPT_CSS_BYTES || 4_000),
   siteFooterCss: Number(process.env.BUDGET_SITE_FOOTER_CSS_BYTES || 4_000),
-  seoRegistryJs: Number(process.env.BUDGET_SEO_REGISTRY_JS_BYTES || 12_000),
+  seoRegistryJs: Number(process.env.BUDGET_SEO_REGISTRY_JS_BYTES || 12_450),
   deckViewVendorJs: Number(process.env.BUDGET_DECK_VIEW_VENDOR_JS_BYTES || 31_000),
   deckListJs: Number(process.env.BUDGET_DECK_LIST_JS_BYTES || 6_500),
   deckListCss: Number(process.env.BUDGET_DECK_LIST_CSS_BYTES || 5_200),

@@ -134,6 +134,20 @@
       "entitlement": "standard"
     },
     {
+      "id": "fun-decks",
+      "pattern": "/standard/fun-decks",
+      "kind": "static",
+      "owner": "traditional-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "fun-decks",
+      "entitlement": null
+    },
+    {
       "id": "constructed-archetypes",
       "pattern": "/standard/archetypes",
       "kind": "static",

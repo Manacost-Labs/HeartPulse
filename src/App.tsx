@@ -606,6 +606,7 @@ const loadStandardMetaModule = () => import('./features/StandardMeta');
 const loadConstructedArchetypesModule = () => import('./features/ConstructedArchetypes');
 const loadViciousSyndicateGoldModule = () => import('./features/ViciousSyndicateGold');
 const loadStandardCardsModule = () => import('./features/StandardCards');
+const loadFunDecksModule = () => import('./features/FunDecksPage');
 const loadContestsModule = () => import('./features/Contests');
 const loadBattlegroundsModule = () => import('./features/Battlegrounds');
 const LazyPaywallGate = React.lazy(() => import('./components/PaywallGate'));
@@ -630,6 +631,7 @@ const LazyStandardMetaPage = React.lazy(loadStandardMetaModule);
 const LazyConstructedArchetypesPage = React.lazy(loadConstructedArchetypesModule);
 const LazyViciousSyndicateGoldPage = React.lazy(loadViciousSyndicateGoldModule);
 const LazyStandardCardsPage = React.lazy(loadStandardCardsModule);
+const LazyFunDecksPage = React.lazy(loadFunDecksModule);
 const LazyContestsPage = React.lazy(() => loadContestsModule().then(module => ({ default: module.ContestsPage })));
 const LazyContestAdminPanel = React.lazy(() => loadContestsModule().then(module => ({ default: module.ContestAdminPanel })));
 const loadDeckBuilderModule = () => import('./features/DeckBuilder');
@@ -660,6 +662,7 @@ const ROUTE_PRELOADERS: Partial<Record<TabId | 'login', () => Promise<unknown>>>
   'constructed-archetypes': loadConstructedArchetypesModule,
   'standard-vicious-gold': loadViciousSyndicateGoldModule,
   'standard-cards': loadStandardCardsModule,
+  'fun-decks': loadFunDecksModule,
   'bg-strategies': loadBattlegroundsModule,
   'bg-heroes': loadBattlegroundsModule,
   'bg-tier-list': loadBattlegroundsModule,
@@ -1406,11 +1409,11 @@ export default function App() {
     );
     return ids;
   }, [legendariesData]);
-  const isFullWidthBuilder = routeSurfaceAvailable && (activeTab === 'standard-matchups' || activeTab === 'standard-meta' || activeTab === 'constructed-archetypes' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive' || activeTab === 'deck-builder' || activeTab === 'archetypes');
+  const isFullWidthBuilder = routeSurfaceAvailable && (activeTab === 'standard-matchups' || activeTab === 'standard-meta' || activeTab === 'fun-decks' || activeTab === 'constructed-archetypes' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive' || activeTab === 'deck-builder' || activeTab === 'archetypes');
   // Login is its own visual route. Do not inherit the surface class of the
   // page that happened to be open before the profile was requested.
   const isEditorialSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['articles', 'faq', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
-  const isGameDataSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'standard-meta', 'constructed-archetypes', 'standard-vicious-gold', 'standard-cards', 'tierlist', 'legendaries', 'archetypes'].includes(activeTab);
+  const isGameDataSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'standard-meta', 'fun-decks', 'constructed-archetypes', 'standard-vicious-gold', 'standard-cards', 'tierlist', 'legendaries', 'archetypes'].includes(activeTab);
   const isBattlegroundsSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && BG_TAB_IDS.has(activeTab);
   const isOpenSurfacePage = !isAdminMode && (!routeSurfaceAvailable || activeTab === 'home' || wantsLogin || isEditorialSurfacePage || isGameDataSurfacePage || isBattlegroundsSurfacePage);
   const standardAccessGranted = appIsAdmin || hasSubscriptionEntitlement(appSubscription, 'standard');
@@ -1761,6 +1764,11 @@ export default function App() {
                         <React.Suspense fallback={<RouteFallback minHeight={720} />}>{standardPage}</React.Suspense>,
                         720,
                       )
+                )}
+                {activeTab === 'fun-decks' && (
+                  <React.Suspense fallback={<RouteFallback minHeight={720} />}>
+                    <LazyFunDecksPage />
+                  </React.Suspense>
                 )}
 	                {activeTab === 'winrates' && (
                   renderPrivateRoute(

@@ -9,7 +9,7 @@ import {
   loadStaticSitemapArtifact,
 } from '../server/entitySitemapRoutes.js';
 
-const staticUrls = Array.from({ length: 24 }, (_, index) => index === 0
+const staticUrls = Array.from({ length: 25 }, (_, index) => index === 0
   ? 'https://arena.hs-manacost.ru/'
   : `https://arena.hs-manacost.ru/static-${index}/`);
 const publicCard = {
@@ -117,7 +117,7 @@ try {
   assert.equal(staticResponse.headers.get('last-modified'), null,
     'static segment freshness must be omitted unless a real artifact mtime is supplied');
   const staticXml = await staticResponse.text();
-  assert.equal([...staticXml.matchAll(/<url>/g)].length, 24);
+  assert.equal([...staticXml.matchAll(/<url>/g)].length, 25);
   assert.deepEqual(
     [...staticXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]),
     staticUrls,

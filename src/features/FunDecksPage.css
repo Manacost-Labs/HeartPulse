@@ -1,0 +1,636 @@
+.fun-decks-page {
+  --fun-parchment: #ead6a7;
+  --fun-parchment-light: #f7e8bf;
+  --fun-ink: #30251c;
+  --fun-muted: #735e49;
+  --fun-wood: #2e160b;
+  --fun-wood-soft: #5f371d;
+  --fun-red: #8d171d;
+  --fun-red-dark: #5d0d13;
+  --fun-gold: #d9ab49;
+  width: min(100%, 1320px);
+  margin: 0 auto;
+  color: var(--fun-ink);
+}
+
+.fun-decks-hero {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(290px, 0.75fr);
+  gap: clamp(1.25rem, 3vw, 3rem);
+  align-items: stretch;
+  min-height: 250px;
+  padding: clamp(1.4rem, 3.5vw, 3rem);
+  border: 12px solid transparent;
+  border-image: url("/wallpaper/main-page-rail-border.png") 13 / 12px stretch;
+  color: #fff0c8;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 22%, rgba(239, 201, 111, 0.15), transparent 26%),
+    linear-gradient(100deg, rgba(76, 7, 12, 0.88), rgba(104, 15, 21, 0.72)),
+    url("/wallpaper/arena-rail-red.jpg") center / 375px 172px repeat;
+  box-shadow: 0 14px 30px rgba(46, 22, 11, 0.28);
+}
+
+.fun-decks-hero::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  right: clamp(-62px, -3vw, -20px);
+  bottom: -58px;
+  width: clamp(220px, 29vw, 390px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(239, 201, 111, 0.22);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 18px rgba(239, 201, 111, 0.04),
+    0 0 0 42px rgba(239, 201, 111, 0.025);
+}
+
+.fun-decks-hero__copy {
+  align-self: center;
+  min-width: 0;
+}
+
+.fun-decks-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--fun-gold);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.fun-decks-hero__eyebrow svg {
+  width: 17px;
+  height: 17px;
+}
+
+.fun-decks-hero h1 {
+  margin: 0.35rem 0 0.45rem;
+  color: #fff0c8;
+  font-family: var(--font-hs, "HSDisplay", Georgia, serif);
+  font-size: clamp(2.55rem, 6vw, 5.6rem);
+  font-weight: 700;
+  line-height: 0.94;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+  text-shadow: 0 3px 0 rgba(45, 9, 10, 0.76);
+}
+
+.fun-decks-hero__copy p {
+  max-width: 720px;
+  margin: 0;
+  color: #ead6a7;
+  font-size: clamp(0.96rem, 1.35vw, 1.12rem);
+  line-height: 1.58;
+}
+
+.fun-decks-hero__ledger {
+  position: relative;
+  align-self: center;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 0;
+  padding: 0.85rem;
+  border: 7px solid transparent;
+  border-image: url("/wallpaper/deck-border.png") 20 / 7px stretch;
+  background: rgba(43, 18, 13, 0.82);
+}
+
+.fun-decks-hero__ledger > div {
+  min-width: 0;
+  padding: 0.4rem 0.55rem 0.55rem;
+  text-align: center;
+}
+
+.fun-decks-hero__ledger > div + div {
+  border-left: 1px solid rgba(217, 171, 73, 0.24);
+}
+
+.fun-decks-hero__ledger strong {
+  display: block;
+  color: #fff0c8;
+  font-family: var(--font-hs, "HSDisplay", Georgia, serif);
+  font-size: clamp(1.55rem, 2.8vw, 2.4rem);
+  line-height: 1;
+}
+
+.fun-decks-hero__ledger span {
+  display: block;
+  margin-top: 0.35rem;
+  color: #cbaa78;
+  font-size: 0.68rem;
+  line-height: 1.25;
+}
+
+.fun-decks-hero__ledger p {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0.55rem 0 0;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(217, 171, 73, 0.22);
+  color: #d8bc87;
+  font-size: 0.76rem;
+  text-align: center;
+}
+
+.fun-decks-hero__ledger p svg {
+  width: 14px;
+  height: 14px;
+}
+
+.fun-decks-tools {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  margin: clamp(1.1rem, 2.4vw, 1.8rem) 0;
+  padding: 0.75rem;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-image: url("/wallpaper/main-page-rail-border.png") 13 / 5px stretch;
+  background: rgba(247, 232, 191, 0.68);
+}
+
+.fun-decks-tools__formats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.fun-decks-tools__formats button,
+.fun-decks-page__more button,
+.fun-decks-page__state button,
+.fun-deck-card__deck-state button {
+  min-height: 44px;
+  border: 1px solid rgba(95, 55, 29, 0.55);
+  border-radius: 5px;
+  color: var(--fun-ink);
+  background: rgba(247, 232, 191, 0.88);
+  font: 750 0.86rem/1 var(--font-body, Inter, sans-serif);
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.fun-decks-tools__formats button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.72rem;
+}
+
+.fun-decks-tools__formats button span,
+.fun-decks-page__more button span {
+  display: grid;
+  min-width: 1.6rem;
+  min-height: 1.6rem;
+  place-items: center;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  color: inherit;
+  background: rgba(46, 22, 11, 0.1);
+  font-size: 0.72rem;
+}
+
+.fun-decks-tools__formats button[aria-pressed="true"] {
+  border-color: var(--fun-red-dark);
+  color: #fff0c8;
+  background: var(--fun-red);
+  box-shadow: inset 0 -2px 0 rgba(64, 8, 12, 0.38);
+}
+
+.fun-decks-tools__formats button[aria-pressed="true"] span {
+  background: rgba(255, 240, 200, 0.14);
+}
+
+.fun-decks-tools__search {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  width: min(100%, 330px);
+  min-height: 46px;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0 0.8rem;
+  border: 7px solid transparent;
+  border-image: url("/wallpaper/deck-border.png") 20 / 7px stretch;
+  color: #cda75e;
+  background: #321a10;
+}
+
+.fun-decks-tools__search svg {
+  width: 18px;
+  height: 18px;
+}
+
+.fun-decks-tools__search input {
+  min-width: 0;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: #fff0c8;
+  background: transparent;
+  font: 500 0.88rem/1 var(--font-body, Inter, sans-serif);
+}
+
+.fun-decks-tools__search input::placeholder {
+  color: #b99767;
+  opacity: 1;
+}
+
+.fun-decks-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1rem, 2vw, 1.45rem);
+  align-items: start;
+}
+
+.fun-deck-card {
+  min-width: 0;
+  border: 8px solid transparent;
+  border-image: url("/wallpaper/deck-border.png") 20 / 8px stretch;
+  background:
+    linear-gradient(rgba(239, 220, 175, 0.94), rgba(229, 201, 146, 0.96)),
+    url("/wallpaper/arena-parchment.jpg") center / 865px 878px repeat;
+  box-shadow: 0 8px 18px rgba(55, 27, 13, 0.2);
+}
+
+.fun-deck-card__identity {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: center;
+  min-height: 86px;
+  padding: 0.65rem 0.7rem 0.6rem;
+  border-bottom: 1px solid rgba(95, 55, 29, 0.34);
+}
+
+.fun-deck-card__identity img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+
+.fun-deck-card__identity > div {
+  min-width: 0;
+}
+
+.fun-deck-card__identity span {
+  color: var(--fun-red);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fun-deck-card__identity h2 {
+  margin: 0.12rem 0 0;
+  color: var(--fun-ink);
+  font-family: var(--font-hs, "HSDisplay", Georgia, serif);
+  font-size: clamp(1.08rem, 1.7vw, 1.32rem);
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+
+.fun-deck-card__identity p {
+  margin: 0.2rem 0 0;
+  color: var(--fun-muted);
+  font-size: 0.73rem;
+}
+
+.fun-deck-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 0.6rem 0.55rem;
+}
+
+.fun-deck-card__metrics div {
+  min-width: 0;
+  padding: 0 0.35rem;
+  text-align: center;
+}
+
+.fun-deck-card__metrics div + div {
+  border-left: 1px solid rgba(95, 55, 29, 0.22);
+}
+
+.fun-deck-card__metrics dt {
+  min-height: 2.2em;
+  color: var(--fun-muted);
+  font-size: 0.61rem;
+  line-height: 1.1;
+}
+
+.fun-deck-card__metrics dd {
+  margin: 0.25rem 0 0;
+  color: var(--fun-ink);
+  font-family: var(--font-hs, "HSDisplay", Georgia, serif);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.fun-deck-card__reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-height: 30px;
+  padding: 0 0.75rem 0.6rem;
+}
+
+.fun-deck-card__reasons span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid rgba(141, 23, 29, 0.22);
+  border-radius: 999px;
+  color: #6c1b1d;
+  background: rgba(141, 23, 29, 0.07);
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.fun-deck-card__deck {
+  min-width: 0;
+  border-top: 4px solid var(--fun-wood);
+  border-bottom: 4px solid var(--fun-wood);
+  background: #160d0b;
+}
+
+.fun-deck-card__deck .deck-list-view {
+  --deck-tile-height: 29px;
+}
+
+.fun-deck-card__deck .deck-list-view__actions {
+  background:
+    linear-gradient(rgba(72, 22, 19, 0.92), rgba(42, 15, 13, 0.96)),
+    url("/wallpaper/arena-rail-red.jpg") center / 375px 172px repeat;
+}
+
+.fun-deck-card__deck-state {
+  display: grid;
+  gap: 3px;
+  min-height: 500px;
+  align-content: start;
+  padding: 0.65rem;
+  color: #ead6a7;
+}
+
+.fun-deck-card__deck-skeleton {
+  display: block;
+  height: 29px;
+  background:
+    linear-gradient(90deg, rgba(116, 70, 47, 0.46), rgba(161, 112, 73, 0.7), rgba(116, 70, 47, 0.46));
+  background-size: 220% 100%;
+  animation: fun-deck-shimmer 1.25s ease-in-out infinite;
+}
+
+.fun-deck-card__deck-state--error {
+  min-height: 220px;
+  place-items: center;
+  align-content: center;
+  padding: 1.4rem;
+  text-align: center;
+}
+
+.fun-deck-card__deck-state--error svg {
+  color: var(--fun-gold);
+}
+
+.fun-deck-card__deck-state--error span {
+  color: #c7a775;
+  font-size: 0.78rem;
+}
+
+.fun-deck-card__deck-state button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  color: #fff0c8;
+  border-color: #8d5d31;
+  background: var(--fun-red);
+}
+
+.fun-deck-card__deck-state button svg {
+  width: 15px;
+  height: 15px;
+  color: inherit;
+}
+
+.fun-deck-card__source {
+  padding: 0.58rem 0.75rem;
+  text-align: right;
+}
+
+.fun-deck-card__source a {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 0.38rem;
+  color: var(--fun-red-dark);
+  font-size: 0.73rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.fun-deck-card__source a:hover,
+.fun-deck-card__source a:focus-visible {
+  color: var(--fun-red);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.fun-deck-card__source a svg {
+  width: 14px;
+  height: 14px;
+}
+
+.fun-decks-page__more {
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem 0 0.35rem;
+}
+
+.fun-decks-page__more button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 190px;
+  justify-content: center;
+  padding: 0.7rem 1rem;
+  color: #fff0c8;
+  border-color: var(--fun-red-dark);
+  background: var(--fun-red);
+}
+
+.fun-decks-page__state {
+  display: grid;
+  min-height: 360px;
+  place-items: center;
+  align-content: center;
+  gap: 0.55rem;
+  padding: 2rem;
+  color: var(--fun-muted);
+  text-align: center;
+}
+
+.fun-decks-page__state > svg {
+  width: 34px;
+  height: 34px;
+  color: var(--fun-red);
+}
+
+.fun-decks-page__state h2,
+.fun-decks-page__state p {
+  margin: 0;
+}
+
+.fun-decks-page__state h2 {
+  color: var(--fun-ink);
+  font-family: var(--font-hs, "HSDisplay", Georgia, serif);
+  font-size: 1.55rem;
+}
+
+.fun-decks-page__state button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+  padding: 0.65rem 0.85rem;
+  color: #fff0c8;
+  border-color: var(--fun-red-dark);
+  background: var(--fun-red);
+}
+
+.fun-decks-page__state button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.fun-decks-page__spinner {
+  animation: fun-deck-spin 900ms linear infinite;
+}
+
+@keyframes fun-deck-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fun-deck-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@media (max-width: 1120px) {
+  .fun-decks-hero {
+    grid-template-columns: minmax(0, 1.2fr) minmax(270px, 0.8fr);
+  }
+
+  .fun-decks-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .fun-decks-hero {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    min-height: 0;
+    padding: 1.2rem;
+    border-width: 8px;
+    border-image-width: 8px;
+  }
+
+  .fun-decks-hero::after {
+    right: -96px;
+    bottom: -100px;
+  }
+
+  .fun-decks-hero h1 {
+    font-size: clamp(2.5rem, 13vw, 3.55rem);
+    white-space: nowrap;
+  }
+
+  .fun-decks-hero__ledger {
+    width: 100%;
+  }
+
+  .fun-decks-tools {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .fun-decks-tools__formats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .fun-decks-tools__formats button {
+    justify-content: center;
+  }
+
+  .fun-decks-tools__search {
+    width: 100%;
+  }
+
+  .fun-decks-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 390px) {
+  .fun-decks-hero {
+    margin-inline: -0.25rem;
+    padding: 1rem 0.9rem;
+  }
+
+  .fun-decks-hero__copy p {
+    font-size: 0.9rem;
+  }
+
+  .fun-decks-hero__ledger {
+    padding: 0.65rem 0.4rem;
+  }
+
+  .fun-decks-hero__ledger > div {
+    padding-inline: 0.25rem;
+  }
+
+  .fun-decks-tools {
+    margin-inline: -0.25rem;
+    padding-inline: 0.45rem;
+  }
+
+  .fun-decks-tools__formats button {
+    min-width: 0;
+    padding-inline: 0.35rem;
+    font-size: 0.76rem;
+  }
+
+  .fun-deck-card {
+    margin-inline: -0.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fun-deck-card__deck-skeleton,
+  .fun-decks-page__spinner {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
+
+  .fun-decks-tools__formats button,
+  .fun-decks-page__more button,
+  .fun-decks-page__state button,
+  .fun-deck-card__deck-state button {
+    transition-duration: 0.01ms;
+  }
+}

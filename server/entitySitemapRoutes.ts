@@ -209,7 +209,7 @@ export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDepen
   const cacheTtlMs = Math.max(5 * 60_000, Math.min(15 * 60_000, dependencies.cacheTtlMs ?? 10 * 60_000));
   const maxAgeSeconds = Math.floor(cacheTtlMs / 1_000);
   const retryAfterSeconds = Math.max(1, Math.floor(dependencies.retryAfterSeconds ?? 300));
-  const expectedStaticUrlCount = Math.max(1, Math.floor(dependencies.expectedStaticUrlCount ?? 24));
+  const expectedStaticUrlCount = Math.max(1, Math.floor(dependencies.expectedStaticUrlCount ?? 25));
   if (!Array.isArray(dependencies.staticUrls) || dependencies.staticUrls.length !== expectedStaticUrlCount) {
     throw new Error(`Static sitemap must contain exactly ${expectedStaticUrlCount} URLs`);
   }

@@ -29,6 +29,13 @@
       "description": "Актуальная мета Стандарта и Вольного режима по данным HSGuru: тир-листы, винрейты, популярность, русские названия и готовые сборки.",
       "sitemap": true
     },
+    "/standard/fun-decks": {
+      "policyRouteId": "fun-decks",
+      "navigationRouteId": "fun-decks",
+      "title": "Фан-колоды Hearthstone {year}: Стандарт и Вольный | Manacost Stats",
+      "description": "Свежая подборка необычных и off-meta колод Hearthstone для Стандарта и Вольного режима: составы карт, винрейт, число игр и готовые коды.",
+      "sitemap": true
+    },
     "/standard/archetypes": {
       "policyRouteId": "constructed-archetypes",
       "navigationRouteId": "constructed-archetypes",

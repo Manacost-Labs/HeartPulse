@@ -40,6 +40,21 @@ export type AdminFunDecksDependencies = {
   onError?: (error: unknown) => void;
 };
 
+export type PublicFunDecksPayload = {
+  fetchedAt: string | null;
+  stats: {
+    total: number;
+    standard: number;
+    wild: number;
+  };
+  decks: FunDeckRow[];
+};
+
+export type PublicFunDecksDependencies = {
+  loadFunDecks: () => Promise<unknown>;
+  onError?: (error: unknown) => void;
+};
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -112,6 +127,45 @@ export function normalizeFunDecksPayload(raw: unknown): FunDecksPayload {
     },
     decks,
   };
+}
+
+export function normalizePublicFunDecksPayload(raw: unknown): PublicFunDecksPayload {
+  const normalized = normalizeFunDecksPayload(raw);
+  const formatCounts = normalized.decks.reduce((counts, deck) => {
+    const format = deck.format.toLowerCase();
+    if (format === 'wild') counts.wild += 1;
+    else if (format === 'standard') counts.standard += 1;
+    return counts;
+  }, { standard: 0, wild: 0 });
+
+  return {
+    fetchedAt: normalized.fetchedAt,
+    stats: {
+      total: normalized.decks.length,
+      ...formatCounts,
+    },
+    decks: normalized.decks,
+  };
+}
+
+export function createPublicFunDecksRouter(dependencies: PublicFunDecksDependencies): Router {
+  const router = Router();
+
+  router.get('/fun-decks', async (_request, response) => {
+    try {
+      response.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=900');
+      return response.json(normalizePublicFunDecksPayload(await dependencies.loadFunDecks()));
+    } catch (error) {
+      response.setHeader('Cache-Control', 'no-store');
+      dependencies.onError?.(error);
+      return response.status(502).json({
+        code: 'FUN_DECKS_UNAVAILABLE',
+        error: 'Не удалось загрузить фан-колоды',
+      });
+    }
+  });
+
+  return router;
 }
 
 export function createAdminFunDecksRouter(dependencies: AdminFunDecksDependencies): Router {
