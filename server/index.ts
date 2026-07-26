@@ -106,7 +106,10 @@ import {
   inferStandardMetaClass,
   normalizeStandardMetaClass,
 } from './standardMetaClasses.js';
-import { findSupplementalViciousGoldBuild } from './viciousGoldBuilds.js';
+import {
+  findSupplementalViciousGoldBuild,
+  resolveViciousGoldArchetype,
+} from './viciousGoldBuilds.js';
 import { createClassMatchupRouter, type ClassMatchupCacheStore } from './classMatchupRoutes.js';
 import { createLegendaryRouter } from './legendaryRoutes.js';
 import { createTierlistRouter } from './tierlistRoutes.js';
@@ -4501,14 +4504,6 @@ const STANDARD_META_UPSTREAM_RANK: Record<StandardMetaRank, string> = {
 const HSGURU_STREAMER_DECKS_DATASET = 'hsguru_streamer_decks_legend_1000';
 const VICIOUS_SYNDICATE_LIVE_DATASET = 'vicious_syndicate_live_beta';
 const VICIOUS_GOLD_MIN_DECK_FREQUENCY = 0.5;
-const VICIOUS_BUILD_ALIASES: Record<string, { archetype: string }> = {
-  'Two Rogue': { archetype: 'Two-Bit Rogue' },
-  'Herald DeathKnight': { archetype: 'Herald Death Knight' },
-  'Quest Shaman': { archetype: 'Zee Quest Shaman' },
-  'Unholy DeathKnight': { archetype: 'Unholy Death Knight' },
-  'Ayaya Rogue': { archetype: 'Aya Rogue' },
-  'Void DemonHunter': { archetype: 'Void Soul Demon Hunter' },
-};
 const VICIOUS_CLASS_RU: Record<string, string> = {
   DeathKnight: 'Рыцарь смерти',
   DemonHunter: 'Охотник на демонов',
@@ -6401,7 +6396,7 @@ function viciousClassIcon(className: string): string {
 function viciousBuildSourceLabel(source: string): string {
   if (source === 'vicious_syndicate_radars') return 'Vicious Syndicate';
   if (source === 'vicious_syndicate_decks') return 'Vicious Syndicate';
-  if (source === 'hsguru-decks' || source === 'hsguru_decks') return 'HSGuru';
+  if (source === 'hsguru-decks' || source === 'hsguru_decks' || source === 'hsguru-archetypes') return 'HSGuru';
   if (source === 'hearthstone_decks') return 'Hearthstone Decks';
   if (source === 'metastats_decks') return 'MetaStats';
   return source.replace(/[-_]+/g, ' ');
@@ -6435,8 +6430,7 @@ function findViciousGoldBuild(
   deck: string,
   deckLabel: string,
 ): ViciousGoldBuild | null {
-  const alias = VICIOUS_BUILD_ALIASES[deck];
-  const matchedArchetype = alias?.archetype ?? deck;
+  const { matchedArchetype, matchMethod } = resolveViciousGoldArchetype(deck);
   const wanted = normalizeStandardArchetypeKey(matchedArchetype);
   const candidates = rows.filter(row => {
     if (normalizeStandardArchetypeKey(String(row?.archetype ?? '')) !== wanted) return false;
@@ -6454,27 +6448,7 @@ function findViciousGoldBuild(
     return quality(right) - quality(left);
   });
   const selected = candidates[0];
-  if (!selected) {
-    const supplemental = findSupplementalViciousGoldBuild(deck);
-    const classKey = inferStandardMetaClass(deck);
-    if (!supplemental || !classKey) return null;
-    return {
-      archetype: deck,
-      archetypeLabel: deckLabel,
-      deckCode: supplemental.deckCode,
-      format: 'standard',
-      rank: 'legend',
-      source: supplemental.source,
-      sourceUrl: supplemental.sourceUrl,
-      streamer: null,
-      sampleGames: null,
-      winrate: null,
-      updatedAt: supplemental.updatedAt,
-      classKey,
-      matchedArchetype: supplemental.matchedArchetype,
-      matchMethod: 'exact',
-    };
-  }
+  if (!selected) return null;
   const source = String(selected.source_id ?? 'constructed-decks');
   const score = parseDeckScore(selected.score);
   const classKey = normalizeStandardMetaClass(selected.class) ?? inferStandardMetaClass(matchedArchetype);
@@ -6493,21 +6467,76 @@ function findViciousGoldBuild(
     updatedAt: String(selected.updated_at ?? '').trim() || null,
     classKey,
     matchedArchetype,
-    matchMethod: alias ? 'alias' : 'exact',
+    matchMethod,
   };
 }
 
-async function resolveViciousGoldBuild(
+function findViciousGoldCatalogBuild(
+  catalog: ConstructedArchetypeCatalog | null,
+  deck: string,
+  deckLabel: string,
+): ViciousGoldBuild | null {
+  if (!catalog) return null;
+  const { matchedArchetype, matchMethod } = resolveViciousGoldArchetype(deck);
+  const wanted = normalizeStandardArchetypeKey(matchedArchetype);
+  const item = catalog.items.find(row => normalizeStandardArchetypeKey(row.archetype) === wanted);
+  const selected = item?.builds[0];
+  if (!item || !selected) return null;
+  const classKey = selected.classKey ?? item.classKey ?? inferStandardMetaClass(matchedArchetype);
+  if (!classKey) return null;
+  return {
+    archetype: deck,
+    archetypeLabel: deckLabel,
+    deckCode: selected.deckCode,
+    format: 'standard',
+    rank: 'legend',
+    source: 'hsguru-archetypes',
+    sourceUrl: selected.sourceUrl || item.sourceUrl,
+    streamer: null,
+    sampleGames: selected.games,
+    winrate: selected.winrate,
+    updatedAt: selected.updatedAt ?? catalog.updatedAt,
+    classKey,
+    matchedArchetype,
+    matchMethod,
+  };
+}
+
+function findSupplementalViciousBuild(
+  deck: string,
+  deckLabel: string,
+): ViciousGoldBuild | null {
+  const supplemental = findSupplementalViciousGoldBuild(deck);
+  const classKey = inferStandardMetaClass(deck);
+  if (!supplemental || !classKey) return null;
+  return {
+    archetype: deck,
+    archetypeLabel: deckLabel,
+    deckCode: supplemental.deckCode,
+    format: 'standard',
+    rank: 'legend',
+    source: supplemental.source,
+    sourceUrl: supplemental.sourceUrl,
+    streamer: null,
+    sampleGames: null,
+    winrate: null,
+    updatedAt: supplemental.updatedAt,
+    classKey,
+    matchedArchetype: supplemental.matchedArchetype,
+    matchMethod: 'exact',
+  };
+}
+
+function resolveViciousGoldBuild(
+  catalog: ConstructedArchetypeCatalog | null,
   rows: any[],
   deck: string,
   deckLabel: string,
-): Promise<ViciousGoldBuild | null> {
-  const indexed = findViciousGoldBuild(rows, deck, deckLabel);
-  if (indexed) return indexed;
-  // “Other …” and “Bot …” are dashboard buckets, not playable archetypes.
+): ViciousGoldBuild | null {
   if (/^(?:Other|Bot)\s/i.test(deck)) return null;
-  const exact = await fetchExactHsguruDecks(deck, deckLabel, 'standard', 'legend').catch(() => []);
-  return exact.sort((left, right) => right.quality - left.quality)[0] ?? null;
+  return findViciousGoldCatalogBuild(catalog, deck, deckLabel)
+    ?? findViciousGoldBuild(rows, deck, deckLabel)
+    ?? findSupplementalViciousBuild(deck, deckLabel);
 }
 
 const VICIOUS_RANK_RU: Record<string, string> = {
@@ -6622,24 +6651,31 @@ async function loadViciousSyndicateGoldBuilds() {
 
   const generation = viciousSyndicateGoldBuildsGeneration;
   const job: Promise<ViciousGoldBuildCollection> = (async () => {
-    const [summary, constructedRows] = await Promise.all([
+    const [summary, archetypeCatalog, constructedRows, cardCollection] = await Promise.all([
       loadViciousSyndicateGold(),
-      fetchViciousConstructedDeckRows(),
+      loadConstructedArchetypeCatalog('standard').catch(() => null),
+      fetchViciousConstructedDeckRows().catch(() => []),
+      constructedCardDataService.loadCards('standard').catch(() => null),
     ]);
     const rows = Array.isArray(summary?.deckDistribution) ? summary.deckDistribution : [];
-    const builds = await Promise.all(rows.map(async (row: any) => {
+    const builds = rows.map((row: any) => {
       const deck = String(row?.deck ?? '').trim();
       const deckLabel = String(row?.deckLabel ?? deck).trim();
       if (!deck || /^(?:Other|Bot)\s/i.test(deck)) return { deck, build: null };
-      const build = await resolveViciousGoldBuild(constructedRows, deck, deckLabel);
-      const hydratedBuild = build ? await hydrateRecommendationDeckCards(build) : null;
+      const build = resolveViciousGoldBuild(archetypeCatalog, constructedRows, deck, deckLabel);
+      const hydratedBuild = build
+        ? {
+            ...build,
+            deckCards: cardCollection ? buildDeckCardData(build.deckCode, cardCollection.cards) : [],
+          }
+        : null;
       return {
         deck,
         build: hydratedBuild
           ? { ...hydratedBuild, sourceLabel: viciousBuildSourceLabel(hydratedBuild.source) }
           : null,
       };
-    }));
+    });
     const data = {
       builds,
       buildCoverage: {

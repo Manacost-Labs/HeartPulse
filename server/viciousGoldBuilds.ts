@@ -33,6 +33,31 @@ function normalizeArchetype(value: string): string {
   return value.trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US');
 }
 
+const VICIOUS_GOLD_ARCHETYPE_ALIASES: Record<string, string> = {
+  'two rogue': 'Two-Bit Rogue',
+  'herald deathknight': 'Herald Death Knight',
+  'quest shaman': 'Zee Quest Shaman',
+  'unholy deathknight': 'Unholy Death Knight',
+  'ayaya rogue': 'Aya Rogue',
+  'void demonhunter': 'Void Soul Demon Hunter',
+  // Vicious and HSGuru currently use different spelling/spacing for these
+  // current Standard archetypes.
+  'herald warlock': 'Harold Warlock',
+  'spell demonhunter': 'Spell Demon Hunter',
+};
+
+export function resolveViciousGoldArchetype(archetype: string): {
+  matchedArchetype: string;
+  matchMethod: 'exact' | 'alias';
+} {
+  const normalized = normalizeArchetype(archetype);
+  const matchedArchetype = VICIOUS_GOLD_ARCHETYPE_ALIASES[normalized] ?? archetype.trim().replace(/\s+/g, ' ');
+  return {
+    matchedArchetype,
+    matchMethod: normalizeArchetype(matchedArchetype) === normalized ? 'exact' : 'alias',
+  };
+}
+
 export function findSupplementalViciousGoldBuild(archetype: string): SupplementalViciousGoldBuild | null {
   const build = SUPPLEMENTAL_VICIOUS_GOLD_BUILDS[normalizeArchetype(archetype)];
   return build ? { ...build } : null;

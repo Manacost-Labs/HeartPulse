@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { findSupplementalViciousGoldBuild } from '../server/viciousGoldBuilds.js';
+import {
+  findSupplementalViciousGoldBuild,
+  resolveViciousGoldArchetype,
+} from '../server/viciousGoldBuilds.js';
 
 const build = findSupplementalViciousGoldBuild('  Soothsayer   Priest ');
 assert.ok(build, 'Soothsayer Priest must have its exact official list');
@@ -20,5 +23,22 @@ assert.equal(
   'an unrelated Priest list must never be used as a same-class fallback',
 );
 assert.equal(findSupplementalViciousGoldBuild('Unknown Priest'), null);
+
+assert.deepEqual(resolveViciousGoldArchetype('Two Rogue'), {
+  matchedArchetype: 'Two-Bit Rogue',
+  matchMethod: 'alias',
+});
+assert.deepEqual(resolveViciousGoldArchetype('Herald Warlock'), {
+  matchedArchetype: 'Harold Warlock',
+  matchMethod: 'alias',
+});
+assert.deepEqual(resolveViciousGoldArchetype('Spell DemonHunter'), {
+  matchedArchetype: 'Spell Demon Hunter',
+  matchMethod: 'alias',
+});
+assert.deepEqual(resolveViciousGoldArchetype('  Burn   Mage '), {
+  matchedArchetype: 'Burn Mage',
+  matchMethod: 'exact',
+});
 
 console.log('Vicious Gold supplemental exact-build tests passed');

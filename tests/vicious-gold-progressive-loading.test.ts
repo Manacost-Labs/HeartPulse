@@ -26,6 +26,23 @@ assert.doesNotMatch(
   'the first useful response must not wait for deck lookup or card hydration',
 );
 
+const buildsSource = serverSource.slice(buildsStart, serverSource.indexOf('type StandardMetaDeckCandidate', buildsStart));
+assert.match(
+  buildsSource,
+  /loadConstructedArchetypeCatalog\('standard'\)/,
+  'Vicious builds must reuse the collected archetype catalog',
+);
+assert.match(
+  buildsSource,
+  /constructedCardDataService\.loadCards\('standard'\)/,
+  'all deck compositions must reuse one shared card catalog load',
+);
+assert.doesNotMatch(
+  buildsSource,
+  /fetchExactHsguruDecks|hydrateRecommendationDeckCards|Promise\.all\(rows\.map/,
+  'Vicious builds must not perform per-archetype network lookups or card hydration',
+);
+
 assert.match(
   clientSource,
   /fetch\('\/api\/vicious-syndicate-gold\/builds'/,
