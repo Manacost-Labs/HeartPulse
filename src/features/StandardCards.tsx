@@ -34,6 +34,10 @@ import {
   type ConstructedCardMediaItem,
 } from './constructedCardMedia';
 import {
+  normalizeConstructedRelatedCardGroups,
+  type ConstructedRelatedCardGroup,
+} from './constructedRelatedCards';
+import {
   constructedSpellSchoolLabel,
   constructedTribeLabel,
   isPublicConstructedTerm,
@@ -100,6 +104,7 @@ type CardRecord = {
   mechanicTranslations?: Record<string, string>;
   mechanicOverrides?: Record<string, string>;
   decks?: ConstructedDeck[];
+  related_cards_localized?: unknown;
 };
 
 type ConstructedDeck = {
@@ -740,6 +745,54 @@ function GeneratedCardPools({ pools, format, navigatePath }: { pools: any[]; for
   );
 }
 
+function RelatedCardGroups({ groups }: { groups: ConstructedRelatedCardGroup[] }) {
+  const total = groups.reduce((sum, group) => sum + group.cards.length, 0);
+  return (
+    <section className="constructed-card-detail__section constructed-card-detail__related-groups">
+      <h2><Sparkles size={19} /> Токены, награды и связанные карты · {total}</h2>
+      <div className="constructed-card-detail__related-group-list">
+        {groups.map(group => (
+          <article className="constructed-card-detail__related-group" key={group.id}>
+            <header>
+              <div><h3>{group.headingRu}</h3>{group.headingEn && group.headingEn !== group.headingRu && <span lang="en">{group.headingEn}</span>}</div>
+              <strong>{group.cards.length}</strong>
+            </header>
+            <div className="constructed-card-detail__related-card-grid">
+              {group.cards.map((item, index) => {
+                const name = item.nameRu || item.nameEn || item.cardId || 'Связанная карта';
+                const rules = plainText(item.textRu || item.textEn);
+                return (
+                  <article className="constructed-card-detail__related-card" key={`${item.cardId || name}-${index}`}>
+                    <div className="constructed-card-detail__related-card-image">
+                      {item.cardImageUrl
+                        ? <img src={item.cardImageUrl} alt={`Карта Hearthstone «${name}»`} loading="lazy" decoding="async" />
+                        : <Sparkles size={34} aria-hidden="true" />}
+                    </div>
+                    <div className="constructed-card-detail__related-card-copy">
+                      <strong>{name}</strong>
+                      {item.nameEn && item.nameEn !== name && <span lang="en">{item.nameEn}</span>}
+                      {(item.manaCost !== null || item.attack !== null || item.health !== null) && (
+                        <dl aria-label={`Характеристики карты ${name}`}>
+                          {item.manaCost !== null && <div><dt>Мана</dt><dd>{item.manaCost}</dd></div>}
+                          {item.attack !== null && <div><dt>Атака</dt><dd>{item.attack}</dd></div>}
+                          {item.health !== null && <div><dt>Здоровье</dt><dd>{item.health}</dd></div>}
+                        </dl>
+                      )}
+                      {rules && <p>{rules}</p>}
+                      {item.cardId && <code>{item.cardId}</code>}
+                      {item.wikiUrl && <a href={item.wikiUrl} target="_blank" rel="noreferrer">Hearthstone Wiki <ExternalLink size={13} /></a>}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 async function copyText(value: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(value);
@@ -936,10 +989,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
   const patchRows = (Array.isArray(wiki.patch_changes) ? wiki.patch_changes : [])
     .flatMap((group: any) => (Array.isArray(group?.entries) ? group.entries : []).map((entry: any) => ({ ...entry, heading: group.heading })))
     .sort((left: any, right: any) => patchTimestamp(right) - patchTimestamp(left));
-  const related = (Array.isArray(wiki.related_cards) ? wiki.related_cards : []).filter((item: any) => {
-    const name = item?.name?.ru || item?.name?.en || (typeof item?.name === 'string' ? item.name : '') || item?.name_ru || item?.title;
-    return Boolean(item?.image_url || item?.image || name || item?.card_id || item?.id || item?.url);
-  });
+  const relatedGroups = normalizeConstructedRelatedCardGroups(card);
   const generatedPools = (Array.isArray(wiki.generated_card_pools) ? wiki.generated_card_pools : [])
     .filter((pool: any) => Array.isArray(pool?.cards) && pool.cards.length > 0);
   const mediaItems = collectConstructedCardMedia(card);
@@ -1004,7 +1054,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
         })}</div> : <p>История изменений не найдена.</p>}</div>
       </section>
 
-      {related.length > 0 && <section className="constructed-card-detail__section"><h2>Связанные карты</h2><div className="constructed-card-detail__related">{related.map((item: any, index: number) => { const relatedId = item.card_id || item.id; const relatedUrl = relatedId ? `/standard/cards/${format}/${encodeURIComponent(relatedId)}` : item.url; const relatedName = item?.name?.ru || item?.name?.en || (typeof item?.name === 'string' ? item.name : '') || item.name_ru || item.title || relatedId; return <a key={`${relatedId || item.title}-${index}`} href={relatedUrl || '#'} target={!relatedId && item.url ? '_blank' : undefined} rel={!relatedId && item.url ? 'noreferrer' : undefined} onClick={event => { if (!relatedId) return; event.preventDefault(); navigatePath(relatedUrl); }}>{item.image_url || item.image ? <img src={item.image_url || item.image} alt="" /> : <Sparkles size={24} />}<span>{relatedName}</span></a>; })}</div></section>}
+      {relatedGroups.length > 0 && <RelatedCardGroups groups={relatedGroups} />}
 
       {generatedPools.length > 0 && <GeneratedCardPools pools={generatedPools} format={format} navigatePath={navigatePath} />}
 

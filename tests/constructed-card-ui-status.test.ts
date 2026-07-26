@@ -53,5 +53,9 @@ assert.match(
 const standardCardsSource = readFileSync(new URL('../src/features/StandardCards.tsx', import.meta.url), 'utf8');
 assert.match(standardCardsSource, /warning:\s*typeof payload\.warning/,
   'the detail component must pass the server warning into its visible data-state notice');
+assert.match(standardCardsSource, /normalizeConstructedRelatedCardGroups\(card\)/,
+  'the detail page must render the localized related-card contract instead of only the legacy wiki list');
+assert.match(standardCardsSource, /Токены, награды и связанные карты/,
+  'the related-card section must describe tokens, quest rewards, and other companion cards in Russian');
 
 console.log('constructed-card Russian unavailable/stale UI contracts passed');
