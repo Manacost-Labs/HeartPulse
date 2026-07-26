@@ -1,5 +1,15 @@
 # HS-Arena Changelog
 
+## v1.0.57 - 2026-07-26
+
+- Added in-game release dates and source insertion timestamps to the compact
+  cosmetics contract without loading any heavy detail media.
+- Ordered hero skins, cosmetic coins and pet families from newest to oldest by
+  release date, then by insertion time in `db.kolodahs.ru`, with deterministic
+  DBF/card ID fallback ordering.
+- Preserved pet colorway order from level 1 through 4 and added regression
+  coverage for missing dates and stable fallbacks.
+
 ## v1.0.56 - 2026-07-26
 
 - Fixed the cosmetics media lightbox so its dimmed backdrop covers the full

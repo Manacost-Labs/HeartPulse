@@ -80,6 +80,46 @@ const finiteInteger = (value: unknown): number | null => {
 
 const cleanText = (value: unknown, maximum = 200): string => String(value ?? '').trim().slice(0, maximum);
 
+const normalizeCosmeticDate = (value: unknown): string | null => {
+  const date = cleanText(value, 40);
+  if (!date) return null;
+  const parsed = Date.parse(date.replace(' ', 'T') + (/Z$|[+-]\d\d:\d\d$/.test(date) ? '' : 'Z'));
+  return Number.isNaN(parsed) ? null : date;
+};
+
+type CosmeticChronology = {
+  cardId: string;
+  dbf: number | null;
+  releaseDate: string | null;
+  sourceAddedAt: string | null;
+};
+
+const cosmeticDateRank = (value: string | null): number => {
+  if (!value) return Number.NEGATIVE_INFINITY;
+  const parsed = Date.parse(value.replace(' ', 'T') + (/Z$|[+-]\d\d:\d\d$/.test(value) ? '' : 'Z'));
+  return Number.isNaN(parsed) ? Number.NEGATIVE_INFINITY : parsed;
+};
+
+export function sortCosmeticsNewestFirst<T extends CosmeticChronology>(items: T[]): T[] {
+  return [...items].sort((left, right) => {
+    if (Boolean(left.releaseDate) !== Boolean(right.releaseDate)) return left.releaseDate ? -1 : 1;
+    if (left.releaseDate && right.releaseDate) {
+      const releaseDifference = cosmeticDateRank(right.releaseDate) - cosmeticDateRank(left.releaseDate);
+      if (releaseDifference !== 0) return releaseDifference;
+    }
+
+    if (Boolean(left.sourceAddedAt) !== Boolean(right.sourceAddedAt)) return left.sourceAddedAt ? -1 : 1;
+    if (left.sourceAddedAt && right.sourceAddedAt) {
+      const addedDifference = cosmeticDateRank(right.sourceAddedAt) - cosmeticDateRank(left.sourceAddedAt);
+      if (addedDifference !== 0) return addedDifference;
+    }
+
+    if ((left.dbf === null) !== (right.dbf === null)) return left.dbf === null ? 1 : -1;
+    if (left.dbf !== right.dbf) return (right.dbf ?? 0) - (left.dbf ?? 0);
+    return right.cardId.localeCompare(left.cardId, 'en');
+  });
+}
+
 export function normalizeCosmeticMediaUrl(value: unknown): string | null {
   const raw = cleanText(value, 2_000);
   if (!raw) return null;
@@ -141,6 +181,8 @@ export function normalizeHeroSkinSummary(
       static: staticUrl,
       animated: animatedUrl,
     },
+    releaseDate: normalizeCosmeticDate(raw?.release_date),
+    sourceAddedAt: normalizeCosmeticDate(raw?.created_at),
     updatedAt: cleanText(raw?.updated_at, 40) || null,
   };
 }
@@ -167,6 +209,8 @@ function normalizeCoinSummary(raw: JsonRecord) {
       card: normalizeCosmeticMediaUrl(raw?.images?.card),
       crop: normalizeCosmeticMediaUrl(raw?.images?.crop),
     },
+    releaseDate: normalizeCosmeticDate(raw?.release_date),
+    sourceAddedAt: normalizeCosmeticDate(raw?.created_at),
     updatedAt: cleanText(raw?.updated_at, 40) || null,
   };
 }
@@ -175,7 +219,7 @@ export function buildCoinCatalog(rawCoins: JsonRecord[], relations?: JsonRecord)
   const first = rawCoins[0] ?? {};
   const source = relations && typeof relations === 'object' ? relations : first;
   return {
-    items: rawCoins.map(normalizeCoinSummary),
+    items: sortCosmeticsNewestFirst(rawCoins.map(normalizeCoinSummary)),
     generatedBy: Array.isArray(source?.generated_by_cards)
       ? source.generated_by_cards.map(normalizeRelatedCard).filter((card: JsonRecord) => card.cardId)
       : [],
@@ -195,12 +239,18 @@ function normalizePetSummary(raw: JsonRecord) {
     images: {
       card: normalizeCosmeticMediaUrl(raw?.images?.card),
     },
+    releaseDate: normalizeCosmeticDate(raw?.release_date),
+    sourceAddedAt: normalizeCosmeticDate(raw?.created_at),
     updatedAt: cleanText(raw?.updated_at, 40) || null,
   };
 }
 
 export function buildPetFamilies(rawPets: JsonRecord[]) {
-  const families = new Map<number, { petId: number; name: string; variants: ReturnType<typeof normalizePetSummary>[] }>();
+  const families = new Map<number, {
+    petId: number;
+    name: string;
+    variants: ReturnType<typeof normalizePetSummary>[];
+  }>();
   for (const raw of rawPets) {
     const petId = finiteInteger(raw?.pet?.id);
     if (petId === null) continue;
@@ -212,12 +262,18 @@ export function buildPetFamilies(rawPets: JsonRecord[]) {
     family.variants.push(normalizePetSummary(raw));
     families.set(petId, family);
   }
-  return [...families.values()]
-    .map(family => ({
+  const normalizedFamilies = [...families.values()].map(family => {
+    const newestVariant = sortCosmeticsNewestFirst(family.variants)[0];
+    return {
       ...family,
+      releaseDate: newestVariant?.releaseDate ?? null,
+      sourceAddedAt: newestVariant?.sourceAddedAt ?? null,
+      cardId: String(family.petId),
+      dbf: newestVariant?.dbf ?? null,
       variants: family.variants.sort((left, right) => (left.level ?? 99) - (right.level ?? 99)),
-    }))
-    .sort((left, right) => left.name.localeCompare(right.name, 'ru'));
+    };
+  });
+  return sortCosmeticsNewestFirst(normalizedFamilies);
 }
 
 function normalizedGallery(value: unknown) {
@@ -391,7 +447,9 @@ export function createCosmeticsDataService(dependencies: CosmeticsDataServiceDep
     async loadCatalog(kind, query) {
       if (kind === 'heroes') {
         const [rows, names] = await Promise.all([loadAllHeroRows(), getLocalizedNames()]);
-        const normalized = rows.map((row: JsonRecord) => normalizeHeroSkinSummary(row, names));
+        const normalized = sortCosmeticsNewestFirst(
+          rows.map((row: JsonRecord) => normalizeHeroSkinSummary(row, names)),
+        );
         const foldedQuery = query.q.toLocaleLowerCase('ru-RU');
         const filtered = normalized.filter(item => {
           if (query.classSlug && item.class.slug !== query.classSlug) return false;
