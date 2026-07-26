@@ -34,6 +34,8 @@ import { configureLoopbackProxyTrust, corsOriginAllowed, getTrustedClientIp } fr
 import { createRouteAwareJsonParser, createUploadAuthorizationGuard } from './jsonBody.js';
 import { createReferralRedirectHandler, createReferralRouter } from './referralRoutes.js';
 import { createGalleryRouter } from './galleryRoutes.js';
+import { createCosmeticsDataService, createCosmeticsRouter } from './cosmeticsRoutes.js';
+import { createCosmeticsSeoRouter } from './cosmeticsSeoRoutes.js';
 import { createBattlegroundProxyRouter } from './battlegroundProxyRoutes.js';
 import {
   battlegroundImageTransformCacheKey,
@@ -470,6 +472,8 @@ const KHA_VIP_WP_BEARER = process.env.KHA_VIP_WP_BEARER || process.env.WP_BEARER
 const KHA_VIP_LOCKERS_CACHE_MS = Math.max(60_000, Number(process.env.KHA_VIP_LOCKERS_CACHE_MS || 5 * 60 * 1000));
 const KHA_VIP_ARTICLE_HOSTS = new Set(['kolodahearthstone.ru', 'www.kolodahearthstone.ru']);
 const KOLODAHS_API_BASE_URL = (process.env.KOLODAHS_API_BASE_URL || 'https://db.kolodahs.ru/api/v1').replace(/\/$/, '');
+const HEARTHSTONE_RU_CARDS_URL = process.env.HEARTHSTONE_RU_CARDS_URL
+  || 'https://api.hearthstonejson.com/v1/latest/ruRU/cards.json';
 const OLD_GUIDES_DB_FILE = process.env.OLD_GUIDES_DB_FILE || '/var/www/koloda/data/old-sites/kolodahearthstone.ru_old/db/guides.sqlite';
 const OLD_GUIDES_PUBLIC_URL = (process.env.OLD_GUIDES_PUBLIC_URL || 'https://old.kolodahearthstone.ru').replace(/\/$/, '');
 const EXTRA_BG_LIBRARY_ENDPOINTS: Record<string, string> = {
@@ -7783,6 +7787,47 @@ app.use('/api', createGalleryRouter({
   adminAuth,
   setPrivateNoStore,
 }));
+
+const cosmeticsDataService = createCosmeticsDataService({
+  apiBaseUrl: KOLODAHS_API_BASE_URL,
+  localizedCardsUrl: HEARTHSTONE_RU_CARDS_URL,
+  cacheTtlMs: EXTERNAL_DATASET_CACHE_MS,
+  fetchJson: async url => {
+    const upstream = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!upstream.ok) {
+      const error = new Error(`Cosmetics upstream returned HTTP ${upstream.status}`) as Error & { status?: number };
+      error.status = upstream.status;
+      throw error;
+    }
+    return upstream.json();
+  },
+});
+app.use('/api', createCosmeticsRouter(cosmeticsDataService));
+app.use(createCosmeticsSeoRouter({
+  loadDetail: cosmeticsDataService.loadDetail,
+  frontendAssets: constructedCardFrontendAssets,
+  onError: error => console.error(
+    '[cosmetics-seo] detail failed:',
+    error instanceof Error ? error.message : error,
+  ),
+}));
+void Promise.allSettled([
+  cosmeticsDataService.loadCatalog('heroes', { page: 1, perPage: 48, q: '' }),
+  cosmeticsDataService.loadCatalog('coins', { page: 1, perPage: 100, q: '' }),
+  cosmeticsDataService.loadCatalog('pets', { page: 1, perPage: 100, q: '' }),
+]).then(results => {
+  for (const [index, result] of results.entries()) {
+    if (result.status === 'rejected') {
+      console.warn(
+        `[cosmetics] ${(['heroes', 'coins', 'pets'] as const)[index]} prewarm failed:`,
+        result.reason instanceof Error ? result.reason.message : result.reason,
+      );
+    }
+  }
+});
 
 app.use('/api', createArticleRouter({
   loadArticles: () => loadDataCached('articles.json'),

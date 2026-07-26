@@ -92,6 +92,31 @@
       "description": "Публичная галерея артов Манакоста в высоком качестве: просмотр и скачивание доступны всем пользователям.",
       "sitemap": true
     },
+    "/cosmetics": {
+      "policyRouteId": "cosmetics",
+      "navigationRouteId": "cosmetics",
+      "title": "Косметика Hearthstone: скины, монеты и питомцы | Manacost",
+      "description": "Полная библиотека косметики Hearthstone: скины героев с анимациями, косметические монеты, питомцы, арты, звуки и способы получения.",
+      "sitemap": true
+    },
+    "/cosmetics/heroes": {
+      "policyRouteId": "cosmetics-kind",
+      "title": "Скины героев Hearthstone: все портреты и анимации | Manacost",
+      "description": "Галерея скинов героев Hearthstone с русскими названиями, фильтрами по классу, редкости и способу получения, анимациями и звуками.",
+      "sitemap": true
+    },
+    "/cosmetics/coins": {
+      "policyRouteId": "cosmetics-kind",
+      "title": "Косметические монеты Hearthstone: полная галерея | Manacost",
+      "description": "Все косметические монеты Hearthstone с изображениями карт, crop-артами и списками карт, которые генерируют монеты или связаны с ними.",
+      "sitemap": true
+    },
+    "/cosmetics/pets": {
+      "policyRouteId": "cosmetics-kind",
+      "title": "Питомцы Hearthstone: все раскраски и End Screen | Manacost",
+      "description": "Галерея питомцев Hearthstone со всеми вариантами раскрасок, отдельными страницами, дополнительными артами и изображениями End Screen.",
+      "sitemap": true
+    },
     "/guides-archive": {
       "policyRouteId": "guides-archive",
       "navigationRouteId": "guides-archive",

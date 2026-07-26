@@ -61,6 +61,55 @@
       "entitlement": null
     },
     {
+      "id": "cosmetics",
+      "pattern": "/cosmetics",
+      "kind": "static",
+      "owner": "cosmetics-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "cosmetics-heroes",
+      "entitlement": null
+    },
+    {
+      "id": "cosmetics-kind",
+      "pattern": "/cosmetics/:kind",
+      "kind": "listing",
+      "owner": "cosmetics-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "cosmetics-heroes",
+      "entitlement": null,
+      "pathParameters": {
+        "kind": { "allowedValues": ["heroes", "coins", "pets"] }
+      }
+    },
+    {
+      "id": "cosmetics-detail",
+      "pattern": "/cosmetics/:kind/:cardId",
+      "kind": "detail",
+      "owner": "cosmetics-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "server-ssr",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "cosmetics-detail",
+      "entitlement": null,
+      "pathParameters": {
+        "kind": { "allowedValues": ["heroes", "coins", "pets"] },
+        "cardId": { "pattern": "^[A-Za-z0-9_-]{1,100}$" }
+      }
+    },
+    {
       "id": "guides-archive",
       "pattern": "/guides-archive",
       "kind": "static",
@@ -651,10 +700,10 @@
     },
     {
       "id": "faceted-state",
-      "parameters": ["search", "sort", "filter", "class", "set", "mechanic", "page", "direction", "perPage", "query", "kind", "role", "subscription", "status"],
+      "parameters": ["search", "sort", "filter", "class", "set", "mechanic", "page", "direction", "perPage", "query", "q", "rarity", "category", "kind", "role", "subscription", "status"],
       "indexPolicy": "noindex-follow",
       "canonicalPolicy": "clean-path",
-      "appliesTo": ["/articles", "/guides-archive", "/standard/cards/:format", "/admin"]
+      "appliesTo": ["/articles", "/guides-archive", "/standard/cards/:format", "/cosmetics/:kind", "/admin"]
     },
     {
       "id": "battleground-deep-link",

@@ -51,6 +51,7 @@
     "test:referrals": "tsx tests/referrals.test.ts",
     "test:referral-routes": "tsx tests/referral-routes.test.ts",
     "test:gallery-routes": "tsx tests/gallery-routes.test.ts",
+    "test:cosmetics": "tsx tests/cosmetics-model.test.ts && tsx tests/cosmetics-routes.test.ts && tsx tests/cosmetics-seo-routes.test.ts",
     "test:battleground-proxy-routes": "tsx tests/battleground-proxy-routes.test.ts && tsx tests/battleground-image-optimization.test.ts",
     "test:battleground-image-optimization": "tsx tests/battleground-image-optimization.test.ts",
     "test:battleground-seo-routes": "tsx tests/battleground-seo-routes.test.ts",

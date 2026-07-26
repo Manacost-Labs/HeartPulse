@@ -1,0 +1,715 @@
+.cosmetics-page {
+  --cosmetics-wine: #4b1323;
+  --cosmetics-wine-deep: #2d0b16;
+  --cosmetics-gold: #c99a43;
+  --cosmetics-ink: #2f2119;
+  --cosmetics-paper: rgba(255, 240, 199, 0.88);
+  --cosmetics-border: rgba(100, 56, 26, 0.34);
+  color: var(--cosmetics-ink);
+}
+
+.cosmetics-hero {
+  text-align: center;
+}
+
+.cosmetics-hero p {
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+.cosmetics-kicker {
+  display: inline-flex;
+  width: fit-content;
+  color: #7b4d20;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.cosmetics-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 auto 18px;
+  max-width: 1180px;
+}
+
+.cosmetics-tab {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid rgba(174, 126, 58, 0.72);
+  background: linear-gradient(180deg, #5b2730, #3d1520);
+  box-shadow: inset 0 0 0 3px rgba(255, 220, 139, 0.08), 0 5px 12px rgba(45, 14, 20, 0.16);
+  color: #f7df9d;
+  font-weight: 900;
+  text-decoration: none;
+  transition: transform 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.cosmetics-tab:hover,
+.cosmetics-tab:focus-visible {
+  transform: translateY(-2px);
+  background: linear-gradient(180deg, #743146, #4d1828);
+}
+
+.cosmetics-tab-active {
+  background: linear-gradient(180deg, #653d7c, #402551);
+  box-shadow: inset 0 0 0 3px rgba(255, 224, 142, 0.16), 0 7px 18px rgba(63, 34, 75, 0.26);
+}
+
+.cosmetics-surface {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: clamp(16px, 2.5vw, 32px);
+  border: 1px solid rgba(108, 65, 31, 0.45);
+  background: rgba(255, 239, 196, 0.66);
+  box-shadow: inset 0 0 40px rgba(138, 82, 30, 0.08), 0 8px 24px rgba(73, 39, 20, 0.12);
+}
+
+.cosmetics-filters {
+  display: grid;
+  grid-template-columns: minmax(250px, 1.5fr) repeat(3, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 16px;
+  border: 1px solid var(--cosmetics-border);
+  background: rgba(250, 224, 165, 0.74);
+}
+
+.cosmetics-filters label {
+  display: grid;
+  gap: 7px;
+  color: #704521;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.cosmetics-filters input,
+.cosmetics-filters select {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid rgba(104, 66, 34, 0.52);
+  border-radius: 0;
+  background-color: rgba(255, 248, 222, 0.92);
+  color: #332219;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.cosmetics-filters select {
+  appearance: none;
+  padding: 0 42px 0 13px;
+  background-image: linear-gradient(45deg, transparent 50%, #59351d 50%), linear-gradient(135deg, #59351d 50%, transparent 50%);
+  background-position: calc(100% - 18px) 20px, calc(100% - 12px) 20px;
+  background-repeat: no-repeat;
+  background-size: 6px 6px, 6px 6px;
+}
+
+.cosmetics-search {
+  position: relative;
+  align-self: end;
+}
+
+.cosmetics-search > svg {
+  position: absolute;
+  z-index: 1;
+  left: 13px;
+  bottom: 13px;
+  color: #6c4428;
+}
+
+.cosmetics-search input {
+  padding: 0 13px 0 45px;
+}
+
+.cosmetics-results-meta {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #705134;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.cosmetics-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: clamp(10px, 1.4vw, 18px);
+}
+
+.cosmetics-grid[aria-busy="true"] {
+  opacity: 0.68;
+}
+
+.cosmetics-card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(93, 52, 25, 0.42);
+  background: rgba(255, 239, 199, 0.92);
+  box-shadow: 0 6px 16px rgba(69, 36, 20, 0.14);
+  color: inherit;
+  text-decoration: none;
+  transition: transform 170ms ease, box-shadow 170ms ease, border-color 170ms ease;
+}
+
+.cosmetics-card:hover,
+.cosmetics-card:focus-visible {
+  z-index: 2;
+  transform: translateY(-4px);
+  border-color: #a57230;
+  box-shadow: 0 12px 26px rgba(62, 29, 18, 0.24);
+}
+
+.cosmetics-card-media {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 2 / 3;
+  background: radial-gradient(circle at 50% 40%, rgba(123, 76, 113, 0.28), rgba(47, 20, 35, 0.92));
+}
+
+.cosmetics-card-media > img,
+.cosmetics-hover-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.cosmetics-hover-video {
+  position: absolute;
+  inset: 0;
+  background: #2d1424;
+}
+
+.cosmetics-animated-badge {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 7px;
+  border: 1px solid rgba(246, 217, 139, 0.6);
+  background: rgba(48, 20, 52, 0.88);
+  color: #f7dfa0;
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.cosmetics-media-placeholder {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: #dec681;
+}
+
+.cosmetics-card-copy {
+  display: grid;
+  min-height: 94px;
+  align-content: start;
+  gap: 4px;
+  padding: 11px 12px 12px;
+}
+
+.cosmetics-card-copy strong,
+.cosmetics-card-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cosmetics-card-copy strong {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 0.98rem;
+}
+
+.cosmetics-card-copy small {
+  color: #82664d;
+  font-size: 0.75rem;
+}
+
+.cosmetics-card-meta {
+  display: flex;
+  min-width: 0;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 5px;
+  color: #6d4e32;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.cosmetics-card-meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cosmetics-grid-loading {
+  min-height: 760px;
+}
+
+.cosmetics-skeleton {
+  aspect-ratio: 2 / 3;
+  border: 1px solid rgba(102, 62, 31, 0.2);
+  background: linear-gradient(105deg, rgba(148, 103, 63, 0.12) 30%, rgba(255, 246, 214, 0.62) 45%, rgba(148, 103, 63, 0.12) 60%);
+  background-size: 220% 100%;
+  animation: cosmetics-shimmer 1.3s linear infinite;
+}
+
+@keyframes cosmetics-shimmer {
+  to { background-position-x: -220%; }
+}
+
+.cosmetics-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.cosmetics-pagination button,
+.cosmetics-back {
+  display: inline-flex;
+  min-height: 44px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 7px;
+  padding: 0 16px;
+  border: 1px solid #9b6b31;
+  background: #4d1c28;
+  color: #f7dfa0;
+  font-weight: 900;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.cosmetics-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.cosmetics-source {
+  margin: 24px 0 0;
+  color: #7d6247;
+  font-size: 0.76rem;
+  text-align: right;
+}
+
+.cosmetics-relations-section,
+.cosmetics-detail-section {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 24px;
+  padding: clamp(14px, 2vw, 24px);
+  border: 1px solid var(--cosmetics-border);
+  background: rgba(251, 226, 174, 0.68);
+}
+
+.cosmetics-relations-section h2,
+.cosmetics-detail-section h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 3px 0;
+  color: #3a2418;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: clamp(1.22rem, 2vw, 1.65rem);
+}
+
+.cosmetics-related {
+  border: 1px solid rgba(106, 65, 32, 0.36);
+  background: rgba(255, 244, 212, 0.7);
+}
+
+.cosmetics-related summary {
+  display: flex;
+  min-height: 48px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  font-weight: 900;
+}
+
+.cosmetics-count {
+  display: inline-flex;
+  width: fit-content;
+  min-width: 28px;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #4c243e;
+  color: #f8e4aa;
+  font-size: 0.78rem;
+}
+
+.cosmetics-related-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid rgba(106, 65, 32, 0.22);
+}
+
+.cosmetics-related-grid a {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  background: rgba(255, 249, 230, 0.74);
+  color: inherit;
+  text-decoration: none;
+}
+
+.cosmetics-related-grid img {
+  width: 44px;
+  height: 64px;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+.cosmetics-related-grid span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.cosmetics-related-grid strong,
+.cosmetics-related-grid small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cosmetics-related-grid strong {
+  font-size: 0.76rem;
+}
+
+.cosmetics-related-grid small {
+  color: #82654b;
+  font-size: 0.66rem;
+}
+
+.cosmetics-empty,
+.cosmetics-error {
+  display: grid;
+  min-height: 240px;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  padding: 24px;
+  border: 1px dashed rgba(95, 51, 27, 0.42);
+  color: #6e4b31;
+  text-align: center;
+}
+
+.cosmetics-error {
+  color: #8a1d2e;
+}
+
+.cosmetics-detail {
+  display: grid;
+  gap: 22px;
+}
+
+.cosmetics-back {
+  width: fit-content;
+}
+
+.cosmetics-detail-hero {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.72fr) minmax(320px, 1.28fr);
+  gap: clamp(22px, 4vw, 56px);
+  align-items: center;
+  padding: clamp(18px, 3vw, 38px);
+  border: 1px solid var(--cosmetics-border);
+  background: linear-gradient(135deg, rgba(72, 21, 36, 0.97), rgba(52, 25, 52, 0.94));
+  color: #f8e7bd;
+}
+
+.cosmetics-detail-primary-media {
+  display: grid;
+  min-height: 420px;
+  place-items: center;
+  overflow: hidden;
+  background: radial-gradient(circle, rgba(208, 166, 86, 0.2), rgba(34, 13, 24, 0.52));
+}
+
+.cosmetics-detail-primary-media img {
+  width: 100%;
+  max-height: 650px;
+  object-fit: contain;
+}
+
+.cosmetics-detail-crop {
+  aspect-ratio: 1 / 1;
+  min-height: 0;
+}
+
+.cosmetics-detail-crop img {
+  height: 100%;
+  object-fit: cover;
+}
+
+.cosmetics-detail-copy {
+  display: grid;
+  gap: 13px;
+}
+
+.cosmetics-detail-copy .cosmetics-kicker {
+  color: #e3bc69;
+}
+
+.cosmetics-detail-copy h1 {
+  margin: 0;
+  color: #fff0be;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1.04;
+}
+
+.cosmetics-detail-subtitle {
+  margin: 0;
+  color: #d7b987;
+  font-size: 1.12rem;
+}
+
+.cosmetics-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 5px 0;
+  background: rgba(231, 190, 110, 0.22);
+}
+
+.cosmetics-facts > div {
+  display: grid;
+  gap: 4px;
+  padding: 11px 13px;
+  background: rgba(45, 15, 27, 0.82);
+}
+
+.cosmetics-facts dt {
+  color: #b99a66;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cosmetics-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-weight: 800;
+}
+
+.cosmetics-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.cosmetics-chips span {
+  display: inline-flex;
+  width: fit-content;
+  padding: 5px 8px;
+  border: 1px solid rgba(231, 191, 111, 0.42);
+  color: #f2d99d;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.cosmetics-source-link {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 44px;
+  align-items: center;
+  gap: 7px;
+  color: #f2d99d;
+  font-weight: 900;
+}
+
+.cosmetics-featured-media {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.cosmetics-featured-media video,
+.cosmetics-featured-media img,
+.cosmetics-end-screen {
+  width: 100%;
+  max-height: 720px;
+  object-fit: contain;
+  background: rgba(44, 20, 31, 0.92);
+}
+
+.cosmetics-sounds {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.cosmetics-sounds article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.8fr);
+  gap: 10px;
+  align-items: center;
+  padding: 11px;
+  border: 1px solid rgba(101, 60, 31, 0.28);
+  background: rgba(255, 247, 221, 0.72);
+}
+
+.cosmetics-sounds p {
+  margin: 4px 0 0;
+  color: #73543c;
+  font-size: 0.78rem;
+}
+
+.cosmetics-sounds audio {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+}
+
+.cosmetics-art-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cosmetics-art-grid figure {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.cosmetics-art-grid img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  background: rgba(54, 24, 36, 0.9);
+}
+
+.cosmetics-art-grid figcaption {
+  color: #74553b;
+  font-size: 0.75rem;
+}
+
+.cosmetics-variants-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .cosmetics-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cosmetics-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .cosmetics-related-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .cosmetics-sounds {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .cosmetics-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .cosmetics-tab {
+    justify-content: flex-start;
+    padding-inline: 16px;
+  }
+
+  .cosmetics-surface {
+    padding: 12px;
+  }
+
+  .cosmetics-filters {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+
+  .cosmetics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cosmetics-card-copy {
+    min-height: 84px;
+    padding: 9px;
+  }
+
+  .cosmetics-card-meta {
+    display: grid;
+  }
+
+  .cosmetics-related-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cosmetics-detail-hero {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .cosmetics-detail-primary-media {
+    min-height: 300px;
+  }
+
+  .cosmetics-featured-media,
+  .cosmetics-art-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cosmetics-sounds article {
+    grid-template-columns: 1fr;
+  }
+
+  .cosmetics-pagination {
+    gap: 8px;
+  }
+
+  .cosmetics-pagination button {
+    padding-inline: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cosmetics-tab,
+  .cosmetics-card {
+    transition: none;
+  }
+
+  .cosmetics-skeleton {
+    animation: none;
+  }
+}

@@ -16,6 +16,7 @@ import {
   ListTree,
   Scroll,
   ShieldCheck,
+  Sparkles,
   Swords,
   Trophy,
   type LucideIcon,
@@ -47,6 +48,9 @@ export const TABS = [
   },
   {
     id: 'gallery', label: 'Галерея', icon: ImageIcon, slug: '/gallery', group: 'misc', entitlement: null,
+  },
+  {
+    id: 'cosmetics', label: 'Косметика', icon: Sparkles, slug: '/cosmetics', group: 'misc', entitlement: null,
   },
   {
     id: 'guides-archive', label: 'Архив гайдов', icon: Scroll, slug: '/guides-archive', group: 'misc', entitlement: 'guidesArchive',

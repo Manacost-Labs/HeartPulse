@@ -601,6 +601,7 @@ const loadHomeModule = () => import('./features/Home');
 const loadFAQPageModule = () => import('./features/FAQPage');
 const loadBgLibraryModule = () => import('./features/BgLibrary');
 const loadGuidesArchiveModule = () => import('./features/GuidesArchive');
+const loadCosmeticsModule = () => import('./features/Cosmetics');
 const loadStandardMatchupsModule = () => import('./features/StandardMatchups');
 const loadStandardMetaModule = () => import('./features/StandardMeta');
 const loadConstructedArchetypesModule = () => import('./features/ConstructedArchetypes');
@@ -626,6 +627,7 @@ const LazyArticlesTab = React.lazy(() => loadDeferredRoutesModule().then(module 
 const LazyGalleryTab = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.GalleryTab })));
 const LazyBgLibrary = React.lazy(loadBgLibraryModule);
 const LazyGuidesArchive = React.lazy(loadGuidesArchiveModule);
+const LazyCosmetics = React.lazy(loadCosmeticsModule);
 const LazyStandardMatchupsPage = React.lazy(loadStandardMatchupsModule);
 const LazyStandardMetaPage = React.lazy(loadStandardMetaModule);
 const LazyConstructedArchetypesPage = React.lazy(loadConstructedArchetypesModule);
@@ -669,6 +671,7 @@ const ROUTE_PRELOADERS: Partial<Record<TabId | 'login', () => Promise<unknown>>>
   'bg-tier-builder': loadBattlegroundsModule,
   'bg-library': loadBgLibraryModule,
   'guides-archive': loadGuidesArchiveModule,
+  cosmetics: loadCosmeticsModule,
 };
 
 function preloadRouteModule(route: TabId | 'login'): void {
@@ -1913,6 +1916,11 @@ export default function App() {
                     </React.Suspense>,
                     760,
                   )
+                )}
+                {activeTab === 'cosmetics' && (
+                  <React.Suspense fallback={<RouteFallback minHeight={760} />}>
+                    <LazyCosmetics currentPath={currentPath} navigatePath={navigatePath} />
+                  </React.Suspense>
                 )}
                 {activeTab === 'contests' && (
                   <React.Suspense fallback={<RouteFallback minHeight={620} />}><LazyContestsPage
