@@ -759,11 +759,14 @@ function RelatedCardGroups({ groups }: { groups: ConstructedRelatedCardGroup[] }
               <strong>{group.cards.length}</strong>
             </header>
             <div className="constructed-card-detail__related-card-grid">
-              {group.cards.map((item, index) => {
+              {group.cards.map(item => {
                 const name = item.nameRu || item.nameEn || item.cardId || 'Связанная карта';
                 const rules = plainText(item.textRu || item.textEn);
                 return (
-                  <article className="constructed-card-detail__related-card" key={`${item.cardId || name}-${index}`}>
+                  <article
+                    className="constructed-card-detail__related-card"
+                    key={item.cardId || item.wikiUrl || `${name}-${item.cardImageUrl || ''}`}
+                  >
                     <div className="constructed-card-detail__related-card-image">
                       {item.cardImageUrl
                         ? <img src={item.cardImageUrl} alt={`Карта Hearthstone «${name}»`} loading="lazy" decoding="async" />
