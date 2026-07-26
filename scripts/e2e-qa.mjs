@@ -447,6 +447,50 @@ const adminFixtures = {
         sounds: [],
         external_links: [{ label: 'HSReplay.net', url: 'https://example.test/hsreplay' }],
       },
+      related_cards_localized: [
+        {
+          heading: { ru: 'Варианты задания', en: 'Quest variants' },
+          cards: [
+            {
+              card_id: 'CARD_QA_TOKEN_1', name: { ru: 'Первый этап', en: 'First Step' },
+              text: { ru: 'Сыграйте контрольную карту.' }, mana_cost: 1, artist: 'QA Wiki Artist',
+              images: {
+                card: qaCard.imageRu, art: '/wallpaper/profile-hero-hth.jpg', crop: '/arena-logo-icon-256.webp',
+                art_metadata: { file_page_url: 'https://example.test/wiki/file/shared', width: 3000, height: 4000, sha1: 'qa-shared-wiki-art' },
+              },
+              relationship: { wiki_url: 'https://example.test/wiki/token-1' },
+            },
+            {
+              card_id: 'CARD_QA_TOKEN_2', name: { ru: 'Второй этап', en: 'Second Step' },
+              text: { ru: 'Сыграйте ещё одну контрольную карту.' }, mana_cost: 2,
+              images: {
+                card: qaCard.imageHa, art: '/wallpaper/profile-hero-hth.jpg',
+                art_metadata: { width: 3000, height: 4000, sha1: 'qa-shared-wiki-art' },
+              },
+              relationship: { wiki_url: 'https://example.test/wiki/token-2' },
+            },
+          ],
+        },
+        {
+          heading: { ru: 'Награды', en: 'Rewards' },
+          cards: [
+            {
+              card_id: 'CARD_QA_REWARD', name: { ru: 'Контрольная награда', en: 'QA Reward' },
+              text: { ru: 'Получите контрольную награду.' }, mana_cost: 5, attack: 7, health: 7,
+              images: {
+                card: qaCard.imageRu, art: '/wallpaper/home-paladin-hero.webp',
+                art_metadata: { file_page_url: 'https://example.test/wiki/file/reward', width: 3543, height: 4724, sha1: 'qa-reward-wiki-art' },
+              },
+              relationship: { wiki_url: 'https://example.test/wiki/reward' },
+            },
+            {
+              card_id: 'CARD_QA_MISSING_ART', name: { ru: 'Карта без полного арта', en: 'Missing Full Art' },
+              images: { card: qaCard.imageHa, crop: '/arena-logo-icon-256.webp' },
+              relationship: { wiki_url: 'https://example.test/wiki/missing-art' },
+            },
+          ],
+        },
+      ],
       decks: Array.from({ length: 7 }, (_, index) => ({
         id: `qa-deck-${index + 1}`,
         title: `Контрольная колода ${index + 1}`,
@@ -4707,7 +4751,9 @@ for (const [device, viewport] of [
       patches: document.querySelectorAll('.constructed-card-detail__patches details').length,
       firstPatchText: document.querySelector('.constructed-card-detail__patches details:first-of-type summary')?.textContent?.replace(/\s+/g, ' ').trim() || '',
       firstPatchHref: document.querySelector('.constructed-card-detail__patches details:first-of-type .constructed-card-detail__patch-body a')?.getAttribute('href') || '',
-      related: document.querySelectorAll('.constructed-card-detail__related a').length,
+      relatedGroups: document.querySelectorAll('.constructed-card-detail__related-group').length,
+      relatedCards: document.querySelectorAll('.constructed-card-detail__related-card').length,
+      relatedHeadings: [...document.querySelectorAll('.constructed-card-detail__related-group h3')].map(element => element.textContent?.trim() || ''),
       pools: document.querySelectorAll('.constructed-card-detail__pool').length,
       poolCards: document.querySelectorAll('.constructed-card-detail__pool-cards > *').length,
       poolColumns: getComputedStyle(document.querySelector('.constructed-card-detail__pool-cards')).gridTemplateColumns.split(/\s+/).filter(Boolean).length,
@@ -4715,6 +4761,11 @@ for (const [device, viewport] of [
       poolDisplay: getComputedStyle(document.querySelector('.constructed-card-detail__pool-cards')).display,
       poolOverflow: (document.querySelector('.constructed-card-detail__pool-cards')?.scrollWidth ?? 0) > (document.querySelector('.constructed-card-detail__pool-cards')?.clientWidth ?? 0) + 1,
       gallery: document.querySelectorAll('.constructed-card-detail__gallery img').length,
+      relatedFullArts: document.querySelectorAll('.constructed-card-detail__gallery button.is-contain img').length,
+      relatedFullArtFits: [...document.querySelectorAll('.constructed-card-detail__gallery button.is-contain img')]
+        .map(element => getComputedStyle(element).objectFit),
+      cropInRelatedGallery: [...document.querySelectorAll('.constructed-card-detail__gallery button.is-contain img')]
+        .some(element => element.getAttribute('src')?.includes('arena-logo-icon')),
       sounds: document.querySelectorAll('.constructed-card-detail__sounds audio').length,
       soundHeading: [...document.querySelectorAll('.constructed-card-detail__media-grid h2')].some(element => element.textContent?.includes('Звуки карты')),
       decks: document.querySelectorAll('.constructed-card-detail__deck').length,
@@ -4732,9 +4783,13 @@ for (const [device, viewport] of [
       || constructedDetailState.tags.filter(value => value.toLocaleLowerCase('ru-RU') === 'боевой клич').length !== 1
       || constructedDetailState.patches !== 2 || !constructedDetailState.firstPatchText.includes('Обновление 35.0')
       || !constructedDetailState.firstPatchText.includes('2025') || !constructedDetailState.firstPatchHref.startsWith('https://hs-manacost.ru/')
-      || constructedDetailState.related !== 1 || constructedDetailState.pools !== 1 || constructedDetailState.poolCards !== constructedDetailState.poolColumns || constructedDetailState.poolCards >= 12
+      || constructedDetailState.relatedGroups !== 2 || constructedDetailState.relatedCards !== 4
+      || constructedDetailState.relatedHeadings.join('|') !== 'Варианты задания|Награды'
+      || constructedDetailState.pools !== 1 || constructedDetailState.poolCards !== constructedDetailState.poolColumns || constructedDetailState.poolCards >= 12
       || constructedDetailState.poolLabel !== 'Огненные заклинания' || constructedDetailState.poolDisplay !== 'grid' || constructedDetailState.poolOverflow
-      || constructedDetailState.gallery !== 1 || constructedDetailState.sounds !== 0 || constructedDetailState.soundHeading
+      || constructedDetailState.gallery !== 3 || constructedDetailState.relatedFullArts !== 2
+      || constructedDetailState.relatedFullArtFits.some(value => value !== 'contain') || constructedDetailState.cropInRelatedGallery
+      || constructedDetailState.sounds !== 0 || constructedDetailState.soundHeading
       || constructedDetailState.decks !== 3 || constructedDetailState.deckImages !== 3 || constructedDetailState.deckPreviewButtons !== 3
       || constructedDetailState.deckTitles.some(title => /Control|Face|Warrior|Hunter/i.test(title))
       || constructedDetailState.firstDeckImageWidth < constructedDetailState.firstDeckWidth * 0.9
@@ -4838,8 +4893,21 @@ for (const [device, viewport] of [
       || restoredLightboxState.bodyOverflow || restoredLightboxState.bodyPosition) {
       failures.push(`constructed card lightbox [${device}]: page isolation was not restored (${JSON.stringify(restoredLightboxState)})`);
     }
-    await page.click('.constructed-card-detail__gallery button');
+    await page.click('.constructed-card-detail__gallery button.is-contain');
     await page.waitForSelector('.constructed-card-lightbox');
+    const relatedArtLightboxState = await page.evaluate(() => ({
+      title: document.querySelector('#constructed-card-lightbox-title')?.textContent?.trim() || '',
+      description: document.querySelector('.constructed-card-lightbox__footer p')?.textContent?.trim() || '',
+      source: document.querySelector('.constructed-card-lightbox__actions a')?.getAttribute('href') || '',
+      imageFit: getComputedStyle(document.querySelector('.constructed-card-lightbox__media img')).objectFit,
+    }));
+    if (!relatedArtLightboxState.title.includes('полный арт')
+      || !relatedArtLightboxState.description.includes('CARD_QA_TOKEN_1, CARD_QA_TOKEN_2')
+      || !relatedArtLightboxState.description.includes('3000×4000')
+      || relatedArtLightboxState.source !== 'https://example.test/wiki/file/shared'
+      || relatedArtLightboxState.imageFit !== 'contain') {
+      failures.push(`constructed related full-art lightbox [${device}]: wiki metadata or uncropped media regressed (${JSON.stringify(relatedArtLightboxState)})`);
+    }
     await page.keyboard.press('Escape');
     await page.waitForSelector('.constructed-card-lightbox', { hidden: true });
     await page.waitForFunction(() => document.activeElement?.closest('.constructed-card-detail__gallery'));
