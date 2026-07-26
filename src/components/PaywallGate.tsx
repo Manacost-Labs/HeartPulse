@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ArrowUpRight, Check, LockKeyhole, RefreshCw } from 'lucide-react';
+import { ArrowUpRight, Check, LockKeyhole, RefreshCw, Send } from 'lucide-react';
 import '../route-parchment.css';
 import '../battlegrounds-shell.css';
 import './PaywallGate.css';
@@ -20,6 +20,7 @@ export type PaywallGateProps = {
   description?: string;
   benefits?: string[];
   actionLabel?: string;
+  providerButtons?: boolean;
 };
 
 export type PaywallAccessState = Pick<
@@ -52,6 +53,7 @@ export default function PaywallGate({
   description,
   benefits,
   actionLabel,
+  providerButtons = false,
 }: PaywallGateProps) {
   const preview = children ?? <SubscriptionLockedPreview title={previewTitle || title} />;
   if (!active) return <>{preview}</>;
@@ -63,6 +65,7 @@ export default function PaywallGate({
         description={description}
         benefits={benefits}
         actionLabel={actionLabel}
+        providerButtons={providerButtons}
         authUser={authUser}
         subscriptionStatus={subscriptionStatus}
         subscriptionLoading={subscriptionLoading}
@@ -191,6 +194,7 @@ function InlineSubscriptionPaywall({
   description,
   benefits,
   actionLabel,
+  providerButtons,
   authUser,
   subscriptionStatus,
   subscriptionLoading,
@@ -201,6 +205,7 @@ function InlineSubscriptionPaywall({
   description?: string;
   benefits?: string[];
   actionLabel?: string;
+  providerButtons: boolean;
   authUser: object | null;
   subscriptionStatus: { message?: string } | null;
   subscriptionLoading: boolean;
@@ -220,7 +225,7 @@ function InlineSubscriptionPaywall({
 
   return (
     <section
-      className={`arena-inline-paywall arena-inline-paywall--${surface}`}
+      className={`arena-inline-paywall arena-inline-paywall--${surface}${providerButtons ? ' arena-inline-paywall--providers' : ''}`}
       aria-labelledby={`arena-inline-paywall-${surface}-title`}
       aria-describedby={`arena-inline-paywall-${surface}-description`}
       data-tour-id="subscription-paywall"
@@ -239,23 +244,61 @@ function InlineSubscriptionPaywall({
         </ul>
       </div>
       <div className="arena-inline-paywall__actions">
-        <a
-          className="arena-inline-paywall__primary"
-          href="https://boosty.to/kolodahearthstone"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <span>{actionLabel ?? copy.actionLabel}</span>
-          <ArrowUpRight size={18} aria-hidden="true" />
-        </a>
-        <a
-          className="arena-inline-paywall__payment-link"
-          href="https://web.tribute.tg/s/xz9"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Оформить через Telegram
-        </a>
+        {providerButtons ? (
+          <>
+            <span className="arena-inline-paywall__actions-label">Выберите способ подписки</span>
+            <div className="arena-inline-paywall__providers">
+              <a
+                className="arena-inline-paywall__provider arena-inline-paywall__provider--boosty"
+                href="https://boosty.to/kolodahearthstone"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span className="arena-inline-paywall__provider-mark" aria-hidden="true">B</span>
+                <span className="arena-inline-paywall__provider-copy">
+                  <small>Boosty</small>
+                  <strong>Открыть через Boosty</strong>
+                </span>
+                <ArrowUpRight size={18} aria-hidden="true" />
+              </a>
+              <a
+                className="arena-inline-paywall__provider arena-inline-paywall__provider--telegram"
+                href="https://web.tribute.tg/s/xz9"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span className="arena-inline-paywall__provider-mark" aria-hidden="true">
+                  <Send size={18} />
+                </span>
+                <span className="arena-inline-paywall__provider-copy">
+                  <small>Telegram</small>
+                  <strong>Открыть через Telegram</strong>
+                </span>
+                <ArrowUpRight size={18} aria-hidden="true" />
+              </a>
+            </div>
+          </>
+        ) : (
+          <>
+            <a
+              className="arena-inline-paywall__primary"
+              href="https://boosty.to/kolodahearthstone"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span>{actionLabel ?? copy.actionLabel}</span>
+              <ArrowUpRight size={18} aria-hidden="true" />
+            </a>
+            <a
+              className="arena-inline-paywall__payment-link"
+              href="https://web.tribute.tg/s/xz9"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Оформить через Telegram
+            </a>
+          </>
+        )}
         {!authUser ? (
           <a className="arena-inline-paywall__account-link" href="/?login">Уже подписаны? Войти</a>
         ) : (

@@ -106,9 +106,21 @@ try {
   await page.waitForSelector('[data-tour-id="fun-decks-deck-list"] .deck-list-view');
   assert.equal(await page.$$eval('.fun-deck-card', cards => cards.length), 3);
   assert.equal(await page.$$eval('.arena-paywall__overlay', nodes => nodes.length), 0);
-  assert.equal(
-    await page.$eval('.arena-inline-paywall__primary span', node => node.textContent),
-    'Открыть все фан-колоды',
+  assert.deepEqual(
+    await page.$$eval('.arena-inline-paywall__provider', nodes => nodes.map(node => ({
+      text: node.textContent?.replace(/\s+/g, ' ').trim(),
+      href: node.getAttribute('href'),
+    }))),
+    [
+      {
+        text: 'BBoostyОткрыть через Boosty',
+        href: 'https://boosty.to/kolodahearthstone',
+      },
+      {
+        text: 'TelegramОткрыть через Telegram',
+        href: 'https://web.tribute.tg/s/xz9',
+      },
+    ],
   );
   for (const anchor of [
     'fun-decks-method',
@@ -139,11 +151,13 @@ try {
     await page.waitForSelector('[data-tour-id="fun-decks-deck-list"] .deck-list-view');
     const layout = await page.evaluate(() => ({
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      primaryHeight: document.querySelector('.arena-inline-paywall__primary')?.getBoundingClientRect().height ?? 0,
+      providerHeights: [...document.querySelectorAll('.arena-inline-paywall__provider')]
+        .map(node => node.getBoundingClientRect().height),
       cardCount: document.querySelectorAll('.fun-deck-card').length,
     }));
     assert.ok(layout.overflow <= 1, `fun deck teaser overflowed by ${layout.overflow}px at ${width}px`);
-    assert.ok(layout.primaryHeight >= 48);
+    assert.equal(layout.providerHeights.length, 2);
+    assert.ok(layout.providerHeights.every(height => height >= 48));
     assert.equal(layout.cardCount, 3);
   }
   await page.screenshot({ path: `${screenshotPrefix}-fun-decks-mobile.png`, fullPage: true });

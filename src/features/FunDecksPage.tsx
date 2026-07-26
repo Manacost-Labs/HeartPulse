@@ -437,7 +437,7 @@ export default function FunDecksPage({
             'Полные составы и коды для импорта',
             'Свежие стримерские и off-meta сборки',
           ]}
-          actionLabel="Открыть все фан-колоды"
+          providerButtons
           {...paywall}
         />
       ) : null}

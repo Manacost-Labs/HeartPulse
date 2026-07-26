@@ -19,12 +19,14 @@ assert.match(archetypesSource, /featuredBuild/);
 
 assert.match(funDecksSource, /FREE_PREVIEW_COUNT\s*=\s*3/);
 assert.match(funDecksSource, /hasFullAccess/);
-assert.match(funDecksSource, /Открыть все фан-колоды/);
+assert.match(funDecksSource, /providerButtons/);
 assert.match(funDecksSource, /data-tour-id=\{tourAnchor \? 'fun-decks-deck-list'/);
 
 assert.match(paywallSource, /presentation === 'inline'/);
 assert.match(paywallSource, /Открыть всю мету/);
 assert.match(paywallSource, /Открыть статистику архетипа/);
+assert.match(paywallSource, /Открыть через Boosty/);
+assert.match(paywallSource, /Открыть через Telegram/);
 
 assert.match(appSource, /hasFullAccess=\{standardAccessGranted\}/);
 assert.match(appSource, /STANDARD_SOFT_PAYWALL_TABS\.has\(activeTab\)/);

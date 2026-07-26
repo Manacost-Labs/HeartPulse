@@ -112,6 +112,137 @@
   min-width: 0;
 }
 
+.arena-inline-paywall--providers {
+  grid-template-columns: minmax(0, 1fr) minmax(310px, 0.42fr);
+}
+
+.arena-inline-paywall--providers .arena-inline-paywall__actions {
+  position: relative;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border: 1px solid rgba(111, 62, 25, 0.42);
+  background:
+    linear-gradient(135deg, rgba(255, 247, 221, 0.78), rgba(225, 184, 103, 0.3)),
+    url('/wallpaper/arena-parchment.jpg') center / 540px auto repeat;
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 248, 220, 0.45),
+    0 8px 20px rgba(72, 36, 12, 0.12);
+}
+
+.arena-inline-paywall--providers .arena-inline-paywall__actions::before,
+.arena-inline-paywall--providers .arena-inline-paywall__actions::after {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border: 1px solid rgba(118, 16, 24, 0.72);
+  background: #e5bd61;
+  content: '';
+  transform: rotate(45deg);
+}
+
+.arena-inline-paywall--providers .arena-inline-paywall__actions::before {
+  top: -4px;
+  left: -4px;
+}
+
+.arena-inline-paywall--providers .arena-inline-paywall__actions::after {
+  right: -4px;
+  bottom: -4px;
+}
+
+.arena-inline-paywall__actions-label {
+  color: var(--paywall-burgundy);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.11em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.arena-inline-paywall__providers {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.arena-inline-paywall__provider {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 18px;
+  gap: 0.65rem;
+  align-items: center;
+  min-height: 62px;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #e2b64d;
+  border-radius: 2px;
+  color: #fff3cf;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 247, 218, 0.16),
+    0 8px 18px rgba(47, 14, 11, 0.2);
+  text-decoration: none;
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.arena-inline-paywall__provider--boosty {
+  background:
+    radial-gradient(circle at 92% 8%, rgba(228, 172, 61, 0.18), transparent 28%),
+    linear-gradient(145deg, #8d151d, #4b060b);
+}
+
+.arena-inline-paywall__provider--telegram {
+  border-color: #b9b9a8;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(141, 211, 245, 0.2), transparent 28%),
+    linear-gradient(145deg, #286d98, #153752);
+}
+
+.arena-inline-paywall__provider:hover {
+  color: #fff9e7;
+  border-color: #f1d27f;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 247, 218, 0.2),
+    0 11px 22px rgba(47, 14, 11, 0.26);
+  transform: translateY(-1px);
+}
+
+.arena-inline-paywall__provider:focus-visible {
+  outline: 3px solid rgba(94, 52, 125, 0.45);
+  outline-offset: 3px;
+}
+
+.arena-inline-paywall__provider-mark {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid rgba(255, 239, 184, 0.58);
+  border-radius: 50%;
+  color: #ffe9a9;
+  background: rgba(34, 8, 8, 0.22);
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.arena-inline-paywall__provider-copy {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.arena-inline-paywall__provider-copy small {
+  color: rgba(255, 242, 205, 0.8);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.arena-inline-paywall__provider-copy strong {
+  color: inherit;
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
 .arena-inline-paywall__primary,
 .arena-inline-paywall__refresh {
   display: inline-flex;
@@ -162,6 +293,13 @@
   text-underline-offset: 0.2em;
 }
 
+.arena-inline-paywall--providers .arena-inline-paywall__account-link,
+.arena-inline-paywall--providers .arena-inline-paywall__refresh {
+  min-height: 38px;
+  padding-block: 0.48rem;
+  border-top: 1px solid rgba(111, 62, 25, 0.2);
+}
+
 .arena-inline-paywall__refresh:disabled {
   cursor: wait;
   opacity: 0.7;
@@ -183,6 +321,10 @@
   .arena-inline-paywall ul {
     grid-template-columns: 1fr;
   }
+
+  .arena-inline-paywall--providers .arena-inline-paywall__actions {
+    width: min(100%, 600px);
+  }
 }
 
 @media (max-width: 520px) {
@@ -201,10 +343,28 @@
   .arena-inline-paywall__primary {
     width: 100%;
   }
+
+  .arena-inline-paywall--providers .arena-inline-paywall__actions {
+    width: 100%;
+    padding: 0.7rem;
+  }
+
+  .arena-inline-paywall__provider {
+    grid-template-columns: 34px minmax(0, 1fr) 16px;
+    gap: 0.5rem;
+    min-height: 58px;
+    padding-inline: 0.55rem;
+  }
+
+  .arena-inline-paywall__provider-mark {
+    width: 34px;
+    height: 34px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .arena-inline-paywall__primary,
+  .arena-inline-paywall__provider,
   .arena-inline-paywall__refresh {
     transition: none;
   }
