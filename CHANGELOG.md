@@ -1,5 +1,14 @@
 # HS-Arena Changelog
 
+## v1.0.53 - 2026-07-26
+
+- Added localized token, quest-reward and Fabled hero-form groups to
+  constructed card details, with exact Hearthstone Wiki full-art originals in
+  an uncropped gallery/lightbox, source and resolution metadata, shared-art
+  deduplication, and no fallback to game crop images.
+- Direct public card URLs include the same related-card groups and full-art
+  gallery in server-rendered HTML.
+
 ## v1.0.52 - 2026-07-26
 
 - Added an icon-based class filter to the constructed archetype catalog,
