@@ -1,5 +1,11 @@
 # HS-Arena Changelog
 
+## v1.0.51 - 2026-07-26
+
+- Reduced the shared traditional-mode banner height across desktop and mobile
+  layouts while keeping the approved artwork, readable summary metrics and
+  existing navigation unchanged.
+
 ## v1.0.50 - 2026-07-26
 
 - Restored the full React card-detail experience on versioned production
