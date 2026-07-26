@@ -232,7 +232,7 @@ npm run qa:e2e
 | --- | --- |
 | Интерфейс | React 19, TypeScript strict, Vite 6, Tailwind CSS 4, Lucide, responsive CSS |
 | API и данные | Node.js 22, Express, Redis, SQLite, Sharp, Puppeteer, node-cron, Hearthstone deckstrings |
-| Тестирование | Node test runner, tsx, fast-check, Puppeteer E2E, axe-core, browser contract tests |
+| Тестирование | Node test runner, tsx, fast-check, Storybook 10 + MCP, Puppeteer E2E, axe-core, browser contract tests |
 | Качество кода | TypeScript, React Doctor, Knip, markdownlint, design.md, архитектурные и bundle-budget проверки |
 | AppSec | CodeQL, Semgrep CE, Gitleaks, Trivy, GitHub Private Vulnerability Reporting |
 | Supply chain | Dependabot, OSV-Scanner, Dependency Review, npm audit, OpenSSF Scorecard |
@@ -259,6 +259,20 @@ npm run dev
 Frontend доступен на `http://localhost:3000`, API запускается рядом в dev
 режиме. Без внешних ключей используются локальные snapshots; интеграции и
 публикация свежих данных требуют соответствующих переменных из `.env.example`.
+
+Для разработки и AI-проверки компонентов отдельно запустите:
+
+```bash
+npm run storybook
+```
+
+Storybook доступен на `http://127.0.0.1:6006`, а его локальный MCP endpoint —
+на `http://127.0.0.1:6006/mcp`. Статическая проверка всех stories:
+
+```bash
+npm run test:storybook
+npm run build-storybook
+```
 
 Полезные команды:
 

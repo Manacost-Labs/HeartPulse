@@ -9,6 +9,10 @@
     "sentry": {
       "type": "http",
       "url": "https://mcp.sentry.dev/mcp"
+    },
+    "storybook": {
+      "type": "http",
+      "url": "http://127.0.0.1:6006/mcp"
     }
   }
 }

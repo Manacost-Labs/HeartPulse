@@ -1,0 +1,15 @@
+.storybook-manacost-surface {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: clamp(1rem, 4vw, 3rem);
+  color: #3d2208;
+  background:
+    linear-gradient(rgba(255, 249, 229, 0.88), rgba(246, 226, 184, 0.92)),
+    url("/wallpaper/arena-parchment.jpg") center / cover fixed;
+  font-family: var(--font-body);
+}
+
+.storybook-manacost-surface > * {
+  width: min(100%, 64rem);
+  margin-inline: auto;
+}

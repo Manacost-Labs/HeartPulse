@@ -24,6 +24,39 @@
 DevTools MCP, проверить целевые разрешения, overflow, консоль, сеть,
 accessibility tree и показатели производительности.
 
+## Storybook и Storybook MCP
+
+Storybook 10 работает как локальная мастерская React-компонентов и не входит в
+production bundle. Запуск:
+
+```bash
+npm run storybook
+```
+
+Интерфейс откроется на `http://127.0.0.1:6006`, а официальный Storybook MCP —
+на `http://127.0.0.1:6006/mcp`. После первого добавления `.mcp.json`
+перезапустите Codex или Claude, чтобы клиент перечитал список MCP-серверов.
+
+Обязательный цикл для переиспользуемого React-компонента:
+
+1. Добавить или обновить расположенный рядом файл `*.stories.tsx`.
+2. Через MCP получить актуальные инструкции Storybook и список stories.
+3. Открыть каждое изменённое состояние в реальном браузере и проверить
+   desktop/mobile, accessibility, консоль и сеть.
+4. Выполнить:
+
+   ```bash
+   npm run test:storybook
+   npm run build-storybook
+   ```
+
+Подключены официальные addons для документации, accessibility и MCP.
+Документационный и development toolsets MCP включены. Test toolset пока
+отключён: интерактивные `play`-сценарии компилируются и доступны в stories, а
+отдельный Vitest Browser runner можно подключить позже без увеличения
+production-зависимостей. Телеметрия Storybook отключена в обеих npm-командах.
+Локальный MCP нельзя публиковать через production Nginx.
+
 ## Chrome DevTools MCP
 
 Файл `.mcp.json` подключает Chrome DevTools MCP через локальную зафиксированную
