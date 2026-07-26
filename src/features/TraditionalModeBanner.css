@@ -1,0 +1,213 @@
+.traditional-mode-banner {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(300px, 0.55fr);
+  gap: clamp(2rem, 6vw, 6rem);
+  align-items: end;
+  min-height: clamp(340px, 35vw, 520px);
+  padding: clamp(2.4rem, 5.5vw, 5.5rem);
+  overflow: hidden;
+  border: 12px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
+  color: #fff0c4;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(48, 1, 10, 0.98) 0%,
+      rgba(62, 3, 14, 0.94) 31%,
+      rgba(73, 5, 17, 0.76) 50%,
+      rgba(49, 4, 13, 0.24) 76%,
+      rgba(30, 2, 9, 0.08) 100%
+    ),
+    url('/wallpaper/profile-hero-hth.webp') 66% 42% / cover no-repeat;
+  box-shadow:
+    inset 0 0 0 1px rgba(248, 208, 109, 0.22),
+    0 14px 30px rgba(67, 35, 14, 0.18);
+}
+
+.traditional-mode-banner::after {
+  position: absolute;
+  z-index: -1;
+  inset: 7px;
+  border: 1px solid rgba(248, 208, 109, 0.18);
+  content: '';
+  pointer-events: none;
+}
+
+.traditional-mode-banner__copy {
+  z-index: 1;
+  align-self: center;
+  max-width: 650px;
+}
+
+.traditional-mode-banner__copy h1 {
+  max-width: 720px;
+  margin: 0;
+  color: #fff2ca;
+  font-family: var(--font-display);
+  font-size: clamp(3.5rem, 7vw, 6.8rem);
+  line-height: 0.88;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+  text-shadow: 0 3px 10px rgba(27, 0, 5, 0.62);
+}
+
+.traditional-mode-banner__copy p {
+  max-width: 590px;
+  margin: clamp(1rem, 2vw, 1.45rem) 0 0;
+  color: #e9cf92;
+  font-size: clamp(1rem, 1.45vw, 1.28rem);
+  line-height: 1.48;
+  text-wrap: balance;
+  text-shadow: 0 2px 8px rgba(25, 0, 5, 0.6);
+}
+
+.traditional-mode-banner__summary {
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-self: end;
+  min-width: 0;
+  margin: 0;
+  border: 1px solid rgba(232, 185, 79, 0.36);
+  background: rgba(34, 2, 9, 0.82);
+  box-shadow: 0 12px 26px rgba(19, 0, 4, 0.2);
+  backdrop-filter: blur(3px);
+}
+
+.traditional-mode-banner__summary > div {
+  display: flex;
+  min-width: 0;
+  min-height: 74px;
+  flex-direction: column-reverse;
+  justify-content: center;
+  padding: 0.9rem 1.15rem;
+  border-right: 1px solid rgba(232, 185, 79, 0.22);
+}
+
+.traditional-mode-banner__summary > div:last-child {
+  border-right: 0;
+}
+
+.traditional-mode-banner__summary dt {
+  overflow: hidden;
+  margin-top: 0.22rem;
+  color: #c9a45e;
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0.105em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.traditional-mode-banner__summary dd {
+  overflow: hidden;
+  margin: 0;
+  color: #fff0bf;
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 1.8vw, 1.45rem);
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.traditional-mode-banner-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.8rem;
+  padding: 0.45rem;
+  border: 1px solid rgba(184, 144, 74, 0.52);
+  border-radius: 999px;
+  background: rgba(255, 248, 228, 0.78);
+  width: fit-content;
+}
+
+@media (max-width: 980px) {
+  .traditional-mode-banner {
+    grid-template-columns: minmax(0, 1fr) minmax(250px, 0.65fr);
+    min-height: 390px;
+    padding: clamp(2rem, 5vw, 3.5rem);
+    background-position: 62% 42%;
+  }
+
+  .traditional-mode-banner__copy h1 {
+    font-size: clamp(3rem, 8vw, 5rem);
+  }
+}
+
+@media (max-width: 720px) {
+  .traditional-mode-banner {
+    grid-template-columns: 1fr;
+    align-content: space-between;
+    min-height: 460px;
+    padding: 2.2rem 1.4rem 1.35rem;
+    border-width: 8px;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(48, 1, 10, 0.96) 0%,
+        rgba(57, 2, 13, 0.82) 32%,
+        rgba(45, 2, 11, 0.35) 62%,
+        rgba(28, 1, 7, 0.72) 100%
+      ),
+      url('/wallpaper/profile-hero-hth.webp') right bottom / auto 86% no-repeat,
+      #3a030d;
+  }
+
+  .traditional-mode-banner__copy {
+    align-self: start;
+  }
+
+  .traditional-mode-banner__copy h1 {
+    max-width: 11ch;
+    font-size: clamp(2.65rem, 13.5vw, 4.4rem);
+    line-height: 0.9;
+  }
+
+  .traditional-mode-banner__copy p {
+    max-width: 28rem;
+    margin-top: 0.8rem;
+    font-size: 0.92rem;
+    line-height: 1.38;
+  }
+
+  .traditional-mode-banner__summary {
+    width: 100%;
+    align-self: end;
+  }
+
+  .traditional-mode-banner__summary > div {
+    min-height: 64px;
+    padding: 0.72rem 0.85rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .traditional-mode-banner {
+    min-height: 430px;
+    padding-inline: 1rem;
+    border-width: 6px;
+  }
+
+  .traditional-mode-banner__copy h1 {
+    font-size: clamp(2.35rem, 13vw, 3rem);
+  }
+
+  .traditional-mode-banner__summary dt {
+    font-size: 0.5rem;
+    letter-spacing: 0.07em;
+  }
+
+  .traditional-mode-banner__summary dd {
+    font-size: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .traditional-mode-banner {
+    scroll-behavior: auto;
+  }
+}

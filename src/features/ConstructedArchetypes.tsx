@@ -363,31 +363,17 @@ function ArchetypeCatalogPage({
     });
   }, [catalog?.items, deferredQuery, sort]);
 
-  const totalBuilds = catalog?.items.reduce((sum, item) => sum + item.deckCount, 0) ?? 0;
   const totalGames = catalog?.items.reduce((sum, item) => sum + item.games, 0) ?? 0;
 
   return (
     <main className="archetypes-page" id="main-content" tabIndex={-1}>
-      <section className="archetypes-hero">
-        <div className="archetypes-hero__copy">
-          <span className="archetypes-eyebrow"><Sparkles size={15} /> HSGuru · текущий патч</span>
-          <h1>Архетипы Hearthstone</h1>
-          <p>Живая мета Стандарта и Вольного режима: сила архетипа, популярность, готовые сборки и история изменений.</p>
-          <a
-            className="archetypes-hero__meta-link"
-            href="/standard/meta/"
-            onClick={event => {
-              event.preventDefault();
-              navigatePath('/standard/meta');
-            }}
-          >
-            <BarChart3 size={17} aria-hidden="true" />
-            Перейти к тир-листу меты
-          </a>
+      <section className="traditional-mode-banner">
+        <div className="traditional-mode-banner__copy">
+          <h1>Архетипы</h1>
+          <p>Актуальные архетипы, готовые сборки и история их результатов.</p>
         </div>
-        <dl className="archetypes-hero__summary" aria-label="Сводка каталога">
+        <dl className="traditional-mode-banner__summary" aria-label="Сводка каталога">
           <div><dt>Архетипов</dt><dd>{catalog?.items.length ?? '—'}</dd></div>
-          <div><dt>Сборок</dt><dd>{totalBuilds.toLocaleString('ru-RU')}</dd></div>
           <div><dt>Игр в выборке</dt><dd>{totalGames ? totalGames.toLocaleString('ru-RU') : '—'}</dd></div>
         </dl>
       </section>

@@ -549,45 +549,37 @@ function StandardMatchupsPage() {
 
   return (
     <section className="standard-matchups space-y-5 sm:space-y-6" id="matchups-overview">
-      <div
-        className="standard-matchups__masthead rounded-2xl p-5 sm:p-7"
-        style={{
-          background: 'linear-gradient(135deg,rgba(255,248,222,0.96),rgba(231,204,138,0.62))',
-          border: '1.5px solid rgba(184,144,74,0.62)',
-          boxShadow: '0 18px 36px rgba(39,23,8,0.12)',
-        }}
-      >
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
-          <div>
-            <div className="uppercase tracking-[0.28em] text-xs font-bold text-[#8b6c42] mb-2">{formatLabel}</div>
-            <h1 className="font-hs text-4xl sm:text-5xl leading-tight" style={{ color: '#3d2208' }}>Матчапы</h1>
-            <p className="mt-3 max-w-3xl text-base sm:text-lg text-[#6b4c2a]">
-              <span className="sm:hidden">Сравнение винрейтов архетипов по данным HSGuru.</span>
-              <span className="hidden sm:inline">Матрица архетипов по данным HSGuru: строки показывают выбранный архетип, столбцы - соперника, в ячейках винрейт.</span>
-            </p>
-          </div>
-          <div className="standard-matchups__rank-switcher flex flex-wrap gap-2" aria-label="Формат игры" data-tour-id="matchups-rank">
-            {([
-              ['standard', 'Стандарт'],
-              ['wild', 'Вольный'],
-            ] as const).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setFormat(value)}
-                aria-pressed={format === value}
-                aria-label={`Показать матчапы: ${label}`}
-                className={`px-4 py-2 rounded-full font-bold transition ${format === value ? 'text-[#2c1e16]' : 'text-[#6b4c2a]'}`}
-                style={{
-                  background: format === value ? 'linear-gradient(135deg,#f4d06f,#d6a848)' : 'rgba(255,255,255,0.55)',
-                  border: format === value ? '1.5px solid #b8904a' : '1px solid rgba(107,76,42,0.18)',
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+      <header className="traditional-mode-banner">
+        <div className="traditional-mode-banner__copy">
+          <h1>Матчапы</h1>
+          <p>Сравнение силы актуальных архетипов против каждого соперника.</p>
         </div>
+        <dl className="traditional-mode-banner__summary" aria-label="Сводка матчапов">
+          <div><dt>Архетипов</dt><dd>{rows.length || '—'}</dd></div>
+          <div><dt>Рейтинг</dt><dd>{data.rankLabel || 'Легенда'}</dd></div>
+        </dl>
+      </header>
+
+      <div className="standard-matchups__rank-switcher traditional-mode-banner-controls" aria-label="Формат игры" data-tour-id="matchups-rank">
+        {([
+          ['standard', 'Стандарт'],
+          ['wild', 'Вольный'],
+        ] as const).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setFormat(value)}
+            aria-pressed={format === value}
+            aria-label={`Показать матчапы: ${label}`}
+            className={`px-4 py-2 rounded-full font-bold transition ${format === value ? 'text-[#2c1e16]' : 'text-[#6b4c2a]'}`}
+            style={{
+              background: format === value ? 'linear-gradient(135deg,#f4d06f,#d6a848)' : 'rgba(255,255,255,0.55)',
+              border: format === value ? '1.5px solid #b8904a' : '1px solid rgba(107,76,42,0.18)',
+            }}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       <nav

@@ -3765,7 +3765,7 @@ for (const [device, viewport] of [
     }
     const archetypeCatalogState = await page.evaluate(() => {
       const root = document.querySelector('.archetypes-page');
-      const hero = document.querySelector('.archetypes-hero');
+      const hero = document.querySelector('.traditional-mode-banner');
       const search = document.querySelector('.archetypes-search input');
       const formatButtons = [...document.querySelectorAll('.archetypes-format-switch button')];
       const openButtons = [...document.querySelectorAll('.archetype-row__open')];
@@ -3773,7 +3773,7 @@ for (const [device, viewport] of [
         heading: root?.querySelector('h1')?.textContent?.trim() || '',
         rows: document.querySelectorAll('.archetype-row').length,
         formats: formatButtons.length,
-        summaryItems: document.querySelectorAll('.archetypes-hero__summary div').length,
+        summaryItems: document.querySelectorAll('.traditional-mode-banner__summary div').length,
         heroHeight: hero?.getBoundingClientRect().height ?? 0,
         searchFontSize: search ? parseFloat(getComputedStyle(search).fontSize) : 0,
         smallestFormatTarget: Math.min(...formatButtons.map(button => button.getBoundingClientRect().height)),
@@ -3783,7 +3783,7 @@ for (const [device, viewport] of [
       };
     });
     if (!archetypeCatalogState.heading.includes('Архетипы') || archetypeCatalogState.rows !== qaArchetypeItems.length
-      || archetypeCatalogState.formats !== 2 || archetypeCatalogState.summaryItems !== 3
+      || archetypeCatalogState.formats !== 2 || archetypeCatalogState.summaryItems !== 2
       || archetypeCatalogState.heroHeight < 120 || archetypeCatalogState.heroHeight > 620
       || (device === 'mobile' && archetypeCatalogState.searchFontSize < 16)
       || archetypeCatalogState.smallestFormatTarget < 44 || archetypeCatalogState.smallestOpenTarget < 42
@@ -3904,13 +3904,13 @@ for (const [device, viewport] of [
     await page.waitForFunction(() => document.querySelector('.standard-meta-chart__heading p')?.textContent?.includes('Легенда'));
     const standardMetaState = await page.evaluate(() => {
       const pageRoot = document.querySelector('.standard-meta');
-      const masthead = document.querySelector('.standard-meta__masthead');
-      const stats = document.querySelector('.standard-meta__masthead-stats');
+      const masthead = document.querySelector('.traditional-mode-banner');
+      const stats = document.querySelector('.traditional-mode-banner__summary');
       const controls = document.querySelector('.standard-meta__controls');
       const cardsView = document.querySelector('[data-meta-view="cards"]');
       const tableView = document.querySelector('[data-meta-view="table"]');
       const searchInput = document.querySelector('.standard-meta__search input');
-      const title = document.querySelector('.standard-meta__masthead h1');
+      const title = document.querySelector('.traditional-mode-banner h1');
       const firstCard = document.querySelector('.standard-meta-card');
       const ornament = document.querySelector('.standard-meta__hero-ornament');
       const rankButtons = [...document.querySelectorAll('.standard-meta__rank-tabs button')];
@@ -3945,8 +3945,8 @@ for (const [device, viewport] of [
         clientWidth: pageRoot?.clientWidth ?? 0,
       };
     });
-    if (standardMetaState.mastheadHeight < 150 || standardMetaState.mastheadHeight > 430
-      || standardMetaState.titleSize > 68 || standardMetaState.statsCount !== 3
+    if (standardMetaState.mastheadHeight < 150 || standardMetaState.mastheadHeight > 540
+      || standardMetaState.titleSize > 112 || standardMetaState.statsCount !== 2
       || !standardMetaState.controlsVisible
       || !standardMetaState.viewControlsPresent
       || standardMetaState.allRanksPresent || standardMetaState.rankLabels[0] !== 'Алмаз'
@@ -3959,7 +3959,7 @@ for (const [device, viewport] of [
       || (device === 'mobile' && !standardMetaState.rankSelectVisible)
       || (device !== 'mobile' && standardMetaState.rankSelectVisible)
       || standardMetaState.sourcePanelPresent
-      || !standardMetaState.ornamentVisible || !standardMetaState.controlsFrame.includes('main-page-rail-border.png')
+      || standardMetaState.ornamentVisible || !standardMetaState.controlsFrame.includes('main-page-rail-border.png')
       || standardMetaState.cardContentVisibility !== 'auto'
       || (device === 'mobile' && (standardMetaState.searchFontSize < 16 || standardMetaState.viewTargetHeight < 44))
       || standardMetaState.scrollWidth > standardMetaState.clientWidth + 1) {
@@ -4911,7 +4911,7 @@ for (const width of [320, 430]) {
     await page.waitForSelector('.archetype-row', { timeout: 20_000 });
     const metaNarrowState = await page.evaluate(() => {
       const root = document.querySelector('.archetypes-page');
-      const hero = document.querySelector('.archetypes-hero');
+      const hero = document.querySelector('.traditional-mode-banner');
       const search = document.querySelector('.archetypes-search input');
       const formatButtons = [...document.querySelectorAll('.archetypes-format-switch button')];
       const openButtons = [...document.querySelectorAll('.archetype-row__open')];

@@ -1,3 +1,5 @@
+@import './TraditionalModeBanner.css';
+
 /* Constructed archetype catalog and detail pages. */
 .arena-app-shell.arena-app-constructed-archetypes .arena-workspace .arena-main,
 .arena-app-shell.arena-app-constructed-archetypes .arena-workspace .arena-content.arena-content-open {

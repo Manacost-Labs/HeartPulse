@@ -532,22 +532,15 @@ function StandardMetaContent({
 
   return (
     <>
-      <section className="standard-meta__masthead">
-        <div className="standard-meta__masthead-copy">
-          <span className="standard-meta__eyebrow"><ShieldCheck size={15} /> HSGuru · актуальные срезы</span>
-          <h1>Мета Hearthstone</h1>
-          <p>Срезы HSGuru, переводы Манакоста и одна проверенная сборка для каждого доступного архетипа.</p>
-          <a className="standard-meta__catalog-link" href="/standard/archetypes/">
-            <LayoutGrid size={17} aria-hidden="true" />
-            Открыть каталог архетипов
-          </a>
-          <span className="standard-meta__hero-ornament" aria-hidden="true" />
+      <section className="traditional-mode-banner">
+        <div className="traditional-mode-banner__copy">
+          <h1>Мета</h1>
+          <p>Сила и популярность актуальных архетипов Hearthstone.</p>
         </div>
-        <div className="standard-meta__masthead-stats" aria-label="Сводка">
-          <span><strong>{data.items.length}</strong> {hasFullAccess ? 'архетипов' : 'в предпросмотре'}</span>
-          <span><strong>{data.formatLabel}</strong> формат</span>
-          <span><strong>{data.rankLabel}</strong> рейтинг</span>
-        </div>
+        <dl className="traditional-mode-banner__summary" aria-label="Сводка меты">
+          <div><dt>{hasFullAccess ? 'Архетипов' : 'В предпросмотре'}</dt><dd>{data.items.length}</dd></div>
+          <div><dt>Игр в выборке</dt><dd>{data.items.reduce((sum, item) => sum + (item.games ?? 0), 0).toLocaleString('ru-RU')}</dd></div>
+        </dl>
       </section>
 
       {datasetEnvelope && (

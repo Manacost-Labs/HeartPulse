@@ -6,11 +6,9 @@ import React, {
   useState,
 } from 'react';
 import {
-  Clock3,
   ExternalLink,
   RefreshCw,
   Search,
-  Sparkles,
   TriangleAlert,
 } from 'lucide-react';
 import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
@@ -117,18 +115,6 @@ function score(value: number | null): string {
 function metaDistance(value: number | null): string {
   if (value === null || !Number.isFinite(value)) return '—';
   return `${Math.round((1 - Math.max(0, Math.min(1, value))) * 100)}%`;
-}
-
-function updateLabel(value: string | null): string {
-  if (!value) return 'обновляется автоматически';
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return 'обновляется автоматически';
-  return date.toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: 'long',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 function FunDeckCard({ deck, tourAnchor = false }: { deck: FunDeckRow; tourAnchor?: boolean }) {
@@ -286,24 +272,15 @@ export default function FunDecksPage({
 
   return (
     <div className="fun-decks-page">
-      <header className="fun-decks-hero">
-        <div className="fun-decks-hero__copy">
-          <span className="fun-decks-hero__eyebrow">
-            <Sparkles aria-hidden="true" />
-            Традиционный режим
-          </span>
+      <header className="traditional-mode-banner">
+        <div className="traditional-mode-banner__copy">
           <h1>Фан-колоды</h1>
-          <p>
-            Необычные сборки Стандарта и Вольного режима, которые заметно отличаются
-            от популярных архетипов. Можно сразу посмотреть состав и скопировать код.
-          </p>
+          <p>Необычные сборки Стандарта и Вольного режима для новых впечатлений от игры.</p>
         </div>
-        <div className="fun-decks-hero__ledger" aria-label="Сводка подборки">
-          <div><strong>{data.stats.total || '—'}</strong><span>колод в подборке</span></div>
-          <div><strong>{data.stats.standard || '—'}</strong><span>в Стандарте</span></div>
-          <div><strong>{data.stats.wild || '—'}</strong><span>в Вольном</span></div>
-          <p><Clock3 aria-hidden="true" /> Обновлено {updateLabel(data.fetchedAt)}</p>
-        </div>
+        <dl className="traditional-mode-banner__summary" aria-label="Сводка подборки">
+          <div><dt>Колод</dt><dd>{data.stats.total || '—'}</dd></div>
+          <div><dt>Стандарт / Вольный</dt><dd>{data.stats.standard || '—'} / {data.stats.wild || '—'}</dd></div>
+        </dl>
       </header>
 
       <section
@@ -400,11 +377,9 @@ export default function FunDecksPage({
         <>
           <section className="fun-decks-grid" aria-label="Подборка фан-колод">
             {visibleDecks.map((deck, index) => (
-              <FunDeckCard
-                key={`${deck.format}:${deck.deckCode}`}
-                deck={deck}
-                tourAnchor={index === 0}
-              />
+              <React.Fragment key={`${deck.format}:${deck.deckCode}`}>
+                <FunDeckCard deck={deck} tourAnchor={index === 0} />
+              </React.Fragment>
             ))}
           </section>
           {hasFullAccess && visibleCount < filteredDecks.length ? (

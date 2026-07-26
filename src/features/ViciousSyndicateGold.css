@@ -1,3 +1,5 @@
+@import './TraditionalModeBanner.css';
+
 .arena-app-shell.arena-app-standard-vicious-gold .arena-workspace .arena-main { padding: 0; }
 .arena-app-shell.arena-app-standard-vicious-gold .arena-workspace .arena-content.arena-content-open {
   max-width: 1540px;

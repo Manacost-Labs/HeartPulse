@@ -78,19 +78,19 @@ try {
 
   const startedAt = Date.now();
   await page.goto(`${origin}/tests/fixtures/vicious-gold-progressive.html`, { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('.vsgold__hero');
+  await page.waitForSelector('.traditional-mode-banner');
   const summaryReadyMs = Date.now() - startedAt;
   assert.ok(summaryReadyMs < 1_500, `summary took ${summaryReadyMs}ms despite a delayed builds response`);
-  assert.match(await page.$eval('.vsgold__hero-stats', node => node.textContent ?? ''), /догружаем сборки/);
+  assert.match(await page.$eval('.traditional-mode-banner__summary', node => node.textContent ?? ''), /догружаем сборки/i);
   assert.equal(await page.$$eval('.vsgold__deck-row', rows => rows.length), 2);
 
-  await page.waitForFunction(() => document.querySelector('.vsgold__hero-stats')?.textContent?.includes('1/2'));
+  await page.waitForFunction(() => document.querySelector('.traditional-mode-banner__summary')?.textContent?.includes('1/2'));
   assert.ok(await page.$('.vsgold__build-copy-button'));
   assert.deepEqual(runtimeErrors, []);
 
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('.vsgold__hero');
+  await page.waitForSelector('.traditional-mode-banner');
   const mobile = await page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     navTargets: [...document.querySelectorAll('.vsgold__mobile-nav a')]

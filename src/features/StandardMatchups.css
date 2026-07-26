@@ -1,3 +1,5 @@
+@import './TraditionalModeBanner.css';
+
 .arena-app-standard-matchups .standard-matchups__error button {
   min-height: 36px;
   margin-left: auto;

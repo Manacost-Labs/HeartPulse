@@ -1,5 +1,15 @@
 # HS-Arena Changelog
 
+## v1.0.50 - 2026-07-26
+
+- Unified the opening banners across Matchups, Meta, Fun Decks, Archetypes and
+  Vicious Syndicate Gold with the approved tavern artwork, quieter copy and
+  compact live summary metrics.
+- Preserved all desktop, mobile and page navigation while moving the Matchups
+  format selector below its new banner.
+- Added a focused UI contract covering all five banners, their responsive
+  artwork and the protected navigation boundary.
+
 ## v1.0.49 - 2026-07-25
 
 - Made the Vicious Syndicate Gold statistics render before slower HSGuru deck

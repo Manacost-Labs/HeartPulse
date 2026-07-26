@@ -4,7 +4,6 @@ import {
   Layers3,
   RefreshCw,
   Search,
-  ShieldCheck,
   Swords,
 } from 'lucide-react';
 import '../route-parchment.css';
@@ -310,21 +309,15 @@ export default function ViciousSyndicateGold() {
 
   return (
     <div className="vsgold">
-      <header className="vsgold__hero">
-        <div className="vsgold__hero-copy">
-          <span className="vsgold__eyebrow"><ShieldCheck size={15} /> Vicious Syndicate Live</span>
-          <h1><span>Vicious Syndicate <em>Gold</em></span></h1>
-          <p>Живая мета Стандарта: популярность классов и архетипов, готовые сборки и Power Tier по всем доступным рангам.</p>
-          <span className="vsgold__hero-ornament" aria-hidden="true" />
+      <header className="traditional-mode-banner">
+        <div className="traditional-mode-banner__copy">
+          <h1>Vicious Syndicate Gold</h1>
+          <p>Расширенная статистика меты: популярность, готовые сборки и Power Tier.</p>
         </div>
-        <div className="vsgold__hero-stats">
-          <div><strong>{data.games.toLocaleString('ru-RU')}</strong><span>партий в выборке</span></div>
-          <div>
-            <strong>{buildState === 'loading' ? '…' : `${data.buildCoverage.found}/${data.buildCoverage.total}`}</strong>
-            <span>{buildState === 'loading' ? 'догружаем сборки' : 'готовых сборок'}</span>
-          </div>
-          <div><strong>{formatDate(data.updatedAt)}</strong><span>обновление данных</span></div>
-        </div>
+        <dl className="traditional-mode-banner__summary" aria-label="Сводка Vicious Syndicate Gold">
+          <div><dt>Партий</dt><dd>{data.games.toLocaleString('ru-RU')}</dd></div>
+          <div><dt>{buildState === 'loading' ? 'Догружаем сборки' : 'Готовых сборок'}</dt><dd>{buildState === 'loading' ? '…' : `${data.buildCoverage.found}/${data.buildCoverage.total}`}</dd></div>
+        </dl>
       </header>
 
       <nav className="vsgold__mobile-nav" aria-label="Разделы статистики">

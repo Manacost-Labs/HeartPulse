@@ -81,8 +81,10 @@ try {
   assert.ok(await page.$('.standard-meta__controls'));
   assert.ok(await page.$('.standard-meta-chart'));
   await page.click('.standard-meta__segmented button:nth-child(2)');
-  await page.waitForFunction(() => [...document.querySelectorAll('.standard-meta__masthead-stats strong')]
-    .some(node => node.textContent === 'Вольный'));
+  await page.waitForFunction(() => (
+    document.querySelector('.standard-meta__segmented button:nth-child(2)')
+      ?.getAttribute('aria-pressed') === 'true'
+  ));
   await page.screenshot({ path: `${screenshotPrefix}-meta-desktop.png`, fullPage: true });
 
   for (const width of [390, 320]) {

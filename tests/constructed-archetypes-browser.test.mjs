@@ -70,7 +70,7 @@ try {
   await page.waitForSelector('.archetype-row');
   assert.equal(await page.$$eval('.archetype-row', rows => rows.length), 3);
   assert.equal(await page.$$eval('.archetypes-format-switch button', buttons => buttons.length), 2);
-  assert.equal(await page.$eval('h1', heading => heading.textContent), 'Архетипы Hearthstone');
+  assert.equal(await page.$eval('h1', heading => heading.textContent), 'Архетипы');
   assert.ok(await page.$('[data-tour-id="archetypes-format"]'));
   assert.ok(await page.$('[data-tour-id="archetypes-search"]'));
   assert.ok(await page.$('[data-tour-id="archetypes-sort"]'));
