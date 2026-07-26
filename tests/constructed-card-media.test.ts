@@ -4,6 +4,9 @@ import {
   collectConstructedCardVariants,
   flattenConstructedCardSounds,
 } from '../src/features/constructedCardMedia.js';
+import {
+  normalizeConstructedRelatedCardGroups,
+} from '../src/features/constructedRelatedCards.js';
 import { constructedSoundGroupLabel } from '../src/features/constructedCardLabels.js';
 
 const sounds = flattenConstructedCardSounds([
@@ -64,6 +67,75 @@ assert.deepEqual(
     ['signature', 'https://example.test/wiki-signature.png'],
   ],
   'card detail variants must fall back to wiki premium media when the catalog premium fields are empty',
+);
+
+const relatedGroups = normalizeConstructedRelatedCardGroups({
+  related_cards_localized: [
+    {
+      heading: { ru: 'Награды', en: 'Rewards' },
+      cards: [
+        {
+          card_id: 'QUEST_REWARD',
+          name: { ru: 'Русская награда', en: 'Quest Reward' },
+          mana_cost: 5,
+          attack: 7,
+          health: 7,
+          artist: 'Wiki Artist',
+          images: {
+            card: 'https://example.test/QUEST_REWARD.png',
+            art: 'https://example.test/QUEST_REWARD-full.jpg',
+            crop: 'https://example.test/QUEST_REWARD-crop.jpg',
+            art_metadata: {
+              source: 'hearthstone.wiki.gg',
+              file_title: 'File:Quest Reward full.jpg',
+              file_page_url: 'https://hearthstone.wiki.gg/wiki/File:Quest_Reward_full.jpg',
+              width: 3000,
+              height: 4000,
+              size_bytes: 123456,
+              sha1: 'abc123',
+              mime: 'image/jpeg',
+            },
+          },
+          relationship: {
+            wiki_url: 'https://hearthstone.wiki.gg/wiki/Quest_Reward',
+          },
+        },
+      ],
+    },
+  ],
+  wiki: {
+    related_cards: [{ card_id: 'LEGACY_DUPLICATE', name: 'Legacy duplicate' }],
+  },
+});
+assert.equal(relatedGroups.length, 1);
+assert.equal(relatedGroups[0].headingRu, 'Награды');
+assert.equal(relatedGroups[0].cards.length, 1, 'localized groups must take priority over the legacy flat list');
+assert.equal(relatedGroups[0].cards[0].nameRu, 'Русская награда');
+assert.equal(relatedGroups[0].cards[0].cardImageUrl, 'https://example.test/QUEST_REWARD.png');
+assert.equal(relatedGroups[0].cards[0].artUrl, 'https://example.test/QUEST_REWARD-full.jpg');
+assert.equal(relatedGroups[0].cards[0].artMetadata?.sha1, 'abc123');
+assert.equal(relatedGroups[0].cards[0].artMetadata?.width, 3000);
+assert.equal(relatedGroups[0].cards[0].wikiUrl, 'https://hearthstone.wiki.gg/wiki/Quest_Reward');
+
+const legacyRelatedGroups = normalizeConstructedRelatedCardGroups({
+  wiki: {
+    related_cards: [
+      {},
+      { card_id: 'TOKEN_1', name: { en: 'Token one' }, image_url: '/uploads/TOKEN_1.png' },
+      { card_id: 'TOKEN_1', name: { en: 'Duplicate token' }, image_url: '/uploads/duplicate.png' },
+      { card_id: 'TOKEN_2', name_ru: 'Второй токен', images: { crop: '/uploads/crop.jpg' } },
+    ],
+  },
+});
+assert.equal(legacyRelatedGroups.length, 1);
+assert.equal(legacyRelatedGroups[0].headingRu, 'Связанные карты');
+assert.deepEqual(
+  legacyRelatedGroups[0].cards.map(item => [item.cardId, item.nameRu, item.nameEn, item.cardImageUrl, item.artUrl]),
+  [
+    ['TOKEN_1', null, 'Token one', '/uploads/TOKEN_1.png', null],
+    ['TOKEN_2', 'Второй токен', null, null, null],
+  ],
+  'legacy related cards must be normalized, deduplicated, and never promote crop images to full art',
 );
 
 console.log('constructed card media normalization tests passed');
