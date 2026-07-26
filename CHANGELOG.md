@@ -1,5 +1,17 @@
 # HS-Arena Changelog
 
+## v1.0.56 - 2026-07-26
+
+- Fixed the cosmetics media lightbox so its dimmed backdrop covers the full
+  viewport and portrait or landscape media uses the available desktop/mobile
+  height instead of shrinking to its intrinsic size.
+- Replaced the collapsed coin-relation counters with two always-visible,
+  responsive card galleries for all 44 coin-generating cards and all three
+  coin-related cards, using localized names, full card artwork, lazy loading
+  and direct links to card details.
+- Added regression contracts and Storybook states for the fullscreen lightbox
+  and both related-card gallery sizes.
+
 ## v1.0.55 - 2026-07-26
 
 - Reworked the hero-skin, coin and pet catalogs into frameless transparent

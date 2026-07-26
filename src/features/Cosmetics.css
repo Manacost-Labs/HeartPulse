@@ -321,19 +321,26 @@
 }
 
 .cosmetics-related {
-  border: 1px solid rgba(106, 65, 32, 0.36);
-  background: rgba(255, 244, 212, 0.7);
+  display: grid;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(106, 65, 32, 0.24);
 }
 
-.cosmetics-related summary {
+.cosmetics-related__header {
   display: flex;
-  min-height: 48px;
-  cursor: pointer;
+  min-height: 42px;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 14px;
-  font-weight: 900;
+  padding-inline: 4px;
+}
+
+.cosmetics-related__header h3 {
+  margin: 0;
+  color: #452b1b;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: clamp(1.05rem, 1.7vw, 1.35rem);
 }
 
 .cosmetics-count {
@@ -350,50 +357,83 @@
   font-size: 0.78rem;
 }
 
-.cosmetics-related-grid {
+.cosmetics-related-gallery {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
-  padding: 10px;
-  border-top: 1px solid rgba(106, 65, 32, 0.22);
+  gap: clamp(10px, 1.4vw, 18px);
+  align-items: start;
 }
 
-.cosmetics-related-grid a {
-  display: flex;
+.cosmetics-related-card {
+  --cosmetics-related-glow: transparent;
+  position: relative;
+  isolation: isolate;
+  display: grid;
   min-width: 0;
-  align-items: center;
-  gap: 6px;
-  padding: 5px;
-  background: rgba(255, 249, 230, 0.74);
+  justify-items: center;
+  padding: 2px 3px 8px;
+  border: 0;
+  background: transparent;
   color: inherit;
+  text-align: center;
   text-decoration: none;
 }
 
-.cosmetics-related-grid img {
-  width: 44px;
-  height: 64px;
-  flex: 0 0 auto;
+.cosmetics-related-card::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 8% 8% 16%;
+  border-radius: 46%;
+  background: radial-gradient(ellipse at center, rgba(239, 201, 111, 0.72), rgba(239, 201, 111, 0.14) 52%, transparent 72%);
+  filter: blur(14px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cosmetics-related-card:hover,
+.cosmetics-related-card:focus-visible {
+  --cosmetics-related-glow: var(--cosmetics-gold-bright);
+  z-index: 1;
+}
+
+.cosmetics-related-card:hover::before,
+.cosmetics-related-card:focus-visible::before {
+  opacity: 1;
+}
+
+.cosmetics-related-card:focus-visible {
+  outline: 3px solid #9a6416;
+  outline-offset: 2px;
+}
+
+.cosmetics-related-card img {
+  display: block;
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 2 / 3;
   object-fit: contain;
+  filter: drop-shadow(0 9px 7px rgba(56, 29, 12, 0.22)) drop-shadow(0 0 8px var(--cosmetics-related-glow));
 }
 
-.cosmetics-related-grid span {
-  display: grid;
-  min-width: 0;
-  gap: 3px;
-}
-
-.cosmetics-related-grid strong,
-.cosmetics-related-grid small {
+.cosmetics-related-card strong,
+.cosmetics-related-card small {
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.cosmetics-related-grid strong {
-  font-size: 0.76rem;
+.cosmetics-related-card strong {
+  margin-top: 1px;
+  color: #3e291c;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 0.86rem;
+  line-height: 1.2;
 }
 
-.cosmetics-related-grid small {
+.cosmetics-related-card small {
+  margin-top: 3px;
   color: #82654b;
   font-size: 0.66rem;
 }
@@ -604,22 +644,27 @@
 }
 
 .cosmetics-media-lightbox__backdrop {
-  background: rgba(14, 7, 10, 0.9);
+  position: absolute;
+  inset: 0;
+  background: rgba(18, 7, 7, 0.86);
   backdrop-filter: blur(8px);
 }
 
 .cosmetics-media-lightbox__panel {
   position: relative;
+  z-index: 1;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   width: min(1120px, 96vw);
+  height: min(920px, calc(var(--modal-surface-height, 100dvh) - 24px));
   max-height: calc(var(--modal-surface-height, 100dvh) - 24px);
   overflow: hidden;
   border: 1px solid rgba(239, 201, 111, 0.68);
   color: #f8e7bd;
   background:
     radial-gradient(circle at 50% 32%, rgba(125, 55, 81, 0.34), transparent 58%),
-    #1f1019;
+    linear-gradient(rgba(38, 11, 20, 0.9), rgba(28, 8, 15, 0.96)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
   box-shadow: 0 28px 84px rgba(0, 0, 0, 0.68);
 }
 
@@ -655,8 +700,9 @@
 .cosmetics-media-lightbox__media img,
 .cosmetics-media-lightbox__media video {
   display: block;
-  max-width: 100%;
-  max-height: calc(var(--modal-surface-height, 100dvh) - 110px);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   object-fit: contain;
 }
 
@@ -735,7 +781,7 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .cosmetics-related-grid {
+  .cosmetics-related-gallery {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
@@ -778,7 +824,7 @@
     font-size: 0.8rem;
   }
 
-  .cosmetics-related-grid {
+  .cosmetics-related-gallery {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -806,6 +852,7 @@
 
   .cosmetics-media-lightbox__panel {
     width: 100%;
+    height: var(--modal-surface-height, 100dvh);
     max-height: var(--modal-surface-height, 100dvh);
     min-height: var(--modal-surface-height, 100dvh);
     border-inline: 0;

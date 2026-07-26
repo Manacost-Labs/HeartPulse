@@ -27,6 +27,11 @@ import {
 import '../route-parchment.css';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
 import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
+import { cachedCardImage } from './cosmeticsCardImage';
+import {
+  RelatedCardGallery,
+  type RelatedCard,
+} from './CosmeticsRelatedCardGallery';
 import './Cosmetics.css';
 
 type CosmeticKind = 'heroes' | 'coins' | 'pets';
@@ -39,12 +44,6 @@ export type HeroSummary = {
   rarity: { slug: string; nameRu: string };
   categorySlugs: string[];
   images: { static: string | null; animated: string | null };
-};
-
-type RelatedCard = {
-  cardId: string;
-  dbf: number | null;
-  name: { ru: string; en: string | null };
 };
 
 type CoinSummary = {
@@ -109,12 +108,6 @@ type CosmeticsProps = {
   currentPath: string;
   navigatePath: (path: string) => void;
 };
-
-const CARD_IMAGE_VERSION = 'cosmetics-20260726';
-
-function cachedCardImage(cardId: string, variant: 'thumb' | 'full' = 'full') {
-  return `/api/card-image/${encodeURIComponent(cardId)}/${variant}.webp?v=${CARD_IMAGE_VERSION}`;
-}
 
 function cosmeticMediaSource(source: string | null | undefined) {
   if (!source) return '';
@@ -467,40 +460,6 @@ function PetCard({ item, navigatePath }: { item: PetVariant; navigatePath: (path
   );
 }
 
-function RelatedCards({
-  title,
-  items,
-  open = false,
-}: {
-  title: string;
-  items: RelatedCard[];
-  open?: boolean;
-}) {
-  return (
-    <details className="cosmetics-related" open={open}>
-      <summary>
-        <span>{title}</span>
-        <span className="cosmetics-count">{items.length}</span>
-      </summary>
-      <div className="cosmetics-related-grid">
-        {items.map(card => (
-          <a key={card.cardId} href={`/standard/cards/wild/${encodeURIComponent(card.cardId)}`}>
-            <img
-              src={cachedCardImage(card.cardId, 'thumb')}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              width="128"
-              height="192"
-            />
-            <span><strong>{card.name.ru}</strong><small>{card.cardId}</small></span>
-          </a>
-        ))}
-      </div>
-    </details>
-  );
-}
-
 function HeroFiltersPanel({
   filters,
   onChange,
@@ -640,8 +599,16 @@ function CatalogView({
             <span className="cosmetics-kicker">Связанные карты</span>
             <h2 id="coin-relations-title">Монеты в механиках Hearthstone</h2>
           </div>
-          <RelatedCards title="Карты, которые генерируют монеты" items={payload.generatedBy ?? []} />
-          <RelatedCards title="Карты, которые связаны с монетами" items={payload.related ?? []} />
+          <RelatedCardGallery
+            title="Карты, которые генерируют монеты"
+            items={payload.generatedBy ?? []}
+            navigatePath={navigatePath}
+          />
+          <RelatedCardGallery
+            title="Карты, которые связаны с монетами"
+            items={payload.related ?? []}
+            navigatePath={navigatePath}
+          />
         </section>
       )}
 
@@ -807,7 +774,13 @@ function HeroDetailView({ detail }: { detail: HeroDetail }) {
   );
 }
 
-function CoinDetailView({ detail }: { detail: CoinDetail }) {
+function CoinDetailView({
+  detail,
+  navigatePath,
+}: {
+  detail: CoinDetail;
+  navigatePath: (path: string) => void;
+}) {
   return (
     <>
       <div className="cosmetics-detail-hero">
@@ -826,8 +799,16 @@ function CoinDetailView({ detail }: { detail: CoinDetail }) {
         </div>
       </div>
       <section className="cosmetics-relations-section">
-        <RelatedCards title="Карты, которые генерируют монеты" items={detail.generatedBy} />
-        <RelatedCards title="Карты, которые связаны с монетами" items={detail.related} open />
+        <RelatedCardGallery
+          title="Карты, которые генерируют монеты"
+          items={detail.generatedBy}
+          navigatePath={navigatePath}
+        />
+        <RelatedCardGallery
+          title="Карты, которые связаны с монетами"
+          items={detail.related}
+          navigatePath={navigatePath}
+        />
       </section>
     </>
   );
@@ -944,7 +925,7 @@ function DetailView({
         <ArrowLeft size={18} aria-hidden="true" /> К каталогу
       </a>
       {kind === 'heroes' && <HeroDetailView detail={detail as HeroDetail} />}
-      {kind === 'coins' && <CoinDetailView detail={detail as CoinDetail} />}
+      {kind === 'coins' && <CoinDetailView detail={detail as CoinDetail} navigatePath={navigatePath} />}
       {kind === 'pets' && <PetDetailView detail={detail as PetDetail} navigatePath={navigatePath} />}
     </article>
   );

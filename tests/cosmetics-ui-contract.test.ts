@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const component = readFileSync(new URL('../src/features/Cosmetics.tsx', import.meta.url), 'utf8');
+const relatedGallery = readFileSync(
+  new URL('../src/features/CosmeticsRelatedCardGallery.tsx', import.meta.url),
+  'utf8',
+);
 const styles = readFileSync(new URL('../src/features/Cosmetics.css', import.meta.url), 'utf8');
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 
@@ -36,6 +40,21 @@ assert.match(component, /\/api\/cosmetics\/media\?url=/);
 assert.match(component, /Анимация скина/);
 assert.match(component, /Полный арт/);
 assert.match(styles, /\.cosmetics-media-lightbox__panel/);
+assert.match(
+  styles,
+  /\.cosmetics-media-lightbox__backdrop\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?inset:\s*0;/,
+  'the lightbox backdrop must cover the complete viewport',
+);
+assert.match(
+  styles,
+  /\.cosmetics-media-lightbox__panel\s*\{[\s\S]*?height:\s*min\(/,
+  'the lightbox panel must reserve viewport height instead of shrinking to intrinsic media size',
+);
+assert.match(relatedGallery, /export function RelatedCardGallery/);
+assert.doesNotMatch(relatedGallery, /<details className="cosmetics-related"/);
+assert.match(relatedGallery, /className="cosmetics-related-gallery"/);
+assert.match(relatedGallery, /cachedCardImage\(card\.cardId\)/);
+assert.match(styles, /\.cosmetics-related-gallery\s*\{[\s\S]*?grid-template-columns:/);
 assert.match(
   app,
   /isGameDataSurfacePage[\s\S]*?\[[^\]]*'cosmetics'/,

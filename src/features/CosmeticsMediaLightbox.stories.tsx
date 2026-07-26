@@ -35,9 +35,9 @@ export const Animation: Story = {
   args: {
     media: {
       type: 'video',
-      src: 'https://hearthstone.wiki.gg/images/HERO_11ai.webm',
-      poster: 'https://db.kolodahs.ru/uploads/hero-skins/static/HERO_11ai.png',
-      title: 'Анимация скина «Керриган-арахнид»',
+      src: 'https://hearthstone.wiki.gg/images/HERO_11aq.webm',
+      poster: 'https://db.kolodahs.ru/uploads/hero-skins/static/HERO_11aq.png',
+      title: 'Анимация скина «Вечный жнец Пустотел»',
       autoPlay: false,
     },
   },
