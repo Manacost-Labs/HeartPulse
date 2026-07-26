@@ -90,6 +90,16 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
     ],
   },
   {
+    id: 'standard-fun-decks', version: 1, paths: ['/standard/fun-decks'], title: 'Как пользоваться фан-колодами',
+    steps: [
+      { id: 'method', target: 'fun-decks-method', title: 'Как считаются оценки', description: 'Здесь объясняется разница между дистанцией от меты и индексом фана, а также указаны минимальные пороги попадания в подборку.', preferredPlacement: 'bottom' },
+      { id: 'filters', target: 'fun-decks-filters', title: 'Формат и быстрый поиск', description: 'Переключайтесь между Стандартом и Вольным режимом или найдите колоду по названию, классу, стримеру либо ближайшему архетипу.', preferredPlacement: 'bottom' },
+      { id: 'metrics', target: 'fun-decks-card-metrics', title: 'Главные показатели', description: 'В карточке видны винрейт, размер выборки, отличие от ближайшей мета-колоды и итоговый индекс фана.', preferredPlacement: 'bottom' },
+      { id: 'deck', target: 'fun-decks-deck-list', title: 'Состав и код колоды', description: 'Вертикальный список показывает манакривую и все карты. Под ним можно скопировать deck code для импорта в Hearthstone.', mobileDescription: 'Вертикальный список показывает все карты. Пролистайте его вниз и нажмите «Скопировать код колоды» для импорта в Hearthstone.', preferredPlacement: 'top' },
+      { id: 'access', target: 'subscription-paywall', title: 'Полная подборка', description: 'В бесплатном превью показаны три лидера выбранного формата. Тариф «Алмаз» открывает остальные колоды и будущие обновления.', preferredPlacement: 'top' },
+    ],
+  },
+  {
     id: 'standard-vicious-gold', version: 2, paths: ['/standard/vicious-gold'], title: 'Как читать Vicious Syndicate Gold',
     steps: [
       { id: 'classes', target: 'vicious-classes', title: 'Распределение классов', description: 'Диаграмма показывает, какую долю текущей меты занимает каждый класс в доступной выборке Vicious Syndicate.', audience: 'standard' },

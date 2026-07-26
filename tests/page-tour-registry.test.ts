@@ -8,6 +8,7 @@ const requiredTours = [
   'standard-meta',
   'constructed-archetypes',
   'constructed-archetype-detail',
+  'standard-fun-decks',
   'standard-vicious-gold',
   'standard-cards',
   'standard-card-detail',
@@ -70,6 +71,20 @@ for (const tourId of ['constructed-archetypes', 'constructed-archetype-detail'])
     );
   }
 }
+
+const funDecksSource = readFileSync(new URL('../src/features/FunDecksPage.tsx', import.meta.url), 'utf8');
+const funDecksTour = PAGE_TOURS.find(tour => tour.id === 'standard-fun-decks');
+assert.ok(funDecksTour, 'the fun decks page must have its own contextual tour');
+for (const step of funDecksTour.steps.filter(step => step.target !== 'subscription-paywall')) {
+  assert.ok(
+    funDecksSource.includes(`'${step.target}'`) || funDecksSource.includes(`"${step.target}"`),
+    `standard-fun-decks/${step.id}: FunDecksPage.tsx must render the stable ${step.target} anchor`,
+  );
+}
+assert.ok(
+  funDecksTour.steps.some(step => step.target === 'subscription-paywall'),
+  'the free fun decks tour must explain how to unlock the complete gallery',
+);
 assert.doesNotMatch(
   matchupTour.steps.find(step => step.id === 'matrix')?.description ?? '',
   /прокрутка продублирована снизу|полосы сверху и снизу/i,

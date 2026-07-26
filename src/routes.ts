@@ -79,7 +79,7 @@ export const TABS = [
     id: 'standard-meta', label: 'Мета', icon: ChartNoAxesCombined, slug: '/standard/meta', group: 'standard', entitlement: 'standard',
   },
   {
-    id: 'fun-decks', label: 'Фан-колоды', icon: Gem, slug: '/standard/fun-decks', group: 'standard', entitlement: null,
+    id: 'fun-decks', label: 'Фан-колоды', icon: Gem, slug: '/standard/fun-decks', group: 'standard', entitlement: 'standard',
   },
   {
     id: 'constructed-archetypes', label: 'Архетипы', icon: ListTree, slug: '/standard/archetypes', group: 'standard', entitlement: 'standard',

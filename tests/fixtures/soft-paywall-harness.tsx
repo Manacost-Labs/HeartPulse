@@ -2,6 +2,7 @@ import { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import StandardMetaPage from '../../src/features/StandardMeta';
 import ConstructedArchetypes from '../../src/features/ConstructedArchetypes';
+import FunDecksPage from '../../src/features/FunDecksPage';
 import '../../src/index.css';
 
 const metaItems = [
@@ -99,10 +100,49 @@ const detail = {
   analysis: null,
 };
 
+const funDecks = {
+  fetchedAt: '2026-07-26T10:15:12.000Z',
+  stats: { total: 6, standard: 3, wild: 3 },
+  methodology: { detectorVersion: 'concept-v6', minFunScore: 0.55, maxMetaSimilarity: 0.42 },
+  decks: Array.from({ length: 6 }, (_, index) => ({
+    title: `Фановая колода ${index + 1}`,
+    deckCode: String.fromCharCode(65 + index).repeat(24),
+    format: index < 3 ? 'Standard' : 'Wild',
+    className: ['Mage', 'DeathKnight', 'Druid', 'Warlock', 'Rogue', 'Shaman'][index],
+    streamer: index % 2 ? `streamer-${index}` : null,
+    funScore: 0.95 - index * 0.04,
+    maxMetaSimilarity: 0.18 + index * 0.02,
+    nearestArchetype: `Мета ${index + 1}`,
+    winRate: 48 + index,
+    games: 20 + index * 10,
+    reasons: [],
+    url: null,
+    firstSeenAt: '2026-07-26T08:00:00.000Z',
+    lastSeenAt: '2026-07-26T10:00:00.000Z',
+  })),
+};
+
 globalThis.fetch = (async (input: RequestInfo | URL) => {
   const url = new URL(String(input), window.location.origin);
   let payload: unknown;
-  if (url.pathname === '/api/standard-meta/teaser') {
+  if (url.pathname === '/api/fun-decks') {
+    payload = funDecks;
+  } else if (url.pathname === '/api/deck/resolve') {
+    payload = {
+      ok: true,
+      format: url.searchParams.get('format') === 'wild' ? 'wild' : 'standard',
+      heroDbfId: 637,
+      deckCode: url.searchParams.get('code'),
+      cards: [
+        { id: 'TIME_001', dbfId: 1001, name: 'Первая карта', cost: 1, rarity: 'COMMON', elite: false, count: 2, image: '', cardImage: '' },
+        { id: 'TIME_002', dbfId: 1002, name: 'Вторая карта', cost: 2, rarity: 'LEGENDARY', elite: true, count: 1, image: '', cardImage: '' },
+      ],
+      sideboards: [],
+      totalCards: 3,
+      deckSizeLimit: 30,
+      archetype: null,
+    };
+  } else if (url.pathname === '/api/standard-meta/teaser') {
     payload = metaPayload(url.searchParams.get('format') === 'wild' ? 'wild' : 'standard');
   } else if (url.pathname.endsWith('/standard/void-soul-dh')) {
     payload = detail;
@@ -135,12 +175,20 @@ function Harness() {
     : '/standard/archetypes');
 
   return (
-    <div className={`arena-app-shell arena-app-game-data ${page === 'meta' ? 'arena-app-standard-meta' : 'arena-app-constructed-archetypes'}`}>
+    <div className={`arena-app-shell arena-app-game-data ${
+      page === 'meta'
+        ? 'arena-app-standard-meta'
+        : page === 'fun-decks'
+          ? 'arena-app-fun-decks'
+          : 'arena-app-constructed-archetypes'
+    }`}>
       <div className="arena-workspace">
         <div className="arena-main">
           <div className="arena-content arena-content-open">
             {page === 'meta' ? (
               <StandardMetaPage hasFullAccess={false} paywall={paywall} />
+            ) : page === 'fun-decks' ? (
+              <FunDecksPage hasFullAccess={false} paywall={paywall} />
             ) : (
               <ConstructedArchetypes
                 currentPath={path}

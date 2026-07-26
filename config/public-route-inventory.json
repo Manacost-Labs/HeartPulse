@@ -141,11 +141,11 @@
       "indexPolicy": "index",
       "canonicalPolicy": "self",
       "sitemap": true,
-      "htmlStrategy": "prerender",
+      "htmlStrategy": "prerender-teaser",
       "expectedStatus": 200,
       "criticality": "P1",
       "mobileFixture": "fun-decks",
-      "entitlement": null
+      "entitlement": "standard"
     },
     {
       "id": "constructed-archetypes",

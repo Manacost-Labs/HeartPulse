@@ -643,7 +643,7 @@ const LazyBattlegroundTierList = React.lazy(() => loadBattlegroundsModule().then
 const LazyBattlegroundStrategyBuilderEmbed = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundStrategyBuilderEmbed })));
 const LazyBattlegroundTierBuilderEmbed = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundTierBuilderEmbed })));
 
-const STANDARD_SOFT_PAYWALL_TABS = new Set<TabId>(['standard-meta', 'constructed-archetypes']);
+const STANDARD_SOFT_PAYWALL_TABS = new Set<TabId>(['standard-meta', 'constructed-archetypes', 'fun-decks']);
 
 const ROUTE_PRELOADERS: Partial<Record<TabId | 'login', () => Promise<unknown>>> = {
   winrates: loadDeferredRoutesModule,
@@ -1423,9 +1423,11 @@ export default function App() {
     subscriptionLoading: appSubscriptionLoading,
     onRefreshSubscription: () => fetchAppSubscription(true),
   }), [appAuthUser, appSubscription, appSubscriptionLoading, fetchAppSubscription]);
-  const standardPage = activeTab === 'standard-meta'
-    ? <LazyStandardMetaPage hasFullAccess={standardAccessGranted} paywall={standardPaywallAccess} />
-    : activeTab === 'constructed-archetypes'
+  const standardPage = activeTab === 'fun-decks'
+    ? <LazyFunDecksPage hasFullAccess={standardAccessGranted} paywall={standardPaywallAccess} />
+    : activeTab === 'standard-meta'
+      ? <LazyStandardMetaPage hasFullAccess={standardAccessGranted} paywall={standardPaywallAccess} />
+      : activeTab === 'constructed-archetypes'
       ? (
         <LazyConstructedArchetypesPage
           currentPath={currentPath}
@@ -1751,7 +1753,7 @@ export default function App() {
                     720,
                   )
                 )}
-                {(activeTab === 'standard-meta' || activeTab === 'constructed-archetypes' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards') && (
+                {(activeTab === 'standard-meta' || activeTab === 'constructed-archetypes' || activeTab === 'fun-decks' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards') && (
                   activeTab === 'standard-cards'
                     ? <React.Suspense fallback={<RouteFallback minHeight={720} />}>{standardPage}</React.Suspense>
                     : STANDARD_SOFT_PAYWALL_TABS.has(activeTab)
@@ -1764,11 +1766,6 @@ export default function App() {
                         <React.Suspense fallback={<RouteFallback minHeight={720} />}>{standardPage}</React.Suspense>,
                         720,
                       )
-                )}
-                {activeTab === 'fun-decks' && (
-                  <React.Suspense fallback={<RouteFallback minHeight={720} />}>
-                    <LazyFunDecksPage />
-                  </React.Suspense>
                 )}
 	                {activeTab === 'winrates' && (
                   renderPrivateRoute(

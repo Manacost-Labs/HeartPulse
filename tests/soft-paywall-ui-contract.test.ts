@@ -5,6 +5,7 @@ const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8
 const paywallSource = readFileSync(new URL('../src/components/PaywallGate.tsx', import.meta.url), 'utf8');
 const metaSource = readFileSync(new URL('../src/features/StandardMeta.tsx', import.meta.url), 'utf8');
 const archetypesSource = readFileSync(new URL('../src/features/ConstructedArchetypes.tsx', import.meta.url), 'utf8');
+const funDecksSource = readFileSync(new URL('../src/features/FunDecksPage.tsx', import.meta.url), 'utf8');
 
 assert.match(metaSource, /hasFullAccess\s*\?\s*'\/api\/standard-meta'/);
 assert.match(metaSource, /'\/api\/standard-meta\/teaser'/);
@@ -16,11 +17,17 @@ assert.match(archetypesSource, /'\/api\/constructed-archetypes\/teaser'/);
 assert.match(archetypesSource, /surface="archetype"/);
 assert.match(archetypesSource, /featuredBuild/);
 
+assert.match(funDecksSource, /FREE_PREVIEW_COUNT\s*=\s*3/);
+assert.match(funDecksSource, /hasFullAccess/);
+assert.match(funDecksSource, /Открыть все фан-колоды/);
+assert.match(funDecksSource, /data-tour-id=\{tourAnchor \? 'fun-decks-deck-list'/);
+
 assert.match(paywallSource, /presentation === 'inline'/);
 assert.match(paywallSource, /Открыть всю мету/);
 assert.match(paywallSource, /Открыть статистику архетипа/);
 
 assert.match(appSource, /hasFullAccess=\{standardAccessGranted\}/);
 assert.match(appSource, /STANDARD_SOFT_PAYWALL_TABS\.has\(activeTab\)/);
+assert.match(appSource, /STANDARD_SOFT_PAYWALL_TABS[^;]+fun-decks/);
 
 console.log('soft paywall UI contract tests passed');

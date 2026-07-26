@@ -101,6 +101,54 @@ try {
   await page.screenshot({ path: `${screenshotPrefix}-meta-mobile.png`, fullPage: true });
 
   await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
+  await page.goto(`${origin}/tests/fixtures/soft-paywall.html?page=fun-decks`, { waitUntil: 'networkidle0' });
+  await page.waitForSelector('.arena-inline-paywall--meta');
+  await page.waitForSelector('[data-tour-id="fun-decks-deck-list"] .deck-list-view');
+  assert.equal(await page.$$eval('.fun-deck-card', cards => cards.length), 3);
+  assert.equal(await page.$$eval('.arena-paywall__overlay', nodes => nodes.length), 0);
+  assert.equal(
+    await page.$eval('.arena-inline-paywall__primary span', node => node.textContent),
+    'Открыть все фан-колоды',
+  );
+  for (const anchor of [
+    'fun-decks-method',
+    'fun-decks-filters',
+    'fun-decks-card-metrics',
+    'fun-decks-deck-list',
+  ]) {
+    assert.ok(await page.$(`[data-tour-id="${anchor}"]`), `missing tour anchor ${anchor}`);
+  }
+  await page.click('.fun-decks-tools__formats button:nth-child(3)');
+  await page.waitForFunction(() => (
+    document.querySelector('.fun-deck-card__identity span')?.textContent === 'Вольный формат'
+  ));
+  await new Promise(resolve => setTimeout(resolve, 200));
+  assert.equal(await page.$$eval('.fun-deck-card', cards => cards.length), 3);
+  await page.addScriptTag({ path: axePath });
+  const funDeckViolations = await page.evaluate(async () => {
+    const result = await globalThis.axe.run(document.querySelector('#root'));
+    return result.violations.filter(violation => ['serious', 'critical'].includes(violation.impact));
+  });
+  assert.deepEqual(funDeckViolations, []);
+  await page.screenshot({ path: `${screenshotPrefix}-fun-decks-desktop.png`, fullPage: true });
+
+  for (const width of [390, 320]) {
+    await page.setViewport({ width, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
+    await page.reload({ waitUntil: 'networkidle0' });
+    await page.waitForSelector('.arena-inline-paywall--meta');
+    await page.waitForSelector('[data-tour-id="fun-decks-deck-list"] .deck-list-view');
+    const layout = await page.evaluate(() => ({
+      overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      primaryHeight: document.querySelector('.arena-inline-paywall__primary')?.getBoundingClientRect().height ?? 0,
+      cardCount: document.querySelectorAll('.fun-deck-card').length,
+    }));
+    assert.ok(layout.overflow <= 1, `fun deck teaser overflowed by ${layout.overflow}px at ${width}px`);
+    assert.ok(layout.primaryHeight >= 48);
+    assert.equal(layout.cardCount, 3);
+  }
+  await page.screenshot({ path: `${screenshotPrefix}-fun-decks-mobile.png`, fullPage: true });
+
+  await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
   await page.goto(`${origin}/tests/fixtures/soft-paywall.html?page=archetype`, { waitUntil: 'networkidle0' });
   await page.waitForSelector('.arena-inline-paywall--archetype');
   assert.equal(await page.$eval('h1', node => node.textContent), 'Охотник на демонов Бездны');

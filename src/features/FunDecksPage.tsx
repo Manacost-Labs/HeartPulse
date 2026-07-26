@@ -13,6 +13,7 @@ import {
   Sparkles,
   TriangleAlert,
 } from 'lucide-react';
+import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
 import '../route-parchment.css';
 import DeckListView from './decklist/DeckListView';
 import { useResolvedDeck } from './decklist/useResolvedDeck';
@@ -57,6 +58,14 @@ const EMPTY_DATA: FunDecksPayload = {
   stats: { total: 0, standard: 0, wild: 0 },
   methodology: { detectorVersion: null, minFunScore: 0.55, maxMetaSimilarity: 0.42 },
   decks: [],
+};
+
+const FREE_PREVIEW_COUNT = 3;
+const DEFAULT_PAYWALL_ACCESS: PaywallAccessState = {
+  authUser: null,
+  subscriptionStatus: null,
+  subscriptionLoading: false,
+  onRefreshSubscription: async () => null,
 };
 
 const CLASS_META: Record<string, { label: string; color: string; icon: string }> = {
@@ -122,7 +131,7 @@ function updateLabel(value: string | null): string {
   });
 }
 
-function FunDeckCard({ deck }: { deck: FunDeckRow }) {
+function FunDeckCard({ deck, tourAnchor = false }: { deck: FunDeckRow; tourAnchor?: boolean }) {
   const format = formatOf(deck);
   const { data, loading, error, reload } = useResolvedDeck(deck.deckCode, {
     format,
@@ -146,7 +155,7 @@ function FunDeckCard({ deck }: { deck: FunDeckRow }) {
         </div>
       </header>
 
-      <dl className="fun-deck-card__metrics">
+      <dl className="fun-deck-card__metrics" data-tour-id={tourAnchor ? 'fun-decks-card-metrics' : undefined}>
         <div>
           <dt>Винрейт</dt>
           <dd>{percent(deck.winRate)}</dd>
@@ -165,7 +174,11 @@ function FunDeckCard({ deck }: { deck: FunDeckRow }) {
         </div>
       </dl>
 
-      <div className="fun-deck-card__deck" style={{ ['--fun-deck-class' as string]: classMeta.color }}>
+      <div
+        className="fun-deck-card__deck"
+        data-tour-id={tourAnchor ? 'fun-decks-deck-list' : undefined}
+        style={{ ['--fun-deck-class' as string]: classMeta.color }}
+      >
         {data ? (
           <DeckListView
             cards={data.cards}
@@ -210,7 +223,13 @@ function FunDeckCard({ deck }: { deck: FunDeckRow }) {
   );
 }
 
-export default function FunDecksPage() {
+export default function FunDecksPage({
+  hasFullAccess = true,
+  paywall = DEFAULT_PAYWALL_ACCESS,
+}: {
+  hasFullAccess?: boolean;
+  paywall?: PaywallAccessState;
+}) {
   const [data, setData] = useState<FunDecksPayload>(EMPTY_DATA);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -241,16 +260,22 @@ export default function FunDecksPage() {
 
   const filteredDecks = useMemo(() => {
     const needle = deferredQuery.trim().toLocaleLowerCase('ru-RU');
-    return data.decks.filter(deck => {
-      const format = formatOf(deck);
-      if (formatFilter !== 'all' && format !== formatFilter) return false;
+    const formatDecks = data.decks.filter(deck => (
+      formatFilter === 'all' || formatOf(deck) === formatFilter
+    ));
+    const accessibleDecks = hasFullAccess
+      ? formatDecks
+      : [...formatDecks]
+        .sort((left, right) => (right.funScore ?? 0) - (left.funScore ?? 0))
+        .slice(0, FREE_PREVIEW_COUNT);
+    return accessibleDecks.filter(deck => {
       if (!needle) return true;
       const classLabel = CLASS_META[normalizeClass(deck.className)]?.label || deck.className;
       return `${deck.title} ${classLabel} ${deck.streamer || ''} ${deck.nearestArchetype || ''}`
         .toLocaleLowerCase('ru-RU')
         .includes(needle);
     });
-  }, [data.decks, deferredQuery, formatFilter]);
+  }, [data.decks, deferredQuery, formatFilter, hasFullAccess]);
 
   const visibleDecks = filteredDecks.slice(0, visibleCount);
   const filterButtons: Array<{ id: FormatFilter; label: string; count: number }> = [
@@ -281,7 +306,11 @@ export default function FunDecksPage() {
         </div>
       </header>
 
-      <section className="fun-decks-method" aria-labelledby="fun-decks-method-title">
+      <section
+        className="fun-decks-method"
+        aria-labelledby="fun-decks-method-title"
+        data-tour-id="fun-decks-method"
+      >
         <div className="fun-decks-method__intro">
           <span>Как читаются оценки</span>
           <h2 id="fun-decks-method-title">Почему колода считается фановой</h2>
@@ -315,7 +344,11 @@ export default function FunDecksPage() {
         </p>
       </section>
 
-      <section className="fun-decks-tools" aria-label="Фильтры фан-колод">
+      <section
+        className="fun-decks-tools"
+        aria-label="Фильтры фан-колод"
+        data-tour-id="fun-decks-filters"
+      >
         <div className="fun-decks-tools__formats" role="group" aria-label="Формат">
           {filterButtons.map(filter => (
             <button
@@ -366,11 +399,15 @@ export default function FunDecksPage() {
       ) : visibleDecks.length ? (
         <>
           <section className="fun-decks-grid" aria-label="Подборка фан-колод">
-            {visibleDecks.map(deck => (
-              <FunDeckCard key={`${deck.format}:${deck.deckCode}`} deck={deck} />
+            {visibleDecks.map((deck, index) => (
+              <FunDeckCard
+                key={`${deck.format}:${deck.deckCode}`}
+                deck={deck}
+                tourAnchor={index === 0}
+              />
             ))}
           </section>
-          {visibleCount < filteredDecks.length ? (
+          {hasFullAccess && visibleCount < filteredDecks.length ? (
             <div className="fun-decks-page__more">
               <button type="button" onClick={() => setVisibleCount(count => count + 6)}>
                 Показать ещё
@@ -386,6 +423,24 @@ export default function FunDecksPage() {
           <p>Измените формат или очистите строку поиска.</p>
         </section>
       )}
+
+      {!loading && !error && !hasFullAccess ? (
+        <PaywallGate
+          active
+          presentation="inline"
+          surface="meta"
+          variant="standard"
+          title="Откройте всю подборку фан-колод"
+          description="Сейчас показаны три самые необычные колоды выбранного формата. Тариф «Алмаз» открывает всю подборку и новые сборки после каждого обновления."
+          benefits={[
+            'Все колоды Стандарта и Вольного',
+            'Полные составы и коды для импорта',
+            'Свежие стримерские и off-meta сборки',
+          ]}
+          actionLabel="Открыть все фан-колоды"
+          {...paywall}
+        />
+      ) : null}
     </div>
   );
 }

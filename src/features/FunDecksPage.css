@@ -265,7 +265,7 @@
   border: 1px solid rgba(95, 55, 29, 0.55);
   border-radius: 5px;
   color: var(--fun-ink);
-  background: rgba(247, 232, 191, 0.88);
+  background: var(--fun-parchment-light);
   font: 750 0.86rem/1 var(--font-body, Inter, sans-serif);
   cursor: pointer;
   transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
