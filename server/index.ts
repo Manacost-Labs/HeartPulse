@@ -22,7 +22,6 @@ import {
 } from './archetypeDeckCodesSchema.js';
 import { loadSnapshot } from './snapshots.js';
 import { HSREPLAY_NO_ARENASMITH_TIER, normalizeArenasmithTier, tierFromArenasmithScore } from './hsreplayArenasmith.js';
-import { createBlizzardCardImageClient, isBlizzardImageContentType } from './blizzardCards.js';
 import { evaluateDataHealth } from './health.js';
 import { createHealthRouter } from './healthRoutes.js';
 import { createMetricsRouter, HttpMetrics } from './metrics.js';
@@ -211,20 +210,17 @@ const CARD_IMAGE_CACHE_DIR = join(DATA_DIR, 'card-images');
 const ADMIN_UPLOAD_SOURCE_DIR = process.env.ADMIN_UPLOAD_SOURCE_DIR || join(DATA_DIR, 'uploads', 'admin');
 const ADMIN_UPLOAD_DIR = process.env.ADMIN_UPLOAD_DIR || ADMIN_UPLOAD_SOURCE_DIR;
 const GALLERY_UPLOAD_DIR = process.env.GALLERY_UPLOAD_DIR || join(DATA_DIR, 'uploads', 'gallery');
-const CARD_IMAGE_CACHE_VERSION = 'card_img_v4';
-const CARD_IMAGE_FALLBACK_RETRY_MS = 5 * 60_000;
+const CARD_IMAGE_CACHE_VERSION = 'card_img_v5_retina';
 const MAX_CARD_IMAGE_JOBS = 4;
+const CARD_IMAGE_VARIANTS = {
+  thumb: { width: 360, quality: 86 },
+  full: { width: 512, quality: 90 },
+} as const;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const BG_DATA_CACHE_MS = Math.max(60_000, Number(process.env.BG_DATA_CACHE_MS || ONE_DAY_MS));
 const BG_DATA_STALE_MS = Math.max(60_000, Number(process.env.BG_DATA_STALE_MS || 7 * ONE_DAY_MS));
 const BG_JSON_CACHE_CONTROL = `public, max-age=${Math.floor(BG_DATA_CACHE_MS / 1000)}, stale-while-revalidate=${Math.floor(BG_DATA_STALE_MS / 1000)}`;
 const BG_IMAGE_CACHE_CONTROL = 'public, max-age=2592000, immutable';
-const blizzardCardImages = createBlizzardCardImageClient({
-  clientId: process.env.BLIZZARD_CLIENT_ID,
-  clientSecret: process.env.BLIZZARD_CLIENT_SECRET,
-  region: process.env.BLIZZARD_API_REGION || process.env.BLIZZARD_REGION,
-});
-let lastBlizzardImageWarningAt = 0;
 
 function ensureAdminUploadDirs() {
   mkdirSync(ADMIN_UPLOAD_DIR, { recursive: true });
@@ -4836,28 +4832,12 @@ async function resolveCardImageId(cardId: string): Promise<string> {
     ?? cardId;
 }
 
-async function resolveCardDbfId(cardId: string): Promise<number | null> {
-  if (/^\d+$/.test(cardId)) {
-    const numericId = Number(cardId);
-    return Number.isInteger(numericId) && numericId > 0 ? numericId : null;
-  }
-
-  const findDbfId = (cards: Record<string, any> | null | undefined) => {
-    const card = cards?.[cardId];
-    const dbfId = Number(card?.dbf ?? card?.dbfId);
-    return Number.isInteger(dbfId) && dbfId > 0 ? dbfId : null;
-  };
-
-  return findDbfId(loadDataCached('cards_ru.json')?.data)
-    ?? findDbfId(await ensureRuCardsData());
-}
-
 async function ensureCardImagePlaceholder(cardId: string, variant: 'thumb' | 'full', message = 'Нет изображения'): Promise<CachedCardImage> {
   mkdirSync(CARD_IMAGE_CACHE_DIR, { recursive: true });
   const outPath = cardImageCachePath(`missing-${cardId}`, variant, 'placeholder');
   if (existsSync(outPath)) return { path: outPath, source: 'placeholder' };
 
-  const width = variant === 'full' ? 360 : 180;
+  const { width, quality } = CARD_IMAGE_VARIANTS[variant];
   const height = Math.round(width * 1.516);
   const safeId = cardId.replace(/[^A-Za-z0-9_/-]/g, '').slice(0, 32);
   const svg = `
@@ -4878,7 +4858,7 @@ async function ensureCardImagePlaceholder(cardId: string, variant: 'thumb' | 'fu
     </svg>`;
 
   await sharp(Buffer.from(svg))
-    .webp({ quality: variant === 'full' ? 82 : 76, effort: 4 })
+    .webp({ quality, effort: 4 })
     .toFile(outPath);
   return { path: outPath, source: 'placeholder' };
 }
@@ -4899,34 +4879,9 @@ async function withCardImageSlot<T>(task: () => Promise<T>): Promise<T> {
 }
 
 async function fetchRemoteCardImage(cardId: string, variant: 'thumb' | 'full'): Promise<{ buffer: Buffer; source: Exclude<CardImageSource, 'placeholder'> }> {
-  const sourceSize = variant === 'full' ? '512x' : '256x';
+  const sourceSize = '512x';
   const locales = ['ruRU', 'enUS'];
   let lastError: Error | null = null;
-
-  if (blizzardCardImages.configured) {
-    try {
-      const dbfId = await resolveCardDbfId(cardId);
-      const imageUrl = dbfId ? await blizzardCardImages.getImageUrl(dbfId) : null;
-      if (imageUrl) {
-        const upstream = await fetch(imageUrl, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
-          signal: AbortSignal.timeout(15_000),
-        });
-        const contentType = upstream.headers.get('content-type') ?? '';
-        if (!upstream.ok) throw new Error(`Blizzard image HTTP ${upstream.status}`);
-        if (!isBlizzardImageContentType(contentType)) {
-          throw new Error(`Blizzard image returned ${contentType || 'unknown content type'}`);
-        }
-        return { buffer: Buffer.from(await upstream.arrayBuffer()), source: 'blizzard' };
-      }
-    } catch (err: any) {
-      lastError = err instanceof Error ? err : new Error(String(err));
-      if (Date.now() - lastBlizzardImageWarningAt > 5 * 60_000) {
-        lastBlizzardImageWarningAt = Date.now();
-        console.warn('[api/card-image] Blizzard API unavailable, using HearthstoneJSON fallback:', lastError.message);
-      }
-    }
-  }
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     for (const locale of locales) {
@@ -4952,17 +4907,9 @@ async function fetchRemoteCardImage(cardId: string, variant: 'thumb' | 'full'): 
 async function ensureCardImage(cardId: string, variant: 'thumb' | 'full'): Promise<CachedCardImage> {
   mkdirSync(CARD_IMAGE_CACHE_DIR, { recursive: true });
   const resolvedCardId = await resolveCardImageId(cardId);
-  const preferredSource: CardImageSource = blizzardCardImages.configured ? 'blizzard' : 'fallback';
+  const preferredSource: CardImageSource = 'fallback';
   const preferredPath = cardImageCachePath(resolvedCardId, variant, preferredSource);
   if (existsSync(preferredPath)) return { path: preferredPath, source: preferredSource };
-
-  const recentFallbackPath = cardImageCachePath(resolvedCardId, variant, 'fallback');
-  if (blizzardCardImages.configured && existsSync(recentFallbackPath)) {
-    const fallbackAge = Date.now() - statSync(recentFallbackPath).mtimeMs;
-    if (fallbackAge < CARD_IMAGE_FALLBACK_RETRY_MS) {
-      return { path: recentFallbackPath, source: 'fallback' };
-    }
-  }
 
   const jobKey = `${resolvedCardId}:${variant}:${preferredSource}`;
   const existingJob = cardImageJobs.get(jobKey);
@@ -4973,10 +4920,10 @@ async function ensureCardImage(cardId: string, variant: 'thumb' | 'full'): Promi
       try {
         const remoteImage = await fetchRemoteCardImage(resolvedCardId, variant);
         const outPath = cardImageCachePath(resolvedCardId, variant, remoteImage.source);
-        const width = variant === 'full' ? 360 : 180;
+        const { width, quality } = CARD_IMAGE_VARIANTS[variant];
         await sharp(remoteImage.buffer)
           .resize({ width, withoutEnlargement: true })
-          .webp({ quality: variant === 'full' ? 82 : 76, effort: 4 })
+          .webp({ quality, effort: 4 })
           .toFile(outPath);
         return { path: outPath, source: remoteImage.source };
       } catch (err: any) {
@@ -9671,7 +9618,7 @@ cron.schedule('*/30 * * * *', async () => {
 
 const httpServer = app.listen(PORT, HOST, () => {
   console.log(`[Server] API server running on http://${HOST || 'localhost'}:${PORT}`);
-  console.log(`[Server] Blizzard card images: ${blizzardCardImages.configured ? 'enabled' : 'disabled (HearthstoneJSON fallback)'}`);
+  console.log('[Server] Card images: HearthstoneJSON 512x responsive cache');
   console.log('[Server] Scraping is isolated in hs-arena-scraper.service. Trigger queue: POST /api/scrape');
 
   if (hsDataParserControlClient.configured) {

@@ -291,7 +291,7 @@ function mergeCard(tc: TierCard, lookup: Record<string, CardLookup>): CardData {
 
 // ─── Card image helpers ───────────────────────────────────────────────────────
 
-const CARD_IMAGE_PROXY_VERSION = 'card_img_v2';
+const CARD_IMAGE_PROXY_VERSION = 'card_img_v5_retina';
 const CARD_JSON_IMAGE_VERSION = 'card_art_tooltip_v1';
 const hsImgUrl = (cardId: string, size: '256x' | '512x' = '256x', locale: 'ruRU' | 'enUS' = 'ruRU') => {
   if (locale === 'ruRU') {
@@ -683,17 +683,21 @@ type HSCardProps = {
 };
 
 const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabled = false, onPreviewStart, onPreviewEnd }) => {
-  // Multi-step fallback: Russian render first, then source image, then English as last resort.
+  const localImageSrc = card.cardId ? hsImgUrl(card.cardId) : null;
+  // Multi-step fallback: responsive Russian proxy first, then source images and English render.
   const sources = useMemo(() => uniqueSources([
+    localImageSrc,
     card.imageRu  || null,
     card.imageHa  || null,
-    card.cardId   ? hsImgUrl(card.cardId) : null,
     card.cardId   ? hsImgUrl(card.cardId, '256x', 'enUS') : null,
-  ]), [card.cardId, card.imageHa, card.imageRu]);
+  ]), [card.cardId, card.imageHa, card.imageRu, localImageSrc]);
 
   const [srcIdx, setSrcIdx] = useState(0);
   const cardRef = useRef<HTMLButtonElement | null>(null);
   const thumbSrc = sources[srcIdx] ?? null;
+  const responsiveSrcSet = thumbSrc === localImageSrc && card.cardId
+    ? `${hsImgUrl(card.cardId)} 360w, ${hsImgUrl(card.cardId, '512x')} 512w`
+    : undefined;
   const handleErr = useCallback(() => setSrcIdx(i => i + 1), []);
   const showPreview = useCallback(() => {
     if (!previewEnabled) return;
@@ -725,7 +729,8 @@ const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabled = fa
         aria-label={`Открыть карту ${card.name}`}
       >
         <div className="hs-tier-card-inner transform transition-all duration-200 group-hover:scale-110 group-hover:z-10">
-          <img src={thumbSrc} alt={card.name} loading="lazy" decoding="async" width={230} height={319}
+          <img src={thumbSrc} srcSet={responsiveSrcSet} sizes="(max-width: 640px) 46vw, 230px"
+            alt={card.name} loading="lazy" decoding="async" width={230} height={349}
             onError={handleErr} />
         </div>
       </button>

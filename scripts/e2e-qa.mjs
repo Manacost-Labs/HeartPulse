@@ -1044,6 +1044,18 @@ async function mockApplicationApi(page, {
       }));
       return;
     }
+    if (/^\/api\/card-image\/[A-Za-z0-9_]+\/(?:thumb|full)\.webp$/.test(url.pathname)) {
+      request.respond({
+        status: 200,
+        contentType: 'image/svg+xml',
+        headers: {
+          'access-control-allow-origin': '*',
+          'cache-control': 'public, max-age=2592000, immutable',
+        },
+        body: decodeURIComponent(qaCardImage.slice(qaCardImage.indexOf(',') + 1)),
+      });
+      return;
+    }
     if (!authenticated && url.pathname === '/api/auth/login' && request.method() === 'POST') {
       request.respond({
         ...jsonResponse({ error: 'Контрольная ошибка входа' }),
@@ -2340,7 +2352,7 @@ async function assertArenaDataRoutePresentation(page, path, device) {
     const expectedPaddingInline = device === 'desktop' ? '4.8px' : '0px';
     if (state.firstCardMaxWidth !== '230px'
       || state.firstImageMaxWidth !== expectedImageMaxWidth
-      || !state.firstImageAspectRatio.startsWith('0.72')
+      || state.firstImageAspectRatio !== '512 / 776'
       || state.firstImageObjectFit !== 'contain'
       || state.gridGap !== expectedGap
       || state.gridPaddingInline !== expectedPaddingInline) {

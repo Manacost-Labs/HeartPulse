@@ -84,7 +84,13 @@ try {
   const fallback = await get('/card-image/123/full.webp');
   assert.equal(fallback.status, 200);
   assert.equal(fallback.headers.get('x-card-image-source'), 'fallback');
-  assert.match(fallback.headers.get('cache-control') || '', /max-age=300/);
+  assert.match(fallback.headers.get('cache-control') || '', /immutable/);
+
+  image = { path: '/safe/placeholder.webp', source: 'placeholder' };
+  const placeholder = await get('/card-image/123/thumb.webp');
+  assert.equal(placeholder.status, 200);
+  assert.equal(placeholder.headers.get('x-card-image-source'), 'placeholder');
+  assert.match(placeholder.headers.get('cache-control') || '', /max-age=300/);
 
   image = { path: '/etc/passwd', source: 'placeholder' };
   const escaped = await get('/card-image/EX1_001/thumb.webp');

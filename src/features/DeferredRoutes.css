@@ -531,14 +531,14 @@
     display: block;
     width: 100%;
     max-width: 230px;
-    aspect-ratio: 0.72;
+    aspect-ratio: 512 / 776;
     object-fit: contain;
   }
 
   .hs-tier-card-inner--fallback {
     max-width: 230px;
     height: auto;
-    aspect-ratio: 0.72;
+    aspect-ratio: 512 / 776;
   }
 
   .hs-tier-card-inner img,

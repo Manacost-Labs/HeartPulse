@@ -51,7 +51,7 @@ export function createCardImageRouter(dependencies: CardImageRouterDependencies)
       response.set('Content-Type', 'image/webp');
       response.set('Content-Length', String(stat.size));
       response.set('X-Card-Image-Source', image.source);
-      response.set('Cache-Control', image.source === 'blizzard' ? immutableCacheHeader : fallbackCacheHeader);
+      response.set('Cache-Control', image.source === 'placeholder' ? fallbackCacheHeader : immutableCacheHeader);
       response.set('ETag', etag);
       if (request.headers['if-none-match'] === etag) return response.status(304).end();
 
