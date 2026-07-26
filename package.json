@@ -91,7 +91,7 @@
     "test:admin-class-position-routes": "tsx tests/admin-class-position-routes.test.ts",
     "test:admin-archetype-translation-routes": "tsx tests/admin-archetype-translation-routes.test.ts && tsx tests/contest-admin-translations-request.test.ts",
     "test:admin-mechanic-translation-routes": "tsx tests/admin-mechanic-translation-routes.test.ts",
-    "test:admin-standard-operations-routes": "tsx tests/admin-standard-operations-routes.test.ts",
+    "test:admin-standard-operations-routes": "tsx tests/admin-standard-operations-routes.test.ts && tsx tests/admin-fun-decks-routes.test.ts",
     "test:admin-parser-control-routes": "tsx tests/admin-parser-control-routes.test.ts && tsx tests/hs-data-parser-control-client.test.ts && tsx tests/parser-control-normalization.test.ts && tsx tests/parser-control-ui-contract.test.tsx && tsx tests/parser-data-cache-invalidation.test.ts && tsx tests/parser-run-reconciler.test.ts",
     "test:admin-article-routes": "tsx tests/admin-article-routes.test.ts",
     "test:admin-contest-mutation-routes": "tsx tests/admin-contest-mutation-routes.test.ts",

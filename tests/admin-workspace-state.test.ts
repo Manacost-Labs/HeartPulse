@@ -34,6 +34,9 @@ assert.strictEqual(
   'an already clean navigation state must keep its identity',
 );
 
+const funDecks = adminWorkspaceReducer(navigated, { type: 'navigate', section: 'fun-decks' });
+assert.equal(funDecks.section, 'fun-decks');
+
 const sameUserMenuClosed = adminWorkspaceReducer(
   adminWorkspaceReducer(initial, { type: 'toggleUserMenu', userId: 'user-1' }),
   { type: 'toggleUserMenu', userId: 'user-1' },

@@ -13,6 +13,7 @@ import {
   MessageCircle,
   Newspaper,
   ShieldCheck,
+  Sparkles,
   Trophy,
   Users,
   X,
@@ -86,6 +87,10 @@ const ContestAdminMechanicTranslations = React.lazy(async () => {
 const ContestAdminStandardOperations = React.lazy(async () => {
   const module = await import('./ContestAdminStandardOperations');
   return { default: module.ContestAdminStandardOperations };
+});
+const ContestAdminFunDecks = React.lazy(async () => {
+  const module = await import('./ContestAdminStandardOperations');
+  return { default: module.ContestAdminFunDecks };
 });
 
 type AuthUser = {
@@ -399,6 +404,7 @@ const ADMIN_NAV_ITEMS: ReadonlyArray<{
   { id: 'translations', label: 'Переводы', caption: 'Названия архетипов и синхронизация BlizzCore', status: 'Ручные правки защищены', group: 'Контент', icon: Newspaper },
   { id: 'mechanics', label: 'Механики и теги', caption: 'Русские переводы, примеры карт и контроль покрытия', status: 'Сохранение по кнопке', group: 'Контент', icon: Newspaper },
   { id: 'standard-data', label: 'Данные и парсеры', caption: 'Режим меты, автообновление и очереди', status: 'Центр управления данными', group: 'Система', icon: Database },
+  { id: 'fun-decks', label: 'Фановые колоды', caption: 'Off-meta подборка и коды колод', status: 'Обновляется автоматически', group: 'Система', icon: Sparkles },
   { id: 'users', label: 'Пользователи', caption: 'Права, блокировки и контакты', status: 'Действия с подтверждением', group: 'Аудитория', icon: Users },
   { id: 'mailing', label: 'Рассылка', caption: 'Письма, шаблоны и история отправок', status: 'Безопасная очередь отправки', group: 'Аудитория', icon: Mail },
   { id: 'boosty', label: 'Boosty', caption: 'Подписчики и уровни доступа', status: 'Данные только для просмотра', group: 'Аудитория', icon: CircleDollarSign },
@@ -417,6 +423,7 @@ const ADMIN_WORKSPACE_SECTION_IDS: AdminWorkspaceSection[] = [
   'translations',
   'mechanics',
   'standard-data',
+  'fun-decks',
   'users',
   'mailing',
   'boosty',
@@ -699,6 +706,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       translations: 'Переводы архетипов',
       mechanics: 'Переводы механик и тегов',
       'standard-data': 'Данные и парсеры',
+      'fun-decks': 'Фановые колоды',
       users: 'Пользователи',
       mailing: 'Рассылка',
       boosty: 'Boosty',
@@ -1727,6 +1735,12 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           {hasFullAdminAccess && adminSection === 'standard-data' && (
             <React.Suspense fallback={<p className="contest-muted" role="status">Загружаем управление данными…</p>}>
               <ContestAdminStandardOperations onMessage={setMessage} />
+            </React.Suspense>
+          )}
+
+          {hasFullAdminAccess && adminSection === 'fun-decks' && (
+            <React.Suspense fallback={<p className="contest-muted" role="status">Загружаем фановые колоды…</p>}>
+              <ContestAdminFunDecks />
             </React.Suspense>
           )}
 

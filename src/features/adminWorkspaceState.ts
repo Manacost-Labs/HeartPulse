@@ -10,6 +10,7 @@ export type AdminWorkspaceSection =
   | 'translations'
   | 'mechanics'
   | 'standard-data'
+  | 'fun-decks'
   | 'contests'
   | 'referrals'
   | 'boosty';
