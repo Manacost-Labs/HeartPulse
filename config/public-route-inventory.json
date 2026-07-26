@@ -82,7 +82,7 @@
       "indexPolicy": "index",
       "canonicalPolicy": "self",
       "sitemap": true,
-      "htmlStrategy": "prerender",
+      "htmlStrategy": "snapshot",
       "expectedStatus": 200,
       "criticality": "P1",
       "mobileFixture": "cosmetics-heroes",
@@ -700,7 +700,7 @@
     },
     {
       "id": "faceted-state",
-      "parameters": ["search", "sort", "filter", "class", "set", "mechanic", "page", "direction", "perPage", "query", "q", "rarity", "category", "kind", "role", "subscription", "status"],
+      "parameters": ["search", "sort", "filter", "class", "set", "mechanic", "page", "direction", "perPage", "query", "rarity", "category", "kind", "role", "subscription", "status"],
       "indexPolicy": "noindex-follow",
       "canonicalPolicy": "clean-path",
       "appliesTo": ["/articles", "/guides-archive", "/standard/cards/:format", "/cosmetics/:kind", "/admin"]

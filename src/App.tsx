@@ -1490,7 +1490,7 @@ export default function App() {
           href="/"
           onClick={(e) => { e.preventDefault(); navigate('home'); }}
           className="arena-mobile-brand"
-          aria-label="На главную"
+          aria-label="Manacost Stats — на главную"
         >
           <span>Manacost Stats</span>
         </a>
@@ -1606,7 +1606,7 @@ export default function App() {
               href="/"
               onClick={(e) => { e.preventDefault(); navigate('home'); }}
               className="arena-sidebar-brand"
-              aria-label="На главную"
+              aria-label="Manacost Stats — на главную"
             >
               <span className="arena-sidebar-brand-copy">
                 <strong>Manacost Stats</strong>

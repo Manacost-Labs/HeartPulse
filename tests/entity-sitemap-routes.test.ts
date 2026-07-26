@@ -9,7 +9,7 @@ import {
   loadStaticSitemapArtifact,
 } from '../server/entitySitemapRoutes.js';
 
-const staticUrls = Array.from({ length: 25 }, (_, index) => index === 0
+const staticUrls = Array.from({ length: 29 }, (_, index) => index === 0
   ? 'https://arena.hs-manacost.ru/'
   : `https://arena.hs-manacost.ru/static-${index}/`);
 const publicCard = {
@@ -117,7 +117,7 @@ try {
   assert.equal(staticResponse.headers.get('last-modified'), null,
     'static segment freshness must be omitted unless a real artifact mtime is supplied');
   const staticXml = await staticResponse.text();
-  assert.equal([...staticXml.matchAll(/<url>/g)].length, 25);
+  assert.equal([...staticXml.matchAll(/<url>/g)].length, 29);
   assert.deepEqual(
     [...staticXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]),
     staticUrls,
@@ -261,11 +261,11 @@ for (const [label, coldCards] of [
 }
 
 for (const invalidStaticUrls of [
-  staticUrls.slice(0, 22),
-  [...staticUrls.slice(0, 22), staticUrls[0]],
-  [...staticUrls.slice(0, 22), 'https://evil.example.test/private/'],
-  [...staticUrls.slice(0, 22), 'https://arena.hs-manacost.ru/admin/'],
-  [...staticUrls.slice(0, 22), 'https://arena.hs-manacost.ru/articles/?preview=1'],
+  staticUrls.slice(0, 28),
+  [...staticUrls.slice(0, 28), staticUrls[0]],
+  [...staticUrls.slice(0, 28), 'https://evil.example.test/private/'],
+  [...staticUrls.slice(0, 28), 'https://arena.hs-manacost.ru/admin/'],
+  [...staticUrls.slice(0, 28), 'https://arena.hs-manacost.ru/articles/?preview=1'],
 ]) {
   assert.throws(() => createEntitySitemapRouter({
     canonicalOrigin: 'https://arena.hs-manacost.ru',

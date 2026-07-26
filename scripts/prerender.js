@@ -421,6 +421,85 @@ const PAGES = {
       <p>Публичная галерея артов в высоком качестве. Просмотр и скачивание доступны всем пользователям.</p>
       <p><a href="/">На главную</a> | <a href="/articles">Статьи</a> | <a href="/contests">Конкурсы</a> | <a href="/classes">Винрейты классов</a></p>`
   },
+  '/cosmetics': {
+    ogType: 'website',
+    h1: 'Косметика Hearthstone',
+    structuredData: [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Главная', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'Косметика', item: `${SITE_URL}/cosmetics` },
+        ],
+      },
+      {
+        '@type': 'CollectionPage',
+        '@id': `${SITE_URL}/cosmetics#collection`,
+        name: 'Косметика Hearthstone',
+        description: 'Скины героев, косметические монеты и питомцы Hearthstone с артами, звуками и способами получения.',
+        url: `${SITE_URL}/cosmetics`,
+        inLanguage: 'ru',
+      },
+    ],
+    noscript: `
+      <h1>Косметика Hearthstone</h1>
+      <p>Полная библиотека скинов героев, косметических монет и питомцев Hearthstone.</p>
+      <p><a href="/cosmetics/heroes">Скины героев</a> | <a href="/cosmetics/coins">Монеты</a> | <a href="/cosmetics/pets">Питомцы</a></p>`
+  },
+  '/cosmetics/heroes': {
+    ogType: 'website',
+    h1: 'Скины героев Hearthstone',
+    structuredData: [
+      {
+        '@type': 'CollectionPage',
+        '@id': `${SITE_URL}/cosmetics/heroes#collection`,
+        name: 'Скины героев Hearthstone',
+        description: 'Скины героев Hearthstone с русскими названиями, фильтрами, анимациями, артами и звуковыми дорожками.',
+        url: `${SITE_URL}/cosmetics/heroes`,
+        inLanguage: 'ru',
+      },
+    ],
+    noscript: `
+      <h1>Скины героев Hearthstone</h1>
+      <p>Галерея портретов с фильтрами по классу, редкости и способу получения.</p>
+      <p><a href="/cosmetics">Косметика</a> | <a href="/cosmetics/coins">Монеты</a> | <a href="/cosmetics/pets">Питомцы</a></p>`
+  },
+  '/cosmetics/coins': {
+    ogType: 'website',
+    h1: 'Косметические монеты Hearthstone',
+    structuredData: [
+      {
+        '@type': 'CollectionPage',
+        '@id': `${SITE_URL}/cosmetics/coins#collection`,
+        name: 'Косметические монеты Hearthstone',
+        description: 'Галерея косметических монет Hearthstone и карты, связанные с механикой монет.',
+        url: `${SITE_URL}/cosmetics/coins`,
+        inLanguage: 'ru',
+      },
+    ],
+    noscript: `
+      <h1>Косметические монеты Hearthstone</h1>
+      <p>Все варианты Монетки, crop-арты и карты, которые генерируют монеты или связаны с ними.</p>
+      <p><a href="/cosmetics">Косметика</a> | <a href="/cosmetics/heroes">Скины героев</a> | <a href="/cosmetics/pets">Питомцы</a></p>`
+  },
+  '/cosmetics/pets': {
+    ogType: 'website',
+    h1: 'Питомцы Hearthstone',
+    structuredData: [
+      {
+        '@type': 'CollectionPage',
+        '@id': `${SITE_URL}/cosmetics/pets#collection`,
+        name: 'Питомцы Hearthstone',
+        description: 'Питомцы Hearthstone со всеми раскрасками, End Screen и дополнительными артами.',
+        url: `${SITE_URL}/cosmetics/pets`,
+        inLanguage: 'ru',
+      },
+    ],
+    noscript: `
+      <h1>Питомцы Hearthstone</h1>
+      <p>Галерея питомцев со всеми раскрасками, End Screen и дополнительными артами.</p>
+      <p><a href="/cosmetics">Косметика</a> | <a href="/cosmetics/heroes">Скины героев</a> | <a href="/cosmetics/coins">Монеты</a></p>`
+  },
   '/guides-archive': {
     ogType: 'website',
     h1: 'Архив гайдов Hearthstone',

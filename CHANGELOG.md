@@ -1,5 +1,21 @@
 # HS-Arena Changelog
 
+## v1.0.54 - 2026-07-26
+
+- Added a public Hearthstone cosmetics library under “Разное” with 726 localized
+  hero portraits, class/rarity/acquisition filters, lazy hover animation,
+  cosmetic coins and 32 pet variants grouped into eight families.
+- Added authoritative hero, coin and pet detail pages with stable IDs and DBF,
+  full art, animation, voice tracks, End Screen media, related cards and
+  alternate pet colorways.
+- Added bounded cached cosmetics API aggregation, source URL allowlisting,
+  prerendered catalog SEO pages, server-rendered detail responses and canonical
+  nginx routing with real 404/503 behavior.
+- Added Storybook 10 with the official MCP addon, authored component stories,
+  accessibility checks and a tested shared workflow for Codex and Claude.
+- Improved the cosmetics request lifecycle, responsive navigation and media
+  loading; local browser measurements reached 241 ms LCP and 0.03 CLS.
+
 ## v1.0.53 - 2026-07-26
 
 - Added localized token, quest-reward and Fabled hero-form groups to

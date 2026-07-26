@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   buildCoinCatalog,
   buildPetFamilies,
+  createCosmeticsDataService,
   normalizeCosmeticMediaUrl,
   normalizeHeroSkinSummary,
 } from '../server/cosmeticsRoutes.js';
@@ -48,6 +49,12 @@ assert.deepEqual(skin, {
 });
 assert.equal('gallery' in skin, false, 'list summary must not include gallery');
 assert.equal('sounds' in skin, false, 'list summary must not include sounds');
+
+const localizedRarity = normalizeHeroSkinSummary({
+  ...rawSkin,
+  rarity: { slug: 'full', name_ru: 'Full' },
+});
+assert.equal(localizedRarity.rarity.nameRu, 'Полный', 'rarity labels must be localized consistently');
 
 const relationSet = {
   generated_by_cards: [
@@ -102,5 +109,20 @@ assert.equal(pets[0].petId, 3);
 assert.deepEqual(pets[0].variants.map(variant => variant.name), ['Classic Krush', 'Devilsaur Krush']);
 assert.equal(pets[0].variants[0].images.card, 'https://db.kolodahs.ru/uploads/pets/cards/PET_3_1.png');
 assert.equal('endScreen' in pets[0].variants[0].images, false, 'catalog must defer the End Screen to detail');
+
+const missingService = createCosmeticsDataService({
+  apiBaseUrl: 'https://db.kolodahs.ru/api/v1',
+  localizedCardsUrl: 'https://example.test/cards.json',
+  fetchJson: async () => {
+    const error = new Error('missing') as Error & { status?: number };
+    error.status = 404;
+    throw error;
+  },
+});
+assert.equal(
+  await missingService.loadDetail('heroes', 'NOT_REAL'),
+  null,
+  'an authoritative upstream 404 must remain a missing entity rather than becoming an outage',
+);
 
 console.log('cosmetics model tests passed');

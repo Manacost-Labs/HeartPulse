@@ -253,7 +253,8 @@ for (const route of inventory.routes) {
     expectRegexAction(`${path}/`, 'try_files /archetypes/index.html /index.html =404;', `${route.id} canonical route`);
     continue;
   }
-  if (route.id === 'standard-card-detail' || route.id === 'bg-hero-detail' || route.id === 'bg-library-detail') {
+  if (route.id === 'standard-card-detail' || route.id === 'bg-hero-detail'
+    || route.id === 'bg-library-detail' || route.id === 'cosmetics-detail') {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:3101;', `${route.id} canonical route`);
     const resolver = firstMatchingRegexLocation(`${path}/`);
     assert.doesNotMatch(resolver?.body || '', /try_files\s+[^;]*\/index\.html/,

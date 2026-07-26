@@ -642,12 +642,17 @@
 
 @media (max-width: 720px) {
   .cosmetics-tabs {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .cosmetics-tab {
-    justify-content: flex-start;
-    padding-inline: 16px;
+    justify-content: center;
+    padding-inline: 6px;
+    text-align: center;
+  }
+
+  .cosmetics-tab svg {
+    display: none;
   }
 
   .cosmetics-surface {

@@ -113,6 +113,7 @@ Manacost Arena превращает разрозненные игровые да
 | Арена: тир-лист карт | [Открыть `/tierlist`](https://arena.hs-manacost.ru/tierlist) |
 | Поля Сражений: герои | [Открыть `/heroes`](https://arena.hs-manacost.ru/heroes) |
 | Поля Сражений: библиотека | [Открыть `/library`](https://arena.hs-manacost.ru/library) |
+| Косметика: скины, монеты и питомцы | [Открыть `/cosmetics`](https://arena.hs-manacost.ru/cosmetics) |
 | Состояние production | [Readiness API](https://arena.hs-manacost.ru/api/health/ready) |
 
 ## О проекте
@@ -146,6 +147,7 @@ npm run docs:screenshots
 | Тир-листы карт | Библиотека и архив | Архив гайдов и галерея |
 | Группы легендарок | Тир-листы меты | Telegram/Boosty-профиль |
 | Матчапы и аналитика | Конструкторы стратегий | Редакционная admin-панель |
+| Скины, монеты и питомцы | Галереи и игровые медиа | Storybook + MCP |
 
 Интерфейс работает от 320 px, проходит 200% reflow и forced-colors
 проверку. Клавиатурная навигация, scroll lock модальных окон и

@@ -25,6 +25,14 @@ const ALLOWED_MEDIA_HOSTS = new Set([
   'art.hearthstonejson.com',
 ]);
 const HERO_RARITIES = new Set(['basic', 'lite', 'full', 'diamond', 'legendary', 'mythic']);
+const HERO_RARITY_NAMES_RU: Record<string, string> = {
+  basic: 'Базовый',
+  lite: 'Обычный',
+  full: 'Полный',
+  diamond: 'Алмазный',
+  legendary: 'Легендарный',
+  mythic: 'Мифический',
+};
 const HERO_CLASSES = new Set([
   'deathknight', 'demonhunter', 'druid', 'hunter', 'mage', 'paladin',
   'priest', 'rogue', 'shaman', 'warlock', 'warrior',
@@ -99,6 +107,7 @@ export function normalizeHeroSkinSummary(
   localizedNames: ReadonlyMap<string, string> = new Map(),
 ) {
   const cardId = cleanText(raw?.card_id, 100);
+  const raritySlug = cleanText(raw?.rarity?.slug, 40) || 'unknown';
   const staticUrl = normalizeCosmeticMediaUrl(raw?.images?.static);
   const animatedUrl = normalizeCosmeticMediaUrl(raw?.images?.animated);
   const categorySlugs = new Set<string>(
@@ -121,8 +130,10 @@ export function normalizeHeroSkinSummary(
       nameRu: cleanText(raw?.class?.name_ru, 80) || 'Без класса',
     },
     rarity: {
-      slug: cleanText(raw?.rarity?.slug, 40) || 'unknown',
-      nameRu: cleanText(raw?.rarity?.name_ru, 80) || 'Не указана',
+      slug: raritySlug,
+      nameRu: HERO_RARITY_NAMES_RU[raritySlug]
+        || cleanText(raw?.rarity?.name_ru, 80)
+        || 'Не указана',
     },
     categorySlugs: [...categorySlugs],
     images: {
@@ -431,7 +442,13 @@ export function createCosmeticsDataService(dependencies: CosmeticsDataServiceDep
 
     async loadDetail(kind, cardId) {
       const url = new URL(`${dependencies.apiBaseUrl.replace(/\/$/, '')}/${upstreamKind(kind)}/${encodeURIComponent(cardId)}`);
-      const payload = await cachedFetch(`detail:${kind}:${cardId}`, url);
+      let payload: JsonRecord;
+      try {
+        payload = await cachedFetch(`detail:${kind}:${cardId}`, url);
+      } catch (error) {
+        if (Number((error as { status?: unknown })?.status) === 404) return null;
+        throw error;
+      }
       const row = payload?.data;
       if (!row || typeof row !== 'object') return null;
       if (kind === 'heroes') return normalizeHeroDetail(row, await getLocalizedNames());
@@ -456,7 +473,7 @@ const readCatalogQuery = (request: Request, kind: CosmeticKind): CosmeticsCatalo
   const page = readInteger(request.query.page, 1, 1, 1_000);
   const perPage = readInteger(request.query.per_page, kind === 'heroes' ? 48 : 100, 1, 100);
   if (page === null || perPage === null) return null;
-  const q = cleanText(request.query.q, 120);
+  const q = cleanText(request.query.search ?? request.query.q, 120);
   const classSlug = cleanText(request.query.class, 40);
   const rarity = cleanText(request.query.rarity, 40);
   const category = cleanText(request.query.category, 80);

@@ -1,4 +1,12 @@
-import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import {
   ArrowLeft,
   ChevronLeft,
@@ -18,7 +26,7 @@ import './Cosmetics.css';
 
 type CosmeticKind = 'heroes' | 'coins' | 'pets';
 
-type HeroSummary = {
+export type HeroSummary = {
   cardId: string;
   dbf: number | null;
   name: { ru: string; en: string | null };
@@ -97,11 +105,40 @@ type CosmeticsProps = {
   navigatePath: (path: string) => void;
 };
 
+const CARD_IMAGE_VERSION = 'cosmetics-20260726';
+
+function cachedCardImage(cardId: string, variant: 'thumb' | 'full' = 'full') {
+  return `/api/card-image/${encodeURIComponent(cardId)}/${variant}.webp?v=${CARD_IMAGE_VERSION}`;
+}
+
 type HeroFilters = {
   q: string;
   classSlug: string;
   rarity: string;
   category: string;
+};
+
+type CatalogControls = {
+  filters: HeroFilters;
+  page: number;
+};
+
+type CatalogControlsAction =
+  | { type: 'filters'; patch: Partial<HeroFilters> }
+  | { type: 'page'; page: number };
+
+type CatalogRequestState = {
+  requestUrl: string;
+  payload: CatalogPayload | null;
+  error: string | null;
+};
+
+type DetailPayload = HeroDetail | CoinDetail | PetDetail;
+
+type DetailRequestState = {
+  requestKey: string;
+  detail: DetailPayload | null;
+  error: string | null;
 };
 
 const CLASS_OPTIONS = [
@@ -197,16 +234,46 @@ function routeState(path: string): { kind: CosmeticKind; cardId: string | null }
   return { kind: 'heroes', cardId: null };
 }
 
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+
+function subscribeReducedMotion(callback: () => void) {
+  const media = window.matchMedia(REDUCED_MOTION_QUERY);
+  media.addEventListener('change', callback);
+  return () => media.removeEventListener('change', callback);
+}
+
+function getReducedMotionSnapshot() {
+  return window.matchMedia(REDUCED_MOTION_QUERY).matches;
+}
+
 function useReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const update = () => setReduced(media.matches);
-    update();
-    media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
-  }, []);
-  return reduced;
+  return useSyncExternalStore(subscribeReducedMotion, getReducedMotionSnapshot, () => false);
+}
+
+function initializeCatalogControls(): CatalogControls {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    filters: {
+      q: params.get('search') || '',
+      classSlug: params.get('class') || '',
+      rarity: params.get('rarity') || '',
+      category: params.get('category') || '',
+    },
+    page: Math.max(1, Number(params.get('page')) || 1),
+  };
+}
+
+function catalogControlsReducer(state: CatalogControls, action: CatalogControlsAction): CatalogControls {
+  if (action.type === 'filters') {
+    return {
+      filters: { ...state.filters, ...action.patch },
+      page: 1,
+    };
+  }
+  return {
+    ...state,
+    page: Math.max(1, action.page),
+  };
 }
 
 function formatUpdatedAt(value: string | null) {
@@ -243,7 +310,7 @@ function CatalogTabs({ active, navigatePath }: { active: CosmeticKind; navigateP
   );
 }
 
-function HeroSkinCard({
+export function HeroSkinCard({
   item,
   navigatePath,
   reducedMotion,
@@ -332,9 +399,14 @@ function CoinCard({ item, navigatePath }: { item: CoinSummary; navigatePath: (pa
       }}
     >
       <span className="cosmetics-card-media">
-        {item.images.card ? (
-          <img src={item.images.card} alt={item.name.en || item.name.ru} loading="lazy" decoding="async" width="512" height="768" />
-        ) : <span className="cosmetics-media-placeholder"><Coins aria-hidden="true" /></span>}
+        <img
+          src={cachedCardImage(item.cardId)}
+          alt={item.name.en || item.name.ru}
+          loading="lazy"
+          decoding="async"
+          width="512"
+          height="768"
+        />
       </span>
       <span className="cosmetics-card-copy">
         <strong>{item.name.en || item.name.ru}</strong>
@@ -387,7 +459,7 @@ function RelatedCards({
         {items.map(card => (
           <a key={card.cardId} href={`/standard/cards/wild/${encodeURIComponent(card.cardId)}`}>
             <img
-              src={`https://art.hearthstonejson.com/v1/render/latest/ruRU/256x/${encodeURIComponent(card.cardId)}.png`}
+              src={cachedCardImage(card.cardId, 'thumb')}
               alt=""
               loading="lazy"
               decoding="async"
@@ -415,6 +487,7 @@ function HeroFiltersPanel({
         <span className="sr-only">Поиск скина</span>
         <Search size={20} aria-hidden="true" />
         <input
+          name="cosmetics-q"
           value={filters.q}
           onChange={event => onChange({ q: event.target.value })}
           placeholder="Название, ID или DBF…"
@@ -423,19 +496,19 @@ function HeroFiltersPanel({
       </label>
       <label>
         <span>Класс</span>
-        <select value={filters.classSlug} onChange={event => onChange({ classSlug: event.target.value })}>
+        <select name="cosmetics-class" value={filters.classSlug} onChange={event => onChange({ classSlug: event.target.value })}>
           {CLASS_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </label>
       <label>
         <span>Редкость</span>
-        <select value={filters.rarity} onChange={event => onChange({ rarity: event.target.value })}>
+        <select name="cosmetics-rarity" value={filters.rarity} onChange={event => onChange({ rarity: event.target.value })}>
           {RARITY_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </label>
       <label>
         <span>Получение</span>
-        <select value={filters.category} onChange={event => onChange({ category: event.target.value })}>
+        <select name="cosmetics-category" value={filters.category} onChange={event => onChange({ category: event.target.value })}>
           {CATEGORY_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </label>
@@ -468,52 +541,68 @@ function CatalogView({
   kind: CosmeticKind;
   navigatePath: (path: string) => void;
 }) {
-  const queryParams = useMemo(() => new URLSearchParams(window.location.search), [kind]);
-  const [filters, setFilters] = useState<HeroFilters>({
-    q: queryParams.get('q') || '',
-    classSlug: queryParams.get('class') || '',
-    rarity: queryParams.get('rarity') || '',
-    category: queryParams.get('category') || '',
-  });
+  const [controls, dispatchControls] = useReducer(
+    catalogControlsReducer,
+    undefined,
+    initializeCatalogControls,
+  );
+  const { filters, page } = controls;
   const deferredQuery = useDeferredValue(filters.q);
-  const [page, setPage] = useState(Math.max(1, Number(queryParams.get('page')) || 1));
-  const [payload, setPayload] = useState<CatalogPayload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const reducedMotion = useReducedMotion();
-
-  useEffect(() => {
+  const request = useMemo(() => {
     const params = new URLSearchParams();
     if (kind === 'heroes') {
-      if (deferredQuery) params.set('q', deferredQuery);
+      if (deferredQuery) params.set('search', deferredQuery);
       if (filters.classSlug) params.set('class', filters.classSlug);
       if (filters.rarity) params.set('rarity', filters.rarity);
       if (filters.category) params.set('category', filters.category);
     }
     if (page > 1) params.set('page', String(page));
     const query = params.toString();
-    window.history.replaceState(window.history.state, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+    return {
+      query,
+      url: `/api/cosmetics/${kind}${query ? `?${query}` : ''}`,
+    };
+  }, [kind, deferredQuery, filters.classSlug, filters.rarity, filters.category, page]);
+  const [requestState, setRequestState] = useState<CatalogRequestState>({
+    requestUrl: '',
+    payload: null,
+    error: null,
+  });
+  const currentRequest = requestState.requestUrl === request.url ? requestState : null;
+  const payload = currentRequest?.payload ?? null;
+  const error = currentRequest?.error ?? null;
+  const loading = currentRequest === null;
+  const reducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${window.location.pathname}${request.query ? `?${request.query}` : ''}`,
+    );
 
     const controller = new AbortController();
-    setLoading(true);
-    setError(null);
-    fetchCosmetics<CatalogPayload>(`/api/cosmetics/${kind}?${params.toString()}`, controller.signal)
+    fetchCosmetics<CatalogPayload>(request.url, controller.signal)
       .then(result => {
-        setPayload(result);
-        if (result.pagination.page !== page) setPage(result.pagination.page);
+        setRequestState({ requestUrl: request.url, payload: result, error: null });
+        if (result.pagination.page !== page) {
+          dispatchControls({ type: 'page', page: result.pagination.page });
+        }
       })
       .catch(requestError => {
-        if (requestError?.name !== 'AbortError') setError(requestError instanceof Error ? requestError.message : 'Не удалось загрузить каталог');
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+        if (requestError?.name !== 'AbortError') {
+          setRequestState({
+            requestUrl: request.url,
+            payload: null,
+            error: requestError instanceof Error ? requestError.message : 'Не удалось загрузить каталог',
+          });
+        }
       });
     return () => controller.abort();
-  }, [kind, deferredQuery, filters.classSlug, filters.rarity, filters.category, page]);
+  }, [request.query, request.url, page]);
 
   const updateFilters = (patch: Partial<HeroFilters>) => {
-    setFilters(current => ({ ...current, ...patch }));
-    setPage(1);
+    dispatchControls({ type: 'filters', patch });
   };
 
   const items = payload?.items ?? [];
@@ -526,8 +615,8 @@ function CatalogView({
             <span className="cosmetics-kicker">Связанные карты</span>
             <h2 id="coin-relations-title">Монеты в механиках Hearthstone</h2>
           </div>
-          <RelatedCards title="Карты, которые генерируют монеты" items={payload.generatedBy ?? []} open />
-          <RelatedCards title="Карты, которые связаны с монетами" items={payload.related ?? []} open />
+          <RelatedCards title="Карты, которые генерируют монеты" items={payload.generatedBy ?? []} />
+          <RelatedCards title="Карты, которые связаны с монетами" items={payload.related ?? []} />
         </section>
       )}
 
@@ -552,14 +641,18 @@ function CatalogView({
           {!loading && items.length === 0 && <EmptyState />}
           {(payload?.pagination.totalPages ?? 1) > 1 && (
             <nav className="cosmetics-pagination" aria-label="Страницы каталога">
-              <button type="button" disabled={page <= 1 || loading} onClick={() => setPage(value => Math.max(1, value - 1))}>
+              <button
+                type="button"
+                disabled={page <= 1 || loading}
+                onClick={() => dispatchControls({ type: 'page', page: page - 1 })}
+              >
                 <ChevronLeft size={18} aria-hidden="true" /> Назад
               </button>
               <span>Страница {payload?.pagination.page} из {payload?.pagination.totalPages}</span>
               <button
                 type="button"
                 disabled={page >= (payload?.pagination.totalPages ?? 1) || loading}
-                onClick={() => setPage(value => value + 1)}
+                onClick={() => dispatchControls({ type: 'page', page: page + 1 })}
               >
                 Вперёд <ChevronRight size={18} aria-hidden="true" />
               </button>
@@ -628,7 +721,15 @@ function HeroDetailView({ detail }: { detail: HeroDetail }) {
           <h2>Анимация и полный арт</h2>
           <div className="cosmetics-featured-media">
             {detail.images.animated && !reducedMotion && (
-              <video controls loop muted playsInline preload="metadata" poster={detail.images.static || undefined}>
+              <video
+                controls
+                loop
+                muted
+                playsInline
+                preload="metadata"
+                poster={detail.images.static || undefined}
+                aria-label={`Анимация скина «${detail.name.ru}»`}
+              >
                 <source src={detail.images.animated} />
               </video>
             )}
@@ -643,7 +744,14 @@ function HeroDetailView({ detail }: { detail: HeroDetail }) {
             {detail.sounds.map((sound, index) => (
               <article key={`${sound.url}-${index}`}>
                 <div><strong>{sound.type}</strong>{sound.transcript && <p>{sound.transcript}</p>}</div>
-                <audio controls preload="none" src={sound.url}>Ваш браузер не поддерживает аудио.</audio>
+                <audio
+                  controls
+                  preload="none"
+                  src={sound.url}
+                  aria-label={`${sound.type}: ${sound.transcript || `дорожка ${index + 1}`}`}
+                >
+                  Ваш браузер не поддерживает аудио.
+                </audio>
               </article>
             ))}
           </div>
@@ -724,22 +832,33 @@ function DetailView({
   cardId: string;
   navigatePath: (path: string) => void;
 }) {
-  const [detail, setDetail] = useState<HeroDetail | CoinDetail | PetDetail | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const requestKey = `${kind}:${cardId}`;
+  const [requestState, setRequestState] = useState<DetailRequestState>({
+    requestKey: '',
+    detail: null,
+    error: null,
+  });
+  const currentRequest = requestState.requestKey === requestKey ? requestState : null;
+  const detail = currentRequest?.detail ?? null;
+  const error = currentRequest?.error ?? null;
   useEffect(() => {
     const controller = new AbortController();
-    setDetail(null);
-    setError(null);
-    fetchCosmetics<HeroDetail | CoinDetail | PetDetail>(
+    fetchCosmetics<DetailPayload>(
       `/api/cosmetics/${kind}/${encodeURIComponent(cardId)}`,
       controller.signal,
     )
-      .then(setDetail)
+      .then(result => setRequestState({ requestKey, detail: result, error: null }))
       .catch(requestError => {
-        if (requestError?.name !== 'AbortError') setError(requestError instanceof Error ? requestError.message : 'Не удалось загрузить страницу');
+        if (requestError?.name !== 'AbortError') {
+          setRequestState({
+            requestKey,
+            detail: null,
+            error: requestError instanceof Error ? requestError.message : 'Не удалось загрузить страницу',
+          });
+        }
       });
     return () => controller.abort();
-  }, [kind, cardId]);
+  }, [kind, cardId, requestKey]);
 
   useEffect(() => {
     if (!detail) return;
@@ -791,17 +910,19 @@ export default function Cosmetics({ currentPath, navigatePath }: CosmeticsProps)
   const meta = KIND_META[route.kind];
   return (
     <div className="route-parchment-page cosmetics-page">
-      <header className="route-parchment-hero cosmetics-hero">
-        <span className="cosmetics-kicker">Коллекция Hearthstone</span>
-        <h1>{route.cardId ? 'Косметика' : meta.title}</h1>
-        {!route.cardId && <p>{meta.description}</p>}
-      </header>
+      {!route.cardId && (
+        <header className="route-parchment-hero cosmetics-hero">
+          <span className="cosmetics-kicker">Коллекция Hearthstone</span>
+          <h1>{meta.title}</h1>
+          <p>{meta.description}</p>
+        </header>
+      )}
       <CatalogTabs active={route.kind} navigatePath={navigatePath} />
-      <main className="cosmetics-surface">
+      <section className="cosmetics-surface" aria-label="Каталог косметики Hearthstone">
         {route.cardId
           ? <DetailView kind={route.kind} cardId={route.cardId} navigatePath={navigatePath} />
           : <CatalogView key={route.kind} kind={route.kind} navigatePath={navigatePath} />}
-      </main>
+      </section>
     </div>
   );
 }
