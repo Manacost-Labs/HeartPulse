@@ -42,6 +42,11 @@ type FunDecksPayload = {
     standard: number;
     wild: number;
   };
+  methodology: {
+    detectorVersion: string | null;
+    minFunScore: number;
+    maxMetaSimilarity: number;
+  };
   decks: FunDeckRow[];
 };
 
@@ -50,6 +55,7 @@ type FormatFilter = 'all' | 'standard' | 'wild';
 const EMPTY_DATA: FunDecksPayload = {
   fetchedAt: null,
   stats: { total: 0, standard: 0, wild: 0 },
+  methodology: { detectorVersion: null, minFunScore: 0.55, maxMetaSimilarity: 0.42 },
   decks: [],
 };
 
@@ -67,15 +73,19 @@ const CLASS_META: Record<string, { label: string; color: string; icon: string }>
   warrior: { label: 'Воин', color: '#8e342f', icon: '/class_icon/ui/warrior-64.webp' },
 };
 
-const REASON_LABELS: Array<[string, string]> = [
-  ['cheese_high_winrate', 'Неожиданно сильная'],
-  ['meme_low_winrate', 'Мемная идея'],
-  ['highlander_shape', 'Рено / Highlander'],
-  ['xl_shape', 'XL-колода'],
-  ['card_package', 'Необычный пакет карт'],
-  ['title_mismatch_vs_nearest', 'Не похожа на ближайшую мету'],
-  ['meta_core_outlier', 'Вне мета-ядра'],
-];
+const HERO_CLASS_BY_DBF: Record<number, string> = {
+  7: 'warrior',
+  31: 'hunter',
+  274: 'druid',
+  637: 'mage',
+  671: 'paladin',
+  813: 'priest',
+  893: 'warlock',
+  930: 'rogue',
+  1066: 'shaman',
+  56550: 'demonhunter',
+  78065: 'deathknight',
+};
 
 function normalizeClass(value: string): string {
   return String(value || '').toLowerCase().replace(/[^a-z]/g, '');
@@ -112,25 +122,18 @@ function updateLabel(value: string | null): string {
   });
 }
 
-function deckReasons(reasons: string[]): string[] {
-  const known = REASON_LABELS
-    .filter(([key]) => reasons.includes(key))
-    .map(([, label]) => label);
-  return [...new Set(known)].slice(0, 2);
-}
-
 function FunDeckCard({ deck }: { deck: FunDeckRow }) {
   const format = formatOf(deck);
-  const classMeta = CLASS_META[normalizeClass(deck.className)] || {
-    label: deck.className || 'Неизвестный класс',
-    color: '#67131c',
-    icon: '/arena-logo-icon.webp',
-  };
-  const reasons = deckReasons(deck.reasons);
   const { data, loading, error, reload } = useResolvedDeck(deck.deckCode, {
     format,
     archetype: deck.nearestArchetype || undefined,
   });
+  const resolvedClass = data ? HERO_CLASS_BY_DBF[data.heroDbfId] : '';
+  const classMeta = CLASS_META[normalizeClass(deck.className)] || CLASS_META[resolvedClass] || {
+    label: deck.className && deck.className !== '—' ? deck.className : 'Класс определяется',
+    color: '#67131c',
+    icon: '/arena-logo-icon.webp',
+  };
 
   return (
     <article className="fun-deck-card">
@@ -161,12 +164,6 @@ function FunDeckCard({ deck }: { deck: FunDeckRow }) {
           <dd>{score(deck.funScore)}</dd>
         </div>
       </dl>
-
-      {reasons.length ? (
-        <div className="fun-deck-card__reasons" aria-label="Особенности колоды">
-          {reasons.map(reason => <span key={reason}>{reason}</span>)}
-        </div>
-      ) : null}
 
       <div className="fun-deck-card__deck" style={{ ['--fun-deck-class' as string]: classMeta.color }}>
         {data ? (
@@ -241,7 +238,6 @@ export default function FunDecksPage() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { setVisibleCount(6); }, [deferredQuery, formatFilter]);
 
   const filteredDecks = useMemo(() => {
     const needle = deferredQuery.trim().toLocaleLowerCase('ru-RU');
@@ -285,6 +281,40 @@ export default function FunDecksPage() {
         </div>
       </header>
 
+      <section className="fun-decks-method" aria-labelledby="fun-decks-method-title">
+        <div className="fun-decks-method__intro">
+          <span>Как читаются оценки</span>
+          <h2 id="fun-decks-method-title">Почему колода считается фановой</h2>
+          <p>Обе оценки пересчитываются автоматически при обновлении подборки.</p>
+        </div>
+        <dl className="fun-decks-method__scores">
+          <div>
+            <dt>Не похожа на мету</dt>
+            <dd>
+              <strong>100% − сходство с ближайшей мета-колодой</strong>
+              <span>
+                Состав сравнивается по картам и их количеству с колодами того же
+                формата и класса. Чем меньше общих карт, тем выше процент.
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt>Индекс фана</dt>
+            <dd>
+              <strong>Дистанция от меты + необычность идеи</strong>
+              <span>
+                Основа — 55% от дистанции до меты. Баллы добавляют редкие сочетания
+                карт и нестандартная концепция, а популярные ладдерные архетипы снижают оценку.
+              </span>
+            </dd>
+          </div>
+        </dl>
+        <p className="fun-decks-method__gate">
+          В подборку проходят колоды с индексом от {score(data.methodology?.minFunScore ?? 0.55)}
+          {' '}и сходством с метой не выше {score(data.methodology?.maxMetaSimilarity ?? 0.42)}.
+        </p>
+      </section>
+
       <section className="fun-decks-tools" aria-label="Фильтры фан-колод">
         <div className="fun-decks-tools__formats" role="group" aria-label="Формат">
           {filterButtons.map(filter => (
@@ -292,7 +322,10 @@ export default function FunDecksPage() {
               key={filter.id}
               type="button"
               aria-pressed={formatFilter === filter.id}
-              onClick={() => setFormatFilter(filter.id)}
+              onClick={() => {
+                setFormatFilter(filter.id);
+                setVisibleCount(6);
+              }}
             >
               {filter.label}
               <span>{filter.count}</span>
@@ -305,7 +338,10 @@ export default function FunDecksPage() {
           <input
             type="search"
             value={query}
-            onChange={event => setQuery(event.target.value)}
+            onChange={event => {
+              setQuery(event.target.value);
+              setVisibleCount(6);
+            }}
             placeholder="Найти колоду или класс"
           />
         </label>

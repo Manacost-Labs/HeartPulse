@@ -34,6 +34,14 @@ const normalized = normalizeFunDecksPayload({
           games: '120',
         },
         {
+          title: 'Streamer Mage',
+          deck_code: 'AAECAf0ECP6eBO/8BsODB7OHB72nB6TZB5HbB//fBwvx0wSd1ATNngbTngbiiQfYngf5wweGxAeT2wf53geA4AcAAA==',
+          format: 'Standard',
+          class: null,
+          record: '3 - 1',
+          fun_score: 0.8,
+        },
+        {
           title: 'Broken row',
           deck_code: 'too-short',
           format: 'Standard',
@@ -45,11 +53,15 @@ const normalized = normalizeFunDecksPayload({
 
 assert.equal(normalized.sourceId, 'hsguru_fun_decks');
 assert.equal(normalized.detectorVersion, 'concept-v6');
-assert.equal(normalized.decks.length, 2);
+assert.equal(normalized.decks.length, 3);
 assert.equal(normalized.decks[0].title, 'Standard experiment');
 assert.equal(normalized.decks[0].winRate, 53.4);
 assert.equal(normalized.decks[0].games, 120);
-assert.deepEqual(normalized.decks[1].reasons, ['card_package']);
+const streamerDeck = normalized.decks.find(deck => deck.title === 'Streamer Mage');
+assert.equal(streamerDeck?.className, 'Mage');
+assert.equal(streamerDeck?.winRate, 75);
+assert.equal(streamerDeck?.games, 4);
+assert.deepEqual(normalized.decks.find(deck => deck.title === 'Wild experiment')?.reasons, ['card_package']);
 assert.equal(normalized.cadence.timers.length, 2);
 
 const publicPayload = normalizePublicFunDecksPayload({
@@ -66,6 +78,11 @@ const publicPayload = normalizePublicFunDecksPayload({
 });
 assert.deepEqual(publicPayload.stats, { total: 2, standard: 1, wild: 1 });
 assert.equal(publicPayload.fetchedAt, '2026-07-25T01:15:16.225405+00:00');
+assert.deepEqual(publicPayload.methodology, {
+  detectorVersion: null,
+  minFunScore: 0.55,
+  maxMetaSimilarity: 0.42,
+});
 
 let upstreamFails = false;
 let reportedError: unknown;
@@ -107,6 +124,7 @@ try {
   assert.match(publicResponse.headers.get('cache-control') || '', /public, max-age=300/);
   const publicResponsePayload = await publicResponse.json() as any;
   assert.deepEqual(publicResponsePayload.stats, { total: 1, standard: 1, wild: 0 });
+  assert.equal(publicResponsePayload.methodology.minFunScore, 0.55);
   assert.equal('cadence' in publicResponsePayload, false);
   assert.equal('filters' in publicResponsePayload, false);
 

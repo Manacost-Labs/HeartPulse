@@ -1,4 +1,5 @@
 import { Router, type RequestHandler, type Response } from 'express';
+import { decodeDeckDefinition } from './deckBuilderResolve.js';
 
 export type FunDeckRow = {
   title: string;
@@ -47,6 +48,11 @@ export type PublicFunDecksPayload = {
     standard: number;
     wild: number;
   };
+  methodology: {
+    detectorVersion: string | null;
+    minFunScore: number;
+    maxMetaSimilarity: number;
+  };
   decks: FunDeckRow[];
 };
 
@@ -79,6 +85,39 @@ function stringList(value: unknown): string[] {
   return value.map(item => text(item)).filter(Boolean);
 }
 
+const HERO_CLASS_BY_DBF: Record<number, string> = {
+  7: 'Warrior',
+  31: 'Hunter',
+  274: 'Druid',
+  637: 'Mage',
+  671: 'Paladin',
+  813: 'Priest',
+  893: 'Warlock',
+  930: 'Rogue',
+  1066: 'Shaman',
+  56550: 'DemonHunter',
+  78065: 'DeathKnight',
+};
+
+function classFromDeckCode(deckCode: string): string {
+  const definition = decodeDeckDefinition(deckCode);
+  const heroDbfId = Number(definition?.heroes?.[0]);
+  return HERO_CLASS_BY_DBF[heroDbfId] || '';
+}
+
+function statsFromRecord(value: unknown): { games: number; winRate: number } | null {
+  const match = text(value).match(/^(\d+)\s*[-–—:]\s*(\d+)$/);
+  if (!match) return null;
+  const wins = Number(match[1]);
+  const losses = Number(match[2]);
+  const games = wins + losses;
+  if (!Number.isSafeInteger(games) || games <= 0) return null;
+  return {
+    games,
+    winRate: Math.round((wins / games) * 1_000) / 10,
+  };
+}
+
 export function normalizeFunDecksPayload(raw: unknown): FunDecksPayload {
   const root = asRecord(raw);
   const data = asRecord(root.data);
@@ -86,17 +125,19 @@ export function normalizeFunDecksPayload(raw: unknown): FunDecksPayload {
   const rows = Array.isArray(structured.rows) ? structured.rows : [];
   const decks = rows.map((row): FunDeckRow => {
     const item = asRecord(row);
+    const deckCode = text(item.deck_code);
+    const recordStats = statsFromRecord(item.record);
     return {
       title: text(item.title) || 'Без названия',
-      deckCode: text(item.deck_code),
+      deckCode,
       format: text(item.format) || '—',
-      className: text(item.class) || '—',
+      className: text(item.class) || classFromDeckCode(deckCode) || '—',
       streamer: text(item.streamer) || null,
       funScore: numberOrNull(item.fun_score),
       maxMetaSimilarity: numberOrNull(item.max_meta_similarity),
       nearestArchetype: text(item.nearest_archetype) || null,
-      winRate: numberOrNull(item.win_rate),
-      games: numberOrNull(item.games),
+      winRate: numberOrNull(item.win_rate) ?? recordStats?.winRate ?? null,
+      games: numberOrNull(item.games) ?? recordStats?.games ?? null,
       reasons: stringList(item.reasons),
       url: text(item.url) || null,
       candidateSourceId: text(item.candidate_source_id) || null,
@@ -143,6 +184,11 @@ export function normalizePublicFunDecksPayload(raw: unknown): PublicFunDecksPayl
     stats: {
       total: normalized.decks.length,
       ...formatCounts,
+    },
+    methodology: {
+      detectorVersion: normalized.detectorVersion,
+      minFunScore: numberOrNull(normalized.filters.min_fun_score) ?? 0.55,
+      maxMetaSimilarity: numberOrNull(normalized.filters.max_meta_similarity) ?? 0.42,
     },
     decks: normalized.decks,
   };
