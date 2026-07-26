@@ -224,7 +224,7 @@ function safeImageUrl(value: string | null, origin: string): string {
 }
 
 function isBuildAssetPath(value: string): boolean {
-  return /^\/assets\/[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(value)
+  return /^\/assets\/[A-Za-z0-9][A-Za-z0-9._/-]*(?:\?v=[a-f0-9]{7,40})?$/i.test(value)
     && !value.includes('..')
     && !value.includes('//');
 }

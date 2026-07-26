@@ -2,6 +2,9 @@
 
 ## v1.0.50 - 2026-07-26
 
+- Restored the full React card-detail experience on versioned production
+  releases, including card artwork variants and voice lines, while preserving
+  the strict local asset allowlist.
 - Unified the opening banners across Matchups, Meta, Fun Decks, Archetypes and
   Vicious Syndicate Gold with the approved tavern artwork, quieter copy and
   compact live summary metrics.
