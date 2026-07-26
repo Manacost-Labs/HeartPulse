@@ -29,6 +29,7 @@ import {
 } from './constructedCardRequestState';
 import {
   collectConstructedCardMedia,
+  collectConstructedRelatedCardArtMedia,
   collectConstructedCardVariants,
   flattenConstructedCardSounds,
   type ConstructedCardMediaItem,
@@ -992,8 +993,9 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
   const relatedGroups = normalizeConstructedRelatedCardGroups(card);
   const generatedPools = (Array.isArray(wiki.generated_card_pools) ? wiki.generated_card_pools : [])
     .filter((pool: any) => Array.isArray(pool?.cards) && pool.cards.length > 0);
-  const mediaItems = collectConstructedCardMedia(card);
-  const galleryMedia = mediaItems.filter(item => item.id.startsWith('gallery-'));
+  const relatedArtMedia = collectConstructedRelatedCardArtMedia(relatedGroups);
+  const mediaItems = [...collectConstructedCardMedia(card), ...relatedArtMedia];
+  const galleryMedia = mediaItems.filter(item => item.id.startsWith('gallery-') || item.id.startsWith('related-art-'));
   const sounds = flattenConstructedCardSounds(wiki.sounds);
   const soundGroups = [...new Set(sounds.map(item => item.group))].map(group => [group, sounds.filter(item => item.group === group)] as const);
   const externalLinks = Array.isArray(wiki.external_links) ? wiki.external_links : [];
@@ -1061,7 +1063,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
       {decks.length > 0 && <ConstructedCardDecks decks={decks} cardId={cardId} format={format} />}
 
       <section className={`constructed-card-detail__media-grid${sounds.length ? '' : ' constructed-card-detail__media-grid--two'}`}>
-        <div className="constructed-card-detail__section"><h2>Галерея · {galleryMedia.length}</h2>{galleryMedia.length ? <div className="constructed-card-detail__gallery">{galleryMedia.map(item => <button key={item.id} type="button" onClick={() => openMedia(item.url)} aria-label={`Открыть ${item.label}`}><img src={item.thumbnailUrl} alt={item.label} loading="lazy" /><span>{item.label}</span></button>)}</div> : <p>Дополнительные изображения отсутствуют.</p>}</div>
+        <div className="constructed-card-detail__section"><h2>Галерея · {galleryMedia.length}</h2>{galleryMedia.length ? <div className="constructed-card-detail__gallery">{galleryMedia.map(item => <button className={item.presentation === 'contain' ? 'is-contain' : undefined} key={item.id} type="button" onClick={() => openMedia(item.url)} aria-label={`Открыть ${item.label}`}><img src={item.thumbnailUrl} alt={item.label} loading="lazy" decoding="async" /><span>{item.label}</span></button>)}</div> : <p>Дополнительные изображения отсутствуют.</p>}</div>
         {sounds.length > 0 && <div className="constructed-card-detail__section"><h2><Volume2 size={19} /> Звуки карты · {sounds.length}</h2><div className="constructed-card-detail__sounds">{soundGroups.map(([group, clips], groupIndex) => <details key={group} open={groupIndex === 0}><summary>{constructedSoundGroupLabel(group)} · {clips?.length ?? 0}</summary>{clips?.map((item, clipIndex) => <article key={item.id}><span>{soundClipLabel(item.description, item.group, clipIndex)}</span><audio controls preload="metadata" src={item.url}>Ваш браузер не поддерживает воспроизведение аудио.</audio></article>)}</details>)}</div></div>}
         <div className="constructed-card-detail__section"><h2>Дополнительная информация</h2><div className="constructed-card-detail__links">{card.wiki_page?.url && <a href={card.wiki_page.url} target="_blank" rel="noreferrer">Hearthstone Wiki <ExternalLink size={14} /></a>}{externalLinks.map((item: any, index: number) => <a key={`${item.url}-${index}`} href={item.url} target="_blank" rel="noreferrer">{item.label || item.url} <ExternalLink size={14} /></a>)}</div></div>
       </section>

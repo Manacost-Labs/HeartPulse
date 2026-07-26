@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   collectConstructedCardMedia,
+  collectConstructedRelatedCardArtMedia,
   collectConstructedCardVariants,
   flattenConstructedCardSounds,
 } from '../src/features/constructedCardMedia.js';
@@ -137,5 +138,58 @@ assert.deepEqual(
   ],
   'legacy related cards must be normalized, deduplicated, and never promote crop images to full art',
 );
+
+const sharedArtGroups = normalizeConstructedRelatedCardGroups({
+  related_cards_localized: [{
+    heading: { ru: 'Сопутствующие карты' },
+    cards: [
+      {
+        card_id: 'EGG_1',
+        name: { ru: 'Яйцо' },
+        artist: 'Wiki Artist',
+        images: {
+          art: 'https://example.test/shared-full.jpg',
+          art_metadata: {
+            file_page_url: 'https://hearthstone.wiki.gg/wiki/File:Shared_full.jpg',
+            width: 3000,
+            height: 4000,
+            sha1: 'shared-art',
+          },
+          crop: 'https://example.test/shared-crop.jpg',
+        },
+      },
+      {
+        card_id: 'EGG_2',
+        name: { ru: 'Яйцо' },
+        images: {
+          art: 'https://example.test/shared-full-copy.jpg',
+          art_metadata: { width: 3000, height: 4000, sha1: 'shared-art' },
+        },
+      },
+      {
+        card_id: 'BEAST_1',
+        name: { ru: 'Зверь' },
+        images: {
+          art: 'https://example.test/beast-full.jpg',
+          art_metadata: { width: 760, height: 1016 },
+        },
+      },
+      {
+        card_id: 'MISSING_ART',
+        name: { ru: 'Без арта' },
+        images: { crop: 'https://example.test/missing-crop.jpg' },
+      },
+    ],
+  }],
+});
+const relatedArtMedia = collectConstructedRelatedCardArtMedia(sharedArtGroups);
+assert.equal(relatedArtMedia.length, 2, 'identical wiki originals must be deduplicated by SHA-1');
+assert.equal(relatedArtMedia[0].url, 'https://example.test/shared-full.jpg');
+assert.equal(relatedArtMedia[0].thumbnailUrl, relatedArtMedia[0].url, 'full-art thumbnails must never use game crop images');
+assert.equal(relatedArtMedia[0].presentation, 'contain');
+assert.match(relatedArtMedia[0].description || '', /EGG_1, EGG_2/);
+assert.match(relatedArtMedia[0].description || '', /3000×4000/);
+assert.equal(relatedArtMedia[0].sourceUrl, 'https://hearthstone.wiki.gg/wiki/File:Shared_full.jpg');
+assert.equal(relatedArtMedia.some(item => item.url.includes('crop')), false, 'crop images must not enter related full-art media');
 
 console.log('constructed card media normalization tests passed');

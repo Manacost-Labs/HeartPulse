@@ -339,6 +339,7 @@
 .constructed-card-detail__gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.45rem; }
 .constructed-card-detail__gallery button { display: grid; min-width: 0; padding: 0; border: 1px solid #a97b45; color: #4a2d1b; background: rgba(255, 248, 225, 0.5); cursor: zoom-in; }
 .constructed-card-detail__gallery img { width: 100%; height: 130px; object-fit: cover; }
+.constructed-card-detail__gallery button.is-contain img { height: 170px; padding: 0.3rem; object-fit: contain; background: radial-gradient(circle at 50% 42%, rgba(231, 197, 124, 0.2), rgba(99, 48, 19, 0.04)); }
 .constructed-card-detail__gallery button span { overflow: hidden; padding: 0.35rem; font-size: 0.6rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
 .constructed-card-detail__sounds { display: grid; gap: 0.5rem; }
 .constructed-card-detail__sounds details { border: 1px solid rgba(121, 79, 38, 0.26); background: rgba(255, 250, 232, 0.34); }
@@ -358,6 +359,7 @@
 .constructed-card-lightbox__footer { display: flex; gap: 1rem; align-items: center; justify-content: space-between; min-height: 72px; padding: 0.7rem 1rem; border-top: 1px solid rgba(222, 184, 97, 0.32); background: #2a190f; }
 .constructed-card-lightbox__footer > div:first-child { display: grid; min-width: 0; }
 .constructed-card-lightbox__footer strong { overflow: hidden; color: #fff0c4; font-family: var(--font-display); font-size: 1rem; text-overflow: ellipsis; white-space: nowrap; }
+.constructed-card-lightbox__footer p { margin: 0.12rem 0; color: #e1cc9c; font-size: 0.62rem; line-height: 1.3; }
 .constructed-card-lightbox__footer span { color: #cdb47c; font-size: 0.65rem; }
 .constructed-card-lightbox__actions { display: flex; flex: 0 0 auto; gap: 0.4rem; align-items: center; }
 .constructed-card-lightbox__actions a,

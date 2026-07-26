@@ -2,6 +2,10 @@ import {
   localizeConstructedMediaLabel,
   localizeConstructedSoundDescription,
 } from '../../shared/constructedCardTranslations';
+import type {
+  ConstructedRelatedCard,
+  ConstructedRelatedCardGroup,
+} from './constructedRelatedCards';
 
 export type ConstructedCardSound = {
   id: string;
@@ -14,10 +18,12 @@ export type ConstructedCardSound = {
 export type ConstructedCardMediaItem = {
   id: string;
   label: string;
+  description?: string | null;
   url: string;
   thumbnailUrl: string;
   sourceUrl: string | null;
   kind: 'image' | 'video';
+  presentation?: 'cover' | 'contain';
 };
 
 export type ConstructedCardVariant = {
@@ -138,5 +144,58 @@ export function collectConstructedCardVariants(card: JsonRecord): ConstructedCar
       id.endsWith('-') ? candidate.id.startsWith(id) : candidate.id === id
     )));
     return item ? [{ id: definition.id, label: definition.label, url: item.url }] : [];
+  });
+}
+
+export function collectConstructedRelatedCardArtMedia(
+  groups: ConstructedRelatedCardGroup[],
+): ConstructedCardMediaItem[] {
+  type ArtEntry = {
+    card: ConstructedRelatedCard;
+    cardIds: string[];
+    names: string[];
+  };
+  const entries = new Map<string, ArtEntry>();
+
+  for (const group of groups) {
+    for (const card of group.cards) {
+      if (!card.artUrl) continue;
+      const sha1 = card.artMetadata?.sha1?.toLocaleLowerCase('en-US');
+      const key = sha1 ? `sha1:${sha1}` : `url:${card.artUrl}`;
+      const existing = entries.get(key);
+      const name = card.nameRu || card.nameEn || card.cardId || 'Связанная карта';
+      if (existing) {
+        if (card.cardId && !existing.cardIds.includes(card.cardId)) existing.cardIds.push(card.cardId);
+        if (!existing.names.includes(name)) existing.names.push(name);
+      } else {
+        entries.set(key, {
+          card,
+          cardIds: card.cardId ? [card.cardId] : [],
+          names: [name],
+        });
+      }
+    }
+  }
+
+  return [...entries.values()].map((entry, index) => {
+    const { card } = entry;
+    const details = [
+      entry.cardIds.length > 0 ? `Карты: ${entry.cardIds.join(', ')}` : null,
+      card.artist ? `Художник: ${card.artist}` : null,
+      card.artMetadata?.width && card.artMetadata?.height
+        ? `Оригинал: ${card.artMetadata.width}×${card.artMetadata.height}`
+        : null,
+    ].filter((value): value is string => Boolean(value));
+    const shared = entry.cardIds.length > 1 ? ' — общий полный арт' : ' — полный арт';
+    return {
+      id: `related-art-${card.cardId || index}`,
+      label: `${entry.names.join(', ')}${shared}`,
+      description: details.join(' · ') || null,
+      url: card.artUrl!,
+      thumbnailUrl: card.artUrl!,
+      sourceUrl: card.artMetadata?.filePageUrl ?? card.wikiUrl,
+      kind: 'image',
+      presentation: 'contain',
+    };
   });
 }

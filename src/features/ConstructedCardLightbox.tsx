@@ -44,7 +44,11 @@ export default function ConstructedCardLightbox({ items, index, onClose, onIndex
           : <img src={item.url} alt={item.label} />}
       </div>
       <footer className="constructed-card-lightbox__footer">
-        <div><strong id="constructed-card-lightbox-title">{item.label}</strong><span>{index + 1} из {items.length}</span></div>
+        <div>
+          <strong id="constructed-card-lightbox-title">{item.label}</strong>
+          {item.description && <p>{item.description}</p>}
+          <span>{index + 1} из {items.length}</span>
+        </div>
         <div className="constructed-card-lightbox__actions">
           {item.sourceUrl && <a href={item.sourceUrl} target="_blank" rel="noreferrer">Источник <ExternalLink size={15} /></a>}
           {items.length > 1 && <>
