@@ -38,6 +38,7 @@ type ArchetypeClass =
   | 'shaman'
   | 'warlock'
   | 'warrior';
+type ArchetypeClassFilter = 'all' | ArchetypeClass;
 
 type ArchetypeBuild = {
   deckCode: string;
@@ -141,6 +142,15 @@ const CLASS_LABELS: Record<ArchetypeClass, string> = {
   warrior: 'Воин',
 };
 
+const CLASS_FILTERS: Array<{ id: ArchetypeClassFilter; label: string; asset: string }> = [
+  { id: 'all', label: 'Все классы', asset: '/class_icon/all1.png' },
+  ...Object.entries(CLASS_LABELS).map(([id, label]) => ({
+    id: id as ArchetypeClass,
+    label,
+    asset: `/class_icon/ui/${id}-64.webp`,
+  })),
+];
+
 const ARCHETYPE_HERO_ART_OVERRIDES: Record<string, string> = {
   'void-soul-dh': '/archetype-art/void-soul-dh.webp',
 };
@@ -173,6 +183,12 @@ async function apiJson<T>(url: string, signal?: AbortSignal): Promise<T> {
 
 function classIcon(classKey: ArchetypeClass | null): string {
   return classKey ? `/class_icon/ui/${classKey}-64.webp` : '/class_icon/neutral.webp';
+}
+
+function replaceCatalogUrl(nextFormat: ArchetypeFormat, nextClass: ArchetypeClassFilter): void {
+  const params = new URLSearchParams({ format: nextFormat });
+  if (nextClass !== 'all') params.set('class', nextClass);
+  window.history.replaceState(window.history.state, '', `/standard/archetypes?${params.toString()}`);
 }
 
 function formatNumber(value: number | null, suffix = '', maximumFractionDigits = 1): string {
@@ -313,7 +329,12 @@ function ArchetypeCatalogPage({
   hasFullAccess: boolean;
 }) {
   const initialFormat = new URLSearchParams(window.location.search).get('format') === 'wild' ? 'wild' : 'standard';
+  const initialClassParam = new URLSearchParams(window.location.search).get('class');
+  const initialClass = CLASS_FILTERS.some(item => item.id === initialClassParam)
+    ? initialClassParam as ArchetypeClassFilter
+    : 'all';
   const [format, setFormat] = useState<ArchetypeFormat>(initialFormat);
+  const [classFilter, setClassFilter] = useState<ArchetypeClassFilter>(initialClass);
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
   const [sort, setSort] = useState<SortKey>('games');
@@ -347,13 +368,19 @@ function ArchetypeCatalogPage({
   const selectFormat = (next: ArchetypeFormat) => {
     setFormat(next);
     setQuery('');
-    window.history.replaceState(window.history.state, '', `/standard/archetypes?format=${next}`);
+    replaceCatalogUrl(next, classFilter);
+  };
+
+  const selectClass = (next: ArchetypeClassFilter) => {
+    setClassFilter(next);
+    replaceCatalogUrl(format, next);
   };
 
   const items = useMemo(() => {
     const normalized = deferredQuery.trim().toLocaleLowerCase('ru-RU');
     const filtered = (catalog?.items ?? []).filter(item => (
-      !normalized || `${item.archetype} ${item.archetypeLabel}`.toLocaleLowerCase('ru-RU').includes(normalized)
+      (classFilter === 'all' || item.classKey === classFilter)
+      && (!normalized || `${item.archetype} ${item.archetypeLabel}`.toLocaleLowerCase('ru-RU').includes(normalized))
     ));
     return [...filtered].sort((left, right) => {
       if (sort === 'name') return left.archetypeLabel.localeCompare(right.archetypeLabel, 'ru');
@@ -361,9 +388,18 @@ function ArchetypeCatalogPage({
       const rightValue = sort === 'decks' ? right.deckCount : right[sort];
       return Number(rightValue ?? -Infinity) - Number(leftValue ?? -Infinity);
     });
-  }, [catalog?.items, deferredQuery, sort]);
+  }, [catalog?.items, classFilter, deferredQuery, sort]);
+
+  const classCounts = useMemo(() => {
+    const counts = new Map<ArchetypeClass, number>();
+    for (const item of catalog?.items ?? []) {
+      if (item.classKey) counts.set(item.classKey, (counts.get(item.classKey) ?? 0) + 1);
+    }
+    return counts;
+  }, [catalog?.items]);
 
   const totalGames = catalog?.items.reduce((sum, item) => sum + item.games, 0) ?? 0;
+  const activeClassLabel = CLASS_FILTERS.find(item => item.id === classFilter)?.label ?? 'Все классы';
 
   return (
     <main className="archetypes-page" id="main-content" tabIndex={-1}>
@@ -393,6 +429,37 @@ function ArchetypeCatalogPage({
         ))}
       </nav>
 
+      <section
+        className="archetypes-class-filter"
+        aria-labelledby="archetypes-class-filter-title"
+        data-tour-id="archetypes-class-filter"
+      >
+        <header>
+          <span id="archetypes-class-filter-title">Класс</span>
+          <strong>{activeClassLabel}</strong>
+        </header>
+        <fieldset className="archetypes-class-filter__scroller">
+          <legend className="sr-only">Фильтр архетипов по классу</legend>
+          {CLASS_FILTERS.map(item => {
+            const count = item.id === 'all'
+              ? catalog?.items.length ?? 0
+              : classCounts.get(item.id) ?? 0;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                aria-label={`${item.label}: ${count} архетипов`}
+                aria-pressed={classFilter === item.id}
+                title={item.label}
+                onClick={() => selectClass(item.id)}
+              >
+                <img src={item.asset} alt="" width="48" height="48" />
+              </button>
+            );
+          })}
+        </fieldset>
+      </section>
+
       <section className="archetypes-tools" aria-label="Поиск и сортировка">
         <div>
           <span className="archetypes-eyebrow"><BookOpenText size={14} /> Каталог</span>
@@ -419,7 +486,12 @@ function ArchetypeCatalogPage({
         <AsyncSurfaceState
           variant="empty"
           title="Архетипы не найдены"
-          message="Попробуйте изменить запрос или выбрать другой формат."
+          message="Попробуйте изменить запрос, класс или выбрать другой формат."
+          actionLabel="Сбросить фильтры"
+          onAction={() => {
+            setQuery('');
+            selectClass('all');
+          }}
           className="archetypes-state"
         />
       )}

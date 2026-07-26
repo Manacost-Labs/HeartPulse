@@ -71,10 +71,11 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
     ],
   },
   {
-    id: 'constructed-archetypes', version: 2, paths: ['/standard/archetypes'], title: 'Как найти актуальный архетип',
+    id: 'constructed-archetypes', version: 3, paths: ['/standard/archetypes'], title: 'Как найти актуальный архетип',
     steps: [
       { id: 'format', target: 'archetypes-format', title: 'Стандарт или Вольный', description: 'Выберите игровой формат — сводка, список и число доступных сборок сразу обновятся для нужной меты.', audience: 'standard', preferredPlacement: 'bottom' },
-      { id: 'search', target: 'archetypes-search', title: 'Быстрый поиск', description: 'Введите русское или английское название архетипа либо класса, чтобы сократить каталог без перезагрузки страницы.', audience: 'standard' },
+      { id: 'class', target: 'archetypes-class-filter', title: 'Выберите класс', description: 'Нажмите иконку героя, чтобы оставить архетипы одного класса. Значок Hearthstone возвращает полный каталог.', audience: 'standard', preferredPlacement: 'bottom' },
+      { id: 'search', target: 'archetypes-search', title: 'Быстрый поиск', description: 'Введите русское или английское название архетипа, чтобы уточнить выдачу без перезагрузки страницы.', audience: 'standard' },
       { id: 'sort', target: 'archetypes-sort', title: 'Что важнее', description: 'Отсортируйте каталог по популярности, винрейту, числу игр или количеству найденных сборок.', audience: 'standard' },
       { id: 'results', target: 'archetypes-results', title: 'Откройте досье', description: 'В каждой строке видны ключевые показатели. Нажмите её, чтобы перейти к сборкам, матчапам, муллигану и истории архетипа.', audience: 'standard', preferredPlacement: 'top' },
     ],

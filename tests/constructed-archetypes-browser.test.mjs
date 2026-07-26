@@ -70,11 +70,19 @@ try {
   await page.waitForSelector('.archetype-row');
   assert.equal(await page.$$eval('.archetype-row', rows => rows.length), 3);
   assert.equal(await page.$$eval('.archetypes-format-switch button', buttons => buttons.length), 2);
+  assert.equal(await page.$$eval('.archetypes-class-filter button', buttons => buttons.length), 12);
   assert.equal(await page.$eval('h1', heading => heading.textContent), 'Архетипы');
   assert.ok(await page.$('[data-tour-id="archetypes-format"]'));
+  assert.ok(await page.$('[data-tour-id="archetypes-class-filter"]'));
   assert.ok(await page.$('[data-tour-id="archetypes-search"]'));
   assert.ok(await page.$('[data-tour-id="archetypes-sort"]'));
   assert.ok(await page.$('[data-tour-id="archetypes-results"]'));
+  await page.click('.archetypes-class-filter button[aria-label^="Маг:"]');
+  await page.waitForFunction(() => document.querySelectorAll('.archetype-row').length === 1);
+  assert.equal(await page.$eval('.archetype-row h2', heading => heading.textContent), 'Квест Маг');
+  assert.match(page.url(), /[?&]class=mage(?:&|$)/);
+  await page.click('.archetypes-class-filter button[aria-label^="Все классы:"]');
+  await page.waitForFunction(() => document.querySelectorAll('.archetype-row').length === 3);
   await page.screenshot({ path: `${screenshotPrefix}-desktop.png`, fullPage: true });
 
   for (const width of [1024, 768, 375, 320]) {
@@ -82,10 +90,12 @@ try {
     const responsiveCatalog = await page.evaluate(() => ({
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       minFormatButtonHeight: Math.min(...[...document.querySelectorAll('.archetypes-format-switch button')].map(element => element.getBoundingClientRect().height)),
+      minClassButtonHeight: Math.min(...[...document.querySelectorAll('.archetypes-class-filter button')].map(element => element.getBoundingClientRect().height)),
       minOpenHeight: Math.min(...[...document.querySelectorAll('.archetype-row__open')].map(element => element.getBoundingClientRect().height)),
     }));
     assert.ok(responsiveCatalog.overflow <= 1, `catalog overflowed by ${responsiveCatalog.overflow}px at ${width}px`);
     assert.ok(responsiveCatalog.minFormatButtonHeight >= 44, `format target too small at ${width}px`);
+    assert.ok(responsiveCatalog.minClassButtonHeight >= 44, `class target too small at ${width}px`);
     assert.ok(
       responsiveCatalog.minOpenHeight >= 42,
       `open target was ${responsiveCatalog.minOpenHeight}px at ${width}px`,
@@ -161,15 +171,17 @@ try {
   await page.screenshot({ path: `${screenshotPrefix}-detail-desktop.png`, fullPage: true });
 
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
-  await page.reload({ waitUntil: 'networkidle0' });
+  await page.goto(`${origin}/tests/fixtures/constructed-archetypes.html?format=wild`, { waitUntil: 'networkidle0' });
   await page.waitForSelector('.archetype-row');
   const catalogMobile = await page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     minFormatButtonHeight: Math.min(...[...document.querySelectorAll('.archetypes-format-switch button')].map(element => element.getBoundingClientRect().height)),
+    minClassButtonHeight: Math.min(...[...document.querySelectorAll('.archetypes-class-filter button')].map(element => element.getBoundingClientRect().height)),
     minOpenHeight: Math.min(...[...document.querySelectorAll('.archetype-row__open')].map(element => element.getBoundingClientRect().height)),
   }));
   assert.ok(catalogMobile.overflow <= 1, `catalog overflowed by ${catalogMobile.overflow}px`);
   assert.ok(catalogMobile.minFormatButtonHeight >= 44);
+  assert.ok(catalogMobile.minClassButtonHeight >= 44);
   assert.ok(catalogMobile.minOpenHeight >= 42);
   await page.screenshot({ path: `${screenshotPrefix}-mobile.png`, fullPage: true });
 

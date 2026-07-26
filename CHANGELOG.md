@@ -1,5 +1,13 @@
 # HS-Arena Changelog
 
+## v1.0.52 - 2026-07-26
+
+- Added an icon-based class filter to the constructed archetype catalog,
+  including shareable URL state, keyboard-accessible controls and mobile
+  horizontal scrolling.
+- Updated the archetype page tour and responsive browser coverage for the new
+  class filtering workflow.
+
 ## v1.0.51 - 2026-07-26
 
 - Reduced the shared traditional-mode banner height across desktop and mobile

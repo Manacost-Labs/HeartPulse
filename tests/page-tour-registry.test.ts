@@ -41,12 +41,16 @@ assert.match(
 
 const archetypeCatalogTour = PAGE_TOURS.find(tour => tour.id === 'constructed-archetypes');
 assert.ok(
-  archetypeCatalogTour && archetypeCatalogTour.version >= 2,
-  'the archetype catalog tour must invalidate the older generic meta guidance',
+  archetypeCatalogTour && archetypeCatalogTour.version >= 3,
+  'the archetype catalog tour must invalidate the version without class filtering guidance',
 );
 assert.ok(
   archetypeCatalogTour.steps.some(step => step.target === 'archetypes-sort'),
   'the archetype catalog tour must explain its dedicated sorting control',
+);
+assert.ok(
+  archetypeCatalogTour.steps.some(step => step.target === 'archetypes-class-filter'),
+  'the archetype catalog tour must explain its class icon filter',
 );
 
 const archetypeDetailTour = PAGE_TOURS.find(tour => tour.id === 'constructed-archetype-detail');

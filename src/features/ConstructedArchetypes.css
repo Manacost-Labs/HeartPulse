@@ -174,6 +174,113 @@
 .archetypes-format-switch small { display: block; margin-top: 0.12rem; color: #7d6045; font-size: 0.7rem; }
 .archetypes-format-switch button[aria-pressed='true'] small { color: #d3b77f; }
 
+.archetypes-class-filter {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: center;
+  margin-top: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid rgba(92, 54, 24, 0.22);
+  border-left: 4px solid var(--archetype-red);
+  background:
+    linear-gradient(90deg, rgba(255, 247, 217, 0.78), rgba(236, 210, 160, 0.58)),
+    url('/wallpaper/arena-parchment.jpg') center / cover;
+}
+
+.archetypes-class-filter > header {
+  display: grid;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.archetypes-class-filter > header span {
+  color: var(--archetype-muted);
+  font-size: 0.57rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.archetypes-class-filter > header strong {
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archetypes-class-filter__scroller {
+  display: flex;
+  gap: 0.35rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.18rem 0.1rem 0.28rem;
+  overflow-x: auto;
+  border: 0;
+  overscroll-behavior-inline: contain;
+  scrollbar-color: rgba(111, 26, 32, 0.58) rgba(111, 26, 32, 0.08);
+  scrollbar-width: thin;
+}
+
+.archetypes-class-filter__scroller legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.archetypes-class-filter__scroller button {
+  position: relative;
+  display: grid;
+  flex: 0 0 54px;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(92, 54, 24, 0.28);
+  color: #4a3323;
+  background: rgba(255, 248, 222, 0.68);
+  cursor: pointer;
+}
+
+.archetypes-class-filter__scroller button::after {
+  position: absolute;
+  inset: 3px;
+  border: 1px solid transparent;
+  content: '';
+  pointer-events: none;
+}
+
+.archetypes-class-filter__scroller button:hover {
+  border-color: rgba(141, 23, 29, 0.62);
+  background: rgba(255, 250, 232, 0.96);
+}
+
+.archetypes-class-filter__scroller button[aria-pressed='true'] {
+  border-color: #d9ab49;
+  background:
+    linear-gradient(145deg, rgba(126, 18, 26, 0.97), rgba(77, 7, 14, 0.98)),
+    url('/wallpaper/arena-rail-red.jpg') center / 180px auto;
+  box-shadow: 0 3px 8px rgba(70, 23, 12, 0.22);
+}
+
+.archetypes-class-filter__scroller button[aria-pressed='true']::after {
+  border-color: rgba(239, 201, 111, 0.36);
+}
+
+.archetypes-class-filter__scroller img {
+  width: 43px;
+  height: 43px;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 4px rgba(45, 20, 7, 0.3));
+}
+
 .archetypes-tools {
   display: grid;
   grid-template-columns: minmax(240px, 1fr) minmax(260px, 0.9fr) minmax(180px, 0.45fr);
@@ -961,6 +1068,17 @@
   .archetypes-hero__summary div:last-child { border-bottom: 0; }
   .archetypes-hero__summary dd { margin: 0; font-size: 1rem; }
   .archetypes-format-switch { grid-template-columns: 1fr; }
+  .archetypes-class-filter {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    padding-inline: 0.7rem;
+  }
+  .archetypes-class-filter > header {
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+  }
+  .archetypes-class-filter > header strong { font-size: 0.88rem; }
   .archetypes-tools { grid-template-columns: 1fr; }
   .archetypes-ledger { border-width: 6px; }
   .archetypes-ledger__header { align-items: flex-start; flex-direction: column; gap: 0.2rem; }
@@ -1020,6 +1138,19 @@
   .archetypes-format-switch { padding: 0.4rem; border-width: 5px; }
   .archetypes-format-switch button { grid-template-columns: 42px minmax(0, 1fr) auto; gap: 0.5rem; min-height: 64px; padding: 0.55rem; }
   .archetypes-format-switch img { width: 42px; height: 42px; }
+  .archetypes-class-filter {
+    padding: 0.55rem 0.45rem;
+    border-left-width: 3px;
+  }
+  .archetypes-class-filter__scroller button {
+    flex-basis: 50px;
+    width: 50px;
+    height: 50px;
+  }
+  .archetypes-class-filter__scroller img {
+    width: 40px;
+    height: 40px;
+  }
   .archetypes-tools { padding: 0.7rem; }
   .archetype-row { grid-template-columns: 26px 40px minmax(0, 1fr) 42px; }
   .archetype-row__class { width: 38px; height: 38px; }
