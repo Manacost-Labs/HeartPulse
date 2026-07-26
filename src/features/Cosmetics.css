@@ -72,7 +72,7 @@
 
 .cosmetics-filters {
   display: grid;
-  grid-template-columns: minmax(250px, 1.5fr) repeat(3, minmax(160px, 1fr));
+  grid-template-columns: minmax(190px, 1.35fr) repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 20px;
   padding: 16px;
@@ -82,6 +82,7 @@
 
 .cosmetics-filters label {
   display: grid;
+  min-width: 0;
   gap: 7px;
   color: #704521;
   font-size: 0.74rem;
