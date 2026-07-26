@@ -62,6 +62,11 @@ type ViciousGoldPayload = {
   buildCoverage: { found: number; total: number };
 };
 
+type ViciousGoldBuildsPayload = {
+  builds: Array<{ deck: string; build: DeckBuild | null }>;
+  buildCoverage: { found: number; total: number };
+};
+
 const EMPTY_DATA: ViciousGoldPayload = {
   title: 'Vicious Syndicate Gold',
   format: 'Standard',
@@ -106,9 +111,17 @@ function powerTier(winrate: number): { id: string; label: string } {
   return { id: 'four', label: 'Tier 4' };
 }
 
-function BuildActions({ deck, build, copiedDeck, onCopy, onOpen, expanded }: {
+function missingBuildLabel(deck: string, buildState: 'loading' | 'ready' | 'error'): string {
+  if (/^(?:Other|Bot)\s/i.test(deck.replace(/^tier:/, ''))) return 'Сборная категория';
+  if (buildState === 'loading') return 'Сборка загружается';
+  if (buildState === 'error') return 'Сборка временно недоступна';
+  return 'Сборка обновляется';
+}
+
+function BuildActions({ deck, build, buildState, copiedDeck, onCopy, onOpen, expanded }: {
   deck: string;
   build: DeckBuild | null;
+  buildState: 'loading' | 'ready' | 'error';
   copiedDeck: string;
   onCopy: (deck: string, code: string) => void;
   onOpen?: (deck: string) => void;
@@ -118,7 +131,7 @@ function BuildActions({ deck, build, copiedDeck, onCopy, onOpen, expanded }: {
     const isAggregate = /^(?:Other|Bot)\s/i.test(deck.replace(/^tier:/, ''));
     return (
       <span className={isAggregate ? 'vsgold__build-aggregate' : 'vsgold__build-missing'}>
-        {isAggregate ? 'Сборная категория' : 'Сборка обновляется'}
+        {missingBuildLabel(deck, buildState)}
       </span>
     );
   }
@@ -145,6 +158,8 @@ export default function ViciousSyndicateGold() {
   const [data, setData] = useState<ViciousGoldPayload>(EMPTY_DATA);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [buildState, setBuildState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [revision, setRevision] = useState(0);
   const [rankBracket, setRankBracket] = useState('All ranks');
   const [powerClass, setPowerClass] = useState('all');
   const [deckClass, setDeckClass] = useState('all');
@@ -154,26 +169,79 @@ export default function ViciousSyndicateGold() {
   const [openDeckKey, setOpenDeckKey] = useState('');
   const deckSectionRef = useRef<HTMLElement>(null);
 
-  const load = async () => {
+  useEffect(() => {
+    const controller = new AbortController();
+    let ignore = false;
     setLoading(true);
     setError('');
-    try {
-      const response = await fetch('/api/vicious-syndicate-gold', {
-        credentials: 'same-origin',
-        headers: { Accept: 'application/json' },
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить статистику');
-      setData(payload as ViciousGoldPayload);
-      setRankBracket((payload as ViciousGoldPayload).tierList[0]?.rankBracket ?? 'All ranks');
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Не удалось загрузить статистику');
-    } finally {
-      setLoading(false);
-    }
-  };
+    setBuildState('loading');
 
-  useEffect(() => { void load(); }, []);
+    async function fetchBuilds() {
+      try {
+        const response = await fetch('/api/vicious-syndicate-gold/builds', {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+          signal: controller.signal,
+        });
+        const payload = await response.json().catch(() => ({})) as Partial<ViciousGoldBuildsPayload> & { error?: string };
+        if (!response.ok || !Array.isArray(payload.builds) || !payload.buildCoverage) {
+          throw new Error(payload.error || 'Не удалось загрузить сборки');
+        }
+        if (ignore) return;
+        const buildsByDeck = new Map(payload.builds.map(item => [item.deck, item.build]));
+        const buildCoverage = payload.buildCoverage;
+        setData(summary => ({
+          ...summary,
+          deckDistribution: summary.deckDistribution.map(deck => ({
+            ...deck,
+            build: buildsByDeck.get(deck.deck) ?? null,
+          })),
+          tierList: summary.tierList.map(section => ({
+            ...section,
+            decks: section.decks.map(deck => ({
+              ...deck,
+              build: buildsByDeck.get(deck.deck) ?? null,
+            })),
+          })),
+          buildCoverage,
+        }));
+        setBuildState('ready');
+      } catch (loadError) {
+        if (!ignore && !(loadError instanceof DOMException && loadError.name === 'AbortError')) {
+          setBuildState('error');
+        }
+      }
+    }
+
+    async function fetchSummary() {
+      try {
+        const response = await fetch('/api/vicious-syndicate-gold', {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+          signal: controller.signal,
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить статистику');
+        if (ignore) return;
+        const summary = payload as ViciousGoldPayload;
+        setData(summary);
+        setRankBracket(summary.tierList[0]?.rankBracket ?? 'All ranks');
+        void fetchBuilds();
+      } catch (loadError) {
+        if (!ignore && !(loadError instanceof DOMException && loadError.name === 'AbortError')) {
+          setError(loadError instanceof Error ? loadError.message : 'Не удалось загрузить статистику');
+        }
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+
+    void fetchSummary();
+    return () => {
+      ignore = true;
+      controller.abort();
+    };
+  }, [revision]);
 
   const selectedTier = data.tierList.find(section => section.rankBracket === rankBracket) ?? data.tierList[0];
   const tierDecks = useMemo(
@@ -235,7 +303,7 @@ export default function ViciousSyndicateGold() {
         <AlertTriangle size={42} />
         <h1>Статистика временно недоступна</h1>
         <p>{error}</p>
-        <button type="button" onClick={() => void load()}><RefreshCw size={17} /> Повторить</button>
+        <button type="button" onClick={() => setRevision(value => value + 1)}><RefreshCw size={17} /> Повторить</button>
       </section>
     );
   }
@@ -251,7 +319,10 @@ export default function ViciousSyndicateGold() {
         </div>
         <div className="vsgold__hero-stats">
           <div><strong>{data.games.toLocaleString('ru-RU')}</strong><span>партий в выборке</span></div>
-          <div><strong>{data.buildCoverage.found}/{data.buildCoverage.total}</strong><span>готовых сборок</span></div>
+          <div>
+            <strong>{buildState === 'loading' ? '…' : `${data.buildCoverage.found}/${data.buildCoverage.total}`}</strong>
+            <span>{buildState === 'loading' ? 'догружаем сборки' : 'готовых сборок'}</span>
+          </div>
           <div><strong>{formatDate(data.updatedAt)}</strong><span>обновление данных</span></div>
         </div>
       </header>
@@ -298,7 +369,7 @@ export default function ViciousSyndicateGold() {
                 <img src={classIcon(deck.classIcon)} alt="" width="40" height="40" loading="lazy" decoding="async" />
                 <div className="vsgold__deck-name"><strong>{deck.deckLabel}</strong><span>{deck.deck}</span></div>
                 <b>{percent(deck.frequency)}</b>
-                <BuildActions deck={deck.deck} build={deck.build} copiedDeck={copiedDeck} onCopy={copyDeck} expanded={openDeckKey === deck.deck} onOpen={key => setOpenDeckKey(current => current === key ? '' : key)} />
+                <BuildActions deck={deck.deck} build={deck.build} buildState={buildState} copiedDeck={copiedDeck} onCopy={copyDeck} expanded={openDeckKey === deck.deck} onOpen={key => setOpenDeckKey(current => current === key ? '' : key)} />
               </div>
               {openDeckKey === deck.deck && deck.build && <section className="vsgold__deck-composition" aria-label={`Состав колоды ${deck.deckLabel}`}>
                 <header><div><span>АКТУАЛЬНАЯ СБОРКА</span><h3>{deck.deckLabel}</h3></div><a href={deck.build.sourceUrl} target="_blank" rel="noreferrer">Источник</a></header>
@@ -348,7 +419,7 @@ export default function ViciousSyndicateGold() {
                 <img src={classIcon(deck.classIcon)} alt="" width="46" height="46" loading="lazy" decoding="async" />
                 <div><small>{tier.label} · {deck.classLabel}</small><h3>{deck.deckLabel}</h3><p>{deck.deck}</p></div>
                 <strong>{percent(deck.winrate)}<span>WR</span></strong>
-                <BuildActions deck={`tier:${deck.deck}`} build={deck.build} copiedDeck={copiedDeck} onCopy={copyDeck} />
+                <BuildActions deck={`tier:${deck.deck}`} build={deck.build} buildState={buildState} copiedDeck={copiedDeck} onCopy={copyDeck} />
               </article>
             );
           })}

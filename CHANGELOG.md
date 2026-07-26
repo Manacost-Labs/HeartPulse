@@ -2,6 +2,15 @@
 
 ## v1.0.49 - 2026-07-25
 
+- Made the Vicious Syndicate Gold statistics render before slower HSGuru deck
+  enrichment, with a separate protected build endpoint, bounded cache and
+  honest progressive loading states.
+- Reworked the archetype catalog tour around its real format, search, sorting
+  and result controls, and added a dedicated tour for individual archetype
+  pages.
+- Added subscriber-path performance contracts plus desktop/mobile browser,
+  responsive and accessibility coverage for progressive Vicious Gold loading
+  and the refreshed archetype tours.
 - Replaced the full-screen Standard paywall on Meta and constructed archetype
   routes with contextual parchment prompts after real, useful teaser data.
 - Added public, cacheable teaser contracts that expose three meta leaders, the

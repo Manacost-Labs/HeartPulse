@@ -76,8 +76,15 @@ const dependencies: StandardMetaRouterDependencies = {
     };
   },
   loadViciousGold: async () => {
-    calls.push('vicious-gold');
+    calls.push('vicious-gold:summary');
     return { games: 355561, deckDistribution: [{ deck: 'Mug Shaman', frequency: 7.36 }] };
+  },
+  loadViciousGoldBuilds: async () => {
+    calls.push('vicious-gold:builds');
+    return {
+      builds: [{ deck: 'Mug Shaman', build: recommendation }],
+      buildCoverage: { found: 1, total: 1 },
+    };
   },
   findRecommendation: async (archetype, _label, format, rank) => {
     calls.push(`recommendation:${archetype}:${format}:${rank}`);
@@ -223,7 +230,13 @@ try {
   assert.equal(vicious.status, 200);
   assert.equal(vicious.headers.get('cache-control'), 'no-store');
   assert.equal((await vicious.json() as any).deckDistribution[0].deck, 'Mug Shaman');
-  assert.ok(calls.includes('vicious-gold'));
+  assert.ok(calls.includes('vicious-gold:summary'));
+
+  const viciousBuilds = await fetch(`${origin}/admin/vicious-syndicate-gold/builds`, { headers: adminHeaders });
+  assert.equal(viciousBuilds.status, 200);
+  assert.equal(viciousBuilds.headers.get('cache-control'), 'no-store');
+  assert.equal((await viciousBuilds.json() as any).buildCoverage.found, 1);
+  assert.ok(calls.includes('vicious-gold:builds'));
 
   const missing = await fetch(`${origin}/admin/standard-meta/recommendation?archetype=Unknown&format=standard&rank=legend`, { headers: adminHeaders });
   assert.equal(missing.status, 404);

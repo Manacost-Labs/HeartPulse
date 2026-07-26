@@ -77,7 +77,7 @@
     "test:deck-builder": "tsx tests/deck-builder-resolve.test.ts",
     "test:hsreplay-deck-mobile": "node tests/hsreplay-deck-mobile-browser.test.mjs",
     "test:deck-card-data": "tsx tests/deck-card-data.test.ts",
-    "test:vicious-gold-builds": "tsx tests/vicious-gold-builds.test.ts",
+    "test:vicious-gold-builds": "tsx tests/vicious-gold-builds.test.ts && tsx tests/vicious-gold-progressive-loading.test.ts && node tests/vicious-gold-progressive-browser.test.mjs",
     "test:standard-meta-classes": "tsx tests/standard-meta-classes.test.ts",
     "test:standard-meta-profile-access": "tsx tests/standard-meta-profile-access.test.ts",
     "test:class-matchup-routes": "tsx tests/class-matchup-routes.test.ts",

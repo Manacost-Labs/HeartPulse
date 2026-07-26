@@ -49,6 +49,7 @@ export type StandardMetaRouterDependencies = {
     minGames: StandardMetaMinGames,
   ) => Promise<unknown>;
   loadViciousGold: () => Promise<unknown>;
+  loadViciousGoldBuilds: () => Promise<unknown>;
   findRecommendation: (
     archetype: string,
     archetypeLabel: string,
@@ -58,7 +59,7 @@ export type StandardMetaRouterDependencies = {
   createPreview: (recommendation: StandardMetaRecommendation) => Promise<StandardMetaPreview>;
   getPreview: (hash: string) => Promise<StandardMetaPreview>;
   setPrivateNoStore: (response: import('express').Response) => void;
-  onError?: (scope: 'meta' | 'vicious-gold' | 'recommendation' | 'preview-create' | 'preview-read', error: unknown) => void;
+  onError?: (scope: 'meta' | 'vicious-gold' | 'vicious-gold-builds' | 'recommendation' | 'preview-create' | 'preview-read', error: unknown) => void;
 };
 
 const FORMATS = new Set<StandardMetaFormat>(['standard', 'wild']);
@@ -201,6 +202,16 @@ export function createStandardMetaRouter(dependencies: StandardMetaRouterDepende
       return response.status(502).json({ error: 'Данные Vicious Syndicate временно недоступны' });
     }
   };
+  const viciousBuildsHandler: RequestHandler = async (_request, response) => {
+    try {
+      return response.json(await dependencies.loadViciousGoldBuilds());
+    } catch (error) {
+      dependencies.onError?.('vicious-gold-builds', error);
+      return response.status(502).json({ error: 'Сборки Vicious Syndicate временно недоступны' });
+    }
+  };
+  router.get('/vicious-syndicate-gold/builds', viciousBuildsHandler);
+  router.get('/admin/vicious-syndicate-gold/builds', viciousBuildsHandler);
   router.get('/vicious-syndicate-gold', viciousHandler);
   router.get('/admin/vicious-syndicate-gold', viciousHandler);
 

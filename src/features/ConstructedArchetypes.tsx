@@ -392,7 +392,7 @@ function ArchetypeCatalogPage({
         </dl>
       </section>
 
-      <nav className="archetypes-format-switch" aria-label="Формат Hearthstone" data-tour-id="meta-controls">
+      <nav className="archetypes-format-switch" aria-label="Формат Hearthstone" data-tour-id="archetypes-format">
         {FORMATS.map(item => (
           <button
             key={item.id}
@@ -413,12 +413,12 @@ function ArchetypeCatalogPage({
           <strong>{catalog?.formatLabel ?? (format === 'standard' ? 'Стандарт' : 'Вольный')}</strong>
           <small>Патч {catalog?.patch || '—'} · минимум {catalog?.minimumGames ?? 50} игр · обновлено {formatDate(catalog?.updatedAt ?? null)}</small>
         </div>
-        <label className="archetypes-search" data-tour-id="meta-search">
+        <label className="archetypes-search" data-tour-id="archetypes-search">
           <Search size={18} aria-hidden="true" />
           <span className="sr-only">Найти архетип</span>
           <input value={query} onChange={event => setQuery(event.target.value)} type="search" placeholder="Найти архетип..." />
         </label>
-        <label className="archetypes-sort">
+        <label className="archetypes-sort" data-tour-id="archetypes-sort">
           <span className="sr-only">Сортировка</span>
           <select value={sort} onChange={event => setSort(event.target.value as SortKey)}>
             {SORTS.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
@@ -439,7 +439,7 @@ function ArchetypeCatalogPage({
       )}
       {!loading && !error && items.length > 0 && (
         <section className="archetypes-ledger" aria-label={`Архетипы: ${catalog?.formatLabel}`}>
-          <header className="archetypes-ledger__header" data-tour-id="meta-results">
+          <header className="archetypes-ledger__header" data-tour-id="archetypes-results">
             <span>{items.length} архетипов со сборками</span>
             <span>Нажмите на строку, чтобы открыть подробную страницу</span>
           </header>
@@ -555,7 +555,7 @@ function ArchetypeDetailPage({
         <strong>{item.archetypeLabel}</strong>
       </nav>
 
-      <section className="archetype-dossier">
+      <section className="archetype-dossier" data-tour-id="archetype-summary">
         {heroArt ? (
           <img
             className="archetype-dossier__art"
@@ -581,7 +581,7 @@ function ArchetypeDetailPage({
       </section>
 
       {mainBuild && (
-        <section className="archetype-main-build">
+        <section className="archetype-main-build" data-tour-id="archetype-main-build">
           <header>
             <div>
               <span className="archetypes-eyebrow"><Sparkles size={14} /> Главная сборка</span>
@@ -633,7 +633,7 @@ function ArchetypeDetailPage({
       {hasFullAccess ? <ConstructedArchetypeAnalysis analysis={detail.analysis} /> : null}
 
       {hasFullAccess ? (
-        <section className="archetype-history" aria-labelledby="archetype-history-title">
+        <section className="archetype-history" aria-labelledby="archetype-history-title" data-tour-id="archetype-history">
         <header className="archetype-section-heading">
           <div>
             <span className="archetypes-eyebrow"><TrendingUp size={15} /> Накопительная статистика</span>
@@ -651,7 +651,7 @@ function ArchetypeDetailPage({
       ) : null}
 
       {hasFullAccess && secondaryBuilds.length > 0 && (
-        <section className="archetype-builds" aria-labelledby="archetype-builds-title">
+        <section className="archetype-builds" aria-labelledby="archetype-builds-title" data-tour-id="archetype-other-builds">
           <header className="archetype-section-heading">
             <div>
               <span className="archetypes-eyebrow"><Gamepad2 size={15} /> Сборки HSGuru</span>

@@ -470,7 +470,7 @@ export default function ConstructedArchetypeAnalysis({
   analysis: ConstructedAnalysis | null;
 }) {
   return (
-    <div className="constructed-analysis-stack">
+    <div className="constructed-analysis-stack" data-tour-id="archetype-analysis">
       <MatchupsPanel analysis={analysis} />
       <CardStatsPanel analysis={analysis} />
     </div>

@@ -7,6 +7,7 @@ const requiredTours = [
   'standard-matchups',
   'standard-meta',
   'constructed-archetypes',
+  'constructed-archetype-detail',
   'standard-vicious-gold',
   'standard-cards',
   'standard-card-detail',
@@ -36,6 +37,39 @@ assert.match(
   /Нажмите на любую цветную ячейку/,
   'the matchup tour must explain that matrix cells open matchup details',
 );
+
+const archetypeCatalogTour = PAGE_TOURS.find(tour => tour.id === 'constructed-archetypes');
+assert.ok(
+  archetypeCatalogTour && archetypeCatalogTour.version >= 2,
+  'the archetype catalog tour must invalidate the older generic meta guidance',
+);
+assert.ok(
+  archetypeCatalogTour.steps.some(step => step.target === 'archetypes-sort'),
+  'the archetype catalog tour must explain its dedicated sorting control',
+);
+
+const archetypeDetailTour = PAGE_TOURS.find(tour => tour.id === 'constructed-archetype-detail');
+assert.ok(archetypeDetailTour, 'the archetype detail page must have its own contextual tour');
+assert.deepEqual(
+  archetypeDetailTour.paths,
+  ['/standard/archetypes/:format/:slug', '/standard/meta/:format/:slug'],
+  'both supported archetype detail URLs must resolve to the detail tour',
+);
+
+const archetypeSource = [
+  readFileSync(new URL('../src/features/ConstructedArchetypes.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('../src/features/ConstructedArchetypeAnalysis.tsx', import.meta.url), 'utf8'),
+].join('\n');
+for (const tourId of ['constructed-archetypes', 'constructed-archetype-detail']) {
+  const tour = PAGE_TOURS.find(item => item.id === tourId);
+  assert.ok(tour, `${tourId}: tour must exist`);
+  for (const step of tour.steps) {
+    assert.ok(
+      archetypeSource.includes(`data-tour-id="${step.target}"`),
+      `${tourId}/${step.id}: ConstructedArchetypes.tsx must render the stable ${step.target} anchor`,
+    );
+  }
+}
 assert.doesNotMatch(
   matchupTour.steps.find(step => step.id === 'matrix')?.description ?? '',
   /прокрутка продублирована снизу|полосы сверху и снизу/i,

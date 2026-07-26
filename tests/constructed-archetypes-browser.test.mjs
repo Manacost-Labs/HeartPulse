@@ -71,9 +71,10 @@ try {
   assert.equal(await page.$$eval('.archetype-row', rows => rows.length), 3);
   assert.equal(await page.$$eval('.archetypes-format-switch button', buttons => buttons.length), 2);
   assert.equal(await page.$eval('h1', heading => heading.textContent), 'Архетипы Hearthstone');
-  assert.ok(await page.$('[data-tour-id="meta-controls"]'));
-  assert.ok(await page.$('[data-tour-id="meta-search"]'));
-  assert.ok(await page.$('[data-tour-id="meta-results"]'));
+  assert.ok(await page.$('[data-tour-id="archetypes-format"]'));
+  assert.ok(await page.$('[data-tour-id="archetypes-search"]'));
+  assert.ok(await page.$('[data-tour-id="archetypes-sort"]'));
+  assert.ok(await page.$('[data-tour-id="archetypes-results"]'));
   await page.screenshot({ path: `${screenshotPrefix}-desktop.png`, fullPage: true });
 
   for (const width of [1024, 768, 375, 320]) {
@@ -103,6 +104,15 @@ try {
   assert.equal(await page.$$eval('.archetype-deck-card .deck-tile', cards => cards.length), 56);
   assert.equal(await page.$$eval('.constructed-matchup-ledger li', rows => rows.length), 11);
   assert.equal(await page.$$eval('.constructed-card-stats tbody tr', rows => rows.length), 15);
+  for (const tourTarget of [
+    'archetype-summary',
+    'archetype-main-build',
+    'archetype-analysis',
+    'archetype-history',
+    'archetype-other-builds',
+  ]) {
+    assert.ok(await page.$(`[data-tour-id="${tourTarget}"]`), `missing ${tourTarget} tour anchor`);
+  }
   assert.equal(
     await page.$eval('.archetype-dossier__art', image => new URL(image.src).pathname),
     '/v1/512x/JAIL_732.jpg',

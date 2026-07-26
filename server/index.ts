@@ -264,6 +264,9 @@ const constructedArchetypeCatalogCache = new Map<string, MemoryCacheEntry>();
 const constructedArchetypeHistoryCache = new Map<string, MemoryCacheEntry>();
 const constructedArchetypeAnalysisCache = new Map<string, MemoryCacheEntry>();
 const viciousSyndicateGoldApiCache = new Map<string, MemoryCacheEntry>();
+const viciousSyndicateGoldBuildsApiCache = new Map<string, MemoryCacheEntry>();
+let viciousSyndicateGoldBuildsJob: Promise<ViciousGoldBuildCollection> | null = null;
+let viciousSyndicateGoldBuildsGeneration = 0;
 const standardMetaRecommendationCache = new Map<string, StandardMetaRecommendationCacheEntry<StandardMetaRecommendation>>();
 const standardMetaRecommendationJobs = new Map<string, Promise<StandardMetaRecommendation | null>>();
 const standardMetaStreamerDeckInfoCache = new Map<string, HsguruDeckInfo>();
@@ -6427,6 +6430,14 @@ type ViciousGoldBuild = Omit<StandardMetaRecommendation, 'matchMethod'> & {
   matchMethod: 'exact' | 'alias';
 };
 
+type ViciousGoldBuildCollection = {
+  builds: Array<{
+    deck: string;
+    build: (ViciousGoldBuild & { sourceLabel: string }) | null;
+  }>;
+  buildCoverage: { found: number; total: number };
+};
+
 function viciousPercent(value: unknown): number | null {
   const parsed = Number(String(value ?? '').replace('%', '').replace(',', '.').trim());
   return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : null;
@@ -6562,10 +6573,9 @@ async function loadViciousSyndicateGold() {
   const cached = viciousSyndicateGoldApiCache.get('standard');
   if (cached && cached.expiresAt > now) return cached.data;
 
-  const [payload, translations, constructedRows] = await Promise.all([
+  const [payload, translations] = await Promise.all([
     fetchDataset(VICIOUS_SYNDICATE_LIVE_DATASET),
     getStandardArchetypeTranslations(now),
-    fetchViciousConstructedDeckRows(),
   ]);
   const structured = payload?.data?.structured ?? payload?.structured ?? {};
   const rawClasses = Array.isArray(structured.class_distribution) ? structured.class_distribution : [];
@@ -6588,15 +6598,7 @@ async function loadViciousSyndicateGold() {
       frequency,
     }];
   });
-  const deckDistribution = await Promise.all(eligibleDecks.map(async row => {
-    const build = await resolveViciousGoldBuild(constructedRows, row.deck, row.deckLabel);
-    const hydratedBuild = build ? await hydrateRecommendationDeckCards(build) : null;
-    return {
-      ...row,
-      build: hydratedBuild ? { ...hydratedBuild, sourceLabel: viciousBuildSourceLabel(hydratedBuild.source) } : null,
-    };
-  }));
-  const buildsByDeck = new Map(deckDistribution.map((row: any) => [row.deck, row.build]));
+  const deckDistribution = eligibleDecks.map(row => ({ ...row, build: null }));
   const tierList = rawTierList.map((section: any) => {
     const rankBracket = String(section?.rank_bracket ?? '').trim();
     const decks = Array.isArray(section?.decks) ? section.decks : [];
@@ -6616,7 +6618,7 @@ async function loadViciousSyndicateGold() {
           classLabel: VICIOUS_CLASS_RU[className] ?? className,
           classIcon: viciousClassIcon(className),
           winrate,
-          build: buildsByDeck.get(deck) ?? null,
+          build: null,
         }];
       }),
     };
@@ -6649,7 +6651,7 @@ async function loadViciousSyndicateGold() {
     deckDistribution,
     tierList,
     buildCoverage: {
-      found: deckDistribution.filter((row: any) => !/^(?:Other|Bot)\s/i.test(row.deck) && row.build).length,
+      found: 0,
       total: deckDistribution.filter((row: any) => !/^(?:Other|Bot)\s/i.test(row.deck)).length,
     },
   };
@@ -6659,6 +6661,54 @@ async function loadViciousSyndicateGold() {
     expiresAt: now + EXTERNAL_DATASET_CACHE_MS,
   });
   return data;
+}
+
+async function loadViciousSyndicateGoldBuilds() {
+  const now = Date.now();
+  const cached = viciousSyndicateGoldBuildsApiCache.get('standard');
+  if (cached && cached.expiresAt > now) return cached.data;
+  if (viciousSyndicateGoldBuildsJob) return viciousSyndicateGoldBuildsJob;
+
+  const generation = viciousSyndicateGoldBuildsGeneration;
+  const job: Promise<ViciousGoldBuildCollection> = (async () => {
+    const [summary, constructedRows] = await Promise.all([
+      loadViciousSyndicateGold(),
+      fetchViciousConstructedDeckRows(),
+    ]);
+    const rows = Array.isArray(summary?.deckDistribution) ? summary.deckDistribution : [];
+    const builds = await Promise.all(rows.map(async (row: any) => {
+      const deck = String(row?.deck ?? '').trim();
+      const deckLabel = String(row?.deckLabel ?? deck).trim();
+      if (!deck || /^(?:Other|Bot)\s/i.test(deck)) return { deck, build: null };
+      const build = await resolveViciousGoldBuild(constructedRows, deck, deckLabel);
+      const hydratedBuild = build ? await hydrateRecommendationDeckCards(build) : null;
+      return {
+        deck,
+        build: hydratedBuild
+          ? { ...hydratedBuild, sourceLabel: viciousBuildSourceLabel(hydratedBuild.source) }
+          : null,
+      };
+    }));
+    const data = {
+      builds,
+      buildCoverage: {
+        found: builds.filter(row => row.deck && row.build).length,
+        total: builds.filter(row => row.deck && !/^(?:Other|Bot)\s/i.test(row.deck)).length,
+      },
+    };
+    if (generation === viciousSyndicateGoldBuildsGeneration) {
+      viciousSyndicateGoldBuildsApiCache.set('standard', {
+        data,
+        etag: '',
+        expiresAt: Date.now() + STANDARD_META_RECOMMENDATION_CACHE_MS,
+      });
+    }
+    return data;
+  })().finally(() => {
+    if (viciousSyndicateGoldBuildsJob === job) viciousSyndicateGoldBuildsJob = null;
+  });
+  viciousSyndicateGoldBuildsJob = job;
+  return job;
 }
 
 type StandardMetaDeckCandidate = StandardMetaRecommendation & { quality: number; persisted?: boolean };
@@ -7560,6 +7610,7 @@ app.use('/api', createStandardMetaRouter({
   accessGuard: requireStandardAccess,
   loadMeta: loadStandardMeta,
   loadViciousGold: loadViciousSyndicateGold,
+  loadViciousGoldBuilds: loadViciousSyndicateGoldBuilds,
   findRecommendation: findStandardMetaRecommendation,
   createPreview: createStandardMetaPreview,
   getPreview: fetchStandardMetaPreview,
@@ -9458,6 +9509,7 @@ function standardOperationsStatus() {
     caches: {
       meta: { entries: standardMetaApiCache.size, fresh: freshCount(standardMetaApiCache) },
       viciousGold: { entries: viciousSyndicateGoldApiCache.size, fresh: freshCount(viciousSyndicateGoldApiCache) },
+      viciousGoldBuilds: { entries: viciousSyndicateGoldBuildsApiCache.size, fresh: freshCount(viciousSyndicateGoldBuildsApiCache) },
       recommendations: { entries: standardMetaRecommendationCache.size, active: standardMetaRecommendationJobs.size },
       previews: { entries: standardMetaPreviewCache.size, activeJobs: standardMetaPreviewJobs.size },
     },
@@ -9480,6 +9532,9 @@ function resetStandardCache(target: StandardCacheTarget) {
   if (target === 'meta' || target === 'all') {
     standardMetaApiCache.clear();
     viciousSyndicateGoldApiCache.clear();
+    viciousSyndicateGoldBuildsApiCache.clear();
+    viciousSyndicateGoldBuildsGeneration += 1;
+    viciousSyndicateGoldBuildsJob = null;
   }
   if (target === 'recommendations' || target === 'all') {
     standardMetaRecommendationCache.clear();
@@ -9535,12 +9590,15 @@ async function invalidateParserControlledDataCaches(): Promise<void> {
       constructedArchetypeHistoryCache,
       constructedArchetypeAnalysisCache,
       viciousSyndicateGoldApiCache,
+      viciousSyndicateGoldBuildsApiCache,
       battlegroundAppProxyCache,
     ],
     singletonCaches: [homeSummaryApiCache, classMatchupsCache, arenaDecksCache],
     invalidateCards: () => constructedCardDataService.invalidate?.(),
     invalidateDerived: () => {
       parserDataCacheGeneration += 1;
+      viciousSyndicateGoldBuildsGeneration += 1;
+      viciousSyndicateGoldBuildsJob = null;
       standardMetaRecommendationCache.clear();
       standardMetaRecommendationJobs.clear();
       standardMetaDeckRowsCache = null;

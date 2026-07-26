@@ -71,19 +71,30 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
     ],
   },
   {
-    id: 'constructed-archetypes', version: 1, paths: ['/standard/archetypes'], title: 'Как пользоваться разделом «Архетипы»',
+    id: 'constructed-archetypes', version: 2, paths: ['/standard/archetypes'], title: 'Как найти актуальный архетип',
     steps: [
-      { id: 'controls', target: 'meta-controls', title: 'Стандарт или Вольный', description: 'Переключайте формат — сводка и каталог сразу обновятся для выбранной меты.', audience: 'standard', preferredPlacement: 'bottom' },
-      { id: 'search', target: 'meta-search', title: 'Поиск архетипа', description: 'Начните вводить название класса или колоды, чтобы быстро оставить в результатах только нужные архетипы.', audience: 'standard' },
-      { id: 'results', target: 'meta-results', title: 'Актуальные архетипы', description: 'Счётчик показывает объём текущей выдачи. Результаты ниже содержат размер выборки, популярность и винрейт каждого архетипа.', audience: 'standard', preferredPlacement: 'top' },
+      { id: 'format', target: 'archetypes-format', title: 'Стандарт или Вольный', description: 'Выберите игровой формат — сводка, список и число доступных сборок сразу обновятся для нужной меты.', audience: 'standard', preferredPlacement: 'bottom' },
+      { id: 'search', target: 'archetypes-search', title: 'Быстрый поиск', description: 'Введите русское или английское название архетипа либо класса, чтобы сократить каталог без перезагрузки страницы.', audience: 'standard' },
+      { id: 'sort', target: 'archetypes-sort', title: 'Что важнее', description: 'Отсортируйте каталог по популярности, винрейту, числу игр или количеству найденных сборок.', audience: 'standard' },
+      { id: 'results', target: 'archetypes-results', title: 'Откройте досье', description: 'В каждой строке видны ключевые показатели. Нажмите её, чтобы перейти к сборкам, матчапам, муллигану и истории архетипа.', audience: 'standard', preferredPlacement: 'top' },
     ],
   },
   {
-    id: 'standard-vicious-gold', version: 1, paths: ['/standard/vicious-gold'], title: 'Как читать Vicious Syndicate Gold',
+    id: 'constructed-archetype-detail', version: 1, paths: ['/standard/archetypes/:format/:slug', '/standard/meta/:format/:slug'], title: 'Как читать страницу архетипа',
+    steps: [
+      { id: 'summary', target: 'archetype-summary', title: 'Сводка архетипа', description: 'В верхнем досье собраны винрейт, популярность, размер выборки, темп матчей и количество найденных сборок.', audience: 'standard', preferredPlacement: 'bottom' },
+      { id: 'main-build', target: 'archetype-main-build', title: 'Главная сборка', description: 'Первая сборка выбрана по самой большой подтверждённой выборке. Откройте карты или скопируйте код для импорта в Hearthstone.', audience: 'standard' },
+      { id: 'analysis', target: 'archetype-analysis', title: 'Матчапы и муллиган', description: 'Сравните результат против классов, затем изучите влияние стартовой руки, добора и оставления каждой карты.', audience: 'standard', preferredPlacement: 'top' },
+      { id: 'history', target: 'archetype-history', title: 'История меты', description: 'Графики накапливают срезы каждые 12 часов и показывают, как меняются винрейт, популярность и объём игр.', audience: 'standard', preferredPlacement: 'top' },
+      { id: 'builds', target: 'archetype-other-builds', title: 'Другие сборки', description: 'Сравните альтернативные варианты по винрейту и размеру выборки, раскройте состав и скопируйте подходящий код.', audience: 'standard', preferredPlacement: 'top' },
+    ],
+  },
+  {
+    id: 'standard-vicious-gold', version: 2, paths: ['/standard/vicious-gold'], title: 'Как читать Vicious Syndicate Gold',
     steps: [
       { id: 'classes', target: 'vicious-classes', title: 'Распределение классов', description: 'Диаграмма показывает, какую долю текущей меты занимает каждый класс в доступной выборке Vicious Syndicate.', audience: 'standard' },
       { id: 'decks', target: 'vicious-decks', title: 'Распределение колод', description: 'Здесь оставлены архетипы заметной популярности. Фильтр класса помогает быстро найти нужную колоду и её долю.', audience: 'standard' },
-      { id: 'build', target: 'vicious-build-action', title: 'Состав и код колоды', description: 'Кнопка «Состав» раскрывает карты выбранного архетипа, а соседняя кнопка копирует готовый код колоды.', audience: 'standard', preferredPlacement: 'left' },
+      { id: 'build', target: 'vicious-build-action', title: 'Состав и код колоды', description: 'Статистика появляется первой, а сборки догружаются отдельно. После загрузки откройте состав или скопируйте код колоды.', audience: 'standard', preferredPlacement: 'left' },
       { id: 'power-filters', target: 'vicious-power-filters', title: 'Рейтинг и класс Power Tier', description: 'Сначала выберите диапазон рейтинга и класс. Тир-лист пересчитается только для этого среза данных.', audience: 'standard' },
       { id: 'power', target: 'vicious-power', title: 'Power Tier List', description: 'Под этим заголовком колоды распределены по силе с учётом фактических результатов. Позиция внутри тира помогает сравнить близкие архетипы.', audience: 'standard', preferredPlacement: 'top' },
     ],
