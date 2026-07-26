@@ -7543,6 +7543,7 @@ if (staticSitemapArtifact) {
 
 app.use(createConstructedCardSeoRouter({
   loadCards: constructedCardDataService.loadCards,
+  loadCardDetail: constructedCardDataService.loadCardDetail,
   frontendAssets: constructedCardFrontendAssets,
   onError: error => console.error(
     '[constructed-card-seo] catalog failed:',

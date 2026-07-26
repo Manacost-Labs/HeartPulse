@@ -1,6 +1,7 @@
 import { Router, type RequestHandler, type Response } from 'express';
 import type {
   ConstructedCardCollection,
+  ConstructedCardDetailResult,
   ConstructedCardFormat,
 } from './constructedCardRoutes.js';
 import {
@@ -32,6 +33,10 @@ export type PublicConstructedCardSeoData = {
 
 export type ConstructedCardSeoRouterDependencies = {
   loadCards: (format: ConstructedCardFormat) => Promise<ConstructedCardCollection>;
+  loadCardDetail: (
+    format: ConstructedCardFormat,
+    cardId: string,
+  ) => Promise<ConstructedCardDetailResult | null>;
   canonicalOrigin?: string;
   frontendAssets?: string;
   catalogTimeoutMs?: number;
@@ -616,6 +621,7 @@ export function createConstructedCardSeoRouter(dependencies: ConstructedCardSeoR
   const retryAfterSeconds = Math.max(1, Math.floor(dependencies.retryAfterSeconds ?? 300));
 
   const handler: RequestHandler = async (request, response) => {
+    const startedAt = Date.now();
     const rawFormat = String(request.params.format ?? '');
     const cardId = String(request.params.cardId ?? '');
     const format = rawFormat === 'standard' || rawFormat === 'wild' ? rawFormat : null;
@@ -654,8 +660,13 @@ export function createConstructedCardSeoRouter(dependencies: ConstructedCardSeoR
         });
         return sendHtml(response, 404, NOINDEX_ROBOTS, html);
       }
+      const remainingMs = Math.max(1, catalogTimeoutMs - (Date.now() - startedAt));
+      const detail = await withDeadline(dependencies.loadCardDetail(format, cardId), remainingMs);
+      const publicCard = detail?.card && isIndexableConstructedCard(detail.card)
+        ? detail.card
+        : card;
       return sendHtml(response, 200, INDEX_ROBOTS, renderConstructedCardSeoDocument({
-        card,
+        card: publicCard,
         format,
         canonicalOrigin: origin,
         frontendAssets,

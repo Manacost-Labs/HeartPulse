@@ -103,6 +103,11 @@ const cards = [
     images: { card: 'javascript:alert(1)' },
   },
 ];
+const catalogCards = cards.map(card => {
+  const compact = structuredClone(card) as any;
+  delete compact.related_cards_localized;
+  return compact;
+});
 
 const frontendAssets = extractConstructedCardFrontendAssets(`
   <script type="module" crossorigin src="/assets/index-safe.js" onload="QA_UNSAFE_ATTRIBUTE"></script>
@@ -124,12 +129,13 @@ assert.doesNotMatch(frontendAssets, /evil\.example|redirect=|QA_UNSAFE_ATTRIBUTE
   'only reconstructed local build asset tags may enter the document');
 
 const calls: string[] = [];
+const detailCalls: string[] = [];
 const app = express();
 app.use(createConstructedCardSeoRouter({
   loadCards: async format => {
     calls.push(format);
     return {
-      cards: format === 'standard' ? cards : [cards[1]],
+      cards: format === 'standard' ? catalogCards : [catalogCards[1]],
       updatedAt: null,
       sourceUrl: '',
       cacheSource: 'fresh',
@@ -139,6 +145,19 @@ app.use(createConstructedCardSeoRouter({
       catalogVerifiedAt: '2026-07-21T00:00:00.000Z',
       catalogPublishedAt: '2026-07-21T00:00:00.000Z',
     };
+  },
+  loadCardDetail: async (format, cardId) => {
+    detailCalls.push(`${format}:${cardId}`);
+    const card = (format === 'standard' ? cards : [cards[1]])
+      .find(item => item.card_id === cardId);
+    return card ? {
+      card,
+      cacheSource: 'fresh',
+      dataStatus: 'fresh',
+      partial: false,
+      warning: null,
+      datasetVersion: `ccc1-sha256:${'1'.repeat(64)}`,
+    } : null;
   },
   frontendAssets,
 }));
@@ -235,6 +254,8 @@ try {
   assert.equal(jsonLd['@graph'][0].additionalProperty.find((item: any) => item.name === 'Формат')?.value, 'Стандарт');
   assertNoPrivateData(html, 'existing detail');
   assert.deepEqual(calls, ['standard'], 'existence must be resolved by loadCards for the requested format');
+  assert.deepEqual(detailCalls, ['standard:CARD_1'],
+    'public HTML must load the enriched detail that contains related cards');
 
   for (const headers of [
     { Cookie: 'session=private-user' },
@@ -314,6 +335,9 @@ outageApp.use(createConstructedCardSeoRouter({
       catalogPublishedAt: '2026-07-21T00:00:00.000Z',
     };
   },
+  loadCardDetail: async () => {
+    throw new Error('detail must not load before catalog membership succeeds');
+  },
   frontendAssets,
 }));
 const outageServer = outageApp.listen(0, '127.0.0.1');
@@ -347,6 +371,7 @@ try {
 const deadlineApp = express();
 deadlineApp.use(createConstructedCardSeoRouter({
   loadCards: () => new Promise(() => {}),
+  loadCardDetail: () => new Promise(() => {}),
   catalogTimeoutMs: 10,
   retryAfterSeconds: 15,
 }));
@@ -382,6 +407,14 @@ staleMembershipApp.use(createConstructedCardSeoRouter({
     catalogVerifiedAt: '2026-07-20T00:00:00.000Z',
     catalogPublishedAt: '2026-07-20T00:00:00.000Z',
   }),
+  loadCardDetail: async (_format, cardId) => cardId === 'CARD_1' ? {
+    card: cards[0],
+    cacheSource: 'LKG',
+    dataStatus: 'stale',
+    partial: true,
+    warning: 'Последняя сохранённая версия.',
+    datasetVersion: `ccc1-sha256:${'2'.repeat(64)}`,
+  } : null,
   retryAfterSeconds: 60,
 }));
 const staleMembershipServer = staleMembershipApp.listen(0, '127.0.0.1');
