@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import sharp from 'sharp';
@@ -58,6 +58,11 @@ try {
   await stat(join(cacheDir, '101-full-blizzard-card_img_v6_blizzard.webp'));
   await stat(join(cacheDir, '202-full-blizzard-card_img_v6_blizzard.webp'));
 
+  const manifestPath = join(cacheDir, 'blizzard-thumbnails-manifest-v1.json');
+  const legacyManifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  delete legacyManifest.cards['101'].cacheFiles;
+  await writeFile(manifestPath, `${JSON.stringify(legacyManifest, null, 2)}\n`);
+
   const second = await syncConstructedCardThumbnails({
     dbfIds: [101, 202],
     cacheDir,
@@ -90,7 +95,7 @@ try {
   assert.equal(downloads.at(-1), 'https://example.test/cards/bbb-v2.png');
 
   const manifest = JSON.parse(await readFile(
-    join(cacheDir, 'blizzard-thumbnails-manifest-v1.json'),
+    manifestPath,
     'utf8',
   ));
   assert.equal(manifest.schemaVersion, 1);

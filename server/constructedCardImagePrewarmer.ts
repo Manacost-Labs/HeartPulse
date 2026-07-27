@@ -194,6 +194,19 @@ export async function syncConstructedCardThumbnails(
           }
         }
         if (variantsToWrite.length === 0) {
+          if (
+            previous?.cacheFiles?.thumb !== cacheFiles.thumb
+            || previous?.cacheFiles?.full !== cacheFiles.full
+          ) {
+            manifest.cards[String(dbfId)] = {
+              ...previous,
+              sourceUrl,
+              cacheFile: cacheFiles.thumb,
+              cacheFiles,
+              updatedAt: previous?.updatedAt ?? now().toISOString(),
+            };
+            batchChanged = true;
+          }
           result.skipped += 1;
           return;
         }
