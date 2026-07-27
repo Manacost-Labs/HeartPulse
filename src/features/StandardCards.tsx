@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import '../route-parchment.css';
 import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
+import ConstructedCardHistoryChart from './ConstructedCardHistoryChart';
 import ConstructedCardLightbox from './ConstructedCardLightbox';
 import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
 import { compareConstructedSets, constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
@@ -34,6 +35,7 @@ import {
   constructedCardPeriodUrl,
   type ConstructedCardPeriod,
 } from './constructedCardPeriods';
+import { useConstructedCardHistory } from './useConstructedCardHistory';
 import {
   collectConstructedCardMedia,
   collectConstructedCardVariants,
@@ -939,6 +941,12 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
   const [reloadToken, setReloadToken] = useState(0);
   const [variant, setVariant] = useState('normal');
   const [lightboxIndex, setLightboxIndex] = useState(-1);
+  const history = useConstructedCardHistory({
+    cardId,
+    format,
+    period,
+    enabled: Boolean(card && serverStatsAccess),
+  });
   useEffect(() => {
     const controller = new AbortController();
     const load = async () => {
@@ -1068,6 +1076,17 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
           )}
         </div>
       </section>
+
+      {serverStatsAccess && (
+        <ConstructedCardHistoryChart
+          points={history.points}
+          periodLabel={periodLabel}
+          days={history.days}
+          onDaysChange={history.setDays}
+          loading={history.loading}
+          error={history.error}
+        />
+      )}
 
       <section className="constructed-card-detail__lower-grid">
         <div className="constructed-card-detail__section"><h2>Механики и теги</h2><div className="constructed-card-detail__tags">{mechanics.length ? mechanics.map(item => <span key={item.key}>{item.label}</span>) : <p>Механики не указаны.</p>}</div></div>
