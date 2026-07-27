@@ -1,5 +1,16 @@
 # HS-Arena Changelog
 
+## v1.0.60 - 2026-07-27
+
+- Replaced browser-native constructed-card filters with a keyboard-accessible
+  parchment listbox for sorting, classes, sets, stats, mechanics, types and
+  rarity in both Standard and Wild.
+- Added local class, set, mana, attack, health and rarity artwork to matching
+  filters, removed numeric counters from class choices and kept text-only
+  mechanics compact.
+- Added an optimized, reproducible Hearthstone Wiki asset sync for all 45
+  current set emblems plus responsive 320 px alignment and Storybook coverage.
+
 ## v1.0.59 - 2026-07-27
 
 - Extended constructed-card companion discovery to Wild card-page sections

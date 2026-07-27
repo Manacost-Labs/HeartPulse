@@ -56,9 +56,6 @@
 .constructed-cards__format button[aria-pressed='true'] img { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55)) brightness(1.12); }
 .constructed-cards__search { display: flex; flex: 1 1 260px; gap: 0.4rem; align-items: center; min-width: 190px; height: 45px; padding: 0 0.7rem; border: 1px solid #aa7a40; background: rgba(255, 248, 222, 0.74); }
 .constructed-cards__search input { width: 100%; min-width: 0; border: 0; outline: 0; color: var(--cards-ink); background: transparent; font-size: 0.82rem; }
-.constructed-cards__filter { display: grid; flex: 1 1 120px; min-width: 96px; }
-.constructed-cards__filter > span { margin-bottom: 0.22rem; color: #6d4b2d; font-size: 0.6rem; font-weight: 900; }
-.constructed-cards__filter select { width: 100%; min-height: 41px; padding: 0 1.7rem 0 0.55rem; border: 1px solid #aa7a40; outline: 0; color: #442918; background: rgba(255, 248, 222, 0.78); font-size: 0.72rem; }
 .constructed-cards__primary-controls > .constructed-cards__filter { flex: 0 1 210px; min-width: 170px; }
 .constructed-cards__sort-lock {
   display: inline-flex;
@@ -422,7 +419,6 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
   .constructed-cards__search { height: 46px; }
   .constructed-cards__search input { font-size: 16px; }
   .constructed-cards__filter { min-width: 0; }
-  .constructed-cards__filter select { min-height: 44px; font-size: 0.68rem; }
   .constructed-cards__direction { grid-column: 1 / -1; width: 100%; min-width: 0; min-height: 44px; gap: 0.45rem; font-size: 1rem; }
   .constructed-cards__direction-label { display: inline; font-size: 0.68rem; }
   .constructed-cards__advanced-toggle { display: inline-flex; grid-column: 1 / -1; width: 100%; min-height: 44px; gap: 0.45rem; align-items: center; justify-content: center; border: 1px solid #8c5b30; color: #5a3419; background: rgba(255, 239, 188, 0.74); font-size: 0.7rem; font-weight: 900; }

@@ -1,0 +1,176 @@
+.constructed-cards__filter {
+  position: relative;
+  display: grid;
+  flex: 1 1 120px;
+  min-width: 96px;
+}
+
+.constructed-cards__filter.is-open {
+  z-index: 80;
+}
+
+.constructed-cards__filter > span {
+  margin-bottom: 0.22rem;
+  color: #6d4b2d;
+  font-size: 0.6rem;
+  font-weight: 900;
+}
+
+.constructed-cards__filter-trigger {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  gap: 0.35rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0.5rem 0.25rem 0.55rem;
+  border: 1px solid #aa7a40;
+  color: #442918;
+  background: rgba(255, 248, 222, 0.88);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.48);
+  font-size: 0.72rem;
+  text-align: left;
+}
+
+.constructed-cards__filter.is-open .constructed-cards__filter-trigger {
+  border-color: #69427b;
+  box-shadow: 0 0 0 3px rgba(96, 65, 122, 0.22), inset 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.constructed-cards__filter-value {
+  display: flex;
+  min-width: 0;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.constructed-cards__filter-value > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.constructed-cards__filter-value img,
+.constructed-cards__filter-option-icon img {
+  display: block;
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 1px rgba(54, 25, 8, 0.3));
+}
+
+.constructed-cards__filter[data-visual='set'] .constructed-cards__filter-value img,
+.constructed-cards__filter[data-visual='set'] .constructed-cards__filter-option-icon img {
+  width: 58px;
+  height: 30px;
+}
+
+.constructed-cards__filter[data-visual='rarity'] .constructed-cards__filter-value img,
+.constructed-cards__filter[data-visual='rarity'] .constructed-cards__filter-option-icon img {
+  width: 21px;
+  height: 29px;
+}
+
+.constructed-cards__filter-chevron {
+  flex: 0 0 auto;
+  transition: transform 140ms ease;
+}
+
+.constructed-cards__filter.is-open .constructed-cards__filter-chevron {
+  transform: rotate(180deg);
+}
+
+.constructed-cards__filter-menu {
+  position: absolute;
+  z-index: 100;
+  top: calc(100% + 4px);
+  left: 0;
+  width: max(100%, min(21rem, calc(100vw - 1rem)));
+  max-height: min(420px, calc(100vh - 120px));
+  margin: 0;
+  overflow-y: auto;
+  padding: 0.3rem;
+  border: 1px solid #7f552d;
+  outline: 0;
+  background:
+    linear-gradient(rgba(255, 249, 225, 0.97), rgba(246, 222, 173, 0.97)),
+    url('/wallpaper/arena-parchment.jpg') center / 720px auto;
+  box-shadow: 0 14px 30px rgba(64, 31, 10, 0.3), inset 0 0 0 2px rgba(255, 252, 235, 0.46);
+  list-style: none;
+  scrollbar-color: #8a653f rgba(245, 222, 174, 0.55);
+  scrollbar-width: thin;
+}
+
+.constructed-cards__filter[data-align='end'] .constructed-cards__filter-menu {
+  right: 0;
+  left: auto;
+}
+
+.constructed-cards__filter-menu li {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 20px;
+  gap: 0.45rem;
+  min-height: 44px;
+  align-items: center;
+  padding: 0.3rem 0.45rem;
+  color: #442918;
+  cursor: pointer;
+  font-size: 0.74rem;
+  line-height: 1.25;
+}
+
+.constructed-cards__filter[data-visual='set'] .constructed-cards__filter-menu li {
+  grid-template-columns: 64px minmax(0, 1fr) 20px;
+}
+
+.constructed-cards__filter[data-visual='text'] .constructed-cards__filter-menu li {
+  grid-template-columns: minmax(0, 1fr) 20px;
+  padding-left: 0.65rem;
+}
+
+.constructed-cards__filter[data-visual='text'] .constructed-cards__filter-option-icon {
+  display: none;
+}
+
+.constructed-cards__filter-option-icon {
+  display: grid;
+  min-width: 0;
+  place-items: center;
+}
+
+.constructed-cards__filter-menu li[data-active],
+.constructed-cards__filter-menu li[aria-selected='true'] {
+  color: #fff3ca;
+  background: linear-gradient(90deg, #64131a, #812029);
+  text-shadow: 0 1px rgba(35, 4, 6, 0.5);
+}
+
+.constructed-cards__filter-menu li[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.constructed-cards__filter-check {
+  opacity: 0;
+}
+
+.constructed-cards__filter-menu li[aria-selected='true'] .constructed-cards__filter-check {
+  opacity: 1;
+}
+
+@media (max-width: 720px) {
+  .constructed-cards__filter-menu {
+    width: min(21rem, calc(100vw - 2rem));
+  }
+
+  .constructed-cards__filter-trigger {
+    font-size: 0.7rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .constructed-cards__filter-chevron {
+    transition: none;
+  }
+}

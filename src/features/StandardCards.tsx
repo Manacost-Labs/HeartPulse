@@ -20,8 +20,20 @@ import {
 import '../route-parchment.css';
 import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
 import ConstructedCardLightbox from './ConstructedCardLightbox';
+import FilterSelect from './ConstructedCardFilterSelect';
 import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
 import { compareConstructedSets, constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
+import {
+  classFilterOptions,
+  constructedClassIcon as classIcon,
+  constructedClassLabel as classLabel,
+  constructedRarityLabel,
+  constructedTypeLabel,
+  numericFilterOptions,
+  rarityFilterOptions,
+  setFilterOptions,
+  textFilterOptions,
+} from './constructedCardFilterOptions';
 import {
   constructedCardDataNotice,
   constructedCardRequestError,
@@ -181,7 +193,6 @@ type StandardCardsProps = {
 };
 
 const EMPTY_FACETS: Facets = { classes: [], sets: [], mechanics: [], types: [], rarities: [] };
-const EMPTY_FACET_COUNTS: FacetCounts = { classes: [], sets: [], mechanics: [], types: [], rarities: [] };
 const EMPTY_FILTERS: Filters = {
   query: '', class: '', set: '', mana: '', attack: '', health: '', mechanic: '', type: '', rarity: '', sort: 'set', direction: 'asc',
 };
@@ -201,17 +212,6 @@ const LOCKED_STATS_PLACEHOLDER: CardStats = {
 
 type StatsGateProps = Pick<StandardCardsProps, 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'>;
 
-const CLASS_LABELS: Record<string, string> = {
-  DEATHKNIGHT: 'Рыцарь смерти', DEMONHUNTER: 'Охотник на демонов', DRUID: 'Друид', HUNTER: 'Охотник',
-  MAGE: 'Маг', PALADIN: 'Паладин', PRIEST: 'Жрец', ROGUE: 'Разбойник', SHAMAN: 'Шаман',
-  WARLOCK: 'Чернокнижник', WARRIOR: 'Воин', NEUTRAL: 'Нейтральные', DREAM: 'Сон',
-};
-const RARITY_LABELS: Record<string, string> = {
-  FREE: 'Базовая', COMMON: 'Обычная', RARE: 'Редкая', EPIC: 'Эпическая', LEGENDARY: 'Легендарная',
-};
-const TYPE_LABELS: Record<string, string> = {
-  MINION: 'Существо', SPELL: 'Заклинание', WEAPON: 'Оружие', LOCATION: 'Локация', HERO: 'Герой', ENCHANTMENT: 'Эффект',
-};
 const GENERATED_POOL_LABELS: Record<string, string> = {
   'Fire spells': 'Огненные заклинания',
   'Arcane spells': 'Чародейские заклинания',
@@ -229,15 +229,6 @@ const GENERATED_POOL_LABELS: Record<string, string> = {
 
 function cardName(card: CardRecord): string {
   return card.name?.ru || card.name?.en || card.card_id;
-}
-
-function translatedCode(value: string, dictionary?: Record<string, string>): string {
-  if (dictionary?.[value]) return dictionary[value];
-  return value.toLocaleLowerCase('ru').replace(/_/g, ' ').replace(/(^|\s)\S/g, letter => letter.toLocaleUpperCase('ru'));
-}
-
-function classLabel(value: string): string {
-  return translatedCode(value, CLASS_LABELS);
 }
 
 function mechanicLabel(value: string, translations?: Record<string, string>): string {
@@ -259,10 +250,6 @@ function uniqueMechanicLabels(values: unknown[], translations?: Record<string, s
 function generatedPoolLabel(value: unknown): string {
   const label = String(value ?? '').trim();
   return GENERATED_POOL_LABELS[label] || label || 'Сгенерированные карты';
-}
-
-function facetOptionLabel(value: string, count: number | undefined, label: (value: string) => string): string {
-  return `${label(value)}${typeof count === 'number' ? ` (${count.toLocaleString('ru-RU')})` : ''}`;
 }
 
 function percent(value: number | null | undefined): string {
@@ -348,22 +335,6 @@ function routeState(path: string): { page: 'list' | 'detail'; format: CardFormat
 
 function cardPath(format: CardFormat, card: CardRecord): string {
   return `/standard/cards/${format}/${encodeURIComponent(card.card_id)}`;
-}
-
-function classIcon(cardClass?: string | null): string {
-  const key = String(cardClass || 'neutral').toLocaleLowerCase().replace(/_/g, '');
-  return key === 'neutral' ? '/class_icon/neutral.webp' : `/class_icon/ui/${key}-64.webp`;
-}
-
-function FilterSelect({ label, value, onChange, children, tourId }: {
-  label: string; value: string; onChange: (value: string) => void; children: React.ReactNode; tourId?: string;
-}) {
-  return (
-    <label className="constructed-cards__filter" data-tour-id={tourId}>
-      <span>{label}</span>
-      <select value={value} onChange={event => onChange(event.target.value)}>{children}</select>
-    </label>
-  );
 }
 
 function StatsRows({ stats, compact = false }: { stats: CardStats | null; compact?: boolean }) {
@@ -616,10 +587,7 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
   };
   const reset = () => { setFilters(EMPTY_FILTERS); setPage(1); };
   const facets = data?.facets ?? EMPTY_FACETS;
-  const facetCounts = data?.facetCounts ?? EMPTY_FACET_COUNTS;
-  const countFor = (entries: FacetCount[], value: string) => entries.find(entry => entry.value === value)?.count;
   const sets = [...facets.sets].sort(compareConstructedSets);
-  const coverage = data?.coverage;
   const hasStatsAccess = data ? Boolean(data.statsAccess) : statsAccess;
   const statsGate = { statsAccessLoading, authUser, onRefreshSubscription };
   const dataNotice = data ? constructedCardDataNotice(data) : null;
@@ -638,13 +606,31 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
             <button type="button" aria-label="Вольный" title="Вольный" aria-pressed={format === 'wild'} onClick={() => changeFormat('wild')}><img src="/card-format-wild.webp" alt="" /><span className="sr-only">Вольный</span></button>
           </div>
           <label className="constructed-cards__search" data-tour-id="cards-search"><Search size={18} /><input value={filters.query} onChange={event => updateFilter('query', event.target.value)} placeholder="Поиск по названию" /></label>
-          <FilterSelect label="Сортировка" value={filters.sort} onChange={value => updateFilter('sort', value)} tourId="cards-sort">
-            <option value="set">Новые дополнения</option><option value="popularity" disabled={!hasStatsAccess}>🔒 В % колод · Алмаз</option><option value="winrate" disabled={!hasStatsAccess}>🔒 Победы колод · Алмаз</option><option value="games" disabled={!hasStatsAccess}>🔒 Сыграно партий · Алмаз</option><option value="mana">Мана</option><option value="attack">Атака</option><option value="health">Здоровье</option><option value="name">Название</option><option value="class">Класс</option><option value="mechanics">Механики</option>
-          </FilterSelect>
+          <FilterSelect
+            label="Сортировка"
+            value={filters.sort}
+            onChange={value => updateFilter('sort', value)}
+            tourId="cards-sort"
+            options={[
+              { value: 'set', label: 'Новые дополнения' },
+              { value: 'popularity', label: '🔒 В % колод · Алмаз', disabled: !hasStatsAccess },
+              { value: 'winrate', label: '🔒 Победы колод · Алмаз', disabled: !hasStatsAccess },
+              { value: 'games', label: '🔒 Сыграно партий · Алмаз', disabled: !hasStatsAccess },
+              { value: 'mana', label: 'Мана' },
+              { value: 'attack', label: 'Атака' },
+              { value: 'health', label: 'Здоровье' },
+              { value: 'name', label: 'Название' },
+              { value: 'class', label: 'Класс' },
+              { value: 'mechanics', label: 'Механики' },
+            ]}
+          />
           {!hasStatsAccess && <span className="constructed-cards__sort-lock" title="Статистические сортировки доступны с тарифом Алмаз"><LockKeyhole size={14} /> Алмаз</span>}
-          <FilterSelect label="На странице" value={String(perPage)} onChange={value => { setPerPage(Number(value)); setPage(1); }}>
-            <option value="60">60 карт</option><option value="120">120 карт</option>
-          </FilterSelect>
+          <FilterSelect
+            label="На странице"
+            value={String(perPage)}
+            onChange={value => { setPerPage(Number(value)); setPage(1); }}
+            options={[{ value: '60', label: '60 карт' }, { value: '120', label: '120 карт' }]}
+          />
           <button type="button" className="constructed-cards__direction" onClick={() => updateFilter('direction', filters.direction === 'asc' ? 'desc' : 'asc')} aria-label="Изменить направление сортировки">
             <span aria-hidden="true">{filters.direction === 'asc' ? '↑' : '↓'}</span>
             <span className="constructed-cards__direction-label">{filters.direction === 'asc' ? 'По возрастанию' : 'По убыванию'}</span>
@@ -665,14 +651,14 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
           </button>
         </div>
         <div id="constructed-cards-advanced-filters" className={`constructed-cards__secondary-controls${mobileFiltersOpen ? ' is-open' : ''}`}>
-          <FilterSelect label="Класс" value={filters.class} onChange={value => updateFilter('class', value)} tourId="cards-filters"><option value="">Все классы ({number(coverage?.totalCards)})</option>{facets.classes.map(value => <option key={value} value={value}>{facetOptionLabel(value, countFor(facetCounts.classes, value), classLabel)}</option>)}</FilterSelect>
-          <FilterSelect label="Дополнение" value={filters.set} onChange={value => updateFilter('set', value)}><option value="">Все дополнения</option>{sets.map(value => <option key={value} value={value}>{constructedSetLabel(value)}</option>)}</FilterSelect>
-          <FilterSelect label="Мана" value={filters.mana} onChange={value => updateFilter('mana', value)}><option value="">Любая</option>{Array.from({ length: 11 }, (_, value) => <option key={value} value={value}>{value}</option>)}</FilterSelect>
-          <FilterSelect label="Атака" value={filters.attack} onChange={value => updateFilter('attack', value)}><option value="">Любая</option>{Array.from({ length: 11 }, (_, value) => <option key={value} value={value}>{value}</option>)}</FilterSelect>
-          <FilterSelect label="Здоровье" value={filters.health} onChange={value => updateFilter('health', value)}><option value="">Любое</option>{Array.from({ length: 11 }, (_, value) => <option key={value} value={value}>{value}</option>)}</FilterSelect>
-          <FilterSelect label="Механики" value={filters.mechanic} onChange={value => updateFilter('mechanic', value)}><option value="">Все механики</option>{facets.mechanics.map(value => <option key={value} value={value}>{mechanicLabel(value, data?.mechanicTranslations)}</option>)}</FilterSelect>
-          <FilterSelect label="Тип" value={filters.type} onChange={value => updateFilter('type', value)}><option value="">Все типы</option>{facets.types.map(value => <option key={value} value={value}>{translatedCode(value, TYPE_LABELS)}</option>)}</FilterSelect>
-          <FilterSelect label="Редкость" value={filters.rarity} onChange={value => updateFilter('rarity', value)}><option value="">Любая</option>{facets.rarities.map(value => <option key={value} value={value}>{translatedCode(value, RARITY_LABELS)}</option>)}</FilterSelect>
+          <FilterSelect label="Класс" value={filters.class} onChange={value => updateFilter('class', value)} tourId="cards-filters" options={classFilterOptions(facets.classes)} visual="class" />
+          <FilterSelect label="Дополнение" value={filters.set} onChange={value => updateFilter('set', value)} options={setFilterOptions(sets)} visual="set" />
+          <FilterSelect label="Мана" value={filters.mana} onChange={value => updateFilter('mana', value)} options={numericFilterOptions('Любая', '/assets/mana.png')} visual="stat" />
+          <FilterSelect label="Атака" value={filters.attack} onChange={value => updateFilter('attack', value)} options={numericFilterOptions('Любая', '/constructed-filter-icons/attack.webp')} visual="stat" />
+          <FilterSelect label="Здоровье" value={filters.health} onChange={value => updateFilter('health', value)} options={numericFilterOptions('Любое', '/constructed-filter-icons/health.webp')} visual="stat" />
+          <FilterSelect label="Механики" value={filters.mechanic} onChange={value => updateFilter('mechanic', value)} options={textFilterOptions('Все механики', facets.mechanics, value => mechanicLabel(value, data?.mechanicTranslations))} />
+          <FilterSelect label="Тип" value={filters.type} onChange={value => updateFilter('type', value)} options={textFilterOptions('Все типы', facets.types, constructedTypeLabel)} />
+          <FilterSelect label="Редкость" value={filters.rarity} onChange={value => updateFilter('rarity', value)} options={rarityFilterOptions(facets.rarities)} visual="rarity" align="end" />
           <button type="button" className="constructed-cards__reset" onClick={reset}><RefreshCw size={16} /> Сбросить</button>
         </div>
       </section>
@@ -1072,7 +1058,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
           <div className="constructed-card-detail__title" data-tour-id="card-identity"><img src={classIcon(card.class)} alt="" /><div><h1>{cardName(card)}</h1><p>{card.name?.en}</p></div></div>
           <dl className="constructed-card-detail__meta">
             <div><dt>Мана</dt><dd>{number(card.mana_cost)}</dd></div><div><dt>Класс</dt><dd>{classLabel(card.class || 'NEUTRAL')}</dd></div>
-            <div><dt>Тип</dt><dd>{card.card_type?.name_ru || translatedCode(card.card_type?.slug || '—', TYPE_LABELS)}</dd></div><div><dt>Редкость</dt><dd>{translatedCode(card.rarity || '—', RARITY_LABELS)}</dd></div>
+            <div><dt>Тип</dt><dd>{card.card_type?.name_ru || constructedTypeLabel(card.card_type?.slug || '—')}</dd></div><div><dt>Редкость</dt><dd>{constructedRarityLabel(card.rarity || '—')}</dd></div>
             <div><dt>Дополнение</dt><dd>{card.card_set ? constructedSetLabel(card.card_set) : 'Не указано'}</dd></div><div><dt>Художник</dt><dd>{card.artist || 'Не указан'}</dd></div>
             {card.attack !== null && card.attack !== undefined && <div><dt>Атака</dt><dd>{card.attack}</dd></div>}{card.health !== null && card.health !== undefined && <div><dt>Здоровье</dt><dd>{card.health}</dd></div>}
             {card.durability !== null && card.durability !== undefined && <div><dt>Прочность</dt><dd>{card.durability}</dd></div>}{card.armor !== null && card.armor !== undefined && <div><dt>Броня</dt><dd>{card.armor}</dd></div>}
