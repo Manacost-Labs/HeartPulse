@@ -62,6 +62,18 @@ function mediaUrl(value: unknown): string | null {
   }
 }
 
+export function normalizeConstructedRelatedCardText(value: unknown): string | null {
+  const result = string(value);
+  if (!result) return null;
+  return result
+    .replace(/\[x\]/gi, '')
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/[\r\n\u00a0\u2007\u202f]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\s+([,.;:!?])/g, '$1')
+    .trim() || null;
+}
+
 function relatedCard(value: unknown): ConstructedRelatedCard | null {
   const item = record(value);
   const images = record(item.images);
@@ -91,8 +103,8 @@ function relatedCard(value: unknown): ConstructedRelatedCard | null {
     dbf: number(item.dbf),
     nameRu,
     nameEn,
-    textRu: string(record(item.text).ru),
-    textEn: string(record(item.text).en),
+    textRu: normalizeConstructedRelatedCardText(record(item.text).ru),
+    textEn: normalizeConstructedRelatedCardText(record(item.text).en),
     manaCost: number(item.mana_cost),
     attack: number(item.attack),
     health: number(item.health),
@@ -135,4 +147,3 @@ export function normalizeConstructedRelatedCardGroups(card: JsonRecord): Constru
     ? [{ id: 'legacy-related', headingRu: 'Связанные карты', headingEn: 'Related cards', cards: legacy }]
     : [];
 }
-

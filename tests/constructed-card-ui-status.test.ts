@@ -57,5 +57,17 @@ assert.match(standardCardsSource, /normalizeConstructedRelatedCardGroups\(card\)
   'the detail page must render the localized related-card contract instead of only the legacy wiki list');
 assert.match(standardCardsSource, /Токены, награды и связанные карты/,
   'the related-card section must describe tokens, quest rewards, and other companion cards in Russian');
+const relatedCardsComponent = standardCardsSource.slice(
+  standardCardsSource.indexOf('function RelatedCardGroups'),
+  standardCardsSource.indexOf('async function copyText'),
+);
+assert.match(relatedCardsComponent, /type="button"[\s\S]*constructed-card-detail__related-card-image/,
+  'each related-card image must be a semantic lightbox button');
+assert.match(relatedCardsComponent, /onOpen\(item\.cardImageUrl!?\)/,
+  'the related-card image button must open the shared card lightbox');
+assert.doesNotMatch(relatedCardsComponent, /item\.manaCost|<dt>Мана<\/dt>/,
+  'related cards must not repeat the mana cost beside the card image');
+assert.doesNotMatch(relatedCardsComponent, /item\.wikiUrl|Hearthstone Wiki/,
+  'related-card tiles must not include a redundant wiki link');
 
 console.log('constructed-card Russian unavailable/stale UI contracts passed');

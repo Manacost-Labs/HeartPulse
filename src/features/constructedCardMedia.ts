@@ -147,6 +147,27 @@ export function collectConstructedCardVariants(card: JsonRecord): ConstructedCar
   });
 }
 
+export function collectConstructedRelatedCardMedia(
+  groups: ConstructedRelatedCardGroup[],
+): ConstructedCardMediaItem[] {
+  const seen = new Set<string>();
+  return groups.flatMap(group => group.cards).flatMap((card, index) => {
+    if (!card.cardImageUrl || seen.has(card.cardImageUrl)) return [];
+    seen.add(card.cardImageUrl);
+    const label = card.nameRu || card.nameEn || card.cardId || 'Связанная карта';
+    return [{
+      id: `related-card-${card.cardId || index}`,
+      label,
+      description: card.cardId || null,
+      url: card.cardImageUrl,
+      thumbnailUrl: card.cardImageUrl,
+      sourceUrl: null,
+      kind: 'image' as const,
+      presentation: 'contain' as const,
+    }];
+  });
+}
+
 export function collectConstructedRelatedCardArtMedia(
   groups: ConstructedRelatedCardGroup[],
 ): ConstructedCardMediaItem[] {

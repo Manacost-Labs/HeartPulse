@@ -29,6 +29,7 @@ import {
 } from './constructedCardRequestState';
 import {
   collectConstructedCardMedia,
+  collectConstructedRelatedCardMedia,
   collectConstructedRelatedCardArtMedia,
   collectConstructedCardVariants,
   flattenConstructedCardSounds,
@@ -746,7 +747,10 @@ function GeneratedCardPools({ pools, format, navigatePath }: { pools: any[]; for
   );
 }
 
-function RelatedCardGroups({ groups }: { groups: ConstructedRelatedCardGroup[] }) {
+function RelatedCardGroups({ groups, onOpen }: {
+  groups: ConstructedRelatedCardGroup[];
+  onOpen: (url: string) => void;
+}) {
   const total = groups.reduce((sum, group) => sum + group.cards.length, 0);
   return (
     <section className="constructed-card-detail__section constructed-card-detail__related-groups">
@@ -765,26 +769,31 @@ function RelatedCardGroups({ groups }: { groups: ConstructedRelatedCardGroup[] }
                 return (
                   <article
                     className="constructed-card-detail__related-card"
-                    key={item.cardId || item.wikiUrl || `${name}-${item.cardImageUrl || ''}`}
+                    key={item.cardId || `${name}-${item.cardImageUrl || ''}`}
                   >
-                    <div className="constructed-card-detail__related-card-image">
-                      {item.cardImageUrl
-                        ? <img src={item.cardImageUrl} alt={`Карта Hearthstone «${name}»`} loading="lazy" decoding="async" />
-                        : <Sparkles size={34} aria-hidden="true" />}
-                    </div>
+                    {item.cardImageUrl
+                      ? (
+                        <button
+                          type="button"
+                          className="constructed-card-detail__related-card-image"
+                          aria-label={`Открыть карту «${name}» в полном размере`}
+                          onClick={() => onOpen(item.cardImageUrl!)}
+                        >
+                          <img src={item.cardImageUrl} alt={`Карта Hearthstone «${name}»`} loading="lazy" decoding="async" />
+                        </button>
+                      )
+                      : <div className="constructed-card-detail__related-card-image"><Sparkles size={34} aria-hidden="true" /></div>}
                     <div className="constructed-card-detail__related-card-copy">
                       <strong>{name}</strong>
                       {item.nameEn && item.nameEn !== name && <span lang="en">{item.nameEn}</span>}
-                      {(item.manaCost !== null || item.attack !== null || item.health !== null) && (
+                      {(item.attack !== null || item.health !== null) && (
                         <dl aria-label={`Характеристики карты ${name}`}>
-                          {item.manaCost !== null && <div><dt>Мана</dt><dd>{item.manaCost}</dd></div>}
                           {item.attack !== null && <div><dt>Атака</dt><dd>{item.attack}</dd></div>}
                           {item.health !== null && <div><dt>Здоровье</dt><dd>{item.health}</dd></div>}
                         </dl>
                       )}
                       {rules && <p>{rules}</p>}
                       {item.cardId && <code>{item.cardId}</code>}
-                      {item.wikiUrl && <a href={item.wikiUrl} target="_blank" rel="noreferrer">Hearthstone Wiki <ExternalLink size={13} /></a>}
                     </div>
                   </article>
                 );
@@ -997,7 +1006,8 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
   const generatedPools = (Array.isArray(wiki.generated_card_pools) ? wiki.generated_card_pools : [])
     .filter((pool: any) => Array.isArray(pool?.cards) && pool.cards.length > 0);
   const relatedArtMedia = collectConstructedRelatedCardArtMedia(relatedGroups);
-  const mediaItems = [...collectConstructedCardMedia(card), ...relatedArtMedia];
+  const relatedCardMedia = collectConstructedRelatedCardMedia(relatedGroups);
+  const mediaItems = [...collectConstructedCardMedia(card), ...relatedCardMedia, ...relatedArtMedia];
   const galleryMedia = mediaItems.filter(item => item.id.startsWith('gallery-') || item.id.startsWith('related-art-'));
   const sounds = flattenConstructedCardSounds(wiki.sounds);
   const soundGroups = [...new Set(sounds.map(item => item.group))].map(group => [group, sounds.filter(item => item.group === group)] as const);
@@ -1059,7 +1069,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
         })}</div> : <p>История изменений не найдена.</p>}</div>
       </section>
 
-      {relatedGroups.length > 0 && <RelatedCardGroups groups={relatedGroups} />}
+      {relatedGroups.length > 0 && <RelatedCardGroups groups={relatedGroups} onOpen={openMedia} />}
 
       {generatedPools.length > 0 && <GeneratedCardPools pools={generatedPools} format={format} navigatePath={navigatePath} />}
 

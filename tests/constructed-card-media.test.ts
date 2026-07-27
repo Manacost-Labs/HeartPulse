@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import {
   collectConstructedCardMedia,
+  collectConstructedRelatedCardMedia,
   collectConstructedRelatedCardArtMedia,
   collectConstructedCardVariants,
   flattenConstructedCardSounds,
 } from '../src/features/constructedCardMedia.js';
 import {
+  normalizeConstructedRelatedCardText,
   normalizeConstructedRelatedCardGroups,
 } from '../src/features/constructedRelatedCards.js';
 import { constructedSoundGroupLabel } from '../src/features/constructedCardLabels.js';
@@ -117,6 +119,29 @@ assert.equal(relatedGroups[0].cards[0].artUrl, 'https://example.test/QUEST_REWAR
 assert.equal(relatedGroups[0].cards[0].artMetadata?.sha1, 'abc123');
 assert.equal(relatedGroups[0].cards[0].artMetadata?.width, 3000);
 assert.equal(relatedGroups[0].cards[0].wikiUrl, 'https://hearthstone.wiki.gg/wiki/Quest_Reward');
+assert.equal(
+  normalizeConstructedRelatedCardText('[x]Перемотка\nВы получаете  случайное\u00a0существо \n другого класса.'),
+  'Перемотка Вы получаете случайное существо другого класса.',
+  'game layout markers and forced line wraps must not leak into the related-card description',
+);
+assert.equal(normalizeConstructedRelatedCardText('   '), null);
+
+const relatedCardMedia = collectConstructedRelatedCardMedia(relatedGroups);
+assert.equal(relatedCardMedia.length, 1);
+assert.deepEqual(
+  relatedCardMedia[0],
+  {
+    id: 'related-card-QUEST_REWARD',
+    label: 'Русская награда',
+    description: 'QUEST_REWARD',
+    url: 'https://example.test/QUEST_REWARD.png',
+    thumbnailUrl: 'https://example.test/QUEST_REWARD.png',
+    sourceUrl: null,
+    kind: 'image',
+    presentation: 'contain',
+  },
+  'related card images must be available to the existing lightbox without adding a wiki action',
+);
 
 const legacyRelatedGroups = normalizeConstructedRelatedCardGroups({
   wiki: {

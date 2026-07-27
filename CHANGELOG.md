@@ -1,5 +1,12 @@
 # HS-Arena Changelog
 
+## v1.0.58 - 2026-07-27
+
+- Improved related-card tiles with larger artwork, complete readable card text
+  without game layout markers, and a keyboard-accessible lightbox.
+- Removed the redundant mana badge and Hearthstone Wiki link from each
+  related-card tile while keeping attack, health and card IDs visible.
+
 ## v1.0.57 - 2026-07-26
 
 - Added in-game release dates and source insertion timestamps to the compact
