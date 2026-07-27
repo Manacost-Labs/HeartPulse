@@ -1,5 +1,10 @@
 # HS-Arena Changelog
 
+## v1.0.66 - 2026-07-27
+
+- Restored the direct deck-code copy action on constructed card pages so users
+  can import recommended decks without leaving the current card.
+
 ## v1.0.65 - 2026-07-27
 
 - Replaced the card-page deck-code copy action with a direct link to the

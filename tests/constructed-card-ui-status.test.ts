@@ -95,11 +95,11 @@ const cardDeckComponent = standardCardsSource.slice(
   standardCardsSource.indexOf('function ConstructedDeckCard'),
   standardCardsSource.indexOf('function ConstructedCardDecks'),
 );
-assert.match(cardDeckComponent, /`\/deck-builder\?format=\$\{format\}&code=\$\{encodeURIComponent\(deck\.deckCode\)\}`/,
-  'card-page deck actions must preserve the selected format and deck code for the internal builder');
-assert.match(cardDeckComponent, /<a[^>]+href=\{builderHref\}[\s\S]*Открыть в конструкторе[\s\S]*<\/a>/,
-  'each recommended deck must open the existing internal deck builder');
-assert.doesNotMatch(cardDeckComponent, /Скопировать код|copyDeck/,
-  'the card-page deck action must no longer stop at copying a code');
+assert.match(cardDeckComponent, /const copyDeck = async \(\) =>/,
+  'card-page deck actions must copy the complete deck code');
+assert.match(cardDeckComponent, /<button[^>]+onClick=\{copyDeck\}[\s\S]*Скопировать код[\s\S]*<\/button>/,
+  'each recommended deck must expose the requested copy-code button');
+assert.doesNotMatch(cardDeckComponent, /builderHref|Открыть в конструкторе/,
+  'the card-page deck action must not redirect into the internal builder');
 
 console.log('constructed-card Russian unavailable/stale UI contracts passed');

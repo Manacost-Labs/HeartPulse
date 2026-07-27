@@ -340,9 +340,8 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
 .constructed-card-detail__deck-copy { display: grid; grid-template-rows: auto auto 1fr; gap: 0.3rem; padding: 0.7rem; }
 .constructed-card-detail__deck-copy h3 { display: -webkit-box; min-height: 2.3em; margin: 0; overflow: hidden; font-family: var(--font-display); font-size: 1rem; line-height: 1.15; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .constructed-card-detail__deck-copy p { min-height: 1rem; margin: 0; color: var(--cards-muted); font-size: 0.63rem; }
-.constructed-card-detail__deck-builder { display: inline-flex; align-self: end; gap: 0.35rem; align-items: center; justify-content: center; width: 100%; min-height: 39px; margin-top: 0.25rem; border: 1px solid #7e3327; color: #fff0c5; background: #713118; font-size: 0.66rem; font-weight: 900; text-decoration: none; }
-.constructed-card-detail__deck-builder:hover { filter: brightness(1.08); }
-.constructed-card-detail__deck-builder:focus-visible { outline: 3px solid #7b151b; outline-offset: 2px; filter: brightness(1.08); }
+.constructed-card-detail__deck-copy > button { display: inline-flex; align-self: end; gap: 0.35rem; align-items: center; justify-content: center; width: 100%; min-height: 39px; margin-top: 0.25rem; border: 1px solid #7e3327; color: #fff0c5; background: #713118; font-size: 0.66rem; font-weight: 900; }
+.constructed-card-detail__deck-copy button:hover { filter: brightness(1.08); }
 .constructed-card-detail__media-grid { display: grid; grid-template-columns: 1.35fr 0.9fr 0.75fr; gap: 0.8rem; margin-top: 0.8rem; }
 .constructed-card-detail__media-grid--two { grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr); }
 .constructed-card-detail__gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.45rem; }
