@@ -51,6 +51,7 @@ assert.match(
 );
 
 const standardCardsSource = readFileSync(new URL('../src/features/StandardCards.tsx', import.meta.url), 'utf8');
+const cardHistorySource = readFileSync(new URL('../src/features/useConstructedCardHistory.ts', import.meta.url), 'utf8');
 assert.match(standardCardsSource, /warning:\s*typeof payload\.warning/,
   'the detail component must pass the server warning into its visible data-state notice');
 assert.match(standardCardsSource, /normalizeConstructedRelatedCardGroups\(card\)/,
@@ -119,5 +120,9 @@ assert.match(standardCardsSource, /new URLSearchParams\(\{ format, period,/,
   'the selected period must be sent to the constructed-card API');
 assert.match(standardCardsSource, /navigateWithConstructedCardPeriod/,
   'card and back navigation must retain the selected statistics period');
+assert.match(cardHistorySource, /\/history\?\$\{params\}/,
+  'an entitled card detail must request its persisted statistics history');
+assert.match(standardCardsSource, /serverStatsAccess && \(\s*<ConstructedCardHistoryChart/,
+  'the history chart must follow the server-side statistics entitlement');
 
 console.log('constructed-card Russian unavailable/stale UI contracts passed');

@@ -216,6 +216,9 @@
 
 ## v1.0.48 - 2026-07-24
 
+- Added responsive per-card trend charts for usage, deck win rate, games and
+  played win rate, with 30, 90 and 180-day ranges plus loading, accumulating
+  and unavailable states.
 - Added durable per-card Legend statistics history with idempotent SQLite
   snapshots, bounded retention and an entitlement-aware history API for
   popularity, win-rate, play-rate and mulligan charts.
