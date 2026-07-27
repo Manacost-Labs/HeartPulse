@@ -4455,18 +4455,64 @@ const STANDARD_MATCHUPS_RANK_LABEL: Record<keyof typeof STANDARD_MATCHUPS_DATASE
 };
 const CONSTRUCTED_CARDS_DATASET_BY_FORMAT = {
   standard: {
-    '1d': 'hsreplay_cards_legend_1d',
-    '3d': 'hsreplay_cards_legend_3d',
-    '7d': 'hsreplay_cards_legend_7d',
-    '14d': 'hsreplay_cards_legend_14d',
-    patch: 'hsreplay_cards_legend_patch',
+    legend: {
+      '1d': 'hsreplay_cards_legend_1d',
+      '3d': 'hsreplay_cards_legend_3d',
+      '7d': 'hsreplay_cards_legend_7d',
+      '14d': 'hsreplay_cards_legend_14d',
+      patch: 'hsreplay_cards_legend_patch',
+    },
+    diamond_4_1: {
+      '1d': 'hsreplay_cards_diamond_4_1_1d',
+      '3d': 'hsreplay_cards_diamond_4_1_3d',
+      '7d': 'hsreplay_cards_diamond_4_1_7d',
+      '14d': 'hsreplay_cards_diamond_4_1_14d',
+      patch: 'hsreplay_cards_diamond_4_1_patch',
+    },
+    diamond: {
+      '1d': 'hsreplay_cards_diamond_1d',
+      '3d': 'hsreplay_cards_diamond_3d',
+      '7d': 'hsreplay_cards_diamond_7d',
+      '14d': 'hsreplay_cards_diamond_14d',
+      patch: 'hsreplay_cards_diamond_patch',
+    },
+    platinum: {
+      '1d': 'hsreplay_cards_platinum_1d',
+      '3d': 'hsreplay_cards_platinum_3d',
+      '7d': 'hsreplay_cards_platinum_7d',
+      '14d': 'hsreplay_cards_platinum_14d',
+      patch: 'hsreplay_cards_platinum_patch',
+    },
   },
   wild: {
-    '1d': 'hsreplay_cards_wild_legend_1d',
-    '3d': 'hsreplay_cards_wild_legend_3d',
-    '7d': 'hsreplay_cards_wild_legend_7d',
-    '14d': 'hsreplay_cards_wild_legend_14d',
-    patch: 'hsreplay_cards_wild_legend_patch',
+    legend: {
+      '1d': 'hsreplay_cards_wild_legend_1d',
+      '3d': 'hsreplay_cards_wild_legend_3d',
+      '7d': 'hsreplay_cards_wild_legend_7d',
+      '14d': 'hsreplay_cards_wild_legend_14d',
+      patch: 'hsreplay_cards_wild_legend_patch',
+    },
+    diamond_4_1: {
+      '1d': 'hsreplay_cards_wild_diamond_4_1_1d',
+      '3d': 'hsreplay_cards_wild_diamond_4_1_3d',
+      '7d': 'hsreplay_cards_wild_diamond_4_1_7d',
+      '14d': 'hsreplay_cards_wild_diamond_4_1_14d',
+      patch: 'hsreplay_cards_wild_diamond_4_1_patch',
+    },
+    diamond: {
+      '1d': 'hsreplay_cards_wild_diamond_1d',
+      '3d': 'hsreplay_cards_wild_diamond_3d',
+      '7d': 'hsreplay_cards_wild_diamond_7d',
+      '14d': 'hsreplay_cards_wild_diamond_14d',
+      patch: 'hsreplay_cards_wild_diamond_patch',
+    },
+    platinum: {
+      '1d': 'hsreplay_cards_wild_platinum_1d',
+      '3d': 'hsreplay_cards_wild_platinum_3d',
+      '7d': 'hsreplay_cards_wild_platinum_7d',
+      '14d': 'hsreplay_cards_wild_platinum_14d',
+      patch: 'hsreplay_cards_wild_platinum_patch',
+    },
   },
 } as const;
 const STANDARD_META_DATASET_BY_FORMAT_RANK: Record<StandardMetaFormat, Record<StandardMetaRank, string>> = {

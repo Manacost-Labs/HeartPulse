@@ -4,6 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import type {
   ConstructedCardFormat,
   ConstructedCardPeriod,
+  ConstructedCardRank,
 } from './constructedCardRoutes.js';
 
 type JsonRecord = Record<string, any>;
@@ -82,8 +83,53 @@ export class ConstructedCardHistoryStore {
       PRAGMA journal_mode = WAL;
       PRAGMA synchronous = FULL;
       PRAGMA busy_timeout = 5000;
+    `);
+    const existingColumns = this.database.prepare('PRAGMA table_info(card_stat_history)').all() as Array<{
+      name: string;
+    }>;
+    if (existingColumns.length > 0 && !existingColumns.some(column => column.name === 'rank')) {
+      this.database.exec(`
+        BEGIN IMMEDIATE;
+        DROP INDEX IF EXISTS idx_card_stat_history_recorded_at;
+        ALTER TABLE card_stat_history RENAME TO card_stat_history_legacy;
+        CREATE TABLE card_stat_history (
+          format TEXT NOT NULL CHECK (format IN ('standard', 'wild')),
+          rank TEXT NOT NULL CHECK (rank IN ('legend', 'diamond_4_1', 'diamond', 'platinum')),
+          period TEXT NOT NULL CHECK (period IN ('1d', '3d', '7d', '14d', 'patch')),
+          card_id TEXT NOT NULL,
+          recorded_at TEXT NOT NULL,
+          deck_popularity REAL,
+          deck_winrate REAL,
+          average_copies REAL,
+          times_played INTEGER,
+          winrate_when_played REAL,
+          winrate_when_drawn REAL,
+          keep_percentage REAL,
+          opening_hand_winrate REAL,
+          average_turns_in_hand REAL,
+          average_turn_played REAL,
+          PRIMARY KEY (format, rank, period, card_id, recorded_at)
+        ) WITHOUT ROWID;
+        INSERT INTO card_stat_history (
+          format, rank, period, card_id, recorded_at, deck_popularity, deck_winrate,
+          average_copies, times_played, winrate_when_played, winrate_when_drawn,
+          keep_percentage, opening_hand_winrate, average_turns_in_hand, average_turn_played
+        )
+        SELECT
+          format, 'legend', period, card_id, recorded_at, deck_popularity, deck_winrate,
+          average_copies, times_played, winrate_when_played, winrate_when_drawn,
+          keep_percentage, opening_hand_winrate, average_turns_in_hand, average_turn_played
+        FROM card_stat_history_legacy;
+        DROP TABLE card_stat_history_legacy;
+        CREATE INDEX idx_card_stat_history_recorded_at
+          ON card_stat_history (recorded_at);
+        COMMIT;
+      `);
+    }
+    this.database.exec(`
       CREATE TABLE IF NOT EXISTS card_stat_history (
         format TEXT NOT NULL CHECK (format IN ('standard', 'wild')),
+        rank TEXT NOT NULL CHECK (rank IN ('legend', 'diamond_4_1', 'diamond', 'platinum')),
         period TEXT NOT NULL CHECK (period IN ('1d', '3d', '7d', '14d', 'patch')),
         card_id TEXT NOT NULL,
         recorded_at TEXT NOT NULL,
@@ -97,7 +143,7 @@ export class ConstructedCardHistoryStore {
         opening_hand_winrate REAL,
         average_turns_in_hand REAL,
         average_turn_played REAL,
-        PRIMARY KEY (format, period, card_id, recorded_at)
+        PRIMARY KEY (format, rank, period, card_id, recorded_at)
       ) WITHOUT ROWID;
       CREATE INDEX IF NOT EXISTS idx_card_stat_history_recorded_at
         ON card_stat_history (recorded_at);
@@ -107,16 +153,17 @@ export class ConstructedCardHistoryStore {
   recordSnapshot(
     format: ConstructedCardFormat,
     period: ConstructedCardPeriod,
+    rank: ConstructedCardRank,
     recordedAt: string | null,
     cards: JsonRecord[],
   ): number {
     const timestamp = normalizedTimestamp(recordedAt, this.now());
     const insert = this.database.prepare(`
       INSERT OR IGNORE INTO card_stat_history (
-        format, period, card_id, recorded_at, deck_popularity, deck_winrate,
+        format, rank, period, card_id, recorded_at, deck_popularity, deck_winrate,
         average_copies, times_played, winrate_when_played, winrate_when_drawn,
         keep_percentage, opening_hand_winrate, average_turns_in_hand, average_turn_played
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const prune = this.database.prepare('DELETE FROM card_stat_history WHERE recorded_at < ?');
     let inserted = 0;
@@ -129,6 +176,7 @@ export class ConstructedCardHistoryStore {
         if (!point) continue;
         const result = insert.run(
           format,
+          rank,
           period,
           cardId,
           timestamp,
@@ -157,6 +205,7 @@ export class ConstructedCardHistoryStore {
   read(
     format: ConstructedCardFormat,
     period: ConstructedCardPeriod,
+    rank: ConstructedCardRank,
     cardIdValue: string,
     days = 90,
   ): ConstructedCardHistoryPoint[] {
@@ -177,11 +226,12 @@ export class ConstructedCardHistoryStore {
         average_turns_in_hand AS averageTurnsInHand,
         average_turn_played AS averageTurnPlayed
       FROM card_stat_history
-      WHERE format = ? AND period = ? AND card_id = ? AND recorded_at >= ?
+      WHERE format = ? AND rank = ? AND period = ? AND card_id = ? AND recorded_at >= ?
       ORDER BY recorded_at ASC
       LIMIT 1000
     `).all(
       format,
+      rank,
       period,
       cardId,
       new Date(this.now() - boundedDays * DAY_MS).toISOString(),

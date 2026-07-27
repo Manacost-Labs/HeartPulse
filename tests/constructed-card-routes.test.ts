@@ -107,8 +107,11 @@ const periodService = createConstructedCardDataService({
   },
   catalogBaseUrl: 'https://db.example.test/api/v1',
   statsDatasetByFormat: {
-    standard: { '7d': 'standard-legend-7d' },
-    wild: { '7d': 'wild-legend-7d' },
+    standard: {
+      legend: { '7d': 'standard-legend-7d' },
+      platinum: { '7d': 'standard-platinum-7d' },
+    },
+    wild: { legend: { '7d': 'wild-legend-7d' } },
   },
   statsBaseUrl: 'https://stats.example.test',
   stateDirectory: serviceStateDirectory,
@@ -118,6 +121,10 @@ const sevenDayCollection = await periodService.loadCards('standard', '7d');
 assert.ok(periodUrls.includes('https://stats.example.test/standard-legend-7d'));
 assert.equal(sevenDayCollection.period?.id, '7d');
 assert.equal(sevenDayCollection.period?.timeRange, 'LAST_7_DAYS');
+const platinumCollection = await periodService.loadCards('standard', '7d', 'platinum');
+assert.ok(periodUrls.includes('https://stats.example.test/standard-platinum-7d'));
+assert.equal(platinumCollection.rank?.id, 'platinum');
+assert.equal(platinumCollection.rank?.rankRange, 'PLATINUM');
 const historyService = createConstructedCardDataService({
   fetchJson: async url => url.includes('/constructed-cards')
     ? { data: catalogCards, pagination: { page: 1, total: catalogCards.length, total_pages: 1 } }
@@ -143,7 +150,7 @@ const historyService = createConstructedCardDataService({
 });
 await historyService.loadCards('standard', '1d');
 assert.deepEqual(
-  (await historyService.loadCardHistory('standard', 'CARD_1', '1d', 30)).map(point => point.recordedAt),
+  (await historyService.loadCardHistory('standard', 'CARD_1', '1d', 'legend', 30)).map(point => point.recordedAt),
   ['2026-07-27T10:00:00.000Z'],
   'a validated upstream refresh must be persisted for the history chart',
 );
@@ -282,8 +289,8 @@ const adminGuard: RequestHandler = (request, response, next) => {
 const dependencies: ConstructedCardRouterDependencies = {
   adminGuard,
   canAccessStats: request => request.headers['x-test-stats'] === 'yes' || request.headers['x-test-admin'] === 'yes',
-  loadCards: async (format, period) => {
-    calls.push(`list:${format}:${period}`);
+  loadCards: async (format, period, rank) => {
+    calls.push(`list:${format}:${period}:${rank}`);
     return {
       cards: mergedCards,
       updatedAt: '2026-07-16T05:03:02.000Z',
@@ -300,10 +307,15 @@ const dependencies: ConstructedCardRouterDependencies = {
         timeRange: period === 'patch' ? null : 'LAST_1_DAY',
         patch: period === 'patch' ? '36.0.3' : null,
       },
+      rank: {
+        id: rank ?? 'legend',
+        label: rank === 'platinum' ? 'Платина' : rank === 'diamond_4_1' ? 'Алмаз 1–4' : 'Легенда',
+        rankRange: rank === 'platinum' ? 'PLATINUM' : rank === 'diamond_4_1' ? 'DIAMOND_FOUR_THROUGH_DIAMOND_ONE' : 'LEGEND',
+      },
     };
   },
-  loadCardDetail: async (format, cardId, period) => {
-    calls.push(`detail:${format}:${cardId}:${period}`);
+  loadCardDetail: async (format, cardId, period, statsFormat, rank) => {
+    calls.push(`detail:${format}:${statsFormat}:${cardId}:${period}:${rank}`);
     const card = mergedCards.find(item => item.card_id === cardId);
     return card ? {
       card: { ...card, wiki: { patch_changes: [] }, decks: cardId === 'CARD_1' ? decodedDecks : [] },
@@ -318,10 +330,15 @@ const dependencies: ConstructedCardRouterDependencies = {
         timeRange: period === 'patch' ? null : 'LAST_1_DAY',
         patch: period === 'patch' ? '36.0.3' : null,
       },
+      rank: {
+        id: rank ?? 'legend',
+        label: rank === 'platinum' ? 'Платина' : 'Легенда',
+        rankRange: rank === 'platinum' ? 'PLATINUM' : 'LEGEND',
+      },
     } : null;
   },
-  loadCardHistory: async (format, cardId, period, days) => {
-    calls.push(`history:${format}:${cardId}:${period}:${days}`);
+  loadCardHistory: async (format, cardId, period, rank, days) => {
+    calls.push(`history:${format}:${cardId}:${period}:${rank}:${days}`);
     return cardId === 'CARD_1' ? [{
       recordedAt: '2026-07-16T05:03:02.000Z',
       deckPopularity: 12.5,
@@ -388,11 +405,22 @@ try {
   const sevenDayListPayload = await sevenDayList.json() as any;
   assert.equal(sevenDayListPayload.period.id, '7d');
   assert.equal(sevenDayListPayload.period.label, 'Последние 7 дней');
-  assert.ok(calls.includes('list:standard:7d'));
+  assert.ok(calls.includes('list:standard:7d:legend'));
+
+  const platinumList = await fetch(`${publicOrigin}?format=standard&period=7d&rank=platinum&perPage=20`);
+  assert.equal(platinumList.status, 200);
+  const platinumListPayload = await platinumList.json() as any;
+  assert.equal(platinumListPayload.rank, 'platinum');
+  assert.equal(platinumListPayload.rankLabel, 'Платина');
+  assert.equal(platinumListPayload.rankRange, 'PLATINUM');
+  assert.ok(calls.includes('list:standard:7d:platinum'));
 
   const invalidPeriod = await fetch(`${publicOrigin}?format=standard&period=month`);
   assert.equal(invalidPeriod.status, 400);
   assert.equal((await invalidPeriod.json() as any).error, 'Неизвестный период статистики');
+  const invalidRank = await fetch(`${publicOrigin}?format=standard&rank=gold`);
+  assert.equal(invalidRank.status, 400);
+  assert.equal((await invalidRank.json() as any).error, 'Неизвестный ранг статистики');
 
   const protectedSort = await fetch(`${publicOrigin}?format=standard&perPage=20&sort=popularity&direction=desc`);
   assert.equal((await protectedSort.json() as any).cards[0].card_id, 'CARD_1', 'locked statistical sorting must fall back to release order');
@@ -433,23 +461,35 @@ try {
   assert.deepEqual(listPayload.mechanicOverrides, { BATTLECRY: 'Редакторский боевой клич' });
   assert.deepEqual(listPayload.facetCounts.sets, [{ value: 'SET_A', count: 1 }, { value: 'SET_B', count: 1 }]);
 
-  const detail = await fetch(`${origin}/CARD_1?format=wild&period=patch`, { headers: adminHeaders });
+  const detail = await fetch(
+    `${origin}/CARD_1?format=standard&statsFormat=wild&period=patch&rank=platinum`,
+    { headers: adminHeaders },
+  );
   assert.equal(detail.status, 200);
   const detailPayload = await detail.json() as any;
   assert.equal(detailPayload.period.id, 'patch');
-  assert.ok(calls.includes('detail:wild:CARD_1:patch'));
+  assert.equal(detailPayload.format, 'standard');
+  assert.equal(detailPayload.statsFormat, 'wild');
+  assert.equal(detailPayload.rank, 'platinum');
+  assert.equal(detailPayload.rankLabel, 'Платина');
+  assert.ok(calls.includes('detail:standard:wild:CARD_1:patch:platinum'));
   assert.equal(detailPayload.card.name.ru, 'Альфа');
   assert.deepEqual(detailPayload.mechanicTranslations, { BATTLECRY: 'Боевой клич' });
   assert.deepEqual(detailPayload.mechanicOverrides, { BATTLECRY: 'Редакторский боевой клич' });
 
-  const history = await fetch(`${origin}/CARD_1/history?format=wild&period=patch&days=30`, { headers: adminHeaders });
+  const history = await fetch(
+    `${origin}/CARD_1/history?format=wild&period=patch&rank=diamond_4_1&days=30`,
+    { headers: adminHeaders },
+  );
   assert.equal(history.status, 200);
   const historyPayload = await history.json() as any;
   assert.equal(historyPayload.statsAccess, true);
   assert.equal(historyPayload.period.id, 'patch');
+  assert.equal(historyPayload.rank, 'diamond_4_1');
+  assert.equal(historyPayload.rankLabel, 'Алмаз 1–4');
   assert.equal(historyPayload.days, 30);
   assert.equal(historyPayload.points[0].deckPopularity, 12.5);
-  assert.ok(calls.includes('history:wild:CARD_1:patch:30'));
+  assert.ok(calls.includes('history:wild:CARD_1:patch:diamond_4_1:30'));
 
   const preview = await fetch(`${origin}/CARD_1/decks/754/preview?format=standard`, { method: 'POST', headers: adminHeaders });
   assert.equal(preview.status, 200);
