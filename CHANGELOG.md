@@ -216,6 +216,9 @@
 
 ## v1.0.48 - 2026-07-24
 
+- Added a period-aware constructed-card statistics contract for the last
+  1, 3, 7 and 14 days plus the current patch, with isolated caches and
+  validation for list, detail and deck-preview requests.
 - Simplified the constructed-meta filters: removed duplicate season plaques,
   made the current patch and Diamond-to-Legend the defaults, moved patch and
   expansion periods to the top, added the local Standard/Wild game assets, and

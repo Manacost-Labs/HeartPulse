@@ -4454,8 +4454,20 @@ const STANDARD_MATCHUPS_RANK_LABEL: Record<keyof typeof STANDARD_MATCHUPS_DATASE
   diamond: 'Алмаз 4-1',
 };
 const CONSTRUCTED_CARDS_DATASET_BY_FORMAT = {
-  standard: 'hsreplay_cards_legend_1d',
-  wild: 'hsreplay_cards_wild_legend_1d',
+  standard: {
+    '1d': 'hsreplay_cards_legend_1d',
+    '3d': 'hsreplay_cards_legend_3d',
+    '7d': 'hsreplay_cards_legend_7d',
+    '14d': 'hsreplay_cards_legend_14d',
+    patch: 'hsreplay_cards_legend_patch',
+  },
+  wild: {
+    '1d': 'hsreplay_cards_wild_legend_1d',
+    '3d': 'hsreplay_cards_wild_legend_3d',
+    '7d': 'hsreplay_cards_wild_legend_7d',
+    '14d': 'hsreplay_cards_wild_legend_14d',
+    patch: 'hsreplay_cards_wild_legend_patch',
+  },
 } as const;
 const STANDARD_META_DATASET_BY_FORMAT_RANK: Record<StandardMetaFormat, Record<StandardMetaRank, string>> = {
   standard: {

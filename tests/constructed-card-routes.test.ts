@@ -93,6 +93,31 @@ assert.equal(degradedCollection.cards.length, catalogCards.length, 'a malformed 
 assert.ok(degradedCollection.cards.every(card => card.stats === null), 'malformed statistics must be removed instead of reaching the UI');
 assert.match(degradedCollection.warning || '', /Статистика карт временно недоступна/,
   'public warnings must be actionable Russian copy without upstream exception details');
+const periodUrls: string[] = [];
+const periodService = createConstructedCardDataService({
+  fetchJson: async url => {
+    periodUrls.push(url);
+    if (url.includes('/constructed-cards')) {
+      return { data: catalogCards, pagination: { page: 1, total: catalogCards.length, total_pages: 1 } };
+    }
+    return {
+      fetched_at: '2026-07-27T10:00:00.000Z',
+      view: { cards: [], time_range: 'LAST_7_DAYS' },
+    };
+  },
+  catalogBaseUrl: 'https://db.example.test/api/v1',
+  statsDatasetByFormat: {
+    standard: { '7d': 'standard-legend-7d' },
+    wild: { '7d': 'wild-legend-7d' },
+  },
+  statsBaseUrl: 'https://stats.example.test',
+  stateDirectory: serviceStateDirectory,
+  minimumCatalogCardsByFormat: { standard: 1, wild: 1 },
+});
+const sevenDayCollection = await periodService.loadCards('standard', '7d');
+assert.ok(periodUrls.includes('https://stats.example.test/standard-legend-7d'));
+assert.equal(sevenDayCollection.period?.id, '7d');
+assert.equal(sevenDayCollection.period?.timeRange, 'LAST_7_DAYS');
 const pendingCatalogCard = mergeConstructedCardRows(catalogCards, [{
   id: 'CARD_3', dbfId: 3, name: 'Гамма', type: 'SPELL', rarity: 'EPIC', cardClass: 'PRIEST', cost: 3,
   deck_popularity: '1.2%', times_played: 42,
@@ -228,8 +253,8 @@ const adminGuard: RequestHandler = (request, response, next) => {
 const dependencies: ConstructedCardRouterDependencies = {
   adminGuard,
   canAccessStats: request => request.headers['x-test-stats'] === 'yes' || request.headers['x-test-admin'] === 'yes',
-  loadCards: async format => {
-    calls.push(`list:${format}`);
+  loadCards: async (format, period) => {
+    calls.push(`list:${format}:${period}`);
     return {
       cards: mergedCards,
       updatedAt: '2026-07-16T05:03:02.000Z',
@@ -240,10 +265,16 @@ const dependencies: ConstructedCardRouterDependencies = {
       datasetVersion: `ccc1-sha256:${'1'.repeat(64)}`,
       catalogVerifiedAt: '2026-07-16T05:03:02.000Z',
       catalogPublishedAt: '2026-07-16T05:03:02.000Z',
+      period: {
+        id: period ?? '1d',
+        label: period === '7d' ? 'Последние 7 дней' : period === 'patch' ? 'Патч 36.0.3' : 'Последний день',
+        timeRange: period === 'patch' ? null : 'LAST_1_DAY',
+        patch: period === 'patch' ? '36.0.3' : null,
+      },
     };
   },
-  loadCardDetail: async (format, cardId) => {
-    calls.push(`detail:${format}:${cardId}`);
+  loadCardDetail: async (format, cardId, period) => {
+    calls.push(`detail:${format}:${cardId}:${period}`);
     const card = mergedCards.find(item => item.card_id === cardId);
     return card ? {
       card: { ...card, wiki: { patch_changes: [] }, decks: cardId === 'CARD_1' ? decodedDecks : [] },
@@ -252,6 +283,12 @@ const dependencies: ConstructedCardRouterDependencies = {
       partial: false,
       warning: null,
       datasetVersion: `ccc1-sha256:${'1'.repeat(64)}`,
+      period: {
+        id: period ?? '1d',
+        label: period === 'patch' ? 'Патч 36.0.3' : 'Последний день',
+        timeRange: period === 'patch' ? null : 'LAST_1_DAY',
+        patch: period === 'patch' ? '36.0.3' : null,
+      },
     } : null;
   },
   getCatalogHealth: format => ({
@@ -296,8 +333,21 @@ try {
   assert.equal(publicList.status, 200, 'the released card library must be public');
   const publicListPayload = await publicList.json() as any;
   assert.equal(publicListPayload.cards.length, 2);
+  assert.equal(publicListPayload.period.id, '1d');
+  assert.equal(publicListPayload.period.label, 'Последний день');
   assert.equal(publicListPayload.statsAccess, false);
   assert.equal(publicListPayload.cards[0].stats, null, 'guests must not receive blurred statistics in API JSON');
+
+  const sevenDayList = await fetch(`${publicOrigin}?format=standard&period=7d&perPage=20`);
+  assert.equal(sevenDayList.status, 200);
+  const sevenDayListPayload = await sevenDayList.json() as any;
+  assert.equal(sevenDayListPayload.period.id, '7d');
+  assert.equal(sevenDayListPayload.period.label, 'Последние 7 дней');
+  assert.ok(calls.includes('list:standard:7d'));
+
+  const invalidPeriod = await fetch(`${publicOrigin}?format=standard&period=month`);
+  assert.equal(invalidPeriod.status, 400);
+  assert.equal((await invalidPeriod.json() as any).error, 'Неизвестный период статистики');
 
   const protectedSort = await fetch(`${publicOrigin}?format=standard&perPage=20&sort=popularity&direction=desc`);
   assert.equal((await protectedSort.json() as any).cards[0].card_id, 'CARD_1', 'locked statistical sorting must fall back to release order');
@@ -309,6 +359,7 @@ try {
 
   const publicDetail = await fetch(`${publicOrigin}/CARD_1?format=standard`);
   const publicDetailPayload = await publicDetail.json() as any;
+  assert.equal(publicDetailPayload.period.id, '1d');
   assert.equal(publicDetailPayload.statsAccess, false);
   assert.equal(publicDetailPayload.card.stats, null);
   assert.equal(publicDetailPayload.card.decks[0].winrate, null);
@@ -331,9 +382,11 @@ try {
   assert.deepEqual(listPayload.mechanicOverrides, { BATTLECRY: 'Редакторский боевой клич' });
   assert.deepEqual(listPayload.facetCounts.sets, [{ value: 'SET_A', count: 1 }, { value: 'SET_B', count: 1 }]);
 
-  const detail = await fetch(`${origin}/CARD_1?format=wild`, { headers: adminHeaders });
+  const detail = await fetch(`${origin}/CARD_1?format=wild&period=patch`, { headers: adminHeaders });
   assert.equal(detail.status, 200);
   const detailPayload = await detail.json() as any;
+  assert.equal(detailPayload.period.id, 'patch');
+  assert.ok(calls.includes('detail:wild:CARD_1:patch'));
   assert.equal(detailPayload.card.name.ru, 'Альфа');
   assert.deepEqual(detailPayload.mechanicTranslations, { BATTLECRY: 'Боевой клич' });
   assert.deepEqual(detailPayload.mechanicOverrides, { BATTLECRY: 'Редакторский боевой клич' });
