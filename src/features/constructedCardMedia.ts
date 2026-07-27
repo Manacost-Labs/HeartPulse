@@ -34,7 +34,7 @@ export type ConstructedCardVariant = {
 
 type JsonRecord = Record<string, any>;
 
-const CONSTRUCTED_CARD_IMAGE_VERSION = 'constructed-cards-20260727';
+const CONSTRUCTED_CARD_IMAGE_VERSION = 'constructed-cards-blizzard-20260727';
 
 export function constructedCardRenderImage(
   cardIdValue: unknown,
@@ -51,12 +51,13 @@ export function constructedCardRenderImage(
 
 export function constructedGeneratedPoolCardImage(card: JsonRecord): string | null {
   const cardId = String(card?.card_id ?? card?.id ?? '').trim();
+  const dbfId = Number(card?.dbf);
   const fallback = String(card?.images?.card ?? card?.image_url ?? card?.image ?? '').trim();
-  return constructedCardRenderImage(cardId, fallback);
+  return constructedCardRenderImage(Number.isInteger(dbfId) && dbfId > 0 ? dbfId : cardId, fallback);
 }
 
 export function constructedRelatedCardImage(card: ConstructedRelatedCard): string | null {
-  return constructedCardRenderImage(card.cardId, card.cardImageUrl);
+  return constructedCardRenderImage(card.dbf ?? card.cardId, card.cardImageUrl);
 }
 
 function mediaKind(url: string): 'image' | 'video' {
@@ -116,7 +117,7 @@ export function collectConstructedCardMedia(card: JsonRecord): ConstructedCardMe
   push(
     'card-normal',
     'Обычная карта',
-    constructedCardRenderImage(card?.card_id, card?.images?.card),
+    constructedCardRenderImage(card?.dbf ?? card?.card_id, card?.images?.card),
   );
   push('card-golden', 'Золотая карта', card?.images?.golden);
   push('card-signature', 'Сигнатурная карта', card?.images?.signature);

@@ -8,6 +8,12 @@ export type ConstructedCardFilterOption = {
   disabled?: boolean;
 };
 
+const STATISTIC_SORT_DEFINITIONS = [
+  { value: 'popularity', label: 'В % колод' },
+  { value: 'winrate', label: 'Победы колод' },
+  { value: 'games', label: 'Сыграно партий' },
+] as const;
+
 export const CONSTRUCTED_CLASS_LABELS: Record<string, string> = {
   DEATHKNIGHT: 'Рыцарь смерти',
   DEMONHUNTER: 'Охотник на демонов',
@@ -125,6 +131,14 @@ export function rarityFilterOptions(values: string[]): ConstructedCardFilterOpti
       iconAlt: '',
     })),
   ];
+}
+
+export function statisticSortOptions(hasAccess: boolean): ConstructedCardFilterOption[] {
+  return STATISTIC_SORT_DEFINITIONS.map(option => ({
+    value: option.value,
+    label: hasAccess ? option.label : `🔒 ${option.label} · Алмаз`,
+    disabled: !hasAccess,
+  }));
 }
 
 export function textFilterOptions(

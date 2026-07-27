@@ -122,6 +122,7 @@ import { createTierlistCacheBustRouter } from './tierlistCacheBustRoutes.js';
 import { createWinrateRouter } from './winrateRoutes.js';
 import { createHomeSummaryRouter, type HomeSummaryCacheStore } from './homeSummaryRoutes.js';
 import { createCardImageRouter, normalizeCardImageId } from './cardImageRoutes.js';
+import { createBlizzardCardImageClient, downloadBlizzardCardImage } from './blizzardCards.js';
 import { createAdminClassPositionRouter, writeClassPositionsFile } from './adminClassPositionRoutes.js';
 import {
   createAdminArchetypeTranslationRouter,
@@ -215,7 +216,7 @@ const CARD_IMAGE_CACHE_DIR = join(DATA_DIR, 'card-images');
 const ADMIN_UPLOAD_SOURCE_DIR = process.env.ADMIN_UPLOAD_SOURCE_DIR || join(DATA_DIR, 'uploads', 'admin');
 const ADMIN_UPLOAD_DIR = process.env.ADMIN_UPLOAD_DIR || ADMIN_UPLOAD_SOURCE_DIR;
 const GALLERY_UPLOAD_DIR = process.env.GALLERY_UPLOAD_DIR || join(DATA_DIR, 'uploads', 'gallery');
-const CARD_IMAGE_CACHE_VERSION = 'card_img_v5_retina';
+const CARD_IMAGE_CACHE_VERSION = 'card_img_v6_blizzard';
 const MAX_CARD_IMAGE_JOBS = 4;
 const CARD_IMAGE_VARIANTS = {
   thumb: { width: 360, quality: 86 },
@@ -336,6 +337,11 @@ type CachedCardImage = { path: string; source: CardImageSource };
 const cardImageJobs = new Map<string, Promise<CachedCardImage>>();
 let activeCardImageJobs = 0;
 const cardImageQueue: Array<() => void> = [];
+const blizzardCardImageClient = createBlizzardCardImageClient({
+  clientId: process.env.BLIZZARD_CLIENT_ID,
+  clientSecret: process.env.BLIZZARD_CLIENT_SECRET,
+  region: process.env.BLIZZARD_REGION,
+});
 
 interface KolodahsCardIndexCache {
   mtime: number;
@@ -4831,6 +4837,23 @@ async function resolveCardImageId(cardId: string): Promise<string> {
     ?? cardId;
 }
 
+function positiveDbfId(value: unknown): number | null {
+  const dbfId = Number(value);
+  return Number.isInteger(dbfId) && dbfId > 0 ? dbfId : null;
+}
+
+async function resolveCardImageDbfId(requestedCardId: string, resolvedCardId: string): Promise<number | null> {
+  const numericRequest = positiveDbfId(requestedCardId);
+  if (numericRequest) return numericRequest;
+
+  const cachedCard = getRuCard(resolvedCardId);
+  const cachedDbfId = positiveDbfId(cachedCard?.dbf ?? cachedCard?.dbfId);
+  if (cachedDbfId) return cachedDbfId;
+
+  const cards = await ensureRuCardsData();
+  return positiveDbfId(cards?.[resolvedCardId]?.dbf ?? cards?.[resolvedCardId]?.dbfId);
+}
+
 async function ensureCardImagePlaceholder(cardId: string, variant: 'thumb' | 'full', message = 'Нет изображения'): Promise<CachedCardImage> {
   mkdirSync(CARD_IMAGE_CACHE_DIR, { recursive: true });
   const outPath = cardImageCachePath(`missing-${cardId}`, variant, 'placeholder');
@@ -4877,7 +4900,23 @@ async function withCardImageSlot<T>(task: () => Promise<T>): Promise<T> {
   }
 }
 
-async function fetchRemoteCardImage(cardId: string, variant: 'thumb' | 'full'): Promise<{ buffer: Buffer; source: Exclude<CardImageSource, 'placeholder'> }> {
+async function fetchRemoteCardImage(
+  cardId: string,
+  dbfId: number | null,
+  variant: 'thumb' | 'full',
+): Promise<{ buffer: Buffer; source: Exclude<CardImageSource, 'placeholder'> }> {
+  if (dbfId && blizzardCardImageClient.configured) {
+    try {
+      const officialImage = await downloadBlizzardCardImage({
+        dbfId,
+        client: blizzardCardImageClient,
+      });
+      if (officialImage) return { buffer: officialImage, source: 'blizzard' };
+    } catch (error: any) {
+      console.warn('[api/card-image] Blizzard fallback:', cardId, error?.message ?? error);
+    }
+  }
+
   const sourceSize = '512x';
   const locales = ['ruRU', 'enUS'];
   let lastError: Error | null = null;
@@ -4905,10 +4944,16 @@ async function fetchRemoteCardImage(cardId: string, variant: 'thumb' | 'full'): 
 
 async function ensureCardImage(cardId: string, variant: 'thumb' | 'full'): Promise<CachedCardImage> {
   mkdirSync(CARD_IMAGE_CACHE_DIR, { recursive: true });
-  const resolvedCardId = await resolveCardImageId(cardId);
-  const preferredSource: CardImageSource = 'fallback';
+  const requestedDbfId = positiveDbfId(cardId);
+  const resolvedCardId = requestedDbfId ? cardId : await resolveCardImageId(cardId);
+  const dbfId = requestedDbfId ?? await resolveCardImageDbfId(cardId, resolvedCardId);
+  const preferredSource: CardImageSource = dbfId && blizzardCardImageClient.configured ? 'blizzard' : 'fallback';
   const preferredPath = cardImageCachePath(resolvedCardId, variant, preferredSource);
   if (existsSync(preferredPath)) return { path: preferredPath, source: preferredSource };
+  const cachedFallbackPath = cardImageCachePath(resolvedCardId, variant, 'fallback');
+  if (preferredSource === 'blizzard' && existsSync(cachedFallbackPath)) {
+    return { path: cachedFallbackPath, source: 'fallback' };
+  }
 
   const jobKey = `${resolvedCardId}:${variant}:${preferredSource}`;
   const existingJob = cardImageJobs.get(jobKey);
@@ -4917,7 +4962,7 @@ async function ensureCardImage(cardId: string, variant: 'thumb' | 'full'): Promi
   const job = (async () => {
     return withCardImageSlot(async () => {
       try {
-        const remoteImage = await fetchRemoteCardImage(resolvedCardId, variant);
+        const remoteImage = await fetchRemoteCardImage(resolvedCardId, dbfId, variant);
         const outPath = cardImageCachePath(resolvedCardId, variant, remoteImage.source);
         const { width, quality } = CARD_IMAGE_VARIANTS[variant];
         await sharp(remoteImage.buffer)

@@ -32,6 +32,7 @@ import {
   numericFilterOptions,
   rarityFilterOptions,
   setFilterOptions,
+  statisticSortOptions,
   textFilterOptions,
 } from './constructedCardFilterOptions';
 import {
@@ -422,7 +423,7 @@ function CardGallery({ cards, format, sort, navigatePath, statsAccess, gate }: {
             onBlur={() => setHovered(null)}
             onClick={event => { event.preventDefault(); navigatePath(cardPath(format, card)); }}
           >
-            <img src={constructedCardRenderImage(card.card_id, card.images?.card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={cardName(card)} loading="lazy" />
+            <img src={constructedCardRenderImage(card.dbf ?? card.card_id, card.images?.card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={cardName(card)} loading="lazy" />
             <span className="constructed-cards__gallery-name">{cardName(card)}</span>
             <span className="constructed-cards__gallery-stat" data-tour-id={index === 0 ? 'cards-statistics' : undefined}><small>{metric.label}</small>{!statsAccess && STATISTIC_SORTS.has(sort) ? <LockedStatValue /> : <strong>{metric.value}</strong>}</span>
           </a>;
@@ -471,7 +472,7 @@ function CardTable({ cards, format, sort, direction, navigatePath, statsAccess }
   const showPreview = (card: CardRecord, element: HTMLElement) => setPreview({
     id: card.card_id,
     name: cardName(card),
-    imageUrl: constructedCardRenderImage(card.card_id, card.images?.card),
+    imageUrl: constructedCardRenderImage(card.dbf ?? card.card_id, card.images?.card),
     rect: element.getBoundingClientRect(),
   });
   return (
@@ -614,9 +615,7 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
             tourId="cards-sort"
             options={[
               { value: 'set', label: 'Новые дополнения' },
-              { value: 'popularity', label: '🔒 В % колод · Алмаз', disabled: !hasStatsAccess },
-              { value: 'winrate', label: '🔒 Победы колод · Алмаз', disabled: !hasStatsAccess },
-              { value: 'games', label: '🔒 Сыграно партий · Алмаз', disabled: !hasStatsAccess },
+              ...statisticSortOptions(hasStatsAccess),
               { value: 'mana', label: 'Мана' },
               { value: 'attack', label: 'Атака' },
               { value: 'health', label: 'Здоровье' },

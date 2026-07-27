@@ -83,6 +83,7 @@ const relatedGroups = normalizeConstructedRelatedCardGroups({
       cards: [
         {
           card_id: 'QUEST_REWARD',
+          dbf: 98765,
           name: { ru: 'Русская награда', en: 'Quest Reward' },
           mana_cost: 5,
           attack: 7,
@@ -138,8 +139,8 @@ assert.deepEqual(
     id: 'related-card-QUEST_REWARD',
     label: 'Русская награда',
     description: 'QUEST_REWARD',
-    url: '/api/card-image/QUEST_REWARD/full.webp?v=constructed-cards-20260727',
-    thumbnailUrl: '/api/card-image/QUEST_REWARD/full.webp?v=constructed-cards-20260727',
+    url: '/api/card-image/98765/full.webp?v=constructed-cards-blizzard-20260727',
+    thumbnailUrl: '/api/card-image/98765/full.webp?v=constructed-cards-blizzard-20260727',
     sourceUrl: null,
     kind: 'image',
     presentation: 'contain',
@@ -148,7 +149,7 @@ assert.deepEqual(
 );
 assert.equal(
   constructedRelatedCardImage(relatedGroups[0].cards[0]),
-  '/api/card-image/QUEST_REWARD/full.webp?v=constructed-cards-20260727',
+  '/api/card-image/98765/full.webp?v=constructed-cards-blizzard-20260727',
   'related cards with safe IDs must not require a direct db.kolodahs.ru browser request',
 );
 
@@ -177,7 +178,7 @@ const generatedPoolMedia = collectConstructedGeneratedPoolMedia([
 assert.deepEqual(
   generatedPoolMedia.map(item => [item.id, item.label, item.url, item.presentation]),
   [
-    ['generated-pool-POOL_1', 'Первая карта', '/api/card-image/POOL_1/full.webp?v=constructed-cards-20260727', 'contain'],
+    ['generated-pool-POOL_1', 'Первая карта', '/api/card-image/POOL_1/full.webp?v=constructed-cards-blizzard-20260727', 'contain'],
     ['generated-pool-0-1', 'Second card', 'https://example.test/pool-2.png', 'contain'],
   ],
   'generated-pool card renders must be deduplicated and available to the shared lightbox',
@@ -189,7 +190,7 @@ assert.equal(
 );
 assert.equal(
   constructedCardRenderImage('ETC_080', 'https://example.test/card.png', 'thumb'),
-  '/api/card-image/ETC_080/thumb.webp?v=constructed-cards-20260727',
+  '/api/card-image/ETC_080/thumb.webp?v=constructed-cards-blizzard-20260727',
   'constructed card renders should use the same-origin WebP cache for Russian edge delivery',
 );
 

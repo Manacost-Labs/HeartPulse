@@ -1,5 +1,17 @@
 # HS-Arena Changelog
 
+## v1.0.62 - 2026-07-27
+
+- Switched constructed card renders to the official localized Blizzard
+  Hearthstone API, with server-side OAuth, validated image responses and the
+  existing HearthstoneJSON source retained only as a resilience fallback.
+- Versioned the browser and server image caches and routed catalog, related
+  cards and generated pools by Blizzard numeric card ID so previously cached
+  black-background renders are replaced immediately.
+- Removed lock icons and the `Алмаз` suffix from statistical sorting options
+  when the server confirms subscription access, while preserving the locked
+  labels and disabled state for visitors without access.
+
 ## v1.0.61 - 2026-07-27
 
 - Restored all three localized Titan abilities and the related Primus token

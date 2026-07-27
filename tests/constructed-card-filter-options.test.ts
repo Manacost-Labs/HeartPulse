@@ -5,6 +5,7 @@ import {
   numericFilterOptions,
   rarityFilterOptions,
   setFilterOptions,
+  statisticSortOptions,
   textFilterOptions,
 } from '../src/features/constructedCardFilterOptions.js';
 
@@ -48,6 +49,21 @@ assert.deepEqual(rarities.map(option => option.icon), [
 const mechanics = textFilterOptions('Все механики', ['TAUNT', 'BATTLECRY'], value => value);
 assert.ok(mechanics.every(option => option.icon === undefined),
   'mechanics and other textual filters must not receive decorative icons');
+
+const entitledStatisticSorts = statisticSortOptions(true);
+assert.deepEqual(entitledStatisticSorts.map(option => option.label), [
+  'В % колод',
+  'Победы колод',
+  'Сыграно партий',
+]);
+assert.ok(entitledStatisticSorts.every(option => option.disabled === false));
+assert.doesNotMatch(entitledStatisticSorts.map(option => option.label).join(' '), /🔒|Алмаз/,
+  'subscribers must not see lock or plan decoration on available sort options');
+
+const lockedStatisticSorts = statisticSortOptions(false);
+assert.ok(lockedStatisticSorts.every(option => option.disabled === true));
+assert.ok(lockedStatisticSorts.every(option => option.label.startsWith('🔒 ')));
+assert.ok(lockedStatisticSorts.every(option => option.label.endsWith(' · Алмаз')));
 
 const filterSource = readFileSync(
   new URL('../src/features/ConstructedCardFilterSelect.tsx', import.meta.url),

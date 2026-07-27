@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
-import { createBlizzardCardImageClient, isBlizzardImageContentType } from '../server/blizzardCards.js';
+import {
+  createBlizzardCardImageClient,
+  downloadBlizzardCardImage,
+  isBlizzardImageContentType,
+} from '../server/blizzardCards.js';
 
 function jsonResponse(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
@@ -107,8 +111,68 @@ async function assertUnauthorizedRequestRefreshesToken() {
   assert.equal(cardsRequests, 2);
 }
 
+async function assertOfficialImageDownloadPrecedesFallback() {
+  const requests: string[] = [];
+  const buffer = await downloadBlizzardCardImage({
+    dbfId: 115648,
+    client: {
+      configured: true,
+      getImageUrl: async (dbfId) => {
+        assert.equal(dbfId, 115648);
+        return 'https://d15f34w2p8l1cc.cloudfront.net/hearthstone/official-card.png';
+      },
+    },
+    fetchImpl: async (input) => {
+      requests.push(String(input));
+      return new Response(new Uint8Array([1, 2, 3]), {
+        status: 200,
+        headers: { 'Content-Type': 'image/png' },
+      });
+    },
+  });
+
+  assert.deepEqual([...buffer ?? []], [1, 2, 3]);
+  assert.deepEqual(requests, [
+    'https://d15f34w2p8l1cc.cloudfront.net/hearthstone/official-card.png',
+  ]);
+
+  await assert.rejects(
+    downloadBlizzardCardImage({
+      dbfId: 115648,
+      client: {
+        configured: true,
+        getImageUrl: async () => 'https://d15f34w2p8l1cc.cloudfront.net/hearthstone/not-an-image',
+      },
+      fetchImpl: async () => new Response('<html>error</html>', {
+        status: 200,
+        headers: { 'Content-Type': 'text/html' },
+      }),
+    }),
+    /content type/i,
+  );
+
+  await assert.rejects(
+    downloadBlizzardCardImage({
+      dbfId: 115648,
+      client: {
+        configured: true,
+        getImageUrl: async () => 'https://d15f34w2p8l1cc.cloudfront.net/hearthstone/oversized.png',
+      },
+      fetchImpl: async () => new Response(new Uint8Array([1]), {
+        status: 200,
+        headers: {
+          'Content-Type': 'image/png',
+          'Content-Length': String(9 * 1024 * 1024),
+        },
+      }),
+    }),
+    /exceeds/i,
+  );
+}
+
 assertBlizzardCdnImageContentTypes();
 await assertDisabledWithoutCredentials();
 await assertCatalogAndTokenCaching();
 await assertUnauthorizedRequestRefreshesToken();
+await assertOfficialImageDownloadPrecedesFallback();
 console.log('blizzard card image tests passed');

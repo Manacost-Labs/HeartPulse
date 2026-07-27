@@ -16,8 +16,15 @@ type AccessToken = {
   expiresAt: number;
 };
 
+type BlizzardCardImageResolver = {
+  configured: boolean;
+  getImageUrl: (dbfId: number) => Promise<string | null>;
+  getDirectImageUrl?: (dbfId: number) => Promise<string | null>;
+};
+
 const DEFAULT_CATALOG_TTL_MS = 6 * 60 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 15_000;
+const MAX_CARD_IMAGE_BYTES = 8 * 1024 * 1024;
 // Official contracts:
 // https://develop.battle.net/documentation/guides/using-oauth
 // https://develop.battle.net/documentation/hearthstone/game-data-apis
@@ -47,6 +54,43 @@ function safeBlizzardImageUrl(value: unknown): string | null {
 export function isBlizzardImageContentType(value: string | null | undefined): boolean {
   const contentType = String(value ?? '').split(';', 1)[0].trim().toLowerCase();
   return contentType.startsWith('image/') || contentType === 'application/octet-stream';
+}
+
+export async function downloadBlizzardCardImage(options: {
+  dbfId: number;
+  client: BlizzardCardImageResolver;
+  fetchImpl?: FetchLike;
+}): Promise<Buffer | null> {
+  const dbfId = positiveInteger(options.dbfId);
+  if (!dbfId || !options.client.configured) return null;
+
+  const imageUrl = await (
+    options.client.getDirectImageUrl?.(dbfId)
+    ?? options.client.getImageUrl(dbfId)
+  );
+  if (!imageUrl) return null;
+
+  const response = await (options.fetchImpl ?? fetch)(imageUrl, {
+    headers: {
+      Accept: 'image/avif,image/webp,image/png,image/*;q=0.8',
+      'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)',
+    },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+  if (!response.ok) throw new Error(`Blizzard card image HTTP ${response.status}`);
+  if (!isBlizzardImageContentType(response.headers.get('content-type'))) {
+    throw new Error(`Blizzard card image content type is not an image: ${response.headers.get('content-type') || 'missing'}`);
+  }
+  const declaredLength = Number(response.headers.get('content-length'));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_CARD_IMAGE_BYTES) {
+    throw new Error(`Blizzard card image exceeds ${MAX_CARD_IMAGE_BYTES} bytes`);
+  }
+
+  const image = Buffer.from(await response.arrayBuffer());
+  if (image.length > MAX_CARD_IMAGE_BYTES) {
+    throw new Error(`Blizzard card image exceeds ${MAX_CARD_IMAGE_BYTES} bytes`);
+  }
+  return image;
 }
 
 export function createBlizzardCardImageClient(options: BlizzardCardImageClientOptions = {}) {
@@ -196,5 +240,6 @@ export function createBlizzardCardImageClient(options: BlizzardCardImageClientOp
   return {
     configured,
     getImageUrl,
+    getDirectImageUrl: fetchDirectCard,
   };
 }
