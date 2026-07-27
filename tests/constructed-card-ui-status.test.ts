@@ -107,7 +107,11 @@ assert.match(cardDeckComponent, /<DeckListView/,
   'recommended decks must render through the native deck-list component');
 assert.doesNotMatch(cardDeckComponent, /\/preview\?format=|constructed-card-detail__deck-preview/,
   'recommended decks must not depend on generated DeckView preview images');
-assert.match(standardCardsCss, /\.constructed-card-detail__deck-list\s*\{[^}]*overflow:\s*auto/s,
-  'native recommended-deck lists must stay aligned in a bounded scrollable viewport');
+assert.match(standardCardsCss, /\.constructed-card-detail__deck-list\s*\{[^}]*height:\s*auto[^}]*overflow:\s*visible/s,
+  'native recommended-deck lists must expand to their full height without an internal scrollbar');
+assert.doesNotMatch(standardCardsCss, /\.constructed-card-detail__deck\s*\{[^}]*grid-template-rows:\s*\d+px/s,
+  'recommended-deck cards must not constrain the native deck list to a fixed-height row');
+assert.doesNotMatch(standardCardsCss, /@media\s*\(max-width:\s*640px\)[\s\S]*?\.constructed-card-detail__deck-list\s*\{[^}]*height:\s*\d+px/s,
+  'mobile recommended-deck lists must remain fully expanded');
 
 console.log('constructed-card Russian unavailable/stale UI contracts passed');

@@ -1,5 +1,12 @@
 # HS-Arena Changelog
 
+## v1.0.69 - 2026-07-27
+
+- Expanded recommended deck compositions to their full natural height on card
+  pages, removing the nested desktop and mobile scroll areas.
+- Kept loading and retry states stable while making the page itself the only
+  vertical scrolling surface for deck recommendations.
+
 ## v1.0.68 - 2026-07-27
 
 - Unified the Standard/Wild and matchup-section controls into one compact
