@@ -70,4 +70,21 @@ assert.doesNotMatch(relatedCardsComponent, /item\.manaCost|<dt>Мана<\/dt>/,
 assert.doesNotMatch(relatedCardsComponent, /item\.wikiUrl|Hearthstone Wiki/,
   'related-card tiles must not include a redundant wiki link');
 
+const generatedPoolComponent = standardCardsSource.slice(
+  standardCardsSource.indexOf('function GeneratedPoolCards'),
+  standardCardsSource.indexOf('function RelatedCardGroups'),
+);
+assert.match(generatedPoolComponent, /onOpen\(image\)/,
+  'generated-pool images must open the shared card lightbox');
+assert.match(generatedPoolComponent, /aria-label=\{`Открыть карту/,
+  'generated-pool lightbox controls must expose a descriptive accessible name');
+assert.match(generatedPoolComponent, /constructed-card-detail__pool-card-link/,
+  'generated-pool card names must retain their detail-page navigation');
+
+const standardCardsCss = readFileSync(new URL('../src/features/StandardCards.css', import.meta.url), 'utf8');
+assert.match(standardCardsCss, /\.constructed-card-detail__pool-cards\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/s,
+  'wide generated pools must use a stable five-column grid');
+assert.doesNotMatch(standardCardsCss, /\.constructed-card-detail__pool-cards\s*\{[^}]*auto-fill/s,
+  'wide generated pools must not expand into an arbitrary number of tiny columns');
+
 console.log('constructed-card Russian unavailable/stale UI contracts passed');

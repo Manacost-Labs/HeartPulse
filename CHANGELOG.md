@@ -1,5 +1,18 @@
 # HS-Arena Changelog
 
+## v1.0.59 - 2026-07-27
+
+- Extended constructed-card companion discovery to Wild card-page sections
+  such as modules, art pieces, quest rewards and additional hero powers, with
+  Russian card data and original Wiki art synchronization for both formats.
+- Added all nine Zilliax Deluxe 3000 companion cards, localized names and the
+  highest-resolution uncropped originals available on Hearthstone Wiki.
+- Reworked generated-card pools into a stable responsive grid with at most five
+  larger cards per row, aligned labels and a keyboard-accessible lightbox.
+- Routed normal constructed-card renders through the same-origin cached WebP
+  endpoint and verified the Moscow and Novosibirsk proxy paths, Brotli delivery
+  and static cache hits.
+
 ## v1.0.58 - 2026-07-27
 
 - Improved related-card tiles with larger artwork, complete readable card text

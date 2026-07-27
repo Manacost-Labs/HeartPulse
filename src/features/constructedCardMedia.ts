@@ -34,6 +34,27 @@ export type ConstructedCardVariant = {
 
 type JsonRecord = Record<string, any>;
 
+const CONSTRUCTED_CARD_IMAGE_VERSION = 'constructed-cards-20260727';
+
+export function constructedCardRenderImage(
+  cardIdValue: unknown,
+  fallbackValue?: unknown,
+  variant: 'thumb' | 'full' = 'full',
+): string | null {
+  const cardId = String(cardIdValue ?? '').trim();
+  if (/^[A-Za-z0-9_]{1,80}$/.test(cardId)) {
+    return `/api/card-image/${encodeURIComponent(cardId)}/${variant}.webp?v=${CONSTRUCTED_CARD_IMAGE_VERSION}`;
+  }
+  const fallback = String(fallbackValue ?? '').trim();
+  return fallback || null;
+}
+
+export function constructedGeneratedPoolCardImage(card: JsonRecord): string | null {
+  const cardId = String(card?.card_id ?? card?.id ?? '').trim();
+  const fallback = String(card?.images?.card ?? card?.image_url ?? card?.image ?? '').trim();
+  return constructedCardRenderImage(cardId, fallback);
+}
+
 function mediaKind(url: string): 'image' | 'video' {
   return /\.(?:mp4|webm)(?:[?#]|$)/i.test(url) ? 'video' : 'image';
 }
@@ -88,7 +109,11 @@ export function collectConstructedCardMedia(card: JsonRecord): ConstructedCardMe
     });
   };
 
-  push('card-normal', 'Обычная карта', card?.images?.card);
+  push(
+    'card-normal',
+    'Обычная карта',
+    constructedCardRenderImage(card?.card_id, card?.images?.card),
+  );
   push('card-golden', 'Золотая карта', card?.images?.golden);
   push('card-signature', 'Сигнатурная карта', card?.images?.signature);
   push('card-diamond', 'Алмазная карта', card?.images?.diamond);
@@ -166,6 +191,44 @@ export function collectConstructedRelatedCardMedia(
       presentation: 'contain' as const,
     }];
   });
+}
+
+export function collectConstructedGeneratedPoolMedia(
+  rawPools: unknown,
+): ConstructedCardMediaItem[] {
+  if (!Array.isArray(rawPools)) return [];
+  const seen = new Set<string>();
+  const result: ConstructedCardMediaItem[] = [];
+
+  rawPools.forEach((pool, poolIndex) => {
+    const cards = Array.isArray(pool?.cards) ? pool.cards : [];
+    cards.forEach((card: JsonRecord, cardIndex: number) => {
+      const url = constructedGeneratedPoolCardImage(card);
+      if (!url || seen.has(url)) return;
+      seen.add(url);
+      const cardId = String(card?.card_id ?? card?.id ?? '').trim();
+      const label = String(
+        card?.name?.ru
+        ?? card?.name?.en
+        ?? card?.name_ru
+        ?? card?.title
+        ?? cardId
+        ?? '',
+      ).trim() || 'Карта из пула генерации';
+      result.push({
+        id: `generated-pool-${cardId || `${poolIndex}-${cardIndex}`}`,
+        label,
+        description: cardId || null,
+        url,
+        thumbnailUrl: url,
+        sourceUrl: null,
+        kind: 'image',
+        presentation: 'contain',
+      });
+    });
+  });
+
+  return result;
 }
 
 export function collectConstructedRelatedCardArtMedia(

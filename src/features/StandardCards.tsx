@@ -31,6 +31,9 @@ import {
   collectConstructedCardMedia,
   collectConstructedRelatedCardMedia,
   collectConstructedRelatedCardArtMedia,
+  collectConstructedGeneratedPoolMedia,
+  constructedGeneratedPoolCardImage,
+  constructedCardRenderImage,
   collectConstructedCardVariants,
   flattenConstructedCardSounds,
   type ConstructedCardMediaItem,
@@ -220,6 +223,7 @@ const GENERATED_POOL_LABELS: Record<string, string> = {
   'Spell cards': 'Карты заклинаний',
   'Minion cards': 'Карты существ',
   'Weapon cards': 'Карты оружия',
+  "Cards banned from E.T.C.'s band": 'Карты, недоступные для группы E.T.C.',
 };
 
 function cardName(card: CardRecord): string {
@@ -445,7 +449,7 @@ function CardGallery({ cards, format, sort, navigatePath, statsAccess, gate }: {
             onBlur={() => setHovered(null)}
             onClick={event => { event.preventDefault(); navigatePath(cardPath(format, card)); }}
           >
-            <img src={card.images?.card || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={cardName(card)} loading="lazy" />
+            <img src={constructedCardRenderImage(card.card_id, card.images?.card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={cardName(card)} loading="lazy" />
             <span className="constructed-cards__gallery-name">{cardName(card)}</span>
             <span className="constructed-cards__gallery-stat" data-tour-id={index === 0 ? 'cards-statistics' : undefined}><small>{metric.label}</small>{!statsAccess && STATISTIC_SORTS.has(sort) ? <LockedStatValue /> : <strong>{metric.value}</strong>}</span>
           </a>;
@@ -494,7 +498,7 @@ function CardTable({ cards, format, sort, direction, navigatePath, statsAccess }
   const showPreview = (card: CardRecord, element: HTMLElement) => setPreview({
     id: card.card_id,
     name: cardName(card),
-    imageUrl: card.images?.card,
+    imageUrl: constructedCardRenderImage(card.card_id, card.images?.card),
     rect: element.getBoundingClientRect(),
   });
   return (
@@ -683,10 +687,16 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
   );
 }
 
-function GeneratedPoolCards({ pool, format, navigatePath }: { key?: React.Key; pool: any; format: CardFormat; navigatePath: (path: string) => void }) {
+function GeneratedPoolCards({ pool, format, navigatePath, onOpen }: {
+  key?: React.Key;
+  pool: any;
+  format: CardFormat;
+  navigatePath: (path: string) => void;
+  onOpen: (url: string) => void;
+}) {
   const cards = Array.isArray(pool?.cards) ? pool.cards : [];
   const gridRef = useRef<HTMLDivElement | null>(null);
-  const [cardsPerRow, setCardsPerRow] = useState(2);
+  const [cardsPerRow, setCardsPerRow] = useState(5);
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
@@ -713,22 +723,40 @@ function GeneratedPoolCards({ pool, format, navigatePath }: { key?: React.Key; p
     <article className="constructed-card-detail__pool">
       <header><strong>{generatedPoolLabel(pool?.pool)}</strong><span>{cards.length} карт</span></header>
       <div className="constructed-card-detail__pool-cards" ref={gridRef}>
-        {visibleCards.map((item: any, index: number) => {
+        {visibleCards.map((item: any) => {
           const itemId = String(item?.card_id || item?.id || '').trim();
           const name = item?.name?.ru || item?.name?.en || item?.name_ru || item?.title || itemId || 'Карта';
-          const image = item?.images?.card || item?.image_url || item?.image;
+          const image = constructedGeneratedPoolCardImage(item);
           const internalUrl = item?.can_open && itemId ? `/standard/cards/${format}/${encodeURIComponent(itemId)}` : '';
           const href = internalUrl || item?.url || undefined;
-          const content = <>{image ? <img src={image} alt="" loading="lazy" /> : <Sparkles size={28} />}<span>{name}</span></>;
-          return href ? (
-            <a
-              key={`${itemId || name}-${index}`}
-              href={href}
-              target={internalUrl ? undefined : '_blank'}
-              rel={internalUrl ? undefined : 'noreferrer'}
-              onClick={event => { if (!internalUrl) return; event.preventDefault(); navigatePath(internalUrl); }}
-            >{content}</a>
-          ) : <div className="constructed-card-detail__pool-card" key={`${itemId || name}-${index}`}>{content}</div>;
+          const itemKey = itemId || String(href || image || name);
+          return (
+            <article className="constructed-card-detail__pool-card" key={itemKey}>
+              {image
+                ? (
+                  <button
+                    type="button"
+                    className="constructed-card-detail__pool-card-image"
+                    aria-label={`Открыть карту «${name}» в полном размере`}
+                    onClick={() => onOpen(image)}
+                  >
+                    <img src={image} alt="" loading="lazy" decoding="async" />
+                  </button>
+                )
+                : <div className="constructed-card-detail__pool-card-placeholder" aria-hidden="true"><Sparkles size={34} /></div>}
+              {href
+                ? (
+                  <a
+                    className="constructed-card-detail__pool-card-link"
+                    href={href}
+                    target={internalUrl ? undefined : '_blank'}
+                    rel={internalUrl ? undefined : 'noreferrer'}
+                    onClick={event => { if (!internalUrl) return; event.preventDefault(); navigatePath(internalUrl); }}
+                  >{name}</a>
+                )
+                : <span className="constructed-card-detail__pool-card-name">{name}</span>}
+            </article>
+          );
         })}
       </div>
       {hasMore && <button type="button" className="constructed-card-detail__pool-toggle" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? 'Свернуть' : `Показать все · ${cards.length}`}</button>}
@@ -736,12 +764,17 @@ function GeneratedPoolCards({ pool, format, navigatePath }: { key?: React.Key; p
   );
 }
 
-function GeneratedCardPools({ pools, format, navigatePath }: { pools: any[]; format: CardFormat; navigatePath: (path: string) => void }) {
+function GeneratedCardPools({ pools, format, navigatePath, onOpen }: {
+  pools: any[];
+  format: CardFormat;
+  navigatePath: (path: string) => void;
+  onOpen: (url: string) => void;
+}) {
   return (
     <section className="constructed-card-detail__section constructed-card-detail__pools">
       <h2 data-tour-id="card-pools"><Layers3 size={19} /> Пулы генерации · {pools.length}</h2>
       <div className="constructed-card-detail__pool-list">
-        {pools.map((pool, poolIndex) => <GeneratedPoolCards key={`${pool?.pool || 'pool'}-${poolIndex}`} pool={pool} format={format} navigatePath={navigatePath} />)}
+        {pools.map((pool, poolIndex) => <GeneratedPoolCards key={`${pool?.pool || 'pool'}-${poolIndex}`} pool={pool} format={format} navigatePath={navigatePath} onOpen={onOpen} />)}
       </div>
     </section>
   );
@@ -1007,7 +1040,8 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
     .filter((pool: any) => Array.isArray(pool?.cards) && pool.cards.length > 0);
   const relatedArtMedia = collectConstructedRelatedCardArtMedia(relatedGroups);
   const relatedCardMedia = collectConstructedRelatedCardMedia(relatedGroups);
-  const mediaItems = [...collectConstructedCardMedia(card), ...relatedCardMedia, ...relatedArtMedia];
+  const generatedPoolMedia = collectConstructedGeneratedPoolMedia(generatedPools);
+  const mediaItems = [...collectConstructedCardMedia(card), ...relatedCardMedia, ...generatedPoolMedia, ...relatedArtMedia];
   const galleryMedia = mediaItems.filter(item => item.id.startsWith('gallery-') || item.id.startsWith('related-art-'));
   const sounds = flattenConstructedCardSounds(wiki.sounds);
   const soundGroups = [...new Set(sounds.map(item => item.group))].map(group => [group, sounds.filter(item => item.group === group)] as const);
@@ -1071,7 +1105,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
 
       {relatedGroups.length > 0 && <RelatedCardGroups groups={relatedGroups} onOpen={openMedia} />}
 
-      {generatedPools.length > 0 && <GeneratedCardPools pools={generatedPools} format={format} navigatePath={navigatePath} />}
+      {generatedPools.length > 0 && <GeneratedCardPools pools={generatedPools} format={format} navigatePath={navigatePath} onOpen={openMedia} />}
 
       {decks.length > 0 && <ConstructedCardDecks decks={decks} cardId={cardId} format={format} />}
 

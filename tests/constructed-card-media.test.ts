@@ -3,6 +3,9 @@ import {
   collectConstructedCardMedia,
   collectConstructedRelatedCardMedia,
   collectConstructedRelatedCardArtMedia,
+  collectConstructedGeneratedPoolMedia,
+  constructedGeneratedPoolCardImage,
+  constructedCardRenderImage,
   collectConstructedCardVariants,
   flattenConstructedCardSounds,
 } from '../src/features/constructedCardMedia.js';
@@ -141,6 +144,47 @@ assert.deepEqual(
     presentation: 'contain',
   },
   'related card images must be available to the existing lightbox without adding a wiki action',
+);
+
+const generatedPoolMedia = collectConstructedGeneratedPoolMedia([
+  {
+    pool: 'All minions',
+    cards: [
+      {
+        card_id: 'POOL_1',
+        name: { ru: 'Первая карта', en: 'First card' },
+        images: { card: 'https://example.test/pool-1.png' },
+      },
+      {
+        id: '',
+        title: 'Second card',
+        image_url: 'https://example.test/pool-2.png',
+      },
+      {
+        id: '',
+        title: 'Duplicate image',
+        image_url: 'https://example.test/pool-2.png',
+      },
+    ],
+  },
+]);
+assert.deepEqual(
+  generatedPoolMedia.map(item => [item.id, item.label, item.url, item.presentation]),
+  [
+    ['generated-pool-POOL_1', 'Первая карта', '/api/card-image/POOL_1/full.webp?v=constructed-cards-20260727', 'contain'],
+    ['generated-pool-0-1', 'Second card', 'https://example.test/pool-2.png', 'contain'],
+  ],
+  'generated-pool card renders must be deduplicated and available to the shared lightbox',
+);
+assert.equal(
+  constructedGeneratedPoolCardImage({ card_id: '../unsafe', image_url: 'https://example.test/fallback.png' }),
+  'https://example.test/fallback.png',
+  'invalid card IDs must never be interpolated into the same-origin image proxy path',
+);
+assert.equal(
+  constructedCardRenderImage('ETC_080', 'https://example.test/card.png', 'thumb'),
+  '/api/card-image/ETC_080/thumb.webp?v=constructed-cards-20260727',
+  'constructed card renders should use the same-origin WebP cache for Russian edge delivery',
 );
 
 const legacyRelatedGroups = normalizeConstructedRelatedCardGroups({

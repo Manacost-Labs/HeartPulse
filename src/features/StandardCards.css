@@ -313,12 +313,20 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
 .constructed-card-detail__pool > header { display: flex; gap: 0.8rem; min-height: 44px; align-items: center; justify-content: space-between; padding: 0.5rem 0.7rem; border-bottom: 1px solid rgba(121, 79, 38, 0.18); color: #5c3b24; }
 .constructed-card-detail__pool > header strong { font-family: var(--font-display); font-size: 0.95rem; }
 .constructed-card-detail__pool > header span { color: var(--cards-muted); font-size: 0.64rem; font-weight: 900; }
-.constructed-card-detail__pool-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 0.55rem; padding: 0.35rem 0.55rem 0.65rem; }
-.constructed-card-detail__pool-cards a,
-.constructed-card-detail__pool-card { display: grid; min-width: 0; min-height: 154px; align-content: center; place-items: center; padding: 0.4rem; border: 1px solid transparent; color: #4a2d1b; text-align: center; text-decoration: none; }
-.constructed-card-detail__pool-cards a:hover { border-color: rgba(141, 91, 41, 0.35); background: rgba(224, 191, 117, 0.24); transform: translateY(-2px); }
-.constructed-card-detail__pool-cards img { width: 108px; height: 116px; object-fit: contain; }
-.constructed-card-detail__pool-cards span { margin-top: 0.22rem; font-size: 0.64rem; font-weight: 900; line-height: 1.25; }
+.constructed-card-detail__pool-cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.7rem; padding: 0.7rem; }
+.constructed-card-detail__pool-card { display: grid; grid-template-rows: 270px minmax(3.15rem, auto); min-width: 0; height: 100%; overflow: hidden; border: 1px solid rgba(121, 79, 38, 0.18); color: #4a2d1b; background: rgba(255, 252, 240, 0.44); text-align: center; }
+.constructed-card-detail__pool-card-image,
+.constructed-card-detail__pool-card-placeholder { display: grid; width: 100%; min-width: 0; min-height: 0; padding: 0.35rem; border: 0; place-items: center; overflow: hidden; color: #7b5b3c; background: radial-gradient(circle at 50% 42%, rgba(231, 197, 124, 0.22), rgba(99, 48, 19, 0.04)); }
+.constructed-card-detail__pool-card-image { cursor: zoom-in; }
+.constructed-card-detail__pool-card-image:focus-visible { outline: 3px solid #7b151b; outline-offset: -3px; }
+.constructed-card-detail__pool-card-image img { display: block; width: min(100%, 210px); height: 260px; object-fit: contain; transition: transform 160ms ease; }
+.constructed-card-detail__pool-card-image:hover img,
+.constructed-card-detail__pool-card-image:focus-visible img { transform: scale(1.035); }
+.constructed-card-detail__pool-card-link,
+.constructed-card-detail__pool-card-name { display: grid; min-width: 0; min-height: 3.15rem; padding: 0.48rem 0.4rem; place-items: center; color: #4a2d1b; font-size: 0.72rem; font-weight: 900; line-height: 1.28; overflow-wrap: anywhere; text-decoration: none; }
+.constructed-card-detail__pool-card-link { border-top: 1px solid rgba(121, 79, 38, 0.16); }
+.constructed-card-detail__pool-card-link:hover,
+.constructed-card-detail__pool-card-link:focus-visible { color: #731c1d; background: rgba(224, 191, 117, 0.24); text-decoration: underline; text-underline-offset: 0.16rem; }
 .constructed-card-detail__pool-toggle { display: flex; min-height: 38px; margin: 0 auto 0.65rem; padding: 0 0.9rem; border: 1px solid #7e3327; align-items: center; justify-content: center; color: #fff0c5; background: #713118; font-size: 0.66rem; font-weight: 900; }
 .constructed-card-detail__pool-toggle:hover { filter: brightness(1.08); }
 .constructed-card-detail__decks { margin-top: 0.8rem; }
@@ -375,6 +383,7 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
   .constructed-cards__gallery { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .constructed-card-detail__hero { grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); }
   .constructed-card-detail__statistics .constructed-cards__stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .constructed-card-detail__pool-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 @media (max-width: 900px) {
@@ -390,6 +399,7 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
   .constructed-card-detail__lower-grid,
   .constructed-card-detail__media-grid { grid-template-columns: 1fr; }
   .constructed-card-detail__deck-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .constructed-card-detail__pool-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (max-width: 640px) {
@@ -448,10 +458,13 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
   .constructed-card-detail__patch-heading { grid-template-columns: 1fr 18px; gap: 0.25rem 0.5rem; }
   .constructed-card-detail__patch-heading > span:first-child { grid-column: 1 / -1; }
   .constructed-card-detail__patch-body { padding-left: 0.65rem; }
-  .constructed-card-detail__pool-cards { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 0.3rem; padding-inline: 0.3rem; }
-  .constructed-card-detail__pool-cards a,
-  .constructed-card-detail__pool-card { min-height: 137px; padding-inline: 0.2rem; }
-  .constructed-card-detail__pool-cards img { width: 92px; height: 100px; }
+  .constructed-card-detail__pool-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem; padding: 0.4rem; }
+  .constructed-card-detail__pool-card { grid-template-rows: 190px minmax(3.45rem, auto); }
+  .constructed-card-detail__pool-card-image,
+  .constructed-card-detail__pool-card-placeholder { padding: 0.15rem; }
+  .constructed-card-detail__pool-card-image img { width: min(100%, 148px); height: 184px; }
+  .constructed-card-detail__pool-card-link,
+  .constructed-card-detail__pool-card-name { min-height: 3.45rem; padding-inline: 0.25rem; font-size: 0.64rem; }
   .constructed-card-detail__related-card-grid { grid-template-columns: 1fr; padding: 0.35rem; }
   .constructed-card-detail__related-card { grid-template-columns: 116px minmax(0, 1fr); }
   .constructed-card-detail__related-card-image { min-height: 174px; }
