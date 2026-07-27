@@ -1,5 +1,11 @@
 # HS-Arena Changelog
 
+## v1.0.65 - 2026-07-27
+
+- Replaced the card-page deck-code copy action with a direct link to the
+  existing internal deck builder, preserving the Standard or Wild format and
+  loading the complete recommended deck code.
+
 ## v1.0.64 - 2026-07-27
 
 - Added a dedicated regional edge-cache route for versioned card images so

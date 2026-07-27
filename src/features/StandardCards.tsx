@@ -4,9 +4,9 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
-  Copy,
   ExternalLink,
   Grid3X3,
+  LayoutGrid,
   Layers3,
   List,
   LockKeyhole,
@@ -827,24 +827,6 @@ function RelatedCardGroups({ groups, onOpen }: {
   );
 }
 
-async function copyText(value: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(value);
-    return true;
-  } catch {
-    const fallback = document.createElement('textarea');
-    fallback.value = value;
-    fallback.setAttribute('readonly', '');
-    fallback.style.position = 'fixed';
-    fallback.style.opacity = '0';
-    document.body.appendChild(fallback);
-    fallback.select();
-    const copied = document.execCommand('copy');
-    fallback.remove();
-    return copied;
-  }
-}
-
 function ConstructedDeckCard({ deck, cardId, format, onPreviewReady, onOpenPreview }: {
   key?: React.Key;
   deck: ConstructedDeck;
@@ -856,7 +838,7 @@ function ConstructedDeckCard({ deck, cardId, format, onPreviewReady, onOpenPrevi
   const [imageUrl, setImageUrl] = useState('');
   const [previewError, setPreviewError] = useState('');
   const [retryToken, setRetryToken] = useState(0);
-  const [copied, setCopied] = useState(false);
+  const builderHref = `/deck-builder?format=${format}&code=${encodeURIComponent(deck.deckCode)}`;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -885,12 +867,6 @@ function ConstructedDeckCard({ deck, cardId, format, onPreviewReady, onOpenPrevi
     return () => controller.abort();
   }, [cardId, deck, format, onPreviewReady, retryToken]);
 
-  const copyDeck = async () => {
-    if (!await copyText(deck.deckCode)) return;
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1800);
-  };
-
   return (
     <article className="constructed-card-detail__deck">
       <div className="constructed-card-detail__deck-image">
@@ -900,7 +876,7 @@ function ConstructedDeckCard({ deck, cardId, format, onPreviewReady, onOpenPrevi
       <div className="constructed-card-detail__deck-copy">
         <h3>{deck.archetypeLabel || deck.archetype || deck.title}</h3>
         <p>{[deck.className ? classLabel(deck.className.toUpperCase().replace(/\s+/g, '')) : '', deck.score || (deck.winrate != null ? `${percent(deck.winrate)} побед` : '')].filter(Boolean).join(' · ') || 'Готовая сборка'}</p>
-        <button type="button" onClick={copyDeck}><Copy size={15} /> {copied ? 'Код скопирован' : 'Скопировать код'}</button>
+        <a className="constructed-card-detail__deck-builder" href={builderHref}><LayoutGrid size={15} aria-hidden="true" /> Открыть в конструкторе</a>
       </div>
     </article>
   );

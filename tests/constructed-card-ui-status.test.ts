@@ -59,7 +59,7 @@ assert.match(standardCardsSource, /Токены, награды и связан�
   'the related-card section must describe tokens, quest rewards, and other companion cards in Russian');
 const relatedCardsComponent = standardCardsSource.slice(
   standardCardsSource.indexOf('function RelatedCardGroups'),
-  standardCardsSource.indexOf('async function copyText'),
+  standardCardsSource.indexOf('function ConstructedDeckCard'),
 );
 assert.match(relatedCardsComponent, /type="button"[\s\S]*constructed-card-detail__related-card-image/,
   'each related-card image must be a semantic lightbox button');
@@ -90,5 +90,16 @@ assert.match(standardCardsCss, /\.constructed-card-detail__pool-cards\s*\{[^}]*g
   'wide generated pools must use a stable five-column grid');
 assert.doesNotMatch(standardCardsCss, /\.constructed-card-detail__pool-cards\s*\{[^}]*auto-fill/s,
   'wide generated pools must not expand into an arbitrary number of tiny columns');
+
+const cardDeckComponent = standardCardsSource.slice(
+  standardCardsSource.indexOf('function ConstructedDeckCard'),
+  standardCardsSource.indexOf('function ConstructedCardDecks'),
+);
+assert.match(cardDeckComponent, /`\/deck-builder\?format=\$\{format\}&code=\$\{encodeURIComponent\(deck\.deckCode\)\}`/,
+  'card-page deck actions must preserve the selected format and deck code for the internal builder');
+assert.match(cardDeckComponent, /<a[^>]+href=\{builderHref\}[\s\S]*Открыть в конструкторе[\s\S]*<\/a>/,
+  'each recommended deck must open the existing internal deck builder');
+assert.doesNotMatch(cardDeckComponent, /Скопировать код|copyDeck/,
+  'the card-page deck action must no longer stop at copying a code');
 
 console.log('constructed-card Russian unavailable/stale UI contracts passed');
