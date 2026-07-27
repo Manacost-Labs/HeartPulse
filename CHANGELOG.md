@@ -216,6 +216,9 @@
 
 ## v1.0.48 - 2026-07-24
 
+- Added durable per-card Legend statistics history with idempotent SQLite
+  snapshots, bounded retention and an entitlement-aware history API for
+  popularity, win-rate, play-rate and mulligan charts.
 - Added a responsive card-statistics period filter for the last 1, 3, 7 and
   14 days and patch 36.0.3, preserving the selection in list, card-detail and
   generated-card navigation.

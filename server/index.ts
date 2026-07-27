@@ -7607,6 +7607,10 @@ const constructedCardDataService = createConstructedCardDataService({
   getArchetypeTranslations: () => getStandardArchetypeTranslations().then(result => result.map),
   stateDirectory: DATA_DIR,
   cacheTtlMs: EXTERNAL_DATASET_CACHE_MS,
+  onHistoryError: error => console.error(
+    '[constructed-cards] history snapshot failed:',
+    error instanceof Error ? error.message : error,
+  ),
 });
 void Promise.allSettled([
   constructedCardDataService.loadCards('standard'),
