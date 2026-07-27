@@ -328,15 +328,11 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
 .constructed-card-detail__pool-toggle:hover { filter: brightness(1.08); }
 .constructed-card-detail__decks { margin-top: 0.8rem; }
 .constructed-card-detail__deck-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 430px)); gap: 0.8rem; justify-content: center; margin-bottom: 0.7rem; }
-.constructed-card-detail__deck { display: grid; grid-template-rows: auto 1fr; min-width: 0; overflow: hidden; border: 1px solid rgba(121, 79, 38, 0.32); background: rgba(255, 250, 232, 0.42); box-shadow: 0 6px 14px rgba(67, 37, 15, 0.08); }
-.constructed-card-detail__deck-image { display: grid; min-width: 0; padding: 0.5rem; place-items: center; overflow: hidden; border-bottom: 1px solid rgba(121, 79, 38, 0.22); background: radial-gradient(circle at 50% 38%, rgba(231, 197, 124, 0.28), rgba(99, 48, 19, 0.08)); }
-.constructed-card-detail__deck-preview { position: relative; display: grid; width: 100%; padding: 0; border: 0; place-items: center; overflow: hidden; color: #fff0c4; background: #101823; cursor: zoom-in; }
-.constructed-card-detail__deck-preview img { display: block; width: 100%; height: auto; object-fit: contain; }
-.constructed-card-detail__deck-preview > span { position: absolute; right: 0.45rem; bottom: 0.45rem; left: 0.45rem; padding: 0.38rem 0.5rem; background: rgba(31, 16, 9, 0.88); font-size: 0.62rem; font-weight: 900; opacity: 0; transform: translateY(5px); transition: opacity 140ms ease, transform 140ms ease; }
-.constructed-card-detail__deck-preview:hover > span,
-.constructed-card-detail__deck-preview:focus-visible > span { opacity: 1; transform: translateY(0); }
-.constructed-card-detail__deck-preview-state { display: grid; width: 100%; aspect-ratio: 1920 / 1722; gap: 0.55rem; align-content: center; justify-items: center; padding: 1rem; color: #76593e; font-size: 0.67rem; font-weight: 800; text-align: center; }
-.constructed-card-detail__deck-preview-state button { display: inline-flex; gap: 0.3rem; align-items: center; min-height: 34px; padding: 0 0.65rem; border: 1px solid #8a5330; color: #5b351e; background: rgba(255, 244, 213, 0.8); font-size: 0.64rem; font-weight: 900; }
+.constructed-card-detail__deck { display: grid; grid-template-rows: 520px 1fr; min-width: 0; overflow: hidden; border: 1px solid rgba(121, 79, 38, 0.32); background: rgba(255, 250, 232, 0.42); box-shadow: 0 6px 14px rgba(67, 37, 15, 0.08); }
+.constructed-card-detail__deck-list { width: 100%; min-width: 0; height: 520px; overflow: auto; border-bottom: 1px solid rgba(121, 79, 38, 0.22); background: #160d0b; scrollbar-color: #9b6a38 #21130e; scrollbar-width: thin; }
+.constructed-card-detail__deck-list .deck-list-view { min-height: 100%; }
+.constructed-card-detail__deck-list-state { display: grid; width: 100%; height: 100%; gap: 0.55rem; align-content: center; justify-items: center; padding: 1rem; color: #eed8a8; background: radial-gradient(circle at 50% 38%, #513321, #160d0b 72%); font-size: 0.67rem; font-weight: 800; text-align: center; }
+.constructed-card-detail__deck-list-state button { display: inline-flex; gap: 0.3rem; align-items: center; min-height: 34px; padding: 0 0.65rem; border: 1px solid #b8864e; color: #fff0c5; background: #713118; font-size: 0.64rem; font-weight: 900; }
 .constructed-card-detail__deck-copy { display: grid; grid-template-rows: auto auto 1fr; gap: 0.3rem; padding: 0.7rem; }
 .constructed-card-detail__deck-copy h3 { display: -webkit-box; min-height: 2.3em; margin: 0; overflow: hidden; font-family: var(--font-display); font-size: 1rem; line-height: 1.15; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .constructed-card-detail__deck-copy p { min-height: 1rem; margin: 0; color: var(--cards-muted); font-size: 0.63rem; }
@@ -467,7 +463,8 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
   .constructed-card-detail__related-card-image img { width: 112px; height: 172px; }
   .constructed-card-detail__related-card-copy { padding-right: 0.4rem; }
   .constructed-card-detail__deck-grid { grid-template-columns: 1fr; }
-  .constructed-card-detail__deck-image { padding: 0.35rem; }
+  .constructed-card-detail__deck { grid-template-rows: 430px 1fr; }
+  .constructed-card-detail__deck-list { height: 430px; }
   .constructed-card-detail__gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .constructed-card-lightbox { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
   .constructed-card-lightbox__panel { width: 100%; max-height: 100%; min-height: 100%; border-inline: 0; }

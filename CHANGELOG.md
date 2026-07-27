@@ -1,5 +1,12 @@
 # HS-Arena Changelog
 
+## v1.0.67 - 2026-07-27
+
+- Replaced generated DeckView images in the card-page recommendations with the
+  native deck-list interface shared with the site's deck builder.
+- Kept direct deck-code copying below every recommendation and aligned all
+  native deck lists in responsive, scrollable cards.
+
 ## v1.0.66 - 2026-07-27
 
 - Restored the direct deck-code copy action on constructed card pages so users

@@ -101,5 +101,13 @@ assert.match(cardDeckComponent, /<button[^>]+onClick=\{copyDeck\}[\s\S]*Скоп
   'each recommended deck must expose the requested copy-code button');
 assert.doesNotMatch(cardDeckComponent, /builderHref|Открыть в конструкторе/,
   'the card-page deck action must not redirect into the internal builder');
+assert.match(cardDeckComponent, /fetch\(`\/api\/deck\/resolve\?\$\{query\}`/,
+  'recommended decks must resolve into the same native card rows used by the deck builder');
+assert.match(cardDeckComponent, /<DeckListView/,
+  'recommended decks must render through the native deck-list component');
+assert.doesNotMatch(cardDeckComponent, /\/preview\?format=|constructed-card-detail__deck-preview/,
+  'recommended decks must not depend on generated DeckView preview images');
+assert.match(standardCardsCss, /\.constructed-card-detail__deck-list\s*\{[^}]*overflow:\s*auto/s,
+  'native recommended-deck lists must stay aligned in a bounded scrollable viewport');
 
 console.log('constructed-card Russian unavailable/stale UI contracts passed');
