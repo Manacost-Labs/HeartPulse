@@ -98,6 +98,16 @@ assert.doesNotMatch(routingSource, /\$http_user_agent|Googlebot|YandexBot/i,
   'HTML routing must not vary content by crawler user-agent');
 assert.match(edgeStaticSource, /proxy_cache_valid\s+200\s+301\s+302\s+30d;/,
   'edge proxies may cache successful immutable assets internally');
+const edgeLocations = parseLocationBlocks(edgeStaticSource);
+const edgeCardImageLocation = edgeLocations.find(location => (
+  location.modifier === '^~' && location.pattern === '/api/card-image/'
+));
+assert.match(edgeCardImageLocation?.body || '', /proxy_cache\s+hs_arena_cache;/,
+  'card images must override the generic API BYPASS location and use the regional cache');
+assert.match(edgeCardImageLocation?.body || '', /proxy_cache_key\s+"\$scheme:\$request_method:\$host:\$request_uri";/,
+  'card-image cache keys must include the immutable source-version query');
+assert.doesNotMatch(edgeCardImageLocation?.body || '', /proxy_(?:no_cache|cache_bypass)/,
+  'the dedicated card-image edge route must never inherit the generic API bypass');
 assert.doesNotMatch(edgeStaticSource, /proxy_cache_valid\s+404|expires\s+30d|Cache-Control/i,
   'edge proxies must preserve the origin no-store policy for missing assets');
 assert.match(edgeStaticSource, /X-Proxy-Region\s+\$arena_proxy_region\s+always;/,

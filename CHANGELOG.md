@@ -1,5 +1,13 @@
 # HS-Arena Changelog
 
+## v1.0.64 - 2026-07-27
+
+- Added a dedicated regional edge-cache route for versioned card images so
+  repeated catalog, filter and card-page requests are served directly from the
+  Moscow or Novosibirsk proxy instead of crossing back to the origin.
+- Preserved origin cache-control for missing artwork and restricted edge
+  storage to successful image responses.
+
 ## v1.0.63 - 2026-07-27
 
 - Added a daily server-side preloader for both catalog thumbnails and card-page
