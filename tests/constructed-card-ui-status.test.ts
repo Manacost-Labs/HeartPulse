@@ -116,10 +116,16 @@ assert.doesNotMatch(standardCardsCss, /@media\s*\(max-width:\s*640px\)[\s\S]*?\.
   'mobile recommended-deck lists must remain fully expanded');
 assert.match(standardCardsSource, /label="Период"/,
   'the catalog must expose the statistics period as a primary visible filter');
-assert.match(standardCardsSource, /new URLSearchParams\(\{ format, period,/,
-  'the selected period must be sent to the constructed-card API');
-assert.match(standardCardsSource, /navigateWithConstructedCardPeriod/,
-  'card and back navigation must retain the selected statistics period');
+assert.match(standardCardsSource, /label="Ранг"/,
+  'the catalog and card detail must expose the statistics rank as a visible filter');
+assert.match(standardCardsSource, /new URLSearchParams\(\{ format, period, rank,/,
+  'the selected period and rank must be sent to the constructed-card list API');
+assert.match(standardCardsSource, /new URLSearchParams\(\{ format, statsFormat, period, rank \}\)/,
+  'card detail must request its independently selected statistics format, rank and period');
+assert.match(standardCardsSource, /navigateWithConstructedCardContext/,
+  'card and back navigation must retain the selected statistics context');
+assert.match(standardCardsSource, /aria-label="Формат статистики"/,
+  'card detail must offer an independent Standard/Wild statistics switch');
 assert.match(cardHistorySource, /\/history\?\$\{params\}/,
   'an entitled card detail must request its persisted statistics history');
 assert.match(standardCardsSource, /serverStatsAccess && \(\s*<ConstructedCardHistoryChart/,
