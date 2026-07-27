@@ -4,6 +4,7 @@ import {
   collectConstructedRelatedCardMedia,
   collectConstructedRelatedCardArtMedia,
   collectConstructedGeneratedPoolMedia,
+  constructedRelatedCardImage,
   constructedGeneratedPoolCardImage,
   constructedCardRenderImage,
   collectConstructedCardVariants,
@@ -137,13 +138,18 @@ assert.deepEqual(
     id: 'related-card-QUEST_REWARD',
     label: 'Русская награда',
     description: 'QUEST_REWARD',
-    url: 'https://example.test/QUEST_REWARD.png',
-    thumbnailUrl: 'https://example.test/QUEST_REWARD.png',
+    url: '/api/card-image/QUEST_REWARD/full.webp?v=constructed-cards-20260727',
+    thumbnailUrl: '/api/card-image/QUEST_REWARD/full.webp?v=constructed-cards-20260727',
     sourceUrl: null,
     kind: 'image',
     presentation: 'contain',
   },
-  'related card images must be available to the existing lightbox without adding a wiki action',
+  'related card images must use the same-origin cache in the existing lightbox without adding a wiki action',
+);
+assert.equal(
+  constructedRelatedCardImage(relatedGroups[0].cards[0]),
+  '/api/card-image/QUEST_REWARD/full.webp?v=constructed-cards-20260727',
+  'related cards with safe IDs must not require a direct db.kolodahs.ru browser request',
 );
 
 const generatedPoolMedia = collectConstructedGeneratedPoolMedia([

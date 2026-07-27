@@ -55,6 +55,10 @@ export function constructedGeneratedPoolCardImage(card: JsonRecord): string | nu
   return constructedCardRenderImage(cardId, fallback);
 }
 
+export function constructedRelatedCardImage(card: ConstructedRelatedCard): string | null {
+  return constructedCardRenderImage(card.cardId, card.cardImageUrl);
+}
+
 function mediaKind(url: string): 'image' | 'video' {
   return /\.(?:mp4|webm)(?:[?#]|$)/i.test(url) ? 'video' : 'image';
 }
@@ -177,15 +181,16 @@ export function collectConstructedRelatedCardMedia(
 ): ConstructedCardMediaItem[] {
   const seen = new Set<string>();
   return groups.flatMap(group => group.cards).flatMap((card, index) => {
-    if (!card.cardImageUrl || seen.has(card.cardImageUrl)) return [];
-    seen.add(card.cardImageUrl);
+    const cardImageUrl = constructedRelatedCardImage(card);
+    if (!cardImageUrl || seen.has(cardImageUrl)) return [];
+    seen.add(cardImageUrl);
     const label = card.nameRu || card.nameEn || card.cardId || 'Связанная карта';
     return [{
       id: `related-card-${card.cardId || index}`,
       label,
       description: card.cardId || null,
-      url: card.cardImageUrl,
-      thumbnailUrl: card.cardImageUrl,
+      url: cardImageUrl,
+      thumbnailUrl: cardImageUrl,
       sourceUrl: null,
       kind: 'image' as const,
       presentation: 'contain' as const,

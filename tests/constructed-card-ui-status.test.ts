@@ -63,7 +63,9 @@ const relatedCardsComponent = standardCardsSource.slice(
 );
 assert.match(relatedCardsComponent, /type="button"[\s\S]*constructed-card-detail__related-card-image/,
   'each related-card image must be a semantic lightbox button');
-assert.match(relatedCardsComponent, /onOpen\(item\.cardImageUrl!?\)/,
+assert.match(relatedCardsComponent, /constructedRelatedCardImage\(item\)/,
+  'related-card renders must use the same-origin card-image cache');
+assert.match(relatedCardsComponent, /onOpen\(cardImageUrl\)/,
   'the related-card image button must open the shared card lightbox');
 assert.doesNotMatch(relatedCardsComponent, /item\.manaCost|<dt>Мана<\/dt>/,
   'related cards must not repeat the mana cost beside the card image');

@@ -48,6 +48,7 @@ import {
   constructedCardRenderImage,
   collectConstructedCardVariants,
   flattenConstructedCardSounds,
+  constructedRelatedCardImage,
   type ConstructedCardMediaItem,
 } from './constructedCardMedia';
 import {
@@ -786,20 +787,21 @@ function RelatedCardGroups({ groups, onOpen }: {
               {group.cards.map(item => {
                 const name = item.nameRu || item.nameEn || item.cardId || 'Связанная карта';
                 const rules = plainText(item.textRu || item.textEn);
+                const cardImageUrl = constructedRelatedCardImage(item);
                 return (
                   <article
                     className="constructed-card-detail__related-card"
                     key={item.cardId || `${name}-${item.cardImageUrl || ''}`}
                   >
-                    {item.cardImageUrl
+                    {cardImageUrl
                       ? (
                         <button
                           type="button"
                           className="constructed-card-detail__related-card-image"
                           aria-label={`Открыть карту «${name}» в полном размере`}
-                          onClick={() => onOpen(item.cardImageUrl!)}
+                          onClick={() => onOpen(cardImageUrl)}
                         >
-                          <img src={item.cardImageUrl} alt={`Карта Hearthstone «${name}»`} loading="lazy" decoding="async" />
+                          <img src={cardImageUrl} alt={`Карта Hearthstone «${name}»`} loading="lazy" decoding="async" />
                         </button>
                       )
                       : <div className="constructed-card-detail__related-card-image"><Sparkles size={34} aria-hidden="true" /></div>}

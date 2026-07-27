@@ -4,6 +4,8 @@
 
 - Restored all three localized Titan abilities and the related Primus token
   for `TTN_737`, including cached card renders and original Wiki full art.
+- Routed related-card renders through Arena's same-origin WebP cache so they
+  no longer require a direct browser request to `db.kolodahs.ru`.
 - Changed the rolling constructed-card Wiki refresh to a daily oldest-first
   schedule so stale companion sections are eventually revisited instead of
   repeatedly selecting the same cards.

@@ -26,10 +26,12 @@ assets supplied by the user.
    localized render and full-art import pipeline.
 2. Display `Choice cards` as `Способности Титана` and retain `Related cards`
    as `Сопутствующие карты`.
-3. Change the rolling Wiki refresh to oldest-first selection and run it daily.
-4. Publish 16, 32 and 96 px favicon PNGs in every HTML entry point, plus a
+3. Route companion card renders through Arena's existing same-origin WebP
+   cache while preserving uncropped Wiki full art as separate gallery media.
+4. Change the rolling Wiki refresh to oldest-first selection and run it daily.
+5. Publish 16, 32 and 96 px favicon PNGs in every HTML entry point, plus a
    multi-size ICO fallback and derived 180/192 px application icons.
-5. Add a static contract test for image dimensions, ICO entries and HTML
+6. Add a static contract test for image dimensions, ICO entries and HTML
    declarations.
 
 ## Acceptance criteria
