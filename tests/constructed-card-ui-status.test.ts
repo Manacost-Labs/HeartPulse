@@ -113,5 +113,11 @@ assert.doesNotMatch(standardCardsCss, /\.constructed-card-detail__deck\s*\{[^}]*
   'recommended-deck cards must not constrain the native deck list to a fixed-height row');
 assert.doesNotMatch(standardCardsCss, /@media\s*\(max-width:\s*640px\)[\s\S]*?\.constructed-card-detail__deck-list\s*\{[^}]*height:\s*\d+px/s,
   'mobile recommended-deck lists must remain fully expanded');
+assert.match(standardCardsSource, /label="Период"/,
+  'the catalog must expose the statistics period as a primary visible filter');
+assert.match(standardCardsSource, /new URLSearchParams\(\{ format, period,/,
+  'the selected period must be sent to the constructed-card API');
+assert.match(standardCardsSource, /navigateWithConstructedCardPeriod/,
+  'card and back navigation must retain the selected statistics period');
 
 console.log('constructed-card Russian unavailable/stale UI contracts passed');

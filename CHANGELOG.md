@@ -216,6 +216,9 @@
 
 ## v1.0.48 - 2026-07-24
 
+- Added a responsive card-statistics period filter for the last 1, 3, 7 and
+  14 days and patch 36.0.3, preserving the selection in list, card-detail and
+  generated-card navigation.
 - Added a period-aware constructed-card statistics contract for the last
   1, 3, 7 and 14 days plus the current patch, with isolated caches and
   validation for list, detail and deck-preview requests.
