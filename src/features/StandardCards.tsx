@@ -224,6 +224,7 @@ const GENERATED_POOL_LABELS: Record<string, string> = {
   'Minion cards': 'Карты существ',
   'Weapon cards': 'Карты оружия',
   "Cards banned from E.T.C.'s band": 'Карты, недоступные для группы E.T.C.',
+  'Cards banned from E.T.C.’s band': 'Карты, недоступные для группы E.T.C.',
 };
 
 function cardName(card: CardRecord): string {

@@ -80,6 +80,8 @@ assert.match(generatedPoolComponent, /aria-label=\{`Открыть карту/,
   'generated-pool lightbox controls must expose a descriptive accessible name');
 assert.match(generatedPoolComponent, /constructed-card-detail__pool-card-link/,
   'generated-pool card names must retain their detail-page navigation');
+assert.match(standardCardsSource, /Cards banned from E\.T\.C\.[’']s band['"]:\s*'Карты, недоступные для группы E\.T\.C\.'/,
+  'the E.T.C. generated-pool heading must be localized for Wiki apostrophe variants');
 
 const standardCardsCss = readFileSync(new URL('../src/features/StandardCards.css', import.meta.url), 'utf8');
 assert.match(standardCardsCss, /\.constructed-card-detail__pool-cards\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/s,
