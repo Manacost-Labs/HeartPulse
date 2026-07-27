@@ -414,21 +414,6 @@ function useConstructedCardPeriod(): [
   return [period, setPeriod];
 }
 
-function classIcon(cardClass?: string | null): string {
-  const key = String(cardClass || 'neutral').toLocaleLowerCase().replace(/_/g, '');
-  return key === 'neutral' ? '/class_icon/neutral.webp' : `/class_icon/ui/${key}-64.webp`;
-}
-
-function FilterSelect({ label, value, onChange, children, tourId, className = '' }: {
-  label: string; value: string; onChange: (value: string) => void; children: React.ReactNode; tourId?: string; className?: string;
-}) {
-  return (
-    <label className={`constructed-cards__filter${className ? ` ${className}` : ''}`} data-tour-id={tourId}>
-      <span>{label}</span>
-      <select value={value} onChange={event => onChange(event.target.value)}>{children}</select>
-    </label>
-  );
-}
 function StatsRows({ stats, compact = false }: { stats: CardStats | null; compact?: boolean }) {
   const rows = [
     ['В % колод', percent(stats?.deckPopularity)],
@@ -719,11 +704,11 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
             value={period}
             onChange={value => changePeriod(value as ConstructedCardPeriod)}
             tourId="cards-period"
-          >
-            {CONSTRUCTED_CARD_PERIOD_OPTIONS.map(option => (
-              <option key={option.id} value={option.id}>{option.label}</option>
-            ))}
-          </FilterSelect>
+            options={CONSTRUCTED_CARD_PERIOD_OPTIONS.map(option => ({
+              value: option.id,
+              label: option.label,
+            }))}
+          />
           <label className="constructed-cards__search" data-tour-id="cards-search"><Search size={18} /><input value={filters.query} onChange={event => updateFilter('query', event.target.value)} placeholder="Поиск по названию" /></label>
           <FilterSelect
             label="Сортировка"

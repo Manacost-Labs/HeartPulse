@@ -1665,7 +1665,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
   const cards    = data.cards;
 
   // Virtual "all cards" section — best tier per unique cardId across all sections
-  const allCardsSection = useMemo(() => {
+  const allCardsSection = useMemo<ClassSection>(() => {
     const TIER_RANK: Record<string, number> = { S:6, A:5, B:4, C:3, D:2, E:1, F:0, U:-1 };
     const best = new Map<string, { card: TierCard; tier: string }>();
     const shouldHideCompanions = tierlistSource !== 'hsreplay';
@@ -1689,6 +1689,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
     const tierOrder = ['S','A','B','C','D','E','F','U'];
     return {
       id: ALL_CARDS_ID, name: 'Все карты', color: '#5a3000',
+      textDark: false,
       totalCards: best.size,
       tiers: tierOrder
         .filter(t => tierMap.has(t))

@@ -9,6 +9,7 @@ type ConstructedCardFilterSelectProps = {
   options: ConstructedCardFilterOption[];
   onChange: (value: string) => void;
   tourId?: string;
+  className?: string;
   visual?: 'text' | 'class' | 'set' | 'stat' | 'rarity';
   align?: 'start' | 'end';
 };
@@ -33,6 +34,7 @@ export default function ConstructedCardFilterSelect({
   options,
   onChange,
   tourId,
+  className = '',
   visual = 'text',
   align = 'start',
 }: ConstructedCardFilterSelectProps) {
@@ -157,7 +159,7 @@ export default function ConstructedCardFilterSelect({
   return (
     <div
       ref={rootRef}
-      className={`constructed-cards__filter${open ? ' is-open' : ''}`}
+      className={`constructed-cards__filter${className ? ` ${className}` : ''}${open ? ' is-open' : ''}`}
       data-tour-id={tourId}
       data-visual={visual}
       data-align={resolvedAlign}

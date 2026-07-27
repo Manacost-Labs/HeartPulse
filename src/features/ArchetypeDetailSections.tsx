@@ -19,6 +19,7 @@ import {
   normalizeConstructedHeroClass,
 } from './constructedDeckCode';
 import DeckListView, { type DeckListCard } from './decklist/DeckListView';
+import type { HistoryPoint } from './ArchetypeHistoryChart';
 import './ArchetypeDetailSections.css';
 
 export type ArchetypeSnapshot = {
@@ -93,7 +94,7 @@ export type ArchetypeDetailData = {
   matchups: ArchetypeMatchupRow[];
   mulligan: ArchetypeMulliganRow[];
   decks: ArchetypeDeck[];
-  history: Array<Record<string, unknown>>;
+  history: HistoryPoint[];
 };
 
 const CLASS_COLORS: Record<string, string> = {

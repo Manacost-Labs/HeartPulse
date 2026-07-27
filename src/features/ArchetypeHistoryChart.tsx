@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import './ArchetypeHistoryChart.css';
 
-type HistoryPoint = { series_name: string; point_date: string; value: number | null };
+export type HistoryPoint = { series_name: string; point_date: string; value: number | null };
 
 const WIDTH = 760;
 const HEIGHT = 230;
