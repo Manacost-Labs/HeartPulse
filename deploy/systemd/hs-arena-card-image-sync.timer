@@ -1,5 +1,5 @@
 [Unit]
-Description=Daily refresh of Standard and Wild Hearthstone card thumbnails
+Description=Daily refresh of Standard and Wild Hearthstone card images
 
 [Timer]
 OnBootSec=5min
@@ -10,4 +10,3 @@ Unit=hs-arena-card-image-sync.service
 
 [Install]
 WantedBy=timers.target
-

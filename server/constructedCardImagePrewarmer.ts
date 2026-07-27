@@ -14,6 +14,7 @@ import {
   CARD_IMAGE_CACHE_VERSION,
   CARD_IMAGE_VARIANTS,
   cardImageCacheFilename,
+  type CardImageVariant,
 } from './cardImageCache.js';
 import {
   createBlizzardCardImageClient,
@@ -22,10 +23,12 @@ import {
 
 const MANIFEST_FILE = 'blizzard-thumbnails-manifest-v1.json';
 const CHECKPOINT_SIZE = 100;
+const PREWARM_VARIANTS: CardImageVariant[] = ['thumb', 'full'];
 
 type ManifestCard = {
   sourceUrl: string;
-  cacheFile: string;
+  cacheFile?: string;
+  cacheFiles?: Record<CardImageVariant, string>;
   updatedAt: string;
 };
 
@@ -178,32 +181,41 @@ export async function syncConstructedCardThumbnails(
           result.missing += 1;
           return;
         }
-        const cacheFile = cardImageCacheFilename(dbfId, 'thumb', 'blizzard');
-        const cachePath = join(cacheDir, cacheFile);
+        const cacheFiles = Object.fromEntries(PREWARM_VARIANTS.map(variant => [
+          variant,
+          cardImageCacheFilename(dbfId, variant, 'blizzard'),
+        ])) as Record<CardImageVariant, string>;
         const previous = manifest.cards[String(dbfId)];
-        if (
-          previous?.sourceUrl === sourceUrl
-          && previous?.cacheFile === cacheFile
-          && await pathExists(cachePath)
-        ) {
+        const sourceUnchanged = previous?.sourceUrl === sourceUrl;
+        const variantsToWrite: CardImageVariant[] = [];
+        for (const variant of PREWARM_VARIANTS) {
+          if (!sourceUnchanged || !(await pathExists(join(cacheDir, cacheFiles[variant])))) {
+            variantsToWrite.push(variant);
+          }
+        }
+        if (variantsToWrite.length === 0) {
           result.skipped += 1;
           return;
         }
 
         const original = await downloadImage(sourceUrl);
-        const rendered = await sharp(original)
-          .resize({ width: CARD_IMAGE_VARIANTS.thumb.width, withoutEnlargement: true })
-          .webp({ quality: CARD_IMAGE_VARIANTS.thumb.quality, effort: 4 })
-          .toBuffer();
-        await atomicWrite(cachePath, rendered);
+        for (const variant of variantsToWrite) {
+          const settings = CARD_IMAGE_VARIANTS[variant];
+          const rendered = await sharp(original)
+            .resize({ width: settings.width, withoutEnlargement: true })
+            .webp({ quality: settings.quality, effort: 4 })
+            .toBuffer();
+          await atomicWrite(join(cacheDir, cacheFiles[variant]), rendered);
+          result.bytesWritten += rendered.length;
+        }
         manifest.cards[String(dbfId)] = {
           sourceUrl,
-          cacheFile,
+          cacheFile: cacheFiles.thumb,
+          cacheFiles,
           updatedAt: now().toISOString(),
         };
         batchChanged = true;
         result.updated += 1;
-        result.bytesWritten += rendered.length;
       } catch (error: any) {
         result.failed += 1;
         if (result.errors.length < 50) {

@@ -2,9 +2,9 @@
 
 ## v1.0.63 - 2026-07-27
 
-- Added a daily server-side preloader for all Standard and Wild card
-  thumbnails, eliminating cold Blizzard fetches while searching, filtering and
-  opening constructed card pages.
+- Added a daily server-side preloader for both catalog thumbnails and card-page
+  renders across Standard and Wild, eliminating cold Blizzard fetches while
+  searching, filtering and opening constructed card pages.
 - Added an atomic source-URL manifest so scheduled refreshes download only new
   cards or cards whose official Blizzard render changed.
 - Versioned browser and edge image requests from the official Blizzard image

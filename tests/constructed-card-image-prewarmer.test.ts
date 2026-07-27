@@ -55,6 +55,8 @@ try {
   assert.equal(downloads.length, 2);
   await stat(join(cacheDir, '101-thumb-blizzard-card_img_v6_blizzard.webp'));
   await stat(join(cacheDir, '202-thumb-blizzard-card_img_v6_blizzard.webp'));
+  await stat(join(cacheDir, '101-full-blizzard-card_img_v6_blizzard.webp'));
+  await stat(join(cacheDir, '202-full-blizzard-card_img_v6_blizzard.webp'));
 
   const second = await syncConstructedCardThumbnails({
     dbfIds: [101, 202],
@@ -93,6 +95,8 @@ try {
   ));
   assert.equal(manifest.schemaVersion, 1);
   assert.equal(manifest.cards['101'].sourceUrl, urls.get(101));
+  assert.equal(manifest.cards['101'].cacheFiles.thumb, '101-thumb-blizzard-card_img_v6_blizzard.webp');
+  assert.equal(manifest.cards['101'].cacheFiles.full, '101-full-blizzard-card_img_v6_blizzard.webp');
   assert.equal(manifest.cards['101'].updatedAt, '2026-07-27T12:00:00.000Z');
   assert.equal(manifest.cards['202'].sourceUrl, urls.get(202));
   assert.equal(manifest.cards['202'].updatedAt, '2026-07-29T12:00:00.000Z');

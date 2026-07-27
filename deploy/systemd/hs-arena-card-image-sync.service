@@ -1,5 +1,5 @@
 [Unit]
-Description=Preload Standard and Wild Hearthstone card thumbnails
+Description=Preload Standard and Wild Hearthstone card images
 After=network-online.target
 Wants=network-online.target
 
@@ -20,4 +20,3 @@ PrivateTmp=true
 NoNewPrivileges=true
 StandardOutput=journal
 StandardError=journal
-
