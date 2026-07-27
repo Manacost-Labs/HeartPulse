@@ -6,6 +6,10 @@ import {
   ConstructedCardCatalogStore,
   type ConstructedCardCatalogDocument,
 } from './constructedCardCatalogStore.js';
+import {
+  ConstructedCardHistoryStore,
+  type ConstructedCardHistoryPoint,
+} from './constructedCardHistoryStore.js';
 
 export type ConstructedCardFormat = 'standard' | 'wild';
 export type ConstructedCardPeriod = '1d' | '3d' | '7d' | '14d' | 'patch';
@@ -62,6 +66,12 @@ export type ConstructedCardDataService = {
     cardId: string,
     period?: ConstructedCardPeriod,
   ) => Promise<ConstructedCardDetailResult | null>;
+  loadCardHistory: (
+    format: ConstructedCardFormat,
+    cardId: string,
+    period?: ConstructedCardPeriod,
+    days?: number,
+  ) => Promise<ConstructedCardHistoryPoint[]>;
   getCatalogHealth: (format: ConstructedCardFormat) => ConstructedCardCatalogHealth;
   invalidate?: () => void;
 };
@@ -95,7 +105,7 @@ export type ConstructedCardRouterDependencies = ConstructedCardDataService & {
   getMechanicTranslations?: () => Record<string, string>;
   getMechanicTranslationOverrides?: () => Record<string, string>;
   createDeckPreview?: (deck: ConstructedCardDeck) => Promise<ConstructedCardDeckPreview>;
-  onError?: (scope: 'list' | 'detail' | 'deck-preview', error: unknown) => void;
+  onError?: (scope: 'list' | 'detail' | 'history' | 'deck-preview', error: unknown) => void;
 };
 
 type DataServiceDependencies = {
@@ -115,6 +125,8 @@ type DataServiceDependencies = {
   minimumCatalogCardsByFormat?: Partial<Record<ConstructedCardFormat, number>>;
   controlledCatalogExpansionByFormat?: Partial<Record<ConstructedCardFormat, boolean>>;
   catalogStore?: ConstructedCardCatalogStore;
+  historyStore?: ConstructedCardHistoryStore;
+  onHistoryError?: (error: unknown) => void;
   negativeDetailCacheMaxEntries?: number;
   cacheTtlMs?: number;
 };
@@ -245,6 +257,11 @@ function periodDescriptor(period: ConstructedCardPeriod, payload?: JsonRecord): 
 function readPositiveInteger(value: unknown, fallback: number, maximum = Number.MAX_SAFE_INTEGER): number {
   const parsed = Number.parseInt(String(value ?? ''), 10);
   return Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, maximum) : fallback;
+}
+
+function readHistoryDays(value: unknown): number {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  return Number.isFinite(parsed) ? Math.max(7, Math.min(parsed, 365)) : 90;
 }
 
 function readFilter(value: unknown): string {
@@ -812,6 +829,10 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     minimumCardCountByFormat: dependencies.minimumCatalogCardsByFormat,
     freshWindowMs: cacheTtlMs,
   });
+  const historyStore = dependencies.historyStore ?? new ConstructedCardHistoryStore({
+    stateDirectory: dependencies.stateDirectory ?? process.env.SERVER_DATA_DIR ?? 'server/data',
+    now,
+  });
   type CatalogLoad = {
     document: ConstructedCardCatalogDocument;
     cacheSource: 'fresh' | 'LKG';
@@ -1043,6 +1064,18 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
         catalogPublishedAt: catalog.document.publishedAt,
         period: periodDescriptor(period, statsPayload),
       };
+      if (!statsWarning) {
+        try {
+          historyStore.recordSnapshot(
+            format,
+            period,
+            value.updatedAt,
+            value.cards,
+          );
+        } catch (error) {
+          dependencies.onHistoryError?.(error);
+        }
+      }
       if (generation === jobGeneration) cache.set(key, { value, expiresAt: now() + cacheTtlMs });
       return value;
     })().finally(() => { if (jobs.get(key) === job) jobs.delete(key); });
@@ -1206,6 +1239,13 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     return job;
   };
 
+  const loadCardHistory = async (
+    format: ConstructedCardFormat,
+    cardId: string,
+    period: ConstructedCardPeriod = '1d',
+    days = 90,
+  ): Promise<ConstructedCardHistoryPoint[]> => historyStore.read(format, period, cardId, days);
+
   const getCatalogHealth = (format: ConstructedCardFormat): ConstructedCardCatalogHealth => {
     const cached = catalogCache.get(format)?.value;
     const inspection = catalogStore.inspect(format);
@@ -1245,7 +1285,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     decksJob = null;
   };
 
-  return { loadCards, loadCardDetail, getCatalogHealth, invalidate };
+  return { loadCards, loadCardDetail, loadCardHistory, getCatalogHealth, invalidate };
 }
 
 export function createConstructedCardRouter(dependencies: ConstructedCardRouterDependencies): Router {
@@ -1267,13 +1307,15 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
     if (value.dataStatus === 'stale') response.set('Warning', '110 - "Response is Stale"');
   };
 
-  const unavailable = (response: Response, error: unknown, scope: 'list' | 'detail') => {
+  const unavailable = (response: Response, error: unknown, scope: 'list' | 'detail' | 'history') => {
     dependencies.onError?.(scope, error);
     response.set('Retry-After', '60');
     return response.status(503).json({
       error: scope === 'list'
         ? 'Библиотека карт временно недоступна. Повторите попытку через минуту.'
-        : 'Данные карты временно недоступны. Повторите попытку через минуту.',
+        : scope === 'history'
+          ? 'История статистики временно недоступна. Повторите попытку через минуту.'
+          : 'Данные карты временно недоступны. Повторите попытку через минуту.',
       retryAfter: 60,
       dataStatus: 'unavailable',
     });
@@ -1358,6 +1400,46 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
   };
   router.get('/constructed-cards/:cardId', detailHandler);
   router.get('/admin/constructed-cards/:cardId', detailHandler);
+
+  const historyHandler: RequestHandler = async (request, response) => {
+    const format = readFormat(request.query.format);
+    const period = readPeriod(request.query.period);
+    const cardId = String(request.params.cardId ?? '').trim();
+    const days = readHistoryDays(request.query.days);
+    if (!format) return response.status(400).json({ error: 'Неизвестный формат карт' });
+    if (!period) return response.status(400).json({ error: 'Неизвестный период статистики' });
+    if (!/^[a-zA-Z0-9_]{2,80}$/.test(cardId)) return response.status(400).json({ error: 'Некорректный ID карты' });
+    try {
+      const statsAccess = Boolean(await dependencies.canAccessStats?.(request));
+      const responsePeriod = periodDescriptor(period);
+      if (!statsAccess) {
+        return response.json({
+          format,
+          rank: 'legend',
+          period: responsePeriod,
+          statsAccess: false,
+          days,
+          points: [],
+        });
+      }
+      const collection = await dependencies.loadCards(format, period);
+      const points = await dependencies.loadCardHistory(format, cardId, period, days);
+      setDataHeaders(response, collection);
+      return response.json({
+        format,
+        rank: 'legend',
+        period: collection.period ?? responsePeriod,
+        statsAccess: true,
+        days,
+        updatedAt: collection.updatedAt,
+        points,
+      });
+    } catch (error) {
+      return unavailable(response, error, 'history');
+    }
+  };
+  router.get('/constructed-cards/:cardId/history', historyHandler);
+  router.get('/admin/constructed-cards/:cardId/history', historyHandler);
 
   const previewHandler: RequestHandler = async (request, response) => {
     const format = readFormat(request.query.format ?? request.body?.format);

@@ -118,6 +118,35 @@ const sevenDayCollection = await periodService.loadCards('standard', '7d');
 assert.ok(periodUrls.includes('https://stats.example.test/standard-legend-7d'));
 assert.equal(sevenDayCollection.period?.id, '7d');
 assert.equal(sevenDayCollection.period?.timeRange, 'LAST_7_DAYS');
+const historyService = createConstructedCardDataService({
+  fetchJson: async url => url.includes('/constructed-cards')
+    ? { data: catalogCards, pagination: { page: 1, total: catalogCards.length, total_pages: 1 } }
+    : {
+        fetched_at: '2026-07-27T10:00:00.000Z',
+        view: {
+          cards: [{
+            id: 'CARD_1',
+            dbfId: 1,
+            deck_popularity: '12.5%',
+            deck_winrate: '54.3%',
+            times_played: 240,
+          }],
+          time_range: 'LAST_1_DAY',
+        },
+      },
+  catalogBaseUrl: 'https://db.example.test/api/v1',
+  statsDatasetByFormat: { standard: 'standard-legend-1d', wild: 'wild-legend-1d' },
+  statsBaseUrl: 'https://stats.example.test',
+  stateDirectory: serviceStateDirectory,
+  minimumCatalogCardsByFormat: { standard: 1, wild: 1 },
+  now: () => Date.parse('2026-07-27T12:00:00.000Z'),
+});
+await historyService.loadCards('standard', '1d');
+assert.deepEqual(
+  (await historyService.loadCardHistory('standard', 'CARD_1', '1d', 30)).map(point => point.recordedAt),
+  ['2026-07-27T10:00:00.000Z'],
+  'a validated upstream refresh must be persisted for the history chart',
+);
 const pendingCatalogCard = mergeConstructedCardRows(catalogCards, [{
   id: 'CARD_3', dbfId: 3, name: 'Гамма', type: 'SPELL', rarity: 'EPIC', cardClass: 'PRIEST', cost: 3,
   deck_popularity: '1.2%', times_played: 42,
@@ -291,6 +320,22 @@ const dependencies: ConstructedCardRouterDependencies = {
       },
     } : null;
   },
+  loadCardHistory: async (format, cardId, period, days) => {
+    calls.push(`history:${format}:${cardId}:${period}:${days}`);
+    return cardId === 'CARD_1' ? [{
+      recordedAt: '2026-07-16T05:03:02.000Z',
+      deckPopularity: 12.5,
+      deckWinrate: 54.3,
+      averageCopies: 1.4,
+      timesPlayed: 240,
+      winrateWhenPlayed: 57.2,
+      winrateWhenDrawn: 55.1,
+      keepPercentage: 43.2,
+      openingHandWinrate: 52.4,
+      averageTurnsInHand: 2.8,
+      averageTurnPlayed: 4.1,
+    }] : [];
+  },
   getCatalogHealth: format => ({
     format,
     state: 'fresh',
@@ -364,6 +409,12 @@ try {
   assert.equal(publicDetailPayload.card.stats, null);
   assert.equal(publicDetailPayload.card.decks[0].winrate, null);
   assert.equal(publicDetailPayload.card.decks[0].score, null);
+  const publicHistory = await fetch(`${publicOrigin}/CARD_1/history?format=standard&period=7d&days=30`);
+  const publicHistoryPayload = await publicHistory.json() as any;
+  assert.equal(publicHistoryPayload.statsAccess, false);
+  assert.deepEqual(publicHistoryPayload.points, []);
+  assert.ok(!calls.some(call => call.startsWith('history:')),
+    'locked users must not trigger or receive persisted history reads');
 
   const invalidFormat = await fetch(`${origin}?format=classic`, { headers: adminHeaders });
   assert.equal(invalidFormat.status, 400);
@@ -390,6 +441,15 @@ try {
   assert.equal(detailPayload.card.name.ru, 'Альфа');
   assert.deepEqual(detailPayload.mechanicTranslations, { BATTLECRY: 'Боевой клич' });
   assert.deepEqual(detailPayload.mechanicOverrides, { BATTLECRY: 'Редакторский боевой клич' });
+
+  const history = await fetch(`${origin}/CARD_1/history?format=wild&period=patch&days=30`, { headers: adminHeaders });
+  assert.equal(history.status, 200);
+  const historyPayload = await history.json() as any;
+  assert.equal(historyPayload.statsAccess, true);
+  assert.equal(historyPayload.period.id, 'patch');
+  assert.equal(historyPayload.days, 30);
+  assert.equal(historyPayload.points[0].deckPopularity, 12.5);
+  assert.ok(calls.includes('history:wild:CARD_1:patch:30'));
 
   const preview = await fetch(`${origin}/CARD_1/decks/754/preview?format=standard`, { method: 'POST', headers: adminHeaders });
   assert.equal(preview.status, 200);
