@@ -1,0 +1,40 @@
+MANACOST PROPRIETARY SOFTWARE LICENSE
+
+Copyright (c) 2026 Manacost. All Rights Reserved.
+
+This repository and its original source code, documentation, designs, and other
+original materials (collectively, the "Software") are proprietary works owned
+by Manacost.
+
+No license or permission is granted to use, copy, reproduce, modify, adapt,
+translate, merge, publish, distribute, sublicense, sell, rent, lease, host,
+deploy, create derivative works from, or incorporate the Software, in whole or
+in part, into another product or service without prior written permission from
+Manacost.
+
+In particular, no permission is granted to:
+
+1. republish or redistribute the source code or a modified version of it;
+2. operate a public or commercial copy of the Software;
+3. use the Software or its source code to build a competing product or service;
+4. use the Software or its source code as training data for a machine-learning
+   or artificial-intelligence system; or
+5. remove or obscure copyright, ownership, or attribution notices.
+
+Access to this repository does not imply permission beyond the limited rights
+required by applicable law or by the GitHub Terms of Service for use of
+GitHub's own features. Any separately signed written agreement with Manacost
+takes precedence over this license for the parties to that agreement.
+
+Third-party software, game assets, trademarks, data, and other materials remain
+subject to their respective owners' terms and licenses. This license applies
+only to original materials for which Manacost owns the applicable rights.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. TO THE MAXIMUM EXTENT
+PERMITTED BY LAW, MANACOST SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY ARISING FROM ACCESS TO OR USE OF THE SOFTWARE.
+
+For licensing requests, contact the repository owner through:
+https://github.com/Zulut30/manacost-arena
