@@ -57,6 +57,7 @@
 .constructed-cards__search { display: flex; flex: 1 1 260px; gap: 0.4rem; align-items: center; min-width: 190px; height: 45px; padding: 0 0.7rem; border: 1px solid #aa7a40; background: rgba(255, 248, 222, 0.74); }
 .constructed-cards__search input { width: 100%; min-width: 0; border: 0; outline: 0; color: var(--cards-ink); background: transparent; font-size: 0.82rem; }
 .constructed-cards__primary-controls > .constructed-cards__filter { flex: 0 1 210px; min-width: 170px; }
+.constructed-cards__primary-controls > .constructed-cards__rank-filter { flex-basis: 150px; min-width: 135px; }
 .constructed-cards__primary-controls > .constructed-cards__period-filter { flex-basis: 185px; min-width: 155px; }
 .constructed-cards__sort-lock {
   display: inline-flex;
@@ -253,6 +254,13 @@
 .constructed-card-detail__statistics > div:first-child { display: flex; gap: 0.7rem; align-items: baseline; justify-content: space-between; padding-bottom: 0.5rem; border-bottom: 1px solid var(--cards-line); }
 .constructed-card-detail__statistics h2 { margin: 0; font-family: var(--font-display); font-size: 1.45rem; }
 .constructed-card-detail__statistics > div:first-child span { color: var(--cards-muted); font-size: 0.58rem; text-align: right; }
+.constructed-card-detail__statistics-controls { display: grid; grid-template-columns: minmax(250px, 1fr) minmax(145px, 0.55fr) minmax(170px, 0.7fr); gap: 0.55rem; align-items: end; margin-top: 0.65rem; padding: 0.62rem; border: 1px solid rgba(125, 79, 37, 0.24); background: rgba(238, 207, 151, 0.24); }
+.constructed-card-detail__statistics-controls .constructed-cards__filter { min-width: 0; }
+.constructed-card-detail__statistics-format { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); min-height: 48px; padding: 0.18rem; border: 1px solid #aa7a40; background: rgba(255, 244, 207, 0.62); }
+.constructed-card-detail__statistics-format button { display: inline-flex; min-width: 0; gap: 0.35rem; align-items: center; justify-content: center; padding: 0.18rem 0.45rem; border: 0; color: #5b3b24; background: transparent; font-size: 0.67rem; font-weight: 900; }
+.constructed-card-detail__statistics-format button[aria-pressed='true'] { color: #fff0c5; background: var(--cards-wine); }
+.constructed-card-detail__statistics-format img { width: 34px; height: 34px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(45, 20, 8, 0.35)); }
+.constructed-card-detail__statistics-format button[aria-pressed='true'] img { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55)) brightness(1.12); }
 .constructed-card-detail__no-stats { color: #8a4638; font-size: 0.7rem; line-height: 1.4; }
 .constructed-card-detail__statistics .constructed-cards__stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .constructed-card-detail__statistics .constructed-cards__stats div { display: grid; align-content: center; min-height: 56px; }
@@ -390,6 +398,8 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
   .constructed-card-detail__hero { grid-template-columns: minmax(230px, 285px) minmax(0, 1fr); }
   .constructed-card-detail__visual { position: static; }
   .constructed-card-detail__statistics .constructed-cards__stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .constructed-card-detail__statistics-controls { grid-template-columns: 1fr 1fr; }
+  .constructed-card-detail__statistics-format { grid-column: 1 / -1; }
   .constructed-card-detail__lower-grid,
   .constructed-card-detail__media-grid { grid-template-columns: 1fr; }
   .constructed-card-detail__deck-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -410,7 +420,8 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
   .constructed-cards__search,
   .constructed-cards__view { grid-column: 1 / -1; width: 100%; min-width: 0; }
   .constructed-cards__primary-controls > .constructed-cards__filter { grid-column: auto; width: 100%; min-width: 0; }
-  .constructed-cards__primary-controls > .constructed-cards__period-filter { grid-column: 1 / -1; }
+  .constructed-cards__primary-controls > .constructed-cards__period-filter,
+  .constructed-cards__primary-controls > .constructed-cards__rank-filter { grid-column: auto; }
   .constructed-cards__sort-lock { grid-column: 1 / -1; min-height: 36px; justify-content: center; }
   .constructed-cards__format button,
   .constructed-cards__view button { flex: 1; min-height: 44px; }
@@ -438,6 +449,8 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
   .constructed-cards__data-deck-card .hsrdv { --hsrdv-tile-height: 44px; --hsrdv-gem-width: 44px; }
   .constructed-cards__pagination { flex-wrap: wrap; }
   .constructed-cards__pagination button { min-height: 44px; }
+  .constructed-card-detail__statistics-controls { grid-template-columns: 1fr; padding: 0.5rem; }
+  .constructed-card-detail__statistics-format { grid-column: auto; }
   .constructed-card-detail__breadcrumb { overflow: hidden; white-space: nowrap; }
   .constructed-card-detail__hero { grid-template-columns: 1fr; padding: 0.55rem; border-width: 6px; border-image-width: 6px; }
   .constructed-card-detail__visual { grid-row: auto; padding: 0.45rem; }

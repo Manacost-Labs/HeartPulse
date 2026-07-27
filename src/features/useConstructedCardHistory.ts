@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import type { ConstructedCardPeriod } from './constructedCardPeriods';
+import type { ConstructedCardPeriod, ConstructedCardRank } from './constructedCardPeriods';
 import type { ConstructedCardHistoryPoint } from './constructedCardHistoryModel';
 
 type ConstructedCardHistoryOptions = {
   cardId: string;
   format: 'standard' | 'wild';
   period: ConstructedCardPeriod;
+  rank: ConstructedCardRank;
   enabled: boolean;
 };
 
@@ -13,6 +14,7 @@ export function useConstructedCardHistory({
   cardId,
   format,
   period,
+  rank,
   enabled,
 }: ConstructedCardHistoryOptions) {
   const [days, setDays] = useState(90);
@@ -30,6 +32,7 @@ export function useConstructedCardHistory({
         const params = new URLSearchParams({
           format,
           period,
+          rank,
           days: String(days),
         });
         const response = await fetch(
@@ -56,7 +59,7 @@ export function useConstructedCardHistory({
     };
     void loadHistory();
     return () => controller.abort();
-  }, [cardId, days, enabled, format, period]);
+  }, [cardId, days, enabled, format, period, rank]);
 
   return {
     days,

@@ -13,6 +13,8 @@ import './ConstructedCardHistoryChart.css';
 type ConstructedCardHistoryChartProps = {
   points: ConstructedCardHistoryPoint[];
   periodLabel: string;
+  formatLabel: string;
+  rankLabel: string;
   days: number;
   onDaysChange: (days: number) => void;
   loading?: boolean;
@@ -44,6 +46,8 @@ function formatDate(value: string): string {
 export default function ConstructedCardHistoryChart({
   points,
   periodLabel,
+  formatLabel,
+  rankLabel,
   days,
   onDaysChange,
   loading = false,
@@ -80,7 +84,7 @@ export default function ConstructedCardHistoryChart({
           <span aria-hidden="true"><ChartLine size={22} /></span>
           <div>
             <h2 id="constructed-card-history-title">Динамика карты</h2>
-            <p>Легенда · {periodLabel} · история за {days} дней</p>
+            <p>{formatLabel} · {rankLabel} · {periodLabel} · история за {days} дней</p>
           </div>
         </div>
         <div className="constructed-card-history__ranges" aria-label="Диапазон истории">

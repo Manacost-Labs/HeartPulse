@@ -24,6 +24,8 @@ const meta = {
   args: {
     points: history,
     periodLabel: 'Последние 7 дней',
+    formatLabel: 'Стандарт',
+    rankLabel: 'Алмаз 1–4',
     days: 90,
     onDaysChange: fn(),
     loading: false,
@@ -63,6 +65,8 @@ function ControlledHistory() {
     <ConstructedCardHistoryChart
       points={history}
       periodLabel="Последние 7 дней"
+      formatLabel="Стандарт"
+      rankLabel="Алмаз 1–4"
       days={days}
       onDaysChange={setDays}
     />
