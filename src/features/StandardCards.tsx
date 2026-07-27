@@ -28,6 +28,13 @@ import {
   type ConstructedCardRequestErrorCopy,
 } from './constructedCardRequestState';
 import {
+  CONSTRUCTED_CARD_PERIOD_OPTIONS,
+  constructedCardPeriodFromSearch,
+  constructedCardPeriodLabel,
+  constructedCardPeriodUrl,
+  type ConstructedCardPeriod,
+} from './constructedCardPeriods';
+import {
   collectConstructedCardMedia,
   collectConstructedCardVariants,
   flattenConstructedCardSounds,
@@ -46,6 +53,12 @@ import './StandardCards.css';
 
 type CardFormat = 'standard' | 'wild';
 type ViewMode = 'gallery' | 'table';
+type ConstructedCardPeriodDescriptor = {
+  id: ConstructedCardPeriod;
+  label: string;
+  timeRange: string | null;
+  patch: string | null;
+};
 
 type CardStats = {
   deckPopularity: number | null;
@@ -131,6 +144,7 @@ type CardCoverage = { totalCards: number; cardsWithStats: number; cardsWithoutSt
 type ListPayload = {
   format: CardFormat;
   rank: 'legend';
+  period: ConstructedCardPeriodDescriptor;
   updatedAt: string | null;
   sourceUrl: string;
   statsAccess: boolean;
@@ -338,16 +352,47 @@ function cardPath(format: CardFormat, card: CardRecord): string {
   return `/standard/cards/${format}/${encodeURIComponent(card.card_id)}`;
 }
 
+function currentConstructedCardPeriod(): ConstructedCardPeriod {
+  return typeof window === 'undefined' ? '1d' : constructedCardPeriodFromSearch(window.location.search);
+}
+
+function navigateWithConstructedCardPeriod(
+  navigatePath: (path: string) => void,
+  pathname: string,
+  period: ConstructedCardPeriod,
+): void {
+  navigatePath(pathname);
+  if (typeof window === 'undefined') return;
+  window.history.replaceState(
+    window.history.state,
+    '',
+    constructedCardPeriodUrl(pathname, period),
+  );
+}
+
+function useConstructedCardPeriod(): [
+  ConstructedCardPeriod,
+  (period: ConstructedCardPeriod) => void,
+] {
+  const [period, setPeriod] = useState<ConstructedCardPeriod>(currentConstructedCardPeriod);
+  useEffect(() => {
+    const syncFromLocation = () => setPeriod(currentConstructedCardPeriod());
+    window.addEventListener('popstate', syncFromLocation);
+    return () => window.removeEventListener('popstate', syncFromLocation);
+  }, []);
+  return [period, setPeriod];
+}
+
 function classIcon(cardClass?: string | null): string {
   const key = String(cardClass || 'neutral').toLocaleLowerCase().replace(/_/g, '');
   return key === 'neutral' ? '/class_icon/neutral.webp' : `/class_icon/ui/${key}-64.webp`;
 }
 
-function FilterSelect({ label, value, onChange, children, tourId }: {
-  label: string; value: string; onChange: (value: string) => void; children: React.ReactNode; tourId?: string;
+function FilterSelect({ label, value, onChange, children, tourId, className = '' }: {
+  label: string; value: string; onChange: (value: string) => void; children: React.ReactNode; tourId?: string; className?: string;
 }) {
   return (
-    <label className="constructed-cards__filter" data-tour-id={tourId}>
+    <label className={`constructed-cards__filter${className ? ` ${className}` : ''}`} data-tour-id={tourId}>
       <span>{label}</span>
       <select value={value} onChange={event => onChange(event.target.value)}>{children}</select>
     </label>
@@ -419,7 +464,7 @@ function HoverTooltip({ card, rect, statsAccess, gate }: { card: CardRecord; rec
   );
 }
 
-function CardGallery({ cards, format, sort, navigatePath, statsAccess, gate }: { cards: CardRecord[]; format: CardFormat; sort: string; navigatePath: (path: string) => void; statsAccess: boolean; gate: StatsGateProps }) {
+function CardGallery({ cards, format, period, sort, navigatePath, statsAccess, gate }: { cards: CardRecord[]; format: CardFormat; period: ConstructedCardPeriod; sort: string; navigatePath: (path: string) => void; statsAccess: boolean; gate: StatsGateProps }) {
   const [hovered, setHovered] = useState<{ card: CardRecord; rect: DOMRect } | null>(null);
   const showTooltip = (card: CardRecord, element: HTMLElement) => setHovered({ card, rect: element.getBoundingClientRect() });
   return (
@@ -429,14 +474,14 @@ function CardGallery({ cards, format, sort, navigatePath, statsAccess, gate }: {
           const metric = sortMetric(card, sort);
           return <a
             key={card.card_id}
-            href={cardPath(format, card)}
+            href={constructedCardPeriodUrl(cardPath(format, card), period)}
             className="constructed-cards__gallery-card"
             data-rarity={String(card.rarity || 'COMMON').toLowerCase()}
             onMouseEnter={event => showTooltip(card, event.currentTarget)}
             onMouseLeave={() => setHovered(null)}
             onFocus={event => showTooltip(card, event.currentTarget)}
             onBlur={() => setHovered(null)}
-            onClick={event => { event.preventDefault(); navigatePath(cardPath(format, card)); }}
+            onClick={event => { event.preventDefault(); navigateWithConstructedCardPeriod(navigatePath, cardPath(format, card), period); }}
           >
             <img src={card.images?.card || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={cardName(card)} loading="lazy" />
             <span className="constructed-cards__gallery-name">{cardName(card)}</span>
@@ -482,7 +527,7 @@ function sortAria(sort: string, column: string, direction: Filters['direction'])
   return direction === 'asc' ? 'ascending' : 'descending';
 }
 
-function CardTable({ cards, format, sort, direction, navigatePath, statsAccess }: { cards: CardRecord[]; format: CardFormat; sort: string; direction: Filters['direction']; navigatePath: (path: string) => void; statsAccess: boolean }) {
+function CardTable({ cards, format, period, sort, direction, navigatePath, statsAccess }: { cards: CardRecord[]; format: CardFormat; period: ConstructedCardPeriod; sort: string; direction: Filters['direction']; navigatePath: (path: string) => void; statsAccess: boolean }) {
   const [preview, setPreview] = useState<CardPreviewTarget | null>(null);
   const showPreview = (card: CardRecord, element: HTMLElement) => setPreview({
     id: card.card_id,
@@ -499,13 +544,13 @@ function CardTable({ cards, format, sort, direction, navigatePath, statsAccess }
             {cards.map((card, index) => (
               <tr key={card.card_id}>
                 <th scope="row"><a
-                  href={cardPath(format, card)}
+                  href={constructedCardPeriodUrl(cardPath(format, card), period)}
                   aria-label={`Открыть карту ${cardName(card)}`}
                   onMouseEnter={event => showPreview(card, event.currentTarget)}
                   onMouseLeave={() => setPreview(null)}
                   onFocus={event => showPreview(card, event.currentTarget)}
                   onBlur={() => setPreview(null)}
-                  onClick={event => { event.preventDefault(); navigatePath(cardPath(format, card)); }}
+                  onClick={event => { event.preventDefault(); navigateWithConstructedCardPeriod(navigatePath, cardPath(format, card), period); }}
                 ><HsReplayDataDeckCard card={card} /></a></th>
                 <td data-label="Класс"><span><img className="constructed-cards__class-icon" src={classIcon(card.class)} alt="" />{classLabel(card.class || 'NEUTRAL')}</span></td>
                 <td data-label="Дополнение">{card.card_set ? constructedSetLabel(card.card_set) : '—'}</td><td data-label="Мана">{number(card.mana_cost)}</td><td data-label="Атака">{number(card.attack)}</td><td data-label="Здоровье">{number(card.health)}</td>
@@ -537,6 +582,7 @@ function Pagination({ page, totalPages, total, perPage, onPage }: { page: number
 
 function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLoading, authUser, onRefreshSubscription }: Pick<StandardCardsProps, 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'> & { initialFormat: CardFormat }) {
   const [format, setFormat] = useState<CardFormat>(initialFormat);
+  const [period, setPeriod] = useConstructedCardPeriod();
   const [view, setView] = useState<ViewMode>('gallery');
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
@@ -559,14 +605,14 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
     setPage(1);
   }, [filters.sort, statsAccess]);
 
-  const requestKey = useMemo(() => JSON.stringify({ format, page, perPage, reloadToken, statsAccess, ...filters, query: deferredQuery }), [deferredQuery, filters, format, page, perPage, reloadToken, statsAccess]);
+  const requestKey = useMemo(() => JSON.stringify({ format, period, page, perPage, reloadToken, statsAccess, ...filters, query: deferredQuery }), [deferredQuery, filters, format, page, perPage, period, reloadToken, statsAccess]);
   useEffect(() => {
     const controller = new AbortController();
     const load = async () => {
       setLoading(true);
       setError(null);
       try {
-        const params = new URLSearchParams({ format, page: String(page), perPage: String(perPage), sort: filters.sort, direction: filters.direction });
+        const params = new URLSearchParams({ format, period, page: String(page), perPage: String(perPage), sort: filters.sort, direction: filters.direction });
         Object.entries({ ...filters, query: deferredQuery }).forEach(([key, value]) => {
           if (value && key !== 'sort' && key !== 'direction') params.set(key, String(value));
         });
@@ -600,9 +646,24 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
     setFormat(next);
     setData(null);
     setPage(1);
-    navigatePath(`/standard/cards/${next}`);
+    navigateWithConstructedCardPeriod(navigatePath, `/standard/cards/${next}`, period);
   };
-  const reset = () => { setFilters(EMPTY_FILTERS); setPage(1); };
+  const changePeriod = (next: ConstructedCardPeriod) => {
+    setPeriod(next);
+    setData(null);
+    setPage(1);
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(
+        window.history.state,
+        '',
+        constructedCardPeriodUrl(window.location.pathname, next, window.location.search),
+      );
+    }
+  };
+  const reset = () => {
+    setFilters(EMPTY_FILTERS);
+    changePeriod('1d');
+  };
   const facets = data?.facets ?? EMPTY_FACETS;
   const facetCounts = data?.facetCounts ?? EMPTY_FACET_COUNTS;
   const countFor = (entries: FacetCount[], value: string) => entries.find(entry => entry.value === value)?.count;
@@ -616,7 +677,7 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
     <div className="constructed-cards">
       <header className="constructed-cards__header">
         <div><h1>Карты</h1><div className="constructed-cards__beta"><span>Бета</span><span>{hasStatsAccess ? <ShieldCheck size={14} /> : <LockKeyhole size={14} />} Статистика Легенды{!hasStatsAccess && ' · Алмаз'}</span></div></div>
-        <p>Ранг: <strong>Легенда</strong></p>
+        <p>Легенда · <strong>{data?.period?.label || constructedCardPeriodLabel(period)}</strong></p>
       </header>
 
       <section className="constructed-cards__controls" aria-label="Фильтры библиотеки карт">
@@ -625,6 +686,17 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
             <button type="button" aria-label="Стандарт" title="Стандарт" aria-pressed={format === 'standard'} onClick={() => changeFormat('standard')}><img src="/card-format-standard.webp" alt="" /><span className="sr-only">Стандарт</span></button>
             <button type="button" aria-label="Вольный" title="Вольный" aria-pressed={format === 'wild'} onClick={() => changeFormat('wild')}><img src="/card-format-wild.webp" alt="" /><span className="sr-only">Вольный</span></button>
           </div>
+          <FilterSelect
+            className="constructed-cards__period-filter"
+            label="Период"
+            value={period}
+            onChange={value => changePeriod(value as ConstructedCardPeriod)}
+            tourId="cards-period"
+          >
+            {CONSTRUCTED_CARD_PERIOD_OPTIONS.map(option => (
+              <option key={option.id} value={option.id}>{option.label}</option>
+            ))}
+          </FilterSelect>
           <label className="constructed-cards__search" data-tour-id="cards-search"><Search size={18} /><input value={filters.query} onChange={event => updateFilter('query', event.target.value)} placeholder="Поиск по названию" /></label>
           <FilterSelect label="Сортировка" value={filters.sort} onChange={value => updateFilter('sort', value)} tourId="cards-sort">
             <option value="set">Новые дополнения</option><option value="popularity" disabled={!hasStatsAccess}>🔒 В % колод · Алмаз</option><option value="winrate" disabled={!hasStatsAccess}>🔒 Победы колод · Алмаз</option><option value="games" disabled={!hasStatsAccess}>🔒 Сыграно партий · Алмаз</option><option value="mana">Мана</option><option value="attack">Атака</option><option value="health">Здоровье</option><option value="name">Название</option><option value="class">Класс</option><option value="mechanics">Механики</option>
@@ -670,13 +742,13 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
 
       {loading ? <section className="constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={34} /><h2>Загружаем библиотеку</h2><p>Собираем полный список карт и дополнений.</p></section>
         : error ? <section className="constructed-cards__state" role="alert"><h2>{error.title}</h2><p>{error.message}</p>{error.retry && <button type="button" onClick={() => setReloadToken(value => value + 1)}><RefreshCw size={16} /> Повторить</button>}</section>
-          : data && data.cards.length > 0 ? <>{view === 'gallery' ? <CardGallery cards={data.cards} format={format} sort={filters.sort} navigatePath={navigatePath} statsAccess={hasStatsAccess} gate={statsGate} /> : <CardTable cards={data.cards} format={format} sort={filters.sort} direction={filters.direction} navigatePath={navigatePath} statsAccess={hasStatsAccess} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} /></>
+          : data && data.cards.length > 0 ? <>{view === 'gallery' ? <CardGallery cards={data.cards} format={format} period={period} sort={filters.sort} navigatePath={navigatePath} statsAccess={hasStatsAccess} gate={statsGate} /> : <CardTable cards={data.cards} format={format} period={period} sort={filters.sort} direction={filters.direction} navigatePath={navigatePath} statsAccess={hasStatsAccess} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} /></>
             : <section className="constructed-cards__state"><Search size={34} /><h2>Карты не найдены</h2><p>Измените фильтры или сбросьте их.</p><button type="button" onClick={reset}><RefreshCw size={16} /> Сбросить фильтры</button></section>}
     </div>
   );
 }
 
-function GeneratedPoolCards({ pool, format, navigatePath }: { key?: React.Key; pool: any; format: CardFormat; navigatePath: (path: string) => void }) {
+function GeneratedPoolCards({ pool, format, period, navigatePath }: { key?: React.Key; pool: any; format: CardFormat; period: ConstructedCardPeriod; navigatePath: (path: string) => void }) {
   const cards = Array.isArray(pool?.cards) ? pool.cards : [];
   const gridRef = useRef<HTMLDivElement | null>(null);
   const [cardsPerRow, setCardsPerRow] = useState(2);
@@ -711,7 +783,7 @@ function GeneratedPoolCards({ pool, format, navigatePath }: { key?: React.Key; p
           const name = item?.name?.ru || item?.name?.en || item?.name_ru || item?.title || itemId || 'Карта';
           const image = item?.images?.card || item?.image_url || item?.image;
           const internalUrl = item?.can_open && itemId ? `/standard/cards/${format}/${encodeURIComponent(itemId)}` : '';
-          const href = internalUrl || item?.url || undefined;
+          const href = internalUrl ? constructedCardPeriodUrl(internalUrl, period) : item?.url || undefined;
           const content = <>{image ? <img src={image} alt="" loading="lazy" /> : <Sparkles size={28} />}<span>{name}</span></>;
           return href ? (
             <a
@@ -719,7 +791,7 @@ function GeneratedPoolCards({ pool, format, navigatePath }: { key?: React.Key; p
               href={href}
               target={internalUrl ? undefined : '_blank'}
               rel={internalUrl ? undefined : 'noreferrer'}
-              onClick={event => { if (!internalUrl) return; event.preventDefault(); navigatePath(internalUrl); }}
+              onClick={event => { if (!internalUrl) return; event.preventDefault(); navigateWithConstructedCardPeriod(navigatePath, internalUrl, period); }}
             >{content}</a>
           ) : <div className="constructed-card-detail__pool-card" key={`${itemId || name}-${index}`}>{content}</div>;
         })}
@@ -729,12 +801,12 @@ function GeneratedPoolCards({ pool, format, navigatePath }: { key?: React.Key; p
   );
 }
 
-function GeneratedCardPools({ pools, format, navigatePath }: { pools: any[]; format: CardFormat; navigatePath: (path: string) => void }) {
+function GeneratedCardPools({ pools, format, period, navigatePath }: { pools: any[]; format: CardFormat; period: ConstructedCardPeriod; navigatePath: (path: string) => void }) {
   return (
     <section className="constructed-card-detail__section constructed-card-detail__pools">
       <h2 data-tour-id="card-pools"><Layers3 size={19} /> Пулы генерации · {pools.length}</h2>
       <div className="constructed-card-detail__pool-list">
-        {pools.map((pool, poolIndex) => <GeneratedPoolCards key={`${pool?.pool || 'pool'}-${poolIndex}`} pool={pool} format={format} navigatePath={navigatePath} />)}
+        {pools.map((pool, poolIndex) => <GeneratedPoolCards key={`${pool?.pool || 'pool'}-${poolIndex}`} pool={pool} format={format} period={period} navigatePath={navigatePath} />)}
       </div>
     </section>
   );
@@ -853,6 +925,8 @@ function ConstructedCardDecks({ decks, cardId, format }: { decks: ConstructedDec
 }
 
 function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoading, authUser, onRefreshSubscription }: { format: CardFormat; cardId: string } & Pick<StandardCardsProps, 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'>) {
+  const [period] = useConstructedCardPeriod();
+  const [periodLabel, setPeriodLabel] = useState(() => constructedCardPeriodLabel(period));
   const [card, setCard] = useState<CardRecord | null>(null);
   const [serverStatsAccess, setServerStatsAccess] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -870,7 +944,8 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
     const load = async () => {
       setLoading(true); setError(null); setCard(null);
       try {
-        const response = await fetch(`/api/constructed-cards/${encodeURIComponent(cardId)}?format=${format}`, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: controller.signal });
+        const params = new URLSearchParams({ format, period });
+        const response = await fetch(`/api/constructed-cards/${encodeURIComponent(cardId)}?${params}`, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: controller.signal });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) {
           const failure = new Error(payload.error || 'Не удалось загрузить карту') as Error & { status?: number };
@@ -883,6 +958,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
           mechanicOverrides: payload.mechanicOverrides ?? payload.mechanicTranslations ?? {},
         });
         setServerStatsAccess(payload.statsAccess === true);
+        setPeriodLabel(payload.period?.label || constructedCardPeriodLabel(period));
         setDataState({
           dataStatus: payload.dataStatus === 'stale' ? 'stale' : 'fresh',
           partial: payload.partial === true,
@@ -900,7 +976,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
     };
     void load();
     return () => controller.abort();
-  }, [cardId, format, reloadToken, statsAccess]);
+  }, [cardId, format, period, reloadToken, statsAccess]);
   useEffect(() => {
     if (!card) return undefined;
     const frame = requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
@@ -926,7 +1002,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
   }, [card, cardId, format]);
 
   if (loading) return <section className="constructed-cards constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={36} /><h1>Загружаем карту</h1></section>;
-  if (error || !card) return <section className="constructed-cards constructed-cards__state" role="alert"><h1>{error?.title || 'Данные карты временно недоступны'}</h1><p>{error?.message}</p><div className="constructed-cards__state-actions">{error?.retry && <button type="button" onClick={() => setReloadToken(value => value + 1)}><RefreshCw size={17} /> Повторить</button>}<button type="button" onClick={() => navigatePath(`/standard/cards/${format}`)}><ArrowLeft size={17} /> Назад к картам</button></div></section>;
+  if (error || !card) return <section className="constructed-cards constructed-cards__state" role="alert"><h1>{error?.title || 'Данные карты временно недоступны'}</h1><p>{error?.message}</p><div className="constructed-cards__state-actions">{error?.retry && <button type="button" onClick={() => setReloadToken(value => value + 1)}><RefreshCw size={17} /> Повторить</button>}<button type="button" onClick={() => navigateWithConstructedCardPeriod(navigatePath, `/standard/cards/${format}`, period)}><ArrowLeft size={17} /> Назад к картам</button></div></section>;
 
   const variants = collectConstructedCardVariants(card);
   const selectedImage = variants.find(item => item.id === variant)?.url || variants[0]?.url || '';
@@ -956,8 +1032,8 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
 
   return (
     <article className="constructed-cards constructed-card-detail">
-      <nav className="constructed-card-detail__breadcrumb" aria-label="Breadcrumb"><a href={`/standard/cards/${format}`} onClick={event => { event.preventDefault(); navigatePath(`/standard/cards/${format}`); }}>Карты</a><span>/</span><span>{format === 'standard' ? 'Стандарт' : 'Вольный'}</span><span>/</span><strong>{cardName(card)}</strong></nav>
-      <button type="button" className="constructed-card-detail__back" onClick={() => navigatePath(`/standard/cards/${format}`)}><ArrowLeft size={17} /> Назад к картам</button>
+      <nav className="constructed-card-detail__breadcrumb" aria-label="Breadcrumb"><a href={constructedCardPeriodUrl(`/standard/cards/${format}`, period)} onClick={event => { event.preventDefault(); navigateWithConstructedCardPeriod(navigatePath, `/standard/cards/${format}`, period); }}>Карты</a><span>/</span><span>{format === 'standard' ? 'Стандарт' : 'Вольный'}</span><span>/</span><strong>{cardName(card)}</strong></nav>
+      <button type="button" className="constructed-card-detail__back" onClick={() => navigateWithConstructedCardPeriod(navigatePath, `/standard/cards/${format}`, period)}><ArrowLeft size={17} /> Назад к картам</button>
       {dataNotice && <div className="constructed-cards__data-warning constructed-card-detail__data-warning" role="status"><AlertTriangle size={18} /><span>{dataNotice}</span></div>}
 
       <section className="constructed-card-detail__hero">
@@ -983,7 +1059,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
           <div className="constructed-card-detail__copy"><h2>Описание</h2><p>{plainText(card.text?.ru || card.text?.en)}</p>{plainText(card.flavor?.ru || card.flavor?.en) && <><h3>Художественный текст</h3><blockquote>{plainText(card.flavor?.ru || card.flavor?.en)}</blockquote></>}</div>
         </div>
         <div className={`constructed-card-detail__statistics${serverStatsAccess ? '' : ' is-locked'}`}>
-          <div data-tour-id="card-statistics"><h2>Статистика · Легенда</h2><span>{serverStatsAccess ? `Обновлено ${formatDate(card.statsUpdatedAt)}` : 'Тариф «Алмаз»'}</span></div>
+          <div data-tour-id="card-statistics"><h2>Статистика · Легенда</h2><span>{periodLabel}{serverStatsAccess ? ` · обновлено ${formatDate(card.statsUpdatedAt)}` : ' · тариф «Алмаз»'}</span></div>
           {serverStatsAccess ? <><StatsRows stats={card.stats} />{!card.stats && <p className="constructed-card-detail__no-stats">Карта есть в библиотеке, но в текущей выборке Легенды недостаточно данных.</p>}</> : (
             <div className="constructed-card-detail__statistics-gate">
               <div className="constructed-card-detail__statistics-blur" aria-hidden="true" inert><StatsRows stats={LOCKED_STATS_PLACEHOLDER} /></div>
@@ -1004,9 +1080,9 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
         })}</div> : <p>История изменений не найдена.</p>}</div>
       </section>
 
-      {related.length > 0 && <section className="constructed-card-detail__section"><h2>Связанные карты</h2><div className="constructed-card-detail__related">{related.map((item: any, index: number) => { const relatedId = item.card_id || item.id; const relatedUrl = relatedId ? `/standard/cards/${format}/${encodeURIComponent(relatedId)}` : item.url; const relatedName = item?.name?.ru || item?.name?.en || (typeof item?.name === 'string' ? item.name : '') || item.name_ru || item.title || relatedId; return <a key={`${relatedId || item.title}-${index}`} href={relatedUrl || '#'} target={!relatedId && item.url ? '_blank' : undefined} rel={!relatedId && item.url ? 'noreferrer' : undefined} onClick={event => { if (!relatedId) return; event.preventDefault(); navigatePath(relatedUrl); }}>{item.image_url || item.image ? <img src={item.image_url || item.image} alt="" /> : <Sparkles size={24} />}<span>{relatedName}</span></a>; })}</div></section>}
+      {related.length > 0 && <section className="constructed-card-detail__section"><h2>Связанные карты</h2><div className="constructed-card-detail__related">{related.map((item: any, index: number) => { const relatedId = item.card_id || item.id; const relatedUrl = relatedId ? `/standard/cards/${format}/${encodeURIComponent(relatedId)}` : item.url; const relatedName = item?.name?.ru || item?.name?.en || (typeof item?.name === 'string' ? item.name : '') || item.name_ru || item.title || relatedId; return <a key={`${relatedId || item.title}-${index}`} href={relatedId ? constructedCardPeriodUrl(relatedUrl, period) : relatedUrl || '#'} target={!relatedId && item.url ? '_blank' : undefined} rel={!relatedId && item.url ? 'noreferrer' : undefined} onClick={event => { if (!relatedId) return; event.preventDefault(); navigateWithConstructedCardPeriod(navigatePath, relatedUrl, period); }}>{item.image_url || item.image ? <img src={item.image_url || item.image} alt="" /> : <Sparkles size={24} />}<span>{relatedName}</span></a>; })}</div></section>}
 
-      {generatedPools.length > 0 && <GeneratedCardPools pools={generatedPools} format={format} navigatePath={navigatePath} />}
+      {generatedPools.length > 0 && <GeneratedCardPools pools={generatedPools} format={format} period={period} navigatePath={navigatePath} />}
 
       {decks.length > 0 && <ConstructedCardDecks decks={decks} cardId={cardId} format={format} />}
 

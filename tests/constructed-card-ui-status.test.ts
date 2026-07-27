@@ -53,5 +53,11 @@ assert.match(
 const standardCardsSource = readFileSync(new URL('../src/features/StandardCards.tsx', import.meta.url), 'utf8');
 assert.match(standardCardsSource, /warning:\s*typeof payload\.warning/,
   'the detail component must pass the server warning into its visible data-state notice');
+assert.match(standardCardsSource, /label="Период"/,
+  'the catalog must expose the statistics period as a primary visible filter');
+assert.match(standardCardsSource, /new URLSearchParams\(\{ format, period,/,
+  'the selected period must be sent to the constructed-card API');
+assert.match(standardCardsSource, /navigateWithConstructedCardPeriod/,
+  'card and back navigation must retain the selected statistics period');
 
 console.log('constructed-card Russian unavailable/stale UI contracts passed');

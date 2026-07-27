@@ -60,6 +60,7 @@
 .constructed-cards__filter > span { margin-bottom: 0.22rem; color: #6d4b2d; font-size: 0.6rem; font-weight: 900; }
 .constructed-cards__filter select { width: 100%; min-height: 41px; padding: 0 1.7rem 0 0.55rem; border: 1px solid #aa7a40; outline: 0; color: #442918; background: rgba(255, 248, 222, 0.78); font-size: 0.72rem; }
 .constructed-cards__primary-controls > .constructed-cards__filter { flex: 0 1 210px; min-width: 170px; }
+.constructed-cards__primary-controls > .constructed-cards__period-filter { flex-basis: 185px; min-width: 155px; }
 .constructed-cards__sort-lock {
   display: inline-flex;
   flex: 0 0 auto;
@@ -384,6 +385,7 @@
   .constructed-cards__search,
   .constructed-cards__view { grid-column: 1 / -1; width: 100%; min-width: 0; }
   .constructed-cards__primary-controls > .constructed-cards__filter { grid-column: auto; width: 100%; min-width: 0; }
+  .constructed-cards__primary-controls > .constructed-cards__period-filter { grid-column: 1 / -1; }
   .constructed-cards__sort-lock { grid-column: 1 / -1; min-height: 36px; justify-content: center; }
   .constructed-cards__format button,
   .constructed-cards__view button { flex: 1; min-height: 44px; }
