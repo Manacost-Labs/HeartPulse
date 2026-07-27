@@ -1,5 +1,16 @@
 # HS-Arena Changelog
 
+## v1.0.61 - 2026-07-27
+
+- Restored all three localized Titan abilities and the related Primus token
+  for `TTN_737`, including cached card renders and original Wiki full art.
+- Changed the rolling constructed-card Wiki refresh to a daily oldest-first
+  schedule so stale companion sections are eventually revisited instead of
+  repeatedly selecting the same cards.
+- Replaced the Arena favicon in client and server-rendered pages with the
+  supplied Hearthstone artwork in 16, 32 and 96 px sizes, plus ICO, application
+  and Apple touch fallbacks.
+
 ## v1.0.60 - 2026-07-27
 
 - Replaced browser-native constructed-card filters with a keyboard-accessible

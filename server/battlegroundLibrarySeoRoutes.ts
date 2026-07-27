@@ -307,7 +307,11 @@ function renderDocument(options: {
     <meta name="description" content="${description}">
     <meta name="robots" content="${escapeHtml(options.robots)}">
     ${canonical ? `<link rel="canonical" href="${canonical}">` : ''}${social}${structuredData}
-    <link rel="icon" type="image/png" href="/favicon-192.png" sizes="192x192">
+    <link rel="icon" type="image/png" href="/favicon-16.png?v=hearthstone-cute-20260727" sizes="16x16">
+    <link rel="icon" type="image/png" href="/favicon-32.png?v=hearthstone-cute-20260727" sizes="32x32">
+    <link rel="icon" type="image/png" href="/favicon-96.png?v=hearthstone-cute-20260727" sizes="96x96">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=hearthstone-cute-20260727">
+    <link rel="apple-touch-icon" type="image/png" href="/apple-touch-icon.png?v=hearthstone-cute-20260727" sizes="180x180">
     ${frontendAssets}
     <style>
       .bg-library-seo{box-sizing:border-box;max-width:1080px;margin:0 auto;padding:32px 20px;font-family:Inter,system-ui,sans-serif;color:#2b1b16}
