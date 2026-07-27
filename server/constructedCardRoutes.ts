@@ -8,6 +8,14 @@ import {
 } from './constructedCardCatalogStore.js';
 
 export type ConstructedCardFormat = 'standard' | 'wild';
+export type ConstructedCardPeriod = '1d' | '3d' | '7d' | '14d' | 'patch';
+
+export type ConstructedCardPeriodDescriptor = {
+  id: ConstructedCardPeriod;
+  label: string;
+  timeRange: string | null;
+  patch: string | null;
+};
 
 type JsonRecord = Record<string, any>;
 
@@ -22,6 +30,7 @@ export type ConstructedCardCollection = {
   datasetVersion: string;
   catalogVerifiedAt: string;
   catalogPublishedAt: string;
+  period?: ConstructedCardPeriodDescriptor;
 };
 
 export type ConstructedCardDetailResult = {
@@ -31,6 +40,7 @@ export type ConstructedCardDetailResult = {
   partial: boolean;
   warning: string | null;
   datasetVersion: string;
+  period?: ConstructedCardPeriodDescriptor;
 };
 
 export type ConstructedCardCatalogHealth = {
@@ -46,8 +56,12 @@ export type ConstructedCardCatalogHealth = {
 };
 
 export type ConstructedCardDataService = {
-  loadCards: (format: ConstructedCardFormat) => Promise<ConstructedCardCollection>;
-  loadCardDetail: (format: ConstructedCardFormat, cardId: string) => Promise<ConstructedCardDetailResult | null>;
+  loadCards: (format: ConstructedCardFormat, period?: ConstructedCardPeriod) => Promise<ConstructedCardCollection>;
+  loadCardDetail: (
+    format: ConstructedCardFormat,
+    cardId: string,
+    period?: ConstructedCardPeriod,
+  ) => Promise<ConstructedCardDetailResult | null>;
   getCatalogHealth: (format: ConstructedCardFormat) => ConstructedCardCatalogHealth;
   invalidate?: () => void;
 };
@@ -87,7 +101,10 @@ export type ConstructedCardRouterDependencies = ConstructedCardDataService & {
 type DataServiceDependencies = {
   fetchJson: (url: string) => Promise<any>;
   catalogBaseUrl: string;
-  statsDatasetByFormat: Record<ConstructedCardFormat, string>;
+  statsDatasetByFormat: Record<
+    ConstructedCardFormat,
+    string | Partial<Record<ConstructedCardPeriod, string>>
+  >;
   statsBaseUrl: string;
   patchesUrl?: string;
   constructedDecksUrl?: string;
@@ -131,6 +148,21 @@ export class ConstructedCardDetailUnavailableError extends Error {
 }
 
 const FORMATS = new Set<ConstructedCardFormat>(['standard', 'wild']);
+const PERIODS = new Set<ConstructedCardPeriod>(['1d', '3d', '7d', '14d', 'patch']);
+const PERIOD_LABELS: Record<ConstructedCardPeriod, string> = {
+  '1d': 'Последний день',
+  '3d': 'Последние 3 дня',
+  '7d': 'Последние 7 дней',
+  '14d': 'Последние 14 дней',
+  patch: 'Текущий патч',
+};
+const PERIOD_TIME_RANGES: Record<ConstructedCardPeriod, string | null> = {
+  '1d': 'LAST_1_DAY',
+  '3d': 'LAST_3_DAYS',
+  '7d': 'LAST_7_DAYS',
+  '14d': 'LAST_14_DAYS',
+  patch: null,
+};
 const DEFAULT_PAGE_SIZE = 60;
 const MAX_PAGE_SIZE = 120;
 // One-day card slices contain a long tail with only a handful of observations.
@@ -174,6 +206,40 @@ const CONSTRUCTED_ARCHETYPE_FALLBACK_RU: Record<string, string> = {
 function readFormat(value: unknown): ConstructedCardFormat | null {
   const format = String(value ?? 'standard') as ConstructedCardFormat;
   return FORMATS.has(format) ? format : null;
+}
+
+function readPeriod(value: unknown): ConstructedCardPeriod | null {
+  const period = String(value ?? '1d') as ConstructedCardPeriod;
+  return PERIODS.has(period) ? period : null;
+}
+
+function statsDatasetFor(
+  dependencies: DataServiceDependencies,
+  format: ConstructedCardFormat,
+  period: ConstructedCardPeriod,
+): string {
+  const configured = dependencies.statsDatasetByFormat[format];
+  if (typeof configured === 'string') return configured;
+  const dataset = configured[period];
+  if (!dataset) {
+    throw new ConstructedCardUpstreamError(`Constructed card period ${period} is not configured`);
+  }
+  return dataset;
+}
+
+function periodDescriptor(period: ConstructedCardPeriod, payload?: JsonRecord): ConstructedCardPeriodDescriptor {
+  const rawPatch = String(
+    payload?.view?.patch
+      ?? payload?.publication?.patch
+      ?? payload?.patch
+      ?? '',
+  ).trim();
+  return {
+    id: period,
+    label: period === 'patch' && rawPatch ? `Патч ${rawPatch}` : PERIOD_LABELS[period],
+    timeRange: String(payload?.view?.time_range ?? PERIOD_TIME_RANGES[period] ?? '').trim() || null,
+    patch: rawPatch || null,
+  };
 }
 
 function readPositiveInteger(value: unknown, fallback: number, maximum = Number.MAX_SAFE_INTEGER): number {
@@ -754,8 +820,8 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
   };
   const catalogCache = new Map<ConstructedCardFormat, { value: CatalogLoad; expiresAt: number }>();
   const catalogJobs = new Map<ConstructedCardFormat, Promise<CatalogLoad>>();
-  const cache = new Map<ConstructedCardFormat, { value: ConstructedCardCollection; expiresAt: number }>();
-  const jobs = new Map<ConstructedCardFormat, Promise<ConstructedCardCollection>>();
+  const cache = new Map<string, { value: ConstructedCardCollection; expiresAt: number }>();
+  const jobs = new Map<string, Promise<ConstructedCardCollection>>();
   const detailCache = new Map<string, { value: JsonRecord; expiresAt: number }>();
   const negativeDetailCache = new Map<string, number>();
   const negativeDetailCacheMaxEntries = Math.max(1, Math.min(
@@ -933,17 +999,21 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     return job;
   };
 
-  const loadCards = async (format: ConstructedCardFormat): Promise<ConstructedCardCollection> => {
+  const loadCards = async (
+    format: ConstructedCardFormat,
+    period: ConstructedCardPeriod = '1d',
+  ): Promise<ConstructedCardCollection> => {
+    const key = `${format}:${period}`;
     const current = now();
-    const cached = cache.get(format);
+    const cached = cache.get(key);
     if (cached && cached.expiresAt > current) return cached.value;
-    const active = jobs.get(format);
+    const active = jobs.get(key);
     if (active) return active;
 
     const jobGeneration = generation;
     const job = (async () => {
       const catalog = await loadCatalog(format);
-      const statsDataset = dependencies.statsDatasetByFormat[format];
+      const statsDataset = statsDatasetFor(dependencies, format, period);
       let statsPayload: JsonRecord = {};
       let statsCards: JsonRecord[] = [];
       let statsWarning = false;
@@ -971,11 +1041,12 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
         datasetVersion: catalog.document.datasetVersion,
         catalogVerifiedAt: catalog.document.verifiedAt,
         catalogPublishedAt: catalog.document.publishedAt,
+        period: periodDescriptor(period, statsPayload),
       };
-      if (generation === jobGeneration) cache.set(format, { value, expiresAt: now() + cacheTtlMs });
+      if (generation === jobGeneration) cache.set(key, { value, expiresAt: now() + cacheTtlMs });
       return value;
-    })().finally(() => { if (jobs.get(format) === job) jobs.delete(format); });
-    jobs.set(format, job);
+    })().finally(() => { if (jobs.get(key) === job) jobs.delete(key); });
+    jobs.set(key, job);
     return job;
   };
 
@@ -1006,6 +1077,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
       partial: options.partial,
       warning,
       datasetVersion: collection.datasetVersion,
+      period: collection.period,
     };
   };
 
@@ -1075,8 +1147,9 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
   const loadCardDetail = async (
     format: ConstructedCardFormat,
     cardId: string,
+    period: ConstructedCardPeriod = '1d',
   ): Promise<ConstructedCardDetailResult | null> => {
-    const key = `${format}:${cardId.toUpperCase()}`;
+    const key = `${format}:${period}:${cardId.toUpperCase()}`;
     const current = now();
     pruneNegativeDetailCache(current);
     if ((negativeDetailCache.get(key) ?? 0) > current) return null;
@@ -1084,7 +1157,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     if (active) return active;
     const jobGeneration = generation;
     const job = (async () => {
-      const collection = await loadCards(format);
+      const collection = await loadCards(format, period);
       const normalizedCardId = cardId.toUpperCase();
       const knownCard = collection.cards.find(card => String(card?.card_id ?? '').trim().toUpperCase() === normalizedCardId);
       const cached = detailCache.get(key);
@@ -1208,12 +1281,14 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
 
   const listHandler: RequestHandler = async (request, response) => {
     const format = readFormat(request.query.format);
+    const period = readPeriod(request.query.period);
     if (!format) return response.status(400).json({ error: 'Неизвестный формат карт' });
+    if (!period) return response.status(400).json({ error: 'Неизвестный период статистики' });
     const page = readPositiveInteger(request.query.page, 1);
     const perPage = readPositiveInteger(request.query.perPage, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
     try {
       const statsAccess = Boolean(await dependencies.canAccessStats?.(request));
-      const collection = await dependencies.loadCards(format);
+      const collection = await dependencies.loadCards(format, period);
       const requestedSort = String(request.query.sort ?? '');
       const safeQuery = !statsAccess && STATISTIC_SORTS.has(requestedSort)
         ? { ...request.query, sort: 'set', direction: 'asc' }
@@ -1222,11 +1297,13 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
       const totalPages = Math.max(1, Math.ceil(cards.length / perPage));
       const safePage = Math.min(page, totalPages);
       const offset = (safePage - 1) * perPage;
+      const responsePeriod = collection.period ?? periodDescriptor(period);
       setDataHeaders(response, collection);
       return response.json({
         format,
         rank: 'legend',
-        timeRange: '1d',
+        timeRange: responsePeriod.id,
+        period: responsePeriod,
         updatedAt: collection.updatedAt,
         sourceUrl: collection.sourceUrl,
         statsAccess,
@@ -1251,17 +1328,21 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
 
   const detailHandler: RequestHandler = async (request, response) => {
     const format = readFormat(request.query.format);
+    const period = readPeriod(request.query.period);
     const cardId = String(request.params.cardId ?? '').trim();
     if (!format) return response.status(400).json({ error: 'Неизвестный формат карт' });
+    if (!period) return response.status(400).json({ error: 'Неизвестный период статистики' });
     if (!/^[a-zA-Z0-9_]{2,80}$/.test(cardId)) return response.status(400).json({ error: 'Некорректный ID карты' });
     try {
       const statsAccess = Boolean(await dependencies.canAccessStats?.(request));
-      const result = await dependencies.loadCardDetail(format, cardId);
+      const result = await dependencies.loadCardDetail(format, cardId, period);
       if (!result) return response.status(404).json({ error: 'Карта не найдена', dataStatus: 'not-found' });
+      const responsePeriod = result.period ?? periodDescriptor(period);
       setDataHeaders(response, result);
       return response.json({
         format,
         rank: 'legend',
+        period: responsePeriod,
         statsAccess,
         dataStatus: result.dataStatus,
         partial: result.partial,
@@ -1280,9 +1361,11 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
 
   const previewHandler: RequestHandler = async (request, response) => {
     const format = readFormat(request.query.format ?? request.body?.format);
+    const period = readPeriod(request.query.period ?? request.body?.period);
     const cardId = String(request.params.cardId ?? '').trim();
     const deckId = String(request.params.deckId ?? '').trim();
     if (!format) return response.status(400).json({ error: 'Неизвестный формат карт' });
+    if (!period) return response.status(400).json({ error: 'Неизвестный период статистики' });
     if (!/^[a-zA-Z0-9_]{2,80}$/.test(cardId) || !/^[a-zA-Z0-9_-]{1,80}$/.test(deckId)) {
       return response.status(400).json({ error: 'Некорректный ID карты или колоды' });
     }
@@ -1290,7 +1373,7 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
     try {
       // Resolve the deck again on the server so this endpoint cannot be
       // used to render an arbitrary deck code supplied by the browser.
-      const result = await dependencies.loadCardDetail(format, cardId);
+      const result = await dependencies.loadCardDetail(format, cardId, period);
       const deck = (Array.isArray(result?.card?.decks) ? result.card.decks : []).find((item: ConstructedCardDeck) => item.id === deckId);
       if (!deck) return response.status(404).json({ error: 'Колода с этой картой не найдена' });
       return response.json({ preview: await dependencies.createDeckPreview(deck) });

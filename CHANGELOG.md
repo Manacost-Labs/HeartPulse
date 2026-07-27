@@ -2,6 +2,9 @@
 
 ## v1.0.48 - 2026-07-24
 
+- Added a period-aware constructed-card statistics contract for the last
+  1, 3, 7 and 14 days plus the current patch, with isolated caches and
+  validation for list, detail and deck-preview requests.
 - Added Storybook 10 with React/Vite, docs and accessibility addons, plus the
   official local Storybook MCP for AI-assisted component discovery and review.
 - Added colocated component stories, interaction coverage, a static Storybook
