@@ -17,6 +17,8 @@
     "server/sentry.ts",
     "server/scraper.ts",
     "server/blizzardCards.ts",
+    "server/cardImageCache.ts",
+    "server/constructedCardImagePrewarmer.ts",
     "server/hsreplayArenasmith.ts",
     "server/health.ts",
     "server/healthRoutes.ts",

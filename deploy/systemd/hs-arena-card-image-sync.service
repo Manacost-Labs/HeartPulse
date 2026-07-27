@@ -1,0 +1,23 @@
+[Unit]
+Description=Preload Standard and Wild Hearthstone card thumbnails
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=koloda
+Group=koloda
+WorkingDirectory=/var/www/koloda/data/www/hs-arena.ru/current
+EnvironmentFile=/etc/hs-arena/hs-arena.env
+EnvironmentFile=-/etc/db-kolodahs-card-scan.env
+Environment=APP_ROOT_DIR=/var/www/koloda/data/www/hs-arena.ru/current
+Environment=SERVER_DATA_DIR=/var/www/koloda/data/www/hs-arena.ru/shared/server-data
+Environment=CARD_IMAGE_SYNC_CONCURRENCY=4
+ExecStart=/usr/bin/node build/server/constructedCardImagePrewarmer.js
+Nice=10
+IOSchedulingClass=idle
+PrivateTmp=true
+NoNewPrivileges=true
+StandardOutput=journal
+StandardError=journal
+

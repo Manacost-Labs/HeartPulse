@@ -123,6 +123,12 @@ import { createWinrateRouter } from './winrateRoutes.js';
 import { createHomeSummaryRouter, type HomeSummaryCacheStore } from './homeSummaryRoutes.js';
 import { createCardImageRouter, normalizeCardImageId } from './cardImageRoutes.js';
 import { createBlizzardCardImageClient, downloadBlizzardCardImage } from './blizzardCards.js';
+import {
+  CARD_IMAGE_CACHE_VERSION,
+  CARD_IMAGE_VARIANTS,
+  cardImageCachePath as sharedCardImageCachePath,
+  type CardImageSource,
+} from './cardImageCache.js';
 import { createAdminClassPositionRouter, writeClassPositionsFile } from './adminClassPositionRoutes.js';
 import {
   createAdminArchetypeTranslationRouter,
@@ -216,12 +222,7 @@ const CARD_IMAGE_CACHE_DIR = join(DATA_DIR, 'card-images');
 const ADMIN_UPLOAD_SOURCE_DIR = process.env.ADMIN_UPLOAD_SOURCE_DIR || join(DATA_DIR, 'uploads', 'admin');
 const ADMIN_UPLOAD_DIR = process.env.ADMIN_UPLOAD_DIR || ADMIN_UPLOAD_SOURCE_DIR;
 const GALLERY_UPLOAD_DIR = process.env.GALLERY_UPLOAD_DIR || join(DATA_DIR, 'uploads', 'gallery');
-const CARD_IMAGE_CACHE_VERSION = 'card_img_v6_blizzard';
 const MAX_CARD_IMAGE_JOBS = 4;
-const CARD_IMAGE_VARIANTS = {
-  thumb: { width: 360, quality: 86 },
-  full: { width: 512, quality: 90 },
-} as const;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const BG_DATA_CACHE_MS = Math.max(60_000, Number(process.env.BG_DATA_CACHE_MS || ONE_DAY_MS));
 const BG_DATA_STALE_MS = Math.max(60_000, Number(process.env.BG_DATA_STALE_MS || 7 * ONE_DAY_MS));
@@ -332,7 +333,6 @@ const battlegroundAppProxyCache = new Map<string, ProxyBodyCacheEntry>();
 const MAX_BG_OPTIMIZED_IMAGE_CACHE_ENTRIES = 320;
 const homeSummaryApiCache: HomeSummaryCacheStore = { current: null };
 const arenaDecksCache: ArenaDecksCacheStore = { current: null };
-type CardImageSource = 'blizzard' | 'fallback' | 'placeholder';
 type CachedCardImage = { path: string; source: CardImageSource };
 const cardImageJobs = new Map<string, Promise<CachedCardImage>>();
 let activeCardImageJobs = 0;
@@ -4812,7 +4812,7 @@ function cardImageProxyUrl(cardId: string, variant: 'thumb' | 'full' = 'thumb'):
 }
 
 function cardImageCachePath(cardId: string, variant: 'thumb' | 'full', source: CardImageSource): string {
-  return join(CARD_IMAGE_CACHE_DIR, `${cardId}-${variant}-${source}-${CARD_IMAGE_CACHE_VERSION}.webp`);
+  return sharedCardImageCachePath(CARD_IMAGE_CACHE_DIR, cardId, variant, source);
 }
 
 function normalizeResolvedCardId(cardId: string): string {

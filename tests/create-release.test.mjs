@@ -17,12 +17,17 @@ const nginxContractFiles = [
   'deploy/nginx/arena-canonical-host-redirect.conf',
   'deploy/nginx/arena-security-headers.conf',
 ];
+const systemdFiles = [
+  'deploy/systemd/hs-arena-card-image-sync.service',
+  'deploy/systemd/hs-arena-card-image-sync.timer',
+];
 
 try {
-  for (const directory of ['build/server', 'dist/sitemaps', 'public', 'server', 'scripts', 'deploy/nginx']) {
+  for (const directory of ['build/server', 'dist/sitemaps', 'public', 'server', 'scripts', 'deploy/nginx', 'deploy/systemd']) {
     mkdirSync(join(workspace, directory), { recursive: true });
   }
   writeFileSync(join(workspace, 'build/server/index.js'), 'console.log("server");\n');
+  writeFileSync(join(workspace, 'build/server/constructedCardImagePrewarmer.js'), 'console.log("sync");\n');
   writeFileSync(join(workspace, 'dist/index.html'), '<!doctype html>\n<script type="module" src="/assets/index-stable.js"></script>\n');
   writeFileSync(join(workspace, 'dist/sitemap.xml'), '<?xml version="1.0"?><sitemapindex/>\n');
   writeFileSync(join(workspace, 'dist/sitemaps/static.xml'), '<?xml version="1.0"?><urlset/>\n');
@@ -41,6 +46,9 @@ try {
   for (const [index, file] of nginxContractFiles.entries()) {
     writeFileSync(join(workspace, file), `# nginx fixture ${index}\n`);
   }
+  for (const [index, file] of systemdFiles.entries()) {
+    writeFileSync(join(workspace, file), `# systemd fixture ${index}\n`);
+  }
 
   const result = spawnSync(process.execPath, [
     join(repository, 'scripts/create-release.mjs'),
@@ -57,6 +65,7 @@ try {
     /src="\/assets\/index-stable\.js\?v=abcdef1"/,
   );
   assert.match(manifest.checksums['scripts/backup-shared-data.sh'], /^[a-f0-9]{64}$/);
+  assert.match(manifest.checksums['build/server/constructedCardImagePrewarmer.js'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['scripts/verify-backup.sh'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['scripts/restore-backup.sh'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['scripts/replicate-backup.sh'], /^[a-f0-9]{64}$/);
@@ -92,6 +101,10 @@ try {
       manifest.nginxContract.files.find(contractFile => contractFile.source === file).sha256,
       manifest.checksums[file],
     );
+    assert.match(manifest.checksums[file], /^[a-f0-9]{64}$/);
+  }
+  for (const file of systemdFiles) {
+    assert.equal(readFileSync(join(output, file), 'utf8'), readFileSync(join(workspace, file), 'utf8'));
     assert.match(manifest.checksums[file], /^[a-f0-9]{64}$/);
   }
   for (const script of [

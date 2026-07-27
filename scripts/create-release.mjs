@@ -14,6 +14,10 @@ const nginxContractDefinitions = [
   { source: 'deploy/nginx/arena-security-headers.conf', installPath: '/etc/nginx/snippets/arena-security-headers.conf', roles: ['origin'] },
 ];
 const nginxContractFiles = nginxContractDefinitions.map(file => file.source);
+const systemdFiles = [
+  'deploy/systemd/hs-arena-card-image-sync.service',
+  'deploy/systemd/hs-arena-card-image-sync.timer',
+];
 
 if (!output) throw new Error('Usage: node scripts/create-release.mjs --output=/path/to/release --sha=<git-sha>');
 if (!/^[a-f0-9]{7,40}$/.test(sha)) throw new Error(`Invalid release SHA: ${sha || 'missing'}`);
@@ -21,6 +25,7 @@ if (existsSync(output)) throw new Error(`Release output already exists: ${output
 
 for (const required of [
   'build/server/index.js',
+  'build/server/constructedCardImagePrewarmer.js',
   'dist/index.html',
   'dist/sitemap.xml',
   'dist/sitemaps/static.xml',
@@ -28,6 +33,7 @@ for (const required of [
   'package-lock.json',
   'scripts/verify-nginx-contract.mjs',
   ...nginxContractFiles,
+  ...systemdFiles,
 ]) {
   if (!existsSync(required)) throw new Error(`Required release input is missing: ${required}`);
 }
@@ -66,6 +72,8 @@ cpSync('package.json', join(output, 'package.json'));
 cpSync('package-lock.json', join(output, 'package-lock.json'));
 mkdirSync(join(output, 'deploy', 'nginx'), { recursive: true });
 for (const file of nginxContractFiles) cpSync(file, join(output, file));
+mkdirSync(join(output, 'deploy', 'systemd'), { recursive: true });
+for (const file of systemdFiles) cpSync(file, join(output, file));
 
 async function sha256(file) {
   const hash = createHash('sha256');
@@ -80,6 +88,7 @@ async function sha256(file) {
 
 const criticalFiles = [
   'build/server/index.js',
+  'build/server/constructedCardImagePrewarmer.js',
   'dist/index.html',
   'dist/sitemap.xml',
   'dist/sitemaps/static.xml',
@@ -90,6 +99,7 @@ const criticalFiles = [
   'scripts/replicate-backup.sh',
   'scripts/verify-nginx-contract.mjs',
   ...nginxContractFiles,
+  ...systemdFiles,
 ];
 const checksums = Object.fromEntries(await Promise.all(
   criticalFiles.map(async file => [file, await sha256(join(output, file))]),

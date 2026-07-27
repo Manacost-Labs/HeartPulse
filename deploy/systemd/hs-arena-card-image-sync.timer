@@ -1,0 +1,13 @@
+[Unit]
+Description=Daily refresh of Standard and Wild Hearthstone card thumbnails
+
+[Timer]
+OnBootSec=5min
+OnCalendar=*-*-* 04:20:00 UTC
+RandomizedDelaySec=20min
+Persistent=true
+Unit=hs-arena-card-image-sync.service
+
+[Install]
+WantedBy=timers.target
+

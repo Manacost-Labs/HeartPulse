@@ -36,6 +36,20 @@ type JsonRecord = Record<string, any>;
 
 const CONSTRUCTED_CARD_IMAGE_VERSION = 'constructed-cards-blizzard-20260727';
 
+export function constructedCardImageVersion(fallbackValue: unknown): string {
+  const fallback = String(fallbackValue ?? '').trim();
+  if (!fallback) return CONSTRUCTED_CARD_IMAGE_VERSION;
+  try {
+    const filename = new URL(fallback).pathname.split('/').pop()?.replace(/\.[^.]+$/, '') ?? '';
+    if (/^[a-f0-9]{24,128}$/i.test(filename)) {
+      return `blizzard-${filename.slice(0, 24).toLowerCase()}`;
+    }
+  } catch {
+    // Non-URL fallbacks keep the shared release version.
+  }
+  return CONSTRUCTED_CARD_IMAGE_VERSION;
+}
+
 export function constructedCardRenderImage(
   cardIdValue: unknown,
   fallbackValue?: unknown,
@@ -43,7 +57,7 @@ export function constructedCardRenderImage(
 ): string | null {
   const cardId = String(cardIdValue ?? '').trim();
   if (/^[A-Za-z0-9_]{1,80}$/.test(cardId)) {
-    return `/api/card-image/${encodeURIComponent(cardId)}/${variant}.webp?v=${CONSTRUCTED_CARD_IMAGE_VERSION}`;
+    return `/api/card-image/${encodeURIComponent(cardId)}/${variant}.webp?v=${constructedCardImageVersion(fallbackValue)}`;
   }
   const fallback = String(fallbackValue ?? '').trim();
   return fallback || null;

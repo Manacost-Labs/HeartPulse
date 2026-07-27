@@ -56,21 +56,14 @@ export function isBlizzardImageContentType(value: string | null | undefined): bo
   return contentType.startsWith('image/') || contentType === 'application/octet-stream';
 }
 
-export async function downloadBlizzardCardImage(options: {
-  dbfId: number;
-  client: BlizzardCardImageResolver;
-  fetchImpl?: FetchLike;
-}): Promise<Buffer | null> {
-  const dbfId = positiveInteger(options.dbfId);
-  if (!dbfId || !options.client.configured) return null;
+export async function downloadBlizzardImageUrl(
+  imageUrlValue: string,
+  fetchImpl: FetchLike = fetch,
+): Promise<Buffer> {
+  const imageUrl = safeBlizzardImageUrl(imageUrlValue);
+  if (!imageUrl) throw new Error('Invalid Blizzard card image URL');
 
-  const imageUrl = await (
-    options.client.getDirectImageUrl?.(dbfId)
-    ?? options.client.getImageUrl(dbfId)
-  );
-  if (!imageUrl) return null;
-
-  const response = await (options.fetchImpl ?? fetch)(imageUrl, {
+  const response = await fetchImpl(imageUrl, {
     headers: {
       Accept: 'image/avif,image/webp,image/png,image/*;q=0.8',
       'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)',
@@ -91,6 +84,22 @@ export async function downloadBlizzardCardImage(options: {
     throw new Error(`Blizzard card image exceeds ${MAX_CARD_IMAGE_BYTES} bytes`);
   }
   return image;
+}
+
+export async function downloadBlizzardCardImage(options: {
+  dbfId: number;
+  client: BlizzardCardImageResolver;
+  fetchImpl?: FetchLike;
+}): Promise<Buffer | null> {
+  const dbfId = positiveInteger(options.dbfId);
+  if (!dbfId || !options.client.configured) return null;
+
+  const imageUrl = await (
+    options.client.getDirectImageUrl?.(dbfId)
+    ?? options.client.getImageUrl(dbfId)
+  );
+  if (!imageUrl) return null;
+  return downloadBlizzardImageUrl(imageUrl, options.fetchImpl);
 }
 
 export function createBlizzardCardImageClient(options: BlizzardCardImageClientOptions = {}) {

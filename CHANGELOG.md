@@ -1,5 +1,15 @@
 # HS-Arena Changelog
 
+## v1.0.63 - 2026-07-27
+
+- Added a daily server-side preloader for all Standard and Wild card
+  thumbnails, eliminating cold Blizzard fetches while searching, filtering and
+  opening constructed card pages.
+- Added an atomic source-URL manifest so scheduled refreshes download only new
+  cards or cards whose official Blizzard render changed.
+- Versioned browser and edge image requests from the official Blizzard image
+  hash, with bounded background concurrency and persistent systemd scheduling.
+
 ## v1.0.62 - 2026-07-27
 
 - Switched constructed card renders to the official localized Blizzard

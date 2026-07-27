@@ -6,6 +6,7 @@ import {
   collectConstructedGeneratedPoolMedia,
   constructedRelatedCardImage,
   constructedGeneratedPoolCardImage,
+  constructedCardImageVersion,
   constructedCardRenderImage,
   collectConstructedCardVariants,
   flattenConstructedCardSounds,
@@ -192,6 +193,18 @@ assert.equal(
   constructedCardRenderImage('ETC_080', 'https://example.test/card.png', 'thumb'),
   '/api/card-image/ETC_080/thumb.webp?v=constructed-cards-blizzard-20260727',
   'constructed card renders should use the same-origin WebP cache for Russian edge delivery',
+);
+const firstOfficialImage = 'https://d15f34w2p8l1cc.cloudfront.net/hearthstone/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.png';
+const changedOfficialImage = 'https://d15f34w2p8l1cc.cloudfront.net/hearthstone/fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210.png';
+assert.equal(
+  constructedCardImageVersion(firstOfficialImage),
+  'blizzard-0123456789abcdef01234567',
+  'official Blizzard image hashes should become bounded cache versions',
+);
+assert.notEqual(
+  constructedCardRenderImage(115648, firstOfficialImage, 'thumb'),
+  constructedCardRenderImage(115648, changedOfficialImage, 'thumb'),
+  'a changed Blizzard image must produce a new browser/CDN cache key',
 );
 
 const legacyRelatedGroups = normalizeConstructedRelatedCardGroups({
