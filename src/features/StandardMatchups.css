@@ -1,5 +1,107 @@
 @import './TraditionalModeBanner.css';
 
+.arena-app-standard-matchups .standard-matchups__mode-toolbar {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1.1rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(104, 59, 28, 0.42);
+  border-bottom: 3px solid rgba(91, 20, 24, 0.72);
+  background:
+    linear-gradient(180deg, rgba(255, 251, 235, 0.84), rgba(239, 214, 161, 0.7)),
+    url('/wallpaper/arena-parchment.jpg') center / 480px auto repeat;
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.62),
+    0 5px 12px rgba(65, 35, 16, 0.1);
+}
+
+.arena-app-standard-matchups .standard-matchups__control-cluster {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.arena-app-standard-matchups .standard-matchups__control-label {
+  flex: 0 0 auto;
+  color: #78552f;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.arena-app-standard-matchups .standard-matchups__segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, auto);
+  min-width: 0;
+  padding: 3px;
+  border: 1px solid rgba(91, 50, 25, 0.34);
+  background: rgba(105, 66, 35, 0.12);
+  box-shadow: inset 0 1px 3px rgba(68, 34, 13, 0.12);
+}
+
+.arena-app-standard-matchups .standard-matchups__mode-toolbar .standard-matchups__rank-switcher,
+.arena-app-standard-matchups .standard-matchups__mode-toolbar .standard-matchups__index {
+  gap: 0;
+  margin: 0;
+  padding: 3px !important;
+  border: 1px solid rgba(91, 50, 25, 0.34) !important;
+  border-image: none !important;
+  border-radius: 2px !important;
+  background: rgba(105, 66, 35, 0.12) !important;
+}
+
+.arena-app-standard-matchups .standard-matchups__mode-toolbar .standard-matchups__segmented :is(button, a) {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.85rem;
+  border: 0 !important;
+  border-left: 1px solid rgba(101, 59, 30, 0.24) !important;
+  border-radius: 0 !important;
+  color: #4f321f !important;
+  background: rgba(255, 249, 230, 0.58) !important;
+  font-size: 0.82rem;
+  font-weight: 900;
+  line-height: 1.1;
+  white-space: nowrap;
+  transition: color 130ms ease, background 130ms ease, box-shadow 130ms ease;
+}
+
+.arena-app-standard-matchups .standard-matchups__mode-toolbar .standard-matchups__segmented :is(button, a):first-child {
+  border-left: 0 !important;
+}
+
+.arena-app-standard-matchups .standard-matchups__mode-toolbar .standard-matchups__segmented :is(button, a):hover {
+  color: #6d1117 !important;
+  background: rgba(255, 244, 207, 0.94) !important;
+}
+
+.arena-app-standard-matchups .standard-matchups__mode-toolbar .standard-matchups__segmented :is(button, a):focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid #9b641d;
+  outline-offset: 1px;
+}
+
+.arena-app-standard-matchups .standard-matchups__mode-toolbar .standard-matchups__segmented [aria-pressed='true'] {
+  border-color: transparent !important;
+  color: #fff0c4 !important;
+  background: #6d1117 !important;
+  box-shadow:
+    inset 0 -3px #efc568,
+    inset 0 1px rgba(255, 255, 255, 0.12);
+}
+
 .arena-app-standard-matchups .standard-matchups__error button {
   min-height: 36px;
   margin-left: auto;
@@ -418,12 +520,29 @@
     line-height: 1.42 !important;
   }
 
-  .arena-app-standard-matchups .standard-matchups__rank-switcher {
-    margin-top: 0.15rem;
+  .arena-app-standard-matchups .standard-matchups__mode-toolbar {
+    display: grid;
+    width: 100%;
+    gap: 0.65rem;
+    padding: 0.6rem;
   }
 
-  .arena-app-standard-matchups .standard-matchups__index {
-    display: none;
+  .arena-app-standard-matchups .standard-matchups__control-cluster {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .arena-app-standard-matchups .standard-matchups__mode-toolbar .standard-matchups__rank-switcher,
+  .arena-app-standard-matchups .standard-matchups__mode-toolbar .standard-matchups__index {
+    display: grid !important;
+    width: 100%;
+    grid-auto-columns: minmax(0, 1fr);
+  }
+
+  .arena-app-standard-matchups .standard-matchups__mode-toolbar .standard-matchups__segmented :is(button, a) {
+    min-width: 0;
+    padding-inline: 0.45rem !important;
+    font-size: 0.78rem;
   }
 
   .arena-app-standard-matchups .standard-matchups__ledger-heading {

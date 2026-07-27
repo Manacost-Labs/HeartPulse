@@ -1,5 +1,12 @@
 # HS-Arena Changelog
 
+## v1.0.68 - 2026-07-27
+
+- Unified the Standard/Wild and matchup-section controls into one compact
+  parchment toolbar with clear labels and consistent active states.
+- Kept section navigation available on mobile and made the picker and summary
+  controls return correctly from the full-matrix view.
+
 ## v1.0.67 - 2026-07-27
 
 - Replaced generated DeckView images in the card-page recommendations with the

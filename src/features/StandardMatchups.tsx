@@ -537,6 +537,16 @@ function StandardMatchupsPage() {
   const quickRows = useMemo(() => rows.slice(0, 8), [rows]);
   const formatLabel = MATCHUP_FORMAT_LABELS[format];
 
+  const openOverviewSection = useCallback((sectionId: 'matchups-picker' | 'matchups-summary') => {
+    setView('overview');
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => document.getElementById(sectionId)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      }));
+    });
+  }, []);
+
   const openMatrix = useCallback(() => {
     setView('matrix');
     window.requestAnimationFrame(() => {
@@ -560,52 +570,49 @@ function StandardMatchupsPage() {
         </dl>
       </header>
 
-      <div className="standard-matchups__rank-switcher traditional-mode-banner-controls" aria-label="Формат игры" data-tour-id="matchups-rank">
-        {([
-          ['standard', 'Стандарт'],
-          ['wild', 'Вольный'],
-        ] as const).map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setFormat(value)}
-            aria-pressed={format === value}
-            aria-label={`Показать матчапы: ${label}`}
-            className={`px-4 py-2 rounded-full font-bold transition ${format === value ? 'text-[#2c1e16]' : 'text-[#6b4c2a]'}`}
-            style={{
-              background: format === value ? 'linear-gradient(135deg,#f4d06f,#d6a848)' : 'rgba(255,255,255,0.55)',
-              border: format === value ? '1.5px solid #b8904a' : '1px solid rgba(107,76,42,0.18)',
-            }}
+      <div className="standard-matchups__mode-toolbar" aria-label="Настройки отображения матчапов">
+        <fieldset className="standard-matchups__control-cluster">
+          <legend className="sr-only">Формат игры</legend>
+          <span className="standard-matchups__control-label" aria-hidden="true">Формат</span>
+          <div
+            className="standard-matchups__rank-switcher standard-matchups__segmented"
+            data-tour-id="matchups-rank"
           >
-            {label}
-          </button>
-        ))}
-      </div>
+            {([
+              ['standard', 'Стандарт'],
+              ['wild', 'Вольный'],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setFormat(value)}
+                aria-pressed={format === value}
+                aria-label={`Показать матчапы: ${label}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
 
-      <nav
-        aria-label="Навигация по странице матчапов"
-        className="standard-matchups__index flex gap-2 overflow-x-auto rounded-2xl border border-[#d7b56e]/60 bg-[#fff8e4]/82 p-2 scrollbar-hs"
-      >
-        {[
-          ['#matchups-picker', 'Подбор'],
-          ['#matchups-summary', 'Сводка'],
-        ].map(([href, label]) => (
-          <a
-            key={href}
-            href={href}
-            className="shrink-0 rounded-xl border border-[#d7b56e]/70 bg-white/75 px-4 py-2 text-sm font-black text-[#3d2208] transition hover:bg-[#fff3c4] focus:outline-none focus:ring-2 focus:ring-[#d6a848]"
+        <div className="standard-matchups__control-cluster">
+          <span className="standard-matchups__control-label" id="matchups-section-label">Раздел</span>
+          <nav
+            aria-labelledby="matchups-section-label"
+            className="standard-matchups__index standard-matchups__segmented"
           >
-            {label}
-          </a>
-        ))}
-        <button
-          type="button"
-          onClick={openMatrix}
-          className="shrink-0 rounded-xl border border-[#d7b56e]/70 bg-white/75 px-4 py-2 text-sm font-black text-[#3d2208] transition hover:bg-[#fff3c4] focus:outline-none focus:ring-2 focus:ring-[#d6a848]"
-        >
-          Полная матрица
-        </button>
-      </nav>
+            <button type="button" onClick={() => openOverviewSection('matchups-picker')}>
+              Подбор
+            </button>
+            <button type="button" onClick={() => openOverviewSection('matchups-summary')}>
+              Сводка
+            </button>
+            <button type="button" onClick={openMatrix} aria-pressed={view === 'matrix'}>
+              Матрица
+            </button>
+          </nav>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 gap-5">
         <section

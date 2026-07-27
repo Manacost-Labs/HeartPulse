@@ -1783,10 +1783,10 @@
   }
 
   .arena-app-standard-matchups .standard-matchups__rank-switcher button {
-    color: #e2c690 !important;
+    color: #4f321f !important;
   }
 
   .arena-app-standard-matchups .standard-matchups__rank-switcher button[aria-pressed='true'] {
-    color: #4b2818 !important;
+    color: #fff0c4 !important;
   }
 }
