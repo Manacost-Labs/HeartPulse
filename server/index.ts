@@ -4815,6 +4815,11 @@ function cardImageCachePath(cardId: string, variant: 'thumb' | 'full', source: C
   return sharedCardImageCachePath(CARD_IMAGE_CACHE_DIR, cardId, variant, source);
 }
 
+function cardTileCachePath(cardId: string, source: 'fallback' | 'placeholder'): string {
+  const safeCardId = cardId.replace(/[^A-Za-z0-9_]/g, '').slice(0, 80) || 'unknown';
+  return join(CARD_IMAGE_CACHE_DIR, `${safeCardId}-tile-${source}-card_tile_v1.webp`);
+}
+
 function normalizeResolvedCardId(cardId: string): string {
   return cardId.trim().replace(/^\/+/, '').replace(/\s+/g, '');
 }
@@ -4882,6 +4887,26 @@ async function ensureCardImagePlaceholder(cardId: string, variant: 'thumb' | 'fu
   await sharp(Buffer.from(svg))
     .webp({ quality, effort: 4 })
     .toFile(outPath);
+  return { path: outPath, source: 'placeholder' };
+}
+
+async function ensureCardTilePlaceholder(cardId: string): Promise<CachedCardImage> {
+  mkdirSync(CARD_IMAGE_CACHE_DIR, { recursive: true });
+  const outPath = cardTileCachePath(cardId, 'placeholder');
+  if (existsSync(outPath)) return { path: outPath, source: 'placeholder' };
+  const safeId = cardId.replace(/[^A-Za-z0-9_]/g, '').slice(0, 24);
+  const svg = `
+    <svg width="256" height="59" viewBox="0 0 256 59" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#402820"/>
+          <stop offset="1" stop-color="#765038"/>
+        </linearGradient>
+      </defs>
+      <rect width="256" height="59" fill="url(#bg)"/>
+      <text x="244" y="36" text-anchor="end" font-family="Arial, sans-serif" font-size="14" fill="#f4dfb0">${safeId}</text>
+    </svg>`;
+  await sharp(Buffer.from(svg)).webp({ quality: 82, effort: 4 }).toFile(outPath);
   return { path: outPath, source: 'placeholder' };
 }
 
@@ -4976,6 +5001,43 @@ async function ensureCardImage(cardId: string, variant: 'thumb' | 'full'): Promi
       }
     });
   })().finally(() => cardImageJobs.delete(jobKey));
+
+  cardImageJobs.set(jobKey, job);
+  return job;
+}
+
+async function ensureCardTile(cardId: string): Promise<CachedCardImage> {
+  mkdirSync(CARD_IMAGE_CACHE_DIR, { recursive: true });
+  const resolvedCardId = await resolveCardImageId(cardId);
+  const outPath = cardTileCachePath(resolvedCardId, 'fallback');
+  if (existsSync(outPath)) return { path: outPath, source: 'fallback' };
+
+  const jobKey = `${resolvedCardId}:tile:fallback`;
+  const existingJob = cardImageJobs.get(jobKey);
+  if (existingJob) return existingJob;
+
+  const job = withCardImageSlot(async () => {
+    try {
+      const upstream = await fetch(
+        `https://art.hearthstonejson.com/v1/tiles/${encodeURIComponent(resolvedCardId)}.webp`,
+        {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
+          signal: AbortSignal.timeout(15_000),
+        },
+      );
+      if (!upstream.ok) throw new Error(`Hearthstone tile HTTP ${upstream.status}`);
+      const buffer = Buffer.from(await upstream.arrayBuffer());
+      if (!buffer.length) throw new Error('Hearthstone tile is empty');
+      await sharp(buffer)
+        .resize({ width: 256, height: 59, fit: 'cover' })
+        .webp({ quality: 86, effort: 4 })
+        .toFile(outPath);
+      return { path: outPath, source: 'fallback' as const };
+    } catch (error: any) {
+      console.warn('[api/card-image] tile placeholder:', resolvedCardId, error?.message ?? error);
+      return ensureCardTilePlaceholder(resolvedCardId);
+    }
+  }).finally(() => cardImageJobs.delete(jobKey));
 
   cardImageJobs.set(jobKey, job);
   return job;
@@ -7452,7 +7514,9 @@ app.use('/api', createHomeSummaryRouter({
 }));
 
 app.use('/api', createCardImageRouter({
-  ensureImage: ensureCardImage,
+  ensureImage: (cardId, variant) => variant === 'tile'
+    ? ensureCardTile(cardId)
+    : ensureCardImage(cardId, variant),
   isAllowedPath: path => {
     const root = resolve(CARD_IMAGE_CACHE_DIR);
     const candidate = resolve(path);

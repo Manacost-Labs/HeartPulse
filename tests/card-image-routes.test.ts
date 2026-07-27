@@ -80,6 +80,10 @@ try {
   assert.equal(notModified.status, 304);
   assert.equal(opened.length, 1);
 
+  const tile = await get('/card-image/EX1_001/tile.webp');
+  assert.equal(tile.status, 200);
+  assert.deepEqual(ensured.at(-1), { cardId: 'EX1_001', variant: 'tile' });
+
   image = { path: '/safe/fallback.webp', source: 'fallback' };
   const fallback = await get('/card-image/123/full.webp');
   assert.equal(fallback.status, 200);

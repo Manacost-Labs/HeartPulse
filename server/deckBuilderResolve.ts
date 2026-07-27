@@ -107,8 +107,7 @@ function costOf(card: DeckBuilderCardRecord): number {
 }
 
 function tileUrl(cardId: string, _card?: DeckBuilderCardRecord): string {
-  // Always use official HSJSON deck tiles (pre-cropped).
-  return `https://art.hearthstonejson.com/v1/tiles/${encodeURIComponent(cardId)}.webp`;
+  return `/api/card-image/${encodeURIComponent(cardId)}/tile.webp?v=card_tile_v1`;
 }
 
 function renderUrl(cardId: string, card?: DeckBuilderCardRecord): string {

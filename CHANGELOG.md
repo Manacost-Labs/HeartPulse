@@ -6,6 +6,8 @@
   native deck-list interface shared with the site's deck builder.
 - Kept direct deck-code copying below every recommendation and aligned all
   native deck lists in responsive, scrollable cards.
+- Routed the native deck-row artwork through Arena's persistent same-origin
+  image cache so restricted regional networks do not depend on HearthstoneJSON.
 
 ## v1.0.66 - 2026-07-27
 

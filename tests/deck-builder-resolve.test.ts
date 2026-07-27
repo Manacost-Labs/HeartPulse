@@ -87,7 +87,7 @@ const preferred = resolveDeckFromCode({
   preferredArchetypeName: 'Void Soul DH',
 });
 assert.equal(preferred?.archetype?.archetypeLabel, 'ДХ с Душой Бездны');
-assert.ok(preferred?.cards.every(card => card.image.includes('/tiles/')));
+assert.ok(preferred?.cards.every(card => card.image.includes('/api/card-image/') && card.image.includes('/tile.webp?v=')));
 
 // Sideboards (ETC / Zilliax) stay out of the main 30/40 count.
 const withSideboard = encode({
@@ -129,7 +129,7 @@ assert.ok(etcSideboard, 'ETC sideboard present');
 assert.equal(etcSideboard?.keyCard?.name, 'Музыкальный менеджер E.T.C.');
 assert.equal(etcSideboard?.label, 'Музыкальный менеджер E.T.C.');
 assert.ok(etcSideboard?.cards.every(card => card.sideboardKeyDbfId === 90749), 'ETC modules linked to key');
-assert.ok(etcSideboard?.cards.every(card => card.image.includes('/tiles/')), 'ETC modules use tile art');
+assert.ok(etcSideboard?.cards.every(card => card.image.includes('/api/card-image/') && card.image.includes('/tile.webp?v=')), 'ETC modules use same-origin tile art');
 // Zilliax sideboard resolves too and stays a separate module.
 const zilliaxSideboard = sideboardResolved?.sideboards.find(item => item.keyCardDbfId === 102983);
 assert.equal(zilliaxSideboard?.keyCard?.name, 'Зиллиакс Делюкс 3000');
