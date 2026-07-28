@@ -1157,11 +1157,27 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
           failure.status = response.status;
           throw failure;
         }
-        setCard({
+        const loadedCard = {
           ...(payload.card as CardRecord),
           mechanicTranslations: payload.mechanicTranslations || {},
           mechanicOverrides: payload.mechanicOverrides ?? payload.mechanicTranslations ?? {},
-        });
+        };
+        if (statsFormat === 'standard' && !cardSupportsStandardStatistics(loadedCard.formats)) {
+          setStatsFormat('wild');
+          if (typeof window !== 'undefined') {
+            window.history.replaceState(
+              window.history.state,
+              '',
+              constructedCardStatsUrl(
+                window.location.pathname,
+                { period, rank, statsFormat: 'wild', defaultStatsFormat: format },
+                window.location.search,
+              ),
+            );
+          }
+          return;
+        }
+        setCard(loadedCard);
         setServerStatsAccess(payload.statsAccess === true);
         setPeriodLabel(payload.period?.label || constructedCardPeriodLabel(period));
         setDataState({
@@ -1187,22 +1203,6 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
     const frame = requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
     return () => cancelAnimationFrame(frame);
   }, [card]);
-  useEffect(() => {
-    if (!card || statsFormat !== 'standard' || cardSupportsStandardStatistics(card.formats)) return;
-    setStatsFormat('wild');
-    if (typeof window !== 'undefined') {
-      window.history.replaceState(
-        window.history.state,
-        '',
-        constructedCardStatsUrl(
-          window.location.pathname,
-          { period, rank, statsFormat: 'wild', defaultStatsFormat: format },
-          window.location.search,
-        ),
-      );
-    }
-  }, [card, format, period, rank, statsFormat]);
-
   useEffect(() => {
     if (!card) return;
     const name = cardName(card);
