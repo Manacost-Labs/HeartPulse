@@ -147,32 +147,53 @@ export function createBoostyAnalyticsLoader(
     const boostyUrl = new URL(`${boostyBaseUrl}/api/analytics`);
     boostyUrl.searchParams.set('from', from.toISOString());
     boostyUrl.searchParams.set('to', to.toISOString());
-    const [boostyPayload, articlePayload] = await Promise.all([
+    const [boostyPayload, articles] = await Promise.all([
       fetchJson(fetchImpl, boostyUrl.toString(), {
         signal: AbortSignal.timeout(timeoutMs),
         headers: { Accept: 'application/json' },
       }),
-      fetchJson(fetchImpl, kolodaEndpoint, {
-        method: 'POST',
-        signal: AbortSignal.timeout(timeoutMs),
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'User-Agent': 'ManacostArena/1.0',
-        },
-        body: JSON.stringify({ page: 1, pageSize: 100, order: 'asc' }),
-      }),
+      fetchKolodaArticles(fetchImpl, kolodaEndpoint, timeoutMs),
     ]);
     return {
       ...buildBoostyArticleAnalytics(
         normalizeBoostyAnalytics(boostyPayload),
-        normalizeKolodaArticles(articlePayload),
+        articles,
         from,
         to,
       ),
       generatedAt: now().toISOString(),
     };
   };
+}
+
+async function fetchKolodaArticles(
+  fetchImpl: typeof fetch,
+  endpoint: string,
+  timeoutMs: number,
+): Promise<KolodaArticle[]> {
+  const fetchPage = (page: number) => fetchJson(fetchImpl, endpoint, {
+    method: 'POST',
+    signal: AbortSignal.timeout(timeoutMs),
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'User-Agent': 'ManacostArena/1.0',
+    },
+    body: JSON.stringify({ page, pageSize: 50, order: 'asc' }),
+  });
+  const firstPayload = await fetchPage(1);
+  const firstRoot = objectValue(firstPayload);
+  const pagination = objectValue(firstRoot.pagination);
+  const totalPages = finiteInteger(pagination.totalPages);
+  if (totalPages < 1 || totalPages > 20) {
+    throw new Error('invalid Koloda pagination');
+  }
+  const remainingPayloads = totalPages > 1
+    ? await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, index) => fetchPage(index + 2)),
+    )
+    : [];
+  return [firstPayload, ...remainingPayloads].flatMap(normalizeKolodaArticles);
 }
 
 export function buildBoostyArticleAnalytics(
@@ -319,15 +340,19 @@ function normalizeBoostyAnalytics(value: unknown): BoostyAnalyticsSource {
 function normalizeKolodaArticles(value: unknown): KolodaArticle[] {
   const root = objectValue(value);
   if (!Array.isArray(root.data)) throw new Error('invalid Koloda articles payload');
-  return root.data.map(item => {
-    const row = objectValue(item);
-    const id = String(row.id ?? '').trim();
-    const title = requiredText(row.title, 300);
-    const url = requiredText(row.url, 1_000);
-    if (!id || !/^https:\/\/kolodahearthstone\.ru\//.test(url)) {
-      throw new Error('invalid Koloda article');
+  return root.data.flatMap(item => {
+    try {
+      const row = objectValue(item);
+      const id = String(row.id ?? '').trim();
+      const title = requiredText(row.title, 300);
+      const url = requiredText(row.url, 1_000);
+      if (!id || !/^https:\/\/kolodahearthstone\.ru\//.test(url)) {
+        return [];
+      }
+      return [{ id, title, url, publishedAt: requiredDate(row.publishedAt) }];
+    } catch {
+      return [];
     }
-    return { id, title, url, publishedAt: requiredDate(row.publishedAt) };
   });
 }
 
