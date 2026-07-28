@@ -1,5 +1,16 @@
 # HS-Arena Changelog
 
+## v1.0.70 - 2026-07-28
+
+- Hid the Standard statistics option on explicitly Wild-only card pages and
+  moved card-statistics history into a collapsed, keyboard-accessible disclosure
+  that loads its data only when opened.
+- Added stable, cryptographically random public profile IDs and shareable
+  `/profiles/:id/` pages for every existing and future account.
+- Backfilled profile IDs with an idempotent SQLite migration and restricted the
+  public profile API to an explicit privacy-safe field allowlist without account
+  IDs, contacts, roles, subscription data or authentication details.
+
 ## v1.0.69 - 2026-07-27
 
 - Expanded recommended deck compositions to their full natural height on card
