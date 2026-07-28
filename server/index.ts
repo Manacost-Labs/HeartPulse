@@ -185,6 +185,10 @@ import {
 } from './newsletterUnsubscribeRoutes.js';
 import { createAdminUserReadRouter } from './adminUserReadRoutes.js';
 import { createAdminBoostyRouter } from './adminBoostyRoutes.js';
+import {
+  createAdminBoostyAnalyticsRouter,
+  createBoostyAnalyticsLoader,
+} from './adminBoostyAnalyticsRoutes.js';
 import { createAdminTelegramReadRouter } from './adminTelegramReadRoutes.js';
 import { createAdminContestReadRouter } from './adminContestReadRoutes.js';
 import { createAdminImageUploadRouter } from './adminImageUploadRoutes.js';
@@ -464,6 +468,9 @@ const TELEGRAM_OIDC_DISCOVERY_URL = `${TELEGRAM_OIDC_ISSUER}/.well-known/openid-
 const TELEGRAM_OIDC_COOKIE_NAME = 'manacost_tg_oidc';
 const TELEGRAM_OIDC_STATE_TTL_MS = 10 * 60 * 1000;
 const BOOSTY_AUTH_API_URL = (process.env.BOOSTY_AUTH_API_URL || 'http://127.0.0.1:18082').replace(/\/$/, '');
+const loadBoostyArticleAnalytics = createBoostyAnalyticsLoader({
+  boostyBaseUrl: BOOSTY_AUTH_API_URL,
+});
 const BOOSTY_MIN_PRICE = Number(process.env.BOOSTY_MIN_PRICE || 99);
 const BOOSTY_MIN_LEVEL_NAME = (process.env.BOOSTY_MIN_LEVEL_NAME || 'Любитель Арены').trim();
 const BOOSTY_LEVEL_ORDER = (process.env.BOOSTY_LEVEL_ORDER || 'Любитель Арены,Алмаз')
@@ -9189,6 +9196,12 @@ app.use('/api', createAdminBoostyRouter({
   getSubscribers: fetchBoostySubscribers,
   configured: () => Boolean(BOOSTY_AUTH_API_URL),
   setPrivateNoStore,
+}));
+
+app.use('/api', createAdminBoostyAnalyticsRouter({
+  adminAuth,
+  setPrivateNoStore,
+  loadAnalytics: loadBoostyArticleAnalytics,
 }));
 
 app.use('/api', createAdminTelegramReadRouter({
