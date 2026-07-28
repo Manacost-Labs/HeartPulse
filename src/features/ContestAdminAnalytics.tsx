@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, CalendarRange, RefreshCw } from 'lucide-react';
 import {
   analyticsQueryRange,
@@ -143,10 +143,7 @@ export function ContestAdminAnalyticsView({
   const plans = payload?.plans ?? [];
   const intervals = payload?.articleIntervals ?? [];
   const retention = payload?.retention ?? [];
-  const maxPlanRevenue = useMemo(
-    () => Math.max(1, ...plans.map(plan => plan.revenueRub)),
-    [plans],
-  );
+  const maxPlanRevenue = Math.max(1, ...plans.map(plan => plan.revenueRub));
 
   return (
     <div className="contest-admin-card admin-full-card boosty-analytics" aria-busy={loading}>
