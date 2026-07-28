@@ -1,12 +1,11 @@
-# Boosty / Koloda article analytics
+# Boosty + Tribute / Koloda article analytics
 
 ## Objective
 
-Add an admin-only analytics workspace to Arena that compares Boosty payment
-activity with publication intervals from KolodaHearthstone. The workspace must
-show inferred new paid subscriptions, observed renewals, observed cumulative
-payment increases in RUB, plan distribution, and retention for new-subscriber
-cohorts.
+Add an admin-only analytics workspace to Arena that compares Boosty and Tribute
+subscription activity with publication intervals from KolodaHearthstone. The
+workspace shows new paid subscriptions, renewals, net RUB receipts, plan
+distribution, source breakdown, and retention for new-subscriber cohorts.
 
 ## Current limitation
 
@@ -14,6 +13,9 @@ The existing Boosty monitor stores only the latest JSON snapshot. Exact historic
 renewals and payment deltas cannot be reconstructed from that file. The first successful
 run of the new journal is therefore a baseline and creates no synthetic payment
 events. Exact analytics begin with the next successful observation.
+
+Tribute is event-driven and has no historical backfill in the documented API.
+Its exact analytics therefore begin with the first successfully signed webhook.
 
 ## Components
 
@@ -49,27 +51,49 @@ events. Exact analytics begin with the next successful observation.
   the Telegram bot. Other processes may ingest through the same transactional
   store, but may not run a competing background loop.
 
+### Tribute webhook collector (`/home/debian/boosty-auth`)
+
+- Accept `POST /api/tribute/webhook` and verify `trbt-signature` as HMAC-SHA256
+  over the untouched request body using `TRIBUTE_API_KEY`.
+- Limit request bodies to 256 KiB and reject missing/invalid signatures before
+  parsing or writing.
+- Record `new_subscription`, `renewed_subscription`, and
+  `cancelled_subscription`; acknowledge unrelated valid Tribute events without
+  adding them to subscription analytics.
+- Deduplicate retries by a stable event fingerprint that excludes `sent_at`.
+- Store no raw webhook or direct subscriber identifier. `trb_user_id` is
+  pseudonymized with a separate stable `TRIBUTE_IDENTITY_KEY`, so API-key
+  rotation does not break cohorts.
+- Treat `amount` as the net amount after commission in minor currency units.
+  Only explicit RUB values enter `revenueRub`; other currencies are reported as
+  unsupported rather than silently converted.
+- Persist events and current subscription state in
+  `data/tribute_events.sqlite3` with owner-only permissions.
+- Expose a PII-free aggregate at `GET /api/tribute/analytics`.
+
 ### Arena server (`/home/debian/manacost-arena`)
 
 - Add an admin-authenticated route under `/api/admin/boosty/analytics`.
 - Validate and bound `from` / `to` to a maximum 366-day range.
-- Fetch Boosty aggregate analytics from the configured localhost service.
+- Fetch Boosty and Tribute aggregate analytics independently from the
+  configured localhost service. If one source is unavailable, return the other
+  with partial coverage instead of fabricated zeros.
 - Fetch published articles from
   `https://kolodahearthstone.ru/wp-json/koloda/v1/articles/query`.
 - Validate both remote payloads and use request timeouts.
 - Build half-open publication intervals:
   `[article.publishedAt, nextArticle.publishedAt)`, with the latest interval
   ending at the selected `to` value.
-- Aggregate inferred new subscriptions, observed increases/decreases, and plans
-  into every interval. This is temporal correlation, not causal attribution.
+- Aggregate Boosty observations and exact Tribute subscription events into
+  every interval. This is temporal correlation, not causal attribution.
 - Return private, non-cacheable JSON. No subscriber PII is sent to the browser.
 
 ### Arena admin UI
 
 - Add an `Аналитика` item to the existing admin workspace navigation.
 - Provide date filters and a manual reload action.
-- Show totals for inferred new subscriptions, observed renewals, observed RUB
-  increases, and current data coverage.
+- Show combined totals plus separate Boosty and Tribute cards for new
+  subscriptions, renewals, net RUB receipts, D30 retention, and data semantics.
 - Show D7 / D30 / D60 / D90 retention for mature new-subscriber cohorts.
 - Show plan distribution and a responsive article-interval table.
 - Clearly label baseline/data-coverage limitations and source freshness.
@@ -85,10 +109,16 @@ active, and paid. Missing evaluation polls are `unknown` and never count as
 churn. The API returns `eligible`, `evaluated`, `retained`, `unknown`, and
 `retained / evaluated × 100`. Later state changes do not rewrite the milestone.
 
+For Tribute, a cohort starts at `new_subscription`. A milestone is retained
+when a signed event observed by `dueAt + 24h` proves that `expires_at` reaches
+the milestone. Cancellation of auto-renewal does not count as churn before the
+paid access expiration.
+
 ## Tests
 
-- Python unit tests for baseline behavior, new/increase/decrease inference,
-  idempotence, state history, aggregate grouping, and retention maturity.
+- Python unit tests for Boosty baseline/inference and Tribute signature,
+  deduplication, PII exclusion, currency handling, aggregate grouping, and
+  retention maturity.
 - Express route tests for admin authorization, date bounds, upstream failures,
   payload validation, and interval attribution.
 - React/model tests for formatting and empty/partial states.
@@ -101,9 +131,14 @@ churn. The API returns `eligible`, `evaluated`, `retained`, `unknown`, and
   SQLite is authoritative.
 - A journal write failure prevents replacing the JSON snapshot, so the next poll
   can retry without losing a payment delta.
-- Arena degrades article analytics with an explicit private error response; it
-  never substitutes fabricated zeros for an unavailable source.
-- No deployment is part of this implementation unless separately requested.
+- Arena marks one missing subscription source as partial and fails only when
+  both subscription sources are unavailable.
+- The Arena UI remains isolated on its feature branch. The Tribute webhook
+  backend and exact nginx route were deployed separately so events can be
+  collected before the UI branch is merged.
 - Sampling can miss a payment followed by a refund between polls and can combine
   multiple payments into one observed increase. Exact transaction counts require
   a transaction-level Boosty API or webhook.
+- Tribute retries failed webhook delivery for approximately 24 hours according
+  to its documentation. Events before webhook configuration cannot be
+  reconstructed by this integration.

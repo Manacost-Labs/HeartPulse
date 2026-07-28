@@ -7,7 +7,7 @@ import {
 import './contests.css';
 
 const payload: BoostyArticleAnalyticsPayload = {
-  semantics: 'observed_cumulative_delta',
+  semantics: 'combined_subscription_events',
   from: '2026-07-01T00:00:00.000Z',
   to: '2026-07-28T00:00:00.000Z',
   summary: {
@@ -17,8 +17,8 @@ const payload: BoostyArticleAnalyticsPayload = {
     observedDecreaseRub: -175.72,
   },
   plans: [
-    { planId: '199', planName: 'Алмаз', newSubscriptions: 8, renewals: 24, revenueRub: 6_280.8 },
-    { planId: '99', planName: 'Любитель Арены', newSubscriptions: 4, renewals: 7, revenueRub: 2_462.6 },
+    { planId: '199', planName: 'Алмаз', newSubscriptions: 8, renewals: 24, revenueRub: 6_280.8, source: 'boosty' },
+    { planId: 'tribute-199', planName: 'Алмаз', newSubscriptions: 4, renewals: 7, revenueRub: 2_462.6, source: 'tribute' },
   ],
   retention: [
     { days: 7, eligible: 12, evaluated: 12, retained: 10, unknown: 0, rate: 83.3 },
@@ -50,8 +50,8 @@ const payload: BoostyArticleAnalyticsPayload = {
         observedDecreaseRub: 0,
       },
       plans: [
-        { planId: '199', planName: 'Алмаз', newSubscriptions: 5, renewals: 12, revenueRub: 3_460.2 },
-        { planId: '99', planName: 'Любитель Арены', newSubscriptions: 2, renewals: 4, revenueRub: 1_116 },
+        { planId: '199', planName: 'Алмаз', newSubscriptions: 5, renewals: 12, revenueRub: 3_460.2, source: 'boosty' },
+        { planId: 'tribute-199', planName: 'Алмаз', newSubscriptions: 2, renewals: 4, revenueRub: 1_116, source: 'tribute' },
       ],
     },
     {
@@ -70,12 +70,56 @@ const payload: BoostyArticleAnalyticsPayload = {
         observedDecreaseRub: -175.72,
       },
       plans: [
-        { planId: '199', planName: 'Алмаз', newSubscriptions: 1, renewals: 2, revenueRub: 527.16 },
+        { planId: '199', planName: 'Алмаз', newSubscriptions: 1, renewals: 2, revenueRub: 527.16, source: 'boosty' },
       ],
     },
   ],
   generatedAt: '2026-07-28T00:00:00.000Z',
   limitations: [],
+  sourceBreakdown: [
+    {
+      id: 'boosty',
+      label: 'Boosty',
+      semantics: 'observed_cumulative_delta',
+      summary: {
+        newSubscriptions: 8,
+        renewals: 24,
+        revenueRub: 6_280.8,
+        observedDecreaseRub: -175.72,
+      },
+      retention: [
+        { days: 30, eligible: 5, evaluated: 5, retained: 4, unknown: 0, rate: 80 },
+      ],
+      coverage: {
+        baselineAt: '2026-07-01T00:00:00.000Z',
+        lastAcceptedPollAt: '2026-07-27T23:58:00.000Z',
+        acceptedPolls: 18_417,
+        maxPollGapSeconds: 240,
+        complete: true,
+      },
+    },
+    {
+      id: 'tribute',
+      label: 'Tribute',
+      semantics: 'exact_webhook_events',
+      summary: {
+        newSubscriptions: 4,
+        renewals: 7,
+        revenueRub: 2_462.6,
+        observedDecreaseRub: 0,
+      },
+      retention: [
+        { days: 30, eligible: 3, evaluated: 3, retained: 2, unknown: 0, rate: 66.7 },
+      ],
+      coverage: {
+        baselineAt: '2026-07-10T00:00:00.000Z',
+        lastAcceptedPollAt: '2026-07-27T22:00:00.000Z',
+        acceptedPolls: 11,
+        maxPollGapSeconds: null,
+        complete: true,
+      },
+    },
+  ],
 };
 
 const meta = {
@@ -118,6 +162,6 @@ export const Empty: Story = {
 export const Unavailable: Story = {
   args: {
     payload: null,
-    error: 'Не удалось загрузить аналитику Boosty',
+    error: 'Не удалось загрузить аналитику подписок',
   },
 };

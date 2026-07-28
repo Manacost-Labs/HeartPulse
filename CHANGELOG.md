@@ -1,5 +1,16 @@
 # HS-Arena Changelog
 
+## v1.0.50 - 2026-07-28
+
+- Added signed Tribute subscription webhooks with idempotent PII-free SQLite
+  storage for new subscriptions, renewals, cancellations, net RUB receipts and
+  D7/D30/D60/D90 retention.
+- Combined Boosty and Tribute in administrator article analytics while keeping
+  per-platform totals, plan attribution, collection semantics and partial-source
+  coverage visible.
+- Published the hardened Tribute callback at
+  `https://arena.hs-manacost.ru/api/tribute/webhook`.
+
 ## v1.0.49 - 2026-07-28
 
 - Added an administrator analytics workspace that compares observed Boosty
