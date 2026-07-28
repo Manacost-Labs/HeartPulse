@@ -3,6 +3,7 @@ import express from 'express';
 import {
   buildBoostyArticleAnalytics,
   createAdminBoostyAnalyticsRouter,
+  createBoostyAnalyticsLoader,
   type BoostyAnalyticsSource,
   type KolodaArticle,
 } from '../server/adminBoostyAnalyticsRoutes.js';
@@ -97,6 +98,42 @@ assert.deepEqual(built.articleIntervals[1].plans, [
     revenueRub: 200,
   },
 ]);
+
+const requestedArticlePages: number[] = [];
+const loader = createBoostyAnalyticsLoader({
+  boostyBaseUrl: 'http://boosty.internal',
+  kolodaEndpoint: 'https://kolodahearthstone.ru/wp-json/koloda/v1/articles/query',
+  now: () => new Date('2026-07-10T01:00:00.000Z'),
+  fetchImpl: (async (url, init) => {
+    if (String(url).startsWith('http://boosty.internal/')) {
+      return new Response(JSON.stringify(source), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    const body = JSON.parse(String(init?.body || '{}')) as {
+      page?: number;
+      pageSize?: number;
+    };
+    assert.equal(body.pageSize, 50);
+    const page = body.page ?? 1;
+    requestedArticlePages.push(page);
+    return new Response(JSON.stringify({
+      data: [articles[page - 1]],
+      pagination: { page, pageSize: 50, totalItems: 2, totalPages: 2 },
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }) as typeof fetch,
+});
+const loaded = await loader(
+  new Date('2026-07-01T00:00:00.000Z'),
+  new Date('2026-07-10T00:00:00.000Z'),
+);
+assert.deepEqual(requestedArticlePages.sort(), [1, 2]);
+assert.equal(loaded.articleIntervals.length, 2);
+assert.equal(loaded.generatedAt, '2026-07-10T01:00:00.000Z');
 
 let loaderCalls = 0;
 let loaderFailure = false;
