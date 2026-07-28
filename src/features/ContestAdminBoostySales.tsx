@@ -40,10 +40,10 @@ export function ContestAdminBoostySales({
       </div>
 
       {sales.reconciliationMatches === false && (
-        <div className="boosty-sales-quality-note" role="status">
+        <output className="boosty-sales-quality-note">
           Ledger и агрегатные метрики Boosty расходятся. Ни одна операция не удалена
           автоматически: суммы ниже показывают строки sales API.
-        </div>
+        </output>
       )}
 
       <div className="admin-stat-grid boosty-sales-stats">
