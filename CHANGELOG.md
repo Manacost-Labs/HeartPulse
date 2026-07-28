@@ -10,6 +10,12 @@
 - Backfilled profile IDs with an idempotent SQLite migration and restricted the
   public profile API to an explicit privacy-safe field allowlist without account
   IDs, contacts, roles, subscription data or authentication details.
+- Added an administrator analytics workspace that compares observed Boosty
+  payment increases with KolodaHearthstone publication intervals and summarizes
+  inferred subscriptions, renewals, RUB totals, plan mix and retention cohorts.
+- Added transactional subscriber history with change-only snapshots, tombstones
+  and a PII-free aggregate API; exact tracking starts from the 2026-07-28
+  baseline and explicitly marks gaps in historical observations.
 
 ## v1.0.69 - 2026-07-27
 
