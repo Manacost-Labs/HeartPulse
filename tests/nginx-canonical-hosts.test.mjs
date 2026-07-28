@@ -29,6 +29,7 @@ function substituteRouteParameters(route) {
     slugAndDbfId: 'example-76521',
     additionalKind: 'anomalies',
     slug: 'invite_1',
+    publicProfileId: 'p_0123456789abcdefghijkl',
     path: 'legacy/item',
   };
   return route.pattern.replace(/:([A-Za-z][A-Za-z0-9]*)(\*)?/g, (_match, name, catchAll) => {

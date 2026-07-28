@@ -73,6 +73,7 @@ function substituteRouteParameters(route) {
     slugAndDbfId: 'example-76521',
     additionalKind: 'anomalies',
     slug: 'invite_1',
+    publicProfileId: 'p_0123456789abcdefghijkl',
     path: 'legacy/item',
   };
   return route.pattern.replace(/:([A-Za-z][A-Za-z0-9]*)(\*)?/g, (_match, name, catchAll) => {
@@ -263,6 +264,15 @@ for (const route of inventory.routes) {
     expectRegexAction(`${path}/`, 'try_files /archetypes/index.html /index.html =404;', `${route.id} canonical route`);
     continue;
   }
+  if (route.id === 'public-profile') {
+    expectRegexAction(`${path}/`, 'try_files /index.html =404;', `${route.id} canonical route`);
+    const profileShell = firstMatchingRegexLocation(`${path}/`);
+    assert.match(profileShell?.body || '', /X-Robots-Tag\s+"noindex, follow"\s+always;/,
+      'public profiles must stay out of search indexes');
+    assert.doesNotMatch(profileShell?.body || '', /proxy_pass/,
+      'public profile HTML must use the SPA shell while its data stays behind the API serializer');
+    continue;
+  }
   if (route.id === 'standard-card-detail' || route.id === 'bg-hero-detail'
     || route.id === 'bg-library-detail' || route.id === 'cosmetics-detail') {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:3101;', `${route.id} canonical route`);
@@ -293,6 +303,9 @@ for (const invalidPath of [
   '/standard/cards/standard/CATA-785',
   '/standard/cards/standard/A',
   `/standard/cards/standard/${'A'.repeat(81)}`,
+  '/profiles/p_short',
+  '/profiles/1',
+  '/profiles/p_0123456789abcdefghijk',
   '/heroes/0',
   '/heroes/not-a-number',
   '/library/weapons',
