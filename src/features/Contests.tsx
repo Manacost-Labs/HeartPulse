@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } 
 import '../route-parchment.css';
 import {
   CircleDollarSign,
+  ChartNoAxesCombined,
   Database,
   ExternalLink,
   Gift,
@@ -48,6 +49,7 @@ import {
   type BoostyAdminStatus,
   type BoostySubscribersPayload,
 } from './ContestAdminBoosty';
+import { ContestAdminAnalytics } from './ContestAdminAnalytics';
 import {
   ContestAdminTelegram,
   type TelegramAccountsPayload,
@@ -405,6 +407,7 @@ const ADMIN_NAV_ITEMS: ReadonlyArray<{
   { id: 'users', label: 'Пользователи', caption: 'Права, блокировки и контакты', status: 'Действия с подтверждением', group: 'Аудитория', icon: Users },
   { id: 'mailing', label: 'Рассылка', caption: 'Письма, шаблоны и история отправок', status: 'Безопасная очередь отправки', group: 'Аудитория', icon: Mail },
   { id: 'boosty', label: 'Boosty', caption: 'Подписчики и уровни доступа', status: 'Данные только для просмотра', group: 'Аудитория', icon: CircleDollarSign },
+  { id: 'analytics', label: 'Аналитика', caption: 'Статьи, подписки, выручка и удержание', status: 'Наблюдаемые данные Boosty', group: 'Аудитория', icon: ChartNoAxesCombined },
   { id: 'telegram', label: 'Telegram', caption: 'Аккаунты и проверка доступа', status: 'Данные только для просмотра', group: 'Аудитория', icon: MessageCircle },
   { id: 'contests', label: 'Конкурсы', caption: 'Заявки, статусы и победители', status: 'Сохранение по кнопке', group: 'Рост', icon: Trophy },
   { id: 'referrals', label: 'Реферальные ссылки', caption: 'Кампании и статистика кликов', status: 'Сохранение по кнопке', group: 'Рост', icon: Link2 },
@@ -424,6 +427,7 @@ const ADMIN_WORKSPACE_SECTION_IDS: AdminWorkspaceSection[] = [
   'users',
   'mailing',
   'boosty',
+  'analytics',
   'telegram',
   'contests',
   'referrals',
@@ -707,6 +711,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       users: 'Пользователи',
       mailing: 'Рассылка',
       boosty: 'Boosty',
+      analytics: 'Аналитика',
       telegram: 'Telegram',
       contests: 'Конкурсы',
       referrals: 'Реферальные ссылки',
@@ -1663,6 +1668,10 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
                 entitlements: subscriber.entitlements as SubscriptionStatus['entitlements'],
               })}
             />
+          )}
+
+          {hasFullAdminAccess && adminSection === 'analytics' && (
+            <ContestAdminAnalytics />
           )}
 
           {hasFullAdminAccess && adminSection === 'telegram' && (
