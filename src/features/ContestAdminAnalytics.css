@@ -1,6 +1,11 @@
-.boosty-analytics {
+.contest-admin-card.boosty-analytics {
   display: grid;
   gap: 22px;
+  min-width: 0;
+}
+
+.boosty-analytics > * {
+  min-width: 0;
 }
 
 .boosty-analytics-head .contest-secondary-button {
@@ -71,10 +76,133 @@
   font-size: clamp(24px, 3vw, 36px);
 }
 
+.boosty-sales-quality-note {
+  background: #fff8e4;
+  border: 1px solid #e7c77a;
+  border-radius: 12px;
+  color: #614914;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 12px 16px;
+}
+
+.boosty-sales-stats strong {
+  font-size: clamp(22px, 2.5vw, 32px);
+}
+
+.boosty-sales-split {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+}
+
+.boosty-sales-split > div {
+  min-width: 0;
+}
+
+.boosty-analytics-section h4 {
+  color: #3a2b1d;
+  font-size: 14px;
+  margin: 0 0 10px;
+}
+
+.boosty-sales-post-list {
+  display: grid;
+  gap: 8px;
+}
+
+.boosty-sales-post-list article {
+  align-items: center;
+  background: #fbf7f0;
+  border: 1px solid rgba(105, 78, 43, 0.14);
+  border-radius: 11px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px 14px;
+}
+
+.boosty-sales-post-list article > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.boosty-sales-post-list strong {
+  color: #342519;
+  line-height: 1.35;
+}
+
+.boosty-sales-post-list span {
+  color: #806b50;
+  font-size: 12px;
+}
+
+.boosty-sales-post-list b {
+  color: #2b1f14;
+  white-space: nowrap;
+}
+
+.boosty-sales-table-wrap {
+  border: 1px solid rgba(105, 78, 43, 0.16);
+  border-radius: 12px;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.boosty-sales-table {
+  border-collapse: collapse;
+  min-width: 620px;
+  width: 100%;
+}
+
+.boosty-sales-transactions {
+  min-width: 820px;
+}
+
+.boosty-sales-table th,
+.boosty-sales-table td {
+  border-bottom: 1px solid rgba(105, 78, 43, 0.12);
+  padding: 11px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.boosty-sales-table th {
+  background: #f7f1e8;
+  color: #725838;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.boosty-sales-table td {
+  color: #3a2b1d;
+  font-size: 13px;
+}
+
+.boosty-sales-table td strong,
+.boosty-sales-table td span {
+  display: block;
+}
+
+.boosty-sales-table td span {
+  color: #8b7458;
+  font-size: 11px;
+  margin-top: 3px;
+}
+
+.boosty-sales-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
 .boosty-analytics-section {
   border-top: 1px solid rgba(105, 78, 43, 0.16);
   display: grid;
   gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   padding-top: 20px;
 }
 
@@ -106,6 +234,10 @@
   font-weight: 800;
   padding: 6px 10px;
   white-space: nowrap;
+}
+
+.boosty-analytics-section-head > div {
+  min-width: 0;
 }
 
 .boosty-analytics-section-head > span.is-complete {
@@ -251,12 +383,14 @@
 .boosty-analytics-table-wrap {
   border: 1px solid rgba(105, 78, 43, 0.16);
   border-radius: 14px;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
 }
 
 .boosty-analytics-table {
   border-collapse: collapse;
-  min-width: 820px;
+  min-width: 1120px;
   width: 100%;
 }
 
@@ -323,6 +457,10 @@
 
   .boosty-retention-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .boosty-sales-split {
+    grid-template-columns: 1fr;
   }
 
   .boosty-plan-list article {

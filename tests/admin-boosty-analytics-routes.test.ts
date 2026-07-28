@@ -155,12 +155,100 @@ const tributeSource = {
   unsupportedRevenueCurrencies: [],
 };
 
+const salesSource = {
+  schemaVersion: 1,
+  semantics: 'exact_boosty_sales_rows',
+  from: '2026-07-01T00:00:00.000Z',
+  to: '2026-07-10T00:00:00.000Z',
+  summary: {
+    donations: 1,
+    postPurchases: 1,
+    uniqueBuyers: 2,
+    donationRevenueRub: 500,
+    postRevenueRub: 199,
+    totalRevenueRub: 699,
+  },
+  buyers: [
+    {
+      userId: '10',
+      name: 'Покупатель',
+      email: 'buyer@example.invalid',
+      donations: 0,
+      postPurchases: 1,
+      donationRevenueRub: 0,
+      postRevenueRub: 199,
+      totalRevenueRub: 199,
+      lastPurchaseAt: '2026-07-06T13:00:00.000Z',
+    },
+  ],
+  posts: [
+    {
+      postId: 'paid-post',
+      title: 'Платный гайд',
+      purchases: 1,
+      uniqueBuyers: 1,
+      revenueRub: 199,
+    },
+  ],
+  observations: [
+    {
+      observedAt: '2026-07-03T13:00:00.000Z',
+      type: 'donation',
+      amountRub: 500,
+      postId: '',
+      postTitle: '',
+    },
+    {
+      observedAt: '2026-07-06T13:00:00.000Z',
+      type: 'post_purchase',
+      amountRub: 199,
+      postId: 'paid-post',
+      postTitle: 'Платный гайд',
+    },
+  ],
+  transactions: [
+    {
+      eventKey: 'event-key',
+      type: 'post_purchase',
+      createdAt: '2026-07-06T13:00:00.000Z',
+      amountRub: 199,
+      currency: 'RUB',
+      feePaid: false,
+      user: { id: '10', name: 'Покупатель', email: 'buyer@example.invalid' },
+      post: { id: 'paid-post', title: 'Платный гайд' },
+      targetId: '',
+    },
+  ],
+  coverage: {
+    latestImportAt: '2026-07-10T00:00:00.000Z',
+    imports: 10,
+    donationRows: 1,
+    postRows: 1,
+    complete: true,
+  },
+  reconciliation: {
+    matches: {
+      donationCount: true,
+      donationRevenue: false,
+      postPurchaseCount: true,
+      postRevenue: false,
+    },
+  },
+  limitations: ['Boosty sales endpoints are internal and can change without notice.'],
+};
+
 const requestedArticlePages: number[] = [];
 const loader = createBoostyAnalyticsLoader({
   boostyBaseUrl: 'http://boosty.internal',
   kolodaEndpoint: 'https://kolodahearthstone.ru/wp-json/koloda/v1/articles/query',
   now: () => new Date('2026-07-10T01:00:00.000Z'),
   fetchImpl: (async (url, init) => {
+    if (String(url).includes('/api/boosty/sales/analytics')) {
+      return new Response(JSON.stringify(salesSource), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
     if (String(url).includes('/api/tribute/analytics')) {
       return new Response(JSON.stringify(tributeSource), {
         status: 200,
@@ -198,12 +286,30 @@ assert.equal(loaded.articleIntervals.length, 2);
 assert.equal(loaded.summary.newSubscriptions, 2);
 assert.equal(loaded.summary.renewals, 2);
 assert.equal(loaded.sourceBreakdown.length, 2);
+assert.equal(loaded.sales?.summary.postPurchases, 1);
+assert.deepEqual(loaded.articleIntervals[0].sales, {
+  donations: 1,
+  postPurchases: 0,
+  donationRevenueRub: 500,
+  postRevenueRub: 0,
+  totalRevenueRub: 500,
+});
+assert.deepEqual(loaded.articleIntervals[1].sales, {
+  donations: 0,
+  postPurchases: 1,
+  donationRevenueRub: 0,
+  postRevenueRub: 199,
+  totalRevenueRub: 199,
+});
 assert.equal(loaded.generatedAt, '2026-07-10T01:00:00.000Z');
 
 const partialLoader = createBoostyAnalyticsLoader({
   boostyBaseUrl: 'http://boosty.internal',
   kolodaEndpoint: 'https://kolodahearthstone.ru/wp-json/koloda/v1/articles/query',
   fetchImpl: (async (url) => {
+    if (String(url).includes('/api/boosty/sales/analytics')) {
+      return new Response('{}', { status: 503 });
+    }
     if (String(url).includes('/api/tribute/analytics')) {
       return new Response('{}', { status: 503 });
     }

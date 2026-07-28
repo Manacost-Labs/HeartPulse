@@ -1,5 +1,16 @@
 # HS-Arena Changelog
 
+## v1.0.51 - 2026-07-28
+
+- Added a transactional historical Boosty sales ledger for exact donations and
+  paid-post purchases, including buyer/donater identity, amounts, post details,
+  idempotent imports, and non-destructive history.
+- Added administrator sales analytics with per-article intervals, buyer and paid
+  post breakdowns, recent operations, RUB totals, import freshness, and explicit
+  reconciliation warnings when Boosty's ledger and aggregate metrics differ.
+- Kept the PII-bearing source loopback-only and exposed it solely through the
+  existing authenticated, private/no-store Arena administrator route.
+
 ## v1.0.50 - 2026-07-28
 
 - Added signed Tribute subscription webhooks with idempotent PII-free SQLite

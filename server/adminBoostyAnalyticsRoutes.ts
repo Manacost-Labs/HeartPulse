@@ -57,6 +57,79 @@ export type AnalyticsMetrics = {
   observedDecreaseRub: number;
 };
 
+export type BoostySalesMetrics = {
+  donations: number;
+  postPurchases: number;
+  donationRevenueRub: number;
+  postRevenueRub: number;
+  totalRevenueRub: number;
+};
+
+export type BoostySalesBuyer = {
+  userId: string;
+  name: string;
+  email: string;
+  donations: number;
+  postPurchases: number;
+  donationRevenueRub: number;
+  postRevenueRub: number;
+  totalRevenueRub: number;
+  lastPurchaseAt: string;
+};
+
+export type BoostySalesPost = {
+  postId: string;
+  title: string;
+  purchases: number;
+  uniqueBuyers: number;
+  revenueRub: number;
+};
+
+export type BoostySaleObservation = {
+  observedAt: string;
+  type: 'donation' | 'post_purchase';
+  amountRub: number;
+  postId: string;
+  postTitle: string;
+};
+
+export type BoostySaleTransaction = {
+  eventKey: string;
+  type: BoostySaleObservation['type'];
+  createdAt: string;
+  amountRub: number;
+  currency: 'RUB';
+  feePaid: boolean;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  post: { id: string; title: string } | null;
+  targetId: string;
+};
+
+export type BoostySalesAnalyticsSource = {
+  schemaVersion: number;
+  semantics: 'exact_boosty_sales_rows';
+  from: string;
+  to: string;
+  summary: BoostySalesMetrics & { uniqueBuyers: number };
+  buyers: BoostySalesBuyer[];
+  posts: BoostySalesPost[];
+  observations: BoostySaleObservation[];
+  transactions: BoostySaleTransaction[];
+  coverage: {
+    latestImportAt: string | null;
+    imports: number;
+    donationRows: number;
+    postRows: number;
+    complete: boolean;
+  };
+  reconciliationMatches: boolean | null;
+  limitations: string[];
+};
+
 export type PlanMetrics = {
   planId: string;
   planName: string;
@@ -71,6 +144,7 @@ export type ArticleAnalyticsInterval = {
   from: string;
   to: string;
   metrics: AnalyticsMetrics;
+  sales: BoostySalesMetrics;
   plans: PlanMetrics[];
 };
 
@@ -97,6 +171,7 @@ export type BoostyArticleAnalyticsPayload = {
   generatedAt: string;
   limitations: string[];
   sourceBreakdown: AnalyticsSourceBreakdown[];
+  sales: BoostySalesAnalyticsSource | null;
   sources: { articles: string };
 };
 
@@ -166,16 +241,24 @@ export function createBoostyAnalyticsLoader(
   return async (from, to) => {
     const boostyUrl = new URL(`${boostyBaseUrl}/api/analytics`);
     const tributeUrl = new URL(`${boostyBaseUrl}/api/tribute/analytics`);
+    const salesUrl = new URL(`${boostyBaseUrl}/api/boosty/sales/analytics`);
     boostyUrl.searchParams.set('from', from.toISOString());
     boostyUrl.searchParams.set('to', to.toISOString());
     tributeUrl.searchParams.set('from', from.toISOString());
     tributeUrl.searchParams.set('to', to.toISOString());
-    const [boostyResult, tributeResult, articles] = await Promise.all([
+    salesUrl.searchParams.set('from', from.toISOString());
+    salesUrl.searchParams.set('to', to.toISOString());
+    salesUrl.searchParams.set('limit', '500');
+    const [boostyResult, tributeResult, salesResult, articles] = await Promise.all([
       fetchJson(fetchImpl, boostyUrl.toString(), {
         signal: AbortSignal.timeout(timeoutMs),
         headers: { Accept: 'application/json' },
       }).then(value => ({ value })).catch(() => ({ value: null })),
       fetchJson(fetchImpl, tributeUrl.toString(), {
+        signal: AbortSignal.timeout(timeoutMs),
+        headers: { Accept: 'application/json' },
+      }).then(value => ({ value })).catch(() => ({ value: null })),
+      fetchJson(fetchImpl, salesUrl.toString(), {
         signal: AbortSignal.timeout(timeoutMs),
         headers: { Accept: 'application/json' },
       }).then(value => ({ value })).catch(() => ({ value: null })),
@@ -196,9 +279,21 @@ export function createBoostyAnalyticsLoader(
         // Keep the independent Boosty source available.
       }
     }
-    if (!sources.length) throw new Error('subscription analytics unavailable');
+    let sales: BoostySalesAnalyticsSource | null = null;
+    if (salesResult.value !== null) {
+      try {
+        sales = normalizeBoostySalesAnalytics(salesResult.value);
+      } catch {
+        // Subscription analytics remains usable when the independent sales source is invalid.
+      }
+    }
+    if (!sources.length && !sales) throw new Error('analytics unavailable');
+    const built = attachBoostySales(
+      buildSubscriptionArticleAnalytics(sources, articles, from, to),
+      sales,
+    );
     return {
-      ...buildSubscriptionArticleAnalytics(sources, articles, from, to),
+      ...built,
       generatedAt: now().toISOString(),
     };
   };
@@ -302,6 +397,7 @@ export function buildSubscriptionArticleAnalytics(
       from: intervalStart.toISOString(),
       to: intervalEnd.toISOString(),
       metrics: metricsFor(intervalObservations),
+      sales: salesMetricsFor([]),
       plans: plansFor(intervalObservations),
     };
   }).filter(interval => Date.parse(interval.to) > Date.parse(interval.from));
@@ -340,6 +436,7 @@ export function buildSubscriptionArticleAnalytics(
       retention: source.retention,
       coverage: source.coverage,
     })),
+    sales: null,
     sources: { articles: 'koloda-public-api' },
   };
 }
@@ -475,6 +572,167 @@ function normalizeTributeAnalytics(value: unknown): NormalizedAnalyticsSource {
     limitations: unsupportedCurrencies.length
       ? [`Доход Tribute в валютах ${unsupportedCurrencies.join(', ')} не пересчитан в рубли.`]
       : [],
+  };
+}
+
+function normalizeBoostySalesAnalytics(value: unknown): BoostySalesAnalyticsSource {
+  const root = objectValue(value);
+  if (
+    root.semantics !== 'exact_boosty_sales_rows'
+    || !Array.isArray(root.buyers)
+    || !Array.isArray(root.posts)
+    || !Array.isArray(root.observations)
+    || !Array.isArray(root.transactions)
+  ) {
+    throw new Error('invalid Boosty sales analytics payload');
+  }
+  const summary = objectValue(root.summary);
+  const coverage = objectValue(root.coverage);
+  const reconciliation = root.reconciliation === null
+    ? null
+    : objectValue(root.reconciliation);
+  const matches = reconciliation === null
+    ? null
+    : objectValue(reconciliation.matches);
+  const matchValues = matches === null
+    ? []
+    : [
+      matches.donationCount,
+      matches.donationRevenue,
+      matches.postPurchaseCount,
+      matches.postRevenue,
+    ].filter((item): item is boolean => typeof item === 'boolean');
+  return {
+    schemaVersion: finiteInteger(root.schemaVersion),
+    semantics: 'exact_boosty_sales_rows',
+    from: requiredDate(root.from),
+    to: requiredDate(root.to),
+    summary: {
+      donations: nonNegativeInteger(summary.donations),
+      postPurchases: nonNegativeInteger(summary.postPurchases),
+      uniqueBuyers: nonNegativeInteger(summary.uniqueBuyers),
+      donationRevenueRub: nonNegativeNumber(summary.donationRevenueRub),
+      postRevenueRub: nonNegativeNumber(summary.postRevenueRub),
+      totalRevenueRub: nonNegativeNumber(summary.totalRevenueRub),
+    },
+    buyers: root.buyers.map(item => {
+      const row = objectValue(item);
+      return {
+        userId: requiredText(row.userId, 128),
+        name: boundedText(row.name, 500),
+        email: boundedText(row.email, 320),
+        donations: nonNegativeInteger(row.donations),
+        postPurchases: nonNegativeInteger(row.postPurchases),
+        donationRevenueRub: nonNegativeNumber(row.donationRevenueRub),
+        postRevenueRub: nonNegativeNumber(row.postRevenueRub),
+        totalRevenueRub: nonNegativeNumber(row.totalRevenueRub),
+        lastPurchaseAt: requiredDate(row.lastPurchaseAt),
+      };
+    }),
+    posts: root.posts.map(item => {
+      const row = objectValue(item);
+      return {
+        postId: requiredText(row.postId, 128),
+        title: requiredText(row.title, 500),
+        purchases: nonNegativeInteger(row.purchases),
+        uniqueBuyers: nonNegativeInteger(row.uniqueBuyers),
+        revenueRub: nonNegativeNumber(row.revenueRub),
+      };
+    }),
+    observations: root.observations.map(item => {
+      const row = objectValue(item);
+      return {
+        observedAt: requiredDate(row.observedAt),
+        type: saleType(row.type),
+        amountRub: nonNegativeNumber(row.amountRub),
+        postId: boundedText(row.postId, 128),
+        postTitle: boundedText(row.postTitle, 500),
+      };
+    }),
+    transactions: root.transactions.map(item => {
+      const row = objectValue(item);
+      const user = objectValue(row.user);
+      const post = row.post === null ? null : objectValue(row.post);
+      if (row.currency !== 'RUB' || typeof row.feePaid !== 'boolean') {
+        throw new Error('invalid Boosty sale transaction');
+      }
+      return {
+        eventKey: requiredText(row.eventKey, 128),
+        type: saleType(row.type),
+        createdAt: requiredDate(row.createdAt),
+        amountRub: nonNegativeNumber(row.amountRub),
+        currency: 'RUB' as const,
+        feePaid: row.feePaid,
+        user: {
+          id: requiredText(user.id, 128),
+          name: boundedText(user.name, 500),
+          email: boundedText(user.email, 320),
+        },
+        post: post === null ? null : {
+          id: requiredText(post.id, 128),
+          title: requiredText(post.title, 500),
+        },
+        targetId: boundedText(row.targetId, 128),
+      };
+    }),
+    coverage: {
+      latestImportAt: optionalDate(coverage.latestImportAt),
+      imports: nonNegativeInteger(coverage.imports),
+      donationRows: nonNegativeInteger(coverage.donationRows),
+      postRows: nonNegativeInteger(coverage.postRows),
+      complete: coverage.complete === true,
+    },
+    reconciliationMatches: matchValues.length
+      ? matchValues.every(Boolean)
+      : null,
+    limitations: Array.isArray(root.limitations)
+      ? root.limitations.slice(0, 20).map(item => requiredText(item, 500))
+      : [],
+  };
+}
+
+function attachBoostySales(
+  payload: BoostyArticleAnalyticsPayload,
+  sales: BoostySalesAnalyticsSource | null,
+): BoostyArticleAnalyticsPayload {
+  return {
+    ...payload,
+    sales,
+    articleIntervals: payload.articleIntervals.map(interval => {
+      const observations = sales?.observations.filter(observation => {
+        const observedAt = validDateMs(observation.observedAt);
+        return observedAt >= validDateMs(interval.from)
+          && observedAt < validDateMs(interval.to);
+      }) ?? [];
+      return {
+        ...interval,
+        sales: salesMetricsFor(observations),
+      };
+    }),
+    limitations: [
+      ...payload.limitations,
+      ...(sales
+        ? sales.limitations
+        : ['Точные донаты и покупки постов Boosty временно недоступны.']),
+    ],
+  };
+}
+
+function salesMetricsFor(observations: BoostySaleObservation[]): BoostySalesMetrics {
+  const donations = observations.filter(item => item.type === 'donation');
+  const postPurchases = observations.filter(item => item.type === 'post_purchase');
+  const donationRevenueRub = roundRub(
+    donations.reduce((sum, item) => sum + item.amountRub, 0),
+  );
+  const postRevenueRub = roundRub(
+    postPurchases.reduce((sum, item) => sum + item.amountRub, 0),
+  );
+  return {
+    donations: donations.length,
+    postPurchases: postPurchases.length,
+    donationRevenueRub,
+    postRevenueRub,
+    totalRevenueRub: roundRub(donationRevenueRub + postRevenueRub),
   };
 }
 
@@ -668,6 +926,21 @@ function requiredText(value: unknown, maximum: number): string {
   return result;
 }
 
+function boundedText(value: unknown, maximum: number): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value !== 'string' || value.length > maximum) {
+    throw new Error('invalid text');
+  }
+  return value.trim();
+}
+
+function saleType(value: unknown): BoostySaleObservation['type'] {
+  if (value !== 'donation' && value !== 'post_purchase') {
+    throw new Error('invalid sale type');
+  }
+  return value;
+}
+
 function requiredDate(value: unknown): string {
   if (typeof value !== 'string' || !Number.isFinite(Date.parse(value))) {
     throw new Error('invalid date');
@@ -693,6 +966,18 @@ function finiteNumber(value: unknown): number {
 function finiteInteger(value: unknown): number {
   const result = finiteNumber(value);
   if (!Number.isInteger(result)) throw new Error('invalid integer');
+  return result;
+}
+
+function nonNegativeInteger(value: unknown): number {
+  const result = finiteInteger(value);
+  if (result < 0) throw new Error('invalid non-negative integer');
+  return result;
+}
+
+function nonNegativeNumber(value: unknown): number {
+  const result = finiteNumber(value);
+  if (result < 0) throw new Error('invalid non-negative number');
   return result;
 }
 

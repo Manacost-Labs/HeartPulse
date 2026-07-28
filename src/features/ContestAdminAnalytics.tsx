@@ -7,6 +7,7 @@ import {
   formatRub,
   type AnalyticsDateRange,
 } from './boostyAnalyticsModel';
+import { ContestAdminBoostySales } from './ContestAdminBoostySales';
 import './ContestAdminAnalytics.css';
 
 export type AnalyticsMetrics = {
@@ -34,6 +35,57 @@ export type RetentionMetric = {
   rate: number | null;
 };
 
+export type BoostySalesMetrics = {
+  donations: number;
+  postPurchases: number;
+  donationRevenueRub: number;
+  postRevenueRub: number;
+  totalRevenueRub: number;
+};
+
+export type BoostySalesAnalyticsSource = {
+  semantics: 'exact_boosty_sales_rows';
+  summary: BoostySalesMetrics & { uniqueBuyers: number };
+  buyers: Array<{
+    userId: string;
+    name: string;
+    email: string;
+    donations: number;
+    postPurchases: number;
+    donationRevenueRub: number;
+    postRevenueRub: number;
+    totalRevenueRub: number;
+    lastPurchaseAt: string;
+  }>;
+  posts: Array<{
+    postId: string;
+    title: string;
+    purchases: number;
+    uniqueBuyers: number;
+    revenueRub: number;
+  }>;
+  transactions: Array<{
+    eventKey: string;
+    type: 'donation' | 'post_purchase';
+    createdAt: string;
+    amountRub: number;
+    currency: 'RUB';
+    feePaid: boolean;
+    user: { id: string; name: string; email: string };
+    post: { id: string; title: string } | null;
+    targetId: string;
+  }>;
+  coverage: {
+    latestImportAt: string | null;
+    imports: number;
+    donationRows: number;
+    postRows: number;
+    complete: boolean;
+  };
+  reconciliationMatches: boolean | null;
+  limitations: string[];
+};
+
 export type ArticleAnalyticsInterval = {
   article: {
     id: string;
@@ -44,6 +96,7 @@ export type ArticleAnalyticsInterval = {
   from: string;
   to: string;
   metrics: AnalyticsMetrics;
+  sales: BoostySalesMetrics;
   plans: AnalyticsPlan[];
 };
 
@@ -78,6 +131,7 @@ export type BoostyArticleAnalyticsPayload = {
       complete: boolean;
     };
   }>;
+  sales: BoostySalesAnalyticsSource | null;
 };
 
 type ContestAdminAnalyticsViewProps = {
@@ -165,9 +219,9 @@ export function ContestAdminAnalyticsView({
     <div className="contest-admin-card admin-full-card boosty-analytics" aria-busy={loading}>
       <div className="contest-users-head boosty-analytics-head">
         <div>
-          <h2>Статьи → подписки Boosty и Tribute</h2>
+          <h2>Статьи → подписки и продажи</h2>
           <p className="contest-muted">
-            Новые подписки, продления и доход между публикациями KolodaHearthstone.
+            Подписки Boosty/Tribute, донаты и покупки постов между публикациями.
           </p>
         </div>
         <button
@@ -213,8 +267,8 @@ export function ContestAdminAnalyticsView({
         <div>
           <strong>Это временная корреляция, не рекламная атрибуция.</strong>
           <span>
-            Boosty считается по изменениям накопительной суммы, Tribute — по точным
-            подписанным событиям оплаты. История начинается с подключения каждого источника.
+            Подписки Boosty считаются по накопительной сумме, Tribute — по webhook.
+            Донаты и покупки постов Boosty загружаются точными строками sales ledger.
           </span>
         </div>
       </div>
@@ -233,7 +287,7 @@ export function ContestAdminAnalyticsView({
         <div>
           <span>Получено</span>
           <strong>{payload ? formatRub(payload.summary.revenueRub) : '—'}</strong>
-          <small>чистая сумма в RUB</small>
+          <small>подписки в RUB</small>
         </div>
         <div>
           <span>Снижения</span>
@@ -276,6 +330,8 @@ export function ContestAdminAnalyticsView({
           })}
         </div>
       </section>
+
+      <ContestAdminBoostySales sales={payload?.sales ?? null} loading={loading} />
 
       <section className="boosty-analytics-section" aria-labelledby="retention-title">
         <div className="boosty-analytics-section-head">
@@ -349,6 +405,9 @@ export function ContestAdminAnalyticsView({
                 <th>Новые</th>
                 <th>Продления</th>
                 <th>Получено</th>
+                <th>Донаты</th>
+                <th>Покупки постов</th>
+                <th>Продажи Boosty</th>
                 <th>Планы</th>
               </tr>
             </thead>
@@ -366,6 +425,11 @@ export function ContestAdminAnalyticsView({
                   <td data-label="Новые">{interval.metrics.newSubscriptions}</td>
                   <td data-label="Продления">{interval.metrics.renewals}</td>
                   <td data-label="Получено">{formatRub(interval.metrics.revenueRub)}</td>
+                  <td data-label="Донаты">{interval.sales.donations}</td>
+                  <td data-label="Покупки постов">{interval.sales.postPurchases}</td>
+                  <td data-label="Продажи Boosty">
+                    {formatRub(interval.sales.totalRevenueRub)}
+                  </td>
                   <td data-label="Планы">
                     {interval.plans.length
                       ? interval.plans.map(plan => (
