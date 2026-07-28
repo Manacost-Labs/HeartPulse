@@ -11,6 +11,18 @@ export type PublicProfile = {
   createdAt: string;
 };
 
+async function fetchPublicProfile(publicProfileId: string, signal: AbortSignal) {
+  const response = await fetch(`/api/profiles/${encodeURIComponent(publicProfileId)}`, {
+    headers: { Accept: 'application/json' },
+    signal,
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.profile) {
+    throw new Error(payload.error || 'Профиль не найден');
+  }
+  return payload.profile as PublicProfile;
+}
+
 type PublicProfileCardProps = {
   profile: PublicProfile;
   onCopyLink: () => Promise<void> | void;
@@ -79,15 +91,7 @@ export default function PublicProfilePage({ publicProfileId }: { publicProfileId
       setLoading(true);
       setError('');
       try {
-        const response = await fetch(`/api/profiles/${encodeURIComponent(publicProfileId)}`, {
-          headers: { Accept: 'application/json' },
-          signal: controller.signal,
-        });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok || !payload.profile) {
-          throw new Error(payload.error || 'Профиль не найден');
-        }
-        setProfile(payload.profile as PublicProfile);
+        setProfile(await fetchPublicProfile(publicProfileId, controller.signal));
       } catch (loadError) {
         if (!controller.signal.aborted) {
           setProfile(null);
