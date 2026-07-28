@@ -13,7 +13,8 @@ export type AdminWorkspaceSection =
   | 'fun-decks'
   | 'contests'
   | 'referrals'
-  | 'boosty';
+  | 'boosty'
+  | 'analytics';
 
 export type AdminWorkspaceState = {
   section: AdminWorkspaceSection;
