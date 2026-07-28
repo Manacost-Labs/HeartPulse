@@ -1,5 +1,16 @@
 # HS-Arena Changelog
 
+## v1.0.49 - 2026-07-28
+
+- Added an administrator analytics workspace that compares observed Boosty
+  payment increases with publication intervals from KolodaHearthstone articles,
+  including inferred new subscriptions, renewals, RUB totals and plan mix.
+- Added D7, D30, D60 and D90 paid-retention cohorts with explicit unknown
+  coverage for missing observations and clear baseline/sampling limitations.
+- Added a transactional SQLite subscriber history in the Boosty monitor with
+  change-only state versions, payment deltas, tombstones and a PII-free
+  aggregate API; exact tracking starts from the 2026-07-28 baseline.
+
 ## v1.0.48 - 2026-07-24
 
 - Added responsive per-card trend charts for usage, deck win rate, games and
