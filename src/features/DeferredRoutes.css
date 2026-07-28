@@ -1526,6 +1526,38 @@
   font-size: 0.68rem;
   letter-spacing: 0;
   text-transform: none;
+  overflow-wrap: anywhere;
+}
+
+.profile-workspace .profile-public-link {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+.profile-workspace .profile-public-link a,
+.profile-workspace .profile-public-link button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.72rem;
+  border: 1px solid rgba(222, 184, 100, 0.45);
+  color: #fff0c8;
+  background: rgba(67, 6, 10, 0.5);
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.profile-workspace .profile-public-link a:focus-visible,
+.profile-workspace .profile-public-link button:focus-visible {
+  outline: 3px solid #f0c875;
+  outline-offset: 2px;
 }
 
 .profile-workspace .profile-status-chips {

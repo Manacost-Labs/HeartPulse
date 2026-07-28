@@ -155,6 +155,23 @@
       "entitlement": null
     },
     {
+      "id": "public-profile",
+      "pattern": "/profiles/:publicProfileId",
+      "kind": "detail",
+      "owner": "identity",
+      "indexPolicy": "noindex-follow",
+      "canonicalPolicy": "self",
+      "sitemap": false,
+      "htmlStrategy": "spa-shell",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "public-profile",
+      "entitlement": null,
+      "pathParameters": {
+        "publicProfileId": { "pattern": "^p_[A-Za-z0-9_-]{22}$" }
+      }
+    },
+    {
       "id": "standard-matchups",
       "pattern": "/standard/matchups",
       "kind": "static",

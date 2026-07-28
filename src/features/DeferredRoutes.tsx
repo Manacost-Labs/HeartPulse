@@ -7,8 +7,9 @@ import React, { useState, useEffect, useCallback, useRef, useMemo, memo, useDefe
 import { createPortal } from 'react-dom';
 import '../route-parchment.css';
 import './DeferredRoutes.css';
-import { Trophy, Scroll, RefreshCw, AlertTriangle, X, Search, Star, Home, BookOpen, Menu, ChevronLeft, ChevronRight, Grid3X3, List, LogIn, Eye, EyeOff, UserCircle, ThumbsUp, ThumbsDown, ShieldCheck, Download, Image as ImageIcon, Maximize2, ArrowDown, ArrowUp, ChevronDown } from 'lucide-react';
+import { Trophy, Scroll, RefreshCw, AlertTriangle, X, Search, Star, Home, BookOpen, Menu, ChevronLeft, ChevronRight, Grid3X3, List, LogIn, Eye, EyeOff, UserCircle, ThumbsUp, ThumbsDown, ShieldCheck, Download, Image as ImageIcon, Maximize2, ArrowDown, ArrowUp, ChevronDown, Copy, ExternalLink } from 'lucide-react';
 import { getCanonicalRedirectUrl } from '../config/domain';
+import { publicProfilePath } from '../profileRoutes';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import SubscriptionPurchaseButtons from '../components/SubscriptionPurchaseButtons';
 import PaywallGate from '../components/PaywallGate';
@@ -2776,6 +2777,7 @@ type AdminMessage = { type: 'ok' | 'err'; text: string };
 type AuthUser = {
   id?: string;
   profileId?: string;
+  publicProfileId?: string;
   email: string;
   name: string;
   role: 'admin' | 'user' | string;
@@ -3263,10 +3265,6 @@ function AdminStatCard({ label, value, hint }: { label: string; value: string; h
   );
 }
 
-function shortProfileIdentifier(value: string) {
-  return value.length > 18 ? `${value.slice(0, 8)}...${value.slice(-6)}` : value;
-}
-
 const AdminArticleRow = memo(function AdminArticleRow({
   article,
   deleting,
@@ -3367,6 +3365,7 @@ export function LoginPanel({
   const [profileContactEmail, setProfileContactEmail] = useState('');
   const [contestHistory, setContestHistory] = useState<ContestHistoryItem[]>([]);
   const [contestHistoryLoading, setContestHistoryLoading] = useState(false);
+  const [publicLinkCopied, setPublicLinkCopied] = useState(false);
 
   const authHeaders = useCallback((extra: Record<string, string> = {}) => ({
     ...extra,
@@ -3774,8 +3773,17 @@ export function LoginPanel({
       : '';
     const telegramLinkExpiresLabel = telegramLinkExpiresAt ? formatSubscriptionDate(telegramLinkExpiresAt) : '';
     const wonContestCount = contestHistory.filter(item => item.isWinner).length;
-    const profileId = authUser.profileId || authUser.id || '—';
-    const profileIdDisplay = shortProfileIdentifier(profileId);
+    const profileId = authUser.publicProfileId || '—';
+    const profileIdDisplay = profileId;
+    const publicProfileHref = authUser.publicProfileId
+      ? publicProfilePath(authUser.publicProfileId)
+      : '';
+    const copyPublicProfileLink = async () => {
+      if (!publicProfileHref) return;
+      await navigator.clipboard.writeText(new URL(publicProfileHref, window.location.origin).href);
+      setPublicLinkCopied(true);
+      window.setTimeout(() => setPublicLinkCopied(false), 2_000);
+    };
     return (
       <div className="profile-page profile-workspace">
         <div className="profile-card">
@@ -3800,6 +3808,18 @@ export function LoginPanel({
                 <p className="profile-hero__id" title={profileId}>
                   ID <code>{profileIdDisplay}</code>
                 </p>
+                {publicProfileHref && (
+                  <div className="profile-public-link">
+                    <a href={publicProfileHref}>
+                      Публичный профиль
+                      <ExternalLink size={14} aria-hidden="true" />
+                    </a>
+                    <button type="button" onClick={() => { void copyPublicProfileLink(); }}>
+                      <Copy size={14} aria-hidden="true" />
+                      {publicLinkCopied ? 'Скопировано' : 'Скопировать ссылку'}
+                    </button>
+                  </div>
+                )}
                 <div className="profile-status-chips">
                   {[profileRoleLabel, subscriptionLabel, identityLabel].map((item, index) => (
                     <span key={item} className="profile-status-chip">

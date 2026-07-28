@@ -22,6 +22,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { ResolvedPublicUrlPolicy } from './seo/publicUrlPolicy';
+import { publicProfileIdFromPath } from './profileRoutes';
 
 export type RouteGroup = 'home' | 'top' | 'standard' | 'arena' | 'bg-primary' | 'bg-builder' | 'misc' | 'admin';
 export type RouteEntitlement = 'arena' | 'battlegrounds' | 'standard' | 'contests' | 'guidesArchive' | 'arenaArticles' | 'battlegroundsArticles';
@@ -152,6 +153,7 @@ export function isRemovedPagePath(path: string): boolean {
 export function tabFromPath(path: string): TabId {
   const clean = path.replace(/[?#].*$/, '').replace(/\/+$/, '') || '/';
   if (isRemovedPagePath(clean)) return 'home';
+  if (publicProfileIdFromPath(clean)) return 'home';
   if (/^\/standard\/meta\/(?:standard|wild)\/[a-z0-9][a-z0-9-]{0,119}$/.test(clean)) {
     return 'constructed-archetypes';
   }
@@ -162,7 +164,7 @@ export function tabFromPath(path: string): TabId {
 
 export function isKnownPath(path: string): boolean {
   const clean = path.replace(/[?#].*$/, '').replace(/\/+$/, '') || '/';
-  if (clean === '/' || isRemovedPagePath(clean)) return true;
+  if (clean === '/' || isRemovedPagePath(clean) || publicProfileIdFromPath(clean)) return true;
   return TABS.some(route => route.slug !== '/' && (clean === route.slug || clean.startsWith(`${route.slug}/`)));
 }
 

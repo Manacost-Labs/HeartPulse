@@ -33,6 +33,7 @@ import {
   shouldPreserveInitialServerMeta,
   withHistoryRouteKnowledge,
 } from './routing/clientRouteResolution';
+import { publicProfileIdFromPath } from './profileRoutes';
 
 // Preserve authoritative entity metadata/404 context through the first client
 // pass. The marker belongs only to the URL that bootstrapped this document.
@@ -307,6 +308,7 @@ const FALLBACK_CLASSES: ClassData[] = [
 type AuthUser = {
   id?: string;
   profileId?: string;
+  publicProfileId?: string;
   email: string;
   name: string;
   role: 'admin' | 'user' | string;
@@ -623,6 +625,7 @@ const LazyWinrates = React.lazy(() => loadDeferredRoutesModule().then(module => 
 const LazyTierList = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.TierList })));
 const LazyLegendaries = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.Legendaries })));
 const LazyLoginPanel = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.LoginPanel })));
+const LazyPublicProfilePage = React.lazy(() => import('./features/PublicProfilePage'));
 const LazyArticlesTab = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.ArticlesTab })));
 const LazyGalleryTab = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.GalleryTab })));
 const LazyBgLibrary = React.lazy(loadBgLibraryModule);
@@ -979,6 +982,7 @@ export default function App() {
   // Admin panel: ?admin in URL; access is checked by authenticated user ID.
   const wantsAdmin = locationParams.has('admin');
   const wantsLogin = locationParams.has('login');
+  const publicProfileId = publicProfileIdFromPath(currentPath);
   const routeSurfaceAvailable = routeView === 'known';
   const isAdminMode = routeSurfaceAvailable && (wantsAdmin || activeTab === 'admin-panel');
   const [appAuthUser, setAppAuthUser] = useState<AuthUser | null>(null);
@@ -1477,7 +1481,7 @@ export default function App() {
   }, [mobileMenuOpen]);
 
 		  return (
-    <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${routeView === 'not-found' ? 'arena-app-not-found' : ''} ${activeTab === 'home' && !isAdminMode && routeSurfaceAvailable ? 'arena-app-home' : ''} ${wantsLogin && !isAdminMode && routeSurfaceAvailable ? 'arena-app-profile' : ''} ${activeTab === 'deck-builder' && routeSurfaceAvailable ? 'arena-app-deck-builder' : ''} ${isEditorialSurfacePage ? `arena-app-editorial arena-app-${activeTab}` : ''} ${isGameDataSurfacePage ? `arena-app-game-data arena-app-${activeTab}` : ''} ${isBattlegroundsSurfacePage ? `arena-app-battlegrounds arena-app-${activeTab}` : ''}`}>
+    <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${routeView === 'not-found' ? 'arena-app-not-found' : ''} ${activeTab === 'home' && !isAdminMode && routeSurfaceAvailable && !publicProfileId ? 'arena-app-home' : ''} ${(wantsLogin || publicProfileId) && !isAdminMode && routeSurfaceAvailable ? 'arena-app-profile' : ''} ${activeTab === 'deck-builder' && routeSurfaceAvailable ? 'arena-app-deck-builder' : ''} ${isEditorialSurfacePage ? `arena-app-editorial arena-app-${activeTab}` : ''} ${isGameDataSurfacePage ? `arena-app-game-data arena-app-${activeTab}` : ''} ${isBattlegroundsSurfacePage ? `arena-app-battlegrounds arena-app-${activeTab}` : ''}`}>
       <a
         className="arena-skip-link"
         href="#main-content"
@@ -1722,6 +1726,10 @@ export default function App() {
             <React.Suspense fallback={<RouteFallback />}>
               <LazyNotFoundPage state={routeView} navigatePath={navigatePath} />
             </React.Suspense>
+          ) : publicProfileId ? (
+            <React.Suspense fallback={<RouteFallback minHeight={620} />}>
+              <LazyPublicProfilePage publicProfileId={publicProfileId} />
+            </React.Suspense>
           ) : wantsLogin ? (
             <>
               <React.Suspense fallback={<RouteFallback minHeight={760} />}>
@@ -1738,7 +1746,7 @@ export default function App() {
             </>
           ) : (
             <>
-                {activeTab === 'home' && (
+                {activeTab === 'home' && !publicProfileId && (
                   <React.Suspense fallback={<RouteFallback minHeight={720} />}>
                     <LazyHomeTab
                       homeSummaryData={homeSummaryData}
