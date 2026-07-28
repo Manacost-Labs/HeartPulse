@@ -193,6 +193,14 @@ import { createAdminImageGenerationRouter } from './adminImageGenerationRoutes.j
 import { createContestRouter } from './contestRoutes.js';
 import { createSubscriptionRouter } from './subscriptionRoutes.js';
 import { createAuthProfileRouter, type AuthProfilePatch } from './authProfileRoutes.js';
+import {
+  ensurePublicProfileIds,
+  resolveUserPublicProfileId,
+} from './publicProfileIdentity.js';
+import {
+  createPublicProfileRouter,
+  type PublicProfileRecord,
+} from './publicProfileRoutes.js';
 import { completePasswordReset, createPasswordResetRouter } from './passwordResetRoutes.js';
 import { authenticatedUserPayload, createAuthVerificationRouter } from './authVerificationRoutes.js';
 import { createAuthCredentialRouter, deliverCredentialCode } from './authCredentialRoutes.js';
@@ -530,6 +538,7 @@ const GALLERY_THUMB_MAX_WIDTH = Math.max(360, Number(process.env.GALLERY_THUMB_M
 
 interface AdminUser {
   id: string;
+  publicProfileId?: string;
   email: string;
   name: string;
   role: 'admin' | 'user';
@@ -919,6 +928,7 @@ function db(): DatabaseSync {
   ecosystemDb.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
+      public_profile_id TEXT,
       email TEXT NOT NULL UNIQUE,
       name TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'user',
@@ -1171,6 +1181,7 @@ function db(): DatabaseSync {
   if (!userColumns.has('contact_telegram')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN contact_telegram TEXT');
   if (!userColumns.has('contact_email')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN contact_email TEXT');
   if (!userColumns.has('blocked_at')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN blocked_at TEXT');
+  ensurePublicProfileIds(ecosystemDb);
   const manualGrantColumns = new Set((ecosystemDb.prepare('PRAGMA table_info(manual_subscription_grants)').all() as any[]).map(row => String(row.name)));
   if (!manualGrantColumns.has('expires_at')) ecosystemDb.exec('ALTER TABLE manual_subscription_grants ADD COLUMN expires_at TEXT');
   migrateLegacyAuthStore(ecosystemDb);
@@ -1378,11 +1389,14 @@ function upsertUserRow(database: DatabaseSync, user: AdminUser) {
   const nowIso = new Date().toISOString();
   const createdAt = user.createdAt || nowIso;
   const updatedAt = user.updatedAt || nowIso;
+  const publicProfileId = resolveUserPublicProfileId(database, user);
+  user.publicProfileId = publicProfileId;
   database.prepare(`
     INSERT INTO users (
-      id, email, name, role, country, newsletter_opt_in, avatar_initials, contact_vk_url, contact_telegram, contact_email, blocked_at, password_hash, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      id, public_profile_id, email, name, role, country, newsletter_opt_in, avatar_initials, contact_vk_url, contact_telegram, contact_email, blocked_at, password_hash, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
+      public_profile_id = excluded.public_profile_id,
       email = excluded.email,
       name = excluded.name,
       role = excluded.role,
@@ -1397,6 +1411,7 @@ function upsertUserRow(database: DatabaseSync, user: AdminUser) {
       updated_at = excluded.updated_at
   `).run(
     user.id,
+    publicProfileId,
     user.email,
     user.name,
     user.role,
@@ -1440,6 +1455,7 @@ function upsertUserRow(database: DatabaseSync, user: AdminUser) {
 function authUserFromRow(row: any): AdminUser {
   return {
     id: String(row.id),
+    publicProfileId: String(row.public_profile_id ?? ''),
     email: String(row.email),
     name: String(row.name),
     role: row.role === 'admin' ? 'admin' : 'user',
@@ -1708,6 +1724,7 @@ function publicUser(user: AdminUser) {
   return {
     id: user.id,
     profileId: user.id,
+    publicProfileId: user.publicProfileId ?? '',
     email: user.email,
     name: user.name,
     role: user.role,
@@ -9040,6 +9057,20 @@ app.use('/api', createAuthProfileRouter({
   normalizeContactTelegram,
   normalizeContactVkUrl,
   setPrivateNoStore,
+}));
+
+app.use('/api', createPublicProfileRouter({
+  findProfile: publicProfileId => dbGet<PublicProfileRecord>(`
+    SELECT
+      public_profile_id AS publicProfileId,
+      name,
+      avatar_initials AS avatarInitials,
+      created_at AS createdAt
+    FROM users
+    WHERE public_profile_id = ?
+      AND COALESCE(blocked_at, '') = ''
+    LIMIT 1
+  `, publicProfileId) ?? null,
 }));
 
 app.use('/api', createSubscriptionRouter({
