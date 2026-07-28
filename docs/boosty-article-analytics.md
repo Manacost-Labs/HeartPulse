@@ -5,7 +5,8 @@
 Add an admin-only analytics workspace to Arena that compares Boosty and Tribute
 subscription activity with publication intervals from KolodaHearthstone. The
 workspace shows new paid subscriptions, renewals, net RUB receipts, plan
-distribution, source breakdown, and retention for new-subscriber cohorts.
+distribution, source breakdown, retention for new-subscriber cohorts, and exact
+Boosty donation/paid-post sales rows with their users.
 
 ## Current limitation
 
@@ -16,6 +17,11 @@ events. Exact analytics begin with the next successful observation.
 
 Tribute is event-driven and has no historical backfill in the documented API.
 Its exact analytics therefore begin with the first successfully signed webhook.
+
+Boosty donation and paid-post sales have a separate historical ledger. The
+creator endpoints used for it are internal, reverse-engineered interfaces rather
+than a supported public Boosty API, so their paths or response shapes may change
+without notice.
 
 ## Components
 
@@ -51,6 +57,32 @@ Its exact analytics therefore begin with the first successfully signed webhook.
   the Telegram bot. Other processes may ingest through the same transactional
   store, but may not run a competing background loop.
 
+### Boosty donation and paid-post sales collector (`/home/debian/boosty-auth`)
+
+- Poll the creator sales ledgers at
+  `GET /v1/blog/{blog}/sales/donation/` and
+  `GET /v1/blog/{blog}/sales/post/`, walking every page and rejecting incomplete
+  imports before any existing row can be hidden.
+- Keep reverse-engineered Boosty paths inside one adapter boundary. Failure of
+  optional aggregate reconciliation must not prevent storing exact ledger rows.
+- Store donations and paid-post purchases in
+  `data/boosty_sales.sqlite3`. Imports are transactional and idempotent; a
+  complete later import may mark a missing row invisible, but never deletes its
+  history.
+- Store only fields required for administrator analysis: Boosty user ID,
+  display name, email, amount, event time, fee flag, target, and paid post
+  identity/title. Do not store raw API bodies. Protect the database, WAL, and
+  SHM files with owner-only permissions.
+- Use donation sale IDs as source identities. Since paid-post rows currently
+  expose no sale ID, fingerprint their stable user/post/time/amount/fee fields.
+- Reconcile the ledger against `GET /v1/blog/stat/{blog}/metrics` as a quality
+  signal. Do not overwrite or delete ledger rows when aggregate counts or money
+  differ; Boosty does not document the aggregate net/refund semantics.
+- Expose the PII-bearing aggregate only on the loopback-bound Boosty service at
+  `GET /api/boosty/sales/analytics`. Arena retrieves it server-to-server and
+  returns it solely through the existing administrator-authenticated,
+  private/no-store analytics route.
+
 ### Tribute webhook collector (`/home/debian/boosty-auth`)
 
 - Accept `POST /api/tribute/webhook` and verify `trbt-signature` as HMAC-SHA256
@@ -76,8 +108,9 @@ Its exact analytics therefore begin with the first successfully signed webhook.
 - Add an admin-authenticated route under `/api/admin/boosty/analytics`.
 - Validate and bound `from` / `to` to a maximum 366-day range.
 - Fetch Boosty and Tribute aggregate analytics independently from the
-  configured localhost service. If one source is unavailable, return the other
-  with partial coverage instead of fabricated zeros.
+  configured localhost service, plus the independent Boosty creator-sales
+  ledger. If one source is unavailable, return the remaining analytics with
+  partial coverage instead of fabricated zeros.
 - Fetch published articles from
   `https://kolodahearthstone.ru/wp-json/koloda/v1/articles/query`.
 - Validate both remote payloads and use request timeouts.
@@ -86,7 +119,8 @@ Its exact analytics therefore begin with the first successfully signed webhook.
   ending at the selected `to` value.
 - Aggregate Boosty observations and exact Tribute subscription events into
   every interval. This is temporal correlation, not causal attribution.
-- Return private, non-cacheable JSON. No subscriber PII is sent to the browser.
+- Return private, non-cacheable JSON. Subscription analytics remain PII-free;
+  sales user identity is included only after administrator authorization.
 
 ### Arena admin UI
 
@@ -96,6 +130,14 @@ Its exact analytics therefore begin with the first successfully signed webhook.
   subscriptions, renewals, net RUB receipts, D30 retention, and data semantics.
 - Show D7 / D30 / D60 / D90 retention for mature new-subscriber cohorts.
 - Show plan distribution and a responsive article-interval table.
+- Show exact donation and paid-post counts/sums, paid-post ranking, unique
+  buyers/donaters, their Boosty identity, and recent operations.
+- Add donation, post-purchase, and sales-ledger RUB columns to each article
+  interval. These are temporal groupings by operation time, not marketing
+  attribution.
+- Warn when sales-ledger rows and Boosty's aggregate creator metrics disagree,
+  and label displayed sales money as the sum returned by the ledger rather than
+  undocumented net earnings.
 - Clearly label baseline/data-coverage limitations and source freshness.
 - Add a Storybook story with populated, loading, and empty/error states.
 
@@ -131,14 +173,15 @@ paid access expiration.
   SQLite is authoritative.
 - A journal write failure prevents replacing the JSON snapshot, so the next poll
   can retry without losing a payment delta.
-- Arena marks one missing subscription source as partial and fails only when
-  both subscription sources are unavailable.
+- Arena marks one missing source as partial and fails only when all subscription
+  and sales sources are unavailable.
 - The Arena UI remains isolated on its feature branch. The Tribute webhook
   backend and exact nginx route were deployed separately so events can be
   collected before the UI branch is merged.
-- Sampling can miss a payment followed by a refund between polls and can combine
-  multiple payments into one observed increase. Exact transaction counts require
-  a transaction-level Boosty API or webhook.
+- Subscription sampling can miss a payment followed by a refund between polls
+  and can combine multiple payments into one observed increase. Donation and
+  paid-post counts use exact creator-sales rows instead, subject to the
+  availability of Boosty's unsupported internal endpoints.
 - Tribute retries failed webhook delivery for approximately 24 hours according
   to its documentation. Events before webhook configuration cannot be
   reconstructed by this integration.

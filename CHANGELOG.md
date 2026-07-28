@@ -21,6 +21,11 @@
 - Combined Boosty and Tribute in the administrator article analytics while
   keeping platform totals, collection semantics and partial-source coverage
   visible.
+- Added a non-destructive Boosty sales ledger and administrator breakdowns for
+  donations and paid-post purchases, including article intervals, RUB totals,
+  recent operations, import freshness and reconciliation warnings.
+- Kept the PII-bearing Boosty source loopback-only and exposed the ledger solely
+  through the existing authenticated, private and no-store administrator route.
 
 ## v1.0.69 - 2026-07-27
 
