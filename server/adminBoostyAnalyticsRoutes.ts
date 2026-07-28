@@ -5,12 +5,15 @@ export type BoostyObservationType =
   | 'observed_renewal'
   | 'observed_decrease';
 
+export type AnalyticsSourceId = 'boosty' | 'tribute';
+
 export type BoostyObservation = {
   observedAt: string;
   type: BoostyObservationType;
   amountRub: number;
   planId: string;
   planName: string;
+  source: AnalyticsSourceId;
 };
 
 export type RetentionMetric = {
@@ -60,6 +63,7 @@ export type PlanMetrics = {
   newSubscriptions: number;
   renewals: number;
   revenueRub: number;
+  source: AnalyticsSourceId;
 };
 
 export type ArticleAnalyticsInterval = {
@@ -70,14 +74,30 @@ export type ArticleAnalyticsInterval = {
   plans: PlanMetrics[];
 };
 
-export type BoostyArticleAnalyticsPayload = BoostyAnalyticsSource & {
+export type AnalyticsSourceBreakdown = {
+  id: AnalyticsSourceId;
+  label: string;
+  semantics: 'observed_cumulative_delta' | 'exact_webhook_events';
+  summary: AnalyticsMetrics;
+  retention: RetentionMetric[];
+  coverage: BoostyAnalyticsSource['coverage'];
+};
+
+export type BoostyArticleAnalyticsPayload = {
+  schemaVersion: number;
+  semantics: 'combined_subscription_events';
+  from: string;
+  to: string;
+  summary: AnalyticsMetrics;
+  plans: PlanMetrics[];
+  observations: BoostyObservation[];
+  retention: RetentionMetric[];
+  coverage: BoostyAnalyticsSource['coverage'];
   articleIntervals: ArticleAnalyticsInterval[];
   generatedAt: string;
   limitations: string[];
-  sources: {
-    boosty: string;
-    articles: string;
-  };
+  sourceBreakdown: AnalyticsSourceBreakdown[];
+  sources: { articles: string };
 };
 
 export type AdminBoostyAnalyticsDependencies = {
@@ -102,7 +122,7 @@ const MAX_RANGE_MS = 366 * 24 * 60 * 60 * 1000;
 const DEFAULT_RANGE_MS = 90 * 24 * 60 * 60 * 1000;
 const DEFAULT_KOLODA_ENDPOINT =
   'https://kolodahearthstone.ru/wp-json/koloda/v1/articles/query';
-const UPSTREAM_ERROR = 'Не удалось загрузить аналитику Boosty';
+const UPSTREAM_ERROR = 'Не удалось загрузить аналитику подписок';
 
 export function createAdminBoostyAnalyticsRouter(
   dependencies: AdminBoostyAnalyticsDependencies,
@@ -145,22 +165,40 @@ export function createBoostyAnalyticsLoader(
 
   return async (from, to) => {
     const boostyUrl = new URL(`${boostyBaseUrl}/api/analytics`);
+    const tributeUrl = new URL(`${boostyBaseUrl}/api/tribute/analytics`);
     boostyUrl.searchParams.set('from', from.toISOString());
     boostyUrl.searchParams.set('to', to.toISOString());
-    const [boostyPayload, articles] = await Promise.all([
+    tributeUrl.searchParams.set('from', from.toISOString());
+    tributeUrl.searchParams.set('to', to.toISOString());
+    const [boostyResult, tributeResult, articles] = await Promise.all([
       fetchJson(fetchImpl, boostyUrl.toString(), {
         signal: AbortSignal.timeout(timeoutMs),
         headers: { Accept: 'application/json' },
-      }),
+      }).then(value => ({ value })).catch(() => ({ value: null })),
+      fetchJson(fetchImpl, tributeUrl.toString(), {
+        signal: AbortSignal.timeout(timeoutMs),
+        headers: { Accept: 'application/json' },
+      }).then(value => ({ value })).catch(() => ({ value: null })),
       fetchKolodaArticles(fetchImpl, kolodaEndpoint, timeoutMs),
     ]);
+    const sources: NormalizedAnalyticsSource[] = [];
+    if (boostyResult.value !== null) {
+      try {
+        sources.push(boostySource(normalizeBoostyAnalytics(boostyResult.value)));
+      } catch {
+        // Keep the independent Tribute source available.
+      }
+    }
+    if (tributeResult.value !== null) {
+      try {
+        sources.push(normalizeTributeAnalytics(tributeResult.value));
+      } catch {
+        // Keep the independent Boosty source available.
+      }
+    }
+    if (!sources.length) throw new Error('subscription analytics unavailable');
     return {
-      ...buildBoostyArticleAnalytics(
-        normalizeBoostyAnalytics(boostyPayload),
-        articles,
-        from,
-        to,
-      ),
+      ...buildSubscriptionArticleAnalytics(sources, articles, from, to),
       generatedAt: now().toISOString(),
     };
   };
@@ -202,8 +240,39 @@ export function buildBoostyArticleAnalytics(
   from: Date,
   to: Date,
 ): BoostyArticleAnalyticsPayload {
+  return buildSubscriptionArticleAnalytics(
+    [boostySource(source)],
+    articleRows,
+    from,
+    to,
+  );
+}
+
+type NormalizedAnalyticsSource = {
+  id: AnalyticsSourceId;
+  label: string;
+  semantics: AnalyticsSourceBreakdown['semantics'];
+  from: string;
+  to: string;
+  summary: AnalyticsMetrics;
+  plans: PlanMetrics[];
+  observations: BoostyObservation[];
+  retention: RetentionMetric[];
+  coverage: BoostyAnalyticsSource['coverage'];
+  limitations: string[];
+};
+
+export function buildSubscriptionArticleAnalytics(
+  analyticsSources: NormalizedAnalyticsSource[],
+  articleRows: KolodaArticle[],
+  from: Date,
+  to: Date,
+): BoostyArticleAnalyticsPayload {
   const startMs = from.getTime();
   const endMs = to.getTime();
+  const observations = analyticsSources
+    .flatMap(source => source.observations)
+    .sort((left, right) => validDateMs(left.observedAt) - validDateMs(right.observedAt));
   const sortedArticles = articleRows
     .filter(article => validDateMs(article.publishedAt) < endMs)
     .sort((left, right) => validDateMs(left.publishedAt) - validDateMs(right.publishedAt));
@@ -224,7 +293,7 @@ export function buildBoostyArticleAnalytics(
     const intervalEnd = new Date(
       Math.min(endMs, next ? validDateMs(next.publishedAt) : endMs),
     );
-    const observations = source.observations.filter(observation => {
+    const intervalObservations = observations.filter(observation => {
       const observedAt = validDateMs(observation.observedAt);
       return observedAt >= intervalStart.getTime() && observedAt < intervalEnd.getTime();
     });
@@ -232,24 +301,46 @@ export function buildBoostyArticleAnalytics(
       article,
       from: intervalStart.toISOString(),
       to: intervalEnd.toISOString(),
-      metrics: metricsFor(observations),
-      plans: plansFor(observations),
+      metrics: metricsFor(intervalObservations),
+      plans: plansFor(intervalObservations),
     };
   }).filter(interval => Date.parse(interval.to) > Date.parse(interval.from));
 
+  const coverage = combinedCoverage(analyticsSources.map(source => source.coverage));
+  coverage.complete = coverage.complete && analyticsSources.length === 2;
+  const unavailableSources = (['boosty', 'tribute'] as const)
+    .filter(sourceId => !analyticsSources.some(source => source.id === sourceId));
   return {
-    ...source,
+    schemaVersion: 2,
+    semantics: 'combined_subscription_events',
+    from: from.toISOString(),
+    to: to.toISOString(),
+    summary: metricsFor(observations),
+    plans: plansFor(observations),
+    observations,
+    retention: combinedRetention(analyticsSources.flatMap(source => source.retention)),
+    coverage,
     articleIntervals,
     generatedAt: new Date().toISOString(),
     limitations: [
       'Данные точны только с первого baseline-снимка.',
-      'Продление означает наблюдаемое увеличение накопительной суммы Boosty.',
+      'У Boosty продление означает наблюдаемое увеличение накопительной суммы.',
+      'У Tribute новые подписки и продления считаются по подписанным webhook-событиям.',
+      ...unavailableSources.map(sourceId => (
+        `Источник ${sourceId === 'boosty' ? 'Boosty' : 'Tribute'} временно недоступен.`
+      )),
+      ...analyticsSources.flatMap(source => source.limitations),
       'Связь со статьёй временная, а не доказанная причинная атрибуция.',
     ],
-    sources: {
-      boosty: 'boosty-monitor-sqlite',
-      articles: 'koloda-public-api',
-    },
+    sourceBreakdown: analyticsSources.map(source => ({
+      id: source.id,
+      label: source.label,
+      semantics: source.semantics,
+      summary: source.summary,
+      retention: source.retention,
+      coverage: source.coverage,
+    })),
+    sources: { articles: 'koloda-public-api' },
   };
 }
 
@@ -295,26 +386,8 @@ function normalizeBoostyAnalytics(value: unknown): BoostyAnalyticsSource {
     throw new Error('invalid Boosty analytics payload');
   }
   const summary = normalizeMetrics(root.summary);
-  const observations = root.observations.map(normalizeObservation);
-  const retention = root.retention.map(item => {
-    const row = objectValue(item);
-    const days = finiteInteger(row.days);
-    const eligible = finiteInteger(row.eligible);
-    const evaluated = finiteInteger(row.evaluated);
-    const retained = finiteInteger(row.retained);
-    const unknown = finiteInteger(row.unknown);
-    if ([days, eligible, evaluated, retained, unknown].some(itemValue => itemValue < 0)) {
-      throw new Error('invalid retention payload');
-    }
-    return {
-      days,
-      eligible,
-      evaluated,
-      retained,
-      unknown,
-      rate: row.rate === null ? null : finiteNumber(row.rate),
-    };
-  });
+  const observations = root.observations.map(item => normalizeBoostyObservation(item));
+  const retention = root.retention.map(normalizeRetention);
   const coverage = objectValue(root.coverage);
   return {
     schemaVersion: finiteInteger(root.schemaVersion),
@@ -322,7 +395,9 @@ function normalizeBoostyAnalytics(value: unknown): BoostyAnalyticsSource {
     from: requiredDate(root.from),
     to: requiredDate(root.to),
     summary,
-    plans: Array.isArray(root.plans) ? root.plans.map(normalizePlan) : [],
+    plans: Array.isArray(root.plans)
+      ? root.plans.map(item => normalizePlan(item, 'boosty'))
+      : [],
     observations,
     retention,
     coverage: {
@@ -334,6 +409,72 @@ function normalizeBoostyAnalytics(value: unknown): BoostyAnalyticsSource {
         : finiteNumber(coverage.maxPollGapSeconds),
       complete: coverage.complete === true,
     },
+  };
+}
+
+function boostySource(source: BoostyAnalyticsSource): NormalizedAnalyticsSource {
+  return {
+    id: 'boosty',
+    label: 'Boosty',
+    semantics: source.semantics,
+    from: source.from,
+    to: source.to,
+    summary: source.summary,
+    plans: source.plans,
+    observations: source.observations,
+    retention: source.retention,
+    coverage: source.coverage,
+    limitations: [],
+  };
+}
+
+function normalizeTributeAnalytics(value: unknown): NormalizedAnalyticsSource {
+  const root = objectValue(value);
+  if (
+    root.semantics !== 'exact_webhook_events'
+    || !Array.isArray(root.observations)
+    || !Array.isArray(root.retention)
+  ) {
+    throw new Error('invalid Tribute analytics payload');
+  }
+  const coverage = objectValue(root.coverage);
+  const unsupportedCurrencies = Array.isArray(root.unsupportedRevenueCurrencies)
+    ? root.unsupportedRevenueCurrencies
+      .map(item => String(item ?? '').trim().slice(0, 8))
+      .filter(Boolean)
+    : [];
+  return {
+    id: 'tribute',
+    label: 'Tribute',
+    semantics: 'exact_webhook_events',
+    from: requiredDate(root.from),
+    to: requiredDate(root.to),
+    summary: normalizeMetrics(root.summary),
+    plans: Array.isArray(root.plans)
+      ? root.plans.map(item => normalizePlan(item, 'tribute'))
+      : [],
+    observations: root.observations.flatMap(item => {
+      const row = objectValue(item);
+      if (row.type === 'cancelled_subscription') return [];
+      if (row.type !== 'new_subscription' && row.type !== 'renewed_subscription') {
+        throw new Error('invalid Tribute observation type');
+      }
+      return [{
+        observedAt: requiredDate(row.observedAt),
+        type: row.type === 'renewed_subscription'
+          ? 'observed_renewal' as const
+          : 'new_subscription' as const,
+        amountRub: finiteNumber(row.amountRub),
+        planId: String(row.planId ?? '').slice(0, 100),
+        planName: requiredText(row.planName, 200),
+        source: 'tribute' as const,
+      }];
+    }),
+    retention: root.retention.map(normalizeRetention),
+    coverage: normalizeCoverage(coverage),
+    limitations: unsupportedCurrencies.length
+      ? [`Доход Tribute в валютах ${unsupportedCurrencies.join(', ')} не пересчитан в рубли.`]
+      : [],
   };
 }
 
@@ -356,7 +497,7 @@ function normalizeKolodaArticles(value: unknown): KolodaArticle[] {
   });
 }
 
-function normalizeObservation(value: unknown): BoostyObservation {
+function normalizeBoostyObservation(value: unknown): BoostyObservation {
   const row = objectValue(value);
   if (
     row.type !== 'new_subscription'
@@ -369,6 +510,7 @@ function normalizeObservation(value: unknown): BoostyObservation {
     amountRub: finiteNumber(row.amountRub),
     planId: String(row.planId ?? '').slice(0, 100),
     planName: requiredText(row.planName, 200),
+    source: 'boosty',
   };
 }
 
@@ -382,7 +524,41 @@ function normalizeMetrics(value: unknown): AnalyticsMetrics {
   };
 }
 
-function normalizePlan(value: unknown): PlanMetrics {
+function normalizeRetention(value: unknown): RetentionMetric {
+  const row = objectValue(value);
+  const days = finiteInteger(row.days);
+  const eligible = finiteInteger(row.eligible);
+  const evaluated = finiteInteger(row.evaluated);
+  const retained = finiteInteger(row.retained);
+  const unknown = finiteInteger(row.unknown);
+  if ([days, eligible, evaluated, retained, unknown].some(item => item < 0)) {
+    throw new Error('invalid retention payload');
+  }
+  return {
+    days,
+    eligible,
+    evaluated,
+    retained,
+    unknown,
+    rate: row.rate === null ? null : finiteNumber(row.rate),
+  };
+}
+
+function normalizeCoverage(
+  coverage: Record<string, unknown>,
+): BoostyAnalyticsSource['coverage'] {
+  return {
+    baselineAt: optionalDate(coverage.baselineAt),
+    lastAcceptedPollAt: optionalDate(coverage.lastAcceptedPollAt),
+    acceptedPolls: finiteInteger(coverage.acceptedPolls),
+    maxPollGapSeconds: coverage.maxPollGapSeconds === null
+      ? null
+      : finiteNumber(coverage.maxPollGapSeconds),
+    complete: coverage.complete === true,
+  };
+}
+
+function normalizePlan(value: unknown, source: AnalyticsSourceId): PlanMetrics {
   const row = objectValue(value);
   return {
     planId: String(row.planId ?? '').slice(0, 100),
@@ -390,6 +566,7 @@ function normalizePlan(value: unknown): PlanMetrics {
     newSubscriptions: finiteInteger(row.newSubscriptions),
     renewals: finiteInteger(row.renewals),
     revenueRub: finiteNumber(row.revenueRub),
+    source,
   };
 }
 
@@ -410,13 +587,14 @@ function plansFor(observations: BoostyObservation[]): PlanMetrics[] {
   const plans = new Map<string, PlanMetrics>();
   for (const observation of observations) {
     if (observation.type === 'observed_decrease') continue;
-    const key = `${observation.planId}\u0000${observation.planName}`;
+    const key = `${observation.source}\u0000${observation.planId}\u0000${observation.planName}`;
     const current = plans.get(key) ?? {
       planId: observation.planId,
       planName: observation.planName,
       newSubscriptions: 0,
       renewals: 0,
       revenueRub: 0,
+      source: observation.source,
     };
     if (observation.type === 'new_subscription') current.newSubscriptions += 1;
     if (observation.type === 'observed_renewal') current.renewals += 1;
@@ -428,6 +606,52 @@ function plansFor(observations: BoostyObservation[]): PlanMetrics[] {
     || right.renewals - left.renewals
     || left.planName.localeCompare(right.planName, 'ru')
   ));
+}
+
+function combinedRetention(metrics: RetentionMetric[]): RetentionMetric[] {
+  const combined = new Map<number, RetentionMetric>();
+  for (const metric of metrics) {
+    const current = combined.get(metric.days) ?? {
+      days: metric.days,
+      eligible: 0,
+      evaluated: 0,
+      retained: 0,
+      unknown: 0,
+      rate: null,
+    };
+    current.eligible += metric.eligible;
+    current.evaluated += metric.evaluated;
+    current.retained += metric.retained;
+    current.unknown += metric.unknown;
+    current.rate = current.evaluated
+      ? Math.round(current.retained / current.evaluated * 1_000) / 10
+      : null;
+    combined.set(metric.days, current);
+  }
+  return [...combined.values()].sort((left, right) => left.days - right.days);
+}
+
+function combinedCoverage(
+  rows: BoostyAnalyticsSource['coverage'][],
+): BoostyAnalyticsSource['coverage'] {
+  const baselines = rows
+    .map(row => row.baselineAt)
+    .filter((value): value is string => value !== null)
+    .sort();
+  const lastAccepted = rows
+    .map(row => row.lastAcceptedPollAt)
+    .filter((value): value is string => value !== null)
+    .sort();
+  const gaps = rows
+    .map(row => row.maxPollGapSeconds)
+    .filter((value): value is number => value !== null);
+  return {
+    baselineAt: baselines[0] ?? null,
+    lastAcceptedPollAt: lastAccepted.at(-1) ?? null,
+    acceptedPolls: rows.reduce((sum, row) => sum + row.acceptedPolls, 0),
+    maxPollGapSeconds: gaps.length ? Math.max(...gaps) : null,
+    complete: rows.every(row => row.complete),
+  };
 }
 
 function objectValue(value: unknown): Record<string, unknown> {

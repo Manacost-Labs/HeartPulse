@@ -16,6 +16,11 @@
 - Added transactional subscriber history with change-only snapshots, tombstones
   and a PII-free aggregate API; exact tracking starts from the 2026-07-28
   baseline and explicitly marks gaps in historical observations.
+- Added signed, idempotent Tribute subscription webhooks with PII-free storage
+  for subscriptions, renewals, cancellations, net RUB receipts and retention.
+- Combined Boosty and Tribute in the administrator article analytics while
+  keeping platform totals, collection semantics and partial-source coverage
+  visible.
 
 ## v1.0.69 - 2026-07-27
 

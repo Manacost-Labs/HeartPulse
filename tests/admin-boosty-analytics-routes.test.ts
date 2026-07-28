@@ -27,6 +27,7 @@ const source: BoostyAnalyticsSource = {
       amountRub: 100,
       planId: '100',
       planName: 'Любитель Арены',
+      source: 'boosty',
     },
     {
       observedAt: '2026-07-06T12:00:00.000Z',
@@ -34,6 +35,7 @@ const source: BoostyAnalyticsSource = {
       amountRub: 200,
       planId: '200',
       planName: 'Алмаз',
+      source: 'boosty',
     },
     {
       observedAt: '2026-07-07T12:00:00.000Z',
@@ -41,6 +43,7 @@ const source: BoostyAnalyticsSource = {
       amountRub: -50,
       planId: '200',
       planName: 'Алмаз',
+      source: 'boosty',
     },
   ],
   retention: [
@@ -96,8 +99,61 @@ assert.deepEqual(built.articleIntervals[1].plans, [
     newSubscriptions: 0,
     renewals: 1,
     revenueRub: 200,
+    source: 'boosty',
   },
 ]);
+
+const tributeSource = {
+  schemaVersion: 1,
+  semantics: 'exact_webhook_events',
+  from: '2026-07-01T00:00:00.000Z',
+  to: '2026-07-10T00:00:00.000Z',
+  summary: {
+    newSubscriptions: 1,
+    renewals: 1,
+    cancellations: 0,
+    revenueRub: 300,
+    observedDecreaseRub: 0,
+  },
+  plans: [
+    {
+      planId: 'tribute-200',
+      planName: 'Tribute Алмаз',
+      newSubscriptions: 1,
+      renewals: 1,
+      revenueRub: 300,
+    },
+  ],
+  observations: [
+    {
+      observedAt: '2026-07-03T12:00:00.000Z',
+      type: 'new_subscription',
+      amountRub: 100,
+      currency: 'RUB',
+      planId: 'tribute-200',
+      planName: 'Tribute Алмаз',
+    },
+    {
+      observedAt: '2026-07-08T12:00:00.000Z',
+      type: 'renewed_subscription',
+      amountRub: 200,
+      currency: 'RUB',
+      planId: 'tribute-200',
+      planName: 'Tribute Алмаз',
+    },
+  ],
+  retention: [
+    { days: 7, eligible: 1, evaluated: 1, retained: 1, unknown: 0, rate: 100 },
+  ],
+  coverage: {
+    baselineAt: '2026-07-03T12:00:00.000Z',
+    lastAcceptedPollAt: '2026-07-08T12:00:01.000Z',
+    acceptedPolls: 2,
+    maxPollGapSeconds: null,
+    complete: true,
+  },
+  unsupportedRevenueCurrencies: [],
+};
 
 const requestedArticlePages: number[] = [];
 const loader = createBoostyAnalyticsLoader({
@@ -105,7 +161,13 @@ const loader = createBoostyAnalyticsLoader({
   kolodaEndpoint: 'https://kolodahearthstone.ru/wp-json/koloda/v1/articles/query',
   now: () => new Date('2026-07-10T01:00:00.000Z'),
   fetchImpl: (async (url, init) => {
-    if (String(url).startsWith('http://boosty.internal/')) {
+    if (String(url).includes('/api/tribute/analytics')) {
+      return new Response(JSON.stringify(tributeSource), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (String(url).includes('/api/analytics')) {
       return new Response(JSON.stringify(source), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
@@ -133,7 +195,40 @@ const loaded = await loader(
 );
 assert.deepEqual(requestedArticlePages.sort(), [1, 2]);
 assert.equal(loaded.articleIntervals.length, 2);
+assert.equal(loaded.summary.newSubscriptions, 2);
+assert.equal(loaded.summary.renewals, 2);
+assert.equal(loaded.sourceBreakdown.length, 2);
 assert.equal(loaded.generatedAt, '2026-07-10T01:00:00.000Z');
+
+const partialLoader = createBoostyAnalyticsLoader({
+  boostyBaseUrl: 'http://boosty.internal',
+  kolodaEndpoint: 'https://kolodahearthstone.ru/wp-json/koloda/v1/articles/query',
+  fetchImpl: (async (url) => {
+    if (String(url).includes('/api/tribute/analytics')) {
+      return new Response('{}', { status: 503 });
+    }
+    if (String(url).includes('/api/analytics')) {
+      return new Response(JSON.stringify(source), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    return new Response(JSON.stringify({
+      data: articles,
+      pagination: { page: 1, pageSize: 50, totalItems: 2, totalPages: 1 },
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }) as typeof fetch,
+});
+const partial = await partialLoader(
+  new Date('2026-07-01T00:00:00.000Z'),
+  new Date('2026-07-10T00:00:00.000Z'),
+);
+assert.deepEqual(partial.sourceBreakdown.map(item => item.id), ['boosty']);
+assert.equal(partial.coverage.complete, false);
+assert.match(partial.limitations.join(' '), /Tribute временно недоступен/);
 
 let loaderCalls = 0;
 let loaderFailure = false;
@@ -187,7 +282,7 @@ try {
   assert.equal(failed.status, 502);
   const failedPayload = await failed.json();
   assert.deepEqual(failedPayload, {
-    error: 'Не удалось загрузить аналитику Boosty',
+    error: 'Не удалось загрузить аналитику подписок',
     source: 'unavailable',
   });
   assert.doesNotMatch(JSON.stringify(failedPayload), /private|127\\.0\\.0\\.1|token/i);

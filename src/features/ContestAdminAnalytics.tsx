@@ -22,6 +22,7 @@ export type AnalyticsPlan = {
   newSubscriptions: number;
   renewals: number;
   revenueRub: number;
+  source: 'boosty' | 'tribute';
 };
 
 export type RetentionMetric = {
@@ -47,7 +48,7 @@ export type ArticleAnalyticsInterval = {
 };
 
 export type BoostyArticleAnalyticsPayload = {
-  semantics: 'observed_cumulative_delta';
+  semantics: 'combined_subscription_events';
   from: string;
   to: string;
   summary: AnalyticsMetrics;
@@ -63,6 +64,20 @@ export type BoostyArticleAnalyticsPayload = {
   articleIntervals: ArticleAnalyticsInterval[];
   generatedAt: string;
   limitations: string[];
+  sourceBreakdown: Array<{
+    id: 'boosty' | 'tribute';
+    label: string;
+    semantics: 'observed_cumulative_delta' | 'exact_webhook_events';
+    summary: AnalyticsMetrics;
+    retention: RetentionMetric[];
+    coverage: {
+      baselineAt: string | null;
+      lastAcceptedPollAt: string | null;
+      acceptedPolls: number;
+      maxPollGapSeconds: number | null;
+      complete: boolean;
+    };
+  }>;
 };
 
 type ContestAdminAnalyticsViewProps = {
@@ -101,7 +116,7 @@ export function ContestAdminAnalytics() {
         throw new Error(
           typeof data.error === 'string'
             ? data.error
-            : 'Не удалось загрузить аналитику Boosty',
+            : 'Не удалось загрузить аналитику подписок',
         );
       }
       setPayload(data as BoostyArticleAnalyticsPayload);
@@ -143,15 +158,16 @@ export function ContestAdminAnalyticsView({
   const plans = payload?.plans ?? [];
   const intervals = payload?.articleIntervals ?? [];
   const retention = payload?.retention ?? [];
+  const sourceBreakdown = payload?.sourceBreakdown ?? [];
   const maxPlanRevenue = Math.max(1, ...plans.map(plan => plan.revenueRub));
 
   return (
     <div className="contest-admin-card admin-full-card boosty-analytics" aria-busy={loading}>
       <div className="contest-users-head boosty-analytics-head">
         <div>
-          <h2>Статьи → подписки Boosty</h2>
+          <h2>Статьи → подписки Boosty и Tribute</h2>
           <p className="contest-muted">
-            Наблюдаемые платежи в периодах между публикациями KolodaHearthstone.
+            Новые подписки, продления и доход между публикациями KolodaHearthstone.
           </p>
         </div>
         <button
@@ -197,8 +213,8 @@ export function ContestAdminAnalyticsView({
         <div>
           <strong>Это временная корреляция, не рекламная атрибуция.</strong>
           <span>
-            История точна только после baseline. Одно «продление» — одно замеченное
-            увеличение накопительной суммы между опросами.
+            Boosty считается по изменениям накопительной суммы, Tribute — по точным
+            подписанным событиям оплаты. История начинается с подключения каждого источника.
           </span>
         </div>
       </div>
@@ -207,17 +223,17 @@ export function ContestAdminAnalyticsView({
         <div>
           <span>Новые подписки</span>
           <strong>{payload?.summary.newSubscriptions ?? '—'}</strong>
-          <small>новый ID + новая дата подписки</small>
+          <small>Boosty + Tribute</small>
         </div>
         <div>
           <span>Продления</span>
           <strong>{payload?.summary.renewals ?? '—'}</strong>
-          <small>наблюдаемые увеличения</small>
+          <small>все подключённые источники</small>
         </div>
         <div>
           <span>Получено</span>
           <strong>{payload ? formatRub(payload.summary.revenueRub) : '—'}</strong>
-          <small>рост накопительной суммы</small>
+          <small>чистая сумма в RUB</small>
         </div>
         <div>
           <span>Снижения</span>
@@ -225,6 +241,41 @@ export function ContestAdminAnalyticsView({
           <small>возврат или пересчёт не доказан</small>
         </div>
       </div>
+
+      <section className="boosty-analytics-section" aria-labelledby="sources-title">
+        <div className="boosty-analytics-section-head">
+          <div>
+            <h3 id="sources-title">По площадкам</h3>
+            <p>Отдельно видно вклад Boosty и Tribute.</p>
+          </div>
+        </div>
+        <div className="boosty-source-grid">
+          {sourceBreakdown.map(source => {
+            const d30 = source.retention.find(metric => metric.days === 30);
+            return (
+              <article key={source.id}>
+                <div>
+                  <strong>{source.label}</strong>
+                  <span>
+                    {source.semantics === 'exact_webhook_events'
+                      ? 'точные webhook-события'
+                      : 'наблюдаемые изменения'}
+                  </span>
+                </div>
+                <dl>
+                  <div><dt>Новые</dt><dd>{source.summary.newSubscriptions}</dd></div>
+                  <div><dt>Продления</dt><dd>{source.summary.renewals}</dd></div>
+                  <div><dt>Получено</dt><dd>{formatRub(source.summary.revenueRub)}</dd></div>
+                  <div>
+                    <dt>Удержание D30</dt>
+                    <dd>{d30?.rate === null || d30 === undefined ? '—' : `${d30.rate}%`}</dd>
+                  </div>
+                </dl>
+              </article>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="boosty-analytics-section" aria-labelledby="retention-title">
         <div className="boosty-analytics-section-head">
@@ -263,11 +314,12 @@ export function ContestAdminAnalyticsView({
         </div>
         <div className="boosty-plan-list">
           {plans.length ? plans.map(plan => (
-            <article key={`${plan.planId}:${plan.planName}`}>
+            <article key={`${plan.source}:${plan.planId}:${plan.planName}`}>
               <div>
                 <strong>{plan.planName}</strong>
                 <span>
-                  Новых {plan.newSubscriptions} · продлений {plan.renewals}
+                  {plan.source === 'tribute' ? 'Tribute' : 'Boosty'} · новых{' '}
+                  {plan.newSubscriptions} · продлений {plan.renewals}
                 </span>
               </div>
               <div className="boosty-plan-bar" aria-hidden="true">
@@ -316,7 +368,11 @@ export function ContestAdminAnalyticsView({
                   <td data-label="Получено">{formatRub(interval.metrics.revenueRub)}</td>
                   <td data-label="Планы">
                     {interval.plans.length
-                      ? interval.plans.map(plan => `${plan.planName}: ${plan.newSubscriptions + plan.renewals}`).join(' · ')
+                      ? interval.plans.map(plan => (
+                        `${plan.source === 'tribute' ? 'Tribute' : 'Boosty'} — ${plan.planName}: ${
+                          plan.newSubscriptions + plan.renewals
+                        }`
+                      )).join(' · ')
                       : '—'}
                   </td>
                 </tr>
