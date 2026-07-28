@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from 'react';
-import { CalendarDays, ChartLine, TrendingDown, TrendingUp } from 'lucide-react';
+import { CalendarDays, ChartLine, ChevronDown, TrendingDown, TrendingUp } from 'lucide-react';
 import {
   CONSTRUCTED_CARD_HISTORY_METRICS,
   constructedCardHistoryDelta,
@@ -19,6 +19,7 @@ type ConstructedCardHistoryChartProps = {
   onDaysChange: (days: number) => void;
   loading?: boolean;
   error?: string;
+  onOpenChange?: (open: boolean) => void;
 };
 
 const WIDTH = 760;
@@ -52,6 +53,7 @@ export default function ConstructedCardHistoryChart({
   onDaysChange,
   loading = false,
   error = '',
+  onOpenChange,
 }: ConstructedCardHistoryChartProps) {
   const [metric, setMetric] = useState<ConstructedCardHistoryMetric>('deckPopularity');
   const gradientId = `constructed-card-history-${useId().replace(/[^a-z0-9_-]/gi, '')}`;
@@ -78,15 +80,25 @@ export default function ConstructedCardHistoryChart({
     : '';
 
   return (
-    <section className="constructed-card-history" aria-labelledby="constructed-card-history-title">
-      <header className="constructed-card-history__header">
+    <details
+      className="constructed-card-history"
+      onToggle={event => onOpenChange?.(event.currentTarget.open)}
+    >
+      <summary className="constructed-card-history__header">
         <div className="constructed-card-history__heading">
           <span aria-hidden="true"><ChartLine size={22} /></span>
           <div>
             <h2 id="constructed-card-history-title">Динамика карты</h2>
-            <p>{formatLabel} · {rankLabel} · {periodLabel} · история за {days} дней</p>
+            <p>{formatLabel} · {rankLabel} · {periodLabel}</p>
           </div>
         </div>
+        <span className="constructed-card-history__disclosure">
+          <span>Показать или скрыть график</span>
+          <ChevronDown size={20} aria-hidden="true" />
+        </span>
+      </summary>
+
+      <div className="constructed-card-history__body">
         <div className="constructed-card-history__ranges" aria-label="Диапазон истории">
           <CalendarDays size={17} aria-hidden="true" />
           {DAY_OPTIONS.map(option => (
@@ -100,40 +112,39 @@ export default function ConstructedCardHistoryChart({
             </button>
           ))}
         </div>
-      </header>
 
-      <div className="constructed-card-history__metrics" aria-label="Показатель графика">
-        {CONSTRUCTED_CARD_HISTORY_METRICS.map(item => (
-          <button
-            key={item.id}
-            type="button"
-            aria-pressed={metric === item.id}
-            onClick={() => setMetric(item.id)}
-          >
-            {item.shortLabel}
-          </button>
-        ))}
-      </div>
+        <div className="constructed-card-history__metrics" aria-label="Показатель графика">
+          {CONSTRUCTED_CARD_HISTORY_METRICS.map(item => (
+            <button
+              key={item.id}
+              type="button"
+              aria-pressed={metric === item.id}
+              onClick={() => setMetric(item.id)}
+            >
+              {item.shortLabel}
+            </button>
+          ))}
+        </div>
 
-      {loading ? (
-        <div className="constructed-card-history__state" aria-busy="true">
-          <span className="constructed-card-history__skeleton" />
-          <strong>Загружаем историю</strong>
-        </div>
-      ) : error ? (
-        <div className="constructed-card-history__state" role="status">
-          <ChartLine size={28} />
-          <strong>История временно недоступна</strong>
-          <span>{error}</span>
-        </div>
-      ) : series.length < 2 ? (
-        <div className="constructed-card-history__state">
-          <ChartLine size={28} />
-          <strong>История начинает накапливаться</strong>
-          <span>Для линии нужны минимум два обновления. Текущий снимок уже сохранён автоматически.</span>
-        </div>
-      ) : (
-        <div className="constructed-card-history__content">
+        {loading ? (
+          <div className="constructed-card-history__state" aria-busy="true">
+            <span className="constructed-card-history__skeleton" />
+            <strong>Загружаем историю</strong>
+          </div>
+        ) : error ? (
+          <div className="constructed-card-history__state" role="status">
+            <ChartLine size={28} />
+            <strong>История временно недоступна</strong>
+            <span>{error}</span>
+          </div>
+        ) : series.length < 2 ? (
+          <div className="constructed-card-history__state">
+            <ChartLine size={28} />
+            <strong>История начинает накапливаться</strong>
+            <span>Для линии нужны минимум два обновления. Текущий снимок уже сохранён автоматически.</span>
+          </div>
+        ) : (
+          <div className="constructed-card-history__content">
           <dl className="constructed-card-history__summary">
             <div>
               <dt>Сейчас</dt>
@@ -202,8 +213,9 @@ export default function ConstructedCardHistoryChart({
               <li key={item.recordedAt}>{formatDate(item.recordedAt)}: {formatMetric(item.value, metricDefinition.unit)}</li>
             ))}
           </ol>
-        </div>
-      )}
-    </section>
+          </div>
+        )}
+      </div>
+    </details>
   );
 }

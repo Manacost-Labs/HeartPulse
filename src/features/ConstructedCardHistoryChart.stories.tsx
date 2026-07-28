@@ -30,6 +30,7 @@ const meta = {
     onDaysChange: fn(),
     loading: false,
     error: '',
+    onOpenChange: fn(),
   },
   parameters: {
     docs: {
@@ -45,7 +46,7 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const Ready: Story = {};
+export const Collapsed: Story = {};
 
 export const Loading: Story = {
   args: { loading: true, points: [] },
@@ -77,6 +78,10 @@ export const Interaction: Story = {
   render: () => <ControlledHistory />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    const disclosure = canvas.getByText('Динамика карты').closest('summary');
+    await expect(disclosure).not.toBeNull();
+    await userEvent.click(disclosure!);
+    await expect(disclosure!.closest('details')).toHaveAttribute('open');
     const range = canvas.getByRole('button', { name: '30 дн.' });
     const metric = canvas.getByRole('button', { name: 'Винрейт колод' });
     await userEvent.click(range);

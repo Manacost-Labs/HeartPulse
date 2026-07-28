@@ -20,6 +20,7 @@ import {
 import '../route-parchment.css';
 import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
 import ConstructedCardHistoryChart from './ConstructedCardHistoryChart';
+import { cardSupportsStandardStatistics } from './constructedCardFormats';
 import ConstructedCardLightbox from './ConstructedCardLightbox';
 import FilterSelect from './ConstructedCardFilterSelect';
 import DeckListView, {
@@ -1127,12 +1128,13 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
   const [reloadToken, setReloadToken] = useState(0);
   const [variant, setVariant] = useState('normal');
   const [lightboxIndex, setLightboxIndex] = useState(-1);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const history = useConstructedCardHistory({
     cardId,
     format: statsFormat,
     period,
     rank,
-    enabled: Boolean(card && serverStatsAccess),
+    enabled: Boolean(card && serverStatsAccess && historyOpen),
   });
   useEffect(() => {
     const syncFromLocation = () => setStatsFormat(
@@ -1185,6 +1187,21 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
     const frame = requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
     return () => cancelAnimationFrame(frame);
   }, [card]);
+  useEffect(() => {
+    if (!card || statsFormat !== 'standard' || cardSupportsStandardStatistics(card.formats)) return;
+    setStatsFormat('wild');
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(
+        window.history.state,
+        '',
+        constructedCardStatsUrl(
+          window.location.pathname,
+          { period, rank, statsFormat: 'wild', defaultStatsFormat: format },
+          window.location.search,
+        ),
+      );
+    }
+  }, [card, format, period, rank, statsFormat]);
 
   useEffect(() => {
     if (!card) return;
@@ -1234,6 +1251,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
   const dataNotice = constructedCardDataNotice(dataState);
   const rankLabel = constructedCardRankLabel(rank);
   const statsFormatLabel = constructedCardStatsFormatLabel(statsFormat);
+  const standardStatisticsAvailable = cardSupportsStandardStatistics(card.formats);
   const changeStatistics = (next: {
     format?: CardFormat;
     rank?: ConstructedCardRank;
@@ -1295,7 +1313,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
           <div data-tour-id="card-statistics"><h2>Статистика · {rankLabel}</h2><span>{statsFormatLabel} · {periodLabel}{serverStatsAccess ? ` · обновлено ${formatDate(card.statsUpdatedAt)}` : ' · тариф «Алмаз»'}</span></div>
           <div className="constructed-card-detail__statistics-controls" aria-label="Выбор статистики карты">
             <div className="constructed-card-detail__statistics-format" role="group" aria-label="Формат статистики">
-              <button type="button" aria-pressed={statsFormat === 'standard'} onClick={() => changeStatistics({ format: 'standard' })}><img src="/card-format-standard.webp" alt="" />Стандарт</button>
+              {standardStatisticsAvailable && <button type="button" aria-pressed={statsFormat === 'standard'} onClick={() => changeStatistics({ format: 'standard' })}><img src="/card-format-standard.webp" alt="" />Стандарт</button>}
               <button type="button" aria-pressed={statsFormat === 'wild'} onClick={() => changeStatistics({ format: 'wild' })}><img src="/card-format-wild.webp" alt="" />Вольный</button>
             </div>
             <FilterSelect
@@ -1330,6 +1348,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
           onDaysChange={history.setDays}
           loading={history.loading}
           error={history.error}
+          onOpenChange={setHistoryOpen}
         />
       )}
 
