@@ -197,6 +197,7 @@ import { createAdminContestReadRouter } from './adminContestReadRoutes.js';
 import { createAdminImageUploadRouter } from './adminImageUploadRoutes.js';
 import { fetchRemoteAdminImage } from './adminRemoteImage.js';
 import { createAdminImageGenerationRouter } from './adminImageGenerationRoutes.js';
+import { registerPublicApi } from './app/registerPublicApi.js';
 import { createContestRouter } from './contestRoutes.js';
 import { createSubscriptionRouter } from './subscriptionRoutes.js';
 import { createEcosystemInternalRouter } from './modules/ecosystem/public.js';
@@ -7529,8 +7530,7 @@ app.use(createRouteAwareJsonParser({
 }));
 app.use(express.urlencoded({ extended: false, limit: '16kb' }));
 
-// ─── API Routes ───────────────────────────────────────────────────────────────
-
+registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit });
 app.use('/_internal', createTierlistCacheBustRouter({
   resolveSource: source => Object.prototype.hasOwnProperty.call(TIERLIST_DATASET_BY_SOURCE, source ?? '')
     ? source as keyof typeof TIERLIST_DATASET_BY_SOURCE
