@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BarChart3, ChevronDown, ExternalLink, Filter, Search } from 'lucide-react';
 import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
+import { publicResourceUrl } from '../publicResourceUrl';
 import BattlegroundCardVariantToggle, {
   type BattlegroundCardVariant,
 } from './BattlegroundCardVariantToggle';
@@ -437,11 +438,11 @@ function properImage(url?: string | null): string | null {
 
 function localDbImageUrl(cardId: string, folder: 'cards' | 'framed' | 'golden' | 'art'): string {
   const ext = folder === 'art' ? 'jpg' : 'png';
-  return `https://db.kolodahs.ru/uploads/${folder}/${encodeURIComponent(cardId)}.${ext}`;
+  return `/api/public-resource/db/uploads/${folder}/${encodeURIComponent(cardId)}.${ext}`;
 }
 
 function hearthstoneJsonBgCardUrl(cardId: string, size: '256x' | '512x' = '512x'): string {
-  return `https://art.hearthstonejson.com/v1/bgs/latest/ruRU/${size}/${encodeURIComponent(cardId)}.png`;
+  return `/api/public-resource/hsjson/v1/bgs/latest/ruRU/${size}/${encodeURIComponent(cardId)}.png`;
 }
 
 function isLikelyGoldenCardId(cardId: string): boolean {
@@ -495,7 +496,7 @@ function cardImageCandidates(card: LibraryCard, includeArt = false): string[] {
     properImage(card.images?.golden),
     includeArt ? card.images?.art : null,
     includeArt ? cropFallback : null,
-  ]);
+  ]).map(publicResourceUrl);
 }
 
 function primaryCardImage(card: LibraryCard): string | null {

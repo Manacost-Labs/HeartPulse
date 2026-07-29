@@ -1,5 +1,9 @@
 import { Readable, Transform } from 'node:stream';
 import { Router, type Request, type Response as ExpressResponse } from 'express';
+import {
+  battlegroundImageTransformFromQuery,
+  optimizeBattlegroundImage,
+} from './battlegroundImageOptimization.js';
 
 type PublicResourceSource = {
   origin: string;
@@ -63,6 +67,9 @@ function requestedPublicResourceUrl(request: Request, source: PublicResourceSour
   }
 
   const requestUrl = new URL(request.originalUrl, 'https://arena.hs-manacost.ru');
+  requestUrl.searchParams.delete('width');
+  requestUrl.searchParams.delete('quality');
+  requestUrl.searchParams.delete('format');
   target.search = requestUrl.search;
   return target;
 }
@@ -88,6 +95,27 @@ function copyPublicResourceHeaders(response: ExpressResponse, upstream: Response
   }
 }
 
+async function readLimitedResourceBody(body: ReadableStream<Uint8Array>): Promise<Buffer> {
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_PUBLIC_RESOURCE_BYTES) {
+        await reader.cancel('public resource exceeded the transformation size limit');
+        throw new Error('Public resource exceeded the transformation size limit');
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return Buffer.concat(chunks, total);
+}
+
 export function createPublicResourceRouter(options: PublicResourceRouterOptions = {}): Router {
   const router = Router();
   const fetchResource = options.fetchResource ?? fetch;
@@ -98,12 +126,13 @@ export function createPublicResourceRouter(options: PublicResourceRouterOptions 
 
     const target = requestedPublicResourceUrl(request, source);
     if (!target) return response.status(400).json({ error: 'Некорректный путь ресурса' });
+    const imageTransform = battlegroundImageTransformFromQuery(request.query as Record<string, unknown>);
 
     try {
       const upstream = await fetchResource(target.toString(), {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)',
-          ...(request.headers.range ? { Range: request.headers.range } : {}),
+          ...(!imageTransform && request.headers.range ? { Range: request.headers.range } : {}),
         },
         redirect: 'follow',
         signal: AbortSignal.timeout(20_000),
@@ -122,6 +151,20 @@ export function createPublicResourceRouter(options: PublicResourceRouterOptions 
       }
 
       response.status(upstream.status);
+      if (imageTransform && contentType.startsWith('image/') && upstream.body) {
+        const optimized = await optimizeBattlegroundImage(
+          await readLimitedResourceBody(upstream.body),
+          imageTransform,
+        );
+        response.status(200);
+        response.set('Cache-Control', PUBLIC_CACHE_HEADER);
+        response.set('Content-Type', optimized.contentType);
+        response.set('Content-Length', String(optimized.body.byteLength));
+        response.set('Cross-Origin-Resource-Policy', 'same-origin');
+        response.set('X-Content-Type-Options', 'nosniff');
+        return response.send(optimized.body);
+      }
+
       copyPublicResourceHeaders(response, upstream, contentType);
       if (!upstream.body) return response.end();
 

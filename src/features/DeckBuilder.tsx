@@ -14,6 +14,7 @@ import {
   Undo2,
 } from 'lucide-react';
 import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
+import { publicResourceUrl } from '../publicResourceUrl';
 import DeckManaCurve from './DeckManaCurve';
 import {
   CONSTRUCTED_HERO_BY_DBF,
@@ -174,8 +175,9 @@ function catalogToEntry(card: CatalogCard): DeckEntry | null {
     rarity,
     elite: rarity === 'LEGENDARY',
     count: 1,
-    image: `https://art.hearthstonejson.com/v1/tiles/${encodeURIComponent(card.card_id)}.webp`,
-    cardImage: String(card.images?.card || `https://art.hearthstonejson.com/v1/render/latest/ruRU/512x/${encodeURIComponent(card.card_id)}.png`),
+    image: `/api/public-resource/hsjson/v1/tiles/${encodeURIComponent(card.card_id)}.webp`,
+    cardImage: publicResourceUrl(card.images?.card)
+      || `/api/public-resource/hsjson/v1/render/latest/ruRU/512x/${encodeURIComponent(card.card_id)}.png`,
   };
 }
 

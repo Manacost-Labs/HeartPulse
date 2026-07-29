@@ -27,6 +27,7 @@ import {
 import '../route-parchment.css';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
 import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
+import { publicResourceImageUrl, publicResourceUrl } from '../publicResourceUrl';
 import { cachedCardImage } from './cosmeticsCardImage';
 import {
   RelatedCardGallery,
@@ -110,14 +111,7 @@ type CosmeticsProps = {
 };
 
 function cosmeticMediaSource(source: string | null | undefined) {
-  if (!source) return '';
-  try {
-    return new URL(source).hostname.toLowerCase() === 'hearthstone.wiki.gg'
-      ? `/api/cosmetics/media?url=${encodeURIComponent(source)}`
-      : source;
-  } catch {
-    return source;
-  }
+  return publicResourceUrl(source);
 }
 
 type HeroFilters = {
@@ -399,7 +393,7 @@ export function HeroSkinCard({
       <span className="cosmetics-card-media">
         {item.images.static ? (
           <img
-            src={item.images.static}
+            src={publicResourceImageUrl(item.images.static, { width: 384, quality: 82 })}
             alt={`Скин героя «${item.name.ru}»`}
             loading="lazy"
             decoding="async"
@@ -452,7 +446,7 @@ function PetCard({ item, navigatePath }: { item: PetVariant; navigatePath: (path
     >
       <span className="cosmetics-card-media">
         {item.images.card ? (
-          <img src={item.images.card} alt={`Питомец «${item.name}»`} loading="lazy" decoding="async" width="512" height="768" />
+          <img src={publicResourceImageUrl(item.images.card, { width: 384, quality: 82 })} alt={`Питомец «${item.name}»`} loading="lazy" decoding="async" width="512" height="768" />
         ) : <span className="cosmetics-media-placeholder"><PawPrint aria-hidden="true" /></span>}
       </span>
       <strong className="cosmetics-card-name">{item.name}</strong>
@@ -687,7 +681,7 @@ function HeroDetailView({ detail }: { detail: HeroDetail }) {
     <>
       <div className="cosmetics-detail-hero">
         <div className="cosmetics-detail-primary-media">
-          {detail.images.static && <img src={detail.images.static} alt={`Скин «${detail.name.ru}»`} width="512" height="768" />}
+          {detail.images.static && <img src={cosmeticMediaSource(detail.images.static)} alt={`Скин «${detail.name.ru}»`} width="512" height="768" />}
         </div>
         <div className="cosmetics-detail-copy">
           <span className="cosmetics-kicker">{detail.class.nameRu} · {detail.rarity.nameRu}</span>
@@ -726,7 +720,7 @@ function HeroDetailView({ detail }: { detail: HeroDetail }) {
                 })}
               >
                 {detail.images.static
-                  ? <img src={detail.images.static} alt="" loading="lazy" decoding="async" />
+                  ? <img src={cosmeticMediaSource(detail.images.static)} alt="" loading="lazy" decoding="async" />
                   : <span className="cosmetics-media-placeholder"><Play aria-hidden="true" /></span>}
                 <span><Play size={18} aria-hidden="true" /> Анимация скина</span>
               </button>
@@ -785,7 +779,7 @@ function CoinDetailView({
     <>
       <div className="cosmetics-detail-hero">
         <div className="cosmetics-detail-primary-media cosmetics-detail-crop">
-          {detail.images.crop && <img src={detail.images.crop} alt={`Арт «${detail.name.en || detail.name.ru}»`} />}
+          {detail.images.crop && <img src={cosmeticMediaSource(detail.images.crop)} alt={`Арт «${detail.name.en || detail.name.ru}»`} />}
         </div>
         <div className="cosmetics-detail-copy">
           <span className="cosmetics-kicker">Косметическая монета</span>
@@ -819,7 +813,7 @@ function PetDetailView({ detail, navigatePath }: { detail: PetDetail; navigatePa
     <>
       <div className="cosmetics-detail-hero">
         <div className="cosmetics-detail-primary-media">
-          {detail.images.card && <img src={detail.images.card} alt={`Питомец «${detail.name}»`} width="512" height="768" />}
+          {detail.images.card && <img src={cosmeticMediaSource(detail.images.card)} alt={`Питомец «${detail.name}»`} width="512" height="768" />}
         </div>
         <div className="cosmetics-detail-copy">
           <span className="cosmetics-kicker">{detail.pet.name || 'Питомец'} · раскраска {detail.level ?? '—'}</span>
@@ -833,7 +827,7 @@ function PetDetailView({ detail, navigatePath }: { detail: PetDetail; navigatePa
       {detail.images.endScreen && (
         <section className="cosmetics-detail-section">
           <h2>End Screen</h2>
-          <img className="cosmetics-end-screen" src={detail.images.endScreen} alt={`End Screen питомца «${detail.name}»`} loading="lazy" decoding="async" />
+          <img className="cosmetics-end-screen" src={cosmeticMediaSource(detail.images.endScreen)} alt={`End Screen питомца «${detail.name}»`} loading="lazy" decoding="async" />
         </section>
       )}
       {detail.variants.length > 1 && (

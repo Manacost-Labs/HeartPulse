@@ -132,11 +132,11 @@ function formatNumber(value: unknown): string {
 }
 
 function cardTileUrl(cardId: string): string {
-  return `https://art.hearthstonejson.com/v1/tiles/${encodeURIComponent(cardId)}.webp`;
+  return `/api/public-resource/hsjson/v1/tiles/${encodeURIComponent(cardId)}.webp`;
 }
 
 function cardRenderUrl(cardId: string): string {
-  return `https://art.hearthstonejson.com/v1/render/latest/ruRU/512x/${encodeURIComponent(cardId)}.png`;
+  return `/api/public-resource/hsjson/v1/render/latest/ruRU/512x/${encodeURIComponent(cardId)}.png`;
 }
 
 function matchupTone(value: number | null): {

@@ -1,4 +1,4 @@
-const LEGACY_BG_ORIGIN = 'https://bg.kolodahearthstone.ru';
+const LEGACY_BG_HOST = 'bg.kolodahearthstone.ru';
 
 /**
  * Routes third-party Battlegrounds card art through the same-origin image
@@ -8,13 +8,19 @@ export function optimizedBattlegroundThumbnailUrl(rawUrl: unknown, width = 220):
   const source = String(rawUrl || '').trim();
   if (!source) return '';
 
-  const localPath = source.startsWith(LEGACY_BG_ORIGIN)
-    ? source.slice(LEGACY_BG_ORIGIN.length)
-    : source.startsWith('/api/remote-image') || source.startsWith('/api/card-art')
-      ? source
-      : source.startsWith('https://')
-        ? `/api/remote-image?src=${encodeURIComponent(source)}`
-        : '';
+  let localPath = '';
+  if (
+    source.startsWith('/api/public-resource/')
+    || source.startsWith('/api/remote-image')
+    || source.startsWith('/api/card-art')
+  ) {
+    localPath = source;
+  } else if (source.startsWith('https://')) {
+    const parsed = new URL(source);
+    localPath = parsed.hostname.toLowerCase() === LEGACY_BG_HOST
+      ? `${parsed.pathname}${parsed.search}`
+      : `/api/remote-image?src=${encodeURIComponent(source)}`;
+  }
   if (!localPath) return source;
 
   return `${localPath}${localPath.includes('?') ? '&' : '?'}width=${Math.round(width)}&quality=76&format=webp`;

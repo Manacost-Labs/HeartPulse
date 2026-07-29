@@ -2,6 +2,7 @@ import {
   localizeConstructedMediaLabel,
   localizeConstructedSoundDescription,
 } from '../../shared/constructedCardTranslations';
+import { publicResourceUrl } from '../publicResourceUrl';
 import type {
   ConstructedRelatedCard,
   ConstructedRelatedCardGroup,
@@ -94,7 +95,7 @@ export function flattenConstructedCardSounds(rawSounds: unknown): ConstructedCar
     clips.forEach((clip, clipIndex) => {
       if (!clip || typeof clip !== 'object') return;
       const item = clip as JsonRecord;
-      const url = String(item.file_url ?? item.url ?? item.src ?? '').trim();
+      const url = publicResourceUrl(item.file_url ?? item.url ?? item.src);
       if (!url || seen.has(url)) return;
       seen.add(url);
       const groupName = String(item.group ?? record.heading ?? record.group ?? 'Sound').trim() || 'Sound';
@@ -115,14 +116,14 @@ export function collectConstructedCardMedia(card: JsonRecord): ConstructedCardMe
   const result: ConstructedCardMediaItem[] = [];
   const seen = new Set<string>();
   const push = (id: string, label: string, urlValue: unknown, thumbnailValue?: unknown, sourceValue?: unknown) => {
-    const url = String(urlValue ?? '').trim();
+    const url = publicResourceUrl(urlValue);
     if (!url || seen.has(url)) return;
     seen.add(url);
     result.push({
       id,
       label: readableMediaLabel(label, `Изображение ${result.length + 1}`),
       url,
-      thumbnailUrl: String(thumbnailValue ?? '').trim() || url,
+      thumbnailUrl: publicResourceUrl(thumbnailValue) || url,
       sourceUrl: String(sourceValue ?? '').trim() || null,
       kind: mediaKind(url),
     });
@@ -295,8 +296,8 @@ export function collectConstructedRelatedCardArtMedia(
       id: `related-art-${card.cardId || index}`,
       label: `${entry.names.join(', ')}${shared}`,
       description: details.join(' · ') || null,
-      url: card.artUrl!,
-      thumbnailUrl: card.artUrl!,
+      url: publicResourceUrl(card.artUrl),
+      thumbnailUrl: publicResourceUrl(card.artUrl),
       sourceUrl: card.artMetadata?.filePageUrl ?? card.wikiUrl,
       kind: 'image',
       presentation: 'contain',

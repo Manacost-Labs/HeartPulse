@@ -32,7 +32,7 @@
   --hsrdv-stone-portrait-size: 80px;
   --hsrdv-stone-portrait-gap: 12px;
   --hsrdv-stone-portrait-art-inset: 8px;
-  --hsrdv-stone-portrait-frame-image: url("https://static.hsreplay.net/static/webpack/assets/images/battlegrounds/minion-frame.d21732172d83faeae997.png");
+  --hsrdv-stone-portrait-frame-image: url("/api/public-resource/hsreplay/static/webpack/assets/images/battlegrounds/minion-frame.d21732172d83faeae997.png");
   --hsrdv-synergy-card-width: 760px;
   --hsrdv-synergy-item-size: 68px;
   --hsrdv-synergy-item-gap: 12px;

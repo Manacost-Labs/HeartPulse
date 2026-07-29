@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
+import { publicResourceUrl } from '../publicResourceUrl';
 import type {
   BattlegroundHeroMmr,
   BattlegroundHeroMode,
@@ -168,7 +169,7 @@ function LedgerRow({
             onNavigate(href);
           }}
         >
-          <img src={hero.image} alt="" loading="lazy" decoding="async" />
+          <img src={publicResourceUrl(hero.image)} alt="" loading="lazy" decoding="async" />
           <span>
             <strong>{hero.name}</strong>
             {hero.originalName && <small>{hero.originalName}</small>}

@@ -8,7 +8,7 @@ const meta = {
   args: {
     media: {
       type: 'image',
-      src: 'https://db.kolodahs.ru/uploads/hero-skins/static/HERO_11ai.png',
+      src: '/api/public-resource/db/uploads/hero-skins/static/HERO_11ai.png',
       title: 'Полный арт «Керриган-арахнид»',
     },
     onClose: fn(),
@@ -36,7 +36,7 @@ export const Animation: Story = {
     media: {
       type: 'video',
       src: 'https://hearthstone.wiki.gg/images/HERO_11aq.webm',
-      poster: 'https://db.kolodahs.ru/uploads/hero-skins/static/HERO_11aq.png',
+      poster: '/api/public-resource/db/uploads/hero-skins/static/HERO_11aq.png',
       title: 'Анимация скина «Вечный жнец Пустотел»',
       autoPlay: false,
     },

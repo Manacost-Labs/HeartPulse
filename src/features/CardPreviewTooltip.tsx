@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { publicResourceUrl } from '../publicResourceUrl';
 import './CardPreviewTooltip.css';
 
 export type CardPreviewTarget = {
@@ -14,16 +15,16 @@ const TOOLTIP_HEIGHT = 350;
 const TOOLTIP_GAP = 10;
 
 export function fallbackCardRender(id: string): string {
-  return `https://art.hearthstonejson.com/v1/render/latest/ruRU/512x/${encodeURIComponent(id)}.png`;
+  return `/api/public-resource/hsjson/v1/render/latest/ruRU/512x/${encodeURIComponent(id)}.png`;
 }
 
 export default function CardPreviewTooltip({ preview }: { preview: CardPreviewTarget }) {
   const fallback = fallbackCardRender(preview.id);
-  const [source, setSource] = useState(preview.imageUrl || fallback);
+  const [source, setSource] = useState(publicResourceUrl(preview.imageUrl) || fallback);
   const [imageFailed, setImageFailed] = useState(false);
 
   useEffect(() => {
-    setSource(preview.imageUrl || fallback);
+    setSource(publicResourceUrl(preview.imageUrl) || fallback);
     setImageFailed(false);
   }, [fallback, preview.imageUrl]);
   if (typeof document === 'undefined') return null;

@@ -18,6 +18,7 @@ import {
   Volume2,
 } from 'lucide-react';
 import '../route-parchment.css';
+import { publicResourceUrl } from '../publicResourceUrl';
 import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
 import ConstructedCardHistoryChart from './ConstructedCardHistoryChart';
 import { cardSupportsStandardStatistics } from './constructedCardFormats';
@@ -567,7 +568,8 @@ function HsReplayDataDeckCard({ card }: { card: CardRecord }) {
       rarity: card.rarity || 'COMMON',
       elite: String(card.rarity || '').toUpperCase() === 'LEGENDARY',
       count: 1,
-      image: card.images?.crop || `https://art.hearthstonejson.com/v1/tiles/${encodeURIComponent(card.card_id)}.webp`,
+      image: publicResourceUrl(card.images?.crop)
+        || `/api/public-resource/hsjson/v1/tiles/${encodeURIComponent(card.card_id)}.webp`,
     }], {
       className: 'constructed-cards__hsrdv',
       group: false,
@@ -1254,7 +1256,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
       description: description.slice(0, 300),
       pathname: `/standard/cards/${format}/${encodeURIComponent(resolvedCardId)}`,
       search: '',
-      image: card.images?.card,
+      image: publicResourceUrl(card.images?.card),
     });
   }, [card, cardId, format]);
 

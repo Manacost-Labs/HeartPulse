@@ -299,14 +299,14 @@ const hsImgUrl = (cardId: string, size: '256x' | '512x' = '256x', locale: 'ruRU'
     const variant = size === '512x' ? 'full' : 'thumb';
     return `/api/card-image/${encodeURIComponent(cardId)}/${variant}.webp?v=${CARD_IMAGE_PROXY_VERSION}`;
   }
-  return `https://art.hearthstonejson.com/v1/render/latest/enUS/${size}/${cardId}.png`;
+  return `/api/public-resource/hsjson/v1/render/latest/enUS/${size}/${cardId}.png`;
 };
 const hsJsonRenderUrl = (cardId: string, size: '256x' | '512x' = '256x', locale: 'ruRU' | 'enUS' = 'ruRU') =>
-  `https://art.hearthstonejson.com/v1/render/latest/${locale}/${size}/${cardId}.png?v=${CARD_JSON_IMAGE_VERSION}`;
+  `/api/public-resource/hsjson/v1/render/latest/${locale}/${size}/${cardId}.png?v=${CARD_JSON_IMAGE_VERSION}`;
 const hsJsonTileUrl = (cardId: string, ext: 'webp' | 'jpg' | 'png' = 'webp') =>
-  `https://art.hearthstonejson.com/v1/tiles/${cardId}.${ext}?v=${CARD_JSON_IMAGE_VERSION}`;
+  `/api/public-resource/hsjson/v1/tiles/${cardId}.${ext}?v=${CARD_JSON_IMAGE_VERSION}`;
 const hsJsonArtUrl = (cardId: string, size: '256x' | '512x' = '256x', ext: 'webp' | 'jpg' = 'webp') =>
-  `https://art.hearthstonejson.com/v1/${size}/${cardId}.${ext}?v=${CARD_JSON_IMAGE_VERSION}`;
+  `/api/public-resource/hsjson/v1/${size}/${cardId}.${ext}?v=${CARD_JSON_IMAGE_VERSION}`;
 
 function uniqueSources(sources: Array<string | null | undefined>): string[] {
   return [...new Set(sources.filter(Boolean) as string[])];

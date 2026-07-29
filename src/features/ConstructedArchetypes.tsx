@@ -166,7 +166,7 @@ function archetypeHeroArt(slug: string, analysis: ConstructedAnalysis | null): s
     null,
   );
   return representativeCard?.cardId
-    ? `https://art.hearthstonejson.com/v1/512x/${encodeURIComponent(representativeCard.cardId)}.jpg`
+    ? `/api/public-resource/hsjson/v1/512x/${encodeURIComponent(representativeCard.cardId)}.jpg`
     : null;
 }
 

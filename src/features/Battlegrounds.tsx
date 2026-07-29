@@ -2,6 +2,7 @@ import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef,
 import { createPortal } from 'react-dom';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
+import { publicResourceUrl } from '../publicResourceUrl';
 import {
   buildTrinketStatsRequest,
   normalizeTrinketMmr,
@@ -641,22 +642,22 @@ const BG_RACE_NAMES: Record<string, string> = {
 };
 
 const BG_RACE_ICON: Record<string, string> = {
-  ALL: 'https://bg.kolodahearthstone.ru/assset/%D0%BE%D0%B1%D1%89%D0%B5%D0%B5.webp',
-  NONE: 'https://bg.kolodahearthstone.ru/assset/%D0%BE%D0%B1%D1%89%D0%B5%D0%B5.webp',
-  BEAST: 'https://bg.kolodahearthstone.ru/assset/%D0%B7%D0%B2%D0%B5%D1%80%D1%8C.webp',
-  DEMON: 'https://bg.kolodahearthstone.ru/assset/%D0%B4%D0%B5%D0%BC%D0%BE%D0%BD%D1%8B.webp',
-  DRAGON: 'https://bg.kolodahearthstone.ru/assset/%D0%B4%D1%80%D0%B0%D0%BA%D0%BE%D0%BD%D1%8B.webp',
-  ELEMENTAL: 'https://bg.kolodahearthstone.ru/assset/%D1%8D%D0%BB%D0%B5%D0%BC%D0%B5%D0%BD%D1%82%D0%B0%D0%BB%D0%B8.webp',
-  MECHANICAL: 'https://bg.kolodahearthstone.ru/assset/%D0%BC%D0%B5%D1%85%D0%B0%D0%BD%D0%B8%D0%B7%D0%BC%D1%8B.webp',
-  MURLOC: 'https://bg.kolodahearthstone.ru/assset/%D0%BC%D1%83%D1%80%D0%BB%D0%BE%D0%BA%D0%B8.webp',
-  NAGA: 'https://bg.kolodahearthstone.ru/assset/%D0%BD%D0%B0%D0%B3%D0%B8.webp',
-  PIRATE: 'https://bg.kolodahearthstone.ru/assset/%D0%BF%D0%B8%D1%80%D0%B0%D1%82%D1%8B.webp',
-  QUILBOAR: 'https://bg.kolodahearthstone.ru/assset/%D1%81%D0%B2%D0%B8%D0%BD%D0%BE%D0%B1%D1%80%D0%B0%D0%B7%D1%8B.webp',
-  UNDEAD: 'https://bg.kolodahearthstone.ru/assset/%D0%BD%D0%B5%D0%B6%D0%B8%D1%82%D1%8C.webp',
+  ALL: '/api/public-resource/bg/assset/%D0%BE%D0%B1%D1%89%D0%B5%D0%B5.webp',
+  NONE: '/api/public-resource/bg/assset/%D0%BE%D0%B1%D1%89%D0%B5%D0%B5.webp',
+  BEAST: '/api/public-resource/bg/assset/%D0%B7%D0%B2%D0%B5%D1%80%D1%8C.webp',
+  DEMON: '/api/public-resource/bg/assset/%D0%B4%D0%B5%D0%BC%D0%BE%D0%BD%D1%8B.webp',
+  DRAGON: '/api/public-resource/bg/assset/%D0%B4%D1%80%D0%B0%D0%BA%D0%BE%D0%BD%D1%8B.webp',
+  ELEMENTAL: '/api/public-resource/bg/assset/%D1%8D%D0%BB%D0%B5%D0%BC%D0%B5%D0%BD%D1%82%D0%B0%D0%BB%D0%B8.webp',
+  MECHANICAL: '/api/public-resource/bg/assset/%D0%BC%D0%B5%D1%85%D0%B0%D0%BD%D0%B8%D0%B7%D0%BC%D1%8B.webp',
+  MURLOC: '/api/public-resource/bg/assset/%D0%BC%D1%83%D1%80%D0%BB%D0%BE%D0%BA%D0%B8.webp',
+  NAGA: '/api/public-resource/bg/assset/%D0%BD%D0%B0%D0%B3%D0%B8.webp',
+  PIRATE: '/api/public-resource/bg/assset/%D0%BF%D0%B8%D1%80%D0%B0%D1%82%D1%8B.webp',
+  QUILBOAR: '/api/public-resource/bg/assset/%D1%81%D0%B2%D0%B8%D0%BD%D0%BE%D0%B1%D1%80%D0%B0%D0%B7%D1%8B.webp',
+  UNDEAD: '/api/public-resource/bg/assset/%D0%BD%D0%B5%D0%B6%D0%B8%D1%82%D1%8C.webp',
 };
 
 const BG_RACE_ORDER = ['ALL', 'NONE', 'BEAST', 'DEMON', 'DRAGON', 'ELEMENTAL', 'MECHANICAL', 'MURLOC', 'NAGA', 'PIRATE', 'QUILBOAR', 'UNDEAD'];
-const BG_TAVERN_ICON_BASE = 'https://bg.kolodahearthstone.ru/assset';
+const BG_TAVERN_ICON_BASE = '/api/public-resource/bg/assset';
 
 function bgItemTitle(item: any): string {
   return String(item?.ruName || item?.localizedName || item?.title || item?.name || item?.hero || item?.key || 'Без названия');
@@ -1056,7 +1057,7 @@ function BattlegroundHeroCard({ hero, tier, onNavigate, tourId }: {
     >
       <div className="relative flex w-full justify-center overflow-visible">
         <img
-          src={hero.image}
+          src={publicResourceUrl(hero.image)}
           alt={hero.name}
           loading="lazy"
           decoding="async"
@@ -1291,7 +1292,7 @@ function BattlegroundHeroLedgerRow({
             onNavigate(href);
           }}
         >
-          <img src={hero.image} alt="" loading="lazy" decoding="async" />
+          <img src={publicResourceUrl(hero.image)} alt="" loading="lazy" decoding="async" />
           <span>
             <strong>{hero.name}</strong>
             {hero.originalName && <small>{hero.originalName}</small>}
@@ -3721,7 +3722,7 @@ function BattlegroundTierList() {
             </button>
             <div className="bg-tier-lightbox-art flex items-center justify-center">
               <img
-                src={currentLightboxItem.image}
+                src={publicResourceUrl(currentLightboxItem.image)}
                 alt={currentLightboxItem.title}
                 className="max-h-[70vh] w-full max-w-[360px] object-contain drop-shadow-[0_12px_28px_rgba(0,0,0,0.65)]"
               />
@@ -4187,6 +4188,27 @@ function loadLegacyScript(src: string, owner: LegacyScriptOwner): Promise<HTMLSc
   });
 }
 
+async function installLegacyImageTools(includePica: boolean) {
+  const [imageCompressionModule, picaModule] = await Promise.all([
+    import('browser-image-compression'),
+    includePica ? import('pica') : Promise.resolve(null),
+  ]);
+  (window as any).imageCompression = imageCompressionModule.default;
+  if (picaModule) (window as any).pica = picaModule.default;
+}
+
+async function loadLegacyScripts(
+  sources: string[],
+  owner: LegacyScriptOwner,
+  loadedScripts: HTMLScriptElement[],
+  cancelled: () => boolean,
+) {
+  for (const source of sources) {
+    if (cancelled()) return;
+    loadedScripts.push(await loadLegacyScript(source, owner));
+  }
+}
+
 function BattlegroundStrategyBuilderEmbed() {
   const mountId = useRef(`bg-strategy-builder-${Math.random().toString(36).slice(2)}`);
 
@@ -4201,7 +4223,6 @@ function BattlegroundStrategyBuilderEmbed() {
     const loadedScripts: HTMLScriptElement[] = [];
     const version = BG_STRATEGY_BUILDER_VERSION;
     const scripts = [
-      'https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js',
       `/bg-legacy/shared.js?v=${version}`,
       `/bg-legacy/tier-data.js?v=${version}`,
       `/bg-legacy/accessories-data.js?v=${version}`,
@@ -4209,15 +4230,9 @@ function BattlegroundStrategyBuilderEmbed() {
       BG_STRATEGY_BUILDER_JS,
     ];
 
-    scripts.reduce(
-      (chain, src) => chain.then(async () => {
-        if (cancelled) return undefined;
-        const script = await loadLegacyScript(src, 'strategy-builder');
-        loadedScripts.push(script);
-        return undefined;
-      }),
-      Promise.resolve<void>(undefined)
-    ).catch(error => {
+    void installLegacyImageTools(false)
+      .then(() => loadLegacyScripts(scripts, 'strategy-builder', loadedScripts, () => cancelled))
+      .catch(error => {
       console.error('Не удалось запустить конструктор стратегий.', error);
     });
 
@@ -4330,23 +4345,15 @@ function BattlegroundTierBuilderEmbed() {
     const loadedScripts: HTMLScriptElement[] = [];
     const version = BG_STRATEGY_BUILDER_VERSION;
     const scripts = [
-      'https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js',
-      'https://cdn.jsdelivr.net/npm/pica@9.0.1/dist/pica.min.js',
       `/bg-legacy/shared.js?v=${version}`,
       `/bg-legacy/tier-data.js?v=${version}`,
       `/bg-legacy/accessories-data.js?v=${version}`,
       `/bg-legacy/hero-tier-builder.js?v=${version}`,
     ];
 
-    scripts.reduce(
-      (chain, src) => chain.then(async () => {
-        if (cancelled) return undefined;
-        const script = await loadLegacyScript(src, 'tier-builder');
-        loadedScripts.push(script);
-        return undefined;
-      }),
-      Promise.resolve<void>(undefined)
-    ).catch(error => {
+    void installLegacyImageTools(true)
+      .then(() => loadLegacyScripts(scripts, 'tier-builder', loadedScripts, () => cancelled))
+      .catch(error => {
       console.error('Не удалось запустить конструктор тир-листов.', error);
     });
 

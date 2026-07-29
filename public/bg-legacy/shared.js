@@ -2,6 +2,30 @@
   const MAX_DOWNLOAD_SIZE_MB = 1.95;
   let picaInstance = null;
 
+  const PUBLIC_RESOURCE_SOURCE_BY_HOST = {
+    "db.kolodahs.ru": { key: "db", prefixes: ["/uploads/"] },
+    "bg.kolodahearthstone.ru": { key: "bg", prefixes: ["/assset/"] },
+    "art.hearthstonejson.com": { key: "hsjson", prefixes: ["/v1/"] },
+    "api.hearthstonejson.com": { key: "hsjson-api", prefixes: ["/v1/"] },
+    "hearthstone.wiki.gg": { key: "wiki", prefixes: ["/images/"] },
+    "static.hsreplay.net": { key: "hsreplay", prefixes: ["/static/"] }
+  };
+
+  function publicResourceUrl(value) {
+    const raw = String(value || "").trim();
+    if (!raw || raw.startsWith("/api/public-resource/")) return raw;
+    try {
+      const url = new URL(raw);
+      const source = PUBLIC_RESOURCE_SOURCE_BY_HOST[url.hostname.toLowerCase()];
+      if (url.protocol !== "https:" || !source || !source.prefixes.some((prefix) => url.pathname.startsWith(prefix))) {
+        return raw;
+      }
+      return `/api/public-resource/${source.key}${url.pathname}${url.search}`;
+    } catch (error) {
+      return raw;
+    }
+  }
+
   function loadImage(src) {
     return new Promise((resolve, reject) => {
       const image = new Image();
@@ -153,7 +177,7 @@
       const compressed = await window.imageCompression(blob, {
         maxSizeMB: options.maxSizeMB || MAX_DOWNLOAD_SIZE_MB,
         maxWidthOrHeight: options.maxWidthOrHeight || 3200,
-        useWebWorker: true,
+        useWebWorker: false,
         fileType: "image/webp",
         initialQuality: options.initialQuality || 0.95,
         preserveExif: false
@@ -410,6 +434,7 @@
     loadJson,
     loadBattlegroundsLibrary,
     exportCardSheet,
+    publicResourceUrl,
     escapeHtml
   };
 })();

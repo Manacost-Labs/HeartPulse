@@ -8,10 +8,18 @@ app.use('/api', createPublicResourceRouter({
   fetchResource: async (url, init) => {
     upstreamCalls.push({ url, headers: init?.headers });
     const pathname = new URL(url).pathname;
-    if (pathname.endsWith('/redirect.png')) {
-      return new Response(new Uint8Array([9]), {
+    if (pathname.endsWith('/redirect-off-origin.png')) {
+      const response = new Response(new Uint8Array([9]), {
         status: 200,
         headers: { 'content-type': 'image/png', 'content-length': '1' },
+      });
+      Object.defineProperty(response, 'url', { value: 'https://evil.example/stolen.png' });
+      return response;
+    }
+    if (pathname.endsWith('/too-large.png')) {
+      return new Response(new Uint8Array([9]), {
+        status: 200,
+        headers: { 'content-type': 'image/png', 'content-length': String(33 * 1024 * 1024) },
       });
     }
     if (pathname.endsWith('/wrong-type.svg')) {
@@ -24,6 +32,15 @@ app.use('/api', createPublicResourceRouter({
       return new Response('{"cards":[]}', {
         status: 200,
         headers: { 'content-type': 'application/json', etag: '"json-v1"' },
+      });
+    }
+    if (pathname.endsWith('/transform.png')) {
+      return new Response(Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+        'base64',
+      ), {
+        status: 200,
+        headers: { 'content-type': 'image/png' },
       });
     }
     return new Response(new Uint8Array([1, 2, 3]), {
@@ -71,6 +88,16 @@ try {
   assert.deepEqual(await json.json(), { cards: [] });
   assert.equal(upstreamCalls[1]?.url, 'https://api.hearthstonejson.com/v1/latest/ruRU/cards.json');
 
+  const transformed = await fetch(`${baseUrl}/db/uploads/transform.png?width=384&quality=82&format=webp`);
+  assert.equal(transformed.status, 200);
+  assert.equal(transformed.headers.get('content-type'), 'image/webp');
+  assert.ok((await transformed.arrayBuffer()).byteLength > 0);
+  assert.equal(
+    upstreamCalls[2]?.url,
+    'https://db.kolodahs.ru/uploads/transform.png',
+    'image transformation parameters must not be forwarded to the upstream source',
+  );
+
   const missingSource = await fetch(`${baseUrl}/evil/uploads/cards/TEST.webp`);
   assert.equal(missingSource.status, 400);
 
@@ -80,7 +107,13 @@ try {
   const rejectedType = await fetch(`${baseUrl}/wiki/images/wrong-type.svg`);
   assert.equal(rejectedType.status, 502);
 
-  assert.equal(upstreamCalls.length, 3, 'rejected source and path must not reach the network');
+  const rejectedRedirect = await fetch(`${baseUrl}/db/uploads/redirect-off-origin.png`);
+  assert.equal(rejectedRedirect.status, 502);
+
+  const rejectedLargeResource = await fetch(`${baseUrl}/db/uploads/too-large.png`);
+  assert.equal(rejectedLargeResource.status, 502);
+
+  assert.equal(upstreamCalls.length, 6, 'rejected source and path must not reach the network');
 } finally {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 }

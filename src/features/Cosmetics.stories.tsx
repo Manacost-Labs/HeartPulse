@@ -10,7 +10,7 @@ const hero: HeroSummary = {
   rarity: { slug: 'mythic', nameRu: 'Мифический' },
   categorySlugs: ['mythic_skins', '2500_runestone_skins'],
   images: {
-    static: 'https://db.kolodahs.ru/uploads/hero-skins/static/HERO_11ai.png',
+    static: '/api/public-resource/db/uploads/hero-skins/static/HERO_11ai.png',
     animated: 'https://hearthstone.wiki.gg/images/HERO_11ai.webm',
   },
 };

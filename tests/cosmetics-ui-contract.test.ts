@@ -36,7 +36,8 @@ assert.match(hoverStyles, /--cosmetics-tile-accent:\s*var\(--cosmetics-gold-brig
 assert.match(component, /export function CosmeticsMediaLightbox/);
 assert.match(component, /className="cosmetics-media-lightbox"/);
 assert.match(component, /function cosmeticMediaSource/);
-assert.match(component, /\/api\/cosmetics\/media\?url=/);
+assert.match(component, /publicResourceUrl\(source\)/);
+assert.doesNotMatch(component, /\/api\/cosmetics\/media\?url=/);
 assert.match(component, /Анимация скина/);
 assert.match(component, /Полный арт/);
 assert.match(styles, /\.cosmetics-media-lightbox__panel/);

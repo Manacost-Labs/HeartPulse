@@ -181,7 +181,8 @@
   function normalizeAssetUrl(value) {
     const raw = String(value || "").trim();
     if (!raw) return "";
-    if (/^(https?:|data:|blob:|\/)/i.test(raw)) return raw;
+    if (/^https?:/i.test(raw)) return window.Shared.publicResourceUrl(raw);
+    if (/^(data:|blob:|\/)/i.test(raw)) return raw;
     return `/bg-legacy/${raw.replace(/^\.\//, "")}`;
   }
 
@@ -2090,7 +2091,7 @@ function normalizeHeroCard(hero, tier) {
   let compsList = [];
 
   function compCardArtUrl(compCard, size = "256x") {
-    return `https://art.hearthstonejson.com/v1/bgs/latest/ruRU/${encodeURIComponent(size)}/${encodeURIComponent(compCard.id)}.png`;
+    return `/api/public-resource/hsjson/v1/bgs/latest/ruRU/${encodeURIComponent(size)}/${encodeURIComponent(compCard.id)}.png`;
   }
 
   function renderCompCards(comp) {

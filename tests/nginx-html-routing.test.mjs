@@ -114,8 +114,10 @@ assert.doesNotMatch(edgeCardImageLocation?.body || '', /proxy_(?:no_cache|cache_
   'the dedicated card-image edge route must never inherit the generic API bypass');
 assert.match(edgePublicResourceLocation?.body || '', /proxy_cache\s+hs_arena_cache;/,
   'public resources must override the generic API BYPASS location and use the regional cache');
-assert.match(edgePublicResourceLocation?.body || '', /proxy_cache_valid\s+200\s+206\s+30d;/,
-  'public resources and range responses must use the regional cache');
+assert.match(edgePublicResourceLocation?.body || '', /proxy_cache_valid\s+200\s+30d;/,
+  'complete public-resource responses must use the regional cache');
+assert.doesNotMatch(edgePublicResourceLocation?.body || '', /proxy_cache_valid\s+[^;]*206/,
+  'partial responses must not share a cache key with complete public resources');
 assert.match(edgePublicResourceLocation?.body || '', /proxy_cache_lock\s+on;/,
   'cold public-resource cache misses must be collapsed at each edge');
 assert.doesNotMatch(edgePublicResourceLocation?.body || '', /proxy_(?:no_cache|cache_bypass)/,
