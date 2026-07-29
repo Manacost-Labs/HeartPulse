@@ -242,7 +242,7 @@ try {
       });
       return;
     }
-    if (request.url().startsWith('https://art.hearthstonejson.com/')) {
+    if (new URL(request.url()).pathname.startsWith('/api/public-resource/hsjson/')) {
       void request.respond({ status: 404, body: '' });
       return;
     }

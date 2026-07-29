@@ -79,6 +79,18 @@ try {
   const page = await browser.newPage();
   const runtimeErrors = [];
   page.on('pageerror', error => runtimeErrors.push(error.message));
+  await page.setRequestInterception(true);
+  page.on('request', request => {
+    if (new URL(request.url()).pathname.startsWith('/api/public-resource/hsjson/')) {
+      void request.respond({
+        status: 200,
+        contentType: 'image/gif',
+        body: Buffer.from('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', 'base64'),
+      });
+      return;
+    }
+    void request.continue();
+  });
 
   await page.setViewport({ width: 1440, height: 1050, deviceScaleFactor: 1 });
   await page.goto(`${origin}/tests/fixtures/archetypes-detail.html`, { waitUntil: 'networkidle0' });
