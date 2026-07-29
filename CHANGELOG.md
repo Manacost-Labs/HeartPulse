@@ -1,5 +1,22 @@
 # HS-Arena Changelog
 
+## v1.0.74 - 2026-07-29
+
+- Routed required card, cosmetic, Battlegrounds, Wiki-art and public JSON media
+  through a strict same-origin Arena endpoint so browsers in Russia and Europe
+  no longer depend directly on the upstream asset hosts.
+- Added persistent edge caching, stale delivery and compact WebP thumbnails;
+  sampled cosmetic previews transfer about 85% fewer bytes while full-quality
+  originals remain available through the same endpoint.
+- Hardened the resource boundary with a fixed host/path allowlist, manual
+  redirect validation, credential stripping, MIME and size limits, blocked SVG
+  execution and safe handling of transparently decompressed responses.
+- Updated client-rendered and server-rendered card, cosmetic and Battlegrounds
+  pages so required image URLs remain on `arena.hs-manacost.ru`.
+- Removed optional CDN-loaded image-processing libraries from the browser path
+  and added regression coverage for redirects, compressed bodies, SSR media,
+  image transforms and the production Nginx cache contract.
+
 ## v1.0.73 - 2026-07-29
 
 - Fixed the constructed-card download action so clicking it no longer leaves
