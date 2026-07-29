@@ -2,6 +2,11 @@
 
 ## v1.0.76 - 2026-07-29
 
+- Kept card results visible while rank, period and format filters refresh,
+  cached recent filter responses in memory and warmed adjacent filter slices
+  during browser idle time on capable connections.
+- Started lazy-route downloads on pointer-down as well as hover and keyboard
+  focus, reducing the remaining delay for touch navigation.
 - Warmed card-detail data and immutable full-size renders when a catalog visitor
   shows intent to open a card, while keeping the in-memory response cache
   bounded and separated by subscription access.

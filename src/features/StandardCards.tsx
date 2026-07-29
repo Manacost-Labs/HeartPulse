@@ -30,6 +30,10 @@ import {
 import ConstructedCardCatalogSearch from './ConstructedCardCatalogSearch';
 import ConstructedCardDownloadButton from './ConstructedCardDownloadButton';
 import FilterSelect from './ConstructedCardFilterSelect';
+import {
+  loadConstructedCardList,
+  prefetchConstructedCardList,
+} from './constructedCardListPrefetch';
 import DeckListView, {
   type DeckListCard,
   type DeckListSideboard,
@@ -262,6 +266,7 @@ const EMPTY_FILTERS: Filters = {
 };
 const SEARCH_REQUEST_DEBOUNCE_MS = 250;
 const STATISTIC_SORTS = new Set(['popularity', 'winrate', 'games']);
+const FILTER_PREFETCH_DELAY_MS = 900;
 const warmedCardImages = new Set<string>();
 function preloadImage(url: string | null | undefined): void {
   const source = String(url ?? '').trim();
@@ -716,6 +721,38 @@ function Pagination({ page, totalPages, total, perPage, onPage }: { page: number
   );
 }
 
+function constructedCardListUrl({
+  format,
+  period,
+  rank,
+  page,
+  perPage,
+  filters,
+  query,
+}: {
+  format: CardFormat;
+  period: ConstructedCardPeriod;
+  rank: ConstructedCardRank;
+  page: number;
+  perPage: number;
+  filters: Filters;
+  query: string;
+}): string {
+  const params = new URLSearchParams({
+    format,
+    period,
+    rank,
+    page: String(page),
+    perPage: String(perPage),
+    sort: filters.sort,
+    direction: filters.direction,
+  });
+  Object.entries({ ...filters, query }).forEach(([key, value]) => {
+    if (value && key !== 'sort' && key !== 'direction') params.set(key, String(value));
+  });
+  return `/api/constructed-cards?${params}`;
+}
+
 function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLoading, authUser, onRefreshSubscription }: Pick<StandardCardsProps, 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'> & { initialFormat: CardFormat }) {
   const [format, setFormat] = useState<CardFormat>(initialFormat);
   const [period, setPeriod] = useConstructedCardPeriod();
@@ -752,36 +789,96 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
 
   const requestKey = useMemo(() => JSON.stringify({ format, period, rank, page, perPage, reloadToken, statsAccess, ...filters, query: requestQuery }), [filters, format, page, perPage, period, rank, reloadToken, requestQuery, statsAccess]);
   useEffect(() => {
-    const controller = new AbortController();
+    let active = true;
     const load = async () => {
       setLoading(true);
       setError(null);
       try {
-        const params = new URLSearchParams({ format, period, rank, page: String(page), perPage: String(perPage), sort: filters.sort, direction: filters.direction });
-        Object.entries({ ...filters, query: requestQuery }).forEach(([key, value]) => {
-          if (value && key !== 'sort' && key !== 'direction') params.set(key, String(value));
+        const url = constructedCardListUrl({
+          format,
+          period,
+          rank,
+          page,
+          perPage,
+          filters,
+          query: requestQuery,
         });
-        const response = await fetch(`/api/constructed-cards?${params}`, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: controller.signal });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          const failure = new Error(payload.error || 'Не удалось загрузить карты') as Error & { status?: number };
-          failure.status = response.status;
+        const result = await loadConstructedCardList<ListPayload>(url, statsAccess, {
+          bust: reloadToken > 0,
+        });
+        if (!result.ok) {
+          const failure = new Error((result.payload as any)?.error || 'Не удалось загрузить карты') as Error & { status?: number };
+          failure.status = result.status;
           throw failure;
         }
-        setData(payload as ListPayload);
+        if (active) setData(result.payload);
       } catch (loadError) {
-        if (!controller.signal.aborted) setError(constructedCardRequestError(
+        if (active) setError(constructedCardRequestError(
           'list',
           Number((loadError as { status?: number })?.status ?? 0),
           loadError instanceof Error ? loadError.message : '',
         ));
       } finally {
-        if (!controller.signal.aborted) setLoading(false);
+        if (active) setLoading(false);
       }
     };
     void load();
-    return () => controller.abort();
+    return () => { active = false; };
   }, [requestKey]);
+
+  useEffect(() => {
+    if (!data || loading || document.visibilityState === 'hidden') return undefined;
+    const connection = (navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }).connection;
+    if (connection?.saveData || connection?.effectiveType === 'slow-2g' || connection?.effectiveType === '2g') {
+      return undefined;
+    }
+
+    let cancelled = false;
+    let idleHandle: number | null = null;
+    const timeout = window.setTimeout(() => {
+      const warm = async () => {
+        const candidates: Array<{
+          format: CardFormat;
+          period: ConstructedCardPeriod;
+          rank: ConstructedCardRank;
+        }> = [];
+        for (const option of CONSTRUCTED_CARD_RANK_OPTIONS) {
+          if (option.id !== rank) candidates.push({ format, period, rank: option.id });
+        }
+        for (const option of CONSTRUCTED_CARD_PERIOD_OPTIONS) {
+          if (option.id !== period) candidates.push({ format, period: option.id, rank });
+        }
+        candidates.push({
+          format: format === 'standard' ? 'wild' : 'standard',
+          period,
+          rank,
+        });
+        await candidates.reduce<Promise<void>>((chain, candidate) => chain.then(() => {
+          if (cancelled || document.visibilityState === 'hidden') return undefined;
+          return prefetchConstructedCardList(constructedCardListUrl({
+            ...candidate,
+            page: 1,
+            perPage,
+            filters,
+            query: requestQuery,
+          }), statsAccess);
+        }), Promise.resolve());
+      };
+      if ('requestIdleCallback' in window) {
+        idleHandle = window.requestIdleCallback(() => { void warm(); }, { timeout: 2_000 });
+      } else {
+        void warm();
+      }
+    }, FILTER_PREFETCH_DELAY_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+      if (idleHandle !== null && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleHandle);
+    };
+  }, [data, filters, format, loading, perPage, period, rank, requestQuery, statsAccess]);
 
   const updateFilter = (key: keyof Filters, value: string) => {
     setFilters(current => ({ ...current, [key]: value }));
@@ -789,13 +886,11 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
   };
   const changeFormat = (next: CardFormat) => {
     setFormat(next);
-    setData(null);
     setPage(1);
     navigateWithConstructedCardContext(navigatePath, `/standard/cards/${next}`, period, rank);
   };
   const changePeriod = (next: ConstructedCardPeriod) => {
     setPeriod(next);
-    setData(null);
     setPage(1);
     if (typeof window !== 'undefined') {
       window.history.replaceState(
@@ -807,7 +902,6 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
   };
   const changeRank = (next: ConstructedCardRank) => {
     setRank(next);
-    setData(null);
     setPage(1);
     if (typeof window !== 'undefined') {
       window.history.replaceState(
@@ -840,12 +934,18 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
   const searchPending = Boolean(normalizedInputQuery) && (
     normalizedInputQuery !== requestQuery || loading
   );
+  const visibleRankLabel = loading
+    ? constructedCardRankLabel(rank)
+    : data?.rankLabel || constructedCardRankLabel(rank);
+  const visiblePeriodLabel = loading
+    ? constructedCardPeriodLabel(period)
+    : data?.period?.label || constructedCardPeriodLabel(period);
 
   return (
     <div className="constructed-cards">
       <header className="constructed-cards__header">
-        <div><h1>Карты</h1><div className="constructed-cards__beta"><span>Бета</span><span>{hasStatsAccess ? <ShieldCheck size={14} /> : <LockKeyhole size={14} />} Статистика {data?.rankLabel || constructedCardRankLabel(rank)}{!hasStatsAccess && ' · подписка Алмаз'}</span></div></div>
-        <p>{data?.rankLabel || constructedCardRankLabel(rank)} · <strong>{data?.period?.label || constructedCardPeriodLabel(period)}</strong></p>
+        <div><h1>Карты</h1><div className="constructed-cards__beta"><span>Бета</span><span>{hasStatsAccess ? <ShieldCheck size={14} /> : <LockKeyhole size={14} />} Статистика {visibleRankLabel}{!hasStatsAccess && ' · подписка Алмаз'}</span></div></div>
+        <p>{visibleRankLabel} · <strong>{visiblePeriodLabel}</strong>{loading && data ? <span className="constructed-cards__refreshing"> · обновляем</span> : null}</p>
       </header>
 
       <section className="constructed-cards__controls" aria-label="Фильтры библиотеки карт" data-loading={loading || undefined}>

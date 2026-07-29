@@ -3,8 +3,10 @@ import { readFileSync } from 'node:fs';
 
 const cardsSource = readFileSync(new URL('../src/features/StandardCards.tsx', import.meta.url), 'utf8');
 const detailPrefetchSource = readFileSync(new URL('../src/features/constructedCardDetailPrefetch.ts', import.meta.url), 'utf8');
+const listPrefetchSource = readFileSync(new URL('../src/features/constructedCardListPrefetch.ts', import.meta.url), 'utf8');
 const lightboxSource = readFileSync(new URL('../src/features/ConstructedCardLightbox.tsx', import.meta.url), 'utf8');
 const deferredSource = readFileSync(new URL('../src/features/DeferredRoutes.tsx', import.meta.url), 'utf8');
+const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 
 assert.match(cardsSource, /prefetchConstructedCardDetail\(/,
   'card catalog links must warm their detail response before navigation');
@@ -16,6 +18,16 @@ assert.match(detailPrefetchSource, /DETAIL_PREFETCH_LIMIT\s*=\s*24/,
   'the client detail cache must remain bounded');
 assert.match(detailPrefetchSource, /statsAccess \? 'paid' : 'public'/,
   'public and subscriber payloads must never share a client cache key');
+assert.match(cardsSource, /prefetchConstructedCardList\(/,
+  'the catalog must warm adjacent rank, period and format slices while idle');
+assert.match(cardsSource, /loading && data \?/,
+  'filter refreshes must retain the visible catalog instead of replacing it with a blocking loader');
+assert.match(listPrefetchSource, /LIST_PREFETCH_LIMIT\s*=\s*16/,
+  'the client list cache must remain bounded');
+assert.match(listPrefetchSource, /statsAccess \? 'paid' : 'public'/,
+  'public and subscriber list payloads must never share a client cache key');
+assert.match(appSource, /onPointerDown=\{\(\) => onWarm\(tab\.id\)\}/,
+  'touch navigation must start loading its lazy route before click');
 
 assert.match(lightboxSource, /item\.thumbnailUrl !== item\.url/,
   'constructed-card lightboxes must show an already-loaded preview while full media decodes');

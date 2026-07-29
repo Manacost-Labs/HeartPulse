@@ -580,6 +580,7 @@ function NavigationRouteLinks({
         key={tab.id}
         href={tab.slug}
         onPointerEnter={() => onWarm(tab.id)}
+        onPointerDown={() => onWarm(tab.id)}
         onFocus={() => onWarm(tab.id)}
         onClick={(event) => {
           event.preventDefault();
