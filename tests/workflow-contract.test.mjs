@@ -24,7 +24,11 @@ assert.match(ciWorkflow, /name:\s*Validate and deploy application/);
 assert.match(ciWorkflow, /^\s*push:\s*$/m);
 assert.match(ciWorkflow, /^\s*branches:\s*\[main\]\s*$/m);
 assert.match(ciWorkflow, /permissions:\s*\n\s*contents:\s*read/);
-assert.match(ciWorkflow, /run:\s*npm run verify:ci/);
+assert.match(ciWorkflow, /run:\s*npm run verify:release/);
+assert.match(
+  ciWorkflow,
+  /- name:\s*Run full browser observatory\s+continue-on-error:\s*true\s+run:\s*node scripts\/browser-qa-ci\.mjs/,
+);
 assert.match(ciWorkflow, /npm run release:create -- --output="\$RUNNER_TEMP\/release-\$GITHUB_SHA" --sha="\$GITHUB_SHA"/);
 assert.match(ciWorkflow, /actions\/upload-artifact@v7/);
 assert.match(ciWorkflow, /name:\s*hs-arena-release-\$\{\{ github\.sha \}\}/);

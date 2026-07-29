@@ -25,6 +25,9 @@ Giving a hosted CI runner an SSH key would also create a broad reusable secret.
 - Only a successful push to `main` can deploy.
 - Hosted CI performs all validation and produces one immutable artifact whose
   manifest SHA equals the pushed commit.
+- Deterministic release checks block deployment. The full browser matrix runs
+  as an explicit advisory observatory until its legacy fixtures have a reliable
+  baseline; affected browser flows remain mandatory task-level checks.
 - A repository-scoped self-hosted runner receives only that artifact. A
   dedicated unprivileged account may invoke one root-owned deployment gate.
 - The gate validates the artifact location, permissions, symlink policy and

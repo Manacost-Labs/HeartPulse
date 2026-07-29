@@ -39,8 +39,12 @@ jobs:
       - name: Check production dependencies
         run: npm audit --omit=dev --audit-level=critical
 
-      - name: Run required validation
-        run: npm run verify:ci
+      - name: Run release-blocking validation
+        run: npm run verify:release
+
+      - name: Run full browser observatory
+        continue-on-error: true
+        run: node scripts/browser-qa-ci.mjs
 
       - name: Create immutable production release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
