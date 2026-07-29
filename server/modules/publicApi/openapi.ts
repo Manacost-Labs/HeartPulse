@@ -8,6 +8,7 @@ export const PUBLIC_API_OPENAPI = {
   servers: [{ url: '/', description: 'Current Manacost environment' }],
   tags: [
     { name: 'Catalog', description: 'Available Manacost data resources.' },
+    { name: 'Images', description: 'Same-origin cached Hearthstone card images.' },
     { name: 'Administration', description: 'Administrator-only API key lifecycle.' },
   ],
   paths: {
@@ -35,6 +36,57 @@ export const PUBLIC_API_OPENAPI = {
           },
           '401': { $ref: '#/components/responses/InvalidApiKey' },
           '403': { $ref: '#/components/responses/InsufficientScope' },
+        },
+      },
+    },
+    '/api/v1/cards/{cardId}/images/{variant}.webp': {
+      get: {
+        summary: 'Get a cached card image',
+        description: 'Returns a same-origin WebP image from the Blizzard-first local cache.',
+        operationId: 'getCardImage',
+        tags: ['Images'],
+        security: [{ ApiKeyAuth: [] }],
+        parameters: [
+          {
+            name: 'cardId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', pattern: '^[A-Za-z0-9_]+$', maxLength: 80 },
+          },
+          {
+            name: 'variant',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', enum: ['thumb', 'full', 'tile'] },
+          },
+          {
+            name: 'If-None-Match',
+            in: 'header',
+            required: false,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'WebP card image',
+            headers: {
+              ETag: { schema: { type: 'string' } },
+              'X-Card-Image-Source': {
+                schema: { type: 'string', enum: ['blizzard', 'fallback', 'placeholder'] },
+              },
+            },
+            content: {
+              'image/webp': {
+                schema: { type: 'string', contentEncoding: 'binary' },
+              },
+            },
+          },
+          '304': { description: 'The cached representation has not changed' },
+          '400': { description: 'Invalid card id or image variant' },
+          '401': { $ref: '#/components/responses/InvalidApiKey' },
+          '403': { $ref: '#/components/responses/InsufficientScope' },
+          '502': { description: 'Card image could not be resolved or streamed' },
+          '503': { description: 'Card image service is not configured' },
         },
       },
     },
@@ -98,7 +150,7 @@ export const PUBLIC_API_OPENAPI = {
             type: 'array',
             minItems: 1,
             uniqueItems: true,
-            items: { type: 'string', enum: ['catalog.read'] },
+            items: { type: 'string', enum: ['catalog.read', 'images.read'] },
           },
         },
       },

@@ -125,6 +125,7 @@ import { createTierlistCacheBustRouter } from './tierlistCacheBustRoutes.js';
 import { createWinrateRouter } from './winrateRoutes.js';
 import { createHomeSummaryRouter, type HomeSummaryCacheStore } from './homeSummaryRoutes.js';
 import { createCardImageRouter, normalizeCardImageId } from './cardImageRoutes.js';
+import { createCardImageDependencies } from './app/createCardImageDependencies.js';
 import { createBlizzardCardImageClient, downloadBlizzardCardImage } from './blizzardCards.js';
 import {
   CARD_IMAGE_CACHE_VERSION,
@@ -7530,7 +7531,18 @@ app.use(createRouteAwareJsonParser({
 }));
 app.use(express.urlencoded({ extended: false, limit: '16kb' }));
 
-registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit });
+const cardImageRouterDependencies = createCardImageDependencies({
+  cacheDir: CARD_IMAGE_CACHE_DIR,
+  ensureCardImage,
+  ensureCardTile,
+  immutableCacheHeader: BG_IMAGE_CACHE_CONTROL,
+  onError: (scope, error) => console.error(
+    `[api/card-image] ${scope} failed:`,
+    error instanceof Error ? error.message : error,
+  ),
+});
+
+registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit, cardImageDependencies: cardImageRouterDependencies });
 app.use('/_internal', createTierlistCacheBustRouter({
   resolveSource: source => Object.prototype.hasOwnProperty.call(TIERLIST_DATASET_BY_SOURCE, source ?? '')
     ? source as keyof typeof TIERLIST_DATASET_BY_SOURCE
@@ -7613,21 +7625,7 @@ app.use('/api', createHomeSummaryRouter({
   ),
 }));
 
-app.use('/api', createCardImageRouter({
-  ensureImage: (cardId, variant) => variant === 'tile'
-    ? ensureCardTile(cardId)
-    : ensureCardImage(cardId, variant),
-  isAllowedPath: path => {
-    const root = resolve(CARD_IMAGE_CACHE_DIR);
-    const candidate = resolve(path);
-    return candidate === root || candidate.startsWith(`${root}/`);
-  },
-  immutableCacheHeader: BG_IMAGE_CACHE_CONTROL,
-  onError: (scope, error) => console.error(
-    `[api/card-image] ${scope} failed:`,
-    error instanceof Error ? error.message : error,
-  ),
-}));
+app.use('/api', createCardImageRouter(cardImageRouterDependencies));
 
 app.use('/api', createWinrateRouter({
   accessGuard: requireArenaAccess,

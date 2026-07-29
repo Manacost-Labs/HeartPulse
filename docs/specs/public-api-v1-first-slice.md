@@ -9,6 +9,7 @@ Establish the secure, documented foundation for the unified Manacost data API:
 - a public OpenAPI contract;
 - administrator-managed, scoped and revocable API keys;
 - public developer documentation linked from the site footer.
+- same-origin card image delivery backed by the existing local cache.
 
 This slice does not expose raw databases and does not yet promise every card,
 deck or metagame record. Those resources will be added incrementally behind the
@@ -43,6 +44,27 @@ same authentication and versioning contract.
   available resource descriptors;
 - sends `ETag` and a short private cache policy only after successful
   authentication, so a shared cache cannot bypass credential checks.
+
+### Card images
+
+`GET /api/v1/cards/{cardId}/images/{variant}.webp`
+
+- requires `X-API-Key` and the `images.read` scope;
+- accepts a stable Hearthstone card id or DBF id containing only letters,
+  digits and underscores;
+- supports `thumb`, `full` and `tile` variants;
+- resolves through the same Blizzard-first persistent cache used by the site,
+  so API clients never depend directly on Blizzard or HearthstoneJSON hosts;
+- returns `image/webp`, `Content-Length`, `ETag` and
+  `X-Card-Image-Source`;
+- honors `If-None-Match` with an empty `304` response;
+- rejects invalid identifiers before filesystem or upstream access;
+- validates that the resolved file remains inside the configured image-cache
+  root before opening a stream.
+
+The endpoint intentionally reuses the site's binary response pipeline. Cache
+generation, path containment, placeholder policy and stream error handling
+therefore have one implementation for browser and API consumers.
 
 ### Administrator key management
 
@@ -97,7 +119,9 @@ but clients must branch on `code`, not message text.
 | Database disclosure | Attacker recovers usable credentials | Only SHA-256 digest and prefix are stored |
 | Public API request | Unknown, revoked or under-scoped key reads data | Constant-time verification and explicit scope check |
 | Logs and analytics | Credential appears in telemetry | Never log request key or return it after creation |
-| High request volume | One key exhausts service capacity | Stable key identity enables per-key limits in the next slice |
+| High request volume | One key exhausts service capacity | Existing bounded API rate limit plus stable key identity for future per-key quotas |
+| Image id traversal | Crafted id reads an arbitrary local file | Strict id grammar and resolved-path containment |
+| Upstream asset blocking | Client cannot reach Blizzard or fallback host | Server-side persistent cache and same-origin WebP response |
 
 <!-- markdownlint-enable MD013 -->
 
@@ -135,6 +159,8 @@ panel closes or the administrator leaves the section.
 
 - Contract tests begin red for key creation, storage, validation, scope checks,
   revocation and response redaction.
+- Image contract tests cover missing and under-scoped credentials, invalid ids,
+  all documented variants, conditional requests and binary response headers.
 - Route tests cover 401, 403, validation failures, one-time secret response and
   no-store headers.
 - UI tests cover footer routing and admin empty, success, error and revoke

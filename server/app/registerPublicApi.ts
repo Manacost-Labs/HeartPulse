@@ -1,6 +1,10 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { Application, Request, Response } from 'express';
 import {
+  createCardImageResponder,
+  type CardImageRouterDependencies,
+} from '../cardImageRoutes.js';
+import {
   createAdminApiKeyRouter,
   createApiKeyManager,
   createPublicApiRouter,
@@ -21,6 +25,7 @@ type RegisterPublicApiDependencies<TAdmin> = {
     entityId: string,
     details?: Record<string, unknown>,
   ) => void;
+  cardImageDependencies?: CardImageRouterDependencies;
 };
 
 /** Registers the public API and its administrator credential lifecycle. */
@@ -29,7 +34,12 @@ export function registerPublicApi<TAdmin>(dependencies: RegisterPublicApiDepende
   const apiKeys = createApiKeyManager({
     repository: createSqliteApiKeyRepository(dependencies.getDatabase),
   });
-  dependencies.app.use('/api/v1', createPublicApiRouter({ apiKeys }));
+  dependencies.app.use('/api/v1', createPublicApiRouter({
+    apiKeys,
+    cardImages: dependencies.cardImageDependencies
+      ? { respond: createCardImageResponder(dependencies.cardImageDependencies) }
+      : undefined,
+  }));
   dependencies.app.use('/api', createAdminApiKeyRouter({
     apiKeys,
     adminAuth: dependencies.adminAuth,

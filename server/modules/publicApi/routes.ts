@@ -1,5 +1,10 @@
 import { createHash } from 'node:crypto';
 import { Router, type Request, type Response } from 'express';
+import {
+  normalizeCardImageId,
+  type CardImageResponder,
+  type CardImageVariant,
+} from '../../cardImageRoutes.js';
 import { ApiKeyValidationError, type ApiKeyManager, type PublicApiScope } from './model.js';
 import { PUBLIC_API_OPENAPI } from './openapi.js';
 
@@ -20,6 +25,9 @@ type AdminRouterDependencies = {
 type PublicRouterDependencies = {
   apiKeys: ApiKeyManager;
   now?: () => string;
+  cardImages?: {
+    respond: CardImageResponder;
+  };
 };
 
 const apiError = (code: string, message: string) => ({ error: { code, message } });
@@ -68,6 +76,11 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
       resources: [
         { id: 'openapi', href: '/api/v1/openapi.json', status: 'AVAILABLE' },
         { id: 'catalog-manifest', href: '/api/v1/catalog/manifest', status: 'AVAILABLE' },
+        {
+          id: 'card-images',
+          href: '/api/v1/cards/{cardId}/images/{variant}.webp',
+          status: 'AVAILABLE',
+        },
       ],
     };
     const body = JSON.stringify(payload);
@@ -75,6 +88,35 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     response.set('ETag', etag);
     if (request.headers['if-none-match'] === etag) return response.status(304).end();
     return response.type('application/json').send(body);
+  });
+
+  router.get('/cards/:cardId/images/:variant.webp', async (request, response) => {
+    if (!requireScope(dependencies, 'images.read', request, response)) return;
+    const cardId = normalizeCardImageId(request.params.cardId);
+    const variant: CardImageVariant | null = request.params.variant === 'full'
+      || request.params.variant === 'thumb'
+      || request.params.variant === 'tile'
+      ? request.params.variant
+      : null;
+    if (!cardId || !variant) {
+      response.set('Cache-Control', 'no-store');
+      return response.status(400).json(apiError(
+        'INVALID_CARD_IMAGE_REQUEST',
+        'Card id or image variant is invalid',
+      ));
+    }
+    if (!dependencies.cardImages) {
+      response.set('Cache-Control', 'no-store');
+      return response.status(503).json(apiError(
+        'CARD_IMAGE_UNAVAILABLE',
+        'Card image service is unavailable',
+      ));
+    }
+    await dependencies.cardImages.respond(request, response, cardId, variant, {
+      immutableCacheHeader: 'private, max-age=2592000, immutable',
+      fallbackCacheHeader: 'private, max-age=300, stale-while-revalidate=3600',
+      unavailableBody: apiError('CARD_IMAGE_UNAVAILABLE', 'Card image is unavailable'),
+    });
   });
 
   return router;

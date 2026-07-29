@@ -1,5 +1,15 @@
 # HS-Arena Changelog
 
+## v1.0.79 - 2026-07-29
+
+- Added the first Public API media module: authenticated applications can fetch
+  `thumb`, `full` and `tile` card renders from stable same-origin v1 URLs.
+- Reused the production Blizzard-first persistent image cache, including WebP
+  conversion, path containment, placeholders, validators and conditional
+  `304` responses instead of adding a second media pipeline.
+- Added the `images.read` API-key scope, OpenAPI contract, catalog discovery and
+  negative coverage for invalid ids and under-scoped keys.
+
 ## v1.0.78 - 2026-07-29
 
 - Added the first production slice of Manacost Public API under `/api/v1` with

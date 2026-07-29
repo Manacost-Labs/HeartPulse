@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
+import { Readable } from 'node:stream';
 import express from 'express';
+import { createCardImageResponder } from '../server/cardImageRoutes.js';
 import {
   createAdminApiKeyRouter,
   createApiKeyManager,
@@ -34,20 +36,34 @@ const repository: ApiKeyRepository = {
 };
 
 let tick = 0;
+let generatedKey = 0;
 const now = () => new Date(Date.UTC(2026, 6, 29, 12, 0, tick++)).toISOString();
 const manager = createApiKeyManager({
   repository,
   now,
-  randomId: () => 'api_key_test_1',
-  randomPrefix: () => 'abc123def456',
+  randomId: () => `api_key_test_${++generatedKey}`,
+  randomPrefix: () => generatedKey === 0 ? 'abc123def456' : 'fed654cba321',
   randomSecret: () => 'test-secret-with-at-least-thirty-two-random-characters',
 });
 
 const app = express();
 app.use(express.json());
+const requestedImages: Array<{ cardId: string; variant: string }> = [];
+let imageResolutionFails = false;
+const cardImageResponder = createCardImageResponder({
+  ensureImage: async (cardId, variant) => {
+    requestedImages.push({ cardId, variant });
+    if (imageResolutionFails) throw new Error('upstream detail must not leak');
+    return { path: '/safe/card.webp', source: 'blizzard' };
+  },
+  isAllowedPath: path => path.startsWith('/safe/'),
+  statFile: () => ({ mtimeMs: 1_234, size: 4 }),
+  openStream: () => Readable.from(Buffer.from('webp')),
+});
 app.use('/api/v1', createPublicApiRouter({
   apiKeys: manager,
   now,
+  cardImages: { respond: cardImageResponder },
 }));
 app.use('/api', createAdminApiKeyRouter({
   apiKeys: manager,
@@ -73,6 +89,7 @@ try {
   assert.equal(openapiPayload.openapi, '3.1.0');
   assert.equal(openapiPayload.components.securitySchemes.ApiKeyAuth.name, 'X-API-Key');
   assert.ok(openapiPayload.paths['/api/v1/catalog/manifest']);
+  assert.ok(openapiPayload.paths['/api/v1/cards/{cardId}/images/{variant}.webp']);
   assert.ok(openapiPayload.paths['/api/admin/api-keys']);
 
   const unauthenticatedAdmin = await fetch(`${origin}/api/admin/api-keys`);
@@ -92,7 +109,7 @@ try {
   const createdResponse = await fetch(`${origin}/api/admin/api-keys`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Admin': 'yes' },
-    body: JSON.stringify({ name: 'Desktop tracker', scopes: ['catalog.read'] }),
+    body: JSON.stringify({ name: 'Desktop tracker', scopes: ['catalog.read', 'images.read'] }),
   });
   assert.equal(createdResponse.status, 201);
   assert.equal(createdResponse.headers.get('cache-control'), 'private, no-store');
@@ -102,7 +119,7 @@ try {
   };
   assert.match(created.apiKey, /^mca_live_abc123def456_/);
   assert.equal(created.key.id, 'api_key_test_1');
-  assert.deepEqual(created.key.scopes, ['catalog.read']);
+  assert.deepEqual(created.key.scopes, ['catalog.read', 'images.read']);
   assert.equal('keyHash' in created.key, false);
 
   const stored = records.get(created.key.id);
@@ -150,6 +167,64 @@ try {
   });
   assert.equal(unchangedManifest.status, 304);
   assert.equal(await unchangedManifest.text(), '');
+
+  const missingImageKey = await fetch(`${origin}/api/v1/cards/EX1_001/images/full.webp`);
+  assert.equal(missingImageKey.status, 401);
+
+  const invalidImageRequest = await fetch(`${origin}/api/v1/cards/..%2Fsecret/images/full.webp`, {
+    headers: { 'X-API-Key': created.apiKey },
+  });
+  assert.equal(invalidImageRequest.status, 400);
+  assert.deepEqual(await invalidImageRequest.json(), {
+    error: { code: 'INVALID_CARD_IMAGE_REQUEST', message: 'Card id or image variant is invalid' },
+  });
+  assert.deepEqual(requestedImages, []);
+
+  const cardImage = await fetch(`${origin}/api/v1/cards/EX1_001/images/full.webp`, {
+    headers: { 'X-API-Key': created.apiKey },
+  });
+  assert.equal(cardImage.status, 200);
+  assert.equal(cardImage.headers.get('content-type'), 'image/webp');
+  assert.match(String(cardImage.headers.get('etag')), /^"/);
+  assert.match(String(cardImage.headers.get('cache-control')), /^private,/);
+  assert.equal(cardImage.headers.get('vary'), 'X-API-Key');
+  assert.equal(Buffer.from(await cardImage.arrayBuffer()).toString(), 'webp');
+  assert.deepEqual(requestedImages, [{ cardId: 'EX1_001', variant: 'full' }]);
+
+  const unchangedImage = await fetch(`${origin}/api/v1/cards/EX1_001/images/full.webp`, {
+    headers: {
+      'X-API-Key': created.apiKey,
+      'If-None-Match': String(cardImage.headers.get('etag')),
+    },
+  });
+  assert.equal(unchangedImage.status, 304);
+  assert.equal(await unchangedImage.text(), '');
+
+  imageResolutionFails = true;
+  const unavailableImage = await fetch(`${origin}/api/v1/cards/EX1_001/images/tile.webp`, {
+    headers: { 'X-API-Key': created.apiKey },
+  });
+  assert.equal(unavailableImage.status, 502);
+  assert.equal(unavailableImage.headers.get('cache-control'), 'no-store');
+  assert.deepEqual(await unavailableImage.json(), {
+    error: { code: 'CARD_IMAGE_UNAVAILABLE', message: 'Card image is unavailable' },
+  });
+  imageResolutionFails = false;
+
+  const catalogOnlyResponse = await fetch(`${origin}/api/admin/api-keys`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin': 'yes' },
+    body: JSON.stringify({ name: 'Catalog-only integration', scopes: ['catalog.read'] }),
+  });
+  assert.equal(catalogOnlyResponse.status, 201);
+  const catalogOnly = await catalogOnlyResponse.json() as { apiKey: string };
+  const forbiddenImage = await fetch(`${origin}/api/v1/cards/EX1_001/images/thumb.webp`, {
+    headers: { 'X-API-Key': catalogOnly.apiKey },
+  });
+  assert.equal(forbiddenImage.status, 403);
+  assert.deepEqual(await forbiddenImage.json(), {
+    error: { code: 'INSUFFICIENT_SCOPE', message: 'API key does not grant this scope' },
+  });
 
   const revoke = await fetch(`${origin}/api/admin/api-keys/${created.key.id}`, {
     method: 'DELETE',
