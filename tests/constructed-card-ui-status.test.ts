@@ -51,6 +51,7 @@ assert.match(
 );
 
 const standardCardsSource = readFileSync(new URL('../src/features/StandardCards.tsx', import.meta.url), 'utf8');
+const catalogModelSource = readFileSync(new URL('../src/features/constructedCardCatalogModel.ts', import.meta.url), 'utf8');
 const detailPrefetchSource = readFileSync(new URL('../src/features/constructedCardDetailPrefetch.ts', import.meta.url), 'utf8');
 const cardHistorySource = readFileSync(new URL('../src/features/useConstructedCardHistory.ts', import.meta.url), 'utf8');
 assert.match(standardCardsSource, /warning:\s*typeof payload\.warning/,
@@ -119,7 +120,7 @@ assert.match(standardCardsSource, /label="Период"/,
   'the catalog must expose the statistics period as a primary visible filter');
 assert.match(standardCardsSource, /label="Ранг"/,
   'the catalog and card detail must expose the statistics rank as a visible filter');
-assert.match(standardCardsSource, /function constructedCardListUrl[\s\S]*new URLSearchParams\(\{[\s\S]*format,[\s\S]*period,[\s\S]*rank,/,
+assert.match(catalogModelSource, /function constructedCardCatalogUrl[\s\S]*new URLSearchParams\(\{[\s\S]*format,[\s\S]*period,[\s\S]*rank,/,
   'the selected period and rank must be sent to the constructed-card list API');
 assert.match(detailPrefetchSource, /format:\s*request\.format,[\s\S]*statsFormat:\s*request\.statsFormat,[\s\S]*period:\s*request\.period,[\s\S]*rank:\s*request\.rank/s,
   'card detail must request its independently selected statistics format, rank and period');

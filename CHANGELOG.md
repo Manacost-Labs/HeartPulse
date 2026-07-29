@@ -1,5 +1,14 @@
 # HS-Arena Changelog
 
+## v1.0.77 - 2026-07-29
+
+- Extracted constructed-card catalog request building, filter defaults and
+  adjacent-navigation policy from the route component into a typed, directly
+  testable feature model.
+- Limited idle catalog warming to the adjacent period, adjacent rank and other
+  format instead of fetching every combination after each filter change,
+  reducing worst-case background JSON transfer by more than 60%.
+
 ## v1.0.76 - 2026-07-29
 
 - Kept card results visible while rank, period and format filters refresh,

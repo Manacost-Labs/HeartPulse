@@ -34,6 +34,13 @@ import {
   loadConstructedCardList,
   prefetchConstructedCardList,
 } from './constructedCardListPrefetch';
+import {
+  adjacentConstructedCardCatalogContexts,
+  constructedCardCatalogUrl,
+  EMPTY_CONSTRUCTED_CARD_FILTERS,
+  type ConstructedCardCatalogFilters,
+  type ConstructedCardFormat,
+} from './constructedCardCatalogModel';
 import DeckListView, {
   type DeckListCard,
   type DeckListSideboard,
@@ -100,7 +107,7 @@ import '../vendor/hsreplay-deck-view/hsreplay-deck-view.css';
 import './ConstructedCardCatalogControls.css';
 import './StandardCards.css';
 
-type CardFormat = 'standard' | 'wild';
+type CardFormat = ConstructedCardFormat;
 type ViewMode = 'gallery' | 'table';
 type ConstructedCardPeriodDescriptor = {
   id: ConstructedCardPeriod;
@@ -237,19 +244,7 @@ type ListPayload = {
   pagination: { page: number; perPage: number; total: number; totalPages: number };
 };
 
-type Filters = {
-  query: string;
-  class: string;
-  set: string;
-  mana: string;
-  attack: string;
-  health: string;
-  mechanic: string;
-  type: string;
-  rarity: string;
-  sort: string;
-  direction: 'asc' | 'desc';
-};
+type Filters = ConstructedCardCatalogFilters;
 
 type StandardCardsProps = {
   currentPath: string;
@@ -261,9 +256,7 @@ type StandardCardsProps = {
 };
 
 const EMPTY_FACETS: Facets = { classes: [], sets: [], mechanics: [], types: [], rarities: [] };
-const EMPTY_FILTERS: Filters = {
-  query: '', class: '', set: '', mana: '', attack: '', health: '', mechanic: '', type: '', rarity: '', sort: 'set', direction: 'asc',
-};
+const EMPTY_FILTERS = EMPTY_CONSTRUCTED_CARD_FILTERS;
 const SEARCH_REQUEST_DEBOUNCE_MS = 250;
 const STATISTIC_SORTS = new Set(['popularity', 'winrate', 'games']);
 const FILTER_PREFETCH_DELAY_MS = 900;
@@ -721,38 +714,6 @@ function Pagination({ page, totalPages, total, perPage, onPage }: { page: number
   );
 }
 
-function constructedCardListUrl({
-  format,
-  period,
-  rank,
-  page,
-  perPage,
-  filters,
-  query,
-}: {
-  format: CardFormat;
-  period: ConstructedCardPeriod;
-  rank: ConstructedCardRank;
-  page: number;
-  perPage: number;
-  filters: Filters;
-  query: string;
-}): string {
-  const params = new URLSearchParams({
-    format,
-    period,
-    rank,
-    page: String(page),
-    perPage: String(perPage),
-    sort: filters.sort,
-    direction: filters.direction,
-  });
-  Object.entries({ ...filters, query }).forEach(([key, value]) => {
-    if (value && key !== 'sort' && key !== 'direction') params.set(key, String(value));
-  });
-  return `/api/constructed-cards?${params}`;
-}
-
 function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLoading, authUser, onRefreshSubscription }: Pick<StandardCardsProps, 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'> & { initialFormat: CardFormat }) {
   const [format, setFormat] = useState<CardFormat>(initialFormat);
   const [period, setPeriod] = useConstructedCardPeriod();
@@ -794,7 +755,7 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
       setLoading(true);
       setError(null);
       try {
-        const url = constructedCardListUrl({
+        const url = constructedCardCatalogUrl({
           format,
           period,
           rank,
@@ -839,25 +800,14 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
     let idleHandle: number | null = null;
     const timeout = window.setTimeout(() => {
       const warm = async () => {
-        const candidates: Array<{
-          format: CardFormat;
-          period: ConstructedCardPeriod;
-          rank: ConstructedCardRank;
-        }> = [];
-        for (const option of CONSTRUCTED_CARD_RANK_OPTIONS) {
-          if (option.id !== rank) candidates.push({ format, period, rank: option.id });
-        }
-        for (const option of CONSTRUCTED_CARD_PERIOD_OPTIONS) {
-          if (option.id !== period) candidates.push({ format, period: option.id, rank });
-        }
-        candidates.push({
-          format: format === 'standard' ? 'wild' : 'standard',
+        const candidates = adjacentConstructedCardCatalogContexts({
+          format,
           period,
           rank,
         });
         await candidates.reduce<Promise<void>>((chain, candidate) => chain.then(() => {
           if (cancelled || document.visibilityState === 'hidden') return undefined;
-          return prefetchConstructedCardList(constructedCardListUrl({
+          return prefetchConstructedCardList(constructedCardCatalogUrl({
             ...candidate,
             page: 1,
             perPage,
