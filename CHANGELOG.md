@@ -1,5 +1,19 @@
 # HS-Arena Changelog
 
+## v1.0.73 - 2026-07-29
+
+- Fixed the constructed-card download action so clicking it no longer leaves
+  the whole card visually stuck in its hover state; keyboard focus remains
+  visible without lifting the card unintentionally.
+- Added automatic production deployment for every validated push to `main`
+  using an immutable exact-SHA artifact, a dedicated self-hosted runner,
+  serialized releases and the existing readiness-gated automatic rollback.
+- Added a cross-session agent preflight that keeps task work in isolated
+  branches/worktrees, reports dirty sibling sessions, blocks overlapping
+  uncommitted paths and refuses stale or dirty integrations.
+- Restricted the production runner to one root-owned deployment gate and
+  restored the CSS no-growth CI ratchet to the already deployed main baseline.
+
 ## v1.0.72 - 2026-07-29
 
 - Reworked the constructed-card catalog search into a dedicated, accessible

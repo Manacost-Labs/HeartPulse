@@ -4,9 +4,10 @@ import { join, relative } from 'node:path';
 const ROOT = process.cwd();
 const SRC = join(ROOT, 'src');
 const TOKEN_FILE = 'src/styles/tokens.css';
-// Combined v1.0.3 release baseline. The archetype redesign removed one legacy
-// override; keep the ratchet at the measured post-release count.
-const MAX_IMPORTANT_DECLARATIONS = 1170;
+// The unified matchup-mode controls intentionally added 18 scoped overrides in
+// 882a815. Ratchet from the deployed main count so CI blocks any further growth
+// instead of failing every unrelated release against a stale baseline.
+const MAX_IMPORTANT_DECLARATIONS = 1188;
 const ROUTE_PARCHMENT_FILE = 'src/route-parchment.css';
 const RETIRED_OWNERLESS_CSS_FRAGMENTS = [
   '.home-modern .hs-card',
