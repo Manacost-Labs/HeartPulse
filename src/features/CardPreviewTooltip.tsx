@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { publicResourceUrl } from '../publicResourceUrl';
 import './CardPreviewTooltip.css';
@@ -20,15 +20,14 @@ export function fallbackCardRender(id: string): string {
 
 export default function CardPreviewTooltip({ preview }: { preview: CardPreviewTarget }) {
   const fallback = fallbackCardRender(preview.id);
-  const [source, setSource] = useState(publicResourceUrl(preview.imageUrl) || fallback);
-  const [imageFailed, setImageFailed] = useState(false);
+  const preferredSource = publicResourceUrl(preview.imageUrl) || fallback;
+  const [failedSources, setFailedSources] = useState<Record<string, true>>({});
+  const source = !failedSources[preferredSource]
+    ? preferredSource
+    : (!failedSources[fallback] ? fallback : '');
 
-  useEffect(() => {
-    setSource(publicResourceUrl(preview.imageUrl) || fallback);
-    setImageFailed(false);
-  }, [fallback, preview.imageUrl]);
   if (typeof document === 'undefined') return null;
-  if (imageFailed) return null;
+  if (!source) return null;
 
   const canOpenRight = preview.rect.right + TOOLTIP_GAP + TOOLTIP_WIDTH <= window.innerWidth - TOOLTIP_GAP;
   const left = canOpenRight
@@ -51,8 +50,7 @@ export default function CardPreviewTooltip({ preview }: { preview: CardPreviewTa
         src={source}
         alt={preview.name}
         onError={() => {
-          if (source !== fallback) setSource(fallback);
-          else setImageFailed(true);
+          setFailedSources(current => ({ ...current, [source]: true }));
         }}
       />
     </aside>,

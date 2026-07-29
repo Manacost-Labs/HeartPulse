@@ -45,6 +45,14 @@ assert.equal(
   '/api/remote-image?src=https%3A%2F%2Fexample.cloudfront.net%2Fcard.png&width=220&quality=76&format=webp',
 );
 
+assert.equal(
+  optimizedBattlegroundThumbnailUrl(
+    'https://bg.kolodahearthstone.ru/assset/cards/BG_TEST.webp',
+    160,
+  ),
+  '/api/public-resource/bg/assset/cards/BG_TEST.webp?width=160&quality=76&format=webp',
+);
+
 const externalUrl = optimizedBattlegroundThumbnailUrl('https://art.hearthstonejson.com/card.png', 160);
 const parsedExternal = new URL(externalUrl, 'https://arena.hs-manacost.ru');
 assert.equal(parsedExternal.pathname, '/api/remote-image');

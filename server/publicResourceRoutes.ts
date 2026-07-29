@@ -4,45 +4,17 @@ import {
   battlegroundImageTransformFromQuery,
   optimizeBattlegroundImage,
 } from './battlegroundImageOptimization.js';
-
-type PublicResourceSource = {
-  origin: string;
-  allowedPathPrefixes: readonly string[];
-};
-
-const PUBLIC_RESOURCE_SOURCES = {
-  db: {
-    origin: 'https://db.kolodahs.ru',
-    allowedPathPrefixes: ['/uploads/'],
-  },
-  bg: {
-    origin: 'https://bg.kolodahearthstone.ru',
-    allowedPathPrefixes: ['/assset/'],
-  },
-  hsjson: {
-    origin: 'https://art.hearthstonejson.com',
-    allowedPathPrefixes: ['/v1/'],
-  },
-  'hsjson-api': {
-    origin: 'https://api.hearthstonejson.com',
-    allowedPathPrefixes: ['/v1/'],
-  },
-  wiki: {
-    origin: 'https://hearthstone.wiki.gg',
-    allowedPathPrefixes: ['/images/'],
-  },
-  hsreplay: {
-    origin: 'https://static.hsreplay.net',
-    allowedPathPrefixes: ['/static/'],
-  },
-} as const satisfies Record<string, PublicResourceSource>;
+import {
+  PUBLIC_RESOURCE_SOURCES,
+  type PublicResourceSource,
+} from '../shared/publicResourceUrl.js';
 
 type PublicResourceSourceKey = keyof typeof PUBLIC_RESOURCE_SOURCES;
 
 const MAX_PUBLIC_RESOURCE_BYTES = 32 * 1024 * 1024;
-const PUBLIC_CONTENT_TYPE_PATTERN = /^(?:image|video|audio)\/|^application\/json(?:;|$)/i;
 const PUBLIC_CACHE_HEADER = 'public, max-age=86400, stale-while-revalidate=604800';
 const SOURCE_KEY_PATTERN = /^[a-z][a-z0-9-]{0,31}$/;
+const MAX_PUBLIC_RESOURCE_REDIRECTS = 3;
 
 type PublicResourceRouterOptions = {
   fetchResource?: (url: string, init?: RequestInit) => Promise<Response>;
@@ -84,14 +56,24 @@ function isAllowedFinalUrl(value: string, source: PublicResourceSource): boolean
   }
 }
 
+function isAllowedPublicContentType(contentType: string): boolean {
+  if (/^image\/svg\+xml(?:;|$)/i.test(contentType)) return false;
+  return /^(?:image|video|audio)\//i.test(contentType)
+    || /^application\/json(?:;|$)/i.test(contentType);
+}
+
 function copyPublicResourceHeaders(response: ExpressResponse, upstream: Response, contentType: string) {
   response.set('Cache-Control', PUBLIC_CACHE_HEADER);
   response.set('Content-Type', contentType);
   response.set('Cross-Origin-Resource-Policy', 'same-origin');
   response.set('X-Content-Type-Options', 'nosniff');
-  for (const header of ['accept-ranges', 'content-length', 'content-range', 'etag', 'last-modified'] as const) {
+  for (const header of ['accept-ranges', 'content-range', 'etag', 'last-modified'] as const) {
     const value = upstream.headers.get(header);
     if (value) response.set(header, value);
+  }
+  if (!upstream.headers.has('content-encoding')) {
+    const contentLength = upstream.headers.get('content-length');
+    if (contentLength) response.set('Content-Length', contentLength);
   }
 }
 
@@ -129,21 +111,37 @@ export function createPublicResourceRouter(options: PublicResourceRouterOptions 
     const imageTransform = battlegroundImageTransformFromQuery(request.query as Record<string, unknown>);
 
     try {
-      const upstream = await fetchResource(target.toString(), {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)',
-          ...(!imageTransform && request.headers.range ? { Range: request.headers.range } : {}),
-        },
-        redirect: 'follow',
-        signal: AbortSignal.timeout(20_000),
-      });
-      const finalUrl = upstream.url || target.toString();
+      const headers = {
+        'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)',
+        ...(!imageTransform && request.headers.range ? { Range: request.headers.range } : {}),
+      };
+      let currentUrl = target;
+      let upstream: Response | null = null;
+      for (let redirectCount = 0; redirectCount <= MAX_PUBLIC_RESOURCE_REDIRECTS; redirectCount += 1) {
+        upstream = await fetchResource(currentUrl.toString(), {
+          headers,
+          redirect: 'manual',
+          signal: AbortSignal.timeout(20_000),
+        });
+        if (upstream.status < 300 || upstream.status >= 400) break;
+        const location = upstream.headers.get('location');
+        await upstream.body?.cancel();
+        if (!location) throw new Error('Public resource redirect is missing a location');
+        const nextUrl = new URL(location, currentUrl);
+        if (!isAllowedFinalUrl(nextUrl.toString(), source)) {
+          throw new Error('Public resource redirect left the source allowlist');
+        }
+        currentUrl = nextUrl;
+        upstream = null;
+      }
+      if (!upstream) throw new Error('Public resource exceeded the redirect limit');
+      const finalUrl = upstream.url || currentUrl.toString();
       const contentType = String(upstream.headers.get('content-type') ?? '').trim().toLowerCase();
       const contentLength = Number(upstream.headers.get('content-length'));
       if (
         !upstream.ok
         || !isAllowedFinalUrl(finalUrl, source)
-        || !PUBLIC_CONTENT_TYPE_PATTERN.test(contentType)
+        || !isAllowedPublicContentType(contentType)
         || (Number.isFinite(contentLength) && contentLength > MAX_PUBLIC_RESOURCE_BYTES)
       ) {
         await upstream.body?.cancel();
@@ -162,7 +160,7 @@ export function createPublicResourceRouter(options: PublicResourceRouterOptions 
         response.set('Content-Length', String(optimized.body.byteLength));
         response.set('Cross-Origin-Resource-Policy', 'same-origin');
         response.set('X-Content-Type-Options', 'nosniff');
-        return response.send(optimized.body);
+        return response.end(optimized.body);
       }
 
       copyPublicResourceHeaders(response, upstream, contentType);

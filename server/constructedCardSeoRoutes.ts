@@ -1,4 +1,5 @@
 import { Router, type RequestHandler, type Response } from 'express';
+import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
 import type {
   ConstructedCardCollection,
   ConstructedCardDetailResult,
@@ -224,20 +225,18 @@ function canonicalOrigin(value: string | undefined): string {
 
 function safeImageUrl(value: string | null, origin: string): string {
   const fallback = `${origin}/assets/og-preview.png`;
-  if (!value) return fallback;
-  try {
-    const parsed = new URL(value, `${origin}/`);
-    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.href : fallback;
-  } catch {
-    return fallback;
-  }
+  return sameOriginPublicResourceUrl(value, origin, fallback) ?? fallback;
 }
 
 function safeOptionalMediaUrl(value: string | null, origin: string): string | null {
+  return sameOriginPublicResourceUrl(value, origin);
+}
+
+function safeExternalNavigationUrl(value: string | null): string | null {
   if (!value) return null;
   try {
-    const parsed = new URL(value, `${origin}/`);
-    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.href : null;
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:' ? parsed.href : null;
   } catch {
     return null;
   }
@@ -264,7 +263,7 @@ function renderRelatedCards(card: JsonRecord, origin: string): string {
     const cards = group.cards.map(item => {
       const name = item.nameRu ?? item.nameEn ?? item.cardId ?? 'Связанная карта';
       const cardImage = safeOptionalMediaUrl(item.cardImageUrl, origin);
-      const wikiUrl = safeOptionalMediaUrl(item.wikiUrl, origin);
+      const wikiUrl = safeExternalNavigationUrl(item.wikiUrl);
       const rules = plainCatalogText(item.textRu ?? item.textEn, 500);
       const facts = renderRelatedCardFacts(item);
       return `<article class="card-seo__related-card">
@@ -317,9 +316,8 @@ function renderRelatedCards(card: JsonRecord, origin: string): string {
     }
   }
   const gallery = [...arts.values()].map(entry => {
-    const sourceUrl = safeOptionalMediaUrl(
+    const sourceUrl = safeExternalNavigationUrl(
       entry.card.artMetadata?.filePageUrl ?? entry.card.wikiUrl,
-      origin,
     );
     const dimensions = entry.card.artMetadata?.width && entry.card.artMetadata?.height
       ? `${entry.card.artMetadata.width}×${entry.card.artMetadata.height}`

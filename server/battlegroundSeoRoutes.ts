@@ -1,5 +1,6 @@
 import { Router, type RequestHandler, type Response } from 'express';
 import { extractConstructedCardFrontendAssets } from './constructedCardSeoRoutes.js';
+import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -75,14 +76,7 @@ function normalizeCanonicalOrigin(value: string | undefined): string {
 
 function safeImageUrl(value: string | null, origin: string): string {
   const fallback = `${origin}/assets/og-preview.png`;
-  if (!value) return fallback;
-  try {
-    const parsed = new URL(value, `${origin}/`);
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return fallback;
-    return parsed.href;
-  } catch {
-    return fallback;
-  }
+  return sameOriginPublicResourceUrl(value, origin, fallback) ?? fallback;
 }
 
 function isPositiveDbfId(value: unknown): boolean {

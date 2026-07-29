@@ -219,7 +219,8 @@ try {
   assert.match(duoHeroHtml, /<h1>Мадам Гойя<\/h1>/);
   assert.match(duoHeroHtml, /Выгодный обмен/);
   assert.match(duoHeroHtml, /Передает незолотое существо\./);
-  assert.match(duoHeroHtml, /https:\/\/cdn\.example\.test\/heroes\/madam-goya\.png/);
+  assert.doesNotMatch(duoHeroHtml, /https:\/\/cdn\.example\.test/);
+  assert.match(duoHeroHtml, /https:\/\/arena\.hs-manacost\.ru\/assets\/og-preview\.png/);
   assertNoPrivateData(duoHeroHtml, 'duo hero');
 
   const missing = await fetch(`${origin}/heroes/999999/`);

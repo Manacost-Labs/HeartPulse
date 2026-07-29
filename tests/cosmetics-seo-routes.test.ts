@@ -39,6 +39,8 @@ try {
   assert.match(html, /application\/ld\+json/);
   assert.match(html, /data-route-status="200"/);
   assert.match(html, /\/assets\/app\.js/);
+  assert.match(html, /https:\/\/arena\.hs-manacost\.ru\/api\/public-resource\/db\/uploads\/hero-skins\/static\/HERO_11ai\.png/);
+  assert.doesNotMatch(html, /https:\/\/db\.kolodahs\.ru/);
 
   const missing = await fetch(`${baseUrl}/cosmetics/heroes/MISSING/`);
   assert.equal(missing.status, 404);

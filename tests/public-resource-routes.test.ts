@@ -1,13 +1,76 @@
 import assert from 'node:assert/strict';
+import { gzipSync } from 'node:zlib';
 import express from 'express';
 import { createPublicResourceRouter } from '../server/publicResourceRoutes.js';
 
-const upstreamCalls: Array<{ url: string; headers: HeadersInit | undefined }> = [];
+const compressedPayload = JSON.stringify({
+  cards: Array.from({ length: 500 }, (_, index) => ({
+    id: `TEST_${index}`,
+    name: `Проверка полного декодированного ответа ${index}`,
+  })),
+});
+const compressedUpstream = express();
+compressedUpstream.get('/gzip.json', (_request, response) => {
+  const body = gzipSync(compressedPayload);
+  response.status(200);
+  response.set('Content-Type', 'application/json');
+  response.set('Content-Encoding', 'gzip');
+  response.set('Content-Length', String(body.byteLength));
+  response.end(body);
+});
+const compressedServer = compressedUpstream.listen(0, '127.0.0.1');
+await new Promise<void>((resolve, reject) => {
+  compressedServer.once('listening', resolve);
+  compressedServer.once('error', reject);
+});
+const compressedAddress = compressedServer.address();
+assert.ok(compressedAddress && typeof compressedAddress === 'object');
+const compressedOrigin = `http://127.0.0.1:${compressedAddress.port}`;
+
+let forbiddenRedirectHits = 0;
+const forbiddenTarget = express();
+forbiddenTarget.get('/private.png', (_request, response) => {
+  forbiddenRedirectHits += 1;
+  response.type('png').send(new Uint8Array([7]));
+});
+const forbiddenServer = forbiddenTarget.listen(0, '127.0.0.1');
+await new Promise<void>((resolve, reject) => {
+  forbiddenServer.once('listening', resolve);
+  forbiddenServer.once('error', reject);
+});
+const forbiddenAddress = forbiddenServer.address();
+assert.ok(forbiddenAddress && typeof forbiddenAddress === 'object');
+const forbiddenOrigin = `http://127.0.0.1:${forbiddenAddress.port}`;
+
+const redirectSource = express();
+redirectSource.get('/redirect.png', (_request, response) => {
+  response.redirect(302, `${forbiddenOrigin}/private.png`);
+});
+const redirectServer = redirectSource.listen(0, '127.0.0.1');
+await new Promise<void>((resolve, reject) => {
+  redirectServer.once('listening', resolve);
+  redirectServer.once('error', reject);
+});
+const redirectAddress = redirectServer.address();
+assert.ok(redirectAddress && typeof redirectAddress === 'object');
+const redirectOrigin = `http://127.0.0.1:${redirectAddress.port}`;
+
+const upstreamCalls: Array<{ url: string; headers: HeadersInit | undefined; redirect: RequestRedirect | undefined }> = [];
 const app = express();
 app.use('/api', createPublicResourceRouter({
   fetchResource: async (url, init) => {
-    upstreamCalls.push({ url, headers: init?.headers });
+    upstreamCalls.push({ url, headers: init?.headers, redirect: init?.redirect });
     const pathname = new URL(url).pathname;
+    if (pathname.endsWith('/redirect-live.png')) {
+      const response = await fetch(`${redirectOrigin}/redirect.png`, init);
+      Object.defineProperty(response, 'url', { value: url });
+      return response;
+    }
+    if (pathname.endsWith('/gzip.json')) {
+      const response = await fetch(`${compressedOrigin}/gzip.json`, init);
+      Object.defineProperty(response, 'url', { value: url });
+      return response;
+    }
     if (pathname.endsWith('/redirect-off-origin.png')) {
       const response = new Response(new Uint8Array([9]), {
         status: 200,
@@ -23,9 +86,9 @@ app.use('/api', createPublicResourceRouter({
       });
     }
     if (pathname.endsWith('/wrong-type.svg')) {
-      return new Response('<script>alert(1)</script>', {
+      return new Response('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>', {
         status: 200,
-        headers: { 'content-type': 'text/html' },
+        headers: { 'content-type': 'image/svg+xml' },
       });
     }
     if (pathname.endsWith('/cards.json')) {
@@ -81,6 +144,7 @@ try {
     'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)',
     Range: 'bytes=0-2',
   }, 'credentials and unrelated browser headers must never be forwarded');
+  assert.equal(upstreamCalls[0]?.redirect, 'manual');
 
   const json = await fetch(`${baseUrl}/hsjson-api/v1/latest/ruRU/cards.json`);
   assert.equal(json.status, 200);
@@ -110,12 +174,31 @@ try {
   const rejectedRedirect = await fetch(`${baseUrl}/db/uploads/redirect-off-origin.png`);
   assert.equal(rejectedRedirect.status, 502);
 
+  const rejectedLiveRedirect = await fetch(`${baseUrl}/db/uploads/redirect-live.png`);
+  assert.equal(rejectedLiveRedirect.status, 502);
+  assert.equal(forbiddenRedirectHits, 0, 'an off-allowlist redirect target must never be contacted');
+
+  const decompressed = await fetch(`${baseUrl}/hsjson-api/v1/gzip.json`);
+  assert.equal(decompressed.status, 200);
+  assert.equal(await decompressed.text(), compressedPayload);
+  assert.notEqual(
+    decompressed.headers.get('content-length'),
+    String(gzipSync(compressedPayload).byteLength),
+    'a compressed upstream length must not be reused for the decoded body',
+  );
+  assert.match(decompressed.headers.get('cache-control') ?? '', /stale-while-revalidate/);
+
   const rejectedLargeResource = await fetch(`${baseUrl}/db/uploads/too-large.png`);
   assert.equal(rejectedLargeResource.status, 502);
 
-  assert.equal(upstreamCalls.length, 6, 'rejected source and path must not reach the network');
+  assert.equal(upstreamCalls.length, 8, 'rejected source and path must not reach the network');
 } finally {
-  await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+  await Promise.all([
+    new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())),
+    new Promise<void>((resolve, reject) => compressedServer.close(error => error ? reject(error) : resolve())),
+    new Promise<void>((resolve, reject) => forbiddenServer.close(error => error ? reject(error) : resolve())),
+    new Promise<void>((resolve, reject) => redirectServer.close(error => error ? reject(error) : resolve())),
+  ]);
 }
 
 console.log('public resource route tests passed');

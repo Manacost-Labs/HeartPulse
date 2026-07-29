@@ -17,9 +17,13 @@ export function optimizedBattlegroundThumbnailUrl(rawUrl: unknown, width = 220):
     localPath = source;
   } else if (source.startsWith('https://')) {
     const parsed = new URL(source);
-    localPath = parsed.hostname.toLowerCase() === LEGACY_BG_HOST
-      ? `${parsed.pathname}${parsed.search}`
-      : `/api/remote-image?src=${encodeURIComponent(source)}`;
+    if (parsed.hostname.toLowerCase() === LEGACY_BG_HOST) {
+      localPath = parsed.pathname.startsWith('/assset/')
+        ? `/api/public-resource/bg${parsed.pathname}${parsed.search}`
+        : `${parsed.pathname}${parsed.search}`;
+    } else {
+      localPath = `/api/remote-image?src=${encodeURIComponent(source)}`;
+    }
   }
   if (!localPath) return source;
 

@@ -4188,25 +4188,19 @@ function loadLegacyScript(src: string, owner: LegacyScriptOwner): Promise<HTMLSc
   });
 }
 
-async function installLegacyImageTools(includePica: boolean) {
-  const [imageCompressionModule, picaModule] = await Promise.all([
-    import('browser-image-compression'),
-    includePica ? import('pica') : Promise.resolve(null),
-  ]);
-  (window as any).imageCompression = imageCompressionModule.default;
-  if (picaModule) (window as any).pica = picaModule.default;
-}
-
-async function loadLegacyScripts(
+function loadLegacyScripts(
   sources: string[],
   owner: LegacyScriptOwner,
   loadedScripts: HTMLScriptElement[],
   cancelled: () => boolean,
-) {
-  for (const source of sources) {
-    if (cancelled()) return;
-    loadedScripts.push(await loadLegacyScript(source, owner));
-  }
+): Promise<void> {
+  return sources.reduce<Promise<void>>(
+    (chain, source) => chain.then(async () => {
+      if (cancelled()) return;
+      loadedScripts.push(await loadLegacyScript(source, owner));
+    }),
+    Promise.resolve(),
+  );
 }
 
 function BattlegroundStrategyBuilderEmbed() {
@@ -4230,8 +4224,7 @@ function BattlegroundStrategyBuilderEmbed() {
       BG_STRATEGY_BUILDER_JS,
     ];
 
-    void installLegacyImageTools(false)
-      .then(() => loadLegacyScripts(scripts, 'strategy-builder', loadedScripts, () => cancelled))
+    void loadLegacyScripts(scripts, 'strategy-builder', loadedScripts, () => cancelled)
       .catch(error => {
       console.error('Не удалось запустить конструктор стратегий.', error);
     });
@@ -4351,8 +4344,7 @@ function BattlegroundTierBuilderEmbed() {
       `/bg-legacy/hero-tier-builder.js?v=${version}`,
     ];
 
-    void installLegacyImageTools(true)
-      .then(() => loadLegacyScripts(scripts, 'tier-builder', loadedScripts, () => cancelled))
+    void loadLegacyScripts(scripts, 'tier-builder', loadedScripts, () => cancelled)
       .catch(error => {
       console.error('Не удалось запустить конструктор тир-листов.', error);
     });

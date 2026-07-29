@@ -25,7 +25,7 @@ const cards = [
     attack: 8,
     health: 9,
     artist: 'Тестовый художник',
-    images: { card: 'https://cdn.example.test/cards/CARD_1.png' },
+    images: { card: 'https://db.kolodahs.ru/uploads/cards/CARD_1.png' },
     related_cards_localized: [{
       heading: { ru: 'Награды за задание', en: 'Quest rewards' },
       cards: [
@@ -38,15 +38,15 @@ const cards = [
           health: 3,
           artist: 'Художник токена',
           images: {
-            card: 'https://cdn.example.test/cards/CARD_1t1.png',
-            art: 'https://cdn.example.test/wiki-full/CARD_1-shared.jpg',
+            card: 'https://db.kolodahs.ru/uploads/cards/CARD_1t1.png',
+            art: 'https://db.kolodahs.ru/uploads/wiki-full/CARD_1-shared.jpg',
             art_metadata: {
               file_page_url: 'https://hearthstone.wiki.gg/wiki/File:CARD_1_shared_full.jpg',
               width: 760,
               height: 1016,
               sha1: 'shared-art-sha1',
             },
-            crop: 'https://cdn.example.test/game-crop/QA_CROP_MUST_NOT_RENDER.jpg',
+            crop: 'https://db.kolodahs.ru/uploads/game-crop/QA_CROP_MUST_NOT_RENDER.jpg',
           },
           relationship: { wiki_url: 'https://hearthstone.wiki.gg/wiki/CARD_1t1' },
         },
@@ -56,8 +56,8 @@ const cards = [
           text: { ru: 'Продолжение задания.' },
           mana_cost: 2,
           images: {
-            card: 'https://cdn.example.test/cards/CARD_1t2.png',
-            art: 'https://cdn.example.test/wiki-full/CARD_1-shared-duplicate.jpg',
+            card: 'https://db.kolodahs.ru/uploads/cards/CARD_1t2.png',
+            art: 'https://db.kolodahs.ru/uploads/wiki-full/CARD_1-shared-duplicate.jpg',
             art_metadata: {
               file_page_url: 'https://hearthstone.wiki.gg/wiki/File:CARD_1_shared_full.jpg',
               width: 760,
@@ -74,8 +74,8 @@ const cards = [
           attack: 8,
           health: 8,
           images: {
-            card: 'https://cdn.example.test/cards/CARD_1t3.png',
-            art: 'https://cdn.example.test/wiki-full/CARD_1-final.jpg',
+            card: 'https://db.kolodahs.ru/uploads/cards/CARD_1t3.png',
+            art: 'https://db.kolodahs.ru/uploads/wiki-full/CARD_1-final.jpg',
             art_metadata: {
               file_page_url: 'https://hearthstone.wiki.gg/wiki/File:CARD_1_final_full.jpg',
               width: 1200,
@@ -202,13 +202,14 @@ try {
   assert.match(html, /<meta property="og:title"/);
   assert.match(html, /<meta property="og:description"/);
   assert.match(html, /<meta property="og:url" content="https:\/\/arena\.hs-manacost\.ru\/standard\/cards\/standard\/CARD_1\/">/);
-  assert.match(html, /<meta property="og:image" content="https:\/\/cdn\.example\.test\/cards\/CARD_1\.png">/);
+  assert.match(html, /<meta property="og:image" content="https:\/\/arena\.hs-manacost\.ru\/api\/public-resource\/db\/uploads\/cards\/CARD_1\.png">/);
   assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
   assert.match(html, /<meta name="twitter:title"/);
   assert.match(html, /<meta name="twitter:description"/);
   assert.match(html, /<meta name="twitter:image"/);
   assert.match(html, /<h1>Огненный &lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt; дракон<\/h1>/);
-  assert.match(html, /<img[^>]+src="https:\/\/cdn\.example\.test\/cards\/CARD_1\.png"[^>]+alt="Карта Hearthstone «Огненный &lt;script&gt;/);
+  assert.match(html, /<img[^>]+src="https:\/\/arena\.hs-manacost\.ru\/api\/public-resource\/db\/uploads\/cards\/CARD_1\.png"[^>]+alt="Карта Hearthstone «Огненный &lt;script&gt;/);
+  assert.doesNotMatch(html, /https:\/\/db\.kolodahs\.ru/);
   assert.match(html, /<dt>Мана<\/dt><dd>7<\/dd>/);
   assert.match(html, /<dt>Атака<\/dt><dd>8<\/dd>/);
   assert.match(html, /<dt>Здоровье<\/dt><dd>9<\/dd>/);

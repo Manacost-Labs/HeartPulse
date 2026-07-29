@@ -194,7 +194,7 @@ try {
   assert.match(html, /Magnetic\. At the end of your turn, gain \+1 Health\./);
   assert.match(html, /Крис Ран &lt;img src=x onerror=alert\(1\)&gt;/);
   assert.match(html, /src="https:\/\/arena\.hs-manacost\.ru\/images\/bg\/BG26_146\.png"/);
-  assert.match(html, /src="https:\/\/cdn\.example\.test\/BG26_146_G\.png"/);
+  assert.doesNotMatch(html, /https:\/\/cdn\.example\.test/);
   assert.doesNotMatch(html, /javascript:|data:image/i);
   assert.match(html, /src="\/assets\/index-safe\.js"/);
   assert.match(html, /href="\/assets\/index-safe\.css"/);
@@ -253,6 +253,9 @@ try {
   assert.match(spellHtml, /Give a minion \+2\/\+2\./);
   assert.doesNotMatch(spellHtml, /HIDDEN_RAW_TAG|Механики:/);
   assert.doesNotMatch(spellHtml, /<dt>Атака|<dt>Здоровье|<dt>Тип существа/);
+  assert.match(spellHtml, /https:\/\/arena\.hs-manacost\.ru\/api\/public-resource\/db\/uploads\/cards\/BG28_897\.png/);
+  assert.match(spellHtml, /https:\/\/arena\.hs-manacost\.ru\/api\/public-resource\/db\/uploads\/art\/BG28_897\.jpg/);
+  assert.doesNotMatch(spellHtml, /https:\/\/db\.kolodahs\.ru/);
   assertNoPrivateData(spellHtml, 'existing spell');
 
   const missing = await fetch(`${app.origin}/library/minions/missing-999999/`);

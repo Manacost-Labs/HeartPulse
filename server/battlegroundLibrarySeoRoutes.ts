@@ -1,5 +1,6 @@
 import { Router, type Request, type RequestHandler, type Response } from 'express';
 import { extractConstructedCardFrontendAssets } from './constructedCardSeoRoutes.js';
+import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
 
 type JsonRecord = Record<string, unknown>;
 type BattlegroundLibraryKind = 'minion' | 'spell';
@@ -98,13 +99,7 @@ function normalizeCanonicalOrigin(value: string | undefined): string {
 }
 
 function safeOptionalImageUrl(value: string | null, origin: string): string | null {
-  if (!value) return null;
-  try {
-    const parsed = new URL(value, `${origin}/`);
-    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.href : null;
-  } catch {
-    return null;
-  }
+  return sameOriginPublicResourceUrl(value, origin);
 }
 
 function safePrimaryImageUrl(value: string | null, origin: string): string {

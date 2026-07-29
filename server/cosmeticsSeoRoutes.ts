@@ -1,5 +1,6 @@
 import { Router, type RequestHandler, type Response } from 'express';
 import type { CosmeticKind, CosmeticsDataService } from './cosmeticsRoutes.js';
+import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
 
 type JsonRecord = Record<string, any>;
 
@@ -120,13 +121,14 @@ function renderDetailDocument(options: {
   const projection = detailProjection(options.kind, options.detail);
   const canonical = `${options.origin}/cosmetics/${options.kind}/${encodeURIComponent(options.cardId)}/`;
   const title = `${projection.name} — косметика Hearthstone | Manacost`;
+  const image = sameOriginPublicResourceUrl(projection.image, options.origin);
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'CreativeWork',
     name: projection.name,
     alternateName: projection.englishName ?? undefined,
     description: projection.description,
-    image: projection.image ?? undefined,
+    image: image ?? undefined,
     identifier: [
       { '@type': 'PropertyValue', propertyID: 'card_id', value: options.cardId },
       ...(Number.isInteger(options.detail?.dbf)
@@ -141,14 +143,14 @@ function renderDetailDocument(options: {
     description: projection.description,
     robots: INDEX_ROBOTS,
     canonical,
-    image: projection.image,
+    image,
     frontendAssets: options.frontendAssets,
     structuredData,
     routeStatus: '200',
     body: `<main class="cosmetics-seo">
       <nav aria-label="Хлебные крошки"><a href="/cosmetics/${options.kind}/">Косметика Hearthstone</a></nav>
       <article>
-        ${projection.image ? `<img src="${escapeHtml(projection.image)}" alt="${escapeHtml(projection.typeLabel)} «${escapeHtml(projection.name)}»">` : ''}
+        ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(projection.typeLabel)} «${escapeHtml(projection.name)}»">` : ''}
         <div>
           <p>${escapeHtml(projection.typeLabel)}</p>
           <h1>${escapeHtml(projection.name)}</h1>
