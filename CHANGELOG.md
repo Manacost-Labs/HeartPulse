@@ -15,6 +15,8 @@
   restored the CSS no-growth CI ratchet to the already deployed main baseline.
 - Made the pinned Gitleaks history and working-tree scans work from linked
   Codex worktrees while excluding only generated build and Storybook outputs.
+- Stabilized the progressive Vicious Gold browser contract by asserting the
+  response ordering directly instead of depending on hosted-runner timing.
 
 ## v1.0.72 - 2026-07-29
 

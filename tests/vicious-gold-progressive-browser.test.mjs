@@ -80,7 +80,11 @@ try {
   await page.goto(`${origin}/tests/fixtures/vicious-gold-progressive.html`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.traditional-mode-banner');
   const summaryReadyMs = Date.now() - startedAt;
-  assert.ok(summaryReadyMs < 1_500, `summary took ${summaryReadyMs}ms despite a delayed builds response`);
+  assert.match(
+    await page.evaluate(() => window.__viciousGoldBuildsStateAtSummary ?? ''),
+    /^(?:idle|pending)$/,
+    `summary must render before the delayed builds response (observed after ${summaryReadyMs}ms)`,
+  );
   assert.match(await page.$eval('.traditional-mode-banner__summary', node => node.textContent ?? ''), /догружаем сборки/i);
   assert.equal(await page.$$eval('.vsgold__deck-row', rows => rows.length), 2);
 

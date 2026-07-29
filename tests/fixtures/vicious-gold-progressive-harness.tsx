@@ -3,6 +3,15 @@ import { createRoot } from 'react-dom/client';
 import ViciousSyndicateGold from '../../src/features/ViciousSyndicateGold';
 import '../../src/index.css';
 
+declare global {
+  interface Window {
+    __viciousGoldBuildsState?: 'idle' | 'pending' | 'resolved';
+    __viciousGoldBuildsStateAtSummary?: 'idle' | 'pending' | 'resolved';
+  }
+}
+
+window.__viciousGoldBuildsState = 'idle';
+
 const summary = {
   title: 'Vicious Syndicate Gold',
   format: 'Standard',
@@ -48,7 +57,9 @@ const originalFetch = window.fetch.bind(window);
 window.fetch = async (input, init) => {
   const url = String(input);
   if (url.endsWith('/api/vicious-syndicate-gold/builds')) {
+    window.__viciousGoldBuildsState = 'pending';
     await new Promise(resolve => window.setTimeout(resolve, 2_000));
+    window.__viciousGoldBuildsState = 'resolved';
     return new Response(JSON.stringify({
       builds: [
         { deck: 'Burn Mage', build },
@@ -66,7 +77,15 @@ window.fetch = async (input, init) => {
   return originalFetch(input, init);
 };
 
-createRoot(document.getElementById('root')!).render(
+const root = document.getElementById('root')!;
+const summaryObserver = new MutationObserver(() => {
+  if (!root.querySelector('.traditional-mode-banner')) return;
+  window.__viciousGoldBuildsStateAtSummary = window.__viciousGoldBuildsState;
+  summaryObserver.disconnect();
+});
+summaryObserver.observe(root, { childList: true, subtree: true });
+
+createRoot(root).render(
   <React.StrictMode>
     <ViciousSyndicateGold />
   </React.StrictMode>,
