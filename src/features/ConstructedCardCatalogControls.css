@@ -107,6 +107,11 @@
 
 .constructed-card-download:active { transform: translateY(0); }
 
+.constructed-card-download:focus-visible {
+  outline: 3px solid #f2c75c;
+  outline-offset: 3px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .constructed-card-search__field,
   .constructed-card-download { transition: none; }

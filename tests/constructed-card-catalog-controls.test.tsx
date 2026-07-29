@@ -70,6 +70,10 @@ assert.match(standardCardsSource, /constructedCardRenderImage\(card\.dbf \?\? ca
   'the gallery download must use the same-origin full-size card image route');
 assert.match(standardCardsCss, /\.constructed-cards__gallery-card:hover\s+\.constructed-card-download[\s\S]*opacity:\s*1/s,
   'the compact download action must become visible when the card is hovered');
+assert.doesNotMatch(standardCardsCss, /\.constructed-cards__gallery-card:focus-within/,
+  'focusing the download action must not leave the whole card in its hover state');
+assert.match(standardCardsCss, /\.constructed-cards__gallery-card:has\(>\s*\.constructed-cards__gallery-card-link:focus-visible\)/,
+  'keyboard focus on the card link must retain the same visual affordance as hover');
 assert.match(standardCardsCss, /@media\s*\(hover:\s*none\)\s*and\s*\(pointer:\s*coarse\)/,
   'the download action must remain available on touch devices without hover');
 
