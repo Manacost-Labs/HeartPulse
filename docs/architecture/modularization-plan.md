@@ -1,0 +1,150 @@
+# Modularization and performance plan
+
+## Status
+
+Accepted as the working architecture plan on 2026-07-29.
+
+This plan is intentionally incremental. Each slice must preserve public routes,
+API contracts and visible behavior, pass the production checks, and be safe to
+deploy independently.
+
+## Baseline
+
+The production build at commit `21daa508` exposed the following hotspots:
+
+| Module | Lines |
+| --- | ---: |
+| `server/index.ts` | 9,966 |
+| `src/features/DeferredRoutes.tsx` | 6,689 |
+| `src/features/Battlegrounds.tsx` | 4,373 |
+| `src/App.tsx` | 1,966 |
+| `server/constructedCardRoutes.ts` | 1,591 |
+| `src/features/StandardCards.tsx` | 1,610 |
+
+These files mix composition with route, data, policy and presentation concerns.
+Their individual decomposition targets are listed below.
+
+The same build produced large route-owned JavaScript chunks:
+
+| Chunk | Raw size |
+| --- | ---: |
+| `DeferredRoutes` | 114.97 kB |
+| `StandardCards` | 93.24 kB |
+| `Battlegrounds` | 117.77 kB |
+| `Contests` | 132.71 kB |
+
+Selecting one export from `DeferredRoutes.tsx` still downloads the whole chunk.
+That makes the file both a maintenance hotspot and a navigation-performance
+hotspot.
+
+The constructed-card catalog also warmed every rank and period after a filter
+change. A sampled 60-card payload was about 125 kB, so the old policy could
+transfer more than 1 MB of background JSON while visible card images were still
+loading.
+
+## Module boundaries
+
+Feature code should follow this dependency direction:
+
+1. Route entry: resolves the route and composes the feature.
+2. Controller or hook: owns browser state and asynchronous orchestration.
+3. Model: pure types, validation, transformations and policy.
+4. Data client: owns HTTP calls, cache keys and response boundaries.
+5. View components: render typed inputs and emit user intent.
+
+Views may depend on models. Models must not import React, browser globals, route
+components or data clients. Data clients must not render UI.
+
+On the server, `server/index.ts` is a composition root. New route behavior must
+live in a route module and receive its dependencies explicitly. The composition
+root may register middleware and routers, but it must not become the owner of
+new domain logic.
+
+## Enforced ratchet
+
+`npm run lint:architecture` checks line budgets for the known hotspots. Budgets
+start at the current production baseline and may only stay unchanged or move
+down. A feature that needs more code in one of these files must first extract a
+focused module.
+
+The budgets are not target sizes. They are a temporary ceiling that prevents
+new spaghetti while the files are split. The long-term target is:
+
+- route entry modules below 300 lines;
+- models and data clients below 250 lines;
+- view modules below 500 lines;
+- the server composition root below 500 lines.
+
+## Delivery order
+
+### 1. Constructed-card catalog model
+
+Status: complete.
+
+- Move filter defaults, URL serialization and adjacent-prefetch policy into a
+  pure model.
+- Bound idle warming to three likely transitions.
+- Cover request serialization and boundary selection with direct tests.
+
+### 2. Arena deferred routes
+
+- Extract shared Arena card types and formatting into explicit models.
+- Give win rates, tier list, legendaries, auth, articles and gallery separate
+  lazy route entry points.
+- Keep only genuinely shared primitives in a small common module.
+- Measure each resulting chunk and lower the `DeferredRoutes` budget.
+
+This is the highest-impact bundle split because six public routes currently
+share one 115 kB download.
+
+### 3. Constructed-card list and detail routes
+
+- Extract the catalog controller and list views.
+- Extract detail media, related-card and deck sections.
+- Lazy-load detail-only code, DeckView and history visualization.
+- Add separate route chunk budgets for list and detail pages.
+
+### 4. Battlegrounds routes
+
+- Separate heroes, tier list, strategy builder and tier builder entry points.
+- Move shared card-image and tribe policies into existing focused models.
+- Verify image placeholders and route transitions in the browser.
+
+### 5. Server composition
+
+- Move remaining inline route families out of `server/index.ts`.
+- Separate request parsing, domain services and response serialization.
+- Keep authorization and rate-limit policy at explicit route boundaries.
+- Add endpoint latency measurements before and after each extraction.
+
+### 6. Application shell
+
+- Move route preload policy into a route manifest.
+- Move authentication and subscription orchestration into focused hooks.
+- Remove duplicated Arena data types after their route modules own them.
+- Keep `App.tsx` responsible only for shell composition and route selection.
+
+## Definition of done for every slice
+
+- The slice has one named owner and one public entry point.
+- Existing public URLs, response shapes and permissions remain compatible.
+- Pure behavior is tested without rendering the whole application.
+- React changes pass React Doctor; TypeScript changes pass Semgrep.
+- Type checking, focused tests, production build and budgets pass.
+- Browser checks cover the changed route, keyboard behavior and console.
+- `CHANGELOG.md` explains the user or maintainer impact.
+- The line and bundle budgets are lowered when a hotspot becomes smaller.
+
+## Performance measurement
+
+Use the same before-and-after path for every optimization:
+
+- record production TTFB and response size for affected API requests;
+- record built raw and gzip chunk sizes;
+- test cold navigation and a repeated navigation;
+- test filter input and mode switches for interaction latency;
+- observe LCP, INP and CLS in a real browser;
+- verify slow-network behavior without background requests competing with
+  above-the-fold images.
+
+Optimizations without a baseline or a regression check are incomplete.

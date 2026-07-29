@@ -8,6 +8,9 @@
 - Limited idle catalog warming to the adjacent period, adjacent rank and other
   format instead of fetching every combination after each filter change,
   reducing worst-case background JSON transfer by more than 60%.
+- Added an incremental modularization plan and CI line-budget ratchets for the
+  six largest application hotspots so future features extract focused modules
+  instead of growing the existing monoliths.
 
 ## v1.0.76 - 2026-07-29
 
