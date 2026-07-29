@@ -36,11 +36,15 @@ const budgets = {
   // v1.0.77 gives Gallery its own route chunk. One extra lazy-module pointer
   // adds 129 raw / 63 gzip bytes to the shell while removing about 108 KB from
   // Gallery navigation; keep both sides of that measured trade-off ratcheted.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_150),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_175),
-  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_575),
+  // v1.0.78 adds one footer-only developer route (+552 raw / +165 gzip bytes
+  // to startup metadata), one lazy SEO record (+424 bytes), and the lazy admin
+  // key workspace (+804 bytes in Contests). Reused icons keep the measured
+  // additions below 1 KB per affected chunk and outside ordinary route loads.
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_710),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_730),
+  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_740),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
-  routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 132_710),
+  routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 133_520),
   deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 108_350),
   galleryPageJs: Number(process.env.BUDGET_GALLERY_PAGE_JS_BYTES || 4_700),
   editorialRouteChromeJs: Number(process.env.BUDGET_EDITORIAL_ROUTE_CHROME_JS_BYTES || 2_450),
@@ -54,7 +58,7 @@ const budgets = {
   faqPageJs: Number(process.env.BUDGET_FAQ_PAGE_JS_BYTES || 5_500),
   supportPromptCss: Number(process.env.BUDGET_SUPPORT_PROMPT_CSS_BYTES || 4_000),
   siteFooterCss: Number(process.env.BUDGET_SITE_FOOTER_CSS_BYTES || 4_000),
-  seoRegistryJs: Number(process.env.BUDGET_SEO_REGISTRY_JS_BYTES || 14_050),
+  seoRegistryJs: Number(process.env.BUDGET_SEO_REGISTRY_JS_BYTES || 14_480),
   deckViewVendorJs: Number(process.env.BUDGET_DECK_VIEW_VENDOR_JS_BYTES || 31_000),
   deckListJs: Number(process.env.BUDGET_DECK_LIST_JS_BYTES || 6_500),
   deckListCss: Number(process.env.BUDGET_DECK_LIST_CSS_BYTES || 5_200),

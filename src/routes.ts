@@ -3,7 +3,6 @@ import {
   ChartNoAxesCombined,
   CircleHelp,
   CircleUserRound,
-  Code2,
   Crown,
   Gem,
   Gift,
@@ -49,7 +48,7 @@ export const TABS = [
     id: 'faq', label: 'FAQ', icon: CircleHelp, slug: '/faq', group: 'top', entitlement: null,
   },
   {
-    id: 'developer-api', label: 'API', icon: Code2, slug: '/developers/api', group: 'footer', entitlement: null,
+    id: 'developer-api', label: 'API', icon: CircleHelp, slug: '/developers/api', group: 'footer', entitlement: null,
   },
   {
     id: 'gallery', label: 'Галерея', icon: ImageIcon, slug: '/gallery', group: 'misc', entitlement: null,
