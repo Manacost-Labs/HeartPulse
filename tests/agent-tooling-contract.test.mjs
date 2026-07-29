@@ -97,6 +97,30 @@ test('AGENTS preserves the shared parser scrape-provider order from the concurre
   assert.match(instructions, /Do not invent a Firecrawl-first path/);
 });
 
+test('AGENTS enforces the modular architecture and documentation contract', () => {
+  const instructions = readFileSync('AGENTS.md', 'utf8');
+  const boundaries = readFileSync('docs/architecture/module-boundaries.md', 'utf8');
+  const decision = readFileSync(
+    'docs/decisions/002-domain-modules-and-documentation-contract.md',
+    'utf8',
+  );
+  assert.match(instructions, /Required Code and Documentation Contract/);
+  assert.match(instructions, /Documentation impact/);
+  assert.match(instructions, /why[\s\S]*invariant/i);
+  assert.match(instructions, /docs\/architecture\//);
+  assert.match(instructions, /docs\/decisions\//);
+  assert.match(instructions, /docs\/specs\//);
+  assert.match(instructions, /docs\/runbooks\//);
+  assert.match(instructions, /same task and commit/i);
+  assert.match(instructions, /Stale documentation blocks completion/i);
+  assert.match(instructions, /docs\/architecture\/module-boundaries\.md/);
+  assert.match(boundaries, /app -> modules -> shared/);
+  assert.match(boundaries, /Do not create catch-all `utils`, `common`/);
+  assert.match(boundaries, /Definition of done for a module slice/);
+  assert.match(decision, /Status: Accepted/);
+  assert.match(decision, /one independently deployable vertical slice/i);
+});
+
 test('Claude uses AGENTS as the shared mandatory project contract', () => {
   const instructions = readFileSync('CLAUDE.md', 'utf8');
   assert.match(instructions, /read and follow \[AGENTS\.md\]\(AGENTS\.md\) completely/i);

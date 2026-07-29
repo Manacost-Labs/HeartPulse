@@ -105,6 +105,40 @@ The repository includes project-scoped tools for safer implementation:
 Do not connect Chrome DevTools MCP to a personal browser profile or enable
 unrestricted filesystem paths.
 
+## Required Code and Documentation Contract
+
+All new code and incremental refactoring must follow
+`docs/architecture/module-boundaries.md`. The default dependency direction is
+`app -> modules -> shared`: composition owns wiring, domain modules own product
+behavior, and shared code contains only domain-independent platform primitives.
+Do not add new domain behavior to a ratcheted monolith, create catch-all
+`utils`/`common` folders, expose module internals across domains, or introduce
+an eager application-wide barrel.
+
+Every task must state `Documentation impact` in its working plan before editing:
+list the exact documents that need to change, or write `none` with a concrete
+reason. Use the owning documentation location:
+
+- module ownership, dependencies or system shape: `docs/architecture/`;
+- expensive or hard-to-reverse engineering decisions: `docs/decisions/`;
+- public behavior, API, data or permission contracts: `docs/specs/`;
+- environment, cache, schedules, deploy, monitoring or recovery:
+  `docs/runbooks/`;
+- user-visible or maintainer-visible shipped changes: `CHANGELOG.md`.
+
+Code comments and JSDoc must add information the implementation cannot express
+clearly. Explain why a constraint exists, an invariant, a compatibility rule,
+or a non-obvious security/performance trade-off. Do not narrate obvious code,
+require comments on every function, or leave commented-out code. Add concise
+JSDoc to exported module contracts when their semantics, errors, side effects
+or ownership are not obvious from types and names.
+
+Source, tests and their documentation must change in the same task and commit.
+A pure internal refactor may have no new documentation, but the task must name
+the relevant documents reviewed and explain why their contracts stay accurate.
+Before handoff, report documentation evidence: updated paths or the explicit
+`none` reason. Stale documentation blocks completion.
+
 ## Required Skill Routing
 
 The server-wide skills are installed under `/opt/ai-agent-resources` and the

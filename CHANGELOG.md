@@ -11,6 +11,12 @@
 - Added an incremental modularization plan and CI line-budget ratchets for the
   six largest application hotspots so future features extract focused modules
   instead of growing the existing monoliths.
+- Defined one-way domain-module boundaries and an incremental extraction
+  workflow so client and server monoliths are split into reviewable vertical
+  slices instead of arbitrary helper files.
+- Made documentation impact an enforced agent and review contract: architecture
+  decisions, public specifications, operational runbooks, changelog entries and
+  non-obvious code invariants now ship with the source they describe.
 - Split the public gallery out of the shared Arena route bundle: gallery
   navigation now downloads about 7 kB of route JavaScript instead of the
   previous 115 kB all-in-one module, while hover and focus preloading continue
