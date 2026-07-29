@@ -1,4 +1,4 @@
-import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -22,6 +22,8 @@ import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip
 import ConstructedCardHistoryChart from './ConstructedCardHistoryChart';
 import { cardSupportsStandardStatistics } from './constructedCardFormats';
 import ConstructedCardLightbox from './ConstructedCardLightbox';
+import ConstructedCardCatalogSearch from './ConstructedCardCatalogSearch';
+import ConstructedCardDownloadButton from './ConstructedCardDownloadButton';
 import FilterSelect from './ConstructedCardFilterSelect';
 import DeckListView, {
   type DeckListCard,
@@ -86,6 +88,7 @@ import {
 } from '../../shared/constructedCardTranslations';
 import '../vendor/hsreplay-deck-view/hsreplay-deck-view.js';
 import '../vendor/hsreplay-deck-view/hsreplay-deck-view.css';
+import './ConstructedCardCatalogControls.css';
 import './StandardCards.css';
 
 type CardFormat = 'standard' | 'wild';
@@ -252,6 +255,7 @@ const EMPTY_FACETS: Facets = { classes: [], sets: [], mechanics: [], types: [], 
 const EMPTY_FILTERS: Filters = {
   query: '', class: '', set: '', mana: '', attack: '', health: '', mechanic: '', type: '', rarity: '', sort: 'set', direction: 'asc',
 };
+const SEARCH_REQUEST_DEBOUNCE_MS = 250;
 const STATISTIC_SORTS = new Set(['popularity', 'winrate', 'games']);
 const LOCKED_STATS_PLACEHOLDER: CardStats = {
   deckPopularity: 18.7,
@@ -517,21 +521,30 @@ function CardGallery({ cards, format, period, rank, sort, navigatePath, statsAcc
       <div className="constructed-cards__gallery">
         {cards.map((card, index) => {
           const metric = sortMetric(card, sort);
-          return <a
-            key={card.card_id}
-            href={constructedCardStatsUrl(cardPath(format, card), { period, rank, statsFormat: format, defaultStatsFormat: format })}
-            className="constructed-cards__gallery-card"
-            data-rarity={String(card.rarity || 'COMMON').toLowerCase()}
-            onMouseEnter={event => showTooltip(card, event.currentTarget)}
-            onMouseLeave={() => setHovered(null)}
-            onFocus={event => showTooltip(card, event.currentTarget)}
-            onBlur={() => setHovered(null)}
-            onClick={event => { event.preventDefault(); navigateWithConstructedCardContext(navigatePath, cardPath(format, card), period, rank, format, format); }}
-          >
-            <img src={constructedCardRenderImage(card.dbf ?? card.card_id, card.images?.card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={cardName(card)} loading="lazy" />
-            <span className="constructed-cards__gallery-name">{cardName(card)}</span>
-            <span className="constructed-cards__gallery-stat" data-tour-id={index === 0 ? 'cards-statistics' : undefined}><small>{metric.label}</small>{!statsAccess && STATISTIC_SORTS.has(sort) ? <LockedStatValue /> : <strong>{metric.value}</strong>}</span>
-          </a>;
+          const name = cardName(card);
+          const fullImage = constructedCardRenderImage(card.dbf ?? card.card_id, card.images?.card);
+          return (
+            <article
+              key={card.card_id}
+              className="constructed-cards__gallery-card"
+              data-rarity={String(card.rarity || 'COMMON').toLowerCase()}
+            >
+              <a
+                href={constructedCardStatsUrl(cardPath(format, card), { period, rank, statsFormat: format, defaultStatsFormat: format })}
+                className="constructed-cards__gallery-card-link"
+                onMouseEnter={event => showTooltip(card, event.currentTarget)}
+                onMouseLeave={() => setHovered(null)}
+                onFocus={event => showTooltip(card, event.currentTarget)}
+                onBlur={() => setHovered(null)}
+                onClick={event => { event.preventDefault(); navigateWithConstructedCardContext(navigatePath, cardPath(format, card), period, rank, format, format); }}
+              >
+                <img src={constructedCardRenderImage(card.dbf ?? card.card_id, card.images?.card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={name} loading="lazy" decoding="async" />
+                <span className="constructed-cards__gallery-name">{name}</span>
+                <span className="constructed-cards__gallery-stat" data-tour-id={index === 0 ? 'cards-statistics' : undefined}><small>{metric.label}</small>{!statsAccess && STATISTIC_SORTS.has(sort) ? <LockedStatValue /> : <strong>{metric.value}</strong>}</span>
+              </a>
+              {fullImage && <ConstructedCardDownloadButton cardId={card.card_id} cardName={name} href={fullImage} />}
+            </article>
+          );
         })}
       </div>
       {hovered && <HoverTooltip card={hovered.card} rect={hovered.rect} rankLabel={constructedCardRankLabel(rank)} statsAccess={statsAccess} gate={gate} />}
@@ -638,7 +651,15 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ConstructedCardRequestErrorCopy | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
-  const deferredQuery = useDeferredValue(filters.query);
+  const [requestQuery, setRequestQuery] = useState('');
+
+  useEffect(() => {
+    const timeout = window.setTimeout(
+      () => setRequestQuery(filters.query.trim()),
+      SEARCH_REQUEST_DEBOUNCE_MS,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [filters.query]);
 
   useEffect(() => {
     setFormat(initialFormat);
@@ -651,7 +672,7 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
     setPage(1);
   }, [filters.sort, statsAccess]);
 
-  const requestKey = useMemo(() => JSON.stringify({ format, period, rank, page, perPage, reloadToken, statsAccess, ...filters, query: deferredQuery }), [deferredQuery, filters, format, page, perPage, period, rank, reloadToken, statsAccess]);
+  const requestKey = useMemo(() => JSON.stringify({ format, period, rank, page, perPage, reloadToken, statsAccess, ...filters, query: requestQuery }), [filters, format, page, perPage, period, rank, reloadToken, requestQuery, statsAccess]);
   useEffect(() => {
     const controller = new AbortController();
     const load = async () => {
@@ -659,7 +680,7 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
       setError(null);
       try {
         const params = new URLSearchParams({ format, period, rank, page: String(page), perPage: String(perPage), sort: filters.sort, direction: filters.direction });
-        Object.entries({ ...filters, query: deferredQuery }).forEach(([key, value]) => {
+        Object.entries({ ...filters, query: requestQuery }).forEach(([key, value]) => {
           if (value && key !== 'sort' && key !== 'direction') params.set(key, String(value));
         });
         const response = await fetch(`/api/constructed-cards?${params}`, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: controller.signal });
@@ -724,13 +745,23 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
   };
   const reset = () => {
     setFilters(EMPTY_FILTERS);
+    setRequestQuery('');
     changePeriod('1d');
+  };
+  const clearSearch = () => {
+    setFilters(current => ({ ...current, query: '' }));
+    setRequestQuery('');
+    setPage(1);
   };
   const facets = data?.facets ?? EMPTY_FACETS;
   const sets = [...facets.sets].sort(compareConstructedSets);
   const hasStatsAccess = data ? Boolean(data.statsAccess) : statsAccess;
   const statsGate = { statsAccessLoading, authUser, onRefreshSubscription };
   const dataNotice = data ? constructedCardDataNotice(data) : null;
+  const normalizedInputQuery = filters.query.trim();
+  const searchPending = Boolean(normalizedInputQuery) && (
+    normalizedInputQuery !== requestQuery || loading
+  );
 
   return (
     <div className="constructed-cards">
@@ -739,7 +770,14 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
         <p>{data?.rankLabel || constructedCardRankLabel(rank)} · <strong>{data?.period?.label || constructedCardPeriodLabel(period)}</strong></p>
       </header>
 
-      <section className="constructed-cards__controls" aria-label="Фильтры библиотеки карт">
+      <section className="constructed-cards__controls" aria-label="Фильтры библиотеки карт" data-loading={loading || undefined}>
+        <ConstructedCardCatalogSearch
+          query={filters.query}
+          total={data?.pagination.total ?? 0}
+          pending={searchPending}
+          onChange={value => updateFilter('query', value)}
+          onClear={clearSearch}
+        />
         <div className="constructed-cards__primary-controls">
           <div className="constructed-cards__format" aria-label="Формат" data-tour-id="cards-format">
             <button type="button" aria-label="Стандарт" title="Стандарт" aria-pressed={format === 'standard'} onClick={() => changeFormat('standard')}><img src="/card-format-standard.webp" alt="" /><span className="sr-only">Стандарт</span></button>
@@ -767,7 +805,6 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
               label: option.label,
             }))}
           />
-          <label className="constructed-cards__search" data-tour-id="cards-search"><Search size={18} /><input value={filters.query} onChange={event => updateFilter('query', event.target.value)} placeholder="Поиск по названию" /></label>
           <FilterSelect
             label="Сортировка"
             value={filters.sort}
@@ -826,7 +863,7 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
       {dataNotice && <div className="constructed-cards__data-warning" role="status"><AlertTriangle size={18} /><span>{dataNotice}</span></div>}
       {hasStatsAccess && data?.warning && !dataNotice && <div className="constructed-cards__data-warning" role="status"><AlertTriangle size={18} /><span>Список карт доступен, статистика источника временно скрыта из-за некорректного обновления.</span></div>}
 
-      {loading ? <section className="constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={34} /><h2>Загружаем библиотеку</h2><p>Собираем полный список карт и дополнений.</p></section>
+      {loading && !data ? <section className="constructed-cards__state" aria-busy="true"><RefreshCw className="constructed-cards__spinner" size={34} /><h2>Загружаем библиотеку</h2><p>Собираем полный список карт и дополнений.</p></section>
         : error ? <section className="constructed-cards__state" role="alert"><h2>{error.title}</h2><p>{error.message}</p>{error.retry && <button type="button" onClick={() => setReloadToken(value => value + 1)}><RefreshCw size={16} /> Повторить</button>}</section>
           : data && data.cards.length > 0 ? <>{view === 'gallery' ? <CardGallery cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} navigatePath={navigatePath} statsAccess={hasStatsAccess} gate={statsGate} /> : <CardTable cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} direction={filters.direction} navigatePath={navigatePath} statsAccess={hasStatsAccess} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} /></>
             : <section className="constructed-cards__state"><Search size={34} /><h2>Карты не найдены</h2><p>Измените фильтры или сбросьте их.</p><button type="button" onClick={reset}><RefreshCw size={16} /> Сбросить фильтры</button></section>}

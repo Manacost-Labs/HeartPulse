@@ -1,5 +1,15 @@
 # HS-Arena Changelog
 
+## v1.0.72 - 2026-07-29
+
+- Reworked the constructed-card catalog search into a dedicated, accessible
+  control with clear result feedback, keyboard clearing and room for Russian,
+  English or card-ID queries.
+- Debounced remote filtering so a completed phrase sends one request while the
+  current card grid remains visible during refreshes.
+- Added a compact full-quality download action to every gallery card, revealed
+  on hover or keyboard focus and kept available on touch devices.
+
 ## v1.0.71 - 2026-07-29
 
 - Added an accessible normal/golden selector to Battlegrounds minion detail
