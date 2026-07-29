@@ -79,6 +79,24 @@ test('AGENTS enforces the installed skill router and task-specific quality skill
   assert.match(instructions, /never expose[\s\S]*MCP endpoint through production Nginx/i);
 });
 
+test('AGENTS coordinates concurrent sessions through isolated worktrees and a shared preflight', () => {
+  const instructions = readFileSync('AGENTS.md', 'utf8');
+  assert.match(instructions, /Required Multi-Session Coordination/);
+  assert.match(instructions, /one task[\s\S]*one branch[\s\S]*one worktree/i);
+  assert.match(instructions, /npm run agent:session:preflight/);
+  assert.match(instructions, /npm run agent:integration:preflight/);
+  assert.match(instructions, /overlapping uncommitted paths/i);
+  assert.match(instructions, /fast-forward/i);
+  assert.match(instructions, /Only a successful push to `main` may trigger production/i);
+});
+
+test('AGENTS preserves the shared parser scrape-provider order from the concurrent session', () => {
+  const instructions = readFileSync('AGENTS.md', 'utf8');
+  assert.match(instructions, /Parser scrape providers \(hs-data-api\)/);
+  assert.match(instructions, /1\. Scrape\.do \(primary\)[\s\S]*2\. Firecrawl key rotation[\s\S]*3\. Scrapfly \(last resort\)/);
+  assert.match(instructions, /Do not invent a Firecrawl-first path/);
+});
+
 test('Claude uses AGENTS as the shared mandatory project contract', () => {
   const instructions = readFileSync('CLAUDE.md', 'utf8');
   assert.match(instructions, /read and follow \[AGENTS\.md\]\(AGENTS\.md\) completely/i);

@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 ]]; then
+  echo "Usage: hs-arena-ci-deploy /runner/temp/release EXPECTED_SHA" >&2
+  exit 2
+fi
+
+RUNNER_TEMP_ROOT=${RUNNER_TEMP_ROOT:-/opt/actions-runner/manacost-arena/_work/_temp}
+DEPLOYER=${DEPLOYER:-/usr/local/libexec/hs-arena/deploy-release.sh}
+EXPECTED_SHA=${2,,}
+
+[[ "$EXPECTED_SHA" =~ ^[a-f0-9]{40}$ ]] || {
+  echo "expected SHA must be a complete 40-character Git commit" >&2
+  exit 2
+}
+[[ -x "$DEPLOYER" ]] || {
+  echo "root-owned deployer is missing: $DEPLOYER" >&2
+  exit 2
+}
+
+ARTIFACT=$(realpath "$1")
+ALLOWED_ROOT=$(realpath "$RUNNER_TEMP_ROOT")
+case "$ARTIFACT/" in
+  "$ALLOWED_ROOT"/*) ;;
+  *)
+    echo "artifact must be inside the dedicated runner temp directory" >&2
+    exit 2
+    ;;
+esac
+
+[[ -d "$ARTIFACT" && -f "$ARTIFACT/release.json" ]] || {
+  echo "release artifact or manifest is missing" >&2
+  exit 2
+}
+if find "$ARTIFACT" -type l -print -quit | grep -q .; then
+  echo "release artifact must not contain symbolic links" >&2
+  exit 2
+fi
+if find "$ARTIFACT" -perm /022 -print -quit | grep -q .; then
+  echo "release artifact must not be group- or world-writable" >&2
+  exit 2
+fi
+
+MANIFEST_SHA=$(node -e '
+  const { createHash } = require("node:crypto");
+  const { readFileSync, statSync } = require("node:fs");
+  const { resolve, sep } = require("node:path");
+  const root = resolve(process.argv[1]);
+  const manifest = require(resolve(root, "release.json"));
+  if (manifest.schemaVersion !== 2 || !/^[a-f0-9]{40}$/.test(manifest.sha || "")) process.exit(2);
+  if (!manifest.checksums || typeof manifest.checksums !== "object") process.exit(2);
+  for (const [relativePath, expected] of Object.entries(manifest.checksums)) {
+    const file = resolve(root, relativePath);
+    if (!file.startsWith(root + sep) || !/^[a-f0-9]{64}$/.test(expected || "")) process.exit(2);
+    if (!statSync(file).isFile()) process.exit(2);
+    const actual = createHash("sha256").update(readFileSync(file)).digest("hex");
+    if (actual !== expected) process.exit(2);
+  }
+  process.stdout.write(manifest.sha);
+' "$ARTIFACT")
+[[ "$MANIFEST_SHA" == "$EXPECTED_SHA" ]] || {
+  echo "release manifest SHA does not match the validated workflow SHA" >&2
+  exit 2
+}
+
+exec "$DEPLOYER" "$ARTIFACT"

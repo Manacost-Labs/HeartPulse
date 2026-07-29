@@ -2,6 +2,18 @@
 
 This repository powers https://arena.hs-manacost.ru.
 
+## Parser scrape providers (hs-data-api)
+
+When a task touches the Hearthstone parser / `hearthstone-parses` /
+`/srv/hs-data-api` scrape stack, follow that repo's `AGENTS.md` and
+`docs/SCRAPE_PROVIDERS.md`. Shared page-scrape order is mandatory:
+
+1. Scrape.do (primary)
+2. Firecrawl key rotation
+3. Scrapfly (last resort)
+
+Do not invent a Firecrawl-first path for those pipelines.
+
 ## Required Notion Task Tracking
 
 Every Codex, Claude, or other AI-agent task that concerns
@@ -29,6 +41,32 @@ The task database is the shared source of truth for both Codex and Claude.
 
 Do not silently skip tracking. If the Notion connector is unavailable, report
 that as a blocker and record the task as soon as access is restored.
+
+## Required Multi-Session Coordination
+
+Codex, Claude, and other agents share the repository and the Notion task
+database. Treat one task, one branch, and one worktree as one ownership unit.
+
+1. Before editing, claim or update the matching Notion task, create an isolated
+   task branch/worktree, and run `npm run agent:session:preflight`.
+2. Never implement directly in the shared `main` worktree. Do not modify,
+   clean, reset, stash, delete, or copy uncommitted files from another
+   session's worktree.
+3. The preflight fetches `origin/main`, lists all linked worktrees, and blocks
+   overlapping uncommitted paths. Resolve an overlap through the shared Notion
+   task before either session continues editing those files.
+4. Before integration, commit the task changes and run
+   `npm run agent:integration:preflight`. It requires a clean task worktree and
+   proves that the task branch contains the current `origin/main`.
+5. Integrate with a normal fast-forward-safe push. Never force-push `main`.
+   If another session advances `main`, fetch and rebase or merge in the task
+   worktree, repeat validation, and retry.
+6. Only a successful push to `main` may trigger production. Feature-branch
+   pushes never deploy. Record the final Git commit and deployed Production SHA
+   in the shared Notion task so every later session sees the same state.
+
+Dirty sibling worktrees are expected and are reported for awareness; only
+overlapping uncommitted paths or an outdated integration base are blockers.
 
 ## Required Agent Quality Tooling
 
@@ -159,4 +197,4 @@ When the work changes behavior, also update `CHANGELOG.md` under the current ver
 
 ## Release Version
 
-Current public version: `v1.0.57`.
+Current public version: `v1.0.73`.

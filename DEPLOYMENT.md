@@ -16,6 +16,48 @@ Frontend and compiled server files belong to a release. Scraped datasets,
 card-image caches and uploads belong to `shared/server-data` and survive both
 deployments and rollbacks.
 
+## Automatic deployment from `main`
+
+Every push to `main` starts `.github/workflows/ci.yml`. The hosted validation
+job installs the lockfile, runs `npm run verify:ci`, creates an immutable
+release whose manifest contains that exact 40-character Git SHA, and uploads it
+as a seven-day workflow artifact. Pull requests and feature branches never
+create or deploy a production artifact.
+
+After validation succeeds, the `deploy-production` job targets only the
+repository-level runner labelled `hs-arena-production`. GitHub's `production`
+environment limits deployment to `main`; the `hs-arena-production` concurrency
+group serializes releases and never cancels a deployment already in progress.
+
+The runner has no general root access. Its only privileged command is:
+
+```bash
+sudo /usr/local/sbin/hs-arena-ci-deploy "$artifact" "$GITHUB_SHA"
+```
+
+That root-owned gate accepts artifacts only from the dedicated runner temp
+directory, rejects symlinks and writable files, and requires the release
+manifest SHA to equal the validated workflow SHA. It then calls a root-owned
+copy of `scripts/deploy-release.sh`, which retains the deployment lock,
+readiness gate and automatic rollback described below.
+
+Changes to the workflow, gate or deployer are infrastructure changes. Install
+reviewed copies manually; the repository workflow cannot replace its own
+root-owned production gate:
+
+```bash
+sudo install -d -m 755 /usr/local/libexec/hs-arena
+sudo install -o root -g root -m 755 scripts/deploy-release.sh \
+  /usr/local/libexec/hs-arena/deploy-release.sh
+sudo install -o root -g root -m 755 deploy/hs-arena-ci-deploy \
+  /usr/local/sbin/hs-arena-ci-deploy
+```
+
+The dedicated `github-runner` account should have a single sudoers rule for
+that gate, not unrestricted sudo. Keep the runner registered only to this
+repository and route jobs with all four labels:
+`[self-hosted, linux, x64, hs-arena-production]`.
+
 ## Build a release
 
 Run from the clean `main` workspace:

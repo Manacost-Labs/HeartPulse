@@ -1,4 +1,4 @@
-name: Validate application
+name: Validate and deploy application
 
 on:
   push:
@@ -41,3 +41,43 @@ jobs:
 
       - name: Run required validation
         run: npm run verify:ci
+
+      - name: Create immutable production release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: npm run release:create -- --output="$RUNNER_TEMP/release-$GITHUB_SHA" --sha="$GITHUB_SHA"
+
+      - name: Upload immutable production release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v7
+        with:
+          name: hs-arena-release-${{ github.sha }}
+          path: ${{ runner.temp }}/release-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 6
+
+  deploy-production:
+    name: Deploy validated release to production
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, linux, x64, hs-arena-production]
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://arena.hs-manacost.ru
+    concurrency:
+      group: hs-arena-production
+      cancel-in-progress: false
+
+    steps:
+      - name: Download validated release
+        uses: actions/download-artifact@v7
+        with:
+          name: hs-arena-release-${{ github.sha }}
+          path: ${{ runner.temp }}/hs-arena-release-${{ github.sha }}
+
+      - name: Deploy exact validated SHA
+        shell: bash
+        run: |
+          artifact="$RUNNER_TEMP/hs-arena-release-$GITHUB_SHA"
+          sudo /usr/local/sbin/hs-arena-ci-deploy "$artifact" "$GITHUB_SHA"

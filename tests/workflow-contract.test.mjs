@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const workflow = readFileSync('.github/workflows/scrape.yml', 'utf8');
+const ciWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8');
 const mobileVisualWorkflow = readFileSync('.github/workflows/mobile-visual.yml', 'utf8');
 const productionMonitorWorkflow = readFileSync('.github/workflows/production-monitor.yml', 'utf8');
 const deployment = readFileSync('DEPLOYMENT.md', 'utf8');
@@ -17,6 +18,28 @@ assert.doesNotMatch(workflow, /^\s*schedule:/m);
 assert.doesNotMatch(workflow, /\bgit\s+(?:add|commit|push)\b/);
 assert.doesNotMatch(workflow, /contents:\s*write/);
 assert.doesNotMatch(workflow, /actions\/(?:checkout|setup-node)@v4/);
+
+assert.match(ciWorkflow, /name:\s*Validate and deploy application/);
+assert.match(ciWorkflow, /^\s*push:\s*$/m);
+assert.match(ciWorkflow, /^\s*branches:\s*\[main\]\s*$/m);
+assert.match(ciWorkflow, /permissions:\s*\n\s*contents:\s*read/);
+assert.match(ciWorkflow, /run:\s*npm run verify:ci/);
+assert.match(ciWorkflow, /npm run release:create -- --output="\$RUNNER_TEMP\/release-\$GITHUB_SHA" --sha="\$GITHUB_SHA"/);
+assert.match(ciWorkflow, /actions\/upload-artifact@v7/);
+assert.match(ciWorkflow, /name:\s*hs-arena-release-\$\{\{ github\.sha \}\}/);
+assert.match(ciWorkflow, /if-no-files-found:\s*error/);
+assert.match(ciWorkflow, /retention-days:\s*7/);
+assert.match(ciWorkflow, /^\s*deploy-production:\s*$/m);
+assert.match(ciWorkflow, /needs:\s*validate/);
+assert.match(ciWorkflow, /if:\s*github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
+assert.match(ciWorkflow, /runs-on:\s*\[self-hosted,\s*linux,\s*x64,\s*hs-arena-production\]/);
+assert.match(ciWorkflow, /environment:\s*\n\s*name:\s*production\s*\n\s*url:\s*https:\/\/arena\.hs-manacost\.ru/);
+assert.match(ciWorkflow, /group:\s*hs-arena-production/);
+assert.match(ciWorkflow, /cancel-in-progress:\s*false/);
+assert.match(ciWorkflow, /actions\/download-artifact@v7/);
+assert.match(ciWorkflow, /sudo \/usr\/local\/sbin\/hs-arena-ci-deploy "\$artifact" "\$GITHUB_SHA"/);
+assert.doesNotMatch(ciWorkflow, /\b(?:rsync|scp)\b/i);
+assert.doesNotMatch(ciWorkflow, /contents:\s*write/);
 
 assert.match(mobileVisualWorkflow, /name:\s*Full responsive visual QA/);
 assert.match(mobileVisualWorkflow, /^\s*schedule:\s*$/m);
@@ -76,5 +99,8 @@ assert.doesNotMatch(productionMonitorWorkflow, /actions\/(?:checkout|setup-node)
 
 assert.match(deployment, /shared\/server-data/);
 assert.match(deployment, /hs-arena-scraper\.timer/);
+assert.match(deployment, /push to `main`/i);
+assert.match(deployment, /hs-arena-production/);
+assert.match(deployment, /\/usr\/local\/sbin\/hs-arena-ci-deploy/);
 
 console.log('workflow ownership contracts passed');
