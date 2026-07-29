@@ -28,9 +28,11 @@ The release-blocking command is `npm run verify:release`: lint, architecture
 ratchets, agent/security contracts, property and privacy tests, the complete
 unit/integration suite, production builds, server recovery smoke tests,
 performance budgets and documentation lint. The full responsive browser matrix
-also runs on every workflow as a visible advisory observatory while its legacy
-fixtures are reconciled; a task's affected browser flow must still pass the
-targeted real-browser review required by `AGENTS.md` before integration.
+also runs in a separate non-blocking workflow job as a visible advisory
+observatory while its legacy fixtures are reconciled. It neither delays the
+immutable artifact nor gates production; a task's affected browser flow must
+still pass the targeted real-browser review required by `AGENTS.md` before
+integration.
 
 After validation succeeds, the `deploy-production` job targets only the
 repository-level runner labelled `hs-arena-production`. GitHub's `production`

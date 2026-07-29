@@ -27,14 +27,16 @@ assert.match(ciWorkflow, /permissions:\s*\n\s*contents:\s*read/);
 assert.match(ciWorkflow, /run:\s*npm run verify:release/);
 assert.match(
   ciWorkflow,
-  /- name:\s*Run full browser observatory\s+continue-on-error:\s*true\s+run:\s*node scripts\/browser-qa-ci\.mjs/,
+  /browser-observatory:\s+name:\s*Full browser observatory\s+runs-on:\s*ubuntu-latest\s+timeout-minutes:\s*15\s+continue-on-error:\s*true/,
 );
+assert.match(ciWorkflow, /- name:\s*Run full browser observatory\s+run:\s*node scripts\/browser-qa-ci\.mjs/);
 assert.match(ciWorkflow, /npm run release:create -- --output="\$RUNNER_TEMP\/release-\$GITHUB_SHA" --sha="\$GITHUB_SHA"/);
 assert.match(ciWorkflow, /actions\/upload-artifact@v7/);
 assert.match(ciWorkflow, /name:\s*hs-arena-release-\$\{\{ github\.sha \}\}/);
 assert.match(ciWorkflow, /if-no-files-found:\s*error/);
 assert.match(ciWorkflow, /retention-days:\s*7/);
 assert.match(ciWorkflow, /^\s*deploy-production:\s*$/m);
+assert.match(ciWorkflow, /deploy-production:[\s\S]*needs:\s*validate/);
 assert.match(ciWorkflow, /needs:\s*validate/);
 assert.match(ciWorkflow, /if:\s*github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
 assert.match(ciWorkflow, /runs-on:\s*\[self-hosted,\s*linux,\s*x64,\s*hs-arena-production\]/);
