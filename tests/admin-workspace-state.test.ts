@@ -36,6 +36,8 @@ assert.strictEqual(
 
 const funDecks = adminWorkspaceReducer(navigated, { type: 'navigate', section: 'fun-decks' });
 assert.equal(funDecks.section, 'fun-decks');
+const apiKeys = adminWorkspaceReducer(funDecks, { type: 'navigate', section: 'api-keys' });
+assert.equal(apiKeys.section, 'api-keys');
 
 const sameUserMenuClosed = adminWorkspaceReducer(
   adminWorkspaceReducer(initial, { type: 'toggleUserMenu', userId: 'user-1' }),

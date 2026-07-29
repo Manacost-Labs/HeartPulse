@@ -9,6 +9,7 @@ import {
   Image as ImageIcon,
   LayoutDashboard,
   Link2,
+  KeyRound,
   Mail,
   Menu,
   MessageCircle,
@@ -93,6 +94,10 @@ const ContestAdminStandardOperations = React.lazy(async () => {
 const ContestAdminFunDecks = React.lazy(async () => {
   const module = await import('./ContestAdminStandardOperations');
   return { default: module.ContestAdminFunDecks };
+});
+const AdminApiKeys = React.lazy(async () => {
+  const module = await import('../modules/developerApi/public');
+  return { default: module.AdminApiKeys };
 });
 
 type AuthUser = {
@@ -407,6 +412,7 @@ const ADMIN_NAV_ITEMS: ReadonlyArray<{
   { id: 'mechanics', label: 'Механики и теги', caption: 'Русские переводы, примеры карт и контроль покрытия', status: 'Сохранение по кнопке', group: 'Контент', icon: Newspaper },
   { id: 'standard-data', label: 'Данные и парсеры', caption: 'Режим меты, автообновление и очереди', status: 'Центр управления данными', group: 'Система', icon: Database },
   { id: 'fun-decks', label: 'Фановые колоды', caption: 'Off-meta подборка и коды колод', status: 'Обновляется автоматически', group: 'Система', icon: Sparkles },
+  { id: 'api-keys', label: 'Public API', caption: 'Ключи приложений и доступ к данным', status: 'Секрет показывается один раз', group: 'Система', icon: KeyRound },
   { id: 'users', label: 'Пользователи', caption: 'Права, блокировки и контакты', status: 'Действия с подтверждением', group: 'Аудитория', icon: Users },
   { id: 'mailing', label: 'Рассылка', caption: 'Письма, шаблоны и история отправок', status: 'Безопасная очередь отправки', group: 'Аудитория', icon: Mail },
   { id: 'boosty', label: 'Boosty', caption: 'Подписчики и уровни доступа', status: 'Данные только для просмотра', group: 'Аудитория', icon: CircleDollarSign },
@@ -427,6 +433,7 @@ const ADMIN_WORKSPACE_SECTION_IDS: AdminWorkspaceSection[] = [
   'mechanics',
   'standard-data',
   'fun-decks',
+  'api-keys',
   'users',
   'mailing',
   'boosty',
@@ -711,6 +718,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
       mechanics: 'Переводы механик и тегов',
       'standard-data': 'Данные и парсеры',
       'fun-decks': 'Фановые колоды',
+      'api-keys': 'Public API',
       users: 'Пользователи',
       mailing: 'Рассылка',
       boosty: 'Boosty',
@@ -1675,6 +1683,10 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
 
           {hasFullAdminAccess && adminSection === 'analytics' && (
             <ContestAdminAnalytics />
+          )}
+
+          {hasFullAdminAccess && adminSection === 'api-keys' && (
+            <React.Suspense fallback={<RouteFallback minHeight={440} />}><AdminApiKeys /></React.Suspense>
           )}
 
           {hasFullAdminAccess && adminSection === 'telegram' && (

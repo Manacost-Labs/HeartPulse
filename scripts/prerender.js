@@ -179,6 +179,18 @@ const PAGES = {
     ],
     noscript: '<h1>Частые вопросы о Manacost Stats</h1><p>Помощь по регистрации, входу, подтверждению Boosty и Telegram, уровням подписки, paywall и игровой статистике.</p><p><a href="/?login">Открыть профиль</a> | <a href="/standard/cards">Карты</a> | <a href="/articles">Статьи</a></p>',
   },
+  '/developers/api': {
+    h1: 'Manacost Public API',
+    ogType: 'website',
+    structuredData: [{
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Главная', item: SITE_URL },
+        { '@type': 'ListItem', position: 2, name: 'Public API', item: `${SITE_URL}/developers/api/` },
+      ],
+    }],
+    noscript: '<h1>Manacost Public API</h1><p>Документация API для Hearthstone-приложений: API-ключи, OpenAPI и каталог доступных ресурсов.</p><p><a href="/api/v1/openapi.json">Открыть OpenAPI JSON</a></p>',
+  },
   '/standard/matchups': {
     h1: 'Матчапы Стандарта Hearthstone',
     ogType: 'website',

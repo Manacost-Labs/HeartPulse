@@ -598,10 +598,10 @@ function NavigationRouteLinks({
     );
   });
 }
-
 const loadDeferredRoutesModule = () => import('./features/DeferredRoutes');
 const loadHomeModule = () => import('./features/Home');
 const loadFAQPageModule = () => import('./features/FAQPage');
+const loadDeveloperApiModule = () => import('./modules/developerApi/public');
 const loadBgLibraryModule = () => import('./features/BgLibrary');
 const loadGuidesArchiveModule = () => import('./features/GuidesArchive');
 const loadCosmeticsModule = () => import('./features/Cosmetics');
@@ -621,6 +621,7 @@ const LazySupportPrompt = React.lazy(() => import('./components/SupportPrompt'))
 const LazySiteFooter = React.lazy(() => import('./components/SiteFooter'));
 const LazyHomeTab = React.lazy(loadHomeModule);
 const LazyFAQPage = React.lazy(loadFAQPageModule);
+const LazyDeveloperApiPage = React.lazy(() => loadDeveloperApiModule().then(module => ({ default: module.DeveloperApiPage })));
 const LazyNotFoundPage = React.lazy(() => import('./features/NotFoundPageRoute'));
 const LazyWinrates = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.Winrates })));
 const LazyTierList = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.TierList })));
@@ -648,15 +649,14 @@ const LazyBattlegroundHeroesRoute = React.lazy(() => loadBattlegroundsModule().t
 const LazyBattlegroundTierList = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundTierList })));
 const LazyBattlegroundStrategyBuilderEmbed = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundStrategyBuilderEmbed })));
 const LazyBattlegroundTierBuilderEmbed = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundTierBuilderEmbed })));
-
 const STANDARD_SOFT_PAYWALL_TABS = new Set<TabId>(['standard-meta', 'constructed-archetypes', 'fun-decks']);
-
 const ROUTE_PRELOADERS: Partial<Record<TabId | 'login', () => Promise<unknown>>> = {
   winrates: loadDeferredRoutesModule,
   tierlist: loadDeferredRoutesModule,
   legendaries: loadDeferredRoutesModule,
   articles: loadDeferredRoutesModule,
   faq: loadFAQPageModule,
+  'developer-api': loadDeveloperApiModule,
   gallery: loadGalleryModule,
   login: loadDeferredRoutesModule,
   'admin-panel': loadContestsModule,
@@ -1402,12 +1402,10 @@ export default function App() {
 	    if (!needsArticles || articlesRequestedRef.current) return;
 	    void fetchArticles();
 	  }, [activeTab, privateRouteChecking, privateRouteLocked, wantsAdmin, fetchArticles]);
-
 	  useEffect(() => {
 	    if (activeTab !== 'gallery' || galleryRequestedRef.current) return;
 	    void fetchGallery();
 	  }, [activeTab, fetchGallery]);
-
   // Set of cardIds that are companion cards in legendary groups (not the key legendary itself)
   const companionIds = useMemo(() => {
     const keyIds = new Set(legendariesData.groups.map(g => g.keyCard.cardId));
@@ -1420,7 +1418,7 @@ export default function App() {
   const isFullWidthBuilder = routeSurfaceAvailable && (activeTab === 'standard-matchups' || activeTab === 'standard-meta' || activeTab === 'fun-decks' || activeTab === 'constructed-archetypes' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive' || activeTab === 'deck-builder' || activeTab === 'archetypes');
   // Login is its own visual route. Do not inherit the surface class of the
   // page that happened to be open before the profile was requested.
-  const isEditorialSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['articles', 'faq', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
+  const isEditorialSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['articles', 'faq', 'developer-api', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
   const isGameDataSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'standard-meta', 'fun-decks', 'constructed-archetypes', 'standard-vicious-gold', 'standard-cards', 'tierlist', 'legendaries', 'archetypes', 'cosmetics'].includes(activeTab);
   const isBattlegroundsSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && BG_TAB_IDS.has(activeTab);
   const isOpenSurfacePage = !isAdminMode && (!routeSurfaceAvailable || activeTab === 'home' || wantsLogin || isEditorialSurfacePage || isGameDataSurfacePage || isBattlegroundsSurfacePage);
@@ -1909,6 +1907,9 @@ export default function App() {
                     <LazyFAQPage navigatePath={navigatePath} />
                   </React.Suspense>
                 )}
+                {activeTab === 'developer-api' && (
+                  <React.Suspense fallback={<RouteFallback minHeight={760} />}><LazyDeveloperApiPage /></React.Suspense>
+                )}
                 {activeTab === 'gallery' && (
                   <React.Suspense fallback={<RouteFallback minHeight={640} />}>
                     <LazyGalleryTab
@@ -1955,9 +1956,8 @@ export default function App() {
             </>
           )}
           </div>
-        </main>
-
-	        {!isAdminMode && <React.Suspense fallback={null}><LazySiteFooter onNavigate={(tab: string) => navigate(tab as TabId)} /></React.Suspense>}
+	        </main>
+		        {!isAdminMode && <React.Suspense fallback={null}><LazySiteFooter onNavigate={(tab: string) => navigate(tab as TabId)} /></React.Suspense>}
 	        {!isAdminMode && <React.Suspense fallback={null}><LazySupportPrompt /></React.Suspense>}
         </div>
       </div>

@@ -3,6 +3,7 @@ import {
   ChartNoAxesCombined,
   CircleHelp,
   CircleUserRound,
+  Code2,
   Crown,
   Gem,
   Gift,
@@ -24,7 +25,7 @@ import {
 import type { ResolvedPublicUrlPolicy } from './seo/publicUrlPolicy';
 import { publicProfileIdFromPath } from './profileRoutes';
 
-export type RouteGroup = 'home' | 'top' | 'standard' | 'arena' | 'bg-primary' | 'bg-builder' | 'misc' | 'admin';
+export type RouteGroup = 'home' | 'top' | 'standard' | 'arena' | 'bg-primary' | 'bg-builder' | 'misc' | 'footer' | 'admin';
 export type RouteEntitlement = 'arena' | 'battlegrounds' | 'standard' | 'contests' | 'guidesArchive' | 'arenaArticles' | 'battlegroundsArticles';
 
 type RouteDefinition = {
@@ -46,6 +47,9 @@ export const TABS = [
   },
   {
     id: 'faq', label: 'FAQ', icon: CircleHelp, slug: '/faq', group: 'top', entitlement: null,
+  },
+  {
+    id: 'developer-api', label: 'API', icon: Code2, slug: '/developers/api', group: 'footer', entitlement: null,
   },
   {
     id: 'gallery', label: 'Галерея', icon: ImageIcon, slug: '/gallery', group: 'misc', entitlement: null,

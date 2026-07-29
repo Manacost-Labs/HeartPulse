@@ -42,6 +42,14 @@ export default function SiteFooter(_props: { onNavigate?: (tab: string) => void 
             <li><a href="https://boosty.to/kolodahearthstone" target="_blank" rel="noopener noreferrer" className="arena-footer__link">Boosty</a></li>
           </ul>
         </div>
+
+        <div className="arena-footer__section">
+          <h3 className="arena-footer__heading">Разработчикам</h3>
+          <ul className="arena-footer__links">
+            <li><a href="/developers/api/" className="arena-footer__link">API для разработчиков</a></li>
+            <li><a href="/api/v1/openapi.json" className="arena-footer__link">OpenAPI JSON</a></li>
+          </ul>
+        </div>
       </div>
 
       <div className="arena-footer__legal">

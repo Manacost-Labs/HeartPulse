@@ -15,6 +15,13 @@
       "description": "Подробная помощь по регистрации, входу, Boosty, Telegram, уровням подписки, paywall, статистике и разделам Manacost Stats.",
       "sitemap": true
     },
+    "/developers/api": {
+      "policyRouteId": "developer-api",
+      "navigationRouteId": "developer-api",
+      "title": "Manacost Public API — документация для разработчиков",
+      "description": "Документация Manacost Public API для Hearthstone-приложений: авторизация по API-ключу, OpenAPI-контракт, каталог ресурсов и примеры запросов.",
+      "sitemap": true
+    },
     "/standard/matchups": {
       "policyRouteId": "standard-matchups",
       "navigationRouteId": "standard-matchups",

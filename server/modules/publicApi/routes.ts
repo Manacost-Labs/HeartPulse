@@ -52,6 +52,7 @@ function requireScope(
 export function createPublicApiRouter(dependencies: PublicRouterDependencies): Router {
   const router = Router();
   const now = dependencies.now ?? (() => new Date().toISOString());
+  const manifestGeneratedAt = now();
 
   router.get('/openapi.json', (_request, response) => {
     response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=300');
@@ -63,7 +64,7 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     const payload = {
       apiVersion: 'v1',
       schemaVersion: '2026-07-29',
-      generatedAt: now(),
+      generatedAt: manifestGeneratedAt,
       resources: [
         { id: 'openapi', href: '/api/v1/openapi.json', status: 'AVAILABLE' },
         { id: 'catalog-manifest', href: '/api/v1/catalog/manifest', status: 'AVAILABLE' },

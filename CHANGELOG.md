@@ -1,5 +1,17 @@
 # HS-Arena Changelog
 
+## v1.0.78 - 2026-07-29
+
+- Added the first production slice of Manacost Public API under `/api/v1` with
+  a committed OpenAPI 3.1 contract and a protected catalog manifest.
+- Added administrator-issued, scoped and revocable application keys; raw
+  secrets are shown once while SQLite stores only their prefix and SHA-256
+  digest.
+- Added a public developer documentation page, a global footer link and a
+  dedicated Public API workspace in the administrator panel.
+- Added route, persistence, security, UI, SEO, sitemap and Storybook coverage
+  for API documentation and key lifecycle states.
+
 ## v1.0.77 - 2026-07-29
 
 - Extracted constructed-card catalog request building, filter defaults and

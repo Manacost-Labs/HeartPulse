@@ -47,6 +47,20 @@
       "entitlement": null
     },
     {
+      "id": "developer-api",
+      "pattern": "/developers/api",
+      "kind": "static",
+      "owner": "developer-platform",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "developer-api",
+      "entitlement": null
+    },
+    {
       "id": "gallery",
       "pattern": "/gallery",
       "kind": "static",

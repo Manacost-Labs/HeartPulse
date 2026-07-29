@@ -140,7 +140,16 @@ try {
   assert.equal(manifest.apiVersion, 'v1');
   assert.equal(manifest.schemaVersion, '2026-07-29');
   assert.ok(Array.isArray(manifest.resources));
-  assert.equal(records.get(created.key.id)?.lastUsedAt, '2026-07-29T12:00:01.000Z');
+  assert.equal(records.get(created.key.id)?.lastUsedAt, '2026-07-29T12:00:02.000Z');
+
+  const unchangedManifest = await fetch(`${origin}/api/v1/catalog/manifest`, {
+    headers: {
+      'X-API-Key': created.apiKey,
+      'If-None-Match': String(manifestResponse.headers.get('etag')),
+    },
+  });
+  assert.equal(unchangedManifest.status, 304);
+  assert.equal(await unchangedManifest.text(), '');
 
   const revoke = await fetch(`${origin}/api/admin/api-keys/${created.key.id}`, {
     method: 'DELETE',
