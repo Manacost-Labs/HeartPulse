@@ -178,7 +178,7 @@ const server = http.createServer((req, res) => {
     return;
   }
   if (requestUrl.pathname === '/sitemaps/static.xml') {
-    const urls = Array.from({ length: 25 }, (_value, index) => (
+    const urls = Array.from({ length: 29 }, (_value, index) => (
       index === 0 ? `${origin}/` : `${origin}/static-${index}/`
     ));
     let body = xmlUrlset(urls);
@@ -269,7 +269,7 @@ try {
   assert.ok(report.checks.some(check => check.label === 'SEO crawl contract'));
   const seoCheck = report.checks.find(check => check.label === 'SEO crawl contract');
   assert.equal(seoCheck.standardUrls, 500);
-  assert.equal(seoCheck.staticUrls, 25);
+  assert.equal(seoCheck.staticUrls, 29);
   assert.equal(seoCheck.sampledDetails, 3);
   assert.equal(report.checks[0].attempts, 2);
   assert.deepEqual(report.checks.map(check => check.status), [200, 200, 200, 200, 200, 200, 404, 200, 200, 404, 200, 200, 200]);

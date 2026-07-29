@@ -11,7 +11,8 @@
 - Prefetched adjacent gallery media and full legendary/deck renders on hover,
   focus or pointer-down so keyboard, mouse and touch navigation all benefit.
 - Revalidated the public sitemap pointer, XML index and its 29 static plus 1,152
-  standard-card URLs.
+  standard-card URLs, and aligned the production monitor with the current
+  29-page static segment.
 
 ## v1.0.75 - 2026-07-29
 
