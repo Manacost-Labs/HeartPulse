@@ -125,7 +125,7 @@ try {
   }
   assert.equal(
     await page.$eval('.archetype-dossier__art', image => new URL(image.src).pathname),
-    '/v1/512x/JAIL_732.jpg',
+    '/api/public-resource/hsjson/v1/512x/JAIL_732.jpg',
   );
   assert.equal(await page.$$eval('.archetype-dossier .archetypes-eyebrow', nodes => nodes.length), 0);
   assert.equal(await page.$$eval('.archetype-dossier__identity p, .archetype-dossier__identity small', nodes => nodes.length), 0);
