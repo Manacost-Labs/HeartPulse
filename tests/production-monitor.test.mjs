@@ -9,6 +9,7 @@ let unknownCardStatus = 404;
 let partialKnownFormat = null;
 let mismatchEnvelopeFormat = null;
 let seoFailure = null;
+let compressedSitemapEtag = false;
 let healthBodyDelayMs = 0;
 
 const EXTERNAL_TEST_TIMEOUT = Symbol('external test timeout');
@@ -203,7 +204,9 @@ const server = http.createServer((req, res) => {
     if (seoFailure === 'duplicate-sitemap') urls[urls.length - 1] = urls[0];
     res.writeHead(200, {
       'Content-Type': 'application/xml; charset=utf-8',
-      ETag: seoFailure === 'etag' ? 'W/"weak"' : `"sha256-${'a'.repeat(64)}"`,
+      ETag: seoFailure === 'etag'
+        ? 'W/"weak"'
+        : `${compressedSitemapEtag ? 'W/' : ''}"sha256-${'a'.repeat(64)}"`,
       'X-Sitemap-Source': seoFailure === 'source' ? 'upstream-error' : 'catalog',
       ...(seoFailure === 'oversized-sitemap' ? { 'Content-Length': String(9 * 1024 * 1024) } : {}),
     });
@@ -273,6 +276,17 @@ try {
   assert.equal(seoCheck.sampledDetails, 3);
   assert.equal(report.checks[0].attempts, 2);
   assert.deepEqual(report.checks.map(check => check.status), [200, 200, 200, 200, 200, 200, 404, 200, 200, 404, 200, 200, 200]);
+
+  compressedSitemapEtag = true;
+  const compressedReport = await runProductionMonitor({
+    baseUrl,
+    attempts: 1,
+    retryDelayMs: 0,
+    timeoutMs: 2_000,
+  });
+  assert.equal(compressedReport.status, 'ok',
+    'a compressed sitemap keeps its SHA-256 validator even when nginx weakens the ETag');
+  compressedSitemapEtag = false;
 
   partialKnownFormat = 'wild';
   await assert.rejects(

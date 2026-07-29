@@ -13,6 +13,8 @@
 - Revalidated the public sitemap pointer, XML index and its 29 static plus 1,152
   standard-card URLs, and aligned the production monitor with the current
   29-page static segment.
+- Taught the external sitemap monitor to accept nginx's standards-compliant
+  weak form of the same SHA-256 validator on gzip and Brotli responses.
 
 ## v1.0.75 - 2026-07-29
 

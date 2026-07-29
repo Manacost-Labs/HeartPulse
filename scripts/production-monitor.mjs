@@ -484,8 +484,12 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
     signal,
   );
   assertXmlResponse(standardResponse, 'standard card sitemap');
-  ensure(/^"sha256-[a-f0-9]{64}"$/i.test(standardResponse.headers.get('etag') || ''),
-    'standard card sitemap: strong SHA-256 ETag is missing');
+  // Nginx correctly weakens an upstream strong validator when it compresses the
+  // representation. Preserve the semantic SHA-256 contract for both identity
+  // and compressed responses instead of treating normal gzip/Brotli delivery as
+  // a sitemap outage.
+  ensure(/^(?:W\/)?"sha256-[a-f0-9]{64}"$/i.test(standardResponse.headers.get('etag') || ''),
+    'standard card sitemap: SHA-256 ETag is missing');
   ensure(['catalog', 'last-known-good'].includes(standardResponse.headers.get('x-sitemap-source') || ''),
     'standard card sitemap: invalid X-Sitemap-Source');
   ensure(!PRIVATE_PAYLOAD_PATTERN.test(standardXml), 'standard card sitemap contains private payload fields');
