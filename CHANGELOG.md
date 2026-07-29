@@ -15,6 +15,9 @@
   navigation now downloads about 7 kB of route JavaScript instead of the
   previous 115 kB all-in-one module, while hover and focus preloading continue
   to target its dedicated chunk.
+- Reused the shared focus-trapped modal surface for gallery lightboxes so
+  keyboard focus, Escape handling and scroll locking follow one tested
+  implementation.
 
 ## v1.0.76 - 2026-07-29
 

@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState } from 'react';
 import { Download, Image as ImageIcon, Maximize2, X } from 'lucide-react';
-import { usePageScrollLock } from '../hooks/usePageScrollLock';
+import ModalSurface from '../components/ModalSurface/ModalSurface';
 import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
 import '../route-parchment.css';
 import './DeferredRoutes.css';
@@ -51,59 +50,47 @@ function formatGalleryDate(value?: string | null) {
 }
 
 function GalleryLightbox({ item, onClose }: { item: GalleryItem; onClose: () => void }) {
-  usePageScrollLock(true);
-
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  return createPortal(
-    <div className="gallery-lightbox" role="dialog" aria-modal="true" aria-label={item.title}>
-      <button
-        type="button"
-        className="gallery-lightbox-backdrop"
-        onClick={onClose}
-        aria-label="Закрыть"
-      />
-      <div className="gallery-lightbox-panel">
-        <div className="gallery-lightbox-head">
-          <div>
-            <strong>{item.title}</strong>
-            <span>
-              {[
-                item.width && item.height ? `${item.width} x ${item.height}` : '',
-                formatGalleryBytes(item.bytes),
-              ].filter(Boolean).join(' · ')}
-            </span>
-          </div>
-          <div>
-            <a href={item.downloadUrl} className="gallery-icon-action" title="Скачать оригинал">
-              <Download size={18} aria-hidden="true" />
-            </a>
-            <button
-              type="button"
-              className="gallery-icon-action"
-              onClick={onClose}
-              title="Закрыть"
-            >
-              <X size={18} aria-hidden="true" />
-            </button>
-          </div>
+  return (
+    <ModalSurface
+      className="gallery-lightbox"
+      backdropClassName="gallery-lightbox-backdrop"
+      panelClassName="gallery-lightbox-panel"
+      ariaLabel={item.title}
+      closeLabel="Закрыть галерею"
+      onClose={onClose}
+    >
+      <div className="gallery-lightbox-head">
+        <div>
+          <strong>{item.title}</strong>
+          <span>
+            {[
+              item.width && item.height ? `${item.width} x ${item.height}` : '',
+              formatGalleryBytes(item.bytes),
+            ].filter(Boolean).join(' · ')}
+          </span>
         </div>
-        <img src={item.previewUrl || item.imageUrl} alt={item.title} decoding="async" />
-        {(item.description || item.source) && (
-          <div className="gallery-lightbox-caption">
-            {item.description && <p>{item.description}</p>}
-            {item.source && <span>{item.source}</span>}
-          </div>
-        )}
+        <div>
+          <a href={item.downloadUrl} className="gallery-icon-action" title="Скачать оригинал">
+            <Download size={18} aria-hidden="true" />
+          </a>
+          <button
+            type="button"
+            className="gallery-icon-action"
+            onClick={onClose}
+            title="Закрыть"
+          >
+            <X size={18} aria-hidden="true" />
+          </button>
+        </div>
       </div>
-    </div>,
-    document.body,
+      <img src={item.previewUrl || item.imageUrl} alt={item.title} decoding="async" />
+      {(item.description || item.source) && (
+        <div className="gallery-lightbox-caption">
+          {item.description && <p>{item.description}</p>}
+          {item.source && <span>{item.source}</span>}
+        </div>
+      )}
+    </ModalSurface>
   );
 }
 
