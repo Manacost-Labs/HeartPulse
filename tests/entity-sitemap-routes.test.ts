@@ -261,7 +261,7 @@ for (const [label, coldCards] of [
 }
 
 for (const invalidStaticUrls of [
-  staticUrls.slice(0, 28),
+  [],
   [...staticUrls.slice(0, 28), staticUrls[0]],
   [...staticUrls.slice(0, 28), 'https://evil.example.test/private/'],
   [...staticUrls.slice(0, 28), 'https://arena.hs-manacost.ru/admin/'],

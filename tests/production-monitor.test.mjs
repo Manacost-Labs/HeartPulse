@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import { readFileSync } from 'node:fs';
-import { runProductionMonitor } from '../scripts/production-monitor.mjs';
+import {
+  EXPECTED_STATIC_SITEMAP_URL_COUNT,
+  runProductionMonitor,
+} from '../scripts/production-monitor.mjs';
 
 let livenessAttempts = 0;
 let dataFresh = true;
@@ -179,7 +182,7 @@ const server = http.createServer((req, res) => {
     return;
   }
   if (requestUrl.pathname === '/sitemaps/static.xml') {
-    const urls = Array.from({ length: 29 }, (_value, index) => (
+    const urls = Array.from({ length: EXPECTED_STATIC_SITEMAP_URL_COUNT }, (_value, index) => (
       index === 0 ? `${origin}/` : `${origin}/static-${index}/`
     ));
     let body = xmlUrlset(urls);
@@ -272,7 +275,7 @@ try {
   assert.ok(report.checks.some(check => check.label === 'SEO crawl contract'));
   const seoCheck = report.checks.find(check => check.label === 'SEO crawl contract');
   assert.equal(seoCheck.standardUrls, 500);
-  assert.equal(seoCheck.staticUrls, 29);
+  assert.equal(seoCheck.staticUrls, EXPECTED_STATIC_SITEMAP_URL_COUNT);
   assert.equal(seoCheck.sampledDetails, 3);
   assert.equal(report.checks[0].attempts, 2);
   assert.deepEqual(report.checks.map(check => check.status), [200, 200, 200, 200, 200, 200, 404, 200, 200, 404, 200, 200, 200]);

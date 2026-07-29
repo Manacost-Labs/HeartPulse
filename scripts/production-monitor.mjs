@@ -1,8 +1,16 @@
 #!/usr/bin/env node
 
+import { readFileSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 
+const publicSeoRegistry = JSON.parse(readFileSync(
+  new URL('../config/public-seo-pages.json', import.meta.url),
+  'utf8',
+));
+export const EXPECTED_STATIC_SITEMAP_URL_COUNT = Object.values(publicSeoRegistry.pages)
+  .filter(page => page?.sitemap === true)
+  .length;
 const DEFAULT_BASE_URL = 'https://arena.hs-manacost.ru';
 const DEFAULT_ROUTES = ['/', '/classes/', '/battlegrounds/tier-list/'];
 const REQUIRED_DATASETS = [
@@ -467,7 +475,10 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
   );
   assertXmlResponse(staticResponse, 'static sitemap');
   const staticLocations = sitemapLocations(staticXml, 'urlset', 'static sitemap');
-  ensure(staticLocations.length === 29, `static sitemap contains ${staticLocations.length}/29 URLs`);
+  ensure(
+    staticLocations.length === EXPECTED_STATIC_SITEMAP_URL_COUNT,
+    `static sitemap contains ${staticLocations.length}/${EXPECTED_STATIC_SITEMAP_URL_COUNT} URLs`,
+  );
   for (const location of staticLocations) {
     const parsed = new URL(location);
     ensure(parsed.origin === origin && !parsed.search && !parsed.hash

@@ -1,9 +1,12 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 
 const root = process.cwd();
+const expectedStaticSitemapUrlCount = [
+  ...readFileSync(join(root, 'dist', 'sitemaps', 'static.xml'), 'utf8').matchAll(/<url>/g),
+].length;
 const temporaryRoot = mkdtempSync(join(tmpdir(), 'hs-arena-server-smoke-'));
 const dataDir = join(temporaryRoot, 'data');
 const ecosystemDir = join(temporaryRoot, 'ecosystem');
@@ -107,7 +110,7 @@ try {
   }
   const staticSitemap = await requestText('/sitemaps/static.xml');
   if (staticSitemap.response.status !== 200
-    || [...staticSitemap.body.matchAll(/<url>/g)].length !== 29) {
+    || [...staticSitemap.body.matchAll(/<url>/g)].length !== expectedStaticSitemapUrlCount) {
     throw new Error('runtime static sitemap contract failed');
   }
 
