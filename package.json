@@ -75,7 +75,7 @@
     "test:operational-routes": "tsx tests/operational-routes.test.ts",
     "test:arena-deck-routes": "tsx tests/arena-deck-routes.test.ts",
     "test:standard-matchup-routes": "tsx tests/standard-matchup-routes.test.ts && tsx tests/standard-matchups-controls-ui.test.ts",
-    "test:constructed-card-routes": "tsx tests/constructed-card-catalog-store.test.ts && tsx tests/constructed-card-history-store.test.ts && tsx tests/constructed-card-history-model.test.ts && tsx tests/constructed-card-periods.test.ts && tsx tests/constructed-card-routes.test.ts && tsx tests/constructed-card-resilience.test.ts && tsx tests/constructed-card-ui-status.test.ts && tsx tests/constructed-card-catalog-controls.test.tsx && tsx tests/constructed-card-format-availability.test.ts && tsx tests/constructed-card-history-disclosure.test.tsx",
+    "test:constructed-card-routes": "tsx tests/constructed-card-catalog-store.test.ts && tsx tests/constructed-card-history-store.test.ts && tsx tests/constructed-card-history-model.test.ts && tsx tests/constructed-card-periods.test.ts && tsx tests/constructed-card-routes.test.ts && tsx tests/constructed-card-resilience.test.ts && tsx tests/constructed-card-ui-status.test.ts && tsx tests/constructed-card-catalog-controls.test.tsx && tsx tests/constructed-card-format-availability.test.ts && tsx tests/constructed-card-history-disclosure.test.tsx && tsx tests/card-opening-performance.test.ts",
     "test:constructed-card-filters": "tsx tests/constructed-card-filter-options.test.ts",
     "test:constructed-card-seo-routes": "tsx tests/constructed-card-seo-routes.test.ts",
     "test:entity-sitemaps": "tsx tests/entity-sitemap-catalog.test.ts && tsx tests/entity-sitemap-store.test.ts && tsx tests/entity-sitemap-routes.test.ts",

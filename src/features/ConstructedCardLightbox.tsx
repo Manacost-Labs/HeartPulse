@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, ExternalLink, X } from 'lucide-react';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
 import type { ConstructedCardMediaItem } from './constructedCardMedia';
@@ -10,11 +10,60 @@ type ConstructedCardLightboxProps = {
   onIndexChange: (index: number) => void;
 };
 
+const warmedLightboxImages = new Set<string>();
+function preloadImage(url: string | null | undefined): void {
+  const source = String(url ?? '').trim();
+  if (!source || typeof Image === 'undefined' || warmedLightboxImages.has(source)) return;
+  warmedLightboxImages.add(source);
+  const image = new Image();
+  image.decoding = 'async';
+  image.onerror = () => warmedLightboxImages.delete(source);
+  image.src = source;
+}
+
+function ConstructedLightboxImage({
+  item,
+  next,
+}: {
+  item: ConstructedCardMediaItem;
+  next: ConstructedCardMediaItem | null;
+}) {
+  const [fullImageReady, setFullImageReady] = useState(false);
+  const hasPreview = item.thumbnailUrl !== item.url;
+  const warmNext = () => {
+    if (next?.kind === 'image') preloadImage(next.url);
+  };
+  return (
+    <>
+      <img
+        src={fullImageReady || !hasPreview ? item.url : item.thumbnailUrl}
+        alt={item.label}
+        decoding="async"
+        onError={hasPreview && !fullImageReady ? () => setFullImageReady(true) : undefined}
+        onLoad={!hasPreview ? warmNext : undefined}
+      />
+      {hasPreview && !fullImageReady && (
+        <img
+          src={item.url}
+          alt=""
+          aria-hidden="true"
+          hidden
+          onLoad={() => {
+            setFullImageReady(true);
+            warmNext();
+          }}
+        />
+      )}
+    </>
+  );
+}
+
 export default function ConstructedCardLightbox({ items, index, onClose, onIndexChange }: ConstructedCardLightboxProps) {
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const item = items[index] ?? null;
 
   if (!item) return null;
+  const next = items[(index + 1) % items.length] ?? null;
 
   return (
     <ModalSurface
@@ -41,7 +90,13 @@ export default function ConstructedCardLightbox({ items, index, onClose, onIndex
       <div className="constructed-card-lightbox__media">
         {item.kind === 'video'
           ? <video src={item.url} controls autoPlay playsInline />
-          : <img src={item.url} alt={item.label} />}
+          : (
+            <ConstructedLightboxImage
+              key={`${item.id}:${item.url}`}
+              item={item}
+              next={next}
+            />
+          )}
       </div>
       <footer className="constructed-card-lightbox__footer">
         <div>

@@ -51,6 +51,7 @@ assert.match(
 );
 
 const standardCardsSource = readFileSync(new URL('../src/features/StandardCards.tsx', import.meta.url), 'utf8');
+const detailPrefetchSource = readFileSync(new URL('../src/features/constructedCardDetailPrefetch.ts', import.meta.url), 'utf8');
 const cardHistorySource = readFileSync(new URL('../src/features/useConstructedCardHistory.ts', import.meta.url), 'utf8');
 assert.match(standardCardsSource, /warning:\s*typeof payload\.warning/,
   'the detail component must pass the server warning into its visible data-state notice');
@@ -120,7 +121,7 @@ assert.match(standardCardsSource, /label="Ранг"/,
   'the catalog and card detail must expose the statistics rank as a visible filter');
 assert.match(standardCardsSource, /new URLSearchParams\(\{ format, period, rank,/,
   'the selected period and rank must be sent to the constructed-card list API');
-assert.match(standardCardsSource, /new URLSearchParams\(\{ format, statsFormat, period, rank \}\)/,
+assert.match(detailPrefetchSource, /format:\s*request\.format,[\s\S]*statsFormat:\s*request\.statsFormat,[\s\S]*period:\s*request\.period,[\s\S]*rank:\s*request\.rank/s,
   'card detail must request its independently selected statistics format, rank and period');
 assert.match(standardCardsSource, /navigateWithConstructedCardContext/,
   'card and back navigation must retain the selected statistics context');

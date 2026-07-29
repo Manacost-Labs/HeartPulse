@@ -312,6 +312,17 @@ function uniqueSources(sources: Array<string | null | undefined>): string[] {
   return [...new Set(sources.filter(Boolean) as string[])];
 }
 
+const warmedCardImages = new Set<string>();
+function preloadImage(url: string | null | undefined): void {
+  const source = String(url ?? '').trim();
+  if (!source || typeof Image === 'undefined' || warmedCardImages.has(source)) return;
+  warmedCardImages.add(source);
+  const image = new Image();
+  image.decoding = 'async';
+  image.onerror = () => warmedCardImages.delete(source);
+  image.src = source;
+}
+
 function currentAppAssetPath(): string | null {
   if (typeof document === 'undefined') return null;
   const script = Array.from(document.querySelectorAll<HTMLScriptElement>('script[type="module"][src*="/assets/index-"]'))
@@ -441,6 +452,34 @@ const SourceToggleButton: React.FC<{
     </button>
 );
 
+const ProgressiveArenaCardImage: React.FC<{
+  fullSrc: string;
+  previewSrc: string | null;
+  alt: string;
+  onError: () => void;
+}> = ({ fullSrc, previewSrc, alt, onError }) => {
+  const [ready, setReady] = useState(false);
+  const hasPreview = Boolean(previewSrc && previewSrc !== fullSrc);
+  return (
+    <>
+      <img src={ready || !hasPreview ? fullSrc : previewSrc!} alt={alt}
+        onError={() => {
+          if (hasPreview && !ready) setReady(true);
+          else onError();
+        }}
+        width={360}
+        height={548}
+        decoding="async"
+        className="card-modal-image"
+        draggable={false} />
+      {hasPreview && !ready && (
+        <img src={fullSrc} alt="" aria-hidden="true" hidden onError={onError}
+          onLoad={() => setReady(true)} />
+      )}
+    </>
+  );
+};
+
 const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }> = ({ card, tier, onClose }) => {
   const [visible, setVisible] = useState(false);
   const [srcIdx, setSrcIdx] = useState(0);
@@ -454,6 +493,11 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
     card.cardId ? hsImgUrl(card.cardId, '512x', 'enUS') : null,
   ]), [card.cardId, card.imageHa, card.imageRu]);
   const bigSrc = modalSources[srcIdx] ?? null;
+  const previewSrc = uniqueSources([
+    card.imageRu,
+    card.imageHa,
+    card.cardId ? hsImgUrl(card.cardId) : null,
+  ])[0] ?? null;
   usePageScrollLock(true);
 
   useEffect(() => {
@@ -465,8 +509,6 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
       window.removeEventListener('keydown', onKey);
     };
   }, [onClose]);
-
-  useEffect(() => setSrcIdx(0), [card.cardId]);
 
   const sourceLabel = card.source ? TIERLIST_SOURCE_LABEL[card.source] : 'Manacost';
   const deckWinrate = card.deckWinrate ?? card.winrate;
@@ -517,12 +559,13 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
         onTouchEnd={e => e.stopPropagation()}
       >
         {bigSrc ? (
-          <img src={bigSrc} alt={card.name} onError={() => setSrcIdx(i => i + 1)}
-            width={360}
-            height={548}
-            decoding="async"
-            className="card-modal-image"
-            draggable={false} />
+          <ProgressiveArenaCardImage
+            key={bigSrc}
+            fullSrc={bigSrc}
+            previewSrc={previewSrc}
+            alt={card.name}
+            onError={() => setSrcIdx(i => i + 1)}
+          />
         ) : (
           <div className="card-modal-image-fallback" role="img" aria-label={card.name}>
             <span>{card.name}</span>
@@ -2180,6 +2223,7 @@ const LegendaryCardThumb: React.FC<{
 
   const [srcIdx, setSrcIdx] = useState(0);
   const src = sources[srcIdx] ?? null;
+  const fullSrc = card.cardId ? hsImgUrl(card.cardId, '512x') : (card.imageRu || card.imageHa || null);
   const wClass = size === 'lg' ? 'w-36' : 'w-20';
 
   if (src) {
@@ -2188,6 +2232,9 @@ const LegendaryCardThumb: React.FC<{
         type="button"
         className={`legendary-card-button ${wClass} flex-shrink-0 cursor-pointer group appearance-none border-0 bg-transparent p-0 text-left`}
         onClick={onClick}
+        onPointerEnter={() => preloadImage(fullSrc)}
+        onPointerDown={() => preloadImage(fullSrc)}
+        onFocus={() => preloadImage(fullSrc)}
         title={card.name}
         aria-label={`Открыть карту ${card.name}`}
       >
@@ -5997,6 +6044,37 @@ function ArticleCard({
 const ALL_DECK_CLASSES = '__all__';
 const DECKS_PAGE_SIZE = 10;
 
+const ProgressiveDeckCardImage: React.FC<{
+  fullSrc: string;
+  previewSrc: string | null;
+  alt: string;
+  onError: () => void;
+}> = ({ fullSrc, previewSrc, alt, onError }) => {
+  const [ready, setReady] = useState(false);
+  const hasPreview = Boolean(previewSrc && previewSrc !== fullSrc);
+  return (
+    <>
+      <img
+        src={ready || !hasPreview ? fullSrc : previewSrc!}
+        alt={alt}
+        width={360}
+        height={548}
+        decoding="async"
+        onError={() => {
+          if (hasPreview && !ready) setReady(true);
+          else onError();
+        }}
+        draggable={false}
+        style={{ width: '100%', maxWidth: '300px', height: 'auto', filter: 'drop-shadow(0 24px 60px rgba(0,0,0,0.95))' }}
+      />
+      {hasPreview && !ready && (
+        <img src={fullSrc} alt="" aria-hidden="true" hidden onError={onError}
+          onLoad={() => setReady(true)} />
+      )}
+    </>
+  );
+};
+
 const DeckCardLightbox: React.FC<{ card: ArenaDeckCard; onClose: () => void }> = ({ card, onClose }) => {
   const [visible, setVisible] = useState(false);
   const [srcIdx, setSrcIdx] = useState(0);
@@ -6018,8 +6096,6 @@ const DeckCardLightbox: React.FC<{ card: ArenaDeckCard; onClose: () => void }> =
       window.removeEventListener('keydown', onKey);
     };
   }, [onClose]);
-
-  useEffect(() => setSrcIdx(0), [card.cardId]);
 
   return createPortal(
     <div
@@ -6065,15 +6141,12 @@ const DeckCardLightbox: React.FC<{ card: ArenaDeckCard; onClose: () => void }> =
         onTouchEnd={e => e.stopPropagation()}
       >
         {bigSrc ? (
-          <img
-            src={bigSrc}
+          <ProgressiveDeckCardImage
+            key={bigSrc}
+            fullSrc={bigSrc}
+            previewSrc={card.image}
             alt={card.name}
-            width={360}
-            height={548}
-            decoding="async"
             onError={() => setSrcIdx(i => i + 1)}
-            draggable={false}
-            style={{ width: '100%', maxWidth: '300px', height: 'auto', filter: 'drop-shadow(0 24px 60px rgba(0,0,0,0.95))' }}
           />
         ) : (
           <div className="w-64 h-96 rounded-2xl flex items-center justify-center text-center px-5"
@@ -6124,6 +6197,9 @@ const DeckCardThumb: React.FC<{ card: ArenaDeckCard; compact?: boolean; onOpen?:
     <button
       type="button"
       onClick={() => onOpen?.(card)}
+      onPointerEnter={() => preloadImage(card.cardId ? hsImgUrl(card.cardId, '512x') : card.image)}
+      onPointerDown={() => preloadImage(card.cardId ? hsImgUrl(card.cardId, '512x') : card.image)}
+      onFocus={() => preloadImage(card.cardId ? hsImgUrl(card.cardId, '512x') : card.image)}
       className="relative block w-full p-0 border-0 bg-transparent cursor-zoom-in transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fcd34d] focus-visible:ring-offset-2 focus-visible:ring-offset-[#4a3018]"
       aria-label={`Открыть карту ${card.name}`}
       style={{ borderRadius: 8 }}

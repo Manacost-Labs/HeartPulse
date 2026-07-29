@@ -23,6 +23,10 @@ import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip
 import ConstructedCardHistoryChart from './ConstructedCardHistoryChart';
 import { cardSupportsStandardStatistics } from './constructedCardFormats';
 import ConstructedCardLightbox from './ConstructedCardLightbox';
+import {
+  loadConstructedCardDetail,
+  prefetchConstructedCardDetail,
+} from './constructedCardDetailPrefetch';
 import ConstructedCardCatalogSearch from './ConstructedCardCatalogSearch';
 import ConstructedCardDownloadButton from './ConstructedCardDownloadButton';
 import FilterSelect from './ConstructedCardFilterSelect';
@@ -258,6 +262,16 @@ const EMPTY_FILTERS: Filters = {
 };
 const SEARCH_REQUEST_DEBOUNCE_MS = 250;
 const STATISTIC_SORTS = new Set(['popularity', 'winrate', 'games']);
+const warmedCardImages = new Set<string>();
+function preloadImage(url: string | null | undefined): void {
+  const source = String(url ?? '').trim();
+  if (!source || typeof Image === 'undefined' || warmedCardImages.has(source)) return;
+  warmedCardImages.add(source);
+  const image = new Image();
+  image.decoding = 'async';
+  image.onerror = () => warmedCardImages.delete(source);
+  image.src = source;
+}
 const LOCKED_STATS_PLACEHOLDER: CardStats = {
   deckPopularity: 18.7,
   deckWinrate: 53.4,
@@ -516,7 +530,28 @@ function HoverTooltip({ card, rect, rankLabel, statsAccess, gate }: { card: Card
 
 function CardGallery({ cards, format, period, rank, sort, navigatePath, statsAccess, gate }: { cards: CardRecord[]; format: CardFormat; period: ConstructedCardPeriod; rank: ConstructedCardRank; sort: string; navigatePath: (path: string) => void; statsAccess: boolean; gate: StatsGateProps }) {
   const [hovered, setHovered] = useState<{ card: CardRecord; rect: DOMRect } | null>(null);
+  const prefetchTimer = useRef<number | null>(null);
   const showTooltip = (card: CardRecord, element: HTMLElement) => setHovered({ card, rect: element.getBoundingClientRect() });
+  const warmCard = (card: CardRecord, fullImage: string | null) => {
+    preloadImage(fullImage);
+    prefetchConstructedCardDetail({
+      cardId: card.card_id,
+      format,
+      statsFormat: format,
+      period,
+      rank,
+      statsAccess,
+    });
+  };
+  const scheduleWarmCard = (card: CardRecord, fullImage: string | null) => {
+    if (prefetchTimer.current !== null) window.clearTimeout(prefetchTimer.current);
+    prefetchTimer.current = window.setTimeout(() => warmCard(card, fullImage), 120);
+  };
+  const cancelWarmCard = () => {
+    if (prefetchTimer.current !== null) window.clearTimeout(prefetchTimer.current);
+    prefetchTimer.current = null;
+  };
+  useEffect(() => cancelWarmCard, []);
   return (
     <>
       <div className="constructed-cards__gallery">
@@ -533,9 +568,19 @@ function CardGallery({ cards, format, period, rank, sort, navigatePath, statsAcc
               <a
                 href={constructedCardStatsUrl(cardPath(format, card), { period, rank, statsFormat: format, defaultStatsFormat: format })}
                 className="constructed-cards__gallery-card-link"
-                onMouseEnter={event => showTooltip(card, event.currentTarget)}
-                onMouseLeave={() => setHovered(null)}
-                onFocus={event => showTooltip(card, event.currentTarget)}
+                onMouseEnter={event => {
+                  showTooltip(card, event.currentTarget);
+                  scheduleWarmCard(card, fullImage);
+                }}
+                onMouseLeave={() => {
+                  setHovered(null);
+                  cancelWarmCard();
+                }}
+                onPointerDown={() => warmCard(card, fullImage)}
+                onFocus={event => {
+                  showTooltip(card, event.currentTarget);
+                  warmCard(card, fullImage);
+                }}
                 onBlur={() => setHovered(null)}
                 onClick={event => { event.preventDefault(); navigateWithConstructedCardContext(navigatePath, cardPath(format, card), period, rank, format, format); }}
               >
@@ -589,12 +634,33 @@ function sortAria(sort: string, column: string, direction: Filters['direction'])
 
 function CardTable({ cards, format, period, rank, sort, direction, navigatePath, statsAccess }: { cards: CardRecord[]; format: CardFormat; period: ConstructedCardPeriod; rank: ConstructedCardRank; sort: string; direction: Filters['direction']; navigatePath: (path: string) => void; statsAccess: boolean }) {
   const [preview, setPreview] = useState<CardPreviewTarget | null>(null);
+  const prefetchTimer = useRef<number | null>(null);
   const showPreview = (card: CardRecord, element: HTMLElement) => setPreview({
     id: card.card_id,
     name: cardName(card),
     imageUrl: constructedCardRenderImage(card.dbf ?? card.card_id, card.images?.card),
     rect: element.getBoundingClientRect(),
   });
+  const warmCard = (card: CardRecord) => {
+    preloadImage(constructedCardRenderImage(card.dbf ?? card.card_id, card.images?.card));
+    prefetchConstructedCardDetail({
+      cardId: card.card_id,
+      format,
+      statsFormat: format,
+      period,
+      rank,
+      statsAccess,
+    });
+  };
+  const scheduleWarmCard = (card: CardRecord) => {
+    if (prefetchTimer.current !== null) window.clearTimeout(prefetchTimer.current);
+    prefetchTimer.current = window.setTimeout(() => warmCard(card), 120);
+  };
+  const cancelWarmCard = () => {
+    if (prefetchTimer.current !== null) window.clearTimeout(prefetchTimer.current);
+    prefetchTimer.current = null;
+  };
+  useEffect(() => cancelWarmCard, []);
   return (
     <>
       <div className="constructed-cards__table-wrap">
@@ -606,9 +672,19 @@ function CardTable({ cards, format, period, rank, sort, direction, navigatePath,
                 <th scope="row"><a
                   href={constructedCardStatsUrl(cardPath(format, card), { period, rank, statsFormat: format, defaultStatsFormat: format })}
                   aria-label={`Открыть карту ${cardName(card)}`}
-                  onMouseEnter={event => showPreview(card, event.currentTarget)}
-                  onMouseLeave={() => setPreview(null)}
-                  onFocus={event => showPreview(card, event.currentTarget)}
+                  onMouseEnter={event => {
+                    showPreview(card, event.currentTarget);
+                    scheduleWarmCard(card);
+                  }}
+                  onMouseLeave={() => {
+                    setPreview(null);
+                    cancelWarmCard();
+                  }}
+                  onPointerDown={() => warmCard(card)}
+                  onFocus={event => {
+                    showPreview(card, event.currentTarget);
+                    warmCard(card);
+                  }}
                   onBlur={() => setPreview(null)}
                   onClick={event => { event.preventDefault(); navigateWithConstructedCardContext(navigatePath, cardPath(format, card), period, rank, format, format); }}
                 ><HsReplayDataDeckCard card={card} /></a></th>
@@ -1184,18 +1260,25 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
     return () => window.removeEventListener('popstate', syncFromLocation);
   }, [format]);
   useEffect(() => {
-    const controller = new AbortController();
+    let cancelled = false;
     const load = async () => {
       setLoading(true); setError(null); setCard(null);
       try {
-        const params = new URLSearchParams({ format, statsFormat, period, rank });
-        const response = await fetch(`/api/constructed-cards/${encodeURIComponent(cardId)}?${params}`, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: controller.signal });
-        const payload = await response.json().catch(() => ({}));
+        const response = await loadConstructedCardDetail({
+          cardId,
+          format,
+          statsFormat,
+          period,
+          rank,
+          statsAccess,
+        });
+        const payload = response.payload;
         if (!response.ok) {
           const failure = new Error(payload.error || 'Не удалось загрузить карту') as Error & { status?: number };
           failure.status = response.status;
           throw failure;
         }
+        if (cancelled) return;
         const loadedCard = {
           ...(payload.card as CardRecord),
           mechanicTranslations: payload.mechanicTranslations || {},
@@ -1227,15 +1310,15 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
         setVariant('normal');
         setLightboxIndex(-1);
       } catch (loadError) {
-        if (!controller.signal.aborted) setError(constructedCardRequestError(
+        if (!cancelled) setError(constructedCardRequestError(
           'detail',
           Number((loadError as { status?: number })?.status ?? 0),
           loadError instanceof Error ? loadError.message : '',
         ));
-      } finally { if (!controller.signal.aborted) setLoading(false); }
+      } finally { if (!cancelled) setLoading(false); }
     };
     void load();
-    return () => controller.abort();
+    return () => { cancelled = true; };
   }, [cardId, format, period, rank, reloadToken, statsAccess, statsFormat]);
   useEffect(() => {
     if (!card) return undefined;

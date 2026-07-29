@@ -1,5 +1,18 @@
 # HS-Arena Changelog
 
+## v1.0.76 - 2026-07-29
+
+- Warmed card-detail data and immutable full-size renders when a catalog visitor
+  shows intent to open a card, while keeping the in-memory response cache
+  bounded and separated by subscription access.
+- Made constructed-card, Arena legendary and deck lightboxes display their
+  already-loaded preview immediately, then replace it with the full render as
+  soon as decoding completes.
+- Prefetched adjacent gallery media and full legendary/deck renders on hover,
+  focus or pointer-down so keyboard, mouse and touch navigation all benefit.
+- Revalidated the public sitemap pointer, XML index and its 29 static plus 1,152
+  standard-card URLs.
+
 ## v1.0.75 - 2026-07-29
 
 - Completed the same-origin media rollout on the Arena home page and global
