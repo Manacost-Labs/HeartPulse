@@ -605,6 +605,7 @@ const loadFAQPageModule = () => import('./features/FAQPage');
 const loadBgLibraryModule = () => import('./features/BgLibrary');
 const loadGuidesArchiveModule = () => import('./features/GuidesArchive');
 const loadCosmeticsModule = () => import('./features/Cosmetics');
+const loadGalleryModule = () => import('./features/GalleryTab');
 const loadStandardMatchupsModule = () => import('./features/StandardMatchups');
 const loadStandardMetaModule = () => import('./features/StandardMeta');
 const loadConstructedArchetypesModule = () => import('./features/ConstructedArchetypes');
@@ -621,14 +622,13 @@ const LazySiteFooter = React.lazy(() => import('./components/SiteFooter'));
 const LazyHomeTab = React.lazy(loadHomeModule);
 const LazyFAQPage = React.lazy(loadFAQPageModule);
 const LazyNotFoundPage = React.lazy(() => import('./features/NotFoundPageRoute'));
-
 const LazyWinrates = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.Winrates })));
 const LazyTierList = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.TierList })));
 const LazyLegendaries = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.Legendaries })));
 const LazyLoginPanel = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.LoginPanel })));
 const LazyPublicProfilePage = React.lazy(() => import('./features/PublicProfilePage'));
 const LazyArticlesTab = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.ArticlesTab })));
-const LazyGalleryTab = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.GalleryTab })));
+const LazyGalleryTab = React.lazy(loadGalleryModule);
 const LazyBgLibrary = React.lazy(loadBgLibraryModule);
 const LazyGuidesArchive = React.lazy(loadGuidesArchiveModule);
 const LazyCosmetics = React.lazy(loadCosmeticsModule);
@@ -657,7 +657,7 @@ const ROUTE_PRELOADERS: Partial<Record<TabId | 'login', () => Promise<unknown>>>
   legendaries: loadDeferredRoutesModule,
   articles: loadDeferredRoutesModule,
   faq: loadFAQPageModule,
-  gallery: loadDeferredRoutesModule,
+  gallery: loadGalleryModule,
   login: loadDeferredRoutesModule,
   'admin-panel': loadContestsModule,
   contests: loadContestsModule,

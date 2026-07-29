@@ -88,6 +88,9 @@ Status: complete.
 
 ### 2. Arena deferred routes
 
+Status: in progress. The gallery route and shared editorial chrome have been
+extracted into dedicated modules.
+
 - Extract shared Arena card types and formatting into explicit models.
 - Give win rates, tier list, legendaries, auth, articles and gallery separate
   lazy route entry points.

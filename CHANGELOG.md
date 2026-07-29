@@ -11,6 +11,10 @@
 - Added an incremental modularization plan and CI line-budget ratchets for the
   six largest application hotspots so future features extract focused modules
   instead of growing the existing monoliths.
+- Split the public gallery out of the shared Arena route bundle: gallery
+  navigation now downloads about 7 kB of route JavaScript instead of the
+  previous 115 kB all-in-one module, while hover and focus preloading continue
+  to target its dedicated chunk.
 
 ## v1.0.76 - 2026-07-29
 

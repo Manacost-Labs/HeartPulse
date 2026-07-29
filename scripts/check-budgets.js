@@ -33,11 +33,17 @@ const budgets = {
   // v1.0.74 adds one shared lazy dependency pointer for same-origin public
   // resources (+66 raw / +16 gzip bytes in startup metadata). Keep the small
   // measured allowance explicit while retaining a tight regression ratchet.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_050),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_050),
-  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_500),
+  // v1.0.77 gives Gallery its own route chunk. One extra lazy-module pointer
+  // adds 129 raw / 63 gzip bytes to the shell while removing about 108 KB from
+  // Gallery navigation; keep both sides of that measured trade-off ratcheted.
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_150),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_175),
+  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_575),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 132_710),
+  deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 108_350),
+  galleryPageJs: Number(process.env.BUDGET_GALLERY_PAGE_JS_BYTES || 4_700),
+  editorialRouteChromeJs: Number(process.env.BUDGET_EDITORIAL_ROUTE_CHROME_JS_BYTES || 2_450),
   css: Number(process.env.BUDGET_CSS_BYTES || 136_863),
   routeCss: Number(process.env.BUDGET_ROUTE_CSS_BYTES || 48_350),
   deferredRoutesCss: Number(process.env.BUDGET_DEFERRED_ROUTES_CSS_BYTES || 52_084),
@@ -78,7 +84,10 @@ const routeJs = files.filter(file =>
 );
 const css = files.find(file => /^index-.*\.css$/.test(file.name));
 const routeCss = files.find(file => /^route-parchment-.*\.css$/.test(file.name));
-const deferredRoutesCss = files.find(file => /^DeferredRoutes-.*\.css$/.test(file.name));
+const deferredRoutesCss = files.find(file => /^(?:DeferredRoutes|EditorialRouteChrome)-.*\.css$/.test(file.name));
+const deferredRoutesJs = files.find(file => /^DeferredRoutes-.*\.js$/.test(file.name));
+const galleryPageJs = files.find(file => /^GalleryTab-.*\.js$/.test(file.name));
+const editorialRouteChromeJs = files.find(file => /^EditorialRouteChrome-.*\.js$/.test(file.name));
 const loginPanelCss = files.find(file => /^LoginPanel-.*\.css$/.test(file.name));
 const faqSectionCss = files.find(file => /^FAQSection-.*\.css$/.test(file.name));
 const faqPageCss = files.find(file => /^FAQPage-.*\.css$/.test(file.name));
@@ -119,9 +128,12 @@ const checks = [
   ['initial JS raw total', initialJs, budgets.initialJs],
   ['initial JS gzip total', initialJsGzip, budgets.initialJsGzip],
   ['largest route JS', routeJs[0], budgets.routeJs],
+  ['Arena deferred route JS', deferredRoutesJs, budgets.deferredRoutesJs],
+  ['Gallery route JS', galleryPageJs, budgets.galleryPageJs],
+  ['editorial route chrome JS', editorialRouteChromeJs, budgets.editorialRouteChromeJs],
   ['initial CSS', css, budgets.css],
   ['shared route CSS', routeCss, budgets.routeCss],
-  ['deferred route-owner CSS', deferredRoutesCss, budgets.deferredRoutesCss],
+  ['Arena route-owner CSS', deferredRoutesCss, budgets.deferredRoutesCss],
   ['lazy public-auth CSS', loginPanelCss, budgets.loginPanelCss],
   ['largest lazy home-section CSS', largestHomeSectionCss, budgets.homeSectionCss],
   ['lazy FAQ-section CSS', faqSectionCss, budgets.faqSectionCss],

@@ -7,7 +7,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo, memo, useDefe
 import { createPortal } from 'react-dom';
 import '../route-parchment.css';
 import './DeferredRoutes.css';
-import { Trophy, Scroll, RefreshCw, AlertTriangle, X, Search, Star, Home, BookOpen, Menu, ChevronLeft, ChevronRight, Grid3X3, List, LogIn, Eye, EyeOff, UserCircle, ThumbsUp, ThumbsDown, ShieldCheck, Download, Image as ImageIcon, Maximize2, ArrowDown, ArrowUp, ChevronDown, Copy, ExternalLink } from 'lucide-react';
+import { Trophy, Scroll, RefreshCw, AlertTriangle, X, Search, Star, Home, BookOpen, Menu, ChevronLeft, ChevronRight, Grid3X3, List, LogIn, Eye, EyeOff, UserCircle, ThumbsUp, ThumbsDown, ShieldCheck, Image as ImageIcon, ArrowDown, ArrowUp, ChevronDown, Copy, ExternalLink } from 'lucide-react';
 import { getCanonicalRedirectUrl } from '../config/domain';
 import { publicProfilePath } from '../profileRoutes';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
@@ -16,6 +16,7 @@ import PaywallGate from '../components/PaywallGate';
 import AuthAvatar from '../components/AuthAvatar';
 import FAQSection from '../components/FAQSection';
 import TierlistEarlyStatsNotice from './TierlistEarlyStatsNotice';
+import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -4126,7 +4127,7 @@ export function LoginPanel({
                 <a href="/standard/meta" data-profile-admin-destination="standard-meta">
                   Открыть мету Standard · Beta
                 </a>
-                <a href="/?admin&section=list" data-profile-admin-destination="articles">
+                <a href={'/?admin&section=list'} data-profile-admin-destination="articles">
                   Настроить статьи
                 </a>
               </>
@@ -5717,43 +5718,6 @@ function AdminPanel({
   );
 }
 
-// ─── Footer ───────────────────────────────────────────────────────────────────
-
-function Breadcrumbs({ items }: { items: { name: string; href: string; onClick?: () => void }[] }) {
-  return (
-    <nav aria-label="Breadcrumb" className="mb-3">
-      <ol
-        className="flex items-center gap-1 flex-wrap text-xs text-[#8b6c42]"
-        itemScope
-        itemType="https://schema.org/BreadcrumbList"
-      >
-        {items.map((item, i) => (
-          <li key={i} className="flex items-center gap-1"
-            itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
-            {i < items.length - 1 ? (
-              <>
-                <a
-                  itemProp="item"
-                  href={item.href}
-                  onClick={item.onClick ? (e: React.MouseEvent) => { e.preventDefault(); item.onClick!(); } : undefined}
-                  className="inline-flex min-h-11 items-center hover:text-[#4a3018] transition-colors"
-                  style={{ textDecoration: 'none', color: 'inherit' }}
-                >
-                  <span itemProp="name">{item.name}</span>
-                </a>
-                <span className="opacity-50">›</span>
-              </>
-            ) : (
-              <span itemProp="name" className="text-[#4a3018] font-medium">{item.name}</span>
-            )}
-            <meta itemProp="position" content={String(i + 1)} />
-          </li>
-        ))}
-      </ol>
-    </nav>
-  );
-}
-
 // ─── InternalLinks ────────────────────────────────────────────────────────────
 
 function InternalLinks({ links }: { links: { label: string; href: string; onClick?: () => void }[] }) {
@@ -5782,66 +5746,6 @@ function InternalLinks({ links }: { links: { label: string; href: string; onClic
   );
 }
 
-// ─── SectionBanner ────────────────────────────────────────────────────────────
-
-function SectionBanner({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <>
-      {/* Desktop banner */}
-      <div
-        className="section-banner-modern relative overflow-hidden hidden sm:flex -mx-6 md:-mx-10 -mt-6 md:-mt-10 mb-6 flex-col items-start justify-center gap-1 px-8 md:px-10"
-        style={{
-          height: 'clamp(120px, 13vw, 165px)',
-          background: [
-            'radial-gradient(circle at 82% 18%, rgba(246,206,104,0.24), transparent 26rem)',
-            'linear-gradient(135deg, rgba(9,21,39,0.96), rgba(23,43,72,0.9) 54%, rgba(58,31,22,0.74))',
-          ].join(', '),
-          borderBottom: '1px solid rgba(246, 206, 104, 0.25)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -18px 34px rgba(5,10,19,0.22)',
-        }}
-      >
-        <h1
-          className="font-hs"
-          style={{
-            fontSize: 'clamp(1.6rem, 3.5vw, 2.55rem)',
-            color: '#fff7cf',
-            textShadow: '0 3px 18px rgba(0,0,0,0.48)',
-          }}
-        >
-          {title}
-        </h1>
-        <p
-          className="font-body font-semibold"
-          style={{
-            fontSize: 'clamp(0.75rem, 1.4vw, 0.9rem)',
-            color: '#c8d5e8',
-            textShadow: '0 1px 8px rgba(0,0,0,0.48)',
-          }}
-        >
-          {subtitle}
-        </p>
-      </div>
-
-      {/* Mobile banner — light compact header strip, no image */}
-      <div
-        className="sm:hidden -mx-3 -mt-3 mb-5 px-4 py-4 section-banner-modern"
-        style={{
-          background: 'linear-gradient(145deg, rgba(255,255,255,0.96), rgba(232,241,255,0.92))',
-          borderBottom: '1px solid rgba(148,163,184,0.34)',
-        }}
-      >
-        <h1
-          className="font-hs tracking-wide"
-          style={{ fontSize: '1.5rem', color: '#1f3654' }}
-        >
-          {title}
-        </h1>
-        <p className="text-[#52667f] text-xs mt-0.5 font-semibold">{subtitle}</p>
-      </div>
-    </>
-  );
-}
-
 // ─── ArticlesTab ──────────────────────────────────────────────────────────────
 
 interface Article {
@@ -5859,29 +5763,6 @@ interface Article {
 }
 interface ArticlesData {
   articles: Article[];
-  updatedAt: string | null;
-}
-
-interface GalleryItem {
-  id: string;
-  title: string;
-  description?: string;
-  tag?: string;
-  source?: string;
-  width?: number;
-  height?: number;
-  bytes?: number;
-  format?: string;
-  previewUrl: string;
-  thumbUrl: string;
-  imageUrl: string;
-  downloadUrl: string;
-  createdAt: string;
-  updatedAt?: string;
-}
-
-interface GalleryData {
-  items: GalleryItem[];
   updatedAt: string | null;
 }
 
@@ -6247,141 +6128,6 @@ function buildDeckPageItems(page: number, pageCount: number): Array<number | 'ga
   return items;
 }
 
-
-function formatGalleryBytes(bytes?: number) {
-  const value = Number(bytes || 0);
-  if (!value) return '';
-  if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(value >= 10 * 1024 * 1024 ? 0 : 1)} МБ`;
-  if (value >= 1024) return `${Math.round(value / 1024)} КБ`;
-  return `${value} Б`;
-}
-
-function formatGalleryDate(value?: string | null) {
-  if (!value) return '';
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return '';
-  return date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
-}
-
-function GalleryLightbox({ item, onClose }: { item: GalleryItem; onClose: () => void }) {
-  usePageScrollLock(true);
-
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  return createPortal(
-    <div className="gallery-lightbox" role="dialog" aria-modal="true" aria-label={item.title}>
-      <button type="button" className="gallery-lightbox-backdrop" onClick={onClose} aria-label="Закрыть" />
-      <div className="gallery-lightbox-panel">
-        <div className="gallery-lightbox-head">
-          <div>
-            <strong>{item.title}</strong>
-            <span>{[item.width && item.height ? `${item.width} x ${item.height}` : '', formatGalleryBytes(item.bytes)].filter(Boolean).join(' · ')}</span>
-          </div>
-          <div>
-            <a href={item.downloadUrl} className="gallery-icon-action" title="Скачать оригинал">
-              <Download size={18} aria-hidden="true" />
-            </a>
-            <button type="button" className="gallery-icon-action" onClick={onClose} title="Закрыть">
-              <X size={18} aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-        <img src={item.previewUrl || item.imageUrl} alt={item.title} decoding="async" />
-        {(item.description || item.source) && (
-          <div className="gallery-lightbox-caption">
-            {item.description && <p>{item.description}</p>}
-            {item.source && <span>{item.source}</span>}
-          </div>
-        )}
-      </div>
-    </div>,
-    document.body,
-  );
-}
-
-export function GalleryTab({
-  data,
-  loading,
-  onNavigate,
-}: {
-  data: GalleryData;
-  loading: boolean;
-  onNavigate: (tab: string) => void;
-}) {
-  const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
-  const items = Array.isArray(data.items) ? data.items : [];
-
-  return (
-    <div className="gallery-page">
-      <SectionBanner title="Галерея" subtitle="Арты Манакоста в высоком качестве для просмотра и скачивания" />
-      <Breadcrumbs items={[
-        { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
-        { name: 'Галерея', href: '/gallery' },
-      ]} />
-
-      <section className="gallery-intro" aria-label="О галерее">
-        <div>
-          <span><ImageIcon size={18} aria-hidden="true" /> Публичный раздел</span>
-          <h2>Просматривайте арты и скачивайте оригиналы</h2>
-          <p>Доступ открыт для всех пользователей. На странице показываются облегченные превью, а полный файл скачивается только по кнопке.</p>
-        </div>
-        {data.updatedAt && <time dateTime={data.updatedAt}>Обновлено: {formatGalleryDate(data.updatedAt)}</time>}
-      </section>
-
-      {loading ? (
-        <div className="gallery-grid">
-          {[1, 2, 3, 4, 5, 6].map(item => <div key={item} className="gallery-card gallery-card-skeleton" />)}
-        </div>
-      ) : items.length === 0 ? (
-        <div className="gallery-empty">
-          <ImageIcon size={42} aria-hidden="true" />
-          <strong>Арты скоро появятся</strong>
-          <span>Когда администратор загрузит изображения, они будут доступны здесь.</span>
-        </div>
-      ) : (
-        <div className="gallery-grid">
-          {items.map(item => (
-            <article key={item.id} className="gallery-card">
-              <button type="button" className="gallery-card-image" onClick={() => setSelectedItem(item)} aria-label={`Открыть ${item.title}`}>
-                <img
-                  src={item.thumbUrl || item.previewUrl}
-                  alt={item.title}
-                  width={720}
-                  height={518}
-                  loading="lazy"
-                  decoding="async"
-                />
-                <span><Maximize2 size={17} aria-hidden="true" /> Открыть</span>
-              </button>
-              <div className="gallery-card-body">
-                <div>
-                  {item.tag && <span className="gallery-tag">{item.tag}</span>}
-                  <h3>{item.title}</h3>
-                  {item.description && <p>{item.description}</p>}
-                </div>
-                <div className="gallery-card-meta">
-                  <span>{item.width && item.height ? `${item.width} x ${item.height}` : 'Высокое качество'}</span>
-                  <span>{formatGalleryBytes(item.bytes)}</span>
-                </div>
-                <a href={item.downloadUrl} className="gallery-download">
-                  <Download size={17} aria-hidden="true" />
-                  Скачать оригинал
-                </a>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-      {selectedItem && <GalleryLightbox item={selectedItem} onClose={() => setSelectedItem(null)} />}
-    </div>
-  );
-}
 
 export function ArticlesTab({
   data,
