@@ -13,6 +13,8 @@
   uncommitted paths and refuses stale or dirty integrations.
 - Restricted the production runner to one root-owned deployment gate and
   restored the CSS no-growth CI ratchet to the already deployed main baseline.
+- Made the pinned Gitleaks history and working-tree scans work from linked
+  Codex worktrees while excluding only generated build and Storybook outputs.
 
 ## v1.0.72 - 2026-07-29
 

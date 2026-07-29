@@ -188,4 +188,19 @@ test('Gitleaks scans the complete repository history with a pinned image and red
   const workingTreeArgs = buildGitleaksArgs('/workspace/manacost-arena', 'dir');
   assert.ok(workingTreeArgs.includes('dir'));
   assert.equal(workingTreeArgs.at(-1), '.');
+
+  const linkedWorktreeArgs = buildGitleaksArgs(
+    '/workspace/task-worktree',
+    'git',
+    '/workspace/main-repository/.git',
+  );
+  assert.ok(linkedWorktreeArgs.includes(
+    '/workspace/main-repository/.git:/workspace/main-repository/.git:ro',
+  ));
+
+  const config = readFileSync('.gitleaks.toml', 'utf8');
+  assert.match(config, /useDefault\s*=\s*true/);
+  assert.match(config, /\^build\//);
+  assert.match(config, /\^dist\//);
+  assert.match(config, /\^storybook-static\//);
 });

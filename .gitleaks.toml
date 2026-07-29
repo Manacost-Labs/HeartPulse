@@ -1,0 +1,10 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Generated application and component-workshop artifacts"
+paths = [
+  '''^build/''',
+  '''^dist/''',
+  '''^storybook-static/''',
+]
