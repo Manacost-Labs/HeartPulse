@@ -18,6 +18,9 @@
 - Reused the shared focus-trapped modal surface for gallery lightboxes so
   keyboard focus, Escape handling and scroll locking follow one tested
   implementation.
+- Fixed the isolated browser-observatory job so it builds the current commit
+  before starting the Vite preview instead of waiting on an absent `dist`
+  directory.
 
 ## v1.0.76 - 2026-07-29
 

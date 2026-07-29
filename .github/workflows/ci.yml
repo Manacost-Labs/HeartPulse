@@ -78,7 +78,7 @@ jobs:
         run: npm ci
 
       - name: Run full browser observatory
-        run: node scripts/browser-qa-ci.mjs
+        run: npm run qa:ci
 
   deploy-production:
     name: Deploy validated release to production

@@ -29,7 +29,11 @@ assert.match(
   ciWorkflow,
   /browser-observatory:\s+name:\s*Full browser observatory\s+runs-on:\s*ubuntu-latest\s+timeout-minutes:\s*15\s+continue-on-error:\s*true/,
 );
-assert.match(ciWorkflow, /- name:\s*Run full browser observatory\s+run:\s*node scripts\/browser-qa-ci\.mjs/);
+assert.match(
+  ciWorkflow,
+  /- name:\s*Run full browser observatory\s+run:\s*npm run qa:ci/,
+  'the isolated browser job must build the current sources before starting Vite preview',
+);
 assert.match(ciWorkflow, /npm run release:create -- --output="\$RUNNER_TEMP\/release-\$GITHUB_SHA" --sha="\$GITHUB_SHA"/);
 assert.match(ciWorkflow, /actions\/upload-artifact@v7/);
 assert.match(ciWorkflow, /name:\s*hs-arena-release-\$\{\{ github\.sha \}\}/);
