@@ -6,6 +6,7 @@ const ciWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8');
 const mobileVisualWorkflow = readFileSync('.github/workflows/mobile-visual.yml', 'utf8');
 const productionMonitorWorkflow = readFileSync('.github/workflows/production-monitor.yml', 'utf8');
 const deployment = readFileSync('DEPLOYMENT.md', 'utf8');
+const runnerSudoers = readFileSync('deploy/hs-arena-github-runner.sudoers', 'utf8');
 
 assert.match(workflow, /name:\s*Validate scraper manually/);
 assert.match(workflow, /workflow_dispatch:/);
@@ -102,5 +103,7 @@ assert.match(deployment, /hs-arena-scraper\.timer/);
 assert.match(deployment, /push to `main`/i);
 assert.match(deployment, /hs-arena-production/);
 assert.match(deployment, /\/usr\/local\/sbin\/hs-arena-ci-deploy/);
+assert.match(runnerSudoers, /^github-runner ALL=\(root\) NOPASSWD: \/usr\/local\/sbin\/hs-arena-ci-deploy \*$/m);
+assert.doesNotMatch(runnerSudoers, /NOPASSWD:\s*ALL/);
 
 console.log('workflow ownership contracts passed');

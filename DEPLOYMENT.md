@@ -51,6 +51,9 @@ sudo install -o root -g root -m 755 scripts/deploy-release.sh \
   /usr/local/libexec/hs-arena/deploy-release.sh
 sudo install -o root -g root -m 755 deploy/hs-arena-ci-deploy \
   /usr/local/sbin/hs-arena-ci-deploy
+sudo install -o root -g root -m 440 deploy/hs-arena-github-runner.sudoers \
+  /etc/sudoers.d/hs-arena-github-runner
+sudo visudo -cf /etc/sudoers.d/hs-arena-github-runner
 ```
 
 The dedicated `github-runner` account should have a single sudoers rule for

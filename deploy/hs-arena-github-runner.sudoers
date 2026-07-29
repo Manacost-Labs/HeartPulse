@@ -1,0 +1,3 @@
+# The production Actions runner may invoke only the root-owned deployment gate.
+# The gate validates artifact location, permissions, checksums and exact SHA.
+github-runner ALL=(root) NOPASSWD: /usr/local/sbin/hs-arena-ci-deploy *
