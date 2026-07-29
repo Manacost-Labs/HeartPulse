@@ -199,6 +199,7 @@ import { fetchRemoteAdminImage } from './adminRemoteImage.js';
 import { createAdminImageGenerationRouter } from './adminImageGenerationRoutes.js';
 import { createContestRouter } from './contestRoutes.js';
 import { createSubscriptionRouter } from './subscriptionRoutes.js';
+import { createEcosystemInternalRouter } from './modules/ecosystem/public.js';
 import { createAuthProfileRouter, type AuthProfilePatch } from './authProfileRoutes.js';
 import {
   ensurePublicProfileIds,
@@ -9540,29 +9541,15 @@ app.post('/api/subscription/email/confirm', authCodeVerifyLimiter, async (req, r
   res.json({ success: true, user: publicUser(user), subscription: status });
 });
 
-app.get('/api/ecosystem/internal/user', internalApiGuard, (req, res) => {
-  setPrivateNoStore(res);
-  const user = resolveUserFromRequest(req);
-  if (!user) return res.status(404).json({ error: 'User not found' });
-  res.json({ user: publicUser(user), subscription: readSubscriptionStatus(user.id) ?? emptySubscriptionStatus() });
-});
-
-app.get('/api/ecosystem/internal/subscription', internalApiGuard, async (req, res) => {
-  setPrivateNoStore(res);
-  const user = resolveUserFromRequest(req);
-  if (!user) return res.status(404).json({ error: 'User not found' });
-  const force = String(req.query.force ?? '') === '1';
-  const status = await refreshSubscriptionForUser(user, force);
-  res.json({ user: publicUser(user), subscription: status });
-});
-
-app.post('/api/ecosystem/internal/subscription', internalApiGuard, async (req, res) => {
-  setPrivateNoStore(res);
-  const user = resolveUserFromRequest(req);
-  if (!user) return res.status(404).json({ error: 'User not found' });
-  const status = await refreshSubscriptionForUser(user, true);
-  res.json({ user: publicUser(user), subscription: status });
-});
+app.use('/api', createEcosystemInternalRouter({
+  internalGuard: internalApiGuard,
+  resolveUser: resolveUserFromRequest,
+  serializeUser: publicUser,
+  readSubscription: readSubscriptionStatus,
+  emptySubscription: emptySubscriptionStatus,
+  refreshSubscription: refreshSubscriptionForUser,
+  setPrivateNoStore,
+}));
 
 // ─── Admin API (/api/admin-articles — matches Vercel file api/admin-articles.js) ─
 

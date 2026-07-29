@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 const moduleBudgets = [
   {
     path: 'server/index.ts',
-    maxLines: 9_966,
+    maxLines: 9_953,
     owner: 'server composition root',
   },
   {

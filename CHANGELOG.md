@@ -27,6 +27,11 @@
 - Fixed the isolated browser-observatory job so it builds the current commit
   before starting the Vite preview instead of waiting on an absent `dist`
   directory.
+- Started decomposing the server composition root by moving the protected
+  ecosystem user and subscription endpoints behind a focused domain router
+  with explicit authentication, serialization and persistence dependencies.
+- Added direct compatibility coverage for the extracted endpoints and lowered
+  the `server/index.ts` growth ratchet from 9,966 to 9,953 lines.
 
 ## v1.0.76 - 2026-07-29
 

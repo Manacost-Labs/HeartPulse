@@ -125,10 +125,20 @@ share one 115 kB download.
 
 ### 5. Server composition
 
+Status: in progress. The protected ecosystem user and subscription endpoints
+are the first extracted server domain slice.
+
 - Move remaining inline route families out of `server/index.ts`.
 - Separate request parsing, domain services and response serialization.
 - Keep authorization and rate-limit policy at explicit route boundaries.
 - Add endpoint latency measurements before and after each extraction.
+
+The first slice exposes `server/modules/ecosystem/public.ts` as its only public
+entry point. The composition root still owns authentication, user lookup,
+subscription persistence and refresh infrastructure; the module owns only the
+three compatible HTTP routes and receives those capabilities as explicit
+dependencies. A direct contract test preserves the existing guard, private
+cache policy, error payloads, response shapes and exact `force=1` behavior.
 
 ### 6. Application shell
 
