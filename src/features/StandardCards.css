@@ -236,7 +236,7 @@
 .constructed-cards__pagination button { display: inline-flex; gap: 0.25rem; align-items: center; justify-content: center; min-width: 40px; min-height: 40px; padding: 0 0.65rem; border: 1px solid #9f713a; color: #4b2d18; background: rgba(255, 243, 204, 0.68); font-size: 0.74rem; font-weight: 900; }
 .constructed-cards__pagination button[aria-current='page'] { border-color: #8a2024; color: #fff0c4; background: var(--cards-wine); }
 .constructed-cards__pagination button:disabled { opacity: 0.45; cursor: not-allowed; }
-.constructed-cards__state { display: grid; min-height: 430px; place-content: center; justify-items: center; padding: 2rem; text-align: center; }
+.constructed-cards__state { display: grid; min-height: 70vh; place-content: center; justify-items: center; padding: 2rem; text-align: center; }
 .constructed-cards__data-warning { display: flex; gap: 0.55rem; align-items: center; margin: 0.75rem 0; padding: 0.75rem 0.9rem; border: 1px solid #a56a2b; color: #5d361b; background: #f7dfaa; font-weight: 800; }
 .constructed-cards__state h1,
 .constructed-cards__state h2 { margin: 0.75rem 0 0.25rem; font-family: var(--font-display); font-size: clamp(1.6rem, 3vw, 2.2rem); }

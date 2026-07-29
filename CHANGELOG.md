@@ -7,6 +7,8 @@
   during browser idle time on capable connections.
 - Started lazy-route downloads on pointer-down as well as hover and keyboard
   focus, reducing the remaining delay for touch navigation.
+- Reserved viewport space for the cold card-catalog loader so a slow first API
+  response no longer shifts the footer into and out of view.
 - Warmed card-detail data and immutable full-size renders when a catalog visitor
   shows intent to open a card, while keeping the in-memory response cache
   bounded and separated by subscription access.
