@@ -263,6 +263,8 @@ export default function GlobalUtilityHeader({
           <Search size={17} aria-hidden="true" className="global-search__icon" />
           <input
             ref={searchInputRef}
+            id="global-site-search"
+            name="global-site-search"
             className="global-search__input"
             type="search"
             value={query}

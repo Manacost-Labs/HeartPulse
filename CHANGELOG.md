@@ -15,6 +15,8 @@
   29-page static segment.
 - Taught the external sitemap monitor to accept nginx's standards-compliant
   weak form of the same SHA-256 validator on gzip and Brotli responses.
+- Identified the global card/article search field for browser form tooling,
+  removing the remaining console issue on card-detail pages.
 
 ## v1.0.75 - 2026-07-29
 
