@@ -61,7 +61,7 @@
     "test:gallery-routes": "tsx tests/gallery-routes.test.ts",
     "test:favicon": "node tests/favicon-assets.test.mjs",
     "test:cosmetics": "tsx tests/cosmetics-model.test.ts && tsx tests/cosmetics-routes.test.ts && tsx tests/cosmetics-seo-routes.test.ts && tsx tests/cosmetics-ui-contract.test.ts",
-    "test:public-resources": "tsx tests/public-resource-routes.test.ts && tsx tests/public-resource-url.test.ts && node tests/public-resource-browser-contract.test.mjs",
+    "test:public-resources": "tsx tests/public-resource-routes.test.ts && tsx tests/public-resource-url.test.ts && tsx tests/article-image-src.test.ts && node tests/public-resource-browser-contract.test.mjs",
     "test:battleground-proxy-routes": "tsx tests/battleground-proxy-routes.test.ts && tsx tests/battleground-image-optimization.test.ts",
     "test:battleground-image-optimization": "tsx tests/battleground-image-optimization.test.ts",
     "test:battleground-seo-routes": "tsx tests/battleground-seo-routes.test.ts",

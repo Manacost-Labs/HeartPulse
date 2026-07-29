@@ -15,7 +15,7 @@ const articles = [
     mode: 'standard',
     date: '2026-07-18',
     url: 'https://vip.example/standard-guide',
-    image: '/standard.webp',
+    image: 'https://kolodahearthstone.ru/wp-content/uploads/standard.webp',
   },
   {
     id: 'article-arena',
@@ -38,7 +38,7 @@ const standardCards = [
     card_set: 'ESCAPEFROM_VIOLET_HOLD',
     card_type: { slug: 'MINION', name_ru: 'Существо' },
     mana_cost: 6,
-    images: { card: '/vanessa-card.png', crop: '/vanessa-crop.png' },
+    images: { card: 'https://db.kolodahs.ru/uploads/cards/vanessa-card.png', crop: '/vanessa-crop.png' },
     mechanics: ['PREPARE'],
   },
 ];
@@ -67,7 +67,7 @@ const deepCardMatch = searchGlobalContent({
 assert.equal(deepCardMatch.cards.length, 1, 'card rules text must participate in deep search');
 assert.deepEqual(deepCardMatch.cards[0].formats, ['standard', 'wild'], 'the same card must be deduplicated across formats');
 assert.equal(deepCardMatch.cards[0].path, '/standard/cards/standard/JAIL_407');
-assert.equal(deepCardMatch.cards[0].image, '/vanessa-card.png');
+assert.equal(deepCardMatch.cards[0].image, '/api/public-resource/db/uploads/cards/vanessa-card.png');
 
 const articleMatch = searchGlobalContent({
   query: 'архетипа',
@@ -79,6 +79,10 @@ const articleMatch = searchGlobalContent({
 assert.equal(articleMatch.articles.length, 1);
 assert.equal(articleMatch.articles[0].mode, 'standard');
 assert.equal(articleMatch.articles[0].vip, true);
+assert.equal(
+  articleMatch.articles[0].image,
+  '/api/article-cover?url=https%3A%2F%2Fkolodahearthstone.ru%2Fwp-content%2Fuploads%2Fstandard.webp',
+);
 assert.doesNotMatch(articleMatch.articles[0].excerpt, /<[^>]+>/, 'search snippets must be plain text');
 
 let cardLoads = 0;

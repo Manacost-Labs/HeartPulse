@@ -1,5 +1,13 @@
 # HS-Arena Changelog
 
+## v1.0.75 - 2026-07-29
+
+- Completed the same-origin media rollout on the Arena home page and global
+  article search: remote editorial covers now use the cached `/api/article-cover`
+  endpoint instead of loading directly from the publication host.
+- Reused the same URL policy in article management previews and added a
+  regression test for approved HTTPS hosts, local uploads and rejected origins.
+
 ## v1.0.74 - 2026-07-29
 
 - Routed required card, cosmetic, Battlegrounds, Wiki-art and public JSON media

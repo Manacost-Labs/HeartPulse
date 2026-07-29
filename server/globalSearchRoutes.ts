@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import type { ConstructedCardCollection, ConstructedCardFormat } from './constructedCardRoutes.js';
+import { articleImageSrc } from '../shared/articleImageSrc.js';
+import { publicResourceUrl } from '../shared/publicResourceUrl.js';
 
 type JsonRecord = Record<string, any>;
 type ArticlesCacheEntry = { data: any; etag: string };
@@ -121,7 +123,7 @@ export function searchGlobalContent(input: SearchInput) {
         mode: input.getArticleMode(article),
         date: String(article?.date ?? ''),
         url,
-        image: String(article?.image ?? ''),
+        image: articleImageSrc(String(article?.image ?? '')),
         vip: Boolean(url && input.isVipArticleUrl(url)),
       };
     });
@@ -159,7 +161,7 @@ export function searchGlobalContent(input: SearchInput) {
         name: cardName(card),
         nameEn: plainText(card?.name?.en),
         text: plainText(card?.text?.ru || card?.text?.en).slice(0, 180),
-        image: String(card?.images?.card || card?.images?.crop || ''),
+        image: publicResourceUrl(String(card?.images?.card || card?.images?.crop || '')),
         mana: Number.isFinite(Number(card?.mana_cost)) ? Number(card.mana_cost) : null,
         className: String(card?.class ?? ''),
         cardType: plainText(card?.card_type?.name_ru || card?.card_type?.slug),
