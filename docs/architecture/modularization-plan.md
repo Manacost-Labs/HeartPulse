@@ -8,6 +8,12 @@ This plan is intentionally incremental. Each slice must preserve public routes,
 API contracts and visible behavior, pass the production checks, and be safe to
 deploy independently.
 
+The governing module boundaries, dependency rules and documentation contract
+are defined in [`module-boundaries.md`](module-boundaries.md) and accepted by
+[`ADR 002`](../decisions/002-domain-modules-and-documentation-contract.md).
+This file tracks migration order; those documents define how every slice is
+structured and completed.
+
 ## Baseline
 
 The production build at commit `21daa508` exposed the following hotspots:
@@ -77,6 +83,10 @@ new spaghetti while the files are split. The long-term target is:
 
 ## Delivery order
 
+Each numbered area is delivered as a sequence of small vertical slices, not as
+one broad rewrite. A slice should normally change no more than five authored
+files, keep the application deployable and lower the ratchet it replaces.
+
 ### 1. Constructed-card catalog model
 
 Status: complete.
@@ -91,9 +101,9 @@ Status: complete.
 Status: in progress. The gallery route and shared editorial chrome have been
 extracted into dedicated modules.
 
-- Extract shared Arena card types and formatting into explicit models.
-- Give win rates, tier list, legendaries, auth, articles and gallery separate
-  lazy route entry points.
+- Extract shared Arena card types and formatting into explicit domain models.
+- Give win rates, tier list, legendaries, auth and articles separate lazy route
+  entry points, one route per slice.
 - Keep only genuinely shared primitives in a small common module.
 - Measure each resulting chunk and lower the `DeferredRoutes` budget.
 
@@ -130,12 +140,15 @@ share one 115 kB download.
 ## Definition of done for every slice
 
 - The slice has one named owner and one public entry point.
+- Dependencies follow the `app -> modules -> shared` contract and no other
+  module imports its internals.
 - Existing public URLs, response shapes and permissions remain compatible.
 - Pure behavior is tested without rendering the whole application.
 - React changes pass React Doctor; TypeScript changes pass Semgrep.
 - Type checking, focused tests, production build and budgets pass.
 - Browser checks cover the changed route, keyboard behavior and console.
-- `CHANGELOG.md` explains the user or maintainer impact.
+- The task resolves its declared `Documentation impact`; code and its owning
+  architecture, specification, decision, runbook or changelog stay consistent.
 - The line and bundle budgets are lowered when a hotspot becomes smaller.
 
 ## Performance measurement
