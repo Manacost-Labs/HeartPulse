@@ -1,0 +1,158 @@
+import { Readable, Transform } from 'node:stream';
+import { Router, type Request, type Response as ExpressResponse } from 'express';
+
+type PublicResourceSource = {
+  origin: string;
+  allowedPathPrefixes: readonly string[];
+};
+
+const PUBLIC_RESOURCE_SOURCES = {
+  db: {
+    origin: 'https://db.kolodahs.ru',
+    allowedPathPrefixes: ['/uploads/'],
+  },
+  bg: {
+    origin: 'https://bg.kolodahearthstone.ru',
+    allowedPathPrefixes: ['/assset/'],
+  },
+  hsjson: {
+    origin: 'https://art.hearthstonejson.com',
+    allowedPathPrefixes: ['/v1/'],
+  },
+  'hsjson-api': {
+    origin: 'https://api.hearthstonejson.com',
+    allowedPathPrefixes: ['/v1/'],
+  },
+  wiki: {
+    origin: 'https://hearthstone.wiki.gg',
+    allowedPathPrefixes: ['/images/'],
+  },
+  hsreplay: {
+    origin: 'https://static.hsreplay.net',
+    allowedPathPrefixes: ['/static/'],
+  },
+} as const satisfies Record<string, PublicResourceSource>;
+
+type PublicResourceSourceKey = keyof typeof PUBLIC_RESOURCE_SOURCES;
+
+const MAX_PUBLIC_RESOURCE_BYTES = 32 * 1024 * 1024;
+const PUBLIC_CONTENT_TYPE_PATTERN = /^(?:image|video|audio)\/|^application\/json(?:;|$)/i;
+const PUBLIC_CACHE_HEADER = 'public, max-age=86400, stale-while-revalidate=604800';
+const SOURCE_KEY_PATTERN = /^[a-z][a-z0-9-]{0,31}$/;
+
+type PublicResourceRouterOptions = {
+  fetchResource?: (url: string, init?: RequestInit) => Promise<Response>;
+};
+
+function publicResourceSource(value: unknown): PublicResourceSource | null {
+  const key = String(value ?? '').trim();
+  if (!SOURCE_KEY_PATTERN.test(key)) return null;
+  return PUBLIC_RESOURCE_SOURCES[key as PublicResourceSourceKey] ?? null;
+}
+
+function requestedPublicResourceUrl(request: Request, source: PublicResourceSource): URL | null {
+  const rawPath = String(request.params[0] ?? '');
+  if (!rawPath || rawPath.includes('\0') || rawPath.includes('\\')) return null;
+
+  const target = new URL(`/${rawPath}`, source.origin);
+  if (
+    target.origin !== source.origin
+    || !source.allowedPathPrefixes.some(prefix => target.pathname.startsWith(prefix))
+  ) {
+    return null;
+  }
+
+  const requestUrl = new URL(request.originalUrl, 'https://arena.hs-manacost.ru');
+  target.search = requestUrl.search;
+  return target;
+}
+
+function isAllowedFinalUrl(value: string, source: PublicResourceSource): boolean {
+  try {
+    const finalUrl = new URL(value);
+    return finalUrl.origin === source.origin
+      && source.allowedPathPrefixes.some(prefix => finalUrl.pathname.startsWith(prefix));
+  } catch {
+    return false;
+  }
+}
+
+function copyPublicResourceHeaders(response: ExpressResponse, upstream: Response, contentType: string) {
+  response.set('Cache-Control', PUBLIC_CACHE_HEADER);
+  response.set('Content-Type', contentType);
+  response.set('Cross-Origin-Resource-Policy', 'same-origin');
+  response.set('X-Content-Type-Options', 'nosniff');
+  for (const header of ['accept-ranges', 'content-length', 'content-range', 'etag', 'last-modified'] as const) {
+    const value = upstream.headers.get(header);
+    if (value) response.set(header, value);
+  }
+}
+
+export function createPublicResourceRouter(options: PublicResourceRouterOptions = {}): Router {
+  const router = Router();
+  const fetchResource = options.fetchResource ?? fetch;
+
+  router.get('/public-resource/:source/*', async (request, response) => {
+    const source = publicResourceSource(request.params.source);
+    if (!source) return response.status(400).json({ error: 'Неизвестный источник ресурса' });
+
+    const target = requestedPublicResourceUrl(request, source);
+    if (!target) return response.status(400).json({ error: 'Некорректный путь ресурса' });
+
+    try {
+      const upstream = await fetchResource(target.toString(), {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)',
+          ...(request.headers.range ? { Range: request.headers.range } : {}),
+        },
+        redirect: 'follow',
+        signal: AbortSignal.timeout(20_000),
+      });
+      const finalUrl = upstream.url || target.toString();
+      const contentType = String(upstream.headers.get('content-type') ?? '').trim().toLowerCase();
+      const contentLength = Number(upstream.headers.get('content-length'));
+      if (
+        !upstream.ok
+        || !isAllowedFinalUrl(finalUrl, source)
+        || !PUBLIC_CONTENT_TYPE_PATTERN.test(contentType)
+        || (Number.isFinite(contentLength) && contentLength > MAX_PUBLIC_RESOURCE_BYTES)
+      ) {
+        await upstream.body?.cancel();
+        return response.status(502).json({ error: 'Источник вернул некорректный ресурс' });
+      }
+
+      response.status(upstream.status);
+      copyPublicResourceHeaders(response, upstream, contentType);
+      if (!upstream.body) return response.end();
+
+      let streamedBytes = 0;
+      const sizeLimiter = new Transform({
+        transform(chunk, _encoding, callback) {
+          streamedBytes += chunk.length;
+          if (streamedBytes > MAX_PUBLIC_RESOURCE_BYTES) {
+            callback(new Error('Public resource exceeded the streaming size limit'));
+            return;
+          }
+          callback(null, chunk);
+        },
+      });
+      const stream = Readable.fromWeb(upstream.body as any);
+      const handleStreamError = (error: Error) => {
+        console.warn('[public-resource] stream interrupted', target.toString(), error);
+        response.destroy(error);
+      };
+      stream.on('error', handleStreamError);
+      sizeLimiter.on('error', handleStreamError);
+      response.once('close', () => {
+        stream.destroy();
+        sizeLimiter.destroy();
+      });
+      return stream.pipe(sizeLimiter).pipe(response);
+    } catch (error) {
+      console.warn('[public-resource] unavailable', target.toString(), error);
+      return response.status(502).json({ error: 'Ресурс временно недоступен' });
+    }
+  });
+
+  return router;
+}

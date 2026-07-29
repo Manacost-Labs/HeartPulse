@@ -103,12 +103,23 @@ const edgeLocations = parseLocationBlocks(edgeStaticSource);
 const edgeCardImageLocation = edgeLocations.find(location => (
   location.modifier === '^~' && location.pattern === '/api/card-image/'
 ));
+const edgePublicResourceLocation = edgeLocations.find(location => (
+  location.modifier === '^~' && location.pattern === '/api/public-resource/'
+));
 assert.match(edgeCardImageLocation?.body || '', /proxy_cache\s+hs_arena_cache;/,
   'card images must override the generic API BYPASS location and use the regional cache');
 assert.match(edgeCardImageLocation?.body || '', /proxy_cache_key\s+"\$scheme:\$request_method:\$host:\$request_uri";/,
   'card-image cache keys must include the immutable source-version query');
 assert.doesNotMatch(edgeCardImageLocation?.body || '', /proxy_(?:no_cache|cache_bypass)/,
   'the dedicated card-image edge route must never inherit the generic API bypass');
+assert.match(edgePublicResourceLocation?.body || '', /proxy_cache\s+hs_arena_cache;/,
+  'public resources must override the generic API BYPASS location and use the regional cache');
+assert.match(edgePublicResourceLocation?.body || '', /proxy_cache_valid\s+200\s+206\s+30d;/,
+  'public resources and range responses must use the regional cache');
+assert.match(edgePublicResourceLocation?.body || '', /proxy_cache_lock\s+on;/,
+  'cold public-resource cache misses must be collapsed at each edge');
+assert.doesNotMatch(edgePublicResourceLocation?.body || '', /proxy_(?:no_cache|cache_bypass)/,
+  'the dedicated public-resource edge route must never inherit the generic API bypass');
 assert.doesNotMatch(edgeStaticSource, /proxy_cache_valid\s+404|expires\s+30d|Cache-Control/i,
   'edge proxies must preserve the origin no-store policy for missing assets');
 assert.match(edgeStaticSource, /X-Proxy-Region\s+\$arena_proxy_region\s+always;/,

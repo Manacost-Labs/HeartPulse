@@ -24,6 +24,7 @@
     "server/healthRoutes.ts",
     "server/jsonBody.ts",
     "server/metrics.ts",
+    "server/publicResourceRoutes.ts",
     "server/networkBoundary.ts",
     "server/observability.ts",
     "server/viciousGoldBuilds.ts",

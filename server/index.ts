@@ -35,6 +35,7 @@ import { createRouteAwareJsonParser, createUploadAuthorizationGuard } from './js
 import { createReferralRedirectHandler, createReferralRouter } from './referralRoutes.js';
 import { createGalleryRouter } from './galleryRoutes.js';
 import { createCosmeticsDataService, createCosmeticsRouter } from './cosmeticsRoutes.js';
+import { createPublicResourceRouter } from './publicResourceRoutes.js';
 import { createCosmeticsSeoRouter } from './cosmeticsSeoRoutes.js';
 import { createBattlegroundProxyRouter } from './battlegroundProxyRoutes.js';
 import {
@@ -8036,6 +8037,7 @@ const cosmeticsDataService = createCosmeticsDataService({
     return upstream.json();
   },
 });
+app.use('/api', createPublicResourceRouter());
 app.use('/api', createCosmeticsRouter(cosmeticsDataService, { fetchMedia: fetch }));
 app.use(createCosmeticsSeoRouter({
   loadDetail: cosmeticsDataService.loadDetail,
