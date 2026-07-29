@@ -517,14 +517,12 @@ function goldenCardImage(card: LibraryCard): string | null {
 
 function goldenVariantImage(card: LibraryCard): string | null {
   return properImage(card.images?.golden)
-    || (isLikelyGoldenCardId(card.card_id) ? properImage(card.images?.card) : null);
+    || (isLikelyGoldenCardId(card.card_id) ? hearthstoneJsonBgCardUrl(card.card_id) : null);
 }
 
 function goldenVariantFallbackImages(card: LibraryCard, current: string): string[] {
   return uniqueStrings([
     properImage(card.images?.golden),
-    isLikelyGoldenCardId(card.card_id) ? properImage(card.images?.card) : null,
-    isLikelyGoldenCardId(card.card_id) ? properImage(card.images?.framed) : null,
     hearthstoneJsonBgCardUrl(card.card_id),
     hearthstoneJsonBgCardUrl(card.card_id, '256x'),
   ]).filter(candidate => candidate !== current);

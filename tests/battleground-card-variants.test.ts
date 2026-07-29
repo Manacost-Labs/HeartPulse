@@ -72,5 +72,13 @@ assert.match(
   /selectedVariantCard/,
   'card text and metadata must be derived from the selected variant record',
 );
+const goldenFallbackSource = detailPageSource.match(
+  /function goldenVariantFallbackImages[\s\S]*?\n}\n/,
+)?.[0] || '';
+assert.doesNotMatch(
+  goldenFallbackSource,
+  /images\?\.(card|framed)/,
+  'golden fallback chain must never show a normal card render',
+);
 
 console.log('battleground card variants contracts passed');
