@@ -31,6 +31,7 @@ import { createScrapeQueueHandler } from './scrapeQueue.js';
 import { decodeSignedStateCookie, encodeSignedStateCookie, safeAuthReturnTo } from './authRedirect.js';
 import { csrfRequestAllowed } from './csrf.js';
 import { configureLoopbackProxyTrust, corsOriginAllowed, getTrustedClientIp } from './networkBoundary.js';
+import { isPublicMediaApiRequest } from './apiRateLimitPolicy.js';
 import { createRouteAwareJsonParser, createUploadAuthorizationGuard } from './jsonBody.js';
 import { createReferralRedirectHandler, createReferralRouter } from './referralRoutes.js';
 import { createGalleryRouter } from './galleryRoutes.js';
@@ -7404,6 +7405,19 @@ app.use((req, res, next) => {
   next();
 });
 
+// Media-heavy pages use a separate limiter so images cannot exhaust the data
+// API budget, while still bounding uncached proxy traffic per client.
+const publicMediaLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 1_200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Слишком много запросов ресурсов. Попробуйте через минуту.' },
+  skip: req => req.ip === '127.0.0.1' || req.ip === '::1',
+});
+app.use('/api/public-resource/', publicMediaLimiter);
+app.use('/api/article-cover', publicMediaLimiter);
+
 // Rate limiting: max 120 req/min per IP for data API
 const apiLimiter = rateLimit({
   windowMs: 60_000,
@@ -7413,6 +7427,7 @@ const apiLimiter = rateLimit({
   message: { error: 'Слишком много запросов. Попробуйте через минуту.' },
   skip: (req) => (
     req.path.startsWith('/card-image/')
+    || isPublicMediaApiRequest(req.method, req.path)
     || (req.method === 'GET' && req.originalUrl.startsWith('/api/gallery/'))
     || req.ip === '127.0.0.1'
     || req.ip === '::1'

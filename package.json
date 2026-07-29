@@ -38,7 +38,7 @@
     "test:auth-security": "tsx tests/auth-security.test.ts",
     "test:csrf": "tsx tests/csrf.test.ts",
     "test:metrics": "tsx tests/metrics.test.ts",
-    "test:network-boundary": "tsx tests/network-boundary.test.ts",
+    "test:network-boundary": "tsx tests/network-boundary.test.ts && tsx tests/api-rate-limit-policy.test.ts",
     "test:json-body": "tsx tests/json-body.test.ts",
     "test:local-smtp": "tsx tests/local-smtp.test.ts",
     "test:production-monitor": "node tests/production-monitor.test.mjs",

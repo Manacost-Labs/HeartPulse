@@ -7,6 +7,9 @@
   endpoint instead of loading directly from the publication host.
 - Reused the same URL policy in article management previews and added a
   regression test for approved HTTPS hosts, local uploads and rejected origins.
+- Isolated cached image traffic from the 120-request data API budget and added
+  a separate bounded media allowance, preventing normal multi-page browsing
+  from turning card and cosmetic images into `429` responses.
 
 ## v1.0.74 - 2026-07-29
 
