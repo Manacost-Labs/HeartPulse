@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import type { ConstructedCardCollection, ConstructedCardFormat } from './constructedCardRoutes.js';
 import { articleImageSrc } from '../shared/articleImageSrc.js';
-import { publicResourceUrl } from '../shared/publicResourceUrl.js';
 
 type JsonRecord = Record<string, any>;
 type ArticlesCacheEntry = { data: any; etag: string };
@@ -78,6 +77,15 @@ function articleDateMs(article: JsonRecord): number {
 
 function cardName(card: JsonRecord): string {
   return plainText(card?.name?.ru || card?.name?.en || card?.name || card?.card_id);
+}
+
+function cardImagePath(card: JsonRecord): string {
+  const dbf = Number(card?.dbf);
+  const cardId = String(card?.card_id ?? '').trim();
+  const imageId = Number.isInteger(dbf) && dbf > 0 ? String(dbf) : cardId;
+  return /^[A-Za-z0-9_]{1,80}$/.test(imageId)
+    ? `/api/card-image/${encodeURIComponent(imageId)}/thumb.webp`
+    : '';
 }
 
 function cardSearchFields(card: JsonRecord): unknown[] {
@@ -161,7 +169,7 @@ export function searchGlobalContent(input: SearchInput) {
         name: cardName(card),
         nameEn: plainText(card?.name?.en),
         text: plainText(card?.text?.ru || card?.text?.en).slice(0, 180),
-        image: publicResourceUrl(String(card?.images?.card || card?.images?.crop || '')),
+        image: cardImagePath(card),
         mana: Number.isFinite(Number(card?.mana_cost)) ? Number(card.mana_cost) : null,
         className: String(card?.class ?? ''),
         cardType: plainText(card?.card_type?.name_ru || card?.card_type?.slug),

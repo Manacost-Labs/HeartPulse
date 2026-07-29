@@ -10,6 +10,8 @@
 - Isolated cached image traffic from the 120-request data API budget and added
   a separate bounded media allowance, preventing normal multi-page browsing
   from turning card and cosmetic images into `429` responses.
+- Routed global-search card thumbnails through Arena's local Blizzard image
+  cache instead of exposing the Blizzard CloudFront URL to the browser.
 
 ## v1.0.74 - 2026-07-29
 

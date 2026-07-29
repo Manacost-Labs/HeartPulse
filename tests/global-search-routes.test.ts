@@ -35,6 +35,7 @@ const standardCards = [
     name: { ru: 'Главарь Ванесса', en: 'Vanessa the Ringleader' },
     text: { ru: '<b>Подготовка</b>. Получите существо с Боевым кличем.', en: 'Prepare.' },
     class: 'NEUTRAL',
+    dbf: 127319,
     card_set: 'ESCAPEFROM_VIOLET_HOLD',
     card_type: { slug: 'MINION', name_ru: 'Существо' },
     mana_cost: 6,
@@ -67,7 +68,7 @@ const deepCardMatch = searchGlobalContent({
 assert.equal(deepCardMatch.cards.length, 1, 'card rules text must participate in deep search');
 assert.deepEqual(deepCardMatch.cards[0].formats, ['standard', 'wild'], 'the same card must be deduplicated across formats');
 assert.equal(deepCardMatch.cards[0].path, '/standard/cards/standard/JAIL_407');
-assert.equal(deepCardMatch.cards[0].image, '/api/public-resource/db/uploads/cards/vanessa-card.png');
+assert.equal(deepCardMatch.cards[0].image, '/api/card-image/127319/thumb.webp');
 
 const articleMatch = searchGlobalContent({
   query: 'архетипа',
