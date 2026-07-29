@@ -92,6 +92,16 @@ assert.ok(
   'responsive QA must protect the shared header and footer geometry',
 );
 assert.ok(
+  browserQa.includes("const expectedFooterColumns = profileId === 'medium' ? 3 : 1;")
+    && browserQa.includes('chrome.footerLinks.length === 10'),
+  'responsive QA must model the three-section developer footer at every mobile profile',
+);
+assert.ok(
+  browserQa.includes("'/developers/api/'")
+    && browserQa.includes("'/api/v1/openapi.json'"),
+  'browser QA must keep the public API documentation links in the canonical footer',
+);
+assert.ok(
   browserQa.includes('responsive-manifest.json'),
   'responsive screenshots must have a machine-readable manifest',
 );

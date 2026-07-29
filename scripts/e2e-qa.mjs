@@ -2012,13 +2012,18 @@ async function inspectSharedMobileChrome(page) {
 }
 
 function assertSharedMobileChrome(label, profileId, chrome) {
-  const footerHeightMaximum = { 'compact-min': 520, 'phone-baseline': 500, medium: 360 }[profileId];
+  // The developer resources are a first-class third footer section. On
+  // phones the sections stack into one column; the medium profile has enough
+  // room for all three columns. Keep the height caps close to the measured
+  // geometry so future content growth still has an explicit review point.
+  const footerHeightMaximum = { 'compact-min': 800, 'phone-baseline': 780, medium: 360 }[profileId];
+  const expectedFooterColumns = profileId === 'medium' ? 3 : 1;
   const targetIsLargeEnough = target => target && target.width >= 44 && target.height >= 44;
   const valid = chrome.header?.height >= 40 && chrome.header.height <= 50
     && targetIsLargeEnough(chrome.searchInput)
     && targetIsLargeEnough(chrome.faqButton)
-    && chrome.footerColumnCount === 2
-    && chrome.footerLinks.length === 8
+    && chrome.footerColumnCount === expectedFooterColumns
+    && chrome.footerLinks.length === 10
     && chrome.footerLinks.every(targetIsLargeEnough)
     && chrome.footer?.height <= footerHeightMaximum
     && !chrome.pageOverflows
@@ -5430,7 +5435,16 @@ for (const [device, viewport] of [
     if (!homeCssState.faqCss) failures.push('home lazy sections: FAQ owner CSS did not load');
     if (!homeCssState.supportCss) failures.push('home lazy sections: support-prompt owner CSS did not load');
     if (!homeCssState.footerCss || !homeCssState.footerMarkup) failures.push('home lazy sections: site-footer owner or markup did not load');
-    const expectedFooterLinks = ['/', '/classes', '/tierlist', '/legendaries', '/articles', '/gallery'];
+    const expectedFooterLinks = [
+      '/',
+      '/classes',
+      '/tierlist',
+      '/legendaries',
+      '/articles',
+      '/gallery',
+      '/developers/api/',
+      '/api/v1/openapi.json',
+    ];
     if (JSON.stringify(homeCssState.footerLinks) !== JSON.stringify(expectedFooterLinks)) {
       failures.push(`home lazy sections: canonical footer links are incomplete (${homeCssState.footerLinks.join(', ')})`);
     }
