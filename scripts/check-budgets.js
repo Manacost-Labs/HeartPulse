@@ -28,15 +28,17 @@ const budgets = {
   // The public Fun Decks route adds one navigation definition and one lazy
   // module pointer to the shell, plus one materialized SEO registry entry.
   // Keep those measured raw additions explicit while preserving the stricter
-  // compressed startup ceiling.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 65_200),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 258_250),
-  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_000),
+  // compressed startup ceiling. v1.0.72 added the constructed-card catalog
+  // controls and current public route inventory after the last ratchet update.
+  // Pin the exact deployed-main build so CI blocks any additional growth.
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 66_911),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 259_929),
+  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_465),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
-  routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 118_000),
-  css: Number(process.env.BUDGET_CSS_BYTES || 135_500),
+  routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 132_710),
+  css: Number(process.env.BUDGET_CSS_BYTES || 136_863),
   routeCss: Number(process.env.BUDGET_ROUTE_CSS_BYTES || 48_350),
-  deferredRoutesCss: Number(process.env.BUDGET_DEFERRED_ROUTES_CSS_BYTES || 52_000),
+  deferredRoutesCss: Number(process.env.BUDGET_DEFERRED_ROUTES_CSS_BYTES || 52_084),
   loginPanelCss: Number(process.env.BUDGET_LOGIN_PANEL_CSS_BYTES || 4_500),
   homeSectionCss: Number(process.env.BUDGET_HOME_SECTION_CSS_BYTES || 5_000),
   faqSectionCss: Number(process.env.BUDGET_FAQ_SECTION_CSS_BYTES || 4_000),
@@ -44,7 +46,7 @@ const budgets = {
   faqPageJs: Number(process.env.BUDGET_FAQ_PAGE_JS_BYTES || 5_500),
   supportPromptCss: Number(process.env.BUDGET_SUPPORT_PROMPT_CSS_BYTES || 4_000),
   siteFooterCss: Number(process.env.BUDGET_SITE_FOOTER_CSS_BYTES || 4_000),
-  seoRegistryJs: Number(process.env.BUDGET_SEO_REGISTRY_JS_BYTES || 12_450),
+  seoRegistryJs: Number(process.env.BUDGET_SEO_REGISTRY_JS_BYTES || 14_050),
   deckViewVendorJs: Number(process.env.BUDGET_DECK_VIEW_VENDOR_JS_BYTES || 31_000),
   deckListJs: Number(process.env.BUDGET_DECK_LIST_JS_BYTES || 6_500),
   deckListCss: Number(process.env.BUDGET_DECK_LIST_CSS_BYTES || 5_200),
