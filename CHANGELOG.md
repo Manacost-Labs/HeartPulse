@@ -1,5 +1,14 @@
 # HS-Arena Changelog
 
+## v1.0.71 - 2026-07-29
+
+- Added an accessible normal/golden selector to Battlegrounds minion detail
+  pages when the catalog provides an exact golden pair.
+- Switched the card image, rules text, attack, health, DBF and wiki source from
+  the selected API record without synthesizing golden values.
+- Kept pages without a reliable golden image unchanged and limited lookups to
+  the current card pair instead of loading the full archive.
+
 ## v1.0.70 - 2026-07-28
 
 - Hid the Standard statistics option on explicitly Wild-only card pages and

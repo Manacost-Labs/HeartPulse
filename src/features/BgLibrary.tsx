@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BarChart3, ChevronDown, ExternalLink, Filter, Search } from 'lucide-react';
 import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
+import BattlegroundCardVariantToggle, {
+  type BattlegroundCardVariant,
+} from './BattlegroundCardVariantToggle';
+import {
+  battlegroundBaseCardId,
+  findBattlegroundCardVariants,
+} from './battlegroundCardVariants';
 import '../route-parchment.css';
 import '../battlegrounds-shell.css';
 import '../battlegrounds-parchment.css';
@@ -506,6 +513,21 @@ function fallbackCardImages(card: LibraryCard, current: string, includeArt = fal
 function goldenCardImage(card: LibraryCard): string | null {
   const golden = properImage(card.images?.golden);
   return golden && golden !== primaryCardImage(card) ? golden : null;
+}
+
+function goldenVariantImage(card: LibraryCard): string | null {
+  return properImage(card.images?.golden)
+    || (isLikelyGoldenCardId(card.card_id) ? properImage(card.images?.card) : null);
+}
+
+function goldenVariantFallbackImages(card: LibraryCard, current: string): string[] {
+  return uniqueStrings([
+    properImage(card.images?.golden),
+    isLikelyGoldenCardId(card.card_id) ? properImage(card.images?.card) : null,
+    isLikelyGoldenCardId(card.card_id) ? properImage(card.images?.framed) : null,
+    hearthstoneJsonBgCardUrl(card.card_id),
+    hearthstoneJsonBgCardUrl(card.card_id, '256x'),
+  ]).filter(candidate => candidate !== current);
 }
 
 function hasReliableGolden(card: LibraryCard): boolean {
@@ -1479,6 +1501,8 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
   const [spellStats, setSpellStats] = useState<FirestoneSpellStat[]>([]);
   const [relatedCards, setRelatedCards] = useState<LibraryCard[]>([]);
   const [strategies, setStrategies] = useState<StrategyEntry[]>([]);
+  const [goldenVariant, setGoldenVariant] = useState<LibraryCard | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<BattlegroundCardVariant>('normal');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -1510,14 +1534,38 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
     } else {
       baseRequests.push(Promise.resolve(null));
     }
+    baseRequests.push(
+      kind === 'minion'
+        ? cardRequest
+          .then(loadedCard => {
+            const variantSearchCardId = battlegroundBaseCardId(loadedCard.card_id);
+            return fetchJson<{ data: LibraryCard[] }>(versionedLibraryUrl('/api/bg/library/cards', {
+              card_type: 'minion',
+              in_pool: 0,
+              q: variantSearchCardId,
+            }));
+          })
+          .then(result => result.data || [])
+          .catch(() => [])
+        : Promise.resolve([]),
+    );
 
     Promise.all(baseRequests)
       .then(results => {
         if (!alive) return;
         const loadedCard = results[0] as LibraryCard;
-        setCard(loadedCard);
+        const variants = findBattlegroundCardVariants(
+          loadedCard,
+          results[4] as LibraryCard[],
+        );
+        const normalCard = variants.normal || loadedCard;
+        setSelectedVariant('normal');
+        setCard(normalCard);
+        setGoldenVariant(variants.golden);
         setStrategies(parseStrategies(String(results[1] || '')));
-        setRelatedCards(dedupeLibraryCards((results[2] as LibraryCard[]).filter(item => item.dbf !== loadedCard.dbf)));
+        setRelatedCards(dedupeLibraryCards((results[2] as LibraryCard[]).filter(
+          item => battlegroundBaseCardId(item.card_id) !== battlegroundBaseCardId(normalCard.card_id),
+        )));
         if (kind === 'minion' && pool === 'current') {
           setDetail(results[3] as MinionDetail | null);
           setSpellStats([]);
@@ -1528,14 +1576,14 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
           setSpellStats([]);
           setDetail(null);
         }
-        const loadedCardName = cardRuName(loadedCard);
+        const loadedCardName = cardRuName(normalCard);
         const title = pool === 'archive'
           ? `${loadedCardName} — архив · ${section.shortTitle} BG Hearthstone | HS-Manacost`
           : `${loadedCardName} — ${section.shortTitle} BG Hearthstone | HS-Manacost`;
         const description = pool === 'archive'
           ? `${loadedCardName}: архивная карта Полей сражений Hearthstone вне активного пула.`
-          : `${loadedCardName}: ${cardGroupName(loadedCard)}, ${cardRulesText(loadedCard) || 'подробная карточка Полей сражений.'}`;
-        setLibraryMeta(title, description, cardPath(loadedCard, pool), detailCardImage(loadedCard));
+          : `${loadedCardName}: ${cardGroupName(normalCard)}, ${cardRulesText(normalCard) || 'подробная карточка Полей сражений.'}`;
+        setLibraryMeta(title, description, cardPath(normalCard, pool), detailCardImage(normalCard));
       })
       .catch(errorValue => {
         if (alive) setError(errorValue?.message || 'Не удалось загрузить карту');
@@ -1577,11 +1625,21 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
   const mainAverage = kind === 'spell' ? spellStat?.average_placement : detail?.avg_placement_with;
   const mainPopularity = kind === 'spell' ? spellStat?.total_played : detail?.popularity;
   const showStats = pool === 'current' && isBaseLibraryKind(kind);
-  const heroImage = detailCardImage(card) || '/arena-logo-icon.webp?v=arena-legacy-20260629';
-  const currentCardName = cardRuName(card);
+  const reliableGoldenImage = goldenVariant ? goldenVariantImage(goldenVariant) : null;
+  const hasGoldenVariant = kind === 'minion' && Boolean(goldenVariant && reliableGoldenImage);
+  const selectedVariantCard = selectedVariant === 'golden' && hasGoldenVariant && goldenVariant
+    ? goldenVariant
+    : card;
+  const heroImage = selectedVariant === 'golden' && reliableGoldenImage
+    ? reliableGoldenImage
+    : detailCardImage(card) || '/arena-logo-icon.webp?v=arena-legacy-20260629';
+  const heroFallbacks = selectedVariant === 'golden' && goldenVariant
+    ? goldenVariantFallbackImages(goldenVariant, heroImage)
+    : fallbackCardImages(card, heroImage, true);
+  const currentCardName = cardRuName(selectedVariantCard);
   const section = sectionFor(kind);
-  const rulesText = cardRulesText(card);
-  const wikiUrl = card.wiki_page?.url || card.wiki?.page?.url || '';
+  const rulesText = cardRulesText(selectedVariantCard);
+  const wikiUrl = selectedVariantCard.wiki_page?.url || selectedVariantCard.wiki?.page?.url || '';
 
   return (
     <div className="bg-library-detail-page space-y-6 text-[#26374f]">
@@ -1591,22 +1649,36 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
 
       <section className="bg-library-card-dossier overflow-hidden rounded-lg border border-[#cbd9ed] bg-[#f8fbff] shadow-[0_16px_38px_rgba(68,88,122,0.14)]">
         <div className="bg-library-card-dossier__layout grid gap-6 p-4 sm:p-6 lg:grid-cols-[320px_1fr]">
-          <div className="bg-library-card-dossier__art relative mx-auto w-full max-w-xs">
-            <img src={heroImage} alt={currentCardName} className="w-full drop-shadow-[0_22px_30px_rgba(21,31,47,0.22)]" data-fallbacks={fallbackCardImages(card, heroImage, true).join('|') || undefined} onError={fallbackBrokenHeroImage} />
+          <div className="bg-library-card-dossier__art relative mx-auto w-full max-w-xs flex-col">
+            <img
+              src={heroImage}
+              alt={`${currentCardName}${selectedVariant === 'golden' ? ' — золотая версия' : ''}`}
+              className="w-full drop-shadow-[0_22px_30px_rgba(21,31,47,0.22)]"
+              data-fallbacks={heroFallbacks.join('|') || undefined}
+              onError={fallbackBrokenHeroImage}
+            />
+            {hasGoldenVariant && goldenVariant ? (
+              <BattlegroundCardVariantToggle
+                value={selectedVariant}
+                normalStats={{ attack: card.attack, health: card.health }}
+                goldenStats={{ attack: goldenVariant.attack, health: goldenVariant.health }}
+                onChange={setSelectedVariant}
+              />
+            ) : null}
           </div>
           <div className="bg-library-card-dossier__copy min-w-0 space-y-5">
             <div data-tour-id="bg-library-detail-dossier">
               <p className="font-hs text-xs uppercase tracking-[0.18em] text-[#8a651f]">{section.shortTitle} · {pool === 'archive' ? 'Архив' : 'Активный пул'}</p>
               <h1 className="bg-library-card-dossier__title mt-2 font-hs text-4xl text-[#23314a] sm:text-5xl">{currentCardName}</h1>
-              <p className="mt-1 text-lg text-[#657893]">{cardEnName(card)}</p>
+              <p className="mt-1 text-lg text-[#657893]">{cardEnName(selectedVariantCard)}</p>
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {card.tavern_tier && <span className="inline-flex items-center gap-2 rounded-md border border-[#d6e1f1] bg-[#ffffff] px-3 py-2 font-semibold text-[#33445d]"><img src={tavernIcon(card.tavern_tier)} alt="" className="h-8 w-8" />Таверна {card.tavern_tier}</span>}
-              {card.creature_type && <span className="inline-flex items-center gap-2 rounded-md border border-[#d6e1f1] bg-[#ffffff] px-3 py-2 font-semibold text-[#33445d]">{RACE_ICON_BY_SLUG[card.creature_type.slug] && <img src={RACE_ICON_BY_SLUG[card.creature_type.slug]} alt="" className="h-8 w-8 rounded-full" />} {card.creature_type.name_ru}</span>}
-              {card.group?.name_ru && <span className="rounded-md border border-[#f0dca8] bg-[#fff8de] px-3 py-2 font-semibold text-[#7c5b24]">{card.group.name_ru}</span>}
-              {(card.mechanics || []).map(mechanic => <span key={mechanic.slug} className="rounded-md border border-[#e5d3f1] bg-[#fbf4ff] px-3 py-2 font-semibold text-[#603f77]">{mechanic.name_ru}</span>)}
-              {card.duos_only && <span className="rounded-md border border-[#bfdbfe] bg-[#eff6ff] px-3 py-2 font-semibold text-[#1f4e88]">Дуо</span>}
+              {selectedVariantCard.tavern_tier && <span className="inline-flex items-center gap-2 rounded-md border border-[#d6e1f1] bg-[#ffffff] px-3 py-2 font-semibold text-[#33445d]"><img src={tavernIcon(selectedVariantCard.tavern_tier)} alt="" className="h-8 w-8" />Таверна {selectedVariantCard.tavern_tier}</span>}
+              {selectedVariantCard.creature_type && <span className="inline-flex items-center gap-2 rounded-md border border-[#d6e1f1] bg-[#ffffff] px-3 py-2 font-semibold text-[#33445d]">{RACE_ICON_BY_SLUG[selectedVariantCard.creature_type.slug] && <img src={RACE_ICON_BY_SLUG[selectedVariantCard.creature_type.slug]} alt="" className="h-8 w-8 rounded-full" />} {selectedVariantCard.creature_type.name_ru}</span>}
+              {selectedVariantCard.group?.name_ru && <span className="rounded-md border border-[#f0dca8] bg-[#fff8de] px-3 py-2 font-semibold text-[#7c5b24]">{selectedVariantCard.group.name_ru}</span>}
+              {(selectedVariantCard.mechanics || []).map(mechanic => <span key={mechanic.slug} className="rounded-md border border-[#e5d3f1] bg-[#fbf4ff] px-3 py-2 font-semibold text-[#603f77]">{mechanic.name_ru}</span>)}
+              {selectedVariantCard.duos_only && <span className="rounded-md border border-[#bfdbfe] bg-[#eff6ff] px-3 py-2 font-semibold text-[#1f4e88]">Дуо</span>}
             </div>
 
             {rulesText && (
@@ -1626,15 +1698,15 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <MetricCard label="Раздел" value={section.shortTitle} />
-                <MetricCard label="Группа" value={cardGroupName(card)} />
-                <MetricCard label="DBF" value={String(card.dbf || '—')} />
-                <MetricCard label="Статус" value={pool === 'archive' ? 'Архив' : (card.in_pool ? 'В пуле' : 'Справочник')} />
+                <MetricCard label="Группа" value={cardGroupName(selectedVariantCard)} />
+                <MetricCard label="DBF" value={String(selectedVariantCard.dbf || '—')} />
+                <MetricCard label="Статус" value={pool === 'archive' ? 'Архив' : (selectedVariantCard.in_pool ? 'В пуле' : 'Справочник')} />
               </div>
             )}
 
             <div className="bg-library-card-sources flex min-w-0 flex-wrap gap-2">
-              {card.source && <span className="rounded-md border border-[#d6e1f1] bg-white px-3 py-2 text-sm font-semibold text-[#60718a]">Источник: {card.source}</span>}
-              {card.artist && <span className="rounded-md border border-[#d6e1f1] bg-white px-3 py-2 text-sm font-semibold text-[#60718a]">Художник: {card.artist}</span>}
+              {selectedVariantCard.source && <span className="rounded-md border border-[#d6e1f1] bg-white px-3 py-2 text-sm font-semibold text-[#60718a]">Источник: {selectedVariantCard.source}</span>}
+              {selectedVariantCard.artist && <span className="rounded-md border border-[#d6e1f1] bg-white px-3 py-2 text-sm font-semibold text-[#60718a]">Художник: {selectedVariantCard.artist}</span>}
               {wikiUrl && (
                 <a href={wikiUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md border border-[#d3af55] bg-[#fff8de] px-3 py-2 text-sm font-semibold text-[#7c5b24]" style={{ textDecoration: 'none' }}>
                   Страница на wiki <ExternalLink size={15} />
