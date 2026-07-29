@@ -92,14 +92,14 @@ export function AdminApiKeys({ client = adminApiKeysClient }: { client?: AdminAp
       </form>
 
       {created && (
-        <div className="admin-api-key-secret" role="status" aria-live="polite">
+        <output className="admin-api-key-secret" aria-live="polite">
           <div><strong>Скопируйте ключ сейчас</strong><span>После закрытия восстановить его нельзя.</span></div>
           <code>{created.apiKey}</code>
           <div className="admin-api-key-secret-actions">
             <button type="button" onClick={() => void copy()}>{copied ? <Check /> : <Copy />}{copied ? 'Скопировано' : 'Скопировать'}</button>
             <button type="button" onClick={() => { setCreated(null); setCopied(false); }}><X />Закрыть</button>
           </div>
-        </div>
+        </output>
       )}
 
       {message && <p className="admin-api-key-message" role="alert">{message}</p>}
