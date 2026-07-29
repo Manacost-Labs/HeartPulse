@@ -15,6 +15,7 @@ assert.ok(chromiumPath, 'Chromium/Chrome executable is required for layout diagn
 const browser = await puppeteer.launch({
   headless: 'new',
   executablePath: chromiumPath,
+  timeout: 60_000,
   args: ['--no-sandbox', '--disable-dev-shm-usage'],
 });
 
