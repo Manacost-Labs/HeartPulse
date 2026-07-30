@@ -11,6 +11,7 @@ export type AdminWorkspaceSection =
   | 'mechanics'
   | 'standard-data'
   | 'fun-decks'
+  | 'arena-synergies'
   | 'contests'
   | 'referrals'
   | 'boosty';

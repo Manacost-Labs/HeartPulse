@@ -37,6 +37,9 @@ assert.strictEqual(
 const funDecks = adminWorkspaceReducer(navigated, { type: 'navigate', section: 'fun-decks' });
 assert.equal(funDecks.section, 'fun-decks');
 
+const arenaSynergies = adminWorkspaceReducer(funDecks, { type: 'navigate', section: 'arena-synergies' });
+assert.equal(arenaSynergies.section, 'arena-synergies');
+
 const sameUserMenuClosed = adminWorkspaceReducer(
   adminWorkspaceReducer(initial, { type: 'toggleUserMenu', userId: 'user-1' }),
   { type: 'toggleUserMenu', userId: 'user-1' },
