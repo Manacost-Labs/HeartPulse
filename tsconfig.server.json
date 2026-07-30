@@ -22,6 +22,7 @@
     "server/hsreplayArenasmith.ts",
     "server/arenaSynergyAnalysis.ts",
     "server/adminArenaSynergyRoutes.ts",
+    "server/adminArenaSynergyService.ts",
     "server/health.ts",
     "server/healthRoutes.ts",
     "server/jsonBody.ts",
