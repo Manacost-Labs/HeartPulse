@@ -2,11 +2,9 @@ import { useMemo, useState } from 'react';
 import {
   AlertTriangle,
   Gauge,
-  Layers3,
   Plus,
-  RotateCcw,
   ShieldCheck,
-  WandSparkles,
+  Sparkles,
   X,
 } from 'lucide-react';
 import {
@@ -194,10 +192,10 @@ export function ArenaDraftAdvisorPanel({ payload }: { payload: ArenaSynergyPaylo
     <div role="tabpanel" className="arena-synergy-section arena-draft-advisor">
       <div className="arena-synergy-section-heading">
         <div>
-          <h3><WandSparkles size={19} aria-hidden="true" /> Помощник драфта</h3>
+          <h3><Sparkles size={19} aria-hidden="true" /> Помощник драфта</h3>
           <p>
-            Теневой режим: сравнение трёх карт по отдельной силе, доказанным
-            связкам и манакривой. Это рейтинг выбора, а не прогноз побед.
+            Сравнение трёх карт по силе, доказанным связкам и манакривой.
+            Это рейтинг выбора, а не прогноз побед.
           </p>
         </div>
         <span>Черновик v1</span>
@@ -236,9 +234,9 @@ export function ArenaDraftAdvisorPanel({ payload }: { payload: ArenaSynergyPaylo
             <div className="arena-draft-builder-heading">
               <div>
                 <h4 id="arena-draft-deck-title">
-                  <Layers3 size={18} aria-hidden="true" /> Текущая колода
+                  <Gauge size={18} aria-hidden="true" /> Текущая колода
                 </h4>
-                <p>Добавляйте копии по одной — дубликаты разрешены.</p>
+                <p>Добавляйте карты по одной.</p>
               </div>
               <span>{deckCardIds.length}/{context.deckSize}</span>
             </div>
@@ -326,7 +324,7 @@ export function ArenaDraftAdvisorPanel({ payload }: { payload: ArenaSynergyPaylo
 
           <div className="arena-draft-actions">
             <button type="button" className="contest-secondary-button" onClick={reset}>
-              <RotateCcw size={16} aria-hidden="true" /> Очистить черновик
+              Очистить черновик
             </button>
             <small>Расчёт обновляется автоматически после выбора трёх карт.</small>
           </div>
@@ -362,7 +360,7 @@ export function ArenaDraftAdvisorPanel({ payload }: { payload: ArenaSynergyPaylo
               </>
             ) : (
               <div className="arena-draft-placeholder">
-                <WandSparkles size={22} aria-hidden="true" />
+                <Sparkles size={22} aria-hidden="true" />
                 <strong>Рейтинг появится здесь</strong>
                 <span>Заполните три предложенные карты.</span>
               </div>

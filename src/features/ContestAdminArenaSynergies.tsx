@@ -10,7 +10,6 @@ import {
   Repeat2,
   Sparkles,
   UsersRound,
-  WandSparkles,
 } from 'lucide-react';
 import type {
   ArenaCombination,
@@ -585,7 +584,7 @@ export function ArenaSynergyPanel({
               className={tab === 'advisor' ? 'is-active' : ''}
               onClick={() => setTab('advisor')}
             >
-              <WandSparkles size={17} aria-hidden="true" /> Помощник драфта
+              <Sparkles size={17} aria-hidden="true" /> Помощник драфта
             </button>
           </div>
 
