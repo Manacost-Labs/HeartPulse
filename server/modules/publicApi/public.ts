@@ -6,6 +6,16 @@ export {
   type PublicApiKey,
   type PublicApiScope,
 } from './model.js';
+export {
+  createPublicCardCatalog,
+  PublicCardQueryError,
+  serializePublicCard,
+  serializePublicCardDetail,
+  type PublicCardCatalogSource,
+  type PublicCardDetail,
+  type PublicCardFormat,
+  type PublicCardSummary,
+} from './cards.js';
 export { PUBLIC_API_OPENAPI } from './openapi.js';
 export {
   createSqliteApiKeyRepository,

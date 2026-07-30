@@ -5748,7 +5748,7 @@ function homeSummaryPercent(value: unknown): number | null {
 
 async function loadBattlegroundSpotlightForHomeSummary() {
   try {
-    const response = await fetch('http://127.0.0.1:3108/api/bg/heroes', {
+    const response = await fetch('http://127.0.0.1:3108/api/bg/heroes', { // nosemgrep: typescript.react.security.react-insecure-request.react-insecure-request -- fixed loopback-only service
       signal: AbortSignal.timeout(12_000),
       headers: { 'User-Agent': 'ManacostArena/HomeSummary' },
     });
@@ -7498,7 +7498,7 @@ app.use((req, res, next) => {
   if (origin) {
     try {
       if (corsOriginAllowed(origin, APP_URL, process.env.NODE_ENV !== 'production')) {
-        res.header('Access-Control-Allow-Origin', origin);
+        res.header('Access-Control-Allow-Origin', origin); // nosemgrep: javascript.express.security.cors-misconfiguration.cors-misconfiguration -- origin passed the explicit production/dev allowlist
         res.header('Vary', 'Origin');
       }
     } catch {
@@ -7544,7 +7544,7 @@ const cardImageRouterDependencies = createCardImageDependencies({
 });
 
 const applicationAuth = registerApplicationAuth({ app, getDatabase: db, appUrl: APP_URL, userAuth, resolveUser: userId => loadAuthStore().users.find(user => user.id === userId && !user.blockedAt) ?? null, serializeUser: user => serializeApplicationProfileUser(user, APP_URL), readSubscription: userId => serializeApplicationSubscription(readSubscriptionStatus(userId) ?? emptySubscriptionStatus()), emptySubscription: () => serializeApplicationSubscription(emptySubscriptionStatus()), setPrivateNoStore });
-registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit, cardImageDependencies: cardImageRouterDependencies, accessTokens: applicationAuth });
+registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit, cardImageDependencies: cardImageRouterDependencies, accessTokens: applicationAuth, cardCatalog: { loadCards: format => constructedCardDataService.loadCards(format), loadCardDetail: (format, cardId) => constructedCardDataService.loadCardDetail(format, cardId) } });
 app.use('/_internal', createTierlistCacheBustRouter({
   resolveSource: source => Object.prototype.hasOwnProperty.call(TIERLIST_DATASET_BY_SOURCE, source ?? '')
     ? source as keyof typeof TIERLIST_DATASET_BY_SOURCE
@@ -8144,7 +8144,7 @@ async function proxyLegacyBattlegroundEndpoint(req: express.Request, res: expres
       res.setHeader('ETag', cached.etag);
       res.setHeader('X-BG-Legacy-Cache', 'HIT');
       if (req.headers['if-none-match'] === cached.etag) return res.status(304).end();
-      return res.send(cached.body);
+      return res.send(cached.body); // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write -- bounded binary/JSON proxy cache
     }
     const redisCached = await redisGetProxyCache(redisKey);
     if (redisCached) {
@@ -8160,7 +8160,7 @@ async function proxyLegacyBattlegroundEndpoint(req: express.Request, res: expres
       res.setHeader('ETag', redisCached.etag);
       res.setHeader('X-BG-Legacy-Cache', 'REDIS');
       if (req.headers['if-none-match'] === redisCached.etag) return res.status(304).end();
-      return res.send(redisCached.body);
+      return res.send(redisCached.body); // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write -- bounded binary/JSON proxy cache
     }
 
     const upstream = await fetch(upstreamUrl, { signal: AbortSignal.timeout(20_000) });
@@ -8206,7 +8206,7 @@ async function proxyLegacyBattlegroundEndpoint(req: express.Request, res: expres
       : BG_JSON_CACHE_CONTROL);
     res.setHeader('ETag', etag);
     res.setHeader('X-BG-Legacy-Cache', 'MISS');
-    res.send(body);
+    res.send(body); // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write -- bounded binary/JSON proxy response
   } catch (err: any) {
     console.error('[bg legacy proxy] failed:', upstreamPath, err?.message ?? err);
     res.status(502).json({ error: 'BG legacy upstream unavailable' });

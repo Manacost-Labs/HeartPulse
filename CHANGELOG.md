@@ -1,5 +1,16 @@
 # HS-Arena Changelog
 
+## v1.0.81 - 2026-07-30
+
+- Added the complete collectible Standard and Wild card catalogs to Public API
+  v1 with bounded filters, deterministic cursor pagination and conditional
+  `ETag` responses.
+- Added allowlisted card details, related tokens and generated-card pools;
+  their images use the existing same-origin API instead of external CDN or
+  wiki hosts.
+- Extended the OpenAPI contract and public developer page with the card list
+  and detail resources, stable error codes and catalog availability metadata.
+
 ## v1.0.80 - 2026-07-29
 
 - Added OAuth 2.0 device authorization for Manacost Tracker: browser approval,

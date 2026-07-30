@@ -105,6 +105,8 @@ try {
   assert.ok(openapiPayload.paths['/api/v1/oauth/revoke']);
   assert.ok(openapiPayload.paths['/api/v1/me']);
   assert.ok(openapiPayload.paths['/api/v1/catalog/manifest']);
+  assert.ok(openapiPayload.paths['/api/v1/cards']);
+  assert.ok(openapiPayload.paths['/api/v1/cards/{cardId}']);
   assert.ok(openapiPayload.paths['/api/v1/cards/{cardId}/images/{variant}.webp']);
   assert.ok(openapiPayload.paths['/api/admin/api-keys']);
 
@@ -171,8 +173,9 @@ try {
   assert.match(String(manifestResponse.headers.get('etag')), /^"/);
   const manifest = await manifestResponse.json() as Record<string, any>;
   assert.equal(manifest.apiVersion, 'v1');
-  assert.equal(manifest.schemaVersion, '2026-07-29');
+  assert.equal(manifest.schemaVersion, '2026-07-30');
   assert.ok(Array.isArray(manifest.resources));
+  assert.ok(manifest.resources.some((resource: Record<string, unknown>) => resource.id === 'cards'));
   assert.equal(records.get(created.key.id)?.lastUsedAt, '2026-07-29T12:00:02.000Z');
 
   const bearerManifest = await fetch(`${origin}/api/v1/catalog/manifest`, {

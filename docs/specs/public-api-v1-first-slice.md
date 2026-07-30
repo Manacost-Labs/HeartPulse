@@ -11,10 +11,12 @@ Establish the secure, documented foundation for the unified Manacost data API:
 - public developer documentation linked from the site footer;
 - same-origin card image delivery backed by the existing local cache;
 - OAuth 2.0 device authorization for the desktop tracker;
-- a minimal application profile and normalized subscription entitlements.
+- a minimal application profile and normalized subscription entitlements;
+- the complete collectible Standard and Wild card catalogs;
+- allowlisted card details with related tokens and generated-card pools.
 
-This slice does not expose raw databases and does not yet promise every card,
-deck or metagame record. Those resources will be added incrementally behind
+This slice does not expose raw databases and does not yet promise every deck,
+match or metagame record. Those resources will be added incrementally behind
 the same authentication, media and versioning contracts.
 
 ## Technical context
@@ -67,6 +69,52 @@ the same authentication, media and versioning contracts.
 The endpoint intentionally reuses the site's binary response pipeline. Cache
 generation, path containment, placeholder policy and stream error handling
 therefore have one implementation for browser and API consumers.
+
+### Card catalog
+
+`GET /api/v1/cards` requires `catalog.read` and returns the verified
+collectible catalog:
+
+- `format=standard|wild`, with Standard as the default;
+- optional `query`, `class`, `set`, `type`, `rarity` and `mechanic` filters;
+- a default page size of 60 and a hard maximum of 120;
+- an opaque, versioned `cursor` for deterministic card-ID pagination;
+- total matches, continuation state, dataset version, publication time and
+  freshness metadata.
+
+The Wild catalog is the complete collectible Hearthstone catalog, including
+cards that are not legal in Standard. Query values are scalar, bounded and
+validated before the catalog service runs. Cards are ordered by their stable
+Hearthstone card ID, so a client can resume traversal without depending on
+translated names or provider ordering.
+
+`GET /api/v1/cards/{cardId}` defaults to the Wild catalog so Standard and
+Wild-only cards have the same direct lookup behavior. It returns the same
+stable base schema plus:
+
+- grouped related cards, including hero powers, Titan abilities, quest
+  rewards and other tokens available in the source;
+- generated-card pools;
+- `partial`, `warning` and freshness metadata when the service is using a
+  verified fallback.
+
+The response is built by an explicit allowlist serializer. It never copies an
+upstream record wholesale and deliberately omits card statistics, decks,
+subscriptions, users, internal cache state, raw wiki structures and external
+media URLs. Card and token images are represented only by the same-origin
+`thumb`, `full` and `tile` API URLs.
+
+Localized card text preserves only the limited `b`, `i` and `br` markup used
+by Hearthstone. Unknown tags and attributes are discarded. Numeric fields,
+identifiers, term arrays and timestamps are normalized and bounded. A missing
+authoritative release timestamp is returned as `releasedAt: null` rather than
+using an import or scrape date as a false release date.
+
+List and detail responses provide `ETag`, honor `If-None-Match`, use private
+authenticated caching and expose bounded `X-Data-Cache` and
+`X-Dataset-Version` headers. The existing global HTTP metrics middleware
+records these routes by template, status class and latency without including
+credentials, card IDs or query values as metric labels.
 
 ### Desktop application authorization
 
@@ -173,6 +221,10 @@ but clients must branch on `code`, not message text.
 | Refresh replay | A copied refresh token is used after rotation | Atomic single-use rotation and family-wide revocation |
 | Provider-data disclosure | App reads raw Boosty or Telegram records | Dedicated allowlist serializers for profile and subscription |
 | Desktop token theft | Another process reads local application storage | Client contract requires OS credential vault; access tokens live 15 minutes |
+| Catalog field disclosure | Provider adds private or internal fields | Explicit v1 allowlist serializer; unknown fields are dropped |
+| Catalog query exhaustion | Client requests an unbounded scan response | Scalar bounded filters, maximum page size 120 and existing API rate limit |
+| Catalog markup injection | Upstream text contains executable HTML | Only `b`, `i` and `br` survive serialization |
+| External media blocking | Related cards point directly to wiki/CDN hosts | Only same-origin versioned image URLs are returned |
 
 <!-- markdownlint-enable MD013 -->
 
@@ -185,7 +237,7 @@ It includes:
 - current API status and version;
 - authentication example;
 - API-key and device-authorization examples;
-- image, profile and catalog endpoint examples;
+- card list, card detail, image, profile and catalog endpoint examples;
 - error model;
 - one-time key handling guidance;
 - link to the OpenAPI JSON;
@@ -217,6 +269,10 @@ panel closes or the administrator leaves the section.
   cross the application boundary.
 - Image contract tests cover missing and under-scoped credentials, invalid ids,
   all documented variants, conditional requests and binary response headers.
+- Card catalog tests cover authorization-before-loading, Standard and Wild
+  membership, bounded filters, cursor traversal, conditional requests,
+  allowlist redaction, markup sanitization, related tokens, generated pools,
+  invalid input, not-found and fail-closed upstream errors.
 - Route tests cover 401, 403, validation failures, one-time secret response and
   no-store headers.
 - UI tests cover footer routing and admin empty, success, error and revoke

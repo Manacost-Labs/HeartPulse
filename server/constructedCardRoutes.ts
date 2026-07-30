@@ -10,6 +10,15 @@ import {
   ConstructedCardHistoryStore,
   type ConstructedCardHistoryPoint,
 } from './constructedCardHistoryStore.js';
+import {
+  enrichConstructedCardPools,
+  enrichConstructedRelatedCards,
+} from './modules/constructedCards/relatedCards.js';
+
+export {
+  enrichConstructedCardPools,
+  enrichConstructedRelatedCards,
+} from './modules/constructedCards/relatedCards.js';
 
 export type ConstructedCardFormat = 'standard' | 'wild';
 export type ConstructedCardPeriod = '1d' | '3d' | '7d' | '14d' | 'patch';
@@ -701,76 +710,6 @@ export function completeConstructedCatalog(payloads: JsonRecord[]): JsonRecord[]
   return completeConstructedCatalogCandidate(payloads).cards;
 }
 
-export function enrichConstructedCardPools(detail: JsonRecord, catalogCards: JsonRecord[]): JsonRecord {
-  const pools = detail?.wiki?.generated_card_pools;
-  if (!Array.isArray(pools)) return detail;
-
-  const catalogById = new Map(
-    catalogCards
-      .map(card => [String(card?.card_id ?? '').trim().toUpperCase(), card] as const)
-      .filter(([cardId]) => Boolean(cardId)),
-  );
-  const generatedCardPools = pools.map((pool: JsonRecord) => {
-    const rawCards = Array.isArray(pool?.cards) ? pool.cards : [];
-    const cardIds = Array.isArray(pool?.card_ids) ? pool.card_ids : [];
-    const items = rawCards.length > 0 ? rawCards : cardIds.map((cardId: unknown) => ({ card_id: cardId }));
-    const seen = new Set<string>();
-    const cards = items.flatMap((item: JsonRecord) => {
-      const cardId = String(item?.card_id ?? item?.id ?? '').trim();
-      const key = cardId.toUpperCase();
-      if (!cardId || seen.has(key)) return [];
-      seen.add(key);
-      const catalogCard = catalogById.get(key);
-      return [{
-        ...item,
-        card_id: cardId,
-        name: catalogCard?.name ?? item?.name ?? { ru: null, en: item?.title ?? null },
-        images: catalogCard?.images ?? item?.images,
-        image_url: catalogCard?.images?.card ?? item?.image_url ?? item?.image ?? null,
-        can_open: Boolean(catalogCard),
-      }];
-    });
-    return { ...pool, cards };
-  });
-
-  return { ...detail, wiki: { ...detail.wiki, generated_card_pools: generatedCardPools } };
-}
-
-export function enrichConstructedRelatedCards(detail: JsonRecord, catalogCards: JsonRecord[]): JsonRecord {
-  const related = detail?.wiki?.related_cards;
-  if (!Array.isArray(related)) return detail;
-
-  const catalogById = new Map(
-    catalogCards
-      .map(card => [String(card?.card_id ?? '').trim().toUpperCase(), card] as const)
-      .filter(([cardId]) => Boolean(cardId)),
-  );
-  const seen = new Set<string>();
-  const relatedCards = related.flatMap((item: JsonRecord) => {
-    const cardId = String(item?.card_id ?? item?.id ?? '').trim();
-    const catalogCard = cardId ? catalogById.get(cardId.toUpperCase()) : undefined;
-    const imageUrl = catalogCard?.images?.card ?? item?.image_url ?? item?.image ?? null;
-    const rawName = catalogCard?.name ?? item?.name ?? null;
-    const name = rawName && typeof rawName === 'object' ? rawName : { ru: null, en: String(rawName ?? '').trim() || null };
-    const title = String(item?.name_ru ?? item?.title ?? name?.ru ?? name?.en ?? cardId).trim();
-    const url = String(item?.url ?? '').trim() || null;
-    if (!cardId && !title && !imageUrl && !url) return [];
-    const key = (cardId || url || `${title}|${imageUrl ?? ''}`).toUpperCase();
-    if (seen.has(key)) return [];
-    seen.add(key);
-    return [{
-      ...item,
-      card_id: cardId || null,
-      name,
-      name_ru: String(name?.ru ?? item?.name_ru ?? '').trim() || null,
-      image_url: imageUrl,
-      can_open: Boolean(catalogCard),
-    }];
-  });
-
-  return { ...detail, wiki: { ...detail.wiki, related_cards: relatedCards } };
-}
-
 function deckFormatMatches(row: JsonRecord, decodedFormat: number, format: ConstructedCardFormat): boolean {
   const explicit = String(row?.format ?? '').trim().toLowerCase();
   if (explicit === 'standard' || explicit === 'wild') return explicit === format;
@@ -1200,9 +1139,12 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
       dependencies.getArchetypeTranslations?.().catch(() => ({})) ?? Promise.resolve({}),
     ]);
     const catalogIds = new Set(collection.cards.map(card => String(card?.card_id ?? '').trim().toUpperCase()).filter(Boolean));
-    const missingRelatedIds: string[] = [...new Set<string>((Array.isArray(detail?.wiki?.related_cards) ? detail.wiki.related_cards : [])
+    const rawRelatedCards = (Array.isArray(detail?.wiki?.related_cards) ? detail.wiki.related_cards : [])
+      .flatMap((item: JsonRecord) => Array.isArray(item?.cards) ? item.cards : [item]);
+    const missingRelatedIds: string[] = [...new Set<string>(rawRelatedCards
       .map((item: JsonRecord) => String(item?.card_id ?? item?.id ?? '').trim())
-      .filter((relatedId: string) => relatedId && !catalogIds.has(relatedId.toUpperCase())))];
+      .filter((relatedId: string) => relatedId && !catalogIds.has(relatedId.toUpperCase())))]
+      .slice(0, 64);
     const relatedDetails = (await Promise.all(missingRelatedIds.map(async relatedId => {
       try {
         const relatedPayload = await dependencies.fetchJson(

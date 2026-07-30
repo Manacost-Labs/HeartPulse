@@ -2,7 +2,7 @@ export const PUBLIC_API_OPENAPI = {
   openapi: '3.1.0',
   info: {
     title: 'Manacost Public API',
-    version: '1.0.0',
+    version: '1.1.0',
     description: 'Versioned Hearthstone data API for approved applications.',
   },
   servers: [{ url: '/', description: 'Current Manacost environment' }],
@@ -180,6 +180,114 @@ export const PUBLIC_API_OPENAPI = {
           },
           '401': { $ref: '#/components/responses/InvalidCredential' },
           '403': { $ref: '#/components/responses/InsufficientScope' },
+        },
+      },
+    },
+    '/api/v1/cards': {
+      get: {
+        summary: 'List Hearthstone cards',
+        description: 'Returns an allowlisted view of the verified Standard or Wild catalog with stable cursor pagination.',
+        operationId: 'listCards',
+        tags: ['Catalog'],
+        security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
+        parameters: [
+          {
+            name: 'format',
+            in: 'query',
+            required: false,
+            description: 'Defaults to standard.',
+            schema: { type: 'string', enum: ['standard', 'wild'], default: 'standard' },
+          },
+          {
+            name: 'query',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', maxLength: 120 },
+          },
+          ...['class', 'set', 'type', 'rarity', 'mechanic'].map(name => ({
+            name,
+            in: 'query' as const,
+            required: false,
+            schema: { type: 'string' as const, pattern: '^[A-Za-z0-9_]{1,80}$' },
+          })),
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 120, default: 60 },
+          },
+          {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', minLength: 4, maxLength: 128 },
+          },
+          {
+            name: 'If-None-Match',
+            in: 'header',
+            required: false,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'A deterministic page of cards',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/CardListResponse' },
+              },
+            },
+          },
+          '304': { description: 'The representation has not changed' },
+          '400': { description: 'Invalid filter, format, limit or cursor' },
+          '401': { $ref: '#/components/responses/InvalidCredential' },
+          '403': { $ref: '#/components/responses/InsufficientScope' },
+          '503': { description: 'No verified catalog is currently available' },
+        },
+      },
+    },
+    '/api/v1/cards/{cardId}': {
+      get: {
+        summary: 'Get one Hearthstone card',
+        description: 'Returns the stable card schema plus related tokens and generated-card pools. Format defaults to wild.',
+        operationId: 'getCard',
+        tags: ['Catalog'],
+        security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
+        parameters: [
+          {
+            name: 'cardId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', pattern: '^[A-Za-z0-9_]{2,80}$' },
+          },
+          {
+            name: 'format',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['standard', 'wild'], default: 'wild' },
+          },
+          {
+            name: 'If-None-Match',
+            in: 'header',
+            required: false,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Card details and related cards',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/CardDetailResponse' },
+              },
+            },
+          },
+          '304': { description: 'The representation has not changed' },
+          '400': { description: 'Invalid card id or format' },
+          '401': { $ref: '#/components/responses/InvalidCredential' },
+          '403': { $ref: '#/components/responses/InsufficientScope' },
+          '404': { description: 'The card does not exist in the selected catalog' },
+          '503': { description: 'Card details cannot be resolved authoritatively' },
         },
       },
     },
@@ -421,6 +529,177 @@ export const PUBLIC_API_OPENAPI = {
                 href: { type: 'string' },
                 status: { type: 'string', enum: ['AVAILABLE'] },
               },
+            },
+          },
+        },
+      },
+      LocalizedCardText: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['ru', 'en'],
+        properties: {
+          ru: { type: ['string', 'null'] },
+          en: { type: ['string', 'null'] },
+        },
+      },
+      CardImages: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['thumb', 'full', 'tile'],
+        properties: {
+          thumb: { type: 'string', pattern: '^/api/v1/cards/.+/images/thumb\\.webp$' },
+          full: { type: 'string', pattern: '^/api/v1/cards/.+/images/full\\.webp$' },
+          tile: { type: 'string', pattern: '^/api/v1/cards/.+/images/tile\\.webp$' },
+        },
+      },
+      CardSummary: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'id', 'dbfId', 'slug', 'collectible', 'formats', 'name', 'text',
+          'flavor', 'set', 'type', 'rarity', 'cardClass', 'multiClass',
+          'minionType', 'minionTypes', 'spellSchool', 'cost', 'attack',
+          'health', 'durability', 'armor', 'artist', 'mechanics',
+          'referencedTags', 'keywordIds', 'releasedAt', 'images',
+        ],
+        properties: {
+          id: { type: 'string', pattern: '^[A-Za-z0-9_]{2,80}$' },
+          dbfId: { type: ['integer', 'null'], minimum: 0 },
+          slug: { type: ['string', 'null'] },
+          collectible: { type: 'boolean' },
+          formats: {
+            type: 'array',
+            uniqueItems: true,
+            items: { type: 'string', enum: ['standard', 'wild'] },
+          },
+          name: { $ref: '#/components/schemas/LocalizedCardText' },
+          text: {
+            allOf: [{ $ref: '#/components/schemas/LocalizedCardText' }],
+            description: 'Text may contain only b, i and br markup.',
+          },
+          flavor: { $ref: '#/components/schemas/LocalizedCardText' },
+          set: { type: ['string', 'null'] },
+          type: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['id', 'nameRu'],
+            properties: {
+              id: { type: ['string', 'null'] },
+              nameRu: { type: ['string', 'null'] },
+            },
+          },
+          rarity: { type: ['string', 'null'] },
+          cardClass: { type: ['string', 'null'] },
+          multiClass: { type: 'array', items: { type: 'string' } },
+          minionType: { type: ['string', 'null'] },
+          minionTypes: { type: 'array', items: { type: 'string' } },
+          spellSchool: { type: ['string', 'null'] },
+          cost: { type: ['integer', 'null'], minimum: 0 },
+          attack: { type: ['integer', 'null'], minimum: 0 },
+          health: { type: ['integer', 'null'], minimum: 0 },
+          durability: { type: ['integer', 'null'], minimum: 0 },
+          armor: { type: ['integer', 'null'], minimum: 0 },
+          artist: { type: ['string', 'null'] },
+          mechanics: { type: 'array', items: { type: 'string' } },
+          referencedTags: { type: 'array', items: { type: 'string' } },
+          keywordIds: { type: 'array', items: { type: 'integer', minimum: 1 } },
+          releasedAt: { type: ['string', 'null'], format: 'date-time' },
+          images: { $ref: '#/components/schemas/CardImages' },
+        },
+      },
+      RelatedCard: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['id', 'name', 'images'],
+        properties: {
+          id: { type: ['string', 'null'] },
+          name: { $ref: '#/components/schemas/LocalizedCardText' },
+          images: {
+            oneOf: [
+              { $ref: '#/components/schemas/CardImages' },
+              { type: 'null' },
+            ],
+          },
+        },
+      },
+      CardListResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['data', 'pagination', 'meta'],
+        properties: {
+          data: { type: 'array', items: { $ref: '#/components/schemas/CardSummary' } },
+          pagination: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['limit', 'total', 'hasMore', 'nextCursor'],
+            properties: {
+              limit: { type: 'integer', minimum: 1, maximum: 120 },
+              total: { type: 'integer', minimum: 0 },
+              hasMore: { type: 'boolean' },
+              nextCursor: { type: ['string', 'null'] },
+            },
+          },
+          meta: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['format', 'datasetVersion', 'dataStatus', 'publishedAt'],
+            properties: {
+              format: { type: 'string', enum: ['standard', 'wild'] },
+              datasetVersion: { type: 'string' },
+              dataStatus: { type: 'string', enum: ['fresh', 'stale'] },
+              publishedAt: { type: 'string', format: 'date-time' },
+            },
+          },
+        },
+      },
+      CardDetailResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['data', 'meta'],
+        properties: {
+          data: {
+            allOf: [
+              { $ref: '#/components/schemas/CardSummary' },
+              {
+                type: 'object',
+                required: ['relatedCards', 'generatedCardPools'],
+                properties: {
+                  relatedCards: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      required: ['heading', 'cards'],
+                      properties: {
+                        heading: { type: ['string', 'null'] },
+                        cards: { type: 'array', items: { $ref: '#/components/schemas/RelatedCard' } },
+                      },
+                    },
+                  },
+                  generatedCardPools: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      required: ['name', 'cards'],
+                      properties: {
+                        name: { type: ['string', 'null'] },
+                        cards: { type: 'array', items: { $ref: '#/components/schemas/RelatedCard' } },
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          meta: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['format', 'datasetVersion', 'dataStatus', 'partial', 'warning'],
+            properties: {
+              format: { type: 'string', enum: ['standard', 'wild'] },
+              datasetVersion: { type: 'string' },
+              dataStatus: { type: 'string', enum: ['fresh', 'stale'] },
+              partial: { type: 'boolean' },
+              warning: { type: ['string', 'null'] },
             },
           },
         },

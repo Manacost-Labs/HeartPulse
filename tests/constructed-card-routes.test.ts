@@ -240,6 +240,31 @@ assert.equal(detailWithRelated.wiki.related_cards[0].name.ru, 'Альфа');
 assert.equal(detailWithRelated.wiki.related_cards[0].image_url, 'alpha.png');
 assert.equal(detailWithRelated.wiki.related_cards[1].name.en, 'Внешняя карта');
 
+const groupedRelated = enrichConstructedRelatedCards({
+  wiki: {
+    related_cards: [{
+      heading: 'Choice cards',
+      cards: [
+        { card_id: 'CARD_1', title: 'Alpha' },
+        { card_id: 'TOKEN_1', title: 'Generated token', image_url: 'token.png' },
+      ],
+    }],
+  },
+}, [...catalogCards, {
+  ...catalogCards[0],
+  card_id: 'TOKEN_1',
+  dbf: 3,
+  name: { ru: 'Созданный токен', en: 'Generated token' },
+  images: { card: 'token-local.png' },
+}]);
+assert.equal(groupedRelated.wiki.related_cards.length, 1, 'wiki relation groups must not be flattened or discarded');
+assert.equal(groupedRelated.wiki.related_cards[0].heading, 'Choice cards');
+assert.equal(groupedRelated.wiki.related_cards[0].cards.length, 2);
+assert.equal(groupedRelated.wiki.related_cards[0].cards[1].name.ru, 'Созданный токен');
+assert.equal(groupedRelated.wiki.related_cards[0].cards[1].image_url, 'token-local.png');
+assert.equal(groupedRelated.related_cards_localized[0].cards[0].name.ru, 'Альфа',
+  'the card page must receive the grouped localized relation contract');
+
 const decodedDecks = constructedDecksContainingCard([{
   id: 754,
   source_id: 'vicious_syndicate_radars',

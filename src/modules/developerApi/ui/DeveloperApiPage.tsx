@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import '../developerApi.css';
 
-const CURL_EXAMPLE = `curl https://arena.hs-manacost.ru/api/v1/catalog/manifest \\
+const CURL_EXAMPLE = `curl "https://arena.hs-manacost.ru/api/v1/cards?format=standard&limit=20" \\
   -H "X-API-Key: mca_live_••••••••"`;
 
 const DEVICE_EXAMPLE = `curl -X POST https://arena.hs-manacost.ru/api/v1/oauth/device/code \\
@@ -25,8 +25,8 @@ export function DeveloperApiPage() {
           <h1>Manacost Public API</h1>
           <p>
             Версионированный доступ к данным Manacost для Hearthstone-инструментов.
-            Доступны защищённые изображения карт, сервисные API-ключи и вход пользователя
-            для Manacost Tracker без передачи пароля приложению.
+            Доступны каталог карт с токенами, защищённые изображения, сервисные
+            API-ключи и вход пользователя для Manacost Tracker без передачи пароля приложению.
           </p>
         </div>
         <div className="developer-api-version" aria-label="Текущая версия API">
@@ -37,11 +37,11 @@ export function DeveloperApiPage() {
       <section className="developer-api-status" aria-labelledby="api-status-title">
         <div>
           <span className="developer-api-status-icon is-live"><CheckCircle2 /></span>
-          <div><h2 id="api-status-title">Доступно сейчас</h2><p>OpenAPI, ключи, изображения и вход приложения</p></div>
+          <div><h2 id="api-status-title">Доступно сейчас</h2><p>Карты, токены, изображения, ключи и вход приложения</p></div>
         </div>
         <div>
           <span className="developer-api-status-icon"><Clock3 /></span>
-          <div><h2>Планируется</h2><p>Полные данные карт, колоды, матчи и мета</p></div>
+          <div><h2>Планируется</h2><p>Колоды, матчи и мета</p></div>
         </div>
       </section>
 
@@ -86,6 +86,8 @@ export function DeveloperApiPage() {
           <h2 id="api-endpoints-title">Точки входа</h2>
           <div className="developer-api-endpoints">
             <div><span>GET</span><code>/api/v1/catalog/manifest</code><p>Доступные ресурсы и версия схемы</p></div>
+            <div><span>GET</span><code>/api/v1/cards</code><p>Стандартный или вольный каталог, фильтры и курсорная пагинация</p></div>
+            <div><span>GET</span><code>/api/v1/cards/{'{cardId}'}</code><p>Данные карты, связанные токены и пулы генерации</p></div>
             <div><span>GET</span><code>/api/v1/cards/{'{cardId}'}/images/{'{variant}'}.webp</code><p>Кэшированные изображения thumb, full и tile</p></div>
             <div><span>POST</span><code>/api/v1/oauth/device/code</code><p>Начало безопасного входа desktop-приложения</p></div>
             <div><span>POST</span><code>/api/v1/oauth/token</code><p>Обмен device code и ротация refresh token</p></div>

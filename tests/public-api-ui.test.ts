@@ -5,6 +5,9 @@ const docs = readFileSync(new URL('../src/modules/developerApi/ui/DeveloperApiPa
 assert.match(docs, /Manacost Public API/);
 assert.match(docs, /X-API-Key/);
 assert.match(docs, /\/api\/v1\/catalog\/manifest/);
+assert.match(docs, /<code>\/api\/v1\/cards<\/code>/);
+assert.ok(docs.includes("/api/v1/cards/{'{cardId}'}"));
+assert.match(docs, /связанные токены и пулы генерации/);
 assert.ok(docs.includes("/api/v1/cards/{'{cardId}'}/images/{'{variant}'}.webp"));
 assert.match(docs, /\/api\/v1\/oauth\/device\/code/);
 assert.match(docs, /\/api\/v1\/oauth\/token/);

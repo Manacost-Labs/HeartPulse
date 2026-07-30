@@ -5,6 +5,11 @@ import {
   type CardImageResponder,
   type CardImageVariant,
 } from '../../cardImageRoutes.js';
+import {
+  createPublicCardCatalog,
+  PublicCardQueryError,
+  type PublicCardCatalogSource,
+} from './cards.js';
 import { ApiKeyValidationError, type ApiKeyManager, type PublicApiScope } from './model.js';
 import { PUBLIC_API_OPENAPI } from './openapi.js';
 
@@ -34,6 +39,7 @@ type PublicRouterDependencies = {
   cardImages?: {
     respond: CardImageResponder;
   };
+  cardCatalog?: PublicCardCatalogSource;
 };
 
 const apiError = (code: string, message: string) => ({ error: { code, message } });
@@ -82,6 +88,40 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
   const router = Router();
   const now = dependencies.now ?? (() => new Date().toISOString());
   const manifestGeneratedAt = now();
+  const cardCatalog = dependencies.cardCatalog
+    ? createPublicCardCatalog(dependencies.cardCatalog)
+    : null;
+
+  const sendCatalogJson = (
+    request: Request,
+    response: Response,
+    result: {
+      cacheSource: 'fresh' | 'LKG';
+      meta: { datasetVersion: string; dataStatus: 'fresh' | 'stale' };
+    } & Record<string, unknown>,
+  ) => {
+    const { cacheSource, ...payload } = result;
+    const body = JSON.stringify(payload);
+    const etag = `"${createHash('sha256').update(body).digest('base64url')}"`;
+    response.set('ETag', etag);
+    response.set('X-Data-Cache', cacheSource);
+    response.set('X-Dataset-Version', result.meta.datasetVersion);
+    if (result.meta.dataStatus === 'stale') response.set('Warning', '110 - "Response is Stale"');
+    if (request.headers['if-none-match'] === etag) return response.status(304).end();
+    return response.type('application/json').send(body);
+  };
+
+  const cardCatalogError = (response: Response, error: unknown) => {
+    response.set('Cache-Control', 'no-store');
+    if (error instanceof PublicCardQueryError) {
+      return response.status(400).json(apiError('INVALID_CARD_QUERY', error.message));
+    }
+    response.set('Retry-After', '60');
+    return response.status(503).json(apiError(
+      'CARD_CATALOG_UNAVAILABLE',
+      'Card catalog is temporarily unavailable',
+    ));
+  };
 
   router.get('/openapi.json', (_request, response) => {
     response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=300');
@@ -92,11 +132,13 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     if (!requireScope(dependencies, 'catalog.read', request, response)) return;
     const payload = {
       apiVersion: 'v1',
-      schemaVersion: '2026-07-29',
+      schemaVersion: '2026-07-30',
       generatedAt: manifestGeneratedAt,
       resources: [
         { id: 'openapi', href: '/api/v1/openapi.json', status: 'AVAILABLE' },
         { id: 'catalog-manifest', href: '/api/v1/catalog/manifest', status: 'AVAILABLE' },
+        { id: 'cards', href: '/api/v1/cards', status: 'AVAILABLE' },
+        { id: 'card-detail', href: '/api/v1/cards/{cardId}', status: 'AVAILABLE' },
         {
           id: 'card-images',
           href: '/api/v1/cards/{cardId}/images/{variant}.webp',
@@ -111,6 +153,35 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     response.set('ETag', etag);
     if (request.headers['if-none-match'] === etag) return response.status(304).end();
     return response.type('application/json').send(body);
+  });
+
+  router.get('/cards', async (request, response) => {
+    if (!requireScope(dependencies, 'catalog.read', request, response)) return;
+    if (!cardCatalog) return cardCatalogError(response, new Error('Card catalog is not configured'));
+    try {
+      return sendCatalogJson(
+        request,
+        response,
+        await cardCatalog.list(request.query as Record<string, unknown>),
+      );
+    } catch (error) {
+      return cardCatalogError(response, error);
+    }
+  });
+
+  router.get('/cards/:cardId', async (request, response) => {
+    if (!requireScope(dependencies, 'catalog.read', request, response)) return;
+    if (!cardCatalog) return cardCatalogError(response, new Error('Card catalog is not configured'));
+    try {
+      const result = await cardCatalog.detail(request.query.format, request.params.cardId);
+      if (!result) {
+        response.set('Cache-Control', 'no-store');
+        return response.status(404).json(apiError('CARD_NOT_FOUND', 'Card was not found'));
+      }
+      return sendCatalogJson(request, response, result);
+    } catch (error) {
+      return cardCatalogError(response, error);
+    }
   });
 
   router.get('/cards/:cardId/images/:variant.webp', async (request, response) => {

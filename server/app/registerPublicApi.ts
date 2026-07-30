@@ -27,6 +27,7 @@ type RegisterPublicApiDependencies<TAdmin> = {
   ) => void;
   cardImageDependencies?: CardImageRouterDependencies;
   accessTokens?: Parameters<typeof createPublicApiRouter>[0]['accessTokens'];
+  cardCatalog?: Parameters<typeof createPublicApiRouter>[0]['cardCatalog'];
 };
 
 /** Registers the public API and its administrator credential lifecycle. */
@@ -38,6 +39,7 @@ export function registerPublicApi<TAdmin>(dependencies: RegisterPublicApiDepende
   dependencies.app.use('/api/v1', createPublicApiRouter({
     apiKeys,
     accessTokens: dependencies.accessTokens,
+    cardCatalog: dependencies.cardCatalog,
     cardImages: dependencies.cardImageDependencies
       ? { respond: createCardImageResponder(dependencies.cardImageDependencies) }
       : undefined,
