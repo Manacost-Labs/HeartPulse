@@ -157,6 +157,17 @@ assert.equal(result.dataQuality.metrics.validRuns, 42);
 assert.equal(result.dataQuality.status, 'healthy');
 assert.equal(result.reliability.servedFrom, 'live');
 assert.equal(result.reliability.sampleMode, 'warming');
+assert.ok(result.draftAdvisor, 'a usable sample must expose the shadow draft context');
+assert.equal(result.draftAdvisor.status, 'shadow');
+assert.equal(result.draftAdvisor.deckSize, 30);
+assert.equal(result.draftAdvisor.minimumRuns, 12);
+assert.ok(result.draftAdvisor.cards.some(item => item.id === A.id));
+assert.ok(result.draftAdvisor.cards.every(item => item.runs > 0));
+assert.equal(
+  Math.round(result.draftAdvisor.targetCurve.reduce((sum, bucket) => sum + bucket.targetShare, 0) * 100),
+  100,
+);
+assert.equal(result.draftAdvisor.pairCoverage, result.combinations.length);
 
 assert.equal(
   result.combinations.some(item => item.cards.every(cardItem => cardItem.id === 'X' || cardItem.id === 'Y')),
@@ -239,6 +250,7 @@ const blocked = analyzeArenaSynergies({
 assert.equal(blocked.dataQuality.status, 'blocked');
 assert.equal(blocked.dataQuality.metrics.invalidRuns, 2);
 assert.ok(blocked.dataQuality.checks.some(check => check.id === 'minimum-valid-runs' && check.status === 'fail'));
+assert.equal(blocked.draftAdvisor, undefined, 'an insufficient sample must not offer draft advice');
 
 function buildMatchedControlSample(options: {
   prefix: string;

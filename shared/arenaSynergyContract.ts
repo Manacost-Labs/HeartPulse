@@ -133,6 +133,54 @@ export type ArenaReliability = {
   limitations: string[];
 };
 
+export type ArenaDraftCurveBucket = {
+  id: 'LOW' | 'MID' | 'HIGH' | 'TOP';
+  label: string;
+  minimumCost: number;
+  maximumCost: number | null;
+  targetShare: number;
+  targetCount: number;
+};
+
+export type ArenaDraftAdvisorContext = {
+  status: 'shadow';
+  deckSize: 30;
+  minimumRuns: number;
+  cards: ArenaSynergyCard[];
+  targetCurve: ArenaDraftCurveBucket[];
+  pairCoverage: number;
+  limitations: string[];
+};
+
+export type ArenaDraftSynergyEvidence = {
+  partner: ArenaSynergyCard;
+  classification: 'confirmed' | 'promising';
+  deltaPoints: number;
+  observedRuns: number;
+  contribution: number;
+};
+
+export type ArenaDraftChoice = {
+  rank: number;
+  card: ArenaSynergyCard;
+  score: number;
+  components: {
+    base: number;
+    synergy: number;
+    curve: number;
+  };
+  confidence: 'high' | 'medium' | 'low';
+  synergies: ArenaDraftSynergyEvidence[];
+  reasons: string[];
+  warnings: string[];
+};
+
+export type ArenaDraftAdvice = {
+  choices: ArenaDraftChoice[];
+  isCloseDecision: boolean;
+  limitations: string[];
+};
+
 export type ArenaSynergyPayload = {
   schemaVersion: 2;
   generatedAt: string;
@@ -172,6 +220,7 @@ export type ArenaSynergyPayload = {
   };
   dataQuality: ArenaDataQuality;
   reliability: ArenaReliability;
+  draftAdvisor?: ArenaDraftAdvisorContext;
   history: ArenaCohortHistoryEntry[];
   combinations: ArenaCombination[];
   redraft: ArenaRedraftCard[];

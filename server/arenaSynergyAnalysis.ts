@@ -4,6 +4,8 @@ import {
   ARENA_CLASS_LABELS,
   type ArenaClassId,
   type ArenaCombination,
+  type ArenaDraftAdvisorContext,
+  type ArenaDraftCurveBucket,
   type ArenaRedraftCard,
   type ArenaSynergyCard,
   type ArenaSynergyPayload,
@@ -24,6 +26,7 @@ const STABLE_SAMPLE_RUNS = 200;
 const CARD_QUALITY_PRIOR_RUNS = 12;
 const PAIR_QUALITY_PRIOR_RUNS = 4;
 const MAX_FUTURE_SKEW_MS = 5 * 60_000;
+const MAX_DRAFT_CARDS = 800;
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -616,6 +619,98 @@ function buildRedraft(
   )).slice(0, 240);
 }
 
+function draftCurveBucket(cost: number | null): ArenaDraftCurveBucket['id'] | null {
+  if (cost == null || !Number.isFinite(cost)) return null;
+  if (cost <= 2) return 'LOW';
+  if (cost <= 4) return 'MID';
+  if (cost <= 6) return 'HIGH';
+  return 'TOP';
+}
+
+function buildDraftAdvisorContext(
+  runs: NormalizedRun[],
+  cardMeta: Map<string, CardMeta>,
+  fallbackMeta: Map<string, CardMeta>,
+  cardQuality: Map<string, QualityAggregate>,
+  combinations: ArenaCombination[],
+  minimumRuns: number,
+): ArenaDraftAdvisorContext | undefined {
+  if (runs.length < 20) return undefined;
+  const cardRuns = new Map<string, number>();
+  const bucketCopies = new Map<ArenaDraftCurveBucket['id'], number>([
+    ['LOW', 0],
+    ['MID', 0],
+    ['HIGH', 0],
+    ['TOP', 0],
+  ]);
+  let knownCostCopies = 0;
+  for (const run of runs) {
+    for (const id of new Set(run.cards.map(card => card.id))) {
+      cardRuns.set(id, (cardRuns.get(id) ?? 0) + 1);
+    }
+    for (const card of run.cards) {
+      const bucket = draftCurveBucket(card.cost);
+      if (!bucket) continue;
+      bucketCopies.set(bucket, (bucketCopies.get(bucket) ?? 0) + card.count);
+      knownCostCopies += card.count;
+    }
+  }
+  const defaults: Record<ArenaDraftCurveBucket['id'], number> = {
+    LOW: 0.4,
+    MID: 0.33,
+    HIGH: 0.17,
+    TOP: 0.1,
+  };
+  const bucketDefinitions: Array<Omit<
+    ArenaDraftCurveBucket,
+    'targetShare' | 'targetCount'
+  >> = [
+    { id: 'LOW', label: '0–2', minimumCost: 0, maximumCost: 2 },
+    { id: 'MID', label: '3–4', minimumCost: 3, maximumCost: 4 },
+    { id: 'HIGH', label: '5–6', minimumCost: 5, maximumCost: 6 },
+    { id: 'TOP', label: '7+', minimumCost: 7, maximumCost: null },
+  ];
+  const targetCurve = bucketDefinitions.map(bucket => {
+    const copies = bucketCopies.get(bucket.id) ?? 0;
+    return {
+      ...bucket,
+      targetShare: round(knownCostCopies ? copies / knownCostCopies : defaults[bucket.id], 3),
+      targetCount: round(copies / runs.length, 1),
+    };
+  });
+  const cards = Array.from(cardRuns.entries())
+    .sort(([leftId, leftRuns], [rightId, rightRuns]) => (
+      rightRuns - leftRuns || leftId.localeCompare(rightId)
+    ))
+    .slice(0, MAX_DRAFT_CARDS)
+    .map(([id, count]) => cardFrom(
+      id,
+      cardMeta,
+      fallbackMeta,
+      cardQuality,
+      count,
+    ))
+    .sort((left, right) => (
+      left.name.localeCompare(right.name, 'ru')
+      || left.id.localeCompare(right.id)
+    ));
+
+  return {
+    status: 'shadow',
+    deckSize: 30,
+    minimumRuns: Math.max(12, minimumRuns),
+    cards,
+    targetCurve,
+    pairCoverage: combinations.length,
+    limitations: [
+      'Рейтинг сравнивает только три текущих варианта и не прогнозирует число побед.',
+      'Источник успешных колод не содержит проигрышную контрольную группу.',
+      'Популярные пары без подтверждённого дополнительного эффекта не дают бонус.',
+      'Redraft не входит в оценку без полного списка предложенных и невыбранных карт.',
+    ],
+  };
+}
+
 export function analyzeArenaSynergies(input: ArenaSynergyAnalysisInput): ArenaSynergyPayload {
   const now = input.now ?? new Date();
   const normalization = normalizeRuns(input.winningDecks, now.getTime());
@@ -758,6 +853,26 @@ export function analyzeArenaSynergies(input: ArenaSynergyAnalysisInput): ArenaSy
     : selectedRuns.length >= 20
       ? 'warming'
       : 'insufficient';
+  const combinations = selectedRuns.length
+    ? buildCombinations(
+        selectedRuns,
+        cardMeta,
+        fallbackMeta,
+        cardQuality,
+        minimumPairRuns,
+        previousForBlend,
+        historicalWeight,
+      )
+    : [];
+  const redraft = buildRedraft(selectedRuns, cardMeta, fallbackMeta, cardQuality);
+  const draftAdvisor = buildDraftAdvisorContext(
+    selectedRuns,
+    cardMeta,
+    fallbackMeta,
+    cardQuality,
+    combinations,
+    minimumPairRuns,
+  );
 
   return {
     schemaVersion: 2,
@@ -808,18 +923,9 @@ export function analyzeArenaSynergies(input: ArenaSynergyAnalysisInput): ArenaSy
         'Статистика redraft не содержит полного списка предложенных, но не выбранных карт.',
       ],
     },
+    ...(draftAdvisor ? { draftAdvisor } : {}),
     history: [],
-    combinations: selectedRuns.length
-      ? buildCombinations(
-          selectedRuns,
-          cardMeta,
-          fallbackMeta,
-          cardQuality,
-          minimumPairRuns,
-          previousForBlend,
-          historicalWeight,
-        )
-      : [],
-    redraft: buildRedraft(selectedRuns, cardMeta, fallbackMeta, cardQuality),
+    combinations,
+    redraft,
   };
 }
