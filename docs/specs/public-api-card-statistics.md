@@ -80,6 +80,8 @@ Each statistics item contains:
 
 Metric names and units are:
 
+<!-- markdownlint-disable MD013 -->
+
 | Field | Unit | Meaning |
 | --- | --- | --- |
 | `deckPopularityPercent` | percentage points | Share of decks containing the card |
@@ -92,6 +94,8 @@ Metric names and units are:
 | `openingHandWinratePercent` | percentage points | Win rate when in the opening hand |
 | `averageTurnsInHand` | turns | Mean turns held before play |
 | `averageTurnPlayed` | turn number | Mean turn on which the card was played |
+
+<!-- markdownlint-enable MD013 -->
 
 All metrics are nullable. Rates below the site's minimum reliable sample remain
 `null`; the API never reconstructs or presents suppressed percentages.

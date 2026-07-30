@@ -26,7 +26,7 @@ export function AdminApiKeys({ client = adminApiKeysClient }: { client?: AdminAp
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState('');
-  const [scopes, setScopes] = useState<string[]>(API_SCOPES.map(scope => scope.id));
+  const [scopes, setScopes] = useState<string[]>(() => API_SCOPES.map(scope => scope.id));
 
   const load = useCallback(async () => {
     setLoading(true);
