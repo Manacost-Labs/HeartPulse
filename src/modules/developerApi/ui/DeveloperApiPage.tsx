@@ -38,7 +38,7 @@ export function DeveloperApiPage() {
       <section className="developer-api-status" aria-labelledby="api-status-title">
         <div>
           <span className="developer-api-status-icon is-live"><CheckCircle2 /></span>
-          <div><h2 id="api-status-title">Доступно сейчас</h2><p>Карты, токены, мета, архетипы, сборки колод, история, анализ, изображения, ключи и вход приложения</p></div>
+          <div><h2 id="api-status-title">Доступно сейчас</h2><p>Карты, токены, мета, Арена, Поля сражений, архетипы, сборки колод, история, анализ, изображения, ключи и вход приложения</p></div>
         </div>
         <div>
           <span className="developer-api-status-icon"><Clock3 /></span>
@@ -98,6 +98,13 @@ export function DeveloperApiPage() {
             <div><span>GET</span><code>/api/v1/archetypes/{'{slug}'}/analysis</code><p>Матчапы по классам и влияние карт на результат</p></div>
             <div><span>GET</span><code>/api/v1/deck-statistics</code><p>Показатели конкретных сборок без раскрытия кодов колод</p></div>
             <div><span>GET</span><code>/api/v1/decks/{'{deckId}'}/statistics</code><p>Текущая статистика выбранной сборки</p></div>
+            <div><span>GET</span><code>/api/v1/arena/statistics/classes</code><p>Винрейт и размер выборки классов Арены</p></div>
+            <div><span>GET</span><code>/api/v1/arena/statistics/cards</code><p>Карты Арены с тиром, рейтингом и игровыми показателями</p></div>
+            <div><span>GET</span><code>/api/v1/arena/statistics/legendaries</code><p>Легендарные карты Арены и связанные с ними карты</p></div>
+            <div><span>GET</span><code>/api/v1/arena/statistics/matchups</code><p>Матчапы классов Арены</p></div>
+            <div><span>GET</span><code>/api/v1/battlegrounds/statistics/heroes</code><p>Тиры, выбор и среднее место героев Полей сражений</p></div>
+            <div><span>GET</span><code>/api/v1/battlegrounds/statistics/minions</code><p>Влияние, популярность и результаты существ</p></div>
+            <div><span>GET</span><code>/api/v1/battlegrounds/statistics/tier-lists/{'{kind}'}</code><p>Тир-листы героев, существ, заклинаний, аксессуаров и стратегий</p></div>
             <div><span>GET</span><code>/api/v1/cards/{'{cardId}'}/images/{'{variant}'}.webp</code><p>Кэшированные изображения thumb, full и tile</p></div>
             <div><span>POST</span><code>/api/v1/oauth/device/code</code><p>Начало безопасного входа desktop-приложения</p></div>
             <div><span>POST</span><code>/api/v1/oauth/token</code><p>Обмен device code и ротация refresh token</p></div>

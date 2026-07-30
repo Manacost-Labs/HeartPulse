@@ -18,13 +18,18 @@ Establish the secure, documented foundation for the unified Manacost data API:
   Standard/Wild, supported ranks and supported periods.
 - aggregate metagame snapshots plus current, historical and analytical
   archetype statistics.
+- current Arena class, card, legendary-card and matchup statistics.
+- current Battlegrounds hero, minion, spell, trinket and strategy statistics.
 
 This slice does not expose raw databases and does not yet promise every deck or
 individual match record. Card statistics are specified in
 `docs/specs/public-api-card-statistics.md`; meta and archetype statistics are
-specified in `docs/specs/public-api-meta-statistics.md`. The remaining
-resources will be added incrementally behind the same authentication, media
-and versioning contracts.
+specified in `docs/specs/public-api-meta-statistics.md`; Arena and
+Battlegrounds resources are specified in
+`docs/specs/public-api-arena-statistics.md` and
+`docs/specs/public-api-battleground-statistics.md`. The remaining resources
+will be added incrementally behind the same authentication, media and
+versioning contracts.
 
 ## Technical context
 
@@ -249,6 +254,8 @@ It includes:
 - bulk card-statistics, current card-statistics and history endpoint examples;
 - meta snapshots, archetype history and archetype analysis endpoint examples;
 - concrete deck-build statistics list and detail examples;
+- Arena class, card, legendary-card and matchup statistics;
+- Battlegrounds hero, minion and tier-list statistics;
 - error model;
 - one-time key handling guidance;
 - link to the OpenAPI JSON;

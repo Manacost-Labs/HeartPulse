@@ -16,8 +16,9 @@ The release provides:
 - one-, three-, seven- and fourteen-day periods plus the current patch.
 
 Archetype and metagame resources are specified separately in
-`docs/specs/public-api-meta-statistics.md`. Deck resources remain a later slice
-and use the same authentication, freshness, error and pagination conventions.
+`docs/specs/public-api-meta-statistics.md`. Deck, Arena and Battlegrounds
+resources use the same authentication, freshness, error and pagination
+conventions and have dedicated specifications in this directory.
 
 ## Authorization
 

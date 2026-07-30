@@ -98,7 +98,7 @@ try {
   assert.equal(openapi.status, 200);
   const openapiPayload = await openapi.json() as Record<string, any>;
   assert.equal(openapiPayload.openapi, '3.1.0');
-  assert.equal(openapiPayload.info.version, '1.4.0');
+  assert.equal(openapiPayload.info.version, '1.5.0');
   assert.equal(openapiPayload.components.securitySchemes.ApiKeyAuth.name, 'X-API-Key');
   assert.equal(openapiPayload.components.securitySchemes.ApplicationBearer.scheme, 'bearer');
   assert.ok(openapiPayload.paths['/api/v1/oauth/device/code']);
@@ -117,6 +117,13 @@ try {
   assert.ok(openapiPayload.paths['/api/v1/archetypes/{slug}/analysis']);
   assert.ok(openapiPayload.paths['/api/v1/deck-statistics']);
   assert.ok(openapiPayload.paths['/api/v1/decks/{deckId}/statistics']);
+  assert.ok(openapiPayload.paths['/api/v1/arena/statistics/classes']);
+  assert.ok(openapiPayload.paths['/api/v1/arena/statistics/cards']);
+  assert.ok(openapiPayload.paths['/api/v1/arena/statistics/legendaries']);
+  assert.ok(openapiPayload.paths['/api/v1/arena/statistics/matchups']);
+  assert.ok(openapiPayload.paths['/api/v1/battlegrounds/statistics/heroes']);
+  assert.ok(openapiPayload.paths['/api/v1/battlegrounds/statistics/minions']);
+  assert.ok(openapiPayload.paths['/api/v1/battlegrounds/statistics/tier-lists/{kind}']);
   assert.ok(openapiPayload.paths['/api/v1/cards/{cardId}/images/{variant}.webp']);
   assert.ok(openapiPayload.paths['/api/admin/api-keys']);
   assert.deepEqual(
@@ -127,6 +134,8 @@ try {
   assert.ok(openapiPayload.components.schemas.MetaStatisticsMetrics);
   assert.ok(openapiPayload.components.schemas.ArchetypeAnalysisResponse);
   assert.ok(openapiPayload.components.schemas.DeckStatisticsListResponse);
+  assert.ok(openapiPayload.components.schemas.ArenaCardStatisticsItem);
+  assert.ok(openapiPayload.components.schemas.BattlegroundHeroStatisticsItem);
 
   const unauthenticatedAdmin = await fetch(`${origin}/api/admin/api-keys`);
   assert.equal(unauthenticatedAdmin.status, 403);
@@ -194,7 +203,7 @@ try {
   assert.match(String(manifestResponse.headers.get('etag')), /^"/);
   const manifest = await manifestResponse.json() as Record<string, any>;
   assert.equal(manifest.apiVersion, 'v1');
-  assert.equal(manifest.schemaVersion, '2026-07-30.4');
+  assert.equal(manifest.schemaVersion, '2026-07-30.5');
   assert.ok(Array.isArray(manifest.resources));
   assert.ok(manifest.resources.some((resource: Record<string, unknown>) => resource.id === 'cards'));
   assert.ok(manifest.resources.some(
@@ -205,6 +214,12 @@ try {
   ));
   assert.ok(manifest.resources.some(
     (resource: Record<string, unknown>) => resource.id === 'deck-statistics',
+  ));
+  assert.ok(manifest.resources.some(
+    (resource: Record<string, unknown>) => resource.id === 'arena-card-statistics',
+  ));
+  assert.ok(manifest.resources.some(
+    (resource: Record<string, unknown>) => resource.id === 'battleground-minion-statistics',
   ));
   assert.equal(records.get(created.key.id)?.lastUsedAt, '2026-07-29T12:00:02.000Z');
 

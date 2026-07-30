@@ -2,7 +2,7 @@ export const PUBLIC_API_OPENAPI = {
   openapi: '3.1.0',
   info: {
     title: 'Manacost Public API',
-    version: '1.4.0',
+    version: '1.5.0',
     description: 'Versioned Hearthstone data API for approved applications.',
   },
   servers: [{ url: '/', description: 'Current Manacost environment' }],
@@ -11,7 +11,7 @@ export const PUBLIC_API_OPENAPI = {
     { name: 'Profile', description: 'The authorized user and cached subscription status.' },
     { name: 'Catalog', description: 'Available Manacost data resources.' },
     { name: 'Images', description: 'Same-origin cached Hearthstone card images.' },
-    { name: 'Statistics', description: 'Aggregated card, meta, archetype and deck-build statistics and history.' },
+    { name: 'Statistics', description: 'Aggregated Constructed, Arena and Battlegrounds statistics and history.' },
     { name: 'Administration', description: 'Administrator-only API key lifecycle.' },
   ],
   paths: {
@@ -824,6 +824,370 @@ export const PUBLIC_API_OPENAPI = {
           '403': { $ref: '#/components/responses/InsufficientScope' },
           '404': { description: 'Deck build is not present in the selected format' },
           '503': { description: 'Deck statistics are temporarily unavailable' },
+        },
+      },
+    },
+    '/api/v1/arena/statistics/classes': {
+      get: {
+        summary: 'List Arena class performance',
+        description: 'Returns current Arena class win rates and game samples. Requires statistics.read.',
+        operationId: 'listArenaClassStatistics',
+        tags: ['Statistics'],
+        security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
+        parameters: [
+          {
+            name: 'source',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['hsreplay', 'firestone'], default: 'hsreplay' },
+          },
+          {
+            name: 'If-None-Match',
+            in: 'header',
+            required: false,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Current normalized class statistics',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ArenaClassStatisticsResponse' },
+              },
+            },
+          },
+          '304': { description: 'The representation has not changed' },
+          '400': { description: 'Invalid source' },
+          '401': { $ref: '#/components/responses/InvalidCredential' },
+          '403': { $ref: '#/components/responses/InsufficientScope' },
+          '503': { description: 'Arena statistics are temporarily unavailable' },
+        },
+      },
+    },
+    '/api/v1/arena/statistics/cards': {
+      get: {
+        summary: 'List Arena card performance',
+        description: 'Returns a bounded Arena card snapshot without provider URLs or media fields. Requires statistics.read.',
+        operationId: 'listArenaCardStatistics',
+        tags: ['Statistics'],
+        security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
+        parameters: [
+          {
+            name: 'source',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              enum: ['hsreplay', 'firestone', 'heartharena'],
+              default: 'hsreplay',
+            },
+          },
+          {
+            name: 'class',
+            in: 'query',
+            required: false,
+            schema: { $ref: '#/components/schemas/ArenaClassId' },
+          },
+          {
+            name: 'tier',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              enum: ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'NO-DATA'],
+            },
+          },
+          {
+            name: 'minGames',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 0, maximum: 100000000, default: 0 },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 500, default: 100 },
+          },
+          {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', minLength: 12, maxLength: 500 },
+          },
+          {
+            name: 'If-None-Match',
+            in: 'header',
+            required: false,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'One page of normalized Arena card statistics',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ArenaCardStatisticsResponse' },
+              },
+            },
+          },
+          '304': { description: 'The representation has not changed' },
+          '400': { description: 'Invalid source, class, tier, sample, limit or cursor' },
+          '401': { $ref: '#/components/responses/InvalidCredential' },
+          '403': { $ref: '#/components/responses/InsufficientScope' },
+          '503': { description: 'Arena statistics are temporarily unavailable' },
+        },
+      },
+    },
+    '/api/v1/arena/statistics/legendaries': {
+      get: {
+        summary: 'List Arena legendary-card performance',
+        description: 'Returns key-card aggregates and stable related-card ids. Requires statistics.read.',
+        operationId: 'listArenaLegendaryStatistics',
+        tags: ['Statistics'],
+        security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
+        parameters: [
+          {
+            name: 'source',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['hsreplay', 'firestone'], default: 'hsreplay' },
+          },
+          {
+            name: 'class',
+            in: 'query',
+            required: false,
+            schema: { $ref: '#/components/schemas/ArenaClassId' },
+          },
+          {
+            name: 'minGames',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 0, maximum: 100000000, default: 0 },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 500, default: 100 },
+          },
+          {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', minLength: 12, maxLength: 500 },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'One page of normalized Arena legendary statistics',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ArenaLegendaryStatisticsResponse' },
+              },
+            },
+          },
+          '400': { description: 'Invalid source, class, sample, limit or cursor' },
+          '401': { $ref: '#/components/responses/InvalidCredential' },
+          '403': { $ref: '#/components/responses/InsufficientScope' },
+          '503': { description: 'Arena statistics are temporarily unavailable' },
+        },
+      },
+    },
+    '/api/v1/arena/statistics/matchups': {
+      get: {
+        summary: 'List Arena class matchups',
+        operationId: 'listArenaMatchupStatistics',
+        tags: ['Statistics'],
+        security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
+        parameters: [
+          {
+            name: 'class',
+            in: 'query',
+            required: false,
+            schema: { $ref: '#/components/schemas/ArenaClassId' },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 500, default: 100 },
+          },
+          {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', minLength: 12, maxLength: 500 },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Directed Arena class matchup aggregates',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ArenaMatchupStatisticsResponse' },
+              },
+            },
+          },
+          '400': { description: 'Invalid class, limit or cursor' },
+          '401': { $ref: '#/components/responses/InvalidCredential' },
+          '403': { $ref: '#/components/responses/InsufficientScope' },
+          '503': { description: 'Arena statistics are temporarily unavailable' },
+        },
+      },
+    },
+    '/api/v1/battlegrounds/statistics/heroes': {
+      get: {
+        summary: 'List Battlegrounds hero performance',
+        operationId: 'listBattlegroundHeroStatistics',
+        tags: ['Statistics'],
+        security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
+        parameters: [
+          {
+            name: 'tier',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['S', 'A', 'B', 'C', 'D'] },
+          },
+          {
+            name: 'minPickRate',
+            in: 'query',
+            required: false,
+            schema: { type: 'number', minimum: 0, maximum: 100, default: 0 },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 500, default: 100 },
+          },
+          {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', minLength: 12, maxLength: 500 },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'One page of normalized hero statistics',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/BattlegroundHeroStatisticsResponse' },
+              },
+            },
+          },
+          '400': { description: 'Invalid tier, pick-rate floor, limit or cursor' },
+          '401': { $ref: '#/components/responses/InvalidCredential' },
+          '403': { $ref: '#/components/responses/InsufficientScope' },
+          '503': { description: 'Battlegrounds statistics are temporarily unavailable' },
+        },
+      },
+    },
+    '/api/v1/battlegrounds/statistics/minions': {
+      get: {
+        summary: 'List Battlegrounds minion performance',
+        operationId: 'listBattlegroundMinionStatistics',
+        tags: ['Statistics'],
+        security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
+        parameters: [
+          {
+            name: 'tavernTier',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 7 },
+          },
+          {
+            name: 'minGames',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 0, maximum: 100000000, default: 0 },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 500, default: 100 },
+          },
+          {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', minLength: 12, maxLength: 500 },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'One page of normalized minion statistics',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/BattlegroundMinionStatisticsResponse' },
+              },
+            },
+          },
+          '400': { description: 'Invalid tavern tier, sample, limit or cursor' },
+          '401': { $ref: '#/components/responses/InvalidCredential' },
+          '403': { $ref: '#/components/responses/InsufficientScope' },
+          '503': { description: 'Battlegrounds statistics are temporarily unavailable' },
+        },
+      },
+    },
+    '/api/v1/battlegrounds/statistics/tier-lists/{kind}': {
+      get: {
+        summary: 'List a Battlegrounds statistical tier list',
+        description: 'Kinds cover heroes, minions, Tavern spells, trinkets and strategies.',
+        operationId: 'listBattlegroundTierListStatistics',
+        tags: ['Statistics'],
+        security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
+        parameters: [
+          {
+            name: 'kind',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              enum: ['heroes', 'minions', 'spells', 'trinkets', 'strategies'],
+            },
+          },
+          {
+            name: 'tier',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['S', 'A', 'B', 'C', 'D'] },
+          },
+          {
+            name: 'minGames',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 0, maximum: 100000000, default: 0 },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 500, default: 100 },
+          },
+          {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', minLength: 12, maxLength: 500 },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'One normalized statistical tier list',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/BattlegroundTierListStatisticsResponse' },
+              },
+            },
+          },
+          '400': { description: 'Invalid kind, tier, sample, limit or cursor' },
+          '401': { $ref: '#/components/responses/InvalidCredential' },
+          '403': { $ref: '#/components/responses/InsufficientScope' },
+          '503': { description: 'Battlegrounds statistics are temporarily unavailable' },
         },
       },
     },
@@ -1815,6 +2179,383 @@ export const PUBLIC_API_OPENAPI = {
         properties: {
           data: { $ref: '#/components/schemas/DeckStatisticsItem' },
           meta: { $ref: '#/components/schemas/DeckStatisticsMeta' },
+        },
+      },
+      ArenaClassId: {
+        type: 'string',
+        enum: [
+          'death-knight', 'demon-hunter', 'druid', 'hunter', 'mage', 'paladin',
+          'priest', 'rogue', 'shaman', 'warlock', 'warrior',
+        ],
+      },
+      StatisticsPagination: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['limit', 'total', 'hasMore', 'nextCursor'],
+        properties: {
+          limit: { type: 'integer', minimum: 1, maximum: 500 },
+          total: { type: 'integer', minimum: 0 },
+          hasMore: { type: 'boolean' },
+          nextCursor: { type: ['string', 'null'] },
+        },
+      },
+      ArenaStatisticsMeta: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'mode', 'entity', 'source', 'updatedAt', 'datasetVersion', 'dataStatus',
+        ],
+        properties: {
+          mode: { type: 'string', const: 'arena' },
+          entity: {
+            type: 'string',
+            enum: ['classes', 'cards', 'legendaries', 'matchups'],
+          },
+          source: { type: 'string', enum: ['hsreplay', 'firestone', 'heartharena'] },
+          updatedAt: { type: ['string', 'null'], format: 'date-time' },
+          datasetVersion: { type: 'string' },
+          dataStatus: { type: 'string', enum: ['fresh', 'stale'] },
+        },
+      },
+      ArenaClassStatisticsItem: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['classId', 'name', 'rank', 'metrics'],
+        properties: {
+          classId: { $ref: '#/components/schemas/ArenaClassId' },
+          name: { type: 'string' },
+          rank: { type: 'integer', minimum: 1 },
+          metrics: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['winratePercent', 'games'],
+            properties: {
+              winratePercent: { type: 'number', minimum: 0, maximum: 100 },
+              games: { type: 'integer', minimum: 0 },
+            },
+          },
+        },
+      },
+      ArenaCardStatisticsMetrics: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'deckWinratePercent', 'playedWinratePercent', 'pickRatePercent',
+          'inclusionRatePercent', 'games', 'arenaScore', 'offerRatePercent',
+          'discardRatePercent', 'drawnWinratePercent', 'mulliganWinratePercent',
+          'keptRatePercent', 'averageCopies',
+        ],
+        properties: {
+          deckWinratePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+          playedWinratePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+          pickRatePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+          inclusionRatePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+          games: { type: ['integer', 'null'], minimum: 0 },
+          arenaScore: { type: ['number', 'null'], minimum: -10000, maximum: 10000 },
+          offerRatePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+          discardRatePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+          drawnWinratePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+          mulliganWinratePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+          keptRatePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+          averageCopies: { type: ['number', 'null'], minimum: 0, maximum: 30 },
+        },
+      },
+      ArenaCardStatisticsItem: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['cardId', 'name', 'classId', 'rarity', 'tier', 'metrics'],
+        properties: {
+          cardId: { type: 'string', pattern: '^[A-Za-z0-9_]{1,80}$' },
+          name: { type: 'string' },
+          classId: {
+            oneOf: [{ $ref: '#/components/schemas/ArenaClassId' }, { type: 'null' }],
+          },
+          rarity: { type: ['string', 'null'] },
+          tier: {
+            type: ['string', 'null'],
+            enum: ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'NO-DATA', null],
+          },
+          metrics: { $ref: '#/components/schemas/ArenaCardStatisticsMetrics' },
+        },
+      },
+      ArenaLegendaryStatisticsItem: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['cardId', 'name', 'classId', 'relatedCardIds', 'metrics'],
+        properties: {
+          cardId: { type: 'string', pattern: '^[A-Za-z0-9_]{1,80}$' },
+          name: { type: 'string' },
+          classId: {
+            oneOf: [{ $ref: '#/components/schemas/ArenaClassId' }, { type: 'null' }],
+          },
+          relatedCardIds: {
+            type: 'array',
+            uniqueItems: true,
+            items: { type: 'string', pattern: '^[A-Za-z0-9_]{1,80}$' },
+          },
+          metrics: {
+            type: 'object',
+            additionalProperties: false,
+            required: [
+              'winratePercent', 'pickRatePercent', 'offerRatePercent', 'games', 'arenaScore',
+            ],
+            properties: {
+              winratePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+              pickRatePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+              offerRatePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+              games: { type: ['integer', 'null'], minimum: 0 },
+              arenaScore: { type: ['number', 'null'], minimum: -10000, maximum: 10000 },
+            },
+          },
+        },
+      },
+      ArenaMatchupStatisticsItem: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['classAId', 'classBId', 'metrics'],
+        properties: {
+          classAId: { $ref: '#/components/schemas/ArenaClassId' },
+          classBId: { $ref: '#/components/schemas/ArenaClassId' },
+          metrics: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['winratePercent'],
+            properties: {
+              winratePercent: { type: 'number', minimum: 0, maximum: 100 },
+            },
+          },
+        },
+      },
+      ArenaClassStatisticsResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['data', 'meta'],
+        properties: {
+          data: {
+            type: 'array',
+            maxItems: 11,
+            items: { $ref: '#/components/schemas/ArenaClassStatisticsItem' },
+          },
+          meta: { $ref: '#/components/schemas/ArenaStatisticsMeta' },
+        },
+      },
+      ArenaCardStatisticsResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['data', 'pagination', 'meta'],
+        properties: {
+          data: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/ArenaCardStatisticsItem' },
+          },
+          pagination: { $ref: '#/components/schemas/StatisticsPagination' },
+          meta: { $ref: '#/components/schemas/ArenaStatisticsMeta' },
+        },
+      },
+      ArenaLegendaryStatisticsResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['data', 'pagination', 'meta'],
+        properties: {
+          data: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/ArenaLegendaryStatisticsItem' },
+          },
+          pagination: { $ref: '#/components/schemas/StatisticsPagination' },
+          meta: { $ref: '#/components/schemas/ArenaStatisticsMeta' },
+        },
+      },
+      ArenaMatchupStatisticsResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['data', 'pagination', 'meta'],
+        properties: {
+          data: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/ArenaMatchupStatisticsItem' },
+          },
+          pagination: { $ref: '#/components/schemas/StatisticsPagination' },
+          meta: { $ref: '#/components/schemas/ArenaStatisticsMeta' },
+        },
+      },
+      BattlegroundStatisticsMeta: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['mode', 'entity', 'updatedAt', 'datasetVersion', 'dataStatus'],
+        properties: {
+          mode: { type: 'string', const: 'battlegrounds' },
+          entity: {
+            type: 'string',
+            enum: [
+              'heroes', 'minions', 'tier-list:heroes', 'tier-list:minions',
+              'tier-list:spells', 'tier-list:trinkets', 'tier-list:strategies',
+            ],
+          },
+          updatedAt: { type: ['string', 'null'], format: 'date-time' },
+          datasetVersion: { type: 'string' },
+          dataStatus: { type: 'string', enum: ['fresh', 'stale'] },
+          sample: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['mmrPercentile', 'timeRange'],
+            properties: {
+              mmrPercentile: { type: ['string', 'null'] },
+              timeRange: { type: ['string', 'null'] },
+            },
+          },
+        },
+      },
+      BattlegroundHeroStatisticsItem: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['heroId', 'name', 'tier', 'bestComposition', 'metrics'],
+        properties: {
+          heroId: { type: 'string', pattern: '^\\d+$' },
+          name: { type: 'string' },
+          tier: { type: ['string', 'null'], enum: ['S', 'A', 'B', 'C', 'D', null] },
+          bestComposition: {
+            type: ['object', 'null'],
+            additionalProperties: false,
+            required: ['id', 'name'],
+            properties: {
+              id: { type: ['string', 'null'] },
+              name: { type: ['string', 'null'] },
+            },
+          },
+          metrics: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['pickRatePercent', 'averagePlacement', 'placementDistributionPercent'],
+            properties: {
+              pickRatePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+              averagePlacement: { type: ['number', 'null'], minimum: 1, maximum: 8 },
+              placementDistributionPercent: {
+                type: 'array',
+                maxItems: 8,
+                items: { type: 'number', minimum: 0, maximum: 100 },
+              },
+            },
+          },
+        },
+      },
+      BattlegroundMinionStatisticsItem: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['dbfId', 'cardId', 'name', 'localizedName', 'tavernTier', 'metrics'],
+        properties: {
+          dbfId: { type: 'integer', minimum: 0 },
+          cardId: { type: 'string', pattern: '^[A-Za-z0-9_-]{1,120}$' },
+          name: { type: 'string' },
+          localizedName: { type: ['string', 'null'] },
+          tavernTier: { type: ['integer', 'null'], minimum: 1, maximum: 7 },
+          metrics: {
+            type: 'object',
+            additionalProperties: false,
+            required: [
+              'impact', 'combatWinratePercent', 'popularityPercent',
+              'gamesWithMinion', 'gamesWithoutMinion',
+              'averagePlacementWith', 'averagePlacementWithout',
+            ],
+            properties: {
+              impact: { type: ['number', 'null'], minimum: -8, maximum: 8 },
+              combatWinratePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+              popularityPercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+              gamesWithMinion: { type: ['integer', 'null'], minimum: 0 },
+              gamesWithoutMinion: { type: ['integer', 'null'], minimum: 0 },
+              averagePlacementWith: { type: ['number', 'null'], minimum: 1, maximum: 8 },
+              averagePlacementWithout: { type: ['number', 'null'], minimum: 1, maximum: 8 },
+            },
+          },
+        },
+      },
+      BattlegroundTierListStatisticsItem: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'entityId', 'dbfId', 'cardId', 'name', 'localizedName', 'tier',
+          'tavernTier', 'archetype', 'difficulty', 'metrics',
+        ],
+        properties: {
+          entityId: { type: 'string', pattern: '^[A-Za-z0-9_-]{1,120}$' },
+          dbfId: { type: ['integer', 'null'], minimum: 0 },
+          cardId: { type: ['string', 'null'] },
+          name: { type: 'string' },
+          localizedName: { type: ['string', 'null'] },
+          tier: { type: ['string', 'null'], enum: ['S', 'A', 'B', 'C', 'D', null] },
+          tavernTier: { type: ['integer', 'null'], minimum: 1, maximum: 7 },
+          archetype: {
+            type: ['object', 'null'],
+            additionalProperties: false,
+            required: ['id', 'name'],
+            properties: {
+              id: { type: ['string', 'null'] },
+              name: { type: ['string', 'null'] },
+            },
+          },
+          difficulty: { type: ['string', 'null'] },
+          metrics: {
+            type: 'object',
+            additionalProperties: false,
+            required: [
+              'impact', 'combatWinratePercent', 'pickRatePercent',
+              'popularityPercent', 'firstPlacePercent', 'averagePlacement',
+              'averagePlacementWithout', 'games', 'placementDistributionPercent',
+            ],
+            properties: {
+              impact: { type: ['number', 'null'], minimum: -8, maximum: 8 },
+              combatWinratePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+              pickRatePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+              popularityPercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+              firstPlacePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+              averagePlacement: { type: ['number', 'null'], minimum: 1, maximum: 8 },
+              averagePlacementWithout: { type: ['number', 'null'], minimum: 1, maximum: 8 },
+              games: { type: ['integer', 'null'], minimum: 0 },
+              placementDistributionPercent: {
+                type: 'array',
+                maxItems: 8,
+                items: { type: 'number', minimum: 0, maximum: 100 },
+              },
+            },
+          },
+        },
+      },
+      BattlegroundHeroStatisticsResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['data', 'pagination', 'meta'],
+        properties: {
+          data: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/BattlegroundHeroStatisticsItem' },
+          },
+          pagination: { $ref: '#/components/schemas/StatisticsPagination' },
+          meta: { $ref: '#/components/schemas/BattlegroundStatisticsMeta' },
+        },
+      },
+      BattlegroundMinionStatisticsResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['data', 'pagination', 'meta'],
+        properties: {
+          data: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/BattlegroundMinionStatisticsItem' },
+          },
+          pagination: { $ref: '#/components/schemas/StatisticsPagination' },
+          meta: { $ref: '#/components/schemas/BattlegroundStatisticsMeta' },
+        },
+      },
+      BattlegroundTierListStatisticsResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['data', 'pagination', 'meta'],
+        properties: {
+          data: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/BattlegroundTierListStatisticsItem' },
+          },
+          pagination: { $ref: '#/components/schemas/StatisticsPagination' },
+          meta: { $ref: '#/components/schemas/BattlegroundStatisticsMeta' },
         },
       },
       Error: {

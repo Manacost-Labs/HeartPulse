@@ -252,7 +252,7 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     if (!requireScope(dependencies, 'catalog.read', request, response)) return;
     const payload = {
       apiVersion: 'v1',
-      schemaVersion: '2026-07-30.4',
+      schemaVersion: '2026-07-30.5',
       generatedAt: manifestGeneratedAt,
       resources: [
         { id: 'openapi', href: '/api/v1/openapi.json', status: 'AVAILABLE' },
@@ -290,6 +290,41 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
         {
           id: 'deck-statistics-detail',
           href: '/api/v1/decks/{deckId}/statistics',
+          status: 'AVAILABLE',
+        },
+        {
+          id: 'arena-class-statistics',
+          href: '/api/v1/arena/statistics/classes',
+          status: 'AVAILABLE',
+        },
+        {
+          id: 'arena-card-statistics',
+          href: '/api/v1/arena/statistics/cards',
+          status: 'AVAILABLE',
+        },
+        {
+          id: 'arena-legendary-statistics',
+          href: '/api/v1/arena/statistics/legendaries',
+          status: 'AVAILABLE',
+        },
+        {
+          id: 'arena-matchup-statistics',
+          href: '/api/v1/arena/statistics/matchups',
+          status: 'AVAILABLE',
+        },
+        {
+          id: 'battleground-hero-statistics',
+          href: '/api/v1/battlegrounds/statistics/heroes',
+          status: 'AVAILABLE',
+        },
+        {
+          id: 'battleground-minion-statistics',
+          href: '/api/v1/battlegrounds/statistics/minions',
+          status: 'AVAILABLE',
+        },
+        {
+          id: 'battleground-tier-list-statistics',
+          href: '/api/v1/battlegrounds/statistics/tier-lists/{kind}',
           status: 'AVAILABLE',
         },
         {
