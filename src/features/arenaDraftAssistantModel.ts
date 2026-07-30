@@ -200,9 +200,9 @@ function candidateSuggestionScore(
 }
 
 /**
- * Builds a useful recommendation triple from the already class-filtered,
- * current-cohort Arena card pool. This is not an attempt to predict the three
- * random cards shown by the game client.
+ * Builds a useful recommendation triple from the already class-filtered cards
+ * observed in the current Arena cohort. This is not an attempt to predict the
+ * three random cards or the support cards shown by the game client.
  */
 export function suggestArenaDraftCandidates(
   input: ArenaDraftCandidateSuggestionInput,

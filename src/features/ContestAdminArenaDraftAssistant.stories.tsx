@@ -270,6 +270,6 @@ export const AutomaticOpeningOffer: Story = {
     await expect(await canvas.findByText('Архимаг Антонидас')).toBeVisible();
     await expect(canvas.getByText('Хранительница портала')).toBeVisible();
     await expect(canvas.getByText('Повелитель рун')).toBeVisible();
-    await expect(canvas.getByRole('button', { name: 'Предложить легендарных' })).toBeEnabled();
+    await expect(canvas.getByRole('button', { name: 'Сравнить легендарные группы' })).toBeEnabled();
   },
 };

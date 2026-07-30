@@ -499,9 +499,9 @@ export function ArenaDraftAssistantWorkbench({
 
             <ul className="draft-rules-strip" aria-label="Правила текущего драфта">
               <li><strong>{context.deckSize}</strong> карт в колоде</li>
-              <li><strong>1-я</strong> тройка легендарная</li>
+              <li><strong>1-й</strong> выбор — легендарная группа</li>
               <li><strong>∞</strong> копий карты</li>
-              <li><strong>{cards.length}</strong> карт текущего пула</li>
+              <li><strong>{cards.length}</strong> карт в текущей выборке</li>
             </ul>
 
             <div className="draft-deck-add">
@@ -590,8 +590,8 @@ export function ArenaDraftAssistantWorkbench({
               <div>
                 <h2 id="arena-draft-assistant-title">Выберите лучшую карту</h2>
                 <p>
-                  Помощник сам предлагает сильную тройку из текущего пула. Реальное
-                  предложение из игры можно ввести вручную ниже.
+                  Помощник сам предлагает сильную тройку из карт текущей когорты.
+                  Реальное предложение из игры можно ввести вручную ниже.
                 </p>
               </div>
               <button
@@ -609,14 +609,15 @@ export function ArenaDraftAssistantWorkbench({
               >
                 <Sparkles size={16} aria-hidden="true" />
                 {draft.deckCardIds.length === 0
-                  ? 'Предложить легендарных'
+                  ? 'Сравнить легендарные группы'
                   : 'Предложить три карты'}
               </button>
             </div>
 
             <p className="draft-auto-offer-note">
               Рекомендационная тройка не предсказывает случайное предложение клиента:
-              если в игре показаны другие карты, замените их в полях ниже.
+              если в игре показаны другие карты или у легендарки есть пакет поддержки,
+              добавьте пакет в колоду и замените три поля ниже.
             </p>
 
             <div className="draft-candidate-pickers">
