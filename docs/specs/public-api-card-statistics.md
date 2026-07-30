@@ -15,8 +15,9 @@ The release provides:
 - Legend, Diamond 1–4, Diamond and Platinum ranks;
 - one-, three-, seven- and fourteen-day periods plus the current patch.
 
-Deck, archetype and metagame resources are separate later slices. They will use
-the same authentication, freshness, error and pagination conventions.
+Archetype and metagame resources are specified separately in
+`docs/specs/public-api-meta-statistics.md`. Deck resources remain a later slice
+and use the same authentication, freshness, error and pagination conventions.
 
 ## Authorization
 

@@ -2,7 +2,7 @@ export const PUBLIC_API_OPENAPI = {
   openapi: '3.1.0',
   info: {
     title: 'Manacost Public API',
-    version: '1.2.0',
+    version: '1.3.0',
     description: 'Versioned Hearthstone data API for approved applications.',
   },
   servers: [{ url: '/', description: 'Current Manacost environment' }],
@@ -11,7 +11,7 @@ export const PUBLIC_API_OPENAPI = {
     { name: 'Profile', description: 'The authorized user and cached subscription status.' },
     { name: 'Catalog', description: 'Available Manacost data resources.' },
     { name: 'Images', description: 'Same-origin cached Hearthstone card images.' },
-    { name: 'Statistics', description: 'Aggregated constructed-card statistics and history.' },
+    { name: 'Statistics', description: 'Aggregated card, meta and archetype statistics and history.' },
     { name: 'Administration', description: 'Administrator-only API key lifecycle.' },
   ],
   paths: {
@@ -495,6 +495,229 @@ export const PUBLIC_API_OPENAPI = {
           '403': { $ref: '#/components/responses/InsufficientScope' },
           '404': { description: 'Card is not in the selected catalog' },
           '503': { description: 'Card statistics are temporarily unavailable' },
+        },
+      },
+    },
+    '/api/v1/meta-statistics': {
+      get: {
+        summary: 'List the current constructed meta',
+        description: 'Returns a bounded aggregate archetype snapshot for one format, rank and period. Requires statistics.read.',
+        operationId: 'listMetaStatistics',
+        tags: ['Statistics'],
+        security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
+        parameters: [
+          {
+            name: 'format',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['standard', 'wild'], default: 'standard' },
+          },
+          {
+            name: 'rank',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              enum: [
+                'all', 'diamond', 'diamond_4_1', 'diamond_to_legend', 'legend',
+                'top_5000', 'top_1000', 'top_500', 'top_100',
+              ],
+              default: 'legend',
+            },
+          },
+          {
+            name: 'period',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              enum: ['1d', '3d', '7d', '14d', 'patch'],
+              default: '1d',
+            },
+          },
+          {
+            name: 'minGames',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'integer',
+              enum: [100, 250, 500, 1000, 2500, 5000],
+              default: 100,
+            },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 500, default: 100 },
+          },
+          {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', minLength: 12, maxLength: 500 },
+          },
+          {
+            name: 'If-None-Match',
+            in: 'header',
+            required: false,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'One page of the selected meta snapshot',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/MetaStatisticsListResponse' },
+              },
+            },
+          },
+          '304': { description: 'The representation has not changed' },
+          '400': { description: 'Invalid format, rank, period, sample floor, limit or cursor' },
+          '401': { $ref: '#/components/responses/InvalidCredential' },
+          '403': { $ref: '#/components/responses/InsufficientScope' },
+          '503': { description: 'No authoritative meta snapshot is currently available' },
+        },
+      },
+    },
+    '/api/v1/archetypes/{slug}/statistics': {
+      get: {
+        summary: 'Get current aggregate statistics for one archetype',
+        operationId: 'getArchetypeStatistics',
+        tags: ['Statistics'],
+        security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
+        parameters: [
+          {
+            name: 'slug',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', pattern: '^[a-z0-9][a-z0-9-]{0,89}$' },
+          },
+          {
+            name: 'format',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['standard', 'wild'], default: 'standard' },
+          },
+          {
+            name: 'If-None-Match',
+            in: 'header',
+            required: false,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Current normalized archetype metrics',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ArchetypeStatisticsResponse' },
+              },
+            },
+          },
+          '304': { description: 'The representation has not changed' },
+          '400': { description: 'Invalid format or archetype slug' },
+          '401': { $ref: '#/components/responses/InvalidCredential' },
+          '403': { $ref: '#/components/responses/InsufficientScope' },
+          '404': { description: 'Archetype is not present in the selected format' },
+          '503': { description: 'Archetype statistics are temporarily unavailable' },
+        },
+      },
+    },
+    '/api/v1/archetypes/{slug}/statistics/history': {
+      get: {
+        summary: 'Get aggregate history for one archetype',
+        description: 'Returns up to 1,000 chronological points from the selected trailing window.',
+        operationId: 'getArchetypeStatisticsHistory',
+        tags: ['Statistics'],
+        security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
+        parameters: [
+          {
+            name: 'slug',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', pattern: '^[a-z0-9][a-z0-9-]{0,89}$' },
+          },
+          {
+            name: 'format',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['standard', 'wild'], default: 'standard' },
+          },
+          {
+            name: 'days',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 7, maximum: 365, default: 90 },
+          },
+          {
+            name: 'If-None-Match',
+            in: 'header',
+            required: false,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Chronological archetype aggregate points',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ArchetypeStatisticsHistoryResponse' },
+              },
+            },
+          },
+          '304': { description: 'The representation has not changed' },
+          '400': { description: 'Invalid format, archetype slug or day range' },
+          '401': { $ref: '#/components/responses/InvalidCredential' },
+          '403': { $ref: '#/components/responses/InsufficientScope' },
+          '404': { description: 'Archetype is not present in the selected format' },
+          '503': { description: 'Archetype history is temporarily unavailable' },
+        },
+      },
+    },
+    '/api/v1/archetypes/{slug}/analysis': {
+      get: {
+        summary: 'Get matchup and card-impact analysis for one archetype',
+        description: 'Returns the available Legend/7-day aggregate analysis without provider URLs or deck codes.',
+        operationId: 'getArchetypeAnalysis',
+        tags: ['Statistics'],
+        security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
+        parameters: [
+          {
+            name: 'slug',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', pattern: '^[a-z0-9][a-z0-9-]{0,89}$' },
+          },
+          {
+            name: 'format',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['standard', 'wild'], default: 'standard' },
+          },
+          {
+            name: 'If-None-Match',
+            in: 'header',
+            required: false,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Class matchups and per-card aggregate impact metrics',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ArchetypeAnalysisResponse' },
+              },
+            },
+          },
+          '304': { description: 'The representation has not changed' },
+          '400': { description: 'Invalid format or archetype slug' },
+          '401': { $ref: '#/components/responses/InvalidCredential' },
+          '403': { $ref: '#/components/responses/InsufficientScope' },
+          '404': { description: 'No analysis is available for this archetype' },
+          '503': { description: 'Archetype analysis is temporarily unavailable' },
         },
       },
     },
@@ -1092,6 +1315,314 @@ export const PUBLIC_API_OPENAPI = {
               },
             ],
             unevaluatedProperties: false,
+          },
+        },
+      },
+      MetaStatisticsMetrics: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'winratePercent', 'popularityPercent', 'games', 'averageTurns',
+          'averageDurationMinutes', 'climbingSpeedStarsPerHour',
+        ],
+        properties: {
+          winratePercent: {
+            type: ['number', 'null'],
+            minimum: 0,
+            maximum: 100,
+            description: 'Archetype win rate, in percentage points.',
+          },
+          popularityPercent: {
+            type: ['number', 'null'],
+            minimum: 0,
+            maximum: 100,
+            description: 'Share of observed games, in percentage points.',
+          },
+          games: {
+            type: ['integer', 'null'],
+            minimum: 0,
+            description: 'Observed game count.',
+          },
+          averageTurns: {
+            type: ['number', 'null'],
+            minimum: 0,
+            maximum: 100,
+            description: 'Mean turns per game.',
+          },
+          averageDurationMinutes: {
+            type: ['number', 'null'],
+            minimum: 0,
+            maximum: 240,
+            description: 'Mean game duration in minutes.',
+          },
+          climbingSpeedStarsPerHour: {
+            type: ['number', 'null'],
+            minimum: -1000,
+            maximum: 1000,
+            description: 'Estimated ladder stars gained per hour.',
+          },
+        },
+      },
+      MetaStatisticsItem: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'archetypeId', 'slug', 'name', 'localizedName', 'translated',
+          'classId', 'metrics',
+        ],
+        properties: {
+          archetypeId: { type: 'string' },
+          slug: { type: 'string', pattern: '^[a-z0-9][a-z0-9-]{0,89}$' },
+          name: { type: 'string' },
+          localizedName: { type: 'string' },
+          translated: { type: 'boolean' },
+          classId: { type: ['string', 'null'] },
+          metrics: { $ref: '#/components/schemas/MetaStatisticsMetrics' },
+        },
+      },
+      MetaStatisticsMeta: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'format', 'rank', 'period', 'minGames', 'mode', 'partial',
+          'updatedAt', 'datasetVersion', 'dataStatus',
+        ],
+        properties: {
+          format: { type: 'string', enum: ['standard', 'wild'] },
+          rank: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['id'],
+            properties: {
+              id: {
+                type: 'string',
+                enum: [
+                  'all', 'diamond', 'diamond_4_1', 'diamond_to_legend', 'legend',
+                  'top_5000', 'top_1000', 'top_500', 'top_100',
+                ],
+              },
+            },
+          },
+          period: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['id', 'patch'],
+            properties: {
+              id: { type: 'string', enum: ['1d', '3d', '7d', '14d', 'patch'] },
+              patch: { type: ['string', 'null'] },
+            },
+          },
+          minGames: { type: 'integer', enum: [100, 250, 500, 1000, 2500, 5000] },
+          mode: { type: 'string', enum: ['stable', 'early'] },
+          partial: { type: 'boolean' },
+          updatedAt: { type: ['string', 'null'], format: 'date-time' },
+          datasetVersion: { type: 'string' },
+          dataStatus: { type: 'string', enum: ['fresh', 'stale'] },
+        },
+      },
+      MetaStatisticsListResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['data', 'pagination', 'meta'],
+        properties: {
+          data: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/MetaStatisticsItem' },
+          },
+          pagination: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['limit', 'total', 'hasMore', 'nextCursor'],
+            properties: {
+              limit: { type: 'integer', minimum: 1, maximum: 500 },
+              total: { type: 'integer', minimum: 0 },
+              hasMore: { type: 'boolean' },
+              nextCursor: { type: ['string', 'null'] },
+            },
+          },
+          meta: { $ref: '#/components/schemas/MetaStatisticsMeta' },
+        },
+      },
+      ArchetypeStatisticsItem: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'slug', 'name', 'localizedName', 'translated', 'classId',
+          'metrics', 'format', 'deckCount',
+        ],
+        properties: {
+          slug: { type: 'string', pattern: '^[a-z0-9][a-z0-9-]{0,89}$' },
+          name: { type: 'string' },
+          localizedName: { type: 'string' },
+          translated: { type: 'boolean' },
+          classId: { type: ['string', 'null'] },
+          metrics: { $ref: '#/components/schemas/MetaStatisticsMetrics' },
+          format: { type: 'string', enum: ['standard', 'wild'] },
+          deckCount: { type: 'integer', minimum: 0 },
+        },
+      },
+      ArchetypeStatisticsResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['data', 'meta'],
+        properties: {
+          data: { $ref: '#/components/schemas/ArchetypeStatisticsItem' },
+          meta: {
+            type: 'object',
+            additionalProperties: false,
+            required: [
+              'format', 'patch', 'minimumGames', 'updatedAt',
+              'datasetVersion', 'dataStatus',
+            ],
+            properties: {
+              format: { type: 'string', enum: ['standard', 'wild'] },
+              patch: { type: ['string', 'null'] },
+              minimumGames: { type: 'integer', minimum: 0 },
+              updatedAt: { type: ['string', 'null'], format: 'date-time' },
+              datasetVersion: { type: 'string' },
+              dataStatus: { type: 'string', enum: ['fresh', 'stale'] },
+            },
+          },
+        },
+      },
+      ArchetypeStatisticsHistoryPoint: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['recordedAt', 'metrics'],
+        properties: {
+          recordedAt: { type: 'string', format: 'date-time' },
+          metrics: { $ref: '#/components/schemas/MetaStatisticsMetrics' },
+        },
+      },
+      ArchetypeStatisticsHistoryResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['data', 'meta'],
+        properties: {
+          data: {
+            type: 'array',
+            maxItems: 1000,
+            items: { $ref: '#/components/schemas/ArchetypeStatisticsHistoryPoint' },
+          },
+          meta: {
+            type: 'object',
+            additionalProperties: false,
+            required: [
+              'format', 'slug', 'days', 'patch', 'updatedAt',
+              'datasetVersion', 'dataStatus',
+            ],
+            properties: {
+              format: { type: 'string', enum: ['standard', 'wild'] },
+              slug: { type: 'string', pattern: '^[a-z0-9][a-z0-9-]{0,89}$' },
+              days: { type: 'integer', minimum: 7, maximum: 365 },
+              patch: { type: ['string', 'null'] },
+              updatedAt: { type: ['string', 'null'], format: 'date-time' },
+              datasetVersion: { type: 'string' },
+              dataStatus: { type: 'string', enum: ['fresh', 'stale'] },
+            },
+          },
+        },
+      },
+      ArchetypeClassMatchup: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['classId', 'localizedName', 'metrics'],
+        properties: {
+          classId: { type: 'string' },
+          localizedName: { type: 'string' },
+          metrics: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['winratePercent', 'games', 'sharePercent'],
+            properties: {
+              winratePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+              games: { type: ['integer', 'null'], minimum: 0 },
+              sharePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+            },
+          },
+        },
+      },
+      ArchetypeCardImpact: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['cardId', 'dbfId', 'name', 'manaCost', 'metrics'],
+        properties: {
+          cardId: { type: ['string', 'null'] },
+          dbfId: { type: ['integer', 'null'], minimum: 0 },
+          name: { type: 'string' },
+          manaCost: { type: ['integer', 'null'], minimum: 0 },
+          metrics: {
+            type: 'object',
+            additionalProperties: false,
+            required: [
+              'mulliganImpactPercentagePoints', 'mulliganCount',
+              'drawnImpactPercentagePoints', 'drawnCount',
+              'keptImpactPercentagePoints', 'keptCount',
+            ],
+            properties: {
+              mulliganImpactPercentagePoints: {
+                type: ['number', 'null'],
+                minimum: -100,
+                maximum: 100,
+              },
+              mulliganCount: { type: ['integer', 'null'], minimum: 0 },
+              drawnImpactPercentagePoints: {
+                type: ['number', 'null'],
+                minimum: -100,
+                maximum: 100,
+              },
+              drawnCount: { type: ['integer', 'null'], minimum: 0 },
+              keptImpactPercentagePoints: {
+                type: ['number', 'null'],
+                minimum: -100,
+                maximum: 100,
+              },
+              keptCount: { type: ['integer', 'null'], minimum: 0 },
+            },
+          },
+        },
+      },
+      ArchetypeAnalysisResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['data', 'meta'],
+        properties: {
+          data: {
+            type: 'object',
+            additionalProperties: false,
+            required: [
+              'slug', 'state', 'rank', 'period', 'classMatchups', 'cardStatistics',
+            ],
+            properties: {
+              slug: { type: 'string', pattern: '^[a-z0-9][a-z0-9-]{0,89}$' },
+              state: { type: 'string', enum: ['ok', 'partial', 'error'] },
+              rank: { type: 'string', const: 'legend' },
+              period: { type: 'string', const: '7d' },
+              classMatchups: {
+                type: 'array',
+                items: { $ref: '#/components/schemas/ArchetypeClassMatchup' },
+              },
+              cardStatistics: {
+                type: 'array',
+                items: { $ref: '#/components/schemas/ArchetypeCardImpact' },
+              },
+            },
+          },
+          meta: {
+            type: 'object',
+            additionalProperties: false,
+            required: [
+              'format', 'updatedAt', 'matchupsUpdatedAt',
+              'cardStatisticsUpdatedAt', 'datasetVersion', 'dataStatus',
+            ],
+            properties: {
+              format: { type: 'string', enum: ['standard', 'wild'] },
+              updatedAt: { type: ['string', 'null'], format: 'date-time' },
+              matchupsUpdatedAt: { type: ['string', 'null'], format: 'date-time' },
+              cardStatisticsUpdatedAt: { type: ['string', 'null'], format: 'date-time' },
+              datasetVersion: { type: 'string' },
+              dataStatus: { type: 'string', enum: ['fresh', 'stale'] },
+            },
           },
         },
       },

@@ -15,6 +15,11 @@ import {
   PublicCardStatisticsQueryError,
   type PublicCardStatisticsSource,
 } from './statistics.js';
+import {
+  createPublicMetaStatistics,
+  PublicMetaStatisticsQueryError,
+  type PublicMetaStatisticsSource,
+} from './metaStatistics.js';
 import { ApiKeyValidationError, type ApiKeyManager, type PublicApiScope } from './model.js';
 import { PUBLIC_API_OPENAPI } from './openapi.js';
 
@@ -46,6 +51,7 @@ type PublicRouterDependencies = {
   };
   cardCatalog?: PublicCardCatalogSource;
   cardStatistics?: PublicCardStatisticsSource;
+  metaStatistics?: PublicMetaStatisticsSource;
 };
 
 const apiError = (code: string, message: string) => ({ error: { code, message } });
@@ -100,6 +106,9 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
   const cardStatistics = dependencies.cardStatistics
     ? createPublicCardStatistics(dependencies.cardStatistics)
     : null;
+  const metaStatistics = dependencies.metaStatistics
+    ? createPublicMetaStatistics(dependencies.metaStatistics)
+    : null;
 
   const sendVersionedJson = (
     request: Request,
@@ -147,6 +156,21 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     ));
   };
 
+  const metaStatisticsError = (response: Response, error: unknown) => {
+    response.set('Cache-Control', 'no-store');
+    if (error instanceof PublicMetaStatisticsQueryError) {
+      return response.status(400).json(apiError(
+        'INVALID_META_STATISTICS_QUERY',
+        error.message,
+      ));
+    }
+    response.set('Retry-After', '60');
+    return response.status(503).json(apiError(
+      'META_STATISTICS_UNAVAILABLE',
+      'Meta statistics are temporarily unavailable',
+    ));
+  };
+
   router.get('/openapi.json', (_request, response) => {
     response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=300');
     return response.json(PUBLIC_API_OPENAPI);
@@ -156,7 +180,7 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     if (!requireScope(dependencies, 'catalog.read', request, response)) return;
     const payload = {
       apiVersion: 'v1',
-      schemaVersion: '2026-07-30.2',
+      schemaVersion: '2026-07-30.3',
       generatedAt: manifestGeneratedAt,
       resources: [
         { id: 'openapi', href: '/api/v1/openapi.json', status: 'AVAILABLE' },
@@ -172,6 +196,22 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
         {
           id: 'card-statistics-history',
           href: '/api/v1/cards/{cardId}/statistics/history',
+          status: 'AVAILABLE',
+        },
+        { id: 'meta-statistics', href: '/api/v1/meta-statistics', status: 'AVAILABLE' },
+        {
+          id: 'archetype-statistics',
+          href: '/api/v1/archetypes/{slug}/statistics',
+          status: 'AVAILABLE',
+        },
+        {
+          id: 'archetype-statistics-history',
+          href: '/api/v1/archetypes/{slug}/statistics/history',
+          status: 'AVAILABLE',
+        },
+        {
+          id: 'archetype-analysis',
+          href: '/api/v1/archetypes/{slug}/analysis',
           status: 'AVAILABLE',
         },
         {
@@ -278,6 +318,91 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
       return sendVersionedJson(request, response, result);
     } catch (error) {
       return cardStatisticsError(response, error);
+    }
+  });
+
+  router.get('/meta-statistics', async (request, response) => {
+    if (!requireScope(dependencies, 'statistics.read', request, response)) return;
+    if (!metaStatistics) {
+      return metaStatisticsError(response, new Error('Meta statistics are not configured'));
+    }
+    try {
+      return sendVersionedJson(
+        request,
+        response,
+        await metaStatistics.list(request.query as Record<string, unknown>),
+      );
+    } catch (error) {
+      return metaStatisticsError(response, error);
+    }
+  });
+
+  router.get('/archetypes/:slug/statistics', async (request, response) => {
+    if (!requireScope(dependencies, 'statistics.read', request, response)) return;
+    if (!metaStatistics) {
+      return metaStatisticsError(response, new Error('Meta statistics are not configured'));
+    }
+    try {
+      const result = await metaStatistics.detail(
+        request.query as Record<string, unknown>,
+        request.params.slug,
+      );
+      if (!result) {
+        response.set('Cache-Control', 'no-store');
+        return response.status(404).json(apiError(
+          'ARCHETYPE_STATISTICS_NOT_FOUND',
+          'Archetype statistics were not found',
+        ));
+      }
+      return sendVersionedJson(request, response, result);
+    } catch (error) {
+      return metaStatisticsError(response, error);
+    }
+  });
+
+  router.get('/archetypes/:slug/statistics/history', async (request, response) => {
+    if (!requireScope(dependencies, 'statistics.read', request, response)) return;
+    if (!metaStatistics) {
+      return metaStatisticsError(response, new Error('Meta statistics are not configured'));
+    }
+    try {
+      const result = await metaStatistics.history(
+        request.query as Record<string, unknown>,
+        request.params.slug,
+      );
+      if (!result) {
+        response.set('Cache-Control', 'no-store');
+        return response.status(404).json(apiError(
+          'ARCHETYPE_STATISTICS_NOT_FOUND',
+          'Archetype statistics were not found',
+        ));
+      }
+      return sendVersionedJson(request, response, result);
+    } catch (error) {
+      return metaStatisticsError(response, error);
+    }
+  });
+
+  router.get('/archetypes/:slug/analysis', async (request, response) => {
+    if (!requireScope(dependencies, 'statistics.read', request, response)) return;
+    if (!metaStatistics) {
+      return metaStatisticsError(response, new Error('Meta statistics are not configured'));
+    }
+    try {
+      const result = await metaStatistics.analysis(
+        request.query as Record<string, unknown>,
+        request.params.slug,
+      );
+      if (!result) {
+        response.set('Cache-Control', 'no-store');
+        return response.status(404).json(apiError(
+          'ARCHETYPE_ANALYSIS_NOT_FOUND',
+          'Archetype analysis was not found',
+        ));
+      }
+      return sendVersionedJson(request, response, result);
+    } catch (error) {
+      return metaStatisticsError(response, error);
     }
   });
 

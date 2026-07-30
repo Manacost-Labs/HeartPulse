@@ -38,11 +38,11 @@ export function DeveloperApiPage() {
       <section className="developer-api-status" aria-labelledby="api-status-title">
         <div>
           <span className="developer-api-status-icon is-live"><CheckCircle2 /></span>
-          <div><h2 id="api-status-title">Доступно сейчас</h2><p>Карты, токены, статистика, история, изображения, ключи и вход приложения</p></div>
+          <div><h2 id="api-status-title">Доступно сейчас</h2><p>Карты, токены, мета, архетипы, история, анализ, изображения, ключи и вход приложения</p></div>
         </div>
         <div>
           <span className="developer-api-status-icon"><Clock3 /></span>
-          <div><h2>Планируется</h2><p>Колоды, матчи и мета</p></div>
+          <div><h2>Планируется</h2><p>Колоды и отдельные матчи</p></div>
         </div>
       </section>
 
@@ -92,6 +92,10 @@ export function DeveloperApiPage() {
             <div><span>GET</span><code>/api/v1/card-statistics</code><p>Полный срез статистики Standard или Wild с пагинацией</p></div>
             <div><span>GET</span><code>/api/v1/cards/{'{cardId}'}/statistics</code><p>Текущие показатели карты для выбранного ранга и периода</p></div>
             <div><span>GET</span><code>/api/v1/cards/{'{cardId}'}/statistics/history</code><p>История показателей карты за 7–365 дней</p></div>
+            <div><span>GET</span><code>/api/v1/meta-statistics</code><p>Мета Standard или Wild по рангам, периодам и размеру выборки</p></div>
+            <div><span>GET</span><code>/api/v1/archetypes/{'{slug}'}/statistics</code><p>Текущие агрегаты выбранного архетипа</p></div>
+            <div><span>GET</span><code>/api/v1/archetypes/{'{slug}'}/statistics/history</code><p>История винрейта, популярности и темпа подъёма</p></div>
+            <div><span>GET</span><code>/api/v1/archetypes/{'{slug}'}/analysis</code><p>Матчапы по классам и влияние карт на результат</p></div>
             <div><span>GET</span><code>/api/v1/cards/{'{cardId}'}/images/{'{variant}'}.webp</code><p>Кэшированные изображения thumb, full и tile</p></div>
             <div><span>POST</span><code>/api/v1/oauth/device/code</code><p>Начало безопасного входа desktop-приложения</p></div>
             <div><span>POST</span><code>/api/v1/oauth/token</code><p>Обмен device code и ротация refresh token</p></div>

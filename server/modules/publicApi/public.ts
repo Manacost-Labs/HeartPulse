@@ -23,6 +23,11 @@ export {
   serializePublicCardStatisticsHistoryPoint,
   type PublicCardStatisticsSource,
 } from './statistics.js';
+export {
+  createPublicMetaStatistics,
+  PublicMetaStatisticsQueryError,
+  type PublicMetaStatisticsSource,
+} from './metaStatistics.js';
 export { PUBLIC_API_OPENAPI } from './openapi.js';
 export {
   createSqliteApiKeyRepository,

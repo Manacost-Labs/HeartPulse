@@ -98,7 +98,7 @@ try {
   assert.equal(openapi.status, 200);
   const openapiPayload = await openapi.json() as Record<string, any>;
   assert.equal(openapiPayload.openapi, '3.1.0');
-  assert.equal(openapiPayload.info.version, '1.2.0');
+  assert.equal(openapiPayload.info.version, '1.3.0');
   assert.equal(openapiPayload.components.securitySchemes.ApiKeyAuth.name, 'X-API-Key');
   assert.equal(openapiPayload.components.securitySchemes.ApplicationBearer.scheme, 'bearer');
   assert.ok(openapiPayload.paths['/api/v1/oauth/device/code']);
@@ -111,6 +111,10 @@ try {
   assert.ok(openapiPayload.paths['/api/v1/card-statistics']);
   assert.ok(openapiPayload.paths['/api/v1/cards/{cardId}/statistics']);
   assert.ok(openapiPayload.paths['/api/v1/cards/{cardId}/statistics/history']);
+  assert.ok(openapiPayload.paths['/api/v1/meta-statistics']);
+  assert.ok(openapiPayload.paths['/api/v1/archetypes/{slug}/statistics']);
+  assert.ok(openapiPayload.paths['/api/v1/archetypes/{slug}/statistics/history']);
+  assert.ok(openapiPayload.paths['/api/v1/archetypes/{slug}/analysis']);
   assert.ok(openapiPayload.paths['/api/v1/cards/{cardId}/images/{variant}.webp']);
   assert.ok(openapiPayload.paths['/api/admin/api-keys']);
   assert.deepEqual(
@@ -118,6 +122,8 @@ try {
     ['catalog.read', 'images.read', 'statistics.read'],
   );
   assert.ok(openapiPayload.components.schemas.CardStatisticsMetrics);
+  assert.ok(openapiPayload.components.schemas.MetaStatisticsMetrics);
+  assert.ok(openapiPayload.components.schemas.ArchetypeAnalysisResponse);
 
   const unauthenticatedAdmin = await fetch(`${origin}/api/admin/api-keys`);
   assert.equal(unauthenticatedAdmin.status, 403);
@@ -185,11 +191,14 @@ try {
   assert.match(String(manifestResponse.headers.get('etag')), /^"/);
   const manifest = await manifestResponse.json() as Record<string, any>;
   assert.equal(manifest.apiVersion, 'v1');
-  assert.equal(manifest.schemaVersion, '2026-07-30.2');
+  assert.equal(manifest.schemaVersion, '2026-07-30.3');
   assert.ok(Array.isArray(manifest.resources));
   assert.ok(manifest.resources.some((resource: Record<string, unknown>) => resource.id === 'cards'));
   assert.ok(manifest.resources.some(
     (resource: Record<string, unknown>) => resource.id === 'card-statistics',
+  ));
+  assert.ok(manifest.resources.some(
+    (resource: Record<string, unknown>) => resource.id === 'meta-statistics',
   ));
   assert.equal(records.get(created.key.id)?.lastUsedAt, '2026-07-29T12:00:02.000Z');
 

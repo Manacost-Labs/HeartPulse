@@ -7544,7 +7544,7 @@ const cardImageRouterDependencies = createCardImageDependencies({
 });
 
 const applicationAuth = registerApplicationAuth({ app, getDatabase: db, appUrl: APP_URL, userAuth, resolveUser: userId => loadAuthStore().users.find(user => user.id === userId && !user.blockedAt) ?? null, serializeUser: user => serializeApplicationProfileUser(user, APP_URL), readSubscription: userId => serializeApplicationSubscription(readSubscriptionStatus(userId) ?? emptySubscriptionStatus()), emptySubscription: () => serializeApplicationSubscription(emptySubscriptionStatus()), setPrivateNoStore });
-registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit, cardImageDependencies: cardImageRouterDependencies, accessTokens: applicationAuth, ...createPublicApiCardSources(() => constructedCardDataService) });
+registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit, cardImageDependencies: cardImageRouterDependencies, accessTokens: applicationAuth, ...createPublicApiCardSources(() => constructedCardDataService), metaStatistics: { loadMeta: loadStandardMeta, loadCatalog: loadConstructedArchetypeCatalog, loadHistory: loadConstructedArchetypeHistory, loadAnalysis: loadConstructedArchetypeAnalysis } });
 app.use('/_internal', createTierlistCacheBustRouter({
   resolveSource: source => Object.prototype.hasOwnProperty.call(TIERLIST_DATASET_BY_SOURCE, source ?? '')
     ? source as keyof typeof TIERLIST_DATASET_BY_SOURCE

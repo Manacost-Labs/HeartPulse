@@ -16,12 +16,15 @@ Establish the secure, documented foundation for the unified Manacost data API:
 - allowlisted card details with related tokens and generated-card pools.
 - complete aggregate card-statistics snapshots and bounded card history across
   Standard/Wild, supported ranks and supported periods.
+- aggregate metagame snapshots plus current, historical and analytical
+  archetype statistics.
 
-This slice does not expose raw databases and does not yet promise every deck,
-match or metagame record. Card statistics are specified in
-`docs/specs/public-api-card-statistics.md`; the remaining resources will be
-added incrementally behind
-the same authentication, media and versioning contracts.
+This slice does not expose raw databases and does not yet promise every deck or
+individual match record. Card statistics are specified in
+`docs/specs/public-api-card-statistics.md`; meta and archetype statistics are
+specified in `docs/specs/public-api-meta-statistics.md`. The remaining
+resources will be added incrementally behind the same authentication, media
+and versioning contracts.
 
 ## Technical context
 
@@ -244,6 +247,7 @@ It includes:
 - API-key and device-authorization examples;
 - card list, card detail, image, profile and catalog endpoint examples;
 - bulk card-statistics, current card-statistics and history endpoint examples;
+- meta snapshots, archetype history and archetype analysis endpoint examples;
 - error model;
 - one-time key handling guidance;
 - link to the OpenAPI JSON;

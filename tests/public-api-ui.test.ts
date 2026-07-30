@@ -11,6 +11,10 @@ assert.match(docs, /связанные токены и пулы генераци
 assert.match(docs, /\/api\/v1\/card-statistics/);
 assert.ok(docs.includes("/api/v1/cards/{'{cardId}'}/statistics"));
 assert.ok(docs.includes("/api/v1/cards/{'{cardId}'}/statistics/history"));
+assert.match(docs, /\/api\/v1\/meta-statistics/);
+assert.ok(docs.includes("/api/v1/archetypes/{'{slug}'}/statistics"));
+assert.ok(docs.includes("/api/v1/archetypes/{'{slug}'}/statistics/history"));
+assert.ok(docs.includes("/api/v1/archetypes/{'{slug}'}/analysis"));
 assert.ok(docs.includes("/api/v1/cards/{'{cardId}'}/images/{'{variant}'}.webp"));
 assert.match(docs, /\/api\/v1\/oauth\/device\/code/);
 assert.match(docs, /\/api\/v1\/oauth\/token/);
