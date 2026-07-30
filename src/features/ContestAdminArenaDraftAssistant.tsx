@@ -16,6 +16,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useState,
 } from 'react';
 import type {
@@ -46,8 +47,47 @@ type AdviceRequester = (
   request: ArenaDraftAdviceRequest,
   signal?: AbortSignal,
 ) => Promise<ArenaDraftAdviceResponse>;
+type AdviceLoadState = {
+  requestKey: string | null;
+  response: ArenaDraftAdviceResponse | null;
+  error: string | null;
+  loading: boolean;
+};
+type AdviceLoadAction =
+  | { type: 'loading'; requestKey: string }
+  | { type: 'resolved'; requestKey: string; response: ArenaDraftAdviceResponse }
+  | { type: 'rejected'; requestKey: string; error: string };
 
 const CANDIDATE_LABELS = ['Левая карта', 'Центральная карта', 'Правая карта'] as const;
+const INITIAL_ADVICE_STATE: AdviceLoadState = {
+  requestKey: null,
+  response: null,
+  error: null,
+  loading: false,
+};
+
+function adviceLoadReducer(
+  state: AdviceLoadState,
+  action: AdviceLoadAction,
+): AdviceLoadState {
+  if (action.type === 'loading') {
+    return { requestKey: action.requestKey, response: null, error: null, loading: true };
+  }
+  if (action.type === 'resolved') {
+    return {
+      requestKey: action.requestKey,
+      response: action.response,
+      error: null,
+      loading: false,
+    };
+  }
+  return {
+    requestKey: action.requestKey,
+    response: null,
+    error: action.error,
+    loading: false,
+  };
+}
 
 function formatDate(value: string | null): string {
   if (!value) return 'время не указано';
@@ -279,9 +319,7 @@ export function ArenaDraftAssistantWorkbench({
     }
   });
   const [cardToAdd, setCardToAdd] = useState('');
-  const [advice, setAdvice] = useState<ArenaDraftAdviceResponse | null>(null);
-  const [adviceLoading, setAdviceLoading] = useState(false);
-  const [adviceError, setAdviceError] = useState<string | null>(null);
+  const [adviceState, dispatchAdvice] = useReducer(adviceLoadReducer, INITIAL_ADVICE_STATE);
   const reason = unavailableReason(payload);
 
   useEffect(() => {
@@ -294,17 +332,18 @@ export function ArenaDraftAssistantWorkbench({
 
   const candidatesReady = draft.candidateCardIds.every(Boolean)
     && new Set(draft.candidateCardIds).size === 3;
+  const adviceRequestKey = candidatesReady && !reason
+    ? `${selectedClass}:${draft.deckCardIds.join(',')}:${draft.candidateCardIds.join(',')}`
+    : null;
+  const advice = adviceState.requestKey === adviceRequestKey ? adviceState.response : null;
+  const adviceLoading = Boolean(adviceRequestKey)
+    && (adviceState.requestKey !== adviceRequestKey || adviceState.loading);
+  const adviceError = adviceState.requestKey === adviceRequestKey ? adviceState.error : null;
 
   useEffect(() => {
-    if (!context || reason || !candidatesReady) {
-      setAdvice(null);
-      setAdviceError(null);
-      setAdviceLoading(false);
-      return undefined;
-    }
+    if (!context || !adviceRequestKey) return undefined;
     const controller = new AbortController();
-    setAdviceLoading(true);
-    setAdviceError(null);
+    dispatchAdvice({ type: 'loading', requestKey: adviceRequestKey });
     void requestAdvice({
       class: selectedClass,
       deckCardIds: draft.deckCardIds,
@@ -312,30 +351,22 @@ export function ArenaDraftAssistantWorkbench({
     }, controller.signal)
       .then(result => {
         if (controller.signal.aborted) return;
-        setAdvice(result);
-        setDraft(current => ({
-          ...current,
-          selectedCardId: current.selectedCardId
-            && current.candidateCardIds.includes(current.selectedCardId)
-            ? current.selectedCardId
-            : result.advice.choices[0]?.card.id ?? null,
-        }));
+        dispatchAdvice({ type: 'resolved', requestKey: adviceRequestKey, response: result });
       })
       .catch(error => {
         if (controller.signal.aborted) return;
-        setAdvice(null);
-        setAdviceError(error instanceof Error ? error.message : 'Не удалось сравнить карты.');
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setAdviceLoading(false);
+        dispatchAdvice({
+          type: 'rejected',
+          requestKey: adviceRequestKey,
+          error: error instanceof Error ? error.message : 'Не удалось сравнить карты.',
+        });
       });
     return () => controller.abort();
   }, [
-    candidatesReady,
+    adviceRequestKey,
     context,
     draft.candidateCardIds,
     draft.deckCardIds,
-    reason,
     requestAdvice,
     selectedClass,
   ]);
@@ -353,8 +384,9 @@ export function ArenaDraftAssistantWorkbench({
     [advice],
   );
   const winner = advice?.advice.choices[0] ?? null;
-  const selectedChoice = draft.selectedCardId
-    ? choicesById.get(draft.selectedCardId) ?? null
+  const effectiveSelectedCardId = draft.selectedCardId ?? winner?.card.id ?? null;
+  const selectedChoice = effectiveSelectedCardId
+    ? choicesById.get(effectiveSelectedCardId) ?? null
     : null;
 
   const setCandidate = (index: number, cardId: string) => {
@@ -376,14 +408,11 @@ export function ArenaDraftAssistantWorkbench({
       candidateCardIds: ['', '', ''],
       selectedCardId: null,
     }));
-    setAdvice(null);
   };
 
   const resetDraft = () => {
     setDraft(createEmptyDraftState(selectedClass));
     setCardToAdd('');
-    setAdvice(null);
-    setAdviceError(null);
   };
 
   return (
@@ -556,7 +585,7 @@ export function ArenaDraftAssistantWorkbench({
                   key={`${index}:${cardId || 'empty'}`}
                   card={cardsById.get(cardId) ?? null}
                   choice={choicesById.get(cardId) ?? null}
-                  selected={Boolean(cardId && draft.selectedCardId === cardId)}
+                  selected={Boolean(cardId && effectiveSelectedCardId === cardId)}
                   imageUrl={resolveCardImage}
                   onSelect={() => {
                     if (cardId) setDraft(current => ({ ...current, selectedCardId: cardId }));
