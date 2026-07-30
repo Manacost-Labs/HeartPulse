@@ -1,5 +1,17 @@
 # HS-Arena Changelog
 
+## v1.0.89 - 2026-07-30
+
+- Moved the Arena draft assistant from the admin workspace to its own
+  `/arena/draft` public-shell route while keeping navigation, rendering and
+  server data restricted to administrators.
+- Added automatic three-card recommendations from the selected class's current
+  Arena pool, including the opening Legendary phase, 30-card completion guard,
+  unlimited Arena duplicate eligibility and manual replacement with the real
+  in-game offer.
+- Added deterministic base-strength, sample, curve and proven-synergy scoring
+  for generated offers plus explicit current-pool and draft-rule context.
+
 ## v1.0.88 - 2026-07-30
 
 - Added an administrator-only Arena draft workbench that compares three

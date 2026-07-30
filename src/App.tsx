@@ -640,6 +640,8 @@ const loadDeckBuilderModule = () => import('./features/DeckBuilder');
 const LazyDeckBuilder = React.lazy(loadDeckBuilderModule);
 const loadArchetypesModule = () => import('./features/Archetypes');
 const LazyArchetypes = React.lazy(loadArchetypesModule);
+const loadArenaDraftAssistantModule = () => import('./features/ContestAdminArenaDraftAssistant');
+const LazyArenaDraftAssistant = React.lazy(loadArenaDraftAssistantModule);
 const LazyBattlegroundHeroesRoute = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundHeroesRoute })));
 const LazyBattlegroundTierList = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundTierList })));
 const LazyBattlegroundStrategyBuilderEmbed = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundStrategyBuilderEmbed })));
@@ -658,6 +660,7 @@ const ROUTE_PRELOADERS: Partial<Record<TabId | 'login', () => Promise<unknown>>>
   contests: loadContestsModule,
   'deck-builder': loadDeckBuilderModule,
   archetypes: loadArchetypesModule,
+  'arena-draft-assistant': loadArenaDraftAssistantModule,
   'standard-matchups': loadStandardMatchupsModule,
   'standard-meta': loadStandardMetaModule,
   'constructed-archetypes': loadConstructedArchetypesModule,
@@ -1001,6 +1004,7 @@ export default function App() {
     || appAuthUser.profileId === 'user_42368c85b8de'
   ));
   const visibleStandardTabs = STANDARD_TABS;
+  const visibleArenaTabs = useMemo(() => ARENA_TABS.filter(tab => !ADMIN_ONLY_TAB_IDS.has(tab.id) || appIsAdmin), [appIsAdmin]);
   const visibleMiscTabs = useMemo(
     () => MISC_TABS.filter(tab => !ADMIN_ONLY_TAB_IDS.has(tab.id) || appIsAdmin),
     [appIsAdmin],
@@ -1412,11 +1416,11 @@ export default function App() {
     );
     return ids;
   }, [legendariesData]);
-  const isFullWidthBuilder = routeSurfaceAvailable && (activeTab === 'standard-matchups' || activeTab === 'standard-meta' || activeTab === 'fun-decks' || activeTab === 'constructed-archetypes' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive' || activeTab === 'deck-builder' || activeTab === 'archetypes');
+  const isFullWidthBuilder = routeSurfaceAvailable && (activeTab === 'standard-matchups' || activeTab === 'standard-meta' || activeTab === 'fun-decks' || activeTab === 'constructed-archetypes' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive' || activeTab === 'deck-builder' || activeTab === 'archetypes' || activeTab === 'arena-draft-assistant');
   // Login is its own visual route. Do not inherit the surface class of the
   // page that happened to be open before the profile was requested.
   const isEditorialSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['articles', 'faq', 'developer-api', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
-  const isGameDataSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'standard-meta', 'fun-decks', 'constructed-archetypes', 'standard-vicious-gold', 'standard-cards', 'tierlist', 'legendaries', 'archetypes', 'cosmetics'].includes(activeTab);
+  const isGameDataSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'standard-meta', 'fun-decks', 'constructed-archetypes', 'standard-vicious-gold', 'standard-cards', 'tierlist', 'legendaries', 'archetypes', 'arena-draft-assistant', 'cosmetics'].includes(activeTab);
   const isBattlegroundsSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && BG_TAB_IDS.has(activeTab);
   const isOpenSurfacePage = !isAdminMode && (!routeSurfaceAvailable || activeTab === 'home' || isEditorialSurfacePage || isGameDataSurfacePage || isBattlegroundsSurfacePage);
   const standardAccessGranted = appIsAdmin || hasSubscriptionEntitlement(appSubscription, 'standard');
@@ -1528,7 +1532,7 @@ export default function App() {
             <div className="arena-mobile-menu-section" aria-label="Раздел Арена">
               Арена
             </div>
-            <NavigationRouteLinks routes={ARENA_TABS} activeTab={activeTab} variant="mobile" onNavigate={navigate} onWarm={warmRoute} />
+            <NavigationRouteLinks routes={visibleArenaTabs} activeTab={activeTab} variant="mobile" onNavigate={navigate} onWarm={warmRoute} />
             <div className="arena-mobile-menu-section" aria-label="Раздел Поля Сражений">
               Поля Сражений
             </div>
@@ -1623,7 +1627,7 @@ export default function App() {
               <div className="arena-sidebar-section" aria-label="Раздел Арена">
                 Арена
               </div>
-              <NavigationRouteLinks routes={ARENA_TABS} activeTab={activeTab} variant="sidebar" onNavigate={navigate} onWarm={warmRoute} />
+              <NavigationRouteLinks routes={visibleArenaTabs} activeTab={activeTab} variant="sidebar" onNavigate={navigate} onWarm={warmRoute} />
               <div className="arena-sidebar-section" aria-label="Раздел Поля Сражений">
                 Поля Сражений
               </div>
@@ -1850,6 +1854,9 @@ export default function App() {
                     ,
                     760,
                   )
+                )}
+                {activeTab === 'arena-draft-assistant' && (
+                  <React.Suspense fallback={<RouteFallback minHeight={760} />}><LazyArenaDraftAssistant isAdmin={appIsAdmin} authChecking={appAuthChecking} /></React.Suspense>
                 )}
                 {activeTab === 'bg-strategies' && (
                   renderPrivateRoute(

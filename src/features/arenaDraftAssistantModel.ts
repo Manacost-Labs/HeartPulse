@@ -1,4 +1,5 @@
 import type {
+  ArenaCombination,
   ArenaClassId,
   ArenaDraftAdvisorContext,
   ArenaSynergyCard,
@@ -20,6 +21,12 @@ export type ArenaDraftDeckRow = {
 export type ArenaDraftCurveSnapshot = ArenaDraftAdvisorContext['targetCurve'][number] & {
   count: number;
   fillPercent: number;
+};
+
+export type ArenaDraftCandidateSuggestionInput = {
+  deckCardIds: string[];
+  context: ArenaDraftAdvisorContext;
+  combinations: ArenaCombination[];
 };
 
 export const ARENA_DRAFT_ASSISTANT_STORAGE_KEY = 'arena-draft-assistant-v1';
@@ -128,6 +135,95 @@ export function removeDraftCardCopy(deckCardIds: string[], cardId: string): stri
   const index = deckCardIds.lastIndexOf(cardId);
   if (index < 0) return deckCardIds;
   return [...deckCardIds.slice(0, index), ...deckCardIds.slice(index + 1)];
+}
+
+function isLegendary(card: ArenaSynergyCard): boolean {
+  return card.rarity?.toLocaleUpperCase('en-US') === 'LEGENDARY';
+}
+
+function curveNeedScore(
+  card: ArenaSynergyCard,
+  deckCardIds: string[],
+  context: ArenaDraftAdvisorContext,
+): number {
+  if (card.cost == null) return 0;
+  const snapshot = buildCurveSnapshot(deckCardIds, context);
+  const bucket = snapshot.find(item => (
+    card.cost != null
+    && card.cost >= item.minimumCost
+    && (item.maximumCost == null || card.cost <= item.maximumCost)
+  ));
+  if (!bucket) return 0;
+  return Math.max(0, bucket.targetCount - bucket.count) / Math.max(1, bucket.targetCount);
+}
+
+function interactionScore(
+  cardId: string,
+  deckCardIds: string[],
+  combinations: ArenaCombination[],
+): number {
+  const deck = new Set(deckCardIds);
+  return combinations.reduce((total, combination) => {
+    if (
+      combination.classification !== 'confirmed'
+      && combination.classification !== 'promising'
+    ) return total;
+    const [left, right] = combination.cards;
+    const partnerId = left.id === cardId
+      ? right.id
+      : right.id === cardId ? left.id : null;
+    if (!partnerId || !deck.has(partnerId)) return total;
+    const delta = combination.controlledInteractionDeltaPoints
+      ?? combination.adjustedInteractionDeltaPoints;
+    if (!Number.isFinite(delta) || delta <= 0) return total;
+    const evidenceWeight = combination.classification === 'confirmed' ? 1 : 0.55;
+    return total + Math.min(5, delta) * evidenceWeight;
+  }, 0);
+}
+
+function candidateSuggestionScore(
+  card: ArenaSynergyCard,
+  input: ArenaDraftCandidateSuggestionInput,
+): number {
+  const winRate = card.deckWinRate ?? 50;
+  const runQuality = card.twelveWinRunQuality ?? 50;
+  const evidence = Math.min(1, Math.log10(Math.max(1, card.runs) + 1) / 2);
+  const curveNeed = curveNeedScore(card, input.deckCardIds, input.context);
+  const synergy = interactionScore(card.id, input.deckCardIds, input.combinations);
+  return (
+    winRate * 0.7
+    + runQuality * 0.3
+    + evidence * 1.5
+    + curveNeed * 1.25
+    + Math.min(7, synergy)
+  );
+}
+
+/**
+ * Builds a useful recommendation triple from the already class-filtered,
+ * current-cohort Arena card pool. This is not an attempt to predict the three
+ * random cards shown by the game client.
+ */
+export function suggestArenaDraftCandidates(
+  input: ArenaDraftCandidateSuggestionInput,
+): [string, string, string] | null {
+  const { context, deckCardIds } = input;
+  if (deckCardIds.length >= context.deckSize) return null;
+
+  const legendaryCards = context.cards.filter(isLegendary);
+  const regularCards = context.cards.filter(card => !isLegendary(card));
+  const eligibleCards = deckCardIds.length === 0 && legendaryCards.length >= 3
+    ? legendaryCards
+    : regularCards;
+  if (eligibleCards.length < 3) return null;
+
+  const ranked = [...eligibleCards].sort((left, right) => (
+    candidateSuggestionScore(right, input) - candidateSuggestionScore(left, input)
+    || right.runs - left.runs
+    || left.name.localeCompare(right.name, 'ru')
+    || left.id.localeCompare(right.id)
+  ));
+  return ranked.slice(0, 3).map(card => card.id) as [string, string, string];
 }
 
 export function fullCardImageUrl(cardId: string): string {

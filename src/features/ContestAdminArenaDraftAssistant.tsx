@@ -37,6 +37,7 @@ import {
   groupDraftDeck,
   hydrateDraftState,
   removeDraftCardCopy,
+  suggestArenaDraftCandidates,
   type ArenaDraftAssistantState,
 } from './arenaDraftAssistantModel';
 import './ContestAdminArenaDraftAssistant.css';
@@ -321,6 +322,22 @@ export function ArenaDraftAssistantWorkbench({
   const [cardToAdd, setCardToAdd] = useState('');
   const [adviceState, dispatchAdvice] = useReducer(adviceLoadReducer, INITIAL_ADVICE_STATE);
   const reason = unavailableReason(payload);
+  const suggestedCandidates = useMemo(
+    () => context
+      ? suggestArenaDraftCandidates({
+        deckCardIds: draft.deckCardIds,
+        context,
+        combinations: payload.combinations,
+      })
+      : null,
+    [context, draft.deckCardIds, payload.combinations],
+  );
+  const effectiveCandidateCardIds = useMemo<CandidateIds>(
+    () => draft.candidateCardIds.some(Boolean)
+      ? draft.candidateCardIds
+      : suggestedCandidates ?? ['', '', ''],
+    [draft.candidateCardIds, suggestedCandidates],
+  );
 
   useEffect(() => {
     try {
@@ -330,10 +347,10 @@ export function ArenaDraftAssistantWorkbench({
     }
   }, [draft]);
 
-  const candidatesReady = draft.candidateCardIds.every(Boolean)
-    && new Set(draft.candidateCardIds).size === 3;
+  const candidatesReady = effectiveCandidateCardIds.every(Boolean)
+    && new Set(effectiveCandidateCardIds).size === 3;
   const adviceRequestKey = candidatesReady && !reason
-    ? `${selectedClass}:${draft.deckCardIds.join(',')}:${draft.candidateCardIds.join(',')}`
+    ? `${selectedClass}:${draft.deckCardIds.join(',')}:${effectiveCandidateCardIds.join(',')}`
     : null;
   const advice = adviceState.requestKey === adviceRequestKey ? adviceState.response : null;
   const adviceLoading = Boolean(adviceRequestKey)
@@ -347,7 +364,7 @@ export function ArenaDraftAssistantWorkbench({
     void requestAdvice({
       class: selectedClass,
       deckCardIds: draft.deckCardIds,
-      candidateCardIds: draft.candidateCardIds,
+      candidateCardIds: effectiveCandidateCardIds,
     }, controller.signal)
       .then(result => {
         if (controller.signal.aborted) return;
@@ -365,8 +382,8 @@ export function ArenaDraftAssistantWorkbench({
   }, [
     adviceRequestKey,
     context,
-    draft.candidateCardIds,
     draft.deckCardIds,
+    effectiveCandidateCardIds,
     requestAdvice,
     selectedClass,
   ]);
@@ -392,7 +409,11 @@ export function ArenaDraftAssistantWorkbench({
   const setCandidate = (index: number, cardId: string) => {
     setDraft(current => ({
       ...current,
-      candidateCardIds: current.candidateCardIds.map((id, candidateIndex) => (
+      candidateCardIds: (
+        current.candidateCardIds.some(Boolean)
+          ? current.candidateCardIds
+          : suggestedCandidates ?? ['', '', '']
+      ).map((id, candidateIndex) => (
         candidateIndex === index ? cardId : id
       )) as CandidateIds,
       selectedCardId: null,
@@ -475,6 +496,13 @@ export function ArenaDraftAssistantWorkbench({
               </div>
               <strong>{draft.deckCardIds.length}/{context.deckSize}</strong>
             </div>
+
+            <ul className="draft-rules-strip" aria-label="Правила текущего драфта">
+              <li><strong>{context.deckSize}</strong> карт в колоде</li>
+              <li><strong>1-я</strong> тройка легендарная</li>
+              <li><strong>∞</strong> копий карты</li>
+              <li><strong>{cards.length}</strong> карт текущего пула</li>
+            </ul>
 
             <div className="draft-deck-add">
               <ArenaDraftCardPicker
@@ -561,9 +589,35 @@ export function ArenaDraftAssistantWorkbench({
               <Sparkles size={20} aria-hidden="true" />
               <div>
                 <h2 id="arena-draft-assistant-title">Выберите лучшую карту</h2>
-                <p>Введите три варианта в том же порядке, в котором видите их в игре.</p>
+                <p>
+                  Помощник сам предлагает сильную тройку из текущего пула. Реальное
+                  предложение из игры можно ввести вручную ниже.
+                </p>
               </div>
+              <button
+                type="button"
+                className="draft-auto-offer"
+                disabled={!suggestedCandidates}
+                onClick={() => {
+                  if (!suggestedCandidates) return;
+                  setDraft(current => ({
+                    ...current,
+                    candidateCardIds: suggestedCandidates,
+                    selectedCardId: null,
+                  }));
+                }}
+              >
+                <Sparkles size={16} aria-hidden="true" />
+                {draft.deckCardIds.length === 0
+                  ? 'Предложить легендарных'
+                  : 'Предложить три карты'}
+              </button>
             </div>
+
+            <p className="draft-auto-offer-note">
+              Рекомендационная тройка не предсказывает случайное предложение клиента:
+              если в игре показаны другие карты, замените их в полях ниже.
+            </p>
 
             <div className="draft-candidate-pickers">
               {CANDIDATE_LABELS.map((label, index) => (
@@ -572,15 +626,15 @@ export function ArenaDraftAssistantWorkbench({
                   id={`draft-candidate-${index}`}
                   label={label}
                   cards={cards}
-                  value={draft.candidateCardIds[index]}
-                  disabledCardIds={draft.candidateCardIds.filter((_id, itemIndex) => itemIndex !== index)}
+                  value={effectiveCandidateCardIds[index]}
+                  disabledCardIds={effectiveCandidateCardIds.filter((_id, itemIndex) => itemIndex !== index)}
                   onChange={cardId => setCandidate(index, cardId)}
                 />
               ))}
             </div>
 
             <div className="draft-choice-grid" aria-busy={adviceLoading}>
-              {draft.candidateCardIds.map((cardId, index) => (
+              {effectiveCandidateCardIds.map((cardId, index) => (
                 <CandidateCard
                   key={`${index}:${cardId || 'empty'}`}
                   card={cardsById.get(cardId) ?? null}
@@ -730,7 +784,7 @@ function preferredClass(payload: ArenaSynergyPayload): ConcreteArenaClass | null
     .sort((left, right) => right.runs - left.runs)[0]?.id ?? null;
 }
 
-export default function ContestAdminArenaDraftAssistant() {
+function ArenaDraftAssistantData() {
   const [payload, setPayload] = useState<ArenaSynergyPayload | null>(null);
   const [selectedClass, setSelectedClass] = useState<ConcreteArenaClass | null>(null);
   const [loading, setLoading] = useState(true);
@@ -812,4 +866,38 @@ export default function ContestAdminArenaDraftAssistant() {
       onRefresh={() => void load(payload.selectedClass, { forceRefresh: true })}
     />
   );
+}
+
+export default function ArenaDraftAssistantPage({
+  isAdmin,
+  authChecking = false,
+}: {
+  isAdmin: boolean;
+  authChecking?: boolean;
+}) {
+  if (authChecking) {
+    return (
+      <section className="arena-draft-assistant-page draft-assistant-route-state">
+        <output className="draft-assistant-state">
+          <RefreshCw size={24} aria-hidden="true" />
+          <strong>Проверяем доступ…</strong>
+          <span>Помощник драфта пока доступен только администратору.</span>
+        </output>
+      </section>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <section className="arena-draft-assistant-page draft-assistant-route-state">
+        <div className="draft-assistant-state is-error" role="alert">
+          <ShieldCheck size={28} aria-hidden="true" />
+          <strong>Раздел пока закрыт</strong>
+          <span>Помощник драфта проходит внутреннюю проверку и доступен только администратору.</span>
+        </div>
+      </section>
+    );
+  }
+
+  return <ArenaDraftAssistantData />;
 }

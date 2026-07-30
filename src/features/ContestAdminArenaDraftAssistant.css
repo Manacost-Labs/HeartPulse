@@ -63,7 +63,7 @@
   text-transform: uppercase;
 }
 
-.admin-workspace-page .draft-class-select select {
+.arena-draft-assistant-page .draft-class-select select {
   width: 100%;
   min-height: 28px;
   padding: 0 1.6rem 0 0;
@@ -101,7 +101,7 @@
   font-size: 0.65rem;
 }
 
-.admin-workspace-page .draft-refresh-button {
+.arena-draft-assistant-page .draft-refresh-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -118,8 +118,8 @@
   font-weight: 780;
 }
 
-.admin-workspace-page .draft-refresh-button:hover:not(:disabled),
-.admin-workspace-page .draft-refresh-button:focus-visible {
+.arena-draft-assistant-page .draft-refresh-button:hover:not(:disabled),
+.arena-draft-assistant-page .draft-refresh-button:focus-visible {
   border-color: var(--draft-red);
   color: var(--draft-red-dark);
   background: var(--draft-parchment-light);
@@ -222,6 +222,31 @@
   font-size: 1.1rem;
 }
 
+.draft-rules-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.3rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.draft-rules-strip li {
+  min-width: 0;
+  padding: 0.38rem 0.42rem;
+  border: 1px solid rgba(95, 55, 29, 0.3);
+  border-radius: 4px;
+  color: var(--draft-muted);
+  background: rgba(247, 232, 191, 0.48);
+  font-size: 0.6rem;
+  line-height: 1.25;
+}
+
+.draft-rules-strip strong {
+  color: var(--draft-red-dark);
+  font-size: 0.72rem;
+}
+
 .draft-deck-add {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 42px;
@@ -229,7 +254,7 @@
   gap: 0.35rem;
 }
 
-.admin-workspace-page .draft-deck-add > button {
+.arena-draft-assistant-page .draft-deck-add > button {
   display: grid;
   place-items: center;
   width: 42px;
@@ -271,7 +296,7 @@
   box-shadow: inset 0 1px 2px rgba(48, 22, 8, 0.12);
 }
 
-.admin-workspace-page .draft-card-picker input {
+.arena-draft-assistant-page .draft-card-picker input {
   width: 100%;
   min-width: 0;
   min-height: 40px;
@@ -282,7 +307,7 @@
   font-size: 0.72rem;
 }
 
-.admin-workspace-page .draft-card-picker input:focus {
+.arena-draft-assistant-page .draft-card-picker input:focus {
   border: 0;
   outline: 0;
   box-shadow: none;
@@ -442,7 +467,7 @@
   font-size: 0.67rem;
 }
 
-.admin-workspace-page .draft-deck-list button {
+.arena-draft-assistant-page .draft-deck-list button {
   display: grid;
   place-items: center;
   min-width: 32px;
@@ -454,8 +479,8 @@
   background: transparent;
 }
 
-.admin-workspace-page .draft-deck-list button:hover,
-.admin-workspace-page .draft-deck-list button:focus-visible {
+.arena-draft-assistant-page .draft-deck-list button:hover,
+.arena-draft-assistant-page .draft-deck-list button:focus-visible {
   color: #fff0c8;
   background: rgba(141, 23, 29, 0.76);
 }
@@ -518,6 +543,40 @@
   font-size: 0.68rem;
 }
 
+.arena-draft-assistant-page .draft-auto-offer {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.38rem;
+  min-height: 42px;
+  padding: 0.48rem 0.68rem;
+  border: 1px solid var(--draft-gold-bright);
+  border-radius: 5px;
+  color: #2c1a08;
+  background: linear-gradient(#efc96f, #d9ab49);
+  font-size: 0.67rem;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 2px rgba(103, 59, 10, 0.22);
+}
+
+.arena-draft-assistant-page .draft-auto-offer:hover:not(:disabled),
+.arena-draft-assistant-page .draft-auto-offer:focus-visible {
+  background: #f4d77b;
+}
+
+.arena-draft-assistant-page .draft-auto-offer:disabled {
+  opacity: 0.45;
+}
+
+.draft-auto-offer-note {
+  margin: -0.35rem 0 0;
+  color: #d8bc8c;
+  font-size: 0.62rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
 .draft-candidate-pickers,
 .draft-choice-grid {
   display: grid;
@@ -541,7 +600,7 @@
   padding-top: 0.4rem;
 }
 
-.admin-workspace-page .draft-choice-card {
+.arena-draft-assistant-page .draft-choice-card {
   position: relative;
   display: grid;
   align-content: start;
@@ -567,12 +626,12 @@
     box-shadow 180ms ease;
 }
 
-.admin-workspace-page .draft-choice-card:hover:not(.is-empty) {
+.arena-draft-assistant-page .draft-choice-card:hover:not(.is-empty) {
   border-color: rgba(239, 201, 111, 0.72);
   transform: translateY(-4px);
 }
 
-.admin-workspace-page .draft-choice-card.is-winner {
+.arena-draft-assistant-page .draft-choice-card.is-winner {
   z-index: 1;
   border-color: var(--draft-gold-bright);
   box-shadow:
@@ -582,7 +641,7 @@
   transform: translateY(-8px);
 }
 
-.admin-workspace-page .draft-choice-card.is-selected {
+.arena-draft-assistant-page .draft-choice-card.is-selected {
   outline: 3px solid rgba(247, 232, 191, 0.86);
   outline-offset: 2px;
 }
@@ -743,7 +802,7 @@
   font-weight: 760;
 }
 
-.admin-workspace-page .draft-choice-card.is-empty {
+.arena-draft-assistant-page .draft-choice-card.is-empty {
   align-content: center;
   justify-items: center;
   border-style: dashed;
@@ -824,7 +883,7 @@
   gap: 0.5rem;
 }
 
-.admin-workspace-page .draft-choice-actions button {
+.arena-draft-assistant-page .draft-choice-actions button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -840,7 +899,7 @@
   font-weight: 780;
 }
 
-.admin-workspace-page .draft-choice-actions button.is-primary {
+.arena-draft-assistant-page .draft-choice-actions button.is-primary {
   border-color: #efc96f;
   color: #301d08;
   background:
@@ -848,20 +907,20 @@
   box-shadow: inset 0 0 0 2px rgba(103, 59, 10, 0.28);
 }
 
-.admin-workspace-page .draft-choice-actions button:hover:not(:disabled),
-.admin-workspace-page .draft-choice-actions button:focus-visible {
+.arena-draft-assistant-page .draft-choice-actions button:hover:not(:disabled),
+.arena-draft-assistant-page .draft-choice-actions button:focus-visible {
   border-color: var(--draft-gold-bright);
   color: #fff0c8;
   background: var(--draft-red-dark);
 }
 
-.admin-workspace-page .draft-choice-actions button.is-primary:hover:not(:disabled),
-.admin-workspace-page .draft-choice-actions button.is-primary:focus-visible {
+.arena-draft-assistant-page .draft-choice-actions button.is-primary:hover:not(:disabled),
+.arena-draft-assistant-page .draft-choice-actions button.is-primary:focus-visible {
   color: #271608;
   background: #f4d77b;
 }
 
-.admin-workspace-page .draft-choice-actions button:disabled {
+.arena-draft-assistant-page .draft-choice-actions button:disabled {
   opacity: 0.48;
 }
 
@@ -958,12 +1017,17 @@
   text-align: center;
 }
 
+.draft-assistant-route-state {
+  min-height: 62vh;
+  align-content: center;
+}
+
 .draft-assistant-state.is-error > svg {
   color: var(--draft-red);
   animation: none;
 }
 
-.admin-workspace-page .draft-assistant-state button {
+.arena-draft-assistant-page .draft-assistant-state button {
   min-height: 42px;
   padding: 0.5rem 0.8rem;
   border: 1px solid var(--draft-red);
@@ -1017,7 +1081,7 @@
     grid-column: 1 / -1;
   }
 
-  .admin-workspace-page .draft-choice-card {
+  .arena-draft-assistant-page .draft-choice-card {
     min-height: 390px;
   }
 
@@ -1077,7 +1141,7 @@
     scrollbar-width: thin;
   }
 
-  .admin-workspace-page .draft-choice-card {
+  .arena-draft-assistant-page .draft-choice-card {
     min-height: 420px;
     scroll-snap-align: center;
   }
@@ -1097,6 +1161,18 @@
 
   .draft-choice-actions button:first-child {
     grid-column: auto;
+  }
+
+  .draft-choice-heading {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    justify-content: stretch;
+    text-align: left;
+  }
+
+  .arena-draft-assistant-page .draft-auto-offer {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 }
 
@@ -1139,7 +1215,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .admin-workspace-page .draft-choice-card {
+  .arena-draft-assistant-page .draft-choice-card {
     transition-duration: 1ms;
   }
 

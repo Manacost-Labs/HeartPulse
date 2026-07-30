@@ -48,6 +48,13 @@ assert.equal(tabFromPath('/standard/fun-decks'), 'fun-decks');
 assert.equal(ADMIN_ONLY_TAB_IDS.has('deck-builder'), true, 'Deck builder must stay administrator-only under Разное');
 assert.equal(tabFromPath('/deck-builder'), 'deck-builder');
 assert.equal(isKnownPath('/deck-builder'), true);
+assert.equal(
+  ADMIN_ONLY_TAB_IDS.has('arena-draft-assistant'),
+  true,
+  'draft assistant must stay administrator-only inside the public Arena shell',
+);
+assert.equal(tabFromPath('/arena/draft'), 'arena-draft-assistant');
+assert.equal(isKnownPath('/arena/draft'), true);
 assert.equal(tabFromPath('/standard/meta/standard/legacy-slug'), 'constructed-archetypes', 'legacy archetype details must keep opening the catalog');
 for (const id of ['standard-matchups', 'standard-meta', 'fun-decks', 'constructed-archetypes', 'standard-vicious-gold'] as const) {
   assert.equal(

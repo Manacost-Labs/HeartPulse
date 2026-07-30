@@ -813,6 +813,12 @@ const NOINDEX_PAGES = new Map([
     structuredData: [],
     noscript: '<h1>Архетипы</h1><p>Административный каталог архетипов доступен только после входа в аккаунт администратора и при включённом JavaScript.</p>',
   }],
+  ['/arena/draft', {
+    h1: 'Помощник драфта Арены',
+    ogType: 'website',
+    structuredData: [],
+    noscript: '<h1>Помощник драфта Арены</h1><p>Закрытый помощник доступен только после входа в аккаунт администратора и при включённом JavaScript.</p>',
+  }],
 ]);
 
 const NOT_FOUND_PAGE = {

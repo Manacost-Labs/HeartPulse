@@ -362,6 +362,20 @@
       "entitlement": "arena"
     },
     {
+      "id": "arena-draft-assistant",
+      "pattern": "/arena/draft",
+      "kind": "static",
+      "owner": "arena-data",
+      "indexPolicy": "noindex-nofollow",
+      "canonicalPolicy": "none",
+      "sitemap": false,
+      "htmlStrategy": "server-noindex",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "arena-draft-assistant-denied",
+      "entitlement": null
+    },
+    {
       "id": "bg-heroes",
       "pattern": "/heroes",
       "kind": "static",

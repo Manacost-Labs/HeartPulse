@@ -11,7 +11,10 @@ import type {
 import {
   ArenaDraftAssistantWorkbench,
 } from './ContestAdminArenaDraftAssistant';
-import type { ArenaDraftAssistantState } from './arenaDraftAssistantModel';
+import {
+  createEmptyDraftState,
+  type ArenaDraftAssistantState,
+} from './arenaDraftAssistantModel';
 import './contests.css';
 
 const cards: ArenaSynergyCard[] = [
@@ -23,6 +26,8 @@ const cards: ArenaSynergyCard[] = [
   { id: 'EX1_608', name: 'Ученица чародея', cost: 2, type: 'MINION', rarity: 'COMMON', deckWinRate: 60.8, twelveWinRunQuality: 91.7, runs: 71 },
   { id: 'EX1_287', name: 'Контрзаклинание', cost: 3, type: 'SPELL', rarity: 'RARE', deckWinRate: 57.8, twelveWinRunQuality: 89.6, runs: 58 },
   { id: 'EX1_294', name: 'Зеркальная сущность', cost: 3, type: 'SPELL', rarity: 'COMMON', deckWinRate: 56.9, twelveWinRunQuality: 88.9, runs: 55 },
+  { id: 'STORY_LEGEND_2', name: 'Хранительница портала', cost: 5, type: 'MINION', rarity: 'LEGENDARY', deckWinRate: 61.5, twelveWinRunQuality: 92.1, runs: 41 },
+  { id: 'STORY_LEGEND_3', name: 'Повелитель рун', cost: 6, type: 'MINION', rarity: 'LEGENDARY', deckWinRate: 59.8, twelveWinRunQuality: 90.9, runs: 36 },
 ];
 
 function combination(
@@ -221,11 +226,11 @@ const productionCardThumb = (cardId: string) => (
 );
 
 const meta = {
-  title: 'Admin/Arena Draft Assistant',
+  title: 'Arena/Draft Assistant',
   component: ArenaDraftAssistantWorkbench,
   decorators: [
     Story => (
-      <div className="admin-workspace-page draft-assistant-story-shell">
+      <div className="draft-assistant-story-shell">
         <Story />
       </div>
     ),
@@ -253,5 +258,18 @@ export const ReadyRecommendation: Story = {
     await expect(await canvas.findByText(/Лучший выбор:/)).toBeVisible();
     await expect(canvas.getByRole('button', { name: /Добавить выбранную в колоду/ })).toBeEnabled();
     await expect(canvas.getByText('Выбрана для добавления')).toBeVisible();
+  },
+};
+
+export const AutomaticOpeningOffer: Story = {
+  args: {
+    initialDraft: createEmptyDraftState('MAGE'),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText('Архимаг Антонидас')).toBeVisible();
+    await expect(canvas.getByText('Хранительница портала')).toBeVisible();
+    await expect(canvas.getByText('Повелитель рун')).toBeVisible();
+    await expect(canvas.getByRole('button', { name: 'Предложить легендарных' })).toBeEnabled();
   },
 };

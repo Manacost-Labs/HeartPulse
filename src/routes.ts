@@ -108,6 +108,15 @@ export const TABS = [
     id: 'legendaries', label: 'Легендарки', icon: Gem, slug: '/legendaries', group: 'arena', entitlement: 'arena',
   },
   {
+    id: 'arena-draft-assistant',
+    label: 'Помощник драфта',
+    icon: Sparkles,
+    slug: '/arena/draft',
+    group: 'arena',
+    entitlement: null,
+    adminOnly: true,
+  },
+  {
     id: 'bg-heroes', label: 'Герои', icon: CircleUserRound, slug: '/heroes', group: 'bg-primary', entitlement: 'battlegrounds',
   },
   {

@@ -414,7 +414,6 @@ const ADMIN_NAV_ITEMS: ReadonlyArray<{
   { id: 'fun-decks', label: 'Фановые колоды', caption: 'Off-meta подборка и коды колод', status: 'Обновляется автоматически', group: 'Система', icon: Sparkles },
   { id: 'api-keys', label: 'Public API', caption: 'Ключи приложений и доступ к данным', status: 'Секрет показывается один раз', group: 'Система', icon: ShieldCheck },
   { id: 'arena-synergies', label: 'Сочетания в Арене', caption: 'Связки карт и решения redraft', status: 'Последние 500 победных забегов', group: 'Система', icon: ChartNoAxesCombined },
-  { id: 'arena-draft-assistant', label: 'Помощник драфта', caption: 'Сравнение трёх карт с учётом текущей колоды', status: 'Только для администратора', group: 'Система', icon: Sparkles },
   { id: 'users', label: 'Пользователи', caption: 'Права, блокировки и контакты', status: 'Действия с подтверждением', group: 'Аудитория', icon: Users },
   { id: 'mailing', label: 'Рассылка', caption: 'Письма, шаблоны и история отправок', status: 'Безопасная очередь отправки', group: 'Аудитория', icon: Mail },
   { id: 'boosty', label: 'Boosty', caption: 'Подписчики и уровни доступа', status: 'Данные только для просмотра', group: 'Аудитория', icon: CircleDollarSign },
@@ -1735,13 +1734,9 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
             </React.Suspense>
           )}
 
-          {hasFullAdminAccess
-            && (adminSection === 'arena-synergies' || adminSection === 'arena-draft-assistant')
-            && (
+          {hasFullAdminAccess && adminSection === 'arena-synergies' && (
             <React.Suspense fallback={<p className="contest-muted" role="status">Считаем сочетания Арены…</p>}>
-              <ContestAdminArenaSynergies
-                view={adminSection === 'arena-draft-assistant' ? 'draft-assistant' : 'synergies'}
-              />
+              <ContestAdminArenaSynergies />
             </React.Suspense>
           )}
 

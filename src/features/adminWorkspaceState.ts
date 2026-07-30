@@ -13,7 +13,6 @@ export type AdminWorkspaceSection =
   | 'fun-decks'
   | 'api-keys'
   | 'arena-synergies'
-  | 'arena-draft-assistant'
   | 'contests'
   | 'referrals'
   | 'boosty'
