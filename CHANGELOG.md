@@ -1,5 +1,16 @@
 # HS-Arena Changelog
 
+## v1.0.82 - 2026-07-30
+
+- Added the administrator-only «Сочетания в Арене» workspace with
+  class-stratified lift, support thresholds and forced legendary-package
+  filtering across the latest 500 twelve-win Arena runs.
+- Added per-card redraft rankings for additions, discards, net copies and
+  decision share, with class filtering and transparent methodology notes.
+- Isolated analytics by the latest Arena-affecting patch and current card-pool
+  fingerprint, with a protected no-store API, bounded upstream normalization,
+  tests, Storybook states and responsive browser verification.
+
 ## v1.0.81 - 2026-07-30
 
 - Added the complete collectible Standard and Wild card catalogs to Public API
@@ -410,7 +421,6 @@
   deck codes, history, matchups or mulligan data.
 - Preserved server-side Diamond entitlement checks for every full dataset and
   added route, UI-contract, responsive browser and accessibility coverage.
-
 ## v1.0.48 - 2026-07-24
 
 - Added responsive per-card trend charts for usage, deck win rate, games and

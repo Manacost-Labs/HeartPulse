@@ -12,6 +12,7 @@ export type AdminWorkspaceSection =
   | 'standard-data'
   | 'fun-decks'
   | 'api-keys'
+  | 'arena-synergies'
   | 'contests'
   | 'referrals'
   | 'boosty'
