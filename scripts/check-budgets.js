@@ -56,9 +56,13 @@ const budgets = {
   // v1.0.88 adds a second view behind that same lazy Arena workspace. The
   // assistant remains a nested lazy chunk; only its content-hash metadata
   // changes eager compression (+14 gzip bytes, no raw-budget increase).
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_710),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_730),
-  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_756),
+  // v1.0.89 promotes the assistant to a standalone administrator-only route.
+  // Its route id, hidden navigation entry and one lazy-module pointer add 595
+  // raw / 207 gzip startup bytes; the workbench itself remains a lazy chunk.
+  // The materialized noindex record adds 724 bytes only to the lazy registry.
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 68_305),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 261_325),
+  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_963),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),
   deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 108_350),
@@ -74,7 +78,7 @@ const budgets = {
   faqPageJs: Number(process.env.BUDGET_FAQ_PAGE_JS_BYTES || 5_500),
   supportPromptCss: Number(process.env.BUDGET_SUPPORT_PROMPT_CSS_BYTES || 4_000),
   siteFooterCss: Number(process.env.BUDGET_SITE_FOOTER_CSS_BYTES || 4_000),
-  seoRegistryJs: Number(process.env.BUDGET_SEO_REGISTRY_JS_BYTES || 14_900),
+  seoRegistryJs: Number(process.env.BUDGET_SEO_REGISTRY_JS_BYTES || 15_624),
   deckViewVendorJs: Number(process.env.BUDGET_DECK_VIEW_VENDOR_JS_BYTES || 31_000),
   deckListJs: Number(process.env.BUDGET_DECK_LIST_JS_BYTES || 6_500),
   deckListCss: Number(process.env.BUDGET_DECK_LIST_CSS_BYTES || 5_200),
