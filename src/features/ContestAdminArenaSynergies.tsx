@@ -159,10 +159,10 @@ export function ArenaSynergyPanel({
       )}
 
       {loading && !payload && !error && (
-        <div className="arena-synergy-loading" role="status">
+        <output className="arena-synergy-loading">
           <RefreshCw size={20} aria-hidden="true" />
           <span>Считаем сочетания на последних забегах…</span>
-        </div>
+        </output>
       )}
 
       {payload && (
@@ -197,10 +197,10 @@ export function ArenaSynergyPanel({
           </div>
 
           {payload.summary.warnings.map(warning => (
-            <div key={warning} className="arena-synergy-message is-warning" role="status">
+            <output key={warning} className="arena-synergy-message is-warning">
               <AlertTriangle size={18} aria-hidden="true" />
               <span>{warning}</span>
-            </div>
+            </output>
           ))}
 
           <div className="arena-synergy-tabs" role="tablist" aria-label="Раздел аналитики">
@@ -277,9 +277,9 @@ export function ArenaSynergyPanel({
                   </table>
                 </div>
               ) : (
-                <div className="arena-synergy-empty" role="status">
+                <output className="arena-synergy-empty">
                   Для выбранного класса пока нет связок, прошедших порог выборки и lift.
-                </div>
+                </output>
               )}
               <div className="arena-synergy-method">
                 <Info size={17} aria-hidden="true" />
@@ -300,7 +300,7 @@ export function ArenaSynergyPanel({
                   <p>Количество копий во всех redraft выбранной выборки.</p>
                 </div>
               </div>
-              <div className="arena-redraft-sort" role="group" aria-label="Сортировка redraft">
+              <fieldset className="arena-redraft-sort" aria-label="Сортировка redraft">
                 {([
                   ['added', 'Чаще добавляют', ArrowDownToLine],
                   ['discarded', 'Чаще сбрасывают', ArrowUpFromLine],
@@ -317,7 +317,7 @@ export function ArenaSynergyPanel({
                     <Icon size={16} aria-hidden="true" /> {label}
                   </button>
                 ))}
-              </div>
+              </fieldset>
               {redraftRows.length ? (
                 <div className="arena-synergy-table-wrap">
                   <table className="arena-synergy-table arena-redraft-table">
@@ -356,9 +356,9 @@ export function ArenaSynergyPanel({
                   </table>
                 </div>
               ) : (
-                <div className="arena-synergy-empty" role="status">
+                <output className="arena-synergy-empty">
                   В выбранной выборке нет данных redraft.
-                </div>
+                </output>
               )}
               <div className="arena-synergy-method">
                 <Info size={17} aria-hidden="true" />
@@ -408,10 +408,11 @@ export default function ContestAdminArenaSynergies() {
     className: ArenaClassId,
     options: { signal?: AbortSignal; forceRefresh?: boolean } = {},
   ) => {
+    if (options.signal?.aborted) return;
     setLoading(true);
     try {
       const next = await fetchArenaSynergies(className, options);
-      if (options.signal?.aborted) return;
+      options.signal?.throwIfAborted();
       setPayload(next);
       setError(null);
     } catch (caught) {

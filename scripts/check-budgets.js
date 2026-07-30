@@ -45,11 +45,15 @@ const budgets = {
   // the existing raw and gzip ceilings after account routing is extracted.
   // The noindex approval page adds 336 bytes to the lazy SEO registry so its
   // title and robots policy are correct before React loads.
+  // v1.0.82 adds one lazy administrator-only Arena analytics workspace.
+  // Reusing the analytics icon keeps its measured Contests pointer, navigation
+  // metadata and render boundary to +718 raw bytes; the 13.7 KB workspace stays
+  // in a separate chunk and never loads for other administrator sections.
   mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_710),
   initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_730),
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_740),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
-  routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 133_560),
+  routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),
   deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 108_350),
   galleryPageJs: Number(process.env.BUDGET_GALLERY_PAGE_JS_BYTES || 4_700),
   editorialRouteChromeJs: Number(process.env.BUDGET_EDITORIAL_ROUTE_CHROME_JS_BYTES || 2_450),

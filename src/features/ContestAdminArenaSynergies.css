@@ -120,6 +120,10 @@
   animation: arena-synergy-spin 0.9s linear infinite;
 }
 
+.arena-synergy-empty {
+  display: block;
+}
+
 @keyframes arena-synergy-spin {
   to { transform: rotate(360deg); }
 }
@@ -128,6 +132,13 @@
 .arena-redraft-sort {
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+.arena-redraft-sort {
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
 .arena-synergy-tabs {
