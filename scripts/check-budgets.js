@@ -53,9 +53,12 @@ const budgets = {
   // compression of the eager preload map by four bytes while the raw startup
   // total remains exactly unchanged; keep the measured two-byte allowance and
   // every raw-byte ratchet explicit.
+  // v1.0.88 adds a second view behind that same lazy Arena workspace. The
+  // assistant remains a nested lazy chunk; only its content-hash metadata
+  // changes eager compression (+14 gzip bytes, no raw-budget increase).
   mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_710),
   initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_730),
-  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_742),
+  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_756),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),
   deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 108_350),

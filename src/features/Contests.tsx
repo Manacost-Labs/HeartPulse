@@ -414,6 +414,7 @@ const ADMIN_NAV_ITEMS: ReadonlyArray<{
   { id: 'fun-decks', label: 'Фановые колоды', caption: 'Off-meta подборка и коды колод', status: 'Обновляется автоматически', group: 'Система', icon: Sparkles },
   { id: 'api-keys', label: 'Public API', caption: 'Ключи приложений и доступ к данным', status: 'Секрет показывается один раз', group: 'Система', icon: ShieldCheck },
   { id: 'arena-synergies', label: 'Сочетания в Арене', caption: 'Связки карт и решения redraft', status: 'Последние 500 победных забегов', group: 'Система', icon: ChartNoAxesCombined },
+  { id: 'arena-draft-assistant', label: 'Помощник драфта', caption: 'Сравнение трёх карт с учётом текущей колоды', status: 'Только для администратора', group: 'Система', icon: Sparkles },
   { id: 'users', label: 'Пользователи', caption: 'Права, блокировки и контакты', status: 'Действия с подтверждением', group: 'Аудитория', icon: Users },
   { id: 'mailing', label: 'Рассылка', caption: 'Письма, шаблоны и история отправок', status: 'Безопасная очередь отправки', group: 'Аудитория', icon: Mail },
   { id: 'boosty', label: 'Boosty', caption: 'Подписчики и уровни доступа', status: 'Данные только для просмотра', group: 'Аудитория', icon: CircleDollarSign },
@@ -426,30 +427,13 @@ const ADMIN_NAV_ITEMS: ReadonlyArray<{
 const ADMIN_USERS_PAGE_SIZE = 20;
 const ADMIN_ARTICLES_PAGE_SIZE = 12;
 const ADMIN_ENTRIES_PAGE_SIZE = 20;
-const ADMIN_WORKSPACE_SECTION_IDS: AdminWorkspaceSection[] = [
-  'dashboard',
-  'articles',
-  'gallery',
-  'translations',
-  'mechanics',
-  'standard-data',
-  'fun-decks',
-  'api-keys',
-  'arena-synergies',
-  'users',
-  'mailing',
-  'boosty',
-  'analytics',
-  'telegram',
-  'contests',
-  'referrals',
-];
+const ADMIN_WORKSPACE_SECTION_IDS = new Set(ADMIN_NAV_ITEMS.map(item => item.id));
 
 function adminSectionFromLocation(defaultSection: AdminWorkspaceSection): AdminWorkspaceSection {
   const params = new URLSearchParams(window.location.search);
   const requestedSection = params.get('section');
   if (requestedSection === 'list') return 'articles';
-  if (requestedSection && ADMIN_WORKSPACE_SECTION_IDS.includes(requestedSection as AdminWorkspaceSection)) {
+  if (requestedSection && ADMIN_WORKSPACE_SECTION_IDS.has(requestedSection as AdminWorkspaceSection)) {
     return requestedSection as AdminWorkspaceSection;
   }
   if (params.has('contest') || params.has('contests')) return 'contests';
@@ -712,25 +696,8 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
 
   useEffect(() => {
     if (!allowed) return;
-    const labels: Record<AdminWorkspaceSection, string> = {
-      dashboard: 'Обзор',
-      articles: 'Статьи',
-      gallery: 'Галерея',
-      translations: 'Переводы архетипов',
-      mechanics: 'Переводы механик и тегов',
-      'standard-data': 'Данные и парсеры',
-      'fun-decks': 'Фановые колоды',
-      'api-keys': 'Public API',
-      'arena-synergies': 'Сочетания в Арене',
-      users: 'Пользователи',
-      mailing: 'Рассылка',
-      boosty: 'Boosty',
-      analytics: 'Аналитика',
-      telegram: 'Telegram',
-      contests: 'Конкурсы',
-      referrals: 'Реферальные ссылки',
-    };
-    document.title = `${labels[adminSection]} — Админка | Manacost Stats`;
+    const label = ADMIN_NAV_ITEMS.find(item => item.id === adminSection)?.label ?? 'Админка';
+    document.title = `${label} — Админка | Manacost Stats`;
   }, [adminSection, allowed]);
 
   const loadAdminContests = useCallback(async (preferredContestId?: string) => {
@@ -1768,9 +1735,13 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
             </React.Suspense>
           )}
 
-          {hasFullAdminAccess && adminSection === 'arena-synergies' && (
+          {hasFullAdminAccess
+            && (adminSection === 'arena-synergies' || adminSection === 'arena-draft-assistant')
+            && (
             <React.Suspense fallback={<p className="contest-muted" role="status">Считаем сочетания Арены…</p>}>
-              <ContestAdminArenaSynergies />
+              <ContestAdminArenaSynergies
+                view={adminSection === 'arena-draft-assistant' ? 'draft-assistant' : 'synergies'}
+              />
             </React.Suspense>
           )}
 

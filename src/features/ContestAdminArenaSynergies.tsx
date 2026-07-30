@@ -25,6 +25,11 @@ type AnalyticsTab = 'combinations' | 'redraft' | 'advisor';
 type RedraftSort = 'added' | 'discarded' | 'net' | 'decisions';
 type PairClassification = NonNullable<ArenaCombination['classification']>;
 type DisplayClassification = PairClassification | 'legacy';
+type ArenaAdminView = 'synergies' | 'draft-assistant';
+
+const ContestAdminArenaDraftAssistant = React.lazy(
+  () => import('./ContestAdminArenaDraftAssistant'),
+);
 
 const PAIR_CLASSIFICATION_ORDER: DisplayClassification[] = [
   'confirmed',
@@ -628,7 +633,7 @@ async function fetchArenaSynergies(
   return result;
 }
 
-export default function ContestAdminArenaSynergies() {
+function ContestAdminArenaSynergyAnalysis() {
   const [payload, setPayload] = useState<ArenaSynergyPayload | null>(null);
   const [selectedClass, setSelectedClass] = useState<ArenaClassId>('ALL');
   const [loading, setLoading] = useState(true);
@@ -669,4 +674,20 @@ export default function ContestAdminArenaSynergies() {
       onReload={() => void load(selectedClass, { forceRefresh: true })}
     />
   );
+}
+
+export default function ContestAdminArenaSynergies({
+  view = 'synergies',
+}: {
+  view?: ArenaAdminView;
+}) {
+  if (view === 'draft-assistant') {
+    return (
+      <React.Suspense fallback={<p className="contest-muted" role="status">Готовим стол драфта…</p>}>
+        <ContestAdminArenaDraftAssistant />
+      </React.Suspense>
+    );
+  }
+
+  return <ContestAdminArenaSynergyAnalysis />;
 }

@@ -1,5 +1,14 @@
 # HS-Arena Changelog
 
+## v1.0.88 - 2026-07-30
+
+- Added an administrator-only Arena draft workbench that compares three
+  offered cards against the current deck and explains the recommendation.
+- Added a persistent local draft, class and curve context, card addition,
+  undo and new-draft controls, plus explicit low-data warnings.
+- Added a parchment-and-timber responsive interface using only same-origin
+  Arena and card assets, with a locally scrollable 390 px card rail.
+
 ## v1.0.87 - 2026-07-30
 
 - Added an hourly and startup refresh pipeline that rebuilds the Arena draft

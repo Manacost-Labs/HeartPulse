@@ -13,3 +13,7 @@
   width: min(100%, 64rem);
   margin-inline: auto;
 }
+
+.storybook-manacost-surface > .draft-assistant-story-shell {
+  width: min(100%, 82rem);
+}
