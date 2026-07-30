@@ -61,6 +61,20 @@
       "entitlement": null
     },
     {
+      "id": "application-connect",
+      "pattern": "/connect",
+      "kind": "static",
+      "owner": "developer-platform",
+      "indexPolicy": "noindex-nofollow",
+      "canonicalPolicy": "none",
+      "sitemap": false,
+      "htmlStrategy": "snapshot",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "application-connect",
+      "entitlement": null
+    },
+    {
       "id": "gallery",
       "pattern": "/gallery",
       "kind": "static",
@@ -717,10 +731,10 @@
   "queryPolicies": [
     {
       "id": "auth-state",
-      "parameters": ["login", "profile", "auth", "code", "state", "returnTo"],
+      "parameters": ["login", "profile", "auth", "code", "state", "returnTo", "user_code"],
       "indexPolicy": "noindex-nofollow",
       "canonicalPolicy": "clean-path",
-      "appliesTo": ["/"]
+      "appliesTo": ["/", "/connect"]
     },
     {
       "id": "admin-state",

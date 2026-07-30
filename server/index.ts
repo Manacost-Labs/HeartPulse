@@ -126,6 +126,8 @@ import { createWinrateRouter } from './winrateRoutes.js';
 import { createHomeSummaryRouter, type HomeSummaryCacheStore } from './homeSummaryRoutes.js';
 import { createCardImageRouter, normalizeCardImageId } from './cardImageRoutes.js';
 import { createCardImageDependencies } from './app/createCardImageDependencies.js';
+import { registerApplicationAuth } from './app/registerApplicationAuth.js';
+import { serializeApplicationProfileUser, serializeApplicationSubscription } from './app/applicationAuthProfile.js';
 import { createBlizzardCardImageClient, downloadBlizzardCardImage } from './blizzardCards.js';
 import {
   CARD_IMAGE_CACHE_VERSION,
@@ -1958,7 +1960,6 @@ function setKhaVipVerifiedEmail(telegramId: string, email: string) {
   profiles[normalizedTelegramId] = profile;
   writeKhaVipProfiles(profiles);
 }
-
 
 function khaProfileHasBoostyAccess(profile: Record<string, any> | null): boolean {
   if (!profile || profile.boosty_access !== true) return false;
@@ -7505,7 +7506,7 @@ app.use((req, res, next) => {
     }
   }
   res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Request');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, X-CSRF-Request');
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
 });
@@ -7542,7 +7543,8 @@ const cardImageRouterDependencies = createCardImageDependencies({
   ),
 });
 
-registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit, cardImageDependencies: cardImageRouterDependencies });
+const applicationAuth = registerApplicationAuth({ app, getDatabase: db, appUrl: APP_URL, userAuth, resolveUser: userId => loadAuthStore().users.find(user => user.id === userId && !user.blockedAt) ?? null, serializeUser: user => serializeApplicationProfileUser(user, APP_URL), readSubscription: userId => serializeApplicationSubscription(readSubscriptionStatus(userId) ?? emptySubscriptionStatus()), emptySubscription: () => serializeApplicationSubscription(emptySubscriptionStatus()), setPrivateNoStore });
+registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit, cardImageDependencies: cardImageRouterDependencies, accessTokens: applicationAuth });
 app.use('/_internal', createTierlistCacheBustRouter({
   resolveSource: source => Object.prototype.hasOwnProperty.call(TIERLIST_DATASET_BY_SOURCE, source ?? '')
     ? source as keyof typeof TIERLIST_DATASET_BY_SOURCE

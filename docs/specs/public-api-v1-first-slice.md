@@ -8,12 +8,14 @@ Establish the secure, documented foundation for the unified Manacost data API:
 - a protected catalog manifest;
 - a public OpenAPI contract;
 - administrator-managed, scoped and revocable API keys;
-- public developer documentation linked from the site footer.
-- same-origin card image delivery backed by the existing local cache.
+- public developer documentation linked from the site footer;
+- same-origin card image delivery backed by the existing local cache;
+- OAuth 2.0 device authorization for the desktop tracker;
+- a minimal application profile and normalized subscription entitlements.
 
 This slice does not expose raw databases and does not yet promise every card,
-deck or metagame record. Those resources will be added incrementally behind the
-same authentication and versioning contract.
+deck or metagame record. Those resources will be added incrementally behind
+the same authentication, media and versioning contracts.
 
 ## Technical context
 
@@ -65,6 +67,49 @@ same authentication and versioning contract.
 The endpoint intentionally reuses the site's binary response pipeline. Cache
 generation, path containment, placeholder policy and stream error handling
 therefore have one implementation for browser and API consumers.
+
+### Desktop application authorization
+
+The registered public client uses the OAuth 2.0 Device Authorization Grant:
+
+1. `POST /api/v1/oauth/device/code` with `client_id=manacost-tracker` and the
+   requested space-delimited scopes.
+2. Open the returned `verification_uri_complete` in the system browser.
+3. The signed-in user reviews the application, account and scopes on
+   `/connect`, then approves or denies the request.
+4. Poll `POST /api/v1/oauth/token` no faster than the returned `interval`.
+5. Use the 15-minute opaque access token as `Authorization: Bearer …`.
+6. Rotate the 30-day refresh token at the same token endpoint. A replayed
+   refresh token revokes the complete token family.
+
+The device and user codes expire after ten minutes. The database stores only
+SHA-256 digests of device, access and refresh credentials. Raw values exist
+only in one-time protocol responses and must be stored by the desktop client
+in the operating-system credential vault.
+
+Browser approval requires both the existing authenticated session and the
+same-origin CSRF boundary. Device-code creation, inspection, approval, polling
+and revocation have independent rate limits. The approval page is
+`noindex,nofollow` and never places access or refresh tokens in a URL.
+
+### Application profile
+
+`GET /api/v1/me` requires `profile.read subscription.read` on an application
+bearer token. It returns:
+
+- stable internal and public profile identifiers;
+- the canonical public profile URL;
+- display name, e-mail and avatar initials;
+- normalized `hasAccess`, `source`, `checkedAt`, `stale` and entitlement flags.
+
+It deliberately omits password hashes, roles, administration flags, blocked
+state, contact fields and the underlying Boosty/Telegram provider payloads.
+Subscription reads use the stored status and do not trigger an upstream
+provider refresh.
+
+The same bearer token can access catalog and image resources when it includes
+`catalog.read` and `images.read`. Server-to-server integrations may continue
+to use a scoped `X-API-Key`; API keys never represent an end user.
 
 ### Administrator key management
 
@@ -122,6 +167,12 @@ but clients must branch on `code`, not message text.
 | High request volume | One key exhausts service capacity | Existing bounded API rate limit plus stable key identity for future per-key quotas |
 | Image id traversal | Crafted id reads an arbitrary local file | Strict id grammar and resolved-path containment |
 | Upstream asset blocking | Client cannot reach Blizzard or fallback host | Server-side persistent cache and same-origin WebP response |
+| Approval request forgery | Another origin approves with a browser cookie | Existing origin, Fetch Metadata and CSRF-header checks |
+| User-code guessing | Attacker discovers or repeatedly submits a code | Forty-bit code space, ten-minute expiry and endpoint rate limits |
+| Database disclosure | Attacker recovers OAuth bearer credentials | Only SHA-256 token digests are persisted |
+| Refresh replay | A copied refresh token is used after rotation | Atomic single-use rotation and family-wide revocation |
+| Provider-data disclosure | App reads raw Boosty or Telegram records | Dedicated allowlist serializers for profile and subscription |
+| Desktop token theft | Another process reads local application storage | Client contract requires OS credential vault; access tokens live 15 minutes |
 
 <!-- markdownlint-enable MD013 -->
 
@@ -133,7 +184,8 @@ It includes:
 
 - current API status and version;
 - authentication example;
-- first endpoint and response example;
+- API-key and device-authorization examples;
+- image, profile and catalog endpoint examples;
 - error model;
 - one-time key handling guidance;
 - link to the OpenAPI JSON;
@@ -159,6 +211,10 @@ panel closes or the administrator leaves the section.
 
 - Contract tests begin red for key creation, storage, validation, scope checks,
   revocation and response redaction.
+- Device-flow tests cover pending, slow-down, denial, expiry, atomic exchange,
+  refresh rotation, replay-family revocation, scope enforcement and expiry.
+- Profile serializer tests prove that administrative and provider detail cannot
+  cross the application boundary.
 - Image contract tests cover missing and under-scoped credentials, invalid ids,
   all documented variants, conditional requests and binary response headers.
 - Route tests cover 401, 403, validation failures, one-time secret response and

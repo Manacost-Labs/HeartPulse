@@ -80,7 +80,7 @@ assert.deepEqual(sitemapLines, ['Sitemap: https://arena.hs-manacost.ru/sitemap.x
 assert.doesNotMatch(robots, /^\s*noindex\s*:/im,
   'robots.txt does not support a noindex directive');
 
-for (const authParameter of ['login', 'profile', 'auth', 'code', 'state', 'returnTo']) {
+for (const authParameter of ['login', 'profile', 'auth', 'code', 'state', 'returnTo', 'user_code']) {
   assert.match(seoMap, new RegExp(`(?:^|\\W)${authParameter}(?:\\W|$)`),
     `${authParameter} must be covered by the server-side auth noindex map`);
 }

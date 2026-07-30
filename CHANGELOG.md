@@ -1,5 +1,17 @@
 # HS-Arena Changelog
 
+## v1.0.80 - 2026-07-29
+
+- Added OAuth 2.0 device authorization for Manacost Tracker: browser approval,
+  short-lived access tokens, rotating refresh tokens and family-wide replay
+  revocation without exposing the website password to the desktop app.
+- Added `/api/v1/me` with a deliberately minimal profile and normalized
+  subscription entitlements; administrative fields and raw Boosty/Telegram
+  provider data stay behind dedicated allowlist serializers.
+- Added the responsive `/connect` approval experience, bearer-token support for
+  catalog and cached images, OpenAPI contracts, rate limits, CSRF protection,
+  security tests and an architecture decision with the client threat model.
+
 ## v1.0.79 - 2026-07-29
 
 - Added the first Public API media module: authenticated applications can fetch

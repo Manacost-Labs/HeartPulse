@@ -15,6 +15,7 @@ assert.equal(mutationNeedsCsrfProtection('GET', '/api/admin/users'), false);
 assert.equal(mutationNeedsCsrfProtection('POST', '/api/articles/example/vote'), false);
 assert.equal(mutationNeedsCsrfProtection('POST', '/api/admin/users'), true);
 assert.equal(mutationNeedsCsrfProtection('PATCH', '/api/auth/profile'), true);
+assert.equal(mutationNeedsCsrfProtection('POST', '/api/v1/oauth/device/approve'), true);
 assert.equal(mutationNeedsCsrfProtection('DELETE', '/api/admin-articles'), true);
 assert.equal(csrfRequestAllowed(base), true);
 assert.equal(csrfRequestAllowed({ ...base, authCookiePresent: false, csrfHeader: '', origin: '' }), true);

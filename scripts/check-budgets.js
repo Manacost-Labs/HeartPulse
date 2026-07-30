@@ -40,11 +40,16 @@ const budgets = {
   // to startup metadata), one lazy SEO record (+424 bytes), and the lazy admin
   // key workspace (+804 bytes in Contests). Reused icons keep the measured
   // additions below 1 KB per affected chunk and outside ordinary route loads.
+  // v1.0.80 adds user authorization guidance to the shared developer module.
+  // Its lazy admin consumer grows by 37 bytes; startup transfer remains below
+  // the existing raw and gzip ceilings after account routing is extracted.
+  // The noindex approval page adds 336 bytes to the lazy SEO registry so its
+  // title and robots policy are correct before React loads.
   mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_710),
   initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_730),
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_740),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
-  routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 133_520),
+  routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 133_560),
   deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 108_350),
   galleryPageJs: Number(process.env.BUDGET_GALLERY_PAGE_JS_BYTES || 4_700),
   editorialRouteChromeJs: Number(process.env.BUDGET_EDITORIAL_ROUTE_CHROME_JS_BYTES || 2_450),
@@ -58,7 +63,7 @@ const budgets = {
   faqPageJs: Number(process.env.BUDGET_FAQ_PAGE_JS_BYTES || 5_500),
   supportPromptCss: Number(process.env.BUDGET_SUPPORT_PROMPT_CSS_BYTES || 4_000),
   siteFooterCss: Number(process.env.BUDGET_SITE_FOOTER_CSS_BYTES || 4_000),
-  seoRegistryJs: Number(process.env.BUDGET_SEO_REGISTRY_JS_BYTES || 14_480),
+  seoRegistryJs: Number(process.env.BUDGET_SEO_REGISTRY_JS_BYTES || 14_900),
   deckViewVendorJs: Number(process.env.BUDGET_DECK_VIEW_VENDOR_JS_BYTES || 31_000),
   deckListJs: Number(process.env.BUDGET_DECK_LIST_JS_BYTES || 6_500),
   deckListCss: Number(process.env.BUDGET_DECK_LIST_CSS_BYTES || 5_200),

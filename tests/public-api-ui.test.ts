@@ -5,6 +5,13 @@ const docs = readFileSync(new URL('../src/modules/developerApi/ui/DeveloperApiPa
 assert.match(docs, /Manacost Public API/);
 assert.match(docs, /X-API-Key/);
 assert.match(docs, /\/api\/v1\/catalog\/manifest/);
+assert.ok(docs.includes("/api/v1/cards/{'{cardId}'}/images/{'{variant}'}.webp"));
+assert.match(docs, /\/api\/v1\/oauth\/device\/code/);
+assert.match(docs, /\/api\/v1\/oauth\/token/);
+assert.match(docs, /\/api\/v1\/me/);
+assert.match(docs, /Access token действует 15 минут/);
+assert.match(docs, /системном хранилище/);
+assert.equal((docs.match(/tabIndex=\{0\}/g) ?? []).length, 2);
 assert.match(docs, /\/api\/v1\/openapi\.json/);
 assert.match(docs, /Доступно сейчас/);
 assert.match(docs, /Планируется/);

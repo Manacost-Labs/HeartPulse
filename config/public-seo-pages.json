@@ -22,6 +22,12 @@
       "description": "Документация Manacost Public API для Hearthstone-приложений: авторизация по API-ключу, OpenAPI-контракт, каталог ресурсов и примеры запросов.",
       "sitemap": true
     },
+    "/connect": {
+      "policyRouteId": "application-connect",
+      "title": "Подключение приложения — Manacost",
+      "description": "Безопасное подтверждение входа в приложение Manacost через системный браузер без передачи пароля desktop-клиенту.",
+      "sitemap": false
+    },
     "/standard/matchups": {
       "policyRouteId": "standard-matchups",
       "navigationRouteId": "standard-matchups",

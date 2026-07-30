@@ -167,7 +167,7 @@ export function tabFromPath(path: string): TabId {
 
 export function isKnownPath(path: string): boolean {
   const clean = path.replace(/[?#].*$/, '').replace(/\/+$/, '') || '/';
-  if (clean === '/' || isRemovedPagePath(clean) || publicProfileIdFromPath(clean)) return true;
+  if (clean === '/' || clean === '/connect' || isRemovedPagePath(clean) || publicProfileIdFromPath(clean)) return true;
   return TABS.some(route => route.slug !== '/' && (clean === route.slug || clean.startsWith(`${route.slug}/`)));
 }
 

@@ -25,6 +25,12 @@ type AdminRouterDependencies = {
 type PublicRouterDependencies = {
   apiKeys: ApiKeyManager;
   now?: () => string;
+  accessTokens?: {
+    authenticate: (
+      accessToken: unknown,
+      requiredScopes: readonly PublicApiScope[],
+    ) => unknown | null | 'FORBIDDEN';
+  };
   cardImages?: {
     respond: CardImageResponder;
   };
@@ -37,21 +43,36 @@ function requestApiKey(request: Request): string {
   return Array.isArray(value) ? value[0] ?? '' : String(value ?? '');
 }
 
+function requestBearerToken(request: Request): string {
+  const value = String(request.headers.authorization ?? '').trim();
+  return value.toLowerCase().startsWith('bearer ') ? value.slice(7).trim() : '';
+}
+
 function requireScope(
   dependencies: PublicRouterDependencies,
   scope: PublicApiScope,
   request: Request,
   response: Response,
 ): boolean {
-  const authenticated = dependencies.apiKeys.authenticate(requestApiKey(request), scope);
+  const bearer = requestBearerToken(request);
+  const authenticated = bearer && dependencies.accessTokens
+    ? dependencies.accessTokens.authenticate(bearer, [scope])
+    : dependencies.apiKeys.authenticate(requestApiKey(request), scope);
   response.set('Cache-Control', 'private, max-age=60');
   response.set('Vary', 'X-API-Key');
+  response.append('Vary', 'Authorization');
   if (!authenticated) {
-    response.status(401).json(apiError('INVALID_API_KEY', 'API key is missing or invalid'));
+    if (bearer) response.set('WWW-Authenticate', 'Bearer realm="Manacost API"');
+    response.status(401).json(bearer
+      ? apiError('INVALID_ACCESS_TOKEN', 'Access token is invalid or expired')
+      : apiError('INVALID_API_KEY', 'API key is missing or invalid'));
     return false;
   }
   if (authenticated === 'FORBIDDEN') {
-    response.status(403).json(apiError('INSUFFICIENT_SCOPE', 'API key does not grant this scope'));
+    response.status(403).json(apiError(
+      'INSUFFICIENT_SCOPE',
+      bearer ? 'Access token does not grant this scope' : 'API key does not grant this scope',
+    ));
     return false;
   }
   return true;
@@ -81,6 +102,8 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
           href: '/api/v1/cards/{cardId}/images/{variant}.webp',
           status: 'AVAILABLE',
         },
+        { id: 'application-profile', href: '/api/v1/me', status: 'AVAILABLE' },
+        { id: 'device-authorization', href: '/api/v1/oauth/device/code', status: 'AVAILABLE' },
       ],
     };
     const body = JSON.stringify(payload);

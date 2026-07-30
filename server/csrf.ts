@@ -4,6 +4,7 @@ const PROTECTED_MUTATION_PATHS = [
   /^\/api\/admin(?:\/|$)/,
   /^\/api\/admin-/,
   /^\/api\/auth\/(?:profile|logout|telegram\/link-code)\/?$/,
+  /^\/api\/v1\/oauth\/device\/approve\/?$/,
   /^\/api\/subscription\/refresh\/?$/,
   /^\/api\/contests\/[^/]+\/join\/?$/,
 ];

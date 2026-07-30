@@ -26,6 +26,7 @@ assert.equal(tabFromPath('/library/archive/minions'), 'bg-library');
 assert.equal(tabFromPath('/battlegrounds/tier-list?list=spells'), 'bg-tier-list');
 assert.equal(tabFromPath('/faq'), 'faq', 'FAQ must be available as a standalone public page');
 assert.equal(isKnownPath('/faq'), true, 'FAQ route must be recognized');
+assert.equal(isKnownPath('/connect'), true, 'application authorization route must be recognized');
 assert.equal(TOP_LEVEL_TABS.map(route => String(route.id)).includes('faq'), false, 'FAQ must stay out of primary sidebar and drawer navigation');
 assert.equal(tabFromPath('/decks/legacy'), 'home');
 assert.equal(isKnownPath('/decks/legacy'), true);

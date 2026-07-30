@@ -1,0 +1,339 @@
+.application-connect {
+  width: min(100%, 54rem);
+  margin-inline: auto;
+  color: #342317;
+  background:
+    linear-gradient(135deg, rgba(255, 248, 221, 0.94), rgba(230, 194, 123, 0.82)),
+    url('/wallpaper/main-page-rail-border.png');
+  border: 1px solid #8a6030;
+  box-shadow: 0 1.1rem 2.8rem rgba(56, 31, 13, 0.2);
+}
+
+.application-connect__header {
+  padding: clamp(1.5rem, 5vw, 3rem);
+  border-block-end: 4px solid #6f1117;
+  background: linear-gradient(120deg, rgba(255, 247, 216, 0.92), rgba(143, 23, 29, 0.08));
+}
+
+.application-connect__kicker {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #6f1117;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.application-connect__header h1 {
+  margin: 0.7rem 0 1rem;
+  color: #342317;
+  font: 700 clamp(2rem, 6vw, 3.75rem) / 1 var(--font-display);
+  text-wrap: balance;
+}
+
+.application-connect__header p,
+.application-connect__body p,
+.application-connect__body label,
+.application-connect__body input,
+.application-connect__body button,
+.application-connect__body small,
+.application-connect__body li {
+  font-family: var(--font-body);
+}
+
+.application-connect__header p {
+  max-width: 63ch;
+  margin: 0;
+  color: #624a37;
+  font-size: 1rem;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.application-connect__body {
+  padding: clamp(1rem, 4vw, 2.5rem);
+  display: grid;
+  gap: 1.5rem;
+}
+
+.application-connect__code {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(18rem, 1fr);
+  gap: clamp(1rem, 4vw, 2rem);
+  align-items: end;
+}
+
+.application-connect__code h2,
+.application-connect__login h2,
+.application-connect__result h2,
+.application-connect__app h2 {
+  margin: 0;
+  color: #3a2618;
+  font: 700 1.45rem/1.15 var(--font-display);
+}
+
+.application-connect__code h2,
+.application-connect__permissions h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.application-connect__code p,
+.application-connect__login > p {
+  margin: 0.45rem 0 0;
+  color: #745c45;
+  line-height: 1.5;
+}
+
+.application-connect__code form {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.application-connect__code label {
+  color: #5b3c22;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.application-connect__code form > div {
+  display: flex;
+  gap: 0.65rem;
+}
+
+.application-connect__code input,
+.application-connect__code button,
+.application-connect__actions button {
+  min-height: 3rem;
+  border: 1px solid #70441f;
+  border-radius: 0.25rem;
+  font-size: 1rem;
+}
+
+.application-connect__code input {
+  min-width: 0;
+  flex: 1 1 13rem;
+  padding-inline: 0.9rem;
+  color: #2d1c12;
+  background: #fff8df;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 1.12rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.application-connect__code button,
+.application-connect__actions button {
+  flex-shrink: 0;
+  padding-inline: 1.15rem;
+  white-space: nowrap;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 140ms ease-out, box-shadow 140ms ease-out;
+}
+
+.application-connect__code button,
+.application-connect__actions .is-primary {
+  color: #fff4cb;
+  background: #6f1117;
+}
+
+.application-connect__code button:hover:not(:disabled),
+.application-connect__actions .is-primary:hover:not(:disabled) {
+  background: #551014;
+  box-shadow: 0 0.25rem 0.75rem rgba(87, 13, 18, 0.24);
+}
+
+.application-connect__code button:active:not(:disabled),
+.application-connect__actions button:active:not(:disabled) {
+  box-shadow: inset 0 0.15rem 0.3rem rgba(40, 15, 8, 0.3);
+}
+
+.application-connect__body button:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+.application-connect__message {
+  padding: 0.9rem 1rem;
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  border-inline-start: 4px solid #8d171d;
+  color: #661319;
+  background: rgba(255, 234, 209, 0.86);
+}
+
+.application-connect__review {
+  padding: clamp(1rem, 4vw, 2rem);
+  display: grid;
+  gap: 1.35rem;
+  border: 1px solid rgba(112, 68, 31, 0.55);
+  background: rgba(255, 247, 217, 0.78);
+  box-shadow: inset 0.25rem 0 #6f1117;
+}
+
+.application-connect__app,
+.application-connect__identity {
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
+}
+
+.application-connect__app > span {
+  width: 3.5rem;
+  height: 3.5rem;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #fff2c2;
+  background: #6f1117;
+  border: 1px solid #4f0d11;
+}
+
+.application-connect__app p,
+.application-connect__identity span,
+.application-connect__identity small {
+  margin: 0;
+  color: #755e47;
+}
+
+.application-connect__app small,
+.application-connect__identity small {
+  display: block;
+  margin-block-start: 0.2rem;
+}
+
+.application-connect__identity {
+  padding: 0.9rem 1rem;
+  color: #6f1117;
+  background: rgba(224, 190, 117, 0.28);
+}
+
+.application-connect__identity strong {
+  display: block;
+  color: #3a2618;
+}
+
+.application-connect__permissions h3 {
+  margin: 0;
+  font: 700 1.1rem/1.2 var(--font-display);
+}
+
+.application-connect__permissions ul {
+  margin: 0.8rem 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+  list-style: none;
+}
+
+.application-connect__permissions li {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  color: #4f3a29;
+  line-height: 1.4;
+}
+
+.application-connect__permissions li svg {
+  margin-block-start: 0.12rem;
+  flex: 0 0 auto;
+  color: #3d6c39;
+}
+
+.application-connect__permissions p {
+  margin: 0;
+  color: #745c45;
+  font-size: 0.9rem;
+}
+
+.application-connect__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.application-connect__actions .is-secondary {
+  color: #572915;
+  background: #f5dfac;
+}
+
+.application-connect__actions .is-secondary:hover:not(:disabled) {
+  background: #ead09a;
+}
+
+.application-connect__result {
+  min-height: 22rem;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.8rem;
+  text-align: center;
+}
+
+.application-connect__result-icon {
+  width: 4.5rem;
+  height: 4.5rem;
+  display: grid;
+  place-items: center;
+  color: #fff4cb;
+  background: #3d6c39;
+  border-radius: 50%;
+}
+
+.application-connect__result p {
+  max-width: 48ch;
+  margin: 0;
+  color: #624a37;
+  line-height: 1.55;
+}
+
+.application-connect__login > .login-panel {
+  margin-block-start: 1.25rem;
+}
+
+.application-connect__loading {
+  min-height: 16rem;
+  display: grid;
+  place-items: center;
+  color: #745c45;
+}
+
+.application-connect :focus-visible {
+  outline: 3px solid #6f1117;
+  outline-offset: 3px;
+}
+
+@media (max-width: 720px) {
+  .application-connect__code {
+    grid-template-columns: 1fr;
+  }
+
+  .application-connect__code form > div,
+  .application-connect__actions {
+    flex-direction: column;
+  }
+
+  .application-connect__code button,
+  .application-connect__actions button {
+    width: 100%;
+  }
+
+  .application-connect__code input {
+    width: 100%;
+    height: 3rem;
+    flex: 0 0 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .application-connect__code button,
+  .application-connect__actions button {
+    transition: none;
+  }
+}

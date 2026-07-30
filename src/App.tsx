@@ -2,7 +2,6 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { X, Menu, ChevronDown, Grid3X3, LogIn, UserCircle, Gift } from 'lucide-react';
 import { getCanonicalRedirectUrl } from './config/domain';
@@ -34,7 +33,6 @@ import {
   withHistoryRouteKnowledge,
 } from './routing/clientRouteResolution';
 import { publicProfileIdFromPath } from './profileRoutes';
-
 // Preserve authoritative entity metadata/404 context through the first client
 // pass. The marker belongs only to the URL that bootstrapped this document.
 const BOOTSTRAP_ROUTE_ROOT = globalThis.document?.getElementById('root');
@@ -45,7 +43,6 @@ const INITIAL_SERVER_META_HINT = INITIAL_SERVER_ROUTE_STATUS
 delete BOOTSTRAP_ROUTE_ROOT?.dataset.routeStatus;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
 interface ClassData {
   id: string;
   name: string;
@@ -291,7 +288,6 @@ async function fetchLatestAppAsset(pathname: string, signal: AbortSignal): Promi
 }
 
 // ─── Fallback data ────────────────────────────────────────────────────────────
-
 const FALLBACK_CLASSES: ClassData[] = [
   { id: 'dk',      name: 'Рыцарь смерти',     winrate: 56.2, color: '#1f252d' },
   { id: 'paladin', name: 'Паладин',            winrate: 54.8, color: '#a88a45' },
@@ -622,12 +618,11 @@ const LazySiteFooter = React.lazy(() => import('./components/SiteFooter'));
 const LazyHomeTab = React.lazy(loadHomeModule);
 const LazyFAQPage = React.lazy(loadFAQPageModule);
 const LazyDeveloperApiPage = React.lazy(() => loadDeveloperApiModule().then(module => ({ default: module.DeveloperApiPage })));
+const LazyAccountRoute = React.lazy(() => import('./modules/accountRoute/public'));
 const LazyNotFoundPage = React.lazy(() => import('./features/NotFoundPageRoute'));
 const LazyWinrates = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.Winrates })));
 const LazyTierList = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.TierList })));
 const LazyLegendaries = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.Legendaries })));
-const LazyLoginPanel = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.LoginPanel })));
-const LazyPublicProfilePage = React.lazy(() => import('./features/PublicProfilePage'));
 const LazyArticlesTab = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.ArticlesTab })));
 const LazyGalleryTab = React.lazy(loadGalleryModule);
 const LazyBgLibrary = React.lazy(loadBgLibraryModule);
@@ -985,6 +980,8 @@ export default function App() {
   const wantsLogin = locationParams.has('login');
   const publicProfileId = publicProfileIdFromPath(currentPath);
   const routeSurfaceAvailable = routeView === 'known';
+  const isApplicationConnectPage = normalizeClientRoutePath(currentPath) === '/connect';
+  const isAccountRoute = routeSurfaceAvailable && (isApplicationConnectPage || Boolean(publicProfileId) || wantsLogin);
   const isAdminMode = routeSurfaceAvailable && (wantsAdmin || activeTab === 'admin-panel');
   const [appAuthUser, setAppAuthUser] = useState<AuthUser | null>(null);
   const [appAuthChecking, setAppAuthChecking] = useState(true);
@@ -1421,7 +1418,7 @@ export default function App() {
   const isEditorialSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['articles', 'faq', 'developer-api', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
   const isGameDataSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'standard-meta', 'fun-decks', 'constructed-archetypes', 'standard-vicious-gold', 'standard-cards', 'tierlist', 'legendaries', 'archetypes', 'cosmetics'].includes(activeTab);
   const isBattlegroundsSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && BG_TAB_IDS.has(activeTab);
-  const isOpenSurfacePage = !isAdminMode && (!routeSurfaceAvailable || activeTab === 'home' || wantsLogin || isEditorialSurfacePage || isGameDataSurfacePage || isBattlegroundsSurfacePage);
+  const isOpenSurfacePage = !isAdminMode && (!routeSurfaceAvailable || activeTab === 'home' || isEditorialSurfacePage || isGameDataSurfacePage || isBattlegroundsSurfacePage);
   const standardAccessGranted = appIsAdmin || hasSubscriptionEntitlement(appSubscription, 'standard');
   const standardPaywallAccess = useMemo(() => ({
     authUser: appAuthUser,
@@ -1480,7 +1477,7 @@ export default function App() {
   }, [mobileMenuOpen]);
 
 		  return (
-    <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${routeView === 'not-found' ? 'arena-app-not-found' : ''} ${activeTab === 'home' && !isAdminMode && routeSurfaceAvailable && !publicProfileId ? 'arena-app-home' : ''} ${(wantsLogin || publicProfileId) && !isAdminMode && routeSurfaceAvailable ? 'arena-app-profile' : ''} ${activeTab === 'deck-builder' && routeSurfaceAvailable ? 'arena-app-deck-builder' : ''} ${isEditorialSurfacePage ? `arena-app-editorial arena-app-${activeTab}` : ''} ${isGameDataSurfacePage ? `arena-app-game-data arena-app-${activeTab}` : ''} ${isBattlegroundsSurfacePage ? `arena-app-battlegrounds arena-app-${activeTab}` : ''}`}>
+    <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${routeView === 'not-found' ? 'arena-app-not-found' : ''} ${activeTab === 'home' && !isAdminMode && routeSurfaceAvailable && !isAccountRoute ? 'arena-app-home' : ''} ${isAccountRoute && !isAdminMode ? 'arena-app-profile' : ''} ${activeTab === 'deck-builder' && routeSurfaceAvailable ? 'arena-app-deck-builder' : ''} ${isEditorialSurfacePage ? `arena-app-editorial arena-app-${activeTab}` : ''} ${isGameDataSurfacePage ? `arena-app-game-data arena-app-${activeTab}` : ''} ${isBattlegroundsSurfacePage ? `arena-app-battlegrounds arena-app-${activeTab}` : ''}`}>
       <a
         className="arena-skip-link"
         href="#main-content"
@@ -1704,7 +1701,7 @@ export default function App() {
 	              <LazyGlobalUtilityHeader
 	                accessStatus={appIsAdmin ? true : appSubscription}
 	                onNavigate={navigatePath}
-	                pagePath={wantsLogin ? '/profile' : currentPath}
+	                pagePath={currentPath}
 	                authenticated={Boolean(appAuthUser)}
 	              />
 	            </React.Suspense>
@@ -1725,20 +1722,16 @@ export default function App() {
             <React.Suspense fallback={<RouteFallback />}>
               <LazyNotFoundPage state={routeView} navigatePath={navigatePath} />
             </React.Suspense>
-          ) : publicProfileId ? (
+          ) : isAccountRoute ? (
             <React.Suspense fallback={<RouteFallback minHeight={620} />}>
-              <LazyPublicProfilePage publicProfileId={publicProfileId} />
+              <LazyAccountRoute
+                connect={isApplicationConnectPage}
+                profileId={publicProfileId}
+                user={appAuthUser}
+                checking={appAuthChecking}
+                onChange={handleAppAuthChange}
+              />
             </React.Suspense>
-          ) : wantsLogin ? (
-            <>
-              <React.Suspense fallback={<RouteFallback minHeight={760} />}>
-                <LazyLoginPanel
-                  initialAuthUser={appAuthUser}
-                  parentAuthChecking={appAuthChecking}
-                  onAuthChange={handleAppAuthChange}
-                />
-              </React.Suspense>
-            </>
           ) : isAdminMode ? (
             <>
 	            <React.Suspense fallback={<RouteFallback minHeight={620} />}><LazyContestAdminPanel authUser={appAuthUser} authChecking={appAuthChecking} /></React.Suspense>

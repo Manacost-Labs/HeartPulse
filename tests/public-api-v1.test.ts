@@ -63,6 +63,17 @@ const cardImageResponder = createCardImageResponder({
 app.use('/api/v1', createPublicApiRouter({
   apiKeys: manager,
   now,
+  accessTokens: {
+    authenticate: (token, scopes) => {
+      if (token === 'mca_access_forbidden-application-token-with-sufficient-length') {
+        return 'FORBIDDEN';
+      }
+      return token === 'mca_access_valid-application-token-with-sufficient-length'
+        && scopes.every(scope => ['catalog.read', 'images.read'].includes(scope))
+        ? { userId: 'user-1' }
+        : null;
+    },
+  },
   cardImages: { respond: cardImageResponder },
 }));
 app.use('/api', createAdminApiKeyRouter({
@@ -88,6 +99,11 @@ try {
   const openapiPayload = await openapi.json() as Record<string, any>;
   assert.equal(openapiPayload.openapi, '3.1.0');
   assert.equal(openapiPayload.components.securitySchemes.ApiKeyAuth.name, 'X-API-Key');
+  assert.equal(openapiPayload.components.securitySchemes.ApplicationBearer.scheme, 'bearer');
+  assert.ok(openapiPayload.paths['/api/v1/oauth/device/code']);
+  assert.ok(openapiPayload.paths['/api/v1/oauth/token']);
+  assert.ok(openapiPayload.paths['/api/v1/oauth/revoke']);
+  assert.ok(openapiPayload.paths['/api/v1/me']);
   assert.ok(openapiPayload.paths['/api/v1/catalog/manifest']);
   assert.ok(openapiPayload.paths['/api/v1/cards/{cardId}/images/{variant}.webp']);
   assert.ok(openapiPayload.paths['/api/admin/api-keys']);
@@ -159,6 +175,31 @@ try {
   assert.ok(Array.isArray(manifest.resources));
   assert.equal(records.get(created.key.id)?.lastUsedAt, '2026-07-29T12:00:02.000Z');
 
+  const bearerManifest = await fetch(`${origin}/api/v1/catalog/manifest`, {
+    headers: {
+      Authorization: 'Bearer mca_access_valid-application-token-with-sufficient-length',
+    },
+  });
+  assert.equal(bearerManifest.status, 200);
+  assert.match(String(bearerManifest.headers.get('vary')), /Authorization/);
+
+  const invalidBearerManifest = await fetch(`${origin}/api/v1/catalog/manifest`, {
+    headers: { Authorization: 'Bearer mca_access_invalid-token-with-sufficient-length' },
+  });
+  assert.equal(invalidBearerManifest.status, 401);
+  assert.match(String(invalidBearerManifest.headers.get('www-authenticate')), /Bearer/);
+  assert.deepEqual(await invalidBearerManifest.json(), {
+    error: { code: 'INVALID_ACCESS_TOKEN', message: 'Access token is invalid or expired' },
+  });
+
+  const forbiddenBearerManifest = await fetch(`${origin}/api/v1/catalog/manifest`, {
+    headers: { Authorization: 'Bearer mca_access_forbidden-application-token-with-sufficient-length' },
+  });
+  assert.equal(forbiddenBearerManifest.status, 403);
+  assert.deepEqual(await forbiddenBearerManifest.json(), {
+    error: { code: 'INSUFFICIENT_SCOPE', message: 'Access token does not grant this scope' },
+  });
+
   const unchangedManifest = await fetch(`${origin}/api/v1/catalog/manifest`, {
     headers: {
       'X-API-Key': created.apiKey,
@@ -187,7 +228,8 @@ try {
   assert.equal(cardImage.headers.get('content-type'), 'image/webp');
   assert.match(String(cardImage.headers.get('etag')), /^"/);
   assert.match(String(cardImage.headers.get('cache-control')), /^private,/);
-  assert.equal(cardImage.headers.get('vary'), 'X-API-Key');
+  assert.match(String(cardImage.headers.get('vary')), /X-API-Key/);
+  assert.match(String(cardImage.headers.get('vary')), /Authorization/);
   assert.equal(Buffer.from(await cardImage.arrayBuffer()).toString(), 'webp');
   assert.deepEqual(requestedImages, [{ cardId: 'EX1_001', variant: 'full' }]);
 

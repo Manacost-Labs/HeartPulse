@@ -789,6 +789,12 @@ const PAGES = {
 };
 
 const NOINDEX_PAGES = new Map([
+  ['/connect', {
+    h1: 'Подключение приложения',
+    ogType: 'website',
+    structuredData: [],
+    noscript: '<h1>Подключение приложения</h1><p>Для безопасного подтверждения входа в приложение требуется JavaScript и авторизованный аккаунт Manacost.</p>',
+  }],
   ['/admin', {
     h1: 'Админ-панель',
     ogType: 'website',
