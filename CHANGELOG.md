@@ -1,5 +1,16 @@
 # HS-Arena Changelog
 
+## v1.0.85 - 2026-07-30
+
+- Added an administrator-only shadow draft advisor that ranks three offered
+  Arena cards against the current deck without sending the draft to the server.
+- Separated every recommendation into standalone card strength, only
+  confirmed/promising pair interactions, and class-specific successful-deck
+  curve fit; merely popular pairs contribute no synergy bonus.
+- Added bounded current-cohort card catalogs, confidence and limitation
+  explanations, equal-win-rate handling, tests, Storybook interaction coverage,
+  and responsive accessibility verification.
+
 ## v1.0.84 - 2026-07-30
 
 - Compared every Arena pair with similar same-class, same-patch control decks

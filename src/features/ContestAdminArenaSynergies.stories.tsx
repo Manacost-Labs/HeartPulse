@@ -257,6 +257,61 @@ const payloadWithCategories: ArenaSynergyPayload = {
   ],
 };
 
+const draftCards = Array.from(new Map([
+  ...payloadWithCategories.combinations.flatMap(combination => combination.cards),
+  ...payloadWithCategories.redraft.map(row => row.card),
+].map(card => [card.id, card])).values());
+
+const draftPayload: ArenaSynergyPayload = {
+  ...payloadWithCategories,
+  selectedClass: 'MAGE',
+  draftAdvisor: {
+    status: 'shadow',
+    deckSize: 30,
+    minimumRuns: 13,
+    cards: draftCards,
+    targetCurve: [
+      {
+        id: 'LOW',
+        label: '0–2',
+        minimumCost: 0,
+        maximumCost: 2,
+        targetShare: 0.4,
+        targetCount: 12,
+      },
+      {
+        id: 'MID',
+        label: '3–4',
+        minimumCost: 3,
+        maximumCost: 4,
+        targetShare: 0.33,
+        targetCount: 10,
+      },
+      {
+        id: 'HIGH',
+        label: '5–6',
+        minimumCost: 5,
+        maximumCost: 6,
+        targetShare: 0.17,
+        targetCount: 5,
+      },
+      {
+        id: 'TOP',
+        label: '7+',
+        minimumCost: 7,
+        maximumCost: null,
+        targetShare: 0.1,
+        targetCount: 3,
+      },
+    ],
+    pairCoverage: payloadWithCategories.combinations.length,
+    limitations: [
+      'Рейтинг не прогнозирует число побед.',
+      'Популярные пары без отдельного эффекта не дают бонус.',
+    ],
+  },
+};
+
 function withoutMatchedControls(combination: ArenaCombination): ArenaCombination {
   const legacy = { ...combination };
   delete legacy.classification;
@@ -309,6 +364,9 @@ export const Loaded: Story = {
 
     await userEvent.click(canvas.getByRole('tab', { name: 'Сочетания' }));
     await expect(canvas.getByRole('tab', { name: 'Сочетания' })).toHaveAttribute('aria-selected', 'true');
+
+    await userEvent.click(canvas.getByRole('tab', { name: 'Помощник драфта' }));
+    await expect(canvas.getByText(/Выберите конкретный класс/)).toBeVisible();
   },
 };
 
@@ -349,5 +407,34 @@ export const LastKnownGood: Story = {
     },
     loading: false,
     error: null,
+  },
+};
+
+export const DraftAdvisor: Story = {
+  args: {
+    payload: draftPayload,
+    loading: false,
+    error: null,
+    selectedClass: 'MAGE',
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole('tab', { name: 'Помощник драфта' }));
+    await expect(canvas.getByText('Черновик v1')).toBeVisible();
+
+    await userEvent.selectOptions(
+      canvas.getByLabelText('Карта для добавления'),
+      'REV_509',
+    );
+    await userEvent.click(canvas.getByRole('button', { name: 'Добавить' }));
+    await expect(canvas.getByRole('button', {
+      name: 'Убрать Увеличительная глефа из колоды',
+    })).toBeVisible();
+
+    await userEvent.selectOptions(canvas.getByLabelText('Вариант 1'), 'REV_511');
+    await userEvent.selectOptions(canvas.getByLabelText('Вариант 2'), 'TLC_100');
+    await userEvent.selectOptions(canvas.getByLabelText('Вариант 3'), 'JAIL_733');
+
+    await expect(canvas.getAllByRole('meter')).toHaveLength(9);
+    await expect(canvas.getAllByText(/уверенность/i)).toHaveLength(3);
   },
 };

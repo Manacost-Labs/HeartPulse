@@ -10,17 +10,19 @@ import {
   Repeat2,
   Sparkles,
   UsersRound,
+  WandSparkles,
 } from 'lucide-react';
 import type {
   ArenaCombination,
   ArenaClassId,
   ArenaRedraftCard,
-  ArenaSynergyCard,
   ArenaSynergyPayload,
 } from '../../shared/arenaSynergyContract';
+import { ArenaDraftAdvisorPanel } from './ArenaDraftAdvisorPanel';
+import { ArenaSynergyCardIdentity } from './ArenaSynergyCardIdentity';
 import './ContestAdminArenaSynergies.css';
 
-type AnalyticsTab = 'combinations' | 'redraft';
+type AnalyticsTab = 'combinations' | 'redraft' | 'advisor';
 type RedraftSort = 'added' | 'discarded' | 'net' | 'decisions';
 type PairClassification = NonNullable<ArenaCombination['classification']>;
 type DisplayClassification = PairClassification | 'legacy';
@@ -63,10 +65,6 @@ export type ArenaSynergyPanelProps = {
   onClassChange: (className: ArenaClassId) => void;
   onReload: () => void;
 };
-
-function cardImage(cardId: string): string {
-  return `https://art.hearthstonejson.com/v1/tiles/${encodeURIComponent(cardId)}.webp`;
-}
 
 function formatDate(value: string | null, withTime = false): string {
   if (!value) return '—';
@@ -123,35 +121,6 @@ function PairClassificationBadge({ value }: { value: DisplayClassification }) {
     <span className={`arena-synergy-classification is-${value}`}>
       <Icon size={14} aria-hidden="true" />
       {label}
-    </span>
-  );
-}
-
-function CardIdentity({ card }: { card: ArenaSynergyCard }) {
-  return (
-    <span className="arena-synergy-card">
-      <span className="arena-synergy-card-art" aria-hidden="true">
-        <span>{card.cost ?? '•'}</span>
-        <img
-          src={cardImage(card.id)}
-          alt=""
-          loading="lazy"
-          width={48}
-          height={36}
-          onError={event => { event.currentTarget.hidden = true; }}
-        />
-      </span>
-      <span>
-        <strong>{card.name}</strong>
-        <small>
-          {card.cost != null ? `${card.cost} маны` : 'Мана —'}
-          {' · '}
-          {card.deckWinRate != null ? `WR ${formatPercent(card.deckWinRate)}` : `${card.runs} колод`}
-          {card.twelveWinRunQuality != null
-            ? ` · качество 12W общ. ${formatPercent(card.twelveWinRunQuality)}`
-            : ''}
-        </small>
-      </span>
     </span>
   );
 }
@@ -248,9 +217,9 @@ function ArenaCombinationPanel({ payload }: { payload: ArenaSynergyPayload }) {
                     <tr key={combination.cards.map(card => card.id).join(':')}>
                       <td data-label="Карты">
                         <div className="arena-synergy-pair">
-                          <CardIdentity card={combination.cards[0]} />
+                          <ArenaSynergyCardIdentity card={combination.cards[0]} />
                           <span aria-hidden="true">+</span>
-                          <CardIdentity card={combination.cards[1]} />
+                          <ArenaSynergyCardIdentity card={combination.cards[1]} />
                         </div>
                       </td>
                       <td data-label="Вместе">
@@ -383,7 +352,7 @@ function ArenaRedraftPanel({
             <tbody>
               {rows.map(row => (
                 <tr key={row.card.id}>
-                  <td data-label="Карта"><CardIdentity card={row.card} /></td>
+                  <td data-label="Карта"><ArenaSynergyCardIdentity card={row.card} /></td>
                   <td data-label="Добавили">
                     <strong>+{row.addedCopies}</strong>
                     <small>{row.addedRuns} забегов</small>
@@ -609,12 +578,22 @@ export function ArenaSynergyPanel({
             >
               <Repeat2 size={17} aria-hidden="true" /> Redraft
             </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'advisor'}
+              className={tab === 'advisor' ? 'is-active' : ''}
+              onClick={() => setTab('advisor')}
+            >
+              <WandSparkles size={17} aria-hidden="true" /> Помощник драфта
+            </button>
           </div>
 
           {tab === 'combinations' && <ArenaCombinationPanel payload={payload} />}
           {tab === 'redraft' && (
             <ArenaRedraftPanel rows={redraftRows} sort={redraftSort} onSort={setRedraftSort} />
           )}
+          {tab === 'advisor' && <ArenaDraftAdvisorPanel payload={payload} />}
           <ArenaHistoryPanel payload={payload} />
 
           <p className="arena-synergy-updated">
