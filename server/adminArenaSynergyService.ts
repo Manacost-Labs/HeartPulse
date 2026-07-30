@@ -1,4 +1,5 @@
 import type { Request, RequestHandler, Response, Router } from 'express';
+import cron from 'node-cron';
 import type {
   ArenaClassId,
   ArenaSynergyPayload,
@@ -10,6 +11,13 @@ import {
   type ArenaSynergyHistoryStore,
   type ArenaSynergyStoredSnapshot,
 } from './arenaSynergyHistoryStore.js';
+import {
+  createArenaDraftRefreshPipeline,
+  type ArenaDraftRefreshMetric,
+  type ArenaDraftRefreshPublication,
+} from './arenaDraftRefreshPipeline.js';
+
+const DEFAULT_REFRESH_SCHEDULE = '17 * * * *';
 
 type ArenaSynergySourceCache = {
   expiresAt: number;
@@ -26,6 +34,10 @@ export type AdminArenaSynergyServiceDependencies = {
   fetchDataset: (datasetId: string, timeoutMs?: number) => Promise<unknown>;
   now?: () => Date;
   cacheTtlMs?: number;
+  enableRefreshPipeline?: boolean;
+  refreshSchedule?: string;
+  refreshOnStartup?: boolean;
+  onRefreshMetric?: (metric: ArenaDraftRefreshMetric) => void;
   onError?: (error: unknown) => void;
 };
 
@@ -40,6 +52,11 @@ export type ArenaSynergyAnalysisLoader = (
   className: ArenaClassId,
   options: { forceRefresh: boolean },
 ) => Promise<ArenaSynergyPayload>;
+
+export type ArenaSynergyAnalysisManager = {
+  load: ArenaSynergyAnalysisLoader;
+  refreshAll: () => Promise<ArenaDraftRefreshPublication>;
+};
 
 function cardIdsFromStats(value: unknown): string[] {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
@@ -84,9 +101,9 @@ function lastKnownGood(
   };
 }
 
-export function createArenaSynergyAnalysisLoader(
+export function createArenaSynergyAnalysisManager(
   dependencies: ArenaSynergyAnalysisLoaderDependencies,
-): ArenaSynergyAnalysisLoader {
+): ArenaSynergyAnalysisManager {
   const now = dependencies.now ?? (() => new Date());
   const historyStore = dependencies.historyStore ?? createArenaSynergyHistoryStore({
     stateDirectory: dependencies.stateDirectory,
@@ -94,44 +111,62 @@ export function createArenaSynergyAnalysisLoader(
   });
   let sourceCache: ArenaSynergySourceCache | null = null;
 
-  return async (className, options) => {
-    try {
-      const timestamp = now().getTime();
-      if (options.forceRefresh || !sourceCache || sourceCache.expiresAt <= timestamp) {
-        const timeoutMs = Number(process.env.HS_DATA_API_ADMIN_TIMEOUT_MS || 30_000);
-        const [winningDecks, cardStats, patches] = await Promise.all([
-          dependencies.fetchDataset('hsreplay_arena_winning_decks', timeoutMs),
-          dependencies.fetchDataset('hsreplay_arena_cards_advanced', timeoutMs),
-          dependencies.fetchDataset('api/patches?limit=20&include_content=false', timeoutMs),
-        ]);
-        sourceCache = {
-          expiresAt: timestamp + (
-            dependencies.cacheTtlMs
-            ?? Number(process.env.ADMIN_ARENA_SYNERGY_CACHE_MS || 15 * 60_000)
-          ),
-          winningDecks,
-          cardStats,
-          patches,
-        };
-      }
+  const fetchSources = async (timestamp: number): Promise<ArenaSynergySourceCache> => {
+    const timeoutMs = Number(process.env.HS_DATA_API_ADMIN_TIMEOUT_MS || 30_000);
+    const [winningDecks, cardStats, patches] = await Promise.all([
+      dependencies.fetchDataset('hsreplay_arena_winning_decks', timeoutMs),
+      dependencies.fetchDataset('hsreplay_arena_cards_advanced', timeoutMs),
+      dependencies.fetchDataset('api/patches?limit=20&include_content=false', timeoutMs),
+    ]);
+    return {
+      expiresAt: timestamp + (
+        dependencies.cacheTtlMs
+        ?? Number(process.env.ADMIN_ARENA_SYNERGY_CACHE_MS || 15 * 60_000)
+      ),
+      winningDecks,
+      cardStats,
+      patches,
+    };
+  };
 
-      const payload = analyzeArenaSynergies({
-        ...sourceCache,
-        className,
-        previousSnapshot: historyStore.latest(className),
-        now: now(),
-      });
+  const analyze = (
+    sources: ArenaSynergySourceCache,
+    className: ArenaClassId,
+    timestamp: Date,
+  ) => analyzeArenaSynergies({
+    ...sources,
+    className,
+    previousSnapshot: historyStore.latest(className),
+    now: timestamp,
+  });
+
+  const snapshot = (
+    payload: ArenaSynergyPayload,
+    sources: ArenaSynergySourceCache,
+    savedAt: string,
+  ): ArenaSynergyStoredSnapshot => ({
+    savedAt,
+    activeCardIds: cardIdsFromStats(sources.cardStats),
+    payload,
+  });
+
+  const load: ArenaSynergyAnalysisLoader = async (className, options) => {
+    try {
+      const timestamp = now();
+      const sources = options.forceRefresh
+        || !sourceCache
+        || sourceCache.expiresAt <= timestamp.getTime()
+        ? await fetchSources(timestamp.getTime())
+        : sourceCache;
+      const payload = analyze(sources, className, timestamp);
       if (payload.dataQuality.status === 'blocked') {
         throw new Error('ARENA_SYNERGY_DATA_QUALITY_BLOCKED');
       }
+      sourceCache = sources;
 
       let history = historyStore.history(className);
       try {
-        historyStore.save({
-          savedAt: now().toISOString(),
-          activeCardIds: cardIdsFromStats(sourceCache.cardStats),
-          payload,
-        });
+        historyStore.save(snapshot(payload, sources, now().toISOString()));
         history = historyStore.history(className);
       } catch (persistenceError) {
         dependencies.onError?.(persistenceError);
@@ -158,6 +193,56 @@ export function createArenaSynergyAnalysisLoader(
       throw new Error('ARENA_SYNERGY_SOURCE_UNAVAILABLE');
     }
   };
+
+  const refreshAll = async (): Promise<ArenaDraftRefreshPublication> => {
+    const timestamp = now();
+    let sources: ArenaSynergySourceCache;
+    try {
+      sources = await fetchSources(timestamp.getTime());
+    } catch {
+      throw new Error('ARENA_DRAFT_SOURCE_UNAVAILABLE');
+    }
+    const all = analyze(sources, 'ALL', timestamp);
+    if (all.dataQuality.status !== 'healthy') {
+      throw new Error('ARENA_SYNERGY_HEALTHY_DATA_REQUIRED');
+    }
+    const classes = all.availableClasses
+      .filter(item => item.id !== 'ALL' && item.runs >= 20)
+      .map(item => item.id);
+    const payloads = [
+      all,
+      ...classes.map(className => analyze(sources, className, timestamp)),
+    ];
+    if (payloads.some(payload => (
+      payload.dataQuality.status !== 'healthy'
+      || payload.reliability.sampleMode === 'insufficient'
+      || (payload.selectedClass !== 'ALL' && !payload.draftAdvisor)
+    ))) {
+      throw new Error('ARENA_SYNERGY_REFRESH_BATCH_REJECTED');
+    }
+    const savedAt = now().toISOString();
+    try {
+      historyStore.saveMany(payloads.map(payload => snapshot(payload, sources, savedAt)));
+    } catch {
+      throw new Error('ARENA_DRAFT_PUBLICATION_FAILED');
+    }
+    sourceCache = sources;
+    return {
+      cohortId: all.cohort.id,
+      patchVersion: all.cohort.patchVersion,
+      sourceRows: all.dataQuality.metrics.sourceRows,
+      qualityScore: all.dataQuality.score,
+      publishedClasses: payloads.map(payload => payload.selectedClass),
+    };
+  };
+
+  return { load, refreshAll };
+}
+
+export function createArenaSynergyAnalysisLoader(
+  dependencies: ArenaSynergyAnalysisLoaderDependencies,
+): ArenaSynergyAnalysisLoader {
+  return createArenaSynergyAnalysisManager(dependencies).load;
 }
 
 export function createAdminArenaSynergyServiceRouter(
@@ -167,15 +252,48 @@ export function createAdminArenaSynergyServiceRouter(
     '[admin arena synergies]',
     error instanceof Error ? error.message : error,
   ));
-  const loadAnalysis = createArenaSynergyAnalysisLoader({
+  const manager = createArenaSynergyAnalysisManager({
     ...dependencies,
     onError: reportError,
   });
+  const requestedSchedule = dependencies.refreshSchedule
+    ?? process.env.ARENA_DRAFT_REFRESH_CRON
+    ?? DEFAULT_REFRESH_SCHEDULE;
+  const schedule = cron.validate(requestedSchedule)
+    ? requestedSchedule
+    : DEFAULT_REFRESH_SCHEDULE;
+  if (schedule !== requestedSchedule) {
+    reportError(new Error('ARENA_DRAFT_REFRESH_INVALID_SCHEDULE'));
+  }
+  const refreshPipeline = createArenaDraftRefreshPipeline({
+    stateDirectory: dependencies.stateDirectory,
+    schedule,
+    refresh: manager.refreshAll,
+    onMetric: dependencies.onRefreshMetric,
+  });
+  if (dependencies.enableRefreshPipeline) {
+    cron.schedule(schedule, async () => {
+      await refreshPipeline.run('scheduled');
+    }, {
+      name: 'arena-draft-refresh',
+      timezone: 'UTC',
+      noOverlap: true,
+      maxRandomDelay: 120_000,
+    });
+    if (dependencies.refreshOnStartup !== false) {
+      const configuredDelay = Number(process.env.ARENA_DRAFT_REFRESH_STARTUP_DELAY_MS ?? 15_000);
+      const startupDelayMs = Number.isFinite(configuredDelay)
+        ? Math.max(0, Math.min(300_000, configuredDelay))
+        : 15_000;
+      setTimeout(() => void refreshPipeline.run('startup'), startupDelayMs).unref();
+    }
+  }
   return createAdminArenaSynergyRouter({
     adminGuard: dependencies.adminGuard,
     setPrivateNoStore: dependencies.setPrivateNoStore,
     csrfAllowed: dependencies.csrfAllowed,
-    loadAnalysis,
+    loadAnalysis: manager.load,
+    refreshPipeline,
     onError: reportError,
   });
 }

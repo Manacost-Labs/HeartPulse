@@ -113,6 +113,38 @@ store.save({
 assert.equal(store.history('ALL').length, 2, 'saving the same cohort replaces its snapshot');
 assert.equal(store.latest('ALL')?.payload.summary.runsAnalyzed, 120);
 
+now = new Date('2026-08-01T12:00:00.000Z');
+const allBatchSnapshot: ArenaSynergyStoredSnapshot = {
+  savedAt: now.toISOString(),
+  activeCardIds: ['A', 'B', 'C'],
+  payload: payload('36.1:pool-b', '36.1'),
+};
+const mageBatchSnapshot: ArenaSynergyStoredSnapshot = {
+  savedAt: now.toISOString(),
+  activeCardIds: ['A', 'B', 'C'],
+  payload: payload('36.1:pool-b', '36.1', 'MAGE'),
+};
+store.saveMany([allBatchSnapshot, mageBatchSnapshot]);
+assert.equal(store.latest('ALL')?.savedAt, now.toISOString());
+assert.equal(store.latest('MAGE')?.payload.cohort.id, '36.1:pool-b');
+
+const beforeRejectedBatch = readFileSync(
+  join(stateDirectory, 'arena-synergy-history-v2.json'),
+  'utf8',
+);
+assert.throws(
+  () => store.saveMany([
+    allBatchSnapshot,
+    { ...mageBatchSnapshot, activeCardIds: ['x'.repeat(81)] },
+  ]),
+  /invalid Arena synergy snapshot/,
+);
+assert.equal(
+  readFileSync(join(stateDirectory, 'arena-synergy-history-v2.json'), 'utf8'),
+  beforeRejectedBatch,
+  'an invalid member must reject the complete batch before writing',
+);
+
 writeFileSync(join(stateDirectory, 'arena-synergy-history-v2.json'), '{"snapshots":"broken"}', 'utf8');
 assert.equal(store.latest('ALL'), null, 'a malformed history document must fail closed');
 

@@ -1,5 +1,16 @@
 # HS-Arena Changelog
 
+## v1.0.87 - 2026-07-30
+
+- Added an hourly and startup refresh pipeline that rebuilds the Arena draft
+  model from the newest winning decks and publishes all eligible classes as
+  one quality-gated atomic snapshot.
+- Added administrator-only refresh status and manual-run endpoints, in-process
+  overlap deduplication, bounded durable run history and safe interruption
+  recovery while preserving the last-known-good model after rejected data.
+- Added bounded Prometheus refresh counters, duration, freshness and
+  publication-size metrics plus an operations runbook and production settings.
+
 ## v1.0.86 - 2026-07-30
 
 - Added the administrator-only `POST /api/admin/arena-draft-advice` contract for

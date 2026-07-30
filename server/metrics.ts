@@ -1,7 +1,9 @@
 import express from 'express';
 import type { DataHealthReport } from './health.js';
+import type { ArenaDraftRefreshMetric } from './arenaDraftRefreshPipeline.js';
 
 const DURATION_BUCKETS_SECONDS = [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10];
+const REFRESH_DURATION_BUCKETS_SECONDS = [1, 2.5, 5, 10, 30, 60, 120];
 
 export interface HttpMetricObservation {
   method: string;
@@ -32,6 +34,14 @@ export class HttpMetrics {
   private activeRequests = 0;
   private readonly requestTotals = new Map<string, { method: string; route: string; statusClass: string; count: number }>();
   private readonly durations = new Map<string, { method: string; route: string; aggregate: DurationAggregate }>();
+  private readonly refreshTotals = new Map<string, {
+    status: ArenaDraftRefreshMetric['status'];
+    trigger: ArenaDraftRefreshMetric['trigger'];
+    aggregate: DurationAggregate;
+  }>();
+  private refreshLastSuccessTimestampSeconds = 0;
+  private refreshSourceRows = 0;
+  private refreshPublishedClasses = 0;
 
   requestStarted(): void {
     this.activeRequests += 1;
@@ -65,6 +75,34 @@ export class HttpMetrics {
     });
   }
 
+  arenaDraftRefreshFinished(observation: ArenaDraftRefreshMetric): void {
+    const key = JSON.stringify([observation.status, observation.trigger]);
+    let metric = this.refreshTotals.get(key);
+    if (!metric) {
+      metric = {
+        status: observation.status,
+        trigger: observation.trigger,
+        aggregate: {
+          count: 0,
+          sumSeconds: 0,
+          buckets: REFRESH_DURATION_BUCKETS_SECONDS.map(() => 0),
+        },
+      };
+      this.refreshTotals.set(key, metric);
+    }
+    const seconds = Math.max(0, observation.durationMs / 1000);
+    metric.aggregate.count += 1;
+    metric.aggregate.sumSeconds += seconds;
+    REFRESH_DURATION_BUCKETS_SECONDS.forEach((bucket, index) => {
+      if (seconds <= bucket) metric!.aggregate.buckets[index] += 1;
+    });
+    if (observation.status === 'succeeded') {
+      this.refreshLastSuccessTimestampSeconds = Math.floor(Date.parse(observation.finishedAt) / 1000);
+      this.refreshSourceRows = Math.max(0, Math.floor(observation.sourceRows));
+      this.refreshPublishedClasses = Math.max(0, Math.floor(observation.publishedClassCount));
+    }
+  }
+
   render(dataHealth: DataHealthReport, release: string): string {
     const lines = [
       '# HELP hs_arena_http_requests_active Requests currently being handled.',
@@ -91,6 +129,39 @@ export class HttpMetrics {
       lines.push(`hs_arena_http_request_duration_seconds_sum${labels(base)} ${metric.aggregate.sumSeconds.toFixed(6)}`);
       lines.push(`hs_arena_http_request_duration_seconds_count${labels(base)} ${metric.aggregate.count}`);
     }
+
+    lines.push(
+      '# HELP hs_arena_draft_refresh_total Completed Arena draft model refreshes.',
+      '# TYPE hs_arena_draft_refresh_total counter',
+    );
+    for (const metric of [...this.refreshTotals.values()].sort((a, b) => `${a.status}${a.trigger}`.localeCompare(`${b.status}${b.trigger}`))) {
+      const base = { status: metric.status, trigger: metric.trigger };
+      lines.push(`hs_arena_draft_refresh_total${labels(base)} ${metric.aggregate.count}`);
+    }
+    lines.push(
+      '# HELP hs_arena_draft_refresh_duration_seconds Arena draft model refresh duration.',
+      '# TYPE hs_arena_draft_refresh_duration_seconds histogram',
+    );
+    for (const metric of [...this.refreshTotals.values()].sort((a, b) => `${a.status}${a.trigger}`.localeCompare(`${b.status}${b.trigger}`))) {
+      const base = { status: metric.status, trigger: metric.trigger };
+      REFRESH_DURATION_BUCKETS_SECONDS.forEach((bucket, index) => {
+        lines.push(`hs_arena_draft_refresh_duration_seconds_bucket${labels({ ...base, le: String(bucket) })} ${metric.aggregate.buckets[index]}`);
+      });
+      lines.push(`hs_arena_draft_refresh_duration_seconds_bucket${labels({ ...base, le: '+Inf' })} ${metric.aggregate.count}`);
+      lines.push(`hs_arena_draft_refresh_duration_seconds_sum${labels(base)} ${metric.aggregate.sumSeconds.toFixed(6)}`);
+      lines.push(`hs_arena_draft_refresh_duration_seconds_count${labels(base)} ${metric.aggregate.count}`);
+    }
+    lines.push(
+      '# HELP hs_arena_draft_refresh_last_success_timestamp_seconds Unix timestamp of the last successful Arena draft model refresh.',
+      '# TYPE hs_arena_draft_refresh_last_success_timestamp_seconds gauge',
+      `hs_arena_draft_refresh_last_success_timestamp_seconds ${this.refreshLastSuccessTimestampSeconds}`,
+      '# HELP hs_arena_draft_refresh_source_rows Source rows in the last successfully published Arena draft model.',
+      '# TYPE hs_arena_draft_refresh_source_rows gauge',
+      `hs_arena_draft_refresh_source_rows ${this.refreshSourceRows}`,
+      '# HELP hs_arena_draft_refresh_published_classes Classes in the last successfully published Arena draft model.',
+      '# TYPE hs_arena_draft_refresh_published_classes gauge',
+      `hs_arena_draft_refresh_published_classes ${this.refreshPublishedClasses}`,
+    );
 
     lines.push(
       '# HELP hs_arena_ready Whether all required datasets are valid enough to serve traffic.',

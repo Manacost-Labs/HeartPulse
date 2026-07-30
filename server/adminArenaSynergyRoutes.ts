@@ -10,6 +10,7 @@ import {
   ArenaDraftAdvisorInputError,
   rankArenaDraftChoices,
 } from '../shared/arenaDraftAdvisor.js';
+import type { ArenaDraftRefreshPipeline } from './arenaDraftRefreshPipeline.js';
 
 export type AdminArenaSynergyDependencies = {
   adminGuard: RequestHandler;
@@ -19,6 +20,7 @@ export type AdminArenaSynergyDependencies = {
     className: ArenaClassId,
     options: { forceRefresh: boolean },
   ) => Promise<ArenaSynergyPayload | unknown>;
+  refreshPipeline?: ArenaDraftRefreshPipeline;
   onError?: (error: unknown) => void;
 };
 
@@ -32,6 +34,40 @@ export function createAdminArenaSynergyRouter(
   };
   router.use('/admin/arena-synergies', dependencies.adminGuard, privateAdminResponse);
   router.use('/admin/arena-draft-advice', dependencies.adminGuard, privateAdminResponse);
+  const refreshPipeline = dependencies.refreshPipeline;
+  if (refreshPipeline) {
+    router.use('/admin/arena-draft-refresh', dependencies.adminGuard, privateAdminResponse);
+
+    router.get('/admin/arena-draft-refresh', (_request, response) => {
+      try {
+        return response.json(refreshPipeline.status());
+      } catch (error) {
+        dependencies.onError?.(error);
+        return response.status(502).json({
+          code: 'ARENA_DRAFT_REFRESH_STATUS_UNAVAILABLE',
+          error: 'Не удалось получить состояние обновления Арены',
+        });
+      }
+    });
+
+    router.post('/admin/arena-draft-refresh', async (request, response) => {
+      if (!dependencies.csrfAllowed(request)) {
+        return response.status(403).json({
+          code: 'CSRF_REJECTED',
+          error: 'Запрос отклонён проверкой источника',
+        });
+      }
+      try {
+        return response.json(await refreshPipeline.run('manual'));
+      } catch (error) {
+        dependencies.onError?.(error);
+        return response.status(502).json({
+          code: 'ARENA_DRAFT_REFRESH_UNAVAILABLE',
+          error: 'Не удалось запустить обновление данных Арены',
+        });
+      }
+    });
+  }
 
   router.get('/admin/arena-synergies', async (request, response) => {
     const query = request.query.class;

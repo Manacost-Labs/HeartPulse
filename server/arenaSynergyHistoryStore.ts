@@ -26,6 +26,7 @@ type ArenaSynergyHistoryDocument = {
 
 export type ArenaSynergyHistoryStore = {
   save: (snapshot: ArenaSynergyStoredSnapshot) => void;
+  saveMany: (snapshots: ArenaSynergyStoredSnapshot[]) => void;
   latest: (className: ArenaClassId) => ArenaSynergyStoredSnapshot | null;
   previous: (
     className: ArenaClassId,
@@ -120,25 +121,38 @@ export function createArenaSynergyHistoryStore(
 ): ArenaSynergyHistoryStore {
   const now = options.now ?? (() => new Date());
   const read = () => readDocument(options.stateDirectory, now());
-
-  return {
-    save(snapshot) {
-      if (!validSnapshot(snapshot)) throw new Error('invalid Arena synergy snapshot');
-      const document = read();
+  const saveMany = (incoming: ArenaSynergyStoredSnapshot[]) => {
+    if (!incoming.length) return;
+    if (!incoming.every(validSnapshot)) throw new Error('invalid Arena synergy snapshot');
+    const replacements = new Map<string, ArenaSynergyStoredSnapshot>();
+    incoming.forEach(snapshot => {
       const key = `${snapshot.payload.selectedClass}\u0000${snapshot.payload.cohort.id}`;
-      const snapshots = orderedSnapshots(document)
-        .filter(item => `${item.payload.selectedClass}\u0000${item.payload.cohort.id}` !== key);
-      snapshots.unshift({
+      replacements.set(key, {
         ...snapshot,
         activeCardIds: Array.from(new Set(snapshot.activeCardIds)).sort(),
         payload: { ...snapshot.payload, history: [] },
       });
-      writeJsonAtomically(options.stateDirectory, HISTORY_FILENAME, {
-        schemaVersion: HISTORY_SCHEMA_VERSION,
-        updatedAt: now().toISOString(),
-        snapshots: snapshots.slice(0, MAX_SNAPSHOTS),
-      } satisfies ArenaSynergyHistoryDocument);
+    });
+    const retained = orderedSnapshots(read()).filter(snapshot => (
+      !replacements.has(`${snapshot.payload.selectedClass}\u0000${snapshot.payload.cohort.id}`)
+    ));
+    const snapshots = orderedSnapshots({
+      schemaVersion: HISTORY_SCHEMA_VERSION,
+      updatedAt: now().toISOString(),
+      snapshots: [...replacements.values(), ...retained],
+    }).slice(0, MAX_SNAPSHOTS);
+    writeJsonAtomically(options.stateDirectory, HISTORY_FILENAME, {
+      schemaVersion: HISTORY_SCHEMA_VERSION,
+      updatedAt: now().toISOString(),
+      snapshots,
+    } satisfies ArenaSynergyHistoryDocument);
+  };
+
+  return {
+    save(snapshot) {
+      saveMany([snapshot]);
     },
+    saveMany,
     latest(className) {
       return orderedSnapshots(read())
         .find(snapshot => snapshot.payload.selectedClass === className) ?? null;

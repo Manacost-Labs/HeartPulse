@@ -9,6 +9,22 @@ const health = evaluateDataHealth([
   { name: 'winrates', updatedAt: new Date(now - 60_000).toISOString(), records: 11 },
 ], { now });
 const metrics = new HttpMetrics();
+metrics.arenaDraftRefreshFinished({
+  status: 'succeeded',
+  trigger: 'scheduled',
+  durationMs: 12_500,
+  sourceRows: 500,
+  publishedClassCount: 10,
+  finishedAt: '2026-07-11T11:59:30.000Z',
+});
+metrics.arenaDraftRefreshFinished({
+  status: 'failed',
+  trigger: 'manual',
+  durationMs: 1_000,
+  sourceRows: 0,
+  publishedClassCount: 0,
+  finishedAt: '2026-07-11T11:59:40.000Z',
+});
 const app = express();
 app.use(requestLoggingMiddleware(() => {}, metrics));
 app.get('/items/:id', (_req, res) => res.json({ ok: true }));
@@ -39,6 +55,12 @@ try {
   assert.match(body, /hs_arena_ready 1/);
   assert.match(body, /hs_arena_dataset_age_seconds\{dataset="winrates",state="fresh"\} 60/);
   assert.match(body, /hs_arena_release_info\{release="test-release"\} 1/);
+  assert.match(body, /hs_arena_draft_refresh_total\{status="succeeded",trigger="scheduled"\} 1/);
+  assert.match(body, /hs_arena_draft_refresh_total\{status="failed",trigger="manual"\} 1/);
+  assert.match(body, /hs_arena_draft_refresh_duration_seconds_bucket\{status="succeeded",trigger="scheduled",le="\+Inf"\} 1/);
+  assert.match(body, /hs_arena_draft_refresh_last_success_timestamp_seconds 1783771170/);
+  assert.match(body, /hs_arena_draft_refresh_source_rows 500/);
+  assert.match(body, /hs_arena_draft_refresh_published_classes 10/);
   assert.doesNotMatch(body, /123|private@example\.test|email=/);
 } finally {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));

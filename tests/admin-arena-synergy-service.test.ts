@@ -78,6 +78,7 @@ const loadWithoutPersistence = createArenaSynergyAnalysisLoader({
   now: () => new Date('2026-07-30T12:00:00Z'),
   historyStore: {
     save: () => { throw new Error('read-only filesystem'); },
+    saveMany: () => { throw new Error('read-only filesystem'); },
     latest: () => null,
     previous: () => null,
     history: () => [],
