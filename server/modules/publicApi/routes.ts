@@ -30,6 +30,11 @@ import {
   PublicArenaStatisticsQueryError,
   type PublicArenaStatisticsSource,
 } from './arenaStatistics.js';
+import {
+  createPublicBattlegroundStatistics,
+  PublicBattlegroundStatisticsQueryError,
+  type PublicBattlegroundStatisticsSource,
+} from './battlegroundStatistics.js';
 import { ApiKeyValidationError, type ApiKeyManager, type PublicApiScope } from './model.js';
 import { PUBLIC_API_OPENAPI } from './openapi.js';
 
@@ -64,6 +69,7 @@ type PublicRouterDependencies = {
   metaStatistics?: PublicMetaStatisticsSource;
   deckStatistics?: PublicDeckStatisticsSource;
   arenaStatistics?: PublicArenaStatisticsSource;
+  battlegroundStatistics?: PublicBattlegroundStatisticsSource;
 };
 
 const apiError = (code: string, message: string) => ({ error: { code, message } });
@@ -126,6 +132,9 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     : null;
   const arenaStatistics = dependencies.arenaStatistics
     ? createPublicArenaStatistics(dependencies.arenaStatistics)
+    : null;
+  const battlegroundStatistics = dependencies.battlegroundStatistics
+    ? createPublicBattlegroundStatistics(dependencies.battlegroundStatistics)
     : null;
 
   const sendVersionedJson = (
@@ -216,6 +225,21 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     return response.status(503).json(apiError(
       'ARENA_STATISTICS_UNAVAILABLE',
       'Arena statistics are temporarily unavailable',
+    ));
+  };
+
+  const battlegroundStatisticsError = (response: Response, error: unknown) => {
+    response.set('Cache-Control', 'no-store');
+    if (error instanceof PublicBattlegroundStatisticsQueryError) {
+      return response.status(400).json(apiError(
+        'INVALID_BATTLEGROUNDS_STATISTICS_QUERY',
+        error.message,
+      ));
+    }
+    response.set('Retry-After', '60');
+    return response.status(503).json(apiError(
+      'BATTLEGROUNDS_STATISTICS_UNAVAILABLE',
+      'Battlegrounds statistics are temporarily unavailable',
     ));
   };
 
@@ -560,6 +584,66 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
       );
     } catch (error) {
       return arenaStatisticsError(response, error);
+    }
+  });
+
+  router.get('/battlegrounds/statistics/heroes', async (request, response) => {
+    if (!requireScope(dependencies, 'statistics.read', request, response)) return;
+    if (!battlegroundStatistics) {
+      return battlegroundStatisticsError(
+        response,
+        new Error('Battlegrounds statistics are not configured'),
+      );
+    }
+    try {
+      return sendVersionedJson(
+        request,
+        response,
+        await battlegroundStatistics.heroes(request.query as Record<string, unknown>),
+      );
+    } catch (error) {
+      return battlegroundStatisticsError(response, error);
+    }
+  });
+
+  router.get('/battlegrounds/statistics/minions', async (request, response) => {
+    if (!requireScope(dependencies, 'statistics.read', request, response)) return;
+    if (!battlegroundStatistics) {
+      return battlegroundStatisticsError(
+        response,
+        new Error('Battlegrounds statistics are not configured'),
+      );
+    }
+    try {
+      return sendVersionedJson(
+        request,
+        response,
+        await battlegroundStatistics.minions(request.query as Record<string, unknown>),
+      );
+    } catch (error) {
+      return battlegroundStatisticsError(response, error);
+    }
+  });
+
+  router.get('/battlegrounds/statistics/tier-lists/:kind', async (request, response) => {
+    if (!requireScope(dependencies, 'statistics.read', request, response)) return;
+    if (!battlegroundStatistics) {
+      return battlegroundStatisticsError(
+        response,
+        new Error('Battlegrounds statistics are not configured'),
+      );
+    }
+    try {
+      return sendVersionedJson(
+        request,
+        response,
+        await battlegroundStatistics.tierList(
+          request.params.kind,
+          request.query as Record<string, unknown>,
+        ),
+      );
+    } catch (error) {
+      return battlegroundStatisticsError(response, error);
     }
   });
 

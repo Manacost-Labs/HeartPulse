@@ -38,6 +38,12 @@ export {
   PublicArenaStatisticsQueryError,
   type PublicArenaStatisticsSource,
 } from './arenaStatistics.js';
+export {
+  createPublicBattlegroundStatistics,
+  PublicBattlegroundStatisticsQueryError,
+  type PublicBattlegroundStatisticsSource,
+  type PublicBattlegroundTierListKind,
+} from './battlegroundStatistics.js';
 export { PUBLIC_API_OPENAPI } from './openapi.js';
 export {
   createSqliteApiKeyRepository,

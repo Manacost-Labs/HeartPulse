@@ -12,6 +12,7 @@ import {
   initializePublicApiKeyRepository,
 } from '../modules/publicApi/public.js';
 import type { ConstructedCardDataService } from '../constructedCardRoutes.js';
+import { createLocalBattlegroundStatisticsSource } from '../modules/publicApi/battlegroundSource.js';
 
 type RegisterPublicApiDependencies<TAdmin> = {
   app: Application;
@@ -33,6 +34,7 @@ type RegisterPublicApiDependencies<TAdmin> = {
   metaStatistics?: Parameters<typeof createPublicApiRouter>[0]['metaStatistics'];
   deckStatistics?: Parameters<typeof createPublicApiRouter>[0]['deckStatistics'];
   arenaStatistics?: Parameters<typeof createPublicApiRouter>[0]['arenaStatistics'];
+  battlegroundStatistics?: Parameters<typeof createPublicApiRouter>[0]['battlegroundStatistics'];
 };
 
 /**
@@ -70,6 +72,8 @@ export function registerPublicApi<TAdmin>(dependencies: RegisterPublicApiDepende
     metaStatistics: dependencies.metaStatistics,
     deckStatistics: dependencies.deckStatistics,
     arenaStatistics: dependencies.arenaStatistics,
+    battlegroundStatistics: dependencies.battlegroundStatistics
+      ?? createLocalBattlegroundStatisticsSource(),
     cardImages: dependencies.cardImageDependencies
       ? { respond: createCardImageResponder(dependencies.cardImageDependencies) }
       : undefined,
