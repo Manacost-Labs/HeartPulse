@@ -192,6 +192,7 @@ const app = express();
 app.use('/api/v1', createPublicApiRouter({
   apiKeys,
   metaStatistics,
+  publicOrigin: 'https://arena.hs-manacost.ru/',
 }));
 const server = app.listen(0, '127.0.0.1');
 await new Promise<void>((resolve, reject) => {
@@ -217,6 +218,13 @@ try {
   assert.equal(firstPayload.meta.rank.id, 'legend');
   assert.equal(firstPayload.meta.period.id, '1d');
   assert.equal(firstPayload.data[0].slug, 'thief-priest');
+  assert.deepEqual(firstPayload.data[0].links, {
+    web: 'https://arena.hs-manacost.ru/standard/archetypes/standard/thief-priest',
+    statistics: 'https://arena.hs-manacost.ru/api/v1/archetypes/thief-priest/statistics?format=standard',
+    history: 'https://arena.hs-manacost.ru/api/v1/archetypes/thief-priest/statistics/history?format=standard',
+    analysis: 'https://arena.hs-manacost.ru/api/v1/archetypes/thief-priest/analysis?format=standard',
+    builds: 'https://arena.hs-manacost.ru/api/v1/deck-statistics?format=standard&archetype=thief-priest',
+  });
   assert.deepEqual(firstPayload.data[0].metrics, {
     winratePercent: 58.3,
     popularityPercent: 13.5,
@@ -263,6 +271,14 @@ try {
   const detailPayload = await detail.json() as Record<string, any>;
   assert.equal(detailPayload.data.slug, 'thief-priest');
   assert.equal(detailPayload.data.deckCount, 2);
+  assert.equal(
+    detailPayload.data.links.web,
+    'https://arena.hs-manacost.ru/standard/archetypes/wild/thief-priest',
+  );
+  assert.equal(
+    detailPayload.data.links.builds,
+    'https://arena.hs-manacost.ru/api/v1/deck-statistics?format=wild&archetype=thief-priest',
+  );
   assert.equal(JSON.stringify(detailPayload).includes('PRIVATE_DECK_CODE'), false);
 
   const history = await fetch(

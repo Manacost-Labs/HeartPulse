@@ -4,6 +4,11 @@ import type {
   ConstructedArchetypeFormat,
   ConstructedArchetypeItem,
 } from '../../constructedArchetypeRoutes.js';
+import {
+  createPublicResourceLinks,
+  type PublicDeckLinks,
+  type PublicResourceLinkOptions,
+} from './resourceLinks.js';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -19,6 +24,7 @@ type PublicDeckStatisticsQuery = {
 
 type PublicDeckStatisticsItem = {
   deckId: string;
+  deckCode: string;
   format: ConstructedArchetypeFormat;
   archetype: {
     slug: string;
@@ -35,6 +41,7 @@ type PublicDeckStatisticsItem = {
     period: string | null;
   };
   updatedAt: string | null;
+  links: PublicDeckLinks;
 };
 
 const FORMATS = new Set<ConstructedArchetypeFormat>(['standard', 'wild']);
@@ -135,12 +142,15 @@ function serializeBuild(
   format: ConstructedArchetypeFormat,
   archetype: ConstructedArchetypeItem,
   value: unknown,
+  links: ReturnType<typeof createPublicResourceLinks>,
 ): PublicDeckStatisticsItem | null {
   const source = record(value);
   const deckCode = text(source.deckCode, 4096);
   if (!deckCode) return null;
+  const deckId = publicDeckId(deckCode);
   return {
-    deckId: publicDeckId(deckCode),
+    deckId,
+    deckCode,
     format,
     archetype: {
       slug: text(archetype.slug, 90),
@@ -157,6 +167,7 @@ function serializeBuild(
       period: text(source.samplePeriod, 80) || null,
     },
     updatedAt: timestamp(source.updatedAt),
+    links: links.deck(format, text(archetype.slug, 90), deckId, deckCode),
   };
 }
 
@@ -167,11 +178,14 @@ function compareDecks(left: PublicDeckStatisticsItem, right: PublicDeckStatistic
   return winrate || left.deckId.localeCompare(right.deckId, 'en');
 }
 
-function serializeCatalog(catalog: ConstructedArchetypeCatalog): PublicDeckStatisticsItem[] {
+function serializeCatalog(
+  catalog: ConstructedArchetypeCatalog,
+  links: ReturnType<typeof createPublicResourceLinks>,
+): PublicDeckStatisticsItem[] {
   const unique = new Map<string, PublicDeckStatisticsItem>();
   for (const archetype of catalog.items) {
     for (const build of archetype.builds) {
-      const item = serializeBuild(catalog.format, archetype, build);
+      const item = serializeBuild(catalog.format, archetype, build, links);
       if (!item) continue;
       const existing = unique.get(item.deckId);
       if (!existing || compareDecks(item, existing) < 0) unique.set(item.deckId, item);
@@ -244,11 +258,15 @@ function decodeCursor(
 }
 
 /**
- * Creates a public, statistics-only view of concrete deck builds. Raw deck
- * codes, deck composition, provider URLs and source-specific fields never
- * cross this serialization boundary.
+ * Creates the public view of concrete deck builds. Deck codes are portable
+ * public game data and allow clients to resolve the full composition. Provider
+ * URLs and source-specific fields never cross this serialization boundary.
  */
-export function createPublicDeckStatistics(source: PublicDeckStatisticsSource) {
+export function createPublicDeckStatistics(
+  source: PublicDeckStatisticsSource,
+  options: PublicResourceLinkOptions = {},
+) {
+  const links = createPublicResourceLinks(options);
   const cache = new WeakMap<ConstructedArchetypeCatalog, {
     version: string;
     items: PublicDeckStatisticsItem[];
@@ -260,7 +278,7 @@ export function createPublicDeckStatistics(source: PublicDeckStatisticsSource) {
     if (cached) {
       return { catalog, version: cached.version, items: cached.items };
     }
-    const items = serializeCatalog(catalog);
+    const items = serializeCatalog(catalog, links);
     const version = datasetVersion(catalog, items);
     cache.set(catalog, { version, items });
     return { catalog, version, items };

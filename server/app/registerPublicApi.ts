@@ -35,6 +35,7 @@ type RegisterPublicApiDependencies<TAdmin> = {
   deckStatistics?: Parameters<typeof createPublicApiRouter>[0]['deckStatistics'];
   arenaStatistics?: Parameters<typeof createPublicApiRouter>[0]['arenaStatistics'];
   battlegroundStatistics?: Parameters<typeof createPublicApiRouter>[0]['battlegroundStatistics'];
+  publicOrigin?: Parameters<typeof createPublicApiRouter>[0]['publicOrigin'];
 };
 
 /**
@@ -74,6 +75,7 @@ export function registerPublicApi<TAdmin>(dependencies: RegisterPublicApiDepende
     arenaStatistics: dependencies.arenaStatistics,
     battlegroundStatistics: dependencies.battlegroundStatistics
       ?? createLocalBattlegroundStatisticsSource(),
+    publicOrigin: dependencies.publicOrigin,
     cardImages: dependencies.cardImageDependencies
       ? { respond: createCardImageResponder(dependencies.cardImageDependencies) }
       : undefined,

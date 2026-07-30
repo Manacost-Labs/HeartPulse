@@ -96,8 +96,8 @@ export function DeveloperApiPage() {
             <div><span>GET</span><code>/api/v1/archetypes/{'{slug}'}/statistics</code><p>Текущие агрегаты выбранного архетипа</p></div>
             <div><span>GET</span><code>/api/v1/archetypes/{'{slug}'}/statistics/history</code><p>История винрейта, популярности и темпа подъёма</p></div>
             <div><span>GET</span><code>/api/v1/archetypes/{'{slug}'}/analysis</code><p>Матчапы по классам и влияние карт на результат</p></div>
-            <div><span>GET</span><code>/api/v1/deck-statistics</code><p>Показатели конкретных сборок без раскрытия кодов колод</p></div>
-            <div><span>GET</span><code>/api/v1/decks/{'{deckId}'}/statistics</code><p>Текущая статистика выбранной сборки</p></div>
+            <div><span>GET</span><code>/api/v1/deck-statistics</code><p>Показатели сборок, коды колод и канонические ссылки</p></div>
+            <div><span>GET</span><code>/api/v1/decks/{'{deckId}'}/statistics</code><p>Статистика, код и ссылки выбранной сборки</p></div>
             <div><span>GET</span><code>/api/v1/arena/statistics/classes</code><p>Все доступные показатели классов Арены и размеры выборок</p></div>
             <div><span>GET</span><code>/api/v1/arena/statistics/cards</code><p>Полная статистика карт Арены из HSReplay, Firestone и HearthArena</p></div>
             <div><span>GET</span><code>/api/v1/arena/statistics/legendaries</code><p>Полная статистика легендарок, классов и связанных карт</p></div>

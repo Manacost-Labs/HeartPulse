@@ -2,7 +2,7 @@ export const PUBLIC_API_OPENAPI = {
   openapi: '3.1.0',
   info: {
     title: 'Manacost Public API',
-    version: '1.6.0',
+    version: '1.7.0',
     description: 'Versioned Hearthstone data API for approved applications.',
   },
   servers: [{ url: '/', description: 'Current Manacost environment' }],
@@ -679,7 +679,7 @@ export const PUBLIC_API_OPENAPI = {
     '/api/v1/archetypes/{slug}/analysis': {
       get: {
         summary: 'Get matchup and card-impact analysis for one archetype',
-        description: 'Returns the available Legend/7-day aggregate analysis without provider URLs or deck codes.',
+        description: 'Returns the available Legend/7-day aggregate analysis without provider URLs.',
         operationId: 'getArchetypeAnalysis',
         tags: ['Statistics'],
         security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
@@ -724,7 +724,7 @@ export const PUBLIC_API_OPENAPI = {
     '/api/v1/deck-statistics': {
       get: {
         summary: 'List aggregate statistics for concrete deck builds',
-        description: 'Returns bounded current build aggregates without deck codes, card composition or provider URLs. Requires statistics.read.',
+        description: 'Returns bounded current build aggregates, portable deck codes and first-party resource links without provider URLs. Requires statistics.read.',
         operationId: 'listDeckStatistics',
         tags: ['Statistics'],
         security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
@@ -2042,12 +2042,44 @@ export const PUBLIC_API_OPENAPI = {
           },
         },
       },
+      ArchetypeResourceLinks: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['web', 'statistics', 'history', 'analysis', 'builds'],
+        properties: {
+          web: {
+            type: 'string',
+            format: 'uri',
+            description: 'Canonical first-party archetype page.',
+          },
+          statistics: {
+            type: 'string',
+            format: 'uri',
+            description: 'Current archetype statistics resource.',
+          },
+          history: {
+            type: 'string',
+            format: 'uri',
+            description: 'Archetype statistics history resource.',
+          },
+          analysis: {
+            type: 'string',
+            format: 'uri',
+            description: 'Archetype matchup and card-impact analysis resource.',
+          },
+          builds: {
+            type: 'string',
+            format: 'uri',
+            description: 'Filtered collection of concrete builds for the archetype.',
+          },
+        },
+      },
       MetaStatisticsItem: {
         type: 'object',
         additionalProperties: false,
         required: [
           'archetypeId', 'slug', 'name', 'localizedName', 'translated',
-          'classId', 'metrics',
+          'classId', 'metrics', 'links',
         ],
         properties: {
           archetypeId: { type: 'string' },
@@ -2057,6 +2089,7 @@ export const PUBLIC_API_OPENAPI = {
           translated: { type: 'boolean' },
           classId: { type: ['string', 'null'] },
           metrics: { $ref: '#/components/schemas/MetaStatisticsMetrics' },
+          links: { $ref: '#/components/schemas/ArchetypeResourceLinks' },
         },
       },
       MetaStatisticsMeta: {
@@ -2127,7 +2160,7 @@ export const PUBLIC_API_OPENAPI = {
         additionalProperties: false,
         required: [
           'slug', 'name', 'localizedName', 'translated', 'classId',
-          'metrics', 'format', 'deckCount',
+          'metrics', 'format', 'deckCount', 'links',
         ],
         properties: {
           slug: { type: 'string', pattern: '^[a-z0-9][a-z0-9-]{0,89}$' },
@@ -2138,6 +2171,7 @@ export const PUBLIC_API_OPENAPI = {
           metrics: { $ref: '#/components/schemas/MetaStatisticsMetrics' },
           format: { type: 'string', enum: ['standard', 'wild'] },
           deckCount: { type: 'integer', minimum: 0 },
+          links: { $ref: '#/components/schemas/ArchetypeResourceLinks' },
         },
       },
       ArchetypeStatisticsResponse: {
@@ -2308,9 +2342,18 @@ export const PUBLIC_API_OPENAPI = {
       DeckStatisticsItem: {
         type: 'object',
         additionalProperties: false,
-        required: ['deckId', 'format', 'archetype', 'metrics', 'sample', 'updatedAt'],
+        required: [
+          'deckId', 'deckCode', 'format', 'archetype', 'metrics', 'sample',
+          'updatedAt', 'links',
+        ],
         properties: {
           deckId: { type: 'string', pattern: '^deck_[a-f0-9]{32}$' },
+          deckCode: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 4096,
+            description: 'Portable Hearthstone deck code for resolving the complete build.',
+          },
           format: { type: 'string', enum: ['standard', 'wild'] },
           archetype: {
             type: 'object',
@@ -2342,6 +2385,34 @@ export const PUBLIC_API_OPENAPI = {
             },
           },
           updatedAt: { type: ['string', 'null'], format: 'date-time' },
+          links: { $ref: '#/components/schemas/DeckResourceLinks' },
+        },
+      },
+      DeckResourceLinks: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['archetype', 'statistics', 'builder', 'archetypeBuilds'],
+        properties: {
+          archetype: {
+            type: 'string',
+            format: 'uri',
+            description: 'Canonical first-party page for the parent archetype.',
+          },
+          statistics: {
+            type: 'string',
+            format: 'uri',
+            description: 'Current API statistics resource for this exact build.',
+          },
+          builder: {
+            type: 'string',
+            format: 'uri',
+            description: 'First-party deck builder preloaded with this build.',
+          },
+          archetypeBuilds: {
+            type: 'string',
+            format: 'uri',
+            description: 'Filtered collection of builds for the parent archetype.',
+          },
         },
       },
       DeckStatisticsMeta: {

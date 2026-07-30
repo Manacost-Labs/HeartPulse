@@ -3,8 +3,8 @@
 ## Objective
 
 Expose the normalized constructed metagame and archetype aggregates required
-by a Hearthstone tracker without returning provider URLs, scraper payloads,
-paid deck codes or user-level observations.
+by a Hearthstone tracker without returning provider URLs, scraper payloads or
+user-level observations.
 
 The release adds:
 
@@ -49,6 +49,10 @@ Each item includes stable identity, localization and these nullable metrics:
 
 <!-- markdownlint-enable MD013 -->
 
+Every item also exposes first-party `links` for the canonical archetype page,
+current statistics, history, analysis and the filtered collection of concrete
+builds. These URLs include the selected Standard or Wild format.
+
 The external rank and period names are stable API identifiers. They are mapped
 to the current authoritative source identifiers inside the adapter. For
 `period=patch`, the adapter first resolves the source's declared current patch
@@ -58,8 +62,8 @@ and never guesses a patch from the calendar or scrape time.
 
 `GET /api/v1/archetypes/{slug}/statistics`
 
-Returns the current patch aggregate plus `deckCount`. It does not return the
-build list or any deck code.
+Returns the current patch aggregate plus `deckCount` and the same canonical
+link relations. Concrete builds are available from `links.builds`.
 
 `GET /api/v1/archetypes/{slug}/statistics/history`
 
@@ -86,7 +90,7 @@ never cross the public API boundary:
 - provider and scraper URLs;
 - raw source identity and translation provenance;
 - internal coverage/debug payloads;
-- deck codes and build source records;
+- raw build source records;
 - provider-specific fields added in future payload versions.
 
 Invalid input returns `400 INVALID_META_STATISTICS_QUERY`. An unavailable
@@ -111,8 +115,9 @@ values or filters as labels.
 - Contract tests start red before routes exist.
 - Authentication is verified before any source load.
 - Cursor, rank, period, sample and history bounds are covered.
-- Redaction assertions prove provider URLs, raw fields and deck codes do not
-  cross the boundary.
+- Contract assertions cover canonical links for both formats.
+- Redaction assertions prove provider URLs and raw fields do not cross the
+  boundary.
 - OpenAPI 3.1 documents units, nullable fields, enums, errors and scopes.
 - Type checking, architecture budgets, security scans, release gates and
   production smoke checks run before the task is closed.

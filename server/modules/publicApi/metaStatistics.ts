@@ -13,6 +13,11 @@ import type {
   StandardMetaPeriod,
   StandardMetaRank,
 } from '../../../shared/standardMetaContract.js';
+import {
+  createPublicResourceLinks,
+  type PublicArchetypeLinks,
+  type PublicResourceLinkOptions,
+} from './resourceLinks.js';
 
 export type PublicMetaStatisticsFormat = 'standard' | 'wild';
 export type PublicMetaStatisticsRank =
@@ -71,6 +76,7 @@ type PublicMetaArchetype = {
     averageDurationMinutes: number | null;
     climbingSpeedStarsPerHour: number | null;
   };
+  links: PublicArchetypeLinks;
 };
 
 type PublicArchetypeStatistics = Omit<PublicMetaArchetype, 'archetypeId'> & {
@@ -231,7 +237,11 @@ function metaMetrics(source: JsonRecord): PublicMetaArchetype['metrics'] {
   };
 }
 
-function serializeMetaArchetype(value: unknown): PublicMetaArchetype {
+function serializeMetaArchetype(
+  value: unknown,
+  format: PublicMetaStatisticsFormat,
+  links: ReturnType<typeof createPublicResourceLinks>,
+): PublicMetaArchetype {
   const source = record(value);
   const slug = sourceArchetypeSlug(source.slug);
   return {
@@ -242,15 +252,19 @@ function serializeMetaArchetype(value: unknown): PublicMetaArchetype {
     translated: source.translated === true,
     classId: text(source.classKey, 32) || null,
     metrics: metaMetrics(source),
+    links: links.archetype(format, slug),
   };
 }
 
-function serializeArchetypeStatistics(item: ConstructedArchetypeItem): PublicArchetypeStatistics {
+function serializeArchetypeStatistics(
+  item: ConstructedArchetypeItem,
+  links: ReturnType<typeof createPublicResourceLinks>,
+): PublicArchetypeStatistics {
   const source = record(item);
   const { archetypeId: _archetypeId, ...serialized } = serializeMetaArchetype({
     ...source,
     id: source.slug,
-  });
+  }, item.format, links);
   return {
     ...serialized,
     format: item.format,
@@ -341,7 +355,11 @@ function compareMetaArchetypes(left: PublicMetaArchetype, right: PublicMetaArche
  * URLs, raw provenance, deck codes and source-specific payload fields are
  * deliberately excluded at this boundary.
  */
-export function createPublicMetaStatistics(source: PublicMetaStatisticsSource) {
+export function createPublicMetaStatistics(
+  source: PublicMetaStatisticsSource,
+  options: PublicResourceLinkOptions = {},
+) {
+  const links = createPublicResourceLinks(options);
   const metaCache = new Map<string, { version: string; items: PublicMetaArchetype[] }>();
   const patchCache = new Map<string, { period: StandardMetaPeriod; expiresAt: number }>();
 
@@ -397,7 +415,9 @@ export function createPublicMetaStatistics(source: PublicMetaStatisticsSource) {
       const cached = metaCache.get(cacheKey);
       const items = cached?.version === envelope.datasetVersion
         ? cached.items
-        : envelope.data.items.map(serializeMetaArchetype).sort(compareMetaArchetypes);
+        : envelope.data.items
+          .map(item => serializeMetaArchetype(item, slice.format, links))
+          .sort(compareMetaArchetypes);
       if (cached?.version !== envelope.datasetVersion) {
         metaCache.set(cacheKey, { version: envelope.datasetVersion, items });
       }
@@ -441,7 +461,7 @@ export function createPublicMetaStatistics(source: PublicMetaStatisticsSource) {
       const slug = archetypeSlug(slugValue);
       const { catalog, item } = await findArchetype(format, slug);
       if (!item) return null;
-      const data = serializeArchetypeStatistics(item);
+      const data = serializeArchetypeStatistics(item, links);
       const version = datasetVersion('as1', {
         format,
         patch: catalog.patch,

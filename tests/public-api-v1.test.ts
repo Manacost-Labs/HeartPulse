@@ -98,7 +98,7 @@ try {
   assert.equal(openapi.status, 200);
   const openapiPayload = await openapi.json() as Record<string, any>;
   assert.equal(openapiPayload.openapi, '3.1.0');
-  assert.equal(openapiPayload.info.version, '1.6.0');
+  assert.equal(openapiPayload.info.version, '1.7.0');
   assert.equal(openapiPayload.components.securitySchemes.ApiKeyAuth.name, 'X-API-Key');
   assert.equal(openapiPayload.components.securitySchemes.ApplicationBearer.scheme, 'bearer');
   assert.ok(openapiPayload.paths['/api/v1/oauth/device/code']);
@@ -137,6 +137,11 @@ try {
   assert.ok(openapiPayload.components.schemas.MetaStatisticsMetrics);
   assert.ok(openapiPayload.components.schemas.ArchetypeAnalysisResponse);
   assert.ok(openapiPayload.components.schemas.DeckStatisticsListResponse);
+  assert.ok(openapiPayload.components.schemas.ArchetypeResourceLinks);
+  assert.ok(openapiPayload.components.schemas.DeckResourceLinks);
+  assert.ok(
+    openapiPayload.components.schemas.DeckStatisticsItem.required.includes('deckCode'),
+  );
   assert.ok(openapiPayload.components.schemas.ArenaCardStatisticsItem);
   assert.ok(openapiPayload.components.schemas.BattlegroundHeroStatisticsItem);
   assert.ok(openapiPayload.components.schemas.BattlegroundHeroDetailResponse);
@@ -229,7 +234,7 @@ try {
   assert.match(String(manifestResponse.headers.get('etag')), /^"/);
   const manifest = await manifestResponse.json() as Record<string, any>;
   assert.equal(manifest.apiVersion, 'v1');
-  assert.equal(manifest.schemaVersion, '2026-07-30.6');
+  assert.equal(manifest.schemaVersion, '2026-07-30.7');
   assert.ok(Array.isArray(manifest.resources));
   assert.ok(manifest.resources.some((resource: Record<string, unknown>) => resource.id === 'cards'));
   assert.ok(manifest.resources.some(

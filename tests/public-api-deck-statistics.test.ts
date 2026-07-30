@@ -113,7 +113,11 @@ const apiKeys: ApiKeyManager = {
 };
 
 const app = express();
-app.use('/api/v1', createPublicApiRouter({ apiKeys, deckStatistics }));
+app.use('/api/v1', createPublicApiRouter({
+  apiKeys,
+  deckStatistics,
+  publicOrigin: 'https://arena.hs-manacost.ru/',
+}));
 const server = app.listen(0, '127.0.0.1');
 await new Promise<void>((resolve, reject) => {
   server.once('listening', resolve);
@@ -140,7 +144,23 @@ try {
   assert.equal(firstPayload.data[0].metrics.winratePercent, 57.1);
   assert.equal(firstPayload.data[0].archetype.slug, 'thief-priest');
   assert.match(firstPayload.data[0].deckId, /^deck_[a-f0-9]{32}$/);
-  assert.equal(JSON.stringify(firstPayload).includes('PRIVATE_DECK_CODE'), false);
+  assert.equal(firstPayload.data[0].deckCode, 'PRIVATE_DECK_CODE_A');
+  assert.equal(
+    firstPayload.data[0].links.archetype,
+    'https://arena.hs-manacost.ru/standard/archetypes/standard/thief-priest',
+  );
+  assert.equal(
+    firstPayload.data[0].links.statistics,
+    `https://arena.hs-manacost.ru/api/v1/decks/${firstPayload.data[0].deckId}/statistics?format=standard`,
+  );
+  assert.equal(
+    firstPayload.data[0].links.builder,
+    'https://arena.hs-manacost.ru/deck-builder?format=standard&code=PRIVATE_DECK_CODE_A',
+  );
+  assert.equal(
+    firstPayload.data[0].links.archetypeBuilds,
+    'https://arena.hs-manacost.ru/api/v1/deck-statistics?format=standard&archetype=thief-priest',
+  );
   assert.equal(JSON.stringify(firstPayload).includes('provider.example'), false);
   assert.equal(firstPayload.pagination.hasMore, true);
   assert.match(firstPayload.pagination.nextCursor, /^[A-Za-z0-9_-]+$/);
@@ -172,7 +192,8 @@ try {
   assert.equal(detail.status, 200);
   const detailPayload = await detail.json() as Record<string, any>;
   assert.equal(detailPayload.data.deckId, deckId);
-  assert.equal(JSON.stringify(detailPayload).includes('PRIVATE_'), false);
+  assert.equal(detailPayload.data.deckCode, 'PRIVATE_DECK_CODE_A');
+  assert.equal(JSON.stringify(detailPayload).includes('provider.example'), false);
 
   for (const query of [
     '?format=classic',

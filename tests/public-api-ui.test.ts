@@ -17,6 +17,7 @@ assert.ok(docs.includes("/api/v1/archetypes/{'{slug}'}/statistics/history"));
 assert.ok(docs.includes("/api/v1/archetypes/{'{slug}'}/analysis"));
 assert.match(docs, /\/api\/v1\/deck-statistics/);
 assert.ok(docs.includes("/api/v1/decks/{'{deckId}'}/statistics"));
+assert.match(docs, /коды колод и канонические ссылки/);
 assert.match(docs, /\/api\/v1\/arena\/statistics\/classes/);
 assert.match(docs, /\/api\/v1\/arena\/statistics\/cards/);
 assert.match(docs, /\/api\/v1\/arena\/statistics\/legendaries/);

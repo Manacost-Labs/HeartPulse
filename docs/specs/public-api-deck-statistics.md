@@ -2,9 +2,9 @@
 
 ## Objective
 
-Expose current aggregate performance for concrete Standard and Wild deck
-builds while keeping paid or provider-owned deck codes, card composition,
-source URLs and raw payloads behind the server boundary.
+Expose current aggregate performance and portable deck definitions for
+concrete Standard and Wild builds while keeping provider URLs and raw payloads
+behind the server boundary.
 
 Both resources require `statistics.read` through an API key or application
 bearer token.
@@ -32,12 +32,17 @@ Each item contains:
 
 | Field | Unit | Meaning |
 | --- | --- | --- |
-| `deckId` | stable opaque id | SHA-256-derived public identity; not a deck code |
+| `deckId` | stable opaque id | SHA-256-derived public identity |
+| `deckCode` | Hearthstone deck code | Portable definition of the complete build |
 | `metrics.games` | games | Observed sample size |
 | `metrics.winratePercent` | percentage points | Aggregate build win rate |
 | `sample.rank` | source-defined id | Rank represented by this aggregate |
 | `sample.period` | source-defined id | Time window represented by this aggregate |
 | `updatedAt` | ISO 8601 | Build-level source update time when available |
+| `links.statistics` | absolute URL | API resource for the exact build |
+| `links.builder` | absolute URL | First-party constructor with the build loaded |
+| `links.archetype` | absolute URL | Canonical page of the parent archetype |
+| `links.archetypeBuilds` | absolute URL | Filtered build collection for the archetype |
 
 <!-- markdownlint-enable MD013 -->
 
@@ -53,17 +58,19 @@ selected format. Unknown identifiers return
 `404 DECK_STATISTICS_NOT_FOUND`.
 
 The identifier is deterministic for a normalized deck code, so it remains
-stable while the exact build remains unchanged. It is intentionally
-one-directional and cannot be used as a replacement deck code.
+stable while the exact build remains unchanged. The `deckCode` can be decoded
+by a tracker or passed directly to `links.builder`.
 
 ## Privacy and source boundaries
 
 An explicit allowlist serializer drops:
 
-- deck codes and decoded card composition;
 - provider and scraper URLs;
 - internal coverage, source and translation fields;
 - any provider-specific fields added in future payload revisions.
+
+Only first-party links built from the configured application origin are
+returned. Upstream URL fields are never copied into the response.
 
 Duplicate source rows for the same build are collapsed by public identifier;
 the row with the strongest game sample wins.
@@ -88,8 +95,10 @@ latency without credentials, build identifiers or filters as labels.
 - Contract tests start red before the routes exist.
 - Authentication is verified before the source is loaded.
 - Format, archetype, sample, limit, cursor and identifier bounds are covered.
-- Redaction assertions prove deck codes, provider URLs and unknown fields do
-  not cross the boundary.
+- Contract assertions cover portable deck codes and all first-party link
+  relations.
+- Redaction assertions prove provider URLs and unknown fields do not cross the
+  boundary.
 - OpenAPI 3.1 documents units, nullable fields, errors and scope.
 - Type checking, architecture budgets, security scans, release gates and
   production smoke checks run before closure.

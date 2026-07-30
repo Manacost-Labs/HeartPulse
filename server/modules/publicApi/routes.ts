@@ -37,6 +37,7 @@ import {
 } from './battlegroundStatistics.js';
 import { ApiKeyValidationError, type ApiKeyManager, type PublicApiScope } from './model.js';
 import { PUBLIC_API_OPENAPI } from './openapi.js';
+import type { PublicResourceLinkOptions } from './resourceLinks.js';
 
 type AdminRouterDependencies = {
   apiKeys: ApiKeyManager;
@@ -52,7 +53,7 @@ type AdminRouterDependencies = {
   ) => void;
 };
 
-type PublicRouterDependencies = {
+type PublicRouterDependencies = PublicResourceLinkOptions & {
   apiKeys: ApiKeyManager;
   now?: () => string;
   accessTokens?: {
@@ -125,10 +126,14 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     ? createPublicCardStatistics(dependencies.cardStatistics)
     : null;
   const metaStatistics = dependencies.metaStatistics
-    ? createPublicMetaStatistics(dependencies.metaStatistics)
+    ? createPublicMetaStatistics(dependencies.metaStatistics, {
+      publicOrigin: dependencies.publicOrigin,
+    })
     : null;
   const deckStatistics = dependencies.deckStatistics
-    ? createPublicDeckStatistics(dependencies.deckStatistics)
+    ? createPublicDeckStatistics(dependencies.deckStatistics, {
+      publicOrigin: dependencies.publicOrigin,
+    })
     : null;
   const arenaStatistics = dependencies.arenaStatistics
     ? createPublicArenaStatistics(dependencies.arenaStatistics)
@@ -252,7 +257,7 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     if (!requireScope(dependencies, 'catalog.read', request, response)) return;
     const payload = {
       apiVersion: 'v1',
-      schemaVersion: '2026-07-30.6',
+      schemaVersion: '2026-07-30.7',
       generatedAt: manifestGeneratedAt,
       resources: [
         { id: 'openapi', href: '/api/v1/openapi.json', status: 'AVAILABLE' },

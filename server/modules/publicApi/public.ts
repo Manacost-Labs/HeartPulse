@@ -34,6 +34,12 @@ export {
   type PublicDeckStatisticsSource,
 } from './deckStatistics.js';
 export {
+  createPublicResourceLinks,
+  type PublicArchetypeLinks,
+  type PublicDeckLinks,
+  type PublicResourceLinkOptions,
+} from './resourceLinks.js';
+export {
   createPublicArenaStatistics,
   PublicArenaStatisticsQueryError,
   type PublicArenaStatisticsSource,
