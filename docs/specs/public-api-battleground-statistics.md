@@ -1,61 +1,113 @@
-# Public API v1: Battlegrounds statistics
+# Public API v1: полная статистика Полей сражений
 
-## Objective
+## Цель
 
-Expose current Battlegrounds hero, minion and statistical tier-list data while
-keeping scraper state, upstream URLs, media, raw snapshot identifiers and
-strategy card lists behind the server boundary.
+Отдать все статистические поля Полей сражений, доступные серверу: героев,
+кривые конкретного героя, составы, существ, историю существ, заклинания,
+аксессуары и статистические tier-листы. Служебное состояние сборщиков и
+приватные адреса источников остаются за границей API.
 
-All resources require `statistics.read` through an API key or application
-bearer token.
+Все ресурсы требуют scope `statistics.read` у API-ключа или application bearer
+token.
 
-## Resources
+## Ресурсы и поля
 
-`GET /api/v1/battlegrounds/statistics/heroes`
+### `GET /api/v1/battlegrounds/statistics/heroes`
 
-Supports `tier`, `minPickRate`, `limit` and an opaque cursor. Items contain
-the stable hero DBF identity, tier, best-composition identity when available,
-pick rate, average placement and up to eight placement-distribution values.
-The response metadata declares the MMR percentile and time range.
+Выбор выборки: `mode=solo|duos`, `mmr` и `timeRange`. Фильтры списка:
+`tier`, `minPickRate`, `limit`, `cursor`.
 
-`GET /api/v1/battlegrounds/statistics/minions`
+Для героя возвращаются DBF id, card id, ссылка на силу героя, три ключевых
+существа, tier, лучший состав, pick rate, среднее место, скорректированное
+среднее место, признак anomaly-adjusted и полное распределение мест.
 
-Supports `tavernTier`, `minGames`, `limit` and `cursor`. Metrics include
-impact, combat win rate, popularity, games with and without the minion, and
-average placement with and without it.
+### `GET /api/v1/battlegrounds/statistics/heroes/{heroId}`
 
-`GET /api/v1/battlegrounds/statistics/tier-lists/{kind}`
+Полный статистический профиль героя для выбранных `mode`, `mmr` и `timeRange`:
 
-`kind` is one of `heroes`, `minions`, `spells`, `trinkets` or `strategies`.
-The common statistical projection includes stable identity, localization,
-tier and available placement, game-count, impact, popularity, pick, combat
-win-rate and first-place metrics. Provider-specific absent fields are `null`.
+- базовые показатели и распределение мест;
+- время обновления каждой группы данных;
+- повышение таверны по ходу и рекомендуемый уровень по ходу;
+- использование силы героя по ходу, уровню таверны и золоту;
+- combat win rate по раундам;
+- все составы, их выборка, среднее место, доверительный интервал,
+  популярность и распределение мест;
+- конечная расстановка существ с позицией, premium-состоянием, атакой,
+  здоровьем, провокацией, ядом и божественным щитом;
+- final-form статистика существ: обычные и золотые характеристики, частоты
+  эффектов и распределение позиций.
 
-## Source and security boundary
+### `GET /api/v1/battlegrounds/statistics/minions`
 
-The production adapter calls only three fixed paths on the loopback
-Battlegrounds service. Neither request parameters nor source data can change
-the origin or path, so this integration does not create a user-controlled SSRF
-surface.
+Фильтры: `tavernTier`, `minGames`, `limit`, `cursor`. Метрики:
 
-Explicit allowlist serializers remove:
+- impact и combat win rate;
+- популярность;
+- игры с существом и без него;
+- среднее место с существом и без него.
 
-- source, scraper and cache status payloads;
-- upstream and media URLs;
-- raw run and snapshot ids;
-- card lists and descriptions attached to strategies;
-- unknown provider fields introduced by later source revisions.
+### `GET /api/v1/battlegrounds/statistics/minions/{dbfId}/history`
 
-Invalid input returns `400 INVALID_BATTLEGROUNDS_STATISTICS_QUERY`. Source
-failure returns `503 BATTLEGROUNDS_STATISTICS_UNAVAILABLE` with
-`Retry-After: 60`; internal exception text is not returned.
+Отдаёт все сохранённые точки истории существа. Необязательный `days` сужает
+окно до последних 1–3650 дней; без него возвращается вся накопленная история.
+Каждая точка содержит время наблюдения, уровень таверны и все метрики существа.
 
-## Caching and verification
+### `GET /api/v1/battlegrounds/statistics/spells`
 
-Responses are cursor-bounded to 500 rows, carry `ETag`,
-`X-Dataset-Version` and `X-Data-Cache`, and honor `If-None-Match`. Snapshots
-older than 48 hours are marked stale with HTTP warning `110`.
+Фильтры: `tavernTier`, `minGames`, `limit`, `cursor`. Для заклинания
+возвращаются число розыгрышей, среднее место с ним, среднее место без него и
+impact. В metadata находится общий размер выборки.
 
-Contract tests cover authorization-before-load, filters, pagination,
-redaction, nullable metrics and all supported tier-list kinds. OpenAPI 3.1
-documents units, bounds and response schemas.
+### `GET /api/v1/battlegrounds/statistics/tier-lists/{kind}`
+
+`kind`: `heroes`, `minions`, `spells`, `trinkets` или `strategies`.
+
+Общая полная проекция включает доступные identity-поля, tier, tavern tier,
+архетип, лучший состав, сложность, размер, стоимость, расу/расы и метрики:
+impact, combat win rate, pick rate, popularity, first-place rate, среднее место
+с объектом и без него, число игр, признак нижней границы числа игр, исходное
+metric value и распределение мест.
+
+Для `trinkets` доступны `mmr` и `timeRange`; для `strategies` —
+`source=hsreplay|firestone`.
+
+## Полнота и границы
+
+Под «полной статистикой» понимаются все статистические поля, которые
+присутствуют в текущих источниках и имеют определённую семантику. Неизвестный
+ключ не пробрасывается автоматически: это защищает совместимость и не позволяет
+случайно раскрыть новое внутреннее поле.
+
+Не публикуются:
+
+- upstream URL и media URL;
+- raw card JSON, scrape payload и HTML;
+- состояния парсеров, очередей и кэшей;
+- run/snapshot ids и внутренние database ids;
+- текст внутренних исключений.
+
+Карты составов не исключаются: их игровые характеристики являются частью
+статистики героя и возвращаются в `lineup` и `finalFormMinions`. Исключаются
+только неагрегированные служебные вложения провайдера.
+
+## Источник и безопасность
+
+Production adapter обращается только к фиксированным путям loopback-сервиса
+Полей сражений. Пользовательские значения проходят enum/numeric validation и
+могут стать только allowlisted query-параметрами, но не origin или произвольным
+путём. Это сохраняет SSRF-границу.
+
+Ошибка параметров: `400 INVALID_BATTLEGROUNDS_STATISTICS_QUERY`. Недоступность
+источника: `503 BATTLEGROUNDS_STATISTICS_UNAVAILABLE` с `Retry-After: 60`.
+Для отсутствующего героя или истории существа возвращается типизированный 404.
+
+## Кэш и проверка
+
+Списки ограничены 500 строками и используют cursor, связанный с фильтрами и
+версией набора. Ответы имеют `ETag`, `X-Dataset-Version`, `X-Data-Cache`,
+поддерживают `If-None-Match`; снимок старше 48 часов получает `stale` и warning
+`110`.
+
+Контрактные тесты покрывают все ресурсы, выборки и фильтры, nullable-метрики,
+историю, составы и их вложенные поля, redaction URL/raw payload, 400/401/404/503
+и соответствие OpenAPI 3.1.

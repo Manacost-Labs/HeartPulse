@@ -1,60 +1,93 @@
-# Public API v1: Arena statistics
+# Public API v1: полная статистика Арены
 
-## Objective
+## Цель
 
-Expose the current Arena class, card, legendary-card and class-matchup
-aggregates required by a tracker without forwarding provider URLs, raw scrape
-payloads or presentation-only media fields.
+Отдать через стабильный API все статистические значения Арены, которые
+присутствуют в нормализованных источниках сервера. Клиент трекера не должен
+зависеть от формата HSReplay, Firestone или HearthArena и не должен получать
+служебные URL, HTML/CSS, состояние парсеров и сырые ответы провайдеров.
 
-All resources require `statistics.read` through an API key or application
-bearer token.
+Все ресурсы требуют scope `statistics.read` у API-ключа или application bearer
+token.
 
-## Resources
+## Ресурсы и поля
 
-`GET /api/v1/arena/statistics/classes`
+### `GET /api/v1/arena/statistics/classes`
 
-Returns class rank, normalized class id, localized name, win rate in percentage
-points and observed games. `source=hsreplay|firestone` selects the
-authoritative aggregate.
+Параметр `source=hsreplay|firestone` выбирает источник. Metadata сохраняет
+размер и период выборки, когда их публикует провайдер. Для каждого класса
+возвращаются:
 
-`GET /api/v1/arena/statistics/cards`
+- место в рейтинге, стабильный id и локализованное имя;
+- винрейт и число игр;
+- победы и поражения, если источник их публикует;
+- доля выбора класса;
+- доля забегов с семью и более победами.
+- id силы героя, распределение забегов по числу побед и полный набор
+  Firestone-матчапов с их размерами выборки.
 
-Supports `source`, `class`, `tier`, `minGames`, `limit` and an opaque
-dataset-version-bound `cursor`. The nullable metrics cover deck, played,
-drawn and mulligan win rates, pick, inclusion, offer, discard and kept rates,
-sample size, Arena score and average copies.
+### `GET /api/v1/arena/statistics/cards`
 
-`GET /api/v1/arena/statistics/legendaries`
+Поддерживает `source`, `class`, `tier`, `minGames`, `limit` и непрозрачный
+`cursor`. Для карты отдаются все доступные агрегаты:
 
-Supports `source`, `class`, `minGames`, `limit` and `cursor`. Every item
-contains the stable key-card id, normalized aggregates and stable ids of the
-related package cards. It never embeds raw provider card records.
+- deck, played, drawn и mulligan win rate;
+- pick, inclusion, offer, discard и kept rate;
+- число игр, Arena score и среднее число копий;
+- размер пакета выбора;
+- tier, ArenaSmith tier, позиция в tier и ArenaSmith rank.
 
-`GET /api/v1/arena/statistics/matchups`
+Если выбранный провайдер не имеет конкретного показателя, поле присутствует со
+значением `null`.
 
-Returns directed class-A versus class-B win rates. An optional `class` filter
-keeps rows where the class appears on either side.
+### `GET /api/v1/arena/statistics/legendaries`
 
-## Contract and boundaries
+Поддерживает `source`, `class`, `minGames`, `limit` и `cursor`. Ответ содержит:
 
-- Percentage values are percentage points in the closed `0..100` interval.
-- Missing source metrics are returned as `null`, never guessed.
-- Known class and tier enums are validated at the HTTP boundary.
-- List responses are capped at 500 rows and cursors bind filters to a dataset
-  version, preventing traversal across incompatible refreshes.
-- Provider names, URLs, raw images, CSS fields and unknown source keys are
-  removed by explicit allowlist serializers.
+- общие показатели группы;
+- полный статистический объект ключевой легендарной карты;
+- полные статистические объекты всех связанных карт пакета;
+- стабильные id связанных карт;
+- срезы win rate, pick rate, offer rate и Arena score по каждому классу.
 
-Invalid input returns `400 INVALID_ARENA_STATISTICS_QUERY`. Source failure
-returns `503 ARENA_STATISTICS_UNAVAILABLE` with `Retry-After: 60`; internal
-exception text is not returned.
+### `GET /api/v1/arena/statistics/matchups`
 
-## Caching and verification
+Возвращает направленные матчапы класс A против класса B: винрейт и число игр.
+`source=hsreplay|firestone` выбирает провайдера; необязательный `class`
+оставляет строки, где класс находится с любой стороны.
 
-Successful responses carry `ETag`, `X-Dataset-Version` and `X-Data-Cache`,
-honor `If-None-Match`, and use authenticated private caching. Data older than
-48 hours is marked stale and receives HTTP warning `110`.
+## Полнота и границы
 
-Contract tests cover authorization-before-load, every filter, pagination,
-redaction, nullable metrics and stable error bodies. OpenAPI 3.1 documents
-units, bounds and response schemas.
+Под «полной статистикой» понимаются все числовые, категориальные и временные
+статистические поля, которые текущий серверный нормализатор получает от
+источника. API намеренно не копирует неизвестные новые ключи автоматически:
+новое поле сначала получает тип, единицу измерения, тест и OpenAPI-схему.
+
+Не являются статистикой и не публикуются:
+
+- URL провайдеров, изображения и presentation-only поля;
+- HTML, CSS и исходные scrape payload;
+- состояние очередей, парсеров и кэшей;
+- внутренние run, snapshot и database ids;
+- тексты внутренних исключений.
+
+Источники Арены сейчас предоставляют текущий снимок, но не временной ряд.
+Поэтому API не выдумывает исторические точки. История станет отдельным
+ресурсом после накопления серверных снимков.
+
+## Контракт, кэш и ошибки
+
+- Проценты измеряются в процентных пунктах в диапазоне `0..100`.
+- Отсутствующий показатель — `null`, а не оценка или ноль.
+- Enum класса, tier и источника проверяются на HTTP-границе.
+- Страница ограничена 500 строками; cursor привязан к версии данных и фильтрам.
+- Успешные ответы имеют `ETag`, `X-Dataset-Version`, `X-Data-Cache` и
+  поддерживают `If-None-Match`.
+- Снимок старше 48 часов помечается `stale` и получает HTTP warning `110`.
+- Ошибка параметров: `400 INVALID_ARENA_STATISTICS_QUERY`.
+- Недоступность источника: `503 ARENA_STATISTICS_UNAVAILABLE` и
+  `Retry-After: 60`.
+
+Контрактные тесты проверяют авторизацию до обращения к источнику, все фильтры,
+пагинацию, nullable-поля, полную проекцию статистики, редактирование внутренних
+полей и стабильные тела ошибок.

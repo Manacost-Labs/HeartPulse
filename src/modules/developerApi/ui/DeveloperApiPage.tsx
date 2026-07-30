@@ -98,12 +98,15 @@ export function DeveloperApiPage() {
             <div><span>GET</span><code>/api/v1/archetypes/{'{slug}'}/analysis</code><p>Матчапы по классам и влияние карт на результат</p></div>
             <div><span>GET</span><code>/api/v1/deck-statistics</code><p>Показатели конкретных сборок без раскрытия кодов колод</p></div>
             <div><span>GET</span><code>/api/v1/decks/{'{deckId}'}/statistics</code><p>Текущая статистика выбранной сборки</p></div>
-            <div><span>GET</span><code>/api/v1/arena/statistics/classes</code><p>Винрейт и размер выборки классов Арены</p></div>
-            <div><span>GET</span><code>/api/v1/arena/statistics/cards</code><p>Карты Арены с тиром, рейтингом и игровыми показателями</p></div>
-            <div><span>GET</span><code>/api/v1/arena/statistics/legendaries</code><p>Легендарные карты Арены и связанные с ними карты</p></div>
-            <div><span>GET</span><code>/api/v1/arena/statistics/matchups</code><p>Матчапы классов Арены</p></div>
-            <div><span>GET</span><code>/api/v1/battlegrounds/statistics/heroes</code><p>Тиры, выбор и среднее место героев Полей сражений</p></div>
+            <div><span>GET</span><code>/api/v1/arena/statistics/classes</code><p>Все доступные показатели классов Арены и размеры выборок</p></div>
+            <div><span>GET</span><code>/api/v1/arena/statistics/cards</code><p>Полная статистика карт Арены из HSReplay, Firestone и HearthArena</p></div>
+            <div><span>GET</span><code>/api/v1/arena/statistics/legendaries</code><p>Полная статистика легендарок, классов и связанных карт</p></div>
+            <div><span>GET</span><code>/api/v1/arena/statistics/matchups</code><p>Матчапы классов Арены и доступные размеры выборок</p></div>
+            <div><span>GET</span><code>/api/v1/battlegrounds/statistics/heroes</code><p>Герои по режиму, MMR и периоду</p></div>
+            <div><span>GET</span><code>/api/v1/battlegrounds/statistics/heroes/{'{heroId}'}</code><p>Кривая таверны, сила героя, бои, композиции и финальные составы</p></div>
             <div><span>GET</span><code>/api/v1/battlegrounds/statistics/minions</code><p>Влияние, популярность и результаты существ</p></div>
+            <div><span>GET</span><code>/api/v1/battlegrounds/statistics/minions/{'{dbfId}'}/history</code><p>Вся сохранённая история статистики существа</p></div>
+            <div><span>GET</span><code>/api/v1/battlegrounds/statistics/spells</code><p>Полная статистика заклинаний таверны</p></div>
             <div><span>GET</span><code>/api/v1/battlegrounds/statistics/tier-lists/{'{kind}'}</code><p>Тир-листы героев, существ, заклинаний, аксессуаров и стратегий</p></div>
             <div><span>GET</span><code>/api/v1/cards/{'{cardId}'}/images/{'{variant}'}.webp</code><p>Кэшированные изображения thumb, full и tile</p></div>
             <div><span>POST</span><code>/api/v1/oauth/device/code</code><p>Начало безопасного входа desktop-приложения</p></div>
