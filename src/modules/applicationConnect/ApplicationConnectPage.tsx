@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -63,6 +63,11 @@ const SCOPE_LABELS: Readonly<Record<string, string>> = {
   'images.read': 'Изображения карт через защищённый API',
 };
 
+const CONNECT_EXPIRY_FORMATTER = new Intl.DateTimeFormat('ru-RU', {
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
 function normalizedUserCode(value: string): string {
   const compact = value.toUpperCase().replace(/[^A-Z2-9]/g, '').slice(0, 8);
   return compact.length > 4 ? `${compact.slice(0, 4)}-${compact.slice(4)}` : compact;
@@ -111,8 +116,7 @@ export function ApplicationConnectView({
   const busy = state === 'loading' || state === 'submitting';
   const completed = state === 'approved' || state === 'denied';
   const expiresAt = authorization
-    ? new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' })
-      .format(new Date(authorization.expiresAt))
+    ? CONNECT_EXPIRY_FORMATTER.format(new Date(authorization.expiresAt))
     : '';
 
   return (
@@ -227,7 +231,7 @@ export default function ApplicationConnectPage({
   parentAuthChecking,
   onAuthChange,
 }: ApplicationConnectPageProps) {
-  const [user, setUser] = useState(initialAuthUser);
+  const user = initialAuthUser;
   const [userCode, setUserCode] = useState(initialUserCode);
   const [authorization, setAuthorization] = useState<DeviceAuthorization | null>(null);
   const [state, setState] = useState<ConnectState>('entry');
@@ -235,13 +239,6 @@ export default function ApplicationConnectPage({
   const [wantsLogin, setWantsLogin] = useState(
     () => new URLSearchParams(window.location.search).has('login'),
   );
-
-  useEffect(() => setUser(initialAuthUser), [initialAuthUser]);
-  useEffect(() => {
-    if (!initialAuthUser || !wantsLogin) return;
-    updateConnectUrl(userCode);
-    setWantsLogin(false);
-  }, [initialAuthUser, userCode, wantsLogin]);
 
   const inspect = useCallback(async (signal?: AbortSignal) => {
     if (userCode.length !== 9) {
@@ -308,7 +305,6 @@ export default function ApplicationConnectPage({
   };
 
   const handleAuthChange = (nextUser: ConnectUser | null) => {
-    setUser(nextUser);
     onAuthChange(nextUser);
     if (nextUser) {
       updateConnectUrl(userCode);
