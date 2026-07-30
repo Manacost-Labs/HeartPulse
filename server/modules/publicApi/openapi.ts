@@ -2,7 +2,7 @@ export const PUBLIC_API_OPENAPI = {
   openapi: '3.1.0',
   info: {
     title: 'Manacost Public API',
-    version: '1.3.0',
+    version: '1.4.0',
     description: 'Versioned Hearthstone data API for approved applications.',
   },
   servers: [{ url: '/', description: 'Current Manacost environment' }],
@@ -11,7 +11,7 @@ export const PUBLIC_API_OPENAPI = {
     { name: 'Profile', description: 'The authorized user and cached subscription status.' },
     { name: 'Catalog', description: 'Available Manacost data resources.' },
     { name: 'Images', description: 'Same-origin cached Hearthstone card images.' },
-    { name: 'Statistics', description: 'Aggregated card, meta and archetype statistics and history.' },
+    { name: 'Statistics', description: 'Aggregated card, meta, archetype and deck-build statistics and history.' },
     { name: 'Administration', description: 'Administrator-only API key lifecycle.' },
   ],
   paths: {
@@ -718,6 +718,112 @@ export const PUBLIC_API_OPENAPI = {
           '403': { $ref: '#/components/responses/InsufficientScope' },
           '404': { description: 'No analysis is available for this archetype' },
           '503': { description: 'Archetype analysis is temporarily unavailable' },
+        },
+      },
+    },
+    '/api/v1/deck-statistics': {
+      get: {
+        summary: 'List aggregate statistics for concrete deck builds',
+        description: 'Returns bounded current build aggregates without deck codes, card composition or provider URLs. Requires statistics.read.',
+        operationId: 'listDeckStatistics',
+        tags: ['Statistics'],
+        security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
+        parameters: [
+          {
+            name: 'format',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['standard', 'wild'], default: 'standard' },
+          },
+          {
+            name: 'archetype',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', pattern: '^[a-z0-9][a-z0-9-]{0,89}$' },
+          },
+          {
+            name: 'minGames',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 0, maximum: 10000000, default: 0 },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 500, default: 100 },
+          },
+          {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', minLength: 12, maxLength: 500 },
+          },
+          {
+            name: 'If-None-Match',
+            in: 'header',
+            required: false,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'One page of normalized deck-build aggregates',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/DeckStatisticsListResponse' },
+              },
+            },
+          },
+          '304': { description: 'The representation has not changed' },
+          '400': { description: 'Invalid format, archetype, sample floor, limit or cursor' },
+          '401': { $ref: '#/components/responses/InvalidCredential' },
+          '403': { $ref: '#/components/responses/InsufficientScope' },
+          '503': { description: 'Deck statistics are temporarily unavailable' },
+        },
+      },
+    },
+    '/api/v1/decks/{deckId}/statistics': {
+      get: {
+        summary: 'Get current aggregate statistics for one deck build',
+        operationId: 'getDeckStatistics',
+        tags: ['Statistics'],
+        security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
+        parameters: [
+          {
+            name: 'deckId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', pattern: '^deck_[a-f0-9]{32}$' },
+          },
+          {
+            name: 'format',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['standard', 'wild'], default: 'standard' },
+          },
+          {
+            name: 'If-None-Match',
+            in: 'header',
+            required: false,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Current normalized metrics for the selected build',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/DeckStatisticsResponse' },
+              },
+            },
+          },
+          '304': { description: 'The representation has not changed' },
+          '400': { description: 'Invalid format or deck identifier' },
+          '401': { $ref: '#/components/responses/InvalidCredential' },
+          '403': { $ref: '#/components/responses/InsufficientScope' },
+          '404': { description: 'Deck build is not present in the selected format' },
+          '503': { description: 'Deck statistics are temporarily unavailable' },
         },
       },
     },
@@ -1624,6 +1730,91 @@ export const PUBLIC_API_OPENAPI = {
               dataStatus: { type: 'string', enum: ['fresh', 'stale'] },
             },
           },
+        },
+      },
+      DeckStatisticsItem: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['deckId', 'format', 'archetype', 'metrics', 'sample', 'updatedAt'],
+        properties: {
+          deckId: { type: 'string', pattern: '^deck_[a-f0-9]{32}$' },
+          format: { type: 'string', enum: ['standard', 'wild'] },
+          archetype: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['slug', 'name', 'localizedName', 'classId'],
+            properties: {
+              slug: { type: 'string', pattern: '^[a-z0-9][a-z0-9-]{0,89}$' },
+              name: { type: 'string' },
+              localizedName: { type: 'string' },
+              classId: { type: ['string', 'null'] },
+            },
+          },
+          metrics: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['games', 'winratePercent'],
+            properties: {
+              games: { type: ['integer', 'null'], minimum: 0 },
+              winratePercent: { type: ['number', 'null'], minimum: 0, maximum: 100 },
+            },
+          },
+          sample: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['rank', 'period'],
+            properties: {
+              rank: { type: ['string', 'null'] },
+              period: { type: ['string', 'null'] },
+            },
+          },
+          updatedAt: { type: ['string', 'null'], format: 'date-time' },
+        },
+      },
+      DeckStatisticsMeta: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['format', 'patch', 'updatedAt', 'datasetVersion', 'dataStatus'],
+        properties: {
+          format: { type: 'string', enum: ['standard', 'wild'] },
+          archetype: { type: ['string', 'null'] },
+          minGames: { type: 'integer', minimum: 0, maximum: 10000000 },
+          patch: { type: ['string', 'null'] },
+          updatedAt: { type: ['string', 'null'], format: 'date-time' },
+          datasetVersion: { type: 'string' },
+          dataStatus: { type: 'string', enum: ['fresh', 'stale'] },
+        },
+      },
+      DeckStatisticsListResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['data', 'pagination', 'meta'],
+        properties: {
+          data: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/DeckStatisticsItem' },
+          },
+          pagination: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['limit', 'total', 'hasMore', 'nextCursor'],
+            properties: {
+              limit: { type: 'integer', minimum: 1, maximum: 500 },
+              total: { type: 'integer', minimum: 0 },
+              hasMore: { type: 'boolean' },
+              nextCursor: { type: ['string', 'null'] },
+            },
+          },
+          meta: { $ref: '#/components/schemas/DeckStatisticsMeta' },
+        },
+      },
+      DeckStatisticsResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['data', 'meta'],
+        properties: {
+          data: { $ref: '#/components/schemas/DeckStatisticsItem' },
+          meta: { $ref: '#/components/schemas/DeckStatisticsMeta' },
         },
       },
       Error: {

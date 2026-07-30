@@ -28,6 +28,11 @@ export {
   PublicMetaStatisticsQueryError,
   type PublicMetaStatisticsSource,
 } from './metaStatistics.js';
+export {
+  createPublicDeckStatistics,
+  PublicDeckStatisticsQueryError,
+  type PublicDeckStatisticsSource,
+} from './deckStatistics.js';
 export { PUBLIC_API_OPENAPI } from './openapi.js';
 export {
   createSqliteApiKeyRepository,

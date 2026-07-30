@@ -248,6 +248,7 @@ It includes:
 - card list, card detail, image, profile and catalog endpoint examples;
 - bulk card-statistics, current card-statistics and history endpoint examples;
 - meta snapshots, archetype history and archetype analysis endpoint examples;
+- concrete deck-build statistics list and detail examples;
 - error model;
 - one-time key handling guidance;
 - link to the OpenAPI JSON;

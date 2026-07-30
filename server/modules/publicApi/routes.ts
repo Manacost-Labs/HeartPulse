@@ -20,6 +20,11 @@ import {
   PublicMetaStatisticsQueryError,
   type PublicMetaStatisticsSource,
 } from './metaStatistics.js';
+import {
+  createPublicDeckStatistics,
+  PublicDeckStatisticsQueryError,
+  type PublicDeckStatisticsSource,
+} from './deckStatistics.js';
 import { ApiKeyValidationError, type ApiKeyManager, type PublicApiScope } from './model.js';
 import { PUBLIC_API_OPENAPI } from './openapi.js';
 
@@ -52,6 +57,7 @@ type PublicRouterDependencies = {
   cardCatalog?: PublicCardCatalogSource;
   cardStatistics?: PublicCardStatisticsSource;
   metaStatistics?: PublicMetaStatisticsSource;
+  deckStatistics?: PublicDeckStatisticsSource;
 };
 
 const apiError = (code: string, message: string) => ({ error: { code, message } });
@@ -108,6 +114,9 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     : null;
   const metaStatistics = dependencies.metaStatistics
     ? createPublicMetaStatistics(dependencies.metaStatistics)
+    : null;
+  const deckStatistics = dependencies.deckStatistics
+    ? createPublicDeckStatistics(dependencies.deckStatistics)
     : null;
 
   const sendVersionedJson = (
@@ -171,6 +180,21 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     ));
   };
 
+  const deckStatisticsError = (response: Response, error: unknown) => {
+    response.set('Cache-Control', 'no-store');
+    if (error instanceof PublicDeckStatisticsQueryError) {
+      return response.status(400).json(apiError(
+        'INVALID_DECK_STATISTICS_QUERY',
+        error.message,
+      ));
+    }
+    response.set('Retry-After', '60');
+    return response.status(503).json(apiError(
+      'DECK_STATISTICS_UNAVAILABLE',
+      'Deck statistics are temporarily unavailable',
+    ));
+  };
+
   router.get('/openapi.json', (_request, response) => {
     response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=300');
     return response.json(PUBLIC_API_OPENAPI);
@@ -180,7 +204,7 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     if (!requireScope(dependencies, 'catalog.read', request, response)) return;
     const payload = {
       apiVersion: 'v1',
-      schemaVersion: '2026-07-30.3',
+      schemaVersion: '2026-07-30.4',
       generatedAt: manifestGeneratedAt,
       resources: [
         { id: 'openapi', href: '/api/v1/openapi.json', status: 'AVAILABLE' },
@@ -212,6 +236,12 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
         {
           id: 'archetype-analysis',
           href: '/api/v1/archetypes/{slug}/analysis',
+          status: 'AVAILABLE',
+        },
+        { id: 'deck-statistics', href: '/api/v1/deck-statistics', status: 'AVAILABLE' },
+        {
+          id: 'deck-statistics-detail',
+          href: '/api/v1/decks/{deckId}/statistics',
           status: 'AVAILABLE',
         },
         {
@@ -403,6 +433,45 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
       return sendVersionedJson(request, response, result);
     } catch (error) {
       return metaStatisticsError(response, error);
+    }
+  });
+
+  router.get('/deck-statistics', async (request, response) => {
+    if (!requireScope(dependencies, 'statistics.read', request, response)) return;
+    if (!deckStatistics) {
+      return deckStatisticsError(response, new Error('Deck statistics are not configured'));
+    }
+    try {
+      return sendVersionedJson(
+        request,
+        response,
+        await deckStatistics.list(request.query as Record<string, unknown>),
+      );
+    } catch (error) {
+      return deckStatisticsError(response, error);
+    }
+  });
+
+  router.get('/decks/:deckId/statistics', async (request, response) => {
+    if (!requireScope(dependencies, 'statistics.read', request, response)) return;
+    if (!deckStatistics) {
+      return deckStatisticsError(response, new Error('Deck statistics are not configured'));
+    }
+    try {
+      const result = await deckStatistics.detail(
+        request.query as Record<string, unknown>,
+        request.params.deckId,
+      );
+      if (!result) {
+        response.set('Cache-Control', 'no-store');
+        return response.status(404).json(apiError(
+          'DECK_STATISTICS_NOT_FOUND',
+          'Deck statistics were not found',
+        ));
+      }
+      return sendVersionedJson(request, response, result);
+    } catch (error) {
+      return deckStatisticsError(response, error);
     }
   });
 
