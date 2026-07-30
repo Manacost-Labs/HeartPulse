@@ -593,7 +593,12 @@ export function ArenaSynergyPanel({
           {tab === 'redraft' && (
             <ArenaRedraftPanel rows={redraftRows} sort={redraftSort} onSort={setRedraftSort} />
           )}
-          {tab === 'advisor' && <ArenaDraftAdvisorPanel payload={payload} />}
+          {tab === 'advisor' && (
+            <ArenaDraftAdvisorPanel
+              key={`${payload.cohort.id}:${payload.selectedClass}`}
+              payload={payload}
+            />
+          )}
           <ArenaHistoryPanel payload={payload} />
 
           <p className="arena-synergy-updated">

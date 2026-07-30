@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   AlertTriangle,
   Gauge,
@@ -22,6 +22,12 @@ import { ArenaSynergyCardIdentity } from './ArenaSynergyCardIdentity';
 import './ArenaDraftAdvisorPanel.css';
 
 type CandidateIds = [string, string, string];
+
+const CANDIDATE_SLOTS = [
+  { id: 'first', label: 1 },
+  { id: 'second', label: 2 },
+  { id: 'third', label: 3 },
+] as const;
 
 function confidenceLabel(value: ArenaDraftChoice['confidence']): string {
   if (value === 'high') return 'Высокая уверенность';
@@ -52,16 +58,13 @@ function DecisionMeter({
         <small>вес {weight}</small>
         <strong>{value.toFixed(1)}</strong>
       </div>
-      <div
+      <meter
         className="arena-draft-meter-track"
-        role="meter"
         aria-label={`${label}: ${value.toFixed(1)} из 100`}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={value}
-      >
-        <span style={{ width: `${value}%` }} />
-      </div>
+        min={0}
+        max={100}
+        value={value}
+      />
     </div>
   );
 }
@@ -132,14 +135,8 @@ export function ArenaDraftAdvisorPanel({ payload }: { payload: ArenaSynergyPaylo
   const [cardToAdd, setCardToAdd] = useState('');
   const [candidateIds, setCandidateIds] = useState<CandidateIds>(['', '', '']);
 
-  useEffect(() => {
-    setDeckCardIds([]);
-    setCardToAdd('');
-    setCandidateIds(['', '', '']);
-  }, [payload.cohort.id, payload.selectedClass]);
-
   const context = payload.draftAdvisor;
-  const cards = context?.cards ?? [];
+  const cards = useMemo(() => context?.cards ?? [], [context]);
   const cardsById = useMemo(
     () => new Map(cards.map(card => [card.id, card])),
     [cards],
@@ -302,11 +299,11 @@ export function ArenaDraftAdvisorPanel({ payload }: { payload: ArenaSynergyPaylo
             <legend>Три предложенные карты</legend>
             <p>Выберите карты в том же порядке, в котором видите их в игре.</p>
             <div>
-              {candidateIds.map((candidateId, index) => (
-                <label key={index}>
-                  <span>Вариант {index + 1}</span>
+              {CANDIDATE_SLOTS.map((slot, index) => (
+                <label key={slot.id}>
+                  <span>Вариант {slot.label}</span>
                   <select
-                    value={candidateId}
+                    value={candidateIds[index]}
                     onChange={event => setCandidate(index, event.target.value)}
                   >
                     <option value="">Выберите карту</option>
