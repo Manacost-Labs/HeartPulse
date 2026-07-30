@@ -14,9 +14,13 @@ Establish the secure, documented foundation for the unified Manacost data API:
 - a minimal application profile and normalized subscription entitlements;
 - the complete collectible Standard and Wild card catalogs;
 - allowlisted card details with related tokens and generated-card pools.
+- complete aggregate card-statistics snapshots and bounded card history across
+  Standard/Wild, supported ranks and supported periods.
 
 This slice does not expose raw databases and does not yet promise every deck,
-match or metagame record. Those resources will be added incrementally behind
+match or metagame record. Card statistics are specified in
+`docs/specs/public-api-card-statistics.md`; the remaining resources will be
+added incrementally behind
 the same authentication, media and versioning contracts.
 
 ## Technical context
@@ -156,8 +160,9 @@ Subscription reads use the stored status and do not trigger an upstream
 provider refresh.
 
 The same bearer token can access catalog and image resources when it includes
-`catalog.read` and `images.read`. Server-to-server integrations may continue
-to use a scoped `X-API-Key`; API keys never represent an end user.
+`catalog.read` and `images.read`, and aggregate card statistics when it
+includes `statistics.read`. Server-to-server integrations may continue to use
+a scoped `X-API-Key`; API keys never represent an end user.
 
 ### Administrator key management
 
@@ -238,6 +243,7 @@ It includes:
 - authentication example;
 - API-key and device-authorization examples;
 - card list, card detail, image, profile and catalog endpoint examples;
+- bulk card-statistics, current card-statistics and history endpoint examples;
 - error model;
 - one-time key handling guidance;
 - link to the OpenAPI JSON;
@@ -251,7 +257,8 @@ shell, responsive layout and keyboard-visible focus treatment.
 The admin navigation gets a dedicated `API` section. The section supports:
 
 - loading and empty states;
-- key name input and the fixed initial `catalog.read` scope;
+- key name input and explicit `catalog.read`, `images.read` and
+  `statistics.read` scope selection;
 - one-time secret presentation with copy action and an explicit close action;
 - masked key list with status and last-used time;
 - revoke confirmation and success/error feedback.

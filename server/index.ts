@@ -200,7 +200,7 @@ import { createAdminContestReadRouter } from './adminContestReadRoutes.js';
 import { createAdminImageUploadRouter } from './adminImageUploadRoutes.js';
 import { fetchRemoteAdminImage } from './adminRemoteImage.js';
 import { createAdminImageGenerationRouter } from './adminImageGenerationRoutes.js';
-import { registerPublicApi } from './app/registerPublicApi.js';
+import { createPublicApiCardSources, registerPublicApi } from './app/registerPublicApi.js';
 import { createContestRouter } from './contestRoutes.js';
 import { createSubscriptionRouter } from './subscriptionRoutes.js';
 import { createEcosystemInternalRouter } from './modules/ecosystem/public.js';
@@ -7544,7 +7544,7 @@ const cardImageRouterDependencies = createCardImageDependencies({
 });
 
 const applicationAuth = registerApplicationAuth({ app, getDatabase: db, appUrl: APP_URL, userAuth, resolveUser: userId => loadAuthStore().users.find(user => user.id === userId && !user.blockedAt) ?? null, serializeUser: user => serializeApplicationProfileUser(user, APP_URL), readSubscription: userId => serializeApplicationSubscription(readSubscriptionStatus(userId) ?? emptySubscriptionStatus()), emptySubscription: () => serializeApplicationSubscription(emptySubscriptionStatus()), setPrivateNoStore });
-registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit, cardImageDependencies: cardImageRouterDependencies, accessTokens: applicationAuth, cardCatalog: { loadCards: format => constructedCardDataService.loadCards(format), loadCardDetail: (format, cardId) => constructedCardDataService.loadCardDetail(format, cardId) } });
+registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit, cardImageDependencies: cardImageRouterDependencies, accessTokens: applicationAuth, ...createPublicApiCardSources(() => constructedCardDataService) });
 app.use('/_internal', createTierlistCacheBustRouter({
   resolveSource: source => Object.prototype.hasOwnProperty.call(TIERLIST_DATASET_BY_SOURCE, source ?? '')
     ? source as keyof typeof TIERLIST_DATASET_BY_SOURCE

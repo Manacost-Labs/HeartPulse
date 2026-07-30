@@ -5,6 +5,7 @@ export const APPLICATION_AUTH_SCOPES = [
   'subscription.read',
   'catalog.read',
   'images.read',
+  'statistics.read',
 ] as const;
 
 export type ApplicationAuthScope = typeof APPLICATION_AUTH_SCOPES[number];

@@ -2,7 +2,7 @@ export const PUBLIC_API_OPENAPI = {
   openapi: '3.1.0',
   info: {
     title: 'Manacost Public API',
-    version: '1.1.0',
+    version: '1.2.0',
     description: 'Versioned Hearthstone data API for approved applications.',
   },
   servers: [{ url: '/', description: 'Current Manacost environment' }],
@@ -11,6 +11,7 @@ export const PUBLIC_API_OPENAPI = {
     { name: 'Profile', description: 'The authorized user and cached subscription status.' },
     { name: 'Catalog', description: 'Available Manacost data resources.' },
     { name: 'Images', description: 'Same-origin cached Hearthstone card images.' },
+    { name: 'Statistics', description: 'Aggregated constructed-card statistics and history.' },
     { name: 'Administration', description: 'Administrator-only API key lifecycle.' },
   ],
   paths: {
@@ -291,6 +292,212 @@ export const PUBLIC_API_OPENAPI = {
         },
       },
     },
+    '/api/v1/card-statistics': {
+      get: {
+        summary: 'List the complete card-statistics snapshot',
+        description: 'Returns a deterministic page for one format, rank and period. Requires statistics.read.',
+        operationId: 'listCardStatistics',
+        tags: ['Statistics'],
+        security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
+        parameters: [
+          {
+            name: 'format',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['standard', 'wild'], default: 'standard' },
+          },
+          {
+            name: 'rank',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              enum: ['legend', 'diamond_4_1', 'diamond', 'platinum'],
+              default: 'legend',
+            },
+          },
+          {
+            name: 'period',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              enum: ['1d', '3d', '7d', '14d', 'patch'],
+              default: '1d',
+            },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 500, default: 120 },
+          },
+          {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', minLength: 8, maxLength: 240 },
+          },
+          {
+            name: 'If-None-Match',
+            in: 'header',
+            required: false,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'One page of the selected aggregate statistics snapshot',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/CardStatisticsListResponse' },
+              },
+            },
+          },
+          '304': { description: 'The representation has not changed' },
+          '400': { description: 'Invalid format, rank, period, limit or cursor' },
+          '401': { $ref: '#/components/responses/InvalidCredential' },
+          '403': { $ref: '#/components/responses/InsufficientScope' },
+          '503': { description: 'No authoritative or last-known-good statistics are available' },
+        },
+      },
+    },
+    '/api/v1/cards/{cardId}/statistics': {
+      get: {
+        summary: 'Get current statistics for one card',
+        description: 'Returns nullable aggregate metrics for one format, rank and period. Requires statistics.read.',
+        operationId: 'getCardStatistics',
+        tags: ['Statistics'],
+        security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
+        parameters: [
+          {
+            name: 'cardId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', pattern: '^[A-Za-z0-9_]{2,80}$' },
+          },
+          {
+            name: 'format',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['standard', 'wild'], default: 'standard' },
+          },
+          {
+            name: 'rank',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              enum: ['legend', 'diamond_4_1', 'diamond', 'platinum'],
+              default: 'legend',
+            },
+          },
+          {
+            name: 'period',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              enum: ['1d', '3d', '7d', '14d', 'patch'],
+              default: '1d',
+            },
+          },
+          {
+            name: 'If-None-Match',
+            in: 'header',
+            required: false,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Current aggregate metrics for the card',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/CardStatisticsDetailResponse' },
+              },
+            },
+          },
+          '304': { description: 'The representation has not changed' },
+          '400': { description: 'Invalid card id, format, rank or period' },
+          '401': { $ref: '#/components/responses/InvalidCredential' },
+          '403': { $ref: '#/components/responses/InsufficientScope' },
+          '404': { description: 'Card is not in the selected catalog' },
+          '503': { description: 'Card statistics are temporarily unavailable' },
+        },
+      },
+    },
+    '/api/v1/cards/{cardId}/statistics/history': {
+      get: {
+        summary: 'Get card-statistics history',
+        description: 'Returns up to 1,000 chronological aggregate points. Requires statistics.read.',
+        operationId: 'getCardStatisticsHistory',
+        tags: ['Statistics'],
+        security: [{ ApiKeyAuth: [] }, { ApplicationBearer: [] }],
+        parameters: [
+          {
+            name: 'cardId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', pattern: '^[A-Za-z0-9_]{2,80}$' },
+          },
+          {
+            name: 'format',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['standard', 'wild'], default: 'standard' },
+          },
+          {
+            name: 'rank',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              enum: ['legend', 'diamond_4_1', 'diamond', 'platinum'],
+              default: 'legend',
+            },
+          },
+          {
+            name: 'period',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              enum: ['1d', '3d', '7d', '14d', 'patch'],
+              default: '1d',
+            },
+          },
+          {
+            name: 'days',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 7, maximum: 365, default: 90 },
+          },
+          {
+            name: 'If-None-Match',
+            in: 'header',
+            required: false,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Chronological card-statistics points',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/CardStatisticsHistoryResponse' },
+              },
+            },
+          },
+          '304': { description: 'The representation has not changed' },
+          '400': { description: 'Invalid card id, slice dimension or day range' },
+          '401': { $ref: '#/components/responses/InvalidCredential' },
+          '403': { $ref: '#/components/responses/InsufficientScope' },
+          '404': { description: 'Card is not in the selected catalog' },
+          '503': { description: 'Card statistics are temporarily unavailable' },
+        },
+      },
+    },
     '/api/v1/cards/{cardId}/images/{variant}.webp': {
       get: {
         summary: 'Get a cached card image',
@@ -406,7 +613,7 @@ export const PUBLIC_API_OPENAPI = {
           client_id: { type: 'string', const: 'manacost-tracker' },
           scope: {
             type: 'string',
-            example: 'profile.read subscription.read catalog.read images.read',
+            example: 'profile.read subscription.read catalog.read images.read statistics.read',
           },
         },
       },
@@ -508,7 +715,10 @@ export const PUBLIC_API_OPENAPI = {
             type: 'array',
             minItems: 1,
             uniqueItems: true,
-            items: { type: 'string', enum: ['catalog.read', 'images.read'] },
+            items: {
+              type: 'string',
+              enum: ['catalog.read', 'images.read', 'statistics.read'],
+            },
           },
         },
       },
@@ -701,6 +911,187 @@ export const PUBLIC_API_OPENAPI = {
               partial: { type: 'boolean' },
               warning: { type: ['string', 'null'] },
             },
+          },
+        },
+      },
+      CardStatisticsMetrics: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'deckPopularityPercent', 'deckWinratePercent', 'averageCopies',
+          'timesPlayed', 'winrateWhenPlayedPercent', 'winrateWhenDrawnPercent',
+          'keepPercentage', 'openingHandWinratePercent', 'averageTurnsInHand',
+          'averageTurnPlayed',
+        ],
+        properties: {
+          deckPopularityPercent: {
+            type: ['number', 'null'],
+            minimum: 0,
+            maximum: 100,
+            description: 'Share of decks containing the card, in percentage points.',
+          },
+          deckWinratePercent: {
+            type: ['number', 'null'],
+            minimum: 0,
+            maximum: 100,
+            description: 'Win rate of decks containing the card, in percentage points.',
+          },
+          averageCopies: {
+            type: ['number', 'null'],
+            minimum: 0,
+            description: 'Mean copies per deck.',
+          },
+          timesPlayed: {
+            type: ['integer', 'null'],
+            minimum: 0,
+            description: 'Observed plays/sample count.',
+          },
+          winrateWhenPlayedPercent: {
+            type: ['number', 'null'],
+            minimum: 0,
+            maximum: 100,
+            description: 'Win rate when the card was played, in percentage points.',
+          },
+          winrateWhenDrawnPercent: {
+            type: ['number', 'null'],
+            minimum: 0,
+            maximum: 100,
+            description: 'Win rate when the card was drawn, in percentage points.',
+          },
+          keepPercentage: {
+            type: ['number', 'null'],
+            minimum: 0,
+            maximum: 100,
+            description: 'Mulligan keep rate, in percentage points.',
+          },
+          openingHandWinratePercent: {
+            type: ['number', 'null'],
+            minimum: 0,
+            maximum: 100,
+            description: 'Win rate when in the opening hand, in percentage points.',
+          },
+          averageTurnsInHand: {
+            type: ['number', 'null'],
+            minimum: 0,
+            description: 'Mean number of turns held before play.',
+          },
+          averageTurnPlayed: {
+            type: ['number', 'null'],
+            minimum: 0,
+            description: 'Mean turn number on which the card was played.',
+          },
+        },
+      },
+      CardStatisticsItem: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['cardId', 'metrics'],
+        properties: {
+          cardId: { type: 'string', pattern: '^[A-Za-z0-9_]{2,80}$' },
+          metrics: { $ref: '#/components/schemas/CardStatisticsMetrics' },
+        },
+      },
+      CardStatisticsMetaFields: {
+        type: 'object',
+        required: [
+          'format', 'period', 'rank', 'updatedAt', 'datasetVersion', 'dataStatus',
+        ],
+        properties: {
+          format: { type: 'string', enum: ['standard', 'wild'] },
+          period: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['id', 'timeRange', 'patch'],
+            properties: {
+              id: { type: 'string', enum: ['1d', '3d', '7d', '14d', 'patch'] },
+              timeRange: { type: ['string', 'null'] },
+              patch: { type: ['string', 'null'] },
+            },
+          },
+          rank: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['id', 'rankRange'],
+            properties: {
+              id: {
+                type: 'string',
+                enum: ['legend', 'diamond_4_1', 'diamond', 'platinum'],
+              },
+              rankRange: { type: 'string' },
+            },
+          },
+          updatedAt: { type: ['string', 'null'], format: 'date-time' },
+          datasetVersion: { type: 'string' },
+          dataStatus: { type: 'string', enum: ['fresh', 'stale'] },
+        },
+      },
+      CardStatisticsMeta: {
+        allOf: [{ $ref: '#/components/schemas/CardStatisticsMetaFields' }],
+        unevaluatedProperties: false,
+      },
+      CardStatisticsListResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['data', 'pagination', 'meta'],
+        properties: {
+          data: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/CardStatisticsItem' },
+          },
+          pagination: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['limit', 'total', 'hasMore', 'nextCursor'],
+            properties: {
+              limit: { type: 'integer', minimum: 1, maximum: 500 },
+              total: { type: 'integer', minimum: 0 },
+              hasMore: { type: 'boolean' },
+              nextCursor: { type: ['string', 'null'] },
+            },
+          },
+          meta: { $ref: '#/components/schemas/CardStatisticsMeta' },
+        },
+      },
+      CardStatisticsDetailResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['data', 'meta'],
+        properties: {
+          data: { $ref: '#/components/schemas/CardStatisticsItem' },
+          meta: { $ref: '#/components/schemas/CardStatisticsMeta' },
+        },
+      },
+      CardStatisticsHistoryPoint: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['recordedAt', 'metrics'],
+        properties: {
+          recordedAt: { type: 'string', format: 'date-time' },
+          metrics: { $ref: '#/components/schemas/CardStatisticsMetrics' },
+        },
+      },
+      CardStatisticsHistoryResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['data', 'meta'],
+        properties: {
+          data: {
+            type: 'array',
+            maxItems: 1000,
+            items: { $ref: '#/components/schemas/CardStatisticsHistoryPoint' },
+          },
+          meta: {
+            allOf: [
+              { $ref: '#/components/schemas/CardStatisticsMetaFields' },
+              {
+                type: 'object',
+                required: ['days'],
+                properties: {
+                  days: { type: 'integer', minimum: 7, maximum: 365 },
+                },
+              },
+            ],
+            unevaluatedProperties: false,
           },
         },
       },

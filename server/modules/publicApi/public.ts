@@ -16,6 +16,13 @@ export {
   type PublicCardFormat,
   type PublicCardSummary,
 } from './cards.js';
+export {
+  createPublicCardStatistics,
+  PublicCardStatisticsQueryError,
+  serializePublicCardStatistics,
+  serializePublicCardStatisticsHistoryPoint,
+  type PublicCardStatisticsSource,
+} from './statistics.js';
 export { PUBLIC_API_OPENAPI } from './openapi.js';
 export {
   createSqliteApiKeyRepository,

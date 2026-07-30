@@ -33,12 +33,12 @@ export const adminApiKeysClient = {
     return Array.isArray(payload.keys) ? payload.keys : [];
   },
 
-  async create(name: string): Promise<CreatedAdminApiKey> {
+  async create(name: string, scopes: string[]): Promise<CreatedAdminApiKey> {
     return json<CreatedAdminApiKey>(await fetch('/api/admin/api-keys', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' },
-      body: JSON.stringify({ name, scopes: ['catalog.read'] }),
+      body: JSON.stringify({ name, scopes }),
     }));
   },
 

@@ -10,6 +10,11 @@ import {
   PublicCardQueryError,
   type PublicCardCatalogSource,
 } from './cards.js';
+import {
+  createPublicCardStatistics,
+  PublicCardStatisticsQueryError,
+  type PublicCardStatisticsSource,
+} from './statistics.js';
 import { ApiKeyValidationError, type ApiKeyManager, type PublicApiScope } from './model.js';
 import { PUBLIC_API_OPENAPI } from './openapi.js';
 
@@ -40,6 +45,7 @@ type PublicRouterDependencies = {
     respond: CardImageResponder;
   };
   cardCatalog?: PublicCardCatalogSource;
+  cardStatistics?: PublicCardStatisticsSource;
 };
 
 const apiError = (code: string, message: string) => ({ error: { code, message } });
@@ -91,8 +97,11 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
   const cardCatalog = dependencies.cardCatalog
     ? createPublicCardCatalog(dependencies.cardCatalog)
     : null;
+  const cardStatistics = dependencies.cardStatistics
+    ? createPublicCardStatistics(dependencies.cardStatistics)
+    : null;
 
-  const sendCatalogJson = (
+  const sendVersionedJson = (
     request: Request,
     response: Response,
     result: {
@@ -123,6 +132,21 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     ));
   };
 
+  const cardStatisticsError = (response: Response, error: unknown) => {
+    response.set('Cache-Control', 'no-store');
+    if (error instanceof PublicCardStatisticsQueryError) {
+      return response.status(400).json(apiError(
+        'INVALID_CARD_STATISTICS_QUERY',
+        error.message,
+      ));
+    }
+    response.set('Retry-After', '60');
+    return response.status(503).json(apiError(
+      'CARD_STATISTICS_UNAVAILABLE',
+      'Card statistics are temporarily unavailable',
+    ));
+  };
+
   router.get('/openapi.json', (_request, response) => {
     response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=300');
     return response.json(PUBLIC_API_OPENAPI);
@@ -132,13 +156,24 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     if (!requireScope(dependencies, 'catalog.read', request, response)) return;
     const payload = {
       apiVersion: 'v1',
-      schemaVersion: '2026-07-30',
+      schemaVersion: '2026-07-30.2',
       generatedAt: manifestGeneratedAt,
       resources: [
         { id: 'openapi', href: '/api/v1/openapi.json', status: 'AVAILABLE' },
         { id: 'catalog-manifest', href: '/api/v1/catalog/manifest', status: 'AVAILABLE' },
         { id: 'cards', href: '/api/v1/cards', status: 'AVAILABLE' },
         { id: 'card-detail', href: '/api/v1/cards/{cardId}', status: 'AVAILABLE' },
+        { id: 'card-statistics', href: '/api/v1/card-statistics', status: 'AVAILABLE' },
+        {
+          id: 'card-statistics-detail',
+          href: '/api/v1/cards/{cardId}/statistics',
+          status: 'AVAILABLE',
+        },
+        {
+          id: 'card-statistics-history',
+          href: '/api/v1/cards/{cardId}/statistics/history',
+          status: 'AVAILABLE',
+        },
         {
           id: 'card-images',
           href: '/api/v1/cards/{cardId}/images/{variant}.webp',
@@ -159,7 +194,7 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     if (!requireScope(dependencies, 'catalog.read', request, response)) return;
     if (!cardCatalog) return cardCatalogError(response, new Error('Card catalog is not configured'));
     try {
-      return sendCatalogJson(
+      return sendVersionedJson(
         request,
         response,
         await cardCatalog.list(request.query as Record<string, unknown>),
@@ -178,9 +213,71 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
         response.set('Cache-Control', 'no-store');
         return response.status(404).json(apiError('CARD_NOT_FOUND', 'Card was not found'));
       }
-      return sendCatalogJson(request, response, result);
+      return sendVersionedJson(request, response, result);
     } catch (error) {
       return cardCatalogError(response, error);
+    }
+  });
+
+  router.get('/card-statistics', async (request, response) => {
+    if (!requireScope(dependencies, 'statistics.read', request, response)) return;
+    if (!cardStatistics) {
+      return cardStatisticsError(response, new Error('Card statistics are not configured'));
+    }
+    try {
+      return sendVersionedJson(
+        request,
+        response,
+        await cardStatistics.list(request.query as Record<string, unknown>),
+      );
+    } catch (error) {
+      return cardStatisticsError(response, error);
+    }
+  });
+
+  router.get('/cards/:cardId/statistics', async (request, response) => {
+    if (!requireScope(dependencies, 'statistics.read', request, response)) return;
+    if (!cardStatistics) {
+      return cardStatisticsError(response, new Error('Card statistics are not configured'));
+    }
+    try {
+      const result = await cardStatistics.detail(
+        request.query as Record<string, unknown>,
+        request.params.cardId,
+      );
+      if (!result) {
+        response.set('Cache-Control', 'no-store');
+        return response.status(404).json(apiError(
+          'CARD_STATISTICS_NOT_FOUND',
+          'Card statistics were not found',
+        ));
+      }
+      return sendVersionedJson(request, response, result);
+    } catch (error) {
+      return cardStatisticsError(response, error);
+    }
+  });
+
+  router.get('/cards/:cardId/statistics/history', async (request, response) => {
+    if (!requireScope(dependencies, 'statistics.read', request, response)) return;
+    if (!cardStatistics) {
+      return cardStatisticsError(response, new Error('Card statistics are not configured'));
+    }
+    try {
+      const result = await cardStatistics.history(
+        request.query as Record<string, unknown>,
+        request.params.cardId,
+      );
+      if (!result) {
+        response.set('Cache-Control', 'no-store');
+        return response.status(404).json(apiError(
+          'CARD_STATISTICS_NOT_FOUND',
+          'Card statistics were not found',
+        ));
+      }
+      return sendVersionedJson(request, response, result);
+    } catch (error) {
+      return cardStatisticsError(response, error);
     }
   });
 

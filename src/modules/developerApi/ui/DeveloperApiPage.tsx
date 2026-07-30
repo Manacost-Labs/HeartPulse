@@ -9,12 +9,12 @@ import {
 } from 'lucide-react';
 import '../developerApi.css';
 
-const CURL_EXAMPLE = `curl "https://arena.hs-manacost.ru/api/v1/cards?format=standard&limit=20" \\
+const CURL_EXAMPLE = `curl "https://arena.hs-manacost.ru/api/v1/card-statistics?format=standard&rank=legend&period=1d&limit=120" \\
   -H "X-API-Key: mca_live_••••••••"`;
 
 const DEVICE_EXAMPLE = `curl -X POST https://arena.hs-manacost.ru/api/v1/oauth/device/code \\
   -H "Content-Type: application/x-www-form-urlencoded" \\
-  --data "client_id=manacost-tracker&scope=profile.read%20subscription.read"`;
+  --data "client_id=manacost-tracker&scope=profile.read%20subscription.read%20catalog.read%20images.read%20statistics.read"`;
 
 export function DeveloperApiPage() {
   return (
@@ -25,8 +25,9 @@ export function DeveloperApiPage() {
           <h1>Manacost Public API</h1>
           <p>
             Версионированный доступ к данным Manacost для Hearthstone-инструментов.
-            Доступны каталог карт с токенами, защищённые изображения, сервисные
-            API-ключи и вход пользователя для Manacost Tracker без передачи пароля приложению.
+            Доступны каталог карт с токенами, статистика по форматам, рангам и
+            периодам, история показателей, защищённые изображения, сервисные
+            API-ключи и вход пользователя без передачи пароля приложению.
           </p>
         </div>
         <div className="developer-api-version" aria-label="Текущая версия API">
@@ -37,7 +38,7 @@ export function DeveloperApiPage() {
       <section className="developer-api-status" aria-labelledby="api-status-title">
         <div>
           <span className="developer-api-status-icon is-live"><CheckCircle2 /></span>
-          <div><h2 id="api-status-title">Доступно сейчас</h2><p>Карты, токены, изображения, ключи и вход приложения</p></div>
+          <div><h2 id="api-status-title">Доступно сейчас</h2><p>Карты, токены, статистика, история, изображения, ключи и вход приложения</p></div>
         </div>
         <div>
           <span className="developer-api-status-icon"><Clock3 /></span>
@@ -88,6 +89,9 @@ export function DeveloperApiPage() {
             <div><span>GET</span><code>/api/v1/catalog/manifest</code><p>Доступные ресурсы и версия схемы</p></div>
             <div><span>GET</span><code>/api/v1/cards</code><p>Стандартный или вольный каталог, фильтры и курсорная пагинация</p></div>
             <div><span>GET</span><code>/api/v1/cards/{'{cardId}'}</code><p>Данные карты, связанные токены и пулы генерации</p></div>
+            <div><span>GET</span><code>/api/v1/card-statistics</code><p>Полный срез статистики Standard или Wild с пагинацией</p></div>
+            <div><span>GET</span><code>/api/v1/cards/{'{cardId}'}/statistics</code><p>Текущие показатели карты для выбранного ранга и периода</p></div>
+            <div><span>GET</span><code>/api/v1/cards/{'{cardId}'}/statistics/history</code><p>История показателей карты за 7–365 дней</p></div>
             <div><span>GET</span><code>/api/v1/cards/{'{cardId}'}/images/{'{variant}'}.webp</code><p>Кэшированные изображения thumb, full и tile</p></div>
             <div><span>POST</span><code>/api/v1/oauth/device/code</code><p>Начало безопасного входа desktop-приложения</p></div>
             <div><span>POST</span><code>/api/v1/oauth/token</code><p>Обмен device code и ротация refresh token</p></div>

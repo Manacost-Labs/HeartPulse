@@ -6,7 +6,7 @@ const activeKey = {
   id: 'api_key_story',
   name: 'Manacost Tracker',
   prefix: 'mca_live_12ab34cd56ef',
-  scopes: ['catalog.read'],
+  scopes: ['catalog.read', 'images.read', 'statistics.read'],
   createdAt: '2026-07-29T12:00:00.000Z',
   createdBy: 'admin-story',
   lastUsedAt: '2026-07-29T12:30:00.000Z',
@@ -16,9 +16,9 @@ const activeKey = {
 
 const client: AdminApiKeysClient = {
   list: async () => [activeKey],
-  create: async name => ({
+  create: async (name, scopes) => ({
     apiKey: ['mca', 'live', 'storyprefix', 'example-secret-visible-once-only'].join('_'),
-    key: { ...activeKey, id: 'api_key_created', name },
+    key: { ...activeKey, id: 'api_key_created', name, scopes },
   }),
   revoke: async () => {},
 };

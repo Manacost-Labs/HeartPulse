@@ -46,7 +46,13 @@ export function registerApplicationAuth<User extends { id: string }, Subscriptio
     clients: [{
       id: 'manacost-tracker',
       name: 'Manacost Tracker',
-      scopes: ['profile.read', 'subscription.read', 'catalog.read', 'images.read'],
+      scopes: [
+        'profile.read',
+        'subscription.read',
+        'catalog.read',
+        'images.read',
+        'statistics.read',
+      ],
     }],
     verificationUri: `${dependencies.appUrl.replace(/\/+$/, '')}/connect/`,
   });

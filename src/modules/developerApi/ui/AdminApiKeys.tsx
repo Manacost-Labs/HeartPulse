@@ -12,6 +12,12 @@ const formatDate = (value: string | null) => value
   ? new Date(value).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' })
   : 'ещё не использовался';
 
+const API_SCOPES = [
+  { id: 'catalog.read', label: 'Каталог карт и токенов' },
+  { id: 'images.read', label: 'Изображения карт' },
+  { id: 'statistics.read', label: 'Статистика карт и история' },
+] as const;
+
 export function AdminApiKeys({ client = adminApiKeysClient }: { client?: AdminApiKeysClient }) {
   const [keys, setKeys] = useState<AdminApiKey[]>([]);
   const [name, setName] = useState('');
@@ -20,6 +26,7 @@ export function AdminApiKeys({ client = adminApiKeysClient }: { client?: AdminAp
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState('');
+  const [scopes, setScopes] = useState<string[]>(API_SCOPES.map(scope => scope.id));
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -40,7 +47,7 @@ export function AdminApiKeys({ client = adminApiKeysClient }: { client?: AdminAp
     setSaving(true);
     setMessage('');
     try {
-      const result = await client.create(name);
+      const result = await client.create(name, scopes);
       setCreated(result);
       setKeys(current => [result.key, ...current]);
       setName('');
@@ -49,6 +56,12 @@ export function AdminApiKeys({ client = adminApiKeysClient }: { client?: AdminAp
     } finally {
       setSaving(false);
     }
+  };
+
+  const toggleScope = (scope: string) => {
+    setScopes(current => current.includes(scope)
+      ? current.filter(value => value !== scope)
+      : [...current, scope]);
   };
 
   const copy = async () => {
@@ -85,10 +98,25 @@ export function AdminApiKeys({ client = adminApiKeysClient }: { client?: AdminAp
 
       <form className="admin-api-key-form" onSubmit={create}>
         <label htmlFor="api-key-name">Название приложения</label>
-        <div><input id="api-key-name" value={name} minLength={3} maxLength={80}
+        <div><input id="api-key-name" type="text" value={name} minLength={3} maxLength={80}
           onChange={event => setName(event.target.value)} placeholder="Например, Manacost Tracker" required />
-          <button type="submit" disabled={saving}>{saving ? 'Создаём…' : 'Создать ключ'}</button></div>
-        <small>Разрешение первого релиза: <code>catalog.read</code></small>
+          <button type="submit" disabled={saving || scopes.length === 0}>
+            {saving ? 'Создаём…' : 'Создать ключ'}
+          </button></div>
+        <fieldset className="admin-api-scope-options">
+          <legend>Разрешения ключа</legend>
+          {API_SCOPES.map(scope => (
+            <label key={scope.id}>
+              <input
+                type="checkbox"
+                checked={scopes.includes(scope.id)}
+                onChange={() => toggleScope(scope.id)}
+              />
+              <span>{scope.label}</span>
+              <code>{scope.id}</code>
+            </label>
+          ))}
+        </fieldset>
       </form>
 
       {created && (

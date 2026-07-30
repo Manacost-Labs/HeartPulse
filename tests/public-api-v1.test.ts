@@ -69,7 +69,7 @@ app.use('/api/v1', createPublicApiRouter({
         return 'FORBIDDEN';
       }
       return token === 'mca_access_valid-application-token-with-sufficient-length'
-        && scopes.every(scope => ['catalog.read', 'images.read'].includes(scope))
+        && scopes.every(scope => ['catalog.read', 'images.read', 'statistics.read'].includes(scope))
         ? { userId: 'user-1' }
         : null;
     },
@@ -98,6 +98,7 @@ try {
   assert.equal(openapi.status, 200);
   const openapiPayload = await openapi.json() as Record<string, any>;
   assert.equal(openapiPayload.openapi, '3.1.0');
+  assert.equal(openapiPayload.info.version, '1.2.0');
   assert.equal(openapiPayload.components.securitySchemes.ApiKeyAuth.name, 'X-API-Key');
   assert.equal(openapiPayload.components.securitySchemes.ApplicationBearer.scheme, 'bearer');
   assert.ok(openapiPayload.paths['/api/v1/oauth/device/code']);
@@ -107,8 +108,16 @@ try {
   assert.ok(openapiPayload.paths['/api/v1/catalog/manifest']);
   assert.ok(openapiPayload.paths['/api/v1/cards']);
   assert.ok(openapiPayload.paths['/api/v1/cards/{cardId}']);
+  assert.ok(openapiPayload.paths['/api/v1/card-statistics']);
+  assert.ok(openapiPayload.paths['/api/v1/cards/{cardId}/statistics']);
+  assert.ok(openapiPayload.paths['/api/v1/cards/{cardId}/statistics/history']);
   assert.ok(openapiPayload.paths['/api/v1/cards/{cardId}/images/{variant}.webp']);
   assert.ok(openapiPayload.paths['/api/admin/api-keys']);
+  assert.deepEqual(
+    openapiPayload.components.schemas.CreateApiKeyInput.properties.scopes.items.enum,
+    ['catalog.read', 'images.read', 'statistics.read'],
+  );
+  assert.ok(openapiPayload.components.schemas.CardStatisticsMetrics);
 
   const unauthenticatedAdmin = await fetch(`${origin}/api/admin/api-keys`);
   assert.equal(unauthenticatedAdmin.status, 403);
@@ -127,7 +136,10 @@ try {
   const createdResponse = await fetch(`${origin}/api/admin/api-keys`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Admin': 'yes' },
-    body: JSON.stringify({ name: 'Desktop tracker', scopes: ['catalog.read', 'images.read'] }),
+    body: JSON.stringify({
+      name: 'Desktop tracker',
+      scopes: ['catalog.read', 'images.read', 'statistics.read'],
+    }),
   });
   assert.equal(createdResponse.status, 201);
   assert.equal(createdResponse.headers.get('cache-control'), 'private, no-store');
@@ -137,7 +149,7 @@ try {
   };
   assert.match(created.apiKey, /^mca_live_abc123def456_/);
   assert.equal(created.key.id, 'api_key_test_1');
-  assert.deepEqual(created.key.scopes, ['catalog.read', 'images.read']);
+  assert.deepEqual(created.key.scopes, ['catalog.read', 'images.read', 'statistics.read']);
   assert.equal('keyHash' in created.key, false);
 
   const stored = records.get(created.key.id);
@@ -173,9 +185,12 @@ try {
   assert.match(String(manifestResponse.headers.get('etag')), /^"/);
   const manifest = await manifestResponse.json() as Record<string, any>;
   assert.equal(manifest.apiVersion, 'v1');
-  assert.equal(manifest.schemaVersion, '2026-07-30');
+  assert.equal(manifest.schemaVersion, '2026-07-30.2');
   assert.ok(Array.isArray(manifest.resources));
   assert.ok(manifest.resources.some((resource: Record<string, unknown>) => resource.id === 'cards'));
+  assert.ok(manifest.resources.some(
+    (resource: Record<string, unknown>) => resource.id === 'card-statistics',
+  ));
   assert.equal(records.get(created.key.id)?.lastUsedAt, '2026-07-29T12:00:02.000Z');
 
   const bearerManifest = await fetch(`${origin}/api/v1/catalog/manifest`, {

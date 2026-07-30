@@ -61,6 +61,7 @@ const SCOPE_LABELS: Readonly<Record<string, string>> = {
   'subscription.read': 'Статус подписки и доступные разделы',
   'catalog.read': 'Каталог данных Manacost API',
   'images.read': 'Изображения карт через защищённый API',
+  'statistics.read': 'Статистика карт и история показателей',
 };
 
 const CONNECT_EXPIRY_FORMATTER = new Intl.DateTimeFormat('ru-RU', {

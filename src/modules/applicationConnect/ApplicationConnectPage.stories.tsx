@@ -5,7 +5,13 @@ import { ApplicationConnectView } from './ApplicationConnectPage';
 const authorization = {
   clientId: 'manacost-tracker',
   clientName: 'Manacost Tracker',
-  scopes: ['profile.read', 'subscription.read', 'catalog.read', 'images.read'],
+  scopes: [
+    'profile.read',
+    'subscription.read',
+    'catalog.read',
+    'images.read',
+    'statistics.read',
+  ],
   expiresAt: Date.UTC(2026, 6, 29, 18, 30),
 };
 

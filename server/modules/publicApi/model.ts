@@ -1,6 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 
-export const PUBLIC_API_SCOPES = ['catalog.read', 'images.read'] as const;
+export const PUBLIC_API_SCOPES = ['catalog.read', 'images.read', 'statistics.read'] as const;
 export type PublicApiScope = typeof PUBLIC_API_SCOPES[number];
 
 export type ApiKeyRecord = {

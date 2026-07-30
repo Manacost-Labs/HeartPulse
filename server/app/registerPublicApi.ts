@@ -11,6 +11,7 @@ import {
   createSqliteApiKeyRepository,
   initializePublicApiKeyRepository,
 } from '../modules/publicApi/public.js';
+import type { ConstructedCardDataService } from '../constructedCardRoutes.js';
 
 type RegisterPublicApiDependencies<TAdmin> = {
   app: Application;
@@ -28,7 +29,29 @@ type RegisterPublicApiDependencies<TAdmin> = {
   cardImageDependencies?: CardImageRouterDependencies;
   accessTokens?: Parameters<typeof createPublicApiRouter>[0]['accessTokens'];
   cardCatalog?: Parameters<typeof createPublicApiRouter>[0]['cardCatalog'];
+  cardStatistics?: Parameters<typeof createPublicApiRouter>[0]['cardStatistics'];
 };
+
+/**
+ * Keeps the composition root independent from the public serializers while
+ * delaying service resolution until after the constructed-card service boots.
+ */
+export function createPublicApiCardSources(
+  getService: () => ConstructedCardDataService,
+): Pick<RegisterPublicApiDependencies<unknown>, 'cardCatalog' | 'cardStatistics'> {
+  return {
+    cardCatalog: {
+      loadCards: format => getService().loadCards(format),
+      loadCardDetail: (format, cardId) => getService().loadCardDetail(format, cardId),
+    },
+    cardStatistics: {
+      loadCards: (format, period, rank) => getService().loadCards(format, period, rank),
+      loadCardHistory: (format, cardId, period, rank, days) => (
+        getService().loadCardHistory(format, cardId, period, rank, days)
+      ),
+    },
+  };
+}
 
 /** Registers the public API and its administrator credential lifecycle. */
 export function registerPublicApi<TAdmin>(dependencies: RegisterPublicApiDependencies<TAdmin>): void {
@@ -40,6 +63,7 @@ export function registerPublicApi<TAdmin>(dependencies: RegisterPublicApiDepende
     apiKeys,
     accessTokens: dependencies.accessTokens,
     cardCatalog: dependencies.cardCatalog,
+    cardStatistics: dependencies.cardStatistics,
     cardImages: dependencies.cardImageDependencies
       ? { respond: createCardImageResponder(dependencies.cardImageDependencies) }
       : undefined,

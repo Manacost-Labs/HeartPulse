@@ -83,7 +83,13 @@ const manager = createApplicationAuthManager({
   clients: [{
     id: 'manacost-tracker',
     name: 'Manacost Tracker',
-    scopes: ['profile.read', 'subscription.read', 'catalog.read', 'images.read'],
+    scopes: [
+      'profile.read',
+      'subscription.read',
+      'catalog.read',
+      'images.read',
+      'statistics.read',
+    ],
   }],
   verificationUri: 'https://arena.hs-manacost.ru/connect',
   now: () => now,
@@ -103,7 +109,7 @@ assert.throws(
 
 const authorization = manager.begin({
   clientId: 'manacost-tracker',
-  scope: 'profile.read subscription.read images.read',
+  scope: 'profile.read subscription.read images.read statistics.read',
 });
 assert.equal(authorization.userCode, 'ABCD-EFGH');
 assert.equal(
@@ -149,6 +155,7 @@ assert.notEqual(authenticated, null);
 assert.notEqual(authenticated, 'FORBIDDEN');
 assert.equal(authenticated && authenticated !== 'FORBIDDEN' && authenticated.userId, 'user-1');
 assert.equal(manager.authenticate(issued.accessToken, ['catalog.read']), 'FORBIDDEN');
+assert.notEqual(manager.authenticate(issued.accessToken, ['statistics.read']), 'FORBIDDEN');
 
 const rotated = manager.refresh({
   clientId: 'manacost-tracker',
