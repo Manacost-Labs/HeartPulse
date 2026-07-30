@@ -222,8 +222,11 @@ function ArenaCombinationPanel({ payload }: { payload: ArenaSynergyPayload }) {
               );
             })}
           </ul>
-          <div className="arena-synergy-table-wrap">
-            <table className="arena-synergy-table">
+          <section
+            className="arena-synergy-table-wrap"
+            aria-label="Таблица сочетаний карт"
+          >
+            <table className="arena-synergy-table" tabIndex={0}>
               <caption className="sr-only">Сильные сочетания карт Арены</caption>
               <thead>
                 <tr>
@@ -307,7 +310,7 @@ function ArenaCombinationPanel({ payload }: { payload: ArenaSynergyPayload }) {
                 })}
               </tbody>
             </table>
-          </div>
+          </section>
         </>
       ) : (
         <output className="arena-synergy-empty">
@@ -362,8 +365,11 @@ function ArenaRedraftPanel({
         ))}
       </fieldset>
       {rows.length ? (
-        <div className="arena-synergy-table-wrap">
-          <table className="arena-synergy-table arena-redraft-table">
+        <section
+          className="arena-synergy-table-wrap"
+          aria-label="Таблица решений redraft"
+        >
+          <table className="arena-synergy-table arena-redraft-table" tabIndex={0}>
             <caption className="sr-only">Статистика добавлений и сбросов redraft</caption>
             <thead>
               <tr>
@@ -397,7 +403,7 @@ function ArenaRedraftPanel({
               ))}
             </tbody>
           </table>
-        </div>
+        </section>
       ) : (
         <output className="arena-synergy-empty">
           В выбранной выборке нет данных redraft.

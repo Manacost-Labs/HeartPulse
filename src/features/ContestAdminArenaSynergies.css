@@ -375,6 +375,11 @@
   overflow-x: auto;
 }
 
+.arena-synergy-table:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--admin-blue, #168bd2) 45%, transparent);
+  outline-offset: -3px;
+}
+
 .arena-synergy-table {
   width: 100%;
   border-collapse: collapse;
