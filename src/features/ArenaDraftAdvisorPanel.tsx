@@ -14,6 +14,7 @@ import {
 import type {
   ArenaDraftAdvice,
   ArenaDraftChoice,
+  ArenaDraftModel,
   ArenaSynergyPayload,
 } from '../../shared/arenaSynergyContract';
 import { ArenaSynergyCardIdentity } from './ArenaSynergyCardIdentity';
@@ -70,9 +71,11 @@ function DecisionMeter({
 function AdviceCard({
   choice,
   isWinner,
+  model,
 }: {
   choice: ArenaDraftChoice;
   isWinner: boolean;
+  model: ArenaDraftModel;
 }) {
   return (
     <article className={`arena-draft-choice${isWinner ? ' is-winner' : ''}`}>
@@ -88,9 +91,21 @@ function AdviceCard({
       </header>
 
       <div className="arena-draft-decision-scale" aria-label="Состав оценки">
-        <DecisionMeter label="Сила карты" value={choice.components.base} weight="50%" />
-        <DecisionMeter label="Связки" value={choice.components.synergy} weight="35%" />
-        <DecisionMeter label="Манакривая" value={choice.components.curve} weight="15%" />
+        <DecisionMeter
+          label="Сила карты"
+          value={choice.components.base}
+          weight={`${Math.round(model.weights.base * 100)}%`}
+        />
+        <DecisionMeter
+          label="Связки"
+          value={choice.components.synergy}
+          weight={`${Math.round(model.weights.synergy * 100)}%`}
+        />
+        <DecisionMeter
+          label="Манакривая"
+          value={choice.components.curve}
+          weight={`${Math.round(model.weights.curve * 100)}%`}
+        />
       </div>
 
       <span className={`arena-draft-confidence is-${choice.confidence}`}>
@@ -198,7 +213,7 @@ export function ArenaDraftAdvisorPanel({ payload }: { payload: ArenaSynergyPaylo
             Это рейтинг выбора, а не прогноз побед.
           </p>
         </div>
-        <span>Черновик v1</span>
+        <span>Черновик v2</span>
       </div>
 
       {reason ? (
@@ -298,9 +313,10 @@ export function ArenaDraftAdvisorPanel({ payload }: { payload: ArenaSynergyPaylo
             <p>Выберите карты в том же порядке, в котором видите их в игре.</p>
             <div>
               {CANDIDATE_SLOTS.map((slot, index) => (
-                <label key={slot.id}>
+                <label key={slot.id} htmlFor={`arena-draft-candidate-${slot.id}`}>
                   <span>Вариант {slot.label}</span>
                   <select
+                    id={`arena-draft-candidate-${slot.id}`}
                     value={candidateIds[index]}
                     onChange={event => setCandidate(index, event.target.value)}
                   >
@@ -354,6 +370,7 @@ export function ArenaDraftAdvisorPanel({ payload }: { payload: ArenaSynergyPaylo
                       key={choice.card.id}
                       choice={choice}
                       isWinner={choice.rank === 1}
+                      model={adviceState.advice.model}
                     />
                   ))}
                 </div>

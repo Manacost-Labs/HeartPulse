@@ -1,5 +1,15 @@
 # HS-Arena Changelog
 
+## v1.0.86 - 2026-07-30
+
+- Added the administrator-only `POST /api/admin/arena-draft-advice` contract for
+  same-origin application integrations, with bounded input, CSRF protection,
+  cohort metadata and redacted upstream failures.
+- Changed draft ranking weights by draft stage, kept early curve estimates
+  close to neutral and exposed the active model weights in every result.
+- Added current-cohort copy profiles and a bounded penalty only when the next
+  copy exceeds the typical count observed in successful decks.
+
 ## v1.0.85 - 2026-07-30
 
 - Added an administrator-only shadow draft advisor that ranks three offered

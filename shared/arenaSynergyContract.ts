@@ -142,14 +142,36 @@ export type ArenaDraftCurveBucket = {
   targetCount: number;
 };
 
+export type ArenaDraftCardCopyProfile = {
+  cardId: string;
+  averageCopiesWhenPresent: number;
+  multiCopyShare: number;
+  maxObservedCopies: number;
+};
+
 export type ArenaDraftAdvisorContext = {
   status: 'shadow';
   deckSize: 30;
   minimumRuns: number;
   cards: ArenaSynergyCard[];
+  copyProfiles?: ArenaDraftCardCopyProfile[];
   targetCurve: ArenaDraftCurveBucket[];
   pairCoverage: number;
   limitations: string[];
+};
+
+export type ArenaDraftStage = 'early' | 'middle' | 'late';
+
+export type ArenaDraftWeights = {
+  base: number;
+  synergy: number;
+  curve: number;
+};
+
+export type ArenaDraftModel = {
+  id: 'arena-draft-advisor-v2';
+  stage: ArenaDraftStage;
+  weights: ArenaDraftWeights;
 };
 
 export type ArenaDraftSynergyEvidence = {
@@ -168,6 +190,7 @@ export type ArenaDraftChoice = {
     base: number;
     synergy: number;
     curve: number;
+    redundancyPenalty: number;
   };
   confidence: 'high' | 'medium' | 'low';
   synergies: ArenaDraftSynergyEvidence[];
@@ -176,9 +199,31 @@ export type ArenaDraftChoice = {
 };
 
 export type ArenaDraftAdvice = {
+  model: ArenaDraftModel;
   choices: ArenaDraftChoice[];
   isCloseDecision: boolean;
   limitations: string[];
+};
+
+export type ArenaDraftAdviceRequest = {
+  class: Exclude<ArenaClassId, 'ALL'>;
+  deckCardIds: string[];
+  candidateCardIds: [string, string, string];
+};
+
+export type ArenaDraftAdviceResponse = {
+  schemaVersion: 1;
+  generatedAt: string;
+  selectedClass: Exclude<ArenaClassId, 'ALL'>;
+  model: ArenaDraftModel;
+  cohort: ArenaSynergyPayload['cohort'];
+  sample: {
+    runsAnalyzed: number;
+    dataQualityStatus: ArenaDataQuality['status'];
+    sampleMode: ArenaReliability['sampleMode'];
+    servedFrom: ArenaReliability['servedFrom'];
+  };
+  advice: Omit<ArenaDraftAdvice, 'model'>;
 };
 
 export type ArenaSynergyPayload = {

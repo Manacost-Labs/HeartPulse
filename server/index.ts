@@ -9822,7 +9822,7 @@ app.use('/api', createAdminFunDecksRouter({
   onError: error => console.error('[admin fun decks]', error instanceof Error ? error.message : error),
 }));
 
-app.use('/api', createAdminArenaSynergyServiceRouter({ adminGuard: adminIdGuard, setPrivateNoStore, fetchDataset, stateDirectory: DATA_DIR }));
+app.use('/api', createAdminArenaSynergyServiceRouter({ adminGuard: adminIdGuard, setPrivateNoStore, csrfAllowed: cookieMutationCsrfAllowed, fetchDataset, stateDirectory: DATA_DIR }));
 
 async function invalidateParserControlledDataCaches(): Promise<void> {
   await clearParserDataCaches({

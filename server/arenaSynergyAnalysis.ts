@@ -5,6 +5,7 @@ import {
   type ArenaClassId,
   type ArenaCombination,
   type ArenaDraftAdvisorContext,
+  type ArenaDraftCardCopyProfile,
   type ArenaDraftCurveBucket,
   type ArenaRedraftCard,
   type ArenaSynergyCard,
@@ -637,6 +638,12 @@ function buildDraftAdvisorContext(
 ): ArenaDraftAdvisorContext | undefined {
   if (runs.length < 20) return undefined;
   const cardRuns = new Map<string, number>();
+  const copyCounts = new Map<string, {
+    copies: number;
+    presentRuns: number;
+    multiCopyRuns: number;
+    maxObservedCopies: number;
+  }>();
   const bucketCopies = new Map<ArenaDraftCurveBucket['id'], number>([
     ['LOW', 0],
     ['MID', 0],
@@ -645,8 +652,23 @@ function buildDraftAdvisorContext(
   ]);
   let knownCostCopies = 0;
   for (const run of runs) {
-    for (const id of new Set(run.cards.map(card => card.id))) {
+    const copiesInRun = new Map<string, number>();
+    for (const card of run.cards) {
+      copiesInRun.set(card.id, (copiesInRun.get(card.id) ?? 0) + card.count);
+    }
+    for (const [id, copies] of copiesInRun) {
       cardRuns.set(id, (cardRuns.get(id) ?? 0) + 1);
+      const current = copyCounts.get(id) ?? {
+        copies: 0,
+        presentRuns: 0,
+        multiCopyRuns: 0,
+        maxObservedCopies: 0,
+      };
+      current.copies += copies;
+      current.presentRuns += 1;
+      if (copies >= 2) current.multiCopyRuns += 1;
+      current.maxObservedCopies = Math.max(current.maxObservedCopies, copies);
+      copyCounts.set(id, current);
     }
     for (const card of run.cards) {
       const bucket = draftCurveBucket(card.cost);
@@ -694,12 +716,28 @@ function buildDraftAdvisorContext(
       left.name.localeCompare(right.name, 'ru')
       || left.id.localeCompare(right.id)
     ));
+  const copyProfiles = cards.map((card): ArenaDraftCardCopyProfile => {
+    const counts = copyCounts.get(card.id);
+    return {
+      cardId: card.id,
+      averageCopiesWhenPresent: round(
+        counts && counts.presentRuns ? counts.copies / counts.presentRuns : 1,
+        2,
+      ),
+      multiCopyShare: round(
+        counts && counts.presentRuns ? counts.multiCopyRuns / counts.presentRuns : 0,
+        3,
+      ),
+      maxObservedCopies: counts?.maxObservedCopies ?? 1,
+    };
+  });
 
   return {
     status: 'shadow',
     deckSize: 30,
     minimumRuns: Math.max(12, minimumRuns),
     cards,
+    copyProfiles,
     targetCurve,
     pairCoverage: combinations.length,
     limitations: [

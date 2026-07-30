@@ -1,4 +1,4 @@
-import type { RequestHandler, Response, Router } from 'express';
+import type { Request, RequestHandler, Response, Router } from 'express';
 import type {
   ArenaClassId,
   ArenaSynergyPayload,
@@ -21,6 +21,7 @@ type ArenaSynergySourceCache = {
 export type AdminArenaSynergyServiceDependencies = {
   adminGuard: RequestHandler;
   setPrivateNoStore: (response: Response) => void;
+  csrfAllowed: (request: Request) => boolean;
   stateDirectory: string;
   fetchDataset: (datasetId: string, timeoutMs?: number) => Promise<unknown>;
   now?: () => Date;
@@ -173,6 +174,7 @@ export function createAdminArenaSynergyServiceRouter(
   return createAdminArenaSynergyRouter({
     adminGuard: dependencies.adminGuard,
     setPrivateNoStore: dependencies.setPrivateNoStore,
+    csrfAllowed: dependencies.csrfAllowed,
     loadAnalysis,
     onError: reportError,
   });

@@ -92,6 +92,20 @@ const baseContext: ArenaDraftAdvisorContext = {
   deckSize: 30,
   minimumRuns: 20,
   cards: [partner, strong, synergistic, curveFit, ...fillerCards],
+  copyProfiles: [
+    {
+      cardId: strong.id,
+      averageCopiesWhenPresent: 2,
+      multiCopyShare: 0.7,
+      maxObservedCopies: 3,
+    },
+    {
+      cardId: curveFit.id,
+      averageCopiesWhenPresent: 1.1,
+      multiCopyShare: 0.1,
+      maxObservedCopies: 2,
+    },
+  ],
   targetCurve: [
     { id: 'LOW', label: '0–2', minimumCost: 0, maximumCost: 2, targetShare: 0.4, targetCount: 12 },
     { id: 'MID', label: '3–4', minimumCost: 3, maximumCost: 4, targetShare: 0.33, targetCount: 10 },
@@ -119,6 +133,82 @@ assert.ok(confirmedResult.choices[0].components.synergy > 50);
 assert.equal(confirmedResult.choices[0].synergies[0]?.partner.id, partner.id);
 assert.equal(confirmedResult.choices[0].synergies[0]?.classification, 'confirmed');
 assert.ok(confirmedResult.choices[0].reasons.some(reason => reason.includes('подтвержд')));
+assert.deepEqual(confirmedResult.model, {
+  id: 'arena-draft-advisor-v2',
+  stage: 'early',
+  weights: { base: 0.65, synergy: 0.2, curve: 0.15 },
+});
+
+const emptyDeckResult = rankArenaDraftChoices({
+  context: baseContext,
+  combinations: [],
+  deckCardIds: [],
+  candidateCardIds: [strong.id, synergistic.id, curveFit.id],
+});
+assert.ok(
+  emptyDeckResult.choices.every(choice => choice.components.curve === 50),
+  'the first pick must not pretend that a single card defines a completed mana curve',
+);
+
+const middleDeckResult = rankArenaDraftChoices({
+  context: baseContext,
+  combinations: [],
+  deckCardIds: Array.from({ length: 10 }, () => partner.id),
+  candidateCardIds: [strong.id, synergistic.id, curveFit.id],
+});
+assert.deepEqual(middleDeckResult.model, {
+  id: 'arena-draft-advisor-v2',
+  stage: 'middle',
+  weights: { base: 0.5, synergy: 0.3, curve: 0.2 },
+});
+
+const lateDeckResult = rankArenaDraftChoices({
+  context: baseContext,
+  combinations: [],
+  deckCardIds: Array.from({ length: 20 }, () => partner.id),
+  candidateCardIds: [strong.id, synergistic.id, curveFit.id],
+});
+assert.deepEqual(lateDeckResult.model, {
+  id: 'arena-draft-advisor-v2',
+  stage: 'late',
+  weights: { base: 0.35, synergy: 0.4, curve: 0.25 },
+});
+
+const secondCopyResult = rankArenaDraftChoices({
+  context: baseContext,
+  combinations: [],
+  deckCardIds: [strong.id],
+  candidateCardIds: [strong.id, synergistic.id, curveFit.id],
+});
+assert.equal(
+  secondCopyResult.choices.find(choice => choice.card.id === strong.id)
+    ?.components.redundancyPenalty,
+  0,
+  'a copy count commonly present in successful decks must not be penalized',
+);
+
+const thirdCopyResult = rankArenaDraftChoices({
+  context: baseContext,
+  combinations: [],
+  deckCardIds: [strong.id, strong.id],
+  candidateCardIds: [strong.id, synergistic.id, curveFit.id],
+});
+const redundantStrong = thirdCopyResult.choices.find(choice => choice.card.id === strong.id);
+assert.equal(redundantStrong?.components.redundancyPenalty, 4);
+assert.ok(redundantStrong?.warnings.some(warning => warning.includes('коп')));
+
+const rareSecondCopyResult = rankArenaDraftChoices({
+  context: baseContext,
+  combinations: [],
+  deckCardIds: [curveFit.id],
+  candidateCardIds: [strong.id, synergistic.id, curveFit.id],
+});
+assert.equal(
+  rareSecondCopyResult.choices.find(choice => choice.card.id === curveFit.id)
+    ?.components.redundancyPenalty,
+  4,
+  'a rare outlier with two copies must not make two copies typical',
+);
 
 const popularResult = rankArenaDraftChoices({
   context: baseContext,

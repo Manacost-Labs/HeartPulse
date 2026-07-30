@@ -163,6 +163,19 @@ assert.equal(result.draftAdvisor.deckSize, 30);
 assert.equal(result.draftAdvisor.minimumRuns, 12);
 assert.ok(result.draftAdvisor.cards.some(item => item.id === A.id));
 assert.ok(result.draftAdvisor.cards.every(item => item.runs > 0));
+assert.ok(
+  result.draftAdvisor.copyProfiles.some(profile => profile.cardId === A.id),
+  'the model must receive copy-count evidence from the same successful cohort',
+);
+assert.deepEqual(
+  result.draftAdvisor.copyProfiles.find(profile => profile.cardId === X.id),
+  {
+    cardId: X.id,
+    averageCopiesWhenPresent: 1,
+    multiCopyShare: 0,
+    maxObservedCopies: 1,
+  },
+);
 assert.equal(
   Math.round(result.draftAdvisor.targetCurve.reduce((sum, bucket) => sum + bucket.targetShare, 0) * 100),
   100,

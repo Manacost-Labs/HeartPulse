@@ -419,7 +419,7 @@ export const DraftAdvisor: Story = {
   },
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole('tab', { name: 'Помощник драфта' }));
-    await expect(canvas.getByText('Черновик v1')).toBeVisible();
+    await expect(canvas.getByText('Черновик v2')).toBeVisible();
 
     await userEvent.selectOptions(
       canvas.getByLabelText('Карта для добавления'),
@@ -435,6 +435,9 @@ export const DraftAdvisor: Story = {
     await userEvent.selectOptions(canvas.getByLabelText('Вариант 3'), 'JAIL_733');
 
     await expect(canvas.getAllByRole('meter')).toHaveLength(9);
+    await expect(canvas.getAllByText('вес 65%')).toHaveLength(3);
+    await expect(canvas.getAllByText('вес 20%')).toHaveLength(3);
+    await expect(canvas.getAllByText('вес 15%')).toHaveLength(3);
     await expect(canvas.getAllByText(/уверенность/i)).toHaveLength(3);
   },
 };

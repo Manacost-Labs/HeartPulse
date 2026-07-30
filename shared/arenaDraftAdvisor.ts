@@ -3,6 +3,8 @@ import type {
   ArenaDraftAdvice,
   ArenaDraftAdvisorContext,
   ArenaDraftChoice,
+  ArenaDraftCardCopyProfile,
+  ArenaDraftModel,
   ArenaDraftCurveBucket,
   ArenaDraftSynergyEvidence,
   ArenaSynergyCard,
@@ -34,6 +36,24 @@ export type RankArenaDraftChoicesInput = {
 
 const SYNERGY_DECAY = [1, 0.6, 0.35] as const;
 const MAX_CONTRIBUTING_SYNERGIES = SYNERGY_DECAY.length;
+const CONTROLLED_DELTA_TO_COMPONENT_POINTS = 14;
+const STAGE_MODELS: Record<ArenaDraftModel['stage'], ArenaDraftModel> = {
+  early: {
+    id: 'arena-draft-advisor-v2',
+    stage: 'early',
+    weights: { base: 0.65, synergy: 0.2, curve: 0.15 },
+  },
+  middle: {
+    id: 'arena-draft-advisor-v2',
+    stage: 'middle',
+    weights: { base: 0.5, synergy: 0.3, curve: 0.2 },
+  },
+  late: {
+    id: 'arena-draft-advisor-v2',
+    stage: 'late',
+    weights: { base: 0.35, synergy: 0.4, curve: 0.25 },
+  },
+};
 
 function clamp(value: number, minimum = 0, maximum = 100): number {
   return Math.min(maximum, Math.max(minimum, value));
@@ -125,7 +145,36 @@ function curveScore(
   const distance = buckets.reduce((sum, bucket) => (
     sum + Math.abs((counts.get(bucket.id) ?? 0) / knownCards - bucket.targetShare)
   ), 0);
-  return round(clamp((1 - distance / 2) * 100));
+  const completedDeckScore = clamp((1 - distance / 2) * 100);
+  const curveEvidenceWeight = clamp(deckCards.length / 10, 0, 1);
+  return round(50 + (completedDeckScore - 50) * curveEvidenceWeight);
+}
+
+function draftModel(deckSize: number): ArenaDraftModel {
+  if (deckSize < 10) return STAGE_MODELS.early;
+  if (deckSize < 20) return STAGE_MODELS.middle;
+  return STAGE_MODELS.late;
+}
+
+function redundancyPenalty(
+  cardId: string,
+  deckCardIds: string[],
+  copyProfiles: ArenaDraftCardCopyProfile[],
+): number {
+  const profile = copyProfiles.find(item => item.cardId === cardId);
+  if (!profile) return 0;
+  const currentCopies = deckCardIds.reduce(
+    (count, deckCardId) => count + Number(deckCardId === cardId),
+    0,
+  );
+  const nextCopies = currentCopies + 1;
+  const typicalCopies = Math.max(
+    1,
+    Math.min(profile.maxObservedCopies, Math.round(profile.averageCopiesWhenPresent)),
+  );
+  return nextCopies > typicalCopies
+    ? Math.min(12, (nextCopies - typicalCopies) * 4)
+    : 0;
 }
 
 function synergyEvidence(
@@ -163,7 +212,9 @@ function synergyEvidence(
       classification: combination.classification,
       deltaPoints: round(deltaPoints),
       observedRuns: combination.observedRuns,
-      contribution: round(deltaPoints * 10 * classificationWeight),
+      contribution: round(
+        deltaPoints * CONTROLLED_DELTA_TO_COMPONENT_POINTS * classificationWeight,
+      ),
     });
   }
   const synergies = candidates
@@ -228,12 +279,16 @@ function choiceReasons(
   } else if (components.curve < 40) {
     reasons.push('По манакривой этот слот уже заполнен лучше других.');
   }
+  if (components.redundancyPenalty > 0) {
+    reasons.push('Такое количество копий встречается в успешных колодах заметно реже.');
+  }
   return reasons;
 }
 
 function choiceWarnings(
   card: ArenaSynergyCard,
   popularPairs: number,
+  redundancy: number,
 ): string[] {
   const warnings: string[] = [];
   if (card.deckWinRate == null) {
@@ -246,6 +301,11 @@ function choiceWarnings(
     warnings.push(
       `${popularPairs} популярн${popularPairs === 1 ? 'ая пара не учтена' : 'ые пары не учтены'} `
       + 'без доказанного дополнительного эффекта.',
+    );
+  }
+  if (redundancy > 0) {
+    warnings.push(
+      `Штраф ${round(redundancy)} балла за лишнюю копию основан только на текущей выборке 12-победных колод.`,
     );
   }
   return warnings;
@@ -284,6 +344,7 @@ export function rankArenaDraftChoices(input: RankArenaDraftChoicesInput): ArenaD
   const deckCards = input.deckCardIds.map(id => cardsById.get(id)!);
   const uniqueDeckCardIds = new Set(input.deckCardIds);
   const percentiles = percentileScores(input.context.cards);
+  const model = draftModel(input.deckCardIds.length);
   const combinationsByPair = new Map(input.combinations.map(combination => [
     pairKey(combination.cards[0].id, combination.cards[1].id),
     combination,
@@ -297,15 +358,22 @@ export function rankArenaDraftChoices(input: RankArenaDraftChoicesInput): ArenaD
       cardsById,
       combinationsByPair,
     );
+    const redundancy = redundancyPenalty(
+      card.id,
+      input.deckCardIds,
+      input.context.copyProfiles ?? [],
+    );
     const components = {
       base: baseScore(card, percentiles, input.context.minimumRuns),
       synergy: synergy.score,
       curve: curveScore(card, deckCards, input.context.targetCurve),
+      redundancyPenalty: redundancy,
     };
     const score = round(
-      components.base * 0.5
-      + components.synergy * 0.35
-      + components.curve * 0.15,
+      components.base * model.weights.base
+      + components.synergy * model.weights.synergy
+      + components.curve * model.weights.curve
+      - components.redundancyPenalty,
     );
     return {
       rank: 0,
@@ -315,7 +383,7 @@ export function rankArenaDraftChoices(input: RankArenaDraftChoicesInput): ArenaD
       confidence: choiceConfidence(card, synergy.synergies, input.context.minimumRuns),
       synergies: synergy.synergies,
       reasons: choiceReasons(card, components, synergy.synergies),
-      warnings: choiceWarnings(card, synergy.popularPairs),
+      warnings: choiceWarnings(card, synergy.popularPairs, redundancy),
     } satisfies ArenaDraftChoice;
   }).sort((left, right) => (
     right.score - left.score
@@ -324,6 +392,7 @@ export function rankArenaDraftChoices(input: RankArenaDraftChoicesInput): ArenaD
   )).map((choice, index) => ({ ...choice, rank: index + 1 }));
 
   return {
+    model,
     choices,
     isCloseDecision: choices.length >= 2 && choices[0].score - choices[1].score < 2,
     limitations: input.context.limitations,

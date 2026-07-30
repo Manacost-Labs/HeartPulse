@@ -14,6 +14,7 @@ app.use('/api', createAdminArenaSynergyRouter({
       : response.status(401).json({ error: 'Требуется вход' })
   ),
   setPrivateNoStore: response => response.set('Cache-Control', 'private, no-store'),
+  csrfAllowed: () => true,
   loadAnalysis: async (className, options) => {
     requestedClass = className;
     forceRefresh = options.forceRefresh;
