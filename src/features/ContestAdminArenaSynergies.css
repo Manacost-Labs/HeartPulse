@@ -302,11 +302,77 @@
   font-size: 0.82rem;
 }
 
+.arena-synergy-category-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.65rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.arena-synergy-category-summary li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.25rem 0.65rem;
+  min-width: 0;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid var(--admin-divider, #d8e0e8);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.arena-synergy-category-summary strong {
+  align-self: center;
+  color: #243d50;
+  font-size: 1.05rem;
+}
+
+.arena-synergy-category-summary small {
+  grid-column: 1 / -1;
+  color: var(--admin-muted, #607080);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.arena-synergy-classification {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  gap: 0.3rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid #b9c7d2;
+  border-radius: 999px;
+  color: #425464;
+  background: #f4f7f9;
+  font-size: 0.7rem;
+  font-weight: 780;
+  white-space: nowrap;
+}
+
+.arena-synergy-classification.is-confirmed {
+  border-color: #8bc5aa;
+  color: #17623e;
+  background: #effaf4;
+}
+
+.arena-synergy-classification.is-promising {
+  border-color: #8bbbd4;
+  color: #145978;
+  background: #eff8fc;
+}
+
+.arena-synergy-classification.is-legacy {
+  border-color: #d6af56;
+  color: #6b4a05;
+  background: #fff8e8;
+}
+
 .arena-synergy-table-wrap {
   max-width: 100%;
   border: 1px solid var(--admin-divider, #d8e0e8);
   border-radius: 8px;
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .arena-synergy-table {
@@ -515,6 +581,10 @@
 
   .arena-synergy-pair > span[aria-hidden] {
     display: none;
+  }
+
+  .arena-synergy-category-summary {
+    grid-template-columns: 1fr;
   }
 }
 

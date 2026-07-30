@@ -3,12 +3,16 @@ import {
   AlertTriangle,
   ArrowDownToLine,
   ArrowUpFromLine,
+  BadgeCheck,
   Combine,
   Info,
   RefreshCw,
   Repeat2,
+  Sparkles,
+  UsersRound,
 } from 'lucide-react';
 import type {
+  ArenaCombination,
   ArenaClassId,
   ArenaRedraftCard,
   ArenaSynergyCard,
@@ -18,6 +22,38 @@ import './ContestAdminArenaSynergies.css';
 
 type AnalyticsTab = 'combinations' | 'redraft';
 type RedraftSort = 'added' | 'discarded' | 'net' | 'decisions';
+type PairClassification = NonNullable<ArenaCombination['classification']>;
+type DisplayClassification = PairClassification | 'legacy';
+
+const PAIR_CLASSIFICATION_ORDER: DisplayClassification[] = [
+  'confirmed',
+  'promising',
+  'popular',
+  'legacy',
+];
+
+const PAIR_CLASSIFICATION_META = {
+  confirmed: {
+    label: 'Подтверждена',
+    explanation: 'Выше похожих колод, данных достаточно',
+    Icon: BadgeCheck,
+  },
+  promising: {
+    label: 'Перспективная',
+    explanation: 'Эффект есть, но нужно больше подтверждений',
+    Icon: Sparkles,
+  },
+  popular: {
+    label: 'Просто популярная',
+    explanation: 'Часто вместе, отдельный эффект не доказан',
+    Icon: UsersRound,
+  },
+  legacy: {
+    label: 'Старый расчёт',
+    explanation: 'Для сохранённого снимка контроль ещё не рассчитывался',
+    Icon: AlertTriangle,
+  },
+} as const;
 
 export type ArenaSynergyPanelProps = {
   payload: ArenaSynergyPayload | null;
@@ -74,6 +110,21 @@ function interactionLabel(value: ArenaSynergyPayload['combinations'][number]['in
   if (value === 'negative') return 'Вместе слабее ожидания';
   if (value === 'neutral') return 'Без заметного прироста';
   return 'Мало данных';
+}
+
+function displayClassification(combination: ArenaCombination): DisplayClassification {
+  return combination.classification ?? 'legacy';
+}
+
+function PairClassificationBadge({ value }: { value: DisplayClassification }) {
+  const { Icon, label } = PAIR_CLASSIFICATION_META[value];
+
+  return (
+    <span className={`arena-synergy-classification is-${value}`}>
+      <Icon size={14} aria-hidden="true" />
+      {label}
+    </span>
+  );
 }
 
 function CardIdentity({ card }: { card: ArenaSynergyCard }) {
@@ -137,88 +188,127 @@ function ArenaDataQualityPanel({ payload }: { payload: ArenaSynergyPayload }) {
 }
 
 function ArenaCombinationPanel({ payload }: { payload: ArenaSynergyPayload }) {
+  const categoryCounts = payload.combinations.reduce<Record<DisplayClassification, number>>(
+    (counts, combination) => {
+      counts[displayClassification(combination)] += 1;
+      return counts;
+    },
+    { confirmed: 0, promising: 0, popular: 0, legacy: 0 },
+  );
+
   return (
     <div role="tabpanel" className="arena-synergy-section">
       <div className="arena-synergy-section-heading">
         <div>
-          <h3>Связки чаще ожидаемого и их дополнительный эффект</h3>
+          <h3>Связки и дополнительный эффект пары</h3>
           <p>
-            Lift отвечает за совместную встречаемость. Дополнительный эффект сравнивает
-            качество забегов пары с ожиданием от каждой карты отдельно.
+            Каждая пара сравнивается с похожими колодами того же класса и патча,
+            но без обеих карт. Lift показывает только совместную популярность.
           </p>
         </div>
         <span>{payload.combinations.length} связок</span>
       </div>
       {payload.combinations.length ? (
-        <div className="arena-synergy-table-wrap">
-          <table className="arena-synergy-table">
-            <caption className="sr-only">Сильные сочетания карт Арены</caption>
-            <thead>
-              <tr>
-                <th scope="col">Карты</th>
-                <th scope="col">Вместе</th>
-                <th scope="col">Ожидалось</th>
-                <th scope="col">Lift</th>
-                <th scope="col">Доп. эффект</th>
-                <th scope="col">Сигнал</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payload.combinations.map(combination => (
-                <tr key={combination.cards.map(card => card.id).join(':')}>
-                  <td data-label="Карты">
-                    <div className="arena-synergy-pair">
-                      <CardIdentity card={combination.cards[0]} />
-                      <span aria-hidden="true">+</span>
-                      <CardIdentity card={combination.cards[1]} />
-                    </div>
-                  </td>
-                  <td data-label="Вместе">
-                    <strong>{combination.observedRuns}</strong>
-                    <small>{formatPercent(combination.supportPercent)} колод</small>
-                  </td>
-                  <td data-label="Ожидалось">{combination.expectedRuns.toLocaleString('ru-RU')}</td>
-                  <td data-label="Lift">
-                    <strong>×{combination.adjustedLift.toFixed(2)}</strong>
-                    {combination.historicalWeight > 0 && (
-                      <small>
-                        текущий ×{combination.lift.toFixed(2)}
-                        {' · '}история {formatPercent(combination.historicalWeight * 100)}
-                      </small>
-                    )}
-                  </td>
-                  <td data-label="Доп. эффект">
-                    <strong className={`arena-synergy-interaction is-${combination.interactionSignal}`}>
-                      {combination.adjustedInteractionDeltaPoints > 0 ? '+' : ''}
-                      {combination.adjustedInteractionDeltaPoints.toFixed(1)} п.п.
-                    </strong>
-                    <small>
-                      ожидание {formatPercent(combination.expectedRunQuality)}
-                      {' → '}факт {formatPercent(combination.actualRunQuality)}
-                    </small>
-                    <small>
-                      A без B {formatPercent(combination.interactionEvidence.cardAQuality)}
-                      {' · '}B без A {formatPercent(combination.interactionEvidence.cardBQuality)}
-                      {' · '}база {formatPercent(combination.interactionEvidence.classBaselineQuality)}
-                    </small>
-                    <small>
-                      отдельно {combination.interactionEvidence.cardARuns}
-                      {' / '}{combination.interactionEvidence.cardBRuns}
-                      {' · '}вместе {combination.interactionEvidence.pairRuns}
-                    </small>
-                  </td>
-                  <td data-label="Сигнал">
-                    <span className={`arena-synergy-confidence is-${combination.confidence}`}>
-                      {confidenceLabel(combination.confidence)}
-                    </span>
-                    <small>оценка {combination.score}/100</small>
-                    <small>{interactionLabel(combination.interactionSignal)}</small>
-                  </td>
+        <>
+          <ul className="arena-synergy-category-summary" aria-label="Распределение связок по надёжности">
+            {PAIR_CLASSIFICATION_ORDER.map(classification => {
+              if (classification === 'legacy' && categoryCounts.legacy === 0) return null;
+              return (
+                <li key={classification}>
+                  <PairClassificationBadge value={classification} />
+                  <strong>{categoryCounts[classification]}</strong>
+                  <small>{PAIR_CLASSIFICATION_META[classification].explanation}</small>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="arena-synergy-table-wrap">
+            <table className="arena-synergy-table">
+              <caption className="sr-only">Сильные сочетания карт Арены</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Карты</th>
+                  <th scope="col">Вместе</th>
+                  <th scope="col">Ожидалось</th>
+                  <th scope="col">Lift</th>
+                  <th scope="col">Эффект пары</th>
+                  <th scope="col">Вердикт</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {payload.combinations.map(combination => {
+                  const controlledDelta = combination.controlledInteractionDeltaPoints
+                    ?? combination.adjustedInteractionDeltaPoints;
+                  const matchedControl = combination.matchedControl;
+
+                  return (
+                    <tr key={combination.cards.map(card => card.id).join(':')}>
+                      <td data-label="Карты">
+                        <div className="arena-synergy-pair">
+                          <CardIdentity card={combination.cards[0]} />
+                          <span aria-hidden="true">+</span>
+                          <CardIdentity card={combination.cards[1]} />
+                        </div>
+                      </td>
+                      <td data-label="Вместе">
+                        <strong>{combination.observedRuns}</strong>
+                        <small>{formatPercent(combination.supportPercent)} колод</small>
+                      </td>
+                      <td data-label="Ожидалось">{combination.expectedRuns.toLocaleString('ru-RU')}</td>
+                      <td data-label="Lift">
+                        <strong>×{combination.adjustedLift.toFixed(2)}</strong>
+                        {combination.historicalWeight > 0 && (
+                          <small>
+                            текущий ×{combination.lift.toFixed(2)}
+                            {' · '}история {formatPercent(combination.historicalWeight * 100)}
+                          </small>
+                        )}
+                      </td>
+                      <td data-label="Эффект пары">
+                        <strong className={`arena-synergy-interaction is-${combination.interactionSignal}`}>
+                          {controlledDelta > 0 ? '+' : ''}
+                          {controlledDelta.toFixed(1)} п.п.
+                        </strong>
+                        {matchedControl ? (
+                          <>
+                            <small>
+                              пара {formatPercent(matchedControl.pairRunQuality)}
+                              {' · '}контроль {formatPercent(matchedControl.controlRunQuality)}
+                            </small>
+                            <small>
+                              {matchedControl.pairRuns} с парой
+                              {' · '}{matchedControl.controlRuns} похожих
+                              {' · '}сходство {formatPercent(matchedControl.averageSimilarity * 100)}
+                            </small>
+                            <small>
+                              {matchedControl.distinctDays} дн.
+                              {' · '}{matchedControl.distinctPlayers} игроков
+                              {' · '}макс. игрок {formatPercent(matchedControl.maxPlayerShare * 100)}
+                            </small>
+                          </>
+                        ) : (
+                          <small>Контрольных колод нет в сохранённом старом расчёте.</small>
+                        )}
+                        <small>
+                          A без B {formatPercent(combination.interactionEvidence.cardAQuality)}
+                          {' · '}B без A {formatPercent(combination.interactionEvidence.cardBQuality)}
+                        </small>
+                      </td>
+                      <td data-label="Вердикт">
+                        <PairClassificationBadge value={displayClassification(combination)} />
+                        <small>
+                          Доверие: {confidenceLabel(combination.confidence).toLocaleLowerCase('ru-RU')}
+                          {' · '}оценка {combination.score}/100
+                        </small>
+                        <small>{interactionLabel(combination.interactionSignal)}</small>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       ) : (
         <output className="arena-synergy-empty">
           Для выбранного класса пока нет связок, прошедших порог выборки и lift.

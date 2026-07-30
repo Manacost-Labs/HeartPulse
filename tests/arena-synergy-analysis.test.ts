@@ -268,6 +268,11 @@ function buildMatchedControlSample(options: {
       record: options.controlRecord,
     }));
   }
+  for (let index = 0; index < 12; index += 1) {
+    sample.push(deck(`${options.prefix}-other-class-${index}`, 'HUNTER', [X, Y, F], {
+      record: '12 - 0',
+    }));
+  }
   return sample;
 }
 
@@ -293,7 +298,11 @@ assert.ok(confirmedPair);
 assert.equal(confirmedPair.classification, 'confirmed');
 assert.ok(confirmedPair.matchedControl);
 assert.equal(confirmedPair.matchedControl.pairRuns, 18);
-assert.ok(confirmedPair.matchedControl.controlRuns >= 15);
+assert.equal(
+  confirmedPair.matchedControl.controlRuns,
+  36,
+  'controls must exclude full-pair runs and decks from another class',
+);
 assert.ok(confirmedPair.matchedControl.distinctDays >= 3);
 assert.ok(confirmedPair.matchedControl.distinctPlayers >= 5);
 assert.ok((confirmedPair.controlledInteractionDeltaPoints ?? 0) >= 0.75);

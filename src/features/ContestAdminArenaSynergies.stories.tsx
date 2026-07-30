@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent } from 'storybook/test';
-import type { ArenaSynergyPayload } from '../../shared/arenaSynergyContract';
+import type { ArenaCombination, ArenaSynergyPayload } from '../../shared/arenaSynergyContract';
 import { ArenaSynergyPanel } from './ContestAdminArenaSynergies';
 import './contests.css';
 
@@ -169,6 +169,19 @@ const payload: ArenaSynergyPayload = {
       classBaselineQuality: 88.2,
     },
     interactionSignal: 'positive',
+    classification: 'confirmed',
+    controlledInteractionDeltaPoints: 1.1,
+    matchedControl: {
+      pairRuns: 20,
+      controlRuns: 40,
+      pairRunQuality: 90.4,
+      controlRunQuality: 89.3,
+      deltaPoints: 1.1,
+      averageSimilarity: 0.66,
+      distinctDays: 7,
+      distinctPlayers: 20,
+      maxPlayerShare: 0.05,
+    },
     historicalWeight: 0,
     score: 78,
     confidence: 'high',
@@ -195,6 +208,63 @@ const payload: ArenaSynergyPayload = {
   }],
 };
 
+const baseCombination = payload.combinations[0];
+const payloadWithCategories: ArenaSynergyPayload = {
+  ...payload,
+  combinations: [
+    baseCombination,
+    {
+      ...baseCombination,
+      cards: [
+        { ...baseCombination.cards[0], id: 'TLC_100', name: 'Носок Скользкое Копье' },
+        { ...baseCombination.cards[1], id: 'TLC_101', name: 'Реликвия истребления' },
+      ],
+      observedRuns: 13,
+      classification: 'promising',
+      controlledInteractionDeltaPoints: 2.2,
+      confidence: 'medium',
+      score: 49,
+      matchedControl: {
+        ...baseCombination.matchedControl!,
+        pairRuns: 13,
+        controlRuns: 26,
+        deltaPoints: 2.2,
+        averageSimilarity: 0.63,
+        distinctDays: 6,
+        distinctPlayers: 13,
+        maxPlayerShare: 1 / 13,
+      },
+    },
+    {
+      ...baseCombination,
+      cards: [
+        { ...baseCombination.cards[0], id: 'TLC_200', name: 'Две хорошие карты' },
+        { ...baseCombination.cards[1], id: 'TLC_201', name: 'Без доказанной синергии' },
+      ],
+      classification: 'popular',
+      controlledInteractionDeltaPoints: 0,
+      adjustedInteractionDeltaPoints: 0,
+      interactionSignal: 'neutral',
+      confidence: 'exploratory',
+      score: 31,
+      matchedControl: {
+        ...baseCombination.matchedControl!,
+        pairRunQuality: 89.4,
+        controlRunQuality: 89.4,
+        deltaPoints: 0,
+      },
+    },
+  ],
+};
+
+function withoutMatchedControls(combination: ArenaCombination): ArenaCombination {
+  const legacy = { ...combination };
+  delete legacy.classification;
+  delete legacy.controlledInteractionDeltaPoints;
+  delete legacy.matchedControl;
+  return legacy;
+}
+
 const meta = {
   title: 'Admin/Arena Synergies',
   render: args => <ArenaSynergyPanel {...args} />,
@@ -217,11 +287,16 @@ type Story = StoryObj<typeof meta>;
 
 export const Loaded: Story = {
   args: {
-    payload,
+    payload: payloadWithCategories,
     loading: false,
     error: null,
   },
   play: async ({ canvas, args }) => {
+    await expect(canvas.getAllByText('Подтверждена')).toHaveLength(2);
+    await expect(canvas.getAllByText('Перспективная')).toHaveLength(2);
+    await expect(canvas.getAllByText('Просто популярная')).toHaveLength(2);
+    await expect(canvas.getAllByText(/40 похожих/)).toHaveLength(2);
+
     await userEvent.selectOptions(canvas.getByLabelText('Класс'), 'MAGE');
     await expect(args.onClassChange).toHaveBeenCalledWith('MAGE');
 
@@ -231,6 +306,9 @@ export const Loaded: Story = {
 
     await userEvent.click(canvas.getByRole('button', { name: 'Обновить данные' }));
     await expect(args.onReload).toHaveBeenCalled();
+
+    await userEvent.click(canvas.getByRole('tab', { name: 'Сочетания' }));
+    await expect(canvas.getByRole('tab', { name: 'Сочетания' })).toHaveAttribute('aria-selected', 'true');
   },
 };
 
@@ -267,6 +345,7 @@ export const LastKnownGood: Story = {
         currentWeight: 0,
         historicalWeight: 1,
       },
+      combinations: payload.combinations.map(withoutMatchedControls),
     },
     loading: false,
     error: null,
