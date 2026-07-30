@@ -159,6 +159,9 @@ import {
   createAdminFunDecksRouter,
   createPublicFunDecksRouter,
 } from './adminFunDecksRoutes.js';
+import { createAdminArenaSynergyRouter } from './adminArenaSynergyRoutes.js';
+import { analyzeArenaSynergies } from './arenaSynergyAnalysis.js';
+import type { ArenaClassId } from '../shared/arenaSynergyContract.js';
 import { createAdminStandardOperationsRouter, type StandardCacheTarget } from './adminStandardOperationsRoutes.js';
 import { createAdminParserControlRouter } from './adminParserControlRoutes.js';
 import { createHsDataParserControlClient } from './hsDataParserControlClient.js';
@@ -9824,6 +9827,52 @@ app.use('/api', createAdminFunDecksRouter({
   setPrivateNoStore,
   loadFunDecks: loadFunDecksDataset,
   onError: error => console.error('[admin fun decks]', error instanceof Error ? error.message : error),
+}));
+
+const ADMIN_ARENA_SYNERGY_CACHE_MS = Number(
+  process.env.ADMIN_ARENA_SYNERGY_CACHE_MS || 15 * 60_000,
+);
+let adminArenaSynergySourceCache: {
+  expiresAt: number;
+  winningDecks: unknown;
+  cardStats: unknown;
+  patches: unknown;
+} | null = null;
+
+app.use('/api', createAdminArenaSynergyRouter({
+  adminGuard: adminIdGuard,
+  setPrivateNoStore,
+  loadAnalysis: async (
+    className: ArenaClassId,
+    options: { forceRefresh: boolean },
+  ) => {
+    if (
+      options.forceRefresh
+      || !adminArenaSynergySourceCache
+      || adminArenaSynergySourceCache.expiresAt <= Date.now()
+    ) {
+      const timeoutMs = Number(process.env.HS_DATA_API_ADMIN_TIMEOUT_MS || 30_000);
+      const [winningDecks, cardStats, patches] = await Promise.all([
+        fetchDataset('hsreplay_arena_winning_decks', timeoutMs),
+        fetchDataset('hsreplay_arena_cards_advanced', timeoutMs),
+        fetchDataset('api/patches?limit=20&include_content=false', timeoutMs),
+      ]);
+      adminArenaSynergySourceCache = {
+        expiresAt: Date.now() + ADMIN_ARENA_SYNERGY_CACHE_MS,
+        winningDecks,
+        cardStats,
+        patches,
+      };
+    }
+    return analyzeArenaSynergies({
+      ...adminArenaSynergySourceCache,
+      className,
+    });
+  },
+  onError: error => console.error(
+    '[admin arena synergies]',
+    error instanceof Error ? error.message : error,
+  ),
 }));
 
 async function invalidateParserControlledDataCaches(): Promise<void> {

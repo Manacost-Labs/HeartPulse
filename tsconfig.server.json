@@ -20,6 +20,8 @@
     "server/cardImageCache.ts",
     "server/constructedCardImagePrewarmer.ts",
     "server/hsreplayArenasmith.ts",
+    "server/arenaSynergyAnalysis.ts",
+    "server/adminArenaSynergyRoutes.ts",
     "server/health.ts",
     "server/healthRoutes.ts",
     "server/jsonBody.ts",
@@ -33,6 +35,7 @@
     "server/scrapeQueue.ts",
     "server/snapshots.ts",
     "server/guides/**/*.ts",
-    "src/telemetry/sentryPrivacy.ts"
+    "src/telemetry/sentryPrivacy.ts",
+    "shared/arenaSynergyContract.ts"
   ]
 }
