@@ -12,6 +12,10 @@ import {
   assessArenaDataQuality,
   type ArenaNormalizationProfile,
 } from './arenaSynergyDataQuality.js';
+import {
+  arenaPairClassificationRank,
+  buildArenaPairAssessment,
+} from './arenaSynergyPairAssessment.js';
 
 const SAMPLE_LIMIT = 500;
 const MINIMUM_LIFT = 1.25;
@@ -422,6 +426,11 @@ function buildCombinations(
     ]),
   );
   const activeCardIds = new Set(cardMeta.keys());
+  const cardStrength = new Map(
+    Array.from(cardMeta.entries()).flatMap(([id, meta]) => (
+      meta.deckWinRate == null ? [] : [[id, meta.deckWinRate] as const]
+    )),
+  );
   const combinations: ArenaCombination[] = [];
   for (const [key, pair] of observedPairs) {
     if (pair.observed < minimumPairRuns) continue;
@@ -485,23 +494,16 @@ function buildCombinations(
       + (previous?.lift ?? lift) * pairHistoricalWeight;
     const adjustedInteractionDelta = interactionDeltaPoints * (1 - pairHistoricalWeight)
       + (previous?.interactionDeltaPoints ?? interactionDeltaPoints) * pairHistoricalWeight;
-    const supportStrength = 1 - Math.exp(-pair.observed / 12);
-    const liftStrength = Math.min(1, Math.max(0, Math.log2(adjustedLift)));
-    const interactionMultiplier = Math.min(1.5, Math.max(0.65, 1 + adjustedInteractionDelta / 8));
-    const score = Math.min(100, Math.round(100 * supportStrength * liftStrength * interactionMultiplier));
-    const confidence = pair.observed >= 20 && adjustedLift >= 1.5
-      ? 'high'
-      : pair.observed >= 10 && adjustedLift >= 1.35
-        ? 'medium'
-        : 'exploratory';
-    const minimumInteractionEvidence = Math.max(10, minimumPairRuns);
-    const interactionSignal = pair.observed < minimumInteractionEvidence
-      ? 'insufficient'
-      : adjustedInteractionDelta >= 0.75
-        ? 'positive'
-        : adjustedInteractionDelta <= -0.75
-          ? 'negative'
-          : 'neutral';
+    const pairAssessment = buildArenaPairAssessment({
+      runs,
+      leftId,
+      rightId,
+      cardStrength,
+      minimumPairRuns,
+      observedRuns: pair.observed,
+      adjustedLift,
+      adjustedInteractionDeltaPoints: adjustedInteractionDelta,
+    });
 
     combinations.push({
       cards: [
@@ -528,17 +530,17 @@ function buildCombinations(
           1,
         ),
       },
-      interactionSignal,
+      ...pairAssessment,
       historicalWeight: round(pairHistoricalWeight),
-      score,
-      confidence,
       forcedPackageShare: round(forcedPackageShare),
     });
   }
 
   return combinations
     .sort((left, right) => (
-      interactionSignalRank(right.interactionSignal) - interactionSignalRank(left.interactionSignal)
+      arenaPairClassificationRank(right.classification ?? 'popular')
+      - arenaPairClassificationRank(left.classification ?? 'popular')
+      || interactionSignalRank(right.interactionSignal) - interactionSignalRank(left.interactionSignal)
       || right.score - left.score
       || right.adjustedLift - left.adjustedLift
       || right.observedRuns - left.observedRuns

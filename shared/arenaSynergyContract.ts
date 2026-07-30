@@ -48,6 +48,19 @@ export type ArenaCombination = {
     classBaselineQuality: number;
   };
   interactionSignal: 'positive' | 'neutral' | 'negative' | 'insufficient';
+  classification?: 'confirmed' | 'promising' | 'popular';
+  controlledInteractionDeltaPoints?: number;
+  matchedControl?: {
+    pairRuns: number;
+    controlRuns: number;
+    pairRunQuality: number;
+    controlRunQuality: number;
+    deltaPoints: number;
+    averageSimilarity: number;
+    distinctDays: number;
+    distinctPlayers: number;
+    maxPlayerShare: number;
+  };
   historicalWeight: number;
   score: number;
   confidence: 'high' | 'medium' | 'exploratory';

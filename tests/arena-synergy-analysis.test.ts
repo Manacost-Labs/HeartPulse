@@ -144,6 +144,12 @@ assert.ok(truePair.interactionEvidence.cardBQuality > 0);
 assert.ok(truePair.interactionEvidence.classBaselineQuality > 0);
 assert.ok(truePair.cards.every(item => item.twelveWinRunQuality != null));
 assert.equal(truePair.historicalWeight, 0);
+assert.equal(truePair.classification, 'promising');
+assert.ok(truePair.matchedControl);
+assert.ok(truePair.matchedControl.controlRuns >= 5);
+assert.ok(truePair.matchedControl.averageSimilarity >= 0.2);
+assert.ok(truePair.matchedControl.deltaPoints > 0);
+assert.ok((truePair.controlledInteractionDeltaPoints ?? 0) > 0);
 
 assert.equal(result.dataQuality.metrics.sourceRows, 42);
 assert.equal(result.dataQuality.metrics.duplicateRuns, 1);
@@ -233,6 +239,84 @@ const blocked = analyzeArenaSynergies({
 assert.equal(blocked.dataQuality.status, 'blocked');
 assert.equal(blocked.dataQuality.metrics.invalidRuns, 2);
 assert.ok(blocked.dataQuality.checks.some(check => check.id === 'minimum-valid-runs' && check.status === 'fail'));
+
+function buildMatchedControlSample(options: {
+  prefix: string;
+  pairRecord: '12 - 0' | '12 - 1';
+  controlRecord: '12 - 1' | '12 - 2';
+  concentratedPlayer?: boolean;
+}) {
+  const sample: unknown[] = [];
+  for (let index = 0; index < 18; index += 1) {
+    sample.push(deck(`${options.prefix}-pair-${index}`, 'MAGE', [A, B, X, Y, F], {
+      record: options.pairRecord,
+      playedAt: `2026-07-${20 + (index % 4)}T10:00:00Z`,
+      player: options.concentratedPlayer ? 'one-player' : `${options.prefix}-player-${index}`,
+    }));
+  }
+  for (let index = 0; index < 30; index += 1) {
+    sample.push(deck(`${options.prefix}-control-${index}`, 'MAGE', [X, Y, F], {
+      record: options.controlRecord,
+      playedAt: `2026-07-${20 + (index % 4)}T11:00:00Z`,
+    }));
+  }
+  for (let index = 0; index < 3; index += 1) {
+    sample.push(deck(`${options.prefix}-a-${index}`, 'MAGE', [A, X, Y, F], {
+      record: options.controlRecord,
+    }));
+    sample.push(deck(`${options.prefix}-b-${index}`, 'MAGE', [B, X, Y, F], {
+      record: options.controlRecord,
+    }));
+  }
+  return sample;
+}
+
+function analyzeMatchedControlSample(sampleDecks: unknown[]) {
+  return analyzeArenaSynergies({
+    winningDecks: { data: { structured: { decks: sampleDecks } } },
+    cardStats,
+    patches,
+    className: 'ALL',
+    now: new Date('2026-07-25T00:00:00Z'),
+  }).combinations.find(item => (
+    item.cards.some(cardItem => cardItem.id === A.id)
+    && item.cards.some(cardItem => cardItem.id === B.id)
+  ));
+}
+
+const confirmedPair = analyzeMatchedControlSample(buildMatchedControlSample({
+  prefix: 'confirmed',
+  pairRecord: '12 - 0',
+  controlRecord: '12 - 2',
+}));
+assert.ok(confirmedPair);
+assert.equal(confirmedPair.classification, 'confirmed');
+assert.ok(confirmedPair.matchedControl);
+assert.equal(confirmedPair.matchedControl.pairRuns, 18);
+assert.ok(confirmedPair.matchedControl.controlRuns >= 15);
+assert.ok(confirmedPair.matchedControl.distinctDays >= 3);
+assert.ok(confirmedPair.matchedControl.distinctPlayers >= 5);
+assert.ok((confirmedPair.controlledInteractionDeltaPoints ?? 0) >= 0.75);
+
+const popularPair = analyzeMatchedControlSample(buildMatchedControlSample({
+  prefix: 'popular',
+  pairRecord: '12 - 1',
+  controlRecord: '12 - 1',
+}));
+assert.ok(popularPair);
+assert.equal(popularPair.classification, 'popular');
+assert.equal(popularPair.controlledInteractionDeltaPoints, 0);
+
+const concentratedPair = analyzeMatchedControlSample(buildMatchedControlSample({
+  prefix: 'concentrated',
+  pairRecord: '12 - 0',
+  controlRecord: '12 - 2',
+  concentratedPlayer: true,
+}));
+assert.ok(concentratedPair);
+assert.notEqual(concentratedPair.classification, 'confirmed');
+assert.ok(concentratedPair.matchedControl);
+assert.equal(concentratedPair.matchedControl.maxPlayerShare, 1);
 
 const historical = analyzeArenaSynergies({
   winningDecks: {
