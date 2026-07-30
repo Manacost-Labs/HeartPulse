@@ -1,5 +1,14 @@
 # HS-Arena Changelog
 
+## v1.0.83 - 2026-07-30
+
+- Separated individual card strength from pair interaction by comparing actual
+  12-win run quality with a class-stratified, shrinkage-adjusted expectation.
+- Added versioned Arena cohorts with bounded historical weighting for unchanged
+  cards, automatic pool invalidation and administrator-visible patch history.
+- Added upstream schema, duplication, freshness, volume and population-skew
+  checks plus atomic last-known-good snapshots for safe degraded operation.
+
 ## v1.0.82 - 2026-07-30
 
 - Added the administrator-only «Сочетания в Арене» workspace with

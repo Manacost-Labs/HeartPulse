@@ -21,6 +21,8 @@
     "server/constructedCardImagePrewarmer.ts",
     "server/hsreplayArenasmith.ts",
     "server/arenaSynergyAnalysis.ts",
+    "server/arenaSynergyDataQuality.ts",
+    "server/arenaSynergyHistoryStore.ts",
     "server/adminArenaSynergyRoutes.ts",
     "server/adminArenaSynergyService.ts",
     "server/health.ts",

@@ -49,9 +49,13 @@ const budgets = {
   // Reusing the analytics icon keeps its measured Contests pointer, navigation
   // metadata and render boundary to +718 raw bytes; the 13.7 KB workspace stays
   // in a separate chunk and never loads for other administrator sections.
+  // v1.0.83 changes only that lazy workspace. Its new content hash changes the
+  // compression of the eager preload map by four bytes while the raw startup
+  // total remains exactly unchanged; keep the measured two-byte allowance and
+  // every raw-byte ratchet explicit.
   mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_710),
   initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_730),
-  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_740),
+  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_742),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),
   deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 108_350),

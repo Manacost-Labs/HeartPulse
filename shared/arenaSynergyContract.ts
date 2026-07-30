@@ -24,6 +24,7 @@ export type ArenaSynergyCard = {
   type: string | null;
   rarity: string | null;
   deckWinRate: number | null;
+  twelveWinRunQuality: number | null;
   runs: number;
 };
 
@@ -33,6 +34,21 @@ export type ArenaCombination = {
   expectedRuns: number;
   supportPercent: number;
   lift: number;
+  adjustedLift: number;
+  expectedRunQuality: number;
+  actualRunQuality: number;
+  interactionDeltaPoints: number;
+  adjustedInteractionDeltaPoints: number;
+  interactionEvidence: {
+    cardARuns: number;
+    cardBRuns: number;
+    pairRuns: number;
+    cardAQuality: number;
+    cardBQuality: number;
+    classBaselineQuality: number;
+  };
+  interactionSignal: 'positive' | 'neutral' | 'negative' | 'insufficient';
+  historicalWeight: number;
   score: number;
   confidence: 'high' | 'medium' | 'exploratory';
   forcedPackageShare: number;
@@ -49,8 +65,63 @@ export type ArenaRedraftCard = {
   netCopies: number;
 };
 
+export type ArenaDataQualityCheck = {
+  id: string;
+  label: string;
+  status: 'pass' | 'warning' | 'fail';
+  value: number | string | null;
+  threshold: string;
+  message: string;
+};
+
+export type ArenaDataQuality = {
+  status: 'healthy' | 'warning' | 'blocked';
+  score: number;
+  metrics: {
+    sourceRows: number;
+    validRuns: number;
+    invalidRuns: number;
+    duplicateRuns: number;
+    futureRuns: number;
+    impossibleDecks: number;
+    unknownCardReferences: number;
+    totalCardReferences: number;
+    maxClassShare: number;
+    maxPlayerShare: number;
+    sourceAgeHours: number | null;
+    volumeRatioToPrevious: number | null;
+  };
+  checks: ArenaDataQualityCheck[];
+};
+
+export type ArenaCohortHistoryEntry = {
+  id: string;
+  patchVersion: string | null;
+  poolFingerprint: string;
+  from: string | null;
+  to: string | null;
+  generatedAt: string;
+  runsAnalyzed: number;
+  qualityStatus: ArenaDataQuality['status'];
+  topCombination: {
+    cards: [string, string];
+    score: number;
+    interactionDeltaPoints: number;
+  } | null;
+};
+
+export type ArenaReliability = {
+  sampleMode: 'stable' | 'warming' | 'insufficient' | 'last-known-good';
+  servedFrom: 'live' | 'last-known-good';
+  currentWeight: number;
+  historicalWeight: number;
+  stableAtRuns: number;
+  previousCohortId: string | null;
+  limitations: string[];
+};
+
 export type ArenaSynergyPayload = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   generatedAt: string;
   selectedClass: ArenaClassId;
   source: {
@@ -83,8 +154,12 @@ export type ArenaSynergyPayload = {
     minimumLift: number;
     packageFilterShare: number;
     classStratified: boolean;
+    outcomeMetric: string;
     note: string;
   };
+  dataQuality: ArenaDataQuality;
+  reliability: ArenaReliability;
+  history: ArenaCohortHistoryEntry[];
   combinations: ArenaCombination[];
   redraft: ArenaRedraftCard[];
 };

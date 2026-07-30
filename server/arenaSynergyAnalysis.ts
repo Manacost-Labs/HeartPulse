@@ -8,10 +8,18 @@ import {
   type ArenaSynergyCard,
   type ArenaSynergyPayload,
 } from '../shared/arenaSynergyContract.js';
+import {
+  assessArenaDataQuality,
+  type ArenaNormalizationProfile,
+} from './arenaSynergyDataQuality.js';
 
 const SAMPLE_LIMIT = 500;
 const MINIMUM_LIFT = 1.25;
 const PACKAGE_FILTER_SHARE = 0.5;
+const STABLE_SAMPLE_RUNS = 200;
+const CARD_QUALITY_PRIOR_RUNS = 12;
+const PAIR_QUALITY_PRIOR_RUNS = 4;
+const MAX_FUTURE_SKEW_MS = 5 * 60_000;
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -30,20 +38,29 @@ type NormalizedRun = {
   record: string;
   playedAt: string;
   playedAtMs: number;
+  playerKey: string;
+  runQuality: number;
   cards: NormalizedCard[];
   added: NormalizedCard[];
   discarded: NormalizedCard[];
   packageIds: Set<string>;
 };
 
-type CardMeta = Omit<ArenaSynergyCard, 'runs'>;
+type CardMeta = Omit<ArenaSynergyCard, 'runs' | 'twelveWinRunQuality'>;
 
 export type ArenaSynergyAnalysisInput = {
   winningDecks: unknown;
   cardStats: unknown;
   patches: unknown;
   className: ArenaClassId;
+  previousSnapshot?: ArenaSynergyPreviousSnapshot | null;
   now?: Date;
+};
+
+export type ArenaSynergyPreviousSnapshot = {
+  savedAt: string;
+  activeCardIds: string[];
+  payload: ArenaSynergyPayload;
 };
 
 function asRecord(value: unknown): UnknownRecord {
@@ -121,17 +138,67 @@ function normalizeRecord(value: unknown): string {
   return match ? `12-${match[1]}` : '';
 }
 
-function normalizeRuns(value: unknown): NormalizedRun[] {
-  const structured = structuredRoot(value);
-  const rows = Array.isArray(structured.decks) ? structured.decks : [];
+function runQuality(record: string): number {
+  const losses = Number(record.split('-')[1] ?? 2);
+  return 12 / (12 + Math.min(2, Math.max(0, losses)));
+}
 
-  return rows.slice(0, 2_000).map((row, index): NormalizedRun | null => {
+function hasImpossibleCardCounts(run: UnknownRecord): boolean {
+  for (const key of ['final_deck', 'added', 'discarded', 'package_cards']) {
+    const value = run[key];
+    if (!Array.isArray(value)) continue;
+    if (value.length > 120) return true;
+    let totalCopies = 0;
+    for (const rawCard of value) {
+      const count = finiteNumber(asRecord(rawCard).count) ?? 1;
+      if (count <= 0 || count > 10) return true;
+      totalCopies += count;
+    }
+    if (totalCopies > 80) return true;
+  }
+  return false;
+}
+
+function normalizeRuns(
+  value: unknown,
+  nowMs: number,
+): {
+  runs: NormalizedRun[];
+  schemaValid: boolean;
+  sourceRows: number;
+  invalidRuns: number;
+  futureRuns: number;
+  impossibleDecks: number;
+} {
+  const structured = structuredRoot(value);
+  const schemaValid = Array.isArray(structured.decks);
+  const rows = schemaValid ? structured.decks as unknown[] : [];
+  let invalidRuns = Math.max(0, rows.length - 2_000);
+  let futureRuns = 0;
+  let impossibleDecks = 0;
+  const runs: NormalizedRun[] = [];
+
+  rows.slice(0, 2_000).forEach((row, index) => {
     const run = asRecord(row);
+    if (hasImpossibleCardCounts(run)) {
+      impossibleDecks += 1;
+      invalidRuns += 1;
+      return;
+    }
     const record = normalizeRecord(run.record);
     const className = normalizeClass(run.main_class) ?? normalizeClass(run.class);
     const playedAt = isoDate(run.played_at);
     const cards = normalizeCardList(run.final_deck);
-    if (!record || !className || !playedAt || !cards.length) return null;
+    if (!record || !className || !playedAt || !cards.length) {
+      invalidRuns += 1;
+      return;
+    }
+    const playedAtMs = new Date(playedAt).getTime();
+    if (playedAtMs > nowMs + MAX_FUTURE_SKEW_MS) {
+      futureRuns += 1;
+      invalidRuns += 1;
+      return;
+    }
 
     const packageCards = normalizeCardList(run.package_cards);
     const packageIds = new Set(packageCards.map(card => card.id));
@@ -139,18 +206,29 @@ function normalizeRuns(value: unknown): NormalizedRun[] {
     if (packageKeyId) packageIds.add(packageKeyId);
     const draftId = text(run.draft_id);
 
-    return {
+    runs.push({
       id: draftId || `${className}:${playedAt}:${index}`,
       className,
       record,
       playedAt,
-      playedAtMs: new Date(playedAt).getTime(),
+      playedAtMs,
+      playerKey: text(run.player).toLocaleLowerCase('en-US').slice(0, 120),
+      runQuality: runQuality(record),
       cards,
       added: normalizeCardList(run.added),
       discarded: normalizeCardList(run.discarded),
       packageIds,
-    };
-  }).filter((run): run is NormalizedRun => Boolean(run));
+    });
+  });
+
+  return {
+    runs,
+    schemaValid,
+    sourceRows: rows.length,
+    invalidRuns,
+    futureRuns,
+    impossibleDecks,
+  };
 }
 
 function arenaPatchText(patch: UnknownRecord): string {
@@ -221,10 +299,26 @@ function pairKey(left: string, right: string): string {
   return left < right ? `${left}\u0000${right}` : `${right}\u0000${left}`;
 }
 
+type QualityAggregate = { sum: number; count: number };
+
+function buildCardQuality(runs: NormalizedRun[]): Map<string, QualityAggregate> {
+  const result = new Map<string, QualityAggregate>();
+  for (const run of runs) {
+    for (const id of new Set(run.cards.map(card => card.id))) {
+      const current = result.get(id) ?? { sum: 0, count: 0 };
+      current.sum += run.runQuality;
+      current.count += 1;
+      result.set(id, current);
+    }
+  }
+  return result;
+}
+
 function cardFrom(
   id: string,
   cardMeta: Map<string, CardMeta>,
   fallbackMeta: Map<string, CardMeta>,
+  cardQuality: Map<string, QualityAggregate>,
   runs: number,
 ): ArenaSynergyCard {
   const meta = cardMeta.get(id) ?? fallbackMeta.get(id) ?? {
@@ -235,12 +329,24 @@ function cardFrom(
     rarity: null,
     deckWinRate: null,
   };
-  return { ...meta, runs };
+  const quality = cardQuality.get(id);
+  return {
+    ...meta,
+    twelveWinRunQuality: quality ? round((quality.sum / quality.count) * 100, 1) : null,
+    runs,
+  };
 }
 
 function round(value: number, digits = 2): number {
   const factor = 10 ** digits;
   return Math.round(value * factor) / factor;
+}
+
+function interactionSignalRank(signal: ArenaCombination['interactionSignal']): number {
+  if (signal === 'positive') return 3;
+  if (signal === 'neutral') return 2;
+  if (signal === 'insufficient') return 1;
+  return 0;
 }
 
 function buildAvailableClasses(runs: NormalizedRun[]) {
@@ -258,21 +364,37 @@ function buildCombinations(
   runs: NormalizedRun[],
   cardMeta: Map<string, CardMeta>,
   fallbackMeta: Map<string, CardMeta>,
+  cardQuality: Map<string, QualityAggregate>,
   minimumPairRuns: number,
+  previousSnapshot: ArenaSynergyPreviousSnapshot | null,
+  historicalWeight: number,
 ): ArenaCombination[] {
   const classDeckCounts = new Map<ArenaClassId, number>();
+  const classQuality = new Map<ArenaClassId, QualityAggregate>();
   const cardCounts = new Map<string, number>();
   const cardClassCounts = new Map<string, Map<ArenaClassId, number>>();
+  const cardClassQuality = new Map<string, Map<ArenaClassId, QualityAggregate>>();
   const observedPairs = new Map<string, { observed: number; forced: number }>();
+  const pairClassQuality = new Map<string, Map<ArenaClassId, QualityAggregate>>();
 
   for (const run of runs) {
     classDeckCounts.set(run.className, (classDeckCounts.get(run.className) ?? 0) + 1);
+    const classAggregate = classQuality.get(run.className) ?? { sum: 0, count: 0 };
+    classAggregate.sum += run.runQuality;
+    classAggregate.count += 1;
+    classQuality.set(run.className, classAggregate);
     const ids = Array.from(new Set(run.cards.map(card => card.id))).sort();
     for (const id of ids) {
       cardCounts.set(id, (cardCounts.get(id) ?? 0) + 1);
       const perClass = cardClassCounts.get(id) ?? new Map<ArenaClassId, number>();
       perClass.set(run.className, (perClass.get(run.className) ?? 0) + 1);
       cardClassCounts.set(id, perClass);
+      const qualityByClass = cardClassQuality.get(id) ?? new Map<ArenaClassId, QualityAggregate>();
+      const cardAggregate = qualityByClass.get(run.className) ?? { sum: 0, count: 0 };
+      cardAggregate.sum += run.runQuality;
+      cardAggregate.count += 1;
+      qualityByClass.set(run.className, cardAggregate);
+      cardClassQuality.set(id, qualityByClass);
     }
     for (let leftIndex = 0; leftIndex < ids.length; leftIndex += 1) {
       for (let rightIndex = leftIndex + 1; rightIndex < ids.length; rightIndex += 1) {
@@ -283,10 +405,23 @@ function buildCombinations(
           current.forced += 1;
         }
         observedPairs.set(key, current);
+        const qualityByClass = pairClassQuality.get(key) ?? new Map<ArenaClassId, QualityAggregate>();
+        const pairAggregate = qualityByClass.get(run.className) ?? { sum: 0, count: 0 };
+        pairAggregate.sum += run.runQuality;
+        pairAggregate.count += 1;
+        qualityByClass.set(run.className, pairAggregate);
+        pairClassQuality.set(key, qualityByClass);
       }
     }
   }
 
+  const previousCombinations = new Map(
+    (previousSnapshot?.payload.combinations ?? []).map(item => [
+      pairKey(item.cards[0].id, item.cards[1].id),
+      item,
+    ]),
+  );
+  const activeCardIds = new Set(cardMeta.keys());
   const combinations: ArenaCombination[] = [];
   for (const [key, pair] of observedPairs) {
     if (pair.observed < minimumPairRuns) continue;
@@ -301,24 +436,100 @@ function buildCombinations(
     const forcedPackageShare = pair.forced / pair.observed;
     if (lift < MINIMUM_LIFT || forcedPackageShare >= PACKAGE_FILTER_SHARE) continue;
 
+    let expectedQualityWeighted = 0;
+    let actualQualityWeighted = 0;
+    let leftQualityWeighted = 0;
+    let rightQualityWeighted = 0;
+    let baselineQualityWeighted = 0;
+    let outcomeWeight = 0;
+    for (const [className, pairAggregate] of pairClassQuality.get(key) ?? []) {
+      const baselineAggregate = classQuality.get(className);
+      if (!baselineAggregate?.count) continue;
+      const baseline = baselineAggregate.sum / baselineAggregate.count;
+      const leftAggregate = cardClassQuality.get(leftId)?.get(className);
+      const rightAggregate = cardClassQuality.get(rightId)?.get(className);
+      if (!leftAggregate?.count || !rightAggregate?.count) continue;
+      const leftSoloCount = Math.max(0, leftAggregate.count - pairAggregate.count);
+      const rightSoloCount = Math.max(0, rightAggregate.count - pairAggregate.count);
+      const leftSoloSum = Math.max(0, leftAggregate.sum - pairAggregate.sum);
+      const rightSoloSum = Math.max(0, rightAggregate.sum - pairAggregate.sum);
+      const leftQuality = (
+        leftSoloSum + CARD_QUALITY_PRIOR_RUNS * baseline
+      ) / (leftSoloCount + CARD_QUALITY_PRIOR_RUNS);
+      const rightQuality = (
+        rightSoloSum + CARD_QUALITY_PRIOR_RUNS * baseline
+      ) / (rightSoloCount + CARD_QUALITY_PRIOR_RUNS);
+      const expected = Math.min(1, Math.max(0, leftQuality + rightQuality - baseline));
+      const actual = (
+        pairAggregate.sum + PAIR_QUALITY_PRIOR_RUNS * expected
+      ) / (pairAggregate.count + PAIR_QUALITY_PRIOR_RUNS);
+      expectedQualityWeighted += expected * pairAggregate.count;
+      actualQualityWeighted += actual * pairAggregate.count;
+      leftQualityWeighted += leftQuality * pairAggregate.count;
+      rightQualityWeighted += rightQuality * pairAggregate.count;
+      baselineQualityWeighted += baseline * pairAggregate.count;
+      outcomeWeight += pairAggregate.count;
+    }
+    const expectedRunQuality = outcomeWeight
+      ? (expectedQualityWeighted / outcomeWeight) * 100
+      : 0;
+    const actualRunQuality = outcomeWeight
+      ? (actualQualityWeighted / outcomeWeight) * 100
+      : 0;
+    const interactionDeltaPoints = actualRunQuality - expectedRunQuality;
+    const previous = activeCardIds.has(leftId) && activeCardIds.has(rightId)
+      ? previousCombinations.get(key)
+      : undefined;
+    const pairHistoricalWeight = previous ? historicalWeight : 0;
+    const adjustedLift = lift * (1 - pairHistoricalWeight)
+      + (previous?.lift ?? lift) * pairHistoricalWeight;
+    const adjustedInteractionDelta = interactionDeltaPoints * (1 - pairHistoricalWeight)
+      + (previous?.interactionDeltaPoints ?? interactionDeltaPoints) * pairHistoricalWeight;
     const supportStrength = 1 - Math.exp(-pair.observed / 12);
-    const liftStrength = Math.min(1, Math.max(0, Math.log2(lift)));
-    const score = Math.round(100 * supportStrength * liftStrength);
-    const confidence = pair.observed >= 20 && lift >= 1.5
+    const liftStrength = Math.min(1, Math.max(0, Math.log2(adjustedLift)));
+    const interactionMultiplier = Math.min(1.5, Math.max(0.65, 1 + adjustedInteractionDelta / 8));
+    const score = Math.min(100, Math.round(100 * supportStrength * liftStrength * interactionMultiplier));
+    const confidence = pair.observed >= 20 && adjustedLift >= 1.5
       ? 'high'
-      : pair.observed >= 10 && lift >= 1.35
+      : pair.observed >= 10 && adjustedLift >= 1.35
         ? 'medium'
         : 'exploratory';
+    const minimumInteractionEvidence = Math.max(10, minimumPairRuns);
+    const interactionSignal = pair.observed < minimumInteractionEvidence
+      ? 'insufficient'
+      : adjustedInteractionDelta >= 0.75
+        ? 'positive'
+        : adjustedInteractionDelta <= -0.75
+          ? 'negative'
+          : 'neutral';
 
     combinations.push({
       cards: [
-        cardFrom(leftId, cardMeta, fallbackMeta, cardCounts.get(leftId) ?? 0),
-        cardFrom(rightId, cardMeta, fallbackMeta, cardCounts.get(rightId) ?? 0),
+        cardFrom(leftId, cardMeta, fallbackMeta, cardQuality, cardCounts.get(leftId) ?? 0),
+        cardFrom(rightId, cardMeta, fallbackMeta, cardQuality, cardCounts.get(rightId) ?? 0),
       ],
       observedRuns: pair.observed,
       expectedRuns: round(expected, 1),
       supportPercent: round((pair.observed / runs.length) * 100, 1),
       lift: round(lift),
+      adjustedLift: round(adjustedLift),
+      expectedRunQuality: round(expectedRunQuality, 1),
+      actualRunQuality: round(actualRunQuality, 1),
+      interactionDeltaPoints: round(interactionDeltaPoints, 1),
+      adjustedInteractionDeltaPoints: round(adjustedInteractionDelta, 1),
+      interactionEvidence: {
+        cardARuns: Math.max(0, (cardCounts.get(leftId) ?? 0) - pair.observed),
+        cardBRuns: Math.max(0, (cardCounts.get(rightId) ?? 0) - pair.observed),
+        pairRuns: pair.observed,
+        cardAQuality: round(outcomeWeight ? (leftQualityWeighted / outcomeWeight) * 100 : 0, 1),
+        cardBQuality: round(outcomeWeight ? (rightQualityWeighted / outcomeWeight) * 100 : 0, 1),
+        classBaselineQuality: round(
+          outcomeWeight ? (baselineQualityWeighted / outcomeWeight) * 100 : 0,
+          1,
+        ),
+      },
+      interactionSignal,
+      historicalWeight: round(pairHistoricalWeight),
       score,
       confidence,
       forcedPackageShare: round(forcedPackageShare),
@@ -327,8 +538,9 @@ function buildCombinations(
 
   return combinations
     .sort((left, right) => (
-      right.score - left.score
-      || right.lift - left.lift
+      interactionSignalRank(right.interactionSignal) - interactionSignalRank(left.interactionSignal)
+      || right.score - left.score
+      || right.adjustedLift - left.adjustedLift
       || right.observedRuns - left.observedRuns
     ))
     .slice(0, 60);
@@ -338,6 +550,7 @@ function buildRedraft(
   runs: NormalizedRun[],
   cardMeta: Map<string, CardMeta>,
   fallbackMeta: Map<string, CardMeta>,
+  cardQuality: Map<string, QualityAggregate>,
 ): ArenaRedraftCard[] {
   const counts = new Map<string, {
     addedCopies: number;
@@ -388,7 +601,7 @@ function buildRedraft(
   return Array.from(counts.entries()).map(([id, count]): ArenaRedraftCard => {
     const decisions = count.addedCopies + count.discardedCopies;
     return {
-      card: cardFrom(id, cardMeta, fallbackMeta, cardRuns.get(id) ?? 0),
+      card: cardFrom(id, cardMeta, fallbackMeta, cardQuality, cardRuns.get(id) ?? 0),
       ...count,
       decisions,
       addShare: decisions ? round(count.addedCopies / decisions) : 0,
@@ -402,11 +615,17 @@ function buildRedraft(
 }
 
 export function analyzeArenaSynergies(input: ArenaSynergyAnalysisInput): ArenaSynergyPayload {
-  const allNormalizedRuns = normalizeRuns(input.winningDecks)
+  const now = input.now ?? new Date();
+  const normalization = normalizeRuns(input.winningDecks, now.getTime());
+  const allNormalizedRuns = normalization.runs
     .sort((left, right) => right.playedAtMs - left.playedAtMs);
   const seenRunIds = new Set<string>();
+  let duplicateRuns = 0;
   const deduplicatedRuns = allNormalizedRuns.filter(run => {
-    if (seenRunIds.has(run.id)) return false;
+    if (seenRunIds.has(run.id)) {
+      duplicateRuns += 1;
+      return false;
+    }
     seenRunIds.add(run.id);
     return true;
   });
@@ -439,6 +658,27 @@ export function analyzeArenaSynergies(input: ArenaSynergyAnalysisInput): ArenaSy
     .update(Array.from(cardMeta.keys()).sort().join('|'))
     .digest('hex')
     .slice(0, 16);
+  const cohortId = `${patch?.version ?? 'unknown'}:${poolFingerprint}`;
+  const previousSameCohort = input.previousSnapshot?.payload.cohort.id === cohortId
+    ? input.previousSnapshot
+    : null;
+  const previousForBlend = input.previousSnapshot?.payload.cohort.id !== cohortId
+    ? input.previousSnapshot ?? null
+    : null;
+  const previousGeneratedAt = previousForBlend
+    ? Date.parse(previousForBlend.payload.generatedAt)
+    : Number.NaN;
+  const historyAgeDays = Number.isFinite(previousGeneratedAt)
+    ? Math.max(0, (now.getTime() - previousGeneratedAt) / 86_400_000)
+    : 0;
+  const historicalWeight = previousForBlend
+    ? Math.min(
+        0.35,
+        Math.max(0, (STABLE_SAMPLE_RUNS - selectedRuns.length) / STABLE_SAMPLE_RUNS)
+          * 0.35
+          * Math.exp(-historyAgeDays / 45),
+      )
+    : 0;
   const minimumPairRuns = Math.max(5, Math.ceil(selectedRuns.length * 0.025));
   const warnings: string[] = [];
   if (!patch) warnings.push('Не удалось определить последний патч Арены: выборка не отсечена по патчу.');
@@ -448,6 +688,12 @@ export function analyzeArenaSynergies(input: ArenaSynergyAnalysisInput): ArenaSy
   if (selectedRuns.length < 50) {
     warnings.push('В выбранном классе меньше 50 забегов: сочетания считаются предварительными.');
   }
+  if (historicalWeight > 0) {
+    warnings.push(
+      `Новая когорта ещё набирает данные: до ${Math.round(historicalWeight * 100)}% веса сигнала `
+      + 'может приходить из прошлого патча только для карт текущего пула.',
+    );
+  }
 
   const recordCounts: Record<string, number> = {};
   for (const run of selectedRuns) {
@@ -456,17 +702,71 @@ export function analyzeArenaSynergies(input: ArenaSynergyAnalysisInput): ArenaSy
   const orderedRuns = [...selectedRuns].sort((left, right) => left.playedAtMs - right.playedAtMs);
   const winningRoot = asRecord(input.winningDecks);
   const cardStatsRoot = asRecord(input.cardStats);
+  const winningFetchedAt = isoDate(winningRoot.fetched_at);
+  const sourceAgeHours = winningFetchedAt
+    ? Math.max(0, (now.getTime() - Date.parse(winningFetchedAt)) / 3_600_000)
+    : null;
+  const classCounts = new Map<ArenaClassId, number>();
+  const playerCounts = new Map<string, number>();
+  for (const run of cohortRuns) {
+    classCounts.set(run.className, (classCounts.get(run.className) ?? 0) + 1);
+    if (run.playerKey) playerCounts.set(run.playerKey, (playerCounts.get(run.playerKey) ?? 0) + 1);
+  }
+  const maximumShare = (counts: Iterable<number>, denominator: number) => denominator
+    ? Math.max(0, ...Array.from(counts, count => count / denominator))
+    : 0;
+  let totalCardReferences = 0;
+  let unknownCardReferences = 0;
+  for (const run of cohortRuns) {
+    for (const card of run.cards) {
+      totalCardReferences += 1;
+      if (!cardMeta.has(card.id)) unknownCardReferences += 1;
+    }
+  }
+  const volumeRatioToPrevious = previousSameCohort
+    && previousSameCohort.payload.dataQuality.metrics.sourceRows > 0
+    ? normalization.sourceRows / previousSameCohort.payload.dataQuality.metrics.sourceRows
+    : null;
+  const qualityProfile: ArenaNormalizationProfile = {
+    schemaValid: normalization.schemaValid,
+    sourceRows: normalization.sourceRows,
+    validRuns: normalization.runs.length,
+    invalidRuns: normalization.invalidRuns,
+    duplicateRuns,
+    futureRuns: normalization.futureRuns,
+    impossibleDecks: normalization.impossibleDecks,
+    unknownCardReferences,
+    totalCardReferences,
+    maxClassShare: maximumShare(classCounts.values(), cohortRuns.length),
+    maxPlayerShare: maximumShare(playerCounts.values(), cohortRuns.length),
+    sourceAgeHours,
+    volumeRatioToPrevious,
+  };
+  const dataQuality = assessArenaDataQuality(qualityProfile);
+  if (dataQuality.status !== 'healthy') {
+    warnings.push(
+      dataQuality.status === 'blocked'
+        ? 'Новый расчёт заблокирован проверками качества данных.'
+        : 'В источнике найдены отклонения качества; откройте блок проверки данных.',
+    );
+  }
+  const cardQuality = buildCardQuality(selectedRuns);
+  const sampleMode = selectedRuns.length >= STABLE_SAMPLE_RUNS
+    ? 'stable'
+    : selectedRuns.length >= 20
+      ? 'warming'
+      : 'insufficient';
 
   return {
-    schemaVersion: 1,
-    generatedAt: (input.now ?? new Date()).toISOString(),
+    schemaVersion: 2,
+    generatedAt: now.toISOString(),
     selectedClass: input.className,
     source: {
-      winningDecksFetchedAt: isoDate(winningRoot.fetched_at),
+      winningDecksFetchedAt: winningFetchedAt,
       cardStatsFetchedAt: isoDate(cardStatsRoot.fetched_at),
     },
     cohort: {
-      id: `${patch?.version ?? 'unknown'}:${poolFingerprint}`,
+      id: cohortId,
       patchVersion: patch?.version ?? null,
       patchPublishedAt: patch?.publishedAt ?? null,
       poolFingerprint,
@@ -487,11 +787,36 @@ export function analyzeArenaSynergies(input: ArenaSynergyAnalysisInput): ArenaSy
       minimumLift: MINIMUM_LIFT,
       packageFilterShare: PACKAGE_FILTER_SHARE,
       classStratified: input.className === 'ALL',
-      note: 'Связь показывает совместную встречаемость в 12-победных колодах, а не доказывает причинный прирост побед.',
+      outcomeMetric: 'Доля побед в завершённом 12-win забеге: 12-0 > 12-1 > 12-2',
+      note: 'Дополнительный эффект сравнивает качество 12-win забегов пары с консервативным ожиданием '
+        + 'от каждой карты отдельно внутри класса. Проигрышных забегов в источнике нет, поэтому это не причинный прирост побед.',
     },
+    dataQuality,
+    reliability: {
+      sampleMode,
+      servedFrom: 'live',
+      currentWeight: round(1 - historicalWeight),
+      historicalWeight: round(historicalWeight),
+      stableAtRuns: STABLE_SAMPLE_RUNS,
+      previousCohortId: previousForBlend?.payload.cohort.id ?? null,
+      limitations: [
+        'Источник содержит только забеги с 12 победами; контрольной группы проигрышных забегов нет.',
+        'Дополнительный эффект различает 12-0, 12-1 и 12-2, но не доказывает причинность.',
+        'Статистика redraft не содержит полного списка предложенных, но не выбранных карт.',
+      ],
+    },
+    history: [],
     combinations: selectedRuns.length
-      ? buildCombinations(selectedRuns, cardMeta, fallbackMeta, minimumPairRuns)
+      ? buildCombinations(
+          selectedRuns,
+          cardMeta,
+          fallbackMeta,
+          cardQuality,
+          minimumPairRuns,
+          previousForBlend,
+          historicalWeight,
+        )
       : [],
-    redraft: buildRedraft(selectedRuns, cardMeta, fallbackMeta),
+    redraft: buildRedraft(selectedRuns, cardMeta, fallbackMeta, cardQuality),
   };
 }

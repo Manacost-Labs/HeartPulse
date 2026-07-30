@@ -5,7 +5,7 @@ import { ArenaSynergyPanel } from './ContestAdminArenaSynergies';
 import './contests.css';
 
 const payload: ArenaSynergyPayload = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   generatedAt: '2026-07-30T10:00:00Z',
   selectedClass: 'ALL',
   source: {
@@ -39,8 +39,95 @@ const payload: ArenaSynergyPayload = {
     minimumLift: 1.25,
     packageFilterShare: 0.5,
     classStratified: true,
+    outcomeMetric: 'Качество 12W-забега: 12 / (12 + число поражений).',
     note: 'Связь показывает совместную встречаемость в 12-победных колодах, а не доказывает причинный прирост побед.',
   },
+  dataQuality: {
+    status: 'healthy',
+    score: 100,
+    metrics: {
+      sourceRows: 500,
+      validRuns: 500,
+      invalidRuns: 0,
+      duplicateRuns: 0,
+      futureRuns: 0,
+      impossibleDecks: 0,
+      unknownCardReferences: 14,
+      totalCardReferences: 11_085,
+      maxClassShare: 0.656,
+      maxPlayerShare: 0.008,
+      sourceAgeHours: 0.3,
+      volumeRatioToPrevious: 1,
+    },
+    checks: [
+      {
+        id: 'schema',
+        label: 'Структура источника',
+        status: 'pass',
+        value: 'decks[]',
+        threshold: 'обязателен массив decks',
+        message: 'Структура источника распознана.',
+      },
+      {
+        id: 'duplicates',
+        label: 'Повторяющиеся draft_id',
+        status: 'pass',
+        value: 0,
+        threshold: 'предупреждение >5%, блокировка >30%',
+        message: 'Повторяющиеся забеги не найдены.',
+      },
+      {
+        id: 'unknown-cards',
+        label: 'Карты вне справочника',
+        status: 'pass',
+        value: 0.1,
+        threshold: 'предупреждение >10%, блокировка >50%',
+        message: '14 ссылок на карты не найдены в текущем справочнике.',
+      },
+      {
+        id: 'player-skew',
+        label: 'Перекос по игроку',
+        status: 'pass',
+        value: 0.8,
+        threshold: 'предупреждение >20%',
+        message: 'Один игрок не доминирует в выборке.',
+      },
+      {
+        id: 'freshness',
+        label: 'Свежесть источника',
+        status: 'pass',
+        value: 0.3,
+        threshold: 'предупреждение >30 ч, блокировка >72 ч',
+        message: 'Источник обновлён 0.3 ч назад.',
+      },
+    ],
+  },
+  reliability: {
+    sampleMode: 'stable',
+    servedFrom: 'live',
+    currentWeight: 1,
+    historicalWeight: 0,
+    stableAtRuns: 200,
+    previousCohortId: null,
+    limitations: [
+      'Выборка содержит только 12-победные забеги и не включает проигравшие контрольные колоды.',
+    ],
+  },
+  history: [{
+    id: '36.0:6d08469a64ab61f4',
+    patchVersion: '36.0',
+    poolFingerprint: '6d08469a64ab61f4',
+    from: '2026-07-24T04:21:58Z',
+    to: '2026-07-30T04:11:39Z',
+    generatedAt: '2026-07-30T10:00:00Z',
+    runsAnalyzed: 500,
+    qualityStatus: 'healthy',
+    topCombination: {
+      cards: ['Увеличительная глефа', 'Клещ-библиофил'],
+      score: 78,
+      interactionDeltaPoints: 1.2,
+    },
+  }],
   combinations: [{
     cards: [
       {
@@ -50,6 +137,7 @@ const payload: ArenaSynergyPayload = {
         type: 'WEAPON',
         rarity: 'RARE',
         deckWinRate: 58.7,
+        twelveWinRunQuality: 89.4,
         runs: 47,
       },
       {
@@ -59,6 +147,7 @@ const payload: ArenaSynergyPayload = {
         type: 'MINION',
         rarity: 'COMMON',
         deckWinRate: 57.3,
+        twelveWinRunQuality: 88.6,
         runs: 65,
       },
     ],
@@ -66,6 +155,21 @@ const payload: ArenaSynergyPayload = {
     expectedRuns: 9.3,
     supportPercent: 4,
     lift: 1.94,
+    adjustedLift: 1.94,
+    expectedRunQuality: 89.4,
+    actualRunQuality: 90.6,
+    interactionDeltaPoints: 1.2,
+    adjustedInteractionDeltaPoints: 1.2,
+    interactionEvidence: {
+      cardARuns: 47,
+      cardBRuns: 65,
+      pairRuns: 20,
+      cardAQuality: 88.9,
+      cardBQuality: 88.7,
+      classBaselineQuality: 88.2,
+    },
+    interactionSignal: 'positive',
+    historicalWeight: 0,
     score: 78,
     confidence: 'high',
     forcedPackageShare: 0,
@@ -78,6 +182,7 @@ const payload: ArenaSynergyPayload = {
       type: 'MINION',
       rarity: 'RARE',
       deckWinRate: 61.9,
+      twelveWinRunQuality: 89.1,
       runs: 161,
     },
     addedCopies: 143,
@@ -92,7 +197,7 @@ const payload: ArenaSynergyPayload = {
 
 const meta = {
   title: 'Admin/Arena Synergies',
-  component: ArenaSynergyPanel,
+  render: args => <ArenaSynergyPanel {...args} />,
   decorators: [
     Story => (
       <div className="admin-workspace-page">
@@ -142,5 +247,28 @@ export const Error: Story = {
     payload: null,
     loading: false,
     error: 'Не удалось загрузить сочетания Арены',
+  },
+};
+
+export const LastKnownGood: Story = {
+  args: {
+    payload: {
+      ...payload,
+      summary: {
+        ...payload.summary,
+        warnings: [
+          'Новый источник недоступен или не прошёл проверки качества: показан последний надёжный расчёт.',
+        ],
+      },
+      reliability: {
+        ...payload.reliability,
+        sampleMode: 'last-known-good',
+        servedFrom: 'last-known-good',
+        currentWeight: 0,
+        historicalWeight: 1,
+      },
+    },
+    loading: false,
+    error: null,
   },
 };

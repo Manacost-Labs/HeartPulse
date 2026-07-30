@@ -77,6 +77,23 @@
   font-weight: 720;
 }
 
+.arena-synergy-source-mode {
+  flex-shrink: 0;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid #91bfaa;
+  border-radius: 999px;
+  color: #17623e;
+  background: #effaf4;
+  font-size: 0.72rem;
+  font-weight: 780;
+}
+
+.arena-synergy-source-mode.is-last-known-good {
+  border-color: #d6af56;
+  color: #6b4a05;
+  background: #fff8e8;
+}
+
 .arena-synergy-stats {
   margin: 0;
 }
@@ -122,6 +139,95 @@
 
 .arena-synergy-empty {
   display: block;
+}
+
+.arena-synergy-quality {
+  border: 1px solid var(--admin-divider, #d8e0e8);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.arena-synergy-quality summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 0.9rem;
+  cursor: pointer;
+  color: var(--admin-ink, #172b3d);
+  font-size: 0.82rem;
+  font-weight: 780;
+}
+
+.arena-synergy-quality summary::marker {
+  color: #617181;
+}
+
+.arena-synergy-quality summary span {
+  padding: 0.24rem 0.45rem;
+  border-radius: 999px;
+  color: #17623e;
+  background: #effaf4;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.arena-synergy-quality summary span.is-warning {
+  color: #6b4a05;
+  background: #fff8e8;
+}
+
+.arena-synergy-quality summary span.is-blocked {
+  color: #8d2020;
+  background: #fff0f0;
+}
+
+.arena-synergy-quality-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.65rem;
+  padding: 0 0.9rem 0.9rem;
+}
+
+.arena-synergy-quality-grid > div {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid #d8e2e9;
+  border-left: 4px solid #6da889;
+  border-radius: 6px;
+  background: #f8fbfa;
+}
+
+.arena-synergy-quality-grid > div.is-warning {
+  border-left-color: #d6a43c;
+  background: #fffaf0;
+}
+
+.arena-synergy-quality-grid > div.is-fail {
+  border-left-color: #c45c5c;
+  background: #fff6f6;
+}
+
+.arena-synergy-quality-grid strong,
+.arena-synergy-quality-grid span,
+.arena-synergy-quality-grid small {
+  line-height: 1.35;
+}
+
+.arena-synergy-quality-grid strong {
+  color: #243d50;
+  font-size: 0.74rem;
+}
+
+.arena-synergy-quality-grid span {
+  color: #4c6071;
+  font-size: 0.72rem;
+}
+
+.arena-synergy-quality-grid small {
+  color: #768592;
+  font-size: 0.65rem;
 }
 
 @keyframes arena-synergy-spin {
@@ -322,6 +428,63 @@
   background: #eff8fc;
 }
 
+.arena-synergy-interaction {
+  color: #42596b;
+}
+
+.arena-synergy-interaction.is-positive {
+  color: #17623e;
+}
+
+.arena-synergy-interaction.is-negative {
+  color: #a03131;
+}
+
+.arena-synergy-history {
+  display: grid;
+  gap: 0.8rem;
+  padding-top: 0.15rem;
+}
+
+.arena-synergy-history-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.7rem;
+}
+
+.arena-synergy-history-list article {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid var(--admin-divider, #d8e0e8);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.arena-synergy-history-list article > div {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.arena-synergy-history-list article strong,
+.arena-synergy-history-list article small,
+.arena-synergy-history-list article > span {
+  line-height: 1.35;
+}
+
+.arena-synergy-history-list article strong {
+  color: #243d50;
+  font-size: 0.8rem;
+}
+
+.arena-synergy-history-list article small,
+.arena-synergy-history-list article > span {
+  color: var(--admin-muted, #607080);
+  font-size: 0.7rem;
+}
+
 .arena-synergy-method {
   align-items: flex-start;
   color: #4d6172;
@@ -376,6 +539,15 @@
 
   .arena-synergy-cohort {
     margin-left: 0;
+  }
+
+  .arena-synergy-source-mode {
+    width: fit-content;
+  }
+
+  .arena-synergy-quality summary {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .arena-synergy-table-wrap {
@@ -453,6 +625,14 @@
   .arena-redraft-sort button {
     flex: 1 1 100%;
     justify-content: center;
+  }
+
+  .arena-synergy-quality-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .arena-synergy-history-list article > div {
+    flex-direction: column;
   }
 }
 

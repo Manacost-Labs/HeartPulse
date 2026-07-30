@@ -56,6 +56,26 @@ function confidenceLabel(value: 'high' | 'medium' | 'exploratory'): string {
   return 'Предварительная';
 }
 
+function qualityLabel(value: ArenaSynergyPayload['dataQuality']['status']): string {
+  if (value === 'healthy') return 'Данные в норме';
+  if (value === 'warning') return 'Есть предупреждения';
+  return 'Расчёт заблокирован';
+}
+
+function sampleModeLabel(value: ArenaSynergyPayload['reliability']['sampleMode']): string {
+  if (value === 'stable') return 'Стабильная выборка';
+  if (value === 'warming') return 'Новая когорта набирает данные';
+  if (value === 'last-known-good') return 'Последний надёжный расчёт';
+  return 'Слишком мало данных';
+}
+
+function interactionLabel(value: ArenaSynergyPayload['combinations'][number]['interactionSignal']): string {
+  if (value === 'positive') return 'Есть дополнительный эффект';
+  if (value === 'negative') return 'Вместе слабее ожидания';
+  if (value === 'neutral') return 'Без заметного прироста';
+  return 'Мало данных';
+}
+
 function CardIdentity({ card }: { card: ArenaSynergyCard }) {
   return (
     <span className="arena-synergy-card">
@@ -75,7 +95,10 @@ function CardIdentity({ card }: { card: ArenaSynergyCard }) {
         <small>
           {card.cost != null ? `${card.cost} маны` : 'Мана —'}
           {' · '}
-          {card.deckWinRate != null ? `WR ${formatPercent(card.deckWinRate)}` : `в ${card.runs} колодах`}
+          {card.deckWinRate != null ? `WR ${formatPercent(card.deckWinRate)}` : `${card.runs} колод`}
+          {card.twelveWinRunQuality != null
+            ? ` · качество 12W общ. ${formatPercent(card.twelveWinRunQuality)}`
+            : ''}
         </small>
       </span>
     </span>
@@ -89,6 +112,252 @@ function sortRedraft(rows: ArenaRedraftCard[], sort: RedraftSort): ArenaRedraftC
     if (sort === 'net') return right.netCopies - left.netCopies || right.addedCopies - left.addedCopies;
     return right.decisions - left.decisions || Math.abs(right.netCopies) - Math.abs(left.netCopies);
   });
+}
+
+function ArenaDataQualityPanel({ payload }: { payload: ArenaSynergyPayload }) {
+  return (
+    <details className="arena-synergy-quality">
+      <summary>
+        Проверка входных данных
+        <span className={`is-${payload.dataQuality.status}`}>
+          {qualityLabel(payload.dataQuality.status)} · {payload.dataQuality.score}/100
+        </span>
+      </summary>
+      <div className="arena-synergy-quality-grid">
+        {payload.dataQuality.checks.map(check => (
+          <div key={check.id} className={`is-${check.status}`}>
+            <strong>{check.label}</strong>
+            <span>{check.message}</span>
+            <small>Порог: {check.threshold}</small>
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function ArenaCombinationPanel({ payload }: { payload: ArenaSynergyPayload }) {
+  return (
+    <div role="tabpanel" className="arena-synergy-section">
+      <div className="arena-synergy-section-heading">
+        <div>
+          <h3>Связки чаще ожидаемого и их дополнительный эффект</h3>
+          <p>
+            Lift отвечает за совместную встречаемость. Дополнительный эффект сравнивает
+            качество забегов пары с ожиданием от каждой карты отдельно.
+          </p>
+        </div>
+        <span>{payload.combinations.length} связок</span>
+      </div>
+      {payload.combinations.length ? (
+        <div className="arena-synergy-table-wrap">
+          <table className="arena-synergy-table">
+            <caption className="sr-only">Сильные сочетания карт Арены</caption>
+            <thead>
+              <tr>
+                <th scope="col">Карты</th>
+                <th scope="col">Вместе</th>
+                <th scope="col">Ожидалось</th>
+                <th scope="col">Lift</th>
+                <th scope="col">Доп. эффект</th>
+                <th scope="col">Сигнал</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payload.combinations.map(combination => (
+                <tr key={combination.cards.map(card => card.id).join(':')}>
+                  <td data-label="Карты">
+                    <div className="arena-synergy-pair">
+                      <CardIdentity card={combination.cards[0]} />
+                      <span aria-hidden="true">+</span>
+                      <CardIdentity card={combination.cards[1]} />
+                    </div>
+                  </td>
+                  <td data-label="Вместе">
+                    <strong>{combination.observedRuns}</strong>
+                    <small>{formatPercent(combination.supportPercent)} колод</small>
+                  </td>
+                  <td data-label="Ожидалось">{combination.expectedRuns.toLocaleString('ru-RU')}</td>
+                  <td data-label="Lift">
+                    <strong>×{combination.adjustedLift.toFixed(2)}</strong>
+                    {combination.historicalWeight > 0 && (
+                      <small>
+                        текущий ×{combination.lift.toFixed(2)}
+                        {' · '}история {formatPercent(combination.historicalWeight * 100)}
+                      </small>
+                    )}
+                  </td>
+                  <td data-label="Доп. эффект">
+                    <strong className={`arena-synergy-interaction is-${combination.interactionSignal}`}>
+                      {combination.adjustedInteractionDeltaPoints > 0 ? '+' : ''}
+                      {combination.adjustedInteractionDeltaPoints.toFixed(1)} п.п.
+                    </strong>
+                    <small>
+                      ожидание {formatPercent(combination.expectedRunQuality)}
+                      {' → '}факт {formatPercent(combination.actualRunQuality)}
+                    </small>
+                    <small>
+                      A без B {formatPercent(combination.interactionEvidence.cardAQuality)}
+                      {' · '}B без A {formatPercent(combination.interactionEvidence.cardBQuality)}
+                      {' · '}база {formatPercent(combination.interactionEvidence.classBaselineQuality)}
+                    </small>
+                    <small>
+                      отдельно {combination.interactionEvidence.cardARuns}
+                      {' / '}{combination.interactionEvidence.cardBRuns}
+                      {' · '}вместе {combination.interactionEvidence.pairRuns}
+                    </small>
+                  </td>
+                  <td data-label="Сигнал">
+                    <span className={`arena-synergy-confidence is-${combination.confidence}`}>
+                      {confidenceLabel(combination.confidence)}
+                    </span>
+                    <small>оценка {combination.score}/100</small>
+                    <small>{interactionLabel(combination.interactionSignal)}</small>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <output className="arena-synergy-empty">
+          Для выбранного класса пока нет связок, прошедших порог выборки и lift.
+        </output>
+      )}
+      <div className="arena-synergy-method">
+        <Info size={17} aria-hidden="true" />
+        <p>
+          {payload.methodology.note}
+          {' '}Порог: от {payload.methodology.minimumPairRuns} совместных колод,
+          lift от {payload.methodology.minimumLift.toFixed(2)}.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ArenaRedraftPanel({
+  rows,
+  sort,
+  onSort,
+}: {
+  rows: ArenaRedraftCard[];
+  sort: RedraftSort;
+  onSort: (sort: RedraftSort) => void;
+}) {
+  return (
+    <div role="tabpanel" className="arena-synergy-section">
+      <div className="arena-synergy-section-heading">
+        <div>
+          <h3>Что забирают и что сбрасывают</h3>
+          <p>Количество копий во всех redraft выбранной выборки.</p>
+        </div>
+      </div>
+      <fieldset className="arena-redraft-sort" aria-label="Сортировка redraft">
+        {([
+          ['added', 'Чаще добавляют', ArrowDownToLine],
+          ['discarded', 'Чаще сбрасывают', ArrowUpFromLine],
+          ['net', 'Лучший баланс', Combine],
+          ['decisions', 'Все решения', Repeat2],
+        ] as const).map(([value, label, Icon]) => (
+          <button
+            key={value}
+            type="button"
+            className={sort === value ? 'is-active' : ''}
+            aria-pressed={sort === value}
+            onClick={() => onSort(value)}
+          >
+            <Icon size={16} aria-hidden="true" /> {label}
+          </button>
+        ))}
+      </fieldset>
+      {rows.length ? (
+        <div className="arena-synergy-table-wrap">
+          <table className="arena-synergy-table arena-redraft-table">
+            <caption className="sr-only">Статистика добавлений и сбросов redraft</caption>
+            <thead>
+              <tr>
+                <th scope="col">Карта</th>
+                <th scope="col">Добавили</th>
+                <th scope="col">Сбросили</th>
+                <th scope="col">Баланс</th>
+                <th scope="col">Доля добавлений</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(row => (
+                <tr key={row.card.id}>
+                  <td data-label="Карта"><CardIdentity card={row.card} /></td>
+                  <td data-label="Добавили">
+                    <strong>+{row.addedCopies}</strong>
+                    <small>{row.addedRuns} забегов</small>
+                  </td>
+                  <td data-label="Сбросили">
+                    <strong>−{row.discardedCopies}</strong>
+                    <small>{row.discardedRuns} забегов</small>
+                  </td>
+                  <td data-label="Баланс">
+                    <strong>{row.netCopies > 0 ? '+' : ''}{row.netCopies}</strong>
+                  </td>
+                  <td data-label="Доля добавлений">
+                    {formatPercent(row.addShare * 100)}
+                    <small>{row.decisions} решений</small>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <output className="arena-synergy-empty">
+          В выбранной выборке нет данных redraft.
+        </output>
+      )}
+      <div className="arena-synergy-method">
+        <Info size={17} aria-hidden="true" />
+        <p>
+          Источник не связывает конкретную сброшенную карту с конкретной добавленной.
+          Поэтому здесь показаны независимые частоты, а не пары замен.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ArenaHistoryPanel({ payload }: { payload: ArenaSynergyPayload }) {
+  if (!payload.history.length) return null;
+  return (
+    <div className="arena-synergy-history">
+      <div className="arena-synergy-section-heading">
+        <div>
+          <h3>История патчей и пула</h3>
+          <p>Снимки сохраняются отдельно и не смешиваются после смены когорты.</p>
+        </div>
+        <span>{payload.history.length} версий</span>
+      </div>
+      <div className="arena-synergy-history-list">
+        {payload.history.slice(0, 6).map(item => (
+          <article key={item.id}>
+            <div>
+              <strong>Патч {item.patchVersion ?? 'не определён'}</strong>
+              <small>{item.poolFingerprint.slice(0, 8)} · {item.runsAnalyzed} забегов</small>
+            </div>
+            <span>{formatPeriod(item.from, item.to)}</span>
+            {item.topCombination ? (
+              <small>
+                Лидер: {item.topCombination.cards.join(' + ')}
+                {' · '}
+                {item.topCombination.interactionDeltaPoints > 0 ? '+' : ''}
+                {item.topCombination.interactionDeltaPoints.toFixed(1)} п.п.
+              </small>
+            ) : (
+              <small>Надёжных сочетаний пока нет</small>
+            )}
+          </article>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function ArenaSynergyPanel({
@@ -143,11 +412,16 @@ export function ArenaSynergyPanel({
             ))}
         </select>
         {payload && (
-          <span className="arena-synergy-cohort">
-            Когорта {payload.cohort.patchVersion ? `патча ${payload.cohort.patchVersion}` : 'без патча'}
-            {' · '}
-            {payload.cohort.poolFingerprint.slice(0, 8)}
-          </span>
+          <>
+            <span className="arena-synergy-cohort">
+              Когорта {payload.cohort.patchVersion ? `патча ${payload.cohort.patchVersion}` : 'без патча'}
+              {' · '}
+              {payload.cohort.poolFingerprint.slice(0, 8)}
+            </span>
+            <span className={`arena-synergy-source-mode is-${payload.reliability.servedFrom}`}>
+              {sampleModeLabel(payload.reliability.sampleMode)}
+            </span>
+          </>
         )}
       </div>
 
@@ -194,7 +468,22 @@ export function ArenaSynergyPanel({
               <strong>{payload.summary.redraftRuns}</strong>
               <small>из {payload.summary.runsAnalyzed} в выборке</small>
             </div>
+            <div>
+              <span>Качество данных</span>
+              <strong>{payload.dataQuality.score}/100</strong>
+              <small>{qualityLabel(payload.dataQuality.status)}</small>
+            </div>
           </div>
+
+          {payload.reliability.servedFrom === 'last-known-good' && (
+            <div className="arena-synergy-message is-warning" role="alert">
+              <AlertTriangle size={18} aria-hidden="true" />
+              <span>
+                Свежий источник не прошёл проверку. Показана сохранённая версия от{' '}
+                {formatDate(payload.generatedAt, true)}.
+              </span>
+            </div>
+          )}
 
           {payload.summary.warnings.map(warning => (
             <output key={warning} className="arena-synergy-message is-warning">
@@ -202,6 +491,8 @@ export function ArenaSynergyPanel({
               <span>{warning}</span>
             </output>
           ))}
+
+          <ArenaDataQualityPanel payload={payload} />
 
           <div className="arena-synergy-tabs" role="tablist" aria-label="Раздел аналитики">
             <button
@@ -224,151 +515,11 @@ export function ArenaSynergyPanel({
             </button>
           </div>
 
-          {tab === 'combinations' && (
-            <div role="tabpanel" className="arena-synergy-section">
-              <div className="arena-synergy-section-heading">
-                <div>
-                  <h3>Связки чаще ожидаемого</h3>
-                  <p>
-                    Lift 1,50 означает: пара встречается вместе примерно в 1,5 раза чаще
-                    ожидаемого для этих же карт и классов.
-                  </p>
-                </div>
-                <span>{payload.combinations.length} связок</span>
-              </div>
-              {payload.combinations.length ? (
-                <div className="arena-synergy-table-wrap">
-                  <table className="arena-synergy-table">
-                    <caption className="sr-only">Сильные сочетания карт Арены</caption>
-                    <thead>
-                      <tr>
-                        <th scope="col">Карты</th>
-                        <th scope="col">Вместе</th>
-                        <th scope="col">Ожидалось</th>
-                        <th scope="col">Lift</th>
-                        <th scope="col">Сигнал</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {payload.combinations.map(combination => (
-                        <tr key={combination.cards.map(card => card.id).join(':')}>
-                          <td data-label="Карты">
-                            <div className="arena-synergy-pair">
-                              <CardIdentity card={combination.cards[0]} />
-                              <span aria-hidden="true">+</span>
-                              <CardIdentity card={combination.cards[1]} />
-                            </div>
-                          </td>
-                          <td data-label="Вместе">
-                            <strong>{combination.observedRuns}</strong>
-                            <small>{formatPercent(combination.supportPercent)} колод</small>
-                          </td>
-                          <td data-label="Ожидалось">{combination.expectedRuns.toLocaleString('ru-RU')}</td>
-                          <td data-label="Lift"><strong>×{combination.lift.toFixed(2)}</strong></td>
-                          <td data-label="Сигнал">
-                            <span className={`arena-synergy-confidence is-${combination.confidence}`}>
-                              {confidenceLabel(combination.confidence)}
-                            </span>
-                            <small>оценка {combination.score}/100</small>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <output className="arena-synergy-empty">
-                  Для выбранного класса пока нет связок, прошедших порог выборки и lift.
-                </output>
-              )}
-              <div className="arena-synergy-method">
-                <Info size={17} aria-hidden="true" />
-                <p>
-                  {payload.methodology.note}
-                  {' '}Порог: от {payload.methodology.minimumPairRuns} совместных колод,
-                  lift от {payload.methodology.minimumLift.toFixed(2)}.
-                </p>
-              </div>
-            </div>
-          )}
-
+          {tab === 'combinations' && <ArenaCombinationPanel payload={payload} />}
           {tab === 'redraft' && (
-            <div role="tabpanel" className="arena-synergy-section">
-              <div className="arena-synergy-section-heading">
-                <div>
-                  <h3>Что забирают и что сбрасывают</h3>
-                  <p>Количество копий во всех redraft выбранной выборки.</p>
-                </div>
-              </div>
-              <fieldset className="arena-redraft-sort" aria-label="Сортировка redraft">
-                {([
-                  ['added', 'Чаще добавляют', ArrowDownToLine],
-                  ['discarded', 'Чаще сбрасывают', ArrowUpFromLine],
-                  ['net', 'Лучший баланс', Combine],
-                  ['decisions', 'Все решения', Repeat2],
-                ] as const).map(([value, label, Icon]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className={redraftSort === value ? 'is-active' : ''}
-                    aria-pressed={redraftSort === value}
-                    onClick={() => setRedraftSort(value)}
-                  >
-                    <Icon size={16} aria-hidden="true" /> {label}
-                  </button>
-                ))}
-              </fieldset>
-              {redraftRows.length ? (
-                <div className="arena-synergy-table-wrap">
-                  <table className="arena-synergy-table arena-redraft-table">
-                    <caption className="sr-only">Статистика добавлений и сбросов redraft</caption>
-                    <thead>
-                      <tr>
-                        <th scope="col">Карта</th>
-                        <th scope="col">Добавили</th>
-                        <th scope="col">Сбросили</th>
-                        <th scope="col">Баланс</th>
-                        <th scope="col">Доля добавлений</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {redraftRows.map(row => (
-                        <tr key={row.card.id}>
-                          <td data-label="Карта"><CardIdentity card={row.card} /></td>
-                          <td data-label="Добавили">
-                            <strong>+{row.addedCopies}</strong>
-                            <small>{row.addedRuns} забегов</small>
-                          </td>
-                          <td data-label="Сбросили">
-                            <strong>−{row.discardedCopies}</strong>
-                            <small>{row.discardedRuns} забегов</small>
-                          </td>
-                          <td data-label="Баланс">
-                            <strong>{row.netCopies > 0 ? '+' : ''}{row.netCopies}</strong>
-                          </td>
-                          <td data-label="Доля добавлений">
-                            {formatPercent(row.addShare * 100)}
-                            <small>{row.decisions} решений</small>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <output className="arena-synergy-empty">
-                  В выбранной выборке нет данных redraft.
-                </output>
-              )}
-              <div className="arena-synergy-method">
-                <Info size={17} aria-hidden="true" />
-                <p>
-                  Источник не связывает конкретную сброшенную карту с конкретной добавленной.
-                  Поэтому здесь показаны независимые частоты, а не пары замен.
-                </p>
-              </div>
-            </div>
+            <ArenaRedraftPanel rows={redraftRows} sort={redraftSort} onSort={setRedraftSort} />
           )}
+          <ArenaHistoryPanel payload={payload} />
 
           <p className="arena-synergy-updated">
             Расчёт обновлён {formatDate(payload.generatedAt, true)}

@@ -761,6 +761,18 @@
       "runbook": "frontend:STABILIZATION.md"
     },
     {
+      "id": "store-arena-synergy-history",
+      "name": "Arena synergy cohort history and last-known-good snapshots",
+      "owner": "web-platform",
+      "criticality": "P1",
+      "source": "frontend:server/arenaSynergyHistoryStore.ts",
+      "consumers": ["arena-admin", "arena-web-api"],
+      "healthImpact": "degraded",
+      "readinessImpact": "degrades",
+      "backup": "required",
+      "runbook": "frontend:docs/admin-arena-synergies.md"
+    },
+    {
       "id": "store-data-api-datasets",
       "name": "published data API dataset snapshots",
       "owner": "data-platform",
