@@ -500,7 +500,7 @@ export function ArenaDraftAssistantWorkbench({
             <ul className="draft-rules-strip" aria-label="Правила текущего драфта">
               <li><strong>{context.deckSize}</strong> карт в колоде</li>
               <li><strong>1-й</strong> выбор — легендарная группа</li>
-              <li><strong>∞</strong> копий карты</li>
+              <li><strong>↻</strong> повторы разрешены*</li>
               <li><strong>{cards.length}</strong> карт в текущей выборке</li>
             </ul>
 
@@ -617,7 +617,8 @@ export function ArenaDraftAssistantWorkbench({
             <p className="draft-auto-offer-note">
               Рекомендационная тройка не предсказывает случайное предложение клиента:
               если в игре показаны другие карты или у легендарки есть пакет поддержки,
-              добавьте пакет в колоду и замените три поля ниже.
+              добавьте пакет в колоду и замените три поля ниже. Сезонные ограничения
+              отдельных карт применяет сам игровой клиент.
             </p>
 
             <div className="draft-candidate-pickers">

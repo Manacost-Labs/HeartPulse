@@ -7,8 +7,8 @@
   server data restricted to administrators.
 - Added automatic three-card recommendations from the selected class's current
   Arena pool, including the opening Legendary phase, 30-card completion guard,
-  unlimited Arena duplicate eligibility and manual replacement with the real
-  in-game offer.
+  duplicate eligibility without the constructed-style copy cap, explicit
+  seasonal-rule caveats and manual replacement with the real in-game offer.
 - Added deterministic base-strength, sample, curve and proven-synergy scoring
   for generated offers plus explicit current-pool and draft-rule context.
 
