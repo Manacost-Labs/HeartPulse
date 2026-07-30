@@ -33,6 +33,11 @@ export {
   PublicDeckStatisticsQueryError,
   type PublicDeckStatisticsSource,
 } from './deckStatistics.js';
+export {
+  createPublicArenaStatistics,
+  PublicArenaStatisticsQueryError,
+  type PublicArenaStatisticsSource,
+} from './arenaStatistics.js';
 export { PUBLIC_API_OPENAPI } from './openapi.js';
 export {
   createSqliteApiKeyRepository,

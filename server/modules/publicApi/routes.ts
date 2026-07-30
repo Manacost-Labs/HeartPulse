@@ -25,6 +25,11 @@ import {
   PublicDeckStatisticsQueryError,
   type PublicDeckStatisticsSource,
 } from './deckStatistics.js';
+import {
+  createPublicArenaStatistics,
+  PublicArenaStatisticsQueryError,
+  type PublicArenaStatisticsSource,
+} from './arenaStatistics.js';
 import { ApiKeyValidationError, type ApiKeyManager, type PublicApiScope } from './model.js';
 import { PUBLIC_API_OPENAPI } from './openapi.js';
 
@@ -58,6 +63,7 @@ type PublicRouterDependencies = {
   cardStatistics?: PublicCardStatisticsSource;
   metaStatistics?: PublicMetaStatisticsSource;
   deckStatistics?: PublicDeckStatisticsSource;
+  arenaStatistics?: PublicArenaStatisticsSource;
 };
 
 const apiError = (code: string, message: string) => ({ error: { code, message } });
@@ -117,6 +123,9 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     : null;
   const deckStatistics = dependencies.deckStatistics
     ? createPublicDeckStatistics(dependencies.deckStatistics)
+    : null;
+  const arenaStatistics = dependencies.arenaStatistics
+    ? createPublicArenaStatistics(dependencies.arenaStatistics)
     : null;
 
   const sendVersionedJson = (
@@ -192,6 +201,21 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     return response.status(503).json(apiError(
       'DECK_STATISTICS_UNAVAILABLE',
       'Deck statistics are temporarily unavailable',
+    ));
+  };
+
+  const arenaStatisticsError = (response: Response, error: unknown) => {
+    response.set('Cache-Control', 'no-store');
+    if (error instanceof PublicArenaStatisticsQueryError) {
+      return response.status(400).json(apiError(
+        'INVALID_ARENA_STATISTICS_QUERY',
+        error.message,
+      ));
+    }
+    response.set('Retry-After', '60');
+    return response.status(503).json(apiError(
+      'ARENA_STATISTICS_UNAVAILABLE',
+      'Arena statistics are temporarily unavailable',
     ));
   };
 
@@ -472,6 +496,70 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
       return sendVersionedJson(request, response, result);
     } catch (error) {
       return deckStatisticsError(response, error);
+    }
+  });
+
+  router.get('/arena/statistics/classes', async (request, response) => {
+    if (!requireScope(dependencies, 'statistics.read', request, response)) return;
+    if (!arenaStatistics) {
+      return arenaStatisticsError(response, new Error('Arena statistics are not configured'));
+    }
+    try {
+      return sendVersionedJson(
+        request,
+        response,
+        await arenaStatistics.classes(request.query as Record<string, unknown>),
+      );
+    } catch (error) {
+      return arenaStatisticsError(response, error);
+    }
+  });
+
+  router.get('/arena/statistics/cards', async (request, response) => {
+    if (!requireScope(dependencies, 'statistics.read', request, response)) return;
+    if (!arenaStatistics) {
+      return arenaStatisticsError(response, new Error('Arena statistics are not configured'));
+    }
+    try {
+      return sendVersionedJson(
+        request,
+        response,
+        await arenaStatistics.cards(request.query as Record<string, unknown>),
+      );
+    } catch (error) {
+      return arenaStatisticsError(response, error);
+    }
+  });
+
+  router.get('/arena/statistics/legendaries', async (request, response) => {
+    if (!requireScope(dependencies, 'statistics.read', request, response)) return;
+    if (!arenaStatistics) {
+      return arenaStatisticsError(response, new Error('Arena statistics are not configured'));
+    }
+    try {
+      return sendVersionedJson(
+        request,
+        response,
+        await arenaStatistics.legendaries(request.query as Record<string, unknown>),
+      );
+    } catch (error) {
+      return arenaStatisticsError(response, error);
+    }
+  });
+
+  router.get('/arena/statistics/matchups', async (request, response) => {
+    if (!requireScope(dependencies, 'statistics.read', request, response)) return;
+    if (!arenaStatistics) {
+      return arenaStatisticsError(response, new Error('Arena statistics are not configured'));
+    }
+    try {
+      return sendVersionedJson(
+        request,
+        response,
+        await arenaStatistics.matchups(request.query as Record<string, unknown>),
+      );
+    } catch (error) {
+      return arenaStatisticsError(response, error);
     }
   });
 
