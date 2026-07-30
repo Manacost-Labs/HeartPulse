@@ -1,5 +1,14 @@
 # HS-Arena Changelog
 
+## v1.0.84 - 2026-07-30
+
+- Compared every Arena pair with similar same-class, same-patch control decks
+  after excluding the investigated cards from deck-similarity features.
+- Added conservative matched-control interaction effects and confirmed,
+  promising or merely popular verdicts with player/day diversity safeguards.
+- Exposed the control sample, similarity and diversity evidence in the
+  administrator UI while keeping older last-known-good snapshots readable.
+
 ## v1.0.83 - 2026-07-30
 
 - Separated individual card strength from pair interaction by comparing actual
