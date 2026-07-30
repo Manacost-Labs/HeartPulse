@@ -10,7 +10,7 @@ export type PublicArenaStatisticsSource = {
   loadClasses: (source: PublicArenaClassSource) => Promise<unknown>;
   loadCards: (source: PublicArenaCardSource) => Promise<unknown>;
   loadLegendaries: (source: PublicArenaLegendarySource) => Promise<unknown>;
-  loadMatchups: () => Promise<unknown>;
+  loadMatchups: (source: PublicArenaClassSource) => Promise<unknown>;
 };
 
 type ArenaEntity = 'classes' | 'cards' | 'legendaries' | 'matchups';
@@ -24,6 +24,10 @@ type VersionedDataset<T> = {
     updatedAt: string | null;
     datasetVersion: string;
     dataStatus: 'fresh' | 'stale';
+    sample?: {
+      dataPoints: number | null;
+      timePeriod: string | null;
+    };
   };
   cacheSource: 'fresh' | 'LKG';
 };
@@ -148,9 +152,15 @@ function dataStatus(updatedAt: string | null): 'fresh' | 'stale' {
   return updatedAt && Date.now() - Date.parse(updatedAt) <= FRESH_FOR_MS ? 'fresh' : 'stale';
 }
 
-function datasetVersion(entity: ArenaEntity, source: string, updatedAt: string | null, data: unknown[]): string {
+function datasetVersion(
+  entity: ArenaEntity,
+  source: string,
+  updatedAt: string | null,
+  data: unknown[],
+  sample?: VersionedDataset<unknown>['meta']['sample'],
+): string {
   return `ds1-${createHash('sha256')
-    .update(JSON.stringify({ entity, source, updatedAt, data }))
+    .update(JSON.stringify({ entity, source, updatedAt, data, sample }))
     .digest('hex')
     .slice(0, 20)}`;
 }
@@ -160,6 +170,7 @@ function versioned<T>(
   source: string,
   updatedAt: string | null,
   data: T[],
+  sample?: VersionedDataset<T>['meta']['sample'],
 ): VersionedDataset<T> {
   const status = dataStatus(updatedAt);
   return {
@@ -169,8 +180,9 @@ function versioned<T>(
       entity,
       source,
       updatedAt,
-      datasetVersion: datasetVersion(entity, source, updatedAt, data),
+      datasetVersion: datasetVersion(entity, source, updatedAt, data, sample),
       dataStatus: status,
+      ...(sample ? { sample } : {}),
     },
     cacheSource: status === 'fresh' ? 'fresh' : 'LKG',
   };
@@ -245,10 +257,64 @@ function serializeClass(value: unknown) {
   const winratePercent = percent(source.winrate);
   const games = count(source.games);
   if (!classId || winratePercent === null || games === null) return null;
+  const winsDistribution = (Array.isArray(source.winsDistribution)
+    ? source.winsDistribution
+    : [])
+    .map((value) => {
+      const distribution = record(value);
+      const wins = count(distribution.wins);
+      const distributionGames = count(distribution.games ?? distribution.total);
+      if (wins === null || distributionGames === null) return null;
+      return {
+        wins,
+        games: distributionGames,
+        sharePercent: games > 0
+          ? Math.round((distributionGames / games) * 10_000) / 100
+          : null,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+  const matchups = (Array.isArray(source.matchups) ? source.matchups : [])
+    .map((value) => {
+      const matchup = record(value);
+      const opponentClassId = safeClassId(matchup.opponentClassId);
+      const matchupGames = count(matchup.games ?? matchup.totalGames);
+      const matchupWins = count(matchup.wins ?? matchup.totalsWins);
+      const winratePercent = percent(matchup.winrate ?? matchup.winratePercent);
+      if (!opponentClassId || matchupGames === null || winratePercent === null) {
+        return null;
+      }
+      return {
+        opponentClassId,
+        opponentHeroPowerCardId: safeCardId(matchup.opponentHeroPowerCardId),
+        metrics: {
+          winratePercent,
+          games: matchupGames,
+          wins: matchupWins,
+          losses: count(matchup.losses),
+        },
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
   return {
     classId,
     name: text(source.name) || classId,
-    metrics: { winratePercent, games },
+    heroPowerCardId: safeCardId(source.heroPowerCardId),
+    winsDistribution,
+    matchups,
+    metrics: {
+      winratePercent,
+      games,
+      wins: count(source.wins ?? source.totalWins ?? source.totalsWins),
+      losses: count(source.losses ?? source.totalLosses),
+      pickRatePercent: percent(source.pickRate ?? source.pick_rate),
+      sevenPlusWinsPercent: percent(
+        source.sevenPlusWinsRate
+          ?? source.sevenPlusWinsPercent
+          ?? source.pct7Plus
+          ?? source.pct_7_plus,
+      ),
+    },
   };
 }
 
@@ -262,6 +328,11 @@ function serializeArenaCard(value: unknown, tier: unknown, sectionClass: unknown
     classId: safeClassId(source.classKey) ?? safeClassId(sectionClass),
     rarity: text(source.rarity, 32) || null,
     tier: safeTier(tier),
+    arenaSmithTier: safeTier(source.arenaSmithTier ?? source.arenasmithTier),
+    arenaSmithTierPosition: safeTier(
+      source.arenaSmithTierPosition ?? source.arenasmithTierPosition,
+    ),
+    arenaSmithRank: count(source.arenaSmithRank ?? source.arenasmithRank),
     metrics: {
       deckWinratePercent: percent(source.deckWinrate ?? source.winrate),
       playedWinratePercent: percent(source.playedWinrate),
@@ -275,8 +346,69 @@ function serializeArenaCard(value: unknown, tier: unknown, sectionClass: unknown
       mulliganWinratePercent: percent(source.mulliganWinrate),
       keptRatePercent: percent(source.keptRate),
       averageCopies: finite(source.avgCopies, { minimum: 0, maximum: 30 }),
+      copiesInPackage: count(source.count),
     },
   };
+}
+
+function serializeLegendaryCard(value: unknown) {
+  const source = record(value);
+  const cardId = safeCardId(source.cardId);
+  if (!cardId) return null;
+  return {
+    cardId,
+    name: text(source.name) || cardId,
+    classId: safeClassId(source.classKey),
+    rarity: text(source.rarity, 32) || null,
+    tier: safeTier(source.tier),
+    arenaSmithTier: safeTier(source.arenaSmithTier ?? source.arenasmithTier),
+    arenaSmithTierPosition: safeTier(
+      source.arenaSmithTierPosition ?? source.arenasmithTierPosition,
+    ),
+    arenaSmithRank: count(source.arenaSmithRank ?? source.arenasmithRank),
+    metrics: {
+      deckWinratePercent: percent(source.deckWinrate ?? source.winrate),
+      playedWinratePercent: percent(source.playedWinrate),
+      drawnWinratePercent: percent(source.drawnWinrate),
+      mulliganWinratePercent: percent(source.mulliganWinrate),
+      pickRatePercent: percent(source.pickRate),
+      inclusionRatePercent: percent(source.inDecks),
+      offerRatePercent: percent(source.offerRate),
+      discardRatePercent: percent(source.discardRate),
+      keptRatePercent: percent(source.keptRate),
+      games: count(source.totalGames),
+      arenaScore: finite(source.arenaScore, { minimum: -10_000, maximum: 10_000 }),
+      averageCopies: finite(source.avgCopies, { minimum: 0, maximum: 30 }),
+      copiesInPackage: count(source.count),
+    },
+  };
+}
+
+function serializeLegendaryByClass(value: unknown) {
+  const source = record(value);
+  const result: Record<string, {
+    winratePercent: number | null;
+    pickRatePercent: number | null;
+    offerRatePercent: number | null;
+    arenaScore: number | null;
+  }> = {};
+  for (const [rawClassId, rawMetrics] of Object.entries(source)) {
+    const classId = rawClassId.toLocaleLowerCase('en-US') === 'all'
+      ? 'all'
+      : safeClassId(rawClassId);
+    if (!classId) continue;
+    const metrics = record(rawMetrics);
+    result[classId] = {
+      winratePercent: percent(metrics.winRate ?? metrics.winrate),
+      pickRatePercent: percent(metrics.pickRate),
+      offerRatePercent: percent(metrics.offerRate),
+      arenaScore: finite(metrics.score ?? metrics.arenaScore, {
+        minimum: -10_000,
+        maximum: 10_000,
+      }),
+    };
+  }
+  return result;
 }
 
 function arenaCards(payload: unknown) {
@@ -300,14 +432,19 @@ function serializeLegendary(value: unknown) {
   const card = record(group.keyCard);
   const cardId = safeCardId(card.cardId);
   if (!cardId) return null;
-  const relatedCardIds = (Array.isArray(group.cards) ? group.cards : [])
-    .map(item => safeCardId(record(item).cardId))
-    .filter((item): item is string => Boolean(item));
+  const keyCard = serializeLegendaryCard(card);
+  const relatedCards = (Array.isArray(group.cards) ? group.cards : [])
+    .map(serializeLegendaryCard)
+    .filter((item): item is NonNullable<ReturnType<typeof serializeLegendaryCard>> => Boolean(item));
+  const relatedCardIds = relatedCards.map(item => item.cardId);
   return {
     cardId,
     name: text(card.name) || cardId,
     classId: safeClassId(group.classKey) ?? safeClassId(card.classKey),
     relatedCardIds: [...new Set(relatedCardIds)],
+    keyCard,
+    relatedCards,
+    byClass: serializeLegendaryByClass(group.byClass),
     metrics: {
       winratePercent: percent(group.winRate ?? card.deckWinrate ?? card.winrate),
       pickRatePercent: percent(group.pickRate ?? card.pickRate),
@@ -330,7 +467,10 @@ function serializeMatchup(value: unknown) {
   return {
     classAId,
     classBId,
-    metrics: { winratePercent },
+    metrics: {
+      winratePercent,
+      games: count(source.games ?? source.totalGames ?? source.numGames),
+    },
   };
 }
 
@@ -353,7 +493,11 @@ export function createPublicArenaStatistics(source: PublicArenaStatisticsSource)
           || left.classId.localeCompare(right.classId, 'en')
         ))
         .map((item, index) => ({ ...item, rank: index + 1 }));
-      return versioned('classes', selectedSource, updatedAt, data);
+      const sample = {
+        dataPoints: count(payload.dataPoints ?? payload.data_points),
+        timePeriod: text(payload.timePeriod ?? payload.time_period, 80) || null,
+      };
+      return versioned('classes', selectedSource, updatedAt, data, sample);
     },
 
     async cards(query: JsonRecord) {
@@ -403,8 +547,9 @@ export function createPublicArenaStatistics(source: PublicArenaStatisticsSource)
     },
 
     async matchups(query: JsonRecord) {
+      const selectedSource = enumValue(query.source, CLASS_SOURCES, 'hsreplay');
       const selectedClass = classIdValue(query.class);
-      const payload = record(await source.loadMatchups());
+      const payload = record(await source.loadMatchups(selectedSource));
       const updatedAt = timestamp(payload.updatedAt);
       const data = (Array.isArray(payload.matchups) ? payload.matchups : [])
         .map(serializeMatchup)
@@ -416,8 +561,8 @@ export function createPublicArenaStatistics(source: PublicArenaStatisticsSource)
           left.classAId.localeCompare(right.classAId, 'en')
           || left.classBId.localeCompare(right.classBId, 'en')
         ));
-      const result = versioned('matchups', 'hsreplay', updatedAt, data);
-      return paginate(query, result, [selectedClass]);
+      const result = versioned('matchups', selectedSource, updatedAt, data);
+      return paginate(query, result, [selectedSource, selectedClass]);
     },
   };
 }

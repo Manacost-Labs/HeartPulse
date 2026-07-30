@@ -252,7 +252,7 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     if (!requireScope(dependencies, 'catalog.read', request, response)) return;
     const payload = {
       apiVersion: 'v1',
-      schemaVersion: '2026-07-30.5',
+      schemaVersion: '2026-07-30.6',
       generatedAt: manifestGeneratedAt,
       resources: [
         { id: 'openapi', href: '/api/v1/openapi.json', status: 'AVAILABLE' },
@@ -318,8 +318,23 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
           status: 'AVAILABLE',
         },
         {
+          id: 'battleground-hero-statistics-detail',
+          href: '/api/v1/battlegrounds/statistics/heroes/{heroId}',
+          status: 'AVAILABLE',
+        },
+        {
           id: 'battleground-minion-statistics',
           href: '/api/v1/battlegrounds/statistics/minions',
+          status: 'AVAILABLE',
+        },
+        {
+          id: 'battleground-minion-statistics-history',
+          href: '/api/v1/battlegrounds/statistics/minions/{dbfId}/history',
+          status: 'AVAILABLE',
+        },
+        {
+          id: 'battleground-spell-statistics',
+          href: '/api/v1/battlegrounds/statistics/spells',
           status: 'AVAILABLE',
         },
         {
@@ -641,6 +656,32 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
     }
   });
 
+  router.get('/battlegrounds/statistics/heroes/:heroId', async (request, response) => {
+    if (!requireScope(dependencies, 'statistics.read', request, response)) return;
+    if (!battlegroundStatistics) {
+      return battlegroundStatisticsError(
+        response,
+        new Error('Battlegrounds statistics are not configured'),
+      );
+    }
+    try {
+      const result = await battlegroundStatistics.heroDetail(
+        request.params.heroId,
+        request.query as Record<string, unknown>,
+      );
+      if (!result) {
+        response.set('Cache-Control', 'no-store');
+        return response.status(404).json(apiError(
+          'BATTLEGROUNDS_HERO_STATISTICS_NOT_FOUND',
+          'Battlegrounds hero statistics were not found',
+        ));
+      }
+      return sendVersionedJson(request, response, result);
+    } catch (error) {
+      return battlegroundStatisticsError(response, error);
+    }
+  });
+
   router.get('/battlegrounds/statistics/minions', async (request, response) => {
     if (!requireScope(dependencies, 'statistics.read', request, response)) return;
     if (!battlegroundStatistics) {
@@ -655,6 +696,56 @@ export function createPublicApiRouter(dependencies: PublicRouterDependencies): R
         response,
         await battlegroundStatistics.minions(request.query as Record<string, unknown>),
       );
+    } catch (error) {
+      return battlegroundStatisticsError(response, error);
+    }
+  });
+
+  router.get('/battlegrounds/statistics/minions/:dbfId/history', async (request, response) => {
+    if (!requireScope(dependencies, 'statistics.read', request, response)) return;
+    if (!battlegroundStatistics) {
+      return battlegroundStatisticsError(
+        response,
+        new Error('Battlegrounds statistics are not configured'),
+      );
+    }
+    try {
+      const result = await battlegroundStatistics.minionHistory(
+        request.params.dbfId,
+        request.query as Record<string, unknown>,
+      );
+      if (!result) {
+        response.set('Cache-Control', 'no-store');
+        return response.status(404).json(apiError(
+          'BATTLEGROUNDS_MINION_HISTORY_NOT_FOUND',
+          'Battlegrounds minion history was not found',
+        ));
+      }
+      return sendVersionedJson(request, response, result);
+    } catch (error) {
+      return battlegroundStatisticsError(response, error);
+    }
+  });
+
+  router.get('/battlegrounds/statistics/spells', async (request, response) => {
+    if (!requireScope(dependencies, 'statistics.read', request, response)) return;
+    if (!battlegroundStatistics) {
+      return battlegroundStatisticsError(
+        response,
+        new Error('Battlegrounds statistics are not configured'),
+      );
+    }
+    try {
+      const result = await battlegroundStatistics.spells(
+        request.query as Record<string, unknown>,
+      );
+      if (!result) {
+        return battlegroundStatisticsError(
+          response,
+          new Error('Battlegrounds spell statistics are not configured'),
+        );
+      }
+      return sendVersionedJson(request, response, result);
     } catch (error) {
       return battlegroundStatisticsError(response, error);
     }

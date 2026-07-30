@@ -42,6 +42,10 @@ export {
   createPublicBattlegroundStatistics,
   PublicBattlegroundStatisticsQueryError,
   type PublicBattlegroundStatisticsSource,
+  type PublicBattlegroundHeroMode,
+  type PublicBattlegroundMmr,
+  type PublicBattlegroundStrategySource,
+  type PublicBattlegroundTimeRange,
   type PublicBattlegroundTierListKind,
 } from './battlegroundStatistics.js';
 export { PUBLIC_API_OPENAPI } from './openapi.js';

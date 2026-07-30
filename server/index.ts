@@ -199,6 +199,11 @@ import { createAdminImageUploadRouter } from './adminImageUploadRoutes.js';
 import { fetchRemoteAdminImage } from './adminRemoteImage.js';
 import { createAdminImageGenerationRouter } from './adminImageGenerationRoutes.js';
 import { createPublicApiCardSources, registerPublicApi } from './app/registerPublicApi.js';
+import {
+  firestoneArenaMatchupsDataset,
+  normalizeFirestoneArenaClassRows,
+  normalizeHsReplayArenaClassRows,
+} from './modules/arena/classStatisticsNormalizer.js';
 import { createContestRouter } from './contestRoutes.js';
 import { createSubscriptionRouter } from './subscriptionRoutes.js';
 import { createEcosystemInternalRouter } from './modules/ecosystem/public.js';
@@ -4196,18 +4201,11 @@ async function fetchClassWinratesData() {
   const payload = await upstream.json() as any;
   const structured = payload?.data?.structured ?? payload?.structured ?? {};
   const rawClasses = Array.isArray(structured?.classes) ? structured.classes : [];
-  const classes = rawClasses
-    .map((row: any) => {
-      const classId = normalizeHsReplayClassId(row.class ?? row.class_name ?? row.name);
-      const infoKey = classId ? classId.replace(/-/g, '') : '';
-      const info = HSREPLAY_CLASS_INFO[infoKey] ?? HSREPLAY_CLASS_INFO[classId ?? ''];
-      const winrate = parseWinrate(row.win_rate ?? row.winrate);
-      const games = Number(row.num_drafts ?? row.games ?? row.total_games ?? row.totalGames ?? 0);
-      if (!info || winrate === null || !Number.isFinite(games) || games <= 0) return null;
-      return { ...info, winrate: Math.round(winrate * 10) / 10, games };
-    })
-    .filter(Boolean)
-    .sort((a: any, b: any) => b.winrate - a.winrate);
+  const classes = normalizeHsReplayArenaClassRows(
+    rawClasses,
+    HSREPLAY_CLASS_ID,
+    HSREPLAY_CLASS_INFO,
+  );
 
   if (!classes.length) throw new Error('No classes in HSReplay arena dataset');
 
@@ -4225,18 +4223,18 @@ async function fetchFirestoneClassWinratesData() {
   );
   if (!upstream.ok) throw new Error(`Upstream HTTP ${upstream.status}`);
   const raw = await upstream.json() as any;
-  const classes = ((raw.stats ?? []) as any[])
-    .map((row: any) => {
-      const key = String(row.playerClass ?? '').toLowerCase().replace(/\s+/g, '');
-      const info = HSREPLAY_CLASS_INFO[key];
-      if (!info || !row.totalGames) return null;
-      const winrate = Math.round((row.totalsWins / row.totalGames) * 1000) / 10;
-      return { ...info, winrate, games: row.totalGames };
-    })
-    .filter(Boolean)
-    .sort((a: any, b: any) => b.winrate - a.winrate);
+  const classes = normalizeFirestoneArenaClassRows(
+    Array.isArray(raw.stats) ? raw.stats : [],
+    HSREPLAY_CLASS_INFO,
+  );
   if (!classes.length) throw new Error('No classes in Firestone arena dataset');
-  return { classes, updatedAt: raw.lastUpdated ?? null, source: 'firestoneapp.com' };
+  return {
+    classes,
+    updatedAt: raw.lastUpdated ?? null,
+    source: 'firestoneapp.com',
+    dataPoints: Number.isFinite(Number(raw.dataPoints)) ? Number(raw.dataPoints) : null,
+    timePeriod: typeof raw.timePeriod === 'string' ? raw.timePeriod : null,
+  };
 }
 
 async function fetchFreshestClassWinratesData() {
@@ -7542,7 +7540,7 @@ const cardImageRouterDependencies = createCardImageDependencies({
 });
 
 const applicationAuth = registerApplicationAuth({ app, getDatabase: db, appUrl: APP_URL, userAuth, resolveUser: userId => loadAuthStore().users.find(user => user.id === userId && !user.blockedAt) ?? null, serializeUser: user => serializeApplicationProfileUser(user, APP_URL), readSubscription: userId => serializeApplicationSubscription(readSubscriptionStatus(userId) ?? emptySubscriptionStatus()), emptySubscription: () => serializeApplicationSubscription(emptySubscriptionStatus()), setPrivateNoStore });
-registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit, cardImageDependencies: cardImageRouterDependencies, accessTokens: applicationAuth, ...createPublicApiCardSources(() => constructedCardDataService), metaStatistics: { loadMeta: loadStandardMeta, loadCatalog: loadConstructedArchetypeCatalog, loadHistory: loadConstructedArchetypeHistory, loadAnalysis: loadConstructedArchetypeAnalysis }, deckStatistics: { loadCatalog: loadConstructedArchetypeCatalog }, arenaStatistics: { loadClasses: source => source === 'firestone' ? fetchFirestoneClassWinratesData() : fetchFreshestClassWinratesData(), loadCards: source => getTierlistApiData(source, Date.now()).then(result => result.data), loadLegendaries: source => getLegendariesApiData(source, Date.now()).then(result => result.data), loadMatchups: fetchClassMatchupsData } });
+registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit, cardImageDependencies: cardImageRouterDependencies, accessTokens: applicationAuth, ...createPublicApiCardSources(() => constructedCardDataService), metaStatistics: { loadMeta: loadStandardMeta, loadCatalog: loadConstructedArchetypeCatalog, loadHistory: loadConstructedArchetypeHistory, loadAnalysis: loadConstructedArchetypeAnalysis }, deckStatistics: { loadCatalog: loadConstructedArchetypeCatalog }, arenaStatistics: { loadClasses: source => source === 'firestone' ? fetchFirestoneClassWinratesData() : fetchFreshestClassWinratesData(), loadCards: source => getTierlistApiData(source, Date.now()).then(result => result.data), loadLegendaries: source => getLegendariesApiData(source, Date.now()).then(result => result.data), loadMatchups: source => source === 'firestone' ? fetchFirestoneClassWinratesData().then(firestoneArenaMatchupsDataset) : fetchClassMatchupsData() } });
 app.use('/_internal', createTierlistCacheBustRouter({
   resolveSource: source => Object.prototype.hasOwnProperty.call(TIERLIST_DATASET_BY_SOURCE, source ?? '')
     ? source as keyof typeof TIERLIST_DATASET_BY_SOURCE
