@@ -27,12 +27,18 @@ templates only: a Git checkout does not change the live nginx configuration.
    `include /etc/nginx/snippets/arena-html-routing.conf;`. Do not keep the old
    catch-all beside the new include.
 
-Every public edge proxy must also install `arena-edge-static-cache.conf` as
+Every public edge proxy must install `arena-card-local-maps.conf` as
+`/etc/nginx/conf.d/31-arena-card-local-maps.conf` and
+`arena-edge-static-cache.conf` as
 `/etc/nginx/snippets/arena-edge-static-cache.conf`. In its canonical HTTPS
-server, set `$arena_proxy_region` to that node's stable label and replace the
-local static-file `location` with this include. The edge caches successful
-assets internally but preserves the origin's browser cache header; in
-particular, a missing asset must stay `404` + `no-store`, never `immutable`.
+server, set `$arena_proxy_region` to that node's stable label, define
+`$arena_alt_svc` (an empty value is valid), and replace the generic static-file
+location with the snippet include.
+
+The edge serves synchronized card images and frontend assets from
+`/srv/arena/.../current` first. A missing local file falls through to the
+regional proxy cache and then to the origin. The origin's missing-resource
+policy is preserved: a miss must stay `404` + `no-store`, never `immutable`.
 
 Run the repository contract before installation:
 

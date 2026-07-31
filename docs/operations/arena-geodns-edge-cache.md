@@ -23,6 +23,12 @@ Both nameservers run the same PowerDNS GeoIP zone. RU client subnets receive
 the OVH address. RU responses deliberately contain no AAAA record, preventing
 IPv6 from bypassing the RF proxies.
 
+The two RF nodes intentionally remain active-active. Both have the same local
+card and frontend mirrors, both retain a warmed full-art cache, and monitoring
+tests each node independently. This keeps the site reachable if one RF route
+or host degrades; a primary/standby policy should only replace it after
+region-tagged browser measurements show a sustained user-visible benefit.
+
 The backend honors EDNS Client Subnet. A recursive resolver that sends neither
 a usable ECS subnet nor a resolver address located near the user cannot be
 geolocated reliably. Known Cloudflare, Quad9, AdGuard, and NextDNS ranges are
@@ -31,7 +37,8 @@ ECS-capable resolvers are routed from the client subnet they provide.
 
 ## Local mirrors and cache
 
-The origin synchronizes immutable data to both the Limburg and Moscow nodes:
+The origin synchronizes immutable data to the Limburg, Moscow, and Novosibirsk
+nodes:
 
 - `/srv/arena/card-images/current` — normalized card images;
 - `/srv/arena/static/current` — the current frontend release;
@@ -54,6 +61,8 @@ The origin runs these systemd timers:
 - `arena-static-sync.timer` — frontend assets every 3 minutes;
 - `arena-public-resource-warm.timer` — Limburg full-art/public-resource warm;
 - `arena-public-resource-warm-ru.timer` — Moscow full-art/public-resource warm;
+- `arena-public-resource-warm-ru-novosibirsk.timer` — Novosibirsk
+  full-art/public-resource warm;
 - `arena-geodns-monitor.timer` — DNS and edge checks every 5 minutes.
 
 Each PowerDNS node runs `dbip-country-update.timer`, which downloads and

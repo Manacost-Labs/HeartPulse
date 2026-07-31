@@ -31,6 +31,11 @@ const definitions = [
     roles: ['origin'],
   },
   {
+    source: 'deploy/nginx/arena-card-local-maps.conf',
+    installPath: '/etc/nginx/conf.d/31-arena-card-local-maps.conf',
+    roles: ['edge'],
+  },
+  {
     source: 'deploy/nginx/arena-edge-static-cache.conf',
     installPath: '/etc/nginx/snippets/arena-edge-static-cache.conf',
     roles: ['edge'],
@@ -163,7 +168,7 @@ try {
   });
   assert.equal(edgeReport.status, 'ok');
   assert.equal(edgeReport.exitCode, 0);
-  assert.equal(edgeReport.files.filter(file => file.installedStatus === 'ok').length, 1);
+  assert.equal(edgeReport.files.filter(file => file.installedStatus === 'ok').length, 2);
 
   const installedModifiedFixture = createFixture('installed-modified');
   const installedModifiedFile = installedModifiedFixture.files.find(file => file.roles.includes('origin'));

@@ -26,6 +26,10 @@ const edgeStaticSource = readFileSync(
   join(projectRoot, 'deploy/nginx/arena-edge-static-cache.conf'),
   'utf8',
 );
+const edgeCardMapSource = readFileSync(
+  join(projectRoot, 'deploy/nginx/arena-card-local-maps.conf'),
+  'utf8',
+);
 
 function parseLocationBlocks(source) {
   const blocks = [];
@@ -106,12 +110,21 @@ const edgeCardImageLocation = edgeLocations.find(location => (
 const edgePublicResourceLocation = edgeLocations.find(location => (
   location.modifier === '^~' && location.pattern === '/api/public-resource/'
 ));
-assert.match(edgeCardImageLocation?.body || '', /proxy_cache\s+hs_arena_cache;/,
-  'card images must override the generic API BYPASS location and use the regional cache');
-assert.match(edgeCardImageLocation?.body || '', /proxy_cache_key\s+"\$scheme:\$request_method:\$host:\$request_uri";/,
-  'card-image cache keys must include the immutable source-version query');
+assert.match(edgeCardImageLocation?.body || '', /try_files\s+\$arena_card_image_blizzard_file\s+@arena_card_image_local_fallback;/,
+  'card images must use the local Blizzard mirror before the origin fallback');
+assert.match(edgeCardImageLocation?.body || '', /X-Proxy-Cache\s+LOCAL\s+always;/,
+  'locally mirrored card images must identify the local delivery path');
+const edgeCardOriginLocation = edgeLocations.find(location => (
+  location.modifier === '' && location.pattern === '@arena_card_image_origin'
+));
+assert.match(edgeCardOriginLocation?.body || '', /proxy_cache\s+hs_arena_cache;/,
+  'missing local card images must fall back to the regional origin cache');
+assert.match(edgeCardOriginLocation?.body || '', /proxy_cache_key\s+"\$scheme:\$request_method:\$host:\$request_uri";/,
+  'card-image fallback cache keys must include the immutable source-version query');
 assert.doesNotMatch(edgeCardImageLocation?.body || '', /proxy_(?:no_cache|cache_bypass)/,
   'the dedicated card-image edge route must never inherit the generic API bypass');
+assert.match(edgeCardMapSource, /\^\/api\/card-image\/\(\[A-Za-z0-9_\]\+\)\/\(thumb\|full\)\\\.webp\$/,
+  'the local card-image map must only accept validated card IDs and variants');
 assert.match(edgePublicResourceLocation?.body || '', /proxy_cache\s+hs_arena_cache;/,
   'public resources must override the generic API BYPASS location and use the regional cache');
 assert.match(edgePublicResourceLocation?.body || '', /proxy_cache_valid\s+200\s+30d;/,
@@ -122,8 +135,8 @@ assert.match(edgePublicResourceLocation?.body || '', /proxy_cache_lock\s+on;/,
   'cold public-resource cache misses must be collapsed at each edge');
 assert.doesNotMatch(edgePublicResourceLocation?.body || '', /proxy_(?:no_cache|cache_bypass)/,
   'the dedicated public-resource edge route must never inherit the generic API bypass');
-assert.doesNotMatch(edgeStaticSource, /proxy_cache_valid\s+404|expires\s+30d|Cache-Control/i,
-  'edge proxies must preserve the origin no-store policy for missing assets');
+assert.doesNotMatch(edgeStaticSource, /proxy_cache_valid\s+404|expires\s+30d/i,
+  'edge proxies must not cache missing origin assets');
 assert.match(edgeStaticSource, /X-Proxy-Region\s+\$arena_proxy_region\s+always;/,
   'the shared edge contract must expose its configured region');
 
