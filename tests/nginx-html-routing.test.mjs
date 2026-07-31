@@ -110,6 +110,9 @@ const edgeCardImageLocation = edgeLocations.find(location => (
 const edgePublicResourceLocation = edgeLocations.find(location => (
   location.modifier === '^~' && location.pattern === '/api/public-resource/'
 ));
+const edgeSitemapLocation = edgeLocations.find(location => (
+  location.modifier === '=' && location.pattern === '/sitemap.xml'
+));
 assert.match(edgeCardImageLocation?.body || '', /try_files\s+\$arena_card_image_blizzard_file\s+@arena_card_image_local_fallback;/,
   'card images must use the local Blizzard mirror before the origin fallback');
 assert.match(edgeCardImageLocation?.body || '', /X-Proxy-Cache\s+LOCAL\s+always;/,
@@ -137,6 +140,10 @@ assert.doesNotMatch(edgePublicResourceLocation?.body || '', /proxy_(?:no_cache|c
   'the dedicated public-resource edge route must never inherit the generic API bypass');
 assert.doesNotMatch(edgeStaticSource, /proxy_cache_valid\s+404|expires\s+30d/i,
   'edge proxies must not cache missing origin assets');
+assert.match(edgeSitemapLocation?.body || '', /@arena_mutable_static_origin/,
+  'the dynamic sitemap index must bypass the local static release');
+assert.doesNotMatch(edgeSitemapLocation?.body || '', /root\s+\/srv\/arena\/static|X-Proxy-Cache\s+LOCAL/,
+  'the dynamic sitemap index must preserve the origin XML content type and body');
 assert.match(edgeStaticSource, /X-Proxy-Region\s+\$arena_proxy_region\s+always;/,
   'the shared edge contract must expose its configured region');
 
