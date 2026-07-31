@@ -197,6 +197,24 @@ button.deck-tile:focus-visible {
   pointer-events: none;
 }
 
+/*
+ * HS tile bitmaps can contain a pale service strip on the left. Keep the
+ * original artwork proportions and cover only that strip before the common
+ * feather mask is applied.
+ */
+.deck-tile__art::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 56px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--deck-tile-fill) 70%, var(--deck-well)) 0%,
+    color-mix(in srgb, var(--deck-tile-fill) 70%, var(--deck-well)) 40%,
+    transparent 100%
+  );
+}
+
 /* Keep long names readable while preserving the artwork instead of recolouring it. */
 .deck-tile__fade {
   position: absolute;
