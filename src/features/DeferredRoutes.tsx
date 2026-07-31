@@ -13,7 +13,7 @@ import { publicProfilePath } from '../profileRoutes';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import SubscriptionPurchaseButtons from '../components/SubscriptionPurchaseButtons';
 import PaywallGate from '../components/PaywallGate';
-import AuthAvatar from '../components/AuthAvatar';
+import ProfileIdentityHero from '../components/ProfileIdentityHero';
 import FAQSection from '../components/FAQSection';
 import TierlistEarlyStatsNotice from './TierlistEarlyStatsNotice';
 import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
@@ -3835,50 +3835,32 @@ export function LoginPanel({
     return (
       <div className="profile-page profile-workspace">
         <div className="profile-card">
-          <div className="profile-hero">
-            <img
-              src="/assets/arena_icon.webp"
-              alt=""
-              draggable={false}
-            />
-            <div className="profile-hero__body">
-              <AuthAvatar user={{ ...authUser, name: profileName }} size={92} />
-              <div className="profile-hero__identity" data-tour-id="profile-summary">
-                <p className="profile-hero__eyebrow">
-                  Личный кабинет
-                </p>
-                <h1>
-                  {profileName}
-                </h1>
-                <p className="profile-hero__contact">
-                  {profileContact}
-                </p>
-                <p className="profile-hero__id" title={profileId}>
-                  ID <code>{profileIdDisplay}</code>
-                </p>
-                {publicProfileHref && (
-                  <div className="profile-public-link">
-                    <a href={publicProfileHref}>
-                      Публичный профиль
-                      <ExternalLink size={14} aria-hidden="true" />
-                    </a>
-                    <button type="button" onClick={() => { void copyPublicProfileLink(); }}>
-                      <Copy size={14} aria-hidden="true" />
-                      {publicLinkCopied ? 'Скопировано' : 'Скопировать ссылку'}
-                    </button>
-                  </div>
-                )}
-                <div className="profile-status-chips">
-                  {[profileRoleLabel, subscriptionLabel, identityLabel].map((item, index) => (
-                    <span key={item} className="profile-status-chip">
-                      {index === 0 ? <UserCircle size={14} /> : index === 1 ? <Star size={14} /> : <LogIn size={14} />}
-                      {item}
-                    </span>
-                  ))}
-                </div>
+          <ProfileIdentityHero
+            eyebrow="Личный кабинет"
+            name={profileName}
+            publicProfileId={profileIdDisplay}
+            avatarInitials={authUser.avatarInitials}
+            photoUrl={authUser.photoUrl}
+            contact={profileContact}
+            tourId="profile-summary"
+            actions={publicProfileHref ? (
+              <div className="profile-public-link">
+                <a href={publicProfileHref}>
+                  Публичный профиль
+                  <ExternalLink size={14} aria-hidden="true" />
+                </a>
+                <button type="button" onClick={() => { void copyPublicProfileLink(); }}>
+                  <Copy size={14} aria-hidden="true" />
+                  {publicLinkCopied ? 'Скопировано' : 'Скопировать ссылку'}
+                </button>
               </div>
-            </div>
-          </div>
+            ) : undefined}
+            badges={[
+              { label: profileRoleLabel, icon: <UserCircle size={14} aria-hidden="true" /> },
+              { label: subscriptionLabel, icon: <Star size={14} aria-hidden="true" /> },
+              { label: identityLabel, icon: <LogIn size={14} aria-hidden="true" /> },
+            ]}
+          />
           {msg && (
             <div className={`profile-message profile-message--${msg.type}`} role={msg.type === 'err' ? 'alert' : 'status'} aria-live="polite">
               {msg.text}

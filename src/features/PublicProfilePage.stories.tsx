@@ -7,7 +7,7 @@ const meta = {
   component: PublicProfileCard,
   args: {
     profile: {
-      publicProfileId: 'p_AbCdEfGhIjKlMnOpQrStUv',
+      publicProfileId: '1',
       name: 'Игрок Манакоста',
       avatarInitials: 'ИМ',
       createdAt: '2026-07-28T00:00:00.000Z',
@@ -23,7 +23,7 @@ export const Default: Story = {};
 
 export const CopyPublicLink: Story = {
   play: async ({ args, canvas }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Скопировать публичную ссылку' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Скопировать ссылку' }));
     await expect(args.onCopyLink).toHaveBeenCalledOnce();
     await expect(canvas.getByRole('button', { name: 'Ссылка скопирована' })).toBeVisible();
   },

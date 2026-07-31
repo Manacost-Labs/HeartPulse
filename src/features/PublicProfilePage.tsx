@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { CalendarDays, Copy, ShieldCheck, UserCircle } from 'lucide-react';
+import { CalendarDays, Copy, Home } from 'lucide-react';
+import ProfileIdentityHero from '../components/ProfileIdentityHero';
 import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
 import { publicProfilePath } from '../profileRoutes';
 import './PublicProfilePage.css';
@@ -47,36 +48,35 @@ export function PublicProfileCard({
   };
 
   return (
-    <section className="public-profile-card" aria-labelledby="public-profile-title">
-      <div className="public-profile-card__crest" aria-hidden="true">
-        {profile.avatarInitials || profile.name.slice(0, 2).toUpperCase()}
+    <div className="profile-workspace public-profile-card-shell">
+      <div className="profile-card">
+        <ProfileIdentityHero
+          eyebrow="Публичный профиль"
+          name={profile.name}
+          publicProfileId={profile.publicProfileId}
+          avatarInitials={profile.avatarInitials}
+          headingId="public-profile-title"
+          actions={(
+            <div className="profile-public-link">
+              <button type="button" onClick={() => { void copyLink(); }}>
+                <Copy size={14} aria-hidden="true" />
+                {copied ? 'Ссылка скопирована' : 'Скопировать ссылку'}
+              </button>
+              <a href="/">
+                <Home size={14} aria-hidden="true" />
+                На главную
+              </a>
+            </div>
+          )}
+          badges={[
+            {
+              label: `На Manacost с ${memberSince(profile.createdAt)}`,
+              icon: <CalendarDays size={14} aria-hidden="true" />,
+            },
+          ]}
+        />
       </div>
-      <p className="public-profile-card__eyebrow">
-        <ShieldCheck size={16} aria-hidden="true" />
-        Публичный профиль
-      </p>
-      <h1 id="public-profile-title">{profile.name}</h1>
-      <p className="public-profile-card__member-since">
-        <CalendarDays size={17} aria-hidden="true" />
-        На Manacost с {memberSince(profile.createdAt)}
-      </p>
-      <dl className="public-profile-card__identity">
-        <div>
-          <dt><UserCircle size={17} aria-hidden="true" /> ID профиля</dt>
-          <dd><code>{profile.publicProfileId}</code></dd>
-        </div>
-      </dl>
-      <div className="public-profile-card__actions">
-        <button type="button" onClick={() => { void copyLink(); }}>
-          <Copy size={17} aria-hidden="true" />
-          {copied ? 'Ссылка скопирована' : 'Скопировать публичную ссылку'}
-        </button>
-        <a href="/">На главную</a>
-      </div>
-      <p className="public-profile-card__privacy">
-        Контакты, подписка и данные входа видны только владельцу профиля.
-      </p>
-    </section>
+    </div>
   );
 }
 
@@ -132,7 +132,9 @@ export default function PublicProfilePage({ publicProfileId }: { publicProfileId
     <div className="public-profile-page">
       <PublicProfileCard
         profile={profile}
-        onCopyLink={() => navigator.clipboard.writeText(window.location.href)}
+        onCopyLink={() => navigator.clipboard.writeText(
+          new URL(publicProfilePath(profile.publicProfileId), window.location.origin).href,
+        )}
       />
     </div>
   );

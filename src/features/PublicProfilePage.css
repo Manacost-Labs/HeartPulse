@@ -1,160 +1,48 @@
 .public-profile-page {
-  display: grid;
+  width: 100%;
   min-height: min(720px, calc(100vh - 10rem));
-  place-items: center;
-  padding: clamp(1rem, 4vw, 3rem) 0;
+  padding: clamp(1rem, 2.8vw, 2.5rem) 0 3rem;
 }
 
-.public-profile-card,
+.public-profile-card-shell .profile-card {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .public-profile-state {
+  display: grid;
   width: min(100%, 720px);
+  min-height: 280px;
+  margin: clamp(1rem, 4vw, 3rem) auto;
+  padding: 2rem;
+  place-items: center;
+  gap: 0.5rem;
+  border: 10px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
   color: #3a281c;
   background:
     linear-gradient(rgba(255, 244, 214, 0.9), rgba(244, 222, 174, 0.86)),
     url('/wallpaper/hs-bg-3.webp') center / cover;
-  border: 10px solid transparent;
-  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
+  text-align: center;
   box-shadow: 0 18px 38px rgba(63, 34, 13, 0.2);
 }
 
-.public-profile-card {
-  display: grid;
-  justify-items: center;
-  padding: clamp(1.4rem, 5vw, 3.3rem);
-  text-align: center;
-}
-
-.public-profile-card__crest {
-  display: grid;
-  width: 104px;
-  height: 104px;
-  margin-bottom: 1rem;
-  place-items: center;
-  border: 3px solid #ddb967;
-  border-radius: 50%;
-  color: #fff2c9;
-  background: linear-gradient(145deg, #7d171e, #4d080e);
-  box-shadow:
-    inset 0 0 0 5px rgba(49, 5, 8, 0.55),
-    0 10px 22px rgba(66, 31, 12, 0.2);
-  font-family: var(--font-display);
-  font-size: 2rem;
-}
-
-.public-profile-card__eyebrow,
-.public-profile-card__member-since,
-.public-profile-card__identity dt,
-.public-profile-card__actions {
-  display: flex;
-  align-items: center;
-}
-
-.public-profile-card__eyebrow {
-  gap: 0.4rem;
-  margin: 0;
-  color: #861b21;
-  font-size: 0.78rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.public-profile-card h1 {
-  margin: 0.55rem 0 0;
-  color: #3a1f12;
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 7vw, 3.4rem);
-  line-height: 1.05;
-}
-
-.public-profile-card__member-since {
-  gap: 0.45rem;
-  margin: 0.65rem 0 0;
-  color: #765a3d;
-}
-
-.public-profile-card__identity {
-  width: min(100%, 520px);
-  margin: 1.5rem 0 0;
-  border: 1px solid rgba(104, 64, 28, 0.28);
-  background: rgba(255, 247, 222, 0.6);
-}
-
-.public-profile-card__identity div { padding: 0.9rem 1rem; }
-.public-profile-card__identity dt {
-  justify-content: center;
-  gap: 0.38rem;
-  color: #77593b;
-  font-size: 0.7rem;
-  font-weight: 850;
-  text-transform: uppercase;
-}
-.public-profile-card__identity dd { margin: 0.35rem 0 0; }
-.public-profile-card__identity code {
-  overflow-wrap: anywhere;
-  color: #6e1118;
-  font-size: 0.86rem;
-  font-weight: 850;
-}
-
-.public-profile-card__actions {
-  width: min(100%, 520px);
-  gap: 0.65rem;
-  margin-top: 1rem;
-}
-.public-profile-card__actions button,
-.public-profile-card__actions a {
-  display: inline-flex;
-  min-height: 46px;
-  flex: 1 1 0;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  padding: 0.65rem 0.85rem;
-  border: 1px solid #7f271e;
-  color: #fff2cf;
-  background: #7f271e;
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 850;
-  text-decoration: none;
-  cursor: pointer;
-}
-.public-profile-card__actions a {
-  border-color: rgba(104, 64, 28, 0.38);
-  color: #573d27;
-  background: rgba(255, 247, 222, 0.66);
-}
-.public-profile-card__actions button:focus-visible,
-.public-profile-card__actions a:focus-visible {
-  outline: 3px solid #4e326b;
-  outline-offset: 2px;
-}
-
-.public-profile-card__privacy {
-  max-width: 520px;
-  margin: 1rem 0 0;
-  color: #806448;
-  font-size: 0.72rem;
-  line-height: 1.5;
-}
-
-.public-profile-state {
-  display: grid;
-  min-height: 280px;
-  place-items: center;
-  gap: 0.5rem;
-  padding: 2rem;
-  text-align: center;
-}
 .public-profile-state strong {
   font-family: var(--font-display);
   font-size: 1.5rem;
 }
-.public-profile-state a { color: #7b1a20; font-weight: 850; }
 
-@media (max-width: 560px) {
-  .public-profile-card__actions { display: grid; }
-  .public-profile-card__actions button,
-  .public-profile-card__actions a { width: 100%; }
+.public-profile-state a {
+  color: #7b1a20;
+  font-weight: 850;
+}
+
+@media (max-width: 640px) {
+  .public-profile-page {
+    padding-top: 1rem;
+  }
 }
