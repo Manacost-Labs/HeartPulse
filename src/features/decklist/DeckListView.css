@@ -1,7 +1,7 @@
 .deck-list-view {
-  --deck-tile-height: 32px;
+  --deck-tile-height: 28px;
   --deck-list-class-color: #42576b;
-  --deck-list-mana-rail-width: 38px;
+  --deck-list-mana-rail-width: 33px;
   --deck-gold: #f4cf67;
   --deck-gold-deep: #a9791d;
   --deck-ink: #fff9e9;
@@ -17,7 +17,7 @@
   justify-content: space-between;
   gap: 0.5rem;
   align-items: center;
-  padding: 0.52rem 0.75rem;
+  padding: 0.42rem 0.65rem;
   color: #fff;
   font-weight: 700;
   /* Class color arrives via inline style; layer depth on top of it */
@@ -44,7 +44,7 @@
 
 .deck-list-view__head strong {
   display: block;
-  font-size: 1.02rem;
+  font-size: 0.96rem;
   font-weight: 700;
   font-family: inherit;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
@@ -53,9 +53,9 @@
 .deck-list-view__head > span {
   flex: 0 0 auto;
   font-family: inherit;
-  font-size: 0.92rem;
+  font-size: 0.84rem;
   font-weight: 700;
-  padding: 0.14rem 0.55rem;
+  padding: 0.12rem 0.48rem;
   border-radius: 999px;
   color: #fff;
   background: rgba(0, 0, 0, 0.28);
@@ -68,7 +68,7 @@
 .deck-list-view__subtitle {
   display: block;
   margin-top: 0.1rem;
-  font-size: 0.74rem;
+  font-size: 0.7rem;
   font-weight: 600;
   opacity: 0.9;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
@@ -88,9 +88,9 @@
 .deck-list-view__list {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 2px;
+  gap: 1px;
   margin: 0;
-  padding: 0.4rem 0.5rem;
+  padding: 0.3rem 0.4rem;
   list-style: none;
   max-height: none;
   overflow: visible;
@@ -122,8 +122,8 @@
   --deck-tile-fill: #59616a;
   --deck-tile-border: rgb(40, 40, 40);
   --deck-tile-art: none;
-  --deck-tile-mana-w: 42px;
-  --deck-tile-count-w: 28px;
+  --deck-tile-mana-w: 38px;
+  --deck-tile-count-w: 26px;
   --deck-tile-art-w: min(68%, 272px);
   position: relative;
   isolation: isolate;
@@ -284,14 +284,14 @@ button.deck-tile:focus-visible::after {
   place-items: center;
   align-self: stretch;
   font-weight: 900;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   line-height: 1;
   color: #fff;
   background-color: transparent;
   background-image: url("/assets/mana.png");
   background-repeat: no-repeat;
   background-position: center;
-  background-size: min(36px, calc(var(--deck-tile-height) + 2px));
+  background-size: min(32px, calc(var(--deck-tile-height) + 2px));
   clip-path: none;
   box-shadow: none;
   text-shadow:
@@ -314,7 +314,7 @@ button.deck-tile:focus-visible::after {
   display: grid;
   place-items: center;
   font-weight: 900;
-  font-size: 0.84rem;
+  font-size: 0.78rem;
   line-height: 1;
   color: #f7d95d;
   background: transparent;
@@ -413,7 +413,7 @@ button.deck-tile:focus-visible::after {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.003em;
   background: transparent;
@@ -475,7 +475,7 @@ button.deck-tile:focus-visible::after {
   padding: 0.25rem 0.15rem 0.15rem;
   background: none;
   box-shadow: none;
-  gap: 2px;
+  gap: 1px;
 }
 
 /* ───────────────────────── Copy button ───────────────────────── */
@@ -525,24 +525,24 @@ button.deck-tile:focus-visible::after {
 
 @media (max-width: 480px) {
   .deck-list-view {
-    --deck-tile-height: 31px;
-    --deck-list-mana-rail-width: 35px;
+    --deck-tile-height: 27px;
+    --deck-list-mana-rail-width: 29px;
   }
 
   .deck-list-view__list {
-    gap: 2px;
-    padding: 0.4rem;
+    gap: 1px;
+    padding: 0.3rem;
   }
 
   .deck-tile {
     --deck-tile-art-w: min(70%, 218px);
-    --deck-tile-mana-w: 40px;
-    --deck-tile-count-w: 26px;
+    --deck-tile-mana-w: 36px;
+    --deck-tile-count-w: 24px;
   }
 
   .deck-tile__name {
     padding-inline: 0.55ch;
-    font-size: 0.76rem;
+    font-size: 0.72rem;
   }
 }
 

@@ -173,10 +173,10 @@ try {
     };
   });
   assert.notEqual(compactDeckList.classColor, '#42576b', 'the mana spine must inherit the current class colour');
-  assert.equal(compactDeckList.railWidth, '38px');
+  assert.equal(compactDeckList.railWidth, '33px');
   assert.match(compactDeckList.listBackground, /linear-gradient/);
-  assert.equal(compactDeckList.rowGap, '2px');
-  assert.equal(compactDeckList.tileHeight, '32px');
+  assert.equal(compactDeckList.rowGap, '1px');
+  assert.equal(compactDeckList.tileHeight, '28px');
   assert.equal(await page.$$eval('.constructed-matchup-ledger li', rows => rows.length), 11);
   assert.equal(await page.$$eval('.constructed-card-stats tbody tr', rows => rows.length), 15);
   for (const tourTarget of [
@@ -269,8 +269,8 @@ try {
   assert.equal(detailMobile.chartCount, 3);
   assert.ok(detailMobile.copyHeight >= 42);
   assert.ok(detailMobile.builderHeight >= 44);
-  assert.equal(detailMobile.deckTileHeight, 31);
-  assert.equal(detailMobile.manaRailWidth, '35px');
+  assert.equal(detailMobile.deckTileHeight, 27);
+  assert.equal(detailMobile.manaRailWidth, '29px');
   assert.equal(detailMobile.deckColumnCount, 7);
   assert.equal(detailMobile.matchupCount, 11);
   const mobileCardStats = await page.evaluate(() => ({

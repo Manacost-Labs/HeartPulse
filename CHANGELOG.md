@@ -1,5 +1,15 @@
 # HS-Arena Changelog
 
+## v1.0.98 - 2026-07-31
+
+- Tightened read-only deck rows to `28px` on desktop and `27px` on narrow
+  screens with a `1px` rhythm, reducing a 40-card list by another 15% while
+  preserving card art, names and the class-tinted mana spine.
+- Reduced deck-header padding and its supporting type scale without changing
+  the surrounding public-page layout.
+- Kept interactive builder rows and their add/remove controls at `44px` and
+  updated desktop/mobile browser geometry checks.
+
 ## v1.0.97 - 2026-07-31
 
 - Replaced the dark gutter beneath transparent mana-crystal corners with one
