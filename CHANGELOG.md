@@ -1,5 +1,14 @@
 # HS-Arena Changelog
 
+## v1.0.90 - 2026-07-31
+
+- Temporarily removed the `/arena/draft` page, its administrator navigation
+  entry, prerender/SEO registration and dedicated nginx route. The URL now
+  resolves as an unknown page with a real `404`.
+- Preserved the draft recommendation model, refresh pipeline, history and
+  protected admin APIs so the feature can be restored later without losing
+  its accumulated data or backend integration.
+
 ## v1.0.89 - 2026-07-30
 
 - Moved the Arena draft assistant from the admin workspace to its own

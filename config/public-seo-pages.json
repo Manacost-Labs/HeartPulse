@@ -91,13 +91,6 @@
       "description": "Какую легендарную карту выбрать на Арене? Все группы первого выбора с процентом побед для каждого класса. Обновляется автоматически с Manacost.",
       "sitemap": true
     },
-    "/arena/draft": {
-      "policyRouteId": "arena-draft-assistant",
-      "navigationRouteId": "arena-draft-assistant",
-      "title": "Помощник драфта Арены | Manacost Stats",
-      "description": "Закрытый помощник драфта Арены Hearthstone с рекомендациями по текущему пулу, колоде, сочетаниям карт и мана-кривой.",
-      "sitemap": false
-    },
     "/articles": {
       "policyRouteId": "articles",
       "navigationRouteId": "articles",

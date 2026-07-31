@@ -324,6 +324,8 @@ for (const invalidPath of [
   '/library/weapons',
   '/library/minions/missing-numeric-id',
   '/admin/unknown',
+  '/arena/draft',
+  '/arena/draft/',
 ]) {
   const htmlMatch = matchingRegexLocations(invalidPath)
     .some(location => location.body.includes('return 301') || location.body.includes('@arena_spa_noindex;'));
@@ -871,6 +873,15 @@ http {
     assert.equal(missingReferral.headers['x-robots-tag'], 'noindex, nofollow', 'missing referral robots policy');
 
     assert.equal((await requestNginx(port, '/decks/legacy')).status, 410, 'removed route must be gone');
+    for (const removedDraftPath of ['/arena/draft', '/arena/draft/']) {
+      const removedDraft = await requestNginx(port, removedDraftPath);
+      assert.equal(removedDraft.status, 404, `${removedDraftPath} must be a real 404`);
+      assert.equal(
+        removedDraft.headers['x-robots-tag'],
+        'noindex, nofollow',
+        `${removedDraftPath} robots policy`,
+      );
+    }
     const missingPage = await requestNginx(port, '/definitely-unknown');
     assert.equal(missingPage.status, 404, 'unknown HTML must be a real 404');
     assert.match(missingPage.body, /<title>404<\/title>/, '404 document body');
@@ -883,6 +894,8 @@ http {
       { path: '/library/minions/missing-999999/', status: 404, robots: 'noindex, nofollow' },
       { path: '/library/spells/outage-888888/', status: 503, robots: 'noindex, nofollow' },
       { path: '/decks/legacy', status: 410, robots: 'noindex, nofollow' },
+      { path: '/arena/draft', status: 404, robots: 'noindex, nofollow' },
+      { path: '/arena/draft/', status: 404, robots: 'noindex, nofollow' },
       { path: '/definitely-unknown', status: 404, robots: 'noindex, nofollow' },
     ]) {
       const head = await requestNginx(port, headFixture.path, 'HEAD');
