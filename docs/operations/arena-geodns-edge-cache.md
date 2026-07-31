@@ -81,6 +81,31 @@ dig +short @8.8.8.8 arena.hs-manacost.ru A +subnet=80.187.0.0/24
 An image served from a local mirror has `X-Proxy-Cache: LOCAL`. A warmed
 public-resource response has `X-Proxy-Cache: HIT`.
 
+## Regional Web Vitals
+
+The existing browser RUM endpoint records `CLS`, `FCP`, `INP`, `LCP`, and
+`TTFB` as Sentry distribution metrics. The origin adds a bounded
+`edge_region` attribute derived from the immediate proxy socket:
+
+- `eu-germany-limburg`;
+- `ru-moscow`;
+- `ru-novosibirsk`;
+- `origin` for local operational requests;
+- `unknown` for a missing or invalid mapping.
+
+The browser cannot choose this value. Nginx overwrites
+`X-Arena-Edge-Region`, and the application validates it against the fixed
+allowlist before capture. Visitor IPs, account identifiers, cookies, and page
+URLs are not included in the metric attributes.
+
+Compare `web.vital.ttfb`, `web.vital.lcp`, and `web.vital.inp` by
+`edge_region`, using p50, p75, and p95 plus each region's sample count. Keep
+the RF nodes active-active until at least seven complete days contain enough
+samples for both RF regions. Consider primary/standby only when one RF region
+has a sustained p75 or p95 regression of at least 20% without a compensating
+availability benefit. A high `unknown` share is a routing-instrumentation
+fault, not a user-performance result.
+
 ## Rollback
 
 The pre-change parent records are stored in `/var/lib/arena-geodns/` on the

@@ -9,21 +9,25 @@ templates only: a Git checkout does not change the live nginx configuration.
 
 1. Install `arena-seo-map.conf` as
    `/etc/nginx/conf.d/31-arena-seo-map.conf`; it belongs to the `http` context.
-2. Install `arena-security-headers.conf` as
+2. Install `arena-edge-region-map.conf` as
+   `/etc/nginx/conf.d/32-arena-edge-region-map.conf`. It derives the bounded
+   Web Vitals region from the immediate trusted proxy address and must remain
+   outside the `server` block.
+3. Install `arena-security-headers.conf` as
    `/etc/nginx/snippets/arena-security-headers.conf`.
-3. Install `arena-html-routing.conf` as
+4. Install `arena-html-routing.conf` as
    `/etc/nginx/snippets/arena-html-routing.conf`.
-4. When Tribute analytics is enabled, install
+5. When Tribute analytics is enabled, install
    `arena-tribute-webhook.conf` as
    `/etc/nginx/snippets/arena-tribute-webhook.conf` and include it in the
    canonical HTTPS server before `arena-html-routing.conf`.
-5. Install `arena-canonical-host-redirect.conf` as
+6. Install `arena-canonical-host-redirect.conf` as
    `/etc/nginx/snippets/arena-canonical-host-redirect.conf` and include it in
    every HTTP, `www` and legacy `hs-arena.ru` redirect server. These hosts then
    normalize the scheme, host and a known HTML route's slash in one hop.
-6. In the canonical `arena.hs-manacost.ru` HTTPS server, keep the TLS, root,
+7. In the canonical `arena.hs-manacost.ru` HTTPS server, keep the TLS, root,
    origin guard, logging, gzip and server-wide security-header configuration.
-7. Replace the existing API, static and SPA `location` blocks with
+8. Replace the existing API, static and SPA `location` blocks with
    `include /etc/nginx/snippets/arena-html-routing.conf;`. Do not keep the old
    catch-all beside the new include.
 

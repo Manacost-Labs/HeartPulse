@@ -5,6 +5,13 @@ import {
   redactSentryEvent,
   redactSentryMetric,
 } from '../src/telemetry/sentryPrivacy.js';
+import {
+  type ServerWebVitalContext,
+  type ServerWebVitalMetric,
+  webVitalMetricAttributes,
+} from './webVitalsModel.js';
+
+export type { ServerWebVitalContext, ServerWebVitalMetric } from './webVitalsModel.js';
 
 const dsn = process.env.SENTRY_DSN?.trim();
 
@@ -26,21 +33,14 @@ if (dsn) {
 
 export const serverSentryConfigured = Boolean(dsn);
 
-export type ServerWebVitalMetric = {
-  name: 'CLS' | 'FCP' | 'INP' | 'LCP' | 'TTFB';
-  value: number;
-  rating: 'good' | 'needs-improvement' | 'poor';
-  navigationType: string;
-};
-
-export function captureServerWebVital(metric: ServerWebVitalMetric): boolean {
+export function captureServerWebVital(
+  metric: ServerWebVitalMetric,
+  context: ServerWebVitalContext,
+): boolean {
   if (!serverSentryConfigured) return false;
   Sentry.metrics.distribution(`web.vital.${metric.name.toLowerCase()}`, metric.value, {
     unit: metric.name === 'CLS' ? undefined : 'millisecond',
-    attributes: {
-      rating: metric.rating,
-      navigation_type: metric.navigationType,
-    },
+    attributes: webVitalMetricAttributes(metric, context),
   });
   return true;
 }

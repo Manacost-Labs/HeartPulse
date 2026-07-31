@@ -31,6 +31,11 @@ const definitions = [
     roles: ['origin'],
   },
   {
+    source: 'deploy/nginx/arena-edge-region-map.conf',
+    installPath: '/etc/nginx/conf.d/32-arena-edge-region-map.conf',
+    roles: ['origin'],
+  },
+  {
     source: 'deploy/nginx/arena-card-local-maps.conf',
     installPath: '/etc/nginx/conf.d/31-arena-card-local-maps.conf',
     roles: ['edge'],
@@ -133,7 +138,7 @@ try {
   });
   assert.equal(originReport.status, 'ok');
   assert.equal(originReport.exitCode, 0);
-  assert.equal(originReport.files.filter(file => file.installedStatus === 'ok').length, 4);
+  assert.equal(originReport.files.filter(file => file.installedStatus === 'ok').length, 5);
   assert.equal(
     originReport.files.find(file => file.roles.includes('edge')).installedStatus,
     'not-applicable',

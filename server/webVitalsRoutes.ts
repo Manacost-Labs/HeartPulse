@@ -1,5 +1,9 @@
 import { Router, type RequestHandler } from 'express';
-import type { ServerWebVitalMetric } from './sentry.js';
+import {
+  normalizeWebVitalEdgeRegion,
+  type ServerWebVitalContext,
+  type ServerWebVitalMetric,
+} from './webVitalsModel.js';
 
 const METRIC_NAMES = new Set<ServerWebVitalMetric['name']>([
   'CLS',
@@ -53,13 +57,17 @@ export function normalizeWebVitalsPayload(value: unknown): ServerWebVitalMetric[
 }
 
 export function createWebVitalsRouter(options: {
-  capture: (metric: ServerWebVitalMetric) => boolean;
+  capture: (metric: ServerWebVitalMetric, context: ServerWebVitalContext) => boolean;
 }): Router {
   const router = Router();
   const handler: RequestHandler = (req, res) => {
+    const context: ServerWebVitalContext = {
+      edgeRegion: normalizeWebVitalEdgeRegion(req.headers['x-arena-edge-region']),
+    };
+    res.setHeader('X-RUM-Edge-Region', context.edgeRegion);
     const metrics = normalizeWebVitalsPayload(req.body);
     if (!metrics) return res.status(400).json({ error: 'Некорректные Web Vitals' });
-    for (const metric of metrics) options.capture(metric);
+    for (const metric of metrics) options.capture(metric, context);
     res.setHeader('Cache-Control', 'no-store');
     return res.status(204).end();
   };

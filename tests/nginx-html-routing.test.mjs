@@ -21,6 +21,10 @@ const inventory = JSON.parse(readFileSync(
   'utf8',
 ));
 const mapSource = readFileSync(join(projectRoot, 'deploy/nginx/arena-seo-map.conf'), 'utf8');
+const edgeRegionMapSource = readFileSync(
+  join(projectRoot, 'deploy/nginx/arena-edge-region-map.conf'),
+  'utf8',
+);
 const routingSource = readFileSync(join(projectRoot, 'deploy/nginx/arena-html-routing.conf'), 'utf8');
 const edgeStaticSource = readFileSync(
   join(projectRoot, 'deploy/nginx/arena-edge-static-cache.conf'),
@@ -146,6 +150,10 @@ assert.doesNotMatch(edgeSitemapLocation?.body || '', /root\s+\/srv\/arena\/stati
   'the dynamic sitemap index must preserve the origin XML content type and body');
 assert.match(edgeStaticSource, /X-Proxy-Region\s+\$arena_proxy_region\s+always;/,
   'the shared edge contract must expose its configured region');
+assert.match(edgeRegionMapSource, /geo\s+\$realip_remote_addr\s+\$arena_edge_region\s*\{/,
+  'the origin must derive the RUM region from the immediate proxy socket');
+assert.doesNotMatch(edgeRegionMapSource, /http_x_forwarded_for|proxy_add_x_forwarded_for/i,
+  'the RUM region map must never inspect visitor forwarding headers');
 
 for (const machinePath of ['/sitemap.xml', '/sitemaps/static.xml', '/sitemaps/standard-cards.xml']) {
   const exact = locations.find(location => location.modifier === '=' && location.pattern === machinePath);
@@ -185,6 +193,13 @@ for (const path of ['/api', '/api/health/ready', '/health/live', '/metrics']) {
     `${path} must be server-side noindex for every upstream status`);
   assert.match(technicalLocation?.body || '', /arena-security-headers\.conf/,
     `${path} must retain the shared security headers when adding robots policy`);
+}
+for (const apiLocation of locations.filter(location => (
+  (location.modifier === '=' && location.pattern === '/api')
+  || (location.modifier === '^~' && location.pattern === '/api/')
+))) {
+  assert.match(apiLocation.body, /proxy_set_header\s+X-Arena-Edge-Region\s+\$arena_edge_region;/,
+    `${apiLocation.pattern} must overwrite the client region with the trusted origin map`);
 }
 
 for (const path of ['/assets/app.js', '/uploads/example.png']) {
@@ -563,6 +578,9 @@ async function startCardSeoUpstream() {
     }
     response.writeHead(fixture.status, {
       'Content-Type': 'text/html; charset=utf-8',
+      ...(pathname.startsWith('/api') ? {
+        'X-Upstream-Edge-Region': String(incomingRequest.headers['x-arena-edge-region'] || ''),
+      } : {}),
       ...fixture.headers,
     });
     response.end(fixture.body);
@@ -659,6 +677,8 @@ async function runNginxContractCheck() {
       .replaceAll('http://127.0.0.1:3101', `http://127.0.0.1:${upstream.port}`));
     const testMap = join(root, 'arena-seo-map.conf');
     writeFileSync(testMap, mapSource);
+    const testEdgeRegionMap = join(root, 'arena-edge-region-map.conf');
+    writeFileSync(testEdgeRegionMap, edgeRegionMapSource);
 
     const port = await reserveAvailablePort();
     const nginxConfig = join(root, 'nginx.conf');
@@ -670,6 +690,7 @@ events { worker_connections 16; }
 http {
     access_log off;
     include ${testMap};
+    include ${testEdgeRegionMap};
     server {
         listen 127.0.0.1:${port};
         server_name arena.test;
@@ -757,6 +778,10 @@ http {
         `${technicalFixture.path} technical robots policy`);
       assert.equal(technical.headers['x-content-type-options'], 'nosniff',
         `${technicalFixture.path} shared security headers`);
+      if (technicalFixture.path.startsWith('/api')) {
+        assert.equal(technical.headers['x-upstream-edge-region'], 'origin',
+          `${technicalFixture.path} trusted edge region propagation`);
+      }
     }
 
     for (const sitemapFixture of [
