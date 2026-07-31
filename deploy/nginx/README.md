@@ -33,11 +33,15 @@ templates only: a Git checkout does not change the live nginx configuration.
 
 Every public edge proxy must install `arena-card-local-maps.conf` as
 `/etc/nginx/conf.d/31-arena-card-local-maps.conf` and
+`arena-edge-region-forward.conf` as
+`/etc/nginx/snippets/arena-edge-region-forward.conf`, and
 `arena-edge-static-cache.conf` as
 `/etc/nginx/snippets/arena-edge-static-cache.conf`. In its canonical HTTPS
 server, set `$arena_proxy_region` to that node's stable label, define
-`$arena_alt_svc` (an empty value is valid), and replace the generic static-file
-location with the snippet include.
+`$arena_alt_svc` (an empty value is valid), include
+`arena-edge-region-forward.conf`, and replace the generic static-file location
+with the cache snippet include. The region-forward snippet must remain at
+server scope so every proxied location overwrites a client-supplied region.
 
 The edge serves synchronized card images and frontend assets from
 `/srv/arena/.../current` first. A missing local file falls through to the

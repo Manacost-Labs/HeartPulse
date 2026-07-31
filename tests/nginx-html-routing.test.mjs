@@ -25,6 +25,10 @@ const edgeRegionMapSource = readFileSync(
   join(projectRoot, 'deploy/nginx/arena-edge-region-map.conf'),
   'utf8',
 );
+const edgeRegionForwardSource = readFileSync(
+  join(projectRoot, 'deploy/nginx/arena-edge-region-forward.conf'),
+  'utf8',
+);
 const routingSource = readFileSync(join(projectRoot, 'deploy/nginx/arena-html-routing.conf'), 'utf8');
 const edgeStaticSource = readFileSync(
   join(projectRoot, 'deploy/nginx/arena-edge-static-cache.conf'),
@@ -150,10 +154,22 @@ assert.doesNotMatch(edgeSitemapLocation?.body || '', /root\s+\/srv\/arena\/stati
   'the dynamic sitemap index must preserve the origin XML content type and body');
 assert.match(edgeStaticSource, /X-Proxy-Region\s+\$arena_proxy_region\s+always;/,
   'the shared edge contract must expose its configured region');
-assert.match(edgeRegionMapSource, /geo\s+\$realip_remote_addr\s+\$arena_edge_region\s*\{/,
-  'the origin must derive the RUM region from the immediate proxy socket');
+assert.match(edgeRegionMapSource, /geo\s+\$realip_remote_addr\s+\$arena_edge_socket_region\s*\{/,
+  'the origin must first derive the RUM trust path from the immediate proxy socket');
+assert.match(edgeRegionMapSource,
+  /map\s+"\$arena_edge_socket_region:\$http_x_arena_edge_region"\s+\$arena_edge_region\s*\{/,
+  'the origin must only combine an edge label with a trusted socket classification');
+assert.match(edgeRegionMapSource, /"origin-tunnel:ru-moscow"\s+ru-moscow;/,
+  'the Moscow label must only be accepted through the origin tunnel');
+assert.match(edgeRegionMapSource, /"origin-tunnel:ru-novosibirsk"\s+ru-novosibirsk;/,
+  'the Novosibirsk label must only be accepted through the origin tunnel');
 assert.doesNotMatch(edgeRegionMapSource, /http_x_forwarded_for|proxy_add_x_forwarded_for/i,
   'the RUM region map must never inspect visitor forwarding headers');
+assert.match(edgeRegionForwardSource,
+  /proxy_set_header\s+X-Arena-Edge-Region\s+\$arena_proxy_region;/,
+  'every edge must overwrite a browser-provided region before proxying');
+assert.doesNotMatch(edgeRegionForwardSource, /\$http_x_arena_edge_region|X-Forwarded-For/i,
+  'the edge region label must never derive from a browser forwarding header');
 
 for (const machinePath of ['/sitemap.xml', '/sitemaps/static.xml', '/sitemaps/standard-cards.xml']) {
   const exact = locations.find(location => location.modifier === '=' && location.pattern === machinePath);

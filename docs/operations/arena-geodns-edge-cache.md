@@ -93,10 +93,12 @@ The existing browser RUM endpoint records `CLS`, `FCP`, `INP`, `LCP`, and
 - `origin` for local operational requests;
 - `unknown` for a missing or invalid mapping.
 
-The browser cannot choose this value. Nginx overwrites
-`X-Arena-Edge-Region`, and the application validates it against the fixed
-allowlist before capture. Visitor IPs, account identifiers, cookies, and page
-URLs are not included in the metric attributes.
+The browser cannot choose this value. Every edge overwrites
+`X-Arena-Edge-Region`; the origin accepts that label only from its local RF
+SSH tunnel and otherwise derives the label from the immediate edge socket.
+The application validates the result against the fixed allowlist before
+capture. Visitor IPs, account identifiers, cookies, and page URLs are not
+included in the metric attributes.
 
 Compare `web.vital.ttfb`, `web.vital.lcp`, and `web.vital.inp` by
 `edge_region`, using p50, p75, and p95 plus each region's sample count. Keep

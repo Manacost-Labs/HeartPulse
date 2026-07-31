@@ -15,6 +15,7 @@ const nginxContractFiles = [
   'deploy/nginx/arena-seo-map.conf',
   'deploy/nginx/arena-edge-region-map.conf',
   'deploy/nginx/arena-card-local-maps.conf',
+  'deploy/nginx/arena-edge-region-forward.conf',
   'deploy/nginx/arena-edge-static-cache.conf',
   'deploy/nginx/arena-canonical-host-redirect.conf',
   'deploy/nginx/arena-security-headers.conf',
@@ -79,7 +80,7 @@ try {
   assert.deepEqual(manifest.nginxContract.files.map(file => file.source), nginxContractFiles);
   assert.deepEqual(
     manifest.nginxContract.files.map(file => file.roles),
-    [['origin'], ['origin'], ['origin'], ['edge'], ['edge'], ['origin'], ['origin']],
+    [['origin'], ['origin'], ['origin'], ['edge'], ['edge'], ['edge'], ['origin'], ['origin']],
   );
   assert.deepEqual(
     manifest.nginxContract.files.map(file => file.installPath),
@@ -88,6 +89,7 @@ try {
       '/etc/nginx/conf.d/31-arena-seo-map.conf',
       '/etc/nginx/conf.d/32-arena-edge-region-map.conf',
       '/etc/nginx/conf.d/31-arena-card-local-maps.conf',
+      '/etc/nginx/snippets/arena-edge-region-forward.conf',
       '/etc/nginx/snippets/arena-edge-static-cache.conf',
       '/etc/nginx/snippets/arena-canonical-host-redirect.conf',
       '/etc/nginx/snippets/arena-security-headers.conf',
