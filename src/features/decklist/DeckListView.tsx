@@ -79,17 +79,17 @@ function DeckTile({
   onPreviewEnd: () => void;
 }) {
   const rarity = RARITY_COLOR[rarityKey(card.rarity)] || RARITY_COLOR.common;
-  // Inside the row: class color (HSGuru-style). Mana/count keep rarity.
+  // Inside the row: class color (HSGuru-style). Mana/count keep their own meaning.
   const fill = classColor || rarity;
   const style = {
     ['--deck-tile-rarity' as string]: rarity,
     ['--deck-tile-fill' as string]: fill,
-    ['--deck-tile-border' as string]: 'rgb(32, 32, 32)',
+    ['--deck-tile-border' as string]: 'rgba(244, 207, 103, 0.24)',
     ['--deck-tile-art' as string]: card.image ? `url(${JSON.stringify(card.image)})` : 'none',
   };
   const hasControls = Boolean(interactive && (onIncrement || onDecrement));
   const className = `deck-tile deck-tile--${rarityKey(card.rarity)}${indented ? ' is-sideboard' : ''}${hasControls ? ' has-controls' : ''}`;
-  const countLabel = card.elite ? '★' : String(card.count);
+  const countLabel = card.elite ? '★' : `×${card.count}`;
 
   const body = (
     <>
@@ -238,7 +238,7 @@ export default function DeckListView({
   return (
     <div className={`deck-list-view ${className}`.trim()}>
       {(title || subtitle) ? (
-        <div className="deck-list-view__head" style={headerColor ? { background: headerColor } : undefined}>
+        <div className="deck-list-view__head" style={headerColor ? { backgroundColor: headerColor } : undefined}>
           <div>
             {title ? <strong>{title}</strong> : null}
             {subtitle ? <span className="deck-list-view__subtitle">{subtitle}</span> : null}

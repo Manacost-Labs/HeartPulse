@@ -1,10 +1,11 @@
 .deck-list-view {
-  --deck-tile-height: 28px;
-  /* Mana crystal (authentic HS blue) */
-  --deck-mana-top: #3f7bc4;
-  --deck-mana-bottom: #163f6d;
+  --deck-tile-height: 32px;
+  --deck-mana-top: #3978bc;
+  --deck-mana-bottom: #143a64;
   --deck-gold: #f4cf67;
   --deck-gold-deep: #a9791d;
+  --deck-ink: #fff9e9;
+  --deck-well: #160d0b;
   width: 100%;
   min-width: 0;
 }
@@ -27,9 +28,8 @@
   font-family: var(--font-hs, "HSDisplay", "Belwe Bd BT", serif);
   letter-spacing: 0.01em;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.4),
-    0 2px 6px rgba(0, 0, 0, 0.4);
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.38);
 }
 
 .deck-list-view__head::after {
@@ -88,16 +88,18 @@
 .deck-list-view__list {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1px;
+  gap: 3px;
   margin: 0;
-  padding: 0.4rem;
+  padding: 0.5rem;
   list-style: none;
   max-height: none;
   overflow: visible;
   background:
     radial-gradient(120% 100% at 50% 0%, rgba(70, 40, 30, 0.35), transparent 60%),
-    rgb(22, 13, 11);
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.55);
+    var(--deck-well);
+  box-shadow:
+    inset 0 1px 0 rgba(244, 207, 103, 0.08),
+    inset 0 4px 12px rgba(0, 0, 0, 0.46);
 }
 
 .deck-list-view__list > li {
@@ -105,71 +107,61 @@
 }
 
 /*
- * Tile layers (HSGuru-derived + polish):
- *  1) class-color body with a vertical gradient + bevel  (depth)
- *  2) official tile bitmap on the right (white left edge cropped)
- *  3) fade overlay: solid over the name, short blend into the art
- *  4) mana crystal + rarity count on top
+ * Compact deck ledger inspired by HSGuru:
+ *  1) a restrained class-colour body
+ *  2) a wide, feathered official-art window
+ *  3) a soft reading scrim under the card name
+ *  4) mana and count as small semantic anchors
  */
 .deck-tile {
   --deck-tile-rarity: rgb(99, 99, 99);
   --deck-tile-fill: rgb(99, 99, 99);
   --deck-tile-border: rgb(40, 40, 40);
   --deck-tile-art: none;
-  --deck-tile-mana-w: 3ch;
-  --deck-tile-count-w: 2.2ch;
-  /* Natural height-fit width of a 256×59 tile ≈ 104px */
-  --deck-tile-art-w: 112px;
-  /* Drop the baked-in white left columns only */
-  --deck-tile-art-crop: 18px;
-  /* Keep clear face on the right; short blend on the left of the art */
-  --deck-tile-art-clear: 58px;
-  --deck-tile-art-blend: 26px;
+  --deck-tile-mana-w: 32px;
+  --deck-tile-count-w: 34px;
+  --deck-tile-art-w: min(42%, 184px);
   position: relative;
   display: flex;
   align-items: center;
   width: 100%;
   height: var(--deck-tile-height);
   margin: 0;
-  padding: 1px;
+  padding: 0;
   border: 1px solid var(--deck-tile-border);
+  border-radius: 3px;
   box-sizing: border-box;
-  /* Vertical sheen over the flat class color = metal bar look */
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 45%, rgba(0, 0, 0, 0.28)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09), transparent 42%, rgba(0, 0, 0, 0.24)),
+    linear-gradient(90deg, rgba(22, 13, 11, 0.2), rgba(22, 13, 11, 0.34)),
     var(--deck-tile-fill);
-  color: #fff;
-  font: inherit;
+  color: var(--deck-ink);
+  font-family: var(--font-ui, Inter, sans-serif);
   text-align: left;
   cursor: default;
   overflow: hidden;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.82);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.35);
-  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.32),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
 }
 
 button.deck-tile {
   cursor: pointer;
 }
 
-button.deck-tile:hover,
+.deck-tile:hover,
 button.deck-tile:focus-visible {
-  transform: translateX(2px);
-  filter: brightness(1.06);
+  border-color: rgba(244, 207, 103, 0.72);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(244, 207, 103, 0.6),
-    0 2px 8px rgba(0, 0, 0, 0.45);
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.34),
+    0 0 0 1px rgba(244, 207, 103, 0.2),
+    0 3px 9px rgba(0, 0, 0, 0.34);
   outline: none;
   z-index: 5;
-}
-
-button.deck-tile:hover .deck-tile__art,
-button.deck-tile:focus-visible .deck-tile__art {
-  filter: brightness(1.14) saturate(1.08);
 }
 
 .deck-tile.is-sideboard {
@@ -191,34 +183,35 @@ button.deck-tile:focus-visible .deck-tile__art {
 .deck-tile__art {
   position: absolute;
   z-index: 1;
-  top: 1px;
+  top: 0;
   right: var(--deck-tile-count-w);
-  /* Narrower than the bitmap → right-aligned image clips the white left edge */
-  width: calc(var(--deck-tile-art-w) - var(--deck-tile-art-crop));
-  height: calc(var(--deck-tile-height) - 2px);
+  width: var(--deck-tile-art-w);
+  height: 100%;
   overflow: hidden;
   background-image: var(--deck-tile-art);
   background-repeat: no-repeat;
   background-position: right center;
   background-size: auto 100%;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.42) 22%, #000 52%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.42) 22%, #000 52%, #000 100%);
   pointer-events: none;
-  transition: filter 120ms ease;
 }
 
-/* Class fill over the name; short blend into the art so the face stays open */
+/* Keep long names readable while preserving the artwork instead of recolouring it. */
 .deck-tile__fade {
   position: absolute;
   z-index: 2;
-  top: 1px;
-  bottom: 1px;
+  top: 0;
+  bottom: 0;
   left: var(--deck-tile-mana-w);
   right: var(--deck-tile-count-w);
   pointer-events: none;
   background: linear-gradient(
     90deg,
-    var(--deck-tile-fill) 0%,
-    var(--deck-tile-fill) calc(100% - var(--deck-tile-art-clear) - var(--deck-tile-art-blend)),
-    transparent calc(100% - var(--deck-tile-art-clear))
+    rgba(22, 13, 11, 0.3) 0%,
+    rgba(22, 13, 11, 0.24) 54%,
+    rgba(22, 13, 11, 0.08) 78%,
+    transparent 100%
   );
 }
 
@@ -228,21 +221,21 @@ button.deck-tile:focus-visible .deck-tile__art {
   z-index: 4;
   flex: 0 0 auto;
   width: var(--deck-tile-mana-w);
-  min-width: 30px;
+  min-width: var(--deck-tile-mana-w);
   display: grid;
   place-items: center;
   align-self: stretch;
   font-weight: 800;
-  font-size: 0.94rem;
+  font-size: 0.9rem;
   line-height: 1;
   color: #fff;
   background:
-    radial-gradient(120% 90% at 50% 12%, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 55%),
+    radial-gradient(110% 80% at 50% 8%, rgba(255, 255, 255, 0.34), transparent 58%),
     linear-gradient(180deg, var(--deck-mana-top), var(--deck-mana-bottom));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.45),
-    inset 0 -2px 3px rgba(0, 0, 0, 0.5),
-    inset -1px 0 0 rgba(0, 0, 0, 0.4);
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.48),
+    inset -1px 0 0 rgba(244, 207, 103, 0.22);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
 }
 
@@ -252,43 +245,49 @@ button.deck-tile:focus-visible .deck-tile__art {
   z-index: 4;
   flex: 0 0 auto;
   width: var(--deck-tile-count-w);
-  min-width: 26px;
+  min-width: var(--deck-tile-count-w);
   display: grid;
   place-items: center;
   align-self: stretch;
   font-weight: 800;
-  font-size: 0.9rem;
+  font-size: 0.78rem;
   line-height: 1;
   color: #fff;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 45%, rgba(0, 0, 0, 0.3)),
-    var(--deck-tile-rarity);
+  background: rgba(20, 13, 12, 0.86);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    inset 1px 0 0 rgba(0, 0, 0, 0.4),
-    inset 0 -2px 3px rgba(0, 0, 0, 0.45);
+    inset 3px 0 0 var(--deck-tile-rarity),
+    inset 1px 0 0 rgba(255, 255, 255, 0.08);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
 }
 
 .deck-tile--legendary .deck-tile__count {
   color: #fff6d8;
   background:
-    radial-gradient(120% 90% at 50% 12%, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 55%),
-    linear-gradient(180deg, var(--deck-gold), var(--deck-gold-deep));
+    radial-gradient(110% 80% at 50% 8%, rgba(255, 255, 255, 0.36), transparent 58%),
+    linear-gradient(180deg, #d4a936, #8b5e14);
   text-shadow: 0 1px 2px rgba(90, 55, 0, 0.9);
 }
 
 .deck-tile.has-controls {
-  --deck-tile-count-w: 116px;
+  --deck-tile-count-w: 118px;
+}
+
+.deck-tile.has-controls .deck-tile__fade {
+  background: linear-gradient(
+    90deg,
+    rgba(22, 13, 11, 0.46) 0%,
+    rgba(22, 13, 11, 0.38) 66%,
+    rgba(22, 13, 11, 0.08) 100%
+  );
 }
 
 .deck-tile__controls {
   position: relative;
   z-index: 5;
   display: grid;
-  grid-template-columns: 44px 28px 44px;
+  grid-template-columns: 44px 30px 44px;
   align-self: stretch;
-  flex: 0 0 116px;
+  flex: 0 0 118px;
   margin-left: auto;
   color: #fff;
   background: rgba(21, 12, 10, 0.82);
@@ -337,14 +336,24 @@ button.deck-tile:focus-visible .deck-tile__art {
   display: flex;
   align-items: center;
   align-self: stretch;
-  padding: 0 0.6ch;
+  padding: 0 0.72ch;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 0.86rem;
-  font-weight: 750;
-  letter-spacing: 0.005em;
+  font-size: 0.82rem;
+  font-weight: 720;
+  letter-spacing: 0.003em;
   background: transparent;
+}
+
+.deck-tile.has-controls .deck-tile__name {
+  display: -webkit-box;
+  align-content: center;
+  padding-block: 0.24rem;
+  white-space: normal;
+  line-height: 1.08;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 /* ───────────────────────── Sideboard ───────────────────────── */
@@ -392,7 +401,7 @@ button.deck-tile:focus-visible .deck-tile__art {
   padding: 0.25rem 0.15rem 0.15rem;
   background: none;
   box-shadow: none;
-  gap: 1px;
+  gap: 3px;
 }
 
 /* ───────────────────────── Copy button ───────────────────────── */
@@ -438,4 +447,31 @@ button.deck-tile:focus-visible .deck-tile__art {
 .deck-list-view__copy-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .deck-list-view {
+    --deck-tile-height: 31px;
+  }
+
+  .deck-list-view__list {
+    gap: 2px;
+    padding: 0.4rem;
+  }
+
+  .deck-tile {
+    --deck-tile-art-w: min(46%, 156px);
+  }
+
+  .deck-tile__name {
+    padding-inline: 0.55ch;
+    font-size: 0.79rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck-tile,
+  .deck-list-view__copy-btn {
+    transition: none;
+  }
 }

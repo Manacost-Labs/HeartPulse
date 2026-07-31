@@ -561,9 +561,7 @@
 
 .deck-builder__deck .deck-list-view {
   --deck-tile-height: 44px;
-  --deck-tile-art-w: 128px;
-  --deck-tile-art-crop: 16px;
-  --deck-tile-art-reveal: 92px;
+  --deck-tile-art-w: 104px;
   overflow: hidden;
   border: 1px solid rgba(67, 32, 16, 0.52);
   box-shadow: 0 7px 18px rgba(42, 19, 9, 0.22);
