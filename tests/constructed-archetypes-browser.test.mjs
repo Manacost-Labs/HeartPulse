@@ -127,6 +127,16 @@ try {
     rawTileWidth - deckTileArtCrop.pseudoWidth >= deckTileArtCrop.height * 34 / 59,
     'the 35px HSJSON service strip must stay outside the visible art viewport',
   );
+  const commonCountShadow = await page.$eval(
+    '.archetype-deck-card .deck-tile--common .deck-tile__count',
+    element => getComputedStyle(element).boxShadow,
+  );
+  assert.match(commonCountShadow, /rgba?\(0, 0, 0/);
+  assert.doesNotMatch(
+    commonCountShadow,
+    /99, 99, 99|3px 0px/,
+    'the count boundary must not render a pale vertical rarity rail',
+  );
   assert.equal(await page.$$eval('.constructed-matchup-ledger li', rows => rows.length), 11);
   assert.equal(await page.$$eval('.constructed-card-stats tbody tr', rows => rows.length), 15);
   for (const tourTarget of [
