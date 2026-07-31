@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { isPublicProfileId } from './publicProfileIdentity.js';
+import { isPublicProfileLookupId } from './publicProfileIdentity.js';
 
 export type PublicProfileRecord = {
   publicProfileId: string;
@@ -43,7 +43,7 @@ export function createPublicProfileRouter(
   router.get('/profiles/:publicProfileId', (request, response) => {
     response.set('Cache-Control', PUBLIC_PROFILE_CACHE_CONTROL);
     const publicProfileId = request.params.publicProfileId;
-    if (!isPublicProfileId(publicProfileId)) {
+    if (!isPublicProfileLookupId(publicProfileId)) {
       return response.status(404).json(NOT_FOUND_PAYLOAD);
     }
 

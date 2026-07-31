@@ -5,7 +5,8 @@ import {
   type PublicProfileRecord,
 } from '../server/publicProfileRoutes.js';
 
-const publicProfileId = 'p_AbCdEfGhIjKlMnOpQrStUv';
+const publicProfileId = '1';
+const legacyPublicProfileId = 'p_AbCdEfGhIjKlMnOpQrStUv';
 const profile: PublicProfileRecord = {
   publicProfileId,
   name: 'Игрок Манакоста',
@@ -25,7 +26,9 @@ const privateSource = {
 let blocked = false;
 const app = express();
 app.use('/api', createPublicProfileRouter({
-  findProfile: id => id === publicProfileId && !blocked ? privateSource : null,
+  findProfile: id => (id === publicProfileId || id === legacyPublicProfileId) && !blocked
+    ? privateSource
+    : null,
 }));
 
 const server = app.listen(0, '127.0.0.1');
@@ -55,9 +58,19 @@ try {
     assert.equal(privateField in body.profile, false, `${privateField} must not be public`);
   }
 
+  const legacy = await fetch(`${baseUrl}/${legacyPublicProfileId}`);
+  assert.equal(legacy.status, 200);
+  assert.deepEqual(await legacy.json(), { profile },
+    'legacy opaque IDs may resolve but must only return the new numeric public identity');
+
   const malformed = await fetch(`${baseUrl}/..%2Fadmin`);
   assert.equal(malformed.status, 404);
   assert.deepEqual(await malformed.json(), { error: 'Профиль не найден' });
+
+  for (const invalidId of ['0', '01', '2147483648', 'user_internal_secret']) {
+    const invalid = await fetch(`${baseUrl}/${invalidId}`);
+    assert.equal(invalid.status, 404, `${invalidId} must not be accepted as a public ID`);
+  }
 
   blocked = true;
   const hidden = await fetch(`${baseUrl}/${publicProfileId}`);

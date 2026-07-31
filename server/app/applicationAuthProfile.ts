@@ -27,7 +27,7 @@ export function serializeApplicationProfileUser(
     id: user.id,
     publicProfileId: user.publicProfileId ?? '',
     profileUrl: user.publicProfileId
-      ? `${appUrl.replace(/\/+$/, '')}/profiles/${user.publicProfileId}`
+      ? `${appUrl.replace(/\/+$/, '')}/id/${user.publicProfileId}`
       : '',
     email: user.email,
     name: user.name,

@@ -1582,7 +1582,7 @@ export const PUBLIC_API_OPENAPI = {
             required: ['id', 'publicProfileId', 'profileUrl', 'email', 'name', 'avatarInitials'],
             properties: {
               id: { type: 'string' },
-              publicProfileId: { type: 'string' },
+              publicProfileId: { type: 'string', pattern: '^[1-9][0-9]{0,9}$' },
               profileUrl: { type: 'string' },
               email: { type: 'string', format: 'email' },
               name: { type: 'string' },

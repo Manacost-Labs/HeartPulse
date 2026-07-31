@@ -947,6 +947,7 @@ function db(): DatabaseSync {
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       public_profile_id TEXT,
+      public_numeric_id INTEGER,
       email TEXT NOT NULL UNIQUE,
       name TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'user',
@@ -1199,7 +1200,7 @@ function db(): DatabaseSync {
   if (!userColumns.has('contact_telegram')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN contact_telegram TEXT');
   if (!userColumns.has('contact_email')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN contact_email TEXT');
   if (!userColumns.has('blocked_at')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN blocked_at TEXT');
-  ensurePublicProfileIds(ecosystemDb);
+  ensurePublicProfileIds(ecosystemDb, { preferredUserIds: [...ADMIN_USER_IDS] });
   const manualGrantColumns = new Set((ecosystemDb.prepare('PRAGMA table_info(manual_subscription_grants)').all() as any[]).map(row => String(row.name)));
   if (!manualGrantColumns.has('expires_at')) ecosystemDb.exec('ALTER TABLE manual_subscription_grants ADD COLUMN expires_at TEXT');
   migrateLegacyAuthStore(ecosystemDb);
@@ -1411,10 +1412,10 @@ function upsertUserRow(database: DatabaseSync, user: AdminUser) {
   user.publicProfileId = publicProfileId;
   database.prepare(`
     INSERT INTO users (
-      id, public_profile_id, email, name, role, country, newsletter_opt_in, avatar_initials, contact_vk_url, contact_telegram, contact_email, blocked_at, password_hash, created_at, updated_at
+      id, public_numeric_id, email, name, role, country, newsletter_opt_in, avatar_initials, contact_vk_url, contact_telegram, contact_email, blocked_at, password_hash, created_at, updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
-      public_profile_id = excluded.public_profile_id,
+      public_numeric_id = excluded.public_numeric_id,
       email = excluded.email,
       name = excluded.name,
       role = excluded.role,
@@ -1473,7 +1474,7 @@ function upsertUserRow(database: DatabaseSync, user: AdminUser) {
 function authUserFromRow(row: any): AdminUser {
   return {
     id: String(row.id),
-    publicProfileId: String(row.public_profile_id ?? ''),
+    publicProfileId: String(row.public_numeric_id ?? ''),
     email: String(row.email),
     name: String(row.name),
     role: row.role === 'admin' ? 'admin' : 'user',
@@ -9084,15 +9085,15 @@ app.use('/api', createAuthProfileRouter({
 app.use('/api', createPublicProfileRouter({
   findProfile: publicProfileId => dbGet<PublicProfileRecord>(`
     SELECT
-      public_profile_id AS publicProfileId,
+      CAST(public_numeric_id AS TEXT) AS publicProfileId,
       name,
       avatar_initials AS avatarInitials,
       created_at AS createdAt
     FROM users
-    WHERE public_profile_id = ?
+    WHERE (CAST(public_numeric_id AS TEXT) = ? OR public_profile_id = ?)
       AND COALESCE(blocked_at, '') = ''
     LIMIT 1
-  `, publicProfileId) ?? null,
+  `, publicProfileId, publicProfileId) ?? null,
 }));
 
 app.use('/api', createSubscriptionRouter({

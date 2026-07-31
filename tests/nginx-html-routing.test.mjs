@@ -85,7 +85,8 @@ function substituteRouteParameters(route) {
     slugAndDbfId: 'example-76521',
     additionalKind: 'anomalies',
     slug: 'invite_1',
-    publicProfileId: 'p_0123456789abcdefghijkl',
+    publicProfileId: '1',
+    legacyPublicProfileId: 'p_0123456789abcdefghijkl',
     path: 'legacy/item',
   };
   return route.pattern.replace(/:([A-Za-z][A-Za-z0-9]*)(\*)?/g, (_match, name, catchAll) => {
@@ -328,7 +329,7 @@ for (const route of inventory.routes) {
     expectRegexAction(`${path}/`, 'try_files /archetypes/index.html /index.html =404;', `${route.id} canonical route`);
     continue;
   }
-  if (route.id === 'public-profile') {
+  if (route.id === 'public-profile' || route.id === 'legacy-public-profile') {
     expectRegexAction(`${path}/`, 'try_files /index.html =404;', `${route.id} canonical route`);
     const profileShell = firstMatchingRegexLocation(`${path}/`);
     assert.match(profileShell?.body || '', /X-Robots-Tag\s+"noindex, follow"\s+always;/,
@@ -370,6 +371,9 @@ for (const invalidPath of [
   '/profiles/p_short',
   '/profiles/1',
   '/profiles/p_0123456789abcdefghijk',
+  '/id/0',
+  '/id/01',
+  '/id/not-a-number',
   '/heroes/0',
   '/heroes/not-a-number',
   '/library/weapons',

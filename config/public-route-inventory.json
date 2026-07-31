@@ -184,7 +184,7 @@
     },
     {
       "id": "public-profile",
-      "pattern": "/profiles/:publicProfileId",
+      "pattern": "/id/:publicProfileId",
       "kind": "detail",
       "owner": "identity",
       "indexPolicy": "noindex-follow",
@@ -196,7 +196,24 @@
       "mobileFixture": "public-profile",
       "entitlement": null,
       "pathParameters": {
-        "publicProfileId": { "pattern": "^p_[A-Za-z0-9_-]{22}$" }
+        "publicProfileId": { "pattern": "^[1-9][0-9]{0,9}$" }
+      }
+    },
+    {
+      "id": "legacy-public-profile",
+      "pattern": "/profiles/:legacyPublicProfileId",
+      "kind": "detail",
+      "owner": "identity",
+      "indexPolicy": "noindex-follow",
+      "canonicalPolicy": "self",
+      "sitemap": false,
+      "htmlStrategy": "spa-shell",
+      "expectedStatus": 200,
+      "criticality": "P2",
+      "mobileFixture": "public-profile",
+      "entitlement": null,
+      "pathParameters": {
+        "legacyPublicProfileId": { "pattern": "^p_[A-Za-z0-9_-]{22}$" }
       }
     },
     {

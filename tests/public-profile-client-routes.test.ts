@@ -5,15 +5,25 @@ import {
 } from '../src/profileRoutes.js';
 import { isKnownPath, tabFromPath } from '../src/routes.js';
 
-const publicProfileId = 'p_AbCdEfGhIjKlMnOpQrStUv';
-assert.equal(publicProfileIdFromPath(`/profiles/${publicProfileId}`), publicProfileId);
-assert.equal(publicProfileIdFromPath(`/profiles/${publicProfileId}/`), publicProfileId);
-assert.equal(publicProfileIdFromPath('/profiles/user_internal_id'), null);
-assert.equal(publicProfileIdFromPath('/profiles/p_../../admin'), null);
-assert.equal(publicProfilePath(publicProfileId), `/profiles/${publicProfileId}`);
-assert.equal(publicProfilePath('user_internal_id'), '/');
-assert.equal(isKnownPath(`/profiles/${publicProfileId}`), true);
-assert.equal(isKnownPath('/profiles/user_internal_id'), false);
-assert.equal(tabFromPath(`/profiles/${publicProfileId}`), 'home');
+assert.equal(publicProfileIdFromPath('/id/1'), '1');
+assert.equal(publicProfileIdFromPath('/id/2147483647/'), '2147483647');
+assert.equal(publicProfileIdFromPath('/id/0'), null);
+assert.equal(publicProfileIdFromPath('/id/01'), null);
+assert.equal(publicProfileIdFromPath('/id/2147483648'), null);
+assert.equal(publicProfileIdFromPath('/id/user_internal_id'), null);
 
-console.log('public profile client route contracts passed');
+const legacyPublicProfileId = 'p_AbCdEfGhIjKlMnOpQrStUv';
+assert.equal(publicProfileIdFromPath(`/profiles/${legacyPublicProfileId}`), legacyPublicProfileId,
+  'old shared profile links must remain readable during migration');
+assert.equal(publicProfileIdFromPath('/profiles/p_../../admin'), null);
+
+assert.equal(publicProfilePath('1'), '/id/1');
+assert.equal(publicProfilePath('01'), '/');
+assert.equal(publicProfilePath('2147483648'), '/');
+assert.equal(publicProfilePath('user_internal_id'), '/');
+assert.equal(isKnownPath('/id/1'), true);
+assert.equal(isKnownPath(`/profiles/${legacyPublicProfileId}`), true);
+assert.equal(isKnownPath('/id/user_internal_id'), false);
+assert.equal(tabFromPath('/id/1'), 'home');
+
+console.log('numeric public profile client route contracts passed');
