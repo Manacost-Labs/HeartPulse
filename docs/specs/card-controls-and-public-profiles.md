@@ -8,7 +8,7 @@ Improve constructed-card detail controls and add privacy-safe public user profil
   explicitly excludes Standard;
 - present card-statistics history as a collapsed disclosure and defer its request
   until the reader opens it;
-- assign every existing and future account a stable, non-guessable public profile
+- assign every existing and future account a stable numeric public profile
   identifier and public URL.
 
 ## Technical context
@@ -31,10 +31,11 @@ Improve constructed-card detail controls and add privacy-safe public user profil
 
 ### Public profiles
 
-- Canonical route: `/profiles/:publicProfileId/`.
-- Public IDs use cryptographically random bytes, are immutable, unique, and are
-  separate from the internal account ID used for authentication and
-  authorization.
+- Canonical route: `/id/:publicProfileId/`, for example `/id/1/`.
+- Public IDs are positive, immutable, unique integers and are separate from the
+  internal account ID used for authentication and authorization.
+- Older `/profiles/p_…/` links remain read-only lookup aliases. A successful
+  lookup returns the canonical numeric ID and the interface copies the new URL.
 - Existing users are backfilled during the idempotent database migration.
 - New users receive an ID during persistence.
 - The private profile shows the full public ID and a link to the public page.
@@ -47,6 +48,13 @@ Improve constructed-card detail controls and add privacy-safe public user profil
   response.
 - Public profile pages are accessible without authentication but use
   `noindex,follow` by default to reduce unintended discoverability.
+
+### Future saved decks
+
+- Saved decks must reference the internal user ID with a database foreign key.
+- The numeric public ID is a presentation identifier only. It can be used in a
+  deck owner's public URL, but never as the ownership or authorization key.
+- Public deck serializers must have their own explicit field allowlist.
 
 ## Verification
 
