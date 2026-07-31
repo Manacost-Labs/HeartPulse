@@ -154,7 +154,7 @@ The public shell groups secondary destinations instead of filling the rail with 
 ### Constructed Deck Rows
 
 - Compact deck rows use one continuous forged frame: silver for common, blue for rare, violet for epic and bronze for legendary cards.
-- The mana value uses the real local `/assets/mana.png` crystal, visually socketed into the left end of the frame. Rarity colour stays on the rim and never recolours the crystal.
+- The mana value uses the real local `/assets/mana.png` crystal. The rarity frame begins beneath its right facet; it must not paint a second polygon or coloured tail behind the crystal's transparent corners.
 - Official tile art reaches the inner right edge through a broad feathered mask. Copy count or the legendary star floats over the art without a separate panel, rarity rail or pale separator.
 - Card names use compact bold Inter with a dark outline and single-line truncation in read-only lists. Builder rows may use two lines because their controls keep a `44px` touch target.
 - Hover and focus may brighten the frame engraving, but must not apply a CSS filter to the card art.

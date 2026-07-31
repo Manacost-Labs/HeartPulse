@@ -142,18 +142,23 @@ try {
       const tile = element.closest('.deck-tile');
       const countStyle = getComputedStyle(element);
       const tileStyle = getComputedStyle(tile);
+      const frameStyle = getComputedStyle(tile, '::before');
       return {
         count: element.textContent,
         countBackground: countStyle.backgroundColor,
         countShadow: countStyle.boxShadow,
-        clipPath: tileStyle.clipPath,
+        tileBackground: tileStyle.backgroundColor,
+        tileClipPath: tileStyle.clipPath,
+        frameClipPath: frameStyle.clipPath,
       };
     },
   );
   assert.equal(forgedDeckTile.count, '2');
   assert.match(forgedDeckTile.countBackground, /rgba\(0, 0, 0, 0\)/);
   assert.equal(forgedDeckTile.countShadow, 'none');
-  assert.notEqual(forgedDeckTile.clipPath, 'none', 'the deck row must keep its forged silhouette');
+  assert.match(forgedDeckTile.tileBackground, /rgba\(0, 0, 0, 0\)/);
+  assert.equal(forgedDeckTile.tileClipPath, 'none', 'the mana crystal must not sit on a second clipped polygon');
+  assert.notEqual(forgedDeckTile.frameClipPath, 'none', 'the forged frame must keep its own silhouette');
   assert.equal(await page.$$eval('.constructed-matchup-ledger li', rows => rows.length), 11);
   assert.equal(await page.$$eval('.constructed-card-stats tbody tr', rows => rows.length), 15);
   for (const tourTarget of [
