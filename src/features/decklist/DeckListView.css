@@ -188,31 +188,26 @@ button.deck-tile:focus-visible {
   width: var(--deck-tile-art-w);
   height: 100%;
   overflow: hidden;
-  background-image: var(--deck-tile-art);
-  background-repeat: no-repeat;
-  background-position: right center;
-  background-size: auto 100%;
   -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.42) 22%, #000 52%, #000 100%);
   mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.42) 22%, #000 52%, #000 100%);
   pointer-events: none;
 }
 
 /*
- * HS tile bitmaps can contain a pale service strip on the left. Keep the
- * original artwork proportions and cover only that strip before the common
- * feather mask is applied.
+ * HSJSON tiles are 256×59 px and reserve 35 px of white service space on the
+ * left. Paint the full bitmap into a 221×59 viewport: right alignment keeps
+ * the artwork intact while the service strip falls outside the painted box.
  */
-.deck-tile__art::after {
+.deck-tile__art::before {
   content: "";
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 56px;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--deck-tile-fill) 70%, var(--deck-well)) 0%,
-    color-mix(in srgb, var(--deck-tile-fill) 70%, var(--deck-well)) 40%,
-    transparent 100%
-  );
+  inset: 0 0 0 auto;
+  width: auto;
+  aspect-ratio: 221 / 59;
+  background-image: var(--deck-tile-art);
+  background-repeat: no-repeat;
+  background-position: right center;
+  background-size: auto 100%;
 }
 
 /* Keep long names readable while preserving the artwork instead of recolouring it. */

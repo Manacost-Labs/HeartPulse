@@ -112,6 +112,21 @@ try {
   assert.equal(await page.$$eval('.archetype-trend', charts => charts.length), 3);
   assert.equal(await page.$$eval('.archetype-deck-card', cards => cards.length), 7);
   assert.equal(await page.$$eval('.archetype-deck-card .deck-tile', cards => cards.length), 56);
+  const deckTileArtCrop = await page.$eval('.archetype-deck-card .deck-tile__art', element => {
+    const height = element.getBoundingClientRect().height;
+    const pseudoWidth = Number.parseFloat(getComputedStyle(element, '::before').width);
+    return { height, pseudoWidth };
+  });
+  const expectedVisibleArtWidth = deckTileArtCrop.height * 221 / 59;
+  const rawTileWidth = deckTileArtCrop.height * 256 / 59;
+  assert.ok(
+    Math.abs(deckTileArtCrop.pseudoWidth - expectedVisibleArtWidth) <= 1,
+    `deck tile art viewport was ${deckTileArtCrop.pseudoWidth}px instead of ${expectedVisibleArtWidth}px`,
+  );
+  assert.ok(
+    rawTileWidth - deckTileArtCrop.pseudoWidth >= deckTileArtCrop.height * 34 / 59,
+    'the 35px HSJSON service strip must stay outside the visible art viewport',
+  );
   assert.equal(await page.$$eval('.constructed-matchup-ledger li', rows => rows.length), 11);
   assert.equal(await page.$$eval('.constructed-card-stats tbody tr', rows => rows.length), 15);
   for (const tourTarget of [
