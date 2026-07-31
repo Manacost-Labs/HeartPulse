@@ -89,7 +89,7 @@ function DeckTile({
   };
   const hasControls = Boolean(interactive && (onIncrement || onDecrement));
   const className = `deck-tile deck-tile--${rarityKey(card.rarity)}${indented ? ' is-sideboard' : ''}${hasControls ? ' has-controls' : ''}`;
-  const countLabel = card.elite ? '★' : String(card.count);
+  const countLabel = card.elite ? '★' : card.count > 1 ? String(card.count) : '';
 
   const body = (
     <>

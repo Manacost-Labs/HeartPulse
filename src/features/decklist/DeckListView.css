@@ -1,5 +1,5 @@
 .deck-list-view {
-  --deck-tile-height: 34px;
+  --deck-tile-height: 36px;
   --deck-gold: #f4cf67;
   --deck-gold-deep: #a9791d;
   --deck-ink: #fff9e9;
@@ -113,9 +113,9 @@
   --deck-tile-fill: #59616a;
   --deck-tile-border: rgb(40, 40, 40);
   --deck-tile-art: none;
-  --deck-tile-mana-w: 42px;
+  --deck-tile-mana-w: 46px;
   --deck-tile-count-w: 30px;
-  --deck-tile-art-w: min(58%, 228px);
+  --deck-tile-art-w: min(68%, 272px);
   position: relative;
   isolation: isolate;
   display: flex;
@@ -128,14 +128,14 @@
   border-radius: 0;
   box-sizing: border-box;
   background:
-    linear-gradient(180deg, var(--deck-tile-rarity-light) 0 9%, transparent 9% 83%, var(--deck-tile-rarity-dark) 83% 100%),
+    linear-gradient(180deg, var(--deck-tile-rarity-light) 0 6%, transparent 6% 88%, var(--deck-tile-rarity-dark) 88% 100%),
     linear-gradient(105deg, var(--deck-tile-rarity-dark), var(--deck-tile-rarity-mid) 20%, var(--deck-tile-rarity-dark) 74%, var(--deck-tile-rarity-light));
   color: var(--deck-ink);
   font-family: var(--font-ui, Inter, sans-serif);
   text-align: left;
   cursor: default;
   overflow: hidden;
-  clip-path: polygon(11px 0, calc(100% - 5px) 0, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 11px 100%, 0 50%);
+  clip-path: polygon(9px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 9px 100%, 0 50%);
   text-shadow:
     -1px -1px 0 rgba(0, 0, 0, 0.88),
     1px -1px 0 rgba(0, 0, 0, 0.88),
@@ -165,16 +165,16 @@
   --deck-tile-rarity-dark: #4f260d;
 }
 
-/* Dark inner plate leaves a 2–3 px forged rim visible on every side. */
+/* Quiet inner plate: rarity remains a thin forged edge, never a wide colour bar. */
 .deck-tile::before {
   content: "";
   position: absolute;
   z-index: 0;
-  inset: 3px 4px 3px 30px;
+  inset: 2px 3px 2px 24px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 38%, rgba(0, 0, 0, 0.34)),
     linear-gradient(90deg, color-mix(in srgb, var(--deck-tile-fill) 78%, #111), color-mix(in srgb, var(--deck-tile-fill) 48%, #111));
-  clip-path: polygon(8px 0, 100% 0, 100% 100%, 8px 100%, 0 50%);
+  clip-path: polygon(7px 0, 100% 0, 100% 100%, 7px 100%, 0 50%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.09),
     inset 0 -1px 0 rgba(0, 0, 0, 0.64);
@@ -187,7 +187,7 @@
   z-index: 6;
   inset: 1px 2px;
   pointer-events: none;
-  clip-path: polygon(10px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 10px 100%, 0 50%);
+  clip-path: polygon(8px 0, calc(100% - 3px) 0, 100% 3px, 100% calc(100% - 3px), calc(100% - 3px) 100%, 8px 100%, 0 50%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.28),
     inset 0 -1px 0 rgba(0, 0, 0, 0.82),
@@ -222,53 +222,52 @@ button.deck-tile:focus-visible::after {
 .deck-tile__art {
   position: absolute;
   z-index: 1;
-  top: 3px;
-  right: 4px;
-  bottom: 3px;
+  top: 2px;
+  right: 3px;
+  bottom: 2px;
   width: var(--deck-tile-art-w);
   height: auto;
   overflow: hidden;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.58) 18%, #000 38%, #000 100%);
-  mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.58) 18%, #000 38%, #000 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.08) 10%, rgba(0, 0, 0, 0.34) 27%, rgba(0, 0, 0, 0.76) 46%, #000 64%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.08) 10%, rgba(0, 0, 0, 0.34) 27%, rgba(0, 0, 0, 0.76) 46%, #000 64%, #000 100%);
   pointer-events: none;
 }
 
 /*
- * HSJSON tiles are 256×59 px and can reserve 35 px of white service space on
- * the left. Paint the bitmap into a 221×59 viewport: right alignment keeps the
- * artwork intact while an optional service strip stays outside the painted box.
+ * Fill a deliberately wide crop so the art can feather beneath the name.
+ * The optional pale strip in some HSJSON tiles stays inside the transparent
+ * end of the mask instead of forming a visible vertical boundary.
  */
 .deck-tile__art::before {
   content: "";
   position: absolute;
-  inset: 0 0 0 auto;
-  width: auto;
-  aspect-ratio: 221 / 59;
+  inset: 0;
   background-image: var(--deck-tile-art);
   background-repeat: no-repeat;
   background-position: right center;
-  background-size: auto 100%;
+  background-size: cover;
 }
 
 /* Keep long names readable while preserving the artwork instead of recolouring it. */
 .deck-tile__fade {
   position: absolute;
   z-index: 2;
-  top: 3px;
-  bottom: 3px;
+  top: 2px;
+  bottom: 2px;
   left: var(--deck-tile-mana-w);
-  right: 4px;
+  right: 3px;
   pointer-events: none;
   background: linear-gradient(
     90deg,
-    rgba(10, 10, 12, 0.52) 0%,
-    rgba(10, 10, 12, 0.32) 45%,
-    rgba(10, 10, 12, 0.08) 72%,
-    transparent 100%
+    rgba(13, 10, 15, 0.64) 0%,
+    rgba(13, 10, 15, 0.58) 38%,
+    rgba(13, 10, 15, 0.42) 54%,
+    rgba(13, 10, 15, 0.18) 70%,
+    transparent 88%
   );
 }
 
-/* Faceted rarity gem. Its colour makes rarity readable before the name. */
+/* Use the project's real Hearthstone mana crystal; rarity belongs to the rim. */
 .deck-tile__mana {
   position: relative;
   z-index: 4;
@@ -278,18 +277,17 @@ button.deck-tile:focus-visible::after {
   display: grid;
   place-items: center;
   align-self: stretch;
-  font-weight: 800;
-  font-size: 0.98rem;
+  font-weight: 900;
+  font-size: 0.95rem;
   line-height: 1;
   color: #fff;
-  background:
-    radial-gradient(70% 82% at 47% 44%, rgba(255, 255, 255, 0.26), transparent 62%),
-    linear-gradient(145deg, var(--deck-tile-rarity-light), var(--deck-tile-rarity-mid) 45%, var(--deck-tile-rarity-dark) 76%);
-  clip-path: polygon(24% 0, 79% 0, 100% 50%, 79% 100%, 24% 100%, 0 50%);
-  box-shadow:
-    inset 0 0 0 2px rgba(0, 0, 0, 0.66),
-    inset 0 3px 0 rgba(255, 255, 255, 0.22),
-    inset 0 -3px 0 rgba(0, 0, 0, 0.4);
+  background-color: transparent;
+  background-image: url("/assets/mana.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: min(40px, calc(var(--deck-tile-height) + 2px));
+  clip-path: none;
+  box-shadow: none;
   text-shadow:
     -1px -1px 0 #111,
     1px -1px 0 #111,
@@ -340,9 +338,10 @@ button.deck-tile:focus-visible::after {
 .deck-tile.has-controls .deck-tile__fade {
   background: linear-gradient(
     90deg,
-    rgba(22, 13, 11, 0.46) 0%,
-    rgba(22, 13, 11, 0.38) 66%,
-    rgba(22, 13, 11, 0.08) 100%
+    rgba(13, 10, 15, 0.7) 0%,
+    rgba(13, 10, 15, 0.58) 42%,
+    rgba(13, 10, 15, 0.22) 76%,
+    transparent 100%
   );
 }
 
@@ -520,7 +519,7 @@ button.deck-tile:focus-visible::after {
 
 @media (max-width: 480px) {
   .deck-list-view {
-    --deck-tile-height: 33px;
+    --deck-tile-height: 35px;
   }
 
   .deck-list-view__list {
@@ -529,8 +528,8 @@ button.deck-tile:focus-visible::after {
   }
 
   .deck-tile {
-    --deck-tile-art-w: min(58%, 180px);
-    --deck-tile-mana-w: 40px;
+    --deck-tile-art-w: min(70%, 218px);
+    --deck-tile-mana-w: 44px;
     --deck-tile-count-w: 28px;
   }
 

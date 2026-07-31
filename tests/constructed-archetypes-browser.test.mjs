@@ -112,21 +112,30 @@ try {
   assert.equal(await page.$$eval('.archetype-trend', charts => charts.length), 3);
   assert.equal(await page.$$eval('.archetype-deck-card', cards => cards.length), 7);
   assert.equal(await page.$$eval('.archetype-deck-card .deck-tile', cards => cards.length), 56);
-  const deckTileArtCrop = await page.$eval('.archetype-deck-card .deck-tile__art', element => {
-    const height = element.getBoundingClientRect().height;
-    const pseudoWidth = Number.parseFloat(getComputedStyle(element, '::before').width);
-    return { height, pseudoWidth };
+  const deckTileArtBlend = await page.$eval('.archetype-deck-card .deck-tile__art', element => {
+    const rect = element.getBoundingClientRect();
+    const pseudoStyle = getComputedStyle(element, '::before');
+    const manaStyle = getComputedStyle(element.parentElement.querySelector('.deck-tile__mana'));
+    return {
+      height: rect.height,
+      width: rect.width,
+      pseudoWidth: Number.parseFloat(pseudoStyle.width),
+      backgroundSize: pseudoStyle.backgroundSize,
+      maskImage: getComputedStyle(element).maskImage,
+      manaBackground: manaStyle.backgroundImage,
+    };
   });
-  const expectedVisibleArtWidth = deckTileArtCrop.height * 221 / 59;
-  const rawTileWidth = deckTileArtCrop.height * 256 / 59;
   assert.ok(
-    Math.abs(deckTileArtCrop.pseudoWidth - expectedVisibleArtWidth) <= 1,
-    `deck tile art viewport was ${deckTileArtCrop.pseudoWidth}px instead of ${expectedVisibleArtWidth}px`,
+    Math.abs(deckTileArtBlend.pseudoWidth - deckTileArtBlend.width) <= 1,
+    'the artwork must fill the full feathered viewport',
   );
   assert.ok(
-    rawTileWidth - deckTileArtCrop.pseudoWidth >= deckTileArtCrop.height * 34 / 59,
-    'the 35px HSJSON service strip must stay outside the visible art viewport',
+    deckTileArtBlend.width >= deckTileArtBlend.height * 6,
+    'the artwork viewport must stay wide enough for a gradual blend',
   );
+  assert.equal(deckTileArtBlend.backgroundSize, 'cover');
+  assert.match(deckTileArtBlend.maskImage, /linear-gradient/);
+  assert.match(deckTileArtBlend.manaBackground, /\/assets\/mana\.png/);
   const forgedDeckTile = await page.$eval(
     '.archetype-deck-card .deck-tile--common .deck-tile__count',
     element => {

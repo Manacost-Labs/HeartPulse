@@ -62,9 +62,12 @@ const budgets = {
   // The materialized noindex record adds 724 bytes only to the lazy registry.
   // v1.0.90 removes that page registration again. Ratchet the measured shell
   // and lazy SEO registry reductions while retaining the reusable workbench.
+  // v1.0.95 changes only the lazy deck-list presentation. Its new content hash
+  // changes eager preload-map compression by six bytes while raw startup JS is
+  // exactly unchanged; keep that measured metadata-only allowance explicit.
   mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_618),
   initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_636),
-  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_754),
+  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_760),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),
   deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 108_350),
