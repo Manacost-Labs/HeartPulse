@@ -227,6 +227,11 @@ try {
   await page.waitForSelector('.deck-builder--workspace');
   assert.equal(await page.$eval('#deck-builder-workspace-title', heading => heading.textContent), 'Маг на элементалях');
   assert.equal(await page.$$eval('.deck-builder__deck .deck-tile', cards => cards.length), 3);
+  assert.equal(
+    await page.$eval('.deck-builder__deck .deck-tile', card => card.getBoundingClientRect().height),
+    44,
+    'interactive deck rows must keep their touch target while read-only lists become denser',
+  );
 
   await page.setViewport({ width: 320, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
   await page.reload({ waitUntil: 'networkidle0' });

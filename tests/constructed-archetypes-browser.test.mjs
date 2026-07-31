@@ -159,6 +159,24 @@ try {
   assert.match(forgedDeckTile.tileBackground, /rgba\(0, 0, 0, 0\)/);
   assert.equal(forgedDeckTile.tileClipPath, 'none', 'the mana crystal must not sit on a second clipped polygon');
   assert.notEqual(forgedDeckTile.frameClipPath, 'none', 'the forged frame must keep its own silhouette');
+  const compactDeckList = await page.$eval('.archetype-deck-card .deck-list-view', element => {
+    const list = element.querySelector('.deck-list-view__list');
+    const tile = element.querySelector('.deck-tile');
+    const listStyle = getComputedStyle(list);
+    const tileStyle = getComputedStyle(tile);
+    return {
+      classColor: getComputedStyle(element).getPropertyValue('--deck-list-class-color').trim(),
+      railWidth: getComputedStyle(element).getPropertyValue('--deck-list-mana-rail-width').trim(),
+      listBackground: listStyle.backgroundImage,
+      rowGap: listStyle.rowGap,
+      tileHeight: tileStyle.height,
+    };
+  });
+  assert.notEqual(compactDeckList.classColor, '#42576b', 'the mana spine must inherit the current class colour');
+  assert.equal(compactDeckList.railWidth, '38px');
+  assert.match(compactDeckList.listBackground, /linear-gradient/);
+  assert.equal(compactDeckList.rowGap, '2px');
+  assert.equal(compactDeckList.tileHeight, '32px');
   assert.equal(await page.$$eval('.constructed-matchup-ledger li', rows => rows.length), 11);
   assert.equal(await page.$$eval('.constructed-card-stats tbody tr', rows => rows.length), 15);
   for (const tourTarget of [
@@ -241,6 +259,9 @@ try {
     chartCount: document.querySelectorAll('.archetype-trend').length,
     copyHeight: document.querySelector('.archetype-main-build .deck-list-view__copy-btn')?.getBoundingClientRect().height ?? 0,
     builderHeight: document.querySelector('.archetype-deck-card__builder')?.getBoundingClientRect().height ?? 0,
+    deckTileHeight: document.querySelector('.archetype-deck-card .deck-tile')?.getBoundingClientRect().height ?? 0,
+    manaRailWidth: getComputedStyle(document.querySelector('.archetype-deck-card .deck-list-view'))
+      .getPropertyValue('--deck-list-mana-rail-width').trim(),
     deckColumnCount: document.querySelectorAll('.archetype-deck-card').length,
     matchupCount: document.querySelectorAll('.constructed-matchup-ledger li').length,
   }));
@@ -248,6 +269,8 @@ try {
   assert.equal(detailMobile.chartCount, 3);
   assert.ok(detailMobile.copyHeight >= 42);
   assert.ok(detailMobile.builderHeight >= 44);
+  assert.equal(detailMobile.deckTileHeight, 31);
+  assert.equal(detailMobile.manaRailWidth, '35px');
   assert.equal(detailMobile.deckColumnCount, 7);
   assert.equal(detailMobile.matchupCount, 11);
   const mobileCardStats = await page.evaluate(() => ({

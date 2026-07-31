@@ -562,9 +562,15 @@
 .deck-builder__deck .deck-list-view {
   --deck-tile-height: 44px;
   --deck-tile-art-w: 104px;
+  --deck-list-mana-rail-width: 42px;
   overflow: hidden;
   border: 1px solid rgba(67, 32, 16, 0.52);
   box-shadow: 0 7px 18px rgba(42, 19, 9, 0.22);
+}
+
+.deck-builder__deck .deck-tile {
+  --deck-tile-mana-w: 46px;
+  --deck-tile-count-w: 30px;
 }
 
 .deck-builder__deck .deck-list-view__empty {

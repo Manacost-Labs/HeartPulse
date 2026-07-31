@@ -155,8 +155,10 @@ The public shell groups secondary destinations instead of filling the rail with 
 
 - Compact deck rows use one continuous forged frame: silver for common, blue for rare, violet for epic and bronze for legendary cards.
 - The mana value uses the real local `/assets/mana.png` crystal. The rarity frame begins beneath its right facet; it must not paint a second polygon or coloured tail behind the crystal's transparent corners.
+- The transparent corners of every mana crystal sit on one continuous, class-tinted mana spine owned by the list container. That spine must softly merge into the warm deck well; a pure-black vertical gutter and separate per-row backplates are not valid.
 - Official tile art reaches the inner right edge through a broad feathered mask. Copy count or the legendary star floats over the art without a separate panel, rarity rail or pale separator.
 - Card names use compact bold Inter with a dark outline and single-line truncation in read-only lists. Builder rows may use two lines because their controls keep a `44px` touch target.
+- Read-only deck rows are `32px` high on desktop and `31px` on narrow screens with a `2px` rhythm. Interactive builder rows remain `44px` high so their controls keep the minimum touch target.
 - Hover and focus may brighten the frame engraving, but must not apply a CSS filter to the card art.
 
 ## Navigation
@@ -337,6 +339,7 @@ Rules:
 
 ## Changelog
 
+- **2026-07-31** — Replaced the black gap beside deck-list mana crystals with a continuous class-tinted spine and standardized compact read-only rows at 32/31 px while preserving 44 px builder targets.
 - **2026-07-11** — Added `assets.md` with portable visual rules, integration-ready CSS recipes and verified production URLs for every public visual asset.
 - **2026-07-11** — Contained mobile section-banner pseudo-elements within their timber header; they previously resolved `inset: 0` against the full content canvas and shaded every Arena route.
 - **2026-07-11** — Removed route-level opacity as a page-visibility dependency after iOS WebKit could miss the animation frame and leave Arena content at 72% opacity.

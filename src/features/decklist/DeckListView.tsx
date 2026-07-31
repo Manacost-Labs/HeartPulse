@@ -207,6 +207,9 @@ export default function DeckListView({
     : copyState === 'error'
       ? 'Не удалось скопировать код'
       : 'Скопировать код колоды';
+  const rootStyle = headerColor
+    ? ({ ['--deck-list-class-color' as string]: headerColor } as React.CSSProperties)
+    : undefined;
 
   const sections = useMemo(() => ({
     main: cards,
@@ -236,7 +239,7 @@ export default function DeckListView({
   };
 
   return (
-    <div className={`deck-list-view ${className}`.trim()}>
+    <div className={`deck-list-view ${className}`.trim()} style={rootStyle}>
       {(title || subtitle) ? (
         <div className="deck-list-view__head" style={headerColor ? { backgroundColor: headerColor } : undefined}>
           <div>

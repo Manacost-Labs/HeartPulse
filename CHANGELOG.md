@@ -1,5 +1,15 @@
 # HS-Arena Changelog
 
+## v1.0.97 - 2026-07-31
+
+- Replaced the dark gutter beneath transparent mana-crystal corners with one
+  continuous class-tinted mana spine that softly merges into the warm deck
+  well without per-row polygons or seams.
+- Reduced read-only deck rows to `32px` on desktop and `31px` on narrow screens
+  with a `2px` rhythm, making long 40-card decks about 13% shorter.
+- Preserved `44px` interactive builder rows and added desktop/mobile browser
+  regression checks for the mana spine, compact density and touch targets.
+
 ## v1.0.90 - 2026-07-31
 
 - Temporarily removed the `/arena/draft` page, its administrator navigation
