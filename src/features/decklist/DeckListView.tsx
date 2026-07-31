@@ -43,11 +43,11 @@ export type DeckListViewProps = {
 };
 
 const RARITY_COLOR: Record<string, string> = {
-  free: 'rgb(99, 99, 99)',
-  common: 'rgb(99, 99, 99)',
-  rare: 'rgb(36, 62, 88)',
-  epic: 'rgb(75, 57, 97)',
-  legendary: 'rgb(99, 68, 27)',
+  free: '#8f969e',
+  common: '#8f969e',
+  rare: '#246a9f',
+  epic: '#702487',
+  legendary: '#92501e',
 };
 
 function rarityKey(rarity: string): string {
@@ -89,7 +89,7 @@ function DeckTile({
   };
   const hasControls = Boolean(interactive && (onIncrement || onDecrement));
   const className = `deck-tile deck-tile--${rarityKey(card.rarity)}${indented ? ' is-sideboard' : ''}${hasControls ? ' has-controls' : ''}`;
-  const countLabel = card.elite ? '★' : `×${card.count}`;
+  const countLabel = card.elite ? '★' : String(card.count);
 
   const body = (
     <>
