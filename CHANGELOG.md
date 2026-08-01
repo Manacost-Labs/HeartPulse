@@ -1,5 +1,14 @@
 # HS-Arena Changelog
 
+## v1.0.104 - 2026-08-01
+
+- Reduced complete Fun Deck rows from `29px` to `25px`, including proportional
+  mana, count and typography sizing.
+- Removed the pale transition strips exposed by HearthstoneJSON tile images:
+  compact art now covers 90% of its frame, placing the source image's light
+  left edge safely beneath the opaque part of the HSReplay fade.
+- Added browser coverage for the denser row height and minimum artwork coverage.
+
 ## v1.0.103 - 2026-08-01
 
 - Restored every main-deck and sideboard row in Fun Decks while keeping the

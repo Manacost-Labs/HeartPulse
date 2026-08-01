@@ -536,15 +536,21 @@
 
 .fun-deck-card__deck .deck-list-view__hsreplay {
   --hsrdv-tile-width: 100%;
-  --hsrdv-tile-height: 29px;
-  --hsrdv-gem-width: 29px;
-  --hsrdv-count-width: 21px;
-  --hsrdv-art-right: 19px;
-  --hsrdv-name-left: 5px;
+  --hsrdv-tile-height: 25px;
+  --hsrdv-gem-width: 25px;
+  --hsrdv-count-width: 18px;
+  --hsrdv-art-right: 16px;
+  --hsrdv-name-left: 4px;
+}
+
+.fun-deck-card__deck .hsrdv-card-art {
+  width: 90%;
+  object-fit: cover;
+  object-position: right center;
 }
 
 .fun-deck-card__deck .hsrdv-card-cost {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   text-shadow:
     -1px -1px 0 #000,
     1px -1px 0 #000,
@@ -553,7 +559,7 @@
 }
 
 .fun-deck-card__deck .hsrdv-card-name {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   text-shadow:
     -1px -1px 0 #000,
     1px -1px 0 #000,
@@ -564,7 +570,7 @@
 
 .fun-deck-card__deck .hsrdv-card-count {
   inset-block-start: -1px;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   text-shadow:
     -1px -1px 0 #000,
     1px -1px 0 #000,
@@ -574,7 +580,7 @@
 
 .fun-deck-card__deck .hsrdv-card-count--copies {
   inset-block-start: 0;
-  font-size: 0.78rem;
+  font-size: 0.7rem;
 }
 
 .fun-deck-card__deck .hsrdv-card-frame--with-count .hsrdv-card-fade {

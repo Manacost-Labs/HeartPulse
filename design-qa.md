@@ -4,10 +4,13 @@
 
 ## Target and evidence
 
-- Visual target: supplied HSGuru deck page rendered at `1920×1080`.
+- Visual targets: supplied HSGuru deck page and the reported pale-strip
+  production screenshot.
 - Reference: `/tmp/fun-decks-audit-20260801/02-hsguru-reference.png`.
-- Implementation:
-  `/tmp/manacost-soft-paywall-1412751-fun-decks-wide.png`.
+- Reported strip screenshot:
+  `/home/debian/.codex/attachments/94e9901d-138c-41ee-baf0-f5ea8e76505e/codex-clipboard-384936aa-d27a-445f-b85c-4b1101108f10.png`.
+- Current implementation:
+  `/tmp/manacost-soft-paywall-1459842-fun-decks-wide.png`.
 - Same-input comparison: `/tmp/fun-decks-audit-20260801/compare-round-1.png`.
 - Compared slot: approximately `214–220px` wide deck panels at the same desktop viewport.
 
@@ -15,8 +18,9 @@
 
 - Six deck panels remain visible in one wide row.
 - Every main-deck and sideboard entry is rendered without a reveal control.
-- Row density matches the supplied HSGuru reference closely.
+- Row density is smaller than the supplied HSGuru reference.
 - Mana, rarity, art fade, names and count boxes remain aligned and legible.
+- Pale source-tile edges stay underneath the opaque portion of the fade.
 - Narrow screens have no document-level horizontal overflow.
 - Touch actions remain at least `44px` high on mobile.
 
@@ -32,12 +36,24 @@
 - No clipped mana blocks, blank gutters, broken art transitions or hidden deck
   rows were found in the combined comparison.
 
+### Round 2
+
+- The user screenshot exposed light left edges already embedded in several
+  upstream HearthstoneJSON `256×59` tile images.
+- Compact row height was reduced from `29px` to `25px`.
+- Artwork width was changed from source `auto` sizing to 90% of the compact
+  frame, so the source tile's light edge ends before the fade becomes
+  transparent.
+- The new desktop screenshot shows continuous dark-to-art transitions and no
+  exposed pale strip in the compact test composition.
+
 ## Automated checks
 
 - Desktop: six columns, each at least `210px` wide.
 - Fixture: 17 main-deck rows and three sideboard rows per deck.
-- Compact row height: at most `30px`.
-- Complete card height: at most `900px` for the 20-row fixture composition.
+- Compact row height: at most `26px`.
+- Artwork coverage: at least 88.9% of its frame.
+- Complete card height: at most `820px` for the 20-row fixture composition.
 - Mobile: no overflow at `390px` or `320px`.
 - Accessibility: no serious or critical Axe violations.
 

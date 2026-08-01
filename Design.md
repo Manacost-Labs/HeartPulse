@@ -40,7 +40,7 @@ Do not hotlink wiki assets at runtime.
 - Profile hierarchy uses the large wood frame for hero/settings/access, the deck frame for short statuses and subscription sources, and plain parchment inputs for readability.
 - Deck-builder pages use parchment only as the outer page canvas; the framed builder interior is red tavern cloth. Class choices must read as in-game profile plaques with a real class crest, dark red field and asset-backed deck frame, never as plain parchment dashboard cards.
 - Read-only constructed deck lists reproduce the vendored `Zulut30/hsreplay-deck-view` component: `486×62px` desktop rows (`52px` mobile), upstream rarity blocks, rectangular card art with its `65deg` fade and the separate count box. Do not substitute the local mana crystal, forged frames or class tinting.
-- Side-by-side archetype galleries show five compact rows first and expose the full HSReplay list through a `44px` expand/collapse control. Fun-deck cards instead show the complete main deck and sideboard at a dedicated `29px` comparison density with no reveal control; standalone lists retain the source geometry.
+- Side-by-side archetype galleries show five compact rows first and expose the full HSReplay list through a `44px` expand/collapse control. Fun-deck cards instead show the complete main deck and sideboard at a dedicated `25px` comparison density with no reveal control; their art fills 90% of the frame so pale upstream tile edges stay beneath the fade. Standalone lists retain the source geometry.
 - The public footer is global to `.arena-app-shell` and always uses red tavern cloth, a wooden top rule, cream links and muted gold legal copy.
 
 ## Home Rules
@@ -88,6 +88,7 @@ Do not hotlink wiki assets at runtime.
 
 ## Changelog
 
+- **2026-08-01** — Tightened complete Fun Deck rows to `25px` and hid pale upstream tile edges beneath a full-width compact art treatment.
 - **2026-08-01** — Restored complete Fun Decks compositions and introduced the HSGuru-scale `29px` six-column comparison profile.
 - **2026-08-01** — Fun Decks now use a six-column wide comparison grid with five fixed card rows and no per-deck expansion control.
 - **2026-08-01** — Limited multi-deck comparisons and fan-deck cards to five initial rows with an accessible full-deck reveal; fan decks now default to recently added entries and expose fun-score sorting separately.

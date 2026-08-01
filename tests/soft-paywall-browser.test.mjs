@@ -170,6 +170,12 @@ try {
     mainRows: document.querySelectorAll('.fun-deck-card:first-child .deck-list-view__body > .deck-list-view__hsreplay > .deck-list-view__list > li').length,
     sideboardRows: document.querySelectorAll('.fun-deck-card:first-child .deck-list-view__sideboard li').length,
     tileHeight: document.querySelector('.fun-deck-card .hsrdv-card-tile')?.getBoundingClientRect().height ?? 0,
+    artCoverage: (() => {
+      const art = document.querySelector('.fun-deck-card .hsrdv-card-art');
+      const frame = document.querySelector('.fun-deck-card .hsrdv-card-frame');
+      if (!art || !frame) return 0;
+      return art.getBoundingClientRect().width / frame.getBoundingClientRect().width;
+    })(),
     cardHeight: document.querySelector('.fun-deck-card')?.getBoundingClientRect().height ?? 0,
   }));
   assert.equal(wideFunDecks.cardCount, 6);
@@ -178,8 +184,9 @@ try {
   assert.equal(wideFunDecks.expandButtons, 0);
   assert.equal(wideFunDecks.mainRows, 17);
   assert.equal(wideFunDecks.sideboardRows, 3);
-  assert.ok(wideFunDecks.tileHeight <= 30, `compact fun deck row was ${wideFunDecks.tileHeight}px tall`);
-  assert.ok(wideFunDecks.cardHeight <= 900, `compact full fun deck was ${wideFunDecks.cardHeight}px tall`);
+  assert.ok(wideFunDecks.tileHeight <= 26, `compact fun deck row was ${wideFunDecks.tileHeight}px tall`);
+  assert.ok(wideFunDecks.artCoverage >= 0.889, `compact art covered only ${wideFunDecks.artCoverage * 100}% of its frame`);
+  assert.ok(wideFunDecks.cardHeight <= 820, `compact full fun deck was ${wideFunDecks.cardHeight}px tall`);
   await page.screenshot({ path: `${screenshotPrefix}-fun-decks-wide.png`, fullPage: true });
 
   for (const width of [390, 320]) {
