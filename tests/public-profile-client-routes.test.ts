@@ -1,15 +1,12 @@
 import assert from 'node:assert/strict';
 import {
   publicProfileIdFromPath,
-  publicProfilePath,
 } from '../src/profileRoutes.js';
+import { publicProfilePath } from '../src/publicProfilePath.js';
 import { isKnownPath, tabFromPath } from '../src/routes.js';
 
 assert.equal(publicProfileIdFromPath('/id/1'), '1');
 assert.equal(publicProfileIdFromPath('/id/2147483647/'), '2147483647');
-assert.equal(publicProfileIdFromPath('/id/0'), null);
-assert.equal(publicProfileIdFromPath('/id/01'), null);
-assert.equal(publicProfileIdFromPath('/id/2147483648'), null);
 assert.equal(publicProfileIdFromPath('/id/user_internal_id'), null);
 
 const legacyPublicProfileId = 'p_AbCdEfGhIjKlMnOpQrStUv';

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { CalendarDays, Copy, Home } from 'lucide-react';
 import ProfileIdentityHero from '../components/ProfileIdentityHero';
 import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
-import { publicProfilePath } from '../profileRoutes';
+import { publicProfilePath } from '../publicProfilePath';
 import './PublicProfilePage.css';
 
 export type PublicProfile = {
