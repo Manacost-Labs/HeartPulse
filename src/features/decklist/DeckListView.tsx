@@ -235,8 +235,12 @@ export default function DeckListView({
     }
   };
 
+  const densityClassName = interactive
+    ? 'deck-list-view--interactive'
+    : 'deck-list-view--compact';
+
   return (
-    <div className={`deck-list-view ${className}`.trim()}>
+    <div className={`deck-list-view ${densityClassName} ${className}`.trim()}>
       {(title || subtitle) ? (
         <div className="deck-list-view__head" style={headerColor ? { backgroundColor: headerColor } : undefined}>
           <div>

@@ -912,43 +912,6 @@
   font-size: 0.74rem;
 }
 
-.archetype-deck-card .deck-list-view__body {
-  padding: 0.35rem;
-}
-
-.archetype-deck-card .deck-list-view__hsreplay {
-  --hsrdv-tile-width: 100%;
-  --hsrdv-tile-height: 40px;
-  --hsrdv-gem-width: 40px;
-  --hsrdv-count-width: 30px;
-  --hsrdv-art-right: 27px;
-  --hsrdv-name-left: 8px;
-}
-
-.archetype-deck-card .hsrdv-card-cost {
-  font-size: 1.28rem;
-}
-
-.archetype-deck-card .hsrdv-card-name {
-  font-size: clamp(0.78rem, 1.05vw, 0.96rem);
-  text-shadow:
-    -1px -1px 0 #000,
-    1px -1px 0 #000,
-    -1px 1px 0 #000,
-    1px 1px 0 #000,
-    0 2px 0 #000;
-}
-
-.archetype-deck-card .hsrdv-card-count {
-  inset-block-start: -3px;
-  font-size: 1.35rem;
-}
-
-.archetype-deck-card .hsrdv-card-count--copies {
-  inset-block-start: 0;
-  font-size: 1.18rem;
-}
-
 .archetype-deck-card .deck-list-view__list {
   padding: 0;
 }

@@ -124,6 +124,7 @@ try {
       tagName: element.tagName,
       height: rect.height,
       width: rect.width,
+      artCoverage: rect.width / frame.getBoundingClientRect().width,
       maxWidth: getComputedStyle(element).maxWidth,
       objectFit: getComputedStyle(element).objectFit,
       artRight: getComputedStyle(element).right,
@@ -136,13 +137,14 @@ try {
     };
   });
   assert.equal(hsReplayDeckTile.tagName, 'IMG');
-  assert.equal(hsReplayDeckTile.tileHeight, 40);
+  assert.equal(hsReplayDeckTile.tileHeight, 25);
   assert.ok(hsReplayDeckTile.rootWidth <= 486);
-  assert.equal(hsReplayDeckTile.gemWidth, 40);
+  assert.equal(hsReplayDeckTile.gemWidth, 25);
   assert.equal(hsReplayDeckTile.gemBackground, 'rgb(134, 96, 39)');
   assert.equal(hsReplayDeckTile.maxWidth, 'none');
   assert.equal(hsReplayDeckTile.objectFit, 'cover');
-  assert.equal(hsReplayDeckTile.artRight, '27px');
+  assert.equal(hsReplayDeckTile.artRight, '16px');
+  assert.ok(hsReplayDeckTile.artCoverage >= 0.889, `compact archetype art covered only ${hsReplayDeckTile.artCoverage * 100}% of its frame`);
   assert.equal(hsReplayDeckTile.maskImage, 'none');
   assert.match(hsReplayDeckTile.fadeBackground, /linear-gradient\(65deg/);
   const hsReplayCountBox = await page.$eval(
@@ -181,7 +183,7 @@ try {
   });
   assert.equal(exactDeckList.listDisplay, 'block');
   assert.equal(exactDeckList.secondRowMarginTop, '1px');
-  assert.equal(exactDeckList.tileHeight, 40);
+  assert.equal(exactDeckList.tileHeight, 25);
   assert.equal(exactDeckList.summaryHeight, 52);
   assert.equal(exactDeckList.deckHeaderHeight, 46);
   assert.equal(exactDeckList.hsReplayRoot, true);
@@ -284,8 +286,8 @@ try {
   assert.equal(detailMobile.chartCount, 3);
   assert.ok(detailMobile.copyHeight >= 42);
   assert.ok(detailMobile.builderHeight >= 44);
-  assert.equal(detailMobile.deckTileHeight, 40);
-  assert.equal(detailMobile.deckGemWidth, 40);
+  assert.equal(detailMobile.deckTileHeight, 25);
+  assert.equal(detailMobile.deckGemWidth, 25);
   assert.equal(detailMobile.deckColumnCount, 7);
   assert.equal(detailMobile.matchupCount, 11);
   const mobileCardStats = await page.evaluate(() => ({

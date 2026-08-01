@@ -1,5 +1,15 @@
 # HS-Arena Changelog
 
+## v1.0.105 - 2026-08-01
+
+- Applied the `25px` compact HSReplay-derived deck row profile to every
+  non-interactive `DeckListView`, including archetype galleries and details,
+  Standard meta composition and constructed-card deck details.
+- Centralized the 90% right-anchored artwork crop and compact fade so pale
+  source-tile edges cannot reappear when new read-only deck lists are added.
+- Kept interactive deck-builder rows at `44px` and added archetype browser
+  coverage for row, mana block, artwork offset and minimum artwork coverage.
+
 ## v1.0.104 - 2026-08-01
 
 - Reduced complete Fun Deck rows from `29px` to `25px`, including proportional

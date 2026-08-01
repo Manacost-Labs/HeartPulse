@@ -154,13 +154,12 @@ The public shell groups secondary destinations instead of filling the rail with 
 ### Constructed Deck Rows
 
 - Read-only deck rows reproduce the vendored [`Zulut30/hsreplay-deck-view`](https://github.com/Zulut30/hsreplay-deck-view) snapshot at commit `a2860ee286e4f85adbbaf007003bfcab23800318`; local redesigns of the tile are not valid.
-- Preserve the upstream `.hsrdv` markup contract and exact desktop geometry: `486px` list width, `62px` row, `62px` rarity/mana block, `44px` count block and artwork ending `40px` from the right when the count block is present.
-- At widths up to `520px`, use the upstream mobile geometry: `52px` row, `52px` rarity/mana block, `38px` count block and `34px` artwork offset.
+- Preserve the upstream `.hsrdv` markup contract. Its unscaled reference geometry remains `486px` list width, `62px` row, `62px` rarity/mana block, `44px` count block and artwork ending `40px` from the right when the count block is present.
 - Rarity colors are the upstream values: free/common `#858585`, rare `#315376`, epic `#644c82` and legendary `#866027`. Copy counts and the legendary star use `#f7db48`.
-- Card art is a real `<img>` with `object-fit: cover`, followed by the upstream `65deg` dark fade. Do not add masks, mana-crystal PNGs, forged frames, class tinting or alternative density to read-only rows.
+- Card art is a real `<img>` with `object-fit: cover`, followed by the upstream `65deg` dark fade. Do not add masks, mana-crystal PNGs, forged frames or class tinting to read-only rows.
 - Count `2+` is shown in the right count block; a one-copy legendary uses the gold star. Card names remain one line with the upstream black outline.
-- Multi-column archetype galleries use a proportional compact presentation of the same component: `40px` rows and rarity blocks, a `30px` count block and `27px` artwork offset. Only the first five rows are visible initially; an explicit `44px` control expands or collapses the complete deck without discarding cards or hiding the copy action.
-- Fun-deck cards are the denser comparison exception: six cards fit in one wide row, every main-deck and sideboard entry remains visible, and no reveal control is used. Their HSReplay-derived rows are `25px` high with a proportional `25px` rarity block, `18px` count box and narrow-card artwork fade. Compact card art covers 90% of its frame so the pale left edge present in some upstream HearthstoneJSON tiles remains beneath the opaque fade instead of appearing as a vertical strip. Default order is newest `firstSeenAt` first, with an optional fun-score order, a visible dataset refresh time and a “Новая” badge for entries added within 72 hours of that refresh.
+- Every non-interactive `DeckListView` uses one shared compact profile on archetype galleries and details, Fun Decks, meta deck composition and constructed-card details: `25px` rows and rarity blocks, an `18px` count block, a `16px` artwork offset and `4px` name inset. Compact card art covers 90% of its frame and is anchored to the right, so the pale left edge present in some upstream HearthstoneJSON tiles remains beneath the opaque fade instead of appearing as a vertical strip.
+- Multi-column archetype galleries initially show the first five rows; an explicit `44px` control expands or collapses the complete deck without discarding cards or hiding the copy action. Fun Decks remain the complete six-column comparison: every main-deck and sideboard entry is visible and no reveal control is used. Their default order is newest `firstSeenAt` first, with an optional fun-score order, a visible dataset refresh time and a “Новая” badge for entries added within 72 hours of that refresh.
 - The interactive deck builder may keep `44px` rows solely to preserve its controls, while retaining the same HSReplay visual structure.
 
 ## Navigation
@@ -341,6 +340,7 @@ Rules:
 
 ## Changelog
 
+- **2026-08-01** — Promoted the `25px` compact HSReplay-derived row profile and 90% right-anchored art crop from Fun Decks to every public read-only `DeckListView`, including archetype, meta and card-detail pages; interactive builder rows remain `44px`.
 - **2026-08-01** — Expanded the Fun Decks canvas to six cards per wide row and fixed each card to a five-row non-expandable comparison preview, with 4/3/2/1 responsive fallbacks.
 - **2026-07-31** — Tightened read-only deck ledgers to 28/27 px rows and a 1 px rhythm so 40-card lists use roughly one quarter less vertical space than the original forged-row layout.
 - **2026-07-31** — Replaced the black gap beside deck-list mana crystals with a continuous class-tinted spine and standardized compact read-only rows at 32/31 px while preserving 44 px builder targets.

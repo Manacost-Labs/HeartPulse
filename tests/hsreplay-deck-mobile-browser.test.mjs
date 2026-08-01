@@ -282,6 +282,27 @@ try {
       cards: parent?.querySelectorAll('.deck-list-view .deck-tile').length,
     };
   }), { inert: false, ariaHidden: null, state: 'top', cards: 30 });
+  const standardMetaDeckGeometry = await page.evaluate(() => {
+    const deck = document.querySelector('.standard-meta-modal .deck-list-view');
+    const tile = deck?.querySelector('.deck-tile');
+    const frame = tile?.querySelector('.hsrdv-card-frame');
+    const art = tile?.querySelector('.hsrdv-card-art');
+    return {
+      compact: deck?.classList.contains('deck-list-view--compact') ?? false,
+      tileHeight: tile?.getBoundingClientRect().height ?? 0,
+      artRight: art ? getComputedStyle(art).right : '',
+      artCoverage: art && frame
+        ? art.getBoundingClientRect().width / frame.getBoundingClientRect().width
+        : 0,
+    };
+  });
+  assert.equal(standardMetaDeckGeometry.compact, true);
+  assert.ok(
+    standardMetaDeckGeometry.tileHeight >= 24.5 && standardMetaDeckGeometry.tileHeight <= 25.5,
+    `compact Standard meta row was ${standardMetaDeckGeometry.tileHeight}px tall`,
+  );
+  assert.equal(standardMetaDeckGeometry.artRight, '16px');
+  assert.ok(standardMetaDeckGeometry.artCoverage >= 0.889);
   await page.keyboard.press('Escape');
   await page.waitForSelector('.standard-meta-modal', { hidden: true });
   assert.equal(await page.evaluate(() => document.activeElement?.id), 'open-standard-meta');
