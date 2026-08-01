@@ -1,5 +1,19 @@
 # HS-Arena Changelog
 
+## v1.0.101 - 2026-08-01
+
+- Limited side-by-side archetype builds and fan-deck cards to five visible card
+  rows by default, with an accessible `44px` control that expands and collapses
+  the complete composition while keeping the copy action available.
+- Changed the default Fun Decks order to recently added first, retained
+  fun-score sorting as an explicit option, and added a “Новая” badge for decks
+  first observed within 72 hours of the dataset refresh. The page header now
+  exposes the dataset's exact refresh time.
+- Fixed the guest preview so its three cards follow the selected order instead
+  of always hiding fresh additions behind the highest historical fun scores.
+- Added browser coverage for five-row expansion, freshness ordering, the sort
+  control and the guest/mobile layouts.
+
 ## v1.0.100 - 2026-08-01
 
 - Added a proportional compact scale for side-by-side archetype builds: card

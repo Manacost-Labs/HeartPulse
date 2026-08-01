@@ -111,7 +111,8 @@ try {
   assert.equal(await page.$eval('h1', heading => heading.textContent), 'Воровской Жрец');
   assert.equal(await page.$$eval('.archetype-trend', charts => charts.length), 3);
   assert.equal(await page.$$eval('.archetype-deck-card', cards => cards.length), 7);
-  assert.equal(await page.$$eval('.archetype-deck-card .deck-tile', cards => cards.length), 56);
+  assert.equal(await page.$$eval('.archetype-deck-card .deck-tile', cards => cards.length), 35);
+  assert.equal(await page.$$eval('.archetype-deck-card .deck-list-view__expand', buttons => buttons.length), 7);
   const hsReplayDeckTile = await page.$eval('.archetype-deck-card .deck-tile__art', element => {
     const rect = element.getBoundingClientRect();
     const tile = element.closest('.deck-tile');
@@ -184,6 +185,14 @@ try {
   assert.equal(exactDeckList.summaryHeight, 52);
   assert.equal(exactDeckList.deckHeaderHeight, 46);
   assert.equal(exactDeckList.hsReplayRoot, true);
+  await page.click('.archetype-deck-card .deck-list-view__expand');
+  await page.waitForFunction(() => document.querySelector('.archetype-deck-card')?.querySelectorAll('.deck-tile').length === 8);
+  assert.equal(
+    await page.$eval('.archetype-deck-card .deck-list-view__expand', button => button.getAttribute('aria-expanded')),
+    'true',
+  );
+  await page.click('.archetype-deck-card .deck-list-view__expand');
+  await page.waitForFunction(() => document.querySelector('.archetype-deck-card')?.querySelectorAll('.deck-tile').length === 5);
   assert.equal(await page.$$eval('.constructed-matchup-ledger li', rows => rows.length), 11);
   assert.equal(await page.$$eval('.constructed-card-stats tbody tr', rows => rows.length), 15);
   for (const tourTarget of [

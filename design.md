@@ -159,7 +159,8 @@ The public shell groups secondary destinations instead of filling the rail with 
 - Rarity colors are the upstream values: free/common `#858585`, rare `#315376`, epic `#644c82` and legendary `#866027`. Copy counts and the legendary star use `#f7db48`.
 - Card art is a real `<img>` with `object-fit: cover`, followed by the upstream `65deg` dark fade. Do not add masks, mana-crystal PNGs, forged frames, class tinting or alternative density to read-only rows.
 - Count `2+` is shown in the right count block; a one-copy legendary uses the gold star. Card names remain one line with the upstream black outline.
-- Multi-column archetype galleries use a proportional compact presentation of the same component: `40px` rows and rarity blocks, a `30px` count block and `27px` artwork offset. This exception belongs only to side-by-side deck comparison; it must not alter the source styling of a standalone deck.
+- Multi-column archetype galleries use a proportional compact presentation of the same component: `40px` rows and rarity blocks, a `30px` count block and `27px` artwork offset. Only the first five rows are visible initially; an explicit `44px` control expands or collapses the complete deck without discarding cards or hiding the copy action.
+- Fun-deck cards use the same five-row preview. Their default order is newest `firstSeenAt` first, with an optional fun-score order, a visible dataset refresh time and a “Новая” badge for entries added within 72 hours of that refresh.
 - The interactive deck builder may keep `44px` rows solely to preserve its controls, while retaining the same HSReplay visual structure.
 
 ## Navigation

@@ -513,6 +513,7 @@ export function ArchetypeDecksPanel({
                   totalCards={cards.reduce((sum, card) => sum + card.count, 0)}
                   deckCode={deckCode}
                   showCopy={Boolean(deckCode)}
+                  previewRows={5}
                   emptyText="Состав этой сборки пока недоступен."
                 />
 

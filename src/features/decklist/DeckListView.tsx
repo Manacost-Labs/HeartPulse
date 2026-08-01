@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Copy } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy } from 'lucide-react';
 import CardPreviewTooltip, { type CardPreviewTarget } from '../CardPreviewTooltip';
 import '../../vendor/hsreplay-deck-view/hsreplay-deck-view.css';
 import './DeckListView.css';
@@ -35,6 +35,7 @@ export type DeckListViewProps = {
   deckSizeLimit?: number;
   deckCode?: string;
   showCopy?: boolean;
+  previewRows?: number;
   interactive?: boolean;
   onCardClick?: (card: DeckListCard) => void;
   onCardIncrement?: (card: DeckListCard) => void;
@@ -179,6 +180,7 @@ export default function DeckListView({
   deckSizeLimit = 30,
   deckCode = '',
   showCopy = false,
+  previewRows = 0,
   interactive = false,
   onCardClick,
   onCardIncrement,
@@ -188,6 +190,7 @@ export default function DeckListView({
 }: DeckListViewProps) {
   const [preview, setPreview] = useState<CardPreviewTarget | null>(null);
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'error'>('idle');
+  const [expanded, setExpanded] = useState(false);
   const count = totalCards ?? cards.reduce((sum, card) => sum + card.count, 0);
   const copyLabel = copyState === 'ok'
     ? 'Код колоды скопирован'
@@ -198,6 +201,14 @@ export default function DeckListView({
     main: cards,
     sideboards: sideboards.filter(item => item.cards.length > 0),
   }), [cards, sideboards]);
+  const collapsedRowCount = Math.max(0, Math.floor(previewRows));
+  const sideboardRowCount = sections.sideboards.reduce((sum, section) => sum + section.cards.length, 0);
+  const hiddenRowCount = Math.max(0, sections.main.length - collapsedRowCount) + sideboardRowCount;
+  const isCollapsible = collapsedRowCount > 0 && hiddenRowCount > 0;
+  const visibleMainCards = isCollapsible && !expanded
+    ? sections.main.slice(0, collapsedRowCount)
+    : sections.main;
+  const visibleSideboards = isCollapsible && !expanded ? [] : sections.sideboards;
 
   const showPreview = (card: DeckListCard, target: HTMLElement) => {
     if (!card.cardImage && !card.id) return;
@@ -239,7 +250,7 @@ export default function DeckListView({
         <div className="deck-list-view__body">
           <div className="deck-list-view__hsreplay hsrdv">
             <ul className="deck-list-view__list hsrdv-list">
-              {sections.main.map(card => (
+              {visibleMainCards.map(card => (
                 <li key={`main-${card.dbfId}`}>
                   <DeckTile
                     card={card}
@@ -255,7 +266,7 @@ export default function DeckListView({
             </ul>
           </div>
 
-          {sections.sideboards.map(sideboard => (
+          {visibleSideboards.map(sideboard => (
             <section key={sideboard.keyCardDbfId} className="deck-list-view__sideboard" aria-label={sideboard.label}>
               <header className="deck-list-view__sideboard-head">
                 <span>{sideboard.label}</span>
@@ -279,6 +290,19 @@ export default function DeckListView({
               </div>
             </section>
           ))}
+
+          {isCollapsible ? (
+            <button
+              type="button"
+              className="deck-list-view__expand"
+              aria-expanded={expanded}
+              onClick={() => setExpanded(value => !value)}
+            >
+              {expanded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
+              <span>{expanded ? 'Свернуть колоду' : 'Показать всю колоду'}</span>
+              {!expanded ? <small>ещё {hiddenRowCount}</small> : null}
+            </button>
+          ) : null}
         </div>
       )}
 

@@ -102,6 +102,46 @@
   margin-top: 0;
 }
 
+.deck-list-view__expand {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  gap: 0.42rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.42rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid rgba(244, 207, 103, 0.42);
+  color: #fff0c8;
+  background: linear-gradient(180deg, #351914, #21100d);
+  font: 800 0.76rem/1.1 var(--font-ui, Inter, sans-serif);
+  cursor: pointer;
+}
+
+.deck-list-view__expand:hover {
+  border-color: rgba(244, 207, 103, 0.78);
+  background: linear-gradient(180deg, #482019, #2a120e);
+}
+
+.deck-list-view__expand:focus-visible {
+  outline: 3px solid var(--deck-gold);
+  outline-offset: 2px;
+}
+
+.deck-list-view__expand svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.deck-list-view__expand small {
+  padding: 0.12rem 0.34rem;
+  border-radius: 999px;
+  color: #21100d;
+  background: var(--deck-gold);
+  font-size: 0.64rem;
+  font-weight: 900;
+}
+
 button.deck-tile {
   padding: 0;
   border: 0;

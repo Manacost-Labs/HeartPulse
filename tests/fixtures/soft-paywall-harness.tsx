@@ -117,7 +117,7 @@ const funDecks = {
     games: 20 + index * 10,
     reasons: [],
     url: null,
-    firstSeenAt: '2026-07-26T08:00:00.000Z',
+    firstSeenAt: `2026-07-26T0${index + 1}:00:00.000Z`,
     lastSeenAt: '2026-07-26T10:00:00.000Z',
   })),
 };

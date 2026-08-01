@@ -107,6 +107,13 @@ try {
   await page.waitForSelector('.arena-inline-paywall--meta');
   await page.waitForSelector('[data-tour-id="fun-decks-deck-list"] .deck-list-view');
   assert.equal(await page.$$eval('.fun-deck-card', cards => cards.length), 3);
+  assert.equal(await page.$eval('.fun-deck-card__identity h2', node => node.textContent), 'Фановая колода 6');
+  assert.equal(await page.$eval('.fun-decks-tools__sort select', node => node.value), 'newest');
+  assert.equal(await page.$eval('.fun-deck-card__identity span strong', node => node.textContent), 'Новая');
+  assert.equal(
+    await page.$eval('.fun-decks-freshness time', node => node.getAttribute('datetime')),
+    '2026-07-26T10:15:12.000Z',
+  );
   assert.equal(await page.$$eval('.arena-paywall__overlay', nodes => nodes.length), 0);
   assert.deepEqual(
     await page.$$eval('.arena-inline-paywall__provider', nodes => nodes.map(node => ({
@@ -134,10 +141,12 @@ try {
   }
   await page.click('.fun-decks-tools__formats button:nth-child(3)');
   await page.waitForFunction(() => (
-    document.querySelector('.fun-deck-card__identity span')?.textContent === 'Вольный формат'
+    document.querySelector('.fun-deck-card__identity span')?.textContent?.startsWith('Вольный формат')
   ));
   await new Promise(resolve => setTimeout(resolve, 200));
   assert.equal(await page.$$eval('.fun-deck-card', cards => cards.length), 3);
+  await page.select('.fun-decks-tools__sort select', 'fun');
+  await page.waitForFunction(() => document.querySelector('.fun-deck-card__identity h2')?.textContent === 'Фановая колода 4');
   await page.addScriptTag({ path: axePath });
   const funDeckViolations = await page.evaluate(async () => {
     const result = await globalThis.axe.run(document.querySelector('#root'));

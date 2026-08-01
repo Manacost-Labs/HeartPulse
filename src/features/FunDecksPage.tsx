@@ -6,6 +6,7 @@ import React, {
   useState,
 } from 'react';
 import {
+  Clock3,
   ExternalLink,
   RefreshCw,
   Search,
@@ -50,6 +51,7 @@ type FunDecksPayload = {
 };
 
 type FormatFilter = 'all' | 'standard' | 'wild';
+type SortMode = 'newest' | 'fun';
 
 const EMPTY_DATA: FunDecksPayload = {
   fetchedAt: null,
@@ -112,12 +114,42 @@ function score(value: number | null): string {
   return `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`;
 }
 
+function updatedLabel(value: string | null): string {
+  const parsed = timestamp(value);
+  if (!parsed) return '';
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(parsed);
+}
+
 function metaDistance(value: number | null): string {
   if (value === null || !Number.isFinite(value)) return '—';
   return `${Math.round((1 - Math.max(0, Math.min(1, value))) * 100)}%`;
 }
 
-function FunDeckCard({ deck, tourAnchor = false }: { deck: FunDeckRow; tourAnchor?: boolean }) {
+function timestamp(value: string | null): number {
+  const parsed = Date.parse(value || '');
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function isRecentlyAdded(deck: FunDeckRow, fetchedAt: string | null): boolean {
+  const firstSeen = timestamp(deck.firstSeenAt);
+  const reference = timestamp(fetchedAt) || Date.now();
+  return firstSeen > 0 && firstSeen >= reference - 72 * 60 * 60 * 1_000;
+}
+
+function FunDeckCard({
+  deck,
+  fresh = false,
+  tourAnchor = false,
+}: {
+  deck: FunDeckRow;
+  fresh?: boolean;
+  tourAnchor?: boolean;
+}) {
   const format = formatOf(deck);
   const { data, loading, error, reload } = useResolvedDeck(deck.deckCode, {
     format,
@@ -135,7 +167,10 @@ function FunDeckCard({ deck, tourAnchor = false }: { deck: FunDeckRow; tourAncho
       <header className="fun-deck-card__identity">
         <img src={classMeta.icon} alt="" width="64" height="64" loading="lazy" decoding="async" />
         <div>
-          <span>{format === 'wild' ? 'Вольный формат' : 'Стандарт'}</span>
+          <span>
+            {format === 'wild' ? 'Вольный формат' : 'Стандарт'}
+            {fresh ? <strong>Новая</strong> : null}
+          </span>
           <h2>{deck.title}</h2>
           <p>{classMeta.label}{deck.streamer ? ` · ${deck.streamer}` : ''}</p>
         </div>
@@ -176,6 +211,7 @@ function FunDeckCard({ deck, tourAnchor = false }: { deck: FunDeckRow; tourAncho
             deckSizeLimit={data.deckSizeLimit}
             deckCode={deck.deckCode}
             showCopy
+            previewRows={5}
             emptyText="Состав этой колоды пока недоступен."
           />
         ) : error ? (
@@ -220,6 +256,7 @@ export default function FunDecksPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [formatFilter, setFormatFilter] = useState<FormatFilter>('all');
+  const [sortMode, setSortMode] = useState<SortMode>('newest');
   const [query, setQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(6);
   const deferredQuery = useDeferredValue(query);
@@ -249,11 +286,15 @@ export default function FunDecksPage({
     const formatDecks = data.decks.filter(deck => (
       formatFilter === 'all' || formatOf(deck) === formatFilter
     ));
-    const accessibleDecks = hasFullAccess
-      ? formatDecks
-      : [...formatDecks]
-        .sort((left, right) => (right.funScore ?? 0) - (left.funScore ?? 0))
-        .slice(0, FREE_PREVIEW_COUNT);
+    const sortedDecks = [...formatDecks].sort((left, right) => {
+      if (sortMode === 'fun') {
+        return (right.funScore ?? 0) - (left.funScore ?? 0)
+          || timestamp(right.firstSeenAt) - timestamp(left.firstSeenAt);
+      }
+      return timestamp(right.firstSeenAt) - timestamp(left.firstSeenAt)
+        || (right.funScore ?? 0) - (left.funScore ?? 0);
+    });
+    const accessibleDecks = hasFullAccess ? sortedDecks : sortedDecks.slice(0, FREE_PREVIEW_COUNT);
     return accessibleDecks.filter(deck => {
       if (!needle) return true;
       const classLabel = CLASS_META[normalizeClass(deck.className)]?.label || deck.className;
@@ -261,7 +302,7 @@ export default function FunDecksPage({
         .toLocaleLowerCase('ru-RU')
         .includes(needle);
     });
-  }, [data.decks, deferredQuery, formatFilter, hasFullAccess]);
+  }, [data.decks, deferredQuery, formatFilter, hasFullAccess, sortMode]);
 
   const visibleDecks = filteredDecks.slice(0, visibleCount);
   const filterButtons: Array<{ id: FormatFilter; label: string; count: number }> = [
@@ -276,6 +317,12 @@ export default function FunDecksPage({
         <div className="traditional-mode-banner__copy">
           <h1>Фан-колоды</h1>
           <p>Необычные сборки Стандарта и Вольного режима для новых впечатлений от игры.</p>
+          {data.fetchedAt ? (
+            <p className="fun-decks-freshness">
+              <Clock3 aria-hidden="true" />
+              Обновлено <time dateTime={data.fetchedAt}>{updatedLabel(data.fetchedAt)}</time>
+            </p>
+          ) : null}
         </div>
         <dl className="traditional-mode-banner__summary" aria-label="Сводка подборки">
           <div><dt>Колод</dt><dd>{data.stats.total || '—'}</dd></div>
@@ -355,6 +402,19 @@ export default function FunDecksPage({
             placeholder="Найти колоду или класс"
           />
         </label>
+        <label className="fun-decks-tools__sort">
+          <span>Сначала</span>
+          <select
+            value={sortMode}
+            onChange={event => {
+              setSortMode(event.target.value as SortMode);
+              setVisibleCount(6);
+            }}
+          >
+            <option value="newest">Новые</option>
+            <option value="fun">Самые необычные</option>
+          </select>
+        </label>
       </section>
 
       {loading ? (
@@ -378,7 +438,11 @@ export default function FunDecksPage({
           <section className="fun-decks-grid" aria-label="Подборка фан-колод">
             {visibleDecks.map((deck, index) => (
               <React.Fragment key={`${deck.format}:${deck.deckCode}`}>
-                <FunDeckCard deck={deck} tourAnchor={index === 0} />
+                <FunDeckCard
+                  deck={deck}
+                  fresh={isRecentlyAdded(deck, data.fetchedAt)}
+                  tourAnchor={index === 0}
+                />
               </React.Fragment>
             ))}
           </section>
@@ -406,7 +470,7 @@ export default function FunDecksPage({
           surface="meta"
           variant="standard"
           title="Откройте всю подборку фан-колод"
-          description="Сейчас показаны три самые необычные колоды выбранного формата. Тариф «Алмаз» открывает всю подборку и новые сборки после каждого обновления."
+          description="Сейчас показаны три недавно добавленные колоды выбранного формата. Тариф «Алмаз» открывает всю подборку и новые сборки после каждого обновления."
           benefits={[
             'Все колоды Стандарта и Вольного',
             'Полные составы и коды для импорта',

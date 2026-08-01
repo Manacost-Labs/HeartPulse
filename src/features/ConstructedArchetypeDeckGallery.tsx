@@ -142,6 +142,7 @@ function DeckBuildCard({
           deckSizeLimit={deck.deckSizeLimit}
           deckCode={build.deckCode}
           showCopy
+          previewRows={5}
           emptyText="Состав этой сборки пока недоступен."
         />
       ) : error ? (

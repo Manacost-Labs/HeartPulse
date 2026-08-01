@@ -71,8 +71,11 @@ const budgets = {
   // Keep all three measured startup values explicit and tightly ratcheted.
   // v1.0.100 changes only the lazy archetype stylesheet; its new content hash
   // adds one compressed byte to the eager preload map without changing raw JS.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_623),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_641),
+  // v1.0.101 changes the shared lazy deck-list and Fun Decks route chunks. The
+  // resulting preload-map hashes add three raw bytes to the eager shell while
+  // the compressed startup transfer remains below the existing strict limit.
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_626),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_644),
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_775),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),
