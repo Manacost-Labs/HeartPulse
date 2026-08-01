@@ -91,12 +91,12 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
     ],
   },
   {
-    id: 'standard-fun-decks', version: 1, paths: ['/standard/fun-decks'], title: 'Как пользоваться фан-колодами',
+    id: 'standard-fun-decks', version: 2, paths: ['/standard/fun-decks'], title: 'Как пользоваться фан-колодами',
     steps: [
       { id: 'method', target: 'fun-decks-method', title: 'Как считаются оценки', description: 'Здесь объясняется разница между дистанцией от меты и индексом фана, а также указаны минимальные пороги попадания в подборку.', preferredPlacement: 'bottom' },
       { id: 'filters', target: 'fun-decks-filters', title: 'Формат и быстрый поиск', description: 'Переключайтесь между Стандартом и Вольным режимом или найдите колоду по названию, классу, стримеру либо ближайшему архетипу.', preferredPlacement: 'bottom' },
       { id: 'metrics', target: 'fun-decks-card-metrics', title: 'Главные показатели', description: 'В карточке видны винрейт, размер выборки, отличие от ближайшей мета-колоды и итоговый индекс фана.', preferredPlacement: 'bottom' },
-      { id: 'deck', target: 'fun-decks-deck-list', title: 'Состав и код колоды', description: 'Первые пять строк дают компактное превью для сравнения шести колод в одном ряду. Deck code можно сразу скопировать для импорта в Hearthstone.', mobileDescription: 'Показаны первые пять строк состава и кнопка копирования deck code.', preferredPlacement: 'top' },
+      { id: 'deck', target: 'fun-decks-deck-list', title: 'Полный состав и код колоды', description: 'В компактном списке показаны все карты основной колоды и сайдборда. Шесть сборок можно сравнивать в одном ряду, а deck code — сразу скопировать для импорта в Hearthstone.', mobileDescription: 'Показан полный компактный состав колоды и кнопка копирования deck code.', preferredPlacement: 'top' },
       { id: 'access', target: 'subscription-paywall', title: 'Полная подборка', description: 'В бесплатном превью показаны три лидера выбранного формата. Тариф «Алмаз» открывает остальные колоды и будущие обновления.', preferredPlacement: 'top' },
     ],
   },

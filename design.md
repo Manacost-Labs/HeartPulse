@@ -160,7 +160,7 @@ The public shell groups secondary destinations instead of filling the rail with 
 - Card art is a real `<img>` with `object-fit: cover`, followed by the upstream `65deg` dark fade. Do not add masks, mana-crystal PNGs, forged frames, class tinting or alternative density to read-only rows.
 - Count `2+` is shown in the right count block; a one-copy legendary uses the gold star. Card names remain one line with the upstream black outline.
 - Multi-column archetype galleries use a proportional compact presentation of the same component: `40px` rows and rarity blocks, a `30px` count block and `27px` artwork offset. Only the first five rows are visible initially; an explicit `44px` control expands or collapses the complete deck without discarding cards or hiding the copy action.
-- Fun-deck cards use the same five-row preview. Their default order is newest `firstSeenAt` first, with an optional fun-score order, a visible dataset refresh time and a “Новая” badge for entries added within 72 hours of that refresh.
+- Fun-deck cards are the denser comparison exception: six cards fit in one wide row, every main-deck and sideboard entry remains visible, and no reveal control is used. Their HSReplay-derived rows are `29px` high with a proportional `29px` rarity block, `21px` count box and narrow-card artwork fade. Default order is newest `firstSeenAt` first, with an optional fun-score order, a visible dataset refresh time and a “Новая” badge for entries added within 72 hours of that refresh.
 - The interactive deck builder may keep `44px` rows solely to preserve its controls, while retaining the same HSReplay visual structure.
 
 ## Navigation

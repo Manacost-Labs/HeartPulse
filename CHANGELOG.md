@@ -1,5 +1,15 @@
 # HS-Arena Changelog
 
+## v1.0.103 - 2026-08-01
+
+- Restored every main-deck and sideboard row in Fun Decks while keeping the
+  six-column desktop comparison grid and removing the reveal control.
+- Added a Fun Decks-only compact profile with `29px` rows, a proportional mana
+  and count scale, a narrow header and footer, and a smooth narrow-card artwork
+  fade modelled on the supplied HSGuru reference.
+- Added browser assertions for complete 17-row fixture decks, sideboards, row
+  density, card height, six-column layout and narrow-screen overflow.
+
 ## v1.0.102 - 2026-08-01
 
 - Arranged Fun Decks in a six-column wide-screen comparison grid with

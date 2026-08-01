@@ -1,0 +1,46 @@
+<!-- markdownlint-disable MD013 -->
+
+# Design QA — compact full Fun Decks
+
+## Target and evidence
+
+- Visual target: supplied HSGuru deck page rendered at `1920×1080`.
+- Reference: `/tmp/fun-decks-audit-20260801/02-hsguru-reference.png`.
+- Implementation:
+  `/tmp/manacost-soft-paywall-1412751-fun-decks-wide.png`.
+- Same-input comparison: `/tmp/fun-decks-audit-20260801/compare-round-1.png`.
+- Compared slot: approximately `214–220px` wide deck panels at the same desktop viewport.
+
+## Acceptance criteria
+
+- Six deck panels remain visible in one wide row.
+- Every main-deck and sideboard entry is rendered without a reveal control.
+- Row density matches the supplied HSGuru reference closely.
+- Mana, rarity, art fade, names and count boxes remain aligned and legible.
+- Narrow screens have no document-level horizontal overflow.
+- Touch actions remain at least `44px` high on mobile.
+
+## Comparison history
+
+### Round 1
+
+- HSGuru reference rows measured at about `28.8px`; implementation rows render
+  at `29px`.
+- The implementation retains the site's parchment, wood and class header while
+  matching the reference deck-list density.
+- Main deck, sideboard heading, sideboard rows and copy action are all visible.
+- No clipped mana blocks, blank gutters, broken art transitions or hidden deck
+  rows were found in the combined comparison.
+
+## Automated checks
+
+- Desktop: six columns, each at least `210px` wide.
+- Fixture: 17 main-deck rows and three sideboard rows per deck.
+- Compact row height: at most `30px`.
+- Complete card height: at most `900px` for the 20-row fixture composition.
+- Mobile: no overflow at `390px` or `320px`.
+- Accessibility: no serious or critical Axe violations.
+
+## Final result
+
+passed

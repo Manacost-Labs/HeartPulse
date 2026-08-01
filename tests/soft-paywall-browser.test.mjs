@@ -108,6 +108,8 @@ try {
   await page.waitForSelector('[data-tour-id="fun-decks-deck-list"] .deck-list-view');
   assert.equal(await page.$$eval('.fun-deck-card', cards => cards.length), 3);
   assert.equal(await page.$$eval('.fun-deck-card .deck-list-view__expand', buttons => buttons.length), 0);
+  assert.equal(await page.$$eval('.fun-deck-card:first-child .deck-list-view__body > .deck-list-view__hsreplay > .deck-list-view__list > li', rows => rows.length), 17);
+  assert.equal(await page.$$eval('.fun-deck-card:first-child .deck-list-view__sideboard li', rows => rows.length), 3);
   assert.equal(await page.$eval('.fun-deck-card__identity h2', node => node.textContent), 'Фановая колода 6');
   assert.equal(await page.$eval('.fun-decks-tools__sort select', node => node.value), 'newest');
   assert.equal(await page.$eval('.fun-deck-card__identity span strong', node => node.textContent), 'Новая');
@@ -165,11 +167,19 @@ try {
     minCardWidth: Math.min(...[...document.querySelectorAll('.fun-deck-card')]
       .map(node => node.getBoundingClientRect().width)),
     expandButtons: document.querySelectorAll('.fun-deck-card .deck-list-view__expand').length,
+    mainRows: document.querySelectorAll('.fun-deck-card:first-child .deck-list-view__body > .deck-list-view__hsreplay > .deck-list-view__list > li').length,
+    sideboardRows: document.querySelectorAll('.fun-deck-card:first-child .deck-list-view__sideboard li').length,
+    tileHeight: document.querySelector('.fun-deck-card .hsrdv-card-tile')?.getBoundingClientRect().height ?? 0,
+    cardHeight: document.querySelector('.fun-deck-card')?.getBoundingClientRect().height ?? 0,
   }));
   assert.equal(wideFunDecks.cardCount, 6);
   assert.equal(wideFunDecks.columns, 6);
   assert.ok(wideFunDecks.minCardWidth >= 210, `wide fun deck card was only ${wideFunDecks.minCardWidth}px`);
   assert.equal(wideFunDecks.expandButtons, 0);
+  assert.equal(wideFunDecks.mainRows, 17);
+  assert.equal(wideFunDecks.sideboardRows, 3);
+  assert.ok(wideFunDecks.tileHeight <= 30, `compact fun deck row was ${wideFunDecks.tileHeight}px tall`);
+  assert.ok(wideFunDecks.cardHeight <= 900, `compact full fun deck was ${wideFunDecks.cardHeight}px tall`);
   await page.screenshot({ path: `${screenshotPrefix}-fun-decks-wide.png`, fullPage: true });
 
   for (const width of [390, 320]) {

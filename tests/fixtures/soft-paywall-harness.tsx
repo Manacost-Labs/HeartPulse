@@ -122,6 +122,52 @@ const funDecks = {
   })),
 };
 
+const resolvedMainCards = ([
+  ['TIME_001', 'Воскрешение мёртвых', 0, 'COMMON', 2, false],
+  ['TIME_002', 'Камень здоровья', 0, 'EPIC', 2, false],
+  ['TIME_003', 'Проклятые катакомбы', 0, 'EPIC', 2, false],
+  ['TIME_004', 'Взрывной дух', 1, 'COMMON', 2, false],
+  ['TIME_005', 'Демоново семя', 1, 'LEGENDARY', 1, true],
+  ['TIME_006', 'Кара огненная', 1, 'RARE', 2, false],
+  ['TIME_007', 'Кобольд-библиотекарь', 1, 'COMMON', 2, false],
+  ['TIME_008', 'Кристаллизатор', 1, 'EPIC', 2, false],
+  ['TIME_009', 'Лоцман сэр Финли', 1, 'LEGENDARY', 1, true],
+  ['TIME_010', 'Массовое производство', 1, 'COMMON', 2, false],
+  ['TIME_011', 'Ожившая метла', 1, 'COMMON', 2, false],
+  ['TIME_012', 'Гнилое яблоко', 2, 'COMMON', 2, false],
+  ['TIME_013', 'Душеворот', 2, 'LEGENDARY', 1, true],
+  ['TIME_014', 'Неофитка культа', 2, 'RARE', 2, false],
+  ['TIME_015', 'Эффект домино', 3, 'RARE', 1, false],
+  ['TIME_016', 'Пленённый ужас', 9, 'EPIC', 2, false],
+  ['TIME_017', 'Огненный великан', 20, 'EPIC', 2, false],
+] as const).map(([id, name, cost, rarity, count, elite], index) => ({
+  id,
+  dbfId: 1001 + index,
+  name,
+  cost,
+  rarity,
+  elite,
+  count,
+  image: `/wallpaper/${index % 2 ? 'profile-hero-hth.webp' : 'home-paladin-hero.webp'}`,
+  cardImage: '',
+}));
+
+const resolvedSideboardCards = ([
+  ['TIME_SB_001', 'Запасная искра', 1, 'RARE'],
+  ['TIME_SB_002', 'Тайный проход', 2, 'EPIC'],
+  ['TIME_SB_003', 'Последний ритуал', 4, 'COMMON'],
+] as const).map(([id, name, cost, rarity], index) => ({
+  id,
+  dbfId: 2001 + index,
+  name,
+  cost,
+  rarity,
+  elite: false,
+  count: 1,
+  image: '/wallpaper/profile-hero-hth.webp',
+  cardImage: '',
+}));
+
 globalThis.fetch = (async (input: RequestInfo | URL) => {
   const url = new URL(String(input), window.location.origin);
   let payload: unknown;
@@ -133,12 +179,14 @@ globalThis.fetch = (async (input: RequestInfo | URL) => {
       format: url.searchParams.get('format') === 'wild' ? 'wild' : 'standard',
       heroDbfId: 637,
       deckCode: url.searchParams.get('code'),
-      cards: [
-        { id: 'TIME_001', dbfId: 1001, name: 'Первая карта', cost: 1, rarity: 'COMMON', elite: false, count: 2, image: '', cardImage: '' },
-        { id: 'TIME_002', dbfId: 1002, name: 'Вторая карта', cost: 2, rarity: 'LEGENDARY', elite: true, count: 1, image: '', cardImage: '' },
-      ],
-      sideboards: [],
-      totalCards: 3,
+      cards: resolvedMainCards,
+      sideboards: [{
+        keyCardDbfId: 1005,
+        label: 'Сайдборд · Демоново семя',
+        keyCard: resolvedMainCards[4],
+        cards: resolvedSideboardCards,
+      }],
+      totalCards: 30,
       deckSizeLimit: 30,
       archetype: null,
     };

@@ -211,8 +211,6 @@ function FunDeckCard({
             deckSizeLimit={data.deckSizeLimit}
             deckCode={deck.deckCode}
             showCopy
-            previewRows={5}
-            previewExpandable={false}
             emptyText="Состав этой колоды пока недоступен."
           />
         ) : error ? (
