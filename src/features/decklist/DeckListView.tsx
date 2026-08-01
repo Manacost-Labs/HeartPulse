@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Copy } from 'lucide-react';
 import CardPreviewTooltip, { type CardPreviewTarget } from '../CardPreviewTooltip';
+import '../../vendor/hsreplay-deck-view/hsreplay-deck-view.css';
 import './DeckListView.css';
 
 export type DeckListCard = {
@@ -28,7 +29,7 @@ export type DeckListViewProps = {
   sideboards?: DeckListSideboard[];
   title?: string;
   subtitle?: string;
-  /** Class color used as HSGuru-style left→art gradient fill. */
+  /** Optional color for the site-owned header above the HSReplay deck rows. */
   headerColor?: string;
   totalCards?: number;
   deckSizeLimit?: number;
@@ -42,18 +43,9 @@ export type DeckListViewProps = {
   emptyText?: string;
 };
 
-const RARITY_COLOR: Record<string, string> = {
-  free: '#8f969e',
-  common: '#8f969e',
-  rare: '#246a9f',
-  epic: '#702487',
-  legendary: '#92501e',
-};
-
 function rarityKey(rarity: string): string {
   const value = String(rarity || 'COMMON').toLowerCase();
-  if (value === 'free') return 'common';
-  if (value === 'common' || value === 'rare' || value === 'epic' || value === 'legendary') return value;
+  if (value === 'free' || value === 'common' || value === 'rare' || value === 'epic' || value === 'legendary') return value;
   return 'common';
 }
 
@@ -61,7 +53,6 @@ function DeckTile({
   card,
   interactive,
   indented,
-  classColor,
   onClick,
   onIncrement,
   onDecrement,
@@ -71,34 +62,33 @@ function DeckTile({
   card: DeckListCard;
   interactive: boolean;
   indented?: boolean;
-  classColor?: string;
   onClick?: () => void;
   onIncrement?: () => void;
   onDecrement?: () => void;
   onPreview: (card: DeckListCard, el: HTMLElement) => void;
   onPreviewEnd: () => void;
 }) {
-  const rarity = RARITY_COLOR[rarityKey(card.rarity)] || RARITY_COLOR.common;
-  // Inside the row: class color (HSGuru-style). Mana/count keep their own meaning.
-  const fill = classColor || rarity;
-  const style = {
-    ['--deck-tile-rarity' as string]: rarity,
-    ['--deck-tile-fill' as string]: fill,
-    ['--deck-tile-border' as string]: 'rgba(244, 207, 103, 0.24)',
-    ['--deck-tile-art' as string]: card.image ? `url(${JSON.stringify(card.image)})` : 'none',
-  };
+  const rarity = rarityKey(card.rarity);
   const hasControls = Boolean(interactive && (onIncrement || onDecrement));
-  const className = `deck-tile deck-tile--${rarityKey(card.rarity)}${indented ? ' is-sideboard' : ''}${hasControls ? ' has-controls' : ''}`;
-  const countLabel = card.elite ? '★' : card.count > 1 ? String(card.count) : '';
+  const hasCountBox = !hasControls && (card.count > 1 || card.elite);
+  const className = `deck-tile hsrdv-card-tile${indented ? ' is-sideboard' : ''}${hasControls ? ' has-controls' : ''}`;
+  const countLabel = card.elite && card.count === 1 ? '★' : String(card.count);
 
   const body = (
     <>
-      {/* Art under row (HSGuru .decklist-card-tile); fade overlay covers bright tile edge */}
-      <span className="deck-tile__art" aria-hidden="true" />
-      <span className="deck-tile__fade" aria-hidden="true" />
-      <span className="deck-tile__mana" aria-hidden="true">{card.cost}</span>
-      <span className="deck-tile__name">{card.name}</span>
-      {!hasControls ? <span className="deck-tile__count" aria-hidden="true">{countLabel}</span> : null}
+      <span className={`deck-tile__mana hsrdv-card-gem hsrdv-rarity-${rarity}`} aria-hidden="true">
+        <span className="hsrdv-card-cost">{card.cost}</span>
+      </span>
+      <span className={`deck-tile__frame hsrdv-card-frame ${hasCountBox ? 'hsrdv-card-frame--with-count' : 'hsrdv-card-frame--without-count'}`}>
+        {card.image ? <img className="deck-tile__art hsrdv-card-art" src={card.image} alt={card.name} /> : null}
+        {hasCountBox ? (
+          <span className="deck-tile__countbox hsrdv-card-countbox" aria-hidden="true">
+            <span className={`deck-tile__count hsrdv-card-count${card.count > 1 ? ' hsrdv-card-count--copies' : ''}`}>{countLabel}</span>
+          </span>
+        ) : null}
+        <span className="deck-tile__fade hsrdv-card-fade" aria-hidden="true" />
+        <span className="deck-tile__name hsrdv-card-name">{card.name}</span>
+      </span>
     </>
   );
 
@@ -107,7 +97,6 @@ function DeckTile({
     return (
       <div
         className={className}
-        style={style}
         onMouseEnter={event => onPreview(card, event.currentTarget)}
         onMouseLeave={onPreviewEnd}
         onFocus={event => onPreview(card, event.currentTarget)}
@@ -147,7 +136,6 @@ function DeckTile({
       <button
         type="button"
         className={className}
-        style={style}
         onClick={onClick}
         onMouseEnter={event => onPreview(card, event.currentTarget)}
         onMouseLeave={onPreviewEnd}
@@ -166,7 +154,6 @@ function DeckTile({
   return (
     <div
       className={className}
-      style={style}
       onMouseEnter={event => onPreview(card, event.currentTarget)}
       onMouseLeave={onPreviewEnd}
       data-card-id={card.id}
@@ -179,7 +166,7 @@ function DeckTile({
 }
 
 /**
- * Single-column deck list (HSGuru-style tiles) for embed anywhere on the site.
+ * Single-column deck list using the vendored HSReplay tile contract.
  * Pass resolved `cards` / `sideboards` from `/api/deck/resolve` or the builder.
  */
 export default function DeckListView({
@@ -207,10 +194,6 @@ export default function DeckListView({
     : copyState === 'error'
       ? 'Не удалось скопировать код'
       : 'Скопировать код колоды';
-  const rootStyle = headerColor
-    ? ({ ['--deck-list-class-color' as string]: headerColor } as React.CSSProperties)
-    : undefined;
-
   const sections = useMemo(() => ({
     main: cards,
     sideboards: sideboards.filter(item => item.cards.length > 0),
@@ -239,7 +222,7 @@ export default function DeckListView({
   };
 
   return (
-    <div className={`deck-list-view ${className}`.trim()} style={rootStyle}>
+    <div className={`deck-list-view ${className}`.trim()}>
       {(title || subtitle) ? (
         <div className="deck-list-view__head" style={headerColor ? { backgroundColor: headerColor } : undefined}>
           <div>
@@ -254,22 +237,23 @@ export default function DeckListView({
         <p className="deck-list-view__empty">{emptyText}</p>
       ) : (
         <div className="deck-list-view__body">
-          <ul className="deck-list-view__list">
-            {sections.main.map(card => (
-              <li key={`main-${card.dbfId}`}>
-                <DeckTile
-                  card={card}
-                  interactive={interactive}
-                  classColor={headerColor}
-                  onClick={onCardClick ? () => onCardClick(card) : undefined}
-                  onIncrement={onCardIncrement ? () => onCardIncrement(card) : undefined}
-                  onDecrement={onCardDecrement ? () => onCardDecrement(card) : undefined}
-                  onPreview={showPreview}
-                  onPreviewEnd={() => setPreview(null)}
-                />
-              </li>
-            ))}
-          </ul>
+          <div className="deck-list-view__hsreplay hsrdv">
+            <ul className="deck-list-view__list hsrdv-list">
+              {sections.main.map(card => (
+                <li key={`main-${card.dbfId}`}>
+                  <DeckTile
+                    card={card}
+                    interactive={interactive}
+                    onClick={onCardClick ? () => onCardClick(card) : undefined}
+                    onIncrement={onCardIncrement ? () => onCardIncrement(card) : undefined}
+                    onDecrement={onCardDecrement ? () => onCardDecrement(card) : undefined}
+                    onPreview={showPreview}
+                    onPreviewEnd={() => setPreview(null)}
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
 
           {sections.sideboards.map(sideboard => (
             <section key={sideboard.keyCardDbfId} className="deck-list-view__sideboard" aria-label={sideboard.label}>
@@ -277,21 +261,22 @@ export default function DeckListView({
                 <span>{sideboard.label}</span>
                 <span>{sideboard.cards.reduce((sum, card) => sum + card.count, 0)}</span>
               </header>
-              <ul className="deck-list-view__list">
-                {sideboard.cards.map(card => (
-                  <li key={`sb-${sideboard.keyCardDbfId}-${card.dbfId}`}>
-                    <DeckTile
-                      card={card}
-                      interactive={interactive}
-                      indented
-                      classColor={headerColor}
-                      onClick={onCardClick ? () => onCardClick(card) : undefined}
-                      onPreview={showPreview}
-                      onPreviewEnd={() => setPreview(null)}
-                    />
-                  </li>
-                ))}
-              </ul>
+              <div className="deck-list-view__hsreplay hsrdv">
+                <ul className="deck-list-view__list hsrdv-list">
+                  {sideboard.cards.map(card => (
+                    <li key={`sb-${sideboard.keyCardDbfId}-${card.dbfId}`}>
+                      <DeckTile
+                        card={card}
+                        interactive={interactive}
+                        indented
+                        onClick={onCardClick ? () => onCardClick(card) : undefined}
+                        onPreview={showPreview}
+                        onPreviewEnd={() => setPreview(null)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </section>
           ))}
         </div>

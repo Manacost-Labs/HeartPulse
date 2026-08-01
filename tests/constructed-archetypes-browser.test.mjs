@@ -112,71 +112,73 @@ try {
   assert.equal(await page.$$eval('.archetype-trend', charts => charts.length), 3);
   assert.equal(await page.$$eval('.archetype-deck-card', cards => cards.length), 7);
   assert.equal(await page.$$eval('.archetype-deck-card .deck-tile', cards => cards.length), 56);
-  const deckTileArtBlend = await page.$eval('.archetype-deck-card .deck-tile__art', element => {
+  const hsReplayDeckTile = await page.$eval('.archetype-deck-card .deck-tile__art', element => {
     const rect = element.getBoundingClientRect();
-    const pseudoStyle = getComputedStyle(element, '::before');
-    const manaStyle = getComputedStyle(element.parentElement.querySelector('.deck-tile__mana'));
+    const tile = element.closest('.deck-tile');
+    const frame = element.closest('.hsrdv-card-frame');
+    const gem = tile.querySelector('.hsrdv-card-gem');
+    const fade = frame.querySelector('.hsrdv-card-fade');
+    const root = tile.closest('.hsrdv');
     return {
+      tagName: element.tagName,
       height: rect.height,
       width: rect.width,
-      pseudoWidth: Number.parseFloat(pseudoStyle.width),
-      backgroundSize: pseudoStyle.backgroundSize,
+      maxWidth: getComputedStyle(element).maxWidth,
+      objectFit: getComputedStyle(element).objectFit,
+      artRight: getComputedStyle(element).right,
       maskImage: getComputedStyle(element).maskImage,
-      manaBackground: manaStyle.backgroundImage,
+      tileHeight: tile.getBoundingClientRect().height,
+      rootWidth: root.getBoundingClientRect().width,
+      gemWidth: gem.getBoundingClientRect().width,
+      gemBackground: getComputedStyle(gem).backgroundColor,
+      fadeBackground: getComputedStyle(fade).backgroundImage,
     };
   });
-  assert.ok(
-    Math.abs(deckTileArtBlend.pseudoWidth - deckTileArtBlend.width) <= 1,
-    'the artwork must fill the full feathered viewport',
-  );
-  assert.ok(
-    deckTileArtBlend.width >= deckTileArtBlend.height * 6,
-    'the artwork viewport must stay wide enough for a gradual blend',
-  );
-  assert.equal(deckTileArtBlend.backgroundSize, 'cover');
-  assert.match(deckTileArtBlend.maskImage, /linear-gradient/);
-  assert.match(deckTileArtBlend.manaBackground, /\/assets\/mana\.png/);
-  const forgedDeckTile = await page.$eval(
-    '.archetype-deck-card .deck-tile--common .deck-tile__count',
+  assert.equal(hsReplayDeckTile.tagName, 'IMG');
+  assert.equal(hsReplayDeckTile.tileHeight, 62);
+  assert.ok(hsReplayDeckTile.rootWidth <= 486);
+  assert.equal(hsReplayDeckTile.gemWidth, 62);
+  assert.equal(hsReplayDeckTile.gemBackground, 'rgb(134, 96, 39)');
+  assert.equal(hsReplayDeckTile.maxWidth, 'none');
+  assert.equal(hsReplayDeckTile.objectFit, 'cover');
+  assert.equal(hsReplayDeckTile.artRight, '40px');
+  assert.equal(hsReplayDeckTile.maskImage, 'none');
+  assert.match(hsReplayDeckTile.fadeBackground, /linear-gradient\(65deg/);
+  const hsReplayCountBox = await page.$eval(
+    '.archetype-deck-card .hsrdv-rarity-common + .hsrdv-card-frame .deck-tile__count',
     element => {
       const tile = element.closest('.deck-tile');
+      const countBox = element.closest('.hsrdv-card-countbox');
       const countStyle = getComputedStyle(element);
-      const tileStyle = getComputedStyle(tile);
-      const frameStyle = getComputedStyle(tile, '::before');
       return {
         count: element.textContent,
-        countBackground: countStyle.backgroundColor,
-        countShadow: countStyle.boxShadow,
-        tileBackground: tileStyle.backgroundColor,
-        tileClipPath: tileStyle.clipPath,
-        frameClipPath: frameStyle.clipPath,
+        countColor: countStyle.color,
+        countBackground: getComputedStyle(countBox).backgroundColor,
+        countBorderLeft: getComputedStyle(countBox).borderLeft,
+        tileTextShadow: getComputedStyle(tile).textShadow,
       };
     },
   );
-  assert.equal(forgedDeckTile.count, '2');
-  assert.match(forgedDeckTile.countBackground, /rgba\(0, 0, 0, 0\)/);
-  assert.equal(forgedDeckTile.countShadow, 'none');
-  assert.match(forgedDeckTile.tileBackground, /rgba\(0, 0, 0, 0\)/);
-  assert.equal(forgedDeckTile.tileClipPath, 'none', 'the mana crystal must not sit on a second clipped polygon');
-  assert.notEqual(forgedDeckTile.frameClipPath, 'none', 'the forged frame must keep its own silhouette');
-  const compactDeckList = await page.$eval('.archetype-deck-card .deck-list-view', element => {
+  assert.equal(hsReplayCountBox.count, '2');
+  assert.equal(hsReplayCountBox.countColor, 'rgb(247, 219, 72)');
+  assert.equal(hsReplayCountBox.countBackground, 'rgb(49, 49, 49)');
+  assert.equal(hsReplayCountBox.countBorderLeft, '1px solid rgb(0, 0, 0)');
+  assert.match(hsReplayCountBox.tileTextShadow, /rgb\(0, 0, 0\)/);
+  const exactDeckList = await page.$eval('.archetype-deck-card .deck-list-view', element => {
     const list = element.querySelector('.deck-list-view__list');
     const tile = element.querySelector('.deck-tile');
-    const listStyle = getComputedStyle(list);
-    const tileStyle = getComputedStyle(tile);
+    const secondRow = list.children[1];
     return {
-      classColor: getComputedStyle(element).getPropertyValue('--deck-list-class-color').trim(),
-      railWidth: getComputedStyle(element).getPropertyValue('--deck-list-mana-rail-width').trim(),
-      listBackground: listStyle.backgroundImage,
-      rowGap: listStyle.rowGap,
-      tileHeight: tileStyle.height,
+      listDisplay: getComputedStyle(list).display,
+      secondRowMarginTop: getComputedStyle(secondRow).marginTop,
+      tileHeight: tile.getBoundingClientRect().height,
+      hsReplayRoot: Boolean(list.closest('.hsrdv')),
     };
   });
-  assert.notEqual(compactDeckList.classColor, '#42576b', 'the mana spine must inherit the current class colour');
-  assert.equal(compactDeckList.railWidth, '33px');
-  assert.match(compactDeckList.listBackground, /linear-gradient/);
-  assert.equal(compactDeckList.rowGap, '1px');
-  assert.equal(compactDeckList.tileHeight, '28px');
+  assert.equal(exactDeckList.listDisplay, 'block');
+  assert.equal(exactDeckList.secondRowMarginTop, '1px');
+  assert.equal(exactDeckList.tileHeight, 62);
+  assert.equal(exactDeckList.hsReplayRoot, true);
   assert.equal(await page.$$eval('.constructed-matchup-ledger li', rows => rows.length), 11);
   assert.equal(await page.$$eval('.constructed-card-stats tbody tr', rows => rows.length), 15);
   for (const tourTarget of [
@@ -260,8 +262,7 @@ try {
     copyHeight: document.querySelector('.archetype-main-build .deck-list-view__copy-btn')?.getBoundingClientRect().height ?? 0,
     builderHeight: document.querySelector('.archetype-deck-card__builder')?.getBoundingClientRect().height ?? 0,
     deckTileHeight: document.querySelector('.archetype-deck-card .deck-tile')?.getBoundingClientRect().height ?? 0,
-    manaRailWidth: getComputedStyle(document.querySelector('.archetype-deck-card .deck-list-view'))
-      .getPropertyValue('--deck-list-mana-rail-width').trim(),
+    deckGemWidth: document.querySelector('.archetype-deck-card .hsrdv-card-gem')?.getBoundingClientRect().width ?? 0,
     deckColumnCount: document.querySelectorAll('.archetype-deck-card').length,
     matchupCount: document.querySelectorAll('.constructed-matchup-ledger li').length,
   }));
@@ -269,8 +270,8 @@ try {
   assert.equal(detailMobile.chartCount, 3);
   assert.ok(detailMobile.copyHeight >= 42);
   assert.ok(detailMobile.builderHeight >= 44);
-  assert.equal(detailMobile.deckTileHeight, 27);
-  assert.equal(detailMobile.manaRailWidth, '29px');
+  assert.equal(detailMobile.deckTileHeight, 52);
+  assert.equal(detailMobile.deckGemWidth, 52);
   assert.equal(detailMobile.deckColumnCount, 7);
   assert.equal(detailMobile.matchupCount, 11);
   const mobileCardStats = await page.evaluate(() => ({

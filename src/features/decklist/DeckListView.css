@@ -1,26 +1,20 @@
 .deck-list-view {
-  --deck-tile-height: 28px;
-  --deck-list-class-color: #42576b;
-  --deck-list-mana-rail-width: 33px;
   --deck-gold: #f4cf67;
-  --deck-gold-deep: #a9791d;
   --deck-ink: #fff9e9;
-  --deck-well: #160d0b;
   width: 100%;
   min-width: 0;
 }
 
-/* ───────────────────────── Header ───────────────────────── */
+/* The site shell stays local; every card row below is the vendored HSReplay pattern. */
 .deck-list-view__head {
   position: relative;
   display: flex;
   justify-content: space-between;
   gap: 0.5rem;
   align-items: center;
-  padding: 0.42rem 0.65rem;
+  padding: 0.52rem 0.75rem;
   color: #fff;
   font-weight: 700;
-  /* Class color arrives via inline style; layer depth on top of it */
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 42%),
     linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.28));
@@ -35,16 +29,16 @@
 .deck-list-view__head::after {
   content: "";
   position: absolute;
-  left: 0;
   right: 0;
   bottom: 0;
+  left: 0;
   height: 2px;
   background: linear-gradient(90deg, transparent, rgba(244, 207, 103, 0.65) 20%, rgba(244, 207, 103, 0.65) 80%, transparent);
 }
 
 .deck-list-view__head strong {
   display: block;
-  font-size: 0.96rem;
+  font-size: 1.08rem;
   font-weight: 700;
   font-family: inherit;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
@@ -52,13 +46,13 @@
 
 .deck-list-view__head > span {
   flex: 0 0 auto;
-  font-family: inherit;
-  font-size: 0.84rem;
-  font-weight: 700;
-  padding: 0.12rem 0.48rem;
+  padding: 0.14rem 0.55rem;
   border-radius: 999px;
   color: #fff;
   background: rgba(0, 0, 0, 0.28);
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.14),
     inset 0 -1px 0 rgba(0, 0, 0, 0.35);
@@ -67,8 +61,8 @@
 
 .deck-list-view__subtitle {
   display: block;
-  margin-top: 0.1rem;
-  font-size: 0.7rem;
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
   font-weight: 600;
   opacity: 0.9;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
@@ -82,273 +76,48 @@
 
 .deck-list-view__body {
   min-width: 0;
+  padding: 0.5rem;
+  background: #160d0b;
 }
 
-/* ───────────────────────── List ───────────────────────── */
+.deck-list-view__hsreplay {
+  margin-inline: auto;
+  font-family: "Noto Sans", Arial, sans-serif;
+}
+
 .deck-list-view__list {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1px;
+  width: 100%;
   margin: 0;
-  padding: 0.3rem 0.4rem;
+  padding: 0;
   list-style: none;
-  max-height: none;
-  overflow: visible;
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--deck-list-class-color) 52%, #18202a) 0,
-      color-mix(in srgb, var(--deck-list-class-color) 44%, #18202a) calc(var(--deck-list-mana-rail-width) - 6px),
-      color-mix(in srgb, var(--deck-list-class-color) 24%, var(--deck-well)) var(--deck-list-mana-rail-width),
-      transparent calc(var(--deck-list-mana-rail-width) + 12px)
-    ),
-    radial-gradient(120% 100% at 50% 0%, rgba(70, 40, 30, 0.35), transparent 60%),
-    var(--deck-well);
-  box-shadow:
-    inset 0 1px 0 rgba(244, 207, 103, 0.08),
-    inset 0 4px 12px rgba(0, 0, 0, 0.46);
 }
 
 .deck-list-view__list > li {
   min-width: 0;
-}
-
-/* Compact forged card frame: rarity metal, a faceted mana gem and real art. */
-.deck-tile {
-  --deck-tile-rarity: #8f969e;
-  --deck-tile-rarity-light: #d9dde1;
-  --deck-tile-rarity-mid: #8f969e;
-  --deck-tile-rarity-dark: #4e545a;
-  --deck-tile-fill: #59616a;
-  --deck-tile-border: rgb(40, 40, 40);
-  --deck-tile-art: none;
-  --deck-tile-mana-w: 38px;
-  --deck-tile-count-w: 26px;
-  --deck-tile-art-w: min(68%, 272px);
-  position: relative;
-  isolation: isolate;
-  display: flex;
-  align-items: center;
-  width: 100%;
-  height: var(--deck-tile-height);
-  margin: 0;
+  margin: 1px 0 0;
   padding: 0;
-  border: 0;
-  border-radius: 0;
-  box-sizing: border-box;
-  background: transparent;
-  color: var(--deck-ink);
-  font-family: var(--font-ui, Inter, sans-serif);
-  text-align: left;
-  cursor: default;
-  overflow: visible;
-  text-shadow:
-    -1px -1px 0 rgba(0, 0, 0, 0.88),
-    1px -1px 0 rgba(0, 0, 0, 0.88),
-    -1px 1px 0 rgba(0, 0, 0, 0.88),
-    1px 1px 0 rgba(0, 0, 0, 0.88),
-    0 2px 2px rgba(0, 0, 0, 0.9);
-  box-shadow: none;
 }
 
-.deck-tile--rare {
-  --deck-tile-rarity-light: #5ca8dc;
-  --deck-tile-rarity-mid: #246a9f;
-  --deck-tile-rarity-dark: #123e66;
-}
-
-.deck-tile--epic {
-  --deck-tile-rarity-light: #a95bc1;
-  --deck-tile-rarity-mid: #702487;
-  --deck-tile-rarity-dark: #3d104d;
-}
-
-.deck-tile--legendary {
-  --deck-tile-rarity-light: #d18a45;
-  --deck-tile-rarity-mid: #92501e;
-  --deck-tile-rarity-dark: #4f260d;
-}
-
-/* The rarity frame begins beneath the crystal's right facet, not behind it. */
-.deck-tile::before {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  inset: 0 0 0 calc(var(--deck-tile-mana-w) - 12px);
-  background:
-    linear-gradient(180deg, var(--deck-tile-rarity-light) 0 6%, transparent 6% 88%, var(--deck-tile-rarity-dark) 88% 100%),
-    linear-gradient(105deg, var(--deck-tile-rarity-dark), var(--deck-tile-rarity-mid) 20%, var(--deck-tile-rarity-dark) 74%, var(--deck-tile-rarity-light));
-  clip-path: polygon(5px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 5px 100%, 0 50%);
-  box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.86),
-    0 2px 2px rgba(0, 0, 0, 0.42);
-}
-
-/* Quiet inner plate seals the frame without adding a second shape under mana. */
-.deck-tile::after {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  inset: 2px 3px 2px calc(var(--deck-tile-mana-w) - 8px);
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 38%, rgba(0, 0, 0, 0.34)),
-    linear-gradient(90deg, color-mix(in srgb, var(--deck-tile-fill) 78%, #111), color-mix(in srgb, var(--deck-tile-fill) 48%, #111));
-  clip-path: polygon(4px 0, 100% 0, 100% 100%, 4px 100%, 0 50%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.68),
-    inset -1px 0 0 rgba(0, 0, 0, 0.64);
-  transition: box-shadow 140ms ease;
+.deck-list-view__list > li:first-child {
+  margin-top: 0;
 }
 
 button.deck-tile {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
   cursor: pointer;
 }
 
-.deck-tile:hover,
-button.deck-tile:focus-visible {
-  outline: none;
+.deck-tile:focus-visible {
   z-index: 5;
+  outline: 3px solid var(--deck-gold);
+  outline-offset: 2px;
 }
 
-.deck-tile:hover::after,
-button.deck-tile:focus-visible::after {
-  box-shadow:
-    inset 0 0 0 2px rgba(244, 207, 103, 0.66),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.72);
-}
-
-.deck-tile.is-sideboard {
-  margin-left: 0.5rem;
-  width: calc(100% - 0.5rem);
-}
-
-.deck-tile__art {
-  position: absolute;
-  z-index: 1;
-  top: 2px;
-  right: 3px;
-  bottom: 2px;
-  width: var(--deck-tile-art-w);
-  height: auto;
-  overflow: hidden;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.08) 10%, rgba(0, 0, 0, 0.34) 27%, rgba(0, 0, 0, 0.76) 46%, #000 64%, #000 100%);
-  mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.08) 10%, rgba(0, 0, 0, 0.34) 27%, rgba(0, 0, 0, 0.76) 46%, #000 64%, #000 100%);
-  pointer-events: none;
-}
-
-/*
- * Fill a deliberately wide crop so the art can feather beneath the name.
- * The optional pale strip in some HSJSON tiles stays inside the transparent
- * end of the mask instead of forming a visible vertical boundary.
- */
-.deck-tile__art::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: var(--deck-tile-art);
-  background-repeat: no-repeat;
-  background-position: right center;
-  background-size: cover;
-}
-
-/* Keep long names readable while preserving the artwork instead of recolouring it. */
-.deck-tile__fade {
-  position: absolute;
-  z-index: 2;
-  top: 2px;
-  bottom: 2px;
-  left: var(--deck-tile-mana-w);
-  right: 3px;
-  pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    rgba(13, 10, 15, 0.64) 0%,
-    rgba(13, 10, 15, 0.58) 38%,
-    rgba(13, 10, 15, 0.42) 54%,
-    rgba(13, 10, 15, 0.18) 70%,
-    transparent 88%
-  );
-}
-
-/* Use the project's real Hearthstone mana crystal; rarity belongs to the rim. */
-.deck-tile__mana {
-  position: relative;
-  z-index: 4;
-  flex: 0 0 auto;
-  width: var(--deck-tile-mana-w);
-  min-width: var(--deck-tile-mana-w);
-  display: grid;
-  place-items: center;
-  align-self: stretch;
-  font-weight: 900;
-  font-size: 0.8rem;
-  line-height: 1;
-  color: #fff;
-  background-color: transparent;
-  background-image: url("/assets/mana.png");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: min(32px, calc(var(--deck-tile-height) + 2px));
-  clip-path: none;
-  box-shadow: none;
-  text-shadow:
-    -1px -1px 0 #111,
-    1px -1px 0 #111,
-    -1px 1px 0 #111,
-    1px 1px 0 #111,
-    0 2px 2px #000;
-}
-
-/* Count floats over the art: no separate box and therefore no pale seam. */
-.deck-tile__count {
-  position: absolute;
-  z-index: 5;
-  top: 0;
-  right: 6px;
-  bottom: 0;
-  width: var(--deck-tile-count-w);
-  min-width: var(--deck-tile-count-w);
-  display: grid;
-  place-items: center;
-  font-weight: 900;
-  font-size: 0.78rem;
-  line-height: 1;
-  color: #f7d95d;
-  background: transparent;
-  box-shadow: none;
-  text-shadow:
-    -1px -1px 0 #111,
-    1px -1px 0 #111,
-    -1px 1px 0 #111,
-    1px 1px 0 #111,
-    0 2px 2px #000;
-}
-
-.deck-tile--legendary .deck-tile__count {
-  color: #ffd85a;
-  font-size: 1.05rem;
-}
-
-.deck-tile.has-controls {
-  --deck-tile-count-w: 118px;
-}
-
-.deck-tile.has-controls .deck-tile__art,
-.deck-tile.has-controls .deck-tile__fade {
-  right: 118px;
-}
-
-.deck-tile.has-controls .deck-tile__fade {
-  background: linear-gradient(
-    90deg,
-    rgba(13, 10, 15, 0.7) 0%,
-    rgba(13, 10, 15, 0.58) 42%,
-    rgba(13, 10, 15, 0.22) 76%,
-    transparent 100%
-  );
+.deck-tile.has-controls .deck-tile__frame {
+  min-width: 0;
 }
 
 .deck-tile__controls {
@@ -358,40 +127,39 @@ button.deck-tile:focus-visible::after {
   grid-template-columns: 44px 30px 44px;
   align-self: stretch;
   flex: 0 0 118px;
-  margin-left: auto;
+  margin-left: 2px;
   color: #fff;
-  background: rgba(21, 12, 10, 0.94);
-  box-shadow:
-    inset 2px 0 0 var(--deck-tile-rarity-dark),
-    inset 3px 0 0 rgba(0, 0, 0, 0.7);
+  background: #313131;
+  border: 1px solid #000;
   text-shadow: none;
 }
 
 .deck-tile__controls > span {
   display: grid;
   place-items: center;
-  font-weight: 800;
-  background: var(--deck-tile-rarity);
+  color: #f7db48;
+  background: #313131;
+  font-weight: 900;
 }
 
 .deck-tile__controls button {
   display: grid;
-  place-items: center;
   min-width: 44px;
   min-height: 44px;
   padding: 0;
-  color: #fff4d4;
   border: 0;
-  background: rgba(46, 19, 18, 0.94);
-  font: 800 1.2rem/1 var(--font-ui, Inter, sans-serif);
+  place-items: center;
+  color: #fff;
+  background: #313131;
+  font: 900 1.2rem/1 "Noto Sans", Arial, sans-serif;
   cursor: pointer;
 }
 
 .deck-tile__controls button:hover:not(:disabled),
 .deck-tile__controls button:focus-visible {
-  color: #fff;
-  background: #7f171e;
-  outline: 2px solid var(--deck-gold);
+  color: #f7db48;
+  background: #1f1f1f;
+  outline: 2px solid #f7db48;
   outline-offset: -2px;
 }
 
@@ -400,39 +168,8 @@ button.deck-tile:focus-visible::after {
   cursor: not-allowed;
 }
 
-.deck-tile__name {
-  position: relative;
-  z-index: 3;
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  align-self: stretch;
-  margin-right: var(--deck-tile-count-w);
-  padding: 0 0.5ch;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: 0.74rem;
-  font-weight: 800;
-  letter-spacing: 0.003em;
-  background: transparent;
-}
-
-.deck-tile.has-controls .deck-tile__name {
-  display: -webkit-box;
-  align-content: center;
-  padding-block: 0.24rem;
-  margin-right: 0;
-  white-space: normal;
-  line-height: 1.08;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-/* ───────────────────────── Sideboard ───────────────────────── */
 .deck-list-view__sideboard {
-  margin: 0.35rem 0.4rem 0.5rem;
+  margin: 0.5rem 0 0;
 }
 
 .deck-list-view__sideboard-head {
@@ -449,64 +186,46 @@ button.deck-tile:focus-visible::after {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
-.deck-list-view__sideboard-head::before {
-  content: "";
-  flex: 0 0 auto;
-  width: 12px;
-  height: 1px;
-  margin-right: 0.15rem;
-  background: linear-gradient(90deg, var(--deck-gold), transparent);
-}
-
-.deck-list-view__sideboard-head span:first-of-type {
+.deck-list-view__sideboard-head span:first-child {
   flex: 1 1 auto;
 }
 
-.deck-list-view__sideboard-head span:last-of-type {
+.deck-list-view__sideboard-head span:last-child {
   flex: 0 0 auto;
   padding: 0.05rem 0.4rem;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.35);
   color: #ffe9b8;
+  background: rgba(0, 0, 0, 0.35);
 }
 
-.deck-list-view__sideboard .deck-list-view__list {
-  max-height: none;
-  padding: 0.25rem 0.15rem 0.15rem;
-  background: none;
-  box-shadow: none;
-  gap: 1px;
-}
-
-/* ───────────────────────── Copy button ───────────────────────── */
 .deck-list-view__actions {
   margin: 0.5rem;
   padding: 0.2rem 0 0.35rem;
 }
 
 .deck-list-view__copy-btn {
+  display: inline-flex;
   width: 100%;
   min-height: 44px;
+  gap: 0.45rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.9rem;
   border: 1px solid rgba(244, 207, 103, 0.4);
   border-radius: 4px;
   color: #fff2cf;
-  font: inherit;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  padding: 0.5rem 0.9rem;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 45%),
     linear-gradient(180deg, #8a2328, #571117);
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     inset 0 -2px 4px rgba(0, 0, 0, 0.4),
     0 2px 6px rgba(0, 0, 0, 0.4);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  cursor: pointer;
   transition: filter 120ms ease, transform 90ms ease;
 }
 
@@ -523,31 +242,7 @@ button.deck-tile:focus-visible::after {
   cursor: not-allowed;
 }
 
-@media (max-width: 480px) {
-  .deck-list-view {
-    --deck-tile-height: 27px;
-    --deck-list-mana-rail-width: 29px;
-  }
-
-  .deck-list-view__list {
-    gap: 1px;
-    padding: 0.3rem;
-  }
-
-  .deck-tile {
-    --deck-tile-art-w: min(70%, 218px);
-    --deck-tile-mana-w: 36px;
-    --deck-tile-count-w: 24px;
-  }
-
-  .deck-tile__name {
-    padding-inline: 0.55ch;
-    font-size: 0.72rem;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .deck-tile::after,
   .deck-list-view__copy-btn {
     transition: none;
   }

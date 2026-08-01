@@ -153,13 +153,13 @@ The public shell groups secondary destinations instead of filling the rail with 
 
 ### Constructed Deck Rows
 
-- Compact deck rows use one continuous forged frame: silver for common, blue for rare, violet for epic and bronze for legendary cards.
-- The mana value uses the real local `/assets/mana.png` crystal. The rarity frame begins beneath its right facet; it must not paint a second polygon or coloured tail behind the crystal's transparent corners.
-- The transparent corners of every mana crystal sit on one continuous, class-tinted mana spine owned by the list container. That spine must softly merge into the warm deck well; a pure-black vertical gutter and separate per-row backplates are not valid.
-- Official tile art reaches the inner right edge through a broad feathered mask. Copy count or the legendary star floats over the art without a separate panel, rarity rail or pale separator.
-- Card names use compact bold Inter with a dark outline and single-line truncation in read-only lists. Builder rows may use two lines because their controls keep a `44px` touch target.
-- Read-only deck rows are `28px` high on desktop and `27px` on narrow screens with a `1px` rhythm. Interactive builder rows remain `44px` high so their controls keep the minimum touch target.
-- Hover and focus may brighten the frame engraving, but must not apply a CSS filter to the card art.
+- Read-only deck rows reproduce the vendored [`Zulut30/hsreplay-deck-view`](https://github.com/Zulut30/hsreplay-deck-view) snapshot at commit `a2860ee286e4f85adbbaf007003bfcab23800318`; local redesigns of the tile are not valid.
+- Preserve the upstream `.hsrdv` markup contract and exact desktop geometry: `486px` list width, `62px` row, `62px` rarity/mana block, `44px` count block and artwork ending `40px` from the right when the count block is present.
+- At widths up to `520px`, use the upstream mobile geometry: `52px` row, `52px` rarity/mana block, `38px` count block and `34px` artwork offset.
+- Rarity colors are the upstream values: free/common `#858585`, rare `#315376`, epic `#644c82` and legendary `#866027`. Copy counts and the legendary star use `#f7db48`.
+- Card art is a real `<img>` with `object-fit: cover`, followed by the upstream `65deg` dark fade. Do not add masks, mana-crystal PNGs, forged frames, class tinting or alternative density to read-only rows.
+- Count `2+` is shown in the right count block; a one-copy legendary uses the gold star. Card names remain one line with the upstream black outline.
+- The interactive deck builder may keep `44px` rows solely to preserve its controls, while retaining the same HSReplay visual structure.
 
 ## Navigation
 

@@ -134,7 +134,7 @@ const resolvedDeck = {
     rarity: index === 0 ? 'LEGENDARY' : index % 3 === 0 ? 'RARE' : 'COMMON',
     elite: index === 0,
     count: index === 0 ? 1 : 2,
-    image: '',
+    image: '/wallpaper/home-paladin-hero.webp',
     cardImage: '',
     sideboardKeyDbfId: null,
   })),

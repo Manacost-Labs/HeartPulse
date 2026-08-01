@@ -1,5 +1,16 @@
 # HS-Arena Changelog
 
+## v1.0.99 - 2026-08-01
+
+- Replaced the custom forged constructed-deck rows with the exact visual and
+  markup contract from vendored `Zulut30/hsreplay-deck-view` commit
+  `a2860ee286e4f85adbbaf007003bfcab23800318`.
+- Restored the upstream `486×62px` desktop and `52px` mobile geometry, rarity
+  colors, `65deg` artwork fade, outlined names and separate count/star block.
+- Kept the deck builder at `44px` for its interactive controls while preserving
+  the same HSReplay tile structure, and added browser regression coverage for
+  the exact source geometry and styling.
+
 ## v1.0.98 - 2026-07-31
 
 - Tightened read-only deck rows to `28px` on desktop and `27px` on narrow

@@ -438,10 +438,6 @@
   background: #160d0b;
 }
 
-.fun-deck-card__deck .deck-list-view {
-  --deck-tile-height: 29px;
-}
-
 .fun-deck-card__deck .deck-list-view__actions {
   background:
     linear-gradient(rgba(72, 22, 19, 0.92), rgba(42, 15, 13, 0.96)),
