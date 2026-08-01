@@ -1,1 +1,1 @@
-export { default, ApplicationConnectView } from './ApplicationConnectPage';
+export { default } from './ApplicationConnectPage';

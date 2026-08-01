@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent } from 'storybook/test';
-import { ApplicationConnectView } from './ApplicationConnectPage';
+import { ApplicationConnectView } from './ApplicationConnectView';
 
 const authorization = {
   clientId: 'manacost-tracker',
@@ -29,10 +29,10 @@ const meta = {
     onApprove: fn(),
     onDeny: fn(),
   },
-  parameters: { layout: 'centered' },
+  parameters: { layout: 'fullscreen' },
   decorators: [
     Story => (
-      <div style={{ width: 'min(96vw, 960px)', padding: 24, background: '#e8cf96' }}>
+      <div style={{ minHeight: '100vh', padding: 'clamp(12px, 4vw, 48px)', background: '#e8cf96' }}>
         <Story />
       </div>
     ),
@@ -60,4 +60,8 @@ export const InvalidCode: Story = {
 
 export const Approved: Story = {
   args: { state: 'approved', authorization: null },
+};
+
+export const Denied: Story = {
+  args: { state: 'denied', authorization: null },
 };
