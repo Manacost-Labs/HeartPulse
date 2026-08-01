@@ -69,9 +69,11 @@ const budgets = {
   // deck-list view. Its extra preload-map pointer adds 12 raw bytes while the
   // associated content hashes add 14 gzip bytes on the current main baseline.
   // Keep all three measured startup values explicit and tightly ratcheted.
+  // v1.0.100 changes only the lazy archetype stylesheet; its new content hash
+  // adds one compressed byte to the eager preload map without changing raw JS.
   mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_623),
   initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_641),
-  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_774),
+  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_775),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),
   deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 108_350),

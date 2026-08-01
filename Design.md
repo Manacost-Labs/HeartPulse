@@ -40,6 +40,7 @@ Do not hotlink wiki assets at runtime.
 - Profile hierarchy uses the large wood frame for hero/settings/access, the deck frame for short statuses and subscription sources, and plain parchment inputs for readability.
 - Deck-builder pages use parchment only as the outer page canvas; the framed builder interior is red tavern cloth. Class choices must read as in-game profile plaques with a real class crest, dark red field and asset-backed deck frame, never as plain parchment dashboard cards.
 - Read-only constructed deck lists reproduce the vendored `Zulut30/hsreplay-deck-view` component: `486×62px` desktop rows (`52px` mobile), upstream rarity blocks, rectangular card art with its `65deg` fade and the separate count box. Do not substitute the local mana crystal, forged frames or class tinting.
+- Side-by-side archetype deck galleries use the same component at a proportional `40px` compact scale; standalone lists retain the source geometry.
 - The public footer is global to `.arena-app-shell` and always uses red tavern cloth, a wooden top rule, cream links and muted gold legal copy.
 
 ## Home Rules
@@ -87,6 +88,7 @@ Do not hotlink wiki assets at runtime.
 
 ## Changelog
 
+- **2026-08-01** — Added a proportional `40px` HSReplay compact scale to multi-column archetype deck galleries so three builds can be compared without dominating the viewport.
 - **2026-08-01** — Replaced the custom compact constructed-deck tiles with the exact vendored `Zulut30/hsreplay-deck-view` markup, geometry, rarity colors, art fade and count treatment.
 - **2026-07-11** — Added the portable `assets.md` design and production asset catalogue for cross-project integration.
 - **2026-07-11** — Fixed the true mobile Arena dimming layer by anchoring section-banner decoration to the banner rather than the full page canvas.

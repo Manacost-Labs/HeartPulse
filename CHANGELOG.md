@@ -1,5 +1,15 @@
 # HS-Arena Changelog
 
+## v1.0.100 - 2026-08-01
+
+- Added a proportional compact scale for side-by-side archetype builds: card
+  rows and rarity blocks are now `40px`, count blocks are `30px`, artwork uses
+  a `27px` offset, and names/counts scale with the row.
+- Reduced the embedded deck header and body spacing while retaining `44px`
+  footer actions, the HSReplay rarity palette and the original artwork fade.
+- Kept standalone deck presentations at the source geometry and expanded the
+  desktop/mobile browser assertions for the gallery-specific scale.
+
 ## v1.0.99 - 2026-08-01
 
 - Replaced the custom forged constructed-deck rows with the exact visual and
