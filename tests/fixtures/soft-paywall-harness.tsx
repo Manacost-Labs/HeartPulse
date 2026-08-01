@@ -169,7 +169,9 @@ const paywall = {
 };
 
 function Harness() {
-  const page = new URLSearchParams(window.location.search).get('page') ?? 'meta';
+  const params = new URLSearchParams(window.location.search);
+  const page = params.get('page') ?? 'meta';
+  const hasFullAccess = params.get('access') === 'full';
   const [path, setPath] = useState(page === 'archetype'
     ? '/standard/archetypes/standard/void-soul-dh'
     : '/standard/archetypes');
@@ -186,14 +188,14 @@ function Harness() {
         <div className="arena-main">
           <div className="arena-content arena-content-open">
             {page === 'meta' ? (
-              <StandardMetaPage hasFullAccess={false} paywall={paywall} />
+              <StandardMetaPage hasFullAccess={hasFullAccess} paywall={paywall} />
             ) : page === 'fun-decks' ? (
-              <FunDecksPage hasFullAccess={false} paywall={paywall} />
+              <FunDecksPage hasFullAccess={hasFullAccess} paywall={paywall} />
             ) : (
               <ConstructedArchetypes
                 currentPath={path}
                 navigatePath={setPath}
-                hasFullAccess={false}
+                hasFullAccess={hasFullAccess}
                 paywall={paywall}
               />
             )}

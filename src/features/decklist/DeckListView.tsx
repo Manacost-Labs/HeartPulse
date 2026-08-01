@@ -36,6 +36,7 @@ export type DeckListViewProps = {
   deckCode?: string;
   showCopy?: boolean;
   previewRows?: number;
+  previewExpandable?: boolean;
   interactive?: boolean;
   onCardClick?: (card: DeckListCard) => void;
   onCardIncrement?: (card: DeckListCard) => void;
@@ -181,6 +182,7 @@ export default function DeckListView({
   deckCode = '',
   showCopy = false,
   previewRows = 0,
+  previewExpandable = true,
   interactive = false,
   onCardClick,
   onCardIncrement,
@@ -204,11 +206,12 @@ export default function DeckListView({
   const collapsedRowCount = Math.max(0, Math.floor(previewRows));
   const sideboardRowCount = sections.sideboards.reduce((sum, section) => sum + section.cards.length, 0);
   const hiddenRowCount = Math.max(0, sections.main.length - collapsedRowCount) + sideboardRowCount;
-  const isCollapsible = collapsedRowCount > 0 && hiddenRowCount > 0;
-  const visibleMainCards = isCollapsible && !expanded
+  const isPreviewLimited = collapsedRowCount > 0 && hiddenRowCount > 0;
+  const isCollapsed = isPreviewLimited && (!previewExpandable || !expanded);
+  const visibleMainCards = isCollapsed
     ? sections.main.slice(0, collapsedRowCount)
     : sections.main;
-  const visibleSideboards = isCollapsible && !expanded ? [] : sections.sideboards;
+  const visibleSideboards = isCollapsed ? [] : sections.sideboards;
 
   const showPreview = (card: DeckListCard, target: HTMLElement) => {
     if (!card.cardImage && !card.id) return;
@@ -291,7 +294,7 @@ export default function DeckListView({
             </section>
           ))}
 
-          {isCollapsible ? (
+          {isPreviewLimited && previewExpandable ? (
             <button
               type="button"
               className="deck-list-view__expand"

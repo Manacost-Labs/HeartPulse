@@ -107,6 +107,7 @@ try {
   await page.waitForSelector('.arena-inline-paywall--meta');
   await page.waitForSelector('[data-tour-id="fun-decks-deck-list"] .deck-list-view');
   assert.equal(await page.$$eval('.fun-deck-card', cards => cards.length), 3);
+  assert.equal(await page.$$eval('.fun-deck-card .deck-list-view__expand', buttons => buttons.length), 0);
   assert.equal(await page.$eval('.fun-deck-card__identity h2', node => node.textContent), 'Фановая колода 6');
   assert.equal(await page.$eval('.fun-decks-tools__sort select', node => node.value), 'newest');
   assert.equal(await page.$eval('.fun-deck-card__identity span strong', node => node.textContent), 'Новая');
@@ -155,9 +156,25 @@ try {
   assert.deepEqual(funDeckViolations, []);
   await page.screenshot({ path: `${screenshotPrefix}-fun-decks-desktop.png`, fullPage: true });
 
+  await page.setViewport({ width: 1920, height: 1000, deviceScaleFactor: 1 });
+  await page.goto(`${origin}/tests/fixtures/soft-paywall.html?page=fun-decks&access=full`, { waitUntil: 'networkidle0' });
+  await page.waitForSelector('.fun-decks-grid .fun-deck-card:nth-child(6)');
+  const wideFunDecks = await page.evaluate(() => ({
+    cardCount: document.querySelectorAll('.fun-deck-card').length,
+    columns: getComputedStyle(document.querySelector('.fun-decks-grid')).gridTemplateColumns.split(' ').length,
+    minCardWidth: Math.min(...[...document.querySelectorAll('.fun-deck-card')]
+      .map(node => node.getBoundingClientRect().width)),
+    expandButtons: document.querySelectorAll('.fun-deck-card .deck-list-view__expand').length,
+  }));
+  assert.equal(wideFunDecks.cardCount, 6);
+  assert.equal(wideFunDecks.columns, 6);
+  assert.ok(wideFunDecks.minCardWidth >= 210, `wide fun deck card was only ${wideFunDecks.minCardWidth}px`);
+  assert.equal(wideFunDecks.expandButtons, 0);
+  await page.screenshot({ path: `${screenshotPrefix}-fun-decks-wide.png`, fullPage: true });
+
   for (const width of [390, 320]) {
     await page.setViewport({ width, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
-    await page.reload({ waitUntil: 'networkidle0' });
+    await page.goto(`${origin}/tests/fixtures/soft-paywall.html?page=fun-decks`, { waitUntil: 'networkidle0' });
     await page.waitForSelector('.arena-inline-paywall--meta');
     await page.waitForSelector('[data-tour-id="fun-decks-deck-list"] .deck-list-view');
     const layout = await page.evaluate(() => ({

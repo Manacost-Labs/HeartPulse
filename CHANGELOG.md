@@ -1,5 +1,12 @@
 # HS-Arena Changelog
 
+## v1.0.102 - 2026-08-01
+
+- Arranged Fun Decks in a six-column wide-screen comparison grid with
+  responsive four-, three-, two- and one-column fallbacks.
+- Kept each Fun Deck card to five composition rows and removed its full-deck
+  reveal control so the gallery stays compact.
+
 ## v1.0.101 - 2026-08-01
 
 - Limited side-by-side archetype builds and fan-deck cards to five visible card

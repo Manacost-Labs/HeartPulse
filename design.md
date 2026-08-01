@@ -341,6 +341,7 @@ Rules:
 
 ## Changelog
 
+- **2026-08-01** — Expanded the Fun Decks canvas to six cards per wide row and fixed each card to a five-row non-expandable comparison preview, with 4/3/2/1 responsive fallbacks.
 - **2026-07-31** — Tightened read-only deck ledgers to 28/27 px rows and a 1 px rhythm so 40-card lists use roughly one quarter less vertical space than the original forged-row layout.
 - **2026-07-31** — Replaced the black gap beside deck-list mana crystals with a continuous class-tinted spine and standardized compact read-only rows at 32/31 px while preserving 44 px builder targets.
 - **2026-07-11** — Added `assets.md` with portable visual rules, integration-ready CSS recipes and verified production URLs for every public visual asset.

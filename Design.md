@@ -88,6 +88,7 @@ Do not hotlink wiki assets at runtime.
 
 ## Changelog
 
+- **2026-08-01** — Fun Decks now use a six-column wide comparison grid with five fixed card rows and no per-deck expansion control.
 - **2026-08-01** — Limited multi-deck comparisons and fan-deck cards to five initial rows with an accessible full-deck reveal; fan decks now default to recently added entries and expose fun-score sorting separately.
 - **2026-08-01** — Added a proportional `40px` HSReplay compact scale to multi-column archetype deck galleries so three builds can be compared without dominating the viewport.
 - **2026-08-01** — Replaced the custom compact constructed-deck tiles with the exact vendored `Zulut30/hsreplay-deck-view` markup, geometry, rarity colors, art fade and count treatment.

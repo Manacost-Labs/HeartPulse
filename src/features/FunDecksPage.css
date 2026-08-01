@@ -10,7 +10,7 @@
   --fun-red: #8d171d;
   --fun-red-dark: #5d0d13;
   --fun-gold: #d9ab49;
-  width: min(100%, 1320px);
+  width: min(100%, 1760px);
   margin: 0 auto;
   color: var(--fun-ink);
 }
@@ -388,8 +388,8 @@
 
 .fun-decks-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(1rem, 2vw, 1.45rem);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: clamp(0.55rem, 0.8vw, 0.9rem);
   align-items: start;
 }
 
@@ -658,11 +658,23 @@
   100% { background-position: -100% 0; }
 }
 
+@media (max-width: 1599px) {
+  .fun-decks-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 1120px) {
   .fun-decks-hero {
     grid-template-columns: minmax(0, 1.2fr) minmax(270px, 0.8fr);
   }
 
+  .fun-decks-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
   .fun-decks-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
