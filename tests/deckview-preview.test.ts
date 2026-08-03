@@ -13,6 +13,10 @@ assert.equal(
   'https://api.blizzcore.ru/static/generated/safe_deck.jpg',
 );
 assert.equal(
+  resolveDeckviewImageUrl({ filename: 'render-cache/ab/safe_deck.jpg' }, 'https://api.blizzcore.ru'),
+  'https://api.blizzcore.ru/static/generated/render-cache/ab/safe_deck.jpg',
+);
+assert.equal(
   resolveDeckviewImageUrl({ image_path: '/static/generated/../secret', image_url: 'http://127.0.0.1:5000/private' }, 'https://api.blizzcore.ru'),
   null,
 );
@@ -38,7 +42,7 @@ const preview = await renderDeckviewPreview({
   }) as typeof fetch,
 });
 
-assert.equal(requestUrl, 'http://127.0.0.1:5000/deckview-api/v1/render');
+assert.equal(requestUrl, 'http://127.0.0.1:5000/deckview-api/v1/render/parchment');
 assert.deepEqual(requestBody, { deck_code: 'AAECAaoITestDeckCode', deck_name: 'Граб Шаман' });
 assert.deepEqual(preview, {
   hash: 'a'.repeat(64),
@@ -47,6 +51,41 @@ assert.deepEqual(preview, {
   imageUrl: 'https://api.blizzcore.ru/static/generated/grab-shaman.jpg',
   error: null,
 });
+
+const asyncRequests: string[] = [];
+const asyncPreview = await renderDeckviewPreview({
+  deckCode: 'AAECAaoIAsyncDeckCode',
+  deckName: 'Асинхронная колода',
+  hash: 'c'.repeat(64),
+}, {
+  apiBaseUrl: 'http://127.0.0.1:5000/deckview-api/v1',
+  publicBaseUrl: 'https://api.blizzcore.ru',
+  timeoutMs: 5_000,
+  pollIntervalMs: 25,
+  apiKey: 'secret',
+  fetchImpl: (async (input, init) => {
+    asyncRequests.push(String(input));
+    assert.equal((init?.headers as Record<string, string>)['X-API-Key'], 'secret');
+    if (asyncRequests.length === 1) {
+      return new Response(JSON.stringify({
+        success: true,
+        ready: false,
+        job_id: `api-render-${'d'.repeat(64)}`,
+      }), { status: 202, headers: { 'Content-Type': 'application/json' } });
+    }
+    return new Response(JSON.stringify({
+      success: true,
+      ready: true,
+      filename: 'render-cache/dd/async.jpg',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }) as typeof fetch,
+});
+
+assert.deepEqual(asyncRequests, [
+  'http://127.0.0.1:5000/deckview-api/v1/render/parchment',
+  `http://127.0.0.1:5000/deckview-api/v1/render/jobs/api-render-${'d'.repeat(64)}`,
+]);
+assert.equal(asyncPreview.imageUrl, 'https://api.blizzcore.ru/static/generated/render-cache/dd/async.jpg');
 
 await assert.rejects(
   renderDeckviewPreview({ deckCode: 'bad', deckName: 'Bad', hash: 'b'.repeat(64) }, {

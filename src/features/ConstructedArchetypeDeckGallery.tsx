@@ -9,6 +9,7 @@ import DeckListView, {
   type DeckListCard,
   type DeckListSideboard,
 } from './decklist/DeckListView';
+import DeckRenderPreview from './deckrender/DeckRenderPreview';
 
 type ArchetypeFormat = 'standard' | 'wild';
 
@@ -131,39 +132,41 @@ function DeckBuildCard({
         </dl>
       </header>
 
-      {deck ? (
-        <DeckListView
-          cards={deck.cards}
-          sideboards={deck.sideboards}
-          title={`Сборка ${index + 1}`}
-          subtitle={format === 'wild' ? 'Вольный формат' : 'Стандарт'}
-          headerColor={classColor}
-          totalCards={deck.totalCards}
-          deckSizeLimit={deck.deckSizeLimit}
-          deckCode={build.deckCode}
-          showCopy
-          previewRows={5}
-          emptyText="Состав этой сборки пока недоступен."
-        />
-      ) : error ? (
-        <div className="archetype-deck-card__state archetype-deck-card__state--error" role="alert">
-          <TriangleAlert aria-hidden="true" />
-          <strong>Состав не загрузился</strong>
-          <span>{error}</span>
-          <button type="button" onClick={() => setRevision(value => value + 1)}>
-            <RefreshCw aria-hidden="true" />
-            Повторить
-          </button>
-        </div>
-      ) : (
-        <div className="archetype-deck-card__state" aria-busy="true" aria-label={`Загружается сборка ${index + 1}`}>
-          <span className="archetype-deck-card__skeleton" />
-          <span className="archetype-deck-card__skeleton" />
-          <span className="archetype-deck-card__skeleton" />
-          <span className="archetype-deck-card__skeleton" />
-          <span className="archetype-deck-card__skeleton" />
-        </div>
-      )}
+      <DeckRenderPreview deckCode={build.deckCode} deckName={`${archetype} — сборка ${index + 1}`}>
+        {deck ? (
+          <DeckListView
+            cards={deck.cards}
+            sideboards={deck.sideboards}
+            title={`Сборка ${index + 1}`}
+            subtitle={format === 'wild' ? 'Вольный формат' : 'Стандарт'}
+            headerColor={classColor}
+            totalCards={deck.totalCards}
+            deckSizeLimit={deck.deckSizeLimit}
+            deckCode={build.deckCode}
+            showCopy
+            previewRows={5}
+            emptyText="Состав этой сборки пока недоступен."
+          />
+        ) : error ? (
+          <div className="archetype-deck-card__state archetype-deck-card__state--error" role="alert">
+            <TriangleAlert aria-hidden="true" />
+            <strong>Состав не загрузился</strong>
+            <span>{error}</span>
+            <button type="button" onClick={() => setRevision(value => value + 1)}>
+              <RefreshCw aria-hidden="true" />
+              Повторить
+            </button>
+          </div>
+        ) : (
+          <div className="archetype-deck-card__state" aria-busy="true" aria-label={`Загружается сборка ${index + 1}`}>
+            <span className="archetype-deck-card__skeleton" />
+            <span className="archetype-deck-card__skeleton" />
+            <span className="archetype-deck-card__skeleton" />
+            <span className="archetype-deck-card__skeleton" />
+            <span className="archetype-deck-card__skeleton" />
+          </div>
+        )}
+      </DeckRenderPreview>
 
       <footer className="archetype-deck-card__actions">
         <a className="archetype-deck-card__builder" href={builderHref}>

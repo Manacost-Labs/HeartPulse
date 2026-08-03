@@ -23,6 +23,7 @@ import {
   type ConstructedHeroClass as HeroClass,
 } from './constructedDeckCode';
 import DeckListView, { type DeckListSideboard } from './decklist/DeckListView';
+import DeckRenderPreview from './deckrender/DeckRenderPreview';
 import {
   readDeckBuilderDraft,
   writeDeckBuilderDraft,
@@ -865,6 +866,21 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
     : Object.keys(mechanicLabels))]
     .sort((left, right) => (mechanicLabels[left] || left)
       .localeCompare(mechanicLabels[right] || right, 'ru'));
+  const interactiveDeckList = (
+    <DeckListView
+      cards={sortedEntries}
+      sideboards={sideboards}
+      title={archetype?.archetypeLabel || classMeta.label}
+      headerColor={classMeta.color}
+      totalCards={cardCount}
+      deckSizeLimit={sizeLimit}
+      deckCode={entries.length ? deckCode : ''}
+      interactive
+      onCardIncrement={card => incrementCard(card.dbfId)}
+      onCardDecrement={card => removeCard(card.dbfId)}
+      emptyText="Добавьте карты из каталога."
+    />
+  );
 
   return (
     <section className="deck-builder deck-builder--workspace hs-timber-frame" aria-labelledby="deck-builder-workspace-title">
@@ -943,19 +959,15 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
             <span className="deck-builder__eyebrow">Ваша колода</span>
             <strong>{completionLabel}</strong>
           </div>
-          <DeckListView
-            cards={sortedEntries}
-            sideboards={sideboards}
-            title={archetype?.archetypeLabel || classMeta.label}
-            headerColor={classMeta.color}
-            totalCards={cardCount}
-            deckSizeLimit={sizeLimit}
-            deckCode={entries.length ? deckCode : ''}
-            interactive
-            onCardIncrement={card => incrementCard(card.dbfId)}
-            onCardDecrement={card => removeCard(card.dbfId)}
-            emptyText="Добавьте карты из каталога."
-          />
+          {deckCode && cardCount === sizeLimit ? (
+            <DeckRenderPreview
+              deckCode={deckCode}
+              deckName={archetype?.archetypeLabel || classMeta.label}
+              defaultView="list"
+            >
+              {interactiveDeckList}
+            </DeckRenderPreview>
+          ) : interactiveDeckList}
           {entries.length ? <DeckManaCurve cards={entries} /> : null}
         </aside>
 

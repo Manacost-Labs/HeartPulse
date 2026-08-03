@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import '../route-parchment.css';
 import HsReplayDeckList, { type HsReplayDeckCard } from './HsReplayDeckList';
+import DeckRenderPreview from './deckrender/DeckRenderPreview';
 import './ViciousSyndicateGold.css';
 
 type DeckBuild = {
@@ -366,7 +367,9 @@ export default function ViciousSyndicateGold() {
               </div>
               {openDeckKey === deck.deck && deck.build && <section className="vsgold__deck-composition" aria-label={`Состав колоды ${deck.deckLabel}`}>
                 <header><div><span>АКТУАЛЬНАЯ СБОРКА</span><h3>{deck.deckLabel}</h3></div><a href={deck.build.sourceUrl} target="_blank" rel="noreferrer">Источник</a></header>
-                <HsReplayDeckList cards={deck.build.deckCards || []} label={`Состав колоды ${deck.deckLabel}`} />
+                <DeckRenderPreview deckCode={deck.build.deckCode} deckName={deck.deckLabel}>
+                  <HsReplayDeckList cards={deck.build.deckCards || []} label={`Состав колоды ${deck.deckLabel}`} />
+                </DeckRenderPreview>
               </section>}
             </React.Fragment>)}
             {!visibleDecks.length && <p className="vsgold__empty">По этому фильтру колод нет.</p>}

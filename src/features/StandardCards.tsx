@@ -45,6 +45,7 @@ import DeckListView, {
   type DeckListCard,
   type DeckListSideboard,
 } from './decklist/DeckListView';
+import DeckRenderPreview from './deckrender/DeckRenderPreview';
 import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
 import { compareConstructedSets, constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
 import {
@@ -1233,23 +1234,22 @@ function ConstructedDeckCard({ deck, format }: {
   return (
     <article className="constructed-card-detail__deck">
       <div className="constructed-card-detail__deck-list">
-        {resolvedDeck ? (
-          <DeckListView
-            cards={resolvedDeck.cards}
-            sideboards={resolvedDeck.sideboards}
-            title={deckTitle}
-            subtitle={format === 'wild' ? 'Вольный формат' : 'Стандарт'}
-            headerColor={classColor}
-            totalCards={resolvedDeck.totalCards}
-            deckSizeLimit={resolvedDeck.deckSizeLimit}
-          />
-        ) : (
-          <div className="constructed-card-detail__deck-list-state" aria-busy={!resolveError}>
-            <Layers3 size={28} />
-            <span>{resolveError || 'Загружаем состав колоды…'}</span>
-            {resolveError && <button type="button" onClick={() => setRetryToken(value => value + 1)}><RefreshCw size={14} /> Повторить</button>}
-          </div>
-        )}
+        <DeckRenderPreview deckCode={deck.deckCode} deckName={deckTitle}>
+          {resolvedDeck ? (
+            <DeckListView
+              cards={resolvedDeck.cards} sideboards={resolvedDeck.sideboards}
+              title={deckTitle} subtitle={format === 'wild' ? 'Вольный формат' : 'Стандарт'}
+              headerColor={classColor}
+              totalCards={resolvedDeck.totalCards} deckSizeLimit={resolvedDeck.deckSizeLimit}
+            />
+          ) : (
+            <div className="constructed-card-detail__deck-list-state" aria-busy={!resolveError}>
+              <Layers3 size={28} />
+              <span>{resolveError || 'Загружаем состав колоды…'}</span>
+              {resolveError && <button type="button" onClick={() => setRetryToken(value => value + 1)}><RefreshCw size={14} /> Повторить</button>}
+            </div>
+          )}
+        </DeckRenderPreview>
       </div>
       <div className="constructed-card-detail__deck-copy">
         <h3>{deckTitle}</h3>

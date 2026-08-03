@@ -15,6 +15,7 @@ import {
 import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
 import '../route-parchment.css';
 import DeckListView from './decklist/DeckListView';
+import DeckRenderPreview from './deckrender/DeckRenderPreview';
 import { useResolvedDeck } from './decklist/useResolvedDeck';
 import './FunDecksPage.css';
 
@@ -200,36 +201,38 @@ function FunDeckCard({
         data-tour-id={tourAnchor ? 'fun-decks-deck-list' : undefined}
         style={{ ['--fun-deck-class' as string]: classMeta.color }}
       >
-        {data ? (
-          <DeckListView
-            cards={data.cards}
-            sideboards={data.sideboards}
-            title={classMeta.label}
-            subtitle={format === 'wild' ? 'Вольный формат' : 'Стандарт'}
-            headerColor={classMeta.color}
-            totalCards={data.totalCards}
-            deckSizeLimit={data.deckSizeLimit}
-            deckCode={deck.deckCode}
-            showCopy
-            emptyText="Состав этой колоды пока недоступен."
-          />
-        ) : error ? (
-          <div className="fun-deck-card__deck-state fun-deck-card__deck-state--error" role="alert">
-            <TriangleAlert aria-hidden="true" />
-            <strong>Состав не загрузился</strong>
-            <span>{error}</span>
-            <button type="button" onClick={reload}>
-              <RefreshCw aria-hidden="true" />
-              Повторить
-            </button>
-          </div>
-        ) : (
-          <div className="fun-deck-card__deck-state" aria-busy={loading}>
-            {Array.from({ length: 10 }, (_, index) => (
-              <span key={index} className="fun-deck-card__deck-skeleton" />
-            ))}
-          </div>
-        )}
+        <DeckRenderPreview deckCode={deck.deckCode} deckName={deck.title}>
+          {data ? (
+            <DeckListView
+              cards={data.cards}
+              sideboards={data.sideboards}
+              title={classMeta.label}
+              subtitle={format === 'wild' ? 'Вольный формат' : 'Стандарт'}
+              headerColor={classMeta.color}
+              totalCards={data.totalCards}
+              deckSizeLimit={data.deckSizeLimit}
+              deckCode={deck.deckCode}
+              showCopy
+              emptyText="Состав этой колоды пока недоступен."
+            />
+          ) : error ? (
+            <div className="fun-deck-card__deck-state fun-deck-card__deck-state--error" role="alert">
+              <TriangleAlert aria-hidden="true" />
+              <strong>Состав не загрузился</strong>
+              <span>{error}</span>
+              <button type="button" onClick={reload}>
+                <RefreshCw aria-hidden="true" />
+                Повторить
+              </button>
+            </div>
+          ) : (
+            <div className="fun-deck-card__deck-state" aria-busy={loading}>
+              {Array.from({ length: 10 }, (_, index) => (
+                <span key={index} className="fun-deck-card__deck-skeleton" />
+              ))}
+            </div>
+          )}
+        </DeckRenderPreview>
       </div>
 
       {deck.url ? (

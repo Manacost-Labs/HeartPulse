@@ -19,6 +19,7 @@ import {
   normalizeConstructedHeroClass,
 } from './constructedDeckCode';
 import DeckListView, { type DeckListCard } from './decklist/DeckListView';
+import DeckRenderPreview from './deckrender/DeckRenderPreview';
 import type { HistoryPoint } from './ArchetypeHistoryChart';
 import './ArchetypeDetailSections.css';
 
@@ -505,17 +506,30 @@ export function ArchetypeDecksPanel({
                   </span>
                 </header>
 
-                <DeckListView
-                  cards={cards}
-                  title={`Сборка ${index + 1}`}
-                  subtitle={sideboardCount ? `${sideboardCount} карт сайдборда не включены в код` : 'Стандарт'}
-                  headerColor={classColor}
-                  totalCards={cards.reduce((sum, card) => sum + card.count, 0)}
-                  deckCode={deckCode}
-                  showCopy={Boolean(deckCode)}
-                  previewRows={5}
-                  emptyText="Состав этой сборки пока недоступен."
-                />
+                {deckCode ? (
+                  <DeckRenderPreview deckCode={deckCode} deckName={`Сборка ${index + 1}`}>
+                    <DeckListView
+                      cards={cards}
+                      title={`Сборка ${index + 1}`}
+                      subtitle={sideboardCount ? `${sideboardCount} карт сайдборда не включены в код` : 'Стандарт'}
+                      headerColor={classColor}
+                      totalCards={cards.reduce((sum, card) => sum + card.count, 0)}
+                      deckCode={deckCode}
+                      showCopy
+                      previewRows={5}
+                      emptyText="Состав этой сборки пока недоступен."
+                    />
+                  </DeckRenderPreview>
+                ) : (
+                  <DeckListView
+                    cards={cards}
+                    title={`Сборка ${index + 1}`}
+                    subtitle={sideboardCount ? `${sideboardCount} карт сайдборда не включены в код` : 'Стандарт'}
+                    headerColor={classColor}
+                    totalCards={cards.reduce((sum, card) => sum + card.count, 0)}
+                    emptyText="Состав этой сборки пока недоступен."
+                  />
+                )}
 
                 <footer className="archetype-deck-card__actions">
                   {builderHref ? (

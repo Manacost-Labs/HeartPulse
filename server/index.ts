@@ -97,7 +97,8 @@ import {
   selectStandardMetaCandidate,
   type StandardMetaPublication,
 } from './standardMetaDataset.js';
-import { renderDeckviewPreview } from './deckviewPreview.js';
+import { deckviewPreviewConfigFromEnv, renderDeckviewPreview } from './deckviewPreview.js';
+import { createDeckRenderRouter } from './deckRenderRoutes.js';
 import { buildDeckCardData } from './deckCardData.js';
 import {
   hsguruStreamerArchetype,
@@ -301,8 +302,6 @@ let standardMetaStreamerDeckInfoJob: Promise<Map<string, HsguruDeckInfo>> | null
 const standardMetaPreviewCache = new Map<string, { preview: StandardMetaPreview; expiresAt: number }>();
 const standardMetaPreviewJobs = new Map<string, Promise<StandardMetaPreview>>();
 let parserDataCacheGeneration = 0;
-let deckviewPreviewRenderTail: Promise<void> = Promise.resolve();
-let deckviewPreviewQueued = 0;
 let deckviewPreviewActive = 0;
 let deckviewPreviewSucceeded = 0;
 let deckviewPreviewFailed = 0;
@@ -4613,9 +4612,7 @@ const STANDARD_META_RECOMMENDATION_CACHE_MS = 6 * 60 * 60_000;
 const STANDARD_META_PERSISTED_RECOMMENDATION_MAX_AGE_MS = 24 * 60 * 60_000;
 const HSGURU_DECK_INFO_API_URL = 'https://api.hsguru.com/api/deck-info';
 const STANDARD_META_PREVIEW_CACHE_MS = 30 * 24 * 60 * 60_000;
-const DECKVIEW_RENDER_API_BASE_URL = (process.env.DECKVIEW_RENDER_API_BASE_URL || 'http://127.0.0.1:5000/deckview-api/v1').replace(/\/+$/, '');
-const DECKVIEW_RENDER_PUBLIC_BASE_URL = (process.env.DECKVIEW_RENDER_PUBLIC_BASE_URL || 'https://api.blizzcore.ru').replace(/\/+$/, '');
-const DECKVIEW_RENDER_TIMEOUT_MS = Math.max(5_000, Math.min(120_000, Number(process.env.DECKVIEW_RENDER_TIMEOUT_MS) || 105_000));
+const DECKVIEW_RENDER = deckviewPreviewConfigFromEnv();
 const STANDARD_ARCHETYPE_RU: Record<string, string> = {
   'Ace Hunter': 'Эйс Охотник',
   'Aggro Paladin': 'Агро Паладин',
@@ -7302,7 +7299,7 @@ async function findStandardMetaRecommendation(
 function isDeckviewPreview(preview: StandardMetaPreview): boolean {
   return preview.ready
     && Boolean(preview.imageUrl)
-    && preview.imageUrl!.startsWith(`${DECKVIEW_RENDER_PUBLIC_BASE_URL}/static/generated/`);
+    && preview.imageUrl!.startsWith(`${DECKVIEW_RENDER.publicBaseUrl}/static/generated/`);
 }
 
 async function fetchStandardMetaPreview(hash: string): Promise<StandardMetaPreview> {
@@ -7316,7 +7313,13 @@ async function fetchStandardMetaPreview(hash: string): Promise<StandardMetaPrevi
 }
 
 async function createStandardMetaPreview(recommendation: { deckCode: string; archetypeLabel: string }): Promise<StandardMetaPreview> {
-  const cacheKey = createHash('sha256').update(recommendation.deckCode).digest('hex');
+  const cacheKey = createHash('sha256')
+    .update(DECKVIEW_RENDER.revision)
+    .update('\0')
+    .update(recommendation.deckCode)
+    .update('\0')
+    .update(recommendation.archetypeLabel)
+    .digest('hex');
   const cached = standardMetaPreviewCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now() && isDeckviewPreview(cached.preview)) return cached.preview;
   if (cached) {
@@ -7328,12 +7331,6 @@ async function createStandardMetaPreview(recommendation: { deckCode: string; arc
   const active = standardMetaPreviewJobs.get(cacheKey);
   if (active) return active;
   const job = (async () => {
-    const previousRender = deckviewPreviewRenderTail;
-    let releaseRender!: () => void;
-    deckviewPreviewRenderTail = new Promise<void>(resolve => { releaseRender = resolve; });
-    deckviewPreviewQueued += 1;
-    await previousRender.catch(() => undefined);
-    deckviewPreviewQueued = Math.max(0, deckviewPreviewQueued - 1);
     deckviewPreviewActive += 1;
     let preview: StandardMetaPreview;
     try {
@@ -7342,9 +7339,11 @@ async function createStandardMetaPreview(recommendation: { deckCode: string; arc
         deckName: recommendation.archetypeLabel,
         hash: cacheKey,
       }, {
-        apiBaseUrl: DECKVIEW_RENDER_API_BASE_URL,
-        publicBaseUrl: DECKVIEW_RENDER_PUBLIC_BASE_URL,
-        timeoutMs: DECKVIEW_RENDER_TIMEOUT_MS,
+        apiBaseUrl: DECKVIEW_RENDER.apiBaseUrl,
+        publicBaseUrl: DECKVIEW_RENDER.publicBaseUrl,
+        apiKey: DECKVIEW_RENDER.apiKey,
+        timeoutMs: DECKVIEW_RENDER.timeoutMs,
+        pollIntervalMs: DECKVIEW_RENDER.pollIntervalMs,
       });
       deckviewPreviewSucceeded += 1;
     } catch (error) {
@@ -7352,7 +7351,6 @@ async function createStandardMetaPreview(recommendation: { deckCode: string; arc
       throw error;
     } finally {
       deckviewPreviewActive = Math.max(0, deckviewPreviewActive - 1);
-      releaseRender();
     }
     standardMetaPreviewCache.set(cacheKey, { preview, expiresAt: Date.now() + STANDARD_META_PREVIEW_CACHE_MS });
     persistStandardMetaPreviewCache();
@@ -7790,6 +7788,9 @@ app.use('/api', createConstructedCardRouter({
     error instanceof Error ? error.message : error,
   ),
 }));
+app.use('/api', createDeckRenderRouter({ render: async (deckCode, deckName) => (
+  createStandardMetaPreview({ deckCode, archetypeLabel: deckName })
+) }));
 
 app.use('/api', createGlobalSearchRouter({
   loadArticles: () => loadDataCached('articles.json'),
@@ -9760,16 +9761,16 @@ function standardOperationsStatus() {
       previews: { entries: standardMetaPreviewCache.size, activeJobs: standardMetaPreviewJobs.size },
     },
     deckView: {
-      queued: deckviewPreviewQueued,
+      queued: 0,
       active: deckviewPreviewActive,
       succeeded: deckviewPreviewSucceeded,
       failed: deckviewPreviewFailed,
-      timeoutMs: DECKVIEW_RENDER_TIMEOUT_MS,
+      timeoutMs: DECKVIEW_RENDER.timeoutMs,
     },
     sources: {
       viciousSyndicate: VICIOUS_SYNDICATE_LIVE_DATASET,
       cardStatistics: CONSTRUCTED_CARDS_DATASET_BY_FORMAT,
-      renderApi: DECKVIEW_RENDER_API_BASE_URL,
+      renderApi: DECKVIEW_RENDER.apiBaseUrl,
     },
   };
 }
