@@ -1,6 +1,28 @@
 import assert from 'node:assert/strict';
 import express, { type RequestHandler } from 'express';
 import { createAdminStandardOperationsRouter, type StandardCacheTarget } from '../server/adminStandardOperationsRoutes.js';
+import {
+  describeCardStatisticsSource,
+  normalizeStandardOperationsStatus,
+} from '../src/features/adminParserControl/StandardOperationsLegacy.js';
+
+const nestedCardStatistics = {
+  standard: {
+    legend: {
+      '1d': 'hsreplay_cards_legend_1d',
+      '3d': 'hsreplay_cards_legend_3d',
+    },
+    diamond: { '1d': 'hsreplay_cards_diamond_1d' },
+  },
+  wild: { legend: { '1d': 'hsreplay_cards_wild_legend_1d' } },
+};
+const normalizedStatus = normalizeStandardOperationsStatus({
+  sources: { cardStatistics: nestedCardStatistics },
+});
+assert.equal(describeCardStatisticsSource(normalizedStatus.sources.cardStatistics.standard), '3 наборов данных');
+assert.equal(describeCardStatisticsSource(normalizedStatus.sources.cardStatistics.wild), 'hsreplay_cards_wild_legend_1d');
+assert.equal(normalizedStatus.deckView.failed, 0);
+assert.deepEqual(normalizedStatus.publicRoutes, []);
 
 const resets: StandardCacheTarget[] = [];
 const adminGuard: RequestHandler = (request, response, next) => request.headers['x-admin'] === 'yes' ? next() : response.status(403).end();

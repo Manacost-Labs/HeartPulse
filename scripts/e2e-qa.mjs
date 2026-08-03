@@ -668,7 +668,14 @@ const adminFixtures = {
     diamondRoutes: ['/standard/matchups', '/standard/meta', '/standard/vicious-gold'],
     caches: { meta: { entries: 8, fresh: 8 }, viciousGold: { entries: 1, fresh: 1 }, recommendations: { entries: 24, active: 0 }, previews: { entries: 19, activeJobs: 0 } },
     deckView: { queued: 0, active: 0, succeeded: 31, failed: 1, timeoutMs: 30000 },
-    sources: { viciousSyndicate: 'vicious-syndicate-live-standard', cardStatistics: { standard: 'cards-standard', wild: 'cards-wild' }, renderApi: 'http://127.0.0.1:5000/deckview-api/v1' },
+    sources: {
+      viciousSyndicate: 'vicious-syndicate-live-standard',
+      cardStatistics: {
+        standard: { legend: { '1d': 'cards-standard-legend-1d', '3d': 'cards-standard-legend-3d' } },
+        wild: { legend: { '1d': 'cards-wild-legend-1d' } },
+      },
+      renderApi: 'http://127.0.0.1:5000/deckview-api/v1',
+    },
   },
   '/api/admin/parser-control': {
     revision: 3,
