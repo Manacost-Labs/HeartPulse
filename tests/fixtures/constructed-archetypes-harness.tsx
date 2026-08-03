@@ -143,6 +143,9 @@ const resolvedDeck = {
 
 globalThis.fetch = (async (input: RequestInfo | URL) => {
   const url = String(input);
+  if (url.includes('/api/deck/render')) {
+    await new Promise(resolve => setTimeout(resolve, 600));
+  }
   const payload = url.includes('/api/deck/render')
     ? {
         ok: true,

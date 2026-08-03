@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Replaced the brief fallback-card-list flash in Deckview galleries with a
+  stable parchment-sized loading surface; the list now appears only after a
+  real render error, so newly revealed decks no longer jump while loading.
 - Fixed intermittent full-page React recovery screens after deployments by
   baking the Git SHA into the Vite entry chunk instead of query-versioning the
   module URL, which could make browsers evaluate the entry module twice.

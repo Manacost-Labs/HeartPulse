@@ -102,8 +102,15 @@ function DeckRenderPreviewInstance({
   }, [deckCode, deckName]);
 
   const showImage = state.imageReady;
+  const showFallback = Boolean(state.error);
+  const showLoading = !showImage && !showFallback;
   return (
-    <div ref={rootRef} className={`deck-render-preview ${className}`.trim()} data-render-state={state.error ? 'error' : state.imageReady ? 'ready' : visible ? 'loading' : 'idle'}>
+    <div
+      ref={rootRef}
+      className={`deck-render-preview ${className}`.trim()}
+      data-render-state={state.error ? 'error' : state.imageReady ? 'ready' : visible ? 'loading' : 'idle'}
+      aria-busy={showLoading}
+    >
       <div className="deck-render-preview__image" hidden={!showImage}>
         {state.imageUrl ? (
           <button
@@ -132,7 +139,10 @@ function DeckRenderPreviewInstance({
           </button>
         ) : null}
       </div>
-      <div className="deck-render-preview__list" hidden={showImage}>
+      <div className="deck-render-preview__loading" hidden={!showLoading} aria-hidden="true">
+        <span>Собираем изображение колоды…</span>
+      </div>
+      <div className="deck-render-preview__list" hidden={!showFallback}>
         {children}
       </div>
 

@@ -309,6 +309,31 @@ try {
   await page.waitForFunction(() => document.querySelectorAll('.constructed-card-stats tbody tr').length === 18);
   await page.$eval('.archetype-builds__more', button => button.click());
   await page.waitForFunction(() => document.querySelectorAll('.archetype-deck-card').length === 13);
+  const revealedDeckLoadingStates = await page.$$eval(
+    '.archetype-builds .archetype-deck-card:nth-child(n + 7) .deck-render-preview',
+    previews => previews.map(preview => {
+      const placeholder = preview.querySelector('.deck-render-preview__loading');
+      const placeholderRect = placeholder?.getBoundingClientRect();
+      return {
+        state: preview.getAttribute('data-render-state'),
+        listHidden: preview.querySelector('.deck-render-preview__list')?.hidden,
+        placeholderVisible: Boolean(placeholder && !placeholder.hidden),
+        placeholderRatio: placeholderRect?.height
+          ? placeholderRect.width / placeholderRect.height
+          : 0,
+      };
+    }),
+  );
+  assert.ok(revealedDeckLoadingStates.length >= 6, 'the expanded gallery must expose deferred Deckview previews');
+  assert.ok(
+    revealedDeckLoadingStates.every(state => (
+      (state.state === 'loading' || state.state === 'idle')
+      && state.listHidden === true
+      && state.placeholderVisible
+      && Math.abs(state.placeholderRatio - 1) <= 0.01
+    )),
+    `newly revealed decks must reserve a stable image area without flashing their fallback lists: ${JSON.stringify(revealedDeckLoadingStates)}`,
+  );
   await page.screenshot({ path: `${screenshotPrefix}-detail-desktop.png`, fullPage: true });
 
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
