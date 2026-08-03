@@ -10,6 +10,8 @@
   manifest so cold Fun Deck galleries progressively become instant warm loads.
 - Exposed preview-prewarm queue telemetry in Standard operations and retained
   the existing card-list fallback for real render or delivery failures.
+- Bounded failed preview and full-image delivery retries, preventing a network
+  outage from turning three gallery cards into an unbounded request storm.
 - Made Deckview previews recover automatically from short-lived render API and
   generated-image delivery failures, so individual Fun Decks no longer remain
   stuck on the fallback card list after a cold render.

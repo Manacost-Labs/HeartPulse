@@ -8,6 +8,11 @@ import {
   requestDeckRender,
   type DeckRenderAsset,
 } from './deckRenderClient';
+import {
+  MAX_IMAGE_LOAD_RETRIES,
+  settleExhaustedImageLoad,
+  type DeckImageLoadState,
+} from './deckImageLoadState';
 import './DeckRenderPreview.css';
 
 type DeckRenderPreviewProps = {
@@ -36,16 +41,9 @@ export default function DeckRenderPreview({
   );
 }
 
-type PreviewState = {
-  error: string;
-  fullImageUrl: string;
-  imageRetryAttempt: number;
-  imageReady: boolean;
-  previewImageUrl: string;
+type PreviewState = DeckImageLoadState & {
   requestVersion: number;
 };
-
-const MAX_IMAGE_LOAD_RETRIES = 2;
 
 function DeckRenderPreviewInstance({
   deckCode,
@@ -129,17 +127,10 @@ function DeckRenderPreviewInstance({
   }, [deckCode, deckName]);
 
   const retryImageLoad = useCallback(() => {
+    if (state.error) return;
     if (imageRetryTimerRef.current !== null) window.clearTimeout(imageRetryTimerRef.current);
     if (state.imageRetryAttempt >= MAX_IMAGE_LOAD_RETRIES) {
-      setState(current => ({
-        ...current,
-        error: current.previewImageUrl !== current.fullImageUrl
-          ? ''
-          : 'Не удалось загрузить готовое изображение колоды',
-        imageReady: false,
-        imageRetryAttempt: 0,
-        previewImageUrl: current.fullImageUrl,
-      }));
+      setState(current => settleExhaustedImageLoad(current));
       return;
     }
     const expectedImageUrl = state.previewImageUrl;
@@ -155,7 +146,7 @@ function DeckRenderPreviewInstance({
         };
       });
     }, delayMs);
-  }, [state.imageRetryAttempt, state.previewImageUrl]);
+  }, [state.error, state.imageRetryAttempt, state.previewImageUrl]);
 
   const showImage = state.imageReady;
   const showFallback = Boolean(state.error);
