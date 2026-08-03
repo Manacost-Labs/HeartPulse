@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useReducer, useRef, useState, type ReactNode } from 'react';
+import React, { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   cachedDeckRender,
   invalidateDeckRender,
@@ -42,34 +42,6 @@ type PreviewState = {
   view: 'image' | 'list';
 };
 
-type PreviewAction =
-  | { type: 'image-loaded' }
-  | { type: 'image-failed'; message: string }
-  | { type: 'render-ready'; url: string }
-  | { type: 'retry' }
-  | { type: 'switch-view'; view: 'image' | 'list' };
-
-function previewReducer(state: PreviewState, action: PreviewAction): PreviewState {
-  switch (action.type) {
-    case 'image-loaded':
-      return { ...state, error: '', imageReady: true };
-    case 'image-failed':
-      return { ...state, error: action.message, imageReady: false };
-    case 'render-ready':
-      return { ...state, error: '', imageReady: false, imageUrl: action.url };
-    case 'retry':
-      return {
-        ...state,
-        error: '',
-        imageReady: false,
-        imageUrl: '',
-        requestVersion: state.requestVersion + 1,
-      };
-    case 'switch-view':
-      return { ...state, view: action.view };
-  }
-}
-
 function DeckRenderPreviewInstance({
   deckCode,
   deckName,
@@ -80,7 +52,7 @@ function DeckRenderPreviewInstance({
 }: DeckRenderPreviewProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(eager);
-  const [state, dispatch] = useReducer(previewReducer, undefined, (): PreviewState => ({
+  const [state, setState] = useState<PreviewState>(() => ({
     error: '',
     imageReady: false,
     imageUrl: cachedDeckRender(deckCode, deckName),
@@ -109,14 +81,12 @@ function DeckRenderPreviewInstance({
     let active = true;
     void requestDeckRender(deckCode, deckName)
       .then(url => {
-        if (active) dispatch({ type: 'render-ready', url });
+        if (active) setState(current => ({ ...current, error: '', imageReady: false, imageUrl: url }));
       })
       .catch(cause => {
         if (active) {
-          dispatch({
-            type: 'image-failed',
-            message: cause instanceof Error ? cause.message : 'Не удалось собрать изображение колоды',
-          });
+          const message = cause instanceof Error ? cause.message : 'Не удалось собрать изображение колоды';
+          setState(current => ({ ...current, error: message, imageReady: false }));
         }
       });
     return () => { active = false; };
@@ -124,7 +94,13 @@ function DeckRenderPreviewInstance({
 
   const retry = useCallback(() => {
     invalidateDeckRender(deckCode, deckName);
-    dispatch({ type: 'retry' });
+    setState(current => ({
+      ...current,
+      error: '',
+      imageReady: false,
+      imageUrl: '',
+      requestVersion: current.requestVersion + 1,
+    }));
   }, [deckCode, deckName]);
 
   const showImage = state.view === 'image' && state.imageReady;
@@ -139,8 +115,8 @@ function DeckRenderPreviewInstance({
             height="2048"
             loading={eager ? 'eager' : 'lazy'}
             decoding="async"
-            onLoad={() => dispatch({ type: 'image-loaded' })}
-            onError={() => dispatch({ type: 'image-failed', message: 'Не удалось загрузить готовое изображение колоды' })}
+            onLoad={() => setState(current => ({ ...current, error: '', imageReady: true }))}
+            onError={() => setState(current => ({ ...current, error: 'Не удалось загрузить готовое изображение колоды', imageReady: false }))}
           />
         ) : null}
       </div>
@@ -150,8 +126,8 @@ function DeckRenderPreviewInstance({
 
       {state.imageUrl && state.imageReady ? (
         <div className="deck-render-preview__switch">
-          <button type="button" aria-pressed={state.view === 'image'} onClick={() => dispatch({ type: 'switch-view', view: 'image' })}>Пергамент</button>
-          <button type="button" aria-pressed={state.view === 'list'} onClick={() => dispatch({ type: 'switch-view', view: 'list' })}>Список карт</button>
+          <button type="button" aria-pressed={state.view === 'image'} onClick={() => setState(current => ({ ...current, view: 'image' }))}>Пергамент</button>
+          <button type="button" aria-pressed={state.view === 'list'} onClick={() => setState(current => ({ ...current, view: 'list' }))}>Список карт</button>
         </div>
       ) : state.error ? (
         <button type="button" className="deck-render-preview__retry" onClick={retry}>Повторить загрузку изображения</button>
