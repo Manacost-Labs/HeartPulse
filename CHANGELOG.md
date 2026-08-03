@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Restored a persistent “Скопировать код колоды” action below every rendered
+  archetype deck, including clipboard success feedback and mobile-sized targets.
 - Added a read-only data monitoring card to the parser admin panel with an
   overall health state, source freshness, stable-fallback visibility, bounded
   error details, manual refresh and visibility-aware 60-second auto-refresh.

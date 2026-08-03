@@ -916,6 +916,46 @@
   padding: 0;
 }
 
+.archetype-deck-card__copy {
+  display: inline-flex;
+  min-height: 48px;
+  gap: 0.45rem;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.62rem 0.75rem;
+  border: 0;
+  border-top: 1px solid rgba(239, 201, 111, 0.26);
+  color: #fff0c8;
+  background: linear-gradient(180deg, #9f2832, #71121b);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: filter 140ms ease, background 140ms ease;
+}
+
+.archetype-deck-card__copy:hover {
+  filter: brightness(1.1);
+}
+
+.archetype-deck-card__copy.is-copied {
+  background: linear-gradient(180deg, #4f792f, #31511f);
+}
+
+.archetype-deck-card__copy:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 3px solid #efc96f;
+  outline-offset: -3px;
+}
+
+.archetype-deck-card__copy svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+
 .archetype-deck-card__state {
   display: grid;
   flex: 1 1 auto;

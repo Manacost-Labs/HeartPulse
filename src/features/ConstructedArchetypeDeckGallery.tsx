@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Copy,
   RefreshCw,
   TriangleAlert,
 } from 'lucide-react';
@@ -97,7 +98,13 @@ function DeckBuildCard({
   const [deck, setDeck] = useState<ResolvedDeck | null>(null);
   const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
+  const [copyState, setCopyState] = useState<'idle' | 'ok' | 'error'>('idle');
   const classColor = CLASS_COLORS[classKey || ''] || '#67131c';
+  const copyLabel = copyState === 'ok'
+    ? 'Код скопирован'
+    : copyState === 'error'
+      ? 'Не удалось скопировать'
+      : 'Скопировать код колоды';
 
   useEffect(() => {
     const controller = new AbortController();
@@ -112,6 +119,24 @@ function DeckBuildCard({
       });
     return () => controller.abort();
   }, [archetype, build, format, revision]);
+
+  useEffect(() => {
+    if (copyState === 'idle') return undefined;
+    const timeout = window.setTimeout(
+      () => setCopyState('idle'),
+      copyState === 'ok' ? 1600 : 2000,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [copyState]);
+
+  const copyDeckCode = async () => {
+    try {
+      await navigator.clipboard.writeText(build.deckCode);
+      setCopyState('ok');
+    } catch {
+      setCopyState('error');
+    }
+  };
 
   return (
     <article className="archetype-deck-card">
@@ -140,7 +165,6 @@ function DeckBuildCard({
             totalCards={deck.totalCards}
             deckSizeLimit={deck.deckSizeLimit}
             deckCode={build.deckCode}
-            showCopy
             previewRows={5}
             emptyText="Состав этой сборки пока недоступен."
           />
@@ -164,6 +188,16 @@ function DeckBuildCard({
           </div>
         )}
       </DeckRenderPreview>
+
+      <button
+        type="button"
+        className={`archetype-deck-card__copy${copyState === 'ok' ? ' is-copied' : ''}`}
+        aria-label={`${copyLabel}: сборка ${index + 1}`}
+        onClick={() => void copyDeckCode()}
+      >
+        <Copy aria-hidden="true" />
+        <span aria-live="polite">{copyLabel}</span>
+      </button>
     </article>
   );
 }

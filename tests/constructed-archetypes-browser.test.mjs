@@ -124,6 +124,26 @@ try {
     0,
     'deck cards must not repeat builder and HSGuru actions below the rendered image',
   );
+  assert.ok(
+    await page.$$eval('.archetype-deck-card__copy', buttons => (
+      buttons.length > 0 && buttons.every(button => button.getBoundingClientRect().height >= 44)
+    )),
+    'every rendered deck card must keep an accessible copy-code action below its preview',
+  );
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: async value => { window.__copiedDeckCode = value; },
+      },
+    });
+  });
+  await page.click('.archetype-deck-card__copy');
+  await page.waitForFunction(() => document.querySelector('.archetype-deck-card__copy')?.textContent?.includes('Код скопирован'));
+  assert.ok(
+    await page.evaluate(() => typeof window.__copiedDeckCode === 'string' && window.__copiedDeckCode.length > 20),
+    'the copy action must write the full deck code to the clipboard',
+  );
   await page.click('.archetype-main-build .deck-render-preview__open');
   await page.waitForSelector('.deck-render-lightbox[role="dialog"]');
   assert.equal(
@@ -281,9 +301,9 @@ try {
       value: { writeText: async value => { window.__qaCopiedDeckCode = value; } },
     });
   });
-  await page.click('.archetype-main-build .deck-list-view__copy-btn');
-  await page.waitForFunction(() => document.querySelector('.archetype-main-build .deck-list-view__copy-btn')
-    ?.getAttribute('aria-label') === 'Код колоды скопирован');
+  await page.click('.archetype-main-build .archetype-deck-card__copy');
+  await page.waitForFunction(() => document.querySelector('.archetype-main-build .archetype-deck-card__copy')
+    ?.getAttribute('aria-label')?.startsWith('Код скопирован'));
   assert.match(await page.evaluate(() => window.__qaCopiedDeckCode || ''), /^AA/);
   await page.click('.constructed-card-stats__more');
   await page.waitForFunction(() => document.querySelectorAll('.constructed-card-stats tbody tr').length === 18);
@@ -333,7 +353,7 @@ try {
   const detailMobile = await page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     chartCount: document.querySelectorAll('.archetype-trend').length,
-    copyHeight: document.querySelector('.archetype-main-build .deck-list-view__copy-btn')?.getBoundingClientRect().height ?? 0,
+    copyHeight: document.querySelector('.archetype-main-build .archetype-deck-card__copy')?.getBoundingClientRect().height ?? 0,
     deckTileHeight: document.querySelector('.archetype-deck-card .deck-tile')?.getBoundingClientRect().height ?? 0,
     deckGemWidth: document.querySelector('.archetype-deck-card .hsrdv-card-gem')?.getBoundingClientRect().width ?? 0,
     deckColumnCount: document.querySelectorAll('.archetype-deck-card').length,
