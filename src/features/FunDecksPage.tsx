@@ -143,6 +143,34 @@ function isRecentlyAdded(deck: FunDeckRow, fetchedAt: string | null): boolean {
   return firstSeen > 0 && firstSeen >= reference - 72 * 60 * 60 * 1_000;
 }
 
+async function writeClipboardText(value: string): Promise<void> {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(value);
+      return;
+    } catch {
+      // Fall through for browsers that expose Clipboard API but deny writes.
+    }
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = value;
+  textarea.readOnly = true;
+  textarea.setAttribute('aria-hidden', 'true');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  textarea.setSelectionRange(0, value.length);
+
+  try {
+    if (!document.execCommand('copy')) throw new Error('Clipboard write failed');
+  } finally {
+    textarea.remove();
+  }
+}
+
 function FunDeckCard({
   deck,
   fresh = false,
@@ -181,7 +209,7 @@ function FunDeckCard({
 
   const copyDeckCode = async () => {
     try {
-      await navigator.clipboard.writeText(deck.deckCode);
+      await writeClipboardText(deck.deckCode);
       setCopyState('ok');
     } catch {
       setCopyState('error');

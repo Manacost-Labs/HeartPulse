@@ -220,6 +220,26 @@ try {
   );
   await page.screenshot({ path: `${screenshotPrefix}-fun-decks-rendered.png`, fullPage: true });
 
+  await page.reload({ waitUntil: 'networkidle0' });
+  await page.waitForSelector('.fun-deck-card .deck-render-preview[data-render-state="ready"]');
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: async () => { throw new DOMException('Denied', 'NotAllowedError'); } },
+    });
+    document.execCommand = command => {
+      if (command !== 'copy') return false;
+      window.__fallbackCopiedFunDeckCode = document.activeElement?.value;
+      return true;
+    };
+  });
+  await page.click('.fun-deck-card__copy');
+  await page.waitForFunction(() => document.querySelector('.fun-deck-card__copy')?.textContent?.includes('Код скопирован'));
+  assert.ok(
+    await page.evaluate(() => typeof window.__fallbackCopiedFunDeckCode === 'string' && window.__fallbackCopiedFunDeckCode.length > 20),
+    'the fun-deck copy action must fall back when Clipboard API writes are denied',
+  );
+
   await page.setViewport({ width: 1024, height: 900, deviceScaleFactor: 1 });
   await page.goto(`${origin}/tests/fixtures/soft-paywall.html?page=fun-decks&access=full`, { waitUntil: 'networkidle0' });
   assert.equal(
