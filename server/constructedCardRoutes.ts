@@ -158,6 +158,7 @@ type DataServiceDependencies = {
   historyStore?: ConstructedCardHistoryStore;
   onHistoryError?: (error: unknown) => void;
   negativeDetailCacheMaxEntries?: number;
+  catalogPageConcurrency?: number;
   cacheTtlMs?: number;
 };
 
@@ -820,9 +821,33 @@ async function fetchCatalogPage(dependencies: DataServiceDependencies, format: C
   return dependencies.fetchJson(url.toString());
 }
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await mapper(items[index]);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
 export function createConstructedCardDataService(dependencies: DataServiceDependencies): ConstructedCardDataService {
   const now = dependencies.now ?? Date.now;
   const cacheTtlMs = Math.max(1_000, Math.min(15 * 60_000, dependencies.cacheTtlMs ?? 5 * 60_000));
+  // The wild catalog currently spans more than thirty ~500 KiB pages. A
+  // bounded fan-out avoids turning every cache refresh into a burst large
+  // enough to overload the local DB proxy and incorrectly fall back to LKG.
+  const catalogPageConcurrency = Math.max(1, Math.min(8, Math.floor(
+    dependencies.catalogPageConcurrency ?? 4,
+  )));
   const catalogStore = dependencies.catalogStore ?? new ConstructedCardCatalogStore({
     stateDirectory: dependencies.stateDirectory ?? process.env.SERVER_DATA_DIR ?? 'server/data',
     now,
@@ -977,8 +1002,10 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
         if (!Number.isSafeInteger(totalPages) || totalPages < 1 || totalPages > 100) {
           throw new ConstructedCardCatalogCandidateError('Constructed catalog page count is invalid');
         }
-        const remainingPages = await Promise.all(
-          Array.from({ length: totalPages - 1 }, (_, index) => fetchCatalogPage(dependencies, format, index + 2)),
+        const remainingPages = await mapWithConcurrency(
+          Array.from({ length: totalPages - 1 }, (_, index) => index + 2),
+          catalogPageConcurrency,
+          page => fetchCatalogPage(dependencies, format, page),
         );
         const candidate = completeConstructedCatalogCandidate([firstPage, ...remainingPages], format);
         const document = catalogStore.publish(format, candidate.cards, {

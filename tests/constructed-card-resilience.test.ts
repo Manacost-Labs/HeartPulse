@@ -39,6 +39,7 @@ type HarnessOptions = {
   decks?: (url: URL) => Promise<any> | any;
   cacheTtlMs?: number;
   negativeDetailCacheMaxEntries?: number;
+  catalogPageConcurrency?: number;
   catalogStore?: ConstructedCardCatalogStore;
 };
 
@@ -49,6 +50,7 @@ function serviceHarness(options: HarnessOptions) {
     now: options.now,
     cacheTtlMs: options.cacheTtlMs ?? 1_000,
     negativeDetailCacheMaxEntries: options.negativeDetailCacheMaxEntries,
+    catalogPageConcurrency: options.catalogPageConcurrency,
     catalogStore: options.catalogStore,
     maxCatalogStaleMs: 48 * 60 * 60_000,
     minimumCatalogCardsByFormat: { standard: 1, wild: 1 },
@@ -121,6 +123,34 @@ try {
   assert.ok(coldResults.every(result => result.datasetVersion === coldResults[0].datasetVersion));
   assert.ok(coldResults.every(result => result.cacheSource === 'fresh' && result.dataStatus === 'fresh'));
   assert.ok(coldResults.every(result => result.partial === false));
+
+  const boundedFanoutDirectory = mkdtempSync(join(tmpdir(), 'arena-constructed-card-bounded-fanout-'));
+  try {
+    let activePages = 0;
+    let peakActivePages = 0;
+    const boundedFanout = serviceHarness({
+      directory: boundedFanoutDirectory,
+      now: () => now,
+      catalogPageConcurrency: 3,
+      catalog: async (_format, page) => {
+        activePages += 1;
+        peakActivePages = Math.max(peakActivePages, activePages);
+        await new Promise(resolve => setTimeout(resolve, 5));
+        activePages -= 1;
+        return {
+          data: [{ ...baseCards[0], card_id: `CARD_${page}`, dbf: page }],
+          updated_at: '2026-07-21T07:55:00.000Z',
+          pagination: { page, total: 9, total_pages: 9 },
+        };
+      },
+    });
+    const collection = await boundedFanout.service.loadCards('wild');
+    assert.equal(collection.cards.length, 9);
+    assert.ok(peakActivePages <= 3,
+      `catalog pagination must respect the configured concurrency, saw ${peakActivePages}`);
+  } finally {
+    rmSync(boundedFanoutDirectory, { recursive: true, force: true });
+  }
 
   const freshRouter = await startRouter(cold.service);
   try {

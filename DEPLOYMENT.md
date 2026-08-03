@@ -344,6 +344,11 @@ upstream monitor is diagnostic for `/health/data`, not a process-readiness
 dependency, so a cold-start network probe cannot block an otherwise healthy
 release from starting.
 
+Constructed-card catalog pagination uses four workers by default. Keep this
+fan-out bounded: Wild currently spans more than thirty large pages, and loading
+all of them simultaneously can overload the local DB proxy and make a recently
+verified catalog appear as LKG after a transient fetch failure.
+
 ## Verified production drill
 
 The first production drill on 2026-07-11 switched release `bc19b2b` back to
