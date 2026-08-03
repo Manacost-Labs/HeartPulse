@@ -334,6 +334,13 @@ sudo systemctl show hs-arena-scraper.service -p Result -p ExecMainStatus
 curl -fsS https://arena.hs-manacost.ru/api/health/data
 ```
 
+`/api/health/data` also monitors `api.hs-manacost.ru/v1/system/health` in the
+background. The upstream request is bounded by a five-second timeout and is
+cached for five minutes, so health visibility does not add latency to normal
+pages. Any stale, semantic-failed, hard-failed or publication-failed parser
+source changes the aggregate dataset to `degraded`; a failed probe preserves
+the last known state and reports its warning instead of hiding the outage.
+
 ## Verified production drill
 
 The first production drill on 2026-07-11 switched release `bc19b2b` back to

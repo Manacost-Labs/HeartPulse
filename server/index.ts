@@ -22,8 +22,9 @@ import {
 } from './archetypeDeckCodesSchema.js';
 import { loadSnapshot } from './snapshots.js';
 import { HSREPLAY_NO_ARENASMITH_TIER, normalizeArenasmithTier, tierFromArenasmithScore } from './hsreplayArenasmith.js';
-import { evaluateDataHealth } from './health.js';
 import { createHealthRouter } from './healthRoutes.js';
+import { createUpstreamDataHealthMonitor } from './upstreamDataHealth.js';
+import { createCriticalDataHealth } from './criticalDataHealth.js';
 import { createMetricsRouter, HttpMetrics } from './metrics.js';
 import { createWebVitalsRouter } from './webVitalsRoutes.js';
 import { requestLoggingMiddleware, structuredErrorMiddleware } from './observability.js';
@@ -8380,38 +8381,17 @@ app.use('/api', createBattlegroundProxyRouter({
   enrichHeroPayload: enrichBattlegroundHeroPayload,
 }));
 
-function criticalDataHealth() {
-  const staticDatasets = [
-    { name: 'winrates', file: 'winrates.json', collection: 'classes' },
-    { name: 'tierlist', file: 'tierlist.json', collection: 'sections' },
-    { name: 'legendaries', file: 'legendaries.json', collection: 'groups' },
-  ].map(definition => {
-    const entry = loadDataCached(definition.file);
-    const records = Array.isArray(entry?.data?.[definition.collection])
-      ? entry.data[definition.collection].length
-      : undefined;
-    return {
-      name: definition.name,
-      updatedAt: entry?.data?.updatedAt,
-      source: entry?.data?.source,
-      records,
-    };
-  });
-  const constructedCards = (['standard', 'wild'] as const).map(format => {
-    const health = constructedCardDataService.getCatalogHealth(format);
-    return {
-      name: `constructed-cards-${format}`,
-      updatedAt: health.dataStatus === 'unavailable' ? null : health.verifiedAt,
-      source: health.cacheSource === 'LKG' ? 'db.kolodahs.ru:last-known-good' : 'db.kolodahs.ru',
-      records: health.records,
-      state: health.dataStatus === 'unavailable' ? 'missing' as const : health.state,
-      dataStatus: health.dataStatus,
-      cacheSource: health.cacheSource,
-      warning: health.warning,
-    };
-  });
-  return evaluateDataHealth([...staticDatasets, ...constructedCards]);
-}
+const upstreamDataHealth = createUpstreamDataHealthMonitor({
+  url: `${(process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN).replace(/\/+$/, '')}/v1/system/health`,
+  timeoutMs: Number(process.env.HS_DATA_API_HEALTH_TIMEOUT_MS || 5_000),
+  refreshIntervalMs: Number(process.env.HS_DATA_API_HEALTH_REFRESH_MS || 5 * 60_000),
+});
+upstreamDataHealth.start();
+const criticalDataHealth = createCriticalDataHealth({
+  loadDataset: loadDataCached,
+  getConstructedCatalogHealth: format => constructedCardDataService.getCatalogHealth(format),
+  getUpstreamInput: upstreamDataHealth.getInput,
+});
 
 const healthRouter = createHealthRouter({
   getDataHealth: criticalDataHealth,

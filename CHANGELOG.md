@@ -1,5 +1,11 @@
 # HS-Arena Changelog
 
+## Unreleased
+
+- Extended `/health/data` and `/api/health/data` with the cached aggregate
+  health of all `api.hs-manacost.ru` parser datasets, including stale and
+  failed source names, without adding upstream latency to visitor requests.
+
 ## v1.0.105 - 2026-08-01
 
 - Applied the `25px` compact HSReplay-derived deck row profile to every

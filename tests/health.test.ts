@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import { DEFAULT_DATA_MAX_AGE_MS, evaluateDataHealth } from '../server/health.js';
 import { createHealthRouter } from '../server/healthRoutes.js';
+import { createUpstreamDataHealthMonitor } from '../server/upstreamDataHealth.js';
+import { createCriticalDataHealth } from '../server/criticalDataHealth.js';
 
 const now = Date.parse('2026-07-11T12:00:00.000Z');
 const freshInputs = [
@@ -55,6 +57,57 @@ assert.deepEqual(invalid.datasets.map(dataset => dataset.state), ['invalid', 'in
 const empty = evaluateDataHealth([], { now });
 assert.equal(empty.status, 'unavailable');
 assert.equal(empty.ready, false);
+
+const parserMonitor = createUpstreamDataHealthMonitor({
+  url: 'https://api.example.test/v1/system/health',
+  fetchImpl: async () => new Response(JSON.stringify({
+    data: {
+      freshness_ok: false,
+      stale_sources: ['hsguru_meta_matrix'],
+      hard_failed_sources: ['hsguru_meta_matrix'],
+    },
+    meta: { fetched_at: '2026-07-11T11:59:00.000Z', count: 96 },
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+  now: () => now,
+});
+await parserMonitor.refresh();
+const parserInput = parserMonitor.getInput();
+assert.equal(parserInput.name, 'hs-data-api');
+assert.equal(parserInput.state, 'stale');
+assert.equal(parserInput.records, 96);
+assert.match(String(parserInput.warning), /hsguru_meta_matrix/);
+
+const criticalDataHealth = createCriticalDataHealth({
+  loadDataset: filename => ({
+    data: {
+      updatedAt: '2026-07-11T11:59:00.000Z',
+      source: filename,
+      classes: filename === 'winrates.json' ? [{}] : undefined,
+      sections: filename === 'tierlist.json' ? [{}] : undefined,
+      groups: filename === 'legendaries.json' ? [{}] : undefined,
+    },
+  }),
+  getConstructedCatalogHealth: () => ({
+    dataStatus: 'fresh',
+    verifiedAt: '2026-07-11T11:59:00.000Z',
+    records: 100,
+    state: 'fresh',
+  }),
+  getUpstreamInput: parserMonitor.getInput,
+});
+const criticalReport = criticalDataHealth();
+assert.equal(criticalReport.status, 'degraded');
+assert.equal(criticalReport.datasets.at(-1)?.name, 'hs-data-api');
+assert.equal(criticalReport.datasets.at(-1)?.state, 'stale');
+
+const failedParserMonitor = createUpstreamDataHealthMonitor({
+  url: 'https://api.example.test/v1/system/health',
+  fetchImpl: async () => { throw new Error('network unavailable'); },
+  now: () => now,
+});
+await failedParserMonitor.refresh();
+assert.equal(failedParserMonitor.getInput().state, 'missing');
+assert.match(String(failedParserMonitor.getInput().warning), /network unavailable/);
 
 let activeReport = fresh;
 const app = express();
