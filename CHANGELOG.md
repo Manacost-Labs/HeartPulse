@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Made Deckview previews recover automatically from short-lived render API and
+  generated-image delivery failures, so individual Fun Decks no longer remain
+  stuck on the fallback card list after a cold render.
 - Changed the Fun Decks desktop gallery from six narrow cards to three readable
   deck cards per row, while retaining two-column tablet and one-column mobile
   layouts.

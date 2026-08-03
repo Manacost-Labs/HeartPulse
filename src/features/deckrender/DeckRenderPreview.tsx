@@ -3,6 +3,7 @@ import { Maximize2, X } from 'lucide-react';
 import ModalSurface from '../../components/ModalSurface/ModalSurface';
 import {
   cachedDeckRender,
+  deckRenderImageRetryUrl,
   invalidateDeckRender,
   requestDeckRender,
 } from './deckRenderClient';
@@ -35,10 +36,13 @@ export default function DeckRenderPreview({
 
 type PreviewState = {
   error: string;
+  imageRetryAttempt: number;
   imageReady: boolean;
   imageUrl: string;
   requestVersion: number;
 };
+
+const MAX_IMAGE_LOAD_RETRIES = 2;
 
 function DeckRenderPreviewInstance({
   deckCode,
@@ -49,10 +53,12 @@ function DeckRenderPreviewInstance({
 }: DeckRenderPreviewProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const imageRetryTimerRef = useRef<number | null>(null);
   const [visible, setVisible] = useState(eager);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [state, setState] = useState<PreviewState>(() => ({
     error: '',
+    imageRetryAttempt: 0,
     imageReady: false,
     imageUrl: cachedDeckRender(deckCode, deckName),
     requestVersion: 0,
@@ -79,7 +85,13 @@ function DeckRenderPreviewInstance({
     let active = true;
     void requestDeckRender(deckCode, deckName)
       .then(url => {
-        if (active) setState(current => ({ ...current, error: '', imageReady: false, imageUrl: url }));
+        if (active) setState(current => ({
+          ...current,
+          error: '',
+          imageReady: false,
+          imageRetryAttempt: 0,
+          imageUrl: url,
+        }));
       })
       .catch(cause => {
         if (active) {
@@ -90,16 +102,46 @@ function DeckRenderPreviewInstance({
     return () => { active = false; };
   }, [deckCode, deckName, state.requestVersion, visible]);
 
+  useEffect(() => () => {
+    if (imageRetryTimerRef.current !== null) window.clearTimeout(imageRetryTimerRef.current);
+  }, []);
+
   const retry = useCallback(() => {
     invalidateDeckRender(deckCode, deckName);
     setState(current => ({
       ...current,
       error: '',
+      imageRetryAttempt: 0,
       imageReady: false,
       imageUrl: '',
       requestVersion: current.requestVersion + 1,
     }));
   }, [deckCode, deckName]);
+
+  const retryImageLoad = useCallback(() => {
+    if (imageRetryTimerRef.current !== null) window.clearTimeout(imageRetryTimerRef.current);
+    if (state.imageRetryAttempt >= MAX_IMAGE_LOAD_RETRIES) {
+      setState(current => ({
+        ...current,
+        error: 'Не удалось загрузить готовое изображение колоды',
+        imageReady: false,
+      }));
+      return;
+    }
+    const expectedImageUrl = state.imageUrl;
+    const delayMs = 250 * (2 ** state.imageRetryAttempt);
+    imageRetryTimerRef.current = window.setTimeout(() => {
+      imageRetryTimerRef.current = null;
+      setState(current => {
+        if (!current.imageUrl || current.imageUrl !== expectedImageUrl || current.imageReady) return current;
+        return {
+          ...current,
+          error: '',
+          imageRetryAttempt: current.imageRetryAttempt + 1,
+        };
+      });
+    }, delayMs);
+  }, [state.imageRetryAttempt, state.imageUrl]);
 
   const showImage = state.imageReady;
   const showFallback = Boolean(state.error);
@@ -120,7 +162,7 @@ function DeckRenderPreviewInstance({
             onClick={() => setLightboxOpen(true)}
           >
             <img
-              src={state.imageUrl}
+              src={deckRenderImageRetryUrl(state.imageUrl, state.imageRetryAttempt)}
               alt={`Колода «${deckName}» в стиле «Пергамент»`}
               width="2048"
               height="2048"
@@ -131,7 +173,7 @@ function DeckRenderPreviewInstance({
               loading="eager"
               decoding="async"
               onLoad={() => setState(current => ({ ...current, error: '', imageReady: true }))}
-              onError={() => setState(current => ({ ...current, error: 'Не удалось загрузить готовое изображение колоды', imageReady: false }))}
+              onError={retryImageLoad}
             />
             <span className="deck-render-preview__open-icon" aria-hidden="true">
               <Maximize2 />

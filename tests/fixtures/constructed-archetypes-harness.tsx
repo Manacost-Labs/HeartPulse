@@ -141,9 +141,24 @@ const resolvedDeck = {
   sideboards: [],
 };
 
-globalThis.fetch = (async (input: RequestInfo | URL) => {
+const renderAttempts = new Map<string, number>();
+
+globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = String(input);
   if (url.includes('/api/deck/render')) {
+    const request = JSON.parse(String(init?.body ?? '{}')) as { deckCode?: string };
+    const cacheKey = request.deckCode || 'unknown';
+    const attempt = (renderAttempts.get(cacheKey) ?? 0) + 1;
+    renderAttempts.set(cacheKey, attempt);
+    if (attempt === 1) {
+      return new Response(JSON.stringify({
+        ok: false,
+        error: 'Временный сбой рендера',
+      }), {
+        status: 502,
+        headers: { 'Content-Type': 'application/json', 'Retry-After': '0' },
+      });
+    }
     await new Promise(resolve => setTimeout(resolve, 600));
   }
   const payload = url.includes('/api/deck/render')
