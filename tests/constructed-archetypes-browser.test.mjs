@@ -116,10 +116,11 @@ try {
   );
   assert.equal(
     await page.$$eval('.archetype-main-build .deck-render-preview__switch button', buttons => buttons.length),
-    2,
+    0,
+    'the rendered parchment is the only successful deck presentation',
   );
-  await page.$$eval('.deck-render-preview__switch button:last-child', buttons => {
-    buttons.forEach(button => button.click());
+  await page.$$eval('.deck-render-preview__list', lists => {
+    lists.forEach(list => { list.hidden = false; });
   });
   await page.waitForFunction(() => !document.querySelector('.archetype-main-build .deck-render-preview__list')?.hidden);
   assert.equal(await page.$eval('h1', heading => heading.textContent), 'Воровской Жрец');
@@ -287,8 +288,9 @@ try {
   await page.waitForSelector('.archetype-deck-card .deck-tile');
   await page.waitForSelector('.constructed-matchup-ledger li');
   await page.waitForSelector('.archetype-main-build .deck-render-preview__image:not([hidden]) img');
-  await page.$$eval('.deck-render-preview__switch button:last-child', buttons => {
-    buttons.forEach(button => button.click());
+  assert.equal(await page.$$eval('.deck-render-preview__switch', switches => switches.length), 0);
+  await page.$$eval('.deck-render-preview__list', lists => {
+    lists.forEach(list => { list.hidden = false; });
   });
   await page.waitForFunction(() => !document.querySelector('.archetype-main-build .deck-render-preview__list')?.hidden);
   const detailMobile = await page.evaluate(() => ({

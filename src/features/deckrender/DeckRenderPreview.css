@@ -17,19 +17,9 @@
   background: var(--surface, #191a1d);
 }
 
-.deck-render-preview__switch {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.25rem;
-  padding: 0.25rem;
-  border: 1px solid color-mix(in srgb, var(--line, #8f714d) 64%, transparent);
-  background: color-mix(in srgb, var(--surface, #191a1d) 92%, transparent);
-}
-
-.deck-render-preview__switch button,
 .deck-render-preview__retry {
   min-height: 2.5rem;
-  border: 0;
+  border: 1px solid color-mix(in srgb, var(--line, #8f714d) 64%, transparent);
   color: var(--text, #f5ead5);
   background: transparent;
   font: inherit;
@@ -37,23 +27,7 @@
   cursor: pointer;
 }
 
-.deck-render-preview__switch button[aria-pressed='true'] {
-  color: var(--accent, #f0c36c);
-  background: color-mix(in srgb, var(--accent, #f0c36c) 16%, transparent);
-}
-
-.deck-render-preview__retry {
-  border: 1px solid color-mix(in srgb, var(--line, #8f714d) 64%, transparent);
-}
-
-.deck-render-preview__switch button:focus-visible,
 .deck-render-preview__retry:focus-visible {
   outline: 2px solid var(--accent, #f0c36c);
   outline-offset: 2px;
-}
-
-@media (max-width: 420px) {
-  .deck-render-preview__switch button {
-    min-height: 2.75rem;
-  }
 }

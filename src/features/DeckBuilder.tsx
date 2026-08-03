@@ -963,7 +963,6 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
             <DeckRenderPreview
               deckCode={deckCode}
               deckName={archetype?.archetypeLabel || classMeta.label}
-              defaultView="list"
             >
               {interactiveDeckList}
             </DeckRenderPreview>

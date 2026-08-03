@@ -11,7 +11,6 @@ type DeckRenderPreviewProps = {
   deckName: string;
   children: ReactNode;
   className?: string;
-  defaultView?: 'image' | 'list';
   eager?: boolean;
 };
 
@@ -19,17 +18,15 @@ type DeckRenderPreviewProps = {
 export default function DeckRenderPreview({
   deckCode,
   deckName,
-  defaultView = 'image',
   ...props
 }: DeckRenderPreviewProps) {
-  const instanceKey = `${deckCode}\u0000${deckName}\u0000${defaultView}`;
+  const instanceKey = `${deckCode}\u0000${deckName}`;
   return (
     <DeckRenderPreviewInstance
       key={instanceKey}
       {...props}
       deckCode={deckCode}
       deckName={deckName}
-      defaultView={defaultView}
     />
   );
 }
@@ -39,7 +36,6 @@ type PreviewState = {
   imageReady: boolean;
   imageUrl: string;
   requestVersion: number;
-  view: 'image' | 'list';
 };
 
 function DeckRenderPreviewInstance({
@@ -47,7 +43,6 @@ function DeckRenderPreviewInstance({
   deckName,
   children,
   className = '',
-  defaultView = 'image',
   eager = false,
 }: DeckRenderPreviewProps) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -57,7 +52,6 @@ function DeckRenderPreviewInstance({
     imageReady: false,
     imageUrl: cachedDeckRender(deckCode, deckName),
     requestVersion: 0,
-    view: defaultView,
   }));
 
   useEffect(() => {
@@ -103,7 +97,7 @@ function DeckRenderPreviewInstance({
     }));
   }, [deckCode, deckName]);
 
-  const showImage = state.view === 'image' && state.imageReady;
+  const showImage = state.imageReady;
   return (
     <div ref={rootRef} className={`deck-render-preview ${className}`.trim()} data-render-state={state.error ? 'error' : state.imageReady ? 'ready' : visible ? 'loading' : 'idle'}>
       <div className="deck-render-preview__image" hidden={!showImage}>
@@ -128,12 +122,7 @@ function DeckRenderPreviewInstance({
         {children}
       </div>
 
-      {state.imageUrl && state.imageReady ? (
-        <div className="deck-render-preview__switch">
-          <button type="button" aria-pressed={state.view === 'image'} onClick={() => setState(current => ({ ...current, view: 'image' }))}>Пергамент</button>
-          <button type="button" aria-pressed={state.view === 'list'} onClick={() => setState(current => ({ ...current, view: 'list' }))}>Список карт</button>
-        </div>
-      ) : state.error ? (
+      {state.error ? (
         <button type="button" className="deck-render-preview__retry" onClick={retry}>Повторить загрузку изображения</button>
       ) : null}
     </div>

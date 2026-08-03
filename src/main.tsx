@@ -20,7 +20,7 @@ const startClientRum = () => {
   void import('./telemetry/webVitals')
     .then(({ startWebVitalsReporting }) => startWebVitalsReporting())
     .catch(error => {
-      console.warn('[telemetry] web-vitals initialization failed:', error);
+      console.warn('[telemetry] web-vitals failed:', error);
     });
 };
 
