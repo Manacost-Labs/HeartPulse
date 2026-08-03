@@ -113,7 +113,11 @@ function DeckRenderPreviewInstance({
             alt={`Колода «${deckName}» в стиле «Пергамент»`}
             width="2048"
             height="2048"
-            loading={eager ? 'eager' : 'lazy'}
+            // The request itself is already deferred by IntersectionObserver.
+            // Once its URL is ready the image must load eagerly: lazy images in
+            // a hidden staging container are not fetched by Chromium, so their
+            // onLoad event can never reveal the parchment preview.
+            loading="eager"
             decoding="async"
             onLoad={() => setState(current => ({ ...current, error: '', imageReady: true }))}
             onError={() => setState(current => ({ ...current, error: 'Не удалось загрузить готовое изображение колоды', imageReady: false }))}

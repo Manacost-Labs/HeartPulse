@@ -108,6 +108,20 @@ try {
   await page.waitForSelector('.archetype-deck-card .deck-tile');
   await page.waitForSelector('.constructed-matchup-ledger li');
   await page.waitForSelector('.constructed-card-stats tbody tr');
+  await page.waitForSelector('.archetype-main-build .deck-render-preview__image:not([hidden]) img');
+  assert.equal(
+    await page.$eval('.archetype-main-build .deck-render-preview__image img', image => image.getAttribute('loading')),
+    'eager',
+    'a rendered parchment must not deadlock as a lazy image inside its hidden staging container',
+  );
+  assert.equal(
+    await page.$$eval('.archetype-main-build .deck-render-preview__switch button', buttons => buttons.length),
+    2,
+  );
+  await page.$$eval('.deck-render-preview__switch button:last-child', buttons => {
+    buttons.forEach(button => button.click());
+  });
+  await page.waitForFunction(() => !document.querySelector('.archetype-main-build .deck-render-preview__list')?.hidden);
   assert.equal(await page.$eval('h1', heading => heading.textContent), 'Воровской Жрец');
   assert.equal(await page.$$eval('.archetype-trend', charts => charts.length), 3);
   assert.equal(await page.$$eval('.archetype-deck-card', cards => cards.length), 7);
@@ -272,6 +286,11 @@ try {
   await page.waitForSelector('.archetype-detail-page .archetype-trend');
   await page.waitForSelector('.archetype-deck-card .deck-tile');
   await page.waitForSelector('.constructed-matchup-ledger li');
+  await page.waitForSelector('.archetype-main-build .deck-render-preview__image:not([hidden]) img');
+  await page.$$eval('.deck-render-preview__switch button:last-child', buttons => {
+    buttons.forEach(button => button.click());
+  });
+  await page.waitForFunction(() => !document.querySelector('.archetype-main-build .deck-render-preview__list')?.hidden);
   const detailMobile = await page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     chartCount: document.querySelectorAll('.archetype-trend').length,

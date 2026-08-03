@@ -143,7 +143,15 @@ const resolvedDeck = {
 
 globalThis.fetch = (async (input: RequestInfo | URL) => {
   const url = String(input);
-  const payload = url.includes('/api/deck/resolve')
+  const payload = url.includes('/api/deck/render')
+    ? {
+        ok: true,
+        ready: true,
+        renderer: 'rust',
+        style: 'parchment',
+        imageUrl: '/wallpaper/home-paladin-hero.webp',
+      }
+    : url.includes('/api/deck/resolve')
     ? { ...resolvedDeck, deckCode: new URL(url, window.location.origin).searchParams.get('code') }
     : url.includes('/wild/void-soul-dh')
       ? { ...detail, item: voidSoulItem }
