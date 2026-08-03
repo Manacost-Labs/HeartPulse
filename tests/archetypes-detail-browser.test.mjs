@@ -153,6 +153,8 @@ try {
   await page.mouse.move(0, 0);
   await page.waitForSelector('.card-preview-tooltip', { hidden: true });
 
+  await page.$eval('.archetype-deck-card .deck-render-preview', preview => preview.scrollIntoView({ block: 'center' }));
+  await page.waitForSelector('.archetype-deck-card .deck-render-preview[data-render-state="error"]');
   await page.hover('.archetype-deck-card .deck-tile');
   await page.waitForSelector('.card-preview-tooltip');
   assert.ok(await page.$eval('.card-preview-tooltip', node => Boolean(node.getAttribute('data-card-preview-id'))));
