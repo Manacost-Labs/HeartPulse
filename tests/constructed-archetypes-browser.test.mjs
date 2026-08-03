@@ -307,7 +307,7 @@ try {
   assert.match(await page.evaluate(() => window.__qaCopiedDeckCode || ''), /^AA/);
   await page.click('.constructed-card-stats__more');
   await page.waitForFunction(() => document.querySelectorAll('.constructed-card-stats tbody tr').length === 18);
-  await page.click('.archetype-builds__more');
+  await page.$eval('.archetype-builds__more', button => button.click());
   await page.waitForFunction(() => document.querySelectorAll('.archetype-deck-card').length === 13);
   await page.screenshot({ path: `${screenshotPrefix}-detail-desktop.png`, fullPage: true });
 
