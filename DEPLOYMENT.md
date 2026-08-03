@@ -339,7 +339,10 @@ background. The upstream request is bounded by a five-second timeout and is
 cached for five minutes, so health visibility does not add latency to normal
 pages. Any stale, semantic-failed, hard-failed or publication-failed parser
 source changes the aggregate dataset to `degraded`; a failed probe preserves
-the last known state and reports its warning instead of hiding the outage.
+the last known state and reports its warning instead of hiding the outage. The
+upstream monitor is diagnostic for `/health/data`, not a process-readiness
+dependency, so a cold-start network probe cannot block an otherwise healthy
+release from starting.
 
 ## Verified production drill
 

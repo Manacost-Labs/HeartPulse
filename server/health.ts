@@ -10,6 +10,7 @@ export interface HealthDatasetInput {
   dataStatus?: unknown;
   cacheSource?: unknown;
   warning?: unknown;
+  requiredForReadiness?: boolean;
 }
 
 export type DatasetHealthState = 'fresh' | 'stale' | 'missing' | 'invalid';
@@ -24,6 +25,7 @@ export interface DatasetHealth {
   dataStatus?: string | null;
   cacheSource?: string | null;
   warning?: string | null;
+  requiredForReadiness: boolean;
 }
 
 export interface DataHealthReport {
@@ -79,10 +81,13 @@ export function evaluateDataHealth(
       ...(input.warning !== undefined
         ? { warning: String(input.warning ?? '').trim() || null }
         : {}),
+      requiredForReadiness: input.requiredForReadiness !== false,
     } satisfies DatasetHealth;
   });
 
-  const ready = datasets.length > 0 && datasets.every(dataset => dataset.state !== 'missing' && dataset.state !== 'invalid');
+  const requiredDatasets = datasets.filter(dataset => dataset.requiredForReadiness);
+  const ready = requiredDatasets.length > 0
+    && requiredDatasets.every(dataset => dataset.state !== 'missing' && dataset.state !== 'invalid');
   const fresh = ready && datasets.every(dataset => dataset.state === 'fresh');
 
   return {

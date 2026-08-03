@@ -5,6 +5,8 @@
 - Extended `/health/data` and `/api/health/data` with the cached aggregate
   health of all `api.hs-manacost.ru` parser datasets, including stale and
   failed source names, without adding upstream latency to visitor requests.
+- Kept the upstream parser monitor outside the process-readiness gate so a
+  cold-start health probe cannot block a validated Arena release.
 
 ## v1.0.105 - 2026-08-01
 

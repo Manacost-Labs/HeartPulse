@@ -47,6 +47,14 @@ assert.equal(missing.status, 'unavailable');
 assert.equal(missing.ready, false);
 assert.equal(missing.datasets[0].state, 'missing');
 
+const optionalMissing = evaluateDataHealth([
+  freshInputs[0],
+  { name: 'hs-data-api', updatedAt: null, requiredForReadiness: false },
+], { now });
+assert.equal(optionalMissing.status, 'degraded');
+assert.equal(optionalMissing.ready, true);
+assert.equal(optionalMissing.fresh, false);
+
 const invalid = evaluateDataHealth([
   { name: 'winrates', updatedAt: 'not-a-date' },
   { name: 'tierlist', updatedAt: new Date(now + 10 * 60_000).toISOString() },

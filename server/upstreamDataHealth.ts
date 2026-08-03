@@ -54,6 +54,7 @@ export function createUpstreamDataHealthMonitor(options: UpstreamDataHealthOptio
     source: options.url,
     state: 'missing',
     warning: 'Upstream data health has not been checked yet.',
+    requiredForReadiness: false,
   };
   let inflight: Promise<void> | null = null;
 
@@ -78,6 +79,7 @@ export function createUpstreamDataHealthMonitor(options: UpstreamDataHealthOptio
         state: healthy ? 'fresh' : 'stale',
         dataStatus: healthy ? 'fresh' : 'degraded',
         warning: issueSummary(data),
+        requiredForReadiness: false,
       };
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
