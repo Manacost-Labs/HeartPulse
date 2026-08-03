@@ -1,5 +1,13 @@
 export type AppErrorKind = 'render' | 'chunk';
 
+export type AppIncidentDetails = {
+  kind: AppErrorKind;
+  releaseId: string;
+  error?: unknown;
+  componentStack?: string;
+  scope?: string;
+};
+
 const RELEASE_SHA_PATTERN = /^[a-f0-9]{7,40}$/i;
 const CHUNK_ERROR_PATTERNS = [
   /ChunkLoadError/i,
@@ -45,13 +53,35 @@ export function classifyAppError(error: unknown): AppErrorKind {
   return CHUNK_ERROR_PATTERNS.some(pattern => pattern.test(description)) ? 'chunk' : 'render';
 }
 
-export function registerAppIncident(incidentId: string): void {
+function errorDetails(error: unknown): { errorName: string; message: string; stack: string } {
+  if (error instanceof Error) {
+    return {
+      errorName: error.name,
+      message: error.message,
+      stack: error.stack ?? '',
+    };
+  }
+  return { errorName: typeof error, message: String(error ?? ''), stack: '' };
+}
+
+export function registerAppIncident(incidentId: string, details: AppIncidentDetails): void {
   if (typeof globalThis.fetch !== 'function') return;
-  void globalThis.fetch('/health/live', {
-    method: 'GET',
-    headers: { 'X-Request-ID': incidentId },
-    credentials: 'same-origin',
+  const error = errorDetails(details.error);
+  const route = typeof window !== 'undefined' ? window.location.pathname : '/';
+  void globalThis.fetch('/api/telemetry/client-errors', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'omit',
     cache: 'no-store',
     keepalive: true,
+    body: JSON.stringify({
+      incidentId,
+      kind: details.kind,
+      releaseId: details.releaseId,
+      route,
+      scope: details.scope ?? '',
+      ...error,
+      componentStack: details.componentStack ?? '',
+    }),
   }).catch(() => {});
 }

@@ -89,10 +89,16 @@ export class RecoverableSurfaceBoundary extends React.Component<
     };
   }
 
-  componentDidCatch(): void {
+  componentDidCatch(error: unknown, info: React.ErrorInfo): void {
     const { failure } = this.state;
     if (!failure) return;
-    registerAppIncident(failure.incidentId);
+    registerAppIncident(failure.incidentId, {
+      kind: failure.kind,
+      releaseId: typeof __APP_RELEASE_SHA__ === 'string' ? __APP_RELEASE_SHA__ : 'development',
+      error,
+      componentStack: info.componentStack ?? '',
+      scope: this.props.scope,
+    });
     console.error('[recoverable-surface]', JSON.stringify({
       scope: this.props.scope,
       kind: failure.kind,

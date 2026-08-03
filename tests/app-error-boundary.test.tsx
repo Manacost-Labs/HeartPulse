@@ -42,12 +42,32 @@ globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) =>
   diagnosticRequest = { input: String(input), init };
   return new Response(null, { status: 200 });
 }) as typeof fetch;
-registerAppIncident(firstIncident);
+registerAppIncident(firstIncident, {
+  kind: 'render',
+  releaseId: 'abcdef1234567890',
+  error: new TypeError('Cannot render dataset'),
+  componentStack: 'at StandardOperationsLegacy',
+  scope: 'application-root',
+});
 globalThis.fetch = originalFetch;
-assert.equal(diagnosticRequest?.input, '/health/live');
-assert.equal(new Headers(diagnosticRequest?.init?.headers).get('x-request-id'), firstIncident);
+assert.equal(diagnosticRequest?.input, '/api/telemetry/client-errors');
+assert.equal(new Headers(diagnosticRequest?.init?.headers).get('content-type'), 'application/json');
 assert.equal(diagnosticRequest?.init?.keepalive, true);
-assert.equal(diagnosticRequest?.init?.method, 'GET');
+assert.equal(diagnosticRequest?.init?.method, 'POST');
+assert.equal(diagnosticRequest?.init?.credentials, 'omit');
+const diagnosticBody = JSON.parse(String(diagnosticRequest?.init?.body));
+assert.match(diagnosticBody.stack, /TypeError: Cannot render dataset/);
+assert.deepEqual(diagnosticBody, {
+  incidentId: firstIncident,
+  kind: 'render',
+  releaseId: 'abcdef1234567890',
+  route: '/',
+  scope: 'application-root',
+  errorName: 'TypeError',
+  message: 'Cannot render dataset',
+  stack: diagnosticBody.stack,
+  componentStack: 'at StandardOperationsLegacy',
+});
 
 const renderMarkup = renderToStaticMarkup(
   <AppErrorRecoveryScreen

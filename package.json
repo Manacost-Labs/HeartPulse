@@ -54,7 +54,7 @@
     "test:sentry": "tsx tests/sentry-privacy.test.ts && tsx tests/web-vitals-sentry.test.ts && tsx tests/web-vitals-routes.test.ts",
     "test:mobile-layout-diagnostics": "node tests/mobile-layout-diagnostics.test.mjs",
     "test:modal-surface": "tsx tests/modal-surface-model.test.ts && node tests/modal-surface-browser.test.mjs",
-    "test:app-error-boundary": "tsx tests/app-error-boundary.test.tsx",
+    "test:app-error-boundary": "tsx tests/app-error-boundary.test.tsx && tsx tests/client-error-routes.test.ts",
     "test:recoverable-surface": "tsx tests/recoverable-surface.test.tsx && tsx tests/traditional-mode-banner-ui.test.ts",
     "test:not-found-route": "tsx tests/client-route-resolution.test.ts && tsx tests/not-found-page.test.tsx",
     "test:qa-contract": "node tests/qa-command-contract.test.mjs",

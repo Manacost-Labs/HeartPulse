@@ -27,6 +27,7 @@ import { createUpstreamDataHealthMonitor } from './upstreamDataHealth.js';
 import { createCriticalDataHealth } from './criticalDataHealth.js';
 import { createMetricsRouter, HttpMetrics } from './metrics.js';
 import { createWebVitalsRouter } from './webVitalsRoutes.js';
+import { createClientErrorRouter } from './clientErrorRoutes.js';
 import { requestLoggingMiddleware, structuredErrorMiddleware } from './observability.js';
 import { createScrapeQueueHandler } from './scrapeQueue.js';
 import { decodeSignedStateCookie, encodeSignedStateCookie, safeAuthReturnTo } from './authRedirect.js';
@@ -8407,6 +8408,9 @@ const metricsRouter = createMetricsRouter({
 app.use('/metrics', metricsRouter);
 app.use('/api/metrics', metricsRouter);
 app.use('/api', createWebVitalsRouter({ capture: captureServerWebVital }));
+app.use('/api', createClientErrorRouter({
+  capture: incident => console.error('[client-interface-error]', JSON.stringify(incident)),
+}));
 
 app.use('/api', createOperationalRouter({
   loadDataset: filename => loadDataCached(filename),

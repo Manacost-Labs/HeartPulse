@@ -38,12 +38,17 @@ export default class AppErrorBoundary extends React.Component<
     };
   }
 
-  componentDidCatch(): void {
+  componentDidCatch(error: unknown, info: React.ErrorInfo): void {
     const { failure } = this.state;
     if (!failure) return;
-    registerAppIncident(failure.incidentId);
+    registerAppIncident(failure.incidentId, {
+      kind: failure.kind,
+      releaseId: this.props.releaseId,
+      error,
+      componentStack: info.componentStack ?? '',
+      scope: 'application-root',
+    });
     if (import.meta.env.VITE_SENTRY_DSN) {
-      const error: unknown = arguments[0];
       void import('../telemetry/sentry').then(({ captureClientException }) => {
         captureClientException(error, {
           incidentId: failure.incidentId,
