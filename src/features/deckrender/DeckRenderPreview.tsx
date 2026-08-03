@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import React, { useCallback, useEffect, useReducer, useRef, useState, type ReactNode } from 'react';
 import {
   cachedDeckRender,
   invalidateDeckRender,
@@ -19,6 +19,60 @@ type DeckRenderPreviewProps = {
 export default function DeckRenderPreview({
   deckCode,
   deckName,
+  defaultView = 'image',
+  ...props
+}: DeckRenderPreviewProps) {
+  const instanceKey = `${deckCode}\u0000${deckName}\u0000${defaultView}`;
+  return (
+    <DeckRenderPreviewInstance
+      key={instanceKey}
+      {...props}
+      deckCode={deckCode}
+      deckName={deckName}
+      defaultView={defaultView}
+    />
+  );
+}
+
+type PreviewState = {
+  error: string;
+  imageReady: boolean;
+  imageUrl: string;
+  requestVersion: number;
+  view: 'image' | 'list';
+};
+
+type PreviewAction =
+  | { type: 'image-loaded' }
+  | { type: 'image-failed'; message: string }
+  | { type: 'render-ready'; url: string }
+  | { type: 'retry' }
+  | { type: 'switch-view'; view: 'image' | 'list' };
+
+function previewReducer(state: PreviewState, action: PreviewAction): PreviewState {
+  switch (action.type) {
+    case 'image-loaded':
+      return { ...state, error: '', imageReady: true };
+    case 'image-failed':
+      return { ...state, error: action.message, imageReady: false };
+    case 'render-ready':
+      return { ...state, error: '', imageReady: false, imageUrl: action.url };
+    case 'retry':
+      return {
+        ...state,
+        error: '',
+        imageReady: false,
+        imageUrl: '',
+        requestVersion: state.requestVersion + 1,
+      };
+    case 'switch-view':
+      return { ...state, view: action.view };
+  }
+}
+
+function DeckRenderPreviewInstance({
+  deckCode,
+  deckName,
   children,
   className = '',
   defaultView = 'image',
@@ -26,18 +80,13 @@ export default function DeckRenderPreview({
 }: DeckRenderPreviewProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(eager);
-  const [imageUrl, setImageUrl] = useState(() => cachedDeckRender(deckCode, deckName));
-  const [imageReady, setImageReady] = useState(false);
-  const [error, setError] = useState('');
-  const [retryToken, setRetryToken] = useState(0);
-  const [view, setView] = useState<'image' | 'list'>(defaultView);
-
-  useEffect(() => {
-    setView(defaultView);
-    setImageUrl(cachedDeckRender(deckCode, deckName));
-    setImageReady(false);
-    setError('');
-  }, [deckCode, deckName, defaultView]);
+  const [state, dispatch] = useReducer(previewReducer, undefined, (): PreviewState => ({
+    error: '',
+    imageReady: false,
+    imageUrl: cachedDeckRender(deckCode, deckName),
+    requestVersion: 0,
+    view: defaultView,
+  }));
 
   useEffect(() => {
     if (visible) return;
@@ -58,39 +107,40 @@ export default function DeckRenderPreview({
   useEffect(() => {
     if (!visible || !deckCode.trim()) return;
     let active = true;
-    setError('');
     void requestDeckRender(deckCode, deckName)
       .then(url => {
-        if (active) setImageUrl(url);
+        if (active) dispatch({ type: 'render-ready', url });
       })
       .catch(cause => {
-        if (active) setError(cause instanceof Error ? cause.message : 'Не удалось собрать изображение колоды');
+        if (active) {
+          dispatch({
+            type: 'image-failed',
+            message: cause instanceof Error ? cause.message : 'Не удалось собрать изображение колоды',
+          });
+        }
       });
     return () => { active = false; };
-  }, [deckCode, deckName, retryToken, visible]);
+  }, [deckCode, deckName, state.requestVersion, visible]);
 
   const retry = useCallback(() => {
     invalidateDeckRender(deckCode, deckName);
-    setImageUrl('');
-    setImageReady(false);
-    setError('');
-    setRetryToken(value => value + 1);
+    dispatch({ type: 'retry' });
   }, [deckCode, deckName]);
 
-  const showImage = view === 'image' && imageReady;
+  const showImage = state.view === 'image' && state.imageReady;
   return (
-    <div ref={rootRef} className={`deck-render-preview ${className}`.trim()} data-render-state={error ? 'error' : imageReady ? 'ready' : visible ? 'loading' : 'idle'}>
+    <div ref={rootRef} className={`deck-render-preview ${className}`.trim()} data-render-state={state.error ? 'error' : state.imageReady ? 'ready' : visible ? 'loading' : 'idle'}>
       <div className="deck-render-preview__image" hidden={!showImage}>
-        {imageUrl ? (
+        {state.imageUrl ? (
           <img
-            src={imageUrl}
+            src={state.imageUrl}
             alt={`Колода «${deckName}» в стиле «Пергамент»`}
             width="2048"
             height="2048"
             loading={eager ? 'eager' : 'lazy'}
             decoding="async"
-            onLoad={() => setImageReady(true)}
-            onError={() => setError('Не удалось загрузить готовое изображение колоды')}
+            onLoad={() => dispatch({ type: 'image-loaded' })}
+            onError={() => dispatch({ type: 'image-failed', message: 'Не удалось загрузить готовое изображение колоды' })}
           />
         ) : null}
       </div>
@@ -98,12 +148,12 @@ export default function DeckRenderPreview({
         {children}
       </div>
 
-      {imageUrl && imageReady ? (
-        <div className="deck-render-preview__switch" role="group" aria-label="Вид колоды">
-          <button type="button" aria-pressed={view === 'image'} onClick={() => setView('image')}>Пергамент</button>
-          <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}>Список карт</button>
+      {state.imageUrl && state.imageReady ? (
+        <div className="deck-render-preview__switch">
+          <button type="button" aria-pressed={state.view === 'image'} onClick={() => dispatch({ type: 'switch-view', view: 'image' })}>Пергамент</button>
+          <button type="button" aria-pressed={state.view === 'list'} onClick={() => dispatch({ type: 'switch-view', view: 'list' })}>Список карт</button>
         </div>
-      ) : error ? (
+      ) : state.error ? (
         <button type="button" className="deck-render-preview__retry" onClick={retry}>Повторить загрузку изображения</button>
       ) : null}
     </div>
