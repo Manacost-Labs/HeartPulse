@@ -4,7 +4,7 @@ import { createAdminStandardOperationsRouter, type StandardCacheTarget } from '.
 import {
   describeCardStatisticsSource,
   normalizeStandardOperationsStatus,
-} from '../src/features/adminParserControl/StandardOperationsLegacy.js';
+} from '../src/features/adminParserControl/standardOperationsStatus.js';
 
 const nestedCardStatistics = {
   standard: {

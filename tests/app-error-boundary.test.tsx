@@ -6,9 +6,9 @@ import AppErrorRecoveryScreen from '../src/components/AppErrorRecoveryScreen';
 import {
   classifyAppError,
   createIncidentId,
-  registerAppIncident,
   releaseIdFromModuleUrl,
 } from '../src/components/appErrorRecovery';
+import { registerAppIncident } from '../src/telemetry/clientIncident';
 
 assert.equal(releaseIdFromModuleUrl('https://example.test/assets/index.js?v=abcdef1'), 'abcdef1');
 assert.equal(

@@ -1,6 +1,6 @@
 import React from 'react';
 import type { AppErrorKind } from './appErrorRecovery';
-import { classifyAppError, createIncidentId, registerAppIncident } from './appErrorRecovery';
+import { classifyAppError, createIncidentId } from './appErrorRecovery';
 import AppErrorRecoveryScreen from './AppErrorRecoveryScreen';
 import './AppErrorBoundary.css';
 
@@ -41,13 +41,15 @@ export default class AppErrorBoundary extends React.Component<
   componentDidCatch(error: unknown, info: React.ErrorInfo): void {
     const { failure } = this.state;
     if (!failure) return;
-    registerAppIncident(failure.incidentId, {
-      kind: failure.kind,
-      releaseId: this.props.releaseId,
-      error,
-      componentStack: info.componentStack ?? '',
-      scope: 'application-root',
-    });
+    void import('../telemetry/clientIncident').then(({ registerAppIncident }) => {
+      registerAppIncident(failure.incidentId, {
+        kind: failure.kind,
+        releaseId: this.props.releaseId,
+        error,
+        componentStack: info.componentStack ?? '',
+        scope: 'application-root',
+      });
+    }).catch(() => {});
     if (import.meta.env.VITE_SENTRY_DSN) {
       void import('../telemetry/sentry').then(({ captureClientException }) => {
         captureClientException(error, {
