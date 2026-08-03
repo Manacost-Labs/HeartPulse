@@ -3,6 +3,7 @@ import type { AdminMessage } from './adminWorkspaceState';
 import FunDecksCard from './adminParserControl/FunDecksCard';
 import { ParserControlPanel } from './adminParserControl/ParserControlPanel';
 import { StandardOperationsLegacy } from './adminParserControl/StandardOperationsLegacy';
+import './adminParserControl/DataHealthOverviewCard.css';
 
 export function ContestAdminStandardOperations({ onMessage }: { onMessage: (message: AdminMessage | null) => void }) {
   return (

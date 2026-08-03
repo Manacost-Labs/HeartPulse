@@ -3,11 +3,13 @@ import type { AdminMessage } from '../adminWorkspaceState';
 import {
   createParserRun,
   loadParserAudit,
+  loadParserControl,
   loadParserControlBundle,
   loadParserRuns,
   updateParserPolicy,
   updateParserSections,
 } from './client';
+import { DataHealthOverviewCard } from './DataHealthOverviewCard';
 import { EarlyMetaDialog } from './EarlyMetaDialog';
 import { parserControlWarningMessage, toParserControlError, type ParserControlError } from './error';
 import { ParserControlAlerts, ParserControlInitialError, ParserControlLoading } from './ParserControlStatus';
@@ -88,6 +90,7 @@ export function ParserControlPanel({ onMessage }: { onMessage: (message: AdminMe
   const [audit, setAudit] = useState<ParserAuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [monitoringRefreshing, setMonitoringRefreshing] = useState(false);
   const [auditLoading, setAuditLoading] = useState(true);
   const [error, setError] = useState<ParserControlError | null>(null);
   const [runsError, setRunsError] = useState<ParserControlError | null>(null);
@@ -98,6 +101,7 @@ export function ParserControlPanel({ onMessage }: { onMessage: (message: AdminMe
   const [earlyDialogOpen, setEarlyDialogOpen] = useState(false);
   const settledRefreshController = useRef<AbortController | null>(null);
   const auditRefreshController = useRef<AbortController | null>(null);
+  const monitoringRefreshController = useRef<AbortController | null>(null);
   const hasActiveRun = hasActiveRuns(runs);
 
   const load = useCallback(async (signal?: AbortSignal, quiet = false) => {
@@ -144,7 +148,37 @@ export function ParserControlPanel({ onMessage }: { onMessage: (message: AdminMe
     settledRefreshController.current = null;
     auditRefreshController.current?.abort();
     auditRefreshController.current = null;
+    monitoringRefreshController.current?.abort();
+    monitoringRefreshController.current = null;
   }, []);
+
+  const refreshMonitoring = useCallback(async () => {
+    const controller = new AbortController();
+    monitoringRefreshController.current?.abort();
+    monitoringRefreshController.current = controller;
+    setMonitoringRefreshing(true);
+    try {
+      const nextSnapshot = await loadParserControl(controller.signal);
+      if (!controller.signal.aborted) {
+        setSnapshot(nextSnapshot);
+        setError(null);
+      }
+    } catch (caught) {
+      if (!controller.signal.aborted) setError(toParserControlError(caught));
+    } finally {
+      if (monitoringRefreshController.current === controller) {
+        monitoringRefreshController.current = null;
+        setMonitoringRefreshing(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void refreshMonitoring();
+    }, 60_000);
+    return () => window.clearInterval(interval);
+  }, [refreshMonitoring]);
 
   const refreshAudit = useCallback(async () => {
     const controller = new AbortController();
@@ -280,6 +314,11 @@ export function ParserControlPanel({ onMessage }: { onMessage: (message: AdminMe
         warnings={snapshot.warnings}
         refreshing={refreshing}
         onRetry={() => void load(undefined, true)}
+      />
+      <DataHealthOverviewCard
+        snapshot={snapshot}
+        refreshing={refreshing || monitoringRefreshing}
+        onRefresh={() => void refreshMonitoring()}
       />
       <div className="admin-parser-overview" aria-label="Сводка управления данными">
         <div><span>Автообновление</span><strong>{snapshot.summary.enabledSections} / {snapshot.sections.length}</strong><small>разделов включено</small></div>

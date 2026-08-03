@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added a read-only data monitoring card to the parser admin panel with an
+  overall health state, source freshness, stable-fallback visibility, bounded
+  error details, manual refresh and visibility-aware 60-second auto-refresh.
 - Removed the duplicated deck-builder and HSGuru action footer from rendered
   archetype decks and made each parchment preview open in an accessible,
   full-viewport lightbox with keyboard and focus restoration support.
