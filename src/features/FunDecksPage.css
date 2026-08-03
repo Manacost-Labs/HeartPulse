@@ -388,7 +388,7 @@
 
 .fun-decks-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: clamp(0.55rem, 0.8vw, 0.9rem);
   align-items: start;
 }
@@ -498,12 +498,6 @@
   background: #160d0b;
 }
 
-.fun-deck-card__deck .deck-list-view__actions {
-  background:
-    linear-gradient(rgba(72, 22, 19, 0.92), rgba(42, 15, 13, 0.96)),
-    url("/wallpaper/arena-rail-red.jpg") center / 375px 172px repeat;
-}
-
 .fun-deck-card__deck .deck-list-view__head {
   min-height: 35px;
   gap: 0.3rem;
@@ -544,21 +538,41 @@
   padding: 0.03rem 0.25rem;
 }
 
-.fun-deck-card__deck .deck-list-view__actions {
-  margin: 0.3rem;
-  padding: 0.08rem 0 0.16rem;
+.fun-deck-card__copy {
+  display: inline-flex;
+  width: calc(100% - 0.7rem);
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.42rem;
+  margin: 0.35rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgba(222, 184, 97, 0.55);
+  color: #fff0c8;
+  background:
+    linear-gradient(rgba(105, 19, 28, 0.96), rgba(72, 13, 20, 0.98)),
+    url("/wallpaper/arena-rail-red.jpg") center / 375px 172px repeat;
+  font: 800 0.74rem/1 var(--font-body, Inter, sans-serif);
+  cursor: pointer;
 }
 
-.fun-deck-card__deck .deck-list-view__copy-btn {
-  min-height: 34px;
-  gap: 0.28rem;
-  padding: 0.3rem 0.38rem;
-  font-size: 0.58rem;
+.fun-deck-card__copy:hover {
+  filter: brightness(1.08);
 }
 
-.fun-deck-card__deck .deck-list-view__copy-btn svg {
-  width: 12px;
-  height: 12px;
+.fun-deck-card__copy.is-copied {
+  color: #fff8d8;
+  background: #496b2d;
+}
+
+.fun-deck-card__copy:focus-visible {
+  outline: 3px solid var(--fun-gold);
+  outline-offset: 2px;
+}
+
+.fun-deck-card__copy svg {
+  width: 16px;
+  height: 16px;
 }
 
 .fun-deck-card__deck-state {
@@ -715,23 +729,11 @@
   100% { background-position: -100% 0; }
 }
 
-@media (max-width: 1599px) {
-  .fun-decks-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 1120px) {
   .fun-decks-hero {
     grid-template-columns: minmax(0, 1.2fr) minmax(270px, 0.8fr);
   }
 
-  .fun-decks-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 900px) {
   .fun-decks-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -811,7 +813,7 @@
     grid-template-columns: 1fr;
   }
 
-  .fun-deck-card__deck .deck-list-view__copy-btn,
+  .fun-deck-card__copy,
   .fun-deck-card__source a {
     min-height: 44px;
   }

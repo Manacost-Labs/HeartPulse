@@ -171,7 +171,15 @@ const resolvedSideboardCards = ([
 globalThis.fetch = (async (input: RequestInfo | URL) => {
   const url = new URL(String(input), window.location.origin);
   let payload: unknown;
-  if (url.pathname === '/api/fun-decks') {
+  if (url.pathname === '/api/deck/render' && new URLSearchParams(window.location.search).get('render') === 'ready') {
+    payload = {
+      ok: true,
+      ready: true,
+      renderer: 'rust',
+      style: 'parchment',
+      imageUrl: '/wallpaper/home-paladin-hero.webp',
+    };
+  } else if (url.pathname === '/api/fun-decks') {
     payload = funDecks;
   } else if (url.pathname === '/api/deck/resolve') {
     payload = {

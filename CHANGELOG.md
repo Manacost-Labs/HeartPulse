@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Changed the Fun Decks desktop gallery from six narrow cards to three readable
+  deck cards per row, while retaining two-column tablet and one-column mobile
+  layouts.
+- Restored a persistent “Скопировать код колоды” action below every Fun Deck
+  preview, including successfully rendered Deckview images and clipboard
+  success feedback.
 - Replaced the brief fallback-card-list flash in Deckview galleries with a
   stable parchment-sized loading surface; the list now appears only after a
   real render error, so newly revealed decks no longer jump while loading.

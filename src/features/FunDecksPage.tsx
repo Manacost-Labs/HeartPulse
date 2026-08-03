@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import {
   Clock3,
+  Copy,
   ExternalLink,
   RefreshCw,
   Search,
@@ -151,6 +152,7 @@ function FunDeckCard({
   fresh?: boolean;
   tourAnchor?: boolean;
 }) {
+  const [copyState, setCopyState] = useState<'idle' | 'ok' | 'error'>('idle');
   const format = formatOf(deck);
   const { data, loading, error, reload } = useResolvedDeck(deck.deckCode, {
     format,
@@ -161,6 +163,29 @@ function FunDeckCard({
     label: deck.className && deck.className !== '—' ? deck.className : 'Класс определяется',
     color: '#67131c',
     icon: '/arena-logo-icon.webp',
+  };
+  const copyLabel = {
+    idle: 'Скопировать код колоды',
+    ok: 'Код скопирован',
+    error: 'Не удалось скопировать',
+  }[copyState];
+
+  useEffect(() => {
+    if (copyState === 'idle') return undefined;
+    const timeout = window.setTimeout(
+      () => setCopyState('idle'),
+      copyState === 'ok' ? 1600 : 2000,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [copyState]);
+
+  const copyDeckCode = async () => {
+    try {
+      await navigator.clipboard.writeText(deck.deckCode);
+      setCopyState('ok');
+    } catch {
+      setCopyState('error');
+    }
   };
 
   return (
@@ -212,7 +237,6 @@ function FunDeckCard({
               totalCards={data.totalCards}
               deckSizeLimit={data.deckSizeLimit}
               deckCode={deck.deckCode}
-              showCopy
               emptyText="Состав этой колоды пока недоступен."
             />
           ) : error ? (
@@ -233,6 +257,15 @@ function FunDeckCard({
             </div>
           )}
         </DeckRenderPreview>
+        <button
+          type="button"
+          className={`fun-deck-card__copy${copyState === 'ok' ? ' is-copied' : ''}`}
+          aria-label={`${copyLabel}: ${deck.title}`}
+          onClick={() => void copyDeckCode()}
+        >
+          <Copy aria-hidden="true" />
+          <span aria-live="polite">{copyLabel}</span>
+        </button>
       </div>
 
       {deck.url ? (

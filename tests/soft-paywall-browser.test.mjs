@@ -107,6 +107,11 @@ try {
   await page.waitForSelector('.arena-inline-paywall--meta');
   await page.waitForSelector('[data-tour-id="fun-decks-deck-list"] .deck-list-view');
   assert.equal(await page.$$eval('.fun-deck-card', cards => cards.length), 3);
+  assert.equal(
+    await page.$eval('.fun-decks-grid', grid => getComputedStyle(grid).gridTemplateColumns.split(' ').length),
+    3,
+    'desktop fun-decks must show three decks per row',
+  );
   assert.equal(await page.$$eval('.fun-deck-card .deck-list-view__expand', buttons => buttons.length), 0);
   assert.equal(await page.$$eval('.fun-deck-card:first-child .deck-list-view__body > .deck-list-view__hsreplay > .deck-list-view__list > li', rows => rows.length), 17);
   assert.equal(await page.$$eval('.fun-deck-card:first-child .deck-list-view__sideboard li', rows => rows.length), 3);
@@ -179,8 +184,8 @@ try {
     cardHeight: document.querySelector('.fun-deck-card')?.getBoundingClientRect().height ?? 0,
   }));
   assert.equal(wideFunDecks.cardCount, 6);
-  assert.equal(wideFunDecks.columns, 6);
-  assert.ok(wideFunDecks.minCardWidth >= 210, `wide fun deck card was only ${wideFunDecks.minCardWidth}px`);
+  assert.equal(wideFunDecks.columns, 3);
+  assert.ok(wideFunDecks.minCardWidth >= 420, `wide fun deck card was only ${wideFunDecks.minCardWidth}px`);
   assert.equal(wideFunDecks.expandButtons, 0);
   assert.equal(wideFunDecks.mainRows, 17);
   assert.equal(wideFunDecks.sideboardRows, 3);
@@ -188,6 +193,41 @@ try {
   assert.ok(wideFunDecks.artCoverage >= 0.889, `compact art covered only ${wideFunDecks.artCoverage * 100}% of its frame`);
   assert.ok(wideFunDecks.cardHeight <= 820, `compact full fun deck was ${wideFunDecks.cardHeight}px tall`);
   await page.screenshot({ path: `${screenshotPrefix}-fun-decks-wide.png`, fullPage: true });
+
+  await page.goto(`${origin}/tests/fixtures/soft-paywall.html?page=fun-decks&access=full&render=ready`, { waitUntil: 'networkidle0' });
+  await page.waitForSelector('.fun-deck-card .deck-render-preview[data-render-state="ready"]');
+  assert.equal(
+    await page.$$eval('.fun-deck-card__copy', buttons => buttons.filter(button => {
+      const style = getComputedStyle(button);
+      return style.display !== 'none' && style.visibility !== 'hidden';
+    }).length),
+    6,
+    'every rendered fun deck must keep a visible copy-code action',
+  );
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: async value => { window.__copiedFunDeckCode = value; },
+      },
+    });
+  });
+  await page.click('.fun-deck-card__copy');
+  await page.waitForFunction(() => document.querySelector('.fun-deck-card__copy')?.textContent?.includes('Код скопирован'));
+  assert.ok(
+    await page.evaluate(() => typeof window.__copiedFunDeckCode === 'string' && window.__copiedFunDeckCode.length > 20),
+    'the fun-deck copy action must write the full deck code',
+  );
+  await page.screenshot({ path: `${screenshotPrefix}-fun-decks-rendered.png`, fullPage: true });
+
+  await page.setViewport({ width: 1024, height: 900, deviceScaleFactor: 1 });
+  await page.goto(`${origin}/tests/fixtures/soft-paywall.html?page=fun-decks&access=full`, { waitUntil: 'networkidle0' });
+  assert.equal(
+    await page.$eval('.fun-decks-grid', grid => getComputedStyle(grid).gridTemplateColumns.split(' ').length),
+    2,
+    'tablet fun-decks must use two columns',
+  );
+  await page.screenshot({ path: `${screenshotPrefix}-fun-decks-tablet.png`, fullPage: true });
 
   for (const width of [390, 320]) {
     await page.setViewport({ width, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
