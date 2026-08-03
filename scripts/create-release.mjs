@@ -44,20 +44,16 @@ for (const required of [
 mkdirSync(output, { recursive: false });
 for (const directory of ['build', 'dist', 'public']) cpSync(directory, join(output, directory), { recursive: true });
 
-// Rollup can keep the entry chunk filename stable when only a lazy route
-// changes. The edge serves hashed assets as immutable, so version the entry
-// request with the release SHA to prevent an older shell from loading stale
-// route chunks in regions where that filename is already cached.
 const indexPath = join(output, 'dist', 'index.html');
 const indexHtml = readFileSync(indexPath, 'utf8');
-const versionedIndexHtml = indexHtml.replace(
-  /(<script\b[^>]*\bsrc="\/assets\/[^"?]+\.js)(?:\?[^\"]*)?("[^>]*><\/script>)/,
-  `$1?v=${sha}$2`,
-);
-if (versionedIndexHtml === indexHtml) {
+const entryMatch = indexHtml.match(/<script\b[^>]*\bsrc="(\/assets\/[^"?]+\.js)"[^>]*><\/script>/);
+if (!entryMatch) {
   throw new Error('Frontend entry script was not found in dist/index.html');
 }
-writeFileSync(indexPath, versionedIndexHtml);
+const entryAsset = join(output, 'dist', entryMatch[1].replace(/^\//, ''));
+if (!existsSync(entryAsset) || !readFileSync(entryAsset, 'utf8').includes(sha)) {
+  throw new Error('Frontend entry script does not contain the release SHA; rebuild with RELEASE_SHA or GITHUB_SHA');
+}
 
 mkdirSync(join(output, 'server'), { recursive: true });
 cpSync('server/gen_legendary_image.py', join(output, 'server', 'gen_legendary_image.py'));

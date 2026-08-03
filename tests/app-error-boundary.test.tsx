@@ -76,7 +76,11 @@ assert.match(chunkMarkup, /Нужно обновить страницу/);
 assert.match(chunkMarkup, /Обновить страницу/);
 
 const mainSource = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
-assert.match(mainSource, /releaseIdFromModuleUrl\(import\.meta\.url\)/);
+assert.match(mainSource, /typeof __APP_RELEASE_SHA__ === 'string'/);
 assert.match(mainSource, /<AppErrorBoundary releaseId=\{releaseId\}>/);
+
+const viteConfigSource = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8');
+assert.match(viteConfigSource, /__APP_RELEASE_SHA__/);
+assert.match(viteConfigSource, /GITHUB_SHA/);
 
 console.log('App error boundary tests passed');

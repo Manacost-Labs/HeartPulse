@@ -26,12 +26,13 @@ const systemdFiles = [
 ];
 
 try {
-  for (const directory of ['build/server', 'dist/sitemaps', 'public', 'server', 'scripts', 'deploy/nginx', 'deploy/systemd']) {
+  for (const directory of ['build/server', 'dist/assets', 'dist/sitemaps', 'public', 'server', 'scripts', 'deploy/nginx', 'deploy/systemd']) {
     mkdirSync(join(workspace, directory), { recursive: true });
   }
   writeFileSync(join(workspace, 'build/server/index.js'), 'console.log("server");\n');
   writeFileSync(join(workspace, 'build/server/constructedCardImagePrewarmer.js'), 'console.log("sync");\n');
   writeFileSync(join(workspace, 'dist/index.html'), '<!doctype html>\n<script type="module" src="/assets/index-stable.js"></script>\n');
+  writeFileSync(join(workspace, 'dist/assets/index-stable.js'), 'const release = "abcdef1";\n');
   writeFileSync(join(workspace, 'dist/sitemap.xml'), '<?xml version="1.0"?><sitemapindex/>\n');
   writeFileSync(join(workspace, 'dist/sitemaps/static.xml'), '<?xml version="1.0"?><urlset/>\n');
   writeFileSync(join(workspace, 'public/asset.txt'), 'asset\n');
@@ -63,10 +64,8 @@ try {
   const manifest = JSON.parse(readFileSync(join(output, 'release.json'), 'utf8'));
   assert.equal(manifest.schemaVersion, 2);
   assert.equal(manifest.sha, 'abcdef1');
-  assert.match(
-    readFileSync(join(output, 'dist/index.html'), 'utf8'),
-    /src="\/assets\/index-stable\.js\?v=abcdef1"/,
-  );
+  assert.match(readFileSync(join(output, 'dist/index.html'), 'utf8'), /src="\/assets\/index-stable\.js"/);
+  assert.doesNotMatch(readFileSync(join(output, 'dist/index.html'), 'utf8'), /\?v=/);
   assert.match(manifest.checksums['scripts/backup-shared-data.sh'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['build/server/constructedCardImagePrewarmer.js'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['scripts/verify-backup.sh'], /^[a-f0-9]{64}$/);

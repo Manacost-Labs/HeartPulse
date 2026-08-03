@@ -76,8 +76,8 @@ repository and route jobs with all four labels:
 Run from the clean `main` workspace:
 
 ```bash
-sudo -u koloda npm run verify:ci
 sha=$(git rev-parse HEAD)
+sudo -u koloda env RELEASE_SHA="$sha" npm run verify:ci
 artifact=$(mktemp -d "/tmp/hs-arena-${sha}.XXXXXX")
 rmdir "$artifact"
 npm run release:create -- --output="$artifact" --sha="$sha"
@@ -87,6 +87,10 @@ npm run release:create -- --output="$artifact" --sha="$sha"
 checksums for the compiled server, frontend entry point and lockfile. Manifest
 schema v2 also carries the five versioned nginx files, their origin/edge role,
 installation path, individual hashes and one aggregate contract hash.
+`RELEASE_SHA` (or GitHub Actions' `GITHUB_SHA`) is compiled into the Vite entry
+chunk. This changes its content hash on every release and lets all imports use
+one canonical module URL; `release:create` rejects a bundle that does not
+contain the requested SHA.
 
 Before any deployment, compare the immutable release contract with the files
 actually installed on the target host. The verifier is strictly read-only: it

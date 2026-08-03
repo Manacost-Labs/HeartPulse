@@ -5,10 +5,17 @@ import {defineConfig, loadEnv} from 'vite';
 
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
+  const configuredRelease = String(
+    process.env.RELEASE_SHA || process.env.GITHUB_SHA || env.RELEASE_SHA || env.GITHUB_SHA || '',
+  ).trim();
+  const appReleaseSha = /^[a-f0-9]{7,40}$/i.test(configuredRelease)
+    ? configuredRelease.toLowerCase()
+    : 'development';
   return {
     plugins: [react(), tailwindcss()],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+      __APP_RELEASE_SHA__: JSON.stringify(appReleaseSha),
     },
     resolve: {
       alias: {

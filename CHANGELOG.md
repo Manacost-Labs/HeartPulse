@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Fixed intermittent full-page React recovery screens after deployments by
+  baking the Git SHA into the Vite entry chunk instead of query-versioning the
+  module URL, which could make browsers evaluate the entry module twice.
 - Restored a persistent “Скопировать код колоды” action below every rendered
   archetype deck, including clipboard success feedback and mobile-sized targets.
 - Added a read-only data monitoring card to the parser admin panel with an
