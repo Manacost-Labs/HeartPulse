@@ -45,8 +45,9 @@
 .admin-data-health__metrics > div.is-critical { box-shadow: inset 0 3px 0 var(--admin-danger); }
 .admin-data-health__metrics > div.uses-fallback { box-shadow: inset 0 3px 0 #765396; }
 .admin-data-health__metrics dt { color: var(--admin-muted); font-size: 0.64rem; font-weight: 760; text-transform: uppercase; }
-.admin-data-health__metrics dd { margin: 0.15rem 0; color: var(--admin-ink); font-size: 1.25rem; font-weight: 850; line-height: 1.1; }
-.admin-data-health__metrics span { color: var(--admin-muted); font-size: 0.63rem; line-height: 1.35; overflow-wrap: anywhere; }
+.admin-data-health__metrics dd { margin: 0.15rem 0 0; display: grid; gap: 0.15rem; }
+.admin-data-health__metrics dd > strong { color: var(--admin-ink); font-size: 1.25rem; font-weight: 850; line-height: 1.1; }
+.admin-data-health__metrics span { color: var(--admin-muted); font-size: 0.63rem; font-weight: 500; line-height: 1.35; overflow-wrap: anywhere; }
 
 .admin-data-health__attention { min-width: 0; display: grid; gap: 0.5rem; }
 .admin-data-health__attention-heading { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 0.7rem; }

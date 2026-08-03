@@ -82,25 +82,24 @@ export function DataHealthOverviewCard({
       <dl className="admin-data-health__metrics" aria-label="Сводка состояния источников">
         <div>
           <dt>Работают штатно</dt>
-          <dd>{monitoring.healthySources} из {monitoring.totalSources}</dd>
-          <span>{activityNote}</span>
+          <dd><strong>{monitoring.healthySources} из {monitoring.totalSources}</strong><span>{activityNote}</span></dd>
         </div>
         <div className={monitoring.degradedSources ? 'needs-attention' : ''}>
           <dt>С ограничениями</dt>
-          <dd>{monitoring.degradedSources}</dd>
-          <span>частичные или устаревшие данные</span>
+          <dd><strong>{monitoring.degradedSources}</strong><span>частичные или устаревшие данные</span></dd>
         </div>
         <div className={monitoring.failedSources ? 'is-critical' : ''}>
           <dt>Критические ошибки</dt>
-          <dd>{monitoring.failedSources}</dd>
-          <span>{monitoring.failedSources ? 'нужно проверить' : 'не обнаружены'}</span>
+          <dd><strong>{monitoring.failedSources}</strong><span>{monitoring.failedSources ? 'нужно проверить' : 'не обнаружены'}</span></dd>
         </div>
         <div className={monitoring.fallbackSources ? 'uses-fallback' : ''}>
           <dt>Резервные версии</dt>
-          <dd>{monitoring.fallbackSources}</dd>
-          <span>последний успех: {formatMonitoringAge(
-            monitoring.lastSuccessfulAt ? Math.max(0, now - Date.parse(monitoring.lastSuccessfulAt)) : null,
-          )}</span>
+          <dd>
+            <strong>{monitoring.fallbackSources}</strong>
+            <span>последний успех: {formatMonitoringAge(
+              monitoring.lastSuccessfulAt ? Math.max(0, now - Date.parse(monitoring.lastSuccessfulAt)) : null,
+            )}</span>
+          </dd>
         </div>
       </dl>
 

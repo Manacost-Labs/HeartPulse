@@ -87,6 +87,11 @@ assert.match(markup, /Тир-лист Арены/);
 assert.match(markup, /Обновить сейчас/);
 assert.match(markup, /Автообновление каждые 60 секунд/);
 assert.match(markup, /role="status"/);
+assert.doesNotMatch(
+  markup,
+  /<\/dd><span/,
+  'metric descriptions must remain inside dd elements for a valid definition list',
+);
 
 const refreshingMarkup = renderToStaticMarkup(
   <DataHealthOverviewCard
