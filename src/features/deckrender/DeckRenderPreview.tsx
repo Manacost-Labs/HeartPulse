@@ -6,6 +6,7 @@ import {
   deckRenderImageRetryUrl,
   invalidateDeckRender,
   requestDeckRender,
+  type DeckRenderAsset,
 } from './deckRenderClient';
 import './DeckRenderPreview.css';
 
@@ -15,6 +16,7 @@ type DeckRenderPreviewProps = {
   children: ReactNode;
   className?: string;
   eager?: boolean;
+  initialAsset?: DeckRenderAsset | null;
 };
 
 
@@ -36,9 +38,10 @@ export default function DeckRenderPreview({
 
 type PreviewState = {
   error: string;
+  fullImageUrl: string;
   imageRetryAttempt: number;
   imageReady: boolean;
-  imageUrl: string;
+  previewImageUrl: string;
   requestVersion: number;
 };
 
@@ -50,19 +53,24 @@ function DeckRenderPreviewInstance({
   children,
   className = '',
   eager = false,
+  initialAsset = null,
 }: DeckRenderPreviewProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const imageRetryTimerRef = useRef<number | null>(null);
   const [visible, setVisible] = useState(eager);
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [state, setState] = useState<PreviewState>(() => ({
-    error: '',
-    imageRetryAttempt: 0,
-    imageReady: false,
-    imageUrl: cachedDeckRender(deckCode, deckName),
-    requestVersion: 0,
-  }));
+  const [state, setState] = useState<PreviewState>(() => {
+    const cached = initialAsset || cachedDeckRender(deckCode, deckName);
+    return {
+      error: '',
+      fullImageUrl: cached?.imageUrl || '',
+      imageRetryAttempt: 0,
+      imageReady: false,
+      previewImageUrl: cached?.previewImageUrl || '',
+      requestVersion: 0,
+    };
+  });
 
   useEffect(() => {
     if (visible) return;
@@ -81,16 +89,17 @@ function DeckRenderPreviewInstance({
   }, [visible]);
 
   useEffect(() => {
-    if (!visible || !deckCode.trim()) return;
+    if (!visible || !deckCode.trim() || (state.fullImageUrl && state.previewImageUrl)) return;
     let active = true;
     void requestDeckRender(deckCode, deckName)
-      .then(url => {
+      .then(asset => {
         if (active) setState(current => ({
           ...current,
           error: '',
+          fullImageUrl: asset.imageUrl,
           imageReady: false,
           imageRetryAttempt: 0,
-          imageUrl: url,
+          previewImageUrl: asset.previewImageUrl,
         }));
       })
       .catch(cause => {
@@ -100,7 +109,7 @@ function DeckRenderPreviewInstance({
         }
       });
     return () => { active = false; };
-  }, [deckCode, deckName, state.requestVersion, visible]);
+  }, [deckCode, deckName, state.fullImageUrl, state.previewImageUrl, state.requestVersion, visible]);
 
   useEffect(() => () => {
     if (imageRetryTimerRef.current !== null) window.clearTimeout(imageRetryTimerRef.current);
@@ -113,7 +122,8 @@ function DeckRenderPreviewInstance({
       error: '',
       imageRetryAttempt: 0,
       imageReady: false,
-      imageUrl: '',
+      fullImageUrl: '',
+      previewImageUrl: '',
       requestVersion: current.requestVersion + 1,
     }));
   }, [deckCode, deckName]);
@@ -123,17 +133,21 @@ function DeckRenderPreviewInstance({
     if (state.imageRetryAttempt >= MAX_IMAGE_LOAD_RETRIES) {
       setState(current => ({
         ...current,
-        error: 'Не удалось загрузить готовое изображение колоды',
+        error: current.previewImageUrl !== current.fullImageUrl
+          ? ''
+          : 'Не удалось загрузить готовое изображение колоды',
         imageReady: false,
+        imageRetryAttempt: 0,
+        previewImageUrl: current.fullImageUrl,
       }));
       return;
     }
-    const expectedImageUrl = state.imageUrl;
+    const expectedImageUrl = state.previewImageUrl;
     const delayMs = 250 * (2 ** state.imageRetryAttempt);
     imageRetryTimerRef.current = window.setTimeout(() => {
       imageRetryTimerRef.current = null;
       setState(current => {
-        if (!current.imageUrl || current.imageUrl !== expectedImageUrl || current.imageReady) return current;
+        if (!current.previewImageUrl || current.previewImageUrl !== expectedImageUrl || current.imageReady) return current;
         return {
           ...current,
           error: '',
@@ -141,7 +155,7 @@ function DeckRenderPreviewInstance({
         };
       });
     }, delayMs);
-  }, [state.imageRetryAttempt, state.imageUrl]);
+  }, [state.imageRetryAttempt, state.previewImageUrl]);
 
   const showImage = state.imageReady;
   const showFallback = Boolean(state.error);
@@ -154,7 +168,7 @@ function DeckRenderPreviewInstance({
       aria-busy={showLoading}
     >
       <div className="deck-render-preview__image" hidden={!showImage}>
-        {state.imageUrl ? (
+        {state.previewImageUrl ? (
           <button
             type="button"
             className="deck-render-preview__open"
@@ -162,7 +176,7 @@ function DeckRenderPreviewInstance({
             onClick={() => setLightboxOpen(true)}
           >
             <img
-              src={deckRenderImageRetryUrl(state.imageUrl, state.imageRetryAttempt)}
+              src={deckRenderImageRetryUrl(state.previewImageUrl, state.imageRetryAttempt)}
               alt={`Колода «${deckName}» в стиле «Пергамент»`}
               width="2048"
               height="2048"
@@ -192,7 +206,7 @@ function DeckRenderPreviewInstance({
         <button type="button" className="deck-render-preview__retry" onClick={retry}>Повторить загрузку изображения</button>
       ) : null}
 
-      {lightboxOpen && state.imageUrl ? (
+      {lightboxOpen && state.fullImageUrl ? (
         <ModalSurface
           className="deck-render-lightbox"
           panelClassName="deck-render-lightbox__panel"
@@ -213,7 +227,7 @@ function DeckRenderPreviewInstance({
           </button>
           <img
             className="deck-render-lightbox__image"
-            src={state.imageUrl}
+            src={state.fullImageUrl}
             alt={`Колода «${deckName}» в стиле «Пергамент»`}
             decoding="async"
           />

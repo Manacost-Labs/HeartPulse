@@ -2,6 +2,7 @@ import { Router } from 'express';
 
 export type DeckRenderResult = {
   imageUrl: string | null;
+  previewImageUrl?: string | null;
   ready: boolean;
 };
 
@@ -43,6 +44,7 @@ export function createDeckRenderRouter(dependencies: DeckRenderRouterDependencie
         renderer: 'rust',
         style: 'parchment',
         imageUrl: result.imageUrl,
+        previewImageUrl: result.previewImageUrl || result.imageUrl,
       });
     } catch (error) {
       const timeout = error instanceof Error && error.message === 'DECKVIEW_TIMEOUT';

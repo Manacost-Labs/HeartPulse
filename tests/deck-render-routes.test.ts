@@ -4,7 +4,11 @@ import { once } from 'node:events';
 import { createDeckRenderRouter } from '../server/deckRenderRoutes.js';
 
 async function withServer(
-  render: (deckCode: string, deckName: string) => Promise<{ imageUrl: string | null; ready: boolean }>,
+  render: (deckCode: string, deckName: string) => Promise<{
+    imageUrl: string | null;
+    previewImageUrl?: string | null;
+    ready: boolean;
+  }>,
   run: (baseUrl: string) => Promise<void>,
 ) {
   const app = express();
@@ -25,7 +29,11 @@ async function withServer(
 let received: [string, string] | null = null;
 await withServer(async (deckCode, deckName) => {
   received = [deckCode, deckName];
-  return { ready: true, imageUrl: 'https://api.blizzcore.ru/static/generated/render-cache/ab/result.jpg' };
+  return {
+    ready: true,
+    imageUrl: 'https://api.blizzcore.ru/static/generated/render-cache/ab/result.jpg',
+    previewImageUrl: 'https://api.blizzcore.ru/static/generated/render-cache/ab/result.preview-v1.webp',
+  };
 }, async baseUrl => {
   const response = await fetch(`${baseUrl}/api/deck/render`, {
     method: 'POST',
@@ -39,6 +47,7 @@ await withServer(async (deckCode, deckName) => {
     renderer: 'rust',
     style: 'parchment',
     imageUrl: 'https://api.blizzcore.ru/static/generated/render-cache/ab/result.jpg',
+    previewImageUrl: 'https://api.blizzcore.ru/static/generated/render-cache/ab/result.preview-v1.webp',
   });
 });
 assert.deepEqual(received, ['AAECAaoITestDeckCode===', 'Контроль Жрец']);

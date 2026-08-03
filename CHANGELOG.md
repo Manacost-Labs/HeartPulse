@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Added immutable 720px WebP derivatives for Deckview galleries while keeping
+  the full JPEG for the lightbox, reducing measured catalog image transfer by
+  about 92% on the canonical 30- and 40-card Reno fixtures.
+- Coalesced duplicate deck renders, limited the browser to three concurrent
+  requests, and added a two-worker background prewarmer with a persisted image
+  manifest so cold Fun Deck galleries progressively become instant warm loads.
+- Exposed preview-prewarm queue telemetry in Standard operations and retained
+  the existing card-list fallback for real render or delivery failures.
 - Made Deckview previews recover automatically from short-lived render API and
   generated-image delivery failures, so individual Fun Decks no longer remain
   stuck on the fallback card list after a cold render.

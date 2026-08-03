@@ -17,6 +17,10 @@ export type FunDeckRow = {
   candidateSourceId: string | null;
   firstSeenAt: string | null;
   lastSeenAt: string | null;
+  render?: {
+    imageUrl: string;
+    previewImageUrl: string;
+  };
 };
 
 export type FunDecksPayload = {
@@ -58,6 +62,8 @@ export type PublicFunDecksPayload = {
 
 export type PublicFunDecksDependencies = {
   loadFunDecks: () => Promise<unknown>;
+  getPreview?: (deck: FunDeckRow) => FunDeckRow['render'] | null;
+  schedulePreviews?: (decks: FunDeckRow[]) => void;
   onError?: (error: unknown) => void;
 };
 
@@ -199,8 +205,24 @@ export function createPublicFunDecksRouter(dependencies: PublicFunDecksDependenc
 
   router.get('/fun-decks', async (_request, response) => {
     try {
+      const payload = normalizePublicFunDecksPayload(await dependencies.loadFunDecks());
+      if (dependencies.getPreview) {
+        payload.decks = payload.decks.map(deck => {
+          const render = dependencies.getPreview?.(deck);
+          return render ? { ...deck, render } : deck;
+        });
+      }
+      if (dependencies.schedulePreviews) {
+        queueMicrotask(() => {
+          try {
+            dependencies.schedulePreviews?.(payload.decks);
+          } catch (error) {
+            dependencies.onError?.(error);
+          }
+        });
+      }
       response.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=900');
-      return response.json(normalizePublicFunDecksPayload(await dependencies.loadFunDecks()));
+      return response.json(payload);
     } catch (error) {
       response.setHeader('Cache-Control', 'no-store');
       dependencies.onError?.(error);

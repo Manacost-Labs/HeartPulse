@@ -1,6 +1,9 @@
+import { createHash } from 'node:crypto';
 import type { StandardMetaPreview } from './standardMetaRoutes.js';
 
 type FetchLike = typeof fetch;
+
+type PreviewCache = Map<string, { preview: StandardMetaPreview; expiresAt: number }>;
 
 export type DeckviewPreviewOptions = {
   apiBaseUrl: string;
@@ -22,11 +25,54 @@ export function deckviewPreviewConfigFromEnv() {
   };
 }
 
+export function deckviewPreviewCacheKey(
+  revision: string,
+  recommendation: { deckCode: string; archetypeLabel: string },
+): string {
+  return createHash('sha256')
+    .update(revision)
+    .update('\0')
+    .update(recommendation.deckCode)
+    .update('\0')
+    .update(recommendation.archetypeLabel)
+    .digest('hex');
+}
+
+export function isTrustedDeckviewPreview(preview: StandardMetaPreview, publicBaseUrl: string): boolean {
+  const prefix = `${trimTrailingSlash(publicBaseUrl)}/static/generated/`;
+  return preview.ready
+    && Boolean(preview.imageUrl?.startsWith(prefix))
+    && Boolean(preview.previewImageUrl?.startsWith(prefix));
+}
+
+export function cachedDeckviewPreview(
+  cache: PreviewCache,
+  revision: string,
+  publicBaseUrl: string,
+  deck: { deckCode: string; title: string },
+): { imageUrl: string; previewImageUrl: string } | null {
+  const key = deckviewPreviewCacheKey(revision, {
+    deckCode: deck.deckCode,
+    archetypeLabel: deck.title,
+  });
+  const cached = cache.get(key);
+  if (!cached || cached.expiresAt <= Date.now()
+    || !isTrustedDeckviewPreview(cached.preview, publicBaseUrl)) return null;
+  return {
+    imageUrl: cached.preview.imageUrl!,
+    previewImageUrl: cached.preview.previewImageUrl!,
+  };
+}
+
 function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, '');
 }
 
-export function resolveDeckviewImageUrl(payload: any, publicBaseUrl: string): string | null {
+function resolveGeneratedImageUrl(
+  payload: any,
+  publicBaseUrl: string,
+  fields: { path: string; filename: string; url: string },
+): string | null {
   const publicBase = trimTrailingSlash(publicBaseUrl);
 
   const safeGeneratedPath = (value: unknown, fullPath = false): string | null => {
@@ -38,22 +84,38 @@ export function resolveDeckviewImageUrl(payload: any, publicBaseUrl: string): st
     return parts.map(encodeURIComponent).join('/');
   };
 
-  const imagePath = safeGeneratedPath(payload?.image_path, true);
+  const imagePath = safeGeneratedPath(payload?.[fields.path], true);
   if (imagePath) {
     return `${publicBase}/static/generated/${imagePath}`;
   }
 
-  const filename = safeGeneratedPath(payload?.filename);
+  const filename = safeGeneratedPath(payload?.[fields.filename]);
   if (filename) {
     return `${publicBase}/static/generated/${filename}`;
   }
 
-  const imageUrl = typeof payload?.image_url === 'string' ? payload.image_url.trim() : '';
+  const imageUrl = typeof payload?.[fields.url] === 'string' ? payload[fields.url].trim() : '';
   if (imageUrl.startsWith(`${publicBase}/static/generated/`)) {
     const relative = safeGeneratedPath(imageUrl.slice(publicBase.length), true);
     if (relative) return `${publicBase}/static/generated/${relative}`;
   }
   return null;
+}
+
+export function resolveDeckviewImageUrl(payload: any, publicBaseUrl: string): string | null {
+  return resolveGeneratedImageUrl(payload, publicBaseUrl, {
+    path: 'image_path',
+    filename: 'filename',
+    url: 'image_url',
+  });
+}
+
+export function resolveDeckviewPreviewImageUrl(payload: any, publicBaseUrl: string): string | null {
+  return resolveGeneratedImageUrl(payload, publicBaseUrl, {
+    path: 'preview_image_path',
+    filename: 'preview_filename',
+    url: 'preview_image_url',
+  });
 }
 
 function renderHeaders(apiKey?: string): Record<string, string> {
@@ -146,6 +208,7 @@ export async function renderDeckviewPreview(
     state: 'done',
     ready: true,
     imageUrl,
+    previewImageUrl: resolveDeckviewPreviewImageUrl(payload, options.publicBaseUrl),
     error: null,
   };
 }

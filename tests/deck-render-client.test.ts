@@ -28,6 +28,7 @@ const fetchImpl = (async () => {
     ok: true,
     ready: true,
     imageUrl: 'https://api.blizzcore.ru/static/generated/render-cache/aa/deck.jpg',
+    previewImageUrl: 'https://api.blizzcore.ru/static/generated/render-cache/aa/deck.preview-v1.webp',
   }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 }) as typeof fetch;
 
@@ -35,7 +36,9 @@ const [first, second] = await Promise.all([
   requestDeckRender('AAEC0123456789', 'Deck', fetchImpl),
   requestDeckRender('AAEC0123456789', 'Deck', fetchImpl),
 ]);
-assert.equal(first, second);
+assert.deepEqual(first, second);
+assert.equal(first.imageUrl, 'https://api.blizzcore.ru/static/generated/render-cache/aa/deck.jpg');
+assert.equal(first.previewImageUrl, 'https://api.blizzcore.ru/static/generated/render-cache/aa/deck.preview-v1.webp');
 assert.equal(fetchCount, 1, 'concurrent requests must be coalesced');
 
 await requestDeckRender('AAEC0123456789', 'Deck', fetchImpl);
@@ -62,7 +65,7 @@ const transientFetch = (async () => {
 }) as typeof fetch;
 
 assert.equal(
-  await requestDeckRender('AAEC9876543210', 'Transient Deck', transientFetch),
+  (await requestDeckRender('AAEC9876543210', 'Transient Deck', transientFetch)).imageUrl,
   'https://api.blizzcore.ru/static/generated/render-cache/bb/recovered.jpg',
 );
 assert.equal(transientFetchCount, 2, 'transient render failures must recover automatically');
@@ -80,5 +83,30 @@ await assert.rejects(
   /Некорректный код колоды/,
 );
 assert.equal(invalidFetchCount, 1, 'permanent client errors must not be retried');
+
+let activeRequests = 0;
+let peakActiveRequests = 0;
+const releaseRequests: Array<() => void> = [];
+const limitedFetch = (async () => {
+  activeRequests += 1;
+  peakActiveRequests = Math.max(peakActiveRequests, activeRequests);
+  await new Promise<void>(resolve => releaseRequests.push(resolve));
+  activeRequests -= 1;
+  return new Response(JSON.stringify({
+    ok: true,
+    ready: true,
+    imageUrl: 'https://api.blizzcore.ru/static/generated/limited.jpg',
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+}) as typeof fetch;
+const limitedRequests = Array.from({ length: 6 }, (_, index) => (
+  requestDeckRender(`AAEC-limit-${index}-123456`, `Limited ${index}`, limitedFetch)
+));
+await new Promise(resolve => setTimeout(resolve, 0));
+assert.equal(peakActiveRequests, 3, 'only three unique renders may run concurrently');
+while (releaseRequests.length) releaseRequests.shift()?.();
+await new Promise(resolve => setTimeout(resolve, 0));
+while (releaseRequests.length) releaseRequests.shift()?.();
+await Promise.all(limitedRequests);
+assert.equal(peakActiveRequests, 3);
 
 console.log('Deck render client tests passed');

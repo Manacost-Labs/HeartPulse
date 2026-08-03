@@ -1,5 +1,39 @@
 import assert from 'node:assert/strict';
-import { renderDeckviewPreview, resolveDeckviewImageUrl } from '../server/deckviewPreview.js';
+import {
+  cachedDeckviewPreview,
+  deckviewPreviewCacheKey,
+  isTrustedDeckviewPreview,
+  renderDeckviewPreview,
+  resolveDeckviewImageUrl,
+  resolveDeckviewPreviewImageUrl,
+} from '../server/deckviewPreview.js';
+
+const manifestKey = deckviewPreviewCacheKey('renderer-v1', {
+  deckCode: 'AAEC-manifest',
+  archetypeLabel: 'Manifest deck',
+});
+const manifestPreview = {
+  hash: manifestKey,
+  state: 'done',
+  ready: true,
+  imageUrl: 'https://api.blizzcore.ru/static/generated/render-cache/aa/deck.jpg',
+  previewImageUrl: 'https://api.blizzcore.ru/static/generated/render-cache/aa/deck.preview-v1.webp',
+  error: null,
+};
+assert.equal(isTrustedDeckviewPreview(manifestPreview, 'https://api.blizzcore.ru/'), true);
+assert.equal(isTrustedDeckviewPreview({
+  ...manifestPreview,
+  previewImageUrl: 'https://untrusted.example/deck.webp',
+}, 'https://api.blizzcore.ru'), false);
+assert.deepEqual(cachedDeckviewPreview(
+  new Map([[manifestKey, { preview: manifestPreview, expiresAt: Date.now() + 60_000 }]]),
+  'renderer-v1',
+  'https://api.blizzcore.ru',
+  { deckCode: 'AAEC-manifest', title: 'Manifest deck' },
+), {
+  imageUrl: manifestPreview.imageUrl,
+  previewImageUrl: manifestPreview.previewImageUrl,
+});
 
 assert.equal(
   resolveDeckviewImageUrl(
@@ -20,6 +54,13 @@ assert.equal(
   resolveDeckviewImageUrl({ image_path: '/static/generated/../secret', image_url: 'http://127.0.0.1:5000/private' }, 'https://api.blizzcore.ru'),
   null,
 );
+assert.equal(
+  resolveDeckviewPreviewImageUrl(
+    { preview_filename: 'render-cache/ab/safe.preview-v1.webp' },
+    'https://api.blizzcore.ru',
+  ),
+  'https://api.blizzcore.ru/static/generated/render-cache/ab/safe.preview-v1.webp',
+);
 
 let requestUrl = '';
 let requestBody: any = null;
@@ -38,6 +79,7 @@ const preview = await renderDeckviewPreview({
       success: true,
       image_path: '/static/generated/grab-shaman.jpg',
       image_url: 'http://127.0.0.1:5000/static/generated/grab-shaman.jpg',
+      preview_image_path: '/static/generated/render-cache/aa/grab-shaman.preview-v1.webp',
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }) as typeof fetch,
 });
@@ -49,6 +91,7 @@ assert.deepEqual(preview, {
   state: 'done',
   ready: true,
   imageUrl: 'https://api.blizzcore.ru/static/generated/grab-shaman.jpg',
+  previewImageUrl: 'https://api.blizzcore.ru/static/generated/render-cache/aa/grab-shaman.preview-v1.webp',
   error: null,
 });
 
@@ -77,6 +120,7 @@ const asyncPreview = await renderDeckviewPreview({
       success: true,
       ready: true,
       filename: 'render-cache/dd/async.jpg',
+      preview_filename: 'render-cache/dd/async.preview-v1.webp',
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }) as typeof fetch,
 });
@@ -86,6 +130,10 @@ assert.deepEqual(asyncRequests, [
   `http://127.0.0.1:5000/deckview-api/v1/render/jobs/api-render-${'d'.repeat(64)}`,
 ]);
 assert.equal(asyncPreview.imageUrl, 'https://api.blizzcore.ru/static/generated/render-cache/dd/async.jpg');
+assert.equal(
+  asyncPreview.previewImageUrl,
+  'https://api.blizzcore.ru/static/generated/render-cache/dd/async.preview-v1.webp',
+);
 
 await assert.rejects(
   renderDeckviewPreview({ deckCode: 'bad', deckName: 'Bad', hash: 'b'.repeat(64) }, {

@@ -35,6 +35,7 @@ export type StandardMetaPreview = {
   state: string;
   ready: boolean;
   imageUrl: string | null;
+  previewImageUrl?: string | null;
   error: string | null;
 };
 

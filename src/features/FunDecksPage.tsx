@@ -35,6 +35,10 @@ type FunDeckRow = {
   url: string | null;
   firstSeenAt: string | null;
   lastSeenAt: string | null;
+  render?: {
+    imageUrl: string;
+    previewImageUrl: string;
+  };
 };
 
 type FunDecksPayload = {
@@ -175,10 +179,12 @@ function FunDeckCard({
   deck,
   fresh = false,
   tourAnchor = false,
+  eager = false,
 }: {
   deck: FunDeckRow;
   fresh?: boolean;
   tourAnchor?: boolean;
+  eager?: boolean;
 }) {
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'error'>('idle');
   const format = formatOf(deck);
@@ -254,7 +260,12 @@ function FunDeckCard({
         data-tour-id={tourAnchor ? 'fun-decks-deck-list' : undefined}
         style={{ ['--fun-deck-class' as string]: classMeta.color }}
       >
-        <DeckRenderPreview deckCode={deck.deckCode} deckName={deck.title}>
+        <DeckRenderPreview
+          deckCode={deck.deckCode}
+          deckName={deck.title}
+          eager={eager}
+          initialAsset={deck.render || null}
+        >
           {data ? (
             <DeckListView
               cards={data.cards}
@@ -505,6 +516,7 @@ export default function FunDecksPage({
                   deck={deck}
                   fresh={isRecentlyAdded(deck, data.fetchedAt)}
                   tourAnchor={index === 0}
+                  eager={index < 3}
                 />
               </React.Fragment>
             ))}

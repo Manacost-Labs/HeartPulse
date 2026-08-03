@@ -2,14 +2,23 @@ type DeckRenderPayload = {
   ok?: boolean;
   ready?: boolean;
   imageUrl?: string;
+  previewImageUrl?: string;
   error?: string;
+};
+
+export type DeckRenderAsset = {
+  imageUrl: string;
+  previewImageUrl: string;
 };
 
 const MAX_MEMORY_ENTRIES = 256;
 const MAX_RENDER_ATTEMPTS = 3;
 const RETRYABLE_RENDER_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
-const completedRenders = new Map<string, string>();
-const pendingRenders = new Map<string, Promise<string>>();
+const MAX_CONCURRENT_RENDERS = 3;
+const completedRenders = new Map<string, DeckRenderAsset>();
+const pendingRenders = new Map<string, Promise<DeckRenderAsset>>();
+const renderQueue: Array<() => void> = [];
+let activeRenders = 0;
 
 export function deckRenderCacheKey(deckCode: string, deckName: string): string {
   return `${deckCode.replace(/\s+/g, '')}\u0000${deckName.trim()}`;
@@ -27,9 +36,9 @@ export function deckRenderImageRetryUrl(imageUrl: string, attempt: number): stri
   }
 }
 
-function rememberRender(key: string, imageUrl: string): void {
+function rememberRender(key: string, asset: DeckRenderAsset): void {
   completedRenders.delete(key);
-  completedRenders.set(key, imageUrl);
+  completedRenders.set(key, asset);
   while (completedRenders.size > MAX_MEMORY_ENTRIES) {
     const oldest = completedRenders.keys().next().value;
     if (typeof oldest !== 'string') break;
@@ -37,8 +46,8 @@ function rememberRender(key: string, imageUrl: string): void {
   }
 }
 
-export function cachedDeckRender(deckCode: string, deckName: string): string {
-  return completedRenders.get(deckRenderCacheKey(deckCode, deckName)) || '';
+export function cachedDeckRender(deckCode: string, deckName: string): DeckRenderAsset | null {
+  return completedRenders.get(deckRenderCacheKey(deckCode, deckName)) || null;
 }
 
 export function invalidateDeckRender(deckCode: string, deckName: string): void {
@@ -63,7 +72,7 @@ async function fetchDeckRender(
   deckCode: string,
   deckName: string,
   fetchImpl: typeof fetch,
-): Promise<string> {
+): Promise<DeckRenderAsset> {
   let lastError: Error = new Error('Не удалось собрать изображение колоды');
   for (let attempt = 0; attempt < MAX_RENDER_ATTEMPTS; attempt += 1) {
     let response: Response | null = null;
@@ -83,7 +92,10 @@ async function fetchDeckRender(
 
     const payload = await response.json().catch(() => ({})) as DeckRenderPayload;
     if (response.ok && payload.ok === true && payload.ready === true && payload.imageUrl) {
-      return payload.imageUrl;
+      return {
+        imageUrl: payload.imageUrl,
+        previewImageUrl: payload.previewImageUrl || payload.imageUrl,
+      };
     }
 
     lastError = new Error(payload.error || 'Не удалось собрать изображение колоды');
@@ -95,20 +107,34 @@ async function fetchDeckRender(
   throw lastError;
 }
 
+function withRenderSlot<T>(task: () => Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const run = () => {
+      activeRenders += 1;
+      void task().then(resolve, reject).finally(() => {
+        activeRenders = Math.max(0, activeRenders - 1);
+        renderQueue.shift()?.();
+      });
+    };
+    if (activeRenders < MAX_CONCURRENT_RENDERS) run();
+    else renderQueue.push(run);
+  });
+}
+
 export async function requestDeckRender(
   deckCode: string,
   deckName: string,
   fetchImpl: typeof fetch = fetch,
-): Promise<string> {
+): Promise<DeckRenderAsset> {
   const key = deckRenderCacheKey(deckCode, deckName);
   const completed = completedRenders.get(key);
   if (completed) return completed;
   const pending = pendingRenders.get(key);
   if (pending) return pending;
 
-  const request = fetchDeckRender(deckCode, deckName, fetchImpl).then(imageUrl => {
-    rememberRender(key, imageUrl);
-    return imageUrl;
+  const request = withRenderSlot(() => fetchDeckRender(deckCode, deckName, fetchImpl)).then(asset => {
+    rememberRender(key, asset);
+    return asset;
   }).finally(() => {
     pendingRenders.delete(key);
   });

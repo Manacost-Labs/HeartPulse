@@ -86,6 +86,7 @@ assert.deepEqual(publicPayload.methodology, {
 
 let upstreamFails = false;
 let reportedError: unknown;
+let scheduledDecks = 0;
 const app = express();
 const loadFunDecks = async () => {
   if (upstreamFails) throw new Error('secret upstream location');
@@ -96,6 +97,11 @@ const loadFunDecks = async () => {
 };
 app.use('/api', createPublicFunDecksRouter({
   loadFunDecks,
+  getPreview: deck => ({
+    imageUrl: `https://api.blizzcore.ru/${deck.title}.jpg`,
+    previewImageUrl: `https://api.blizzcore.ru/${deck.title}.webp`,
+  }),
+  schedulePreviews: decks => { scheduledDecks += decks.length; },
   onError: error => { reportedError = error; },
 }));
 app.use('/api', createAdminFunDecksRouter({
@@ -127,6 +133,9 @@ try {
   assert.equal(publicResponsePayload.methodology.minFunScore, 0.55);
   assert.equal('cadence' in publicResponsePayload, false);
   assert.equal('filters' in publicResponsePayload, false);
+  assert.equal(publicResponsePayload.decks[0].render.previewImageUrl, 'https://api.blizzcore.ru/Deck.webp');
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(scheduledDecks, 1);
 
   assert.equal((await fetch(endpoint)).status, 401);
 
