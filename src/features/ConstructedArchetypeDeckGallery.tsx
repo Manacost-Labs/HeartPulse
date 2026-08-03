@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  ExternalLink,
-  LayoutGrid,
   RefreshCw,
   TriangleAlert,
 } from 'lucide-react';
@@ -100,7 +98,6 @@ function DeckBuildCard({
   const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
   const classColor = CLASS_COLORS[classKey || ''] || '#67131c';
-  const builderHref = `/deck-builder?format=${format}&code=${encodeURIComponent(build.deckCode)}`;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -167,25 +164,6 @@ function DeckBuildCard({
           </div>
         )}
       </DeckRenderPreview>
-
-      <footer className="archetype-deck-card__actions">
-        <a className="archetype-deck-card__builder" href={builderHref}>
-          <LayoutGrid aria-hidden="true" />
-          Открыть в конструкторе
-        </a>
-        {build.sourceUrl ? (
-          <a
-            className="archetype-deck-card__source"
-            href={build.sourceUrl}
-            target="_blank"
-            rel="noreferrer"
-            aria-label={`Открыть сборку ${index + 1} на HSGuru`}
-          >
-            HSGuru
-            <ExternalLink aria-hidden="true" />
-          </a>
-        ) : null}
-      </footer>
     </article>
   );
 }

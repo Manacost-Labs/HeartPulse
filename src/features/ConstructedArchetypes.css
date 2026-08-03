@@ -1014,16 +1014,6 @@
   height: 1rem;
 }
 
-.archetype-deck-card__builder {
-  flex: 1 1 auto;
-  padding-inline: 0.65rem;
-}
-
-.archetype-deck-card__source {
-  flex: 0 0 auto;
-  padding-inline: 0.65rem;
-}
-
 @keyframes archetype-skeleton-sheen {
   0% { background-position: 100% 0; }
   100% { background-position: -100% 0; }
@@ -1144,8 +1134,6 @@
   .archetype-deck-gallery { grid-template-columns: 1fr; padding: 0.55rem; }
   .archetype-deck-card__state { min-height: 360px; }
   .archetype-deck-card__actions { flex-wrap: wrap; }
-  .archetype-deck-card__builder { flex-basis: 100%; }
-  .archetype-deck-card__source { flex: 1 1 auto; }
 }
 
 @media (max-width: 390px) {

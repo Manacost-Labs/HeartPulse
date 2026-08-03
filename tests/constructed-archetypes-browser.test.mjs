@@ -119,6 +119,30 @@ try {
     0,
     'the rendered parchment is the only successful deck presentation',
   );
+  assert.equal(
+    await page.$$eval('.archetype-deck-card__actions', actions => actions.length),
+    0,
+    'deck cards must not repeat builder and HSGuru actions below the rendered image',
+  );
+  await page.click('.archetype-main-build .deck-render-preview__open');
+  await page.waitForSelector('.deck-render-lightbox[role="dialog"]');
+  assert.equal(
+    await page.$eval('.deck-render-lightbox__image', image => image.getAttribute('src')),
+    await page.$eval('.archetype-main-build .deck-render-preview__image img', image => image.getAttribute('src')),
+    'lightbox must reuse the already-rendered deck image',
+  );
+  await page.screenshot({ path: `${screenshotPrefix}-deck-lightbox.png` });
+  await page.click('.deck-render-lightbox__close');
+  await page.waitForSelector('.deck-render-lightbox', { hidden: true });
+  await page.click('.archetype-main-build .deck-render-preview__open');
+  await page.waitForSelector('.deck-render-lightbox[role="dialog"]');
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('.deck-render-lightbox', { hidden: true });
+  assert.equal(
+    await page.$eval('.archetype-main-build .deck-render-preview__open', button => document.activeElement === button),
+    true,
+    'closing the lightbox must restore focus to the deck preview',
+  );
   await page.$$eval('.deck-render-preview__list', lists => {
     lists.forEach(list => { list.hidden = false; });
   });
@@ -250,7 +274,6 @@ try {
   assert.ok(desktopCardStats.manaWidth >= 24 && desktopCardStats.manaWidth <= 28);
   assert.ok(desktopCardStats.manaHeight >= 24 && desktopCardStats.manaHeight <= 28);
   assert.equal(desktopCardStats.openBadges, 0);
-  assert.ok(await page.$('.archetype-deck-card__builder[href*="/deck-builder?"]'));
   assert.ok(await page.$('.archetype-main-build .deck-list-view'));
   await page.evaluate(() => {
     Object.defineProperty(navigator, 'clipboard', {
@@ -289,6 +312,20 @@ try {
   await page.waitForSelector('.constructed-matchup-ledger li');
   await page.waitForSelector('.archetype-main-build .deck-render-preview__image:not([hidden]) img');
   assert.equal(await page.$$eval('.deck-render-preview__switch', switches => switches.length), 0);
+  await page.click('.archetype-main-build .deck-render-preview__open');
+  await page.waitForSelector('.deck-render-lightbox[role="dialog"]');
+  const mobileLightbox = await page.$eval('.deck-render-lightbox__panel', panel => {
+    const rect = panel.getBoundingClientRect();
+    return {
+      left: rect.left,
+      right: window.innerWidth - rect.right,
+      top: rect.top,
+      bottom: window.innerHeight - rect.bottom,
+    };
+  });
+  assert.ok(Object.values(mobileLightbox).every(value => value >= 0), 'mobile deck lightbox must stay inside the viewport');
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('.deck-render-lightbox', { hidden: true });
   await page.$$eval('.deck-render-preview__list', lists => {
     lists.forEach(list => { list.hidden = false; });
   });
@@ -297,7 +334,6 @@ try {
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     chartCount: document.querySelectorAll('.archetype-trend').length,
     copyHeight: document.querySelector('.archetype-main-build .deck-list-view__copy-btn')?.getBoundingClientRect().height ?? 0,
-    builderHeight: document.querySelector('.archetype-deck-card__builder')?.getBoundingClientRect().height ?? 0,
     deckTileHeight: document.querySelector('.archetype-deck-card .deck-tile')?.getBoundingClientRect().height ?? 0,
     deckGemWidth: document.querySelector('.archetype-deck-card .hsrdv-card-gem')?.getBoundingClientRect().width ?? 0,
     deckColumnCount: document.querySelectorAll('.archetype-deck-card').length,
@@ -306,7 +342,6 @@ try {
   assert.ok(detailMobile.overflow <= 1, `detail overflowed by ${detailMobile.overflow}px`);
   assert.equal(detailMobile.chartCount, 3);
   assert.ok(detailMobile.copyHeight >= 42);
-  assert.ok(detailMobile.builderHeight >= 44);
   assert.equal(detailMobile.deckTileHeight, 25);
   assert.equal(detailMobile.deckGemWidth, 25);
   assert.equal(detailMobile.deckColumnCount, 7);

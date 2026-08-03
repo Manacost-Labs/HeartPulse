@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Removed the duplicated deck-builder and HSGuru action footer from rendered
+  archetype decks and made each parchment preview open in an accessible,
+  full-viewport lightbox with keyboard and focus restoration support.
 - Extended `/health/data` and `/api/health/data` with the cached aggregate
   health of all `api.hs-manacost.ru` parser datasets, including stale and
   failed source names, without adding upstream latency to visitor requests.
