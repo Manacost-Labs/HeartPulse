@@ -5,10 +5,13 @@
 `arena.hs-manacost.ru` uses self-hosted authoritative GeoDNS so Russian
 visitors keep using the RF access proxies while other visitors use the OVH
 edge in Limburg. Card images, full art, proxied public resources, and hashed
-frontend assets are cached close to the visitor.
+frontend assets are cached close to the visitor. Card-image misses use Timeweb
+CDN as an additional upstream cache and fall back to the Arena origin on
+upstream errors.
 
-No third-party CDN is required. Cloudflare only delegates the child DNS zone;
-it does not proxy HTTP traffic for this hostname.
+Cloudflare only delegates the child DNS zone; it does not proxy HTTP traffic
+for this hostname. Timeweb is not in the HTML, authentication, or dynamic API
+path.
 
 ## Routing
 
