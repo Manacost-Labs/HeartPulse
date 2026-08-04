@@ -50,6 +50,13 @@ The client-region map requires `ngx_http_geoip2_module` and the managed
 derives only a coarse region from `$remote_addr`. Never derive the metric
 label from `X-Forwarded-For` or reuse a browser-provided region header.
 
+The dedicated `cdn.arena.hs-manacost.ru` HTTPS server may additionally include
+`arena-cdn-public-static.conf` before its default `404` location. The snippet
+exposes only the documented public directories, accepts only `GET` and `HEAD`,
+and clears cookies and authorization before an origin fallback. It must never
+be included in the application server or widened to a generic file-extension
+match.
+
 The edge serves synchronized card images and frontend assets from
 `/srv/arena/.../current` first. A missing local file falls through to the
 regional proxy cache and then to the origin. The origin's missing-resource

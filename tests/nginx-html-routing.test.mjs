@@ -38,6 +38,10 @@ const edgeStaticSource = readFileSync(
   join(projectRoot, 'deploy/nginx/arena-edge-static-cache.conf'),
   'utf8',
 );
+const cdnPublicStaticSource = readFileSync(
+  join(projectRoot, 'deploy/nginx/arena-cdn-public-static.conf'),
+  'utf8',
+);
 const edgeCardMapSource = readFileSync(
   join(projectRoot, 'deploy/nginx/arena-card-local-maps.conf'),
   'utf8',
@@ -223,6 +227,21 @@ assert.doesNotMatch(edgeRegionForwardSource, /\$http_x_arena_client_region/i,
 assert.match(edgeRegionMapSource,
   /map\s+"\$arena_edge_socket_region:\$http_x_arena_client_region"\s+\$arena_client_region\s*\{/,
   'the origin must combine a coarse client label with its trusted edge socket');
+
+for (const prefix of ['/assets/', '/fonts/']) {
+  assert.match(cdnPublicStaticSource, new RegExp(`location \\^~ ${prefix.replaceAll('/', '\\/')} \\{[\\s\\S]*?limit_except GET HEAD`),
+    `${prefix} must allow only public read methods on the CDN hostname`);
+}
+assert.match(cdnPublicStaticSource, /proxy_set_header\s+Cookie\s+"";/,
+  'public static misses must not forward browser cookies');
+assert.match(cdnPublicStaticSource, /proxy_set_header\s+Authorization\s+"";/,
+  'public static misses must not forward authorization credentials');
+assert.match(cdnPublicStaticSource, /Access-Control-Allow-Origin\s+"https:\/\/arena\.hs-manacost\.ru"/,
+  'cross-origin modules and fonts must be readable only by the Arena application');
+assert.doesNotMatch(cdnPublicStaticSource, /runtime-config|location\s+[^\n{]*\/api(?:\/|\s|\$)/,
+  'runtime configuration and API paths must stay outside the public CDN allowlist');
+assert.doesNotMatch(cdnPublicStaticSource, /proxy_cache_key[^;]*(?:\$args|\$request_uri)/,
+  'arbitrary query strings must not create unbounded public static cache keys');
 
 for (const machinePath of ['/sitemap.xml', '/sitemaps/static.xml', '/sitemaps/standard-cards.xml']) {
   const exact = locations.find(location => location.modifier === '=' && location.pattern === machinePath);

@@ -57,6 +57,15 @@ These budgets are ratchets. The measured baseline may justify stricter targets, 
 - Browser tests cover first load, navigation, lightbox, font loading, offline upstream fallback, and mobile layout.
 - Regional probes record DNS, TLS, TTFB, download duration, status, cache state, serving edge, and release.
 
+## Public CDN hostname canary
+
+The first expanded allowlist exposes `/assets/`, `/fonts/`, release-owned
+visual directories, and a closed list of root icons on
+`cdn.arena.hs-manacost.ru`. It does not yet rewrite browser URLs. The CDN edge
+serves synchronized local files first, strips cookies and authorization on an
+origin miss, ignores arbitrary query strings in its cache key, and keeps
+`/runtime-config.js` plus every `/api` path behind the default `404` boundary.
+
 ## Documentation impact for every implementation slice
 
 The source change and its tests update this specification plus the owning runbook or operations document in the same commit. Non-obvious trust, cache, and rollback invariants receive concise inline comments. Shipped behavior is added to `CHANGELOG.md`.
