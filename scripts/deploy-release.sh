@@ -11,6 +11,7 @@ APP_BASE=${APP_BASE:-/var/www/koloda/data/www/hs-arena.ru}
 WORKSPACE=${WORKSPACE:-$APP_BASE/app}
 RELEASES_DIR=${RELEASES_DIR:-$APP_BASE/releases}
 RUNTIME_DIR=${RUNTIME_DIR:-$APP_BASE/runtime}
+RUNTIME_CLIENT_CONFIG=$RUNTIME_DIR/client-config.js
 SHARED_DATA_DIR=${SHARED_DATA_DIR:-$APP_BASE/shared/server-data}
 CURRENT_LINK=${CURRENT_LINK:-$APP_BASE/current}
 PREVIOUS_LINK=${PREVIOUS_LINK:-$APP_BASE/previous}
@@ -162,6 +163,13 @@ if [[ "$NEW_RELEASE" == "1" ]]; then
     mkdir -p "$RELEASE_WORK/dist/assets"
     cp -an "$SOURCE_CURRENT_RELEASE/dist/assets/." "$RELEASE_WORK/dist/assets/"
     find "$RELEASE_WORK/dist/assets" -type f -mtime "+$ASSET_RETENTION_DAYS" -delete
+  fi
+
+  # A root-managed runtime file lets operations enable or disable public CDN
+  # delivery without rebuilding the immutable application release.
+  if [[ -f "$RUNTIME_CLIENT_CONFIG" ]]; then
+    rm -f "$RELEASE_WORK/dist/runtime-config.js"
+    ln -s "$RUNTIME_CLIENT_CONFIG" "$RELEASE_WORK/dist/runtime-config.js"
   fi
 
   if [[ "$SKIP_DEPENDENCIES" == "1" ]]; then

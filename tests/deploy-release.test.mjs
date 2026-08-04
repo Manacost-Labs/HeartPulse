@@ -55,6 +55,7 @@ function fakeRelease(sha, { nginxContents = defaultNginxContents } = {}) {
   mkdirSync(dirname(join(directory, verifierSource)), { recursive: true });
   writeFileSync(join(directory, 'build', 'server', 'index.js'), '');
   writeFileSync(join(directory, 'dist', 'index.html'), '');
+  writeFileSync(join(directory, 'dist', 'runtime-config.js'), 'window.defaultConfig = true;\n');
   writeFileSync(join(directory, 'dist', 'assets', `asset-${sha}.js`), sha);
   writeFileSync(join(directory, 'package.json'), '{}');
   writeFileSync(join(directory, 'package-lock.json'), '{}');
@@ -166,6 +167,8 @@ try {
   assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), firstTarget);
 
   const secondSha = 'b'.repeat(7);
+  const runtimeClientConfig = join(appBase, 'runtime', 'client-config.js');
+  writeFileSync(runtimeClientConfig, 'window.sharedConfig = true;\n');
   const second = deploy(fakeRelease(secondSha), true);
   assert.equal(second.status, 0, second.stderr || second.stdout);
   const secondTarget = resolve(appBase, 'releases', secondSha);
@@ -174,6 +177,9 @@ try {
   assert.equal(readFileSync(join(secondTarget, 'dist', 'assets', `asset-${firstSha}.js`), 'utf8'), firstSha);
   assert.equal(readFileSync(join(secondTarget, 'dist', 'assets', `asset-${secondSha}.js`), 'utf8'), secondSha);
   assert.equal(existsSync(join(secondTarget, 'dist', 'assets', 'stale.js')), false);
+  assert.equal(lstatSync(join(secondTarget, 'dist', 'runtime-config.js')).isSymbolicLink(), true);
+  assert.equal(readlinkSync(join(secondTarget, 'dist', 'runtime-config.js')), runtimeClientConfig);
+  assert.equal(readFileSync(join(secondTarget, 'dist', 'runtime-config.js'), 'utf8'), 'window.sharedConfig = true;\n');
 
   const repeated = deploy(fakeRelease(secondSha), true);
   assert.equal(repeated.status, 0, repeated.stderr || repeated.stdout);

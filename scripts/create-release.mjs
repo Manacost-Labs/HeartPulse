@@ -30,6 +30,7 @@ for (const required of [
   'build/server/index.js',
   'build/server/constructedCardImagePrewarmer.js',
   'dist/index.html',
+  'dist/runtime-config.js',
   'dist/sitemap.xml',
   'dist/sitemaps/static.xml',
   'package.json',

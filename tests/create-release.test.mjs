@@ -32,6 +32,7 @@ try {
   writeFileSync(join(workspace, 'build/server/index.js'), 'console.log("server");\n');
   writeFileSync(join(workspace, 'build/server/constructedCardImagePrewarmer.js'), 'console.log("sync");\n');
   writeFileSync(join(workspace, 'dist/index.html'), '<!doctype html>\n<script type="module" src="/assets/index-stable.js"></script>\n');
+  writeFileSync(join(workspace, 'dist/runtime-config.js'), 'window.__ARENA_RUNTIME_CONFIG__ = {};\n');
   writeFileSync(join(workspace, 'dist/assets/index-stable.js'), 'const release = "abcdef1";\n');
   writeFileSync(join(workspace, 'dist/sitemap.xml'), '<?xml version="1.0"?><sitemapindex/>\n');
   writeFileSync(join(workspace, 'dist/sitemaps/static.xml'), '<?xml version="1.0"?><urlset/>\n');
@@ -65,6 +66,10 @@ try {
   assert.equal(manifest.schemaVersion, 2);
   assert.equal(manifest.sha, 'abcdef1');
   assert.match(readFileSync(join(output, 'dist/index.html'), 'utf8'), /src="\/assets\/index-stable\.js"/);
+  assert.equal(
+    readFileSync(join(output, 'dist/runtime-config.js'), 'utf8'),
+    'window.__ARENA_RUNTIME_CONFIG__ = {};\n',
+  );
   assert.doesNotMatch(readFileSync(join(output, 'dist/index.html'), 'utf8'), /\?v=/);
   assert.match(manifest.checksums['scripts/backup-shared-data.sh'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['build/server/constructedCardImagePrewarmer.js'], /^[a-f0-9]{64}$/);
