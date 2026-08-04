@@ -1051,6 +1051,14 @@ async function mockApplicationApi(page, {
       }));
       return;
     }
+    if (url.pathname === '/api/telemetry/web-vitals' && request.method() === 'POST') {
+      request.respond({
+        status: 204,
+        headers: { 'cache-control': 'no-store' },
+        body: '',
+      });
+      return;
+    }
     if (/^\/api\/card-image\/[A-Za-z0-9_]+\/(?:thumb|full)\.webp$/.test(url.pathname)) {
       request.respond({
         status: 200,
@@ -1570,7 +1578,13 @@ function collectRuntimeErrors(page, { sameOriginNetwork = false } = {}) {
         return;
       }
       const contentType = response.headers()['content-type'] || '';
-      if (url.pathname.startsWith('/api/') && !/application\/(?:[^;]+\+)?json/i.test(contentType)) {
+      const isCardImageResponse = /^\/api\/card-image\/[A-Za-z0-9_]+\/(?:thumb|full)\.webp$/.test(url.pathname);
+      if (isCardImageResponse && !/^image\/(?:avif|gif|jpe?g|png|svg\+xml|webp)(?:;|$)/i.test(contentType)) {
+        errors.push(`unexpected card image content-type ${contentType || 'missing'}: ${url.pathname}`);
+      } else if (url.pathname.startsWith('/api/')
+        && response.status() !== 204
+        && !isCardImageResponse
+        && !/application\/(?:[^;]+\+)?json/i.test(contentType)) {
         errors.push(`unexpected API content-type ${contentType || 'missing'}: ${url.pathname}`);
       }
     });

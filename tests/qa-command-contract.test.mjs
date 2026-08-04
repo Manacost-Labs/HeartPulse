@@ -118,6 +118,16 @@ assert.ok(
   'responsive QA must treat failed same-origin API and asset requests as runtime failures',
 );
 assert.ok(
+  browserQa.includes("url.pathname === '/api/telemetry/web-vitals'")
+    && browserQa.includes("status: 204"),
+  'browser QA must acknowledge the fire-and-forget Web Vitals endpoint',
+);
+assert.ok(
+  browserQa.includes('isCardImageResponse')
+    && browserQa.includes("response.status() !== 204"),
+  'browser QA must accept image card APIs and bodyless successful API responses',
+);
+assert.ok(
   browserQa.includes("request.frame() === page.mainFrame()")
     && browserQa.includes("url.pathname === notFoundDocument.pathname"),
   'local 404 substitution must be limited to the exact main-frame fixture document',
