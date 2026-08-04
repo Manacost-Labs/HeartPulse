@@ -1,5 +1,6 @@
 import { Router, type RequestHandler } from 'express';
 import {
+  normalizeWebVitalClientRegion,
   normalizeWebVitalEdgeRegion,
   type ServerWebVitalContext,
   type ServerWebVitalMetric,
@@ -63,8 +64,10 @@ export function createWebVitalsRouter(options: {
   const handler: RequestHandler = (req, res) => {
     const context: ServerWebVitalContext = {
       edgeRegion: normalizeWebVitalEdgeRegion(req.headers['x-arena-edge-region']),
+      clientRegion: normalizeWebVitalClientRegion(req.headers['x-arena-client-region']),
     };
     res.setHeader('X-RUM-Edge-Region', context.edgeRegion);
+    res.setHeader('X-RUM-Client-Region', context.clientRegion);
     const metrics = normalizeWebVitalsPayload(req.body);
     if (!metrics) return res.status(400).json({ error: 'Некорректные Web Vitals' });
     for (const metric of metrics) options.capture(metric, context);
