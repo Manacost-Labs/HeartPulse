@@ -18,7 +18,7 @@
 
 - Установка: `npm ci`;
 - Проверка типов: `npm run lint`;
-- Тесты изображений карт: `npm run test:constructed-card-media && npm run test:card-image-routes`;
+- Тесты изображений карт: `npm run test:card-image-delivery-config && npm run test:constructed-card-media && npm run test:card-image-routes`;
 - Сборка: `npm run build`;
 - Проверка безопасности изменённого TypeScript: `npm run security:semgrep`;
 - Проверка секретов перед публикацией: `npm run security:gitleaks`.
@@ -29,14 +29,14 @@
 - `src/config/` — чтение клиентской конфигурации доставки;
 - `src/features/constructedCardMedia.ts` — формирование URL изображений обычных, связанных и генерируемых карт;
 - `tests/` — unit- и contract-тесты URL-политики;
-- `docs/operations/` — проверка CDN, переключение и откат.
+- `docs/runbooks/` — проверка CDN, переключение и откат.
 
 ## Стиль кода
 
 Политика URL остаётся чистой функцией: входной путь и явная конфигурация дают предсказуемый результат без сетевых запросов и скрытого состояния.
 
 ```ts
-const result = resolvePublicAssetUrl('/api/card-image/126055/full.webp?v=release', {
+const result = resolveCardImageDeliveryUrl('/api/card-image/126055/full.webp?v=release', {
   enabled: true,
   origin: 'https://cdn.arena.hs-manacost.ru',
 });

@@ -3,6 +3,7 @@ import {
   localizeConstructedSoundDescription,
 } from '../../shared/constructedCardTranslations';
 import { publicResourceUrl } from '../publicResourceUrl';
+import { cardImageDeliveryUrl } from '../config/publicAssetDelivery';
 import type {
   ConstructedRelatedCard,
   ConstructedRelatedCardGroup,
@@ -58,7 +59,9 @@ export function constructedCardRenderImage(
 ): string | null {
   const cardId = String(cardIdValue ?? '').trim();
   if (/^[A-Za-z0-9_]{1,80}$/.test(cardId)) {
-    return `/api/card-image/${encodeURIComponent(cardId)}/${variant}.webp?v=${constructedCardImageVersion(fallbackValue)}`;
+    return cardImageDeliveryUrl(
+      `/api/card-image/${encodeURIComponent(cardId)}/${variant}.webp?v=${constructedCardImageVersion(fallbackValue)}`,
+    );
   }
   const fallback = String(fallbackValue ?? '').trim();
   return fallback || null;

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Download } from 'lucide-react';
+import { cardImageOriginUrl } from '../config/publicAssetDelivery';
 
 type ConstructedCardDownloadButtonProps = {
   cardId: string;
@@ -26,7 +27,7 @@ export default function ConstructedCardDownloadButton({
   return (
     <a
       className="constructed-card-download"
-      href={href}
+      href={cardImageOriginUrl(href)}
       download={constructedCardDownloadFilename(cardName, cardId)}
       aria-label={accessibleName}
       title={accessibleName}

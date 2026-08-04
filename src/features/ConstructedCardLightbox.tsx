@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, ExternalLink, X } from 'lucide-react';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
+import { fallbackCardImageElementToOrigin } from '../config/publicAssetDelivery';
 import type { ConstructedCardMediaItem } from './constructedCardMedia';
 
 type ConstructedCardLightboxProps = {
@@ -39,7 +40,10 @@ function ConstructedLightboxImage({
         src={fullImageReady || !hasPreview ? item.url : item.thumbnailUrl}
         alt={item.label}
         decoding="async"
-        onError={hasPreview && !fullImageReady ? () => setFullImageReady(true) : undefined}
+        onError={event => {
+          if (fallbackCardImageElementToOrigin(event.currentTarget)) return;
+          if (hasPreview && !fullImageReady) setFullImageReady(true);
+        }}
         onLoad={!hasPreview ? warmNext : undefined}
       />
       {hasPreview && !fullImageReady && (
@@ -51,6 +55,9 @@ function ConstructedLightboxImage({
           onLoad={() => {
             setFullImageReady(true);
             warmNext();
+          }}
+          onError={event => {
+            if (!fallbackCardImageElementToOrigin(event.currentTarget)) setFullImageReady(true);
           }}
         />
       )}

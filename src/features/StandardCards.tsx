@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import '../route-parchment.css';
 import { publicResourceUrl } from '../publicResourceUrl';
+import { fallbackCardImageToOrigin } from '../config/publicAssetDelivery';
 import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
 import ConstructedCardHistoryChart from './ConstructedCardHistoryChart';
 import { cardSupportsStandardStatistics } from './constructedCardFormats';
@@ -92,10 +93,7 @@ import {
   constructedRelatedCardImage,
   type ConstructedCardMediaItem,
 } from './constructedCardMedia';
-import {
-  normalizeConstructedRelatedCardGroups,
-  type ConstructedRelatedCardGroup,
-} from './constructedRelatedCards';
+import { normalizeConstructedRelatedCardGroups, type ConstructedRelatedCardGroup } from './constructedRelatedCards';
 import {
   constructedSpellSchoolLabel,
   constructedTribeLabel,
@@ -110,13 +108,13 @@ import './StandardCards.css';
 
 type CardFormat = ConstructedCardFormat;
 type ViewMode = 'gallery' | 'table';
+
 type ConstructedCardPeriodDescriptor = {
   id: ConstructedCardPeriod;
   label: string;
   timeRange: string | null;
   patch: string | null;
 };
-
 type CardStats = {
   deckPopularity: number | null;
   deckWinrate: number | null;
@@ -583,7 +581,7 @@ function CardGallery({ cards, format, period, rank, sort, navigatePath, statsAcc
                 onBlur={() => setHovered(null)}
                 onClick={event => { event.preventDefault(); navigateWithConstructedCardContext(navigatePath, cardPath(format, card), period, rank, format, format); }}
               >
-                <img src={constructedCardRenderImage(card.dbf ?? card.card_id, card.images?.card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={name} loading="lazy" decoding="async" />
+                <img src={constructedCardRenderImage(card.dbf ?? card.card_id, card.images?.card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={name} loading="lazy" decoding="async" onError={fallbackCardImageToOrigin} />
                 <span className="constructed-cards__gallery-name">{name}</span>
                 <span className="constructed-cards__gallery-stat" data-tour-id={index === 0 ? 'cards-statistics' : undefined}><small>{metric.label}</small>{!statsAccess && STATISTIC_SORTS.has(sort) ? <LockedStatValue /> : <strong>{metric.value}</strong>}</span>
               </a>
@@ -1057,7 +1055,7 @@ function GeneratedPoolCards({ pool, format, period, rank, navigatePath, onOpen }
                     aria-label={`Открыть карту «${name}» в полном размере`}
                     onClick={() => onOpen(image)}
                   >
-                    <img src={image} alt="" loading="lazy" decoding="async" />
+                    <img src={image} alt="" loading="lazy" decoding="async" onError={fallbackCardImageToOrigin} />
                   </button>
                 )
                 : <div className="constructed-card-detail__pool-card-placeholder" aria-hidden="true"><Sparkles size={34} /></div>}
@@ -1136,7 +1134,7 @@ function RelatedCardGroups({ groups, onOpen }: {
                           aria-label={`Открыть карту «${name}» в полном размере`}
                           onClick={() => onOpen(cardImageUrl)}
                         >
-                          <img src={cardImageUrl} alt={`Карта Hearthstone «${name}»`} loading="lazy" decoding="async" />
+                          <img src={cardImageUrl} alt={`Карта Hearthstone «${name}»`} loading="lazy" decoding="async" onError={fallbackCardImageToOrigin} />
                         </button>
                       )
                       : <div className="constructed-card-detail__related-card-image"><Sparkles size={34} aria-hidden="true" /></div>}
@@ -1462,7 +1460,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
       <section className="constructed-card-detail__hero">
         <div className="constructed-card-detail__visual">
           <button type="button" className="constructed-card-detail__visual-button" onClick={() => openMedia(selectedImage)} aria-label={`Открыть ${cardName(card)} в полном размере`}>
-            <img src={selectedImage} alt={cardName(card)} />
+            <img src={selectedImage} alt={cardName(card)} onError={fallbackCardImageToOrigin} />
             <span>Открыть в полном размере</span>
           </button>
           <div className="constructed-card-detail__variants" aria-label="Вариант изображения" data-tour-id="card-art">{variants.map(item => <button key={item.id} type="button" aria-pressed={variant === item.id} onClick={() => setVariant(item.id)}>{item.label}</button>)}</div>
@@ -1542,7 +1540,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
       {decks.length > 0 && <ConstructedCardDecks key={`${format}:${cardId}`} decks={decks} format={format} />}
 
       <section className={`constructed-card-detail__media-grid${sounds.length ? '' : ' constructed-card-detail__media-grid--two'}`}>
-        <div className="constructed-card-detail__section"><h2>Галерея · {galleryMedia.length}</h2>{galleryMedia.length ? <div className="constructed-card-detail__gallery">{galleryMedia.map(item => <button className={item.presentation === 'contain' ? 'is-contain' : undefined} key={item.id} type="button" onClick={() => openMedia(item.url)} aria-label={`Открыть ${item.label}`}><img src={item.thumbnailUrl} alt={item.label} loading="lazy" decoding="async" /><span>{item.label}</span></button>)}</div> : <p>Дополнительные изображения отсутствуют.</p>}</div>
+        <div className="constructed-card-detail__section"><h2>Галерея · {galleryMedia.length}</h2>{galleryMedia.length ? <div className="constructed-card-detail__gallery">{galleryMedia.map(item => <button className={item.presentation === 'contain' ? 'is-contain' : undefined} key={item.id} type="button" onClick={() => openMedia(item.url)} aria-label={`Открыть ${item.label}`}><img src={item.thumbnailUrl} alt={item.label} loading="lazy" decoding="async" onError={fallbackCardImageToOrigin} /><span>{item.label}</span></button>)}</div> : <p>Дополнительные изображения отсутствуют.</p>}</div>
         {sounds.length > 0 && <div className="constructed-card-detail__section"><h2><Volume2 size={19} /> Звуки карты · {sounds.length}</h2><div className="constructed-card-detail__sounds">{soundGroups.map(([group, clips], groupIndex) => <details key={group} open={groupIndex === 0}><summary>{constructedSoundGroupLabel(group)} · {clips?.length ?? 0}</summary>{clips?.map((item, clipIndex) => <article key={item.id}><span>{soundClipLabel(item.description, item.group, clipIndex)}</span><audio controls preload="metadata" src={item.url}>Ваш браузер не поддерживает воспроизведение аудио.</audio></article>)}</details>)}</div></div>}
         <div className="constructed-card-detail__section"><h2>Дополнительная информация</h2><div className="constructed-card-detail__links">{card.wiki_page?.url && <a href={card.wiki_page.url} target="_blank" rel="noreferrer">Hearthstone Wiki <ExternalLink size={14} /></a>}{externalLinks.map((item: any, index: number) => <a key={`${item.url}-${index}`} href={item.url} target="_blank" rel="noreferrer">{item.label || item.url} <ExternalLink size={14} /></a>)}</div></div>
       </section>

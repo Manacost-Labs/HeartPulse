@@ -194,6 +194,26 @@ assert.equal(
   '/api/card-image/ETC_080/thumb.webp?v=constructed-cards-blizzard-20260727',
   'constructed card renders should use the same-origin WebP cache for Russian edge delivery',
 );
+const runtimeGlobal = globalThis as typeof globalThis & { window?: any };
+const previousWindow = runtimeGlobal.window;
+try {
+  runtimeGlobal.window = {
+    __ARENA_RUNTIME_CONFIG__: {
+      cardImageCdn: {
+        enabled: true,
+        origin: 'https://cdn.arena.hs-manacost.ru',
+      },
+    },
+  };
+  assert.equal(
+    constructedCardRenderImage('ETC_080', 'https://example.test/card.png', 'thumb'),
+    'https://cdn.arena.hs-manacost.ru/api/card-image/ETC_080/thumb.webp?v=constructed-cards-blizzard-20260727',
+    'constructed card renders should use the approved CDN after the runtime switch is enabled',
+  );
+} finally {
+  if (previousWindow === undefined) delete runtimeGlobal.window;
+  else runtimeGlobal.window = previousWindow;
+}
 const firstOfficialImage = 'https://d15f34w2p8l1cc.cloudfront.net/hearthstone/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.png';
 const changedOfficialImage = 'https://d15f34w2p8l1cc.cloudfront.net/hearthstone/fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210.png';
 assert.equal(

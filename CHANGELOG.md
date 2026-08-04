@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Prepared the constructed-card catalog, related cards and lightbox for the
+  self-hosted `cdn.arena.hs-manacost.ru` delivery endpoint with a deploy-safe
+  runtime switch, strict origin allow-list and automatic same-origin retry.
+- Kept full-quality downloads on the application origin so browser downloads
+  remain reliable while normal card rendering can use the CDN.
 - Routed generated Deckview images through Arena's same-origin cached media
   boundary, so Fun Deck galleries also load where `api.blizzcore.ru` is
   unavailable to the visitor, including affected users in Russia.

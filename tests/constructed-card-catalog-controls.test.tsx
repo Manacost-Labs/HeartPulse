@@ -49,12 +49,17 @@ const downloadMarkup = renderToStaticMarkup(
   <ConstructedCardDownloadButton
     cardId="TOY_330"
     cardName="Зиллиакс Делокс 3000"
-    href="/api/card-image/105909/full.webp?v=blizzard-test"
+    href="https://cdn.arena.hs-manacost.ru/api/card-image/105909/full.webp?v=blizzard-test"
   />,
 );
 assert.match(downloadMarkup, /download="Зиллиакс-Делокс-3000-TOY_330\.webp"/);
 assert.match(downloadMarkup, /aria-label="Скачать карту «Зиллиакс Делокс 3000» в полном качестве"/);
 assert.match(downloadMarkup, /\/api\/card-image\/105909\/full\.webp\?v=blizzard-test/);
+assert.doesNotMatch(
+  downloadMarkup,
+  /cdn\.arena\.hs-manacost\.ru/,
+  'downloads must stay same-origin so browser download behavior remains reliable',
+);
 
 const standardCardsSource = readFileSync(new URL('../src/features/StandardCards.tsx', import.meta.url), 'utf8');
 const standardCardsCss = readFileSync(new URL('../src/features/StandardCards.css', import.meta.url), 'utf8');
