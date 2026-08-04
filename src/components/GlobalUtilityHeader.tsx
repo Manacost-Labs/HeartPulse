@@ -90,12 +90,12 @@ export default function GlobalUtilityHeader({
   accessStatus,
   onNavigate,
   pagePath,
-  authenticated,
+  auth,
 }: {
   accessStatus: true | HeaderSubscription;
   onNavigate: (path: string) => void;
   pagePath: string;
-  authenticated: boolean;
+  auth: boolean;
 }) {
   const rootRef = useRef<HTMLElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -121,7 +121,7 @@ export default function GlobalUtilityHeader({
     battlegroundsArticles: admin || Boolean(subscriptionStatus?.entitlements?.battlegroundsArticles),
   };
   const tourAccess: PageTourAccess = {
-    authenticated,
+    authenticated: auth,
     admin,
     standard: admin || Boolean(subscriptionStatus?.entitlements?.standard),
     arena: admin || Boolean(subscriptionStatus?.entitlements?.arena),
@@ -135,12 +135,12 @@ export default function GlobalUtilityHeader({
       import('../features/pageTour/pageTourModel'),
     ]).then(([definitions, model]) => {
       const resolved = model.resolvePageTour(pagePath, definitions.PAGE_TOURS);
-      if (active) setTourAvailable(Boolean(resolved && (resolved.id !== 'profile' || authenticated)));
+      if (active) setTourAvailable(Boolean(resolved && (resolved.id !== 'profile' || auth)));
     }).catch(() => {
       if (active) setTourAvailable(false);
     });
     return () => { active = false; };
-  }, [authenticated, pagePath]);
+  }, [auth, pagePath]);
 
   useEffect(() => {
     setSearchOpen(false);

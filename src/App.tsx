@@ -1706,10 +1706,10 @@ export default function App() {
 	          {!isAdminMode && (
 	            <React.Suspense fallback={null}>
 	              <LazyGlobalUtilityHeader
-	                accessStatus={appIsAdmin ? true : appSubscription}
+	                accessStatus={appIsAdmin || appSubscription}
 	                onNavigate={navigatePath}
-	                pagePath={(wantsLogin && '/profile') || currentPath}
-	                authenticated={Boolean(appAuthUser)}
+	                pagePath={wantsLogin ? '/profile' : currentPath}
+	                auth={Boolean(appAuthUser)}
 	              />
 	            </React.Suspense>
 	          )}
