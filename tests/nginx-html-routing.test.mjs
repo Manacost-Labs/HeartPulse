@@ -122,6 +122,15 @@ const edgePublicResourceLocation = edgeLocations.find(location => (
 const edgeSitemapLocation = edgeLocations.find(location => (
   location.modifier === '=' && location.pattern === '/sitemap.xml'
 ));
+const runtimeConfigLocation = locations.find(location => (
+  location.modifier === '=' && location.pattern === '/runtime-config.js'
+));
+assert.match(runtimeConfigLocation?.body || '', /try_files\s+\$uri\s+=404;/,
+  'runtime config must remain a release-owned static file');
+assert.match(runtimeConfigLocation?.body || '', /Cache-Control\s+"no-cache, no-store, must-revalidate"\s+always;/,
+  'runtime config must be revalidated after every production switch');
+assert.doesNotMatch(runtimeConfigLocation?.body || '', /immutable|max-age=2592000/,
+  'runtime config must never inherit the generic immutable JavaScript policy');
 assert.match(edgeCardImageLocation?.body || '', /try_files\s+\$arena_card_image_blizzard_file\s+@arena_card_image_local_fallback;/,
   'card images must use the local Blizzard mirror before the origin fallback');
 assert.match(edgeCardImageLocation?.body || '', /X-Proxy-Cache\s+LOCAL\s+always;/,
