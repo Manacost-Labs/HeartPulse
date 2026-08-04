@@ -28,6 +28,10 @@ export const PUBLIC_RESOURCE_SOURCES = {
     origin: 'https://static.hsreplay.net',
     allowedPathPrefixes: ['/static/'],
   },
+  deckview: {
+    origin: 'https://api.blizzcore.ru',
+    allowedPathPrefixes: ['/static/generated/'],
+  },
 } as const satisfies Record<string, PublicResourceSource>;
 
 const PUBLIC_RESOURCE_SOURCE_BY_HOST = new Map(

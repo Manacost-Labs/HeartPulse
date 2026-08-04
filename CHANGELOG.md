@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Routed generated Deckview images through Arena's same-origin cached media
+  boundary, so Fun Deck galleries also load where `api.blizzcore.ru` is
+  unavailable to the visitor, including affected users in Russia.
 - Added immutable 720px WebP derivatives for Deckview galleries while keeping
   the full JPEG for the lightbox, reducing measured catalog image transfer by
   about 92% on the canonical 30- and 40-card Reno fixtures.

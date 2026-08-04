@@ -1,3 +1,5 @@
+import { publicResourceUrl } from '../../publicResourceUrl';
+
 type DeckRenderPayload = {
   ok?: boolean;
   ready?: boolean;
@@ -10,6 +12,14 @@ export type DeckRenderAsset = {
   imageUrl: string;
   previewImageUrl: string;
 };
+
+export function sameOriginDeckRenderAsset(asset: DeckRenderAsset): DeckRenderAsset {
+  const imageUrl = publicResourceUrl(asset.imageUrl);
+  return {
+    imageUrl,
+    previewImageUrl: publicResourceUrl(asset.previewImageUrl) || imageUrl,
+  };
+}
 
 const MAX_MEMORY_ENTRIES = 256;
 const MAX_RENDER_ATTEMPTS = 3;
@@ -27,10 +37,11 @@ export function deckRenderCacheKey(deckCode: string, deckName: string): string {
 export function deckRenderImageRetryUrl(imageUrl: string, attempt: number): string {
   if (!imageUrl || attempt <= 0) return imageUrl;
   try {
-    const url = new URL(imageUrl);
+    const isSameOriginPath = imageUrl.startsWith('/');
+    const url = new URL(imageUrl, 'https://arena.hs-manacost.ru');
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return imageUrl;
     url.searchParams.set('deckview_retry', String(attempt));
-    return url.toString();
+    return isSameOriginPath ? `${url.pathname}${url.search}${url.hash}` : url.toString();
   } catch {
     return imageUrl;
   }
@@ -92,10 +103,10 @@ async function fetchDeckRender(
 
     const payload = await response.json().catch(() => ({})) as DeckRenderPayload;
     if (response.ok && payload.ok === true && payload.ready === true && payload.imageUrl) {
-      return {
+      return sameOriginDeckRenderAsset({
         imageUrl: payload.imageUrl,
         previewImageUrl: payload.previewImageUrl || payload.imageUrl,
-      };
+      });
     }
 
     lastError = new Error(payload.error || 'Не удалось собрать изображение колоды');

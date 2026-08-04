@@ -15,6 +15,11 @@ assert.equal(
   'ordinary external navigation links must not be converted into media requests',
 );
 assert.equal(
+  publicResourceUrl('https://api.blizzcore.ru/static/generated/render-cache/aa/deck.preview-v1.webp'),
+  '/api/public-resource/deckview/static/generated/render-cache/aa/deck.preview-v1.webp',
+  'Deckview images must be delivered through Arena for users who cannot reach the render host',
+);
+assert.equal(
   publicResourceUrl('https://evil.example/image.png'),
   'https://evil.example/image.png',
   'unknown origins must not be routed through the proxy',

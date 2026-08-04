@@ -19,6 +19,10 @@ assert.equal(
   deckRenderImageRetryUrl('https://api.blizzcore.ru/static/generated/deck.jpg', 0),
   'https://api.blizzcore.ru/static/generated/deck.jpg',
 );
+assert.equal(
+  deckRenderImageRetryUrl('/api/public-resource/deckview/static/generated/deck.jpg', 2),
+  '/api/public-resource/deckview/static/generated/deck.jpg?deckview_retry=2',
+);
 
 let fetchCount = 0;
 const fetchImpl = (async () => {
@@ -37,8 +41,8 @@ const [first, second] = await Promise.all([
   requestDeckRender('AAEC0123456789', 'Deck', fetchImpl),
 ]);
 assert.deepEqual(first, second);
-assert.equal(first.imageUrl, 'https://api.blizzcore.ru/static/generated/render-cache/aa/deck.jpg');
-assert.equal(first.previewImageUrl, 'https://api.blizzcore.ru/static/generated/render-cache/aa/deck.preview-v1.webp');
+assert.equal(first.imageUrl, '/api/public-resource/deckview/static/generated/render-cache/aa/deck.jpg');
+assert.equal(first.previewImageUrl, '/api/public-resource/deckview/static/generated/render-cache/aa/deck.preview-v1.webp');
 assert.equal(fetchCount, 1, 'concurrent requests must be coalesced');
 
 await requestDeckRender('AAEC0123456789', 'Deck', fetchImpl);
@@ -66,7 +70,7 @@ const transientFetch = (async () => {
 
 assert.equal(
   (await requestDeckRender('AAEC9876543210', 'Transient Deck', transientFetch)).imageUrl,
-  'https://api.blizzcore.ru/static/generated/render-cache/bb/recovered.jpg',
+  '/api/public-resource/deckview/static/generated/render-cache/bb/recovered.jpg',
 );
 assert.equal(transientFetchCount, 2, 'transient render failures must recover automatically');
 

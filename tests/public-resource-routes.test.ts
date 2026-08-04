@@ -188,10 +188,19 @@ try {
   );
   assert.match(decompressed.headers.get('cache-control') ?? '', /stale-while-revalidate/);
 
+  const deckviewPreview = await fetch(
+    `${baseUrl}/deckview/static/generated/render-cache/aa/deck.preview-v1.webp`,
+  );
+  assert.equal(deckviewPreview.status, 206);
+  assert.equal(
+    upstreamCalls.at(-1)?.url,
+    'https://api.blizzcore.ru/static/generated/render-cache/aa/deck.preview-v1.webp',
+  );
+
   const rejectedLargeResource = await fetch(`${baseUrl}/db/uploads/too-large.png`);
   assert.equal(rejectedLargeResource.status, 502);
 
-  assert.equal(upstreamCalls.length, 8, 'rejected source and path must not reach the network');
+  assert.equal(upstreamCalls.length, 9, 'rejected source and path must not reach the network');
 } finally {
   await Promise.all([
     new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())),

@@ -6,6 +6,7 @@ import {
   deckRenderImageRetryUrl,
   invalidateDeckRender,
   requestDeckRender,
+  sameOriginDeckRenderAsset,
   type DeckRenderAsset,
 } from './deckRenderClient';
 import {
@@ -59,7 +60,9 @@ function DeckRenderPreviewInstance({
   const [visible, setVisible] = useState(eager);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [state, setState] = useState<PreviewState>(() => {
-    const cached = initialAsset || cachedDeckRender(deckCode, deckName);
+    const cached = initialAsset
+      ? sameOriginDeckRenderAsset(initialAsset)
+      : cachedDeckRender(deckCode, deckName);
     return {
       error: '',
       fullImageUrl: cached?.imageUrl || '',
