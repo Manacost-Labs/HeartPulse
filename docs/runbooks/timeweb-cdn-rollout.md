@@ -1,4 +1,4 @@
-+<!-- markdownlint-disable MD013 -->
+<!-- markdownlint-disable MD013 -->
 
 # Подключение Timeweb CDN для изображений карт
 
