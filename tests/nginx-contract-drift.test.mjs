@@ -41,6 +41,11 @@ const definitions = [
     roles: ['edge'],
   },
   {
+    source: 'deploy/nginx/arena-edge-client-region-map.conf',
+    installPath: '/etc/nginx/conf.d/33-arena-edge-client-region-map.conf',
+    roles: ['edge'],
+  },
+  {
     source: 'deploy/nginx/arena-edge-region-forward.conf',
     installPath: '/etc/nginx/snippets/arena-edge-region-forward.conf',
     roles: ['edge'],
@@ -178,7 +183,7 @@ try {
   });
   assert.equal(edgeReport.status, 'ok');
   assert.equal(edgeReport.exitCode, 0);
-  assert.equal(edgeReport.files.filter(file => file.installedStatus === 'ok').length, 3);
+  assert.equal(edgeReport.files.filter(file => file.installedStatus === 'ok').length, 4);
 
   const installedModifiedFixture = createFixture('installed-modified');
   const installedModifiedFile = installedModifiedFixture.files.find(file => file.roles.includes('origin'));

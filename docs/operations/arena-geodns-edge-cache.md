@@ -111,6 +111,21 @@ has a sustained p75 or p95 regression of at least 20% without a compensating
 availability benefit. A high `unknown` share is a routing-instrumentation
 fault, not a user-performance result.
 
+### Coarse client regions
+
+The regional edges use `ngx_http_geoip2_module` and the managed
+`/var/lib/GeoIP/dbip-country-lite.mmdb` database to derive one bounded client
+region from the immediate browser socket. Russia is kept separate from Europe;
+the remaining labels are `europe`, `north-america`, `south-america`, `asia`,
+`oceania`, `africa`, and `unknown`.
+
+Every edge overwrites `X-Arena-Client-Region`. The origin accepts it only from
+a known edge socket or the controlled RF tunnel and normalizes it again before
+metrics capture. `X-Forwarded-For` and browser-provided region headers are not
+part of this decision. The DB-IP updater must publish a readable, validated
+database atomically; a missing database must fail deployment before Nginx is
+reloaded.
+
 ## Rollback
 
 The pre-change parent records are stored in `/var/lib/arena-geodns/` on the

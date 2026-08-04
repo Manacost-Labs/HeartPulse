@@ -29,6 +29,10 @@ const edgeRegionForwardSource = readFileSync(
   join(projectRoot, 'deploy/nginx/arena-edge-region-forward.conf'),
   'utf8',
 );
+const edgeClientRegionMapSource = readFileSync(
+  join(projectRoot, 'deploy/nginx/arena-edge-client-region-map.conf'),
+  'utf8',
+);
 const routingSource = readFileSync(join(projectRoot, 'deploy/nginx/arena-html-routing.conf'), 'utf8');
 const edgeStaticSource = readFileSync(
   join(projectRoot, 'deploy/nginx/arena-edge-static-cache.conf'),
@@ -189,6 +193,36 @@ assert.match(edgeRegionForwardSource,
   'every edge must overwrite a browser-provided region before proxying');
 assert.doesNotMatch(edgeRegionForwardSource, /\$http_x_arena_edge_region|X-Forwarded-For/i,
   'the edge region label must never derive from a browser forwarding header');
+assert.match(edgeClientRegionMapSource,
+  /geoip2\s+\/var\/lib\/GeoIP\/dbip-country-lite\.mmdb\s*\{/,
+  'the edge must derive coarse geography from the managed DB-IP database');
+assert.match(edgeClientRegionMapSource,
+  /\$arena_geoip_country\s+source=\$remote_addr\s+country\s+iso_code;/,
+  'the client country must use the immediate browser socket');
+assert.match(edgeClientRegionMapSource,
+  /\$arena_geoip_continent\s+source=\$remote_addr\s+continent\s+code;/,
+  'the client continent must use the immediate browser socket');
+assert.match(edgeClientRegionMapSource, /~\^RU:\s+russia;/,
+  'Russia must remain separate from the wider European metric region');
+for (const [continent, region] of [
+  ['EU', 'europe'],
+  ['NA', 'north-america'],
+  ['SA', 'south-america'],
+  ['AS', 'asia'],
+  ['OC', 'oceania'],
+  ['AF', 'africa'],
+]) {
+  assert.ok(edgeClientRegionMapSource.includes(`~^[A-Z][A-Z]:${continent}$ ${region};`),
+    `${continent} must map to the bounded ${region} metric label`);
+}
+assert.match(edgeRegionForwardSource,
+  /proxy_set_header\s+X-Arena-Client-Region\s+\$arena_proxy_client_region;/,
+  'every edge must overwrite a browser-provided client region before proxying');
+assert.doesNotMatch(edgeRegionForwardSource, /\$http_x_arena_client_region/i,
+  'the forwarded client region must never reuse the browser header');
+assert.match(edgeRegionMapSource,
+  /map\s+"\$arena_edge_socket_region:\$http_x_arena_client_region"\s+\$arena_client_region\s*\{/,
+  'the origin must combine a coarse client label with its trusted edge socket');
 
 for (const machinePath of ['/sitemap.xml', '/sitemaps/static.xml', '/sitemaps/standard-cards.xml']) {
   const exact = locations.find(location => location.modifier === '=' && location.pattern === machinePath);
@@ -235,6 +269,8 @@ for (const apiLocation of locations.filter(location => (
 ))) {
   assert.match(apiLocation.body, /proxy_set_header\s+X-Arena-Edge-Region\s+\$arena_edge_region;/,
     `${apiLocation.pattern} must overwrite the client region with the trusted origin map`);
+  assert.match(apiLocation.body, /proxy_set_header\s+X-Arena-Client-Region\s+\$arena_client_region;/,
+    `${apiLocation.pattern} must pass the trusted coarse client region`);
 }
 
 for (const path of ['/assets/app.js', '/uploads/example.png']) {

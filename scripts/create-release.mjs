@@ -11,6 +11,7 @@ const nginxContractDefinitions = [
   { source: 'deploy/nginx/arena-seo-map.conf', installPath: '/etc/nginx/conf.d/31-arena-seo-map.conf', roles: ['origin'] },
   { source: 'deploy/nginx/arena-edge-region-map.conf', installPath: '/etc/nginx/conf.d/32-arena-edge-region-map.conf', roles: ['origin'] },
   { source: 'deploy/nginx/arena-card-local-maps.conf', installPath: '/etc/nginx/conf.d/31-arena-card-local-maps.conf', roles: ['edge'] },
+  { source: 'deploy/nginx/arena-edge-client-region-map.conf', installPath: '/etc/nginx/conf.d/33-arena-edge-client-region-map.conf', roles: ['edge'] },
   { source: 'deploy/nginx/arena-edge-region-forward.conf', installPath: '/etc/nginx/snippets/arena-edge-region-forward.conf', roles: ['edge'] },
   { source: 'deploy/nginx/arena-edge-static-cache.conf', installPath: '/etc/nginx/snippets/arena-edge-static-cache.conf', roles: ['edge'] },
   { source: 'deploy/nginx/arena-canonical-host-redirect.conf', installPath: '/etc/nginx/snippets/arena-canonical-host-redirect.conf', roles: ['origin'] },
