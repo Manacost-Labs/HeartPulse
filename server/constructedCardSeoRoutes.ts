@@ -348,16 +348,25 @@ function isBuildAssetPath(value: string): boolean {
     && !value.includes('//');
 }
 
+function isRuntimeConfigPath(value: string): boolean {
+  return /^\/runtime-config\.js(?:\?v=[A-Za-z0-9._-]{1,64})?$/.test(value);
+}
+
 /**
- * Extract only immutable Vite asset URLs from the trusted built shell. Tags
- * are reconstructed instead of copied so unrelated scripts and attributes
- * cannot enter the entity document.
+ * Extract the exact runtime configuration entry and immutable Vite assets
+ * from the trusted built shell. Tags are reconstructed instead of copied so
+ * unrelated scripts and attributes cannot enter the entity document.
  */
 export function extractConstructedCardFrontendAssets(shellHtml: string): string {
   const tags: string[] = [];
   const seen = new Set<string>();
   for (const match of shellHtml.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*><\/script>/gi)) {
     const source = match[1];
+    if (isRuntimeConfigPath(source) && !seen.has(`script:${source}`)) {
+      seen.add(`script:${source}`);
+      tags.push(`<script src="${source}"></script>`);
+      continue;
+    }
     if (!isBuildAssetPath(source) || seen.has(`script:${source}`)) continue;
     seen.add(`script:${source}`);
     tags.push(`<script type="module" crossorigin src="${source}"></script>`);

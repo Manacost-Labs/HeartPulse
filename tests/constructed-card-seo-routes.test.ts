@@ -110,6 +110,8 @@ const catalogCards = cards.map(card => {
 });
 
 const frontendAssets = extractConstructedCardFrontendAssets(`
+  <script src="/runtime-config.js?v=cdn-20260804" onload="QA_UNSAFE_ATTRIBUTE"></script>
+  <script src="/runtime-config.js?redirect=https://evil.example.test"></script>
   <script type="module" crossorigin src="/assets/index-safe.js" onload="QA_UNSAFE_ATTRIBUTE"></script>
   <script type="module" crossorigin src="/assets/index-versioned.js?v=75ba82834a61d77ec511eab42fef935a792f8491"></script>
   <script type="module" crossorigin src="/assets/index-unsafe.js?redirect=https://evil.example.test"></script>
@@ -117,6 +119,8 @@ const frontendAssets = extractConstructedCardFrontendAssets(`
   <link rel="modulepreload" crossorigin href="/assets/vendor-safe.js" onload="QA_UNSAFE_ATTRIBUTE">
   <link rel="stylesheet" crossorigin href="/assets/index-safe.css">
 `);
+assert.match(frontendAssets, /<script src="\/runtime-config\.js\?v=cdn-20260804"><\/script>/,
+  'server-rendered entity pages must load runtime delivery config before the client bundle');
 assert.match(frontendAssets, /src="\/assets\/index-safe\.js"/);
 assert.match(
   frontendAssets,
@@ -125,6 +129,10 @@ assert.match(
 );
 assert.match(frontendAssets, /href="\/assets\/vendor-safe\.js"/);
 assert.match(frontendAssets, /href="\/assets\/index-safe\.css"/);
+assert.ok(
+  frontendAssets.indexOf('/runtime-config.js?v=cdn-20260804') < frontendAssets.indexOf('/assets/index-safe.js'),
+  'runtime delivery config must preserve its position before the Vite entry',
+);
 assert.doesNotMatch(frontendAssets, /evil\.example|redirect=|QA_UNSAFE_ATTRIBUTE/,
   'only reconstructed local build asset tags may enter the document');
 
