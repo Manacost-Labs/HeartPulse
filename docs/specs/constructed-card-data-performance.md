@@ -38,3 +38,12 @@ multi-upstream rebuilds during ordinary statistics refreshes.
 - the detail upstream is not called during that refresh;
 - short test lifetimes still exercise stale and outage fallbacks;
 - entitlement redaction and partial-state semantics remain unchanged.
+
+## Navigation warming
+
+The main navigation warms both the lazy cards module and the exact first
+catalog request (`standard`, `1d`, `legend`, 60 cards) on pointer enter, focus,
+or pointer down. The catalog page consumes the same bounded in-flight request,
+so a normal navigation does not create a duplicate API call. Public and
+subscriber payloads remain isolated by the existing entitlement-aware cache
+key, and a failed warm request is evicted so the visible page can retry.

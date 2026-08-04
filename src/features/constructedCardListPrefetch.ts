@@ -71,3 +71,28 @@ export function prefetchConstructedCardList(
     .then(() => undefined)
     .catch(() => undefined);
 }
+
+export function initialConstructedCardCatalogUrl(format: ConstructedCardFormat): string {
+  return constructedCardCatalogUrl({
+    format,
+    period: '1d',
+    rank: 'legend',
+    page: 1,
+    perPage: 60,
+    filters: EMPTY_CONSTRUCTED_CARD_FILTERS,
+    query: '',
+  });
+}
+
+/** Warm the exact request consumed by the first catalog render. */
+export function prefetchInitialConstructedCardCatalog(
+  format: ConstructedCardFormat,
+  statsAccess: boolean,
+): Promise<void> {
+  return prefetchConstructedCardList(initialConstructedCardCatalogUrl(format), statsAccess);
+}
+import {
+  constructedCardCatalogUrl,
+  EMPTY_CONSTRUCTED_CARD_FILTERS,
+  type ConstructedCardFormat,
+} from './constructedCardCatalogModel';

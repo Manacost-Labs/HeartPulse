@@ -35,6 +35,7 @@ import {
   loadConstructedCardList,
   prefetchConstructedCardList,
 } from './constructedCardListPrefetch';
+export { prefetchInitialConstructedCardCatalog } from './constructedCardListPrefetch';
 import {
   adjacentConstructedCardCatalogContexts,
   constructedCardCatalogUrl,

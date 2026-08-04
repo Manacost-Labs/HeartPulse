@@ -29,6 +29,8 @@ assert.match(listPrefetchSource, /statsAccess \? 'paid' : 'public'/,
   'public and subscriber list payloads must never share a client cache key');
 assert.match(appSource, /onPointerDown=\{\(\) => onWarm\(tab\.id\)\}/,
   'touch navigation must start loading its lazy route before click');
+assert.match(appSource, /route === 'standard-cards'[\s\S]*prefetchInitialConstructedCardCatalog/,
+  'warming the cards navigation must start its first data request before click');
 assert.match(cardsStyles, /\.constructed-cards__state\s*\{[^}]*min-height:\s*70vh/,
   'the cold catalog loader must reserve enough viewport space to avoid a late footer shift');
 

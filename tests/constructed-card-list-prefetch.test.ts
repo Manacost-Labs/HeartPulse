@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import {
+  initialConstructedCardCatalogUrl,
   loadConstructedCardList,
+  prefetchInitialConstructedCardCatalog,
 } from '../src/features/constructedCardListPrefetch';
 
 const originalFetch = globalThis.fetch;
@@ -31,10 +33,18 @@ try {
   await loadConstructedCardList(sharedUrl, true);
   assert.equal(calls, 2, 'subscriber and public list payloads must use separate cache entries');
 
+  assert.equal(
+    initialConstructedCardCatalogUrl('standard'),
+    '/api/constructed-cards?format=standard&period=1d&rank=legend&page=1&perPage=60&sort=set&direction=asc',
+    'navigation warming must target the exact first catalog request',
+  );
+  await prefetchInitialConstructedCardCatalog('standard', false);
+  assert.equal(calls, 3, 'warming the cards navigation must start the first catalog request');
+
   const failingUrl = '/api/constructed-cards?failure=1';
   assert.equal((await loadConstructedCardList(failingUrl, false)).status, 503);
   assert.equal((await loadConstructedCardList(failingUrl, false)).status, 503);
-  assert.equal(calls, 4, 'failed list requests must be evicted so retry remains possible');
+  assert.equal(calls, 5, 'failed list requests must be evicted so retry remains possible');
 
   for (let index = 0; index < 17; index += 1) {
     await loadConstructedCardList(`/api/constructed-cards?cache-entry=${index}`, false);

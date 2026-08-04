@@ -1321,13 +1321,22 @@ export default function App() {
     warmedRoutesRef.current.add(route);
     preloadRouteModule(route);
 
+    if (route === 'standard-cards') {
+      void loadStandardCardsModule()
+        .then(module => module.prefetchInitialConstructedCardCatalog(
+          'standard',
+          appIsAdmin || hasSubscriptionEntitlement(appSubscription, 'standard'),
+        ))
+        .catch(() => {});
+    }
+
     if (route === 'articles' && !articlesRequestedRef.current) {
       void fetchArticles({ silent: true });
     }
     if (route === 'gallery' && !galleryRequestedRef.current) {
       void fetchGallery({ silent: true });
     }
-  }, [fetchArticles, fetchGallery]);
+  }, [appIsAdmin, appSubscription, fetchArticles, fetchGallery]);
 
   const globalUpdatedAt = useMemo(
     () => latestHomeSummaryUpdatedAt(homeSummaryData)
