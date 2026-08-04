@@ -1321,14 +1321,11 @@ export default function App() {
     warmedRoutesRef.current.add(route);
     preloadRouteModule(route);
 
-    if (route === 'standard-cards') {
-      void loadStandardCardsModule()
-        .then(module => module.prefetchInitialConstructedCardCatalog(
-          'standard',
-          appIsAdmin || hasSubscriptionEntitlement(appSubscription, 'standard'),
-        ))
-        .catch(() => {});
-    }
+    if (route === 'standard-cards') void loadStandardCardsModule().then(module => (
+      module.prefetchInitialConstructedCardCatalog(
+        'standard', appIsAdmin || hasSubscriptionEntitlement(appSubscription, 'standard'),
+      )
+    )).catch(() => {});
 
     if (route === 'articles' && !articlesRequestedRef.current) {
       void fetchArticles({ silent: true });
