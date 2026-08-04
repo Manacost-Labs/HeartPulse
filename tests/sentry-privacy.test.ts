@@ -61,6 +61,7 @@ const sanitizedMetric = redactSentryMetric({
     rating: 'good',
     navigation_type: 'navigate',
     edge_region: 'ru-moscow',
+    client_region: 'russia',
     url: 'https://arena.hs-manacost.ru/admin?token=secret',
     user_id: '42',
   },
@@ -69,6 +70,7 @@ assert.deepEqual(sanitizedMetric.attributes, {
   rating: 'good',
   navigation_type: 'navigate',
   edge_region: 'ru-moscow',
+  client_region: 'russia',
 });
 
 console.log('Sentry privacy tests passed');

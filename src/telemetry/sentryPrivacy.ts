@@ -1,6 +1,11 @@
 const REDACTED = '[redacted]';
 const SAFE_TAG_KEYS = new Set(['incidentId', 'incidentKind', 'surface']);
-const SAFE_METRIC_ATTRIBUTE_KEYS = new Set(['rating', 'navigation_type', 'edge_region']);
+const SAFE_METRIC_ATTRIBUTE_KEYS = new Set([
+  'rating',
+  'navigation_type',
+  'edge_region',
+  'client_region',
+]);
 
 export type SentryEventLike = {
   breadcrumbs?: Array<Record<string, unknown>>;

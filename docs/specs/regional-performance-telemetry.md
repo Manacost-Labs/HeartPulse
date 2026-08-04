@@ -32,6 +32,11 @@ does not infer geography from forwarding headers. Raw IP addresses,
 `X-Forwarded-For`, account IDs, cookies, query strings, and full URLs are not
 stored with Web Vitals.
 
+The Sentry metric privacy filter explicitly allowlists both `edge_region` and
+`client_region`. Tests must fail if either bounded dimension is accidentally
+removed before ingestion, while arbitrary URL, user, and query attributes
+remain forbidden.
+
 ## Metrics
 
 The existing endpoint continues to accept CLS, FCP, INP, LCP, and TTFB. Reports
