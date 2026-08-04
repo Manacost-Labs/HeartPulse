@@ -38,6 +38,7 @@ type HarnessOptions = {
   patches?: () => Promise<any> | any;
   decks?: (url: URL) => Promise<any> | any;
   cacheTtlMs?: number;
+  detailCacheTtlMs?: number;
   negativeDetailCacheMaxEntries?: number;
   catalogPageConcurrency?: number;
   catalogStore?: ConstructedCardCatalogStore;
@@ -49,6 +50,7 @@ function serviceHarness(options: HarnessOptions) {
     stateDirectory: options.directory,
     now: options.now,
     cacheTtlMs: options.cacheTtlMs ?? 1_000,
+    detailCacheTtlMs: options.detailCacheTtlMs ?? options.cacheTtlMs ?? 1_000,
     negativeDetailCacheMaxEntries: options.negativeDetailCacheMaxEntries,
     catalogPageConcurrency: options.catalogPageConcurrency,
     catalogStore: options.catalogStore,
@@ -253,6 +255,7 @@ try {
       directory: detailDirectory,
       now: () => now,
       cacheTtlMs: 1_000,
+      detailCacheTtlMs: 1_000,
       stats: () => ({
         fetched_at: new Date(now).toISOString(),
         view: { cards: [{ id: 'CARD_1', dbfId: 1, deck_popularity: statsPopularity, deck_winrate: '53%', times_played: 200 }] },
@@ -345,6 +348,42 @@ try {
     }
   } finally {
     rmSync(detailDirectory, { recursive: true, force: true });
+  }
+
+  const detailTtlDirectory = mkdtempSync(join(tmpdir(), 'arena-constructed-card-detail-ttl-'));
+  try {
+    let detailTtlNow = now;
+    let detailAvailable = true;
+    const detailTtl = serviceHarness({
+      directory: detailTtlDirectory,
+      now: () => detailTtlNow,
+      cacheTtlMs: 1_000,
+      detailCacheTtlMs: 6_000,
+      detail: cardId => {
+        if (!detailAvailable) throw new ConstructedCardUpstreamError('detail unavailable', 503);
+        return {
+          data: {
+            ...baseCards.find(card => card.card_id === cardId),
+            wiki: { marker: 'long-lived-detail' },
+          },
+        };
+      },
+    });
+
+    const initialDetail = await detailTtl.service.loadCardDetail('standard', 'CARD_1');
+    assert.equal(initialDetail?.card.wiki.marker, 'long-lived-detail');
+    assert.equal(detailTtl.calls.detail, 1);
+
+    detailTtlNow += 1_001;
+    detailAvailable = false;
+    const refreshedStatistics = await detailTtl.service.loadCardDetail('standard', 'CARD_1');
+    assert.equal(refreshedStatistics?.partial, false,
+      'fresh statistics must compose with the longer-lived enriched card detail');
+    assert.equal(refreshedStatistics?.card.wiki.marker, 'long-lived-detail');
+    assert.equal(detailTtl.calls.detail, 1,
+      'detail enrichment must not be re-fetched when only the statistics cache expires');
+  } finally {
+    rmSync(detailTtlDirectory, { recursive: true, force: true });
   }
 
   const boundedNegativeDirectory = mkdtempSync(join(tmpdir(), 'arena-constructed-card-negative-cache-'));

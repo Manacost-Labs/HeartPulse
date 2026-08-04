@@ -160,6 +160,7 @@ type DataServiceDependencies = {
   negativeDetailCacheMaxEntries?: number;
   catalogPageConcurrency?: number;
   cacheTtlMs?: number;
+  detailCacheTtlMs?: number;
 };
 
 export class ConstructedCardUpstreamError extends Error {
@@ -842,6 +843,13 @@ async function mapWithConcurrency<T, R>(
 export function createConstructedCardDataService(dependencies: DataServiceDependencies): ConstructedCardDataService {
   const now = dependencies.now ?? Date.now;
   const cacheTtlMs = Math.max(1_000, Math.min(15 * 60_000, dependencies.cacheTtlMs ?? 5 * 60_000));
+  // Card descriptions, Wiki relationships and deck membership change much
+  // less often than live statistics. Keeping them independently avoids a
+  // multi-upstream rebuild whenever the short statistics cache refreshes.
+  const detailCacheTtlMs = Math.max(
+    1_000,
+    Math.min(24 * 60 * 60_000, dependencies.detailCacheTtlMs ?? 6 * 60 * 60_000),
+  );
   // The wild catalog currently spans more than thirty ~500 KiB pages. A
   // bounded fan-out avoids turning every cache refresh into a burst large
   // enough to overload the local DB proxy and incorrectly fall back to LKG.
@@ -1271,7 +1279,9 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
             warning: enriched.warning,
           });
         }
-        if (generation === jobGeneration) detailCache.set(key, { value: enriched.value, expiresAt: now() + cacheTtlMs });
+        if (generation === jobGeneration) {
+          detailCache.set(key, { value: enriched.value, expiresAt: now() + detailCacheTtlMs });
+        }
         return composeDetailResult(
           enriched.value,
           catalogCollection,
