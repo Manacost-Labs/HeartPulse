@@ -52,6 +52,13 @@ minimum file-count and byte-size checks, and then exposed by changing the
 `current` symlink. If a local file is unavailable, Nginx falls back to the
 origin cache instead of returning an error.
 
+Frontend synchronization is delta-based. The origin first compares the edge's
+active release SHA and skips the tree scan when it is already current. For a
+new release, rsync uses the active immutable tree as `--link-dest`: unchanged
+files become hard links, while only changed files cross the network into the
+inactive version. Activation still occurs only after the complete file-count,
+byte-size, entry-document, and Nginx checks pass.
+
 Mutable search metadata (`robots.txt`, `sitemap.xml`, and `/sitemaps/`) is never
 marked immutable. Hashed frontend assets and versioned card images use long
 browser cache lifetimes.
@@ -67,6 +74,19 @@ The origin runs these systemd timers:
 - `arena-public-resource-warm-ru-novosibirsk.timer` — Novosibirsk
   full-art/public-resource warm;
 - `arena-geodns-monitor.timer` — DNS and edge checks every 5 minutes.
+
+The versioned units and scripts are:
+
+- `deploy/arena-static-sync.sh` → `/usr/local/sbin/sync-arena-static`;
+- `deploy/activate-arena-static.sh` →
+  `/usr/local/sbin/activate-arena-static` on every edge;
+- `deploy/systemd/arena-static-sync.{service,timer}` → `/etc/systemd/system/`;
+- `deploy/edge-static-sync.conf.example` documents the root-only topology file
+  `/etc/hs-arena/edge-static-sync.conf`.
+
+After changing these files, run `npm run test:deployment`, install the scripts
+with mode `0755`, reload systemd, start the service once, and confirm that its
+second run reports every edge as already current without invoking rsync.
 
 Each PowerDNS node runs `dbip-country-update.timer`, which downloads and
 validates the current DB-IP Lite country database before replacing the active

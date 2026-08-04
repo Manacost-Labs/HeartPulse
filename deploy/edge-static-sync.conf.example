@@ -1,0 +1,8 @@
+# Install as /etc/hs-arena/edge-static-sync.conf with mode 0600.
+ARENA_STATIC_RELEASE_LINK=/var/www/koloda/data/www/hs-arena.ru/current
+ARENA_STATIC_KNOWN_HOSTS=/home/debian/.ssh/known_hosts
+ARENA_STATIC_EDGE_SPECS=(
+  "debian@eu-edge.example.test|/root/.ssh/arena_eu_ed25519"
+  "root@ru-west-edge.example.test|/root/.ssh/arena_ru_west_ed25519"
+  "root@ru-east-edge.example.test|/root/.ssh/arena_ru_east_ed25519"
+)
