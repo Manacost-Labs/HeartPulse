@@ -4,7 +4,7 @@
 
 ## Status
 
-Proposed for incremental rollout.
+Accepted; incremental rollout in progress.
 
 ## Date
 
@@ -62,3 +62,6 @@ Deferred. This would improve dynamic latency most, but introduces distributed se
 - `docs/specs/regional-performance-telemetry.md` for metrics and privacy;
 - `docs/runbooks/global-edge-rollout.md` for activation and rollback;
 - `docs/operations/arena-geodns-edge-cache.md` for the deployed topology.
+
+The operational activation and rollback sequence is maintained in
+`docs/runbooks/global-edge-rollout.md`.
