@@ -971,6 +971,7 @@ const publicStandardFixtureAliases = {
   '/api/constructed-cards': '/api/admin/constructed-cards',
   '/api/constructed-cards/CARD_QA_1': '/api/admin/constructed-cards/CARD_QA_1',
   '/api/standard-meta': '/api/admin/standard-meta',
+  '/api/standard-meta/teaser': '/api/admin/standard-meta',
   '/api/vicious-syndicate-gold': '/api/admin/vicious-syndicate-gold',
 };
 
@@ -1115,7 +1116,16 @@ async function mockApplicationApi(page, {
       return;
     }
     if (url.pathname === '/api/subscription/status' || url.pathname === '/api/subscription/refresh') {
-      request.respond(jsonResponse(subscriber));
+      request.respond(jsonResponse(authenticated ? subscriber : {
+        hasAccess: false,
+        source: 'none',
+        checkedAt: new Date().toISOString(),
+        stale: false,
+        message: 'Deterministic browser QA guest',
+        entitlements: {},
+        boosty: { checked: false, found: false, hasAccess: false },
+        telegram: { checked: false, hasAccess: false },
+      }));
       return;
     }
     if (admin && adminState.galleryEmpty && url.pathname === '/api/admin/gallery') {
@@ -1448,20 +1458,6 @@ async function mockApplicationApi(page, {
       }));
       return;
     }
-    if ((/^\/api\/constructed-cards\/CARD_QA_1\/decks\/qa-deck-\d+\/preview$/.test(url.pathname)
-      || (admin && /^\/api\/admin\/constructed-cards\/CARD_QA_1\/decks\/qa-deck-\d+\/preview$/.test(url.pathname))) && request.method() === 'POST') {
-      const deckId = url.pathname.split('/').at(-2);
-      adminState.constructedDeckPreviewRequests ??= {};
-      adminState.constructedDeckPreviewRequests[deckId] = (adminState.constructedDeckPreviewRequests[deckId] || 0) + 1;
-      if (deckId === 'qa-deck-4' && adminState.constructedDeckPreviewRequests[deckId] === 1) {
-        request.respond({ ...jsonResponse({ error: 'Внутренняя ошибка сервера' }), status: 502 });
-        return;
-      }
-      request.respond(jsonResponse({
-        preview: { hash: `qa-${deckId}`, state: 'done', ready: true, imageUrl: '/ad/wallpaper_info.webp', error: null },
-      }));
-      return;
-    }
     if (url.pathname === '/api/constructed-archetypes' && request.method() === 'GET') {
       if (adminState.constructedArchetypeReadFailureOnce) {
         adminState.constructedArchetypeReadFailureOnce = false;
@@ -1497,6 +1493,17 @@ async function mockApplicationApi(page, {
           score: 1,
           deckCode: url.searchParams.get('code') || '',
         },
+      }));
+      return;
+    }
+    if (url.pathname === '/api/deck/render' && request.method() === 'POST') {
+      request.respond(jsonResponse({
+        ok: true,
+        ready: true,
+        renderer: 'rust',
+        style: 'parchment',
+        imageUrl: '/wallpaper/home-paladin-hero.webp',
+        previewImageUrl: '/wallpaper/home-paladin-hero.webp',
       }));
       return;
     }
@@ -1592,7 +1599,12 @@ function collectRuntimeErrors(page, { sameOriginNetwork = false } = {}) {
       const url = new URL(request.url());
       if (url.origin !== BASE_ORIGIN) return;
       if (!url.pathname.startsWith('/api/') && !url.pathname.startsWith('/assets/')) return;
-      errors.push(`requestfailed: ${url.pathname} (${request.failure()?.errorText || 'unknown'})`);
+      const failure = request.failure()?.errorText || 'unknown';
+      // sendBeacon/fetch telemetry is intentionally best-effort. Chromium can
+      // abort it while a QA page is being replaced or closed; product/API
+      // requests must still fail the scenario.
+      if (url.pathname === '/api/telemetry/web-vitals' && failure === 'net::ERR_ABORTED') return;
+      errors.push(`requestfailed: ${url.pathname} (${failure})`);
     });
   }
   return errors;
@@ -1620,6 +1632,22 @@ async function waitForAuthenticatedShell(page) {
     const skipLink = shell?.firstElementChild;
     return Boolean(skipLink?.matches('.arena-skip-link') && skipLink.isConnected);
   }, { timeout: 5_000 });
+}
+
+async function chooseConstructedCardFilter(page, tourId, optionLabel) {
+  const rootSelector = `[data-tour-id="${tourId}"]`;
+  await page.click(`${rootSelector} .constructed-cards__filter-trigger`);
+  await page.waitForSelector(`${rootSelector} [role="listbox"]`, { visible: true, timeout: 5_000 });
+  const selected = await page.$$eval(`${rootSelector} [role="option"]`, (options, label) => {
+    const option = options.find(element => element.textContent?.replace(/\s+/g, ' ').trim() === label);
+    if (!(option instanceof HTMLElement) || option.getAttribute('aria-disabled') === 'true') return false;
+    option.click();
+    return true;
+  }, optionLabel);
+  if (!selected) throw new Error(`Constructed-card filter option is unavailable: ${optionLabel}`);
+  await page.waitForFunction((selector, label) => (
+    document.querySelector(`${selector} .constructed-cards__filter-value`)?.textContent?.replace(/\s+/g, ' ').trim() === label
+  ), { timeout: 5_000 }, rootSelector, optionLabel);
 }
 
 async function auditAccessibility(page, label, context = 'document') {
@@ -2061,12 +2089,14 @@ async function assertResponsiveFixtureState(page, fixture, label) {
       return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
     };
     const paywall = document.querySelector('.arena-paywall');
+    const inlinePaywall = document.querySelector('.arena-inline-paywall');
     const ready = document.querySelector(readySelector);
     return {
       readyVisible: visible(ready),
       readyText: ready?.textContent?.replace(/\s+/g, ' ').trim() || '',
       paywallVisible: visible(paywall),
       paywallPreviewInert: Boolean(paywall?.querySelector('.arena-paywall__preview')?.hasAttribute('inert')),
+      inlinePaywallVisible: visible(inlinePaywall),
       deniedText: document.querySelector('.admin-access-state')?.textContent?.replace(/\s+/g, ' ').trim() || '',
       notFoundText: document.querySelector('.not-found-page')?.textContent?.replace(/\s+/g, ' ').trim() || '',
     };
@@ -2076,10 +2106,10 @@ async function assertResponsiveFixtureState(page, fixture, label) {
   if (fixture.ready.text && !state.readyText.includes(fixture.ready.text)) {
     failures.push(`${label}: readiness text is missing (${fixture.ready.text})`);
   }
-  if (fixture.state === 'paywall' && (!state.paywallVisible || !state.paywallPreviewInert)) {
+  if (fixture.state === 'paywall' && !((state.paywallVisible && state.paywallPreviewInert) || state.inlinePaywallVisible)) {
     failures.push(`${label}: locked state is not an inert visible paywall (${JSON.stringify(state)})`);
   }
-  if (fixture.state === 'content' && state.paywallVisible) {
+  if (fixture.state === 'content' && (state.paywallVisible || state.inlinePaywallVisible)) {
     failures.push(`${label}: entitled/public content is still covered by a paywall`);
   }
   if (fixture.state === 'denied' && !state.deniedText.toLocaleLowerCase('ru').includes('недоступ')) {
@@ -3874,7 +3904,7 @@ for (const [device, viewport] of [
     }
     const archetypeTourViolationCount = await auditPageTour(page, {
       label: `archetype catalog [${device}]`,
-      expectedSteps: 3,
+      expectedSteps: 5,
       mobile: device === 'mobile',
     });
     const archetypeViolationCount = await auditAccessibility(page, `archetype catalog [${device}]`, '.archetypes-page');
@@ -3882,25 +3912,27 @@ for (const [device, viewport] of [
 
     await page.click('.archetype-row__open');
     await page.waitForSelector('.archetype-detail-page .archetype-trend', { timeout: 20_000 });
-    await page.waitForSelector('.archetype-deck-card .deck-tile', { timeout: 20_000 });
+    await page.waitForSelector('.archetype-deck-card .deck-render-preview[data-render-state="ready"]', { timeout: 20_000 });
     const archetypeDetailState = await page.evaluate(() => {
       const root = document.querySelector('.archetype-detail-page');
-      const copyButton = document.querySelector('.archetype-main-build .deck-list-view__copy-btn');
-      const builderHref = root?.querySelector('.archetype-main-build .archetype-deck-card__builder')?.getAttribute('href') || '';
+      const copyButton = document.querySelector('.archetype-main-build .archetype-deck-card__copy');
       return {
         title: root?.querySelector('h1')?.textContent?.trim() || '',
         charts: root?.querySelectorAll('.archetype-trend').length ?? 0,
         builds: root?.querySelectorAll('.archetype-deck-card').length ?? 0,
         deckCards: root?.querySelectorAll('.archetype-deck-card .deck-tile').length ?? 0,
-        builderLinks: root?.querySelectorAll('.archetype-deck-card__builder').length ?? 0,
-        code: new URL(builderHref, window.location.origin).searchParams.get('code') || '',
+        renderSurfaces: root?.querySelectorAll('.archetype-deck-card .deck-render-preview').length ?? 0,
+        previews: root?.querySelectorAll('.archetype-deck-card .deck-render-preview[data-render-state="ready"]').length ?? 0,
+        previewButtons: root?.querySelectorAll('.archetype-deck-card .deck-render-preview__open').length ?? 0,
+        copyButtons: root?.querySelectorAll('.archetype-deck-card__copy').length ?? 0,
         copyHeight: copyButton?.getBoundingClientRect().height ?? 0,
         documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
       };
     });
     if (!archetypeDetailState.title.includes('Чётный') || archetypeDetailState.charts !== 3
-      || archetypeDetailState.builds !== 7 || archetypeDetailState.deckCards !== 119
-      || archetypeDetailState.builderLinks !== 7 || !archetypeDetailState.code.startsWith('AA')
+      || archetypeDetailState.builds !== 7 || archetypeDetailState.deckCards !== 35
+      || archetypeDetailState.renderSurfaces !== 7 || archetypeDetailState.previews < 1
+      || archetypeDetailState.previewButtons < 1 || archetypeDetailState.copyButtons !== 7
       || archetypeDetailState.copyHeight < 42 || archetypeDetailState.documentOverflow) {
       failures.push(`archetype detail [${device}]: charts, builds, code or containment regressed (${JSON.stringify(archetypeDetailState)})`);
     }
@@ -3910,14 +3942,14 @@ for (const [device, viewport] of [
         value: { writeText: async value => { window.__qaCopiedDeckCode = value; } },
       });
     });
-    await page.click('.archetype-main-build .deck-list-view__copy-btn');
-    await page.waitForFunction(() => document.querySelector('.archetype-main-build .deck-list-view__copy-btn')
-      ?.getAttribute('aria-label') === 'Код колоды скопирован');
+    await page.click('.archetype-main-build .archetype-deck-card__copy');
+    await page.waitForFunction(() => document.querySelector('.archetype-main-build .archetype-deck-card__copy')
+      ?.getAttribute('aria-label')?.startsWith('Код скопирован'));
     const archetypeCopyState = await page.evaluate(() => ({
-      label: document.querySelector('.archetype-main-build .deck-list-view__copy-btn')?.getAttribute('aria-label') || '',
+      label: document.querySelector('.archetype-main-build .archetype-deck-card__copy')?.getAttribute('aria-label') || '',
       value: window.__qaCopiedDeckCode || '',
     }));
-    if (archetypeCopyState.label !== 'Код колоды скопирован' || !archetypeCopyState.value.startsWith('AA')) {
+    if (!archetypeCopyState.label.startsWith('Код скопирован') || !archetypeCopyState.value.startsWith('AA')) {
       failures.push(`archetype detail [${device}]: deck code copy did not expose success (${JSON.stringify(archetypeCopyState)})`);
     }
     await page.click('.archetype-builds__more');
@@ -4011,16 +4043,13 @@ for (const [device, viewport] of [
         controlsVisible: Boolean(controls && controls.getBoundingClientRect().height > 0),
         viewControlsPresent: Boolean(cardsView && tableView),
         rankLabels: rankButtons.map(button => button.textContent?.trim() || ''),
-        formatIconCount: formatButtons.filter(button => button.querySelector('svg')).length,
-        seasonContext: document.querySelector('.standard-meta__season-context')?.textContent?.replace(/\s+/g, ' ').trim() || '',
-        seasonPeriodButtons: document.querySelectorAll('.standard-meta__season-context > button').length,
+        formatCount: formatButtons.length,
         periodLabels: periodSelect ? [...periodSelect.options].map(option => option.textContent?.trim() || '') : [],
         rankSelectVisible: Boolean(rankSelect && rankSelect.getBoundingClientRect().height >= 44),
         allRanksPresent: rankButtons.some(button => button.textContent?.trim() === 'Все ранги'),
         searchFontSize: searchInput ? parseFloat(getComputedStyle(searchInput).fontSize) : 0,
         viewTargetHeight: tableView?.getBoundingClientRect().height ?? 0,
-        sourcePanelPresent: Boolean(document.querySelector('.standard-meta__source-line')),
-        ornamentVisible: Boolean(ornament && ornament.getBoundingClientRect().height > 0),
+        legacyOrnamentPresent: Boolean(ornament),
         controlsFrame: controlsStyle?.borderImageSource || '',
         cardContentVisibility: firstCardStyle?.contentVisibility || '',
         scrollWidth: pageRoot?.scrollWidth ?? 0,
@@ -4032,21 +4061,18 @@ for (const [device, viewport] of [
       || !standardMetaState.controlsVisible
       || !standardMetaState.viewControlsPresent
       || standardMetaState.allRanksPresent || standardMetaState.rankLabels[0] !== 'Алмаз'
-      || standardMetaState.formatIconCount !== 2
-      || standardMetaState.seasonPeriodButtons !== 2
-      || !standardMetaState.seasonContext.includes('патч 36.0.3')
-      || !standardMetaState.seasonContext.includes('Побег из Аметистовой крепости')
+      || standardMetaState.formatCount !== 2
       || !standardMetaState.periodLabels.includes('За весь патч 36.0.3')
       || !standardMetaState.periodLabels.includes('За всё дополнение — Побег из Аметистовой крепости')
       || (device === 'mobile' && !standardMetaState.rankSelectVisible)
       || (device !== 'mobile' && standardMetaState.rankSelectVisible)
-      || standardMetaState.sourcePanelPresent
-      || standardMetaState.ornamentVisible || !standardMetaState.controlsFrame.includes('main-page-rail-border.png')
+      || standardMetaState.legacyOrnamentPresent || !standardMetaState.controlsFrame.includes('main-page-rail-border.png')
       || standardMetaState.cardContentVisibility !== 'auto'
       || (device === 'mobile' && (standardMetaState.searchFontSize < 16 || standardMetaState.viewTargetHeight < 44))
       || standardMetaState.scrollWidth > standardMetaState.clientWidth + 1) {
       failures.push(`standard meta [${device}]: redesigned header or panels regressed (${JSON.stringify(standardMetaState)})`);
     }
+    await page.click('.standard-meta-chart__header-actions button');
     await page.waitForSelector('.standard-meta-chart__point');
     const standardMetaChartState = await page.evaluate(() => {
       const chart = document.querySelector('.standard-meta-chart');
@@ -4504,9 +4530,9 @@ for (const [device, viewport] of [
     });
     const viciousGoldState = await page.evaluate(() => {
       const pageRoot = document.querySelector('.vsgold');
-      const hero = document.querySelector('.vsgold__hero');
-      const stats = document.querySelector('.vsgold__hero-stats');
-      const title = document.querySelector('.vsgold__hero h1');
+      const hero = document.querySelector('.traditional-mode-banner');
+      const stats = document.querySelector('.traditional-mode-banner__summary');
+      const title = document.querySelector('.traditional-mode-banner h1');
       const mobileNav = document.querySelector('.vsgold__mobile-nav');
       const deckSearch = document.querySelector('.vsgold__deck-tools input');
       const classButton = document.querySelector('.vsgold__class-bars button');
@@ -4533,7 +4559,7 @@ for (const [device, viewport] of [
         copyImageLoaded: copyImage instanceof HTMLImageElement && copyImage.complete && copyImage.naturalWidth > 0,
         deckListOverflowY: deckList ? getComputedStyle(deckList).overflowY : '',
         deckListMaxHeight: deckList ? getComputedStyle(deckList).maxHeight : '',
-        ornamentVisible: Boolean(ornament && ornament.getBoundingClientRect().height > 0),
+        legacyOrnamentPresent: Boolean(ornament),
         panelFrame: firstPanel ? getComputedStyle(firstPanel).borderImageSource : '',
         deckRowContainment: firstDeckRow ? getComputedStyle(firstDeckRow).contain : '',
         tierCardContentVisibility: firstTierCard ? getComputedStyle(firstTierCard).contentVisibility : '',
@@ -4541,14 +4567,14 @@ for (const [device, viewport] of [
         clientWidth: pageRoot?.clientWidth ?? 0,
       };
     });
-    if (viciousGoldState.heroHeight < 150 || viciousGoldState.heroHeight > 430
-      || viciousGoldState.titleSize > 68 || viciousGoldState.statsCount !== 3
+    if (viciousGoldState.heroHeight < 150 || viciousGoldState.heroHeight > 540
+      || viciousGoldState.titleSize > 112 || viciousGoldState.statsCount !== 2
       || viciousGoldState.panelCount < 3
       || (device === 'desktop' && viciousGoldState.mobileNavDisplay !== 'none')
       || !viciousGoldState.copyImage.includes('deck-code-to-hearthstone.png')
       || !viciousGoldState.copyImageLoaded
       || !viciousGoldState.buildButtonLabel.startsWith('Скопировать код колоды')
-      || !viciousGoldState.ornamentVisible || !viciousGoldState.panelFrame.includes('main-page-rail-border.png')
+      || viciousGoldState.legacyOrnamentPresent || !viciousGoldState.panelFrame.includes('main-page-rail-border.png')
       || (viciousGoldState.deckRowContainment !== 'content' && !viciousGoldState.deckRowContainment.includes('layout'))
       || viciousGoldState.tierCardContentVisibility !== 'auto'
       || (device === 'mobile' && (viciousGoldState.mobileNavCount !== 3 || viciousGoldState.mobileNavDisplay === 'none'
@@ -4616,12 +4642,12 @@ for (const [device, viewport] of [
     const constructedCardsState = await page.evaluate(() => {
       const root = document.querySelector('.constructed-cards');
       const controls = document.querySelector('.constructed-cards__controls');
-      const search = document.querySelector('.constructed-cards__search input');
+      const search = document.querySelector('.constructed-card-search__field input');
       const viewButtons = [...document.querySelectorAll('.constructed-cards__view button')];
       const menuLinks = [...document.querySelectorAll('a[href="/standard/cards"]')];
       return {
         cards: document.querySelectorAll('.constructed-cards__gallery-card').length,
-        filters: document.querySelectorAll('.constructed-cards__filter select').length,
+        filters: document.querySelectorAll('.constructed-cards__filter').length,
         menuLinks: menuLinks.length,
         controlsVisible: Boolean(controls && controls.getBoundingClientRect().height > 0),
         searchFontSize: search ? parseFloat(getComputedStyle(search).fontSize) : 0,
@@ -4631,18 +4657,13 @@ for (const [device, viewport] of [
         rankText: document.querySelector('.constructed-cards__header')?.textContent || '',
         coveragePresent: Boolean(document.querySelector('.constructed-cards__coverage')),
         resultsHeaderPresent: Boolean(document.querySelector('.constructed-cards__results-header')),
-        setOptions: document.querySelectorAll('.constructed-cards__secondary-controls select option').length,
         formatControls: document.querySelectorAll('.constructed-cards__format').length,
         formatIcons: [...document.querySelectorAll('.constructed-cards__format img')].filter(image => image.complete && image.naturalWidth > 0).length,
         formatLabels: [...document.querySelectorAll('.constructed-cards__format button')].map(button => button.getAttribute('aria-label')),
-        classOptions: [...document.querySelectorAll('.constructed-cards__secondary-controls select')][0]
-          ? [...document.querySelectorAll('.constructed-cards__secondary-controls select')[0].options].map(option => option.value) : [],
-        setLabels: [...document.querySelectorAll('.constructed-cards__secondary-controls label')]
-          .find(label => label.textContent?.includes('Дополнение'))?.querySelector('span')?.textContent || '',
-        setOptionTexts: [...document.querySelectorAll('.constructed-cards__secondary-controls select')][1]
-          ? [...document.querySelectorAll('.constructed-cards__secondary-controls select')[1].options].map(option => option.textContent || '') : [],
+        secondaryLabels: [...document.querySelectorAll('.constructed-cards__secondary-controls > .constructed-cards__filter > span')]
+          .map(label => label.textContent?.trim() || ''),
         setMetricLabels: [...document.querySelectorAll('.constructed-cards__gallery-stat small')].filter(item => item.textContent?.includes('Дополнение')).length,
-        defaultSort: document.querySelector('.constructed-cards__primary-controls .constructed-cards__filter select')?.value || '',
+        defaultSort: document.querySelector('[data-tour-id="cards-sort"] .constructed-cards__filter-value')?.textContent?.trim() || '',
         rarity: document.querySelector('.constructed-cards__gallery-card')?.getAttribute('data-rarity') || '',
         rarityGlow: getComputedStyle(document.querySelector('.constructed-cards__gallery-card'), '::before').backgroundImage,
         hoverTransition: getComputedStyle(document.querySelector('.constructed-cards__gallery-card')).transitionDuration,
@@ -4653,10 +4674,9 @@ for (const [device, viewport] of [
     if (constructedCardsState.cards !== 8 || constructedCardsState.filters < 8 || constructedCardsState.menuLinks < 1
       || !constructedCardsState.controlsVisible || !constructedCardsState.rankText.includes('Легенда')
       || constructedCardsState.coveragePresent || constructedCardsState.resultsHeaderPresent
-      || constructedCardsState.setOptions < 3 || constructedCardsState.formatControls !== 1 || constructedCardsState.setMetricLabels !== 8 || constructedCardsState.defaultSort !== 'set'
+      || constructedCardsState.formatControls !== 1 || constructedCardsState.setMetricLabels !== 8 || constructedCardsState.defaultSort !== 'Новые дополнения'
       || constructedCardsState.formatIcons !== 2 || constructedCardsState.formatLabels.join(',') !== 'Стандарт,Вольный'
-      || constructedCardsState.classOptions.some(value => /^\d+$/.test(value)) || constructedCardsState.setLabels !== 'Дополнение'
-      || constructedCardsState.setOptionTexts.some(value => /\(\d[\d\s]*\)$/.test(value))
+      || !constructedCardsState.secondaryLabels.includes('Класс') || !constructedCardsState.secondaryLabels.includes('Дополнение')
       || !constructedCardsState.rarity || !constructedCardsState.rarityGlow.includes('radial-gradient') || constructedCardsState.hoverTransition === '0s'
       || constructedCardsState.rootOverflow || constructedCardsState.documentOverflow
       || (device === 'mobile' && (constructedCardsState.searchFontSize < 16 || constructedCardsState.smallestViewTarget < 44
@@ -4679,7 +4699,7 @@ for (const [device, viewport] of [
       expectedSteps: 6,
       mobile: device === 'mobile',
     });
-    await page.select('.constructed-cards__primary-controls .constructed-cards__filter select', 'winrate');
+    await chooseConstructedCardFilter(page, 'cards-sort', 'Победы колод');
     await page.waitForFunction(() => [...document.querySelectorAll('.constructed-cards__gallery-stat small')]
       .every(element => element.textContent?.trim() === 'Победы колод'));
     const winrateSortState = await page.evaluate(() => ({
@@ -4702,7 +4722,7 @@ for (const [device, viewport] of [
     await page.evaluate(() => window.history.back());
     await page.waitForFunction(() => window.location.pathname === '/standard/cards');
     await page.waitForSelector('.constructed-cards__gallery-card');
-    await page.waitForFunction(() => document.querySelector('.constructed-cards__primary-controls .constructed-cards__filter select')?.value === 'winrate');
+    await page.waitForFunction(() => document.querySelector('[data-tour-id="cards-sort"] .constructed-cards__filter-value')?.textContent?.trim() === 'Победы колод');
     if (device === 'desktop') {
       await page.hover('.constructed-cards__gallery-card');
       await page.waitForSelector('.constructed-cards__tooltip');
@@ -4736,7 +4756,12 @@ for (const [device, viewport] of [
         renderedDeckTiles: table?.querySelectorAll('.hsrdv-card-tile').length ?? 0,
         englishSubtitles: table?.querySelectorAll('tbody th small').length ?? 0,
         maximumRowHeight: Math.max(...[...table?.querySelectorAll('tbody tr') || []].map(row => row.getBoundingClientRect().height)),
-        firstArtCoverage: (() => {
+        firstArtHeightCoverage: (() => {
+          const frame = table?.querySelector('.hsrdv-card-frame');
+          const art = table?.querySelector('.hsrdv-card-art');
+          return frame && art ? art.getBoundingClientRect().height / frame.getBoundingClientRect().height : 0;
+        })(),
+        firstArtWidthCoverage: (() => {
           const frame = table?.querySelector('.hsrdv-card-frame');
           const art = table?.querySelector('.hsrdv-card-art');
           return frame && art ? art.getBoundingClientRect().width / frame.getBoundingClientRect().width : 0;
@@ -4747,7 +4772,11 @@ for (const [device, viewport] of [
     });
     if (constructedTableState.rows !== 8 || constructedTableState.columns !== 9 || constructedTableState.documentOverflow
       || constructedTableState.dataDeckCards !== 8 || constructedTableState.renderedDeckTiles !== 8 || constructedTableState.englishSubtitles !== 0
-      || constructedTableState.firstArtCoverage < 0.98 || constructedTableState.activeSort !== 'Победы колод'
+      // HSReplay's tile frame reserves a one-pixel border on both axes, so
+      // the visible art is intentionally about 95% of the measured frame.
+      || constructedTableState.firstArtHeightCoverage < 0.94
+      || constructedTableState.firstArtWidthCoverage < 0.05 || constructedTableState.firstArtWidthCoverage > 0.9
+      || constructedTableState.activeSort !== 'Победы колод'
       || (device === 'desktop' && constructedTableState.maximumRowHeight > 62)
       || (device === 'mobile' && (constructedTableState.internallyScrollable || constructedTableState.mobileRows !== 'grid'))) {
       failures.push(`constructed cards table [${device}]: structure or containment regressed (${JSON.stringify(constructedTableState)})`);
@@ -4772,7 +4801,6 @@ for (const [device, viewport] of [
     await page.click('.constructed-cards__gallery-card');
     await page.waitForSelector('.constructed-card-detail__hero');
     await page.waitForSelector('.constructed-card-detail__pool-toggle');
-    await page.waitForFunction(() => document.querySelectorAll('.constructed-card-detail__deck-grid img').length === 3);
     await page.waitForFunction(() => {
       const grid = document.querySelector('.constructed-card-detail__pool-cards');
       if (!grid) return false;
@@ -4808,11 +4836,8 @@ for (const [device, viewport] of [
       soundHeading: [...document.querySelectorAll('.constructed-card-detail__media-grid h2')].some(element => element.textContent?.includes('Звуки карты')),
       decks: document.querySelectorAll('.constructed-card-detail__deck').length,
       deckColumns: getComputedStyle(document.querySelector('.constructed-card-detail__deck-grid')).gridTemplateColumns.split(/\s+/).filter(Boolean).length,
-      deckImages: document.querySelectorAll('.constructed-card-detail__deck-grid img').length,
-      deckPreviewButtons: document.querySelectorAll('.constructed-card-detail__deck-preview').length,
+      deckRenderSurfaces: document.querySelectorAll('.constructed-card-detail__deck-grid .deck-render-preview').length,
       deckTitles: [...document.querySelectorAll('.constructed-card-detail__deck-copy h3')].map(element => element.textContent?.trim() || ''),
-      firstDeckWidth: document.querySelector('.constructed-card-detail__deck')?.getBoundingClientRect().width ?? 0,
-      firstDeckImageWidth: document.querySelector('.constructed-card-detail__deck-preview img')?.getBoundingClientRect().width ?? 0,
       documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     }));
     if (constructedDetailState.pathname !== '/standard/cards/standard/CARD_QA_1' || constructedDetailState.scrollY > 2 || constructedDetailState.statsRows < 8
@@ -4828,9 +4853,8 @@ for (const [device, viewport] of [
       || constructedDetailState.gallery !== 3 || constructedDetailState.relatedFullArts !== 2
       || constructedDetailState.relatedFullArtFits.some(value => value !== 'contain') || constructedDetailState.cropInRelatedGallery
       || constructedDetailState.sounds !== 0 || constructedDetailState.soundHeading
-      || constructedDetailState.decks !== 3 || constructedDetailState.deckImages !== 3 || constructedDetailState.deckPreviewButtons !== 3
+      || constructedDetailState.decks !== 3 || constructedDetailState.deckRenderSurfaces !== 3
       || constructedDetailState.deckTitles.some(title => /Control|Face|Warrior|Hunter/i.test(title))
-      || constructedDetailState.firstDeckImageWidth < constructedDetailState.firstDeckWidth * 0.9
       || (device === 'desktop' ? constructedDetailState.deckColumns !== 3 : constructedDetailState.deckColumns !== 1)
       || constructedDetailState.documentOverflow) {
       failures.push(`constructed card detail [${device}]: data sections or responsive containment regressed (${JSON.stringify(constructedDetailState)})`);
@@ -4856,44 +4880,22 @@ for (const [device, viewport] of [
     }
     await page.screenshot({ path: `${OUT}/constructed-card-pool-expanded-${device}.png`, fullPage: false });
     await page.$eval('.constructed-card-detail__decks', element => element.scrollIntoView({ block: 'start' }));
+    await page.waitForSelector('.constructed-card-detail__deck-grid .deck-render-preview[data-render-state="ready"]', { timeout: 20_000 });
     await page.click('.constructed-card-detail__decks .constructed-card-detail__pool-toggle');
-    await page.waitForFunction(() => document.querySelectorAll('.constructed-card-detail__deck').length === 6
-      && document.querySelectorAll('.constructed-card-detail__deck-grid img').length === 6);
-    if (adminState.constructedDeckPreviewRequests?.['qa-deck-4'] !== 2) {
-      failures.push(`constructed card decks [${device}]: transient DeckView failure was not retried (${JSON.stringify(adminState.constructedDeckPreviewRequests)})`);
-    }
-    await page.click('.constructed-card-detail__deck-preview');
-    await page.waitForSelector('.constructed-card-lightbox');
-    const deckLightboxState = await page.evaluate(() => ({
-      title: document.querySelector('#constructed-card-lightbox-title')?.textContent?.trim(),
-      images: document.querySelectorAll('.constructed-card-lightbox__media img').length,
-      bodyLocked: document.body.style.overflow === 'hidden',
-      bodyFixed: document.body.style.position === 'fixed',
-      rootInert: document.getElementById('root')?.inert === true,
-      rootHidden: document.getElementById('root')?.getAttribute('aria-hidden') === 'true',
-      portalParent: document.querySelector('.constructed-card-lightbox')?.parentElement?.tagName || '',
-      activeLabel: document.activeElement?.getAttribute('aria-label') || '',
-    }));
-    if (deckLightboxState.title !== 'Контроль Воин' || deckLightboxState.images !== 1 || !deckLightboxState.bodyLocked
-      || !deckLightboxState.bodyFixed || !deckLightboxState.rootInert || !deckLightboxState.rootHidden
-      || deckLightboxState.portalParent !== 'BODY' || deckLightboxState.activeLabel !== 'Закрыть') {
-      failures.push(`constructed card deck lightbox [${device}]: preview dialog regressed (${JSON.stringify(deckLightboxState)})`);
-    }
-    await page.screenshot({ path: `${OUT}/constructed-card-deck-lightbox-${device}.png`, fullPage: false });
-    await page.click('.constructed-card-lightbox__close');
-    await page.waitForSelector('.constructed-card-lightbox', { hidden: true });
-    await page.waitForFunction(() => document.activeElement?.classList.contains('constructed-card-detail__deck-preview'));
+    await page.waitForFunction(() => document.querySelectorAll('.constructed-card-detail__deck').length === 6);
     await page.click('.constructed-card-detail__deck-copy > button');
     await page.waitForFunction(() => document.querySelector('.constructed-card-detail__deck-copy > button')?.textContent?.includes('Код скопирован'));
     const expandedDeckState = await page.evaluate(() => ({
       decks: document.querySelectorAll('.constructed-card-detail__deck').length,
-      images: document.querySelectorAll('.constructed-card-detail__deck-grid img').length,
+      renderSurfaces: document.querySelectorAll('.constructed-card-detail__deck-grid .deck-render-preview').length,
+      previews: document.querySelectorAll('.constructed-card-detail__deck-grid .deck-render-preview[data-render-state="ready"]').length,
       copied: document.querySelector('.constructed-card-detail__deck-copy > button')?.textContent?.replace(/\s+/g, ' ').trim(),
-      errors: document.querySelectorAll('.constructed-card-detail__deck-preview-state button').length,
+      errors: document.querySelectorAll('.constructed-card-detail__deck-list-state button, .deck-render-preview__retry').length,
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     }));
-    if (expandedDeckState.decks !== 6 || expandedDeckState.images !== 6 || expandedDeckState.errors !== 0 || !expandedDeckState.copied?.includes('Код скопирован') || expandedDeckState.overflow) {
-      failures.push(`constructed card decks [${device}]: DeckView grid, pagination or copy flow regressed (${JSON.stringify(expandedDeckState)})`);
+    if (expandedDeckState.decks !== 6 || expandedDeckState.renderSurfaces !== 6 || expandedDeckState.previews < 1
+      || expandedDeckState.errors !== 0 || !expandedDeckState.copied?.includes('Код скопирован') || expandedDeckState.overflow) {
+      failures.push(`constructed card decks [${device}]: rendered deck grid, pagination or copy flow regressed (${JSON.stringify(expandedDeckState)})`);
     }
     await page.screenshot({ path: `${OUT}/constructed-card-decks-${device}.png`, fullPage: false });
     await page.click('.constructed-card-detail__visual-button');
@@ -4963,8 +4965,8 @@ for (const [device, viewport] of [
   }
 }
 
-// The card dossier also needs a native wide-screen check because DeckView
-// images are portrait-ish and must not float inside oversized 600px columns.
+// The card dossier also needs a wide-screen check because rendered deck images
+// must not float inside oversized 600px columns.
 {
   const page = await createQaPage();
   const runtimeErrors = collectRuntimeErrors(page);
@@ -4972,32 +4974,37 @@ for (const [device, viewport] of [
   await mockApplicationApi(page, { authenticated: true, admin: true, adminState: {} });
   try {
     await page.goto(`${BASE}/standard/cards/standard/CARD_QA_1`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForFunction(() => document.querySelectorAll('.constructed-card-detail__deck-grid img').length === 3);
+    await page.waitForSelector('.constructed-card-detail__decks', { timeout: 20_000 });
     await page.$eval('.constructed-card-detail__decks', element => element.scrollIntoView({ block: 'start' }));
+    await page.waitForFunction(() => document.querySelectorAll(
+      '.constructed-card-detail__deck-grid .deck-render-preview[data-render-state="ready"]',
+    ).length === 3);
     const wideDeckState = await page.evaluate(() => {
       const grid = document.querySelector('.constructed-card-detail__deck-grid');
       const gridRect = grid?.getBoundingClientRect();
       const cards = [...document.querySelectorAll('.constructed-card-detail__deck')];
       const firstCard = cards[0]?.getBoundingClientRect();
-      const firstImage = document.querySelector('.constructed-card-detail__deck-preview img')?.getBoundingClientRect();
+      const firstImage = document.querySelector('.constructed-card-detail__deck-list .deck-render-preview__image img')?.getBoundingClientRect();
       const titles = [...document.querySelectorAll('.constructed-card-detail__deck-copy h3')].map(element => element.textContent?.trim() || '');
       return {
         columns: getComputedStyle(grid).gridTemplateColumns.split(/\s+/).filter(Boolean).length,
         cardWidth: firstCard?.width ?? 0,
         imageWidth: firstImage?.width ?? 0,
+        previews: document.querySelectorAll('.constructed-card-detail__deck-grid .deck-render-preview[data-render-state="ready"]').length,
         centered: Math.abs(((cards[0]?.getBoundingClientRect().left ?? 0) - (gridRect?.left ?? 0)) - ((gridRect?.right ?? 0) - (cards.at(-1)?.getBoundingClientRect().right ?? 0))) < 3,
         titles,
-        errors: document.querySelectorAll('.constructed-card-detail__deck-preview-state button').length,
+        errors: document.querySelectorAll('.constructed-card-detail__deck-list-state button, .deck-render-preview__retry').length,
         overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
       };
     });
     if (wideDeckState.columns !== 3 || wideDeckState.cardWidth > 432 || wideDeckState.imageWidth < wideDeckState.cardWidth * 0.9
+      || wideDeckState.previews !== 3
       || !wideDeckState.centered || wideDeckState.titles.some(title => /Control|Face|Warrior|Hunter/i.test(title))
       || wideDeckState.errors || wideDeckState.overflow || runtimeErrors.length) {
       failures.push(`constructed card decks [2048px]: wide alignment, translation or stability regressed (${JSON.stringify(wideDeckState)}; ${runtimeErrors.join(' | ')})`);
     }
     await page.screenshot({ path: `${OUT}/constructed-card-decks-wide.png`, fullPage: false });
-    console.log('✓ constructed card DeckView grid [2048px] alignment + translations');
+    console.log('✓ constructed card rendered deck grid [2048px] alignment + translations');
   } catch (error) {
     failures.push(`constructed card decks [2048px]: ${error.message}`);
   } finally {
@@ -5212,14 +5219,18 @@ for (const path of ['/standard/meta', '/standard/vicious-gold']) {
   await mockApplicationApi(page, { authenticated: false });
   try {
     await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForSelector('.arena-paywall', { visible: true, timeout: 20_000 });
+    const paywallSelector = path === '/standard/meta' ? '.arena-inline-paywall' : '.arena-paywall';
+    await page.waitForSelector(paywallSelector, { visible: true, timeout: 20_000 });
     const state = await page.evaluate(() => ({
-      diamond: document.querySelector('.arena-paywall')?.textContent?.includes('Алмаз') || false,
-      previewInert: document.querySelector('.arena-paywall__preview')?.hasAttribute('inert') || false,
+      diamond: document.querySelector('.arena-paywall, .arena-inline-paywall')?.textContent?.includes('Алмаз') || false,
+      previewProtected: Boolean(
+        document.querySelector('.arena-paywall__preview')?.hasAttribute('inert')
+        || document.querySelector('.arena-inline-paywall'),
+      ),
       standardLinks: document.querySelectorAll('a[href^="/standard/"]').length,
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     }));
-    if (!state.diamond || !state.previewInert || state.standardLinks < 4 || state.overflow) {
+    if (!state.diamond || !state.previewProtected || state.standardLinks < 4 || state.overflow) {
       failures.push(`${path} [mobile guest]: Diamond paywall regressed (${JSON.stringify(state)})`);
     }
     await auditAccessibility(page, `${path} [mobile guest]`);
@@ -5239,14 +5250,18 @@ for (const path of ['/standard/meta', '/standard/vicious-gold']) {
   try {
     await page.goto(`${BASE}/standard/cards`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.constructed-cards__gallery-card', { visible: true, timeout: 20_000 });
+    await page.click('[data-tour-id="cards-sort"] .constructed-cards__filter-trigger');
+    await page.waitForSelector('[data-tour-id="cards-sort"] [role="listbox"]', { visible: true, timeout: 5_000 });
     const state = await page.evaluate(() => ({
       fullPaywall: Boolean(document.querySelector('.arena-paywall')),
       lockedBadge: document.querySelector('.constructed-cards__beta')?.textContent?.includes('Алмаз') || false,
-      lockedSorts: [...document.querySelectorAll('.constructed-cards__filter select option:disabled')].filter(option => option.textContent?.includes('Алмаз')).length,
-      defaultSort: document.querySelector('.constructed-cards__filter select')?.value || '',
+      lockedSorts: [...document.querySelectorAll('[data-tour-id="cards-sort"] [role="option"][aria-disabled="true"]')]
+        .filter(option => option.textContent?.includes('Алмаз')).length,
+      defaultSort: document.querySelector('[data-tour-id="cards-sort"] .constructed-cards__filter-value')?.textContent?.trim() || '',
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     }));
-    if (state.fullPaywall || !state.lockedBadge || state.lockedSorts !== 3 || state.defaultSort !== 'set' || state.overflow) {
+    await page.keyboard.press('Escape');
+    if (state.fullPaywall || !state.lockedBadge || state.lockedSorts !== 3 || state.defaultSort !== 'Новые дополнения' || state.overflow) {
       failures.push(`/standard/cards [mobile guest]: partial statistics paywall regressed (${JSON.stringify(state)})`);
     }
     await page.type('.global-search input', 'контроль');

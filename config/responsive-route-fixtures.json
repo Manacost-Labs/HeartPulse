@@ -88,7 +88,7 @@
       "path": "/standard/meta",
       "access": "anonymous",
       "state": "paywall",
-      "ready": { "selector": ".arena-paywall" },
+      "ready": { "selector": ".arena-inline-paywall" },
       "capture": { "mode": "viewport", "anchor": "top" },
       "checks": ["overflow", "runtime-errors", "axe", "targets"],
       "representative": true
