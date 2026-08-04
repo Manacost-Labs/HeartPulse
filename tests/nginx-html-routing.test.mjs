@@ -122,6 +122,9 @@ const edgePublicResourceLocation = edgeLocations.find(location => (
 const edgeSitemapLocation = edgeLocations.find(location => (
   location.modifier === '=' && location.pattern === '/sitemap.xml'
 ));
+const edgeRuntimeConfigLocation = edgeLocations.find(location => (
+  location.modifier === '=' && location.pattern === '/runtime-config.js'
+));
 const runtimeConfigLocation = locations.find(location => (
   location.modifier === '=' && location.pattern === '/runtime-config.js'
 ));
@@ -131,6 +134,12 @@ assert.match(runtimeConfigLocation?.body || '', /Cache-Control\s+"no-cache, no-s
   'runtime config must be revalidated after every production switch');
 assert.doesNotMatch(runtimeConfigLocation?.body || '', /immutable|max-age=2592000/,
   'runtime config must never inherit the generic immutable JavaScript policy');
+assert.match(edgeRuntimeConfigLocation?.body || '', /proxy_cache_bypass\s+1;/,
+  'regional edges must bypass their immutable asset cache for runtime config');
+assert.match(edgeRuntimeConfigLocation?.body || '', /Cache-Control\s+"no-cache, no-store, must-revalidate"\s+always;/,
+  'regional edges must preserve the runtime config no-store contract');
+assert.doesNotMatch(edgeRuntimeConfigLocation?.body || '', /immutable|max-age=2592000/,
+  'regional runtime config must never inherit immutable asset caching');
 assert.match(edgeCardImageLocation?.body || '', /try_files\s+\$arena_card_image_blizzard_file\s+@arena_card_image_local_fallback;/,
   'card images must use the local Blizzard mirror before the origin fallback');
 assert.match(edgeCardImageLocation?.body || '', /X-Proxy-Cache\s+LOCAL\s+always;/,
