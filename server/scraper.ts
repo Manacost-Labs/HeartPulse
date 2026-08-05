@@ -1094,14 +1094,40 @@ export async function scrapeLegendaries(): Promise<boolean> {
 
     if (!packagesData) throw new Error('card_packages/free response not intercepted');
 
-    const allPackages: Array<{
+    const rawPackages: Array<{
       package_key_card_id: string;
       package_card_ids: string[];
       win_rate: number;
     }> = packagesData?.data?.ALL ?? [];
 
+    // HSReplay can briefly publish the same key legendary more than once
+    // while a patch is rolling out. Merge those rows before snapshot
+    // validation so one provider duplicate cannot block every other dataset.
+    const packageByKey = new Map<string, typeof rawPackages[number]>();
+    for (const pkg of rawPackages) {
+      const key = String(pkg.package_key_card_id || '').trim();
+      if (!key) continue;
+      const previous = packageByKey.get(key);
+      if (!previous) {
+        packageByKey.set(key, { ...pkg, package_card_ids: [...pkg.package_card_ids] });
+        continue;
+      }
+      const packageCardIds = Array.from(new Set([
+        ...previous.package_card_ids,
+        ...pkg.package_card_ids,
+      ]));
+      packageByKey.set(key, {
+        ...previous,
+        package_card_ids: packageCardIds,
+        win_rate: pkg.package_card_ids.length > previous.package_card_ids.length
+          ? pkg.win_rate
+          : previous.win_rate,
+      });
+    }
+    const allPackages = Array.from(packageByKey.values());
+
     if (allPackages.length < 10) throw new Error(`Too few legendary packages: ${allPackages.length}`);
-    console.log(`[Scraper] HSReplay: ${allPackages.length} legendary packages found`);
+    console.log(`[Scraper] HSReplay: ${allPackages.length} unique legendary packages found (${rawPackages.length} rows)`);
 
     // ── Fetch HearthstoneJSON for ruRU names and stats ──────────────────────
     console.log('[Scraper] HearthstoneJSON: fetching ruRU card data...');
