@@ -1532,9 +1532,9 @@
   box-shadow: inset 0 1px rgba(255, 232, 186, 0.08);
 }
 
-.arena-app-battlegrounds .bg-trinket-tier-table-head > span {
+.arena-app-battlegrounds .bg-tier-list-page .bg-tier-rank-panel .bg-trinket-tier-table-head > span {
   padding: 0.7rem 0.8rem;
-  color: inherit !important;
+  color: inherit;
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.055em;
@@ -1632,12 +1632,12 @@
   padding: 0.85rem 0;
 }
 
-.arena-app-battlegrounds .bg-trinket-tier-row__title-line {
+.arena-app-battlegrounds .bg-tier-list-page .bg-tier-rank-panel .bg-trinket-tier-row__title-line {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.45rem;
-  color: #fff4dc !important;
+  color: #fff4dc;
 }
 
 .arena-app-battlegrounds .bg-trinket-tier-row__title-line > strong {
@@ -1657,11 +1657,11 @@
   background: rgba(29, 14, 25, 0.46);
 }
 
-.arena-app-battlegrounds .bg-trinket-tier-row__description {
+.arena-app-battlegrounds .bg-tier-list-page .bg-tier-rank-panel .bg-trinket-tier-row__description {
   display: -webkit-box;
   margin-top: 0.42rem;
   overflow: hidden;
-  color: #ead9c5 !important;
+  color: #ead9c5;
   font-size: 0.84rem;
   line-height: 1.38;
   -webkit-box-orient: vertical;
@@ -1742,12 +1742,12 @@
   box-shadow: inset 0 1px rgba(255, 238, 248, 0.2);
 }
 
-.arena-app-battlegrounds .bg-trinket-distribution__axis {
+.arena-app-battlegrounds .bg-tier-list-page .bg-tier-rank-panel .bg-trinket-distribution__axis {
   display: flex;
   justify-content: space-between;
   width: min(100%, 190px);
   padding: 0.14rem 0.15rem 0;
-  color: #d9c5d4 !important;
+  color: #d9c5d4;
   font-size: 0.6rem;
 }
 
