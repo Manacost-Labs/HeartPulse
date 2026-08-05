@@ -524,6 +524,7 @@ const OLD_GUIDES_PUBLIC_URL = (process.env.OLD_GUIDES_PUBLIC_URL || 'https://old
 const EXTRA_BG_LIBRARY_ENDPOINTS: Record<string, string> = {
   heroes: '/heroes',
   anomaly: '/anomalies',
+  dark_gift: '/dark-gifts',
   quest: '/quests',
   darkmoon_prize: '/darkmoon-prizes',
   reward: '/rewards',
