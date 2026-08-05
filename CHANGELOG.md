@@ -225,6 +225,10 @@
 
 ## v1.0.82 - 2026-07-30
 
+- Rebuilt the Battlegrounds trinket tier list as a complete responsive
+  statistical ledger with mirrored full art in the game frame, localized
+  descriptions, pick and placement metrics, eight-place distributions,
+  keyboard/hover tooltips, and no progressive `Show more` gate.
 - Added the administrator-only «Сочетания в Арене» workspace with
   class-stratified lift, support thresholds and forced legendary-package
   filtering across the latest 500 twelve-win Arena runs.

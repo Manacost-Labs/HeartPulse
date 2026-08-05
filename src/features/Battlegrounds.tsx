@@ -8,13 +8,17 @@ import {
   normalizeTrinketMmr,
   normalizeTrinketTimeRange,
   sortTrinketTierItems,
+  tierItemsForDisplay,
   TRINKET_MMR_OPTIONS,
   TRINKET_TIME_RANGE_OPTIONS,
+  trinketFullArtUrl,
   trinketMetricView,
+  trinketPlacementBars,
   type TrinketMmr,
   type TrinketTimeRange,
 } from './battlegroundTrinkets';
 import { optimizedBattlegroundThumbnailUrl } from './battlegroundImageUrls';
+import { BattlegroundTrinketTierRow } from './BattlegroundTrinketTierRow';
 import '../route-parchment.css';
 import './Battlegrounds.css';
 import '../battlegrounds-shell.css';
@@ -3136,49 +3140,33 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen, to
   const image = bgThumbnailForItem(item, list);
   const lightboxItem = bgLightboxItem(item, list, tier, index);
   if (list === 'trinkets') {
-    const raceLabel = bgRaceLabelForItem(item);
     const metrics = trinketMetricView(item);
+    const description = bgDetailCardTooltipText(item?.ruText || item?.localizedText || item?.text || item?.description)
+      || 'Описание доступно на изображении аксессуара.';
+    const pickRateValue = Math.max(0, Math.min(100, Number.parseFloat(String(item?.pickRate ?? '').replace(',', '.')) || 0));
+    const placementValue = Number.parseFloat(String(item?.avgPlacement ?? '').replace(',', '.'));
     return (
-      <button
-        type="button"
-        data-tour-id={tourId}
-        onClick={() => lightboxItem && onOpen(lightboxItem)}
-        className="bg-tier-entry-card bg-tier-entry-card--trinket group flex flex-col items-center rounded-lg border border-transparent bg-[#fff7e6]/28 p-2 text-center transition-all duration-200 hover:border-[#d7b66a]/70 hover:bg-[#fff7e6]/75 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b58a2f]"
-      >
-        {image && (
-          <img
-            src={image}
-            alt={title}
-            width={220}
-            height={293}
-            loading="lazy"
-            decoding="async"
-            className="aspect-[3/4] w-full max-w-[184px] object-contain drop-shadow-[0_7px_14px_rgba(0,0,0,0.4)] transition-transform duration-200 group-hover:-translate-y-1"
-          />
-        )}
-        {raceLabel && (
-          <span className="mt-1.5 rounded-md border border-[#bfdbfe] bg-[#dbeafe] px-2.5 py-1 text-xs font-bold leading-none text-[#1e3a8a] shadow-sm">
-            {raceLabel}
-          </span>
-        )}
-        <span className="mt-1 grid w-full grid-cols-3 overflow-hidden rounded-md border border-[#d7b66a]/70 bg-[#fff3c4] text-[#3d2a1e] shadow-sm">
-          <span className="border-r border-[#d7b66a]/55 px-1.5 py-1.5">
-            <small className="block text-[9px] font-bold uppercase tracking-wide text-[#76542f]">Среднее место</small>
-            <strong className="mt-0.5 block font-hs text-sm leading-none">{metrics.averagePlacement}</strong>
-          </span>
-          <span className="border-r border-[#d7b66a]/55 px-1.5 py-1.5">
-            <small className="block text-[9px] font-bold uppercase tracking-wide text-[#76542f]">Частота выбора</small>
-            <strong className="mt-0.5 block font-hs text-sm leading-none">{metrics.pickRate}</strong>
-          </span>
-          <span
-            className="px-1.5 py-1.5"
-            title="Минимальное число игр, совместимое с округлённым распределением мест HSReplay"
-          >
-            <small className="block text-[9px] font-bold uppercase tracking-wide text-[#76542f]">Мин. игр</small>
-            <strong className="mt-0.5 block font-hs text-sm leading-none">{metrics.games}</strong>
-          </span>
-        </span>
-      </button>
+      <BattlegroundTrinketTierRow
+        title={title}
+        tier={tier}
+        typeLabel={String(item?.typeLabel || 'Аксессуар')}
+        raceLabel={bgRaceLabelForItem(item)}
+        description={description}
+        cost={Number.isFinite(Number(item?.cost)) ? Number(item.cost) : null}
+        pickRate={metrics.pickRate}
+        averagePlacement={metrics.averagePlacement}
+        games={metrics.games}
+        pickRateValue={pickRateValue}
+        placementQuality={Number.isFinite(placementValue)
+          ? Math.max(0, Math.min(100, ((9 - placementValue) / 8) * 100))
+          : 0}
+        placementBars={trinketPlacementBars(item?.placementDistribution)}
+        fullArt={trinketFullArtUrl(item)}
+        cardImage={image}
+        tooltipId={`bg-trinket-tooltip-${String(item?.id || item?.dbfId || index).replace(/[^A-Za-z0-9_-]/g, '-')}`}
+        onActivate={() => lightboxItem && onOpen(lightboxItem)}
+        tourId={tourId}
+      />
     );
   }
 
@@ -3656,7 +3644,7 @@ function BattlegroundTierList() {
               if (!items.length) return null;
               const visibleKey = bgVisibleLimitKey(activeList, tier);
               const visibleLimit = visibleLimits[visibleKey] ?? BG_TIER_INITIAL_VISIBLE[activeList];
-              const visibleItems = items.slice(0, visibleLimit);
+              const visibleItems = tierItemsForDisplay(items, activeList, visibleLimit);
               const hiddenCount = Math.max(0, items.length - visibleItems.length);
               return (
                 <section key={`${activeList}-${tier}`} className="bg-tier-rank-panel rounded-lg border p-3">
@@ -3667,8 +3655,16 @@ function BattlegroundTierList() {
                       <p className="text-xs text-[#8b6c42]">{items.length} позиций</p>
                     </div>
                   </div>
+                  {activeList === 'trinkets' && (
+                    <div className="bg-trinket-tier-table-head" aria-hidden="true">
+                      <span>Аксессуар</span>
+                      <span>Частота выбора</span>
+                      <span>Средняя позиция</span>
+                      <span>Распределение мест</span>
+                    </div>
+                  )}
                   <div className={activeList === 'trinkets'
-                    ? 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6'
+                    ? 'bg-trinket-tier-table'
                     : activeList === 'strategies'
                     ? 'grid gap-3 lg:grid-cols-2'
                     : 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3'}>
