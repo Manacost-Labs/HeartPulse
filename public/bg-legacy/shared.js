@@ -26,6 +26,64 @@
     }
   }
 
+  function normalizeAccessoryRecord(card) {
+    const group = String(card?.group?.slug || "").toLowerCase();
+    const size = group === "greater" ? "LARGE" : "SMALL";
+    return {
+      id: String(card?.card_id || card?.dbf || ""),
+      name: String(card?.name?.ru || card?.name?.en || card?.card_id || "Аксессуар"),
+      englishName: String(card?.name?.en || ""),
+      text: String(card?.text?.ru || card?.text?.en || ""),
+      size,
+      image: String(card?.images?.card || card?.image_url || card?.image || "")
+    };
+  }
+
+  /**
+   * Loads the current Battlegrounds trinket pool from the synchronized library.
+   * The bundled list remains a fallback so both builders still open during an
+   * upstream outage or while a user session is being restored.
+   */
+  async function loadCurrentAccessoriesData() {
+    const fallback = window.accessoriesData || { small: [], large: [] };
+    try {
+      const loadPage = async (page) => {
+        const params = new URLSearchParams({ in_pool: "1", per_page: "200", page: String(page) });
+        const response = await fetch(`/api/bg/library/extra/trinket?${params.toString()}`, {
+          headers: { Accept: "application/json" },
+          credentials: "same-origin"
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      };
+
+      const first = await loadPage(1);
+      const totalPages = Math.min(10, Math.max(
+        1,
+        Number(first?.pagination?.total_pages || first?.pagination?.pages || 1)
+      ));
+      const remaining = totalPages > 1
+        ? await Promise.all(Array.from({ length: totalPages - 1 }, (_, index) => loadPage(index + 2)))
+        : [];
+      const records = [first, ...remaining]
+        .flatMap((payload) => Array.isArray(payload?.data) ? payload.data : [])
+        .filter((card) => card?.in_pool !== false)
+        .map(normalizeAccessoryRecord)
+        .filter((card) => card.id && card.image);
+
+      if (!records.length) throw new Error("Пустой пул аксессуаров");
+      const current = {
+        small: records.filter((card) => card.size === "SMALL"),
+        large: records.filter((card) => card.size === "LARGE")
+      };
+      window.accessoriesData = current;
+      return current;
+    } catch (error) {
+      console.warn("Не удалось обновить аксессуары; используется резервный список.", error);
+      return fallback;
+    }
+  }
+
   function loadImage(src) {
     return new Promise((resolve, reject) => {
       const image = new Image();
@@ -435,6 +493,7 @@
     loadBattlegroundsLibrary,
     exportCardSheet,
     publicResourceUrl,
+    loadCurrentAccessoriesData,
     escapeHtml
   };
 })();

@@ -1830,9 +1830,9 @@ function normalizeHeroCard(hero, tier) {
     return {
       id: card.id,
       name: card.name,
-      englishName: "",
+      englishName: card.englishName || "",
       slug: "",
-      text: "",
+      text: stripHtml(card.text || ""),
       techLevel: 0,
       races: [],
       manaCost: 0,
@@ -1908,7 +1908,7 @@ function normalizeHeroCard(hero, tier) {
           });
         })
         : [];
-      const accessoriesPayload = window.accessoriesData || {};
+      const accessoriesPayload = await window.Shared.loadCurrentAccessoriesData();
       const accessories = [...(accessoriesPayload.small || []), ...(accessoriesPayload.large || [])].map(normalizeAccessoryCard);
 
       state.cards = [...heroes, ...minions, ...spells, ...accessories];

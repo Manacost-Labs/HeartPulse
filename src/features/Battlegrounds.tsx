@@ -4170,7 +4170,7 @@ const BG_STRATEGY_BUILDER_HTML = String.raw`
   </section>
 </main>`;
 
-const BG_STRATEGY_BUILDER_VERSION = '20260710-wide-workbench';
+const BG_STRATEGY_BUILDER_VERSION = '20260805-live-trinkets';
 const BG_STRATEGY_BUILDER_CSS = `/bg-legacy/strategy-builder.gridfix2.css?v=${BG_STRATEGY_BUILDER_VERSION}`;
 const BG_STRATEGY_BUILDER_JS = `/bg-legacy/strategy-builder.gridfix2.js?v=${BG_STRATEGY_BUILDER_VERSION}`;
 

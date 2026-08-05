@@ -210,7 +210,7 @@
     return {
       id: card.id,
       name: card.name,
-      text: "",
+      text: stripHtml(card.text || ""),
       techLevel: 0,
       races: [],
       manaCost: 0,
@@ -901,7 +901,7 @@
           });
         })
         : [];
-      const accessoriesPayload = window.accessoriesData || {};
+      const accessoriesPayload = await window.Shared.loadCurrentAccessoriesData();
       const accessories = [...(accessoriesPayload.small || []), ...(accessoriesPayload.large || [])].map(normalizeAccessoryCard);
 
       state.cards = [...minions, ...spells, ...accessories, ...heroes];
