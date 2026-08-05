@@ -68,10 +68,10 @@ import {
   type ConstructedCardRequestErrorCopy,
 } from './constructedCardRequestState';
 import {
-  CONSTRUCTED_CARD_PERIOD_OPTIONS,
   CONSTRUCTED_CARD_RANK_OPTIONS,
   constructedCardPeriodFromSearch,
   constructedCardPeriodLabel,
+  constructedCardPeriodOptions,
   constructedCardPeriodUrl,
   constructedCardRankFromSearch,
   constructedCardRankLabel,
@@ -887,9 +887,10 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
   const visibleRankLabel = loading
     ? constructedCardRankLabel(rank)
     : data?.rankLabel || constructedCardRankLabel(rank);
+  const currentPatch = data?.period?.patch;
   const visiblePeriodLabel = loading
-    ? constructedCardPeriodLabel(period)
-    : data?.period?.label || constructedCardPeriodLabel(period);
+    ? constructedCardPeriodLabel(period, currentPatch)
+    : data?.period?.label || constructedCardPeriodLabel(period, currentPatch);
 
   return (
     <div className="constructed-cards">
@@ -928,7 +929,7 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
             value={period}
             onChange={value => changePeriod(value as ConstructedCardPeriod)}
             tourId="cards-period"
-            options={CONSTRUCTED_CARD_PERIOD_OPTIONS.map(option => ({
+            options={constructedCardPeriodOptions(currentPatch).map(option => ({
               value: option.id,
               label: option.label,
             }))}
@@ -1280,6 +1281,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
       : constructedCardStatsFormatFromSearch(window.location.search, format)
   ));
   const [periodLabel, setPeriodLabel] = useState(() => constructedCardPeriodLabel(period));
+  const [currentPatch, setCurrentPatch] = useState<string | null>(null);
   const [card, setCard] = useState<CardRecord | null>(null);
   const [serverStatsAccess, setServerStatsAccess] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -1351,6 +1353,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
         setCard(loadedCard);
         setServerStatsAccess(payload.statsAccess === true);
         setPeriodLabel(payload.period?.label || constructedCardPeriodLabel(period));
+        setCurrentPatch(payload.period?.patch || null);
         setDataState({
           dataStatus: payload.dataStatus === 'stale' ? 'stale' : 'fresh',
           partial: payload.partial === true,
@@ -1497,7 +1500,7 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
               label="Период"
               value={period}
               onChange={value => changeStatistics({ period: value as ConstructedCardPeriod })}
-              options={CONSTRUCTED_CARD_PERIOD_OPTIONS.map(option => ({ value: option.id, label: option.label }))}
+              options={constructedCardPeriodOptions(currentPatch).map(option => ({ value: option.id, label: option.label }))}
             />
           </div>
           {serverStatsAccess ? <><StatsRows stats={card.stats} />{!card.stats && <p className="constructed-card-detail__no-stats">Карта есть в библиотеке, но в выборке «{statsFormatLabel} · {rankLabel} · {periodLabel}» недостаточно данных.</p>}</> : (

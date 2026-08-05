@@ -319,6 +319,24 @@ function periodDescriptor(period: ConstructedCardPeriod, payload?: JsonRecord): 
   };
 }
 
+export function currentConstructedPatchVersion(patches: JsonRecord[]): string | null {
+  const versions = patches
+    .map(patch => String(patch?.version ?? patch?.display_version ?? '').trim())
+    .map(version => version.split('.'))
+    .filter(parts => parts.length >= 2 && parts.length <= 4 && parts.every(part => /^\d+$/.test(part)))
+    .sort((left, right) => {
+      const width = Math.max(left.length, right.length);
+      for (let index = 0; index < width; index += 1) {
+        const difference = Number(right[index] ?? 0) - Number(left[index] ?? 0);
+        if (difference) return difference;
+      }
+      return 0;
+    });
+  const latest = versions[0];
+  if (!latest) return null;
+  return (latest.length === 4 ? latest.slice(0, 3) : latest).join('.');
+}
+
 function rankDescriptor(rank: ConstructedCardRank, payload?: JsonRecord): ConstructedCardRankDescriptor {
   return {
     id: rank,
@@ -1070,7 +1088,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
 
     const jobGeneration = generation;
     const job = (async () => {
-      const catalog = await loadCatalog(format);
+      const [catalog, patches] = await Promise.all([loadCatalog(format), loadPatches()]);
       const statsDataset = statsDatasetFor(dependencies, format, period, rank);
       let statsPayload: JsonRecord = {};
       let statsCards: JsonRecord[] = [];
@@ -1099,7 +1117,10 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
         datasetVersion: catalog.document.datasetVersion,
         catalogVerifiedAt: catalog.document.verifiedAt,
         catalogPublishedAt: catalog.document.publishedAt,
-        period: periodDescriptor(period, statsPayload),
+        period: periodDescriptor(period, {
+          ...statsPayload,
+          patch: currentConstructedPatchVersion(patches.value) ?? statsPayload?.patch,
+        }),
         rank: rankDescriptor(rank, statsPayload),
       };
       if (!statsWarning) {

@@ -22,6 +22,16 @@ from several upstream services even when only statistics changed.
 - Failed or partial enrichments are not stored as fresh details. The last good
   value may only be used as an explicitly stale fallback.
 
+## Current patch label
+
+The statistics period continues to request HSReplay with
+`TimeRange=CURRENT_PATCH`. Its user-facing version is resolved from the local
+patch catalog exposed by `api.hs-manacost.ru`, not from a version hardcoded in
+the route. Hearthstone client builds such as `36.2.0.248348` are normalized to
+the public patch name `36.2.0`. The cached fallback label is only used while the
+first catalog request is loading; successful list and detail responses carry
+the discovered patch for every period so all filter instances stay aligned.
+
 ## Performance evidence
 
 The production baseline on 2026-08-04 showed a cold detail request taking up

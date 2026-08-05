@@ -3,6 +3,7 @@ import {
   CONSTRUCTED_CARD_PERIOD_OPTIONS,
   CONSTRUCTED_CARD_RANK_OPTIONS,
   constructedCardPeriodFromSearch,
+  constructedCardPeriodOptions,
   constructedCardPeriodUrl,
   constructedCardRankFromSearch,
   constructedCardStatsFormatFromSearch,
@@ -12,6 +13,10 @@ import {
 assert.deepEqual(
   CONSTRUCTED_CARD_PERIOD_OPTIONS.map(option => option.id),
   ['1d', '3d', '7d', '14d', 'patch'],
+);
+assert.equal(
+  constructedCardPeriodOptions('36.2.0').find(option => option.id === 'patch')?.label,
+  'Патч 36.2.0',
 );
 assert.deepEqual(
   CONSTRUCTED_CARD_RANK_OPTIONS.map(option => option.id),

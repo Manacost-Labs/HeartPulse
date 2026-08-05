@@ -9,6 +9,7 @@ import {
   constructedCardCoverage,
   constructedCardFacets,
   constructedCardFacetCounts,
+  currentConstructedPatchVersion,
   createConstructedCardDataService,
   createConstructedCardRouter,
   enrichConstructedCardPatches,
@@ -97,6 +98,9 @@ const periodUrls: string[] = [];
 const periodService = createConstructedCardDataService({
   fetchJson: async url => {
     periodUrls.push(url);
+    if (url.includes('/patches')) {
+      return { patches: [{ version: '36.2.0.248348' }, { version: '36.0.3.247416' }] };
+    }
     if (url.includes('/constructed-cards')) {
       return { data: catalogCards, pagination: { page: 1, total: catalogCards.length, total_pages: 1 } };
     }
@@ -108,12 +112,13 @@ const periodService = createConstructedCardDataService({
   catalogBaseUrl: 'https://db.example.test/api/v1',
   statsDatasetByFormat: {
     standard: {
-      legend: { '7d': 'standard-legend-7d' },
+      legend: { '7d': 'standard-legend-7d', patch: 'standard-legend-patch' },
       platinum: { '7d': 'standard-platinum-7d' },
     },
     wild: { legend: { '7d': 'wild-legend-7d' } },
   },
   statsBaseUrl: 'https://stats.example.test',
+  patchesUrl: 'https://stats.example.test/api/patches?limit=500',
   stateDirectory: serviceStateDirectory,
   minimumCatalogCardsByFormat: { standard: 1, wild: 1 },
 });
@@ -121,6 +126,8 @@ const sevenDayCollection = await periodService.loadCards('standard', '7d');
 assert.ok(periodUrls.includes('https://stats.example.test/standard-legend-7d'));
 assert.equal(sevenDayCollection.period?.id, '7d');
 assert.equal(sevenDayCollection.period?.timeRange, 'LAST_7_DAYS');
+assert.equal(sevenDayCollection.period?.patch, '36.2.0');
+assert.equal(currentConstructedPatchVersion([{ version: '36.0.3' }, { version: '36.2.0.248348' }]), '36.2.0');
 const platinumCollection = await periodService.loadCards('standard', '7d', 'platinum');
 assert.ok(periodUrls.includes('https://stats.example.test/standard-platinum-7d'));
 assert.equal(platinumCollection.rank?.id, 'platinum');

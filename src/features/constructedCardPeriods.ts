@@ -10,8 +10,15 @@ export const CONSTRUCTED_CARD_PERIOD_OPTIONS: ReadonlyArray<{
   { id: '3d', label: 'Последние 3 дня' },
   { id: '7d', label: 'Последние 7 дней' },
   { id: '14d', label: 'Последние 14 дней' },
-  { id: 'patch', label: 'Патч 36.0.3' },
+  { id: 'patch', label: 'Патч 36.2.0' },
 ];
+
+export function constructedCardPeriodOptions(currentPatch?: string | null) {
+  const patch = String(currentPatch ?? '').trim().replace(/^patch[_\s-]*/i, '');
+  return CONSTRUCTED_CARD_PERIOD_OPTIONS.map(option => option.id === 'patch' && patch
+    ? { ...option, label: `Патч ${patch}` }
+    : option);
+}
 
 export const CONSTRUCTED_CARD_RANK_OPTIONS: ReadonlyArray<{
   id: ConstructedCardRank;
@@ -35,8 +42,12 @@ export function constructedCardPeriodFromSearch(search: string): ConstructedCard
   return value && PERIOD_IDS.has(value) ? value : '1d';
 }
 
-export function constructedCardPeriodLabel(period: ConstructedCardPeriod): string {
-  return CONSTRUCTED_CARD_PERIOD_OPTIONS.find(option => option.id === period)?.label ?? 'Последний день';
+export function constructedCardPeriodLabel(
+  period: ConstructedCardPeriod,
+  currentPatch?: string | null,
+): string {
+  return constructedCardPeriodOptions(currentPatch).find(option => option.id === period)?.label
+    ?? 'Последний день';
 }
 
 export function constructedCardRankFromSearch(search: string): ConstructedCardRank {
