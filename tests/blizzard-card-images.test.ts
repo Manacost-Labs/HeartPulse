@@ -136,6 +136,26 @@ async function assertOfficialImageDownloadPrecedesFallback() {
     'https://d15f34w2p8l1cc.cloudfront.net/hearthstone/official-card.png',
   ]);
 
+  const overriddenRequests: string[] = [];
+  await downloadBlizzardCardImage({
+    dbfId: 115648,
+    client: {
+      configured: true,
+      getImageUrl: async () => 'https://d15f34w2p8l1cc.cloudfront.net/hearthstone/stale-card.png',
+    },
+    resolveImageUrl: (_dbfId, officialUrl) => officialUrl.replace('stale-card', 'patched-card'),
+    fetchImpl: async input => {
+      overriddenRequests.push(String(input));
+      return new Response(new Uint8Array([1]), {
+        status: 200,
+        headers: { 'Content-Type': 'image/png' },
+      });
+    },
+  });
+  assert.deepEqual(overriddenRequests, [
+    'https://d15f34w2p8l1cc.cloudfront.net/hearthstone/patched-card.png',
+  ]);
+
   await assert.rejects(
     downloadBlizzardCardImage({
       dbfId: 115648,

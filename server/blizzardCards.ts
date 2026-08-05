@@ -90,6 +90,7 @@ export async function downloadBlizzardCardImage(options: {
   dbfId: number;
   client: BlizzardCardImageResolver;
   fetchImpl?: FetchLike;
+  resolveImageUrl?: (dbfId: number, officialUrl: string) => string | null;
 }): Promise<Buffer | null> {
   const dbfId = positiveInteger(options.dbfId);
   if (!dbfId || !options.client.configured) return null;
@@ -99,7 +100,9 @@ export async function downloadBlizzardCardImage(options: {
     ?? options.client.getImageUrl(dbfId)
   );
   if (!imageUrl) return null;
-  return downloadBlizzardImageUrl(imageUrl, options.fetchImpl);
+  const resolvedImageUrl = options.resolveImageUrl?.(dbfId, imageUrl) ?? imageUrl;
+  if (!resolvedImageUrl) return null;
+  return downloadBlizzardImageUrl(resolvedImageUrl, options.fetchImpl);
 }
 
 export function createBlizzardCardImageClient(options: BlizzardCardImageClientOptions = {}) {
