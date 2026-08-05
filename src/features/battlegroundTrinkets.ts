@@ -5,6 +5,15 @@ type TrinketMetricItem = {
   name?: string | null;
 };
 
+type TrinketIdentity = {
+  id?: string | null;
+};
+
+type TrinketPlacementEntry = {
+  place?: number | string | null;
+  rate?: number | string | null;
+};
+
 export type TrinketMmr = 'ALL' | 'TOP_50_PERCENT' | 'TOP_20_PERCENT' | 'TOP_5_PERCENT' | 'TOP_1_PERCENT';
 export type TrinketTimeRange = 'CURRENT_BATTLEGROUNDS_PATCH' | 'LAST_7_DAYS';
 
@@ -94,4 +103,41 @@ export function trinketMetricView(item: TrinketMetricItem): {
     pickRate: percentLabel(item.pickRate),
     games: gamesLabel(item.games),
   };
+}
+
+/**
+ * Trinkets are a statistical table, so hiding part of a tier makes comparison
+ * needlessly difficult. Other lists retain their existing progressive reveal.
+ */
+export function tierItemsForDisplay<T>(items: T[], list: string, visibleLimit: number): T[] {
+  return list === 'trinkets' ? items : items.slice(0, visibleLimit);
+}
+
+/** Full art is mirrored on our own card database and can be cached at the edge. */
+export function trinketFullArtUrl(item: TrinketIdentity): string {
+  const cardId = String(item?.id || '').trim();
+  if (!/^[A-Za-z0-9_]+$/.test(cardId)) return '';
+  return `https://db.kolodahs.ru/uploads/library-full-art/${encodeURIComponent(cardId)}.png`;
+}
+
+/** Normalizes sparse HSReplay placement data into eight comparable bars. */
+export function trinketPlacementBars(entries: TrinketPlacementEntry[] | null | undefined): Array<{
+  place: number;
+  rate: number;
+  height: number;
+}> {
+  const rateByPlace = new Map<number, number>();
+  for (const entry of Array.isArray(entries) ? entries : []) {
+    const place = Number.parseInt(String(entry?.place ?? ''), 10);
+    const rate = metricNumber(entry?.rate);
+    if (place >= 1 && place <= 8 && rate !== null) rateByPlace.set(place, Math.max(0, rate));
+  }
+
+  const rates = Array.from({ length: 8 }, (_, index) => rateByPlace.get(index + 1) ?? 0);
+  const peak = Math.max(...rates, 0);
+  return rates.map((rate, index) => ({
+    place: index + 1,
+    rate,
+    height: peak > 0 ? Math.round((rate / peak) * 100) : 0,
+  }));
 }
