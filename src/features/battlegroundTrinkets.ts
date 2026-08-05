@@ -1,3 +1,5 @@
+import { publicResourceUrl } from '../publicResourceUrl';
+
 type TrinketMetricItem = {
   avgPlacement?: number | string | null;
   pickRate?: number | string | null;
@@ -16,6 +18,7 @@ type TrinketPlacementEntry = {
 
 export type TrinketMmr = 'ALL' | 'TOP_50_PERCENT' | 'TOP_20_PERCENT' | 'TOP_5_PERCENT' | 'TOP_1_PERCENT';
 export type TrinketTimeRange = 'CURRENT_BATTLEGROUNDS_PATCH' | 'LAST_7_DAYS';
+export type TrinketView = 'table' | 'gallery';
 
 export const TRINKET_MMR_OPTIONS: Array<{ id: TrinketMmr; label: string }> = [
   { id: 'ALL', label: 'Все игроки' },
@@ -68,6 +71,25 @@ export function normalizeTrinketTimeRange(value: unknown): TrinketTimeRange {
     : 'LAST_7_DAYS';
 }
 
+/** Keeps the visual mode shareable without accepting arbitrary URL values. */
+export function normalizeTrinketView(value: unknown): TrinketView {
+  return String(value || '').toLowerCase() === 'gallery' ? 'gallery' : 'table';
+}
+
+/** Replaces only trinket controls while retaining unrelated deep-link params. */
+export function updateTrinketUrlState(updates: {
+  size?: string;
+  mmr?: TrinketMmr;
+  timeRange?: TrinketTimeRange;
+  view?: TrinketView;
+}): void {
+  if (typeof window === 'undefined') return;
+  const params = new URLSearchParams(window.location.search);
+  params.set('list', 'trinkets');
+  Object.entries(updates).forEach(([key, value]) => { if (value) params.set(key, value); });
+  window.history.replaceState(window.history.state, '', `${window.location.pathname}?${params.toString()}`);
+}
+
 export function buildTrinketStatsRequest(mmr: TrinketMmr, timeRange: TrinketTimeRange): string {
   const params = new URLSearchParams({
     list: 'trinkets',
@@ -117,7 +139,15 @@ export function tierItemsForDisplay<T>(items: T[], list: string, visibleLimit: n
 export function trinketFullArtUrl(item: TrinketIdentity): string {
   const cardId = String(item?.id || '').trim();
   if (!/^[A-Za-z0-9_]+$/.test(cardId)) return '';
-  return `https://db.kolodahs.ru/uploads/library-full-art/${encodeURIComponent(cardId)}.png`;
+  return publicResourceUrl(`https://db.kolodahs.ru/uploads/library-full-art/${encodeURIComponent(cardId)}.png`);
+}
+
+/** Transparent localized card render used by gallery tiles and the hover preview. */
+export function trinketCardImageUrl(item: TrinketIdentity): string {
+  const cardId = String(item?.id || '').trim();
+  if (!/^[A-Za-z0-9_]+$/.test(cardId)) return '';
+  const params = new URLSearchParams({ id: cardId, locale: 'ruRU', size: '512x' });
+  return publicResourceUrl(`https://bg.kolodahearthstone.ru/api/card-art?${params.toString()}`);
 }
 
 /** Normalizes sparse HSReplay placement data into eight comparable bars. */

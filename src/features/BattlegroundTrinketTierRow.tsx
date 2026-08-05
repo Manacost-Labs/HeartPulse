@@ -1,5 +1,6 @@
 import { useCallback, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
+import type { TrinketView } from './battlegroundTrinkets';
 
 type TrinketTooltipPosition = { left: number; top: number; width: number };
 
@@ -11,20 +12,18 @@ export type TrinketTierRowPlacementBar = {
 
 export type TrinketTierRowProps = {
   title: string;
-  tier: string;
-  typeLabel: string;
   raceLabel: string;
   description: string;
   cost: number | null;
   pickRate: string;
   averagePlacement: string;
-  games: string;
   pickRateValue: number;
   placementQuality: number;
   placementBars: TrinketTierRowPlacementBar[];
   fullArt: string;
   cardImage: string;
   tooltipId: string;
+  view: TrinketView;
   onActivate: () => void;
   tourId?: string;
 };
@@ -33,37 +32,89 @@ function tooltipPosition(element: HTMLElement): TrinketTooltipPosition {
   const rect = element.getBoundingClientRect();
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const width = Math.min(340, Math.max(260, viewportWidth - 24));
+  const width = Math.min(400, Math.max(300, viewportWidth - 24));
+  const height = Math.min(width * 1.516, viewportHeight - 24);
   const preferredLeft = rect.right + 12;
   const left = preferredLeft + width <= viewportWidth - 12
     ? preferredLeft
     : Math.min(viewportWidth - width - 12, Math.max(12, rect.left + 24));
-  const top = Math.max(12, Math.min(rect.top + rect.height / 2 - 190, viewportHeight - 392));
+  const top = Math.max(12, Math.min(rect.top + rect.height / 2 - height / 2, viewportHeight - height - 12));
   return { left, top, width };
 }
 
 /** Complete trinket statistic row with a non-interactive hover/focus preview. */
 export function BattlegroundTrinketTierRow({
   title,
-  tier,
-  typeLabel,
   raceLabel,
   description,
   cost,
   pickRate,
   averagePlacement,
-  games,
   pickRateValue,
   placementQuality,
   placementBars,
   fullArt,
   cardImage,
   tooltipId,
+  view,
   onActivate,
   tourId,
 }: TrinketTierRowProps) {
   const [tooltip, setTooltip] = useState<TrinketTooltipPosition | null>(null);
   const showTooltip = useCallback((element: HTMLElement) => setTooltip(tooltipPosition(element)), []);
+
+  const tooltipPreview = tooltip && cardImage ? createPortal(
+    <aside
+      id={tooltipId}
+      role="tooltip"
+      className="bg-trinket-hover-tooltip"
+      style={{ left: tooltip.left, top: tooltip.top, width: tooltip.width }}
+    >
+      <img
+        src={cardImage}
+        alt=""
+        width={400}
+        height={607}
+        decoding="async"
+        onError={(event) => { event.currentTarget.hidden = true; }}
+      />
+      <span className="sr-only">Увеличенное изображение карты «{title}»</span>
+    </aside>,
+    document.body,
+  ) : null;
+
+  if (view === 'gallery') {
+    return (
+      <div className="bg-trinket-gallery-card-shell">
+        <button
+          type="button"
+          data-tour-id={tourId}
+          aria-describedby={tooltip ? tooltipId : undefined}
+          onClick={onActivate}
+          onMouseEnter={(event) => showTooltip(event.currentTarget)}
+          onMouseLeave={() => setTooltip(null)}
+          onFocus={(event) => showTooltip(event.currentTarget)}
+          onBlur={() => setTooltip(null)}
+          className="bg-trinket-gallery-card"
+        >
+          {cardImage && (
+            <img
+              src={cardImage}
+              alt={title}
+              width={256}
+              height={384}
+              loading="lazy"
+              decoding="async"
+              fetchPriority="low"
+              onError={(event) => { event.currentTarget.hidden = true; }}
+            />
+          )}
+          <strong>{title}</strong>
+        </button>
+        {tooltipPreview}
+      </div>
+    );
+  }
 
   return (
     <div className="bg-trinket-tier-row-shell">
@@ -78,6 +129,17 @@ export function BattlegroundTrinketTierRow({
         onBlur={() => setTooltip(null)}
         className="bg-trinket-tier-row"
       >
+        {fullArt && (
+          <img
+            src={fullArt}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
+            onError={(event) => { event.currentTarget.hidden = true; }}
+            className="bg-trinket-tier-row__backdrop"
+          />
+        )}
         <span className="bg-trinket-tier-row__identity">
           <span className="bg-trinket-medallion" aria-hidden="true">
             {fullArt && (
@@ -145,38 +207,7 @@ export function BattlegroundTrinketTierRow({
           <small className="bg-trinket-distribution__label">Распределение мест</small>
         </span>
       </button>
-
-      {tooltip && createPortal(
-        <aside
-          id={tooltipId}
-          role="tooltip"
-          className="bg-trinket-hover-tooltip"
-          style={{ left: tooltip.left, top: tooltip.top, width: tooltip.width }}
-        >
-          {cardImage && (
-            <img
-              src={cardImage}
-              alt=""
-              width={180}
-              height={243}
-              decoding="async"
-              onError={(event) => { event.currentTarget.hidden = true; }}
-            />
-          )}
-          <div>
-            <p className="bg-trinket-hover-tooltip__eyebrow">{tier}-тир · {typeLabel}</p>
-            <strong>{title}</strong>
-            <p>{description}</p>
-            <dl>
-              <div><dt>Выбор</dt><dd>{pickRate}</dd></div>
-              <div><dt>Среднее место</dt><dd>{averagePlacement}</dd></div>
-              <div><dt>Мин. игр</dt><dd>{games}</dd></div>
-            </dl>
-            <small>Нажмите, чтобы открыть карту крупнее</small>
-          </div>
-        </aside>,
-        document.body,
-      )}
+      {tooltipPreview}
     </div>
   );
 }

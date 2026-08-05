@@ -20,6 +20,11 @@ assert.equal(
   'Deckview images must be delivered through Arena for users who cannot reach the render host',
 );
 assert.equal(
+  publicResourceUrl('https://bg.kolodahearthstone.ru/api/card-art?id=BG32_MagicItem_205&locale=ruRU&size=512x'),
+  '/api/public-resource/bg/api/card-art?id=BG32_MagicItem_205&locale=ruRU&size=512x',
+  'localized battleground card renders must stay behind the same-origin delivery proxy',
+);
+assert.equal(
   publicResourceUrl('https://evil.example/image.png'),
   'https://evil.example/image.png',
   'unknown origins must not be routed through the proxy',

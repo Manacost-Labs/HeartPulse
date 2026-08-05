@@ -7,18 +7,23 @@ import {
   buildTrinketStatsRequest,
   normalizeTrinketMmr,
   normalizeTrinketTimeRange,
+  normalizeTrinketView,
   sortTrinketTierItems,
   tierItemsForDisplay,
   TRINKET_MMR_OPTIONS,
   TRINKET_TIME_RANGE_OPTIONS,
   trinketFullArtUrl,
+  trinketCardImageUrl,
   trinketMetricView,
   trinketPlacementBars,
+  updateTrinketUrlState,
   type TrinketMmr,
   type TrinketTimeRange,
+  type TrinketView,
 } from './battlegroundTrinkets';
 import { optimizedBattlegroundThumbnailUrl } from './battlegroundImageUrls';
 import { BattlegroundTrinketTierRow } from './BattlegroundTrinketTierRow';
+import { BattlegroundTrinketViewToggle } from './BattlegroundTrinketViewToggle';
 import '../route-parchment.css';
 import './Battlegrounds.css';
 import '../battlegrounds-shell.css';
@@ -119,6 +124,7 @@ function bgTierListUrlState(): {
   trinketSize: BattlegroundTrinketSize;
   trinketMmr: TrinketMmr;
   trinketTimeRange: TrinketTimeRange;
+  trinketView: TrinketView;
   strategyKey: string;
   strategyTitle: string;
 } {
@@ -133,6 +139,7 @@ function bgTierListUrlState(): {
       : (list === 'trinkets' ? 'LARGE' : 'ALL'),
     trinketMmr: normalizeTrinketMmr(params.get('mmr')),
     trinketTimeRange: normalizeTrinketTimeRange(params.get('timeRange')),
+    trinketView: normalizeTrinketView(params.get('view')),
     strategyKey: params.get('strategy') || '',
     strategyTitle: params.get('q') || '',
   };
@@ -3064,7 +3071,7 @@ function BattlegroundHeroesRoute({ path, onNavigate }: { path: string; onNavigat
   return <BattlegroundHeroTierList onNavigate={onNavigate} />;
 }
 
-function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen, tourId }: {
+function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen, tourId, trinketView = 'table' }: {
   item: any;
   list: BattlegroundTierListKey;
   tier: string;
@@ -3072,6 +3079,7 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen, to
   highlighted?: boolean;
   onOpen: (item: BattlegroundLightboxItem) => void;
   tourId?: string;
+  trinketView?: TrinketView;
 }) {
   const title = bgItemTitle(item);
   const metric = bgMetricLine(item, list);
@@ -3148,22 +3156,20 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen, to
     return (
       <BattlegroundTrinketTierRow
         title={title}
-        tier={tier}
-        typeLabel={String(item?.typeLabel || 'Аксессуар')}
         raceLabel={bgRaceLabelForItem(item)}
         description={description}
         cost={Number.isFinite(Number(item?.cost)) ? Number(item.cost) : null}
         pickRate={metrics.pickRate}
         averagePlacement={metrics.averagePlacement}
-        games={metrics.games}
         pickRateValue={pickRateValue}
         placementQuality={Number.isFinite(placementValue)
           ? Math.max(0, Math.min(100, ((9 - placementValue) / 8) * 100))
           : 0}
         placementBars={trinketPlacementBars(item?.placementDistribution)}
         fullArt={trinketFullArtUrl(item)}
-        cardImage={image}
-        tooltipId={`bg-trinket-tooltip-${String(item?.id || item?.dbfId || index).replace(/[^A-Za-z0-9_-]/g, '-')}`}
+        cardImage={trinketCardImageUrl(item) || optimizedBattlegroundThumbnailUrl(bgImageForItem(item, list), 384) || image}
+        tooltipId={`bg-trinket-tooltip-${String(item?.id || item?.dbfId || 'item').replace(/[^A-Za-z0-9_-]/g, '-')}-${index}`}
+        view={trinketView}
         onActivate={() => lightboxItem && onOpen(lightboxItem)}
         tourId={tourId}
       />
@@ -3224,23 +3230,11 @@ function BattlegroundTierList() {
   const [trinketSizeFilter, setTrinketSizeFilter] = useState<BattlegroundTrinketSize>(initialUrlState.trinketSize);
   const [trinketMmr, setTrinketMmr] = useState<TrinketMmr>(initialUrlState.trinketMmr);
   const [trinketTimeRange, setTrinketTimeRange] = useState<TrinketTimeRange>(initialUrlState.trinketTimeRange);
+  const [trinketView, setTrinketView] = useState<TrinketView>(initialUrlState.trinketView);
   const [visibleLimits, setVisibleLimits] = useState<Record<string, number>>({});
   const dataCacheRef = useRef<BattlegroundTierCache>({});
   const tierListRequestKeyRef = useRef('');
   const activeMeta = BG_TIER_LISTS.find(item => item.id === activeList)!;
-  const updateTrinketUrlState = useCallback((updates: {
-    size?: BattlegroundTrinketSize;
-    mmr?: TrinketMmr;
-    timeRange?: TrinketTimeRange;
-  }) => {
-    const params = new URLSearchParams(window.location.search);
-    params.set('list', 'trinkets');
-    if (updates.size) params.set('size', updates.size);
-    if (updates.mmr) params.set('mmr', updates.mmr);
-    if (updates.timeRange) params.set('timeRange', updates.timeRange);
-    window.history.replaceState(window.history.state, '', `${window.location.pathname}?${params.toString()}`);
-  }, []);
-
   useEffect(() => {
     const syncFromUrl = () => {
       const next = bgTierListUrlState();
@@ -3249,6 +3243,7 @@ function BattlegroundTierList() {
       setTrinketSizeFilter(next.trinketSize);
       setTrinketMmr(next.trinketMmr);
       setTrinketTimeRange(next.trinketTimeRange);
+      setTrinketView(next.trinketView);
       setHighlightStrategyKey(next.strategyKey);
       setHighlightStrategyTitle(next.strategyTitle);
     };
@@ -3446,10 +3441,12 @@ function BattlegroundTierList() {
                   params.set('size', 'LARGE');
                   params.set('mmr', trinketMmr);
                   params.set('timeRange', trinketTimeRange);
+                  params.set('view', trinketView);
                 } else {
                   params.delete('size');
                   params.delete('mmr');
                   params.delete('timeRange');
+                  params.delete('view');
                 }
                 window.history.pushState(null, '', `${window.location.pathname}?${params.toString()}`);
               }}
@@ -3567,7 +3564,7 @@ function BattlegroundTierList() {
                       Размер применяется локально, а MMR и период загружают соответствующий срез HSReplay.
                     </p>
                   </div>
-                  <div className="grid gap-3 xl:grid-cols-[1fr_auto_auto]">
+                  <div className="grid gap-3 xl:grid-cols-[1fr_auto_auto_auto]">
                     <fieldset className="min-w-0">
                       <legend className="mb-1.5 text-xs font-bold uppercase tracking-wide text-[#334155]">MMR игроков</legend>
                       <div className="bg-tier-filter-well flex max-w-full flex-wrap gap-1.5 rounded-lg border p-1.5">
@@ -3632,6 +3629,7 @@ function BattlegroundTierList() {
                       })}
                     </div>
                     </fieldset>
+                    <BattlegroundTrinketViewToggle value={trinketView} onChange={(view) => { setTrinketView(view); updateTrinketUrlState({ view }); }} />
                   </div>
                   <p className="text-[11px] leading-relaxed text-[#6b4c2a]">
                     «Мин. игр» — нижняя граница размера выборки, восстановленная из округлённого распределения мест HSReplay.
@@ -3655,7 +3653,7 @@ function BattlegroundTierList() {
                       <p className="text-xs text-[#8b6c42]">{items.length} позиций</p>
                     </div>
                   </div>
-                  {activeList === 'trinkets' && (
+                  {activeList === 'trinkets' && trinketView === 'table' && (
                     <div className="bg-trinket-tier-table-head" aria-hidden="true">
                       <span>Аксессуар</span>
                       <span>Частота выбора</span>
@@ -3664,12 +3662,12 @@ function BattlegroundTierList() {
                     </div>
                   )}
                   <div className={activeList === 'trinkets'
-                    ? 'bg-trinket-tier-table'
+                    ? trinketView === 'gallery' ? 'bg-trinket-tier-gallery' : 'bg-trinket-tier-table'
                     : activeList === 'strategies'
                     ? 'grid gap-3 lg:grid-cols-2'
                     : 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3'}>
                     {visibleItems.map((item: any, idx: number) => (
-                      <React.Fragment key={`${activeList}-${tier}-${item.id || item.key || item.name || idx}`}>
+                      <React.Fragment key={`${activeList}-${tier}-${item.id || item.key || item.name || 'item'}-${idx}`}>
                         <MemoBattlegroundTierCard
                           item={item}
                           list={activeList}
@@ -3677,6 +3675,7 @@ function BattlegroundTierList() {
                           index={idx}
                           highlighted={activeList === 'strategies' && bgStrategyMatchesDeepLink(item, highlightStrategyKey, highlightStrategyTitle)}
                           onOpen={openLightbox}
+                          trinketView={trinketView}
                           tourId={tier === firstResultTier && idx === 0 ? 'bg-tier-list-results' : undefined}
                         />
                       </React.Fragment>

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Refined the Battlegrounds trinket tier list with white costs, darkened full-art row backdrops, large card-only transparent tooltips, and a shareable table/gallery switch using the supplied Hearthstone controls.
+- Routed trinket full art and localized transparent card renders through Arena's same-origin media proxy so the new views remain reliable in restricted networks.
 - Prepared the constructed-card catalog, related cards and lightbox for the
   self-hosted `cdn.arena.hs-manacost.ru` delivery endpoint with a deploy-safe
   runtime switch, strict origin allow-list and automatic same-origin retry.

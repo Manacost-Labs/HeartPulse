@@ -10,7 +10,7 @@ export const PUBLIC_RESOURCE_SOURCES = {
   },
   bg: {
     origin: 'https://bg.kolodahearthstone.ru',
-    allowedPathPrefixes: ['/assset/'],
+    allowedPathPrefixes: ['/assset/', '/api/card-art'],
   },
   hsjson: {
     origin: 'https://art.hearthstonejson.com',

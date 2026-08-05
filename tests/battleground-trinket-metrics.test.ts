@@ -2,12 +2,17 @@ import assert from 'node:assert/strict';
 
 import {
   buildTrinketStatsRequest,
+  normalizeTrinketView,
   tierItemsForDisplay,
   trinketFullArtUrl,
+  trinketCardImageUrl,
   sortTrinketTierItems,
   trinketPlacementBars,
   trinketMetricView,
 } from '../src/features/battlegroundTrinkets';
+
+assert.equal(normalizeTrinketView('gallery'), 'gallery');
+assert.equal(normalizeTrinketView('unexpected'), 'table');
 
 const sorted = sortTrinketTierItems([
   { id: 'late', avgPlacement: 3.46, pickRate: '29.4%' },
@@ -51,8 +56,14 @@ assert.equal(
 
 assert.equal(
   trinketFullArtUrl({ id: 'BG32_MagicItem_205' }),
-  'https://db.kolodahs.ru/uploads/library-full-art/BG32_MagicItem_205.png',
-  'trinket medallions must use the locally mirrored full art',
+  '/api/public-resource/db/uploads/library-full-art/BG32_MagicItem_205.png',
+  'trinket medallions must use the same-origin proxy for locally mirrored full art',
+);
+
+assert.equal(
+  trinketCardImageUrl({ id: 'BG32_MagicItem_205' }),
+  '/api/public-resource/bg/api/card-art?id=BG32_MagicItem_205&locale=ruRU&size=512x',
+  'card previews must use the same-origin proxy and preserve transparent localized renders',
 );
 
 assert.deepEqual(

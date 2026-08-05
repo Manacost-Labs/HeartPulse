@@ -197,10 +197,20 @@ try {
     'https://api.blizzcore.ru/static/generated/render-cache/aa/deck.preview-v1.webp',
   );
 
+  const battlegroundCard = await fetch(
+    `${baseUrl}/bg/api/card-art?id=BG32_MagicItem_205&locale=ruRU&size=512x`,
+  );
+  assert.equal(battlegroundCard.status, 206);
+  assert.equal(
+    upstreamCalls.at(-1)?.url,
+    'https://bg.kolodahearthstone.ru/api/card-art?id=BG32_MagicItem_205&locale=ruRU&size=512x',
+    'the proxy must preserve the localized card-art query while retaining the fixed origin',
+  );
+
   const rejectedLargeResource = await fetch(`${baseUrl}/db/uploads/too-large.png`);
   assert.equal(rejectedLargeResource.status, 502);
 
-  assert.equal(upstreamCalls.length, 9, 'rejected source and path must not reach the network');
+  assert.equal(upstreamCalls.length, 10, 'rejected source and path must not reach the network');
 } finally {
   await Promise.all([
     new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())),
