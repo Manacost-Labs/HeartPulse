@@ -1,6 +1,7 @@
 import { useCallback, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import type { TrinketView } from './battlegroundTrinkets';
+import { BattlegroundTrinketGalleryStats } from './BattlegroundTrinketGalleryStats';
 
 type TrinketTooltipPosition = { left: number; top: number; width: number };
 
@@ -32,7 +33,7 @@ function tooltipPosition(element: HTMLElement): TrinketTooltipPosition {
   const rect = element.getBoundingClientRect();
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const width = Math.min(400, Math.max(300, viewportWidth - 24));
+  const width = Math.min(360, Math.max(280, viewportWidth - 24));
   const height = Math.min(width * 1.516, viewportHeight - 24);
   const preferredLeft = rect.right + 12;
   const left = preferredLeft + width <= viewportWidth - 12
@@ -73,8 +74,8 @@ export function BattlegroundTrinketTierRow({
       <img
         src={cardImage}
         alt=""
-        width={400}
-        height={607}
+        width={360}
+        height={546}
         decoding="async"
         onError={(event) => { event.currentTarget.hidden = true; }}
       />
@@ -100,7 +101,7 @@ export function BattlegroundTrinketTierRow({
           {cardImage && (
             <img
               src={cardImage}
-              alt={title}
+              alt=""
               width={256}
               height={384}
               loading="lazy"
@@ -110,6 +111,11 @@ export function BattlegroundTrinketTierRow({
             />
           )}
           <strong>{title}</strong>
+          <BattlegroundTrinketGalleryStats
+            pickRate={pickRate}
+            averagePlacement={averagePlacement}
+            placementBars={placementBars}
+          />
         </button>
         {tooltipPreview}
       </div>

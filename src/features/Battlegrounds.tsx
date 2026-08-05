@@ -3706,7 +3706,9 @@ function BattlegroundTierList() {
       {currentLightboxItem && createPortal(
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="bg-lightbox-title">
           <button className="bg-tier-lightbox-backdrop absolute inset-0 bg-black/72 backdrop-blur-sm" type="button" aria-label="Закрыть" onClick={() => setLightboxIndex(-1)} />
-          <div className="bg-tier-lightbox-frame relative grid max-h-[92vh] w-full max-w-4xl gap-4 overflow-y-auto rounded-lg border border-[#d7b66a]/70 bg-[#18100a] p-4 text-[#f8ead0] shadow-2xl md:grid-cols-[minmax(220px,340px)_1fr]">
+          <div className={`bg-tier-lightbox-frame relative grid max-h-[92vh] w-full gap-4 overflow-y-auto rounded-lg border border-[#d7b66a]/70 bg-[#18100a] p-4 text-[#f8ead0] shadow-2xl ${activeList === 'trinkets'
+            ? 'max-w-3xl md:grid-cols-[minmax(210px,310px)_1fr]'
+            : 'max-w-4xl md:grid-cols-[minmax(220px,340px)_1fr]'}`}>
             <button
               type="button"
               aria-label="Закрыть"
@@ -3719,7 +3721,7 @@ function BattlegroundTierList() {
               <img
                 src={publicResourceUrl(currentLightboxItem.image)}
                 alt={currentLightboxItem.title}
-                className="max-h-[70vh] w-full max-w-[360px] object-contain drop-shadow-[0_12px_28px_rgba(0,0,0,0.65)]"
+                className={`max-h-[70vh] w-full object-contain drop-shadow-[0_12px_28px_rgba(0,0,0,0.65)] ${activeList === 'trinkets' ? 'max-w-[320px]' : 'max-w-[360px]'}`}
               />
             </div>
             <div className="bg-tier-lightbox-copy flex min-w-0 flex-col justify-center pr-8">

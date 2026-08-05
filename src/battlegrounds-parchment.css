@@ -1869,7 +1869,7 @@
   display: flex;
   width: 100%;
   min-width: 0;
-  min-height: 18rem;
+  min-height: 22rem;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
@@ -1908,12 +1908,91 @@
 }
 
 .arena-app-battlegrounds .bg-trinket-gallery-card > strong {
+  display: flex;
+  min-height: 2.1rem;
+  align-items: center;
+  justify-content: center;
   margin-top: 0.2rem;
   color: #3d2a1e;
   font-family: var(--font-hs, Georgia, serif);
   font-size: 0.88rem;
   line-height: 1.16;
   text-align: center;
+}
+
+.arena-app-battlegrounds .bg-trinket-gallery-stats {
+  display: grid;
+  width: 100%;
+  gap: 0.45rem;
+  margin-top: 0.45rem;
+  padding: 0.55rem 0.45rem 0.25rem;
+  border-top: 1px solid rgba(126, 61, 86, 0.2);
+}
+
+.arena-app-battlegrounds .bg-trinket-gallery-stats__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.arena-app-battlegrounds .bg-trinket-gallery-stats__metrics > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+}
+
+.arena-app-battlegrounds .bg-trinket-gallery-stats__metrics small {
+  color: #765a45;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1.1;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.arena-app-battlegrounds .bg-trinket-gallery-stats__metrics strong {
+  color: #53301f;
+  font-family: var(--font-hs, Georgia, serif);
+  font-size: 0.86rem;
+  line-height: 1;
+}
+
+.arena-app-battlegrounds .bg-trinket-gallery-stats__metrics > span:last-child strong {
+  color: #4d792d;
+}
+
+.arena-app-battlegrounds .bg-trinket-gallery-stats__distribution {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.arena-app-battlegrounds .bg-trinket-gallery-stats__distribution > span:first-child {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(3px, 1fr));
+  align-items: end;
+  gap: 3px;
+  height: 2.25rem;
+  padding: 0.25rem 0.35rem 0.15rem;
+  border: 1px solid rgba(126, 61, 86, 0.16);
+  border-radius: 0.25rem;
+  background: rgba(94, 57, 45, 0.08);
+}
+
+.arena-app-battlegrounds .bg-trinket-gallery-stats__distribution i {
+  height: max(2px, var(--bg-trinket-bar-height));
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(180deg, #aa709e, #75466f);
+}
+
+.arena-app-battlegrounds .bg-trinket-gallery-stats__distribution > span:last-child {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 0.25rem;
+  color: #866b55;
+  font-size: 0.54rem;
 }
 
 @media (max-width: 1100px) {
