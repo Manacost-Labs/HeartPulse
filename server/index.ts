@@ -136,7 +136,8 @@ import { createCardImageRouter, normalizeCardImageId } from './cardImageRoutes.j
 import { createCardImageDependencies } from './app/createCardImageDependencies.js';
 import { registerApplicationAuth } from './app/registerApplicationAuth.js';
 import { serializeApplicationProfileUser, serializeApplicationSubscription } from './app/applicationAuthProfile.js';
-import { createBlizzardCardImageClient, downloadBlizzardCardImage } from './blizzardCards.js';
+import { createBlizzardCardImageClient, downloadBlizzardImageUrl } from './blizzardCards.js';
+import { resolveConstructedCardImageSourceUrl } from './constructedCardImageOverrides.js';
 import {
   CARD_IMAGE_CACHE_VERSION,
   CARD_IMAGE_VARIANTS,
@@ -5027,11 +5028,17 @@ async function fetchRemoteCardImage(
 ): Promise<{ buffer: Buffer; source: Exclude<CardImageSource, 'placeholder'> }> {
   if (dbfId && blizzardCardImageClient.configured) {
     try {
-      const officialImage = await downloadBlizzardCardImage({
-        dbfId,
-        client: blizzardCardImageClient,
-      });
-      if (officialImage) return { buffer: officialImage, source: 'blizzard' };
+      const officialUrl = await (
+        blizzardCardImageClient.getDirectImageUrl?.(dbfId)
+        ?? blizzardCardImageClient.getImageUrl(dbfId)
+      );
+      const resolvedUrl = resolveConstructedCardImageSourceUrl(dbfId, officialUrl);
+      if (resolvedUrl) {
+        return {
+          buffer: await downloadBlizzardImageUrl(resolvedUrl),
+          source: 'blizzard',
+        };
+      }
     } catch (error: any) {
       console.warn('[api/card-image] Blizzard fallback:', cardId, error?.message ?? error);
     }

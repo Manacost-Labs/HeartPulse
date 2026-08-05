@@ -36,7 +36,7 @@ export type ConstructedCardVariant = {
 
 type JsonRecord = Record<string, any>;
 
-const CONSTRUCTED_CARD_IMAGE_VERSION = 'constructed-cards-blizzard-20260727';
+const CONSTRUCTED_CARD_IMAGE_VERSION = 'constructed-cards-patch-36-2-20260805';
 
 export function constructedCardImageVersion(fallbackValue: unknown): string {
   const fallback = String(fallbackValue ?? '').trim();

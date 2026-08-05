@@ -35,6 +35,20 @@ confirmed that the current user can access constructed statistics.
 5. Generate statistical sort options from `statsAccess`: clean labels for
    subscribers and locked Diamond labels for visitors without access.
 
+### Balance-patch render lag
+
+Blizzard can update card text before replacing the localized rendered PNG. A
+small allowlist in `server/constructedCardImageOverrides.ts` may temporarily
+redirect an exact known stale Blizzard URL to the current Russian
+HearthstoneJSON render. An entry must include the DBF ID and the exact stale
+official URL; it must never match by card name or set. This makes the exception
+self-expiring: a new Blizzard URL immediately becomes authoritative again.
+
+After adding an entry, run `npm run test:constructed-card-image-prewarm`, bump
+the client image version, deploy, and run the constructed image prewarmer. The
+prewarmer detects the replacement URL as a source change and atomically rewrites
+both WebP variants before CDN cache warming.
+
 ## Acceptance criteria
 
 - A constructed card with a Blizzard numeric ID is served with

@@ -20,6 +20,7 @@ import {
   createBlizzardCardImageClient,
   downloadBlizzardImageUrl,
 } from './blizzardCards.js';
+import { resolveConstructedCardImageSourceUrl } from './constructedCardImageOverrides.js';
 
 const MANIFEST_FILE = 'blizzard-thumbnails-manifest-v1.json';
 const CHECKPOINT_SIZE = 100;
@@ -274,7 +275,10 @@ export async function runConstructedCardImagePrewarmer(): Promise<ConstructedCar
   return syncConstructedCardThumbnails({
     dbfIds,
     cacheDir: join(dataDir, 'card-images'),
-    getImageUrl: client.getImageUrl,
+    getImageUrl: async dbfId => resolveConstructedCardImageSourceUrl(
+      dbfId,
+      await client.getImageUrl(dbfId),
+    ),
     concurrency: Number(process.env.CARD_IMAGE_SYNC_CONCURRENCY || 4),
   });
 }
