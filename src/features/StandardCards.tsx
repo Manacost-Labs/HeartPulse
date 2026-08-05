@@ -109,7 +109,6 @@ import './StandardCards.css';
 
 type CardFormat = ConstructedCardFormat;
 type ViewMode = 'gallery' | 'table';
-
 type ConstructedCardPeriodDescriptor = {
   id: ConstructedCardPeriod;
   label: string;
@@ -888,8 +887,7 @@ function CardsListPage({ initialFormat, navigatePath, statsAccess, statsAccessLo
     ? constructedCardRankLabel(rank)
     : data?.rankLabel || constructedCardRankLabel(rank);
   const currentPatch = data?.period?.patch;
-  const visiblePeriodLabel = loading
-    ? constructedCardPeriodLabel(period, currentPatch)
+  const visiblePeriodLabel = loading ? constructedCardPeriodLabel(period, currentPatch)
     : data?.period?.label || constructedCardPeriodLabel(period, currentPatch);
 
   return (
