@@ -134,7 +134,7 @@ assert.equal(byId.get('bg-hero-detail')?.pathParameters?.dbfId?.pattern, '^[1-9]
   'hero detail dbfId must be a positive integer');
 assert.deepEqual(
   byId.get('bg-library-kind')?.pathParameters?.kind?.allowedValues,
-  ['minions', 'spells', 'anomalies', 'quests', 'rewards', 'darkmoon-prizes', 'trinkets', 'timewarped'],
+  ['minions', 'spells', 'anomalies', 'dark-gifts', 'quests', 'rewards', 'darkmoon-prizes', 'trinkets', 'timewarped'],
   'BG library kinds must be enumerated rather than accepted as arbitrary paths',
 );
 const unknownRoute = byId.get('unknown-path');
@@ -154,7 +154,7 @@ assert.equal(byId.get('bg-library-additional-detail')?.htmlStrategy, 'snapshot',
   'additional BG object details must retain their existing shell strategy');
 assert.deepEqual(
   byId.get('bg-library-additional-detail')?.pathParameters?.additionalKind?.allowedValues,
-  ['anomalies', 'quests', 'rewards', 'darkmoon-prizes', 'trinkets', 'timewarped'],
+  ['anomalies', 'dark-gifts', 'quests', 'rewards', 'darkmoon-prizes', 'trinkets', 'timewarped'],
   'additional BG object kinds must remain explicit and disjoint from base catalogs',
 );
 assert.equal(byId.get('bg-library-archive-detail')?.htmlStrategy, 'snapshot',
