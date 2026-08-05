@@ -33,7 +33,7 @@ function tooltipPosition(element: HTMLElement): TrinketTooltipPosition {
   const rect = element.getBoundingClientRect();
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const width = Math.min(360, Math.max(280, viewportWidth - 24));
+  const width = Math.min(320, Math.max(260, viewportWidth - 24));
   const height = Math.min(width * 1.516, viewportHeight - 24);
   const preferredLeft = rect.right + 12;
   const left = preferredLeft + width <= viewportWidth - 12
@@ -74,8 +74,8 @@ export function BattlegroundTrinketTierRow({
       <img
         src={cardImage}
         alt=""
-        width={360}
-        height={546}
+        width={320}
+        height={485}
         decoding="async"
         onError={(event) => { event.currentTarget.hidden = true; }}
       />

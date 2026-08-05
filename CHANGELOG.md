@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Reduced the trinket hover preview to 320px and the click lightbox to a 672px frame with a 288px card render.
 - Added pick rate, average placement and the 1–8 placement histogram to every trinket gallery card, and reduced the trinket hover preview and lightbox footprint.
 - Refined the Battlegrounds trinket tier list with white costs, darkened full-art row backdrops, large card-only transparent tooltips, and a shareable table/gallery switch using the supplied Hearthstone controls.
 - Routed trinket full art and localized transparent card renders through Arena's same-origin media proxy so the new views remain reliable in restricted networks.
