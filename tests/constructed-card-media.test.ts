@@ -6,6 +6,7 @@ import {
   collectConstructedGeneratedPoolMedia,
   constructedRelatedCardImage,
   constructedGeneratedPoolCardImage,
+  constructedCardImageIdentity,
   constructedCardImageVersion,
   constructedCardRenderImage,
   collectConstructedCardVariants,
@@ -16,6 +17,12 @@ import {
   normalizeConstructedRelatedCardGroups,
 } from '../src/features/constructedRelatedCards.js';
 import { constructedSoundGroupLabel } from '../src/features/constructedCardLabels.js';
+
+assert.equal(
+  constructedCardImageIdentity({ card_id: 'JAIL_EVENT_102', dbf: 130087 }),
+  'JAIL_EVENT_102',
+  'all constructed-card views must share the canonical-ID-first image identity rule',
+);
 
 const sounds = flattenConstructedCardSounds([
   {
@@ -54,6 +61,19 @@ assert.equal(media.find(item => item.id === 'animated-golden')?.kind, 'video');
 assert.equal(media.find(item => item.id === 'gallery-0')?.thumbnailUrl, 'https://example.test/thumb.jpg');
 assert.equal(media.find(item => item.id === 'gallery-0')?.label, 'Полный арт', 'English wiki gallery captions must be localized');
 assert.equal(media.find(item => item.id === 'signature_cards-0')?.label, 'Сигнатурная карта', 'English card-variant labels must be localized');
+
+const eventCardMedia = collectConstructedCardMedia({
+  card_id: 'JAIL_EVENT_102',
+  dbf: 130087,
+  images: {
+    card: 'https://art.hearthstonejson.com/v1/render/latest/ruRU/512x/JAIL_EVENT_102.png',
+  },
+});
+assert.equal(
+  eventCardMedia[0]?.url,
+  '/api/card-image/JAIL_EVENT_102/full.webp?v=constructed-cards-patch-36-2-20260805',
+  'catalog cards must prefer their canonical card ID because event cards can be absent from the Blizzard DBF image catalog',
+);
 
 const variants = collectConstructedCardVariants({
   images: {
@@ -140,8 +160,8 @@ assert.deepEqual(
     id: 'related-card-QUEST_REWARD',
     label: 'Русская награда',
     description: 'QUEST_REWARD',
-    url: '/api/card-image/98765/full.webp?v=constructed-cards-patch-36-2-20260805',
-    thumbnailUrl: '/api/card-image/98765/full.webp?v=constructed-cards-patch-36-2-20260805',
+    url: '/api/card-image/QUEST_REWARD/full.webp?v=constructed-cards-patch-36-2-20260805',
+    thumbnailUrl: '/api/card-image/QUEST_REWARD/full.webp?v=constructed-cards-patch-36-2-20260805',
     sourceUrl: null,
     kind: 'image',
     presentation: 'contain',
@@ -150,7 +170,7 @@ assert.deepEqual(
 );
 assert.equal(
   constructedRelatedCardImage(relatedGroups[0].cards[0]),
-  '/api/card-image/98765/full.webp?v=constructed-cards-patch-36-2-20260805',
+  '/api/card-image/QUEST_REWARD/full.webp?v=constructed-cards-patch-36-2-20260805',
   'related cards with safe IDs must not require a direct db.kolodahs.ru browser request',
 );
 

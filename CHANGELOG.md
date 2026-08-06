@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Made constructed-card details, related cards and generated pools prefer the
+  canonical Hearthstone card ID over DBF for image delivery, restoring event
+  card renders that are present in HearthstoneJSON but absent from Blizzard's
+  DBF image catalog.
 - Restored patch 36.2 event cards while Blizzard's Game Data API is lagging,
   using a strict August 4–25 HearthstoneJSON fallback for Watfin, Soul
   Immolation and Desperate Bribe in Standard and Wild.

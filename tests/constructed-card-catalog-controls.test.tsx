@@ -71,8 +71,10 @@ assert.match(standardCardsSource, /<ConstructedCardCatalogSearch/,
   'the catalog must use the accessible search control');
 assert.match(standardCardsSource, /<ConstructedCardDownloadButton/,
   'every gallery card must expose the full-quality download action');
-assert.match(standardCardsSource, /constructedCardRenderImage\(card\.dbf \?\? card\.card_id, card\.images\?\.card\)/,
-  'the gallery download must use the same-origin full-size card image route');
+assert.match(standardCardsSource, /constructedCardImage\(card/,
+  'all catalog views must use the shared canonical-ID-first image identity rule');
+assert.doesNotMatch(standardCardsSource, /constructedCardRenderImage\(card\.dbf \?\? card\.card_id/,
+  'catalog images must not prefer DBF over a canonical card ID');
 assert.match(standardCardsCss, /\.constructed-cards__gallery-card:hover\s+\.constructed-card-download[\s\S]*opacity:\s*1/s,
   'the compact download action must become visible when the card is hovered');
 assert.doesNotMatch(standardCardsCss, /\.constructed-cards__gallery-card:focus-within/,

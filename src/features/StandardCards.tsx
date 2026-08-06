@@ -88,7 +88,7 @@ import {
   collectConstructedRelatedCardArtMedia,
   collectConstructedGeneratedPoolMedia,
   constructedGeneratedPoolCardImage,
-  constructedCardRenderImage,
+  constructedCardImage,
   collectConstructedCardVariants,
   flattenConstructedCardSounds,
   constructedRelatedCardImage,
@@ -555,7 +555,7 @@ function CardGallery({ cards, format, period, rank, sort, navigatePath, statsAcc
         {cards.map((card, index) => {
           const metric = sortMetric(card, sort);
           const name = cardName(card);
-          const fullImage = constructedCardRenderImage(card.dbf ?? card.card_id, card.images?.card);
+          const fullImage = constructedCardImage(card);
           return (
             <article
               key={card.card_id}
@@ -581,7 +581,7 @@ function CardGallery({ cards, format, period, rank, sort, navigatePath, statsAcc
                 onBlur={() => setHovered(null)}
                 onClick={event => { event.preventDefault(); navigateWithConstructedCardContext(navigatePath, cardPath(format, card), period, rank, format, format); }}
               >
-                <img src={constructedCardRenderImage(card.dbf ?? card.card_id, card.images?.card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={name} loading="lazy" decoding="async" onError={fallbackCardImageToOrigin} />
+                <img src={constructedCardImage(card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={name} loading="lazy" decoding="async" onError={fallbackCardImageToOrigin} />
                 <span className="constructed-cards__gallery-name">{name}</span>
                 <span className="constructed-cards__gallery-stat" data-tour-id={index === 0 ? 'cards-statistics' : undefined}><small>{metric.label}</small>{!statsAccess && STATISTIC_SORTS.has(sort) ? <LockedStatValue /> : <strong>{metric.value}</strong>}</span>
               </a>
@@ -635,11 +635,11 @@ function CardTable({ cards, format, period, rank, sort, direction, navigatePath,
   const showPreview = (card: CardRecord, element: HTMLElement) => setPreview({
     id: card.card_id,
     name: cardName(card),
-    imageUrl: constructedCardRenderImage(card.dbf ?? card.card_id, card.images?.card),
+    imageUrl: constructedCardImage(card),
     rect: element.getBoundingClientRect(),
   });
   const warmCard = (card: CardRecord) => {
-    preloadImage(constructedCardRenderImage(card.dbf ?? card.card_id, card.images?.card));
+    preloadImage(constructedCardImage(card));
     prefetchConstructedCardDetail({
       cardId: card.card_id,
       format,

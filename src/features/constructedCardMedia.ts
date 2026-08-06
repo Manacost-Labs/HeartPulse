@@ -38,6 +38,22 @@ type JsonRecord = Record<string, any>;
 
 const CONSTRUCTED_CARD_IMAGE_VERSION = 'constructed-cards-patch-36-2-20260805';
 
+/**
+ * Selects the stable image identity shared by every constructed-card view.
+ * Canonical IDs resolve HearthstoneJSON renders that may not yet exist in
+ * Blizzard's DBF catalog; DBF remains a compatibility fallback for old rows.
+ */
+export function constructedCardImageIdentity(card: JsonRecord): string | number | null {
+  const cardId = String(card?.card_id ?? card?.cardId ?? card?.id ?? '').trim();
+  if (cardId) return cardId;
+  const dbfId = Number(card?.dbf ?? card?.dbfId);
+  return Number.isInteger(dbfId) && dbfId > 0 ? dbfId : null;
+}
+
+export function constructedCardImage(card: JsonRecord, size: 'full' | 'thumb' = 'full'): string | null {
+  return constructedCardRenderImage(constructedCardImageIdentity(card), card?.images?.card, size);
+}
+
 export function constructedCardImageVersion(fallbackValue: unknown): string {
   const fallback = String(fallbackValue ?? '').trim();
   if (!fallback) return CONSTRUCTED_CARD_IMAGE_VERSION;
@@ -68,14 +84,12 @@ export function constructedCardRenderImage(
 }
 
 export function constructedGeneratedPoolCardImage(card: JsonRecord): string | null {
-  const cardId = String(card?.card_id ?? card?.id ?? '').trim();
-  const dbfId = Number(card?.dbf);
   const fallback = String(card?.images?.card ?? card?.image_url ?? card?.image ?? '').trim();
-  return constructedCardRenderImage(Number.isInteger(dbfId) && dbfId > 0 ? dbfId : cardId, fallback);
+  return constructedCardRenderImage(constructedCardImageIdentity(card), fallback);
 }
 
 export function constructedRelatedCardImage(card: ConstructedRelatedCard): string | null {
-  return constructedCardRenderImage(card.dbf ?? card.cardId, card.cardImageUrl);
+  return constructedCardRenderImage(constructedCardImageIdentity(card), card.cardImageUrl);
 }
 
 function mediaKind(url: string): 'image' | 'video' {
@@ -135,7 +149,7 @@ export function collectConstructedCardMedia(card: JsonRecord): ConstructedCardMe
   push(
     'card-normal',
     'Обычная карта',
-    constructedCardRenderImage(card?.dbf ?? card?.card_id, card?.images?.card),
+    constructedCardImage(card),
   );
   push('card-golden', 'Золотая карта', card?.images?.golden);
   push('card-signature', 'Сигнатурная карта', card?.images?.signature);
