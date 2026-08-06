@@ -346,7 +346,7 @@ function bgHeroImageFromMap(dbfId: unknown, imageByDbfId: Record<string, string>
 function bgHeroCardImage(cardId: unknown): string {
   const normalized = String(cardId || '').trim();
   if (!/^[A-Za-z0-9_]+$/.test(normalized)) return '';
-  return `/api/card-image/${encodeURIComponent(normalized)}/full.webp?v=bg-heroes-20260806`;
+  return `/api/card-image/${encodeURIComponent(normalized)}/full.webp?v=bg-heroes-20260806b`;
 }
 
 function bgHeroTierTitle(tier: string): string {
