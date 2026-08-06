@@ -22,6 +22,10 @@ import {
   type TrinketView,
 } from './battlegroundTrinkets';
 import { optimizedBattlegroundThumbnailUrl } from './battlegroundImageUrls';
+import {
+  battlegroundHeroCardImage,
+  preferredBattlegroundHeroImage,
+} from './battlegroundHeroImages';
 import { BattlegroundTrinketTierRow } from './BattlegroundTrinketTierRow';
 import { BattlegroundTrinketViewToggle } from './BattlegroundTrinketViewToggle';
 import '../route-parchment.css';
@@ -343,12 +347,6 @@ function bgHeroImageFromMap(dbfId: unknown, imageByDbfId: Record<string, string>
   return `/bg-legacy/${raw.replace(/^\.\//, '')}`;
 }
 
-function bgHeroCardImage(cardId: unknown): string {
-  const normalized = String(cardId || '').trim();
-  if (!/^[A-Za-z0-9_]+$/.test(normalized)) return '';
-  return `/api/card-image/${encodeURIComponent(normalized)}/full.webp?v=bg-heroes-20260806b`;
-}
-
 function bgHeroTierTitle(tier: string): string {
   return `${tier} Тир`;
 }
@@ -438,12 +436,14 @@ function groupBgHeroesFromApi(
       originalName: originalName && originalName !== localizedName ? originalName : undefined,
       popularity: hero?.pick_rate ? String(hero.pick_rate) : undefined,
       averagePlace: hero?.avg_placement ? String(hero.avg_placement).replace('.', ',') : undefined,
-      image: hero?.image
-        || hero?.images?.hero
-        || bgHeroImageFromMap(dbfId, imageByDbfId)
-        || bgHeroCardImage(libraryHero?.card_id)
-        || libraryHero?.images?.hero
-        || BG_FALLBACK_ICON,
+      image: preferredBattlegroundHeroImage({
+        cardId: libraryHero?.card_id,
+        apiImage: hero?.image,
+        apiNestedImage: hero?.images?.hero,
+        legacyImage: bgHeroImageFromMap(dbfId, imageByDbfId),
+        libraryImage: libraryHero?.images?.hero,
+        fallback: BG_FALLBACK_ICON,
+      }),
       dbfId: Number.isFinite(dbfId) ? dbfId : undefined,
       placementDistribution: Array.isArray(hero?.placement_distribution) ? hero.placement_distribution.map(String) : undefined,
       bestComposition: bgHeroCompositionName(hero?.best_composition),
@@ -557,14 +557,14 @@ function bgHeroLibraryForDetail(libraryHero: any): any {
       return [{
         card_id: skin?.card_id || '',
         title: skin?.title || 'Скин героя',
-        image: bgHeroCardImage(skin?.card_id) || image,
+        image: battlegroundHeroCardImage(skin?.card_id) || image,
         url: skin?.url || '',
       }];
     });
   const buddyCard = libraryHero?.buddy?.card;
   const goldenBuddy = libraryHero?.buddy?.golden || buddyCard?.golden || null;
-  const goldenBuddyImage = bgHeroCardImage(goldenBuddy?.card_id);
-  const heroImage = bgHeroCardImage(libraryHero?.card_id) || libraryHero?.images?.hero || BG_FALLBACK_ICON;
+  const goldenBuddyImage = battlegroundHeroCardImage(goldenBuddy?.card_id);
+  const heroImage = battlegroundHeroCardImage(libraryHero?.card_id) || libraryHero?.images?.hero || BG_FALLBACK_ICON;
   return {
     ...libraryHero,
     images: {

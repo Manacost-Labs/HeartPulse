@@ -8,6 +8,9 @@
 - Added wiki-card and full-art fallbacks to the local card image pipeline so
   newly released Battlegrounds heroes no longer cache a “Нет изображения”
   placeholder while localized HearthstoneJSON renders are still unavailable.
+- Made Battlegrounds hero grids and tables prefer Arena's verified same-origin
+  card image cache, preventing new heroes from rendering as broken images when
+  an upstream image URL is stale or blocked.
 - Reduced the trinket hover preview to 320px and the click lightbox to a 672px frame with a 288px card render.
 - Added pick rate, average placement and the 1–8 placement histogram to every trinket gallery card, and reduced the trinket hover preview and lightbox footprint.
 - Refined the Battlegrounds trinket tier list with white costs, darkened full-art row backdrops, large card-only transparent tooltips, and a shareable table/gallery switch using the supplied Hearthstone controls.

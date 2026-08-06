@@ -5,6 +5,7 @@ import {
   battlegroundImageTransformFromQuery,
   optimizeBattlegroundImage,
 } from '../server/battlegroundImageOptimization.js';
+import { preferredBattlegroundHeroImage } from '../src/features/battlegroundHeroImages.js';
 import { optimizedBattlegroundThumbnailUrl } from '../src/features/battlegroundImageUrls.js';
 
 const transform = battlegroundImageTransformFromQuery({
@@ -59,5 +60,34 @@ assert.equal(parsedExternal.pathname, '/api/remote-image');
 assert.equal(parsedExternal.searchParams.get('src'), 'https://art.hearthstonejson.com/card.png');
 assert.equal(parsedExternal.searchParams.get('width'), '160');
 assert.equal(optimizedBattlegroundThumbnailUrl('/arena-logo-icon.webp', 220), '/arena-logo-icon.webp');
+
+assert.equal(
+  preferredBattlegroundHeroImage({
+    cardId: 'BG36_HERO_105',
+    apiImage: 'https://hearthstone.wiki.gg/images/BG36_HERO_105.png?f657db',
+    fallback: '/arena-logo-icon.webp',
+  }),
+  '/api/card-image/BG36_HERO_105/full.webp?v=bg-heroes-20260806b',
+  'hero cards must prefer the verified local image cache over an upstream URL',
+);
+
+assert.equal(
+  preferredBattlegroundHeroImage({
+    cardId: 'invalid/card-id',
+    apiImage: 'https://hearthstone.wiki.gg/images/legacy-hero.png',
+    fallback: '/arena-logo-icon.webp',
+  }),
+  'https://hearthstone.wiki.gg/images/legacy-hero.png',
+  'heroes without a safe card id must retain the upstream fallback chain',
+);
+
+assert.equal(
+  preferredBattlegroundHeroImage({
+    apiImage: { url: 'https://untrusted.example/hero.png' },
+    fallback: '/arena-logo-icon.webp',
+  }),
+  '/arena-logo-icon.webp',
+  'non-string upstream image values must not become invalid DOM URLs',
+);
 
 console.log('battleground image optimization tests passed');
