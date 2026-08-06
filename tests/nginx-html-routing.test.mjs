@@ -42,6 +42,10 @@ const cdnPublicStaticSource = readFileSync(
   join(projectRoot, 'deploy/nginx/arena-cdn-public-static.conf'),
   'utf8',
 );
+const cdnCardImageSource = readFileSync(
+  join(projectRoot, 'deploy/nginx/arena-cdn-card-image-cache.conf'),
+  'utf8',
+);
 const edgeCardMapSource = readFileSync(
   join(projectRoot, 'deploy/nginx/arena-card-local-maps.conf'),
   'utf8',
@@ -242,6 +246,38 @@ assert.doesNotMatch(cdnPublicStaticSource, /runtime-config|location\s+[^\n{]*\/a
   'runtime configuration and API paths must stay outside the public CDN allowlist');
 assert.doesNotMatch(cdnPublicStaticSource, /proxy_cache_key[^;]*(?:\$args|\$request_uri)/,
   'arbitrary query strings must not create unbounded public static cache keys');
+
+const cdnCardLocations = parseLocationBlocks(cdnCardImageSource);
+const cdnCardImageLocation = cdnCardLocations.find(location => (
+  location.modifier === '^~' && location.pattern === '/api/card-image/'
+));
+const cdnCardTimewebLocation = cdnCardLocations.find(location => (
+  location.modifier === '' && location.pattern === '@arena_cdn_card_image_timeweb'
+));
+const cdnCardOriginLocation = cdnCardLocations.find(location => (
+  location.modifier === '' && location.pattern === '@arena_cdn_card_image_origin'
+));
+assert.match(cdnCardImageLocation?.body || '', /limit_except\s+GET\s+HEAD/,
+  'the CDN card route must remain public read-only');
+assert.match(cdnCardImageLocation?.body || '',
+  /try_files\s+\$arena_card_image_blizzard_file\s+@arena_cdn_card_image_local_fallback;/,
+  'the CDN hostname must use its synchronized Blizzard mirror before Timeweb');
+assert.match(cdnCardImageLocation?.body || '', /X-Proxy-Cache\s+LOCAL\s+always;/,
+  'locally mirrored CDN cards must expose the LOCAL delivery path');
+assert.match(cdnCardTimewebLocation?.body || '',
+  /proxy_pass\s+https:\/\/xa3umh5n3j\.cdn\.twcstorage\.ru;/,
+  'a local CDN miss must retain Timeweb as the first remote fallback');
+assert.match(cdnCardTimewebLocation?.body || '',
+  /error_page\s+404\s+500\s+502\s+503\s+504\s+=\s+@arena_cdn_card_image_origin;/,
+  'Timeweb misses and failures must fall back to the Arena origin without a browser retry');
+assert.match(cdnCardTimewebLocation?.body || '', /proxy_cache_key\s+"\$request_method:\$request_uri";/,
+  'remote CDN fallback keys must retain the immutable image-version query');
+assert.match(cdnCardTimewebLocation?.body || '', /proxy_set_header\s+Cookie\s+"";/,
+  'card-image CDN misses must not forward browser cookies');
+assert.match(cdnCardTimewebLocation?.body || '', /proxy_set_header\s+Authorization\s+"";/,
+  'card-image CDN misses must not forward authorization credentials');
+assert.match(cdnCardOriginLocation?.body || '', /proxy_pass\s+https:\/\/arena\.hs-manacost\.ru;/,
+  'the terminal card-image fallback must use the canonical public origin');
 
 for (const machinePath of ['/sitemap.xml', '/sitemaps/static.xml', '/sitemaps/standard-cards.xml']) {
   const exact = locations.find(location => location.modifier === '=' && location.pattern === machinePath);

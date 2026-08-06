@@ -14,6 +14,7 @@ const nginxContractDefinitions = [
   { source: 'deploy/nginx/arena-edge-client-region-map.conf', installPath: '/etc/nginx/conf.d/33-arena-edge-client-region-map.conf', roles: ['edge'] },
   { source: 'deploy/nginx/arena-edge-region-forward.conf', installPath: '/etc/nginx/snippets/arena-edge-region-forward.conf', roles: ['edge'] },
   { source: 'deploy/nginx/arena-edge-static-cache.conf', installPath: '/etc/nginx/snippets/arena-edge-static-cache.conf', roles: ['edge'] },
+  { source: 'deploy/nginx/arena-cdn-card-image-cache.conf', installPath: '/etc/nginx/snippets/arena-cdn-card-image-cache.conf', roles: ['edge'] },
   { source: 'deploy/nginx/arena-cdn-public-static.conf', installPath: '/etc/nginx/snippets/arena-cdn-public-static.conf', roles: ['edge'] },
   { source: 'deploy/nginx/arena-canonical-host-redirect.conf', installPath: '/etc/nginx/snippets/arena-canonical-host-redirect.conf', roles: ['origin'] },
   { source: 'deploy/nginx/arena-security-headers.conf', installPath: '/etc/nginx/snippets/arena-security-headers.conf', roles: ['origin'] },
@@ -22,6 +23,10 @@ const nginxContractFiles = nginxContractDefinitions.map(file => file.source);
 const systemdFiles = [
   'deploy/systemd/hs-arena-card-image-sync.service',
   'deploy/systemd/hs-arena-card-image-sync.timer',
+];
+const operationalFiles = [
+  'deploy/activate-arena-card-images.sh',
+  'deploy/arena-card-image-sync.sh',
 ];
 
 if (!output) throw new Error('Usage: node scripts/create-release.mjs --output=/path/to/release --sha=<git-sha>');
@@ -40,6 +45,7 @@ for (const required of [
   'scripts/verify-nginx-contract.mjs',
   ...nginxContractFiles,
   ...systemdFiles,
+  ...operationalFiles,
 ]) {
   if (!existsSync(required)) throw new Error(`Required release input is missing: ${required}`);
 }
@@ -76,6 +82,7 @@ mkdirSync(join(output, 'deploy', 'nginx'), { recursive: true });
 for (const file of nginxContractFiles) cpSync(file, join(output, file));
 mkdirSync(join(output, 'deploy', 'systemd'), { recursive: true });
 for (const file of systemdFiles) cpSync(file, join(output, file));
+for (const file of operationalFiles) cpSync(file, join(output, file));
 
 async function sha256(file) {
   const hash = createHash('sha256');
@@ -102,6 +109,7 @@ const criticalFiles = [
   'scripts/verify-nginx-contract.mjs',
   ...nginxContractFiles,
   ...systemdFiles,
+  ...operationalFiles,
 ];
 const checksums = Object.fromEntries(await Promise.all(
   criticalFiles.map(async file => [file, await sha256(join(output, file))]),

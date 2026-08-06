@@ -56,6 +56,16 @@ const definitions = [
     roles: ['edge'],
   },
   {
+    source: 'deploy/nginx/arena-cdn-card-image-cache.conf',
+    installPath: '/etc/nginx/snippets/arena-cdn-card-image-cache.conf',
+    roles: ['edge'],
+  },
+  {
+    source: 'deploy/nginx/arena-cdn-public-static.conf',
+    installPath: '/etc/nginx/snippets/arena-cdn-public-static.conf',
+    roles: ['edge'],
+  },
+  {
     source: 'deploy/nginx/arena-canonical-host-redirect.conf',
     installPath: '/etc/nginx/snippets/arena-canonical-host-redirect.conf',
     roles: ['origin'],
@@ -183,7 +193,7 @@ try {
   });
   assert.equal(edgeReport.status, 'ok');
   assert.equal(edgeReport.exitCode, 0);
-  assert.equal(edgeReport.files.filter(file => file.installedStatus === 'ok').length, 4);
+  assert.equal(edgeReport.files.filter(file => file.installedStatus === 'ok').length, 6);
 
   const installedModifiedFixture = createFixture('installed-modified');
   const installedModifiedFile = installedModifiedFixture.files.find(file => file.roles.includes('origin'));

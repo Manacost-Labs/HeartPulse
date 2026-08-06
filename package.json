@@ -151,7 +151,7 @@
     "test:release": "node tests/create-release.test.mjs",
     "test:snapshots": "tsx tests/snapshots.test.ts",
     "test:scrape-queue": "tsx tests/scrape-queue.test.ts",
-    "test:deployment": "node tests/deploy-release.test.mjs && node tests/edge-static-sync.test.mjs",
+    "test:deployment": "node tests/deploy-release.test.mjs && node tests/edge-static-sync.test.mjs && node tests/card-image-edge-publication.test.mjs",
     "test:ci-deploy-gate": "node --test tests/ci-deploy-gate.test.mjs",
     "test:seo-registry": "tsx tests/seo-registry.test.ts",
     "test:routes": "tsx tests/routes.test.ts && node tests/deferred-route-boundaries.test.mjs",

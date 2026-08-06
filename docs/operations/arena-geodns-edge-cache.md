@@ -41,16 +41,19 @@ ECS-capable resolvers are routed from the client subnet they provide.
 ## Local mirrors and cache
 
 The origin synchronizes immutable data to the Limburg, Moscow, and Novosibirsk
-nodes:
+nodes. Both `arena.hs-manacost.ru` and `cdn.arena.hs-manacost.ru` read these
+local mirrors before using a remote upstream:
 
 - `/srv/arena/card-images/current` — normalized card images;
 - `/srv/arena/static/current` — the current frontend release;
 - `/var/cache/nginx/hs-arena` — full art and same-origin public resources.
 
 Publication is atomic. A new version is copied into `versions/`, validated by
-minimum file-count and byte-size checks, and then exposed by changing the
-`current` symlink. If a local file is unavailable, Nginx falls back to the
-origin cache instead of returning an error.
+minimum file-count and byte-size checks, normalized into a new generation, and
+then exposed by changing the `current` symlink. The sync skip path also checks
+raw/served counts and manifest freshness, so cards added inside an existing
+cache version cannot remain outside the active mirror. If a local file is
+unavailable, the CDN host falls back to Timeweb and then to the origin.
 
 Frontend synchronization is delta-based. The origin first compares the edge's
 active release SHA and skips the tree scan when it is already current. For a

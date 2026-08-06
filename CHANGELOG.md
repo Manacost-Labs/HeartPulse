@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Made `cdn.arena.hs-manacost.ru` serve synchronized card images directly from
+  each regional edge before Timeweb, removing the external cold-cache hop from
+  constructed-card catalog loads.
+- Rebuilt edge card-image publication as an atomic generation and made the
+  sync skip path verify raw/served counts plus manifest freshness, preventing
+  newly generated cards from remaining outside the fast local mirror.
+- Added release, Nginx and publication regression contracts plus an operations
+  runbook for local-first card delivery, verification and rollback.
 - Restored true Battlegrounds hero portraits for the complete hero tier list:
   verified stats/library portraits now take precedence over the generic card
   cache, which renders several legacy hero IDs as hero-power card frames.

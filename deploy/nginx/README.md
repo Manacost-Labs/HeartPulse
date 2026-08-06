@@ -50,17 +50,19 @@ The client-region map requires `ngx_http_geoip2_module` and the managed
 derives only a coarse region from `$remote_addr`. Never derive the metric
 label from `X-Forwarded-For` or reuse a browser-provided region header.
 
-The dedicated `cdn.arena.hs-manacost.ru` HTTPS server may additionally include
-`arena-cdn-public-static.conf` before its default `404` location. The snippet
-exposes only the documented public directories, accepts only `GET` and `HEAD`,
-and clears cookies and authorization before an origin fallback. It must never
-be included in the application server or widened to a generic file-extension
-match.
+The dedicated `cdn.arena.hs-manacost.ru` HTTPS server includes
+`arena-cdn-card-image-cache.conf` and may additionally include
+`arena-cdn-public-static.conf` before its default `404` location. The card
+snippet reads the synchronized regional mirror before Timeweb and the origin.
+Both snippets expose only documented public paths, accept only `GET` and
+`HEAD`, and clear cookies and authorization before a remote fallback. They
+must never be included in the application server or widened to a generic API
+or file-extension match.
 
-The edge serves synchronized card images and frontend assets from
-`/srv/arena/.../current` first. A missing local file falls through to the
-regional proxy cache and then to the origin. The origin's missing-resource
-policy is preserved: a miss must stay `404` + `no-store`, never `immutable`.
+Both the application and CDN hosts serve synchronized card images and frontend
+assets from `/srv/arena/.../current` first. A missing CDN card falls through to
+Timeweb and then to the canonical origin. The origin's missing-resource policy
+is preserved: a miss must stay `404` + `no-store`, never `immutable`.
 
 Run the repository contract before installation:
 
