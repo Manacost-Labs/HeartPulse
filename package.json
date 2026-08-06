@@ -110,7 +110,7 @@
     "test:tierlist-cache-bust": "tsx tests/tierlist-cache-bust-routes.test.ts",
     "test:winrate-routes": "tsx tests/winrate-routes.test.ts",
     "test:home-summary-routes": "tsx tests/home-summary-routes.test.ts",
-    "test:card-image-routes": "tsx tests/card-image-routes.test.ts",
+    "test:card-image-routes": "tsx tests/card-image-remote.test.ts && tsx tests/card-image-routes.test.ts",
     "test:admin-class-position-routes": "tsx tests/admin-class-position-routes.test.ts",
     "test:admin-archetype-translation-routes": "tsx tests/admin-archetype-translation-routes.test.ts && tsx tests/contest-admin-translations-request.test.ts",
     "test:admin-mechanic-translation-routes": "tsx tests/admin-mechanic-translation-routes.test.ts",

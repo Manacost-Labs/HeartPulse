@@ -144,6 +144,7 @@ import {
   cardImageCachePath as sharedCardImageCachePath,
   type CardImageSource,
 } from './cardImageCache.js';
+import { downloadFallbackCardImage } from './cardImageRemote.js';
 import { createAdminClassPositionRouter, writeClassPositionsFile } from './adminClassPositionRoutes.js';
 import {
   createAdminArchetypeTranslationRouter,
@@ -4899,10 +4900,6 @@ function getRuCard(cardId: string): any | null {
   return hearthstoneJsonRuCards?.[cardId] ?? loadDataCached('cards_ru.json')?.data?.[cardId] ?? null;
 }
 
-function hsRenderUrl(cardId: string, size: '256x' | '512x' = '256x', locale = 'ruRU'): string {
-  return `https://art.hearthstonejson.com/v1/render/latest/${locale}/${size}/${cardId}.png`;
-}
-
 function cardImageProxyUrl(cardId: string, variant: 'thumb' | 'full' = 'thumb'): string {
   return `/api/card-image/${encodeURIComponent(cardId)}/${variant}.webp?v=${CARD_IMAGE_CACHE_VERSION}`;
 }
@@ -5037,29 +5034,10 @@ async function fetchRemoteCardImage(
     }
   }
 
-  const sourceSize = '512x';
-  const locales = ['ruRU', 'enUS'];
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    for (const locale of locales) {
-      try {
-        const upstream = await fetch(hsRenderUrl(cardId, sourceSize, locale), {
-          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
-          signal: AbortSignal.timeout(15_000),
-        });
-        if (!upstream.ok) {
-          lastError = new Error(`Hearthstone image ${locale} HTTP ${upstream.status}`);
-          continue;
-        }
-        return { buffer: Buffer.from(await upstream.arrayBuffer()), source: 'fallback' };
-      } catch (err: any) {
-        lastError = err instanceof Error ? err : new Error(String(err));
-      }
-    }
-  }
-
-  throw lastError ?? new Error('Card image unavailable');
+  return {
+    buffer: await downloadFallbackCardImage(cardId),
+    source: 'fallback',
+  };
 }
 
 async function ensureCardImage(cardId: string, variant: 'thumb' | 'full'): Promise<CachedCardImage> {
