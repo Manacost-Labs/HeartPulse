@@ -9,11 +9,17 @@ import {
   battlegroundBaseCardId,
   findBattlegroundCardVariants,
 } from './battlegroundCardVariants';
+import {
+  distinctCatalogIdentity,
+  libraryCardSearchTerms,
+  visibleEnglishLibraryName,
+  type BgLibraryCatalogKind,
+} from './bgLibraryCatalogModel';
 import '../route-parchment.css';
 import '../battlegrounds-shell.css';
 import '../battlegrounds-parchment.css';
 
-type LibraryKind = 'minion' | 'spell' | 'anomaly' | 'dark_gift' | 'quest' | 'darkmoon_prize' | 'reward' | 'trinket' | 'timewarped';
+type LibraryKind = BgLibraryCatalogKind;
 type PoolMode = 'current' | 'archive';
 const BG_LIBRARY_API_VERSION = 'bg-library-20260704-2';
 
@@ -616,8 +622,11 @@ function fallbackBrokenHeroImage(event: React.SyntheticEvent<HTMLImageElement>):
 }
 
 function cardFamilyKey(card: LibraryCard): string {
+  const kind = cardLibraryKind(card);
+  const distinctIdentity = distinctCatalogIdentity(kind, card);
+  if (distinctIdentity) return distinctIdentity;
   return [
-    cardLibraryKind(card),
+    kind,
     card.card_type?.slug || '',
     cleanSearch(cardRuName(card) || card.name?.en || card.card_id),
     cleanSearch(card.name?.en || ''),
@@ -783,23 +792,7 @@ function parseStrategies(source: string): StrategyEntry[] {
 }
 
 function searchText(card: LibraryCard): string {
-  return cleanSearch([
-    card.name?.ru,
-    card.name?.en,
-    cardRuName(card),
-    card.card_id,
-    card.dbf,
-    card.text_ru,
-    card.text?.ru,
-    card.text?.en,
-    card.group?.name_ru,
-    card.group?.slug,
-    card.library?.name_ru,
-    card.category?.name_ru,
-    card.creature_type?.name_ru,
-    card.creature_type?.slug,
-    ...(card.mechanics || []).flatMap(mechanic => [mechanic.slug, mechanic.name_ru]),
-  ].filter(Boolean).join(' '));
+  return cleanSearch(libraryCardSearchTerms(card, cardRuName(card)).join(' '));
 }
 
 function cardGroupName(card: LibraryCard): string {
@@ -1130,6 +1123,7 @@ function LibraryCardTile({
   const fallbacks = fallbackCardImages(card, image, false);
   const golden = goldenCardImage(card);
   const cardKind = cardLibraryKind(card);
+  const englishName = visibleEnglishLibraryName(card, cardRuName(card));
   return (
     <a
       href={href}
@@ -1160,6 +1154,7 @@ function LibraryCardTile({
       </div>
       <div className="mx-auto mt-2 max-w-[220px] rounded-md border border-[#d6e1f1] bg-white/85 px-2 py-2 opacity-95 transition-colors group-hover:border-[#d3af55]">
         <p className="line-clamp-2 font-hs text-sm leading-tight text-[#26374f]">{cardRuName(card)}</p>
+        {englishName && <p lang="en" className="mt-1 line-clamp-2 text-xs leading-tight text-[#657893]">{englishName}</p>}
         <div className="mt-1 flex flex-wrap justify-center gap-1">
           {cardKind === 'darkmoon_prize' && libraryTierValue(card) && <span className="rounded bg-[#f3e8ff] px-1.5 py-0.5 text-[11px] font-bold text-[#6d28d9]">{libraryTierLabel(card)}</span>}
           {card.tavern_tier && cardKind !== 'minion' && <span className="rounded bg-[#fff3c4] px-1.5 py-0.5 text-[11px] font-bold text-[#7c5b24]">Т{card.tavern_tier}</span>}
@@ -1344,7 +1339,7 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               type="search"
-              placeholder="Найти карту или механику…"
+              placeholder="Название на русском или английском, ID или механика…"
               className="h-12 w-full rounded-md border border-[#c5d4e9] bg-[#ffffff] pl-12 pr-4 text-base font-semibold text-[#26374f] outline-none transition-colors placeholder:text-[#8b9ab0] focus:border-[#d3af55]"
             />
           </label>
