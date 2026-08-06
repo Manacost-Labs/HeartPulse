@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Restored true Battlegrounds hero portraits for the complete hero tier list:
+  verified stats/library portraits now take precedence over the generic card
+  cache, which renders several legacy hero IDs as hero-power card frames.
+- Added regression coverage for both current `BG36_HERO_*` and legacy
+  `TB_BaconShop_HERO_*` identifiers and audited all 116 current hero portrait
+  URLs through Arena's same-origin media proxy.
 - Made constructed-card details, related cards and generated pools prefer the
   canonical Hearthstone card ID over DBF for image delivery, restoring event
   card renders that are present in HearthstoneJSON but absent from Blizzard's

@@ -5,6 +5,7 @@ import {
   battlegroundImageTransformFromQuery,
   optimizeBattlegroundImage,
 } from '../server/battlegroundImageOptimization.js';
+import { publicResourceUrl } from '../shared/publicResourceUrl.js';
 import { preferredBattlegroundHeroImage } from '../src/features/battlegroundHeroImages.js';
 import { optimizedBattlegroundThumbnailUrl } from '../src/features/battlegroundImageUrls.js';
 
@@ -67,8 +68,25 @@ assert.equal(
     apiImage: 'https://hearthstone.wiki.gg/images/BG36_HERO_105.png?f657db',
     fallback: '/arena-logo-icon.webp',
   }),
-  '/api/card-image/BG36_HERO_105/full.webp?v=bg-heroes-20260806b',
-  'hero cards must prefer the verified local image cache over an upstream URL',
+  'https://hearthstone.wiki.gg/images/BG36_HERO_105.png?f657db',
+  'new heroes must retain the dedicated hero portrait supplied by the statistics API',
+);
+
+assert.equal(
+  preferredBattlegroundHeroImage({
+    cardId: 'TB_BaconShop_HERO_17',
+    apiImage: 'https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_17.png?7a7139',
+    libraryImage: 'https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_17.png?7a7139',
+    fallback: '/arena-logo-icon.webp',
+  }),
+  'https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_17.png?7a7139',
+  'legacy Battlegrounds heroes must not be replaced with a hero-power card frame',
+);
+
+assert.equal(
+  publicResourceUrl('https://hearthstone.wiki.gg/images/TB_BaconShop_HERO_17.png?7a7139'),
+  '/api/public-resource/wiki/images/TB_BaconShop_HERO_17.png?7a7139',
+  'dedicated hero portraits must still be delivered through Arena same-origin media proxy',
 );
 
 assert.equal(

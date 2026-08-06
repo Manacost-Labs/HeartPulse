@@ -20,8 +20,11 @@ function imageUrl(value: unknown): string {
 }
 
 /**
- * Keeps hero cards on Arena's verified image cache whenever the library can
- * identify the card. Upstream URLs remain fallbacks for legacy-only heroes.
+ * Preserves the dedicated Battlegrounds hero portrait supplied by the stats
+ * and library feeds. The generic card-image cache is only a final fallback:
+ * Blizzard renders several legacy hero IDs as hero-power card frames there.
+ * Known remote portraits are still delivered same-origin by publicResourceUrl
+ * at the rendering boundary.
  */
 export function preferredBattlegroundHeroImage({
   cardId,
@@ -31,10 +34,10 @@ export function preferredBattlegroundHeroImage({
   libraryImage,
   fallback,
 }: BattlegroundHeroImageCandidates): string {
-  return battlegroundHeroCardImage(cardId)
-    || imageUrl(apiImage)
+  return imageUrl(apiImage)
     || imageUrl(apiNestedImage)
-    || imageUrl(legacyImage)
     || imageUrl(libraryImage)
+    || imageUrl(legacyImage)
+    || battlegroundHeroCardImage(cardId)
     || fallback;
 }
