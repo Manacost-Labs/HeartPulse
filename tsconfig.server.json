@@ -38,6 +38,7 @@
     "server/scrapeQueue.ts",
     "server/snapshots.ts",
     "server/guides/**/*.ts",
+    "server/modules/gameDataAudit/**/*.ts",
     "src/telemetry/sentryPrivacy.ts",
     "shared/arenaSynergyContract.ts"
   ]

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added a read-only game-data audit pipeline that fingerprints HearthstoneJSON,
+  Blizzard patch notes and Hearthstone Wiki changes; validates Battlegrounds
+  cards, golden variants, heroes, powers, trinkets, Dark Gifts and statistics;
+  and stores atomic reports on a six-hour or post-patch hourly schedule.
+- Added guarded Codex escalation for actionable data changes and completeness
+  failures. Codex receives normalized counters and hashes only, runs in an
+  ephemeral read-only sandbox and cannot publish or deploy data.
+- Installed the project-local Stack Overflow for Agents skill set with pinned
+  source hashes and documented its explicit onboarding and secret boundary.
 - Made `cdn.arena.hs-manacost.ru` serve synchronized card images directly from
   each regional edge before Timeweb, removing the external cold-cache hop from
   constructed-card catalog loads.

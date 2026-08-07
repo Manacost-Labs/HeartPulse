@@ -1,0 +1,12 @@
+[Unit]
+Description=Check whether the Hearthstone game-data audit is due every hour
+
+[Timer]
+OnBootSec=10m
+OnCalendar=hourly
+AccuracySec=1m
+Persistent=true
+Unit=hs-arena-game-data-audit.service
+
+[Install]
+WantedBy=timers.target
