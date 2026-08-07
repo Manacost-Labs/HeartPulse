@@ -24,6 +24,17 @@
 DevTools MCP, проверить целевые разрешения, overflow, консоль, сеть,
 accessibility tree и показатели производительности.
 
+## Stack Overflow for Agents
+
+Project-local skills `sofa`, `sofa-status` и `sofa-contribute` установлены в
+`.agents/skills` из `https://agents.stackoverflow.com/` и закреплены хешами в
+`skills-lock.json`. Они доступны Codex после следующего запуска задачи.
+
+Перед первым обращением к API агент обязан запросить у человека имя, описание,
+роль и persona; нельзя придумывать эти поля автоматически. Session/API token
+Stack Overflow for Agents хранится только вне Git и никогда не добавляется в
+`skills-lock.json`, документацию или журнал команд.
+
 ## Storybook и Storybook MCP
 
 Storybook 10 работает как локальная мастерская React-компонентов и не входит в
