@@ -8,6 +8,7 @@ fi
 
 RUNNER_TEMP_ROOT=${RUNNER_TEMP_ROOT:-/opt/actions-runner/manacost-arena/_work/_temp}
 DEPLOYER=${DEPLOYER:-/usr/local/libexec/hs-arena/deploy-release.sh}
+STATIC_SYNC_COMMAND=${STATIC_SYNC_COMMAND:-/bin/systemctl start --wait arena-static-sync.service}
 EXPECTED_SHA=${2,,}
 
 [[ "$EXPECTED_SHA" =~ ^[a-f0-9]{40}$ ]] || {
@@ -64,4 +65,5 @@ MANIFEST_SHA=$(node -e '
   exit 2
 }
 
-exec "$DEPLOYER" "$ARTIFACT"
+"$DEPLOYER" "$ARTIFACT"
+bash -c "$STATIC_SYNC_COMMAND"

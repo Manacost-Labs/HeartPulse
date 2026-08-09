@@ -49,7 +49,11 @@ That root-owned gate accepts artifacts only from the dedicated runner temp
 directory, rejects symlinks and writable files, and requires the release
 manifest SHA to equal the validated workflow SHA. It then calls a root-owned
 copy of `scripts/deploy-release.sh`, which retains the deployment lock,
-readiness gate and automatic rollback described below.
+readiness gate and automatic rollback described below. After a successful
+switch, the same root-owned gate waits for `arena-static-sync.service`, so the
+new content-hashed frontend assets reach every regional edge before the
+deployment job is marked complete; the three-minute timer remains the repair
+path for later drift.
 
 Changes to the workflow, gate or deployer are infrastructure changes. Install
 reviewed copies manually; the repository workflow cannot replace its own

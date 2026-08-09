@@ -27,6 +27,8 @@ function fixture() {
   const artifact = path.join(runnerTemp, 'release');
   const deployer = path.join(root, 'deployer');
   const marker = path.join(root, 'deployed');
+  const staticSync = path.join(root, 'static-sync');
+  const staticSyncMarker = path.join(root, 'static-synced');
   mkdirSync(artifact, { recursive: true });
   writeFileSync(path.join(artifact, 'critical.txt'), 'validated payload\n');
   writeFileSync(path.join(artifact, 'release.json'), JSON.stringify({
@@ -38,7 +40,9 @@ function fixture() {
   }));
   writeFileSync(deployer, `#!/usr/bin/env bash\nprintf '%s' \"$1\" > ${JSON.stringify(marker)}\n`);
   chmodSync(deployer, 0o755);
-  return { root, runnerTemp, artifact, deployer, marker };
+  writeFileSync(staticSync, `#!/usr/bin/env bash\nprintf 'synced' > ${JSON.stringify(staticSyncMarker)}\n`);
+  chmodSync(staticSync, 0o755);
+  return { root, runnerTemp, artifact, deployer, marker, staticSync, staticSyncMarker };
 }
 
 function run(input, expectedSha = sha) {
@@ -48,6 +52,7 @@ function run(input, expectedSha = sha) {
       ...process.env,
       RUNNER_TEMP_ROOT: input.runnerTemp,
       DEPLOYER: input.deployer,
+      STATIC_SYNC_COMMAND: input.staticSyncCommand || input.staticSync,
     },
   });
 }
@@ -57,6 +62,19 @@ test('deploys only a read-only artifact with the exact validated SHA and checksu
   try {
     const result = run(input);
     assert.equal(result.status, 0, result.stderr);
+    assert.equal(readFileSync(input.marker, 'utf8'), path.resolve(input.artifact));
+    assert.equal(readFileSync(input.staticSyncMarker, 'utf8'), 'synced');
+  } finally {
+    rmSync(input.root, { recursive: true, force: true });
+  }
+});
+
+test('reports a failed immediate edge synchronization after a successful deploy', () => {
+  const input = fixture();
+  try {
+    input.staticSyncCommand = 'false';
+    const result = run(input);
+    assert.notEqual(result.status, 0);
     assert.equal(readFileSync(input.marker, 'utf8'), path.resolve(input.artifact));
   } finally {
     rmSync(input.root, { recursive: true, force: true });
