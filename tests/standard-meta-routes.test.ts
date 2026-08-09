@@ -141,8 +141,8 @@ try {
 
   const defaultMeta = await fetch(`${origin}/standard-meta?format=standard`, { headers: { 'X-Test-Access': 'allowed' } });
   assert.equal(defaultMeta.status, 200);
-  assert.equal((await defaultMeta.json() as any).rank, 'diamond_all');
-  assert.deepEqual(calls, ['meta:standard:diamond_all:past_day:any_player:100']);
+  assert.equal((await defaultMeta.json() as any).rank, 'diamond');
+  assert.deepEqual(calls, ['meta:standard:diamond:past_day:any_player:100']);
   calls.length = 0;
 
   const aggregateMeta = await fetch(`${origin}/standard-meta?format=standard&rank=all&period=past_day&coin=any_player&min_games=100`, { headers: { 'X-Test-Access': 'allowed' } });
@@ -151,7 +151,7 @@ try {
   assert.deepEqual(calls, ['meta:standard:all:past_day:any_player:100']);
   calls.length = 0;
 
-  for (const rank of ['diamond_all', 'diamond_legend']) {
+  for (const rank of ['diamond', 'diamond_legend']) {
     const extendedDiamondMeta = await fetch(
       `${origin}/standard-meta?format=standard&rank=${rank}&period=past_day&coin=any_player&min_games=100`,
       { headers: { 'X-Test-Access': 'allowed' } },
@@ -160,6 +160,14 @@ try {
     assert.equal((await extendedDiamondMeta.json() as any).rank, rank);
     assert.deepEqual(calls, [`meta:standard:${rank}:past_day:any_player:100`]);
     calls.length = 0;
+  }
+
+  for (const removedRank of ['diamond_all', 'top_500', 'top_100']) {
+    const removed = await fetch(
+      `${origin}/standard-meta?format=standard&rank=${removedRank}`,
+      { headers: { 'X-Test-Access': 'allowed' } },
+    );
+    assert.equal(removed.status, 400, `${removedRank} must fail before calling the upstream API`);
   }
 
   const patchMeta = await fetch(`${origin}/standard-meta?format=wild&rank=legend&period=patch_36.0.3&coin=any_player&min_games=500`, { headers: { 'X-Test-Access': 'allowed' } });

@@ -105,14 +105,11 @@ export class PublicMetaStatisticsQueryError extends Error {
 const FORMATS = new Set<PublicMetaStatisticsFormat>(['standard', 'wild']);
 const RANKS = new Set<PublicMetaStatisticsRank>([
   'all',
-  'diamond',
   'diamond_4_1',
   'diamond_to_legend',
   'legend',
   'top_5000',
   'top_1000',
-  'top_500',
-  'top_100',
 ]);
 const PERIODS = new Set<PublicMetaStatisticsPeriod>(['1d', '3d', '7d', '14d', 'patch']);
 const MIN_GAMES = new Set<StandardMetaMinGames>([100, 250, 500, 1000, 2500, 5000]);

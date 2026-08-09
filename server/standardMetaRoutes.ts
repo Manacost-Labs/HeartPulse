@@ -5,8 +5,8 @@ import { createStandardMetaEnvelope } from './standardMetaDataset.js';
 import { STANDARD_META_MEDIA_TYPE } from '../shared/standardMetaContract.js';
 
 export type StandardMetaFormat = 'standard' | 'wild';
-export type StandardMetaRank = 'all' | 'diamond_all' | 'diamond' | 'diamond_legend' | 'legend'
-  | 'top_5k' | 'top_500' | 'top_100' | 'top_legend';
+export type StandardMetaRank = 'all' | 'diamond' | 'diamond_legend' | 'legend'
+  | 'top_5k' | 'top_legend';
 export type StandardMetaPeriod = 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks'
   | 'violet_hold' | `patch_${string}`;
 export type StandardMetaCoin = 'any_player';
@@ -65,8 +65,7 @@ export type StandardMetaRouterDependencies = {
 
 const FORMATS = new Set<StandardMetaFormat>(['standard', 'wild']);
 const RANKS = new Set<StandardMetaRank>([
-  'all', 'diamond_all', 'diamond', 'diamond_legend', 'legend',
-  'top_5k', 'top_500', 'top_100', 'top_legend',
+  'all', 'diamond', 'diamond_legend', 'legend', 'top_5k', 'top_legend',
 ]);
 const PERIODS = new Set<StandardMetaPeriod>([
   'past_day',
@@ -84,7 +83,7 @@ function readFormat(value: unknown): StandardMetaFormat | null {
 }
 
 function readRank(value: unknown): StandardMetaRank | null {
-  const rank = String(value ?? 'diamond_all') as StandardMetaRank;
+  const rank = String(value ?? 'diamond') as StandardMetaRank;
   return RANKS.has(rank) ? rank : null;
 }
 

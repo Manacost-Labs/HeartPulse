@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { classIconUrl, normalizeClassKey } from '../src/features/classIcons.js';
 import {
   hsguruImpactTone,
+  hsguruAnalysisEmptyMessage,
   hsguruMatchupTone,
   sortHsguruCardStats,
   sortMulliganRows,
@@ -49,5 +50,17 @@ assert.equal(hsguruImpactTone(null), 'unknown');
 assert.equal(hsguruMatchupTone(52), 'favored');
 assert.equal(hsguruMatchupTone(49.5), 'even');
 assert.equal(hsguruMatchupTone(47.9), 'unfavored');
+assert.equal(
+  hsguruAnalysisEmptyMessage('error', 'matchups'),
+  'Последнее обновление завершилось ошибкой. Мы уже повторяем сбор матчапов.',
+);
+assert.equal(
+  hsguruAnalysisEmptyMessage('partial', 'cards'),
+  'HSGuru не вернул статистику карт в последнем срезе. Данные появятся, когда у архетипа будет достаточная выборка.',
+);
+assert.equal(
+  hsguruAnalysisEmptyMessage(null, 'matchups'),
+  'Матчапы ещё не получены.',
+);
 
 console.log('archetype detail model tests passed');

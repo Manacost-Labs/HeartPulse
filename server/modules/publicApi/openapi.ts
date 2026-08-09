@@ -519,8 +519,8 @@ export const PUBLIC_API_OPENAPI = {
             schema: {
               type: 'string',
               enum: [
-                'all', 'diamond', 'diamond_4_1', 'diamond_to_legend', 'legend',
-                'top_5000', 'top_1000', 'top_500', 'top_100',
+                'all', 'diamond_4_1', 'diamond_to_legend', 'legend',
+                'top_5000', 'top_1000',
               ],
               default: 'legend',
             },
@@ -2109,8 +2109,8 @@ export const PUBLIC_API_OPENAPI = {
               id: {
                 type: 'string',
                 enum: [
-                  'all', 'diamond', 'diamond_4_1', 'diamond_to_legend', 'legend',
-                  'top_5000', 'top_1000', 'top_500', 'top_100',
+                  'all', 'diamond_4_1', 'diamond_to_legend', 'legend',
+                  'top_5000', 'top_1000',
                 ],
               },
             },

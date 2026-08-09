@@ -4560,24 +4560,18 @@ const CONSTRUCTED_CARDS_DATASET_BY_FORMAT = {
 const STANDARD_META_DATASET_BY_FORMAT_RANK: Record<StandardMetaFormat, Record<StandardMetaRank, string>> = {
   standard: {
     all: 'hsguru_meta_standard_legend',
-    diamond_all: 'hsguru_meta_standard_diamond_4to1',
     diamond_legend: 'hsguru_meta_standard_legend',
     legend: 'hsguru_meta_standard_legend',
     diamond: 'hsguru_meta_standard_diamond_4to1',
     top_5k: 'hsguru_meta_standard_top_5k',
-    top_500: 'hsguru_meta_standard_top_legend',
-    top_100: 'hsguru_meta_standard_top_legend',
     top_legend: 'hsguru_meta_standard_top_legend',
   },
   wild: {
     all: 'hsguru_meta_wild_legend',
-    diamond_all: 'hsguru_meta_wild_diamond_4to1',
     diamond_legend: 'hsguru_meta_wild_legend',
     legend: 'hsguru_meta_wild_legend',
     diamond: 'hsguru_meta_wild_diamond_4to1',
     top_5k: 'hsguru_meta_wild_top_5k',
-    top_500: 'hsguru_meta_wild_top_legend',
-    top_100: 'hsguru_meta_wild_top_legend',
     top_legend: 'hsguru_meta_wild_top_legend',
   },
 };
@@ -4587,26 +4581,23 @@ const STANDARD_META_FORMAT_LABEL: Record<StandardMetaFormat, string> = {
 };
 const STANDARD_META_RANK_LABEL: Record<StandardMetaRank, string> = {
   all: 'Все ранги',
-  diamond_all: 'Алмаз',
   diamond: 'Алмаз 1–4',
   diamond_legend: 'Алмаз — Легенда',
   legend: 'Легенда',
   top_5k: 'Топ-5000',
-  top_500: 'Топ-500',
-  top_100: 'Топ-100',
   top_legend: 'Топ-1000',
 };
 const STANDARD_META_UPSTREAM_RANK: Record<StandardMetaRank, string> = {
   all: 'all',
-  diamond_all: 'diamond',
   diamond: 'diamond_4to1',
   diamond_legend: 'diamond_to_legend',
   legend: 'legend',
   top_5k: 'top_5k',
   top_legend: 'top_legend',
-  top_500: 'top_500',
-  top_100: 'top_100',
 };
+const STANDARD_META_SUPPORTED_RANKS = new Set<StandardMetaRank>([
+  'all', 'diamond', 'diamond_legend', 'legend', 'top_5k', 'top_legend',
+]);
 const HSGURU_STREAMER_DECKS_DATASET = 'hsguru_streamer_decks_legend_1000';
 const VICIOUS_SYNDICATE_LIVE_DATASET = 'vicious_syndicate_live_beta';
 const VICIOUS_GOLD_MIN_DECK_FREQUENCY = 0.5;
@@ -7023,13 +7014,10 @@ function parseConstructedDecks(
 
 const STANDARD_META_HSGURU_RANK: Record<StandardMetaRank, string> = {
   all: 'all',
-  diamond_all: 'diamond_4to1',
   legend: 'legend',
   diamond: 'diamond_4to1',
   diamond_legend: 'all',
   top_5k: 'top_5k',
-  top_500: 'top_500',
-  top_100: 'top_100',
   top_legend: 'top_legend',
 };
 
@@ -7190,9 +7178,10 @@ async function resolveUntranslatedArchetypeDeckCodes(
   const contextsByName = new Map<string, Array<{ format: StandardMetaFormat; rank: StandardMetaRank }>>();
   for (const item of observed) {
     if (!item.format || !item.rankKey) continue;
+    if (!STANDARD_META_SUPPORTED_RANKS.has(item.rankKey as StandardMetaRank)) continue;
     const key = normalizeStandardArchetypeKey(item.nameEn);
     const contexts = contextsByName.get(key) ?? [];
-    contexts.push({ format: item.format, rank: item.rankKey });
+    contexts.push({ format: item.format, rank: item.rankKey as StandardMetaRank });
     contextsByName.set(key, contexts);
   }
   const result = [...items];

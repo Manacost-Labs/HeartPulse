@@ -11,6 +11,7 @@ import { classIconUrl, useNeutralClassIcon } from './classIcons';
 import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
 import {
   hsguruImpactTone,
+  hsguruAnalysisEmptyMessage,
   hsguruMatchupTone,
   sortHsguruCardStats,
   type HsguruCardStatSort,
@@ -207,7 +208,9 @@ function MatchupsPanel({ analysis }: { analysis: ConstructedAnalysis | null }) {
           })}
         </ol>
       ) : (
-        <p className="constructed-analysis-empty">Матчапы Легенды появятся после первого ежедневного среза.</p>
+        <p className="constructed-analysis-empty">
+          {hsguruAnalysisEmptyMessage(analysis?.state ?? null, 'matchups')}
+        </p>
       )}
 
       <footer className="constructed-analysis-source">
@@ -442,7 +445,9 @@ function CardStatsPanel({ analysis }: { analysis: ConstructedAnalysis | null }) 
           </div>
         </>
       ) : (
-        <p className="constructed-analysis-empty">Статистика карт появится после первого ежедневного среза.</p>
+        <p className="constructed-analysis-empty">
+          {hsguruAnalysisEmptyMessage(analysis?.state ?? null, 'cards')}
+        </p>
       )}
 
       {rows.length > 15 && !showAll ? (

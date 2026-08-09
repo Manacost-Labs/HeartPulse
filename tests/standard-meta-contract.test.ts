@@ -260,8 +260,8 @@ assert.equal(
   'Все ранги',
 );
 assert.equal(
-  parseStandardMetaApiResponse(candidate({ rank: 'diamond_all', rankLabel: 'Алмаз' }), now).data.rank,
-  'diamond_all',
+  parseStandardMetaApiResponse(candidate({ rank: 'diamond', rankLabel: 'Алмаз 1–4' }), now).data.rank,
+  'diamond',
 );
 assert.equal(
   parseStandardMetaApiResponse(candidate({ rank: 'diamond_legend', rankLabel: 'Алмаз — Легенда' }), now).data.rank,

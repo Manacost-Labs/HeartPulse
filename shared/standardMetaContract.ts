@@ -9,8 +9,14 @@ export const STANDARD_META_DATASET = 'standard-meta';
 export const STANDARD_META_MEDIA_TYPE = 'application/vnd.manacost.standard-meta.v1+json';
 
 export type StandardMetaFormat = 'standard' | 'wild';
+// Keep the legacy identifiers in the transport type so old stored rows can be
+// inspected and rejected explicitly. RANKS below is the serving contract.
 export type StandardMetaRank = 'all' | 'diamond_all' | 'diamond' | 'diamond_legend' | 'legend'
   | 'top_5k' | 'top_500' | 'top_100' | 'top_legend';
+export type StandardMetaServingRank = Exclude<
+  StandardMetaRank,
+  'diamond_all' | 'top_500' | 'top_100'
+>;
 export type StandardMetaPeriod = 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks'
   | 'violet_hold' | `patch_${string}`;
 export type StandardMetaCoin = 'any_player';
@@ -36,7 +42,7 @@ export type StandardMetaItem = {
 export type StandardMetaData = {
   format: StandardMetaFormat;
   formatLabel: string;
-  rank: StandardMetaRank;
+  rank: StandardMetaServingRank;
   rankLabel: string;
   period: StandardMetaPeriod;
   availablePeriods: StandardMetaPeriod[];
@@ -54,9 +60,8 @@ export type StandardMetaData = {
 export type StandardMetaEnvelope = DatasetEnvelope<StandardMetaData>;
 
 const FORMATS = new Set<StandardMetaFormat>(['standard', 'wild']);
-const RANKS = new Set<StandardMetaRank>([
-  'all', 'diamond_all', 'diamond', 'diamond_legend', 'legend',
-  'top_5k', 'top_500', 'top_100', 'top_legend',
+const RANKS = new Set<StandardMetaServingRank>([
+  'all', 'diamond', 'diamond_legend', 'legend', 'top_5k', 'top_legend',
 ]);
 const FIXED_PERIODS = new Set<StandardMetaPeriod>([
   'past_day',
@@ -134,7 +139,7 @@ function parseItem(value: unknown, index: number): StandardMetaItem {
 export function parseStandardMetaData(value: unknown): StandardMetaData {
   const data = dataRecord(value, 'data');
   if (!FORMATS.has(data.format as StandardMetaFormat)) invalid('format is unsupported');
-  if (!RANKS.has(data.rank as StandardMetaRank)) invalid('rank is unsupported');
+  if (!RANKS.has(data.rank as StandardMetaServingRank)) invalid('rank is unsupported');
   const period = (data.period ?? 'past_day') as StandardMetaPeriod;
   const coin = (data.coin ?? 'any_player') as StandardMetaCoin;
   const minGames = Number(data.minGames ?? 100) as StandardMetaMinGames;
@@ -175,7 +180,7 @@ export function parseStandardMetaData(value: unknown): StandardMetaData {
   return {
     format: data.format as StandardMetaFormat,
     formatLabel: dataString(data.formatLabel, 'formatLabel', 80),
-    rank: data.rank as StandardMetaRank,
+    rank: data.rank as StandardMetaServingRank,
     rankLabel: dataString(data.rankLabel, 'rankLabel', 80),
     period,
     availablePeriods,

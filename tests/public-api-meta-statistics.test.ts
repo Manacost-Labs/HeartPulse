@@ -246,15 +246,18 @@ try {
   assert.equal((await secondPage.json() as Record<string, any>).data[0].slug, 'tempo-mage');
 
   const selectedSlice = await fetch(
-    `${origin}/meta-statistics?format=wild&rank=top_500&period=patch&minGames=500`,
+    `${origin}/meta-statistics?format=wild&rank=top_1000&period=patch&minGames=500`,
     { headers },
   );
   assert.equal(selectedSlice.status, 200);
-  assert.ok(calls.includes('meta:wild:top_500:patch_36.0.3:any_player:500'));
+  assert.ok(calls.includes('meta:wild:top_legend:patch_36.0.3:any_player:500'));
 
   for (const query of [
     '?format=classic',
     '?rank=gold',
+    '?rank=diamond',
+    '?rank=top_500',
+    '?rank=top_100',
     '?period=30d',
     '?minGames=42',
     '?limit=501',

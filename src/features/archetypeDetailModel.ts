@@ -89,3 +89,24 @@ export function hsguruMatchupTone(winrate: number | null): 'favored' | 'even' | 
   if (winrate >= 48) return 'even';
   return 'unfavored';
 }
+
+export type HsguruAnalysisState = 'ok' | 'partial' | 'error';
+export type HsguruAnalysisSection = 'matchups' | 'cards';
+
+export function hsguruAnalysisEmptyMessage(
+  state: HsguruAnalysisState | null,
+  section: HsguruAnalysisSection,
+): string {
+  const subject = section === 'matchups' ? 'матчапов' : 'статистики карт';
+  if (state === 'error') {
+    return `Последнее обновление завершилось ошибкой. Мы уже повторяем сбор ${subject}.`;
+  }
+  if (state === 'partial') {
+    return section === 'matchups'
+      ? 'HSGuru не вернул матчапы в последнем срезе. Данные появятся, когда у архетипа будет достаточная выборка.'
+      : 'HSGuru не вернул статистику карт в последнем срезе. Данные появятся, когда у архетипа будет достаточная выборка.';
+  }
+  return section === 'matchups'
+    ? 'Матчапы ещё не получены.'
+    : 'Статистика карт ещё не получена.';
+}

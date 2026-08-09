@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Aligned the Standard Meta filters and public API with the ranks that the data
+  service actually supports, preventing invalid rank requests from surfacing as
+  empty sections or upstream errors.
+- Made archetype analysis distinguish a failed or partial HSGuru refresh from a
+  first-time load, so cached data stays visible with an honest recovery status.
 - Made archetype DeckView previews evict a persisted 30-day URL and request one
   fresh render after both the WebP preview and full JPEG disappear, while
   keeping the recovery bounded to prevent request loops.

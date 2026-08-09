@@ -37,8 +37,8 @@ import './StandardMeta.css';
 const StandardMetaChart = React.lazy(() => import('./StandardMetaChart'));
 
 type MetaFormat = 'standard' | 'wild';
-type MetaRank = 'all' | 'diamond_all' | 'diamond' | 'diamond_legend' | 'legend'
-  | 'top_5k' | 'top_500' | 'top_100' | 'top_legend';
+type MetaRank = 'all' | 'diamond' | 'diamond_legend' | 'legend'
+  | 'top_5k' | 'top_legend';
 type MetaPeriod = StandardMetaPeriod;
 type MetaCoin = 'any_player';
 type MetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
@@ -131,18 +131,16 @@ const FORMATS: Array<{ id: MetaFormat; label: string; description: string; asset
 ];
 
 const RANKS: Array<{ id: MetaRank; label: string }> = [
-  { id: 'diamond_all', label: 'Алмаз' },
   { id: 'diamond', label: 'Алмаз 1–4' },
   { id: 'diamond_legend', label: 'Алмаз — Легенда' },
   { id: 'legend', label: 'Легенда' },
+  { id: 'top_5k', label: 'Топ-5000' },
   { id: 'top_legend', label: 'Топ-1000' },
-  { id: 'top_500', label: 'Топ-500' },
-  { id: 'top_100', label: 'Топ-100' },
 ];
 
 const RANK_GROUPS: Array<{ label: string; icon: typeof Gem; ranks: MetaRank[] }> = [
-  { label: 'Алмаз', icon: Gem, ranks: ['diamond_all', 'diamond', 'diamond_legend'] },
-  { label: 'Легенда', icon: Crown, ranks: ['legend', 'top_legend', 'top_500', 'top_100'] },
+  { label: 'Алмаз', icon: Gem, ranks: ['diamond', 'diamond_legend'] },
+  { label: 'Легенда', icon: Crown, ranks: ['legend', 'top_5k', 'top_legend'] },
 ];
 
 const PERIOD_LABELS: Partial<Record<MetaPeriod, string>> = {
