@@ -4046,7 +4046,6 @@ for (const [device, viewport] of [
         formatCount: formatButtons.length,
         periodLabels: periodSelect ? [...periodSelect.options].map(option => option.textContent?.trim() || '') : [],
         rankSelectVisible: Boolean(rankSelect && rankSelect.getBoundingClientRect().height >= 44),
-        allRanksPresent: rankButtons.some(button => button.textContent?.trim() === 'Все ранги'),
         searchFontSize: searchInput ? parseFloat(getComputedStyle(searchInput).fontSize) : 0,
         viewTargetHeight: tableView?.getBoundingClientRect().height ?? 0,
         legacyOrnamentPresent: Boolean(ornament),
@@ -4060,7 +4059,13 @@ for (const [device, viewport] of [
       || standardMetaState.titleSize > 112 || standardMetaState.statsCount !== 2
       || !standardMetaState.controlsVisible
       || !standardMetaState.viewControlsPresent
-      || standardMetaState.allRanksPresent || standardMetaState.rankLabels[0] !== 'Алмаз'
+      || JSON.stringify(standardMetaState.rankLabels) !== JSON.stringify([
+        'Алмаз 1–4',
+        'Алмаз — Легенда',
+        'Легенда',
+        'Топ-5000',
+        'Топ-1000',
+      ])
       || standardMetaState.formatCount !== 2
       || !standardMetaState.periodLabels.includes('За весь патч 36.0.3')
       || !standardMetaState.periodLabels.includes('За всё дополнение — Побег из Аметистовой крепости')
