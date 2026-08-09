@@ -4,7 +4,7 @@ import { once } from 'node:events';
 import { createDeckRenderRouter } from '../server/deckRenderRoutes.js';
 
 async function withServer(
-  render: (deckCode: string, deckName: string) => Promise<{
+  renderDeck: (deckCode: string, deckName: string, refresh: boolean) => Promise<{
     imageUrl: string | null;
     previewImageUrl?: string | null;
     ready: boolean;
@@ -13,7 +13,7 @@ async function withServer(
 ) {
   const app = express();
   app.use(express.json());
-  app.use('/api', createDeckRenderRouter({ render }));
+  app.use('/api', createDeckRenderRouter({ renderDeck }));
   const server = app.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const address = server.address();
@@ -26,9 +26,9 @@ async function withServer(
   }
 }
 
-let received: [string, string] | null = null;
-await withServer(async (deckCode, deckName) => {
-  received = [deckCode, deckName];
+let received: [string, string, boolean] | null = null;
+await withServer(async (deckCode, deckName, refresh) => {
+  received = [deckCode, deckName, refresh];
   return {
     ready: true,
     imageUrl: 'https://api.blizzcore.ru/static/generated/render-cache/ab/result.jpg',
@@ -38,7 +38,11 @@ await withServer(async (deckCode, deckName) => {
   const response = await fetch(`${baseUrl}/api/deck/render`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ deckCode: 'AAECAaoITestDeckCode===', deckName: '  Контроль   Жрец  ' }),
+    body: JSON.stringify({
+      deckCode: 'AAECAaoITestDeckCode===',
+      deckName: '  Контроль   Жрец  ',
+      refresh: true,
+    }),
   });
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
@@ -50,7 +54,7 @@ await withServer(async (deckCode, deckName) => {
     previewImageUrl: 'https://api.blizzcore.ru/static/generated/render-cache/ab/result.preview-v1.webp',
   });
 });
-assert.deepEqual(received, ['AAECAaoITestDeckCode===', 'Контроль Жрец']);
+assert.deepEqual(received, ['AAECAaoITestDeckCode===', 'Контроль Жрец', true]);
 
 await withServer(async () => ({ ready: true, imageUrl: 'unused' }), async baseUrl => {
   const response = await fetch(`${baseUrl}/api/deck/render`, {

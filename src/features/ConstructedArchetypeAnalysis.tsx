@@ -133,7 +133,7 @@ function formatDate(value: string | null): string {
 }
 
 function cardTileUrl(cardId: string): string {
-  return `/api/public-resource/hsjson/v1/tiles/${encodeURIComponent(cardId)}.webp`;
+  return `/api/card-image/${encodeURIComponent(cardId)}/tile.webp?v=card_tile_v1`;
 }
 
 function cardRenderUrl(cardId: string): string {
@@ -261,12 +261,20 @@ function CardTile({
   onPreview: (row: ConstructedCardStat, target: HTMLElement) => void;
   onPreviewEnd: () => void;
 }) {
-  const style = row.cardId
-    ? { '--card-tile': `url("${cardTileUrl(row.cardId)}")` } as React.CSSProperties
-    : undefined;
   const content = (
     <>
-      <span className="constructed-card-tile__art" aria-hidden="true" />
+      {row.cardId ? (
+        <img
+          className="constructed-card-tile__art"
+          src={cardTileUrl(row.cardId)}
+          width="256"
+          height="59"
+          loading="lazy"
+          decoding="async"
+          alt=""
+          aria-hidden="true"
+        />
+      ) : null}
       <span className="constructed-card-tile__fade" aria-hidden="true" />
       <span className="constructed-card-tile__mana" aria-hidden="true">{row.cost ?? '—'}</span>
       <strong>{row.cardName}</strong>
@@ -274,14 +282,13 @@ function CardTile({
   );
 
   if (!row.cardId) {
-    return <span className="constructed-card-tile" style={style}>{content}</span>;
+    return <span className="constructed-card-tile">{content}</span>;
   }
 
   return (
     <button
       type="button"
       className="constructed-card-tile"
-      style={style}
       onClick={() => onOpen(row)}
       onMouseEnter={event => onPreview(row, event.currentTarget)}
       onMouseLeave={onPreviewEnd}

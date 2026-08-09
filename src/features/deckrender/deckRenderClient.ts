@@ -27,6 +27,7 @@ const RETRYABLE_RENDER_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
 const MAX_CONCURRENT_RENDERS = 3;
 const completedRenders = new Map<string, DeckRenderAsset>();
 const pendingRenders = new Map<string, Promise<DeckRenderAsset>>();
+const pendingFreshRenders = new Map<string, Promise<DeckRenderAsset>>();
 const renderQueue: Array<() => void> = [];
 let activeRenders = 0;
 
@@ -83,6 +84,7 @@ async function fetchDeckRender(
   deckCode: string,
   deckName: string,
   fetchImpl: typeof fetch,
+  refresh = false,
 ): Promise<DeckRenderAsset> {
   let lastError: Error = new Error('Не удалось собрать изображение колоды');
   for (let attempt = 0; attempt < MAX_RENDER_ATTEMPTS; attempt += 1) {
@@ -92,7 +94,7 @@ async function fetchDeckRender(
         method: 'POST',
         credentials: 'same-origin',
         headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deckCode, deckName }),
+        body: JSON.stringify({ deckCode, deckName, ...(refresh ? { refresh: true } : {}) }),
       });
     } catch (cause) {
       lastError = cause instanceof Error ? cause : lastError;
@@ -138,6 +140,8 @@ export async function requestDeckRender(
   fetchImpl: typeof fetch = fetch,
 ): Promise<DeckRenderAsset> {
   const key = deckRenderCacheKey(deckCode, deckName);
+  const freshPending = pendingFreshRenders.get(key);
+  if (freshPending) return freshPending;
   const completed = completedRenders.get(key);
   if (completed) return completed;
   const pending = pendingRenders.get(key);
@@ -150,5 +154,29 @@ export async function requestDeckRender(
     pendingRenders.delete(key);
   });
   pendingRenders.set(key, request);
+  return request;
+}
+
+export async function requestFreshDeckRender(
+  deckCode: string,
+  deckName: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<DeckRenderAsset> {
+  const key = deckRenderCacheKey(deckCode, deckName);
+  completedRenders.delete(key);
+  const pending = pendingFreshRenders.get(key);
+  if (pending) return pending;
+  const normalPending = pendingRenders.get(key);
+
+  const request = Promise.resolve(normalPending)
+    .catch(() => undefined)
+    .then(() => withRenderSlot(() => fetchDeckRender(deckCode, deckName, fetchImpl, true)))
+    .then(asset => {
+      rememberRender(key, asset);
+      return asset;
+    }).finally(() => {
+      pendingFreshRenders.delete(key);
+    });
+  pendingFreshRenders.set(key, request);
   return request;
 }

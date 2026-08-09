@@ -3,6 +3,7 @@ import {
   deckRenderCacheKey,
   deckRenderImageRetryUrl,
   invalidateDeckRender,
+  requestFreshDeckRender,
   requestDeckRender,
 } from '../src/features/deckrender/deckRenderClient.js';
 
@@ -51,6 +52,42 @@ assert.equal(fetchCount, 1, 'warm memory cache must skip HTTP');
 invalidateDeckRender('AAEC0123456789', 'Deck');
 await requestDeckRender('AAEC0123456789', 'Deck', fetchImpl);
 assert.equal(fetchCount, 2, 'explicit retry must bypass stale memory result');
+
+let freshRequestBody: Record<string, unknown> | null = null;
+const freshFetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+  freshRequestBody = JSON.parse(String(init?.body || '{}'));
+  return new Response(JSON.stringify({
+    ok: true,
+    ready: true,
+    imageUrl: 'https://api.blizzcore.ru/static/generated/render-cache/cc/fresh.jpg',
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+}) as typeof fetch;
+await requestFreshDeckRender('AAEC-fresh-123456', 'Fresh Deck', freshFetch);
+assert.deepEqual(freshRequestBody, {
+  deckCode: 'AAEC-fresh-123456',
+  deckName: 'Fresh Deck',
+  refresh: true,
+}, 'asset recovery must explicitly bypass the persisted server preview cache');
+
+const concurrentRequestBodies: Array<Record<string, unknown>> = [];
+const concurrentFetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+  const body = JSON.parse(String(init?.body || '{}')) as Record<string, unknown>;
+  concurrentRequestBodies.push(body);
+  return new Response(JSON.stringify({
+    ok: true,
+    ready: true,
+    imageUrl: body.refresh
+      ? 'https://api.blizzcore.ru/static/generated/render-cache/dd/fresh.jpg'
+      : 'https://api.blizzcore.ru/static/generated/render-cache/dd/stale.jpg',
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+}) as typeof fetch;
+const normalRequest = requestDeckRender('AAEC-concurrent-123456', 'Concurrent Deck', concurrentFetch);
+const concurrentFreshRequest = requestFreshDeckRender('AAEC-concurrent-123456', 'Concurrent Deck', concurrentFetch);
+const [, concurrentFreshAsset] = await Promise.all([normalRequest, concurrentFreshRequest]);
+assert.equal(concurrentRequestBodies.length, 2, 'fresh recovery must not reuse an ordinary pending render');
+assert.equal(concurrentRequestBodies[0]?.refresh, undefined);
+assert.equal(concurrentRequestBodies[1]?.refresh, true);
+assert.match(concurrentFreshAsset.imageUrl, /fresh\.jpg$/);
 
 let transientFetchCount = 0;
 const transientFetch = (async () => {

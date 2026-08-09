@@ -96,7 +96,7 @@
     "test:hsguru-deck-info": "tsx tests/hsguru-deck-info.test.ts",
     "test:deckview-preview": "tsx tests/deckview-preview.test.ts",
     "test:deck-render-routes": "tsx tests/deck-render-routes.test.ts",
-    "test:deck-render-client": "tsx tests/deck-render-client.test.ts && tsx tests/deck-render-image-failure.test.ts",
+    "test:deck-render-client": "tsx tests/deck-render-client.test.ts && tsx tests/deck-render-image-failure.test.ts && tsx tests/standard-meta-preview-cache-policy.test.ts",
     "test:deck-builder": "tsx tests/deck-builder-resolve.test.ts",
     "test:hsreplay-deck-mobile": "node tests/hsreplay-deck-mobile-browser.test.mjs",
     "test:deck-card-data": "tsx tests/deck-card-data.test.ts",

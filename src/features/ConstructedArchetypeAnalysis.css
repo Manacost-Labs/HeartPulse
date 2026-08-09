@@ -388,7 +388,9 @@
   inset-block: 1px;
   right: 0;
   width: min(48%, 142px);
-  background: var(--card-tile) right center / auto 100% no-repeat;
+  height: calc(100% - 2px);
+  object-fit: cover;
+  object-position: right center;
   transition: filter 120ms ease;
 }
 

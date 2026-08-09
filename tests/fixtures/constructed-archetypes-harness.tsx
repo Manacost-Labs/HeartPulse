@@ -3,6 +3,12 @@ import { createRoot } from 'react-dom/client';
 import ConstructedArchetypes from '../../src/features/ConstructedArchetypes';
 import '../../src/index.css';
 
+declare global {
+  interface Window {
+    __deckRenderBodies: Array<{ deckCode?: string; refresh?: boolean }>;
+  }
+}
+
 const builds = Array.from({ length: 14 }, (_, index) => ({
   deckCode: `AAEBAa0GFixtureDeckCode${String(index + 1).padStart(2, '0')}abcdefghijklmnopqrstuvwxyz`,
   games: 2_216 - index * 91,
@@ -142,15 +148,27 @@ const resolvedDeck = {
 };
 
 const renderAttempts = new Map<string, number>();
+const simulateStaleDeckAsset = new URLSearchParams(window.location.search).has('stale-deck-asset');
+window.__deckRenderBodies = [];
 
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = String(input);
   if (url.includes('/api/deck/render')) {
-    const request = JSON.parse(String(init?.body ?? '{}')) as { deckCode?: string };
+    const request = JSON.parse(String(init?.body ?? '{}')) as { deckCode?: string; refresh?: boolean };
+    window.__deckRenderBodies.push(request);
     const cacheKey = request.deckCode || 'unknown';
     const attempt = (renderAttempts.get(cacheKey) ?? 0) + 1;
     renderAttempts.set(cacheKey, attempt);
-    if (attempt === 1) {
+    if (simulateStaleDeckAsset && cacheKey === builds[0].deckCode && attempt === 1) {
+      return new Response(JSON.stringify({
+        ok: true,
+        ready: true,
+        renderer: 'rust',
+        style: 'parchment',
+        imageUrl: '/missing-deck-preview.webp',
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    if (!simulateStaleDeckAsset && attempt === 1) {
       return new Response(JSON.stringify({
         ok: false,
         error: 'Временный сбой рендера',

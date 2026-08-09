@@ -5,13 +5,14 @@ import {
   cachedDeckRender,
   deckRenderImageRetryUrl,
   invalidateDeckRender,
+  requestFreshDeckRender,
   requestDeckRender,
   sameOriginDeckRenderAsset,
   type DeckRenderAsset,
 } from './deckRenderClient';
 import {
   MAX_IMAGE_LOAD_RETRIES,
-  settleExhaustedImageLoad,
+  recoverExhaustedImageLoad,
   type DeckImageLoadState,
 } from './deckImageLoadState';
 import './DeckRenderPreview.css';
@@ -43,6 +44,7 @@ export default function DeckRenderPreview({
 }
 
 type PreviewState = DeckImageLoadState & {
+  renderRecoveryAttempt: number;
   requestVersion: number;
 };
 
@@ -69,6 +71,7 @@ function DeckRenderPreviewInstance({
       imageRetryAttempt: 0,
       imageReady: false,
       previewImageUrl: cached?.previewImageUrl || '',
+      renderRecoveryAttempt: 0,
       requestVersion: 0,
     };
   });
@@ -92,7 +95,8 @@ function DeckRenderPreviewInstance({
   useEffect(() => {
     if (!visible || !deckCode.trim() || (state.fullImageUrl && state.previewImageUrl)) return;
     let active = true;
-    void requestDeckRender(deckCode, deckName)
+    const request = state.requestVersion > 0 ? requestFreshDeckRender : requestDeckRender;
+    void request(deckCode, deckName)
       .then(asset => {
         if (active) setState(current => ({
           ...current,
@@ -125,6 +129,7 @@ function DeckRenderPreviewInstance({
       imageReady: false,
       fullImageUrl: '',
       previewImageUrl: '',
+      renderRecoveryAttempt: 0,
       requestVersion: current.requestVersion + 1,
     }));
   }, [deckCode, deckName]);
@@ -133,7 +138,11 @@ function DeckRenderPreviewInstance({
     if (state.error) return;
     if (imageRetryTimerRef.current !== null) window.clearTimeout(imageRetryTimerRef.current);
     if (state.imageRetryAttempt >= MAX_IMAGE_LOAD_RETRIES) {
-      setState(current => settleExhaustedImageLoad(current));
+      const recoveringServerCache = state.fullImageUrl
+        && state.previewImageUrl === state.fullImageUrl
+        && state.renderRecoveryAttempt === 0;
+      if (recoveringServerCache) invalidateDeckRender(deckCode, deckName);
+      setState(current => recoverExhaustedImageLoad(current));
       return;
     }
     const expectedImageUrl = state.previewImageUrl;
@@ -149,7 +158,8 @@ function DeckRenderPreviewInstance({
         };
       });
     }, delayMs);
-  }, [state.error, state.imageRetryAttempt, state.previewImageUrl]);
+  }, [deckCode, deckName, state.error, state.fullImageUrl, state.imageRetryAttempt,
+    state.previewImageUrl, state.renderRecoveryAttempt]);
 
   const showImage = state.imageReady;
   const showFallback = Boolean(state.error);

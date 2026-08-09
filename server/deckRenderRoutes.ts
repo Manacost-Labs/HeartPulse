@@ -7,7 +7,7 @@ export type DeckRenderResult = {
 };
 
 export type DeckRenderRouterDependencies = {
-  render: (deckCode: string, deckName: string) => Promise<DeckRenderResult>;
+  renderDeck: (deckCode: string, deckName: string, refresh: boolean) => Promise<DeckRenderResult>;
 };
 
 const DECK_CODE_PATTERN = /^[A-Za-z0-9+/=]+$/;
@@ -32,9 +32,10 @@ export function createDeckRenderRouter(dependencies: DeckRenderRouterDependencie
       return response.status(400).json({ ok: false, error: 'Некорректный код колоды' });
     }
     const deckName = normalizedDeckName(request.body?.deckName ?? request.body?.deck_name);
+    const refresh = request.body?.refresh === true;
     const startedAt = performance.now();
     try {
-      const result = await dependencies.render(deckCode, deckName);
+      const result = await dependencies.renderDeck(deckCode, deckName, refresh);
       if (!result.ready || !result.imageUrl) throw new Error('DECKVIEW_RENDER_FAILED');
       response.setHeader('Cache-Control', 'private, max-age=60');
       response.setHeader('Server-Timing', `deck-render;dur=${(performance.now() - startedAt).toFixed(1)}`);

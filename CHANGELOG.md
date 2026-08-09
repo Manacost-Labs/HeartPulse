@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Made archetype DeckView previews evict a persisted 30-day URL and request one
+  fresh render after both the WebP preview and full JPEG disappear, while
+  keeping the recovery bounded to prevent request loops.
+- Replaced silent mulligan CSS backgrounds with lazy, dimensioned image
+  elements served by Arena's resilient same-origin card tile cache, so every
+  available card illustration can load and expose failures to browser tests.
 - Made `cdn.arena.hs-manacost.ru` serve synchronized card images directly from
   each regional edge before Timeweb, removing the external cold-cache hop from
   constructed-card catalog loads.

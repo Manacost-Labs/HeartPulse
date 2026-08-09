@@ -63,7 +63,21 @@ try {
   });
   const page = await browser.newPage();
   const runtimeErrors = [];
+  const cardTileRequests = [];
   page.on('pageerror', error => runtimeErrors.push(error.message));
+  await page.setRequestInterception(true);
+  page.on('request', request => {
+    if (new URL(request.url()).pathname.startsWith('/api/card-image/')) {
+      cardTileRequests.push(new URL(request.url()).pathname);
+      void request.respond({
+        status: 200,
+        contentType: 'image/gif',
+        body: Buffer.from('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', 'base64'),
+      });
+      return;
+    }
+    void request.continue();
+  });
 
   await page.setViewport({ width: 1440, height: 1100, deviceScaleFactor: 1 });
   await page.goto(`${origin}/tests/fixtures/constructed-archetypes.html?format=wild`, { waitUntil: 'networkidle0' });
@@ -108,6 +122,29 @@ try {
   await page.waitForSelector('.archetype-deck-card .deck-tile');
   await page.waitForSelector('.constructed-matchup-ledger li');
   await page.waitForSelector('.constructed-card-stats tbody tr');
+  await page.$$eval('.constructed-card-tile__art', images => {
+    images.forEach(image => image.scrollIntoView({ block: 'center' }));
+  });
+  await page.waitForNetworkIdle({ idleTime: 250, timeout: 10_000 });
+  const tileImageState = await page.$$eval('.constructed-card-tile__art', images => images.map(image => ({
+    complete: image.complete,
+    naturalWidth: image.naturalWidth,
+    src: image.getAttribute('src'),
+  })));
+  assert.equal(
+    tileImageState.every(image => image.naturalWidth > 0),
+    true,
+    `mulligan tile image failures: ${JSON.stringify(tileImageState.filter(image => image.naturalWidth <= 0))}`,
+  );
+  assert.ok(
+    new Set(cardTileRequests).size >= 6,
+    'every unique visible mulligan card must request a reliable same-origin tile image',
+  );
+  assert.equal(
+    await page.$$eval('.constructed-card-tile__art', images => images.every(image => image.tagName === 'IMG')),
+    true,
+    'mulligan art must use observable image elements instead of silent CSS background failures',
+  );
   await page.waitForSelector('.archetype-main-build .deck-render-preview__image:not([hidden]) img');
   assert.equal(
     await page.$eval('.archetype-main-build .deck-render-preview__image img', image => image.getAttribute('loading')),
@@ -163,6 +200,15 @@ try {
     true,
     'closing the lightbox must restore focus to the deck preview',
   );
+
+  await page.goto(`${origin}/tests/fixtures/constructed-archetypes.html?format=wild&stale-deck-asset=1`, { waitUntil: 'networkidle0' });
+  await page.click('.archetype-row__open');
+  await page.waitForSelector('.archetype-main-build .deck-render-preview[data-render-state="ready"]', { timeout: 15_000 });
+  const recoveryRequests = await page.evaluate(() => window.__deckRenderBodies || []);
+  const mainDeckRequests = recoveryRequests.filter(request => request.deckCode?.includes('FixtureDeckCode01'));
+  assert.equal(mainDeckRequests.length, 2, 'a stale cached asset should trigger one fresh server render');
+  assert.equal(mainDeckRequests[0]?.refresh, undefined);
+  assert.equal(mainDeckRequests[1]?.refresh, true, 'the recovery render must bypass the persisted preview cache');
   await page.$$eval('.deck-render-preview__list', lists => {
     lists.forEach(list => { list.hidden = false; });
   });
