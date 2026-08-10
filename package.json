@@ -87,7 +87,7 @@
     "test:constructed-card-seo-routes": "tsx tests/constructed-card-seo-routes.test.ts",
     "test:entity-sitemaps": "tsx tests/entity-sitemap-catalog.test.ts && tsx tests/entity-sitemap-store.test.ts && tsx tests/entity-sitemap-routes.test.ts",
     "test:constructed-card-translations": "tsx tests/constructed-card-translations.test.ts",
-    "test:constructed-card-media": "tsx tests/constructed-card-media.test.ts",
+    "test:constructed-card-media": "tsx tests/constructed-card-media.test.ts && tsx tests/card-catalog-image-loading.test.ts",
     "test:constructed-card-image-prewarm": "tsx tests/constructed-card-image-overrides.test.ts && tsx tests/constructed-card-image-prewarmer.test.ts",
     "test:standard-meta-routes": "tsx tests/standard-meta-routes.test.ts && tsx tests/standard-meta-contract.test.ts && tsx tests/hsguru-deck-info.test.ts && tsx tests/standard-meta-recommendation-cache.test.ts",
     "test:constructed-archetype-routes": "tsx tests/constructed-archetype-routes.test.ts && node tests/constructed-archetypes-browser.test.mjs",

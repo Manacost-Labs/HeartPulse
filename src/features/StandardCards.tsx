@@ -30,6 +30,7 @@ import {
 } from './constructedCardDetailPrefetch';
 import ConstructedCardCatalogSearch from './ConstructedCardCatalogSearch';
 import ConstructedCardDownloadButton from './ConstructedCardDownloadButton';
+import ConstructedCardGalleryImage, { useCardGalleryImageLoading } from './ConstructedCardGalleryImage';
 import FilterSelect from './ConstructedCardFilterSelect';
 import {
   loadConstructedCardList,
@@ -524,10 +525,10 @@ function HoverTooltip({ card, rect, rankLabel, statsAccess, gate }: { card: Card
     </aside>
   );
 }
-
 function CardGallery({ cards, format, period, rank, sort, navigatePath, statsAccess, gate }: { cards: CardRecord[]; format: CardFormat; period: ConstructedCardPeriod; rank: ConstructedCardRank; sort: string; navigatePath: (path: string) => void; statsAccess: boolean; gate: StatsGateProps }) {
   const [hovered, setHovered] = useState<{ card: CardRecord; rect: DOMRect } | null>(null);
   const prefetchTimer = useRef<number | null>(null);
+  const { galleryRef, immediateImageCount } = useCardGalleryImageLoading(cards);
   const showTooltip = (card: CardRecord, element: HTMLElement) => setHovered({ card, rect: element.getBoundingClientRect() });
   const warmCard = (card: CardRecord, fullImage: string | null) => {
     preloadImage(fullImage);
@@ -551,7 +552,7 @@ function CardGallery({ cards, format, period, rank, sort, navigatePath, statsAcc
   useEffect(() => cancelWarmCard, []);
   return (
     <>
-      <div className="constructed-cards__gallery">
+      <div className="constructed-cards__gallery" ref={galleryRef}>
         {cards.map((card, index) => {
           const metric = sortMetric(card, sort);
           const name = cardName(card);
@@ -581,7 +582,7 @@ function CardGallery({ cards, format, period, rank, sort, navigatePath, statsAcc
                 onBlur={() => setHovered(null)}
                 onClick={event => { event.preventDefault(); navigateWithConstructedCardContext(navigatePath, cardPath(format, card), period, rank, format, format); }}
               >
-                <img src={constructedCardImage(card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={name} loading="lazy" decoding="async" onError={fallbackCardImageToOrigin} />
+                <ConstructedCardGalleryImage src={constructedCardImage(card, 'thumb') || '/arena-logo-icon.webp?v=arena-legacy-20260629'} alt={name} immediate={index < immediateImageCount} />
                 <span className="constructed-cards__gallery-name">{name}</span>
                 <span className="constructed-cards__gallery-stat" data-tour-id={index === 0 ? 'cards-statistics' : undefined}><small>{metric.label}</small>{!statsAccess && STATISTIC_SORTS.has(sort) ? <LockedStatValue /> : <strong>{metric.value}</strong>}</span>
               </a>
@@ -594,7 +595,6 @@ function CardGallery({ cards, format, period, rank, sort, navigatePath, statsAcc
     </>
   );
 }
-
 function HsReplayDataDeckCard({ card }: { card: CardRecord }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const dbfIds = card.dbf === null || card.dbf === undefined ? '' : String(card.dbf);

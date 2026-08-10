@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Prioritized the first responsive row of constructed-card thumbnails and
+  deferred off-screen image URLs until they approach the viewport, cutting the
+  initial catalog image burst without reducing the existing WebP resolution or
+  quality and retaining the CDN-to-origin fallback.
 - Aligned the Standard Meta filters and public API with the ranks that the data
   service actually supports, preventing invalid rank requests from surfacing as
   empty sections or upstream errors.
