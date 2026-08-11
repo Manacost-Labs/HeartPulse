@@ -2681,9 +2681,14 @@ for (const route of authenticatedRoutes) {
         ), { timeout: 10_000 });
       }
       if (route.path === '/heroes' && device === 'desktop') {
-        await page.hover('.battleground-hero-card');
-        await page.waitForFunction(() => Number.parseFloat(getComputedStyle(document.querySelector('.battleground-hero-related-card')).opacity) > 0.9);
-        const hoverContainment = await page.evaluate(() => {
+        const hoverHeroSelector = '.battleground-hero-card[data-has-related="true"]';
+        await page.waitForSelector(hoverHeroSelector, { visible: true, timeout: 10_000 });
+        await page.hover(hoverHeroSelector);
+        await page.waitForFunction((selector) => {
+          const related = document.querySelector(selector)?.querySelector('.battleground-hero-related-card');
+          return related && Number.parseFloat(getComputedStyle(related).opacity) > 0.9;
+        }, { timeout: 10_000 }, hoverHeroSelector);
+        const hoverContainment = await page.evaluate((selector) => {
           const clippedBy = (element) => {
             const rect = element.getBoundingClientRect();
             const ancestors = [];
@@ -2699,13 +2704,14 @@ for (const route of authenticatedRoutes) {
             }
             return ancestors;
           };
-          const main = document.querySelector('.battleground-hero-main');
-          const related = document.querySelector('.battleground-hero-related-card');
+          const hoveredCard = document.querySelector(selector);
+          const main = hoveredCard?.querySelector('.battleground-hero-main');
+          const related = hoveredCard?.querySelector('.battleground-hero-related-card');
           return {
             main: main ? clippedBy(main) : ['missing-main-card'],
             related: related ? clippedBy(related) : ['missing-related-card'],
           };
-        });
+        }, hoverHeroSelector);
         if (hoverContainment.main.length || hoverContainment.related.length) {
           failures.push(`/heroes [desktop]: hover cards are clipped (${JSON.stringify(hoverContainment)})`);
         }
