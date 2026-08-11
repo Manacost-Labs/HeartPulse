@@ -2590,6 +2590,12 @@ for (const route of authenticatedRoutes) {
           heroesButton.click();
         });
         await page.type('#builder-search', 'Ксавий');
+        await page.waitForFunction(() => {
+          const cards = [...document.querySelectorAll('#builder-library .builder-card')];
+          return cards.length === 1
+            && cards[0].classList.contains('is-hero')
+            && cards[0].getAttribute('title')?.includes('Ксавий');
+        }, { timeout: 10_000 });
         await page.waitForSelector('.builder-card.is-hero[title*="Ксавий"]', { visible: true, timeout: 10_000 });
         const liveHeroState = await page.$eval('.builder-card.is-hero[title*="Ксавий"]', card => {
           const image = card.querySelector('img');
@@ -2631,6 +2637,10 @@ for (const route of authenticatedRoutes) {
           heroesButton.click();
         });
         await page.type('#tier-builder-search', 'Ксавий');
+        await page.waitForFunction(() => {
+          const cards = [...document.querySelectorAll('#tier-builder-pool .tier-builder-card')];
+          return cards.length === 1 && cards[0].getAttribute('title')?.includes('Ксавий');
+        }, { timeout: 10_000 });
         await page.waitForSelector('#tier-builder-pool .tier-builder-card[title*="Ксавий"]', { visible: true, timeout: 10_000 });
         const liveHeroState = await page.$eval('#tier-builder-pool .tier-builder-card[title*="Ксавий"]', async card => {
           const image = card.querySelector('img');
