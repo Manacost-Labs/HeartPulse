@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Synchronized both Battlegrounds builders with the current live hero pool,
+  including Nightmare Lord Xavius and Tras'tath, Soul Parasite, while retaining
+  the bundled roster as an outage fallback and full-resolution hero portraits.
+- Safely encoded builder image URLs so current hero portraits remain intact
+  when browsing the pool or adding a card to a board.
 - Prioritized the first responsive row of constructed-card thumbnails and
   deferred off-screen image URLs until they approach the viewport, cutting the
   initial catalog image burst without reducing the existing WebP resolution or

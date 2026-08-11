@@ -26,6 +26,134 @@
     }
   }
 
+  const HERO_TIER_ORDER = ["S", "A", "B", "C", "D"];
+  const CURRENT_HERO_REQUEST_TIMEOUT_MS = 8000;
+  const MINIMUM_CURRENT_HERO_POOL_RATIO = 0.75;
+
+  function normalizedHeroName(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/ё/g, "е")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function battlegroundHeroCardImage(cardId) {
+    const normalized = String(cardId || "").trim();
+    if (!/^[A-Za-z0-9_]+$/.test(normalized)) return "";
+    return `/api/card-image/${encodeURIComponent(normalized)}/full.webp?v=bg-heroes-20260806b`;
+  }
+
+  function normalizeCurrentHeroTiers(statsPayload, libraryPayload, fallback) {
+    const statsHeroes = Array.isArray(statsPayload?.heroes)
+      ? statsPayload.heroes
+      : (Array.isArray(statsPayload?.view?.heroes) ? statsPayload.view.heroes : []);
+    const libraryByDbfId = new Map();
+    (Array.isArray(libraryPayload?.data) ? libraryPayload.data : []).forEach((hero) => {
+      const dbfId = Number(hero?.dbf ?? hero?.dbfId);
+      if (Number.isFinite(dbfId)) libraryByDbfId.set(dbfId, hero);
+    });
+    const fallbackByName = new Map();
+    (Array.isArray(fallback) ? fallback : []).forEach((section) => {
+      (Array.isArray(section?.heroes) ? section.heroes : []).forEach((hero) => {
+        const key = normalizedHeroName(hero?.name);
+        if (key) fallbackByName.set(key, hero);
+      });
+    });
+    const heroesByTier = new Map(HERO_TIER_ORDER.map((tier) => [tier, []]));
+
+    statsHeroes.forEach((hero) => {
+      const dbfId = Number(hero?.dbfId ?? hero?.dbf ?? hero?.dbf_id);
+      const libraryHero = Number.isFinite(dbfId) ? libraryByDbfId.get(dbfId) : null;
+      const name = String(libraryHero?.name?.ru || hero?.hero || hero?.name || "").trim();
+      if (!name) return;
+
+      const tierValue = String(hero?.tier || "D").trim().toUpperCase();
+      const tier = HERO_TIER_ORDER.includes(tierValue) ? tierValue : "D";
+      const englishName = String(libraryHero?.name?.en || hero?.englishName || "").trim();
+      const cardId = String(libraryHero?.card_id || hero?.cardId || hero?.card_id || "").trim();
+      const fallbackHero = fallbackByName.get(normalizedHeroName(name));
+      const image = publicResourceUrl(
+        hero?.image
+        || hero?.images?.hero
+        || libraryHero?.images?.hero
+        || fallbackHero?.image
+        || battlegroundHeroCardImage(cardId)
+      );
+
+      heroesByTier.get(tier).push({
+        name,
+        englishName,
+        popularity: hero?.pick_rate == null ? "" : String(hero.pick_rate),
+        averagePlace: hero?.avg_placement == null ? "" : String(hero.avg_placement),
+        image,
+        dbfId: Number.isFinite(dbfId) ? dbfId : undefined,
+        cardId
+      });
+    });
+
+    return HERO_TIER_ORDER.flatMap((tier) => {
+      const heroes = heroesByTier.get(tier);
+      heroes.sort((left, right) => (
+        Number.parseFloat(String(left.averagePlace || "99").replace(",", "."))
+        - Number.parseFloat(String(right.averagePlace || "99").replace(",", "."))
+      ));
+      return heroes.length ? [{ tier, title: `${tier} Тир`, heroes }] : [];
+    });
+  }
+
+  /**
+   * Synchronizes legacy builders with the current stats pool. The bundled
+   * snapshot remains available when authentication is still restoring or an
+   * upstream service is temporarily unavailable.
+   */
+  async function loadCurrentHeroesData() {
+    const fallback = window.tierData || [];
+    const requestJson = async (url) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), CURRENT_HERO_REQUEST_TIMEOUT_MS);
+      try {
+        const response = await fetch(url, {
+          headers: { Accept: "application/json" },
+          credentials: "same-origin",
+          signal: controller.signal
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    };
+
+    try {
+      const params = new URLSearchParams({ mode: "solo", mmr: "TOP_50_PERCENT" });
+      const statsRequest = requestJson(`/api/bg/heroes?${params.toString()}`);
+      const libraryRequest = requestJson("/api/bg/library/extra/heroes?per_page=200")
+        .catch((error) => {
+          console.warn("Не удалось загрузить локализацию героев; используются данные статистики.", error);
+          return { data: [] };
+        });
+      const [statsPayload, libraryPayload] = await Promise.all([statsRequest, libraryRequest]);
+      if (statsPayload?.ok === false) throw new Error("API героев вернул ошибку");
+      const current = normalizeCurrentHeroTiers(statsPayload, libraryPayload, fallback);
+      if (!current.length) throw new Error("Пустой пул героев");
+      const fallbackHeroCount = fallback.reduce(
+        (total, section) => total + (Array.isArray(section?.heroes) ? section.heroes.length : 0),
+        0
+      );
+      const currentHeroCount = current.reduce((total, section) => total + section.heroes.length, 0);
+      if (fallbackHeroCount >= 20
+        && currentHeroCount < Math.ceil(fallbackHeroCount * MINIMUM_CURRENT_HERO_POOL_RATIO)) {
+        throw new Error(`Неполный пул героев: ${currentHeroCount} из ожидаемых ${fallbackHeroCount}`);
+      }
+      window.tierData = current;
+      return current;
+    } catch (error) {
+      console.warn("Не удалось обновить героев; используется резервный список.", error);
+      return fallback;
+    }
+  }
+
   function normalizeAccessoryRecord(card) {
     const group = String(card?.group?.slug || "").toLowerCase();
     const size = group === "greater" ? "LARGE" : "SMALL";
@@ -493,6 +621,7 @@
     loadBattlegroundsLibrary,
     exportCardSheet,
     publicResourceUrl,
+    loadCurrentHeroesData,
     loadCurrentAccessoriesData,
     escapeHtml
   };

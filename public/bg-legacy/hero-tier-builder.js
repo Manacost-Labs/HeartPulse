@@ -165,7 +165,7 @@
     return {
       id: `hero-${slugify(hero.name)}`,
       name: hero.name,
-      englishName: getEnglishNameFromImagePath(hero.image),
+      englishName: hero.englishName || getEnglishNameFromImagePath(hero.image),
       text: "",
       techLevel: 0,
       races: [],
@@ -220,8 +220,8 @@
     };
   }
 
-  function getHeroCards() {
-    return (window.tierData || []).flatMap((tierEntry) => (
+  function getHeroCards(heroTiers = window.tierData || []) {
+    return heroTiers.flatMap((tierEntry) => (
       (tierEntry.heroes || []).map((hero) => normalizeHeroCard(hero, tierEntry.tier))
     ));
   }
@@ -484,7 +484,7 @@
     element.title = `${card.name} — ${getSourceLabel(card)} — ${getCardMeta(card)}`;
     element.innerHTML = `
       <div class="tier-builder-card-media">
-        <img src="${getCardArtUrl(card, "256x")}" alt="${window.Shared.escapeHtml(card.name)}" loading="lazy" decoding="async">
+        <img src="${window.Shared.escapeHtml(getCardArtUrl(card, "256x"))}" alt="${window.Shared.escapeHtml(card.name)}" loading="lazy" decoding="async">
       </div>
       <div class="tier-builder-card-actions">
         <button class="tier-builder-card-button" type="button" data-action="prev" aria-label="Сдвинуть раньше">←</button>
@@ -862,10 +862,11 @@
 
   async function bootstrap() {
     try {
-      const [libraryPayload, spellsPayload, englishNamesPayload] = await Promise.all([
+      const [libraryPayload, spellsPayload, englishNamesPayload, heroTiers] = await Promise.all([
         window.Shared.loadBattlegroundsLibrary({ locale: "ruRU", includeEnglish: true }),
         loadOptionalJson("/api/battlegrounds-spells?locale=ru_RU&pageSize=200", "заклинания"),
-        loadOptionalJson("/api/battlegrounds-card-names?locale=en_US", "английские названия")
+        loadOptionalJson("/api/battlegrounds-card-names?locale=en_US", "английские названия"),
+        window.Shared.loadCurrentHeroesData()
       ]);
 
       const englishByKey = new Map();
@@ -880,7 +881,7 @@
         || null
       );
 
-      const heroes = getHeroCards();
+      const heroes = getHeroCards(heroTiers);
       const minions = Array.isArray(libraryPayload.cards)
         ? libraryPayload.cards.map((card) => {
           const english = resolveEnglish(card);

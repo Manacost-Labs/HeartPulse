@@ -239,7 +239,20 @@ const fixtures = {
         avg_placement: 3.72, pick_rate: '12,4%', placement_distribution: ['18%', '16%', '14%', '13%', '12%', '10%', '9%', '8%'],
         image: qaCard.imageRu,
         hero_power: { card: { dbf: 9002, name: 'Контрольная сила героя', text: 'Даёт преимущество.', image: qaCard.imageRu } },
-      }],
+      }, {
+        tier: 'S', hero: 'Повелитель кошмаров Ксавий', dbfId: 132608,
+        avg_placement: 3.58, pick_rate: '88,64%', image: qaCard.imageRu,
+      }, {
+        tier: 'C', hero: "Трас'тат, паразит душ", dbfId: 132578,
+        avg_placement: 4.37, pick_rate: '74,02%', image: qaCard.imageRu,
+      }, ...Array.from({ length: 90 }, (_, index) => ({
+        tier: ['A', 'B', 'C', 'D'][index % 4],
+        hero: `Контрольный герой пула ${index + 1}`,
+        dbfId: 9100 + index,
+        avg_placement: 3.8 + (index % 10) / 10,
+        pick_rate: '10,00%',
+        image: qaCard.imageRu,
+      }))],
     },
   },
   '/api/bg/heroes/9001/details': {
@@ -284,8 +297,20 @@ const fixtures = {
       },
       armor: { normal: 10, duos: 8 },
       updated_at: '2026-07-11T00:00:00.000Z',
+    }, {
+      card_id: 'BG36_HERO_105',
+      dbf: 132608,
+      name: { ru: 'Повелитель кошмаров Ксавий', en: 'Nightmare Lord Xavius' },
+      images: { hero: qaCard.imageRu, full_art: qaCard.imageRu },
+      updated_at: '2026-08-04T00:00:00.000Z',
+    }, {
+      card_id: 'BG36_HERO_101',
+      dbf: 132578,
+      name: { ru: "Трас'тат, паразит душ", en: "Tras'tath, Soul Parasite" },
+      images: { hero: qaCard.imageRu, full_art: qaCard.imageRu },
+      updated_at: '2026-08-04T00:00:00.000Z',
     }],
-    pagination: { page: 1, perPage: 200, total: 1, totalPages: 1 },
+    pagination: { page: 1, perPage: 200, total: 3, totalPages: 1 },
   },
   '/api/bg/library/meta': {
     creature_types: [{ slug: 'beast', name_ru: 'Зверь' }],
@@ -2555,6 +2580,96 @@ for (const route of authenticatedRoutes) {
       await waitForMeaningfulPage(page, route.expected);
       await page.waitForSelector(route.selector, { timeout: 20_000 });
       await assertArenaDataRoutePresentation(page, route.path, device);
+      if (route.path === '/battlegrounds/strategies' && device === 'desktop') {
+        await page.waitForFunction(() => [...document.querySelectorAll('#builder-source-filters button')]
+          .some(button => button.textContent?.trim() === 'Герои'), { timeout: 10_000 });
+        await page.evaluate(() => {
+          const heroesButton = [...document.querySelectorAll('#builder-source-filters button')]
+            .find(button => button.textContent?.trim() === 'Герои');
+          if (!(heroesButton instanceof HTMLElement)) throw new Error('Фильтр героев не найден');
+          heroesButton.click();
+        });
+        await page.type('#builder-search', 'Ксавий');
+        await page.waitForSelector('.builder-card.is-hero[title*="Ксавий"]', { visible: true, timeout: 10_000 });
+        const liveHeroState = await page.$eval('.builder-card.is-hero[title*="Ксавий"]', card => {
+          const image = card.querySelector('img');
+          return {
+            title: card.getAttribute('title') || '',
+            decoded: Boolean(image?.complete && image.naturalWidth >= 300 && image.naturalHeight >= 400),
+          };
+        });
+        if (!liveHeroState.title.includes('Повелитель кошмаров Ксавий') || !liveHeroState.decoded) {
+          failures.push(`/battlegrounds/strategies [desktop]: current hero did not render at full fixture quality (${JSON.stringify(liveHeroState)})`);
+        }
+        await page.click('.builder-card.is-hero[title*="Ксавий"]');
+        await page.waitForFunction(() => document.querySelector('#builder-counter')?.textContent?.startsWith('1 '));
+        await page.waitForFunction(() => {
+          const image = document.querySelector('.placed-card-art');
+          return Boolean(image?.complete && image.naturalWidth >= 300 && image.naturalHeight >= 400);
+        }, { timeout: 10_000 });
+        await page.screenshot({ path: `${OUT}/battlegrounds-strategies-live-hero-desktop.png`, fullPage: false });
+        await page.click('#builder-clear');
+        await page.$eval('#builder-search', input => {
+          input.value = '';
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        await page.evaluate(() => {
+          const allButton = [...document.querySelectorAll('#builder-source-filters button')]
+            .find(button => button.textContent?.trim() === 'Все карты');
+          if (!(allButton instanceof HTMLElement)) throw new Error('Общий фильтр не найден');
+          allButton.click();
+        });
+      }
+      if (route.path === '/battlegrounds/tier-builder' && device === 'desktop') {
+        await page.waitForFunction(() => [...document.querySelectorAll('#tier-builder-source-filters button')]
+          .some(button => button.textContent?.trim() === 'Герои'), { timeout: 10_000 });
+        await page.click('#tier-builder-unassigned');
+        await page.evaluate(() => {
+          const heroesButton = [...document.querySelectorAll('#tier-builder-source-filters button')]
+            .find(button => button.textContent?.trim() === 'Герои');
+          if (!(heroesButton instanceof HTMLElement)) throw new Error('Фильтр героев не найден');
+          heroesButton.click();
+        });
+        await page.type('#tier-builder-search', 'Ксавий');
+        await page.waitForSelector('#tier-builder-pool .tier-builder-card[title*="Ксавий"]', { visible: true, timeout: 10_000 });
+        const liveHeroState = await page.$eval('#tier-builder-pool .tier-builder-card[title*="Ксавий"]', async card => {
+          const image = card.querySelector('img');
+          await image?.decode().catch(() => {});
+          return {
+            title: card.getAttribute('title') || '',
+            decoded: Boolean(image?.complete && image.naturalWidth >= 300 && image.naturalHeight >= 400),
+          };
+        });
+        if (!liveHeroState.title.includes('Повелитель кошмаров Ксавий') || !liveHeroState.decoded) {
+          failures.push(`/battlegrounds/tier-builder [desktop]: current hero did not render at full fixture quality (${JSON.stringify(liveHeroState)})`);
+        }
+        const liveHero = await page.$('#tier-builder-pool .tier-builder-card[title*="Ксавий"]');
+        const sTier = await page.$('.tier-builder-dropzone[data-tier="S"]');
+        if (!liveHero || !sTier) throw new Error('Герой или S-тир не найден');
+        try {
+          await sTier.drop(liveHero);
+        } finally {
+          await Promise.allSettled([liveHero.dispose(), sTier.dispose()]);
+        }
+        await page.waitForSelector('.tier-builder-dropzone[data-tier="S"] .tier-builder-card[title*="Ксавий"]', { visible: true, timeout: 10_000 });
+        await page.waitForFunction(async () => {
+          const image = document.querySelector('.tier-builder-dropzone[data-tier="S"] .tier-builder-card[title*="Ксавий"] img');
+          await image?.decode().catch(() => {});
+          return Boolean(image?.complete && image.naturalWidth >= 300 && image.naturalHeight >= 400);
+        }, { timeout: 10_000 });
+        await page.waitForFunction(() => (
+          !document.querySelector('#tier-builder-pool .tier-builder-card[title*="Ксавий"]')
+          && document.querySelector('#tier-builder-counter')?.textContent?.startsWith('1 ')
+        ), { timeout: 10_000 });
+        await page.screenshot({ path: `${OUT}/battlegrounds-tier-builder-live-hero-desktop.png`, fullPage: false });
+        await page.click('#tier-builder-unassigned');
+        await page.click('#tier-builder-reset');
+        await page.waitForFunction(() => (
+          document.querySelector('#tier-builder-counter')?.textContent?.startsWith('0 ')
+          && document.querySelector('#tier-builder-search')?.value === ''
+          && document.querySelector('#tier-builder-source-filters button.is-active')?.textContent?.trim() === 'Все карты'
+        ), { timeout: 10_000 });
+      }
       if (route.path === '/heroes' && device === 'desktop') {
         await page.hover('.battleground-hero-card');
         await page.waitForFunction(() => Number.parseFloat(getComputedStyle(document.querySelector('.battleground-hero-related-card')).opacity) > 0.9);

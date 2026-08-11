@@ -1295,7 +1295,7 @@
       tile.style.left = `${slotPosition.x * 100}%`;
       tile.style.top = `${slotPosition.y * 100}%`;
       tile.innerHTML = `
-        <img class="placed-card-art" src="${card.artUrl}" alt="${window.Shared.escapeHtml(card.name)}">
+        <img class="placed-card-art" src="${window.Shared.escapeHtml(card.artUrl)}" alt="${window.Shared.escapeHtml(card.name)}">
         <button class="placed-card-remove" type="button" aria-label="Удалить карту">×</button>
       `;
 
@@ -1785,7 +1785,7 @@ function normalizeHeroCard(hero, tier) {
     return {
       id: `hero-${slugify(hero.name)}`,
       name: hero.name,
-      englishName: getEnglishNameFromImagePath(hero.image),
+      englishName: hero.englishName || getEnglishNameFromImagePath(hero.image),
       text: "",
       techLevel: 0,
       races: [],
@@ -1842,8 +1842,8 @@ function normalizeHeroCard(hero, tier) {
     };
   }
 
-  function getHeroCards() {
-    return (window.tierData || []).flatMap((tierEntry) => (
+  function getHeroCards(heroTiers = window.tierData || []) {
+    return heroTiers.flatMap((tierEntry) => (
       (tierEntry.heroes || []).map((hero) => normalizeHeroCard(hero, tierEntry.tier))
     ));
   }
@@ -1865,10 +1865,11 @@ function normalizeHeroCard(hero, tier) {
 
   async function bootstrap() {
     try {
-      const [libraryPayload, spellsPayload, englishNamesPayload] = await Promise.all([
+      const [libraryPayload, spellsPayload, englishNamesPayload, heroTiers] = await Promise.all([
         window.Shared.loadBattlegroundsLibrary({ locale: "ruRU", includeEnglish: true }),
         loadOptionalJson("/api/battlegrounds-spells?locale=ru_RU&pageSize=200", "заклинания"),
-        loadOptionalJson("/api/battlegrounds-card-names?locale=en_US", "английские названия")
+        loadOptionalJson("/api/battlegrounds-card-names?locale=en_US", "английские названия"),
+        window.Shared.loadCurrentHeroesData()
       ]);
 
       const englishCards = englishNamesPayload.cards || [];
@@ -1887,7 +1888,7 @@ function normalizeHeroCard(hero, tier) {
         || (localCard.slug ? englishByKey.get(`slug:${String(localCard.slug)}`) : null)
         || null
       );
-      const heroes = getHeroCards();
+      const heroes = getHeroCards(heroTiers);
       const minions = Array.isArray(libraryPayload.cards)
         ? libraryPayload.cards.map((card) => {
           const english = resolveEnglish(card);
