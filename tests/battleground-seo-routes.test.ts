@@ -100,7 +100,7 @@ const app = express();
 app.use(createBattlegroundHeroSeoRouter({
   fetchImpl: async (url, init) => {
     calls.push({ url: String(url), init });
-    const payload = String(url).includes('db.kolodahs.ru')
+    const payload = String(url).includes('api.kolodahearthstone.com')
       ? duoLibraryHero
       : (String(url).includes('mode=duos') ? duoCatalog : catalog);
     return new Response(JSON.stringify(payload), {

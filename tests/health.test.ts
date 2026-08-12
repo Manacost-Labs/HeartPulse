@@ -29,7 +29,7 @@ assert.equal(stale.datasets[1].state, 'stale');
 const explicitConstructedLkg = evaluateDataHealth([{
   name: 'constructed-cards-standard',
   updatedAt: new Date(now - 60_000).toISOString(),
-  source: 'db.kolodahs.ru:last-known-good',
+  source: 'api.kolodahearthstone.com:last-known-good',
   records: 1_152,
   state: 'stale',
   dataStatus: 'stale',

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Migrated Arena datasets, Battlegrounds libraries, cosmetics and card media
+  from the retiring `api.hs-manacost.ru` and `db.kolodahs.ru` hosts to the
+  unified `api.kolodahearthstone.com` API, with a same-origin compatibility
+  alias for historical media records.
 - Synchronized both Battlegrounds builders with the current live hero pool,
   including Nightmare Lord Xavius and Tras'tath, Soul Parasite, while retaining
   the bundled roster as an outage fallback and full-resolution hero portraits.

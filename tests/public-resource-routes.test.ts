@@ -139,7 +139,7 @@ try {
   assert.equal(image.headers.get('x-content-type-options'), 'nosniff');
   assert.match(image.headers.get('cache-control') ?? '', /stale-while-revalidate/);
   assert.deepEqual([...new Uint8Array(await image.arrayBuffer())], [1, 2, 3]);
-  assert.equal(upstreamCalls[0]?.url, 'https://db.kolodahs.ru/uploads/cards/TEST.webp');
+  assert.equal(upstreamCalls[0]?.url, 'https://api.kolodahearthstone.com/uploads/cards/TEST.webp');
   assert.deepEqual(upstreamCalls[0]?.headers, {
     'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)',
     Range: 'bytes=0-2',
@@ -158,7 +158,7 @@ try {
   assert.ok((await transformed.arrayBuffer()).byteLength > 0);
   assert.equal(
     upstreamCalls[2]?.url,
-    'https://db.kolodahs.ru/uploads/transform.png',
+    'https://api.kolodahearthstone.com/uploads/transform.png',
     'image transformation parameters must not be forwarded to the upstream source',
   );
 

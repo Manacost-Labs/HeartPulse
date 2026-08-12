@@ -1,5 +1,5 @@
 // Сгенерировано автоматически: маппинг dbfId героя -> локальный портрет
-// и снапшот статистики HSReplay (через api.hs-manacost.ru) на случай недоступности API.
+// и снапшот статистики HSReplay (через api.kolodahearthstone.com) на случай недоступности API.
 window.heroTierStatic = {
   "snapshotAt": "2026-06-09T18:51:54.624538+00:00",
   "imageByDbfId": {

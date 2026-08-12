@@ -27,7 +27,7 @@ export type BattlegroundHeroSeoRouterDependencies = {
 
 const CATALOG_URL = 'http://127.0.0.1:3108/api/bg/heroes';
 const DUOS_CATALOG_URL = `${CATALOG_URL}?mode=duos`;
-const HERO_LIBRARY_URL = 'https://db.kolodahs.ru/api/v1/heroes';
+const HERO_LIBRARY_URL = 'https://api.kolodahearthstone.com/api/v1/heroes';
 const CANONICAL_ORIGIN = 'https://arena.hs-manacost.ru';
 const INDEX_ROBOTS = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
 const NOINDEX_ROBOTS = 'noindex, nofollow';

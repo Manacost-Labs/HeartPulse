@@ -64,7 +64,7 @@ export function createBattlegroundProxyRouter(dependencies: BattlegroundProxyRou
   router.get('/bg/heroes/compositions', dependencies.requireAccess, (request, response) => dependencies.proxyApp(
     request,
     response,
-    'https://api.hs-manacost.ru/api/bg/heroes',
+    'https://api.kolodahearthstone.com/api/bg/heroes',
     compactBattlegroundHeroCompositionsPayload,
   ));
   router.get('/bg/heroes/:dbfId/details', dependencies.requireAccess, (request, response) => dependencies.proxyApp(

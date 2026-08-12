@@ -3,6 +3,7 @@
   let picaInstance = null;
 
   const PUBLIC_RESOURCE_SOURCE_BY_HOST = {
+    "api.kolodahearthstone.com": { key: "db", prefixes: ["/uploads/"] },
     "db.kolodahs.ru": { key: "db", prefixes: ["/uploads/"] },
     "bg.kolodahearthstone.ru": { key: "bg", prefixes: ["/assset/"] },
     "art.hearthstonejson.com": { key: "hsjson", prefixes: ["/v1/"] },

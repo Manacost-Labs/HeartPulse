@@ -5,7 +5,7 @@ export type PublicResourceSource = {
 
 export const PUBLIC_RESOURCE_SOURCES = {
   db: {
-    origin: 'https://db.kolodahs.ru',
+    origin: 'https://api.kolodahearthstone.com',
     allowedPathPrefixes: ['/uploads/'],
   },
   bg: {
@@ -40,6 +40,12 @@ const PUBLIC_RESOURCE_SOURCE_BY_HOST = new Map(
     { key, ...source },
   ]),
 );
+// Stored legacy records are routed to the new origin without contacting the
+// retired hostname. This alias can be removed after historical data is clean.
+PUBLIC_RESOURCE_SOURCE_BY_HOST.set('db.kolodahs.ru', {
+  key: 'db',
+  ...PUBLIC_RESOURCE_SOURCES.db,
+});
 
 export function publicResourceUrl(value: unknown): string {
   const raw = String(value ?? '').trim();

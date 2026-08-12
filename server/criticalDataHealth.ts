@@ -43,8 +43,8 @@ export function createCriticalDataHealth(dependencies: CriticalDataHealthDepende
         name: `constructed-cards-${format}`,
         updatedAt: health.dataStatus === 'unavailable' ? null : health.verifiedAt,
         source: health.cacheSource === 'LKG'
-          ? 'db.kolodahs.ru:last-known-good'
-          : 'db.kolodahs.ru',
+          ? 'api.kolodahearthstone.com:last-known-good'
+          : 'api.kolodahearthstone.com',
         records: health.records,
         state: health.dataStatus === 'unavailable'
           ? 'missing' as const

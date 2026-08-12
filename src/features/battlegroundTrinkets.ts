@@ -139,7 +139,7 @@ export function tierItemsForDisplay<T>(items: T[], list: string, visibleLimit: n
 export function trinketFullArtUrl(item: TrinketIdentity): string {
   const cardId = String(item?.id || '').trim();
   if (!/^[A-Za-z0-9_]+$/.test(cardId)) return '';
-  return publicResourceUrl(`https://db.kolodahs.ru/uploads/library-full-art/${encodeURIComponent(cardId)}.png`);
+  return publicResourceUrl(`https://api.kolodahearthstone.com/uploads/library-full-art/${encodeURIComponent(cardId)}.png`);
 }
 
 /** Transparent localized card render used by gallery tiles and the hover preview. */

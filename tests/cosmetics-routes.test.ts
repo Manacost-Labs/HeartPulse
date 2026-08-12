@@ -12,7 +12,7 @@ app.use('/api', createCosmeticsRouter({
       items: [{ cardId: `${kind}-1` }],
       pagination: { page: query.page, perPage: query.perPage, total: 1, totalPages: 1 },
       updatedAt: '2026-07-26T18:05:44Z',
-      source: 'db.kolodahs.ru',
+      source: 'api.kolodahearthstone.com',
       ...(kind === 'coins' ? { generatedBy: new Array(44).fill(null), related: new Array(3).fill(null) } : {}),
     };
   },
@@ -52,7 +52,7 @@ try {
     items: [{ cardId: 'heroes-1' }],
     pagination: { page: 2, perPage: 48, total: 1, totalPages: 1 },
     updatedAt: '2026-07-26T18:05:44Z',
-    source: 'db.kolodahs.ru',
+    source: 'api.kolodahearthstone.com',
   });
   assert.deepEqual(calls[0], {
     method: 'catalog',

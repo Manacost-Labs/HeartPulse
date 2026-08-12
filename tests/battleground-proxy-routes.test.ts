@@ -70,7 +70,7 @@ try {
     { kind: 'extra', upstream: 'heroes', enriched: false },
     { kind: 'app', upstream: '/api/bg/library/minions/123%2F456/history', enriched: false },
     { kind: 'app', upstream: '/api/bg/heroes/777/details', enriched: true },
-    { kind: 'app', upstream: 'https://api.hs-manacost.ru/api/bg/heroes', enriched: false },
+    { kind: 'app', upstream: 'https://api.kolodahearthstone.com/api/bg/heroes', enriched: false },
     { kind: 'extra', upstream: 'trinket', enriched: false },
   ]);
 } finally {

@@ -31,7 +31,7 @@ const rawSkin = {
 
 assert.equal(
   normalizeCosmeticMediaUrl('/uploads/hero-skins/static/HERO_11ai.png'),
-  'https://db.kolodahs.ru/uploads/hero-skins/static/HERO_11ai.png',
+  'https://api.kolodahearthstone.com/uploads/hero-skins/static/HERO_11ai.png',
 );
 assert.equal(normalizeCosmeticMediaUrl('javascript:alert(1)'), null);
 assert.equal(normalizeCosmeticMediaUrl('https://evil.example/image.png'), null);
@@ -45,7 +45,7 @@ assert.deepEqual(skin, {
   rarity: { slug: 'mythic', nameRu: 'Мифический' },
   categorySlugs: ['mythic_skins', '2500_runestone_skins'],
   images: {
-    static: 'https://db.kolodahs.ru/uploads/hero-skins/static/HERO_11ai.png',
+    static: 'https://api.kolodahearthstone.com/uploads/hero-skins/static/HERO_11ai.png',
     animated: 'https://hearthstone.wiki.gg/images/HERO_11ai.webm?rev=1',
   },
   releaseDate: '2025-02-18',
@@ -134,7 +134,7 @@ const pets = buildPetFamilies([
 assert.equal(pets.length, 2);
 assert.deepEqual(pets.map(family => family.petId), [9, 3], 'pet families must show newest releases first');
 assert.deepEqual(pets[1].variants.map(variant => variant.name), ['Classic Krush', 'Devilsaur Krush']);
-assert.equal(pets[1].variants[0].images.card, 'https://db.kolodahs.ru/uploads/pets/cards/PET_3_1.png');
+assert.equal(pets[1].variants[0].images.card, 'https://api.kolodahearthstone.com/uploads/pets/cards/PET_3_1.png');
 assert.equal('endScreen' in pets[1].variants[0].images, false, 'catalog must defer the End Screen to detail');
 
 assert.deepEqual(
@@ -149,7 +149,7 @@ assert.deepEqual(
 );
 
 const missingService = createCosmeticsDataService({
-  apiBaseUrl: 'https://db.kolodahs.ru/api/v1',
+  apiBaseUrl: 'https://api.kolodahearthstone.com/api/v1',
   localizedCardsUrl: 'https://example.test/cards.json',
   fetchJson: async () => {
     const error = new Error('missing') as Error & { status?: number };

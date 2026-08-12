@@ -19,8 +19,9 @@ export type CosmeticsDataService = {
   loadDetail: (kind: CosmeticKind, cardId: string) => Promise<JsonRecord | null>;
 };
 
-const DB_ORIGIN = 'https://db.kolodahs.ru';
+const DB_ORIGIN = 'https://api.kolodahearthstone.com';
 const ALLOWED_MEDIA_HOSTS = new Set([
+  'api.kolodahearthstone.com',
   'db.kolodahs.ru',
   'hearthstone.wiki.gg',
   'art.hearthstonejson.com',
@@ -478,7 +479,7 @@ export function createCosmeticsDataService(dependencies: CosmeticsDataServiceDep
             totalPages,
           },
           updatedAt: rows.map((row: JsonRecord) => cleanText(row?.updated_at, 40)).filter(Boolean).sort().at(-1) ?? null,
-          source: 'db.kolodahs.ru + HearthstoneJSON ruRU',
+          source: 'api.kolodahearthstone.com + HearthstoneJSON ruRU',
         };
       }
       const url = listUrl(kind, query);
@@ -493,7 +494,7 @@ export function createCosmeticsDataService(dependencies: CosmeticsDataServiceDep
           totalPages: finiteInteger(pagination?.total_pages) ?? 1,
         },
         updatedAt: rows.map((row: JsonRecord) => cleanText(row?.updated_at, 40)).filter(Boolean).sort().at(-1) ?? null,
-        source: 'db.kolodahs.ru',
+        source: 'api.kolodahearthstone.com',
       };
       if (kind === 'coins') return { ...buildCoinCatalog(rows, payload?.relations), ...base };
       return { items: buildPetFamilies(rows), ...base };
