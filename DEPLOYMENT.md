@@ -89,8 +89,10 @@ npm run release:create -- --output="$artifact" --sha="$sha"
 
 `release.json` records the commit, Node version, package-lock hash and SHA-256
 checksums for the compiled server, frontend entry point and lockfile. Manifest
-schema v2 also carries the five versioned nginx files, their origin/edge role,
-installation path, individual hashes and one aggregate contract hash.
+schema v2 also carries every versioned nginx contract file, its origin/edge
+role, installation path, individual hash and one aggregate contract hash. The
+manifest additionally checksums the versioned operational scripts and systemd
+units shipped with the artifact.
 `RELEASE_SHA` (or GitHub Actions' `GITHUB_SHA`) is compiled into the Vite entry
 chunk. This changes its content hash on every release and lets all imports use
 one canonical module URL; `release:create` rejects a bundle that does not

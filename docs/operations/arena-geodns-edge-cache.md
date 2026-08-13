@@ -62,6 +62,15 @@ files become hard links, while only changed files cross the network into the
 inactive version. Activation still occurs only after the complete file-count,
 byte-size, entry-document, and Nginx checks pass.
 
+The shared regional cache is bounded by the versioned
+`arena-edge-cache-path.conf`: `max_size=18g`, `inactive=7d`, and `min_free=8g`.
+The absolute reserve is required because Limburg has the smallest root volume.
+Frontend activation retains the active release and two additional successfully
+activated rollback trees. An incomplete prepared tree without its matching
+manifest never displaces a known-good rollback. Unknown directories and
+release-shaped symlinks are never cleanup targets; a removed immutable release
+can be republished from the origin.
+
 Mutable search metadata (`robots.txt`, `sitemap.xml`, and `/sitemaps/`) is never
 marked immutable. Hashed frontend assets and versioned card images use long
 browser cache lifetimes.
@@ -83,6 +92,10 @@ The versioned units and scripts are:
 - `deploy/arena-static-sync.sh` → `/usr/local/sbin/sync-arena-static`;
 - `deploy/activate-arena-static.sh` →
   `/usr/local/sbin/activate-arena-static` on every edge;
+- `deploy/monitor-arena-geodns.sh` →
+  `/usr/local/sbin/monitor-arena-geodns` on the origin;
+- `deploy/nginx/arena-edge-cache-path.conf` →
+  `/etc/nginx/conf.d/34-arena-edge-cache-path.conf` on every edge;
 - `deploy/systemd/arena-static-sync.{service,timer}` → `/etc/systemd/system/`;
 - `deploy/edge-static-sync.conf.example` documents the root-only topology file
   `/etc/hs-arena/edge-static-sync.conf`.
@@ -90,6 +103,20 @@ The versioned units and scripts are:
 After changing these files, run `npm run test:deployment`, install the scripts
 with mode `0755`, reload systemd, start the service once, and confirm that its
 second run reports every edge as already current without invoking rsync.
+
+The cache-path file replaces, rather than supplements, the historical
+`proxy_cache_path` declaration embedded in an edge vhost. Back up both files,
+remove exactly the old declaration and install the versioned file in one
+transaction. A temporary duplicate `hs_arena_cache` zone is invalid. Restore
+the backup automatically if `nginx -t` fails.
+
+The monitor fails when any edge has less than 8 GiB available, serves a
+different static release, omits gzip on the CDN JavaScript response, exposes a
+private API route on the CDN hostname, loses its local card mirror, or cannot
+serve the card through Timeweb. It also requires Timeweb HTML, runtime config
+and readiness responses to preserve the origin's `no-store` policy. Limburg is
+checked through both
+`162.19.220.14` and `2001:41d0:701:1100::709b`.
 
 Each PowerDNS node runs `dbip-country-update.timer`, which downloads and
 validates the current DB-IP Lite country database before replacing the active

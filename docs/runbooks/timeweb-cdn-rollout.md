@@ -69,3 +69,17 @@ window.__ARENA_RUNTIME_CONFIG__ = {
 ## Секреты
 
 API-токены Timeweb и Cloudflare не передаются клиенту, не записываются в runtime-конфигурацию и не хранятся в Git. Для автоматизации используется только отдельный серверный secret-файл с правами `0600`.
+
+## Политика браузерного кэша Timeweb
+
+Timeweb хранит успешные ответы на edge 30 дней, но не должен заменять браузерный `Cache-Control` единым TTL для всего origin. Параметр `config.cache.browser` должен быть `null`: тогда HTML, `/runtime-config.js` и API сохраняют собственный `no-store`, а изображения карт и хешированные ассеты сохраняют свои длинные публичные TTL.
+
+Перед изменением сохраните полный ответ `GET /api/v1/cdn/http-resources/{id}/configuration` в root-only файл с режимом `0600`. В первом изменении передавайте только:
+
+```json
+{"config":{"cache":{"browser":null}}}
+```
+
+Не совмещайте его со сменой origin, очисткой edge-кэша или оптимизацией изображений. Откат восстанавливает точный прежний объект `config.cache.browser` из снимка. Токен передаётся curl через config на stdin, а не через argv, environment или журнал.
+
+Timeweb не поддерживает path allowlist для HTTP-ресурса. Ограничение технического домена только картами требует отдельного origin-host с `GET/HEAD /api/card-image/**`, default 404 и root-managed секретным заголовком. Не включайте такой guard на текущем `arena.hs-manacost.ru`: этот host также обслуживает региональные proxy/fallback.

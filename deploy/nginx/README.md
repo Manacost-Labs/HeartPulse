@@ -35,6 +35,8 @@ Every public edge proxy must install `arena-card-local-maps.conf` as
 `/etc/nginx/conf.d/31-arena-card-local-maps.conf` and
 `arena-edge-client-region-map.conf` as
 `/etc/nginx/conf.d/33-arena-edge-client-region-map.conf` and
+`arena-edge-cache-path.conf` as
+`/etc/nginx/conf.d/34-arena-edge-cache-path.conf` and
 `arena-edge-region-forward.conf` as
 `/etc/nginx/snippets/arena-edge-region-forward.conf`, and
 `arena-edge-static-cache.conf` as
@@ -58,6 +60,11 @@ Both snippets expose only documented public paths, accept only `GET` and
 `HEAD`, and clear cookies and authorization before a remote fallback. They
 must never be included in the application server or widened to a generic API
 or file-extension match.
+
+The public-static snippet also enables gzip for textual files at CDN server
+scope. This is intentional: Russian nodes may select Brotli, while Limburg
+must not depend on a region-only compression module. Already-compressed card
+images are not included in `gzip_types` and keep their original bytes.
 
 Both the application and CDN hosts serve synchronized card images and frontend
 assets from `/srv/arena/.../current` first. A missing CDN card falls through to

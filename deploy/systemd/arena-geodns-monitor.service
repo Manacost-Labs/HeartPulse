@@ -1,0 +1,13 @@
+[Unit]
+Description=Validate Arena GeoDNS, regional edge and CDN health
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/monitor-arena-geodns
+TimeoutStartSec=120
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

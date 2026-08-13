@@ -16,6 +16,7 @@ const nginxContractFiles = [
   'deploy/nginx/arena-edge-region-map.conf',
   'deploy/nginx/arena-card-local-maps.conf',
   'deploy/nginx/arena-edge-client-region-map.conf',
+  'deploy/nginx/arena-edge-cache-path.conf',
   'deploy/nginx/arena-edge-region-forward.conf',
   'deploy/nginx/arena-edge-static-cache.conf',
   'deploy/nginx/arena-cdn-card-image-cache.conf',
@@ -26,10 +27,15 @@ const nginxContractFiles = [
 const systemdFiles = [
   'deploy/systemd/hs-arena-card-image-sync.service',
   'deploy/systemd/hs-arena-card-image-sync.timer',
+  'deploy/systemd/arena-geodns-monitor.service',
+  'deploy/systemd/arena-geodns-monitor.timer',
 ];
 const operationalFiles = [
+  'deploy/activate-arena-static.sh',
+  'deploy/arena-static-sync.sh',
   'deploy/activate-arena-card-images.sh',
   'deploy/arena-card-image-sync.sh',
+  'deploy/monitor-arena-geodns.sh',
 ];
 
 try {
@@ -94,7 +100,7 @@ try {
   assert.deepEqual(manifest.nginxContract.files.map(file => file.source), nginxContractFiles);
   assert.deepEqual(
     manifest.nginxContract.files.map(file => file.roles),
-    [['origin'], ['origin'], ['origin'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['origin'], ['origin']],
+    [['origin'], ['origin'], ['origin'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['origin'], ['origin']],
   );
   assert.deepEqual(
     manifest.nginxContract.files.map(file => file.installPath),
@@ -104,6 +110,7 @@ try {
       '/etc/nginx/conf.d/32-arena-edge-region-map.conf',
       '/etc/nginx/conf.d/31-arena-card-local-maps.conf',
       '/etc/nginx/conf.d/33-arena-edge-client-region-map.conf',
+      '/etc/nginx/conf.d/34-arena-edge-cache-path.conf',
       '/etc/nginx/snippets/arena-edge-region-forward.conf',
       '/etc/nginx/snippets/arena-edge-static-cache.conf',
       '/etc/nginx/snippets/arena-cdn-card-image-cache.conf',

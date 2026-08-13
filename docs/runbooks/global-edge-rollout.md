@@ -72,6 +72,11 @@ TTFB, total download time, response status, cache state, edge label, and
 release SHA. A real probe for America or Asia requires an Arena-controlled
 host in that region; a label generated from Europe is not a substitute.
 
+Operational probes additionally enforce at least 8 GiB free on every current
+edge, active-release equality, gzip delivery from the dedicated CDN hostname,
+the private-path 404 boundary and direct Timeweb card availability. The
+European check covers both Limburg IPv4 and its published IPv6 address.
+
 ## Static-plane checks
 
 For every canary asset:

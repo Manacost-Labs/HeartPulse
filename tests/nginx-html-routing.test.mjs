@@ -33,6 +33,10 @@ const edgeClientRegionMapSource = readFileSync(
   join(projectRoot, 'deploy/nginx/arena-edge-client-region-map.conf'),
   'utf8',
 );
+const edgeCachePathSource = readFileSync(
+  join(projectRoot, 'deploy/nginx/arena-edge-cache-path.conf'),
+  'utf8',
+);
 const routingSource = readFileSync(join(projectRoot, 'deploy/nginx/arena-html-routing.conf'), 'utf8');
 const edgeStaticSource = readFileSync(
   join(projectRoot, 'deploy/nginx/arena-edge-static-cache.conf'),
@@ -46,6 +50,15 @@ const cdnCardImageSource = readFileSync(
   join(projectRoot, 'deploy/nginx/arena-cdn-card-image-cache.conf'),
   'utf8',
 );
+
+assert.match(edgeCachePathSource, /max_size=18g/,
+  'the smallest edge must keep cache capacity below its root filesystem size');
+assert.match(edgeCachePathSource, /inactive=7d/,
+  'inactive entries must expire within the regional cache budget');
+assert.match(edgeCachePathSource, /min_free=8g/,
+  'cache eviction must preserve an absolute filesystem reserve');
+assert.match(cdnPublicStaticSource, /gzip_types[^;]*application\/javascript/,
+  'the CDN server must compress textual frontend assets on every region');
 const edgeCardMapSource = readFileSync(
   join(projectRoot, 'deploy/nginx/arena-card-local-maps.conf'),
   'utf8',

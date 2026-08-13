@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Prevented the Limburg edge cache from exhausting its disk, bounded all
+  regional caches with an absolute free-space reserve, added rollback-release
+  retention, and made the dedicated CDN host compress frontend assets in
+  Europe as well as Russia without changing card-image quality.
+- Expanded production edge monitoring to verify Limburg IPv4/IPv6, Moscow,
+  Novosibirsk, Timeweb card fallback, active release parity, disk reserve,
+  compressed asset integrity and the private CDN path boundary.
+- Removed Timeweb's global seven-day browser-cache override so HTML, runtime
+  configuration and APIs can preserve their safe origin cache policies while
+  card images keep the provider edge cache and full original resolution.
+
 - Migrated Arena datasets, Battlegrounds libraries, cosmetics and card media
   from the retiring `api.hs-manacost.ru` and `db.kolodahs.ru` hosts to the
   unified `api.kolodahearthstone.com` API, with a same-origin compatibility

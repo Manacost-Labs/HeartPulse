@@ -12,6 +12,7 @@ const nginxContractDefinitions = [
   { source: 'deploy/nginx/arena-edge-region-map.conf', installPath: '/etc/nginx/conf.d/32-arena-edge-region-map.conf', roles: ['origin'] },
   { source: 'deploy/nginx/arena-card-local-maps.conf', installPath: '/etc/nginx/conf.d/31-arena-card-local-maps.conf', roles: ['edge'] },
   { source: 'deploy/nginx/arena-edge-client-region-map.conf', installPath: '/etc/nginx/conf.d/33-arena-edge-client-region-map.conf', roles: ['edge'] },
+  { source: 'deploy/nginx/arena-edge-cache-path.conf', installPath: '/etc/nginx/conf.d/34-arena-edge-cache-path.conf', roles: ['edge'] },
   { source: 'deploy/nginx/arena-edge-region-forward.conf', installPath: '/etc/nginx/snippets/arena-edge-region-forward.conf', roles: ['edge'] },
   { source: 'deploy/nginx/arena-edge-static-cache.conf', installPath: '/etc/nginx/snippets/arena-edge-static-cache.conf', roles: ['edge'] },
   { source: 'deploy/nginx/arena-cdn-card-image-cache.conf', installPath: '/etc/nginx/snippets/arena-cdn-card-image-cache.conf', roles: ['edge'] },
@@ -23,10 +24,15 @@ const nginxContractFiles = nginxContractDefinitions.map(file => file.source);
 const systemdFiles = [
   'deploy/systemd/hs-arena-card-image-sync.service',
   'deploy/systemd/hs-arena-card-image-sync.timer',
+  'deploy/systemd/arena-geodns-monitor.service',
+  'deploy/systemd/arena-geodns-monitor.timer',
 ];
 const operationalFiles = [
+  'deploy/activate-arena-static.sh',
+  'deploy/arena-static-sync.sh',
   'deploy/activate-arena-card-images.sh',
   'deploy/arena-card-image-sync.sh',
+  'deploy/monitor-arena-geodns.sh',
 ];
 
 if (!output) throw new Error('Usage: node scripts/create-release.mjs --output=/path/to/release --sha=<git-sha>');
