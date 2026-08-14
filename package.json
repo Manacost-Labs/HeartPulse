@@ -146,7 +146,7 @@
     "test:auth-verification-routes": "tsx tests/auth-verification-routes.test.ts",
     "test:auth-credential-routes": "tsx tests/auth-credential-routes.test.ts",
     "test:auth-sessions": "tsx tests/auth-sessions.test.ts",
-    "test:admin-workspace-state": "tsx tests/admin-workspace-state.test.ts",
+    "test:admin-workspace-state": "tsx tests/admin-workspace-state.test.ts && tsx tests/admin-workspace-shell.test.tsx",
     "test:backup": "bash tests/backup-restore.test.sh && bash tests/backup-replication.test.sh",
     "test:release": "node tests/create-release.test.mjs",
     "test:snapshots": "tsx tests/snapshots.test.ts",

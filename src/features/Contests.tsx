@@ -4,20 +4,17 @@ import {
   CircleDollarSign,
   ChartNoAxesCombined,
   Database,
-  ExternalLink,
   Gift,
   Image as ImageIcon,
   LayoutDashboard,
   Link2,
   Mail,
-  Menu,
   MessageCircle,
   Newspaper,
   ShieldCheck,
   Sparkles,
   Trophy,
   Users,
-  X,
 } from 'lucide-react';
 import './contests.css';
 import {
@@ -72,11 +69,16 @@ import {
 } from './ContestAdminContests';
 import { ADMIN_INPUT } from './contestAdminUi';
 import {
+  ADMIN_DRAWER_MEDIA_QUERY,
   adminWorkspaceReducer,
   createAdminWorkspaceState,
   type AdminMessage,
   type AdminWorkspaceSection,
 } from './adminWorkspaceState';
+
+const AdminWorkspaceShell = React.lazy(
+  () => import('../modules/adminWorkspace/AdminWorkspaceShell.lazy'),
+);
 
 const ContestAdminTranslations = React.lazy(async () => {
   const module = await import('./ContestAdminTranslations');
@@ -422,6 +424,7 @@ const ADMIN_NAV_ITEMS: ReadonlyArray<{
   { id: 'contests', label: 'Конкурсы', caption: 'Заявки, статусы и победители', status: 'Сохранение по кнопке', group: 'Рост', icon: Trophy },
   { id: 'referrals', label: 'Реферальные ссылки', caption: 'Кампании и статистика кликов', status: 'Сохранение по кнопке', group: 'Рост', icon: Link2 },
 ];
+const CONTEST_ADMIN_NAV_ITEMS = ADMIN_NAV_ITEMS.filter(item => item.id === 'contests');
 
 const ADMIN_USERS_PAGE_SIZE = 20;
 const ADMIN_ARTICLES_PAGE_SIZE = 12;
@@ -589,7 +592,17 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   }, [hasFullAdminAccess]);
 
   useEffect(() => {
-    if (!adminMenuOpen) return;
+    const drawerMedia = window.matchMedia(ADMIN_DRAWER_MEDIA_QUERY);
+    const closeDrawerOnDesktop = () => {
+      if (!drawerMedia.matches) dispatchAdminWorkspace({ type: 'closeAdminMenu' });
+    };
+    closeDrawerOnDesktop();
+    drawerMedia.addEventListener('change', closeDrawerOnDesktop);
+    return () => drawerMedia.removeEventListener('change', closeDrawerOnDesktop);
+  }, []);
+
+  useEffect(() => {
+    if (!adminMenuOpen || !window.matchMedia(ADMIN_DRAWER_MEDIA_QUERY).matches) return;
     const menuButton = adminMenuButtonRef.current;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -1487,90 +1500,25 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
   const previewEndsAt = form.endsAt ? formatDate(form.endsAt) : 'без даты окончания';
   const totalReferralClicks = referrals.reduce((sum, item) => sum + (item.clicks || 0), 0);
   const totalContestEntries = contests.reduce((sum, item) => sum + (item.entriesCount || 0), 0);
-  const adminNav = hasFullAdminAccess ? ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS.filter(item => item.id === 'contests');
-  const activeAdminItem = adminNav.find(item => item.id === adminSection) || adminNav[0];
+  const adminNav = hasFullAdminAccess ? ADMIN_NAV_ITEMS : CONTEST_ADMIN_NAV_ITEMS;
 
   return (
-    <section className="contest-admin-page admin-workspace-page">
-      <header className="admin-command-bar">
-        <button
-          ref={adminMenuButtonRef}
-          type="button"
-          className="admin-menu-toggle"
-          onClick={() => dispatchAdminWorkspace({ type: 'toggleAdminMenu' })}
-          aria-expanded={adminMenuOpen}
-          aria-controls="admin-primary-navigation"
-          aria-label={adminMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
-        >
-          {adminMenuOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
-        <a href="/" className="admin-command-brand" aria-label="Manacost Admin — открыть сайт">
-          <span>Manacost</span>
-          <em>Admin</em>
-        </a>
-        <div className="admin-command-actions">
-          <span className="admin-system-pulse"><i />Доступ подтверждён</span>
-          <a href="/" target="_blank" rel="noreferrer">
-            Открыть сайт <ExternalLink size={15} />
-          </a>
-          <span className="admin-user-chip" title={authUser?.email || ''}>{authUser?.name || authUser?.email || 'Администратор'}</span>
-        </div>
-      </header>
-
-      {message && (
-        <div className={`contest-message contest-message-${message.type} admin-toast`} role={message.type === 'err' ? 'alert' : 'status'} aria-live="polite">
-          <span>{message.text}</span>
-          <button type="button" onClick={() => setMessage(null)} aria-label="Закрыть уведомление"><X size={17} /></button>
-        </div>
-      )}
-
-      <div className="admin-workspace-layout">
-        {adminMenuOpen && <button type="button" className="admin-nav-backdrop" onClick={() => dispatchAdminWorkspace({ type: 'closeAdminMenu' })} aria-label="Закрыть меню" />}
-        <aside
-          ref={adminNavRef}
-          className={`admin-workspace-nav ${adminMenuOpen ? 'is-open' : ''}`}
-          aria-label="Разделы админ панели"
-          role={adminMenuOpen ? 'dialog' : undefined}
-          aria-modal={adminMenuOpen ? true : undefined}
-        >
-          <div className="admin-nav-intro">
-            <span className="admin-mana-crystal" aria-hidden="true" />
-            <div><strong>Редакторская колода</strong><span>{hasFullAdminAccess ? 'Полный доступ' : 'Управление конкурсами'}</span></div>
-          </div>
-          <nav id="admin-primary-navigation" className="admin-workspace-nav-list">
-            {adminNav.map((item, index) => {
-              const Icon = item.icon;
-              const showGroup = index === 0 || adminNav[index - 1]?.group !== item.group;
-              return (
-                <React.Fragment key={item.id}>
-                  {showGroup && <span className="admin-nav-group">{item.group}</span>}
-                  <button
-                    type="button"
-                    className={adminSection === item.id ? 'is-active' : ''}
-                    aria-current={adminSection === item.id ? 'page' : undefined}
-                    onClick={() => changeAdminSection(item.id)}
-                  >
-                    <Icon size={18} aria-hidden="true" />
-                    <span><strong>{item.label}</strong><small>{item.caption}</small></span>
-                  </button>
-                </React.Fragment>
-              );
-            })}
-          </nav>
-          <a className="admin-nav-site-link" href="/" target="_blank" rel="noreferrer">
-            <ExternalLink size={17} /> Открыть публичный сайт
-          </a>
-        </aside>
-
-        <div className="admin-workspace-content" id={`admin-section-${adminSection}`} role="region" aria-labelledby="admin-section-title">
-          <div className="admin-section-header">
-            <div>
-              <span>Manacost / Админка</span>
-              <h1 id="admin-section-title">{activeAdminItem?.label}</h1>
-              <p>{activeAdminItem?.caption}</p>
-            </div>
-            <div className="admin-section-status"><i />{activeAdminItem?.status}</div>
-          </div>
+    <React.Suspense fallback={<output className="admin-access-state">Загружаем админ-панель…</output>}>
+      <AdminWorkspaceShell
+        navigation={adminNav}
+        activeSection={adminSection}
+        menuOpen={adminMenuOpen}
+        accessLabel={hasFullAdminAccess ? 'Полный доступ' : 'Управление конкурсами'}
+        userLabel={authUser?.name || authUser?.email || 'Администратор'}
+        userTitle={authUser?.email || undefined}
+        message={message}
+        menuButtonRef={adminMenuButtonRef}
+        navigationRef={adminNavRef}
+        onToggleMenu={() => dispatchAdminWorkspace({ type: 'toggleAdminMenu' })}
+        onCloseMenu={() => dispatchAdminWorkspace({ type: 'closeAdminMenu' })}
+        onNavigate={changeAdminSection}
+        onDismissMessage={() => setMessage(null)}
+      >
           {hasFullAdminAccess && adminSection === 'dashboard' && (
             <ContestAdminDashboard
               articleCount={adminArticles.length}
@@ -1801,8 +1749,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
               onSubmit={submitReferral}
             />
           )}
-        </div>
-      </div>
-    </section>
+      </AdminWorkspaceShell>
+    </React.Suspense>
   );
 }

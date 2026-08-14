@@ -1,0 +1,67 @@
+.admin-shell-story-stats,
+.admin-shell-story-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.admin-shell-story-grid {
+  margin-top: 16px;
+}
+
+.admin-shell-story-stats > div,
+.admin-shell-story-card {
+  padding: 18px 20px;
+  border: 1px solid var(--admin-divider);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+}
+
+.admin-shell-story-stats > div {
+  min-height: 116px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.admin-shell-story-stats span,
+.admin-shell-story-stats small,
+.admin-shell-story-muted {
+  color: var(--admin-muted);
+}
+
+.admin-shell-story-stats strong {
+  margin: 5px 0;
+  color: var(--admin-ink);
+  font-size: clamp(1.35rem, 1.8vw, 1.85rem);
+}
+
+.admin-shell-story-card h2,
+.admin-shell-story-card p {
+  margin: 0;
+}
+
+.admin-shell-story-actions {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-shell-story-actions button {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--admin-divider-strong);
+  border-radius: 8px;
+  color: #344054;
+  background: #fff;
+}
+
+@media (max-width: 640px) {
+  .admin-shell-story-stats,
+  .admin-shell-story-grid,
+  .admin-shell-story-actions {
+    grid-template-columns: 1fr;
+  }
+}

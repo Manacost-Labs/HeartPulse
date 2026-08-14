@@ -1,0 +1,852 @@
+/* TailAdmin-inspired application shell. Product workflows keep their feature CSS. */
+
+.admin-workspace-page.admin-tailadmin-shell {
+  --admin-bar-h: 72px;
+  --admin-nav-w: 280px;
+  --admin-ink: #1d2939;
+  --admin-muted: #5d6875;
+  --admin-canvas: #f5f7fb;
+  --admin-surface: #fff;
+  --admin-surface-soft: #f9fafb;
+  --admin-divider: #e4e7ec;
+  --admin-divider-strong: #d0d5dd;
+  --admin-navy: #101828;
+  --admin-navy-soft: #1d2939;
+  --admin-blue: #168bd2;
+  --admin-blue-dark: #0d6fae;
+  --admin-blue-soft: #eff8ff;
+  --admin-gold: #d5a33a;
+  --admin-danger: #b32d2e;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  color: var(--admin-ink);
+  background: var(--admin-canvas);
+  color-scheme: light;
+  font-family: var(--font-body), Inter, system-ui, sans-serif;
+}
+
+.admin-tailadmin-shell *,
+.admin-tailadmin-shell *::before,
+.admin-tailadmin-shell *::after {
+  box-sizing: border-box;
+}
+
+.admin-tailadmin-shell .admin-command-bar {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 100;
+  height: var(--admin-bar-h);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: var(--admin-ink);
+  background: rgba(255, 255, 255, 0.98);
+  border-bottom: 1px solid var(--admin-divider);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  backdrop-filter: blur(12px);
+}
+
+.admin-tailadmin-shell .admin-command-brand {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--admin-ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.admin-tailadmin-shell .admin-command-logo {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  position: relative;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+.admin-tailadmin-shell .admin-command-logo::before {
+  width: 23px;
+  height: 28px;
+  content: '';
+  clip-path: polygon(50% 0, 94% 28%, 80% 82%, 50% 100%, 20% 82%, 6% 28%);
+  background: linear-gradient(145deg, #99ecff 0%, #21b8dd 48%, #087cb9 100%);
+  filter: drop-shadow(0 0 7px rgba(53, 189, 248, 0.32));
+}
+
+.admin-tailadmin-shell .admin-command-logo::after {
+  position: absolute;
+  width: 7px;
+  height: 13px;
+  content: '';
+  clip-path: polygon(50% 0, 100% 100%, 0 75%);
+  background: rgba(255, 255, 255, 0.64);
+}
+
+.admin-tailadmin-shell .admin-command-name {
+  color: var(--admin-ink);
+  font-family: var(--font-body), Inter, system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 780;
+  letter-spacing: -0.02em;
+}
+
+.admin-tailadmin-shell .admin-command-brand em {
+  padding: 3px 7px;
+  border: 1px solid #b9e6fe;
+  border-radius: 6px;
+  color: #026aa2;
+  background: #f0f9ff;
+  font-size: 0.66rem;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-tailadmin-shell .admin-menu-toggle {
+  display: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--admin-divider);
+  border-radius: 10px;
+  color: #344054;
+  background: #fff;
+  cursor: pointer;
+}
+
+.admin-tailadmin-shell .admin-menu-toggle:hover {
+  border-color: var(--admin-divider-strong);
+  background: var(--admin-surface-soft);
+}
+
+.admin-tailadmin-shell .admin-command-actions {
+  min-width: 0;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-tailadmin-shell .admin-command-actions > a,
+.admin-tailadmin-shell .admin-user-chip,
+.admin-tailadmin-shell .admin-system-pulse {
+  min-height: 40px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--admin-divider);
+  border-radius: 10px;
+  color: #475467;
+  background: #fff;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.admin-tailadmin-shell .admin-command-actions > a:hover {
+  border-color: #b2ddff;
+  color: var(--admin-blue-dark);
+  background: var(--admin-blue-soft);
+}
+
+.admin-tailadmin-shell .admin-system-pulse {
+  border-color: #abefc6;
+  color: #067647;
+  background: #ecfdf3;
+}
+
+.admin-tailadmin-shell .admin-user-chip {
+  max-width: 260px;
+  padding-left: 5px;
+  color: #344054;
+  background: var(--admin-surface-soft);
+  overflow: hidden;
+}
+
+.admin-tailadmin-shell .admin-user-chip b {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 8px;
+  color: #fff;
+  background: #344054;
+  font-size: 0.72rem;
+}
+
+.admin-tailadmin-shell .admin-user-chip > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-tailadmin-shell .admin-system-pulse i,
+.admin-tailadmin-shell .admin-section-status i {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #36c98f;
+  box-shadow: 0 0 0 3px rgba(54, 201, 143, 0.13);
+}
+
+.admin-tailadmin-shell .admin-workspace-layout {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: block;
+  padding: var(--admin-bar-h) 0 0 var(--admin-nav-w);
+  background: var(--admin-canvas);
+}
+
+.admin-tailadmin-shell .admin-workspace-nav {
+  position: fixed;
+  inset: var(--admin-bar-h) auto 0 0;
+  z-index: 85;
+  width: var(--admin-nav-w);
+  height: auto;
+  max-height: none;
+  padding: 18px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  color: #d0d5dd;
+  background: var(--admin-navy);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  scrollbar-color: #344054 transparent;
+}
+
+.admin-tailadmin-shell .admin-nav-intro {
+  min-height: 64px;
+  padding: 8px 10px 16px;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-tailadmin-shell .admin-nav-intro-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.admin-tailadmin-shell .admin-nav-intro strong,
+.admin-tailadmin-shell .admin-nav-intro-copy > span {
+  display: block;
+}
+
+.admin-tailadmin-shell .admin-nav-intro strong {
+  color: #f9fafb;
+  font-size: 0.83rem;
+  font-weight: 750;
+}
+
+.admin-tailadmin-shell .admin-nav-intro div > span {
+  margin-top: 3px;
+  color: #98a2b3;
+  font-size: 0.69rem;
+}
+
+.admin-tailadmin-shell .admin-mana-crystal {
+  position: relative;
+  width: 27px;
+  height: 32px;
+  flex: 0 0 auto;
+  clip-path: polygon(50% 0, 94% 28%, 80% 82%, 50% 100%, 20% 82%, 6% 28%);
+  background: linear-gradient(145deg, #99ecff 0%, #21b8dd 48%, #087cb9 100%);
+  filter: drop-shadow(0 0 8px rgba(53, 189, 248, 0.32));
+}
+
+.admin-tailadmin-shell .admin-mana-crystal::after {
+  position: absolute;
+  inset: 5px 8px 9px;
+  content: '';
+  clip-path: polygon(50% 0, 100% 100%, 0 75%);
+  background: rgba(255, 255, 255, 0.64);
+}
+
+.admin-tailadmin-shell .admin-workspace-nav-list {
+  min-height: 0;
+  padding-right: 3px;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 10px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.admin-tailadmin-shell .admin-nav-cluster {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 3px;
+}
+
+.admin-tailadmin-shell .admin-nav-group {
+  margin: 8px 10px 5px;
+  color: #98a2b3;
+  font-size: 0.63rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-tailadmin-shell .admin-workspace-nav-list button {
+  position: relative;
+  width: 100%;
+  min-height: 44px;
+  padding: 9px 10px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #d0d5dd;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transform: none;
+}
+
+.admin-tailadmin-shell .admin-workspace-nav-list button:hover {
+  border-color: rgba(255, 255, 255, 0.07);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  transform: none;
+}
+
+.admin-tailadmin-shell .admin-workspace-nav-list button.is-active {
+  border-color: rgba(83, 177, 253, 0.18);
+  color: #fff;
+  background: #1d2939;
+  box-shadow: inset 3px 0 0 #36bffa;
+}
+
+.admin-tailadmin-shell .admin-workspace-nav-list button > svg {
+  color: #98a2b3;
+}
+
+.admin-tailadmin-shell .admin-workspace-nav-list button > span,
+.admin-tailadmin-shell .admin-workspace-nav-list button strong,
+.admin-tailadmin-shell .admin-workspace-nav-list button small {
+  min-width: 0;
+  margin: 0;
+  display: block;
+}
+
+.admin-tailadmin-shell .admin-workspace-nav-list button.is-active > svg {
+  color: #36bffa;
+}
+
+.admin-tailadmin-shell .admin-workspace-nav-list button strong {
+  overflow: hidden;
+  color: #d0d5dd;
+  font-size: 0.78rem;
+  font-weight: 680;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-tailadmin-shell .admin-workspace-nav-list button.is-active strong {
+  color: #f9fafb;
+}
+
+.admin-tailadmin-shell .admin-workspace-nav-list button small {
+  display: none;
+}
+
+.admin-tailadmin-shell .admin-nav-close {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: none;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: #f9fafb;
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+}
+
+.admin-tailadmin-shell .admin-nav-site-link {
+  min-height: 44px;
+  margin-top: auto;
+  padding: 10px;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: #b9c0cc;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.75rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.admin-tailadmin-shell .admin-nav-site-link:hover {
+  border-color: rgba(54, 191, 250, 0.28);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.admin-tailadmin-shell .admin-nav-backdrop {
+  display: none;
+}
+
+.admin-tailadmin-shell .admin-workspace-content {
+  min-width: 0;
+  min-height: calc(100vh - var(--admin-bar-h));
+  min-height: calc(100dvh - var(--admin-bar-h));
+  padding: clamp(24px, 3vw, 36px) clamp(20px, 3.2vw, 40px) 64px;
+  border: 0;
+  border-radius: 0;
+  background: var(--admin-canvas);
+  box-shadow: none;
+}
+
+.admin-tailadmin-shell .admin-workspace-content > * {
+  width: min(100%, 1480px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.admin-tailadmin-shell .admin-section-header {
+  min-height: 88px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--admin-divider);
+}
+
+.admin-tailadmin-shell .admin-section-header span,
+.admin-tailadmin-shell .admin-section-header p,
+.admin-tailadmin-shell .admin-section-header h1 {
+  margin: 0;
+}
+
+.admin-tailadmin-shell .admin-section-header > div:first-child > span {
+  color: var(--admin-muted);
+  font-size: 0.7rem;
+  font-weight: 760;
+  letter-spacing: 0.02em;
+}
+
+.admin-tailadmin-shell .admin-section-header h1 {
+  margin-top: 4px;
+  color: var(--admin-ink);
+  font-size: clamp(1.65rem, 2vw, 2rem);
+  font-weight: 730;
+  letter-spacing: -0.035em;
+}
+
+.admin-tailadmin-shell .admin-section-header p {
+  max-width: 720px;
+  margin-top: 6px;
+  color: var(--admin-muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.admin-tailadmin-shell .admin-section-status {
+  min-height: 36px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--admin-divider);
+  border-radius: 8px;
+  color: #475467;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+  font-size: 0.7rem;
+  font-weight: 720;
+  white-space: nowrap;
+}
+
+.admin-tailadmin-shell .admin-toast {
+  position: fixed;
+  top: 88px;
+  right: 24px;
+  min-height: 52px;
+  z-index: 110;
+  width: min(calc(100vw - 48px), 460px);
+  margin: 0;
+  padding: 10px 10px 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--admin-divider);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(16, 24, 40, 0.16);
+}
+
+.admin-tailadmin-shell .admin-toast > span {
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.admin-tailadmin-shell .admin-toast button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  color: currentColor;
+  background: transparent;
+  cursor: pointer;
+}
+
+.admin-tailadmin-shell .admin-toast button:hover {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+.admin-tailadmin-shell .admin-toast.contest-message-ok {
+  border-left: 4px solid #12b76a;
+  color: #067647;
+}
+
+.admin-tailadmin-shell .admin-toast.contest-message-err {
+  border-left: 4px solid var(--admin-danger);
+  color: var(--admin-danger);
+}
+
+.admin-tailadmin-shell .contest-admin-card,
+.admin-tailadmin-shell .contest-empty {
+  border-color: var(--admin-divider);
+  border-radius: 12px;
+  background: var(--admin-surface);
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.03);
+}
+
+.admin-tailadmin-shell .contest-admin-card {
+  padding: clamp(16px, 2vw, 22px);
+  gap: 14px;
+}
+
+.admin-tailadmin-shell .contest-admin-card h2 {
+  color: var(--admin-ink);
+  font-size: 1rem;
+  font-weight: 720;
+}
+
+.admin-tailadmin-shell .admin-stat-grid {
+  gap: 16px;
+}
+
+.admin-tailadmin-shell .admin-stat-grid > div {
+  min-height: 116px;
+  padding: 18px 20px;
+  border-color: var(--admin-divider);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+}
+
+.admin-tailadmin-shell .admin-stat-grid strong {
+  margin: 5px 0;
+  font-size: clamp(1.35rem, 1.8vw, 1.85rem);
+  font-weight: 720;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.admin-tailadmin-shell .admin-list-toolbar,
+.admin-tailadmin-shell .admin-page-toolbar {
+  padding: 12px;
+  border-color: var(--admin-divider);
+  border-radius: 10px;
+  background: var(--admin-surface-soft);
+}
+
+.admin-tailadmin-shell input,
+.admin-tailadmin-shell textarea,
+.admin-tailadmin-shell select {
+  border-color: var(--admin-divider-strong);
+  border-radius: 8px;
+  color: var(--admin-ink);
+  background: #fff;
+}
+
+.admin-tailadmin-shell input:focus,
+.admin-tailadmin-shell textarea:focus,
+.admin-tailadmin-shell select:focus {
+  outline: 3px solid rgba(22, 139, 210, 0.15);
+  box-shadow: none;
+}
+
+.admin-tailadmin-shell button:focus-visible,
+.admin-tailadmin-shell a:focus-visible {
+  outline: 3px solid rgba(22, 139, 210, 0.38);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.admin-tailadmin-shell .contest-primary-button {
+  min-height: 42px;
+  border-radius: 8px;
+  border-color: var(--admin-blue-dark);
+  background: var(--admin-blue-dark);
+  font-weight: 720;
+}
+
+.admin-tailadmin-shell .contest-secondary-button,
+.admin-tailadmin-shell .admin-quick-actions button,
+.admin-tailadmin-shell .admin-referral-row button,
+.admin-tailadmin-shell .admin-article-row button,
+.admin-tailadmin-shell .admin-image-uploader-head button {
+  min-height: 42px;
+  border-color: var(--admin-divider-strong);
+  border-radius: 8px;
+  color: #344054;
+  background: #fff;
+}
+
+.admin-tailadmin-shell .contest-secondary-button:hover:not(:disabled),
+.admin-tailadmin-shell .admin-quick-actions button:hover:not(:disabled),
+.admin-tailadmin-shell .admin-article-row button:hover:not(:disabled) {
+  border-color: #84caff;
+  color: var(--admin-blue-dark);
+  background: var(--admin-blue-soft);
+}
+
+.admin-tailadmin-shell .admin-article-row,
+.admin-tailadmin-shell .admin-referral-row,
+.admin-tailadmin-shell .admin-referral-clicks div,
+.admin-tailadmin-shell .admin-gallery-row,
+.admin-tailadmin-shell .admin-contest-list > div,
+.admin-tailadmin-shell .contest-entry-row,
+.admin-tailadmin-shell .contest-user-row {
+  border-color: var(--admin-divider);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.admin-tailadmin-shell .admin-pagination {
+  border-top-color: var(--admin-divider);
+}
+
+.admin-tailadmin-shell .admin-pagination button {
+  min-height: 40px;
+  border-color: var(--admin-divider-strong);
+  border-radius: 8px;
+}
+
+@media (max-width: 1160px) {
+  .admin-tailadmin-shell .admin-system-pulse {
+    display: none;
+  }
+}
+
+@media (max-width: 1023px) {
+  .admin-workspace-page.admin-tailadmin-shell {
+    --admin-bar-h: 64px;
+  }
+
+  .admin-tailadmin-shell .admin-command-bar {
+    height: var(--admin-bar-h);
+    padding: 0 16px;
+  }
+
+  .admin-tailadmin-shell .admin-menu-toggle {
+    display: grid;
+  }
+
+  .admin-tailadmin-shell .admin-command-brand,
+  .admin-tailadmin-shell .admin-command-actions > a,
+  .admin-tailadmin-shell .admin-toast button {
+    min-height: 44px;
+  }
+
+  .admin-tailadmin-shell .admin-toast button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .admin-tailadmin-shell .contest-primary-button,
+  .admin-tailadmin-shell .contest-secondary-button,
+  .admin-tailadmin-shell .admin-quick-actions button,
+  .admin-tailadmin-shell .admin-referral-row button,
+  .admin-tailadmin-shell .admin-article-row button,
+  .admin-tailadmin-shell .admin-image-uploader-head button,
+  .admin-tailadmin-shell .admin-pagination button {
+    min-height: 44px;
+  }
+
+  .admin-tailadmin-shell .admin-workspace-layout {
+    padding: var(--admin-bar-h) 0 0;
+  }
+
+  .admin-tailadmin-shell .admin-workspace-nav {
+    inset: var(--admin-bar-h) auto 0 0;
+    z-index: 110;
+    width: min(88vw, 320px);
+    visibility: hidden;
+    transform: translateX(-102%);
+    transition: transform 180ms ease, visibility 0s linear 180ms;
+    box-shadow: 20px 0 44px rgba(16, 24, 40, 0.28);
+  }
+
+  .admin-tailadmin-shell .admin-workspace-nav.is-open {
+    visibility: visible;
+    transform: translateX(0);
+    transition-delay: 0s;
+  }
+
+  .admin-tailadmin-shell .admin-nav-close {
+    display: grid;
+  }
+
+  .admin-tailadmin-shell .admin-nav-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 105;
+    display: block;
+    border: 0;
+    background: rgba(16, 24, 40, 0.58);
+    backdrop-filter: blur(2px);
+  }
+
+  .admin-tailadmin-shell .admin-workspace-content {
+    min-height: calc(100vh - var(--admin-bar-h));
+    min-height: calc(100dvh - var(--admin-bar-h));
+    padding: 24px 18px 48px;
+  }
+
+  .admin-tailadmin-shell .admin-section-status {
+    display: none;
+  }
+
+  .admin-tailadmin-shell .admin-toast {
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    width: calc(100vw - 24px);
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-tailadmin-shell .admin-command-bar {
+    padding: 0 12px;
+    gap: 10px;
+  }
+
+  .admin-tailadmin-shell .admin-command-logo {
+    width: 36px;
+    height: 36px;
+  }
+
+  .admin-tailadmin-shell .admin-command-name {
+    font-size: 0.9rem;
+  }
+
+  .admin-tailadmin-shell .admin-command-brand em,
+  .admin-tailadmin-shell .admin-user-chip {
+    display: none;
+  }
+
+  .admin-tailadmin-shell .admin-command-actions > a {
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+    justify-content: center;
+    font-size: 0;
+  }
+
+  .admin-tailadmin-shell .admin-workspace-content {
+    padding: 20px 12px 40px;
+  }
+
+  .admin-tailadmin-shell .admin-section-header {
+    min-height: 0;
+    margin-bottom: 18px;
+    padding-bottom: 16px;
+  }
+
+  .admin-tailadmin-shell .admin-section-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .admin-tailadmin-shell .admin-stat-grid {
+    gap: 10px;
+  }
+
+  .admin-tailadmin-shell .admin-stat-grid > div {
+    min-height: 96px;
+    padding: 14px;
+  }
+
+  .admin-tailadmin-shell .contest-admin-card {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 390px) {
+  .admin-tailadmin-shell .admin-command-brand {
+    min-width: 44px;
+    justify-content: center;
+  }
+
+  .admin-tailadmin-shell .admin-command-name {
+    display: none;
+  }
+
+  .admin-tailadmin-shell .admin-workspace-content {
+    padding-inline: 10px;
+  }
+
+  .admin-tailadmin-shell .admin-stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-tailadmin-shell .admin-workspace-nav {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .admin-tailadmin-shell .admin-command-logo,
+  .admin-tailadmin-shell .admin-user-chip b,
+  .admin-tailadmin-shell .admin-workspace-nav {
+    color: CanvasText;
+    background: Canvas;
+    border-color: CanvasText;
+  }
+
+  .admin-tailadmin-shell .admin-workspace-nav-list button.is-active {
+    border: 2px solid Highlight;
+    color: CanvasText;
+    background: Canvas;
+    box-shadow: none;
+  }
+}

@@ -17,3 +17,14 @@
 .storybook-manacost-surface > .draft-assistant-story-shell {
   width: min(100%, 82rem);
 }
+
+.sb-main-fullscreen .storybook-manacost-surface:has(> .admin-tailadmin-shell) {
+  padding: 0;
+  background: #f5f7fb;
+}
+
+.storybook-manacost-surface > .admin-tailadmin-shell {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}

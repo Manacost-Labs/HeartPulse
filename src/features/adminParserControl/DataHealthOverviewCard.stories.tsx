@@ -3,6 +3,7 @@ import { expect, fn, userEvent, within } from 'storybook/test';
 import { DataHealthOverviewCard } from './DataHealthOverviewCard';
 import { normalizeParserControl } from './normalize';
 import '../contests.css';
+import '../../modules/adminWorkspace/adminWorkspace.css';
 import './DataHealthOverviewCard.css';
 
 const healthySnapshot = normalizeParserControl({
@@ -57,7 +58,7 @@ const degradedSnapshot = normalizeParserControl({
 const meta = {
   title: 'Admin/Мониторинг данных',
   component: DataHealthOverviewCard,
-  decorators: [Story => <main className="admin-workspace-page"><Story /></main>],
+  decorators: [Story => <main className="admin-workspace-page admin-tailadmin-shell"><Story /></main>],
   parameters: { layout: 'padded' },
   args: {
     refreshing: false,

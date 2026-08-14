@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import {
+  ADMIN_DRAWER_MEDIA_QUERY,
   adminWorkspaceReducer,
   createAdminWorkspaceState,
 } from '../src/features/adminWorkspaceState.js';
+
+assert.equal(ADMIN_DRAWER_MEDIA_QUERY, '(max-width: 1023px)');
 
 const initial = createAdminWorkspaceState('dashboard');
 assert.deepEqual(initial, {

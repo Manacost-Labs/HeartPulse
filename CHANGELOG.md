@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Rebuilt the administrator workspace shell with an original TailAdmin-inspired
+  React layout: a clean command header, grouped navigation, consistent cards,
+  responsive drawer and accessible status states, while preserving all access,
+  URL, focus-management and section workflows; its assets now load only inside
+  the authenticated admin workspace, making the public contests route lighter.
+
 - Prevented the Limburg edge cache from exhausting its disk, bounded all
   regional caches with an absolute free-space reserve, added rollback-release
   retention, and made the dedicated CDN host compress frontend assets in

@@ -3,6 +3,7 @@ import { expect, fn, userEvent } from 'storybook/test';
 import type { ArenaCombination, ArenaSynergyPayload } from '../../shared/arenaSynergyContract';
 import { ArenaSynergyPanel } from './ContestAdminArenaSynergies';
 import './contests.css';
+import '../modules/adminWorkspace/adminWorkspace.css';
 
 const payload: ArenaSynergyPayload = {
   schemaVersion: 2,
@@ -325,7 +326,7 @@ const meta = {
   render: args => <ArenaSynergyPanel {...args} />,
   decorators: [
     Story => (
-      <div className="admin-workspace-page">
+      <div className="admin-workspace-page admin-tailadmin-shell">
         <Story />
       </div>
     ),

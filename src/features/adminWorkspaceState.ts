@@ -1,5 +1,8 @@
 export type AdminMessage = { type: 'ok' | 'err'; text: string };
 
+// Keep this media query aligned with the drawer breakpoint in adminWorkspace.css.
+export const ADMIN_DRAWER_MEDIA_QUERY = '(max-width: 1023px)';
+
 export type AdminWorkspaceSection =
   | 'dashboard'
   | 'users'
