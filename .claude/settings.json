@@ -11,6 +11,27 @@
             "async": true
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/claude-format-hook.mjs\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat >/dev/null; test -z \"$(git -C \"$CLAUDE_PROJECT_DIR\" status --porcelain)\" || echo 'Есть незакоммиченные изменения — закоммить перед завершением (скилл checkpoint-commit).' >&2",
+            "timeout": 15
+          }
+        ]
       }
     ]
   }
