@@ -1,7 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
-    "api/*.js",
     "scripts/*.{js,mjs}",
     ".storybook/**/*.{ts,tsx}",
     "src/**/*.stories.{ts,tsx}"
@@ -10,7 +9,6 @@
     "src/**/*.{ts,tsx,css,mdx}",
     ".storybook/**/*.{ts,tsx,css}",
     "server/**/*.ts",
-    "api/*.js",
     "scripts/*.{js,mjs}"
   ],
   "ignore": [

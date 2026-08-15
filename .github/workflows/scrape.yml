@@ -29,7 +29,7 @@ jobs:
       # Install all dependencies.
       #    puppeteer@22 downloads Chrome automatically during npm ci
       #    UNLESS PUPPETEER_SKIP_DOWNLOAD=true — we intentionally do NOT set
-      #    that variable here (it's set in vercel.json only for the Vercel build).
+      #    that variable here, because the scrape job needs a real browser.
       - name: Install dependencies
         run: npm ci
 

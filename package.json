@@ -187,7 +187,6 @@
     "@sentry/node": "10.68.0",
     "@sentry/react": "10.68.0",
     "@tailwindcss/vite": "^4.1.14",
-    "@vercel/blob": "^2.3.1",
     "@vitejs/plugin-react": "^5.0.4",
     "compression": "^1.8.1",
     "concurrently": "^9.2.3",
