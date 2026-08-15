@@ -336,7 +336,7 @@ Rules:
 3. CSS filters damage mana, rarity and card assets.
 4. Broad surface selectors must stay below route root hooks.
 5. Existing `dist/` may be owned by the production user; do not delete or replace it unless deployment is explicitly requested.
-6. `Design.md` exists as a compatibility pointer. Update its summary when the canonical direction in `design.md` changes materially.
+6. The former root `Design.md` compatibility pointer has been retired to [`docs/design/legacy-summary.md`](docs/design/legacy-summary.md) and is no longer authoritative. This file is the only canonical design specification; do not reintroduce a root-level file whose name differs from it only by case.
 
 ## Changelog
 

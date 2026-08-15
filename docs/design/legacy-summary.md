@@ -1,8 +1,10 @@
+<!-- markdownlint-disable MD013 -->
+
 # HS-Arena Design System
 
-> Compatibility pointer to `design.md`. Keep this summary aligned until the duplicate is removed in a dedicated cleanup.
+> Archived summary. Previously lived in the repository root as `Design.md`, where it existed only so case-insensitive filesystems could not read it and `design.md` as one contradictory file. That collision is gone, so this file is no longer a compatibility pointer and is not authoritative.
 
-The canonical design specification is stored in [`design.md`](./design.md). This file carries only the non-negotiable summary so case-sensitive and case-insensitive tooling cannot read contradictory guidance.
+The canonical design specification is [`design.md`](../../design.md) in the repository root, which is also what `npm run lint:docs` validates. This file carries the non-negotiable summary as it stood at the time of the move; when the two disagree, `design.md` wins.
 
 ## Product Direction
 
