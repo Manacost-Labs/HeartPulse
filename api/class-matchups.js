@@ -1,6 +1,6 @@
 // Vercel Serverless Function - HSReplay arena dual-class matchup matrix
 
-const HSREPLAY_ARENA_DATASET_URL = 'https://api.hs-manacost.ru/datasets/hsreplay_arena';
+const HSREPLAY_ARENA_DATASET_URL = 'https://api.kolodahearthstone.com/datasets/hsreplay_arena';
 
 const HSREPLAY_CLASS_ID = {
   deathknight: 'death-knight',
@@ -67,7 +67,7 @@ async function fetchClassMatchupsData() {
   return {
     matchups,
     updatedAt: payload?.fetched_at ?? payload?.data?.fetched_at ?? null,
-    source: 'api.hs-manacost.ru',
+    source: 'api.kolodahearthstone.com',
   };
 }
 

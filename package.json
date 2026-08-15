@@ -136,6 +136,7 @@
     "test:nginx-contract-drift": "node tests/nginx-contract-drift.test.mjs",
     "test:robots-policy": "node tests/robots-policy.test.mjs",
     "test:public-url-policy": "tsx tests/public-url-policy.test.ts",
+    "test:unified-api-origin-policy": "tsx tests/unified-api-origin-policy.test.ts",
     "test:prerender-seo": "node tests/prerender-seo.test.mjs",
     "test:page-tour": "tsx tests/page-tour.test.ts && tsx tests/page-tour-registry.test.ts && tsx tests/page-tour-engine-contracts.test.ts",
     "test:page-tour-registry": "tsx tests/page-tour-registry.test.ts",

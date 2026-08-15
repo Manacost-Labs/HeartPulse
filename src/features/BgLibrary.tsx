@@ -5,7 +5,7 @@ import '../route-parchment.css';
 import '../battlegrounds-shell.css';
 import '../battlegrounds-parchment.css';
 
-type LibraryKind = 'minion' | 'spell' | 'anomaly' | 'quest' | 'darkmoon_prize' | 'reward' | 'trinket' | 'timewarped';
+type LibraryKind = 'minion' | 'spell' | 'anomaly' | 'dark_gift' | 'quest' | 'darkmoon_prize' | 'reward' | 'trinket' | 'timewarped';
 type PoolMode = 'current' | 'archive';
 const BG_LIBRARY_API_VERSION = 'bg-library-20260704-2';
 
@@ -184,6 +184,20 @@ const LIBRARY_SECTIONS: LibrarySectionConfig[] = [
     supportsArchive: true,
     endpoint: 'anomaly',
     accent: '#7c3aed',
+  },
+  {
+    id: 'dark-gifts',
+    kind: 'dark_gift',
+    activeHref: '/library/dark-gifts',
+    archiveHref: '/library/archive/dark-gifts',
+    title: 'Темные дары',
+    shortTitle: 'Темные дары',
+    description: 'Все 43 Темных дара сезона 14 с русскими описаниями и изображениями карт.',
+    archiveDescription: 'Архив Темных даров прошлых сезонов.',
+    icon: 'sparkles',
+    supportsArchive: false,
+    endpoint: 'dark_gift',
+    accent: '#5b3a8e',
   },
   {
     id: 'quests',
@@ -430,7 +444,7 @@ function properImage(url?: string | null): string | null {
 
 function localDbImageUrl(cardId: string, folder: 'cards' | 'framed' | 'golden' | 'art'): string {
   const ext = folder === 'art' ? 'jpg' : 'png';
-  return `https://db.kolodahs.ru/uploads/${folder}/${encodeURIComponent(cardId)}.${ext}`;
+  return `https://api.kolodahearthstone.com/uploads/${folder}/${encodeURIComponent(cardId)}.${ext}`;
 }
 
 function hearthstoneJsonBgCardUrl(cardId: string, size: '256x' | '512x' = '512x'): string {

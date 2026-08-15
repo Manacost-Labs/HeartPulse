@@ -117,7 +117,7 @@ export function tierItemsForDisplay<T>(items: T[], list: string, visibleLimit: n
 export function trinketFullArtUrl(item: TrinketIdentity): string {
   const cardId = String(item?.id || '').trim();
   if (!/^[A-Za-z0-9_]+$/.test(cardId)) return '';
-  return `https://db.kolodahs.ru/uploads/library-full-art/${encodeURIComponent(cardId)}.png`;
+  return `https://api.kolodahearthstone.com/uploads/library-full-art/${encodeURIComponent(cardId)}.png`;
 }
 
 /** Normalizes sparse HSReplay placement data into eight comparable bars. */

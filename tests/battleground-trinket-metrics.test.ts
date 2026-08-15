@@ -51,7 +51,7 @@ assert.equal(
 
 assert.equal(
   trinketFullArtUrl({ id: 'BG32_MagicItem_205' }),
-  'https://db.kolodahs.ru/uploads/library-full-art/BG32_MagicItem_205.png',
+  'https://api.kolodahearthstone.com/uploads/library-full-art/BG32_MagicItem_205.png',
   'trinket medallions must use the locally mirrored full art',
 );
 

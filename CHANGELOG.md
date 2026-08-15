@@ -1,5 +1,16 @@
 # HS-Arena Changelog
 
+## v1.0.50 - 2026-08-12
+
+- Migrated Arena datasets, Battlegrounds libraries, cosmetics and card media
+  from the retiring `api.hs-manacost.ru` and `db.kolodahs.ru` hosts to the
+  unified `api.kolodahearthstone.com` API.
+- Preserved historical media links through a same-origin compatibility alias
+  that fetches from the new host, so old cached records no longer depend on
+  either retiring domain.
+- Added a source and generated-catalog policy test that blocks new production
+  dependencies on the retiring API origins.
+
 ## v1.0.49 - 2026-07-30
 
 - Rebuilt the Battlegrounds trinket tier list as a complete responsive

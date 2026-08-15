@@ -2,6 +2,18 @@
 
 This repository powers https://arena.hs-manacost.ru.
 
+## Parser scrape providers (hs-data-api)
+
+When a task touches the Hearthstone parser / `hearthstone-parses` /
+`/srv/hs-data-api` scrape stack, follow that repo's `AGENTS.md` and
+`docs/SCRAPE_PROVIDERS.md`. Shared page-scrape order is mandatory:
+
+1. Scrape.do (primary)
+2. Firecrawl key rotation
+3. Scrapfly (last resort)
+
+Do not invent a Firecrawl-first path for those pipelines.
+
 ## Required Notion Task Tracking
 
 Every Codex, Claude, or other AI-agent task that concerns

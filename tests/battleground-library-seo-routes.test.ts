@@ -69,9 +69,9 @@ const spell = {
   mechanics: [],
   text_ru: 'Существо получает +2/+2.\nМеханики: HIDDEN_RAW_TAG\nEN: Give a minion +2/+2.',
   images: {
-    card: 'https://db.kolodahs.ru/uploads/cards/BG28_897.png',
+    card: 'https://api.kolodahearthstone.com/uploads/cards/BG28_897.png',
     golden: null,
-    art: 'https://db.kolodahs.ru/uploads/art/BG28_897.jpg',
+    art: 'https://api.kolodahearthstone.com/uploads/art/BG28_897.jpg',
     framed: null,
   },
   artist: null,

@@ -470,12 +470,13 @@ const KHA_VIP_WP_BASE_URL = (process.env.KHA_VIP_WP_BASE_URL || process.env.WP_B
 const KHA_VIP_WP_BEARER = process.env.KHA_VIP_WP_BEARER || process.env.WP_BEARER || '';
 const KHA_VIP_LOCKERS_CACHE_MS = Math.max(60_000, Number(process.env.KHA_VIP_LOCKERS_CACHE_MS || 5 * 60 * 1000));
 const KHA_VIP_ARTICLE_HOSTS = new Set(['kolodahearthstone.ru', 'www.kolodahearthstone.ru']);
-const KOLODAHS_API_BASE_URL = (process.env.KOLODAHS_API_BASE_URL || 'https://db.kolodahs.ru/api/v1').replace(/\/$/, '');
+const KOLODAHS_API_BASE_URL = (process.env.KOLODAHS_API_BASE_URL || 'https://api.kolodahearthstone.com/api/v1').replace(/\/$/, '');
 const OLD_GUIDES_DB_FILE = process.env.OLD_GUIDES_DB_FILE || '/var/www/koloda/data/old-sites/kolodahearthstone.ru_old/db/guides.sqlite';
 const OLD_GUIDES_PUBLIC_URL = (process.env.OLD_GUIDES_PUBLIC_URL || 'https://old.kolodahearthstone.ru').replace(/\/$/, '');
 const EXTRA_BG_LIBRARY_ENDPOINTS: Record<string, string> = {
   heroes: '/heroes',
   anomaly: '/anomalies',
+  dark_gift: '/dark-gifts',
   quest: '/quests',
   darkmoon_prize: '/darkmoon-prizes',
   reward: '/rewards',
@@ -4100,7 +4101,7 @@ function withClassPositions(data: any) {
   };
 }
 
-const HSREPLAY_ARENA_DATASET_URL = 'https://api.hs-manacost.ru/datasets/hsreplay_arena';
+const HSREPLAY_ARENA_DATASET_URL = 'https://api.kolodahearthstone.com/datasets/hsreplay_arena';
 const CLASS_MATCHUPS_CACHE_MS = 30 * 60 * 1000;
 const CLASS_WINRATES_CACHE_MS = 5 * 60 * 1000;
 const KOLODA_ARENA_DECKS_URL = 'https://kolodahs.ru/arena/winning';
@@ -4173,7 +4174,7 @@ async function fetchClassWinratesData() {
   return {
     classes,
     updatedAt: payload?.fetched_at ?? payload?.data?.updatedAt ?? payload?.data?.updated_at ?? null,
-    source: 'api.hs-manacost.ru',
+    source: 'api.kolodahearthstone.com',
   };
 }
 
@@ -4245,7 +4246,7 @@ async function fetchClassMatchupsData() {
   return {
     matchups,
     updatedAt,
-    source: 'api.hs-manacost.ru',
+    source: 'api.kolodahearthstone.com',
   };
 }
 
@@ -4406,7 +4407,7 @@ async function fetchArenaDecksData(limit = ARENA_DECKS_MAX_LIMIT) {
   };
 }
 
-const DATASET_API_ORIGIN = 'https://api.hs-manacost.ru';
+const DATASET_API_ORIGIN = 'https://api.kolodahearthstone.com';
 const DATASET_API_BASE = `${DATASET_API_ORIGIN}/datasets`;
 const hsDataParserControlClient = createHsDataParserControlClient({
   baseUrl: process.env.HS_DATA_API_BASE_URL || DATASET_API_ORIGIN,
@@ -8126,7 +8127,7 @@ function criticalDataHealth() {
     return {
       name: `constructed-cards-${format}`,
       updatedAt: health.dataStatus === 'unavailable' ? null : health.verifiedAt,
-      source: health.cacheSource === 'LKG' ? 'db.kolodahs.ru:last-known-good' : 'db.kolodahs.ru',
+      source: health.cacheSource === 'LKG' ? 'api.kolodahearthstone.com:last-known-good' : 'api.kolodahearthstone.com',
       records: health.records,
       state: health.dataStatus === 'unavailable' ? 'missing' as const : health.state,
       dataStatus: health.dataStatus,
