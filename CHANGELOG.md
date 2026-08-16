@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- Cleaned up the repository root without touching runtime behavior: removed the
+  dead Vercel serverless layer (ten `api/*.js` functions, `vercel.json` and the
+  `@vercel/blob` dependency) that production has not used since the move to
+  Nginx and systemd, and deleted seven stale asset directories whose files were
+  already served from `public/`. The rebuilt `dist` is byte-identical before and
+  after, so no public URL, asset or page changed.
+- Retired the duplicate root `Design.md` into `docs/design/`, so the repository
+  no longer carries two files whose names differ only by case and can be cloned
+  on case-insensitive filesystems.
+- Canonicalized the repository URLs in the README badges, `CONTRIBUTING.md`,
+  `LICENSE` and the issue template after the move to `Manacost-Labs/HeartPulse`,
+  and pointed the post-push review hook at the current repository so it keeps
+  publishing instead of silently skipping on an unexpected origin.
+- Documented why Puppeteer stays a runtime dependency: the production scraper
+  service imports it and deployment installs with `npm ci --omit=dev`.
+- Added contributor and agent skills under `.claude/skills/` that encode the
+  existing `app -> modules -> shared` contract from ADR 002, so future work
+  follows the accepted module boundaries instead of rediscovering them.
+
 - Rebuilt the administrator workspace shell with an original TailAdmin-inspired
   React layout: a clean command header, grouped navigation, consistent cards,
   responsive drawer and accessible status states, while preserving all access,
