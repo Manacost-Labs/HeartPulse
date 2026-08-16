@@ -42,20 +42,28 @@ server-build → recovery-runtime → budget → browser-qa-ci → lint:docs.
 - `[css-architecture] !important declarations: N / 1188` — превышен лимит.
   Переписывай через специфичность или токены, лимит не поднимай.
 - `check-component-duplicates` — дубль компонента; вынеси общий в `src/shared/ui/`
-  (до Фазы 3 — в `src/components/`).
+  (сегодня переиспользуемые примитивы ещё лежат в `src/components/`).
 - `check-entry-dead-code` — недостижимый код в точке входа.
 - `knip` — неиспользуемый экспорт или зависимость. Удаляй причину, а не добавляй
   в `ignore` в `knip.json`.
 - Падение contract-теста (`tests/*contract*.test.*`) — ты изменил публичный
   контракт. Откатывайся, тест не трогай. См. скилл `api-contract-change`.
 
-## Визуальные правки
+## По типу изменения
 
-После любой правки CSS или вёрстки дополнительно:
+`AGENTS.md` требует дополнительно, в зависимости от того, что тронуто:
 
 ```bash
-npm run qa:screens
+npm run security:semgrep      # авторский JS/TS
+npm run lint:react-changed    # React
+npm run test:storybook        # story или визуальное состояние компонента
+npm run qa:screens            # CSS и вёрстка
+npm run test:agent-tooling    # правка MCP-интеграций или контракта скиллов
+npm run security:gitleaks     # перед публикацией security-чувствительных правок
 ```
+
+Для browser-facing изменений текстового ревью недостаточно: нужен реальный
+просмотр через Chrome DevTools MCP.
 
 ## Правило
 
