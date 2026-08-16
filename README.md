@@ -27,29 +27,29 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Zulut30/manacost-arena/actions/workflows/ci.yml">
+  <a href="https://github.com/Manacost-Labs/HeartPulse/actions/workflows/ci.yml">
     <img alt="CI"
-      src="https://github.com/Zulut30/manacost-arena/actions/workflows/ci.yml/badge.svg?branch=main">
+      src="https://github.com/Manacost-Labs/HeartPulse/actions/workflows/ci.yml/badge.svg?branch=main">
   </a>
-  <a href="https://github.com/Zulut30/manacost-arena/actions/workflows/codeql.yml">
+  <a href="https://github.com/Manacost-Labs/HeartPulse/actions/workflows/codeql.yml">
     <img alt="CodeQL"
-      src="https://github.com/Zulut30/manacost-arena/actions/workflows/codeql.yml/badge.svg?branch=main">
+      src="https://github.com/Manacost-Labs/HeartPulse/actions/workflows/codeql.yml/badge.svg?branch=main">
   </a>
-  <a href="https://github.com/Zulut30/manacost-arena/actions/workflows/gitleaks.yml">
+  <a href="https://github.com/Manacost-Labs/HeartPulse/actions/workflows/gitleaks.yml">
     <img alt="Gitleaks"
-      src="https://github.com/Zulut30/manacost-arena/actions/workflows/gitleaks.yml/badge.svg?branch=main">
+      src="https://github.com/Manacost-Labs/HeartPulse/actions/workflows/gitleaks.yml/badge.svg?branch=main">
   </a>
-  <a href="https://github.com/Zulut30/manacost-arena/actions/workflows/osv-scanner.yml">
+  <a href="https://github.com/Manacost-Labs/HeartPulse/actions/workflows/osv-scanner.yml">
     <img alt="OSV-Scanner"
-      src="https://github.com/Zulut30/manacost-arena/actions/workflows/osv-scanner.yml/badge.svg?branch=main">
+      src="https://github.com/Manacost-Labs/HeartPulse/actions/workflows/osv-scanner.yml/badge.svg?branch=main">
   </a>
-  <a href="https://github.com/Zulut30/manacost-arena/actions/workflows/trivy.yml">
+  <a href="https://github.com/Manacost-Labs/HeartPulse/actions/workflows/trivy.yml">
     <img alt="Trivy"
-      src="https://github.com/Zulut30/manacost-arena/actions/workflows/trivy.yml/badge.svg?branch=main">
+      src="https://github.com/Manacost-Labs/HeartPulse/actions/workflows/trivy.yml/badge.svg?branch=main">
   </a>
-  <a href="https://github.com/Zulut30/manacost-arena/actions/workflows/scorecard.yml">
+  <a href="https://github.com/Manacost-Labs/HeartPulse/actions/workflows/scorecard.yml">
     <img alt="OpenSSF Scorecard"
-      src="https://github.com/Zulut30/manacost-arena/actions/workflows/scorecard.yml/badge.svg?branch=main">
+      src="https://github.com/Manacost-Labs/HeartPulse/actions/workflows/scorecard.yml/badge.svg?branch=main">
   </a>
 </p>
 
@@ -246,13 +246,20 @@ npm run qa:e2e
 остаются выключенными без явной серверной конфигурации. Подробности и команды
 для AI-агентов собраны в [docs/agent-tooling.md](docs/agent-tooling.md).
 
+Puppeteer намеренно остаётся в `dependencies`, а не в `devDependencies`: его
+импортирует `server/scraper.ts`, который входит в сборку сервера
+(`tsconfig.server.json`) и работает в проде как изолированный
+`hs-arena-scraper.service`. Деплой устанавливает зависимости командой
+`npm ci --omit=dev`, поэтому перенос Puppeteer в dev-секцию сломал бы scraper
+на продакшене. Браузер нужен там же, где и сам сервис.
+
 ## Быстрый старт
 
 Требуются Node.js 22+, npm и Chromium/Google Chrome для browser QA и scraper.
 
 ```bash
-git clone https://github.com/Zulut30/manacost-arena.git
-cd manacost-arena
+git clone https://github.com/Manacost-Labs/HeartPulse.git
+cd HeartPulse
 npm ci
 cp .env.example .env
 npm run dev
@@ -310,10 +317,10 @@ sudo scripts/deploy-release.sh "$artifact"
 ## Участие в проекте
 
 Ошибки и идеи принимаются через
-[структурированные GitHub Issues](https://github.com/Zulut30/manacost-arena/issues/new/choose).
+[структурированные GitHub Issues](https://github.com/Manacost-Labs/HeartPulse/issues/new/choose).
 Перед pull request прочитайте [CONTRIBUTING.md](CONTRIBUTING.md) и выполните
 `npm run verify:ci`. Уязвимости нужно отправлять только через
-[приватный security advisory](https://github.com/Zulut30/manacost-arena/security/advisories/new).
+[приватный security advisory](https://github.com/Manacost-Labs/HeartPulse/security/advisories/new).
 
 История пользовательских изменений ведётся в [CHANGELOG.md](CHANGELOG.md).
 

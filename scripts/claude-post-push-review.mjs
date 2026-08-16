@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 import path from 'node:path';
 
-const DEFAULT_REPOSITORY = 'Zulut30/manacost-arena';
+const DEFAULT_REPOSITORY = 'Manacost-Labs/HeartPulse';
 const MAX_DIFF_CHARS = 120_000;
 const MAX_REVIEW_WORDS = 300;
 const REVIEW_MARKER = '<!-- manacost-claude-post-push-review -->';

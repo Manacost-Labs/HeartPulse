@@ -66,16 +66,16 @@ test('only accepts a standalone successful git push', () => {
 
 test('parses only supported GitHub origin formats', () => {
   assert.equal(
-    parseGitHubRepository('git@github.com:Zulut30/manacost-arena.git'),
-    'Zulut30/manacost-arena',
+    parseGitHubRepository('git@github.com:Manacost-Labs/HeartPulse.git'),
+    'Manacost-Labs/HeartPulse',
   );
   assert.equal(
-    parseGitHubRepository('https://github.com/Zulut30/manacost-arena.git'),
-    'Zulut30/manacost-arena',
+    parseGitHubRepository('https://github.com/Manacost-Labs/HeartPulse.git'),
+    'Manacost-Labs/HeartPulse',
   );
   assert.equal(
-    parseGitHubRepository('ssh://git@github.com/Zulut30/manacost-arena.git'),
-    'Zulut30/manacost-arena',
+    parseGitHubRepository('ssh://git@github.com/Manacost-Labs/HeartPulse.git'),
+    'Manacost-Labs/HeartPulse',
   );
   assert.equal(parseGitHubRepository('https://example.com/repo.git'), null);
 });
@@ -105,7 +105,7 @@ test('Linux dry-run resolves the repository and current SHA without posting', ()
     writeFileSync(path.join(fixture, 'safe.txt'), 'safe fixture\n');
     git(fixture, 'add', 'safe.txt');
     git(fixture, 'commit', '-m', 'test: safe post-push fixture');
-    git(fixture, 'remote', 'add', 'origin', 'https://github.com/Zulut30/manacost-arena.git');
+    git(fixture, 'remote', 'add', 'origin', 'https://github.com/Manacost-Labs/HeartPulse.git');
 
     const event = postBash('git push origin main');
     event.cwd = fixture;
@@ -124,7 +124,7 @@ test('Linux dry-run resolves the repository and current SHA without posting', ()
     assert.equal(result.status, 0, result.stderr);
     const output = JSON.parse(result.stdout);
     assert.equal(output.action, 'dry-run');
-    assert.equal(output.repository, 'Zulut30/manacost-arena');
+    assert.equal(output.repository, 'Manacost-Labs/HeartPulse');
     assert.match(output.sha, /^[a-f0-9]{40}$/);
     assert.equal(output.files, 1);
     assert.equal(output.engine, 'fixture');

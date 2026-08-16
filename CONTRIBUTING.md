@@ -11,13 +11,13 @@
 3. Не публикуйте токены, cookies, содержимое `.env`, персональные данные и
    приватные ответы API.
 4. Уязвимости сообщайте через
-   [GitHub Private Vulnerability Reporting](https://github.com/Zulut30/manacost-arena/security/advisories/new),
+   [GitHub Private Vulnerability Reporting](https://github.com/Manacost-Labs/HeartPulse/security/advisories/new),
    а не через публичный issue.
 
 ## Локальная разработка
 
 ```bash
-git clone https://github.com/Zulut30/manacost-arena.git
+git clone https://github.com/Manacost-Labs/HeartPulse.git
 cd manacost-arena
 npm ci
 cp .env.example .env
