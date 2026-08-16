@@ -195,7 +195,7 @@
     "express-rate-limit": "^8.3.1",
     "lucide-react": "^0.546.0",
     "node-cron": "^4.5.0",
-    "puppeteer": "^22.15.0",
+    "puppeteer": "^25.6.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "redis": "^4.7.1",
