@@ -11,9 +11,9 @@ import {
 import {
   moduleForRepositoryPath,
   readModuleInventory,
-  relevantModuleExceptions,
   repositoryRoot,
   resolveRepositoryFile,
+  stableModuleExceptions,
 } from './lib/module-inventory.mjs';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
@@ -27,7 +27,7 @@ function sortedUnique(values) {
   return [...new Set(values)].sort(compareText);
 }
 
-function readPublicRouteInventory(root) {
+export function readPublicRouteInventory(root) {
   const inventoryFile = resolveRepositoryFile(root, PUBLIC_ROUTE_INVENTORY_PATH, { required: true });
   let inventory;
   try {
@@ -42,6 +42,16 @@ function readPublicRouteInventory(root) {
     || typeof inventory.canonicalOrigin !== 'string'
     || !Array.isArray(inventory.routes)) {
     throw new Error('Public route inventory must use schemaVersion 1 and declare canonicalOrigin and routes.');
+  }
+  let canonicalUrl;
+  try {
+    canonicalUrl = new URL(inventory.canonicalOrigin);
+  } catch {
+    throw new Error('Public route inventory canonicalOrigin must be a valid HTTP(S) origin.');
+  }
+  if (!['http:', 'https:'].includes(canonicalUrl.protocol)
+    || canonicalUrl.origin !== inventory.canonicalOrigin) {
+    throw new Error('Public route inventory canonicalOrigin must be a valid HTTP(S) origin.');
   }
   const routeIds = new Set();
   for (const route of inventory.routes) {
@@ -97,7 +107,7 @@ export function createAgentMap({ inventory, graph, publicRouteInventory }) {
     callers: moduleCallers(module, modules, graph.edges),
     focusedTests: sortedUnique(module.focusedTests),
     docs: sortedUnique(module.docs),
-    exceptions: relevantModuleExceptions(inventory, module),
+    exceptions: stableModuleExceptions(inventory, module),
   }));
   const publicRoutes = publicRouteInventory.routes
     .map(route => ({
@@ -159,8 +169,14 @@ function formatModule(module) {
     `  ${module.purpose}`,
     `  root: ${module.root}`,
     `  public: ${module.publicEntry}`,
+    ...(module.publicStyleEntry ? [`  public style: ${module.publicStyleEntry}`] : []),
     `  ${listLine('dependencies', module.dependencies)}`,
     `  ${listLine('dependents', module.dependents)}`,
+    `  ${listLine('focused tests', module.focusedTests)}`,
+    `  ${listLine('docs', module.docs)}`,
+    `  ${listLine('known debt', module.exceptions.map(exception => (
+      `[${exception.category}] ${exception.source ?? exception.module ?? '?'} -> ${exception.target ?? '?'} — ${exception.reason}`
+    )))}`,
     '  callers:',
     ...callers,
   ];

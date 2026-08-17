@@ -55,6 +55,47 @@ export function resolveRepositoryFile(root, relativePath, { required }) {
   return realFile;
 }
 
+function strictRepositorySelectorPath(value) {
+  const raw = String(value || '').trim();
+  if (!raw) throw new Error('Module or path selector must not be empty.');
+  if (/[\u0000-\u001F\u007F]/.test(raw)) {
+    throw new Error('Repository path selector is not safe: control characters are forbidden.');
+  }
+  if (raw.includes('\\') || path.posix.isAbsolute(raw)) {
+    throw new Error(`Repository path selector is not safe: ${raw}`);
+  }
+  const withoutPrefix = raw.replace(/^(?:\.\/)+/, '').replace(/\/+$/, '');
+  const segments = withoutPrefix.split('/');
+  if (!withoutPrefix || segments.includes('..') || segments.includes('.')) {
+    throw new Error(`Repository path selector is not safe: ${raw}`);
+  }
+  const normalized = path.posix.normalize(withoutPrefix);
+  if (normalized !== withoutPrefix) {
+    throw new Error(`Repository path selector must already be normalized: ${raw}`);
+  }
+  return normalized;
+}
+
+export function resolveRepositoryPath(root, relativePath, { required = true } = {}) {
+  const normalized = strictRepositorySelectorPath(relativePath);
+  const absolutePath = resolveOwnedPath(root, normalized);
+  if (!existsSync(absolutePath)) {
+    if (required) throw new Error(`Repository path does not exist: ${normalized}`);
+    return null;
+  }
+  const stats = lstatSync(absolutePath);
+  if (stats.isSymbolicLink() || (!stats.isFile() && !stats.isDirectory())) {
+    throw new Error(`Repository path must be a regular file or directory, not a symlink: ${normalized}`);
+  }
+  const realRoot = realpathSync(root);
+  const realEntry = realpathSync(absolutePath);
+  const realRelative = path.relative(realRoot, realEntry);
+  if (realRelative.startsWith('..') || path.isAbsolute(realRelative)) {
+    throw new Error(`Repository path resolves outside the repository: ${normalized}`);
+  }
+  return normalized;
+}
+
 export function readModuleInventory(root, inventoryPath = MODULE_INVENTORY_PATH) {
   let inventoryFile;
   try {
@@ -105,6 +146,28 @@ export function moduleForRepositoryPath(modules, candidate, root = '') {
     .sort((left, right) => right.root.length - left.root.length)[0] ?? null;
 }
 
+export function resolveModuleOrPathSelector(inventory, selector, root) {
+  const rawSelector = String(selector || '').trim();
+  if (!rawSelector) throw new Error('Module or path selector must not be empty.');
+  const selectedModule = inventory.modules.find(module => module.id === rawSelector) ?? null;
+  const candidatePath = selectedModule?.root ?? strictRepositorySelectorPath(rawSelector);
+  const normalizedPath = resolveRepositoryPath(root, candidatePath);
+  const owningModule = selectedModule
+    ?? moduleForRepositoryPath(inventory.modules, normalizedPath, root);
+  const normalizedModuleRoot = owningModule
+    ? normalizeRepositoryPath(owningModule.root, root)
+    : null;
+  const pathStats = lstatSync(resolveOwnedPath(root, normalizedPath));
+  return {
+    selector: rawSelector,
+    kind: normalizedModuleRoot === normalizedPath
+      ? 'module'
+      : pathStats.isDirectory() ? 'directory' : 'file',
+    path: normalizedPath,
+    moduleId: owningModule?.id ?? null,
+  };
+}
+
 function exceptionBelongsToModule(category, exception, module) {
   if (category === 'missingPublicEntry') {
     return exception.module === module.id
@@ -133,6 +196,49 @@ export function relevantModuleExceptions(inventory, module) {
     }
   }
   return relevant;
+}
+
+function stableExceptionEdge(edge) {
+  return {
+    source: edge.source,
+    target: edge.target,
+    kind: edge.kind,
+  };
+}
+
+function stableException(exception) {
+  const stable = { category: exception.category };
+  for (const field of ['source', 'target', 'kind', 'module']) {
+    if (exception[field] !== undefined) stable[field] = exception[field];
+  }
+  if (Array.isArray(exception.nodes)) {
+    stable.nodes = [...exception.nodes].sort((left, right) => (
+      left < right ? -1 : left > right ? 1 : 0
+    ));
+  }
+  if (Array.isArray(exception.edges)) {
+    stable.edges = exception.edges
+      .map(stableExceptionEdge)
+      .sort((left, right) => (
+        (left.source < right.source ? -1 : left.source > right.source ? 1 : 0)
+        || (left.target < right.target ? -1 : left.target > right.target ? 1 : 0)
+        || (left.kind < right.kind ? -1 : left.kind > right.kind ? 1 : 0)
+      ));
+  }
+  for (const field of ['reason', 'owner', 'expiresOn']) {
+    if (exception[field] !== undefined) stable[field] = exception[field];
+  }
+  return stable;
+}
+
+export function stableModuleExceptions(inventory, module) {
+  return relevantModuleExceptions(inventory, module)
+    .map(stableException)
+    .sort((left, right) => {
+      const leftKey = JSON.stringify(left);
+      const rightKey = JSON.stringify(right);
+      return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
+    });
 }
 
 export function moduleBySelector(inventory, selector, root) {

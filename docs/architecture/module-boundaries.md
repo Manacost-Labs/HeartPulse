@@ -192,6 +192,16 @@ separate section; route-team labels are not guessed to be module ids. Use
 output without npm's human-oriented command banner. The JSON has no timestamp
 or absolute worktree path, so equal repository state produces equal bytes.
 
+`npm run agent:impact -- <module-id-or-path>` walks the checked import graph in
+reverse across both runtime and type edges. It reports direct and transitive
+callers, affected module contracts, focused tests, documentation and known
+boundary debt. Declared dependents are included even when a concrete import is
+not present, making the result conservative. Paths must exist inside the real
+repository and symlink escapes are rejected. Use `-- --json` together with
+`npm run --silent` for deterministic machine-readable output. Public-route
+impact is deliberately not guessed from module ids; consult `agent:map` for the
+separate canonical URL ownership inventory.
+
 `npm run lint:module-boundaries` resolves the TypeScript and JavaScript import
 graph with the project compiler configuration. It covers static imports,
 type-only imports and re-exports, literal dynamic imports, `require`,

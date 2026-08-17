@@ -214,6 +214,7 @@
       "env": {},
       "files": [
         "tests/agent-context.test.mjs",
+        "tests/agent-impact.test.mjs",
         "tests/agent-navigation.test.mjs",
         "tests/agent-session-preflight.test.mjs",
         "tests/agent-tooling-contract.test.mjs",
