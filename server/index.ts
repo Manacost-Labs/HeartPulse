@@ -219,7 +219,7 @@ import {
 import { createContestRouter } from './contestRoutes.js';
 import { createSubscriptionRouter } from './subscriptionRoutes.js';
 import { createEcosystemInternalRouter } from './modules/ecosystem/public.js';
-import { createAuthProfileRouter, type AuthProfilePatch } from './authProfileRoutes.js';
+import { createAuthProfileRouter, type AuthProfilePatch } from './modules/identity/public.js';
 import {
   createPublicProfileRouter,
   createSqlitePublicProfileFinder,
@@ -9006,7 +9006,6 @@ app.use('/api', createAuthProfileRouter({
     };
   },
   authenticate: userAuth,
-  userId: user => user.id,
   updateProfile: (userId: string, patch: AuthProfilePatch) => {
     const store = loadAuthStore();
     const user = store.users.find(item => item.id === userId);

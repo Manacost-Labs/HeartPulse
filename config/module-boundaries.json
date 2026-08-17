@@ -192,6 +192,22 @@
       ]
     },
     {
+      "id": "server.identity",
+      "runtime": "server",
+      "root": "server/modules/identity",
+      "purpose": "Owns private browser-session inspection, account-profile updates and logout HTTP routes.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/identity/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:auth-profile-routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ]
+    },
+    {
       "id": "server.publicProfile",
       "runtime": "server",
       "root": "server/modules/publicProfile",

@@ -191,7 +191,7 @@
       "name": "authentication, profiles and subscriptions",
       "owner": "identity-platform",
       "criticality": "P0",
-      "source": "frontend:server/authProfileRoutes.ts",
+      "source": "frontend:server/modules/identity/public.ts",
       "consumers": ["registered-users", "subscribers", "admin-browser"],
       "healthImpact": "critical",
       "readinessImpact": "blocks",

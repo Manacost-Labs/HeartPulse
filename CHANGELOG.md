@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Moved the private browser-session and account-profile routes, bounded request
+  validation and exact response policy behind one `server.identity` entry
+  point; removed the legacy route owner while preserving authentication, CSRF,
+  rate-limit, cookie, cache, serializer and persistence behavior.
 - Moved the server-side public profile ID policy, SQLite migration and lookup,
   privacy-safe serializer, and HTTP route behind one `server.publicProfile`
   entry point; removed both legacy owners and profile SQL from the server

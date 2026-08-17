@@ -335,8 +335,8 @@ quality plus placeholders and transitions pass browser checks.
 
 ### 5. Server composition
 
-Status: in progress. The protected ecosystem routes and the public-profile
-boundary are the first two extracted server domain slices.
+Status: in progress. The protected ecosystem routes plus the public and private
+identity boundaries are the first three extracted server domain slices.
 
 - Move remaining inline route families out of `server/index.ts`.
 - Separate request parsing, domain services and response serialization.
@@ -357,6 +357,15 @@ privacy-safe lookup and serializer, and the compatible Express route. The
 composition root now only supplies its database handle and mounts the router;
 URLs, SQL conditions, cache headers, generic errors and the four-field response
 remain unchanged. Its size ceiling is ratcheted from 9,953 to 9,915 lines.
+
+The third slice exposes `server/modules/identity/public.ts` as the private
+browser-session and account-profile boundary. It owns the three compatible
+HTTP routes and bounded profile-patch validation, while the composition root
+supplies session, persistence, serialization, role, token, cookie and cache
+capabilities. Route URLs, status codes, JSON bodies, serializer allowlist,
+session refresh, cookie clearing and middleware order remain unchanged. The
+legacy route owner is deleted and the server composition-root ceiling is
+ratcheted from 9,915 to 9,914 lines.
 
 ### 6. Application shell
 
@@ -385,8 +394,9 @@ Depends on the application routing foundation and proceeds alongside the shell
 provider extraction.
 
 Status: client subscription contract, shared presentation metadata, login,
-public-profile client/server identity boundaries and application authorization
-complete; provider, private-account and subscription extraction pending.
+public-profile client/server identity boundaries, private-account server
+boundary and application authorization complete; client provider/session and
+subscription extraction pending.
 
 1. [x] Create `client.subscriptions` as the runtime-neutral owner of the client
    status DTO, all seven entitlement keys and named-entitlement access policy.
@@ -421,7 +431,10 @@ complete; provider, private-account and subscription extraction pending.
 6. [x] Put public-profile ID policy, SQLite persistence, serialization and HTTP
    routing behind `server.publicProfile/public.ts`; keep application device
    authorization behind the existing `server.applicationAuth/public.ts`.
-7. [ ] Extract browser session and private account-profile route families.
+7. [x] Extract browser session and private account-profile routes behind
+   `server.identity/public.ts`. Preserve the three URLs, exact status and JSON
+   contracts, private-cache policy, serializer allowlist, session refresh,
+   logout cookie clearing and the rate-limit/CSRF/body-parser ordering.
 8. [ ] Extract subscription confirmation, entitlement and provider synchronization
    into a separate subscription module.
 
