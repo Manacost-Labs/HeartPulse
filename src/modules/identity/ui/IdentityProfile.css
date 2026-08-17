@@ -322,11 +322,27 @@
 }
 
 .profile-workspace .profile-subscription-source__actions button {
-  min-height: 34px;
+  border: 1px solid currentColor;
+  min-height: 44px;
   padding: 0.45rem 0.65rem;
+  cursor: pointer;
+}
+
+.profile-workspace .profile-subscription-source__actions button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.profile-workspace .profile-subscription-source__actions code {
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .profile-workspace .profile-subscription-source__link {
+  display: inline-flex;
+  min-height: 44px;
+  padding: 0.35rem 0.2rem;
+  align-items: center;
   font-size: 0.75rem;
   font-weight: 800;
   text-decoration: none;
@@ -370,8 +386,7 @@
   font-weight: 900;
 }
 
-.profile-workspace .profile-boosty-form,
-.profile-workspace .profile-telegram-link {
+.profile-workspace .profile-boosty-form {
   padding: 0.85rem;
 }
 
@@ -382,8 +397,7 @@
   gap: 0.5rem;
 }
 
-.profile-workspace .profile-boosty-form p,
-.profile-workspace .profile-telegram-link p {
+.profile-workspace .profile-boosty-form p {
   margin: 0;
   font-size: 0.75rem;
   line-height: 1.4;
@@ -396,21 +410,6 @@
 
 .profile-workspace .profile-boosty-form > button {
   justify-content: center;
-}
-
-.profile-workspace .profile-telegram-link {
-  margin: 0 0 0.75rem;
-}
-
-.profile-workspace .profile-telegram-link > p {
-  margin-bottom: 0.65rem;
-}
-
-.profile-workspace .profile-telegram-link > a {
-  width: 100%;
-  display: inline-flex;
-  justify-content: center;
-  text-decoration: none;
 }
 
 .profile-workspace .profile-subscription-panel code {
@@ -788,8 +787,7 @@
 }
 
 .arena-app-profile .profile-workspace .profile-settings-form > button,
-.arena-app-profile .profile-workspace .profile-boosty-form > button,
-.arena-app-profile .profile-workspace .profile-telegram-link > a {
+.arena-app-profile .profile-workspace .profile-boosty-form > button {
   border-color: #5b0d12;
   border-radius: 2px;
   color: #fff0c8;
@@ -864,16 +862,14 @@
   background: #4d0b10;
 }
 
-.arena-app-profile .profile-workspace .profile-boosty-form,
-.arena-app-profile .profile-workspace .profile-telegram-link {
+.arena-app-profile .profile-workspace .profile-boosty-form {
   border: 1px solid rgba(112, 69, 29, 0.34);
   border-left: 3px solid var(--profile-red);
   border-radius: 2px;
   background: rgba(255, 242, 206, 0.48);
 }
 
-.arena-app-profile .profile-workspace .profile-boosty-form p,
-.arena-app-profile .profile-workspace .profile-telegram-link p {
+.arena-app-profile .profile-workspace .profile-boosty-form p {
   color: #68513c;
 }
 

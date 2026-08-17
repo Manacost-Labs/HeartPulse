@@ -36,6 +36,11 @@ const definitions = [
     roles: ['origin'],
   },
   {
+    source: 'deploy/nginx/arena-origin-real-ip.conf',
+    installPath: '/etc/nginx/conf.d/koloda-ru-proxy-realip.conf',
+    roles: ['origin'],
+  },
+  {
     source: 'deploy/nginx/arena-card-local-maps.conf',
     installPath: '/etc/nginx/conf.d/31-arena-card-local-maps.conf',
     roles: ['edge'],
@@ -163,7 +168,7 @@ try {
   });
   assert.equal(originReport.status, 'ok');
   assert.equal(originReport.exitCode, 0);
-  assert.equal(originReport.files.filter(file => file.installedStatus === 'ok').length, 5);
+  assert.equal(originReport.files.filter(file => file.installedStatus === 'ok').length, 6);
   assert.equal(
     originReport.files.find(file => file.roles.includes('edge')).installedStatus,
     'not-applicable',

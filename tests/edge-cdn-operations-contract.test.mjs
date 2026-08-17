@@ -4,10 +4,16 @@ import { readFileSync } from 'node:fs';
 const monitor = readFileSync('deploy/monitor-arena-geodns.sh', 'utf8');
 const cache = readFileSync('deploy/nginx/arena-edge-cache-path.conf', 'utf8');
 const cdnServer = readFileSync('deploy/nginx/arena-cdn-public-static.conf', 'utf8');
+const originRealIp = readFileSync('deploy/nginx/arena-origin-real-ip.conf', 'utf8');
 
 for (const address of ['162.19.220.14', '2001:41d0:701:1100::709b', '194.67.92.242', '186.246.28.244']) {
   assert.ok(monitor.includes(address), `regional monitor must cover ${address}`);
+  assert.match(originRealIp, new RegExp(`set_real_ip_from ${address.replaceAll('.', '\\.')};`),
+    `origin real-IP trust must cover ${address}`);
 }
+
+assert.doesNotMatch(originRealIp, /^\s*real_ip_header\b/m,
+  'the Arena trust list must not override the shared validated CF-Connecting-IP header');
 
 assert.match(cache, /max_size=18g/,
   'the shared cache must leave capacity headroom on the 40 GB Limburg edge');

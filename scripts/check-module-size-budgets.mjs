@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 const moduleBudgets = [
   {
     path: 'server/index.ts',
-    maxLines: 9_914,
+    maxLines: 9_756,
     owner: 'server composition root',
   },
   {
@@ -14,7 +14,7 @@ const moduleBudgets = [
   },
   {
     path: 'src/modules/identity/ui/LoginPanel.tsx',
-    maxLines: 1_172,
+    maxLines: 1_071,
     owner: 'identity platform',
   },
   {

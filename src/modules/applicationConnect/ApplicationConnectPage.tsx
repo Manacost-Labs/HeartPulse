@@ -134,6 +134,7 @@ export default function ApplicationConnectPage({
     ? (
       <React.Suspense fallback={<div className="application-connect__loading">Загрузка формы входа…</div>}>
         <LazyLoginPanel
+          key={parentAuthChecking ? 1 : 0}
           initialAuthUser={initialAuthUser}
           parentAuthChecking={parentAuthChecking}
           onAuthChange={handleAuthChange}

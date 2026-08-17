@@ -20,6 +20,8 @@ export type ProfileIdentityHeroProps = {
   tourId?: string;
 };
 
+const EMPTY_BADGES: readonly ProfileIdentityBadge[] = [];
+
 /**
  * Shared presentation for private and public identities. Privacy decisions stay
  * with the caller: optional private fields are never inferred or fetched here.
@@ -32,7 +34,7 @@ export default function ProfileIdentityHero({
   photoUrl,
   contact,
   actions,
-  badges = [],
+  badges = EMPTY_BADGES,
   headingId = 'profile-identity-title',
   tourId,
 }: ProfileIdentityHeroProps) {

@@ -70,6 +70,12 @@ assert.deepEqual(
 );
 
 assert.deepEqual(
+  cookieValues('manacost_auth_token=%; manacost_auth_token=current', 'manacost_auth_token'),
+  ['current'],
+  'a malformed duplicate cookie must neither throw nor hide the valid host-only session cookie',
+);
+
+assert.deepEqual(
   authTokenCandidates({
     authorization: 'Bearer api-token',
     cookieHeader: 'manacost_auth_token=stale; manacost_auth_token=current',

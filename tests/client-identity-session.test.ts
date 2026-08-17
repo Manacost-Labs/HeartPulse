@@ -23,6 +23,7 @@ const baseUser = {
   role: 'user',
   country: 'Россия',
   newsletterOptIn: true,
+  telegramLinked: true,
   contactVkUrl: 'https://vk.com/player',
   contactTelegram: '@player',
   contactEmail: 'contact@example.com',
@@ -86,6 +87,11 @@ assert.equal(
   authUserFromValue(Object.create({ email: 'inherited@example.com', name: 'Inherited', role: 'admin' })),
   null,
   'required identity fields must be own JSON properties',
+);
+assert.equal(
+  authUserFromValue({ ...baseUser, telegramLinked: 'true' }),
+  null,
+  'mutable display fields must not masquerade as an immutable Telegram link flag',
 );
 assert.equal(
   authErrorFromPayload(Object.create({ error: 'inherited internal error' })),

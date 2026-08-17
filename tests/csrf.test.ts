@@ -16,6 +16,8 @@ assert.equal(mutationNeedsCsrfProtection('POST', '/api/articles/example/vote'), 
 assert.equal(mutationNeedsCsrfProtection('POST', '/api/admin/users'), true);
 assert.equal(mutationNeedsCsrfProtection('PATCH', '/api/auth/profile'), true);
 assert.equal(mutationNeedsCsrfProtection('POST', '/api/auth/logout'), true);
+assert.equal(mutationNeedsCsrfProtection('POST', '/api/auth/telegram/link-code'), true);
+assert.equal(mutationNeedsCsrfProtection('POST', '/api/auth/telegram/link-start'), true);
 assert.equal(mutationNeedsCsrfProtection('POST', '/api/v1/oauth/device/approve'), true);
 assert.equal(mutationNeedsCsrfProtection('DELETE', '/api/admin-articles'), true);
 assert.equal(csrfRequestAllowed(base), true);
@@ -27,5 +29,6 @@ assert.equal(csrfRequestAllowed({ ...base, origin: 'https://evil.example' }), fa
 assert.equal(csrfRequestAllowed({ ...base, secFetchSite: 'cross-site' }), false);
 assert.equal(csrfRequestAllowed({ ...base, origin: 'http://localhost:3000' }), false);
 assert.equal(csrfRequestAllowed({ ...base, origin: 'http://localhost:3000', allowLocalDevelopmentOrigins: true }), true);
+assert.equal(csrfRequestAllowed({ ...base, path: '/api/auth/telegram/link-start', csrfHeader: '' }), false);
 
 console.log('cookie mutation CSRF boundary tests passed');

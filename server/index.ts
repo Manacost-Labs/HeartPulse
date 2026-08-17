@@ -221,6 +221,31 @@ import { createSubscriptionRouter } from './subscriptionRoutes.js';
 import { createEcosystemInternalRouter } from './modules/ecosystem/public.js';
 import { createAuthProfileRouter, type AuthProfilePatch } from './modules/identity/public.js';
 import {
+  assertActiveTelegramLinkSession,
+  assertTelegramAuthEnvironment,
+  assertTelegramOidcAudience,
+  claimNumericTelegramIdentity,
+  claimTelegramAuthIdentities,
+  consumeTelegramAuthIntentAndClaimIdentities,
+  consumeTelegramLinkTokenAndClaimIdentities,
+  createTelegramAuthIntentCookieManager,
+  createTelegramBotLinkService,
+  createTelegramOidcFlow,
+  ensureTelegramAuthDatabaseConstraints,
+  createTelegramAuthUserResolver,
+  legacyTelegramIdentityPayload,
+  normalizeTelegramLinkCode,
+  issueTelegramLinkToken,
+  storeTelegramAuthIntent,
+  telegramAuthMode,
+  telegramBotIdentityPayload,
+  telegramLinkCodeTtlMs,
+  telegramOidcLinkUserId,
+  telegramLoginWidgetDataCheckString,
+  TelegramAuthIdentityError,
+  type TelegramAuthIdentityClaim,
+} from './modules/telegramAuth/public.js';
+import {
   createPublicProfileRouter,
   createSqlitePublicProfileFinder,
   ensurePublicProfileIds,
@@ -229,7 +254,7 @@ import {
 import { completePasswordReset, createPasswordResetRouter } from './passwordResetRoutes.js';
 import { authenticatedUserPayload, createAuthVerificationRouter } from './authVerificationRoutes.js';
 import { createAuthCredentialRouter, deliverCredentialCode } from './authCredentialRoutes.js';
-import { addBoundedAuthSession, authTokenCandidates } from './authSessions.js';
+import { addBoundedAuthSession, authTokenCandidates, cookieValues } from './authSessions.js';
 import { sendLocalSmtpMessage } from './localSmtp.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -447,7 +472,10 @@ const BLIZZCORE_ARCHETYPES_API_URL = process.env.BLIZZCORE_ARCHETYPES_API_URL
   || 'https://api.blizzcore.ru/archetypes?limit=500';
 const STANDARD_ARCHETYPE_TRANSLATION_CACHE_MS = Math.max(60_000, Number(process.env.STANDARD_ARCHETYPE_TRANSLATION_CACHE_MS || 6 * 60 * 60 * 1000));
 const KOLODAHS_RELATED_CARD_PAGES_DIR = join(KOLODAHS_DB_ROOT, 'var/wiki-hs-cache/related-card-pages');
-const AUTH_COOKIE_NAME = 'manacost_auth_token';
+const AUTH_LEGACY_COOKIE_NAME = 'manacost_auth_token';
+const AUTH_COOKIE_NAME = APP_URL.startsWith('https://')
+  ? '__Host-manacost_auth_token'
+  : AUTH_LEGACY_COOKIE_NAME;
 const AUTH_FROM = process.env.AUTH_FROM || 'noreply@hs-manacost.ru';
 const NEWSLETTER_FROM = process.env.NEWSLETTER_FROM || AUTH_FROM;
 const NEWSLETTER_FROM_NAME = (process.env.NEWSLETTER_FROM_NAME || 'Manacost').trim();
@@ -482,12 +510,26 @@ const TELEGRAM_AUTH_BOT_WEBHOOK_SECRET = (process.env.TELEGRAM_AUTH_BOT_WEBHOOK_
   ? createHash('sha256').update(`auth-bot:${TELEGRAM_AUTH_BOT_TOKEN}`).digest('hex').slice(0, 32)
   : '')).trim();
 const TELEGRAM_AUTH_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const TELEGRAM_LINK_CODE_TTL_MS = Math.max(5 * 60 * 1000, Number(process.env.TELEGRAM_LINK_CODE_TTL_MS || 15 * 60 * 1000));
+const TELEGRAM_AUTH_INTENT_LEGACY_COOKIE_NAME = 'manacost_tg_intent';
+const TELEGRAM_AUTH_INTENT_COOKIE_NAME = APP_URL.startsWith('https://')
+  ? '__Host-manacost_tg_intent'
+  : TELEGRAM_AUTH_INTENT_LEGACY_COOKIE_NAME;
+const TELEGRAM_AUTH_INTENT_TTL_MS = 10 * 60 * 1000;
+const TELEGRAM_LINK_CODE_TTL_MS = telegramLinkCodeTtlMs(process.env.TELEGRAM_LINK_CODE_TTL_MS);
 const TELEGRAM_OIDC_CLIENT_ID = (process.env.TELEGRAM_OIDC_CLIENT_ID || process.env.TELEGRAM_AUTH_CLIENT_ID || '').trim();
 const TELEGRAM_OIDC_CLIENT_SECRET = (process.env.TELEGRAM_OIDC_CLIENT_SECRET || process.env.TELEGRAM_AUTH_CLIENT_SECRET || '').trim();
+assertTelegramAuthEnvironment({
+  botToken: TELEGRAM_AUTH_BOT_TOKEN,
+  botUsername: TELEGRAM_AUTH_BOT_USERNAME,
+  oidcClientId: TELEGRAM_OIDC_CLIENT_ID,
+  oidcClientSecret: TELEGRAM_OIDC_CLIENT_SECRET,
+});
 const TELEGRAM_OIDC_ISSUER = 'https://oauth.telegram.org';
 const TELEGRAM_OIDC_DISCOVERY_URL = `${TELEGRAM_OIDC_ISSUER}/.well-known/openid-configuration`;
-const TELEGRAM_OIDC_COOKIE_NAME = 'manacost_tg_oidc';
+const TELEGRAM_OIDC_LEGACY_COOKIE_NAME = 'manacost_tg_oidc';
+const TELEGRAM_OIDC_COOKIE_NAME = APP_URL.startsWith('https://')
+  ? '__Host-manacost_tg_oidc'
+  : TELEGRAM_OIDC_LEGACY_COOKIE_NAME;
 const TELEGRAM_OIDC_STATE_TTL_MS = 10 * 60 * 1000;
 const BOOSTY_AUTH_API_URL = (process.env.BOOSTY_AUTH_API_URL || 'http://127.0.0.1:18082').replace(/\/$/, '');
 const loadBoostyArticleAnalytics = createBoostyAnalyticsLoader({
@@ -988,9 +1030,12 @@ function db(): DatabaseSync {
       UNIQUE(provider, provider_user_id),
       FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
     );
+    CREATE INDEX IF NOT EXISTS idx_identities_user_provider
+      ON identities(user_id, provider);
     CREATE TABLE IF NOT EXISTS telegram_link_tokens (
       code TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
+      session_token_hash TEXT NOT NULL,
       expires_at INTEGER NOT NULL,
       created_at TEXT NOT NULL,
       used_at TEXT,
@@ -998,14 +1043,12 @@ function db(): DatabaseSync {
       FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS idx_telegram_link_tokens_user ON telegram_link_tokens(user_id, expires_at);
-    CREATE TABLE IF NOT EXISTS telegram_email_codes (
-      telegram_id TEXT PRIMARY KEY,
-      email TEXT NOT NULL,
-      code_hash TEXT NOT NULL,
+    CREATE TABLE IF NOT EXISTS telegram_auth_intents (
+      nonce_hash TEXT PRIMARY KEY,
       expires_at INTEGER NOT NULL,
-      attempts INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
+    CREATE INDEX IF NOT EXISTS idx_telegram_auth_intents_expiry ON telegram_auth_intents(expires_at);
     CREATE TABLE IF NOT EXISTS pending_codes (
       email TEXT PRIMARY KEY,
       code_hash TEXT NOT NULL,
@@ -1212,6 +1255,7 @@ function db(): DatabaseSync {
   if (!userColumns.has('contact_telegram')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN contact_telegram TEXT');
   if (!userColumns.has('contact_email')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN contact_email TEXT');
   if (!userColumns.has('blocked_at')) ecosystemDb.exec('ALTER TABLE users ADD COLUMN blocked_at TEXT');
+  ensureTelegramAuthDatabaseConstraints(ecosystemDb);
   ensurePublicProfileIds(ecosystemDb, { preferredUserIds: [...ADMIN_USER_IDS] });
   const manualGrantColumns = new Set((ecosystemDb.prepare('PRAGMA table_info(manual_subscription_grants)').all() as any[]).map(row => String(row.name)));
   if (!manualGrantColumns.has('expires_at')) ecosystemDb.exec('ALTER TABLE manual_subscription_grants ADD COLUMN expires_at TEXT');
@@ -1264,6 +1308,15 @@ function migrateLegacyAuthStore(database: DatabaseSync) {
     database.exec('BEGIN IMMEDIATE');
     for (const user of Array.isArray(legacy?.users) ? legacy!.users as AdminUser[] : []) {
       upsertUserRow(database, user);
+      if (user.telegramId) {
+        claimNumericTelegramIdentity(database, {
+          userId: user.id,
+          telegramId: user.telegramId,
+          username: user.telegramUsername,
+          photoUrl: user.photoUrl,
+          verifiedAt: user.updatedAt || nowIso,
+        });
+      }
     }
     for (const code of Array.isArray(legacy?.pendingCodes) ? legacy!.pendingCodes as PendingCode[] : []) {
       if (code.expiresAt > Date.now() && code.attempts < AUTH_CODE_MAX_ATTEMPTS) {
@@ -1469,17 +1522,6 @@ function upsertUserRow(database: DatabaseSync, user: AdminUser) {
       WHERE identities.user_id = excluded.user_id
   `).run(user.id, user.email, user.email, user.email, createdAt, createdAt, updatedAt);
 
-  if (user.telegramId) {
-    database.prepare(`
-      INSERT INTO identities (user_id, provider, provider_user_id, email, username, photo_url, verified_at, created_at, updated_at)
-      VALUES (?, 'telegram', ?, '', ?, ?, ?, ?, ?)
-      ON CONFLICT(provider, provider_user_id) DO UPDATE SET
-        username = excluded.username,
-        photo_url = excluded.photo_url,
-        updated_at = excluded.updated_at
-        WHERE identities.user_id = excluded.user_id
-    `).run(user.id, user.telegramId, user.telegramUsername ?? '', user.photoUrl ?? '', createdAt, createdAt, updatedAt);
-  }
   syncMailingContactForUser(database, user);
 }
 
@@ -1538,10 +1580,17 @@ function loadAuthStore(): AdminAuthStore {
   return { users, pendingCodes, sessions, updatedAt: new Date().toISOString() };
 }
 
-function saveAuthStore(store: AdminAuthStore) {
+function saveAuthStore(
+  store: AdminAuthStore,
+  options: {
+    afterBegin?: (database: DatabaseSync) => void;
+    beforeCommit?: (database: DatabaseSync) => void;
+  } = {},
+) {
   const database = db();
   try {
     database.exec('BEGIN IMMEDIATE');
+    options.afterBegin?.(database);
     const keepIds = store.users.map(user => user.id);
     if (keepIds.length) {
       const nowIso = new Date().toISOString();
@@ -1571,6 +1620,7 @@ function saveAuthStore(store: AdminAuthStore) {
         VALUES (?, ?, ?, ?, ?)
       `).run(session.tokenHash, user.id, session.email, session.expiresAt, session.createdAt);
     }
+    options.beforeCommit?.(database);
     database.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run('auth_updated_at', new Date().toISOString());
     database.exec('COMMIT');
   } catch (err) {
@@ -1610,34 +1660,6 @@ function verifyPendingCode(pending: PendingCode, code: string): boolean {
   return safeEqualHex(pending.codeHash, sha256(code));
 }
 
-function normalizeTelegramLinkCode(value: unknown): string {
-  const raw = String(value ?? '').trim().toUpperCase();
-  const compact = raw.replace(/\s+/g, '').replace(/^\/(?:START|LINK)/, '').replace(/[^A-Z0-9-]/g, '');
-  const match = compact.match(/(?:TG-?)?(\d{6})/);
-  return match ? `TG-${match[1]}` : '';
-}
-
-function createTelegramLinkCode(userId: string): { code: string; expiresAt: number } {
-  const database = db();
-  const now = Date.now();
-  const expiresAt = now + TELEGRAM_LINK_CODE_TTL_MS;
-  database.prepare('DELETE FROM telegram_link_tokens WHERE user_id = ? OR expires_at <= ? OR used_at IS NOT NULL').run(userId, now);
-
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    const code = `TG-${randomInt(100000, 1000000)}`;
-    try {
-      database.prepare(`
-        INSERT INTO telegram_link_tokens (code, user_id, expires_at, created_at)
-        VALUES (?, ?, ?, ?)
-      `).run(code, userId, expiresAt, new Date().toISOString());
-      return { code, expiresAt };
-    } catch {
-      // Retry on a rare code collision.
-    }
-  }
-  throw new Error('Не удалось создать Telegram-код');
-}
-
 function telegramLinkCodeFromMessage(text: unknown): string {
   const raw = String(text ?? '');
   const startPayload = raw.match(/^\/start\s+(.+)$/i)?.[1];
@@ -1645,113 +1667,13 @@ function telegramLinkCodeFromMessage(text: unknown): string {
   return normalizeTelegramLinkCode(startPayload || linkPayload || raw);
 }
 
-function extractEmailFromTelegramMessage(text: unknown): string {
-  const raw = String(text ?? '').trim();
-  const payload = raw.match(/^\/email\s+(.+)$/i)?.[1] || raw;
-  const match = payload.match(/[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+/);
-  return match ? normalizeEmail(match[0]) : '';
-}
-
-function telegramEmailCodeFromMessage(text: unknown): string {
-  return String(text ?? '').replace(/\D/g, '').slice(0, 6);
-}
-
-function telegramEmailCodeHash(telegramId: string, email: string, code: string): string {
-  return sha256(`telegram-email:${telegramId}:${normalizeEmail(email)}:${code}:${TELEGRAM_AUTH_BOT_TOKEN}`);
-}
-
-function pendingTelegramEmailCode(telegramId: string): { telegram_id: string; email: string; code_hash: string; expires_at: number; attempts: number } | undefined {
-  return dbGet<{ telegram_id: string; email: string; code_hash: string; expires_at: number; attempts: number }>(
-    'SELECT telegram_id, email, code_hash, expires_at, attempts FROM telegram_email_codes WHERE telegram_id = ?',
-    telegramId,
-  );
-}
-
-async function requestTelegramEmailCode(telegramId: string, email: string) {
-  const normalizedTelegramId = String(telegramId || '').replace(/\D/g, '');
-  const normalizedEmail = normalizeEmail(email);
-  if (!normalizedTelegramId) throw new Error('Telegram не передал ID пользователя');
-  if (!isRealEmail(normalizedEmail)) throw new Error('Пришлите реальную почту в формате name@example.com');
-
-  const existingTelegramId = findKhaVipTelegramByEmail(normalizedEmail);
-  if (existingTelegramId && existingTelegramId !== normalizedTelegramId) {
-    throw new Error('Эта почта уже привязана к другому Telegram');
-  }
-  const telegramIdentity = identityOwner('telegram', normalizedTelegramId);
-  if (telegramIdentity?.user_id && identityBelongsToAnotherUser('boosty-email', normalizedEmail, telegramIdentity.user_id)) {
-    throw new Error('Эта Boosty-почта уже привязана к другому аккаунту');
-  }
-
-  const code = randomInt(100000, 1000000).toString();
-  const nowIso = new Date().toISOString();
-  dbRun(`
-    INSERT INTO telegram_email_codes (telegram_id, email, code_hash, expires_at, attempts, created_at)
-    VALUES (?, ?, ?, ?, 0, ?)
-    ON CONFLICT(telegram_id) DO UPDATE SET
-      email = excluded.email,
-      code_hash = excluded.code_hash,
-      expires_at = excluded.expires_at,
-      attempts = 0,
-      created_at = excluded.created_at
-  `, normalizedTelegramId, normalizedEmail, telegramEmailCodeHash(normalizedTelegramId, normalizedEmail, code), Date.now() + AUTH_CODE_TTL_MS, nowIso);
-  await sendAuthCodeEmail(normalizedEmail, code);
-}
-
-async function confirmTelegramEmailCode(telegramId: string, code: string): Promise<{ email: string; linkedUser?: AdminUser; status?: SubscriptionStatus }> {
-  const normalizedTelegramId = String(telegramId || '').replace(/\D/g, '');
-  const normalizedCode = telegramEmailCodeFromMessage(code);
-  const pending = pendingTelegramEmailCode(normalizedTelegramId);
-  if (!pending) throw new Error('Активного кода нет. Отправьте /email ваша@почта');
-  if (pending.expires_at <= Date.now()) {
-    dbRun('DELETE FROM telegram_email_codes WHERE telegram_id = ?', normalizedTelegramId);
-    throw new Error('Код истёк. Отправьте /email ещё раз.');
-  }
-  const attempts = Number(pending.attempts || 0) + 1;
-  if (attempts > AUTH_CODE_MAX_ATTEMPTS || !safeEqualHex(pending.code_hash, telegramEmailCodeHash(normalizedTelegramId, pending.email, normalizedCode))) {
-    dbRun('UPDATE telegram_email_codes SET attempts = ? WHERE telegram_id = ?', attempts, normalizedTelegramId);
-    throw new Error(attempts >= AUTH_CODE_MAX_ATTEMPTS
-      ? 'Слишком много неверных попыток. Отправьте /email ещё раз.'
-      : `Неверный код. Осталось попыток: ${AUTH_CODE_MAX_ATTEMPTS - attempts}.`);
-  }
-
-  const existingTelegramId = findKhaVipTelegramByEmail(pending.email);
-  if (existingTelegramId && existingTelegramId !== normalizedTelegramId) {
-    throw new Error('Эта почта уже привязана к другому Telegram');
-  }
-
-  const store = loadAuthStore();
-  const linkedUser = store.users.find(item => item.telegramId === normalizedTelegramId);
-  setKhaVipVerifiedEmail(normalizedTelegramId, pending.email);
-  if (linkedUser) {
-    const existingEmailUser = store.users.find(item => item.email === pending.email && item.id !== linkedUser.id);
-    if (existingEmailUser || identityBelongsToAnotherUser('boosty-email', pending.email, linkedUser.id)) {
-      throw new Error('Эта Boosty-почта уже привязана к другому аккаунту');
-    }
-    const oldEmail = linkedUser.email;
-    linkedUser.email = pending.email;
-    linkedUser.contactEmail = linkedUser.contactEmail || pending.email;
-    linkedUser.updatedAt = new Date().toISOString();
-    store.sessions = store.sessions.map(session => session.email === oldEmail ? { ...session, email: pending.email } : session);
-    saveAuthStore(store);
-    const nowIso = new Date().toISOString();
-    dbRun(`
-      INSERT INTO identities (user_id, provider, provider_user_id, email, username, photo_url, verified_at, created_at, updated_at)
-      VALUES (?, 'boosty-email', ?, ?, ?, '', ?, ?, ?)
-      ON CONFLICT(provider, provider_user_id) DO UPDATE SET
-        email = excluded.email,
-        username = excluded.username,
-        verified_at = excluded.verified_at,
-        updated_at = excluded.updated_at
-        WHERE identities.user_id = excluded.user_id
-    `, linkedUser.id, pending.email, pending.email, pending.email, nowIso, nowIso, nowIso);
-  }
-
-  dbRun('DELETE FROM telegram_email_codes WHERE telegram_id = ?', normalizedTelegramId);
-  const status = linkedUser ? await refreshSubscriptionForUser(linkedUser, true) : undefined;
-  return { email: pending.email, linkedUser, status };
-}
-
 function publicUser(user: AdminUser) {
+  const telegramLinked = Boolean(user.telegramId || dbGet(`
+    SELECT 1 AS linked
+    FROM identities
+    WHERE user_id = ? AND provider IN ('telegram', 'telegram_oidc')
+    LIMIT 1
+  `, user.id));
   return {
     id: user.id,
     profileId: user.id,
@@ -1762,6 +1684,7 @@ function publicUser(user: AdminUser) {
     country: user.country ?? '',
     newsletterOptIn: Boolean(user.newsletterOptIn),
     avatarInitials: user.avatarInitials ?? user.name.slice(0, 2).toUpperCase(),
+    telegramLinked,
     telegramUsername: user.telegramUsername ?? '',
     photoUrl: user.photoUrl ?? '',
     contactVkUrl: user.contactVkUrl ?? '',
@@ -1929,52 +1852,10 @@ function readKhaVipProfiles(): Record<string, any> {
   }
 }
 
-function writeKhaVipProfiles(profiles: Record<string, any>) {
-  mkdirSync(dirname(KHA_VIP_PROFILES_FILE), { recursive: true });
-  const tmpFile = `${KHA_VIP_PROFILES_FILE}.${process.pid}.${Date.now()}.tmp`;
-  writeFileSync(tmpFile, `${JSON.stringify(profiles, null, 2)}\n`);
-  renameSync(tmpFile, KHA_VIP_PROFILES_FILE);
-}
-
 function khaVerifiedEmail(profile: Record<string, any> | null): string {
   if (!profile?.email_verified_at) return '';
   const email = normalizeEmail(profile.email);
   return isRealEmail(email) ? email : '';
-}
-
-function findKhaVipTelegramByEmail(email: string): string {
-  const normalized = normalizeEmail(email);
-  if (!normalized) return '';
-  const profiles = readKhaVipProfiles();
-  for (const [telegramIdRaw, profile] of Object.entries(profiles)) {
-    if (!profile || typeof profile !== 'object') continue;
-    if (khaVerifiedEmail(profile as Record<string, any>) === normalized) {
-      return String(telegramIdRaw).replace(/\D/g, '');
-    }
-  }
-  return '';
-}
-
-function setKhaVipVerifiedEmail(telegramId: string, email: string) {
-  const normalizedTelegramId = String(telegramId || '').replace(/\D/g, '');
-  const normalizedEmail = normalizeEmail(email);
-  if (!normalizedTelegramId || !isRealEmail(normalizedEmail)) throw new Error('Некорректные данные Telegram/email');
-
-  const profiles = readKhaVipProfiles();
-  const existingTelegramId = findKhaVipTelegramByEmail(normalizedEmail);
-  if (existingTelegramId && existingTelegramId !== normalizedTelegramId) {
-    throw new Error('Эта почта уже привязана к другому Telegram');
-  }
-
-  const profile = profiles[normalizedTelegramId] && typeof profiles[normalizedTelegramId] === 'object'
-    ? profiles[normalizedTelegramId]
-    : {};
-  profile.email = normalizedEmail;
-  profile.email_verified_at = new Date().toISOString();
-  delete profile.boosty_access;
-  delete profile.boosty_checked_at;
-  profiles[normalizedTelegramId] = profile;
-  writeKhaVipProfiles(profiles);
 }
 
 function khaProfileHasBoostyAccess(profile: Record<string, any> | null): boolean {
@@ -2023,7 +1904,8 @@ function syncKhaVipProfiles(database: DatabaseSync) {
   const profiles = readKhaVipProfiles();
   const now = new Date().toISOString();
   for (const [telegramIdRaw, profile] of Object.entries(profiles)) {
-    const telegramId = String(telegramIdRaw).replace(/\D/g, '');
+    const telegramPayload = telegramBotIdentityPayload({ id: telegramIdRaw });
+    const telegramId = String(telegramPayload?.id ?? '');
     const email = khaVerifiedEmail(profile as Record<string, any>);
     if (!telegramId || !email) continue;
 
@@ -2057,13 +1939,21 @@ function syncKhaVipProfiles(database: DatabaseSync) {
     }
 
     if (!telegramIdentity?.user_id && emailUser?.id) {
-      database.prepare(`
-        INSERT INTO identities (user_id, provider, provider_user_id, email, username, photo_url, verified_at, created_at, updated_at)
-        VALUES (?, 'telegram', ?, '', '', '', ?, ?, ?)
-        ON CONFLICT(provider, provider_user_id) DO UPDATE SET
-          updated_at = excluded.updated_at
-          WHERE identities.user_id = excluded.user_id
-      `).run(emailUser.id, telegramId, now, now, now);
+      try {
+        claimNumericTelegramIdentity(database, {
+          userId: emailUser.id,
+          telegramId,
+          verifiedAt: now,
+        });
+      } catch (error) {
+        if (!(error instanceof TelegramAuthIdentityError)) throw error;
+        console.warn('[ecosystem] skipped KHA VIP Telegram identity claim', {
+          telegramId,
+          emailUserId: emailUser.id,
+          reason: error.code,
+        });
+        continue;
+      }
       const user = loadAuthStore().users.find(item => item.id === emailUser.id);
       if (user) applyKhaSubscriptionSnapshot(user, profile as Record<string, any>);
       continue;
@@ -2092,6 +1982,11 @@ function syncKhaVipProfiles(database: DatabaseSync) {
         updatedAt: now,
       };
       upsertUserRow(database, user);
+      claimNumericTelegramIdentity(database, {
+        userId: user.id,
+        telegramId,
+        verifiedAt: now,
+      });
       applyKhaSubscriptionSnapshot(user, profile as Record<string, any>);
     }
   }
@@ -2251,50 +2146,6 @@ function applyKhaSubscriptionSnapshot(user: AdminUser, profile: Record<string, a
   writeSubscriptionCheck(user, 'boosty:kha-vip-bot', hasAccess, boosty);
 }
 
-function mergeAuthUsers(store: AdminAuthStore, sourceUser: AdminUser, targetUser: AdminUser, patch: Partial<AdminUser> = {}): AdminUser {
-  const mergedRoleWantsAdmin = targetUser.role === 'admin' || sourceUser.role === 'admin';
-  const targetCanBeAdmin = ADMIN_USER_IDS.size === 0 || ADMIN_USER_IDS.has(targetUser.id);
-  targetUser.role = mergedRoleWantsAdmin && targetCanBeAdmin ? 'admin' : 'user';
-  targetUser.country = targetUser.country || sourceUser.country || '';
-  targetUser.newsletterOptIn = Boolean(targetUser.newsletterOptIn || sourceUser.newsletterOptIn);
-  targetUser.telegramId = patch.telegramId ?? targetUser.telegramId ?? sourceUser.telegramId;
-  targetUser.telegramUsername = patch.telegramUsername ?? targetUser.telegramUsername ?? sourceUser.telegramUsername;
-  targetUser.photoUrl = patch.photoUrl ?? targetUser.photoUrl ?? sourceUser.photoUrl;
-  targetUser.avatarInitials = targetUser.avatarInitials || sourceUser.avatarInitials || targetUser.name.slice(0, 2).toUpperCase();
-  targetUser.updatedAt = new Date().toISOString();
-  store.sessions = store.sessions.map(session =>
-    session.email === sourceUser.email ? { ...session, email: targetUser.email } : session
-  );
-  dbRun('UPDATE identities SET user_id = ?, updated_at = ? WHERE user_id = ?', targetUser.id, targetUser.updatedAt, sourceUser.id);
-  dbRun('UPDATE subscription_checks SET user_id = ? WHERE user_id = ?', targetUser.id, sourceUser.id);
-  dbRun('DELETE FROM subscriptions WHERE user_id = ?', sourceUser.id);
-  dbRun(`
-    UPDATE contest_entries
-    SET user_id = ?
-    WHERE user_id = ?
-      AND NOT EXISTS (
-        SELECT 1 FROM contest_entries existing
-        WHERE existing.contest_id = contest_entries.contest_id
-          AND existing.user_id = ?
-      )
-  `, targetUser.id, sourceUser.id, targetUser.id);
-  dbRun(`
-    DELETE FROM contest_entries
-    WHERE user_id = ?
-      AND EXISTS (
-        SELECT 1 FROM contest_entries existing
-        WHERE existing.contest_id = contest_entries.contest_id
-          AND existing.user_id = ?
-      )
-  `, sourceUser.id, targetUser.id);
-  store.users = store.users.filter(user => user.id !== sourceUser.id);
-  return targetUser;
-}
-
-function telegramAuthEnabled(): boolean {
-  return Boolean(telegramOidcEnabled() || (TELEGRAM_AUTH_BOT_TOKEN && TELEGRAM_AUTH_BOT_USERNAME));
-}
-
 function telegramLegacyWidgetEnabled(): boolean {
   return Boolean(TELEGRAM_AUTH_BOT_TOKEN && TELEGRAM_AUTH_BOT_USERNAME);
 }
@@ -2323,15 +2174,12 @@ function verifyTelegramAuthPayload(payload: Record<string, unknown>): { ok: true
   if (!/^[a-f0-9]{64}$/i.test(hash) || !Number.isFinite(authDate) || authDate <= 0) {
     return { ok: false, error: 'Некорректные данные Telegram' };
   }
-  if (Date.now() - authDate * 1000 > TELEGRAM_AUTH_MAX_AGE_MS) {
+  const authAgeMs = Date.now() - authDate * 1000;
+  if (authAgeMs > TELEGRAM_AUTH_MAX_AGE_MS || authAgeMs < -5 * 60 * 1000) {
     return { ok: false, error: 'Сессия Telegram устарела. Попробуйте ещё раз.' };
   }
 
-  const dataCheckString = Object.entries(payload)
-    .filter(([key, value]) => key !== 'hash' && value !== undefined && value !== null && value !== '')
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, value]) => `${key}=${String(value)}`)
-    .join('\n');
+  const dataCheckString = telegramLoginWidgetDataCheckString(payload);
 
   const secretKey = createHash('sha256').update(TELEGRAM_AUTH_BOT_TOKEN).digest();
   const expectedHash = createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
@@ -2349,14 +2197,6 @@ type TelegramOidcDiscovery = {
   authorization_endpoint: string;
   token_endpoint: string;
   jwks_uri: string;
-};
-
-type TelegramOidcState = {
-  state: string;
-  nonce: string;
-  codeVerifier: string;
-  returnTo: string;
-  expiresAt: number;
 };
 
 let telegramOidcDiscoveryCache: { data: TelegramOidcDiscovery; expiresAt: number } | null = null;
@@ -2438,12 +2278,7 @@ function createAuthSession(store: AdminAuthStore, user: AdminUser): string {
 }
 
 function cookieValue(req: import('express').Request, name: string): string {
-  const cookie = String(req.headers.cookie ?? '');
-  for (const part of cookie.split(';')) {
-    const [rawKey, ...rawValue] = part.trim().split('=');
-    if (rawKey === name) return decodeURIComponent(rawValue.join('=') || '');
-  }
-  return '';
+  return cookieValues(String(req.headers.cookie ?? ''), name)[0] ?? '';
 }
 
 function authCookieDomain(req: import('express').Request): string {
@@ -2453,21 +2288,33 @@ function authCookieDomain(req: import('express').Request): string {
 
 function setAuthCookie(req: import('express').Request, res: import('express').Response, token: string) {
   const maxAgeSeconds = Math.floor(AUTH_SESSION_TTL_MS / 1000);
-  const secure = String(req.headers['x-forwarded-proto'] ?? req.protocol).includes('https') || String(req.headers.host ?? '').includes('arena.hs-manacost.ru');
+  const secure = APP_URL.startsWith('https://')
+    || String(req.headers['x-forwarded-proto'] ?? req.protocol).includes('https')
+    || String(req.headers.host ?? '').includes('arena.hs-manacost.ru');
   const attributes = [
     'Path=/',
     'HttpOnly',
     'SameSite=Lax',
     secure ? 'Secure' : '',
   ].filter(Boolean);
+  if (AUTH_COOKIE_NAME.startsWith('__Host-') && !secure) {
+    throw new Error('__Host- auth cookie requires HTTPS');
+  }
   const legacyDomain = authCookieDomain(req);
-  if (legacyDomain) {
+  if (AUTH_COOKIE_NAME !== AUTH_LEGACY_COOKIE_NAME) {
     res.append('Set-Cookie', [
-      `${AUTH_COOKIE_NAME}=`,
+      `${AUTH_LEGACY_COOKIE_NAME}=`,
       ...attributes,
       'Max-Age=0',
-      legacyDomain,
     ].join('; '));
+    if (legacyDomain) {
+      res.append('Set-Cookie', [
+        `${AUTH_LEGACY_COOKIE_NAME}=`,
+        ...attributes,
+        'Max-Age=0',
+        legacyDomain,
+      ].join('; '));
+    }
   }
   res.append('Set-Cookie', [
     `${AUTH_COOKIE_NAME}=${encodeURIComponent(token)}`,
@@ -2477,7 +2324,9 @@ function setAuthCookie(req: import('express').Request, res: import('express').Re
 }
 
 function clearAuthCookie(req: import('express').Request, res: import('express').Response) {
-  const secure = String(req.headers['x-forwarded-proto'] ?? req.protocol).includes('https') || String(req.headers.host ?? '').includes('arena.hs-manacost.ru');
+  const secure = APP_URL.startsWith('https://')
+    || String(req.headers['x-forwarded-proto'] ?? req.protocol).includes('https')
+    || String(req.headers.host ?? '').includes('arena.hs-manacost.ru');
   const attributes = [
     'Path=/',
     'HttpOnly',
@@ -2489,10 +2338,16 @@ function clearAuthCookie(req: import('express').Request, res: import('express').
     `${AUTH_COOKIE_NAME}=`,
     ...attributes,
   ].join('; '));
+  if (AUTH_COOKIE_NAME !== AUTH_LEGACY_COOKIE_NAME) {
+    res.append('Set-Cookie', [
+      `${AUTH_LEGACY_COOKIE_NAME}=`,
+      ...attributes,
+    ].join('; '));
+  }
   const legacyDomain = authCookieDomain(req);
   if (legacyDomain) {
     res.append('Set-Cookie', [
-      `${AUTH_COOKIE_NAME}=`,
+      `${AUTH_LEGACY_COOKIE_NAME}=`,
       ...attributes,
       legacyDomain,
     ].join('; '));
@@ -2500,88 +2355,77 @@ function clearAuthCookie(req: import('express').Request, res: import('express').
 }
 
 function telegramOidcCookieSecure(req: import('express').Request): boolean {
-  return String(req.headers['x-forwarded-proto'] ?? req.protocol).includes('https')
+  return APP_URL.startsWith('https://')
+    || String(req.headers['x-forwarded-proto'] ?? req.protocol).includes('https')
     || String(req.headers.host ?? '').includes('arena.hs-manacost.ru')
     || String(req.headers.host ?? '').includes('hs-manacost.ru');
 }
 
-function telegramOidcStateFromValue(value: any): TelegramOidcState | null {
-  if (!value?.state || !value?.nonce || !value?.codeVerifier || !value?.expiresAt) return null;
-  if (Number(value.expiresAt) <= Date.now()) return null;
-  return {
-    state: String(value.state),
-    nonce: String(value.nonce),
-    codeVerifier: String(value.codeVerifier),
-    returnTo: safeAuthReturnTo(value.returnTo),
-    expiresAt: Number(value.expiresAt),
-  };
+const telegramAuthIntentCookies = createTelegramAuthIntentCookieManager<
+  import('express').Request,
+  import('express').Response
+>({
+  cookieName: TELEGRAM_AUTH_INTENT_COOKIE_NAME,
+  path: TELEGRAM_AUTH_INTENT_COOKIE_NAME.startsWith('__Host-') ? '/' : '/api/auth/telegram',
+  legacyCookieName: TELEGRAM_AUTH_INTENT_LEGACY_COOKIE_NAME,
+  legacyPath: '/api/auth/telegram',
+  secret: TELEGRAM_AUTH_BOT_TOKEN || TELEGRAM_OIDC_CLIENT_SECRET,
+  ttlMs: TELEGRAM_AUTH_INTENT_TTL_MS,
+  now: Date.now,
+  randomNonce: () => randomBytes(24).toString('base64url'),
+  readCookie: cookieValue,
+  appendSetCookie: (response, cookie) => response.append('Set-Cookie', cookie),
+  secure: telegramOidcCookieSecure,
+  legacyDomain: authCookieDomain,
+  encode: encodeSignedStateCookie,
+  decode: decodeSignedStateCookie,
+});
+
+function issueTelegramSignInIntent(
+  req: import('express').Request,
+  res: import('express').Response,
+) {
+  const intent = telegramAuthIntentCookies.issue(req, res);
+  storeTelegramAuthIntent(db(), {
+    nonceHash: sha256(intent.nonce),
+    expiresAt: intent.expiresAt,
+    createdAt: new Date().toISOString(),
+    now: Date.now(),
+  });
+  return intent;
 }
 
-function readTelegramOidcStates(req: import('express').Request): TelegramOidcState[] {
-  const raw = cookieValue(req, TELEGRAM_OIDC_COOKIE_NAME);
-  if (!raw) return [];
-  try {
-    const parsed = decodeSignedStateCookie(raw, TELEGRAM_OIDC_CLIENT_SECRET) as any;
-    if (!parsed) return [];
-    const values = Array.isArray(parsed?.states) ? parsed.states : [parsed];
-    return values
-      .map(telegramOidcStateFromValue)
-      .filter((state): state is TelegramOidcState => Boolean(state));
-  } catch {
-    return [];
-  }
+function takeTelegramAuthIntent(
+  req: import('express').Request,
+  res: import('express').Response,
+  nonce: string,
+) {
+  const intent = telegramAuthIntentCookies.take(req, res, nonce);
+  return intent;
 }
 
-function writeTelegramOidcStates(req: import('express').Request, res: import('express').Response, states: TelegramOidcState[]) {
-  const validStates = states
-    .map(telegramOidcStateFromValue)
-    .filter((state): state is TelegramOidcState => Boolean(state))
-    .slice(-5);
-  if (!validStates.length) {
-    clearTelegramOidcCookie(req, res);
-    return;
-  }
-  const maxAgeSeconds = Math.max(1, Math.ceil((Math.max(...validStates.map(state => state.expiresAt)) - Date.now()) / 1000));
-  const cookie = [
-    `${TELEGRAM_OIDC_COOKIE_NAME}=${encodeURIComponent(encodeSignedStateCookie({ states: validStates }, TELEGRAM_OIDC_CLIENT_SECRET))}`,
-    'Path=/api/auth/telegram',
-    `Max-Age=${maxAgeSeconds}`,
-    'HttpOnly',
-    'SameSite=Lax',
-    telegramOidcCookieSecure(req) ? 'Secure' : '',
-    authCookieDomain(req),
-  ].filter(Boolean).join('; ');
-  res.append('Set-Cookie', cookie);
-}
-
-function setTelegramOidcCookie(req: import('express').Request, res: import('express').Response, state: TelegramOidcState) {
-  const states = readTelegramOidcStates(req).filter(item => item.state !== state.state);
-  states.push(state);
-  writeTelegramOidcStates(req, res, states);
-}
-
-function clearTelegramOidcCookie(req: import('express').Request, res: import('express').Response, stateValue?: string) {
-  if (stateValue) {
-    writeTelegramOidcStates(req, res, readTelegramOidcStates(req).filter(item => item.state !== stateValue));
-    return;
-  }
-  const cookie = [
-    `${TELEGRAM_OIDC_COOKIE_NAME}=`,
-    'Path=/api/auth/telegram',
-    'Max-Age=0',
-    'HttpOnly',
-    'SameSite=Lax',
-    telegramOidcCookieSecure(req) ? 'Secure' : '',
-    authCookieDomain(req),
-  ].filter(Boolean).join('; ');
-  res.append('Set-Cookie', cookie);
-}
-
-function readTelegramOidcState(req: import('express').Request, stateValue = ''): TelegramOidcState | null {
-  const states = readTelegramOidcStates(req);
-  if (stateValue) return states.find(item => item.state === stateValue) ?? null;
-  return states[states.length - 1] ?? null;
-}
+const telegramOidcFlow = createTelegramOidcFlow<
+  import('express').Request,
+  import('express').Response
+>({
+  cookieName: TELEGRAM_OIDC_COOKIE_NAME,
+  legacyCookieName: TELEGRAM_OIDC_LEGACY_COOKIE_NAME,
+  secret: TELEGRAM_OIDC_CLIENT_SECRET,
+  ttlMs: TELEGRAM_OIDC_STATE_TTL_MS,
+  clientId: TELEGRAM_OIDC_CLIENT_ID,
+  redirectUri: `${APP_URL}/api/auth/telegram/callback`,
+  now: Date.now,
+  randomToken: bytes => randomBytes(bytes).toString('base64url'),
+  loadAuthorizationEndpoint: async () => (await telegramOidcDiscovery()).authorization_endpoint,
+  codeChallenge: sha256Base64Url,
+  safeReturnTo: safeAuthReturnTo,
+  readCookie: cookieValue,
+  appendSetCookie: (response, cookie) => response.append('Set-Cookie', cookie),
+  secure: telegramOidcCookieSecure,
+  legacyDomain: authCookieDomain,
+  encode: encodeSignedStateCookie,
+  decode: decodeSignedStateCookie,
+});
 
 async function verifyTelegramOidcIdToken(idToken: string, expectedNonce: string): Promise<Record<string, any>> {
   const parts = idToken.split('.');
@@ -2604,9 +2448,8 @@ async function verifyTelegramOidcIdToken(idToken: string, expectedNonce: string)
   if (!ok) throw new Error('Telegram id_token не прошёл проверку подписи');
 
   const now = Math.floor(Date.now() / 1000);
-  const aud = (Array.isArray(payload.aud) ? payload.aud : [payload.aud]).map(String);
   if (payload.iss !== TELEGRAM_OIDC_ISSUER) throw new Error('Некорректный issuer Telegram');
-  if (!aud.includes(TELEGRAM_OIDC_CLIENT_ID)) throw new Error('Некорректный audience Telegram');
+  assertTelegramOidcAudience(payload, TELEGRAM_OIDC_CLIENT_ID);
   if (typeof payload.exp !== 'number' || payload.exp <= now) throw new Error('Telegram id_token устарел');
   if (typeof payload.iat === 'number' && payload.iat > now + 300) throw new Error('Telegram id_token из будущего');
   if (payload.nonce !== expectedNonce) throw new Error('Telegram nonce не совпал');
@@ -3351,7 +3194,10 @@ function cookieMutationCsrfAllowed(req: import('express').Request): boolean {
     method: req.method,
     path: requestPath,
     authorization: req.headers.authorization,
-    authCookiePresent: Boolean(cookieValue(req, AUTH_COOKIE_NAME)),
+    authCookiePresent: cookieValues(
+      String(req.headers.cookie ?? ''),
+      AUTH_COOKIE_NAME,
+    ).length > 0,
     csrfHeader: req.headers['x-csrf-request'],
     origin: req.headers.origin,
     referer: req.headers.referer,
@@ -7401,6 +7247,7 @@ const apiLimiter = rateLimit({
   message: { error: 'Слишком много запросов. Попробуйте через минуту.' },
   skip: (req) => (
     req.path.startsWith('/card-image/')
+    || (req.method === 'POST' && req.path === '/auth/telegram/bot/webhook')
     || isPublicMediaApiRequest(req.method, req.path)
     || (req.method === 'GET' && req.originalUrl.startsWith('/api/gallery/'))
     || req.ip === '127.0.0.1'
@@ -7417,6 +7264,53 @@ const authCodeRequestLimiter = rateLimit({
   keyGenerator: rateLimitEmailKey,
   message: { error: 'Слишком много запросов кода. Попробуйте позже.' },
 });
+
+const telegramBotWebhookLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: req => {
+    const telegramId = telegramBotIdentityPayload(req.body?.message?.from)?.id;
+    return telegramId ? `telegram:${telegramId}` : `ip:${ipKeyGenerator(getTrustedClientIp(req))}`;
+  },
+  message: { ok: false, error: 'Too many Telegram updates' },
+});
+
+function telegramBotWebhookGuard(
+  req: import('express').Request,
+  res: import('express').Response,
+  next: import('express').NextFunction,
+) {
+  setPrivateNoStore(res);
+  if (!TELEGRAM_AUTH_BOT_TOKEN || !TELEGRAM_AUTH_BOT_USERNAME) {
+    return res.status(503).json({ ok: false, error: 'Telegram auth bot disabled' });
+  }
+  if (TELEGRAM_AUTH_BOT_WEBHOOK_SECRET) {
+    const received = String(req.headers['x-telegram-bot-api-secret-token'] || '');
+    if (!safeEqualString(received, TELEGRAM_AUTH_BOT_WEBHOOK_SECRET)) {
+      return res.status(403).json({ ok: false, error: 'Forbidden' });
+    }
+  }
+  return next();
+}
+
+const telegramBotWebhookPreAuthLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: req => `ip:${ipKeyGenerator(getTrustedClientIp(req))}`,
+  skip: req => Boolean(
+    TELEGRAM_AUTH_BOT_WEBHOOK_SECRET
+    && safeEqualString(
+      req.headers['x-telegram-bot-api-secret-token'],
+      TELEGRAM_AUTH_BOT_WEBHOOK_SECRET,
+    )
+  ),
+  message: { ok: false, error: 'Too many invalid Telegram webhook requests' },
+});
+app.use('/api/auth/telegram/bot/webhook', telegramBotWebhookPreAuthLimiter, telegramBotWebhookGuard);
 
 const authCodeVerifyLimiter = rateLimit({
   windowMs: 15 * 60_000,
@@ -8507,16 +8401,31 @@ app.use('/api', createPasswordResetRouter({
   setPrivateNoStore,
 }));
 
-app.get('/api/auth/telegram/config', (_req, res) => {
-  const enabled = telegramAuthEnabled();
-  const useOidc = telegramOidcEnabled();
-  const useLegacyWidget = !useOidc && telegramLegacyWidgetEnabled();
+app.get('/api/auth/telegram/config', (req, res) => {
+  setPrivateNoStore(res);
+  const oidcEnabled = telegramOidcEnabled();
+  const legacyEnabled = telegramLegacyWidgetEnabled();
+  const mode = telegramAuthMode({ oidcEnabled, legacyEnabled });
+  const enabled = mode !== 'disabled';
+  let callbackUrl = enabled ? `${APP_URL}/api/auth/telegram/callback` : '';
+  let legacyIntent = '';
+  let legacyIntentExpiresAt = 0;
+  if (legacyEnabled) {
+    const intent = issueTelegramSignInIntent(req, res);
+    legacyIntent = intent.nonce;
+    legacyIntentExpiresAt = intent.expiresAt;
+    const intentUrl = new URL(callbackUrl);
+    intentUrl.searchParams.set('intent', intent.nonce);
+    callbackUrl = intentUrl.toString();
+  }
   res.json({
     enabled,
-    mode: useOidc ? 'oidc' : useLegacyWidget ? 'legacy-widget' : 'disabled',
+    mode,
     botUsername: enabled ? TELEGRAM_AUTH_BOT_USERNAME : '',
-    authUrl: enabled ? (useLegacyWidget ? `${APP_URL}/api/auth/telegram/callback` : `${APP_URL}/api/auth/telegram/start`) : '',
-    callbackUrl: enabled ? `${APP_URL}/api/auth/telegram/callback` : '',
+    authUrl: enabled ? (mode === 'legacy-widget' ? callbackUrl : `${APP_URL}/api/auth/telegram/start`) : '',
+    callbackUrl,
+    legacyIntent,
+    legacyIntentExpiresAt,
   });
 });
 
@@ -8546,14 +8455,20 @@ async function sendTelegramAuthBotMessage(chatId: string | number, text: string)
 
 app.post('/api/auth/telegram/link-code', (req, res) => {
   setPrivateNoStore(res);
-  const user = userAuth(req);
-  if (!user) return res.status(401).json({ error: 'Требуется вход' });
+  const activeSession = authenticatedSessionFromRequest(req);
+  if (!activeSession) return res.status(401).json({ error: 'Требуется вход' });
   if (!TELEGRAM_AUTH_BOT_TOKEN || !TELEGRAM_AUTH_BOT_USERNAME) {
     return res.status(503).json({ error: 'Telegram-бот пока не настроен' });
   }
 
   try {
-    const result = createTelegramLinkCode(user.id);
+    const result = issueTelegramLinkToken(db(), {
+      userId: activeSession.user.id,
+      sessionTokenHash: activeSession.session.tokenHash,
+      now: Date.now(),
+      ttlMs: TELEGRAM_LINK_CODE_TTL_MS,
+      randomCode: () => `TG-${randomBytes(18).toString('base64url')}`,
+    });
     res.json({
       success: true,
       code: result.code,
@@ -8566,132 +8481,34 @@ app.post('/api/auth/telegram/link-code', (req, res) => {
   }
 });
 
-app.post('/api/auth/telegram/bot/webhook', async (req, res) => {
-  setPrivateNoStore(res);
-  if (!TELEGRAM_AUTH_BOT_TOKEN || !TELEGRAM_AUTH_BOT_USERNAME) {
-    return res.status(503).json({ ok: false, error: 'Telegram auth bot disabled' });
-  }
-  if (TELEGRAM_AUTH_BOT_WEBHOOK_SECRET) {
-    const received = String(req.headers['x-telegram-bot-api-secret-token'] || '');
-    if (!safeEqualString(received, TELEGRAM_AUTH_BOT_WEBHOOK_SECRET)) {
-      return res.status(403).json({ ok: false, error: 'Forbidden' });
-    }
-  }
-
+app.post('/api/auth/telegram/bot/webhook', telegramBotWebhookLimiter, async (req, res) => {
   const message = req.body?.message;
   const chatId = message?.chat?.id;
   const chatType = String(message?.chat?.type || '');
   const telegramUser = message?.from;
-  const telegramId = telegramUser?.id ? String(telegramUser.id).replace(/\D/g, '') : '';
+  const telegramPayload = telegramBotIdentityPayload(telegramUser);
   const messageText = String(message?.text || '').trim();
-  const requestedEmail = extractEmailFromTelegramMessage(messageText);
-  const emailCode = telegramEmailCodeFromMessage(messageText);
-  const hasPendingEmailCode = Boolean(telegramId && pendingTelegramEmailCode(telegramId));
   const linkCode = telegramLinkCodeFromMessage(messageText);
   res.json({ ok: true });
 
-  if (!chatId || !telegramId) return;
+  if (!chatId || !telegramPayload) return;
   if (chatType && chatType !== 'private') return;
-  if (requestedEmail) {
-    try {
-      await requestTelegramEmailCode(telegramId, requestedEmail);
-      await sendTelegramAuthBotMessage(chatId, `Код подтверждения отправлен на ${requestedEmail}. Пришлите сюда 6 цифр из письма.`);
-    } catch (err: any) {
-      await sendTelegramAuthBotMessage(chatId, err?.message || 'Не удалось отправить код подтверждения на почту.');
-    }
-    return;
-  }
-  if (hasPendingEmailCode && emailCode.length === 6 && !/^\/(?:start|link)\b/i.test(messageText) && !/^TG-/i.test(messageText)) {
-    try {
-      const result = await confirmTelegramEmailCode(telegramId, emailCode);
-      if (result.linkedUser) {
-        await sendTelegramAuthBotMessage(chatId, result.status?.hasAccess
-          ? `Почта ${result.email} подтверждена и привязана к сайту. Boosty-доступ обновлён.`
-          : `Почта ${result.email} подтверждена и привязана к сайту. Boosty-доступ пока не найден, обновите проверку в профиле.`);
-      } else {
-        await sendTelegramAuthBotMessage(chatId, `Почта ${result.email} подтверждена в общей базе Telegram-бота. После привязки Telegram на сайте она будет использована для проверки Boosty.`);
-      }
-    } catch (err: any) {
-      await sendTelegramAuthBotMessage(chatId, err?.message || 'Не удалось подтвердить почту.');
-    }
-    return;
-  }
   if (!linkCode) {
     await sendTelegramAuthBotMessage(chatId, [
       'Отправьте сюда ID-код из профиля arena.hs-manacost.ru.',
       'Код создаётся в блоке Telegram в личном кабинете и действует ограниченное время.',
       '',
-      'Чтобы привязать Boosty-почту через бота, отправьте /email name@example.com.',
+      'Boosty-почта подтверждается через команду /profile у этого бота.',
     ].join('\n'));
     return;
   }
 
   try {
-    const database = db();
-    const token = database.prepare(`
-      SELECT code, user_id, expires_at, used_at
-      FROM telegram_link_tokens
-      WHERE code = ?
-    `).get(linkCode) as { code: string; user_id: string; expires_at: number; used_at?: string } | undefined;
-    if (!token || token.used_at || token.expires_at <= Date.now()) {
-      await sendTelegramAuthBotMessage(chatId, 'Код не найден или устарел. Создайте новый код в профиле.');
-      return;
-    }
-
-    const store = loadAuthStore();
-    const targetUser = store.users.find(item => item.id === token.user_id);
-    if (!targetUser) {
-      await sendTelegramAuthBotMessage(chatId, 'Профиль для этого кода не найден. Создайте новый код в профиле.');
-      return;
-    }
-    if (targetUser.telegramId && targetUser.telegramId !== telegramId) {
-      await sendTelegramAuthBotMessage(chatId, 'У этого аккаунта уже привязан другой Telegram. Напишите администратору, если нужна замена.');
-      return;
-    }
-    const existingTelegramUser = store.users.find(item => item.telegramId === telegramId && item.id !== targetUser.id);
-    if (existingTelegramUser || identityBelongsToAnotherUser('telegram', telegramId, targetUser.id)) {
-      await sendTelegramAuthBotMessage(chatId, 'Этот Telegram уже привязан к другому аккаунту.');
-      return;
-    }
-
-    const username = String(telegramUser?.username || '').trim().replace(/^@/, '');
-    const nowIso = new Date().toISOString();
-    targetUser.telegramId = telegramId;
-    targetUser.telegramUsername = username || targetUser.telegramUsername;
-    targetUser.updatedAt = nowIso;
-    saveAuthStore(store);
-    dbRun(`
-      INSERT INTO identities (user_id, provider, provider_user_id, email, username, photo_url, verified_at, created_at, updated_at)
-      VALUES (?, 'telegram', ?, '', ?, '', ?, ?, ?)
-      ON CONFLICT(provider, provider_user_id) DO UPDATE SET
-        username = excluded.username,
-        verified_at = excluded.verified_at,
-        updated_at = excluded.updated_at
-        WHERE identities.user_id = excluded.user_id
-    `, targetUser.id, telegramId, username, nowIso, nowIso, nowIso);
-    const khaEmail = khaVerifiedEmail(readKhaVipProfile(telegramId));
-    if (khaEmail && khaEmail !== targetUser.email) {
-      const existingEmailUser = store.users.find(item => item.email === khaEmail && item.id !== targetUser.id);
-      if (!existingEmailUser && !identityBelongsToAnotherUser('boosty-email', khaEmail, targetUser.id)) {
-        const oldEmail = targetUser.email;
-        targetUser.email = khaEmail;
-        targetUser.contactEmail = targetUser.contactEmail || khaEmail;
-        targetUser.updatedAt = nowIso;
-        store.sessions = store.sessions.map(session => session.email === oldEmail ? { ...session, email: khaEmail } : session);
-        saveAuthStore(store);
-        dbRun(`
-          INSERT INTO identities (user_id, provider, provider_user_id, email, username, photo_url, verified_at, created_at, updated_at)
-          VALUES (?, 'boosty-email', ?, ?, ?, '', ?, ?, ?)
-          ON CONFLICT(provider, provider_user_id) DO UPDATE SET
-            email = excluded.email,
-            username = excluded.username,
-            verified_at = excluded.verified_at,
-            updated_at = excluded.updated_at
-            WHERE identities.user_id = excluded.user_id
-        `, targetUser.id, khaEmail, khaEmail, khaEmail, nowIso, nowIso, nowIso);
-      }
-    }
-    database.prepare('UPDATE telegram_link_tokens SET used_at = ?, telegram_id = ? WHERE code = ?').run(nowIso, telegramId, linkCode);
+    const { user: targetUser, khaProfile } = telegramBotLinkService({
+      code: linkCode,
+      payload: telegramPayload,
+    });
+    applyKhaSubscriptionSnapshot(targetUser, khaProfile);
 
     await sendTelegramAuthBotMessage(chatId, 'Telegram привязан. Проверяю подписку и обновляю доступ на сайте...');
     const status = await refreshSubscriptionForUser(targetUser, true);
@@ -8700,152 +8517,153 @@ app.post('/api/auth/telegram/bot/webhook', async (req, res) => {
       : 'Telegram привязан, но бот не нашёл вас в VIP-каналах. Проверьте подписку и нажмите "Обновить" в профиле.');
   } catch (err: any) {
     console.warn('[telegram auth bot] link failed:', err?.message ?? err);
-    await sendTelegramAuthBotMessage(chatId, 'Не удалось привязать Telegram. Создайте новый код в профиле и попробуйте ещё раз.');
+    await sendTelegramAuthBotMessage(chatId, err instanceof TelegramAuthIdentityError
+      ? err.message
+      : 'Не удалось привязать Telegram. Создайте новый код в профиле и попробуйте ещё раз.');
   }
 });
 
-function upsertTelegramUser(payload: Record<string, unknown>, options: { linkUserId?: string } = {}) {
-  const telegramId = String(payload.id ?? '').replace(/\D/g, '');
-  const telegramOidcSub = String(payload.oidc_sub ?? '').trim();
-  if (!telegramId && !telegramOidcSub) throw new Error('Telegram не передал ID пользователя');
+const telegramAuthUserResolver = createTelegramAuthUserResolver<
+  AdminUser,
+  Record<string, any>
+>({
+  findIdentityOwnerId: (provider, providerUserId) => identityOwner(provider, providerUserId)?.user_id,
+  findIdentityProviderIds: (userId, provider) => dbAll<{ provider_user_id: string }>(
+    'SELECT provider_user_id FROM identities WHERE user_id = ? AND provider = ?',
+    userId,
+    provider,
+  ).map(identity => String(identity.provider_user_id)),
+  readVerifiedProfile: readKhaVipProfile,
+  verifiedEmail: khaVerifiedEmail,
+  digest: sha256,
+  now: () => new Date().toISOString(),
+  createUser: candidate => ({
+    ...candidate,
+    role: 'user',
+    country: '',
+    newsletterOptIn: false,
+    passwordHash: hashSecret(randomBytes(24).toString('hex')),
+  }),
+});
 
-  const khaProfile = readKhaVipProfile(telegramId);
-  const verifiedBoostyEmail = khaVerifiedEmail(khaProfile);
-  const firstName = String(payload.first_name ?? '').trim();
-  const lastName = String(payload.last_name ?? '').trim();
-  const username = String(payload.username ?? '').trim().replace(/^@/, '');
-  const photoUrl = String(payload.photo_url ?? '').trim();
-  const displayName = [firstName, lastName].filter(Boolean).join(' ').trim()
-    || (username ? `@${username}` : `Telegram ${telegramId || sha256(telegramOidcSub).slice(0, 10)}`);
-  const email = verifiedBoostyEmail || (telegramId
-    ? `telegram_${telegramId}@telegram.local`
-    : `telegram_oidc_${sha256(telegramOidcSub).slice(0, 16)}@telegram.local`);
-  const now = new Date().toISOString();
+const resolveTelegramUser = (
+  payload: Record<string, unknown>,
+  options: { linkUserId?: string } = {},
+) => {
   const store = loadAuthStore();
-  const oidcIdentity = telegramOidcSub
-    ? dbGet<{ user_id?: string }>("SELECT user_id FROM identities WHERE provider = 'telegram_oidc' AND provider_user_id = ?", telegramOidcSub)
-    : null;
-  const oidcUser = oidcIdentity?.user_id ? store.users.find(item => item.id === oidcIdentity.user_id) : undefined;
-  const usernameOidcIdentity = username
-    ? dbGet<{ user_id?: string }>("SELECT user_id FROM identities WHERE provider = 'telegram_oidc' AND lower(username) = lower(?)", username)
-    : null;
-  const usernameOidcUser = usernameOidcIdentity?.user_id ? store.users.find(item => item.id === usernameOidcIdentity.user_id) : undefined;
-  const telegramUser = telegramId ? store.users.find(item => item.telegramId === telegramId) : undefined;
-  const usernameTelegramUser = username
-    ? store.users.find(item => String(item.telegramUsername || '').toLowerCase() === username.toLowerCase())
-    : undefined;
-  const emailUser = store.users.find(item => item.email === email);
-  const linkUser = options.linkUserId ? store.users.find(item => item.id === options.linkUserId) : undefined;
-  let user = oidcUser ?? telegramUser ?? usernameTelegramUser ?? usernameOidcUser ?? emailUser;
+  const { user, profile, claims } = telegramAuthUserResolver({
+    store,
+    payload,
+    linkUserId: options.linkUserId,
+  });
+  return { store, user, khaProfile: profile, claims };
+};
 
-  if (linkUser) {
-    if (telegramId) assertIdentityAvailable('telegram', telegramId, linkUser.id, 'Этот Telegram');
-    if (telegramOidcSub) assertIdentityAvailable('telegram_oidc', telegramOidcSub, linkUser.id, 'Этот Telegram');
-    if (verifiedBoostyEmail) assertIdentityAvailable('boosty-email', verifiedBoostyEmail, linkUser.id, 'Эта Boosty-почта');
-    if (telegramUser && telegramUser.id !== linkUser.id) {
-      throw new Error('Этот Telegram уже привязан к другому аккаунту');
-    } else if (oidcUser && oidcUser.id !== linkUser.id) {
-      throw new Error('Этот Telegram уже привязан к другому аккаунту');
-    } else if (usernameOidcUser && usernameOidcUser.id !== linkUser.id) {
-      throw new Error('Этот Telegram уже привязан к другому аккаунту');
-    } else {
-      user = linkUser;
-      user.telegramId = telegramId || user.telegramId;
-      user.telegramUsername = username || user.telegramUsername;
-      user.photoUrl = photoUrl || user.photoUrl;
-      user.updatedAt = now;
-    }
-  } else if (telegramUser && emailUser && telegramUser.id !== emailUser.id) {
-    throw new Error('Эта Boosty-почта уже привязана к другому аккаунту');
-  } else if (!telegramUser && emailUser) {
-    user = emailUser;
-    user.telegramId = telegramId || user.telegramId;
-    user.telegramUsername = username;
-    user.photoUrl = photoUrl || user.photoUrl;
-    user.updatedAt = now;
-  } else if (telegramUser && verifiedBoostyEmail && telegramUser.email !== verifiedBoostyEmail) {
-    const emailOwner = store.users.find(item => item.email === verifiedBoostyEmail && item.id !== telegramUser.id);
-    if (emailOwner || identityBelongsToAnotherUser('boosty-email', verifiedBoostyEmail, telegramUser.id)) {
-      throw new Error('Эта Boosty-почта уже привязана к другому аккаунту');
-    }
-    telegramUser.email = verifiedBoostyEmail;
-    telegramUser.updatedAt = now;
-    user = telegramUser;
-  }
-
-  if (!user) {
-    user = {
-      id: `tg_${sha256(telegramId || telegramOidcSub).slice(0, 12)}`,
-      email,
-      name: displayName,
-      role: 'user',
-      country: '',
-      newsletterOptIn: false,
-      avatarInitials: displayName.slice(0, 2).toUpperCase(),
-      telegramId: telegramId || undefined,
-      telegramUsername: username,
-      photoUrl,
-      passwordHash: hashSecret(randomBytes(24).toString('hex')),
-      createdAt: now,
-      updatedAt: now,
-    };
-    store.users.push(user);
-  } else {
-    user.name = user.name && !user.name.startsWith('Telegram ') ? user.name : displayName;
-    user.telegramId = telegramId || user.telegramId;
-    user.telegramUsername = username;
-    user.photoUrl = photoUrl || user.photoUrl;
-    user.updatedAt = now;
-  }
-  return { store, user, khaProfile };
+function saveTelegramAuthResult(
+  store: AdminAuthStore,
+  user: AdminUser,
+  claims: readonly TelegramAuthIdentityClaim[],
+  options: {
+    intentNonce?: string;
+    requiredSession?: { userId: string; sessionTokenHash: string; now: number };
+  } = {},
+) {
+  saveAuthStore(store, {
+    afterBegin: database => {
+      if (options.requiredSession) {
+        assertActiveTelegramLinkSession(database, options.requiredSession);
+      }
+    },
+    beforeCommit: database => {
+      if (options.intentNonce) {
+        consumeTelegramAuthIntentAndClaimIdentities(database, {
+          nonceHash: sha256(options.intentNonce),
+          now: Date.now(),
+          userId: user.id,
+          claims,
+        });
+      } else {
+        claimTelegramAuthIdentities(database, user.id, claims);
+      }
+    },
+  });
 }
 
-function linkTelegramOidcIdentity(user: AdminUser, claims: Record<string, any>) {
-  const oidcSub = String(claims.sub ?? '').trim();
-  if (!oidcSub) return;
-  const now = new Date().toISOString();
-  dbRun(`
-    INSERT INTO identities (user_id, provider, provider_user_id, email, username, photo_url, verified_at, created_at, updated_at)
-    VALUES (?, 'telegram_oidc', ?, '', ?, ?, ?, ?, ?)
-    ON CONFLICT(provider, provider_user_id) DO UPDATE SET
-      username = excluded.username,
-      photo_url = excluded.photo_url,
-      updated_at = excluded.updated_at
-      WHERE identities.user_id = excluded.user_id
-  `, user.id, oidcSub, String(claims.preferred_username || '').replace(/^@/, ''), String(claims.picture || ''), now, now, now);
-}
+const telegramBotLinkService = createTelegramBotLinkService({
+  now: Date.now,
+  findToken: code => {
+    const token = db().prepare(`
+      SELECT code, user_id, session_token_hash, expires_at, used_at
+      FROM telegram_link_tokens
+      WHERE code = ?
+    `).get(code) as {
+      code: string;
+      user_id: string;
+      session_token_hash: string;
+      expires_at: number;
+      used_at?: string | null;
+    } | undefined;
+    return token ? {
+      code: token.code,
+      userId: token.user_id,
+      sessionTokenHash: token.session_token_hash,
+      expiresAt: token.expires_at,
+      usedAt: token.used_at,
+    } : undefined;
+  },
+  resolve: (payload, linkUserId) => resolveTelegramUser(payload, { linkUserId }),
+  persist: ({ resolution, token, telegramId, now }) => {
+    const persistedAt = Math.max(now, Date.now());
+    const usedAt = new Date(persistedAt).toISOString();
+    saveAuthStore(resolution.store, {
+      afterBegin: database => assertActiveTelegramLinkSession(database, {
+        userId: token.userId,
+        sessionTokenHash: token.sessionTokenHash,
+        now: persistedAt,
+      }),
+      beforeCommit: database => consumeTelegramLinkTokenAndClaimIdentities(database, {
+        code: token.code,
+        userId: token.userId,
+        sessionTokenHash: token.sessionTokenHash,
+        telegramId,
+        usedAt,
+        now: persistedAt,
+        claims: resolution.claims,
+      }),
+    });
+  },
+});
 
 app.get('/api/auth/telegram/start', async (req, res) => {
   setPrivateNoStore(res);
   if (!telegramOidcEnabled()) return res.redirect('/?login&telegram=error');
   try {
-    const discovery = await telegramOidcDiscovery();
-    const state = randomBytes(24).toString('base64url');
-    const nonce = randomBytes(24).toString('base64url');
-    const codeVerifier = randomBytes(48).toString('base64url');
-    const returnTo = safeAuthReturnTo(req.query.returnTo);
-    setTelegramOidcCookie(req, res, {
-      state,
-      nonce,
-      codeVerifier,
-      returnTo,
-      expiresAt: Date.now() + TELEGRAM_OIDC_STATE_TTL_MS,
-    });
-
-    const params = new URLSearchParams({
-      client_id: TELEGRAM_OIDC_CLIENT_ID,
-      response_type: 'code',
-      scope: 'openid profile',
-      redirect_uri: `${APP_URL}/api/auth/telegram/callback`,
-      state,
-      nonce,
-      code_challenge: sha256Base64Url(codeVerifier),
-      code_challenge_method: 'S256',
-    });
-    return res.redirect(`${discovery.authorization_endpoint}?${params.toString()}`);
+    return res.redirect(await telegramOidcFlow.begin(req, res, {
+      purpose: 'sign-in',
+      returnTo: req.query.returnTo,
+    }));
   } catch (err) {
     console.warn('[auth] Telegram OIDC start failed:', err);
     return res.redirect('/?login&telegram=error');
+  }
+});
+
+app.post('/api/auth/telegram/link-start', async (req, res) => {
+  setPrivateNoStore(res);
+  if (!telegramOidcEnabled()) return res.status(503).json({ error: 'Telegram OIDC пока не настроен' });
+  const activeSession = authenticatedSessionFromRequest(req);
+  if (!activeSession) return res.status(401).json({ error: 'Требуется вход' });
+  try {
+    const authUrl = await telegramOidcFlow.begin(req, res, {
+      purpose: 'link',
+      linkUserId: activeSession.user.id,
+      linkSessionHash: activeSession.session.tokenHash,
+      returnTo: '/?login&telegram=linked',
+    });
+    return res.json({ authUrl });
+  } catch (err) {
+    console.warn('[auth] Telegram OIDC link start failed:', err);
+    return res.status(502).json({ error: 'Не удалось начать привязку Telegram' });
   }
 });
 
@@ -8853,13 +8671,19 @@ app.get('/api/auth/telegram/callback', async (req, res) => {
   setPrivateNoStore(res);
   if (telegramOidcEnabled() && req.query.code) {
     const requestedState = String(req.query.state ?? '');
-    const oidcState = readTelegramOidcState(req, requestedState);
-    if (!oidcState) {
-      console.warn('[auth] Telegram OIDC callback rejected: missing, expired, or mismatched state');
-      return res.redirect('/?login&telegram=error');
-    }
-    clearTelegramOidcCookie(req, res, oidcState.state);
     try {
+      const oidcState = telegramOidcFlow.take(req, res, requestedState);
+      if (!oidcState) {
+        console.warn('[auth] Telegram OIDC callback rejected: missing, expired, or mismatched state');
+        return res.redirect('/?login&telegram=error');
+      }
+      const activeSession = oidcState.purpose === 'link'
+        ? authenticatedSessionFromRequest(req)
+        : null;
+      const linkUserId = telegramOidcLinkUserId(oidcState, activeSession ? {
+        userId: activeSession.user.id,
+        sessionHash: activeSession.session.tokenHash,
+      } : null);
       const discovery = await telegramOidcDiscovery();
       const tokenParams = new URLSearchParams({
         grant_type: 'authorization_code',
@@ -8880,21 +8704,27 @@ app.get('/api/auth/telegram/callback', async (req, res) => {
       const claims = await verifyTelegramOidcIdToken(String(tokenData.id_token || ''), oidcState.nonce);
       const nameParts = String(claims.name || '').trim().split(/\s+/).filter(Boolean);
       const payload: Record<string, unknown> = {
-        id: String(claims.id ?? '').replace(/\D/g, ''),
-        oidc_sub: String(claims.sub ?? ''),
+        id: claims.id ?? '',
+        oidc_sub: claims.sub ?? '',
         first_name: nameParts[0] || String(claims.name || '').trim(),
         last_name: nameParts.slice(1).join(' '),
         username: String(claims.preferred_username || '').replace(/^@/, ''),
         photo_url: String(claims.picture || ''),
       };
-      const currentUser = userAuth(req);
-      const { store, user, khaProfile } = upsertTelegramUser(payload, { linkUserId: currentUser?.id });
-      const token = createAuthSession(store, user);
-      saveAuthStore(store);
-      linkTelegramOidcIdentity(user, claims);
+      const { store, user, khaProfile, claims: identityClaims } = resolveTelegramUser(payload, {
+        linkUserId,
+      });
+      const token = oidcState.purpose === 'sign-in' ? createAuthSession(store, user) : '';
+      saveTelegramAuthResult(store, user, identityClaims, {
+        requiredSession: linkUserId ? {
+          userId: linkUserId,
+          sessionTokenHash: oidcState.linkSessionHash ?? '',
+          now: Date.now(),
+        } : undefined,
+      });
       applyKhaSubscriptionSnapshot(user, khaProfile);
       await refreshSubscriptionAfterTelegramAuth(user);
-      setAuthCookie(req, res, token);
+      if (token) setAuthCookie(req, res, token);
       return res.redirect(safeAuthReturnTo(oidcState.returnTo));
     } catch (err) {
       console.warn('[auth] Telegram OIDC callback failed:', err);
@@ -8907,11 +8737,17 @@ app.get('/api/auth/telegram/callback', async (req, res) => {
   if (verification.ok === false) {
     return res.redirect('/?login&telegram=error');
   }
+  const signInIntent = takeTelegramAuthIntent(req, res, String(req.query.intent ?? ''));
+  if (!signInIntent) {
+    console.warn('[auth] Telegram legacy callback rejected: missing, expired, or replayed intent');
+    return res.redirect('/?login&telegram=error');
+  }
   try {
-    const currentUser = userAuth(req);
-    const { store, user, khaProfile } = upsertTelegramUser(payload, { linkUserId: currentUser?.id });
+    const { store, user, khaProfile, claims } = resolveTelegramUser(
+      legacyTelegramIdentityPayload(payload),
+    );
     const token = createAuthSession(store, user);
-    saveAuthStore(store);
+    saveTelegramAuthResult(store, user, claims, { intentNonce: signInIntent.nonce });
     applyKhaSubscriptionSnapshot(user, khaProfile);
     await refreshSubscriptionAfterTelegramAuth(user);
     setAuthCookie(req, res, token);
@@ -8927,20 +8763,26 @@ app.post('/api/auth/telegram', async (req, res) => {
   const payload = req.body && typeof req.body === 'object' ? req.body as Record<string, unknown> : {};
   const verification = verifyTelegramAuthPayload(payload);
   if (verification.ok === false) return res.status(401).json({ error: verification.error });
+  const signInIntent = takeTelegramAuthIntent(req, res, String(payload.intent ?? ''));
+  if (!signInIntent) {
+    return res.status(401).json({ error: 'Сессия входа через Telegram устарела. Попробуйте ещё раз.' });
+  }
 
   let store: AdminAuthStore;
   let user: AdminUser;
   let khaProfile: Record<string, any> | null;
+  let identityClaims: readonly TelegramAuthIdentityClaim[];
   try {
-    const currentUser = userAuth(req);
-    ({ store, user, khaProfile } = upsertTelegramUser(payload, { linkUserId: currentUser?.id }));
+    ({ store, user, khaProfile, claims: identityClaims } = resolveTelegramUser(
+      legacyTelegramIdentityPayload(payload),
+    ));
   } catch (err: any) {
     return res.status(400).json({ error: err?.message ?? 'Telegram не передал пользователя' });
   }
 
   if (user.blockedAt) return res.status(403).json({ error: 'Пользователь заблокирован' });
   const token = createAuthSession(store, user);
-  saveAuthStore(store);
+  saveTelegramAuthResult(store, user, identityClaims, { intentNonce: signInIntent.nonce });
   applyKhaSubscriptionSnapshot(user, khaProfile);
   await refreshSubscriptionAfterTelegramAuth(user);
   setAuthCookie(req, res, token);

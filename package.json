@@ -39,6 +39,7 @@
     "test:health": "tsx tests/health.test.ts",
     "test:observability": "tsx tests/observability.test.ts",
     "test:auth-security": "tsx tests/auth-security.test.ts",
+    "test:telegram-identity": "tsx tests/telegram-auth-intent.test.ts && tsx tests/telegram-identity-resolution.test.ts && tsx tests/telegram-identity-repository.test.ts",
     "test:application-auth": "tsx tests/application-auth-model.test.ts && tsx tests/application-auth-repository.test.ts && tsx tests/application-auth-profile.test.ts && tsx tests/application-auth-routes.test.ts",
     "test:application-connect": "tsx tests/application-connect-page.test.ts",
     "test:client-identity-guest-auth": "tsx tests/client-identity-guest-auth.test.ts",
@@ -234,7 +235,7 @@
     "vite": "^6.4.3"
   },
   "overrides": {
-    "nanoid": "3.3.17",
+    "nanoid": "3.3.18",
     "js-yaml": "5.2.2",
     "postcss": "8.5.23",
     "valibot": "1.4.2"

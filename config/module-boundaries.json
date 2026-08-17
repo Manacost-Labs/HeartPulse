@@ -214,6 +214,23 @@
       ]
     },
     {
+      "id": "server.telegramAuth",
+      "runtime": "server",
+      "root": "server/modules/telegramAuth",
+      "purpose": "Owns verified Telegram claim parsing, immutable account resolution, one-time intents, session-bound link credentials and transactional identity claiming.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/telegramAuth/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:telegram-identity"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md",
+        "docs/specs/telegram-identity.md"
+      ]
+    },
+    {
       "id": "server.publicProfile",
       "runtime": "server",
       "root": "server/modules/publicProfile",

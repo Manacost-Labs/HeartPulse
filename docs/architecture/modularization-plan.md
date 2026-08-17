@@ -200,6 +200,42 @@ These commands are added only after their data can be derived from the checked
 inventory. Hand-maintained parallel registries would make automated changes
 less safe.
 
+## Delivery roadmap and visible outcome
+
+The roadmap is ordered by risk and user value. Every milestone must leave a
+working release candidate; dates are assigned only after the preceding quality
+gate is green.
+
+| Priority | Milestone | Exit gate |
+| --- | --- | --- |
+| P0 | Checked ownership map | boundary graph green |
+| P0 | Identity security cutover | coordinated release green |
+| P1 | Application shell | shell below 500 lines |
+| P1 | Cards and Battlegrounds | RU/EU performance green |
+| P1 | Administrator workspace | access and UI matrix green |
+| P2 | Standard, decks and editorial | legacy route bundle removed |
+| P2 | Server domains | server root below 500 lines |
+| P3 | Contracts and observability | zero crossings and cycles |
+| P3 | Legacy removal and AI commands | generated agent tools green |
+
+The ownership map makes each owner, public entry, dependency, test and document
+discoverable before an edit. The identity cutover delivers safe Telegram
+sign-in/linking, one KHA writer and auditable immutable ownership. The shell
+isolates authentication and subscription state. Cards and Battlegrounds deliver
+current heroes, responsive filters and progressive full-quality media. The
+TailAdmin-inspired workspace supplies a consistent accessible frame while each
+product page stays with its domain. Later phases split Standard, decks and
+editorial routes, reduce server adapters to composition, add measurable
+operations signals and finally expose the generated AI navigation commands.
+
+Target user-experience gates for primary public routes are Core Web Vitals at
+the 75th percentile (`LCP <= 2.5 s`, `INP <= 200 ms`, `CLS <= 0.1`), no
+horizontal overflow at 320 px, keyboard-visible focus and useful loading,
+empty, failure and recovery states. These are target service levels, not claims
+about the current production baseline. Image optimization may lower tile
+transfer size but must preserve the documented `detail` and `original` quality
+classes.
+
 ## Delivery order
 
 Each numbered area is delivered as a sequence of small vertical slices, not as
@@ -335,8 +371,9 @@ quality plus placeholders and transitions pass browser checks.
 
 ### 5. Server composition
 
-Status: in progress. The protected ecosystem routes plus the public and private
-identity boundaries are the first three extracted server domain slices.
+Status: in progress. The protected ecosystem routes plus the public, private
+and Telegram identity boundaries are the first four extracted server domain
+slices.
 
 - Move remaining inline route families out of `server/index.ts`.
 - Separate request parsing, domain services and response serialization.
@@ -367,6 +404,33 @@ session refresh, cookie clearing and middleware order remain unchanged. The
 legacy route owner is deleted and the server composition-root ceiling is
 ratcheted from 9,915 to 9,914 lines.
 
+The fourth slice exposes `server/modules/telegramAuth/public.ts` as the verified
+Telegram account-resolution boundary. It strictly parses decimal Telegram IDs
+and fixed-issuer OIDC subjects, treats username and profile fields only as
+mutable display metadata, rejects cross-owner and second-provider conflicts,
+and claims all normalized identities inside the auth-store transaction. Legacy
+widget completion consumes a short-lived signed browser intent. Explicit OIDC
+and bot linking start through CSRF-protected endpoints, bind to the initiating
+user and exact session, and revalidate that session inside the final database
+transaction. Bot codes carry 144 bits of entropy and are consumed atomically
+with their identity claim. Arena treats the KHA profile store as read-only, so
+the KHA bot remains its single writer and owns verified-email challenges. The
+client actions live in a separate 3.66 kB lazy chunk, expose loading/error/
+already-linked states and report only the privacy-safe `telegramLinked` flag.
+The production auth, OIDC and legacy-intent cookies use `__Host-` scope. The
+server composition-root ceiling is ratcheted from 9,914 to 9,756 lines and the
+identity login-panel ceiling from 1,098 to 1,071 lines. The small server
+increase from the first cut includes fail-fast partial credential validation;
+the final slice still removes 158 lines from the preceding server ceiling.
+
+Before this slice can be released, the coordinated KHA bot must accept the
+exact case-sensitive strong-code format, persist its email-verification attempt
+budget and pass its focused tests. The Limburg edge must also be added to the
+origin's trusted real-IP list so EU visitors do not share one rate-limit key.
+The release deliberately invalidates legacy short link codes and the old
+production auth-cookie name; existing users sign in once again instead of
+accepting an unsafe sibling-domain cookie migration.
+
 ### 6. Application shell
 
 Status: routing and navigation foundation complete; shell decomposition pending.
@@ -394,9 +458,9 @@ Depends on the application routing foundation and proceeds alongside the shell
 provider extraction.
 
 Status: client subscription contract, shared presentation metadata, login,
-public-profile client/server identity boundaries, private-account client/server
-transport and application authorization complete; a shared client identity
-provider, guest-auth request extraction and subscription extraction remain.
+public-profile client/server identity boundaries, private-account and guest-auth
+transport, application authorization and Telegram provider linking complete;
+a shared client identity provider and subscription extraction remain.
 
 1. [x] Create `client.subscriptions` as the runtime-neutral owner of the client
    status DTO, all seven entitlement keys and named-entitlement access policy.
@@ -456,7 +520,15 @@ provider, guest-auth request extraction and subscription extraction remain.
    `server.identity/public.ts`. Preserve the three URLs, exact status and JSON
    contracts, private-cache policy, serializer allowlist, session refresh,
    logout cookie clearing and the rate-limit/CSRF/body-parser ordering.
-8. [ ] Extract subscription confirmation, entitlement and provider synchronization
+8. [x] Extract immutable Telegram resolution, intent policy and transactional
+   claims behind `server.telegramAuth/public.ts`; keep client transport in
+   `identity/api`, orchestration in `identity/hooks` and accessible linking UI
+   in its own lazy chunk. Link OIDC and bot credentials to the initiating
+   session, make KHA profiles read-only in Arena and coordinate the strong-code
+   contract with the KHA bot. The module owns its database bootstrap audit and
+   partial uniqueness constraint; the release contract owns the complete
+   origin proxy trust list, including the European edge.
+9. [ ] Extract subscription confirmation, entitlement and provider synchronization
    into a separate subscription module.
 
 Complete when `/connect`, `/id/:id`, legacy profile URLs and `?login` behave
@@ -532,9 +604,10 @@ the client domain phases. The final `server/index.ts` only:
 
 Move route families into `server/modules/<domain>`, generic middleware and
 infrastructure into `server/app` or `server/shared`, and pass database, cache,
-clock, fetch and provider clients explicitly. Inline Telegram authorization and
-email-subscription confirmation move last because they carry the highest
-authentication risk.
+clock, fetch and provider clients explicitly. Telegram resolution and
+persistence policy are extracted; its Express/OIDC transport adapter still
+needs a small route owner after the security cutover stabilizes. Email and
+subscription confirmation remain the next high-risk inline boundary.
 
 Complete when `server/index.ts` is below 500 lines, the server root contains
 only genuine entry points, services do not depend on Express globals, and

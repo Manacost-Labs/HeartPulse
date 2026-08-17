@@ -36,8 +36,11 @@ import {
 } from '../model/authUser';
 import { canAccessAdminWorkspace } from '../model/authAccess';
 import { publicProfilePath } from '../model/publicProfilePath';
+import { useTelegramAuthConfig } from '../hooks/useTelegramAuthConfig';
 import './IdentityProfile.css';
 import ProfileIdentityHero from './ProfileIdentityHero';
+
+const TelegramAccountLinkActions = React.lazy(() => import('./TelegramAccountLinkActions'));
 
 type AdminMessage = { type: 'ok' | 'err'; text: string };
 
@@ -65,8 +68,6 @@ type TelegramAuthPayload = {
   hash: string;
 };
 
-type TelegramAuthMode = 'legacy-widget' | 'oidc' | 'disabled';
-
 declare global {
   interface Window {
     onHsArenaTelegramAuth?: (user: TelegramAuthPayload) => void;
@@ -75,7 +76,7 @@ declare global {
 
 const LEGACY_AUTH_TOKEN_KEY = 'hs_arena_auth_token';
 const AUTH_EMAIL_KEY = 'hs_arena_auth_email';
-const AUTH_SESSION_HINT_KEY = 'hs_arena_auth_cookie_hint';
+const COOKIE_SESSION_MARKER = 'hs_arena_auth_cookie_hint';
 
 function authUrlWithReturnTo(rawUrl: string, returnTo: string): string {
   try {
@@ -141,14 +142,14 @@ function formatSubscriptionDate(value: string | null): string {
 
 function markAuthSessionHint(): void {
   try {
-    localStorage.setItem(AUTH_SESSION_HINT_KEY, '1');
+    localStorage.setItem(COOKIE_SESSION_MARKER, '1');
     sessionStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
   } catch { /* storage may be disabled */ }
 }
 
 function clearAuthSessionHint(): void {
   try {
-    localStorage.removeItem(AUTH_SESSION_HINT_KEY);
+    localStorage.removeItem(COOKIE_SESSION_MARKER);
     sessionStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
   } catch { /* storage may be disabled */ }
 }
@@ -281,7 +282,7 @@ export function LoginPanel({
   parentAuthChecking?: boolean;
 }) {
   const [authUser, setAuthUser] = useState<AuthUser | null>(() => initialAuthUser);
-  const [authChecking, setAuthChecking] = useState(parentAuthChecking);
+  const authChecking = parentAuthChecking;
   const [loginStylesReady, setLoginStylesReady] = useState(false);
   const [authStep, setAuthStep] = useState<'password' | 'code'>('password');
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'reset'>('login');
@@ -293,25 +294,31 @@ export function LoginPanel({
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<AdminMessage | null>(null);
-  const [telegramAuthUrl, setTelegramAuthUrl] = useState('');
-  const [telegramCallbackUrl, setTelegramCallbackUrl] = useState('');
-  const [telegramBotUsername, setTelegramBotUsername] = useState('');
-  const [telegramMode, setTelegramMode] = useState<TelegramAuthMode>('disabled');
-  const [telegramEnabled, setTelegramEnabled] = useState(false);
-  const [telegramLinkCode, setTelegramLinkCode] = useState('');
-  const [telegramLinkExpiresAt, setTelegramLinkExpiresAt] = useState('');
-  const [telegramLinkLoading, setTelegramLinkLoading] = useState(false);
+  const {
+    authUrl: telegramAuthUrl,
+    callbackUrl: telegramCallbackUrl,
+    botUsername: telegramBotUsername,
+    mode: telegramMode,
+    enabled: telegramEnabled,
+  } = useTelegramAuthConfig();
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   const [subscriptionChecked, setSubscriptionChecked] = useState(false);
-  const [boostyEmail, setBoostyEmail] = useState('');
+  const [boostyEmail, setBoostyEmail] = useState(() => (
+    initialAuthUser && isRealAuthEmail(initialAuthUser.email) ? initialAuthUser.email : ''
+  ));
   const [boostyCode, setBoostyCode] = useState('');
   const [boostyStep, setBoostyStep] = useState<'email' | 'code'>('email');
-  const [profileCountry, setProfileCountry] = useState('');
-  const [profileNewsletter, setProfileNewsletter] = useState(false);
-  const [profileVkUrl, setProfileVkUrl] = useState('');
-  const [profileTelegram, setProfileTelegram] = useState('');
-  const [profileContactEmail, setProfileContactEmail] = useState('');
+  const [profileCountry, setProfileCountry] = useState(() => initialAuthUser?.country || '');
+  const [profileNewsletter, setProfileNewsletter] = useState(() => Boolean(initialAuthUser?.newsletterOptIn));
+  const [profileVkUrl, setProfileVkUrl] = useState(() => initialAuthUser?.contactVkUrl || '');
+  const [profileTelegram, setProfileTelegram] = useState(() => (
+    initialAuthUser?.contactTelegram || initialAuthUser?.telegramUsername || ''
+  ));
+  const [profileContactEmail, setProfileContactEmail] = useState(() => (
+    initialAuthUser?.contactEmail
+    || (initialAuthUser && isRealAuthEmail(initialAuthUser.email) ? initialAuthUser.email : '')
+  ));
   const [contestHistory, setContestHistory] = useState<ContestHistoryItem[]>([]);
   const [contestHistoryLoading, setContestHistoryLoading] = useState(false);
   const [publicLinkCopied, setPublicLinkCopied] = useState(false);
@@ -322,20 +329,6 @@ export function LoginPanel({
   }), []);
 
   useEffect(() => {
-    fetch('/api/auth/telegram/config')
-      .then(async res => {
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data.enabled || !data.authUrl) return;
-        setTelegramAuthUrl(String(data.authUrl || '/api/auth/telegram/start'));
-        setTelegramCallbackUrl(String(data.callbackUrl || data.authUrl || '/api/auth/telegram/callback'));
-        setTelegramBotUsername(String(data.botUsername || ''));
-        setTelegramMode(data.mode === 'legacy-widget' ? 'legacy-widget' : data.mode === 'oidc' ? 'oidc' : 'disabled');
-        setTelegramEnabled(true);
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
     if (authUser) return;
     let active = true;
     void loadLoginPresentationStyles().then(
@@ -344,29 +337,6 @@ export function LoginPanel({
     );
     return () => { active = false; };
   }, [authUser]);
-
-  useEffect(() => {
-    if (parentAuthChecking) {
-      setAuthChecking(true);
-      return;
-    }
-
-    setAuthChecking(false);
-    setAuthUser(initialAuthUser);
-    if (initialAuthUser) {
-      setBoostyEmail(isRealAuthEmail(initialAuthUser.email) ? initialAuthUser.email : '');
-      setProfileCountry(initialAuthUser.country || '');
-      setProfileNewsletter(Boolean(initialAuthUser.newsletterOptIn));
-      setProfileVkUrl(initialAuthUser.contactVkUrl || '');
-      setProfileTelegram(initialAuthUser.contactTelegram || initialAuthUser.telegramUsername || '');
-      setProfileContactEmail(initialAuthUser.contactEmail || (isRealAuthEmail(initialAuthUser.email) ? initialAuthUser.email : ''));
-      setTelegramLinkCode('');
-      setTelegramLinkExpiresAt('');
-      return;
-    }
-
-    setAuthStep('password');
-  }, [initialAuthUser, parentAuthChecking]);
 
   const fetchSubscription = useCallback(async (force = false) => {
     setSubscriptionLoading(true);
@@ -405,19 +375,14 @@ export function LoginPanel({
   }, [authHeaders]);
 
   useEffect(() => {
-    if (!authUser) {
-      setSubscription(null);
-      setSubscriptionChecked(false);
-      setContestHistory([]);
-      return;
-    }
-    setSubscriptionChecked(false);
+    if (!authUser) return;
     void fetchSubscription(false);
     void fetchContestHistory();
   }, [authUser, fetchSubscription, fetchContestHistory]);
 
   const applyAuthenticatedUser = (user: AuthUser) => {
     setAuthUser(user);
+    setBoostyEmail(isRealAuthEmail(user.email) ? user.email : '');
     setProfileCountry(user.country || '');
     setProfileNewsletter(Boolean(user.newsletterOptIn));
     setProfileVkUrl(user.contactVkUrl || '');
@@ -605,45 +570,17 @@ export function LoginPanel({
     setSubscription(null);
     setSubscriptionChecked(false);
     setContestHistory([]);
-    setTelegramLinkCode('');
-    setTelegramLinkExpiresAt('');
     onAuthChange?.(null);
     setAuthStep('password');
     setPassword('');
     setCode('');
     setMsg(null);
-    setAuthChecking(false);
   };
 
   const telegramLoginUrl = authUrlWithReturnTo(
     telegramMode === 'legacy-widget' ? telegramCallbackUrl : telegramAuthUrl,
     '/?login&telegram=ok',
   );
-  const telegramLinkUrl = authUrlWithReturnTo(
-    telegramMode === 'legacy-widget' ? telegramCallbackUrl : telegramAuthUrl,
-    '/?login&telegram=linked',
-  );
-
-  const handleTelegramLinkCodeRequest = async () => {
-    setTelegramLinkLoading(true);
-    setMsg(null);
-    try {
-      const res = await fetch('/api/auth/telegram/link-code', {
-        method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Не удалось создать Telegram ID-код');
-      setTelegramLinkCode(String(data.code || ''));
-      setTelegramLinkExpiresAt(String(data.expiresAt || ''));
-      if (data.botUsername) setTelegramBotUsername(String(data.botUsername));
-      setMsg({ type: 'ok', text: 'ID-код создан. Отправьте его Telegram-боту.' });
-    } catch (err: any) {
-      setMsg({ type: 'err', text: err.message });
-    } finally {
-      setTelegramLinkLoading(false);
-    }
-  };
 
   if (authChecking && !authUser) {
     return <AuthCheckingCard />;
@@ -673,15 +610,11 @@ export function LoginPanel({
         ? 'Подписка активна'
         : 'Подписка не подтверждена';
     const subscriptionAccessLabels = subscriptionEntitlementLabels(subscription);
-    const identityLabel = authUser.telegramUsername
+    const identityLabel = authUser.telegramLinked
       ? 'Telegram привязан'
       : isRealAuthEmail(authUser.email)
         ? 'Email привязан'
         : 'Профиль без email';
-    const telegramLinkBotUrl = telegramBotUsername && telegramLinkCode
-      ? `https://t.me/${telegramBotUsername}?start=${encodeURIComponent(telegramLinkCode)}`
-      : '';
-    const telegramLinkExpiresLabel = telegramLinkExpiresAt ? formatSubscriptionDate(telegramLinkExpiresAt) : '';
     const wonContestCount = contestHistory.filter(item => item.isWinner).length;
     const profileId = authUser.publicProfileId || '—';
     const profileIdDisplay = profileId;
@@ -827,36 +760,20 @@ export function LoginPanel({
                     ? 'Найден в VIP-канале'
                     : subscription?.telegram?.message || 'Войдите через Telegram для проверки каналов.'}
                 </p>
-                <div className="profile-subscription-source__actions">
-                  <button
-                    type="button"
-                    onClick={() => { void handleTelegramLinkCodeRequest(); }}
-                    disabled={telegramLinkLoading || !telegramBotUsername}
-                  >
-                    {telegramLinkLoading ? 'Создаем...' : 'ID-код для бота'}
-                  </button>
-                  {telegramLinkCode && (
-                    <code>
-                      {telegramLinkCode}
-                    </code>
-                  )}
-                  {telegramLinkBotUrl && (
-                    <a
-                      href={telegramLinkBotUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="profile-subscription-source__link"
-                    >
-                      Открыть @{telegramBotUsername}
-                    </a>
-                  )}
-                  {telegramLinkExpiresLabel && (
-                    <span className="profile-subscription-source__expiry">до {telegramLinkExpiresLabel}</span>
-                  )}
-                </div>
-                <p className="profile-subscription-source__tip">
-                  Для Boosty-почты в боте: /email name@example.com.
-                </p>
+                {telegramEnabled && !authUser.telegramLinked && (
+                  <React.Suspense fallback={(
+                    <output className="profile-subscription-source__actions">
+                      <button type="button" disabled aria-busy="true">Загружаем...</button>
+                    </output>
+                  )}>
+                    <TelegramAccountLinkActions
+                      userId={authUser.id}
+                      mode={telegramMode}
+                      botUsername={telegramBotUsername}
+                      onMessage={(type, text) => setMsg({ type, text })}
+                    />
+                  </React.Suspense>
+                )}
                 </div>
               </div>
             </div>
@@ -875,7 +792,7 @@ export function LoginPanel({
                 type="email"
                 value={boostyEmail}
                 onChange={e => setBoostyEmail(e.target.value)}
-                placeholder="Email из Boosty"
+                aria-label="Email из Boosty" placeholder="Email из Boosty"
               />
               {boostyStep === 'code' && (
                 <input
@@ -883,7 +800,7 @@ export function LoginPanel({
                   inputMode="numeric"
                   value={boostyCode}
                   onChange={e => setBoostyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="6-значный код"
+                  aria-label="Код подтверждения Boosty" placeholder="6-значный код"
                   className="profile-boosty-code"
                 />
               )}
@@ -895,24 +812,6 @@ export function LoginPanel({
                     : 'Подтвердить код Boosty'}
               </button>
             </form>
-            {telegramEnabled && !authUser.telegramUsername && (
-              <div className="profile-telegram-link">
-                <p>
-                  Для Telegram-подписки нужно привязать сам Telegram-аккаунт. Поле @username в контактах не подходит для проверки VIP-канала.
-                </p>
-                {telegramMode === 'legacy-widget' && telegramBotUsername ? (
-                  <TelegramLoginWidget
-                    botUsername={telegramBotUsername}
-                    authUrl={telegramLinkUrl}
-                    label="Привязать Telegram"
-                  />
-                ) : (
-                  <a href={telegramLinkUrl}>
-                    Привязать Telegram
-                  </a>
-                )}
-              </div>
-            )}
           </section>
           <section className="profile-contests">
             <div className="profile-contests__heading" data-tour-id="profile-contests">

@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+- Moved verified Telegram account resolution and identity claiming behind the
+  owned `server.telegramAuth` boundary; account selection now uses exact
+  Telegram ID, fixed-issuer OIDC subject or the verified KHA bridge instead of
+  mutable usernames, rejects conflicting/second identities before mutation,
+  commits user, session and provider claims atomically, and protects legacy
+  widget completion with a signed one-time browser intent. Explicit OIDC and
+  144-bit bot-code linking now require CSRF-protected starts, bind to the exact
+  initiating session and recheck it inside the final transaction. Production
+  auth, OIDC and intent cookies use `__Host-` scope; the profile exposes only a
+  `telegramLinked` boolean and lazy-loads accessible account-link controls.
+  Arena no longer writes the KHA profile file: verified Boosty email remains a
+  read-only identity bridge and `/profile` in the KHA bot is its single writer.
+  Startup now audits duplicate and orphan Telegram ownership without logging
+  identity values, then activates a partial unique database constraint so two
+  concurrent requests cannot attach a second ID of the same provider.
+  The safer cookie cutover intentionally signs existing production sessions
+  out once; users sign in again instead of accepting a sibling-domain cookie.
+- Added the origin real-IP trust list to the immutable Nginx release contract,
+  including the Limburg IPv4 and IPv6 edge addresses, so European visitors keep
+  independent request and rate-limit identities without changing image bytes.
+- Updated the constrained transitive `nanoid` dependency to its patched 3.3.18
+  release while preserving the existing PostCSS-compatible major version.
 - Moved password login, registration, password reset and email verification
   transport behind the private client `identity` API, reused one fail-closed
   browser-user parser across authenticated responses, removed the duplicate

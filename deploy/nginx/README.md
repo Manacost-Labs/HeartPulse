@@ -1,33 +1,39 @@
 <!-- markdownlint-disable MD013 -->
 
-# Arena HTML routing
+# Arena Nginx contract
 
 These files are the versioned nginx contract for public HTML routes. They are
 templates only: a Git checkout does not change the live nginx configuration.
 
 ## Installation order
 
-1. Install `arena-seo-map.conf` as
+1. Install `arena-origin-real-ip.conf` as
+   `/etc/nginx/conf.d/koloda-ru-proxy-realip.conf`. It trusts only the managed
+   origin tunnel and Arena edges, including Limburg IPv4 and IPv6. The shared
+   `cloudflare.conf` remains the single owner of `real_ip_header
+   CF-Connecting-IP`; every Arena edge must overwrite that header before
+   proxying. Never add visitor-controlled networks to this list.
+2. Install `arena-seo-map.conf` as
    `/etc/nginx/conf.d/31-arena-seo-map.conf`; it belongs to the `http` context.
-2. Install `arena-edge-region-map.conf` as
+3. Install `arena-edge-region-map.conf` as
    `/etc/nginx/conf.d/32-arena-edge-region-map.conf`. It derives the bounded
    Web Vitals region from the immediate trusted proxy address and must remain
    outside the `server` block.
-3. Install `arena-security-headers.conf` as
+4. Install `arena-security-headers.conf` as
    `/etc/nginx/snippets/arena-security-headers.conf`.
-4. Install `arena-html-routing.conf` as
+5. Install `arena-html-routing.conf` as
    `/etc/nginx/snippets/arena-html-routing.conf`.
-5. When Tribute analytics is enabled, install
+6. When Tribute analytics is enabled, install
    `arena-tribute-webhook.conf` as
    `/etc/nginx/snippets/arena-tribute-webhook.conf` and include it in the
    canonical HTTPS server before `arena-html-routing.conf`.
-6. Install `arena-canonical-host-redirect.conf` as
+7. Install `arena-canonical-host-redirect.conf` as
    `/etc/nginx/snippets/arena-canonical-host-redirect.conf` and include it in
    every HTTP, `www` and legacy `hs-arena.ru` redirect server. These hosts then
    normalize the scheme, host and a known HTML route's slash in one hop.
-7. In the canonical `arena.hs-manacost.ru` HTTPS server, keep the TLS, root,
+8. In the canonical `arena.hs-manacost.ru` HTTPS server, keep the TLS, root,
    origin guard, logging, gzip and server-wide security-header configuration.
-8. Replace the existing API, static and SPA `location` blocks with
+9. Replace the existing API, static and SPA `location` blocks with
    `include /etc/nginx/snippets/arena-html-routing.conf;`. Do not keep the old
    catch-all beside the new include.
 

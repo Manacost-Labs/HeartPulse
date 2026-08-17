@@ -8,6 +8,7 @@ export type AuthUser = {
   country?: string;
   newsletterOptIn?: boolean;
   avatarInitials?: string;
+  telegramLinked?: boolean;
   telegramUsername?: string;
   photoUrl?: string;
   contactVkUrl?: string;
@@ -32,6 +33,7 @@ const OPTIONAL_STRING_FIELDS = [
 
 const OPTIONAL_BOOLEAN_FIELDS = [
   'newsletterOptIn',
+  'telegramLinked',
   'adminAllowed',
   'contestAdminAllowed',
 ] as const;
@@ -41,7 +43,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function hasOwn(value: Record<string, unknown>, field: string): boolean {
-  return Object.prototype.hasOwnProperty.call(value, field);
+  return Object.hasOwn(value, field);
 }
 
 /** Converts an untrusted JSON value into the allowlisted browser identity DTO. */

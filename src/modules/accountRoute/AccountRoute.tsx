@@ -41,6 +41,7 @@ export default function AccountRoute({
   if (profileId) return <LazyPublicProfilePage publicProfileId={profileId} />;
   return (
     <LazyLoginPanel
+      key={checking ? 1 : 0}
       initialAuthUser={user}
       parentAuthChecking={checking}
       onAuthChange={onChange}
