@@ -147,7 +147,7 @@ export function trinketCardImageUrl(item: TrinketIdentity): string {
   const cardId = String(item?.id || '').trim();
   if (!/^[A-Za-z0-9_]+$/.test(cardId)) return '';
   const params = new URLSearchParams({ id: cardId, locale: 'ruRU', size: '512x' });
-  return publicResourceUrl(`https://bg.kolodahearthstone.ru/api/card-art?${params.toString()}`);
+  return `/api/public-resource/bg/api/card-art?${params.toString()}`;
 }
 
 /** Normalizes sparse HSReplay placement data into eight comparable bars. */

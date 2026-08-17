@@ -4,8 +4,9 @@ import test from 'node:test';
 
 const read = path => readFileSync(path, 'utf8');
 
-test('Storybook scripts and development dependencies are pinned', () => {
+test('Storybook scripts, registry coverage and development dependencies are pinned', () => {
   const packageJson = JSON.parse(read('package.json'));
+  const testRegistry = JSON.parse(read('tests/test-suites.json'));
 
   assert.equal(
     packageJson.scripts.storybook,
@@ -19,9 +20,13 @@ test('Storybook scripts and development dependencies are pinned', () => {
     packageJson.scripts['test:storybook'],
     'node --test tests/storybook-mcp-contract.test.mjs',
   );
-  assert.match(
-    packageJson.scripts['verify:ci'],
-    /npm run test:storybook && npm run build-storybook/,
+  assert.match(packageJson.scripts['verify:ci'], /npm run build-storybook/);
+  assert.equal((packageJson.scripts['verify:ci'].match(/npm test/g) || []).length, 1);
+  assert.deepEqual(
+    testRegistry.suites
+      .flatMap(suite => suite.files)
+      .filter(file => file === 'tests/storybook-mcp-contract.test.mjs'),
+    ['tests/storybook-mcp-contract.test.mjs'],
   );
 
   for (const dependency of [

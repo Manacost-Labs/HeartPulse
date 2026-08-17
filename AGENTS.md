@@ -77,6 +77,16 @@ The repository includes project-scoped tools for safer implementation:
   network, console, accessibility, and performance investigation. Keep its
   isolated profile, telemetry/CrUX opt-outs, redacted headers, and URL
   allowlist enabled.
+- Before broad module reads, run `npm run agent:context -- <module-id-or-root>`
+  to load that module's owner, purpose, public API, dependencies, focused tests,
+  documentation and current migration exceptions.
+- Run CodeGraph reads through `npm run agent:codegraph -- <read-command>`.
+  The wrapper synchronizes a worktree-local index, or reuses the `main` index
+  only when both worktrees are clean and point at the same commit. Do not call
+  lifecycle commands or override its project path.
+- Keep every `*.test.ts`, `*.test.tsx` and `*.test.mjs` file registered exactly
+  once in `tests/test-suites.json`. Run `npm run test:registry` after adding,
+  moving or deleting tests; `npm test` executes the checked registry.
 - For authored JavaScript or TypeScript changes, run
   `npm run security:semgrep` before finishing. It scans only changed files and
   is nonblocking while the project baseline is being established. Use
@@ -163,7 +173,7 @@ The routing step itself is mandatory for every repository task:
 | Task | Required skills/resources |
 | --- | --- |
 | Every repository task | `agent-resource-index`, `agent-skills:using-agent-skills`, and `agent-skills:context-engineering` |
-| Any codebase investigation | `codegraph` first when `.codegraph/` exists; `context7` for current library/framework/API documentation |
+| Any codebase investigation | `npm run agent:context -- <module-id-or-root>` before broad module reads; the `codegraph` skill through `npm run agent:codegraph -- explore "<question>"` for worktree-safe navigation; `context7` for current library/framework/API documentation |
 | New feature or non-trivial behavior change | `agent-skills:spec-driven-development`; add `agent-skills:planning-and-task-breakdown` when the work has multiple independently verifiable steps |
 | Any code implementation | `agent-skills:incremental-implementation` and `agent-skills:test-driven-development` |
 | Bug diagnosis or fix | `agent-skills:debugging-and-error-recovery` and `agent-skills:test-driven-development` |

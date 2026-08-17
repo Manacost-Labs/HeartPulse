@@ -170,6 +170,46 @@ The following rules are mandatory:
 - A module may depend on `shared`; `shared` may not depend on a product module.
 - Authorization remains visible at the server route or use-case boundary.
 
+## Machine-enforced inventory
+
+[`config/module-boundaries.json`](../../config/module-boundaries.json) is the
+checked source of truth for current module ownership. Every immediate directory
+under `src/modules` and `server/modules` must have exactly one inventory entry
+with a stable id, runtime, purpose, owner, public entry, declared module
+dependencies, focused tests and owning documentation.
+
+`npm run lint:module-boundaries` resolves the TypeScript and JavaScript import
+graph with the project compiler configuration. It covers static imports,
+type-only imports and re-exports, literal dynamic imports, `require`,
+import-equals declarations, import types and declaration files, path aliases,
+static `import.meta.glob` patterns, bundler query suffixes, `.js` specifiers that
+resolve to TypeScript, and stylesheet `@import`, `@use` and `@forward` edges.
+Repository-local package installations are excluded by path segment, so the
+same graph is produced whether `node_modules` is a directory or an external
+worktree symlink. Non-literal dynamic imports and globs, or a missing/invalid
+TypeScript project configuration, fail closed instead of silently omitting an
+edge.
+The check rejects:
+
+- an unregistered module directory or stale inventory entry;
+- access to another module anywhere except its declared `public.ts`;
+- an undeclared cross-module dependency or a new client/server source crossing;
+- module imports back into legacy code except an exact migration exception;
+- shared code importing application or product-module code;
+- every runtime import cycle;
+- stale, duplicated, unsafe or expired migration exceptions.
+
+The accepted migration baseline scans 412 source files and contains nine
+modules, two missing public entries, six outside-to-internal imports, eight
+module-to-legacy imports, four type-inclusive cycles, two legacy client/server
+source crossings and zero runtime cycles. Each exception names its exact
+source, target and import kind together with an owner, reason and expiry. The
+budget equals the number of exact exceptions, so removing debt requires
+deleting the stale exception and lowering the budget in the same change.
+Exceptions may not expire more than 180 days after the check date, and source
+or ownership-artifact symlinks fail closed. There is no automatic
+baseline-update mode.
+
 ## File and change budgets
 
 The CI ratchet in `scripts/check-module-size-budgets.mjs` prevents known

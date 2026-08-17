@@ -89,17 +89,27 @@ files, keep the application deployable and lower the ratchet it replaces.
 
 ### 0. Safety guardrails
 
-Status: in progress.
+Status: implementation complete; awaiting integration.
 
-- Forward rejected Express 4 route promises to the existing structured error
-  middleware and cover the rejection path with direct router tests.
-- Remove only source blocks proven unreachable by TypeScript and dependency
-  analysis, lowering their size budgets in the same slice.
-- Add a machine-readable module inventory and an AST-resolved dependency gate;
-  existing exceptions must be exact edges with an owner and expiry.
-- Generate the test command from a checked registry so every test file belongs
-  to exactly one runnable suite.
-- Make CodeGraph and focused module context available from isolated worktrees.
+- [x] Forward rejected Express 4 route promises in the extracted ecosystem and
+  article-vote routes to the existing structured error middleware, with direct
+  rejection-path tests. The remaining inline subscription confirmation route is
+  closed by its planned module extraction rather than by adding logic to the
+  server composition root.
+- [x] Remove source blocks proven unreachable by TypeScript and dependency
+  analysis. This deleted 1,949 lines of retired admin, deck and application
+  code from `DeferredRoutes.tsx` and lowered its ratchet from 6,435 to 4,468
+  lines without changing a public export.
+- [x] Add a machine-readable inventory for all nine current modules and an
+  AST-resolved dependency gate across TypeScript and JavaScript sources.
+  Existing migration debt is represented only by exact, owned, expiring edges;
+  the accepted graph has no runtime cycle.
+- [x] Generate the test command from a checked registry so all 223 supported
+  test files belong to exactly one runnable suite and suite-only environment
+  variables cannot leak into the remaining tests.
+- [x] Make CodeGraph and focused module context available from isolated
+  worktrees through safe project commands that synchronize the selected index
+  and expose the module contract before broad source reads.
 
 These guardrails land before additional route extraction so every later slice
 has a narrow verification command and cannot add new dependency debt.

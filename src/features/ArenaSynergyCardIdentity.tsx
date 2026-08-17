@@ -1,7 +1,7 @@
 import type { ArenaSynergyCard } from '../../shared/arenaSynergyContract';
 
 function cardImage(cardId: string): string {
-  return `https://art.hearthstonejson.com/v1/tiles/${encodeURIComponent(cardId)}.webp`;
+  return `/api/public-resource/hsjson/v1/tiles/${encodeURIComponent(cardId)}.webp`;
 }
 
 function formatPercent(value: number): string {

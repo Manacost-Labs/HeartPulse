@@ -1,0 +1,442 @@
+{
+  "schemaVersion": 1,
+  "moduleRoots": [
+    "src/modules",
+    "server/modules"
+  ],
+  "sharedRoots": {
+    "client": [
+      "src/shared"
+    ],
+    "server": [
+      "server/shared"
+    ]
+  },
+  "modules": [
+    {
+      "id": "client.accountRoute",
+      "runtime": "client",
+      "root": "src/modules/accountRoute",
+      "purpose": "Composes the login, application-connect and public-profile account routes.",
+      "owner": "identity-platform",
+      "publicEntry": "src/modules/accountRoute/public.ts",
+      "dependencies": [
+        "client.applicationConnect"
+      ],
+      "focusedTests": [
+        "npm run test:application-connect",
+        "npm run test:public-profiles",
+        "npm run test:routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/public-api-v1-first-slice.md",
+        "docs/specs/card-controls-and-public-profiles.md"
+      ]
+    },
+    {
+      "id": "client.adminWorkspace",
+      "runtime": "client",
+      "root": "src/modules/adminWorkspace",
+      "purpose": "Owns the authenticated administrator workspace shell, navigation and responsive drawer.",
+      "owner": "operations",
+      "publicEntry": "src/modules/adminWorkspace/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:admin-workspace-state"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/admin-tailadmin-workspace-shell.md"
+      ]
+    },
+    {
+      "id": "client.applicationConnect",
+      "runtime": "client",
+      "root": "src/modules/applicationConnect",
+      "purpose": "Owns the browser device-authorization review and approval flow.",
+      "owner": "identity-platform",
+      "publicEntry": "src/modules/applicationConnect/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:application-connect"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/public-api-v1-first-slice.md"
+      ]
+    },
+    {
+      "id": "client.developerApi",
+      "runtime": "client",
+      "root": "src/modules/developerApi",
+      "purpose": "Owns the developer API documentation surface and administrator API-key UI.",
+      "owner": "web-platform",
+      "publicEntry": "src/modules/developerApi/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:public-api-ui"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/decisions/003-versioned-public-api-and-api-keys.md",
+        "docs/specs/public-api-v1-first-slice.md"
+      ]
+    },
+    {
+      "id": "server.applicationAuth",
+      "runtime": "server",
+      "root": "server/modules/applicationAuth",
+      "purpose": "Owns application clients, device authorization, token policy, persistence and HTTP routes.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/applicationAuth/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:application-auth"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/decisions/003-versioned-public-api-and-api-keys.md",
+        "docs/specs/public-api-v1-first-slice.md"
+      ]
+    },
+    {
+      "id": "server.arena",
+      "runtime": "server",
+      "root": "server/modules/arena",
+      "purpose": "Owns normalization of Arena class-statistics datasets for public consumption.",
+      "owner": "web-platform",
+      "publicEntry": "server/modules/arena/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:public-api"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/public-api-arena-statistics.md"
+      ]
+    },
+    {
+      "id": "server.constructedCards",
+      "runtime": "server",
+      "root": "server/modules/constructedCards",
+      "purpose": "Owns constructed-card related-card and generated-card-pool enrichment.",
+      "owner": "web-platform",
+      "publicEntry": "server/modules/constructedCards/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:constructed-card-routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/public-api-v1-first-slice.md",
+        "docs/specs/constructed-card-data-performance.md"
+      ]
+    },
+    {
+      "id": "server.ecosystem",
+      "runtime": "server",
+      "root": "server/modules/ecosystem",
+      "purpose": "Owns protected internal ecosystem user and subscription HTTP routes.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/ecosystem/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:ecosystem-internal-routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md",
+        "docs/decisions/009-global-edge-delivery-and-private-api-boundary.md"
+      ]
+    },
+    {
+      "id": "server.publicApi",
+      "runtime": "server",
+      "root": "server/modules/publicApi",
+      "purpose": "Owns API-key policy and the versioned public cards, decks, Arena, Battlegrounds and statistics APIs.",
+      "owner": "web-platform",
+      "publicEntry": "server/modules/publicApi/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:public-api"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/decisions/003-versioned-public-api-and-api-keys.md",
+        "docs/specs/public-api-v1-first-slice.md",
+        "docs/specs/public-api-statistics-coverage.md"
+      ]
+    }
+  ],
+  "allowlistBudgets": {
+    "missingPublicEntry": 2,
+    "internalImport": 6,
+    "moduleLegacyImport": 8,
+    "runtimeCrossing": 2,
+    "typeCycle": 4
+  },
+  "exceptions": {
+    "missingPublicEntry": [
+      {
+        "source": "server/modules/arena",
+        "target": "server/modules/arena/public.ts",
+        "kind": "missing-public-entry",
+        "owner": "web-platform",
+        "reason": "The first extracted Arena normalizer is still consumed directly by the legacy server composition root.",
+        "expiresOn": "2026-10-31"
+      },
+      {
+        "source": "server/modules/constructedCards",
+        "target": "server/modules/constructedCards/public.ts",
+        "kind": "missing-public-entry",
+        "owner": "web-platform",
+        "reason": "Related-card enrichment was extracted before the module received its public composition entry.",
+        "expiresOn": "2026-10-31"
+      }
+    ],
+    "internalImport": [
+      {
+        "source": "server/app/registerPublicApi.ts",
+        "target": "server/modules/publicApi/battlegroundSource.ts",
+        "kind": "runtime",
+        "owner": "web-platform",
+        "reason": "The local Battlegrounds source factory has not yet been exposed through the public API module contract.",
+        "expiresOn": "2026-10-31"
+      },
+      {
+        "source": "server/constructedCardRoutes.ts",
+        "target": "server/modules/constructedCards/relatedCards.ts",
+        "kind": "runtime",
+        "owner": "web-platform",
+        "reason": "The legacy constructed-card router imports and re-exports the first extracted module implementation directly.",
+        "expiresOn": "2026-10-31"
+      },
+      {
+        "source": "server/index.ts",
+        "target": "server/modules/arena/classStatisticsNormalizer.ts",
+        "kind": "runtime",
+        "owner": "web-platform",
+        "reason": "The legacy server composition root predates the Arena module public entry.",
+        "expiresOn": "2026-10-31"
+      },
+      {
+        "source": "src/features/adminParserControl/DataHealthOverviewCard.stories.tsx",
+        "target": "src/modules/adminWorkspace/adminWorkspace.css",
+        "kind": "runtime",
+        "owner": "operations",
+        "reason": "The legacy parser-control story imports workspace styling before a module-owned Storybook decorator exists.",
+        "expiresOn": "2026-10-31"
+      },
+      {
+        "source": "src/features/ContestAdminArenaSynergies.stories.tsx",
+        "target": "src/modules/adminWorkspace/adminWorkspace.css",
+        "kind": "runtime",
+        "owner": "operations",
+        "reason": "The legacy Arena-synergies story imports workspace styling before a module-owned Storybook decorator exists.",
+        "expiresOn": "2026-10-31"
+      },
+      {
+        "source": "src/features/Contests.tsx",
+        "target": "src/modules/adminWorkspace/AdminWorkspaceShell.lazy.ts",
+        "kind": "runtime",
+        "owner": "operations",
+        "reason": "The legacy administrator route still owns lazy loading and CSS activation for the workspace shell.",
+        "expiresOn": "2026-10-31"
+      }
+    ],
+    "moduleLegacyImport": [
+      {
+        "source": "server/modules/publicApi/deckStatistics.ts",
+        "target": "server/constructedArchetypeRoutes.ts",
+        "kind": "type",
+        "owner": "web-platform",
+        "reason": "Public deck statistics still consume route-owned archetype contract types.",
+        "expiresOn": "2026-12-31"
+      },
+      {
+        "source": "server/modules/publicApi/metaStatistics.ts",
+        "target": "server/constructedArchetypeRoutes.ts",
+        "kind": "type",
+        "owner": "web-platform",
+        "reason": "Public meta statistics still consume route-owned archetype contract types.",
+        "expiresOn": "2026-12-31"
+      },
+      {
+        "source": "server/modules/publicApi/metaStatistics.ts",
+        "target": "server/standardMetaDataset.ts",
+        "kind": "runtime",
+        "owner": "web-platform",
+        "reason": "Standard-meta envelope construction has not yet moved behind a module or shared contract.",
+        "expiresOn": "2026-12-31"
+      },
+      {
+        "source": "server/modules/publicApi/metaStatistics.ts",
+        "target": "shared/standardMetaContract.ts",
+        "kind": "type",
+        "owner": "web-platform",
+        "reason": "The repository-level shared directory is a temporary cross-runtime contract location not defined as platform shared by ADR 002.",
+        "expiresOn": "2026-12-31"
+      },
+      {
+        "source": "server/modules/publicApi/routes.ts",
+        "target": "server/cardImageRoutes.ts",
+        "kind": "runtime",
+        "owner": "web-platform",
+        "reason": "Public API image routing still delegates to the legacy card-image route implementation.",
+        "expiresOn": "2026-12-31"
+      },
+      {
+        "source": "src/modules/accountRoute/AccountRoute.tsx",
+        "target": "src/features/DeferredRoutes.tsx",
+        "kind": "runtime",
+        "owner": "identity-platform",
+        "reason": "The login panel remains in the legacy deferred route bundle.",
+        "expiresOn": "2026-12-31"
+      },
+      {
+        "source": "src/modules/accountRoute/AccountRoute.tsx",
+        "target": "src/features/PublicProfilePage.tsx",
+        "kind": "runtime",
+        "owner": "identity-platform",
+        "reason": "The public-profile route has not yet been extracted into an owned account/profile module.",
+        "expiresOn": "2026-12-31"
+      },
+      {
+        "source": "src/modules/applicationConnect/ApplicationConnectPage.tsx",
+        "target": "src/features/DeferredRoutes.tsx",
+        "kind": "runtime",
+        "owner": "identity-platform",
+        "reason": "Application Connect still lazy-loads the login panel from the legacy deferred route bundle.",
+        "expiresOn": "2026-12-31"
+      }
+    ],
+    "runtimeCrossing": [
+      {
+        "source": "server/constructedCardSeoRoutes.ts",
+        "target": "src/features/constructedRelatedCards.ts",
+        "kind": "runtime",
+        "owner": "web-platform",
+        "reason": "The legacy SEO route temporarily reuses related-card presentation data from the client feature tree.",
+        "expiresOn": "2026-12-31"
+      },
+      {
+        "source": "server/sentry.ts",
+        "target": "src/telemetry/sentryPrivacy.ts",
+        "kind": "runtime",
+        "owner": "observability",
+        "reason": "Server telemetry temporarily reuses privacy scrubbing that has not yet moved to a runtime-neutral shared contract.",
+        "expiresOn": "2026-12-31"
+      }
+    ],
+    "typeCycle": [
+      {
+        "source": "server/constructedCardHistoryStore.ts",
+        "target": "server/constructedCardRoutes.ts",
+        "kind": "type-cycle",
+        "nodes": [
+          "server/constructedCardHistoryStore.ts",
+          "server/constructedCardRoutes.ts"
+        ],
+        "edges": [
+          {
+            "source": "server/constructedCardHistoryStore.ts",
+            "target": "server/constructedCardRoutes.ts",
+            "kind": "type"
+          },
+          {
+            "source": "server/constructedCardRoutes.ts",
+            "target": "server/constructedCardHistoryStore.ts",
+            "kind": "runtime"
+          }
+        ],
+        "owner": "web-platform",
+        "reason": "The history store imports route-owned history types while the route imports the store implementation.",
+        "expiresOn": "2026-12-31"
+      },
+      {
+        "source": "src/features/BattlegroundHeroLedger.tsx",
+        "target": "src/features/Battlegrounds.tsx",
+        "kind": "type-cycle",
+        "nodes": [
+          "src/features/BattlegroundHeroLedger.tsx",
+          "src/features/Battlegrounds.tsx"
+        ],
+        "edges": [
+          {
+            "source": "src/features/BattlegroundHeroLedger.tsx",
+            "target": "src/features/Battlegrounds.tsx",
+            "kind": "type"
+          },
+          {
+            "source": "src/features/Battlegrounds.tsx",
+            "target": "src/features/BattlegroundHeroLedger.tsx",
+            "kind": "runtime"
+          }
+        ],
+        "owner": "web-platform",
+        "reason": "The extracted hero ledger still imports types owned by the Battlegrounds route monolith.",
+        "expiresOn": "2026-12-31"
+      },
+      {
+        "source": "src/features/ContestAdminAnalytics.tsx",
+        "target": "src/features/ContestAdminBoostySales.tsx",
+        "kind": "type-cycle",
+        "nodes": [
+          "src/features/ContestAdminAnalytics.tsx",
+          "src/features/ContestAdminBoostySales.tsx"
+        ],
+        "edges": [
+          {
+            "source": "src/features/ContestAdminAnalytics.tsx",
+            "target": "src/features/ContestAdminBoostySales.tsx",
+            "kind": "runtime"
+          },
+          {
+            "source": "src/features/ContestAdminBoostySales.tsx",
+            "target": "src/features/ContestAdminAnalytics.tsx",
+            "kind": "type"
+          }
+        ],
+        "owner": "operations",
+        "reason": "Boosty sales imports analytics-owned types while the analytics view imports the Boosty component.",
+        "expiresOn": "2026-12-31"
+      },
+      {
+        "source": "src/features/HsReplayDeckList.tsx",
+        "target": "src/features/hsReplayDeckPreviewInteractions.ts",
+        "kind": "type-cycle",
+        "nodes": [
+          "src/features/HsReplayDeckList.tsx",
+          "src/features/HsReplayDeckPreviewController.tsx",
+          "src/features/hsReplayDeckPreviewInteractions.ts"
+        ],
+        "edges": [
+          {
+            "source": "src/features/HsReplayDeckList.tsx",
+            "target": "src/features/HsReplayDeckPreviewController.tsx",
+            "kind": "runtime"
+          },
+          {
+            "source": "src/features/HsReplayDeckPreviewController.tsx",
+            "target": "src/features/HsReplayDeckList.tsx",
+            "kind": "type"
+          },
+          {
+            "source": "src/features/HsReplayDeckPreviewController.tsx",
+            "target": "src/features/hsReplayDeckPreviewInteractions.ts",
+            "kind": "runtime"
+          },
+          {
+            "source": "src/features/hsReplayDeckPreviewInteractions.ts",
+            "target": "src/features/HsReplayDeckList.tsx",
+            "kind": "type"
+          }
+        ],
+        "owner": "web-platform",
+        "reason": "Preview orchestration and interactions import list-owned types while the list imports the controller at runtime.",
+        "expiresOn": "2026-12-31"
+      }
+    ]
+  }
+}

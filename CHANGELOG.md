@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Added Phase 0 architecture guardrails: a complete owned-module inventory,
+  an AST-resolved dependency and cycle gate, a checked registry that runs every
+  supported test exactly once, and worktree-safe CodeGraph/module-context
+  commands for AI-assisted maintenance.
+- Routed the remaining Arena synergy tile URL through the same-origin
+  public-resource boundary instead of letting browsers contact the upstream
+  HearthstoneJSON image host directly, and removed the last Battlegrounds
+  upstream-host literal while preserving its existing same-origin proxy URL.
 - Routed rejected ecosystem subscription refreshes and article-vote entitlement
   checks through the shared Express error boundary, so affected API requests
   now receive a bounded 500 response with a request ID instead of waiting for a

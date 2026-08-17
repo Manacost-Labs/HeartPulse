@@ -2813,7 +2813,7 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
   );
 }
 
-// ─── AdminPanel ───────────────────────────────────────────────────────────────
+// ─── Authentication and subscription UI ──────────────────────────────────────
 
 type AdminMessage = { type: 'ok' | 'err'; text: string };
 type AuthUser = {
