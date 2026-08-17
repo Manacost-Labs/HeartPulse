@@ -87,7 +87,7 @@
       "id": "client.subscriptions",
       "runtime": "client",
       "root": "src/modules/subscriptions",
-      "purpose": "Owns the client subscription-status contract and entitlement access policy.",
+      "purpose": "Owns the client subscription-status contract, entitlement access policy and display metadata.",
       "owner": "identity-platform",
       "publicEntry": "src/modules/subscriptions/public.ts",
       "dependencies": [],

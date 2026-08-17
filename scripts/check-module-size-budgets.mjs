@@ -9,8 +9,13 @@ const moduleBudgets = [
   },
   {
     path: 'src/features/DeferredRoutes.tsx',
-    maxLines: 4_429,
+    maxLines: 4_416,
     owner: 'Arena route bundle',
+  },
+  {
+    path: 'src/features/Contests.tsx',
+    maxLines: 1_719,
+    owner: 'administrator workspace composition',
   },
   {
     path: 'src/features/Battlegrounds.tsx',

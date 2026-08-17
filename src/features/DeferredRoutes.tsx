@@ -16,6 +16,7 @@ import ProfileIdentityHero from '../components/ProfileIdentityHero';
 import FAQSection from '../components/FAQSection';
 import {
   hasSubscriptionEntitlement,
+  subscriptionEntitlementLabels,
   type SubscriptionEntitlementKey,
   type SubscriptionStatus,
 } from '../modules/subscriptions/public';
@@ -2853,20 +2854,6 @@ type ContestHistoryItem = {
   endsAt: string;
   isWinner: boolean;
 };
-
-function subscriptionEntitlementLabels(subscription: { hasAccess?: boolean; entitlements?: SubscriptionStatus['entitlements'] } | null | undefined): string[] {
-  if (!subscription?.entitlements) return subscription?.hasAccess ? ['Все разделы'] : [];
-  const labels: Array<[SubscriptionEntitlementKey, string]> = [
-    ['arena', 'Арена'],
-    ['battlegrounds', 'Поля Сражений'],
-    ['standard', 'Стандарт'],
-    ['contests', 'Конкурсы'],
-    ['guidesArchive', 'Архив гайдов'],
-    ['arenaArticles', 'Статьи Арены'],
-    ['battlegroundsArticles', 'Статьи Полей'],
-  ];
-  return labels.filter(([key]) => subscription.entitlements?.[key]).map(([, label]) => label);
-}
 
 type TelegramAuthPayload = {
   id: number | string;

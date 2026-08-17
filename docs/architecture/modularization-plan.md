@@ -371,21 +371,24 @@ navigation, entitlements and Back/Forward scenarios must remain compatible.
 Depends on the application routing foundation and proceeds alongside the shell
 provider extraction.
 
-Status: client subscription contract complete; provider and identity UI
-extraction pending.
+Status: client subscription contract and shared presentation metadata complete;
+provider and identity UI extraction pending.
 
 1. [x] Create `client.subscriptions` as the runtime-neutral owner of the client
    status DTO, all seven entitlement keys and named-entitlement access policy.
    Migrate application routing, subscription-aware headers and legacy feature
    composition to its public entry without making client state an authorization
    boundary.
-2. [ ] Move the login panel and account route out of `DeferredRoutes`.
-3. [ ] Move public profile and application-connect pages behind the identity public
+2. [x] Centralize the ordered Russian entitlement labels and legacy
+   `Все разделы` fallback in a directly tested presentation model. Migrate the
+   account and administrator consumers without changing visible output.
+3. [ ] Move the login panel and account route out of `DeferredRoutes`.
+4. [ ] Move public profile and application-connect pages behind the identity public
    entry.
-4. [ ] Move client session DTOs, validation and requests into identity `model` and
+5. [ ] Move client session DTOs, validation and requests into identity `model` and
    `api` owners.
-5. [ ] Extract server profile, application authorization and session route families.
-6. [ ] Extract subscription confirmation, entitlement and provider synchronization
+6. [ ] Extract server profile, application authorization and session route families.
+7. [ ] Extract subscription confirmation, entitlement and provider synchronization
    into a separate subscription module.
 
 Complete when `/connect`, `/id/:id`, legacy profile URLs and `?login` behave

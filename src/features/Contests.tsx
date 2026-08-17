@@ -17,9 +17,9 @@ import {
   Users,
 } from 'lucide-react';
 import './contests.css';
-import type {
-  SubscriptionEntitlementKey,
-  SubscriptionStatus,
+import {
+  subscriptionEntitlementLabels,
+  type SubscriptionStatus,
 } from '../modules/subscriptions/public';
 import {
   ContestAdminReferrals,
@@ -122,16 +122,6 @@ type AuthUser = {
   adminAllowed?: boolean;
   contestAdminAllowed?: boolean;
 };
-
-const SUBSCRIPTION_ENTITLEMENT_LABELS: ReadonlyArray<[SubscriptionEntitlementKey, string]> = [
-  ['arena', 'Арена'],
-  ['battlegrounds', 'Поля Сражений'],
-  ['standard', 'Стандарт'],
-  ['contests', 'Конкурсы'],
-  ['guidesArchive', 'Архив гайдов'],
-  ['arenaArticles', 'Статьи Арены'],
-  ['battlegroundsArticles', 'Статьи Полей'],
-];
 
 function formatDate(iso: string | null): string {
   if (!iso) return 'нет данных';
@@ -423,15 +413,6 @@ function adminSectionFromLocation(defaultSection: AdminWorkspaceSection): AdminW
   }
   if (params.has('contest') || params.has('contests')) return 'contests';
   return defaultSection;
-}
-
-function subscriptionEntitlementLabels(subscription: { hasAccess?: boolean; entitlements?: SubscriptionStatus['entitlements'] } | null | undefined): string[] {
-  if (!subscription?.entitlements) return subscription?.hasAccess ? ['Все разделы'] : [];
-  const labels: string[] = [];
-  for (const [key, label] of SUBSCRIPTION_ENTITLEMENT_LABELS) {
-    if (subscription.entitlements[key]) labels.push(label);
-  }
-  return labels;
 }
 
 async function uploadGalleryArtFile(file: File, metadata: { title: string; description: string; tag: string; source: string }): Promise<GalleryItem> {
