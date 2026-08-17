@@ -54,6 +54,7 @@ import {
 } from './app/routing/public';
 import {
   AuthAvatar,
+  fetchCurrentAuthUser,
   publicProfileIdFromPath,
   type AuthUser,
 } from './modules/identity/public';
@@ -321,46 +322,6 @@ const FALLBACK_CLASSES: ClassData[] = [
   { id: 'priest',  name: 'Жрец',               winrate: 44.5, color: '#d1d1d1', textDark: true },
   { id: 'dh',      name: 'Охотник на демонов', winrate: 43.2, color: '#224722' },
 ];
-function abortableDelay(milliseconds: number, signal: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (signal.aborted) {
-      reject(new DOMException('Aborted', 'AbortError'));
-      return;
-    }
-    const timeout = window.setTimeout(resolve, milliseconds);
-    signal.addEventListener('abort', () => {
-      window.clearTimeout(timeout);
-      reject(new DOMException('Aborted', 'AbortError'));
-    }, { once: true });
-  });
-}
-
-async function fetchCurrentAuthUser(signal: AbortSignal): Promise<AuthUser | null> {
-  let lastError: unknown = new Error('Не удалось проверить текущую сессию');
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      const response = await fetch('/api/auth/me', {
-        credentials: 'same-origin',
-        cache: 'no-store',
-        signal,
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || 'Не удалось проверить текущую сессию');
-      if (!data.user) return null;
-      return {
-        ...data.user,
-        adminAllowed: Boolean(data.user.adminAllowed ?? data.adminAllowed),
-        contestAdminAllowed: Boolean(data.user.contestAdminAllowed ?? data.contestAdminAllowed),
-      };
-    } catch (error) {
-      if (signal.aborted) throw error;
-      lastError = error;
-      if (attempt < 2) await abortableDelay(350 * (attempt + 1), signal);
-    }
-  }
-  throw lastError;
-}
-
 type TelegramAuthPayload = {
   id: number | string;
   first_name?: string;

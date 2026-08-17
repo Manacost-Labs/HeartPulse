@@ -73,7 +73,7 @@
       "id": "client.identity",
       "runtime": "client",
       "root": "src/modules/identity",
-      "purpose": "Owns the browser account identity contract, login and profile presentation primitives.",
+      "purpose": "Owns the browser account identity contract, private session transport, login and profile presentation primitives.",
       "owner": "identity-platform",
       "publicEntry": "src/modules/identity/public.ts",
       "publicStyleEntry": "src/modules/identity/public.css",
@@ -83,6 +83,7 @@
       "focusedTests": [
         "npm run test:application-connect",
         "npm run test:auth-verification-routes",
+        "npm run test:client-identity-session",
         "npm run test:public-profiles",
         "npm run test:subscription-access"
       ],

@@ -394,9 +394,9 @@ Depends on the application routing foundation and proceeds alongside the shell
 provider extraction.
 
 Status: client subscription contract, shared presentation metadata, login,
-public-profile client/server identity boundaries, private-account server
-boundary and application authorization complete; client provider/session and
-subscription extraction pending.
+public-profile client/server identity boundaries, private-account client/server
+transport and application authorization complete; a shared client identity
+provider, guest-auth request extraction and subscription extraction remain.
 
 1. [x] Create `client.subscriptions` as the runtime-neutral owner of the client
    status DTO, all seven entitlement keys and named-entitlement access policy.
@@ -426,8 +426,19 @@ subscription extraction pending.
    The literal profile loader plus the stricter shared route parser add a
    measured 451 raw / 202 gzip bytes to startup; that exact cost is ratcheted,
    while the profile implementation, hero and route CSS remain lazy.
-5. [ ] Move client session DTOs, validation and requests into identity `model` and
-   `api` owners.
+5. [x] Move the current-session DTO, allowlisted JSON validation and private
+   account requests into identity `model` and `api` owners. The application
+   shell now consumes the public session API with the same three-attempt retry
+   and abort policy; `LoginPanel` delegates profile updates and best-effort
+   logout without changing request bodies, headers, messages or local UI
+   transitions. Truthy non-boolean permission values and malformed success
+   payloads are rejected, while unknown response fields cannot cross the
+   browser identity contract. The shell and panel line ceilings are ratcheted
+   from 1,753 to 1,698 and from 1,196 to 1,191 respectively.
+   Fail-closed session parsing adds a measured 1,404 raw / 435 gzip startup
+   bytes; lazy profile-response validation adds 568 raw / 244 gzip bytes to the
+   account route. These exact costs are ratcheted while mutations remain out of
+   the initial graph and login/public-profile chunks stay independent.
 6. [x] Put public-profile ID policy, SQLite persistence, serialization and HTTP
    routing behind `server.publicProfile/public.ts`; keep application device
    authorization behind the existing `server.applicationAuth/public.ts`.

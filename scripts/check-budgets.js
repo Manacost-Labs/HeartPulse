@@ -84,13 +84,18 @@ const budgets = {
   // measured 451 raw / 202 gzip bytes to startup metadata and validation after
   // the canonical URL contract changed the lazy SEO chunk hash; the
   // page implementation, hero and route CSS remain outside the initial graph.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_449),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_467),
-  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_619),
+  // The private-session boundary adds allowlisted DTO parsing, fail-closed
+  // permission handling and abortable retries (+1,404 raw / +435 gzip startup
+  // bytes). Profile validation stays in the lazy account route (+568 raw /
+  // +244 gzip bytes). Keep these measured security costs exact and prevent
+  // either surface from absorbing unrelated growth.
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 68_853),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 261_871),
+  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 81_054),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),
   deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 78_000),
-  loginPanelJs: Number(process.env.BUDGET_LOGIN_PANEL_JS_BYTES || 28_500),
+  loginPanelJs: Number(process.env.BUDGET_LOGIN_PANEL_JS_BYTES || 28_893),
   publicProfilePageJs: Number(process.env.BUDGET_PUBLIC_PROFILE_PAGE_JS_BYTES || 3_400),
   profileIdentityHeroJs: Number(process.env.BUDGET_PROFILE_IDENTITY_HERO_JS_BYTES || 1_150),
   galleryPageJs: Number(process.env.BUDGET_GALLERY_PAGE_JS_BYTES || 4_700),
@@ -306,6 +311,6 @@ if (loginImports.has('src/modules/identity/ui/PublicProfilePage.tsx')
   console.log('[budget] ok identity login and public-profile route chunks remain independent');
 }
 
-console.log('[budget] aggregate startup assets are ratcheted below the previous production baseline.');
+console.log('[budget] aggregate startup assets are ratcheted to the documented production baseline.');
 
 if (failed) process.exit(1);

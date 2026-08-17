@@ -1,3 +1,6 @@
+export {
+  fetchCurrentAuthUser,
+} from './api/authSessionApi';
 export type { AuthUser } from './model/authUser';
 export {
   publicProfileIdFromPath,

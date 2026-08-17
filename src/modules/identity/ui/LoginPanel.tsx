@@ -19,6 +19,10 @@ import {
   subscriptionEntitlementLabels,
   type SubscriptionStatus,
 } from '../../subscriptions/public';
+import {
+  logoutCurrentAuthSession,
+  updateCurrentAuthProfile,
+} from '../api/privateAccountApi';
 import type { AuthUser } from '../model/authUser';
 import { publicProfilePath } from '../model/publicProfilePath';
 import './IdentityProfile.css';
@@ -593,24 +597,18 @@ export function LoginPanel({
     setLoading(true);
     setMsg(null);
     try {
-      const res = await fetch('/api/auth/profile', {
-        method: 'PATCH',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({
-          country: profileCountry,
-          newsletterOptIn: profileNewsletter,
-          contactVkUrl: profileVkUrl,
-          contactTelegram: profileTelegram,
-          contactEmail: profileContactEmail,
-        }),
+      const user = await updateCurrentAuthProfile({
+        country: profileCountry,
+        newsletterOptIn: profileNewsletter,
+        contactVkUrl: profileVkUrl,
+        contactTelegram: profileTelegram,
+        contactEmail: profileContactEmail,
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Не удалось сохранить профиль');
-      setAuthUser(data.user);
-      setProfileVkUrl(data.user?.contactVkUrl || '');
-      setProfileTelegram(data.user?.contactTelegram || data.user?.telegramUsername || '');
-      setProfileContactEmail(data.user?.contactEmail || (isRealAuthEmail(data.user?.email) ? data.user.email : ''));
-      onAuthChange?.(data.user);
+      setAuthUser(user);
+      setProfileVkUrl(user.contactVkUrl || '');
+      setProfileTelegram(user.contactTelegram || user.telegramUsername || '');
+      setProfileContactEmail(user.contactEmail || (isRealAuthEmail(user.email) ? user.email : ''));
+      onAuthChange?.(user);
       setMsg({ type: 'ok', text: 'Профиль обновлен.' });
     } catch (err: any) {
       setMsg({ type: 'err', text: err.message });
@@ -620,10 +618,7 @@ export function LoginPanel({
   };
 
   const handleLogout = () => {
-    fetch('/api/auth/logout', {
-      method: 'POST',
-      headers: authHeaders({ 'Content-Type': 'application/json' }),
-    }).catch(() => {});
+    void logoutCurrentAuthSession().catch(() => {});
     clearAuthSessionHint();
     setAuthUser(null);
     setSubscription(null);

@@ -11,8 +11,13 @@ assert.match(
 );
 assert.match(
   appSource,
-  /adminAllowed:\s*Boolean\(data\.user\.adminAllowed\s*\?\?\s*data\.adminAllowed\)/,
-  'the shell must preserve top-level adminAllowed from the auth contract for administrative tools',
+  /fetchCurrentAuthUser\(signal\)/,
+  'the shell must consume the validated identity session contract',
+);
+assert.match(
+  appSource,
+  /appAuthUser\.adminAllowed/,
+  'the shell must preserve validated adminAllowed for administrative tools',
 );
 assert.match(
   appSource,

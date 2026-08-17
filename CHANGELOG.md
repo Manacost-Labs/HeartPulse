@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Moved current-session loading, account-profile updates, best-effort logout and
+  allowlisted browser-user validation into the client `identity` model/API
+  boundary; preserved retry, cancellation, CSRF, error and immediate-logout UI
+  behavior while removing the private-account endpoint literals and JSON
+  parsing from the application shell and `LoginPanel`.
 - Moved the private browser-session and account-profile routes, bounded request
   validation and exact response policy behind one `server.identity` entry
   point; removed the legacy route owner while preserving authentication, CSRF,

@@ -86,6 +86,7 @@
         "tests/card-opening-performance.test.ts",
         "tests/class-matchup-routes.test.ts",
         "tests/client-error-routes.test.ts",
+        "tests/client-identity-session.test.ts",
         "tests/client-route-resolution.test.ts",
         "tests/constructed-archetype-routes.test.ts",
         "tests/constructed-card-catalog-controls.test.tsx",
