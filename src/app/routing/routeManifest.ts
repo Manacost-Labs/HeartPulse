@@ -23,6 +23,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { SubscriptionEntitlementKey } from '../../modules/subscriptions/public';
+import { loadLoginPanel } from '../../modules/identity/public';
 import { publicProfileIdFromPath } from '../../profileRoutes';
 import type { ResolvedPublicUrlPolicy } from '../../seo/publicUrlPolicy';
 
@@ -188,7 +189,7 @@ export const PRELOADABLE_ROUTE_IDS = /* @__PURE__ */ (() => new Set<RoutePreload
 ]))();
 
 export function routeModuleLoaderForPreload(routeId: RoutePreloadId): RouteModuleLoader | null {
-  if (routeId === 'login') return loadDeferredRoutesModule;
+  if (routeId === 'login') return loadLoginPanel;
   const route = ROUTE_BY_ID.get(routeId);
   return route?.preload === 'intent' ? route.loader : null;
 }

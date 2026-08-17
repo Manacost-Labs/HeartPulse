@@ -83,13 +83,15 @@ const budgets = {
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_801),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),
-  deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 108_350),
+  deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 78_000),
+  loginPanelJs: Number(process.env.BUDGET_LOGIN_PANEL_JS_BYTES || 28_500),
   galleryPageJs: Number(process.env.BUDGET_GALLERY_PAGE_JS_BYTES || 4_700),
   editorialRouteChromeJs: Number(process.env.BUDGET_EDITORIAL_ROUTE_CHROME_JS_BYTES || 2_450),
   css: Number(process.env.BUDGET_CSS_BYTES || 136_863),
   routeCss: Number(process.env.BUDGET_ROUTE_CSS_BYTES || 48_350),
-  deferredRoutesCss: Number(process.env.BUDGET_DEFERRED_ROUTES_CSS_BYTES || 52_084),
+  deferredRoutesCss: Number(process.env.BUDGET_DEFERRED_ROUTES_CSS_BYTES || 31_300),
   loginPanelCss: Number(process.env.BUDGET_LOGIN_PANEL_CSS_BYTES || 4_500),
+  identityProfileCss: Number(process.env.BUDGET_IDENTITY_PROFILE_CSS_BYTES || 20_700),
   homeSectionCss: Number(process.env.BUDGET_HOME_SECTION_CSS_BYTES || 5_000),
   faqSectionCss: Number(process.env.BUDGET_FAQ_SECTION_CSS_BYTES || 4_000),
   faqPageCss: Number(process.env.BUDGET_FAQ_PAGE_CSS_BYTES || 7_000),
@@ -147,7 +149,13 @@ const deferredRoutesCss = files.find(file => /^(?:DeferredRoutes|EditorialRouteC
 const deferredRoutesJs = files.find(file => /^DeferredRoutes-.*\.js$/.test(file.name));
 const galleryPageJs = files.find(file => /^GalleryTab-.*\.js$/.test(file.name));
 const editorialRouteChromeJs = files.find(file => /^EditorialRouteChrome-.*\.js$/.test(file.name));
-const loginPanelCss = files.find(file => /^LoginPanel-.*\.css$/.test(file.name));
+const loginPanelEntry = viteManifest['src/modules/identity/ui/LoginPanel.tsx'];
+const loginPanelStylesEntry = viteManifest['src/modules/identity/ui/LoginPanel.css'];
+const loginPanelJs = loginPanelEntry?.file ? assetGroup([loginPanelEntry.file]) : null;
+const identityProfileCss = assetGroup(loginPanelEntry?.css ?? []);
+const loginPanelCss = loginPanelStylesEntry?.file
+  ? assetGroup([loginPanelStylesEntry.file])
+  : null;
 const faqSectionCss = files.find(file => /^FAQSection-.*\.css$/.test(file.name));
 const faqPageCss = files.find(file => /^FAQPage-.*\.css$/.test(file.name));
 const faqPageJs = files.find(file => /^FAQPage-.*\.js$/.test(file.name));
@@ -185,12 +193,14 @@ const checks = [
   ['initial JS gzip total', initialJsGzip, budgets.initialJsGzip],
   ['largest route JS', routeJs[0], budgets.routeJs],
   ['Arena deferred route JS', deferredRoutesJs, budgets.deferredRoutesJs],
+  ['identity login-panel JS', loginPanelJs, budgets.loginPanelJs],
   ['Gallery route JS', galleryPageJs, budgets.galleryPageJs],
   ['editorial route chrome JS', editorialRouteChromeJs, budgets.editorialRouteChromeJs],
   ['initial CSS', css, budgets.css],
   ['shared route CSS', routeCss, budgets.routeCss],
   ['Arena route-owner CSS', deferredRoutesCss, budgets.deferredRoutesCss],
   ['lazy public-auth CSS', loginPanelCss, budgets.loginPanelCss],
+  ['lazy authenticated-profile CSS', identityProfileCss, budgets.identityProfileCss],
   ['largest lazy home-section CSS', largestHomeSectionCss, budgets.homeSectionCss],
   ['lazy FAQ-section CSS', faqSectionCss, budgets.faqSectionCss],
   ['lazy FAQ-page CSS', faqPageCss, budgets.faqPageCss],

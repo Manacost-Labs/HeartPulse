@@ -123,9 +123,10 @@ for (const relativePath of [
   '../src/components/GlobalUtilityHeader.tsx',
   '../src/features/Contests.tsx',
   '../src/features/DeferredRoutes.tsx',
+  '../src/modules/identity/ui/LoginPanel.tsx',
 ]) {
   const source = readFileSync(new URL(relativePath, import.meta.url), 'utf8');
-  assert.match(source, /modules\/subscriptions\/public/,
+  assert.match(source, /(?:modules\/subscriptions|\.\.\/\.\.\/subscriptions)\/public/,
     `${relativePath} must consume the subscriptions public entry`);
   assert.doesNotMatch(source, /type SubscriptionStatus\s*=/,
     `${relativePath} must not redeclare the subscription status contract`);

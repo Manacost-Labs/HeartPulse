@@ -100,6 +100,9 @@ Rules:
 - keep literal dynamic imports beside their manifest records in
   `routeManifest.ts` so preload ownership is inspectable and Vite can retain
   statically analyzable chunks;
+- obtain a domain-owned auxiliary loader, such as the `login` overlay, only
+  through that domain's `public.ts`; never point an auxiliary preload back at an
+  unrelated shared route chunk;
 - declare every lazy React adapter at module scope in `routeModules.tsx`, and
   reuse the exact loader identity owned by the manifest;
 - keep browser history, page metadata settlement and stale-navigation guards in
@@ -123,8 +126,10 @@ Rules:
    prerender policies remain valid.
 5. Source-boundary tests prove `App.tsx` does not regain module loaders or
    browser-history ownership.
-6. The production build proves literal dynamic imports still emit lazy chunks.
-7. Browser QA exercises direct navigation, in-app navigation and Back/Forward
+6. The manifest test pins 19 distinct loader identities and proves the login
+   overlay no longer shares the `DeferredRoutes` loader.
+7. The production build proves literal dynamic imports still emit lazy chunks.
+8. Browser QA exercises direct navigation, in-app navigation and Back/Forward
    on desktop and mobile with a clean console and network log.
 
 Tests assert observable route outcomes and manifest invariants, not internal

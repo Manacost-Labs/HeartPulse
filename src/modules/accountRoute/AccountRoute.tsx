@@ -1,22 +1,22 @@
 import React from 'react';
-import PublicProfilePage from '../../features/PublicProfilePage';
-import ApplicationConnectPage from '../applicationConnect/public';
+import { loadLoginPanel, type AuthUser } from '../identity/public';
 
-const LazyLoginPanel = React.lazy(() => import('../../features/DeferredRoutes')
-  .then(module => ({ default: module.LoginPanel })));
+const LazyLoginPanel = React.lazy(loadLoginPanel);
+const LazyApplicationConnectPage = React.lazy(() => import('../applicationConnect/public'));
+const LazyPublicProfilePage = React.lazy(() => import('../../features/PublicProfilePage'));
 
 type AccountRouteProps = {
   connect: boolean;
   profileId: string | null;
-  user: React.ComponentProps<typeof ApplicationConnectPage>['initialAuthUser'];
+  user: AuthUser | null;
   checking: boolean;
-  onChange: React.ComponentProps<typeof ApplicationConnectPage>['onAuthChange'];
+  onChange: (user: AuthUser | null) => void;
 };
 
 /**
  * Owns the three account-facing routes so the application shell only decides
  * whether it is on an account surface. Each route keeps its existing API and
- * the large legacy login bundle remains nested behind a lazy boundary.
+ * the identity-owned login bundle remains nested behind a lazy boundary.
  */
 export default function AccountRoute({
   connect,
@@ -27,14 +27,14 @@ export default function AccountRoute({
 }: AccountRouteProps) {
   if (connect) {
     return (
-      <ApplicationConnectPage
+      <LazyApplicationConnectPage
         initialAuthUser={user}
         parentAuthChecking={checking}
         onAuthChange={onChange}
       />
     );
   }
-  if (profileId) return <PublicProfilePage publicProfileId={profileId} />;
+  if (profileId) return <LazyPublicProfilePage publicProfileId={profileId} />;
   return (
     <LazyLoginPanel
       initialAuthUser={user}

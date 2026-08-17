@@ -21,7 +21,8 @@
       "owner": "identity-platform",
       "publicEntry": "src/modules/accountRoute/public.ts",
       "dependencies": [
-        "client.applicationConnect"
+        "client.applicationConnect",
+        "client.identity"
       ],
       "focusedTests": [
         "npm run test:application-connect",
@@ -57,13 +58,36 @@
       "purpose": "Owns the browser device-authorization review and approval flow.",
       "owner": "identity-platform",
       "publicEntry": "src/modules/applicationConnect/public.ts",
-      "dependencies": [],
+      "dependencies": [
+        "client.identity"
+      ],
       "focusedTests": [
         "npm run test:application-connect"
       ],
       "docs": [
         "docs/architecture/module-boundaries.md",
         "docs/specs/public-api-v1-first-slice.md"
+      ]
+    },
+    {
+      "id": "client.identity",
+      "runtime": "client",
+      "root": "src/modules/identity",
+      "purpose": "Owns the browser account identity contract, login and profile presentation primitives.",
+      "owner": "identity-platform",
+      "publicEntry": "src/modules/identity/public.ts",
+      "dependencies": [
+        "client.subscriptions"
+      ],
+      "focusedTests": [
+        "npm run test:application-connect",
+        "npm run test:auth-verification-routes",
+        "npm run test:public-profiles",
+        "npm run test:subscription-access"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
       ]
     },
     {
@@ -188,7 +212,7 @@
   "allowlistBudgets": {
     "missingPublicEntry": 0,
     "internalImport": 0,
-    "moduleLegacyImport": 8,
+    "moduleLegacyImport": 7,
     "runtimeCrossing": 2,
     "typeCycle": 4
   },
@@ -238,14 +262,6 @@
       },
       {
         "source": "src/modules/accountRoute/AccountRoute.tsx",
-        "target": "src/features/DeferredRoutes.tsx",
-        "kind": "runtime",
-        "owner": "identity-platform",
-        "reason": "The login panel remains in the legacy deferred route bundle.",
-        "expiresOn": "2026-12-31"
-      },
-      {
-        "source": "src/modules/accountRoute/AccountRoute.tsx",
         "target": "src/features/PublicProfilePage.tsx",
         "kind": "runtime",
         "owner": "identity-platform",
@@ -253,11 +269,11 @@
         "expiresOn": "2026-12-31"
       },
       {
-        "source": "src/modules/applicationConnect/ApplicationConnectPage.tsx",
-        "target": "src/features/DeferredRoutes.tsx",
+        "source": "src/modules/identity/ui/LoginPanel.tsx",
+        "target": "src/components/ProfileIdentityHero.tsx",
         "kind": "runtime",
         "owner": "identity-platform",
-        "reason": "Application Connect still lazy-loads the login panel from the legacy deferred route bundle.",
+        "reason": "The profile hero remains shared with the legacy public-profile route until that route moves into identity.",
         "expiresOn": "2026-12-31"
       }
     ],

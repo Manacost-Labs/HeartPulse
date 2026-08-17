@@ -1,11 +1,3 @@
-export type ConnectUser = {
-  id?: string;
-  email: string;
-  name: string;
-  role: string;
-  avatarInitials?: string;
-};
-
 export type DeviceAuthorization = {
   clientId: string;
   clientName: string;

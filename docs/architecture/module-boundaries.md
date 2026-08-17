@@ -199,17 +199,28 @@ The check rejects:
 - every runtime import cycle;
 - stale, duplicated, unsafe or expired migration exceptions.
 
-The current migration baseline scans 422 source files and contains ten
-modules, no missing public entries, no outside-to-internal imports, eight
+The current migration baseline scans 426 source files and contains eleven
+modules, no missing public entries, no outside-to-internal imports, seven
 module-to-legacy imports, four type-inclusive cycles, two legacy client/server
 source crossings and zero runtime cycles. The Arena, constructed-card,
 Battlegrounds public-API and admin-workspace consumers now enter their modules
-only through the configured `public.ts`. The graph contains 711 resolved edges.
+only through the configured `public.ts`. The graph contains 721 resolved edges.
 The client subscription status, entitlement policy and ordered display labels
 now have one
 runtime-neutral owner under `src/modules/subscriptions`; application and legacy
 route composition consume its public entry instead of maintaining duplicate
 access models or presentation metadata.
+The `client.identity` module now owns the canonical account-surface browser
+user contract,
+public-profile path policy and a lazy login/profile loader. Account routing and
+Application Connect consume that loader through `identity/public.ts`, so login
+intent no longer preloads the unrelated Arena route bundle. Account routing
+also keeps Application Connect and the public-profile page behind branch-local
+lazy imports, so a plain login visit does not download either neighbouring
+surface. The authenticated
+profile stylesheet also moved out of `DeferredRoutes.css`; the one remaining
+identity-to-legacy edge is the shared profile hero and expires when the public
+profile route moves into identity.
 The application routing foundation now lives under `src/app/routing`: its
 manifest owns surface metadata and literal loaders, while pure route resolution
 and browser navigation orchestration have focused owners. Each remaining

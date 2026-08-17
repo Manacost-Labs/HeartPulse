@@ -1,20 +1,19 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { loadLoginPanel, type AuthUser } from '../identity/public';
 import { ApplicationConnectView } from './ApplicationConnectView';
 import {
   normalizedUserCode,
   type ConnectState,
-  type ConnectUser,
   type DeviceAuthorization,
 } from './applicationConnectModel';
 
 type ApplicationConnectPageProps = {
-  initialAuthUser: ConnectUser | null;
+  initialAuthUser: AuthUser | null;
   parentAuthChecking: boolean;
-  onAuthChange: (user: ConnectUser | null) => void;
+  onAuthChange: (user: AuthUser | null) => void;
 };
 
-const LazyLoginPanel = React.lazy(() => import('../../features/DeferredRoutes')
-  .then(module => ({ default: module.LoginPanel })));
+const LazyLoginPanel = React.lazy(loadLoginPanel);
 
 function initialUserCode(): string {
   return normalizedUserCode(new URLSearchParams(window.location.search).get('user_code') ?? '');
@@ -122,7 +121,7 @@ export default function ApplicationConnectPage({
     }
   };
 
-  const handleAuthChange = (nextUser: ConnectUser | null) => {
+  const handleAuthChange = (nextUser: AuthUser | null) => {
     onAuthChange(nextUser);
     if (nextUser) {
       updateConnectUrl(userCode);

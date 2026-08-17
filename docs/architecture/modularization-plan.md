@@ -262,7 +262,7 @@ Status: implementation complete; awaiting integration after Phase 0.1.
   detail paths, legacy aliases, prerendering and final not-found settlement.
 - [x] Move pure route settlement and browser history/metadata orchestration out
   of `App.tsx` without changing the history state contract.
-- [x] Pin every id/path pair, all 18 loader identities and compatibility aliases
+- [x] Pin every id/path pair, all 19 loader identities and compatibility aliases
   in focused tests that do not execute a dynamic import.
 - [x] Lower the `App.tsx` ratchet from 1,966 to 1,793 lines, preserve the route
   chunk topology and keep the authenticated primary navigation eager.
@@ -285,8 +285,8 @@ Status: complete.
 
 ### 2. Arena deferred routes
 
-Status: in progress. The gallery route and shared editorial chrome have been
-extracted into dedicated modules.
+Status: in progress. The gallery route, shared editorial chrome and identity
+login/profile surface have been extracted into dedicated owners.
 
 - Extract shared Arena card types and formatting into explicit domain models.
 - Give win rates, tier list, legendaries, auth and articles separate lazy route
@@ -294,8 +294,10 @@ extracted into dedicated modules.
 - Keep only genuinely shared primitives in a small common module.
 - Measure each resulting chunk and lower the `DeferredRoutes` budget.
 
-This is the highest-impact bundle split because six public routes currently
-share one 115 kB download.
+The remaining Articles, Win rates, Tier list and Legendaries surfaces now share
+a 77.3 kB route chunk, down from the earlier 115 kB hotspot. Login intent owns
+its separate 28.3 kB identity chunk and no longer warms `DeferredRoutes`,
+Application Connect or the public-profile page.
 
 ### 3. Constructed-card list and detail routes
 
@@ -371,8 +373,8 @@ navigation, entitlements and Back/Forward scenarios must remain compatible.
 Depends on the application routing foundation and proceeds alongside the shell
 provider extraction.
 
-Status: client subscription contract and shared presentation metadata complete;
-provider and identity UI extraction pending.
+Status: client subscription contract, shared presentation metadata and the
+first identity UI boundary complete; provider and server extraction pending.
 
 1. [x] Create `client.subscriptions` as the runtime-neutral owner of the client
    status DTO, all seven entitlement keys and named-entitlement access policy.
@@ -382,7 +384,15 @@ provider and identity UI extraction pending.
 2. [x] Centralize the ordered Russian entitlement labels and legacy
    `Все разделы` fallback in a directly tested presentation model. Migrate the
    account and administrator consumers without changing visible output.
-3. [ ] Move the login panel and account route out of `DeferredRoutes`.
+3. [x] Create `client.identity`, move the login/profile panel and its 151-rule
+   authenticated presentation out of `DeferredRoutes`, and make both
+   `accountRoute` and `applicationConnect` consume one public lazy loader. Login
+   intent now preloads identity rather than the articles/tier-list bundle.
+   `DeferredRoutes.tsx` is ratcheted from 4,416 to 3,226 lines, its route JS from
+   108.4 kB to 78 kB, and its route-owner CSS from 52.1 kB to 31.3 kB. The
+   mechanically extracted 1,196-line `LoginPanel.tsx` is a temporary migration
+   ceiling; the next identity slice separates API/session orchestration from
+   guest-auth and authenticated-profile views.
 4. [ ] Move public profile and application-connect pages behind the identity public
    entry.
 5. [ ] Move client session DTOs, validation and requests into identity `model` and

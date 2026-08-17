@@ -9,8 +9,13 @@ const moduleBudgets = [
   },
   {
     path: 'src/features/DeferredRoutes.tsx',
-    maxLines: 4_416,
+    maxLines: 3_226,
     owner: 'Arena route bundle',
+  },
+  {
+    path: 'src/modules/identity/ui/LoginPanel.tsx',
+    maxLines: 1_196,
+    owner: 'identity platform',
   },
   {
     path: 'src/features/Contests.tsx',

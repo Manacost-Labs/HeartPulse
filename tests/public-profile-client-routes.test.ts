@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {
   publicProfileIdFromPath,
 } from '../src/profileRoutes.js';
-import { publicProfilePath } from '../src/publicProfilePath.js';
+import { publicProfilePath } from '../src/modules/identity/public.js';
 import { isKnownPath, tabFromPath } from '../src/routes.js';
 
 assert.equal(publicProfileIdFromPath('/id/1'), '1');

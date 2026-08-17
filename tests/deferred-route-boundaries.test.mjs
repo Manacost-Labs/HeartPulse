@@ -12,6 +12,7 @@ const authAvatarSource = readFileSync(new URL('../src/components/AuthAvatar.tsx'
 const authAvatarStyles = readFileSync(new URL('../src/components/AuthAvatar.css', import.meta.url), 'utf8');
 const initialStyles = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
 const profileIdentityStyles = readFileSync(new URL('../src/components/ProfileIdentityHero.css', import.meta.url), 'utf8');
+const identityProfileStyles = readFileSync(new URL('../src/modules/identity/ui/IdentityProfile.css', import.meta.url), 'utf8');
 const deferredStyles = readFileSync(new URL('../src/features/DeferredRoutes.css', import.meta.url), 'utf8');
 const gallerySource = readFileSync(new URL('../src/features/GalleryTab.tsx', import.meta.url), 'utf8');
 
@@ -29,6 +30,11 @@ assert.match(
   routeManifestSource,
   /path:\s*'\/gallery'[\s\S]*?loadGalleryModule\)/,
   'navigation intent must preload the dedicated gallery chunk',
+);
+assert.match(
+  routeManifestSource,
+  /routeId === 'login'\) return loadLoginPanel/,
+  'login intent must preload the identity-owned form instead of DeferredRoutes',
 );
 assert.match(
   routeModulesSource,
@@ -76,6 +82,10 @@ assert.doesNotMatch(
   /profile-hero__body\s*>\s*(?:span|\.auth-avatar):first-child/,
   'legacy profile selectors must not override the eager avatar baseline',
 );
+assert.match(identityProfileStyles, /\.profile-workspace[\s\S]*\.profile-subscription-panel/,
+  'identity must own the authenticated profile layout and subscription presentation');
+assert.doesNotMatch(deferredStyles, /\.profile-workspace|\.login-page/,
+  'DeferredRoutes CSS must not regain identity-owned profile or login selectors');
 assert.match(
   applicationNavigationSource,
   /window\.addEventListener\('popstate'/,

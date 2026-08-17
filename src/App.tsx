@@ -53,6 +53,7 @@ import {
   useApplicationNavigation,
 } from './app/routing/public';
 import AuthAvatar from './components/AuthAvatar';
+import type { AuthUser } from './modules/identity/public';
 import {
   hasSubscriptionEntitlement,
   type SubscriptionStatus,
@@ -318,25 +319,6 @@ const FALLBACK_CLASSES: ClassData[] = [
   { id: 'priest',  name: 'Жрец',               winrate: 44.5, color: '#d1d1d1', textDark: true },
   { id: 'dh',      name: 'Охотник на демонов', winrate: 43.2, color: '#224722' },
 ];
-type AuthUser = {
-  id?: string;
-  profileId?: string;
-  publicProfileId?: string;
-  email: string;
-  name: string;
-  role: 'admin' | 'user' | string;
-  country?: string;
-  newsletterOptIn?: boolean;
-  avatarInitials?: string;
-  telegramUsername?: string;
-  photoUrl?: string;
-  contactVkUrl?: string;
-  contactTelegram?: string;
-  contactEmail?: string;
-  adminAllowed?: boolean;
-  contestAdminAllowed?: boolean;
-};
-
 function abortableDelay(milliseconds: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal.aborted) {

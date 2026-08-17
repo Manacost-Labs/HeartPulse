@@ -90,7 +90,8 @@ assert.deepEqual(
 assert.equal(routeModuleLoaderForPreload('home'), null, 'home must not preload on navigation intent');
 
 const EXPECTED_PRELOAD_GROUPS = [
-  ['articles', 'winrates', 'tierlist', 'legendaries', 'login'],
+  ['articles', 'winrates', 'tierlist', 'legendaries'],
+  ['login'],
   ['faq'],
   ['developer-api'],
   ['gallery'],
@@ -132,7 +133,7 @@ assert.ok(homeLoader, 'home must retain its route loader even though intent prel
 assert.equal(
   new Set([homeLoader, ...representativeLoaders]).size,
   EXPECTED_PRELOAD_GROUPS.length + 1,
-  'the manifest must retain all 18 route-module loader identities',
+  'the manifest must retain all 19 route-module loader identities',
 );
 
 console.log(`application route manifest assertions passed (${ROUTE_MANIFEST.length} surfaces)`);
