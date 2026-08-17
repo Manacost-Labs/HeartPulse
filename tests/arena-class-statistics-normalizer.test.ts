@@ -3,7 +3,7 @@ import {
   firestoneArenaMatchupsDataset,
   normalizeFirestoneArenaClassRows,
   normalizeHsReplayArenaClassRows,
-} from '../server/modules/arena/classStatisticsNormalizer.js';
+} from '../server/modules/arena/public.js';
 
 const classInfo = {
   mage: { id: 'mage', name: 'Маг', color: '#0000ff' },

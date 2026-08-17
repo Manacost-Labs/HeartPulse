@@ -215,7 +215,7 @@ import {
   firestoneArenaMatchupsDataset,
   normalizeFirestoneArenaClassRows,
   normalizeHsReplayArenaClassRows,
-} from './modules/arena/classStatisticsNormalizer.js';
+} from './modules/arena/public.js';
 import { createContestRouter } from './contestRoutes.js';
 import { createSubscriptionRouter } from './subscriptionRoutes.js';
 import { createEcosystemInternalRouter } from './modules/ecosystem/public.js';

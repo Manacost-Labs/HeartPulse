@@ -54,6 +54,7 @@ export {
   type PublicBattlegroundTimeRange,
   type PublicBattlegroundTierListKind,
 } from './battlegroundStatistics.js';
+export { createLocalBattlegroundStatisticsSource } from './battlegroundSource.js';
 export { PUBLIC_API_OPENAPI } from './openapi.js';
 export {
   createSqliteApiKeyRepository,

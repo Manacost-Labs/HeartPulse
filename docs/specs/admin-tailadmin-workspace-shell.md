@@ -87,6 +87,15 @@ owns its markup and self-contained presentation in a lazy admin-only chunk. The
 feature continues to own authorization, the reducer, URL state,
 focus-management effects, API data and section content.
 
+External consumers use `adminWorkspace/public.ts`. The production route calls
+`loadAdminWorkspaceShell`, whose internal lazy entry owns the stylesheet.
+Storybook consumers await that same loader in story setup, so they do not
+import a private CSS path and visual evaluation cannot race the stylesheet.
+The loader memoizes its Promise so production and concurrent story setup wait
+for the same completed shell-and-styles request.
+Static Node consumers may still import the render contract without loading
+browser CSS.
+
 The shell exposes stable landmarks and identifiers:
 
 - a command header;
@@ -109,10 +118,14 @@ The shell exposes stable landmarks and identifiers:
 - Render-contract tests, admin reducer tests, Storybook build, changed React
   checks, security checks and real-browser console/network checks pass.
 - The public contests route remains within its production bundle budget.
+- The shell remains a distinct lazy asset, below 4.5 kB JS and 17 kB CSS, and
+  its JS and CSS markers are absent from the complete static Vite entry graph
+  and directly linked HTML assets.
 - No existing admin data or mutation path changes.
 
 ## Documentation impact
 
-This specification and `CHANGELOG.md` are the only required documentation
-changes. The change is reversible UI composition and does not require an ADR,
-API documentation or operations runbook update.
+This specification owns the shell's public loading contract. Structural module
+boundary changes also update `docs/architecture/module-boundaries.md` and the
+modularization plan. A behavior-preserving import migration does not require a
+changelog entry, ADR, API document or operations runbook update.

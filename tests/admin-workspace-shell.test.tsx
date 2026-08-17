@@ -3,7 +3,12 @@ import { readFileSync } from 'node:fs';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { LayoutDashboard, Trophy } from 'lucide-react';
-import { AdminWorkspaceShell } from '../src/modules/adminWorkspace/public.js';
+import {
+  AdminWorkspaceShell,
+  loadAdminWorkspaceShell,
+} from '../src/modules/adminWorkspace/public.js';
+
+assert.equal(typeof loadAdminWorkspaceShell, 'function');
 
 const navigation = [
   {

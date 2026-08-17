@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { gzipSync } from 'zlib';
+import { auditAdminWorkspaceAssets } from './lib/initial-asset-audit.mjs';
 
 const distRoot = join(process.cwd(), 'dist');
 const distAssets = join(distRoot, 'assets');
@@ -105,13 +106,30 @@ const budgets = {
   cardPreviewSheetCss: Number(process.env.BUDGET_CARD_PREVIEW_SHEET_CSS_BYTES || 3_100),
   cardPreviewTooltipJs: Number(process.env.BUDGET_CARD_PREVIEW_TOOLTIP_JS_BYTES || 900),
   cardPreviewTooltipCss: Number(process.env.BUDGET_CARD_PREVIEW_TOOLTIP_CSS_BYTES || 650),
+  adminWorkspaceShellJs: Number(process.env.BUDGET_ADMIN_WORKSPACE_SHELL_JS_BYTES || 4_500),
+  adminWorkspaceShellCss: Number(process.env.BUDGET_ADMIN_WORKSPACE_SHELL_CSS_BYTES || 17_000),
 };
 
 const files = readdirSync(distAssets)
   .map(name => ({ name, bytes: statSync(join(distAssets, name)).size }))
   .sort((a, b) => b.bytes - a.bytes);
 
+function assetGroup(assets) {
+  return assets.length > 0 ? {
+    name: assets.join(' + '),
+    bytes: assets.reduce((sum, asset) => sum + statSync(join(distRoot, asset)).size, 0),
+  } : null;
+}
+
 const entryHtml = readFileSync(join(distRoot, 'index.html'), 'utf8');
+const viteManifest = JSON.parse(
+  readFileSync(join(distRoot, '.vite', 'manifest.json'), 'utf8'),
+);
+const adminWorkspaceAssetAudit = auditAdminWorkspaceAssets({
+  manifest: viteManifest,
+  html: entryHtml,
+  readAsset: asset => readFileSync(join(distRoot, asset), 'utf8'),
+});
 const entryMatch = entryHtml.match(
   /<script\b[^>]*\btype=["']module["'][^>]*\bsrc=["'][^"']*\/assets\/(index-[^"']+\.js)["']/i,
 );
@@ -145,21 +163,18 @@ const cardPreviewSheetJs = files.find(file => /^CardPreviewSheet-.*\.js$/.test(f
 const cardPreviewSheetCss = files.find(file => /^CardPreviewSheet-.*\.css$/.test(file.name));
 const cardPreviewTooltipJs = files.find(file => /^CardPreviewTooltip-.*\.js$/.test(file.name));
 const cardPreviewTooltipCss = files.find(file => /^CardPreviewTooltip-.*\.css$/.test(file.name));
+const adminWorkspaceShellJs = assetGroup(adminWorkspaceAssetAudit.shell.js);
+const adminWorkspaceShellCss = assetGroup(adminWorkspaceAssetAudit.shell.css);
 const homeSectionCssFiles = files.filter(file => /^Home(?:ArenaDirectory|Battlegrounds|LatestArticles)-.*\.css$/.test(file.name));
 const largestHomeSectionCss = homeSectionCssFiles.length === 3
   ? homeSectionCssFiles.sort((left, right) => right.bytes - left.bytes)[0]
   : null;
 const vendorReact = files.find(file => /^vendor-react-.*\.js$/.test(file.name));
-const initialJsFiles = [mainJs, vendorReact]
-  .filter(Boolean);
-const initialJs = initialJsFiles.length === 2 ? {
-  name: initialJsFiles.map(file => file.name).join(' + '),
-  bytes: initialJsFiles.reduce((sum, file) => sum + file.bytes, 0),
-} : null;
-const initialJsGzip = initialJsFiles.length === 2 ? {
-  name: 'gzip(' + initialJsFiles.map(file => file.name).join(' + ') + ')',
-  bytes: initialJsFiles.reduce((sum, file) => (
-    sum + gzipSync(readFileSync(join(distAssets, file.name)), { level: 9 }).length
+const initialJs = assetGroup(adminWorkspaceAssetAudit.initial.js);
+const initialJsGzip = initialJs ? {
+  name: 'gzip(' + adminWorkspaceAssetAudit.initial.js.join(' + ') + ')',
+  bytes: adminWorkspaceAssetAudit.initial.js.reduce((sum, asset) => (
+    sum + gzipSync(readFileSync(join(distRoot, asset)), { level: 9 }).length
   ), 0),
 } : null;
 
@@ -192,6 +207,8 @@ const checks = [
   ['lazy card-preview sheet CSS', cardPreviewSheetCss, budgets.cardPreviewSheetCss],
   ['lazy card-preview tooltip JS', cardPreviewTooltipJs, budgets.cardPreviewTooltipJs],
   ['lazy card-preview tooltip CSS', cardPreviewTooltipCss, budgets.cardPreviewTooltipCss],
+  ['lazy administrator workspace JS', adminWorkspaceShellJs, budgets.adminWorkspaceShellJs],
+  ['lazy administrator workspace CSS', adminWorkspaceShellCss, budgets.adminWorkspaceShellCss],
 ];
 
 let failed = false;
@@ -205,6 +222,21 @@ for (const [label, file, budget] of checks) {
   const status = ok ? 'ok' : 'over';
   console.log(`[budget] ${status} ${label}: ${file.name} ${file.bytes} / ${budget} bytes`);
   if (!ok) failed = true;
+}
+
+for (const asset of adminWorkspaceAssetAudit.leaks.js) {
+  console.error(`[budget] administrator workspace shell leaked into initial JS: ${asset}`);
+  failed = true;
+}
+for (const asset of adminWorkspaceAssetAudit.leaks.css) {
+  console.error(`[budget] administrator workspace styles leaked into initial CSS: ${asset}`);
+  failed = true;
+}
+if (
+  adminWorkspaceAssetAudit.leaks.js.length === 0
+  && adminWorkspaceAssetAudit.leaks.css.length === 0
+) {
+  console.log('[budget] ok administrator workspace JS and CSS remain outside the static entry graph');
 }
 
 console.log('[budget] aggregate startup assets are ratcheted below the previous production baseline.');

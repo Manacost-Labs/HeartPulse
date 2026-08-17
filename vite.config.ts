@@ -34,6 +34,7 @@ export default defineConfig(({mode}) => {
     build: {
       target: 'es2022',
       cssMinify: true,
+      manifest: true,
       modulePreload: {
         resolveDependencies(filename, dependencies) {
           // Admin subsections are opened explicitly after authentication. Do

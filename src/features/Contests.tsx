@@ -75,10 +75,9 @@ import {
   type AdminMessage,
   type AdminWorkspaceSection,
 } from './adminWorkspaceState';
+import { loadAdminWorkspaceShell } from '../modules/adminWorkspace/public';
 
-const AdminWorkspaceShell = React.lazy(
-  () => import('../modules/adminWorkspace/AdminWorkspaceShell.lazy'),
-);
+const AdminWorkspaceShell = React.lazy(loadAdminWorkspaceShell);
 
 const ContestAdminTranslations = React.lazy(async () => {
   const module = await import('./ContestAdminTranslations');

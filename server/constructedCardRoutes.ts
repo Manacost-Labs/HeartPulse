@@ -13,12 +13,12 @@ import {
 import {
   enrichConstructedCardPools,
   enrichConstructedRelatedCards,
-} from './modules/constructedCards/relatedCards.js';
+} from './modules/constructedCards/public.js';
 
 export {
   enrichConstructedCardPools,
   enrichConstructedRelatedCards,
-} from './modules/constructedCards/relatedCards.js';
+} from './modules/constructedCards/public.js';
 
 export type ConstructedCardFormat = 'standard' | 'wild';
 export type ConstructedCardPeriod = '1d' | '3d' | '7d' | '14d' | 'patch';

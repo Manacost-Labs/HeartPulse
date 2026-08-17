@@ -222,6 +222,7 @@
         "tests/edge-static-sync.test.mjs",
         "tests/favicon-assets.test.mjs",
         "tests/hsreplay-deck-mobile-browser.test.mjs",
+        "tests/initial-asset-audit.test.mjs",
         "tests/mobile-layout-diagnostics.test.mjs",
         "tests/modal-surface-browser.test.mjs",
         "tests/module-boundaries.test.mjs",

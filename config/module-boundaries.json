@@ -170,81 +170,15 @@
     }
   ],
   "allowlistBudgets": {
-    "missingPublicEntry": 2,
-    "internalImport": 6,
+    "missingPublicEntry": 0,
+    "internalImport": 0,
     "moduleLegacyImport": 8,
     "runtimeCrossing": 2,
     "typeCycle": 4
   },
   "exceptions": {
-    "missingPublicEntry": [
-      {
-        "source": "server/modules/arena",
-        "target": "server/modules/arena/public.ts",
-        "kind": "missing-public-entry",
-        "owner": "web-platform",
-        "reason": "The first extracted Arena normalizer is still consumed directly by the legacy server composition root.",
-        "expiresOn": "2026-10-31"
-      },
-      {
-        "source": "server/modules/constructedCards",
-        "target": "server/modules/constructedCards/public.ts",
-        "kind": "missing-public-entry",
-        "owner": "web-platform",
-        "reason": "Related-card enrichment was extracted before the module received its public composition entry.",
-        "expiresOn": "2026-10-31"
-      }
-    ],
-    "internalImport": [
-      {
-        "source": "server/app/registerPublicApi.ts",
-        "target": "server/modules/publicApi/battlegroundSource.ts",
-        "kind": "runtime",
-        "owner": "web-platform",
-        "reason": "The local Battlegrounds source factory has not yet been exposed through the public API module contract.",
-        "expiresOn": "2026-10-31"
-      },
-      {
-        "source": "server/constructedCardRoutes.ts",
-        "target": "server/modules/constructedCards/relatedCards.ts",
-        "kind": "runtime",
-        "owner": "web-platform",
-        "reason": "The legacy constructed-card router imports and re-exports the first extracted module implementation directly.",
-        "expiresOn": "2026-10-31"
-      },
-      {
-        "source": "server/index.ts",
-        "target": "server/modules/arena/classStatisticsNormalizer.ts",
-        "kind": "runtime",
-        "owner": "web-platform",
-        "reason": "The legacy server composition root predates the Arena module public entry.",
-        "expiresOn": "2026-10-31"
-      },
-      {
-        "source": "src/features/adminParserControl/DataHealthOverviewCard.stories.tsx",
-        "target": "src/modules/adminWorkspace/adminWorkspace.css",
-        "kind": "runtime",
-        "owner": "operations",
-        "reason": "The legacy parser-control story imports workspace styling before a module-owned Storybook decorator exists.",
-        "expiresOn": "2026-10-31"
-      },
-      {
-        "source": "src/features/ContestAdminArenaSynergies.stories.tsx",
-        "target": "src/modules/adminWorkspace/adminWorkspace.css",
-        "kind": "runtime",
-        "owner": "operations",
-        "reason": "The legacy Arena-synergies story imports workspace styling before a module-owned Storybook decorator exists.",
-        "expiresOn": "2026-10-31"
-      },
-      {
-        "source": "src/features/Contests.tsx",
-        "target": "src/modules/adminWorkspace/AdminWorkspaceShell.lazy.ts",
-        "kind": "runtime",
-        "owner": "operations",
-        "reason": "The legacy administrator route still owns lazy loading and CSS activation for the workspace shell.",
-        "expiresOn": "2026-10-31"
-      }
-    ],
+    "missingPublicEntry": [],
+    "internalImport": [],
     "moduleLegacyImport": [
       {
         "source": "server/modules/publicApi/deckStatistics.ts",

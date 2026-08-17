@@ -116,6 +116,24 @@ Status: implementation complete; awaiting integration.
 These guardrails land before additional route extraction so every later slice
 has a narrow verification command and cannot add new dependency debt.
 
+### 0.1 Public module-entry debt
+
+Status: implementation complete; awaiting integration after Phase 0.
+
+- [x] Add the missing `server.arena` and `server.constructedCards` public
+  entries and switch the legacy composition consumers to those contracts.
+- [x] Export the loopback-only Battlegrounds statistics source through the
+  existing `server.publicApi` entry instead of importing its implementation.
+- [x] Expose one memoized lazy shell loader through
+  `client.adminWorkspace/public.ts`; production and external stories await the
+  same shell-and-styles Promise without importing private files.
+- [x] Lower `missingPublicEntry` from 2 to 0 and `internalImport` from 6 to 0
+  without adding an exception. The resulting graph has 414 sources, 695
+  resolved edges and no runtime cycle.
+- [x] Ratchet the administrator shell at 4.5 kB JS and 17 kB CSS and traverse
+  the Vite manifest plus HTML entry assets so eager JS or CSS leakage fails the
+  production budget.
+
 ### 1. Constructed-card catalog model
 
 Status: complete.
