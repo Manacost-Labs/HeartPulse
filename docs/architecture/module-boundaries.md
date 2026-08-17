@@ -184,6 +184,14 @@ with a stable id, runtime, purpose, owner, public entry, optional client
 `publicStyleEntry`, declared module dependencies, focused tests and owning
 documentation.
 
+`npm run agent:map` renders that ownership inventory together with the checked
+reverse dependency callers from the resolved import graph. It also renders the
+48 canonical public URL policies from their existing SEO inventory as a
+separate section; route-team labels are not guessed to be module ids. Use
+`npm run --silent agent:map -- --json` for deterministic machine-readable
+output without npm's human-oriented command banner. The JSON has no timestamp
+or absolute worktree path, so equal repository state produces equal bytes.
+
 `npm run lint:module-boundaries` resolves the TypeScript and JavaScript import
 graph with the project compiler configuration. It covers static imports,
 type-only imports and re-exports, literal dynamic imports, `require`,

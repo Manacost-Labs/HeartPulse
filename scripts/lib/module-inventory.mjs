@@ -95,6 +95,16 @@ export function pathBelongsToModule(candidate, module) {
     || candidate.startsWith(`${module.root}/`);
 }
 
+export function moduleForRepositoryPath(modules, candidate, root = '') {
+  const normalizedCandidate = normalizeRepositoryPath(candidate, root);
+  return [...modules]
+    .filter(module => pathBelongsToModule(normalizedCandidate, {
+      ...module,
+      root: normalizeRepositoryPath(module.root, root),
+    }))
+    .sort((left, right) => right.root.length - left.root.length)[0] ?? null;
+}
+
 function exceptionBelongsToModule(category, exception, module) {
   if (category === 'missingPublicEntry') {
     return exception.module === module.id
