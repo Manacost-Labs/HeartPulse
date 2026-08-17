@@ -20,9 +20,10 @@ import {
   loadViciousSyndicateGoldModule,
 } from './routeManifest';
 
-export async function prefetchInitialStandardCardCatalog(hasFullAccess: boolean): Promise<void> {
-  const module = await loadStandardCardsModule();
-  await module.prefetchInitialConstructedCardCatalog('standard', hasFullAccess);
+export function prefetchInitialStandardCardCatalog(hasFullAccess: boolean): Promise<void> {
+  return loadStandardCardsModule().then(module => (
+    module.prefetchInitialConstructedCardCatalog('standard', hasFullAccess)
+  ));
 }
 
 export const LazyHomeTab = React.lazy(loadHomeModule);

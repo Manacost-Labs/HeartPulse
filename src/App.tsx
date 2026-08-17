@@ -6,18 +6,14 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { X, Menu, ChevronDown, Grid3X3, LogIn, UserCircle, Gift } from 'lucide-react';
 import { getCanonicalRedirectUrl } from './config/domain';
 import { usePageScrollLock } from './hooks/usePageScrollLock';
-import AuthAvatar from './components/AuthAvatar';
 import {
   ADMIN_ONLY_TAB_IDS,
   ADMIN_TABS,
-  applyPageMeta,
+  type ApplicationRouteSurface,
   ARENA_TABS,
   BG_BUILDER_TABS,
   BG_PRIMARY_TABS,
   BG_TAB_IDS,
-  clientRouteView,
-  historyRouteKnowledge,
-  initialClientRouteResolution,
   LazyAccountRoute,
   LazyArchetypes,
   LazyArticlesTab,
@@ -50,25 +46,13 @@ import {
   prefetchInitialStandardCardCatalog,
   preloadRouteModule,
   PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS,
-  routePath,
-  settledClientRouteResolution,
-  shouldPreserveInitialServerMeta,
+  ROUTE_MANIFEST,
   STANDARD_TABS,
-  tabFromPath,
-  TABS,
   TOP_LEVEL_TABS,
   type TabId,
-  withHistoryRouteKnowledge,
+  useApplicationNavigation,
 } from './app/routing/public';
 import { publicProfileIdFromPath } from './profileRoutes';
-// Preserve authoritative entity metadata/404 context through the first client
-// pass. The marker belongs only to the URL that bootstrapped this document.
-const BOOTSTRAP_ROUTE_ROOT = globalThis.document?.getElementById('root');
-const INITIAL_SERVER_ROUTE_STATUS = BOOTSTRAP_ROUTE_ROOT?.dataset.routeStatus;
-const INITIAL_SERVER_META_HINT = INITIAL_SERVER_ROUTE_STATUS
-  ? normalizeClientRoutePath(location.pathname)
-  : null;
-delete BOOTSTRAP_ROUTE_ROOT?.dataset.routeStatus;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ClassData {
@@ -512,7 +496,9 @@ function HeaderProfileButton({ user, checking = false }: { user: AuthUser | null
   return (
     <span className="arena-sidebar-profile-content">
       <span className="arena-sidebar-profile-avatar">
-        <AuthAvatar user={user} size={34} />
+        <React.Suspense fallback={<UserCircle size={34} aria-hidden="true" />}>
+          <LazyAuthAvatar user={user} size={34} />
+        </React.Suspense>
       </span>
       <span className="arena-sidebar-profile-copy">
         <span className="arena-sidebar-profile-label">{label}</span>
@@ -576,7 +562,7 @@ interface GalleryData {
 }
 
 // ─── Tab transition wrapper ────────────────────────────────────────────────────
-type NavigationRoute = (typeof TABS)[number];
+type NavigationRoute = ApplicationRouteSurface;
 
 function NavigationRouteLinks({
   routes,
@@ -602,7 +588,7 @@ function NavigationRouteLinks({
     return (
       <a
         key={tab.id}
-        href={tab.slug}
+        href={tab.path}
         onPointerEnter={() => onWarm(tab.id)}
         onPointerDown={() => onWarm(tab.id)}
         onFocus={() => onWarm(tab.id)}
@@ -623,6 +609,7 @@ function NavigationRouteLinks({
   });
 }
 const LazyPaywallGate = React.lazy(() => import('./components/PaywallGate'));
+const LazyAuthAvatar = React.lazy(() => import('./components/AuthAvatar'));
 const LazyGlobalUtilityHeader = React.lazy(() => import('./components/GlobalUtilityHeader'));
 const LazyFAQSection = React.lazy(() => import('./components/FAQSection'));
 const LazySupportPrompt = React.lazy(() => import('./components/SupportPrompt'));
@@ -739,62 +726,22 @@ async function fetchTierlistSnapshot(src: TierlistSource, bust = false): Promise
 
 export default function App() {
   const redirectToWwwUrl = getCanonicalRedirectUrl(window.location);
-  const [activeTab, setActiveTab] = useState<TabId>(() => tabFromPath(window.location.pathname));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileNavGroup, setMobileNavGroup] = useState<'constructors' | 'misc' | null>(null);
   const [sidebarNavGroup, setSidebarNavGroup] = useState<'constructors' | 'misc' | null>(null);
   const mobileMenuRef = useRef<HTMLElement>(null);
   const mobileMenuToggleRef = useRef<HTMLButtonElement>(null);
-
-  const [locationSearch, setLocationSearch] = useState(() => window.location.search);
-  const [currentPath, setCurrentPath] = useState(() => window.location.pathname);
-  const [routeResolution, setRouteResolution] = useState(() => initialClientRouteResolution(
-    window.location.pathname,
-    INITIAL_SERVER_ROUTE_STATUS === '404' ? INITIAL_SERVER_META_HINT : null,
-  ));
-  const routeView = clientRouteView(routeResolution, currentPath);
+  const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
+  const {
+    activeTab,
+    currentPath,
+    locationSearch,
+    navigate,
+    navigateLogin,
+    navigatePath,
+    routeView,
+  } = useApplicationNavigation(closeMobileMenu);
   const locationParams = new URLSearchParams(locationSearch);
-  const initialMetaPassRef = useRef(true);
-
-  useEffect(() => {
-    const known = routeView === 'known' ? true : routeView === 'not-found' ? false : null;
-    if (known === null || historyRouteKnowledge(window.history.state) === known) return;
-    window.history.replaceState(withHistoryRouteKnowledge(window.history.state, known), '');
-  }, [routeView]);
-
-  useEffect(() => {
-    let active = true;
-    const preserveInitialServerMeta = shouldPreserveInitialServerMeta(
-      currentPath,
-      INITIAL_SERVER_META_HINT,
-      initialMetaPassRef.current,
-    );
-    const isInitialPlainHome = initialMetaPassRef.current
-      && activeTab === 'home'
-      && currentPath === '/'
-      && locationSearch === '';
-    initialMetaPassRef.current = false;
-    if (isInitialPlainHome || preserveInitialServerMeta) return undefined;
-    void applyPageMeta(activeTab, currentPath, locationSearch)
-      .then(policy => {
-        if (!active) return;
-        // pushState is synchronous, while route metadata resolves asynchronously.
-        // Ignore a policy that belongs to the page we just left even when its
-        // effect cleanup has not run yet (for example during a startTransition).
-        // Otherwise the stale result briefly makes the new route "pending",
-        // unmounting it and discarding local filters before the next policy wins.
-        if (normalizeClientRoutePath(window.location.pathname) !== policy.normalizedPathname) return;
-        setRouteResolution(settledClientRouteResolution(policy.normalizedPathname, policy.known));
-      })
-      .catch(() => {
-        if (active) {
-          setRouteResolution(previous => clientRouteView(previous, currentPath) === 'not-found'
-            ? previous
-            : { pathname: normalizeClientRoutePath(currentPath), status: 'unavailable' });
-        }
-      });
-    return () => { active = false; };
-  }, [activeTab, currentPath, locationSearch]);
 
   useEffect(() => {
     if (redirectToWwwUrl) {
@@ -822,62 +769,6 @@ export default function App() {
   useEffect(() => {
     localStorage.removeItem('wr_hsreplay');
     localStorage.removeItem('etag_wr_hsreplay');
-  }, []);
-
-  const commitNavigation = useCallback((path: string, tab: TabId, search = '', login = false) => {
-    if (window.location.pathname !== path
-      || window.location.search !== search
-      || window.location.hash) {
-      window.history.pushState(
-        login ? { tab, login: true, routeKnown: true } : { tab, routeKnown: true },
-        '',
-        `${path}${search}`,
-      );
-    }
-    React.startTransition(() => {
-      setRouteResolution(settledClientRouteResolution(path, true));
-      setLocationSearch(search);
-      setCurrentPath(path);
-      setActiveTab(tab);
-      setMobileMenuOpen(false);
-    });
-    window.scrollTo({ top: 0, behavior: 'auto' });
-  }, []);
-
-  /** Navigate to a tab: update state + browser URL */
-  const navigate = useCallback((tab: TabId) => {
-    preloadRouteModule(tab);
-    commitNavigation(routePath(tab), tab);
-  }, [commitNavigation]);
-
-  const navigatePath = useCallback((path: string) => {
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    const tab = tabFromPath(normalizedPath);
-    preloadRouteModule(tab);
-    commitNavigation(normalizedPath, tab);
-  }, [commitNavigation]);
-
-  const navigateLogin = useCallback(() => {
-    preloadRouteModule('login');
-    commitNavigation('/', activeTab, '?login', true);
-  }, [activeTab, commitNavigation]);
-
-  /** Handle browser back / forward */
-  useEffect(() => {
-    const onPop = (e: PopStateEvent) => {
-      const tab = e.state?.tab ?? tabFromPath(window.location.pathname);
-      const known = historyRouteKnowledge(e.state);
-      React.startTransition(() => {
-        if (known !== null) {
-          setRouteResolution(settledClientRouteResolution(window.location.pathname, known));
-        }
-        setLocationSearch(window.location.search);
-        setCurrentPath(window.location.pathname);
-        setActiveTab(tab);
-      });
-    };
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
   }, []);
 
   useEffect(() => {
@@ -1027,7 +918,7 @@ export default function App() {
     }
   }, [appAuthUser]);
 
-  const activeTabLabel = TABS.find(tab => tab.id === activeTab)?.label || 'Раздел';
+  const activeTabLabel = ROUTE_MANIFEST.find(tab => tab.id === activeTab)?.label || 'Раздел';
   const activeTabEntitlement = PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS[activeTab] ?? null;
   const privateRouteActive = Boolean(activeTabEntitlement) && !appIsAdmin;
   const privateRouteChecking = privateRouteActive && (appAuthChecking || (Boolean(appAuthUser) && appSubscriptionLoading && !appSubscription));
@@ -1532,7 +1423,9 @@ export default function App() {
               className={`arena-mobile-menu-link arena-mobile-menu-profile ${wantsLogin ? 'arena-mobile-menu-link-active' : ''}`}
             >
               {appAuthUser ? (
-                <AuthAvatar user={appAuthUser} size={28} />
+                <React.Suspense fallback={<UserCircle size={28} className="flex-shrink-0" aria-hidden="true" />}>
+                  <LazyAuthAvatar user={appAuthUser} size={28} />
+                </React.Suspense>
               ) : appAuthChecking && appHasAuthHint ? (
                 <UserCircle size={18} className="flex-shrink-0" />
               ) : (

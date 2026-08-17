@@ -76,3 +76,5 @@ export type {
   ClientRouteStatus,
   InitialServerRouteHint,
 } from './routeResolution';
+
+export { useApplicationNavigation } from './useApplicationNavigation';

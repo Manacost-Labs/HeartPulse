@@ -70,7 +70,7 @@ type ApplicationRouteSurfaceDefinition = {
   id: string;
   label: string;
   icon: LucideIcon;
-  slug: `/${string}`;
+  path: `/${string}`;
   group: RouteGroup;
   entitlement: RouteEntitlement | null;
   loader: RouteModuleLoader;
@@ -97,59 +97,59 @@ function defineRouteSurface<
 
 export const ROUTE_MANIFEST = [
   defineRouteSurface(
-    { id: 'home', label: 'Главная', icon: Home, slug: '/', group: 'home', entitlement: null },
+    { id: 'home', label: 'Главная', icon: Home, path: '/', group: 'home', entitlement: null },
     loadHomeModule,
     'none',
   ),
   defineRouteSurface(
-    { id: 'articles', label: 'Статьи', icon: BookOpenText, slug: '/articles', group: 'top', entitlement: null },
+    { id: 'articles', label: 'Статьи', icon: BookOpenText, path: '/articles', group: 'top', entitlement: null },
     loadDeferredRoutesModule,
   ),
-  defineRouteSurface({ id: 'faq', label: 'FAQ', icon: CircleHelp, slug: '/faq', group: 'top', entitlement: null }, loadFAQPageModule),
-  defineRouteSurface({ id: 'developer-api', label: 'API', icon: CircleHelp, slug: '/developers/api', group: 'footer', entitlement: null }, loadDeveloperApiModule),
-  defineRouteSurface({ id: 'gallery', label: 'Галерея', icon: ImageIcon, slug: '/gallery', group: 'misc', entitlement: null }, loadGalleryModule),
-  defineRouteSurface({ id: 'cosmetics', label: 'Косметика', icon: Sparkles, slug: '/cosmetics', group: 'misc', entitlement: null }, loadCosmeticsModule),
-  defineRouteSurface({ id: 'guides-archive', label: 'Архив гайдов', icon: Scroll, slug: '/guides-archive', group: 'misc', entitlement: 'guidesArchive' }, loadGuidesArchiveModule),
-  defineRouteSurface({ id: 'contests', label: 'Конкурсы', icon: Gift, slug: '/contests', group: 'misc', entitlement: null }, loadContestsModule),
-  defineRouteSurface({ id: 'deck-builder', label: 'Конструктор колоды', icon: LayoutGrid, slug: '/deck-builder', group: 'misc', entitlement: null, adminOnly: true }, loadDeckBuilderModule),
-  defineRouteSurface({ id: 'archetypes', label: 'Архетипы', icon: ListTree, slug: '/archetypes', group: 'misc', entitlement: null, adminOnly: true }, loadArchetypesModule),
-  defineRouteSurface({ id: 'standard-matchups', label: 'Матчапы', icon: Swords, slug: '/standard/matchups', group: 'standard', entitlement: 'standard' }, loadStandardMatchupsModule),
-  defineRouteSurface({ id: 'standard-meta', label: 'Мета', icon: ChartNoAxesCombined, slug: '/standard/meta', group: 'standard', entitlement: 'standard' }, loadStandardMetaModule),
-  defineRouteSurface({ id: 'fun-decks', label: 'Фан-колоды', icon: Gem, slug: '/standard/fun-decks', group: 'standard', entitlement: 'standard' }, loadFunDecksModule),
-  defineRouteSurface({ id: 'constructed-archetypes', label: 'Архетипы', icon: ListTree, slug: '/standard/archetypes', group: 'standard', entitlement: 'standard' }, loadConstructedArchetypesModule),
-  defineRouteSurface({ id: 'standard-vicious-gold', label: 'Vicious Syndicate Gold', icon: Crown, slug: '/standard/vicious-gold', group: 'standard', entitlement: 'standard' }, loadViciousSyndicateGoldModule),
-  defineRouteSurface({ id: 'standard-cards', label: 'Карты', icon: LibraryBig, slug: '/standard/cards', group: 'standard', entitlement: null }, loadStandardCardsModule),
+  defineRouteSurface({ id: 'faq', label: 'FAQ', icon: CircleHelp, path: '/faq', group: 'top', entitlement: null }, loadFAQPageModule),
+  defineRouteSurface({ id: 'developer-api', label: 'API', icon: CircleHelp, path: '/developers/api', group: 'footer', entitlement: null }, loadDeveloperApiModule),
+  defineRouteSurface({ id: 'gallery', label: 'Галерея', icon: ImageIcon, path: '/gallery', group: 'misc', entitlement: null }, loadGalleryModule),
+  defineRouteSurface({ id: 'cosmetics', label: 'Косметика', icon: Sparkles, path: '/cosmetics', group: 'misc', entitlement: null }, loadCosmeticsModule),
+  defineRouteSurface({ id: 'guides-archive', label: 'Архив гайдов', icon: Scroll, path: '/guides-archive', group: 'misc', entitlement: 'guidesArchive' }, loadGuidesArchiveModule),
+  defineRouteSurface({ id: 'contests', label: 'Конкурсы', icon: Gift, path: '/contests', group: 'misc', entitlement: null }, loadContestsModule),
+  defineRouteSurface({ id: 'deck-builder', label: 'Конструктор колоды', icon: LayoutGrid, path: '/deck-builder', group: 'misc', entitlement: null, adminOnly: true }, loadDeckBuilderModule),
+  defineRouteSurface({ id: 'archetypes', label: 'Архетипы', icon: ListTree, path: '/archetypes', group: 'misc', entitlement: null, adminOnly: true }, loadArchetypesModule),
+  defineRouteSurface({ id: 'standard-matchups', label: 'Матчапы', icon: Swords, path: '/standard/matchups', group: 'standard', entitlement: 'standard' }, loadStandardMatchupsModule),
+  defineRouteSurface({ id: 'standard-meta', label: 'Мета', icon: ChartNoAxesCombined, path: '/standard/meta', group: 'standard', entitlement: 'standard' }, loadStandardMetaModule),
+  defineRouteSurface({ id: 'fun-decks', label: 'Фан-колоды', icon: Gem, path: '/standard/fun-decks', group: 'standard', entitlement: 'standard' }, loadFunDecksModule),
+  defineRouteSurface({ id: 'constructed-archetypes', label: 'Архетипы', icon: ListTree, path: '/standard/archetypes', group: 'standard', entitlement: 'standard' }, loadConstructedArchetypesModule),
+  defineRouteSurface({ id: 'standard-vicious-gold', label: 'Vicious Syndicate Gold', icon: Crown, path: '/standard/vicious-gold', group: 'standard', entitlement: 'standard' }, loadViciousSyndicateGoldModule),
+  defineRouteSurface({ id: 'standard-cards', label: 'Карты', icon: LibraryBig, path: '/standard/cards', group: 'standard', entitlement: null }, loadStandardCardsModule),
   defineRouteSurface(
-    { id: 'winrates', label: 'Классы', icon: Trophy, slug: '/classes', group: 'arena', entitlement: 'arena' },
-    loadDeferredRoutesModule,
-  ),
-  defineRouteSurface(
-    { id: 'tierlist', label: 'Тир-лист', icon: ListChecks, slug: '/tierlist', group: 'arena', entitlement: 'arena' },
+    { id: 'winrates', label: 'Классы', icon: Trophy, path: '/classes', group: 'arena', entitlement: 'arena' },
     loadDeferredRoutesModule,
   ),
   defineRouteSurface(
-    { id: 'legendaries', label: 'Легендарки', icon: Gem, slug: '/legendaries', group: 'arena', entitlement: 'arena' },
+    { id: 'tierlist', label: 'Тир-лист', icon: ListChecks, path: '/tierlist', group: 'arena', entitlement: 'arena' },
     loadDeferredRoutesModule,
   ),
   defineRouteSurface(
-    { id: 'bg-heroes', label: 'Герои', icon: CircleUserRound, slug: '/heroes', group: 'bg-primary', entitlement: 'battlegrounds' },
-    loadBattlegroundsModule,
-  ),
-  defineRouteSurface({ id: 'bg-library', label: 'Библиотека', icon: LibraryBig, slug: '/library', group: 'bg-primary', entitlement: 'battlegrounds' }, loadBgLibraryModule),
-  defineRouteSurface(
-    { id: 'bg-tier-list', label: 'Тир-лист', icon: ListTree, slug: '/battlegrounds/tier-list', group: 'bg-primary', entitlement: 'battlegrounds' },
-    loadBattlegroundsModule,
+    { id: 'legendaries', label: 'Легендарки', icon: Gem, path: '/legendaries', group: 'arena', entitlement: 'arena' },
+    loadDeferredRoutesModule,
   ),
   defineRouteSurface(
-    { id: 'bg-strategies', label: 'Конструктор стратегий', icon: Grid3X3, slug: '/battlegrounds/strategies', group: 'bg-builder', entitlement: 'battlegrounds' },
+    { id: 'bg-heroes', label: 'Герои', icon: CircleUserRound, path: '/heroes', group: 'bg-primary', entitlement: 'battlegrounds' },
     loadBattlegroundsModule,
   ),
+  defineRouteSurface({ id: 'bg-library', label: 'Библиотека', icon: LibraryBig, path: '/library', group: 'bg-primary', entitlement: 'battlegrounds' }, loadBgLibraryModule),
   defineRouteSurface(
-    { id: 'bg-tier-builder', label: 'Конструктор тир-листов', icon: List, slug: '/battlegrounds/tier-builder', group: 'bg-builder', entitlement: 'battlegrounds' },
+    { id: 'bg-tier-list', label: 'Тир-лист', icon: ListTree, path: '/battlegrounds/tier-list', group: 'bg-primary', entitlement: 'battlegrounds' },
     loadBattlegroundsModule,
   ),
   defineRouteSurface(
-    { id: 'admin-panel', label: 'Админ панель', icon: ShieldCheck, slug: '/admin', group: 'admin', entitlement: null },
+    { id: 'bg-strategies', label: 'Конструктор стратегий', icon: Grid3X3, path: '/battlegrounds/strategies', group: 'bg-builder', entitlement: 'battlegrounds' },
+    loadBattlegroundsModule,
+  ),
+  defineRouteSurface(
+    { id: 'bg-tier-builder', label: 'Конструктор тир-листов', icon: List, path: '/battlegrounds/tier-builder', group: 'bg-builder', entitlement: 'battlegrounds' },
+    loadBattlegroundsModule,
+  ),
+  defineRouteSurface(
+    { id: 'admin-panel', label: 'Админ панель', icon: ShieldCheck, path: '/admin', group: 'admin', entitlement: null },
     loadContestsModule,
   ),
 ] as const satisfies readonly ApplicationRouteSurfaceDefinition[];
@@ -157,15 +157,17 @@ export const ROUTE_MANIFEST = [
 export type ApplicationRouteSurface = (typeof ROUTE_MANIFEST)[number];
 export type TabId = ApplicationRouteSurface['id'];
 export type RoutePreloadId = TabId | 'login';
-export type NavigationRoute = ApplicationRouteSurface;
+export type NavigationRoute = ApplicationRouteSurface & { slug: ApplicationRouteSurface['path'] };
 
 const ROUTE_BY_ID = new Map<TabId, ApplicationRouteSurface>(
   ROUTE_MANIFEST.map(route => [route.id, route]),
 );
 
-export const TABS: readonly NavigationRoute[] = ROUTE_MANIFEST;
+export const TABS: readonly NavigationRoute[] = /* @__PURE__ */ (() => (
+  ROUTE_MANIFEST.map(route => ({ ...route, slug: route.path }))
+))();
 
-const routesInGroup = (group: RouteGroup) => TABS.filter(route => route.group === group);
+const routesInGroup = (group: RouteGroup) => ROUTE_MANIFEST.filter(route => route.group === group);
 
 // FAQ remains in the global Help menu instead of the primary product navigation.
 export const TOP_LEVEL_TABS = routesInGroup('top').filter(route => route.id !== 'faq');
@@ -202,8 +204,10 @@ export function preloadRouteModule(routeId: RoutePreloadId): void {
   void loader().catch(() => {});
 }
 
-export function routePath(routeId: TabId): string {
-  return ROUTE_BY_ID.get(routeId)?.slug ?? '/';
+export function routePath(routeId: TabId): `/${string}` {
+  const route = ROUTE_BY_ID.get(routeId);
+  if (!route) throw new Error(`Unknown application route: ${routeId}`);
+  return route.path;
 }
 
 export function isRemovedPagePath(path: string): boolean {
@@ -218,16 +222,16 @@ export function tabFromPath(path: string): TabId {
   if (/^\/standard\/meta\/(?:standard|wild)\/[a-z0-9][a-z0-9-]{0,119}$/.test(clean)) {
     return 'constructed-archetypes';
   }
-  const found = ROUTE_MANIFEST.find(route => route.slug !== '/'
-    && (clean === route.slug || clean.startsWith(`${route.slug}/`)));
+  const found = ROUTE_MANIFEST.find(route => route.path !== '/'
+    && (clean === route.path || clean.startsWith(`${route.path}/`)));
   return found?.id ?? 'home';
 }
 
 export function isKnownPath(path: string): boolean {
   const clean = path.replace(/[?#].*$/, '').replace(/\/+$/, '') || '/';
   if (clean === '/' || clean === '/connect' || isRemovedPagePath(clean) || publicProfileIdFromPath(clean)) return true;
-  return ROUTE_MANIFEST.some(route => route.slug !== '/'
-    && (clean === route.slug || clean.startsWith(`${route.slug}/`)));
+  return ROUTE_MANIFEST.some(route => route.path !== '/'
+    && (clean === route.path || clean.startsWith(`${route.path}/`)));
 }
 
 export async function applyPageMeta(

@@ -5,17 +5,27 @@ import {
   routeModuleLoaderForPreload,
   routePath,
   TABS,
+  type TabId,
 } from '../src/app/routing/public';
 
 assert.equal(new Set(ROUTE_MANIFEST.map(route => route.id)).size, ROUTE_MANIFEST.length,
   'application route surface ids must be unique');
-assert.equal(new Set(ROUTE_MANIFEST.map(route => route.slug)).size, ROUTE_MANIFEST.length,
+assert.equal(new Set(ROUTE_MANIFEST.map(route => route.path)).size, ROUTE_MANIFEST.length,
   'canonical application route surface paths must be unique');
-assert.equal(TABS, ROUTE_MANIFEST, 'the compatibility tab view must reuse the application route manifest');
+assert.deepEqual(
+  TABS.map(route => ({ id: route.id, slug: route.slug })),
+  ROUTE_MANIFEST.map(route => ({ id: route.id, slug: route.path })),
+  'the compatibility tab view must be derived from the application route manifest',
+);
 
 for (const route of ROUTE_MANIFEST) {
-  assert.equal(routePath(route.id), route.slug, `${route.id} must resolve to its canonical path`);
+  assert.equal(routePath(route.id), route.path, `${route.id} must resolve to its canonical path`);
 }
+assert.throws(
+  () => routePath('missing-surface' as TabId),
+  /Unknown application route: missing-surface/,
+  'a stale string-to-TabId cast must fail before browser history is changed',
+);
 
 assert.deepEqual(
   [...PRELOADABLE_ROUTE_IDS].sort(),
