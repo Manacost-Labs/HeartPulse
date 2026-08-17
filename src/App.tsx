@@ -15,6 +15,9 @@ import {
   BG_BUILDER_TABS,
   BG_PRIMARY_TABS,
   BG_TAB_IDS,
+  clientRouteView,
+  historyRouteKnowledge,
+  initialClientRouteResolution,
   LazyAccountRoute,
   LazyArchetypes,
   LazyArticlesTab,
@@ -43,25 +46,20 @@ import {
   LazyViciousSyndicateGoldPage,
   LazyWinrates,
   MISC_TABS,
+  normalizeClientRoutePath,
   prefetchInitialStandardCardCatalog,
   preloadRouteModule,
   PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS,
   routePath,
+  settledClientRouteResolution,
+  shouldPreserveInitialServerMeta,
   STANDARD_TABS,
   tabFromPath,
   TABS,
   TOP_LEVEL_TABS,
   type TabId,
-} from './app/routing/public';
-import {
-  clientRouteView,
-  historyRouteKnowledge,
-  initialClientRouteResolution,
-  normalizeClientRoutePath,
-  settledClientRouteResolution,
-  shouldPreserveInitialServerMeta,
   withHistoryRouteKnowledge,
-} from './routing/clientRouteResolution';
+} from './app/routing/public';
 import { publicProfileIdFromPath } from './profileRoutes';
 // Preserve authoritative entity metadata/404 context through the first client
 // pass. The marker belongs only to the URL that bootstrapped this document.

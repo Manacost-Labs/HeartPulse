@@ -11,7 +11,10 @@ export function normalizeClientRoutePath(path: string): string {
   return path.replace(/[?#].*$/, '').replace(/\/+$/, '') || '/';
 }
 
-export function initialClientRouteResolution(path: string, hint: InitialServerRouteHint = null): ClientRouteResolution {
+export function initialClientRouteResolution(
+  path: string,
+  hint: InitialServerRouteHint = null,
+): ClientRouteResolution {
   const pathname = normalizeClientRoutePath(path);
   return {
     pathname,

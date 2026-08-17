@@ -60,3 +60,19 @@ export {
   LazyWinrates,
   prefetchInitialStandardCardCatalog,
 } from './routeModules';
+
+export {
+  clientRouteView,
+  historyRouteKnowledge,
+  initialClientRouteResolution,
+  normalizeClientRoutePath,
+  settledClientRouteResolution,
+  shouldPreserveInitialServerMeta,
+  withHistoryRouteKnowledge,
+} from './routeResolution';
+
+export type {
+  ClientRouteResolution,
+  ClientRouteStatus,
+  InitialServerRouteHint,
+} from './routeResolution';

@@ -6,7 +6,7 @@ import {
   settledClientRouteResolution,
   shouldPreserveInitialServerMeta,
   withHistoryRouteKnowledge,
-} from '../src/routing/clientRouteResolution';
+} from '../src/app/routing/public';
 
 const appModule = await import('../src/App');
 assert.equal(typeof appModule.default, 'function', 'the application shell must remain import-safe without a browser DOM');
