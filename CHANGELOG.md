@@ -2,9 +2,10 @@
 
 ## Unreleased
 
-- Routed rejected ecosystem subscription refreshes through the shared Express
-  error boundary, so protected internal API requests now receive a bounded 500
-  response with a request ID instead of waiting for a proxy timeout.
+- Routed rejected ecosystem subscription refreshes and article-vote entitlement
+  checks through the shared Express error boundary, so affected API requests
+  now receive a bounded 500 response with a request ID instead of waiting for a
+  proxy timeout.
 - Cleaned up the repository root without touching runtime behavior: removed the
   dead Vercel serverless layer (ten `api/*.js` functions, `vercel.json` and the
   `@vercel/blob` dependency) that production has not used since the move to
