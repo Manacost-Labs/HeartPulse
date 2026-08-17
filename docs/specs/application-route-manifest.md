@@ -1,5 +1,10 @@
 # Application route manifest
 
+## Status
+
+Implemented on the architecture branch; awaiting integration after the module
+boundary foundations.
+
 ## Objective
 
 Create one typed application contract for route surfaces so a maintainer or AI
@@ -43,9 +48,10 @@ all public URLs as the same concept.
 src/
   app/
     routing/
-      routeManifest.tsx   # typed surface metadata and path resolution
-      routeModules.tsx    # literal module loaders and module-scope lazy views
-      routeResolution.ts  # browser-history route settlement model
+      routeManifest.ts           # typed metadata, literal loaders and preload policy
+      routeModules.tsx           # module-scope React.lazy adapters
+      routeResolution.ts         # pure URL settlement model
+      useApplicationNavigation.ts # history, metadata and navigation orchestration
       public.ts           # application routing contract
   App.tsx                 # composition consumer
   routes.ts               # temporary compatibility facade during migration
@@ -54,6 +60,7 @@ config/
   public-route-inventory.json  # complete SEO/deployment URL contract
 
 tests/
+  application-route-manifest.test.ts
   routes.test.ts
   client-route-resolution.test.ts
   route-inventory.test.ts
@@ -70,13 +77,17 @@ maps come from the manifest; callers do not repeat route-id lists.
 
 ```ts
 export const ROUTE_MANIFEST = [
-  {
-    id: 'articles',
-    path: '/articles',
-    group: 'top',
-    entitlement: null,
-    preload: loadDeferredRoutesModule,
-  },
+  defineRouteSurface(
+    {
+      id: 'articles',
+      label: 'Статьи',
+      icon: BookOpenText,
+      path: '/articles',
+      group: 'top',
+      entitlement: null,
+    },
+    loadDeferredRoutesModule,
+  ),
 ] as const satisfies readonly ApplicationRouteSurface[];
 ```
 
@@ -86,24 +97,34 @@ Rules:
   alias only while existing presentation callers migrate;
 - derive `TabId`, route groups, entitlement maps and preload lookup from the
   manifest;
-- keep literal dynamic imports in `routeModules.tsx` so Vite can retain the
-  existing chunks;
-- declare every lazy React component at module scope;
+- keep literal dynamic imports beside their manifest records in
+  `routeManifest.ts` so preload ownership is inspectable and Vite can retain
+  statically analyzable chunks;
+- declare every lazy React adapter at module scope in `routeModules.tsx`, and
+  reuse the exact loader identity owned by the manifest;
+- keep browser history, page metadata settlement and stale-navigation guards in
+  `useApplicationNavigation.ts`;
+- make `routePath` fail closed for an unknown route id instead of silently
+  navigating to `/`;
 - keep domain data fetching and permission decisions out of routing files;
 - preserve optimistic surface selection for nested detail URLs while the
   public URL policy performs authoritative validation.
 
 ## Testing strategy
 
-1. `tests/routes.test.ts` is the small contract test. It proves unique ids and
-   paths, canonical and legacy surface resolution, entitlement derivation,
-   navigation grouping and preload coverage.
-2. `tests/client-route-resolution.test.ts` proves history and authoritative
+1. `tests/application-route-manifest.test.ts` proves unique ids and paths,
+   canonical path lookup, derived compatibility metadata, preload coverage and
+   shared loader identities without importing feature modules.
+2. `tests/routes.test.ts` proves canonical and legacy surface resolution,
+   entitlement derivation, navigation grouping and SEO-sensitive special URLs.
+3. `tests/client-route-resolution.test.ts` proves history and authoritative
    not-found settlement independently of React rendering.
-3. `tests/route-inventory.test.ts` proves all public URL inventory entries and
+4. `tests/route-inventory.test.ts` proves all public URL inventory entries and
    prerender policies remain valid.
-4. The production build proves literal dynamic imports still emit lazy chunks.
-5. Browser QA exercises direct navigation, in-app navigation and Back/Forward
+5. Source-boundary tests prove `App.tsx` does not regain module loaders or
+   browser-history ownership.
+6. The production build proves literal dynamic imports still emit lazy chunks.
+7. Browser QA exercises direct navigation, in-app navigation and Back/Forward
    on desktop and mobile with a clean console and network log.
 
 Tests assert observable route outcomes and manifest invariants, not internal
@@ -146,6 +167,8 @@ function call order.
 - React lazy declarations remain at module scope and Vite dynamic imports stay
   literal.
 - `src/App.tsx` is smaller and its ratchet is lowered.
+- Primary authenticated navigation remains eager and does not gain a granular
+  avatar request or loading flash as a side effect of the routing migration.
 - Focused tests, route inventory, architecture checks, build and browser QA
   pass without changes to public behavior.
 

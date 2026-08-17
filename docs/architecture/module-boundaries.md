@@ -199,15 +199,18 @@ The check rejects:
 - every runtime import cycle;
 - stale, duplicated, unsafe or expired migration exceptions.
 
-The current migration baseline scans 414 source files and contains nine
+The current migration baseline scans 419 source files and contains nine
 modules, no missing public entries, no outside-to-internal imports, eight
 module-to-legacy imports, four type-inclusive cycles, two legacy client/server
 source crossings and zero runtime cycles. The Arena, constructed-card,
 Battlegrounds public-API and admin-workspace consumers now enter their modules
-only through the configured `public.ts`. Each remaining exception names its exact
-source, target and import kind together with an owner, reason and expiry. The
-budget equals the number of exact exceptions, so removing debt requires
-deleting the stale exception and lowering the budget in the same change.
+only through the configured `public.ts`. The graph contains 703 resolved edges.
+The application routing foundation now lives under `src/app/routing`: its
+manifest owns surface metadata and literal loaders, while pure route resolution
+and browser navigation orchestration have focused owners. Each remaining
+exception names its exact source, target and import kind together with an owner,
+reason and expiry. The budget equals the number of exact exceptions, so removing
+debt requires deleting the stale exception and lowering the budget in the same change.
 Exceptions may not expire more than 180 days after the check date, and source
 or ownership-artifact symlinks fail closed. There is no automatic
 baseline-update mode.
