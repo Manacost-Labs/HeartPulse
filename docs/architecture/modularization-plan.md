@@ -87,6 +87,23 @@ Each numbered area is delivered as a sequence of small vertical slices, not as
 one broad rewrite. A slice should normally change no more than five authored
 files, keep the application deployable and lower the ratchet it replaces.
 
+### 0. Safety guardrails
+
+Status: in progress.
+
+- Forward rejected Express 4 route promises to the existing structured error
+  middleware and cover the rejection path with direct router tests.
+- Remove only source blocks proven unreachable by TypeScript and dependency
+  analysis, lowering their size budgets in the same slice.
+- Add a machine-readable module inventory and an AST-resolved dependency gate;
+  existing exceptions must be exact edges with an owner and expiry.
+- Generate the test command from a checked registry so every test file belongs
+  to exactly one runnable suite.
+- Make CodeGraph and focused module context available from isolated worktrees.
+
+These guardrails land before additional route extraction so every later slice
+has a narrow verification command and cannot add new dependency debt.
+
 ### 1. Constructed-card catalog model
 
 Status: complete.

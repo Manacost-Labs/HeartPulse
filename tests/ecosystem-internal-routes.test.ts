@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import express from 'express';
+import express, { type ErrorRequestHandler } from 'express';
 import { createEcosystemInternalRouter } from '../server/modules/ecosystem/public.js';
 
 type TestUser = {
@@ -15,11 +15,16 @@ type TestSubscription = {
 const users = new Map<string, TestUser>([
   ['stored-user', { id: 'stored-user', name: 'Stored User' }],
   ['empty-user', { id: 'empty-user', name: 'Empty User' }],
+  ['error-user', { id: 'error-user', name: 'Error User' }],
 ]);
 const storedSubscriptions = new Map<string, TestSubscription>([
   ['stored-user', { hasAccess: true, source: 'stored' }],
 ]);
 const refreshCalls: Array<{ userId: string; force: boolean }> = [];
+const forwardedErrors: unknown[] = [];
+const unhandledRejections: unknown[] = [];
+const recordUnhandledRejection = (reason: unknown) => unhandledRejections.push(reason);
+process.on('unhandledRejection', recordUnhandledRejection);
 
 const app = express();
 app.use('/api', createEcosystemInternalRouter({
@@ -35,10 +40,16 @@ app.use('/api', createEcosystemInternalRouter({
   emptySubscription: () => ({ hasAccess: false, source: 'none' }),
   refreshSubscription: async (user, force) => {
     refreshCalls.push({ userId: user.id, force });
+    if (user.id === 'error-user') throw new Error('subscription refresh failed');
     return { hasAccess: true, source: force ? 'forced-refresh' : 'refresh' };
   },
   setPrivateNoStore: response => response.set('Cache-Control', 'private, no-store'),
 }));
+const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
+  forwardedErrors.push(error);
+  response.status(500).json({ error: 'Internal test error' });
+};
+app.use(errorHandler);
 
 const server = app.listen(0, '127.0.0.1');
 await new Promise<void>((resolve, reject) => {
@@ -113,13 +124,27 @@ try {
 
   const posted = await api('/ecosystem/internal/subscription?userId=stored-user', { method: 'POST' });
   assert.equal(posted.status, 200);
+
+  for (const method of ['GET', 'POST']) {
+    const rejected = await api('/ecosystem/internal/subscription?userId=error-user', {
+      method,
+      signal: AbortSignal.timeout(500),
+    });
+    assert.equal(rejected.status, 500);
+    assert.deepEqual(await rejected.json(), { error: 'Internal test error' });
+  }
+  assert.equal(forwardedErrors.length, 2);
+  assert.deepEqual(unhandledRejections, []);
   assert.deepEqual(refreshCalls, [
     { userId: 'stored-user', force: false },
     { userId: 'stored-user', force: true },
     { userId: 'stored-user', force: false },
     { userId: 'stored-user', force: true },
+    { userId: 'error-user', force: false },
+    { userId: 'error-user', force: true },
   ]);
 } finally {
+  process.off('unhandledRejection', recordUnhandledRejection);
   await new Promise<void>((resolve, reject) => {
     server.close(error => error ? reject(error) : resolve());
   });
