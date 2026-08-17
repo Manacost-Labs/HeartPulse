@@ -191,6 +191,7 @@
         "tests/standard-meta-recommendation-cache.test.ts",
         "tests/standard-meta-routes.test.ts",
         "tests/standard-meta-ui-contract.test.ts",
+        "tests/subscription-access.test.ts",
         "tests/subscription-routes.test.ts",
         "tests/tierlist-cache-bust-routes.test.ts",
         "tests/tierlist-early-stats.test.ts",

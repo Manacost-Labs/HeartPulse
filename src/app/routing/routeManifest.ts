@@ -22,6 +22,7 @@ import {
   Trophy,
   type LucideIcon,
 } from 'lucide-react';
+import type { SubscriptionEntitlementKey } from '../../modules/subscriptions/public';
 import { publicProfileIdFromPath } from '../../profileRoutes';
 import type { ResolvedPublicUrlPolicy } from '../../seo/publicUrlPolicy';
 
@@ -55,14 +56,7 @@ export type RouteGroup =
   | 'footer'
   | 'admin';
 
-export type RouteEntitlement =
-  | 'arena'
-  | 'battlegrounds'
-  | 'standard'
-  | 'contests'
-  | 'guidesArchive'
-  | 'arenaArticles'
-  | 'battlegroundsArticles';
+export type RouteEntitlement = SubscriptionEntitlementKey;
 
 type RoutePreloadPolicy = 'none' | 'intent';
 type RouteModuleLoader = () => Promise<unknown>;

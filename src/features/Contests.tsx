@@ -17,6 +17,10 @@ import {
   Users,
 } from 'lucide-react';
 import './contests.css';
+import type {
+  SubscriptionEntitlementKey,
+  SubscriptionStatus,
+} from '../modules/subscriptions/public';
 import {
   ContestAdminReferrals,
   type AdminReferralClick,
@@ -118,26 +122,6 @@ type AuthUser = {
   adminAllowed?: boolean;
   contestAdminAllowed?: boolean;
 };
-
-type SubscriptionStatus = {
-  hasAccess: boolean;
-  source: string;
-  checkedAt: string | null;
-  stale: boolean;
-  message: string;
-  boosty: Record<string, any>;
-  telegram: Record<string, any>;
-  entitlements?: Partial<Record<SubscriptionEntitlementKey, boolean>>;
-};
-
-type SubscriptionEntitlementKey =
-  | 'arena'
-  | 'battlegrounds'
-  | 'standard'
-  | 'contests'
-  | 'guidesArchive'
-  | 'arenaArticles'
-  | 'battlegroundsArticles';
 
 const SUBSCRIPTION_ENTITLEMENT_LABELS: ReadonlyArray<[SubscriptionEntitlementKey, string]> = [
   ['arena', 'Арена'],

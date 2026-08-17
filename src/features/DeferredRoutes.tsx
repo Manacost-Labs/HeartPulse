@@ -14,6 +14,11 @@ import SubscriptionPurchaseButtons from '../components/SubscriptionPurchaseButto
 import PaywallGate from '../components/PaywallGate';
 import ProfileIdentityHero from '../components/ProfileIdentityHero';
 import FAQSection from '../components/FAQSection';
+import {
+  hasSubscriptionEntitlement,
+  type SubscriptionEntitlementKey,
+  type SubscriptionStatus,
+} from '../modules/subscriptions/public';
 import TierlistEarlyStatsNotice from './TierlistEarlyStatsNotice';
 import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
 
@@ -2848,50 +2853,6 @@ type ContestHistoryItem = {
   endsAt: string;
   isWinner: boolean;
 };
-
-type SubscriptionStatus = {
-  hasAccess: boolean;
-  source: string;
-  checkedAt: string | null;
-  stale: boolean;
-  message: string;
-  entitlements?: {
-    arena?: boolean;
-    battlegrounds?: boolean;
-    standard?: boolean;
-    contests?: boolean;
-    guidesArchive?: boolean;
-    arenaArticles?: boolean;
-    battlegroundsArticles?: boolean;
-  };
-  boosty: {
-    checked?: boolean;
-    found?: boolean;
-    hasAccess?: boolean;
-    email?: string;
-    price?: number;
-    levelName?: string;
-    message?: string;
-  };
-  telegram: {
-    checked?: boolean;
-    hasAccess?: boolean;
-    username?: string;
-    message?: string;
-    chats?: Array<{ chatId: string; ok: boolean; status?: string; isMember?: boolean; error?: string }>;
-  };
-};
-
-type SubscriptionEntitlementKey = keyof NonNullable<SubscriptionStatus['entitlements']>;
-
-function hasSubscriptionEntitlement(
-  subscription: SubscriptionStatus | null | undefined,
-  entitlement: SubscriptionEntitlementKey | null,
-): boolean {
-  if (!subscription) return false;
-  if (!entitlement) return Boolean(subscription.hasAccess);
-  return Boolean(subscription.entitlements?.[entitlement]);
-}
 
 function subscriptionEntitlementLabels(subscription: { hasAccess?: boolean; entitlements?: SubscriptionStatus['entitlements'] } | null | undefined): string[] {
   if (!subscription?.entitlements) return subscription?.hasAccess ? ['Все разделы'] : [];

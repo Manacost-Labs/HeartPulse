@@ -53,6 +53,10 @@ import {
   useApplicationNavigation,
 } from './app/routing/public';
 import AuthAvatar from './components/AuthAvatar';
+import {
+  hasSubscriptionEntitlement,
+  type SubscriptionStatus,
+} from './modules/subscriptions/public';
 import { publicProfileIdFromPath } from './profileRoutes';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -371,50 +375,6 @@ async function fetchCurrentAuthUser(signal: AbortSignal): Promise<AuthUser | nul
     }
   }
   throw lastError;
-}
-
-type SubscriptionStatus = {
-  hasAccess: boolean;
-  source: string;
-  checkedAt: string | null;
-  stale: boolean;
-  message: string;
-  entitlements?: {
-    arena?: boolean;
-    battlegrounds?: boolean;
-    standard?: boolean;
-    contests?: boolean;
-    guidesArchive?: boolean;
-    arenaArticles?: boolean;
-    battlegroundsArticles?: boolean;
-  };
-  boosty: {
-    checked?: boolean;
-    found?: boolean;
-    hasAccess?: boolean;
-    email?: string;
-    price?: number;
-    levelName?: string;
-    message?: string;
-  };
-  telegram: {
-    checked?: boolean;
-    hasAccess?: boolean;
-    username?: string;
-    message?: string;
-    chats?: Array<{ chatId: string; ok: boolean; status?: string; isMember?: boolean; error?: string }>;
-  };
-};
-
-type SubscriptionEntitlementKey = keyof NonNullable<SubscriptionStatus['entitlements']>;
-
-function hasSubscriptionEntitlement(
-  subscription: SubscriptionStatus | null | undefined,
-  entitlement: SubscriptionEntitlementKey | null,
-): boolean {
-  if (!subscription) return false;
-  if (!entitlement) return Boolean(subscription.hasAccess);
-  return Boolean(subscription.entitlements?.[entitlement]);
 }
 
 type TelegramAuthPayload = {

@@ -84,6 +84,22 @@
       ]
     },
     {
+      "id": "client.subscriptions",
+      "runtime": "client",
+      "root": "src/modules/subscriptions",
+      "purpose": "Owns the client subscription-status contract and entitlement access policy.",
+      "owner": "identity-platform",
+      "publicEntry": "src/modules/subscriptions/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:subscription-access"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ]
+    },
+    {
       "id": "server.applicationAuth",
       "runtime": "server",
       "root": "server/modules/applicationAuth",

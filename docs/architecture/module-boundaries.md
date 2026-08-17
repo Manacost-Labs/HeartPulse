@@ -199,12 +199,16 @@ The check rejects:
 - every runtime import cycle;
 - stale, duplicated, unsafe or expired migration exceptions.
 
-The current migration baseline scans 419 source files and contains nine
+The current migration baseline scans 421 source files and contains ten
 modules, no missing public entries, no outside-to-internal imports, eight
 module-to-legacy imports, four type-inclusive cycles, two legacy client/server
 source crossings and zero runtime cycles. The Arena, constructed-card,
 Battlegrounds public-API and admin-workspace consumers now enter their modules
-only through the configured `public.ts`. The graph contains 703 resolved edges.
+only through the configured `public.ts`. The graph contains 709 resolved edges.
+The client subscription status and entitlement policy now have one
+runtime-neutral owner under `src/modules/subscriptions`; application and legacy
+route composition consume its public entry instead of maintaining duplicate
+access models.
 The application routing foundation now lives under `src/app/routing`: its
 manifest owns surface metadata and literal loaders, while pure route resolution
 and browser navigation orchestration have focused owners. Each remaining
