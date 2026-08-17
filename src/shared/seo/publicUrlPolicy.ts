@@ -4,6 +4,10 @@ export type PublicCanonicalPolicy = 'self' | 'clean-path' | 'none';
 type PathParameterConstraint = {
   allowedValues?: string[];
   pattern?: string;
+  integerRange?: {
+    minimum: number;
+    maximum: number;
+  };
 };
 
 type PublicRoutePolicy = {
@@ -24,6 +28,7 @@ type PublicQueryPolicy = {
 
 type PublicRouteInventory = {
   schemaVersion: 1;
+  contractOwner: 'shared.seo';
   canonicalOrigin: string;
   canonicalTrailingSlash: 'always';
   routes: PublicRoutePolicy[];
@@ -55,10 +60,10 @@ let inventoryPromise: Promise<PublicRouteInventory> | null = null;
 let documentMetaRevision = 0;
 
 function loadInventory(): Promise<PublicRouteInventory> {
-  inventoryPromise ??= import('../../config/public-route-inventory.json')
+  inventoryPromise ??= import('./publicRouteInventory.json')
     .then(module => {
       const inventory = module.default as PublicRouteInventory;
-      if (inventory.schemaVersion !== 1) {
+      if (inventory.schemaVersion !== 1 || inventory.contractOwner !== 'shared.seo') {
         throw new Error(`Unsupported public route inventory version: ${inventory.schemaVersion}`);
       }
       return inventory;
@@ -92,11 +97,26 @@ function routeMatchesPath(route: PublicRoutePolicy, pathname: string): boolean {
     if (!templatePart.startsWith(':')) return templatePart === pathParts[index];
     if (templatePart.endsWith('*')) return true;
     const parameter = templatePart.slice(1);
-    const value = decodePathPart(pathParts[index] || '');
+    const rawValue = pathParts[index] || '';
+    const value = decodePathPart(rawValue);
     if (!value) return false;
     const constraint = route.pathParameters?.[parameter];
-    if (constraint?.allowedValues && !constraint.allowedValues.includes(value)) return false;
-    if (constraint?.pattern && !new RegExp(constraint.pattern).test(value)) return false;
+    if (constraint?.allowedValues
+      && (!constraint.allowedValues.includes(rawValue) || !constraint.allowedValues.includes(value))) return false;
+    if (constraint?.pattern) {
+      const pattern = new RegExp(constraint.pattern);
+      if (!pattern.test(rawValue) || !pattern.test(value)) return false;
+    }
+    if (constraint?.integerRange) {
+      const rawParsed = Number(rawValue);
+      const parsed = Number(value);
+      if (!Number.isSafeInteger(rawParsed)
+        || !Number.isSafeInteger(parsed)
+        || rawParsed < constraint.integerRange.minimum
+        || rawParsed > constraint.integerRange.maximum
+        || parsed < constraint.integerRange.minimum
+        || parsed > constraint.integerRange.maximum) return false;
+    }
     return true;
   });
 }

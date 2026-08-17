@@ -56,8 +56,12 @@ assert.doesNotMatch(`${page}\n${accountRoute}`, /features\/DeferredRoutes/,
   'account surfaces must not reach back into the legacy deferred-route bundle');
 assert.match(identityPublicEntry, /loadLoginPanel[\s\S]*?import\('\.\/ui\/LoginPanel'\)/,
   'the identity module public contract must expose a lazy login-panel loader');
+assert.match(identityPublicEntry, /loadPublicProfilePage[\s\S]*?import\('\.\/ui\/PublicProfilePage'\)/,
+  'the identity module public contract must expose a lazy public-profile loader');
 assert.doesNotMatch(identityPublicEntry, /export\s+\{\s*LoginPanel\s*\}/,
   'the large login panel must not become an eager identity public export');
+assert.doesNotMatch(identityPublicEntry, /export\s+\{\s*PublicProfilePage\s*\}/,
+  'the public-profile page must remain behind its route-level lazy boundary');
 assert.doesNotMatch(deferredRoutes, /export function LoginPanel\s*\(/,
   'the legacy deferred-route bundle must not own the account login panel');
 for (const [label, source] of [['App', appSource], ['DeferredRoutes', deferredRoutes]] as const) {

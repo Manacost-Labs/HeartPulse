@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @import "./styles/tokens.css";
-@import "./components/AuthAvatar.css";
+@import "./modules/identity/public.css";
 /* Local agent traces can contain copied class names and must never affect the release CSS graph. */
 @source not "../.codex-team";
 

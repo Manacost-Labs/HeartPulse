@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 
-type AvatarUser = {
+export type AvatarUser = {
   name: string;
   email: string;
   avatarInitials?: string;

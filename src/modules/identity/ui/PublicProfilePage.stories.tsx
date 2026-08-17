@@ -3,7 +3,7 @@ import { expect, fn, userEvent } from 'storybook/test';
 import { PublicProfileCard } from './PublicProfilePage';
 
 const meta = {
-  title: 'Profile/Public Profile',
+  title: 'Identity/Public Profile',
   component: PublicProfileCard,
   args: {
     profile: {

@@ -18,11 +18,13 @@ type InventoryRoute = {
   pathParameters?: Record<string, {
     allowedValues?: string[];
     pattern?: string;
+    integerRange?: { minimum: number; maximum: number };
   }>;
 };
 
 type Inventory = {
   schemaVersion: number;
+  contractOwner: string;
   canonicalOrigin: string;
   canonicalTrailingSlash: string;
   requiredViewports: number[];
@@ -37,11 +39,12 @@ type Inventory = {
 };
 
 const inventory = JSON.parse(readFileSync(
-  new URL('../config/public-route-inventory.json', import.meta.url),
+  new URL('../src/shared/seo/publicRouteInventory.json', import.meta.url),
   'utf8',
 )) as Inventory;
 
 assert.equal(inventory.schemaVersion, 1);
+assert.equal(inventory.contractOwner, 'shared.seo');
 assert.equal(inventory.canonicalOrigin, 'https://arena.hs-manacost.ru');
 assert.equal(inventory.canonicalTrailingSlash, 'always');
 assert.deepEqual(inventory.requiredViewports, [320, 390, 768, 1440]);
@@ -86,12 +89,21 @@ for (const route of inventory.routes) {
     if (catchAll) continue;
     const constraint = route.pathParameters?.[parameter];
     assert.ok(constraint, `${route.id} must constrain :${parameter}`);
-    assert.ok(Boolean(constraint?.allowedValues?.length || constraint?.pattern), `${route.id} :${parameter} constraint must not be empty`);
+    assert.ok(Boolean(
+      constraint?.allowedValues?.length
+      || constraint?.pattern
+      || constraint?.integerRange,
+    ), `${route.id} :${parameter} constraint must not be empty`);
     if (constraint?.allowedValues) {
       assert.equal(new Set(constraint.allowedValues).size, constraint.allowedValues.length,
         `${route.id} :${parameter} allowed values must be unique`);
     }
     if (constraint?.pattern) assert.doesNotThrow(() => new RegExp(constraint.pattern));
+    if (constraint?.integerRange) {
+      assert.ok(Number.isSafeInteger(constraint.integerRange.minimum));
+      assert.ok(Number.isSafeInteger(constraint.integerRange.maximum));
+      assert.ok(constraint.integerRange.minimum <= constraint.integerRange.maximum);
+    }
   }
 }
 
@@ -133,6 +145,11 @@ assert.equal(
 assert.equal(byId.get('bg-hero-detail')?.pathParameters?.dbfId?.pattern, '^[1-9][0-9]*$',
   'hero detail dbfId must be a positive integer');
 assert.deepEqual(
+  byId.get('public-profile')?.pathParameters?.publicProfileId?.integerRange,
+  { minimum: 1, maximum: 2_147_483_647 },
+  'public profile SEO routes must share the server-issued numeric ID range',
+);
+assert.deepEqual(
   byId.get('bg-library-kind')?.pathParameters?.kind?.allowedValues,
   ['minions', 'spells', 'anomalies', 'dark-gifts', 'quests', 'rewards', 'darkmoon-prizes', 'trinkets', 'timewarped'],
   'BG library kinds must be enumerated rather than accepted as arbitrary paths',
@@ -171,10 +188,25 @@ function routeMatchesPath(route: InventoryRoute, path: string): boolean {
     if (!templatePart.startsWith(':')) return templatePart === pathParts[index];
     if (templatePart.endsWith('*')) return true;
     const parameter = templatePart.slice(1);
-    const value = decodeURIComponent(pathParts[index] || '');
+    const rawValue = pathParts[index] || '';
+    const value = decodeURIComponent(rawValue);
     const constraint = route.pathParameters?.[parameter];
-    if (constraint?.allowedValues && !constraint.allowedValues.includes(value)) return false;
-    if (constraint?.pattern && !new RegExp(constraint.pattern).test(value)) return false;
+    if (constraint?.allowedValues
+      && (!constraint.allowedValues.includes(rawValue) || !constraint.allowedValues.includes(value))) return false;
+    if (constraint?.pattern) {
+      const pattern = new RegExp(constraint.pattern);
+      if (!pattern.test(rawValue) || !pattern.test(value)) return false;
+    }
+    if (constraint?.integerRange) {
+      const rawParsed = Number(rawValue);
+      const parsed = Number(value);
+      if (!Number.isSafeInteger(rawParsed)
+        || !Number.isSafeInteger(parsed)
+        || rawParsed < constraint.integerRange.minimum
+        || rawParsed > constraint.integerRange.maximum
+        || parsed < constraint.integerRange.minimum
+        || parsed > constraint.integerRange.maximum) return false;
+    }
     return Boolean(value);
   });
 }

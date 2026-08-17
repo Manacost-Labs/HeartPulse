@@ -1,3 +1,4 @@
+/* Public identity route layout; hero styling stays in ProfileIdentityHero.css. */
 .public-profile-page {
   width: 100%;
   min-height: min(720px, calc(100vh - 10rem));

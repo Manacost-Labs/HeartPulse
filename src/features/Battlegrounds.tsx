@@ -1,7 +1,7 @@
 import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
-import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
+import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
 import { publicResourceUrl } from '../publicResourceUrl';
 import {
   buildTrinketStatsRequest,

@@ -78,13 +78,21 @@ const budgets = {
   // The shared Rust parchment preview adds one lazy-module pointer to Vite's
   // eager preload map (+117 raw / +26 gzip bytes). Rendering code, CSS and the
   // generated image remain lazy; keep the measured metadata cost ratcheted.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_743),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_761),
-  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_801),
+  // The identity public-profile route now validates its untrusted API payload
+  // before rendering (+429 raw bytes). Keep the complete route under 3.4 KB.
+  // Its literal lazy pointer plus the exact numeric/legacy route parser add a
+  // measured 451 raw / 202 gzip bytes to startup metadata and validation after
+  // the canonical URL contract changed the lazy SEO chunk hash; the
+  // page implementation, hero and route CSS remain outside the initial graph.
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_449),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_467),
+  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_619),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),
   deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 78_000),
   loginPanelJs: Number(process.env.BUDGET_LOGIN_PANEL_JS_BYTES || 28_500),
+  publicProfilePageJs: Number(process.env.BUDGET_PUBLIC_PROFILE_PAGE_JS_BYTES || 3_400),
+  profileIdentityHeroJs: Number(process.env.BUDGET_PROFILE_IDENTITY_HERO_JS_BYTES || 1_150),
   galleryPageJs: Number(process.env.BUDGET_GALLERY_PAGE_JS_BYTES || 4_700),
   editorialRouteChromeJs: Number(process.env.BUDGET_EDITORIAL_ROUTE_CHROME_JS_BYTES || 2_450),
   css: Number(process.env.BUDGET_CSS_BYTES || 136_863),
@@ -92,6 +100,8 @@ const budgets = {
   deferredRoutesCss: Number(process.env.BUDGET_DEFERRED_ROUTES_CSS_BYTES || 31_300),
   loginPanelCss: Number(process.env.BUDGET_LOGIN_PANEL_CSS_BYTES || 4_500),
   identityProfileCss: Number(process.env.BUDGET_IDENTITY_PROFILE_CSS_BYTES || 20_700),
+  publicProfilePageCss: Number(process.env.BUDGET_PUBLIC_PROFILE_PAGE_CSS_BYTES || 900),
+  profileIdentityHeroCss: Number(process.env.BUDGET_PROFILE_IDENTITY_HERO_CSS_BYTES || 4_200),
   homeSectionCss: Number(process.env.BUDGET_HOME_SECTION_CSS_BYTES || 5_000),
   faqSectionCss: Number(process.env.BUDGET_FAQ_SECTION_CSS_BYTES || 4_000),
   faqPageCss: Number(process.env.BUDGET_FAQ_PAGE_CSS_BYTES || 7_000),
@@ -156,6 +166,22 @@ const identityProfileCss = assetGroup(loginPanelEntry?.css ?? []);
 const loginPanelCss = loginPanelStylesEntry?.file
   ? assetGroup([loginPanelStylesEntry.file])
   : null;
+const publicProfilePageEntry = viteManifest['src/modules/identity/ui/PublicProfilePage.tsx'];
+const publicProfilePageJs = publicProfilePageEntry?.file
+  ? assetGroup([publicProfilePageEntry.file])
+  : null;
+const publicProfilePageCss = assetGroup(publicProfilePageEntry?.css ?? []);
+const profileIdentityHeroKey = [...new Set([
+  ...(loginPanelEntry?.imports ?? []),
+  ...(publicProfilePageEntry?.imports ?? []),
+])].find(key => /^_ProfileIdentityHero-.*\.js$/.test(key));
+const profileIdentityHeroEntry = profileIdentityHeroKey
+  ? viteManifest[profileIdentityHeroKey]
+  : null;
+const profileIdentityHeroJs = profileIdentityHeroEntry?.file
+  ? assetGroup([profileIdentityHeroEntry.file])
+  : null;
+const profileIdentityHeroCss = assetGroup(profileIdentityHeroEntry?.css ?? []);
 const faqSectionCss = files.find(file => /^FAQSection-.*\.css$/.test(file.name));
 const faqPageCss = files.find(file => /^FAQPage-.*\.css$/.test(file.name));
 const faqPageJs = files.find(file => /^FAQPage-.*\.js$/.test(file.name));
@@ -194,6 +220,8 @@ const checks = [
   ['largest route JS', routeJs[0], budgets.routeJs],
   ['Arena deferred route JS', deferredRoutesJs, budgets.deferredRoutesJs],
   ['identity login-panel JS', loginPanelJs, budgets.loginPanelJs],
+  ['identity public-profile page JS', publicProfilePageJs, budgets.publicProfilePageJs],
+  ['identity profile-hero JS', profileIdentityHeroJs, budgets.profileIdentityHeroJs],
   ['Gallery route JS', galleryPageJs, budgets.galleryPageJs],
   ['editorial route chrome JS', editorialRouteChromeJs, budgets.editorialRouteChromeJs],
   ['initial CSS', css, budgets.css],
@@ -201,6 +229,8 @@ const checks = [
   ['Arena route-owner CSS', deferredRoutesCss, budgets.deferredRoutesCss],
   ['lazy public-auth CSS', loginPanelCss, budgets.loginPanelCss],
   ['lazy authenticated-profile CSS', identityProfileCss, budgets.identityProfileCss],
+  ['lazy public-profile page CSS', publicProfilePageCss, budgets.publicProfilePageCss],
+  ['lazy identity profile-hero CSS', profileIdentityHeroCss, budgets.profileIdentityHeroCss],
   ['largest lazy home-section CSS', largestHomeSectionCss, budgets.homeSectionCss],
   ['lazy FAQ-section CSS', faqSectionCss, budgets.faqSectionCss],
   ['lazy FAQ-page CSS', faqPageCss, budgets.faqPageCss],
@@ -247,6 +277,33 @@ if (
   && adminWorkspaceAssetAudit.leaks.css.length === 0
 ) {
   console.log('[budget] ok administrator workspace JS and CSS remain outside the static entry graph');
+}
+
+function transitiveImports(entryKey) {
+  const imports = new Set();
+  const pending = [entryKey];
+  while (pending.length > 0) {
+    const currentKey = pending.pop();
+    if (!currentKey || imports.has(currentKey)) continue;
+    imports.add(currentKey);
+    // Both lazy routes share the application entry. Its dynamic-import list is
+    // the route registry, not a dependency owned by either identity screen.
+    if (currentKey === 'index.html') continue;
+    const entry = viteManifest[currentKey];
+    pending.push(...(entry?.imports ?? []), ...(entry?.dynamicImports ?? []));
+  }
+  imports.delete(entryKey);
+  return imports;
+}
+
+const loginImports = transitiveImports('src/modules/identity/ui/LoginPanel.tsx');
+const publicProfileImports = transitiveImports('src/modules/identity/ui/PublicProfilePage.tsx');
+if (loginImports.has('src/modules/identity/ui/PublicProfilePage.tsx')
+  || publicProfileImports.has('src/modules/identity/ui/LoginPanel.tsx')) {
+  console.error('[budget] identity login and public-profile route chunks import each other');
+  failed = true;
+} else {
+  console.log('[budget] ok identity login and public-profile route chunks remain independent');
 }
 
 console.log('[budget] aggregate startup assets are ratcheted below the previous production baseline.');

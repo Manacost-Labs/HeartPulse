@@ -21,7 +21,7 @@ const entryFiles = new Set([
   'src/main.tsx',
   'src/routes.ts',
   'src/features/Home.tsx',
-  'src/components/AuthAvatar.tsx',
+  'src/modules/identity/ui/AuthAvatar.tsx',
   'src/hooks/usePageScrollLock.ts',
 ]);
 const unusedCodes = new Set([6133, 6196]);

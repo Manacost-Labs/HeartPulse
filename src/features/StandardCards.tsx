@@ -49,7 +49,7 @@ import DeckListView, {
   type DeckListSideboard,
 } from './decklist/DeckListView';
 import DeckRenderPreview from './deckrender/DeckRenderPreview';
-import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
+import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
 import { compareConstructedSets, constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
 import {
   classFilterOptions,

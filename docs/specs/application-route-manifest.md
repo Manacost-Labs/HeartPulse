@@ -53,11 +53,11 @@ src/
       routeResolution.ts         # pure URL settlement model
       useApplicationNavigation.ts # history, metadata and navigation orchestration
       public.ts           # application routing contract
+  shared/
+    seo/
+      publicRouteInventory.json  # complete SEO/deployment URL contract
   App.tsx                 # composition consumer
   routes.ts               # temporary compatibility facade during migration
-
-config/
-  public-route-inventory.json  # complete SEO/deployment URL contract
 
 tests/
   application-route-manifest.test.ts

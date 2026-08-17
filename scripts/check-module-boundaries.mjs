@@ -419,6 +419,11 @@ function moduleForPath(modules, path) {
     .sort((left, right) => right.root.length - left.root.length)[0] || null;
 }
 
+function isPublicModuleEntry(module, path) {
+  return path === module.publicEntry
+    || (typeof module.publicStyleEntry === 'string' && path === module.publicStyleEntry);
+}
+
 function sharedRuntimeForPath(sharedRoots, path) {
   for (const runtime of ['client', 'server']) {
     if ((sharedRoots[runtime] || []).some(root => isInside(path, root))) return runtime;
@@ -628,6 +633,22 @@ function validateConfig(config, rootDir, discoveredRoots, errors) {
       const absolutePublicEntry = join(rootDir, expectedPublicEntry);
       if (existsSync(absolutePublicEntry) && !isRegularFile(absolutePublicEntry)) {
         addError(errors, 'invalid-public-entry', `module ${module.id} publicEntry must be a regular file`);
+      }
+    }
+    if (module.publicStyleEntry !== undefined) {
+      const expectedPublicStyleEntry = `${module.root}/public.css`;
+      if (module.runtime !== 'client' || module.publicStyleEntry !== expectedPublicStyleEntry) {
+        addError(
+          errors,
+          'invalid-public-style-entry',
+          `client module ${module.id} publicStyleEntry must be ${expectedPublicStyleEntry}`,
+        );
+      } else if (!isRegularFile(join(rootDir, expectedPublicStyleEntry))) {
+        addError(
+          errors,
+          'invalid-public-style-entry',
+          `module ${module.id} publicStyleEntry must be a regular file`,
+        );
       }
     }
     const dependencies = Array.isArray(module.dependencies) ? module.dependencies : [];
@@ -850,7 +871,7 @@ export function analyzeModuleBoundaries({
       violations.runtimeCrossing.push(edge);
     }
 
-    if (targetModule && sourceModule?.id !== targetModule.id && edge.target !== targetModule.publicEntry) {
+    if (targetModule && sourceModule?.id !== targetModule.id && !isPublicModuleEntry(targetModule, edge.target)) {
       violations.internalImport.push(edge);
     }
 

@@ -52,13 +52,15 @@ import {
   type TabId,
   useApplicationNavigation,
 } from './app/routing/public';
-import AuthAvatar from './components/AuthAvatar';
-import type { AuthUser } from './modules/identity/public';
+import {
+  AuthAvatar,
+  publicProfileIdFromPath,
+  type AuthUser,
+} from './modules/identity/public';
 import {
   hasSubscriptionEntitlement,
   type SubscriptionStatus,
 } from './modules/subscriptions/public';
-import { publicProfileIdFromPath } from './profileRoutes';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ClassData {

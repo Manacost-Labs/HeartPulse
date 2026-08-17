@@ -23,9 +23,11 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { SubscriptionEntitlementKey } from '../../modules/subscriptions/public';
-import { loadLoginPanel } from '../../modules/identity/public';
-import { publicProfileIdFromPath } from '../../profileRoutes';
-import type { ResolvedPublicUrlPolicy } from '../../seo/publicUrlPolicy';
+import {
+  loadLoginPanel,
+  publicProfileIdFromPath,
+} from '../../modules/identity/public';
+import type { ResolvedPublicUrlPolicy } from '../../shared/seo/publicUrlPolicy';
 
 export const loadDeferredRoutesModule = () => import('../../features/DeferredRoutes');
 export const loadHomeModule = () => import('../../features/Home');
@@ -237,7 +239,7 @@ export async function applyPageMeta(
 ): Promise<ResolvedPublicUrlPolicy> {
   const [{ seoPageForExactPath, seoPageForNavigationRoute }, { applyDocumentPageMeta }] = await Promise.all([
     import('../../seo/registry'),
-    import('../../seo/publicUrlPolicy'),
+    import('../../shared/seo/publicUrlPolicy'),
   ]);
   const route = ROUTE_BY_ID.get(tabId) ?? ROUTE_MANIFEST[0];
   const { title, description } = seoPageForExactPath(pathname)

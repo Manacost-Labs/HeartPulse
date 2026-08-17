@@ -147,6 +147,7 @@ from this template:
 ```text
 <domain>/
   public.ts
+  public.css              # optional checked eager style entry
   routes/*.route.tsx
   model/*.ts
   api/*.api.ts
@@ -168,10 +169,12 @@ A server domain uses:
   schema/*.schema.ts
 ```
 
-`public.ts` is the only supported cross-domain import. There is no global
-application barrel. CSS, stories and focused tests stay visibly associated
-with their owner. Names such as `utils`, `common`, `helpers` and `misc` are not
-owners and must not become directories.
+`public.ts` is the only supported cross-domain code import. A client module may
+declare one `public.css` when the application shell needs eager styles; all
+other CSS remains private. There is no global application barrel. CSS, stories
+and focused tests stay visibly associated with their owner. Names such as
+`utils`, `common`, `helpers` and `misc` are not owners and must not become
+directories.
 
 ## AI navigation contract
 
@@ -373,8 +376,9 @@ navigation, entitlements and Back/Forward scenarios must remain compatible.
 Depends on the application routing foundation and proceeds alongside the shell
 provider extraction.
 
-Status: client subscription contract, shared presentation metadata and the
-first identity UI boundary complete; provider and server extraction pending.
+Status: client subscription contract, shared presentation metadata, login and
+public-profile identity boundaries complete; provider and server extraction
+pending.
 
 1. [x] Create `client.subscriptions` as the runtime-neutral owner of the client
    status DTO, all seven entitlement keys and named-entitlement access policy.
@@ -393,8 +397,17 @@ first identity UI boundary complete; provider and server extraction pending.
    mechanically extracted 1,196-line `LoginPanel.tsx` is a temporary migration
    ceiling; the next identity slice separates API/session orchestration from
    guest-auth and authenticated-profile views.
-4. [ ] Move public profile and application-connect pages behind the identity public
-   entry.
+4. [x] Move the public profile, profile hero and avatar into identity; expose
+   the route only through a lazy public loader and the eager avatar styles only
+   through the checked `public.css`. The numeric and bounded legacy profile-path
+   parser now shares the identity model with the canonical URL builder, so the
+   shell and route manifest cannot accept IDs that identity would refuse to
+   generate. Keep Application Connect in its own module consuming the identity
+   public contract. Public profile JS/CSS and the shared hero now have explicit
+   build budgets, while module-to-legacy debt is ratcheted from seven to five.
+   The literal profile loader plus the stricter shared route parser add a
+   measured 451 raw / 202 gzip bytes to startup; that exact cost is ratcheted,
+   while the profile implementation, hero and route CSS remain lazy.
 5. [ ] Move client session DTOs, validation and requests into identity `model` and
    `api` owners.
 6. [ ] Extract server profile, application authorization and session route families.

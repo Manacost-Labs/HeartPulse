@@ -8,10 +8,11 @@ const applicationNavigationSource = readFileSync(
   new URL('../src/app/routing/useApplicationNavigation.ts', import.meta.url),
   'utf8',
 );
-const authAvatarSource = readFileSync(new URL('../src/components/AuthAvatar.tsx', import.meta.url), 'utf8');
-const authAvatarStyles = readFileSync(new URL('../src/components/AuthAvatar.css', import.meta.url), 'utf8');
+const authAvatarSource = readFileSync(new URL('../src/modules/identity/ui/AuthAvatar.tsx', import.meta.url), 'utf8');
+const authAvatarStyles = readFileSync(new URL('../src/modules/identity/ui/AuthAvatar.css', import.meta.url), 'utf8');
 const initialStyles = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
-const profileIdentityStyles = readFileSync(new URL('../src/components/ProfileIdentityHero.css', import.meta.url), 'utf8');
+const identityPublicStyles = readFileSync(new URL('../src/modules/identity/public.css', import.meta.url), 'utf8');
+const profileIdentityStyles = readFileSync(new URL('../src/modules/identity/ui/ProfileIdentityHero.css', import.meta.url), 'utf8');
 const identityProfileStyles = readFileSync(new URL('../src/modules/identity/ui/IdentityProfile.css', import.meta.url), 'utf8');
 const deferredStyles = readFileSync(new URL('../src/features/DeferredRoutes.css', import.meta.url), 'utf8');
 const gallerySource = readFileSync(new URL('../src/features/GalleryTab.tsx', import.meta.url), 'utf8');
@@ -63,18 +64,20 @@ assert.doesNotMatch(
 );
 assert.match(
   appSource,
-  /import AuthAvatar from '\.\/components\/AuthAvatar'/,
+  /import\s*\{[^}]*\bAuthAvatar\b[^}]*\}\s*from '\.\/modules\/identity\/public'/,
   'the primary authenticated navigation must render its small avatar without an extra request or fallback flash',
 );
 assert.doesNotMatch(
   appSource,
-  /LazyAuthAvatar|import\('\.\/components\/AuthAvatar'\)/,
+  /LazyAuthAvatar|import\(['"][^'"]*AuthAvatar['"]\)/,
   'the primary authenticated navigation must not introduce a granular avatar chunk',
 );
 assert.doesNotMatch(authAvatarSource, /import ['"].*\.css['"]/,
   'the browser-independent application shell import must not execute a CSS loader in Node');
-assert.match(initialStyles, /@import "\.\/components\/AuthAvatar\.css"/,
-  'the initial stylesheet must own the eager avatar presentation');
+assert.match(initialStyles, /@import "\.\/modules\/identity\/public\.css"/,
+  'the initial stylesheet must consume the identity public style contract');
+assert.match(identityPublicStyles, /@import "\.\/ui\/AuthAvatar\.css"/,
+  'the identity public style contract must own the eager avatar presentation');
 assert.match(authAvatarStyles, /--auth-avatar-size/,
   'avatar CSS must retain its size-driven presentation contract');
 assert.doesNotMatch(

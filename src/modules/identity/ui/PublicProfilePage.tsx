@@ -1,28 +1,11 @@
 import { useEffect, useState } from 'react';
 import { CalendarDays, Copy, Home } from 'lucide-react';
-import ProfileIdentityHero from '../components/ProfileIdentityHero';
-import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
-import { publicProfilePath } from '../modules/identity/public';
+import { fetchPublicProfile } from '../api/publicProfileApi';
+import type { PublicProfile } from '../model/publicProfile';
+import { publicProfilePath } from '../model/publicProfilePath';
+import { applyDocumentPageMeta } from '../../../shared/seo/publicUrlPolicy';
+import ProfileIdentityHero from './ProfileIdentityHero';
 import './PublicProfilePage.css';
-
-export type PublicProfile = {
-  publicProfileId: string;
-  name: string;
-  avatarInitials: string;
-  createdAt: string;
-};
-
-async function fetchPublicProfile(publicProfileId: string, signal: AbortSignal) {
-  const response = await fetch(`/api/profiles/${encodeURIComponent(publicProfileId)}`, {
-    headers: { Accept: 'application/json' },
-    signal,
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || !payload.profile) {
-    throw new Error(payload.error || 'Профиль не найден');
-  }
-  return payload.profile as PublicProfile;
-}
 
 type PublicProfileCardProps = {
   profile: PublicProfile;

@@ -2,7 +2,7 @@ import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, 
 import { dirname, resolve } from 'path';
 
 const PUBLIC_ROUTE_INVENTORY = JSON.parse(readFileSync(
-  resolve(process.cwd(), 'config/public-route-inventory.json'),
+  resolve(process.cwd(), 'src/shared/seo/publicRouteInventory.json'),
   'utf8',
 ));
 if (PUBLIC_ROUTE_INVENTORY.schemaVersion !== 1) {

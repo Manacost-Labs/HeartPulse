@@ -7,7 +7,7 @@ import { join, resolve } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 
 const projectRoot = resolve(new URL('..', import.meta.url).pathname);
-const inventory = JSON.parse(readFileSync(join(projectRoot, 'config/public-route-inventory.json'), 'utf8'));
+const inventory = JSON.parse(readFileSync(join(projectRoot, 'src/shared/seo/publicRouteInventory.json'), 'utf8'));
 const mapSource = readFileSync(join(projectRoot, 'deploy/nginx/arena-seo-map.conf'), 'utf8');
 const redirectSource = readFileSync(
   join(projectRoot, 'deploy/nginx/arena-canonical-host-redirect.conf'),
@@ -141,6 +141,30 @@ http {
       assert.equal(location.pathname, expectedCanonicalPath(route, pathname), `${route.id} canonical path in one hop`);
       assert.equal(location.search, query, `${route.id} query preservation`);
     }
+
+    const maximumProfile = await requestRedirect(
+      port,
+      'www.arena.hs-manacost.ru',
+      '/id/2147483647?utm_source=contract',
+    );
+    assert.equal(new URL(maximumProfile.location).pathname, '/id/2147483647/',
+      'the maximum server-issued public profile ID must gain a canonical slash');
+
+    const overflowingProfile = await requestRedirect(
+      port,
+      'www.arena.hs-manacost.ru',
+      '/id/2147483648?utm_source=contract',
+    );
+    assert.equal(new URL(overflowingProfile.location).pathname, '/id/2147483648',
+      'an overflowing public profile ID must remain unknown and must not gain a slash');
+
+    const encodedProfile = await requestRedirect(
+      port,
+      'www.arena.hs-manacost.ru',
+      '/id/%31?utm_source=contract',
+    );
+    assert.equal(new URL(encodedProfile.location).pathname, '/id/1/',
+      'the edge redirect must normalize an encoded numeric ID to its canonical ASCII path');
 
     for (const unchangedPath of [
       '/tierlist/',

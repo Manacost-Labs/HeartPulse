@@ -22,7 +22,7 @@ import {
 import type { AuthUser } from '../model/authUser';
 import { publicProfilePath } from '../model/publicProfilePath';
 import './IdentityProfile.css';
-import ProfileIdentityHero from '../../../components/ProfileIdentityHero';
+import ProfileIdentityHero from './ProfileIdentityHero';
 
 type AdminMessage = { type: 'ok' | 'err'; text: string };
 

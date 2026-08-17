@@ -1,0 +1,2 @@
+/* Eager identity primitives used by the application shell stay Node-import safe. */
+@import "./ui/AuthAvatar.css";

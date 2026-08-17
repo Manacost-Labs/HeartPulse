@@ -7,7 +7,7 @@ export type ProfileIdentityBadge = {
   icon?: ReactNode;
 };
 
-type ProfileIdentityHeroProps = {
+export type ProfileIdentityHeroProps = {
   eyebrow: string;
   name: string;
   publicProfileId: string;

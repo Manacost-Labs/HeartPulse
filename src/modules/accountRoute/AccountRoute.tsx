@@ -1,9 +1,13 @@
 import React from 'react';
-import { loadLoginPanel, type AuthUser } from '../identity/public';
+import {
+  loadLoginPanel,
+  loadPublicProfilePage,
+  type AuthUser,
+} from '../identity/public';
 
 const LazyLoginPanel = React.lazy(loadLoginPanel);
 const LazyApplicationConnectPage = React.lazy(() => import('../applicationConnect/public'));
-const LazyPublicProfilePage = React.lazy(() => import('../../features/PublicProfilePage'));
+const LazyPublicProfilePage = React.lazy(loadPublicProfilePage);
 
 type AccountRouteProps = {
   connect: boolean;

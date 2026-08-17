@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Moved the public profile page, identity hero and avatar into the owned
+  `identity` module, added bounded payload and profile-ID validation across the
+  client, shared SEO policy and Nginx, and kept login/profile assets in
+  independent lazy chunks without changing the public interface.
 - Added Phase 0 architecture guardrails: a complete owned-module inventory,
   an AST-resolved dependency and cycle gate, a checked registry that runs every
   supported test exactly once, and worktree-safe CodeGraph/module-context

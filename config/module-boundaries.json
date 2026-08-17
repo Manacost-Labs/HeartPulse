@@ -76,6 +76,7 @@
       "purpose": "Owns the browser account identity contract, login and profile presentation primitives.",
       "owner": "identity-platform",
       "publicEntry": "src/modules/identity/public.ts",
+      "publicStyleEntry": "src/modules/identity/public.css",
       "dependencies": [
         "client.subscriptions"
       ],
@@ -212,7 +213,7 @@
   "allowlistBudgets": {
     "missingPublicEntry": 0,
     "internalImport": 0,
-    "moduleLegacyImport": 7,
+    "moduleLegacyImport": 5,
     "runtimeCrossing": 2,
     "typeCycle": 4
   },
@@ -258,22 +259,6 @@
         "kind": "runtime",
         "owner": "web-platform",
         "reason": "Public API image routing still delegates to the legacy card-image route implementation.",
-        "expiresOn": "2026-12-31"
-      },
-      {
-        "source": "src/modules/accountRoute/AccountRoute.tsx",
-        "target": "src/features/PublicProfilePage.tsx",
-        "kind": "runtime",
-        "owner": "identity-platform",
-        "reason": "The public-profile route has not yet been extracted into an owned account/profile module.",
-        "expiresOn": "2026-12-31"
-      },
-      {
-        "source": "src/modules/identity/ui/LoginPanel.tsx",
-        "target": "src/components/ProfileIdentityHero.tsx",
-        "kind": "runtime",
-        "owner": "identity-platform",
-        "reason": "The profile hero remains shared with the legacy public-profile route until that route moves into identity.",
         "expiresOn": "2026-12-31"
       }
     ],

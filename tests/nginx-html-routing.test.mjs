@@ -17,7 +17,7 @@ import { spawn, spawnSync } from 'node:child_process';
 
 const projectRoot = resolve(new URL('..', import.meta.url).pathname);
 const inventory = JSON.parse(readFileSync(
-  join(projectRoot, 'config/public-route-inventory.json'),
+  join(projectRoot, 'src/shared/seo/publicRouteInventory.json'),
   'utf8',
 ));
 const mapSource = readFileSync(join(projectRoot, 'deploy/nginx/arena-seo-map.conf'), 'utf8');
@@ -484,6 +484,9 @@ assert.match(spaFallback?.body || '', /X-Robots-Tag\s+"noindex, follow"\s+always
 assert.match(spaFallback?.body || '', /try_files\s+\/index\.html\s+=404;/,
   'the SPA fallback itself must fail closed when the application shell is missing');
 
+expectRegexAction('/id/2147483647', 'return 301', 'maximum public profile ID');
+expectRegexAction('/id/2147483647/', 'try_files /index.html =404;', 'maximum canonical public profile ID');
+
 for (const invalidPath of [
   '/articlesevil',
   '/standard/cards/classic',
@@ -495,6 +498,7 @@ for (const invalidPath of [
   '/profiles/p_0123456789abcdefghijk',
   '/id/0',
   '/id/01',
+  '/id/2147483648',
   '/id/not-a-number',
   '/heroes/0',
   '/heroes/not-a-number',
@@ -904,6 +908,17 @@ http {
     const deckBuilderResponse = await requestNginx(port, '/deck-builder/');
     assert.equal(deckBuilderResponse.status, 200, 'deck-builder document');
     assert.equal(deckBuilderResponse.headers['x-robots-tag'], 'noindex, nofollow', 'deck-builder document robots');
+
+    for (const encodedProfilePath of ['/id/%31', '/id/%31/']) {
+      const encodedProfile = await requestNginx(port, encodedProfilePath);
+      assert.equal(encodedProfile.status, 301,
+        `${encodedProfilePath} must normalize to the canonical ASCII profile path`);
+      assert.equal(new URL(encodedProfile.headers.location, 'http://arena.test').pathname, '/id/1/',
+        `${encodedProfilePath} canonical profile target`);
+    }
+    const profileWithEncodedQuery = await requestNginx(port, '/id/1/?return_to=%2F');
+    assert.equal(profileWithEncodedQuery.status, 200,
+      'percent encoding in a profile query must not trigger pathname normalization');
 
     for (const technicalFixture of [
       { path: '/api', status: 200, body: /"api":true/, cache: /max-age=17/ },

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import routeInventory from '../config/public-route-inventory.json';
+import routeInventory from '../src/shared/seo/publicRouteInventory.json';
 import { TABS } from '../src/routes';
 import {
   publicSeoPages,
@@ -7,7 +7,7 @@ import {
   seoPageForExactPath,
   seoPageForNavigationRoute,
 } from '../src/seo/registry';
-import { resolvePublicUrlPolicy } from '../src/seo/publicUrlPolicy';
+import { resolvePublicUrlPolicy } from '../src/shared/seo/publicUrlPolicy';
 
 const pages = publicSeoPages();
 const policyRouteIds = new Set(routeInventory.routes.map(route => route.id));

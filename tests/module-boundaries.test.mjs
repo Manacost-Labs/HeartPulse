@@ -127,6 +127,31 @@ test('resolves imports from TS and JS sources, including type, query, alias, and
   }
 });
 
+test('allows a module stylesheet only through its declared public style entry', () => {
+  const alpha = {
+    ...moduleEntry('client.alpha', 'client', 'src/modules/alpha'),
+    publicStyleEntry: 'src/modules/alpha/public.css',
+  };
+  const root = fixture(baseConfig([alpha]));
+  try {
+    writeFixture(root, 'src/modules/alpha/public.ts', 'export const alpha = true;\n');
+    writeFixture(root, 'src/modules/alpha/public.css', '@import "./internal.css";\n');
+    writeFixture(root, 'src/modules/alpha/internal.css', '.alpha {}\n');
+    writeFixture(root, 'src/index.css', '@import "./modules/alpha/public.css";\n');
+
+    const publicReport = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    assert.equal(publicReport.ok, true, formatModuleBoundaryReport(publicReport));
+    assert.equal(publicReport.counts.internalImport, 0);
+
+    writeFixture(root, 'src/index.css', '@import "./modules/alpha/internal.css";\n');
+    const internalReport = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    assert.equal(internalReport.counts.internalImport, 1);
+    assert.ok(internalReport.errors.some(error => error.code === 'unapproved-boundary'));
+  } finally {
+    cleanup(root);
+  }
+});
+
 test('excludes package imports when node_modules is stored inside the repository', () => {
   const alpha = moduleEntry('client.alpha', 'client', 'src/modules/alpha');
   const root = fixture(baseConfig([alpha]));

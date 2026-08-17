@@ -164,6 +164,13 @@ function publicApiFor(module, root) {
   };
 }
 
+function publicStyleEntryFor(module, root) {
+  const entry = normalizeRepositoryPath(module.publicStyleEntry, root);
+  if (!entry) return null;
+  resolveRepositoryFile(root, entry, { required: true });
+  return entry;
+}
+
 function pathBelongsToModule(candidate, module) {
   if (typeof candidate !== 'string') return false;
   return candidate === module.id
@@ -239,6 +246,7 @@ export function loadAgentContext({ repositoryRoot: root, selector }) {
     purpose: module.purpose,
     owner: module.owner,
     publicApi: publicApiFor(module, resolvedRoot),
+    publicStyleEntry: publicStyleEntryFor(module, resolvedRoot),
     dependencies: [...module.dependencies],
     focusedTests: [...module.focusedTests],
     docs: [...module.docs],
@@ -280,6 +288,7 @@ export function formatAgentContext(context) {
     `Purpose: ${context.purpose}`,
     `Owner: ${context.owner}`,
     `Public API entry: ${context.publicApi.entry}`,
+    ...(context.publicStyleEntry ? [`Public style entry: ${context.publicStyleEntry}`] : []),
     ...publicApiLines,
     ...linesFor('Dependencies', context.dependencies),
     ...linesFor('Focused tests', context.focusedTests),

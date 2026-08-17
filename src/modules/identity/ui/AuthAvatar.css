@@ -1,3 +1,4 @@
+/* Eager identity avatar presentation, loaded through identity/public.css. */
 .auth-avatar {
   position: relative;
   display: inline-flex;
