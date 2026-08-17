@@ -106,7 +106,9 @@ Status: implementation complete; awaiting integration.
   the accepted graph has no runtime cycle.
 - [x] Generate the test command from a checked registry so all 223 supported
   test files belong to exactly one runnable suite and suite-only environment
-  variables cannot leak into the remaining tests.
+  variables cannot leak into the remaining tests. Discovery scans the authored
+  repository tree and rejects test files outside `tests/`, preventing colocated
+  or unregistered tests from being silently skipped.
 - [x] Make CodeGraph and focused module context available from isolated
   worktrees through safe project commands that synchronize the selected index
   and expose the module contract before broad source reads.

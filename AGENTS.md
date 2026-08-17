@@ -84,9 +84,11 @@ The repository includes project-scoped tools for safer implementation:
   The wrapper synchronizes a worktree-local index, or reuses the `main` index
   only when both worktrees are clean and point at the same commit. Do not call
   lifecycle commands or override its project path.
-- Keep every `*.test.ts`, `*.test.tsx` and `*.test.mjs` file registered exactly
-  once in `tests/test-suites.json`. Run `npm run test:registry` after adding,
-  moving or deleting tests; `npm test` executes the checked registry.
+- Keep authored `*.test.ts`, `*.test.tsx` and `*.test.mjs` files under `tests/`
+  and register each exactly once in `tests/test-suites.json`. The registry gate
+  scans the authored repository tree, so a misplaced or unregistered test fails
+  validation. Run `npm run test:registry` after adding, moving or deleting
+  tests; `npm test` executes the checked registry.
 - For authored JavaScript or TypeScript changes, run
   `npm run security:semgrep` before finishing. It scans only changed files and
   is nonblocking while the project baseline is being established. Use

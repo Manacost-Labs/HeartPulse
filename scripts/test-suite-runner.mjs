@@ -8,6 +8,17 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const TEST_FILE_PATTERN = /\.test\.(?:ts|tsx|mjs)$/;
+const TEST_DISCOVERY_IGNORED_ROOTS = new Set([
+  '.codegraph',
+  '.git',
+  'build',
+  'coverage',
+  'dist',
+  'node_modules',
+  'playwright-report',
+  'storybook-static',
+  'test-results',
+]);
 const ENVIRONMENT_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const SUITE_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const FORWARDED_SIGNALS = ['SIGINT', 'SIGTERM'];
@@ -18,9 +29,11 @@ function isRecord(value) {
 }
 
 function collectTestFiles(directory, repositoryRoot, files) {
+  const isRepositoryRoot = path.resolve(directory) === path.resolve(repositoryRoot);
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const absolutePath = path.join(directory, entry.name);
     if (entry.isDirectory()) {
+      if (isRepositoryRoot && TEST_DISCOVERY_IGNORED_ROOTS.has(entry.name)) continue;
       collectTestFiles(absolutePath, repositoryRoot, files);
       continue;
     }
@@ -31,7 +44,7 @@ function collectTestFiles(directory, repositoryRoot, files) {
 
 export function discoverTestFiles(repositoryRoot) {
   const files = [];
-  collectTestFiles(path.join(repositoryRoot, 'tests'), repositoryRoot, files);
+  collectTestFiles(repositoryRoot, repositoryRoot, files);
   return files.sort();
 }
 
@@ -104,6 +117,10 @@ export function validateTestRegistry(registry, { repositoryRoot }) {
   }
 
   const discoveredFiles = discoverTestFiles(repositoryRoot);
+  const misplacedFiles = discoveredFiles.filter(testFile => !testFile.startsWith('tests/'));
+  if (misplacedFiles.length > 0) {
+    throw new Error(`test files must live under tests/: ${misplacedFiles.join(', ')}`);
+  }
   const discoveredSet = new Set(discoveredFiles);
   const registeredSet = new Set(files);
   const nonexistentFiles = files.filter(testFile => !discoveredSet.has(testFile)).sort();

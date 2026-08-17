@@ -57,15 +57,24 @@ function completedChild(code = 0, signal = null) {
   return child;
 }
 
-test('discovers supported test files recursively and ignores other files', () => {
+test('discovers authored test files repository-wide and ignores generated or vendored trees', () => {
   withRepository(repositoryRoot => {
     writeFixture(repositoryRoot, 'tests/root.test.ts');
     writeFixture(repositoryRoot, 'tests/nested/component.test.tsx');
     writeFixture(repositoryRoot, 'tests/nested/tool.test.mjs');
+    writeFixture(repositoryRoot, 'src/module/model.test.ts');
+    writeFixture(repositoryRoot, 'server/module/routes.test.ts');
     writeFixture(repositoryRoot, 'tests/nested/helper.ts');
     writeFixture(repositoryRoot, 'tests/nested/legacy.test.js');
+    writeFixture(repositoryRoot, 'node_modules/package/vendor.test.ts');
+    writeFixture(repositoryRoot, 'build/server/generated.test.mjs');
+    writeFixture(repositoryRoot, 'dist/assets/generated.test.mjs');
+    writeFixture(repositoryRoot, 'storybook-static/generated.test.mjs');
+    writeFixture(repositoryRoot, '.codegraph/index.test.mjs');
 
     assert.deepEqual(discoverTestFiles(repositoryRoot), [
+      'server/module/routes.test.ts',
+      'src/module/model.test.ts',
       'tests/nested/component.test.tsx',
       'tests/nested/tool.test.mjs',
       'tests/root.test.ts',
@@ -98,6 +107,18 @@ test('rejects a registry that omits a discovered test', () => {
     assert.throws(
       () => validateTestRegistry(registry(['tests/listed.test.ts']), { repositoryRoot }),
       /missing from registry: tests\/missing\.test\.tsx/,
+    );
+  });
+});
+
+test('rejects authored tests outside the tests directory with an actionable error', () => {
+  withRepository(repositoryRoot => {
+    writeFixture(repositoryRoot, 'tests/listed.test.ts');
+    writeFixture(repositoryRoot, 'src/module/misplaced.test.ts');
+
+    assert.throws(
+      () => validateTestRegistry(registry(['tests/listed.test.ts']), { repositoryRoot }),
+      /test files must live under tests\/: src\/module\/misplaced\.test\.ts/,
     );
   });
 });
