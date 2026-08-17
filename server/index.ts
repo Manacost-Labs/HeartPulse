@@ -221,13 +221,11 @@ import { createSubscriptionRouter } from './subscriptionRoutes.js';
 import { createEcosystemInternalRouter } from './modules/ecosystem/public.js';
 import { createAuthProfileRouter, type AuthProfilePatch } from './authProfileRoutes.js';
 import {
+  createPublicProfileRouter,
+  createSqlitePublicProfileFinder,
   ensurePublicProfileIds,
   resolveUserPublicProfileId,
-} from './publicProfileIdentity.js';
-import {
-  createPublicProfileRouter,
-  type PublicProfileRecord,
-} from './publicProfileRoutes.js';
+} from './modules/publicProfile/public.js';
 import { completePasswordReset, createPasswordResetRouter } from './passwordResetRoutes.js';
 import { authenticatedUserPayload, createAuthVerificationRouter } from './authVerificationRoutes.js';
 import { createAuthCredentialRouter, deliverCredentialCode } from './authCredentialRoutes.js';
@@ -9043,17 +9041,7 @@ app.use('/api', createAuthProfileRouter({
 }));
 
 app.use('/api', createPublicProfileRouter({
-  findProfile: publicProfileId => dbGet<PublicProfileRecord>(`
-    SELECT
-      CAST(public_numeric_id AS TEXT) AS publicProfileId,
-      name,
-      avatar_initials AS avatarInitials,
-      created_at AS createdAt
-    FROM users
-    WHERE (CAST(public_numeric_id AS TEXT) = ? OR public_profile_id = ?)
-      AND COALESCE(blocked_at, '') = ''
-    LIMIT 1
-  `, publicProfileId, publicProfileId) ?? null,
+  findProfile: createSqlitePublicProfileFinder(db),
 }));
 
 app.use('/api', createSubscriptionRouter({

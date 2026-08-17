@@ -206,12 +206,12 @@ The check rejects:
 - every runtime import cycle;
 - stale, duplicated, unsafe or expired migration exceptions.
 
-The current migration baseline scans 428 source files and contains eleven
+The current migration baseline scans 431 source files and contains twelve
 modules, no missing public entries, no outside-to-internal imports, five
 module-to-legacy imports, four type-inclusive cycles, two legacy client/server
 source crossings and zero runtime cycles. The Arena, constructed-card,
 Battlegrounds public-API and admin-workspace consumers now enter their modules
-only through configured public entries. The graph contains 723 resolved edges.
+only through configured public entries. The graph contains 729 resolved edges.
 The client subscription status, entitlement policy and ordered display labels
 now have one
 runtime-neutral owner under `src/modules/subscriptions`; application and legacy
@@ -228,6 +228,11 @@ neither downloads the other surface. Identity has no migration exceptions.
 The domain-independent document URL policy and its machine-readable route
 inventory live together under `src/shared/seo`, so shared code has no backward
 dependency on application configuration.
+The `server.publicProfile` module now owns numeric and compatible legacy ID
+validation, the additive SQLite migration, public lookup, the four-field
+privacy allowlist and `GET /profiles/:publicProfileId`. The server composition
+root reaches those capabilities only through `public.ts`; no duplicate profile
+owner or module exception remains.
 The application routing foundation now lives under `src/app/routing`: its
 manifest owns surface metadata and literal loaders, while pure route resolution
 and browser navigation orchestration have focused owners. Each remaining

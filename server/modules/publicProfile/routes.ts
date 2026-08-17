@@ -1,39 +1,16 @@
 import { Router } from 'express';
-import { isPublicProfileLookupId } from './publicProfileIdentity.js';
-
-export type PublicProfileRecord = {
-  publicProfileId: string;
-  name: string;
-  avatarInitials: string;
-  createdAt: string;
-};
-
-type PublicProfileSource = PublicProfileRecord & Record<string, unknown>;
+import { isPublicProfileLookupId } from './identity.js';
+import {
+  serializePublicProfile,
+  type PublicProfileCandidate,
+} from './model.js';
 
 export type PublicProfileRouterDependencies = {
-  findProfile: (publicProfileId: string) => PublicProfileSource | null;
+  findProfile: (publicProfileId: string) => PublicProfileCandidate | null;
 };
 
 const PUBLIC_PROFILE_CACHE_CONTROL = 'public, max-age=60, stale-while-revalidate=300';
 const NOT_FOUND_PAYLOAD = { error: 'Профиль не найден' };
-
-function normalizedText(value: unknown, maxLength: number): string {
-  return String(value ?? '')
-    .replace(/[\u0000-\u001f\u007f]/g, '')
-    .trim()
-    .slice(0, maxLength);
-}
-
-export function serializePublicProfile(source: PublicProfileSource): PublicProfileRecord {
-  const name = normalizedText(source.name, 120) || 'Пользователь Манакоста';
-  return {
-    publicProfileId: source.publicProfileId,
-    name,
-    avatarInitials: normalizedText(source.avatarInitials, 4)
-      || name.slice(0, 2).toUpperCase(),
-    createdAt: normalizedText(source.createdAt, 40),
-  };
-}
 
 export function createPublicProfileRouter(
   dependencies: PublicProfileRouterDependencies,

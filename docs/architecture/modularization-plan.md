@@ -335,8 +335,8 @@ quality plus placeholders and transitions pass browser checks.
 
 ### 5. Server composition
 
-Status: in progress. The protected ecosystem user and subscription endpoints
-are the first extracted server domain slice.
+Status: in progress. The protected ecosystem routes and the public-profile
+boundary are the first two extracted server domain slices.
 
 - Move remaining inline route families out of `server/index.ts`.
 - Separate request parsing, domain services and response serialization.
@@ -349,6 +349,14 @@ subscription persistence and refresh infrastructure; the module owns only the
 three compatible HTTP routes and receives those capabilities as explicit
 dependencies. A direct contract test preserves the existing guard, private
 cache policy, error payloads, response shapes and exact `force=1` behavior.
+
+The second slice exposes `server/modules/publicProfile/public.ts` as the only
+entry to public-profile identity and persistence. It owns numeric and legacy ID
+validation, the additive SQLite migration, canonical ID resolution, the
+privacy-safe lookup and serializer, and the compatible Express route. The
+composition root now only supplies its database handle and mounts the router;
+URLs, SQL conditions, cache headers, generic errors and the four-field response
+remain unchanged. Its size ceiling is ratcheted from 9,953 to 9,915 lines.
 
 ### 6. Application shell
 
@@ -376,9 +384,9 @@ navigation, entitlements and Back/Forward scenarios must remain compatible.
 Depends on the application routing foundation and proceeds alongside the shell
 provider extraction.
 
-Status: client subscription contract, shared presentation metadata, login and
-public-profile identity boundaries complete; provider and server extraction
-pending.
+Status: client subscription contract, shared presentation metadata, login,
+public-profile client/server identity boundaries and application authorization
+complete; provider, private-account and subscription extraction pending.
 
 1. [x] Create `client.subscriptions` as the runtime-neutral owner of the client
    status DTO, all seven entitlement keys and named-entitlement access policy.
@@ -410,8 +418,11 @@ pending.
    while the profile implementation, hero and route CSS remain lazy.
 5. [ ] Move client session DTOs, validation and requests into identity `model` and
    `api` owners.
-6. [ ] Extract server profile, application authorization and session route families.
-7. [ ] Extract subscription confirmation, entitlement and provider synchronization
+6. [x] Put public-profile ID policy, SQLite persistence, serialization and HTTP
+   routing behind `server.publicProfile/public.ts`; keep application device
+   authorization behind the existing `server.applicationAuth/public.ts`.
+7. [ ] Extract browser session and private account-profile route families.
+8. [ ] Extract subscription confirmation, entitlement and provider synchronization
    into a separate subscription module.
 
 Complete when `/connect`, `/id/:id`, legacy profile URLs and `?login` behave

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Moved the server-side public profile ID policy, SQLite migration and lookup,
+  privacy-safe serializer, and HTTP route behind one `server.publicProfile`
+  entry point; removed both legacy owners and profile SQL from the server
+  composition root without changing URLs, responses, caching or compatibility.
 - Moved the public profile page, identity hero and avatar into the owned
   `identity` module, added bounded payload and profile-ID validation across the
   client, shared SEO policy and Nginx, and kept login/profile assets in

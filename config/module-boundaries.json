@@ -192,6 +192,23 @@
       ]
     },
     {
+      "id": "server.publicProfile",
+      "runtime": "server",
+      "root": "server/modules/publicProfile",
+      "purpose": "Owns public profile identity, SQLite persistence, privacy-safe serialization and HTTP routes.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/publicProfile/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:public-profiles"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md",
+        "docs/specs/card-controls-and-public-profiles.md"
+      ]
+    },
+    {
       "id": "server.publicApi",
       "runtime": "server",
       "root": "server/modules/publicApi",
