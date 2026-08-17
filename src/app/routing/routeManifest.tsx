@@ -1,0 +1,226 @@
+import {
+  BookOpenText,
+  ChartNoAxesCombined,
+  CircleHelp,
+  CircleUserRound,
+  Crown,
+  Gem,
+  Gift,
+  Grid3X3,
+  Home,
+  Image as ImageIcon,
+  LayoutGrid,
+  LibraryBig,
+  List,
+  ListChecks,
+  ListTree,
+  Scroll,
+  ShieldCheck,
+  Sparkles,
+  Swords,
+  Trophy,
+  type LucideIcon,
+} from 'lucide-react';
+import { publicProfileIdFromPath } from '../../profileRoutes';
+import type { ResolvedPublicUrlPolicy } from '../../seo/publicUrlPolicy';
+
+export type RouteGroup =
+  | 'home'
+  | 'top'
+  | 'standard'
+  | 'arena'
+  | 'bg-primary'
+  | 'bg-builder'
+  | 'misc'
+  | 'footer'
+  | 'admin';
+
+export type RouteEntitlement =
+  | 'arena'
+  | 'battlegrounds'
+  | 'standard'
+  | 'contests'
+  | 'guidesArchive'
+  | 'arenaArticles'
+  | 'battlegroundsArticles';
+
+type RoutePreloadPolicy = 'none' | 'intent';
+
+type ApplicationRouteSurfaceDefinition = {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  path: `/${string}`;
+  group: RouteGroup;
+  entitlement: RouteEntitlement | null;
+  module: string;
+  preload: RoutePreloadPolicy;
+  adminOnly?: boolean;
+};
+
+export const ROUTE_MANIFEST = [
+  {
+    id: 'home', label: 'Главная', icon: Home, path: '/', group: 'home', entitlement: null, module: 'home', preload: 'none',
+  },
+  {
+    id: 'articles', label: 'Статьи', icon: BookOpenText, path: '/articles', group: 'top', entitlement: null, module: 'deferred-routes', preload: 'intent',
+  },
+  {
+    id: 'faq', label: 'FAQ', icon: CircleHelp, path: '/faq', group: 'top', entitlement: null, module: 'faq', preload: 'intent',
+  },
+  {
+    id: 'developer-api', label: 'API', icon: CircleHelp, path: '/developers/api', group: 'footer', entitlement: null, module: 'developer-api', preload: 'intent',
+  },
+  {
+    id: 'gallery', label: 'Галерея', icon: ImageIcon, path: '/gallery', group: 'misc', entitlement: null, module: 'gallery', preload: 'intent',
+  },
+  {
+    id: 'cosmetics', label: 'Косметика', icon: Sparkles, path: '/cosmetics', group: 'misc', entitlement: null, module: 'cosmetics', preload: 'intent',
+  },
+  {
+    id: 'guides-archive', label: 'Архив гайдов', icon: Scroll, path: '/guides-archive', group: 'misc', entitlement: 'guidesArchive', module: 'guides-archive', preload: 'intent',
+  },
+  {
+    id: 'contests', label: 'Конкурсы', icon: Gift, path: '/contests', group: 'misc', entitlement: null, module: 'contests', preload: 'intent',
+  },
+  {
+    id: 'deck-builder', label: 'Конструктор колоды', icon: LayoutGrid, path: '/deck-builder', group: 'misc', entitlement: null, module: 'deck-builder', preload: 'intent', adminOnly: true,
+  },
+  {
+    id: 'archetypes', label: 'Архетипы', icon: ListTree, path: '/archetypes', group: 'misc', entitlement: null, module: 'archetypes', preload: 'intent', adminOnly: true,
+  },
+  {
+    id: 'standard-matchups', label: 'Матчапы', icon: Swords, path: '/standard/matchups', group: 'standard', entitlement: 'standard', module: 'standard-matchups', preload: 'intent',
+  },
+  {
+    id: 'standard-meta', label: 'Мета', icon: ChartNoAxesCombined, path: '/standard/meta', group: 'standard', entitlement: 'standard', module: 'standard-meta', preload: 'intent',
+  },
+  {
+    id: 'fun-decks', label: 'Фан-колоды', icon: Gem, path: '/standard/fun-decks', group: 'standard', entitlement: 'standard', module: 'fun-decks', preload: 'intent',
+  },
+  {
+    id: 'constructed-archetypes', label: 'Архетипы', icon: ListTree, path: '/standard/archetypes', group: 'standard', entitlement: 'standard', module: 'constructed-archetypes', preload: 'intent',
+  },
+  {
+    id: 'standard-vicious-gold', label: 'Vicious Syndicate Gold', icon: Crown, path: '/standard/vicious-gold', group: 'standard', entitlement: 'standard', module: 'standard-vicious-gold', preload: 'intent',
+  },
+  {
+    id: 'standard-cards', label: 'Карты', icon: LibraryBig, path: '/standard/cards', group: 'standard', entitlement: null, module: 'standard-cards', preload: 'intent',
+  },
+  {
+    id: 'winrates', label: 'Классы', icon: Trophy, path: '/classes', group: 'arena', entitlement: 'arena', module: 'deferred-routes', preload: 'intent',
+  },
+  {
+    id: 'tierlist', label: 'Тир-лист', icon: ListChecks, path: '/tierlist', group: 'arena', entitlement: 'arena', module: 'deferred-routes', preload: 'intent',
+  },
+  {
+    id: 'legendaries', label: 'Легендарки', icon: Gem, path: '/legendaries', group: 'arena', entitlement: 'arena', module: 'deferred-routes', preload: 'intent',
+  },
+  {
+    id: 'bg-heroes', label: 'Герои', icon: CircleUserRound, path: '/heroes', group: 'bg-primary', entitlement: 'battlegrounds', module: 'battlegrounds', preload: 'intent',
+  },
+  {
+    id: 'bg-library', label: 'Библиотека', icon: LibraryBig, path: '/library', group: 'bg-primary', entitlement: 'battlegrounds', module: 'bg-library', preload: 'intent',
+  },
+  {
+    id: 'bg-tier-list', label: 'Тир-лист', icon: ListTree, path: '/battlegrounds/tier-list', group: 'bg-primary', entitlement: 'battlegrounds', module: 'battlegrounds', preload: 'intent',
+  },
+  {
+    id: 'bg-strategies', label: 'Конструктор стратегий', icon: Grid3X3, path: '/battlegrounds/strategies', group: 'bg-builder', entitlement: 'battlegrounds', module: 'battlegrounds', preload: 'intent',
+  },
+  {
+    id: 'bg-tier-builder', label: 'Конструктор тир-листов', icon: List, path: '/battlegrounds/tier-builder', group: 'bg-builder', entitlement: 'battlegrounds', module: 'battlegrounds', preload: 'intent',
+  },
+  {
+    id: 'admin-panel', label: 'Админ панель', icon: ShieldCheck, path: '/admin', group: 'admin', entitlement: null, module: 'contests', preload: 'intent',
+  },
+] as const satisfies readonly ApplicationRouteSurfaceDefinition[];
+
+export type ApplicationRouteSurface = (typeof ROUTE_MANIFEST)[number];
+export type RouteModuleId = ApplicationRouteSurface['module'];
+export type TabId = ApplicationRouteSurface['id'];
+export type RoutePreloadId = TabId | 'login';
+export type NavigationRoute = ApplicationRouteSurface & { slug: ApplicationRouteSurface['path'] };
+
+const ROUTE_BY_ID = new Map<TabId, ApplicationRouteSurface>(
+  ROUTE_MANIFEST.map(route => [route.id, route]),
+);
+
+export const TABS: readonly NavigationRoute[] = ROUTE_MANIFEST.map(route => ({
+  ...route,
+  slug: route.path,
+}));
+
+const routesInGroup = (group: RouteGroup) => TABS.filter(route => route.group === group);
+
+// FAQ remains in the global Help menu instead of the primary product navigation.
+export const TOP_LEVEL_TABS = routesInGroup('top').filter(route => route.id !== 'faq');
+export const STANDARD_TABS = routesInGroup('standard');
+export const ARENA_TABS = routesInGroup('arena');
+export const BG_PRIMARY_TABS = routesInGroup('bg-primary');
+export const BG_BUILDER_TABS = routesInGroup('bg-builder');
+export const MISC_TABS = routesInGroup('misc');
+export const ADMIN_TABS = routesInGroup('admin');
+export const ADMIN_ONLY_TAB_IDS = new Set<TabId>(
+  ROUTE_MANIFEST.filter(route => 'adminOnly' in route && route.adminOnly).map(route => route.id),
+);
+export const BG_TAB_IDS = new Set<TabId>(
+  ROUTE_MANIFEST.filter(route => route.group === 'bg-primary' || route.group === 'bg-builder')
+    .map(route => route.id),
+);
+export const PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS = Object.fromEntries(
+  ROUTE_MANIFEST.filter(route => route.entitlement).map(route => [route.id, route.entitlement]),
+) as Partial<Record<TabId, RouteEntitlement>>;
+export const PRELOADABLE_ROUTE_IDS = new Set<RoutePreloadId>([
+  ...ROUTE_MANIFEST.filter(route => route.preload === 'intent').map(route => route.id),
+  'login',
+]);
+
+export function routeModuleIdForPreload(routeId: RoutePreloadId): RouteModuleId | null {
+  if (routeId === 'login') return 'deferred-routes';
+  const route = ROUTE_BY_ID.get(routeId);
+  return route?.preload === 'intent' ? route.module : null;
+}
+
+export function routePath(routeId: TabId): string {
+  return ROUTE_BY_ID.get(routeId)?.path ?? '/';
+}
+
+export function isRemovedPagePath(path: string): boolean {
+  const clean = path.replace(/[?#].*$/, '').replace(/\/+$/, '') || '/';
+  return clean === '/decks' || clean.startsWith('/decks/') || clean === '/jobs' || clean.startsWith('/jobs/');
+}
+
+export function tabFromPath(path: string): TabId {
+  const clean = path.replace(/[?#].*$/, '').replace(/\/+$/, '') || '/';
+  if (isRemovedPagePath(clean)) return 'home';
+  if (publicProfileIdFromPath(clean)) return 'home';
+  if (/^\/standard\/meta\/(?:standard|wild)\/[a-z0-9][a-z0-9-]{0,119}$/.test(clean)) {
+    return 'constructed-archetypes';
+  }
+  const found = ROUTE_MANIFEST.find(route => route.path !== '/'
+    && (clean === route.path || clean.startsWith(`${route.path}/`)));
+  return found?.id ?? 'home';
+}
+
+export function isKnownPath(path: string): boolean {
+  const clean = path.replace(/[?#].*$/, '').replace(/\/+$/, '') || '/';
+  if (clean === '/' || clean === '/connect' || isRemovedPagePath(clean) || publicProfileIdFromPath(clean)) return true;
+  return ROUTE_MANIFEST.some(route => route.path !== '/'
+    && (clean === route.path || clean.startsWith(`${route.path}/`)));
+}
+
+export async function applyPageMeta(
+  tabId: TabId,
+  pathname = window.location.pathname,
+  search = window.location.search,
+): Promise<ResolvedPublicUrlPolicy> {
+  const [{ seoPageForExactPath, seoPageForNavigationRoute }, { applyDocumentPageMeta }] = await Promise.all([
+    import('../../seo/registry'),
+    import('../../seo/publicUrlPolicy'),
+  ]);
+  const route = ROUTE_BY_ID.get(tabId) ?? ROUTE_MANIFEST[0];
+  const { title, description } = seoPageForExactPath(pathname)
+    ?? seoPageForNavigationRoute(route.id);
+  return applyDocumentPageMeta({ title, description, pathname, search });
+}

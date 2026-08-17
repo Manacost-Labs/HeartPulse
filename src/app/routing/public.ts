@@ -1,0 +1,31 @@
+export {
+  ADMIN_ONLY_TAB_IDS,
+  ADMIN_TABS,
+  applyPageMeta,
+  ARENA_TABS,
+  BG_BUILDER_TABS,
+  BG_PRIMARY_TABS,
+  BG_TAB_IDS,
+  isKnownPath,
+  isRemovedPagePath,
+  MISC_TABS,
+  PRELOADABLE_ROUTE_IDS,
+  PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS,
+  ROUTE_MANIFEST,
+  routeModuleIdForPreload,
+  routePath,
+  STANDARD_TABS,
+  tabFromPath,
+  TABS,
+  TOP_LEVEL_TABS,
+} from './routeManifest';
+
+export type {
+  ApplicationRouteSurface,
+  NavigationRoute,
+  RouteEntitlement,
+  RouteGroup,
+  RouteModuleId,
+  RoutePreloadId,
+  TabId,
+} from './routeManifest';

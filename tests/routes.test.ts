@@ -3,12 +3,35 @@ import {
   ADMIN_ONLY_TAB_IDS,
   BG_TAB_IDS,
   isKnownPath,
+  PRELOADABLE_ROUTE_IDS,
   PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS,
+  ROUTE_MANIFEST,
+  routeModuleIdForPreload,
   tabFromPath,
   TABS,
   TOP_LEVEL_TABS,
-} from '../src/routes';
+} from '../src/app/routing/public';
 import { seoPageForNavigationRoute } from '../src/seo/registry';
+
+assert.equal(new Set(ROUTE_MANIFEST.map(route => route.id)).size, ROUTE_MANIFEST.length,
+  'application route surface ids must be unique');
+assert.equal(new Set(ROUTE_MANIFEST.map(route => route.path)).size, ROUTE_MANIFEST.length,
+  'canonical application route surface paths must be unique');
+assert.deepEqual(
+  TABS.map(route => ({ id: route.id, slug: route.slug })),
+  ROUTE_MANIFEST.map(route => ({ id: route.id, slug: route.path })),
+  'the legacy tab view must be derived from the application route manifest',
+);
+assert.deepEqual(
+  [...PRELOADABLE_ROUTE_IDS].sort(),
+  [...ROUTE_MANIFEST.map(route => route.id).filter(id => id !== 'home'), 'login'].sort(),
+  'every non-home route surface and the login overlay must keep their current module warm-up policy',
+);
+assert.equal(routeModuleIdForPreload('home'), null, 'home keeps its current no-hover-preload policy');
+assert.equal(routeModuleIdForPreload('login'), 'deferred-routes', 'the login overlay warms its legacy module');
+assert.equal(routeModuleIdForPreload('articles'), 'deferred-routes');
+assert.equal(routeModuleIdForPreload('bg-heroes'), 'battlegrounds');
+assert.equal(routeModuleIdForPreload('bg-strategies'), 'battlegrounds');
 
 assert.equal(new Set(TABS.map(route => route.id)).size, TABS.length, 'route ids must be unique');
 assert.equal(new Set(TABS.map(route => route.slug)).size, TABS.length, 'route slugs must be unique');
