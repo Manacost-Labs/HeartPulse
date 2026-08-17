@@ -42,7 +42,7 @@ assert.match(deferredSource, /onPointerEnter=\{\(\) => preloadImage\(fullSrc\)\}
   'legendary card thumbnails must warm the full render on hover');
 assert.match(deferredSource, /ready \|\| !hasPreview \? fullSrc : previewSrc/,
   'Arena card lightboxes must keep the cached thumbnail visible until the full render is ready');
-assert.match(deferredSource, /const ProgressiveDeckCardImage/,
-  'deck lightboxes must keep the cached card tile visible until the full render is ready');
+assert.doesNotMatch(deferredSource, /const (?:ProgressiveDeckCardImage|DeckCardLightbox)/,
+  'retired deck lightboxes must not return to the Arena route bundle');
 
 console.log('card opening and lightbox performance contracts passed');

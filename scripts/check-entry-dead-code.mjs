@@ -42,9 +42,15 @@ if (diagnostics.length) {
 }
 
 const deferredRoutesSource = readFileSync('src/features/DeferredRoutes.tsx', 'utf8');
-if (/export\s+function\s+AdminPanel\b/.test(deferredRoutesSource)) {
-  console.error('[entry-dead-code] retired DeferredRoutes.AdminPanel export returned to the production graph');
+const retiredDeferredDeclarations = [
+  /(?:export\s+)?function\s+AdminPanel\s*\(/,
+  /const\s+AdminArticleRow\b/,
+  /const\s+DeckCardLightbox\b/,
+  /const\s+NETWORK_SITES\b/,
+];
+if (retiredDeferredDeclarations.some(pattern => pattern.test(deferredRoutesSource))) {
+  console.error('[entry-dead-code] retired DeferredRoutes declarations returned to the production graph');
   process.exit(1);
 }
 
-console.log(`[entry-dead-code] ${entryFiles.size} initial-shell modules have no unused declarations or parameters; retired lazy AdminPanel export is absent`);
+console.log(`[entry-dead-code] ${entryFiles.size} initial-shell modules have no unused declarations or parameters; retired lazy declarations are absent`);
