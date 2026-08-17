@@ -159,7 +159,7 @@
     "test:deployment": "node tests/deploy-release.test.mjs && node tests/edge-static-sync.test.mjs && node tests/card-image-edge-publication.test.mjs && node tests/edge-cdn-operations-contract.test.mjs",
     "test:ci-deploy-gate": "node --test tests/ci-deploy-gate.test.mjs",
     "test:seo-registry": "tsx tests/seo-registry.test.ts",
-    "test:routes": "tsx tests/routes.test.ts && node tests/deferred-route-boundaries.test.mjs",
+    "test:routes": "tsx tests/application-route-manifest.test.ts && tsx tests/routes.test.ts && node tests/deferred-route-boundaries.test.mjs",
     "test:route-inventory": "tsx tests/route-inventory.test.ts",
     "test:responsive-inventory": "tsx tests/responsive-route-inventory.test.ts",
     "test:runtime-inventory": "node --test tests/runtime-service-inventory.test.mjs",

@@ -15,14 +15,44 @@ import {
   BG_BUILDER_TABS,
   BG_PRIMARY_TABS,
   BG_TAB_IDS,
+  LazyAccountRoute,
+  LazyArchetypes,
+  LazyArticlesTab,
+  LazyBattlegroundHeroesRoute,
+  LazyBattlegroundStrategyBuilderEmbed,
+  LazyBattlegroundTierBuilderEmbed,
+  LazyBattlegroundTierList,
+  LazyBgLibrary,
+  LazyConstructedArchetypesPage,
+  LazyContestAdminPanel,
+  LazyContestsPage,
+  LazyCosmetics,
+  LazyDeckBuilder,
+  LazyDeveloperApiPage,
+  LazyFAQPage,
+  LazyFunDecksPage,
+  LazyGalleryTab,
+  LazyGuidesArchive,
+  LazyHomeTab,
+  LazyLegendaries,
+  LazyNotFoundPage,
+  LazyStandardCardsPage,
+  LazyStandardMatchupsPage,
+  LazyStandardMetaPage,
+  LazyTierList,
+  LazyViciousSyndicateGoldPage,
+  LazyWinrates,
   MISC_TABS,
+  prefetchInitialStandardCardCatalog,
+  preloadRouteModule,
   PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS,
+  routePath,
   STANDARD_TABS,
   tabFromPath,
   TABS,
   TOP_LEVEL_TABS,
   type TabId,
-} from './routes';
+} from './app/routing/public';
 import {
   clientRouteView,
   historyRouteKnowledge,
@@ -594,88 +624,12 @@ function NavigationRouteLinks({
     );
   });
 }
-const loadDeferredRoutesModule = () => import('./features/DeferredRoutes');
-const loadHomeModule = () => import('./features/Home');
-const loadFAQPageModule = () => import('./features/FAQPage');
-const loadDeveloperApiModule = () => import('./modules/developerApi/public');
-const loadBgLibraryModule = () => import('./features/BgLibrary');
-const loadGuidesArchiveModule = () => import('./features/GuidesArchive');
-const loadCosmeticsModule = () => import('./features/Cosmetics');
-const loadGalleryModule = () => import('./features/GalleryTab');
-const loadStandardMatchupsModule = () => import('./features/StandardMatchups');
-const loadStandardMetaModule = () => import('./features/StandardMeta');
-const loadConstructedArchetypesModule = () => import('./features/ConstructedArchetypes');
-const loadViciousSyndicateGoldModule = () => import('./features/ViciousSyndicateGold');
-const loadStandardCardsModule = () => import('./features/StandardCards');
-const loadFunDecksModule = () => import('./features/FunDecksPage');
-const loadContestsModule = () => import('./features/Contests');
-const loadBattlegroundsModule = () => import('./features/Battlegrounds');
 const LazyPaywallGate = React.lazy(() => import('./components/PaywallGate'));
 const LazyGlobalUtilityHeader = React.lazy(() => import('./components/GlobalUtilityHeader'));
 const LazyFAQSection = React.lazy(() => import('./components/FAQSection'));
 const LazySupportPrompt = React.lazy(() => import('./components/SupportPrompt'));
 const LazySiteFooter = React.lazy(() => import('./components/SiteFooter'));
-const LazyHomeTab = React.lazy(loadHomeModule);
-const LazyFAQPage = React.lazy(loadFAQPageModule);
-const LazyDeveloperApiPage = React.lazy(() => loadDeveloperApiModule().then(module => ({ default: module.DeveloperApiPage })));
-const LazyAccountRoute = React.lazy(() => import('./modules/accountRoute/public'));
-const LazyNotFoundPage = React.lazy(() => import('./features/NotFoundPageRoute'));
-const LazyWinrates = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.Winrates })));
-const LazyTierList = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.TierList })));
-const LazyLegendaries = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.Legendaries })));
-const LazyArticlesTab = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.ArticlesTab })));
-const LazyGalleryTab = React.lazy(loadGalleryModule);
-const LazyBgLibrary = React.lazy(loadBgLibraryModule);
-const LazyGuidesArchive = React.lazy(loadGuidesArchiveModule);
-const LazyCosmetics = React.lazy(loadCosmeticsModule);
-const LazyStandardMatchupsPage = React.lazy(loadStandardMatchupsModule);
-const LazyStandardMetaPage = React.lazy(loadStandardMetaModule);
-const LazyConstructedArchetypesPage = React.lazy(loadConstructedArchetypesModule);
-const LazyViciousSyndicateGoldPage = React.lazy(loadViciousSyndicateGoldModule);
-const LazyStandardCardsPage = React.lazy(loadStandardCardsModule);
-const LazyFunDecksPage = React.lazy(loadFunDecksModule);
-const LazyContestsPage = React.lazy(() => loadContestsModule().then(module => ({ default: module.ContestsPage })));
-const LazyContestAdminPanel = React.lazy(() => loadContestsModule().then(module => ({ default: module.ContestAdminPanel })));
-const loadDeckBuilderModule = () => import('./features/DeckBuilder');
-const LazyDeckBuilder = React.lazy(loadDeckBuilderModule);
-const loadArchetypesModule = () => import('./features/Archetypes');
-const LazyArchetypes = React.lazy(loadArchetypesModule);
-const LazyBattlegroundHeroesRoute = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundHeroesRoute })));
-const LazyBattlegroundTierList = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundTierList })));
-const LazyBattlegroundStrategyBuilderEmbed = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundStrategyBuilderEmbed })));
-const LazyBattlegroundTierBuilderEmbed = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundTierBuilderEmbed })));
 const STANDARD_SOFT_PAYWALL_TABS = new Set<TabId>(['standard-meta', 'constructed-archetypes', 'fun-decks']);
-const ROUTE_PRELOADERS: Partial<Record<TabId | 'login', () => Promise<unknown>>> = {
-  winrates: loadDeferredRoutesModule,
-  tierlist: loadDeferredRoutesModule,
-  legendaries: loadDeferredRoutesModule,
-  articles: loadDeferredRoutesModule,
-  faq: loadFAQPageModule,
-  'developer-api': loadDeveloperApiModule,
-  gallery: loadGalleryModule,
-  login: loadDeferredRoutesModule,
-  'admin-panel': loadContestsModule,
-  contests: loadContestsModule,
-  'deck-builder': loadDeckBuilderModule,
-  archetypes: loadArchetypesModule,
-  'standard-matchups': loadStandardMatchupsModule,
-  'standard-meta': loadStandardMetaModule,
-  'constructed-archetypes': loadConstructedArchetypesModule,
-  'standard-vicious-gold': loadViciousSyndicateGoldModule,
-  'standard-cards': loadStandardCardsModule,
-  'fun-decks': loadFunDecksModule,
-  'bg-strategies': loadBattlegroundsModule,
-  'bg-heroes': loadBattlegroundsModule,
-  'bg-tier-list': loadBattlegroundsModule,
-  'bg-tier-builder': loadBattlegroundsModule,
-  'bg-library': loadBgLibraryModule,
-  'guides-archive': loadGuidesArchiveModule,
-  cosmetics: loadCosmeticsModule,
-};
-
-function preloadRouteModule(route: TabId | 'login'): void {
-  void ROUTE_PRELOADERS[route]?.().catch(() => {});
-}
 
 function RouteFallback({ minHeight = 520 }: { minHeight?: number }) {
   return (
@@ -872,55 +826,43 @@ export default function App() {
     localStorage.removeItem('etag_wr_hsreplay');
   }, []);
 
-  /** Navigate to a tab: update state + browser URL */
-  const navigate = useCallback((tab: TabId) => {
-    const slug = TABS.find(t => t.id === tab)!.slug;
-    preloadRouteModule(tab);
-    if (window.location.pathname !== slug || window.location.search || window.location.hash) {
-      window.history.pushState({ tab, routeKnown: true }, '', slug);
-    }
-    React.startTransition(() => {
-      setRouteResolution(settledClientRouteResolution(slug, true));
-      setLocationSearch('');
-      setCurrentPath(slug);
-      setActiveTab(tab);
-      setMobileMenuOpen(false);
-    });
-    window.scrollTo({ top: 0, behavior: 'auto' });
-  }, []);
-
-  const navigatePath = useCallback((path: string) => {
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    const tab = tabFromPath(normalizedPath);
-    preloadRouteModule(tab);
-    if (window.location.pathname !== normalizedPath || window.location.search || window.location.hash) {
-      window.history.pushState({ tab, routeKnown: true }, '', normalizedPath);
-    }
-    React.startTransition(() => {
-      setRouteResolution(settledClientRouteResolution(normalizedPath, true));
-      setLocationSearch('');
-      setCurrentPath(normalizedPath);
-      setActiveTab(tab);
-      setMobileMenuOpen(false);
-    });
-    window.scrollTo({ top: 0, behavior: 'auto' });
-  }, []);
-
-  const navigateLogin = useCallback(() => {
-    preloadRouteModule('login');
-    const path = '/';
-    const search = '?login';
-    if (window.location.pathname !== path || window.location.search !== search || window.location.hash) {
-      window.history.pushState({ tab: activeTab, login: true, routeKnown: true }, '', `${path}${search}`);
+  const commitNavigation = useCallback((path: string, tab: TabId, search = '', login = false) => {
+    if (window.location.pathname !== path
+      || window.location.search !== search
+      || window.location.hash) {
+      window.history.pushState(
+        login ? { tab, login: true, routeKnown: true } : { tab, routeKnown: true },
+        '',
+        `${path}${search}`,
+      );
     }
     React.startTransition(() => {
       setRouteResolution(settledClientRouteResolution(path, true));
       setLocationSearch(search);
       setCurrentPath(path);
+      setActiveTab(tab);
       setMobileMenuOpen(false);
     });
     window.scrollTo({ top: 0, behavior: 'auto' });
-  }, [activeTab]);
+  }, []);
+
+  /** Navigate to a tab: update state + browser URL */
+  const navigate = useCallback((tab: TabId) => {
+    preloadRouteModule(tab);
+    commitNavigation(routePath(tab), tab);
+  }, [commitNavigation]);
+
+  const navigatePath = useCallback((path: string) => {
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const tab = tabFromPath(normalizedPath);
+    preloadRouteModule(tab);
+    commitNavigation(normalizedPath, tab);
+  }, [commitNavigation]);
+
+  const navigateLogin = useCallback(() => {
+    preloadRouteModule('login');
+    commitNavigation('/', activeTab, '?login', true);
+  }, [activeTab, commitNavigation]);
 
   /** Handle browser back / forward */
   useEffect(() => {
@@ -1321,11 +1263,9 @@ export default function App() {
     warmedRoutesRef.current.add(route);
     preloadRouteModule(route);
 
-    if (route === 'standard-cards') void loadStandardCardsModule().then(module => (
-      module.prefetchInitialConstructedCardCatalog(
-        'standard', appIsAdmin || hasSubscriptionEntitlement(appSubscription, 'standard'),
-      )
-    )).catch(() => {});
+    if (route === 'standard-cards') void prefetchInitialStandardCardCatalog(
+      appIsAdmin || hasSubscriptionEntitlement(appSubscription, 'standard'),
+    ).catch(() => {});
 
     if (route === 'articles' && !articlesRequestedRef.current) {
       void fetchArticles({ silent: true });

@@ -2,22 +2,29 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+const routeManifestSource = readFileSync(new URL('../src/app/routing/routeManifest.tsx', import.meta.url), 'utf8');
+const routeModulesSource = readFileSync(new URL('../src/app/routing/routeModules.tsx', import.meta.url), 'utf8');
 const gallerySource = readFileSync(new URL('../src/features/GalleryTab.tsx', import.meta.url), 'utf8');
 
 assert.match(
-  appSource,
-  /const loadGalleryModule = \(\) => import\('\.\/features\/GalleryTab'\)/,
+  routeManifestSource,
+  /loadGalleryModule = \(\) => import\('\.\.\/\.\.\/features\/GalleryTab'\)/,
   'the public gallery must own a dedicated lazy route chunk',
 );
 assert.doesNotMatch(
-  appSource,
+  routeManifestSource,
   /module\.GalleryTab/,
   'the gallery must not download the unrelated DeferredRoutes module',
 );
 assert.match(
-  appSource,
-  /gallery:\s*loadGalleryModule/,
+  routeManifestSource,
+  /slug:\s*'\/gallery'[\s\S]*?loadGalleryModule\)/,
   'navigation intent must preload the dedicated gallery chunk',
+);
+assert.doesNotMatch(
+  appSource,
+  /const load[A-Z][A-Za-z]+Module|ROUTE_PRELOADERS/,
+  'App must delegate lazy module ownership and preload policy to application routing',
 );
 assert.match(
   gallerySource,
