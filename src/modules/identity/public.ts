@@ -1,6 +1,10 @@
 export {
   fetchCurrentAuthUser,
 } from './api/authSessionApi';
+export {
+  canAccessAdminWorkspace,
+  canManageContests,
+} from './model/authAccess';
 export type { AuthUser } from './model/authUser';
 export {
   publicProfileIdFromPath,

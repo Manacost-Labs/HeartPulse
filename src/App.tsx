@@ -54,6 +54,8 @@ import {
 } from './app/routing/public';
 import {
   AuthAvatar,
+  canAccessAdminWorkspace,
+  canManageContests,
   fetchCurrentAuthUser,
   publicProfileIdFromPath,
   type AuthUser,
@@ -709,7 +711,7 @@ export default function App() {
     };
   }, []);
 
-  // Admin panel: ?admin in URL; access is checked by authenticated user ID.
+  // Admin panel: ?admin in URL; visibility follows validated server permissions.
   const wantsAdmin = locationParams.has('admin');
   const wantsLogin = locationParams.has('login');
   const publicProfileId = publicProfileIdFromPath(currentPath);
@@ -722,18 +724,8 @@ export default function App() {
   const [appHasAuthHint, setAppHasAuthHint] = useState(() => hasAuthSessionHint());
   const [appSubscription, setAppSubscription] = useState<SubscriptionStatus | null>(null);
   const [appSubscriptionLoading, setAppSubscriptionLoading] = useState(false);
-  const appIsContestAdmin = Boolean(appAuthUser && (
-    appAuthUser.contestAdminAllowed
-    || appAuthUser.adminAllowed
-    || appAuthUser.id === 'user_42368c85b8de'
-    || appAuthUser.profileId === 'user_42368c85b8de'
-  ));
-  const appIsAdmin = Boolean(appAuthUser && (
-    appAuthUser.adminAllowed
-    || appAuthUser.role === 'admin'
-    || appAuthUser.id === 'user_42368c85b8de'
-    || appAuthUser.profileId === 'user_42368c85b8de'
-  ));
+  const appIsContestAdmin = canManageContests(appAuthUser);
+  const appIsAdmin = canAccessAdminWorkspace(appAuthUser);
   const visibleStandardTabs = STANDARD_TABS;
   const visibleArenaTabs = useMemo(() => ARENA_TABS.filter(tab => !ADMIN_ONLY_TAB_IDS.has(tab.id) || appIsAdmin), [appIsAdmin]);
   const visibleMiscTabs = useMemo(

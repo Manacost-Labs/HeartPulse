@@ -12,7 +12,7 @@ import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import SubscriptionPurchaseButtons from '../components/SubscriptionPurchaseButtons';
 import PaywallGate from '../components/PaywallGate';
 import FAQSection from '../components/FAQSection';
-import type { AuthUser } from '../modules/identity/public';
+import { canAccessAdminWorkspace, type AuthUser } from '../modules/identity/public';
 import {
   hasSubscriptionEntitlement,
   type SubscriptionEntitlementKey,
@@ -2930,7 +2930,7 @@ function articleEntitlement(article: Article): SubscriptionEntitlementKey | null
 }
 
 function canAccessArticle(article: Article, subscription: SubscriptionStatus | null | undefined, authUser?: AuthUser | null): boolean {
-  if (authUser?.role === 'admin') return true;
+  if (canAccessAdminWorkspace(authUser)) return true;
   return hasSubscriptionEntitlement(subscription, articleEntitlement(article));
 }
 

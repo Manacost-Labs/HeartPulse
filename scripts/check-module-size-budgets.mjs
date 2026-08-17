@@ -14,12 +14,12 @@ const moduleBudgets = [
   },
   {
     path: 'src/modules/identity/ui/LoginPanel.tsx',
-    maxLines: 1_191,
+    maxLines: 1_172,
     owner: 'identity platform',
   },
   {
     path: 'src/features/Contests.tsx',
-    maxLines: 1_719,
+    maxLines: 1_700,
     owner: 'administrator workspace composition',
   },
   {
@@ -29,7 +29,7 @@ const moduleBudgets = [
   },
   {
     path: 'src/App.tsx',
-    maxLines: 1_698,
+    maxLines: 1_690,
     owner: 'application shell',
   },
   {

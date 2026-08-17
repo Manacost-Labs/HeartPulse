@@ -22,6 +22,11 @@ import {
   type SubscriptionStatus,
 } from '../modules/subscriptions/public';
 import {
+  canAccessAdminWorkspace,
+  canManageContests,
+} from '../modules/identity/public';
+import type { AuthUser } from '../modules/identity/public';
+import {
   ContestAdminReferrals,
   type AdminReferralClick,
   type AdminReferralLink,
@@ -105,24 +110,6 @@ const AdminApiKeys = React.lazy(async () => {
 });
 const ContestAdminArenaSynergies = React.lazy(() => import('./ContestAdminArenaSynergies'));
 
-type AuthUser = {
-  id?: string;
-  profileId?: string;
-  email: string;
-  name: string;
-  role: 'admin' | 'user' | string;
-  country?: string;
-  newsletterOptIn?: boolean;
-  avatarInitials?: string;
-  telegramUsername?: string;
-  photoUrl?: string;
-  contactVkUrl?: string;
-  contactTelegram?: string;
-  contactEmail?: string;
-  adminAllowed?: boolean;
-  contestAdminAllowed?: boolean;
-};
-
 function formatDate(iso: string | null): string {
   if (!iso) return 'нет данных';
   const d = new Date(iso);
@@ -162,12 +149,6 @@ function addHoursForDateInput(hours: number): string {
 
 function RouteFallback({ minHeight = 520 }: { minHeight?: number }) {
   return <div className="route-fallback" aria-busy="true" aria-label="Загрузка раздела" style={{ minHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b6c42', fontFamily: 'var(--font-display)' }}>Загрузка...</div>;
-}
-
-const CONTEST_ADMIN_USER_ID = 'user_42368c85b8de';
-
-function isContestAdminUser(user: AuthUser | null | undefined): boolean {
-  return Boolean(user && (user.contestAdminAllowed || user.adminAllowed || user.id === CONTEST_ADMIN_USER_ID || user.profileId === CONTEST_ADMIN_USER_ID));
 }
 
 function authJsonHeaders(): HeadersInit {
@@ -429,8 +410,8 @@ async function uploadGalleryArtFile(file: File, metadata: { title: string; descr
 }
 
 export function ContestAdminPanel({ authUser, authChecking = false }: { authUser: AuthUser | null; authChecking?: boolean }) {
-  const allowed = isContestAdminUser(authUser);
-  const hasFullAdminAccess = Boolean(authUser && (authUser.adminAllowed || authUser.role === 'admin'));
+  const allowed = canManageContests(authUser);
+  const hasFullAdminAccess = canAccessAdminWorkspace(authUser);
   const [contests, setContests] = useState<Contest[]>([]);
   const [entries, setEntries] = useState<ContestEntry[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(false);

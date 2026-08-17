@@ -6,8 +6,8 @@ const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8
 
 assert.match(
   profileSource,
-  /authUser\.adminAllowed\s*\|\|\s*authUser\.role\s*===\s*'admin'/,
-  'profile must recognize both server-provided adminAllowed and the persisted admin role',
+  /canAccessAdminWorkspace\(authUser\)/,
+  'profile admin links must follow the validated identity permission policy',
 );
 assert.match(
   appSource,
@@ -16,8 +16,8 @@ assert.match(
 );
 assert.match(
   appSource,
-  /appAuthUser\.adminAllowed/,
-  'the shell must preserve validated adminAllowed for administrative tools',
+  /canAccessAdminWorkspace\(appAuthUser\)/,
+  'the shell must use the validated identity permission policy for administrative tools',
 );
 assert.match(
   appSource,

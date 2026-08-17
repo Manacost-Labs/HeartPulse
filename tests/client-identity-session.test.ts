@@ -71,8 +71,15 @@ assert.deepEqual(
   authUserFromProfilePayload({
     success: true,
     user: { ...baseUser, passwordHash: 'must-not-cross-the-client-contract' },
+    adminAllowed: false,
+    contestAdminAllowed: false,
   }),
-  baseUser,
+  { ...baseUser, adminAllowed: false, contestAdminAllowed: false },
+);
+assert.equal(
+  authUserFromProfilePayload({ success: true, user: baseUser }),
+  null,
+  'profile replacement must not silently discard the current permission contract',
 );
 assert.equal(authUserFromProfilePayload({ success: true, user: { name: 'Без email' } }), null);
 assert.equal(
@@ -163,6 +170,8 @@ try {
     return new Response(JSON.stringify({
       success: true,
       user: { ...baseUser, ...profileUpdate },
+      adminAllowed: false,
+      contestAdminAllowed: false,
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -177,6 +186,8 @@ try {
   assert.deepEqual(await updateCurrentAuthProfile(widerProfileUpdate), {
     ...baseUser,
     ...profileUpdate,
+    adminAllowed: false,
+    contestAdminAllowed: false,
   });
   assert.equal(requestedUrl, '/api/auth/profile');
   assert.equal(requestedInit?.method, 'PATCH');

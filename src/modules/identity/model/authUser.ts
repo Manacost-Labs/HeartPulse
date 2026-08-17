@@ -81,27 +81,51 @@ function permissionFromPayload(
   return typeof payload[field] === 'boolean' ? payload[field] : null;
 }
 
-export function authSessionFromPayload(payload: unknown): { user: AuthUser | null } | null {
-  if (!isRecord(payload) || !hasOwn(payload, 'user')) return null;
+function authUserFromPayload(payload: Record<string, unknown>): AuthUser | null {
+  if (!hasOwn(payload, 'user') || payload.user === null) return null;
 
   const adminAllowed = permissionFromPayload(payload, 'adminAllowed');
   const contestAdminAllowed = permissionFromPayload(payload, 'contestAdminAllowed');
   if (adminAllowed === null || contestAdminAllowed === null) return null;
 
-  if (payload.user === null) return { user: null };
   const user = authUserFromValue(payload.user);
   if (!user) return null;
   if ((adminAllowed !== undefined && user.adminAllowed !== undefined && adminAllowed !== user.adminAllowed)
     || (contestAdminAllowed !== undefined
       && user.contestAdminAllowed !== undefined
       && contestAdminAllowed !== user.contestAdminAllowed)) return null;
+
+  return {
+    ...user,
+    ...(user.adminAllowed === undefined && adminAllowed !== undefined ? { adminAllowed } : {}),
+    ...(user.contestAdminAllowed === undefined && contestAdminAllowed !== undefined
+      ? { contestAdminAllowed }
+      : {}),
+  };
+}
+
+export function authSessionFromPayload(payload: unknown): { user: AuthUser | null } | null {
+  if (!isRecord(payload) || !hasOwn(payload, 'user')) return null;
+  if (permissionFromPayload(payload, 'adminAllowed') === null
+    || permissionFromPayload(payload, 'contestAdminAllowed') === null) return null;
+  if (payload.user === null) return { user: null };
+  const user = authUserFromPayload(payload);
+  if (!user) return null;
   return {
     user: {
       ...user,
-      adminAllowed: user.adminAllowed ?? adminAllowed ?? false,
-      contestAdminAllowed: user.contestAdminAllowed ?? contestAdminAllowed ?? false,
+      adminAllowed: user.adminAllowed ?? false,
+      contestAdminAllowed: user.contestAdminAllowed ?? false,
     },
   };
+}
+
+/** Reads an authenticated user from a successful, untrusted JSON response. */
+export function authUserFromSuccessPayload(payload: unknown): AuthUser | null {
+  if (!isRecord(payload) || !hasOwn(payload, 'success') || payload.success !== true) return null;
+  const user = authUserFromPayload(payload);
+  if (!user || user.adminAllowed === undefined || user.contestAdminAllowed === undefined) return null;
+  return user;
 }
 
 export function authErrorFromPayload(payload: unknown): string | null {

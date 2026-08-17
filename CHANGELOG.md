@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Moved password login, registration, password reset and email verification
+  transport behind the private client `identity` API, reused one fail-closed
+  browser-user parser across authenticated responses, removed the duplicate
+  contest user type, and centralized administrative UI visibility on validated
+  server permission flags instead of legacy role or ID fallbacks.
 - Moved current-session loading, account-profile updates, best-effort logout and
   allowlisted browser-user validation into the client `identity` model/API
   boundary; preserved retry, cancellation, CSRF, error and immediate-logout UI

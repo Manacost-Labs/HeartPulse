@@ -206,29 +206,32 @@ The check rejects:
 - every runtime import cycle;
 - stale, duplicated, unsafe or expired migration exceptions.
 
-The current migration baseline scans 437 source files and contains thirteen
+The current migration baseline scans 440 source files and contains thirteen
 modules, no missing public entries, no outside-to-internal imports, five
 module-to-legacy imports, four type-inclusive cycles, two legacy client/server
 source crossings and zero runtime cycles. The Arena, constructed-card,
 Battlegrounds public-API and admin-workspace consumers now enter their modules
-only through configured public entries. The graph contains 740 resolved edges.
+only through configured public entries. The graph contains 748 resolved edges.
 The client subscription status, entitlement policy and ordered display labels
 now have one
 runtime-neutral owner under `src/modules/subscriptions`; application and legacy
 route composition consume its public entry instead of maintaining duplicate
 access models or presentation metadata.
 The `client.identity` module now owns the canonical account-surface browser
-user contract, its allowlisted runtime parser, private session/profile/logout
-transport, public-profile path builder and route parser, API model,
+user contract, its allowlisted runtime parser, guest login/register/reset/
+verification transport, private session/profile/logout transport, validated
+admin and contest UI policy, public-profile path builder and route parser, API model,
 `AuthAvatar`, the shared profile hero, the public-profile route and separate
 lazy login/profile loaders. Session verification keeps its bounded retry and
 abort behavior; profile updates keep the CSRF request marker; logout remains a
 best-effort request so the local interface clears immediately. The application
 shell and login/profile UI no longer parse JSON or own endpoint literals for
-those operations. The validated session reader adds a measured 1,404 raw / 435
-gzip bytes to the startup shell; profile validation stays in the lazy account
-route and adds 568 raw / 244 gzip bytes there. All four values are exact build
-ratchets, and the login and public-profile chunks remain independent.
+session, profile and guest-auth operations. The validated session reader adds a
+measured 1,404 raw / 435 gzip bytes to the startup shell; profile validation
+stays in the lazy account route and adds 568 raw / 244 gzip bytes there. Guest
+transport plus the shared permission policy add another measured 354 raw / 92
+gzip startup bytes and 260 raw bytes to the lazy account route. These values are
+exact build ratchets, and the login and public-profile chunks remain independent.
 Account routing and Application Connect consume that contract through
 `identity/public.ts`, while the eager avatar styling enters through the checked
 `identity/public.css`. Login and `/id/:id` remain independent route chunks and

@@ -89,13 +89,16 @@ const budgets = {
   // bytes). Profile validation stays in the lazy account route (+568 raw /
   // +244 gzip bytes). Keep these measured security costs exact and prevent
   // either surface from absorbing unrelated growth.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 68_853),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 261_871),
-  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 81_054),
+  // Guest-auth transport and the shared permission policy add 354 raw / 92
+  // gzip bytes to startup. Their strict response parsing adds 260 raw bytes to
+  // the lazy account route; keep all four measured deltas explicit.
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 69_207),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 262_225),
+  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 81_146),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),
   deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 78_000),
-  loginPanelJs: Number(process.env.BUDGET_LOGIN_PANEL_JS_BYTES || 28_893),
+  loginPanelJs: Number(process.env.BUDGET_LOGIN_PANEL_JS_BYTES || 29_153),
   publicProfilePageJs: Number(process.env.BUDGET_PUBLIC_PROFILE_PAGE_JS_BYTES || 3_400),
   profileIdentityHeroJs: Number(process.env.BUDGET_PROFILE_IDENTITY_HERO_JS_BYTES || 1_150),
   galleryPageJs: Number(process.env.BUDGET_GALLERY_PAGE_JS_BYTES || 4_700),

@@ -23,7 +23,18 @@ import {
   logoutCurrentAuthSession,
   updateCurrentAuthProfile,
 } from '../api/privateAccountApi';
-import type { AuthUser } from '../model/authUser';
+import {
+  confirmPasswordReset,
+  registerPasswordAccount,
+  requestPasswordLogin,
+  requestPasswordReset,
+  verifyEmailAuthCode,
+} from '../api/guestAuthApi';
+import {
+  authUserFromSuccessPayload,
+  type AuthUser,
+} from '../model/authUser';
+import { canAccessAdminWorkspace } from '../model/authAccess';
 import { publicProfilePath } from '../model/publicProfilePath';
 import './IdentityProfile.css';
 import ProfileIdentityHero from './ProfileIdentityHero';
@@ -405,28 +416,26 @@ export function LoginPanel({
     void fetchContestHistory();
   }, [authUser, fetchSubscription, fetchContestHistory]);
 
+  const applyAuthenticatedUser = (user: AuthUser) => {
+    setAuthUser(user);
+    setProfileCountry(user.country || '');
+    setProfileNewsletter(Boolean(user.newsletterOptIn));
+    setProfileVkUrl(user.contactVkUrl || '');
+    setProfileTelegram(user.contactTelegram || user.telegramUsername || '');
+    setProfileContactEmail(user.contactEmail || (isRealAuthEmail(user.email) ? user.email : ''));
+    onAuthChange?.(user);
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMsg(null);
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Ошибка входа');
+      const result = await requestPasswordLogin({ email, password });
       sessionStorage.setItem(AUTH_EMAIL_KEY, email);
-      if (data.user) {
+      if (result.kind === 'authenticated') {
         markAuthSessionHint();
-        setAuthUser(data.user);
-        setProfileCountry(data.user?.country || '');
-        setProfileNewsletter(Boolean(data.user?.newsletterOptIn));
-        setProfileVkUrl(data.user?.contactVkUrl || '');
-        setProfileTelegram(data.user?.contactTelegram || data.user?.telegramUsername || '');
-        setProfileContactEmail(data.user?.contactEmail || (isRealAuthEmail(data.user?.email) ? data.user.email : ''));
-        onAuthChange?.(data.user);
+        applyAuthenticatedUser(result.user);
         setPassword('');
         setMsg(null);
         return;
@@ -446,13 +455,13 @@ export function LoginPanel({
     setLoading(true);
     setMsg(null);
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name, country, newsletterOptIn, password }),
+      await registerPasswordAccount({
+        email,
+        name,
+        country,
+        newsletterOptIn,
+        password,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Ошибка регистрации');
       sessionStorage.setItem(AUTH_EMAIL_KEY, email);
       setAuthStep('code');
       setPassword('');
@@ -469,17 +478,11 @@ export function LoginPanel({
     setLoading(true);
     setMsg(null);
     try {
-      const res = await fetch('/api/auth/password-reset/request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Не удалось отправить код');
+      const result = await requestPasswordReset({ email });
       sessionStorage.setItem(AUTH_EMAIL_KEY, email);
       setAuthStep('code');
       setPassword('');
-      setMsg({ type: 'ok', text: data.message || 'Код отправлен на почту.' });
+      setMsg({ type: 'ok', text: result.message || 'Код отправлен на почту.' });
     } catch (err: any) {
       setMsg({ type: 'err', text: err.message });
     } finally {
@@ -492,13 +495,7 @@ export function LoginPanel({
     setLoading(true);
     setMsg(null);
     try {
-      const res = await fetch('/api/auth/password-reset/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Не удалось обновить пароль');
+      await confirmPasswordReset({ email, code, password });
       setAuthMode('login');
       setAuthStep('password');
       setCode('');
@@ -516,22 +513,10 @@ export function LoginPanel({
     setLoading(true);
     setMsg(null);
     try {
-      const res = await fetch('/api/auth/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Неверный код');
+      const user = await verifyEmailAuthCode({ email, code });
       sessionStorage.setItem(AUTH_EMAIL_KEY, email);
       markAuthSessionHint();
-      setAuthUser(data.user);
-      setProfileCountry(data.user?.country || '');
-      setProfileNewsletter(Boolean(data.user?.newsletterOptIn));
-      setProfileVkUrl(data.user?.contactVkUrl || '');
-      setProfileTelegram(data.user?.contactTelegram || data.user?.telegramUsername || '');
-      setProfileContactEmail(data.user?.contactEmail || (isRealAuthEmail(data.user?.email) ? data.user.email : ''));
-      onAuthChange?.(data.user);
+      applyAuthenticatedUser(user);
       setCode('');
     } catch (err: any) {
       setMsg({ type: 'err', text: err.message });
@@ -573,13 +558,9 @@ export function LoginPanel({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Не удалось подтвердить почту');
-      setAuthUser(data.user);
-      setProfileCountry(data.user?.country || '');
-      setProfileNewsletter(Boolean(data.user?.newsletterOptIn));
-      setProfileVkUrl(data.user?.contactVkUrl || '');
-      setProfileTelegram(data.user?.contactTelegram || data.user?.telegramUsername || '');
-      setProfileContactEmail(data.user?.contactEmail || (isRealAuthEmail(data.user?.email) ? data.user.email : ''));
-      onAuthChange?.(data.user);
+      const user = authUserFromSuccessPayload(data);
+      if (!user) throw new Error('Не удалось подтвердить почту');
+      applyAuthenticatedUser(user);
       setSubscription(data.subscription);
       setSubscriptionChecked(true);
       setBoostyCode('');
@@ -985,7 +966,7 @@ export function LoginPanel({
             )}
           </section>
           <div className="profile-account-actions" data-tour-id="profile-account-actions">
-            {(authUser.adminAllowed || authUser.role === 'admin') && (
+            {canAccessAdminWorkspace(authUser) && (
               <>
                 <a href="/standard/meta" data-profile-admin-destination="standard-meta">
                   Открыть мету Standard · Beta

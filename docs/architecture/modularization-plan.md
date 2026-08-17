@@ -413,8 +413,8 @@ provider, guest-auth request extraction and subscription extraction remain.
    `DeferredRoutes.tsx` is ratcheted from 4,416 to 3,226 lines, its route JS from
    108.4 kB to 78 kB, and its route-owner CSS from 52.1 kB to 31.3 kB. The
    mechanically extracted 1,196-line `LoginPanel.tsx` is a temporary migration
-   ceiling; the next identity slice separates API/session orchestration from
-   guest-auth and authenticated-profile views.
+   ceiling; the next identity slices separate provider linking, auth lifecycle
+   orchestration and the guest/authenticated views.
 4. [x] Move the public profile, profile hero and avatar into identity; expose
    the route only through a lazy public loader and the eager avatar styles only
    through the checked `public.css`. The numeric and bounded legacy profile-path
@@ -439,6 +439,16 @@ provider, guest-auth request extraction and subscription extraction remain.
    bytes; lazy profile-response validation adds 568 raw / 244 gzip bytes to the
    account route. These exact costs are ratcheted while mutations remain out of
    the initial graph and login/public-profile chunks stay independent.
+   The follow-up identity slice moves password login, registration, reset and
+   email verification transport behind a private `api/guestAuthApi.ts` owner,
+   reuses one fail-closed `AuthUser` response parser and centralizes admin and
+   contest UI policy on validated server permission flags. Legacy role/ID UI
+   bypasses and the duplicate contest `AuthUser` declaration are removed. This
+   lowers `LoginPanel.tsx`, `Contests.tsx` and `App.tsx` ceilings to 1,172,
+   1,700 and 1,690 lines. The shared policy adds a measured 354 raw / 92 gzip
+   startup bytes; strict guest-auth parsing adds 260 raw bytes only to the lazy
+   account route. Provider linking and subscription parsing remain the next
+   isolated boundary.
 6. [x] Put public-profile ID policy, SQLite persistence, serialization and HTTP
    routing behind `server.publicProfile/public.ts`; keep application device
    authorization behind the existing `server.applicationAuth/public.ts`.
