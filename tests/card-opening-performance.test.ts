@@ -8,6 +8,7 @@ const listPrefetchSource = readFileSync(new URL('../src/features/constructedCard
 const lightboxSource = readFileSync(new URL('../src/features/ConstructedCardLightbox.tsx', import.meta.url), 'utf8');
 const deferredSource = readFileSync(new URL('../src/features/DeferredRoutes.tsx', import.meta.url), 'utf8');
 const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+const routeModulesSource = readFileSync(new URL('../src/app/routing/routeModules.tsx', import.meta.url), 'utf8');
 
 assert.match(cardsSource, /prefetchConstructedCardDetail\(/,
   'card catalog links must warm their detail response before navigation');
@@ -29,8 +30,10 @@ assert.match(listPrefetchSource, /statsAccess \? 'paid' : 'public'/,
   'public and subscriber list payloads must never share a client cache key');
 assert.match(appSource, /onPointerDown=\{\(\) => onWarm\(tab\.id\)\}/,
   'touch navigation must start loading its lazy route before click');
-assert.match(appSource, /route === 'standard-cards'[\s\S]*prefetchInitialConstructedCardCatalog/,
-  'warming the cards navigation must start its first data request before click');
+assert.match(appSource, /route === 'standard-cards'[\s\S]*prefetchInitialStandardCardCatalog/,
+  'warming the cards navigation must delegate its first data request before click');
+assert.match(routeModulesSource, /loadStandardCardsModule\(\)\.then[\s\S]*prefetchInitialConstructedCardCatalog/,
+  'the application route adapter must warm the constructed-card catalog through the route loader');
 assert.match(cardsStyles, /\.constructed-cards__state\s*\{[^}]*min-height:\s*70vh/,
   'the cold catalog loader must reserve enough viewport space to avoid a late footer shift');
 

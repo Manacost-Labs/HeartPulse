@@ -2,12 +2,17 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
-const routeManifestSource = readFileSync(new URL('../src/app/routing/routeManifest.tsx', import.meta.url), 'utf8');
+const routeManifestSource = readFileSync(new URL('../src/app/routing/routeManifest.ts', import.meta.url), 'utf8');
 const routeModulesSource = readFileSync(new URL('../src/app/routing/routeModules.tsx', import.meta.url), 'utf8');
 const applicationNavigationSource = readFileSync(
   new URL('../src/app/routing/useApplicationNavigation.ts', import.meta.url),
   'utf8',
 );
+const authAvatarSource = readFileSync(new URL('../src/components/AuthAvatar.tsx', import.meta.url), 'utf8');
+const authAvatarStyles = readFileSync(new URL('../src/components/AuthAvatar.css', import.meta.url), 'utf8');
+const initialStyles = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
+const profileIdentityStyles = readFileSync(new URL('../src/components/ProfileIdentityHero.css', import.meta.url), 'utf8');
+const deferredStyles = readFileSync(new URL('../src/features/DeferredRoutes.css', import.meta.url), 'utf8');
 const gallerySource = readFileSync(new URL('../src/features/GalleryTab.tsx', import.meta.url), 'utf8');
 
 assert.match(
@@ -50,15 +55,26 @@ assert.doesNotMatch(
   /const load[A-Z][A-Za-z]+Module|ROUTE_PRELOADERS/,
   'App must delegate lazy module ownership and preload policy to application routing',
 );
-assert.doesNotMatch(
-  appSource,
-  /import AuthAvatar from/,
-  'authenticated avatar rendering must stay out of the anonymous startup bundle',
-);
 assert.match(
   appSource,
-  /const LazyAuthAvatar = React\.lazy\(\(\) => import\('\.\/components\/AuthAvatar'\)\)/,
-  'the authenticated avatar must load only after identity data is available',
+  /import AuthAvatar from '\.\/components\/AuthAvatar'/,
+  'the primary authenticated navigation must render its small avatar without an extra request or fallback flash',
+);
+assert.doesNotMatch(
+  appSource,
+  /LazyAuthAvatar|import\('\.\/components\/AuthAvatar'\)/,
+  'the primary authenticated navigation must not introduce a granular avatar chunk',
+);
+assert.doesNotMatch(authAvatarSource, /import ['"].*\.css['"]/,
+  'the browser-independent application shell import must not execute a CSS loader in Node');
+assert.match(initialStyles, /@import "\.\/components\/AuthAvatar\.css"/,
+  'the initial stylesheet must own the eager avatar presentation');
+assert.match(authAvatarStyles, /--auth-avatar-size/,
+  'avatar CSS must retain its size-driven presentation contract');
+assert.doesNotMatch(
+  `${profileIdentityStyles}\n${deferredStyles}`,
+  /profile-hero__body\s*>\s*(?:span|\.auth-avatar):first-child/,
+  'legacy profile selectors must not override the eager avatar baseline',
 );
 assert.match(
   applicationNavigationSource,

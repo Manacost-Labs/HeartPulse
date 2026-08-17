@@ -19,7 +19,7 @@ const moduleBudgets = [
   },
   {
     path: 'src/App.tsx',
-    maxLines: 1_797,
+    maxLines: 1_793,
     owner: 'application shell',
   },
   {

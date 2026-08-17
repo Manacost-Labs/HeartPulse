@@ -45,11 +45,6 @@
   gap: clamp(0.85rem, 2vw, 1.25rem);
 }
 
-.profile-workspace .profile-hero__body > .auth-avatar:first-child {
-  border-color: rgba(240, 203, 117, 0.58);
-  box-shadow: 0 10px 22px rgba(37, 3, 5, 0.32);
-}
-
 .profile-workspace .profile-hero__identity {
   min-width: 0;
   flex: 1;

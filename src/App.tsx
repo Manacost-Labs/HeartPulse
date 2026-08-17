@@ -52,6 +52,7 @@ import {
   type TabId,
   useApplicationNavigation,
 } from './app/routing/public';
+import AuthAvatar from './components/AuthAvatar';
 import { publicProfileIdFromPath } from './profileRoutes';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -496,9 +497,7 @@ function HeaderProfileButton({ user, checking = false }: { user: AuthUser | null
   return (
     <span className="arena-sidebar-profile-content">
       <span className="arena-sidebar-profile-avatar">
-        <React.Suspense fallback={<UserCircle size={34} aria-hidden="true" />}>
-          <LazyAuthAvatar user={user} size={34} />
-        </React.Suspense>
+        <AuthAvatar user={user} size={34} />
       </span>
       <span className="arena-sidebar-profile-copy">
         <span className="arena-sidebar-profile-label">{label}</span>
@@ -609,7 +608,6 @@ function NavigationRouteLinks({
   });
 }
 const LazyPaywallGate = React.lazy(() => import('./components/PaywallGate'));
-const LazyAuthAvatar = React.lazy(() => import('./components/AuthAvatar'));
 const LazyGlobalUtilityHeader = React.lazy(() => import('./components/GlobalUtilityHeader'));
 const LazyFAQSection = React.lazy(() => import('./components/FAQSection'));
 const LazySupportPrompt = React.lazy(() => import('./components/SupportPrompt'));
@@ -1423,9 +1421,7 @@ export default function App() {
               className={`arena-mobile-menu-link arena-mobile-menu-profile ${wantsLogin ? 'arena-mobile-menu-link-active' : ''}`}
             >
               {appAuthUser ? (
-                <React.Suspense fallback={<UserCircle size={28} className="flex-shrink-0" aria-hidden="true" />}>
-                  <LazyAuthAvatar user={appAuthUser} size={28} />
-                </React.Suspense>
+                <AuthAvatar user={appAuthUser} size={28} />
               ) : appAuthChecking && appHasAuthHint ? (
                 <UserCircle size={18} className="flex-shrink-0" />
               ) : (

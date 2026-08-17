@@ -2065,15 +2065,6 @@
   align-items: center;
 }
 
-.arena-app-profile .profile-workspace .profile-hero__body > span:first-child {
-  width: clamp(96px, 8vw, 110px);
-  height: clamp(96px, 8vw, 110px);
-  border: 2px solid rgba(240, 203, 117, 0.58);
-  border-radius: 3px;
-  background: rgba(49, 4, 7, 0.42);
-  box-shadow: 0 10px 22px rgba(37, 3, 5, 0.32);
-}
-
 .arena-app-profile .profile-workspace .profile-hero__eyebrow {
   color: #e8bb58;
   letter-spacing: 0.13em;
@@ -2381,11 +2372,6 @@
   .arena-app-profile .profile-workspace .profile-hero {
     min-height: 276px;
     background-position: 66% top;
-  }
-
-  .arena-app-profile .profile-workspace .profile-hero__body > span:first-child {
-    width: 68px;
-    height: 68px;
   }
 
   .arena-app-profile .profile-workspace .profile-status-chips {

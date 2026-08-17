@@ -1,3 +1,4 @@
+/** Typed application-surface ownership, loading and navigation metadata. */
 import {
   BookOpenText,
   ChartNoAxesCombined,
@@ -206,7 +207,7 @@ export function preloadRouteModule(routeId: RoutePreloadId): void {
 
 export function routePath(routeId: TabId): `/${string}` {
   const route = ROUTE_BY_ID.get(routeId);
-  if (!route) throw new Error(`Unknown application route: ${routeId}`);
+  if (!route) throw new Error(`Unknown route surface: ${routeId}`);
   return route.path;
 }
 
