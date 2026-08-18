@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Hardened the canonical public-route inventory read used by architecture and
+  AI navigation tools. The file is now opened through the shared verified
+  descriptor reader and every path component must be a real directory or file;
+  final, repository-internal parent and repository-external parent symlinks are
+  rejected. Existing missing/final/outside diagnostics remain compatible, and
+  migration areas with `{ mode: 'none' }` route scopes still validate without
+  reading the route inventory.
 - Split the 591-line module inventory validator into explicit module,
   migration-area and shared-root owners over one small validation policy. The
   remaining coordinator is 76 lines and only preserves stage order and public

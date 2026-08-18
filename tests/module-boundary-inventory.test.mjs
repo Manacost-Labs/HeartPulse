@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import * as boundaryModule from '../scripts/check-module-boundaries.mjs';
+import { validateMigrationAreas } from '../scripts/lib/module-inventory-migration-validation.mjs';
 import {
   NOW,
   baseConfig,
@@ -33,6 +34,29 @@ test('inventory must exactly match module directories and reference existing own
     rmSync(join(root, 'docs/modules.md'));
     const missingDocs = analyzeModuleBoundaries({ rootDir: root, now: NOW });
     assert.ok(missingDocs.errors.some(error => error.code === 'missing-module-artifact'));
+  } finally {
+    cleanup(root);
+  }
+});
+
+test('migration validator route scope none does not read the public route inventory', () => {
+  const config = baseConfig([]);
+  const root = fixture(config);
+  try {
+    symlinkSync(
+      join(root, 'missing-route-data'),
+      join(root, 'src/shared/seo'),
+      'dir',
+    );
+    const errors = [];
+    validateMigrationAreas(
+      config,
+      root,
+      [],
+      { scripts: { 'test:fixture': 'node --test tests/focused.test.ts' } },
+      errors,
+    );
+    assert.deepEqual(errors, []);
   } finally {
     cleanup(root);
   }

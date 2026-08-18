@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, symlinkSync } from 'node:fs';
+import { chmodSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import test from 'node:test';
@@ -17,6 +17,7 @@ import {
   projectPath,
   repositoryPathProjectsWithin,
 } from '../scripts/lib/repository-path-policy.mjs';
+import { readPublicRouteInventory } from '../scripts/lib/public-route-inventory.mjs';
 import {
   NOW,
   baseConfig,
@@ -137,6 +138,52 @@ test('boundary config must be a canonical regular repository file without symlin
   } finally {
     cleanup(root);
     cleanup(outside);
+  }
+});
+
+test('public route inventory rejects internal and external symlinked parent paths', () => {
+  const root = fixture(baseConfig([]));
+  const outside = mkdtempSync(join(tmpdir(), 'arena-routes-outside-'));
+  const linkedParent = join(root, 'src/shared/seo');
+  const source = `${JSON.stringify({
+    schemaVersion: 1,
+    canonicalOrigin: 'https://arena.example',
+    routes: [],
+  })}\n`;
+  try {
+    writeFixture(root, 'route-data/publicRouteInventory.json', source);
+    writeFixture(outside, 'publicRouteInventory.json', source);
+    symlinkSync(join(root, 'route-data'), linkedParent, 'dir');
+    assert.throws(() => readPublicRouteInventory(root), {
+      message: 'Public route inventory path must not contain symbolic links: src/shared/seo/publicRouteInventory.json',
+    });
+
+    rmSync(linkedParent);
+    symlinkSync(outside, linkedParent, 'dir');
+    assert.throws(() => readPublicRouteInventory(root), {
+      message: 'Repository file resolves outside the repository: src/shared/seo/publicRouteInventory.json',
+    });
+  } finally {
+    cleanup(root);
+    cleanup(outside);
+  }
+});
+
+test('public route inventory preserves sanitized system read errors', {
+  skip: process.platform === 'win32' || process.getuid?.() === 0,
+}, () => {
+  const root = fixture(baseConfig([]));
+  const routePath = join(root, 'src/shared/seo/publicRouteInventory.json');
+  try {
+    writeFixture(root, 'src/shared/seo/publicRouteInventory.json', '{}\n');
+    chmodSync(routePath, 0);
+    assert.throws(
+      () => readPublicRouteInventory(root),
+      /^Error: Public route inventory is not valid JSON: EACCES:/,
+    );
+  } finally {
+    chmodSync(routePath, 0o600);
+    cleanup(root);
   }
 });
 

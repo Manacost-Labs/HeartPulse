@@ -246,10 +246,12 @@ Generated commands should expose that map without duplicating it in prose:
 - `agent:map`: generated client/server dependency and route ownership map.
 
 Route details are hydrated from the existing public route inventory through
-checked owner scopes; no parallel URL registry is maintained. `root` and `.`
-produce the deterministic whole-project surface. Missing or multiply-owned
-product source fails the architecture gate instead of silently returning an
-empty AI context.
+checked owner scopes and a verified descriptor read that rejects symlinks in
+every inventory path component; no parallel URL registry is maintained. During
+module-inventory validation, scopes with mode `none` remain lazy and do not
+touch the inventory. `root` and `.` produce the deterministic whole-project
+surface. Missing or multiply-owned product source fails the architecture gate
+instead of silently returning an empty AI context.
 
 ### Golden path for an AI-authored capability
 
@@ -329,6 +331,7 @@ agent can execute without first converting an XL phase into a task.
 | `ARCH-02` | P1 / S | repository tooling / `web-platform` | `ARCH-01` | Implemented for review: config is a canonical repository-relative regular file with no symlink components, realpath containment and descriptor-based reads; missing `--root`/`--config` values exit 2 while successful report bytes and the three-export facade remain stable. |
 | `ARCH-03` | P1 / S | repository tooling / `web-platform` | `ARCH-02` | Implemented for review: every migration safe start stays inside its lexically owning real root and outside exclusions; cross-root, excluded-root and repository-escape parent symlinks are rejected before metadata reaches agent context, while direct starts in every root of a multi-root area remain valid. |
 | `ARCH-04` | P2 / M | repository tooling / `web-platform` | `ARCH-03` | Implemented for review: module, migration-area and shared-root metadata now have independent validators over one small policy owner; a 76-line coordinator preserves facade exports, diagnostic bytes/order, report bytes and CLI behavior, with exact size ratchets for all five units. |
+| `ARCH-05` | P1 / S | repository tooling / `web-platform` | `ARCH-04` | Implemented for review: the public route inventory is opened only through the canonical verified descriptor reader; final, internal-parent and external-parent symlinks fail closed while existing diagnostics and lazy module-inventory validation for `{ mode: 'none' }` stay stable. |
 | `LEGACY-01` | P2 / S | checked area id / its declared owner | owning module slice | Remove one exact migration root or exception only after all consumers use the public entry; lower its architecture budget and update impact/docs. |
 
 <!-- markdownlint-enable MD013 -->

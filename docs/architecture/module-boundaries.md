@@ -242,6 +242,13 @@ exclusive route ownership. It may select no routes, all routes, or existing
 owner ids from `src/shared/seo/publicRouteInventory.json`; route ids, patterns
 and policies are always hydrated from that canonical inventory.
 
+When a scope needs route data, the inventory path must contain no symbolic-link
+component, including a parent link whose target remains inside the repository.
+After compatibility checks, bytes are read only through the shared verified
+descriptor contract. During module-inventory validation, a `routeScope` with
+mode `none` is deliberately lazy: it validates its own shape against an empty
+route set and does not open the route inventory.
+
 `npm run agent:context -- <module-id-or-path-or-root>` resolves module ids,
 shared-root ids, canonical shared paths, legacy source paths, migration-area
 roots, `root`, and `.`. Module output keeps the public-entry contract; migration
@@ -283,6 +290,8 @@ and mechanical subsystems live under `scripts/lib/`:
 - `repository-path-policy.mjs` owns normalization, selector, nearest-ancestor
   realpath containment and descriptor-based reads of canonical repository
   files without symlink components;
+- `public-route-inventory.mjs` owns canonical route-inventory loading,
+  validation and route-scope hydration;
 - `module-inventory.mjs` owns inventory loading and ownership selection;
 - `module-inventory-validation-policy.mjs` owns shared record, diagnostic,
   package and focused-test validation mechanics;

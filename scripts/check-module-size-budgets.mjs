@@ -33,6 +33,11 @@ const moduleBudgets = [
     owner: 'repository path and realpath safety',
   },
   {
+    path: 'scripts/lib/public-route-inventory.mjs',
+    maxLines: 119,
+    owner: 'canonical public route inventory loading and scope hydration',
+  },
+  {
     path: 'scripts/lib/module-inventory.mjs',
     maxLines: 278,
     owner: 'module inventory loading and ownership selection',

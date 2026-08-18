@@ -1,10 +1,11 @@
-import { readFileSync } from 'node:fs';
-
 import {
   isSafeMetadataText,
   singleLineErrorMessage,
 } from './diagnostic-text-policy.mjs';
-import { resolveRepositoryFile } from './repository-path-policy.mjs';
+import {
+  readCanonicalRepositoryTextFile,
+  resolveRepositoryFile,
+} from './repository-path-policy.mjs';
 
 export const PUBLIC_ROUTE_INVENTORY_PATH = 'src/shared/seo/publicRouteInventory.json';
 
@@ -27,10 +28,23 @@ export function comparePublicRoutes(left, right) {
 }
 
 export function readPublicRouteInventory(root) {
-  const inventoryFile = resolveRepositoryFile(root, PUBLIC_ROUTE_INVENTORY_PATH, { required: true });
+  resolveRepositoryFile(root, PUBLIC_ROUTE_INVENTORY_PATH, { required: true });
+  let inventorySource;
+  try {
+    inventorySource = readCanonicalRepositoryTextFile({
+      rootDir: root,
+      repositoryPath: PUBLIC_ROUTE_INVENTORY_PATH,
+      subject: 'Public route inventory',
+    });
+  } catch (error) {
+    if (!error || typeof error !== 'object' || typeof error.code !== 'string') throw error;
+    throw new Error(
+      `Public route inventory is not valid JSON: ${singleLineErrorMessage(error)}`,
+    );
+  }
   let inventory;
   try {
-    inventory = JSON.parse(readFileSync(inventoryFile, 'utf8'));
+    inventory = JSON.parse(inventorySource);
   } catch (error) {
     throw new Error(
       `Public route inventory is not valid JSON: ${singleLineErrorMessage(error)}`,
