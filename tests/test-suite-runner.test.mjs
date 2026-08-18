@@ -231,7 +231,7 @@ test('runs registered tests sequentially without a shell and merges the registry
     assert.equal(calls[0].command, process.execPath);
     assert.deepEqual(calls[0].args, ['--import', 'tsx', 'tests/first.test.ts']);
     assert.equal(calls[1].command, process.execPath);
-    assert.deepEqual(calls[1].args, ['tests/second.test.mjs']);
+    assert.deepEqual(calls[1].args, ['--import', 'tsx', 'tests/second.test.mjs']);
     for (const call of calls) {
       assert.equal(call.options.cwd, repositoryRoot);
       assert.equal(call.options.shell, false);

@@ -6,7 +6,7 @@ import {
   optimizeBattlegroundImage,
 } from '../server/battlegroundImageOptimization.js';
 import { publicResourceUrl } from '../shared/publicResourceUrl.js';
-import { preferredBattlegroundHeroImage } from '../src/features/battlegroundHeroImages.js';
+import { preferredBattlegroundHeroImage } from '../src/modules/battlegrounds/public.js';
 import { optimizedBattlegroundThumbnailUrl } from '../src/features/battlegroundImageUrls.js';
 
 const transform = battlegroundImageTransformFromQuery({

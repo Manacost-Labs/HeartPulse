@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import vm from 'node:vm';
+import { battlegroundHeroRosterBridgeV1 } from '../src/modules/battlegrounds/public.ts';
+import { publicResourceUrl } from '../shared/publicResourceUrl.ts';
 
 const ROOT = new URL('../', import.meta.url);
 
@@ -12,6 +14,7 @@ async function source(pathname) {
 async function loadSharedRuntime({
   fetchImpl,
   tierData = [],
+  rosterBridge = battlegroundHeroRosterBridgeV1,
   setTimeoutImpl = setTimeout,
   clearTimeoutImpl = clearTimeout,
 }) {
@@ -21,6 +24,11 @@ async function loadSharedRuntime({
     setTimeout: setTimeoutImpl,
     clearTimeout: clearTimeoutImpl,
   };
+  if (rosterBridge === battlegroundHeroRosterBridgeV1) {
+    battlegroundHeroRosterBridgeV1.install(runtimeWindow, { publicResourceUrl });
+  } else if (rosterBridge) {
+    runtimeWindow.__hsArenaBattlegroundHeroRosterBridgeV1 = rosterBridge;
+  }
   const runtimeDocument = {
     readyState: 'loading',
     addEventListener() {},
@@ -49,6 +57,9 @@ test('shared Battlegrounds runtime loads every page of the current trinket pool'
   assert.match(shared, /pagination\?\.total_pages/);
   assert.match(shared, /window\.accessoriesData\s*=\s*current/);
   assert.match(shared, /return fallback/);
+  assert.match(shared, /__hsArenaBattlegroundHeroRosterBridgeV1/);
+  assert.doesNotMatch(shared, /function normalizeCurrentHeroTiers/);
+  assert.match(shared, /function publicResourceUrl/);
   assert.doesNotThrow(() => new Function(shared));
 });
 
@@ -61,6 +72,7 @@ test('both active builders wait for synchronized live pools', async () => {
   for (const builder of [strategy, tier]) {
     assert.match(builder, /await window\.Shared\.loadCurrentAccessoriesData\(\)/);
     assert.match(builder, /window\.Shared\.loadCurrentHeroesData\(\)/);
+    assert.match(builder, /window\.Shared\.publicResourceUrl/);
     assert.match(builder, /englishNamesPayload, heroTiers\]\s*=\s*await Promise\.all/);
     assert.match(builder, /getHeroCards\(heroTiers\)/);
     assert.match(builder, /text:\s*stripHtml\(card\.text \|\| ""\)/);
@@ -223,8 +235,80 @@ test('shared Battlegrounds runtime rejects a suspiciously partial current hero p
   assert.equal(runtimeWindow.tierData, fallback);
 });
 
+for (const [label, rosterBridge] of [
+  ['missing', null],
+  ['throwing', { version: 1, resolve() { throw new Error('resolver failed'); } }],
+  ['malformed', { version: 1, resolve() { return { status: 'accepted', tiers: null }; } }],
+  ['malformed empty accepted', {
+    version: 1,
+    resolve() {
+      return { status: 'accepted', tiers: [], currentCount: 1, fallbackCount: 1, minimumCount: 1 };
+    },
+  }],
+  ['malformed inconsistent accepted', {
+    version: 1,
+    resolve() {
+      return {
+        status: 'accepted',
+        tiers: [{ tier: 'S', heroes: [{ name: 'Текущий герой', image: '/current.png' }] }],
+        currentCount: 2,
+        fallbackCount: 1,
+        minimumCount: 1,
+      };
+    },
+  }],
+  ['malformed under-threshold accepted', {
+    version: 1,
+    resolve() {
+      return {
+        status: 'accepted',
+        tiers: [{ tier: 'S', heroes: [{ name: 'Текущий герой', image: '/current.png' }] }],
+        currentCount: 1,
+        fallbackCount: 2,
+        minimumCount: 2,
+      };
+    },
+  }],
+  ['malformed tier accepted', {
+    version: 1,
+    resolve() {
+      return {
+        status: 'accepted',
+        tiers: [{ tier: 'S', heroes: null }],
+        currentCount: 1,
+        fallbackCount: 1,
+        minimumCount: 1,
+      };
+    },
+  }],
+]) {
+  test(`shared Battlegrounds runtime keeps bundled heroes with a ${label} roster bridge`, async () => {
+    const fallback = [{ tier: 'D', title: 'D Тир', heroes: [{ name: 'Резервный герой', image: '/fallback.png' }] }];
+    const runtimeWindow = await loadSharedRuntime({
+      tierData: fallback,
+      rosterBridge,
+      fetchImpl: async url => ({
+        ok: true,
+        json: async () => String(url).startsWith('/api/bg/heroes?')
+          ? { ok: true, view: { heroes: [{ dbfId: 1, hero: 'Текущий герой', tier: 'S', image: '/current.png' }] } }
+          : { data: [] },
+      }),
+    });
+
+    const result = await runtimeWindow.Shared.loadCurrentHeroesData();
+
+    assert.equal(result, fallback);
+    assert.equal(runtimeWindow.tierData, fallback);
+  });
+}
+
 test('Battlegrounds builder cache version changes with the live hero synchronization', async () => {
   const battlegrounds = await source('src/features/Battlegrounds.tsx');
 
-  assert.match(battlegrounds, /BG_STRATEGY_BUILDER_VERSION = '20260811-live-heroes'/);
+  assert.match(battlegrounds, /BG_STRATEGY_BUILDER_VERSION = '20260818-hero-roster-v1'/);
+  assert.equal(
+    [...battlegrounds.matchAll(/battlegroundHeroRosterBridgeV1\.install\(window, \{ publicResourceUrl \}\)/g)].length,
+    2,
+    'both builder owners must install the same module port before loading classic scripts',
+  );
 });

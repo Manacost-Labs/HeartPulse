@@ -4,15 +4,20 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 import { analyzeModuleBoundaries } from '../scripts/check-module-boundaries.mjs';
-import type {
-  BattlegroundHeroMmr,
-  BattlegroundHeroMode,
-  BattlegroundHeroRelatedCard,
-  BattlegroundHeroSortDirection,
-  BattlegroundHeroSortKey,
-  BattlegroundHeroTierEntry,
-  BattlegroundHeroTierSection,
+import {
+  battlegroundHeroRosterBridgeV1,
+  type BattlegroundHeroMmr,
+  type BattlegroundHeroMode,
+  type BattlegroundHeroRelatedCard,
+  type BattlegroundHeroSortDirection,
+  type BattlegroundHeroSortKey,
+  type BattlegroundHeroTierEntry,
+  type BattlegroundHeroTierSection,
 } from '../src/modules/battlegrounds/public';
+import type {
+  BattlegroundHeroRosterResolution,
+  BattlegroundHeroRosterResolverInput,
+} from '../src/modules/battlegrounds/model/heroRosterResolver';
 
 type Same<Left, Right> =
   (<Value>() => Value extends Left ? 1 : 2) extends
@@ -74,6 +79,11 @@ const CONTRACT_NAMES = [
   'BattlegroundHeroTierEntry',
   'BattlegroundHeroTierSection',
 ] as const;
+const RUNTIME_CONTRACT_NAMES = [
+  'battlegroundHeroCardImage',
+  'battlegroundHeroRosterBridgeV1',
+  'preferredBattlegroundHeroImage',
+] as const;
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 function parsedSource(relativePath: string, scriptKind: ts.ScriptKind): ts.SourceFile {
@@ -82,19 +92,22 @@ function parsedSource(relativePath: string, scriptKind: ts.ScriptKind): ts.Sourc
 }
 
 const publicEntry = parsedSource('../src/modules/battlegrounds/public.ts', ts.ScriptKind.TS);
-const publicNames: string[] = [];
+const publicTypeNames: string[] = [];
+const publicRuntimeNames: string[] = [];
 for (const statement of publicEntry.statements) {
   assert.ok(
     ts.isExportDeclaration(statement)
-      && statement.isTypeOnly
       && statement.exportClause
       && ts.isNamedExports(statement.exportClause),
-    'the Battlegrounds public entry must contain named type-only exports and no runtime statements',
+    'the Battlegrounds public entry must contain only explicit named exports',
   );
-  publicNames.push(...statement.exportClause.elements.map(element => element.name.text));
+  const destination = statement.isTypeOnly ? publicTypeNames : publicRuntimeNames;
+  destination.push(...statement.exportClause.elements.map(element => element.name.text));
 }
-assert.deepEqual(publicNames.sort(), [...CONTRACT_NAMES],
+assert.deepEqual(publicTypeNames.sort(), [...CONTRACT_NAMES],
   'the Battlegrounds public entry must expose exactly the seven hero catalog contracts');
+assert.deepEqual(publicRuntimeNames.sort(), [...RUNTIME_CONTRACT_NAMES],
+  'the Battlegrounds public entry must expose exactly the hero image policy and legacy bridge');
 
 const heroCatalogModel = parsedSource(
   '../src/modules/battlegrounds/model/heroCatalog.ts',
@@ -117,26 +130,33 @@ assert.deepEqual(modelNames.sort(), [...CONTRACT_NAMES],
 
 function assertConsumerImports(
   relativePath: string,
-  expectedNames: readonly string[],
+  expectedTypeNames: readonly string[],
+  expectedRuntimeNames: readonly string[] = [],
 ): ts.SourceFile {
   const sourceFile = parsedSource(relativePath, ts.ScriptKind.TSX);
-  const importedNames: string[] = [];
+  const importedTypeNames: string[] = [];
+  const importedRuntimeNames: string[] = [];
 
   for (const statement of sourceFile.statements) {
     if (!ts.isImportDeclaration(statement)
       || !ts.isStringLiteral(statement.moduleSpecifier)
       || statement.moduleSpecifier.text !== '../modules/battlegrounds/public') continue;
 
-    assert.ok(statement.importClause?.isTypeOnly,
-      `${relativePath} must use a type-only Battlegrounds public import`);
     assert.ok(statement.importClause.namedBindings
       && ts.isNamedImports(statement.importClause.namedBindings),
     `${relativePath} must name every consumed Battlegrounds contract`);
-    importedNames.push(...statement.importClause.namedBindings.elements.map(element => element.name.text));
+    for (const element of statement.importClause.namedBindings.elements) {
+      const destination = statement.importClause.isTypeOnly || element.isTypeOnly
+        ? importedTypeNames
+        : importedRuntimeNames;
+      destination.push(element.name.text);
+    }
   }
 
-  assert.deepEqual(importedNames.sort(), [...expectedNames].sort(),
-    `${relativePath} must consume the exact Battlegrounds contracts it needs`);
+  assert.deepEqual(importedTypeNames.sort(), [...expectedTypeNames].sort(),
+    `${relativePath} must consume the exact Battlegrounds type contracts it needs`);
+  assert.deepEqual(importedRuntimeNames.sort(), [...expectedRuntimeNames].sort(),
+    `${relativePath} must consume the exact Battlegrounds runtime contracts it needs`);
 
   const localContractNames: string[] = [];
   const visit = (node: ts.Node) => {
@@ -153,7 +173,7 @@ function assertConsumerImports(
   return sourceFile;
 }
 
-assertConsumerImports('../src/features/Battlegrounds.tsx', CONTRACT_NAMES);
+assertConsumerImports('../src/features/Battlegrounds.tsx', CONTRACT_NAMES, RUNTIME_CONTRACT_NAMES);
 const ledgerSource = assertConsumerImports(
   '../src/features/BattlegroundHeroLedger.tsx',
   CONTRACT_NAMES.filter(name => name !== 'BattlegroundHeroRelatedCard'),
@@ -180,8 +200,132 @@ assert.deepEqual(battlegroundPublicEdges, [
   {
     source: 'src/features/Battlegrounds.tsx',
     target: 'src/modules/battlegrounds/public.ts',
-    kind: 'type',
+    kind: 'runtime',
   },
-], 'the canonical module graph must contain only the two intended type edges to the public entry');
+], 'the canonical module graph must contain only the two intended edges to the public entry');
+
+function statsHeroes(count: number): unknown {
+  return {
+    ok: true,
+    view: {
+      heroes: Array.from({ length: count }, (_, index) => ({
+        dbfId: index + 1,
+        hero: `Current hero ${index + 1}`,
+        tier: index % 2 === 0 ? 'S' : 'A',
+        avg_placement: String(4 + index / 100),
+        image: `/current-${index + 1}.png`,
+      })),
+    },
+  };
+}
+
+function fallbackHeroes(count: number): BattlegroundHeroTierSection[] {
+  return [{
+    tier: 'D',
+    title: 'D Тир',
+    heroes: Array.from({ length: count }, (_, index) => ({
+      name: `Fallback hero ${index + 1}`,
+      image: `/fallback-${index + 1}.png`,
+    })),
+  }];
+}
+
+type InstalledHeroRosterBridge = Readonly<{
+  version: 1;
+  publicResourceUrl: (value: unknown) => string;
+  resolve: (
+    input: Omit<BattlegroundHeroRosterResolverInput, 'publicResourceUrl'>,
+  ) => BattlegroundHeroRosterResolution;
+}>;
+
+assert.equal(battlegroundHeroRosterBridgeV1.version, 1);
+assert.ok(Object.isFrozen(battlegroundHeroRosterBridgeV1));
+const bridgeTarget: Record<string, unknown> = {};
+const testPublicResourceUrl = (value: unknown) => String(value || '').replace(
+  'https://hearthstone.wiki.gg',
+  '/api/public-resource/wiki',
+);
+battlegroundHeroRosterBridgeV1.install(bridgeTarget, {
+  publicResourceUrl: testPublicResourceUrl,
+});
+const installedBridge = bridgeTarget
+  .__hsArenaBattlegroundHeroRosterBridgeV1 as InstalledHeroRosterBridge;
+assert.equal(installedBridge.version, 1);
+assert.ok(Object.isFrozen(installedBridge), 'the installed V1 port must be immutable');
+assert.deepEqual(
+  Object.keys(installedBridge).sort(),
+  ['publicResourceUrl', 'resolve', 'version'],
+  'the installed V1 port must expose only the operations consumed by classic builders',
+);
+assert.equal(installedBridge.publicResourceUrl, testPublicResourceUrl);
+
+for (const scenario of [
+  { fallbackCount: 0, currentCount: 0, status: 'fallback', minimumCount: 1 },
+  { fallbackCount: 0, currentCount: 1, status: 'accepted', minimumCount: 1 },
+  { fallbackCount: 19, currentCount: 1, status: 'accepted', minimumCount: 1 },
+  { fallbackCount: 20, currentCount: 14, status: 'fallback', minimumCount: 15 },
+  { fallbackCount: 20, currentCount: 15, status: 'accepted', minimumCount: 15 },
+  { fallbackCount: 101, currentCount: 75, status: 'fallback', minimumCount: 76 },
+  { fallbackCount: 101, currentCount: 76, status: 'accepted', minimumCount: 76 },
+] as const) {
+  const fallback = fallbackHeroes(scenario.fallbackCount);
+  const resolution = installedBridge.resolve({
+    statsPayload: statsHeroes(scenario.currentCount),
+    libraryPayload: { data: [] },
+    fallbackSections: fallback,
+  });
+  assert.equal(resolution.status, scenario.status,
+    `${scenario.currentCount}/${scenario.fallbackCount} must preserve the legacy truncation decision`);
+  assert.equal(resolution.minimumCount, scenario.minimumCount);
+  assert.equal(resolution.currentCount, scenario.currentCount);
+  assert.equal(resolution.fallbackCount, scenario.fallbackCount);
+  if (resolution.status === 'fallback') assert.equal(resolution.tiers, fallback);
+}
+
+const localizedResolution = installedBridge.resolve({
+  statsPayload: {
+    heroes: [{
+      dbfId: 132608,
+      hero: 'Nightmare Lord Xavius',
+      tier: 's',
+      pick_rate: '88.64%',
+      avg_placement: '3.58',
+      image: 'https://hearthstone.wiki.gg/images/BG36_HERO_105.png?f657db',
+    }],
+  },
+  libraryPayload: {
+    data: [{
+      dbf: 132608,
+      card_id: 'BG36_HERO_105',
+      name: { ru: 'Повелитель кошмаров Ксавий', en: 'Nightmare Lord Xavius' },
+      images: { hero: 'https://hearthstone.wiki.gg/images/BG36_HERO_105.png?f657db' },
+    }],
+  },
+  fallbackSections: [],
+});
+assert.equal(localizedResolution.status, 'accepted');
+assert.deepEqual(localizedResolution.tiers, [{
+  tier: 'S',
+  title: 'S Тир',
+  heroes: [{
+    name: 'Повелитель кошмаров Ксавий',
+    englishName: 'Nightmare Lord Xavius',
+    popularity: '88.64%',
+    averagePlace: '3.58',
+    image: '/api/public-resource/wiki/images/BG36_HERO_105.png?f657db',
+    dbfId: 132608,
+    cardId: 'BG36_HERO_105',
+  }],
+}]);
+
+const firstInstalledBridge = installedBridge;
+battlegroundHeroRosterBridgeV1.install(bridgeTarget, {
+  publicResourceUrl: testPublicResourceUrl,
+});
+assert.equal(
+  bridgeTarget.__hsArenaBattlegroundHeroRosterBridgeV1,
+  firstInstalledBridge,
+  'both builder owners must reuse the same process-lifetime port',
+);
 
 console.log('Battleground hero catalog contracts passed');

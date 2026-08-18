@@ -92,9 +92,13 @@ const budgets = {
   // Guest-auth transport and the shared permission policy add 354 raw / 92
   // gzip bytes to startup. Their strict response parsing adds 260 raw bytes to
   // the lazy account route; keep all four measured deltas explicit.
+  // The Battlegrounds hero-roster extraction changes only the lazy route's
+  // content hash in the eager preload map. Raw startup JS falls by six bytes;
+  // its exact compressed representation grows by one byte, so retain that
+  // measured metadata-only cost without widening any raw or route budget.
   mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 69_207),
   initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 262_225),
-  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 81_146),
+  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 81_147),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),
   deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 78_000),

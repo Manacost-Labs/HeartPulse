@@ -136,9 +136,6 @@ export function validateTestRegistry(registry, { repositoryRoot }) {
 }
 
 function commandForTest(testFile) {
-  if (testFile.endsWith('.mjs')) {
-    return { command: process.execPath, args: [testFile] };
-  }
   return {
     command: process.execPath,
     args: ['--import', 'tsx', testFile],

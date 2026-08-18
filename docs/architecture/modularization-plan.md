@@ -366,21 +366,32 @@ not compete with visible images, and list/detail chunks have separate budgets.
 
 ### 4. Battlegrounds routes
 
-Status: in progress. The first client slice registers
-`client.battlegrounds/public.ts` as the owner of the pure hero-catalog, mode,
-MMR and list-sorting contracts. The legacy route and lazy ledger use that
-type-only entry, so their cycle is gone without adding runtime code to the
-public barrel. The enforced `Battlegrounds.tsx` ceiling is now 4,346 lines
+Status: in progress. The first client slice registered
+`client.battlegrounds/public.ts` as the owner of the hero-catalog, mode, MMR and
+list-sorting contracts and removed the route/ledger type cycle. The second owns
+the canonical full-quality portrait policy and the classic builders' complete
+current-roster resolver: payload normalization, DBF localization, image
+selection through an injected platform URL policy, tier sorting and the existing
+gross-truncation guard. A frozen V1
+compatibility port keeps request transport
+in `public/bg-legacy/shared.js` until the builders become module entries. The
+guard deliberately preserves the old row-count semantics; 75% of a bundled
+snapshot detects a severely shortened response but cannot prove patch-level
+completeness. The enforced `Battlegrounds.tsx` ceiling is now 4,343 lines
 instead of 4,373.
 
-1. Extend the pure hero model with source-timestamp and current-roster
-   freshness policy.
-2. Extract hero list/detail and enforce a checked completeness contract so
-   newly released heroes cannot disappear silently.
-3. Extract library list/detail/archive.
-4. Extract tier list, strategy builder and tier builder as separate lazy entries.
-5. Move shared card-image and tribe policies into focused models.
-6. Consolidate server proxy, image, SEO and statistics-source behavior behind
+1. [x] Extract current-roster normalization and the parity truncation guard
+   behind the Battlegrounds public entry.
+2. Define an authoritative patch/season roster identity and source-timestamp
+   contract before replacing the parity guard with identity-aware completeness.
+3. Extract hero list/detail and consume that checked roster contract so newly
+   released heroes cannot disappear silently.
+4. Extract library list/detail/archive.
+5. Extract tier list, strategy builder and tier builder as separate lazy entries;
+   remove `__hsArenaBattlegroundHeroRosterBridgeV1` in this step.
+6. [x] Move the hero portrait/card-image policy into a focused model.
+7. Move the remaining card-image and tribe policies into focused models.
+8. Consolidate server proxy, image, SEO and statistics-source behavior behind
    the Battlegrounds public entry.
 
 Complete when `Battlegrounds.tsx` is deleted, its four primary surfaces have

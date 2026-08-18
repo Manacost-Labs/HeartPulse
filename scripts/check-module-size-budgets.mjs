@@ -24,7 +24,7 @@ const moduleBudgets = [
   },
   {
     path: 'src/features/Battlegrounds.tsx',
-    maxLines: 4_346,
+    maxLines: 4_343,
     owner: 'Battlegrounds routes',
   },
   {

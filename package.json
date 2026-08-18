@@ -86,7 +86,7 @@
     "test:battleground-library-seo-routes": "tsx tests/battleground-library-seo-routes.test.ts && tsx tests/bg-library-catalog-model.test.ts",
     "test:bg-library-catalog-model": "tsx tests/bg-library-catalog-model.test.ts",
     "test:battleground-card-variants": "tsx tests/battleground-card-variants.test.ts && npm run test:battleground-accessories",
-    "test:battleground-accessories": "node --test tests/battleground-accessories-browser.test.mjs",
+    "test:battleground-accessories": "node --import tsx --test tests/battleground-accessories-browser.test.mjs",
     "test:article-cover-routes": "tsx tests/article-cover-routes.test.ts",
     "test:guides-archive-routes": "tsx tests/guides-archive-routes.test.ts",
     "test:article-routes": "tsx tests/article-routes.test.ts",

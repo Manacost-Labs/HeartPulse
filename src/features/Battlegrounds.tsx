@@ -1,14 +1,17 @@
 import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
-import type {
-  BattlegroundHeroMmr,
-  BattlegroundHeroMode,
-  BattlegroundHeroRelatedCard,
-  BattlegroundHeroSortDirection,
-  BattlegroundHeroSortKey,
-  BattlegroundHeroTierEntry,
-  BattlegroundHeroTierSection,
+import {
+  battlegroundHeroCardImage,
+  battlegroundHeroRosterBridgeV1,
+  preferredBattlegroundHeroImage,
+  type BattlegroundHeroMmr,
+  type BattlegroundHeroMode,
+  type BattlegroundHeroRelatedCard,
+  type BattlegroundHeroSortDirection,
+  type BattlegroundHeroSortKey,
+  type BattlegroundHeroTierEntry,
+  type BattlegroundHeroTierSection,
 } from '../modules/battlegrounds/public';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
 import { publicResourceUrl } from '../publicResourceUrl';
@@ -31,10 +34,6 @@ import {
   type TrinketView,
 } from './battlegroundTrinkets';
 import { optimizedBattlegroundThumbnailUrl } from './battlegroundImageUrls';
-import {
-  battlegroundHeroCardImage,
-  preferredBattlegroundHeroImage,
-} from './battlegroundHeroImages';
 import { BattlegroundTrinketTierRow } from './BattlegroundTrinketTierRow';
 import { BattlegroundTrinketViewToggle } from './BattlegroundTrinketViewToggle';
 import '../route-parchment.css';
@@ -323,10 +322,6 @@ function bgHeroImageFromMap(dbfId: unknown, imageByDbfId: Record<string, string>
   return `/bg-legacy/${raw.replace(/^\.\//, '')}`;
 }
 
-function bgHeroTierTitle(tier: string): string {
-  return `${tier} Тир`;
-}
-
 function bgHeroRelatedCard(value: any): BattlegroundHeroRelatedCard | null {
   const card = value?.card || value;
   const image = card?.image || card?.imageGold || card?.image_gold || card?.crop_image || '';
@@ -434,7 +429,7 @@ function groupBgHeroesFromApi(
   return ['S', 'A', 'B', 'C', 'D'].flatMap(tier => {
     const entries = grouped.get(tier) || [];
     entries.sort((a, b) => Number(String(a.averagePlace || '99').replace(',', '.')) - Number(String(b.averagePlace || '99').replace(',', '.')));
-    return entries.length ? [{ tier, title: bgHeroTierTitle(tier), heroes: entries }] : [];
+    return entries.length ? [{ tier, title: `${tier} Тир`, heroes: entries }] : [];
   });
 }
 
@@ -4143,7 +4138,7 @@ const BG_STRATEGY_BUILDER_HTML = String.raw`
   </section>
 </main>`;
 
-const BG_STRATEGY_BUILDER_VERSION = '20260811-live-heroes';
+const BG_STRATEGY_BUILDER_VERSION = '20260818-hero-roster-v1';
 const BG_STRATEGY_BUILDER_CSS = `/bg-legacy/strategy-builder.gridfix2.css?v=${BG_STRATEGY_BUILDER_VERSION}`;
 const BG_STRATEGY_BUILDER_JS = `/bg-legacy/strategy-builder.gridfix2.js?v=${BG_STRATEGY_BUILDER_VERSION}`;
 
@@ -4180,6 +4175,7 @@ function BattlegroundStrategyBuilderEmbed() {
   const mountId = useRef(`bg-strategy-builder-${Math.random().toString(36).slice(2)}`);
 
   useEffect(() => {
+    battlegroundHeroRosterBridgeV1.install(window, { publicResourceUrl });
     const css = document.createElement('link');
     css.rel = 'stylesheet';
     css.href = BG_STRATEGY_BUILDER_CSS;
@@ -4301,6 +4297,7 @@ function BattlegroundTierBuilderEmbed() {
   const mountId = useRef(`bg-tier-builder-${Math.random().toString(36).slice(2)}`);
 
   useEffect(() => {
+    battlegroundHeroRosterBridgeV1.install(window, { publicResourceUrl });
     const css = document.createElement('link');
     css.rel = 'stylesheet';
     css.href = BG_STRATEGY_BUILDER_CSS;

@@ -175,6 +175,21 @@ The following rules are mandatory:
 - A module may depend on `shared`; `shared` may not depend on a product module.
 - Authorization remains visible at the server route or use-case boundary.
 
+Temporary classic-script consumers may cross into a module only through a
+versioned compatibility port installed by application composition from that
+module's public entry. The port must be process-lifetime, idempotent, guarded at
+runtime and covered by a fallback test; product policy must stay on the module
+side. This is migration debt rather than a target architecture, so the owning
+roadmap must name the extraction that removes it.
+
+The current Battlegrounds exception is
+`__hsArenaBattlegroundHeroRosterBridgeV1`. It lets the two classic builders use
+the module-owned hero resolver while application composition injects the
+canonical public-resource URL policy. The hero path in
+`public/bg-legacy/shared.js` retains request orchestration and safe fallback.
+Both React embeds install the same frozen port before loading legacy scripts
+and never remove it independently.
+
 ## Machine-enforced inventory
 
 [`config/module-boundaries.json`](../../config/module-boundaries.json) is the
@@ -258,13 +273,16 @@ now have one
 runtime-neutral owner under `src/modules/subscriptions`; application and legacy
 route composition consume its public entry instead of maintaining duplicate
 access models or presentation metadata.
-The `client.battlegrounds` module owns the pure hero-catalog data, mode, MMR and
-list-sorting contracts. The legacy Battlegrounds route and its lazy hero ledger
-consume those types through the type-only `battlegrounds/public.ts` entry. The
-ledger remains a direct dynamic import from the route, so the extraction adds no
-runtime barrel edge and the former route/ledger type cycle is absent. Hero data
-freshness, transport, rendering and route ownership remain in later incremental
-slices.
+The `client.battlegrounds` module owns the hero-catalog data, mode, MMR and
+list-sorting contracts, the canonical full-quality hero-portrait fallback
+policy, current-roster normalization and the frozen V1 compatibility bridge for
+the two classic builders. The legacy Battlegrounds route and its lazy hero
+ledger consume these contracts only through `battlegrounds/public.ts`; the
+former route/ledger type cycle remains absent. Request transport and its bounded
+timeout stay in legacy composition until the builders become module entries.
+The current 75% fallback comparison detects grossly truncated responses only;
+authoritative patch identity, freshness monitoring, rendering and route
+ownership remain later incremental slices.
 The `client.identity` module now owns the canonical account-surface browser
 user contract, its allowlisted runtime parser, guest login/register/reset/
 verification transport, private session/profile/logout transport, validated
