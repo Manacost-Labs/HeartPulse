@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Bound every migration safe start to both its lexical owner and real filesystem
+  owner. Parent symlinks into another migration root, an excluded subtree or
+  outside the repository now fail metadata validation before unsafe context can
+  reach AI tools, and ownership roots/artifacts reject every symlink component
+  so an aliased parent cannot claim a canonical module. Direct starts in every
+  root of a multi-root area remain valid. Missing future paths use
+  nearest-existing-parent containment without treating broken symlinks as
+  absent directories, while declared safe starts still must be existing regular
+  files and retain the same diagnostics and ordering.
 - Hardened the module-boundary checker config boundary: config files must now
   use canonical repository-relative paths, contain no symlink component, remain
   inside the real repository and be read through a verified descriptor. Missing

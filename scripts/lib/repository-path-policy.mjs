@@ -28,6 +28,14 @@ export function isInside(candidate, root) {
   return candidate === root || candidate.startsWith(`${root}/`);
 }
 
+function resolvedPathIsInside(candidate, root) {
+  const relative = path.relative(root, candidate);
+  return relative === ''
+    || (relative !== '..'
+      && !relative.startsWith(`..${path.sep}`)
+      && !path.isAbsolute(relative));
+}
+
 export function isSafeRelativePath(candidate) {
   return isSafeMetadataText(candidate)
     && candidate !== '.'
@@ -56,8 +64,7 @@ export function normalizeRepositoryPath(value, root) {
 
 function resolveOwnedPath(root, relativePath) {
   const resolved = path.resolve(root, relativePath);
-  const relative = path.relative(root, resolved);
-  if (relative.startsWith('..') || path.isAbsolute(relative)) {
+  if (!resolvedPathIsInside(resolved, root)) {
     throw new Error(`Inventory path escapes the repository: ${relativePath}`);
   }
   return resolved;
@@ -75,8 +82,7 @@ export function resolveRepositoryFile(root, relativePath, { required }) {
   }
   const realRoot = realpathSync(root);
   const realFile = realpathSync(absolutePath);
-  const realRelative = path.relative(realRoot, realFile);
-  if (realRelative.startsWith('..') || path.isAbsolute(realRelative)) {
+  if (!resolvedPathIsInside(realFile, realRoot)) {
     throw new Error(`Repository file resolves outside the repository: ${relativePath}`);
   }
   return realFile;
@@ -122,10 +128,7 @@ export function readCanonicalRepositoryTextFile({
     throw new Error(`${subject} must be a regular file: ${displayPath}`);
   }
   const realFile = realpathSync(absolutePath);
-  const realRelative = path.relative(realRoot, realFile);
-  if (realRelative === '..'
-    || realRelative.startsWith(`..${path.sep}`)
-    || path.isAbsolute(realRelative)) {
+  if (!resolvedPathIsInside(realFile, realRoot)) {
     throw new Error(`${subject} must resolve inside the repository: ${displayPath}`);
   }
   if (typeof constants.O_NOFOLLOW !== 'number') {
@@ -182,8 +185,7 @@ export function resolveRepositoryPath(root, relativePath, { required = true } = 
   }
   const realRoot = realpathSync(root);
   const realEntry = realpathSync(absolutePath);
-  const realRelative = path.relative(realRoot, realEntry);
-  if (realRelative.startsWith('..') || path.isAbsolute(realRelative)) {
+  if (!resolvedPathIsInside(realEntry, realRoot)) {
     throw new Error(`Repository path resolves outside the repository: ${normalized}`);
   }
   return normalized;
@@ -192,33 +194,53 @@ export function resolveRepositoryPath(root, relativePath, { required = true } = 
 export function repositoryEntryKind(rootDir, repositoryPath) {
   if (!isSafeRelativePath(repositoryPath)) return null;
   const absoluteRoot = realpathSync(rootDir);
-  const absoluteEntry = path.resolve(rootDir, repositoryPath);
+  let absoluteEntry = path.resolve(rootDir);
   let stats;
   try {
-    stats = lstatSync(absoluteEntry);
+    for (const segment of repositoryPath.split('/')) {
+      absoluteEntry = path.join(absoluteEntry, segment);
+      stats = lstatSync(absoluteEntry);
+      if (stats.isSymbolicLink()) return null;
+    }
   } catch {
     return null;
   }
-  if (stats.isSymbolicLink() || (!stats.isFile() && !stats.isDirectory())) return null;
+  if (!stats.isFile() && !stats.isDirectory()) return null;
   let realEntry;
   try {
     realEntry = realpathSync(absoluteEntry);
   } catch {
     return null;
   }
-  const realRelative = path.relative(absoluteRoot, realEntry);
-  if (realRelative.startsWith('..') || path.isAbsolute(realRelative)) return null;
+  if (!resolvedPathIsInside(realEntry, absoluteRoot)) return null;
   return stats.isFile() ? 'file' : 'directory';
 }
 
-export function repositoryEntryResolvesWithin(rootDir, repositoryPath, ownerRoot) {
+export function repositoryPathProjectsWithin(rootDir, repositoryPath, ownerRoot) {
   if (!isSafeRelativePath(repositoryPath) || !isSafeRelativePath(ownerRoot)) return false;
   try {
-    const realEntry = realpathSync(path.resolve(rootDir, repositoryPath));
-    const realOwnerRoot = realpathSync(path.resolve(rootDir, ownerRoot));
-    const ownedRelative = path.relative(realOwnerRoot, realEntry);
-    return ownedRelative === ''
-      || (!ownedRelative.startsWith('..') && !path.isAbsolute(ownedRelative));
+    const absoluteRoot = path.resolve(rootDir);
+    const absoluteEntry = path.resolve(absoluteRoot, repositoryPath);
+    let existingEntry = absoluteEntry;
+    while (true) {
+      try {
+        lstatSync(existingEntry);
+        break;
+      } catch (error) {
+        if (!error || !['ENOENT', 'ENOTDIR'].includes(error.code)) throw error;
+        const parent = path.dirname(existingEntry);
+        if (!resolvedPathIsInside(parent, absoluteRoot)) return false;
+        existingEntry = parent;
+      }
+    }
+    const unresolved = path.relative(existingEntry, absoluteEntry);
+    const realExistingEntry = realpathSync(existingEntry);
+    if (unresolved && !lstatSync(realExistingEntry).isDirectory()) return false;
+    const realEntry = path.resolve(realExistingEntry, unresolved);
+    const realRepositoryRoot = realpathSync(absoluteRoot);
+    const realOwnerRoot = realpathSync(path.resolve(absoluteRoot, ownerRoot));
+    return resolvedPathIsInside(realOwnerRoot, realRepositoryRoot)
+      && resolvedPathIsInside(realEntry, realOwnerRoot);
   } catch {
     return false;
   }

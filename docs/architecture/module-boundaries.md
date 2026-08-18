@@ -217,6 +217,26 @@ symlink escapes, invalid targets and stale artifacts fail the architecture
 gate. Broad areas may carve out a narrower domain area only by excluding that
 domain's exact roots; implicit longest-match precedence is not allowed.
 
+Each migration safe start must be an existing regular file that belongs
+lexically to one effective declared root. Its projected real path must remain
+inside that same root and outside every `excludeRoots` carve-out. A parent
+symlink into another declared root, an excluded subtree or a location outside
+the repository is therefore invalid, including between two roots of the same
+multi-root area. Ordinary safe starts directly below any declared root remain
+valid. Declared roots and ownership artifacts may not contain any symlink path
+component, so an alias above the root cannot claim a canonical module or a
+second migration owner. The underlying path policy resolves a missing leaf from
+its nearest existing `lstat` ancestor so future-path containment fails closed
+without mistaking a broken symlink for an absent directory; inventory safe
+starts still have the stricter existing-file requirement.
+
+These checks validate a stable checkout snapshot; they are not a runtime
+authorization boundary against a process that concurrently rewrites the
+worktree. The task worktree is expected to remain exclusive, and callers must
+rerun metadata validation after topology changes. Security-sensitive file reads
+such as the canonical config additionally use the descriptor-based no-follow
+contract described below.
+
 `routeScope` is a many-to-many impact link, not a second URL registry and not
 exclusive route ownership. It may select no routes, all routes, or existing
 owner ids from `src/shared/seo/publicRouteInventory.json`; route ids, patterns
@@ -260,9 +280,9 @@ and mechanical subsystems live under `scripts/lib/`:
 - `module-boundary-contracts.mjs` owns immutable canonical roots and exception
   groups;
 - `module-boundary-cli.mjs` owns the fail-closed `--root` / `--config` grammar;
-- `repository-path-policy.mjs` owns normalization, selector, realpath safety and
-  descriptor-based reads of canonical repository files without symlink
-  components;
+- `repository-path-policy.mjs` owns normalization, selector, nearest-ancestor
+  realpath containment and descriptor-based reads of canonical repository
+  files without symlink components;
 - `module-inventory.mjs` owns inventory loading and ownership selection;
 - `module-inventory-validation.mjs` owns module, migration-area and shared-root
   metadata validation;

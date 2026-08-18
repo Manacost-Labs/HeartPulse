@@ -547,6 +547,18 @@ test('agent context resolves legacy files and the repository root through checke
       () => loadAgentContext({ repositoryRoot: root, selector: 'root' }),
       /invalid-focused-test-command/i,
     );
+
+    const linkedInventory = structuredClone(validInventory);
+    linkedInventory.migrationAreas[0].safeStarts = ['src/features/borrowed/public.ts'];
+    symlinkSync('../modules/battlegrounds', join(root, 'src/features/borrowed'));
+    writeFileSync(
+      join(root, 'config/module-boundaries.json'),
+      JSON.stringify(linkedInventory, null, 2),
+    );
+    assert.throws(
+      () => loadAgentContext({ repositoryRoot: root, selector: 'root' }),
+      /missing-migration-artifact[\s\S]*migration area client\.battlegroundsLegacy safe start is invalid: src\/features\/borrowed\/public\.ts/i,
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

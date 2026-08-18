@@ -4,6 +4,7 @@ import path from 'node:path';
 import { singleLineErrorMessage } from './diagnostic-text-policy.mjs';
 import { MODULE_EXCEPTION_GROUPS } from './module-boundary-contracts.mjs';
 import {
+  isInside,
   normalizeRepositoryPath,
   resolveRepositoryFile,
   resolveRepositoryPath,
@@ -77,8 +78,8 @@ export function sharedRootForRepositoryPath(sharedRoots, candidate, root = '') {
     .sort((left, right) => right.root.length - left.root.length)[0] ?? null;
 }
 
-export function pathBelongsToMigrationArea(candidate, area, root = '') {
-  if (typeof candidate !== 'string' || !area || typeof area !== 'object') return false;
+export function migrationRootForRepositoryPath(candidate, area, root = '') {
+  if (typeof candidate !== 'string' || !area || typeof area !== 'object') return null;
   const normalizedCandidate = normalizeRepositoryPath(candidate, root);
   const roots = Array.isArray(area.roots)
     ? area.roots.map(areaRoot => normalizeRepositoryPath(areaRoot, root)).filter(Boolean)
@@ -86,12 +87,14 @@ export function pathBelongsToMigrationArea(candidate, area, root = '') {
   const excludeRoots = Array.isArray(area.excludeRoots)
     ? area.excludeRoots.map(areaRoot => normalizeRepositoryPath(areaRoot, root)).filter(Boolean)
     : [];
-  return roots.some(areaRoot => (
-    (normalizedCandidate === areaRoot || normalizedCandidate.startsWith(`${areaRoot}/`))
-      && !excludeRoots.some(excludeRoot => (
-        normalizedCandidate === excludeRoot || normalizedCandidate.startsWith(`${excludeRoot}/`)
-      ))
-  ));
+  if (excludeRoots.some(excludeRoot => isInside(normalizedCandidate, excludeRoot))) return null;
+  return roots
+    .filter(areaRoot => isInside(normalizedCandidate, areaRoot))
+    .sort((left, right) => right.length - left.length)[0] ?? null;
+}
+
+export function pathBelongsToMigrationArea(candidate, area, root = '') {
+  return migrationRootForRepositoryPath(candidate, area, root) !== null;
 }
 
 export function migrationAreasForRepositoryPath(areas, candidate, root = '') {

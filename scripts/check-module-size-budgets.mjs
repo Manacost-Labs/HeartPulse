@@ -29,12 +29,12 @@ const moduleBudgets = [
   },
   {
     path: 'scripts/lib/repository-path-policy.mjs',
-    maxLines: 225,
+    maxLines: 247,
     owner: 'repository path and realpath safety',
   },
   {
     path: 'scripts/lib/module-inventory.mjs',
-    maxLines: 275,
+    maxLines: 278,
     owner: 'module inventory loading and ownership selection',
   },
   {
@@ -44,7 +44,7 @@ const moduleBudgets = [
   },
   {
     path: 'scripts/lib/module-inventory-validation.mjs',
-    maxLines: 588,
+    maxLines: 591,
     owner: 'module inventory metadata validation',
   },
   {

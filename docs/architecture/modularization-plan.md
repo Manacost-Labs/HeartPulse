@@ -327,6 +327,8 @@ agent can execute without first converting an XL phase into a task.
 | `OBS-01` | P1 / M | `server.applicationComposition` / `web-platform` | `PERF-01`, regional trust boundary | Publish owned dashboards and alerts for CWV, API latency/error rate, CDN hit/miss/fallback, regional parity, data freshness and Battlegrounds roster age; exercise one recovery runbook. |
 | `ARCH-01` | P2 / M | repository tooling / `web-platform` | checker characterization complete | Implemented for review: metadata validation, exception policy, diagnostic/path and edge primitives have focused owners; the facade stays below its exact current-size ratchet, six test suites stay below 500 lines and an AST gate enforces dependency direction. |
 | `ARCH-02` | P1 / S | repository tooling / `web-platform` | `ARCH-01` | Implemented for review: config is a canonical repository-relative regular file with no symlink components, realpath containment and descriptor-based reads; missing `--root`/`--config` values exit 2 while successful report bytes and the three-export facade remain stable. |
+| `ARCH-03` | P1 / S | repository tooling / `web-platform` | `ARCH-02` | Implemented for review: every migration safe start stays inside its lexically owning real root and outside exclusions; cross-root, excluded-root and repository-escape parent symlinks are rejected before metadata reaches agent context, while direct starts in every root of a multi-root area remain valid. |
+| `ARCH-04` | P2 / M | repository tooling / `web-platform` | `ARCH-03` | Planned: split module, migration-area and shared-root metadata coordination into focused validators without changing facade exports, diagnostic order, report bytes or CLI behavior; lower the 591-line coordinator ratchet. |
 | `LEGACY-01` | P2 / S | checked area id / its declared owner | owning module slice | Remove one exact migration root or exception only after all consumers use the public entry; lower its architecture budget and update impact/docs. |
 
 <!-- markdownlint-enable MD013 -->
@@ -928,8 +930,9 @@ cookies, query values and card ids never become metric dimensions.
 
 ### 15. AI tooling and final legacy removal
 
-Status: in progress. Ownership/navigation and the completed `ARCH-01` and
-`ARCH-02` implementations are in review; per-owner `LEGACY-01` slices remain.
+Status: in progress. Ownership/navigation and the completed `ARCH-01` through
+`ARCH-03` implementations are in review; `ARCH-04` and per-owner `LEGACY-01`
+slices remain.
 
 The generated `agent:context`, `agent:check`, `agent:impact` and `agent:map`
 commands now cover canonical modules, eight initial migration areas, all 48
@@ -956,6 +959,15 @@ characterization file is split into six responsibility suites, and an AST-based
 gate enforces strict downward dependencies across governed library layers,
 requires every classified unit to remain reachable from the facade and rejects
 dynamic, CommonJS, peer-relative and import-map bypasses.
+
+Migration safe starts now pair lexical ownership with their real filesystem
+location. A start reached through a parent symlink cannot cross into another
+root, an excluded subtree or outside the repository before appearing in
+`agent:context`; direct files in each root of a multi-root area remain valid.
+Nearest-existing-parent resolution keeps missing future paths deterministic,
+while the inventory contract continues to require every declared safe start to
+be an existing regular file. `ARCH-04` will decompose the remaining metadata
+coordinator without weakening these diagnostics or their insertion order.
 
 The migration is complete when:
 

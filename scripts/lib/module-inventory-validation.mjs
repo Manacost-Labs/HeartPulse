@@ -12,7 +12,7 @@ import {
   CANONICAL_SHARED_ROOTS,
 } from './module-boundary-contracts.mjs';
 import { validateExceptionMetadata } from './module-boundary-exceptions.mjs';
-import { pathBelongsToMigrationArea } from './module-inventory.mjs';
+import { migrationRootForRepositoryPath } from './module-inventory.mjs';
 import {
   focusedTestScriptId,
   packageScriptExists,
@@ -26,7 +26,7 @@ import {
   isInside,
   isSafeRelativePath,
   repositoryEntryKind,
-  repositoryEntryResolvesWithin,
+  repositoryPathProjectsWithin,
 } from './repository-path-policy.mjs';
 
 function discoverModuleRoots(rootDir, moduleRoots) {
@@ -239,9 +239,12 @@ function validateMigrationAreas(config, rootDir, modules, packageJson, errors) {
       }
     }
     for (const safeStart of Array.isArray(area.safeStarts) ? area.safeStarts : []) {
+      const ownerRoot = migrationRootForRepositoryPath(safeStart, area);
       if (!isSafeRelativePath(safeStart)
         || repositoryEntryKind(rootDir, safeStart) !== 'file'
-        || !pathBelongsToMigrationArea(safeStart, area)) {
+        || !ownerRoot
+        || !repositoryPathProjectsWithin(rootDir, safeStart, ownerRoot)
+        || excludeRoots.some(root => repositoryPathProjectsWithin(rootDir, safeStart, root))) {
         addError(errors, 'missing-migration-artifact', `migration area ${area.id} safe start is invalid: ${safeStart}`);
       }
     }
@@ -411,7 +414,7 @@ function validateSharedRoots(config, rootDir, modules, migrationAreas, packageJs
       if (!isSafeRelativePath(safeStart)
         || repositoryEntryKind(rootDir, safeStart) !== 'file'
         || !isInside(safeStart, sharedRoot.root)
-        || !repositoryEntryResolvesWithin(rootDir, safeStart, sharedRoot.root)) {
+        || !repositoryPathProjectsWithin(rootDir, safeStart, sharedRoot.root)) {
         addError(
           errors,
           'missing-shared-root-artifact',

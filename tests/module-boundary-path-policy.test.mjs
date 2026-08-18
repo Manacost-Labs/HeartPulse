@@ -15,6 +15,7 @@ import {
   isSafeRelativePath,
   normalizeRepositoryPath,
   projectPath,
+  repositoryPathProjectsWithin,
 } from '../scripts/lib/repository-path-policy.mjs';
 import {
   NOW,
@@ -233,7 +234,7 @@ test('graph and ownership scans reject source paths that can inject formatted ou
 
 test('migration roots and safe starts cannot rely on symbolic links', () => {
   const alpha = moduleEntry('client.alpha', 'client', 'src/modules/alpha');
-  const root = fixture(baseConfig([alpha], {
+  const config = baseConfig([alpha], {
     migrationAreas: [
       migrationAreaEntry('client.linkedRoot', 'client', ['src/root-link'], {
         safeStarts: ['src/root-link/entry.ts'],
@@ -241,20 +242,29 @@ test('migration roots and safe starts cannot rely on symbolic links', () => {
       migrationAreaEntry('client.linkedStart', 'client', ['src/legacy'], {
         safeStarts: ['src/legacy/entry.ts'],
       }),
+      migrationAreaEntry('client.parentLinkedRoot', 'client', ['src/module-alias/alpha'], {
+        safeStarts: ['src/module-alias/alpha/public.ts'],
+      }),
     ],
-  }));
+  });
+  const root = fixture(config);
   try {
     writeFixture(root, 'src/modules/alpha/public.ts', 'export {};\n');
     writeFixture(root, 'src/root-target/entry.ts', 'export {};\n');
     symlinkSync('root-target', join(root, 'src/root-link'));
     writeFixture(root, 'src/legacy/real.ts', 'export {};\n');
     symlinkSync('real.ts', join(root, 'src/legacy/entry.ts'));
+    symlinkSync('modules', join(root, 'src/module-alias'));
 
-    const report = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    const report = validateModuleInventoryMetadata({ rootDir: root, config });
 
     assert.ok(report.errors.some(error => (
       error.code === 'unsafe-migration-root'
         && error.message.includes('src/root-link')
+    )));
+    assert.ok(report.errors.some(error => (
+      error.code === 'unsafe-migration-root'
+        && error.message.includes('src/module-alias/alpha')
     )));
     assert.ok(report.errors.some(error => (
       error.code === 'missing-migration-artifact'
@@ -262,6 +272,113 @@ test('migration roots and safe starts cannot rely on symbolic links', () => {
     )));
   } finally {
     cleanup(root);
+  }
+});
+
+test('owner containment follows the nearest existing parent without crossing ownership', () => {
+  const root = fixture(baseConfig([]));
+  const outside = mkdtempSync(join(tmpdir(), 'arena-boundaries-owner-outside-'));
+  try {
+    writeFixture(root, 'src/owner/existing.ts', 'export {};\n');
+    writeFixture(root, 'src/other/existing.ts', 'export {};\n');
+    writeFixture(outside, 'existing.ts', 'export {};\n');
+    symlinkSync('../other', join(root, 'src/owner/borrowed'));
+    symlinkSync(outside, join(root, 'src/owner/external'));
+    symlinkSync('missing-target', join(root, 'src/owner/broken'));
+
+    assert.equal(
+      repositoryPathProjectsWithin(root, 'src/owner/future/entry.ts', 'src/owner'),
+      true,
+    );
+    assert.equal(
+      repositoryPathProjectsWithin(root, 'src/owner/borrowed/future.ts', 'src/owner'),
+      false,
+    );
+    assert.equal(
+      repositoryPathProjectsWithin(root, 'src/owner/external/future.ts', 'src/owner'),
+      false,
+    );
+    assert.equal(
+      repositoryPathProjectsWithin(root, 'src/owner/broken/future.ts', 'src/owner'),
+      false,
+    );
+  } finally {
+    cleanup(root);
+    cleanup(outside);
+  }
+});
+
+test('migration safe starts resolve within their lexically owning root', () => {
+  const alpha = moduleEntry('client.alpha', 'client', 'src/modules/alpha');
+  const alphaArea = migrationAreaEntry(
+    'client.legacyAlpha',
+    'client',
+    ['src/legacy-a', 'src/legacy-c'],
+    {
+      excludeRoots: ['src/legacy-a/excluded'],
+      targetModules: ['client.alpha'],
+      safeStarts: [
+        'src/legacy-a/entry.ts',
+        'src/legacy-a/borrowed/entry.ts',
+        'src/legacy-a/sibling-root/entry.ts',
+        'src/legacy-a/excluded-link/entry.ts',
+        'src/legacy-a/external/entry.ts',
+        'src/legacy-a/future/entry.ts',
+        'src/legacy-c/entry.ts',
+      ],
+    },
+  );
+  const betaArea = migrationAreaEntry('client.legacyBeta', 'client', ['src/legacy-b'], {
+    targetModules: ['client.alpha'],
+    safeStarts: ['src/legacy-b/entry.ts'],
+  });
+  const config = baseConfig([alpha], {
+    schemaVersion: 3,
+    migrationAreas: [alphaArea, betaArea],
+  });
+  const root = fixture(config);
+  const outside = mkdtempSync(join(tmpdir(), 'arena-boundaries-migration-outside-'));
+  try {
+    writeFixture(root, 'src/modules/alpha/public.ts', 'export {};\n');
+    writeFixture(root, 'src/legacy-a/entry.ts', 'export {};\n');
+    writeFixture(root, 'src/legacy-a/excluded/entry.ts', 'export {};\n');
+    writeFixture(root, 'src/legacy-b/entry.ts', 'export {};\n');
+    writeFixture(root, 'src/legacy-c/entry.ts', 'export {};\n');
+    writeFixture(outside, 'entry.ts', 'export {};\n');
+    symlinkSync('../legacy-b', join(root, 'src/legacy-a/borrowed'));
+    symlinkSync('../legacy-c', join(root, 'src/legacy-a/sibling-root'));
+    symlinkSync('excluded', join(root, 'src/legacy-a/excluded-link'));
+    symlinkSync(outside, join(root, 'src/legacy-a/external'));
+
+    const metadata = validateModuleInventoryMetadata({ rootDir: root, config });
+    assert.deepEqual(
+      metadata.errors,
+      [
+        {
+          code: 'missing-migration-artifact',
+          message: 'migration area client.legacyAlpha safe start is invalid: src/legacy-a/borrowed/entry.ts',
+        },
+        {
+          code: 'missing-migration-artifact',
+          message: 'migration area client.legacyAlpha safe start is invalid: src/legacy-a/sibling-root/entry.ts',
+        },
+        {
+          code: 'missing-migration-artifact',
+          message: 'migration area client.legacyAlpha safe start is invalid: src/legacy-a/excluded-link/entry.ts',
+        },
+        {
+          code: 'missing-migration-artifact',
+          message: 'migration area client.legacyAlpha safe start is invalid: src/legacy-a/external/entry.ts',
+        },
+        {
+          code: 'missing-migration-artifact',
+          message: 'migration area client.legacyAlpha safe start is invalid: src/legacy-a/future/entry.ts',
+        },
+      ],
+    );
+  } finally {
+    cleanup(root);
+    cleanup(outside);
   }
 });
 
