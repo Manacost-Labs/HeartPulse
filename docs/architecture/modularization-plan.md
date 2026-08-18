@@ -328,7 +328,7 @@ agent can execute without first converting an XL phase into a task.
 | `ARCH-01` | P2 / M | repository tooling / `web-platform` | checker characterization complete | Implemented for review: metadata validation, exception policy, diagnostic/path and edge primitives have focused owners; the facade stays below its exact current-size ratchet, six test suites stay below 500 lines and an AST gate enforces dependency direction. |
 | `ARCH-02` | P1 / S | repository tooling / `web-platform` | `ARCH-01` | Implemented for review: config is a canonical repository-relative regular file with no symlink components, realpath containment and descriptor-based reads; missing `--root`/`--config` values exit 2 while successful report bytes and the three-export facade remain stable. |
 | `ARCH-03` | P1 / S | repository tooling / `web-platform` | `ARCH-02` | Implemented for review: every migration safe start stays inside its lexically owning real root and outside exclusions; cross-root, excluded-root and repository-escape parent symlinks are rejected before metadata reaches agent context, while direct starts in every root of a multi-root area remain valid. |
-| `ARCH-04` | P2 / M | repository tooling / `web-platform` | `ARCH-03` | Planned: split module, migration-area and shared-root metadata coordination into focused validators without changing facade exports, diagnostic order, report bytes or CLI behavior; lower the 591-line coordinator ratchet. |
+| `ARCH-04` | P2 / M | repository tooling / `web-platform` | `ARCH-03` | Implemented for review: module, migration-area and shared-root metadata now have independent validators over one small policy owner; a 76-line coordinator preserves facade exports, diagnostic bytes/order, report bytes and CLI behavior, with exact size ratchets for all five units. |
 | `LEGACY-01` | P2 / S | checked area id / its declared owner | owning module slice | Remove one exact migration root or exception only after all consumers use the public entry; lower its architecture budget and update impact/docs. |
 
 <!-- markdownlint-enable MD013 -->
@@ -931,8 +931,7 @@ cookies, query values and card ids never become metric dimensions.
 ### 15. AI tooling and final legacy removal
 
 Status: in progress. Ownership/navigation and the completed `ARCH-01` through
-`ARCH-03` implementations are in review; `ARCH-04` and per-owner `LEGACY-01`
-slices remain.
+`ARCH-04` implementations are in review; per-owner `LEGACY-01` slices remain.
 
 The generated `agent:context`, `agent:check`, `agent:impact` and `agent:map`
 commands now cover canonical modules, eight initial migration areas, all 48
@@ -950,11 +949,13 @@ The boundary checker is now characterized and decomposed behind its existing
 three public exports. Diagnostic safety, repository paths, canonical contracts,
 CLI grammar, inventory validation, exception policy, edge identity, source
 scans, import parsing and resolution, cycle analysis and report formatting have
-named `scripts/lib/` owners. The facade retains analysis order, edge policy and
-CLI execution and is 280 lines against an exact 280-line ratchet. Config reads
-reject non-canonical paths and every symlink component, confirm realpath
-containment, then read through a verified descriptor. Exact tests pin diagnostic
-order, report bytes, stdout/stderr and exit codes; the former 1,000-line
+named `scripts/lib/` owners. Inventory validation itself has separate policy,
+module, migration-area and shared-root owners beneath a 76-line coordinator;
+no owner validator imports another. The facade retains analysis order, edge
+policy and CLI execution and is 280 lines against an exact 280-line ratchet.
+Config reads reject non-canonical paths and every symlink component, confirm
+realpath containment, then read through a verified descriptor. Exact tests pin
+diagnostic order, report bytes, stdout/stderr and exit codes; the former 1,000-line
 characterization file is split into six responsibility suites, and an AST-based
 gate enforces strict downward dependencies across governed library layers,
 requires every classified unit to remain reachable from the facade and rejects
@@ -966,8 +967,9 @@ root, an excluded subtree or outside the repository before appearing in
 `agent:context`; direct files in each root of a multi-root area remain valid.
 Nearest-existing-parent resolution keeps missing future paths deterministic,
 while the inventory contract continues to require every declared safe start to
-be an existing regular file. `ARCH-04` will decompose the remaining metadata
-coordinator without weakening these diagnostics or their insertion order.
+be an existing regular file. Metadata stages execute synchronously over one
+diagnostic stream in module, migration-area, shared-root and exception order;
+exact contracts prevent decomposition from reordering or rewriting errors.
 
 The migration is complete when:
 

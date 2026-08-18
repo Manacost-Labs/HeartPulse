@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Split the 591-line module inventory validator into explicit module,
+  migration-area and shared-root owners over one small validation policy. The
+  remaining coordinator is 76 lines and only preserves stage order and public
+  response shape; AST dependency gates prevent owner-to-owner coupling, exact
+  size ratchets cover every new unit, and characterization tests retain public
+  exports, diagnostic bytes/order, report output, CLI behavior and fail-closed
+  path checks.
 - Bound every migration safe start to both its lexical owner and real filesystem
   owner. Parent symlinks into another migration root, an excluded subtree or
   outside the repository now fail metadata validation before unsafe context can

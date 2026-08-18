@@ -43,9 +43,29 @@ const moduleBudgets = [
     owner: 'module boundary exception policy',
   },
   {
+    path: 'scripts/lib/module-inventory-validation-policy.mjs',
+    maxLines: 68,
+    owner: 'shared module inventory validation policy',
+  },
+  {
+    path: 'scripts/lib/module-inventory-module-validation.mjs',
+    maxLines: 192,
+    owner: 'canonical module inventory validation',
+  },
+  {
+    path: 'scripts/lib/module-inventory-migration-validation.mjs',
+    maxLines: 255,
+    owner: 'migration-area inventory validation',
+  },
+  {
+    path: 'scripts/lib/module-inventory-shared-root-validation.mjs',
+    maxLines: 149,
+    owner: 'canonical shared-root inventory validation',
+  },
+  {
     path: 'scripts/lib/module-inventory-validation.mjs',
-    maxLines: 591,
-    owner: 'module inventory metadata validation',
+    maxLines: 76,
+    owner: 'module inventory validation coordinator',
   },
   {
     path: 'scripts/lib/module-import-graph.mjs',

@@ -210,6 +210,72 @@ test('boundary diagnostics keep their cross-stage insertion order', () => {
   }
 });
 
+test('inventory diagnostics keep their exact owner-stage insertion order', () => {
+  const validConfig = baseConfig([]);
+  const root = fixture(validConfig);
+  try {
+    const metadata = validateModuleInventoryMetadata({
+      rootDir: root,
+      now: NOW,
+      config: {
+        ...validConfig,
+        schemaVersion: 999,
+        moduleRoots: [],
+        modules: [null],
+        migrationAreas: {},
+        sharedRoots: {},
+      },
+    });
+    assert.deepEqual(metadata, {
+      ok: false,
+      modules: [],
+      migrationAreas: [],
+      sharedRoots: [],
+      errors: [{
+        code: 'invalid-schema-version',
+        message: 'module-boundaries schemaVersion must be 3',
+      }, {
+        code: 'invalid-boundary-roots',
+        message: 'moduleRoots and sharedRoots must match the canonical client/server architecture roots',
+      }, {
+        code: 'invalid-module',
+        message: 'every module inventory item must be an object',
+      }, {
+        code: 'invalid-migration-areas',
+        message: 'schemaVersion 3 requires a migrationAreas array',
+      }, {
+        code: 'invalid-boundary-roots',
+        message: 'moduleRoots and sharedRoots must match the canonical client/server architecture roots',
+      }],
+    });
+  } finally {
+    cleanup(root);
+  }
+});
+
+test('package and exception diagnostics stay on opposite sides of owner validation', () => {
+  const config = baseConfig([], { migrationAreas: [], sharedRoots: [] });
+  config.exceptions.missingPublicEntry = null;
+  const root = fixture(config);
+  try {
+    writeFixture(root, 'package.json', 'null\n');
+    const metadata = validateModuleInventoryMetadata({ rootDir: root, config, now: NOW });
+    assert.deepEqual(metadata.errors, [{
+      code: 'invalid-package-json',
+      message: 'package.json is invalid: root value must be an object',
+    }, {
+      code: 'invalid-boundary-roots',
+      message: 'moduleRoots and sharedRoots must match the canonical client/server architecture roots',
+    }, {
+      code: 'invalid-exception-metadata',
+      message: 'missingPublicEntry exceptions must be an array',
+      category: 'missingPublicEntry',
+    }]);
+  } finally {
+    cleanup(root);
+  }
+});
+
 test('valid JSON with a non-object root fails closed as a structured boundary report', () => {
   const root = fixture(baseConfig([]));
   try {

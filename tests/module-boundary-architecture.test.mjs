@@ -15,6 +15,11 @@ const EXPECTED_BOUNDARY_TESTS = [
   'module-boundary-inventory.test.mjs',
   'module-boundary-path-policy.test.mjs',
 ];
+const INVENTORY_VALIDATION_OWNERS = [
+  ['module-inventory-module-validation.mjs', 'validateModules'],
+  ['module-inventory-migration-validation.mjs', 'validateMigrationAreas'],
+  ['module-inventory-shared-root-validation.mjs', 'validateSharedRoots'],
+];
 
 const LIBRARY_LAYERS = new Map([
   ['diagnostic-text-policy.mjs', 0],
@@ -23,6 +28,7 @@ const LIBRARY_LAYERS = new Map([
   ['module-import-parser.mjs', 0],
   ['npm-script-policy.mjs', 0],
   ['module-boundary-cli.mjs', 1],
+  ['module-inventory-validation-policy.mjs', 1],
   ['repository-path-policy.mjs', 1],
   ['module-boundary-exceptions.mjs', 2],
   ['module-boundary-graph.mjs', 2],
@@ -31,7 +37,10 @@ const LIBRARY_LAYERS = new Map([
   ['module-import-graph.mjs', 2],
   ['module-inventory.mjs', 2],
   ['public-route-inventory.mjs', 2],
-  ['module-inventory-validation.mjs', 3],
+  ['module-inventory-module-validation.mjs', 3],
+  ['module-inventory-migration-validation.mjs', 3],
+  ['module-inventory-shared-root-validation.mjs', 3],
+  ['module-inventory-validation.mjs', 4],
 ]);
 
 function lineCount(path) {
@@ -176,6 +185,30 @@ test('module boundary libraries depend only on lower policy layers', () => {
     [...LIBRARY_LAYERS.keys()].sort(),
     'every classified boundary library must be reachable from the facade',
   );
+});
+
+test('module inventory validation is split into explicit ownership units', () => {
+  const coordinator = 'module-inventory-validation.mjs';
+  const coordinatorDependencies = siblingImports(coordinator);
+
+  assert.ok(
+    lineCount(join(LIB_ROOT, coordinator)) < 120,
+    'module inventory validation coordinator must stay below 120 lines',
+  );
+  for (const [file, exportedValidator] of INVENTORY_VALIDATION_OWNERS) {
+    const path = join(LIB_ROOT, file);
+    assert.ok(existsSync(path), `${file} must own one inventory validation stage`);
+    assert.ok(lineCount(path) < 300, `${file} must stay below 300 lines`);
+    assert.match(
+      readFileSync(path, 'utf8'),
+      new RegExp(`export function ${exportedValidator}\\b`),
+      `${file} must export ${exportedValidator}`,
+    );
+    assert.ok(
+      coordinatorDependencies.includes(file),
+      `${coordinator} must orchestrate ${file}`,
+    );
+  }
 });
 
 test('module boundary layer parser rejects dependency-graph bypasses', () => {

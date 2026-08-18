@@ -284,8 +284,16 @@ and mechanical subsystems live under `scripts/lib/`:
   realpath containment and descriptor-based reads of canonical repository
   files without symlink components;
 - `module-inventory.mjs` owns inventory loading and ownership selection;
-- `module-inventory-validation.mjs` owns module, migration-area and shared-root
-  metadata validation;
+- `module-inventory-validation-policy.mjs` owns shared record, diagnostic,
+  package and focused-test validation mechanics;
+- `module-inventory-module-validation.mjs` owns canonical module discovery,
+  identity, artifacts and declared dependency validation;
+- `module-inventory-migration-validation.mjs` owns migration roots,
+  exclusions, targets, routes, safe starts and cross-area overlap validation;
+- `module-inventory-shared-root-validation.mjs` owns canonical shared-root
+  identity, artifacts and safe-start validation;
+- `module-inventory-validation.mjs` is the thin coordinator that preserves the
+  module → migration → shared-root → exception diagnostic order;
 - `module-boundary-exceptions.mjs` owns exception metadata and graph matching;
 - `module-boundary-edges.mjs` owns stable edge ordering and identity keys;
 - `module-boundary-source-scan.mjs` owns graph and migration-ownership scans;
