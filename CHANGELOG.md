@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Turned the modularization document into an executable product-quality
+  program: it now links each source of truth, defines S/M task and status
+  contracts, prioritizes page/filter/image speed, current Battlegrounds heroes,
+  visual consistency and admin-domain migrations, records the actual
+  local-mirror → Timeweb → origin topology, and adds global performance,
+  accessibility, observability, security and recovery exit gates. Agent
+  instructions now derive the public changelog version from the changelog
+  itself instead of carrying a stale second copy.
 - Decomposed the module-boundary checker into named path-safety, source-scan,
   import-parser, import-resolution, cycle-graph and report units while retaining
   a stable orchestration facade. Exact characterization tests now pin public

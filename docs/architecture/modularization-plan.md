@@ -14,6 +14,52 @@ are defined in [`module-boundaries.md`](module-boundaries.md) and accepted by
 This file tracks migration order; those documents define how every slice is
 structured and completed.
 
+## Sources of truth
+
+This roadmap is the program index, not a replacement for focused contracts.
+Read the owning source before changing a workstream:
+
+| Workstream | Governing source |
+| --- | --- |
+| Module ownership and dependency direction | [`module-boundaries.md`](module-boundaries.md), [`config/module-boundaries.json`](../../config/module-boundaries.json), ADR-002 |
+| Application routes and SEO ownership | [`application-route-manifest.md`](../specs/application-route-manifest.md), [`SEO-STRATEGY.md`](../roadmaps/SEO-STRATEGY.md), ADR-010 |
+| Administrator workspace | [`admin-tailadmin-workspace-shell.md`](../specs/admin-tailadmin-workspace-shell.md) |
+| Mobile and responsive quality | [`MOBILE-QUALITY-ROADMAP.md`](../roadmaps/MOBILE-QUALITY-ROADMAP.md) |
+| Stability and recovery | [`STABILITY-ROADMAP.md`](../roadmaps/STABILITY-ROADMAP.md) |
+| Public static delivery and card images | [`global-static-asset-delivery.md`](../specs/global-static-asset-delivery.md), [`timeweb-cdn-image-delivery.md`](../specs/timeweb-cdn-image-delivery.md), ADR-008 and ADR-009 |
+| Regional telemetry | [`regional-performance-telemetry.md`](../specs/regional-performance-telemetry.md), [`production-monitor.md`](../runbooks/production-monitor.md) |
+| CDN operations and rollback | [`global-edge-rollout.md`](../runbooks/global-edge-rollout.md), [`timeweb-cdn-rollout.md`](../runbooks/timeweb-cdn-rollout.md) |
+| Security and release | [`SECURITY.md`](../../SECURITY.md), [`DEPLOYMENT.md`](../../DEPLOYMENT.md), ADR-001 |
+
+The canonical ADR directory is `docs/decisions`. The older
+`docs/adr/0001-public-url-indexability.md` remains a historical input until a
+dedicated documentation slice migrates it without changing URL policy.
+
+## Execution and status contract
+
+Notion is the operational source for task status; this document owns order,
+dependencies and exit gates. Use only `planned`, `in progress`, `review`,
+`integrated` and `deployed`. An active slice records its Notion task, checked
+ownership id (or the repository-tooling owner), accountable team, dependencies,
+at most three observable completion criteria, expected files/documents,
+verification commands and rollback. Status changes in this roadmap and Notion
+happen together; commit and check evidence is attached when a slice reaches
+`review` or later.
+
+Every implementation item is S or M. An XL phase below is a program heading,
+not an executable task. Split it until one owner can safely ship the result in
+one independently deployable change. Use this slice card:
+
+```text
+ID and outcome:
+Status / owner id / size:
+Dependencies:
+Likely code and owning documents:
+Done (maximum three observable checks):
+Verification commands and saved before/after evidence:
+Rollback:
+```
+
 ## Baseline
 
 The production build at commit `21daa508` exposed the following hotspots:
@@ -205,6 +251,23 @@ produce the deterministic whole-project surface. Missing or multiply-owned
 product source fails the architecture gate instead of silently returning an
 empty AI context.
 
+### Golden path for an AI-authored capability
+
+1. Resolve the nearest existing owner with `npm run agent:context -- <path-or-id>`
+   and inspect reverse impact before creating a new domain.
+2. Put behavior in the owner-specific `model`, `api`, `hooks` and `ui` folders
+   only as needed; expose the smallest cross-domain surface from `public.ts`.
+3. Add or update exactly one checked inventory owner with its focused tests,
+   documentation, safe starts and declared dependencies.
+4. Register new tests in the test registry and colocate stories with reusable
+   UI; add a specification, ADR or runbook only when its contract changes.
+5. Run `agent:impact`, `agent:check`, the architecture gate and the relevant
+   browser or operations check. Lower the replaced file/bundle ratchet.
+
+If no existing owner fits, write the purpose and dependency direction first;
+do not create a new module merely to hold one helper. This recipe is also the
+review checklist for an AI-generated change.
+
 ## Delivery roadmap and visible outcome
 
 The roadmap is ordered by risk and user value. Every milestone must leave a
@@ -216,11 +279,12 @@ gate is green.
 | P0 | Checked ownership map | boundary graph green |
 | P0 | Identity security cutover | coordinated release green |
 | P1 | Application shell | shell below 500 lines |
-| P1 | Cards and Battlegrounds | RU/EU performance green |
+| P1 | Cards and Battlegrounds | global page/filter/image budgets green |
 | P1 | Administrator workspace | access and UI matrix green |
+| P1 | Observability | owned SLO dashboard, alerts and recovery probe green |
 | P2 | Standard, decks and editorial | legacy route bundle removed |
 | P2 | Server domains | server root below 500 lines |
-| P3 | Contracts and observability | zero crossings and cycles |
+| P2 | Contracts | zero crossings and cycles |
 | P3 | Legacy removal and AI commands | generated agent tools green |
 
 The ownership map makes each owner, public entry, dependency, test and document
@@ -241,6 +305,37 @@ about the current production baseline. Image optimization may lower tile
 transfer size but must preserve the documented `detail` and `original` quality
 classes.
 
+## Executable program backlog
+
+These are the next bounded slices. The phase descriptions later in this
+document explain the target architecture; this table is the hand-off queue an
+agent can execute without first converting an XL phase into a task.
+
+<!-- markdownlint-disable MD013 -->
+
+| ID | Priority / size | Ownership scope / team | Depends on | Outcome and evidence |
+| --- | --- | --- | --- | --- |
+| `PERF-01` | P0 / M | `client.applicationComposition` / `web-platform` | none | Save one cold/warm baseline for pages, filters and image classes from RU, EU, North America, Asia and origin; include request waterfalls, p75/p95, bytes and release SHA. |
+| `CDN-01` | P0 / M | `shared.crossRuntimeContracts` / `web-platform` | `PERF-01` | Reconcile every resource class with the coverage table in Phase 14; prove cache/fallback and credential boundaries with `test:cdn-delivery`, `test:network-boundary` and regional probes. |
+| `BG-01` | P0 / M | `client.battlegrounds` / `web-platform` | none | Define patch/season roster identity, reject stale or incomplete live data and alert on freshness so new heroes reach library and strategy builder together. |
+| `CARDS-01` | P0 / M | `client.featureLegacy` / `web-platform` | `PERF-01` | Extract visible-window image loading and filter orchestration; prevent background prefetch from competing with visible full-quality cards and save a before/after waterfall. |
+| `UX-01` | P1 / M | `client.applicationComposition` / `web-platform` | route manifest | Classify all 25 surfaces and 48 URL policies by user priority/template, define state and viewport coverage, and attach desktop/mobile before screenshots to each changed primary surface. |
+| `ADMIN-01` | P1 / M | `client.adminWorkspace` / `operations` | shell integrated | Move one authorized admin domain behind a lazy public entry with its RBAC matrix, list/filter/detail states, destructive confirmation rules and bundle evidence. Repeat per domain. |
+| `SHELL-01` | P1 / M | `client.applicationComposition` / `web-platform` | identity and subscription contracts | Extract one provider or shell responsibility, preserve all route/Back/Forward behavior and lower the `App.tsx` ratchet. |
+| `ROUTES-01` | P1 / M | `client.featureLegacy` / `web-platform` | application routing foundation | Extract one Arena or Standard route behind a focused lazy entry, direct model test and route chunk budget; lower the owning legacy ratchet. |
+| `SERVER-01` | P1 / M | `server.applicationComposition` / `web-platform` | target server public entry | Move one HTTP family into route/service/repository boundaries with explicit dependencies, compatible HTTP tests and endpoint-latency evidence. |
+| `OBS-01` | P1 / M | `server.applicationComposition` / `web-platform` | `PERF-01`, regional trust boundary | Publish owned dashboards and alerts for CWV, API latency/error rate, CDN hit/miss/fallback, regional parity, data freshness and Battlegrounds roster age; exercise one recovery runbook. |
+| `ARCH-01` | P2 / M | repository tooling / `web-platform` | checker characterization complete | Extract metadata validation and exception policy from the boundary facade, centralize repository path safety and split checker tests by responsibility; lower the facade below 500 lines. |
+| `LEGACY-01` | P2 / S | checked area id / its declared owner | owning module slice | Remove one exact migration root or exception only after all consumers use the public entry; lower its architecture budget and update impact/docs. |
+
+<!-- markdownlint-enable MD013 -->
+
+For every row, the three default completion checks are: observable behavior is
+preserved or deliberately specified, the relevant performance/size ratchet is
+no worse, and `npm run agent:check -- <inventory-id-or-path-or-root>` plus the
+owning browser or operational check is green. `npm run verify:ci` remains the
+integration gate.
+
 ## Delivery order
 
 Each numbered area is delivered as a sequence of small vertical slices, not as
@@ -249,7 +344,7 @@ files, keep the application deployable and lower the ratchet it replaces.
 
 ### 0. Safety guardrails
 
-Status: implementation complete; awaiting integration.
+Status: review. Implementation is complete in the current architecture branch.
 
 - [x] Forward rejected Express 4 route promises in the extracted ecosystem and
   article-vote routes to the existing structured error middleware, with direct
@@ -260,12 +355,13 @@ Status: implementation complete; awaiting integration.
   analysis. This deleted 1,949 lines of retired admin, deck and application
   code from `DeferredRoutes.tsx` and lowered its ratchet from 6,435 to 4,468
   lines without changing a public export.
-- [x] Add a machine-readable inventory for all nine current modules and an
+- [x] Add a machine-readable inventory for the nine initial modules and an
   AST-resolved dependency gate across TypeScript and JavaScript sources.
   Existing migration debt is represented only by exact, owned, expiring edges;
   the accepted graph has no runtime cycle.
-- [x] Generate the test command from a checked registry so all 223 supported
-  test files belong to exactly one runnable suite and suite-only environment
+- [x] Generate the test command from a checked registry so every discovered
+  supported test file belongs to exactly one runnable suite and suite-only
+  environment
   variables cannot leak into the remaining tests. Discovery scans the authored
   repository tree and rejects test files outside `tests/`, preventing colocated
   or unregistered tests from being silently skipped.
@@ -278,7 +374,7 @@ has a narrow verification command and cannot add new dependency debt.
 
 ### 0.1 Public module-entry debt
 
-Status: implementation complete; awaiting integration after Phase 0.
+Status: review. Implementation is complete and depends on Phase 0 integration.
 
 - [x] Add the missing `server.arena` and `server.constructedCards` public
   entries and switch the legacy composition consumers to those contracts.
@@ -296,7 +392,7 @@ Status: implementation complete; awaiting integration after Phase 0.
 
 ### 0.2 Application routing foundation
 
-Status: implementation complete; awaiting integration after Phase 0.1.
+Status: review. Implementation is complete and depends on Phase 0.1 integration.
 
 - [x] Establish `src/app/routing/public.ts` as the explicit application routing
   entry and keep `src/routes.ts` as a derived compatibility facade only.
@@ -320,7 +416,7 @@ accepted by [ADR-010](../decisions/010-application-route-manifest-and-navigation
 
 ### 1. Constructed-card catalog model
 
-Status: complete.
+Status: integrated.
 
 - Move filter defaults, URL serialization and adjacent-prefetch policy into a
   pure model.
@@ -335,7 +431,9 @@ login/profile surface have been extracted into dedicated owners.
 - Extract shared Arena card types and formatting into explicit domain models.
 - Give win rates, tier list, legendaries, auth and articles separate lazy route
   entry points, one route per slice.
-- Keep only genuinely shared primitives in a small common module.
+- Keep Arena vocabulary with its owning domain model. Promote only a proven
+  runtime-independent capability to an explicitly named `src/shared/<capability>`
+  contract; never create a `common` or catch-all helper module.
 - Measure each resulting chunk and lower the `DeferredRoutes` budget.
 
 The remaining Articles, Win rates, Tier list and Legendaries surfaces now share
@@ -404,7 +502,7 @@ separate route chunks, new-hero freshness is monitored, type cycles are gone,
 the public API uses only the public contract, and tile/detail/original image
 quality plus placeholders and transitions pass browser checks.
 
-### 5. Server composition
+### 5. Server domain-route extraction
 
 Status: in progress. The protected ecosystem routes plus the public, private
 and Telegram identity boundaries are the first four extracted server domain
@@ -460,15 +558,18 @@ the final slice still removes 158 lines from the preceding server ceiling.
 
 Before this slice can be released, the coordinated KHA bot must accept the
 exact case-sensitive strong-code format, persist its email-verification attempt
-budget and pass its focused tests. The Limburg edge must also be added to the
-origin's trusted real-IP list so EU visitors do not share one rate-limit key.
+budget and pass its focused tests. The implemented Limburg real-IP trust-list
+change in the versioned Nginx contract must also pass release verification
+before this branch is integrated, so EU visitors keep independent rate-limit
+identities.
 The release deliberately invalidates legacy short link codes and the old
 production auth-cookie name; existing users sign in once again instead of
 accepting an unsafe sibling-domain cookie migration.
 
 ### 6. Application shell
 
-Status: routing and navigation foundation complete; shell decomposition pending.
+Status: in progress. Routing and navigation are implemented in review; shell
+decomposition remains planned.
 
 - [x] Move route metadata, loaders and preload policy into the application route
   manifest.
@@ -492,10 +593,11 @@ navigation, entitlements and Back/Forward scenarios must remain compatible.
 Depends on the application routing foundation and proceeds alongside the shell
 provider extraction.
 
-Status: client subscription contract, shared presentation metadata, login,
-public-profile client/server identity boundaries, private-account and guest-auth
-transport, application authorization and Telegram provider linking complete;
-a shared client identity provider and subscription extraction remain.
+Status: in progress. The client subscription contract, shared presentation
+metadata, login, public-profile client/server identity boundaries,
+private-account and guest-auth transport, application authorization and
+Telegram provider linking are complete; a shared client identity provider and
+subscription extraction remain.
 
 1. [x] Create `client.subscriptions` as the runtime-neutral owner of the client
    status DTO, all seven entitlement keys and named-entitlement access policy.
@@ -573,6 +675,8 @@ contract tests.
 
 ### 8. Standard Meta and decks
 
+Status: planned as a sequence of `ROUTES-01` slices.
+
 Split the current mixed Standard surface by user capability:
 
 1. standard matchups;
@@ -592,6 +696,9 @@ the legacy detail URL has an explicit regression test.
 
 ### 9. Editorial, community and smaller domains
 
+Status: in progress. Gallery and developer API have focused owners; the
+remaining legacy route exports are planned.
+
 Finish low-coupling domains as independent slices:
 
 - articles and article administration -> `editorial`;
@@ -608,8 +715,11 @@ be deleted, and every resulting route has a measured cold and repeated load.
 
 ### 10. Administrator workspace
 
-The TailAdmin-based workspace owns layout, navigation, responsive drawer,
-accessibility and error surfaces. Product pages remain with their domains:
+Status: in progress. The `client.adminWorkspace` shell is integrated; product
+domain migrations remain planned.
+
+The TailAdmin-inspired workspace owns layout, navigation, responsive drawer,
+accessibility and shared error surfaces. Product pages remain with their domains:
 
 - Arena operations -> `arena/admin`;
 - articles and gallery -> `editorial/admin`;
@@ -623,13 +733,36 @@ accessibility and error surfaces. Product pages remain with their domains:
 the shell must not eagerly import every product module. Each significant state
 gets a Storybook story and an explicit permission-matrix test.
 
+Move one admin capability per M-sized slice, in this order:
+
+1. Checked admin page manifest and RBAC matrix, including contest-only access,
+   unauthorized deep links and a stable page title/breadcrumb contract.
+2. Content operations: articles, gallery, translations and mechanics, each
+   with list, search/filter, edit, saved, invalid, failed and retry states.
+3. Data operations: parser control, Arena refresh, Standard operations and
+   public API, including data age, job progress, cancellation and recovery.
+4. Audience operations: users, Telegram, Boosty, subscriptions and mailing,
+   with explicit private-data fields and audit events.
+5. Growth operations: contests, referrals and analytics, keeping product
+   policy in `community/admin` rather than the workspace shell.
+
+Every mutation slice specifies confirmation/cancellation, duplicate-submit
+protection, success/failure recovery and the audit record. Every page must keep
+filter/query state on Back/Forward, expose loading/empty/error/retry states,
+work with the mobile drawer and remain outside the public startup bundle.
+
 Complete when TailAdmin remains a replaceable presentation boundary, no domain
 logic lives in the workspace shell, no consumer imports internal workspace CSS,
-and the admin JS/CSS budgets remain ratcheted.
+and the admin JS/CSS budgets remain ratcheted. The final evidence is the RBAC
+matrix, desktop/mobile/200% browser matrix, mutation audit contract and per-page
+lazy bundle report.
 
-### 11. Server composition root
+### 11. Final server composition-root cleanup
 
-This phase advances in parallel with every domain extraction and finishes after
+Status: in progress through each `SERVER-01` extraction.
+
+This phase depends on the route-family extractions in Phase 5. It advances by
+lowering the root ratchet with every completed server domain and finishes after
 the client domain phases. The final `server/index.ts` only:
 
 1. reads validated configuration;
@@ -650,6 +783,9 @@ startup, shutdown, recovery, authorization and endpoint latency are verified.
 
 ### 12. Shared contracts and cycle removal
 
+Status: in progress; remaining crossings and type-inclusive cycles are checked
+architecture debt.
+
 Create `shared/contracts/<domain>` only for runtime-neutral types, schemas and
 serialized envelopes used by both client and server. React, Express, filesystem
 access, transport clients and orchestration are forbidden there.
@@ -665,8 +801,21 @@ module.
 
 ### 13. UI system and visual quality
 
-Improve visual consistency as domain files move rather than through a global
-rewrite:
+Status: in progress as a parallel P1 lane. Visual quality ships inside every
+domain slice rather than waiting for a final global rewrite.
+
+First create a generated review matrix that maps all 25 application surfaces
+and 48 URL policies to a product owner, page template and priority:
+
+- Tier A: primary discovery, cards, filters, Battlegrounds, identity and
+  administrator tasks; full state, accessibility, screenshot and performance
+  coverage is mandatory;
+- Tier B: secondary editorial, community and detail flows; state,
+  accessibility and representative screenshot coverage is mandatory;
+- Tier C: aliases, redirects, removed pages and policy-only URLs; URL,
+  canonical, recovery and not-found behavior is mandatory.
+
+Improve visual consistency as domain files move:
 
 - keep one documented token source for color, spacing, type, elevation and
   motion;
@@ -675,31 +824,111 @@ rewrite:
 - keep `AuthAvatar` and profile UI in identity, paywall UI in subscriptions and
   card presentation in its card domain;
 - colocate CSS and Storybook states with the owning UI;
-- test keyboard, focus, reduced motion, empty, loading, error and slow-network
-  states at the supported viewports.
+- meet WCAG 2.2 AA for keyboard, focus, labels, contrast, reflow and reduced
+  motion;
+- test loading, skeleton, empty, partial, failure, retry and slow-network states
+  at 320×568, 390×844, 768×1024, compact desktop and desktop viewports;
+- save labelled before/after screenshots and the changed task's interaction
+  checklist with the release evidence.
+
+The current browser QA produces the representative responsive screenshot and
+accessibility matrix. A separate M-sized tooling slice must add deterministic
+baseline storage, pixel-diff thresholds and a review/update command before
+`visual-regression coverage` becomes a blocking CI claim. Until then, reviewers
+compare the saved before/after artifacts and Storybook states explicitly.
 
 Complete when `src/components` contains only genuine shared primitives or is
 gone, cross-domain private CSS imports are zero, visual-regression coverage
-exists for primary surfaces and accessibility checks pass.
+is reproducible for Tier A surfaces, key tasks require no undocumented gesture,
+and accessibility checks pass.
 
 ### 14. Images, CDN and regional delivery
 
-Keep delivery policy separate from card business logic. One documented public
-resource contract owns:
+Status: in progress. Card images have the complete local-first Timeweb path;
+the broader public-static plane is a canary and must advance by resource class.
 
-- same-origin resource URL generation;
-- `tile`, `detail` and `original` variants;
-- image format negotiation without reducing the requested quality class;
-- ETag, immutable/versioned cache rules and purge behavior;
-- Timeweb CDN publication, Russian edge, European proxy and origin fallback;
-- a strict ban on shared caching for authenticated HTML and private API data.
+Keep delivery policy separate from card business logic. The current coverage
+and intended boundary are:
 
-Complete when all public images use one testable policy, list tiles are light,
-detail/original quality remains intact, cold and repeat loads are measured from
-RU/EU/origin paths, fallback is exercised and private responses remain
-credential-safe. ADR-008 and ADR-009 remain the governing delivery decisions.
+<!-- markdownlint-disable MD013 -->
+
+| Resource class | Current browser route | Current/target delivery | Cache and credential boundary |
+| --- | --- | --- | --- |
+| Versioned card images `/api/card-image/**` | `cdn.arena.hs-manacost.ru` when the runtime switch is enabled | regional local mirror → Timeweb on miss → edge retry to origin | `GET`/`HEAD`, long public TTL; no cookies or authorization |
+| Hashed JS/CSS, fonts and release media | application host; CDN allowlist is canary-only | synchronized regional release → credential-stripped origin fallback, then class-by-class URL activation | one year `immutable`; release checksum must match |
+| Other public media `/api/public-resource/**` | application host | remain same-origin until inventoried, then regional canary with bounded upstream fallback | response-driven bounded TTL; no credential forwarding |
+| Mutable public JSON, icons, robots and sitemaps | application host | origin or short regional revalidation only | never inherit a provider-wide immutable/browser TTL |
+| HTML and `/runtime-config.js` | application host through regional reverse proxies | origin-backed dynamic plane | runtime `no-store`; no shared cache |
+| Auth, subscriptions, profiles, admin and private/personalized API | application host through trusted regional proxies | origin-backed dynamic plane only | `private, no-store`; never Timeweb or shared Nginx cache |
+
+<!-- markdownlint-enable MD013 -->
+
+After those server-side levels fail, the browser image component has a separate
+final `onError` retry against the same-origin application URL. It is not part of
+the regional edge's upstream chain.
+
+One documented public-resource contract owns same-origin URL generation;
+`tile`, `detail` and `original` variants; format negotiation without reducing
+the requested quality class; ETag/versioned cache behavior; purge and rollback;
+and the client fallback. The Timeweb configuration and edge implementation must
+continue following the two delivery specifications and two rollout runbooks in
+the source-of-truth table rather than duplicating mutable provider settings here.
+
+`PERF-01` establishes explicit p50/p95 byte budgets for `tile`, `detail` and
+`original`, the maximum visible/prefetch request concurrency and the allowed
+above-the-fold queue delay. Tile bytes may decrease; detail dimensions and
+visual quality must stay within the recorded contract, and original downloads
+remain byte-identical. No image optimization ships before these values and a
+representative visual comparison are saved.
+
+Every canary compares cold and warm page, filter and image loads from Russia
+(Moscow and Novosibirsk), Europe (Limburg IPv4 and IPv6), North America, Asia
+and direct origin. A North American or Asian result must come from a controlled
+probe in that region. Record DNS, connect, TLS, TTFB, total time, bytes, status,
+cache state, serving edge and release SHA. Initial gates are cache-hit ratio at
+least 95% after warm-up, cached static TTFB p95 at most 250 ms, static
+availability at least 99.9%, and CWV p75 of LCP at most 2.5 s, INP at most
+200 ms and CLS at most 0.1.
+
+Complete when every resource class has a declared route and rollback, all
+public images use one tested quality policy, no background request competes
+with visible images, regional/fallback probes pass, and no credential-bearing
+request or private response reaches the CDN host. Required local gates include
+`test:cdn-delivery`, `test:network-boundary`, `test:runtime-client-config`,
+`test:production-monitor`, browser QA and the saved regional report. ADR-008
+and ADR-009 remain the governing delivery decisions.
+
+### 14.1 Observability and recovery gate
+
+`OBS-01` turns measurements into an operated contract. The `web-platform`
+owner publishes a versioned dashboard and alert/runbook links for:
+
+- p75 CWV and crash-free sessions by bounded client/edge region, device and
+  release;
+- request rate, 5xx rate and p95/p99 duration by bounded route template;
+- CDN local/upstream hit, miss and origin-fallback rate by resource class and
+  region;
+- dataset age/version/mode/rejection reason and Battlegrounds roster patch age;
+- deploy annotations, active release parity and synthetic recovery events.
+
+Initial operational gates reuse the stability and regional specifications:
+public shell/core API availability at least 99.9%, core-route 5xx below 0.5%,
+cache-hit API p95 at most 500 ms, critical uncached/data endpoint p95 at most
+1.5 s, automated regression detection within five minutes, and critical data
+freshness within its schedule plus 30 minutes. Dataset-specific completeness
+thresholds remain versioned per source; one arbitrary threshold must not be
+reused across Arena, Standard and Battlegrounds.
+
+Every pageable alert names its owner, impact, dashboard, first three checks and
+rollback/fallback. A synthetic monitor runs from outside the origin at least
+every five minutes, pages only after two consecutive failures, emits recovery
+and is exercised before the gate is declared integrated. Raw IPs, user ids,
+cookies, query values and card ids never become metric dimensions.
 
 ### 15. AI tooling and final legacy removal
+
+Status: in progress. Ownership/navigation and the first checker decomposition
+are in review; `ARCH-01` and per-owner `LEGACY-01` slices remain.
 
 The generated `agent:context`, `agent:check`, `agent:impact` and `agent:map`
 commands now cover canonical modules, eight initial migration areas, all 48
@@ -723,6 +952,13 @@ Exact tests pin diagnostic order, report bytes, stdout/stderr and exit codes,
 and size budgets prevent the extracted responsibilities from drifting back into
 the facade.
 
+The next `ARCH-01` slice extracts inventory/shared/migration validation and
+exception policy while preserving the pinned diagnostic order, centralizes the
+repository path-safety primitive used by inventory and boundary tools, moves
+edge ordering into a neutral unit and splits the 1,000-line characterization
+file by responsibility. It is complete when the facade is below 500 lines and
+a test enforces the allowed dependency direction among `scripts/lib` modules.
+
 The migration is complete when:
 
 - missing public entries, internal imports, module-to-legacy imports and runtime
@@ -740,28 +976,41 @@ The migration is complete when:
 
 ## Definition of done for every slice
 
-- The slice has one named owner and one public entry point.
+- The slice has one named owner and, when it changes a product module, one
+  public entry point. Shared roots and repository tooling retain their explicit
+  non-module contracts instead of inventing a module entry.
 - Dependencies follow the `app -> modules -> shared` contract and no other
   module imports its internals.
 - Existing public URLs, response shapes and permissions remain compatible.
 - Pure behavior is tested without rendering the whole application.
-- React changes pass React Doctor; TypeScript changes pass Semgrep.
+- React changes pass React Doctor; authored JavaScript and TypeScript changes
+  pass the scoped Semgrep gate.
+- Security-sensitive changes pass Gitleaks; dependency changes pass the
+  dependency/OSV/Trivy gates. Identity and admin changes update their threat
+  model and permission tests; CDN/proxy changes prove cache and credential
+  boundaries.
 - Type checking, focused tests, production build and budgets pass.
-- Browser checks cover the changed route, keyboard behavior and console.
+- Browser checks cover the changed route, desktop/mobile/200% reflow, keyboard,
+  required UI states, console and relevant network waterfall.
 - The task resolves its declared `Documentation impact`; code and its owning
   architecture, specification, decision, runbook or changelog stay consistent.
 - The line and bundle budgets are lowered when a hotspot becomes smaller.
+- Changed operational behavior has an owned metric/alert, recovery path and
+  saved verification evidence; absence of telemetry is an explicit decision.
 
 ## Performance measurement
 
 Use the same before-and-after path for every optimization:
 
-- record production TTFB and response size for affected API requests;
+- record production TTFB and response size for affected API requests, with p75,
+  p95 and sample count where traffic data exists;
 - record built raw and gzip chunk sizes;
 - test cold navigation and a repeated navigation;
 - test filter input and mode switches for interaction latency;
 - observe LCP, INP and CLS in a real browser;
 - verify slow-network behavior without background requests competing with
-  above-the-fold images.
+  above-the-fold images;
+- for delivery changes, compare RU, EU, North America, Asia and origin and save
+  cache state, edge, bytes, timings and release SHA.
 
 Optimizations without a baseline or a regression check are incomplete.

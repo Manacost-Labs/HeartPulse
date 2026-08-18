@@ -244,4 +244,8 @@ When the work changes behavior, also update `CHANGELOG.md` under the current ver
 
 ## Release Version
 
-Current public version: `v1.0.73`.
+The current public version is the first explicit `## v...` heading after
+`Unreleased` in `CHANGELOG.md`. Resolve it at posting time; do not hardcode a
+second copy in agent instructions. When an unreleased change is posted before
+deployment, use that current public version and state clearly that the change is
+awaiting integration. Only the release owner creates the next version section.

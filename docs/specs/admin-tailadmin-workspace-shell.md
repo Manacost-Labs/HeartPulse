@@ -8,13 +8,17 @@ the free TailAdmin dashboard approach for the Arena administration workspace.
 ## Goal
 
 Give administrators a calm, consistent operations workspace inspired by the
-free TailAdmin React dashboard while preserving every existing Manacost admin
-workflow and access boundary.
+free TailAdmin Tailwind dashboard template while preserving every existing
+Manacost admin workflow and access boundary.
 
 ## Source and licensing
 
-- Design reference: `TailAdmin/free-react-tailwind-admin-dashboard`.
-- Reference license: MIT.
+- Design reference:
+  [`TailAdmin/tailadmin-free-tailwind-dashboard-template`](https://github.com/TailAdmin/tailadmin-free-tailwind-dashboard-template).
+- Reproducible reference revision:
+  [`2fc65676619a9d79a21cee2cc4a6fe79fedf3b68`](https://github.com/TailAdmin/tailadmin-free-tailwind-dashboard-template/tree/2fc65676619a9d79a21cee2cc4a6fe79fedf3b68),
+  pinned from upstream `HEAD` on 2026-08-18.
+- Reference license: MIT, as declared by that upstream repository.
 - The implementation is original Manacost React and CSS. It adapts layout and
   interaction patterns; it does not copy TailAdmin source, assets or paid
   components and adds no runtime dependency.
