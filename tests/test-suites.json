@@ -108,6 +108,7 @@
         "tests/constructed-card-resilience.test.ts",
         "tests/constructed-card-routes.test.ts",
         "tests/constructed-card-seo-routes.test.ts",
+        "tests/constructed-card-service-contracts.test.ts",
         "tests/constructed-card-translations.test.ts",
         "tests/constructed-card-ui-status.test.ts",
         "tests/constructed-deck-code.test.ts",

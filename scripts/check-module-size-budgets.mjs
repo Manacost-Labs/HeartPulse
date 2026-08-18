@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 const moduleBudgets = [
   {
     path: 'server/index.ts',
-    maxLines: 9_756,
+    maxLines: 9_752,
     owner: 'server composition root',
   },
   {
@@ -34,7 +34,7 @@ const moduleBudgets = [
   },
   {
     path: 'server/constructedCardRoutes.ts',
-    maxLines: 1_329,
+    maxLines: 1_234,
     owner: 'constructed-card API',
   },
   {

@@ -343,15 +343,19 @@ Application Connect or the public-profile page.
 Status: in progress. The first server-catalog slices moved query parsing,
 filtering, sorting, facets, statistics normalization, snapshot publishability
 checks and catalog/statistics merging behind `server.constructedCards/public.ts`.
-Server composition supplies the public-term policy without introducing a
-module-to-legacy dependency. A temporary facade preserves existing imports
-while consumers migrate, and the enforced `constructedCardRoutes.ts` ceiling is
-now 1,329 lines instead of 1,591.
+The module now also owns the data-service contract, service errors and durable
+history store. Server consumers use that public entry, so the route/history
+type cycle is gone. The legacy history-store path and contract re-exports on the
+active route preserve compatibility while its endpoint implementation remains
+to be split. Server composition supplies the public-term policy without
+introducing a module-to-legacy dependency. The enforced
+`constructedCardRoutes.ts` ceiling is now 1,234 lines instead of 1,591.
 
 1. Extract catalog filters, URL/search state and request controller.
 2. Extract list rendering, tile image policy and visible-window loading.
 3. Extract detail media, related-card, generated-pool and deck sections.
-4. Extract history model/store/chart and lazy-load detail-only visualization.
+4. Continue from the module-owned server history store by extracting the client
+   history model/chart and lazy-loading detail-only visualization.
 5. Split server catalog, detail, history, image and SEO endpoints behind the
    constructed-cards public entry.
 

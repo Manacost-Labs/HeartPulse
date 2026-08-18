@@ -26,3 +26,22 @@ export {
   enrichConstructedCardPools,
   enrichConstructedRelatedCards,
 } from './relatedCards.js';
+export {
+  ConstructedCardCatalogUnavailableError,
+  ConstructedCardDetailUnavailableError,
+  ConstructedCardUpstreamError,
+} from './serviceContracts.js';
+export type {
+  ConstructedCardCatalogHealth,
+  ConstructedCardCollection,
+  ConstructedCardDataService,
+  ConstructedCardDeck,
+  ConstructedCardDetailResult,
+  ConstructedCardFormat,
+  ConstructedCardHistoryPoint,
+  ConstructedCardPeriod,
+  ConstructedCardPeriodDescriptor,
+  ConstructedCardRank,
+  ConstructedCardRankDescriptor,
+} from './serviceContracts.js';
+export { ConstructedCardHistoryStore } from './repository/historyStore.js';

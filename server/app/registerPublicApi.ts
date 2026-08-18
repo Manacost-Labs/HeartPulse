@@ -12,7 +12,7 @@ import {
   createSqliteApiKeyRepository,
   initializePublicApiKeyRepository,
 } from '../modules/publicApi/public.js';
-import type { ConstructedCardDataService } from '../constructedCardRoutes.js';
+import type { ConstructedCardDataService } from '../modules/constructedCards/public.js';
 
 type RegisterPublicApiDependencies<TAdmin> = {
   app: Application;

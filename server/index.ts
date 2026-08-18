@@ -59,12 +59,8 @@ import {
   excludeOtherStandardMatchups,
   type StandardMatchupFormat,
 } from './standardMatchupRoutes.js';
-import {
-  ConstructedCardUpstreamError,
-  createConstructedCardDataService,
-  createConstructedCardRouter,
-  type ConstructedCardDeck,
-} from './constructedCardRoutes.js';
+import { createConstructedCardDataService, createConstructedCardRouter } from './constructedCardRoutes.js';
+import { ConstructedCardUpstreamError, type ConstructedCardDeck } from './modules/constructedCards/public.js';
 import {
   createConstructedCardSeoRouter,
   extractConstructedCardFrontendAssets,

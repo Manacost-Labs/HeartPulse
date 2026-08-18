@@ -4,7 +4,7 @@ import type {
   ConstructedCardCollection,
   ConstructedCardDetailResult,
   ConstructedCardFormat,
-} from './constructedCardRoutes.js';
+} from './modules/constructedCards/public.js';
 import {
   normalizeConstructedRelatedCardGroups,
   type ConstructedRelatedCard,

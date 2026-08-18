@@ -167,7 +167,7 @@
       "id": "server.constructedCards",
       "runtime": "server",
       "root": "server/modules/constructedCards",
-      "purpose": "Owns constructed-card catalog querying, facets, statistics normalization, validation and merging, plus related-card and generated-card-pool enrichment.",
+      "purpose": "Owns constructed-card service contracts, errors and history persistence, plus catalog querying, facets, statistics normalization, validation, merging and related-card/generated-pool enrichment.",
       "owner": "web-platform",
       "publicEntry": "server/modules/constructedCards/public.ts",
       "dependencies": [],
@@ -271,7 +271,7 @@
     "internalImport": 0,
     "moduleLegacyImport": 5,
     "runtimeCrossing": 2,
-    "typeCycle": 4
+    "typeCycle": 3
   },
   "exceptions": {
     "missingPublicEntry": [],
@@ -337,30 +337,6 @@
       }
     ],
     "typeCycle": [
-      {
-        "source": "server/constructedCardHistoryStore.ts",
-        "target": "server/constructedCardRoutes.ts",
-        "kind": "type-cycle",
-        "nodes": [
-          "server/constructedCardHistoryStore.ts",
-          "server/constructedCardRoutes.ts"
-        ],
-        "edges": [
-          {
-            "source": "server/constructedCardHistoryStore.ts",
-            "target": "server/constructedCardRoutes.ts",
-            "kind": "type"
-          },
-          {
-            "source": "server/constructedCardRoutes.ts",
-            "target": "server/constructedCardHistoryStore.ts",
-            "kind": "runtime"
-          }
-        ],
-        "owner": "web-platform",
-        "reason": "The history store imports route-owned history types while the route imports the store implementation.",
-        "expiresOn": "2026-12-31"
-      },
       {
         "source": "src/features/BattlegroundHeroLedger.tsx",
         "target": "src/features/Battlegrounds.tsx",

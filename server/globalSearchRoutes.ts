@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import type { ConstructedCardCollection, ConstructedCardFormat } from './constructedCardRoutes.js';
+import type {
+  ConstructedCardCollection,
+  ConstructedCardFormat,
+} from './modules/constructedCards/public.js';
 import { articleImageSrc } from '../shared/articleImageSrc.js';
 
 type JsonRecord = Record<string, any>;
