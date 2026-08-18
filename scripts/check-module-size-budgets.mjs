@@ -34,7 +34,7 @@ const moduleBudgets = [
   },
   {
     path: 'server/constructedCardRoutes.ts',
-    maxLines: 1_491,
+    maxLines: 1_329,
     owner: 'constructed-card API',
   },
   {

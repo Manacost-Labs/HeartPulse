@@ -242,9 +242,11 @@ must report no missing public entries, outside-to-internal imports or runtime
 cycles. Known migration exceptions remain explicit and machine-owned. The Arena,
 constructed-card, Battlegrounds public-API and admin-workspace consumers enter
 their modules only through configured public entries. The
-`server.constructedCards` public entry now owns catalog-statistics normalization,
-snapshot publishability checks and catalog/statistics merging alongside related
-and generated-card enrichment.
+`server.constructedCards` public entry owns catalog query parsing, filtering,
+sorting and facets, catalog-statistics normalization, snapshot publishability
+checks and catalog/statistics merging alongside related and generated-card
+enrichment. Server composition injects the player-facing term policy into the
+query model, so the domain module does not depend back on legacy shared code.
 The client subscription status, entitlement policy and ordered display labels
 now have one
 runtime-neutral owner under `src/modules/subscriptions`; application and legacy

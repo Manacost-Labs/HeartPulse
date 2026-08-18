@@ -92,6 +92,7 @@
         "tests/constructed-archetype-routes.test.ts",
         "tests/constructed-card-catalog-controls.test.tsx",
         "tests/constructed-card-catalog-model.test.ts",
+        "tests/constructed-card-catalog-query.test.ts",
         "tests/constructed-card-catalog-statistics.test.ts",
         "tests/constructed-card-catalog-store.test.ts",
         "tests/constructed-card-filter-options.test.ts",
