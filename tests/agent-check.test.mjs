@@ -45,6 +45,7 @@ const packageJsonFixture = {
     'lint:module-boundaries': 'node scripts/check-module-boundaries.mjs',
     lint: 'tsc --noEmit',
     'test:alpha': 'node --test tests/alpha.test.mjs',
+    'test:legacy-alpha': 'node --test tests/legacy-alpha.test.mjs',
     'test:shared': 'node --test tests/shared.test.mjs',
   },
 };
@@ -94,6 +95,65 @@ test('agent check builds a deterministic allowlisted plan from impact output', (
   assert.doesNotMatch(formatAgentCheckPlanJson(plan), /\/home\/|\\\\/);
   assert.match(formatAgentCheckPlan(plan), /Affected modules: server\.alpha, server\.beta/);
   assert.match(formatAgentCheckPlan(plan), /npm run test:alpha/);
+});
+
+test('agent check preserves migration-area, shared-root and root target identity in safe plans', () => {
+  const migrationImpact = {
+    ...impactFixture,
+    target: {
+      selector: 'server/legacy/entry.ts',
+      kind: 'file',
+      path: 'server/legacy/entry.ts',
+      moduleId: null,
+      migrationAreaId: 'server.legacyAlpha',
+    },
+    affectedModules: [],
+    focusedTests: ['npm run test:alpha'],
+  };
+  const migrationPlan = createAgentCheckPlan({
+    impact: migrationImpact,
+    packageJson: packageJsonFixture,
+  });
+  assert.deepEqual(migrationPlan.target, migrationImpact.target);
+  assert.deepEqual(migrationPlan.checks.map(check => check.script), [
+    'lint:module-boundaries',
+    'lint',
+    'test:alpha',
+  ]);
+
+  const rootImpact = {
+    ...migrationImpact,
+    target: {
+      selector: 'root',
+      kind: 'root',
+      path: '.',
+      moduleId: null,
+      migrationAreaId: null,
+    },
+  };
+  assert.deepEqual(
+    createAgentCheckPlan({ impact: rootImpact, packageJson: packageJsonFixture }).target,
+    rootImpact.target,
+  );
+
+  const sharedImpact = {
+    ...migrationImpact,
+    target: {
+      selector: 'server/shared/http/asyncRoute.ts',
+      kind: 'file',
+      path: 'server/shared/http/asyncRoute.ts',
+      moduleId: null,
+      sharedRoot: 'server/shared',
+      sharedRuntime: 'server',
+    },
+    focusedTests: ['npm run test:alpha', 'npm run test:legacy-alpha'],
+  };
+  const sharedPlan = createAgentCheckPlan({
+    impact: sharedImpact,
+    packageJson: packageJsonFixture,
+  });
+  assert.deepEqual(sharedPlan.target, sharedImpact.target);
+  assert.ok(sharedPlan.checks.some(check => check.script === 'test:legacy-alpha'));
 });
 
 test('agent check rejects command injection and missing package scripts before execution', () => {

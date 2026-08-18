@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "moduleRoots": [
     "src/modules",
     "server/modules"
@@ -282,6 +282,348 @@
         "docs/decisions/003-versioned-public-api-and-api-keys.md",
         "docs/specs/public-api-v1-first-slice.md",
         "docs/specs/public-api-statistics-coverage.md"
+      ]
+    }
+  ],
+  "migrationAreas": [
+    {
+      "id": "client.applicationComposition",
+      "runtime": "client",
+      "roots": [
+        "src/App.tsx",
+        "src/app",
+        "src/main.tsx",
+        "src/routes.ts"
+      ],
+      "excludeRoots": [],
+      "purpose": "Composes the browser application shell and canonical route manifest while route owners move behind module public entries.",
+      "owner": "web-platform",
+      "targetModules": [
+        "client.accountRoute",
+        "client.adminWorkspace",
+        "client.applicationConnect",
+        "client.battlegrounds",
+        "client.developerApi",
+        "client.identity",
+        "client.subscriptions"
+      ],
+      "focusedTests": [
+        "npm run test:routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ],
+      "safeStarts": [
+        "src/App.tsx",
+        "src/app/routing/routeManifest.ts"
+      ],
+      "routeScope": {
+        "mode": "all"
+      },
+      "knownDebt": [
+        "The application shell still imports legacy route components and coordinates domain state outside canonical modules."
+      ]
+    },
+    {
+      "id": "client.battlegroundsLegacy",
+      "runtime": "client",
+      "roots": [
+        "public/bg-legacy",
+        "src/features/BattlegroundCardVariantToggle.stories.tsx",
+        "src/features/BattlegroundCardVariantToggle.tsx",
+        "src/features/BattlegroundHeroLedger.tsx",
+        "src/features/BattlegroundTrinketGalleryStats.tsx",
+        "src/features/BattlegroundTrinketTierRow.tsx",
+        "src/features/BattlegroundTrinketViewToggle.tsx",
+        "src/features/Battlegrounds.css",
+        "src/features/Battlegrounds.tsx",
+        "src/features/BgLibrary.tsx",
+        "src/features/battlegroundCardVariants.ts",
+        "src/features/battlegroundImageUrls.ts",
+        "src/features/battlegroundTrinkets.ts",
+        "src/features/bgLibraryCatalogModel.ts"
+      ],
+      "excludeRoots": [],
+      "purpose": "Owns the legacy Battlegrounds screens, builders and static contracts until they move behind client.battlegrounds.",
+      "owner": "web-platform",
+      "targetModules": [
+        "client.battlegrounds"
+      ],
+      "focusedTests": [
+        "npm run test:battleground-accessories",
+        "npm run test:battleground-hero-contracts",
+        "npm run test:battleground-image-optimization",
+        "npm run test:battleground-library-seo-routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md",
+        "docs/runbooks/battlegrounds-patch-refresh.md"
+      ],
+      "safeStarts": [
+        "public/bg-legacy/hero-tier-builder.js",
+        "public/bg-legacy/strategy-builder.gridfix2.js",
+        "src/features/Battlegrounds.tsx",
+        "src/features/BgLibrary.tsx"
+      ],
+      "routeScope": {
+        "mode": "owners",
+        "owners": [
+          "battlegrounds-data",
+          "battlegrounds-tools"
+        ]
+      },
+      "knownDebt": [
+        "Battlegrounds route components and classic builders remain split between src/features and public/bg-legacy."
+      ]
+    },
+    {
+      "id": "client.featureLegacy",
+      "runtime": "client",
+      "roots": [
+        "src/features"
+      ],
+      "excludeRoots": [
+        "src/features/BattlegroundCardVariantToggle.stories.tsx",
+        "src/features/BattlegroundCardVariantToggle.tsx",
+        "src/features/BattlegroundHeroLedger.tsx",
+        "src/features/BattlegroundTrinketGalleryStats.tsx",
+        "src/features/BattlegroundTrinketTierRow.tsx",
+        "src/features/BattlegroundTrinketViewToggle.tsx",
+        "src/features/Battlegrounds.css",
+        "src/features/Battlegrounds.tsx",
+        "src/features/BgLibrary.tsx",
+        "src/features/battlegroundCardVariants.ts",
+        "src/features/battlegroundImageUrls.ts",
+        "src/features/battlegroundTrinkets.ts",
+        "src/features/bgLibraryCatalogModel.ts"
+      ],
+      "purpose": "Owns route-level client features that still combine UI, transport and domain behavior outside canonical modules.",
+      "owner": "web-platform",
+      "targetModules": [
+        "client.adminWorkspace",
+        "client.identity",
+        "client.subscriptions"
+      ],
+      "focusedTests": [
+        "npm run test:routes",
+        "npm run test:seo-registry"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ],
+      "safeStarts": [
+        "src/features/ContestAdminDashboard.tsx",
+        "src/features/DeferredRoutes.tsx",
+        "src/features/Home.tsx",
+        "src/features/StandardCards.tsx"
+      ],
+      "routeScope": {
+        "mode": "owners",
+        "owners": [
+          "admin-platform",
+          "arena-data",
+          "community",
+          "cosmetics-data",
+          "developer-platform",
+          "editorial",
+          "growth",
+          "identity",
+          "product-shell",
+          "traditional-data"
+        ]
+      },
+      "knownDebt": [
+        "The feature tree remains a transitional mixed-domain layer and must be split one vertical slice at a time."
+      ]
+    },
+    {
+      "id": "client.platformLegacy",
+      "runtime": "client",
+      "roots": [
+        "src"
+      ],
+      "excludeRoots": [
+        "src/App.tsx",
+        "src/app",
+        "src/features",
+        "src/main.tsx",
+        "src/modules",
+        "src/routes.ts",
+        "src/shared"
+      ],
+      "purpose": "Owns transitional client components, styles, content, telemetry and vendor adapters outside domain modules and shared roots.",
+      "owner": "web-platform",
+      "targetModules": [],
+      "focusedTests": [
+        "npm run test:routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ],
+      "safeStarts": [
+        "src/components/AppErrorBoundary.tsx",
+        "src/index.css",
+        "src/telemetry/webVitals.ts"
+      ],
+      "routeScope": {
+        "mode": "all"
+      },
+      "knownDebt": [
+        "Client platform files still mix reusable infrastructure with product presentation and need explicit module or shared destinations."
+      ]
+    },
+    {
+      "id": "server.applicationComposition",
+      "runtime": "server",
+      "roots": [
+        "server/app",
+        "server/index.ts"
+      ],
+      "excludeRoots": [],
+      "purpose": "Composes the HTTP application and mounts canonical modules alongside legacy route groups.",
+      "owner": "web-platform",
+      "targetModules": [
+        "server.applicationAuth",
+        "server.arena",
+        "server.constructedCards",
+        "server.ecosystem",
+        "server.identity",
+        "server.publicApi",
+        "server.publicProfile",
+        "server.telegramAuth"
+      ],
+      "focusedTests": [
+        "npm run test:server-build"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ],
+      "safeStarts": [
+        "server/app/registerPublicApi.ts",
+        "server/index.ts"
+      ],
+      "routeScope": {
+        "mode": "all"
+      },
+      "knownDebt": [
+        "server/index.ts remains the oversized composition root and still owns legacy wiring that belongs in route modules."
+      ]
+    },
+    {
+      "id": "server.guidesLegacy",
+      "runtime": "server",
+      "roots": [
+        "server/guides"
+      ],
+      "excludeRoots": [],
+      "purpose": "Owns guide sanitization helpers used by the editorial archive until an editorial server module exists.",
+      "owner": "editorial",
+      "targetModules": [],
+      "focusedTests": [
+        "npm run test:guides"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ],
+      "safeStarts": [
+        "server/guides/sanitize.ts"
+      ],
+      "routeScope": {
+        "mode": "owners",
+        "owners": [
+          "editorial"
+        ]
+      },
+      "knownDebt": [
+        "Editorial server behavior has no canonical module boundary yet."
+      ]
+    },
+    {
+      "id": "server.legacyRuntime",
+      "runtime": "server",
+      "roots": [
+        "server"
+      ],
+      "excludeRoots": [
+        "server/app",
+        "server/guides",
+        "server/index.ts",
+        "server/modules",
+        "server/shared"
+      ],
+      "purpose": "Owns legacy HTTP routes, stores, data adapters and operational services awaiting extraction into server modules.",
+      "owner": "web-platform",
+      "targetModules": [
+        "server.applicationAuth",
+        "server.arena",
+        "server.constructedCards",
+        "server.ecosystem",
+        "server.identity",
+        "server.publicApi",
+        "server.publicProfile",
+        "server.telegramAuth"
+      ],
+      "focusedTests": [
+        "npm run test:server-build"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ],
+      "safeStarts": [
+        "server/cardImageRoutes.ts",
+        "server/health.ts",
+        "server/standardMetaRoutes.ts"
+      ],
+      "routeScope": {
+        "mode": "all"
+      },
+      "knownDebt": [
+        "Most server domains still expose route and persistence behavior from the legacy server root instead of public module entries."
+      ]
+    },
+    {
+      "id": "shared.crossRuntimeContracts",
+      "runtime": "shared",
+      "roots": [
+        "shared"
+      ],
+      "excludeRoots": [],
+      "purpose": "Owns transitional cross-runtime data contracts that have not moved into an explicitly governed shared package.",
+      "owner": "web-platform",
+      "targetModules": [
+        "client.battlegrounds",
+        "server.arena",
+        "server.constructedCards",
+        "server.publicApi"
+      ],
+      "focusedTests": [
+        "npm run test:public-api"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ],
+      "safeStarts": [
+        "shared/publicResourceUrl.ts",
+        "shared/standardMetaContract.ts"
+      ],
+      "routeScope": {
+        "mode": "owners",
+        "owners": [
+          "arena-data",
+          "battlegrounds-data",
+          "traditional-data"
+        ]
+      },
+      "knownDebt": [
+        "Top-level shared contracts are not yet governed as a runtime-neutral package with explicit public entries."
       ]
     }
   ],

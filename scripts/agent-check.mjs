@@ -16,6 +16,7 @@ import {
 import {
   repositoryRoot,
   resolveRepositoryFile,
+  singleLineErrorMessage,
 } from './lib/module-inventory.mjs';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
@@ -34,7 +35,7 @@ function readPackageJson(root) {
     return packageJson;
   } catch (error) {
     throw new Error(
-      `package.json is not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
+      `package.json is not valid JSON: ${singleLineErrorMessage(error)}`,
     );
   }
 }
@@ -105,6 +106,15 @@ export function createAgentCheckPlan({ impact, packageJson }) {
       kind: impact.target.kind,
       path: impact.target.path,
       moduleId: impact.target.moduleId,
+      ...(Object.hasOwn(impact.target, 'migrationAreaId')
+        ? { migrationAreaId: impact.target.migrationAreaId }
+        : {}),
+      ...(impact.target.sharedRoot
+        ? {
+            sharedRoot: impact.target.sharedRoot,
+            sharedRuntime: impact.target.sharedRuntime,
+          }
+        : {}),
     },
     affectedModules,
     checks,
@@ -211,6 +221,8 @@ export function formatAgentCheckPlan(plan) {
   return [
     `Check target: ${plan.target.path}`,
     `Owning module: ${plan.target.moduleId ?? '(none)'}`,
+    `Migration area: ${plan.target.migrationAreaId ?? '(none)'}`,
+    `Shared root: ${plan.target.sharedRoot ?? '(none)'}`,
     `Affected modules: ${plan.affectedModules.length > 0 ? plan.affectedModules.join(', ') : '(none)'}`,
     'Checks:',
     ...plan.checks.map(check => `  - ${check.argv.join(' ')} [${check.source}]`),
@@ -254,7 +266,7 @@ export function main(
   } = {},
 ) {
   const parsed = parseAgentCheckArgs(args);
-  const usage = 'Usage: node scripts/agent-check.mjs <module-id-or-path> [--list] [--json]\n';
+  const usage = 'Usage: node scripts/agent-check.mjs <module-id-or-path-or-root> [--list] [--json]\n';
   if (parsed.error) {
     stderr.write(usage);
     return 2;
@@ -283,7 +295,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(SCRIPT_PAT
   try {
     process.exitCode = main();
   } catch (error) {
-    process.stderr.write(`[agent-check] ${error instanceof Error ? error.message : String(error)}\n`);
+    process.stderr.write(`[agent-check] ${singleLineErrorMessage(error)}\n`);
     process.exitCode = 1;
   }
 }

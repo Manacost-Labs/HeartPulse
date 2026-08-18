@@ -3,10 +3,20 @@ import {
   globSync,
   lstatSync,
   readFileSync,
+  realpathSync,
   readdirSync,
   statSync,
 } from 'node:fs';
-import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import {
+  basename,
+  dirname,
+  isAbsolute,
+  join,
+  posix,
+  relative,
+  resolve,
+  sep,
+} from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import ts from 'typescript';
@@ -16,11 +26,22 @@ import {
   packageScriptExists,
   packageScriptLifecycleHooks,
 } from './lib/npm-script-policy.mjs';
+import {
+  isSafeMetadataText,
+  pathBelongsToMigrationArea,
+  singleLineDisplay,
+  singleLineErrorMessage,
+} from './lib/module-inventory.mjs';
+import {
+  publicRoutesForScope,
+  readPublicRouteInventory,
+} from './lib/public-route-inventory.mjs';
 
 const SOURCE_EXTENSIONS = new Set([
   '.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs',
   '.css', '.scss', '.sass', '.less',
 ]);
+const OWNERSHIP_EXTENSIONS = new Set([...SOURCE_EXTENSIONS, '.json', '.py']);
 const CANONICAL_MODULE_ROOTS = ['src/modules', 'server/modules'];
 const CANONICAL_SHARED_ROOTS = { client: ['src/shared'], server: ['server/shared'] };
 const MAX_EXCEPTION_AGE_DAYS = 180;
@@ -44,14 +65,14 @@ function isInside(path, root) {
   return path === root || path.startsWith(`${root}/`);
 }
 
-function isSafeRelativePath(path) {
-  return typeof path === 'string'
-    && path.length > 0
-    && !isAbsolute(path)
-    && !path.split('/').includes('..')
-    && !path.includes('\\')
-    && !path.includes('\0')
-    && !/[?*\[\]{}]/.test(path);
+function isSafeRelativePath(candidate) {
+  return isSafeMetadataText(candidate)
+    && candidate !== '.'
+    && !isAbsolute(candidate)
+    && !candidate.includes('\\')
+    && !/[?*\[\]{}]/.test(candidate)
+    && candidate.split('/').every(segment => segment !== '' && segment !== '.' && segment !== '..')
+    && posix.normalize(candidate) === candidate;
 }
 
 function sourceExtension(path) {
@@ -65,6 +86,15 @@ function walkSourceFiles(rootDir) {
   const files = [];
   const errors = [];
   const visit = absolutePath => {
+    const repositoryPath = projectPath(rootDir, absolutePath);
+    if (!isSafeRelativePath(repositoryPath)) {
+      addError(
+        errors,
+        'unsafe-source-path',
+        `source path must be canonical and single-line: ${JSON.stringify(singleLineDisplay(repositoryPath))}`,
+      );
+      return;
+    }
     let stats;
     try {
       stats = lstatSync(absolutePath);
@@ -76,7 +106,7 @@ function walkSourceFiles(rootDir) {
       addError(
         errors,
         'unsafe-source-symlink',
-        `source trees must not contain symlinks: ${projectPath(rootDir, absolutePath)}`,
+        `source trees must not contain symlinks: ${repositoryPath}`,
       );
       return;
     }
@@ -93,6 +123,59 @@ function walkSourceFiles(rootDir) {
   for (const root of ['src', 'server', 'shared']) visit(join(rootDir, root));
   return {
     files: files.sort((left, right) => left.localeCompare(right)),
+    errors,
+  };
+}
+
+function ownershipExtension(path) {
+  for (const extension of OWNERSHIP_EXTENSIONS) {
+    if (path.endsWith(extension)) return extension;
+  }
+  return '';
+}
+
+function walkOwnershipFiles(rootDir) {
+  const files = [];
+  const errors = [];
+  const visit = absolutePath => {
+    const repositoryPath = projectPath(rootDir, absolutePath);
+    if (!isSafeRelativePath(repositoryPath)) {
+      addError(
+        errors,
+        'unsafe-ownership-path',
+        `ownership path must be canonical and single-line: ${JSON.stringify(singleLineDisplay(repositoryPath))}`,
+      );
+      return;
+    }
+    let stats;
+    try {
+      stats = lstatSync(absolutePath);
+    } catch (error) {
+      if (error?.code === 'ENOENT') return;
+      throw error;
+    }
+    if (stats.isSymbolicLink()) {
+      addError(
+        errors,
+        'unsafe-migration-source-symlink',
+        `migration ownership trees must not contain symlinks: ${repositoryPath}`,
+      );
+      return;
+    }
+    if (stats.isDirectory()) {
+      for (const entry of readdirSync(absolutePath, { withFileTypes: true })) {
+        if (entry.name === 'node_modules' || entry.name === 'build' || entry.name === 'dist') continue;
+        visit(join(absolutePath, entry.name));
+      }
+      return;
+    }
+    if (ownershipExtension(absolutePath)) files.push(repositoryPath);
+  };
+  for (const ownershipRoot of ['src', 'server', 'shared', 'public/bg-legacy']) {
+    visit(join(rootDir, ownershipRoot));
+  }
+  return {
+    files: files.sort(),
     errors,
   };
 }
@@ -403,6 +486,14 @@ function buildEdges(rootDir, sourceFiles, compilerOptions) {
         targets = target ? [target] : [];
       }
       for (const target of targets) {
+        if (!isSafeRelativePath(target)) {
+          addError(
+            errors,
+            'unsafe-resolved-import-path',
+            `resolved import path must be canonical and single-line: ${JSON.stringify(singleLineDisplay(target))}`,
+          );
+          continue;
+        }
         const edge = { source, target, kind: imported.kind };
         const key = `${source}\0${target}`;
         const previous = edges.get(key);
@@ -560,6 +651,251 @@ function isRegularFile(path) {
   }
 }
 
+function repositoryEntryKind(rootDir, repositoryPath) {
+  if (!isSafeRelativePath(repositoryPath)) return null;
+  const absoluteRoot = realpathSync(rootDir);
+  const absoluteEntry = resolve(rootDir, repositoryPath);
+  let stats;
+  try {
+    stats = lstatSync(absoluteEntry);
+  } catch {
+    return null;
+  }
+  if (stats.isSymbolicLink() || (!stats.isFile() && !stats.isDirectory())) return null;
+  let realEntry;
+  try {
+    realEntry = realpathSync(absoluteEntry);
+  } catch {
+    return null;
+  }
+  const realRelative = relative(absoluteRoot, realEntry);
+  if (realRelative.startsWith('..') || isAbsolute(realRelative)) return null;
+  return stats.isFile() ? 'file' : 'directory';
+}
+
+function migrationAreaOverlap(left, right) {
+  if (!isRecord(left) || !isRecord(right)
+    || !Array.isArray(left.roots) || !Array.isArray(right.roots)
+    || !Array.isArray(left.excludeRoots) || !Array.isArray(right.excludeRoots)) {
+    return null;
+  }
+  for (const leftRoot of left.roots) {
+    if (typeof leftRoot !== 'string') continue;
+    for (const rightRoot of right.roots) {
+      if (typeof rightRoot !== 'string') continue;
+      const intersectionRoot = isInside(leftRoot, rightRoot)
+        ? leftRoot
+        : isInside(rightRoot, leftRoot) ? rightRoot : null;
+      if (!intersectionRoot) continue;
+      const leftExcludesIntersection = left.excludeRoots.some(excludeRoot => (
+        typeof excludeRoot === 'string' && isInside(intersectionRoot, excludeRoot)
+      ));
+      const rightExcludesIntersection = right.excludeRoots.some(excludeRoot => (
+        typeof excludeRoot === 'string' && isInside(intersectionRoot, excludeRoot)
+      ));
+      if (!leftExcludesIntersection && !rightExcludesIntersection) {
+        return { leftRoot, rightRoot, intersectionRoot };
+      }
+    }
+  }
+  return null;
+}
+
+function expectedMigrationRuntime(path) {
+  if (isInside(path, 'src') || isInside(path, 'public/bg-legacy')) return 'client';
+  if (isInside(path, 'server')) return 'server';
+  if (isInside(path, 'shared')) return 'shared';
+  return null;
+}
+
+function validateMigrationAreas(config, rootDir, modules, packageJson, errors) {
+  const areas = Array.isArray(config.migrationAreas) ? config.migrationAreas : [];
+  if (!Array.isArray(config.migrationAreas)) {
+    addError(errors, 'invalid-migration-areas', 'schemaVersion 2 requires a migrationAreas array');
+  }
+  const ids = new Set();
+  let publicRouteInventory = null;
+  const routeInventory = () => {
+    if (!publicRouteInventory) publicRouteInventory = readPublicRouteInventory(rootDir);
+    return publicRouteInventory;
+  };
+  const moduleIds = new Set(modules.map(module => module.id));
+  const protectedRoots = [
+    ...CANONICAL_MODULE_ROOTS,
+    ...Object.values(CANONICAL_SHARED_ROOTS).flat(),
+  ];
+
+  for (const area of areas) {
+    if (!isRecord(area)) {
+      addError(errors, 'invalid-migration-area', 'every migration area must be an object');
+      continue;
+    }
+    for (const field of ['id', 'runtime', 'purpose', 'owner']) {
+      if (!isSafeMetadataText(area[field])) {
+        addError(errors, 'invalid-migration-area', `migration area ${area.id || '<unknown>'} requires ${field}`);
+      }
+    }
+    if (!/^(?:client|server|shared)\.[a-z][A-Za-z0-9]*$/.test(area.id ?? '')) {
+      addError(errors, 'invalid-migration-area-id', `migration area has invalid id ${area.id}`);
+    }
+    if (ids.has(area.id)) addError(errors, 'duplicate-migration-area-id', `duplicate migration area id ${area.id}`);
+    if (moduleIds.has(area.id)) {
+      addError(
+        errors,
+        'duplicate-ownership-id',
+        `migration area id must not collide with a module id: ${area.id}`,
+      );
+    }
+    ids.add(area.id);
+    if (!['client', 'server', 'shared'].includes(area.runtime)) {
+      addError(errors, 'invalid-migration-runtime-root', `migration area ${area.id} has invalid runtime ${area.runtime}`);
+    }
+
+    const arrayFields = [
+      'roots',
+      'excludeRoots',
+      'targetModules',
+      'focusedTests',
+      'docs',
+      'safeStarts',
+      'knownDebt',
+    ];
+    for (const field of arrayFields) {
+      const value = area[field];
+      const requiresItems = ['roots', 'focusedTests', 'docs', 'safeStarts', 'knownDebt'].includes(field);
+      if (!Array.isArray(value)
+        || (requiresItems && value.length === 0)
+        || value.some(item => !isSafeMetadataText(item))
+        || new Set(value).size !== value.length) {
+        addError(errors, field === 'knownDebt' ? 'invalid-migration-debt' : 'invalid-migration-area',
+          `migration area ${area.id} requires a ${requiresItems ? 'non-empty ' : ''}unique ${field} array`);
+      }
+    }
+    const roots = Array.isArray(area.roots) ? area.roots : [];
+    const excludeRoots = Array.isArray(area.excludeRoots) ? area.excludeRoots : [];
+    for (const root of roots) {
+      if (!isSafeRelativePath(root) || !repositoryEntryKind(rootDir, root)) {
+        addError(errors, 'unsafe-migration-root', `migration area ${area.id} has unsafe or missing root ${root}`);
+        continue;
+      }
+      if (expectedMigrationRuntime(root) !== area.runtime) {
+        addError(errors, 'invalid-migration-runtime-root', `migration area ${area.id} runtime does not match ${root}`);
+      }
+      for (const protectedRoot of protectedRoots) {
+        const includesProtected = isInside(protectedRoot, root);
+        const insideProtected = isInside(root, protectedRoot);
+        const protectedIsExcluded = excludeRoots.some(excludeRoot => (
+          excludeRoot === protectedRoot || isInside(protectedRoot, excludeRoot)
+        ));
+        if ((insideProtected || includesProtected) && !protectedIsExcluded) {
+          addError(
+            errors,
+            'migration-area-overlaps-architecture-root',
+            `migration area ${area.id} overlaps protected root ${protectedRoot}`,
+          );
+        }
+      }
+    }
+    for (let index = 0; index < roots.length; index += 1) {
+      for (let other = index + 1; other < roots.length; other += 1) {
+        if (isInside(roots[index], roots[other]) || isInside(roots[other], roots[index])) {
+          addError(errors, 'invalid-migration-root', `migration area ${area.id} has nested roots`);
+        }
+      }
+    }
+    for (const excludeRoot of excludeRoots) {
+      const isStrictChild = roots.some(root => excludeRoot !== root && isInside(excludeRoot, root));
+      if (!isSafeRelativePath(excludeRoot)
+        || !repositoryEntryKind(rootDir, excludeRoot)
+        || !isStrictChild) {
+        addError(
+          errors,
+          'invalid-migration-exclusion',
+          `migration area ${area.id} exclusion must be an existing strict child: ${excludeRoot}`,
+        );
+      }
+    }
+
+    const targetModules = Array.isArray(area.targetModules) ? area.targetModules : [];
+    for (const targetModuleId of targetModules) {
+      const target = modules.find(module => module.id === targetModuleId);
+      if (!target || (area.runtime !== 'shared' && target.runtime !== area.runtime)) {
+        addError(errors, 'invalid-migration-target', `migration area ${area.id} has invalid target module ${targetModuleId}`);
+      }
+    }
+    const focusedTests = Array.isArray(area.focusedTests) ? area.focusedTests : [];
+    for (const command of focusedTests) {
+      const script = focusedTestScriptId(command);
+      if (!script) {
+        addError(errors, 'invalid-focused-test-command', `migration area ${area.id} focusedTests must contain exact allowlisted npm run test:* commands`);
+      } else if (!packageScriptExists(packageJson, script)) {
+        addError(errors, 'missing-focused-test-script', `migration area ${area.id} references missing package script ${script}`);
+      } else {
+        const hooks = packageScriptLifecycleHooks(packageJson, script);
+        if (hooks.length > 0) {
+          addError(errors, 'focused-test-lifecycle-hook', `migration area ${area.id} focused test ${script} must not have pre/post lifecycle hooks`);
+        }
+      }
+    }
+    for (const artifact of Array.isArray(area.docs) ? area.docs : []) {
+      if (!isSafeRelativePath(artifact) || repositoryEntryKind(rootDir, artifact) !== 'file') {
+        addError(errors, 'missing-migration-artifact', `migration area ${area.id} documentation is missing: ${artifact}`);
+      }
+    }
+    for (const safeStart of Array.isArray(area.safeStarts) ? area.safeStarts : []) {
+      if (!isSafeRelativePath(safeStart)
+        || repositoryEntryKind(rootDir, safeStart) !== 'file'
+        || !pathBelongsToMigrationArea(safeStart, area)) {
+        addError(errors, 'missing-migration-artifact', `migration area ${area.id} safe start is invalid: ${safeStart}`);
+      }
+    }
+    try {
+      if (area.routeScope?.mode === 'none') publicRoutesForScope(area.routeScope, { routes: [] });
+      else publicRoutesForScope(area.routeScope, routeInventory());
+    } catch (error) {
+      addError(errors, 'invalid-migration-route-scope', `migration area ${area.id}: ${error.message}`);
+    }
+  }
+  for (let index = 0; index < areas.length; index += 1) {
+    for (let other = index + 1; other < areas.length; other += 1) {
+      const overlap = migrationAreaOverlap(areas[index], areas[other]);
+      if (!overlap) continue;
+      addError(
+        errors,
+        'overlapping-migration-areas',
+        `migration areas ${areas[index]?.id || '<unknown>'} and ${areas[other]?.id || '<unknown>'} have overlapping effective roots at ${overlap.intersectionRoot}`,
+        overlap,
+      );
+    }
+  }
+  return areas.filter(isRecord);
+}
+
+function validateMigrationCoverage(areas, modules, ownershipFiles, errors) {
+  const legacyFiles = ownershipFiles.filter(path => (
+    !moduleForPath(modules, path)
+    && !sharedRuntimeForPath(CANONICAL_SHARED_ROOTS, path)
+  ));
+  let orphaned = 0;
+  let overlapping = 0;
+  for (const source of legacyFiles) {
+    const matches = areas.filter(area => pathBelongsToMigrationArea(source, area));
+    if (matches.length === 0) {
+      orphaned += 1;
+      addError(errors, 'orphaned-migration-source', `product source has no migration owner: ${source}`, { source });
+    } else if (matches.length > 1) {
+      overlapping += 1;
+      addError(
+        errors,
+        'overlapping-migration-source',
+        `product source has multiple migration owners: ${source}`,
+        { source, migrationAreas: matches.map(area => area.id).sort() },
+      );
+    }
+  }
+  return { orphaned, overlapping };
+}
+
 function readPackageJsonForValidation(rootDir, errors) {
   const packagePath = join(rootDir, 'package.json');
   if (!isRegularFile(packagePath)) {
@@ -592,7 +928,7 @@ function isUsableModule(module) {
 }
 
 function validateConfig(config, rootDir, discoveredRoots, errors) {
-  if (config.schemaVersion !== 1) addError(errors, 'invalid-schema-version', 'module-boundaries schemaVersion must be 1');
+  if (config.schemaVersion !== 2) addError(errors, 'invalid-schema-version', 'module-boundaries schemaVersion must be 2');
   if (JSON.stringify(config.moduleRoots) !== JSON.stringify(CANONICAL_MODULE_ROOTS)
     || JSON.stringify(config.sharedRoots) !== JSON.stringify(CANONICAL_SHARED_ROOTS)) {
     addError(
@@ -623,7 +959,7 @@ function validateConfig(config, rootDir, discoveredRoots, errors) {
       continue;
     }
     for (const field of ['id', 'runtime', 'root', 'purpose', 'owner', 'publicEntry']) {
-      if (typeof module[field] !== 'string' || !module[field].trim()) {
+      if (!isSafeMetadataText(module[field])) {
         addError(errors, 'invalid-module', `module ${module.id || '<unknown>'} requires ${field}`);
       }
     }
@@ -654,8 +990,9 @@ function validateConfig(config, rootDir, discoveredRoots, errors) {
       addError(errors, 'invalid-public-entry', `module ${module.id} publicEntry must be ${expectedPublicEntry}`);
     } else {
       const absolutePublicEntry = join(rootDir, expectedPublicEntry);
-      if (existsSync(absolutePublicEntry) && !isRegularFile(absolutePublicEntry)) {
-        addError(errors, 'invalid-public-entry', `module ${module.id} publicEntry must be a regular file`);
+      if (existsSync(absolutePublicEntry)
+        && repositoryEntryKind(rootDir, expectedPublicEntry) !== 'file') {
+        addError(errors, 'invalid-public-entry', `module ${module.id} publicEntry must be a regular repository file`);
       }
     }
     if (module.publicStyleEntry !== undefined) {
@@ -666,7 +1003,7 @@ function validateConfig(config, rootDir, discoveredRoots, errors) {
           'invalid-public-style-entry',
           `client module ${module.id} publicStyleEntry must be ${expectedPublicStyleEntry}`,
         );
-      } else if (!isRegularFile(join(rootDir, expectedPublicStyleEntry))) {
+      } else if (repositoryEntryKind(rootDir, expectedPublicStyleEntry) !== 'file') {
         addError(
           errors,
           'invalid-public-style-entry',
@@ -679,7 +1016,7 @@ function validateConfig(config, rootDir, discoveredRoots, errors) {
     const docs = Array.isArray(module.docs) ? module.docs : [];
     if (!Array.isArray(module.dependencies) || !Array.isArray(module.focusedTests) || !Array.isArray(module.docs)
       || focusedTests.length === 0 || docs.length === 0
-      || [...dependencies, ...focusedTests, ...docs].some(value => typeof value !== 'string')) {
+      || [...dependencies, ...focusedTests, ...docs].some(value => !isSafeMetadataText(value))) {
       addError(errors, 'invalid-module-ownership', `module ${module.id} requires dependencies, focusedTests and docs arrays`);
     }
     for (const command of focusedTests) {
@@ -708,7 +1045,7 @@ function validateConfig(config, rootDir, discoveredRoots, errors) {
       }
     }
     for (const artifact of docs) {
-      if (!isSafeRelativePath(artifact) || !isRegularFile(join(rootDir, artifact))) {
+      if (!isSafeRelativePath(artifact) || repositoryEntryKind(rootDir, artifact) !== 'file') {
         addError(errors, 'missing-module-artifact', `module ${module.id} ownership artifact is missing: ${artifact}`);
       }
     }
@@ -725,6 +1062,33 @@ function validateConfig(config, rootDir, discoveredRoots, errors) {
       }
     }
   }
+  return validateMigrationAreas(
+    config,
+    rootDir,
+    modules.filter(isUsableModule),
+    packageJson,
+    errors,
+  );
+}
+
+export function validateModuleInventoryMetadata({
+  rootDir = process.cwd(),
+  config,
+  now = new Date(),
+} = {}) {
+  const absoluteRoot = resolve(rootDir);
+  const errors = [];
+  const discoveredRoots = discoverModuleRoots(absoluteRoot, CANONICAL_MODULE_ROOTS);
+  const migrationAreas = validateConfig(config, absoluteRoot, discoveredRoots, errors);
+  validateExceptionMetadata(config, errors, now);
+  const modules = (Array.isArray(config?.modules) ? config.modules : [])
+    .filter(isUsableModule);
+  return {
+    ok: errors.length === 0,
+    modules,
+    migrationAreas,
+    errors,
+  };
 }
 
 function validateDeclaredDependencies(modules, edges, errors) {
@@ -771,13 +1135,40 @@ function isValidCycleException(entry) {
     && entry.kind === 'type-cycle';
 }
 
-function validateExceptions(config, violations, errors, now) {
-  const budgets = config.allowlistBudgets || {};
-  const exceptions = config.exceptions || {};
+function isValidEdgeException(category, entry) {
+  const validKind = category === 'missingPublicEntry'
+    ? entry.kind === 'missing-public-entry'
+    : ['runtime', 'type'].includes(entry.kind);
+  return typeof entry.source === 'string'
+    && entry.source.length > 0
+    && typeof entry.target === 'string'
+    && entry.target.length > 0
+    && validKind;
+}
+
+function exceptionKey(category, entry, entryIndex) {
+  if (category === 'typeCycle') {
+    return isValidCycleException(entry) ? cycleKey(entry) : `invalid-cycle-${entryIndex}`;
+  }
+  return isValidEdgeException(category, entry) ? edgeKey(entry) : `invalid-edge-${entryIndex}`;
+}
+
+function validateExceptionMetadata(config, errors, now) {
+  const budgets = isRecord(config?.allowlistBudgets) ? config.allowlistBudgets : {};
+  const exceptions = isRecord(config?.exceptions) ? config.exceptions : {};
   const today = now.toISOString().slice(0, 10);
 
   for (const category of EXCEPTION_CATEGORIES) {
-    const entries = Array.isArray(exceptions[category]) ? exceptions[category] : [];
+    const configuredEntries = exceptions[category];
+    const entries = Array.isArray(configuredEntries) ? configuredEntries : [];
+    if (!Array.isArray(configuredEntries)) {
+      addError(
+        errors,
+        'invalid-exception-metadata',
+        `${category} exceptions must be an array`,
+        { category },
+      );
+    }
     const budget = budgets[category];
     if (!Number.isInteger(budget) || budget < 0 || budget !== entries.length) {
       addError(errors, 'exception-budget-mismatch', `${category} budget must equal its exact exception count`, {
@@ -787,8 +1178,6 @@ function validateExceptions(config, violations, errors, now) {
       });
     }
 
-    const actual = violations[category];
-    const actualKeys = new Map(actual.map(item => [category === 'typeCycle' ? cycleKey(item) : edgeKey(item), item]));
     const exceptionKeys = new Map();
     for (const [entryIndex, entry] of entries.entries()) {
       if (!isRecord(entry)) {
@@ -801,6 +1190,14 @@ function validateExceptions(config, violations, errors, now) {
           errors,
           'invalid-cycle-exception',
           'typeCycle exception source, target, kind, nodes and edges must describe the exact cycle',
+          { category },
+        );
+      }
+      if (category !== 'typeCycle' && !isValidEdgeException(category, entry)) {
+        addError(
+          errors,
+          'invalid-exception-metadata',
+          `${category} exceptions require exact source, target and kind metadata`,
           { category },
         );
       }
@@ -817,8 +1214,8 @@ function validateExceptions(config, violations, errors, now) {
       if (paths.some(path => !isSafeRelativePath(path))) {
         addError(errors, 'unsafe-exception', `${category} exception paths must be exact, safe repository paths`);
       }
-      if (typeof entry.owner !== 'string' || !entry.owner.trim()
-        || typeof entry.reason !== 'string' || !entry.reason.trim()
+      if (!isSafeMetadataText(entry.owner)
+        || !isSafeMetadataText(entry.reason)
         || !isIsoCalendarDate(entry.expiresOn)) {
         addError(errors, 'invalid-exception-metadata', `${category} exceptions require owner, reason and ISO expiresOn`);
       } else if (entry.expiresOn < today) {
@@ -832,17 +1229,45 @@ function validateExceptions(config, violations, errors, now) {
           { category },
         );
       }
-      const key = category === 'typeCycle' && validCycle
-        ? cycleKey(entry)
-        : category === 'typeCycle'
-          ? `invalid-cycle-${entryIndex}`
-          : edgeKey(entry);
+      const key = exceptionKey(category, entry, entryIndex);
       if (exceptionKeys.has(key)) addError(errors, 'duplicate-exception', `duplicate ${category} exception`, { category });
       exceptionKeys.set(key, entry);
-      if (!actualKeys.has(key)) addError(errors, 'stale-exception', `${category} exception no longer matches the graph`, { category, exception: entry });
+    }
+  }
+}
+
+function validateExceptionGraph(config, violations, errors) {
+  const exceptions = isRecord(config?.exceptions) ? config.exceptions : {};
+  for (const category of EXCEPTION_CATEGORIES) {
+    const entries = Array.isArray(exceptions[category]) ? exceptions[category] : [];
+    const actual = violations[category];
+    const actualKeys = new Map(actual.map(item => [
+      category === 'typeCycle' ? cycleKey(item) : edgeKey(item),
+      item,
+    ]));
+    const exceptionKeys = new Map();
+    for (const [entryIndex, entry] of entries.entries()) {
+      if (!isRecord(entry)) continue;
+      const key = exceptionKey(category, entry, entryIndex);
+      exceptionKeys.set(key, entry);
+      if (!actualKeys.has(key)) {
+        addError(
+          errors,
+          'stale-exception',
+          `${category} exception no longer matches the graph`,
+          { category, exception: entry },
+        );
+      }
     }
     for (const [key, item] of actualKeys) {
-      if (!exceptionKeys.has(key)) addError(errors, 'unapproved-boundary', `unapproved ${category} violation`, { category, violation: item });
+      if (!exceptionKeys.has(key)) {
+        addError(
+          errors,
+          'unapproved-boundary',
+          `unapproved ${category} violation`,
+          { category, violation: item },
+        );
+      }
     }
   }
 }
@@ -861,25 +1286,33 @@ export function analyzeModuleBoundaries({
   } catch (error) {
     return {
       ok: false,
-      counts: { modules: 0, edges: 0, missingPublicEntry: 0, internalImport: 0, moduleLegacyImport: 0, runtimeCrossing: 0, typeCycle: 0, runtimeCycle: 0 },
+      counts: { modules: 0, migrationAreas: 0, sources: 0, ownershipSources: 0, edges: 0, orphanedMigrationSource: 0, overlappingMigrationSource: 0, missingPublicEntry: 0, internalImport: 0, moduleLegacyImport: 0, runtimeCrossing: 0, typeCycle: 0, runtimeCycle: 0 },
       violations: { missingPublicEntry: [], internalImport: [], moduleLegacyImport: [], runtimeCrossing: [], typeCycle: [] },
       cycles: { runtime: [], typeInclusive: [] },
       edges: [],
-      errors: [{ code: 'invalid-config', message: error.message }],
+      errors: [{ code: 'invalid-config', message: singleLineErrorMessage(error) }],
     };
   }
 
-  const moduleRoots = CANONICAL_MODULE_ROOTS;
   const sharedRoots = CANONICAL_SHARED_ROOTS;
   const configuredModules = Array.isArray(config.modules) ? config.modules : [];
-  const discoveredRoots = discoverModuleRoots(absoluteRoot, moduleRoots);
-  validateConfig(config, absoluteRoot, discoveredRoots, errors);
-  const modules = configuredModules.filter(isUsableModule);
+  const metadata = validateModuleInventoryMetadata({ rootDir: absoluteRoot, config, now });
+  errors.push(...metadata.errors);
+  const migrationAreas = metadata.migrationAreas;
+  const modules = metadata.modules;
 
   const sourceScan = walkSourceFiles(absoluteRoot);
   errors.push(...sourceScan.errors);
   const absoluteSourceFiles = sourceScan.files;
   const sourceFiles = absoluteSourceFiles.map(path => projectPath(absoluteRoot, path));
+  const ownershipScan = walkOwnershipFiles(absoluteRoot);
+  errors.push(...ownershipScan.errors);
+  const migrationCoverage = validateMigrationCoverage(
+    migrationAreas,
+    modules,
+    ownershipScan.files,
+    errors,
+  );
   const compilerConfig = readCompilerOptions(absoluteRoot);
   errors.push(...compilerConfig.errors);
   const graph = buildEdges(absoluteRoot, absoluteSourceFiles, compilerConfig.options);
@@ -898,7 +1331,7 @@ export function analyzeModuleBoundaries({
   for (const module of modules) {
     const expectedPublicEntry = `${module.root}/public.ts`;
     const absolutePublicEntry = join(absoluteRoot, expectedPublicEntry);
-    if (!isRegularFile(absolutePublicEntry)) {
+    if (repositoryEntryKind(absoluteRoot, expectedPublicEntry) !== 'file') {
       violations.missingPublicEntry.push({
         source: module.root,
         target: expectedPublicEntry,
@@ -956,14 +1389,18 @@ export function analyzeModuleBoundaries({
     addError(errors, 'runtime-cycle', `runtime import cycle: ${cycle.nodes.join(' -> ')}`, { cycle });
   }
 
-  validateExceptions(config, violations, errors, now);
+  validateExceptionGraph(config, violations, errors);
 
   return {
     ok: errors.length === 0,
     counts: {
       modules: configuredModules.length,
+      migrationAreas: migrationAreas.length,
       sources: sourceFiles.length,
+      ownershipSources: ownershipScan.files.length,
       edges: edges.length,
+      orphanedMigrationSource: migrationCoverage.orphaned,
+      overlappingMigrationSource: migrationCoverage.overlapping,
       missingPublicEntry: violations.missingPublicEntry.length,
       internalImport: violations.internalImport.length,
       moduleLegacyImport: violations.moduleLegacyImport.length,
@@ -981,7 +1418,8 @@ export function analyzeModuleBoundaries({
 export function formatModuleBoundaryReport(report) {
   const { counts } = report;
   const lines = [
-    `[module-boundaries] ${counts.modules} modules, ${counts.sources || 0} sources, ${counts.edges} resolved edges`,
+    `[module-boundaries] ${counts.modules} modules, ${counts.migrationAreas || 0} migration areas, ${counts.sources || 0} graph sources, ${counts.ownershipSources || 0} owned sources, ${counts.edges} resolved edges`,
+    `[module-boundaries] migration coverage: orphaned=${counts.orphanedMigrationSource || 0}, overlapping=${counts.overlappingMigrationSource || 0}`,
     `[module-boundaries] exceptions: missing-public=${counts.missingPublicEntry}, internal=${counts.internalImport}, module-legacy=${counts.moduleLegacyImport}, runtime-crossing=${counts.runtimeCrossing}, type-cycles=${counts.typeCycle}`,
     `[module-boundaries] runtime cycles: ${counts.runtimeCycle}`,
   ];
@@ -992,7 +1430,7 @@ export function formatModuleBoundaryReport(report) {
       : error.cycle?.nodes?.length
         ? `: ${error.cycle.nodes.join(' -> ')}`
         : '';
-    lines.push(`  [${error.code}] ${error.message}${detail}`);
+    lines.push(`  [${singleLineDisplay(error.code)}] ${singleLineDisplay(error.message)}${singleLineDisplay(detail)}`);
   }
   lines.push(report.ok ? '[module-boundaries] dependency contract passed' : '[module-boundaries] dependency contract failed');
   return lines.join('\n');
@@ -1007,7 +1445,7 @@ if (invokedPath === import.meta.url) {
     if (args[index] === '--root') rootDir = args[++index];
     else if (args[index] === '--config') configPath = args[++index];
     else {
-      console.error(`Unknown argument: ${args[index]}`);
+      console.error(`Unknown argument: ${singleLineDisplay(args[index])}`);
       process.exit(2);
     }
   }

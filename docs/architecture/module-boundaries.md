@@ -193,11 +193,35 @@ and never remove it independently.
 ## Machine-enforced inventory
 
 [`config/module-boundaries.json`](../../config/module-boundaries.json) is the
-checked source of truth for current module ownership. Every immediate directory
+schema-v2 checked source of truth for current module and migration ownership.
+Every immediate directory
 under `src/modules` and `server/modules` must have exactly one inventory entry
 with a stable id, runtime, purpose, owner, public entry, optional client
 `publicStyleEntry`, declared module dependencies, focused tests and owning
 documentation.
+
+Product code outside canonical module and shared roots is not anonymous. Each
+legacy file under `src`, `server`, top-level `shared`, and the classic
+`public/bg-legacy` code root must match exactly one `migrationAreas` entry after
+its explicit `excludeRoots` carve-outs. An area records purpose, owner, target
+modules, safe starting files, focused tests, documentation, known debt and a
+route scope. Missing ownership, overlapping effective roots, unsafe paths,
+symlink escapes, invalid targets and stale artifacts fail the architecture
+gate. Broad areas may carve out a narrower domain area only by excluding that
+domain's exact roots; implicit longest-match precedence is not allowed.
+
+`routeScope` is a many-to-many impact link, not a second URL registry and not
+exclusive route ownership. It may select no routes, all routes, or existing
+owner ids from `src/shared/seo/publicRouteInventory.json`; route ids, patterns
+and policies are always hydrated from that canonical inventory.
+
+`npm run agent:context -- <module-id-or-path-or-root>` resolves module ids,
+canonical shared paths, legacy source paths, migration-area roots, `root`, and
+`.`. Module output keeps the public-entry contract; migration output adds its
+owner, target modules, hydrated routes, safe starts, tests, documents and debt.
+Shared output stays conservative, includes every module and migration-area check
+in the same runtime, and calls out its pending owner metadata; root output
+aggregates the governed module, shared-root, migration and route overview.
 
 `npm run agent:map` renders that ownership inventory together with the checked
 reverse dependency callers from the resolved import graph. It also renders the
@@ -207,23 +231,24 @@ separate section; route-team labels are not guessed to be module ids. Use
 output without npm's human-oriented command banner. The JSON has no timestamp
 or absolute worktree path, so equal repository state produces equal bytes.
 
-`npm run agent:impact -- <module-id-or-path>` walks the checked import graph in
-reverse across both runtime and type edges. It reports direct and transitive
-callers, affected module contracts, focused tests, documentation and known
-boundary debt. Declared dependents are included even when a concrete import is
-not present, making the result conservative. Paths must exist inside the real
-repository and symlink escapes are rejected. Use `-- --json` together with
+`npm run agent:impact -- <module-id-or-path-or-root>` walks the checked import
+graph in reverse across both runtime and type edges. It reports direct and
+transitive callers, affected module contracts, focused tests, documentation and
+known boundary debt. Declared dependents are included even when a concrete
+import is not present, making the result conservative. Paths must exist inside
+the real repository and symlink escapes are rejected. Use `-- --json` together with
 `npm run --silent` for deterministic machine-readable output. Public-route
-impact is deliberately not guessed from module ids; consult `agent:map` for the
-separate canonical URL ownership inventory.
+impact is deliberately not guessed from module ids. Migration areas and the
+repository root use their checked `routeScope`, while URL details still come
+only from the canonical route inventory.
 
-`npm run agent:check -- <module-id-or-path>` converts that impact result into a
-minimal executable check plan: the architecture gate, TypeScript check and the
-deduplicated focused tests owned by every affected module. Inventory entries
-may reference only exact `npm run test:*` package scripts, and the boundary gate
-verifies that each script exists. The whole plan is validated before the first
-planned npm check starts; commands run as structured arguments with
-`shell: false` and stop on the first failure. Use `--list` to inspect the human
+`npm run agent:check -- <module-id-or-path-or-root>` converts that impact result
+into a minimal executable check plan: the architecture gate, TypeScript check
+and the deduplicated focused tests owned by every affected module. Inventory
+entries may reference only exact `npm run test:*` package scripts, and the
+boundary gate verifies that each script exists. The whole plan is validated
+before the first planned npm check starts; commands run as structured arguments
+with `shell: false` and stop on the first failure. Use `--list` to inspect the human
 plan or `--json`
 for deterministic machine-readable plan-only output. JSON mode never executes
 commands.
@@ -247,6 +272,9 @@ The check rejects:
 - an undeclared cross-module dependency or a new client/server source crossing;
 - module imports back into legacy code except an exact migration exception;
 - shared code importing application or product-module code;
+- product source without exactly one effective module or migration-area owner;
+- overlapping, unsafe or stale migration-area roots, exclusions, safe starts,
+  route scopes, target modules, tests or documentation;
 - every runtime import cycle;
 - stale, duplicated, unsafe or expired migration exceptions.
 

@@ -246,6 +246,23 @@ npm run qa:e2e
 остаются выключенными без явной серверной конфигурации. Подробности и команды
 для AI-агентов собраны в [docs/agent-tooling.md](docs/agent-tooling.md).
 
+Перед изменением кода можно получить проверенный контекст без ручного обхода
+дерева файлов:
+
+```bash
+npm run agent:context -- src/features/BgLibrary.tsx
+npm run agent:context -- server/shared/http/asyncRoute.ts
+npm run agent:impact -- server/index.ts --json
+npm run agent:check -- src/App.tsx --list
+npm run agent:context -- root
+```
+
+Команды показывают владельца, целевые модули, связанные маршруты, безопасные
+точки входа, тесты, документацию и известный долг. Карта schema v2 блокирует
+новый бесхозный или одновременно принадлежащий нескольким областям legacy-код
+за пределами канонических module/shared roots; URL всегда берутся из
+существующего канонического route inventory.
+
 Puppeteer намеренно остаётся в `dependencies`, а не в `devDependencies`: его
 импортирует `server/scraper.ts`, который входит в сборку сервера
 (`tsconfig.server.json`) и работает в проде как изолированный

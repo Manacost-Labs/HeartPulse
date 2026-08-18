@@ -34,15 +34,19 @@ snapshots без внешних ключей; не добавляйте тест
 ```bash
 npm run agent:map
 npm run agent:context -- client.identity
+npm run agent:context -- src/features/BgLibrary.tsx
+npm run agent:context -- root
 npm run agent:impact -- src/modules/identity/public.ts
 npm run agent:check -- src/modules/identity/public.ts --list
 ```
 
 `agent:map` показывает модули и отдельный реестр публичных URL,
-`agent:context` — контракт одного модуля, `agent:impact` — вызывающий код,
-затронутые контракты и тесты. После просмотра плана уберите `--list`, чтобы
-`agent:check` безопасно запустил архитектурную проверку, TypeScript и только
-целевые тесты. Для чистого JSON используйте `npm run --silent ... -- --json`.
+`agent:context` — контракт модуля, канонический shared root, проверенную
+legacy-зону или общий обзор репозитория, `agent:impact` — вызывающий код,
+затронутые контракты, маршруты и
+тесты. После просмотра плана уберите `--list`, чтобы `agent:check` безопасно
+запустил архитектурную проверку, TypeScript и только целевые тесты. Для чистого
+JSON используйте `npm run --silent ... -- --json`.
 
 ## Перед pull request
 

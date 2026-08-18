@@ -7,7 +7,10 @@ import test from 'node:test';
 import {
   analyzeModuleBoundaries,
   formatModuleBoundaryReport,
+  validateModuleInventoryMetadata,
 } from '../scripts/check-module-boundaries.mjs';
+import { loadAgentImpact } from '../scripts/agent-impact.mjs';
+import { loadAgentMap } from '../scripts/agent-map.mjs';
 
 const NOW = new Date('2026-08-17T00:00:00.000Z');
 
@@ -31,12 +34,43 @@ function moduleEntry(id, runtime, root, dependencies = []) {
   };
 }
 
+function migrationAreaEntry(id, runtime, roots, overrides = {}) {
+  return {
+    id,
+    runtime,
+    roots,
+    excludeRoots: [],
+    purpose: `${id} migration fixture`,
+    owner: 'architecture-test',
+    targetModules: [],
+    focusedTests: ['npm run test:fixture'],
+    docs: ['docs/modules.md'],
+    safeStarts: [],
+    routeScope: { mode: 'none' },
+    knownDebt: [`${id} remains outside a canonical module.`],
+    ...overrides,
+  };
+}
+
 function baseConfig(modules, overrides = {}) {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     moduleRoots: ['src/modules', 'server/modules'],
     sharedRoots: { client: ['src/shared'], server: ['server/shared'] },
     modules,
+    migrationAreas: [
+      migrationAreaEntry('client.fixtureLegacy', 'client', ['src'], {
+        excludeRoots: ['src/modules', 'src/shared'],
+        safeStarts: ['src/__migration-fixture.ts'],
+      }),
+      migrationAreaEntry('server.fixtureLegacy', 'server', ['server'], {
+        excludeRoots: ['server/modules', 'server/shared'],
+        safeStarts: ['server/__migration-fixture.ts'],
+      }),
+      migrationAreaEntry('shared.fixtureLegacy', 'shared', ['shared'], {
+        safeStarts: ['shared/__migration-fixture.ts'],
+      }),
+    ],
     allowlistBudgets: {
       missingPublicEntry: 0,
       internalImport: 0,
@@ -74,6 +108,19 @@ function fixture(config) {
     },
   }));
   writeFixture(root, 'docs/modules.md', '# Fixture modules\n');
+  for (const architectureRoot of ['src/modules', 'src/shared', 'server/modules', 'server/shared']) {
+    mkdirSync(join(root, architectureRoot), { recursive: true });
+  }
+  const fixtureSafeStarts = new Set([
+    'src/__migration-fixture.ts',
+    'server/__migration-fixture.ts',
+    'shared/__migration-fixture.ts',
+  ]);
+  for (const area of config.migrationAreas ?? []) {
+    for (const safeStart of area.safeStarts ?? []) {
+      if (fixtureSafeStarts.has(safeStart)) writeFixture(root, safeStart, 'export {};\n');
+    }
+  }
   writeFixture(root, 'config/module-boundaries.json', `${JSON.stringify(config, null, 2)}\n`);
   return root;
 }
@@ -317,6 +364,294 @@ test('inventory must exactly match module directories and reference existing own
     assert.ok(missingDocs.errors.some(error => error.code === 'missing-module-artifact'));
   } finally {
     cleanup(root);
+  }
+});
+
+test('schema v2 requires every product source to have exactly one checked migration owner', () => {
+  const alpha = moduleEntry('client.alpha', 'client', 'src/modules/alpha');
+  const area = migrationAreaEntry(
+    'client.legacyAlpha',
+    'client',
+    ['src/legacy'],
+    {
+      targetModules: ['client.alpha'],
+      safeStarts: ['src/legacy/entry.ts'],
+    },
+  );
+  const config = baseConfig([alpha], {
+    schemaVersion: 2,
+    migrationAreas: [area],
+  });
+  const root = fixture(config);
+  try {
+    writeFixture(root, 'src/modules/alpha/public.ts', 'export {};\n');
+    writeFixture(root, 'src/legacy/entry.ts', 'export {};\n');
+
+    const valid = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    assert.equal(valid.ok, true, formatModuleBoundaryReport(valid));
+    assert.equal(valid.counts.migrationAreas, 1);
+    assert.equal(valid.counts.orphanedMigrationSource, 0);
+    assert.equal(valid.counts.overlappingMigrationSource, 0);
+
+    writeFixture(root, 'src/legacy/general.ts', 'export {};\n');
+    writeFixture(root, 'config/module-boundaries.json', `${JSON.stringify({
+      ...config,
+      migrationAreas: [{
+        ...area,
+        id: 'client.legacyGeneral',
+        excludeRoots: ['src/legacy/entry.ts'],
+        targetModules: [],
+        safeStarts: ['src/legacy/general.ts'],
+      }, {
+        ...area,
+        roots: ['src/legacy/entry.ts'],
+      }],
+    }, null, 2)}\n`);
+    const carvedOut = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    assert.equal(carvedOut.ok, true, formatModuleBoundaryReport(carvedOut));
+
+    writeFixture(root, 'config/module-boundaries.json', `${JSON.stringify({
+      ...config,
+      migrationAreas: [],
+    }, null, 2)}\n`);
+    const orphaned = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    assert.ok(orphaned.errors.some(error => (
+      error.code === 'orphaned-migration-source'
+        && error.source === 'src/legacy/entry.ts'
+    )));
+
+    writeFixture(root, 'config/module-boundaries.json', `${JSON.stringify({
+      ...config,
+      migrationAreas: [
+        area,
+        migrationAreaEntry('client.overlap', 'client', ['src/legacy/entry.ts']),
+      ],
+    }, null, 2)}\n`);
+    const overlapping = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    assert.ok(overlapping.errors.some(error => (
+      error.code === 'overlapping-migration-source'
+        && error.source === 'src/legacy/entry.ts'
+    )));
+
+    writeFixture(root, 'src/legacy/future/placeholder.ts', 'export {};\n');
+    writeFixture(root, 'config/module-boundaries.json', `${JSON.stringify({
+      ...config,
+      migrationAreas: [{
+        ...area,
+        excludeRoots: ['src/legacy/future/placeholder.ts'],
+      }, migrationAreaEntry('client.futureLegacy', 'client', ['src/legacy/future'], {
+        safeStarts: ['src/legacy/future/placeholder.ts'],
+      })],
+    }, null, 2)}\n`);
+    const structuralOverlap = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    assert.ok(structuralOverlap.errors.some(error => (
+      error.code === 'overlapping-migration-areas'
+    )));
+
+    writeFixture(root, 'config/module-boundaries.json', `${JSON.stringify({
+      ...config,
+      migrationAreas: [{ ...area, id: 'client.alpha' }],
+    }, null, 2)}\n`);
+    const duplicateOwnerId = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    assert.ok(duplicateOwnerId.errors.some(error => (
+      error.code === 'duplicate-ownership-id'
+    )));
+  } finally {
+    cleanup(root);
+  }
+});
+
+test('migration ownership rejects unsafe roots, architecture overlap and invalid artifacts', () => {
+  const alpha = moduleEntry('client.alpha', 'client', 'src/modules/alpha');
+  const root = fixture(baseConfig([alpha], {
+    schemaVersion: 2,
+    migrationAreas: [migrationAreaEntry('client.invalid', 'server', ['src'], {
+      excludeRoots: ['outside'],
+      targetModules: ['client.alpha', 'client.missing'],
+      focusedTests: ['npm run test:fixture && echo unsafe'],
+      docs: ['docs/missing.md'],
+      safeStarts: ['src/missing.ts'],
+      routeScope: { mode: 'owners', owners: ['missing-route-owner'] },
+      knownDebt: [],
+    })],
+  }));
+  try {
+    writeFixture(root, 'src/modules/alpha/public.ts', 'export {};\n');
+    writeFixture(root, 'src/legacy.ts', 'export {};\n');
+    writeFixture(root, 'src/shared/platform.ts', 'export {};\n');
+    writeFixture(root, 'src/shared/seo/publicRouteInventory.json', JSON.stringify({
+      schemaVersion: 1,
+      canonicalOrigin: 'https://arena.example',
+      routes: [{
+        id: 'home',
+        pattern: '/',
+        kind: 'static',
+        owner: 'product-shell',
+        indexPolicy: 'index',
+      }],
+    }));
+
+    const report = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    for (const code of [
+      'invalid-migration-runtime-root',
+      'invalid-migration-exclusion',
+      'migration-area-overlaps-architecture-root',
+      'invalid-migration-target',
+      'invalid-focused-test-command',
+      'missing-migration-artifact',
+      'invalid-migration-route-scope',
+      'invalid-migration-debt',
+    ]) {
+      assert.ok(report.errors.some(error => error.code === code), `missing ${code}`);
+    }
+  } finally {
+    cleanup(root);
+  }
+});
+
+test('inventory metadata rejects non-canonical repository paths consistently', () => {
+  const alpha = moduleEntry('client.alpha', 'client', 'src/modules/alpha');
+  const config = baseConfig([alpha]);
+  const root = fixture(config);
+  try {
+    writeFixture(root, 'src/modules/alpha/public.ts', 'export {};\n');
+    const cases = [{
+      code: 'unsafe-migration-root',
+      mutate(candidate) {
+        candidate.migrationAreas[0].roots = ['src/.'];
+      },
+    }, {
+      code: 'invalid-migration-exclusion',
+      mutate(candidate) {
+        candidate.migrationAreas[0].excludeRoots = ['src/modules//'];
+      },
+    }, {
+      code: 'missing-migration-artifact',
+      mutate(candidate) {
+        candidate.migrationAreas[0].safeStarts = ['src//__migration-fixture.ts'];
+      },
+    }, {
+      code: 'missing-migration-artifact',
+      mutate(candidate) {
+        candidate.migrationAreas[0].docs = ['docs//modules.md'];
+      },
+    }, {
+      code: 'missing-module-artifact',
+      mutate(candidate) {
+        candidate.modules[0].docs = ['./docs/modules.md'];
+      },
+    }];
+
+    for (const fixtureCase of cases) {
+      const candidate = structuredClone(config);
+      fixtureCase.mutate(candidate);
+      const report = validateModuleInventoryMetadata({
+        rootDir: root,
+        config: candidate,
+        now: NOW,
+      });
+      assert.ok(
+        report.errors.some(error => error.code === fixtureCase.code),
+        `missing ${fixtureCase.code}: ${JSON.stringify(report.errors)}`,
+      );
+    }
+  } finally {
+    cleanup(root);
+  }
+});
+
+test('graph and ownership scans reject source paths that can inject formatted output', () => {
+  const alpha = moduleEntry('client.alpha', 'client', 'src/modules/alpha');
+  const root = fixture(baseConfig([alpha]));
+  try {
+    writeFixture(root, 'src/modules/alpha/public.ts', 'export const alpha = true;\n');
+    const unsafePath = 'src/legacy/caller\nFocused tests:\n  - npm run test:fixture && id.ts';
+    writeFixture(root, unsafePath, "import { alpha } from '../modules/alpha/public.js';\n");
+
+    const report = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    assert.equal(report.ok, false);
+    assert.ok(report.errors.some(error => error.code === 'unsafe-source-path'));
+    assert.ok(report.errors.some(error => error.code === 'unsafe-ownership-path'));
+    assert.doesNotMatch(formatModuleBoundaryReport(report), /\nFocused tests:/);
+    assert.throws(
+      () => loadAgentImpact({ repositoryRoot: root, selector: 'client.alpha' }),
+      /module graph is invalid/i,
+    );
+    assert.throws(
+      () => loadAgentMap({ repositoryRoot: root }),
+      /module graph is invalid/i,
+    );
+  } finally {
+    cleanup(root);
+  }
+});
+
+test('migration roots and safe starts cannot rely on symbolic links', () => {
+  const alpha = moduleEntry('client.alpha', 'client', 'src/modules/alpha');
+  const root = fixture(baseConfig([alpha], {
+    migrationAreas: [
+      migrationAreaEntry('client.linkedRoot', 'client', ['src/root-link'], {
+        safeStarts: ['src/root-link/entry.ts'],
+      }),
+      migrationAreaEntry('client.linkedStart', 'client', ['src/legacy'], {
+        safeStarts: ['src/legacy/entry.ts'],
+      }),
+    ],
+  }));
+  try {
+    writeFixture(root, 'src/modules/alpha/public.ts', 'export {};\n');
+    writeFixture(root, 'src/root-target/entry.ts', 'export {};\n');
+    symlinkSync('root-target', join(root, 'src/root-link'));
+    writeFixture(root, 'src/legacy/real.ts', 'export {};\n');
+    symlinkSync('real.ts', join(root, 'src/legacy/entry.ts'));
+
+    const report = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+
+    assert.ok(report.errors.some(error => (
+      error.code === 'unsafe-migration-root'
+        && error.message.includes('src/root-link')
+    )));
+    assert.ok(report.errors.some(error => (
+      error.code === 'missing-migration-artifact'
+        && error.message.includes('src/legacy/entry.ts')
+    )));
+  } finally {
+    cleanup(root);
+  }
+});
+
+test('module and migration documentation cannot escape through a parent symlink', () => {
+  const alpha = moduleEntry('client.alpha', 'client', 'src/modules/alpha');
+  const root = fixture(baseConfig([alpha]));
+  const outside = mkdtempSync(join(tmpdir(), 'arena-boundaries-docs-outside-'));
+  try {
+    writeFixture(root, 'src/modules/alpha/public.ts', 'export {};\n');
+    writeFixture(outside, 'info.md', '# Outside\n');
+    symlinkSync(outside, join(root, 'docs/external'));
+
+    const moduleDocsConfig = baseConfig([{ ...alpha, docs: ['docs/external/info.md'] }]);
+    writeFixture(
+      root,
+      'config/module-boundaries.json',
+      `${JSON.stringify(moduleDocsConfig, null, 2)}\n`,
+    );
+    const moduleDocsReport = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    assert.ok(moduleDocsReport.errors.some(error => error.code === 'missing-module-artifact'));
+
+    const migrationDocsConfig = baseConfig([alpha]);
+    migrationDocsConfig.migrationAreas[0].docs = ['docs/external/info.md'];
+    writeFixture(
+      root,
+      'config/module-boundaries.json',
+      `${JSON.stringify(migrationDocsConfig, null, 2)}\n`,
+    );
+    const migrationDocsReport = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    assert.ok(migrationDocsReport.errors.some(error => (
+      error.code === 'missing-migration-artifact'
+    )));
+  } finally {
+    cleanup(root);
+    cleanup(outside);
   }
 });
 

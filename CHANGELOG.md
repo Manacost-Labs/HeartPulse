@@ -2,12 +2,17 @@
 
 ## Unreleased
 
-- Added deterministic `agent:map`, `agent:impact` and `agent:check` navigation
-  commands so maintainers and AI agents can inspect module/URL ownership, walk
-  reverse runtime and type dependencies, and run only the architecture,
-  TypeScript and focused tests affected by a module, file or directory. The
-  checked inventory now rejects unknown, injectable or lifecycle-extended test
-  commands before any planned npm check starts.
+- Added deterministic `agent:map`, `agent:context`, `agent:impact` and
+  `agent:check` navigation for canonical modules and shared roots, eight checked
+  legacy/composition areas, and the repository root. Maintainers and AI agents can now
+  inspect owners, safe starting files, migration targets, canonical URL impact,
+  reverse runtime/type dependencies, documentation and debt before changing
+  legacy code. Shared-root checks conservatively include every same-runtime
+  module and migration area until shared ownership becomes first-class.
+  Metadata preflight rejects ambiguous ownership ids, unsafe paths,
+  symlink escapes and unknown, injectable or lifecycle-extended test commands
+  before context is emitted. The full boundary gate additionally rejects orphaned
+  or overlapping product files before impact analysis, focused checks and CI.
 - Moved verified Telegram account resolution and identity claiming behind the
   owned `server.telegramAuth` boundary; account selection now uses exact
   Telegram ID, fixed-issuer OIDC subject or the verified KHA bridge instead of

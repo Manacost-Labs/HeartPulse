@@ -11,6 +11,26 @@ export const MODULE_EXCEPTION_GROUPS = [
   'typeCycle',
 ];
 
+const UNSAFE_METADATA_CHARACTER = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u;
+const UNSAFE_METADATA_CHARACTERS = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu;
+
+export function singleLineDisplay(value) {
+  return String(value).replace(
+    UNSAFE_METADATA_CHARACTERS,
+    character => `\\u{${character.codePointAt(0).toString(16).toUpperCase()}}`,
+  );
+}
+
+export function singleLineErrorMessage(error) {
+  return singleLineDisplay(error instanceof Error ? error.message : String(error));
+}
+
+export function isSafeMetadataText(value) {
+  return typeof value === 'string'
+    && value.trim().length > 0
+    && !UNSAFE_METADATA_CHARACTER.test(value);
+}
+
 export function repositoryRoot(cwd) {
   return execFileSync('git', ['rev-parse', '--show-toplevel'], {
     cwd,
@@ -58,7 +78,7 @@ export function resolveRepositoryFile(root, relativePath, { required }) {
 function strictRepositorySelectorPath(value) {
   const raw = String(value || '').trim();
   if (!raw) throw new Error('Module or path selector must not be empty.');
-  if (/[\u0000-\u001F\u007F]/.test(raw)) {
+  if (UNSAFE_METADATA_CHARACTER.test(raw)) {
     throw new Error('Repository path selector is not safe: control characters are forbidden.');
   }
   if (raw.includes('\\') || path.posix.isAbsolute(raw)) {
@@ -119,12 +139,16 @@ export function readModuleInventory(root, inventoryPath = MODULE_INVENTORY_PATH)
     inventory = JSON.parse(readFileSync(inventoryFile, 'utf8'));
   } catch (error) {
     throw new Error(
-      `Module inventory is not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
+      `Module inventory is not valid JSON: ${singleLineErrorMessage(error)}`,
     );
   }
   if (!inventory || typeof inventory !== 'object'
-    || inventory.schemaVersion !== 1 || !Array.isArray(inventory.modules)) {
-    throw new Error('Module inventory must use schemaVersion 1 and contain a modules array.');
+    || inventory.schemaVersion !== 2
+    || !Array.isArray(inventory.modules)
+    || !Array.isArray(inventory.migrationAreas)) {
+    throw new Error(
+      'Module inventory must use schemaVersion 2 and contain modules and migrationAreas arrays.',
+    );
   }
   return inventory;
 }
@@ -146,26 +170,134 @@ export function moduleForRepositoryPath(modules, candidate, root = '') {
     .sort((left, right) => right.root.length - left.root.length)[0] ?? null;
 }
 
+export function sharedRootForRepositoryPath(sharedRoots, candidate, root = '') {
+  const normalizedCandidate = normalizeRepositoryPath(candidate, root);
+  return Object.entries(sharedRoots ?? {})
+    .flatMap(([runtime, roots]) => (
+      Array.isArray(roots) ? roots.map(sharedRoot => ({ runtime, root: sharedRoot })) : []
+    ))
+    .map(entry => ({ ...entry, root: normalizeRepositoryPath(entry.root, root) }))
+    .filter(entry => (
+      normalizedCandidate === entry.root
+      || normalizedCandidate.startsWith(`${entry.root}/`)
+    ))
+    .sort((left, right) => right.root.length - left.root.length)[0] ?? null;
+}
+
+export function pathBelongsToMigrationArea(candidate, area, root = '') {
+  if (typeof candidate !== 'string' || !area || typeof area !== 'object') return false;
+  const normalizedCandidate = normalizeRepositoryPath(candidate, root);
+  const roots = Array.isArray(area.roots)
+    ? area.roots.map(areaRoot => normalizeRepositoryPath(areaRoot, root)).filter(Boolean)
+    : [];
+  const excludeRoots = Array.isArray(area.excludeRoots)
+    ? area.excludeRoots.map(areaRoot => normalizeRepositoryPath(areaRoot, root)).filter(Boolean)
+    : [];
+  return roots.some(areaRoot => (
+    (normalizedCandidate === areaRoot || normalizedCandidate.startsWith(`${areaRoot}/`))
+      && !excludeRoots.some(excludeRoot => (
+        normalizedCandidate === excludeRoot || normalizedCandidate.startsWith(`${excludeRoot}/`)
+      ))
+  ));
+}
+
+export function migrationAreasForRepositoryPath(areas, candidate, root = '') {
+  return [...(Array.isArray(areas) ? areas : [])]
+    .filter(area => pathBelongsToMigrationArea(candidate, area, root))
+    .sort((left, right) => String(left.id).localeCompare(String(right.id)));
+}
+
+function isProductSourcePath(candidate) {
+  return ['src', 'server', 'shared'].some(sourceRoot => (
+    candidate === sourceRoot || candidate.startsWith(`${sourceRoot}/`)
+  ));
+}
+
 export function resolveModuleOrPathSelector(inventory, selector, root) {
   const rawSelector = String(selector || '').trim();
   if (!rawSelector) throw new Error('Module or path selector must not be empty.');
+  if (rawSelector === 'root' || rawSelector === '.') {
+    return {
+      selector: rawSelector,
+      kind: 'root',
+      path: '.',
+      moduleId: null,
+      migrationAreaId: null,
+    };
+  }
   const selectedModule = inventory.modules.find(module => module.id === rawSelector) ?? null;
-  const candidatePath = selectedModule?.root ?? strictRepositorySelectorPath(rawSelector);
+  const selectedArea = (inventory.migrationAreas ?? [])
+    .find(area => area.id === rawSelector) ?? null;
+  if (selectedModule && selectedArea) {
+    throw new Error(`Selector is ambiguous between a module and migration area: ${rawSelector}`);
+  }
+  const selectedAreaRoot = selectedArea?.roots?.[0];
+  if (selectedArea && (typeof selectedAreaRoot !== 'string' || !selectedAreaRoot)) {
+    throw new Error(`Migration area ${rawSelector} does not declare a usable root.`);
+  }
+  const candidatePath = selectedModule?.root
+    ?? selectedAreaRoot
+    ?? strictRepositorySelectorPath(rawSelector);
   const normalizedPath = resolveRepositoryPath(root, candidatePath);
   const owningModule = selectedModule
     ?? moduleForRepositoryPath(inventory.modules, normalizedPath, root);
+  const owningSharedRoot = sharedRootForRepositoryPath(
+    inventory.sharedRoots,
+    normalizedPath,
+    root,
+  );
+  const matchingAreas = migrationAreasForRepositoryPath(
+    inventory.migrationAreas,
+    normalizedPath,
+    root,
+  );
+  if (matchingAreas.length > 1) {
+    throw new Error(
+      `Repository path belongs to multiple migration areas: ${normalizedPath} (${matchingAreas.map(area => area.id).join(', ')})`,
+    );
+  }
+  const owningArea = selectedArea ?? matchingAreas[0] ?? null;
+  if (owningModule && owningArea) {
+    throw new Error(
+      `Repository path belongs to both module ${owningModule.id} and migration area ${owningArea.id}: ${normalizedPath}`,
+    );
+  }
+  if ((owningModule || owningArea) && owningSharedRoot) {
+    throw new Error(
+      `Repository path belongs to both product and shared ownership: ${normalizedPath}`,
+    );
+  }
+  if (!owningModule && !owningArea && !owningSharedRoot
+    && isProductSourcePath(normalizedPath)) {
+    throw new Error(
+      `Product source path is not owned by a module or migration area: ${normalizedPath}`,
+    );
+  }
   const normalizedModuleRoot = owningModule
     ? normalizeRepositoryPath(owningModule.root, root)
     : null;
+  const normalizedAreaRoots = owningArea
+    ? owningArea.roots.map(areaRoot => normalizeRepositoryPath(areaRoot, root))
+    : [];
   const pathStats = lstatSync(resolveOwnedPath(root, normalizedPath));
-  return {
+  const selection = {
     selector: rawSelector,
     kind: normalizedModuleRoot === normalizedPath
       ? 'module'
-      : pathStats.isDirectory() ? 'directory' : 'file',
+      : normalizedAreaRoots.includes(normalizedPath)
+        ? 'migration-area'
+        : owningSharedRoot?.root === normalizedPath
+          ? 'shared-root'
+          : pathStats.isDirectory() ? 'directory' : 'file',
     path: normalizedPath,
     moduleId: owningModule?.id ?? null,
   };
+  if (owningArea) selection.migrationAreaId = owningArea.id;
+  if (owningSharedRoot) {
+    selection.sharedRoot = owningSharedRoot.root;
+    selection.sharedRuntime = owningSharedRoot.runtime;
+  }
+  return selection;
 }
 
 function exceptionBelongsToModule(category, exception, module) {
@@ -239,20 +371,4 @@ export function stableModuleExceptions(inventory, module) {
       const rightKey = JSON.stringify(right);
       return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
     });
-}
-
-export function moduleBySelector(inventory, selector, root) {
-  const normalizedSelector = normalizeRepositoryPath(selector, root);
-  const module = inventory.modules.find(candidate => (
-    candidate.id === selector
-    || normalizeRepositoryPath(candidate.root, root) === normalizedSelector
-  ));
-  if (!module) {
-    const choices = inventory.modules.map(candidate => candidate.id).sort().join(', ');
-    throw new Error(`Unknown module "${selector}". Available module ids: ${choices || '(none)'}.`);
-  }
-  return {
-    ...module,
-    root: normalizeRepositoryPath(module.root, root),
-  };
 }

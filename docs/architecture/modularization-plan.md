@@ -178,8 +178,10 @@ directories.
 
 ## AI navigation contract
 
-The module inventory will evolve from a dependency gate into the checked map a
-human or AI agent reads before editing. Each record should eventually contain:
+The schema-v2 module inventory is now the checked map a human or AI agent reads
+before editing. Canonical modules and transitional `migrationAreas` together
+cover module-owned and legacy product source; canonical shared roots remain a
+structural boundary pending first-class ownership metadata. Each record contains:
 
 - stable module id, purpose and owner;
 - public client routes and server mounts;
@@ -190,15 +192,18 @@ human or AI agent reads before editing. Each record should eventually contain:
 
 Generated commands should expose that map without duplicating it in prose:
 
-- `agent:context -- <module-or-path>`: owner, purpose, public entry,
-  dependencies, callers, tests, documents and known debt;
-- `agent:check -- <module-id>`: focused type, test and boundary checks;
+- `agent:context -- <module-or-path-or-root>`: owner, purpose, public entry or
+  migration targets, routes, safe starts, tests, documents and known debt;
+- `agent:check -- <module-id-or-path-or-root>`: focused type, test and boundary
+  checks;
 - `agent:impact -- <path>`: affected modules, routes, contracts and tests;
 - `agent:map`: generated client/server dependency and route ownership map.
 
-These commands are added only after their data can be derived from the checked
-inventory. Hand-maintained parallel registries would make automated changes
-less safe.
+Route details are hydrated from the existing public route inventory through
+checked owner scopes; no parallel URL registry is maintained. `root` and `.`
+produce the deterministic whole-project surface. Missing or multiply-owned
+product source fails the architecture gate instead of silently returning an
+empty AI context.
 
 ## Delivery roadmap and visible outcome
 
@@ -696,10 +701,19 @@ credential-safe. ADR-008 and ADR-009 remain the governing delivery decisions.
 
 ### 15. AI tooling and final legacy removal
 
-After the domain map is stable, add the generated `agent:context`,
-`agent:check`, `agent:impact` and `agent:map` commands described above. Split
-the boundary checker itself into parser, resolver, policy and report units only
-after characterization tests pin its current behavior.
+The generated `agent:context`, `agent:check`, `agent:impact` and `agent:map`
+commands now cover canonical modules, eight initial migration areas, all 48
+public URL policies and the repository root. The checked baseline covers
+product code in `src`, `server`, top-level `shared`, and
+`public/bg-legacy`; new orphaned or overlapping legacy files fail CI. Continue
+splitting the boundary checker itself into parser, resolver, policy and report
+units only after characterization tests pin each extraction.
+
+The next AI-navigation slice must add first-class owner, purpose, tests,
+documentation and safe-start metadata for canonical `src/shared` and
+`server/shared` roots. Shared paths are selectable now, but their current
+conservative same-runtime module and migration-area check set is not a claim
+that every shared file has an individual owner record.
 
 The migration is complete when:
 

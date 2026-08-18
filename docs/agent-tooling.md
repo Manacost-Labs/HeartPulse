@@ -24,6 +24,34 @@
 DevTools MCP, проверить целевые разрешения, overflow, консоль, сеть,
 accessibility tree и показатели производительности.
 
+## Проверенная навигация по архитектуре
+
+Перед широким чтением используйте ownership-контекст для модуля, legacy-файла
+или всего репозитория:
+
+```bash
+npm run agent:context -- client.battlegrounds
+npm run agent:context -- src/features/BgLibrary.tsx
+npm run agent:context -- server/shared/http/asyncRoute.ts
+npm run agent:context -- root
+```
+
+Canonical shared paths remain navigable and are explicitly marked as awaiting
+first-class owner metadata instead of being misreported as legacy or unowned.
+Until that metadata exists, their context and check plan conservatively include
+every canonical module and migration area in the same runtime, so a legacy
+caller cannot silently lose its focused test.
+`agent:impact -- <module-id-or-path-or-root> --json` добавляет обратных callers,
+затронутые контракты, focused tests, документацию, долг и маршруты.
+`agent:check -- <target> --list` строит безопасный allowlisted план без запуска,
+а без `--list` выполняет его. `agent:map -- --json` выдаёт детерминированную
+полную карту модулей, migration areas и канонических публичных URL.
+
+Служебные JSON-ответы не содержат абсолютных путей или timestamp. Маршруты не
+копируются в module inventory: `routeScope` выбирает только существующих
+owner-id, а pattern, route id и policy загружаются из
+`src/shared/seo/publicRouteInventory.json`.
+
 ## Storybook и Storybook MCP
 
 Storybook 10 работает как локальная мастерская React-компонентов и не входит в

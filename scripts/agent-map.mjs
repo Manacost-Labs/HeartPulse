@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readFileSync, realpathSync } from 'node:fs';
+import { realpathSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -12,12 +12,18 @@ import {
   moduleForRepositoryPath,
   readModuleInventory,
   repositoryRoot,
-  resolveRepositoryFile,
+  singleLineErrorMessage,
   stableModuleExceptions,
 } from './lib/module-inventory.mjs';
+import {
+  PUBLIC_ROUTE_INVENTORY_PATH,
+  publicRoutesForScope,
+  readPublicRouteInventory,
+} from './lib/public-route-inventory.mjs';
+
+export { readPublicRouteInventory } from './lib/public-route-inventory.mjs';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
-const PUBLIC_ROUTE_INVENTORY_PATH = 'src/shared/seo/publicRouteInventory.json';
 
 function compareText(left, right) {
   return left < right ? -1 : left > right ? 1 : 0;
@@ -25,46 +31,6 @@ function compareText(left, right) {
 
 function sortedUnique(values) {
   return [...new Set(values)].sort(compareText);
-}
-
-export function readPublicRouteInventory(root) {
-  const inventoryFile = resolveRepositoryFile(root, PUBLIC_ROUTE_INVENTORY_PATH, { required: true });
-  let inventory;
-  try {
-    inventory = JSON.parse(readFileSync(inventoryFile, 'utf8'));
-  } catch (error) {
-    throw new Error(
-      `Public route inventory is not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-  if (!inventory || typeof inventory !== 'object'
-    || inventory.schemaVersion !== 1
-    || typeof inventory.canonicalOrigin !== 'string'
-    || !Array.isArray(inventory.routes)) {
-    throw new Error('Public route inventory must use schemaVersion 1 and declare canonicalOrigin and routes.');
-  }
-  let canonicalUrl;
-  try {
-    canonicalUrl = new URL(inventory.canonicalOrigin);
-  } catch {
-    throw new Error('Public route inventory canonicalOrigin must be a valid HTTP(S) origin.');
-  }
-  if (!['http:', 'https:'].includes(canonicalUrl.protocol)
-    || canonicalUrl.origin !== inventory.canonicalOrigin) {
-    throw new Error('Public route inventory canonicalOrigin must be a valid HTTP(S) origin.');
-  }
-  const routeIds = new Set();
-  for (const route of inventory.routes) {
-    if (!route || typeof route !== 'object'
-      || ['id', 'pattern', 'kind', 'owner', 'indexPolicy'].some(field => (
-        typeof route[field] !== 'string' || !route[field].trim()
-      ))) {
-      throw new Error('Every public route requires id, pattern, kind, owner and indexPolicy.');
-    }
-    if (routeIds.has(route.id)) throw new Error(`Duplicate public route id: ${route.id}`);
-    routeIds.add(route.id);
-  }
-  return inventory;
 }
 
 function moduleCallers(module, modules, edges) {
@@ -109,15 +75,28 @@ export function createAgentMap({ inventory, graph, publicRouteInventory }) {
     docs: sortedUnique(module.docs),
     exceptions: stableModuleExceptions(inventory, module),
   }));
-  const publicRoutes = publicRouteInventory.routes
-    .map(route => ({
-      id: route.id,
-      pattern: route.pattern,
-      kind: route.kind,
-      owner: route.owner,
-      indexPolicy: route.indexPolicy,
-    }))
-    .sort((left, right) => compareText(left.pattern, right.pattern) || compareText(left.id, right.id));
+  const migrationAreas = [...(inventory.migrationAreas ?? [])]
+    .sort((left, right) => compareText(left.id, right.id))
+    .map(area => ({
+      id: area.id,
+      runtime: area.runtime,
+      roots: sortedUnique(area.roots),
+      excludeRoots: sortedUnique(area.excludeRoots),
+      purpose: area.purpose,
+      owner: area.owner,
+      targetModules: sortedUnique(area.targetModules),
+      focusedTests: sortedUnique(area.focusedTests),
+      docs: sortedUnique(area.docs),
+      safeStarts: sortedUnique(area.safeStarts),
+      publicRoutes: publicRoutesForScope(area.routeScope, publicRouteInventory),
+      knownDebt: sortedUnique(area.knownDebt),
+    }));
+  const sharedRoots = Object.entries(inventory.sharedRoots ?? {})
+    .flatMap(([runtime, roots]) => (
+      Array.isArray(roots) ? roots.map(sharedRoot => ({ runtime, root: sharedRoot })) : []
+    ))
+    .sort((left, right) => compareText(left.root, right.root));
+  const publicRoutes = publicRoutesForScope({ mode: 'all' }, publicRouteInventory);
 
   return {
     schemaVersion: 1,
@@ -125,11 +104,14 @@ export function createAgentMap({ inventory, graph, publicRouteInventory }) {
     ok: true,
     sources: {
       modules: 'config/module-boundaries.json',
+      migrationAreas: 'config/module-boundaries.json',
       publicRoutes: PUBLIC_ROUTE_INVENTORY_PATH,
     },
     canonicalOrigin: publicRouteInventory.canonicalOrigin,
     counts: {
       modules: mappedModules.length,
+      migrationAreas: migrationAreas.length,
+      sharedRoots: sharedRoots.length,
       clientModules: mappedModules.filter(module => module.runtime === 'client').length,
       serverModules: mappedModules.filter(module => module.runtime === 'server').length,
       publicRoutes: publicRoutes.length,
@@ -138,6 +120,8 @@ export function createAgentMap({ inventory, graph, publicRouteInventory }) {
       runtimeCycles: graph.counts.runtimeCycle,
     },
     modules: mappedModules,
+    migrationAreas,
+    sharedRoots,
     publicRoutes,
   };
 }
@@ -182,6 +166,21 @@ function formatModule(module) {
   ];
 }
 
+function formatMigrationArea(area) {
+  return [
+    `- ${area.id} [${area.owner}]`,
+    `  ${area.purpose}`,
+    `  roots: ${area.roots.join(', ')}`,
+    `  ${listLine('excluded roots', area.excludeRoots)}`,
+    `  ${listLine('targets', area.targetModules)}`,
+    `  ${listLine('safe starts', area.safeStarts)}`,
+    `  ${listLine('focused tests', area.focusedTests)}`,
+    `  ${listLine('docs', area.docs)}`,
+    `  ${listLine('routes', area.publicRoutes.map(route => `${route.pattern} (${route.id})`))}`,
+    `  ${listLine('known debt', area.knownDebt)}`,
+  ];
+}
+
 export function formatAgentMap(map) {
   const clientModules = map.modules.filter(module => module.runtime === 'client');
   const serverModules = map.modules.filter(module => module.runtime === 'server');
@@ -197,6 +196,16 @@ export function formatAgentMap(map) {
     '',
     'Server modules:',
     ...moduleLines(serverModules),
+    '',
+    'Canonical shared roots:',
+    ...(map.sharedRoots.length > 0
+      ? map.sharedRoots.map(shared => `- ${shared.root} [${shared.runtime}]`)
+      : ['- (none)']),
+    '',
+    'Migration areas:',
+    ...(map.migrationAreas.length > 0
+      ? map.migrationAreas.flatMap(formatMigrationArea)
+      : ['- (none)']),
     '',
     `Public URL ownership (${map.canonicalOrigin}):`,
     ...map.publicRoutes.map(route => (
@@ -229,7 +238,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(SCRIPT_PAT
   try {
     process.exitCode = main();
   } catch (error) {
-    process.stderr.write(`[agent-map] ${error instanceof Error ? error.message : String(error)}\n`);
+    process.stderr.write(`[agent-map] ${singleLineErrorMessage(error)}\n`);
     process.exitCode = 1;
   }
 }
