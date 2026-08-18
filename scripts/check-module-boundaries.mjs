@@ -11,6 +11,12 @@ import { pathToFileURL } from 'node:url';
 
 import ts from 'typescript';
 
+import {
+  focusedTestScriptId,
+  packageScriptExists,
+  packageScriptLifecycleHooks,
+} from './lib/npm-script-policy.mjs';
+
 const SOURCE_EXTENSIONS = new Set([
   '.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs',
   '.css', '.scss', '.sass', '.less',
@@ -554,6 +560,22 @@ function isRegularFile(path) {
   }
 }
 
+function readPackageJsonForValidation(rootDir, errors) {
+  const packagePath = join(rootDir, 'package.json');
+  if (!isRegularFile(packagePath)) {
+    addError(errors, 'invalid-package-json', 'package.json must be a regular file');
+    return {};
+  }
+  try {
+    const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
+    if (!isRecord(packageJson)) throw new Error('root value must be an object');
+    return packageJson;
+  } catch (error) {
+    addError(errors, 'invalid-package-json', `package.json is invalid: ${error.message}`);
+    return {};
+  }
+}
+
 function expectedModuleIdentity(root) {
   if (typeof root !== 'string') return null;
   if (isInside(root, 'src/modules')) return { runtime: 'client', id: `client.${basename(root)}` };
@@ -580,6 +602,7 @@ function validateConfig(config, rootDir, discoveredRoots, errors) {
     );
   }
   const modules = Array.isArray(config.modules) ? config.modules : [];
+  const packageJson = readPackageJsonForValidation(rootDir, errors);
   const configuredRoots = modules
     .filter(isRecord)
     .map(module => module.root)
@@ -659,7 +682,32 @@ function validateConfig(config, rootDir, discoveredRoots, errors) {
       || [...dependencies, ...focusedTests, ...docs].some(value => typeof value !== 'string')) {
       addError(errors, 'invalid-module-ownership', `module ${module.id} requires dependencies, focusedTests and docs arrays`);
     }
-    for (const artifact of [...docs, ...focusedTests.filter(value => value.startsWith('tests/'))]) {
+    for (const command of focusedTests) {
+      const script = focusedTestScriptId(command);
+      if (!script) {
+        addError(
+          errors,
+          'invalid-focused-test-command',
+          `module ${module.id} focusedTests must contain exact allowlisted npm run test:* commands`,
+        );
+      } else if (!packageScriptExists(packageJson, script)) {
+        addError(
+          errors,
+          'missing-focused-test-script',
+          `module ${module.id} references missing package script ${script}`,
+        );
+      } else {
+        const hooks = packageScriptLifecycleHooks(packageJson, script);
+        if (hooks.length > 0) {
+          addError(
+            errors,
+            'focused-test-lifecycle-hook',
+            `module ${module.id} focused test ${script} must not have pre/post lifecycle hooks`,
+          );
+        }
+      }
+    }
+    for (const artifact of docs) {
       if (!isSafeRelativePath(artifact) || !isRegularFile(join(rootDir, artifact))) {
         addError(errors, 'missing-module-artifact', `module ${module.id} ownership artifact is missing: ${artifact}`);
       }

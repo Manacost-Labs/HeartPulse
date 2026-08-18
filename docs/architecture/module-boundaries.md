@@ -202,6 +202,17 @@ repository and symlink escapes are rejected. Use `-- --json` together with
 impact is deliberately not guessed from module ids; consult `agent:map` for the
 separate canonical URL ownership inventory.
 
+`npm run agent:check -- <module-id-or-path>` converts that impact result into a
+minimal executable check plan: the architecture gate, TypeScript check and the
+deduplicated focused tests owned by every affected module. Inventory entries
+may reference only exact `npm run test:*` package scripts, and the boundary gate
+verifies that each script exists. The whole plan is validated before the first
+planned npm check starts; commands run as structured arguments with
+`shell: false` and stop on the first failure. Use `--list` to inspect the human
+plan or `--json`
+for deterministic machine-readable plan-only output. JSON mode never executes
+commands.
+
 `npm run lint:module-boundaries` resolves the TypeScript and JavaScript import
 graph with the project compiler configuration. It covers static imports,
 type-only imports and re-exports, literal dynamic imports, `require`,

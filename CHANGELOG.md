@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added deterministic `agent:map`, `agent:impact` and `agent:check` navigation
+  commands so maintainers and AI agents can inspect module/URL ownership, walk
+  reverse runtime and type dependencies, and run only the architecture,
+  TypeScript and focused tests affected by a module, file or directory. The
+  checked inventory now rejects unknown, injectable or lifecycle-extended test
+  commands before any planned npm check starts.
 - Moved verified Telegram account resolution and identity claiming behind the
   owned `server.telegramAuth` boundary; account selection now uses exact
   Telegram ID, fixed-issuer OIDC subject or the verified KHA bridge instead of

@@ -213,6 +213,7 @@
       "id": "node",
       "env": {},
       "files": [
+        "tests/agent-check.test.mjs",
         "tests/agent-context.test.mjs",
         "tests/agent-impact.test.mjs",
         "tests/agent-navigation.test.mjs",

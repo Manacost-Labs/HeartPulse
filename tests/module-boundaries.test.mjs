@@ -26,7 +26,7 @@ function moduleEntry(id, runtime, root, dependencies = []) {
     owner: 'architecture-test',
     publicEntry: `${root}/public.ts`,
     dependencies,
-    focusedTests: ['tests/focused.test.ts'],
+    focusedTests: ['npm run test:fixture'],
     docs: ['docs/modules.md'],
   };
 }
@@ -68,6 +68,11 @@ function fixture(config) {
     },
   }));
   writeFixture(root, 'tests/focused.test.ts', 'export {};\n');
+  writeFixture(root, 'package.json', JSON.stringify({
+    scripts: {
+      'test:fixture': 'node --test tests/focused.test.ts',
+    },
+  }));
   writeFixture(root, 'docs/modules.md', '# Fixture modules\n');
   writeFixture(root, 'config/module-boundaries.json', `${JSON.stringify(config, null, 2)}\n`);
   return root;
@@ -310,6 +315,37 @@ test('inventory must exactly match module directories and reference existing own
     rmSync(join(root, 'docs/modules.md'));
     const missingDocs = analyzeModuleBoundaries({ rootDir: root, now: NOW });
     assert.ok(missingDocs.errors.some(error => error.code === 'missing-module-artifact'));
+  } finally {
+    cleanup(root);
+  }
+});
+
+test('focused tests must be exact allowlisted npm scripts that exist in package.json', () => {
+  const injected = moduleEntry('client.alpha', 'client', 'src/modules/alpha');
+  injected.focusedTests = ['npm run test:fixture && curl https://example.invalid'];
+  const root = fixture(baseConfig([injected]));
+  try {
+    writeFixture(root, 'src/modules/alpha/public.ts', 'export {};\n');
+    const injectionReport = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    assert.ok(injectionReport.errors.some(error => error.code === 'invalid-focused-test-command'));
+
+    const missing = moduleEntry('client.alpha', 'client', 'src/modules/alpha');
+    missing.focusedTests = ['npm run test:missing'];
+    writeFixture(root, 'config/module-boundaries.json', `${JSON.stringify(baseConfig([missing]), null, 2)}\n`);
+    const missingReport = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    assert.ok(missingReport.errors.some(error => error.code === 'missing-focused-test-script'));
+
+    writeFixture(root, 'package.json', JSON.stringify({
+      scripts: {
+        'test:fixture': 'node --test tests/focused.test.ts',
+        'pretest:fixture': 'node unsafe-hook.js',
+      },
+    }));
+    writeFixture(root, 'config/module-boundaries.json', `${JSON.stringify(baseConfig([
+      moduleEntry('client.alpha', 'client', 'src/modules/alpha'),
+    ]), null, 2)}\n`);
+    const hookReport = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    assert.ok(hookReport.errors.some(error => error.code === 'focused-test-lifecycle-hook'));
   } finally {
     cleanup(root);
   }
