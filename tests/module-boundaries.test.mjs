@@ -1,16 +1,20 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 
-import {
+import * as boundaryModule from '../scripts/check-module-boundaries.mjs';
+import { loadAgentImpact } from '../scripts/agent-impact.mjs';
+import { loadAgentMap } from '../scripts/agent-map.mjs';
+
+const {
   analyzeModuleBoundaries,
   formatModuleBoundaryReport,
   validateModuleInventoryMetadata,
-} from '../scripts/check-module-boundaries.mjs';
-import { loadAgentImpact } from '../scripts/agent-impact.mjs';
-import { loadAgentMap } from '../scripts/agent-map.mjs';
+} = boundaryModule;
+const CHECKER_URL = new URL('../scripts/check-module-boundaries.mjs', import.meta.url);
 
 const NOW = new Date('2026-08-17T00:00:00.000Z');
 
@@ -153,6 +157,158 @@ function cleanup(root) {
   rmSync(root, { recursive: true, force: true });
 }
 
+test('boundary checker keeps its exact public exports, report text and silent import contract', () => {
+  assert.deepEqual(Object.keys(boundaryModule).sort(), [
+    'analyzeModuleBoundaries',
+    'formatModuleBoundaryReport',
+    'validateModuleInventoryMetadata',
+  ]);
+  assert.equal(formatModuleBoundaryReport({
+    ok: true,
+    counts: {
+      modules: 2,
+      migrationAreas: 3,
+      sources: 5,
+      ownershipSources: 7,
+      edges: 11,
+      orphanedMigrationSource: 0,
+      overlappingMigrationSource: 0,
+      missingPublicEntry: 0,
+      internalImport: 0,
+      moduleLegacyImport: 1,
+      runtimeCrossing: 2,
+      typeCycle: 3,
+      runtimeCycle: 0,
+    },
+    errors: [],
+  }), [
+    '[module-boundaries] 2 modules, 3 migration areas, 5 graph sources, 7 owned sources, 11 resolved edges',
+    '[module-boundaries] migration coverage: orphaned=0, overlapping=0',
+    '[module-boundaries] exceptions: missing-public=0, internal=0, module-legacy=1, runtime-crossing=2, type-cycles=3',
+    '[module-boundaries] runtime cycles: 0',
+    '[module-boundaries] dependency contract passed',
+  ].join('\n'));
+  assert.equal(formatModuleBoundaryReport({
+    ok: false,
+    counts: {
+      modules: 0,
+      edges: 0,
+      missingPublicEntry: 0,
+      internalImport: 0,
+      moduleLegacyImport: 0,
+      runtimeCrossing: 0,
+      typeCycle: 0,
+      runtimeCycle: 0,
+    },
+    errors: [{
+      code: 'first-error',
+      message: 'first message',
+      edge: { source: 'src/a.ts', target: 'src/b.ts', kind: 'type' },
+    }, {
+      code: 'second-error',
+      message: 'second message',
+    }],
+  }), [
+    '[module-boundaries] 0 modules, 0 migration areas, 0 graph sources, 0 owned sources, 0 resolved edges',
+    '[module-boundaries] migration coverage: orphaned=0, overlapping=0',
+    '[module-boundaries] exceptions: missing-public=0, internal=0, module-legacy=0, runtime-crossing=0, type-cycles=0',
+    '[module-boundaries] runtime cycles: 0',
+    '  [first-error] first message: src/a.ts -> src/b.ts (type)',
+    '  [second-error] second message',
+    '[module-boundaries] dependency contract failed',
+  ].join('\n'));
+
+  const imported = spawnSync(process.execPath, [
+    '--input-type=module',
+    '--eval',
+    `import(${JSON.stringify(CHECKER_URL.href)})`,
+  ], { encoding: 'utf8', timeout: 30_000 });
+  assert.equal(imported.status, 0, imported.stderr);
+  assert.equal(imported.stdout, '');
+  assert.equal(imported.stderr, '');
+});
+
+test('boundary checker CLI preserves stdout, stderr and exit codes', () => {
+  const root = fixture(baseConfig([]));
+  try {
+    const expectedReport = [
+      '[module-boundaries] 0 modules, 3 migration areas, 5 graph sources, 5 owned sources, 0 resolved edges',
+      '[module-boundaries] migration coverage: orphaned=0, overlapping=0',
+      '[module-boundaries] exceptions: missing-public=0, internal=0, module-legacy=0, runtime-crossing=0, type-cycles=0',
+      '[module-boundaries] runtime cycles: 0',
+      '[module-boundaries] dependency contract passed',
+      '',
+    ].join('\n');
+    const success = spawnSync(process.execPath, [CHECKER_URL.pathname, '--root', root], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    });
+    assert.equal(success.status, 0, success.stderr);
+    assert.equal(success.stdout, expectedReport);
+    assert.equal(success.stderr, '');
+
+    const config = baseConfig([]);
+    writeFixture(root, 'config/alternate-boundaries.json', `${JSON.stringify(config, null, 2)}\n`);
+    const alternate = spawnSync(process.execPath, [
+      CHECKER_URL.pathname,
+      '--root',
+      root,
+      '--config',
+      'config/alternate-boundaries.json',
+    ], { encoding: 'utf8', timeout: 30_000 });
+    assert.equal(alternate.status, 0, alternate.stderr);
+    assert.equal(alternate.stdout, expectedReport);
+    assert.equal(alternate.stderr, '');
+
+    writeFixture(root, 'config/module-boundaries.json', `${JSON.stringify({
+      ...config,
+      schemaVersion: 999,
+    }, null, 2)}\n`);
+    const invalid = spawnSync(process.execPath, [CHECKER_URL.pathname, '--root', root], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    });
+    assert.equal(invalid.status, 1);
+    assert.equal(invalid.stdout, expectedReport.replace(
+      '[module-boundaries] dependency contract passed\n',
+      '  [invalid-schema-version] module-boundaries schemaVersion must be 3\n[module-boundaries] dependency contract failed\n',
+    ));
+    assert.equal(invalid.stderr, '');
+
+    const unknown = spawnSync(process.execPath, [CHECKER_URL.pathname, '--unknown'], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    });
+    assert.equal(unknown.status, 2);
+    assert.equal(unknown.stdout, '');
+    assert.equal(unknown.stderr, 'Unknown argument: --unknown\n');
+  } finally {
+    cleanup(root);
+  }
+});
+
+test('boundary diagnostics keep their cross-stage insertion order', () => {
+  const config = baseConfig([], { schemaVersion: 999, moduleRoots: [] });
+  const root = fixture(config);
+  try {
+    rmSync(join(root, 'tsconfig.json'));
+    writeFixture(
+      root,
+      'src/__migration-fixture.ts',
+      "const target = './dynamic'; void import(target);\n",
+    );
+    const report = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    assert.deepEqual(report.errors.map(error => error.code), [
+      'invalid-schema-version',
+      'invalid-boundary-roots',
+      'missing-tsconfig',
+      'dynamic-module-import',
+    ]);
+  } finally {
+    cleanup(root);
+  }
+});
+
 test('resolves imports from TS and JS sources, including type, query, alias, and style edges', () => {
   const alpha = moduleEntry('client.alpha', 'client', 'src/modules/alpha');
   const beta = moduleEntry('client.beta', 'client', 'src/modules/beta', ['client.alpha']);
@@ -284,17 +440,46 @@ test('rejects runtime cycles and describes type-inclusive cycles exactly', () =>
     const typeReport = analyzeModuleBoundaries({ rootDir: root, now: NOW });
     assert.equal(typeReport.counts.typeCycle, 1);
     assert.equal(typeReport.cycles.runtime.length, 0);
-    assert.deepEqual(typeReport.cycles.typeInclusive[0].nodes, [
-      'src/modules/alpha/public.ts',
-      'src/modules/beta/public.ts',
-    ]);
-    assert.ok(typeReport.cycles.typeInclusive[0].edges.every(edge => edge.kind === 'type'));
+    assert.deepEqual(typeReport.cycles.typeInclusive, [{
+      source: 'src/modules/alpha/public.ts',
+      target: 'src/modules/beta/public.ts',
+      kind: 'type-cycle',
+      nodes: [
+        'src/modules/alpha/public.ts',
+        'src/modules/beta/public.ts',
+      ],
+      edges: [{
+        source: 'src/modules/alpha/public.ts',
+        target: 'src/modules/beta/public.ts',
+        kind: 'type',
+      }, {
+        source: 'src/modules/beta/public.ts',
+        target: 'src/modules/alpha/public.ts',
+        kind: 'type',
+      }],
+    }]);
 
     writeFixture(root, 'src/modules/alpha/public.ts', "export { beta } from '../beta/public.js'; export const alpha = 1;\n");
     writeFixture(root, 'src/modules/beta/public.ts', "export { alpha } from '../alpha/public.js'; export const beta = 1;\n");
     const runtimeReport = analyzeModuleBoundaries({ rootDir: root, now: NOW });
-    assert.equal(runtimeReport.cycles.runtime.length, 1);
-    assert.equal(runtimeReport.cycles.runtime[0].kind, 'runtime-cycle');
+    assert.deepEqual(runtimeReport.cycles.runtime, [{
+      source: 'src/modules/alpha/public.ts',
+      target: 'src/modules/beta/public.ts',
+      kind: 'runtime-cycle',
+      nodes: [
+        'src/modules/alpha/public.ts',
+        'src/modules/beta/public.ts',
+      ],
+      edges: [{
+        source: 'src/modules/alpha/public.ts',
+        target: 'src/modules/beta/public.ts',
+        kind: 'runtime',
+      }, {
+        source: 'src/modules/beta/public.ts',
+        target: 'src/modules/alpha/public.ts',
+        kind: 'runtime',
+      }],
+    }]);
     assert.ok(runtimeReport.errors.some(error => error.code === 'runtime-cycle'));
   } finally {
     cleanup(root);
