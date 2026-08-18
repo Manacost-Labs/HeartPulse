@@ -8,6 +8,10 @@ import test from 'node:test';
 import * as boundaryModule from '../scripts/check-module-boundaries.mjs';
 import { loadAgentImpact } from '../scripts/agent-impact.mjs';
 import { loadAgentMap } from '../scripts/agent-map.mjs';
+import {
+  walkOwnershipFiles,
+  walkSourceFiles,
+} from '../scripts/lib/module-boundary-source-scan.mjs';
 
 const {
   analyzeModuleBoundaries,
@@ -156,6 +160,46 @@ function fixture(config) {
 function cleanup(root) {
   rmSync(root, { recursive: true, force: true });
 }
+
+test('source and ownership scanners keep distinct roots, extensions and symlink diagnostics', () => {
+  const root = mkdtempSync(join(tmpdir(), 'arena-boundary-scans-'));
+  try {
+    writeFixture(root, 'src/app.ts', 'export {};\n');
+    writeFixture(root, 'src/config.json', '{}\n');
+    writeFixture(root, 'server/job.py', 'pass\n');
+    writeFixture(root, 'shared/theme.css', ':root {}\n');
+    writeFixture(root, 'public/bg-legacy/runtime.js', 'export {};\n');
+    writeFixture(root, 'public/bg-legacy/catalog.json', '{}\n');
+    writeFixture(root, 'public/bg-legacy/generator.py', 'pass\n');
+    writeFixture(root, 'public/bg-legacy/actual.js', 'export {};\n');
+    symlinkSync('actual.js', join(root, 'public/bg-legacy/linked.js'));
+
+    const sourceScan = walkSourceFiles(root);
+    assert.deepEqual(sourceScan.errors, []);
+    assert.deepEqual(sourceScan.files, [
+      join(root, 'shared/theme.css'),
+      join(root, 'src/app.ts'),
+    ]);
+
+    const ownershipScan = walkOwnershipFiles(root);
+    assert.deepEqual(ownershipScan.files, [
+      'public/bg-legacy/actual.js',
+      'public/bg-legacy/catalog.json',
+      'public/bg-legacy/generator.py',
+      'public/bg-legacy/runtime.js',
+      'server/job.py',
+      'shared/theme.css',
+      'src/app.ts',
+      'src/config.json',
+    ]);
+    assert.deepEqual(ownershipScan.errors, [{
+      code: 'unsafe-migration-source-symlink',
+      message: 'migration ownership trees must not contain symlinks: public/bg-legacy/linked.js',
+    }]);
+  } finally {
+    cleanup(root);
+  }
+});
 
 test('boundary checker keeps its exact public exports, report text and silent import contract', () => {
   assert.deepEqual(Object.keys(boundaryModule).sort(), [
@@ -912,6 +956,15 @@ test('validates canonical shared roots as first-class owned architecture entries
     });
     assert.ok(missingOwnerMetadata.errors.some(error => error.code === 'invalid-shared-root'));
 
+    const unsafeOwner = structuredClone(config);
+    unsafeOwner.sharedRoots[0].owner = 'architecture-test\nInjected owner';
+    const unsafeOwnerMetadata = validateModuleInventoryMetadata({
+      rootDir: root,
+      config: unsafeOwner,
+      now: NOW,
+    });
+    assert.ok(unsafeOwnerMetadata.errors.some(error => error.code === 'invalid-shared-root'));
+
     const escapedSafeStart = structuredClone(config);
     escapedSafeStart.sharedRoots[0].safeStarts = ['docs/modules.md'];
     const escapedSafeStartMetadata = validateModuleInventoryMetadata({
@@ -969,6 +1022,21 @@ test('validates canonical shared roots as first-class owned architecture entries
       now: NOW,
     });
     assert.ok(missingScriptReport.errors.some(error => error.code === 'missing-focused-test-script'));
+
+    writeFixture(root, 'package.json', JSON.stringify({
+      scripts: {
+        'test:fixture': 'node --test tests/focused.test.ts',
+        'pretest:fixture': 'node unsafe-hook.js',
+      },
+    }));
+    const lifecycleHookReport = validateModuleInventoryMetadata({ rootDir: root, config, now: NOW });
+    assert.ok(lifecycleHookReport.errors.some(error => (
+      error.code === 'focused-test-lifecycle-hook'
+        && /shared root/i.test(error.message)
+    )));
+    writeFixture(root, 'package.json', JSON.stringify({
+      scripts: { 'test:fixture': 'node --test tests/focused.test.ts' },
+    }));
 
     writeFixture(root, 'src/modules/borrowed/file.ts', 'export {};\n');
     symlinkSync('../modules/borrowed', join(root, 'src/shared/borrowed'), 'dir');

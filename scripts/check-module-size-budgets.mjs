@@ -3,6 +3,41 @@ import { resolve } from 'node:path';
 
 const moduleBudgets = [
   {
+    path: 'scripts/check-module-boundaries.mjs',
+    maxLines: 1_061,
+    owner: 'module-boundary facade and ownership policy',
+  },
+  {
+    path: 'scripts/lib/module-import-graph.mjs',
+    maxLines: 241,
+    owner: 'module import resolution graph',
+  },
+  {
+    path: 'scripts/lib/module-import-parser.mjs',
+    maxLines: 123,
+    owner: 'module import parser',
+  },
+  {
+    path: 'scripts/lib/module-boundary-source-scan.mjs',
+    maxLines: 99,
+    owner: 'module boundary source scanners',
+  },
+  {
+    path: 'scripts/lib/module-boundary-graph.mjs',
+    maxLines: 96,
+    owner: 'module boundary cycle graph',
+  },
+  {
+    path: 'scripts/lib/module-boundary-paths.mjs',
+    maxLines: 66,
+    owner: 'module boundary path safety',
+  },
+  {
+    path: 'scripts/lib/module-boundary-report.mjs',
+    maxLines: 22,
+    owner: 'module boundary report formatter',
+  },
+  {
     path: 'server/index.ts',
     maxLines: 9_752,
     owner: 'server composition root',
@@ -60,7 +95,7 @@ for (const budget of moduleBudgets) {
 
 if (failed) {
   console.error(
-    '[module-size] A known monolith grew. Extract a focused module or deliberately lower another boundary before merging.',
+    '[module-size] A ratcheted architecture hotspot grew. Extract a focused unit or deliberately revise the owning boundary before merging.',
   );
   process.exit(1);
 }

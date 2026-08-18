@@ -377,6 +377,17 @@ test('production shared server changes include legacy runtime checks', () => {
 });
 
 test('production client shared ownership is selectable by id with its exact contracts', () => {
+  const inventory = readModuleInventory(REPOSITORY_ROOT);
+  const expectedFocusedTests = [
+    'npm run test:nginx-canonical-hosts',
+    'npm run test:nginx-routing',
+    'npm run test:prerender-seo',
+    'npm run test:public-url-policy',
+    'npm run test:responsive-inventory',
+    'npm run test:route-inventory',
+    'npm run test:seo-registry',
+    'npm run test:routes',
+  ];
   const context = loadAgentContext({
     repositoryRoot: REPOSITORY_ROOT,
     selector: 'shared-root.client',
@@ -392,13 +403,14 @@ test('production client shared ownership is selectable by id with its exact cont
     'src/shared/seo/publicRouteInventory.json',
     'src/shared/seo/publicUrlPolicy.ts',
   ]);
+  assert.deepEqual(
+    inventory.sharedRoots.find(sharedRoot => sharedRoot.id === 'shared-root.client')
+      .focusedTests,
+    expectedFocusedTests,
+  );
   assert.equal(plan.target.sharedRootId, 'shared-root.client');
-  assert.ok(plan.checks.some(check => check.script === 'test:nginx-canonical-hosts'));
-  assert.ok(plan.checks.some(check => check.script === 'test:nginx-routing'));
-  assert.ok(plan.checks.some(check => check.script === 'test:prerender-seo'));
-  assert.ok(plan.checks.some(check => check.script === 'test:public-url-policy'));
-  assert.ok(plan.checks.some(check => check.script === 'test:responsive-inventory'));
-  assert.ok(plan.checks.some(check => check.script === 'test:route-inventory'));
+  const plannedScripts = new Set(plan.checks.map(check => `npm run ${check.script}`));
+  assert.ok(expectedFocusedTests.every(command => plannedScripts.has(command)));
 });
 
 test('agent map rejects an invalid graph before emitting a partial result', () => {

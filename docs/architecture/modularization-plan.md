@@ -715,10 +715,13 @@ id or nested path; their check plan deliberately retains the conservative
 same-runtime module and migration-area set because a cross-module primitive has
 a wider blast radius than its own focused contract tests.
 
-The active AI-tooling slice characterizes the boundary checker output and then
-extracts report, graph, parser and resolver units behind its existing three
-public exports. Diagnostic order, stdout/stderr and exit codes must remain
-unchanged throughout that structural refactor.
+The boundary checker is now characterized and decomposed behind its existing
+three public exports. Path safety, source scans, import parsing, import
+resolution, cycle analysis and report formatting live in named `scripts/lib/`
+units; the facade retains validation order, policy and CLI orchestration.
+Exact tests pin diagnostic order, report bytes, stdout/stderr and exit codes,
+and size budgets prevent the extracted responsibilities from drifting back into
+the facade.
 
 The migration is complete when:
 

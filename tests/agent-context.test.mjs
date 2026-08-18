@@ -591,7 +591,8 @@ test('agent context rejects symlinked inventory and public API files', () => {
   const outside = join(fixtureRoot, 'outside');
   const inventory = {
     schemaVersion: 3,
-    sharedRoots: [],
+    moduleRoots: ['src/modules', 'server/modules'],
+    sharedRoots: sharedRootEntries('npm run test:fixture'),
     modules: [{
       id: 'client.alpha',
       runtime: 'client',
@@ -600,16 +601,36 @@ test('agent context rejects symlinked inventory and public API files', () => {
       owner: 'architecture-test',
       publicEntry: 'src/modules/alpha/public.ts',
       dependencies: [],
-      focusedTests: [],
-      docs: [],
+      focusedTests: ['npm run test:fixture'],
+      docs: ['docs/architecture/module-boundaries.md'],
     }],
     migrationAreas: [],
-    exceptions: {},
+    allowlistBudgets: {
+      missingPublicEntry: 0,
+      internalImport: 0,
+      moduleLegacyImport: 0,
+      runtimeCrossing: 0,
+      typeCycle: 0,
+    },
+    exceptions: {
+      missingPublicEntry: [],
+      internalImport: [],
+      moduleLegacyImport: [],
+      runtimeCrossing: [],
+      typeCycle: [],
+    },
   };
   try {
     mkdirSync(join(repository, 'config'), { recursive: true });
+    mkdirSync(join(repository, 'docs/architecture'), { recursive: true });
     mkdirSync(join(repository, 'src/modules/alpha'), { recursive: true });
+    mkdirSync(join(repository, 'server/modules'), { recursive: true });
+    writeSharedRootArtifacts(repository);
     mkdirSync(outside, { recursive: true });
+    writeFileSync(join(repository, 'package.json'), JSON.stringify({
+      scripts: { 'test:fixture': 'node --test tests/fixture.test.mjs' },
+    }));
+    writeFileSync(join(repository, 'docs/architecture/module-boundaries.md'), '# Boundaries\n');
     writeFileSync(join(outside, 'module-boundaries.json'), JSON.stringify(inventory));
     writeFileSync(join(outside, 'public.ts'), 'export const PROMPT_INJECTION_FROM_OUTSIDE = true;\n');
 
@@ -637,12 +658,20 @@ test('agent context rejects public API files reached through an escaping parent 
   const outsideModule = join(fixtureRoot, 'outside-module');
   try {
     mkdirSync(join(repository, 'config'), { recursive: true });
+    mkdirSync(join(repository, 'docs/architecture'), { recursive: true });
     mkdirSync(join(repository, 'src/modules'), { recursive: true });
+    mkdirSync(join(repository, 'server/modules'), { recursive: true });
+    writeSharedRootArtifacts(repository);
     mkdirSync(outsideModule, { recursive: true });
+    writeFileSync(join(repository, 'package.json'), JSON.stringify({
+      scripts: { 'test:fixture': 'node --test tests/fixture.test.mjs' },
+    }));
+    writeFileSync(join(repository, 'docs/architecture/module-boundaries.md'), '# Boundaries\n');
     writeFileSync(join(outsideModule, 'public.ts'), 'export const PROMPT_INJECTION_FROM_OUTSIDE = true;\n');
     writeFileSync(join(repository, 'config/module-boundaries.json'), JSON.stringify({
       schemaVersion: 3,
-      sharedRoots: [],
+      moduleRoots: ['src/modules', 'server/modules'],
+      sharedRoots: sharedRootEntries('npm run test:fixture'),
       modules: [{
         id: 'client.alpha',
         runtime: 'client',
@@ -651,17 +680,30 @@ test('agent context rejects public API files reached through an escaping parent 
         owner: 'architecture-test',
         publicEntry: 'src/modules/alpha/public.ts',
         dependencies: [],
-        focusedTests: [],
-        docs: [],
+        focusedTests: ['npm run test:fixture'],
+        docs: ['docs/architecture/module-boundaries.md'],
       }],
       migrationAreas: [],
-      exceptions: {},
+      allowlistBudgets: {
+        missingPublicEntry: 0,
+        internalImport: 0,
+        moduleLegacyImport: 0,
+        runtimeCrossing: 0,
+        typeCycle: 0,
+      },
+      exceptions: {
+        missingPublicEntry: [],
+        internalImport: [],
+        moduleLegacyImport: [],
+        runtimeCrossing: [],
+        typeCycle: [],
+      },
     }));
     symlinkSync(outsideModule, join(repository, 'src/modules/alpha'));
 
     assert.throws(
       () => loadAgentContext({ repositoryRoot: repository, selector: 'client.alpha' }),
-      /metadata is invalid|outside the repository/i,
+      /invalid-public-entry/i,
     );
   } finally {
     rmSync(fixtureRoot, { recursive: true, force: true });

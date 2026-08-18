@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Decomposed the module-boundary checker into named path-safety, source-scan,
+  import-parser, import-resolution, cycle-graph and report units while retaining
+  a stable orchestration facade. Exact characterization tests now pin public
+  exports, diagnostic order, cycle objects, report bytes and CLI exit streams;
+  ratcheted size budgets prevent the responsibilities from collapsing back into
+  the monolith.
 - Promoted `src/shared` and `server/shared` to first-class schema-v3 ownership
   records with stable ids, explicit purpose/owner, focused tests, documentation
   and real-root-checked safe starts. Shared roots can now be selected by id or

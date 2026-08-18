@@ -55,6 +55,13 @@ its focused test.
 owner-id, а pattern, route id и policy загружаются из
 `src/shared/seo/publicRouteInventory.json`.
 
+Сам architecture checker оставляет `scripts/check-module-boundaries.mjs`
+стабильным facade для orchestration и CLI. Поиск файлов, безопасность путей,
+парсинг импортов, resolution/glob-граф, циклы и форматирование отчёта разнесены
+по предметным `scripts/lib/module-*` файлам. Их размеры ratcheted отдельными
+budget-проверками, а CLI и порядок diagnostics закреплены characterization
+tests; при изменении правила агенту не нужно читать весь checker целиком.
+
 ## Storybook и Storybook MCP
 
 Storybook 10 работает как локальная мастерская React-компонентов и не входит в

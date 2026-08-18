@@ -1,25 +1,15 @@
 import {
   existsSync,
-  globSync,
   lstatSync,
   readFileSync,
-  realpathSync,
   readdirSync,
-  statSync,
 } from 'node:fs';
 import {
   basename,
-  dirname,
-  isAbsolute,
   join,
-  posix,
-  relative,
   resolve,
-  sep,
 } from 'node:path';
 import { pathToFileURL } from 'node:url';
-
-import ts from 'typescript';
 
 import {
   focusedTestScriptId,
@@ -36,12 +26,31 @@ import {
   publicRoutesForScope,
   readPublicRouteInventory,
 } from './lib/public-route-inventory.mjs';
+import {
+  compareEdges,
+  cycleKey,
+  describeCycles,
+  edgeKey,
+} from './lib/module-boundary-graph.mjs';
+import {
+  isInside,
+  isSafeRelativePath,
+  projectPath,
+  repositoryEntryKind,
+  repositoryEntryResolvesWithin,
+} from './lib/module-boundary-paths.mjs';
+import { formatModuleBoundaryReport } from './lib/module-boundary-report.mjs';
+import {
+  walkOwnershipFiles,
+  walkSourceFiles,
+} from './lib/module-boundary-source-scan.mjs';
+import {
+  buildEdges,
+  readCompilerOptions,
+} from './lib/module-import-graph.mjs';
 
-const SOURCE_EXTENSIONS = new Set([
-  '.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs',
-  '.css', '.scss', '.sass', '.less',
-]);
-const OWNERSHIP_EXTENSIONS = new Set([...SOURCE_EXTENSIONS, '.json', '.py']);
+export { formatModuleBoundaryReport };
+
 const CANONICAL_MODULE_ROOTS = ['src/modules', 'server/modules'];
 const CANONICAL_SHARED_ROOTS = [
   { id: 'shared-root.client', runtime: 'client', root: 'src/shared' },
@@ -55,463 +64,6 @@ const EXCEPTION_CATEGORIES = [
   'runtimeCrossing',
   'typeCycle',
 ];
-
-function normalizePath(path) {
-  return path.split(sep).join('/').replace(/^\.\//, '');
-}
-
-function projectPath(rootDir, absolutePath) {
-  return normalizePath(relative(rootDir, absolutePath));
-}
-
-function isInside(path, root) {
-  return path === root || path.startsWith(`${root}/`);
-}
-
-function isSafeRelativePath(candidate) {
-  return isSafeMetadataText(candidate)
-    && candidate !== '.'
-    && !isAbsolute(candidate)
-    && !candidate.includes('\\')
-    && !/[?*\[\]{}]/.test(candidate)
-    && candidate.split('/').every(segment => segment !== '' && segment !== '.' && segment !== '..')
-    && posix.normalize(candidate) === candidate;
-}
-
-function sourceExtension(path) {
-  for (const extension of SOURCE_EXTENSIONS) {
-    if (path.endsWith(extension)) return extension;
-  }
-  return '';
-}
-
-function walkSourceFiles(rootDir) {
-  const files = [];
-  const errors = [];
-  const visit = absolutePath => {
-    const repositoryPath = projectPath(rootDir, absolutePath);
-    if (!isSafeRelativePath(repositoryPath)) {
-      addError(
-        errors,
-        'unsafe-source-path',
-        `source path must be canonical and single-line: ${JSON.stringify(singleLineDisplay(repositoryPath))}`,
-      );
-      return;
-    }
-    let stats;
-    try {
-      stats = lstatSync(absolutePath);
-    } catch (error) {
-      if (error?.code === 'ENOENT') return;
-      throw error;
-    }
-    if (stats.isSymbolicLink()) {
-      addError(
-        errors,
-        'unsafe-source-symlink',
-        `source trees must not contain symlinks: ${repositoryPath}`,
-      );
-      return;
-    }
-    if (stats.isDirectory()) {
-      for (const entry of readdirSync(absolutePath, { withFileTypes: true })) {
-        if (entry.name === 'node_modules' || entry.name === 'build' || entry.name === 'dist') continue;
-        visit(join(absolutePath, entry.name));
-      }
-      return;
-    }
-    if (sourceExtension(absolutePath)) files.push(absolutePath);
-  };
-
-  for (const root of ['src', 'server', 'shared']) visit(join(rootDir, root));
-  return {
-    files: files.sort((left, right) => left.localeCompare(right)),
-    errors,
-  };
-}
-
-function ownershipExtension(path) {
-  for (const extension of OWNERSHIP_EXTENSIONS) {
-    if (path.endsWith(extension)) return extension;
-  }
-  return '';
-}
-
-function walkOwnershipFiles(rootDir) {
-  const files = [];
-  const errors = [];
-  const visit = absolutePath => {
-    const repositoryPath = projectPath(rootDir, absolutePath);
-    if (!isSafeRelativePath(repositoryPath)) {
-      addError(
-        errors,
-        'unsafe-ownership-path',
-        `ownership path must be canonical and single-line: ${JSON.stringify(singleLineDisplay(repositoryPath))}`,
-      );
-      return;
-    }
-    let stats;
-    try {
-      stats = lstatSync(absolutePath);
-    } catch (error) {
-      if (error?.code === 'ENOENT') return;
-      throw error;
-    }
-    if (stats.isSymbolicLink()) {
-      addError(
-        errors,
-        'unsafe-migration-source-symlink',
-        `migration ownership trees must not contain symlinks: ${repositoryPath}`,
-      );
-      return;
-    }
-    if (stats.isDirectory()) {
-      for (const entry of readdirSync(absolutePath, { withFileTypes: true })) {
-        if (entry.name === 'node_modules' || entry.name === 'build' || entry.name === 'dist') continue;
-        visit(join(absolutePath, entry.name));
-      }
-      return;
-    }
-    if (ownershipExtension(absolutePath)) files.push(repositoryPath);
-  };
-  for (const ownershipRoot of ['src', 'server', 'shared', 'public/bg-legacy']) {
-    visit(join(rootDir, ownershipRoot));
-  }
-  return {
-    files: files.sort(),
-    errors,
-  };
-}
-
-function readCompilerOptions(rootDir) {
-  const configPath = ts.findConfigFile(rootDir, ts.sys.fileExists, 'tsconfig.json');
-  if (!configPath) {
-    return {
-      options: {},
-      errors: [{ code: 'missing-tsconfig', message: 'tsconfig.json is required for module resolution' }],
-    };
-  }
-  const config = ts.readConfigFile(configPath, ts.sys.readFile);
-  if (config.error) {
-    return {
-      options: {},
-      errors: [{
-        code: 'invalid-tsconfig',
-        message: ts.flattenDiagnosticMessageText(config.error.messageText, ' '),
-      }],
-    };
-  }
-  const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, dirname(configPath));
-  return {
-    options: parsed.options,
-    errors: parsed.errors.map(error => ({
-      code: 'invalid-tsconfig',
-      message: ts.flattenDiagnosticMessageText(error.messageText, ' '),
-    })),
-  };
-}
-
-function candidateFiles(path) {
-  const candidates = [path];
-  if (/\.m?js$/.test(path)) {
-    const withoutJs = path.replace(/\.m?js$/, '');
-    candidates.push(`${withoutJs}.ts`, `${withoutJs}.tsx`, `${withoutJs}.mts`, `${withoutJs}.cts`);
-  }
-  if (!/\.[A-Za-z0-9]+$/.test(path)) {
-    for (const extension of [
-      '.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs',
-      '.css', '.scss', '.sass', '.less',
-    ]) {
-      candidates.push(`${path}${extension}`);
-      candidates.push(join(path, `index${extension}`));
-      candidates.push(join(dirname(path), `_${basename(path)}${extension}`));
-    }
-  }
-  return candidates;
-}
-
-function resolvePathAlias(specifier, options, rootDir) {
-  const paths = options.paths || {};
-  const basePath = options.baseUrl || options.pathsBasePath || rootDir;
-  for (const [pattern, replacements] of Object.entries(paths)) {
-    const starIndex = pattern.indexOf('*');
-    const prefix = starIndex < 0 ? pattern : pattern.slice(0, starIndex);
-    const suffix = starIndex < 0 ? '' : pattern.slice(starIndex + 1);
-    if (!specifier.startsWith(prefix) || !specifier.endsWith(suffix)) continue;
-    if (starIndex < 0 && specifier !== pattern) continue;
-    const wildcard = starIndex < 0 ? '' : specifier.slice(prefix.length, specifier.length - suffix.length);
-    for (const replacement of replacements) {
-      const mapped = replacement.replace('*', wildcard);
-      for (const candidate of candidateFiles(resolve(basePath, mapped))) {
-        if (existsSync(candidate) && statSync(candidate).isFile()) return candidate;
-      }
-    }
-  }
-  return null;
-}
-
-function resolveImport(specifier, sourcePath, options, rootDir) {
-  const suffixIndex = specifier.search(/[?#]/);
-  const resolvedSpecifier = suffixIndex < 0 ? specifier : specifier.slice(0, suffixIndex);
-  const resolvedModule = ts.resolveModuleName(resolvedSpecifier, sourcePath, options, ts.sys).resolvedModule;
-  const candidates = [];
-  if (resolvedModule?.resolvedFileName) candidates.push(resolvedModule.resolvedFileName);
-
-  if (resolvedSpecifier.startsWith('.')) {
-    candidates.push(...candidateFiles(resolve(dirname(sourcePath), resolvedSpecifier)));
-  } else {
-    const alias = resolvePathAlias(resolvedSpecifier, options, rootDir);
-    if (alias) candidates.push(alias);
-  }
-
-  for (const candidate of candidates) {
-    if (!existsSync(candidate) || !statSync(candidate).isFile()) continue;
-    const relativePath = projectPath(rootDir, resolve(candidate));
-    if (relativePath.startsWith('../')
-      || relativePath === '..'
-      || relativePath.split('/').includes('node_modules')) continue;
-    return relativePath;
-  }
-  return null;
-}
-
-function importClauseKind(node) {
-  if (node.importClause?.isTypeOnly) return 'type';
-  const bindings = node.importClause?.namedBindings;
-  if (bindings && ts.isNamedImports(bindings) && bindings.elements.length > 0
-    && !node.importClause.name && bindings.elements.every(element => element.isTypeOnly)) {
-    return 'type';
-  }
-  return 'runtime';
-}
-
-function exportDeclarationKind(node) {
-  if (node.isTypeOnly) return 'type';
-  if (node.exportClause && ts.isNamedExports(node.exportClause)
-    && node.exportClause.elements.length > 0
-    && node.exportClause.elements.every(element => element.isTypeOnly)) {
-    return 'type';
-  }
-  return 'runtime';
-}
-
-function isImportMetaGlobCall(node) {
-  if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) return false;
-  const { expression } = node;
-  return ['glob', 'globEager'].includes(expression.name.text)
-    && ts.isMetaProperty(expression.expression)
-    && expression.expression.keywordToken === ts.SyntaxKind.ImportKeyword
-    && expression.expression.name.text === 'meta';
-}
-
-function staticGlobPatterns(argument) {
-  if (argument && ts.isStringLiteralLike(argument)) return [argument.text];
-  if (argument && ts.isArrayLiteralExpression(argument)
-    && argument.elements.every(element => ts.isStringLiteralLike(element))) {
-    return argument.elements.map(element => element.text);
-  }
-  return null;
-}
-
-function extractStyleImports(sourceText) {
-  const imports = [];
-  const withoutComments = sourceText.replace(/\/\*[\s\S]*?\*\//g, '');
-  const importPattern = /@(?:import|use|forward)\s+(?:url\(\s*)?(?:(['"])(.*?)\1|([^'"\s);]+))\s*\)?[^;]*;/giu;
-  for (const match of withoutComments.matchAll(importPattern)) {
-    const specifier = match[2] || match[3];
-    if (specifier) imports.push({ specifier, kind: 'runtime' });
-  }
-  return { imports, errors: [] };
-}
-
-function scriptKindForPath(sourcePath) {
-  if (sourcePath.endsWith('.tsx')) return ts.ScriptKind.TSX;
-  if (sourcePath.endsWith('.jsx')) return ts.ScriptKind.JSX;
-  if (/\.(?:js|mjs|cjs)$/.test(sourcePath)) return ts.ScriptKind.JS;
-  return ts.ScriptKind.TS;
-}
-
-function extractImports(sourcePath, sourceText) {
-  if (/\.(?:css|scss|sass|less)$/.test(sourcePath)) {
-    return extractStyleImports(sourceText);
-  }
-  const sourceFile = ts.createSourceFile(
-    sourcePath,
-    sourceText,
-    ts.ScriptTarget.Latest,
-    true,
-    scriptKindForPath(sourcePath),
-  );
-  const imports = [];
-  const errors = [];
-  const record = (specifier, kind) => {
-    if (typeof specifier === 'string' && specifier.length > 0) imports.push({ specifier, kind });
-  };
-
-  for (const reference of sourceFile.referencedFiles) record(reference.fileName, 'type');
-
-  const visit = node => {
-    if (ts.isImportDeclaration(node) && ts.isStringLiteralLike(node.moduleSpecifier)) {
-      record(node.moduleSpecifier.text, importClauseKind(node));
-    } else if (ts.isExportDeclaration(node) && node.moduleSpecifier && ts.isStringLiteralLike(node.moduleSpecifier)) {
-      record(node.moduleSpecifier.text, exportDeclarationKind(node));
-    } else if (ts.isImportEqualsDeclaration(node)
-      && ts.isExternalModuleReference(node.moduleReference)
-      && node.moduleReference.expression
-      && ts.isStringLiteralLike(node.moduleReference.expression)) {
-      record(node.moduleReference.expression.text, node.isTypeOnly ? 'type' : 'runtime');
-    } else if (isImportMetaGlobCall(node)) {
-      const patterns = staticGlobPatterns(node.arguments[0]);
-      if (!patterns || patterns.length === 0) {
-        addError(
-          errors,
-          'dynamic-import-meta-glob',
-          'import.meta.glob patterns must be static string literals',
-        );
-      } else {
-        imports.push({ patterns, kind: 'runtime', glob: true });
-      }
-    } else if (ts.isCallExpression(node) && node.arguments.length > 0) {
-      const dynamicImport = node.expression.kind === ts.SyntaxKind.ImportKeyword;
-      const commonJsRequire = ts.isIdentifier(node.expression) && node.expression.text === 'require';
-      if ((dynamicImport || commonJsRequire) && ts.isStringLiteralLike(node.arguments[0])) {
-        record(node.arguments[0].text, 'runtime');
-      } else if (dynamicImport) {
-        addError(errors, 'dynamic-module-import', 'dynamic import targets must be static string literals');
-      } else if (commonJsRequire) {
-        addError(errors, 'dynamic-require', 'require targets must be static string literals');
-      }
-    } else if (ts.isImportTypeNode(node)
-      && ts.isLiteralTypeNode(node.argument)
-      && ts.isStringLiteralLike(node.argument.literal)) {
-      record(node.argument.literal.text, 'type');
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(sourceFile);
-  return { imports, errors };
-}
-
-function aliasGlobPatterns(specifier, options, rootDir) {
-  const paths = options.paths || {};
-  const basePath = options.baseUrl || options.pathsBasePath || rootDir;
-  const resolved = [];
-  for (const [pattern, replacements] of Object.entries(paths)) {
-    const starIndex = pattern.indexOf('*');
-    const prefix = starIndex < 0 ? pattern : pattern.slice(0, starIndex);
-    const suffix = starIndex < 0 ? '' : pattern.slice(starIndex + 1);
-    if (!specifier.startsWith(prefix) || !specifier.endsWith(suffix)) continue;
-    if (starIndex < 0 && specifier !== pattern) continue;
-    const wildcard = starIndex < 0 ? '' : specifier.slice(prefix.length, specifier.length - suffix.length);
-    for (const replacement of replacements) {
-      resolved.push(resolve(basePath, replacement.replace('*', wildcard)));
-    }
-  }
-  return resolved;
-}
-
-function mapGlobPattern(pattern, sourcePath, options, rootDir) {
-  const negated = pattern.startsWith('!');
-  const specifier = negated ? pattern.slice(1) : pattern;
-  let mapped;
-  if (specifier.startsWith('.')) {
-    mapped = [resolve(dirname(sourcePath), specifier)];
-  } else if (specifier.startsWith('/')) {
-    mapped = [resolve(rootDir, `.${specifier}`)];
-  } else {
-    mapped = aliasGlobPatterns(specifier, options, rootDir);
-  }
-  return mapped.map(absolutePattern => ({ absolutePattern, negated }));
-}
-
-function resolveImportGlob(patterns, sourcePath, options, rootDir) {
-  const mappedPatterns = patterns.flatMap(pattern => mapGlobPattern(pattern, sourcePath, options, rootDir));
-  const errors = [];
-  if (mappedPatterns.length === 0) {
-    addError(errors, 'unresolved-import-meta-glob', 'import.meta.glob pattern must be relative, root-relative or use a configured alias');
-    return { targets: [], errors };
-  }
-
-  const matches = new Set();
-  const applyPatterns = (patternsToApply, operation) => {
-    for (const { absolutePattern } of patternsToApply) {
-      const relativePattern = projectPath(rootDir, absolutePattern);
-      if (relativePattern.startsWith('../') || relativePattern === '..') {
-        addError(errors, 'unsafe-import-meta-glob', `import.meta.glob pattern escapes the repository: ${relativePattern}`);
-        continue;
-      }
-      let found;
-      try {
-        found = globSync(absolutePattern);
-      } catch (error) {
-        addError(errors, 'invalid-import-meta-glob', `invalid import.meta.glob pattern: ${error.message}`);
-        continue;
-      }
-      for (const absoluteTarget of found) {
-        if (!existsSync(absoluteTarget)) continue;
-        const targetStats = lstatSync(absoluteTarget);
-        if (targetStats.isSymbolicLink()) {
-          addError(errors, 'unsafe-import-meta-glob', `import.meta.glob target must not be a symlink: ${projectPath(rootDir, absoluteTarget)}`);
-          continue;
-        }
-        if (!targetStats.isFile()) continue;
-        const target = projectPath(rootDir, resolve(absoluteTarget));
-        if (target.startsWith('../') || target === '..') {
-          addError(errors, 'unsafe-import-meta-glob', `import.meta.glob target escapes the repository: ${target}`);
-          continue;
-        }
-        if (operation === 'delete') matches.delete(target);
-        else matches.add(target);
-      }
-    }
-  };
-  applyPatterns(mappedPatterns.filter(pattern => !pattern.negated), 'add');
-  applyPatterns(mappedPatterns.filter(pattern => pattern.negated), 'delete');
-  return { targets: [...matches].sort(), errors };
-}
-
-function buildEdges(rootDir, sourceFiles, compilerOptions) {
-  const edges = new Map();
-  const errors = [];
-  for (const absoluteSource of sourceFiles) {
-    const source = projectPath(rootDir, absoluteSource);
-    const sourceText = readFileSync(absoluteSource, 'utf8');
-    const extracted = extractImports(absoluteSource, sourceText);
-    for (const error of extracted.errors) errors.push({ ...error, source });
-    for (const imported of extracted.imports) {
-      let targets;
-      if (imported.glob) {
-        const resolved = resolveImportGlob(imported.patterns, absoluteSource, compilerOptions, rootDir);
-        targets = resolved.targets;
-        for (const error of resolved.errors) errors.push({ ...error, source });
-      } else {
-        const target = resolveImport(imported.specifier, absoluteSource, compilerOptions, rootDir);
-        targets = target ? [target] : [];
-      }
-      for (const target of targets) {
-        if (!isSafeRelativePath(target)) {
-          addError(
-            errors,
-            'unsafe-resolved-import-path',
-            `resolved import path must be canonical and single-line: ${JSON.stringify(singleLineDisplay(target))}`,
-          );
-          continue;
-        }
-        const edge = { source, target, kind: imported.kind };
-        const key = `${source}\0${target}`;
-        const previous = edges.get(key);
-        if (!previous || imported.kind === 'runtime') edges.set(key, edge);
-      }
-    }
-  }
-  return { edges: [...edges.values()].sort(compareEdges), errors };
-}
-
-function compareEdges(left, right) {
-  return left.source.localeCompare(right.source)
-    || left.target.localeCompare(right.target)
-    || left.kind.localeCompare(right.kind);
-}
 
 function moduleForPath(modules, path) {
   return modules
@@ -559,95 +111,6 @@ function discoverModuleRoots(rootDir, moduleRoots) {
   return roots.sort();
 }
 
-function tarjan(nodes, edges) {
-  const adjacency = new Map([...nodes].map(node => [node, []]));
-  for (const edge of edges) {
-    if (adjacency.has(edge.source) && adjacency.has(edge.target)) adjacency.get(edge.source).push(edge.target);
-  }
-  for (const targets of adjacency.values()) targets.sort();
-
-  let nextIndex = 0;
-  const indices = new Map();
-  const lowLinks = new Map();
-  const stack = [];
-  const onStack = new Set();
-  const components = [];
-
-  const visit = node => {
-    indices.set(node, nextIndex);
-    lowLinks.set(node, nextIndex);
-    nextIndex += 1;
-    stack.push(node);
-    onStack.add(node);
-
-    for (const target of adjacency.get(node)) {
-      if (!indices.has(target)) {
-        visit(target);
-        lowLinks.set(node, Math.min(lowLinks.get(node), lowLinks.get(target)));
-      } else if (onStack.has(target)) {
-        lowLinks.set(node, Math.min(lowLinks.get(node), indices.get(target)));
-      }
-    }
-
-    if (lowLinks.get(node) !== indices.get(node)) return;
-    const component = [];
-    while (stack.length) {
-      const member = stack.pop();
-      onStack.delete(member);
-      component.push(member);
-      if (member === node) break;
-    }
-    component.sort();
-    const selfCycle = component.length === 1
-      && edges.some(edge => edge.source === component[0] && edge.target === component[0]);
-    if (component.length > 1 || selfCycle) components.push(component);
-  };
-
-  for (const node of [...nodes].sort()) if (!indices.has(node)) visit(node);
-  return components.sort((left, right) => left.join('\0').localeCompare(right.join('\0')));
-}
-
-function describeCycles(sourceFiles, edges) {
-  const sourceNodes = new Set(sourceFiles.map(path => normalizePath(path)));
-  const graphEdges = edges.filter(edge => sourceNodes.has(edge.source) && sourceNodes.has(edge.target));
-  const runtimeEdges = graphEdges.filter(edge => edge.kind === 'runtime');
-  const runtimeComponents = tarjan(sourceNodes, runtimeEdges);
-  const combinedComponents = tarjan(sourceNodes, graphEdges);
-  const runtimeNodeSets = runtimeComponents.map(component => new Set(component));
-  const typeComponents = combinedComponents.filter(component => !runtimeNodeSets.some(runtime => (
-    runtime.size > 0 && [...runtime].every(node => component.includes(node))
-  )));
-  const describe = (component, kind) => {
-    const nodeSet = new Set(component);
-    return {
-      source: component[0],
-      target: component.at(-1),
-      kind,
-      nodes: component,
-      edges: graphEdges.filter(edge => nodeSet.has(edge.source) && nodeSet.has(edge.target)).sort(compareEdges),
-    };
-  };
-  return {
-    runtime: runtimeComponents.map(component => describe(component, 'runtime-cycle')),
-    typeInclusive: typeComponents.map(component => describe(component, 'type-cycle')),
-  };
-}
-
-function edgeKey(edge) {
-  return `${edge.source}\0${edge.target}\0${edge.kind}`;
-}
-
-function cycleKey(cycle) {
-  return JSON.stringify({
-    nodes: [...(cycle.nodes || [])].sort(),
-    edges: [...(cycle.edges || [])].map(edge => ({
-      source: edge.source,
-      target: edge.target,
-      kind: edge.kind,
-    })).sort(compareEdges),
-  });
-}
-
 function addError(errors, code, message, details = {}) {
   errors.push({ code, message, ...details });
 }
@@ -659,40 +122,6 @@ function isRecord(value) {
 function isRegularFile(path) {
   try {
     return lstatSync(path).isFile();
-  } catch {
-    return false;
-  }
-}
-
-function repositoryEntryKind(rootDir, repositoryPath) {
-  if (!isSafeRelativePath(repositoryPath)) return null;
-  const absoluteRoot = realpathSync(rootDir);
-  const absoluteEntry = resolve(rootDir, repositoryPath);
-  let stats;
-  try {
-    stats = lstatSync(absoluteEntry);
-  } catch {
-    return null;
-  }
-  if (stats.isSymbolicLink() || (!stats.isFile() && !stats.isDirectory())) return null;
-  let realEntry;
-  try {
-    realEntry = realpathSync(absoluteEntry);
-  } catch {
-    return null;
-  }
-  const realRelative = relative(absoluteRoot, realEntry);
-  if (realRelative.startsWith('..') || isAbsolute(realRelative)) return null;
-  return stats.isFile() ? 'file' : 'directory';
-}
-
-function repositoryEntryResolvesWithin(rootDir, repositoryPath, ownerRoot) {
-  if (!isSafeRelativePath(repositoryPath) || !isSafeRelativePath(ownerRoot)) return false;
-  try {
-    const realEntry = realpathSync(resolve(rootDir, repositoryPath));
-    const realOwnerRoot = realpathSync(resolve(rootDir, ownerRoot));
-    const ownedRelative = relative(realOwnerRoot, realEntry);
-    return ownedRelative === '' || (!ownedRelative.startsWith('..') && !isAbsolute(ownedRelative));
   } catch {
     return false;
   }
@@ -1611,27 +1040,6 @@ export function analyzeModuleBoundaries({
     edges,
     errors,
   };
-}
-
-export function formatModuleBoundaryReport(report) {
-  const { counts } = report;
-  const lines = [
-    `[module-boundaries] ${counts.modules} modules, ${counts.migrationAreas || 0} migration areas, ${counts.sources || 0} graph sources, ${counts.ownershipSources || 0} owned sources, ${counts.edges} resolved edges`,
-    `[module-boundaries] migration coverage: orphaned=${counts.orphanedMigrationSource || 0}, overlapping=${counts.overlappingMigrationSource || 0}`,
-    `[module-boundaries] exceptions: missing-public=${counts.missingPublicEntry}, internal=${counts.internalImport}, module-legacy=${counts.moduleLegacyImport}, runtime-crossing=${counts.runtimeCrossing}, type-cycles=${counts.typeCycle}`,
-    `[module-boundaries] runtime cycles: ${counts.runtimeCycle}`,
-  ];
-  for (const error of report.errors) {
-    const subject = error.violation || error.edge || error.exception;
-    const detail = subject?.source && subject?.target
-      ? `: ${subject.source} -> ${subject.target}${subject.kind ? ` (${subject.kind})` : ''}`
-      : error.cycle?.nodes?.length
-        ? `: ${error.cycle.nodes.join(' -> ')}`
-        : '';
-    lines.push(`  [${singleLineDisplay(error.code)}] ${singleLineDisplay(error.message)}${singleLineDisplay(detail)}`);
-  }
-  lines.push(report.ok ? '[module-boundaries] dependency contract passed' : '[module-boundaries] dependency contract failed');
-  return lines.join('\n');
 }
 
 const invokedPath = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href : '';

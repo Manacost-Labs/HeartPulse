@@ -250,6 +250,24 @@ impact is deliberately not guessed from module ids. Migration areas and the
 repository root use their checked `routeScope`, while URL details still come
 only from the canonical route inventory.
 
+### Checker implementation map
+
+`scripts/check-module-boundaries.mjs` is the stable facade: it owns validation
+order, boundary policy, the three public exports and CLI orchestration. Its
+mechanical subsystems live under `scripts/lib/`:
+
+- `module-boundary-paths.mjs` owns canonical and realpath safety;
+- `module-boundary-source-scan.mjs` owns graph and migration-ownership scans;
+- `module-import-parser.mjs` owns TS/JS/style import extraction;
+- `module-import-graph.mjs` owns compiler options, resolution and glob edges;
+- `module-boundary-graph.mjs` owns stable edge ordering and cycle analysis;
+- `module-boundary-report.mjs` owns the line-oriented report contract.
+
+Characterization tests pin the facade exports, diagnostic insertion order,
+cycle objects, report bytes, CLI stdout/stderr and exit codes. Architecture size
+budgets cover the facade and every extracted unit so parser, resolver and
+presentation logic cannot silently collapse back into one file.
+
 `npm run agent:check -- <module-id-or-path-or-root>` converts that impact result
 into a minimal executable check plan: the architecture gate, TypeScript check
 and the deduplicated focused tests owned by every affected module. Inventory
