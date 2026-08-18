@@ -79,6 +79,7 @@
     "test:cdn-delivery": "tsx tests/public-asset-delivery.test.ts",
     "test:card-image-delivery-config": "tsx tests/card-image-delivery-config.test.ts",
     "test:runtime-client-config": "node tests/runtime-client-config.test.mjs",
+    "test:battleground-hero-contracts": "tsc --noEmit --pretty false && tsx tests/battleground-hero-contracts.test.ts",
     "test:battleground-proxy-routes": "tsx tests/battleground-proxy-routes.test.ts && tsx tests/battleground-image-optimization.test.ts",
     "test:battleground-image-optimization": "tsx tests/battleground-image-optimization.test.ts",
     "test:battleground-seo-routes": "tsx tests/battleground-seo-routes.test.ts",

@@ -1,6 +1,15 @@
 import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
+import type {
+  BattlegroundHeroMmr,
+  BattlegroundHeroMode,
+  BattlegroundHeroRelatedCard,
+  BattlegroundHeroSortDirection,
+  BattlegroundHeroSortKey,
+  BattlegroundHeroTierEntry,
+  BattlegroundHeroTierSection,
+} from '../modules/battlegrounds/public';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
 import { publicResourceUrl } from '../publicResourceUrl';
 import {
@@ -64,11 +73,7 @@ type BattlegroundTierListKey = 'minions' | 'strategies' | 'spells' | 'trinkets';
 type BattlegroundStrategySource = 'hsreplay' | 'firestone';
 type BattlegroundTrinketSize = 'ALL' | 'SMALL' | 'LARGE';
 type BattlegroundTierCache = Record<string, any>;
-export type BattlegroundHeroMode = 'solo' | 'duos';
-export type BattlegroundHeroMmr = 'TOP_50_PERCENT' | 'TOP_20_PERCENT' | 'TOP_5_PERCENT' | 'TOP_1_PERCENT';
 type BattlegroundHeroView = 'grid' | 'table';
-export type BattlegroundHeroSortKey = 'tier' | 'pickRate' | 'averagePlace';
-export type BattlegroundHeroSortDirection = 'asc' | 'desc';
 
 const BG_HERO_MODES: Array<{ id: BattlegroundHeroMode; label: string; hint: string }> = [
   { id: 'solo', label: 'Соло', hint: 'Обычные матчи' },
@@ -178,41 +183,12 @@ const BG_TIER_BADGES: Record<string, string> = {
   D: 'bg-gradient-to-br from-[#d9ad91] to-[#965a3c] text-[#2e1c14] border-[#f4cfb8]',
 };
 
-export interface BattlegroundHeroTierEntry {
-  name: string;
-  originalName?: string;
-  popularity?: string;
-  averagePlace?: string;
-  image: string;
-  dbfId?: number;
-  placementDistribution?: string[];
-  bestComposition?: string;
-  bestCompositionId?: number;
-  sourceId?: string;
-  heroPower?: BattlegroundHeroRelatedCard | null;
-}
-
-export interface BattlegroundHeroRelatedCard {
-  dbf?: number | null;
-  name: string;
-  text?: string;
-  image?: string | null;
-  imageGold?: string | null;
-  cropImage?: string | null;
-}
-
 interface BattlegroundHeroDetailPayload {
   ok?: boolean;
   stats?: any;
   libraryHero?: any;
   cards?: Record<string, any>;
   fetched_at?: string;
-}
-
-export interface BattlegroundHeroTierSection {
-  tier: string;
-  title?: string;
-  heroes: BattlegroundHeroTierEntry[];
 }
 
 type BattlegroundHeroCacheEntry = { sections: BattlegroundHeroTierSection[]; sourceLabel: string };

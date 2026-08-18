@@ -258,6 +258,13 @@ now have one
 runtime-neutral owner under `src/modules/subscriptions`; application and legacy
 route composition consume its public entry instead of maintaining duplicate
 access models or presentation metadata.
+The `client.battlegrounds` module owns the pure hero-catalog data, mode, MMR and
+list-sorting contracts. The legacy Battlegrounds route and its lazy hero ledger
+consume those types through the type-only `battlegrounds/public.ts` entry. The
+ledger remains a direct dynamic import from the route, so the extraction adds no
+runtime barrel edge and the former route/ledger type cycle is absent. Hero data
+freshness, transport, rendering and route ownership remain in later incremental
+slices.
 The `client.identity` module now owns the canonical account-surface browser
 user contract, its allowlisted runtime parser, guest login/register/reset/
 verification transport, private session/profile/logout transport, validated

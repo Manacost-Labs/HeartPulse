@@ -71,6 +71,7 @@
         "tests/auth-sessions.test.ts",
         "tests/auth-verification-routes.test.ts",
         "tests/battleground-card-variants.test.ts",
+        "tests/battleground-hero-contracts.test.ts",
         "tests/battleground-image-optimization.test.ts",
         "tests/battleground-library-seo-routes.test.ts",
         "tests/battleground-proxy-routes.test.ts",

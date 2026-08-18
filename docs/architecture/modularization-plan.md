@@ -366,10 +366,17 @@ not compete with visible images, and list/detail chunks have separate budgets.
 
 ### 4. Battlegrounds routes
 
-1. Move hero types and data freshness rules into a pure model and remove the
-   current hero-ledger type cycle.
-2. Extract hero list/detail and make current-hero completeness a checked data
-   contract so newly released heroes cannot disappear silently.
+Status: in progress. The first client slice registers
+`client.battlegrounds/public.ts` as the owner of the pure hero-catalog, mode,
+MMR and list-sorting contracts. The legacy route and lazy ledger use that
+type-only entry, so their cycle is gone without adding runtime code to the
+public barrel. The enforced `Battlegrounds.tsx` ceiling is now 4,346 lines
+instead of 4,373.
+
+1. Extend the pure hero model with source-timestamp and current-roster
+   freshness policy.
+2. Extract hero list/detail and enforce a checked completeness contract so
+   newly released heroes cannot disappear silently.
 3. Extract library list/detail/archive.
 4. Extract tier list, strategy builder and tier builder as separate lazy entries.
 5. Move shared card-image and tribe policies into focused models.

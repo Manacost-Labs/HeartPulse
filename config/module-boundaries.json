@@ -52,6 +52,22 @@
       ]
     },
     {
+      "id": "client.battlegrounds",
+      "runtime": "client",
+      "root": "src/modules/battlegrounds",
+      "purpose": "Owns the client Battlegrounds hero catalog data and list presentation contracts.",
+      "owner": "web-platform",
+      "publicEntry": "src/modules/battlegrounds/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:battleground-hero-contracts"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ]
+    },
+    {
       "id": "client.applicationConnect",
       "runtime": "client",
       "root": "src/modules/applicationConnect",
@@ -271,7 +287,7 @@
     "internalImport": 0,
     "moduleLegacyImport": 5,
     "runtimeCrossing": 2,
-    "typeCycle": 3
+    "typeCycle": 2
   },
   "exceptions": {
     "missingPublicEntry": [],
@@ -337,30 +353,6 @@
       }
     ],
     "typeCycle": [
-      {
-        "source": "src/features/BattlegroundHeroLedger.tsx",
-        "target": "src/features/Battlegrounds.tsx",
-        "kind": "type-cycle",
-        "nodes": [
-          "src/features/BattlegroundHeroLedger.tsx",
-          "src/features/Battlegrounds.tsx"
-        ],
-        "edges": [
-          {
-            "source": "src/features/BattlegroundHeroLedger.tsx",
-            "target": "src/features/Battlegrounds.tsx",
-            "kind": "type"
-          },
-          {
-            "source": "src/features/Battlegrounds.tsx",
-            "target": "src/features/BattlegroundHeroLedger.tsx",
-            "kind": "runtime"
-          }
-        ],
-        "owner": "web-platform",
-        "reason": "The extracted hero ledger still imports types owned by the Battlegrounds route monolith.",
-        "expiresOn": "2026-12-31"
-      },
       {
         "source": "src/features/ContestAdminAnalytics.tsx",
         "target": "src/features/ContestAdminBoostySales.tsx",

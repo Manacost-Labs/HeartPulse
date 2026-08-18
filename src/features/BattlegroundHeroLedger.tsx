@@ -8,7 +8,7 @@ import type {
   BattlegroundHeroSortKey,
   BattlegroundHeroTierEntry,
   BattlegroundHeroTierSection,
-} from './Battlegrounds';
+} from '../modules/battlegrounds/public';
 
 const TIER_ORDER = ['S', 'A', 'B', 'C', 'D'];
 type CompositionMap = Record<string, string>;
