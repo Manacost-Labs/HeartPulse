@@ -13,6 +13,10 @@ import {
 import {
   enrichConstructedCardPools,
   enrichConstructedRelatedCards,
+  mergeConstructedCardRows as mergeConstructedCardRowsModel,
+  MIN_RELIABLE_CONSTRUCTED_CARD_GAMES as minimumReliableConstructedCardGames,
+  normalizeConstructedCardStats as normalizeConstructedCardStatsModel,
+  validateConstructedCardStatsDataset as validateConstructedCardStatsDatasetModel,
 } from './modules/constructedCards/public.js';
 
 export {
@@ -38,6 +42,16 @@ export type ConstructedCardRankDescriptor = {
 };
 
 type JsonRecord = Record<string, any>;
+
+// Preserve the original loose TypeScript facade while new consumers adopt the
+// unknown-based contract from server.constructedCards/public.ts.
+export const MIN_RELIABLE_CONSTRUCTED_CARD_GAMES = minimumReliableConstructedCardGames;
+export const mergeConstructedCardRows: (catalogCards: JsonRecord[], statsCards: JsonRecord[]) => JsonRecord[] =
+  mergeConstructedCardRowsModel;
+export const normalizeConstructedCardStats: (row: JsonRecord | undefined) => JsonRecord | null =
+  normalizeConstructedCardStatsModel;
+export const validateConstructedCardStatsDataset: (statsCards: JsonRecord[]) => void =
+  validateConstructedCardStatsDatasetModel;
 
 export type ConstructedCardCollection = {
   cards: JsonRecord[];
@@ -222,11 +236,6 @@ const RANK_RANGES: Record<ConstructedCardRank, string> = {
 };
 const DEFAULT_PAGE_SIZE = 60;
 const MAX_PAGE_SIZE = 120;
-// One-day card slices contain a long tail with only a handful of observations.
-// Showing percentages for those rows produces technically valid but misleading
-// 75–100% leaders. Keep the sample count visible, but only publish rate metrics
-// once the card has enough observed plays to make comparisons useful.
-export const MIN_RELIABLE_CONSTRUCTED_CARD_GAMES = 100;
 const SORTS = new Set(['popularity', 'winrate', 'games', 'mana', 'attack', 'health', 'name', 'set', 'class', 'mechanics']);
 const STATISTIC_SORTS = new Set(['popularity', 'winrate', 'games']);
 const CONSTRUCTED_SET_RELEASE_ORDER = [
@@ -364,13 +373,6 @@ function readNumberFilter(value: unknown): number | null {
   if (!raw) return null;
   const parsed = Number(raw);
   return Number.isFinite(parsed) ? parsed : null;
-}
-
-function percentNumber(value: unknown): number | null {
-  const raw = String(value ?? '').replace('%', '').replace(',', '.').trim();
-  if (!raw || raw === '—' || raw === '-') return null;
-  const parsed = Number(raw);
-  return Number.isFinite(parsed) && parsed >= 0 && parsed <= 100 ? parsed : null;
 }
 
 function finiteNumber(value: unknown): number | null {
@@ -550,108 +552,6 @@ export function redactConstructedCardStatistics(card: JsonRecord): JsonRecord {
       ? card.decks.map((deck: JsonRecord) => ({ ...deck, winrate: null, score: null }))
       : card?.decks,
   };
-}
-
-export function normalizeConstructedCardStats(row: JsonRecord | undefined): JsonRecord | null {
-  if (!row) return null;
-  const timesPlayed = finiteNumber(row.times_played);
-  const hasReliableRateSample = timesPlayed !== null && timesPlayed >= MIN_RELIABLE_CONSTRUCTED_CARD_GAMES;
-  return {
-    deckPopularity: percentNumber(row.deck_popularity),
-    deckWinrate: hasReliableRateSample ? percentNumber(row.deck_winrate) : null,
-    averageCopies: finiteNumber(row.avg_copies),
-    timesPlayed,
-    winrateWhenPlayed: hasReliableRateSample ? percentNumber(row.winrate_when_played) : null,
-    winrateWhenDrawn: hasReliableRateSample ? percentNumber(row.winrate_when_drawn) : null,
-    keepPercentage: hasReliableRateSample ? percentNumber(row.keep_percentage) : null,
-    openingHandWinrate: hasReliableRateSample ? percentNumber(row.opening_hand_winrate) : null,
-    averageTurnsInHand: finiteNumber(row.avg_turns_in_hand),
-    averageTurnPlayed: finiteNumber(row.avg_turn_played_on),
-  };
-}
-
-export function validateConstructedCardStatsDataset(statsCards: JsonRecord[]): void {
-  if (!statsCards.length) throw new Error('Constructed card statistics dataset is empty');
-  let invalidPopularity = 0;
-  let extremePopularity = 0;
-  let cardsWithPopularity = 0;
-  for (const row of statsCards) {
-    const raw = String(row?.deck_popularity ?? '').replace('%', '').replace(',', '.').trim();
-    if (!raw || raw === '—' || raw === '-') continue;
-    const value = Number(raw);
-    if (!Number.isFinite(value) || value < 0 || value > 100) {
-      invalidPopularity += 1;
-      continue;
-    }
-    cardsWithPopularity += 1;
-    if (value >= 80) extremePopularity += 1;
-  }
-  if (!cardsWithPopularity) throw new Error('Constructed card statistics have no deck popularity values');
-  if (invalidPopularity > Math.max(3, Math.ceil(statsCards.length * 0.01))) {
-    throw new Error(`Constructed card statistics contain ${invalidPopularity} invalid popularity values`);
-  }
-  // A cross-class constructed sample cannot contain a large block of cards
-  // present in almost every deck. Reject a wrong column or malformed stale
-  // snapshot instead of publishing the familiar 97–100% cascade.
-  if (extremePopularity >= 10) {
-    throw new Error(`Constructed card statistics contain ${extremePopularity} implausible popularity values`);
-  }
-}
-
-export function mergeConstructedCardRows(catalogCards: JsonRecord[], statsCards: JsonRecord[]): JsonRecord[] {
-  const statsByCardId = new Map<string, JsonRecord>();
-  const statsByDbf = new Map<number, JsonRecord>();
-  for (const row of statsCards) {
-    const cardId = String(row?.id ?? '').trim().toUpperCase();
-    const dbf = finiteNumber(row?.dbfId);
-    if (cardId) statsByCardId.set(cardId, row);
-    if (dbf !== null) statsByDbf.set(dbf, row);
-  }
-  const matchedStats = new Set<JsonRecord>();
-  const representedCardIds = new Set(catalogCards.map(card => String(card?.card_id ?? '').trim().toUpperCase()).filter(Boolean));
-  const representedDbfs = new Set(catalogCards.map(card => finiteNumber(card?.dbf)).filter((value): value is number => value !== null));
-  const mergedCards: JsonRecord[] = catalogCards.map(card => {
-    const cardId = String(card?.card_id ?? '').trim().toUpperCase();
-    const dbf = finiteNumber(card?.dbf);
-    const stats = statsByCardId.get(cardId) ?? (dbf !== null ? statsByDbf.get(dbf) : undefined);
-    if (stats) matchedStats.add(stats);
-    return { ...card, stats: normalizeConstructedCardStats(stats) };
-  });
-
-  // The catalog and HSReplay snapshots are refreshed independently. Keep a
-  // newly observed statistics row visible during the short window before the
-  // card database catches up instead of silently dropping it from the UI.
-  for (const row of statsCards) {
-    if (matchedStats.has(row)) continue;
-    const cardId = String(row?.id ?? '').trim();
-    if (!cardId) continue;
-    const normalizedCardId = cardId.toUpperCase();
-    const dbf = finiteNumber(row?.dbfId);
-    if (representedCardIds.has(normalizedCardId) || (dbf !== null && representedDbfs.has(dbf))) continue;
-    representedCardIds.add(normalizedCardId);
-    if (dbf !== null) representedDbfs.add(dbf);
-    mergedCards.push({
-      card_id: cardId,
-      dbf,
-      name: { ru: String(row?.name ?? '').trim() || null, en: null },
-      text: { ru: null, en: null },
-      flavor: { ru: null, en: null },
-      card_set: null,
-      card_type: { slug: String(row?.type ?? '').trim() || null, name_ru: null },
-      rarity: String(row?.rarity ?? '').trim() || null,
-      class: String(row?.cardClass ?? '').trim() || null,
-      multi_class: [],
-      mana_cost: finiteNumber(row?.cost),
-      attack: null,
-      health: null,
-      mechanics: [],
-      referenced_tags: [],
-      images: { card: null, golden: null, signature: null, diamond: null, crop: null },
-      catalogPending: true,
-      stats: normalizeConstructedCardStats(row),
-    });
-  }
-  return mergedCards;
 }
 
 type CompleteCatalogCandidate = {

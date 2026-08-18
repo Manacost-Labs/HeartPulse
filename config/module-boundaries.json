@@ -167,7 +167,7 @@
       "id": "server.constructedCards",
       "runtime": "server",
       "root": "server/modules/constructedCards",
-      "purpose": "Owns constructed-card related-card and generated-card-pool enrichment.",
+      "purpose": "Owns constructed-card catalog statistics normalization, validation and merging, plus related-card and generated-card-pool enrichment.",
       "owner": "web-platform",
       "publicEntry": "server/modules/constructedCards/public.ts",
       "dependencies": [],

@@ -340,6 +340,12 @@ Application Connect or the public-profile page.
 
 ### 3. Constructed-card list and detail routes
 
+Status: in progress. The first server-catalog slice moved statistics
+normalization, snapshot publishability checks and catalog/statistics merging
+behind `server.constructedCards/public.ts`. A temporary legacy facade preserves
+existing imports while consumers migrate, and the enforced
+`constructedCardRoutes.ts` ceiling is now 1,491 lines instead of 1,591.
+
 1. Extract catalog filters, URL/search state and request controller.
 2. Extract list rendering, tile image policy and visible-window loading.
 3. Extract detail media, related-card, generated-pool and deck sections.
