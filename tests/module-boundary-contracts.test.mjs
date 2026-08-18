@@ -156,6 +156,38 @@ test('boundary checker CLI preserves stdout, stderr and exit codes', () => {
   }
 });
 
+test('boundary checker CLI rejects missing option values before analysis', () => {
+  const root = fixture(baseConfig([]));
+  try {
+    const cases = [
+      { args: ['--root'], option: '--root' },
+      { args: ['--config'], option: '--config' },
+      { args: ['--root', ''], option: '--root' },
+      { args: ['--root', '   '], option: '--root' },
+      { args: ['--config', ''], option: '--config' },
+      { args: ['--config', '   '], option: '--config' },
+      { args: ['--root', '--config', 'config/module-boundaries.json'], option: '--root' },
+      { args: ['--config', '--root', root], option: '--config' },
+    ];
+
+    const actual = cases.map(fixtureCase => {
+      const result = spawnSync(process.execPath, [CHECKER_URL.pathname, ...fixtureCase.args], {
+        cwd: root,
+        encoding: 'utf8',
+        timeout: 30_000,
+      });
+      return { status: result.status, stdout: result.stdout, stderr: result.stderr };
+    });
+    assert.deepEqual(actual, cases.map(fixtureCase => ({
+      status: 2,
+      stdout: '',
+      stderr: `Missing value for argument: ${fixtureCase.option}\n`,
+    })));
+  } finally {
+    cleanup(root);
+  }
+});
+
 test('boundary diagnostics keep their cross-stage insertion order', () => {
   const config = baseConfig([], { schemaVersion: 999, moduleRoots: [] });
   const root = fixture(config);

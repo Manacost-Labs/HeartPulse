@@ -1,11 +1,8 @@
-import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import {
-  singleLineDisplay,
-  singleLineErrorMessage,
-} from './lib/diagnostic-text-policy.mjs';
+import { singleLineErrorMessage } from './lib/diagnostic-text-policy.mjs';
+import { parseModuleBoundaryCliArguments } from './lib/module-boundary-cli.mjs';
 import { pathBelongsToMigrationArea } from './lib/module-inventory.mjs';
 import {
   validateModuleInventoryMetadata,
@@ -20,6 +17,7 @@ import { describeCycles } from './lib/module-boundary-graph.mjs';
 import {
   isInside,
   projectPath,
+  readCanonicalRepositoryTextFile,
   repositoryEntryKind,
 } from './lib/repository-path-policy.mjs';
 import { formatModuleBoundaryReport } from './lib/module-boundary-report.mjs';
@@ -129,11 +127,15 @@ export function analyzeModuleBoundaries({
   now = new Date(),
 } = {}) {
   const absoluteRoot = resolve(rootDir);
-  const absoluteConfig = resolve(absoluteRoot, configPath);
   const errors = [];
   let config;
   try {
-    config = JSON.parse(readFileSync(absoluteConfig, 'utf8'));
+    const configSource = readCanonicalRepositoryTextFile({
+      rootDir: absoluteRoot,
+      repositoryPath: configPath,
+      subject: 'Module boundary config',
+    });
+    config = JSON.parse(configSource);
   } catch (error) {
     return {
       ok: false,
@@ -267,18 +269,12 @@ export function analyzeModuleBoundaries({
 
 const invokedPath = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href : '';
 if (invokedPath === import.meta.url) {
-  const args = process.argv.slice(2);
-  let rootDir = process.cwd();
-  let configPath = 'config/module-boundaries.json';
-  for (let index = 0; index < args.length; index += 1) {
-    if (args[index] === '--root') rootDir = args[++index];
-    else if (args[index] === '--config') configPath = args[++index];
-    else {
-      console.error(`Unknown argument: ${singleLineDisplay(args[index])}`);
-      process.exit(2);
-    }
+  const parsed = parseModuleBoundaryCliArguments(process.argv.slice(2));
+  if (parsed.error) {
+    console.error(parsed.error);
+    process.exit(2);
   }
-  const report = analyzeModuleBoundaries({ rootDir, configPath });
+  const report = analyzeModuleBoundaries(parsed);
   console.log(formatModuleBoundaryReport(report));
   if (!report.ok) process.exit(1);
 }

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdtempSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import test from 'node:test';
 
 import * as boundaryModule from '../scripts/check-module-boundaries.mjs';
@@ -56,6 +56,102 @@ test('diagnostic text policy rejects and escapes every line-control family', () 
     assert.equal(singleLineDisplay(`safe${character}text`), `safe${escaped}text`);
   }
   assert.equal(isSafeMetadataText('architecture-owner'), true);
+});
+
+test('boundary config must be a canonical regular repository file without symlinks', () => {
+  const config = baseConfig([]);
+  const root = fixture(config);
+  const outside = mkdtempSync(join(tmpdir(), 'arena-boundaries-config-outside-'));
+  try {
+    writeFixture(outside, 'external.json', `${JSON.stringify(config, null, 2)}\n`);
+    symlinkSync('module-boundaries.json', join(root, 'config/linked.json'));
+    symlinkSync('config', join(root, 'config-link'));
+    symlinkSync(outside, join(root, 'outside-config'));
+
+    const escapedConfig = relative(root, join(outside, 'external.json')).replaceAll('\\', '/');
+    const cases = [{
+      configPath: join(root, 'config/module-boundaries.json'),
+      message: `Module boundary config path must be a canonical repository-relative path: ${join(root, 'config/module-boundaries.json')}`,
+    }, {
+      configPath: escapedConfig,
+      message: `Module boundary config path must be a canonical repository-relative path: ${escapedConfig}`,
+    }, {
+      configPath: './config/module-boundaries.json',
+      message: 'Module boundary config path must be a canonical repository-relative path: ./config/module-boundaries.json',
+    }, {
+      configPath: 'config/linked.json',
+      message: 'Module boundary config path must not contain symbolic links: config/linked.json',
+    }, {
+      configPath: 'config-link/module-boundaries.json',
+      message: 'Module boundary config path must not contain symbolic links: config-link/module-boundaries.json',
+    }, {
+      configPath: 'outside-config/external.json',
+      message: 'Module boundary config path must not contain symbolic links: outside-config/external.json',
+    }, {
+      configPath: 'config',
+      message: 'Module boundary config must be a regular file: config',
+    }, {
+      configPath: 'config/missing.json',
+      message: 'Module boundary config is missing: config/missing.json',
+    }, {
+      configPath: 'C:/external.json',
+      message: 'Module boundary config path must be a canonical repository-relative path: C:/external.json',
+    }, {
+      configPath: 'config/unsafe\nname.json',
+      message: 'Module boundary config path must be a canonical repository-relative path: config/unsafe\\u{A}name.json',
+    }];
+
+    const expectedReport = message => ({
+      ok: false,
+      counts: {
+        modules: 0,
+        migrationAreas: 0,
+        sources: 0,
+        ownershipSources: 0,
+        edges: 0,
+        orphanedMigrationSource: 0,
+        overlappingMigrationSource: 0,
+        missingPublicEntry: 0,
+        internalImport: 0,
+        moduleLegacyImport: 0,
+        runtimeCrossing: 0,
+        typeCycle: 0,
+        runtimeCycle: 0,
+      },
+      violations: {
+        missingPublicEntry: [],
+        internalImport: [],
+        moduleLegacyImport: [],
+        runtimeCrossing: [],
+        typeCycle: [],
+      },
+      cycles: { runtime: [], typeInclusive: [] },
+      edges: [],
+      errors: [{ code: 'invalid-config', message }],
+    });
+    assert.deepEqual(
+      cases.map(({ configPath }) => analyzeModuleBoundaries({ rootDir: root, configPath, now: NOW })),
+      cases.map(({ message }) => expectedReport(message)),
+    );
+  } finally {
+    cleanup(root);
+    cleanup(outside);
+  }
+});
+
+test('boundary config uses the real repository root as its trusted anchor', () => {
+  const root = fixture(baseConfig([]));
+  const aliases = mkdtempSync(join(tmpdir(), 'arena-boundaries-root-alias-'));
+  try {
+    const rootAlias = join(aliases, 'repository');
+    symlinkSync(root, rootAlias);
+    const direct = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    const throughAlias = analyzeModuleBoundaries({ rootDir: rootAlias, now: NOW });
+    assert.deepEqual(throughAlias, direct);
+  } finally {
+    cleanup(aliases);
+    cleanup(root);
+  }
 });
 
 test('inventory metadata rejects non-canonical repository paths consistently', () => {

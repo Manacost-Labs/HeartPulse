@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 const moduleBudgets = [
   {
     path: 'scripts/check-module-boundaries.mjs',
-    maxLines: 284,
+    maxLines: 280,
     owner: 'module-boundary analysis and CLI facade',
   },
   {
@@ -23,8 +23,13 @@ const moduleBudgets = [
     owner: 'module boundary stable edge identities',
   },
   {
+    path: 'scripts/lib/module-boundary-cli.mjs',
+    maxLines: 20,
+    owner: 'module boundary CLI grammar',
+  },
+  {
     path: 'scripts/lib/repository-path-policy.mjs',
-    maxLines: 147,
+    maxLines: 225,
     owner: 'repository path and realpath safety',
   },
   {

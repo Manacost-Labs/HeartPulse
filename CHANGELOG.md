@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Hardened the module-boundary checker config boundary: config files must now
+  use canonical repository-relative paths, contain no symlink component, remain
+  inside the real repository and be read through a verified descriptor. Missing
+  `--root` or `--config` values now fail before analysis with CLI exit code 2;
+  valid report bytes and the exact three-export facade contract are unchanged.
+  The isolated CLI grammar has its own 20-line owner, and the facade ratchet is
+  lower at 280 lines.
 - Turned the modularization document into an executable product-quality
   program: it now links each source of truth, defines S/M task and status
   contracts, prioritizes page/filter/image speed, current Battlegrounds heroes,
@@ -14,7 +21,7 @@
   canonical-contract, inventory-validation, exception, edge-identity,
   source-scan, import-parser, import-resolution, cycle-graph and report units
   while retaining its exact three-export and CLI contract. The orchestration
-  facade is now 284 lines with an exact 284-line ratchet; six focused test
+  facade is now 280 lines with an exact 280-line ratchet; six focused test
   suites pin diagnostic order, cycle objects, report bytes and CLI exit
   streams. Canonical policy collections are immutable, agent tools import
   diagnostic/path owners directly, and an AST-based layer gate rejects

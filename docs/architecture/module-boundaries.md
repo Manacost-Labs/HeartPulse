@@ -253,13 +253,16 @@ only from the canonical route inventory.
 ### Checker implementation map
 
 `scripts/check-module-boundaries.mjs` is the stable facade: it owns analysis
-order, boundary policy, the three public exports and CLI orchestration. Its
-policy and mechanical subsystems live under `scripts/lib/`:
+order, boundary policy, the three public exports and CLI execution. Its policy
+and mechanical subsystems live under `scripts/lib/`:
 
 - `diagnostic-text-policy.mjs` owns safe single-line metadata and diagnostics;
 - `module-boundary-contracts.mjs` owns immutable canonical roots and exception
   groups;
-- `repository-path-policy.mjs` owns normalization, selector and realpath safety;
+- `module-boundary-cli.mjs` owns the fail-closed `--root` / `--config` grammar;
+- `repository-path-policy.mjs` owns normalization, selector, realpath safety and
+  descriptor-based reads of canonical repository files without symlink
+  components;
 - `module-inventory.mjs` owns inventory loading and ownership selection;
 - `module-inventory-validation.mjs` owns module, migration-area and shared-root
   metadata validation;

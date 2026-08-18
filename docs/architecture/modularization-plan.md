@@ -325,7 +325,8 @@ agent can execute without first converting an XL phase into a task.
 | `ROUTES-01` | P1 / M | `client.featureLegacy` / `web-platform` | application routing foundation | Extract one Arena or Standard route behind a focused lazy entry, direct model test and route chunk budget; lower the owning legacy ratchet. |
 | `SERVER-01` | P1 / M | `server.applicationComposition` / `web-platform` | target server public entry | Move one HTTP family into route/service/repository boundaries with explicit dependencies, compatible HTTP tests and endpoint-latency evidence. |
 | `OBS-01` | P1 / M | `server.applicationComposition` / `web-platform` | `PERF-01`, regional trust boundary | Publish owned dashboards and alerts for CWV, API latency/error rate, CDN hit/miss/fallback, regional parity, data freshness and Battlegrounds roster age; exercise one recovery runbook. |
-| `ARCH-01` | P2 / M | repository tooling / `web-platform` | checker characterization complete | Implemented for review: metadata validation, exception policy, diagnostic/path and edge primitives have focused owners; the facade is 284 lines with an exact 284-line ratchet, six test suites stay below 500 lines and an AST gate enforces dependency direction. |
+| `ARCH-01` | P2 / M | repository tooling / `web-platform` | checker characterization complete | Implemented for review: metadata validation, exception policy, diagnostic/path and edge primitives have focused owners; the facade stays below its exact current-size ratchet, six test suites stay below 500 lines and an AST gate enforces dependency direction. |
+| `ARCH-02` | P1 / S | repository tooling / `web-platform` | `ARCH-01` | Implemented for review: config is a canonical repository-relative regular file with no symlink components, realpath containment and descriptor-based reads; missing `--root`/`--config` values exit 2 while successful report bytes and the three-export facade remain stable. |
 | `LEGACY-01` | P2 / S | checked area id / its declared owner | owning module slice | Remove one exact migration root or exception only after all consumers use the public entry; lower its architecture budget and update impact/docs. |
 
 <!-- markdownlint-enable MD013 -->
@@ -927,8 +928,8 @@ cookies, query values and card ids never become metric dimensions.
 
 ### 15. AI tooling and final legacy removal
 
-Status: in progress. Ownership/navigation and the completed `ARCH-01`
-implementation are in review; per-owner `LEGACY-01` slices remain.
+Status: in progress. Ownership/navigation and the completed `ARCH-01` and
+`ARCH-02` implementations are in review; per-owner `LEGACY-01` slices remain.
 
 The generated `agent:context`, `agent:check`, `agent:impact` and `agent:map`
 commands now cover canonical modules, eight initial migration areas, all 48
@@ -944,15 +945,17 @@ a wider blast radius than its own focused contract tests.
 
 The boundary checker is now characterized and decomposed behind its existing
 three public exports. Diagnostic safety, repository paths, canonical contracts,
-inventory validation, exception policy, edge identity, source scans, import
-parsing and resolution, cycle analysis and report formatting have named
-`scripts/lib/` owners. The facade retains analysis order, edge policy and CLI
-orchestration and is 284 lines against an exact 284-line ratchet. Exact tests pin
-diagnostic order, report bytes, stdout/stderr and exit codes; the former
-1,000-line characterization file is split into six responsibility suites, and
-an AST-based gate enforces strict downward dependencies across governed library
-layers, requires every classified unit to remain reachable from the facade and
-rejects dynamic, CommonJS, peer-relative and import-map bypasses.
+CLI grammar, inventory validation, exception policy, edge identity, source
+scans, import parsing and resolution, cycle analysis and report formatting have
+named `scripts/lib/` owners. The facade retains analysis order, edge policy and
+CLI execution and is 280 lines against an exact 280-line ratchet. Config reads
+reject non-canonical paths and every symlink component, confirm realpath
+containment, then read through a verified descriptor. Exact tests pin diagnostic
+order, report bytes, stdout/stderr and exit codes; the former 1,000-line
+characterization file is split into six responsibility suites, and an AST-based
+gate enforces strict downward dependencies across governed library layers,
+requires every classified unit to remain reachable from the facade and rejects
+dynamic, CommonJS, peer-relative and import-map bypasses.
 
 The migration is complete when:
 

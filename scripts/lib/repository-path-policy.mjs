@@ -1,8 +1,20 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, lstatSync, realpathSync } from 'node:fs';
+import {
+  closeSync,
+  constants,
+  existsSync,
+  fstatSync,
+  lstatSync,
+  openSync,
+  readFileSync,
+  realpathSync,
+} from 'node:fs';
 import path from 'node:path';
 
-import { isSafeMetadataText } from './diagnostic-text-policy.mjs';
+import {
+  isSafeMetadataText,
+  singleLineDisplay,
+} from './diagnostic-text-policy.mjs';
 
 export function normalizePath(value) {
   return value.split(path.sep).join('/').replace(/^\.\//, '');
@@ -68,6 +80,72 @@ export function resolveRepositoryFile(root, relativePath, { required }) {
     throw new Error(`Repository file resolves outside the repository: ${relativePath}`);
   }
   return realFile;
+}
+
+export function readCanonicalRepositoryTextFile({
+  rootDir,
+  repositoryPath,
+  subject = 'Repository file',
+}) {
+  const displayPath = singleLineDisplay(repositoryPath);
+  if (!isSafeRelativePath(repositoryPath) || path.win32.isAbsolute(repositoryPath)) {
+    throw new Error(`${subject} path must be a canonical repository-relative path: ${displayPath}`);
+  }
+
+  const realRoot = realpathSync(rootDir);
+  if (!lstatSync(realRoot).isDirectory()) {
+    throw new Error(`${subject} repository root must be a directory.`);
+  }
+
+  let absolutePath = realRoot;
+  let stats;
+  const segments = repositoryPath.split('/');
+  for (let index = 0; index < segments.length; index += 1) {
+    absolutePath = path.join(absolutePath, segments[index]);
+    try {
+      stats = lstatSync(absolutePath);
+    } catch (error) {
+      if (error && typeof error === 'object' && ['ENOENT', 'ENOTDIR'].includes(error.code)) {
+        throw new Error(`${subject} is missing: ${displayPath}`);
+      }
+      throw error;
+    }
+    if (stats.isSymbolicLink()) {
+      throw new Error(`${subject} path must not contain symbolic links: ${displayPath}`);
+    }
+    if (index < segments.length - 1 && !stats.isDirectory()) {
+      throw new Error(`${subject} parent path must contain only directories: ${displayPath}`);
+    }
+  }
+
+  if (!stats?.isFile()) {
+    throw new Error(`${subject} must be a regular file: ${displayPath}`);
+  }
+  const realFile = realpathSync(absolutePath);
+  const realRelative = path.relative(realRoot, realFile);
+  if (realRelative === '..'
+    || realRelative.startsWith(`..${path.sep}`)
+    || path.isAbsolute(realRelative)) {
+    throw new Error(`${subject} must resolve inside the repository: ${displayPath}`);
+  }
+  if (typeof constants.O_NOFOLLOW !== 'number') {
+    throw new Error(`${subject} cannot be opened safely on this platform.`);
+  }
+
+  let descriptor;
+  try {
+    descriptor = openSync(realFile, constants.O_RDONLY | constants.O_NOFOLLOW);
+    const openedStats = fstatSync(descriptor);
+    if (!openedStats.isFile()) {
+      throw new Error(`${subject} must be a regular file: ${displayPath}`);
+    }
+    if (openedStats.dev !== stats.dev || openedStats.ino !== stats.ino) {
+      throw new Error(`${subject} changed while it was being opened: ${displayPath}`);
+    }
+    return readFileSync(descriptor, 'utf8');
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
 }
 
 function strictRepositorySelectorPath(value) {

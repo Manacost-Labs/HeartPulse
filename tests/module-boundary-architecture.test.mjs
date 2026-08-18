@@ -22,6 +22,7 @@ const LIBRARY_LAYERS = new Map([
   ['module-boundary-edges.mjs', 0],
   ['module-import-parser.mjs', 0],
   ['npm-script-policy.mjs', 0],
+  ['module-boundary-cli.mjs', 1],
   ['repository-path-policy.mjs', 1],
   ['module-boundary-exceptions.mjs', 2],
   ['module-boundary-graph.mjs', 2],

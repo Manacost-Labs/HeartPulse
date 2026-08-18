@@ -57,10 +57,13 @@ owner-id, а pattern, route id и policy загружаются из
 
 Сам architecture checker оставляет `scripts/check-module-boundaries.mjs`
 стабильным facade для orchestration и CLI. Поиск файлов, безопасность путей,
-парсинг импортов, resolution/glob-граф, циклы и форматирование отчёта разнесены
-по предметным `scripts/lib/module-*` файлам. Их размеры ratcheted отдельными
-budget-проверками, а CLI и порядок diagnostics закреплены characterization
-tests; при изменении правила агенту не нужно читать весь checker целиком.
+грамматика аргументов CLI, парсинг импортов, resolution/glob-граф, циклы и
+форматирование отчёта разнесены по именованным владельцам в `scripts/lib/`.
+Config checker принимает только канонический repository-relative regular file,
+запрещает symlink-компоненты и читает файл через проверенный descriptor. Размеры
+всех владельцев ratcheted отдельными budget-проверками, а CLI и порядок
+diagnostics закреплены characterization tests; при изменении правила агенту не
+нужно читать весь checker целиком.
 
 ## Storybook и Storybook MCP
 
