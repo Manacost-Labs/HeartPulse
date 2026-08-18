@@ -8,15 +8,19 @@ import ts from 'typescript';
 import { validateModuleInventoryMetadata } from './check-module-boundaries.mjs';
 import {
   isSafeMetadataText,
-  normalizeRepositoryPath,
-  readModuleInventory,
-  relevantModuleExceptions,
-  repositoryRoot,
-  resolveModuleOrPathSelector,
-  resolveRepositoryFile,
   singleLineDisplay,
   singleLineErrorMessage,
+} from './lib/diagnostic-text-policy.mjs';
+import {
+  readModuleInventory,
+  relevantModuleExceptions,
+  resolveModuleOrPathSelector,
 } from './lib/module-inventory.mjs';
+import {
+  normalizeRepositoryPath,
+  repositoryRoot,
+  resolveRepositoryFile,
+} from './lib/repository-path-policy.mjs';
 import {
   publicRoutesForScope,
   readPublicRouteInventory,

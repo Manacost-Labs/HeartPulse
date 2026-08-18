@@ -8,13 +8,13 @@ import {
   analyzeModuleBoundaries,
   formatModuleBoundaryReport,
 } from './check-module-boundaries.mjs';
+import { singleLineErrorMessage } from './lib/diagnostic-text-policy.mjs';
 import {
   moduleForRepositoryPath,
   readModuleInventory,
-  repositoryRoot,
-  singleLineErrorMessage,
   stableModuleExceptions,
 } from './lib/module-inventory.mjs';
+import { repositoryRoot } from './lib/repository-path-policy.mjs';
 import {
   PUBLIC_ROUTE_INVENTORY_PATH,
   publicRoutesForScope,

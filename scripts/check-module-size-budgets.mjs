@@ -4,8 +4,43 @@ import { resolve } from 'node:path';
 const moduleBudgets = [
   {
     path: 'scripts/check-module-boundaries.mjs',
-    maxLines: 1_061,
-    owner: 'module-boundary facade and ownership policy',
+    maxLines: 284,
+    owner: 'module-boundary analysis and CLI facade',
+  },
+  {
+    path: 'scripts/lib/diagnostic-text-policy.mjs',
+    maxLines: 19,
+    owner: 'single-line diagnostic text policy',
+  },
+  {
+    path: 'scripts/lib/module-boundary-contracts.mjs',
+    maxLines: 16,
+    owner: 'module boundary canonical contracts',
+  },
+  {
+    path: 'scripts/lib/module-boundary-edges.mjs',
+    maxLines: 20,
+    owner: 'module boundary stable edge identities',
+  },
+  {
+    path: 'scripts/lib/repository-path-policy.mjs',
+    maxLines: 147,
+    owner: 'repository path and realpath safety',
+  },
+  {
+    path: 'scripts/lib/module-inventory.mjs',
+    maxLines: 275,
+    owner: 'module inventory loading and ownership selection',
+  },
+  {
+    path: 'scripts/lib/module-boundary-exceptions.mjs',
+    maxLines: 173,
+    owner: 'module boundary exception policy',
+  },
+  {
+    path: 'scripts/lib/module-inventory-validation.mjs',
+    maxLines: 588,
+    owner: 'module inventory metadata validation',
   },
   {
     path: 'scripts/lib/module-import-graph.mjs',
@@ -24,13 +59,8 @@ const moduleBudgets = [
   },
   {
     path: 'scripts/lib/module-boundary-graph.mjs',
-    maxLines: 96,
+    maxLines: 76,
     owner: 'module boundary cycle graph',
-  },
-  {
-    path: 'scripts/lib/module-boundary-paths.mjs',
-    maxLines: 66,
-    owner: 'module boundary path safety',
   },
   {
     path: 'scripts/lib/module-boundary-report.mjs',

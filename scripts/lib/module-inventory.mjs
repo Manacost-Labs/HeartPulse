@@ -1,120 +1,15 @@
-import { execFileSync } from 'node:child_process';
-import { existsSync, lstatSync, readFileSync, realpathSync } from 'node:fs';
+import { lstatSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { singleLineErrorMessage } from './diagnostic-text-policy.mjs';
+import { MODULE_EXCEPTION_GROUPS } from './module-boundary-contracts.mjs';
+import {
+  normalizeRepositoryPath,
+  resolveRepositoryFile,
+  resolveRepositoryPath,
+} from './repository-path-policy.mjs';
+
 export const MODULE_INVENTORY_PATH = 'config/module-boundaries.json';
-export const MODULE_EXCEPTION_GROUPS = [
-  'missingPublicEntry',
-  'internalImport',
-  'moduleLegacyImport',
-  'runtimeCrossing',
-  'typeCycle',
-];
-
-const UNSAFE_METADATA_CHARACTER = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u;
-const UNSAFE_METADATA_CHARACTERS = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu;
-
-export function singleLineDisplay(value) {
-  return String(value).replace(
-    UNSAFE_METADATA_CHARACTERS,
-    character => `\\u{${character.codePointAt(0).toString(16).toUpperCase()}}`,
-  );
-}
-
-export function singleLineErrorMessage(error) {
-  return singleLineDisplay(error instanceof Error ? error.message : String(error));
-}
-
-export function isSafeMetadataText(value) {
-  return typeof value === 'string'
-    && value.trim().length > 0
-    && !UNSAFE_METADATA_CHARACTER.test(value);
-}
-
-export function repositoryRoot(cwd) {
-  return execFileSync('git', ['rev-parse', '--show-toplevel'], {
-    cwd,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-    timeout: 15_000,
-  }).trim();
-}
-
-export function normalizeRepositoryPath(value, root) {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-  const relative = path.isAbsolute(raw) ? path.relative(root, raw) : raw;
-  return path.posix.normalize(relative.replaceAll('\\', '/')).replace(/^\.\//, '').replace(/\/$/, '');
-}
-
-function resolveOwnedPath(root, relativePath) {
-  const resolved = path.resolve(root, relativePath);
-  const relative = path.relative(root, resolved);
-  if (relative.startsWith('..') || path.isAbsolute(relative)) {
-    throw new Error(`Inventory path escapes the repository: ${relativePath}`);
-  }
-  return resolved;
-}
-
-export function resolveRepositoryFile(root, relativePath, { required }) {
-  const absolutePath = resolveOwnedPath(root, relativePath);
-  if (!existsSync(absolutePath)) {
-    if (required) throw new Error(`Required repository file is missing: ${relativePath}`);
-    return null;
-  }
-  const stats = lstatSync(absolutePath);
-  if (stats.isSymbolicLink() || !stats.isFile()) {
-    throw new Error(`Repository file must be a regular file, not a symlink: ${relativePath}`);
-  }
-  const realRoot = realpathSync(root);
-  const realFile = realpathSync(absolutePath);
-  const realRelative = path.relative(realRoot, realFile);
-  if (realRelative.startsWith('..') || path.isAbsolute(realRelative)) {
-    throw new Error(`Repository file resolves outside the repository: ${relativePath}`);
-  }
-  return realFile;
-}
-
-function strictRepositorySelectorPath(value) {
-  const raw = String(value || '').trim();
-  if (!raw) throw new Error('Module or path selector must not be empty.');
-  if (UNSAFE_METADATA_CHARACTER.test(raw)) {
-    throw new Error('Repository path selector is not safe: control characters are forbidden.');
-  }
-  if (raw.includes('\\') || path.posix.isAbsolute(raw)) {
-    throw new Error(`Repository path selector is not safe: ${raw}`);
-  }
-  const withoutPrefix = raw.replace(/^(?:\.\/)+/, '').replace(/\/+$/, '');
-  const segments = withoutPrefix.split('/');
-  if (!withoutPrefix || segments.includes('..') || segments.includes('.')) {
-    throw new Error(`Repository path selector is not safe: ${raw}`);
-  }
-  const normalized = path.posix.normalize(withoutPrefix);
-  if (normalized !== withoutPrefix) {
-    throw new Error(`Repository path selector must already be normalized: ${raw}`);
-  }
-  return normalized;
-}
-
-export function resolveRepositoryPath(root, relativePath, { required = true } = {}) {
-  const normalized = strictRepositorySelectorPath(relativePath);
-  const absolutePath = resolveOwnedPath(root, normalized);
-  if (!existsSync(absolutePath)) {
-    if (required) throw new Error(`Repository path does not exist: ${normalized}`);
-    return null;
-  }
-  const stats = lstatSync(absolutePath);
-  if (stats.isSymbolicLink() || (!stats.isFile() && !stats.isDirectory())) {
-    throw new Error(`Repository path must be a regular file or directory, not a symlink: ${normalized}`);
-  }
-  const realRoot = realpathSync(root);
-  const realEntry = realpathSync(absolutePath);
-  const realRelative = path.relative(realRoot, realEntry);
-  if (realRelative.startsWith('..') || path.isAbsolute(realRelative)) {
-    throw new Error(`Repository path resolves outside the repository: ${normalized}`);
-  }
-  return normalized;
-}
 
 export function readModuleInventory(root, inventoryPath = MODULE_INVENTORY_PATH) {
   let inventoryFile;
@@ -242,7 +137,7 @@ export function resolveModuleOrPathSelector(inventory, selector, root) {
   const candidatePath = selectedModule?.root
     ?? selectedAreaRoot
     ?? selectedSharedRoot?.root
-    ?? strictRepositorySelectorPath(rawSelector);
+    ?? rawSelector;
   const normalizedPath = resolveRepositoryPath(root, candidatePath);
   const owningModule = selectedModule
     ?? moduleForRepositoryPath(inventory.modules, normalizedPath, root);
@@ -284,7 +179,7 @@ export function resolveModuleOrPathSelector(inventory, selector, root) {
   const normalizedAreaRoots = owningArea
     ? owningArea.roots.map(areaRoot => normalizeRepositoryPath(areaRoot, root))
     : [];
-  const pathStats = lstatSync(resolveOwnedPath(root, normalizedPath));
+  const pathStats = lstatSync(path.resolve(root, normalizedPath));
   const selection = {
     selector: rawSelector,
     kind: normalizedModuleRoot === normalizedPath

@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadAgentImpact } from './agent-impact.mjs';
+import { singleLineErrorMessage } from './lib/diagnostic-text-policy.mjs';
 import {
   AGENT_CHECK_BASE_SCRIPTS,
   FOCUSED_TEST_SCRIPT_PATTERN,
@@ -13,11 +14,7 @@ import {
   packageScriptExists,
   packageScriptLifecycleHooks,
 } from './lib/npm-script-policy.mjs';
-import {
-  repositoryRoot,
-  resolveRepositoryFile,
-  singleLineErrorMessage,
-} from './lib/module-inventory.mjs';
+import { repositoryRoot, resolveRepositoryFile } from './lib/repository-path-policy.mjs';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 

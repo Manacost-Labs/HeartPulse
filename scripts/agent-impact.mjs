@@ -8,16 +8,16 @@ import {
   analyzeModuleBoundaries,
   formatModuleBoundaryReport,
 } from './check-module-boundaries.mjs';
+import { singleLineErrorMessage } from './lib/diagnostic-text-policy.mjs';
 import {
   pathBelongsToMigrationArea,
   moduleForRepositoryPath,
   pathBelongsToModule,
   readModuleInventory,
-  repositoryRoot,
   resolveModuleOrPathSelector,
-  singleLineErrorMessage,
   stableModuleExceptions,
 } from './lib/module-inventory.mjs';
+import { repositoryRoot } from './lib/repository-path-policy.mjs';
 import {
   publicRoutesForScope,
   readPublicRouteInventory,

@@ -58,7 +58,7 @@
     "test:claude-post-push-hook": "node --test tests/claude-post-push-review-hook.test.mjs",
     "test:react-doctor-contract": "node --test tests/react-doctor-changed.test.mjs",
     "test:agent-tooling": "node --test tests/agent-check.test.mjs tests/agent-context.test.mjs tests/agent-impact.test.mjs tests/agent-navigation.test.mjs tests/agent-tooling-contract.test.mjs tests/agent-session-preflight.test.mjs",
-    "test:module-boundaries": "node --test tests/module-boundaries.test.mjs",
+    "test:module-boundaries": "node --test tests/module-boundary-*.test.mjs",
     "test:registry": "node scripts/test-suite-runner.mjs --validate && node --test tests/test-suite-runner.test.mjs",
     "test:storybook": "node --test tests/storybook-mcp-contract.test.mjs",
     "test:security-tooling": "node --test tests/security-tooling-contract.test.mjs",

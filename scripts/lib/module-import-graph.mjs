@@ -14,9 +14,9 @@ import {
 
 import ts from 'typescript';
 
-import { compareEdges } from './module-boundary-graph.mjs';
-import { isSafeRelativePath, projectPath } from './module-boundary-paths.mjs';
-import { singleLineDisplay } from './module-inventory.mjs';
+import { singleLineDisplay } from './diagnostic-text-policy.mjs';
+import { compareEdges } from './module-boundary-edges.mjs';
+import { isSafeRelativePath, projectPath } from './repository-path-policy.mjs';
 import { extractImports } from './module-import-parser.mjs';
 
 export function readCompilerOptions(rootDir) {

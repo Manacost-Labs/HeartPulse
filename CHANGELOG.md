@@ -10,12 +10,15 @@
   accessibility, observability, security and recovery exit gates. Agent
   instructions now derive the public changelog version from the changelog
   itself instead of carrying a stale second copy.
-- Decomposed the module-boundary checker into named path-safety, source-scan,
-  import-parser, import-resolution, cycle-graph and report units while retaining
-  a stable orchestration facade. Exact characterization tests now pin public
-  exports, diagnostic order, cycle objects, report bytes and CLI exit streams;
-  ratcheted size budgets prevent the responsibilities from collapsing back into
-  the monolith.
+- Decomposed the module-boundary checker into named diagnostic, path-safety,
+  canonical-contract, inventory-validation, exception, edge-identity,
+  source-scan, import-parser, import-resolution, cycle-graph and report units
+  while retaining its exact three-export and CLI contract. The orchestration
+  facade is now 284 lines with an exact 284-line ratchet; six focused test
+  suites pin diagnostic order, cycle objects, report bytes and CLI exit
+  streams. Canonical policy collections are immutable, agent tools import
+  diagnostic/path owners directly, and an AST-based layer gate rejects
+  dependency bypasses or `scripts/lib` edges toward higher-level policy.
 - Promoted `src/shared` and `server/shared` to first-class schema-v3 ownership
   records with stable ids, explicit purpose/owner, focused tests, documentation
   and real-root-checked safe starts. Shared roots can now be selected by id or

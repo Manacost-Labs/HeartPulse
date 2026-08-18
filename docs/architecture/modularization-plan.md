@@ -325,7 +325,7 @@ agent can execute without first converting an XL phase into a task.
 | `ROUTES-01` | P1 / M | `client.featureLegacy` / `web-platform` | application routing foundation | Extract one Arena or Standard route behind a focused lazy entry, direct model test and route chunk budget; lower the owning legacy ratchet. |
 | `SERVER-01` | P1 / M | `server.applicationComposition` / `web-platform` | target server public entry | Move one HTTP family into route/service/repository boundaries with explicit dependencies, compatible HTTP tests and endpoint-latency evidence. |
 | `OBS-01` | P1 / M | `server.applicationComposition` / `web-platform` | `PERF-01`, regional trust boundary | Publish owned dashboards and alerts for CWV, API latency/error rate, CDN hit/miss/fallback, regional parity, data freshness and Battlegrounds roster age; exercise one recovery runbook. |
-| `ARCH-01` | P2 / M | repository tooling / `web-platform` | checker characterization complete | Extract metadata validation and exception policy from the boundary facade, centralize repository path safety and split checker tests by responsibility; lower the facade below 500 lines. |
+| `ARCH-01` | P2 / M | repository tooling / `web-platform` | checker characterization complete | Implemented for review: metadata validation, exception policy, diagnostic/path and edge primitives have focused owners; the facade is 284 lines with an exact 284-line ratchet, six test suites stay below 500 lines and an AST gate enforces dependency direction. |
 | `LEGACY-01` | P2 / S | checked area id / its declared owner | owning module slice | Remove one exact migration root or exception only after all consumers use the public entry; lower its architecture budget and update impact/docs. |
 
 <!-- markdownlint-enable MD013 -->
@@ -927,16 +927,14 @@ cookies, query values and card ids never become metric dimensions.
 
 ### 15. AI tooling and final legacy removal
 
-Status: in progress. Ownership/navigation and the first checker decomposition
-are in review; `ARCH-01` and per-owner `LEGACY-01` slices remain.
+Status: in progress. Ownership/navigation and the completed `ARCH-01`
+implementation are in review; per-owner `LEGACY-01` slices remain.
 
 The generated `agent:context`, `agent:check`, `agent:impact` and `agent:map`
 commands now cover canonical modules, eight initial migration areas, all 48
 public URL policies and the repository root. The checked baseline covers
 product code in `src`, `server`, top-level `shared`, and
-`public/bg-legacy`; new orphaned or overlapping legacy files fail CI. Continue
-splitting the boundary checker itself into parser, resolver, policy and report
-units only after characterization tests pin each extraction.
+`public/bg-legacy`; new orphaned or overlapping legacy files fail CI.
 
 Canonical `src/shared` and `server/shared` roots now have first-class ids,
 owners, purposes, tests, documentation and safe starts. They are selectable by
@@ -945,19 +943,16 @@ same-runtime module and migration-area set because a cross-module primitive has
 a wider blast radius than its own focused contract tests.
 
 The boundary checker is now characterized and decomposed behind its existing
-three public exports. Path safety, source scans, import parsing, import
-resolution, cycle analysis and report formatting live in named `scripts/lib/`
-units; the facade retains validation order, policy and CLI orchestration.
-Exact tests pin diagnostic order, report bytes, stdout/stderr and exit codes,
-and size budgets prevent the extracted responsibilities from drifting back into
-the facade.
-
-The next `ARCH-01` slice extracts inventory/shared/migration validation and
-exception policy while preserving the pinned diagnostic order, centralizes the
-repository path-safety primitive used by inventory and boundary tools, moves
-edge ordering into a neutral unit and splits the 1,000-line characterization
-file by responsibility. It is complete when the facade is below 500 lines and
-a test enforces the allowed dependency direction among `scripts/lib` modules.
+three public exports. Diagnostic safety, repository paths, canonical contracts,
+inventory validation, exception policy, edge identity, source scans, import
+parsing and resolution, cycle analysis and report formatting have named
+`scripts/lib/` owners. The facade retains analysis order, edge policy and CLI
+orchestration and is 284 lines against an exact 284-line ratchet. Exact tests pin
+diagnostic order, report bytes, stdout/stderr and exit codes; the former
+1,000-line characterization file is split into six responsibility suites, and
+an AST-based gate enforces strict downward dependencies across governed library
+layers, requires every classified unit to remain reachable from the facade and
+rejects dynamic, CommonJS, peer-relative and import-map bypasses.
 
 The migration is complete when:
 

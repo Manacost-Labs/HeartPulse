@@ -252,21 +252,33 @@ only from the canonical route inventory.
 
 ### Checker implementation map
 
-`scripts/check-module-boundaries.mjs` is the stable facade: it owns validation
+`scripts/check-module-boundaries.mjs` is the stable facade: it owns analysis
 order, boundary policy, the three public exports and CLI orchestration. Its
-mechanical subsystems live under `scripts/lib/`:
+policy and mechanical subsystems live under `scripts/lib/`:
 
-- `module-boundary-paths.mjs` owns canonical and realpath safety;
+- `diagnostic-text-policy.mjs` owns safe single-line metadata and diagnostics;
+- `module-boundary-contracts.mjs` owns immutable canonical roots and exception
+  groups;
+- `repository-path-policy.mjs` owns normalization, selector and realpath safety;
+- `module-inventory.mjs` owns inventory loading and ownership selection;
+- `module-inventory-validation.mjs` owns module, migration-area and shared-root
+  metadata validation;
+- `module-boundary-exceptions.mjs` owns exception metadata and graph matching;
+- `module-boundary-edges.mjs` owns stable edge ordering and identity keys;
 - `module-boundary-source-scan.mjs` owns graph and migration-ownership scans;
 - `module-import-parser.mjs` owns TS/JS/style import extraction;
 - `module-import-graph.mjs` owns compiler options, resolution and glob edges;
-- `module-boundary-graph.mjs` owns stable edge ordering and cycle analysis;
+- `module-boundary-graph.mjs` owns runtime and type-inclusive cycle analysis;
 - `module-boundary-report.mjs` owns the line-oriented report contract.
 
 Characterization tests pin the facade exports, diagnostic insertion order,
 cycle objects, report bytes, CLI stdout/stderr and exit codes. Architecture size
-budgets cover the facade and every extracted unit so parser, resolver and
-presentation logic cannot silently collapse back into one file.
+budgets cover the facade and every extracted unit, while an AST-based layer gate
+requires every governed `scripts/lib` dependency to point to a lower policy
+layer, rejects alternate local import mechanisms and requires every classified
+unit to remain reachable from the facade. The facade has an exact current-size
+ratchet below 500 lines, and each responsibility-specific characterization
+suite is also kept below 500 lines.
 
 `npm run agent:check -- <module-id-or-path-or-root>` converts that impact result
 into a minimal executable check plan: the architecture gate, TypeScript check

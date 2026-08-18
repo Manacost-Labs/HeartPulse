@@ -1,4 +1,4 @@
-import { singleLineDisplay } from './module-inventory.mjs';
+import { singleLineDisplay } from './diagnostic-text-policy.mjs';
 
 export function formatModuleBoundaryReport(report) {
   const { counts } = report;

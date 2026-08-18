@@ -1,8 +1,8 @@
 import { lstatSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { singleLineDisplay } from './module-inventory.mjs';
-import { isSafeRelativePath, projectPath } from './module-boundary-paths.mjs';
+import { singleLineDisplay } from './diagnostic-text-policy.mjs';
+import { isSafeRelativePath, projectPath } from './repository-path-policy.mjs';
 
 const SOURCE_EXTENSIONS = new Set([
   '.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs',

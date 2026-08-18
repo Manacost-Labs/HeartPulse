@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs';
 
 import {
   isSafeMetadataText,
-  resolveRepositoryFile,
   singleLineErrorMessage,
-} from './module-inventory.mjs';
+} from './diagnostic-text-policy.mjs';
+import { resolveRepositoryFile } from './repository-path-policy.mjs';
 
 export const PUBLIC_ROUTE_INVENTORY_PATH = 'src/shared/seo/publicRouteInventory.json';
 
