@@ -111,6 +111,7 @@ export function createAgentCheckPlan({ impact, packageJson }) {
         : {}),
       ...(impact.target.sharedRoot
         ? {
+            ...(impact.target.sharedRootId ? { sharedRootId: impact.target.sharedRootId } : {}),
             sharedRoot: impact.target.sharedRoot,
             sharedRuntime: impact.target.sharedRuntime,
           }
@@ -222,7 +223,7 @@ export function formatAgentCheckPlan(plan) {
     `Check target: ${plan.target.path}`,
     `Owning module: ${plan.target.moduleId ?? '(none)'}`,
     `Migration area: ${plan.target.migrationAreaId ?? '(none)'}`,
-    `Shared root: ${plan.target.sharedRoot ?? '(none)'}`,
+    `Shared root: ${plan.target.sharedRootId ?? '(none)'}${plan.target.sharedRoot ? ` — ${plan.target.sharedRoot}` : ''}`,
     `Affected modules: ${plan.affectedModules.length > 0 ? plan.affectedModules.join(', ') : '(none)'}`,
     'Checks:',
     ...plan.checks.map(check => `  - ${check.argv.join(' ')} [${check.source}]`),

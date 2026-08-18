@@ -194,6 +194,8 @@ export function createAgentImpact({ inventory, graph, selection, publicRouteInve
   const modules = [...inventory.modules].sort((left, right) => compareText(left.id, right.id));
   const migrationAreas = [...(inventory.migrationAreas ?? [])]
     .sort((left, right) => compareText(left.id, right.id));
+  const sharedRoots = [...(inventory.sharedRoots ?? [])]
+    .sort((left, right) => compareText(left.id, right.id));
   const { directCallers, transitiveCallers } = reverseCallers(
     selection,
     modules,
@@ -217,13 +219,21 @@ export function createAgentImpact({ inventory, graph, selection, publicRouteInve
     : selection.sharedRuntime
       ? migrationAreas.filter(area => area.runtime === selection.sharedRuntime)
       : migrationAreas.filter(area => area.id === selection.migrationAreaId);
+  const selectedSharedRoots = selection.kind === 'root'
+    ? sharedRoots
+    : sharedRoots.filter(sharedRoot => (
+        sharedRoot.id === selection.sharedRootId
+          || (!selection.sharedRootId && sharedRoot.root === selection.sharedRoot)
+      ));
   const focusedTests = sortedUnique([
     ...affectedInventoryModules.flatMap(module => module.focusedTests),
     ...selectedMigrationAreas.flatMap(area => area.focusedTests),
+    ...selectedSharedRoots.flatMap(sharedRoot => sharedRoot.focusedTests),
   ]);
   const docs = sortedUnique([
     ...affectedInventoryModules.flatMap(module => module.docs),
     ...selectedMigrationAreas.flatMap(area => area.docs),
+    ...selectedSharedRoots.flatMap(sharedRoot => sharedRoot.docs),
   ]);
   const contracts = sortedUnique(affectedInventoryModules.flatMap(module => [
     module.publicEntry,
@@ -273,7 +283,11 @@ export function createAgentImpact({ inventory, graph, selection, publicRouteInve
         ? { migrationAreaId: selection.migrationAreaId }
         : {}),
       ...(selection.sharedRoot
-        ? { sharedRoot: selection.sharedRoot, sharedRuntime: selection.sharedRuntime }
+        ? {
+            ...(selection.sharedRootId ? { sharedRootId: selection.sharedRootId } : {}),
+            sharedRoot: selection.sharedRoot,
+            sharedRuntime: selection.sharedRuntime,
+          }
         : {}),
     },
     counts: {
@@ -325,7 +339,7 @@ export function formatAgentImpact(impact) {
     `Selection kind: ${impact.target.kind}`,
     `Owning module: ${impact.target.moduleId ?? '(none)'}`,
     `Migration area: ${impact.target.migrationAreaId ?? '(none)'}`,
-    `Shared root: ${impact.target.sharedRoot ?? '(none)'}`,
+    `Shared root: ${impact.target.sharedRootId ?? '(none)'}${impact.target.sharedRoot ? ` — ${impact.target.sharedRoot}` : ''}`,
     ...linesFor('Direct callers', impact.directCallers.map(caller => (
       `${caller.path}${caller.moduleId ? ` [${caller.moduleId}]` : ''} (${caller.kinds.join(', ')})`
     ))),
@@ -339,7 +353,7 @@ export function formatAgentImpact(impact) {
     ...linesFor('Focused tests', impact.focusedTests),
     ...linesFor('Documentation', impact.docs),
     ...linesFor('Known debt', impact.knownDebt.map(debt => (
-      `${debt.moduleId ?? debt.migrationAreaId}: ${debt.category} — ${debt.reason}`
+      `${debt.moduleId ?? debt.migrationAreaId ?? debt.sharedRootId}: ${debt.category} — ${debt.reason}`
     ))),
     ...(impact.routeImpact.status === 'mapped'
       ? linesFor('Public routes', impact.routeImpact.routes.map(route => (

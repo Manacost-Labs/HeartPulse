@@ -43,7 +43,10 @@ const SOURCE_EXTENSIONS = new Set([
 ]);
 const OWNERSHIP_EXTENSIONS = new Set([...SOURCE_EXTENSIONS, '.json', '.py']);
 const CANONICAL_MODULE_ROOTS = ['src/modules', 'server/modules'];
-const CANONICAL_SHARED_ROOTS = { client: ['src/shared'], server: ['server/shared'] };
+const CANONICAL_SHARED_ROOTS = [
+  { id: 'shared-root.client', runtime: 'client', root: 'src/shared' },
+  { id: 'shared-root.server', runtime: 'server', root: 'server/shared' },
+];
 const MAX_EXCEPTION_AGE_DAYS = 180;
 const EXCEPTION_CATEGORIES = [
   'missingPublicEntry',
@@ -522,10 +525,20 @@ function isPublicModuleEntry(module, path) {
 }
 
 function sharedRuntimeForPath(sharedRoots, path) {
-  for (const runtime of ['client', 'server']) {
-    if ((sharedRoots[runtime] || []).some(root => isInside(path, root))) return runtime;
+  for (const sharedRoot of Array.isArray(sharedRoots) ? sharedRoots : []) {
+    if (typeof sharedRoot?.root === 'string' && isInside(path, sharedRoot.root)) {
+      return sharedRoot.runtime;
+    }
   }
   return null;
+}
+
+function pathBelongsToSharedRuntime(sharedRoots, runtime, path) {
+  return (Array.isArray(sharedRoots) ? sharedRoots : []).some(sharedRoot => (
+    sharedRoot?.runtime === runtime
+      && typeof sharedRoot.root === 'string'
+      && isInside(path, sharedRoot.root)
+  ));
 }
 
 function projectRuntimeForPath(path) {
@@ -673,6 +686,18 @@ function repositoryEntryKind(rootDir, repositoryPath) {
   return stats.isFile() ? 'file' : 'directory';
 }
 
+function repositoryEntryResolvesWithin(rootDir, repositoryPath, ownerRoot) {
+  if (!isSafeRelativePath(repositoryPath) || !isSafeRelativePath(ownerRoot)) return false;
+  try {
+    const realEntry = realpathSync(resolve(rootDir, repositoryPath));
+    const realOwnerRoot = realpathSync(resolve(rootDir, ownerRoot));
+    const ownedRelative = relative(realOwnerRoot, realEntry);
+    return ownedRelative === '' || (!ownedRelative.startsWith('..') && !isAbsolute(ownedRelative));
+  } catch {
+    return false;
+  }
+}
+
 function migrationAreaOverlap(left, right) {
   if (!isRecord(left) || !isRecord(right)
     || !Array.isArray(left.roots) || !Array.isArray(right.roots)
@@ -711,7 +736,7 @@ function expectedMigrationRuntime(path) {
 function validateMigrationAreas(config, rootDir, modules, packageJson, errors) {
   const areas = Array.isArray(config.migrationAreas) ? config.migrationAreas : [];
   if (!Array.isArray(config.migrationAreas)) {
-    addError(errors, 'invalid-migration-areas', 'schemaVersion 2 requires a migrationAreas array');
+    addError(errors, 'invalid-migration-areas', 'schemaVersion 3 requires a migrationAreas array');
   }
   const ids = new Set();
   let publicRouteInventory = null;
@@ -722,7 +747,7 @@ function validateMigrationAreas(config, rootDir, modules, packageJson, errors) {
   const moduleIds = new Set(modules.map(module => module.id));
   const protectedRoots = [
     ...CANONICAL_MODULE_ROOTS,
-    ...Object.values(CANONICAL_SHARED_ROOTS).flat(),
+    ...CANONICAL_SHARED_ROOTS.map(sharedRoot => sharedRoot.root),
   ];
 
   for (const area of areas) {
@@ -927,10 +952,158 @@ function isUsableModule(module) {
     && Array.isArray(module.dependencies);
 }
 
+function isUsableSharedRoot(sharedRoot) {
+  return isRecord(sharedRoot)
+    && ['id', 'runtime', 'root', 'purpose', 'owner'].every(field => (
+      isSafeMetadataText(sharedRoot[field])
+    ))
+    && Array.isArray(sharedRoot.focusedTests)
+    && Array.isArray(sharedRoot.docs)
+    && Array.isArray(sharedRoot.safeStarts);
+}
+
+function validateSharedRoots(config, rootDir, modules, migrationAreas, packageJson, errors) {
+  const sharedRoots = Array.isArray(config.sharedRoots) ? config.sharedRoots : [];
+  const configuredIdentities = sharedRoots
+    .filter(isRecord)
+    .map(({ id, runtime, root }) => ({ id, runtime, root }))
+    .sort((left, right) => String(left.root).localeCompare(String(right.root)));
+  const canonicalIdentities = [...CANONICAL_SHARED_ROOTS]
+    .sort((left, right) => left.root.localeCompare(right.root));
+  if (JSON.stringify(configuredIdentities) !== JSON.stringify(canonicalIdentities)) {
+    addError(
+      errors,
+      'invalid-boundary-roots',
+      'moduleRoots and sharedRoots must match the canonical client/server architecture roots',
+    );
+  }
+
+  const architectureIds = new Set([
+    ...modules.map(module => module.id),
+    ...migrationAreas.map(area => area.id),
+  ]);
+  const roots = new Set();
+  for (const sharedRoot of sharedRoots) {
+    if (!isRecord(sharedRoot)) {
+      addError(errors, 'invalid-shared-root', 'every shared root inventory item must be an object');
+      continue;
+    }
+    for (const field of ['id', 'runtime', 'root', 'purpose', 'owner']) {
+      if (!isSafeMetadataText(sharedRoot[field])) {
+        addError(
+          errors,
+          'invalid-shared-root',
+          `shared root ${sharedRoot.id || '<unknown>'} requires ${field}`,
+        );
+      }
+    }
+    if (!['client', 'server'].includes(sharedRoot.runtime)) {
+      addError(
+        errors,
+        'invalid-shared-root-runtime',
+        `shared root ${sharedRoot.id || '<unknown>'} has invalid runtime ${sharedRoot.runtime}`,
+      );
+    }
+    if (architectureIds.has(sharedRoot.id)) {
+      addError(
+        errors,
+        'duplicate-ownership-id',
+        `shared root id must not collide with another ownership id: ${sharedRoot.id}`,
+      );
+    }
+    architectureIds.add(sharedRoot.id);
+    if (roots.has(sharedRoot.root)) {
+      addError(errors, 'duplicate-shared-root', `duplicate shared root ${sharedRoot.root}`);
+    }
+    roots.add(sharedRoot.root);
+    if (!isSafeRelativePath(sharedRoot.root)
+      || repositoryEntryKind(rootDir, sharedRoot.root) !== 'directory') {
+      addError(
+        errors,
+        'missing-shared-root-artifact',
+        `shared root ${sharedRoot.id || '<unknown>'} root is missing: ${sharedRoot.root}`,
+      );
+    }
+
+    const focusedTests = Array.isArray(sharedRoot.focusedTests) ? sharedRoot.focusedTests : [];
+    const docs = Array.isArray(sharedRoot.docs) ? sharedRoot.docs : [];
+    const safeStarts = Array.isArray(sharedRoot.safeStarts) ? sharedRoot.safeStarts : [];
+    if (!Array.isArray(sharedRoot.focusedTests)
+      || !Array.isArray(sharedRoot.docs)
+      || !Array.isArray(sharedRoot.safeStarts)
+      || focusedTests.length === 0
+      || docs.length === 0
+      || safeStarts.length === 0
+      || [...focusedTests, ...docs, ...safeStarts]
+        .some(value => !isSafeMetadataText(value))) {
+      addError(
+        errors,
+        'invalid-shared-root-ownership',
+        `shared root ${sharedRoot.id || '<unknown>'} requires non-empty focusedTests, docs and safeStarts arrays`,
+      );
+    }
+    for (const [field, values] of Object.entries({ focusedTests, docs, safeStarts })) {
+      if (new Set(values).size !== values.length) {
+        addError(
+          errors,
+          'invalid-shared-root-ownership',
+          `shared root ${sharedRoot.id || '<unknown>'} has duplicate ${field} entries`,
+        );
+      }
+    }
+    for (const command of focusedTests) {
+      const script = focusedTestScriptId(command);
+      if (!script) {
+        addError(
+          errors,
+          'invalid-focused-test-command',
+          `shared root ${sharedRoot.id} focusedTests must contain exact allowlisted npm run test:* commands`,
+        );
+      } else if (!packageScriptExists(packageJson, script)) {
+        addError(
+          errors,
+          'missing-focused-test-script',
+          `shared root ${sharedRoot.id} references missing package script ${script}`,
+        );
+      } else {
+        const hooks = packageScriptLifecycleHooks(packageJson, script);
+        if (hooks.length > 0) {
+          addError(
+            errors,
+            'focused-test-lifecycle-hook',
+            `shared root ${sharedRoot.id} focused test ${script} must not have pre/post lifecycle hooks`,
+          );
+        }
+      }
+    }
+    for (const artifact of docs) {
+      if (!isSafeRelativePath(artifact) || repositoryEntryKind(rootDir, artifact) !== 'file') {
+        addError(
+          errors,
+          'missing-shared-root-artifact',
+          `shared root ${sharedRoot.id} documentation is missing: ${artifact}`,
+        );
+      }
+    }
+    for (const safeStart of safeStarts) {
+      if (!isSafeRelativePath(safeStart)
+        || repositoryEntryKind(rootDir, safeStart) !== 'file'
+        || !isInside(safeStart, sharedRoot.root)
+        || !repositoryEntryResolvesWithin(rootDir, safeStart, sharedRoot.root)) {
+        addError(
+          errors,
+          'missing-shared-root-artifact',
+          `shared root ${sharedRoot.id} safe start is invalid: ${safeStart}`,
+        );
+      }
+    }
+  }
+  return sharedRoots.filter(isUsableSharedRoot);
+}
+
 function validateConfig(config, rootDir, discoveredRoots, errors) {
-  if (config.schemaVersion !== 2) addError(errors, 'invalid-schema-version', 'module-boundaries schemaVersion must be 2');
-  if (JSON.stringify(config.moduleRoots) !== JSON.stringify(CANONICAL_MODULE_ROOTS)
-    || JSON.stringify(config.sharedRoots) !== JSON.stringify(CANONICAL_SHARED_ROOTS)) {
+  if (config.schemaVersion !== 3) addError(errors, 'invalid-schema-version', 'module-boundaries schemaVersion must be 3');
+  if (JSON.stringify(config.moduleRoots) !== JSON.stringify(CANONICAL_MODULE_ROOTS)) {
     addError(
       errors,
       'invalid-boundary-roots',
@@ -1062,13 +1235,22 @@ function validateConfig(config, rootDir, discoveredRoots, errors) {
       }
     }
   }
-  return validateMigrationAreas(
+  const migrationAreas = validateMigrationAreas(
     config,
     rootDir,
     modules.filter(isUsableModule),
     packageJson,
     errors,
   );
+  const sharedRoots = validateSharedRoots(
+    config,
+    rootDir,
+    modules.filter(isUsableModule),
+    migrationAreas,
+    packageJson,
+    errors,
+  );
+  return { migrationAreas, sharedRoots };
 }
 
 export function validateModuleInventoryMetadata({
@@ -1078,8 +1260,23 @@ export function validateModuleInventoryMetadata({
 } = {}) {
   const absoluteRoot = resolve(rootDir);
   const errors = [];
+  if (!isRecord(config)) {
+    addError(errors, 'invalid-config-shape', 'module-boundaries inventory must contain an object');
+    return {
+      ok: false,
+      modules: [],
+      migrationAreas: [],
+      sharedRoots: [],
+      errors,
+    };
+  }
   const discoveredRoots = discoverModuleRoots(absoluteRoot, CANONICAL_MODULE_ROOTS);
-  const migrationAreas = validateConfig(config, absoluteRoot, discoveredRoots, errors);
+  const { migrationAreas, sharedRoots } = validateConfig(
+    config,
+    absoluteRoot,
+    discoveredRoots,
+    errors,
+  );
   validateExceptionMetadata(config, errors, now);
   const modules = (Array.isArray(config?.modules) ? config.modules : [])
     .filter(isUsableModule);
@@ -1087,6 +1284,7 @@ export function validateModuleInventoryMetadata({
     ok: errors.length === 0,
     modules,
     migrationAreas,
+    sharedRoots,
     errors,
   };
 }
@@ -1295,7 +1493,7 @@ export function analyzeModuleBoundaries({
   }
 
   const sharedRoots = CANONICAL_SHARED_ROOTS;
-  const configuredModules = Array.isArray(config.modules) ? config.modules : [];
+  const configuredModules = Array.isArray(config?.modules) ? config.modules : [];
   const metadata = validateModuleInventoryMetadata({ rootDir: absoluteRoot, config, now });
   errors.push(...metadata.errors);
   const migrationAreas = metadata.migrationAreas;
@@ -1366,12 +1564,12 @@ export function analyzeModuleBoundaries({
     }
 
     if (sourceModule && !targetModule) {
-      const allowedShared = (sharedRoots[sourceModule.runtime] || []).some(root => isInside(edge.target, root));
+      const allowedShared = pathBelongsToSharedRuntime(sharedRoots, sourceModule.runtime, edge.target);
       if (!allowedShared) violations.moduleLegacyImport.push(edge);
     }
 
     if (sourceSharedRuntime) {
-      const allowedShared = (sharedRoots[sourceSharedRuntime] || []).some(root => isInside(edge.target, root));
+      const allowedShared = pathBelongsToSharedRuntime(sharedRoots, sourceSharedRuntime, edge.target);
       if (!allowedShared) {
         addError(errors, 'shared-back-dependency', `${edge.source} imports outside ${sourceSharedRuntime} shared roots`, { edge });
       }

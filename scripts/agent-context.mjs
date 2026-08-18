@@ -147,9 +147,18 @@ export function loadAgentContext({ repositoryRoot: root, selector }) {
         safeStarts: [...area.safeStarts].sort(),
       }));
     const publicRoutes = publicRoutesForScope({ mode: 'all' }, publicRouteInventory);
-    const sharedRoots = Object.entries(inventory.sharedRoots)
-      .flatMap(([runtime, roots]) => roots.map(sharedRoot => ({ runtime, root: sharedRoot })))
-      .sort((left, right) => left.root.localeCompare(right.root));
+    const sharedRoots = [...inventory.sharedRoots]
+      .sort((left, right) => left.root.localeCompare(right.root))
+      .map(sharedRoot => ({
+        id: sharedRoot.id,
+        runtime: sharedRoot.runtime,
+        root: sharedRoot.root,
+        purpose: sharedRoot.purpose,
+        owner: sharedRoot.owner,
+        focusedTests: [...sharedRoot.focusedTests].sort(),
+        docs: [...sharedRoot.docs].sort(),
+        safeStarts: [...sharedRoot.safeStarts].sort(),
+      }));
     return {
       kind: 'root',
       id: 'root',
@@ -159,6 +168,7 @@ export function loadAgentContext({ repositoryRoot: root, selector }) {
       owners: [...new Set([
         ...inventory.modules.map(module => module.owner),
         ...inventory.migrationAreas.map(area => area.owner),
+        ...inventory.sharedRoots.map(sharedRoot => sharedRoot.owner),
       ])].sort(),
       modules,
       migrationAreas,
@@ -167,10 +177,12 @@ export function loadAgentContext({ repositoryRoot: root, selector }) {
       focusedTests: [...new Set([
         ...inventory.modules.flatMap(module => module.focusedTests),
         ...inventory.migrationAreas.flatMap(area => area.focusedTests),
+        ...inventory.sharedRoots.flatMap(sharedRoot => sharedRoot.focusedTests),
       ])].sort(),
       docs: [...new Set([
         ...inventory.modules.flatMap(module => module.docs),
         ...inventory.migrationAreas.flatMap(area => area.docs),
+        ...inventory.sharedRoots.flatMap(sharedRoot => sharedRoot.docs),
       ])].sort(),
       knownDebt: inventory.migrationAreas
         .flatMap(area => area.knownDebt.map(reason => ({ migrationAreaId: area.id, reason })))
@@ -182,6 +194,9 @@ export function loadAgentContext({ repositoryRoot: root, selector }) {
   }
 
   if (selection.sharedRoot) {
+    const sharedRoot = inventory.sharedRoots
+      .find(candidate => candidate.id === selection.sharedRootId);
+    if (!sharedRoot) throw new Error(`Selected shared root is absent: ${selection.sharedRootId}`);
     const runtimeInventoryModules = inventory.modules
       .filter(module => module.runtime === selection.sharedRuntime)
       .sort((left, right) => left.id.localeCompare(right.id));
@@ -206,25 +221,27 @@ export function loadAgentContext({ repositoryRoot: root, selector }) {
     }));
     return {
       kind: 'shared-root',
-      id: `shared-root.${selection.sharedRuntime}`,
+      id: sharedRoot.id,
       runtime: selection.sharedRuntime,
       selectedPath: selection.path,
       root: selection.sharedRoot,
-      purpose: 'Canonical cross-module code shared within one runtime.',
-      owner: null,
+      purpose: sharedRoot.purpose,
+      owner: sharedRoot.owner,
+      safeStarts: [...sharedRoot.safeStarts].sort(),
       runtimeModules,
       runtimeMigrationAreas,
       focusedTests: [...new Set([
+        ...sharedRoot.focusedTests,
         ...runtimeInventoryModules.flatMap(module => module.focusedTests),
         ...runtimeInventoryMigrationAreas.flatMap(area => area.focusedTests),
       ])].sort(),
       docs: [...new Set([
+        ...sharedRoot.docs,
         ...runtimeInventoryModules.flatMap(module => module.docs),
         ...runtimeInventoryMigrationAreas.flatMap(area => area.docs),
       ])].sort(),
       knownDebt: [...new Set([
         ...runtimeInventoryMigrationAreas.flatMap(area => area.knownDebt),
-        'The canonical shared root has a structural boundary but still needs first-class ownership metadata.',
       ])].sort(),
     };
   }
@@ -335,7 +352,7 @@ export function formatAgentContext(context) {
         `${area.id} [${area.owner}] — roots: ${area.roots.join(', ')}; safe starts: ${area.safeStarts.join(', ')}`
       ))),
       ...linesFor('Canonical shared roots', context.sharedRoots.map(shared => (
-        `${shared.root} [${shared.runtime}]`
+        `${shared.id} [${shared.owner}] — ${shared.root} [${shared.runtime}]; ${shared.purpose}; safe starts: ${shared.safeStarts.join(', ')}`
       ))),
       ...linesFor('Public routes', context.publicRoutes.map(route => (
         `${route.pattern} (${route.id}) [${route.owner}]`
@@ -354,7 +371,8 @@ export function formatAgentContext(context) {
       `Selected path: ${context.selectedPath}`,
       `Root: ${context.root}`,
       `Purpose: ${context.purpose}`,
-      'Owner: pending first-class shared ownership metadata',
+      `Owner: ${context.owner}`,
+      ...linesFor('Safe starts', context.safeStarts),
       ...linesFor('Runtime modules', context.runtimeModules.map(module => (
         `${module.id} [${module.owner}] — ${module.root}`
       ))),

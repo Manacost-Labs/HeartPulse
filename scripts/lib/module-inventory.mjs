@@ -143,11 +143,12 @@ export function readModuleInventory(root, inventoryPath = MODULE_INVENTORY_PATH)
     );
   }
   if (!inventory || typeof inventory !== 'object'
-    || inventory.schemaVersion !== 2
+    || inventory.schemaVersion !== 3
     || !Array.isArray(inventory.modules)
-    || !Array.isArray(inventory.migrationAreas)) {
+    || !Array.isArray(inventory.migrationAreas)
+    || !Array.isArray(inventory.sharedRoots)) {
     throw new Error(
-      'Module inventory must use schemaVersion 2 and contain modules and migrationAreas arrays.',
+      'Module inventory must use schemaVersion 3 and contain modules, migrationAreas and sharedRoots arrays.',
     );
   }
   return inventory;
@@ -172,10 +173,7 @@ export function moduleForRepositoryPath(modules, candidate, root = '') {
 
 export function sharedRootForRepositoryPath(sharedRoots, candidate, root = '') {
   const normalizedCandidate = normalizeRepositoryPath(candidate, root);
-  return Object.entries(sharedRoots ?? {})
-    .flatMap(([runtime, roots]) => (
-      Array.isArray(roots) ? roots.map(sharedRoot => ({ runtime, root: sharedRoot })) : []
-    ))
+  return [...(Array.isArray(sharedRoots) ? sharedRoots : [])]
     .map(entry => ({ ...entry, root: normalizeRepositoryPath(entry.root, root) }))
     .filter(entry => (
       normalizedCandidate === entry.root
@@ -228,8 +226,14 @@ export function resolveModuleOrPathSelector(inventory, selector, root) {
   const selectedModule = inventory.modules.find(module => module.id === rawSelector) ?? null;
   const selectedArea = (inventory.migrationAreas ?? [])
     .find(area => area.id === rawSelector) ?? null;
-  if (selectedModule && selectedArea) {
-    throw new Error(`Selector is ambiguous between a module and migration area: ${rawSelector}`);
+  if (!Array.isArray(inventory.sharedRoots)) {
+    throw new Error('Module inventory sharedRoots must be an array.');
+  }
+  const selectedSharedRoot = inventory.sharedRoots
+    .find(sharedRoot => sharedRoot.id === rawSelector) ?? null;
+  const selectedOwners = [selectedModule, selectedArea, selectedSharedRoot].filter(Boolean);
+  if (selectedOwners.length > 1) {
+    throw new Error(`Selector is ambiguous between architecture owners: ${rawSelector}`);
   }
   const selectedAreaRoot = selectedArea?.roots?.[0];
   if (selectedArea && (typeof selectedAreaRoot !== 'string' || !selectedAreaRoot)) {
@@ -237,11 +241,12 @@ export function resolveModuleOrPathSelector(inventory, selector, root) {
   }
   const candidatePath = selectedModule?.root
     ?? selectedAreaRoot
+    ?? selectedSharedRoot?.root
     ?? strictRepositorySelectorPath(rawSelector);
   const normalizedPath = resolveRepositoryPath(root, candidatePath);
   const owningModule = selectedModule
     ?? moduleForRepositoryPath(inventory.modules, normalizedPath, root);
-  const owningSharedRoot = sharedRootForRepositoryPath(
+  const owningSharedRoot = selectedSharedRoot ?? sharedRootForRepositoryPath(
     inventory.sharedRoots,
     normalizedPath,
     root,
@@ -294,6 +299,7 @@ export function resolveModuleOrPathSelector(inventory, selector, root) {
   };
   if (owningArea) selection.migrationAreaId = owningArea.id;
   if (owningSharedRoot) {
+    selection.sharedRootId = owningSharedRoot.id;
     selection.sharedRoot = owningSharedRoot.root;
     selection.sharedRuntime = owningSharedRoot.runtime;
   }

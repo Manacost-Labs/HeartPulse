@@ -32,20 +32,23 @@ accessibility tree и показатели производительности.
 ```bash
 npm run agent:context -- client.battlegrounds
 npm run agent:context -- src/features/BgLibrary.tsx
+npm run agent:context -- shared-root.client
 npm run agent:context -- server/shared/http/asyncRoute.ts
 npm run agent:context -- root
 ```
 
-Canonical shared paths remain navigable and are explicitly marked as awaiting
-first-class owner metadata instead of being misreported as legacy or unowned.
-Until that metadata exists, their context and check plan conservatively include
-every canonical module and migration area in the same runtime, so a legacy
-caller cannot silently lose its focused test.
+Canonical shared roots are navigable by stable id, root or nested path. Their
+schema-v3 records expose the declared owner, purpose, focused tests,
+documentation and safe starts instead of synthesizing placeholder ownership.
+Their context and check plan also conservatively include every canonical module
+and migration area in the same runtime, so a legacy caller cannot silently lose
+its focused test.
 `agent:impact -- <module-id-or-path-or-root> --json` добавляет обратных callers,
 затронутые контракты, focused tests, документацию, долг и маршруты.
 `agent:check -- <target> --list` строит безопасный allowlisted план без запуска,
 а без `--list` выполняет его. `agent:map -- --json` выдаёт детерминированную
-полную карту модулей, migration areas и канонических публичных URL.
+полную карту модулей, owned shared roots, migration areas и канонических
+публичных URL.
 
 Служебные JSON-ответы не содержат абсолютных путей или timestamp. Маршруты не
 копируются в module inventory: `routeScope` выбирает только существующих

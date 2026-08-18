@@ -2,13 +2,20 @@
 
 ## Unreleased
 
+- Promoted `src/shared` and `server/shared` to first-class schema-v3 ownership
+  records with stable ids, explicit purpose/owner, focused tests, documentation
+  and real-root-checked safe starts. Shared roots can now be selected by id or
+  path across `agent:map`, `agent:context`, `agent:impact` and `agent:check`;
+  their declared contracts are combined with the conservative same-runtime
+  module and migration checks instead of placeholder ownership.
 - Added deterministic `agent:map`, `agent:context`, `agent:impact` and
   `agent:check` navigation for canonical modules and shared roots, eight checked
   legacy/composition areas, and the repository root. Maintainers and AI agents can now
   inspect owners, safe starting files, migration targets, canonical URL impact,
   reverse runtime/type dependencies, documentation and debt before changing
   legacy code. Shared-root checks conservatively include every same-runtime
-  module and migration area until shared ownership becomes first-class.
+  module and migration area because cross-module primitives have a broad blast
+  radius.
   Metadata preflight rejects ambiguous ownership ids, unsafe paths,
   symlink escapes and unknown, injectable or lifecycle-extended test commands
   before context is emitted. The full boundary gate additionally rejects orphaned

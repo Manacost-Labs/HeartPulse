@@ -1,17 +1,56 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "moduleRoots": [
     "src/modules",
     "server/modules"
   ],
-  "sharedRoots": {
-    "client": [
-      "src/shared"
-    ],
-    "server": [
-      "server/shared"
-    ]
-  },
+  "sharedRoots": [
+    {
+      "id": "shared-root.client",
+      "runtime": "client",
+      "root": "src/shared",
+      "purpose": "Owns domain-independent browser SEO, route-inventory and public URL policy primitives shared across client modules.",
+      "owner": "web-platform",
+      "focusedTests": [
+        "npm run test:nginx-canonical-hosts",
+        "npm run test:nginx-routing",
+        "npm run test:prerender-seo",
+        "npm run test:public-url-policy",
+        "npm run test:responsive-inventory",
+        "npm run test:route-inventory",
+        "npm run test:seo-registry",
+        "npm run test:routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/adr/0001-public-url-indexability.md",
+        "docs/specs/application-route-manifest.md"
+      ],
+      "safeStarts": [
+        "src/shared/seo/publicUrlPolicy.ts",
+        "src/shared/seo/publicRouteInventory.json"
+      ]
+    },
+    {
+      "id": "shared-root.server",
+      "runtime": "server",
+      "root": "server/shared",
+      "purpose": "Owns domain-independent Express and HTTP primitives shared across server modules.",
+      "owner": "web-platform",
+      "focusedTests": [
+        "npm run test:article-routes",
+        "npm run test:ecosystem-internal-routes",
+        "npm run test:server-build"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ],
+      "safeStarts": [
+        "server/shared/http/asyncRoute.ts"
+      ]
+    }
+  ],
   "modules": [
     {
       "id": "client.accountRoute",

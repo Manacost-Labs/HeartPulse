@@ -80,6 +80,8 @@ const modules = [
 const inventory = {
   schemaVersion: 1,
   modules,
+  migrationAreas: [],
+  sharedRoots: [],
   exceptions: {
     internalImport: [{
       source: 'server/modules/beta/service.ts',
@@ -90,6 +92,17 @@ const inventory = {
       expiresOn: '2026-12-31',
     }],
   },
+};
+
+const serverSharedRoot = {
+  id: 'shared-root.server',
+  runtime: 'server',
+  root: 'server/shared',
+  purpose: 'Owns shared server fixture primitives.',
+  owner: 'web-platform',
+  focusedTests: ['npm run test:server-shared-contract'],
+  docs: ['docs/architecture/shared-server.md'],
+  safeStarts: ['server/shared/http/asyncRoute.ts'],
 };
 
 const legacyArea = {
@@ -263,6 +276,7 @@ test('shared paths conservatively include every same-runtime module and migratio
     inventory: {
       ...inventory,
       migrationAreas: [legacyArea],
+      sharedRoots: [serverSharedRoot],
     },
     graph: {
       edges: [{
@@ -277,6 +291,7 @@ test('shared paths conservatively include every same-runtime module and migratio
       kind: 'file',
       path: 'server/shared/http/asyncRoute.ts',
       moduleId: null,
+      sharedRootId: 'shared-root.server',
       sharedRoot: 'server/shared',
       sharedRuntime: 'server',
     },
@@ -294,7 +309,10 @@ test('shared paths conservatively include every same-runtime module and migratio
       .map(module => [module.id, ['shared-runtime']]),
   );
   assert.ok(impact.focusedTests.includes('npm run test:legacy-alpha'));
+  assert.ok(impact.focusedTests.includes('npm run test:server-shared-contract'));
   assert.ok(impact.docs.includes('docs/specs/legacy-alpha.md'));
+  assert.ok(impact.docs.includes('docs/architecture/shared-server.md'));
+  assert.equal(impact.target.sharedRootId, 'shared-root.server');
   assert.ok(impact.knownDebt.some(debt => debt.migrationAreaId === 'server.legacyAlpha'));
   assert.deepEqual(
     impact.routeImpact.routes.map(route => route.id),
@@ -512,8 +530,17 @@ test('impact selector resolves modules, nested files and unowned paths without l
     writeFileSync(join(outside, 'external.ts'), 'export {};\n');
 
     const selectorInventory = {
-      schemaVersion: 2,
-      sharedRoots: { client: ['src/shared'], server: ['server/shared'] },
+      schemaVersion: 3,
+      sharedRoots: [{
+        id: 'shared-root.client',
+        runtime: 'client',
+        root: 'src/shared',
+        purpose: 'Owns shared client fixture primitives.',
+        owner: 'web-platform',
+        focusedTests: ['npm run test:client-shared-contract'],
+        docs: ['docs/architecture/shared-client.md'],
+        safeStarts: ['src/shared/fixture.ts'],
+      }, serverSharedRoot],
       modules: [modules[0]],
       migrationAreas: [{
         ...legacyArea,
@@ -565,6 +592,19 @@ test('impact selector resolves modules, nested files and unowned paths without l
         kind: 'file',
         path: 'server/shared/config/value.ts',
         moduleId: null,
+        sharedRootId: 'shared-root.server',
+        sharedRoot: 'server/shared',
+        sharedRuntime: 'server',
+      },
+    );
+    assert.deepEqual(
+      resolveModuleOrPathSelector(selectorInventory, 'shared-root.server', repository),
+      {
+        selector: 'shared-root.server',
+        kind: 'shared-root',
+        path: 'server/shared',
+        moduleId: null,
+        sharedRootId: 'shared-root.server',
         sharedRoot: 'server/shared',
         sharedRuntime: 'server',
       },
@@ -665,7 +705,7 @@ test('impact selector resolves modules, nested files and unowned paths without l
 
 test('agent impact scopes an unowned directory to graph files below that directory', () => {
   const impact = createAgentImpact({
-    inventory,
+    inventory: { ...inventory, sharedRoots: [serverSharedRoot] },
     graph: {
       edges: [{
         source: 'server/modules/beta/service.ts',
@@ -682,12 +722,14 @@ test('agent impact scopes an unowned directory to graph files below that directo
       kind: 'directory',
       path: 'server/shared/config',
       moduleId: null,
+      sharedRootId: 'shared-root.server',
       sharedRoot: 'server/shared',
       sharedRuntime: 'server',
     },
   });
 
   assert.equal(impact.target.sharedRoot, 'server/shared');
+  assert.equal(impact.target.sharedRootId, 'shared-root.server');
   assert.equal(impact.target.sharedRuntime, 'server');
   assert.deepEqual(impact.directCallers, [{
     path: 'server/modules/beta/service.ts',
@@ -701,7 +743,8 @@ test('agent impact fails closed on an invalid module graph', () => {
   try {
     mkdirSync(join(root, 'config'), { recursive: true });
     writeFileSync(join(root, 'config/module-boundaries.json'), JSON.stringify({
-      schemaVersion: 2,
+      schemaVersion: 3,
+      sharedRoots: [],
       modules: [],
       migrationAreas: [],
       exceptions: {},

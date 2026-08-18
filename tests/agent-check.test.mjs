@@ -143,6 +143,7 @@ test('agent check preserves migration-area, shared-root and root target identity
       kind: 'file',
       path: 'server/shared/http/asyncRoute.ts',
       moduleId: null,
+      sharedRootId: 'shared-root.server',
       sharedRoot: 'server/shared',
       sharedRuntime: 'server',
     },

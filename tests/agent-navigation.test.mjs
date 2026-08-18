@@ -13,6 +13,7 @@ import {
   readPublicRouteInventory,
 } from '../scripts/agent-map.mjs';
 import { loadAgentCheckPlan } from '../scripts/agent-check.mjs';
+import { loadAgentContext } from '../scripts/agent-context.mjs';
 import {
   readModuleInventory,
   resolveModuleOrPathSelector,
@@ -22,8 +23,26 @@ import { publicRoutesForScope } from '../scripts/lib/public-route-inventory.mjs'
 const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const inventoryFixture = {
-  schemaVersion: 2,
-  sharedRoots: { client: ['src/shared'], server: ['server/shared'] },
+  schemaVersion: 3,
+  sharedRoots: [{
+    id: 'shared-root.client',
+    runtime: 'client',
+    root: 'src/shared',
+    purpose: 'Owns shared client primitives.',
+    owner: 'web-platform',
+    focusedTests: ['npm run test:routes'],
+    docs: ['docs/architecture/module-boundaries.md'],
+    safeStarts: ['src/shared/seo/publicUrlPolicy.ts'],
+  }, {
+    id: 'shared-root.server',
+    runtime: 'server',
+    root: 'server/shared',
+    purpose: 'Owns shared server primitives.',
+    owner: 'web-platform',
+    focusedTests: ['npm run test:server-build'],
+    docs: ['docs/architecture/module-boundaries.md'],
+    safeStarts: ['server/shared/http/asyncRoute.ts'],
+  }],
   modules: [
     {
       id: 'server.beta',
@@ -139,6 +158,7 @@ test('agent map deterministically derives dependencies, dependents, callers and 
   assert.equal(map.schemaVersion, 1);
   assert.equal(map.command, 'map');
   assert.equal(map.ok, true);
+  assert.equal(map.sources.sharedRoots, 'config/module-boundaries.json');
   assert.deepEqual(map.counts, {
     modules: 2,
     migrationAreas: 1,
@@ -152,8 +172,8 @@ test('agent map deterministically derives dependencies, dependents, callers and 
   });
   assert.deepEqual(map.modules.map(module => module.id), ['server.alpha', 'server.beta']);
   assert.deepEqual(map.sharedRoots, [
-    { runtime: 'server', root: 'server/shared' },
-    { runtime: 'client', root: 'src/shared' },
+    inventoryFixture.sharedRoots[1],
+    inventoryFixture.sharedRoots[0],
   ]);
   assert.deepEqual(map.modules[0].dependencies, []);
   assert.deepEqual(map.modules[0].dependents, ['server.beta']);
@@ -227,6 +247,12 @@ test('agent map deterministically derives dependencies, dependents, callers and 
     inventory: {
       ...deterministicInventory,
       modules: [...deterministicInventory.modules].reverse(),
+      sharedRoots: [...deterministicInventory.sharedRoots].reverse().map(sharedRoot => ({
+        ...sharedRoot,
+        focusedTests: [...sharedRoot.focusedTests].reverse(),
+        docs: [...sharedRoot.docs].reverse(),
+        safeStarts: [...sharedRoot.safeStarts].reverse(),
+      })),
       migrationAreas: deterministicInventory.migrationAreas.map(area => ({
         ...area,
         roots: [...area.roots].reverse(),
@@ -282,6 +308,8 @@ test('agent map text is concise but exposes both code and URL ownership', () => 
   assert.match(output, /\/beta \(beta\) \[beta-team\]/);
   assert.match(output, /Migration areas:/);
   assert.match(output, /Canonical shared roots:[\s\S]*src\/shared \[client\]/);
+  assert.match(output, /shared-root\.client \[web-platform\]/);
+  assert.match(output, /safe starts: src\/shared\/seo\/publicUrlPolicy\.ts/);
   assert.match(output, /server\.applicationComposition \[web-platform\]/);
   assert.match(output, /targets: server\.beta/);
   assert.match(output, /routes: \/beta \(beta\)/);
@@ -342,7 +370,35 @@ test('production shared server changes include legacy runtime checks', () => {
     selector: 'server/shared/http/asyncRoute.ts',
   });
 
+  assert.equal(plan.target.sharedRootId, 'shared-root.server');
+  assert.ok(plan.checks.some(check => check.script === 'test:article-routes'));
+  assert.ok(plan.checks.some(check => check.script === 'test:ecosystem-internal-routes'));
   assert.ok(plan.checks.some(check => check.script === 'test:server-build'));
+});
+
+test('production client shared ownership is selectable by id with its exact contracts', () => {
+  const context = loadAgentContext({
+    repositoryRoot: REPOSITORY_ROOT,
+    selector: 'shared-root.client',
+  });
+  const plan = loadAgentCheckPlan({
+    repositoryRoot: REPOSITORY_ROOT,
+    selector: 'shared-root.client',
+  });
+
+  assert.equal(context.id, 'shared-root.client');
+  assert.equal(context.owner, 'web-platform');
+  assert.deepEqual(context.safeStarts, [
+    'src/shared/seo/publicRouteInventory.json',
+    'src/shared/seo/publicUrlPolicy.ts',
+  ]);
+  assert.equal(plan.target.sharedRootId, 'shared-root.client');
+  assert.ok(plan.checks.some(check => check.script === 'test:nginx-canonical-hosts'));
+  assert.ok(plan.checks.some(check => check.script === 'test:nginx-routing'));
+  assert.ok(plan.checks.some(check => check.script === 'test:prerender-seo'));
+  assert.ok(plan.checks.some(check => check.script === 'test:public-url-policy'));
+  assert.ok(plan.checks.some(check => check.script === 'test:responsive-inventory'));
+  assert.ok(plan.checks.some(check => check.script === 'test:route-inventory'));
 });
 
 test('agent map rejects an invalid graph before emitting a partial result', () => {
@@ -350,7 +406,8 @@ test('agent map rejects an invalid graph before emitting a partial result', () =
   try {
     mkdirSync(join(root, 'config'), { recursive: true });
     writeFileSync(join(root, 'config/module-boundaries.json'), JSON.stringify({
-      schemaVersion: 2,
+      schemaVersion: 3,
+      sharedRoots: [],
       modules: [],
       migrationAreas: [],
       exceptions: {},

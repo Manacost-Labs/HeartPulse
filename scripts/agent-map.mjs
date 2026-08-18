@@ -91,11 +91,18 @@ export function createAgentMap({ inventory, graph, publicRouteInventory }) {
       publicRoutes: publicRoutesForScope(area.routeScope, publicRouteInventory),
       knownDebt: sortedUnique(area.knownDebt),
     }));
-  const sharedRoots = Object.entries(inventory.sharedRoots ?? {})
-    .flatMap(([runtime, roots]) => (
-      Array.isArray(roots) ? roots.map(sharedRoot => ({ runtime, root: sharedRoot })) : []
-    ))
-    .sort((left, right) => compareText(left.root, right.root));
+  const sharedRoots = [...(inventory.sharedRoots ?? [])]
+    .sort((left, right) => compareText(left.root, right.root))
+    .map(sharedRoot => ({
+      id: sharedRoot.id,
+      runtime: sharedRoot.runtime,
+      root: sharedRoot.root,
+      purpose: sharedRoot.purpose,
+      owner: sharedRoot.owner,
+      focusedTests: sortedUnique(sharedRoot.focusedTests),
+      docs: sortedUnique(sharedRoot.docs),
+      safeStarts: sortedUnique(sharedRoot.safeStarts),
+    }));
   const publicRoutes = publicRoutesForScope({ mode: 'all' }, publicRouteInventory);
 
   return {
@@ -105,6 +112,7 @@ export function createAgentMap({ inventory, graph, publicRouteInventory }) {
     sources: {
       modules: 'config/module-boundaries.json',
       migrationAreas: 'config/module-boundaries.json',
+      sharedRoots: 'config/module-boundaries.json',
       publicRoutes: PUBLIC_ROUTE_INVENTORY_PATH,
     },
     canonicalOrigin: publicRouteInventory.canonicalOrigin,
@@ -181,6 +189,17 @@ function formatMigrationArea(area) {
   ];
 }
 
+function formatSharedRoot(sharedRoot) {
+  return [
+    `- ${sharedRoot.id} [${sharedRoot.owner}]`,
+    `  ${sharedRoot.purpose}`,
+    `  root: ${sharedRoot.root} [${sharedRoot.runtime}]`,
+    `  ${listLine('safe starts', sharedRoot.safeStarts)}`,
+    `  ${listLine('focused tests', sharedRoot.focusedTests)}`,
+    `  ${listLine('docs', sharedRoot.docs)}`,
+  ];
+}
+
 export function formatAgentMap(map) {
   const clientModules = map.modules.filter(module => module.runtime === 'client');
   const serverModules = map.modules.filter(module => module.runtime === 'server');
@@ -199,7 +218,7 @@ export function formatAgentMap(map) {
     '',
     'Canonical shared roots:',
     ...(map.sharedRoots.length > 0
-      ? map.sharedRoots.map(shared => `- ${shared.root} [${shared.runtime}]`)
+      ? map.sharedRoots.flatMap(formatSharedRoot)
       : ['- (none)']),
     '',
     'Migration areas:',

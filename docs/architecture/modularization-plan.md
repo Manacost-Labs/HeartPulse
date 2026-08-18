@@ -178,10 +178,10 @@ directories.
 
 ## AI navigation contract
 
-The schema-v2 module inventory is now the checked map a human or AI agent reads
-before editing. Canonical modules and transitional `migrationAreas` together
-cover module-owned and legacy product source; canonical shared roots remain a
-structural boundary pending first-class ownership metadata. Each record contains:
+The schema-v3 module inventory is now the checked map a human or AI agent reads
+before editing. Canonical modules, owned shared roots and transitional
+`migrationAreas` together cover module-owned, cross-module primitive and legacy
+product source. Each applicable record contains:
 
 - stable module id, purpose and owner;
 - public client routes and server mounts;
@@ -709,11 +709,16 @@ product code in `src`, `server`, top-level `shared`, and
 splitting the boundary checker itself into parser, resolver, policy and report
 units only after characterization tests pin each extraction.
 
-The next AI-navigation slice must add first-class owner, purpose, tests,
-documentation and safe-start metadata for canonical `src/shared` and
-`server/shared` roots. Shared paths are selectable now, but their current
-conservative same-runtime module and migration-area check set is not a claim
-that every shared file has an individual owner record.
+Canonical `src/shared` and `server/shared` roots now have first-class ids,
+owners, purposes, tests, documentation and safe starts. They are selectable by
+id or nested path; their check plan deliberately retains the conservative
+same-runtime module and migration-area set because a cross-module primitive has
+a wider blast radius than its own focused contract tests.
+
+The active AI-tooling slice characterizes the boundary checker output and then
+extracts report, graph, parser and resolver units behind its existing three
+public exports. Diagnostic order, stdout/stderr and exit codes must remain
+unchanged throughout that structural refactor.
 
 The migration is complete when:
 

@@ -26,6 +26,35 @@ const FUTURE_EXCEPTION_DATE = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
   .toISOString()
   .slice(0, 10);
 
+function sharedRootEntries(testCommand) {
+  return [{
+    id: 'shared-root.client',
+    runtime: 'client',
+    root: 'src/shared',
+    purpose: 'Owns shared client fixture primitives.',
+    owner: 'web-platform',
+    focusedTests: [testCommand],
+    docs: ['docs/architecture/module-boundaries.md'],
+    safeStarts: ['src/shared/__agent-fixture.ts'],
+  }, {
+    id: 'shared-root.server',
+    runtime: 'server',
+    root: 'server/shared',
+    purpose: 'Owns shared server fixture primitives.',
+    owner: 'web-platform',
+    focusedTests: [testCommand],
+    docs: ['docs/architecture/module-boundaries.md'],
+    safeStarts: ['server/shared/__agent-fixture.ts'],
+  }];
+}
+
+function writeSharedRootArtifacts(root) {
+  mkdirSync(join(root, 'src/shared'), { recursive: true });
+  mkdirSync(join(root, 'server/shared'), { recursive: true });
+  writeFileSync(join(root, 'src/shared/__agent-fixture.ts'), 'export {};\n');
+  writeFileSync(join(root, 'server/shared/__agent-fixture.ts'), 'export {};\n');
+}
+
 function indexFixture(overrides = {}) {
   return {
     current: {
@@ -125,6 +154,7 @@ test('agent context resolves a module by id or root and reports its public API a
       },
     }));
     writeFileSync(join(root, 'docs/architecture/module-boundaries.md'), '# Boundaries\n');
+    writeSharedRootArtifacts(root);
     writeFileSync(join(root, 'src/modules/accountRoute/public.ts'), [
       "export { default } from './AccountRoute';",
       "export type { AccountRouteProps } from './types';",
@@ -137,9 +167,9 @@ test('agent context resolves a module by id or root and reports its public API a
       'export const applicationConnect = true;\n',
     );
     writeFileSync(join(root, 'config/module-boundaries.json'), JSON.stringify({
-      schemaVersion: 2,
+      schemaVersion: 3,
       moduleRoots: ['src/modules', 'server/modules'],
-      sharedRoots: { client: ['src/shared'], server: ['server/shared'] },
+      sharedRoots: sharedRootEntries('npm run test:routes'),
       modules: [{
         id: 'client.accountRoute',
         runtime: 'client',
@@ -281,10 +311,11 @@ test('agent context makes a baseline missing public entry explicit', () => {
       scripts: { 'test:arena-deck-routes': 'node --test tests/arena.test.mjs' },
     }));
     writeFileSync(join(root, 'docs/architecture/module-boundaries.md'), '# Boundaries\n');
+    writeSharedRootArtifacts(root);
     writeFileSync(join(root, 'config/module-boundaries.json'), JSON.stringify({
-      schemaVersion: 2,
+      schemaVersion: 3,
       moduleRoots: ['src/modules', 'server/modules'],
-      sharedRoots: { client: ['src/shared'], server: ['server/shared'] },
+      sharedRoots: sharedRootEntries('npm run test:arena-deck-routes'),
       modules: [{
         id: 'server.arena',
         runtime: 'server',
@@ -353,6 +384,7 @@ test('agent context resolves legacy files and the repository root through checke
       'export const battlegroundsContract = true;\n',
     );
     writeFileSync(join(root, 'docs/architecture/module-boundaries.md'), '# Boundaries\n');
+    writeSharedRootArtifacts(root);
     writeFileSync(join(root, 'src/shared/seo/publicRouteInventory.json'), JSON.stringify({
       schemaVersion: 1,
       canonicalOrigin: 'https://arena.example',
@@ -371,9 +403,9 @@ test('agent context resolves legacy files and the repository root through checke
       }],
     }));
     writeFileSync(join(root, 'config/module-boundaries.json'), JSON.stringify({
-      schemaVersion: 2,
+      schemaVersion: 3,
       moduleRoots: ['src/modules', 'server/modules'],
-      sharedRoots: { client: ['src/shared'], server: ['server/shared'] },
+      sharedRoots: sharedRootEntries('npm run test:battleground-hero-contracts'),
       modules: [{
         id: 'client.battlegrounds',
         runtime: 'client',
@@ -445,23 +477,35 @@ test('agent context resolves legacy files and the repository root through checke
     assert.deepEqual(project.modules.map(module => module.id), ['client.battlegrounds']);
     assert.deepEqual(project.migrationAreas.map(area => area.id), ['client.battlegroundsLegacy']);
     assert.deepEqual(project.sharedRoots, [
-      { runtime: 'server', root: 'server/shared' },
-      { runtime: 'client', root: 'src/shared' },
+      sharedRootEntries('npm run test:battleground-hero-contracts')[1],
+      sharedRootEntries('npm run test:battleground-hero-contracts')[0],
     ]);
+    assert.ok(project.owners.includes('web-platform'));
     assert.deepEqual(project.publicRoutes.map(route => route.id), ['home', 'bg-library']);
     assert.match(
       formatAgentContext(project),
       /Project context: 1 modules, 2 shared roots, 1 migration areas, 2 public routes/,
+    );
+    assert.match(
+      formatAgentContext(project),
+      /shared-root\.client \[web-platform\][\s\S]*Owns shared client fixture primitives\.[\s\S]*src\/shared\/__agent-fixture\.ts/,
     );
 
     const shared = loadAgentContext({
       repositoryRoot: root,
       selector: 'src/shared/seo/publicRouteInventory.json',
     });
+    const sharedById = loadAgentContext({
+      repositoryRoot: root,
+      selector: 'shared-root.client',
+    });
+    assert.deepEqual(sharedById, { ...shared, selectedPath: 'src/shared' });
     assert.equal(shared.kind, 'shared-root');
     assert.equal(shared.id, 'shared-root.client');
     assert.equal(shared.root, 'src/shared');
-    assert.equal(shared.owner, null);
+    assert.equal(shared.owner, 'web-platform');
+    assert.equal(shared.purpose, 'Owns shared client fixture primitives.');
+    assert.deepEqual(shared.safeStarts, ['src/shared/__agent-fixture.ts']);
     assert.deepEqual(shared.runtimeModules.map(module => module.id), ['client.battlegrounds']);
     assert.deepEqual(
       shared.runtimeMigrationAreas.map(area => area.id),
@@ -471,8 +515,9 @@ test('agent context resolves legacy files and the repository root through checke
     assert.ok(shared.focusedTests.includes('npm run test:battleground-library-seo-routes'));
     assert.ok(shared.knownDebt.includes('BgLibrary is still a route component in src/features.'));
     assert.match(formatAgentContext(shared), /Shared root: shared-root\.client/);
+    assert.match(formatAgentContext(shared), /Owner: web-platform/);
     assert.match(formatAgentContext(shared), /Runtime migration areas:[\s\S]*client\.battlegroundsLegacy/);
-    assert.match(formatAgentContext(shared), /ownership metadata/);
+    assert.doesNotMatch(formatAgentContext(shared), /ownership metadata/);
 
     const validInventory = JSON.parse(
       readFileSync(join(root, 'config/module-boundaries.json'), 'utf8'),
@@ -545,7 +590,8 @@ test('agent context rejects symlinked inventory and public API files', () => {
   const repository = join(fixtureRoot, 'repository');
   const outside = join(fixtureRoot, 'outside');
   const inventory = {
-    schemaVersion: 2,
+    schemaVersion: 3,
+    sharedRoots: [],
     modules: [{
       id: 'client.alpha',
       runtime: 'client',
@@ -595,7 +641,8 @@ test('agent context rejects public API files reached through an escaping parent 
     mkdirSync(outsideModule, { recursive: true });
     writeFileSync(join(outsideModule, 'public.ts'), 'export const PROMPT_INJECTION_FROM_OUTSIDE = true;\n');
     writeFileSync(join(repository, 'config/module-boundaries.json'), JSON.stringify({
-      schemaVersion: 2,
+      schemaVersion: 3,
+      sharedRoots: [],
       modules: [{
         id: 'client.alpha',
         runtime: 'client',

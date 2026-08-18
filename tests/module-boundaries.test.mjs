@@ -52,11 +52,28 @@ function migrationAreaEntry(id, runtime, roots, overrides = {}) {
   };
 }
 
+function sharedRootEntry(id, runtime, root, overrides = {}) {
+  return {
+    id,
+    runtime,
+    root,
+    purpose: `${id} shared fixture`,
+    owner: 'architecture-test',
+    focusedTests: ['npm run test:fixture'],
+    docs: ['docs/modules.md'],
+    safeStarts: [`${root}/__shared-fixture.ts`],
+    ...overrides,
+  };
+}
+
 function baseConfig(modules, overrides = {}) {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     moduleRoots: ['src/modules', 'server/modules'],
-    sharedRoots: { client: ['src/shared'], server: ['server/shared'] },
+    sharedRoots: [
+      sharedRootEntry('shared-root.client', 'client', 'src/shared'),
+      sharedRootEntry('shared-root.server', 'server', 'server/shared'),
+    ],
     modules,
     migrationAreas: [
       migrationAreaEntry('client.fixtureLegacy', 'client', ['src'], {
@@ -119,6 +136,13 @@ function fixture(config) {
   for (const area of config.migrationAreas ?? []) {
     for (const safeStart of area.safeStarts ?? []) {
       if (fixtureSafeStarts.has(safeStart)) writeFixture(root, safeStart, 'export {};\n');
+    }
+  }
+  for (const sharedRoot of config.sharedRoots ?? []) {
+    for (const safeStart of sharedRoot.safeStarts ?? []) {
+      if (safeStart.endsWith('/__shared-fixture.ts')) {
+        writeFixture(root, safeStart, 'export {};\n');
+      }
     }
   }
   writeFixture(root, 'config/module-boundaries.json', `${JSON.stringify(config, null, 2)}\n`);
@@ -367,7 +391,7 @@ test('inventory must exactly match module directories and reference existing own
   }
 });
 
-test('schema v2 requires every product source to have exactly one checked migration owner', () => {
+test('schema v3 requires every product source to have exactly one checked migration owner', () => {
   const alpha = moduleEntry('client.alpha', 'client', 'src/modules/alpha');
   const area = migrationAreaEntry(
     'client.legacyAlpha',
@@ -379,7 +403,7 @@ test('schema v2 requires every product source to have exactly one checked migrat
     },
   );
   const config = baseConfig([alpha], {
-    schemaVersion: 2,
+    schemaVersion: 3,
     migrationAreas: [area],
   });
   const root = fixture(config);
@@ -464,7 +488,7 @@ test('schema v2 requires every product source to have exactly one checked migrat
 test('migration ownership rejects unsafe roots, architecture overlap and invalid artifacts', () => {
   const alpha = moduleEntry('client.alpha', 'client', 'src/modules/alpha');
   const root = fixture(baseConfig([alpha], {
-    schemaVersion: 2,
+    schemaVersion: 3,
     migrationAreas: [migrationAreaEntry('client.invalid', 'server', ['src'], {
       excludeRoots: ['outside'],
       targetModules: ['client.alpha', 'client.missing'],
@@ -686,11 +710,129 @@ test('focused tests must be exact allowlisted npm scripts that exist in package.
   }
 });
 
+test('validates canonical shared roots as first-class owned architecture entries', () => {
+  const config = baseConfig([]);
+  const root = fixture(config);
+  try {
+    const metadata = validateModuleInventoryMetadata({ rootDir: root, config, now: NOW });
+    assert.equal(metadata.ok, true);
+    assert.deepEqual(metadata.sharedRoots, config.sharedRoots);
+
+    const missingOwner = structuredClone(config);
+    missingOwner.sharedRoots[0].owner = '';
+    const missingOwnerMetadata = validateModuleInventoryMetadata({
+      rootDir: root,
+      config: missingOwner,
+      now: NOW,
+    });
+    assert.ok(missingOwnerMetadata.errors.some(error => error.code === 'invalid-shared-root'));
+
+    const escapedSafeStart = structuredClone(config);
+    escapedSafeStart.sharedRoots[0].safeStarts = ['docs/modules.md'];
+    const escapedSafeStartMetadata = validateModuleInventoryMetadata({
+      rootDir: root,
+      config: escapedSafeStart,
+      now: NOW,
+    });
+    assert.ok(escapedSafeStartMetadata.errors.some(error => (
+      error.code === 'missing-shared-root-artifact'
+    )));
+
+    const injectedTest = structuredClone(config);
+    injectedTest.sharedRoots[1].focusedTests = [
+      'npm run test:fixture && touch /tmp/unsafe',
+    ];
+    const injectedTestMetadata = validateModuleInventoryMetadata({
+      rootDir: root,
+      config: injectedTest,
+      now: NOW,
+    });
+    assert.ok(injectedTestMetadata.errors.some(error => (
+      error.code === 'invalid-focused-test-command'
+    )));
+
+    const duplicateMetadata = structuredClone(config);
+    duplicateMetadata.sharedRoots[0].docs.push(duplicateMetadata.sharedRoots[0].docs[0]);
+    const duplicateMetadataReport = validateModuleInventoryMetadata({
+      rootDir: root,
+      config: duplicateMetadata,
+      now: NOW,
+    });
+    assert.ok(duplicateMetadataReport.errors.some(error => (
+      error.code === 'invalid-shared-root-ownership'
+        && /duplicate docs/i.test(error.message)
+    )));
+
+    const collidingId = structuredClone(config);
+    collidingId.sharedRoots[0].id = collidingId.migrationAreas[0].id;
+    const collidingIdReport = validateModuleInventoryMetadata({
+      rootDir: root,
+      config: collidingId,
+      now: NOW,
+    });
+    assert.ok(collidingIdReport.errors.some(error => error.code === 'duplicate-ownership-id'));
+
+    const oldShape = { ...config, sharedRoots: { client: ['src/shared'], server: ['server/shared'] } };
+    const oldShapeReport = validateModuleInventoryMetadata({ rootDir: root, config: oldShape, now: NOW });
+    assert.ok(oldShapeReport.errors.some(error => error.code === 'invalid-boundary-roots'));
+
+    const missingScript = structuredClone(config);
+    missingScript.sharedRoots[0].focusedTests = ['npm run test:missing'];
+    const missingScriptReport = validateModuleInventoryMetadata({
+      rootDir: root,
+      config: missingScript,
+      now: NOW,
+    });
+    assert.ok(missingScriptReport.errors.some(error => error.code === 'missing-focused-test-script'));
+
+    writeFixture(root, 'src/modules/borrowed/file.ts', 'export {};\n');
+    symlinkSync('../modules/borrowed', join(root, 'src/shared/borrowed'), 'dir');
+    const escapedThroughParent = structuredClone(config);
+    escapedThroughParent.sharedRoots[0].safeStarts = ['src/shared/borrowed/file.ts'];
+    const escapedThroughParentReport = validateModuleInventoryMetadata({
+      rootDir: root,
+      config: escapedThroughParent,
+      now: NOW,
+    });
+    assert.ok(escapedThroughParentReport.errors.some(error => (
+      error.code === 'missing-shared-root-artifact'
+        && /safe start is invalid/i.test(error.message)
+    )));
+
+    mkdirSync(join(root, 'src/shared-real'), { recursive: true });
+    rmSync(join(root, 'src/shared'), { recursive: true, force: true });
+    symlinkSync(join(root, 'src/shared-real'), join(root, 'src/shared'), 'dir');
+    const symlinkedRootReport = validateModuleInventoryMetadata({ rootDir: root, config, now: NOW });
+    assert.ok(symlinkedRootReport.errors.some(error => (
+      error.code === 'missing-shared-root-artifact'
+        && /root is missing/i.test(error.message)
+    )));
+  } finally {
+    cleanup(root);
+  }
+});
+
+test('valid JSON with a non-object root fails closed as a structured boundary report', () => {
+  const root = fixture(baseConfig([]));
+  try {
+    writeFixture(root, 'config/module-boundaries.json', 'null\n');
+    const report = analyzeModuleBoundaries({ rootDir: root, now: NOW });
+    assert.equal(report.ok, false);
+    assert.ok(report.errors.some(error => error.code === 'invalid-config-shape'));
+    assert.doesNotMatch(formatModuleBoundaryReport(report), /TypeError|\n\s+at /);
+  } finally {
+    cleanup(root);
+  }
+});
+
 test('requires canonical module and shared roots so configuration cannot disable the gate', () => {
   const alpha = moduleEntry('client.alpha', 'client', 'src/modules/alpha');
   const root = fixture(baseConfig([alpha], {
     moduleRoots: [],
-    sharedRoots: { client: ['src'], server: ['server/shared'] },
+    sharedRoots: [
+      sharedRootEntry('shared-root.client', 'client', 'src'),
+      sharedRootEntry('shared-root.server', 'server', 'server/shared'),
+    ],
   }));
   try {
     writeFixture(root, 'src/modules/alpha/public.ts', 'export {};\n');

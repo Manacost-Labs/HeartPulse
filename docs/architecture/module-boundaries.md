@@ -193,12 +193,19 @@ and never remove it independently.
 ## Machine-enforced inventory
 
 [`config/module-boundaries.json`](../../config/module-boundaries.json) is the
-schema-v2 checked source of truth for current module and migration ownership.
+schema-v3 checked source of truth for current module, shared-root and migration
+ownership.
 Every immediate directory
 under `src/modules` and `server/modules` must have exactly one inventory entry
 with a stable id, runtime, purpose, owner, public entry, optional client
 `publicStyleEntry`, declared module dependencies, focused tests and owning
 documentation.
+
+Each canonical `src/shared` or `server/shared` root also has exactly one stable
+id, runtime, purpose, owner, focused-test set, documentation set and safe
+starting-file set. Shared roots remain dependency primitives rather than product
+modules: they have no public module entry or declared module dependencies, and
+the checker verifies that every safe start resolves inside its owning real root.
 
 Product code outside canonical module and shared roots is not anonymous. Each
 legacy file under `src`, `server`, top-level `shared`, and the classic
@@ -216,12 +223,13 @@ owner ids from `src/shared/seo/publicRouteInventory.json`; route ids, patterns
 and policies are always hydrated from that canonical inventory.
 
 `npm run agent:context -- <module-id-or-path-or-root>` resolves module ids,
-canonical shared paths, legacy source paths, migration-area roots, `root`, and
-`.`. Module output keeps the public-entry contract; migration output adds its
-owner, target modules, hydrated routes, safe starts, tests, documents and debt.
-Shared output stays conservative, includes every module and migration-area check
-in the same runtime, and calls out its pending owner metadata; root output
-aggregates the governed module, shared-root, migration and route overview.
+shared-root ids, canonical shared paths, legacy source paths, migration-area
+roots, `root`, and `.`. Module output keeps the public-entry contract; migration
+output adds its owner, target modules, hydrated routes, safe starts, tests,
+documents and debt. Shared output exposes its declared owner, purpose and safe
+starts, then conservatively includes every module and migration-area check in
+the same runtime. Root output aggregates the governed module, shared-root,
+migration and route overview.
 
 `npm run agent:map` renders that ownership inventory together with the checked
 reverse dependency callers from the resolved import graph. It also renders the
