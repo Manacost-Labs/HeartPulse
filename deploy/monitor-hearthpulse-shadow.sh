@@ -37,8 +37,10 @@ resolved_status() {
 }
 
 for host in "$application_domain" "$www_domain" "$cdn_domain"; do
-  ipv4_answers="$(dig +short @1.1.1.1 "$host" A | sort -u)"
-  ipv6_answers="$(dig +short @1.1.1.1 "$host" AAAA | sort -u)"
+  ipv4_answers="$(dig +short @1.1.1.1 "$host" A \
+    | awk '/^[0-9]+(\.[0-9]+){3}$/' | sort -u)"
+  ipv6_answers="$(dig +short @1.1.1.1 "$host" AAAA \
+    | awk 'index($0, ":") > 0' | sort -u)"
   [[ "$ipv4_answers" == "$expected_ipv4" ]] \
     || fail "$host DNS returned an unsafe IPv4 set: ${ipv4_answers:-empty}"
   [[ -z "$ipv6_answers" ]] \

@@ -17,6 +17,7 @@ set -euo pipefail
 host="\${@: -2:1}"
 record_type="\${@: -1}"
 if [[ "$record_type" == A ]]; then
+  [[ "$host" != www.hearthpulse.net ]] || printf 'hearthpulse.net.\\n'
   printf '%s\\n' 162.19.220.14 194.67.92.242 186.246.28.244
   [[ -z "\${FAKE_EXTRA_A:-}" ]] || printf '%s\\n' "$FAKE_EXTRA_A"
 elif [[ -n "\${FAKE_AAAA:-}" ]]; then
