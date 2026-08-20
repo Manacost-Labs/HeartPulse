@@ -200,7 +200,7 @@
     "puppeteer": "^22.15.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "redis": "^4.7.1",
+    "redis": "^6.1.0",
     "sanitize-html": "2.17.5",
     "sharp": "0.35.3",
     "web-vitals": "^6.0.0"
