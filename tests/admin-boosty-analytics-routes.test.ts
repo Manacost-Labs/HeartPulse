@@ -62,13 +62,13 @@ const articles: KolodaArticle[] = [
   {
     id: 'one',
     title: 'Статья 1',
-    url: 'https://kolodahearthstone.ru/one/',
+    url: 'https://kolodahearthstone.com/one/',
     publishedAt: '2026-07-01T10:00:00.000Z',
   },
   {
     id: 'two',
     title: 'Статья 2',
-    url: 'https://kolodahearthstone.ru/two/',
+    url: 'https://kolodahearthstone.com/two/',
     publishedAt: '2026-07-05T10:00:00.000Z',
   },
 ];
@@ -240,7 +240,7 @@ const salesSource = {
 const requestedArticlePages: number[] = [];
 const loader = createBoostyAnalyticsLoader({
   boostyBaseUrl: 'http://boosty.internal',
-  kolodaEndpoint: 'https://kolodahearthstone.ru/wp-json/koloda/v1/articles/query',
+  kolodaEndpoint: 'https://kolodahearthstone.com/wp-json/koloda/v1/articles/query',
   now: () => new Date('2026-07-10T01:00:00.000Z'),
   fetchImpl: (async (url, init) => {
     if (String(url).includes('/api/boosty/sales/analytics')) {
@@ -305,7 +305,7 @@ assert.equal(loaded.generatedAt, '2026-07-10T01:00:00.000Z');
 
 const partialLoader = createBoostyAnalyticsLoader({
   boostyBaseUrl: 'http://boosty.internal',
-  kolodaEndpoint: 'https://kolodahearthstone.ru/wp-json/koloda/v1/articles/query',
+  kolodaEndpoint: 'https://kolodahearthstone.com/wp-json/koloda/v1/articles/query',
   fetchImpl: (async (url) => {
     if (String(url).includes('/api/boosty/sales/analytics')) {
       return new Response('{}', { status: 503 });

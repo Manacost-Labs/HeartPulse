@@ -38,7 +38,7 @@ const payload: BoostyArticleAnalyticsPayload = {
       article: {
         id: '6316',
         title: 'Ни одна живая душа не минует Бездну! Мета-отчёт Аметистовой крепости',
-        url: 'https://kolodahearthstone.ru/example/',
+        url: 'https://kolodahearthstone.com/example/',
         publishedAt: '2026-07-20T10:00:00.000Z',
       },
       from: '2026-07-20T10:00:00.000Z',
@@ -65,7 +65,7 @@ const payload: BoostyArticleAnalyticsPayload = {
       article: {
         id: '6261',
         title: 'Лучшие колоды после балансного патча',
-        url: 'https://kolodahearthstone.ru/example-2/',
+        url: 'https://kolodahearthstone.com/example-2/',
         publishedAt: '2026-07-27T17:06:51.000Z',
       },
       from: '2026-07-27T17:06:51.000Z',

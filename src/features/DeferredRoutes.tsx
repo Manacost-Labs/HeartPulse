@@ -3065,6 +3065,8 @@ const ARTICLE_COVER_PROXY_HOSTS = new Set([
   'www.hs-manacost.ru',
   'manacost.ru',
   'www.manacost.ru',
+  'kolodahearthstone.com',
+  'www.kolodahearthstone.com',
   'kolodahearthstone.ru',
   'www.kolodahearthstone.ru',
 ]);
@@ -3139,7 +3141,10 @@ function isKolodaArticleUrl(value?: string): boolean {
   if (!raw) return false;
   try {
     const host = new URL(raw).hostname.toLowerCase();
-    return host === 'kolodahearthstone.ru' || host === 'www.kolodahearthstone.ru';
+    return host === 'kolodahearthstone.com'
+      || host === 'www.kolodahearthstone.com'
+      || host === 'kolodahearthstone.ru'
+      || host === 'www.kolodahearthstone.ru';
   } catch {
     return false;
   }
@@ -6282,7 +6287,7 @@ const NETWORK_SITES = [
   {
     id: 'koloda',
     label: 'Koloda',
-    href: 'https://kolodahearthstone.ru/',
+    href: 'https://kolodahearthstone.com/',
     icon: '/site-icons/koloda.ico',
     tone: 'neutral',
     current: false,

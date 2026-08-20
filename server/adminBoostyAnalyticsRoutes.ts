@@ -196,7 +196,7 @@ export type BoostyAnalyticsLoaderOptions = {
 const MAX_RANGE_MS = 366 * 24 * 60 * 60 * 1000;
 const DEFAULT_RANGE_MS = 90 * 24 * 60 * 60 * 1000;
 const DEFAULT_KOLODA_ENDPOINT =
-  'https://kolodahearthstone.ru/wp-json/koloda/v1/articles/query';
+  'https://kolodahearthstone.com/wp-json/koloda/v1/articles/query';
 const UPSTREAM_ERROR = 'Не удалось загрузить аналитику подписок';
 
 export function createAdminBoostyAnalyticsRouter(
@@ -745,7 +745,7 @@ function normalizeKolodaArticles(value: unknown): KolodaArticle[] {
       const id = String(row.id ?? '').trim();
       const title = requiredText(row.title, 300);
       const url = requiredText(row.url, 1_000);
-      if (!id || !/^https:\/\/kolodahearthstone\.ru\//.test(url)) {
+      if (!id || !/^https:\/\/kolodahearthstone\.(?:com|ru)\//.test(url)) {
         return [];
       }
       return [{ id, title, url, publishedAt: requiredDate(row.publishedAt) }];

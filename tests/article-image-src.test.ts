@@ -2,8 +2,13 @@ import assert from 'node:assert/strict';
 import { articleImageSrc } from '../shared/articleImageSrc';
 
 assert.equal(
-  articleImageSrc('https://kolodahearthstone.ru/wp-content/uploads/2026/07/cover.jpg'),
-  '/api/article-cover?url=https%3A%2F%2Fkolodahearthstone.ru%2Fwp-content%2Fuploads%2F2026%2F07%2Fcover.jpg',
+  articleImageSrc('https://kolodahearthstone.com/wp-content/uploads/2026/07/cover.jpg'),
+  '/api/article-cover?url=https%3A%2F%2Fkolodahearthstone.com%2Fwp-content%2Fuploads%2F2026%2F07%2Fcover.jpg',
+);
+assert.equal(
+  articleImageSrc('https://kolodahearthstone.ru/wp-content/uploads/legacy-cover.jpg'),
+  '/api/article-cover?url=https%3A%2F%2Fkolodahearthstone.ru%2Fwp-content%2Fuploads%2Flegacy-cover.jpg',
+  'legacy .ru article images must keep working during the migration',
 );
 assert.equal(
   articleImageSrc('https://www.hs-manacost.ru/uploads/cover.png?version=2'),

@@ -112,7 +112,7 @@ without notice.
   ledger. If one source is unavailable, return the remaining analytics with
   partial coverage instead of fabricated zeros.
 - Fetch published articles from
-  `https://kolodahearthstone.ru/wp-json/koloda/v1/articles/query`.
+  `https://kolodahearthstone.com/wp-json/koloda/v1/articles/query`.
 - Validate both remote payloads and use request timeouts.
 - Build half-open publication intervals:
   `[article.publishedAt, nextArticle.publishedAt)`, with the latest interval

@@ -386,7 +386,7 @@ const fixtures = {
     minimumQueryLength: 2,
     articles: [{
       id: 'qa-search-article', title: 'Контрольный мета-отчет', excerpt: 'Проверка поиска.', tag: 'Мета-отчет',
-      mode: 'standard', date: '2026-07-18', url: 'https://kolodahearthstone.ru/qa-vip/', image: qaArticleCover, vip: true,
+      mode: 'standard', date: '2026-07-18', url: 'https://kolodahearthstone.com/qa-vip/', image: qaArticleCover, vip: true,
     }],
     cards: [{
       id: 'CARD_QA_1', name: 'Контрольная карта', nameEn: 'QA Card', text: 'Боевой клич.', image: qaCard.imageRu,

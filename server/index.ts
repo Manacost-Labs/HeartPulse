@@ -515,10 +515,15 @@ const BOOSTY_ALL_ACCESS_LEVEL_NAMES = (process.env.BOOSTY_ALL_ACCESS_LEVEL_NAMES
   .filter(Boolean);
 const KHA_VIP_BOT_TOKEN = process.env.KHA_VIP_BOT_TOKEN || '';
 const KHA_VIP_PROFILES_FILE = process.env.KHA_VIP_PROFILES_FILE || '/var/lib/docker/volumes/kha-vip-bot_bot_cache/_data/profiles.json';
-const KHA_VIP_WP_BASE_URL = (process.env.KHA_VIP_WP_BASE_URL || process.env.WP_BASE_URL || 'https://kolodahearthstone.ru').replace(/\/$/, '');
+const KHA_VIP_WP_BASE_URL = (process.env.KHA_VIP_WP_BASE_URL || process.env.WP_BASE_URL || 'https://kolodahearthstone.com').replace(/\/$/, '');
 const KHA_VIP_WP_BEARER = process.env.KHA_VIP_WP_BEARER || process.env.WP_BEARER || '';
 const KHA_VIP_LOCKERS_CACHE_MS = Math.max(60_000, Number(process.env.KHA_VIP_LOCKERS_CACHE_MS || 5 * 60 * 1000));
-const KHA_VIP_ARTICLE_HOSTS = new Set(['kolodahearthstone.ru', 'www.kolodahearthstone.ru']);
+const KHA_VIP_ARTICLE_HOSTS = new Set([
+  'kolodahearthstone.com',
+  'www.kolodahearthstone.com',
+  'kolodahearthstone.ru',
+  'www.kolodahearthstone.ru',
+]);
 const KOLODAHS_API_BASE_URL = (process.env.KOLODAHS_API_BASE_URL || 'https://api.kolodahearthstone.com/api/v1').replace(/\/$/, '');
 const HEARTHSTONE_RU_CARDS_URL = process.env.HEARTHSTONE_RU_CARDS_URL
   || 'https://api.hearthstonejson.com/v1/latest/ruRU/cards.json';
@@ -7550,6 +7555,8 @@ const ARTICLE_COVER_ALLOWED_HOSTS = new Set([
   'www.hs-manacost.ru',
   'manacost.ru',
   'www.manacost.ru',
+  'kolodahearthstone.com',
+  'www.kolodahearthstone.com',
   'kolodahearthstone.ru',
   'www.kolodahearthstone.ru',
 ]);

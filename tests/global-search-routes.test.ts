@@ -15,7 +15,7 @@ const articles = [
     mode: 'standard',
     date: '2026-07-18',
     url: 'https://vip.example/standard-guide',
-    image: 'https://kolodahearthstone.ru/wp-content/uploads/standard.webp',
+    image: 'https://kolodahearthstone.com/wp-content/uploads/standard.webp',
   },
   {
     id: 'article-arena',
@@ -82,7 +82,7 @@ assert.equal(articleMatch.articles[0].mode, 'standard');
 assert.equal(articleMatch.articles[0].vip, true);
 assert.equal(
   articleMatch.articles[0].image,
-  '/api/article-cover?url=https%3A%2F%2Fkolodahearthstone.ru%2Fwp-content%2Fuploads%2Fstandard.webp',
+  '/api/article-cover?url=https%3A%2F%2Fkolodahearthstone.com%2Fwp-content%2Fuploads%2Fstandard.webp',
 );
 assert.doesNotMatch(articleMatch.articles[0].excerpt, /<[^>]+>/, 'search snippets must be plain text');
 
