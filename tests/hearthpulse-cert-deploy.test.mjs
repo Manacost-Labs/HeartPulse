@@ -14,5 +14,7 @@ assert.match(source, /install -o root -g root -m 0600/,
   'the private key must remain root-only on every edge');
 assert.match(source, /nginx -t/);
 assert.match(source, /systemctl reload nginx/);
+assert.match(source, /ssh\s+"\$\{options\[@\]\}"\s+"\$target"\s+bash\s+-s/,
+  'the remote installer uses Bash syntax and must explicitly run with Bash');
 
 console.log('HearthPulse certificate deployment contract passed');

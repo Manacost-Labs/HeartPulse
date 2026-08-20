@@ -19,7 +19,7 @@ deploy_edge() {
 	remote_dir=$(ssh "${options[@]}" "$target" 'mktemp -d /tmp/hearthpulse-cert.XXXXXX')
 	trap 'ssh "${options[@]}" "$target" "rm -rf -- \"$remote_dir\"" >/dev/null 2>&1 || true' RETURN
 	scp "${options[@]}" "$lineage/fullchain.pem" "$lineage/privkey.pem" "$target:$remote_dir/"
-	ssh "${options[@]}" "$target" sh -s -- "$privilege" "$remote_dir" "$destination" <<'REMOTE'
+	ssh "${options[@]}" "$target" bash -s -- "$privilege" "$remote_dir" "$destination" <<'REMOTE'
 set -euo pipefail
 privilege=$1
 remote_dir=$2
