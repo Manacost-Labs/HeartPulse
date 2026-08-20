@@ -206,17 +206,17 @@ try {
   assert.equal(occurrences(html, /<h1(?:\s[^>]*)?>/gi), 1, 'detail must have one H1');
   assert.match(html, /<title>Огненный &lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt; дракон — карта Hearthstone \(Стандарт, CARD_1\) \| Manacost Stats<\/title>/);
   assert.match(html, /<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">/);
-  assert.match(html, /<link rel="canonical" href="https:\/\/arena\.hs-manacost\.ru\/standard\/cards\/standard\/CARD_1\/">/);
+  assert.match(html, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/standard\/cards\/standard\/CARD_1\/">/);
   assert.match(html, /<meta property="og:title"/);
   assert.match(html, /<meta property="og:description"/);
-  assert.match(html, /<meta property="og:url" content="https:\/\/arena\.hs-manacost\.ru\/standard\/cards\/standard\/CARD_1\/">/);
-  assert.match(html, /<meta property="og:image" content="https:\/\/arena\.hs-manacost\.ru\/api\/public-resource\/db\/uploads\/cards\/CARD_1\.png">/);
+  assert.match(html, /<meta property="og:url" content="https:\/\/hearthpulse\.net\/standard\/cards\/standard\/CARD_1\/">/);
+  assert.match(html, /<meta property="og:image" content="https:\/\/hearthpulse\.net\/api\/public-resource\/db\/uploads\/cards\/CARD_1\.png">/);
   assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
   assert.match(html, /<meta name="twitter:title"/);
   assert.match(html, /<meta name="twitter:description"/);
   assert.match(html, /<meta name="twitter:image"/);
   assert.match(html, /<h1>Огненный &lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt; дракон<\/h1>/);
-  assert.match(html, /<img[^>]+src="https:\/\/arena\.hs-manacost\.ru\/api\/public-resource\/db\/uploads\/cards\/CARD_1\.png"[^>]+alt="Карта Hearthstone «Огненный &lt;script&gt;/);
+  assert.match(html, /<img[^>]+src="https:\/\/hearthpulse\.net\/api\/public-resource\/db\/uploads\/cards\/CARD_1\.png"[^>]+alt="Карта Hearthstone «Огненный &lt;script&gt;/);
   assert.doesNotMatch(html, /https:\/\/db\.kolodahs\.ru/);
   assert.match(html, /<dt>Мана<\/dt><dd>7<\/dd>/);
   assert.match(html, /<dt>Атака<\/dt><dd>8<\/dd>/);
@@ -285,7 +285,7 @@ try {
   assert.equal(unsafeImage.status, 200);
   const unsafeImageHtml = await unsafeImage.text();
   assert.doesNotMatch(unsafeImageHtml, /javascript:/i);
-  assert.match(unsafeImageHtml, /https:\/\/arena\.hs-manacost\.ru\/assets\/og-preview\.png/,
+  assert.match(unsafeImageHtml, /https:\/\/hearthpulse\.net\/assets\/og-preview\.png/,
     'unsafe image schemes must use the public fallback');
 
   const missing = await fetch(`${origin}/standard/cards/standard/UNKNOWN_1/`);

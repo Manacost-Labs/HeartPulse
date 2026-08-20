@@ -79,7 +79,7 @@ async function resolveWikiImageUrls(filenames) {
   const response = await fetch(`https://hearthstone.wiki.gg/api.php?${params}`, {
     headers: {
       Accept: 'application/json',
-      'User-Agent': 'ManacostArenaAssetSync/1.0 (+https://arena.hs-manacost.ru)',
+      'User-Agent': 'ManacostArenaAssetSync/1.0 (+https://hearthpulse.net)',
     },
   });
   if (!response.ok) throw new Error(`Wiki image lookup: HTTP ${response.status}`);
@@ -99,7 +99,7 @@ async function fetchWikiImage(filename) {
       const response = await fetch(resolvedWikiImageUrls.get(filename) || wikiFileUrl(filename), {
         headers: {
           Accept: 'image/avif,image/webp,image/png,image/svg+xml,image/*',
-          'User-Agent': 'ManacostArenaAssetSync/1.0 (+https://arena.hs-manacost.ru)',
+          'User-Agent': 'ManacostArenaAssetSync/1.0 (+https://hearthpulse.net)',
         },
         redirect: 'follow',
         signal: controller.signal,

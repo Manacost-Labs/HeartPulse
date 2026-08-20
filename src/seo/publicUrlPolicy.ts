@@ -49,7 +49,7 @@ export type DocumentPageMeta = {
   image?: string | null;
 };
 
-const DEFAULT_ORIGIN = 'https://arena.hs-manacost.ru';
+const DEFAULT_ORIGIN = 'https://hearthpulse.net';
 const DEFAULT_OG_IMAGE_URL = `${DEFAULT_ORIGIN}/assets/og-preview.png`;
 let inventoryPromise: Promise<PublicRouteInventory> | null = null;
 let documentMetaRevision = 0;

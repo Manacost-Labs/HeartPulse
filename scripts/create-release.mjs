@@ -19,6 +19,8 @@ const nginxContractDefinitions = [
   { source: 'deploy/nginx/arena-cdn-public-static.conf', installPath: '/etc/nginx/snippets/arena-cdn-public-static.conf', roles: ['edge'] },
   { source: 'deploy/nginx/hearthpulse-shadow-app.conf', installPath: '/etc/nginx/sites-available/hearthpulse-shadow-app.conf', roles: ['edge'] },
   { source: 'deploy/nginx/hearthpulse-shadow-cdn.conf', installPath: '/etc/nginx/sites-available/hearthpulse-shadow-cdn.conf', roles: ['edge'] },
+  { source: 'deploy/nginx/arena-legacy-app-redirect.conf', installPath: '/etc/nginx/sites-available/arena.hs-manacost.ru.conf', roles: ['edge'] },
+  { source: 'deploy/nginx/arena-legacy-cdn-redirect.conf', installPath: '/etc/nginx/sites-available/cdn.arena.hs-manacost.ru.conf', roles: ['edge'] },
   { source: 'deploy/nginx/arena-canonical-host-redirect.conf', installPath: '/etc/nginx/snippets/arena-canonical-host-redirect.conf', roles: ['origin'] },
   { source: 'deploy/nginx/arena-security-headers.conf', installPath: '/etc/nginx/snippets/arena-security-headers.conf', roles: ['origin'] },
 ];
@@ -36,6 +38,7 @@ const operationalFiles = [
   'deploy/arena-card-image-sync.sh',
   'deploy/monitor-arena-geodns.sh',
   'deploy/monitor-hearthpulse-shadow.sh',
+  'deploy/deploy-hearthpulse-cert.sh',
   'deploy/systemd/hearthpulse-shadow-monitor.service',
   'deploy/systemd/hearthpulse-shadow-monitor.timer',
 ];

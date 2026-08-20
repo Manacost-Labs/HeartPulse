@@ -18,17 +18,17 @@ const recovery = join(directory, 'seo-standard-cards-sitemap-v1.lkg.json');
 const baseEntries: SitemapSemanticEntry[] = [
   {
     key: 'CARD_1',
-    location: 'https://arena.hs-manacost.ru/standard/cards/standard/CARD_1/',
+    location: 'https://hearthpulse.net/standard/cards/standard/CARD_1/',
     semanticHash: '1'.repeat(64),
   },
   {
     key: 'CARD_2',
-    location: 'https://arena.hs-manacost.ru/standard/cards/standard/CARD_2/',
+    location: 'https://hearthpulse.net/standard/cards/standard/CARD_2/',
     semanticHash: '2'.repeat(64),
   },
   {
     key: 'CARD_3',
-    location: 'https://arena.hs-manacost.ru/standard/cards/standard/CARD_3/',
+    location: 'https://hearthpulse.net/standard/cards/standard/CARD_3/',
     semanticHash: '3'.repeat(64),
   },
 ];

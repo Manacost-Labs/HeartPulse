@@ -18,7 +18,7 @@ assert.equal(CARD_GALLERY_IMAGE_ROOT_MARGIN, '320px 0px');
 
 const deferredImage = {
   dataset: {
-    cardImageSrc: 'https://cdn.arena.hs-manacost.ru/api/card-image/JAIL_878/thumb.webp?v=test',
+    cardImageSrc: 'https://cdn.hearthpulse.net/api/card-image/JAIL_878/thumb.webp?v=test',
   },
   loading: 'lazy' as 'eager' | 'lazy',
   src: 'data:image/gif;base64,placeholder',
@@ -27,7 +27,7 @@ assert.equal(activateDeferredCardImage(deferredImage), true);
 assert.equal(deferredImage.loading, 'eager');
 assert.equal(
   deferredImage.src,
-  'https://cdn.arena.hs-manacost.ru/api/card-image/JAIL_878/thumb.webp?v=test',
+  'https://cdn.hearthpulse.net/api/card-image/JAIL_878/thumb.webp?v=test',
 );
 assert.equal(deferredImage.dataset.cardImageSrc, undefined);
 assert.equal(

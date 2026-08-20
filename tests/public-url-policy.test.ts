@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { applyDocumentPageMeta, resolvePublicUrlPolicy } from '../src/seo/publicUrlPolicy';
 import { tabFromPath } from '../src/routes';
 
-const ORIGIN = 'https://arena.hs-manacost.ru';
+const ORIGIN = 'https://hearthpulse.net';
 
 async function expectPolicy(
   pathname: string,

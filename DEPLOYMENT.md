@@ -180,7 +180,7 @@ sudo nginx -t
 sudo systemctl restart hs-arena.service
 curl -fsS http://127.0.0.1:3101/health/ready
 sudo systemctl reload nginx
-curl -fsS https://arena.hs-manacost.ru/api/health/ready
+curl -fsS https://hearthpulse.net/api/health/ready
 ```
 
 Do not remove the old workspace `dist` or `server/data` until the new service,
@@ -341,7 +341,7 @@ Verify one real run without touching the web process:
 ```bash
 sudo systemctl start hs-arena-scraper.service
 sudo systemctl show hs-arena-scraper.service -p Result -p ExecMainStatus
-curl -fsS https://arena.hs-manacost.ru/api/health/data
+curl -fsS https://hearthpulse.net/api/health/data
 ```
 
 `/api/health/data` also monitors `api.hs-manacost.ru/v1/system/health` in the
@@ -371,10 +371,10 @@ root-owned read-only releases sharing the same mutable data directory.
 ```bash
 readlink -f /var/www/koloda/data/www/hs-arena.ru/current
 systemctl is-active hs-arena.service
-curl -fsS https://arena.hs-manacost.ru/api/health/live
-curl -fsS https://arena.hs-manacost.ru/api/health/ready
-curl -fsS https://arena.hs-manacost.ru/api/health/data
-curl -fsS https://arena.hs-manacost.ru/api/metrics
+curl -fsS https://hearthpulse.net/api/health/live
+curl -fsS https://hearthpulse.net/api/health/ready
+curl -fsS https://hearthpulse.net/api/health/data
+curl -fsS https://hearthpulse.net/api/metrics
 sudo systemctl list-timers 'hs-arena-backup*'
 sudo systemctl list-timers 'hs-arena-scraper*'
 npm run qa:e2e

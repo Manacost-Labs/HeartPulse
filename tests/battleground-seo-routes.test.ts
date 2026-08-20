@@ -154,16 +154,16 @@ try {
     /<title>А\. Ф\. Ка alert\(&quot;x&quot;\) — герой Полей сражений Hearthstone \| Manacost Stats<\/title>/,
   );
   assert.match(html, /<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">/);
-  assert.match(html, /<link rel="canonical" href="https:\/\/arena\.hs-manacost\.ru\/heroes\/57944\/">/);
+  assert.match(html, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/heroes\/57944\/">/);
   assert.match(html, /<meta property="og:type" content="article">/);
   assert.match(html, /<meta property="og:title"/);
   assert.match(html, /<meta property="og:description"/);
-  assert.match(html, /<meta property="og:url" content="https:\/\/arena\.hs-manacost\.ru\/heroes\/57944\/">/);
-  assert.match(html, /<meta property="og:image" content="https:\/\/arena\.hs-manacost\.ru\/images\/heroes\/TB_BaconShop_HERO_16\.png">/);
+  assert.match(html, /<meta property="og:url" content="https:\/\/hearthpulse\.net\/heroes\/57944\/">/);
+  assert.match(html, /<meta property="og:image" content="https:\/\/hearthpulse\.net\/images\/heroes\/TB_BaconShop_HERO_16\.png">/);
   assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
   assert.match(html, /<h1>А\. Ф\. Ка alert\(&quot;x&quot;\)<\/h1>/);
   assert.doesNotMatch(html, /<script>alert/i, 'upstream markup must not become executable HTML');
-  assert.match(html, /<img[^>]+src="https:\/\/arena\.hs-manacost\.ru\/images\/heroes\/TB_BaconShop_HERO_16\.png"/);
+  assert.match(html, /<img[^>]+src="https:\/\/hearthpulse\.net\/images\/heroes\/TB_BaconShop_HERO_16\.png"/);
   assert.match(html, /<dt>DBF ID<\/dt><dd><code>57944<\/code><\/dd>/);
   assert.match(html, /<dt>ID карты<\/dt><dd><code>TB_BaconShop_HERO_16<\/code><\/dd>/);
   assert.match(html, /<h2>Сила героя<\/h2>/);
@@ -209,7 +209,7 @@ try {
   assert.equal(unsafeImage.status, 200);
   const unsafeImageHtml = await unsafeImage.text();
   assert.doesNotMatch(unsafeImageHtml, /javascript:|data:image/i);
-  assert.match(unsafeImageHtml, /https:\/\/arena\.hs-manacost\.ru\/assets\/og-preview\.png/,
+  assert.match(unsafeImageHtml, /https:\/\/hearthpulse\.net\/assets\/og-preview\.png/,
     'unsafe hero and hero-power image schemes must use the public fallback');
   assertNoPrivateData(unsafeImageHtml, 'unsafe-image hero');
 
@@ -220,7 +220,7 @@ try {
   assert.match(duoHeroHtml, /Выгодный обмен/);
   assert.match(duoHeroHtml, /Передает незолотое существо\./);
   assert.doesNotMatch(duoHeroHtml, /https:\/\/cdn\.example\.test/);
-  assert.match(duoHeroHtml, /https:\/\/arena\.hs-manacost\.ru\/assets\/og-preview\.png/);
+  assert.match(duoHeroHtml, /https:\/\/hearthpulse\.net\/assets\/og-preview\.png/);
   assertNoPrivateData(duoHeroHtml, 'duo hero');
 
   const missing = await fetch(`${origin}/heroes/999999/`);

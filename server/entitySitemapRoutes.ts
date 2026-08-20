@@ -42,11 +42,11 @@ const MAX_SITEMAP_BYTES = 50 * 1024 * 1024;
 
 function canonicalOrigin(value: string | undefined): string {
   try {
-    const parsed = new URL(value ?? 'https://arena.hs-manacost.ru');
+    const parsed = new URL(value ?? 'https://hearthpulse.net');
     if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') throw new Error('unsupported protocol');
     return parsed.origin;
   } catch {
-    return 'https://arena.hs-manacost.ru';
+    return 'https://hearthpulse.net';
   }
 }
 

@@ -15,4 +15,4 @@ Allow: /main_assets/
 Allow: /wallpaper/
 Allow: /fonts/
 
-Sitemap: https://arena.hs-manacost.ru/sitemap.xml
+Sitemap: https://hearthpulse.net/sitemap.xml

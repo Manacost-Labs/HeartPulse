@@ -1,80 +1,80 @@
 # Перенос Arena на hearthpulse.net
 
-## Текущий этап: shadow
+## Финальный контракт
 
-Новые имена доступны параллельно production, но не являются canonical:
+- `https://hearthpulse.net` — единственный публичный canonical приложения;
+- `https://www.hearthpulse.net/**` — `301` на apex с сохранением пути и query;
+- `https://cdn.hearthpulse.net` — публичный CDN с закрытым private API;
+- `https://arena.hs-manacost.ru/**` — `301` на тот же путь `hearthpulse.net`;
+- `https://cdn.arena.hs-manacost.ru/**` — `301` на тот же путь нового CDN.
 
-- `hearthpulse.net` и `www.hearthpulse.net` — приложение через старый origin;
-- `cdn.hearthpulse.net` — только публичные изображения и versioned assets;
-- `arena.hs-manacost.ru` и `cdn.arena.hs-manacost.ru` продолжают работать без
-  редиректов и изменений DNS.
+Старый origin-host остаётся внутренним транспортным контрактом между edge и
+основным сервером. Его нельзя заменять редиректом на origin: иначе новый
+публичный домен попадёт в цикл. Redirect-only конфигурации устанавливаются
+только на узлах с ролью `edge`.
 
-Shadow application всегда возвращает `X-Robots-Tag: noindex, nofollow`.
-Короткий HSTS (`max-age=300`) не фиксирует незавершённую схему надолго.
+Cookies нельзя перенести между разными registrable domains. После перехода
+пользователь входит один раз заново; аккаунт, подписка и серверные сессии не
+удаляются. Сессионные токены запрещено передавать через URL.
 
-## DNS
+## DNS и регионы
 
-В зоне Cloudflare `hearthpulse.net` используются DNS-only записи с TTL 120:
+Зона Cloudflare остаётся DNS-only с TTL 120:
 
-- apex: A на `162.19.220.14`, `194.67.92.242`, `186.246.28.244`;
+- apex: `162.19.220.14`, `194.67.92.242`, `186.246.28.244`;
 - `cdn`: тот же набор A;
-- `www`: CNAME на apex.
+- `www`: CNAME на apex;
+- AAAA отсутствуют до отдельного IPv6 rollout.
 
-Не включать orange-cloud proxy до отдельной проверки доступности из РФ. Free
-DNS round-robin не заменяет health-aware балансировщик: доступность каждого
-узла контролирует `deploy/monitor-hearthpulse-shadow.sh`.
+Узлы: Limburg, Москва и Новосибирск. Москва (`194.67.92.242`) является
+отдельной обязательной проверкой, а не побочным результатом общего DNS-smoke.
 
-## Установка edge-конфигурации
+## Порядок переключения
 
-На каждом edge:
+1. Запустить `npm run verify:release`, security-проверки и браузерную матрицу.
+2. Установить в root-only runtime environment `APP_URL=https://hearthpulse.net`.
+3. Развернуть immutable release с новым canonical, sitemap, robots, JSON-LD,
+   OAuth callback и `cdn.hearthpulse.net`.
+4. На каждом edge установить проверенные release-контрактом файлы:
+   `hearthpulse-shadow-app.conf`, `hearthpulse-shadow-cdn.conf`,
+   `arena-legacy-app-redirect.conf`, `arena-legacy-cdn-redirect.conf`.
+   Историческое `shadow` в имени двух файлов сохраняется на время миграции,
+   чтобы обновить существующие symlink без параллельных `server_name`.
+5. На каждом узле выполнить `nginx -t`; reload разрешён только после успеха.
+6. Запустить `deploy/monitor-hearthpulse-shadow.sh` и браузерные проверки.
+7. Добавить новый sitemap в поисковые панели; старый домен оставить с `301`
+   минимум на год и продолжать продлевать его сертификат.
 
-1. Установить общий публичный сертификат в
-   `/etc/nginx/ssl/hearthpulse.net/{fullchain.pem,privkey.pem}` с root-only
-   правами на ключ.
-2. Установить `deploy/nginx/hearthpulse-shadow-app.conf` и
-   `deploy/nginx/hearthpulse-shadow-cdn.conf` в `/etc/nginx/sites-available/`.
-3. Включить оба файла через `sites-enabled`, выполнить `nginx -t` и только
-   затем reload. Файлы брать только из immutable release-каталога, сверять их
-   с `release.json` через `scripts/verify-nginx-contract.mjs --role=edge`, а
-   после включения подтверждать symlink и фактический ответ каждого edge
-   монитором.
+Certbot deploy hook использует versioned
+`deploy/deploy-hearthpulse-cert.sh`: после renewal он синхронизирует сертификат
+на все три edge, проверяет `nginx -t` и только затем выполняет reload.
 
-На основном сервере установить versioned units
-`deploy/systemd/hearthpulse-shadow-monitor.{service,timer}` в `/etc/systemd/system/`,
-включить timer и убедиться, что журнал содержит успешную проверку каждые пять
-минут. Эти записи журнала являются доказательством 24-часового shadow-периода.
+Telegram OIDC должен разрешать callback
+`https://hearthpulse.net/api/auth/telegram/callback`. Проверка считается
+полной, когда `/api/auth/telegram/config` возвращает новый URL, старт входа
+ставит host-only Secure cookie на HearthPulse, а callback не возвращает ошибку
+redirect URI.
 
 ## Проверка
 
 ```bash
 npm run test:hearthpulse-shadow
-sudo deploy/monitor-hearthpulse-shadow.sh
+npm run test:hearthpulse-monitor
+sudo /bin/bash /var/www/koloda/data/www/hs-arena.ru/current/deploy/monitor-hearthpulse-shadow.sh
 ```
 
-Дополнительно проверить в изолированном браузере:
+Дополнительно в desktop и mobile браузере проверить главную, каталог, detail,
+login/logout, отсутствие console errors, failed network requests и старых
+resource URL. `robots.txt`, sitemap, canonical, OpenGraph и JSON-LD должны
+указывать только на `hearthpulse.net`.
 
-- главную, каталог карт и одну detail-страницу;
-- отсутствие console errors и failed network requests;
-- `X-Robots-Tag: noindex, nofollow` на HTML;
-- изображение через `cdn.hearthpulse.net`;
-- отсутствие private API через CDN (`404`).
+## Откат
 
-## Откат shadow-этапа
+1. Восстановить резервные копии четырёх edge-vhost и выполнить `nginx -t`.
+2. Вернуть `APP_URL=https://arena.hs-manacost.ru` и предыдущий immutable release.
+3. Вернуть `X-Robots-Tag: noindex, nofollow` и короткий HSTS на HearthPulse.
+4. Проверить старое приложение и CDN на каждом российском edge.
 
-1. Удалить только записи apex, `www` и `cdn` из зоны `hearthpulse.net`.
-2. Подождать не менее 180 секунд (TTL 120 плюс запас для рекурсивных DNS).
-3. Отключить оба hearthpulse shadow vhost на edge и выполнить `nginx -t`.
-4. Перезагрузить Nginx.
-
-Старые домены, база, release и пользовательские файлы при таком откате не
-изменяются.
-
-## Условия второго этапа
-
-Не менять canonical/301, пока одновременно не выполнены:
-
-- монитор зелёный на всех трёх edge не менее 24 часов;
-- проверены login/logout, OAuth callback и host-only cookies на новом домене;
-- готовы sitemap, robots, structured data и Search Console;
-- `job.hs-manacost.ru` больше не ссылается DNS-именем на Arena;
-- документирован и проверен обратный переключатель на старый canonical.
+DNS нового домена при обычном rollback не удаляется: это предотвращает NXDOMAIN
+для уже открытых ссылок. Удаление DNS — отдельная аварийная мера после TTL 120
+плюс не менее 60 секунд запаса.

@@ -2,7 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import puppeteer from 'puppeteer';
 
-const baseUrl = (process.argv.find(argument => argument.startsWith('--url=')) || '--url=https://arena.hs-manacost.ru')
+const baseUrl = (process.argv.find(argument => argument.startsWith('--url=')) || '--url=https://hearthpulse.net')
   .slice(6)
   .replace(/\/$/, '');
 const outputDirectory = path.resolve('docs/screenshots');

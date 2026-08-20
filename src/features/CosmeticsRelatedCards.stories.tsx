@@ -28,7 +28,7 @@ const meta = {
   args: {
     title: 'Карты, которые генерируют монеты',
     items: generatedCards,
-    imageOrigin: 'https://arena.hs-manacost.ru',
+    imageOrigin: 'https://hearthpulse.net',
     navigatePath: fn(),
   },
   parameters: {

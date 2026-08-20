@@ -5,10 +5,10 @@
 These files are the versioned nginx contract for public HTML routes. They are
 templates only: a Git checkout does not change the live nginx configuration.
 
-The pre-cutover `hearthpulse.net` shadow hosts are documented in
-`docs/runbooks/hearthpulse-domain-migration.md`. They must remain noindex and
-must not replace the canonical Arena vhost until the separate cutover gate is
-approved.
+The `hearthpulse.net` cutover hosts are documented in
+`docs/runbooks/hearthpulse-domain-migration.md`. The historical `shadow` file
+names are retained while existing edge symlinks are updated in place; their
+current contract is the indexable HearthPulse canonical host and public CDN.
 
 ## Installation order
 
@@ -30,8 +30,10 @@ approved.
    `/etc/nginx/snippets/arena-canonical-host-redirect.conf` and include it in
    every HTTP, `www` and legacy `hs-arena.ru` redirect server. These hosts then
    normalize the scheme, host and a known HTML route's slash in one hop.
-7. In the canonical `arena.hs-manacost.ru` HTTPS server, keep the TLS, root,
-   origin guard, logging, gzip and server-wide security-header configuration.
+7. In the internal `arena.hs-manacost.ru` origin HTTPS server, keep the TLS,
+   root, origin guard, logging, gzip and server-wide security-header
+   configuration. Public edge nodes instead install the two versioned legacy
+   redirect vhosts; never install those redirects on the origin.
 8. Replace the existing API, static and SPA `location` blocks with
    `include /etc/nginx/snippets/arena-html-routing.conf;`. Do not keep the old
    catch-all beside the new include.

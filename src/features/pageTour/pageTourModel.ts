@@ -18,7 +18,7 @@ export type PageTourLike = {
 function safePathname(value: string): string {
   const input = value.trim() || '/';
   try {
-    return new URL(input, 'https://arena.hs-manacost.ru').pathname;
+    return new URL(input, 'https://hearthpulse.net').pathname;
   } catch {
     return input.split(/[?#]/, 1)[0] || '/';
   }

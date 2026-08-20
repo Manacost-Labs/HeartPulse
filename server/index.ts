@@ -439,7 +439,7 @@ const ADMIN_USER_IDS = new Set(
     .map(item => item.trim())
     .filter(Boolean)
 );
-const APP_URL = (process.env.APP_URL || 'https://arena.hs-manacost.ru').replace(/\/$/, '');
+const APP_URL = (process.env.APP_URL || 'https://hearthpulse.net').replace(/\/$/, '');
 const KOLODAHS_DB_ROOT = process.env.KOLODAHS_DB_ROOT || '/var/www/koloda/data/www/db.kolodahs.ru';
 const KOLODAHS_WIKI_CARD_INDEX_FILE = join(KOLODAHS_DB_ROOT, 'var/wiki-hs-cache/wiki-card-index-card.json');
 const DECKVIEW_ARCHETYPES_API_URL = (process.env.DECKVIEW_ARCHETYPES_API_URL || process.env.DECKVIEW_API_URL || '').trim();
@@ -2449,13 +2449,16 @@ function cookieValue(req: import('express').Request, name: string): string {
 }
 
 function authCookieDomain(req: import('express').Request): string {
+  if (new URL(APP_URL).hostname !== 'arena.hs-manacost.ru') return '';
   const host = String(req.headers.host ?? '').split(':')[0].toLowerCase();
   return host === 'arena.hs-manacost.ru' || host.endsWith('.arena.hs-manacost.ru') ? 'Domain=.arena.hs-manacost.ru' : '';
 }
 
 function setAuthCookie(req: import('express').Request, res: import('express').Response, token: string) {
   const maxAgeSeconds = Math.floor(AUTH_SESSION_TTL_MS / 1000);
-  const secure = String(req.headers['x-forwarded-proto'] ?? req.protocol).includes('https') || String(req.headers.host ?? '').includes('arena.hs-manacost.ru');
+  const secure = String(req.headers['x-forwarded-proto'] ?? req.protocol).includes('https')
+    || String(req.headers.host ?? '').includes('arena.hs-manacost.ru')
+    || String(req.headers.host ?? '').includes('hearthpulse.net');
   const attributes = [
     'Path=/',
     'HttpOnly',
@@ -2479,7 +2482,9 @@ function setAuthCookie(req: import('express').Request, res: import('express').Re
 }
 
 function clearAuthCookie(req: import('express').Request, res: import('express').Response) {
-  const secure = String(req.headers['x-forwarded-proto'] ?? req.protocol).includes('https') || String(req.headers.host ?? '').includes('arena.hs-manacost.ru');
+  const secure = String(req.headers['x-forwarded-proto'] ?? req.protocol).includes('https')
+    || String(req.headers.host ?? '').includes('arena.hs-manacost.ru')
+    || String(req.headers.host ?? '').includes('hearthpulse.net');
   const attributes = [
     'Path=/',
     'HttpOnly',
@@ -2504,7 +2509,8 @@ function clearAuthCookie(req: import('express').Request, res: import('express').
 function telegramOidcCookieSecure(req: import('express').Request): boolean {
   return String(req.headers['x-forwarded-proto'] ?? req.protocol).includes('https')
     || String(req.headers.host ?? '').includes('arena.hs-manacost.ru')
-    || String(req.headers.host ?? '').includes('hs-manacost.ru');
+    || String(req.headers.host ?? '').includes('hs-manacost.ru')
+    || String(req.headers.host ?? '').includes('hearthpulse.net');
 }
 
 function telegramOidcStateFromValue(value: any): TelegramOidcState | null {
@@ -2627,8 +2633,8 @@ function sendAuthCodeEmail(to: string, code: string): Promise<void> {
   }
   const brandName = 'Экосистема Манакоста';
   const subject = 'Код входа в Экосистему Манакоста';
-  const avatarUrl = 'https://arena.hs-manacost.ru/assets/manacost-avatar.jpeg';
-  const artUrl = 'https://arena.hs-manacost.ru/wallpaper/wallpaper.jpg';
+  const avatarUrl = 'https://hearthpulse.net/assets/manacost-avatar.jpeg';
+  const artUrl = 'https://hearthpulse.net/wallpaper/wallpaper.jpg';
   const codeCells = code.split('').map(char => `
                     <td align="center" style="padding:0 3px;">
                       <div style="width:42px;height:50px;line-height:50px;background:#f8faff;border:1px solid #cbd7ea;border-radius:10px;color:#0f172a;font-size:25px;font-weight:800;font-family:Arial,Helvetica,sans-serif;text-align:center;box-shadow:0 6px 18px rgba(15,23,42,.10);">${char}</div>
@@ -8620,7 +8626,7 @@ app.post('/api/auth/telegram/bot/webhook', async (req, res) => {
   }
   if (!linkCode) {
     await sendTelegramAuthBotMessage(chatId, [
-      'Отправьте сюда ID-код из профиля arena.hs-manacost.ru.',
+      'Отправьте сюда ID-код из профиля hearthpulse.net.',
       'Код создаётся в блоке Telegram в личном кабинете и действует ограниченное время.',
       '',
       'Чтобы привязать Boosty-почту через бота, отправьте /email name@example.com.',

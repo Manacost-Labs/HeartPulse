@@ -10,7 +10,7 @@
 import puppeteer from 'puppeteer';
 import { mkdirSync } from 'fs';
 
-const BASE = (process.argv.find(a => a.startsWith('--url=')) || '--url=https://arena.hs-manacost.ru').slice(6).replace(/\/$/, '');
+const BASE = (process.argv.find(a => a.startsWith('--url=')) || '--url=https://hearthpulse.net').slice(6).replace(/\/$/, '');
 const OUT = 'screenshot/qa';
 const PAGES = ['/', '/tierlist', '/legendaries', '/classes'];
 const failures = [];

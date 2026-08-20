@@ -219,10 +219,10 @@ async function storyAdvice(
 }
 
 const productionCardImage = (cardId: string) => (
-  `https://arena.hs-manacost.ru/api/card-image/${encodeURIComponent(cardId)}/full.webp`
+  `https://hearthpulse.net/api/card-image/${encodeURIComponent(cardId)}/full.webp`
 );
 const productionCardThumb = (cardId: string) => (
-  `https://arena.hs-manacost.ru/api/card-image/${encodeURIComponent(cardId)}/thumb.webp`
+  `https://hearthpulse.net/api/card-image/${encodeURIComponent(cardId)}/thumb.webp`
 );
 
 const meta = {

@@ -17,7 +17,7 @@ export type PublicDeckLinks = {
   archetypeBuilds: string;
 };
 
-const DEFAULT_PUBLIC_ORIGIN = 'https://arena.hs-manacost.ru';
+const DEFAULT_PUBLIC_ORIGIN = 'https://hearthpulse.net';
 
 function normalizePublicOrigin(value: unknown): string {
   const raw = typeof value === 'string' && value.trim()

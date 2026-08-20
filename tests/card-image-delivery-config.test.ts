@@ -20,17 +20,17 @@ try {
     __ARENA_RUNTIME_CONFIG__: {
       cardImageCdn: {
         enabled: true,
-        origin: 'https://cdn.arena.hs-manacost.ru',
+        origin: 'https://cdn.hearthpulse.net',
       },
     },
   };
   assert.equal(
     cardImageDeliveryUrl('/api/card-image/ETC_080/full.webp?v=2'),
-    'https://cdn.arena.hs-manacost.ru/api/card-image/ETC_080/full.webp?v=2',
+    'https://cdn.hearthpulse.net/api/card-image/ETC_080/full.webp?v=2',
     'the approved runtime CDN must serve constructed card images',
   );
   assert.equal(
-    cardImageOriginUrl('https://cdn.arena.hs-manacost.ru/api/card-image/ETC_080/full.webp?v=2'),
+    cardImageOriginUrl('https://cdn.hearthpulse.net/api/card-image/ETC_080/full.webp?v=2'),
     '/api/card-image/ETC_080/full.webp?v=2',
   );
 
@@ -48,8 +48,8 @@ try {
 
   const removedAttributes: string[] = [];
   const image = {
-    currentSrc: 'https://cdn.arena.hs-manacost.ru/api/card-image/ETC_080/thumb.webp?v=4',
-    src: 'https://cdn.arena.hs-manacost.ru/api/card-image/ETC_080/thumb.webp?v=4',
+    currentSrc: 'https://cdn.hearthpulse.net/api/card-image/ETC_080/thumb.webp?v=4',
+    src: 'https://cdn.hearthpulse.net/api/card-image/ETC_080/thumb.webp?v=4',
     removeAttribute(name: string) {
       removedAttributes.push(name);
     },

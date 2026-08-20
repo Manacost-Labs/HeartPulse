@@ -71,7 +71,7 @@ try {
     timeoutMs: 1_000,
   });
   assert.deepEqual(capturedCommands, [
-    'EHLO arena.hs-manacost.ru',
+    'EHLO hearthpulse.net',
     'MAIL FROM:<noreply@hs-manacost.ru>',
     'RCPT TO:<member@example.test>',
     'DATA',

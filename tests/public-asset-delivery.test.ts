@@ -37,7 +37,7 @@ assert.equal(
 assert.equal(
   resolveCardImageDeliveryUrl(fullCardPath, {
     enabled: true,
-    origin: 'http://cdn.arena.hs-manacost.ru',
+    origin: 'http://cdn.hearthpulse.net',
   }),
   fullCardPath,
   'non-HTTPS CDN origins must fail closed',

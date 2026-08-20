@@ -17,7 +17,7 @@ const redirectSource = readFileSync(
 assert.match(mapSource, /map\s+\$uri\s+\$arena_canonical_edge_path\s*\{/,
   'the HTTP-context map must normalize known canonical HTML paths');
 assert.match(redirectSource,
-  /return\s+301\s+https:\/\/arena\.hs-manacost\.ru\$arena_canonical_edge_path\$is_args\$args;/,
+  /return\s+301\s+https:\/\/hearthpulse\.net\$arena_canonical_edge_path\$is_args\$args;/,
   'every non-canonical host/scheme must redirect directly to the canonical origin');
 
 function substituteRouteParameters(route) {

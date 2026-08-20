@@ -31,12 +31,12 @@ function safeJson(value: unknown): string {
 
 function canonicalOrigin(value: string | undefined): string {
   try {
-    const parsed = new URL(value ?? 'https://arena.hs-manacost.ru');
+    const parsed = new URL(value ?? 'https://hearthpulse.net');
     return parsed.protocol === 'https:' || parsed.protocol === 'http:'
       ? parsed.origin
-      : 'https://arena.hs-manacost.ru';
+      : 'https://hearthpulse.net';
   } catch {
-    return 'https://arena.hs-manacost.ru';
+    return 'https://hearthpulse.net';
   }
 }
 

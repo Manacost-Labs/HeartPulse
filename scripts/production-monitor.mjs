@@ -11,7 +11,7 @@ const publicSeoRegistry = JSON.parse(readFileSync(
 export const EXPECTED_STATIC_SITEMAP_URL_COUNT = Object.values(publicSeoRegistry.pages)
   .filter(page => page?.sitemap === true)
   .length;
-const DEFAULT_BASE_URL = 'https://arena.hs-manacost.ru';
+const DEFAULT_BASE_URL = 'https://hearthpulse.net';
 const DEFAULT_ROUTES = ['/', '/classes/', '/battlegrounds/tier-list/'];
 const REQUIRED_DATASETS = [
   'winrates',

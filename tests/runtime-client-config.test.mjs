@@ -22,11 +22,11 @@ assert.deepEqual(
   JSON.parse(JSON.stringify(context.window.__ARENA_RUNTIME_CONFIG__)),
   {
     cardImageCdn: {
-      enabled: false,
-      origin: 'https://cdn.arena.hs-manacost.ru',
+      enabled: true,
+      origin: 'https://cdn.hearthpulse.net',
     },
   },
-  'the repository default must fail closed to same-origin delivery',
+  'the canonical runtime must use the public HearthPulse CDN after cutover',
 );
 
 console.log('runtime client config contract tests passed');

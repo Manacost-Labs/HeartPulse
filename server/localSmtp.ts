@@ -98,7 +98,7 @@ export function sendLocalSmtpMessage(input: LocalSmtpMessage): Promise<void> {
       }
       if (phase === 'greeting') {
         phase = 'ehlo';
-        send('EHLO arena.hs-manacost.ru');
+        send('EHLO hearthpulse.net');
       } else if (phase === 'ehlo') {
         phase = 'mail';
         send(`MAIL FROM:<${envelopeFrom}>`);

@@ -1,4 +1,4 @@
-export const PUBLIC_CARD_IMAGE_CDN_ORIGIN = 'https://cdn.arena.hs-manacost.ru';
+export const PUBLIC_CARD_IMAGE_CDN_ORIGIN = 'https://cdn.hearthpulse.net';
 
 export type CardImageDeliveryConfig = {
   enabled: boolean;

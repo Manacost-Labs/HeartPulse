@@ -42,7 +42,7 @@ const inventory = JSON.parse(readFileSync(
 )) as Inventory;
 
 assert.equal(inventory.schemaVersion, 1);
-assert.equal(inventory.canonicalOrigin, 'https://arena.hs-manacost.ru');
+assert.equal(inventory.canonicalOrigin, 'https://hearthpulse.net');
 assert.equal(inventory.canonicalTrailingSlash, 'always');
 assert.deepEqual(inventory.requiredViewports, [320, 390, 768, 1440]);
 

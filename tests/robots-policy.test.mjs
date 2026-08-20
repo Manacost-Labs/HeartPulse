@@ -75,7 +75,7 @@ for (const crawler of ['googlebot', 'yandexbot', 'bingbot']) {
 const sitemapLines = robots.split(/\r?\n/)
   .map(line => line.trim())
   .filter(line => /^sitemap:/i.test(line));
-assert.deepEqual(sitemapLines, ['Sitemap: https://arena.hs-manacost.ru/sitemap.xml'],
+assert.deepEqual(sitemapLines, ['Sitemap: https://hearthpulse.net/sitemap.xml'],
   'robots.txt must expose the canonical sitemap exactly once');
 assert.doesNotMatch(robots, /^\s*noindex\s*:/im,
   'robots.txt does not support a noindex directive');

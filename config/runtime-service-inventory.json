@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "scope": "Versioned runtime ownership and criticality contract for arena.hs-manacost.ru and api.hs-manacost.ru",
+  "scope": "Versioned runtime ownership and criticality contract for hearthpulse.net and api.hs-manacost.ru",
   "idPolicy": "IDs are globally unique across every inventory collection.",
   "sourceNamespaces": {
     "frontend": "/var/www/koloda/data/www/hs-arena.ru/app",

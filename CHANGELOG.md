@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Completed the full Arena cutover to `hearthpulse.net`: switched canonical,
+  sitemap, structured data, OAuth URLs and the public image CDN; added
+  path-preserving legacy application/CDN redirects and upgraded the five-minute
+  monitor to verify Limburg, Moscow and Novosibirsk independently.
+
 - Started the reversible Arena domain migration: added noindex shadow hosts for
   `hearthpulse.net` and its public-only CDN, packaged their Nginx contracts in
   releases, and added a strict apex/www/CDN DNS/TLS/privacy monitor running

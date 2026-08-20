@@ -175,9 +175,9 @@ try {
   assert.equal(occurrences(html, /<h1(?:\s[^>]*)?>/gi), 1);
   assert.match(html, /<html lang="ru">/);
   assert.match(html, /<title>Баюбот alert\(&quot;x&quot;\) — существо Полей сражений Hearthstone \| Manacost Stats<\/title>/);
-  assert.match(html, /<link rel="canonical" href="https:\/\/arena\.hs-manacost\.ru\/library\/minions\/%D0%B1%D0%B0%D1%8E%D0%B1%D0%BE%D1%82-alert-x-98582\/">/);
+  assert.match(html, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/library\/minions\/%D0%B1%D0%B0%D1%8E%D0%B1%D0%BE%D1%82-alert-x-98582\/">/);
   assert.match(html, /<meta property="og:type" content="article">/);
-  assert.match(html, /<meta property="og:url" content="https:\/\/arena\.hs-manacost\.ru\/library\/minions\/%D0%B1%D0%B0%D1%8E%D0%B1%D0%BE%D1%82-alert-x-98582\/">/);
+  assert.match(html, /<meta property="og:url" content="https:\/\/hearthpulse\.net\/library\/minions\/%D0%B1%D0%B0%D1%8E%D0%B1%D0%BE%D1%82-alert-x-98582\/">/);
   assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
   assert.match(html, /<h1>Баюбот alert\(&quot;x&quot;\)<\/h1>/);
   assert.doesNotMatch(html, /<script>alert/i);
@@ -193,7 +193,7 @@ try {
   assert.match(html, /Магнетизм\. В конце хода получает \+1 к здоровью\./);
   assert.match(html, /Magnetic\. At the end of your turn, gain \+1 Health\./);
   assert.match(html, /Крис Ран &lt;img src=x onerror=alert\(1\)&gt;/);
-  assert.match(html, /src="https:\/\/arena\.hs-manacost\.ru\/images\/bg\/BG26_146\.png"/);
+  assert.match(html, /src="https:\/\/hearthpulse\.net\/images\/bg\/BG26_146\.png"/);
   assert.doesNotMatch(html, /https:\/\/cdn\.example\.test/);
   assert.doesNotMatch(html, /javascript:|data:image/i);
   assert.match(html, /src="\/assets\/index-safe\.js"/);
@@ -241,7 +241,7 @@ try {
   assert.equal(wrongSlug.status, 301);
   assert.equal(
     wrongSlug.headers.get('location'),
-    'https://arena.hs-manacost.ru/library/minions/%D0%B1%D0%B0%D1%8E%D0%B1%D0%BE%D1%82-alert-x-98582/?utm_source=qa&value=1',
+    'https://hearthpulse.net/library/minions/%D0%B1%D0%B0%D1%8E%D0%B1%D0%BE%D1%82-alert-x-98582/?utm_source=qa&value=1',
   );
   assert.equal(wrongSlug.headers.get('x-robots-tag'), 'noindex, nofollow');
 
@@ -253,8 +253,8 @@ try {
   assert.match(spellHtml, /Give a minion \+2\/\+2\./);
   assert.doesNotMatch(spellHtml, /HIDDEN_RAW_TAG|Механики:/);
   assert.doesNotMatch(spellHtml, /<dt>Атака|<dt>Здоровье|<dt>Тип существа/);
-  assert.match(spellHtml, /https:\/\/arena\.hs-manacost\.ru\/api\/public-resource\/db\/uploads\/cards\/BG28_897\.png/);
-  assert.match(spellHtml, /https:\/\/arena\.hs-manacost\.ru\/api\/public-resource\/db\/uploads\/art\/BG28_897\.jpg/);
+  assert.match(spellHtml, /https:\/\/hearthpulse\.net\/api\/public-resource\/db\/uploads\/cards\/BG28_897\.png/);
+  assert.match(spellHtml, /https:\/\/hearthpulse\.net\/api\/public-resource\/db\/uploads\/art\/BG28_897\.jpg/);
   assert.doesNotMatch(spellHtml, /https:\/\/db\.kolodahs\.ru/);
   assertNoPrivateData(spellHtml, 'existing spell');
 

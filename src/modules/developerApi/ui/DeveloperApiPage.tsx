@@ -9,10 +9,10 @@ import {
 } from 'lucide-react';
 import '../developerApi.css';
 
-const CURL_EXAMPLE = `curl "https://arena.hs-manacost.ru/api/v1/card-statistics?format=standard&rank=legend&period=1d&limit=120" \\
+const CURL_EXAMPLE = `curl "https://hearthpulse.net/api/v1/card-statistics?format=standard&rank=legend&period=1d&limit=120" \\
   -H "X-API-Key: mca_live_••••••••"`;
 
-const DEVICE_EXAMPLE = `curl -X POST https://arena.hs-manacost.ru/api/v1/oauth/device/code \\
+const DEVICE_EXAMPLE = `curl -X POST https://hearthpulse.net/api/v1/oauth/device/code \\
   -H "Content-Type: application/x-www-form-urlencoded" \\
   --data "client_id=manacost-tracker&scope=profile.read%20subscription.read%20catalog.read%20images.read%20statistics.read"`;
 

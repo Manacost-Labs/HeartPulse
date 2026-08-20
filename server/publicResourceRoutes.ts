@@ -38,7 +38,7 @@ function requestedPublicResourceUrl(request: Request, source: PublicResourceSour
     return null;
   }
 
-  const requestUrl = new URL(request.originalUrl, 'https://arena.hs-manacost.ru');
+  const requestUrl = new URL(request.originalUrl, 'https://hearthpulse.net');
   requestUrl.searchParams.delete('width');
   requestUrl.searchParams.delete('quality');
   requestUrl.searchParams.delete('format');

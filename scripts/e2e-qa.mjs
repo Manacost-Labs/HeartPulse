@@ -21,7 +21,7 @@ const CHROMIUM_PATH = [
 ].find(candidate => candidate && existsSync(candidate));
 if (!CHROMIUM_PATH) throw new Error('Chromium/Chrome executable is required for browser QA');
 
-const BASE = (process.argv.find(arg => arg.startsWith('--url=')) || '--url=https://arena.hs-manacost.ru')
+const BASE = (process.argv.find(arg => arg.startsWith('--url=')) || '--url=https://hearthpulse.net')
   .slice(6)
   .replace(/\/$/, '');
 const BASE_ORIGIN = new URL(BASE).origin;
@@ -660,7 +660,7 @@ const adminFixtures = {
       status: 'active',
       createdAt: '2026-07-11T00:00:00.000Z',
       updatedAt: '2026-07-11T00:00:00.000Z',
-      url: 'https://arena.hs-manacost.ru/r/qa-campaign',
+      url: 'https://hearthpulse.net/r/qa-campaign',
       clicks: 7,
       uniqueClicks: 5,
       lastClickAt: '2026-07-11T00:00:00.000Z',

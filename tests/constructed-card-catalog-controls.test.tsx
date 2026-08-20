@@ -49,7 +49,7 @@ const downloadMarkup = renderToStaticMarkup(
   <ConstructedCardDownloadButton
     cardId="TOY_330"
     cardName="Зиллиакс Делокс 3000"
-    href="https://cdn.arena.hs-manacost.ru/api/card-image/105909/full.webp?v=blizzard-test"
+    href="https://cdn.hearthpulse.net/api/card-image/105909/full.webp?v=blizzard-test"
   />,
 );
 assert.match(downloadMarkup, /download="Зиллиакс-Делокс-3000-TOY_330\.webp"/);

@@ -39,7 +39,7 @@ export function deckRenderImageRetryUrl(imageUrl: string, attempt: number): stri
   if (!imageUrl || attempt <= 0) return imageUrl;
   try {
     const isSameOriginPath = imageUrl.startsWith('/');
-    const url = new URL(imageUrl, 'https://arena.hs-manacost.ru');
+    const url = new URL(imageUrl, 'https://hearthpulse.net');
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return imageUrl;
     url.searchParams.set('deckview_retry', String(attempt));
     return isSameOriginPath ? `${url.pathname}${url.search}${url.hash}` : url.toString();

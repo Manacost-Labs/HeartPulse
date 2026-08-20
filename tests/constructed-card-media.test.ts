@@ -221,13 +221,13 @@ try {
     __ARENA_RUNTIME_CONFIG__: {
       cardImageCdn: {
         enabled: true,
-        origin: 'https://cdn.arena.hs-manacost.ru',
+        origin: 'https://cdn.hearthpulse.net',
       },
     },
   };
   assert.equal(
     constructedCardRenderImage('ETC_080', 'https://example.test/card.png', 'thumb'),
-    'https://cdn.arena.hs-manacost.ru/api/card-image/ETC_080/thumb.webp?v=constructed-cards-patch-36-2-20260805',
+    'https://cdn.hearthpulse.net/api/card-image/ETC_080/thumb.webp?v=constructed-cards-patch-36-2-20260805',
     'constructed card renders should use the approved CDN after the runtime switch is enabled',
   );
 } finally {

@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <a href="https://arena.hs-manacost.ru"><strong>Открыть сайт</strong></a> ·
+  <a href="https://hearthpulse.net"><strong>Открыть сайт</strong></a> ·
   <a href="#быстрый-старт">Быстрый старт</a> ·
   <a href="STABILIZATION.md">Надёжность</a> ·
   <a href="assets.md">Дизайн и ассеты</a> ·
@@ -54,9 +54,9 @@
 </p>
 
 <p align="center">
-  <a href="https://arena.hs-manacost.ru/api/health/ready">
+  <a href="https://hearthpulse.net/api/health/ready">
     <img alt="Production health"
-      src="https://img.shields.io/website?url=https%3A%2F%2Farena.hs-manacost.ru%2Fapi%2Fhealth%2Fready&up_message=healthy&down_message=unavailable&label=production&color=4A2F66">
+      src="https://img.shields.io/website?url=https%3A%2F%2Fhearthpulse.net%2Fapi%2Fhealth%2Fready&up_message=healthy&down_message=unavailable&label=production&color=4A2F66">
   </a>
   <a href="https://react.dev">
     <img alt="React 19"
@@ -109,12 +109,12 @@ Manacost Arena превращает разрозненные игровые да
 
 | Быстрый вход | Ссылка |
 | --- | --- |
-| Арена: винрейты классов | [Открыть `/classes`](https://arena.hs-manacost.ru/classes) |
-| Арена: тир-лист карт | [Открыть `/tierlist`](https://arena.hs-manacost.ru/tierlist) |
-| Поля Сражений: герои | [Открыть `/heroes`](https://arena.hs-manacost.ru/heroes) |
-| Поля Сражений: библиотека | [Открыть `/library`](https://arena.hs-manacost.ru/library) |
-| Косметика: скины, монеты и питомцы | [Открыть `/cosmetics`](https://arena.hs-manacost.ru/cosmetics) |
-| Состояние production | [Readiness API](https://arena.hs-manacost.ru/api/health/ready) |
+| Арена: винрейты классов | [Открыть `/classes`](https://hearthpulse.net/classes) |
+| Арена: тир-лист карт | [Открыть `/tierlist`](https://hearthpulse.net/tierlist) |
+| Поля Сражений: герои | [Открыть `/heroes`](https://hearthpulse.net/heroes) |
+| Поля Сражений: библиотека | [Открыть `/library`](https://hearthpulse.net/library) |
+| Косметика: скины, монеты и питомцы | [Открыть `/cosmetics`](https://hearthpulse.net/cosmetics) |
+| Состояние production | [Readiness API](https://hearthpulse.net/api/health/ready) |
 
 ## О проекте
 

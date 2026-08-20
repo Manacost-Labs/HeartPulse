@@ -45,7 +45,7 @@ export type ConstructedCardSeoRouterDependencies = {
   onError?: (error: unknown) => void;
 };
 
-const CANONICAL_ORIGIN = 'https://arena.hs-manacost.ru';
+const CANONICAL_ORIGIN = 'https://hearthpulse.net';
 const INDEX_ROBOTS = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
 const NOINDEX_ROBOTS = 'noindex, nofollow';
 const FORMAT_LABELS: Record<ConstructedCardFormat, string> = {
