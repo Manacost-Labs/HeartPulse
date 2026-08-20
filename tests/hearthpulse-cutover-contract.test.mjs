@@ -11,6 +11,9 @@ const routeInventory = JSON.parse(readFileSync('config/public-route-inventory.js
 const runtimeConfig = readFileSync('public/runtime-config.js', 'utf8');
 const publicAssetDelivery = readFileSync('shared/publicAssetDelivery.ts', 'utf8');
 const robots = readFileSync('public/robots.txt', 'utf8');
+const productionMonitorWorkflow = readFileSync('.github/workflows/production-monitor.yml', 'utf8');
+const deploymentWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8');
+const bugReportTemplate = readFileSync('.github/ISSUE_TEMPLATE/bug_report.yml', 'utf8');
 
 assert.match(domain, /CANONICAL_HOST = 'hearthpulse\.net'/,
   'the browser canonical host must switch to hearthpulse.net');
@@ -21,6 +24,12 @@ assert.match(runtimeConfig, /origin:\s*'https:\/\/cdn\.hearthpulse\.net'/);
 assert.match(publicAssetDelivery, /PUBLIC_CARD_IMAGE_CDN_ORIGIN = 'https:\/\/cdn\.hearthpulse\.net'/,
   'the browser CDN allowlist must accept the final public image host');
 assert.match(robots, /Sitemap:\s+https:\/\/hearthpulse\.net\/sitemap\.xml/);
+assert.match(productionMonitorWorkflow, /PRODUCTION_BASE_URL:\s+https:\/\/hearthpulse\.net/,
+  'scheduled production checks must probe the canonical host directly');
+assert.match(deploymentWorkflow, /url:\s+https:\/\/hearthpulse\.net/,
+  'the GitHub production environment must expose the canonical host');
+assert.match(bugReportTemplate, /https:\/\/hearthpulse\.net\/\.\.\./,
+  'new bug reports must direct users to the canonical host');
 
 assert.match(application, /server_name\s+hearthpulse\.net;/,
   'the canonical application server must own only the apex host');

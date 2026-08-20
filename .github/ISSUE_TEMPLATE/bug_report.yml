@@ -1,5 +1,5 @@
 name: Сообщить об ошибке
-description: Воспроизводимая проблема на arena.hs-manacost.ru
+description: Воспроизводимая проблема на hearthpulse.net
 title: "[Bug]: "
 labels:
   - bug
@@ -14,7 +14,7 @@ body:
     attributes:
       label: Страница
       description: Полный публичный URL, на котором возникла проблема.
-      placeholder: https://arena.hs-manacost.ru/...
+      placeholder: https://hearthpulse.net/...
     validations:
       required: true
   - type: textarea

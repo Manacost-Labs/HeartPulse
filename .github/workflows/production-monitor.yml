@@ -28,7 +28,7 @@ jobs:
 
       - name: Probe production
         env:
-          PRODUCTION_BASE_URL: https://arena.hs-manacost.ru
+          PRODUCTION_BASE_URL: https://hearthpulse.net
           MONITOR_ATTEMPTS: '2'
           MONITOR_RETRY_DELAY_MS: '5000'
           MONITOR_TIMEOUT_MS: '10000'

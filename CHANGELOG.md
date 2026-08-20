@@ -7,6 +7,8 @@
   source for previously saved article and image URLs. Legacy article URLs
   returned by the API are now canonicalized to `.com` without changing their
   path, query, or fragment.
+- Pointed the scheduled production monitor, GitHub production environment and
+  new bug-report links at the canonical `hearthpulse.net` host.
 
 - Completed the full Arena cutover to `hearthpulse.net`: switched canonical,
   sitemap, structured data, OAuth URLs and the public image CDN; added
