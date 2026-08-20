@@ -7,6 +7,9 @@ const monitor = readFileSync('deploy/monitor-hearthpulse-shadow.sh', 'utf8');
 
 assert.match(application, /server_name\s+hearthpulse\.net\s+www\.hearthpulse\.net;/,
   'the shadow application host must accept both the apex and www names');
+assert.match(application, /listen\s+443\s+ssl\s+http2;/,
+  'the shadow host must remain compatible with the Nginx 1.24 regional edge');
+assert.doesNotMatch(application, /http2\s+on;/);
 assert.match(application, /ssl_certificate\s+\/etc\/nginx\/ssl\/hearthpulse\.net\/fullchain\.pem;/);
 assert.match(application, /ssl_certificate_key\s+\/etc\/nginx\/ssl\/hearthpulse\.net\/privkey\.pem;/);
 assert.match(application, /proxy_set_header\s+Host\s+arena\.hs-manacost\.ru;/,
