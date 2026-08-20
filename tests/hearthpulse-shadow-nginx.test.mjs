@@ -23,6 +23,9 @@ assert.match(application, /add_header\s+X-Robots-Tag\s+"noindex, nofollow"\s+alw
   'the shadow host must not become an indexable duplicate before cutover');
 assert.doesNotMatch(application, /return\s+30[18]\s+https:\/\/arena\.hs-manacost\.ru/,
   'the shadow host must render the application for pre-cutover verification');
+assert.match(application, /sub_filter_types\s+application\/json;/,
+  'shadow API responses must rewrite absolute resource URLs without changing HTML canonical tags');
+assert.match(application, /sub_filter\s+'https:\/\/arena\.hs-manacost\.ru'\s+'https:\/\/hearthpulse\.net';/);
 
 assert.match(cdn, /server_name\s+cdn\.hearthpulse\.net;/);
 assert.match(cdn, /ssl_certificate\s+\/etc\/nginx\/ssl\/hearthpulse\.net\/fullchain\.pem;/);

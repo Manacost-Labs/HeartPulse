@@ -10,6 +10,9 @@ const PROJECT_ROOT = resolve(dirname(SCRIPT_PATH), '..');
 
 export const DEFAULT_ALLOWED_URL_PATTERNS = Object.freeze([
   'https://arena.hs-manacost.ru/*',
+  'https://hearthpulse.net/*',
+  'https://www.hearthpulse.net/*',
+  'https://cdn.hearthpulse.net/*',
   'https://stats.hs-manacost.ru/*',
   'http://localhost:3000/*',
   'http://127.0.0.1:3000/*',

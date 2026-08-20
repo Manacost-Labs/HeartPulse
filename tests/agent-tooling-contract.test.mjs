@@ -142,6 +142,13 @@ test('Chrome DevTools defaults isolate sessions and minimize data exposure', () 
   for (const pattern of DEFAULT_ALLOWED_URL_PATTERNS) {
     assert.ok(args.includes(`--allowed-url-pattern=${pattern}`));
   }
+  for (const shadowPattern of [
+    'https://hearthpulse.net/*',
+    'https://www.hearthpulse.net/*',
+    'https://cdn.hearthpulse.net/*',
+  ]) {
+    assert.ok(DEFAULT_ALLOWED_URL_PATTERNS.includes(shadowPattern));
+  }
 });
 
 test('Chrome sandbox can be retained explicitly and URL allowlist can be narrowed', () => {
