@@ -25,7 +25,7 @@ privilege=$1
 remote_dir=$2
 destination=$3
 run() {
-	if [[ -n "$privilege" ]]; then
+	if [[ "$privilege" != none ]]; then
 		"$privilege" "$@"
 	else
 		"$@"
@@ -42,5 +42,5 @@ REMOTE
 }
 
 deploy_edge debian@162.19.220.14 /home/debian/.ssh/koloda_proxy_ed25519 sudo
-deploy_edge root@194.67.92.242 /home/debian/.ssh/koloda_proxy_ed25519 ''
-deploy_edge root@186.246.28.244 /root/.ssh/koloda_proxy_ru-novosibirsk_ed25519 ''
+deploy_edge root@194.67.92.242 /home/debian/.ssh/koloda_proxy_ed25519 none
+deploy_edge root@186.246.28.244 /root/.ssh/koloda_proxy_ru-novosibirsk_ed25519 none

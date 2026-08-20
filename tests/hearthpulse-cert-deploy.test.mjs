@@ -16,5 +16,9 @@ assert.match(source, /nginx -t/);
 assert.match(source, /systemctl reload nginx/);
 assert.match(source, /ssh\s+"\$\{options\[@\]\}"\s+"\$target"\s+bash\s+-s/,
   'the remote installer uses Bash syntax and must explicitly run with Bash');
+assert.match(source, /\[\[ "\$privilege" != none \]\]/,
+  'root targets use a non-empty sentinel so SSH preserves all positional arguments');
+assert.match(source, /root@194\.67\.92\.242[^\n]+none/);
+assert.match(source, /root@186\.246\.28\.244[^\n]+none/);
 
 console.log('HearthPulse certificate deployment contract passed');
