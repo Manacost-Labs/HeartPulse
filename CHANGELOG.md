@@ -4,7 +4,9 @@
 
 - Switched HearthPulse article, VIP, analytics and network links to
   `kolodahearthstone.com`, while retaining `.ru` as an accepted compatibility
-  source for previously saved article and image URLs.
+  source for previously saved article and image URLs. Legacy article URLs
+  returned by the API are now canonicalized to `.com` without changing their
+  path, query, or fragment.
 
 - Completed the full Arena cutover to `hearthpulse.net`: switched canonical,
   sitemap, structured data, OAuth URLs and the public image CDN; added

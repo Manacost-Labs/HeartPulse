@@ -39,7 +39,7 @@ import { createReferralRedirectHandler, createReferralRouter } from './referralR
 import { createGalleryRouter } from './galleryRoutes.js';
 import { createCosmeticsDataService, createCosmeticsRouter } from './cosmeticsRoutes.js';
 import { createPublicResourceRouter } from './publicResourceRoutes.js';
-import { articleImageSrc } from '../shared/articleImageSrc.js';
+import { articleImageSrc, canonicalArticleUrl } from '../shared/articleImageSrc.js';
 import { createCosmeticsSeoRouter } from './cosmeticsSeoRoutes.js';
 import { createBattlegroundProxyRouter } from './battlegroundProxyRoutes.js';
 import {
@@ -7995,7 +7995,7 @@ function shapeArticlesData(raw: any, userId = '') {
         excerpt: String(article.excerpt ?? ''),
         tag: String(article.tag ?? ''),
         mode: articleMode(article),
-        url: String(article.url ?? '#'),
+        url: canonicalArticleUrl(String(article.url ?? '#')),
         likes: votes.likes,
         dislikes: votes.dislikes,
         userVote: userVotes.get(id) ?? null,

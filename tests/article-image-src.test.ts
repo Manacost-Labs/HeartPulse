@@ -1,5 +1,20 @@
 import assert from 'node:assert/strict';
-import { articleImageSrc } from '../shared/articleImageSrc';
+import { articleImageSrc, canonicalArticleUrl } from '../shared/articleImageSrc';
+
+assert.equal(
+  canonicalArticleUrl('https://kolodahearthstone.ru/guide/?source=legacy#part'),
+  'https://kolodahearthstone.com/guide/?source=legacy#part',
+  'legacy article links must be exposed through the canonical .com host',
+);
+assert.equal(
+  canonicalArticleUrl('https://www.kolodahearthstone.ru/guide/'),
+  'https://kolodahearthstone.com/guide/',
+);
+assert.equal(
+  canonicalArticleUrl('https://external.example/guide/'),
+  'https://external.example/guide/',
+  'unrelated article hosts must stay unchanged',
+);
 
 assert.equal(
   articleImageSrc('https://kolodahearthstone.com/wp-content/uploads/2026/07/cover.jpg'),

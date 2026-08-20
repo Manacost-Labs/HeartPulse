@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 const server = readFileSync('server/index.ts', 'utf8');
 const analytics = readFileSync('server/adminBoostyAnalyticsRoutes.ts', 'utf8');
 const deferredRoutes = readFileSync('src/features/DeferredRoutes.tsx', 'utf8');
+const articleImageSource = readFileSync('shared/articleImageSrc.ts', 'utf8');
 
 assert.match(
   server,
@@ -19,6 +20,16 @@ assert.match(
   deferredRoutes,
   /href:\s*'https:\/\/kolodahearthstone\.com\/'/,
   'the public network menu must link directly to .com',
+);
+assert.match(
+  server,
+  /url:\s*canonicalArticleUrl\(/,
+  'article API responses must canonicalize saved legacy links',
+);
+assert.match(
+  articleImageSource,
+  /url\.hostname\s*=\s*'kolodahearthstone\.com'/,
+  'legacy article links must be rewritten without changing their path or query',
 );
 
 for (const host of ['kolodahearthstone.com', 'kolodahearthstone.ru']) {
