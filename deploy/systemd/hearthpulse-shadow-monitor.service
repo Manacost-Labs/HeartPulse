@@ -1,0 +1,18 @@
+[Unit]
+Description=Verify the HearthPulse shadow domain on every regional edge
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/var/www/koloda/data/www/hs-arena.ru/current/deploy/monitor-hearthpulse-shadow.sh
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/var/www/koloda/data/www/hs-arena.ru/current/deploy/monitor-hearthpulse-shadow.sh
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

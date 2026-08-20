@@ -44,7 +44,7 @@ function contractHash(files) {
     .join(''));
 }
 
-function fakeRelease(sha, { nginxContents = defaultNginxContents } = {}) {
+function fakeRelease(sha, { nginxContents = defaultNginxContents, edgeContents = null } = {}) {
   const directory = join(root, `artifact-${sha}`);
   const nginxSource = 'deploy/nginx/arena-test.conf';
   const verifierSource = 'scripts/verify-nginx-contract.mjs';
@@ -67,12 +67,22 @@ function fakeRelease(sha, { nginxContents = defaultNginxContents } = {}) {
     roles: ['origin'],
     sha256: sha256(nginxContents),
   }];
+  if (edgeContents !== null) {
+    const edgeSource = 'deploy/nginx/arena-edge-test.conf';
+    writeFileSync(join(directory, edgeSource), edgeContents);
+    files.push({
+      source: edgeSource,
+      installPath: '/etc/nginx/sites-available/arena-edge-test.conf',
+      roles: ['edge'],
+      sha256: sha256(edgeContents),
+    });
+  }
   writeFileSync(join(directory, 'release.json'), JSON.stringify({
     schemaVersion: 2,
     sha,
     packageLockHash: 'a'.repeat(64),
     checksums: {
-      [nginxSource]: files[0].sha256,
+      ...Object.fromEntries(files.map(file => [file.source, file.sha256])),
       [verifierSource]: sha256(readFileSync(join(directory, verifierSource))),
     },
     nginxContract: {
@@ -185,12 +195,19 @@ try {
   assert.equal(repeated.status, 0, repeated.stderr || repeated.stdout);
   assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), secondTarget);
 
+  const edgeOnlySha = '6'.repeat(7);
+  const edgeOnly = deploy(fakeRelease(edgeOnlySha, { edgeContents: '# new edge-only host\n' }), true);
+  assert.equal(edgeOnly.status, 0, edgeOnly.stderr || edgeOnly.stdout);
+  const edgeOnlyTarget = resolve(appBase, 'releases', edgeOnlySha);
+  assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), edgeOnlyTarget,
+    'an edge-only contract addition must not require an origin transition override');
+
   const failedSha = 'c'.repeat(7);
   const failed = deploy(fakeRelease(failedSha), false);
   assert.notEqual(failed.status, 0);
   assert.match(failed.stderr, /rolling back/);
-  assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), secondTarget);
-  assert.equal(resolve(appBase, readlinkSync(join(appBase, 'previous'))), firstTarget);
+  assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), edgeOnlyTarget);
+  assert.equal(resolve(appBase, readlinkSync(join(appBase, 'previous'))), secondTarget);
 
   const missingSha = 'e'.repeat(7);
   unlinkSync(installedConfig);

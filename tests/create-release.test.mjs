@@ -21,6 +21,8 @@ const nginxContractFiles = [
   'deploy/nginx/arena-edge-static-cache.conf',
   'deploy/nginx/arena-cdn-card-image-cache.conf',
   'deploy/nginx/arena-cdn-public-static.conf',
+  'deploy/nginx/hearthpulse-shadow-app.conf',
+  'deploy/nginx/hearthpulse-shadow-cdn.conf',
   'deploy/nginx/arena-canonical-host-redirect.conf',
   'deploy/nginx/arena-security-headers.conf',
 ];
@@ -36,6 +38,9 @@ const operationalFiles = [
   'deploy/activate-arena-card-images.sh',
   'deploy/arena-card-image-sync.sh',
   'deploy/monitor-arena-geodns.sh',
+  'deploy/monitor-hearthpulse-shadow.sh',
+  'deploy/systemd/hearthpulse-shadow-monitor.service',
+  'deploy/systemd/hearthpulse-shadow-monitor.timer',
 ];
 
 try {
@@ -100,7 +105,7 @@ try {
   assert.deepEqual(manifest.nginxContract.files.map(file => file.source), nginxContractFiles);
   assert.deepEqual(
     manifest.nginxContract.files.map(file => file.roles),
-    [['origin'], ['origin'], ['origin'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['origin'], ['origin']],
+    [['origin'], ['origin'], ['origin'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['origin'], ['origin']],
   );
   assert.deepEqual(
     manifest.nginxContract.files.map(file => file.installPath),
@@ -115,6 +120,8 @@ try {
       '/etc/nginx/snippets/arena-edge-static-cache.conf',
       '/etc/nginx/snippets/arena-cdn-card-image-cache.conf',
       '/etc/nginx/snippets/arena-cdn-public-static.conf',
+      '/etc/nginx/sites-available/hearthpulse-shadow-app.conf',
+      '/etc/nginx/sites-available/hearthpulse-shadow-cdn.conf',
       '/etc/nginx/snippets/arena-canonical-host-redirect.conf',
       '/etc/nginx/snippets/arena-security-headers.conf',
     ],

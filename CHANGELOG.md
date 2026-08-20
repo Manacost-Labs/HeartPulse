@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Started the reversible Arena domain migration: added noindex shadow hosts for
+  `hearthpulse.net` and its public-only CDN, packaged their Nginx contracts in
+  releases, and added a strict apex/www/CDN DNS/TLS/privacy monitor running
+  every five minutes plus a TTL-safe rollback runbook, without changing the
+  existing canonical domain or production traffic.
+
 - Cleaned up the repository root without touching runtime behavior: removed the
   dead Vercel serverless layer (ten `api/*.js` functions, `vercel.json` and the
   `@vercel/blob` dependency) that production has not used since the move to

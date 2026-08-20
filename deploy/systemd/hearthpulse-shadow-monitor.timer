@@ -1,0 +1,12 @@
+[Unit]
+Description=Run the HearthPulse shadow-domain monitor every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+RandomizedDelaySec=30s
+Persistent=true
+Unit=hearthpulse-shadow-monitor.service
+
+[Install]
+WantedBy=timers.target

@@ -5,6 +5,11 @@
 These files are the versioned nginx contract for public HTML routes. They are
 templates only: a Git checkout does not change the live nginx configuration.
 
+The pre-cutover `hearthpulse.net` shadow hosts are documented in
+`docs/runbooks/hearthpulse-domain-migration.md`. They must remain noindex and
+must not replace the canonical Arena vhost until the separate cutover gate is
+approved.
+
 ## Installation order
 
 1. Install `arena-seo-map.conf` as

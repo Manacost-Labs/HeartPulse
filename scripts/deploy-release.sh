@@ -69,9 +69,16 @@ if [[ "$NGINX_VERIFY_STATUS" -ne 0 ]]; then
   exit "$NGINX_VERIFY_STATUS"
 fi
 
-read_nginx_contract_hash() {
+read_nginx_role_contract_hash() {
   node -e '
+    const { createHash } = require("node:crypto");
     const fs = require("node:fs");
+    const sha256Pattern = /^[a-f0-9]{64}$/;
+    const aggregateHash = files => createHash("sha256")
+      .update(files
+        .map(file => `${file.source}\0${file.installPath}\0${file.roles.join(",")}\0${file.sha256}\n`)
+        .join(""))
+      .digest("hex");
     let manifest;
     try {
       manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
@@ -81,17 +88,26 @@ read_nginx_contract_hash() {
     const contract = manifest?.nginxContract;
     if (manifest?.schemaVersion !== 2
       || contract?.schemaVersion !== 1
-      || !/^[a-f0-9]{64}$/.test(contract?.hash || "")
+      || !sha256Pattern.test(contract?.hash || "")
       || !Array.isArray(contract?.files)
       || contract.files.length === 0) {
       process.exit(2);
     }
-    process.stdout.write(contract.hash);
-  ' "$1"
+    const filesAreValid = contract.files.every(file => file
+      && typeof file.source === "string"
+      && typeof file.installPath === "string"
+      && Array.isArray(file.roles)
+      && file.roles.length > 0
+      && sha256Pattern.test(file.sha256 || ""));
+    if (!filesAreValid || aggregateHash(contract.files) !== contract.hash) process.exit(2);
+    const roleFiles = contract.files.filter(file => file.roles.includes(process.argv[2]));
+    if (roleFiles.length === 0) process.exit(2);
+    process.stdout.write(aggregateHash(roleFiles));
+  ' "$1" "$2"
 }
 
 CANDIDATE_NGINX_CONTRACT_HASH=''
-if ! CANDIDATE_NGINX_CONTRACT_HASH=$(read_nginx_contract_hash "$SOURCE_RELEASE/release.json"); then
+if ! CANDIDATE_NGINX_CONTRACT_HASH=$(read_nginx_role_contract_hash "$SOURCE_RELEASE/release.json" "$NGINX_HOST_ROLE"); then
   echo "candidate nginx contract manifest is invalid" >&2
   exit 2
 fi
@@ -105,7 +121,7 @@ NGINX_TRANSITION_REASON=''
 CURRENT_NGINX_CONTRACT_HASH=''
 if [[ -z "$SOURCE_CURRENT_RELEASE" || ! -f "$SOURCE_CURRENT_RELEASE/release.json" ]]; then
   NGINX_TRANSITION_REASON='the current release has no versioned nginx contract'
-elif ! CURRENT_NGINX_CONTRACT_HASH=$(read_nginx_contract_hash "$SOURCE_CURRENT_RELEASE/release.json"); then
+elif ! CURRENT_NGINX_CONTRACT_HASH=$(read_nginx_role_contract_hash "$SOURCE_CURRENT_RELEASE/release.json" "$NGINX_HOST_ROLE"); then
   NGINX_TRANSITION_REASON='the current release nginx contract is legacy or invalid'
 elif [[ "$CURRENT_NGINX_CONTRACT_HASH" != "$CANDIDATE_NGINX_CONTRACT_HASH" ]]; then
   NGINX_TRANSITION_REASON="nginx contract change $CURRENT_NGINX_CONTRACT_HASH -> $CANDIDATE_NGINX_CONTRACT_HASH"
