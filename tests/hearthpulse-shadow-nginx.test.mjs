@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 const application = readFileSync('deploy/nginx/hearthpulse-shadow-app.conf', 'utf8');
 const cdn = readFileSync('deploy/nginx/hearthpulse-shadow-cdn.conf', 'utf8');
 const monitor = readFileSync('deploy/monitor-hearthpulse-shadow.sh', 'utf8');
+const monitorService = readFileSync('deploy/systemd/hearthpulse-shadow-monitor.service', 'utf8');
 
 assert.match(application, /server_name\s+hearthpulse\.net\s+www\.hearthpulse\.net;/,
   'the shadow application host must accept both the apex and www names');
@@ -54,5 +55,8 @@ assert.match(monitor, /card_cors" == "\*"/,
   'the monitor must prove browser-usable CORS on public CDN resources');
 assert.match(monitor, /api\/subscription\/status/,
   'the shadow monitor must prove that the CDN does not expose private APIs');
+assert.match(monitorService,
+  /ExecStart=\/bin\/bash \/var\/www\/koloda\/data\/www\/hs-arena\.ru\/current\/deploy\/monitor-hearthpulse-shadow\.sh/,
+  'the service must run the immutable release script even when artifact transport strips executable bits');
 
 console.log('HearthPulse shadow nginx contract passed');

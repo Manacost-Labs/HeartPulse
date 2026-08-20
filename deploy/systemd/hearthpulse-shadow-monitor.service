@@ -7,7 +7,7 @@ ConditionPathExists=/var/www/koloda/data/www/hs-arena.ru/current/deploy/monitor-
 [Service]
 Type=oneshot
 User=root
-ExecStart=/var/www/koloda/data/www/hs-arena.ru/current/deploy/monitor-hearthpulse-shadow.sh
+ExecStart=/bin/bash /var/www/koloda/data/www/hs-arena.ru/current/deploy/monitor-hearthpulse-shadow.sh
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=true
