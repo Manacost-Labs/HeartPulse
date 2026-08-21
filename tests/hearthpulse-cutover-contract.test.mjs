@@ -14,6 +14,7 @@ const robots = readFileSync('public/robots.txt', 'utf8');
 const productionMonitorWorkflow = readFileSync('.github/workflows/production-monitor.yml', 'utf8');
 const deploymentWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8');
 const bugReportTemplate = readFileSync('.github/ISSUE_TEMPLATE/bug_report.yml', 'utf8');
+const entrypoint = readFileSync('index.html', 'utf8');
 
 assert.match(domain, /CANONICAL_HOST = 'hearthpulse\.net'/,
   'the browser canonical host must switch to hearthpulse.net');
@@ -30,6 +31,10 @@ assert.match(deploymentWorkflow, /url:\s+https:\/\/hearthpulse\.net/,
   'the GitHub production environment must expose the canonical host');
 assert.match(bugReportTemplate, /https:\/\/hearthpulse\.net\/\.\.\./,
   'new bug reports must direct users to the canonical host');
+assert.match(entrypoint, /data-domain="hearthpulse\.net"/,
+  'Plausible must attribute production pageviews to the canonical host');
+assert.doesNotMatch(entrypoint, /data-domain="arena\.hs-manacost\.ru"/,
+  'the retired Arena host must not remain as the Plausible site identifier');
 
 assert.match(application, /server_name\s+hearthpulse\.net;/,
   'the canonical application server must own only the apex host');

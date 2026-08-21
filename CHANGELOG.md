@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Migrated the existing Plausible site records to `hearthpulse.net` and
+  `kolodahearthstone.com` without changing their site IDs, preserving
+  historical analytics, goals and access while new visits use the canonical
+  domains.
 - Switched HearthPulse article, VIP, analytics and network links to
   `kolodahearthstone.com`, while retaining `.ru` as an accepted compatibility
   source for previously saved article and image URLs. Legacy article URLs
