@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Corrected the visible Russian mini-set label to «В розыске» while keeping
+  the stable `most_wanted` API identifier unchanged.
 - Added HSGuru's active «Azeroth's Most Wanted» mini-set window to Standard
   and Wild meta filters, made it the default fresh slice independently of the
   latest numbered patch, and retained strict runtime validation plus legacy

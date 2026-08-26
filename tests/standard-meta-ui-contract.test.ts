@@ -49,6 +49,11 @@ assert.match(metaSource, /useState<MetaPeriod \| null>\(null\)/);
 assert.match(metaSource, /option\.asset/);
 assert.match(metaSource, /\/card-format-standard\.webp/);
 assert.match(metaSource, /\/card-format-wild\.webp/);
+assert.match(
+  metaSource,
+  /most_wanted:\s*'За мини-набор — В розыске'/,
+  'the current mini-set must use its official Russian name',
+);
 assert.doesNotMatch(metaSource, /standard-meta__season-context/);
 assert.doesNotMatch(metaStyles, /\.standard-meta__season-context/);
 assert.match(chartSource, /useState\(false\)/);

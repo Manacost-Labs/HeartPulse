@@ -153,7 +153,7 @@ const PERIOD_LABELS: Partial<Record<MetaPeriod, string>> = {
   past_week: 'За последнюю неделю',
   past_2_weeks: 'За последние 2 недели',
   violet_hold: 'За всё дополнение — Побег из Аметистовой крепости',
-  most_wanted: 'За мини-набор — Разыскиваются по всему Азероту',
+  most_wanted: 'За мини-набор — В розыске',
 };
 
 function standardMetaPeriodLabel(period: MetaPeriod): string {
