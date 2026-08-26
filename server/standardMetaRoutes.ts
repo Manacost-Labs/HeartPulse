@@ -8,7 +8,7 @@ export type StandardMetaFormat = 'standard' | 'wild';
 export type StandardMetaRank = 'all' | 'diamond' | 'diamond_legend' | 'legend'
   | 'top_5k' | 'top_legend';
 export type StandardMetaPeriod = 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks'
-  | 'violet_hold' | `patch_${string}`;
+  | 'violet_hold' | 'most_wanted' | `patch_${string}`;
 export type StandardMetaCoin = 'any_player';
 export type StandardMetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 
@@ -73,6 +73,7 @@ const PERIODS = new Set<StandardMetaPeriod>([
   'past_week',
   'past_2_weeks',
   'violet_hold',
+  'most_wanted',
 ]);
 const COINS = new Set<StandardMetaCoin>(['any_player']);
 const MIN_GAMES = new Set<StandardMetaMinGames>([100, 250, 500, 1000, 2500, 5000]);

@@ -18,7 +18,7 @@ export type StandardMetaServingRank = Exclude<
   'diamond_all' | 'top_500' | 'top_100'
 >;
 export type StandardMetaPeriod = 'past_day' | 'past_3_days' | 'past_week' | 'past_2_weeks'
-  | 'violet_hold' | `patch_${string}`;
+  | 'violet_hold' | 'most_wanted' | `patch_${string}`;
 export type StandardMetaCoin = 'any_player';
 export type StandardMetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
 export type StandardMetaClass = 'deathknight' | 'demonhunter' | 'druid' | 'hunter' | 'mage' | 'paladin'
@@ -46,6 +46,7 @@ export type StandardMetaData = {
   rankLabel: string;
   period: StandardMetaPeriod;
   availablePeriods: StandardMetaPeriod[];
+  currentPeriod: StandardMetaPeriod | null;
   currentPatchPeriod: StandardMetaPeriod | null;
   coin: StandardMetaCoin;
   minGames: StandardMetaMinGames;
@@ -69,6 +70,7 @@ const FIXED_PERIODS = new Set<StandardMetaPeriod>([
   'past_week',
   'past_2_weeks',
   'violet_hold',
+  'most_wanted',
 ]);
 const DEFAULT_PERIODS: StandardMetaPeriod[] = ['past_day', 'past_3_days', 'past_week', 'past_2_weeks'];
 const COINS = new Set<StandardMetaCoin>(['any_player']);
@@ -177,6 +179,13 @@ export function parseStandardMetaData(value: unknown): StandardMetaData {
   )) {
     invalid('currentPatchPeriod must reference an available patch period');
   }
+  const rawCurrentPeriod = data.currentPeriod ?? rawCurrentPatchPeriod;
+  if (rawCurrentPeriod !== null && (
+    !isPeriod(rawCurrentPeriod)
+    || !availablePeriods.includes(rawCurrentPeriod)
+  )) {
+    invalid('currentPeriod must reference an available period');
+  }
   return {
     format: data.format as StandardMetaFormat,
     formatLabel: dataString(data.formatLabel, 'formatLabel', 80),
@@ -184,6 +193,7 @@ export function parseStandardMetaData(value: unknown): StandardMetaData {
     rankLabel: dataString(data.rankLabel, 'rankLabel', 80),
     period,
     availablePeriods,
+    currentPeriod: rawCurrentPeriod as StandardMetaPeriod | null,
     currentPatchPeriod: rawCurrentPatchPeriod as StandardMetaPeriod | null,
     coin,
     minGames,

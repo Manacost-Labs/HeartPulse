@@ -29,7 +29,10 @@ import {
   type StandardMetaPeriod,
 } from '../../shared/standardMetaContract';
 import DeckListView, { type DeckListCard } from './decklist/DeckListView';
-import { orderStandardMetaPeriods } from './standardMetaFilterModel';
+import {
+  orderStandardMetaPeriods,
+  resolveStandardMetaDefaultPeriod,
+} from './standardMetaFilterModel';
 import '../route-parchment.css';
 import './recovery/RecoverableSurface.css';
 import './StandardMeta.css';
@@ -69,6 +72,7 @@ type MetaPayload = {
   rankLabel: string;
   period: MetaPeriod;
   availablePeriods: MetaPeriod[];
+  currentPeriod: MetaPeriod | null;
   currentPatchPeriod: MetaPeriod | null;
   coin: MetaCoin;
   minGames: MetaMinGames;
@@ -149,6 +153,7 @@ const PERIOD_LABELS: Partial<Record<MetaPeriod, string>> = {
   past_week: 'За последнюю неделю',
   past_2_weeks: 'За последние 2 недели',
   violet_hold: 'За всё дополнение — Побег из Аметистовой крепости',
+  most_wanted: 'За мини-набор — Разыскиваются по всему Азероту',
 };
 
 function standardMetaPeriodLabel(period: MetaPeriod): string {
@@ -178,6 +183,7 @@ const EMPTY_DATA: MetaPayload = {
   rankLabel: 'Алмаз — Легенда',
   period: 'past_day',
   availablePeriods: ['past_day', 'past_3_days', 'past_week', 'past_2_weeks'],
+  currentPeriod: null,
   currentPatchPeriod: null,
   coin: 'any_player',
   minGames: 100,
@@ -415,7 +421,7 @@ function StandardMetaContent({
   useEffect(() => {
     const currentRequest = ++requestId.current;
     const controller = new AbortController();
-    let redirectedToCurrentPatch = false;
+    let redirectedToCurrentPeriod = false;
     const params = new URLSearchParams({
       format,
       rank,
@@ -431,9 +437,14 @@ function StandardMetaContent({
       .then(payload => {
         const verified = parseStandardMetaApiResponse(payload);
         if (currentRequest === requestId.current) {
-          if (!period && verified.data.currentPatchPeriod) {
-            redirectedToCurrentPatch = true;
-            setPeriod(verified.data.currentPatchPeriod);
+          const defaultPeriod = resolveStandardMetaDefaultPeriod(
+            verified.data.availablePeriods,
+            verified.data.currentPeriod,
+            verified.data.currentPatchPeriod,
+          );
+          if (!period && defaultPeriod) {
+            redirectedToCurrentPeriod = true;
+            setPeriod(defaultPeriod);
             return;
           }
           if (!period) setPeriod(verified.data.period);
@@ -449,7 +460,7 @@ function StandardMetaContent({
         }
       })
       .finally(() => {
-        if (currentRequest === requestId.current && !redirectedToCurrentPatch) {
+        if (currentRequest === requestId.current && !redirectedToCurrentPeriod) {
           setResolvedRequestKey(requestKey);
         }
       });
@@ -488,11 +499,11 @@ function StandardMetaContent({
     });
   }, [visibleItems, rankById, sort]);
   const periodOptions = useMemo(
-    () => orderStandardMetaPeriods(data.availablePeriods, data.currentPatchPeriod)
+    () => orderStandardMetaPeriods(data.availablePeriods, data.currentPeriod, data.currentPatchPeriod)
       .map(id => ({ id, label: standardMetaPeriodLabel(id) })),
-    [data.availablePeriods, data.currentPatchPeriod],
+    [data.availablePeriods, data.currentPeriod, data.currentPatchPeriod],
   );
-  const selectedPeriod = period ?? data.currentPatchPeriod ?? data.period;
+  const selectedPeriod = period ?? data.currentPeriod ?? data.currentPatchPeriod ?? data.period;
 
   const changeSort = (key: MetaSortKey) => {
     setSort(current => current.key === key

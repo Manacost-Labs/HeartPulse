@@ -182,6 +182,12 @@ try {
   assert.deepEqual(calls, ['meta:standard:legend:violet_hold:any_player:500']);
   calls.length = 0;
 
+  const mostWantedMeta = await fetch(`${origin}/standard-meta?format=standard&rank=legend&period=most_wanted&coin=any_player&min_games=500`, { headers: { 'X-Test-Access': 'allowed' } });
+  assert.equal(mostWantedMeta.status, 200);
+  assert.equal((await mostWantedMeta.json() as any).period, 'most_wanted');
+  assert.deepEqual(calls, ['meta:standard:legend:most_wanted:any_player:500']);
+  calls.length = 0;
+
   const removedSixHourMeta = await fetch(`${origin}/standard-meta?format=wild&rank=legend&period=past_6_hours&coin=any_player&min_games=500`, { headers: { 'X-Test-Access': 'allowed' } });
   assert.equal(removedSixHourMeta.status, 400);
   assert.deepEqual(calls, []);

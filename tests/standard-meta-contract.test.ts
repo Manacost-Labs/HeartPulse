@@ -275,6 +275,21 @@ assert.equal(
   parseStandardMetaApiResponse(candidate({ period: 'violet_hold' }), now).data.period,
   'violet_hold',
 );
+const mostWanted = parseStandardMetaApiResponse(candidate({
+  period: 'most_wanted',
+  availablePeriods: [
+    'past_day',
+    'past_3_days',
+    'past_week',
+    'past_2_weeks',
+    'patch_36.0.3',
+    'violet_hold',
+    'most_wanted',
+  ],
+  currentPeriod: 'most_wanted',
+}), now).data;
+assert.equal(mostWanted.period, 'most_wanted');
+assert.equal(mostWanted.currentPeriod, 'most_wanted');
 assert.deepEqual(parseStandardMetaApiResponse(candidate(), now).data.availablePeriods, [
   'past_day',
   'past_3_days',

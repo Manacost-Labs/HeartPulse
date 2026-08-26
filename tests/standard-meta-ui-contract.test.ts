@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   orderStandardMetaPeriods,
+  resolveStandardMetaDefaultPeriod,
 } from '../src/features/standardMetaFilterModel.js';
 
 const metaSource = readFileSync(
@@ -21,8 +22,26 @@ assert.deepEqual(
   orderStandardMetaPeriods(
     ['past_day', 'past_3_days', 'patch_36.0.3', 'violet_hold', 'past_week'],
     'patch_36.0.3',
+    'patch_36.0.3',
   ),
   ['patch_36.0.3', 'violet_hold', 'past_day', 'past_3_days', 'past_week'],
+);
+
+assert.deepEqual(
+  orderStandardMetaPeriods(
+    ['past_day', 'patch_36.2.2', 'violet_hold', 'most_wanted'],
+    'most_wanted',
+    'patch_36.2.2',
+  ),
+  ['most_wanted', 'patch_36.2.2', 'violet_hold', 'past_day'],
+);
+assert.equal(
+  resolveStandardMetaDefaultPeriod(
+    ['past_day', 'patch_36.2.2', 'most_wanted'],
+    'most_wanted',
+    'patch_36.2.2',
+  ),
+  'most_wanted',
 );
 
 assert.match(metaSource, /useState<MetaRank>\('diamond_legend'\)/);

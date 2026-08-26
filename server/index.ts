@@ -6308,6 +6308,9 @@ async function loadStandardMeta(
     const currentPatchPeriod = typeof payload?.meta?.current_patch_period === 'string'
       ? payload.meta.current_patch_period
       : null;
+    const currentPeriod = typeof payload?.meta?.current_period === 'string'
+      ? payload.meta.current_period
+      : currentPatchPeriod;
     const data = {
       publicationMode: 'stable' as const,
       publishedAt: sourceUpdatedAt,
@@ -6317,6 +6320,7 @@ async function loadStandardMeta(
       rankLabel: STANDARD_META_RANK_LABEL[rank],
       period,
       availablePeriods,
+      currentPeriod,
       currentPatchPeriod,
       coin,
       minGames,

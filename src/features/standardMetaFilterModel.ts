@@ -2,9 +2,10 @@ import type { StandardMetaPeriod } from '../../shared/standardMetaContract';
 
 export function orderStandardMetaPeriods(
   availablePeriods: StandardMetaPeriod[],
+  currentPeriod: StandardMetaPeriod | null,
   currentPatchPeriod: StandardMetaPeriod | null,
 ): StandardMetaPeriod[] {
-  const preferredPeriods = [currentPatchPeriod, 'violet_hold'] satisfies Array<StandardMetaPeriod | null>;
+  const preferredPeriods = [currentPeriod, currentPatchPeriod, 'violet_hold'] satisfies Array<StandardMetaPeriod | null>;
   const available = new Set(availablePeriods);
 
   return [
@@ -13,4 +14,14 @@ export function orderStandardMetaPeriods(
     ),
     ...available,
   ];
+}
+
+export function resolveStandardMetaDefaultPeriod(
+  availablePeriods: StandardMetaPeriod[],
+  currentPeriod: StandardMetaPeriod | null,
+  currentPatchPeriod: StandardMetaPeriod | null,
+): StandardMetaPeriod | null {
+  return [currentPeriod, currentPatchPeriod]
+    .find((period): period is StandardMetaPeriod => Boolean(period && availablePeriods.includes(period)))
+    ?? null;
 }

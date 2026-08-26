@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added HSGuru's active «Azeroth's Most Wanted» mini-set window to Standard
+  and Wild meta filters, made it the default fresh slice independently of the
+  latest numbered patch, and retained strict runtime validation plus legacy
+  fallback for older parser responses.
 - Migrated the existing Plausible site records to `hearthpulse.net` and
   `kolodahearthstone.com` without changing their site IDs, preserving
   historical analytics, goals and access while new visits use the canonical
