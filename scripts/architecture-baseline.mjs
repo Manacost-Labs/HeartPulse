@@ -108,6 +108,7 @@ function sourceMetrics(file, source) {
     explicitAny: 0,
     imports: [],
     inlineStyles: 0,
+    nonNullAssertions: 0,
     rawFetch: 0,
     suppressions: (source.match(TS_SUPPRESSION_PATTERN) ?? []).length,
   };
@@ -115,6 +116,7 @@ function sourceMetrics(file, source) {
 
   function visit(node) {
     if (node.kind === ts.SyntaxKind.AnyKeyword) metrics.explicitAny += 1;
+    if (ts.isNonNullExpression(node)) metrics.nonNullAssertions += 1;
     if (ts.isJsxAttribute(node) && node.name.text === 'style') metrics.inlineStyles += 1;
 
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
@@ -371,6 +373,7 @@ function countMetricEntries(fileEntries, key) {
   return {
     count: entries.reduce((sum, entry) => sum + entry.count, 0),
     files: entries.map(entry => entry.file),
+    entries,
   };
 }
 
@@ -385,7 +388,14 @@ export function analyzeArchitecture(repositoryRoot, options = {}) {
     const extension = path.extname(file);
     const analysis = CODE_EXTENSIONS.includes(extension)
       ? sourceMetrics(file, source)
-      : { explicitAny: 0, imports: [], inlineStyles: 0, rawFetch: 0, suppressions: 0 };
+      : {
+        explicitAny: 0,
+        imports: [],
+        inlineStyles: 0,
+        nonNullAssertions: 0,
+        rawFetch: 0,
+        suppressions: 0,
+      };
     fileAnalyses.set(file, analysis);
     return {
       file: relativePath(absoluteRoot, file),
@@ -393,6 +403,7 @@ export function analyzeArchitecture(repositoryRoot, options = {}) {
       rawFetch: analysis.rawFetch,
       inlineStyles: analysis.inlineStyles,
       explicitAny: analysis.explicitAny,
+      nonNullAssertions: analysis.nonNullAssertions,
       suppressions: analysis.suppressions,
       cssImportant: extension === '.css' ? (source.match(CSS_IMPORTANT_PATTERN) ?? []).length : 0,
     };
@@ -421,9 +432,14 @@ export function analyzeArchitecture(repositoryRoot, options = {}) {
         files: rawFetch.files,
         frontendCalls: frontendRawFetchFiles.reduce((sum, entry) => sum + entry.rawFetch, 0),
         frontendFiles: frontendRawFetchFiles.map(entry => entry.file),
+        frontendEntries: frontendRawFetchFiles.map(entry => ({
+          file: entry.file,
+          count: entry.rawFetch,
+        })),
       },
       typeScriptSuppressions: countMetricEntries(fileEntries, 'suppressions'),
       explicitAny: countMetricEntries(fileEntries, 'explicitAny'),
+      nonNullAssertions: countMetricEntries(fileEntries, 'nonNullAssertions'),
       cssImportant: countMetricEntries(fileEntries, 'cssImportant'),
       inlineStyles: countMetricEntries(fileEntries, 'inlineStyles'),
     },

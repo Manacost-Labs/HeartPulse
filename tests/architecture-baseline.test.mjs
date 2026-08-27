@@ -11,6 +11,7 @@ import test from 'node:test';
 
 import { analyzeArchitecture } from '../scripts/architecture-baseline.mjs';
 import { validateArchitectureDebt } from '../scripts/check-module-boundaries.mjs';
+import { validateSourceDebt } from '../scripts/check-source-debt.mjs';
 
 function writeFixture(repositoryRoot, relativePath, contents) {
   const absolutePath = path.join(repositoryRoot, relativePath);
@@ -25,6 +26,7 @@ test('reports the complete architecture safety baseline deterministically', () =
       "import { runtimeA } from './runtime-a.js';",
       '// @ts-expect-error fixture suppression',
       'const unsafe: any = runtimeA;',
+      'const forced = unsafe!;',
       "export async function App() { await fetch('/api/test');",
       "  return <main style={{ color: 'red' }}>{unsafe}</main>;",
       '}',
@@ -68,6 +70,7 @@ test('reports the complete architecture safety baseline deterministically', () =
     assert.equal(baseline.source.cssImportant.count, 1);
     assert.equal(baseline.source.typeScriptSuppressions.count, 1);
     assert.equal(baseline.source.explicitAny.count, 1);
+    assert.equal(baseline.source.nonNullAssertions.count, 1);
     assert.ok(baseline.source.largeFiles.some(entry => entry.file === 'src/App.tsx'));
     assert.deepEqual(baseline.dependencies.runtimeCycles, [
       ['src/runtime-a.ts', 'src/runtime-b.ts'],
@@ -96,6 +99,59 @@ test('reports the complete architecture safety baseline deterministically', () =
   } finally {
     rmSync(repositoryRoot, { recursive: true, force: true });
   }
+});
+
+test('source debt gate blocks per-file growth without freezing reductions', () => {
+  const baseline = {
+    source: {
+      explicitAny: { entries: [{ file: 'server/legacy.ts', count: 2 }] },
+      typeScriptSuppressions: { entries: [{ file: 'src/legacy.tsx', count: 1 }] },
+      nonNullAssertions: { entries: [{ file: 'src/legacy.tsx', count: 3 }] },
+      rawFetch: { frontendEntries: [{ file: 'src/legacy.tsx', count: 4 }] },
+    },
+  };
+  const registry = {
+    version: 1,
+    budgets: {
+      explicitAny: { 'server/legacy.ts': 2 },
+      typeScriptSuppressions: { 'src/legacy.tsx': 1 },
+      nonNullAssertions: { 'src/legacy.tsx': 3 },
+      frontendRawFetch: { 'src/legacy.tsx': 4 },
+    },
+  };
+
+  assert.deepEqual(validateSourceDebt(baseline, registry), {
+    explicitAny: 2,
+    typeScriptSuppressions: 1,
+    nonNullAssertions: 3,
+    frontendRawFetch: 4,
+  });
+
+  assert.doesNotThrow(() => validateSourceDebt({
+    source: {
+      ...baseline.source,
+      explicitAny: { entries: [{ file: 'server/legacy.ts', count: 1 }] },
+    },
+  }, registry));
+
+  assert.throws(() => validateSourceDebt({
+    source: {
+      ...baseline.source,
+      explicitAny: { entries: [{ file: 'server/legacy.ts', count: 3 }] },
+    },
+  }, registry), /explicitAny debt grew/);
+
+  assert.throws(() => validateSourceDebt({
+    source: {
+      ...baseline.source,
+      nonNullAssertions: {
+        entries: [
+          { file: 'src/legacy.tsx', count: 3 },
+          { file: 'src/new.tsx', count: 1 },
+        ],
+      },
+    },
+  }, registry), /nonNullAssertions debt grew/);
 });
 
 test('module boundary gate blocks runtime cycles and unclassified dependency debt', () => {

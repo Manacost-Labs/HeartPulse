@@ -67,6 +67,12 @@ and ratchets the current zero boundary-violation baseline. The four inherited
 type-only cycles are exact temporary entries in
 `config/architecture-debt.json`; additions, drift and stale entries fail CI.
 
+`config/source-debt-budgets.json` turns four source metrics into per-file
+ceilings during `npm run lint:architecture`: explicit `any`, TypeScript
+suppressions, non-null assertions and frontend raw `fetch`. A file not present
+in the registry has a zero budget. Reductions do not require registry edits;
+increases and moving debt into a new file fail the release gate.
+
 Adding timestamps, machine-specific absolute paths or unstable filesystem
 ordering to the JSON is forbidden. A saved report from the same source and
 build inputs must compare byte-for-byte.
