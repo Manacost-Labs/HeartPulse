@@ -62,9 +62,10 @@ public contract.
 The report is observational: it does not fail merely because the inherited
 baseline is large. Existing focused ratchets still enforce bundle, monolith,
 CSS and component ceilings. Test discovery independently fails CI for an
-unclassified authored test. The next Phase 0 slice may promote a zero-debt
-metric such as runtime cycles or current module-boundary violations into a
-blocking gate, with an explicit registry for any justified temporary debt.
+unclassified authored test. The module-boundary gate blocks every runtime cycle
+and ratchets the current zero boundary-violation baseline. The four inherited
+type-only cycles are exact temporary entries in
+`config/architecture-debt.json`; additions, drift and stale entries fail CI.
 
 Adding timestamps, machine-specific absolute paths or unstable filesystem
 ordering to the JSON is forbidden. A saved report from the same source and

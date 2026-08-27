@@ -107,8 +107,9 @@ additional guardrails remain incremental.
   forwarding wrapper. The first bounded migration covers the two protected
   ecosystem subscription routes; remaining handlers move only with focused
   contract coverage.
-- [ ] Record and enforce the current module dependency graph and justified
-  temporary exceptions.
+- [x] Record and enforce the current module dependency graph: runtime cycles and
+  new boundary violations fail CI, while the four inherited type-only cycles
+  have exact, justified, owner-bound removal entries.
 - [ ] Prove unreachable code before removing it in separate behavior-neutral
   commits.
 

@@ -16,7 +16,7 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "lint:docs": "markdownlint-cli2 README.md CONTRIBUTING.md SECURITY.md STABILIZATION.md DEPLOYMENT.md assets.md \"docs/**/*.md\" && design.md lint design.md",
-    "lint:architecture": "node scripts/check-component-duplicates.mjs && node scripts/check-css-architecture.mjs && node scripts/check-entry-dead-code.mjs && node scripts/check-module-size-budgets.mjs",
+    "lint:architecture": "node scripts/check-component-duplicates.mjs && node scripts/check-css-architecture.mjs && node scripts/check-entry-dead-code.mjs && node scripts/check-module-size-budgets.mjs && node scripts/check-module-boundaries.mjs",
     "architecture:baseline": "npm run build && node scripts/architecture-baseline.mjs",
     "lint:react-changed": "node scripts/react-doctor-changed.mjs",
     "security:semgrep": "node scripts/semgrep-changed.mjs",

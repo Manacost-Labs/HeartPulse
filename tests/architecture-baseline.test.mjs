@@ -10,6 +10,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { analyzeArchitecture } from '../scripts/architecture-baseline.mjs';
+import { validateArchitectureDebt } from '../scripts/check-module-boundaries.mjs';
 
 function writeFixture(repositoryRoot, relativePath, contents) {
   const absolutePath = path.join(repositoryRoot, relativePath);
@@ -95,4 +96,76 @@ test('reports the complete architecture safety baseline deterministically', () =
   } finally {
     rmSync(repositoryRoot, { recursive: true, force: true });
   }
+});
+
+test('module boundary gate blocks runtime cycles and unclassified dependency debt', () => {
+  const baseline = {
+    dependencies: {
+      boundaryViolations: [{
+        rule: 'cross-module-internal-import',
+        file: 'src/modules/alpha/view.ts',
+        import: '../beta/private.js',
+        target: 'src/modules/beta/private.ts',
+      }],
+      runtimeCycles: [['src/runtime-a.ts', 'src/runtime-b.ts']],
+      typeOnlyCycles: [['src/type-a.ts', 'src/type-b.ts']],
+    },
+  };
+  const registry = {
+    version: 1,
+    boundaryViolations: [{
+      rule: 'cross-module-internal-import',
+      file: 'src/modules/alpha/view.ts',
+      import: '../beta/private.js',
+      target: 'src/modules/beta/private.ts',
+      owner: 'fixture-alpha',
+      reason: 'Fixture debt proves exact exception matching.',
+      removal: 'Expose a public beta contract.',
+    }],
+    typeOnlyCycles: [{
+      files: ['src/type-a.ts', 'src/type-b.ts'],
+      owner: 'fixture-types',
+      reason: 'Fixture debt proves type-only classification.',
+      removal: 'Move the shared type to an acyclic owner.',
+    }],
+  };
+
+  assert.throws(
+    () => validateArchitectureDebt(baseline, registry),
+    /runtime import cycles are forbidden/,
+  );
+
+  const withoutRuntimeCycle = {
+    dependencies: { ...baseline.dependencies, runtimeCycles: [] },
+  };
+  assert.deepEqual(validateArchitectureDebt(withoutRuntimeCycle, registry), {
+    boundaryExceptions: 1,
+    runtimeCycles: 0,
+    typeOnlyCycleExceptions: 1,
+  });
+
+  assert.throws(
+    () => validateArchitectureDebt({
+      dependencies: {
+        ...withoutRuntimeCycle.dependencies,
+        boundaryViolations: [
+          ...withoutRuntimeCycle.dependencies.boundaryViolations,
+          {
+            rule: 'client-to-server-import',
+            file: 'src/new.ts',
+            import: '../server/private.js',
+            target: 'server/private.ts',
+          },
+        ],
+      },
+    }, registry),
+    /unclassified boundary violations/,
+  );
+
+  assert.throws(
+    () => validateArchitectureDebt({
+      dependencies: { ...withoutRuntimeCycle.dependencies, typeOnlyCycles: [] },
+    }, registry),
+    /stale type-only cycle exceptions/,
+  );
 });

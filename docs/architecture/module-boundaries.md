@@ -170,6 +170,12 @@ The following rules are mandatory:
 - A module may depend on `shared`; `shared` may not depend on a product module.
 - Authorization remains visible at the server route or use-case boundary.
 
+`npm run lint:architecture` analyzes the authored import graph and enforces
+these rules. Runtime cycles are forbidden without exceptions. Any temporary
+boundary violation or type-only cycle must exactly match
+`config/architecture-debt.json` and include an owner, reason and removal
+condition. New debt, drift and stale exceptions all fail the gate.
+
 ## File and change budgets
 
 The CI ratchet in `scripts/check-module-size-budgets.mjs` prevents known
