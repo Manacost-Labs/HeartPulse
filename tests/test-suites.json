@@ -84,6 +84,7 @@
         "tests/public-asset-delivery.test.ts",
         "tests/public-profile-identity.test.ts",
         "tests/public-resource-url.test.ts",
+        "tests/process-lifecycle.test.ts",
         "tests/recoverable-surface.test.tsx",
         "tests/standard-matchups-controls-ui.test.ts",
         "tests/standard-meta-classes.test.ts",

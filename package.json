@@ -165,6 +165,7 @@
     "test:runtime-inventory": "node --test tests/runtime-service-inventory.test.mjs",
     "test:http-route-manifest": "node --test tests/http-route-manifest.test.mjs",
     "test:documentation-truth": "node --test tests/documentation-truth.test.mjs",
+    "test:process-lifecycle": "tsx tests/process-lifecycle.test.ts",
     "test:nginx-routing": "node tests/nginx-html-routing.test.mjs",
     "test:nginx-canonical-hosts": "node tests/nginx-canonical-hosts.test.mjs",
     "test:nginx-contract-drift": "node tests/nginx-contract-drift.test.mjs",
