@@ -4,6 +4,14 @@ import test from 'node:test';
 
 const read = path => readFileSync(path, 'utf8');
 
+test('browser QA dependencies stay outside production and use the patched downloader graph', () => {
+  const manifest = JSON.parse(read('package.json'));
+  assert.equal(manifest.dependencies?.puppeteer, undefined);
+  assert.equal(manifest.devDependencies?.puppeteer, '^22.15.0');
+  assert.equal(manifest.overrides?.['@puppeteer/browsers'], '3.2.1');
+  assert.equal(manifest.overrides?.nanoid, '3.3.18');
+});
+
 test('CodeQL scans JavaScript and TypeScript with the extended suite', () => {
   const workflow = read('.github/workflows/codeql.yml');
   assert.match(workflow, /languages:\s*javascript-typescript/);
