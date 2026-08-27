@@ -27,7 +27,13 @@ const workspace = join(root, 'workspace');
 const installedRoot = join(root, 'installed-root');
 const installedConfig = join(installedRoot, 'etc', 'nginx', 'snippets', 'arena-test.conf');
 const verifier = join(repository, 'scripts', 'verify-nginx-contract.mjs');
+const deployScript = readFileSync(join(repository, 'scripts', 'deploy-release.sh'), 'utf8');
 const defaultNginxContents = '# managed nginx fixture\n';
+assert.match(
+  deployScript,
+  /\/usr\/bin\/timeout\s+--signal=TERM\s+--kill-after=5s\s+30s/,
+  'the browser pre-switch probe must force-kill a process that ignores its TERM deadline',
+);
 mkdirSync(join(workspace, 'node_modules'), { recursive: true });
 mkdirSync(join(workspace, 'server', 'data'), { recursive: true });
 mkdirSync(dirname(installedConfig), { recursive: true });

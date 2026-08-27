@@ -246,7 +246,7 @@ fi
 SCRAPER_RUNTIME_PROBE="$TARGET_RELEASE/build/server/scraper.js"
 BROWSER_RUNTIME_PROBE="$TARGET_RELEASE/build/server/scraperBrowserRuntime.js"
 SCRAPER_RUNTIME_PROBE_COMMAND=(
-  /usr/bin/timeout --signal=TERM 30s
+  /usr/bin/timeout --signal=TERM --kill-after=5s 30s
   /usr/bin/node --input-type=module
   -e 'await import(process.argv[2]); const runtime = await import(process.argv[3]); await runtime.verifyScraperBrowserRuntime();'
   hearthpulse-runtime-probe

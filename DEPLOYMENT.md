@@ -336,8 +336,9 @@ clean production-only install in a temporary directory, imports the compiled
 scraper and launches the system browser against a local `data:` page. The
 release manifest requires and checksums both `build/server/scraper.js` and its
 browser runtime module. Before changing `current`, deployment uses the service
-user and a 30-second deadline to import that built scraper, launch the installed
-Chromium, verify its supported major version and open a local `data:` page.
+user to import that built scraper, launch the installed Chromium, verify its
+supported major version and open a local `data:` page. The probe receives TERM
+after 30 seconds and is force-killed after a further five-second grace period.
 
 Read-only host prerequisites can be checked without running the scraper:
 
