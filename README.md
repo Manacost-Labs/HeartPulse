@@ -296,6 +296,10 @@ npm run build-storybook
 | `npm test` | Все пять автоматически обнаруживаемых suite без ручного списка |
 | `npm run test:discovery` | Полнота классификации всех test/spec-файлов |
 | `npm run architecture:baseline` | Детерминированный архитектурный baseline |
+| `npm run architecture:map` | Карта текущих модулей и владельцев |
+| `npm run architecture:impact -- <file>` | Контракт, зависимости и тесты файла |
+| `npm run architecture:owner -- <method> <route>` | Владелец frontend/API route |
+| `npm run test:module -- <module>` | Минимальный проверенный набор тестов модуля |
 | `npm run architecture:http-manifest` | Проверка Express routes и middleware |
 | `npm run qa:e2e` | Полный desktop/mobile browser QA |
 | `npm run budget` | Контроль размеров JS и CSS |

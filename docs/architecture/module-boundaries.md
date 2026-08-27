@@ -11,6 +11,10 @@ The migration is incremental. Existing routes and APIs stay available while
 one independently deployable vertical slice at a time moves behind a focused
 module boundary.
 
+The checked inventory and owner lookup commands live in
+[`module-catalog.md`](module-catalog.md). A new physical module is incomplete
+until it has exactly one entry in `config/architecture-catalog.json`.
+
 The decision and its trade-offs are recorded in
 [`docs/decisions/002-domain-modules-and-documentation-contract.md`](../decisions/002-domain-modules-and-documentation-contract.md).
 

@@ -122,6 +122,8 @@ additional guardrails remain incremental.
   frontend raw `fetch` per source file so legacy debt can fall but not spread.
 - [x] Cap new named functions at 120 lines and pin every inherited larger
   function to its measured ceiling for incremental extraction.
+- [x] Add a checked module catalog with file/route ownership, dependency impact
+  and executable minimal-test commands for every current physical module.
 - [ ] Move the remaining intervals, startup timers, database/Redis handles and
   Arena refresh job behind explicit lifecycle resources.
 - [x] Prove and remove the retired private `DeferredRoutes.AdminPanel` and its
@@ -143,6 +145,8 @@ Compatibility coverage and the remaining lifecycle/cache gaps are documented
 in [`phase0-compatibility-harness.md`](phase0-compatibility-harness.md).
 The bounded process shutdown and first owned job are documented in
 [`phase0-process-lifecycle.md`](phase0-process-lifecycle.md).
+The current module ownership inventory and agent commands are documented in
+[`module-catalog.md`](module-catalog.md).
 
 ### First vertical frontend module slice
 
