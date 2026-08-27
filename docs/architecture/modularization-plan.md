@@ -92,6 +92,10 @@ files, keep the application deployable and lower the ratchet it replaces.
 Status: test discovery implemented on the current `origin/main` baseline;
 additional guardrails remain incremental.
 
+- [x] Add a deterministic architecture baseline for product file count, LOC,
+  large files, raw fetch, module boundaries, runtime/type-only cycles,
+  TypeScript debt, test reachability, built bundle sizes, CSS `!important` and
+  inline styles.
 - [x] Discover authored `*.test.*` and `*.spec.*` files repository-wide and
   require every file to belong to exactly one of `unit`, `integration`,
   `contract`, `browser`, or `production-smoke`.
@@ -114,6 +118,8 @@ The reproducible discovery baseline and rollback contract are documented in
 an integration base. The first async-handler migration and its rollback
 contract are documented in
 [`phase0-async-express.md`](phase0-async-express.md).
+The metric definitions, reproduction commands and first measured values are in
+[`phase0-reproducible-baseline.md`](phase0-reproducible-baseline.md).
 
 ### 1. Constructed-card catalog model
 
