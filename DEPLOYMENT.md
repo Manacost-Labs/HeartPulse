@@ -25,9 +25,10 @@ as a seven-day workflow artifact. Pull requests and feature branches never
 create or deploy a production artifact.
 
 The release-blocking command is `npm run verify:release`: lint, architecture
-ratchets, agent/security contracts, property and privacy tests, the complete
-unit/integration suite, production builds, server recovery smoke tests,
-performance budgets and documentation lint. The full responsive browser matrix
+ratchets, the test-discovery completeness gate, the complete classified unit,
+integration, contract, browser and production-smoke suite, production builds,
+server recovery smoke tests, performance budgets and documentation lint. The
+full responsive browser matrix
 also runs in a separate non-blocking workflow job as a visible advisory
 observatory while its legacy fixtures are reconciled. It neither delays the
 immutable artifact nor gates production; a task's affected browser flow must

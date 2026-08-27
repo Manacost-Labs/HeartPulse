@@ -6,6 +6,7 @@ const read = path => readFileSync(path, 'utf8');
 
 test('Storybook scripts and development dependencies are pinned', () => {
   const packageJson = JSON.parse(read('package.json'));
+  const testRegistry = JSON.parse(read('tests/test-suites.json'));
 
   assert.equal(
     packageJson.scripts.storybook,
@@ -19,10 +20,14 @@ test('Storybook scripts and development dependencies are pinned', () => {
     packageJson.scripts['test:storybook'],
     'node --test tests/storybook-mcp-contract.test.mjs',
   );
-  assert.match(
-    packageJson.scripts['verify:ci'],
-    /npm run test:storybook && npm run build-storybook/,
-  );
+  const contractSuite = testRegistry.suites.find(suite => suite.id === 'contract');
+  assert.ok(contractSuite.files.includes('tests/storybook-mcp-contract.test.mjs'));
+  for (const command of ['verify:release', 'verify:ci']) {
+    assert.match(
+      packageJson.scripts[command],
+      /npm run test:discovery.*npm run build-storybook.*npm test/,
+    );
+  }
 
   for (const dependency of [
     'storybook',

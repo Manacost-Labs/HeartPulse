@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { stripVTControlCharacters } from 'node:util';
 import puppeteer from 'puppeteer';
+import { reserveLocalPort } from './fixtures/reserve-local-port.mjs';
 
 const chromiumPath = [
   process.env.CHROMIUM_PATH,
@@ -12,10 +13,12 @@ const chromiumPath = [
 ].find(candidate => candidate && existsSync(candidate));
 if (!chromiumPath) throw new Error('Chromium/Chrome executable is required for ModalSurface browser tests');
 
+const vitePort = await reserveLocalPort();
+
 const vite = spawn('./node_modules/.bin/vite', [
   '--config', 'tests/fixtures/vite.modal.config.ts',
   '--host', '127.0.0.1',
-  '--port', '0',
+  '--port', String(vitePort),
   '--strictPort',
 ], {
   cwd: process.cwd(),

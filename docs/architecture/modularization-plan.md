@@ -87,6 +87,30 @@ Each numbered area is delivered as a sequence of small vertical slices, not as
 one broad rewrite. A slice should normally change no more than five authored
 files, keep the application deployable and lower the ratchet it replaces.
 
+### 0. Safety guardrails
+
+Status: test discovery implemented on the current `origin/main` baseline;
+additional guardrails remain incremental.
+
+- [x] Discover authored `*.test.*` and `*.spec.*` files repository-wide and
+  require every file to belong to exactly one of `unit`, `integration`,
+  `contract`, `browser`, or `production-smoke`.
+- [x] Replace the manually chained `npm test` command with a checked registry
+  runner. The filesystem is authoritative, exclusions require a central
+  rationale, per-file environment does not leak, and CI fails on any new
+  unclassified test.
+- [ ] Add characterization coverage for rejected Express 4 async handlers
+  before introducing a shared forwarding wrapper.
+- [ ] Record and enforce the current module dependency graph and justified
+  temporary exceptions.
+- [ ] Prove unreachable code before removing it in separate behavior-neutral
+  commits.
+
+The reproducible discovery baseline and rollback contract are documented in
+[`phase0-test-discovery.md`](phase0-test-discovery.md). The slice is based on
+`57dfb48fffb0bcfec4e4dc6eb69298bcdab838e2`; the earlier Phase 0 branch is not
+an integration base.
+
 ### 1. Constructed-card catalog model
 
 Status: complete.

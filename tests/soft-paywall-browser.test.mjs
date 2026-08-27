@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { stripVTControlCharacters } from 'node:util';
 import puppeteer from 'puppeteer';
+import { reserveLocalPort } from './fixtures/reserve-local-port.mjs';
 
 const require = createRequire(import.meta.url);
 const axePath = require.resolve('axe-core/axe.min.js');
@@ -16,10 +17,12 @@ const chromiumPath = [
 ].find(candidate => candidate && existsSync(candidate));
 if (!chromiumPath) throw new Error('Chromium/Chrome executable is required for soft paywall browser tests');
 
+const vitePort = await reserveLocalPort();
+
 const vite = spawn('./node_modules/.bin/vite', [
   '--config', 'tests/fixtures/vite.modal.config.ts',
   '--host', '127.0.0.1',
-  '--port', '0',
+  '--port', String(vitePort),
   '--strictPort',
 ], {
   cwd: process.cwd(),
@@ -71,7 +74,14 @@ try {
 
   await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
   await page.goto(`${origin}/tests/fixtures/soft-paywall.html?page=meta`, { waitUntil: 'networkidle0' });
-  await page.waitForSelector('.arena-inline-paywall--meta');
+  try {
+    await page.waitForSelector('.arena-inline-paywall--meta', { timeout: 60_000 });
+  } catch (error) {
+    throw new Error(
+      `soft paywall did not render; page errors=${JSON.stringify(runtimeErrors)} console errors=${JSON.stringify(consoleErrors)}`,
+      { cause: error },
+    );
+  }
   assert.equal(await page.$$eval('.standard-meta-card', cards => cards.length), 3);
   assert.equal(await page.$$eval('.arena-paywall__overlay', nodes => nodes.length), 0);
   assert.equal(

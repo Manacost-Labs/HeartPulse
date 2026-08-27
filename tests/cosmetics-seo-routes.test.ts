@@ -35,11 +35,11 @@ try {
   assert.equal(detail.status, 200);
   assert.match(detail.headers.get('x-robots-tag') ?? '', /^index, follow/);
   assert.match(html, /<h1>Керриган-арахнид<\/h1>/);
-  assert.match(html, /rel="canonical" href="https:\/\/arena\.hs-manacost\.ru\/cosmetics\/heroes\/HERO_11ai\/"/);
+  assert.match(html, /rel="canonical" href="https:\/\/hearthpulse\.net\/cosmetics\/heroes\/HERO_11ai\/"/);
   assert.match(html, /application\/ld\+json/);
   assert.match(html, /data-route-status="200"/);
   assert.match(html, /\/assets\/app\.js/);
-  assert.match(html, /https:\/\/arena\.hs-manacost\.ru\/api\/public-resource\/db\/uploads\/hero-skins\/static\/HERO_11ai\.png/);
+  assert.match(html, /https:\/\/hearthpulse\.net\/api\/public-resource\/db\/uploads\/hero-skins\/static\/HERO_11ai\.png/);
   assert.doesNotMatch(html, /https:\/\/db\.kolodahs\.ru/);
 
   const missing = await fetch(`${baseUrl}/cosmetics/heroes/MISSING/`);
