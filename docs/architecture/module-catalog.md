@@ -58,6 +58,6 @@ HTTP manifest remains the detailed source-order and middleware snapshot.
 - CDN/cache work: start from `cacheNamespaces`, the runtime inventory and the
   linked operations/runbook documentation before changing a key or TTL.
 
-The catalog does not claim the repository is fully modular. Five current
+The catalog does not claim the repository is fully modular. Four current
 directories are explicitly transitional; legacy product areas still outside
 `modules/` remain tracked by the modularization plan and size/source ratchets.

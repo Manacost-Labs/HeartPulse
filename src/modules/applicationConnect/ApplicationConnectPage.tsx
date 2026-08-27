@@ -11,15 +11,19 @@ import {
   type DeviceAuthorization,
 } from './applicationConnectModel';
 
-type ApplicationConnectPageProps = {
+export type ApplicationConnectLoginPanelProps = {
   initialAuthUser: ConnectUser | null;
   parentAuthChecking: boolean;
   onAuthChange: (user: ConnectUser | null) => void;
-  api?: ApplicationConnectApi;
 };
 
-const LazyLoginPanel = React.lazy(() => import('../../features/DeferredRoutes')
-  .then(module => ({ default: module.LoginPanel })));
+export type ApplicationConnectPageProps = {
+  initialAuthUser: ConnectUser | null;
+  parentAuthChecking: boolean;
+  onAuthChange: (user: ConnectUser | null) => void;
+  loginPanelComponent: React.ComponentType<ApplicationConnectLoginPanelProps>;
+  api?: ApplicationConnectApi;
+};
 
 function initialUserCode(): string {
   return normalizedUserCode(new URLSearchParams(window.location.search).get('user_code') ?? '');
@@ -41,6 +45,7 @@ export default function ApplicationConnectPage({
   initialAuthUser,
   parentAuthChecking,
   onAuthChange,
+  loginPanelComponent: LoginPanelComponent,
   api = applicationConnectApi,
 }: ApplicationConnectPageProps) {
   const user = initialAuthUser;
@@ -109,7 +114,7 @@ export default function ApplicationConnectPage({
   const loginPanel = !user && wantsLogin
     ? (
       <React.Suspense fallback={<div className="application-connect__loading">Загрузка формы входа…</div>}>
-        <LazyLoginPanel
+        <LoginPanelComponent
           initialAuthUser={initialAuthUser}
           parentAuthChecking={parentAuthChecking}
           onAuthChange={handleAuthChange}

@@ -13,6 +13,10 @@ const client = readFileSync(
   new URL('../src/modules/applicationConnect/api/client.ts', import.meta.url),
   'utf8',
 );
+const accountRoute = readFileSync(
+  new URL('../src/modules/accountRoute/AccountRoute.tsx', import.meta.url),
+  'utf8',
+);
 const styles = readFileSync(
   new URL('../src/modules/applicationConnect/applicationConnect.css', import.meta.url),
   'utf8',
@@ -25,6 +29,8 @@ assert.match(view, /Приложение не сможет изменять пр
 assert.match(view, /Пароль не передаётся/);
 assert.match(view, /aria-current/);
 assert.doesNotMatch(page, /\bfetch\s*\(/);
+assert.doesNotMatch(page, /features\/DeferredRoutes/);
+assert.match(accountRoute, /loginPanelComponent=\{LazyLoginPanel\}/);
 assert.match(client, /X-CSRF-Request/);
 assert.match(client, /credentials: 'same-origin'/);
 assert.match(view, /role="alert"/);

@@ -184,7 +184,7 @@
     },
     {
       "name": "frontend-application-connect",
-      "status": "transitional",
+      "status": "modular",
       "owner": "identity-platform",
       "purpose": "Own the device authorization route, runtime response schema, API client and presentation state.",
       "paths": ["src/modules/applicationConnect"],
@@ -197,7 +197,7 @@
       "dataStores": [],
       "externalServices": ["same-origin application authorization API"],
       "tests": ["tests/application-connect-api.test.ts", "tests/application-connect-page.test.ts"],
-      "allowedDependencies": ["shared browser platform", "React", "legacy lazy login compatibility entrypoint"],
+      "allowedDependencies": ["shared browser platform", "React", "injected login presentation contract"],
       "forbiddenImports": ["server/**", "other frontend module internals"]
     },
     {

@@ -30,6 +30,11 @@ instead of being independently duplicated. The module's `public.ts` exposes the
 narrow client, error, schema and type contracts while the default route export
 and lazy loading remain unchanged.
 
+The account-route composition now injects the existing lazy login component
+through `ApplicationConnectLoginPanelProps`. The application-connect module no
+longer imports the legacy `DeferredRoutes` bundle; the same lazy component and
+fallback remain owned by the route composer.
+
 ## Compatibility evidence
 
 - Client tests pin URLs, methods, credentials, cache mode, abort signal, CSRF

@@ -1,4 +1,8 @@
 export { default } from './ApplicationConnectPage';
+export type {
+  ApplicationConnectLoginPanelProps,
+  ApplicationConnectPageProps,
+} from './ApplicationConnectPage';
 export {
   ApplicationConnectApiError,
   applicationConnectApi,

@@ -31,6 +31,7 @@ export default function AccountRoute({
         initialAuthUser={user}
         parentAuthChecking={checking}
         onAuthChange={onChange}
+        loginPanelComponent={LazyLoginPanel}
       />
     );
   }
