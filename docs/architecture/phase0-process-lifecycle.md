@@ -34,7 +34,13 @@ than turning into an immediate timeout.
 `server/modules/subscription/public.ts` exposes the narrow
 `startSubscriptionRefreshJob` contract. The job keeps the existing 30-minute
 cron expression, success/error logging and handled refresh failure behavior.
-Its `stop()` method is idempotent and is registered with the process lifecycle.
+Scheduled callbacks share one active refresh, so a slow run cannot overlap the
+next cron fire. Its `stop()` method synchronously blocks new callbacks, returns
+one stable Promise to every caller, stops cron and waits for the active refresh
+to settle. Refresh failures remain handled by the job; a cron stop failure is
+reported to the process lifecycle only after the active refresh has drained.
+The lifecycle's existing deadline still force-closes HTTP and requests an
+unsuccessful exit if that drain stalls.
 
 The runtime inventory records the owner, trigger, lifecycle and the current
 locking gap. Existing per-user request coalescing remains unchanged; a
@@ -43,8 +49,11 @@ slice.
 
 ## Evidence and remaining work
 
-- Unit tests cover idempotency, cleanup order, resource errors and timeout.
-- The job test preserves its schedule, logging, handled failure and stop.
+- Unit tests cover idempotency, cleanup order, resource errors, active job drain
+  and timeout.
+- The job test preserves its schedule and logging while proving the stopping
+  gate, non-overlap, handled refresh failure, stable stop Promise and cron stop
+  error propagation.
 - The compiled server smoke now requires exit code `0`, no terminating signal
   and the `shutdown complete` evidence after `SIGTERM`.
 

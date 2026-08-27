@@ -33,22 +33,54 @@ export function startSubscriptionRefreshJob(
   const schedule = options.schedule
     ?? ((expression, handler) => cron.schedule(expression, handler));
   const log = options.log ?? defaultLog;
-  const task = schedule(options.scheduleExpression ?? DEFAULT_SCHEDULE, async () => {
-    log('info', '[Subscription] Starting scheduled subscription refresh...');
-    try {
-      await options.refresh();
-      log('info', '[Subscription] Scheduled subscription refresh complete.');
-    } catch (error) {
-      log('error', '[Subscription] Scheduled subscription refresh failed:', error);
-    }
-  });
-  let stopped = false;
+  let stopping = false;
+  let activeRefresh: Promise<void> | null = null;
+  let stopPromise: Promise<void> | null = null;
+
+  const refresh = (): Promise<void> => {
+    if (stopping) return Promise.resolve();
+    if (activeRefresh) return activeRefresh;
+
+    let tracked!: Promise<void>;
+    tracked = Promise.resolve()
+      .then(async () => {
+        log('info', '[Subscription] Starting scheduled subscription refresh...');
+        try {
+          await options.refresh();
+          log('info', '[Subscription] Scheduled subscription refresh complete.');
+        } catch (error) {
+          log('error', '[Subscription] Scheduled subscription refresh failed:', error);
+        }
+      })
+      .finally(() => {
+        if (activeRefresh === tracked) activeRefresh = null;
+      });
+    activeRefresh = tracked;
+    return tracked;
+  };
+
+  const task = schedule(options.scheduleExpression ?? DEFAULT_SCHEDULE, refresh);
+
+  const stop = (): Promise<void> => {
+    if (stopPromise) return stopPromise;
+    stopping = true;
+    const refreshToDrain = activeRefresh;
+    stopPromise = (async () => {
+      let stopFailed = false;
+      let stopError: unknown;
+      try {
+        await task.stop();
+      } catch (error) {
+        stopFailed = true;
+        stopError = error;
+      }
+      await refreshToDrain;
+      if (stopFailed) throw stopError;
+    })();
+    return stopPromise;
+  };
 
   return {
-    async stop() {
-      if (stopped) return;
-      stopped = true;
-      await task.stop();
-    },
+    stop,
   };
 }

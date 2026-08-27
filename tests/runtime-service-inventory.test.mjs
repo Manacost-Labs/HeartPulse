@@ -206,5 +206,7 @@ test('subscription refresh schedule is owned by its module and bounded lifecycle
   assert.equal(schedule.owner, 'subscription-platform');
   assert.equal(schedule.trigger, 'node-cron */30 * * * * in the Arena web process');
   assert.match(schedule.lifecycle, /SIGINT or SIGTERM/);
+  assert.match(schedule.lifecycle, /waits for the active refresh/);
+  assert.match(schedule.idempotency, /one active refresh/);
   assert.match(schedule.idempotency, /no cross-instance distributed lock yet/);
 });

@@ -6,10 +6,11 @@
   discovery, checked HTTP and module catalogs, and ratchets for dependency,
   source-debt and oversized-function growth.
 - Added bounded process shutdown for HTTP traffic and the subscription refresh
-  job, forwarded rejected ecosystem route promises to Express error handling,
-  and moved the application-connect request/validation boundary into its
-  owning frontend module without changing its public URLs or authorization
-  behavior.
+  job; shutdown now gates new subscription callbacks, drains the active refresh
+  without overlap, preserves the lifecycle deadline and propagates cron stop
+  failures. Rejected ecosystem route promises reach Express error handling, and
+  the application-connect request/validation boundary lives in its owning
+  frontend module without changing public URLs or authorization behavior.
 - Repaired the license-broken Gitleaks CI job by reusing the repository's
   pinned, redacting scanner, moved QA-only Puppeteer out of the production
   dependency graph, and pinned its patched browser-manager plus Nanoid overrides

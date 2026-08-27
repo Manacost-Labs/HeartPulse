@@ -109,3 +109,41 @@ test('continues shutdown after a resource error and exits unsuccessfully', async
   assert.deepEqual(events, ['healthy']);
   assert.deepEqual(exits, [1]);
 });
+
+test('active resource drain remains bounded by the lifecycle deadline', async () => {
+  let timeoutCallback: (() => void) | null = null;
+  let finishDrain: (() => void) | null = null;
+  const exits: number[] = [];
+  const drain = new Promise<void>(resolve => { finishDrain = resolve; });
+  const lifecycle = installProcessLifecycle({
+    server: {
+      close(callback) {
+        callback();
+        return this;
+      },
+      closeAllConnections() {},
+    },
+    signalEmitter: new EventEmitter(),
+    quiesce: [{ name: 'active-job', stop: () => drain }],
+    exit: code => { exits.push(code); },
+    log: () => {},
+    timeoutMs: 25,
+    setTimeoutImpl: callback => {
+      timeoutCallback = callback;
+      return { unref() {} };
+    },
+    clearTimeoutImpl: () => {},
+  });
+
+  const shutdown = lifecycle.shutdown('SIGTERM');
+  await Promise.resolve();
+  assert.deepEqual(exits, []);
+  assert.ok(timeoutCallback);
+  (timeoutCallback as () => void)();
+  assert.deepEqual(exits, [1]);
+
+  assert.ok(finishDrain);
+  (finishDrain as () => void)();
+  await shutdown;
+  assert.deepEqual(exits, [1], 'deadline failure must remain authoritative after drain completes');
+});
