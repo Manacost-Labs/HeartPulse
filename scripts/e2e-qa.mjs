@@ -5094,8 +5094,15 @@ for (const [device, viewport] of [
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
     console.log(`✓ admin dashboard/articles/translations/mechanics/Standard data/gallery/Boosty/Telegram/mailing/contests/users/profile/standard panels [${device}] interactions + axe (${violationCount + articlesViolationCount + translationsViolationCount + mechanicTranslationsViolationCount + standardOpsViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + profileViolationCount + profileTourViolationCount + archetypeViolationCount + archetypeTourViolationCount + standardMetaViolationCount + standardMetaTourViolationCount + standardMatchupsTourViolationCount + viciousGoldViolationCount + viciousGoldTourViolationCount + constructedCardsViolationCount + constructedTourViolationCount + constructedDetailViolationCount + constructedDetailTourViolationCount} violations)`);
   } catch (error) {
-    const diagnostic = await page.evaluate(() => document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body').catch(() => 'unavailable body');
-    failures.push(`admin dashboard [${device}]: ${error.message}; page: ${diagnostic}`);
+    const diagnostic = await page.evaluate(() => ({
+      body: document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body',
+      stats: [...document.querySelectorAll('.admin-stat-grid > div')].map(element => ({
+        value: element.querySelector('strong')?.textContent?.trim() || '',
+        detail: element.querySelector('small')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      })),
+      url: window.location.href,
+    })).catch(() => ({ body: 'unavailable body', stats: [], url: page.url() }));
+    failures.push(`admin dashboard [${device}]: ${error.message}; state: ${JSON.stringify(diagnostic)}`);
   } finally {
     await page.close();
   }

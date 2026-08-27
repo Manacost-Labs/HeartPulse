@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Repaired the license-broken Gitleaks CI job by reusing the repository's
+  pinned, redacting scanner, moved QA-only Puppeteer out of the production
+  dependency graph, and upgraded the Nanoid override so the production npm
+  audit and Trivy gate no longer inherit those HIGH advisories.
 - Made full browser QA a production deployment gate and added exact-SHA
   post-deploy verification under the deployment lock, while reporting dataset
   freshness separately so honest LKG degradation cannot masquerade as green or

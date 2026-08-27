@@ -17,10 +17,9 @@ test('Gitleaks scans full history without publishing secret-bearing artifacts or
   const workflow = read('.github/workflows/gitleaks.yml');
   assert.match(workflow, /fetch-depth:\s*0/);
   assert.match(workflow, /persist-credentials:\s*false/);
-  assert.match(workflow, /gitleaks\/gitleaks-action@[a-f0-9]{40}/);
-  assert.match(workflow, /GITLEAKS_VERSION:\s*"8\.30\.1"/);
-  assert.match(workflow, /GITLEAKS_ENABLE_COMMENTS:\s*"false"/);
-  assert.match(workflow, /GITLEAKS_ENABLE_UPLOAD_ARTIFACT:\s*"false"/);
+  assert.match(workflow, /npm run security:gitleaks/);
+  assert.doesNotMatch(workflow, /gitleaks\/gitleaks-action@/);
+  assert.match(workflow, /permissions:\s*\n\s*contents:\s*read/);
 });
 
 test('OSV blocks both new PR vulnerabilities and complete inventory findings', () => {
