@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import express from 'express';
 import { createEcosystemInternalRouter } from '../server/modules/ecosystem/public.js';
+import {
+  requestLoggingMiddleware,
+  structuredErrorMiddleware,
+} from '../server/observability.js';
 
 type TestUser = {
   id: string;
@@ -15,13 +19,27 @@ type TestSubscription = {
 const users = new Map<string, TestUser>([
   ['stored-user', { id: 'stored-user', name: 'Stored User' }],
   ['empty-user', { id: 'empty-user', name: 'Empty User' }],
+  ['error-user', { id: 'error-user', name: 'Error User' }],
 ]);
 const storedSubscriptions = new Map<string, TestSubscription>([
   ['stored-user', { hasAccess: true, source: 'stored' }],
 ]);
 const refreshCalls: Array<{ userId: string; force: boolean }> = [];
+const structuredLogLines: string[] = [];
+const responseFinishCounts = new Map<string, number>();
+const unhandledRejections: unknown[] = [];
+const recordUnhandledRejection = (reason: unknown) => unhandledRejections.push(reason);
+process.on('unhandledRejection', recordUnhandledRejection);
 
 const app = express();
+app.use(requestLoggingMiddleware(line => structuredLogLines.push(line)));
+app.use((request, response, next) => {
+  const requestId = String(request.headers['x-request-id'] ?? '');
+  response.once('finish', () => {
+    responseFinishCounts.set(requestId, (responseFinishCounts.get(requestId) ?? 0) + 1);
+  });
+  next();
+});
 app.use('/api', createEcosystemInternalRouter({
   internalGuard: (request, response, next) => {
     if (request.headers['x-ecosystem-key'] !== 'test-internal-key') {
@@ -35,10 +53,16 @@ app.use('/api', createEcosystemInternalRouter({
   emptySubscription: () => ({ hasAccess: false, source: 'none' }),
   refreshSubscription: async (user, force) => {
     refreshCalls.push({ userId: user.id, force });
+    if (user.id === 'error-user') {
+      throw Object.assign(new Error('private subscription refresh detail'), {
+        code: 'SUBSCRIPTION_REFRESH_FAILED',
+      });
+    }
     return { hasAccess: true, source: force ? 'forced-refresh' : 'refresh' };
   },
   setPrivateNoStore: response => response.set('Cache-Control', 'private, no-store'),
 }));
+app.use(structuredErrorMiddleware(line => structuredLogLines.push(line)));
 
 const server = app.listen(0, '127.0.0.1');
 await new Promise<void>((resolve, reject) => {
@@ -113,13 +137,55 @@ try {
 
   const posted = await api('/ecosystem/internal/subscription?userId=stored-user', { method: 'POST' });
   assert.equal(posted.status, 200);
+
+  for (const method of ['GET', 'POST'] as const) {
+    const requestId = `ecosystem-error-${method.toLowerCase()}`;
+    const rejected = await api('/ecosystem/internal/subscription?userId=error-user', {
+      method,
+      headers: { 'X-Request-ID': requestId },
+      signal: AbortSignal.timeout(1_000),
+    });
+    assert.equal(rejected.status, 500);
+    assert.equal(rejected.headers.get('cache-control'), 'private, no-store');
+    assert.deepEqual(await rejected.json(), {
+      error: 'Внутренняя ошибка сервера',
+      requestId,
+    });
+    assert.equal(responseFinishCounts.get(requestId), 1, 'the rejected handler must finish exactly one response');
+  }
+
+  await new Promise(resolve => setImmediate(resolve));
+  const errorRecords = structuredLogLines
+    .map(line => JSON.parse(line))
+    .filter(record => record.event === 'http_request_error');
+  assert.deepEqual(errorRecords.map(record => ({
+    requestId: record.requestId,
+    status: record.status,
+    errorCode: record.errorCode,
+  })), [
+    {
+      requestId: 'ecosystem-error-get',
+      status: 500,
+      errorCode: 'SUBSCRIPTION_REFRESH_FAILED',
+    },
+    {
+      requestId: 'ecosystem-error-post',
+      status: 500,
+      errorCode: 'SUBSCRIPTION_REFRESH_FAILED',
+    },
+  ]);
+  assert.deepEqual(unhandledRejections, []);
+  assert.doesNotMatch(structuredLogLines.join('\n'), /private subscription refresh detail/);
   assert.deepEqual(refreshCalls, [
     { userId: 'stored-user', force: false },
     { userId: 'stored-user', force: true },
     { userId: 'stored-user', force: false },
     { userId: 'stored-user', force: true },
+    { userId: 'error-user', force: false },
+    { userId: 'error-user', force: true },
   ]);
 } finally {
+  process.off('unhandledRejection', recordUnhandledRejection);
   await new Promise<void>((resolve, reject) => {
     server.close(error => error ? reject(error) : resolve());
   });

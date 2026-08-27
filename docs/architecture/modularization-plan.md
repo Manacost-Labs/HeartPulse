@@ -99,8 +99,10 @@ additional guardrails remain incremental.
   runner. The filesystem is authoritative, exclusions require a central
   rationale, per-file environment does not leak, and CI fails on any new
   unclassified test.
-- [ ] Add characterization coverage for rejected Express 4 async handlers
-  before introducing a shared forwarding wrapper.
+- [x] Add rejected-promise characterization coverage and a typed Express 4
+  forwarding wrapper. The first bounded migration covers the two protected
+  ecosystem subscription routes; remaining handlers move only with focused
+  contract coverage.
 - [ ] Record and enforce the current module dependency graph and justified
   temporary exceptions.
 - [ ] Prove unreachable code before removing it in separate behavior-neutral
@@ -109,7 +111,9 @@ additional guardrails remain incremental.
 The reproducible discovery baseline and rollback contract are documented in
 [`phase0-test-discovery.md`](phase0-test-discovery.md). The slice is based on
 `57dfb48fffb0bcfec4e4dc6eb69298bcdab838e2`; the earlier Phase 0 branch is not
-an integration base.
+an integration base. The first async-handler migration and its rollback
+contract are documented in
+[`phase0-async-express.md`](phase0-async-express.md).
 
 ### 1. Constructed-card catalog model
 

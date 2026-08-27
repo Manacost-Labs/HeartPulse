@@ -4,6 +4,7 @@ import {
   type RequestHandler,
   type Response,
 } from 'express';
+import { asyncHandler } from '../../shared/http/asyncHandler.js';
 
 export type EcosystemInternalRouterDependencies<
   User extends { id: string },
@@ -42,7 +43,7 @@ export function createEcosystemInternalRouter<
     });
   });
 
-  router.get('/ecosystem/internal/subscription', dependencies.internalGuard, async (request, response) => {
+  router.get('/ecosystem/internal/subscription', dependencies.internalGuard, asyncHandler(async (request, response) => {
     dependencies.setPrivateNoStore(response);
     const user = dependencies.resolveUser(request);
     if (!user) return response.status(404).json({ error: 'User not found' });
@@ -52,9 +53,9 @@ export function createEcosystemInternalRouter<
       user: dependencies.serializeUser(user),
       subscription,
     });
-  });
+  }));
 
-  router.post('/ecosystem/internal/subscription', dependencies.internalGuard, async (request, response) => {
+  router.post('/ecosystem/internal/subscription', dependencies.internalGuard, asyncHandler(async (request, response) => {
     dependencies.setPrivateNoStore(response);
     const user = dependencies.resolveUser(request);
     if (!user) return response.status(404).json({ error: 'User not found' });
@@ -63,7 +64,7 @@ export function createEcosystemInternalRouter<
       user: dependencies.serializeUser(user),
       subscription,
     });
-  });
+  }));
 
   return router;
 }
