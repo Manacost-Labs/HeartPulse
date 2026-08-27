@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-GATE_VERSION=1.1.0
+GATE_VERSION=1.2.0
 GATE_CAPABILITY=require-deployer-capability-v1
+DEPLOYER_MANIFEST_FORMAT=hs-arena-deployer-capabilities-v1
 
 case "${1:-}" in
   --version)
@@ -38,18 +39,30 @@ EXPECTED_SHA=${2,,}
   echo "expected SHA must be a complete 40-character Git commit" >&2
   exit 2
 }
-[[ -x "$DEPLOYER" ]] || {
+[[ "$DEPLOYER" == /* && -f "$DEPLOYER" && ! -L "$DEPLOYER" && -x "$DEPLOYER" ]] || {
   echo "root-owned deployer is missing: $DEPLOYER" >&2
   exit 2
 }
-[[ -f "$DEPLOYER_CAPABILITIES_FILE" && ! -L "$DEPLOYER_CAPABILITIES_FILE" ]] || {
+[[ "$DEPLOYER_CAPABILITIES_FILE" == /* \
+  && -f "$DEPLOYER_CAPABILITIES_FILE" \
+  && ! -L "$DEPLOYER_CAPABILITIES_FILE" ]] || {
   echo "required deployer capability is missing: $REQUIRED_CAPABILITY" >&2
   exit 2
 }
 EXPECTED_OWNER_UID=$(id -u)
 [[ $EUID -ne 0 ]] || EXPECTED_OWNER_UID=0
+DEPLOYER_OWNER_UID=$(stat -c '%u' "$DEPLOYER")
+DEPLOYER_MODE=$(stat -c '%a' "$DEPLOYER")
 CAPABILITIES_OWNER_UID=$(stat -c '%u' "$DEPLOYER_CAPABILITIES_FILE")
 CAPABILITIES_MODE=$(stat -c '%a' "$DEPLOYER_CAPABILITIES_FILE")
+[[ "$DEPLOYER_OWNER_UID" == "$EXPECTED_OWNER_UID" ]] || {
+  echo "deployer executable has an unexpected owner" >&2
+  exit 2
+}
+(( (8#$DEPLOYER_MODE & 022) == 0 )) || {
+  echo "deployer executable must not be group- or world-writable" >&2
+  exit 2
+}
 [[ "$CAPABILITIES_OWNER_UID" == "$EXPECTED_OWNER_UID" ]] || {
   echo "deployer capabilities file has an unexpected owner" >&2
   exit 2
@@ -58,8 +71,95 @@ CAPABILITIES_MODE=$(stat -c '%a' "$DEPLOYER_CAPABILITIES_FILE")
   echo "deployer capabilities file must not be group- or world-writable" >&2
   exit 2
 }
-grep -Fxq "$REQUIRED_CAPABILITY" "$DEPLOYER_CAPABILITIES_FILE" || {
+
+declare -A MANIFEST_FIELDS=()
+declare -A MANIFEST_CAPABILITIES=()
+while IFS= read -r manifest_line || [[ -n "$manifest_line" ]]; do
+  [[ "$manifest_line" == *=* ]] || {
+    echo "deployer capability manifest format is invalid: expected key=value entries" >&2
+    exit 2
+  }
+  manifest_key=${manifest_line%%=*}
+  manifest_value=${manifest_line#*=}
+  case "$manifest_key" in
+    format|executable|version|sha256)
+      [[ -n "$manifest_value" && -z "${MANIFEST_FIELDS[$manifest_key]+present}" ]] || {
+        echo "deployer capability manifest format is invalid: empty or duplicate $manifest_key" >&2
+        exit 2
+      }
+      MANIFEST_FIELDS[$manifest_key]=$manifest_value
+      ;;
+    capability)
+      [[ "$manifest_value" =~ ^[a-z0-9][a-z0-9._-]+$ \
+        && -z "${MANIFEST_CAPABILITIES[$manifest_value]+present}" ]] || {
+        echo "deployer capability manifest format is invalid: empty or duplicate capability" >&2
+        exit 2
+      }
+      MANIFEST_CAPABILITIES[$manifest_value]=1
+      ;;
+    *)
+      echo "deployer capability manifest format is invalid: unsupported field $manifest_key" >&2
+      exit 2
+      ;;
+  esac
+done < "$DEPLOYER_CAPABILITIES_FILE"
+
+[[ "${MANIFEST_FIELDS[format]-}" == "$DEPLOYER_MANIFEST_FORMAT" \
+  && "${MANIFEST_FIELDS[executable]-}" == /* \
+  && "${MANIFEST_FIELDS[version]-}" =~ ^hs-arena-deploy-release\ [0-9]+\.[0-9]+\.[0-9]+$ \
+  && "${MANIFEST_FIELDS[sha256]-}" =~ ^[a-f0-9]{64}$ \
+  && ${#MANIFEST_CAPABILITIES[@]} -gt 0 ]] || {
+  echo "deployer capability manifest format is invalid: required fields are missing or malformed" >&2
+  exit 2
+}
+
+DEPLOYER_PATH=$(realpath "$DEPLOYER")
+[[ "${MANIFEST_FIELDS[executable]}" == "$DEPLOYER_PATH" ]] || {
+  echo "deployer capability manifest binding path does not match selected deployer" >&2
+  exit 2
+}
+DEPLOYER_SHA256=$(sha256sum "$DEPLOYER_PATH" | cut -d' ' -f1)
+[[ "${MANIFEST_FIELDS[sha256]}" == "$DEPLOYER_SHA256" ]] || {
+  echo "deployer capability manifest checksum does not match selected deployer" >&2
+  exit 2
+}
+DEPLOYER_VERSION=$("$DEPLOYER_PATH" --version) || {
+  echo "deployer capability manifest version cannot be verified against selected deployer" >&2
+  exit 2
+}
+[[ "${MANIFEST_FIELDS[version]}" == "$DEPLOYER_VERSION" ]] || {
+  echo "deployer capability manifest version does not match selected deployer" >&2
+  exit 2
+}
+[[ -n "${MANIFEST_CAPABILITIES[$REQUIRED_CAPABILITY]+present}" ]] || {
   echo "required deployer capability is missing: $REQUIRED_CAPABILITY" >&2
+  exit 2
+}
+DEPLOYER_CAPABILITIES=$("$DEPLOYER_PATH" --capabilities) || {
+  echo "selected deployer capabilities cannot be verified" >&2
+  exit 2
+}
+declare -A ACTUAL_DEPLOYER_CAPABILITIES=()
+while IFS= read -r deployer_capability; do
+  [[ "$deployer_capability" =~ ^[a-z0-9][a-z0-9._-]+$ \
+    && -z "${ACTUAL_DEPLOYER_CAPABILITIES[$deployer_capability]+present}" ]] || {
+    echo "selected deployer capabilities are malformed or duplicated" >&2
+    exit 2
+  }
+  ACTUAL_DEPLOYER_CAPABILITIES[$deployer_capability]=1
+done <<< "$DEPLOYER_CAPABILITIES"
+[[ ${#ACTUAL_DEPLOYER_CAPABILITIES[@]} -eq ${#MANIFEST_CAPABILITIES[@]} ]] || {
+  echo "deployer capability manifest capabilities do not match selected deployer" >&2
+  exit 2
+}
+for manifest_capability in "${!MANIFEST_CAPABILITIES[@]}"; do
+  [[ -n "${ACTUAL_DEPLOYER_CAPABILITIES[$manifest_capability]+present}" ]] || {
+    echo "deployer capability manifest capabilities do not match selected deployer" >&2
+    exit 2
+  }
+done
+[[ -n "${ACTUAL_DEPLOYER_CAPABILITIES[$REQUIRED_CAPABILITY]+present}" ]] || {
+  echo "selected deployer does not report required capability: $REQUIRED_CAPABILITY" >&2
   exit 2
 }
 
@@ -108,5 +208,5 @@ MANIFEST_SHA=$(node -e '
   exit 2
 }
 
-"$DEPLOYER" "$ARTIFACT"
+"$DEPLOYER_PATH" "$ARTIFACT"
 bash -c "$STATIC_SYNC_COMMAND"

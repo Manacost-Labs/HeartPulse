@@ -22,6 +22,18 @@ function hash(file) {
   return createHash('sha256').update(readFileSync(file)).digest('hex');
 }
 
+function writeCapabilityManifest(input, overrides = {}) {
+  const capabilities = overrides.capabilities ?? ['scraper-runtime-probe-v1'];
+  writeFileSync(input.deployerCapabilities, [
+    `format=${overrides.format ?? 'hs-arena-deployer-capabilities-v1'}`,
+    `executable=${overrides.executable ?? path.resolve(input.deployer)}`,
+    `version=${overrides.version ?? 'hs-arena-deploy-release 1.1.0'}`,
+    `sha256=${overrides.sha256 ?? hash(input.deployer)}`,
+    ...capabilities.map(capability => `capability=${capability}`),
+    '',
+  ].join('\n'));
+}
+
 function fixture() {
   const root = mkdtempSync(path.join(tmpdir(), 'hs-arena-ci-gate-'));
   const runnerTemp = path.join(root, 'runner-temp');
@@ -42,6 +54,10 @@ function fixture() {
   }));
   writeFileSync(deployer, [
     '#!/usr/bin/env bash',
+    'if [[ ${1:-} == --version ]]; then',
+    "  printf 'hs-arena-deploy-release 1.1.0\\n'",
+    '  exit 0',
+    'fi',
     'if [[ ${1:-} == --capabilities ]]; then',
     "  printf 'scraper-runtime-probe-v1\\n'",
     '  exit 0',
@@ -50,11 +66,7 @@ function fixture() {
     '',
   ].join('\n'));
   chmodSync(deployer, 0o755);
-  writeFileSync(deployerCapabilities, 'scraper-runtime-probe-v1\n');
-  chmodSync(deployerCapabilities, 0o644);
-  writeFileSync(staticSync, `#!/usr/bin/env bash\nprintf 'synced' > ${JSON.stringify(staticSyncMarker)}\n`);
-  chmodSync(staticSync, 0o755);
-  return {
+  const input = {
     root,
     runnerTemp,
     artifact,
@@ -64,6 +76,11 @@ function fixture() {
     staticSync,
     staticSyncMarker,
   };
+  writeCapabilityManifest(input);
+  chmodSync(deployerCapabilities, 0o644);
+  writeFileSync(staticSync, `#!/usr/bin/env bash\nprintf 'synced' > ${JSON.stringify(staticSyncMarker)}\n`);
+  chmodSync(staticSync, 0o755);
+  return input;
 }
 
 function run(input, expectedSha = sha) {
@@ -127,6 +144,89 @@ test('blocks a legacy deployer without the required browser probe before any mut
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /required deployer capability is missing: scraper-runtime-probe-v1/i);
     assert.equal(existsSync(input.marker), false, 'legacy deployer must be rejected before it receives the artifact');
+    assert.equal(existsSync(input.staticSyncMarker), false, 'static sync must not run after capability rejection');
+  } finally {
+    rmSync(input.root, { recursive: true, force: true });
+  }
+});
+
+test('blocks an old deployer paired with a capability sidecar from a newer installation', () => {
+  const input = fixture();
+  try {
+    writeFileSync(input.deployer, [
+      '#!/usr/bin/env bash',
+      `printf '%s' "$1" > ${JSON.stringify(input.marker)}`,
+      '',
+    ].join('\n'));
+    chmodSync(input.deployer, 0o755);
+
+    const result = run(input);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /deployer capability manifest (?:format|binding|checksum|version)/i);
+    assert.equal(existsSync(input.marker), false, 'a mismatched old deployer must not receive the artifact');
+    assert.equal(existsSync(input.staticSyncMarker), false, 'static sync must not run after binding rejection');
+  } finally {
+    rmSync(input.root, { recursive: true, force: true });
+  }
+});
+
+test('blocks a current deployer paired with a stale capability manifest', () => {
+  const input = fixture();
+  try {
+    writeFileSync(input.deployerCapabilities, 'scraper-runtime-probe-v1\n');
+
+    const result = run(input);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /deployer capability manifest (?:format|binding|checksum|version)/i);
+    assert.equal(existsSync(input.marker), false, 'a deployer with a stale manifest must not receive the artifact');
+    assert.equal(existsSync(input.staticSyncMarker), false, 'static sync must not run after binding rejection');
+  } finally {
+    rmSync(input.root, { recursive: true, force: true });
+  }
+});
+
+test('requires the manifest to bind the exact deployer path, version and checksum', () => {
+  const cases = [
+    {
+      overrides: { executable: '/usr/local/libexec/hs-arena/other-deployer' },
+      error: /manifest binding path does not match selected deployer/i,
+    },
+    {
+      overrides: { version: 'hs-arena-deploy-release 0.9.0' },
+      error: /manifest version does not match selected deployer/i,
+    },
+    {
+      overrides: { sha256: '0'.repeat(64) },
+      error: /manifest checksum does not match selected deployer/i,
+    },
+  ];
+
+  for (const { overrides, error } of cases) {
+    const input = fixture();
+    try {
+      writeCapabilityManifest(input, overrides);
+      const result = run(input);
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, error);
+      assert.equal(existsSync(input.marker), false, 'a mismatched deployer binding must fail before deployment');
+      assert.equal(existsSync(input.staticSyncMarker), false, 'static sync must not run after binding rejection');
+    } finally {
+      rmSync(input.root, { recursive: true, force: true });
+    }
+  }
+});
+
+test('requires the manifest capability set to exactly match the selected deployer', () => {
+  const input = fixture();
+  try {
+    writeCapabilityManifest(input, {
+      capabilities: ['scraper-runtime-probe-v1', 'unreported-capability-v1'],
+    });
+
+    const result = run(input);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /manifest capabilities do not match selected deployer/i);
+    assert.equal(existsSync(input.marker), false, 'a mismatched capability set must fail before deployment');
     assert.equal(existsSync(input.staticSyncMarker), false, 'static sync must not run after capability rejection');
   } finally {
     rmSync(input.root, { recursive: true, force: true });

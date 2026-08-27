@@ -22,8 +22,11 @@
   production runner job is pinned to an immutable SHA.
 - Made deploy validation portable across GitHub's Node toolcache, added a
   fail-closed privileged deployer capability manifest and verified installer,
-  synchronized the scraper service and pre-switch browser configuration, used
-  Puppeteer's downloaded browser for manual diagnostics.
+  then bound that manifest to the selected deployer's path, reported version,
+  SHA-256 checksum and actual capability output so partial upgrades and
+  rollbacks fail before deployment. Synchronized the scraper service and
+  pre-switch browser configuration, and used Puppeteer's downloaded browser
+  for manual diagnostics.
 - Replaced brittle triple-click clearing in authenticated browser QA with
   explicit cross-platform keyboard selection for React-controlled inputs.
 - Made full browser QA a production deployment gate and added exact-SHA

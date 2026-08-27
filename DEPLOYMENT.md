@@ -44,12 +44,28 @@ sudo /usr/local/sbin/hs-arena-ci-deploy \
   --require-capability=scraper-runtime-probe-v1 "$artifact" "$GITHUB_SHA"
 ```
 
-That root-owned gate first requires a protected capability manifest for the
-installed deployer. A legacy helper without `scraper-runtime-probe-v1` fails
-before receiving the artifact or changing deployment state. The gate then
-accepts artifacts only from the dedicated runner temp directory, rejects
-symlinks and writable files, and requires the release manifest SHA to equal the
-validated workflow SHA. After a successful switch, it waits for
+That root-owned gate first requires a protected `hs-arena-deployer-capabilities-v1`
+manifest bound to the exact selected deployer path, reported version, SHA-256
+checksum and capabilities. The manifest is parsed as strict `key=value` data;
+it is never sourced, and missing, malformed, duplicate or unknown fields fail
+closed. The gate verifies the checksum before invoking the selected executable's
+`--version` and `--capabilities` interfaces. A legacy helper, a stale manifest
+or any mixed-version pair therefore fails before receiving the artifact or
+changing deployment state.
+
+The installed manifest has this shape:
+
+```text
+format=hs-arena-deployer-capabilities-v1
+executable=/usr/local/libexec/hs-arena/deploy-release.sh
+version=hs-arena-deploy-release 1.1.0
+sha256=<64 lowercase hexadecimal characters>
+capability=scraper-runtime-probe-v1
+```
+
+The gate then accepts artifacts only from the dedicated runner temp directory,
+rejects symlinks and writable files, and requires the release manifest SHA to
+equal the validated workflow SHA. After a successful switch, it waits for
 `arena-static-sync.service`, so the new content-hashed frontend assets reach
 every regional edge before the deployment job is marked complete.
 
@@ -66,10 +82,12 @@ sudo install -o root -g root -m 440 deploy/hs-arena-github-runner.sudoers \
 sudo visudo -cf /etc/sudoers.d/hs-arena-github-runner
 ```
 
-The installer stages files in their destination directories, verifies source
-checksums and version/capability output, then atomically installs root-owned,
-non-writable copies plus the protected capability manifest. Do not run this
-step from a release artifact or an unreviewed branch.
+The installer stages files in their destination directories, derives the
+manifest from the staged deployer's version, checksum and capability output,
+then atomically installs root-owned, non-writable copies. Its `--check` mode
+reconstructs the expected manifest from the selected installed executable and
+requires an exact match. Do not run this step from a release artifact or an
+unreviewed branch.
 
 The dedicated `github-runner` account should have a single sudoers rule for
 that gate, not unrestricted sudo. Keep the runner registered only to this

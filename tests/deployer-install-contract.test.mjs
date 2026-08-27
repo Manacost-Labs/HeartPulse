@@ -13,5 +13,11 @@ test('privileged deployer installer is explicit, auditable and fail closed', () 
   assert.match(installer, /stat -c ['"]%U:%G['"]/);
   assert.match(installer, /scraper-runtime-probe-v1/);
   assert.match(installer, /require-deployer-capability-v1/);
+  assert.match(installer, /hs-arena-deployer-capabilities-v1/);
+  assert.match(installer, /printf 'executable=%s\\n'/);
+  assert.match(installer, /printf 'version=%s\\n'/);
+  assert.match(installer, /printf 'sha256=%s\\n'/);
+  assert.match(installer, /printf 'capability=%s\\n'/);
+  assert.match(installer, /cmp -s/, 'installation checks must compare the complete expected manifest');
   assert.doesNotMatch(installer, /chmod\s+-R|chown\s+-R/, 'installer must not mutate broad directory trees');
 });
