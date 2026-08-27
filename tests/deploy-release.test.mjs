@@ -53,6 +53,7 @@ function fakeRelease(sha, {
     'export const scraperRuntime = true;',
     '',
   ].join('\n'),
+  browserRuntimeContents = 'export async function verifyScraperBrowserRuntime() {}\n',
 } = {}) {
   const directory = join(root, `artifact-${sha}`);
   const nginxSource = 'deploy/nginx/arena-test.conf';
@@ -64,6 +65,7 @@ function fakeRelease(sha, {
   mkdirSync(dirname(join(directory, verifierSource)), { recursive: true });
   writeFileSync(join(directory, 'build', 'server', 'index.js'), '');
   writeFileSync(join(directory, 'build', 'server', 'scraper.js'), scraperContents);
+  writeFileSync(join(directory, 'build', 'server', 'scraperBrowserRuntime.js'), browserRuntimeContents);
   writeFileSync(join(directory, 'dist', 'index.html'), '');
   writeFileSync(join(directory, 'dist', 'runtime-config.js'), 'window.defaultConfig = true;\n');
   writeFileSync(join(directory, 'dist', 'assets', `asset-${sha}.js`), sha);
@@ -210,7 +212,20 @@ try {
     scraperContents: "await import('missing-production-scraper-runtime');\n",
   }), true);
   assert.notEqual(brokenScraper.status, 0, 'a release with a broken built scraper import must be blocked');
-  assert.match(`${brokenScraper.stdout}\n${brokenScraper.stderr}`, /production scraper runtime import failed/i);
+  assert.match(`${brokenScraper.stdout}\n${brokenScraper.stderr}`, /production scraper runtime smoke failed/i);
+  assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), secondTarget);
+
+  const brokenBrowserSha = '8'.repeat(7);
+  const brokenBrowser = deploy(fakeRelease(brokenBrowserSha, {
+    browserRuntimeContents: [
+      'export async function verifyScraperBrowserRuntime() {',
+      "  throw new Error('supported browser unavailable');",
+      '}',
+      '',
+    ].join('\n'),
+  }), true);
+  assert.notEqual(brokenBrowser.status, 0, 'a release with a broken browser launch must be blocked');
+  assert.match(`${brokenBrowser.stdout}\n${brokenBrowser.stderr}`, /production scraper runtime smoke failed/i);
   assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), secondTarget);
 
   const edgeOnlySha = '6'.repeat(7);

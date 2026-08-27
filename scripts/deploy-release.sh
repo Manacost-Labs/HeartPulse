@@ -33,6 +33,7 @@ ALLOW_NGINX_CONTRACT_CHANGE=${ALLOW_NGINX_CONTRACT_CHANGE:-0}
 RELEASE_SHA=$(node -e "const m=require(process.argv[1]); if(!/^[a-f0-9]{7,40}$/.test(m.sha||'')) process.exit(2); process.stdout.write(m.sha)" "$SOURCE_RELEASE/release.json")
 [[ -f "$SOURCE_RELEASE/build/server/index.js" ]] || { echo "compiled server is missing" >&2; exit 2; }
 [[ -f "$SOURCE_RELEASE/build/server/scraper.js" ]] || { echo "compiled scraper is missing" >&2; exit 2; }
+[[ -f "$SOURCE_RELEASE/build/server/scraperBrowserRuntime.js" ]] || { echo "compiled scraper browser runtime is missing" >&2; exit 2; }
 [[ -f "$SOURCE_RELEASE/dist/index.html" ]] || { echo "frontend artifact is missing" >&2; exit 2; }
 [[ -f "$SOURCE_RELEASE/scripts/verify-nginx-contract.mjs" ]] || {
   echo "nginx contract verifier is missing" >&2
@@ -243,16 +244,23 @@ if [[ "$SKIP_DEPENDENCIES" != "1" ]]; then
 fi
 
 SCRAPER_RUNTIME_PROBE="$TARGET_RELEASE/build/server/scraper.js"
+BROWSER_RUNTIME_PROBE="$TARGET_RELEASE/build/server/scraperBrowserRuntime.js"
+SCRAPER_RUNTIME_PROBE_COMMAND=(
+  /usr/bin/timeout --signal=TERM 30s
+  /usr/bin/node --input-type=module
+  -e 'await import(process.argv[2]); const runtime = await import(process.argv[3]); await runtime.verifyScraperBrowserRuntime();'
+  hearthpulse-runtime-probe
+  "$SCRAPER_RUNTIME_PROBE"
+  "$BROWSER_RUNTIME_PROBE"
+)
 if [[ $EUID -eq 0 ]] && id "$DEPENDENCY_USER" >/dev/null 2>&1; then
-  runuser -u "$DEPENDENCY_USER" -- /usr/bin/node --input-type=module \
-    -e 'await import(process.argv[2])' hearthpulse-runtime-probe "$SCRAPER_RUNTIME_PROBE" || {
-      echo "production scraper runtime import failed for $DEPENDENCY_USER" >&2
-      exit 2
-    }
+  runuser -u "$DEPENDENCY_USER" -- "${SCRAPER_RUNTIME_PROBE_COMMAND[@]}" || {
+    echo "production scraper runtime smoke failed for $DEPENDENCY_USER" >&2
+    exit 2
+  }
 else
-  /usr/bin/node --input-type=module -e 'await import(process.argv[2])' \
-    hearthpulse-runtime-probe "$SCRAPER_RUNTIME_PROBE" || {
-    echo "production scraper runtime import failed" >&2
+  "${SCRAPER_RUNTIME_PROBE_COMMAND[@]}" || {
+    echo "production scraper runtime smoke failed" >&2
     exit 2
   }
 fi

@@ -251,7 +251,7 @@ npm run qa:e2e
 для AI-агентов собраны в [docs/agent-tooling.md](docs/agent-tooling.md).
 
 Production scraper импортирует `puppeteer-core` из `dependencies` и запускает
-явно найденный системный Chrome. Полный `puppeteer` остаётся в
+явно найденный системный Chromium 151. Полный `puppeteer` остаётся в
 `devDependencies` только для browser QA. Оба пакета закреплены на одной версии,
 а release smoke выполняет настоящий `npm ci --omit=dev`, импортирует собранный
 scraper и открывает локальную страницу в headless Chrome. Такой split сохраняет

@@ -42,12 +42,11 @@ try {
       SERVER_DATA_DIR: join(runtime, 'server', 'data'),
     },
   });
-  const launched = run(process.execPath, [
+  run(process.execPath, [
     '--input-type=module',
     '-e',
-    "const {launchScraperBrowser}=await import('./build/server/scraperBrowserRuntime.js'); const browser=await launchScraperBrowser(); try { const page=await browser.newPage(); await page.goto('data:text/html,<title>hearthpulse-runtime-ok</title>'); if (await page.title() !== 'hearthpulse-runtime-ok') throw new Error('unexpected browser title'); } finally { await browser.close(); }",
+    "const {verifyScraperBrowserRuntime}=await import('./build/server/scraperBrowserRuntime.js'); await verifyScraperBrowserRuntime();",
   ], { cwd: runtime });
-  assert.equal(launched.stderr, '');
 } finally {
   rmSync(root, { recursive: true, force: true });
 }

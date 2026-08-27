@@ -323,25 +323,27 @@ and unknown filenames are rejected without replacing the last good snapshot.
 
 The immutable release installs `puppeteer-core` with `npm ci --omit=dev`; full
 `puppeteer` is development-only browser QA tooling. The scraper resolves Chrome
-from `PUPPETEER_EXECUTABLE_PATH`, then `CHROME_BIN`, then the standard Linux
-Google Chrome/Chromium paths. A missing executable fails with every checked path
-instead of a generic Puppeteer cache error. Puppeteer `25.4.0` is aligned with
-the host's Chrome 150 line; the official compatibility table and changelog are
+from `PUPPETEER_EXECUTABLE_PATH`, then `CHROME_BIN`, then Chromium 151 before
+other standard Linux Chrome paths. A missing executable fails with every checked
+path instead of a generic Puppeteer cache error. Puppeteer `25.4.0` is aligned
+with the host's Chromium 151 line; the official compatibility table and
+changelog are
 [the source of truth](https://pptr.dev/supported-browsers) and
-[record the Chrome 150 rolls](https://pptr.dev/CHANGELOG#2540-2026-07-27).
+[record its Chrome 151 revision](https://pptr.dev/CHANGELOG#2540-2026-07-27).
 
 Before release creation, `tests/production-scraper-runtime.test.mjs` performs a
 clean production-only install in a temporary directory, imports the compiled
 scraper and launches the system browser against a local `data:` page. The
 release manifest requires and checksums both `build/server/scraper.js` and its
-browser runtime module. Deployment imports that built scraper from the installed
-production dependency tree as the service user before changing `current`.
+browser runtime module. Before changing `current`, deployment uses the service
+user and a 30-second deadline to import that built scraper, launch the installed
+Chromium, verify its supported major version and open a local `data:` page.
 
 Read-only host prerequisites can be checked without running the scraper:
 
 ```bash
-sudo -u koloda test -x /usr/bin/google-chrome-stable
-sudo -u koloda /usr/bin/google-chrome-stable --version
+sudo -u koloda test -x /usr/bin/chromium
+sudo -u koloda /usr/bin/chromium --version
 ```
 
 Install the schedule and manual-request path unit:
