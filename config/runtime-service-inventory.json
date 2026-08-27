@@ -528,6 +528,21 @@
   ],
   "schedules": [
     {
+      "id": "schedule-arena-subscription-refresh",
+      "name": "subscription entitlement refresh",
+      "trigger": "node-cron */30 * * * * in the Arena web process",
+      "lifecycle": "Starts with the HTTP process and stops on SIGINT or SIGTERM before the bounded HTTP drain.",
+      "idempotency": "Existing per-user refresh coalescing remains authoritative; there is no cross-instance distributed lock yet.",
+      "owner": "subscription-platform",
+      "criticality": "P1",
+      "source": "frontend:server/modules/subscription/jobs/refreshJob.ts",
+      "consumers": ["registered-users", "subscription-entitlements"],
+      "healthImpact": "degraded",
+      "readinessImpact": "none",
+      "backup": "required",
+      "runbook": "frontend:STABILIZATION.md"
+    },
+    {
       "id": "schedule-arena-scrape",
       "name": "arena snapshot scrape",
       "trigger": "OnBootSec=5m; OnCalendar=*-*-* 00/6:10:00 UTC; RandomizedDelaySec=10m; Persistent=true",

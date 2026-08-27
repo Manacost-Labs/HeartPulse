@@ -116,6 +116,10 @@ additional guardrails remain incremental.
 - [x] Align README with the non-strict TypeScript baseline, test discovery and
   legacy `features` status; make `docs/decisions/` the single ADR home and
   distinguish architecture, specifications, operations and runbooks.
+- [x] Add a bounded, idempotent process lifecycle and migrate the subscription
+  refresh cron as the first owned job with a compiled `SIGTERM` smoke test.
+- [ ] Move the remaining intervals, startup timers, database/Redis handles and
+  Arena refresh job behind explicit lifecycle resources.
 - [x] Prove and remove the retired private `DeferredRoutes.AdminPanel` and its
   exclusive declarations without changing the live `ContestAdminPanel` route.
 - [ ] Classify the remaining Knip candidates before any further dead-code
@@ -133,6 +137,8 @@ The first evidence-backed dead-code removal and its route guard are documented
 in [`phase0-dead-code.md`](phase0-dead-code.md).
 Compatibility coverage and the remaining lifecycle/cache gaps are documented
 in [`phase0-compatibility-harness.md`](phase0-compatibility-harness.md).
+The bounded process shutdown and first owned job are documented in
+[`phase0-process-lifecycle.md`](phase0-process-lifecycle.md).
 
 ### 1. Constructed-card catalog model
 

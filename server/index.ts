@@ -3,7 +3,6 @@ import {
   installSentryExpressErrorHandler,
 } from './sentry.js';
 import express from 'express';
-import cron from 'node-cron';
 import compression from 'compression';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import sharp from 'sharp';
@@ -135,6 +134,7 @@ import { createWinrateRouter } from './winrateRoutes.js';
 import { createHomeSummaryRouter, type HomeSummaryCacheStore } from './homeSummaryRoutes.js';
 import { createCardImageRouter, normalizeCardImageId } from './cardImageRoutes.js';
 import { createCardImageDependencies } from './app/createCardImageDependencies.js';
+import { installProcessLifecycle } from './app/lifecycle/processLifecycle.js';
 import { registerApplicationAuth } from './app/registerApplicationAuth.js';
 import { serializeApplicationProfileUser, serializeApplicationSubscription } from './app/applicationAuthProfile.js';
 import { createBlizzardCardImageClient, downloadBlizzardCardImage } from './blizzardCards.js';
@@ -211,6 +211,7 @@ import { createAdminImageUploadRouter } from './adminImageUploadRoutes.js';
 import { fetchRemoteAdminImage } from './adminRemoteImage.js';
 import { createAdminImageGenerationRouter } from './adminImageGenerationRoutes.js';
 import { createPublicApiCardSources, registerPublicApi } from './app/registerPublicApi.js';
+import { startSubscriptionRefreshJob } from './modules/subscription/public.js';
 import {
   firestoneArenaMatchupsDataset,
   normalizeFirestoneArenaClassRows,
@@ -9898,15 +9899,7 @@ app.use('/api', createAdminImageGenerationRouter({
 installSentryExpressErrorHandler(app);
 app.use(structuredErrorMiddleware());
 
-cron.schedule('*/30 * * * *', async () => {
-  console.log('[Subscription] Starting scheduled subscription refresh...');
-  try {
-    await refreshAllSubscriptions();
-    console.log('[Subscription] Scheduled subscription refresh complete.');
-  } catch (err) {
-    console.error('[Subscription] Scheduled subscription refresh failed:', err);
-  }
-});
+const subscriptionRefreshJob = startSubscriptionRefreshJob({ refresh: refreshAllSubscriptions });
 
 const httpServer = app.listen(PORT, HOST, () => {
   console.log(`[Server] API server running on http://${HOST || 'localhost'}:${PORT}`);
@@ -9941,4 +9934,10 @@ const httpServer = app.listen(PORT, HOST, () => {
   }, 2500);
   archetypeTranslationSeedTimer.unref?.();
 
+});
+
+installProcessLifecycle({
+  server: httpServer,
+  quiesce: [{ name: 'subscription-refresh-job', stop: subscriptionRefreshJob.stop }],
+  timeoutMs: Number(process.env.SERVER_SHUTDOWN_TIMEOUT_MS || 10_000),
 });

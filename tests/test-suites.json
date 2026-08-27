@@ -90,6 +90,7 @@
         "tests/standard-meta-classes.test.ts",
         "tests/standard-meta-profile-access.test.ts",
         "tests/standard-meta-recommendation-cache.test.ts",
+        "tests/subscription-refresh-job.test.ts",
         "tests/tierlist-early-stats.test.ts",
         "tests/traditional-mode-banner-ui.test.ts",
         "tests/vicious-gold-builds.test.ts",

@@ -53,8 +53,9 @@ writing an incomplete manifest.
 - Runtime services, schedules and durable/cache stores have ownership entries
   in `runtime-service-inventory.json`. In-process cache keys are not yet a
   complete checked inventory.
-- Graceful shutdown remains open: the main process has no explicit `SIGTERM` or
-  `SIGINT` lifecycle contract.
+- Graceful shutdown has a first checked slice: `SIGTERM` and `SIGINT` stop the
+  subscription refresh job, drain HTTP and enforce a deadline. Remaining
+  process resources still need explicit ownership before this item is complete.
 - Mixed old/new client-server compatibility remains open: focused adapters and
   route tests exist, but there is no version-pair matrix for every module.
 

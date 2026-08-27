@@ -142,6 +142,7 @@
     "test:contest-selection": "tsx tests/contest-selection.test.ts",
     "test:contest-routes": "tsx tests/contest-routes.test.ts",
     "test:subscription-routes": "tsx tests/subscription-routes.test.ts",
+    "test:subscription-refresh-job": "tsx tests/subscription-refresh-job.test.ts",
     "test:ecosystem-internal-routes": "tsx tests/ecosystem-internal-routes.test.ts",
     "test:auth-profile-routes": "tsx tests/auth-profile-routes.test.ts",
     "test:public-profiles": "tsx tests/public-profile-identity.test.ts && tsx tests/public-profile-routes.test.ts && tsx tests/public-profile-client-routes.test.ts",

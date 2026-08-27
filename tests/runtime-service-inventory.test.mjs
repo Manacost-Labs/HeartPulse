@@ -189,6 +189,22 @@ test('schedule entries keep their versioned trigger evidence', () => {
   for (const schedule of inventory.schedules) {
     assert.equal(typeof schedule.trigger, 'string', `${schedule.id} must record its trigger`);
     assert.ok(schedule.trigger.trim(), `${schedule.id} trigger must not be empty`);
-    assert.match(schedule.source, /\.timer$/, `${schedule.id} source must be a timer unit`);
+    const systemdTimer = schedule.source.endsWith('.timer');
+    const inProcessJob = schedule.source.startsWith('frontend:server/modules/')
+      && schedule.source.includes('/jobs/');
+    assert.ok(systemdTimer || inProcessJob, `${schedule.id} must have a versioned timer or job source`);
+    if (inProcessJob) {
+      assert.ok(String(schedule.lifecycle ?? '').trim(), `${schedule.id} must declare its process lifecycle`);
+      assert.ok(String(schedule.idempotency ?? '').trim(), `${schedule.id} must declare idempotency or locking`);
+    }
   }
+});
+
+test('subscription refresh schedule is owned by its module and bounded lifecycle', () => {
+  const schedule = inventory.schedules.find(item => item.id === 'schedule-arena-subscription-refresh');
+  assert.ok(schedule);
+  assert.equal(schedule.owner, 'subscription-platform');
+  assert.equal(schedule.trigger, 'node-cron */30 * * * * in the Arena web process');
+  assert.match(schedule.lifecycle, /SIGINT or SIGTERM/);
+  assert.match(schedule.idempotency, /no cross-instance distributed lock yet/);
 });

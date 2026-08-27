@@ -117,13 +117,26 @@ try {
   console.log('compiled server smoke tests passed');
 } finally {
   child.kill('SIGTERM');
-  await new Promise(resolveClose => {
-    if (child.exitCode !== null) return resolveClose();
-    child.once('close', resolveClose);
-    setTimeout(() => {
+  const shutdown = await new Promise((resolveClose, rejectClose) => {
+    if (child.exitCode !== null) {
+      resolveClose({ code: child.exitCode, signal: child.signalCode });
+      return;
+    }
+    const deadline = setTimeout(() => {
       child.kill('SIGKILL');
-      resolveClose();
-    }, 3_000).unref();
+      rejectClose(new Error(`compiled server did not drain after SIGTERM\n${output}`));
+    }, 3_000);
+    deadline.unref();
+    child.once('close', (code, signal) => {
+      clearTimeout(deadline);
+      resolveClose({ code, signal });
+    });
   });
   rmSync(temporaryRoot, { recursive: true, force: true });
+  if (shutdown.code !== 0 || shutdown.signal !== null) {
+    throw new Error(`compiled server did not exit gracefully: ${JSON.stringify(shutdown)}\n${output}`);
+  }
+  if (!output.includes('[lifecycle] shutdown complete')) {
+    throw new Error(`compiled server omitted graceful shutdown evidence\n${output}`);
+  }
 }
