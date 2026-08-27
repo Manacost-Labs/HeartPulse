@@ -9,6 +9,10 @@ const view = readFileSync(
   new URL('../src/modules/applicationConnect/ApplicationConnectView.tsx', import.meta.url),
   'utf8',
 );
+const client = readFileSync(
+  new URL('../src/modules/applicationConnect/api/client.ts', import.meta.url),
+  'utf8',
+);
 const styles = readFileSync(
   new URL('../src/modules/applicationConnect/applicationConnect.css', import.meta.url),
   'utf8',
@@ -20,8 +24,9 @@ assert.match(view, /Разрешить подключение/);
 assert.match(view, /Приложение не сможет изменять профиль/);
 assert.match(view, /Пароль не передаётся/);
 assert.match(view, /aria-current/);
-assert.match(page, /X-CSRF-Request/);
-assert.match(page, /credentials: 'same-origin'/);
+assert.doesNotMatch(page, /\bfetch\s*\(/);
+assert.match(client, /X-CSRF-Request/);
+assert.match(client, /credentials: 'same-origin'/);
 assert.match(view, /role="alert"/);
 assert.doesNotMatch(`${page}\n${view}`, /adminAllowed|contactTelegram|blockedAt/);
 

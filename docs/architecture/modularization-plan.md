@@ -144,6 +144,16 @@ in [`phase0-compatibility-harness.md`](phase0-compatibility-harness.md).
 The bounded process shutdown and first owned job are documented in
 [`phase0-process-lifecycle.md`](phase0-process-lifecycle.md).
 
+### First vertical frontend module slice
+
+- [x] Move `/connect` inspection and approval requests out of the React route
+  into an injectable application-connect API client.
+- [x] Derive the device-authorization TypeScript contract from its browser-safe
+  runtime parser and preserve the existing public route entrypoint.
+
+The behavior, compatibility evidence and rollback are documented in
+[`application-connect-api-slice.md`](application-connect-api-slice.md).
+
 ### 1. Constructed-card catalog model
 
 Status: complete.

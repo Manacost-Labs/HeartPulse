@@ -1,4 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import {
+  applicationConnectApi,
+  type ApplicationConnectApi,
+} from './api/client';
 import { ApplicationConnectView } from './ApplicationConnectView';
 import {
   normalizedUserCode,
@@ -11,6 +15,7 @@ type ApplicationConnectPageProps = {
   initialAuthUser: ConnectUser | null;
   parentAuthChecking: boolean;
   onAuthChange: (user: ConnectUser | null) => void;
+  api?: ApplicationConnectApi;
 };
 
 const LazyLoginPanel = React.lazy(() => import('../../features/DeferredRoutes')
@@ -32,22 +37,11 @@ function updateConnectUrl(userCode: string, login = false): void {
   );
 }
 
-function responseError(payload: unknown, fallback: string): string {
-  if (!payload || typeof payload !== 'object') return fallback;
-  const error = (payload as { error?: unknown }).error;
-  if (!error || typeof error !== 'object') return fallback;
-  const code = String((error as { code?: unknown }).code ?? '');
-  if (code === 'AUTHORIZATION_NOT_FOUND' || code === 'INVALID_AUTHORIZATION') {
-    return 'Код не найден, уже использован или истёк. Запросите новый код в приложении.';
-  }
-  if (code === 'LOGIN_REQUIRED') return 'Войдите в аккаунт Manacost, чтобы продолжить.';
-  return fallback;
-}
-
 export default function ApplicationConnectPage({
   initialAuthUser,
   parentAuthChecking,
   onAuthChange,
+  api = applicationConnectApi,
 }: ApplicationConnectPageProps) {
   const user = initialAuthUser;
   const [userCode, setUserCode] = useState(initialUserCode);
@@ -74,17 +68,7 @@ export default function ApplicationConnectPage({
     setErrorMessage('');
     updateConnectUrl(userCode);
     try {
-      const response = await fetch(
-        `/api/v1/oauth/device/authorization?user_code=${encodeURIComponent(userCode)}`,
-        { credentials: 'same-origin', cache: 'no-store', signal },
-      );
-      const payload = await response.json().catch(() => ({})) as {
-        authorization?: DeviceAuthorization;
-      };
-      if (!response.ok || !payload.authorization) {
-        throw new Error(responseError(payload, 'Не удалось проверить код. Повторите попытку.'));
-      }
-      setAuthorization(payload.authorization);
+      setAuthorization(await api.inspect(userCode, signal));
       setState('review');
     } catch (error) {
       if (signal?.aborted) return;
@@ -92,7 +76,7 @@ export default function ApplicationConnectPage({
       setErrorMessage(error instanceof Error ? error.message : 'Не удалось проверить код.');
       setState('error');
     }
-  }, [user, userCode]);
+  }, [api, user, userCode]);
 
   useEffect(() => {
     if (!user || userCode.length !== 9 || wantsLogin) return undefined;
@@ -105,16 +89,7 @@ export default function ApplicationConnectPage({
     setState('submitting');
     setErrorMessage('');
     try {
-      const response = await fetch('/api/v1/oauth/device/approve', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' },
-        body: JSON.stringify({ user_code: userCode, decision }),
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(responseError(payload, 'Не удалось сохранить решение. Повторите попытку.'));
-      }
+      await api.decide(userCode, decision);
       setState(decision === 'approve' ? 'approved' : 'denied');
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Не удалось сохранить решение.');

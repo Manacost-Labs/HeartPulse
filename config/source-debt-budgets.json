@@ -136,7 +136,6 @@
       "src/features/StandardMeta.tsx": 1,
       "src/features/useConstructedCardHistory.ts": 1,
       "src/features/ViciousSyndicateGold.tsx": 2,
-      "src/modules/applicationConnect/ApplicationConnectPage.tsx": 2,
       "src/modules/developerApi/api/adminApiKeys.ts": 3,
       "src/telemetry/clientIncident.ts": 1,
       "src/telemetry/webVitals.ts": 1,

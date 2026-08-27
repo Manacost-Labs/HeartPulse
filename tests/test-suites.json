@@ -14,6 +14,7 @@
         "tests/admin-remote-image.test.ts",
         "tests/admin-workspace-shell.test.tsx",
         "tests/admin-workspace-state.test.ts",
+        "tests/application-connect-api.test.ts",
         "tests/application-connect-page.test.ts",
         "tests/architecture-baseline.test.mjs",
         "tests/archetype-deck-codes-schema.test.ts",

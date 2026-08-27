@@ -6,12 +6,7 @@ export type ConnectUser = {
   avatarInitials?: string;
 };
 
-export type DeviceAuthorization = {
-  clientId: string;
-  clientName: string;
-  scopes: string[];
-  expiresAt: number;
-};
+export type { DeviceAuthorization } from './schema/deviceAuthorization';
 
 export type ConnectState =
   | 'entry'
