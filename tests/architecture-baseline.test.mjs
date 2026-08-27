@@ -10,6 +10,10 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { analyzeArchitecture } from '../scripts/architecture-baseline.mjs';
+import {
+  collectFunctionSizes,
+  validateFunctionSizeBudgets,
+} from '../scripts/check-function-size-budgets.mjs';
 import { validateArchitectureDebt } from '../scripts/check-module-boundaries.mjs';
 import { validateSourceDebt } from '../scripts/check-source-debt.mjs';
 
@@ -152,6 +156,49 @@ test('source debt gate blocks per-file growth without freezing reductions', () =
       },
     },
   }, registry), /nonNullAssertions debt grew/);
+});
+
+test('function size gate covers named declarations, methods and assigned functions', () => {
+  const repositoryRoot = mkdtempSync(path.join(tmpdir(), 'hearthpulse-function-size-'));
+  try {
+    writeFixture(repositoryRoot, 'src/example.ts', [
+      'export function declaration() {',
+      '  return 1;',
+      '}',
+      'export const assigned = () => {',
+      '  return 2;',
+      '};',
+      'export class Example {',
+      '  method() {',
+      '    return 3;',
+      '  }',
+      '}',
+    ].join('\n'));
+
+    assert.deepEqual(collectFunctionSizes(repositoryRoot), [
+      { file: 'src/example.ts', name: 'assigned', lines: 3 },
+      { file: 'src/example.ts', name: 'declaration', lines: 3 },
+      { file: 'src/example.ts', name: 'Example.method', lines: 3 },
+    ]);
+  } finally {
+    rmSync(repositoryRoot, { recursive: true, force: true });
+  }
+
+  const registry = {
+    version: 1,
+    defaultMaxLines: 4,
+    exceptions: { 'src/legacy.ts#legacy': 8 },
+  };
+  assert.deepEqual(validateFunctionSizeBudgets([
+    { file: 'src/new.ts', name: 'small', lines: 4 },
+    { file: 'src/legacy.ts', name: 'legacy', lines: 8 },
+  ], registry), { functions: 2, exceptions: 1, largestLines: 8 });
+  assert.throws(() => validateFunctionSizeBudgets([
+    { file: 'src/new.ts', name: 'large', lines: 5 },
+  ], registry), /src\/new\.ts#large: 5 \/ 4/);
+  assert.throws(() => validateFunctionSizeBudgets([
+    { file: 'src/legacy.ts', name: 'legacy', lines: 9 },
+  ], registry), /src\/legacy\.ts#legacy: 9 \/ 8/);
 });
 
 test('module boundary gate blocks runtime cycles and unclassified dependency debt', () => {

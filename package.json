@@ -16,7 +16,7 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "lint:docs": "markdownlint-cli2 README.md CONTRIBUTING.md SECURITY.md STABILIZATION.md DEPLOYMENT.md assets.md \"docs/**/*.md\" && design.md lint design.md",
-    "lint:architecture": "node scripts/check-component-duplicates.mjs && node scripts/check-css-architecture.mjs && node scripts/check-entry-dead-code.mjs && node scripts/check-module-size-budgets.mjs && node scripts/check-module-boundaries.mjs && node scripts/check-source-debt.mjs && npm run architecture:http-manifest",
+    "lint:architecture": "node scripts/check-component-duplicates.mjs && node scripts/check-css-architecture.mjs && node scripts/check-entry-dead-code.mjs && node scripts/check-module-size-budgets.mjs && node scripts/check-function-size-budgets.mjs && node scripts/check-module-boundaries.mjs && node scripts/check-source-debt.mjs && npm run architecture:http-manifest",
     "architecture:baseline": "npm run build && node scripts/architecture-baseline.mjs",
     "architecture:http-manifest": "node scripts/http-route-manifest.mjs --check",
     "architecture:http-manifest:update": "node scripts/http-route-manifest.mjs --write",

@@ -120,6 +120,8 @@ additional guardrails remain incremental.
   refresh cron as the first owned job with a compiled `SIGTERM` smoke test.
 - [x] Ratchet explicit `any`, TypeScript suppressions, non-null assertions and
   frontend raw `fetch` per source file so legacy debt can fall but not spread.
+- [x] Cap new named functions at 120 lines and pin every inherited larger
+  function to its measured ceiling for incremental extraction.
 - [ ] Move the remaining intervals, startup timers, database/Redis handles and
   Arena refresh job behind explicit lifecycle resources.
 - [x] Prove and remove the retired private `DeferredRoutes.AdminPanel` and its

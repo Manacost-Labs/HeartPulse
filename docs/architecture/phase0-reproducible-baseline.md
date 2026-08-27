@@ -73,6 +73,12 @@ suppressions, non-null assertions and frontend raw `fetch`. A file not present
 in the registry has a zero budget. Reductions do not require registry edits;
 increases and moving debt into a new file fail the release gate.
 
+`config/function-size-budgets.json` independently caps new named functions at
+120 physical lines. Each larger inherited function has its own exact ceiling;
+the checker recognizes declarations, class methods and functions assigned to a
+named variable or property. Anonymous callbacks remain visible through their
+owning function and are a documented limit of this first ratchet.
+
 Adding timestamps, machine-specific absolute paths or unstable filesystem
 ordering to the JSON is forbidden. A saved report from the same source and
 build inputs must compare byte-for-byte.
