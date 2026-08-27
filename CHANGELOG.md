@@ -24,6 +24,8 @@
   fail-closed privileged deployer capability manifest and verified installer,
   synchronized the scraper service and pre-switch browser configuration, used
   Puppeteer's downloaded browser for manual diagnostics.
+- Replaced brittle triple-click clearing in authenticated browser QA with
+  explicit cross-platform keyboard selection for React-controlled inputs.
 - Made full browser QA a production deployment gate and added exact-SHA
   post-deploy verification under the deployment lock, while reporting dataset
   freshness separately so honest LKG degradation cannot masquerade as green or

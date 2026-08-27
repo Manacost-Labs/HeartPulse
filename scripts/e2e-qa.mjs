@@ -9,6 +9,7 @@ import puppeteer from 'puppeteer';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { replaceControlledInputValue } from './controlled-input.mjs';
 import { inspectHorizontalLayoutFault } from './mobile-layout-diagnostics.mjs';
 
 const require = createRequire(import.meta.url);
@@ -3162,11 +3163,9 @@ for (const [device, viewport] of [
     await page.waitForFunction(() => document.querySelector('.admin-article-form h2')?.textContent?.trim() === 'Редактирование статьи');
     const editedArticleTitle = await page.$eval('.admin-article-form input[required]', element => element.value);
     if (editedArticleTitle !== 'Первая статья') failures.push(`admin articles [${device}]: edit did not populate the form`);
-    await page.click('.admin-article-form input[required]', { clickCount: 3 });
-    await page.type('.admin-article-form input[required]', 'Первая статья — обновлена');
+    await replaceControlledInputValue(page, '.admin-article-form input[required]', 'Первая статья — обновлена');
     const articleImageUrlInput = '.admin-article-form input[aria-label="Картинка статьи: URL"]';
-    await page.click(articleImageUrlInput, { clickCount: 3 });
-    await page.type(articleImageUrlInput, 'https://images.example.test/cover.png');
+    await replaceControlledInputValue(page, articleImageUrlInput, 'https://images.example.test/cover.png');
     await page.evaluate(() => {
       const button = [...document.querySelectorAll('.admin-article-form .admin-image-uploader-actions button')]
         .find(element => element.textContent?.trim() === 'Загрузить по ссылке');
@@ -3297,8 +3296,7 @@ for (const [device, viewport] of [
     await page.click('.admin-translation-table tbody tr:first-child button');
     await page.waitForFunction(() => document.querySelector('.admin-translation-form h2')?.textContent?.includes('Редактирование'));
     const editInputs = await page.$$('.admin-translation-form input');
-    await editInputs[1].click({ clickCount: 3 });
-    await editInputs[1].type('Контрольный Воин');
+    await replaceControlledInputValue(page, editInputs[1], 'Контрольный Воин');
     await page.click('.admin-translation-form button[type="submit"]');
     await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Перевод обновлён'));
     const translationSearch = await page.$('.admin-translation-toolbar input');
@@ -3659,8 +3657,7 @@ for (const [device, viewport] of [
     if (contestEditorState.title !== 'Контрольный конкурс' || contestEditorState.previewTitle !== 'Контрольный конкурс') {
       failures.push(`admin contests [${device}]: edit action did not populate form and preview`);
     }
-    await page.click('.admin-contest-section:first-of-type input', { clickCount: 3 });
-    await page.type('.admin-contest-section:first-of-type input', 'Контрольный конкурс — обновлён');
+    await replaceControlledInputValue(page, '.admin-contest-section:first-of-type input', 'Контрольный конкурс — обновлён');
     await page.click('.admin-contest-submit-row button[type="submit"]');
     await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Конкурс сохранен.'));
     await page.goto(`${BASE}/?admin&section=contests`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
