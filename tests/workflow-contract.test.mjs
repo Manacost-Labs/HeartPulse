@@ -24,10 +24,20 @@ assert.match(ciWorkflow, /name:\s*Validate and deploy application/);
 assert.match(ciWorkflow, /^\s*push:\s*$/m);
 assert.match(ciWorkflow, /^\s*branches:\s*\[main\]\s*$/m);
 assert.match(ciWorkflow, /permissions:\s*\n\s*contents:\s*read/);
+assert.match(
+  ciWorkflow,
+  /concurrency:\s+group:\s*validation-\$\{\{ github\.workflow \}\}-\$\{\{ github\.ref \}\}\s+cancel-in-progress:\s*\$\{\{ github\.ref != 'refs\/heads\/main' \}\}/,
+  'a newer validation run must not cancel an in-flight main deployment or its post-deploy evidence',
+);
 assert.match(ciWorkflow, /run:\s*npm run verify:release/);
 assert.match(
   ciWorkflow,
-  /browser-observatory:\s+name:\s*Full browser observatory\s+runs-on:\s*ubuntu-latest\s+timeout-minutes:\s*15\s+continue-on-error:\s*true/,
+  /browser-observatory:\s+name:\s*Full browser observatory\s+runs-on:\s*ubuntu-latest\s+timeout-minutes:\s*15/,
+);
+assert.doesNotMatch(
+  ciWorkflow,
+  /browser-observatory:[\s\S]*?continue-on-error:\s*true[\s\S]*?deploy-production:/,
+  'browser observatory failures must block production deployment',
 );
 assert.match(
   ciWorkflow,
@@ -40,8 +50,7 @@ assert.match(ciWorkflow, /name:\s*hs-arena-release-\$\{\{ github\.sha \}\}/);
 assert.match(ciWorkflow, /if-no-files-found:\s*error/);
 assert.match(ciWorkflow, /retention-days:\s*7/);
 assert.match(ciWorkflow, /^\s*deploy-production:\s*$/m);
-assert.match(ciWorkflow, /deploy-production:[\s\S]*needs:\s*validate/);
-assert.match(ciWorkflow, /needs:\s*validate/);
+assert.match(ciWorkflow, /deploy-production:[\s\S]*needs:\s*\[validate,\s*browser-observatory\]/);
 assert.match(ciWorkflow, /if:\s*github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
 assert.match(ciWorkflow, /runs-on:\s*\[self-hosted,\s*linux,\s*x64,\s*hs-arena-production\]/);
 assert.match(ciWorkflow, /environment:\s*\n\s*name:\s*production\s*\n\s*url:\s*https:\/\/hearthpulse\.net/);
@@ -49,6 +58,24 @@ assert.match(ciWorkflow, /group:\s*hs-arena-production/);
 assert.match(ciWorkflow, /cancel-in-progress:\s*false/);
 assert.match(ciWorkflow, /actions\/download-artifact@v7/);
 assert.match(ciWorkflow, /sudo \/usr\/local\/sbin\/hs-arena-ci-deploy "\$artifact" "\$GITHUB_SHA"/);
+assert.doesNotMatch(
+  ciWorkflow,
+  /^\s*post-deploy-production:\s*$/m,
+  'post-deploy checks must retain the deployment concurrency lock in the deploy job',
+);
+assert.match(ciWorkflow, /PRODUCTION_MONITOR_PROFILE:\s*release/);
+assert.match(ciWorkflow, /EXPECTED_RELEASE_SHA:\s*\$\{\{ github\.sha \}\}/);
+assert.match(ciWorkflow, /PRODUCTION_MONITOR_PROFILE:\s*freshness/);
+assert.match(
+  ciWorkflow,
+  /Deploy exact validated SHA[\s\S]*Verify exact release availability[\s\S]*Observe data freshness separately/,
+  'post-deploy checks must run after the exact release is switched',
+);
+assert.match(
+  ciWorkflow,
+  /- name:\s*Observe data freshness separately\s+if:\s*always\(\) && steps\.deployment\.outcome == 'success'\s+continue-on-error:\s*true/,
+  'freshness degradation must remain visible without classifying a healthy release as broken',
+);
 assert.doesNotMatch(ciWorkflow, /\b(?:rsync|scp)\b/i);
 assert.doesNotMatch(ciWorkflow, /contents:\s*write/);
 

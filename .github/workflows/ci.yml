@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: validation-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   validate:
@@ -60,7 +60,6 @@ jobs:
     name: Full browser observatory
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    continue-on-error: true
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
 
@@ -82,10 +81,10 @@ jobs:
 
   deploy-production:
     name: Deploy validated release to production
-    needs: validate
+    needs: [validate, browser-observatory]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: [self-hosted, linux, x64, hs-arena-production]
-    timeout-minutes: 15
+    timeout-minutes: 25
     environment:
       name: production
       url: https://hearthpulse.net
@@ -94,6 +93,14 @@ jobs:
       cancel-in-progress: false
 
     steps:
+      - name: Checkout release monitor
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
       - name: Download validated release
         uses: actions/download-artifact@v7
         with:
@@ -101,7 +108,31 @@ jobs:
           path: ${{ runner.temp }}/hs-arena-release-${{ github.sha }}
 
       - name: Deploy exact validated SHA
+        id: deployment
         shell: bash
         run: |
           artifact="$RUNNER_TEMP/hs-arena-release-$GITHUB_SHA"
           sudo /usr/local/sbin/hs-arena-ci-deploy "$artifact" "$GITHUB_SHA"
+
+      - name: Verify exact release availability
+        env:
+          PRODUCTION_BASE_URL: https://hearthpulse.net
+          PRODUCTION_MONITOR_PROFILE: release
+          EXPECTED_RELEASE_SHA: ${{ github.sha }}
+          MONITOR_ATTEMPTS: '3'
+          MONITOR_RETRY_DELAY_MS: '10000'
+          MONITOR_TIMEOUT_MS: '10000'
+          MONITOR_DEADLINE_MS: '480000'
+        run: node scripts/production-monitor.mjs
+
+      - name: Observe data freshness separately
+        if: always() && steps.deployment.outcome == 'success'
+        continue-on-error: true
+        env:
+          PRODUCTION_BASE_URL: https://hearthpulse.net
+          PRODUCTION_MONITOR_PROFILE: freshness
+          MONITOR_ATTEMPTS: '2'
+          MONITOR_RETRY_DELAY_MS: '5000'
+          MONITOR_TIMEOUT_MS: '10000'
+          MONITOR_DEADLINE_MS: '120000'
+        run: node scripts/production-monitor.mjs

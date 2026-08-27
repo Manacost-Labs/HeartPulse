@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Made full browser QA a production deployment gate and added exact-SHA
+  post-deploy verification under the deployment lock, while reporting dataset
+  freshness separately so honest LKG degradation cannot masquerade as green or
+  trigger a frontend rollback by itself.
 - Corrected the visible Russian mini-set label to «В розыске» while keeping
   the stable `most_wanted` API identifier unchanged.
 - Added HSGuru's active «Azeroth's Most Wanted» mini-set window to Standard

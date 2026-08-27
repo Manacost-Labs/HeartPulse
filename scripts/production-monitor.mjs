@@ -30,6 +30,7 @@ const MAX_CONSTRUCTED_JSON_BYTES = 4 * 1024 * 1024;
 const MAX_EMPTY_RESPONSE_BYTES = 64 * 1024;
 const DEFAULT_MONITOR_DEADLINE_MS = 4 * 60 * 1000;
 const PRIVATE_PAYLOAD_PATTERN = /QA_PRIVATE|\b(?:deckCode|statsAccess|subscriptionPayload|privateSentinel)\b/i;
+const MONITOR_PROFILES = new Set(['full', 'release', 'freshness']);
 
 function ensure(condition, message) {
   if (!condition) throw new Error(message);
@@ -732,10 +733,14 @@ export async function runProductionMonitor(options = {}) {
   const attempts = Number(options.attempts ?? 2);
   const retryDelayMs = Number(options.retryDelayMs ?? 5_000);
   const deadlineMs = Number(options.deadlineMs ?? DEFAULT_MONITOR_DEADLINE_MS);
+  const profile = String(options.profile || 'full').trim().toLowerCase();
+  const expectedRelease = String(options.expectedRelease || '').trim().toLowerCase();
   ensure(Number.isFinite(timeoutMs) && timeoutMs > 0, 'invalid request timeout');
   ensure(Number.isInteger(attempts) && attempts > 0, 'invalid monitor attempt count');
   ensure(Number.isFinite(retryDelayMs) && retryDelayMs >= 0, 'invalid retry delay');
   ensure(Number.isFinite(deadlineMs) && deadlineMs > 0, 'invalid monitor deadline');
+  ensure(MONITOR_PROFILES.has(profile), `invalid production monitor profile: ${profile}`);
+  ensure(!expectedRelease || /^[a-f0-9]{7,40}$/.test(expectedRelease), 'invalid expected release SHA');
   const routes = options.routes || DEFAULT_ROUTES;
   const checks = [];
   const failures = [];
@@ -747,6 +752,7 @@ export async function runProductionMonitor(options = {}) {
   const groups = [
     {
       label: 'liveness',
+      profiles: ['full', 'release'],
       operation: () => checkJsonEndpoint(
         baseUrl,
         '/api/health/live',
@@ -755,12 +761,16 @@ export async function runProductionMonitor(options = {}) {
         signal,
         payload => {
           ensure(payload?.status === 'alive', 'status is not alive');
-          ensure(/^[a-f0-9]{7,40}$/i.test(String(payload?.release || '')), 'release SHA is missing');
+          const actualRelease = String(payload?.release || '').toLowerCase();
+          ensure(/^[a-f0-9]{7,40}$/.test(actualRelease), 'release SHA is missing');
+          ensure(!expectedRelease || actualRelease === expectedRelease,
+            `expected release ${expectedRelease}, received ${actualRelease}`);
         },
       ),
     },
     {
       label: 'readiness',
+      profiles: ['full', 'release'],
       operation: () => checkJsonEndpoint(
         baseUrl,
         '/api/health/ready',
@@ -769,12 +779,14 @@ export async function runProductionMonitor(options = {}) {
         signal,
         payload => {
           ensure(payload?.status === 'ready', 'status is not ready');
-          ensure(payload?.dataStatus === 'ok', `data status is ${String(payload?.dataStatus)}`);
+          ensure(['ok', 'degraded'].includes(payload?.dataStatus),
+            `data status is ${String(payload?.dataStatus)}`);
         },
       ),
     },
     {
       label: 'data freshness',
+      profiles: ['full', 'freshness'],
       operation: () => checkJsonEndpoint(
         baseUrl,
         '/api/health/data',
@@ -794,10 +806,12 @@ export async function runProductionMonitor(options = {}) {
     },
     {
       label: 'SEO crawl contract',
+      profiles: ['full', 'release'],
       operation: () => checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal),
     },
     {
       label: 'constructed cards',
+      profiles: ['full', 'release'],
       nested: true,
       operation: async () => ({
         status: 200,
@@ -807,9 +821,10 @@ export async function runProductionMonitor(options = {}) {
     },
     ...routes.map(route => ({
       label: `page ${route}`,
+      profiles: ['full', 'release'],
       operation: () => checkHtmlRoute(baseUrl, route, fetchImpl, timeoutMs, signal),
     })),
-  ];
+  ].filter(group => group.profiles.includes(profile));
 
   try {
     const outcomes = await Promise.all(groups.map(async group => {
@@ -841,6 +856,7 @@ export async function runProductionMonitor(options = {}) {
 
   const report = {
     status: failures.length ? 'error' : 'ok',
+    profile,
     baseUrl,
     checkedAt: new Date().toISOString(),
     checks,
@@ -854,6 +870,8 @@ async function main() {
   try {
     const report = await runProductionMonitor({
       baseUrl: process.env.PRODUCTION_BASE_URL,
+      profile: process.env.PRODUCTION_MONITOR_PROFILE,
+      expectedRelease: process.env.EXPECTED_RELEASE_SHA,
       timeoutMs: process.env.MONITOR_TIMEOUT_MS,
       attempts: process.env.MONITOR_ATTEMPTS,
       retryDelayMs: process.env.MONITOR_RETRY_DELAY_MS,

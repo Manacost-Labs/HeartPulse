@@ -118,7 +118,7 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === '/api/health/ready') {
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-    endHealthResponse(res, { status: 'ready', dataStatus: 'ok' });
+    endHealthResponse(res, { status: 'ready', dataStatus: dataFresh ? 'ok' : 'degraded' });
     return;
   }
   if (req.url === '/api/health/data') {
@@ -272,6 +272,7 @@ try {
   const baseUrl = `http://127.0.0.1:${address.port}`;
   const report = await runProductionMonitor({ baseUrl, attempts: 2, retryDelayMs: 0, timeoutMs: 2_000 });
   assert.equal(report.status, 'ok');
+  assert.equal(report.profile, 'full');
   assert.ok(report.checks.some(check => check.label === 'SEO crawl contract'));
   const seoCheck = report.checks.find(check => check.label === 'SEO crawl contract');
   assert.equal(seoCheck.standardUrls, 500);
@@ -290,6 +291,30 @@ try {
   assert.equal(compressedReport.status, 'ok',
     'a compressed sitemap keeps its SHA-256 validator even when nginx weakens the ETag');
   compressedSitemapEtag = false;
+
+  const releaseReport = await runProductionMonitor({
+    baseUrl,
+    profile: 'release',
+    expectedRelease: 'abcdef1234567890',
+    attempts: 1,
+    retryDelayMs: 0,
+    timeoutMs: 2_000,
+  });
+  assert.equal(releaseReport.status, 'ok');
+  assert.equal(releaseReport.profile, 'release');
+  assert.ok(!releaseReport.checks.some(check => check.label === 'data freshness'));
+
+  await assert.rejects(
+    runProductionMonitor({
+      baseUrl,
+      profile: 'release',
+      expectedRelease: 'deadbeef12345678',
+      attempts: 1,
+      retryDelayMs: 0,
+      timeoutMs: 2_000,
+    }),
+    /expected release deadbeef12345678/i,
+  );
 
   partialKnownFormat = 'wild';
   await assert.rejects(
@@ -313,6 +338,27 @@ try {
   unknownCardStatus = 404;
 
   dataFresh = false;
+  const staleReleaseReport = await runProductionMonitor({
+    baseUrl,
+    profile: 'release',
+    expectedRelease: 'abcdef1234567890',
+    attempts: 1,
+    retryDelayMs: 0,
+    timeoutMs: 2_000,
+  });
+  assert.equal(staleReleaseReport.status, 'ok',
+    'stale data must not classify the exact healthy release as broken');
+
+  const freshnessFailure = await captureFailure(runProductionMonitor({
+    baseUrl,
+    profile: 'freshness',
+    attempts: 1,
+    retryDelayMs: 0,
+    timeoutMs: 2_000,
+  }));
+  assert.equal(freshnessFailure.report?.profile, 'freshness');
+  assert.deepEqual(freshnessFailure.report?.failures.map(failure => failure.label), ['data freshness']);
+
   await assert.rejects(
     runProductionMonitor({ baseUrl, attempts: 1, retryDelayMs: 0, timeoutMs: 2_000 }),
     /data freshness: HTTP 503/,
