@@ -27,11 +27,17 @@ jobs:
           cache: 'npm'
 
       # Install all dependencies.
-      #    puppeteer@25.4.0 downloads Chrome automatically during npm ci
-      #    UNLESS PUPPETEER_SKIP_DOWNLOAD=true — we intentionally do NOT set
-      #    that variable here, because the scrape job needs a real browser.
+      # puppeteer@25.4.0 downloads the workflow's isolated Chrome during npm ci.
       - name: Install dependencies
         run: npm ci
+
+      - name: Resolve Puppeteer browser
+        shell: bash
+        run: |
+          browser_path=$(node --input-type=module -e "import puppeteer from 'puppeteer'; process.stdout.write(await puppeteer.executablePath())")
+          [[ "$browser_path" == /* ]] || { echo "Puppeteer returned a non-absolute browser path" >&2; exit 2; }
+          [[ -x "$browser_path" ]] || { echo "Puppeteer browser is not executable" >&2; exit 2; }
+          printf 'PUPPETEER_EXECUTABLE_PATH=%s\n' "$browser_path" >> "$GITHUB_ENV"
 
       - name: Scrape data
         env:

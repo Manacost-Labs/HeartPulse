@@ -112,7 +112,7 @@ jobs:
         shell: bash
         run: |
           artifact="$RUNNER_TEMP/hs-arena-release-$GITHUB_SHA"
-          sudo /usr/local/sbin/hs-arena-ci-deploy "$artifact" "$GITHUB_SHA"
+          sudo /usr/local/sbin/hs-arena-ci-deploy --require-capability=scraper-runtime-probe-v1 "$artifact" "$GITHUB_SHA"
 
       - name: Verify exact release availability
         env:

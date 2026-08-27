@@ -7,6 +7,7 @@ const mobileVisualWorkflow = readFileSync('.github/workflows/mobile-visual.yml',
 const productionMonitorWorkflow = readFileSync('.github/workflows/production-monitor.yml', 'utf8');
 const deployment = readFileSync('DEPLOYMENT.md', 'utf8');
 const runnerSudoers = readFileSync('deploy/hs-arena-github-runner.sudoers', 'utf8');
+const scraperService = readFileSync('deploy/hs-arena-scraper.service', 'utf8');
 
 assert.match(workflow, /name:\s*Validate scraper manually/);
 assert.match(workflow, /workflow_dispatch:/);
@@ -19,6 +20,10 @@ assert.doesNotMatch(workflow, /^\s*schedule:/m);
 assert.doesNotMatch(workflow, /\bgit\s+(?:add|commit|push)\b/);
 assert.doesNotMatch(workflow, /contents:\s*write/);
 assert.doesNotMatch(workflow, /actions\/(?:checkout|setup-node)@v4/);
+assert.match(workflow, /puppeteer\.executablePath\(\)/, 'manual scrape must use Puppeteer downloaded Chrome');
+assert.match(workflow, /PUPPETEER_EXECUTABLE_PATH=.*GITHUB_ENV/, 'manual scrape must pass the resolved browser path to the scraper');
+assert.match(workflow, /\[\[ -x \"\$browser_path\" \]\]/, 'manual scrape must reject a non-executable browser path');
+assert.doesNotMatch(workflow, /PUPPETEER_SKIP_DOWNLOAD/, 'manual scrape must not suppress Puppeteer browser download');
 
 assert.match(ciWorkflow, /name:\s*Validate and deploy application/);
 assert.match(ciWorkflow, /^\s*push:\s*$/m);
@@ -70,7 +75,11 @@ assert.match(
   /uses:\s*actions\/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131\s*# v7\.0\.0/,
 );
 assert.doesNotMatch(productionJob, /uses:\s*[^\s@]+@v\d+/);
-assert.match(ciWorkflow, /sudo \/usr\/local\/sbin\/hs-arena-ci-deploy "\$artifact" "\$GITHUB_SHA"/);
+assert.match(
+  ciWorkflow,
+  /sudo \/usr\/local\/sbin\/hs-arena-ci-deploy --require-capability=scraper-runtime-probe-v1 "\$artifact" "\$GITHUB_SHA"/,
+  'production must fail closed unless the installed privileged deployer advertises the browser smoke capability',
+);
 assert.doesNotMatch(
   ciWorkflow,
   /^\s*post-deploy-production:\s*$/m,
@@ -155,5 +164,10 @@ assert.match(deployment, /hs-arena-production/);
 assert.match(deployment, /\/usr\/local\/sbin\/hs-arena-ci-deploy/);
 assert.match(runnerSudoers, /^github-runner ALL=\(root\) NOPASSWD: \/usr\/local\/sbin\/hs-arena-ci-deploy \*$/m);
 assert.doesNotMatch(runnerSudoers, /NOPASSWD:\s*ALL/);
+assert.match(
+  scraperService,
+  /^EnvironmentFile=-\/etc\/hs-arena\/browser-runtime\.env$/m,
+  'the scraper service and release probe must share the same non-secret browser configuration',
+);
 
 console.log('workflow ownership contracts passed');

@@ -1,10 +1,37 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+DEPLOYER_VERSION=1.1.0
+SCRAPER_RUNTIME_CAPABILITY=scraper-runtime-probe-v1
+
+case "${1:-}" in
+  --version)
+    [[ $# -eq 1 ]] || { echo "Usage: $0 --version" >&2; exit 2; }
+    echo "hs-arena-deploy-release $DEPLOYER_VERSION"
+    exit 0
+    ;;
+  --capabilities)
+    [[ $# -eq 1 ]] || { echo "Usage: $0 --capabilities" >&2; exit 2; }
+    echo "$SCRAPER_RUNTIME_CAPABILITY"
+    exit 0
+    ;;
+esac
+
 if [[ $# -ne 1 ]]; then
   echo "Usage: $0 /path/to/release-artifact" >&2
   exit 2
 fi
+
+NODE_BIN=${NODE_BIN:-$(command -v node || true)}
+TIMEOUT_BIN=${TIMEOUT_BIN:-$(command -v timeout || true)}
+[[ "$NODE_BIN" == /* && -f "$NODE_BIN" && -x "$NODE_BIN" ]] || {
+  echo "NODE_BIN must be an absolute executable file: ${NODE_BIN:-missing}" >&2
+  exit 2
+}
+[[ "$TIMEOUT_BIN" == /* && -f "$TIMEOUT_BIN" && -x "$TIMEOUT_BIN" ]] || {
+  echo "TIMEOUT_BIN must be an absolute executable file: ${TIMEOUT_BIN:-missing}" >&2
+  exit 2
+}
 
 SOURCE_RELEASE=$(realpath "$1")
 APP_BASE=${APP_BASE:-/var/www/koloda/data/www/hs-arena.ru}
@@ -28,9 +55,55 @@ DATA_USER=${DATA_USER:-koloda}
 NGINX_HOST_ROLE=${NGINX_HOST_ROLE:-origin}
 NGINX_INSTALLED_ROOT=${NGINX_INSTALLED_ROOT:-/}
 ALLOW_NGINX_CONTRACT_CHANGE=${ALLOW_NGINX_CONTRACT_CHANGE:-0}
+BROWSER_RUNTIME_ENV_FILE=${BROWSER_RUNTIME_ENV_FILE:-/etc/hs-arena/browser-runtime.env}
+SCRAPER_BROWSER_PATH=''
+
+read_browser_runtime_config() {
+  [[ -e "$BROWSER_RUNTIME_ENV_FILE" ]] || return 0
+  [[ -f "$BROWSER_RUNTIME_ENV_FILE" && ! -L "$BROWSER_RUNTIME_ENV_FILE" ]] || {
+    echo "browser runtime config must be a regular file: $BROWSER_RUNTIME_ENV_FILE" >&2
+    exit 2
+  }
+
+  local expected_owner_uid mode owner_uid line value_seen=0
+  expected_owner_uid=$(id -u)
+  [[ $EUID -ne 0 ]] || expected_owner_uid=0
+  owner_uid=$(stat -c '%u' "$BROWSER_RUNTIME_ENV_FILE")
+  mode=$(stat -c '%a' "$BROWSER_RUNTIME_ENV_FILE")
+  [[ "$owner_uid" == "$expected_owner_uid" ]] || {
+    echo "browser runtime config has an unexpected owner" >&2
+    exit 2
+  }
+  (( (8#$mode & 022) == 0 )) || {
+    echo "browser runtime config must not be group- or world-writable" >&2
+    exit 2
+  }
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    case "$line" in
+      ''|'#'*) ;;
+      PUPPETEER_EXECUTABLE_PATH=*)
+        (( value_seen == 0 )) || { echo "browser runtime config repeats PUPPETEER_EXECUTABLE_PATH" >&2; exit 2; }
+        SCRAPER_BROWSER_PATH=${line#PUPPETEER_EXECUTABLE_PATH=}
+        value_seen=1
+        ;;
+      *)
+        echo "browser runtime config contains an unsupported entry" >&2
+        exit 2
+        ;;
+    esac
+  done < "$BROWSER_RUNTIME_ENV_FILE"
+
+  [[ "$SCRAPER_BROWSER_PATH" == /* && -f "$SCRAPER_BROWSER_PATH" && -x "$SCRAPER_BROWSER_PATH" ]] || {
+    echo "configured scraper browser must be an absolute executable file" >&2
+    exit 2
+  }
+}
+
+read_browser_runtime_config
 
 [[ -f "$SOURCE_RELEASE/release.json" ]] || { echo "release.json is missing" >&2; exit 2; }
-RELEASE_SHA=$(node -e "const m=require(process.argv[1]); if(!/^[a-f0-9]{7,40}$/.test(m.sha||'')) process.exit(2); process.stdout.write(m.sha)" "$SOURCE_RELEASE/release.json")
+RELEASE_SHA=$("$NODE_BIN" -e "const m=require(process.argv[1]); if(!/^[a-f0-9]{7,40}$/.test(m.sha||'')) process.exit(2); process.stdout.write(m.sha)" "$SOURCE_RELEASE/release.json")
 [[ -f "$SOURCE_RELEASE/build/server/index.js" ]] || { echo "compiled server is missing" >&2; exit 2; }
 [[ -f "$SOURCE_RELEASE/build/server/scraper.js" ]] || { echo "compiled scraper is missing" >&2; exit 2; }
 [[ -f "$SOURCE_RELEASE/build/server/scraperBrowserRuntime.js" ]] || { echo "compiled scraper browser runtime is missing" >&2; exit 2; }
@@ -39,7 +112,7 @@ RELEASE_SHA=$(node -e "const m=require(process.argv[1]); if(!/^[a-f0-9]{7,40}$/.
   echo "nginx contract verifier is missing" >&2
   exit 2
 }
-if ! node -e '
+if ! "$NODE_BIN" -e '
   const { createHash } = require("node:crypto");
   const { readFileSync } = require("node:fs");
   let manifest;
@@ -62,7 +135,7 @@ fi
 # the immutable artifact and the installed nginx files. An override may permit
 # an explicit contract transition, but it can never bypass drift or corruption.
 NGINX_VERIFY_STATUS=0
-node "$SOURCE_RELEASE/scripts/verify-nginx-contract.mjs" \
+"$NODE_BIN" "$SOURCE_RELEASE/scripts/verify-nginx-contract.mjs" \
   "--release=$SOURCE_RELEASE" \
   "--installed-root=$NGINX_INSTALLED_ROOT" \
   "--role=$NGINX_HOST_ROLE" || NGINX_VERIFY_STATUS=$?
@@ -72,7 +145,7 @@ if [[ "$NGINX_VERIFY_STATUS" -ne 0 ]]; then
 fi
 
 read_nginx_role_contract_hash() {
-  node -e '
+  "$NODE_BIN" -e '
     const { createHash } = require("node:crypto");
     const fs = require("node:fs");
     const sha256Pattern = /^[a-f0-9]{64}$/;
@@ -194,7 +267,7 @@ if [[ "$NEW_RELEASE" == "1" ]]; then
     [[ -d "$WORKSPACE/node_modules" ]] || { echo "workspace node_modules is missing" >&2; exit 2; }
     ln -s "$WORKSPACE/node_modules" "$RELEASE_WORK/node_modules"
   else
-    LOCK_HASH=$(node -e "const m=require(process.argv[1]); process.stdout.write(m.packageLockHash.slice(0,24))" "$RELEASE_WORK/release.json")
+    LOCK_HASH=$("$NODE_BIN" -e "const m=require(process.argv[1]); process.stdout.write(m.packageLockHash.slice(0,24))" "$RELEASE_WORK/release.json")
     DEPENDENCY_ROOT="$RUNTIME_DIR/$LOCK_HASH"
     if [[ ! -d "$DEPENDENCY_ROOT/node_modules" ]]; then
       DEPENDENCY_STAGING="$RUNTIME_DIR/.${LOCK_HASH}.tmp.$$"
@@ -246,20 +319,27 @@ fi
 SCRAPER_RUNTIME_PROBE="$TARGET_RELEASE/build/server/scraper.js"
 BROWSER_RUNTIME_PROBE="$TARGET_RELEASE/build/server/scraperBrowserRuntime.js"
 SCRAPER_RUNTIME_PROBE_COMMAND=(
-  /usr/bin/timeout --signal=TERM --kill-after=5s 30s
-  /usr/bin/node --input-type=module
+  "$TIMEOUT_BIN" --signal=TERM --kill-after=5s 30s
+  "$NODE_BIN" --input-type=module
   -e 'await import(process.argv[2]); const runtime = await import(process.argv[3]); await runtime.verifyScraperBrowserRuntime();'
   hearthpulse-runtime-probe
   "$SCRAPER_RUNTIME_PROBE"
   "$BROWSER_RUNTIME_PROBE"
 )
+SCRAPER_RUNTIME_PROBE_ENV=(
+  "APP_ROOT_DIR=$TARGET_RELEASE"
+  "SERVER_DATA_DIR=$SHARED_DATA_DIR"
+)
+if [[ -n "$SCRAPER_BROWSER_PATH" ]]; then
+  SCRAPER_RUNTIME_PROBE_ENV+=("PUPPETEER_EXECUTABLE_PATH=$SCRAPER_BROWSER_PATH")
+fi
 if [[ $EUID -eq 0 ]] && id "$DEPENDENCY_USER" >/dev/null 2>&1; then
-  runuser -u "$DEPENDENCY_USER" -- "${SCRAPER_RUNTIME_PROBE_COMMAND[@]}" || {
+  runuser -u "$DEPENDENCY_USER" -- env "${SCRAPER_RUNTIME_PROBE_ENV[@]}" "${SCRAPER_RUNTIME_PROBE_COMMAND[@]}" || {
     echo "production scraper runtime smoke failed for $DEPENDENCY_USER" >&2
     exit 2
   }
 else
-  "${SCRAPER_RUNTIME_PROBE_COMMAND[@]}" || {
+  env "${SCRAPER_RUNTIME_PROBE_ENV[@]}" "${SCRAPER_RUNTIME_PROBE_COMMAND[@]}" || {
     echo "production scraper runtime smoke failed" >&2
     exit 2
   }

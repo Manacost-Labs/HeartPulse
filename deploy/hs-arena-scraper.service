@@ -11,6 +11,7 @@ Group=koloda
 WorkingDirectory=/var/www/koloda/data/www/hs-arena.ru/current
 EnvironmentFile=/etc/hs-arena/hs-arena.env
 EnvironmentFile=-/etc/db-kolodahs-card-scan.env
+EnvironmentFile=-/etc/hs-arena/browser-runtime.env
 Environment=APP_ROOT_DIR=/var/www/koloda/data/www/hs-arena.ru/current
 Environment=SERVER_DATA_DIR=/var/www/koloda/data/www/hs-arena.ru/shared/server-data
 ExecStartPre=-/usr/bin/rm -f /var/www/koloda/data/www/hs-arena.ru/shared/server-data/.scrape-request

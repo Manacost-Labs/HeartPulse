@@ -13,12 +13,17 @@
   frontend module without changing public URLs or authorization behavior.
 - Repaired the license-broken Gitleaks CI job by reusing the repository's
   pinned, redacting scanner. The production scraper now uses `puppeteer-core`
-  with the host Chrome while full Puppeteer stays QA-only; both are aligned to
-  Chromium 151, the incompatible browser-manager override is gone, and a clean
-  production-only install/import/browser smoke guards the release graph. The
+  with the host Chrome while full Puppeteer stays QA-only. Runtime compatibility
+  now comes from sequential candidate launch and a real browser smoke instead
+  of an exact-major pin, and a clean production-only install/import/browser
+  smoke guards the release graph. The
   deploy pre-switch imports the built scraper and performs a bounded local-page
   browser smoke as the service user, and every third-party Action in the
   production runner job is pinned to an immutable SHA.
+- Made deploy validation portable across GitHub's Node toolcache, added a
+  fail-closed privileged deployer capability manifest and verified installer,
+  synchronized the scraper service and pre-switch browser configuration, used
+  Puppeteer's downloaded browser for manual diagnostics.
 - Made full browser QA a production deployment gate and added exact-SHA
   post-deploy verification under the deployment lock, while reporting dataset
   freshness separately so honest LKG degradation cannot masquerade as green or

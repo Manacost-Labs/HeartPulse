@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import {
+  chmodSync,
   copyFileSync,
   existsSync,
   lstatSync,
@@ -29,11 +30,23 @@ const installedConfig = join(installedRoot, 'etc', 'nginx', 'snippets', 'arena-t
 const verifier = join(repository, 'scripts', 'verify-nginx-contract.mjs');
 const deployScript = readFileSync(join(repository, 'scripts', 'deploy-release.sh'), 'utf8');
 const defaultNginxContents = '# managed nginx fixture\n';
+assert.doesNotMatch(deployScript, /\/usr\/bin\/(?:node|timeout)/, 'hosted validation must not require distro tool paths');
 assert.match(
   deployScript,
-  /\/usr\/bin\/timeout\s+--signal=TERM\s+--kill-after=5s\s+30s/,
-  'the browser pre-switch probe must force-kill a process that ignores its TERM deadline',
+  /"\$TIMEOUT_BIN" --signal=TERM --kill-after=5s 30s\s+"\$NODE_BIN" --input-type=module/,
+  'the portable browser probe must retain its TERM and force-kill deadline',
 );
+const blockedNodeDirectory = join(root, 'blocked-node-bin');
+const blockedNodeMarker = join(root, 'bare-node-was-used');
+const browserExecutable = join(root, 'custom-browser');
+const browserRuntimeEnvFile = join(root, 'browser-runtime.env');
+mkdirSync(blockedNodeDirectory, { recursive: true });
+writeFileSync(join(blockedNodeDirectory, 'node'), `#!/usr/bin/env bash\ntouch ${JSON.stringify(blockedNodeMarker)}\nexit 99\n`);
+chmodSync(join(blockedNodeDirectory, 'node'), 0o755);
+writeFileSync(browserExecutable, '#!/usr/bin/env bash\nexit 0\n');
+chmodSync(browserExecutable, 0o755);
+writeFileSync(browserRuntimeEnvFile, `PUPPETEER_EXECUTABLE_PATH=${browserExecutable}\n`);
+chmodSync(browserRuntimeEnvFile, 0o600);
 mkdirSync(join(workspace, 'node_modules'), { recursive: true });
 mkdirSync(join(workspace, 'server', 'data'), { recursive: true });
 mkdirSync(dirname(installedConfig), { recursive: true });
@@ -129,6 +142,11 @@ function deploy(artifact, readiness, options = {}) {
       NGINX_HOST_ROLE: 'origin',
       NGINX_INSTALLED_ROOT: installedRoot,
       ALLOW_NGINX_CONTRACT_CHANGE: options.allowNginxContractChange ? '1' : '0',
+      NODE_BIN: options.nodeBin ?? process.execPath,
+      ...(options.path ? { PATH: options.path } : {}),
+      ...(options.browserRuntimeEnvFile
+        ? { BROWSER_RUNTIME_ENV_FILE: options.browserRuntimeEnvFile }
+        : {}),
     },
   });
 }
@@ -165,6 +183,14 @@ function assertPreflightFailureIsReadOnly({ artifact, options = {}, message }) {
 }
 
 try {
+  const invalidNode = assertPreflightFailureIsReadOnly({
+    artifact: fakeRelease('9'.repeat(7)),
+    options: { nodeBin: 'node' },
+    message: 'relative NODE_BIN rejected before deployment state exists',
+  });
+  assert.match(invalidNode.stderr, /NODE_BIN must be an absolute executable file/i);
+  assert.equal(existsSync(appBase), false, 'invalid NODE_BIN preflight must not create APP_BASE');
+
   const bootstrapBlocked = assertPreflightFailureIsReadOnly({
     artifact: fakeRelease('0'.repeat(7)),
     message: 'current release absent without explicit bootstrap override',
@@ -189,8 +215,13 @@ try {
   writeFileSync(staleAsset, 'stale');
   const staleDate = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000);
   utimesSync(staleAsset, staleDate, staleDate);
-  const first = deploy(firstArtifact, true, { allowNginxContractChange: true });
+  const first = deploy(firstArtifact, true, {
+    allowNginxContractChange: true,
+    nodeBin: process.execPath,
+    path: `${blockedNodeDirectory}:${process.env.PATH}`,
+  });
   assert.equal(first.status, 0, first.stderr || first.stdout);
+  assert.equal(existsSync(blockedNodeMarker), false, 'deployment must never fall back to a bare node command');
   const firstTarget = resolve(appBase, 'releases', firstSha);
   assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), firstTarget);
 
@@ -213,13 +244,28 @@ try {
   assert.equal(repeated.status, 0, repeated.stderr || repeated.stdout);
   assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), secondTarget);
 
+  const configuredBrowserSha = '9a9a9a9';
+  const configuredBrowserTarget = join(appBase, 'releases', configuredBrowserSha);
+  const configuredBrowser = deploy(fakeRelease(configuredBrowserSha, {
+    browserRuntimeContents: [
+      'export async function verifyScraperBrowserRuntime() {',
+      `  if (process.env.APP_ROOT_DIR !== ${JSON.stringify(configuredBrowserTarget)}) throw new Error('probe APP_ROOT_DIR mismatch');`,
+      `  if (process.env.SERVER_DATA_DIR !== ${JSON.stringify(join(appBase, 'shared', 'server-data'))}) throw new Error('probe SERVER_DATA_DIR mismatch');`,
+      `  if (process.env.PUPPETEER_EXECUTABLE_PATH !== ${JSON.stringify(browserExecutable)}) throw new Error('probe browser path mismatch');`,
+      '}',
+      '',
+    ].join('\n'),
+  }), true, { browserRuntimeEnvFile });
+  assert.equal(configuredBrowser.status, 0, configuredBrowser.stderr || configuredBrowser.stdout);
+  assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), configuredBrowserTarget);
+
   const brokenScraperSha = '7'.repeat(7);
   const brokenScraper = deploy(fakeRelease(brokenScraperSha, {
     scraperContents: "await import('missing-production-scraper-runtime');\n",
   }), true);
   assert.notEqual(brokenScraper.status, 0, 'a release with a broken built scraper import must be blocked');
   assert.match(`${brokenScraper.stdout}\n${brokenScraper.stderr}`, /production scraper runtime smoke failed/i);
-  assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), secondTarget);
+  assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), configuredBrowserTarget);
 
   const brokenBrowserSha = '8'.repeat(7);
   const brokenBrowser = deploy(fakeRelease(brokenBrowserSha, {
@@ -232,7 +278,7 @@ try {
   }), true);
   assert.notEqual(brokenBrowser.status, 0, 'a release with a broken browser launch must be blocked');
   assert.match(`${brokenBrowser.stdout}\n${brokenBrowser.stderr}`, /production scraper runtime smoke failed/i);
-  assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), secondTarget);
+  assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), configuredBrowserTarget);
 
   const edgeOnlySha = '6'.repeat(7);
   const edgeOnly = deploy(fakeRelease(edgeOnlySha, { edgeContents: '# new edge-only host\n' }), true);
@@ -246,7 +292,7 @@ try {
   assert.notEqual(failed.status, 0);
   assert.match(failed.stderr, /rolling back/);
   assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), edgeOnlyTarget);
-  assert.equal(resolve(appBase, readlinkSync(join(appBase, 'previous'))), secondTarget);
+  assert.equal(resolve(appBase, readlinkSync(join(appBase, 'previous'))), configuredBrowserTarget);
 
   const missingSha = 'e'.repeat(7);
   unlinkSync(installedConfig);

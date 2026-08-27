@@ -168,6 +168,8 @@
     "test:scrape-queue": "tsx tests/scrape-queue.test.ts",
     "test:deployment": "node tests/deploy-release.test.mjs && node tests/edge-static-sync.test.mjs && node tests/card-image-edge-publication.test.mjs && node tests/edge-cdn-operations-contract.test.mjs",
     "test:ci-deploy-gate": "node --test tests/ci-deploy-gate.test.mjs",
+    "test:controlled-input": "node --test tests/controlled-input-browser.test.mjs",
+    "test:deployer-install-contract": "node --test tests/deployer-install-contract.test.mjs",
     "test:seo-registry": "tsx tests/seo-registry.test.ts",
     "test:routes": "tsx tests/routes.test.ts && node tests/deferred-route-boundaries.test.mjs",
     "test:route-inventory": "tsx tests/route-inventory.test.ts",

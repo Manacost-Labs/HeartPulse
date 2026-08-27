@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { cpSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -24,6 +24,13 @@ function run(command, args, options = {}) {
   return result;
 }
 
+function immutableRuntimeInventory() {
+  return readdirSync(runtime, { recursive: true })
+    .map(entry => String(entry))
+    .filter(entry => entry !== 'server/data' && !entry.startsWith('server/data/'))
+    .sort();
+}
+
 try {
   if (process.env.PRODUCTION_SCRAPER_BUILD_READY !== '1') {
     run('npm', ['run', 'build:server']);
@@ -35,6 +42,7 @@ try {
   cpSync(join(repository, 'build'), join(runtime, 'build'), { recursive: true });
 
   run('npm', ['ci', '--omit=dev', '--no-audit', '--no-fund'], { cwd: runtime });
+  const beforeImport = immutableRuntimeInventory();
   run(process.execPath, ['--input-type=module', '-e', "await import('./build/server/scraper.js')"], {
     cwd: runtime,
     env: {
@@ -42,6 +50,11 @@ try {
       SERVER_DATA_DIR: join(runtime, 'server', 'data'),
     },
   });
+  assert.deepEqual(
+    immutableRuntimeInventory(),
+    beforeImport,
+    'importing the built scraper must not create files outside the shared data directory',
+  );
   run(process.execPath, [
     '--input-type=module',
     '-e',

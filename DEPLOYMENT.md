@@ -28,12 +28,9 @@ The release-blocking command is `npm run verify:release`: lint, architecture
 ratchets, the test-discovery completeness gate, the complete classified unit,
 integration, contract, browser and production-smoke suite, production builds,
 server recovery smoke tests, performance budgets and documentation lint. The
-full responsive browser matrix
-also runs in a separate non-blocking workflow job as a visible advisory
-observatory while its legacy fixtures are reconciled. It neither delays the
-immutable artifact nor gates production; a task's affected browser flow must
-still pass the targeted real-browser review required by `AGENTS.md` before
-integration.
+representative responsive browser matrix also runs in a separate
+release-blocking observatory job. Both hosted jobs must pass before the
+production runner can download the immutable artifact.
 
 After validation succeeds, the `deploy-production` job targets only the
 repository-level runner labelled `hs-arena-production`. GitHub's `production`
@@ -43,33 +40,36 @@ group serializes releases and never cancels a deployment already in progress.
 The runner has no general root access. Its only privileged command is:
 
 ```bash
-sudo /usr/local/sbin/hs-arena-ci-deploy "$artifact" "$GITHUB_SHA"
+sudo /usr/local/sbin/hs-arena-ci-deploy \
+  --require-capability=scraper-runtime-probe-v1 "$artifact" "$GITHUB_SHA"
 ```
 
-That root-owned gate accepts artifacts only from the dedicated runner temp
-directory, rejects symlinks and writable files, and requires the release
-manifest SHA to equal the validated workflow SHA. It then calls a root-owned
-copy of `scripts/deploy-release.sh`, which retains the deployment lock,
-readiness gate and automatic rollback described below. After a successful
-switch, the same root-owned gate waits for `arena-static-sync.service`, so the
-new content-hashed frontend assets reach every regional edge before the
-deployment job is marked complete; the three-minute timer remains the repair
-path for later drift.
+That root-owned gate first requires a protected capability manifest for the
+installed deployer. A legacy helper without `scraper-runtime-probe-v1` fails
+before receiving the artifact or changing deployment state. The gate then
+accepts artifacts only from the dedicated runner temp directory, rejects
+symlinks and writable files, and requires the release manifest SHA to equal the
+validated workflow SHA. After a successful switch, it waits for
+`arena-static-sync.service`, so the new content-hashed frontend assets reach
+every regional edge before the deployment job is marked complete.
 
-Changes to the workflow, gate or deployer are infrastructure changes. Install
-reviewed copies manually; the repository workflow cannot replace its own
-root-owned production gate:
+Changes to the workflow, gate or deployer are infrastructure changes. A
+repository change is incomplete until the privileged copies are installed and
+their capabilities are verified; the workflow cannot replace its own root-owned
+production gate. From a reviewed clean checkout, use the auditable installer:
 
 ```bash
-sudo install -d -m 755 /usr/local/libexec/hs-arena
-sudo install -o root -g root -m 755 scripts/deploy-release.sh \
-  /usr/local/libexec/hs-arena/deploy-release.sh
-sudo install -o root -g root -m 755 deploy/hs-arena-ci-deploy \
-  /usr/local/sbin/hs-arena-ci-deploy
+sudo deploy/install-hs-arena-deployer.sh --install
+deploy/install-hs-arena-deployer.sh --check
 sudo install -o root -g root -m 440 deploy/hs-arena-github-runner.sudoers \
   /etc/sudoers.d/hs-arena-github-runner
 sudo visudo -cf /etc/sudoers.d/hs-arena-github-runner
 ```
+
+The installer stages files in their destination directories, verifies source
+checksums and version/capability output, then atomically installs root-owned,
+non-writable copies plus the protected capability manifest. Do not run this
+step from a release artifact or an unreviewed branch.
 
 The dedicated `github-runner` account should have a single sudoers rule for
 that gate, not unrestricted sudo. Keep the runner registered only to this
@@ -145,8 +145,10 @@ corrupt artifact or a tampered verifier.
 
 The deployer:
 
-1. verifies the candidate verifier checksum, artifact nginx hashes, installed
-   host-role files and N/N-1 contract compatibility without writing anything;
+1. resolves and validates absolute `NODE_BIN` and `TIMEOUT_BIN` executables,
+   then verifies the candidate verifier checksum, artifact nginx hashes,
+   installed host-role files and N/N-1 contract compatibility without writing
+   anything;
 2. acquires an exclusive deployment lock;
 3. initializes shared data from the workspace only when it does not exist;
 4. installs production dependencies as the unprivileged `koloda` user into a
@@ -156,11 +158,13 @@ The deployer:
    overwriting the new build, then removes inherited files older than 35 days;
    this keeps edge-cached HTML usable for longer than the 30-day asset TTL;
 6. makes the new release root-owned and read-only;
-7. atomically switches `current`;
-8. restarts `hs-arena.service`;
-9. waits for direct readiness on port 3101;
-10. restores the former `current` automatically when restart/readiness fails;
-11. updates `previous` only after a healthy deployment.
+7. imports the compiled scraper and completes a bounded local browser smoke as
+   the service user with explicit release and shared-data roots;
+8. atomically switches `current`;
+9. restarts `hs-arena.service`;
+10. waits for direct readiness on port 3101;
+11. restores the former `current` automatically when restart/readiness fails;
+12. updates `previous` only after a healthy deployment.
 
 The application rollback only switches the release symlink. It does not roll
 back `/etc/nginx`, so a changed nginx contract must remain compatible with both
@@ -322,23 +326,37 @@ and directory `fsync`. Empty collections, missing card indexes, invalid dates
 and unknown filenames are rejected without replacing the last good snapshot.
 
 The immutable release installs `puppeteer-core` with `npm ci --omit=dev`; full
-`puppeteer` is development-only browser QA tooling. The scraper resolves Chrome
-from `PUPPETEER_EXECUTABLE_PATH`, then `CHROME_BIN`, then Chromium 151 before
-other standard Linux Chrome paths. A missing executable fails with every checked
-path instead of a generic Puppeteer cache error. Puppeteer `25.4.0` is aligned
-with the host's Chromium 151 line; the official compatibility table and
-changelog are
-[the source of truth](https://pptr.dev/supported-browsers) and
-[record its Chrome 151 revision](https://pptr.dev/CHANGELOG#2540-2026-07-27).
+`puppeteer` is development-only browser QA tooling. An explicit
+`PUPPETEER_EXECUTABLE_PATH` or `CHROME_BIN` is fail-fast. Without an override,
+the scraper tries executable system Chromium/Chrome candidates in order,
+closing a failed candidate before continuing. Compatibility is established by
+launch, version diagnostics and the real local-page smoke, not by an exact
+browser-major allowlist, so a passing Chromium security update does not create
+an artificial outage.
 
 Before release creation, `tests/production-scraper-runtime.test.mjs` performs a
 clean production-only install in a temporary directory, imports the compiled
 scraper and launches the system browser against a local `data:` page. The
 release manifest requires and checksums both `build/server/scraper.js` and its
 browser runtime module. Before changing `current`, deployment uses the service
-user to import that built scraper, launch the installed Chromium, verify its
-supported major version and open a local `data:` page. The probe receives TERM
-after 30 seconds and is force-killed after a further five-second grace period.
+user to import that built scraper and open a local `data:` page. The probe and
+service receive the same optional browser path from the root-owned, non-secret
+configuration, while the probe explicitly receives the candidate release root
+and shared-data directory. It receives TERM after 30 seconds and is
+force-killed after a further five-second grace period.
+
+To pin a host-specific executable without exposing secrets or sourcing shell
+code, install the single-key example and reinstall the systemd unit. The file
+must remain root-owned and not group/world-writable; the deployer parses only
+the literal `PUPPETEER_EXECUTABLE_PATH=/absolute/path` entry.
+
+```bash
+sudo install -o root -g root -m 0600 deploy/browser-runtime.env.example \
+  /etc/hs-arena/browser-runtime.env
+sudo install -o root -g root -m 0644 deploy/hs-arena-scraper.service \
+  /etc/systemd/system/hs-arena-scraper.service
+sudo systemctl daemon-reload
+```
 
 Read-only host prerequisites can be checked without running the scraper:
 

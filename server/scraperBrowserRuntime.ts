@@ -23,10 +23,10 @@ type BrowserRuntimeOptions = {
   candidates?: readonly string[];
   isExecutable?: (path: string) => boolean;
   launch?: BrowserLauncher;
+  log?: (message: string) => void;
 };
 
 const PUPPETEER_VERSION = '25.4.0';
-const SUPPORTED_BROWSER_MAJOR = 151;
 const RUNTIME_SMOKE_PAGE = 'data:text/html,<title>hearthpulse-runtime-ok</title>';
 
 function defaultIsExecutable(path: string): boolean {
@@ -44,11 +44,21 @@ export function resolveScraperBrowserExecutable(
   const env = options.env ?? process.env;
   const candidates = options.candidates ?? DEFAULT_BROWSER_EXECUTABLES;
   const isExecutable = options.isExecutable ?? defaultIsExecutable;
-  const configured = [env.PUPPETEER_EXECUTABLE_PATH, env.CHROME_BIN]
-    .map(value => value?.trim())
-    .filter((value): value is string => Boolean(value));
-  const checked = [...new Set([...configured, ...candidates])];
-  const executable = checked.find(isExecutable);
+  const configured = [
+    ['PUPPETEER_EXECUTABLE_PATH', env.PUPPETEER_EXECUTABLE_PATH],
+    ['CHROME_BIN', env.CHROME_BIN],
+  ] as const;
+  const explicit = configured
+    .map(([name, value]) => [name, value?.trim()] as const)
+    .find(([, value]) => Boolean(value));
+  if (explicit) {
+    const [name, executablePath] = explicit;
+    if (executablePath && isExecutable(executablePath)) return executablePath;
+    throw new Error(`[Scraper] Configured ${name} is not executable: ${executablePath}`);
+  }
+
+  const checked = [...new Set(candidates)];
+  const executable = checked.find(candidate => isExecutable(candidate));
   if (executable) return executable;
 
   throw new Error(
@@ -56,42 +66,87 @@ export function resolveScraperBrowserExecutable(
   );
 }
 
-export async function launchScraperBrowser(options: BrowserRuntimeOptions = {}): Promise<Browser> {
-  const executablePath = resolveScraperBrowserExecutable(options);
-  const launch = options.launch ?? (launchOptions => puppeteer.launch(launchOptions));
-  let browser: Browser | null = null;
-  try {
-    browser = await launch({
-      browser: 'chrome',
-      executablePath,
-      headless: true,
-      args: [...SCRAPER_BROWSER_ARGS],
-    });
-    const version = await browser.version();
-    const major = Number(version.match(/(?:Chrome|Chromium)\/(\d+)/)?.[1]);
-    if (major !== SUPPORTED_BROWSER_MAJOR) {
-      throw new Error(
-        `Puppeteer ${PUPPETEER_VERSION} requires Chrome/Chromium ${SUPPORTED_BROWSER_MAJOR}; received ${version}`,
-      );
+function scraperBrowserCandidates(options: BrowserRuntimeOptions): { paths: string[]; explicit: boolean } {
+  const env = options.env ?? process.env;
+  const isExecutable = options.isExecutable ?? defaultIsExecutable;
+  const explicit = [
+    ['PUPPETEER_EXECUTABLE_PATH', env.PUPPETEER_EXECUTABLE_PATH],
+    ['CHROME_BIN', env.CHROME_BIN],
+  ] as const;
+  const configured = explicit
+    .map(([name, value]) => [name, value?.trim()] as const)
+    .find(([, value]) => Boolean(value));
+  if (configured) {
+    const [name, executablePath] = configured;
+    if (!executablePath || !isExecutable(executablePath)) {
+      throw new Error(`[Scraper] Configured ${name} is not executable: ${executablePath}`);
     }
-    return browser;
-  } catch (cause) {
-    if (browser) await browser.close().catch(() => {});
-    const detail = cause instanceof Error ? cause.message : String(cause);
-    throw new Error(`[Scraper] Failed to initialize system browser at ${executablePath}: ${detail}`, { cause });
+    return { paths: [executablePath], explicit: true };
   }
+
+  const candidates = [...new Set(options.candidates ?? DEFAULT_BROWSER_EXECUTABLES)];
+  const paths = candidates.filter(candidate => isExecutable(candidate));
+  if (paths.length === 0) {
+    throw new Error(
+      `[Scraper] No executable system Chrome found. Set PUPPETEER_EXECUTABLE_PATH or install a supported Chrome. Checked: ${candidates.join(', ') || 'no paths'}`,
+    );
+  }
+  return { paths, explicit: false };
+}
+
+function safeBrowserFailure(cause: unknown): string {
+  const detail = cause instanceof Error ? cause.message : String(cause);
+  return detail.replaceAll(/\s+/g, ' ').trim().slice(0, 300) || 'unknown browser failure';
+}
+
+async function selectScraperBrowser(
+  options: BrowserRuntimeOptions,
+  verify?: (browser: Browser) => Promise<void>,
+): Promise<Browser> {
+  const { paths, explicit } = scraperBrowserCandidates(options);
+  const launch = options.launch ?? (launchOptions => puppeteer.launch(launchOptions));
+  const log = options.log ?? (message => console.info(message));
+  const failures: string[] = [];
+
+  for (const executablePath of paths) {
+    let browser: Browser | null = null;
+    try {
+      browser = await launch({
+        browser: 'chrome',
+        executablePath,
+        headless: true,
+        args: [...SCRAPER_BROWSER_ARGS],
+      });
+      const version = await browser.version();
+      if (!/(?:Chrome|Chromium)\/\d+/.test(version)) {
+        throw new Error(`browser returned an unsupported version identifier: ${version}`);
+      }
+      await verify?.(browser);
+      log(`[Scraper] Browser runtime ready: puppeteer=${PUPPETEER_VERSION} browser=${version} executable=${executablePath}`);
+      return browser;
+    } catch (cause) {
+      if (browser) await browser.close().catch(() => {});
+      const detail = safeBrowserFailure(cause);
+      failures.push(`${executablePath}: ${detail}`);
+      if (explicit) break;
+    }
+  }
+
+  throw new Error(`[Scraper] Failed to initialize a compatible system browser. ${failures.join('; ')}`);
+}
+
+export function launchScraperBrowser(options: BrowserRuntimeOptions = {}): Promise<Browser> {
+  return selectScraperBrowser(options);
 }
 
 export async function verifyScraperBrowserRuntime(options: BrowserRuntimeOptions = {}): Promise<void> {
-  const browser = await launchScraperBrowser(options);
-  try {
-    const page = await browser.newPage();
+  const browser = await selectScraperBrowser(options, async candidate => {
+    const page = await candidate.newPage();
     await page.goto(RUNTIME_SMOKE_PAGE);
     const title = await page.title();
     if (title !== 'hearthpulse-runtime-ok') {
       throw new Error(`[Scraper] Browser runtime smoke returned unexpected title: ${title}`);
     }
-  } finally {
-    await browser.close();
-  }
+  });
+  await browser.close();
 }

@@ -1,13 +1,36 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 2 ]]; then
-  echo "Usage: hs-arena-ci-deploy /runner/temp/release EXPECTED_SHA" >&2
+GATE_VERSION=1.1.0
+GATE_CAPABILITY=require-deployer-capability-v1
+
+case "${1:-}" in
+  --version)
+    [[ $# -eq 1 ]] || { echo "Usage: hs-arena-ci-deploy --version" >&2; exit 2; }
+    echo "hs-arena-ci-deploy $GATE_VERSION"
+    exit 0
+    ;;
+  --capabilities)
+    [[ $# -eq 1 ]] || { echo "Usage: hs-arena-ci-deploy --capabilities" >&2; exit 2; }
+    echo "$GATE_CAPABILITY"
+    exit 0
+    ;;
+esac
+
+REQUIRED_CAPABILITY=''
+if [[ "${1:-}" == --require-capability=* ]]; then
+  REQUIRED_CAPABILITY=${1#--require-capability=}
+  shift
+fi
+
+if [[ $# -ne 2 || ! "$REQUIRED_CAPABILITY" =~ ^[a-z0-9][a-z0-9._-]+$ ]]; then
+  echo "Usage: hs-arena-ci-deploy --require-capability=NAME /runner/temp/release EXPECTED_SHA" >&2
   exit 2
 fi
 
 RUNNER_TEMP_ROOT=${RUNNER_TEMP_ROOT:-/opt/actions-runner/manacost-arena/_work/_temp}
 DEPLOYER=${DEPLOYER:-/usr/local/libexec/hs-arena/deploy-release.sh}
+DEPLOYER_CAPABILITIES_FILE=${DEPLOYER_CAPABILITIES_FILE:-/usr/local/libexec/hs-arena/deploy-release.capabilities}
 STATIC_SYNC_COMMAND=${STATIC_SYNC_COMMAND:-/bin/systemctl start --wait arena-static-sync.service}
 EXPECTED_SHA=${2,,}
 
@@ -17,6 +40,26 @@ EXPECTED_SHA=${2,,}
 }
 [[ -x "$DEPLOYER" ]] || {
   echo "root-owned deployer is missing: $DEPLOYER" >&2
+  exit 2
+}
+[[ -f "$DEPLOYER_CAPABILITIES_FILE" && ! -L "$DEPLOYER_CAPABILITIES_FILE" ]] || {
+  echo "required deployer capability is missing: $REQUIRED_CAPABILITY" >&2
+  exit 2
+}
+EXPECTED_OWNER_UID=$(id -u)
+[[ $EUID -ne 0 ]] || EXPECTED_OWNER_UID=0
+CAPABILITIES_OWNER_UID=$(stat -c '%u' "$DEPLOYER_CAPABILITIES_FILE")
+CAPABILITIES_MODE=$(stat -c '%a' "$DEPLOYER_CAPABILITIES_FILE")
+[[ "$CAPABILITIES_OWNER_UID" == "$EXPECTED_OWNER_UID" ]] || {
+  echo "deployer capabilities file has an unexpected owner" >&2
+  exit 2
+}
+(( (8#$CAPABILITIES_MODE & 022) == 0 )) || {
+  echo "deployer capabilities file must not be group- or world-writable" >&2
+  exit 2
+}
+grep -Fxq "$REQUIRED_CAPABILITY" "$DEPLOYER_CAPABILITIES_FILE" || {
+  echo "required deployer capability is missing: $REQUIRED_CAPABILITY" >&2
   exit 2
 }
 
