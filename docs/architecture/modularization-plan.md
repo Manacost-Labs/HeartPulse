@@ -113,6 +113,9 @@ additional guardrails remain incremental.
 - [x] Snapshot every authored Express route and middleware registration with
   exact static paths, source order and explicit guard evidence; unresolved path
   expressions and unreviewed snapshot drift fail the architecture gate.
+- [x] Align README with the non-strict TypeScript baseline, test discovery and
+  legacy `features` status; make `docs/decisions/` the single ADR home and
+  distinguish architecture, specifications, operations and runbooks.
 - [x] Prove and remove the retired private `DeferredRoutes.AdminPanel` and its
   exclusive declarations without changing the live `ContestAdminPanel` route.
 - [ ] Classify the remaining Knip candidates before any further dead-code

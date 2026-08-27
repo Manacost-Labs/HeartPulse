@@ -199,6 +199,7 @@
         "tests/cosmetics-ui-contract.test.ts",
         "tests/csrf.test.ts",
         "tests/deferred-route-boundaries.test.mjs",
+        "tests/documentation-truth.test.mjs",
         "tests/favicon-assets.test.mjs",
         "tests/http-route-manifest.test.mjs",
         "tests/network-boundary.test.ts",

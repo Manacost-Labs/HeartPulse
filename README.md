@@ -63,8 +63,8 @@
       src="https://img.shields.io/badge/React-19-4A2F66?logo=react&logoColor=white">
   </a>
   <a href="https://www.typescriptlang.org/">
-    <img alt="TypeScript strict"
-      src="https://img.shields.io/badge/TypeScript-strict-8F1731?logo=typescript&logoColor=white">
+    <img alt="TypeScript debt ratchet"
+      src="https://img.shields.io/badge/TypeScript-debt_ratchet-8F1731?logo=typescript&logoColor=white">
   </a>
   <a href="https://nodejs.org/">
     <img alt="Node.js 22+"
@@ -180,7 +180,9 @@ Nginx → immutable release → systemd service
 
 ```text
 src/components/       общие UI-компоненты
-src/features/         страницы и функциональные модули
+src/app/              целевая композиция приложения
+src/modules/          новые доменные модули с узкими public-контрактами
+src/features/         legacy-страницы на поэтапной миграции, не целевая граница
 src/styles/           общие токены и ограниченные shared-стили
 server/               API, auth, кэширование и публикация данных
 scripts/              QA, бюджеты, релизы, мониторинг и recovery
@@ -201,7 +203,9 @@ npm run verify:ci
 Он включает:
 
 - TypeScript typecheck и архитектурные ограничения;
-- unit, HTTP contract, auth, CSRF, backup и deployment tests;
+- пять автоматически обнаруживаемых suite: unit, integration, contract,
+  browser и production-smoke;
+- HTTP contract, auth, CSRF, backup и deployment tests внутри этих suite;
 - production-сборку frontend и server;
 - бюджеты JavaScript/CSS и контроль роста `!important`;
 - desktop/mobile E2E с mocked-подпиской;
@@ -232,7 +236,7 @@ npm run qa:e2e
 
 | Контур | Используемые инструменты |
 | --- | --- |
-| Интерфейс | React 19, TypeScript strict, Vite 6, Tailwind CSS 4, Lucide, responsive CSS |
+| Интерфейс | React 19, TypeScript с измеряемым долгом и strict islands, Vite 6, Tailwind CSS 4, Lucide, responsive CSS |
 | API и данные | Node.js 22, Express, Redis, SQLite, Sharp, Puppeteer, node-cron, Hearthstone deckstrings |
 | Тестирование | Node test runner, tsx, fast-check, Storybook 10 + MCP, Puppeteer E2E, axe-core, browser contract tests |
 | Качество кода | TypeScript, React Doctor, Knip, markdownlint, design.md, архитектурные и bundle-budget проверки |
@@ -289,7 +293,10 @@ npm run build-storybook
 | --- | --- |
 | `npm run dev` | Frontend и API в watch-режиме |
 | `npm run build` | Production frontend, server и pre-render |
-| `npm test` | Unit и contract test suite |
+| `npm test` | Все пять автоматически обнаруживаемых suite без ручного списка |
+| `npm run test:discovery` | Полнота классификации всех test/spec-файлов |
+| `npm run architecture:baseline` | Детерминированный архитектурный baseline |
+| `npm run architecture:http-manifest` | Проверка Express routes и middleware |
 | `npm run qa:e2e` | Полный desktop/mobile browser QA |
 | `npm run budget` | Контроль размеров JS и CSS |
 | `npm run scrape` | Ручной запуск scraper в разработке |

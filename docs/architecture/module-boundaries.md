@@ -209,6 +209,9 @@ Documentation is part of the implementation, not follow-up work. Every task
 states `Documentation impact` before editing: either the exact documents that
 must change or `none` with a concrete reason.
 
+[`docs/README.md`](../README.md) defines the single purpose of every
+documentation directory. New ADRs belong only in `docs/decisions/`.
+
 Use the owning document:
 
 | Change | Required home |
@@ -216,6 +219,7 @@ Use the owning document:
 | Module ownership, dependencies or application shape | `docs/architecture/` |
 | Expensive or hard-to-reverse engineering decision | `docs/decisions/` |
 | Public behavior, API, data or permission contract | `docs/specs/` |
+| Production topology or deployed state | `docs/operations/` |
 | Environment, cache, deploy, monitor or recovery procedure | `docs/runbooks/` |
 | User-visible or maintainer-visible shipped change | `CHANGELOG.md` |
 
