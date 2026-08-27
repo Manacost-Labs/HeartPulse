@@ -12,10 +12,10 @@
   the application-connect request/validation boundary lives in its owning
   frontend module without changing public URLs or authorization behavior.
 - Repaired the license-broken Gitleaks CI job by reusing the repository's
-  pinned, redacting scanner, moved QA-only Puppeteer out of the production
-  dependency graph, and pinned its patched browser-manager plus Nanoid overrides
-  so npm audit, dependency review and Trivy no longer inherit those HIGH
-  advisories.
+  pinned, redacting scanner. The production scraper now uses `puppeteer-core`
+  with the host Chrome while full Puppeteer stays QA-only; both are aligned to
+  Chrome 150, the incompatible browser-manager override is gone, and a clean
+  production-only install/import/browser smoke guards the release graph.
 - Made full browser QA a production deployment gate and added exact-SHA
   post-deploy verification under the deployment lock, while reporting dataset
   freshness separately so honest LKG degradation cannot masquerade as green or
@@ -62,8 +62,9 @@
   `LICENSE` and the issue template after the move to `Manacost-Labs/HeartPulse`,
   and pointed the post-push review hook at the current repository so it keeps
   publishing instead of silently skipping on an unexpected origin.
-- Documented why Puppeteer stays a runtime dependency: the production scraper
-  service imports it and deployment installs with `npm ci --omit=dev`.
+- Documented the Puppeteer split: only `puppeteer-core` is a runtime dependency
+  because the production service installs with `npm ci --omit=dev`; full
+  Puppeteer remains development-only browser QA tooling.
 - Added contributor and agent skills under `.claude/skills/` that encode the
   existing `app -> modules -> shared` contract from ADR 002, so future work
   follows the accepted module boundaries instead of rediscovering them.

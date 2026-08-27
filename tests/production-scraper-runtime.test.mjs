@@ -1,0 +1,55 @@
+import assert from 'node:assert/strict';
+import { cpSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+const repository = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const root = mkdtempSync(join(tmpdir(), 'hearthpulse-production-scraper-'));
+const runtime = join(root, 'runtime');
+
+function run(command, args, options = {}) {
+  const result = spawnSync(command, args, {
+    cwd: options.cwd ?? repository,
+    encoding: 'utf8',
+    env: { ...process.env, PUPPETEER_SKIP_DOWNLOAD: 'true', ...options.env },
+    timeout: options.timeout ?? 180_000,
+  });
+  assert.equal(
+    result.status,
+    0,
+    `${command} ${args.join(' ')} failed\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`,
+  );
+  return result;
+}
+
+try {
+  if (process.env.PRODUCTION_SCRAPER_BUILD_READY !== '1') {
+    run('npm', ['run', 'build:server']);
+  }
+
+  mkdirSync(join(runtime, 'server', 'data'), { recursive: true });
+  cpSync(join(repository, 'package.json'), join(runtime, 'package.json'));
+  cpSync(join(repository, 'package-lock.json'), join(runtime, 'package-lock.json'));
+  cpSync(join(repository, 'build'), join(runtime, 'build'), { recursive: true });
+
+  run('npm', ['ci', '--omit=dev', '--no-audit', '--no-fund'], { cwd: runtime });
+  run(process.execPath, ['--input-type=module', '-e', "await import('./build/server/scraper.js')"], {
+    cwd: runtime,
+    env: {
+      APP_ROOT_DIR: runtime,
+      SERVER_DATA_DIR: join(runtime, 'server', 'data'),
+    },
+  });
+  const launched = run(process.execPath, [
+    '--input-type=module',
+    '-e',
+    "const {launchScraperBrowser}=await import('./build/server/scraperBrowserRuntime.js'); const browser=await launchScraperBrowser(); try { const page=await browser.newPage(); await page.goto('data:text/html,<title>hearthpulse-runtime-ok</title>'); if (await page.title() !== 'hearthpulse-runtime-ok') throw new Error('unexpected browser title'); } finally { await browser.close(); }",
+  ], { cwd: runtime });
+  assert.equal(launched.stderr, '');
+} finally {
+  rmSync(root, { recursive: true, force: true });
+}
+
+console.log('production scraper runtime smoke passed');

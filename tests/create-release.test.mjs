@@ -51,6 +51,8 @@ try {
     mkdirSync(join(workspace, directory), { recursive: true });
   }
   writeFileSync(join(workspace, 'build/server/index.js'), 'console.log("server");\n');
+  writeFileSync(join(workspace, 'build/server/scraper.js'), 'console.log("scraper");\n');
+  writeFileSync(join(workspace, 'build/server/scraperBrowserRuntime.js'), 'console.log("browser runtime");\n');
   writeFileSync(join(workspace, 'build/server/constructedCardImagePrewarmer.js'), 'console.log("sync");\n');
   writeFileSync(join(workspace, 'dist/index.html'), '<!doctype html>\n<script type="module" src="/assets/index-stable.js"></script>\n');
   writeFileSync(join(workspace, 'dist/runtime-config.js'), 'window.__ARENA_RUNTIME_CONFIG__ = {};\n');
@@ -96,6 +98,8 @@ try {
   );
   assert.doesNotMatch(readFileSync(join(output, 'dist/index.html'), 'utf8'), /\?v=/);
   assert.match(manifest.checksums['scripts/backup-shared-data.sh'], /^[a-f0-9]{64}$/);
+  assert.match(manifest.checksums['build/server/scraper.js'], /^[a-f0-9]{64}$/);
+  assert.match(manifest.checksums['build/server/scraperBrowserRuntime.js'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['build/server/constructedCardImagePrewarmer.js'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['scripts/verify-backup.sh'], /^[a-f0-9]{64}$/);
   assert.match(manifest.checksums['scripts/restore-backup.sh'], /^[a-f0-9]{64}$/);

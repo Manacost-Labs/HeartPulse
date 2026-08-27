@@ -1,9 +1,9 @@
-import puppeteer from 'puppeteer';
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve } from 'path';
 import { existsSync, mkdirSync, readFileSync } from 'fs';
 import { config as dotenvConfig } from 'dotenv';
 import { loadSnapshot, publishSnapshot, SNAPSHOT_SCHEMA_VERSION } from './snapshots.js';
+import { launchScraperBrowser } from './scraperBrowserRuntime.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -263,10 +263,7 @@ export async function scrapeHSReplayClassWinrates(): Promise<boolean> {
   // ── Attempt 2: Puppeteer browser interception ─────────────────────────────
   if (!intercepted) {
     console.log('[Scraper] HSReplay: falling back to Puppeteer for class stats...');
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
-    });
+    const browser = await launchScraperBrowser();
     try {
       const page = await browser.newPage();
       await page.setUserAgent(
@@ -593,10 +590,7 @@ export async function scrapeHSReplayTierlist(): Promise<boolean> {
   // ── Attempt 2: Puppeteer browser interception ─────────────────────────────
   if (!intercepted) {
     console.log('[Scraper] HSReplay: falling back to Puppeteer...');
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
-    });
+    const browser = await launchScraperBrowser();
     try {
       const page = await browser.newPage();
       await page.setUserAgent(
@@ -768,10 +762,7 @@ export async function scrapeFirestoneWinrates(): Promise<boolean> {
 
 export async function scrapeHearthArenaTierlist(): Promise<boolean> {
   console.log('[Scraper] HearthArena: launching browser...');
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
-  });
+  const browser = await launchScraperBrowser();
 
   try {
     const page = await browser.newPage();
@@ -1062,10 +1053,7 @@ export function loadData(filename: string): any | null {
 
 export async function scrapeLegendaries(): Promise<boolean> {
   console.log('[Scraper] HSReplay Legendaries: launching browser...');
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
-  });
+  const browser = await launchScraperBrowser();
 
   try {
     const page = await browser.newPage();

@@ -49,6 +49,8 @@ if (existsSync(output)) throw new Error(`Release output already exists: ${output
 
 for (const required of [
   'build/server/index.js',
+  'build/server/scraper.js',
+  'build/server/scraperBrowserRuntime.js',
   'build/server/constructedCardImagePrewarmer.js',
   'dist/index.html',
   'dist/runtime-config.js',
@@ -111,6 +113,8 @@ async function sha256(file) {
 
 const criticalFiles = [
   'build/server/index.js',
+  'build/server/scraper.js',
+  'build/server/scraperBrowserRuntime.js',
   'build/server/constructedCardImagePrewarmer.js',
   'dist/index.html',
   'dist/sitemap.xml',

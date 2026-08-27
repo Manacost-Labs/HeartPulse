@@ -182,6 +182,7 @@
         "tests/referrals.test.ts",
         "tests/routes.test.ts",
         "tests/scrape-queue.test.ts",
+        "tests/scraper-browser-runtime.test.ts",
         "tests/sqlite-connection.test.ts",
         "tests/standard-matchup-routes.test.ts",
         "tests/standard-meta-routes.test.ts",
@@ -263,6 +264,7 @@
         "tests/nginx-contract-drift.test.mjs",
         "tests/nginx-html-routing.test.mjs",
         "tests/production-monitor.test.mjs",
+        "tests/production-scraper-runtime.test.mjs",
         "tests/robots-policy.test.mjs"
       ]
     }

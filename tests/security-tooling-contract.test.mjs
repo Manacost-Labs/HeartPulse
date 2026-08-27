@@ -4,11 +4,18 @@ import test from 'node:test';
 
 const read = path => readFileSync(path, 'utf8');
 
-test('browser QA dependencies stay outside production and use the patched downloader graph', () => {
+test('browser QA and production scraper use one supported Puppeteer graph', () => {
   const manifest = JSON.parse(read('package.json'));
+  const lockfile = JSON.parse(read('package-lock.json'));
   assert.equal(manifest.dependencies?.puppeteer, undefined);
-  assert.equal(manifest.devDependencies?.puppeteer, '^22.15.0');
-  assert.equal(manifest.overrides?.['@puppeteer/browsers'], '3.2.1');
+  assert.equal(manifest.dependencies?.['puppeteer-core'], '25.4.0');
+  assert.equal(manifest.devDependencies?.puppeteer, '25.4.0');
+  assert.equal(manifest.overrides?.['@puppeteer/browsers'], undefined);
+  assert.equal(lockfile.packages?.['node_modules/puppeteer-core']?.version, '25.4.0');
+  assert.equal(
+    lockfile.packages?.['node_modules/puppeteer-core']?.dependencies?.['@puppeteer/browsers'],
+    '3.0.6',
+  );
   assert.equal(manifest.overrides?.nanoid, '3.3.18');
 });
 

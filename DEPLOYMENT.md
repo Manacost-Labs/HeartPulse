@@ -321,6 +321,28 @@ validation, using a same-filesystem temporary file, file `fsync`, atomic rename
 and directory `fsync`. Empty collections, missing card indexes, invalid dates
 and unknown filenames are rejected without replacing the last good snapshot.
 
+The immutable release installs `puppeteer-core` with `npm ci --omit=dev`; full
+`puppeteer` is development-only browser QA tooling. The scraper resolves Chrome
+from `PUPPETEER_EXECUTABLE_PATH`, then `CHROME_BIN`, then the standard Linux
+Google Chrome/Chromium paths. A missing executable fails with every checked path
+instead of a generic Puppeteer cache error. Puppeteer `25.4.0` is aligned with
+the host's Chrome 150 line; the official compatibility table and changelog are
+[the source of truth](https://pptr.dev/supported-browsers) and
+[record the Chrome 150 rolls](https://pptr.dev/CHANGELOG#2540-2026-07-27).
+
+Before release creation, `tests/production-scraper-runtime.test.mjs` performs a
+clean production-only install in a temporary directory, imports the compiled
+scraper and launches the system browser against a local `data:` page. The
+release manifest requires and checksums both `build/server/scraper.js` and its
+browser runtime module.
+
+Read-only host prerequisites can be checked without running the scraper:
+
+```bash
+sudo -u koloda test -x /usr/bin/google-chrome-stable
+sudo -u koloda /usr/bin/google-chrome-stable --version
+```
+
 Install the schedule and manual-request path unit:
 
 ```bash

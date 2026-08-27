@@ -237,7 +237,7 @@ npm run qa:e2e
 | Контур | Используемые инструменты |
 | --- | --- |
 | Интерфейс | React 19, TypeScript с измеряемым долгом и strict islands, Vite 6, Tailwind CSS 4, Lucide, responsive CSS |
-| API и данные | Node.js 22, Express, Redis, SQLite, Sharp, Puppeteer, node-cron, Hearthstone deckstrings |
+| API и данные | Node.js 22, Express, Redis, SQLite, Sharp, Puppeteer Core, node-cron, Hearthstone deckstrings |
 | Тестирование | Node test runner, tsx, fast-check, Storybook 10 + MCP, Puppeteer E2E, axe-core, browser contract tests |
 | Качество кода | TypeScript, React Doctor, Knip, markdownlint, design.md, архитектурные и bundle-budget проверки |
 | AppSec | CodeQL, Semgrep CE, Gitleaks, Trivy, GitHub Private Vulnerability Reporting |
@@ -250,16 +250,16 @@ npm run qa:e2e
 остаются выключенными без явной серверной конфигурации. Подробности и команды
 для AI-агентов собраны в [docs/agent-tooling.md](docs/agent-tooling.md).
 
-Puppeteer намеренно остаётся в `dependencies`, а не в `devDependencies`: его
-импортирует `server/scraper.ts`, который входит в сборку сервера
-(`tsconfig.server.json`) и работает в проде как изолированный
-`hs-arena-scraper.service`. Деплой устанавливает зависимости командой
-`npm ci --omit=dev`, поэтому перенос Puppeteer в dev-секцию сломал бы scraper
-на продакшене. Браузер нужен там же, где и сам сервис.
+Production scraper импортирует `puppeteer-core` из `dependencies` и запускает
+явно найденный системный Chrome. Полный `puppeteer` остаётся в
+`devDependencies` только для browser QA. Оба пакета закреплены на одной версии,
+а release smoke выполняет настоящий `npm ci --omit=dev`, импортирует собранный
+scraper и открывает локальную страницу в headless Chrome. Такой split сохраняет
+production runtime без повторного скачивания браузера при каждом новом lockfile.
 
 ## Быстрый старт
 
-Требуются Node.js 22+, npm и Chromium/Google Chrome для browser QA и scraper.
+Требуются Node.js 22.12+, npm и Chromium/Google Chrome для browser QA и scraper.
 
 ```bash
 git clone https://github.com/Manacost-Labs/HeartPulse.git
