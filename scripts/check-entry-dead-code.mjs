@@ -42,9 +42,35 @@ if (diagnostics.length) {
 }
 
 const deferredRoutesSource = readFileSync('src/features/DeferredRoutes.tsx', 'utf8');
-if (/export\s+function\s+AdminPanel\b/.test(deferredRoutesSource)) {
-  console.error('[entry-dead-code] retired DeferredRoutes.AdminPanel export returned to the production graph');
+const retiredDeferredAdminSymbols = [
+  'AdminForm',
+  'AdminSectionId',
+  'AdminUserListItem',
+  'BoostySubscriberRow',
+  'BoostySubscribersPayload',
+  'BoostyAdminStatus',
+  'EMPTY_FORM',
+  'ADMIN_SECTIONS',
+  'getInitialAdminSection',
+  'ADMIN_INPUT',
+  'AdminStatCard',
+  'AdminArticleRow',
+  'AdminPanel',
+];
+const returnedAdminSymbols = retiredDeferredAdminSymbols.filter(symbol => (
+  new RegExp(`\\b(?:const|function|interface|type)\\s+${symbol}\\b`).test(deferredRoutesSource)
+));
+
+if (returnedAdminSymbols.length > 0) {
+  console.error(`[entry-dead-code] retired DeferredRoutes admin declarations returned: ${returnedAdminSymbols.join(', ')}`);
   process.exit(1);
 }
 
-console.log(`[entry-dead-code] ${entryFiles.size} initial-shell modules have no unused declarations or parameters; retired lazy AdminPanel export is absent`);
+const appSource = readFileSync('src/App.tsx', 'utf8');
+const contestsSource = readFileSync('src/features/Contests.tsx', 'utf8');
+if (!/module\.ContestAdminPanel\b/.test(appSource) || !/export\s+function\s+ContestAdminPanel\b/.test(contestsSource)) {
+  console.error('[entry-dead-code] live ContestAdminPanel route contract is missing');
+  process.exit(1);
+}
+
+console.log(`[entry-dead-code] ${entryFiles.size} initial-shell modules have no unused declarations or parameters; retired deferred admin code is absent and ContestAdminPanel remains wired`);

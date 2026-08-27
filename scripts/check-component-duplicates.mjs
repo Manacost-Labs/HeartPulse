@@ -23,7 +23,7 @@ console.log('[architecture] single-owner component guard passed');
 const deferredSource = fileSources[1];
 const profileStart = deferredSource.indexOf('const profileName =');
 const loginStart = deferredSource.indexOf('<div className="login-page"', profileStart);
-const loginEnd = deferredSource.indexOf('function AdminPanel', loginStart);
+const loginEnd = deferredSource.indexOf('function InternalLinks', loginStart);
 const passwordInputStart = deferredSource.indexOf('function PasswordInput');
 const passwordInputEnd = deferredSource.indexOf('function AuthCheckingCard', passwordInputStart);
 const cardModalStart = deferredSource.indexOf('const CardModal:');

@@ -110,8 +110,10 @@ additional guardrails remain incremental.
 - [x] Record and enforce the current module dependency graph: runtime cycles and
   new boundary violations fail CI, while the four inherited type-only cycles
   have exact, justified, owner-bound removal entries.
-- [ ] Prove unreachable code before removing it in separate behavior-neutral
-  commits.
+- [x] Prove and remove the retired private `DeferredRoutes.AdminPanel` and its
+  exclusive declarations without changing the live `ContestAdminPanel` route.
+- [ ] Classify the remaining Knip candidates before any further dead-code
+  removal; tool output alone is not deletion evidence.
 
 The reproducible discovery baseline and rollback contract are documented in
 [`phase0-test-discovery.md`](phase0-test-discovery.md). The slice is based on
@@ -121,6 +123,8 @@ contract are documented in
 [`phase0-async-express.md`](phase0-async-express.md).
 The metric definitions, reproduction commands and first measured values are in
 [`phase0-reproducible-baseline.md`](phase0-reproducible-baseline.md).
+The first evidence-backed dead-code removal and its route guard are documented
+in [`phase0-dead-code.md`](phase0-dead-code.md).
 
 ### 1. Constructed-card catalog model
 
@@ -134,7 +138,8 @@ Status: complete.
 ### 2. Arena deferred routes
 
 Status: in progress. The gallery route and shared editorial chrome have been
-extracted into dedicated modules.
+extracted into dedicated modules. The retired private admin implementation was
+removed; `/admin` continues to load the separately owned `ContestAdminPanel`.
 
 - Extract shared Arena card types and formatting into explicit domain models.
 - Give win rates, tier list, legendaries, auth and articles separate lazy route
