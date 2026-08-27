@@ -47,7 +47,12 @@ function contractHash(files) {
 function fakeRelease(sha, {
   nginxContents = defaultNginxContents,
   edgeContents = null,
-  scraperContents = 'export const scraperRuntime = true;\n',
+  scraperContents = [
+    "import { fileURLToPath } from 'node:url';",
+    "if (process.argv[1] === fileURLToPath(import.meta.url)) throw new Error('scraper entrypoint executed during import probe');",
+    'export const scraperRuntime = true;',
+    '',
+  ].join('\n'),
 } = {}) {
   const directory = join(root, `artifact-${sha}`);
   const nginxSource = 'deploy/nginx/arena-test.conf';

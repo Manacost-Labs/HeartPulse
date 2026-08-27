@@ -245,12 +245,13 @@ fi
 SCRAPER_RUNTIME_PROBE="$TARGET_RELEASE/build/server/scraper.js"
 if [[ $EUID -eq 0 ]] && id "$DEPENDENCY_USER" >/dev/null 2>&1; then
   runuser -u "$DEPENDENCY_USER" -- /usr/bin/node --input-type=module \
-    -e 'await import(process.argv[1])' "$SCRAPER_RUNTIME_PROBE" || {
+    -e 'await import(process.argv[2])' hearthpulse-runtime-probe "$SCRAPER_RUNTIME_PROBE" || {
       echo "production scraper runtime import failed for $DEPENDENCY_USER" >&2
       exit 2
     }
 else
-  /usr/bin/node --input-type=module -e 'await import(process.argv[1])' "$SCRAPER_RUNTIME_PROBE" || {
+  /usr/bin/node --input-type=module -e 'await import(process.argv[2])' \
+    hearthpulse-runtime-probe "$SCRAPER_RUNTIME_PROBE" || {
     echo "production scraper runtime import failed" >&2
     exit 2
   }
