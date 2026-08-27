@@ -44,7 +44,11 @@ function contractHash(files) {
     .join(''));
 }
 
-function fakeRelease(sha, { nginxContents = defaultNginxContents, edgeContents = null } = {}) {
+function fakeRelease(sha, {
+  nginxContents = defaultNginxContents,
+  edgeContents = null,
+  scraperContents = 'export const scraperRuntime = true;\n',
+} = {}) {
   const directory = join(root, `artifact-${sha}`);
   const nginxSource = 'deploy/nginx/arena-test.conf';
   const verifierSource = 'scripts/verify-nginx-contract.mjs';
@@ -54,6 +58,7 @@ function fakeRelease(sha, { nginxContents = defaultNginxContents, edgeContents =
   mkdirSync(dirname(join(directory, nginxSource)), { recursive: true });
   mkdirSync(dirname(join(directory, verifierSource)), { recursive: true });
   writeFileSync(join(directory, 'build', 'server', 'index.js'), '');
+  writeFileSync(join(directory, 'build', 'server', 'scraper.js'), scraperContents);
   writeFileSync(join(directory, 'dist', 'index.html'), '');
   writeFileSync(join(directory, 'dist', 'runtime-config.js'), 'window.defaultConfig = true;\n');
   writeFileSync(join(directory, 'dist', 'assets', `asset-${sha}.js`), sha);
@@ -193,6 +198,14 @@ try {
 
   const repeated = deploy(fakeRelease(secondSha), true);
   assert.equal(repeated.status, 0, repeated.stderr || repeated.stdout);
+  assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), secondTarget);
+
+  const brokenScraperSha = '7'.repeat(7);
+  const brokenScraper = deploy(fakeRelease(brokenScraperSha, {
+    scraperContents: "await import('missing-production-scraper-runtime');\n",
+  }), true);
+  assert.notEqual(brokenScraper.status, 0, 'a release with a broken built scraper import must be blocked');
+  assert.match(`${brokenScraper.stdout}\n${brokenScraper.stderr}`, /production scraper runtime import failed/i);
   assert.equal(resolve(appBase, readlinkSync(join(appBase, 'current'))), secondTarget);
 
   const edgeOnlySha = '6'.repeat(7);

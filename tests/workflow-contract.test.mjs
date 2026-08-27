@@ -56,7 +56,20 @@ assert.match(ciWorkflow, /runs-on:\s*\[self-hosted,\s*linux,\s*x64,\s*hs-arena-p
 assert.match(ciWorkflow, /environment:\s*\n\s*name:\s*production\s*\n\s*url:\s*https:\/\/hearthpulse\.net/);
 assert.match(ciWorkflow, /group:\s*hs-arena-production/);
 assert.match(ciWorkflow, /cancel-in-progress:\s*false/);
-assert.match(ciWorkflow, /actions\/download-artifact@v7/);
+const productionJob = ciWorkflow.slice(ciWorkflow.indexOf('  deploy-production:'));
+assert.match(
+  productionJob,
+  /uses:\s*actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\s*# v7\.0\.1/,
+);
+assert.match(
+  productionJob,
+  /uses:\s*actions\/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38\s*# v6\.5\.0/,
+);
+assert.match(
+  productionJob,
+  /uses:\s*actions\/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131\s*# v7\.0\.0/,
+);
+assert.doesNotMatch(productionJob, /uses:\s*[^\s@]+@v\d+/);
 assert.match(ciWorkflow, /sudo \/usr\/local\/sbin\/hs-arena-ci-deploy "\$artifact" "\$GITHUB_SHA"/);
 assert.doesNotMatch(
   ciWorkflow,

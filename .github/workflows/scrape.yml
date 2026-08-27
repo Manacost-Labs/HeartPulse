@@ -27,7 +27,7 @@ jobs:
           cache: 'npm'
 
       # Install all dependencies.
-      #    puppeteer@22 downloads Chrome automatically during npm ci
+      #    puppeteer@25.4.0 downloads Chrome automatically during npm ci
       #    UNLESS PUPPETEER_SKIP_DOWNLOAD=true — we intentionally do NOT set
       #    that variable here, because the scrape job needs a real browser.
       - name: Install dependencies

@@ -334,7 +334,8 @@ Before release creation, `tests/production-scraper-runtime.test.mjs` performs a
 clean production-only install in a temporary directory, imports the compiled
 scraper and launches the system browser against a local `data:` page. The
 release manifest requires and checksums both `build/server/scraper.js` and its
-browser runtime module.
+browser runtime module. Deployment imports that built scraper from the installed
+production dependency tree as the service user before changing `current`.
 
 Read-only host prerequisites can be checked without running the scraper:
 
