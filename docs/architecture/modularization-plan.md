@@ -110,6 +110,9 @@ additional guardrails remain incremental.
 - [x] Record and enforce the current module dependency graph: runtime cycles and
   new boundary violations fail CI, while the four inherited type-only cycles
   have exact, justified, owner-bound removal entries.
+- [x] Snapshot every authored Express route and middleware registration with
+  exact static paths, source order and explicit guard evidence; unresolved path
+  expressions and unreviewed snapshot drift fail the architecture gate.
 - [x] Prove and remove the retired private `DeferredRoutes.AdminPanel` and its
   exclusive declarations without changing the live `ContestAdminPanel` route.
 - [ ] Classify the remaining Knip candidates before any further dead-code
@@ -125,6 +128,8 @@ The metric definitions, reproduction commands and first measured values are in
 [`phase0-reproducible-baseline.md`](phase0-reproducible-baseline.md).
 The first evidence-backed dead-code removal and its route guard are documented
 in [`phase0-dead-code.md`](phase0-dead-code.md).
+Compatibility coverage and the remaining lifecycle/cache gaps are documented
+in [`phase0-compatibility-harness.md`](phase0-compatibility-harness.md).
 
 ### 1. Constructed-card catalog model
 

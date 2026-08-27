@@ -1,0 +1,4187 @@
+{
+  "schemaVersion": 1,
+  "scope": "Authored Express route and middleware registrations under server/",
+  "summary": {
+    "sourceFiles": 68,
+    "routeRegistrations": 205,
+    "middlewareRegistrations": 107,
+    "explicitGuardRouteRegistrations": 56,
+    "unresolvedPaths": 0
+  },
+  "registrations": [
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/archetypes",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "deps.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "deps.adminGuard"
+      ],
+      "source": "server/adminArchetypesRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/archetypes/wild/decks",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "deps.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "deps.adminGuard"
+      ],
+      "source": "server/adminArchetypesRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/archetypes/:archetypeId",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "deps.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "deps.adminGuard"
+      ],
+      "source": "server/adminArchetypesRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/archetype-translations",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/adminArchetypeTranslationRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/archetype-translations/untranslated",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/adminArchetypeTranslationRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/archetype-translations",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/adminArchetypeTranslationRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "PATCH",
+      "path": "/admin/archetype-translations/:id",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/adminArchetypeTranslationRoutes.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/archetype-translations/sync",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/adminArchetypeTranslationRoutes.ts",
+      "sourceOrder": 4
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/admin/arena-synergies"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "dependencies.adminGuard",
+        "privateAdminResponse"
+      ],
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/adminArenaSynergyRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/admin/arena-draft-advice"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "dependencies.adminGuard",
+        "privateAdminResponse"
+      ],
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/adminArenaSynergyRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/admin/arena-draft-refresh"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "dependencies.adminGuard",
+        "privateAdminResponse"
+      ],
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/adminArenaSynergyRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/arena-draft-refresh",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminArenaSynergyRoutes.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/arena-draft-refresh",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminArenaSynergyRoutes.ts",
+      "sourceOrder": 4
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/arena-synergies",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminArenaSynergyRoutes.ts",
+      "sourceOrder": 5
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/arena-draft-advice",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminArenaSynergyRoutes.ts",
+      "sourceOrder": 6
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin-articles",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/adminArticleRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "PATCH",
+      "path": "/admin-articles",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/adminArticleRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "DELETE",
+      "path": "/admin-articles",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/adminArticleRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/boosty/analytics",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminBoostyAnalyticsRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/boosty/status",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminBoostyRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/boosty/subscribers",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminBoostyRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin-class-positions",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/adminClassPositionRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin-class-positions",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/adminClassPositionRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/contests",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminContestMutationRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/contests/:contestId/winners",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminContestMutationRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "DELETE",
+      "path": "/admin/contests/:contestId",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminContestMutationRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/contests",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminContestReadRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/contests/:contestId/entries",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminContestReadRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/fun-decks",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminFunDecksRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/admin/fun-decks"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "dependencies.adminGuard",
+        "<inline-handler>"
+      ],
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/adminFunDecksRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/fun-decks",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminFunDecksRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/gen-image",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "<SpreadElement>"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminImageGenerationRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/gen-status",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "<SpreadElement>"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminImageGenerationRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/uploads/image",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminImageUploadRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/mailings/test",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "privateResponse",
+        "dependencies.adminGuard",
+        "dependencies.testLimiter"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard",
+        "dependencies.testLimiter"
+      ],
+      "source": "server/adminMailingDeliveryRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/mailings/send",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "privateResponse",
+        "dependencies.adminGuard",
+        "dependencies.sendLimiter"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard",
+        "dependencies.sendLimiter"
+      ],
+      "source": "server/adminMailingDeliveryRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/mailings/preview",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminMailingPreviewRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/mailings/overview",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminMailingReadRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/mailings/:campaignId",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminMailingReadRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/mechanic-translations",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/adminMechanicTranslationRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "PUT",
+      "path": "/admin/mechanic-translations/:key",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/adminMechanicTranslationRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/admin/parser-control"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "<inline-handler>",
+        "dependencies.adminGuard"
+      ],
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/adminParserControlRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/parser-control/audit",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminParserControlRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/admin/parser-control"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "ensureConfigured"
+      ],
+      "guardSignals": [],
+      "source": "server/adminParserControlRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/parser-control",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminParserControlRoutes.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "PATCH",
+      "path": "/admin/parser-control/policy",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminParserControlRoutes.ts",
+      "sourceOrder": 4
+    },
+    {
+      "kind": "route",
+      "method": "PATCH",
+      "path": "/admin/parser-control/sections",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminParserControlRoutes.ts",
+      "sourceOrder": 5
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/parser-control/runs",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminParserControlRoutes.ts",
+      "sourceOrder": 6
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/parser-control/runs",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminParserControlRoutes.ts",
+      "sourceOrder": 7
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/admin/standard-operations"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "dependencies.adminGuard",
+        "<inline-handler>"
+      ],
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/adminStandardOperationsRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/standard-operations",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminStandardOperationsRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/standard-operations/reset",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminStandardOperationsRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/telegram/accounts",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminTelegramReadRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "PATCH",
+      "path": "/admin/users/:userId",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminUserMutationRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/users/search",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminUserReadRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/users",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/adminUserReadRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/v1/oauth/device/code"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "oauthLimiter(...)"
+      ],
+      "guardSignals": [
+        "oauthLimiter(...)"
+      ],
+      "source": "server/app/registerApplicationAuth.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/v1/oauth/device/authorization"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "oauthLimiter(...)"
+      ],
+      "guardSignals": [
+        "oauthLimiter(...)"
+      ],
+      "source": "server/app/registerApplicationAuth.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/v1/oauth/device/approve"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "oauthLimiter(...)"
+      ],
+      "guardSignals": [
+        "oauthLimiter(...)"
+      ],
+      "source": "server/app/registerApplicationAuth.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/v1/oauth/token"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "oauthLimiter(...)"
+      ],
+      "guardSignals": [
+        "oauthLimiter(...)"
+      ],
+      "source": "server/app/registerApplicationAuth.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/v1/oauth/revoke"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "oauthLimiter(...)"
+      ],
+      "guardSignals": [
+        "oauthLimiter(...)"
+      ],
+      "source": "server/app/registerApplicationAuth.ts",
+      "sourceOrder": 4
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/v1"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "createApplicationAuthRouter(...)"
+      ],
+      "guardSignals": [
+        "createApplicationAuthRouter(...)"
+      ],
+      "source": "server/app/registerApplicationAuth.ts",
+      "sourceOrder": 5
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/v1"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "createPublicApiRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/app/registerPublicApi.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "createAdminApiKeyRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/app/registerPublicApi.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/decks",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.accessGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.accessGuard"
+      ],
+      "source": "server/arenaDeckRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/article-cover",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/articleCoverRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/articles/access-link",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/articleRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/articles",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/articleRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/articles/:articleId/vote",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/articleRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/auth/register",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/authCredentialRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/auth/login",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/authCredentialRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/auth/me",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/authProfileRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "PATCH",
+      "path": "/auth/profile",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/authProfileRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/auth/logout",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/authProfileRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/auth/verify",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/authVerificationRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/library/minions/:slugAndDbfId/",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "handlerFor(...)",
+      "guardSignals": [],
+      "source": "server/battlegroundLibrarySeoRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/library/spells/:slugAndDbfId/",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "handlerFor(...)",
+      "guardSignals": [],
+      "source": "server/battlegroundLibrarySeoRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/battlegrounds-library",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.requireAccess"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.requireAccess"
+      ],
+      "source": "server/battlegroundProxyRoutes.ts",
+      "sourceOrder": 0,
+      "expansionOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/battlegrounds-spells",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.requireAccess"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.requireAccess"
+      ],
+      "source": "server/battlegroundProxyRoutes.ts",
+      "sourceOrder": 0,
+      "expansionOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/battlegrounds-card-names",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.requireAccess"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.requireAccess"
+      ],
+      "source": "server/battlegroundProxyRoutes.ts",
+      "sourceOrder": 0,
+      "expansionOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/bg-comps",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.requireAccess"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.requireAccess"
+      ],
+      "source": "server/battlegroundProxyRoutes.ts",
+      "sourceOrder": 0,
+      "expansionOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/card-art",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.requireAccess"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.requireAccess"
+      ],
+      "source": "server/battlegroundProxyRoutes.ts",
+      "sourceOrder": 0,
+      "expansionOrder": 4
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/remote-image",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.requireAccess"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.requireAccess"
+      ],
+      "source": "server/battlegroundProxyRoutes.ts",
+      "sourceOrder": 0,
+      "expansionOrder": 5
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/bg/heroes",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.requireAccess"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.requireAccess"
+      ],
+      "source": "server/battlegroundProxyRoutes.ts",
+      "sourceOrder": 1,
+      "expansionOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/bg/library/meta",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.requireAccess"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.requireAccess"
+      ],
+      "source": "server/battlegroundProxyRoutes.ts",
+      "sourceOrder": 1,
+      "expansionOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/bg/library/cards",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.requireAccess"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.requireAccess"
+      ],
+      "source": "server/battlegroundProxyRoutes.ts",
+      "sourceOrder": 1,
+      "expansionOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/bg/library/minion-stats",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.requireAccess"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.requireAccess"
+      ],
+      "source": "server/battlegroundProxyRoutes.ts",
+      "sourceOrder": 1,
+      "expansionOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/bg/library/spell-stats",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.requireAccess"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.requireAccess"
+      ],
+      "source": "server/battlegroundProxyRoutes.ts",
+      "sourceOrder": 1,
+      "expansionOrder": 4
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/bg/tier-lists",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.requireAccess"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.requireAccess"
+      ],
+      "source": "server/battlegroundProxyRoutes.ts",
+      "sourceOrder": 1,
+      "expansionOrder": 5
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/bg/heroes/compositions",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.requireAccess"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.requireAccess"
+      ],
+      "source": "server/battlegroundProxyRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/bg/heroes/:dbfId/details",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.requireAccess"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.requireAccess"
+      ],
+      "source": "server/battlegroundProxyRoutes.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/bg/library/cards/by-dbf/:dbfId",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.requireAccess"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.requireAccess"
+      ],
+      "source": "server/battlegroundProxyRoutes.ts",
+      "sourceOrder": 4
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/bg/library/minions/:dbfId",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.requireAccess"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.requireAccess"
+      ],
+      "source": "server/battlegroundProxyRoutes.ts",
+      "sourceOrder": 5
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/bg/library/minions/:dbfId/history",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.requireAccess"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.requireAccess"
+      ],
+      "source": "server/battlegroundProxyRoutes.ts",
+      "sourceOrder": 6
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/bg/library/extra/:library",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.requireAccess"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.requireAccess"
+      ],
+      "source": "server/battlegroundProxyRoutes.ts",
+      "sourceOrder": 7
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/heroes/:dbfId/",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "handler",
+      "guardSignals": [],
+      "source": "server/battlegroundSeoRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/card-image/:cardId/:variant.webp",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/cardImageRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/class-matchups",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.accessGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.accessGuard"
+      ],
+      "source": "server/classMatchupRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/telemetry/client-errors",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "handler",
+      "guardSignals": [],
+      "source": "server/clientErrorRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/constructed-archetypes/teaser",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/constructedArchetypeRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/constructed-archetypes/teaser/:format/:slug",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/constructedArchetypeRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/constructed-archetypes"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "dependencies.accessGuard",
+        "responseGuard(dependencies)"
+      ],
+      "guardSignals": [
+        "dependencies.accessGuard",
+        "responseGuard(dependencies)"
+      ],
+      "source": "server/constructedArchetypeRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/constructed-archetypes",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/constructedArchetypeRoutes.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/constructed-archetypes/:format/:slug",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/constructedArchetypeRoutes.ts",
+      "sourceOrder": 4
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/constructed-cards"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "protectAdminCards"
+      ],
+      "guardSignals": [],
+      "source": "server/constructedCardRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/admin/constructed-cards"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "dependencies.adminGuard",
+        "protectAdminCards"
+      ],
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/constructedCardRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/constructed-cards",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "listHandler",
+      "guardSignals": [],
+      "source": "server/constructedCardRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/constructed-cards",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "listHandler",
+      "guardSignals": [],
+      "source": "server/constructedCardRoutes.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/constructed-cards/:cardId",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "detailHandler",
+      "guardSignals": [],
+      "source": "server/constructedCardRoutes.ts",
+      "sourceOrder": 4
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/constructed-cards/:cardId",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "detailHandler",
+      "guardSignals": [],
+      "source": "server/constructedCardRoutes.ts",
+      "sourceOrder": 5
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/constructed-cards/:cardId/history",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "historyHandler",
+      "guardSignals": [],
+      "source": "server/constructedCardRoutes.ts",
+      "sourceOrder": 6
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/constructed-cards/:cardId/history",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "historyHandler",
+      "guardSignals": [],
+      "source": "server/constructedCardRoutes.ts",
+      "sourceOrder": 7
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/constructed-cards/:cardId/decks/:deckId/preview",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "previewHandler",
+      "guardSignals": [],
+      "source": "server/constructedCardRoutes.ts",
+      "sourceOrder": 8
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/constructed-cards/:cardId/decks/:deckId/preview",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "previewHandler",
+      "guardSignals": [],
+      "source": "server/constructedCardRoutes.ts",
+      "sourceOrder": 9
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/standard/cards/:format/:cardId/",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "handler",
+      "guardSignals": [],
+      "source": "server/constructedCardSeoRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/contests",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/contestRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/contests/:contestId/join",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/contestRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/profile/contest-history",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/contestRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/cosmetics/media",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/cosmeticsRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/cosmetics/:kind(heroes|coins|pets)",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/cosmeticsRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/cosmetics/:kind(heroes|coins|pets)/:cardId",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/cosmeticsRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/cosmetics/:kind/:cardId/",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "handler",
+      "guardSignals": [],
+      "source": "server/cosmeticsSeoRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/deck/resolve",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/deckBuilderRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/deck/resolve",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/deckBuilderRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/deck-builder/resolve",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/deckBuilderRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/deck-builder/hydrate",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/deckBuilderRoutes.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/deck/render",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/deckRenderRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/sitemap.xml",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "fixedHandler(indexDocument)",
+      "guardSignals": [],
+      "source": "server/entitySitemapRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/sitemaps/static.xml",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "fixedHandler(staticDocument)",
+      "guardSignals": [],
+      "source": "server/entitySitemapRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/sitemaps/standard-cards.xml",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/entitySitemapRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "ALL",
+      "path": "/^\\/sitemaps\\/.*$/",
+      "pathKind": "regexp",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/entitySitemapRoutes.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/gallery",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/galleryRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/gallery/:id/:kind(original|preview|thumb)",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/galleryRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/gallery/:id/download",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/galleryRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/gallery",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/galleryRoutes.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/gallery",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/galleryRoutes.ts",
+      "sourceOrder": 4
+    },
+    {
+      "kind": "route",
+      "method": "DELETE",
+      "path": "/admin/gallery/:id",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/galleryRoutes.ts",
+      "sourceOrder": 5
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/search",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/globalSearchRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/guides-archive",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.accessGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.accessGuard"
+      ],
+      "source": "server/guidesArchiveRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/guides-archive/:slug",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.accessGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.accessGuard"
+      ],
+      "source": "server/guidesArchiveRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/live",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/healthRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/ready",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/healthRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/data",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/healthRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/home/summary",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/homeSummaryRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "requestLoggingMiddleware(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "<inline-handler>"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "compression(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/uploads/admin"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "express.static(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "<inline-handler>"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 4
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/public-resource/"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "publicMediaLimiter"
+      ],
+      "guardSignals": [
+        "publicMediaLimiter"
+      ],
+      "source": "server/index.ts",
+      "sourceOrder": 5
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/article-cover"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "publicMediaLimiter"
+      ],
+      "guardSignals": [
+        "publicMediaLimiter"
+      ],
+      "source": "server/index.ts",
+      "sourceOrder": 6
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "apiLimiter"
+      ],
+      "guardSignals": [
+        "apiLimiter"
+      ],
+      "source": "server/index.ts",
+      "sourceOrder": 7
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "<inline-handler>"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 8
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "<inline-handler>"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 9
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createUploadAuthorizationGuard(...)"
+      ],
+      "guardSignals": [
+        "createUploadAuthorizationGuard(...)"
+      ],
+      "source": "server/index.ts",
+      "sourceOrder": 10
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createRouteAwareJsonParser(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 11
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "express.urlencoded(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 12
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/_internal"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createTierlistCacheBustRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 13
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createHomeSummaryRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 14
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createCardImageRouter(cardImageRouterDependencies)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 15
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createWinrateRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 16
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createClassMatchupRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 17
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createStandardMatchupRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 18
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createEntitySitemapRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 19
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createConstructedCardSeoRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 20
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createBattlegroundHeroSeoRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 21
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createBattlegroundLibrarySeoRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 22
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createConstructedCardRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 23
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createDeckRenderRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 24
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createGlobalSearchRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 25
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createStandardMetaRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 26
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createConstructedArchetypeRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 27
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createTierlistRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 28
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createLegendaryRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 29
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createArenaDecksRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 30
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createGalleryRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 31
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createPublicResourceRouter()"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 32
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createCosmeticsRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 33
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createCosmeticsSeoRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 34
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createArticleRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 35
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createGuidesArchiveRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 36
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createArticleCoverRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 37
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createBattlegroundProxyRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 38
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/health"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "healthRouter"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 39
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/health"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "healthRouter"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 40
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/metrics"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "metricsRouter"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 41
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/metrics"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "metricsRouter"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 42
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createWebVitalsRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 43
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createClientErrorRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 44
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createOperationalRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 45
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/auth/register"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "authCodeRequestLimiter"
+      ],
+      "guardSignals": [
+        "authCodeRequestLimiter"
+      ],
+      "source": "server/index.ts",
+      "sourceOrder": 46
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/auth/login"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "authPasswordLimiter",
+        "authCodeRequestLimiter"
+      ],
+      "guardSignals": [
+        "authPasswordLimiter",
+        "authCodeRequestLimiter"
+      ],
+      "source": "server/index.ts",
+      "sourceOrder": 47
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAuthCredentialRouter(...)"
+      ],
+      "guardSignals": [
+        "createAuthCredentialRouter(...)"
+      ],
+      "source": "server/index.ts",
+      "sourceOrder": 48
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/auth/password-reset/request"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "authCodeRequestLimiter"
+      ],
+      "guardSignals": [
+        "authCodeRequestLimiter"
+      ],
+      "source": "server/index.ts",
+      "sourceOrder": 49
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/auth/password-reset/confirm"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "authCodeVerifyLimiter"
+      ],
+      "guardSignals": [
+        "authCodeVerifyLimiter"
+      ],
+      "source": "server/index.ts",
+      "sourceOrder": 50
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createPasswordResetRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 51
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/api/auth/telegram/config",
+      "pathKind": "string",
+      "receiver": "app",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 52
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/api/auth/telegram/link-code",
+      "pathKind": "string",
+      "receiver": "app",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 53
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/api/auth/telegram/bot/webhook",
+      "pathKind": "string",
+      "receiver": "app",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 54
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/api/auth/telegram/start",
+      "pathKind": "string",
+      "receiver": "app",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 55
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/api/auth/telegram/callback",
+      "pathKind": "string",
+      "receiver": "app",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 56
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/api/auth/telegram",
+      "pathKind": "string",
+      "receiver": "app",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 57
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/auth/verify"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "authCodeVerifyLimiter"
+      ],
+      "guardSignals": [
+        "authCodeVerifyLimiter"
+      ],
+      "source": "server/index.ts",
+      "sourceOrder": 58
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAuthVerificationRouter(...)"
+      ],
+      "guardSignals": [
+        "createAuthVerificationRouter(...)"
+      ],
+      "source": "server/index.ts",
+      "sourceOrder": 59
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAuthProfileRouter(...)"
+      ],
+      "guardSignals": [
+        "createAuthProfileRouter(...)"
+      ],
+      "source": "server/index.ts",
+      "sourceOrder": 60
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createPublicProfileRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 61
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createSubscriptionRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 62
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createContestRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 63
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminContestReadRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 64
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminContestMutationRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 65
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminUserReadRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 66
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminBoostyRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 67
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminBoostyAnalyticsRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 68
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminTelegramReadRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 69
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminUserMutationRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 70
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminMailingReadRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 71
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminMailingPreviewRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 72
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminMailingDeliveryRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 73
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createNewsletterUnsubscribeRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 74
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/api/subscription/email/request",
+      "pathKind": "string",
+      "receiver": "app",
+      "middleware": [
+        "authCodeRequestLimiter"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "authCodeRequestLimiter"
+      ],
+      "source": "server/index.ts",
+      "sourceOrder": 75
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/api/subscription/email/confirm",
+      "pathKind": "string",
+      "receiver": "app",
+      "middleware": [
+        "authCodeVerifyLimiter"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "authCodeVerifyLimiter"
+      ],
+      "source": "server/index.ts",
+      "sourceOrder": 76
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createEcosystemInternalRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 77
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminArticleRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 78
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminImageUploadRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 79
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/r/:slug",
+      "pathKind": "string",
+      "receiver": "app",
+      "middleware": [],
+      "handler": "createReferralRedirectHandler(referralRouterDependencies)",
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 80
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createReferralRouter(referralRouterDependencies)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 81
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminClassPositionRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 82
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminArchetypeTranslationRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 83
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminArchetypesRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 84
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createDeckBuilderRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 85
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminMechanicTranslationRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 86
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminStandardOperationsRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 87
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createPublicFunDecksRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 88
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminFunDecksRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 89
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminArenaSynergyServiceRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 90
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminParserControlRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 91
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createAdminImageGenerationRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 92
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "structuredErrorMiddleware()"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 93
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/legendaries",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.accessGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.accessGuard"
+      ],
+      "source": "server/legendaryRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/metrics.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/oauth/device/code",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/applicationAuth/routes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/oauth/device/authorization",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/applicationAuth/routes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/oauth/device/approve",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/applicationAuth/routes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/oauth/token",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/applicationAuth/routes.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/oauth/revoke",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/applicationAuth/routes.ts",
+      "sourceOrder": 4
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/me",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/applicationAuth/routes.ts",
+      "sourceOrder": 5
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/ecosystem/internal/user",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.internalGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.internalGuard"
+      ],
+      "source": "server/modules/ecosystem/public.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/ecosystem/internal/subscription",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.internalGuard"
+      ],
+      "handler": "asyncHandler(<inline-handler>)",
+      "guardSignals": [
+        "dependencies.internalGuard"
+      ],
+      "source": "server/modules/ecosystem/public.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/ecosystem/internal/subscription",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.internalGuard"
+      ],
+      "handler": "asyncHandler(<inline-handler>)",
+      "guardSignals": [
+        "dependencies.internalGuard"
+      ],
+      "source": "server/modules/ecosystem/public.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/openapi.json",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/catalog/manifest",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/cards",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/cards/:cardId",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/card-statistics",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 4
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/cards/:cardId/statistics",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 5
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/cards/:cardId/statistics/history",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 6
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/meta-statistics",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 7
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/archetypes/:slug/statistics",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 8
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/archetypes/:slug/statistics/history",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 9
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/archetypes/:slug/analysis",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 10
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/deck-statistics",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 11
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/decks/:deckId/statistics",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 12
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/arena/statistics/classes",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 13
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/arena/statistics/cards",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 14
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/arena/statistics/legendaries",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 15
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/arena/statistics/matchups",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 16
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/battlegrounds/statistics/heroes",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 17
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/battlegrounds/statistics/heroes/:heroId",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 18
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/battlegrounds/statistics/minions",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 19
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/battlegrounds/statistics/minions/:dbfId/history",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 20
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/battlegrounds/statistics/spells",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 21
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/battlegrounds/statistics/tier-lists/:kind",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 22
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/cards/:cardId/images/:variant.webp",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 23
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/api-keys",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 24
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/api-keys",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 25
+    },
+    {
+      "kind": "route",
+      "method": "DELETE",
+      "path": "/admin/api-keys/:id",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/publicApi/routes.ts",
+      "sourceOrder": 26
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/newsletter/unsubscribe",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/newsletterUnsubscribeRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/newsletter/unsubscribe",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/newsletterUnsubscribeRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/status",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/operationalRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/scrape",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.scrapeGuard",
+        "dependencies.scrapeLimiter"
+      ],
+      "handler": "dependencies.scrapeQueueHandler",
+      "guardSignals": [
+        "dependencies.scrapeGuard",
+        "dependencies.scrapeLimiter"
+      ],
+      "source": "server/operationalRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/check-ip",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/operationalRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/auth/password-reset/request",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/passwordResetRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/auth/password-reset/confirm",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/passwordResetRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/profiles/:publicProfileId",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/publicProfileRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/public-resource/:source/*",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/publicResourceRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/referrals/track/:slug",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/referralRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/referrals",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/referralRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/referrals",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/referralRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/standard/matchups",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.accessGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.accessGuard"
+      ],
+      "source": "server/standardMatchupRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/standard-meta/teaser",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/standardMetaRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/standard-meta"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "dependencies.accessGuard",
+        "protectAdminStats"
+      ],
+      "guardSignals": [
+        "dependencies.accessGuard"
+      ],
+      "source": "server/standardMetaRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/vicious-syndicate-gold"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "dependencies.accessGuard",
+        "protectAdminStats"
+      ],
+      "guardSignals": [
+        "dependencies.accessGuard"
+      ],
+      "source": "server/standardMetaRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/admin/standard-meta"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "dependencies.adminGuard",
+        "protectAdminStats"
+      ],
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/standardMetaRoutes.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/admin/vicious-syndicate-gold"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "dependencies.adminGuard",
+        "protectAdminStats"
+      ],
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/standardMetaRoutes.ts",
+      "sourceOrder": 4
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/standard-meta",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "metaHandler",
+      "guardSignals": [],
+      "source": "server/standardMetaRoutes.ts",
+      "sourceOrder": 5
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/standard-meta",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "metaHandler",
+      "guardSignals": [],
+      "source": "server/standardMetaRoutes.ts",
+      "sourceOrder": 6
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/vicious-syndicate-gold/builds",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "viciousBuildsHandler",
+      "guardSignals": [],
+      "source": "server/standardMetaRoutes.ts",
+      "sourceOrder": 7
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/vicious-syndicate-gold/builds",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "viciousBuildsHandler",
+      "guardSignals": [],
+      "source": "server/standardMetaRoutes.ts",
+      "sourceOrder": 8
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/vicious-syndicate-gold",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "viciousHandler",
+      "guardSignals": [],
+      "source": "server/standardMetaRoutes.ts",
+      "sourceOrder": 9
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/vicious-syndicate-gold",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "viciousHandler",
+      "guardSignals": [],
+      "source": "server/standardMetaRoutes.ts",
+      "sourceOrder": 10
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/standard-meta/recommendation",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "recommendationHandler",
+      "guardSignals": [],
+      "source": "server/standardMetaRoutes.ts",
+      "sourceOrder": 11
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/standard-meta/recommendation",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "recommendationHandler",
+      "guardSignals": [],
+      "source": "server/standardMetaRoutes.ts",
+      "sourceOrder": 12
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/standard-meta/preview",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "previewCreateHandler",
+      "guardSignals": [],
+      "source": "server/standardMetaRoutes.ts",
+      "sourceOrder": 13
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/admin/standard-meta/preview",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "previewCreateHandler",
+      "guardSignals": [],
+      "source": "server/standardMetaRoutes.ts",
+      "sourceOrder": 14
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/standard-meta/preview/:hash",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "previewReadHandler",
+      "guardSignals": [],
+      "source": "server/standardMetaRoutes.ts",
+      "sourceOrder": 15
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/standard-meta/preview/:hash",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "previewReadHandler",
+      "guardSignals": [],
+      "source": "server/standardMetaRoutes.ts",
+      "sourceOrder": 16
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/subscription/status",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/subscriptionRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/subscription/refresh",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/subscriptionRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/tierlist/cache-bust",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/tierlistCacheBustRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/tierlist",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.accessGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.accessGuard"
+      ],
+      "source": "server/tierlistRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/telemetry/web-vitals",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "handler",
+      "guardSignals": [],
+      "source": "server/webVitalsRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/winrates",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.accessGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.accessGuard"
+      ],
+      "source": "server/winrateRoutes.ts",
+      "sourceOrder": 0
+    }
+  ]
+}

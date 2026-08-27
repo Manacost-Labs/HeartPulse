@@ -200,6 +200,7 @@
         "tests/csrf.test.ts",
         "tests/deferred-route-boundaries.test.mjs",
         "tests/favicon-assets.test.mjs",
+        "tests/http-route-manifest.test.mjs",
         "tests/network-boundary.test.ts",
         "tests/page-tour-engine-contracts.test.ts",
         "tests/parser-control-ui-contract.test.tsx",
