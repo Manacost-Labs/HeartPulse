@@ -1,6 +1,6 @@
 # Clean-code quality gate
 
-## Purpose and first-slice scope
+## Purpose and authored scope
 
 The clean-code gate prevents new TypeScript and TSX debt while legacy code is
 reduced through small vertical slices. It is local, deterministic and does not
@@ -8,10 +8,18 @@ use network services or add a dependency. The implementation composes the
 existing TypeScript AST inventory and named-function analyzer instead of
 parsing another command's console output or maintaining a third analyzer.
 
-This first slice enforces authored files below `src/`, `server/` and `shared/`.
+The gate enforces authored TypeScript and TSX below `src/`, `server/` and
+`shared/`, plus JavaScript and TypeScript modules below `scripts/clean-code/`.
 Generated, build, dependency and vendored trees are excluded. CSS, React hook
 complexity, import fan-out and dead-code candidates remain reportable work for
 later slices; they are not silently claimed as enforced here.
+
+The implementation is deliberately layered: source collection depends on the
+shared AST analyzers, validation has no I/O, evaluation is pure, reporting only
+serializes results, and the CLI owns Git, clock and filesystem boundaries. The
+runtime module graph is acyclic and cannot import tests. Every clean-code
+module is itself a new authored file, so the 250-line and 120-line function
+limits apply without adding tooling paths to a legacy registry.
 
 ## Commands
 
@@ -106,19 +114,18 @@ zero unsuppressed findings and no exceptions.
 
 ## Hardening contract
 
-The next ratchet revision must make the changed range auditable instead of
-inferring success from an empty diff. Reports identify the checked `head`,
+The hardened ratchet makes the changed range auditable instead of inferring
+success from an empty diff. Reports identify the checked `head`,
 `base`, base source and changed authored-file count. GitHub push and pull
 request workflows provide their event SHAs explicitly. When an implicit CI
 base cannot be proved, the gate checks the full authored scope; an invalid
 explicit base is an error.
 
-Confirmed Git renames must retain every path-keyed clean-code budget through a
+Confirmed Git renames retain every path-keyed clean-code budget through a
 previewed, reduction-only migration. Acceptance updates the file-line,
 source-debt and function-size registries together and rewrites exact exception
 IDs. Conflicts and growth fail closed.
 
-The authored scope also includes JavaScript and TypeScript modules below
-`scripts/clean-code/`. The gate implementation therefore follows the same
-250-line new-file ceiling and function-size limits that it enforces on product
-code; it is not admitted to the legacy baseline.
+Validation dates are passed into pure functions by the CLI clock boundary.
+Tests use fixed dates, so expiry behavior and report bytes do not depend on the
+machine clock.

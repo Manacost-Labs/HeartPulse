@@ -103,7 +103,7 @@ function importIsTypeOnly(node) {
   return ts.isExportDeclaration(node) && node.isTypeOnly;
 }
 
-function sourceMetrics(file, source) {
+export function analyzeSourceMetrics(file, source) {
   const metrics = {
     explicitAny: 0,
     imports: [],
@@ -387,7 +387,7 @@ export function analyzeArchitecture(repositoryRoot, options = {}) {
     const source = readFileSync(file, 'utf8');
     const extension = path.extname(file);
     const analysis = CODE_EXTENSIONS.includes(extension)
-      ? sourceMetrics(file, source)
+      ? analyzeSourceMetrics(file, source)
       : {
         explicitAny: 0,
         imports: [],

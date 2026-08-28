@@ -1,16 +1,9 @@
 #!/usr/bin/env node
 
-import {
-  existsSync,
-  readFileSync,
-  readdirSync,
-} from 'node:fs';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import ts from 'typescript';
 
-import { analyzeArchitecture } from '../architecture-baseline.mjs';
-import { collectFunctionSizes } from '../check-function-size-budgets.mjs';
 import {
   createCleanCodeBaselineCandidate,
   evaluateCleanCodeSnapshot,
@@ -22,107 +15,15 @@ import {
   createBudgetMigration,
 } from './baseline-migration.mjs';
 import {
-  changedFileMappings,
   resolveCleanCodeScope,
 } from './git-scope.mjs';
-import { isAuthoredSource } from './source-scope.mjs';
+import { collectCleanCodeSnapshot } from './source-collection.mjs';
 
 export { changedFileMappings } from './git-scope.mjs';
 export { isAuthoredSource as isAuthoredTypeScript } from './source-scope.mjs';
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const BASELINE_PATH = 'config/clean-code-baseline.json';
-const PRODUCT_ROOTS = ['src', 'server', 'shared'];
-const IGNORED_DIRECTORIES = new Set([
-  '.git',
-  'build',
-  'coverage',
-  'dist',
-  'node_modules',
-  'storybook-static',
-  'vendor',
-]);
-const SOURCE_DEBT_ENTRIES = {
-  explicitAny: baseline => baseline.source.explicitAny.entries,
-  typeScriptSuppressions: baseline => baseline.source.typeScriptSuppressions.entries,
-  nonNullAssertions: baseline => baseline.source.nonNullAssertions.entries,
-  frontendRawFetch: baseline => baseline.source.rawFetch.frontendEntries,
-};
-
-function relativePath(repositoryRoot, absolutePath) {
-  return path.relative(repositoryRoot, absolutePath).split(path.sep).join('/');
-}
-
-function collectTypeScriptFiles(directory, repositoryRoot, files) {
-  for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    if (entry.isDirectory()) {
-      if (!IGNORED_DIRECTORIES.has(entry.name)) {
-        collectTypeScriptFiles(path.join(directory, entry.name), repositoryRoot, files);
-      }
-      continue;
-    }
-    if (!entry.isFile()) continue;
-    const file = relativePath(repositoryRoot, path.join(directory, entry.name));
-    if (isAuthoredSource(file)) files.push(file);
-  }
-}
-
-function physicalLines(source) {
-  if (source.length === 0) return 0;
-  return (source.endsWith('\n') ? source.slice(0, -1) : source).split('\n').length;
-}
-
-function scriptKind(file) {
-  return file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
-}
-
-function diagnosticEntry(sourceFile, diagnostic) {
-  const position = sourceFile.getLineAndCharacterOfPosition(diagnostic.start ?? 0);
-  return {
-    code: diagnostic.code,
-    line: position.line + 1,
-    character: position.character + 1,
-    message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
-  };
-}
-
-export function collectCleanCodeSnapshot(repositoryRoot) {
-  const absoluteRoot = path.resolve(repositoryRoot);
-  const architecture = analyzeArchitecture(absoluteRoot);
-  const metricMaps = Object.fromEntries(Object.entries(SOURCE_DEBT_ENTRIES).map(([metric, select]) => [
-    metric,
-    new Map(select(architecture).map(entry => [entry.file, entry.count])),
-  ]));
-  const files = [];
-  for (const productRoot of PRODUCT_ROOTS) {
-    const directory = path.join(absoluteRoot, productRoot);
-    if (existsSync(directory)) collectTypeScriptFiles(directory, absoluteRoot, files);
-  }
-  files.sort((left, right) => left.localeCompare(right, 'en'));
-  return {
-    files: files.map(file => {
-      const source = readFileSync(path.join(absoluteRoot, file), 'utf8');
-      const sourceFile = ts.createSourceFile(
-        file,
-        source,
-        ts.ScriptTarget.Latest,
-        true,
-        scriptKind(file),
-      );
-      return {
-        file,
-        lines: physicalLines(source),
-        metrics: Object.fromEntries(Object.entries(metricMaps).map(([metric, counts]) => [
-          metric,
-          counts.get(file) ?? 0,
-        ])),
-        parseDiagnostics: sourceFile.parseDiagnostics.map(diagnostic => diagnosticEntry(sourceFile, diagnostic)),
-      };
-    }),
-    functions: collectFunctionSizes(absoluteRoot).filter(entry => isAuthoredSource(entry.file)),
-  };
-}
-
 function readJson(repositoryRoot, file) {
   try {
     return JSON.parse(readFileSync(path.join(repositoryRoot, file), 'utf8'));
@@ -142,11 +43,12 @@ function resolveScope(command, repositoryRoot) {
   return resolveCleanCodeScope({ env: process.env, repositoryRoot });
 }
 
-export function main(repositoryRoot = PROJECT_ROOT) {
+export function main(repositoryRoot = PROJECT_ROOT, { clock = () => new Date() } = {}) {
   const command = process.argv[2] || 'check';
   const format = argumentValue('--format') || 'human';
+  const today = clock().toISOString().slice(0, 10);
   const baseline = readJson(repositoryRoot, BASELINE_PATH);
-  validateCleanCodeBaseline(baseline);
+  validateCleanCodeBaseline(baseline, today);
   const sourceDebtRegistry = readJson(repositoryRoot, baseline.budgetSources.sourceDebt);
   const functionSizeRegistry = readJson(repositoryRoot, baseline.budgetSources.functionSize);
   const snapshot = collectCleanCodeSnapshot(repositoryRoot);
@@ -159,8 +61,9 @@ export function main(repositoryRoot = PROJECT_ROOT) {
       sourceDebtRegistry,
       functionSizeRegistry,
       mappings: renameScope.files,
+      today,
     });
-    const candidate = createCleanCodeBaselineCandidate(snapshot, migration.baseline);
+    const candidate = createCleanCodeBaselineCandidate(snapshot, migration.baseline, today);
     const initialize = process.argv.includes('--initialize')
       && Object.keys(baseline.legacy.fileLines).length === 0;
     const nextBaseline = candidate.baseline;
@@ -169,6 +72,7 @@ export function main(repositoryRoot = PROJECT_ROOT) {
       sourceDebtRegistry: migration.sourceDebtRegistry,
       functionSizeRegistry: migration.functionSizeRegistry,
       scope: { mode: 'full' },
+      today,
     });
     const violations = [...new Map([
       ...migration.violations,
@@ -220,6 +124,7 @@ export function main(repositoryRoot = PROJECT_ROOT) {
     sourceDebtRegistry,
     functionSizeRegistry,
     scope,
+    today,
   });
   const output = scope.head ? {
     ...report,
