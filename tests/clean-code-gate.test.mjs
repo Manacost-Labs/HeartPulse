@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import {
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   renameSync,
   rmSync,
   writeFileSync,
@@ -16,6 +17,10 @@ import {
   isAuthoredTypeScript,
 } from '../scripts/clean-code/cli.mjs';
 import { resolveCleanCodeScope } from '../scripts/clean-code/git-scope.mjs';
+import {
+  acceptBudgetMigration,
+  createBudgetMigration,
+} from '../scripts/clean-code/baseline-migration.mjs';
 import {
   createCleanCodeBaselineCandidate,
   evaluateCleanCodeSnapshot,
@@ -370,6 +375,167 @@ test('pull requests, dispatch inputs and local branches expose their base source
     const local = resolveCleanCodeScope({ repositoryRoot: repository, env: {} });
     assert.equal(local.baseSource, 'local-merge-base');
     assert.equal(local.base, base);
+  } finally {
+    rmSync(repository, { recursive: true, force: true });
+  }
+});
+
+test('rename migration moves and reduces every path-keyed registry and exception ID', () => {
+  const activeException = {
+    id: 'source-debt:explicitAny:src/legacy.ts',
+    owner: 'platform',
+    reason: 'Temporary compatibility type',
+    expires: '2026-09-30',
+  };
+  const plan = createBudgetMigration({
+    snapshot: snapshot(
+      [file('src/renamed.ts', 280, { explicitAny: 1 })],
+      [{ file: 'src/renamed.ts', name: 'legacyFunction', lines: 160 }],
+    ),
+    baseline: { ...baseline, exceptions: [activeException] },
+    sourceDebtRegistry: sourceDebt,
+    functionSizeRegistry: functionSize,
+    mappings: [{ file: 'src/renamed.ts', baselineFile: 'src/legacy.ts' }],
+    today: '2026-08-28',
+  });
+
+  assert.equal(plan.canAccept, true);
+  assert.deepEqual(plan.violations, []);
+  assert.deepEqual(plan.baseline.legacy.fileLines, { 'src/renamed.ts': 280 });
+  assert.deepEqual(plan.sourceDebtRegistry.budgets.explicitAny, { 'src/renamed.ts': 1 });
+  assert.deepEqual(plan.functionSizeRegistry.exceptions, {
+    'src/renamed.ts#legacyFunction': 160,
+  });
+  assert.equal(plan.baseline.exceptions[0].id, 'source-debt:explicitAny:src/renamed.ts');
+  assert.equal(JSON.stringify(plan), JSON.stringify(createBudgetMigration({
+    snapshot: snapshot(
+      [file('src/renamed.ts', 280, { explicitAny: 1 })],
+      [{ file: 'src/renamed.ts', name: 'legacyFunction', lines: 160 }],
+    ),
+    baseline: { ...baseline, exceptions: [activeException] },
+    sourceDebtRegistry: sourceDebt,
+    functionSizeRegistry: functionSize,
+    mappings: [{ file: 'src/renamed.ts', baselineFile: 'src/legacy.ts' }],
+    today: '2026-08-28',
+  })));
+});
+
+test('rename migration rejects growth and destination conflicts', () => {
+  const growth = createBudgetMigration({
+    snapshot: snapshot(
+      [file('src/renamed.ts', 301, { explicitAny: 2 })],
+      [{ file: 'src/renamed.ts', name: 'legacyFunction', lines: 181 }],
+    ),
+    baseline,
+    sourceDebtRegistry: sourceDebt,
+    functionSizeRegistry: functionSize,
+    mappings: [{ file: 'src/renamed.ts', baselineFile: 'src/legacy.ts' }],
+    today: '2026-08-28',
+  });
+  assert.equal(growth.canAccept, false);
+  assert.deepEqual(growth.violations.map(entry => entry.id), [
+    'file-lines:src/renamed.ts',
+    'function-lines:src/renamed.ts#legacyFunction',
+    'source-debt:explicitAny:src/renamed.ts',
+  ]);
+
+  const conflict = createBudgetMigration({
+    snapshot: snapshot([file('src/renamed.ts', 280)]),
+    baseline: {
+      ...baseline,
+      legacy: { fileLines: { ...baseline.legacy.fileLines, 'src/renamed.ts': 290 } },
+    },
+    sourceDebtRegistry: sourceDebt,
+    functionSizeRegistry: functionSize,
+    mappings: [{ file: 'src/renamed.ts', baselineFile: 'src/legacy.ts' }],
+    today: '2026-08-28',
+  });
+  assert.equal(conflict.canAccept, false);
+  assert.match(conflict.violations[0].id, /^rename-conflict:/);
+});
+
+test('real Git rename lifecycle survives baseline acceptance and blocks later growth', () => {
+  const { repository, git } = gitRepository();
+  const configDirectory = path.join(repository, 'config');
+  const oldPath = path.join(repository, 'src', 'base.ts');
+  const newPath = path.join(repository, 'src', 'renamed.ts');
+  const lines = Array.from({ length: 300 }, (_, index) => `export const line${index} = ${index};`);
+  try {
+    mkdirSync(configDirectory, { recursive: true });
+    writeFileSync(oldPath, `${lines.join('\n')}\n`);
+    git('add', '.');
+    git('commit', '-qm', 'large legacy source');
+    git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+    const renameBase = git('rev-parse', 'HEAD');
+
+    const repositoryBaseline = {
+      ...baseline,
+      legacy: { fileLines: { 'src/base.ts': 300 } },
+    };
+    const repositoryDebt = {
+      ...sourceDebt,
+      budgets: { ...sourceDebt.budgets, explicitAny: { 'src/base.ts': 1 } },
+    };
+    const repositoryFunctions = {
+      ...functionSize,
+      exceptions: { 'src/base.ts#legacyFunction': 180 },
+    };
+    writeFileSync(path.join(configDirectory, 'clean-code-baseline.json'), `${JSON.stringify(repositoryBaseline, null, 2)}\n`);
+    writeFileSync(path.join(configDirectory, 'source-debt-budgets.json'), `${JSON.stringify(repositoryDebt, null, 2)}\n`);
+    writeFileSync(path.join(configDirectory, 'function-size-budgets.json'), `${JSON.stringify(repositoryFunctions, null, 2)}\n`);
+
+    renameSync(oldPath, newPath);
+    writeFileSync(newPath, `${lines.slice(0, 280).join('\n')}\n`);
+    git('add', '-A');
+    const mappings = changedFileMappings(renameBase, repository);
+    assert.deepEqual(mappings, [{ file: 'src/renamed.ts', baselineFile: 'src/base.ts' }]);
+
+    const current = snapshot(
+      [file('src/renamed.ts', 280, { explicitAny: 1 })],
+      [{ file: 'src/renamed.ts', name: 'legacyFunction', lines: 160 }],
+    );
+    const plan = createBudgetMigration({
+      snapshot: current,
+      baseline: repositoryBaseline,
+      sourceDebtRegistry: repositoryDebt,
+      functionSizeRegistry: repositoryFunctions,
+      mappings,
+      today: '2026-08-28',
+    });
+    const beforePreview = readFileSync(path.join(configDirectory, 'clean-code-baseline.json'), 'utf8');
+    assert.equal(plan.canAccept, true);
+    assert.equal(readFileSync(path.join(configDirectory, 'clean-code-baseline.json'), 'utf8'), beforePreview);
+
+    acceptBudgetMigration(repository, plan);
+    const acceptedBaseline = JSON.parse(readFileSync(path.join(configDirectory, 'clean-code-baseline.json'), 'utf8'));
+    const acceptedDebt = JSON.parse(readFileSync(path.join(configDirectory, 'source-debt-budgets.json'), 'utf8'));
+    const acceptedFunctions = JSON.parse(readFileSync(path.join(configDirectory, 'function-size-budgets.json'), 'utf8'));
+    assert.deepEqual(acceptedBaseline.legacy.fileLines, { 'src/renamed.ts': 280 });
+    assert.deepEqual(acceptedDebt.budgets.explicitAny, { 'src/renamed.ts': 1 });
+    assert.deepEqual(acceptedFunctions.exceptions, { 'src/renamed.ts#legacyFunction': 160 });
+
+    git('add', '.');
+    git('commit', '-qm', 'accept renamed budgets');
+    writeFileSync(newPath, `${['export const changed = true;', ...lines.slice(1, 280)].join('\n')}\n`);
+    assert.equal(evaluateCleanCodeSnapshot(current, {
+      baseline: acceptedBaseline,
+      sourceDebtRegistry: acceptedDebt,
+      functionSizeRegistry: acceptedFunctions,
+      scope: { mode: 'full' },
+      today: '2026-08-28',
+    }).status, 'pass');
+
+    const grown = snapshot(
+      [file('src/renamed.ts', 281, { explicitAny: 1 })],
+      [{ file: 'src/renamed.ts', name: 'legacyFunction', lines: 160 }],
+    );
+    assert.deepEqual(evaluateCleanCodeSnapshot(grown, {
+      baseline: acceptedBaseline,
+      sourceDebtRegistry: acceptedDebt,
+      functionSizeRegistry: acceptedFunctions,
+      scope: { mode: 'full' },
+      today: '2026-08-28',
+    }).violations.map(entry => entry.id), ['file-lines:src/renamed.ts']);
   } finally {
     rmSync(repository, { recursive: true, force: true });
   }

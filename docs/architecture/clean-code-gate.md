@@ -81,11 +81,16 @@ To accept measured reductions after tests prove the change, run:
 npm run quality:clean-code:baseline -- --accept
 ```
 
-The command writes only `config/clean-code-baseline.json` and refuses a new or
-larger legacy file budget. `--initialize` is accepted only while the checked
-baseline is empty; it cannot be reused after the initial repository snapshot.
-Review the baseline diff and commit it atomically with the code and tests that
-caused the reduction.
+The command previews confirmed Git renames before writing. `--accept` stages
+and replaces `config/clean-code-baseline.json`, the source-debt registry and
+the function-size registry as one validated migration. File, source-debt and
+function ceilings may stay level or decrease during a rename; growth, an
+existing destination budget or a duplicate rewritten exception ID blocks the
+whole operation. Exact path-based exception IDs move with the renamed file.
+
+`--initialize` is accepted only while the checked baseline is empty; it cannot
+be reused after the initial repository snapshot. Review all three registry
+diffs and commit them atomically with the rename and its tests.
 
 ## CI relationship and current baseline
 

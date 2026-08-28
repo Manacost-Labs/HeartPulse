@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-const SOURCE_DEBT_METRICS = [
+export const SOURCE_DEBT_METRICS = [
   'explicitAny',
   'typeScriptSuppressions',
   'nonNullAssertions',
@@ -82,7 +82,7 @@ export function validateCleanCodeBaseline(baseline, today = new Date().toISOStri
   return baseline;
 }
 
-function validateSourceDebtRegistry(registry) {
+export function validateSourceDebtRegistry(registry) {
   if (!isRecord(registry) || registry.version !== 1 || !isRecord(registry.budgets)) {
     throw new Error('source debt registry version must be 1');
   }
@@ -96,7 +96,7 @@ function validateSourceDebtRegistry(registry) {
   }
 }
 
-function validateFunctionSizeRegistry(registry) {
+export function validateFunctionSizeRegistry(registry) {
   if (!isRecord(registry) || registry.version !== 1) {
     throw new Error('function size registry version must be 1');
   }

@@ -4,7 +4,6 @@ import {
   existsSync,
   readFileSync,
   readdirSync,
-  writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,6 +17,10 @@ import {
   renderCleanCodeReport,
   validateCleanCodeBaseline,
 } from './core.mjs';
+import {
+  acceptBudgetMigration,
+  createBudgetMigration,
+} from './baseline-migration.mjs';
 import {
   changedFileMappings,
   resolveCleanCodeScope,
@@ -149,43 +152,62 @@ export function main(repositoryRoot = PROJECT_ROOT) {
   const snapshot = collectCleanCodeSnapshot(repositoryRoot);
 
   if (command === 'baseline') {
-    const currentReport = evaluateCleanCodeSnapshot(snapshot, {
+    const renameScope = resolveCleanCodeScope({ env: process.env, repositoryRoot });
+    const migration = createBudgetMigration({
+      snapshot,
       baseline,
       sourceDebtRegistry,
       functionSizeRegistry,
-      scope: { mode: 'full' },
+      mappings: renameScope.files,
     });
-    const blockingViolations = currentReport.violations.filter(entry => entry.rule !== 'file-lines');
-    if (blockingViolations.length > 0) {
-      process.stdout.write(renderCleanCodeReport({
-        ...currentReport,
-        status: 'fail',
-        violations: blockingViolations,
-        summary: { ...currentReport.summary, violations: blockingViolations.length },
-      }, format));
-      return 1;
-    }
-    const candidate = createCleanCodeBaselineCandidate(snapshot, baseline);
+    const candidate = createCleanCodeBaselineCandidate(snapshot, migration.baseline);
     const initialize = process.argv.includes('--initialize')
       && Object.keys(baseline.legacy.fileLines).length === 0;
-    if (!candidate.canAccept && !initialize) {
+    const nextBaseline = candidate.baseline;
+    const currentReport = evaluateCleanCodeSnapshot(snapshot, {
+      baseline: nextBaseline,
+      sourceDebtRegistry: migration.sourceDebtRegistry,
+      functionSizeRegistry: migration.functionSizeRegistry,
+      scope: { mode: 'full' },
+    });
+    const violations = [...new Map([
+      ...migration.violations,
+      ...(!candidate.canAccept && !initialize ? candidate.increases : []),
+      ...currentReport.violations,
+    ].map(entry => [entry.id, entry])).values()]
+      .sort((left, right) => left.id.localeCompare(right.id, 'en'));
+    if (violations.length > 0) {
       process.stdout.write(renderCleanCodeReport({
         schemaVersion: 1,
         scope: 'full',
         status: 'fail',
         files: [],
-        violations: candidate.increases,
+        violations,
         suppressed: [],
-        summary: { files: snapshot.files.length, functions: snapshot.functions.length, violations: candidate.increases.length, suppressed: 0 },
+        summary: { files: snapshot.files.length, functions: snapshot.functions.length, violations: violations.length, suppressed: 0 },
       }, format));
       return 1;
     }
     if (process.argv.includes('--accept')) {
-      writeFileSync(path.join(repositoryRoot, BASELINE_PATH), `${JSON.stringify(candidate.baseline, null, 2)}\n`);
+      acceptBudgetMigration(repositoryRoot, {
+        ...migration,
+        canAccept: true,
+        baseline: nextBaseline,
+      });
     }
     process.stdout.write(format === 'json'
-      ? `${JSON.stringify(candidate.baseline, null, 2)}\n`
-      : `[clean-code] baseline ${process.argv.includes('--accept') ? 'accepted' : 'candidate'}: ${Object.keys(candidate.baseline.legacy.fileLines).length} legacy files\n`);
+      ? `${JSON.stringify({
+        schemaVersion: 1,
+        status: 'pass',
+        head: renameScope.head,
+        base: renameScope.base,
+        baseSource: renameScope.baseSource,
+        renames: migration.renames,
+        baseline: nextBaseline,
+        sourceDebtRegistry: migration.sourceDebtRegistry,
+        functionSizeRegistry: migration.functionSizeRegistry,
+      }, null, 2)}\n`
+      : `[clean-code] baseline ${process.argv.includes('--accept') ? 'accepted' : 'candidate'}: ${Object.keys(nextBaseline.legacy.fileLines).length} legacy files; renames=${migration.renames.length}\n`);
     return 0;
   }
 
