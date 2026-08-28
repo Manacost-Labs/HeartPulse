@@ -285,12 +285,16 @@ test('tooling snapshot enforces file, function and parse rules deterministically
       ...Array.from({ length: 130 }, (_, index) => `// padding ${index}`),
     ].join('\n');
     writeFileSync(path.join(toolingDirectory, 'oversized.mjs'), source);
+    writeFileSync(
+      path.join(toolingDirectory, 'within-limit.cjs'),
+      Array.from({ length: 250 }, (_, index) => `// accepted ${index}`).join('\n'),
+    );
 
     const first = collectCleanCodeSnapshot(repository);
     const second = collectCleanCodeSnapshot(repository);
     assert.deepEqual(first, second);
-    assert.equal(first.files[0].file, 'scripts/clean-code/oversized.mjs');
-    assert.equal(first.files[0].lines, 251);
+    assert.equal(first.files.find(entry => entry.file.endsWith('oversized.mjs')).lines, 251);
+    assert.equal(first.files.find(entry => entry.file.endsWith('within-limit.cjs')).lines, 250);
 
     const report = evaluateCleanCodeSnapshot(first, {
       baseline: { ...baseline, legacy: { fileLines: {} } },
