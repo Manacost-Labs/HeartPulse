@@ -200,6 +200,7 @@
         "tests/agent-tooling-contract.test.mjs",
         "tests/api-rate-limit-policy.test.ts",
         "tests/app-error-boundary.test.tsx",
+        "tests/clean-code-gate.test.mjs",
         "tests/auth-security.test.ts",
         "tests/cosmetics-ui-contract.test.ts",
         "tests/csrf.test.ts",
