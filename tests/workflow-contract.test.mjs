@@ -68,6 +68,16 @@ assert.match(ciWorkflow, /environment:\s*\n\s*name:\s*production\s*\n\s*url:\s*h
 assert.match(ciWorkflow, /group:\s*hs-arena-production/);
 assert.match(ciWorkflow, /cancel-in-progress:\s*false/);
 const productionJob = ciWorkflow.slice(ciWorkflow.indexOf('  deploy-production:'));
+const helperPreflightIndex = productionJob.indexOf('- name: Verify installed deploy helper contract');
+const artifactDownloadIndex = productionJob.indexOf('- name: Download validated release');
+assert.ok(helperPreflightIndex >= 0, 'production must verify the installed helper contract');
+assert.ok(
+  helperPreflightIndex < artifactDownloadIndex,
+  'helper contract drift must fail before the release artifact is downloaded',
+);
+const helperPreflight = productionJob.slice(helperPreflightIndex, artifactDownloadIndex);
+assert.match(helperPreflight, /run:\s*bash deploy\/install-hs-arena-deployer\.sh --check/);
+assert.doesNotMatch(helperPreflight, /\bsudo\b|--install/, 'CI preflight must remain read-only');
 assert.match(
   productionJob,
   /uses:\s*actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\s*# v7\.0\.1/,

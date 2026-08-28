@@ -16,6 +16,29 @@ usage() {
   exit 2
 }
 
+contract_drift() {
+  local component=$1 expected=$2 installed=$3
+  echo "$component contract drift: expected=$expected installed=$installed" >&2
+  printf 'remediation: sudo %q --install from this reviewed checkout, then run %q --check\n' \
+    "$SOURCE_ROOT/deploy/install-hs-arena-deployer.sh" \
+    "$SOURCE_ROOT/deploy/install-hs-arena-deployer.sh" >&2
+  exit 2
+}
+
+installed_deployer_version() {
+  local version
+  version=$("$INSTALL_DEPLOYER" --version 2>/dev/null || true)
+  [[ "$version" =~ ^hs-arena-deploy-release\ [0-9]+\.[0-9]+\.[0-9]+$ ]] || version=unavailable
+  printf '%s\n' "$version"
+}
+
+installed_gate_version() {
+  local version
+  version=$("$INSTALL_GATE" --version 2>/dev/null || true)
+  [[ "$version" =~ ^hs-arena-ci-deploy\ [0-9]+\.[0-9]+\.[0-9]+$ ]] || version=unavailable
+  printf '%s\n' "$version"
+}
+
 write_capability_manifest() {
   local deployer=$1 installed_path=$2 output=$3 version sha256 capabilities capability
   local -A seen_capabilities=()
@@ -53,18 +76,33 @@ assert_protected_file() {
 }
 
 check_installation() {
-  local expected_manifest
+  local expected_manifest expected_deployer expected_gate installed_deployer installed_gate
   assert_protected_file "$INSTALL_DEPLOYER" 755
-  assert_protected_file "$INSTALL_CAPABILITIES" 644
   assert_protected_file "$INSTALL_GATE" 755
+  expected_deployer=$("$SOURCE_DEPLOYER" --version)
+  expected_gate=$("$SOURCE_GATE" --version)
+  installed_deployer=$(installed_deployer_version)
+  installed_gate=$(installed_gate_version)
+  [[ "$expected_deployer" == "$installed_deployer" ]] || {
+    contract_drift deployer "$expected_deployer" "$installed_deployer"
+  }
+  [[ "$expected_gate" == "$installed_gate" ]] || {
+    contract_drift gate "$expected_gate" "$installed_gate"
+  }
+  [[ -f "$INSTALL_CAPABILITIES" && ! -L "$INSTALL_CAPABILITIES" ]] || {
+    contract_drift 'capability manifest' "$INSTALL_CAPABILITIES" missing
+  }
+  assert_protected_file "$INSTALL_CAPABILITIES" 644
 
   [[ "$(sha256sum "$SOURCE_DEPLOYER" | cut -d' ' -f1)" == "$(sha256sum "$INSTALL_DEPLOYER" | cut -d' ' -f1)" ]] || {
-    echo "installed deployer checksum does not match the reviewed source" >&2
-    exit 2
+    contract_drift 'deployer checksum' \
+      "$(sha256sum "$SOURCE_DEPLOYER" | cut -d' ' -f1)" \
+      "$(sha256sum "$INSTALL_DEPLOYER" | cut -d' ' -f1)"
   }
   [[ "$(sha256sum "$SOURCE_GATE" | cut -d' ' -f1)" == "$(sha256sum "$INSTALL_GATE" | cut -d' ' -f1)" ]] || {
-    echo "installed gate checksum does not match the reviewed source" >&2
-    exit 2
+    contract_drift 'gate checksum' \
+      "$(sha256sum "$SOURCE_GATE" | cut -d' ' -f1)" \
+      "$(sha256sum "$INSTALL_GATE" | cut -d' ' -f1)"
   }
   expected_manifest=$(mktemp)
   write_capability_manifest "$INSTALL_DEPLOYER" "$INSTALL_DEPLOYER" "$expected_manifest" || {
