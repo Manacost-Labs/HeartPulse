@@ -28,6 +28,8 @@ assert.doesNotMatch(workflow, /PUPPETEER_SKIP_DOWNLOAD/, 'manual scrape must not
 assert.match(ciWorkflow, /name:\s*Validate and deploy application/);
 assert.match(ciWorkflow, /^\s*push:\s*$/m);
 assert.match(ciWorkflow, /^\s*branches:\s*\[main\]\s*$/m);
+assert.match(ciWorkflow, /workflow_dispatch:\s+inputs:\s+clean_code_base:/,
+  'manual validation must expose an explicit optional clean-code base');
 assert.match(ciWorkflow, /permissions:\s*\n\s*contents:\s*read/);
 assert.match(
   ciWorkflow,
@@ -35,6 +37,10 @@ assert.match(
   'a newer validation run must not cancel an in-flight main deployment or its post-deploy evidence',
 );
 assert.match(ciWorkflow, /run:\s*npm run verify:release/);
+assert.match(ciWorkflow, /CLEAN_CODE_EVENT:\s*\$\{\{ github\.event_name \}\}/);
+assert.match(ciWorkflow, /CLEAN_CODE_PUSH_BEFORE:\s*\$\{\{ github\.event\.before \}\}/);
+assert.match(ciWorkflow, /CLEAN_CODE_PR_BASE_SHA:\s*\$\{\{ github\.event\.pull_request\.base\.sha \}\}/);
+assert.match(ciWorkflow, /CLEAN_CODE_DISPATCH_BASE:\s*\$\{\{ inputs\.clean_code_base \}\}/);
 assert.match(
   ciWorkflow,
   /browser-observatory:\s+name:\s*Full browser observatory\s+runs-on:\s*ubuntu-latest\s+timeout-minutes:\s*15/,

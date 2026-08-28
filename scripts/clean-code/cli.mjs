@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import { spawnSync } from 'node:child_process';
 import {
   existsSync,
   readFileSync,
@@ -13,13 +12,20 @@ import ts from 'typescript';
 
 import { analyzeArchitecture } from '../architecture-baseline.mjs';
 import { collectFunctionSizes } from '../check-function-size-budgets.mjs';
-import { resolveSemgrepBase } from '../semgrep-changed.mjs';
 import {
   createCleanCodeBaselineCandidate,
   evaluateCleanCodeSnapshot,
   renderCleanCodeReport,
   validateCleanCodeBaseline,
 } from './core.mjs';
+import {
+  changedFileMappings,
+  resolveCleanCodeScope,
+} from './git-scope.mjs';
+import { isAuthoredSource } from './source-scope.mjs';
+
+export { changedFileMappings } from './git-scope.mjs';
+export { isAuthoredSource as isAuthoredTypeScript } from './source-scope.mjs';
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const BASELINE_PATH = 'config/clean-code-baseline.json';
@@ -44,12 +50,6 @@ function relativePath(repositoryRoot, absolutePath) {
   return path.relative(repositoryRoot, absolutePath).split(path.sep).join('/');
 }
 
-export function isAuthoredTypeScript(file) {
-  const normalized = String(file || '').replaceAll('\\', '/');
-  return /^(?:src|server|shared)\/.+\.tsx?$/.test(normalized)
-    && !normalized.split('/').includes('vendor');
-}
-
 function collectTypeScriptFiles(directory, repositoryRoot, files) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     if (entry.isDirectory()) {
@@ -60,7 +60,7 @@ function collectTypeScriptFiles(directory, repositoryRoot, files) {
     }
     if (!entry.isFile()) continue;
     const file = relativePath(repositoryRoot, path.join(directory, entry.name));
-    if (isAuthoredTypeScript(file)) files.push(file);
+    if (isAuthoredSource(file)) files.push(file);
   }
 }
 
@@ -116,52 +116,8 @@ export function collectCleanCodeSnapshot(repositoryRoot) {
         parseDiagnostics: sourceFile.parseDiagnostics.map(diagnostic => diagnosticEntry(sourceFile, diagnostic)),
       };
     }),
-    functions: collectFunctionSizes(absoluteRoot).filter(entry => isAuthoredTypeScript(entry.file)),
+    functions: collectFunctionSizes(absoluteRoot).filter(entry => isAuthoredSource(entry.file)),
   };
-}
-
-function runGit(args, cwd) {
-  const result = spawnSync('git', args, {
-    cwd,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  if (result.status !== 0) {
-    throw new Error((result.stderr || `git ${args.join(' ')} failed`).trim());
-  }
-  return result.stdout;
-}
-
-function nulFields(output) {
-  return output.split('\0').filter(Boolean);
-}
-
-export function changedFileMappings(base, repositoryRoot) {
-  const fields = nulFields(runGit(
-    ['diff', '--name-status', '-z', '-M', '--diff-filter=AMR', base, '--', ...PRODUCT_ROOTS],
-    repositoryRoot,
-  ));
-  const mappings = new Map();
-  for (let index = 0; index < fields.length;) {
-    const status = fields[index++];
-    if (status.startsWith('R')) {
-      const baselineFile = fields[index++];
-      const file = fields[index++];
-      if (isAuthoredTypeScript(file)) mappings.set(file, baselineFile);
-      continue;
-    }
-    const file = fields[index++];
-    if (isAuthoredTypeScript(file)) mappings.set(file, file);
-  }
-  for (const file of nulFields(runGit(
-    ['ls-files', '-z', '--others', '--exclude-standard', '--', ...PRODUCT_ROOTS],
-    repositoryRoot,
-  ))) {
-    if (isAuthoredTypeScript(file)) mappings.set(file, file);
-  }
-  return [...mappings]
-    .sort(([left], [right]) => left.localeCompare(right, 'en'))
-    .map(([file, baselineFile]) => ({ file, baselineFile }));
 }
 
 function readJson(repositoryRoot, file) {
@@ -180,18 +136,7 @@ function resolveScope(command, repositoryRoot) {
   const moduleName = argumentValue('--module');
   if (moduleName) return { mode: 'module', module: moduleName };
   if (!process.argv.includes('--changed') && !command.includes('changed')) return { mode: 'full' };
-  const environment = {
-    ...process.env,
-    SEMGREP_BASE: process.env.CLEAN_CODE_BASE || process.env.SEMGREP_BASE,
-  };
-  const base = resolveSemgrepBase(environment, ref => {
-    const result = spawnSync('git', ['rev-parse', '--verify', '--quiet', `${ref}^{commit}`], {
-      cwd: repositoryRoot,
-      encoding: 'utf8',
-    });
-    return result.status === 0 ? result.stdout.trim() : null;
-  });
-  return { mode: 'changed', base, files: changedFileMappings(base, repositoryRoot) };
+  return resolveCleanCodeScope({ env: process.env, repositoryRoot });
 }
 
 export function main(repositoryRoot = PROJECT_ROOT) {
@@ -254,7 +199,14 @@ export function main(repositoryRoot = PROJECT_ROOT) {
     functionSizeRegistry,
     scope,
   });
-  const output = scope.base ? { ...report, base: scope.base } : report;
+  const output = scope.head ? {
+    ...report,
+    head: scope.head,
+    base: scope.base,
+    baseSource: scope.baseSource,
+    changedSourceFiles: scope.changedSourceFiles,
+    ...(scope.fallbackReason ? { fallbackReason: scope.fallbackReason } : {}),
+  } : report;
   process.stdout.write(renderCleanCodeReport(output, format));
   return report.status === 'pass' ? 0 : 1;
 }

@@ -15,6 +15,7 @@ import {
   changedFileMappings,
   isAuthoredTypeScript,
 } from '../scripts/clean-code/cli.mjs';
+import { resolveCleanCodeScope } from '../scripts/clean-code/git-scope.mjs';
 import {
   createCleanCodeBaselineCandidate,
   evaluateCleanCodeSnapshot,
@@ -239,6 +240,136 @@ test('changed-file discovery preserves rename ancestry and ignores vendored Type
       { file: 'src/renamed.ts', baselineFile: 'src/legacy.ts' },
     ]);
     assert.equal(isAuthoredTypeScript('src/vendor/ignored.ts'), false);
+  } finally {
+    rmSync(repository, { recursive: true, force: true });
+  }
+});
+
+function gitRepository() {
+  const repository = mkdtempSync(path.join(tmpdir(), 'hearthpulse-clean-code-git-'));
+  const git = (...args) => {
+    const result = spawnSync('git', args, { cwd: repository, encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout.trim();
+  };
+  mkdirSync(path.join(repository, 'src'), { recursive: true });
+  mkdirSync(path.join(repository, 'docs'), { recursive: true });
+  git('init', '-q', '-b', 'main');
+  git('config', 'user.email', 'clean-code@example.invalid');
+  git('config', 'user.name', 'Clean Code Test');
+  writeFileSync(path.join(repository, 'src', 'base.ts'), 'export const base = true;\n');
+  git('add', '.');
+  git('commit', '-qm', 'base');
+  git('remote', 'add', 'origin', repository);
+  git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+  return { repository, git };
+}
+
+test('push scope checks the complete before-to-head range', () => {
+  const { repository, git } = gitRepository();
+  try {
+    const before = git('rev-parse', 'HEAD');
+    writeFileSync(path.join(repository, 'src', 'first.ts'), 'export const first = true;\n');
+    git('add', '.');
+    git('commit', '-qm', 'first product commit');
+    writeFileSync(path.join(repository, 'src', 'second.ts'), 'export const second = true;\n');
+    git('add', '.');
+    git('commit', '-qm', 'second product commit');
+
+    const scope = resolveCleanCodeScope({
+      repositoryRoot: repository,
+      env: {
+        GITHUB_ACTIONS: 'true',
+        CLEAN_CODE_EVENT: 'push',
+        CLEAN_CODE_PUSH_BEFORE: before,
+      },
+    });
+
+    assert.equal(scope.base, before);
+    assert.equal(scope.head, git('rev-parse', 'HEAD'));
+    assert.equal(scope.baseSource, 'push-before');
+    assert.notEqual(scope.base, scope.head);
+    assert.deepEqual(scope.files.map(entry => entry.file), ['src/first.ts', 'src/second.ts']);
+  } finally {
+    rmSync(repository, { recursive: true, force: true });
+  }
+});
+
+test('docs-only pushes prove an empty authored diff without using HEAD as base', () => {
+  const { repository, git } = gitRepository();
+  try {
+    const before = git('rev-parse', 'HEAD');
+    writeFileSync(path.join(repository, 'docs', 'note.md'), '# Documentation only\n');
+    git('add', '.');
+    git('commit', '-qm', 'docs only');
+
+    const scope = resolveCleanCodeScope({
+      repositoryRoot: repository,
+      env: { CLEAN_CODE_EVENT: 'push', CLEAN_CODE_PUSH_BEFORE: before },
+    });
+
+    assert.equal(scope.mode, 'changed');
+    assert.equal(scope.base, before);
+    assert.notEqual(scope.base, scope.head);
+    assert.deepEqual(scope.files, []);
+  } finally {
+    rmSync(repository, { recursive: true, force: true });
+  }
+});
+
+test('unprovable CI bases fall back to full scope and explicit invalid bases fail', () => {
+  const { repository, git } = gitRepository();
+  try {
+    const head = git('rev-parse', 'HEAD');
+    for (const env of [
+      { CLEAN_CODE_EVENT: 'push', CLEAN_CODE_PUSH_BEFORE: '0'.repeat(40) },
+      { CLEAN_CODE_EVENT: 'push', CLEAN_CODE_PUSH_BEFORE: head },
+      { CLEAN_CODE_EVENT: 'workflow_dispatch' },
+    ]) {
+      const scope = resolveCleanCodeScope({ repositoryRoot: repository, env });
+      assert.equal(scope.mode, 'full');
+      assert.equal(scope.base, null);
+      assert.equal(scope.head, head);
+      assert.match(scope.baseSource, /full-fallback$/);
+    }
+
+    assert.throws(
+      () => resolveCleanCodeScope({
+        repositoryRoot: repository,
+        env: { CLEAN_CODE_BASE: 'missing-base' },
+      }),
+      /explicit clean-code base.*missing-base/i,
+    );
+  } finally {
+    rmSync(repository, { recursive: true, force: true });
+  }
+});
+
+test('pull requests, dispatch inputs and local branches expose their base source', () => {
+  const { repository, git } = gitRepository();
+  try {
+    const base = git('rev-parse', 'HEAD');
+    git('switch', '-qc', 'feature');
+    writeFileSync(path.join(repository, 'src', 'feature.ts'), 'export const feature = true;\n');
+    git('add', '.');
+    git('commit', '-qm', 'feature');
+
+    const pullRequest = resolveCleanCodeScope({
+      repositoryRoot: repository,
+      env: { CLEAN_CODE_EVENT: 'pull_request', CLEAN_CODE_PR_BASE_SHA: base },
+    });
+    assert.equal(pullRequest.baseSource, 'pull-request');
+    assert.deepEqual(pullRequest.files.map(entry => entry.file), ['src/feature.ts']);
+
+    const dispatch = resolveCleanCodeScope({
+      repositoryRoot: repository,
+      env: { CLEAN_CODE_EVENT: 'workflow_dispatch', CLEAN_CODE_DISPATCH_BASE: base },
+    });
+    assert.equal(dispatch.baseSource, 'workflow-dispatch');
+
+    const local = resolveCleanCodeScope({ repositoryRoot: repository, env: {} });
+    assert.equal(local.baseSource, 'local-merge-base');
+    assert.equal(local.base, base);
   } finally {
     rmSync(repository, { recursive: true, force: true });
   }

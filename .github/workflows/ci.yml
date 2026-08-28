@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      clean_code_base:
+        description: Optional Git ref or SHA used as the clean-code diff base
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -20,6 +25,10 @@ jobs:
     timeout-minutes: 20
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
+      CLEAN_CODE_EVENT: ${{ github.event_name }}
+      CLEAN_CODE_PUSH_BEFORE: ${{ github.event.before }}
+      CLEAN_CODE_PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      CLEAN_CODE_DISPATCH_BASE: ${{ inputs.clean_code_base }}
 
     steps:
       - name: Checkout repository

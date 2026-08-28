@@ -98,3 +98,22 @@ The initial baseline at `2afc0bb321a89426331c7077b214f48d25fdc422`
 contains 354 authored TS/TSX files and 77 legacy files above 250 lines. The
 vendored HSReplay adapter is excluded. At introduction the combined gate has
 zero unsuppressed findings and no exceptions.
+
+## Hardening contract
+
+The next ratchet revision must make the changed range auditable instead of
+inferring success from an empty diff. Reports identify the checked `head`,
+`base`, base source and changed authored-file count. GitHub push and pull
+request workflows provide their event SHAs explicitly. When an implicit CI
+base cannot be proved, the gate checks the full authored scope; an invalid
+explicit base is an error.
+
+Confirmed Git renames must retain every path-keyed clean-code budget through a
+previewed, reduction-only migration. Acceptance updates the file-line,
+source-debt and function-size registries together and rewrites exact exception
+IDs. Conflicts and growth fail closed.
+
+The authored scope also includes JavaScript and TypeScript modules below
+`scripts/clean-code/`. The gate implementation therefore follows the same
+250-line new-file ceiling and function-size limits that it enforces on product
+code; it is not admitted to the legacy baseline.
