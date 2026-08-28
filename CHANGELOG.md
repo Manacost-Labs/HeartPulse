@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added a deterministic local clean-code gate for authored TypeScript and TSX:
+  new files have a hard size limit, 77 legacy files have exact non-growing
+  ceilings, and existing source/function debt budgets are reused. Full,
+  changed, module, report and reduction-only baseline modes have behavioral
+  tests; only the changed-file mode is release-blocking in this first slice.
 - Started the modular-monolith safety program with repository-wide test
   discovery, checked HTTP and module catalogs, and ratchets for dependency,
   source-debt and oversized-function growth.
