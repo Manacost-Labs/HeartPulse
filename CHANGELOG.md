@@ -5,6 +5,8 @@
 - Добавлен контракт аудита стратегий Battlegrounds для агента «Контроль
   HearthPulse»: снимок HSReplay со всеми стратегиями в D без метрик теперь
   отклоняется до публикации.
+- Публичный маршрут с авторизацией теперь отмечается как `access_protected`,
+  чтобы агент не принимал гостевой ответ 401/403 за поломку данных или UI.
 
 - Added a deterministic local clean-code gate for authored TypeScript and TSX:
   new files have a hard size limit, 77 legacy files have exact non-growing
