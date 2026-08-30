@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Добавлен контракт аудита стратегий Battlegrounds для агента «Контроль
+  HearthPulse»: снимок HSReplay со всеми стратегиями в D без метрик теперь
+  отклоняется до публикации.
+
 - Added a deterministic local clean-code gate for authored TypeScript and TSX:
   new files have a hard size limit, 77 legacy files have exact non-growing
   ceilings, and existing source/function debt budgets are reused. Full,
