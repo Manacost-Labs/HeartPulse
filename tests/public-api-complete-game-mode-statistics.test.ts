@@ -291,6 +291,7 @@ const battlegroundStatistics: PublicBattlegroundStatisticsSource = {
   }),
   loadMinionHistory: async dbfId => {
     battlegroundCalls.push({ method: `minion-history:${dbfId}` });
+    const recentObservation = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     return {
       minion: {
         dbf_id: 61_049,
@@ -303,7 +304,7 @@ const battlegroundStatistics: PublicBattlegroundStatisticsSource = {
         raw_card_json: { private: true },
       },
       history: [{
-        fetched_at: '2026-07-29T12:00:00.000Z',
+        fetched_at: recentObservation,
         impact: 0.31,
         combat_winrate: 45.83,
         popularity: 7.67,
@@ -313,7 +314,7 @@ const battlegroundStatistics: PublicBattlegroundStatisticsSource = {
         tavern_tier: 2,
       }],
       chart_series: {
-        impact: [{ x: '2026-07-29T12:00:00.000Z', y: 0.31 }],
+        impact: [{ x: recentObservation, y: 0.31 }],
       },
     };
   },

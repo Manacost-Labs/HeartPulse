@@ -32,6 +32,7 @@
         "tests/auth-sessions.test.ts",
         "tests/battleground-card-variants.test.ts",
         "tests/battleground-image-optimization.test.ts",
+        "tests/battleground-strategy-audit.test.ts",
         "tests/bg-library-catalog-model.test.ts",
         "tests/blizzard-card-images.test.ts",
         "tests/boosty-analytics-model.test.ts",
