@@ -41,6 +41,7 @@ import { createPublicResourceRouter } from './publicResourceRoutes.js';
 import { articleImageSrc, canonicalArticleUrl } from '../shared/articleImageSrc.js';
 import { createCosmeticsSeoRouter } from './cosmeticsSeoRoutes.js';
 import { createBattlegroundProxyRouter } from './battlegroundProxyRoutes.js';
+import { proxyHsReplayStrategyPayload } from './modules/publicApi/hsreplayStrategySource.js';
 import {
   battlegroundImageTransformCacheKey,
   battlegroundImageTransformFromQuery,
@@ -8213,13 +8214,12 @@ async function proxyBattlegroundAppEndpoint(
   transformJson?: (payload: any) => any,
 ) {
   try {
+    const isHsReplayStrategies = upstreamPath === '/api/bg/tier-lists' && String(req.query.list || '').toLowerCase() === 'strategies' && String(req.query.source || '').toLowerCase() === 'hsreplay';
+    if (isHsReplayStrategies) return proxyHsReplayStrategyPayload(req, res);
     const upstreamUrl = new URL(upstreamPath, 'http://127.0.0.1:3108');
     for (const [key, value] of Object.entries(req.query)) {
-      if (Array.isArray(value)) {
-        value.forEach(item => upstreamUrl.searchParams.append(key, String(item)));
-      } else if (value !== undefined) {
-        upstreamUrl.searchParams.set(key, String(value));
-      }
+      if (Array.isArray(value)) value.forEach(item => upstreamUrl.searchParams.append(key, String(item)));
+      else if (value !== undefined) upstreamUrl.searchParams.set(key, String(value));
     }
 
     const cacheKey = upstreamUrl.href;

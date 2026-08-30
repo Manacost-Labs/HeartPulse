@@ -1,4 +1,5 @@
 import type { PublicBattlegroundStatisticsSource } from './battlegroundStatistics.js';
+import { fetchHsReplayStrategyPayload } from './hsreplayStrategySource.js';
 
 const LOCAL_BATTLEGROUNDS_ORIGIN = 'http://127.0.0.1:3108';
 const REQUEST_TIMEOUT_MS = 20_000;
@@ -43,11 +44,13 @@ export function createLocalBattlegroundStatisticsSource(): PublicBattlegroundSta
       `/api/bg/library/minions/${encodeURIComponent(dbfId)}/history`,
     ),
     loadSpells: () => fetchLocalJson('/api/bg/library/spell-stats'),
-    loadTierLists: selection => fetchLocalJson('/api/bg/tier-lists', {
-      list: selection.kind,
-      source: selection.source,
-      mmr: selection.mmr,
-      timeRange: selection.timeRange,
-    }),
+    loadTierLists: selection => selection.kind === 'strategies' && selection.source === 'hsreplay'
+      ? fetchHsReplayStrategyPayload()
+      : fetchLocalJson('/api/bg/tier-lists', {
+        list: selection.kind,
+        source: selection.source,
+        mmr: selection.mmr,
+        timeRange: selection.timeRange,
+      }),
   };
 }

@@ -7,6 +7,9 @@
   отклоняется до публикации.
 - Публичный маршрут с авторизацией теперь отмечается как `access_protected`,
   чтобы агент не принимал гостевой ответ 401/403 за поломку данных или UI.
+- Исправлен путь HSReplay стратегий: HeartPulse получает опубликованный каталог
+  напрямую из `api.kolodahearthstone.com`, сохраняет исходные S/A/B-тиры и карты,
+  а устаревший legacy-кэш больше не подменяет данные снимком «всё в D».
 
 - Added a deterministic local clean-code gate for authored TypeScript and TSX:
   new files have a hard size limit, 77 legacy files have exact non-growing
