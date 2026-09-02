@@ -187,7 +187,7 @@ def main():
     fnt_sub   = load_font(16)
 
     title = "Топ-10 легендарок · Арена Hearthstone"
-    subtitle = "manacost.ru/arena"
+    subtitle = "hearthpulse.net"
 
     # Тень заголовка
     draw.text((PADDING + 2, 30 + 2), title, font=fnt_title, fill=(0, 0, 0, 140))

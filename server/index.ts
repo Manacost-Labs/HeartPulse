@@ -7559,8 +7559,6 @@ const CACHE_TIERLIST_STALE = 'public, max-age=300, stale-while-revalidate=600';
 const ARTICLE_COVER_ALLOWED_HOSTS = new Set([
   'hs-manacost.ru',
   'www.hs-manacost.ru',
-  'manacost.ru',
-  'www.manacost.ru',
   'kolodahearthstone.com',
   'www.kolodahearthstone.com',
   'kolodahearthstone.ru',

@@ -2939,8 +2939,6 @@ const AUTH_SESSION_HINT_KEY = 'hs_arena_auth_cookie_hint';
 const ARTICLE_COVER_PROXY_HOSTS = new Set([
   'hs-manacost.ru',
   'www.hs-manacost.ru',
-  'manacost.ru',
-  'www.manacost.ru',
   'kolodahearthstone.com',
   'www.kolodahearthstone.com',
   'kolodahearthstone.ru',

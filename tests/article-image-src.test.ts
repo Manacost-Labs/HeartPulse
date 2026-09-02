@@ -36,6 +36,11 @@ assert.equal(
   'unknown hosts must not be relayed through the article cover proxy',
 );
 assert.equal(
+  articleImageSrc('https://manacost.ru/uploads/cover.png'),
+  'https://manacost.ru/uploads/cover.png',
+  'the unrelated bare Manacost host must never be relayed through HearthPulse',
+);
+assert.equal(
   articleImageSrc('http://kolodahearthstone.ru/cover.png'),
   'http://kolodahearthstone.ru/cover.png',
   'the proxy must only relay HTTPS sources',

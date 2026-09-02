@@ -1,5 +1,5 @@
 const ARTICLE_COVER_PROXY_HOST =
-  /^(?:www\.)?(?:hs-manacost\.ru|manacost\.ru|kolodahearthstone\.(?:com|ru))$/i;
+  /^(?:www\.)?(?:hs-manacost\.ru|kolodahearthstone\.(?:com|ru))$/i;
 
 const LEGACY_KOLODA_ARTICLE_HOST = /^(?:www\.)?kolodahearthstone\.ru$/i;
 

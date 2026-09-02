@@ -1140,7 +1140,7 @@ export default function App() {
     sections: [], cards: {}, updatedAt: null, source: 'initial',
   });
   const [legendariesData, setLegendariesData] = useState<LegendariesData>({
-    groups: [], updatedAt: null, source: 'manacost.ru',
+    groups: [], updatedAt: null, source: 'initial',
   });
   const [homeSummaryData, setHomeSummaryData] = useState<HomeSummaryData | null>(null);
   const [articlesData, setArticlesData] = useState<ArticlesData>({ articles: [], updatedAt: null });
