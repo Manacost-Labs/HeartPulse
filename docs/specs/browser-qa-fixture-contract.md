@@ -12,6 +12,8 @@ test can either hide a real regression or block a safe release.
 - An authenticated subscriber receives the complete Standard entitlement.
 - Standard Meta uses a public teaser plus `.arena-inline-paywall`; hard-locked
   pages continue to use the inert `.arena-paywall` overlay.
+- The constructed archetype catalog is public teaser content and becomes ready
+  when its `.archetypes-ledger` data surface is rendered.
 - Responsive fixtures may accept either paywall presentation, but a public
   content fixture must reject both.
 

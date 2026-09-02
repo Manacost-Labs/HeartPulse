@@ -6,6 +6,7 @@ type PublicRoute = {
   pattern: string;
   kind: string;
   owner: string;
+  htmlStrategy: string;
   criticality: 'P0' | 'P1' | 'P2';
   mobileFixture: string;
   entitlement: string | null;
@@ -169,7 +170,12 @@ for (const fixture of responsiveInventory.fixtures) {
     assert.equal(fixture.access, 'anonymous', `${fixture.id} paywall state must use an anonymous session`);
   }
   if (fixture.state === 'content' && route?.entitlement) {
-    assert.ok(['subscriber', 'admin'].includes(fixture.access), `${fixture.id} gated content must use an entitled session`);
+    if (fixture.access === 'anonymous') {
+      assert.equal(route.htmlStrategy, 'prerender-teaser', `${fixture.id} anonymous content must be an explicit teaser route`);
+      assert.equal(route.mobileFixture, fixture.id, `${fixture.id} anonymous teaser content must be the route's primary fixture`);
+    } else {
+      assert.ok(['subscriber', 'admin'].includes(fixture.access), `${fixture.id} gated content must use an entitled session`);
+    }
   }
   if (fixture.state === 'denied') {
     assert.equal(route?.id, 'admin-panel', `${fixture.id} denied state is reserved for the admin route`);
@@ -197,8 +203,8 @@ for (const route of p0Routes) {
   if (route.entitlement) {
     const routeFixtures = responsiveInventory.fixtures.filter(fixture => fixture.routeId === route.id);
     assert.ok(
-      routeFixtures.some(fixture => fixture.access === 'anonymous' && fixture.state === 'paywall'),
-      `${route.id} must cover its locked paywall state`,
+      routeFixtures.some(fixture => fixture.access === 'anonymous' && ['paywall', 'content'].includes(fixture.state)),
+      `${route.id} must cover its anonymous paywall or teaser state`,
     );
     assert.ok(
       routeFixtures.some(fixture => fixture.access === 'subscriber' && fixture.state === 'content'),
@@ -235,5 +241,19 @@ for (const fixtureId of [
     `${fixtureId} must remain in the representative PR matrix`,
   );
 }
+
+const constructedArchetypesAnonymous = responsiveInventory.fixtures.find(
+  fixture => fixture.id === 'constructed-archetypes-anonymous',
+);
+assert.equal(
+  constructedArchetypesAnonymous?.state,
+  'content',
+  'the anonymous archetype catalog is a public teaser surface, not a locked page',
+);
+assert.equal(
+  constructedArchetypesAnonymous?.ready.selector,
+  '.archetypes-ledger',
+  'the anonymous archetype catalog must wait for rendered teaser data',
+);
 
 console.log(`responsive route inventory assertions passed (${responsiveInventory.fixtures.length} fixtures × ${responsiveInventory.profiles.length} profiles)`);

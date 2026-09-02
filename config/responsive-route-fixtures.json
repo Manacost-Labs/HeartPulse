@@ -98,8 +98,8 @@
       "routeId": "constructed-archetypes",
       "path": "/standard/archetypes",
       "access": "anonymous",
-      "state": "paywall",
-      "ready": { "selector": ".arena-paywall" },
+      "state": "content",
+      "ready": { "selector": ".archetypes-ledger" },
       "capture": { "mode": "viewport", "anchor": "top" },
       "checks": ["overflow", "runtime-errors", "axe", "targets"],
       "representative": false
