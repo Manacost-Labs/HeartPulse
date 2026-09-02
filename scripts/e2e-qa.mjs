@@ -606,6 +606,18 @@ const adminFixtures = {
       }],
     }],
   },
+  '/api/admin/vicious-syndicate-gold/builds': {
+    builds: [{
+      deck: 'Painlock',
+      build: {
+        deckCode: 'AAECAf0GQaFixtureViciousDeckCodeForBrowserQualityAssurance123456==',
+        source: 'qa-fixture', sourceLabel: 'QA fixture', sourceUrl: '', matchedArchetype: 'Painlock',
+        matchMethod: 'exact', updatedAt: '2026-07-13T00:00:00.000Z', winrate: 55.2, sampleGames: 900,
+        deckCards: qaDeckCards,
+      },
+    }],
+    buildCoverage: { found: 1, total: 1 },
+  },
   '/api/admin/contests': {
     contests: [{
       id: 'qa-contest',
@@ -999,6 +1011,7 @@ const publicStandardFixtureAliases = {
   '/api/standard-meta': '/api/admin/standard-meta',
   '/api/standard-meta/teaser': '/api/admin/standard-meta',
   '/api/vicious-syndicate-gold': '/api/admin/vicious-syndicate-gold',
+  '/api/vicious-syndicate-gold/builds': '/api/admin/vicious-syndicate-gold/builds',
 };
 
 mkdirSync(OUT, { recursive: true });
