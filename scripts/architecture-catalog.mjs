@@ -61,61 +61,137 @@ function validateStringArray(module, field, repositoryRoot, pathsMustExist = fal
   if (new Set(values).size !== values.length) throw new Error(`${module.name}.${field} contains duplicates`);
 }
 
+function catalogEntries(catalog) {
+  return [...catalog.modules, ...(catalog.legacyAreas ?? [])];
+}
+
+function validateCatalogEntry(entry, repositoryRoot, names) {
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+    throw new Error('architecture catalog entry must be an object');
+  }
+  nonEmptyString(entry.name, 'entry name');
+  if (names.has(entry.name)) throw new Error(`duplicate architecture entry: ${entry.name}`);
+  names.add(entry.name);
+  nonEmptyString(entry.owner, `${entry.name}.owner`);
+  nonEmptyString(entry.purpose, `${entry.name}.purpose`);
+
+  for (const field of REQUIRED_ARRAY_FIELDS) {
+    if (field === 'backendRoutes') {
+      if (!Array.isArray(entry.backendRoutes)) {
+        throw new Error(`${entry.name}.backendRoutes must be an array`);
+      }
+      continue;
+    }
+    validateStringArray(
+      entry,
+      field,
+      repositoryRoot,
+      ['paths', 'publicEntrypoints', 'contracts', 'jobs', 'tests'].includes(field),
+    );
+  }
+  if (entry.tests.length === 0) throw new Error(`${entry.name}.tests must not be empty`);
+  if (entry.forbiddenImports.length === 0) {
+    throw new Error(`${entry.name}.forbiddenImports must not be empty`);
+  }
+  for (const [index, route] of entry.backendRoutes.entries()) {
+    if (!route || typeof route !== 'object' || Array.isArray(route)) {
+      throw new Error(`${entry.name}.backendRoutes[${index}] must be an object`);
+    }
+    nonEmptyString(route.method, `${entry.name}.backendRoutes[${index}].method`);
+    nonEmptyString(route.path, `${entry.name}.backendRoutes[${index}].path`);
+  }
+}
+
+function assertExclusivePathOwnership(entries) {
+  const claims = entries.flatMap(entry => entry.paths.map(value => ({
+    entry,
+    path: normalizeRepositoryPath(value),
+  })));
+  for (let leftIndex = 0; leftIndex < claims.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < claims.length; rightIndex += 1) {
+      const left = claims[leftIndex];
+      const right = claims[rightIndex];
+      const overlaps = left.path === right.path
+        || left.path.startsWith(`${right.path}/`)
+        || right.path.startsWith(`${left.path}/`);
+      if (overlaps) {
+        throw new Error(
+          `overlapping architecture paths: ${left.entry.name}:${left.path} and ${right.entry.name}:${right.path}`,
+        );
+      }
+    }
+  }
+}
+
+function assertUniqueRouteOwnership(entries) {
+  const frontendOwners = new Map();
+  for (const entry of entries) {
+    for (const route of entry.frontendRoutes) {
+      if (frontendOwners.has(route)) {
+        throw new Error(`duplicate frontend route owner: ${route}`);
+      }
+      frontendOwners.set(route, entry.name);
+    }
+  }
+
+  const backendClaims = entries.flatMap(entry => entry.backendRoutes.map(route => ({
+    entry,
+    method: route.method.toUpperCase(),
+    path: route.path,
+  })));
+  for (let leftIndex = 0; leftIndex < backendClaims.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < backendClaims.length; rightIndex += 1) {
+      const left = backendClaims[leftIndex];
+      const right = backendClaims[rightIndex];
+      if (left.path !== right.path) continue;
+      if (left.method !== right.method && left.method !== '*' && right.method !== '*') continue;
+      throw new Error(`duplicate backend route owner: ${left.method} ${left.path}`);
+    }
+  }
+}
+
 export function validateArchitectureCatalog(catalog, repositoryRoot) {
   if (!catalog || typeof catalog !== 'object' || Array.isArray(catalog)) {
     throw new Error('architecture catalog must be an object');
   }
   if (catalog.version !== 1) throw new Error('architecture catalog version must be 1');
   if (!Array.isArray(catalog.modules)) throw new Error('architecture catalog modules must be an array');
+  if (catalog.legacyAreas !== undefined && !Array.isArray(catalog.legacyAreas)) {
+    throw new Error('architecture catalog legacyAreas must be an array');
+  }
 
   const names = new Set();
   let modular = 0;
   let transitional = 0;
   for (const module of catalog.modules) {
-    if (!module || typeof module !== 'object' || Array.isArray(module)) {
-      throw new Error('architecture catalog module must be an object');
-    }
-    nonEmptyString(module.name, 'module name');
-    if (names.has(module.name)) throw new Error(`duplicate architecture module: ${module.name}`);
-    names.add(module.name);
-    nonEmptyString(module.owner, `${module.name}.owner`);
-    nonEmptyString(module.purpose, `${module.name}.purpose`);
+    validateCatalogEntry(module, repositoryRoot, names);
     if (!['modular', 'transitional'].includes(module.status)) {
       throw new Error(`${module.name}.status must be modular or transitional`);
     }
     if (module.status === 'modular') modular += 1;
     else transitional += 1;
-
-    for (const field of REQUIRED_ARRAY_FIELDS) {
-      if (field === 'backendRoutes') {
-        if (!Array.isArray(module.backendRoutes)) {
-          throw new Error(`${module.name}.backendRoutes must be an array`);
-        }
-        continue;
-      }
-      validateStringArray(
-        module,
-        field,
-        repositoryRoot,
-        ['paths', 'publicEntrypoints', 'contracts', 'jobs', 'tests'].includes(field),
-      );
-    }
     if (module.paths.length === 0) throw new Error(`${module.name}.paths must not be empty`);
-    if (module.tests.length === 0) throw new Error(`${module.name}.tests must not be empty`);
-    if (module.forbiddenImports.length === 0) {
-      throw new Error(`${module.name}.forbiddenImports must not be empty`);
-    }
     if (module.status === 'modular' && module.publicEntrypoints.length === 0) {
       throw new Error(`${module.name} is modular but has no public entrypoint`);
     }
-    for (const [index, route] of module.backendRoutes.entries()) {
-      if (!route || typeof route !== 'object' || Array.isArray(route)) {
-        throw new Error(`${module.name}.backendRoutes[${index}] must be an object`);
-      }
-      nonEmptyString(route.method, `${module.name}.backendRoutes[${index}].method`);
-      nonEmptyString(route.path, `${module.name}.backendRoutes[${index}].path`);
+  }
+
+  const legacyAreas = catalog.legacyAreas ?? [];
+  for (const area of legacyAreas) {
+    validateCatalogEntry(area, repositoryRoot, names);
+    if (area.status !== 'legacy') throw new Error(`${area.name}.status must be legacy`);
+    nonEmptyString(area.migrationTarget, `${area.name}.migrationTarget`);
+    nonEmptyString(area.exitCriteria, `${area.name}.exitCriteria`);
+    if (area.paths.length === 0
+      && area.frontendRoutes.length === 0
+      && area.backendRoutes.length === 0) {
+      throw new Error(`${area.name} must own at least one path or route`);
     }
   }
+
+  const entries = catalogEntries(catalog);
+  assertExclusivePathOwnership(entries);
+  assertUniqueRouteOwnership(entries);
 
   const physicalDirectories = physicalModuleDirectories(repositoryRoot);
   for (const directory of physicalDirectories) {
@@ -131,13 +207,14 @@ export function validateArchitectureCatalog(catalog, repositoryRoot) {
     modules: catalog.modules.length,
     modular,
     transitional,
+    legacy: legacyAreas.length,
     physicalModuleDirectories: physicalDirectories.length,
   };
 }
 
 export function findModuleForFile(catalog, file) {
   const normalizedFile = normalizeRepositoryPath(file);
-  return catalog.modules
+  return catalogEntries(catalog)
     .flatMap(module => module.paths.map(modulePath => ({
       module,
       modulePath: normalizeRepositoryPath(modulePath),
@@ -162,7 +239,7 @@ function routeMatches(pattern, pathname) {
 
 export function findRouteOwners(catalog, method, pathname) {
   const normalizedMethod = method.toUpperCase();
-  return catalog.modules.filter(module => {
+  return catalogEntries(catalog).filter(module => {
     if (normalizedMethod === 'FRONTEND') {
       return module.frontendRoutes.some(pattern => routeMatches(pattern, pathname));
     }
@@ -207,11 +284,11 @@ function main() {
   const [command = 'map', ...args] = process.argv.slice(2);
 
   if (command === 'check') {
-    console.log(`[architecture-catalog] ok modules=${summary.modules} modular=${summary.modular} transitional=${summary.transitional}`);
+    console.log(`[architecture-catalog] ok modules=${summary.modules} modular=${summary.modular} transitional=${summary.transitional} legacy=${summary.legacy}`);
     return;
   }
   if (command === 'map') {
-    for (const module of catalog.modules) {
+    for (const module of catalogEntries(catalog)) {
       console.log(`${module.name}\t${module.status}\t${module.owner}\t${module.purpose}`);
     }
     return;
@@ -229,7 +306,7 @@ function main() {
     process.stdout.write(`${JSON.stringify(owners, null, 2)}\n`);
     return;
   }
-  const module = catalog.modules.find(entry => entry.name === args[0]);
+  const module = catalogEntries(catalog).find(entry => entry.name === args[0]);
   if (!module) throw new Error(`unknown module: ${args[0] ?? ''}`);
   if (command === 'module') printModule(module);
   else if (command === 'tests') process.stdout.write(`${module.tests.join('\n')}\n`);
