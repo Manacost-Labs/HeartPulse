@@ -60,6 +60,7 @@
     "test:json-body": "tsx tests/json-body.test.ts",
     "test:local-smtp": "tsx tests/local-smtp.test.ts",
     "test:production-monitor": "node tests/production-monitor.test.mjs",
+    "test:production-observer": "node --test tests/production-observer.test.mjs tests/production-observer-browser.test.mjs",
     "test:workflow-contract": "node tests/workflow-contract.test.mjs",
     "test:claude-post-push-hook": "node --test tests/claude-post-push-review-hook.test.mjs",
     "test:react-doctor-contract": "node --test tests/react-doctor-changed.test.mjs",
@@ -210,6 +211,7 @@
     "qa:responsive": "QA_RESPONSIVE_SCOPE=representative node scripts/responsive-qa-local.mjs",
     "qa:responsive:all": "QA_RESPONSIVE_SCOPE=all-p0 node scripts/responsive-qa-local.mjs",
     "qa:ci": "npm run build && node scripts/browser-qa-ci.mjs",
+    "observe:production": "node scripts/production-observer.mjs",
     "release:create": "node scripts/create-release.mjs",
     "changelog:post": "node scripts/post-arena-changelog.mjs"
   },

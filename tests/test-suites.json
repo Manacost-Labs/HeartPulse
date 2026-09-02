@@ -71,6 +71,7 @@
         "tests/json-body.test.ts",
         "tests/local-smtp.test.ts",
         "tests/modal-surface-model.test.ts",
+        "tests/production-observer.test.mjs",
         "tests/not-found-page.test.tsx",
         "tests/page-tour-registry.test.ts",
         "tests/page-tour.test.ts",
@@ -244,6 +245,7 @@
         "tests/hsreplay-deck-mobile-browser.test.mjs",
         "tests/mobile-layout-diagnostics.test.mjs",
         "tests/modal-surface-browser.test.mjs",
+        "tests/production-observer-browser.test.mjs",
         "tests/soft-paywall-browser.test.mjs",
         "tests/vicious-gold-progressive-browser.test.mjs"
       ]

@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "navigationTimeoutMs": 20000,
+  "semanticTimeoutMs": 12000,
+  "runDeadlineMs": 240000,
+  "profiles": {
+    "public": [
+      {
+        "id": "home-content",
+        "path": "/",
+        "assertions": [{ "selector": ".home-stage", "minCount": 1 }]
+      },
+      {
+        "id": "articles-content",
+        "path": "/articles",
+        "assertions": [{ "selector": ".article-image-shell img", "minCount": 1 }]
+      },
+      {
+        "id": "constructed-library-content",
+        "path": "/standard/cards",
+        "assertions": [{ "selector": ".constructed-cards__gallery-card", "minCount": 1 }]
+      },
+      {
+        "id": "login-form",
+        "path": "/",
+        "query": "login",
+        "assertions": [
+          { "selector": ".login-card", "minCount": 1 },
+          { "selector": ".login-field input[type='email']", "minCount": 1 },
+          { "selector": ".login-password-field input", "minCount": 1 },
+          { "selector": ".login-submit", "minCount": 1 }
+        ]
+      },
+      {
+        "id": "arena-classes-paywall",
+        "path": "/classes",
+        "assertions": [{ "selector": ".arena-paywall", "minCount": 1 }]
+      },
+      {
+        "id": "arena-tier-list-paywall",
+        "path": "/tierlist",
+        "assertions": [{ "selector": ".arena-paywall", "minCount": 1 }]
+      },
+      {
+        "id": "arena-legendaries-paywall",
+        "path": "/legendaries",
+        "assertions": [{ "selector": ".arena-paywall", "minCount": 1 }]
+      },
+      {
+        "id": "battlegrounds-heroes-paywall",
+        "path": "/heroes",
+        "assertions": [{ "selector": ".arena-paywall", "minCount": 1 }]
+      },
+      {
+        "id": "battlegrounds-library-paywall",
+        "path": "/library",
+        "assertions": [{ "selector": ".arena-paywall", "minCount": 1 }]
+      },
+      {
+        "id": "battlegrounds-tier-list-paywall",
+        "path": "/battlegrounds/tier-list",
+        "assertions": [{ "selector": ".arena-paywall", "minCount": 1 }]
+      }
+    ],
+    "authenticated": [
+      {
+        "id": "authenticated-shell",
+        "path": "/",
+        "assertions": [{ "selector": ".arena-sidebar-profile", "minCount": 1 }],
+        "forbiddenSelectors": [".login-card"]
+      },
+      {
+        "id": "arena-classes-data",
+        "path": "/classes",
+        "assertions": [{ "selector": ".arena-class-row", "minCount": 5 }],
+        "forbiddenSelectors": [".arena-paywall"]
+      },
+      {
+        "id": "arena-tier-list-data",
+        "path": "/tierlist",
+        "assertions": [{ "selector": ".hs-tier-card", "minCount": 1 }],
+        "forbiddenSelectors": [".arena-paywall"]
+      },
+      {
+        "id": "arena-legendaries-data",
+        "path": "/legendaries",
+        "assertions": [{ "selector": ".legendary-group-card", "minCount": 1 }],
+        "forbiddenSelectors": [".arena-paywall"]
+      },
+      {
+        "id": "battlegrounds-heroes-data",
+        "path": "/heroes",
+        "assertions": [{ "selector": ".battleground-hero-card", "minCount": 1 }],
+        "forbiddenSelectors": [".arena-paywall"]
+      },
+      {
+        "id": "battlegrounds-library-data",
+        "path": "/library/minions",
+        "assertions": [{ "selector": "[data-library-card-tile]", "minCount": 1 }],
+        "forbiddenSelectors": [".arena-paywall"]
+      },
+      {
+        "id": "battlegrounds-tier-list-data",
+        "path": "/battlegrounds/tier-list",
+        "assertions": [{ "selector": ".bg-tier-rank-panel", "minCount": 1 }],
+        "forbiddenSelectors": [".arena-paywall"]
+      }
+    ]
+  }
+}
