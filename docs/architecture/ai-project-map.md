@@ -39,31 +39,39 @@ dependencies.
 ## Current ownership model
 
 `config/architecture-catalog.json` is the machine-readable inventory of every
-physical directory in `src/modules/` and `server/modules/`. Entries are:
+physical directory in `src/modules/` and `server/modules/`, plus the first
+catalogued legacy ownership surfaces. Entries are:
 
 - `modular` when the area already meets its focused ownership boundary;
-- `transitional` when an explicit compatibility dependency remains.
+- `transitional` when an explicit compatibility dependency remains;
+- `legacy` when ownership is known but the surface still needs extraction.
 
-The catalog does not cover every legacy product area. Large files such as
-`server/index.ts`, `src/App.tsx`, `src/features/DeferredRoutes.tsx` and
-`src/features/Battlegrounds.tsx` are migration surfaces, not examples for new
-code. Their extraction order and ratchets live in
+For legacy code, physical file ownership and route ownership are separate.
+`paths` identifies the team responsible for the shared host; a route entry can
+name that host in `publicEntrypoints` while retaining its product owner. The
+`migrationTarget` and exit criteria state where that ownership must end up. The
+catalog now covers `server/index.ts`, `DeferredRoutes.tsx`, `Battlegrounds.tsx`
+and their first selected routes. It does not yet cover every legacy surface;
+`src/App.tsx` and uncatalogued areas remain migration surfaces, not examples for
+new code. Their extraction order and ratchets live in
 [`modularization-plan.md`](modularization-plan.md).
 
 ## Find the owner before reading broadly
 
 ```bash
-# Current modules, status and purpose
+# Current modules and catalogued legacy areas, status and purpose
 npm run architecture:map
 
 # Owner, public contract, dependencies and focused tests for a file
 npm run architecture:impact -- src/modules/applicationConnect/api/client.ts
+npm run architecture:impact -- server/index.ts
 
 # Owner of a backend or frontend route
 npm run architecture:owner -- GET /api/v1/oauth/device/authorization
 npm run architecture:owner -- FRONTEND /connect
+npm run architecture:owner -- FRONTEND /articles
 
-# One module's record, dependency policy or test set
+# One module or legacy area's record, dependency policy or test set
 npm run architecture:module -- frontend-application-connect
 npm run architecture:dependencies -- frontend-application-connect
 npm run architecture:tests -- frontend-application-connect

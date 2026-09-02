@@ -304,7 +304,7 @@ npm run build-storybook
 | `npm test` | Все пять автоматически обнаруживаемых suite без ручного списка |
 | `npm run test:discovery` | Полнота классификации всех test/spec-файлов |
 | `npm run architecture:baseline` | Детерминированный архитектурный baseline |
-| `npm run architecture:map` | Карта текущих модулей и владельцев |
+| `npm run architecture:map` | Карта модулей, legacy-зон и владельцев |
 | `npm run architecture:impact -- <file>` | Контракт, зависимости и тесты файла |
 | `npm run architecture:owner -- <method> <route>` | Владелец frontend/API route |
 | `npm run test:module -- <module>` | Минимальный проверенный набор тестов модуля |
