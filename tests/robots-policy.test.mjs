@@ -61,6 +61,9 @@ for (const crawler of ['googlebot', 'yandexbot', 'bingbot']) {
     '/',
     '/admin/',
     '/?login',
+    '/api/article-cover?url=https%3A%2F%2Fkolodahearthstone.com%2Fcover.webp',
+    '/api/card-image/EX1_001/full.webp?v=1',
+    '/api/public-resource/hswiki/File%3AExample.png',
     '/assets/app.js',
     '/fonts/site.woff2',
     '/class_icon/mage.png',
@@ -71,6 +74,17 @@ for (const crawler of ['googlebot', 'yandexbot', 'bingbot']) {
       `${crawler} must be able to crawl ${publicResource} and observe its HTTP/meta policy`);
   }
 }
+
+assert.match(seoMap, /map\s+\$uri\s+\$arena_api_robots\s*\{/,
+  'origin robots headers must use a path-aware API policy');
+assert.match(seoMap, /default\s+"noindex, nofollow";/,
+  'unknown and private API responses must remain noindex');
+for (const route of ['article-cover', 'card-image', 'public-resource']) {
+  assert.match(seoMap, new RegExp(`api/[\\s\\S]*${route}|${route}[\\s\\S]*api/`),
+    `${route} must be classified as public search media`);
+}
+assert.match(htmlRouting, /location\s+\^~\s+\/api\/\s*\{[\s\S]*?X-Robots-Tag\s+\$arena_api_robots\s+always;/,
+  'the generic API proxy must apply the path-aware robots policy');
 
 const sitemapLines = robots.split(/\r?\n/)
   .map(line => line.trim())

@@ -2,6 +2,10 @@ User-agent: *
 Allow: /
 
 # Machine-only endpoints are not useful search documents.
+# Public media used by search previews is the only API crawl exception.
+Allow: /api/article-cover
+Allow: /api/card-image/
+Allow: /api/public-resource/
 Disallow: /api
 Disallow: /health
 Disallow: /metrics

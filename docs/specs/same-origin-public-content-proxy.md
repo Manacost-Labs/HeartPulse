@@ -25,6 +25,9 @@ External navigation links and optional analytics are outside this contract.
 - Responses use `nosniff`, a same-origin resource policy, bounded streaming,
   and public stale-while-revalidate caching.
 - Arena edge nodes cache successful responses from the public-resource route.
+- Search crawlers may fetch `/api/public-resource/`, `/api/card-image/`, and
+  `/api/article-cover`; every other API route remains blocked in `robots.txt`
+  and receives `X-Robots-Tag: noindex, nofollow` at origin.
 - External runtime libraries are bundled with the application instead of
   being loaded from a third-party CDN.
 
@@ -50,6 +53,8 @@ The following required sources must resolve through the same-origin route:
    pass.
 5. Chrome network inspection on production shows no direct requests to the
    required upstream hosts.
+6. Robots and Nginx contract tests prove that only the closed public-media
+   route list can omit the API `noindex` header.
 
 ## Rollback
 

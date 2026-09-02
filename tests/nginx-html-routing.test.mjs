@@ -326,11 +326,24 @@ for (const path of ['/api', '/api/health/ready', '/health/live', '/metrics']) {
     ? locations.find(location => location.modifier === '=' && location.pattern === '/api')
     : locations.find(location => location.modifier === '^~' && path.startsWith(location.pattern))
       || locations.find(location => location.modifier === '=' && location.pattern === path);
-  assert.match(technicalLocation?.body || '', /X-Robots-Tag\s+"noindex, nofollow"\s+always;/,
-    `${path} must be server-side noindex for every upstream status`);
+  if (path.startsWith('/api/')) {
+    assert.match(technicalLocation?.body || '', /X-Robots-Tag\s+\$arena_api_robots\s+always;/,
+      `${path} must use the path-aware API robots policy`);
+  } else {
+    assert.match(technicalLocation?.body || '', /X-Robots-Tag\s+"noindex, nofollow"\s+always;/,
+      `${path} must be server-side noindex for every upstream status`);
+  }
   assert.match(technicalLocation?.body || '', /arena-security-headers\.conf/,
     `${path} must retain the shared security headers when adding robots policy`);
 }
+assert.match(mapSource, /map\s+\$uri\s+\$arena_api_robots\s*\{/,
+  'API indexing must be classified from the normalized request path');
+assert.match(mapSource,
+  /~\^\/api\/\(\?:article-cover\$\|card-image\/\|public-resource\/\)\s+"";/,
+  'only the closed public-media route list may suppress the noindex header');
+assert.match(mapSource,
+  /map\s+\$uri\s+\$arena_api_robots\s*\{[\s\S]*?default\s+"noindex, nofollow";/,
+  'all unclassified API responses must remain noindex');
 for (const apiLocation of locations.filter(location => (
   (location.modifier === '=' && location.pattern === '/api')
   || (location.modifier === '^~' && location.pattern === '/api/')
