@@ -45,7 +45,9 @@ library entries and Battlegrounds tier lists.
 Missing or rejected authentication is a configuration/authentication failure,
 never a skipped check or a green run. The observer does not register users,
 request email codes, change profile data, refresh subscriptions, or mutate
-application state.
+application state. The public profile ignores an authentication value even if
+one is present in the surrounding environment, and the scheduled public job is
+not given the authentication secret.
 
 ## Configuration contract
 
@@ -77,14 +79,20 @@ tokens, subscriber payloads, or browser storage.
 ## Diagnostics
 
 On a public browser failure the observer may save one bounded viewport
-screenshot named from the stable check ID. Authenticated screenshots are off by
-default because even a synthetic session can expose account-specific data.
+screenshot named from the stable check ID, but only while the final document
+remains on the configured origin. Authenticated screenshots are off by default
+because even a synthetic session can expose account-specific data.
 Runtime diagnostics record only sanitized error categories, safe same-origin
-paths and HTTP status codes.
+paths and HTTP status codes. Arbitrary browser console and exception text is
+never copied into a report.
 
 ## Reliability boundaries
 
 - Each navigation and semantic wait has a timeout.
+- Authentication fetch and response parsing have both browser-side and
+  observer-side timeouts.
+- The final browser document must remain on the configured origin before any
+  assertion or authentication request runs.
 - The whole run has a deadline.
 - Checks run sequentially in one isolated context to reduce production load.
 - One retry is allowed for navigation/network failures; semantic emptiness is

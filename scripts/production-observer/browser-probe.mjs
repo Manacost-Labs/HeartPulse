@@ -41,6 +41,20 @@ function visibleCountScript(selector) {
   return [...document.querySelectorAll(selector)].filter(visible).length;
 }
 
+async function withTimeout(operation, timeoutMs, timeoutError) {
+  let timeout;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise((_, reject) => {
+        timeout = setTimeout(() => reject(timeoutError()), timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function createBrowserProbe(options) {
   const origin = new URL(options.baseUrl).origin;
   const browser = await (options.puppeteerImpl || puppeteer).launch({
@@ -68,12 +82,12 @@ export async function createBrowserProbe(options) {
   page.setDefaultTimeout(options.semanticTimeoutMs);
 
   let runtimeFailures = [];
-  page.on('pageerror', error => runtimeFailures.push({ code: 'PAGE_ERROR', message: error.message }));
+  page.on('pageerror', () => runtimeFailures.push({ code: 'PAGE_ERROR', message: 'unhandled page error' }));
   page.on('console', message => {
     if (message.type() !== 'error') return;
     const text = message.text();
     if (/Failed to load resource|ERR_BLOCKED_BY_CLIENT/i.test(text)) return;
-    runtimeFailures.push({ code: 'CONSOLE_ERROR', message: text });
+    runtimeFailures.push({ code: 'CONSOLE_ERROR', message: 'browser console error' });
   });
   page.on('response', response => {
     const requestPath = safeSameOriginPath(response.url(), origin);
@@ -93,6 +107,11 @@ export async function createBrowserProbe(options) {
 
   async function savePublicScreenshot(checkId) {
     if (!options.screenshotDirectory || options.authCookie) return;
+    try {
+      if (new URL(page.url()).origin !== origin) return;
+    } catch {
+      return;
+    }
     mkdirSync(options.screenshotDirectory, { recursive: true });
     await page.screenshot({
       path: path.join(options.screenshotDirectory, `${checkId}.png`),
@@ -101,11 +120,33 @@ export async function createBrowserProbe(options) {
   }
 
   async function verifyAuthenticatedSession() {
-    const state = await page.evaluate(async () => {
-      const response = await fetch('/api/auth/me', { headers: { Accept: 'application/json' } });
-      const payload = await response.json().catch(() => null);
-      return { status: response.status, authenticated: Boolean(payload?.user) };
-    });
+    const authenticationUrl = new URL('/api/auth/me', origin).href;
+    const timeoutError = () => probeError(
+      'AUTH_SESSION_TIMEOUT',
+      'authentication',
+      'synthetic authentication verification timed out',
+    );
+    const state = await withTimeout(
+      page.evaluate(async ({ url, timeoutMs }) => {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const response = await fetch(url, {
+            headers: { Accept: 'application/json' },
+            signal: controller.signal,
+          });
+          const payload = await response.json();
+          return { status: response.status, authenticated: Boolean(payload?.user), timedOut: false };
+        } catch {
+          return { status: 0, authenticated: false, timedOut: controller.signal.aborted };
+        } finally {
+          clearTimeout(timeout);
+        }
+      }, { url: authenticationUrl, timeoutMs: options.semanticTimeoutMs }),
+      options.semanticTimeoutMs + 250,
+      timeoutError,
+    );
+    if (state.timedOut) throw timeoutError();
     if (state.status !== 200 || !state.authenticated) {
       throw probeError('AUTH_SESSION_REJECTED', 'authentication', 'synthetic authentication session was rejected');
     }
@@ -128,6 +169,9 @@ export async function createBrowserProbe(options) {
     try {
       const response = await navigate(target);
       if (!response) throw probeError('NO_DOCUMENT_RESPONSE', 'navigation', 'navigation returned no document response');
+      if (new URL(page.url()).origin !== origin) {
+        throw probeError('CROSS_ORIGIN_REDIRECT', 'navigation', 'document redirected outside the observed origin');
+      }
       if (response.status() !== 200) {
         throw probeError('HTTP_STATUS', 'navigation', `document returned HTTP ${response.status()}`);
       }

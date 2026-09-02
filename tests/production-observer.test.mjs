@@ -232,6 +232,41 @@ test('runner writes JSONL and summary artifacts without diagnostic secrets', asy
   }
 });
 
+test('public runner never passes an available authentication secret to the browser', async () => {
+  const outputRoot = mkdtempSync(path.join(tmpdir(), 'hearthpulse-observer-public-auth-test-'));
+  let browserOptions;
+  try {
+    await runProductionObserver({
+      config: structuredClone(validConfig),
+      routeDocument: { schemaVersion: 1, pages: { '/': {} } },
+      profile: 'public',
+      authCookie: 'must-not-reach-the-public-browser',
+      baseUrl: 'https://hearthpulse.net',
+      runId: 'public-auth-isolation-test',
+      outputRoot,
+      routeProbe: async () => {},
+      createBrowserProbe: async options => {
+        browserOptions = options;
+        return { probe: async () => {}, close: async () => {} };
+      },
+      console: { log: () => {} },
+    });
+    assert.equal(browserOptions.authCookie, undefined);
+  } finally {
+    rmSync(outputRoot, { recursive: true, force: true });
+  }
+});
+
+test('scheduled public workflow does not export the authentication secret', () => {
+  const workflow = readFileSync(new URL('../.github/workflows/production-observer.yml', import.meta.url), 'utf8');
+  const secretReferences = workflow.match(/secrets\.PRODUCTION_OBSERVER_AUTH_COOKIE/g) || [];
+  assert.equal(secretReferences.length, 1);
+  assert.match(
+    workflow,
+    /PRODUCTION_OBSERVER_AUTH_COOKIE: \$\{\{ inputs\.profile == 'authenticated' && secrets\.PRODUCTION_OBSERVER_AUTH_COOKIE \|\| '' \}\}/,
+  );
+});
+
 test('runner leaves an artifact when authenticated configuration is missing', async () => {
   const outputRoot = mkdtempSync(path.join(tmpdir(), 'hearthpulse-observer-auth-test-'));
   try {

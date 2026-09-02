@@ -29,7 +29,6 @@ jobs:
     env:
       PRODUCTION_BASE_URL: https://hearthpulse.net
       PRODUCTION_OBSERVER_PROFILE: ${{ inputs.profile || 'public' }}
-      PRODUCTION_OBSERVER_AUTH_COOKIE: ${{ secrets.PRODUCTION_OBSERVER_AUTH_COOKIE }}
     steps:
       - name: Checkout observer
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -46,6 +45,7 @@ jobs:
       - name: Observe production
         env:
           PRODUCTION_OBSERVER_OUTPUT_ROOT: ${{ runner.temp }}/production-observer
+          PRODUCTION_OBSERVER_AUTH_COOKIE: ${{ inputs.profile == 'authenticated' && secrets.PRODUCTION_OBSERVER_AUTH_COOKIE || '' }}
         run: npm run observe:production
 
       - name: Upload observer report

@@ -46,6 +46,7 @@ export async function runProductionObserver(options = {}) {
   const routeDocument = options.routeDocument || readJson('../config/public-seo-pages.json');
   const routes = publicRoutePaths(routeDocument);
   const profile = String(options.profile || 'public').trim().toLowerCase();
+  const authCookie = profile === 'authenticated' ? options.authCookie : undefined;
   const baseUrl = normalizeObserverBaseUrl(options.baseUrl || DEFAULT_BASE_URL);
   const runId = options.runId || createRunId();
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/.test(runId)) {
@@ -112,7 +113,7 @@ export async function runProductionObserver(options = {}) {
     try {
       browser = await (options.createBrowserProbe || createBrowserProbe)({
         baseUrl,
-        authCookie: options.authCookie,
+        authCookie,
         navigationTimeoutMs: config.navigationTimeoutMs,
         semanticTimeoutMs: config.semanticTimeoutMs,
         screenshotDirectory: path.join(outputDirectory, 'screenshots'),
@@ -134,7 +135,7 @@ export async function runProductionObserver(options = {}) {
         publicRoutes: routes,
         profile,
         baseUrl,
-        authCookie: options.authCookie,
+        authCookie,
         routeProbe,
         browserProbe: browser.probe,
         onEvent: eventSink,

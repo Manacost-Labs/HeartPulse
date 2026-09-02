@@ -39,7 +39,9 @@ contain no real personal data.
 
 The scheduled workflow runs the public profile every 15 minutes. The
 authenticated profile is available through `workflow_dispatch`; it fails
-closed when the secret is missing, expired or rejected.
+closed when the secret is missing, expired or rejected. Public runs are never
+given the Actions secret and ignore any authentication value inherited from a
+manual environment.
 
 ## What it checks
 
@@ -67,13 +69,14 @@ Each run creates a private directory under
 - `events.jsonl`: ordered machine-readable lifecycle and check events;
 - `summary.json`: final counts and bounded failures;
 - `screenshots/<check-id>.png`: public-profile viewport screenshots for failed
-  browser checks only.
+  same-origin browser checks only.
 
 Authenticated screenshots are intentionally disabled. Reports contain paths,
 stable check IDs, durations, HTTP status categories and sanitized messages.
 They must not contain query strings, HTML/API bodies, headers, email addresses,
 passwords, cookies, tokens, one-time codes, browser storage or subscriber
-payloads.
+payloads. Browser console and page-exception messages are reduced to stable
+categories rather than copied verbatim.
 
 ## First response to a failure
 
@@ -95,6 +98,8 @@ Common codes:
 | `API_HTTP_STATUS` | API returned 5xx | Endpoint logs |
 | `PAGE_ERROR` | Browser exception | Sentry and release diff |
 | `AUTH_SESSION_REJECTED` | Session expired | Rotate synthetic secret |
+| `AUTH_SESSION_TIMEOUT` | Auth check timed out | Auth endpoint logs |
+| `CROSS_ORIGIN_REDIRECT` | Browser left the site | Edge redirects |
 | `FORBIDDEN_STATE` | Paywall covered data | Auth and entitlement |
 
 ## Recovery and resolution
