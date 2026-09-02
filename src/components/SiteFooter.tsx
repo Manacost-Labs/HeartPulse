@@ -18,7 +18,7 @@ export default function SiteFooter(_props: { onNavigate?: (tab: string) => void 
     >
       <div className="arena-footer__columns">
         <div className="arena-footer__section">
-          <h3 className="arena-footer__heading">Разделы</h3>
+          <h2 className="arena-footer__heading">Разделы</h2>
           <nav aria-label="Навигация по сайту">
             <ul className="arena-footer__links">
               {FOOTER_NAV_LINKS.map(link => (
@@ -36,7 +36,7 @@ export default function SiteFooter(_props: { onNavigate?: (tab: string) => void 
         </div>
 
         <div className="arena-footer__section">
-          <h3 className="arena-footer__heading">Сообщество</h3>
+          <h2 className="arena-footer__heading">Сообщество</h2>
           <ul className="arena-footer__links">
             <li><a href="https://t.me/manacost_ru" target="_blank" rel="noopener noreferrer" className="arena-footer__link">Telegram</a></li>
             <li><a href="https://boosty.to/kolodahearthstone" target="_blank" rel="noopener noreferrer" className="arena-footer__link">Boosty</a></li>
@@ -44,7 +44,7 @@ export default function SiteFooter(_props: { onNavigate?: (tab: string) => void 
         </div>
 
         <div className="arena-footer__section">
-          <h3 className="arena-footer__heading">Разработчикам</h3>
+          <h2 className="arena-footer__heading">Разработчикам</h2>
           <ul className="arena-footer__links">
             <li><a href="/developers/api/" className="arena-footer__link">API для разработчиков</a></li>
             <li><a href="/api/v1/openapi.json" className="arena-footer__link">OpenAPI JSON</a></li>

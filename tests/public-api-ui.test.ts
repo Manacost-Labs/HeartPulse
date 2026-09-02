@@ -42,6 +42,7 @@ assert.match(docs, /Планируется/);
 const footer = readFileSync(new URL('../src/components/SiteFooter.tsx', import.meta.url), 'utf8');
 assert.match(footer, /href="\/developers\/api\/"/);
 assert.match(footer, />API для разработчиков</);
+assert.equal((footer.match(/<h2 className="arena-footer__heading">/g) ?? []).length, 3);
 
 const admin = readFileSync(new URL('../src/modules/developerApi/ui/AdminApiKeys.tsx', import.meta.url), 'utf8');
 assert.match(admin, /Секрет повторно не показывается/);

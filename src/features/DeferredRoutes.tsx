@@ -4631,7 +4631,7 @@ export function ArticlesTab({
         <label className="articles-search-modern">
           <Search size={17} aria-hidden="true" />
           <input
-            value={articleSearch}
+            name="article-search" value={articleSearch}
             onChange={event => setArticleSearch(event.target.value)}
             placeholder="Поиск по статьям"
             aria-label="Поиск по статьям"
