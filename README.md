@@ -234,8 +234,15 @@ npm run verify:ci
 
 ```bash
 node scripts/production-monitor.mjs
+npm run observe:production
 npm run qa:e2e
 ```
+
+`observe:production` открывает все зарегистрированные публичные страницы и
+проверяет в реальном Chromium, что ключевые страницы действительно показывают
+данные, форму входа или ожидаемый paywall. Структурированные отчёты и безопасный
+авторизованный профиль описаны в
+[production observer runbook](docs/runbooks/production-observer.md).
 
 Подробные SLO, stop-the-line правила и текущий прогресс находятся в
 [STABILIZATION.md](STABILIZATION.md).
@@ -250,7 +257,7 @@ npm run qa:e2e
 | Качество кода | TypeScript, React Doctor, Knip, markdownlint, design.md, архитектурные и bundle-budget проверки |
 | AppSec | CodeQL, Semgrep CE, Gitleaks, Trivy, GitHub Private Vulnerability Reporting |
 | Supply chain | Dependabot, OSV-Scanner, Dependency Review, npm audit, OpenSSF Scorecard |
-| Наблюдаемость | Sentry React/Node SDK, Sentry MCP, Chrome DevTools MCP, readiness/metrics и production monitor |
+| Наблюдаемость | Sentry React/Node SDK, Sentry MCP, Chrome DevTools MCP, readiness/metrics, production monitor и browser observer |
 | Delivery | GitHub Actions, immutable artifacts, Nginx, systemd, atomic symlink switch, rollback и encrypted backups |
 | Контекст команды | Notion для задач, Miro для схем и UX-контекста, Codex/Claude post-push review |
 

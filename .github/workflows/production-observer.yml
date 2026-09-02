@@ -1,0 +1,58 @@
+name: Production browser observer
+
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Observer profile
+        required: true
+        default: public
+        type: choice
+        options:
+          - public
+          - authenticated
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-browser-observer-${{ inputs.profile || 'public' }}
+  cancel-in-progress: true
+
+jobs:
+  observe:
+    name: Rendered pages and data
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      PRODUCTION_BASE_URL: https://hearthpulse.net
+      PRODUCTION_OBSERVER_PROFILE: ${{ inputs.profile || 'public' }}
+      PRODUCTION_OBSERVER_AUTH_COOKIE: ${{ secrets.PRODUCTION_OBSERVER_AUTH_COOKIE }}
+    steps:
+      - name: Checkout observer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install browser runtime
+        run: npm ci --ignore-scripts
+
+      - name: Observe production
+        env:
+          PRODUCTION_OBSERVER_OUTPUT_ROOT: ${{ runner.temp }}/production-observer
+        run: npm run observe:production
+
+      - name: Upload observer report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: production-observer-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/production-observer/
+          if-no-files-found: error
+          retention-days: 14
