@@ -1497,7 +1497,9 @@ async function mockApplicationApi(page, {
       }));
       return;
     }
-    if (url.pathname === '/api/constructed-archetypes' && request.method() === 'GET') {
+    if ((url.pathname === '/api/constructed-archetypes'
+      || url.pathname === '/api/constructed-archetypes/teaser')
+      && request.method() === 'GET') {
       if (adminState.constructedArchetypeReadFailureOnce) {
         adminState.constructedArchetypeReadFailureOnce = false;
         adminState.constructedArchetypeReadFailures = (adminState.constructedArchetypeReadFailures || 0) + 1;
@@ -1505,11 +1507,17 @@ async function mockApplicationApi(page, {
         return;
       }
       const requestedFormat = url.searchParams.get('format') === 'wild' ? 'wild' : 'standard';
+      const items = qaArchetypeCatalog.items.map(item => ({
+        ...item,
+        format: requestedFormat,
+        builds: url.pathname.endsWith('/teaser') ? [] : item.builds,
+      }));
       request.respond(jsonResponse({
         ...qaArchetypeCatalog,
         format: requestedFormat,
         formatLabel: requestedFormat === 'wild' ? 'Вольный' : 'Стандарт',
-        items: qaArchetypeCatalog.items.map(item => ({ ...item, format: requestedFormat })),
+        coverage: url.pathname.endsWith('/teaser') ? {} : qaArchetypeCatalog.coverage,
+        items,
       }));
       return;
     }

@@ -128,6 +128,10 @@ assert.ok(
   'strict browser QA must fixture both Vicious Gold progressive-loading endpoints',
 );
 assert.ok(
+  browserQa.includes("url.pathname === '/api/constructed-archetypes/teaser'"),
+  'strict browser QA must fixture the public constructed-archetype teaser endpoint',
+);
+assert.ok(
   browserQa.includes('isCardImageResponse')
     && browserQa.includes("response.status() !== 204"),
   'browser QA must accept image card APIs and bodyless successful API responses',
