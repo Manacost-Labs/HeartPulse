@@ -97,6 +97,44 @@ test('AGENTS preserves the shared parser scrape-provider order from the concurre
   assert.match(instructions, /Do not invent a Firecrawl-first path/);
 });
 
+test('active agent instructions identify HearthPulse and its canonical origin', () => {
+  const instructions = readFileSync('AGENTS.md', 'utf8');
+  const identitySection = instructions.split('\n').slice(0, 12).join('\n');
+
+  assert.match(identitySection, /^# HearthPulse Agent Instructions$/m);
+  assert.match(identitySection, /https:\/\/hearthpulse\.net/);
+  assert.match(identitySection, /arena\.hs-manacost\.ru[\s\S]*compatibility/i);
+});
+
+test('the focused AI project map stays compact and routes agents to source-of-truth context', () => {
+  const map = readFileSync('docs/architecture/ai-project-map.md', 'utf8');
+  const lineCount = map.trimEnd().split('\n').length;
+
+  assert.ok(lineCount <= 200, `AI project map has ${lineCount} lines; expected at most 200`);
+  for (const requiredContext of [
+    'HearthPulse',
+    'https://hearthpulse.net',
+    'src/main.tsx',
+    'src/App.tsx',
+    'server/index.ts',
+    'app -> modules -> shared',
+    'modular',
+    'transitional',
+    'npm run architecture:map',
+    'npm run architecture:impact',
+    'npm run architecture:owner',
+    'npm run test:module',
+    'npm run lint:architecture',
+    'npm run verify:release',
+    'module-boundaries.md',
+    'module-catalog.md',
+    'modularization-plan.md',
+    '../agent-tooling.md',
+  ]) {
+    assert.match(map, new RegExp(requiredContext.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+});
+
 test('AGENTS enforces the modular architecture and documentation contract', () => {
   const instructions = readFileSync('AGENTS.md', 'utf8');
   const boundaries = readFileSync('docs/architecture/module-boundaries.md', 'utf8');

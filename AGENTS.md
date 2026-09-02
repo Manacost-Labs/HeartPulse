@@ -1,6 +1,8 @@
-# HS-Arena Agent Instructions
+# HearthPulse Agent Instructions
 
-This repository powers https://arena.hs-manacost.ru.
+This repository powers https://hearthpulse.net. The retired
+`arena.hs-manacost.ru` host is compatibility-only and is not the active project
+identity.
 
 ## Parser scrape providers (hs-data-api)
 
@@ -16,8 +18,8 @@ Do not invent a Firecrawl-first path for those pipelines.
 
 ## Required Notion Task Tracking
 
-Every Codex, Claude, or other AI-agent task that concerns
-https://arena.hs-manacost.ru or any parser, scraper, ingestion pipeline, source
+Every Codex, Claude, or other AI-agent task that concerns HearthPulse,
+https://hearthpulse.net, or any parser, scraper, ingestion pipeline, source
 normalizer, cache, scheduled parser job, or parser administration in this
 repository must be recorded in the shared Notion task database:
 
