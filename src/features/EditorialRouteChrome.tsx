@@ -57,56 +57,37 @@ export function SectionBanner({
   subtitle: string;
 }) {
   return (
-    <>
-      <div
-        className="section-banner-modern relative overflow-hidden hidden sm:flex -mx-6 md:-mx-10 -mt-6 md:-mt-10 mb-6 flex-col items-start justify-center gap-1 px-8 md:px-10"
+    <div
+      className="section-banner-modern relative -mx-3 -mt-3 mb-5 flex flex-col items-start justify-center gap-1 overflow-hidden px-4 py-4 sm:-mx-6 sm:-mt-6 sm:mb-6 sm:px-8 md:-mx-10 md:-mt-10 md:px-10"
+      style={{
+        minHeight: 'clamp(120px, 13vw, 165px)',
+        background: [
+          'radial-gradient(circle at 82% 18%, rgba(246,206,104,0.24), transparent 26rem)',
+          'linear-gradient(135deg, rgba(9,21,39,0.96), rgba(23,43,72,0.9) 54%, rgba(58,31,22,0.74))',
+        ].join(', '),
+        borderBottom: '1px solid rgba(246, 206, 104, 0.25)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -18px 34px rgba(5,10,19,0.22)',
+      }}
+    >
+      <h1
+        className="font-hs tracking-wide"
         style={{
-          height: 'clamp(120px, 13vw, 165px)',
-          background: [
-            'radial-gradient(circle at 82% 18%, rgba(246,206,104,0.24), transparent 26rem)',
-            'linear-gradient(135deg, rgba(9,21,39,0.96), rgba(23,43,72,0.9) 54%, rgba(58,31,22,0.74))',
-          ].join(', '),
-          borderBottom: '1px solid rgba(246, 206, 104, 0.25)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -18px 34px rgba(5,10,19,0.22)',
+          fontSize: 'clamp(1.5rem, 3.5vw, 2.55rem)',
+          color: '#fff7cf',
+          textShadow: '0 3px 18px rgba(0,0,0,0.48)',
         }}
       >
-        <h1
-          className="font-hs"
-          style={{
-            fontSize: 'clamp(1.6rem, 3.5vw, 2.55rem)',
-            color: '#fff7cf',
-            textShadow: '0 3px 18px rgba(0,0,0,0.48)',
-          }}
-        >
-          {title}
-        </h1>
-        <p
-          className="font-body font-semibold"
-          style={{
-            fontSize: 'clamp(0.75rem, 1.4vw, 0.9rem)',
-            color: '#c8d5e8',
-            textShadow: '0 1px 8px rgba(0,0,0,0.48)',
-          }}
-        >
-          {subtitle}
-        </p>
-      </div>
-
-      <div
-        className="sm:hidden -mx-3 -mt-3 mb-5 px-4 py-4 section-banner-modern"
+        {title}
+      </h1>
+      <p
+        className="font-body text-xs font-semibold sm:text-sm"
         style={{
-          background: 'linear-gradient(145deg, rgba(255,255,255,0.96), rgba(232,241,255,0.92))',
-          borderBottom: '1px solid rgba(148,163,184,0.34)',
+          color: '#c8d5e8',
+          textShadow: '0 1px 8px rgba(0,0,0,0.48)',
         }}
       >
-        <h1
-          className="font-hs tracking-wide"
-          style={{ fontSize: '1.5rem', color: '#1f3654' }}
-        >
-          {title}
-        </h1>
-        <p className="text-[#52667f] text-xs mt-0.5 font-semibold">{subtitle}</p>
-      </div>
-    </>
+        {subtitle}
+      </p>
+    </div>
   );
 }
