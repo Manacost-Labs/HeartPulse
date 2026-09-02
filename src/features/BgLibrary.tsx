@@ -1000,7 +1000,7 @@ function FilterChip({ active, children, onClick, title }: { key?: React.Key; act
       title={title}
       onClick={onClick}
       data-active={active ? 'true' : 'false'}
-      className={`bg-library-filter-chip flex min-h-10 items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
+      className={`bg-library-filter-chip flex min-h-[44px] items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
         active
           ? 'border-[#e4c675] bg-[#e4c675] text-[#101827] shadow-sm'
           : 'border-[#cbd9ed] bg-[#ffffff] text-[#34445c] hover:border-[#d3af55] hover:text-[#6d4f1c]'
@@ -1063,7 +1063,7 @@ function LibrarySectionSwitcher({
                   }}
                   aria-disabled={disabled ? 'true' : undefined}
                   data-active={active ? 'true' : 'false'}
-                  className={`rounded-md border px-4 py-2 font-hs text-sm ${
+                  className={`inline-flex min-h-[44px] items-center rounded-md border px-4 py-2 font-hs text-sm ${
                     disabled
                       ? 'cursor-not-allowed border-[#d6e1f1] bg-[#eef4fd] text-[#8b9ab0]'
                       : active ? 'border-[#e4c675] bg-[#e4c675] text-[#101827]' : 'border-[#cbd9ed] bg-[#ffffff] text-[#33445d]'
@@ -1090,7 +1090,7 @@ function LibrarySectionSwitcher({
                   href={href}
                   onClick={(event) => navigateTo(event, href)}
                   data-active={active ? 'true' : 'false'}
-                  className={`rounded-md border px-4 py-2 font-hs text-sm ${
+                  className={`inline-flex min-h-[44px] items-center rounded-md border px-4 py-2 font-hs text-sm ${
                     active ? 'border-[#e4c675] bg-[#e4c675] text-[#101827]' : 'border-[#cbd9ed] bg-[#ffffff] text-[#33445d]'
                   }`}
                   style={{ textDecoration: 'none' }}
