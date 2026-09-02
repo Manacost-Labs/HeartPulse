@@ -123,14 +123,23 @@ function assertExclusivePathOwnership(entries) {
   }
 }
 
+function routeOwnershipKey(pattern) {
+  return pattern
+    .split('/')
+    .map(segment => segment.startsWith(':') ? ':parameter' : segment)
+    .join('/');
+}
+
 function assertUniqueRouteOwnership(entries) {
   const frontendOwners = new Map();
   for (const entry of entries) {
     for (const route of entry.frontendRoutes) {
-      if (frontendOwners.has(route)) {
+      const key = routeOwnershipKey(route);
+      const existingOwner = frontendOwners.get(key);
+      if (existingOwner && existingOwner !== entry.name) {
         throw new Error(`duplicate frontend route owner: ${route}`);
       }
-      frontendOwners.set(route, entry.name);
+      frontendOwners.set(key, entry.name);
     }
   }
 
@@ -138,12 +147,13 @@ function assertUniqueRouteOwnership(entries) {
     entry,
     method: route.method.toUpperCase(),
     path: route.path,
+    pathKey: routeOwnershipKey(route.path),
   })));
   for (let leftIndex = 0; leftIndex < backendClaims.length; leftIndex += 1) {
     for (let rightIndex = leftIndex + 1; rightIndex < backendClaims.length; rightIndex += 1) {
       const left = backendClaims[leftIndex];
       const right = backendClaims[rightIndex];
-      if (left.path !== right.path) continue;
+      if (left.pathKey !== right.pathKey) continue;
       if (left.method !== right.method && left.method !== '*' && right.method !== '*') continue;
       throw new Error(`duplicate backend route owner: ${left.method} ${left.path}`);
     }

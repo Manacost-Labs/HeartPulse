@@ -173,11 +173,24 @@ test('architecture catalog rejects overlapping paths and duplicate route owners'
         legacyAreas: [fixtureLegacyArea({
           paths: [],
           publicEntrypoints: ['src/modules/example/public.ts'],
-          frontendRoutes: ['/example/:id'],
+          frontendRoutes: ['/example/:slug'],
           backendRoutes: [],
         })],
       }, repositoryRoot),
       /duplicate frontend route owner/,
+    );
+
+    assert.throws(
+      () => validateArchitectureCatalog({
+        ...fixtureCatalog(),
+        legacyAreas: [fixtureLegacyArea({
+          paths: [],
+          publicEntrypoints: ['src/modules/example/public.ts'],
+          frontendRoutes: [],
+          backendRoutes: [{ method: 'GET', path: '/api/example/:slug' }],
+        })],
+      }, repositoryRoot),
+      /duplicate backend route owner/,
     );
   } finally {
     rmSync(repositoryRoot, { recursive: true, force: true });
