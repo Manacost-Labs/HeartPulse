@@ -135,6 +135,18 @@ test('the focused AI project map stays compact and routes agents to source-of-tr
   }
 });
 
+test('maintainer entry docs route contributors and agents to the HearthPulse context', () => {
+  const readme = readFileSync('README.md', 'utf8');
+  const contributing = readFileSync('CONTRIBUTING.md', 'utf8');
+  const agentTooling = readFileSync('docs/agent-tooling.md', 'utf8');
+
+  assert.match(readme, /HearthPulse/);
+  assert.match(readme, /docs\/architecture\/ai-project-map\.md/);
+  assert.match(contributing, /^# Как помочь HearthPulse/m);
+  assert.match(contributing, /cd HeartPulse/);
+  assert.match(agentTooling, /architecture\/ai-project-map\.md/);
+});
+
 test('AGENTS enforces the modular architecture and documentation contract', () => {
   const instructions = readFileSync('AGENTS.md', 'utf8');
   const boundaries = readFileSync('docs/architecture/module-boundaries.md', 'utf8');

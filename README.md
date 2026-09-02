@@ -155,6 +155,12 @@ axe-аудит входят в обязательный release gate.
 
 ## Архитектура
 
+Инженерное имя репозитория — **HearthPulse**, канонический production-домен —
+`hearthpulse.net`; Manacost Arena остаётся названием публичного интерфейса.
+AI-агентам и новым участникам следует начинать с компактной
+[карты проекта](docs/architecture/ai-project-map.md), а затем переходить к
+указанному в ней владельцу модуля и источнику истины.
+
 ```text
 Browser
   │
@@ -180,11 +186,13 @@ Nginx → immutable release → systemd service
 
 ```text
 src/components/       общие UI-компоненты
-src/app/              целевая композиция приложения
+src/App.tsx           текущая frontend-композиция и выбор маршрута
 src/modules/          новые доменные модули с узкими public-контрактами
 src/features/         legacy-страницы на поэтапной миграции, не целевая граница
 src/styles/           общие токены и ограниченные shared-стили
-server/               API, auth, кэширование и публикация данных
+server/app/           application wiring и lifecycle-композиция
+server/modules/       каталогизированные backend-домены
+server/index.ts       текущая server-композиция и legacy-регистрации
 scripts/              QA, бюджеты, релизы, мониторинг и recovery
 tests/                unit, contract, security и deployment tests
 deploy/               systemd units и инфраструктурные шаблоны

@@ -1,6 +1,7 @@
-# Как помочь Manacost Arena
+# Как помочь HearthPulse
 
-Спасибо за интерес к проекту. Manacost Arena — production-сервис, поэтому даже
+Спасибо за интерес к проекту. HearthPulse — инженерное имя репозитория и
+production-платформы; публичный интерфейс сохраняет бренд Manacost Arena. Даже
 небольшое изменение должно сохранять корректность данных, скорость интерфейса,
 адаптивность и возможность безопасного отката.
 
@@ -18,7 +19,7 @@
 
 ```bash
 git clone https://github.com/Manacost-Labs/HeartPulse.git
-cd manacost-arena
+cd HeartPulse
 npm ci
 cp .env.example .env
 npm run dev
@@ -57,5 +58,6 @@ Review и OpenSSF Scorecard. Не отключайте проверку ради
   устойчивый snapshot на случай отказа upstream.
 
 Архитектура, production-релизы и дизайн-контракты описаны в
-[README.md](README.md), [DEPLOYMENT.md](DEPLOYMENT.md),
-[STABILIZATION.md](STABILIZATION.md) и [assets.md](assets.md).
+[README.md](README.md), [карте проекта](docs/architecture/ai-project-map.md),
+[DEPLOYMENT.md](DEPLOYMENT.md), [STABILIZATION.md](STABILIZATION.md) и
+[assets.md](assets.md).
