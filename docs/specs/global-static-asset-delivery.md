@@ -26,6 +26,8 @@ Serve every required public image, media file, font, and hashed frontend asset t
 - Hashed assets and versioned media are content-stable for the lifetime of their URL.
 - Full-quality originals remain available. Provider image optimization must not silently crop or degrade card art.
 - Every resource class retains a same-origin copy or an automated routing fallback.
+- A transport edge may bypass its own proxy cache without replacing the
+  application's browser `Cache-Control` policy.
 - `Timing-Allow-Origin`, CORS, and exposed diagnostic headers are enabled only where browser modules, fonts, or measurement require them.
 
 ## Rollout order
@@ -65,6 +67,11 @@ visual directories, and a closed list of root icons on
 serves synchronized local files first, strips cookies and authorization on an
 origin miss, ignores arbitrary query strings in its cache key, and keeps
 `/runtime-config.js` plus every `/api` path behind the default `404` boundary.
+
+The canonical `hearthpulse.net` transport proxy does not store application
+responses itself. It forwards the application's cache policy unchanged so
+hashed assets and explicitly public media remain cacheable while private
+responses retain their application-selected `no-store` boundary.
 
 ## Documentation impact for every implementation slice
 

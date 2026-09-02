@@ -27,6 +27,20 @@ assert.match(application,
   /server_name\s+www\.hearthpulse\.net;[\s\S]*return\s+301\s+https:\/\/hearthpulse\.net\$request_uri;/,
   'www must normalize to the apex in one hop');
 
+const canonicalApplicationLocation = application.match(
+  /location \/ \{\n\s+proxy_pass https:\/\/hs_arena_origin;[\s\S]*?\n\s+\}/,
+)?.[0];
+assert.ok(canonicalApplicationLocation, 'the canonical proxy location must exist');
+assert.match(canonicalApplicationLocation, /proxy_no_cache\s+1;/,
+  'the canonical edge must not store application responses in its proxy cache');
+assert.match(canonicalApplicationLocation, /proxy_cache_bypass\s+1;/,
+  'the canonical edge must always bypass its proxy cache');
+assert.doesNotMatch(canonicalApplicationLocation, /add_header\s+Cache-Control/,
+  'the canonical edge must preserve the application Cache-Control policy');
+assert.match(application,
+  /location = \/_proxy_health \{[\s\S]*?add_header Cache-Control "no-store" always;/,
+  'the synthetic health endpoint must remain uncacheable');
+
 assert.match(cdn, /server_name\s+cdn\.hearthpulse\.net;/);
 assert.match(cdn, /ssl_certificate\s+\/etc\/nginx\/ssl\/hearthpulse\.net\/fullchain\.pem;/);
 assert.match(cdn, /location\s+~\s+\^\/\(\?:api\/card-image\//,
