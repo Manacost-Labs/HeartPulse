@@ -702,7 +702,6 @@
   }
 
   .articles-search-modern {
-    min-height: 44px;
     display: flex;
     align-items: center;
     gap: 0.55rem;
@@ -715,12 +714,12 @@
   }
 
   .articles-search-modern input {
-    width: 100%;
+    flex: 1;
     min-width: 0;
-    min-height: 44px;
+    height: 44px;
     border: 0;
     outline: 0;
-    background: transparent;
+    background: none;
     color: #1e293b;
     font: inherit;
     font-weight: 700;
