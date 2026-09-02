@@ -1,3 +1,4 @@
+import { BATTLEGROUND_STATISTICS_SCHEMAS } from './battlegroundSchemas.js';
 export const PUBLIC_API_OPENAPI = {
   openapi: '3.1.0',
   info: {
@@ -1497,17 +1498,14 @@ export const PUBLIC_API_OPENAPI = {
     },
   },
   components: {
-    securitySchemes: {
-      ApiKeyAuth: { type: 'apiKey', in: 'header', name: 'X-API-Key' },
-      ApplicationBearer: {
+    securitySchemes: { ApiKeyAuth: { type: 'apiKey', in: 'header', name: 'X-API-Key' }, ApplicationBearer: {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'opaque',
         description: 'Short-lived access token issued by the device authorization flow.',
       },
     },
-    schemas: {
-      DeviceAuthorizationInput: {
+    schemas: { ...BATTLEGROUND_STATISTICS_SCHEMAS, DeviceAuthorizationInput: {
         type: 'object',
         additionalProperties: false,
         required: ['client_id'],
@@ -2801,6 +2799,8 @@ export const PUBLIC_API_OPENAPI = {
           updatedAt: { type: ['string', 'null'], format: 'date-time' },
           datasetVersion: { type: 'string' },
           dataStatus: { type: 'string', enum: ['fresh', 'stale'] },
+          publication: { $ref: '#/components/schemas/BattlegroundStrategyPublication' },
+          upstreamFreshness: { $ref: '#/components/schemas/BattlegroundUpstreamFreshness' },
           sample: {
             type: 'object',
             additionalProperties: false,

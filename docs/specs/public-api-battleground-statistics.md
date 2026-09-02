@@ -108,6 +108,15 @@ Production adapter обращается только к фиксированны
 поддерживают `If-None-Match`; снимок старше 48 часов получает `stale` и warning
 `110`.
 
+Для `tier-lists/strategies?source=hsreplay` при наличии данных от
+публикатора в `meta` сохраняются только безопасные признаки происхождения:
+`publication` (`mode`, `channel`, `publishedAt`, необязательный `stale`) и
+`upstreamFreshness` (`status`, `observedAt`, `ageSeconds`, `bodyAsOf`). URL,
+заголовки, причины отказа и идентификаторы источника не публикуются. Явный
+`stale`/`unknown`, LKG-публикация, не-stable канал или дата из будущего всегда
+дают `meta.dataStatus=stale` и `X-Data-Cache=LKG`; при отсутствии этих новых
+полей сохраняется обратимый контроль по `updatedAt`.
+
 Контрактные тесты покрывают все ресурсы, выборки и фильтры, nullable-метрики,
 историю, составы и их вложенные поля, redaction URL/raw payload, 400/401/404/503
 и соответствие OpenAPI 3.1.

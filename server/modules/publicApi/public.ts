@@ -54,6 +54,14 @@ export {
   type PublicBattlegroundTimeRange,
   type PublicBattlegroundTierListKind,
 } from './battlegroundStatistics.js';
+export {
+  hsReplayStrategyDataStatus,
+  normalizeHsReplayStrategyMetadata,
+  type HsReplayStrategyFreshnessStatus,
+  type HsReplayStrategyMetadata,
+  type HsReplayStrategyPublication,
+  type HsReplayStrategyUpstreamFreshness,
+} from './hsreplayStrategyFreshness.js';
 export { PUBLIC_API_OPENAPI } from './openapi.js';
 export {
   createSqliteApiKeyRepository,

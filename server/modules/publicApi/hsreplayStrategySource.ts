@@ -1,5 +1,17 @@
 import { createHash } from 'node:crypto';
 import type { Request, Response } from 'express';
+import {
+  hsReplayStrategyDataStatus,
+  normalizeHsReplayStrategyMetadata,
+} from './hsreplayStrategyFreshness.js';
+export {
+  hsReplayStrategyDataStatus,
+  normalizeHsReplayStrategyMetadata,
+  type HsReplayStrategyFreshnessStatus,
+  type HsReplayStrategyMetadata,
+  type HsReplayStrategyPublication,
+  type HsReplayStrategyUpstreamFreshness,
+} from './hsreplayStrategyFreshness.js';
 
 const HSREPLAY_COMPS_DATASET_URL = 'https://api.kolodahearthstone.com/datasets/hsreplay_battlegrounds_comps';
 const CACHE_TTL_MS = 5 * 60_000;
@@ -102,6 +114,7 @@ export function normalizeHsReplayStrategyPayload(payload: unknown): JsonRecord {
   const root = record(payload);
   const data = record(root.data);
   const structured = record(data.structured ?? root.structured);
+  const metadata = normalizeHsReplayStrategyMetadata(root);
   const normalized = (Array.isArray(structured.comps) ? structured.comps : [])
     .map(normalizeStrategy)
     .filter((item): item is { tier: typeof TIERS[number]; row: JsonRecord } => Boolean(item));
@@ -111,6 +124,7 @@ export function normalizeHsReplayStrategyPayload(payload: unknown): JsonRecord {
     ?? normalized.map(item => text(item.row.lastUpdated)).filter(Boolean).sort().at(-1)
     ?? null;
   const tierCounts = Object.fromEntries(TIERS.map(value => [value, tiers[value].length]));
+  const dataStatus = hsReplayStrategyDataStatus(fetchedAt, metadata);
   return {
     list: 'strategies',
     label: 'Тир-лист стратегий',
@@ -123,6 +137,10 @@ export function normalizeHsReplayStrategyPayload(payload: unknown): JsonRecord {
     count: normalized.length,
     tiers,
     tierCounts,
+    dataStatus,
+    cacheSource: dataStatus === 'fresh' ? 'fresh' : 'LKG',
+    ...(metadata?.publication ? { publication: metadata.publication } : {}),
+    ...(metadata?.upstreamFreshness ? { upstreamFreshness: metadata.upstreamFreshness } : {}),
   };
 }
 

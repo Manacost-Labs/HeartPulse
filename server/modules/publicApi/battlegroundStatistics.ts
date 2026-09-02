@@ -1,14 +1,13 @@
 import { createHash } from 'node:crypto';
+import { hsReplayStrategyDataStatus, normalizeHsReplayStrategyMetadata, type HsReplayStrategyMetadata, type HsReplayStrategyPublication, type HsReplayStrategyUpstreamFreshness } from './hsreplayStrategyFreshness.js';
 
 type JsonRecord = Record<string, unknown>;
-
 export type PublicBattlegroundTierListKind =
   | 'heroes'
   | 'minions'
   | 'spells'
   | 'trinkets'
   | 'strategies';
-
 export type PublicBattlegroundHeroMode = 'solo' | 'duos';
 export type PublicBattlegroundMmr =
   | 'ALL'
@@ -58,7 +57,7 @@ type VersionedDataset<T> = {
     entity: BattlegroundEntity;
     updatedAt: string | null;
     datasetVersion: string;
-    dataStatus: 'fresh' | 'stale';
+    dataStatus: 'fresh' | 'stale'; publication?: HsReplayStrategyPublication; upstreamFreshness?: HsReplayStrategyUpstreamFreshness;
     sample?: {
       mode?: PublicBattlegroundHeroMode | null;
       mmrPercentile: string | null;
@@ -93,9 +92,8 @@ const STRATEGY_SOURCES = new Set<PublicBattlegroundStrategySource>(['hsreplay', 
 const ENTITY_ID_PATTERN = /^[A-Za-z0-9_-]{1,120}$/;
 const DEFAULT_LIMIT = 100;
 const MAX_LIMIT = 500;
-const MAX_MIN_GAMES = 100_000_000;
-const MAX_HISTORY_DAYS = 3650;
-const FRESH_FOR_MS = 48 * 60 * 60 * 1000;
+const MAX_MIN_GAMES = 100_000_000; const MAX_HISTORY_DAYS = 3650;
+const FRESH_FOR_MS = 48 * 60 * 60 * 1000; const MAX_CLOCK_SKEW_MS = 5 * 60_000;
 
 export class PublicBattlegroundStatisticsQueryError extends Error {
   constructor() {
@@ -244,7 +242,8 @@ function heroSelection(query: JsonRecord): HeroSelection {
 }
 
 function dataStatus(updatedAt: string | null): 'fresh' | 'stale' {
-  return updatedAt && Date.now() - Date.parse(updatedAt) <= FRESH_FOR_MS ? 'fresh' : 'stale';
+  if (!updatedAt) return 'stale'; const age = Date.now() - Date.parse(updatedAt);
+  return Number.isFinite(age) && age >= -MAX_CLOCK_SKEW_MS && age <= FRESH_FOR_MS ? 'fresh' : 'stale';
 }
 
 function datasetVersion(
@@ -263,9 +262,9 @@ function versioned<T>(
   entity: BattlegroundEntity,
   updatedAt: string | null,
   data: T[],
-  sample?: VersionedDataset<T>['meta']['sample'],
+  sample?: VersionedDataset<T>['meta']['sample'], metadata?: HsReplayStrategyMetadata | null,
 ): VersionedDataset<T> {
-  const status = dataStatus(updatedAt);
+  const status = metadata ? hsReplayStrategyDataStatus(updatedAt, metadata) : dataStatus(updatedAt);
   return {
     data,
     meta: {
@@ -274,6 +273,7 @@ function versioned<T>(
       updatedAt,
       datasetVersion: datasetVersion(entity, updatedAt, data, sample),
       dataStatus: status,
+      ...(metadata?.publication ? { publication: metadata.publication } : {}), ...(metadata?.upstreamFreshness ? { upstreamFreshness: metadata.upstreamFreshness } : {}),
       ...(sample ? { sample } : {}),
     },
     cacheSource: status === 'fresh' ? 'fresh' : 'LKG',
@@ -1056,7 +1056,7 @@ export function createPublicBattlegroundStatistics(source: PublicBattlegroundSta
       const list = payload.list === kind
         ? payload
         : record(record(payload.lists)[kind]);
-      const updatedAt = timestamp(list.fetchedAt ?? list.generatedAt ?? payload.generatedAt);
+      const updatedAt = timestamp(list.fetchedAt ?? list.generatedAt ?? payload.generatedAt); const strategyMetadata = kind === 'strategies' && strategySource === 'hsreplay' ? normalizeHsReplayStrategyMetadata(list) : null;
       const data: NonNullable<ReturnType<typeof serializeTierListItem>>[] = [];
       const tiers = record(list.tiers);
       for (const [tier, values] of Object.entries(tiers)) {
@@ -1081,7 +1081,7 @@ export function createPublicBattlegroundStatistics(source: PublicBattlegroundSta
         mmrPercentile: text(list.mmr, 80) || mmr,
         timeRange: text(list.timeRange, 80) || timeRange,
       };
-      const result = versioned(`tier-list:${kind}`, updatedAt, filtered, sample);
+      const result = versioned(`tier-list:${kind}`, updatedAt, filtered, sample, strategyMetadata);
       return paginate(query, result, [selection, selectedTier, minGames]);
     },
   };
