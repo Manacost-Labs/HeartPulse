@@ -4,7 +4,7 @@ import '../route-parchment.css';
 import '../battlegrounds-shell.css';
 import './PaywallGate.css';
 import SubscriptionPurchaseButtons from './SubscriptionPurchaseButtons';
-
+import { subscriptionPaywallHeading } from './subscriptionPaywallHeading';
 export type PaywallGateProps = {
   active: boolean;
   title: string;
@@ -123,9 +123,9 @@ export default function PaywallGate({
             <p className="arena-paywall__eyebrow" style={{ margin: '0 0 6px', color: '#45617f', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               Раздел для подписчиков
             </p>
-            <h3 className="arena-paywall__title" id="paywall-gate-title" style={{ margin: '0 0 10px', color: '#142238', fontFamily: 'var(--font-display)', fontSize: '1.25rem' }}>
-              {title}
-            </h3>
+            <h1 className="arena-paywall__title" id="paywall-gate-title" style={{ margin: '0 0 10px', color: '#142238', fontFamily: 'var(--font-display)', fontSize: '1.25rem' }}>
+              {subscriptionPaywallHeading(title)}
+            </h1>
             <p className="arena-paywall__description" id="paywall-gate-description" style={{ margin: '0 0 14px', color: '#42566f', fontSize: '13px', lineHeight: 1.55 }}>
               {variant === 'standard'
                 ? 'Тариф «Алмаз» открывает статистику традиционного режима, актуальную мету и готовые сборки.'

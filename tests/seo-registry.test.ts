@@ -9,6 +9,7 @@ import {
   seoPageForNavigationRoute,
 } from '../src/seo/registry';
 import { resolvePublicUrlPolicy } from '../src/seo/publicUrlPolicy';
+import { subscriptionPaywallHeading } from '../src/components/subscriptionPaywallHeading';
 
 const pages = publicSeoPages();
 const policyRouteIds = new Set(routeInventory.routes.map(route => route.id));
@@ -121,6 +122,13 @@ const battlegroundsLibrarySource = readFileSync(new URL('../src/features/BgLibra
 assert.match(battlegroundsLibrarySource, /библиотека BG Hearthstone \| HearthPulse/);
 assert.match(battlegroundsLibrarySource, /shortTitle} BG Hearthstone \| HearthPulse/);
 assert.doesNotMatch(battlegroundsLibrarySource, /BG Hearthstone \| HS-Manacost/);
+
+const paywallGateSource = readFileSync(new URL('../src/components/PaywallGate.tsx', import.meta.url), 'utf8');
+assert.match(paywallGateSource, /<h1[^>]*id="paywall-gate-title"/);
+assert.match(paywallGateSource, /subscriptionPaywallHeading\(title\)/);
+assert.equal(subscriptionPaywallHeading('Тир-лист доступны подписчикам', '/tierlist/'), 'Тир-лист карт Арены Hearthstone');
+assert.equal(subscriptionPaywallHeading('Тир-лист доступны подписчикам', '/battlegrounds/tier-list/'), 'Тир-лист БГ Hearthstone');
+assert.equal(subscriptionPaywallHeading('Мета доступна подписчикам', '/standard/meta/'), 'Мета доступна подписчикам');
 
 const arenaLandingSource = readFileSync(new URL('../src/modules/searchLanding/ui/ArenaTierListSearchIntro.tsx', import.meta.url), 'utf8');
 assert.match(arenaLandingSource, /href="\/classes"[^>]*>Винрейты классов Арены<\/a>/);
