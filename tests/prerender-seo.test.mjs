@@ -215,7 +215,7 @@ try {
   assert.match(battlegroundsStrategies, /href="\/battlegrounds\/tier-list"[^>]*>Тир-лист стратегий БГ<\/a>/i);
 
   const standardMeta = readOutput(outputPath('/standard/meta'));
-  assert.match(standardMeta, /<h1>Мета Hearthstone по данным HSGuru<\/h1>/);
+  assert.match(standardMeta, /<h1>HSGuru: мета Hearthstone<\/h1>/);
   assert.match(standardMeta, /HSGuru[^<]*источник/i);
   assert.match(standardMeta, /href="\/standard\/archetypes"[^>]*>Архетипы и колоды Hearthstone<\/a>/i);
 

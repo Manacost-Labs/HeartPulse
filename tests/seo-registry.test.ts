@@ -123,7 +123,7 @@ const standardMetaSource = readFileSync(new URL('../src/features/StandardMeta.ts
 assert.match(standardMetaSource, /<StandardMetaSearchIntro \/>/);
 assert.match(standardMetaSource, /<StandardMetaRelatedLinks \/>/);
 const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLanding/ui/StandardMetaSearchIntro.tsx', import.meta.url), 'utf8');
-assert.match(standardMetaLandingSource, /<h1>Мета Hearthstone по данным HSGuru<\/h1>/);
+assert.match(standardMetaLandingSource, /<h1>HSGuru: мета Hearthstone<\/h1>/);
 assert.match(standardMetaLandingSource, /HSGuru — источник статистики/);
 
 console.log(`SEO registry assertions passed (${pages.length} pages, ${sitemapPages.length} sitemap URLs)`);

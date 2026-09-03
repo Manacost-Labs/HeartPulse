@@ -224,7 +224,7 @@ const PAGES = {
       <p><a href="/">На главную</a> | <a href="/articles">Статьи</a> | <a href="/classes">Арена</a></p>`
   },
   '/standard/meta': {
-    h1: 'Мета Hearthstone по данным HSGuru',
+    h1: 'HSGuru: мета Hearthstone',
     ogType: 'website',
     structuredData: [
       {
@@ -237,14 +237,14 @@ const PAGES = {
       {
         "@type": "CollectionPage",
         "@id": `${SITE_URL}/standard/meta#collection`,
-        "name": "Мета Hearthstone по данным HSGuru",
+        "name": "HSGuru: мета Hearthstone",
         "description": "Тир-лист колод Стандарта и Вольного режима с винрейтами, популярностью и готовыми сборками.",
         "url": `${SITE_URL}/standard/meta`,
         "inLanguage": "ru"
       }
     ],
     noscript: `
-      <h1>Мета Hearthstone по данным HSGuru</h1>
+      <h1>HSGuru: мета Hearthstone</h1>
       <p>HSGuru — источник статистики для этого русскоязычного среза меты Hearthstone: тир-листа колод, винрейтов, популярности и готовых сборок Стандарта и Вольного режима.</p>
       <p>Выберите формат, рейтинг и период, чтобы сравнить архетипы. Часть подробной статистики доступна с тарифом «Алмаз».</p>
       <p><a href="/standard/archetypes">Архетипы и колоды Hearthstone</a> | <a href="/standard/matchups">Матчапы по данным HSGuru</a> | <a href="/standard/cards">Карты Hearthstone</a></p>`

@@ -2619,6 +2619,11 @@ for (const route of authenticatedRoutes) {
             && cards[0].getAttribute('title')?.includes('Ксавий');
         }, { timeout: 10_000 });
         await page.waitForSelector('.builder-card.is-hero[title*="Ксавий"]', { visible: true, timeout: 10_000 });
+        await page.$eval('.builder-card.is-hero[title*="Ксавий"]', card => card.scrollIntoView({ block: 'center' }));
+        await page.waitForFunction(() => {
+          const image = document.querySelector('.builder-card.is-hero[title*="Ксавий"] img');
+          return Boolean(image?.complete && image.naturalWidth >= 300 && image.naturalHeight >= 400);
+        }, { timeout: 10_000 });
         const liveHeroState = await page.$eval('.builder-card.is-hero[title*="Ксавий"]', card => {
           const image = card.querySelector('img');
           return {
