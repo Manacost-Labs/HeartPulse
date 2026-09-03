@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
 import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
-import { StandardMetaRelatedLinks, StandardMetaSearchIntro } from '../modules/searchLanding/public';
+import { StandardMetaRelatedLinks, StandardMetaSearchIntro } from '../modules/searchLanding/standardMeta';
 import { AsyncSurfaceState, RecoverableSurfaceBoundary } from './recovery/RecoverableSurface';
 import { datasetContractErrorMessage } from '../../shared/datasetEnvelope';
 import {

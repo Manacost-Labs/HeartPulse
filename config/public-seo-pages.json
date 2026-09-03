@@ -38,8 +38,8 @@
     "/standard/meta": {
       "policyRouteId": "standard-meta",
       "navigationRouteId": "standard-meta",
-      "title": "HSGuru — мета Hearthstone {year} и тир-лист колод | HearthPulse",
-      "description": "Мета Hearthstone на русском по данным HSGuru: тир-лист колод Стандарта и Вольного режима, винрейты, популярность, архетипы и готовые сборки.",
+      "title": "HSGuru: мета Hearthstone {year} | HearthPulse",
+      "description": "Мета Hearthstone по данным HSGuru: тир-лист колод, винрейты, популярность и готовые сборки Стандарта и Вольного режима.",
       "sitemap": true
     },
     "/standard/fun-decks": {
@@ -80,8 +80,8 @@
     "/tierlist": {
       "policyRouteId": "tierlist",
       "navigationRouteId": "tierlist",
-      "title": "Тир-лист Арены Hearthstone {year}: лучшие карты | HearthPulse",
-      "description": "Актуальный тир-лист карт Арены Hearthstone по классам: лучшие карты текущего патча с оценками от S до F по данным HearthArena и HSReplay.",
+      "title": "Тир-лист Арены Hearthstone {year} | HearthPulse",
+      "description": "Тир-лист карт Арены Hearthstone по классам: оценки от S до F для текущего патча по данным HearthArena и HSReplay.",
       "sitemap": true
     },
     "/legendaries": {
@@ -148,7 +148,7 @@
       "policyRouteId": "bg-strategies",
       "navigationRouteId": "bg-strategies",
       "title": "Конструктор стратегий БГ Hearthstone | HearthPulse",
-      "description": "Собирайте и визуализируйте собственные стратегии БГ Hearthstone: выбирайте существ, заклинания и аксессуары для плана на Полях сражений.",
+      "description": "Собирайте свои стратегии БГ Hearthstone из существ, заклинаний и аксессуаров Полей сражений.",
       "sitemap": true
     },
     "/heroes": {
@@ -198,8 +198,8 @@
     "/battlegrounds/tier-list": {
       "policyRouteId": "bg-tier-list",
       "navigationRouteId": "bg-tier-list",
-      "title": "Тир-лист БГ Hearthstone {year}: существа и стратегии | HearthPulse",
-      "description": "Актуальный тир-лист БГ Hearthstone: рейтинг существ, стратегий, заклинаний и аксессуаров Полей сражений с фильтрами и просмотром карт.",
+      "title": "Тир-лист БГ Hearthstone {year} | HearthPulse",
+      "description": "Тир-лист БГ Hearthstone: рейтинг существ, стратегий, заклинаний и аксессуаров Полей сражений.",
       "sitemap": true
     },
     "/battlegrounds/tier-builder": {

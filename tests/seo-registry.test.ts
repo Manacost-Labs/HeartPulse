@@ -111,16 +111,19 @@ const battlegroundsSource = readFileSync(new URL('../src/features/Battlegrounds.
 assert.match(battlegroundsSource, /<BattlegroundsTierListSearchIntro \/>/);
 assert.match(battlegroundsSource, /<BattlegroundsStrategyBuilderSearchIntro \/>/);
 
-const searchLandingSource = readFileSync(new URL('../src/modules/searchLanding/ui/SearchLandingIntros.tsx', import.meta.url), 'utf8');
-assert.match(searchLandingSource, /<h1[^>]*>Тир-лист БГ Hearthstone<\/h1>/);
-assert.match(searchLandingSource, /<h1[^>]*>Конструктор стратегий БГ Hearthstone<\/h1>/);
-assert.match(searchLandingSource, /href="\/classes"[^>]*>Винрейты классов Арены<\/a>/);
-assert.match(searchLandingSource, /href="\/battlegrounds\/tier-list"[^>]*>Тир-лист стратегий БГ<\/a>/);
+const arenaLandingSource = readFileSync(new URL('../src/modules/searchLanding/ui/ArenaTierListSearchIntro.tsx', import.meta.url), 'utf8');
+assert.match(arenaLandingSource, /href="\/classes"[^>]*>Винрейты классов Арены<\/a>/);
+
+const battlegroundsLandingSource = readFileSync(new URL('../src/modules/searchLanding/ui/BattlegroundsSearchIntros.tsx', import.meta.url), 'utf8');
+assert.match(battlegroundsLandingSource, /<h1[^>]*>Тир-лист БГ Hearthstone<\/h1>/);
+assert.match(battlegroundsLandingSource, /<h1[^>]*>Конструктор стратегий БГ Hearthstone<\/h1>/);
+assert.match(battlegroundsLandingSource, /href="\/battlegrounds\/tier-list"[^>]*>Тир-лист стратегий БГ<\/a>/);
 
 const standardMetaSource = readFileSync(new URL('../src/features/StandardMeta.tsx', import.meta.url), 'utf8');
 assert.match(standardMetaSource, /<StandardMetaSearchIntro \/>/);
 assert.match(standardMetaSource, /<StandardMetaRelatedLinks \/>/);
-assert.match(searchLandingSource, /<h1>Мета Hearthstone по данным HSGuru<\/h1>/);
-assert.match(searchLandingSource, /HSGuru — источник статистики/);
+const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLanding/ui/StandardMetaSearchIntro.tsx', import.meta.url), 'utf8');
+assert.match(standardMetaLandingSource, /<h1>Мета Hearthstone по данным HSGuru<\/h1>/);
+assert.match(standardMetaLandingSource, /HSGuru — источник статистики/);
 
 console.log(`SEO registry assertions passed (${pages.length} pages, ${sitemapPages.length} sitemap URLs)`);

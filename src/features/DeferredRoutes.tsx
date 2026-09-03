@@ -17,7 +17,7 @@ import ProfileIdentityHero from '../components/ProfileIdentityHero';
 import FAQSection from '../components/FAQSection';
 import TierlistEarlyStatsNotice from './TierlistEarlyStatsNotice';
 import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
-import { ArenaTierListSearchIntro } from '../modules/searchLanding/public';
+import { ArenaTierListSearchIntro } from '../modules/searchLanding/arena';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

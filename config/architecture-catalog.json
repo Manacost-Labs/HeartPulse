@@ -224,7 +224,11 @@
       "owner": "search-experience",
       "purpose": "Own visible search-intent introductions and contextual navigation for canonical public landing pages.",
       "paths": ["src/modules/searchLanding"],
-      "publicEntrypoints": ["src/modules/searchLanding/public.ts"],
+      "publicEntrypoints": [
+        "src/modules/searchLanding/arena.ts",
+        "src/modules/searchLanding/battlegrounds.ts",
+        "src/modules/searchLanding/standardMeta.ts"
+      ],
       "frontendRoutes": [],
       "backendRoutes": [],
       "contracts": [],

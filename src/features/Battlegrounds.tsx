@@ -4,7 +4,7 @@ import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import {
   BattlegroundsStrategyBuilderSearchIntro,
   BattlegroundsTierListSearchIntro,
-} from '../modules/searchLanding/public';
+} from '../modules/searchLanding/battlegrounds';
 import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
 import { publicResourceUrl } from '../publicResourceUrl';
 import {
