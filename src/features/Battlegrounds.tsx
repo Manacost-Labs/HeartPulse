@@ -2747,9 +2747,9 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
     const publicDescription = String(rawDescription).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
     const description = heroPowerName
       ? `${heroName}: сила героя «${heroPowerName}»${publicDescription ? ` — ${publicDescription}` : '.'}`
-      : `${heroName} — герой Полей сражений Hearthstone в библиотеке Manacost Stats.`;
+      : `${heroName} — герой Полей сражений Hearthstone в библиотеке HearthPulse.`;
     void applyDocumentPageMeta({
-      title: `${heroName} — герой Полей сражений | Manacost Stats`,
+      title: `${heroName} — герой Полей сражений | HearthPulse`,
       description: description.slice(0, 300),
       pathname: `/heroes/${dbfId}`,
       search: '',

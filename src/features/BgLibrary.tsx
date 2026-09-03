@@ -1193,9 +1193,9 @@ function LibraryListPage({ kind, pool, navigatePath }: { kind: LibraryKind; pool
     const kindLabel = kind === 'spell' ? 'заклинаний' : 'существ';
     const title = isBaseLibraryKind(kind)
       ? (pool === 'archive'
-        ? `Архив ${kindLabel} Полей сражений — BG Hearthstone | HS-Manacost`
-        : `${kind === 'spell' ? 'Заклинания' : 'Существа'} Полей сражений — библиотека BG Hearthstone | HS-Manacost`)
-      : `${pool === 'archive' ? 'Архив · ' : ''}${section.title} Полей сражений — BG Hearthstone | HS-Manacost`;
+        ? `Архив ${kindLabel} Полей сражений — BG Hearthstone | HearthPulse`
+        : `${kind === 'spell' ? 'Заклинания' : 'Существа'} Полей сражений — библиотека BG Hearthstone | HearthPulse`)
+      : `${pool === 'archive' ? 'Архив · ' : ''}${section.title} Полей сражений — BG Hearthstone | HearthPulse`;
     const description = pool === 'archive' ? section.archiveDescription : section.description;
     setLibraryMeta(title, description, sectionHref(kind, pool));
   }, [kind, pool]);
@@ -1586,8 +1586,8 @@ function DetailPage({ kind, pool, dbfId, navigatePath }: { kind: LibraryKind; po
         }
         const loadedCardName = cardRuName(normalCard);
         const title = pool === 'archive'
-          ? `${loadedCardName} — архив · ${section.shortTitle} BG Hearthstone | HS-Manacost`
-          : `${loadedCardName} — ${section.shortTitle} BG Hearthstone | HS-Manacost`;
+          ? `${loadedCardName} — архив · ${section.shortTitle} BG Hearthstone | HearthPulse`
+          : `${loadedCardName} — ${section.shortTitle} BG Hearthstone | HearthPulse`;
         const description = pool === 'archive'
           ? `${loadedCardName}: архивная карта Полей сражений Hearthstone вне активного пула.`
           : `${loadedCardName}: ${cardGroupName(normalCard)}, ${cardRulesText(normalCard) || 'подробная карточка Полей сражений.'}`;

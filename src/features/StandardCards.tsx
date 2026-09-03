@@ -1383,9 +1383,9 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
     const rules = plainText(card.text?.ru || card.text?.en);
     const description = rules
       ? `${name} (${formatLabel}, ID ${resolvedCardId}): ${rules}`
-      : `${name} — карта Hearthstone (${formatLabel}, ID ${resolvedCardId}) в библиотеке Manacost Stats.`;
+      : `${name} — карта Hearthstone (${formatLabel}, ID ${resolvedCardId}) в библиотеке HearthPulse.`;
     void applyDocumentPageMeta({
-      title: `${name} — карта Hearthstone (${formatLabel}, ${resolvedCardId}) | Manacost Stats`,
+      title: `${name} — карта Hearthstone (${formatLabel}, ${resolvedCardId}) | HearthPulse`,
       description: description.slice(0, 300),
       pathname: `/standard/cards/${format}/${encodeURIComponent(resolvedCardId)}`,
       search: '',
