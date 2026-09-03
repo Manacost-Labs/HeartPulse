@@ -10,14 +10,20 @@ third-party data source.
 
 ## Search intent ownership
 
-| Canonical page | Primary intent | Supporting intent | Must not target |
-| --- | --- | --- | --- |
-| `/tierlist` | `тир-лист Арены Hearthstone` | `тир-лист карт Арены`, `лучшие карты Арены` | Battlegrounds tiers |
-| `/battlegrounds/tier-list` | `тир-лист БГ Hearthstone` | `тир-лист стратегий БГ`, minion, spell and trinket tiers | strategy-builder intent |
-| `/battlegrounds/strategies` | `конструктор стратегий БГ` | composing and visualising a Battlegrounds plan | ranking strategies |
-| `/standard/meta` | `HSGuru мета Hearthstone на русском` | deck tier list, win rate and popularity | HSGuru navigation or affiliation |
-| `/standard/archetypes` | Hearthstone archetype catalogue | archetype pages and deck lists sourced from HSGuru | broad meta tier-list intent |
-| `/standard/matchups` | Hearthstone matchup matrix | HSGuru matchup statistics | broad meta tier-list intent |
+- `/tierlist` owns `тир-лист Арены Hearthstone`, supported by card-tier and
+  best-card intent. It does not target Battlegrounds tiers.
+- `/battlegrounds/tier-list` owns `тир-лист БГ Hearthstone`, supported by
+  strategy, minion, spell and trinket tiers. It does not target the builder.
+- `/battlegrounds/strategies` owns `конструктор стратегий БГ`, supported by
+  composing and visualising a plan. It does not rank strategies.
+- `/standard/meta` owns `HSGuru мета Hearthstone на русском`, supported by deck
+  tiers, win rate and popularity. It does not target HSGuru navigation or imply
+  affiliation.
+- `/standard/archetypes` owns the Hearthstone archetype catalogue, supported by
+  archetype pages and HSGuru-sourced deck lists. It does not own the broad meta
+  tier-list intent.
+- `/standard/matchups` owns the Hearthstone matchup matrix, supported by HSGuru
+  statistics. It does not own the broad meta tier-list intent.
 
 Query spelling variants such as `тир лист`, `тирлист`, `БГ`, `Battlegrounds`
 and `стратеги` are natural-language variants. They belong in readable Russian
