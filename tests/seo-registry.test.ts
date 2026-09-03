@@ -129,6 +129,22 @@ assert.match(paywallGateSource, /subscriptionPaywallHeading\(title\)/);
 assert.doesNotMatch(paywallGateSource, /<h1 style=\{\{ margin: 0/);
 assert.equal(subscriptionPaywallHeading('Тир-лист доступны подписчикам', '/tierlist/'), 'Тир-лист карт Арены Hearthstone');
 assert.equal(subscriptionPaywallHeading('Тир-лист доступны подписчикам', '/battlegrounds/tier-list/'), 'Тир-лист БГ Hearthstone');
+assert.equal(
+  subscriptionPaywallHeading(
+    'Библиотека доступны подписчикам',
+    '/library/minions/electric-synthesizer-100026/',
+    'Электрический синтезатор — существо Полей сражений Hearthstone | HearthPulse',
+  ),
+  'Электрический синтезатор',
+);
+assert.equal(
+  subscriptionPaywallHeading(
+    'Герои доступны подписчикам',
+    '/heroes/61914/',
+    'Королева Азшара — герой Полей сражений | HearthPulse',
+  ),
+  'Королева Азшара',
+);
 assert.equal(subscriptionPaywallHeading('Мета доступна подписчикам', '/standard/meta/'), 'Мета доступна подписчикам');
 
 const arenaLandingSource = readFileSync(new URL('../src/modules/searchLanding/ui/ArenaTierListSearchIntro.tsx', import.meta.url), 'utf8');
