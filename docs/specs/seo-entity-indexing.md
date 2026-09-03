@@ -108,8 +108,8 @@ No new dependency, database migration or public JSON API is introduced.
 ## Documentation impact
 
 - This specification records the new sitemap segment and page-quality contract.
-- `docs/roadmaps/SEO-STRATEGY.md` will be updated after implementation to mark
-  the hero/Battlegrounds/Wild sitemap slice complete.
+- `docs/roadmaps/SEO-STRATEGY.md` marks the hero/Battlegrounds/Wild sitemap
+  slice complete and records the remaining article/additional-entity scope.
 - `CHANGELOG.md` records the user-visible release.
 - No ADR is required: the implementation extends the already accepted
   canonical and semantic-LKG architecture without changing its decision.
