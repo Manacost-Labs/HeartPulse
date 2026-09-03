@@ -53,6 +53,13 @@ const sitemapCardIds = Array.from(
   { length: 500 },
   (_value, index) => `MONITOR_CARD_${String(index + 1).padStart(4, '0')}`,
 );
+const sitemapWildCardIds = Array.from(
+  { length: 500 },
+  (_value, index) => `MONITOR_WILD_${String(index + 1).padStart(4, '0')}`,
+);
+const sitemapMinionIds = Array.from({ length: 500 }, (_value, index) => 10_000 + index);
+const sitemapSpellIds = Array.from({ length: 50 }, (_value, index) => 20_000 + index);
+const sitemapHeroIds = Array.from({ length: 80 }, (_value, index) => 30_000 + index);
 
 function xmlUrlset(urls) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(url => `  <url><loc>${url}</loc></url>`).join('\n')}\n</urlset>\n`;
@@ -64,6 +71,7 @@ function xmlIndex(urls) {
 
 function cardHtml(origin, cardId, options = {}) {
   const canonical = options.canonical || `${origin}/standard/cards/standard/${cardId}/`;
+  const identityFragment = options.identityFragment || 'card';
   const robots = options.robots || 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
   const jsonLd = options.invalidJsonLd
     ? '{invalid-json'
@@ -71,7 +79,7 @@ function cardHtml(origin, cardId, options = {}) {
         '@context': 'https://schema.org',
         '@graph': [{
           '@type': 'CreativeWork',
-          '@id': `${canonical}#card`,
+          '@id': `${canonical}#${identityFragment}`,
           url: canonical,
           identifier: options.identity || cardId,
           name: `Карта ${cardId}`,
@@ -178,6 +186,10 @@ const server = http.createServer((req, res) => {
     res.end(xmlIndex([
       `${origin}/sitemaps/static.xml`,
       `${origin}/sitemaps/standard-cards.xml`,
+      `${origin}/sitemaps/wild-cards.xml`,
+      `${origin}/sitemaps/battleground-minions.xml`,
+      `${origin}/sitemaps/battleground-spells.xml`,
+      `${origin}/sitemaps/battleground-heroes.xml`,
     ]));
     return;
   }
@@ -216,6 +228,27 @@ const server = http.createServer((req, res) => {
     res.end(xmlUrlset(urls));
     return;
   }
+  const additionalSitemaps = {
+    '/sitemaps/wild-cards.xml': sitemapWildCardIds.map(cardId => (
+      `${origin}/standard/cards/wild/${cardId}/`
+    )),
+    '/sitemaps/battleground-minions.xml': sitemapMinionIds.map(dbfId => (
+      `${origin}/library/minions/monitor-minion-${dbfId}/`
+    )),
+    '/sitemaps/battleground-spells.xml': sitemapSpellIds.map(dbfId => (
+      `${origin}/library/spells/monitor-spell-${dbfId}/`
+    )),
+    '/sitemaps/battleground-heroes.xml': sitemapHeroIds.map(dbfId => `${origin}/heroes/${dbfId}/`),
+  };
+  if (additionalSitemaps[requestUrl.pathname]) {
+    res.writeHead(200, {
+      'Content-Type': 'application/xml; charset=utf-8',
+      ETag: `${compressedSitemapEtag ? 'W/' : ''}"sha256-${'b'.repeat(64)}"`,
+      'X-Sitemap-Source': 'catalog',
+    });
+    res.end(xmlUrlset(additionalSitemaps[requestUrl.pathname]));
+    return;
+  }
   const sitemapCardMatch = requestUrl.pathname.match(/^\/standard\/cards\/standard\/(MONITOR_CARD_[0-9]{4})\/?$/);
   if (sitemapCardMatch) {
     const cardId = sitemapCardMatch[1];
@@ -239,6 +272,32 @@ const server = http.createServer((req, res) => {
       'X-Robots-Tag': seoFailure === 'robots-header' ? 'noindex, nofollow' : 'index, follow',
     });
     res.end(html);
+    return;
+  }
+  const wildCardMatch = requestUrl.pathname.match(/^\/standard\/cards\/wild\/(MONITOR_WILD_[0-9]{4})\/$/);
+  if (wildCardMatch) {
+    const cardId = wildCardMatch[1];
+    const canonical = `${origin}/standard/cards/wild/${cardId}/`;
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'index, follow' });
+    res.end(cardHtml(origin, cardId, { canonical }));
+    return;
+  }
+  const battlegroundCardMatch = requestUrl.pathname.match(
+    /^\/library\/(minions|spells)\/monitor-(?:minion|spell)-(\d+)\/$/,
+  );
+  if (battlegroundCardMatch) {
+    const dbfId = battlegroundCardMatch[2];
+    const canonical = `${origin}${requestUrl.pathname}`;
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'index, follow' });
+    res.end(cardHtml(origin, dbfId, { canonical }));
+    return;
+  }
+  const heroMatch = requestUrl.pathname.match(/^\/heroes\/(\d+)\/$/);
+  if (heroMatch) {
+    const dbfId = heroMatch[1];
+    const canonical = `${origin}${requestUrl.pathname}`;
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'index, follow' });
+    res.end(cardHtml(origin, dbfId, { canonical, identityFragment: 'hero' }));
     return;
   }
   if (requestUrl.pathname === '/standard/cards/standard/MANACOST_MONITOR_ABSENT_CARD/') {
@@ -276,8 +335,15 @@ try {
   assert.ok(report.checks.some(check => check.label === 'SEO crawl contract'));
   const seoCheck = report.checks.find(check => check.label === 'SEO crawl contract');
   assert.equal(seoCheck.standardUrls, 500);
+  assert.deepEqual(seoCheck.entityUrls, {
+    standard: 500,
+    wild: 500,
+    battlegroundMinions: 500,
+    battlegroundSpells: 50,
+    battlegroundHeroes: 80,
+  });
   assert.equal(seoCheck.staticUrls, EXPECTED_STATIC_SITEMAP_URL_COUNT);
-  assert.equal(seoCheck.sampledDetails, 3);
+  assert.equal(seoCheck.sampledDetails, 15);
   assert.equal(report.checks[0].attempts, 2);
   assert.deepEqual(report.checks.map(check => check.status), [200, 200, 200, 200, 200, 200, 404, 200, 200, 404, 200, 200, 200]);
 

@@ -31,6 +31,53 @@ const MAX_EMPTY_RESPONSE_BYTES = 64 * 1024;
 const DEFAULT_MONITOR_DEADLINE_MS = 4 * 60 * 1000;
 const PRIVATE_PAYLOAD_PATTERN = /QA_PRIVATE|\b(?:deckCode|statsAccess|subscriptionPayload|privateSentinel)\b/i;
 const MONITOR_PROFILES = new Set(['full', 'release', 'freshness']);
+const ENTITY_SITEMAP_SEGMENTS = [
+  {
+    key: 'standard',
+    path: '/sitemaps/standard-cards.xml',
+    label: 'standard card sitemap',
+    minimumUrls: 500,
+    pathPattern: /^\/standard\/cards\/standard\/[A-Za-z0-9_]{2,80}\/$/,
+    identityFromPath: pathname => pathname.split('/').filter(Boolean).at(-1),
+    identityFragment: 'card',
+  },
+  {
+    key: 'wild',
+    path: '/sitemaps/wild-cards.xml',
+    label: 'wild card sitemap',
+    minimumUrls: 500,
+    pathPattern: /^\/standard\/cards\/wild\/[A-Za-z0-9_]{2,80}\/$/,
+    identityFromPath: pathname => pathname.split('/').filter(Boolean).at(-1),
+    identityFragment: 'card',
+  },
+  {
+    key: 'battlegroundMinions',
+    path: '/sitemaps/battleground-minions.xml',
+    label: 'battleground minion sitemap',
+    minimumUrls: 500,
+    pathPattern: /^\/library\/minions\/[^/]+-\d+\/$/,
+    identityFromPath: pathname => pathname.match(/-(\d+)\/$/)?.[1],
+    identityFragment: 'card',
+  },
+  {
+    key: 'battlegroundSpells',
+    path: '/sitemaps/battleground-spells.xml',
+    label: 'battleground spell sitemap',
+    minimumUrls: 50,
+    pathPattern: /^\/library\/spells\/[^/]+-\d+\/$/,
+    identityFromPath: pathname => pathname.match(/-(\d+)\/$/)?.[1],
+    identityFragment: 'card',
+  },
+  {
+    key: 'battlegroundHeroes',
+    path: '/sitemaps/battleground-heroes.xml',
+    label: 'battleground hero sitemap',
+    minimumUrls: 80,
+    pathPattern: /^\/heroes\/\d+\/$/,
+    identityFromPath: pathname => pathname.split('/').filter(Boolean).at(-1),
+    identityFragment: 'hero',
+  },
+];
 
 function ensure(condition, message) {
   if (!condition) throw new Error(message);
@@ -388,44 +435,48 @@ function htmlAttributeValues(html, tag, attribute, value) {
   return values;
 }
 
-function structuredDataHasCardIdentity(value, canonical, cardId) {
-  if (Array.isArray(value)) return value.some(item => structuredDataHasCardIdentity(item, canonical, cardId));
+function structuredDataHasEntityIdentity(value, canonical, identity, identityFragment) {
+  if (Array.isArray(value)) {
+    return value.some(item => structuredDataHasEntityIdentity(item, canonical, identity, identityFragment));
+  }
   if (!value || typeof value !== 'object') return false;
   const record = value;
-  if ((record.url === canonical || record['@id'] === `${canonical}#card`)
-    && String(record.identifier ?? '') === cardId) return true;
-  return Object.values(record).some(item => structuredDataHasCardIdentity(item, canonical, cardId));
+  if ((record.url === canonical || record['@id'] === `${canonical}#${identityFragment}`)
+    && String(record.identifier ?? '') === identity) return true;
+  return Object.values(record).some(item => (
+    structuredDataHasEntityIdentity(item, canonical, identity, identityFragment)
+  ));
 }
 
-function assertIndexableCardHtml(html, response, canonical, cardId) {
-  ensure(response.status === 200, `sample card ${cardId}: HTTP ${response.status}`);
+function assertIndexableEntityHtml(html, response, canonical, identity, identityFragment, label) {
+  ensure(response.status === 200, `${label} ${identity}: HTTP ${response.status}`);
   ensure((response.headers.get('content-type') || '').includes('text/html'),
-    `sample card ${cardId}: response is not HTML`);
+    `${label} ${identity}: response is not HTML`);
   ensure(!/noindex/i.test(response.headers.get('x-robots-tag') || ''),
-    `sample card ${cardId}: X-Robots-Tag is noindex`);
-  ensure(!PRIVATE_PAYLOAD_PATTERN.test(html), `sample card ${cardId}: private payload marker found`);
+    `${label} ${identity}: X-Robots-Tag is noindex`);
+  ensure(!PRIVATE_PAYLOAD_PATTERN.test(html), `${label} ${identity}: private payload marker found`);
   ensure([...html.matchAll(/<h1(?:\s[^>]*)?>/gi)].length === 1,
-    `sample card ${cardId}: expected exactly one H1`);
+    `${label} ${identity}: expected exactly one H1`);
   const canonicals = [...html.matchAll(/<link\b(?=[^>]*\brel=["']canonical["'])[^>]*\bhref=["']([^"']+)["'][^>]*>/gi)]
     .map(match => match[1]);
   ensure(canonicals.length === 1 && canonicals[0] === canonical,
-    `sample card ${cardId}: canonical mismatch`);
+    `${label} ${identity}: canonical mismatch`);
   const robots = htmlAttributeValues(html, 'meta', 'name', 'robots');
   ensure(robots.length === 1 && /(?:^|,)\s*index\b/i.test(robots[0]) && !/noindex/i.test(robots[0]),
-    `sample card ${cardId}: index robots metadata is missing`);
+    `${label} ${identity}: index robots metadata is missing`);
   const scripts = [...html.matchAll(/<script\b(?=[^>]*\btype=["']application\/ld\+json["'])(?=[^>]*\bdata-server-entity-jsonld\b)[^>]*>([\s\S]*?)<\/script>/gi)];
-  ensure(scripts.length > 0, `sample card ${cardId}: entity JSON-LD is missing`);
+  ensure(scripts.length > 0, `${label} ${identity}: entity JSON-LD is missing`);
   let identityFound = false;
   for (const script of scripts) {
     let parsed;
     try {
       parsed = JSON.parse(script[1]);
     } catch {
-      throw new Error(`sample card ${cardId}: entity JSON-LD is invalid`);
+      throw new Error(`${label} ${identity}: entity JSON-LD is invalid`);
     }
-    if (structuredDataHasCardIdentity(parsed, canonical, cardId)) identityFound = true;
+    if (structuredDataHasEntityIdentity(parsed, canonical, identity, identityFragment)) identityFound = true;
   }
-  ensure(identityFound, `sample card ${cardId}: JSON-LD identity mismatch`);
+  ensure(identityFound, `${label} ${identity}: JSON-LD identity mismatch`);
 }
 
 async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
@@ -463,7 +514,7 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
   const indexLocations = sitemapLocations(indexXml, 'sitemapindex', 'sitemap index');
   ensure(JSON.stringify(indexLocations) === JSON.stringify([
     `${origin}/sitemaps/static.xml`,
-    `${origin}/sitemaps/standard-cards.xml`,
+    ...ENTITY_SITEMAP_SEGMENTS.map(segment => `${origin}${segment.path}`),
   ]), 'sitemap index does not contain the exact public segment set');
 
   const { response: staticResponse, body: staticXml } = await fetchBoundedText(
@@ -487,50 +538,65 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
     'static sitemap contains a non-canonical URL');
   }
 
-  const { response: standardResponse, body: standardXml } = await fetchBoundedText(
-    new URL('/sitemaps/standard-cards.xml', origin),
-    fetchImpl,
-    timeoutMs,
-    MAX_CARD_SITEMAP_BYTES,
-    'standard card sitemap',
-    signal,
-  );
-  assertXmlResponse(standardResponse, 'standard card sitemap');
-  // Nginx correctly weakens an upstream strong validator when it compresses the
-  // representation. Preserve the semantic SHA-256 contract for both identity
-  // and compressed responses instead of treating normal gzip/Brotli delivery as
-  // a sitemap outage.
-  ensure(/^(?:W\/)?"sha256-[a-f0-9]{64}"$/i.test(standardResponse.headers.get('etag') || ''),
-    'standard card sitemap: SHA-256 ETag is missing');
-  ensure(['catalog', 'last-known-good'].includes(standardResponse.headers.get('x-sitemap-source') || ''),
-    'standard card sitemap: invalid X-Sitemap-Source');
-  ensure(!PRIVATE_PAYLOAD_PATTERN.test(standardXml), 'standard card sitemap contains private payload fields');
-  const standardLocations = sitemapLocations(standardXml, 'urlset', 'standard card sitemap');
-  ensure(standardLocations.length >= 500 && standardLocations.length <= 50_000,
-    `standard card sitemap has invalid entry count ${standardLocations.length}`);
-  for (const location of standardLocations) {
-    const parsed = new URL(location);
-    ensure(parsed.origin === origin && !parsed.search && !parsed.hash
-      && /^\/standard\/cards\/standard\/[A-Za-z0-9_]{2,80}\/$/.test(parsed.pathname),
-    'standard card sitemap contains a non-canonical URL');
-  }
-
-  const sampleIndices = [...new Set([0, Math.floor((standardLocations.length - 1) / 2), standardLocations.length - 1])];
-  for (const index of sampleIndices) {
-    const canonical = standardLocations[index];
-    const cardId = new URL(canonical).pathname.split('/').filter(Boolean).at(-1);
-    const { response: detailResponse, body: detailHtml } = await fetchBoundedText(
-      new URL(canonical),
+  const entityCounts = {};
+  const sitemapSources = {};
+  let sampledDetails = 0;
+  for (const segment of ENTITY_SITEMAP_SEGMENTS) {
+    const { response, body } = await fetchBoundedText(
+      new URL(segment.path, origin),
       fetchImpl,
       timeoutMs,
-      MAX_ENTITY_HTML_BYTES,
-      `sample card ${cardId}`,
+      MAX_CARD_SITEMAP_BYTES,
+      segment.label,
       signal,
     );
-    assertIndexableCardHtml(detailHtml, detailResponse, canonical, cardId);
+    assertXmlResponse(response, segment.label);
+    // Nginx correctly weakens an upstream strong validator when it compresses
+    // the representation, so both strong and weak SHA-256 validators are valid.
+    ensure(/^(?:W\/)?"sha256-[a-f0-9]{64}"$/i.test(response.headers.get('etag') || ''),
+      `${segment.label}: SHA-256 ETag is missing`);
+    const sitemapSource = response.headers.get('x-sitemap-source') || '';
+    ensure(['catalog', 'last-known-good'].includes(sitemapSource),
+      `${segment.label}: invalid X-Sitemap-Source`);
+    ensure(!PRIVATE_PAYLOAD_PATTERN.test(body), `${segment.label} contains private payload fields`);
+    const locations = sitemapLocations(body, 'urlset', segment.label);
+    ensure(locations.length >= segment.minimumUrls && locations.length <= 50_000,
+      `${segment.label} has invalid entry count ${locations.length}`);
+    for (const location of locations) {
+      const parsed = new URL(location);
+      ensure(parsed.origin === origin && !parsed.search && !parsed.hash
+        && segment.pathPattern.test(parsed.pathname),
+      `${segment.label} contains a non-canonical URL`);
+    }
+    const sampleIndices = [...new Set([0, Math.floor((locations.length - 1) / 2), locations.length - 1])];
+    for (const index of sampleIndices) {
+      const canonical = locations[index];
+      const identity = segment.identityFromPath(new URL(canonical).pathname);
+      ensure(identity, `${segment.label}: sampled URL has no entity identity`);
+      const sampleLabel = `sample ${segment.key} entity`;
+      const { response: detailResponse, body: detailHtml } = await fetchBoundedText(
+        new URL(canonical),
+        fetchImpl,
+        timeoutMs,
+        MAX_ENTITY_HTML_BYTES,
+        `${sampleLabel} ${identity}`,
+        signal,
+      );
+      assertIndexableEntityHtml(
+        detailHtml,
+        detailResponse,
+        canonical,
+        identity,
+        segment.identityFragment,
+        sampleLabel,
+      );
+    }
+    entityCounts[segment.key] = locations.length;
+    sitemapSources[segment.key] = sitemapSource;
+    sampledDetails += sampleIndices.length;
   }
 
-  const canonical = standardLocations[0];
+  const canonical = `${origin}/standard/cards/standard/MONITOR_CARD_0001/`;
   const withoutSlash = canonical.slice(0, -1);
   const { response: redirectResponse } = await fetchBoundedText(
     new URL(withoutSlash),
@@ -566,9 +632,10 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
     status: 200,
     durationMs: Date.now() - startedAt,
     staticUrls: staticLocations.length,
-    standardUrls: standardLocations.length,
-    sampledDetails: sampleIndices.length,
-    sitemapSource: standardResponse.headers.get('x-sitemap-source'),
+    standardUrls: entityCounts.standard,
+    entityUrls: entityCounts,
+    sampledDetails,
+    sitemapSources,
   };
 }
 
