@@ -62,13 +62,13 @@ export type EntitySitemapRouterDependencies = {
 
 const MAX_SITEMAP_ENTRIES = 50_000;
 const MAX_SITEMAP_BYTES = 50 * 1024 * 1024;
-const ENTITY_SITEMAP_PATHS = [
+const ENTITY_SITEMAP_PATHS: DynamicSitemapDefinition['pathname'][] = [
   '/sitemaps/standard-cards.xml',
   '/sitemaps/wild-cards.xml',
   '/sitemaps/battleground-minions.xml',
   '/sitemaps/battleground-spells.xml',
   '/sitemaps/battleground-heroes.xml',
-] as const;
+];
 
 function canonicalOrigin(value: string | undefined): string {
   try {

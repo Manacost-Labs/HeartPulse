@@ -13,6 +13,11 @@ type ConstructedCardLoader = (
 
 const BATTLEGROUNDS_ORIGIN = 'http://127.0.0.1:3108';
 
+function minimumFromEnvironment(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 && parsed <= 50_000 ? parsed : fallback;
+}
+
 function record(value: unknown): JsonRecord {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as JsonRecord
@@ -109,10 +114,10 @@ export function createEntitySitemapRuntimeOptions(
 ) {
   return {
     ...createEntitySitemapLoaders(loadConstructedCards),
-    minimumStandardCardCount: Number(environment.SITEMAP_STANDARD_MIN_CARDS || 500),
-    minimumWildCardCount: Number(environment.SITEMAP_WILD_MIN_CARDS || 500),
-    minimumBattlegroundMinionCount: Number(environment.SITEMAP_BG_MIN_MINIONS || 500),
-    minimumBattlegroundSpellCount: Number(environment.SITEMAP_BG_MIN_SPELLS || 50),
-    minimumBattlegroundHeroCount: Number(environment.SITEMAP_BG_MIN_HEROES || 80),
+    minimumStandardCardCount: minimumFromEnvironment(environment.SITEMAP_STANDARD_MIN_CARDS, 500),
+    minimumWildCardCount: minimumFromEnvironment(environment.SITEMAP_WILD_MIN_CARDS, 500),
+    minimumBattlegroundMinionCount: minimumFromEnvironment(environment.SITEMAP_BG_MIN_MINIONS, 500),
+    minimumBattlegroundSpellCount: minimumFromEnvironment(environment.SITEMAP_BG_MIN_SPELLS, 50),
+    minimumBattlegroundHeroCount: minimumFromEnvironment(environment.SITEMAP_BG_MIN_HEROES, 80),
   };
 }

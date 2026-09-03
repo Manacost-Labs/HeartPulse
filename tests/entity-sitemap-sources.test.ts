@@ -69,11 +69,14 @@ assert.deepEqual(
 assert.deepEqual(constructedCalls, ['standard', 'standard', 'wild']);
 
 const runtimeOptions = createEntitySitemapRuntimeOptions(async () => ({ cards: [] }), {
+  SITEMAP_STANDARD_MIN_CARDS: 'not-a-number',
   SITEMAP_WILD_MIN_CARDS: '700',
+  SITEMAP_BG_MIN_SPELLS: '50001',
   SITEMAP_BG_MIN_HEROES: '90',
 });
 assert.equal(runtimeOptions.minimumStandardCardCount, 500);
 assert.equal(runtimeOptions.minimumWildCardCount, 700);
+assert.equal(runtimeOptions.minimumBattlegroundSpellCount, 50);
 assert.equal(runtimeOptions.minimumBattlegroundHeroCount, 90);
 
 await assert.rejects(

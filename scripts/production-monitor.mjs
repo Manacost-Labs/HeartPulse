@@ -540,6 +540,7 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
 
   const entityCounts = {};
   const sitemapSources = {};
+  let firstStandardCanonical = '';
   let sampledDetails = 0;
   for (const segment of ENTITY_SITEMAP_SEGMENTS) {
     const { response, body } = await fetchBoundedText(
@@ -593,10 +594,12 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
     }
     entityCounts[segment.key] = locations.length;
     sitemapSources[segment.key] = sitemapSource;
+    if (segment.key === 'standard') firstStandardCanonical = locations[0];
     sampledDetails += sampleIndices.length;
   }
 
-  const canonical = `${origin}/standard/cards/standard/MONITOR_CARD_0001/`;
+  ensure(firstStandardCanonical, 'standard card sitemap has no canonical URL for redirect sampling');
+  const canonical = firstStandardCanonical;
   const withoutSlash = canonical.slice(0, -1);
   const { response: redirectResponse } = await fetchBoundedText(
     new URL(withoutSlash),
