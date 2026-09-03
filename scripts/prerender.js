@@ -915,6 +915,10 @@ function generateSitemapIndexXml() {
   const locations = [
     `${SITE_URL}/sitemaps/static.xml`,
     `${SITE_URL}/sitemaps/standard-cards.xml`,
+    `${SITE_URL}/sitemaps/wild-cards.xml`,
+    `${SITE_URL}/sitemaps/battleground-minions.xml`,
+    `${SITE_URL}/sitemaps/battleground-spells.xml`,
+    `${SITE_URL}/sitemaps/battleground-heroes.xml`,
   ];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${locations.map(location => `  <sitemap><loc>${escapeXml(location)}</loc></sitemap>`).join('\n')}\n</sitemapindex>\n`;
 }

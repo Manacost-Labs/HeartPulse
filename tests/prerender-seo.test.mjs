@@ -225,6 +225,10 @@ try {
   assert.deepEqual(matches(sitemapIndex, /<loc>([^<]+)<\/loc>/g).map(match => match[1]), [
     `${routeInventory.canonicalOrigin}/sitemaps/static.xml`,
     `${routeInventory.canonicalOrigin}/sitemaps/standard-cards.xml`,
+    `${routeInventory.canonicalOrigin}/sitemaps/wild-cards.xml`,
+    `${routeInventory.canonicalOrigin}/sitemaps/battleground-minions.xml`,
+    `${routeInventory.canonicalOrigin}/sitemaps/battleground-spells.xml`,
+    `${routeInventory.canonicalOrigin}/sitemaps/battleground-heroes.xml`,
   ]);
   assert.doesNotMatch(sitemapIndex, /<(?:lastmod|changefreq|priority)>/i,
     'the sitemap index must not invent freshness metadata');
