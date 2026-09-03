@@ -31,6 +31,10 @@ const publicCard = {
 async function start(options: {
   directory: string;
   load: () => Promise<any[]>;
+  loadWildCards?: () => Promise<any[]>;
+  loadBattlegroundMinions?: () => Promise<any[]>;
+  loadBattlegroundSpells?: () => Promise<any[]>;
+  loadBattlegroundHeroes?: () => Promise<any[]>;
   now: () => number;
   cacheTtlMs?: number;
 }) {
@@ -39,10 +43,18 @@ async function start(options: {
     canonicalOrigin: 'https://arena.hs-manacost.ru',
     staticUrls,
     loadStandardCards: options.load,
+    loadWildCards: options.loadWildCards,
+    loadBattlegroundMinions: options.loadBattlegroundMinions,
+    loadBattlegroundSpells: options.loadBattlegroundSpells,
+    loadBattlegroundHeroes: options.loadBattlegroundHeroes,
     stateDirectory: options.directory,
     now: options.now,
     cacheTtlMs: options.cacheTtlMs ?? 300_000,
     minimumStandardCardCount: 1,
+    minimumWildCardCount: 1,
+    minimumBattlegroundMinionCount: 1,
+    minimumBattlegroundSpellCount: 1,
+    minimumBattlegroundHeroCount: 1,
     retryAfterSeconds: 17,
   }));
   app.use((_request, response) => response.status(299).send('DOWNSTREAM_SHELL'));
@@ -290,3 +302,69 @@ assert.throws(
 );
 
 console.log('entity sitemap runtime route contracts passed');
+
+const allSegmentsDirectory = mkdtempSync(join(tmpdir(), 'arena-sitemap-all-segments-'));
+const allSegments = await start({
+  directory: allSegmentsDirectory,
+  now: () => Date.parse('2026-09-03T08:00:00.000Z'),
+  load: async () => [publicCard],
+  loadWildCards: async () => [{
+    ...publicCard,
+    card_id: 'WILD_ONLY_1',
+    dbf: 202,
+    name: { ru: 'Только Вольный', en: 'Wild Only' },
+  }],
+  loadBattlegroundMinions: async () => [{
+    dbf: 98582,
+    card_id: 'BG26_146',
+    name: { ru: 'Баюбот', en: 'Lullabot' },
+    text: { ru: 'Получает +1/+1.' },
+    card_type: { slug: 'minion', name_ru: 'Существо' },
+    in_pool: true,
+  }],
+  loadBattlegroundSpells: async () => [{
+    dbf: 105752,
+    card_id: 'BG28_897',
+    name: { ru: 'Банан в меню', en: 'Tavern Dish Banana' },
+    text: { ru: 'Дает существу +1/+1.' },
+    card_type: { slug: 'spell', name_ru: 'Заклинание' },
+    in_pool: true,
+  }],
+  loadBattlegroundHeroes: async () => [{
+    dbfId: 132608,
+    id: 'BG36_HERO_105',
+    hero: 'Повелитель кошмаров Ксавий',
+    hero_power: { card: { name: 'Сила кошмара', text: 'Пассивная сила.' } },
+  }],
+});
+try {
+  const indexResponse = await fetch(`${allSegments.origin}/sitemap.xml`);
+  assert.equal(indexResponse.status, 200);
+  assert.deepEqual(
+    [...(await indexResponse.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]),
+    [
+      'https://arena.hs-manacost.ru/sitemaps/static.xml',
+      'https://arena.hs-manacost.ru/sitemaps/standard-cards.xml',
+      'https://arena.hs-manacost.ru/sitemaps/wild-cards.xml',
+      'https://arena.hs-manacost.ru/sitemaps/battleground-minions.xml',
+      'https://arena.hs-manacost.ru/sitemaps/battleground-spells.xml',
+      'https://arena.hs-manacost.ru/sitemaps/battleground-heroes.xml',
+    ],
+  );
+
+  const expectedLocations = new Map([
+    ['/sitemaps/wild-cards.xml', '/standard/cards/wild/WILD_ONLY_1/'],
+    ['/sitemaps/battleground-minions.xml', '/library/minions/%D0%B1%D0%B0%D1%8E%D0%B1%D0%BE%D1%82-98582/'],
+    ['/sitemaps/battleground-spells.xml', '/library/spells/%D0%B1%D0%B0%D0%BD%D0%B0%D0%BD-%D0%B2-%D0%BC%D0%B5%D0%BD%D1%8E-105752/'],
+    ['/sitemaps/battleground-heroes.xml', '/heroes/132608/'],
+  ]);
+  for (const [segmentPath, entityPath] of expectedLocations) {
+    const segment = await fetch(`${allSegments.origin}${segmentPath}`);
+    assert.equal(segment.status, 200, segmentPath);
+    assert.equal(segment.headers.get('x-sitemap-source'), 'catalog');
+    assert.match(await segment.text(), new RegExp(`<loc>https://arena\\.hs-manacost\\.ru${entityPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}<\\/loc>`));
+  }
+} finally {
+  await allSegments.close();
+  rmSync(allSegmentsDirectory, { recursive: true, force: true });
+}

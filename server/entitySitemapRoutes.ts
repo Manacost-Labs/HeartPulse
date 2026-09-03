@@ -8,12 +8,27 @@ import {
 import {
   SemanticSitemapStore,
   type SemanticSitemapDocument,
+  type SitemapSegment,
   type SitemapSemanticEntry,
 } from './entitySitemapStore.js';
+import {
+  canonicalBattlegroundCardSlug,
+  projectPublicBattlegroundLibraryCard,
+  type BattlegroundLibraryKind,
+} from './battlegroundLibrarySeoRoutes.js';
+import { projectPublicBattlegroundHero } from './battlegroundSeoRoutes.js';
 
 type JsonRecord = Record<string, unknown>;
 type SitemapUrlEntry = { location: string; lastmod?: string };
 type XmlLimits = { maxEntries?: number; maxBytes?: number };
+type DynamicSitemapDefinition = {
+  segment: SitemapSegment;
+  pathname: `/sitemaps/${string}.xml`;
+  load: () => Promise<unknown[]>;
+  project: (rows: unknown[], origin: string) => SitemapSemanticEntry[];
+  minimumEntryCount: number;
+  filename?: string;
+};
 
 type CachedDocument = {
   xml: string;
@@ -25,12 +40,20 @@ type CachedDocument = {
 
 export type EntitySitemapRouterDependencies = {
   loadStandardCards: () => Promise<unknown[]>;
+  loadWildCards?: () => Promise<unknown[]>;
+  loadBattlegroundMinions?: () => Promise<unknown[]>;
+  loadBattlegroundSpells?: () => Promise<unknown[]>;
+  loadBattlegroundHeroes?: () => Promise<unknown[]>;
   staticUrls: string[];
   stateDirectory: string;
   canonicalOrigin?: string;
   stateFilename?: string;
   cacheTtlMs?: number;
   minimumStandardCardCount?: number;
+  minimumWildCardCount?: number;
+  minimumBattlegroundMinionCount?: number;
+  minimumBattlegroundSpellCount?: number;
+  minimumBattlegroundHeroCount?: number;
   staticLastModifiedMs?: number;
   retryAfterSeconds?: number;
   now?: () => number;
@@ -95,8 +118,9 @@ export function renderSitemapIndex(locations: string[], limits: XmlLimits = {}):
   );
 }
 
-export function projectStandardCardSitemapCatalog(
+export function projectConstructedCardSitemapCatalog(
   cards: unknown[],
+  format: 'standard' | 'wild',
   originValue?: string,
 ): SitemapSemanticEntry[] {
   if (!Array.isArray(cards)) return [];
@@ -126,10 +150,70 @@ export function projectStandardCardSitemapCatalog(
     const semanticHash = createHash('sha256').update(JSON.stringify(projection)).digest('hex');
     return [{
       key: projection.id,
-      location: `${origin}/standard/cards/standard/${encodeURIComponent(projection.id)}/`,
+      location: `${origin}/standard/cards/${format}/${encodeURIComponent(projection.id)}/`,
       semanticHash,
     }];
   }).sort((left, right) => left.key.localeCompare(right.key, 'en'));
+}
+
+export function projectStandardCardSitemapCatalog(
+  cards: unknown[],
+  originValue?: string,
+): SitemapSemanticEntry[] {
+  return projectConstructedCardSitemapCatalog(cards, 'standard', originValue);
+}
+
+export function projectBattlegroundLibrarySitemapCatalog(
+  cards: unknown[],
+  kind: BattlegroundLibraryKind,
+  originValue?: string,
+): SitemapSemanticEntry[] {
+  if (!Array.isArray(cards)) return [];
+  const origin = canonicalOrigin(originValue);
+  const entries = cards.map(raw => {
+    const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as JsonRecord : {};
+    const card = projectPublicBattlegroundLibraryCard(source, kind, source.in_pool === true);
+    if (!card) throw new Error(`Battleground ${kind} sitemap catalog contains an invalid entity`);
+    return {
+      key: String(card.dbfId),
+      location: new URL(
+        `/library/${kind === 'minion' ? 'minions' : 'spells'}/${canonicalBattlegroundCardSlug(card.nameRu)}-${card.dbfId}/`,
+        origin,
+      ).href,
+      semanticHash: createHash('sha256').update(JSON.stringify(card)).digest('hex'),
+    };
+  });
+  const keys = new Set<string>();
+  for (const entry of entries) {
+    if (keys.has(entry.key)) throw new Error(`Battleground ${kind} sitemap catalog contains a duplicate entity`);
+    keys.add(entry.key);
+  }
+  return entries.sort((left, right) => left.key.localeCompare(right.key, 'en'));
+}
+
+export function projectBattlegroundHeroSitemapCatalog(
+  heroes: unknown[],
+  originValue?: string,
+): SitemapSemanticEntry[] {
+  if (!Array.isArray(heroes)) return [];
+  const origin = canonicalOrigin(originValue);
+  const entries = new Map<string, SitemapSemanticEntry>();
+  for (const raw of heroes) {
+    const hero = projectPublicBattlegroundHero(raw);
+    if (!hero) throw new Error('Battleground hero sitemap catalog contains an invalid entity');
+    const key = String(hero.dbfId);
+    const semanticHash = createHash('sha256').update(JSON.stringify(hero)).digest('hex');
+    const previous = entries.get(key);
+    if (previous && previous.semanticHash !== semanticHash) {
+      throw new Error('Battleground hero sitemap catalog contains a conflicting duplicate entity');
+    }
+    entries.set(key, {
+      key,
+      location: `${origin}/heroes/${hero.dbfId}/`,
+      semanticHash,
+    });
+  }
+  return [...entries.values()].sort((left, right) => left.key.localeCompare(right.key, 'en'));
 }
 
 export function parseSitemapLocations(xml: string): string[] {
@@ -227,16 +311,45 @@ export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDepen
     }
     staticLocations.add(parsed.href);
   }
-  const store = new SemanticSitemapStore({
-    directory: dependencies.stateDirectory,
-    filename: dependencies.stateFilename,
-    canonicalOrigin: origin,
-    now,
+  const definitions: DynamicSitemapDefinition[] = [{
+    segment: 'standard-cards',
+    pathname: '/sitemaps/standard-cards.xml',
+    load: dependencies.loadStandardCards,
+    project: projectStandardCardSitemapCatalog,
     minimumEntryCount: dependencies.minimumStandardCardCount ?? 500,
+    filename: dependencies.stateFilename,
+  }];
+  if (dependencies.loadWildCards) definitions.push({
+    segment: 'wild-cards',
+    pathname: '/sitemaps/wild-cards.xml',
+    load: dependencies.loadWildCards,
+    project: rows => projectConstructedCardSitemapCatalog(rows, 'wild', origin),
+    minimumEntryCount: dependencies.minimumWildCardCount ?? 500,
+  });
+  if (dependencies.loadBattlegroundMinions) definitions.push({
+    segment: 'battleground-minions',
+    pathname: '/sitemaps/battleground-minions.xml',
+    load: dependencies.loadBattlegroundMinions,
+    project: rows => projectBattlegroundLibrarySitemapCatalog(rows, 'minion', origin),
+    minimumEntryCount: dependencies.minimumBattlegroundMinionCount ?? 500,
+  });
+  if (dependencies.loadBattlegroundSpells) definitions.push({
+    segment: 'battleground-spells',
+    pathname: '/sitemaps/battleground-spells.xml',
+    load: dependencies.loadBattlegroundSpells,
+    project: rows => projectBattlegroundLibrarySitemapCatalog(rows, 'spell', origin),
+    minimumEntryCount: dependencies.minimumBattlegroundSpellCount ?? 50,
+  });
+  if (dependencies.loadBattlegroundHeroes) definitions.push({
+    segment: 'battleground-heroes',
+    pathname: '/sitemaps/battleground-heroes.xml',
+    load: dependencies.loadBattlegroundHeroes,
+    project: projectBattlegroundHeroSitemapCatalog,
+    minimumEntryCount: dependencies.minimumBattlegroundHeroCount ?? 80,
   });
   const indexDocument = documentFromXml(renderSitemapIndex([
     `${origin}/sitemaps/static.xml`,
-    `${origin}/sitemaps/standard-cards.xml`,
+    ...definitions.map(definition => `${origin}${definition.pathname}`),
   ]), 'static', null, Number.POSITIVE_INFINITY);
   const staticDocument = documentFromXml(
     renderSitemapUrlset(dependencies.staticUrls.map(location => ({ location }))),
@@ -244,51 +357,61 @@ export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDepen
     Number.isFinite(dependencies.staticLastModifiedMs) ? dependencies.staticLastModifiedMs! : null,
     Number.POSITIVE_INFINITY,
   );
-  let standardCache: CachedDocument | null = null;
-  let standardJob: Promise<CachedDocument> | null = null;
-
-  const loadStandardDocument = async (): Promise<CachedDocument> => {
-    const current = now();
-    if (standardCache && standardCache.expiresAt > current) return standardCache;
-    if (standardJob) return standardJob;
-    const job = (async () => {
-      try {
-        const cards = await dependencies.loadStandardCards();
-        const candidate = projectStandardCardSitemapCatalog(cards, origin);
-        const state = store.publish(candidate);
-        const document = dynamicDocument(state, 'catalog', now() + cacheTtlMs);
-        standardCache = document;
-        return document;
-      } catch (error) {
-        try { dependencies.onError?.(error); } catch { /* diagnostics must never alter the public contract */ }
-        const lastKnownGood = store.readLastKnownGood();
-        if (!lastKnownGood) throw error;
-        const document = dynamicDocument(lastKnownGood, 'last-known-good', now() + cacheTtlMs);
-        standardCache = document;
-        return document;
-      }
-    })().finally(() => {
-      if (standardJob === job) standardJob = null;
-    });
-    standardJob = job;
-    return job;
-  };
-
   const fixedHandler = (document: CachedDocument): RequestHandler => (request, response) => (
     sendDocument(request, response, document, maxAgeSeconds)
   );
   router.get('/sitemap.xml', fixedHandler(indexDocument));
   router.get('/sitemaps/static.xml', fixedHandler(staticDocument));
-  router.get('/sitemaps/standard-cards.xml', async (request, response) => {
-    try {
-      return sendDocument(request, response, await loadStandardDocument(), maxAgeSeconds);
-    } catch {
-      response.set('Content-Type', 'text/plain; charset=utf-8');
-      response.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-      response.set('Retry-After', String(retryAfterSeconds));
-      return response.status(503).send('Sitemap temporarily unavailable');
-    }
-  });
+  for (const definition of definitions) {
+    const store = new SemanticSitemapStore({
+      directory: dependencies.stateDirectory,
+      filename: definition.filename,
+      segment: definition.segment,
+      canonicalOrigin: origin,
+      now,
+      minimumEntryCount: definition.minimumEntryCount,
+    });
+    let cache: CachedDocument | null = null;
+    let inflight: Promise<CachedDocument> | null = null;
+    const loadDocument = async (): Promise<CachedDocument> => {
+      const current = now();
+      if (cache && cache.expiresAt > current) return cache;
+      if (inflight) return inflight;
+      const job = (async () => {
+        try {
+          const candidate = definition.project(await definition.load(), origin);
+          const document = dynamicDocument(store.publish(candidate), 'catalog', now() + cacheTtlMs);
+          cache = document;
+          return document;
+        } catch (error) {
+          try {
+            dependencies.onError?.(new Error(`${definition.segment} sitemap refresh failed`, { cause: error }));
+          } catch {
+            // Diagnostics must never alter the public contract.
+          }
+          const lastKnownGood = store.readLastKnownGood();
+          if (!lastKnownGood) throw error;
+          const document = dynamicDocument(lastKnownGood, 'last-known-good', now() + cacheTtlMs);
+          cache = document;
+          return document;
+        }
+      })().finally(() => {
+        if (inflight === job) inflight = null;
+      });
+      inflight = job;
+      return job;
+    };
+    router.get(definition.pathname, async (request, response) => {
+      try {
+        return sendDocument(request, response, await loadDocument(), maxAgeSeconds);
+      } catch {
+        response.set('Content-Type', 'text/plain; charset=utf-8');
+        response.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        response.set('Retry-After', String(retryAfterSeconds));
+        return response.status(503).send('Sitemap temporarily unavailable');
+      }
+    });
+  }
   router.all(/^\/sitemaps\/.*$/, (_request, response) => {
     response.set('Content-Type', 'text/plain; charset=utf-8');
     response.set('Cache-Control', 'no-cache, no-store, must-revalidate');

@@ -118,3 +118,43 @@ try {
 }
 
 console.log('entity sitemap semantic LKG store contracts passed');
+
+const heroDirectory = mkdtempSync(join(tmpdir(), 'arena-hero-sitemap-store-'));
+try {
+  const heroStore = new SemanticSitemapStore({
+    directory: heroDirectory,
+    segment: 'battleground-heroes',
+    now: () => Date.parse('2026-09-03T08:00:00.000Z'),
+  });
+  const heroes = heroStore.publish([{
+    key: '132608',
+    location: 'https://hearthpulse.net/heroes/132608/',
+    semanticHash: 'a'.repeat(64),
+  }]);
+  assert.equal(heroes.segment, 'battleground-heroes');
+  assert.equal(existsSync(join(heroDirectory, 'seo-battleground-heroes-sitemap-v1.json')), true);
+  assert.equal(existsSync(join(heroDirectory, 'seo-battleground-heroes-sitemap-v1.lkg.json')), true);
+  assert.throws(() => heroStore.publish([{
+    key: '132608',
+    location: 'https://hearthpulse.net/library/minions/not-a-hero-132608/',
+    semanticHash: 'b'.repeat(64),
+  }]), /canonical location/i);
+} finally {
+  rmSync(heroDirectory, { recursive: true, force: true });
+}
+
+const minionDirectory = mkdtempSync(join(tmpdir(), 'arena-minion-sitemap-store-'));
+try {
+  const minionStore = new SemanticSitemapStore({
+    directory: minionDirectory,
+    segment: 'battleground-minions',
+  });
+  const minions = minionStore.publish([{
+    key: '98582',
+    location: 'https://hearthpulse.net/library/minions/%D0%B1%D0%B0%D1%8E%D0%B1%D0%BE%D1%82-98582/',
+    semanticHash: 'c'.repeat(64),
+  }]);
+  assert.equal(minions.segment, 'battleground-minions');
+} finally {
+  rmSync(minionDirectory, { recursive: true, force: true });
+}

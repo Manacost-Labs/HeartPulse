@@ -3,9 +3,9 @@ import { extractConstructedCardFrontendAssets } from './constructedCardSeoRoutes
 import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
 
 type JsonRecord = Record<string, unknown>;
-type BattlegroundLibraryKind = 'minion' | 'spell';
+export type BattlegroundLibraryKind = 'minion' | 'spell';
 
-type PublicBattlegroundLibraryCard = {
+export type PublicBattlegroundLibraryCard = {
   dbfId: number;
   kind: BattlegroundLibraryKind;
   typeName: string;
@@ -122,7 +122,7 @@ function cleanSearch(value: unknown): string {
   return String(value ?? '').toLowerCase().replace(/ё/g, 'е').trim();
 }
 
-function canonicalSlug(value: string): string {
+export function canonicalBattlegroundCardSlug(value: string): string {
   return cleanSearch(value)
     .replace(/['’]/g, '')
     .replace(/[^a-zа-я0-9]+/g, '-')
@@ -185,7 +185,7 @@ function publicMechanics(value: unknown): string[] {
   return mechanics.slice(0, 40);
 }
 
-function projectCard(
+export function projectPublicBattlegroundLibraryCard(
   value: unknown,
   expectedKind: BattlegroundLibraryKind,
   expectedPool: boolean,
@@ -235,7 +235,7 @@ function parseCatalog(
   if (root.ok === false || !Array.isArray(root.data) || root.data.length === 0) {
     throw new Error(`Invalid or empty battleground ${kind} catalog for pool=${Number(inPool)}`);
   }
-  const projected = root.data.map(value => projectCard(value, kind, inPool));
+  const projected = root.data.map(value => projectPublicBattlegroundLibraryCard(value, kind, inPool));
   if (projected.some(card => card === null)) {
     throw new Error(`Battleground ${kind} catalog contains invalid entities for pool=${Number(inPool)}`);
   }
@@ -349,7 +349,7 @@ function renderCardDocument(
   origin: string,
   frontendAssets: string,
 ): string {
-  const path = `/library/${kindPath(card.kind)}/${canonicalSlug(card.nameRu)}-${card.dbfId}`;
+  const path = `/library/${kindPath(card.kind)}/${canonicalBattlegroundCardSlug(card.nameRu)}-${card.dbfId}`;
   const canonical = new URL(`${path}/`, origin).href;
   const image = safePrimaryImageUrl(card.images.card ?? card.images.framed, origin);
   const title = `${card.nameRu} — ${kindTitle(card.kind)} Полей сражений Hearthstone | Manacost Stats`;
@@ -582,8 +582,8 @@ export function createBattlegroundLibrarySeoRouter(
         }));
       }
 
-      const canonicalPath = `/library/${kindPath(kind)}/${canonicalSlug(card.nameRu)}-${card.dbfId}/`;
-      if (detail.slug !== canonicalSlug(card.nameRu)) {
+      const canonicalPath = `/library/${kindPath(kind)}/${canonicalBattlegroundCardSlug(card.nameRu)}-${card.dbfId}/`;
+      if (detail.slug !== canonicalBattlegroundCardSlug(card.nameRu)) {
         const location = `${new URL(canonicalPath, origin).href}${originalSearch(request, origin)}`;
         return sendCanonicalRedirect(response, location);
       }

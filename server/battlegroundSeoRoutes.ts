@@ -4,7 +4,7 @@ import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
 
 type JsonRecord = Record<string, unknown>;
 
-type PublicBattlegroundHero = {
+export type PublicBattlegroundHero = {
   dbfId: number;
   cardId: string | null;
   name: string;
@@ -85,7 +85,7 @@ function isPositiveDbfId(value: unknown): boolean {
   return /^[1-9][0-9]*$/.test(raw) && Number.isSafeInteger(parsed) && parsed > 0;
 }
 
-function projectHero(value: unknown): PublicBattlegroundHero | null {
+export function projectPublicBattlegroundHero(value: unknown): PublicBattlegroundHero | null {
   const hero = record(value);
   if (!isPositiveDbfId(hero.dbfId)) return null;
   const name = plainCatalogText(hero.hero ?? hero.name, 180);
@@ -117,7 +117,7 @@ function parseCatalog(payload: unknown): PublicBattlegroundHero[] {
     throw new Error('Invalid or empty battleground hero catalog');
   }
 
-  const projected = heroes.map(projectHero);
+  const projected = heroes.map(projectPublicBattlegroundHero);
   if (projected.some(hero => hero === null)) {
     throw new Error('Battleground hero catalog contains invalid entities');
   }

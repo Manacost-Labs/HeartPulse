@@ -3,12 +3,17 @@ import { existsSync, readFileSync } from 'node:fs';
 import { writeJsonAtomically } from './durableJson.js';
 
 const SCHEMA_VERSION = 1;
-const SEGMENT = 'standard-cards';
-const DEFAULT_FILENAME = 'seo-standard-cards-sitemap-v1.json';
 const MAX_ENTRIES = 50_000;
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
 const KEY_PATTERN = /^[A-Za-z0-9_]{2,80}$/;
 const LASTMOD_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+export type SitemapSegment =
+  | 'standard-cards'
+  | 'wild-cards'
+  | 'battleground-minions'
+  | 'battleground-spells'
+  | 'battleground-heroes';
 
 export type SitemapSemanticEntry = {
   key: string;
@@ -22,7 +27,7 @@ export type StoredSitemapEntry = SitemapSemanticEntry & {
 
 export type SemanticSitemapDocument = {
   schemaVersion: 1;
-  segment: 'standard-cards';
+  segment: SitemapSegment;
   updatedAt: string;
   entryCount: number;
   entries: StoredSitemapEntry[];
@@ -39,6 +44,7 @@ export class SitemapCandidateRejectedError extends Error {
 type StoreOptions = {
   directory: string;
   filename?: string;
+  segment?: SitemapSegment;
   canonicalOrigin?: string;
   now?: () => number;
   collapseRatio?: number;
@@ -73,12 +79,31 @@ function validIsoTimestamp(value: unknown): value is string {
   return Number.isFinite(parsed) && new Date(parsed).toISOString() === value;
 }
 
-function entryLocationIsValid(value: unknown, origin: string, key: string): value is string {
+function entryPathIsValid(pathname: string, key: string, segment: SitemapSegment): boolean {
+  if (segment === 'standard-cards') {
+    return pathname === `/standard/cards/standard/${encodeURIComponent(key)}/`;
+  }
+  if (segment === 'wild-cards') {
+    return pathname === `/standard/cards/wild/${encodeURIComponent(key)}/`;
+  }
+  if (segment === 'battleground-heroes') return pathname === `/heroes/${key}/`;
+  const libraryKind = segment === 'battleground-minions' ? 'minions' : 'spells';
+  return pathname.startsWith(`/library/${libraryKind}/`)
+    && pathname.endsWith(`-${key}/`)
+    && pathname.length > `/library/${libraryKind}/-${key}/`.length;
+}
+
+function entryLocationIsValid(
+  value: unknown,
+  origin: string,
+  key: string,
+  segment: SitemapSegment,
+): value is string {
   if (typeof value !== 'string' || value.length > 2_000) return false;
   try {
     const parsed = new URL(value);
     return parsed.origin === origin
-      && parsed.pathname === `/standard/cards/standard/${encodeURIComponent(key)}/`
+      && entryPathIsValid(parsed.pathname, key, segment)
       && !parsed.search
       && !parsed.hash;
   } catch {
@@ -86,7 +111,11 @@ function entryLocationIsValid(value: unknown, origin: string, key: string): valu
   }
 }
 
-function normalizeCandidate(entries: SitemapSemanticEntry[], origin: string): SitemapSemanticEntry[] {
+function normalizeCandidate(
+  entries: SitemapSemanticEntry[],
+  origin: string,
+  segment: SitemapSegment,
+): SitemapSemanticEntry[] {
   if (!Array.isArray(entries) || entries.length === 0) {
     throw new SitemapCandidateRejectedError('Sitemap candidate is empty or partial');
   }
@@ -102,7 +131,7 @@ function normalizeCandidate(entries: SitemapSemanticEntry[], origin: string): Si
   }));
   for (const entry of normalized) {
     if (!KEY_PATTERN.test(entry.key)) throw new SitemapCandidateRejectedError('Sitemap candidate has an invalid entity key');
-    if (!entryLocationIsValid(entry.location, origin, entry.key)) {
+    if (!entryLocationIsValid(entry.location, origin, entry.key, segment)) {
       throw new SitemapCandidateRejectedError('Sitemap candidate has an invalid canonical location');
     }
     if (!HASH_PATTERN.test(entry.semanticHash)) {
@@ -117,10 +146,14 @@ function normalizeCandidate(entries: SitemapSemanticEntry[], origin: string): Si
   return normalized.sort((left, right) => left.key.localeCompare(right.key, 'en'));
 }
 
-function validateDocument(value: unknown, origin: string): SemanticSitemapDocument | null {
+function validateDocument(
+  value: unknown,
+  origin: string,
+  segment: SitemapSegment,
+): SemanticSitemapDocument | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const candidate = value as Record<string, unknown>;
-  if (candidate.schemaVersion !== SCHEMA_VERSION || candidate.segment !== SEGMENT) return null;
+  if (candidate.schemaVersion !== SCHEMA_VERSION || candidate.segment !== segment) return null;
   if (!validIsoTimestamp(candidate.updatedAt)) return null;
   if (!Array.isArray(candidate.entries) || candidate.entries.length === 0 || candidate.entries.length > MAX_ENTRIES) return null;
   if (candidate.entryCount !== candidate.entries.length) return null;
@@ -135,7 +168,7 @@ function validateDocument(value: unknown, origin: string): SemanticSitemapDocume
     const location = typeof raw.location === 'string' ? raw.location : '';
     const semanticHash = typeof raw.semanticHash === 'string' ? raw.semanticHash : '';
     const lastmod = raw.lastmod;
-    if (!KEY_PATTERN.test(key) || !entryLocationIsValid(location, origin, key) || !HASH_PATTERN.test(semanticHash)) return null;
+    if (!KEY_PATTERN.test(key) || !entryLocationIsValid(location, origin, key, segment) || !HASH_PATTERN.test(semanticHash)) return null;
     if (lastmod !== undefined && (typeof lastmod !== 'string' || !LASTMOD_PATTERN.test(lastmod)
       || !Number.isFinite(Date.parse(`${lastmod}T00:00:00.000Z`)))) return null;
     if (keys.has(key) || locations.has(location)) return null;
@@ -153,7 +186,7 @@ function validateDocument(value: unknown, origin: string): SemanticSitemapDocume
 
   const unsigned: Omit<SemanticSitemapDocument, 'contentHash'> = {
     schemaVersion: SCHEMA_VERSION,
-    segment: SEGMENT,
+    segment,
     updatedAt: candidate.updatedAt,
     entryCount: entries.length,
     entries,
@@ -167,6 +200,7 @@ export class SemanticSitemapStore {
   private readonly directory: string;
   private readonly filename: string;
   private readonly recovery: string;
+  private readonly segment: SitemapSegment;
   private readonly origin: string;
   private readonly now: () => number;
   private readonly collapseRatio: number;
@@ -174,7 +208,8 @@ export class SemanticSitemapStore {
 
   constructor(options: StoreOptions) {
     this.directory = options.directory;
-    this.filename = options.filename ?? DEFAULT_FILENAME;
+    this.segment = options.segment ?? 'standard-cards';
+    this.filename = options.filename ?? `seo-${this.segment}-sitemap-v1.json`;
     if (!/^[A-Za-z0-9][A-Za-z0-9._-]*\.json$/.test(this.filename)) throw new Error('unsafe sitemap store filename');
     this.recovery = recoveryFilename(this.filename);
     this.origin = normalizedOrigin(options.canonicalOrigin);
@@ -187,7 +222,7 @@ export class SemanticSitemapStore {
     const pathname = `${this.directory}/${filename}`;
     if (!existsSync(pathname)) return null;
     try {
-      return validateDocument(JSON.parse(readFileSync(pathname, 'utf8')), this.origin);
+      return validateDocument(JSON.parse(readFileSync(pathname, 'utf8')), this.origin, this.segment);
     } catch {
       return null;
     }
@@ -200,7 +235,7 @@ export class SemanticSitemapStore {
   }
 
   publish(candidateEntries: SitemapSemanticEntry[]): SemanticSitemapDocument {
-    const entries = normalizeCandidate(candidateEntries, this.origin);
+    const entries = normalizeCandidate(candidateEntries, this.origin, this.segment);
     if (entries.length < this.minimumEntryCount) {
       throw new SitemapCandidateRejectedError(
         `Sitemap candidate is partial: ${entries.length}/${this.minimumEntryCount} minimum entries`,
@@ -238,7 +273,7 @@ export class SemanticSitemapStore {
 
     const unsigned: Omit<SemanticSitemapDocument, 'contentHash'> = {
       schemaVersion: SCHEMA_VERSION,
-      segment: SEGMENT,
+      segment: this.segment,
       updatedAt: new Date(this.now()).toISOString(),
       entryCount: nextEntries.length,
       entries: nextEntries,
