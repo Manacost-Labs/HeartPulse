@@ -1,6 +1,7 @@
 import { Router, type RequestHandler, type Response } from 'express';
 import { extractConstructedCardFrontendAssets } from './constructedCardSeoRoutes.js';
 import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
+import { buildEntityStructuredData } from './entitySeoStructuredData.js';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -268,25 +269,9 @@ function renderHeroDocument(
   const heroPowerImage = hero.heroPower ? safeImageUrl(hero.heroPower.image, origin) : null;
   const title = `${hero.name} — герой Полей сражений Hearthstone | HearthPulse`;
   const description = descriptionForHero(hero);
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@graph': [
-      {
-        '@type': 'WebPage',
-        '@id': `${canonical}#webpage`,
-        url: canonical,
-        name: title,
-        description,
-        inLanguage: 'ru',
-        isPartOf: { '@type': 'WebSite', '@id': `${origin}/#website`, name: 'HearthPulse', url: `${origin}/` },
-        primaryImageOfPage: { '@type': 'ImageObject', contentUrl: image },
-        mainEntity: { '@id': `${canonical}#hero` },
-        breadcrumb: { '@id': `${canonical}#breadcrumb` },
-      },
-      {
-        '@type': 'CreativeWork',
-        '@id': `${canonical}#hero`,
-        url: canonical,
+  const structuredData = buildEntityStructuredData({
+    canonical, title, description, origin, image, entityFragment: 'hero',
+    entity: {
         name: hero.name,
         identifier: hero.dbfId,
         ...(hero.cardId ? { alternateName: hero.cardId } : {}),
@@ -302,18 +287,13 @@ function renderHeroDocument(
             ...(heroPowerImage ? { image: heroPowerImage } : {}),
           },
         } : {}),
-      },
-      {
-        '@type': 'BreadcrumbList',
-        '@id': `${canonical}#breadcrumb`,
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Главная', item: `${origin}/` },
-          { '@type': 'ListItem', position: 2, name: 'Герои Полей сражений', item: `${origin}/heroes/` },
-          { '@type': 'ListItem', position: 3, name: hero.name, item: canonical },
-        ],
-      },
+    },
+    breadcrumbs: [
+      { name: 'Главная', item: `${origin}/` },
+      { name: 'Герои Полей сражений', item: `${origin}/heroes/` },
+      { name: hero.name, item: canonical },
     ],
-  };
+  });
   const power = hero.heroPower
     ? `<section class="bg-hero-seo__power">
             <h2>Сила героя</h2>

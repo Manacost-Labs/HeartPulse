@@ -1,6 +1,7 @@
 import { Router, type Request, type RequestHandler, type Response } from 'express';
 import { extractConstructedCardFrontendAssets } from './constructedCardSeoRoutes.js';
 import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
+import { buildEntityStructuredData } from './entitySeoStructuredData.js';
 
 type JsonRecord = Record<string, unknown>;
 export type BattlegroundLibraryKind = 'minion' | 'spell';
@@ -355,25 +356,9 @@ function renderCardDocument(
   const image = safePrimaryImageUrl(card.images.card ?? card.images.framed, origin);
   const title = `${card.nameRu} — ${kindTitle(card.kind)} Полей сражений Hearthstone | HearthPulse`;
   const description = descriptionForCard(card);
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@graph': [
-      {
-        '@type': 'WebPage',
-        '@id': `${canonical}#webpage`,
-        url: canonical,
-        name: title,
-        description,
-        inLanguage: 'ru',
-        isPartOf: { '@type': 'WebSite', '@id': `${origin}/#website`, name: 'HearthPulse', url: `${origin}/` },
-        primaryImageOfPage: { '@type': 'ImageObject', contentUrl: image },
-        mainEntity: { '@id': `${canonical}#card` },
-        breadcrumb: { '@id': `${canonical}#breadcrumb` },
-      },
-      {
-        '@type': 'CreativeWork',
-        '@id': `${canonical}#card`,
-        url: canonical,
+  const structuredData = buildEntityStructuredData({
+    canonical, title, description, origin, image, entityFragment: 'card',
+    entity: {
         name: card.nameRu,
         identifier: card.dbfId,
         ...(card.nameEn ? { alternateName: card.nameEn } : {}),
@@ -381,19 +366,14 @@ function renderCardDocument(
         description,
         inLanguage: 'ru',
         isPartOf: { '@type': 'VideoGame', name: 'Hearthstone: Поля сражений' },
-      },
-      {
-        '@type': 'BreadcrumbList',
-        '@id': `${canonical}#breadcrumb`,
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Главная', item: `${origin}/` },
-          { '@type': 'ListItem', position: 2, name: 'Библиотека Полей сражений', item: `${origin}/library/` },
-          { '@type': 'ListItem', position: 3, name: card.kind === 'minion' ? 'Существа' : 'Заклинания', item: `${origin}/library/${kindPath(card.kind)}/` },
-          { '@type': 'ListItem', position: 4, name: card.nameRu, item: canonical },
-        ],
-      },
+    },
+    breadcrumbs: [
+      { name: 'Главная', item: `${origin}/` },
+      { name: 'Библиотека Полей сражений', item: `${origin}/library/` },
+      { name: card.kind === 'minion' ? 'Существа' : 'Заклинания', item: `${origin}/library/${kindPath(card.kind)}/` },
+      { name: card.nameRu, item: canonical },
     ],
-  };
+  });
   const propertyRows = [
     ['DBF ID', String(card.dbfId)],
     ['Тип', card.typeName],

@@ -10,6 +10,7 @@ import {
   type ConstructedRelatedCard,
   type ConstructedRelatedCardGroup,
 } from '../src/features/constructedRelatedCards.js';
+import { buildEntityStructuredData } from './entitySeoStructuredData.js';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -524,25 +525,9 @@ export function renderConstructedCardSeoDocument(options: {
     ['Броня', card.armor],
   ].filter((entry): entry is [string, string | number] => entry[1] !== null)
     .map(([name, value]) => ({ '@type': 'PropertyValue', name, value }));
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@graph': [
-      {
-        '@type': 'WebPage',
-        '@id': `${canonical}#webpage`,
-        url: canonical,
-        name: title,
-        description,
-        inLanguage: 'ru',
-        isPartOf: { '@type': 'WebSite', '@id': `${origin}/#website`, name: 'HearthPulse', url: `${origin}/` },
-        primaryImageOfPage: { '@type': 'ImageObject', contentUrl: image },
-        mainEntity: { '@id': `${canonical}#card` },
-        breadcrumb: { '@id': `${canonical}#breadcrumb` },
-      },
-      {
-        '@type': 'CreativeWork',
-        '@id': `${canonical}#card`,
-        url: canonical,
+  const structuredData = buildEntityStructuredData({
+    canonical, title, description, origin, image, entityFragment: 'card',
+    entity: {
         name: card.name,
         ...(card.englishName ? { alternateName: card.englishName } : {}),
         identifier: card.id,
@@ -551,18 +536,13 @@ export function renderConstructedCardSeoDocument(options: {
         inLanguage: 'ru',
         isPartOf: { '@type': 'VideoGame', name: 'Hearthstone' },
         additionalProperty,
-      },
-      {
-        '@type': 'BreadcrumbList',
-        '@id': `${canonical}#breadcrumb`,
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Главная', item: `${origin}/` },
-          { '@type': 'ListItem', position: 2, name: 'Карты Hearthstone', item: `${origin}/standard/cards/${options.format}/` },
-          { '@type': 'ListItem', position: 3, name: card.name, item: canonical },
-        ],
-      },
+    },
+    breadcrumbs: [
+      { name: 'Главная', item: `${origin}/` },
+      { name: 'Карты Hearthstone', item: `${origin}/standard/cards/${options.format}/` },
+      { name: card.name, item: canonical },
     ],
-  };
+  });
   const body = `<main class="card-seo">
       <nav aria-label="Хлебные крошки"><a href="/standard/cards/${options.format}/">Карты Hearthstone</a> / ${escapeHtml(FORMAT_LABELS[options.format])}</nav>
       <article class="card-seo__hero">

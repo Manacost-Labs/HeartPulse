@@ -1,10 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, statSync } from 'node:fs';
 import { Router, type Request, type RequestHandler, type Response } from 'express';
-import {
-  isIndexableConstructedCard,
-  projectPublicConstructedCardSeoData,
-} from './constructedCardSeoRoutes.js';
 import {
   SemanticSitemapStore,
   type SemanticSitemapDocument,
@@ -12,15 +7,18 @@ import {
   type SitemapSemanticEntry,
 } from './entitySitemapStore.js';
 import {
-  canonicalBattlegroundCardSlug,
-  projectPublicBattlegroundLibraryCard,
-  type BattlegroundLibraryKind,
-} from './battlegroundLibrarySeoRoutes.js';
-import { projectPublicBattlegroundHero } from './battlegroundSeoRoutes.js';
+  canonicalSitemapOrigin,
+  projectBattlegroundHeroSitemapCatalog,
+  projectBattlegroundLibrarySitemapCatalog,
+  projectConstructedCardSitemapCatalog,
+  projectStandardCardSitemapCatalog,
+} from './entitySitemapProjections.js';
+import {
+  loadStaticSitemapArtifact,
+  renderSitemapIndex,
+  renderSitemapUrlset,
+} from './entitySitemapXml.js';
 
-type JsonRecord = Record<string, unknown>;
-type SitemapUrlEntry = { location: string; lastmod?: string };
-type XmlLimits = { maxEntries?: number; maxBytes?: number };
 type DynamicSitemapDefinition = {
   segment: SitemapSegment;
   pathname: `/sitemaps/${string}.xml`;
@@ -60,8 +58,6 @@ export type EntitySitemapRouterDependencies = {
   onError?: (error: unknown) => void;
 };
 
-const MAX_SITEMAP_ENTRIES = 50_000;
-const MAX_SITEMAP_BYTES = 50 * 1024 * 1024;
 const ENTITY_SITEMAP_PATHS: DynamicSitemapDefinition['pathname'][] = [
   '/sitemaps/standard-cards.xml',
   '/sitemaps/wild-cards.xml',
@@ -70,184 +66,15 @@ const ENTITY_SITEMAP_PATHS: DynamicSitemapDefinition['pathname'][] = [
   '/sitemaps/battleground-heroes.xml',
 ];
 
-function canonicalOrigin(value: string | undefined): string {
-  try {
-    const parsed = new URL(value ?? 'https://hearthpulse.net');
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') throw new Error('unsupported protocol');
-    return parsed.origin;
-  } catch {
-    return 'https://hearthpulse.net';
-  }
-}
-
-function escapeXml(value: unknown): string {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
-function assertXmlSize(xml: string, maximum: number): string {
-  if (Buffer.byteLength(xml, 'utf8') > maximum) throw new Error(`Sitemap document exceeds ${maximum} bytes`);
-  return xml;
-}
-
-export function renderSitemapUrlset(entries: SitemapUrlEntry[], limits: XmlLimits = {}): string {
-  const maxEntries = Math.min(MAX_SITEMAP_ENTRIES, Math.max(1, limits.maxEntries ?? MAX_SITEMAP_ENTRIES));
-  const maxBytes = Math.min(MAX_SITEMAP_BYTES, Math.max(256, limits.maxBytes ?? MAX_SITEMAP_BYTES));
-  if (entries.length > maxEntries) throw new Error(`Sitemap exceeds the 50,000 URL limit (${entries.length})`);
-  const locations = new Set<string>();
-  const rows = entries.map(entry => {
-    if (!entry?.location || locations.has(entry.location)) throw new Error('Sitemap contains an invalid or duplicate location');
-    locations.add(entry.location);
-    if (entry.lastmod && !/^\d{4}-\d{2}-\d{2}$/.test(entry.lastmod)) throw new Error('Sitemap contains an invalid lastmod');
-    return `  <url><loc>${escapeXml(entry.location)}</loc>${entry.lastmod ? `<lastmod>${entry.lastmod}</lastmod>` : ''}</url>`;
-  });
-  return assertXmlSize(
-    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.join('\n')}\n</urlset>\n`,
-    maxBytes,
-  );
-}
-
-export function renderSitemapIndex(locations: string[], limits: XmlLimits = {}): string {
-  const maxEntries = Math.min(MAX_SITEMAP_ENTRIES, Math.max(1, limits.maxEntries ?? MAX_SITEMAP_ENTRIES));
-  const maxBytes = Math.min(MAX_SITEMAP_BYTES, Math.max(256, limits.maxBytes ?? MAX_SITEMAP_BYTES));
-  if (locations.length > maxEntries) throw new Error(`Sitemap index exceeds the 50,000 URL limit (${locations.length})`);
-  if (new Set(locations).size !== locations.length || locations.some(location => !location)) {
-    throw new Error('Sitemap index contains an invalid or duplicate location');
-  }
-  const rows = locations.map(location => `  <sitemap><loc>${escapeXml(location)}</loc></sitemap>`);
-  return assertXmlSize(
-    `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.join('\n')}\n</sitemapindex>\n`,
-    maxBytes,
-  );
-}
-
-export function projectConstructedCardSitemapCatalog(
-  cards: unknown[],
-  format: 'standard' | 'wild',
-  originValue?: string,
-): SitemapSemanticEntry[] {
-  if (!Array.isArray(cards)) return [];
-  const origin = canonicalOrigin(originValue);
-  const counts = new Map<string, number>();
-  const dbfOwners = new Map<number, string>();
-  for (const raw of cards) {
-    const card = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as JsonRecord : {};
-    const id = typeof card.card_id === 'string' ? card.card_id.trim() : '';
-    if (card.catalogPending === true) continue;
-    if (!isIndexableConstructedCard(card)) throw new Error('Standard card sitemap catalog contains an invalid entity');
-    counts.set(id, (counts.get(id) ?? 0) + 1);
-    const dbf = Number(card.dbf);
-    if (Number.isSafeInteger(dbf) && dbf > 0) {
-      const owner = dbfOwners.get(dbf);
-      if (owner && owner !== id) throw new Error('Standard card sitemap catalog contains a DBF alias collision');
-      dbfOwners.set(dbf, id);
-    }
-  }
-  if ([...counts.values()].some(count => count !== 1)) {
-    throw new Error('Standard card sitemap catalog contains a duplicate canonical ID');
-  }
-  return cards.flatMap(raw => {
-    const card = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as JsonRecord : {};
-    if (card.catalogPending === true) return [];
-    const projection = projectPublicConstructedCardSeoData(card, origin);
-    const semanticHash = createHash('sha256').update(JSON.stringify(projection)).digest('hex');
-    return [{
-      key: projection.id,
-      location: `${origin}/standard/cards/${format}/${encodeURIComponent(projection.id)}/`,
-      semanticHash,
-    }];
-  }).sort((left, right) => left.key.localeCompare(right.key, 'en'));
-}
-
-export function projectStandardCardSitemapCatalog(
-  cards: unknown[],
-  originValue?: string,
-): SitemapSemanticEntry[] {
-  return projectConstructedCardSitemapCatalog(cards, 'standard', originValue);
-}
-
-export function projectBattlegroundLibrarySitemapCatalog(
-  cards: unknown[],
-  kind: BattlegroundLibraryKind,
-  originValue?: string,
-): SitemapSemanticEntry[] {
-  if (!Array.isArray(cards)) return [];
-  const origin = canonicalOrigin(originValue);
-  const entries = cards.map(raw => {
-    const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as JsonRecord : {};
-    const card = projectPublicBattlegroundLibraryCard(source, kind, source.in_pool === true);
-    if (!card) throw new Error(`Battleground ${kind} sitemap catalog contains an invalid entity`);
-    return {
-      key: String(card.dbfId),
-      location: new URL(
-        `/library/${kind === 'minion' ? 'minions' : 'spells'}/${canonicalBattlegroundCardSlug(card.nameRu)}-${card.dbfId}/`,
-        origin,
-      ).href,
-      semanticHash: createHash('sha256').update(JSON.stringify(card)).digest('hex'),
-    };
-  });
-  const keys = new Set<string>();
-  for (const entry of entries) {
-    if (keys.has(entry.key)) throw new Error(`Battleground ${kind} sitemap catalog contains a duplicate entity`);
-    keys.add(entry.key);
-  }
-  return entries.sort((left, right) => left.key.localeCompare(right.key, 'en'));
-}
-
-export function projectBattlegroundHeroSitemapCatalog(
-  heroes: unknown[],
-  originValue?: string,
-): SitemapSemanticEntry[] {
-  if (!Array.isArray(heroes)) return [];
-  const origin = canonicalOrigin(originValue);
-  const entries = new Map<string, SitemapSemanticEntry>();
-  for (const raw of heroes) {
-    const hero = projectPublicBattlegroundHero(raw);
-    if (!hero) throw new Error('Battleground hero sitemap catalog contains an invalid entity');
-    const key = String(hero.dbfId);
-    const semanticHash = createHash('sha256').update(JSON.stringify(hero)).digest('hex');
-    const previous = entries.get(key);
-    if (previous && previous.semanticHash !== semanticHash) {
-      throw new Error('Battleground hero sitemap catalog contains a conflicting duplicate entity');
-    }
-    entries.set(key, {
-      key,
-      location: `${origin}/heroes/${hero.dbfId}/`,
-      semanticHash,
-    });
-  }
-  return [...entries.values()].sort((left, right) => left.key.localeCompare(right.key, 'en'));
-}
-
-export function parseSitemapLocations(xml: string): string[] {
-  if (!/<urlset\b[^>]*xmlns=["']http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9["']/i.test(xml)) return [];
-  return [...xml.matchAll(/<loc>([^<]+)<\/loc>/gi)].map(match => match[1]
-    .replace(/&apos;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/&gt;/g, '>')
-    .replace(/&lt;/g, '<')
-    .replace(/&amp;/g, '&'));
-}
-
-export function loadStaticSitemapArtifact(
-  candidates: string[],
-  options: { required: boolean; onMissing?: (message: string) => void },
-): { path: string; urls: string[]; modifiedAt: number } | null {
-  const pathname = candidates.find(candidate => existsSync(candidate));
-  if (!pathname) {
-    const message = 'Static sitemap artifact is missing; run the production build before starting sitemap routing';
-    if (options.required) throw new Error(message);
-    options.onMissing?.(message);
-    return null;
-  }
-  const urls = parseSitemapLocations(readFileSync(pathname, 'utf8'));
-  if (urls.length === 0) throw new Error('Static sitemap artifact is invalid or empty');
-  return { path: pathname, urls, modifiedAt: statSync(pathname).mtimeMs };
-}
+export {
+  loadStaticSitemapArtifact,
+  renderSitemapIndex,
+  renderSitemapUrlset,
+  projectBattlegroundHeroSitemapCatalog,
+  projectBattlegroundLibrarySitemapCatalog,
+  projectConstructedCardSitemapCatalog,
+  projectStandardCardSitemapCatalog,
+};
 
 function documentFromXml(
   xml: string,
@@ -400,7 +227,7 @@ function createDynamicDocumentLoader(
 
 export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDependencies): Router {
   const router = Router({ caseSensitive: true, strict: true });
-  const origin = canonicalOrigin(dependencies.canonicalOrigin);
+  const origin = canonicalSitemapOrigin(dependencies.canonicalOrigin);
   const now = dependencies.now ?? Date.now;
   const cacheTtlMs = Math.max(5 * 60_000, Math.min(15 * 60_000, dependencies.cacheTtlMs ?? 10 * 60_000));
   const maxAgeSeconds = Math.floor(cacheTtlMs / 1_000);
