@@ -191,7 +191,7 @@ try {
   const upstreamHeaders = new Headers(calls[0]?.init?.headers);
   assert.equal(upstreamHeaders.get('cookie'), null);
   assert.equal(upstreamHeaders.get('authorization'), null);
-  assert.equal(upstreamHeaders.get('user-agent'), 'ManacostArena/BattlegroundHeroSEO');
+  assert.equal(upstreamHeaders.get('user-agent'), 'HearthPulse/BattlegroundHeroSEO');
 
   for (const headers of [
     { Cookie: 'session=private-user' },

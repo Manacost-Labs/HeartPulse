@@ -553,7 +553,7 @@ export function createBattlegroundLibrarySeoRouter(
         signal: controller.signal,
         headers: {
           Accept: 'application/json',
-          'User-Agent': 'ManacostArena/BattlegroundLibrarySEO',
+          'User-Agent': 'HearthPulse/BattlegroundLibrarySEO',
         },
       });
       if (!upstream.ok) throw new Error(`Battleground ${kind} catalog HTTP ${upstream.status}`);
@@ -578,7 +578,7 @@ export function createBattlegroundLibrarySeoRouter(
     if (!detail) {
       return sendHtml(response, 404, NOINDEX_ROBOTS, renderNoindexDocument({
         kind,
-        title: 'Карта не найдена | Manacost Stats',
+        title: 'Карта не найдена | HearthPulse',
         description: 'Запрошенная карта Полей сражений Hearthstone не найдена.',
         heading: 'Карта не найдена',
         message: 'Проверьте адрес или вернитесь в библиотеку.',
@@ -592,7 +592,7 @@ export function createBattlegroundLibrarySeoRouter(
       if (!card) {
         return sendHtml(response, 404, NOINDEX_ROBOTS, renderNoindexDocument({
           kind,
-          title: 'Карта не найдена | Manacost Stats',
+          title: 'Карта не найдена | HearthPulse',
           description: 'Запрошенная карта Полей сражений Hearthstone не найдена.',
           heading: 'Карта не найдена',
           message: 'Такой карты нет в проверенных каталогах Полей сражений.',
@@ -615,7 +615,7 @@ export function createBattlegroundLibrarySeoRouter(
       response.set('Retry-After', String(retryAfterSeconds));
       return sendHtml(response, 503, NOINDEX_ROBOTS, renderNoindexDocument({
         kind,
-        title: 'Каталог карт временно недоступен | Manacost Stats',
+        title: 'Каталог карт временно недоступен | HearthPulse',
         description: 'Каталог карт Полей сражений Hearthstone временно недоступен. Попробуйте открыть страницу позже.',
         heading: 'Каталог карт временно недоступен',
         message: 'Мы не смогли проверить каталог карт. Попробуйте снова через несколько минут.',

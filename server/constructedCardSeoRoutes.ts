@@ -656,7 +656,7 @@ export function createConstructedCardSeoRouter(dependencies: ConstructedCardSeoR
     const format = rawFormat === 'standard' || rawFormat === 'wild' ? rawFormat : null;
     if (!format || !/^[A-Za-z0-9_]{2,80}$/.test(cardId)) {
       const html = renderNoindexDocument({
-        title: 'Карта не найдена | Manacost Stats',
+        title: 'Карта не найдена | HearthPulse',
         description: 'Запрошенная карта Hearthstone не найдена.',
         heading: 'Карта не найдена',
         message: 'Проверьте адрес или вернитесь в библиотеку карт.',
@@ -679,7 +679,7 @@ export function createConstructedCardSeoRouter(dependencies: ConstructedCardSeoR
           throw new Error('Stale constructed-card catalog cannot authoritatively confirm entity absence');
         }
         const html = renderNoindexDocument({
-          title: 'Карта не найдена | Manacost Stats',
+          title: 'Карта не найдена | HearthPulse',
           description: 'Запрошенная карта Hearthstone не найдена.',
           heading: 'Карта не найдена',
           message: 'Такой карты нет в текущем каталоге выбранного формата.',
@@ -704,7 +704,7 @@ export function createConstructedCardSeoRouter(dependencies: ConstructedCardSeoR
       dependencies.onError?.(error);
       response.set('Retry-After', String(retryAfterSeconds));
       const html = renderNoindexDocument({
-        title: 'Библиотека карт временно недоступна | Manacost Stats',
+        title: 'Библиотека карт временно недоступна | HearthPulse',
         description: 'Каталог карт Hearthstone временно недоступен. Попробуйте открыть страницу позже.',
         heading: 'Библиотека карт временно недоступна',
         message: 'Мы не смогли проверить карточный каталог. Попробуйте снова через несколько минут.',

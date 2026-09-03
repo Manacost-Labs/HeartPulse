@@ -221,7 +221,7 @@ try {
     const headers = new Headers(call.init?.headers);
     assert.equal(headers.get('cookie'), null);
     assert.equal(headers.get('authorization'), null);
-    assert.equal(headers.get('user-agent'), 'ManacostArena/BattlegroundLibrarySEO');
+    assert.equal(headers.get('user-agent'), 'HearthPulse/BattlegroundLibrarySEO');
   }
 
   for (const headers of [

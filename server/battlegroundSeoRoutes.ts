@@ -255,7 +255,7 @@ function descriptionForHero(hero: PublicBattlegroundHero): string {
   if (hero.heroPower) {
     return `${hero.name} — герой Полей сражений Hearthstone. Сила героя: «${hero.heroPower.name}».`.slice(0, 300);
   }
-  return `${hero.name} — герой режима «Поля сражений» в Hearthstone. Публичная информация о герое на Manacost Stats.`.slice(0, 300);
+  return `${hero.name} — герой режима «Поля сражений» в Hearthstone. Публичная информация о герое на HearthPulse.`.slice(0, 300);
 }
 
 function renderHeroDocument(
@@ -411,7 +411,7 @@ export function createBattlegroundHeroSeoRouter(
     const dbfId = String(request.params.dbfId ?? '');
     if (!/^[1-9][0-9]*$/.test(dbfId)) {
       return sendHtml(response, 404, NOINDEX_ROBOTS, renderNoindexDocument({
-        title: 'Герой не найден | Manacost Stats',
+        title: 'Герой не найден | HearthPulse',
         description: 'Запрошенный герой Полей сражений Hearthstone не найден.',
         heading: 'Герой не найден',
         message: 'Проверьте адрес или вернитесь к списку героев.',
@@ -426,7 +426,7 @@ export function createBattlegroundHeroSeoRouter(
           signal: controller.signal,
           headers: {
             Accept: 'application/json',
-            'User-Agent': 'ManacostArena/BattlegroundHeroSEO',
+            'User-Agent': 'HearthPulse/BattlegroundHeroSEO',
           },
         });
         if (!upstream.ok) throw new Error(`Battleground hero catalog HTTP ${upstream.status}`);
@@ -445,7 +445,7 @@ export function createBattlegroundHeroSeoRouter(
               signal: controller.signal,
               headers: {
                 Accept: 'application/json',
-                'User-Agent': 'ManacostArena/BattlegroundHeroSEO',
+                'User-Agent': 'HearthPulse/BattlegroundHeroSEO',
               },
             }), catalogTimeoutMs, controller);
             if (libraryResponse.ok) hero = mergeLibraryHero(hero, await libraryResponse.json());
@@ -460,7 +460,7 @@ export function createBattlegroundHeroSeoRouter(
       }
       if (!hero) {
         return sendHtml(response, 404, NOINDEX_ROBOTS, renderNoindexDocument({
-          title: 'Герой не найден | Manacost Stats',
+          title: 'Герой не найден | HearthPulse',
           description: 'Запрошенный герой Полей сражений Hearthstone не найден.',
           heading: 'Герой не найден',
           message: 'Такого героя нет в текущем каталоге Полей сражений.',
@@ -477,7 +477,7 @@ export function createBattlegroundHeroSeoRouter(
       }
       response.set('Retry-After', String(retryAfterSeconds));
       return sendHtml(response, 503, NOINDEX_ROBOTS, renderNoindexDocument({
-        title: 'Каталог героев временно недоступен | Manacost Stats',
+        title: 'Каталог героев временно недоступен | HearthPulse',
         description: 'Каталог героев Полей сражений Hearthstone временно недоступен. Попробуйте открыть страницу позже.',
         heading: 'Каталог героев временно недоступен',
         message: 'Мы не смогли проверить каталог героев. Попробуйте снова через несколько минут.',
