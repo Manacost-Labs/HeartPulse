@@ -217,6 +217,24 @@
       "tests": ["tests/public-api-ui.test.ts"],
       "allowedDependencies": ["shared browser platform", "React", "lucide-react"],
       "forbiddenImports": ["server/**", "other frontend module internals"]
+    },
+    {
+      "name": "frontend-search-landing",
+      "status": "modular",
+      "owner": "search-experience",
+      "purpose": "Own visible search-intent introductions and contextual navigation for canonical public landing pages.",
+      "paths": ["src/modules/searchLanding"],
+      "publicEntrypoints": ["src/modules/searchLanding/public.ts"],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": [],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": ["tests/seo-registry.test.ts"],
+      "allowedDependencies": ["React"],
+      "forbiddenImports": ["server/**", "other frontend module internals"]
     }
   ],
   "legacyAreas": [

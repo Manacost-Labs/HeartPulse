@@ -46,6 +46,11 @@ brand as its own site or claim partnership, endorsement, or ownership.
 4. Verify desktop and mobile rendering, heading structure, console and network
    health in a real Chromium session.
 
+Visible search-intent introductions are owned by the focused
+`src/modules/searchLanding` frontend module. Legacy route hosts consume only
+its public entrypoint so SEO copy does not add more responsibilities to the
+ratcheted Arena and Battlegrounds monoliths.
+
 ## Safety and rollback
 
 - Existing routes, canonical paths, access rules and data APIs remain unchanged.
