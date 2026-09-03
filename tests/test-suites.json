@@ -64,6 +64,7 @@
         "tests/deck-render-image-failure.test.ts",
         "tests/deckview-preview.test.ts",
         "tests/entity-sitemap-catalog.test.ts",
+        "tests/entity-sitemap-sources.test.ts",
         "tests/editorial-route-chrome.test.tsx",
         "tests/fun-deck-preview-prewarmer.test.ts",
         "tests/guides-sanitize.test.ts",
