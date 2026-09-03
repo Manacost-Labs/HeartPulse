@@ -543,14 +543,20 @@ function StandardMetaContent({
     <>
       <section className="traditional-mode-banner">
         <div className="traditional-mode-banner__copy">
-          <h1>Мета</h1>
-          <p>Сила и популярность актуальных архетипов Hearthstone.</p>
+          <h1>Мета Hearthstone по данным HSGuru</h1>
+          <p>HSGuru — источник статистики: сравнивайте тир-лист колод, винрейты и популярность актуальных архетипов.</p>
         </div>
         <dl className="traditional-mode-banner__summary" aria-label="Сводка меты">
           <div><dt>{hasFullAccess ? 'Архетипов' : 'В предпросмотре'}</dt><dd>{data.items.length}</dd></div>
           <div><dt>Игр в выборке</dt><dd>{data.items.reduce((sum, item) => sum + (item.games ?? 0), 0).toLocaleString('ru-RU')}</dd></div>
         </dl>
       </section>
+
+      <nav className="standard-meta__related flex flex-wrap gap-x-4 gap-y-2 text-sm" aria-label="Связанные разделы меты Hearthstone">
+        <a className="font-semibold underline underline-offset-4" href="/standard/archetypes">Архетипы и колоды Hearthstone</a>
+        <a className="font-semibold underline underline-offset-4" href="/standard/matchups">Матчапы по данным HSGuru</a>
+        <a className="font-semibold underline underline-offset-4" href="/standard/cards">Карты Hearthstone</a>
+      </nav>
 
       {datasetEnvelope && (
         datasetEnvelope.mode === 'early'

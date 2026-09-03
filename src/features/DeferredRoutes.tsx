@@ -1848,7 +1848,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
 
   return (
     <div className="arena-tierlist-page">
-      <SectionBanner title="Тир-лист" subtitle="Оценки карт для каждого класса — текущий патч" />
+      <SectionBanner title="Тир-лист карт Арены Hearthstone" subtitle="Оценки карт для каждого класса — текущий патч" />
       <Breadcrumbs items={[
         { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
         { name: 'Тир-лист', href: '/tierlist' },
@@ -1860,6 +1860,11 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
           Выберите класс, чтобы увидеть лучшие карты для текущего патча.
           Данные обновляются автоматически на основе HSReplay, HearthArena и Firestone.
         </p>
+        <nav className="mb-5 flex flex-wrap gap-x-4 gap-y-2 px-1 text-sm" aria-label="Связанные разделы Арены">
+          <a className="font-semibold text-[#7b151b] underline underline-offset-4" href="/classes">Винрейты классов Арены</a>
+          <a className="font-semibold text-[#7b151b] underline underline-offset-4" href="/legendaries">Легендарные карты Арены</a>
+          <a className="font-semibold text-[#7b151b] underline underline-offset-4" href="/">Статистика Арены Hearthstone</a>
+        </nav>
       </section>
       <PaywallGate
         active={paywallActive}

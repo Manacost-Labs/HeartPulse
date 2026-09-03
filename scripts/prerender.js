@@ -224,8 +224,30 @@ const PAGES = {
       <p><a href="/">На главную</a> | <a href="/articles">Статьи</a> | <a href="/classes">Арена</a></p>`
   },
   '/standard/meta': {
-    h1: 'Мета Hearthstone', ogType: 'website', structuredData: [],
-    noscript: '<h1>Мета Hearthstone</h1><p>Тир-листы, винрейты, популярность и готовые сборки актуальной меты Стандарта и Вольного режима доступны с тарифом «Алмаз».</p>'
+    h1: 'Мета Hearthstone по данным HSGuru',
+    ogType: 'website',
+    structuredData: [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Главная", "item": SITE_URL },
+          { "@type": "ListItem", "position": 2, "name": "Мета Hearthstone", "item": `${SITE_URL}/standard/meta` }
+        ]
+      },
+      {
+        "@type": "CollectionPage",
+        "@id": `${SITE_URL}/standard/meta#collection`,
+        "name": "Мета Hearthstone по данным HSGuru",
+        "description": "Тир-лист колод Стандарта и Вольного режима с винрейтами, популярностью и готовыми сборками.",
+        "url": `${SITE_URL}/standard/meta`,
+        "inLanguage": "ru"
+      }
+    ],
+    noscript: `
+      <h1>Мета Hearthstone по данным HSGuru</h1>
+      <p>HSGuru — источник статистики для этого русскоязычного среза меты Hearthstone: тир-листа колод, винрейтов, популярности и готовых сборок Стандарта и Вольного режима.</p>
+      <p>Выберите формат, рейтинг и период, чтобы сравнить архетипы. Часть подробной статистики доступна с тарифом «Алмаз».</p>
+      <p><a href="/standard/archetypes">Архетипы и колоды Hearthstone</a> | <a href="/standard/matchups">Матчапы по данным HSGuru</a> | <a href="/standard/cards">Карты Hearthstone</a></p>`
   },
   '/standard/fun-decks': {
     h1: 'Фан-колоды Hearthstone',
@@ -341,10 +363,11 @@ const PAGES = {
     noscript: `
       <h1>Тир-лист карт Арены Hearthstone</h1>
       <p>Полный тир-лист карт для каждого класса в режиме Арена Hearthstone. Лучшие карты текущего патча с оценками от S (авто-пик) до F.</p>
+      <h2>Как читать оценки карт</h2>
       <p>Классы: Рыцарь смерти, Охотник на демонов, Друид, Охотник, Маг, Паладин, Жрец, Разбойник, Шаман, Чернокнижник, Воин, Нейтральные.</p>
       <p>Тиры: S — Отлично, A — Хорошо, B — Выше среднего, C — Средне, D — Ниже среднего, E — Плохо, F — Ужасно.</p>
       <p>Данные обновляются автоматически с HearthArena и HSReplay.</p>
-      <p><a href="/">На главную</a> | <a href="/classes">Винрейты классов</a> | <a href="/legendaries">Легендарки</a></p>`
+      <p><a href="/classes">Винрейты классов Арены</a> | <a href="/legendaries">Легендарные карты Арены</a> | <a href="/">Статистика Арены Hearthstone</a></p>`
   },
   '/legendaries': {
     ogType: 'website',
@@ -562,7 +585,7 @@ const PAGES = {
   },
   '/battlegrounds/strategies': {
     ogType: 'website',
-    h1: 'Конструктор стратегий Полей Сражений',
+    h1: 'Конструктор стратегий БГ Hearthstone',
     structuredData: [
       {
         "@type": "BreadcrumbList",
@@ -575,9 +598,9 @@ const PAGES = {
       {
         "@type": "WebApplication",
         "@id": `${SITE_URL}/battlegrounds/strategies#app`,
-        "name": "Конструктор стратегий Полей Сражений",
+        "name": "Конструктор стратегий БГ Hearthstone",
         "url": `${SITE_URL}/battlegrounds/strategies`,
-        "description": "Инструмент для сборки и визуализации стратегий Hearthstone Battlegrounds.",
+        "description": "Инструмент для сборки и визуализации собственного плана на Полях сражений Hearthstone.",
         "applicationCategory": "GameApplication",
         "operatingSystem": "Web",
         "inLanguage": "ru",
@@ -585,9 +608,10 @@ const PAGES = {
       }
     ],
     noscript: `
-      <h1>Конструктор стратегий Полей Сражений</h1>
-      <p>Инструмент для сборки и визуализации стратегий Hearthstone Battlegrounds.</p>
-      <p><a href="/">На главную</a> | <a href="/battlegrounds/tier-builder">Конструктор тир-листов</a></p>`
+      <h1>Конструктор стратегий БГ Hearthstone</h1>
+      <p>Соберите собственный план для Полей сражений Hearthstone: выберите существ, заклинания и аксессуары и расположите их в удобной последовательности.</p>
+      <p>Конструктор не ранжирует стратегии. Сравнение готовых направлений игры находится на отдельной странице.</p>
+      <p><a href="/battlegrounds/tier-list">Тир-лист стратегий БГ</a> | <a href="/library">Библиотека Полей сражений</a> | <a href="/heroes">Герои БГ</a></p>`
   },
   '/heroes': {
     ogType: 'website',
@@ -733,7 +757,7 @@ const PAGES = {
   },
   '/battlegrounds/tier-list': {
     ogType: 'website',
-    h1: 'Тир-лист Полей Сражений',
+    h1: 'Тир-лист БГ Hearthstone',
     structuredData: [
       {
         "@type": "BreadcrumbList",
@@ -750,12 +774,26 @@ const PAGES = {
         "description": "Существа, стратегии, заклинания и аксессуары Hearthstone Battlegrounds.",
         "url": `${SITE_URL}/battlegrounds/tier-list`,
         "inLanguage": "ru"
+      },
+      {
+        "@type": "ItemList",
+        "@id": `${SITE_URL}/battlegrounds/tier-list#categories`,
+        "name": "Разделы тир-листа БГ Hearthstone",
+        "description": "Рейтинги доступных на странице существ, стратегий, заклинаний и аксессуаров Полей сражений.",
+        "numberOfItems": 4,
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Тир-лист существ БГ", "url": `${SITE_URL}/battlegrounds/tier-list` },
+          { "@type": "ListItem", "position": 2, "name": "Тир-лист стратегий БГ", "url": `${SITE_URL}/battlegrounds/tier-list` },
+          { "@type": "ListItem", "position": 3, "name": "Тир-лист заклинаний БГ", "url": `${SITE_URL}/battlegrounds/tier-list` },
+          { "@type": "ListItem", "position": 4, "name": "Тир-лист аксессуаров БГ", "url": `${SITE_URL}/battlegrounds/tier-list` }
+        ]
       }
     ],
     noscript: `
-      <h1>Тир-лист Полей Сражений</h1>
-      <p>Существа, стратегии, заклинания и аксессуары Hearthstone Battlegrounds с фильтрами и просмотром карт.</p>
-      <p><a href="/library">Библиотека</a> | <a href="/heroes">Герои</a> | <a href="/battlegrounds/strategies">Конструктор стратегий</a></p>`
+      <h1>Тир-лист БГ Hearthstone</h1>
+      <p>Актуальные рейтинги для Полей сражений Hearthstone: существа, стратегии, заклинания и аксессуары с фильтрами и просмотром карт.</p>
+      <p>Откройте вкладку «Стратегии», чтобы посмотреть тир-лист стратегий БГ, или переключитесь на другие категории. Источник и время обновления указаны рядом с данными.</p>
+      <p><a href="/battlegrounds/strategies">Конструктор стратегий БГ</a> | <a href="/library">Библиотека Полей сражений</a> | <a href="/heroes">Герои БГ</a></p>`
   },
   '/battlegrounds/tier-builder': {
     ogType: 'website',

@@ -38,8 +38,8 @@
     "/standard/meta": {
       "policyRouteId": "standard-meta",
       "navigationRouteId": "standard-meta",
-      "title": "Мета Hearthstone {year}: архетипы и колоды | Manacost Stats",
-      "description": "Актуальная мета Стандарта и Вольного режима по данным HSGuru: тир-листы, винрейты, популярность, русские названия и готовые сборки.",
+      "title": "HSGuru — мета Hearthstone {year} и тир-лист колод | HearthPulse",
+      "description": "Мета Hearthstone на русском по данным HSGuru: тир-лист колод Стандарта и Вольного режима, винрейты, популярность, архетипы и готовые сборки.",
       "sitemap": true
     },
     "/standard/fun-decks": {
@@ -80,8 +80,8 @@
     "/tierlist": {
       "policyRouteId": "tierlist",
       "navigationRouteId": "tierlist",
-      "title": "Тир-лист карт — Арена Hearthstone {year} | HS-Arena",
-      "description": "Полный тир-лист карт для каждого класса в режиме Арена Hearthstone. Лучшие карты текущего патча с оценками от S (авто-пик) до F. Данные с HearthArena и HSReplay.",
+      "title": "Тир-лист Арены Hearthstone {year}: лучшие карты | HearthPulse",
+      "description": "Актуальный тир-лист карт Арены Hearthstone по классам: лучшие карты текущего патча с оценками от S до F по данным HearthArena и HSReplay.",
       "sitemap": true
     },
     "/legendaries": {
@@ -147,8 +147,8 @@
     "/battlegrounds/strategies": {
       "policyRouteId": "bg-strategies",
       "navigationRouteId": "bg-strategies",
-      "title": "Конструктор стратегий Полей Сражений | HS-Arena",
-      "description": "Конструктор стратегий Hearthstone Battlegrounds: собирайте и визуализируйте планы развития для Полей Сражений.",
+      "title": "Конструктор стратегий БГ Hearthstone | HearthPulse",
+      "description": "Собирайте и визуализируйте собственные стратегии БГ Hearthstone: выбирайте существ, заклинания и аксессуары для плана на Полях сражений.",
       "sitemap": true
     },
     "/heroes": {
@@ -198,8 +198,8 @@
     "/battlegrounds/tier-list": {
       "policyRouteId": "bg-tier-list",
       "navigationRouteId": "bg-tier-list",
-      "title": "Тир-лист Полей Сражений Hearthstone | HS-Arena",
-      "description": "Тир-лист Hearthstone Battlegrounds: существа, стратегии, заклинания и аксессуары с фильтрами и просмотром карт.",
+      "title": "Тир-лист БГ Hearthstone {year}: существа и стратегии | HearthPulse",
+      "description": "Актуальный тир-лист БГ Hearthstone: рейтинг существ, стратегий, заклинаний и аксессуаров Полей сражений с фильтрами и просмотром карт.",
       "sitemap": true
     },
     "/battlegrounds/tier-builder": {

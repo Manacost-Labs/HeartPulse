@@ -198,6 +198,27 @@ try {
   assert.match(notFoundHtml, /<div id="root" data-route-status="404">/, '404 fallback must identify itself to the client router');
   assert.doesNotMatch(readOutput('index.html'), /data-route-status="404"/, 'ordinary pages must not carry the 404 client marker');
 
+  const arenaTierList = readOutput(outputPath('/tierlist'));
+  assert.match(arenaTierList, /<h1>Тир-лист карт Арены Hearthstone<\/h1>/);
+  assert.match(arenaTierList, /как читать оценки/i);
+  assert.match(arenaTierList, /href="\/classes"[^>]*>Винрейты классов Арены<\/a>/i);
+
+  const battlegroundsTierList = readOutput(outputPath('/battlegrounds/tier-list'));
+  assert.match(battlegroundsTierList, /<h1>Тир-лист БГ Hearthstone<\/h1>/);
+  assert.match(battlegroundsTierList, /тир-лист стратегий БГ/i);
+  assert.match(battlegroundsTierList, /href="\/battlegrounds\/strategies"[^>]*>Конструктор стратегий БГ<\/a>/i);
+  assert.match(battlegroundsTierList, /"@type":"ItemList"/);
+
+  const battlegroundsStrategies = readOutput(outputPath('/battlegrounds/strategies'));
+  assert.match(battlegroundsStrategies, /<h1>Конструктор стратегий БГ Hearthstone<\/h1>/);
+  assert.match(battlegroundsStrategies, /не ранжирует стратегии/i);
+  assert.match(battlegroundsStrategies, /href="\/battlegrounds\/tier-list"[^>]*>Тир-лист стратегий БГ<\/a>/i);
+
+  const standardMeta = readOutput(outputPath('/standard/meta'));
+  assert.match(standardMeta, /<h1>Мета Hearthstone по данным HSGuru<\/h1>/);
+  assert.match(standardMeta, /HSGuru[^<]*источник/i);
+  assert.match(standardMeta, /href="\/standard\/archetypes"[^>]*>Архетипы и колоды Hearthstone<\/a>/i);
+
   const sitemapIndex = readOutput('sitemap.xml');
   assert.match(sitemapIndex, /<sitemapindex xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">/,
     'the canonical sitemap endpoint artifact must describe the runtime segment index');
