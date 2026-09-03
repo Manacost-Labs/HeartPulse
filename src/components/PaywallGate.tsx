@@ -334,9 +334,9 @@ function SubscriptionLockedPreview({ title }: { title: string }) {
     >
       <div className="hs-card" style={{ borderRadius: 18, padding: 'clamp(1rem, 3vw, 1.5rem)' }}>
         <p className="modern-eyebrow" style={{ margin: '0 0 10px' }}>Раздел подписчиков</p>
-        <h1 style={{ margin: 0, fontFamily: 'var(--font-display)', color: '#1f3654', fontSize: 'clamp(1.7rem, 4vw, 2.6rem)' }}>
+        <h2 style={{ margin: 0, fontFamily: 'var(--font-display)', color: '#1f3654', fontSize: 'clamp(1.7rem, 4vw, 2.6rem)' }}>
           {title}
-        </h1>
+        </h2>
         <p style={{ maxWidth: 680, margin: '12px 0 0', color: '#52667f', lineHeight: 1.55 }}>
           Статистика, отдельные страницы карт и инструменты Манакоста доступны подписчикам. Главная и страница конкурсов остаются открытыми для всех.
         </p>
