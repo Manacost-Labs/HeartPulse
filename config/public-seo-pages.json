@@ -66,8 +66,8 @@
     "/standard/cards": {
       "policyRouteId": "standard-cards",
       "navigationRouteId": "standard-cards",
-      "title": "Карты Hearthstone {year}: Стандарт и Вольный | Manacost Stats",
-      "description": "Открытая библиотека карт Hearthstone с фильтрами по классу, дополнению, мане и механикам. Статистика Легенды доступна с тарифом «Алмаз».",
+      "title": "Карты Hearthstone {year}: Стандарт и Вольный | HearthPulse",
+      "description": "Библиотека карт Hearthstone для Стандарта и Вольного формата: фильтры, изображения и отдельная индексируемая страница каждой карты.",
       "sitemap": true
     },
     "/classes": {
@@ -154,44 +154,44 @@
     "/heroes": {
       "policyRouteId": "bg-heroes",
       "navigationRouteId": "bg-heroes",
-      "title": "Герои Полей Сражений Hearthstone | HS-Arena",
-      "description": "Тир-лист героев Hearthstone Battlegrounds с отдельными страницами героев, силами героя, компаньонами и статистикой.",
+      "title": "Герои БГ Hearthstone: тир-лист и силы | HearthPulse",
+      "description": "Герои Hearthstone Battlegrounds: тир-лист, силы, компаньоны, статистика и отдельная индексируемая страница каждого героя.",
       "sitemap": true
     },
     "/library": {
       "policyRouteId": "bg-library",
       "navigationRouteId": "bg-library",
-      "title": "Библиотека Полей Сражений Hearthstone | HS-Arena",
-      "description": "Библиотека существ и заклинаний Hearthstone Battlegrounds: актуальный пул, архив, фильтры, статистика и отдельные страницы карт.",
+      "title": "Библиотека БГ Hearthstone: все карты | HearthPulse",
+      "description": "Библиотека карт Hearthstone Battlegrounds: существа, заклинания, актуальный пул, архив, фильтры и отдельная индексируемая страница каждой карты.",
       "sitemap": true
     },
     "/library/minions": {
       "policyRouteId": "bg-library-kind",
-      "title": "Существа Полей Сражений Hearthstone | HS-Arena",
-      "description": "Актуальные существа Hearthstone Battlegrounds: фильтры по таверне, типу существ, механикам, статистика и отдельные страницы карт.",
+      "title": "Существа БГ Hearthstone: полная библиотека | HearthPulse",
+      "description": "Существа Hearthstone Battlegrounds: уровни таверны, типы, механики, статистика и отдельная индексируемая страница каждой карты.",
       "sitemap": true
     },
     "/library/spells": {
       "policyRouteId": "bg-library-kind",
-      "title": "Заклинания Полей Сражений Hearthstone | HS-Arena",
-      "description": "Актуальные заклинания Hearthstone Battlegrounds: фильтры, изображения карт, статистика и отдельные страницы.",
+      "title": "Заклинания БГ Hearthstone: библиотека | HearthPulse",
+      "description": "Заклинания Hearthstone Battlegrounds: актуальный пул, изображения, фильтры, статистика и отдельная индексируемая страница каждой карты.",
       "sitemap": true
     },
     "/library/archive": {
       "policyRouteId": "bg-library-archive-root",
-      "title": "Архив карт Полей Сражений Hearthstone | HS-Arena",
+      "title": "Архив карт БГ Hearthstone | HearthPulse",
       "description": "Архивные существа и заклинания Hearthstone Battlegrounds с отдельными страницами карт.",
       "sitemap": true
     },
     "/library/archive/minions": {
       "policyRouteId": "bg-library-archive",
-      "title": "Архив существ Полей Сражений Hearthstone | HS-Arena",
+      "title": "Архив существ БГ Hearthstone | HearthPulse",
       "description": "Архив существ Hearthstone Battlegrounds: старые существа вне активного пула с карточками и поиском.",
       "sitemap": true
     },
     "/library/archive/spells": {
       "policyRouteId": "bg-library-archive",
-      "title": "Архив заклинаний Полей Сражений Hearthstone | HS-Arena",
+      "title": "Архив заклинаний БГ Hearthstone | HearthPulse",
       "description": "Архив заклинаний Hearthstone Battlegrounds: старые заклинания таверны вне активного пула.",
       "sitemap": true
     },

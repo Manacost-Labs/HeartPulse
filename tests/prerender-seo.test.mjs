@@ -202,12 +202,19 @@ try {
   assert.match(arenaTierList, /<h1>Тир-лист карт Арены Hearthstone<\/h1>/);
   assert.match(arenaTierList, /как читать оценки/i);
   assert.match(arenaTierList, /href="\/classes"[^>]*>Винрейты классов Арены<\/a>/i);
+  assert.match(arenaTierList, /href="\/standard\/cards"[^>]*>Библиотека карт Hearthstone<\/a>/i);
 
   const battlegroundsTierList = readOutput(outputPath('/battlegrounds/tier-list'));
   assert.match(battlegroundsTierList, /<h1>Тир-лист БГ Hearthstone<\/h1>/);
   assert.match(battlegroundsTierList, /тир-лист стратегий БГ/i);
   assert.match(battlegroundsTierList, /href="\/battlegrounds\/strategies"[^>]*>Конструктор стратегий БГ<\/a>/i);
   assert.match(battlegroundsTierList, /"@type":"ItemList"/);
+  assert.match(battlegroundsTierList, /href="\/library\/minions"[^>]*>Существа БГ<\/a>/i);
+  assert.match(battlegroundsTierList, /href="\/library\/spells"[^>]*>Заклинания БГ<\/a>/i);
+
+  const battlegroundsLibrary = readOutput(outputPath('/library'));
+  assert.match(battlegroundsLibrary, /для каждой карты доступна отдельная индексируемая страница/i);
+  assert.match(battlegroundsLibrary, /href="\/battlegrounds\/tier-list"[^>]*>Тир-лист БГ<\/a>/i);
 
   const battlegroundsStrategies = readOutput(outputPath('/battlegrounds/strategies'));
   assert.match(battlegroundsStrategies, /<h1>Конструктор стратегий БГ Hearthstone<\/h1>/);

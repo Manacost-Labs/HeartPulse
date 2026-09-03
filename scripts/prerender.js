@@ -367,7 +367,7 @@ const PAGES = {
       <p>Классы: Рыцарь смерти, Охотник на демонов, Друид, Охотник, Маг, Паладин, Жрец, Разбойник, Шаман, Чернокнижник, Воин, Нейтральные.</p>
       <p>Тиры: S — Отлично, A — Хорошо, B — Выше среднего, C — Средне, D — Ниже среднего, E — Плохо, F — Ужасно.</p>
       <p>Данные обновляются автоматически с HearthArena и HSReplay.</p>
-      <p><a href="/classes">Винрейты классов Арены</a> | <a href="/legendaries">Легендарные карты Арены</a> | <a href="/">Статистика Арены Hearthstone</a></p>`
+      <p><a href="/classes">Винрейты классов Арены</a> | <a href="/legendaries">Легендарные карты Арены</a> | <a href="/standard/cards">Библиотека карт Hearthstone</a></p>`
   },
   '/legendaries': {
     ogType: 'website',
@@ -663,7 +663,8 @@ const PAGES = {
     noscript: `
       <h1>Библиотека Полей Сражений</h1>
       <p>Актуальный пул и архив существ и заклинаний Hearthstone Battlegrounds.</p>
-      <p><a href="/library/minions">Существа</a> | <a href="/library/spells">Заклинания</a> | <a href="/library/archive">Архив</a></p>`
+      <p>Для каждой карты доступна отдельная индексируемая страница с характеристиками, изображением и описанием.</p>
+      <p><a href="/library/minions">Существа</a> | <a href="/library/spells">Заклинания</a> | <a href="/library/archive">Архив</a> | <a href="/battlegrounds/tier-list">Тир-лист БГ</a></p>`
   },
   '/library/minions': {
     ogType: 'website',
@@ -793,7 +794,7 @@ const PAGES = {
       <h1>Тир-лист БГ Hearthstone</h1>
       <p>Актуальные рейтинги для Полей сражений Hearthstone: существа, стратегии, заклинания и аксессуары с фильтрами и просмотром карт.</p>
       <p>Откройте вкладку «Стратегии», чтобы посмотреть тир-лист стратегий БГ, или переключитесь на другие категории. Источник и время обновления указаны рядом с данными.</p>
-      <p><a href="/battlegrounds/strategies">Конструктор стратегий БГ</a> | <a href="/library">Библиотека Полей сражений</a> | <a href="/heroes">Герои БГ</a></p>`
+      <p><a href="/battlegrounds/strategies">Конструктор стратегий БГ</a> | <a href="/library/minions">Существа БГ</a> | <a href="/library/spells">Заклинания БГ</a> | <a href="/heroes">Герои БГ</a></p>`
   },
   '/battlegrounds/tier-builder': {
     ogType: 'website',
