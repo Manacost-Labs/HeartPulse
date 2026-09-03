@@ -62,6 +62,13 @@ export type EntitySitemapRouterDependencies = {
 
 const MAX_SITEMAP_ENTRIES = 50_000;
 const MAX_SITEMAP_BYTES = 50 * 1024 * 1024;
+const ENTITY_SITEMAP_PATHS = [
+  '/sitemaps/standard-cards.xml',
+  '/sitemaps/wild-cards.xml',
+  '/sitemaps/battleground-minions.xml',
+  '/sitemaps/battleground-spells.xml',
+  '/sitemaps/battleground-heroes.xml',
+] as const;
 
 function canonicalOrigin(value: string | undefined): string {
   try {
@@ -285,18 +292,12 @@ function sendDocument(request: Request, response: Response, document: CachedDocu
   return response.end(document.xml);
 }
 
-export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDependencies): Router {
-  const router = Router({ caseSensitive: true, strict: true });
-  const origin = canonicalOrigin(dependencies.canonicalOrigin);
-  const now = dependencies.now ?? Date.now;
-  const cacheTtlMs = Math.max(5 * 60_000, Math.min(15 * 60_000, dependencies.cacheTtlMs ?? 10 * 60_000));
-  const maxAgeSeconds = Math.floor(cacheTtlMs / 1_000);
-  const retryAfterSeconds = Math.max(1, Math.floor(dependencies.retryAfterSeconds ?? 300));
-  if (!Array.isArray(dependencies.staticUrls) || dependencies.staticUrls.length === 0) {
+function assertValidStaticSitemapUrls(locations: string[], origin: string): void {
+  if (!Array.isArray(locations) || locations.length === 0) {
     throw new Error('Static sitemap must contain at least one URL');
   }
-  const staticLocations = new Set<string>();
-  for (const location of dependencies.staticUrls) {
+  const uniqueLocations = new Set<string>();
+  for (const location of locations) {
     let parsed: URL;
     try {
       parsed = new URL(location);
@@ -306,11 +307,17 @@ export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDepen
     if (parsed.origin !== origin || parsed.search || parsed.hash
       || (parsed.pathname !== '/' && !parsed.pathname.endsWith('/'))
       || /^\/(?:admin|404|api|health|metrics|_internal|r|decks|jobs)(?:\/|$)/.test(parsed.pathname)
-      || staticLocations.has(parsed.href)) {
+      || uniqueLocations.has(parsed.href)) {
       throw new Error('Static sitemap contains an invalid, private, noindex or duplicate URL');
     }
-    staticLocations.add(parsed.href);
+    uniqueLocations.add(parsed.href);
   }
+}
+
+function dynamicSitemapDefinitions(
+  dependencies: EntitySitemapRouterDependencies,
+  origin: string,
+): DynamicSitemapDefinition[] {
   const definitions: DynamicSitemapDefinition[] = [{
     segment: 'standard-cards',
     pathname: '/sitemaps/standard-cards.xml',
@@ -320,33 +327,86 @@ export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDepen
     filename: dependencies.stateFilename,
   }];
   if (dependencies.loadWildCards) definitions.push({
-    segment: 'wild-cards',
-    pathname: '/sitemaps/wild-cards.xml',
-    load: dependencies.loadWildCards,
+    segment: 'wild-cards', pathname: '/sitemaps/wild-cards.xml', load: dependencies.loadWildCards,
     project: rows => projectConstructedCardSitemapCatalog(rows, 'wild', origin),
     minimumEntryCount: dependencies.minimumWildCardCount ?? 500,
   });
   if (dependencies.loadBattlegroundMinions) definitions.push({
-    segment: 'battleground-minions',
-    pathname: '/sitemaps/battleground-minions.xml',
+    segment: 'battleground-minions', pathname: '/sitemaps/battleground-minions.xml',
     load: dependencies.loadBattlegroundMinions,
     project: rows => projectBattlegroundLibrarySitemapCatalog(rows, 'minion', origin),
     minimumEntryCount: dependencies.minimumBattlegroundMinionCount ?? 500,
   });
   if (dependencies.loadBattlegroundSpells) definitions.push({
-    segment: 'battleground-spells',
-    pathname: '/sitemaps/battleground-spells.xml',
+    segment: 'battleground-spells', pathname: '/sitemaps/battleground-spells.xml',
     load: dependencies.loadBattlegroundSpells,
     project: rows => projectBattlegroundLibrarySitemapCatalog(rows, 'spell', origin),
     minimumEntryCount: dependencies.minimumBattlegroundSpellCount ?? 50,
   });
   if (dependencies.loadBattlegroundHeroes) definitions.push({
-    segment: 'battleground-heroes',
-    pathname: '/sitemaps/battleground-heroes.xml',
+    segment: 'battleground-heroes', pathname: '/sitemaps/battleground-heroes.xml',
     load: dependencies.loadBattlegroundHeroes,
     project: projectBattlegroundHeroSitemapCatalog,
     minimumEntryCount: dependencies.minimumBattlegroundHeroCount ?? 80,
   });
+  return definitions;
+}
+
+function createDynamicDocumentLoader(
+  definition: DynamicSitemapDefinition,
+  dependencies: EntitySitemapRouterDependencies,
+  origin: string,
+  now: () => number,
+  cacheTtlMs: number,
+): () => Promise<CachedDocument> {
+  const store = new SemanticSitemapStore({
+    directory: dependencies.stateDirectory,
+    filename: definition.filename,
+    segment: definition.segment,
+    canonicalOrigin: origin,
+    now,
+    minimumEntryCount: definition.minimumEntryCount,
+  });
+  let cache: CachedDocument | null = null;
+  let inflight: Promise<CachedDocument> | null = null;
+  return async () => {
+    const current = now();
+    if (cache && cache.expiresAt > current) return cache;
+    if (inflight) return inflight;
+    const job = (async () => {
+      try {
+        cache = dynamicDocument(store.publish(
+          definition.project(await definition.load(), origin),
+        ), 'catalog', now() + cacheTtlMs);
+        return cache;
+      } catch (error) {
+        try {
+          dependencies.onError?.(new Error(`${definition.segment} sitemap refresh failed`, { cause: error }));
+        } catch {
+          // Diagnostics must never alter the public contract.
+        }
+        const lastKnownGood = store.readLastKnownGood();
+        if (!lastKnownGood) throw error;
+        cache = dynamicDocument(lastKnownGood, 'last-known-good', now() + cacheTtlMs);
+        return cache;
+      }
+    })().finally(() => {
+      if (inflight === job) inflight = null;
+    });
+    inflight = job;
+    return job;
+  };
+}
+
+export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDependencies): Router {
+  const router = Router({ caseSensitive: true, strict: true });
+  const origin = canonicalOrigin(dependencies.canonicalOrigin);
+  const now = dependencies.now ?? Date.now;
+  const cacheTtlMs = Math.max(5 * 60_000, Math.min(15 * 60_000, dependencies.cacheTtlMs ?? 10 * 60_000));
+  const maxAgeSeconds = Math.floor(cacheTtlMs / 1_000);
+  const retryAfterSeconds = Math.max(1, Math.floor(dependencies.retryAfterSeconds ?? 300));
+  assertValidStaticSitemapUrls(dependencies.staticUrls, origin);
+  const definitions = dynamicSitemapDefinitions(dependencies, origin);
   const indexDocument = documentFromXml(renderSitemapIndex([
     `${origin}/sitemaps/static.xml`,
     ...definitions.map(definition => `${origin}${definition.pathname}`),
@@ -362,56 +422,22 @@ export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDepen
   );
   router.get('/sitemap.xml', fixedHandler(indexDocument));
   router.get('/sitemaps/static.xml', fixedHandler(staticDocument));
-  for (const definition of definitions) {
-    const store = new SemanticSitemapStore({
-      directory: dependencies.stateDirectory,
-      filename: definition.filename,
-      segment: definition.segment,
-      canonicalOrigin: origin,
-      now,
-      minimumEntryCount: definition.minimumEntryCount,
-    });
-    let cache: CachedDocument | null = null;
-    let inflight: Promise<CachedDocument> | null = null;
-    const loadDocument = async (): Promise<CachedDocument> => {
-      const current = now();
-      if (cache && cache.expiresAt > current) return cache;
-      if (inflight) return inflight;
-      const job = (async () => {
-        try {
-          const candidate = definition.project(await definition.load(), origin);
-          const document = dynamicDocument(store.publish(candidate), 'catalog', now() + cacheTtlMs);
-          cache = document;
-          return document;
-        } catch (error) {
-          try {
-            dependencies.onError?.(new Error(`${definition.segment} sitemap refresh failed`, { cause: error }));
-          } catch {
-            // Diagnostics must never alter the public contract.
-          }
-          const lastKnownGood = store.readLastKnownGood();
-          if (!lastKnownGood) throw error;
-          const document = dynamicDocument(lastKnownGood, 'last-known-good', now() + cacheTtlMs);
-          cache = document;
-          return document;
-        }
-      })().finally(() => {
-        if (inflight === job) inflight = null;
-      });
-      inflight = job;
-      return job;
-    };
-    router.get(definition.pathname, async (request, response) => {
-      try {
-        return sendDocument(request, response, await loadDocument(), maxAgeSeconds);
-      } catch {
-        response.set('Content-Type', 'text/plain; charset=utf-8');
-        response.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-        response.set('Retry-After', String(retryAfterSeconds));
-        return response.status(503).send('Sitemap temporarily unavailable');
-      }
-    });
-  }
+  const dynamicLoaders = new Map(definitions.map(definition => [
+    definition.pathname,
+    createDynamicDocumentLoader(definition, dependencies, origin, now, cacheTtlMs),
+  ]));
+  router.get(ENTITY_SITEMAP_PATHS, async (request, response, next) => {
+    const loadDocument = dynamicLoaders.get(request.path as DynamicSitemapDefinition['pathname']);
+    if (!loadDocument) return next();
+    try {
+      return sendDocument(request, response, await loadDocument(), maxAgeSeconds);
+    } catch {
+      response.set('Content-Type', 'text/plain; charset=utf-8');
+      response.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      response.set('Retry-After', String(retryAfterSeconds));
+      return response.status(503).send('Sitemap temporarily unavailable');
+    }
+  });
   router.all(/^\/sitemaps\/.*$/, (_request, response) => {
     response.set('Content-Type', 'text/plain; charset=utf-8');
     response.set('Cache-Control', 'no-cache, no-store, must-revalidate');

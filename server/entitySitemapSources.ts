@@ -7,6 +7,10 @@ type SourceOptions = {
   timeoutMs?: number;
 };
 
+type ConstructedCardLoader = (
+  format: 'standard' | 'wild',
+) => Promise<{ cards: unknown[] }>;
+
 const BATTLEGROUNDS_ORIGIN = 'http://127.0.0.1:3108';
 
 function record(value: unknown): JsonRecord {
@@ -81,4 +85,34 @@ export function excludeStandardCardsFromWildCatalog(
     const cardId = record(card).card_id;
     return typeof cardId !== 'string' || !standardIds.has(cardId);
   });
+}
+
+export function createEntitySitemapLoaders(loadConstructedCards: ConstructedCardLoader) {
+  return {
+    loadStandardCards: () => loadConstructedCards('standard').then(collection => collection.cards),
+    loadWildCards: async () => {
+      const [standard, wild] = await Promise.all([
+        loadConstructedCards('standard'),
+        loadConstructedCards('wild'),
+      ]);
+      return excludeStandardCardsFromWildCatalog(standard.cards, wild.cards);
+    },
+    loadBattlegroundMinions: () => loadBattlegroundLibrarySitemapRows('minion'),
+    loadBattlegroundSpells: () => loadBattlegroundLibrarySitemapRows('spell'),
+    loadBattlegroundHeroes: () => loadBattlegroundHeroSitemapRows(),
+  };
+}
+
+export function createEntitySitemapRuntimeOptions(
+  loadConstructedCards: ConstructedCardLoader,
+  environment: Record<string, string | undefined>,
+) {
+  return {
+    ...createEntitySitemapLoaders(loadConstructedCards),
+    minimumStandardCardCount: Number(environment.SITEMAP_STANDARD_MIN_CARDS || 500),
+    minimumWildCardCount: Number(environment.SITEMAP_WILD_MIN_CARDS || 500),
+    minimumBattlegroundMinionCount: Number(environment.SITEMAP_BG_MIN_MINIONS || 500),
+    minimumBattlegroundSpellCount: Number(environment.SITEMAP_BG_MIN_SPELLS || 50),
+    minimumBattlegroundHeroCount: Number(environment.SITEMAP_BG_MIN_HEROES || 80),
+  };
 }

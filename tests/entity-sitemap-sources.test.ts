@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import {
+  createEntitySitemapLoaders,
+  createEntitySitemapRuntimeOptions,
   excludeStandardCardsFromWildCatalog,
   loadBattlegroundHeroSitemapRows,
   loadBattlegroundLibrarySitemapRows,
@@ -53,6 +55,26 @@ assert.deepEqual(
   excludeStandardCardsFromWildCatalog(standard, wild).map((row: any) => row.card_id),
   ['WILD_ONLY_1', 'WILD_ONLY_2'],
 );
+
+const constructedCalls: string[] = [];
+const loaders = createEntitySitemapLoaders(async format => {
+  constructedCalls.push(format);
+  return { cards: format === 'standard' ? standard : wild };
+});
+assert.deepEqual(await loaders.loadStandardCards(), standard);
+assert.deepEqual(
+  (await loaders.loadWildCards()).map((row: any) => row.card_id),
+  ['WILD_ONLY_1', 'WILD_ONLY_2'],
+);
+assert.deepEqual(constructedCalls, ['standard', 'standard', 'wild']);
+
+const runtimeOptions = createEntitySitemapRuntimeOptions(async () => ({ cards: [] }), {
+  SITEMAP_WILD_MIN_CARDS: '700',
+  SITEMAP_BG_MIN_HEROES: '90',
+});
+assert.equal(runtimeOptions.minimumStandardCardCount, 500);
+assert.equal(runtimeOptions.minimumWildCardCount, 700);
+assert.equal(runtimeOptions.minimumBattlegroundHeroCount, 90);
 
 await assert.rejects(
   () => loadBattlegroundLibrarySitemapRows('spell', { fetchImpl, timeoutMs: 100 }),

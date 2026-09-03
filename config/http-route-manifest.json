@@ -3,7 +3,7 @@
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
     "sourceFiles": 68,
-    "routeRegistrations": 205,
+    "routeRegistrations": 209,
     "middlewareRegistrations": 107,
     "explicitGuardRouteRegistrations": 56,
     "unresolvedPaths": 0
@@ -1800,7 +1800,60 @@
       "handler": "<inline-handler>",
       "guardSignals": [],
       "source": "server/entitySitemapRoutes.ts",
-      "sourceOrder": 2
+      "sourceOrder": 2,
+      "expansionOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/sitemaps/wild-cards.xml",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/entitySitemapRoutes.ts",
+      "sourceOrder": 2,
+      "expansionOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/sitemaps/battleground-minions.xml",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/entitySitemapRoutes.ts",
+      "sourceOrder": 2,
+      "expansionOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/sitemaps/battleground-spells.xml",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/entitySitemapRoutes.ts",
+      "sourceOrder": 2,
+      "expansionOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/sitemaps/battleground-heroes.xml",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/entitySitemapRoutes.ts",
+      "sourceOrder": 2,
+      "expansionOrder": 4
     },
     {
       "kind": "route",

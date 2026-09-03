@@ -72,11 +72,7 @@ import {
 import { createBattlegroundHeroSeoRouter } from './battlegroundSeoRoutes.js';
 import { createBattlegroundLibrarySeoRouter } from './battlegroundLibrarySeoRoutes.js';
 import { createEntitySitemapRouter, loadStaticSitemapArtifact } from './entitySitemapRoutes.js';
-import {
-  excludeStandardCardsFromWildCatalog,
-  loadBattlegroundHeroSitemapRows,
-  loadBattlegroundLibrarySitemapRows,
-} from './entitySitemapSources.js';
+import { createEntitySitemapRuntimeOptions } from './entitySitemapSources.js';
 import {
   createStandardMetaRouter,
   type StandardMetaFormat,
@@ -7722,26 +7718,11 @@ const staticSitemapArtifact = loadStaticSitemapArtifact(staticSitemapCandidates,
 });
 if (staticSitemapArtifact) {
   app.use(createEntitySitemapRouter({
-    loadStandardCards: () => constructedCardDataService.loadCards('standard').then(collection => collection.cards),
-    loadWildCards: async () => {
-      const [standard, wild] = await Promise.all([
-        constructedCardDataService.loadCards('standard'),
-        constructedCardDataService.loadCards('wild'),
-      ]);
-      return excludeStandardCardsFromWildCatalog(standard.cards, wild.cards);
-    },
-    loadBattlegroundMinions: () => loadBattlegroundLibrarySitemapRows('minion'),
-    loadBattlegroundSpells: () => loadBattlegroundLibrarySitemapRows('spell'),
-    loadBattlegroundHeroes: () => loadBattlegroundHeroSitemapRows(),
+    ...createEntitySitemapRuntimeOptions(constructedCardDataService.loadCards, process.env),
     staticUrls: staticSitemapArtifact.urls,
     staticLastModifiedMs: staticSitemapArtifact.modifiedAt,
     stateDirectory: DATA_DIR,
     cacheTtlMs: Number(process.env.SITEMAP_CACHE_TTL_MS || 10 * 60_000),
-    minimumStandardCardCount: Number(process.env.SITEMAP_STANDARD_MIN_CARDS || 500),
-    minimumWildCardCount: Number(process.env.SITEMAP_WILD_MIN_CARDS || 500),
-    minimumBattlegroundMinionCount: Number(process.env.SITEMAP_BG_MIN_MINIONS || 500),
-    minimumBattlegroundSpellCount: Number(process.env.SITEMAP_BG_MIN_SPELLS || 50),
-    minimumBattlegroundHeroCount: Number(process.env.SITEMAP_BG_MIN_HEROES || 80),
     onError: error => console.error(
       '[entity-sitemap] catalog refresh failed:',
       error instanceof Error ? error.message : error,
