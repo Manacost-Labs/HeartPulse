@@ -197,8 +197,8 @@ function renderDocument(options: {
     ? extractConstructedCardFrontendAssets(options.frontendAssets ?? '')
     : '';
   const social = canonical && image ? `
-    <meta property="og:type" content="article">
-    <meta property="og:site_name" content="Manacost Stats">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="HearthPulse">
     <meta property="og:locale" content="ru_RU">
     <meta property="og:title" content="${title}">
     <meta property="og:description" content="${description}">
@@ -237,6 +237,7 @@ function renderDocument(options: {
       .bg-hero-seo__image,.bg-hero-seo__power-image{display:block;width:100%;height:auto;max-height:520px;object-fit:contain}.bg-hero-seo h1{font-size:clamp(2rem,5vw,3.5rem);line-height:1.05;margin:.35em 0}
       .bg-hero-seo dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.bg-hero-seo dl div{padding:10px;background:#f3e0b9;border:1px solid #b68a4f}
       .bg-hero-seo dt{font-size:.8rem;color:#69482e}.bg-hero-seo dd{margin:2px 0 0;font-weight:700}.bg-hero-seo__power{margin-top:24px;padding:18px;border:1px solid #b68a4f;background:#f7e9c9}
+      .bg-hero-seo__links{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}.bg-hero-seo__links a{padding:10px 12px;border:1px solid #b68a4f;background:#fffaf0}
       .bg-hero-seo__power-image{max-width:220px;max-height:300px}.bg-hero-seo__copy{font-size:1.05rem;line-height:1.6}
       @media(max-width:680px){.bg-hero-seo__hero{grid-template-columns:1fr}.bg-hero-seo__image{max-height:420px}.bg-hero-seo dl{grid-template-columns:1fr}}
     </style>
@@ -265,11 +266,23 @@ function renderHeroDocument(
   const canonical = `${origin}/heroes/${hero.dbfId}/`;
   const image = safeImageUrl(hero.image, origin);
   const heroPowerImage = hero.heroPower ? safeImageUrl(hero.heroPower.image, origin) : null;
-  const title = `${hero.name} — герой Полей сражений Hearthstone | Manacost Stats`;
+  const title = `${hero.name} — герой Полей сражений Hearthstone | HearthPulse`;
   const description = descriptionForHero(hero);
   const structuredData = {
     '@context': 'https://schema.org',
     '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': `${canonical}#webpage`,
+        url: canonical,
+        name: title,
+        description,
+        inLanguage: 'ru',
+        isPartOf: { '@type': 'WebSite', '@id': `${origin}/#website`, name: 'HearthPulse', url: `${origin}/` },
+        primaryImageOfPage: { '@type': 'ImageObject', contentUrl: image },
+        mainEntity: { '@id': `${canonical}#hero` },
+        breadcrumb: { '@id': `${canonical}#breadcrumb` },
+      },
       {
         '@type': 'CreativeWork',
         '@id': `${canonical}#hero`,
@@ -323,6 +336,11 @@ function renderHeroDocument(
           ${power}
         </div>
       </article>
+      <nav class="bg-hero-seo__links" aria-label="Связанные разделы">
+        <a href="/heroes/">Все герои БГ</a>
+        <a href="/battlegrounds/tier-list/">Тир-лист БГ</a>
+        <a href="/library/">Библиотека БГ</a>
+      </nav>
     </main>`;
   return renderDocument({
     title,

@@ -151,11 +151,12 @@ try {
   assert.equal(occurrences(html, /<h1(?:\s[^>]*)?>/gi), 1, 'hero detail must have one H1');
   assert.match(
     html,
-    /<title>А\. Ф\. Ка alert\(&quot;x&quot;\) — герой Полей сражений Hearthstone \| Manacost Stats<\/title>/,
+    /<title>А\. Ф\. Ка alert\(&quot;x&quot;\) — герой Полей сражений Hearthstone \| HearthPulse<\/title>/,
   );
   assert.match(html, /<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">/);
   assert.match(html, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/heroes\/57944\/">/);
-  assert.match(html, /<meta property="og:type" content="article">/);
+  assert.match(html, /<meta property="og:type" content="website">/);
+  assert.match(html, /<meta property="og:site_name" content="HearthPulse">/);
   assert.match(html, /<meta property="og:title"/);
   assert.match(html, /<meta property="og:description"/);
   assert.match(html, /<meta property="og:url" content="https:\/\/hearthpulse\.net\/heroes\/57944\/">/);
@@ -166,6 +167,8 @@ try {
   assert.match(html, /<img[^>]+src="https:\/\/hearthpulse\.net\/images\/heroes\/TB_BaconShop_HERO_16\.png"/);
   assert.match(html, /<dt>DBF ID<\/dt><dd><code>57944<\/code><\/dd>/);
   assert.match(html, /<dt>ID карты<\/dt><dd><code>TB_BaconShop_HERO_16<\/code><\/dd>/);
+  assert.match(html, /href="\/battlegrounds\/tier-list\/">Тир-лист БГ<\/a>/);
+  assert.match(html, /href="\/library\/">Библиотека БГ<\/a>/);
   assert.match(html, /<h2>Сила героя<\/h2>/);
   assert.match(html, /Прокрастинация &amp; польза/);
   assert.match(html, /Пропустите первые два хода\. Начните с существа 3-го уровня\./,
@@ -178,10 +181,11 @@ try {
   const jsonLdMatch = html.match(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/);
   assert.ok(jsonLdMatch, 'existing hero must expose entity JSON-LD');
   const jsonLd = JSON.parse(jsonLdMatch[1]);
-  assert.deepEqual(jsonLd['@graph'].map((node: any) => node['@type']), ['CreativeWork', 'BreadcrumbList']);
-  assert.equal(jsonLd['@graph'][0].identifier, 57944);
-  assert.equal(jsonLd['@graph'][0].alternateName, 'TB_BaconShop_HERO_16');
-  assert.equal(jsonLd['@graph'][0].about.name, 'Прокрастинация & польза');
+  assert.deepEqual(jsonLd['@graph'].map((node: any) => node['@type']), ['WebPage', 'CreativeWork', 'BreadcrumbList']);
+  assert.equal(jsonLd['@graph'][0].mainEntity['@id'], 'https://hearthpulse.net/heroes/57944/#hero');
+  assert.equal(jsonLd['@graph'][1].identifier, 57944);
+  assert.equal(jsonLd['@graph'][1].alternateName, 'TB_BaconShop_HERO_16');
+  assert.equal(jsonLd['@graph'][1].about.name, 'Прокрастинация & польза');
   assertNoPrivateData(html, 'existing hero');
   assert.equal(calls[0]?.url, 'http://127.0.0.1:3108/api/bg/heroes');
   const upstreamHeaders = new Headers(calls[0]?.init?.headers);

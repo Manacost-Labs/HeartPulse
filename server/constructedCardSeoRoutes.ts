@@ -442,8 +442,8 @@ function baseDocument(options: {
       .replace(/\u2028/g, '\\u2028')
       .replace(/\u2029/g, '\\u2029')}</script>`;
   const social = canonical && image ? `
-    <meta property="og:type" content="article">
-    <meta property="og:site_name" content="Manacost Stats">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="HearthPulse">
     <meta property="og:locale" content="ru_RU">
     <meta property="og:title" content="${title}">
     <meta property="og:description" content="${description}">
@@ -477,6 +477,7 @@ function baseDocument(options: {
       .card-seo__image{display:block;width:100%;height:auto;max-height:520px;object-fit:contain}.card-seo h1{font-size:clamp(2rem,5vw,3.5rem);line-height:1.05;margin:.35em 0}
       .card-seo dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.card-seo dl div{padding:10px;background:#f3e0b9;border:1px solid #b68a4f}
       .card-seo dt{font-size:.8rem;color:#69482e}.card-seo dd{margin:2px 0 0;font-weight:700}.card-seo__copy{font-size:1.05rem;line-height:1.6}
+      .card-seo__links{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}.card-seo__links a{padding:10px 12px;border:1px solid #b68a4f;background:#fffaf0}
       .card-seo__related{margin-top:40px}.card-seo__related>h2,.card-seo__art-gallery>h3{font-size:1.55rem}
       .card-seo__related-groups{display:grid;gap:18px}.card-seo__related-group{border:1px solid #b68a4f;background:#fffaf0}
       .card-seo__related-group>header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 16px;background:#f3e0b9}
@@ -508,7 +509,7 @@ export function renderConstructedCardSeoDocument(options: {
   const origin = canonicalOrigin(options.canonicalOrigin);
   const canonical = `${origin}/standard/cards/${options.format}/${card.id}/`;
   const image = safeImageUrl(card.image, origin);
-  const title = `${card.name} — карта Hearthstone (${FORMAT_LABELS[options.format]}, ${card.id}) | Manacost Stats`;
+  const title = `${card.name} — карта Hearthstone (${FORMAT_LABELS[options.format]}, ${card.id}) | HearthPulse`;
   const description = descriptionForCard(card, options.format);
   const additionalProperty = [
     ['Формат', FORMAT_LABELS[options.format]],
@@ -526,6 +527,18 @@ export function renderConstructedCardSeoDocument(options: {
   const structuredData = {
     '@context': 'https://schema.org',
     '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': `${canonical}#webpage`,
+        url: canonical,
+        name: title,
+        description,
+        inLanguage: 'ru',
+        isPartOf: { '@type': 'WebSite', '@id': `${origin}/#website`, name: 'HearthPulse', url: `${origin}/` },
+        primaryImageOfPage: { '@type': 'ImageObject', contentUrl: image },
+        mainEntity: { '@id': `${canonical}#card` },
+        breadcrumb: { '@id': `${canonical}#breadcrumb` },
+      },
       {
         '@type': 'CreativeWork',
         '@id': `${canonical}#card`,
@@ -563,6 +576,11 @@ export function renderConstructedCardSeoDocument(options: {
           ${card.flavorText ? `<section class="card-seo__copy"><h2>Художественный текст</h2><p>${escapeHtml(card.flavorText)}</p></section>` : ''}
         </div>
       </article>
+      <nav class="card-seo__links" aria-label="Связанные разделы">
+        <a href="/standard/cards/${options.format}/">Библиотека карт</a>
+        <a href="/tierlist/">Тир-лист карт Арены</a>
+        <a href="/standard/meta/">Мета Hearthstone</a>
+      </nav>
       ${renderRelatedCards(options.card, origin)}
     </main>`;
   return baseDocument({

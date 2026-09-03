@@ -276,8 +276,8 @@ function renderDocument(options: {
     ? extractConstructedCardFrontendAssets(options.frontendAssets ?? '')
     : '';
   const social = canonical && image ? `
-    <meta property="og:type" content="article">
-    <meta property="og:site_name" content="Manacost Stats">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="HearthPulse">
     <meta property="og:locale" content="ru_RU">
     <meta property="og:title" content="${title}">
     <meta property="og:description" content="${description}">
@@ -315,6 +315,7 @@ function renderDocument(options: {
       .bg-library-seo__english{margin-top:0;color:#6a5140}.bg-library-seo dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
       .bg-library-seo dl div,.bg-library-seo__panel{padding:12px;background:#f3e0b9;border:1px solid #b68a4f}.bg-library-seo dt{font-size:.8rem;color:#69482e}.bg-library-seo dd{margin:2px 0 0;font-weight:700}
       .bg-library-seo__panel{margin-top:18px}.bg-library-seo__copy{font-size:1.05rem;line-height:1.6}.bg-library-seo__mechanics{display:flex;flex-wrap:wrap;gap:8px;padding:0;list-style:none}
+      .bg-library-seo__links{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}.bg-library-seo__links a{padding:10px 12px;border:1px solid #b68a4f;background:#fffaf0}
       .bg-library-seo__mechanics li{padding:7px 10px;border:1px solid #9d713c;background:#fff1cc}.bg-library-seo__gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-top:28px}
       .bg-library-seo__gallery figure{margin:0;padding:12px;border:1px solid #b68a4f;background:#f7e9c9}.bg-library-seo__gallery img{display:block;width:100%;height:280px;object-fit:contain}.bg-library-seo__gallery figcaption{text-align:center}
       @media(max-width:680px){.bg-library-seo__layout{grid-template-columns:1fr}.bg-library-seo__image{max-height:420px}.bg-library-seo dl{grid-template-columns:1fr}.bg-library-seo__gallery img{height:240px}}
@@ -352,11 +353,23 @@ function renderCardDocument(
   const path = `/library/${kindPath(card.kind)}/${canonicalBattlegroundCardSlug(card.nameRu)}-${card.dbfId}`;
   const canonical = new URL(`${path}/`, origin).href;
   const image = safePrimaryImageUrl(card.images.card ?? card.images.framed, origin);
-  const title = `${card.nameRu} — ${kindTitle(card.kind)} Полей сражений Hearthstone | Manacost Stats`;
+  const title = `${card.nameRu} — ${kindTitle(card.kind)} Полей сражений Hearthstone | HearthPulse`;
   const description = descriptionForCard(card);
   const structuredData = {
     '@context': 'https://schema.org',
     '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': `${canonical}#webpage`,
+        url: canonical,
+        name: title,
+        description,
+        inLanguage: 'ru',
+        isPartOf: { '@type': 'WebSite', '@id': `${origin}/#website`, name: 'HearthPulse', url: `${origin}/` },
+        primaryImageOfPage: { '@type': 'ImageObject', contentUrl: image },
+        mainEntity: { '@id': `${canonical}#card` },
+        breadcrumb: { '@id': `${canonical}#breadcrumb` },
+      },
       {
         '@type': 'CreativeWork',
         '@id': `${canonical}#card`,
@@ -421,6 +434,11 @@ function renderCardDocument(
         </div>
       </article>
       ${galleryHtml}
+      <nav class="bg-library-seo__links" aria-label="Связанные разделы">
+        <a href="/library/${kindPath(card.kind)}/">Библиотека ${card.kind === 'minion' ? 'существ' : 'заклинаний'}</a>
+        <a href="/battlegrounds/tier-list/">Тир-лист БГ</a>
+        <a href="/heroes/">Герои БГ</a>
+      </nav>
     </main>`;
   return renderDocument({
     title,

@@ -204,10 +204,12 @@ try {
   assert.equal(occurrences(html, /<meta name="description"/gi), 1, 'detail must have one description');
   assert.equal(occurrences(html, /<link rel="canonical"/gi), 1, 'detail must have one canonical');
   assert.equal(occurrences(html, /<h1(?:\s[^>]*)?>/gi), 1, 'detail must have one H1');
-  assert.match(html, /<title>Огненный &lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt; дракон — карта Hearthstone \(Стандарт, CARD_1\) \| Manacost Stats<\/title>/);
+  assert.match(html, /<title>Огненный &lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt; дракон — карта Hearthstone \(Стандарт, CARD_1\) \| HearthPulse<\/title>/);
   assert.match(html, /<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">/);
   assert.match(html, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/standard\/cards\/standard\/CARD_1\/">/);
   assert.match(html, /<meta property="og:title"/);
+  assert.match(html, /<meta property="og:type" content="website">/);
+  assert.match(html, /<meta property="og:site_name" content="HearthPulse">/);
   assert.match(html, /<meta property="og:description"/);
   assert.match(html, /<meta property="og:url" content="https:\/\/hearthpulse\.net\/standard\/cards\/standard\/CARD_1\/">/);
   assert.match(html, /<meta property="og:image" content="https:\/\/hearthpulse\.net\/api\/public-resource\/db\/uploads\/cards\/CARD_1\.png">/);
@@ -222,6 +224,8 @@ try {
   assert.match(html, /<dt>Атака<\/dt><dd>8<\/dd>/);
   assert.match(html, /<dt>Здоровье<\/dt><dd>9<\/dd>/);
   assert.match(html, /<dt>ID карты<\/dt><dd><code>CARD_1<\/code><\/dd>/);
+  assert.match(html, /href="\/tierlist\/">Тир-лист карт Арены<\/a>/);
+  assert.match(html, /href="\/standard\/meta\/">Мета Hearthstone<\/a>/);
   assert.match(html, /Наносит 5 урона &amp; оглушает противника\./,
     'rules text must be useful but stripped of upstream markup');
   assert.match(html, /Токены, награды и связанные карты · 3/,
@@ -258,9 +262,10 @@ try {
   assert.match(html, /data-server-entity-jsonld data-entity-path="\/standard\/cards\/standard\/CARD_1"/,
     'entity JSON-LD must be scoped so SPA navigation can remove stale data');
   const jsonLd = JSON.parse(jsonLdMatch[1]);
-  assert.deepEqual(jsonLd['@graph'].map((node: any) => node['@type']), ['CreativeWork', 'BreadcrumbList']);
-  assert.equal(jsonLd['@graph'][0].identifier, 'CARD_1');
-  assert.equal(jsonLd['@graph'][0].additionalProperty.find((item: any) => item.name === 'Формат')?.value, 'Стандарт');
+  assert.deepEqual(jsonLd['@graph'].map((node: any) => node['@type']), ['WebPage', 'CreativeWork', 'BreadcrumbList']);
+  assert.equal(jsonLd['@graph'][0].mainEntity['@id'], 'https://hearthpulse.net/standard/cards/standard/CARD_1/#card');
+  assert.equal(jsonLd['@graph'][1].identifier, 'CARD_1');
+  assert.equal(jsonLd['@graph'][1].additionalProperty.find((item: any) => item.name === 'Формат')?.value, 'Стандарт');
   assertNoPrivateData(html, 'existing detail');
   assert.deepEqual(calls, ['standard'], 'existence must be resolved by loadCards for the requested format');
   assert.deepEqual(detailCalls, ['standard:CARD_1'],
