@@ -14,6 +14,7 @@ import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import SubscriptionPurchaseButtons from '../components/SubscriptionPurchaseButtons';
 import PaywallGate from '../components/PaywallGate';
 import ProfileIdentityHero from '../components/ProfileIdentityHero';
+import ProfileDashboardOverview from '../components/ProfileDashboardOverview';
 import FAQSection from '../components/FAQSection';
 import TierlistEarlyStatsNotice from './TierlistEarlyStatsNotice';
 import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
@@ -3659,6 +3660,7 @@ export function LoginPanel({
               { label: identityLabel, icon: <LogIn size={14} aria-hidden="true" /> },
             ]}
           />
+          <ProfileDashboardOverview accessLabel={subscriptionLabel} accessPending={subscriptionPending} hasAccess={Boolean(subscription?.hasAccess)} identityLabel={identityLabel} contestsLabel={contestHistoryLoading ? 'Загружаем' : `${contestHistory.length} участий · ${wonContestCount} побед`} />
           {msg && (
             <div className={`profile-message profile-message--${msg.type}`} role={msg.type === 'err' ? 'alert' : 'status'} aria-live="polite">
               {msg.text}
@@ -3743,7 +3745,7 @@ export function LoginPanel({
               </div>
             )}
             <div className="profile-subscription-sources">
-              <div className="profile-subscription-source">
+              <div className={`profile-subscription-source profile-subscription-source--boosty ${subscription?.boosty?.hasAccess ? 'profile-subscription-source--active' : ''}`}>
                 <img src="/ad/boosty.png" alt="" />
                 <div>
                 <strong>Boosty</strong>
@@ -3754,7 +3756,7 @@ export function LoginPanel({
                 </p>
                 </div>
               </div>
-              <div className="profile-subscription-source profile-subscription-source--telegram" data-tour-id="profile-telegram-access">
+              <div className={`profile-subscription-source profile-subscription-source--telegram ${subscription?.telegram?.hasAccess ? 'profile-subscription-source--active' : ''}`} data-tour-id="profile-telegram-access">
                 <img src="/ad/telegram.png" alt="" />
                 <div>
                 <strong>Telegram</strong>
@@ -3795,7 +3797,7 @@ export function LoginPanel({
                 </p>
                 </div>
               </div>
-              <div className="profile-subscription-source profile-subscription-source--patreon">
+              <div className={`profile-subscription-source profile-subscription-source--patreon ${subscription?.patreon?.hasAccess ? 'profile-subscription-source--active' : ''}`}>
                 <span className="profile-subscription-source__brand profile-subscription-source__brand--patreon" aria-hidden="true">P</span>
                 <div>
                   <strong>Patreon</strong>
@@ -3922,7 +3924,7 @@ export function LoginPanel({
                 </a>
               </>
             )}
-            <button type="button" onClick={handleLogout}>
+            <button type="button" className="profile-account-actions__logout" onClick={handleLogout}>
               Выйти
             </button>
           </div>

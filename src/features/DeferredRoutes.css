@@ -1453,6 +1453,7 @@
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
     "hero"
+    "overview"
     "message"
     "access"
     "settings"
@@ -1554,6 +1555,18 @@
   cursor: pointer;
 }
 
+.profile-workspace .profile-public-link a {
+  border-color: rgba(240, 200, 117, 0.72);
+  background: rgba(93, 12, 17, 0.76);
+  box-shadow: inset 0 0 0 1px rgba(255, 230, 167, 0.12);
+}
+
+.profile-workspace .profile-public-link button {
+  border-color: rgba(222, 184, 100, 0.3);
+  color: #e8d1a2;
+  background: rgba(40, 3, 7, 0.34);
+}
+
 .profile-workspace .profile-public-link a:focus-visible,
 .profile-workspace .profile-public-link button:focus-visible {
   outline: 3px solid #f0c875;
@@ -1584,6 +1597,42 @@
   margin: 0;
   padding: 0.7rem 0.85rem;
   font-size: 0.76rem;
+}
+
+.profile-workspace .profile-dashboard-overview {
+  grid-area: overview;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.profile-workspace .profile-dashboard-overview__item {
+  min-width: 0;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid rgba(94, 122, 150, 0.24);
+  border-radius: 2px;
+  background: rgba(255, 247, 225, 0.62);
+}
+
+.profile-workspace .profile-dashboard-overview__item span,
+.profile-workspace .profile-dashboard-overview__item strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.profile-workspace .profile-dashboard-overview__item span {
+  color: #78634b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.profile-workspace .profile-dashboard-overview__item strong {
+  margin-top: 0.3rem;
+  color: #3d2b1f;
+  font-size: 0.82rem;
+  line-height: 1.28;
 }
 
 .profile-workspace .profile-contact-section {
@@ -1688,17 +1737,21 @@
 
 .profile-workspace .profile-subscription-source {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
+  grid-template-columns: 42px minmax(0, 1fr);
   min-height: 0;
-  padding: 0.8rem;
-  align-items: center;
-  gap: 0.55rem;
+  padding: 0.85rem 1rem;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.profile-workspace .profile-subscription-source--active {
+  border-color: rgba(62, 111, 67, 0.52);
 }
 
 .profile-workspace .profile-subscription-sources {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.65rem;
   margin-bottom: 0.75rem;
 }
 
@@ -1970,19 +2023,22 @@
 
 .profile-workspace .profile-account-actions {
   grid-area: actions;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
-  justify-content: stretch;
-  flex-wrap: wrap;
   gap: 0.65rem;
-  margin: 0;
-  padding: 0.85rem;
+  margin: 0.35rem 0 0;
+  padding: 0.9rem 0 0;
 }
 
 .profile-workspace .profile-account-actions :where(button, a) {
-  flex: 1 1 150px;
+  min-width: 0;
   justify-content: center;
   text-align: center;
+}
+
+.profile-workspace .profile-account-actions__logout {
+  grid-column: 1 / -1;
 }
 
 .profile-workspace :where(button, a, input, select):focus-visible {
@@ -1995,6 +2051,7 @@
     grid-template-columns: minmax(0, 1.7fr) minmax(290px, 0.78fr);
     grid-template-areas:
       "hero hero"
+      "overview overview"
       "message message"
       "access settings"
       "contests actions";
@@ -2008,6 +2065,20 @@
 }
 
 @media (max-width: 640px) {
+  .profile-workspace .profile-dashboard-overview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .profile-workspace .profile-account-actions {
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: 0.75rem;
+    padding: 1rem 0 calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  .profile-workspace .profile-account-actions :where(button, a) {
+    min-height: 48px;
+  }
+
   .profile-workspace .profile-contests__heading {
     align-items: flex-start;
     flex-direction: column;
@@ -2158,6 +2229,45 @@
   background: rgba(246, 216, 198, 0.58);
 }
 
+.arena-app-profile .profile-workspace .profile-dashboard-overview {
+  gap: 0.75rem;
+}
+
+.arena-app-profile .profile-workspace .profile-dashboard-overview__item {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(111, 68, 29, 0.32);
+  color: var(--profile-ink);
+  background:
+    linear-gradient(135deg, rgba(255, 248, 225, 0.78), rgba(236, 206, 151, 0.58)),
+    url('/wallpaper/arena-parchment.jpg') center / 865px 878px repeat;
+  box-shadow: 0 7px 14px rgba(70, 38, 15, 0.08);
+}
+
+.arena-app-profile .profile-workspace .profile-dashboard-overview__item::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--profile-red);
+}
+
+.arena-app-profile .profile-workspace .profile-dashboard-overview__item:nth-child(2)::before {
+  background: #4e7e4d;
+}
+
+.arena-app-profile .profile-workspace .profile-dashboard-overview__item:nth-child(3)::before {
+  background: var(--profile-gold);
+}
+
+.arena-app-profile .profile-workspace .profile-dashboard-overview__item span {
+  color: var(--profile-muted);
+}
+
+.arena-app-profile .profile-workspace .profile-dashboard-overview__item strong {
+  color: #3d2b1f;
+}
+
 .arena-app-profile .profile-workspace :is(
   .profile-settings-form,
   .profile-subscription-panel
@@ -2270,17 +2380,28 @@
 
 .arena-app-profile .profile-workspace .profile-subscription-source {
   position: relative;
-  min-height: 78px;
-  padding: 0.9rem;
-  border: 6px solid transparent;
-  border-image-source: url('/wallpaper/deck-border.png');
-  border-image-slice: 16;
-  border-image-width: 6px;
-  border-image-outset: 0;
-  border-image-repeat: stretch;
+  min-height: 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(111, 68, 29, 0.28);
+  border-left: 4px solid #ed8d37;
+  border-image: none;
   border-radius: 0;
-  background: rgba(255, 245, 217, 0.72);
-  box-shadow: 0 6px 12px rgba(67, 35, 14, 0.09);
+  background: rgba(255, 247, 224, 0.62);
+  box-shadow: none;
+}
+
+.arena-app-profile .profile-workspace .profile-subscription-source--telegram {
+  border-left-color: #319bd7;
+}
+
+.arena-app-profile .profile-workspace .profile-subscription-source--patreon {
+  border-left-color: #ff424d;
+}
+
+.arena-app-profile .profile-workspace .profile-subscription-source--active {
+  border-color: rgba(62, 111, 67, 0.42);
+  border-left-color: #4e7e4d;
+  background: rgba(237, 245, 218, 0.7);
 }
 
 .arena-app-profile .profile-workspace .profile-subscription-source strong {
@@ -2381,9 +2502,9 @@
 }
 
 .arena-app-profile .profile-workspace .profile-account-actions {
-  padding: 0;
-  border: 0;
-  background: transparent;
+  padding: 1rem;
+  border-top: 1px solid var(--profile-line);
+  background: rgba(249, 233, 195, 0.38);
   box-shadow: none;
 }
 
@@ -2399,6 +2520,12 @@
   background:
     linear-gradient(rgba(86, 8, 13, 0.08), rgba(50, 4, 7, 0.18)),
     url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+}
+
+.arena-app-profile .profile-workspace .profile-account-actions__logout {
+  border-color: rgba(123, 21, 27, 0.46);
+  color: #7b151b;
+  background: rgba(255, 246, 219, 0.88);
 }
 
 .arena-app-profile .profile-workspace :where(button, a, input, select):focus-visible,
