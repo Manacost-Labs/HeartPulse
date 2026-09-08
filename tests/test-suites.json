@@ -158,6 +158,7 @@
         "tests/browser-identity-tls.test.mjs",
         "tests/browser-identity-continuation-browser.test.mjs",
         "tests/reader-auth-continuation.test.ts",
+        "tests/reader-entitlements-routes.test.ts",
         "tests/card-image-routes.test.ts",
         "tests/class-matchup-routes.test.ts",
         "tests/client-error-routes.test.ts",
