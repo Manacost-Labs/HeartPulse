@@ -1,7 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { json, Router, type ErrorRequestHandler, type Request, type RequestHandler } from 'express';
-import rateLimit from 'express-rate-limit';
+import { rateLimit } from 'express-rate-limit';
 
 type PaidSource = 'boosty' | 'patreon';
 type StaticClient = { id: string; secret: string; redirectUri: string };
