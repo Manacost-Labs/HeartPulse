@@ -63,6 +63,36 @@ Origin certificate rotation requires updating and testing this pin first.
 Ordinary page proxy behavior is unchanged. Sentinel query values must not appear
 in origin or either edge's access/error logs.
 
+### Identity upstream isolation
+
+Both public edges use `hearthpulse_identity_origin` exclusively for `/identity/`.
+It has independent peer failure state over the same three loopback tunnels,
+no keepalive cache, and an explicit `Connection close`. Do not point identity
+back at the legacy `hs_arena_origin` pool: legacy virtual hosts use other SNI
+values and disable certificate verification. A cached TCP/TLS connection can
+otherwise bypass the new location's certificate verification entirely.
+
+`tests/browser-identity-tls.test.mjs`, run by the canonical integration suite,
+primes legacy keepalive connections against a real local TLS origin.
+It checks the actual SNI, rejects an untrusted origin, and verifies that the
+canonical identity route still succeeds. Test certificates and processes are
+ephemeral; no production keys, accounts or interaction values are used.
+
+The shared-pool defect was reproduced independently of the reported intermittent
+502. It does not by itself establish the cause of every observed gateway error.
+For a release, record status counts and timings for bounded discovery requests
+on each edge before and after applying the reviewed configuration. Also follow
+a fresh guest login from the test cabinet to the production HearthPulse form.
+Do not replay a user's interaction URL or enable query-bearing request logs.
+Keep upstream retries disabled: repeating a one-time identity operation is not
+a safe availability fix.
+
+For each edge, preserve the exact previous configuration, test the candidate
+with `nginx -t`, reload one edge first and check it before updating the other.
+Verify installed hashes against the release. Restore the saved configuration
+and validate/reload it if the canary regresses; never alter the TLS pin, tunnels,
+application sessions or ordinary proxy settings as part of this rollback.
+
 ## Cleanup and revocation
 
 The enabled provider starts an unreferenced 60-second cleanup timer and stops

@@ -57,7 +57,7 @@ for (const directive of [
 ]) assert.ok(originIdentity.includes(directive), `origin identity must contain ${directive}`);
 
 for (const directive of [
-  'proxy_pass https://hs_arena_origin;', 'proxy_ssl_verify on;',
+  'proxy_pass https://hearthpulse_identity_origin;', 'proxy_set_header Connection close;', 'proxy_ssl_verify on;',
   'proxy_ssl_trusted_certificate /etc/nginx/ssl/hearthpulse-identity-origin-ca.crt;',
   'proxy_ssl_name arena.hs-manacost.ru;', 'proxy_set_header Host arena.hs-manacost.ru;',
   'proxy_set_header X-Forwarded-Host hearthpulse.net;', 'proxy_pass_header Referrer-Policy;',
@@ -65,6 +65,10 @@ for (const directive of [
   'proxy_redirect off;', 'proxy_cache off;', 'proxy_buffering off;',
   'proxy_next_upstream off;', 'error_log /dev/null crit;',
 ]) assert.ok(edgeIdentity.includes(directive), `edge identity must contain ${directive}`);
+const identityUpstream = edge.match(/upstream hearthpulse_identity_origin \{([\s\S]*?)\n\}/)?.[1];
+assert.ok(identityUpstream, 'identity must use its own upstream connection pool');
+assert.match(identityUpstream, /zone hearthpulse_identity_origin 64k;/);
+assert.doesNotMatch(identityUpstream, /keepalive\s+\d+;/, 'identity upstream must not retain TLS sockets');
 assert.doesNotMatch(edgeIdentity, /sub_filter\s+/,
   'identity must not inherit or set HTML response rewriting directives');
 assert.doesNotMatch(edgeIdentity, /add_header\s+Referrer-Policy/i,
@@ -127,7 +131,7 @@ async function verifyNginxRuntime() {
   const accessLog = join(root, 'access.log');
   const errorLog = join(root, 'error.log');
   const fixture = edgeIdentity
-    .replace('proxy_pass https://hs_arena_origin;', `proxy_pass http://127.0.0.1:${upstreamPort};`)
+    .replace('proxy_pass https://hearthpulse_identity_origin;', `proxy_pass http://127.0.0.1:${upstreamPort};`)
     .replace(/\s*proxy_ssl_(?:server_name|name|verify|trusted_certificate)\s+[^;]+;/g, '');
   const config = join(root, 'nginx.conf');
   writeFileSync(config, `
