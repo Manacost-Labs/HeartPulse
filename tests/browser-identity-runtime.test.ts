@@ -50,6 +50,8 @@ test('real consent -> authorization code -> profile, then canonical parent logou
     assert.equal(response.status, 200);
     assert.match(response.headers.get('cache-control')!, /no-store/);
     assert.equal(response.headers.get('referrer-policy'), 'same-origin', 'native consent form must keep its same-origin POST Origin');
+    assert.ok(response.headers.get('content-security-policy')?.includes(`form-action 'self' ${redirectUri};`),
+      'native form redirects must allow exactly the registered reader callback');
     const csrf = (await response.text()).match(/name="csrf" value="([^"]+)"/)![1];
     const body = new URLSearchParams({ csrf, decision: 'continue' });
     response = await request(interactionUrl, { method: 'POST', headers: { origin: 'https://evil.test' }, body });

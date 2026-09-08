@@ -61,6 +61,8 @@ export function createBrowserIdentityRuntime(options: RuntimeOptions) {
       if (req.method === 'GET') {
         // Native form POSTs need a non-opaque Origin; cross-origin referrers stay suppressed.
         res.set('Referrer-Policy', 'same-origin');
+        // Browsers also apply form-action to the authorization redirect back to this client.
+        res.set('Content-Security-Policy', `default-src 'none'; style-src 'unsafe-inline'; form-action 'self' ${client.redirectUri}; frame-ancestors 'none'; base-uri 'none'`);
         res.type('html').send(interactionView(account.displayName ?? '', new URL(client.redirectUri).hostname, expected)); return;
       }
       const supplied = typeof req.body?.csrf === 'string' ? req.body.csrf : '';
