@@ -155,6 +155,7 @@
         "tests/browser-identity-cleanup.test.ts",
         "tests/browser-identity-lifecycle.test.ts",
         "tests/browser-identity-nginx.test.mjs",
+        "tests/browser-identity-tls.test.mjs",
         "tests/browser-identity-continuation-browser.test.mjs",
         "tests/reader-auth-continuation.test.ts",
         "tests/card-image-routes.test.ts",

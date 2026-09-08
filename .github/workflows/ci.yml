@@ -39,6 +39,11 @@ jobs:
       - name: Check production dependencies
         run: npm audit --omit=dev --audit-level=critical
 
+      - name: Install identity TLS regression tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends nginx openssl
+
       - name: Run release-blocking validation
         run: npm run verify:release
 
