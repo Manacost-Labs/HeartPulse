@@ -2,6 +2,42 @@
   "version": 1,
   "modules": [
     {
+      "name": "backend-browser-identity",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Own opt-in reader OIDC, browser consent and grants tied to canonical browser sessions.",
+      "paths": ["server/modules/browserIdentity"],
+      "publicEntrypoints": ["server/modules/browserIdentity/public.ts"],
+      "frontendRoutes": [],
+      "backendRoutes": [
+        { "method": "GET", "path": "/identity/auth" },
+        { "method": "POST", "path": "/identity/token" },
+        { "method": "GET", "path": "/identity/me" },
+        { "method": "POST", "path": "/identity/token/introspection" },
+        { "method": "POST", "path": "/identity/token/revocation" },
+        { "method": "GET", "path": "/identity/interaction/:uid" },
+        { "method": "POST", "path": "/identity/interaction/:uid" }
+      ],
+      "contracts": ["server/modules/browserIdentity/configuration.ts"],
+      "jobs": ["server/modules/browserIdentity/cleanupLifecycle.ts"],
+      "cacheNamespaces": [],
+      "dataStores": ["sqlite:browser_identity_models", "sqlite:browser_identity_revoked_grants", "sqlite:browser_identity_session_bindings", "sqlite:users (read-only)", "sqlite:sessions (read-only)"],
+      "externalServices": [],
+      "tests": ["tests/browser-identity-storage.test.ts", "tests/browser-identity-provider.test.ts", "tests/browser-identity-binding.test.ts", "tests/browser-identity-runtime.test.ts", "tests/browser-identity-cleanup.test.ts", "tests/browser-identity-lifecycle.test.ts", "tests/browser-identity-live-bridge.test.ts"],
+      "allowedDependencies": ["Node.js crypto/sqlite", "oidc-provider", "Express at the routes boundary"],
+      "forbiddenImports": ["src/**", "other server module internals"]
+    },
+    {
+      "name": "frontend-reader-auth",
+      "status": "modular", "owner": "identity-platform",
+      "purpose": "Own bounded reader continuation around the existing lazy account surface.",
+      "paths": ["src/modules/browserIdentity"], "publicEntrypoints": ["src/modules/browserIdentity/public.ts"],
+      "frontendRoutes": [], "backendRoutes": [], "contracts": [], "jobs": [], "cacheNamespaces": [],
+      "dataStores": ["sessionStorage:hp_reader_interaction"], "externalServices": [],
+      "tests": ["tests/reader-auth-continuation.test.ts"], "allowedDependencies": ["React", "browser sessionStorage", "frontend-account-route public entrypoint"],
+      "forbiddenImports": ["server/**"]
+    },
+    {
       "name": "backend-application-auth",
       "status": "modular",
       "owner": "identity-platform",

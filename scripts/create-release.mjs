@@ -23,6 +23,7 @@ const nginxContractDefinitions = [
   { source: 'deploy/nginx/arena-legacy-cdn-redirect.conf', installPath: '/etc/nginx/sites-available/cdn.arena.hs-manacost.ru.conf', roles: ['edge'] },
   { source: 'deploy/nginx/arena-canonical-host-redirect.conf', installPath: '/etc/nginx/snippets/arena-canonical-host-redirect.conf', roles: ['origin'] },
   { source: 'deploy/nginx/arena-security-headers.conf', installPath: '/etc/nginx/snippets/arena-security-headers.conf', roles: ['origin'] },
+  { source: 'deploy/nginx/hearthpulse-identity-origin-ca.crt', installPath: '/etc/nginx/ssl/hearthpulse-identity-origin-ca.crt', roles: ['edge'] },
 ];
 const nginxContractFiles = nginxContractDefinitions.map(file => file.source);
 const systemdFiles = [

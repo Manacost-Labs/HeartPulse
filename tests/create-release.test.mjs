@@ -27,6 +27,7 @@ const nginxContractFiles = [
   'deploy/nginx/arena-legacy-cdn-redirect.conf',
   'deploy/nginx/arena-canonical-host-redirect.conf',
   'deploy/nginx/arena-security-headers.conf',
+  'deploy/nginx/hearthpulse-identity-origin-ca.crt',
 ];
 const systemdFiles = [
   'deploy/systemd/hs-arena-card-image-sync.service',
@@ -112,7 +113,7 @@ try {
   assert.deepEqual(manifest.nginxContract.files.map(file => file.source), nginxContractFiles);
   assert.deepEqual(
     manifest.nginxContract.files.map(file => file.roles),
-    [['origin'], ['origin'], ['origin'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['origin'], ['origin']],
+    [['origin'], ['origin'], ['origin'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['edge'], ['origin'], ['origin'], ['edge']],
   );
   assert.deepEqual(
     manifest.nginxContract.files.map(file => file.installPath),
@@ -133,6 +134,7 @@ try {
       '/etc/nginx/sites-available/cdn.arena.hs-manacost.ru.conf',
       '/etc/nginx/snippets/arena-canonical-host-redirect.conf',
       '/etc/nginx/snippets/arena-security-headers.conf',
+      '/etc/nginx/ssl/hearthpulse-identity-origin-ca.crt',
     ],
   );
   const expectedContractHash = createHash('sha256')
