@@ -99,8 +99,6 @@ export function createReaderEntitlementsRouter(options: ReaderEntitlementsOption
     response.set({ 'Cache-Control': 'private, no-store', Pragma: 'no-cache', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' });
     next();
   };
-  const limiter = rateLimit({ windowMs: 60_000, max: 120, standardHeaders: true, legacyHeaders: false,
-    keyGenerator: request => basicCredentials(request)?.id ?? 'unauthenticated' });
   const authorize: RequestHandler = (request, response, next) => {
     if (request.get('Origin') || request.get('Sec-Fetch-Site') === 'cross-site') { response.status(403).json({ error: 'forbidden' }); return; }
     if (!authorized(request, options.clients)) { response.set('WWW-Authenticate', 'Basic realm="reader-entitlements"'); response.status(401).json({ error: 'unauthorized' }); return; }
@@ -109,7 +107,10 @@ export function createReaderEntitlementsRouter(options: ReaderEntitlementsOption
     }
     next();
   };
-  router.post('/reader-entitlements', privateHeaders, authorize, limiter, json({ limit: '4kb', strict: true }), (request, response) => {
+  router.post('/reader-entitlements', privateHeaders, authorize,
+    rateLimit({ windowMs: 60_000, max: 120, standardHeaders: true, legacyHeaders: false,
+      keyGenerator: request => basicCredentials(request)?.id ?? 'unauthenticated' }),
+    json({ limit: '4kb', strict: true }), (request, response) => {
     const subjects = request.body?.subjects;
     if (!Array.isArray(subjects) || subjects.length < 1 || subjects.length > 20
       || subjects.some(value => typeof value !== 'string' || !SUBJECT.test(value))

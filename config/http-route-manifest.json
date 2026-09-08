@@ -3852,13 +3852,13 @@
       "middleware": [
         "privateHeaders",
         "authorize",
-        "limiter",
+        "rateLimit(...)",
         "json(...)"
       ],
       "handler": "<inline-handler>",
       "guardSignals": [
         "authorize",
-        "limiter"
+        "rateLimit(...)"
       ],
       "source": "server/modules/readerEntitlements/public.ts",
       "sourceOrder": 0
