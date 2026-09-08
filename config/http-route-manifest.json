@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 70,
-    "routeRegistrations": 214,
-    "middlewareRegistrations": 107,
+    "sourceFiles": 72,
+    "routeRegistrations": 215,
+    "middlewareRegistrations": 111,
     "explicitGuardRouteRegistrations": 56,
     "unresolvedPaths": 0
   },
@@ -873,6 +873,19 @@
       ],
       "source": "server/app/registerApplicationAuth.ts",
       "sourceOrder": 5
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/identity"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "runtime.router"
+      ],
+      "guardSignals": [],
+      "source": "server/app/registerBrowserIdentity.ts",
+      "sourceOrder": 0
     },
     {
       "kind": "middleware",
@@ -3389,6 +3402,61 @@
       "guardSignals": [],
       "source": "server/modules/applicationAuth/routes.ts",
       "sourceOrder": 5
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "<inline-handler>"
+      ],
+      "guardSignals": [],
+      "source": "server/modules/browserIdentity/runtime.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "rateLimit(...)"
+      ],
+      "guardSignals": [
+        "rateLimit(...)"
+      ],
+      "source": "server/modules/browserIdentity/runtime.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "ALL",
+      "path": "/interaction/:uid",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "urlencoded(...)"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/browserIdentity/runtime.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "provider.callback()"
+      ],
+      "guardSignals": [],
+      "source": "server/modules/browserIdentity/runtime.ts",
+      "sourceOrder": 3
     },
     {
       "kind": "route",
