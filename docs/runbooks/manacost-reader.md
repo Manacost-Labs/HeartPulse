@@ -29,6 +29,11 @@ The separately gated paid-comments bridge uses
 the default is `boosty,patreon`, and any other value fails configuration.
 The endpoint reads only cached subscription evidence and must stay disabled
 until the comments consumer and security review are ready together.
+Its exact route has a fixed one-bucket pre-auth ceiling of 1,200 requests per
+minute before authorization, followed by the authenticated client's 120 per
+minute quota. Rotating arbitrary credentials cannot grow limiter memory or
+consume the authenticated-client quota. An attacker can exhaust the outer
+ceiling and temporarily hide the optional paid badge; this remains fail closed.
 
 ## Activation sequence
 

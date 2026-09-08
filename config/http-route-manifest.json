@@ -3851,12 +3851,14 @@
       "receiver": "router",
       "middleware": [
         "privateHeaders",
+        "preAuthLimiter",
         "authorize",
         "rateLimit(...)",
         "json(...)"
       ],
       "handler": "<inline-handler>",
       "guardSignals": [
+        "preAuthLimiter",
         "authorize",
         "rateLimit(...)"
       ],

@@ -9,6 +9,13 @@ an `Origin` header or cross-site fetch metadata are rejected. The strict JSON
 body is `{ "subjects": ["..."] }`, with 1–20 unique opaque HearthPulse subjects,
 a 4 KiB body limit, and no additional fields.
 
+The exact route has a fixed endpoint-wide pre-auth ceiling of 1,200 requests per
+minute and a separate authenticated-client ceiling of 120 requests per minute.
+The pre-auth limiter uses one constant bucket, so arbitrary credentials cannot
+grow limiter memory or consume the authenticated client's quota. Sustained
+hostile traffic can exhaust that outer ceiling and temporarily hide the optional
+paid badge; entitlement checks fail closed during that interval.
+
 The response preserves input order:
 
 ```json

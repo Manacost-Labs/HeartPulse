@@ -109,6 +109,44 @@ test('failed authentication cannot consume the confidential client quota', async
   assert.equal(accepted.status, 200);
 }));
 
+test('endpoint-wide pre-auth ceiling is bounded and recovers after its clock window', async context => {
+  context.mock.timers.enable({ apis: ['Date', 'setInterval'] });
+  await withServer(async origin => {
+    const body = JSON.stringify({ subjects: ['boosty-paid'] });
+    for (let attempt = 0; attempt < 1_200; attempt += 1) {
+      const rejected = await fetch(`${origin}/identity/reader-entitlements`, {
+        method: 'POST',
+        headers: { authorization: basic(`wrong-${attempt}`), 'content-type': 'application/json' },
+        body,
+      });
+      assert.equal(rejected.status, 401);
+    }
+    const limited = await fetch(`${origin}/identity/reader-entitlements`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body,
+    });
+    assert.equal(limited.status, 429);
+    context.mock.timers.tick(60_000);
+    const recovered = await fetch(`${origin}/identity/reader-entitlements`, {
+      method: 'POST', headers: { authorization: basic(), 'content-type': 'application/json' }, body,
+    });
+    assert.equal(recovered.status, 200);
+  });
+});
+
+test('authenticated client has an independent 120 request quota', async () => withServer(async origin => {
+  const body = JSON.stringify({ subjects: ['boosty-paid'] });
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    const accepted = await fetch(`${origin}/identity/reader-entitlements`, {
+      method: 'POST', headers: { authorization: basic(), 'content-type': 'application/json' }, body,
+    });
+    assert.equal(accepted.status, 200);
+  }
+  const limited = await fetch(`${origin}/identity/reader-entitlements`, {
+    method: 'POST', headers: { authorization: basic(), 'content-type': 'application/json' }, body,
+  });
+  assert.equal(limited.status, 429);
+}));
+
 test('confidential batch endpoint enforces exact bounded unique subjects and body size', async () => withServer(async origin => {
   for (const body of [JSON.stringify({}), JSON.stringify({ subjects: [] }), JSON.stringify({ subjects: ['x', 'x'] }),
     JSON.stringify({ subjects: Array.from({ length: 21 }, (_, index) => `u-${index}`) }), JSON.stringify({ subjects: ['bad subject'] })]) {
