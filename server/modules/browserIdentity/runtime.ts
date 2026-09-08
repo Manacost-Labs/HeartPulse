@@ -59,6 +59,8 @@ export function createBrowserIdentityRuntime(options: RuntimeOptions) {
       if (!client) { res.sendStatus(400); return; }
       const expected = csrf(interaction.uid, account.sessionHash);
       if (req.method === 'GET') {
+        // Native form POSTs need a non-opaque Origin; cross-origin referrers stay suppressed.
+        res.set('Referrer-Policy', 'same-origin');
         res.type('html').send(interactionView(account.displayName ?? '', new URL(client.redirectUri).hostname, expected)); return;
       }
       const supplied = typeof req.body?.csrf === 'string' ? req.body.csrf : '';

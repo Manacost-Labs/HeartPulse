@@ -49,10 +49,13 @@ test('real consent -> authorization code -> profile, then canonical parent logou
     response = await request(interactionUrl);
     assert.equal(response.status, 200);
     assert.match(response.headers.get('cache-control')!, /no-store/);
+    assert.equal(response.headers.get('referrer-policy'), 'same-origin', 'native consent form must keep its same-origin POST Origin');
     const csrf = (await response.text()).match(/name="csrf" value="([^"]+)"/)![1];
     const body = new URLSearchParams({ csrf, decision: 'continue' });
     response = await request(interactionUrl, { method: 'POST', headers: { origin: 'https://evil.test' }, body });
     assert.equal(response.status, 403);
+    response = await request(interactionUrl, { method: 'POST', headers: { origin: 'null' }, body });
+    assert.equal(response.status, 403, 'opaque-origin submissions remain denied');
     response = await request(interactionUrl, { method: 'POST', headers: { origin: 'https://identity.example.test' }, body });
     assert.equal(response.status, 303);
     response = await request(response.headers.get('location')!);
