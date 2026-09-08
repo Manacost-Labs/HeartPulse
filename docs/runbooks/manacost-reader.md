@@ -23,6 +23,18 @@ client `manacost-reader-staging` and exact callback
 `READER_ALLOW_PRODUCTION_IDENTITY_FOR_STAGING=1` and the exact matching tuple.
 Both flags default off; no arbitrary test clients or domains are allowed.
 
+The separately gated paid-comments bridge uses
+`READER_ENTITLEMENTS_ENABLED=1` and the same static confidential client list.
+`READER_ENTITLEMENTS_PAID_SOURCES` is an explicit comma-separated allowlist;
+the default is `boosty,patreon`, and any other value fails configuration.
+The endpoint reads only cached subscription evidence and must stay disabled
+until the comments consumer and security review are ready together.
+Its exact route has a fixed one-bucket pre-auth ceiling of 1,200 requests per
+minute before authorization, followed by the authenticated client's 120 per
+minute quota. Rotating arbitrary credentials cannot grow limiter memory or
+consume the authenticated-client quota. An attacker can exhaust the outer
+ceiling and temporarily hide the optional paid badge; this remains fail closed.
+
 ## Activation sequence
 
 1. Run `npm run verify:release`, security checks and fresh independent review;

@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 72,
-    "routeRegistrations": 215,
-    "middlewareRegistrations": 111,
-    "explicitGuardRouteRegistrations": 56,
+    "sourceFiles": 73,
+    "routeRegistrations": 216,
+    "middlewareRegistrations": 113,
+    "explicitGuardRouteRegistrations": 57,
     "unresolvedPaths": 0
   },
   "registrations": [
@@ -881,11 +881,24 @@
       ],
       "receiver": "app",
       "handlers": [
-        "runtime.router"
+        "createReaderEntitlementsRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/app/registerBrowserIdentity.ts",
       "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/identity"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "runtime.router"
+      ],
+      "guardSignals": [],
+      "source": "server/app/registerBrowserIdentity.ts",
+      "sourceOrder": 1
     },
     {
       "kind": "middleware",
@@ -3829,6 +3842,41 @@
       "guardSignals": [],
       "source": "server/modules/publicApi/routes.ts",
       "sourceOrder": 26
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/reader-entitlements",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "privateHeaders",
+        "preAuthLimiter",
+        "authorize",
+        "rateLimit(...)",
+        "json(...)"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "preAuthLimiter",
+        "authorize",
+        "rateLimit(...)"
+      ],
+      "source": "server/modules/readerEntitlements/public.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/reader-entitlements"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "bodyError"
+      ],
+      "guardSignals": [],
+      "source": "server/modules/readerEntitlements/public.ts",
+      "sourceOrder": 1
     },
     {
       "kind": "route",

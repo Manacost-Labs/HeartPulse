@@ -2179,8 +2179,10 @@ const browserLaunchOptions = {
   headless: 'new',
   executablePath: CHROMIUM_PATH,
   args: ['--no-sandbox', '--disable-dev-shm-usage'],
+  dumpio: true,
 };
 
+console.log(`[browser-qa] Chromium executable: ${CHROMIUM_PATH}`);
 const browser = await puppeteer.launch(browserLaunchOptions);
 
 async function createQaPage() {
