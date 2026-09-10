@@ -32,6 +32,7 @@ import {
   shouldPreserveInitialServerMeta,
   withHistoryRouteKnowledge,
 } from './routing/clientRouteResolution';
+import { lazyNamedExport } from './routing/lazyNamedExport';
 import { publicProfileIdFromPath } from './profileRoutes';
 // Preserve authoritative entity metadata/404 context through the first client
 // pass. The marker belongs only to the URL that bootstrapped this document.
@@ -41,7 +42,6 @@ const INITIAL_SERVER_META_HINT = INITIAL_SERVER_ROUTE_STATUS
   ? normalizeClientRoutePath(location.pathname)
   : null;
 delete BOOTSTRAP_ROUTE_ROOT?.dataset.routeStatus;
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ClassData {
   id: string;
@@ -617,13 +617,13 @@ const LazySupportPrompt = React.lazy(() => import('./components/SupportPrompt'))
 const LazySiteFooter = React.lazy(() => import('./components/SiteFooter'));
 const LazyHomeTab = React.lazy(loadHomeModule);
 const LazyFAQPage = React.lazy(loadFAQPageModule);
-const LazyDeveloperApiPage = React.lazy(() => loadDeveloperApiModule().then(module => ({ default: module.DeveloperApiPage })));
+const LazyDeveloperApiPage = lazyNamedExport(loadDeveloperApiModule, 'DeveloperApiPage');
 const LazyAccountRoute = React.lazy(() => import('./modules/browserIdentity/public'));
 const LazyNotFoundPage = React.lazy(() => import('./features/NotFoundPageRoute'));
-const LazyWinrates = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.Winrates })));
-const LazyTierList = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.TierList })));
-const LazyLegendaries = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.Legendaries })));
-const LazyArticlesTab = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.ArticlesTab })));
+const LazyWinrates = lazyNamedExport(loadDeferredRoutesModule, 'Winrates');
+const LazyTierList = lazyNamedExport(loadDeferredRoutesModule, 'TierList');
+const LazyLegendaries = lazyNamedExport(loadDeferredRoutesModule, 'Legendaries');
+const LazyArticlesTab = lazyNamedExport(loadDeferredRoutesModule, 'ArticlesTab');
 const LazyGalleryTab = React.lazy(loadGalleryModule);
 const LazyBgLibrary = React.lazy(loadBgLibraryModule);
 const LazyGuidesArchive = React.lazy(loadGuidesArchiveModule);
@@ -634,16 +634,16 @@ const LazyConstructedArchetypesPage = React.lazy(loadConstructedArchetypesModule
 const LazyViciousSyndicateGoldPage = React.lazy(loadViciousSyndicateGoldModule);
 const LazyStandardCardsPage = React.lazy(loadStandardCardsModule);
 const LazyFunDecksPage = React.lazy(loadFunDecksModule);
-const LazyContestsPage = React.lazy(() => loadContestsModule().then(module => ({ default: module.ContestsPage })));
+const LazyContestsPage = lazyNamedExport(loadContestsModule, 'ContestsPage');
 const LazyContestAdminPanel = React.lazy(() => loadContestsModule().then(module => ({ default: module.ContestAdminPanel })));
 const loadDeckBuilderModule = () => import('./features/DeckBuilder');
 const LazyDeckBuilder = React.lazy(loadDeckBuilderModule);
 const loadArchetypesModule = () => import('./features/Archetypes');
 const LazyArchetypes = React.lazy(loadArchetypesModule);
-const LazyBattlegroundHeroesRoute = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundHeroesRoute })));
-const LazyBattlegroundTierList = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundTierList })));
-const LazyBattlegroundStrategyBuilderEmbed = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundStrategyBuilderEmbed })));
-const LazyBattlegroundTierBuilderEmbed = React.lazy(() => loadBattlegroundsModule().then(module => ({ default: module.BattlegroundTierBuilderEmbed })));
+const LazyBattlegroundHeroesRoute = lazyNamedExport(loadBattlegroundsModule, 'BattlegroundHeroesRoute');
+const LazyBattlegroundTierList = lazyNamedExport(loadBattlegroundsModule, 'BattlegroundTierList');
+const LazyBattlegroundStrategyBuilderEmbed = lazyNamedExport(loadBattlegroundsModule, 'BattlegroundStrategyBuilderEmbed');
+const LazyBattlegroundTierBuilderEmbed = lazyNamedExport(loadBattlegroundsModule, 'BattlegroundTierBuilderEmbed');
 const STANDARD_SOFT_PAYWALL_TABS = new Set<TabId>(['standard-meta', 'constructed-archetypes', 'fun-decks']);
 const ROUTE_PRELOADERS: Partial<Record<TabId | 'login', () => Promise<unknown>>> = {
   winrates: loadDeferredRoutesModule,
