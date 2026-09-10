@@ -50,8 +50,10 @@ export function validateIdentityOptions(options: BrowserIdentityOptions): void {
     const stagingBridge = options.allowStagingClient === true && production
       && client.id === 'manacost-reader-staging'
       && client.redirectUri === 'https://test.hs-manacost.ru/reader-auth/callback';
+    const reservedStagingClientInProduction = production && client.id === 'manacost-reader-staging';
     if (!client.id || ids.has(client.id) || client.secret.length < 43
-      || url.pathname !== '/reader-auth/callback' || url.port || (production !== productionCallback && !stagingBridge)) {
+      || url.pathname !== '/reader-auth/callback' || url.port || (production !== productionCallback && !stagingBridge)
+      || (reservedStagingClientInProduction && !stagingBridge)) {
       throw new Error('Invalid identity client or deployment mismatch');
     }
     ids.add(client.id);
