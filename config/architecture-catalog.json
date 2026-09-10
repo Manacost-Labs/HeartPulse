@@ -20,6 +20,24 @@
       "forbiddenImports": ["src/**", "other server module internals"]
     },
     {
+      "name": "backend-reader-permissions",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Own fresh, confidential Reader administrator permission queries from canonical user state.",
+      "paths": ["server/modules/readerPermissions"],
+      "publicEntrypoints": ["server/modules/readerPermissions/public.ts"],
+      "frontendRoutes": [],
+      "backendRoutes": [{ "method": "POST", "path": "/identity/reader-permissions" }],
+      "contracts": ["server/modules/readerPermissions/public.ts", "docs/specs/reader-permissions.md"],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": ["sqlite:users (read-only)"],
+      "externalServices": [],
+      "tests": ["tests/reader-permissions-routes.test.ts"],
+      "allowedDependencies": ["Node.js crypto/sqlite", "Express at the routes boundary"],
+      "forbiddenImports": ["src/**", "other server module internals"]
+    },
+    {
       "name": "backend-browser-identity",
       "status": "modular",
       "owner": "identity-platform",
