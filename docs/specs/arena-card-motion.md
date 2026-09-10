@@ -20,6 +20,10 @@ win-rate chart.
 
 ## Verification
 
+Meter animation and label styles belong to `WinrateMeterFill.css`, loaded with
+the Arena route instead of enlarging the shared parchment stylesheet. Fixed
+layers are not promoted with permanent `will-change` after the entrance ends.
+
 `tests/arena-card-motion.browser.test.mjs` renders portrait, wide and fallback
 cards in Storybook, measures their computed geometry, and checks chart and
 reduced-motion styles in Chromium.

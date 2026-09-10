@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import './WinrateMeterFill.css';
 
 type WinrateMeterFillProps = {
   color: string;
