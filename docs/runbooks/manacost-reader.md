@@ -116,9 +116,40 @@ records accumulate and require a separately reviewed retention design.
 Cleanup failures log only a fixed message and retry on the next tick.
 
 Every private operation checks the exact canonical parent session and blocked
-status. There is no positive identity cache or offline access; reader sessions
-last at most 300 seconds. Saved articles and comments are not this activation;
-comments stay disabled.
+status. There is no positive identity cache. The remembered-login extension
+allows explicit offline consent only for `manacost-reader-staging`: grants,
+canonical bindings and the initial refresh family have a 30-day absolute limit.
+Access tokens remain 300 seconds, and parent expiry/logout/reset/block still
+ends access earlier. Ineligible offline requests return `invalid_scope`.
+
+### Remembered-login rollout
+
+1. Release the reviewed provider through the normal main CI/deployer. Verify the
+   production issuer's actual upstream and source SHA first: the old isolated
+   `hearthpulse-identity-staging.service` serves `test.hearthpulse.net`, not the
+   production identity bridge. Do not update that unused service by inference.
+2. Back up the test Reader SQLite consistently, preserving keys and permissions.
+   Its new encrypted companion token table is additive; canonical users and
+   sessions are not migrated. Deploy the exact reviewed BFF artifact separately.
+3. Verify that the test login requests `offline_access` and consent explains the
+   30-day maximum. After a fresh login, the Reader cookie must have Max-Age
+   2,592,000; the login-attempt cookie remains 300. Old sessions stay short until
+   re-login. Ordinary profile responses must not renew the persistent cookie.
+4. Verify server-side rotation, logout and parent revocation using synthetic
+   tests, then record real-account browser acceptance separately. Never read a
+   user's password/code or copy their session for verification.
+
+An ambiguous refresh response or abandoned durable claim ends local Reader
+login and queues grant-family revocation, never retries the old refresh token.
+The revocation endpoint accepts either token type without a hint, including a
+consumed refresh token. Logout is local-first; the encrypted queue survives a
+provider outage. No access/refresh token is sent to browser JavaScript.
+
+For binary rollback select the previous reviewed releases and preserve current
+authentication databases/keys. Do not restore an old session snapshot: that can
+undo revocation. The previous BFF ignores the companion table and falls back to
+short-token checks, so remembered users may need to log in again. Preserve
+profiles/comments; no data reset or global logout is part of this change.
 
 ## Rollback and evidence
 

@@ -2,6 +2,21 @@ import Provider, { type Configuration } from 'oidc-provider';
 import { createIdentityAdapter } from './adapter.js';
 import { type BrowserIdentityOptions, validateIdentityOptions } from './configuration.js';
 
+export const READER_STAGING_CLIENT_ID = 'manacost-reader-staging';
+export const DEFAULT_READER_GRANT_TTL_SECONDS = 7 * 24 * 60 * 60;
+export const REMEMBERED_READER_GRANT_TTL_SECONDS = 30 * 24 * 60 * 60;
+
+const hasScope = (scope: string | undefined, expected: string) => scope?.split(/\s+/).includes(expected) ?? false;
+
+export const offlineAccessRequested = (scope: string | undefined) => hasScope(scope, 'offline_access');
+
+/** The longer lifetime is deliberately restricted to an explicit offline grant for the staging reader. */
+export function readerGrantPolicy(clientId: string, scope: string | undefined) {
+  const rememberLogin = clientId === READER_STAGING_CLIENT_ID && offlineAccessRequested(scope);
+  return { rememberLogin, ttlSeconds: rememberLogin
+    ? REMEMBERED_READER_GRANT_TTL_SECONDS : DEFAULT_READER_GRANT_TTL_SECONDS };
+}
+
 function providerConfiguration(options: BrowserIdentityOptions): Configuration {
   return {
     adapter: createIdentityAdapter(options.database, options.encryptionKey),
@@ -30,7 +45,17 @@ function providerConfiguration(options: BrowserIdentityOptions): Configuration {
       long: { secure: true, httpOnly: true, sameSite: 'lax', path: '/' },
       short: { secure: true, httpOnly: true, sameSite: 'lax' } },
     ttl: { AccessToken: 300, AuthorizationCode: 60, IdToken: 300,
-      Interaction: 600, Session: 86_400, Grant: 604_800, RefreshToken: 604_800 },
+      Interaction: 600, Session: 86_400,
+      Grant: (_ctx, grant) => readerGrantPolicy(grant.clientId, grant.getOIDCScope()).ttlSeconds,
+      RefreshToken: (_ctx, token, client) => {
+        const { ttlSeconds } = readerGrantPolicy(client.clientId, token.scope);
+        if (ttlSeconds === DEFAULT_READER_GRANT_TTL_SECONDS) return ttlSeconds;
+        // oidc-provider copies iiat when rotating; retain the first token's deadline.
+        if (!Number.isSafeInteger(token.iiat)) throw new Error('Remembered refresh token has no original issue time');
+        const remaining = token.iiat + ttlSeconds - Math.floor(Date.now() / 1000);
+        if (remaining <= 0) throw new Error('Remembered refresh lifetime elapsed');
+        return remaining;
+      } },
     interactions: { url: (_ctx, interaction) => `/identity/interaction/${encodeURIComponent(interaction.uid)}` },
     findAccount: async (ctx, subject, token) => {
       const account = token?.grantId

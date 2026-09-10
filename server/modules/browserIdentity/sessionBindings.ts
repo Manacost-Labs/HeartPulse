@@ -4,6 +4,9 @@ import type { ReaderIdentity } from './configuration.js';
 import { cleanupIdentityStorage } from './cleanup.js';
 import { initializeIdentityStorage } from './schema.js';
 
+const DEFAULT_BINDING_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const MAX_BINDING_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
 /** Bind consent to an existing browser session; reset/block/logout revoke it without a second user store. */
 export function createSessionBindings(database: DatabaseSync, key: Uint8Array, now = Date.now) {
   const cipher = createPayloadCipher(key);
@@ -16,11 +19,12 @@ export function createSessionBindings(database: DatabaseSync, key: Uint8Array, n
   };
   return {
     parent,
-    bind(grantId: string, subject: string, sessionHash: string): void {
+    bind(grantId: string, subject: string, sessionHash: string, ttlMs = DEFAULT_BINDING_TTL_MS): void {
       if (!parent(subject, sessionHash)) throw new Error('Inactive parent session');
+      if (!Number.isSafeInteger(ttlMs) || ttlMs <= 0) throw new Error('Invalid binding lifetime');
       const id = hashIdentifier(grantId);
       database.prepare('INSERT INTO browser_identity_session_bindings VALUES (?, ?, ?)').run(
-        id, cipher.encrypt({ subject, sessionHash }, id), now() + 604_800_000,
+        id, cipher.encrypt({ subject, sessionHash }, id), now() + Math.min(ttlMs, MAX_BINDING_TTL_MS),
       );
     },
     resolve(subject: string, grantId?: string): ReaderIdentity | undefined {
