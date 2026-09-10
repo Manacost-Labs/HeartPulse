@@ -1,15 +1,29 @@
 # Manacost reader identity
 
-Status: isolated staging verified; production-identity bridge pending activation.
+Status: staging production-identity bridge exists; remembered-login extension
+requires its own reviewed release and acceptance evidence.
 
 ## First vertical slice
 
 Reader grants currently depend on the exact existing HearthPulse browser session
 as an immutable security generation. Canonical reset/block/logout invalidate that
 session. This avoids adding a parallel account lifecycle before it is tested.
-The BFF requests no offline access and limits local sessions to five minutes.
-Relaxing that dependency requires an explicit account epoch and refresh integration;
-it is not silently equivalent to the complete long-lived v1 design below.
+The original five-minute slice is extended only for `manacost-reader-staging`
+with explicit `offline_access` consent. That grant, canonical binding and refresh
+family last at most 30 days; access tokens remain 300 seconds. Other clients keep
+their seven-day grant policy and cannot obtain runtime offline consent.
+
+Rotation retains the initial refresh token's `iiat` deadline and an expired Grant
+blocks issuance before rotation. The binding is never renewed. This remains
+dependent on the exact canonical session: parent expiry/logout/reset/block ends
+Reader login earlier. Global HearthPulse browser-auth policy is unchanged.
+
+The BFF uses an encrypted server-side refresh credential, durable one-shot claim
+and atomic update restricted to the same active session/claim. Local logout wins
+over pending renewal. Ambiguous renewal ends login instead of replaying a token;
+the durable revocation endpoint accepts consumed refresh tokens without a type
+hint and revokes their whole grant family. Only an opaque 30-day HttpOnly cookie
+reaches the browser. Existing short sessions require one fresh login.
 
 ## Decision
 
@@ -23,6 +37,12 @@ device authorization module and browser login unchanged.
 The module mounts only with an explicit deployment flag. Dedicated additive
 provider tables use the canonical SQLite connection; canonical users/sessions
 are read-only to this module. Keys are injected, never generated on restart.
+
+The remembered-login release adds no provider schema or canonical-session
+migration. Activate the provider before its Reader consumer. Preserve current
+authentication data and previous release binaries on rollback: restoring an old
+session database can revive revoked access. A previous consumer can continue
+using short sessions; remembered sessions may require re-login after rollback.
 
 The user selected real HearthPulse accounts for the test cabinet. One default-off
 exception is permitted: production issuer `https://hearthpulse.net/identity`,

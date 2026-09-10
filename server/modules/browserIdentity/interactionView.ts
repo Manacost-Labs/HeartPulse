@@ -2,7 +2,7 @@ const escape = (value: string) => value.replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 })[character] ?? character);
 
-export function interactionView(name: string, audience: string, csrf: string): string {
+export function interactionView(name: string, audience: string, csrf: string, rememberLogin = false): string {
   return `<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Вход на Манакост — HearthPulse</title><style>
     body{margin:0;background:#062638;color:#f4f7fa;font:1rem/1.6 Arial,sans-serif}
@@ -14,6 +14,7 @@ export function interactionView(name: string, audience: string, csrf: string): s
     <main><p>HEARTHPULSE / МАНАКОСТ</p><h1>Войти на Манакост</h1>
     <p>Вы вошли как <strong>${escape(name || 'Читатель')}</strong>.</p>
     <p>Сайт <strong>${escape(audience)}</strong> получит ваш идентификатор и имя профиля. Пароль, почта и платёжные данные не передаются.</p>
+    ${rememberLogin ? '<p>Вы разрешаете этому кабинету обновлять вход до 30 дней с момента согласия. Выход или отзыв сессии HearthPulse закроет доступ раньше.</p>' : ''}
     <form method="post"><input type="hidden" name="csrf" value="${escape(csrf)}">
     <button name="decision" value="continue" type="submit">Продолжить</button>
     <button name="decision" value="deny" type="submit">Отмена</button></form>
