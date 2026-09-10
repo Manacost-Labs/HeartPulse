@@ -16,6 +16,8 @@ test('production identity accepts only the explicitly enabled exact staging clie
     assert.throws(() => validateIdentityOptions(options));
     assert.throws(() => validateIdentityOptions({ ...options, allowStagingClient: false }));
     assert.doesNotThrow(() => validateIdentityOptions({ ...options, allowStagingClient: true }));
+    assert.throws(() => validateIdentityOptions({ ...options, allowStagingClient: true,
+      clients: [{ ...options.clients[0], redirectUri: 'https://hs-manacost.ru/reader-auth/callback' }] }));
     for (const redirectUri of [
       'https://test.hs-manacost.com/reader-auth/callback',
       'https://other.hs-manacost.ru/reader-auth/callback',

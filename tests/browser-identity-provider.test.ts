@@ -5,6 +5,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { test } from 'node:test';
 import express from 'express';
 import { createBrowserIdentityProvider, createIdentityAdapter } from '../server/modules/browserIdentity/public.ts';
+import { DEFAULT_READER_GRANT_TTL_SECONDS, readerGrantPolicy, REMEMBERED_READER_GRANT_TTL_SECONDS } from '../server/modules/browserIdentity/provider.ts';
 
 const issuer = 'https://identity.example.test/identity';
 const redirectUri = 'https://manacost.example.test/reader-auth/callback';
@@ -19,9 +20,10 @@ function options(database: DatabaseSync) {
     resolveAccount: async (subject: string) => subject === 'reader' ? { subject, displayName: 'Reader' } : undefined };
 }
 
-async function fixture(isActive: () => boolean = () => true) {
+async function fixture(isActive: () => boolean = () => true, primaryClientId = 'manacost-test') {
   const database = new DatabaseSync(':memory:');
   const config = options(database);
+  config.clients[0].id = primaryClientId;
   const resolve = config.resolveAccount;
   config.resolveAccount = async (subject) => isActive() ? resolve(subject) : undefined;
   config.clients.push({ id: 'another-client', secret, redirectUri: 'https://other.example.test/reader-auth/callback' });
@@ -58,6 +60,44 @@ test('configuration rejects unsafe redirects, missing key material and mixed sta
     assert.throws(() => createBrowserIdentityProvider({ ...base, clients: [{ id: 'x', secret,
       redirectUri: 'https://hs-manacost.ru/reader-auth/callback' }] }));
   } finally { db.close(); }
+});
+
+test('only explicit offline consent for the staging reader receives the 30-day grant policy', () => {
+  assert.deepEqual(readerGrantPolicy('manacost-reader-staging', 'openid profile offline_access'), {
+    rememberLogin: true, ttlSeconds: REMEMBERED_READER_GRANT_TTL_SECONDS,
+  });
+  for (const [clientId, scope] of [
+    ['manacost-reader-staging', 'openid profile'],
+    ['another-client', 'openid profile offline_access'],
+  ]) {
+    assert.deepEqual(readerGrantPolicy(clientId, scope), {
+      rememberLogin: false, ttlSeconds: DEFAULT_READER_GRANT_TTL_SECONDS,
+    });
+  }
+});
+
+test('remembered refresh rotation retains an older original issue-time deadline', async () => {
+  const f = await fixture(() => true, 'manacost-reader-staging');
+  try {
+    const client = await f.provider.Client.find('manacost-reader-staging');
+    const grant = new f.provider.Grant({ accountId: 'reader', clientId: 'manacost-reader-staging' });
+    grant.addOIDCScope('openid offline_access');
+    const grantId = await grant.save();
+    const savedGrant = await f.provider.Grant.find(grantId);
+    assert.equal(savedGrant!.exp - savedGrant!.iat, REMEMBERED_READER_GRANT_TTL_SECONDS);
+    const issuedAt = Math.floor(Date.now() / 1000) - 3_600;
+    const originalValue = await new f.provider.RefreshToken({ accountId: 'reader', client, grantId,
+      iiat: issuedAt, scope: 'openid offline_access', gty: 'authorization_code' }).save();
+    const original = await f.provider.RefreshToken.find(originalValue);
+    assert.equal(original!.exp, issuedAt + REMEMBERED_READER_GRANT_TTL_SECONDS);
+    const response = await f.request('/token', { method: 'POST', headers: {
+      authorization: `Basic ${Buffer.from(`manacost-reader-staging:${secret}`).toString('base64')}`,
+      'content-type': 'application/x-www-form-urlencoded',
+    }, body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: originalValue }).toString() });
+    const tokens = await response.json();
+    const replacement = await f.provider.RefreshToken.find(tokens.refresh_token);
+    assert.equal(replacement!.exp, original!.exp, 'a rotation cannot roll the 30-day deadline forward');
+  } finally { await f.close(); }
 });
 
 test('discovery exposes code-only S256 and no dynamic registration', async () => {
@@ -148,6 +188,29 @@ test('refresh rotates every time and reuse revokes both replacement refresh and 
     const replay = await exchange(original);
     assert.equal(replay.status, 400);
     assert.equal((await replay.json()).error, 'invalid_grant');
+    assert.equal(await f.provider.RefreshToken.find(replacement.refresh_token), undefined);
+    assert.equal(await f.provider.AccessToken.find(replacement.access_token), undefined);
+  } finally { await f.close(); }
+});
+
+test('revocation without a token type hint accepts a consumed refresh token and revokes its grant family', async () => {
+  const f = await fixture();
+  try {
+    const client = await f.provider.Client.find('manacost-test');
+    const grant = new f.provider.Grant({ accountId: 'reader', clientId: 'manacost-test' });
+    grant.addOIDCScope('openid offline_access');
+    const grantId = await grant.save();
+    const original = await new f.provider.RefreshToken({ accountId: 'reader', client, grantId,
+      scope: 'openid offline_access', gty: 'authorization_code' }).save();
+    const headers = { authorization: `Basic ${Buffer.from(`manacost-test:${secret}`).toString('base64')}`,
+      'content-type': 'application/x-www-form-urlencoded' };
+    let response = await f.request('/token', { method: 'POST', headers,
+      body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: original }).toString() });
+    const replacement = await response.json();
+    response = await f.request('/token/revocation', { method: 'POST', headers,
+      body: new URLSearchParams({ token: original }).toString() });
+    assert.equal(response.status, 200);
+    assert.equal(await f.provider.Grant.find(grantId), undefined);
     assert.equal(await f.provider.RefreshToken.find(replacement.refresh_token), undefined);
     assert.equal(await f.provider.AccessToken.find(replacement.access_token), undefined);
   } finally { await f.close(); }
