@@ -42,7 +42,7 @@
     "src/features/Archetypes.tsx#ArchetypesPage": 269,
     "src/features/ArenaDraftAdvisorPanel.tsx#ArenaDraftAdvisorPanel": 252,
     "src/features/BattlegroundHeroLedger.tsx#BattlegroundHeroLedger": 140,
-    "src/features/Battlegrounds.tsx#BattlegroundHeroDetailPage": 374,
+    "src/features/Battlegrounds.tsx#BattlegroundHeroDetailPage": 368,
     "src/features/Battlegrounds.tsx#BattlegroundHeroMediaLightbox": 171,
     "src/features/Battlegrounds.tsx#BattlegroundHeroTierList": 266,
     "src/features/Battlegrounds.tsx#BattlegroundTierCard": 140,

@@ -1221,6 +1221,44 @@
   align-items: stretch;
 }
 
+.arena-app-battlegrounds .bg-hero-media-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+/* Keep the normal/golden pair together; power gets a full row until all three fit. */
+.arena-app-battlegrounds .bg-hero-media-grid > :first-child:nth-last-child(3) {
+  grid-column: 1 / -1;
+}
+
+.arena-app-battlegrounds .bg-hero-media-grid > .bg-hero-action-card > div {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.arena-app-battlegrounds .bg-hero-media-grid > .bg-hero-action-card > div > div:first-child {
+  width: min(100%, 96px);
+  margin-inline: auto;
+}
+
+@media (min-width: 480px) and (max-width: 1535px) {
+  .arena-app-battlegrounds .bg-hero-media-grid > :first-child:nth-last-child(3) > div {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1536px) {
+  .arena-app-battlegrounds .bg-hero-media-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .arena-app-battlegrounds .bg-hero-media-grid > :first-child:nth-last-child(3) { grid-column: auto; }
+}
+
+@media (max-width: 479px) {
+  .arena-app-battlegrounds .bg-hero-media-grid { grid-template-columns: minmax(0, 1fr); }
+  .arena-app-battlegrounds .bg-hero-media-grid > .bg-hero-action-card > div {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+}
+
 .arena-app-battlegrounds .bg-hero-detail-page .bg-hero-reliquary .bg-hero-stat-plaque {
   min-width: 0;
   border-color: rgba(216, 171, 76, 0.34) !important;

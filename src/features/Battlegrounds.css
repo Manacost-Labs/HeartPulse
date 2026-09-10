@@ -1,26 +1,43 @@
-.battleground-hero-card:hover .battleground-hero-related-card,
-.battleground-hero-card:focus-within .battleground-hero-related-card,
-.battleground-hero-card:focus-visible .battleground-hero-related-card {
-  --tw-translate-x: 0;
-  --tw-translate-y: 0;
+.battleground-hero-related-card {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition: opacity 240ms ease-out, transform 240ms ease-out, visibility 0s 240ms;
+}
+
+.battleground-hero-main {
+  transition: transform 240ms ease-out;
+}
+
+.battleground-hero-card:not([data-preview-dismissed='true']):focus-visible .battleground-hero-related-card {
   opacity: 1;
-  translate: var(--tw-translate-x) var(--tw-translate-y);
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition-delay: 0s;
 }
 
-.battleground-hero-card[data-has-related="true"]:hover .battleground-hero-main,
-.battleground-hero-card[data-has-related="true"]:focus-within .battleground-hero-main,
-.battleground-hero-card[data-has-related="true"]:focus-visible .battleground-hero-main {
-  --tw-translate-x: -2.5rem;
-  --tw-translate-y: 0;
-  translate: var(--tw-translate-x) var(--tw-translate-y);
+.battleground-hero-card[data-has-related='true']:not([data-preview-dismissed='true']):focus-visible .battleground-hero-main {
+  transform: translateX(-1.5rem);
 }
 
-.battleground-hero-card[data-has-related="false"]:hover .battleground-hero-main,
-.battleground-hero-card[data-has-related="false"]:focus-within .battleground-hero-main,
-.battleground-hero-card[data-has-related="false"]:focus-visible .battleground-hero-main {
-  --tw-translate-x: 0;
-  --tw-translate-y: -0.25rem;
-  translate: var(--tw-translate-x) var(--tw-translate-y);
+@media (hover: hover) and (pointer: fine) {
+  .battleground-hero-card:not([data-preview-dismissed='true']):hover .battleground-hero-related-card {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+    transition-delay: 40ms;
+  }
+
+  .battleground-hero-card[data-has-related='true']:not([data-preview-dismissed='true']):hover .battleground-hero-main {
+    transform: translateX(-1.5rem);
+  }
+
+  .battleground-hero-card[data-has-related='false']:hover .battleground-hero-main {
+    transform: translateY(-2px);
+  }
 }
 
 .bg-hero-bar-row {
@@ -31,22 +48,15 @@
   .bg-hero-bar-row {
     grid-template-columns: 92px 1fr 74px;
   }
-
-  .battleground-hero-card[data-has-related="true"]:hover .battleground-hero-main,
-  .battleground-hero-card[data-has-related="true"]:focus-within .battleground-hero-main,
-  .battleground-hero-card[data-has-related="true"]:focus-visible .battleground-hero-main {
-    --tw-translate-x: -3rem;
-    --tw-translate-y: 0;
-    translate: var(--tw-translate-x) var(--tw-translate-y);
-  }
 }
 
-@media (min-width: 96rem) {
-  .battleground-hero-card[data-has-related="true"]:hover .battleground-hero-main,
-  .battleground-hero-card[data-has-related="true"]:focus-within .battleground-hero-main,
-  .battleground-hero-card[data-has-related="true"]:focus-visible .battleground-hero-main {
-    --tw-translate-x: -3.5rem;
-    --tw-translate-y: 0;
-    translate: var(--tw-translate-x) var(--tw-translate-y);
+@media (prefers-reduced-motion: reduce) {
+  .battleground-hero-card .battleground-hero-related-card,
+  .battleground-hero-card .battleground-hero-main {
+    transition: none;
+  }
+
+  .battleground-hero-card[data-has-related]:not([data-preview-dismissed='true']):is(:hover, :focus-visible) .battleground-hero-main {
+    transform: none;
   }
 }

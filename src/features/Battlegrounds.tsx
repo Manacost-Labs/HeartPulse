@@ -32,6 +32,8 @@ import {
 } from './battlegroundHeroImages';
 import { BattlegroundTrinketTierRow } from './BattlegroundTrinketTierRow';
 import { BattlegroundTrinketViewToggle } from './BattlegroundTrinketViewToggle';
+import { BattlegroundHeroCard as MemoBattlegroundHeroCard } from './BattlegroundHeroCard';
+import { BattlegroundHeroStatistics } from './BattlegroundHeroStatistics';
 import '../route-parchment.css';
 import './Battlegrounds.css';
 import '../battlegrounds-shell.css';
@@ -1028,86 +1030,12 @@ function bgStrategyLightboxItems(entry: any, tier: string): BattlegroundLightbox
   return bgStrategyPreviewEntries(entry, tier).map((item) => item.lightbox);
 }
 
-function BattlegroundHeroHoverCard({ card, label, className = '' }: { card: BattlegroundHeroRelatedCard; label: string; className?: string }) {
-  const image = card.image || card.imageGold || card.cropImage || '';
-  if (!image) return null;
-  return (
-    <div className={`battleground-hero-related-card pointer-events-none absolute top-0 z-20 w-[136px] translate-y-2 opacity-0 drop-shadow-[0_18px_22px_rgba(36,24,10,0.35)] transition duration-200 sm:w-[156px] xl:w-[174px] ${className}`}>
-      <img
-        src={image}
-        alt={`${label}: ${card.name}`}
-        loading="lazy"
-        decoding="async"
-        className="w-full object-contain"
-      />
-      <span className="sr-only">{label}: {card.name}</span>
-    </div>
-  );
-}
 
 function bgHeroDetailPathFromPath(path: string): string {
   const match = path.match(/^\/heroes\/(\d+)\/?$/);
   return match?.[1] || '';
 }
 
-function BattlegroundHeroCard({ hero, tier, onNavigate, tourId }: {
-  hero: BattlegroundHeroTierEntry;
-  tier: string;
-  onNavigate: (path: string) => void;
-  tourId?: string;
-}) {
-  const hasHoverCards = Boolean(hero.heroPower);
-  const href = hero.dbfId ? `/heroes/${hero.dbfId}` : '/heroes';
-  return (
-    <a
-      href={href}
-      onClick={(event) => {
-        if (!hero.dbfId) return;
-        event.preventDefault();
-        onNavigate(href);
-      }}
-      data-has-related={hasHoverCards ? 'true' : 'false'}
-      data-tour-id={tourId}
-      className="battleground-hero-card relative flex min-h-[252px] flex-col items-center overflow-visible rounded-lg p-3 text-center transition-all duration-200 hover:z-30 focus:z-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d7b66a]"
-    >
-      <div className="relative flex w-full justify-center overflow-visible">
-        <img
-          src={publicResourceUrl(hero.image)}
-          alt={hero.name}
-          loading="lazy"
-          decoding="async"
-          className="battleground-hero-main aspect-[3/4] w-full max-w-[184px] object-contain drop-shadow-[0_7px_14px_rgba(0,0,0,0.38)] transition duration-200"
-        />
-        {hero.heroPower && (
-          <BattlegroundHeroHoverCard
-            card={hero.heroPower}
-            label="Сила героя"
-            className="right-1 delay-75 sm:right-2"
-          />
-        )}
-      </div>
-      <h4 className="mt-2 min-h-[2.2rem] font-hs text-sm leading-tight text-[#3d2a1e]">{hero.name}</h4>
-      <div className="mt-2 flex flex-wrap justify-center gap-1.5">
-        <span className="rounded-md border border-[#d7b66a]/70 bg-[#fff3c4] px-2.5 py-1 font-hs text-sm leading-none text-[#3d2a1e] shadow-sm">
-          {hero.averagePlace || '—'}
-        </span>
-        {hero.popularity && (
-          <span className="rounded-md border border-[#bfdbfe] bg-[#dbeafe] px-2.5 py-1 text-xs font-bold leading-none text-[#1e3a8a] shadow-sm">
-            {hero.popularity}
-          </span>
-        )}
-      </div>
-      {hero.heroPower && (
-        <span className="sr-only">
-          Сила героя: {hero.heroPower.name}.
-          {tier ? ` Тир ${tier}.` : ''}
-        </span>
-      )}
-    </a>
-  );
-}
-
-const MemoBattlegroundHeroCard = memo(BattlegroundHeroCard);
 
 function bgHeroMetricNumber(value: unknown): number | null {
   const parsed = Number.parseFloat(String(value || '').replace(',', '.').replace('%', ''));
@@ -2926,7 +2854,7 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
             </div>
             {heroMediaItems.length > 0 && (
               <div
-                className="mt-4 grid gap-3 lg:grid-cols-2 2xl:grid-cols-3"
+                className="bg-hero-media-grid mt-4"
                 data-tour-id="bg-hero-detail-media"
               >
                 {heroPower && <BattlegroundHeroMediaCard title="Сила героя" card={heroPower} onOpen={() => openMediaGallery(heroMediaItems, 0)} />}
@@ -2954,64 +2882,58 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
         tourId="bg-hero-detail-patches"
       />
 
-      <div className="grid items-start gap-5 xl:grid-cols-[1fr_1fr]">
-        <div className="grid gap-5">
+      <BattlegroundHeroStatistics
+        overview={
           <BattlegroundHeroBarChart
             title="Распределение по местам"
             rows={placementRows}
-            tourId="bg-hero-detail-placement"
           />
+        }
+        tavern={<div className="grid items-start gap-4 xl:grid-cols-2">
+          <BattlegroundHeroBarChart title="Когда улучшать таверну" rows={tavernByTurnRows} />
+          <BattlegroundHeroTavernStack rows={stats.tavern_up || []} />
+        </div>}
+        power={<>
           <BattlegroundHeroLineChart rows={stats.hero_power_by_turn || []} />
-        </div>
-        <BattlegroundHeroBarChart title="Когда улучшать таверну" rows={tavernByTurnRows} />
-      </div>
-
-      <BattlegroundHeroCompositionLineup
-        composition={stats.best_composition}
-        cards={cards}
-        tourId="bg-hero-detail-compositions"
+          <BattlegroundHeroDataTable
+            title="Сила героя по таверне"
+            rows={(stats.hero_power || []).slice(0, 24)}
+            columns={[
+              { key: 'turn', label: 'Ход' },
+              { key: 'tavern_tier', label: 'Таверна', render: row => <span className="inline-flex items-center gap-2"><img src={bgDetailTavernIcon(row.tavern_tier)} alt="" className="h-6 w-6" />{row.tavern_tier}</span> },
+              { key: 'gold', label: 'Золото' },
+              { key: 'invoked_rate', label: 'Сила героя', render: row => bgDetailFormatPercent(row.invoked_rate) },
+              { key: 'times_invoked', label: 'Прожато', render: row => bgFormatCount(row.times_invoked) },
+              { key: 'total_data_points', label: 'Точек', render: row => bgFormatCount(row.total_data_points) },
+            ]}
+          />
+        </>}
+        compositions={<>
+          <BattlegroundHeroCompositionLineup composition={stats.best_composition} cards={cards} />
+          <BattlegroundHeroTopCompositions rows={topComps} />
+          {finalForm.length > 0 && (
+            <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
+              <h3 className="font-hs text-xl text-[#3d2a1e]">Ключевые существа финального стола</h3>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                {finalForm.map((item: any, index: number) => {
+                  const card = cards[String(item.dbfId || item.minion_dbf_id)] || {};
+                  const minionName = card.name || item.name || 'Существо';
+                  return (
+                    <div key={`${item.dbfId}-${item.tavern_tier}-${index}`} className="flex items-center gap-3 rounded-2xl border border-[#e2cf99] bg-[#fff9ed] p-3 shadow-sm">
+                      <img src={bgDetailTavernIcon(item.tavern_tier || card.tavern_tier)} alt="" className="h-9 w-9 object-contain" loading="lazy" />
+                      <div className="min-w-0 flex-1">
+                        <BattlegroundHeroMinionNameTooltip name={minionName} card={card} />
+                        <p className="text-xs text-[#6b4c2a]">{item.at_least_one || '—'} игр · золотые {item.at_least_one_premium || '—'}</p>
+                      </div>
+                      <img src={bgDetailRaceIcon(card.creature_type_name || card.creature_type)} alt="" className="h-8 w-8 object-contain" loading="lazy" />
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+        </>}
       />
-
-      <div className="grid items-start gap-5 xl:grid-cols-2">
-        <BattlegroundHeroTopCompositions rows={topComps} />
-        <BattlegroundHeroTavernStack rows={stats.tavern_up || []} />
-      </div>
-
-      <BattlegroundHeroDataTable
-        title="Сила героя по таверне"
-        tourId="bg-hero-detail-tables"
-        rows={(stats.hero_power || []).slice(0, 24)}
-        columns={[
-          { key: 'turn', label: 'Ход' },
-          { key: 'tavern_tier', label: 'Таверна', render: row => <span className="inline-flex items-center gap-2"><img src={bgDetailTavernIcon(row.tavern_tier)} alt="" className="h-6 w-6" />{row.tavern_tier}</span> },
-          { key: 'gold', label: 'Золото' },
-          { key: 'invoked_rate', label: 'Сила героя', render: row => bgDetailFormatPercent(row.invoked_rate) },
-          { key: 'times_invoked', label: 'Прожато', render: row => bgFormatCount(row.times_invoked) },
-          { key: 'total_data_points', label: 'Точек', render: row => bgFormatCount(row.total_data_points) },
-        ]}
-      />
-
-      {finalForm.length > 0 && (
-        <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
-          <h3 className="font-hs text-xl text-[#3d2a1e]">Ключевые существа финального стола</h3>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {finalForm.map((item: any, index: number) => {
-              const card = cards[String(item.dbfId || item.minion_dbf_id)] || {};
-              const minionName = card.name || item.name || 'Существо';
-              return (
-                <div key={`${item.dbfId}-${item.tavern_tier}-${index}`} className="flex items-center gap-3 rounded-2xl border border-[#e2cf99] bg-[#fff9ed] p-3 shadow-sm">
-                  <img src={bgDetailTavernIcon(item.tavern_tier || card.tavern_tier)} alt="" className="h-9 w-9 object-contain" loading="lazy" />
-                  <div className="min-w-0 flex-1">
-                    <BattlegroundHeroMinionNameTooltip name={minionName} card={card} />
-                    <p className="text-xs text-[#6b4c2a]">{item.at_least_one || '—'} игр · золотые {item.at_least_one_premium || '—'}</p>
-                  </div>
-                  <img src={bgDetailRaceIcon(card.creature_type_name || card.creature_type)} alt="" className="h-8 w-8 object-contain" loading="lazy" />
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
 
       {skins.length > 0 && (
         <section className="bg-hero-ledger-panel rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
