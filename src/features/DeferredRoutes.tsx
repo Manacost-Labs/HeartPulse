@@ -18,6 +18,7 @@ import FAQSection from '../components/FAQSection';
 import TierlistEarlyStatsNotice from './TierlistEarlyStatsNotice';
 import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
 import { ArenaTierListSearchIntro } from '../modules/searchLanding/arena';
+import { WinrateMeterFill } from './WinrateMeterFill';
 const SocialLoginLinks = React.lazy(() => import('./SocialLoginLinks'));
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -729,7 +730,7 @@ type HSCardProps = {
   onPreviewEnd?: () => void;
 };
 
-const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabled = false, onPreviewStart, onPreviewEnd }) => {
+export const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabled = false, onPreviewStart, onPreviewEnd }) => {
   const localImageSrc = card.cardId ? hsImgUrl(card.cardId) : null;
   // Multi-step fallback: responsive Russian proxy first, then source images and English render.
   const sources = useMemo(() => uniqueSources([
@@ -775,7 +776,7 @@ const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabled = fa
         onBlur={hidePreview}
         aria-label={`Открыть карту ${card.name}`}
       >
-        <div className="hs-tier-card-inner transform transition-all duration-200 group-hover:scale-110 group-hover:z-10">
+        <div className="hs-tier-card-inner">
           <img src={thumbSrc} srcSet={responsiveSrcSet} sizes="(max-width: 640px) 46vw, 230px"
             alt={card.name} loading="lazy" decoding="async" width={230} height={349}
             onError={handleErr} />
@@ -800,7 +801,7 @@ const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabled = fa
       onBlur={hidePreview}
       aria-label={`Открыть карту ${card.name}`}
     >
-      <div className="hs-tier-card-inner hs-tier-card-inner--fallback relative rounded-xl flex flex-col items-center justify-center text-center transform transition-transform group-hover:scale-105 group-hover:z-10 overflow-hidden border-2 border-[#1a110a] bg-[#2c1e16]">
+      <div className="hs-tier-card-inner hs-tier-card-inner--fallback relative rounded-xl flex flex-col items-center justify-center text-center overflow-hidden border-2 border-[#1a110a] bg-[#2c1e16]">
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/40 to-black/90" />
         {/* Mana cost */}
         {card.cost !== undefined && (
@@ -882,15 +883,6 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
   subscriptionLoading: boolean;
   onRefreshSubscription: () => Promise<SubscriptionStatus | null>;
 }) {
-  // Trigger bar fill animation after mount
-  const [barsVisible, setBarsVisible] = useState(false);
-  useEffect(() => {
-    if (!loading) {
-      const t = setTimeout(() => setBarsVisible(true), 80);
-      return () => clearTimeout(t);
-    }
-  }, [loading]);
-
   const maxWinrate = useMemo(() => Math.max(...classes.map(c => c.winrate), 1), [classes]);
   const paywallActive = !subscriptionLoading && !hasSubscriptionEntitlement(subscriptionStatus, 'arena');
 
@@ -957,18 +949,15 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
             ))
           : classes.map((cls, index) => {
               const icon    = CLASS_ICON_BY_ID[cls.id];
-              const barPct  = barsVisible ? Math.max((cls.winrate / maxWinrate) * 100, 6) : 0;
-              const delay   = `${0.05 + index * 0.06}s`;
-              const barDelay = `${0.2 + index * 0.06}s`;
+              const barPct = Math.max((cls.winrate / maxWinrate) * 100, 6);
 
               return (
                 <div
                   key={cls.id}
                   data-rank={index + 1}
                   data-tour-id={index === 0 ? 'arena-classes-ranking' : undefined}
-                  className="arena-class-row anim-fade-up row-hover group relative grid items-center gap-2.5 rounded-2xl overflow-hidden cursor-default sm:flex sm:gap-4"
+                  className="arena-class-row group relative grid items-center gap-2.5 rounded-2xl overflow-hidden cursor-default sm:flex sm:gap-4"
                   style={{
-                    animationDelay: delay,
                     background: 'linear-gradient(135deg, #ede0c0 0%, #e2cfa0 50%, #d8c090 100%)',
                     border: '1.5px solid #c9a86c',
                     padding: '10px 14px',
@@ -1002,27 +991,7 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
                       border: '1.5px solid #0a0502',
                     }}>
                     {/* Fill */}
-                    <div className="arena-class-meter-fill absolute inset-y-0 left-0 flex items-center overflow-hidden rounded-full"
-                      style={{
-                        width:      `${barPct}%`,
-                        transition: `width 1.1s cubic-bezier(0.4, 0, 0.2, 1) ${barDelay}`,
-                        backgroundImage: `linear-gradient(180deg, ${cls.color}ff 0%, ${cls.color}cc 100%)`,
-                        boxShadow: `inset 0 2px 5px rgba(255,255,255,0.25), inset 0 -2px 5px rgba(0,0,0,0.35), 0 0 12px ${cls.color}66`,
-                      }}>
-                      {/* Shine stripe */}
-                      <div className="absolute inset-x-0 top-0 h-[40%] rounded-t-full"
-                        style={{ background: 'linear-gradient(180deg,rgba(255,255,255,0.3),transparent)' }} />
-                      {/* Winrate label inside bar */}
-                      <span className="relative z-10 pl-3 font-bold text-xs sm:text-sm tracking-wide"
-                        style={{
-                          color: cls.textDark ? 'rgba(0,0,0,0.85)' : '#fff',
-                          textShadow: cls.textDark ? 'none' : '0 1px 4px rgba(0,0,0,0.9)',
-                          opacity: barsVisible ? 1 : 0,
-                          transition: `opacity 0.3s ease ${parseFloat(barDelay) + 0.6}s`,
-                        }}>
-                        {cls.winrate.toFixed(1)}%
-                      </span>
-                    </div>
+                    <WinrateMeterFill color={cls.color} label={`${cls.winrate.toFixed(1)}%`} scale={barPct / 100} />
                   </div>
 
                   {/* Games count */}

@@ -9,7 +9,7 @@ const moduleBudgets = [
   },
   {
     path: 'src/features/DeferredRoutes.tsx',
-    maxLines: 4_829,
+    maxLines: 4_789,
     owner: 'Arena route bundle',
   },
   {
