@@ -31,13 +31,15 @@ async function assertStableGeometryAndChart(page, width) {
   const immediate = await page.evaluate(() => {
     const label = document.querySelector('.arena-class-meter-label');
     const fill = document.querySelector('.arena-class-meter-fill');
-    return { labelText: label?.textContent, labelOpacity: label ? getComputedStyle(label).opacity : '', labelBackground: label ? getComputedStyle(label).backgroundColor : '', fillTransition: fill ? getComputedStyle(fill).transitionProperty : '', fillDuration: fill ? getComputedStyle(fill).transitionDuration : '' };
+    const utilityProbe = document.querySelector('.arena-motion-tailwind-probe');
+    return { labelText: label?.textContent, labelOpacity: label ? getComputedStyle(label).opacity : '', labelBackground: label ? getComputedStyle(label).backgroundColor : '', fillTransition: fill ? getComputedStyle(fill).transitionProperty : '', fillDuration: fill ? getComputedStyle(fill).transitionDuration : '', utilityPadding: utilityProbe ? getComputedStyle(utilityProbe).paddingTop : '' };
   });
   assert.equal(immediate.labelText, '54.2%', `${width}px label is readable from the first frame`);
   assert.equal(immediate.labelOpacity, '1', `${width}px label is never hidden during fill entrance`);
   assert.notEqual(immediate.labelBackground, 'rgba(0, 0, 0, 0)', `${width}px label has a stable contrast backing`);
   assert.ok(!immediate.fillTransition.includes('width'), `${width}px fill does not transition width`);
   assert.ok(parseFloat(immediate.fillDuration) <= 0.4, `${width}px fill entrance completes within 400ms`);
+  assert.equal(immediate.utilityPadding, '12px', `${width}px Tailwind p-3 survives DeferredRoutes CSS loading`);
   const cards = await page.$$eval('.hs-tier-card', nodes => nodes.map(card => {
     const outer = card.getBoundingClientRect();
     const inner = card.querySelector('.hs-tier-card-inner')?.getBoundingClientRect();
