@@ -26,7 +26,7 @@ import {
   type TrinketView,
 } from './battlegroundTrinkets';
 import { optimizedBattlegroundThumbnailUrl } from './battlegroundImageUrls';
-import { battlegroundFullCardImage, battlegroundHeroCardImage, preferredBattlegroundHeroImage } from './battlegroundHeroImages';
+import { battlegroundFullCardImage, battlegroundHeroCardImage, preferredBattlegroundGoldenBuddyImage, preferredBattlegroundHeroImage } from './battlegroundHeroImages';
 import { BattlegroundTrinketTierRow } from './BattlegroundTrinketTierRow';
 import { BattlegroundTrinketViewToggle } from './BattlegroundTrinketViewToggle';
 import { BattlegroundHeroCard as MemoBattlegroundHeroCard } from './BattlegroundHeroCard';
@@ -566,8 +566,7 @@ function bgHeroLibraryForDetail(libraryHero: any): any {
     });
   const buddyCard = libraryHero?.buddy?.card;
   const goldenBuddy = libraryHero?.buddy?.golden || buddyCard?.golden || null;
-  const goldenBuddyImage = battlegroundFullCardImage(goldenBuddy?.card_id, goldenBuddy?.image_gold || goldenBuddy?.image)
-    || battlegroundHeroCardImage(goldenBuddy?.card_id);
+  const goldenBuddyImage = preferredBattlegroundGoldenBuddyImage(buddyCard, goldenBuddy);
   const heroImage = battlegroundHeroCardImage(libraryHero?.card_id) || libraryHero?.images?.hero || BG_FALLBACK_ICON;
   return {
     ...libraryHero,

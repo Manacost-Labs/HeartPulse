@@ -8,6 +8,7 @@ import {
 import { publicResourceUrl } from '../shared/publicResourceUrl.js';
 import {
   battlegroundFullCardImage,
+  preferredBattlegroundGoldenBuddyImage,
   preferredBattlegroundHeroImage,
 } from '../src/features/battlegroundHeroImages.js';
 import { optimizedBattlegroundThumbnailUrl } from '../src/features/battlegroundImageUrls.js';
@@ -133,6 +134,30 @@ assert.equal(
   battlegroundFullCardImage('TB_BaconShop_HERO_56_Buddy', 'https://hearthstone.wiki.gg/images/Valestraz.png'),
   'https://hearthstone.wiki.gg/images/Valestraz.png',
   'unrelated providers must not be rewritten',
+);
+
+assert.equal(
+  battlegroundFullCardImage(
+    'TB_BaconShop_HERO_56_Buddy_G',
+    '/uploads/cards/TB_BaconShop_HERO_56_Buddy_G.png?v=current',
+  ),
+  'https://api.kolodahearthstone.com/uploads/cards/TB_BaconShop_HERO_56_Buddy_G.png?v=current',
+  'relative first-party card paths must retain their API origin before same-origin proxying',
+);
+
+assert.equal(
+  preferredBattlegroundGoldenBuddyImage(
+    {
+      card_id: 'TB_BaconShop_HERO_56_Buddy',
+      image_gold: '/uploads/cards/TB_BaconShop_HERO_56_Buddy_G.png?v=current',
+    },
+    {
+      card_id: 'TB_BaconShop_HERO_56_Buddy_G',
+      image: 'https://hearthstone.wiki.gg/images/Valestraz_golden.png',
+    },
+  ),
+  'https://api.kolodahearthstone.com/uploads/cards/TB_BaconShop_HERO_56_Buddy_G.png?v=current',
+  'the current full golden card on buddy.card must win over the nested wiki portrait',
 );
 
 console.log('battleground image optimization tests passed');

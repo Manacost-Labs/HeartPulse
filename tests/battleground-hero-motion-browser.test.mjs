@@ -44,6 +44,12 @@ test('hero detail keeps buddies aligned and statistics navigable without a chart
       Math.abs((buddyMediaGeometry[0].width / buddyMediaGeometry[0].height) - (512 / 776)) < 0.01,
       'buddy artwork frame preserves the full-card ratio',
     );
+    const buddyImageSources = await page.$$eval(
+      '[data-tour-id="bg-hero-detail-media"] button .bg-hero-action-card__image',
+      images => images.slice(1).map(image => image.getAttribute('src')),
+    );
+    assert.notEqual(buddyImageSources[0], buddyImageSources[1], 'normal and golden buddies render distinct card versions');
+    assert.match(buddyImageSources[1] || '', /%23d9ab49/, 'golden buddy prefers its full golden card over the nested portrait');
     await page.waitForSelector('[role="tablist"][aria-label="Статистика героя"]', { timeout: 3000 });
     const visiblePanels = () => page.$$eval('[role="tabpanel"]', panels => panels.filter(panel => !panel.hidden).length);
     assert.equal(await visiblePanels(), 1);

@@ -1,7 +1,11 @@
 const heroImage = '/bg-legacy/heroes_bg/Alexstrasza.png';
-const cardImage = '/bg-legacy/heroes_bg/Alexstrasza.png';
-const power = { name: 'Королева драконов', image: cardImage, text: 'После улучшения таверны до 5 уровня вы раскапываете двух драконов.' };
-const buddy = { name: 'Валестраз', image: cardImage, text: 'Боевой клич: вы получаете дракона.' };
+const powerImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="512" height="776"%3E%3Crect width="512" height="776" fill="%2375405a"/%3E%3C/svg%3E';
+const buddyImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="512" height="776"%3E%3Crect width="512" height="776" fill="%235b718f"/%3E%3C/svg%3E';
+const goldenBuddyImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="512" height="776"%3E%3Crect width="512" height="776" fill="%23d9ab49"/%3E%3C/svg%3E';
+const goldenWikiPortrait = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="500" height="650"%3E%3Crect width="500" height="650" fill="%238f536d"/%3E%3C/svg%3E';
+const power = { card_id: 'TB_BaconShop_HP_042', name: 'Королева драконов', image: powerImage, text: 'После улучшения таверны до 5 уровня вы раскапываете двух драконов.' };
+const buddy = { card_id: 'TB_BaconShop_HERO_56_Buddy', name: 'Валестраз', image: buddyImage, image_gold: goldenBuddyImage, text: 'Боевой клич: вы получаете дракона.' };
+const goldenBuddy = { card_id: 'TB_BaconShop_HERO_56_Buddy_G', name: 'Валестраз', image: goldenWikiPortrait, image_gold: goldenBuddyImage, text: 'Боевой клич: вы получаете двух драконов.' };
 
 export const heroMotionDetail = {
   ok: true,
@@ -19,7 +23,7 @@ export const heroMotionDetail = {
     name: { ru: 'Алекстраза', en: 'Alexstrasza' },
     images: { hero: heroImage, full_art: heroImage },
     hero_power: { card: power },
-    buddy: { card: buddy, golden: { ...buddy, image_gold: cardImage, text: 'Боевой клич: вы получаете двух драконов.' } },
+    buddy: { card: buddy, golden: goldenBuddy },
     armor: { normal: 10, duos: 8 },
   },
   cards: {},
