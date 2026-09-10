@@ -11,7 +11,7 @@ test('hero detail keeps buddies aligned and statistics navigable without a chart
     await server.listen();
     const port = server.httpServer.address().port;
     const executablePath = [process.env.CHROMIUM_PATH, '/usr/bin/chromium', '/usr/bin/google-chrome'].find(path => path && existsSync(path));
-    browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4'] });
     const page = await browser.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -55,6 +55,13 @@ test('hero detail keeps buddies aligned and statistics navigable without a chart
     await page.setViewport({ width: 1280, height: 900 });
     await page.goto(`http://127.0.0.1:${port}/tests/fixtures/battleground-hero-motion.html?path=/heroes`);
     await page.waitForSelector('.battleground-hero-card');
+    assert.ok(await page.evaluate(() => matchMedia('(hover: hover) and (pointer: fine)').matches), 'desktop test has an actual fine-pointer media state');
+    await page.hover('.battleground-hero-card');
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('.battleground-hero-related-card')).opacity === '1');
+    await page.hover('.battleground-hero-related-card');
+    assert.equal(await page.$eval('.battleground-hero-related-card', element => getComputedStyle(element).opacity), '1', 'power remains hoverable');
+    await page.mouse.move(0, 0);
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('.battleground-hero-related-card')).opacity === '0');
     await page.focus('.battleground-hero-card');
     await page.waitForFunction(() => getComputedStyle(document.querySelector('.battleground-hero-related-card')).opacity === '1');
     await page.keyboard.press('Escape');

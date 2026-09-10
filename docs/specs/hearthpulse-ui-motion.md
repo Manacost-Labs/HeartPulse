@@ -53,6 +53,11 @@ project design are the design reference. Production content requires a
 subscription in a clean browser: local deterministic fixtures validate private
 UI, while live anonymous checks cannot prove a subscriber session.
 
+The hero browser regression explicitly enables and asserts a fine pointer:
+headless Chromium on a server without an input device otherwise reports no hover
+capability even at desktop viewport sizes. Keyboard and reduced-motion checks
+are exercised separately from the pointer reveal.
+
 Documentation impact: this contract, the Arena slice contract and CHANGELOG.
 The project mandates more skills than the global normal-task budget; instructions
 are loaded by phase. The generic increment skill's optional definition-of-done
