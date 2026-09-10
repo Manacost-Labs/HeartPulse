@@ -19,6 +19,7 @@ API payloads and subscription permissions stay unchanged.
 - Hero summary metrics remain visible. Four labelled tabs expose Overview,
   Hero power, Tavern and Compositions, with one statistics panel at a time.
   Data is retained, including tables, empty states and the existing gallery.
+  A section with no source rows shows an explicit empty message, not a blank tab.
 - Tabs support arrow keys, Home/End and a visible focus indicator. Page-tour
   targets remain discoverable. Reduced-motion users receive static end states.
 - No horizontal page overflow at 320, 390, 768, 1280 and 1440 CSS pixels.

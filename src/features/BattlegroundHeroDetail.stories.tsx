@@ -32,3 +32,14 @@ export const BuddyPairAndCharts: Story = {
     await expect(args.onNavigate).toHaveBeenCalledWith('/heroes');
   },
 };
+
+export const EmptyStatistics: Story = {
+  args: { path: '/heroes/61489' },
+  play: async ({ canvas }) => {
+    await canvas.findByRole('tablist', { name: 'Статистика героя' });
+    for (const name of ['Обзор', 'Сила героя', 'Таверна', 'Составы']) {
+      await userEvent.click(canvas.getByRole('tab', { name }));
+      await expect(canvas.getByRole('tabpanel')).toHaveTextContent('Для этого раздела пока нет статистики.');
+    }
+  },
+};

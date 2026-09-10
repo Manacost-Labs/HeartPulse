@@ -2883,17 +2883,17 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
       />
 
       <BattlegroundHeroStatistics
-        overview={
+        overview={placementRows.length ?
           <BattlegroundHeroBarChart
             title="Распределение по местам"
             rows={placementRows}
           />
-        }
-        tavern={<div className="grid items-start gap-4 xl:grid-cols-2">
+        : null}
+        tavern={(tavernByTurnRows.length || stats.tavern_up?.length) ? <div className="grid items-start gap-4 xl:grid-cols-2">
           <BattlegroundHeroBarChart title="Когда улучшать таверну" rows={tavernByTurnRows} />
           <BattlegroundHeroTavernStack rows={stats.tavern_up || []} />
-        </div>}
-        power={<>
+        </div> : null}
+        power={(stats.hero_power_by_turn?.length || stats.hero_power?.length) ? <>
           <BattlegroundHeroLineChart rows={stats.hero_power_by_turn || []} />
           <BattlegroundHeroDataTable
             title="Сила героя по таверне"
@@ -2907,8 +2907,8 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
               { key: 'total_data_points', label: 'Точек', render: row => bgFormatCount(row.total_data_points) },
             ]}
           />
-        </>}
-        compositions={<>
+        </> : null}
+        compositions={(topComps.length || stats.best_composition?.lineup?.length || finalForm.length) ? <>
           <BattlegroundHeroCompositionLineup composition={stats.best_composition} cards={cards} />
           <BattlegroundHeroTopCompositions rows={topComps} />
           {finalForm.length > 0 && (
@@ -2932,7 +2932,7 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate }: { dbfId: string; onNa
               </div>
             </section>
           )}
-        </>}
+        </> : null}
       />
 
       {skins.length > 0 && (

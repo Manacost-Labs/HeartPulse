@@ -65,6 +65,12 @@ test('hero detail keeps buddies aligned and statistics navigable without a chart
     assert.ok(duration.split(',').every(value => parseFloat(value) <= 0.001), 'reduced motion disables power movement');
     await page.click('.battleground-hero-card');
     await page.waitForSelector('.bg-hero-detail-page');
+    await page.goto(`http://127.0.0.1:${port}/tests/fixtures/battleground-hero-motion.html?path=/heroes/61489`);
+    await page.waitForSelector('[role="tab"]');
+    for (const label of ['Обзор', 'Сила героя', 'Таверна', 'Составы']) {
+      await page.click(`[role="tab"][data-stat-tab="${label}"]`);
+      assert.match(await page.$eval('[role="tabpanel"]:not([hidden])', panel => panel.textContent), /Для этого раздела пока нет статистики/, `empty ${label} is explained`);
+    }
     assert.deepEqual(errors, []);
   } finally {
     await browser?.close();
