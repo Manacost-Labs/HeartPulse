@@ -27,6 +27,7 @@ import {
 } from './battlegroundTrinkets';
 import { optimizedBattlegroundThumbnailUrl } from './battlegroundImageUrls';
 import {
+  battlegroundFullCardImage,
   battlegroundHeroCardImage,
   preferredBattlegroundHeroImage,
 } from './battlegroundHeroImages';
@@ -569,7 +570,10 @@ function bgHeroLibraryForDetail(libraryHero: any): any {
     });
   const buddyCard = libraryHero?.buddy?.card;
   const goldenBuddy = libraryHero?.buddy?.golden || buddyCard?.golden || null;
-  const goldenBuddyImage = battlegroundHeroCardImage(goldenBuddy?.card_id);
+  const goldenBuddyImage = battlegroundFullCardImage(
+    goldenBuddy?.card_id,
+    goldenBuddy?.image_gold || goldenBuddy?.image,
+  ) || battlegroundHeroCardImage(goldenBuddy?.card_id);
   const heroImage = battlegroundHeroCardImage(libraryHero?.card_id) || libraryHero?.images?.hero || BG_FALLBACK_ICON;
   return {
     ...libraryHero,
@@ -1532,7 +1536,11 @@ function bgDetailImageSources(...sources: Array<string | null | undefined>): str
 
 function bgDetailCardSources(card: any, tone: 'normal' | 'gold' = 'normal'): string[] {
   if (!card) return [];
+  const primaryImage = tone === 'gold'
+    ? card?.image_gold || card?.image
+    : card?.image;
   return bgDetailImageSources(
+    battlegroundFullCardImage(card?.card_id, primaryImage),
     tone === 'gold' ? card?.image_gold : null,
     card?.image,
     card?.image_gold,
@@ -1828,12 +1836,12 @@ function BattlegroundHeroMediaCard({
       }`}
     >
       <p className="bg-hero-action-card__kicker font-hs text-xs uppercase tracking-[0.16em]">{title}</p>
-      <div className="mt-2 grid items-start gap-3 sm:grid-cols-[96px_1fr]">
+      <div className="bg-hero-action-card__body mt-2 grid items-start gap-3 sm:grid-cols-[96px_1fr]">
         <BattlegroundHeroImage
           sources={sources}
           alt={card.name || title}
-          className="mx-auto w-[86px] sm:mx-0 sm:w-[96px]"
-          imgClassName="w-full object-contain drop-shadow-[0_12px_18px_rgba(61,42,30,0.18)] transition-transform duration-200 group-hover:scale-[1.03]"
+          className="bg-hero-action-card__media"
+          imgClassName="bg-hero-action-card__image"
         />
         <div className="min-w-0">
           <h3 className="bg-hero-action-card__title font-hs text-lg leading-tight text-[#3d2a1e]">{card.name || title}</h3>

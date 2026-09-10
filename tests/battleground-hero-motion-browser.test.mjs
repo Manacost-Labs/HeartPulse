@@ -27,6 +27,23 @@ test('hero detail keeps buddies aligned and statistics navigable without a chart
     assert.ok(Math.abs(buddyGeometry[0].y - buddyGeometry[1].y) < 1, 'normal and golden buddy belong on the same row');
     assert.ok(Math.abs(buddyGeometry[0].width - buddyGeometry[1].width) < 1, 'buddy cards have equal width');
     assert.ok(Math.abs(buddyGeometry[0].height - buddyGeometry[1].height) < 1, 'buddy cards have equal height');
+    const buddyMediaGeometry = await page.$$eval(
+      '[data-tour-id="bg-hero-detail-media"] button .bg-hero-action-card__media',
+      media => media.slice(1).map(element => {
+        const { width, height } = element.getBoundingClientRect();
+        return { width, height };
+      }),
+    );
+    assert.equal(buddyMediaGeometry.length, 2);
+    assert.ok(
+      Math.abs(buddyMediaGeometry[0].width - buddyMediaGeometry[1].width) < 1
+        && Math.abs(buddyMediaGeometry[0].height - buddyMediaGeometry[1].height) < 1,
+      'normal and golden buddy artwork use the same visible frame',
+    );
+    assert.ok(
+      Math.abs((buddyMediaGeometry[0].width / buddyMediaGeometry[0].height) - (512 / 776)) < 0.01,
+      'buddy artwork frame preserves the full-card ratio',
+    );
     await page.waitForSelector('[role="tablist"][aria-label="Статистика героя"]', { timeout: 3000 });
     const visiblePanels = () => page.$$eval('[role="tabpanel"]', panels => panels.filter(panel => !panel.hidden).length);
     assert.equal(await visiblePanels(), 1);

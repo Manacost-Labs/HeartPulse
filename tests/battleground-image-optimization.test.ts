@@ -6,7 +6,10 @@ import {
   optimizeBattlegroundImage,
 } from '../server/battlegroundImageOptimization.js';
 import { publicResourceUrl } from '../shared/publicResourceUrl.js';
-import { preferredBattlegroundHeroImage } from '../src/features/battlegroundHeroImages.js';
+import {
+  battlegroundFullCardImage,
+  preferredBattlegroundHeroImage,
+} from '../src/features/battlegroundHeroImages.js';
 import { optimizedBattlegroundThumbnailUrl } from '../src/features/battlegroundImageUrls.js';
 
 const transform = battlegroundImageTransformFromQuery({
@@ -106,6 +109,30 @@ assert.equal(
   }),
   '/arena-logo-icon.webp',
   'non-string upstream image values must not become invalid DOM URLs',
+);
+
+assert.equal(
+  battlegroundFullCardImage(
+    'TB_BaconShop_HERO_56_Buddy',
+    'https://api.kolodahearthstone.com/uploads/framed/TB_BaconShop_HERO_56_Buddy.png?v=2026-09-10%2015%3A17%3A10',
+  ),
+  'https://api.kolodahearthstone.com/uploads/cards/TB_BaconShop_HERO_56_Buddy.png?v=2026-09-10%2015%3A17%3A10',
+  'buddy media must use the current full card while preserving the data refresh version',
+);
+
+assert.equal(
+  battlegroundFullCardImage(
+    'TB_BaconShop_HERO_56_Buddy_G',
+    'https://api.kolodahearthstone.com/uploads/cards/TB_BaconShop_HERO_56_Buddy_G.png?v=gold',
+  ),
+  'https://api.kolodahearthstone.com/uploads/cards/TB_BaconShop_HERO_56_Buddy_G.png?v=gold',
+  'already-full golden buddy media must remain unchanged',
+);
+
+assert.equal(
+  battlegroundFullCardImage('TB_BaconShop_HERO_56_Buddy', 'https://hearthstone.wiki.gg/images/Valestraz.png'),
+  'https://hearthstone.wiki.gg/images/Valestraz.png',
+  'unrelated providers must not be rewritten',
 );
 
 console.log('battleground image optimization tests passed');

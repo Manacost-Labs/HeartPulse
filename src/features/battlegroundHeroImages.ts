@@ -20,6 +20,32 @@ function imageUrl(value: unknown): string {
 }
 
 /**
+ * The details API exposes a small framed portrait for some buddies alongside
+ * the current full-card asset. Keep the API-provided cache version, but switch
+ * only this first-party framed URL to its matching full-card representation.
+ */
+export function battlegroundFullCardImage(cardId: unknown, sourceImage: unknown): string {
+  const source = imageUrl(sourceImage);
+  const normalizedCardId = String(cardId || '').trim();
+  if (!source || !/^[A-Za-z0-9_]+$/.test(normalizedCardId)) return source;
+
+  try {
+    const url = new URL(source);
+    if (
+      url.protocol !== 'https:'
+      || url.hostname !== 'api.kolodahearthstone.com'
+      || !url.pathname.startsWith('/uploads/framed/')
+    ) {
+      return source;
+    }
+    url.pathname = `/uploads/cards/${encodeURIComponent(normalizedCardId)}.png`;
+    return url.toString();
+  } catch {
+    return source;
+  }
+}
+
+/**
  * Preserves the dedicated Battlegrounds hero portrait supplied by the stats
  * and library feeds. The generic card-image cache is only a final fallback:
  * Blizzard renders several legacy hero IDs as hero-power card frames there.
