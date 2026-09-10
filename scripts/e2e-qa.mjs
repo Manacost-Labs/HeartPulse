@@ -2767,17 +2767,27 @@ for (const route of authenticatedRoutes) {
         await page.mouse.move(1, 1);
       }
       if (route.path === '/tierlist' && device === 'desktop') {
+        await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
         await page.hover('.hs-tier-card');
-        await page.waitForFunction(() => getComputedStyle(document.querySelector('.hs-tier-card .hs-tier-card-inner')).filter.includes('drop-shadow'));
+        await page.waitForFunction(() => {
+          const transform = getComputedStyle(document.querySelector('.hs-tier-card .hs-tier-card-inner')).transform;
+          if (transform === 'none') return false;
+          const matrix = new DOMMatrixReadOnly(transform);
+          return matrix.m22 > 1.001 || matrix.m42 < -0.1;
+        });
         const rarityHoverState = await page.$eval('.hs-tier-card', card => ({
-          rarity: card.getAttribute('data-rarity') || '',
-          glow: getComputedStyle(card).getPropertyValue('--tier-card-rarity-glow').trim(),
           cardFilter: getComputedStyle(card.querySelector('.hs-tier-card-inner')).filter,
+          cardTransform: getComputedStyle(card.querySelector('.hs-tier-card-inner')).transform,
+          transitionProperty: getComputedStyle(card.querySelector('.hs-tier-card-inner')).transitionProperty,
+          transitionDuration: getComputedStyle(card.querySelector('.hs-tier-card-inner')).transitionDuration,
+          transitionTiming: getComputedStyle(card.querySelector('.hs-tier-card-inner')).transitionTimingFunction,
         }));
-        if (rarityHoverState.rarity !== 'legendary'
-          || !rarityHoverState.glow.startsWith('rgba(255, 151, 38,')
-          || !rarityHoverState.cardFilter.includes('drop-shadow')) {
-          failures.push(`/tierlist [desktop]: rarity hover glow regressed (${JSON.stringify(rarityHoverState)})`);
+        if (rarityHoverState.cardFilter !== 'none'
+          || rarityHoverState.cardTransform === 'none'
+          || rarityHoverState.transitionProperty !== 'transform'
+          || rarityHoverState.transitionDuration !== '0.28s'
+          || !rarityHoverState.transitionTiming.includes('cubic-bezier')) {
+          failures.push(`/tierlist [desktop]: smooth hover motion regressed (${JSON.stringify(rarityHoverState)})`);
         }
         await page.mouse.move(1, 1);
         await page.waitForSelector('.card-stats-tooltip--parchment', { hidden: true, timeout: 5_000 });
