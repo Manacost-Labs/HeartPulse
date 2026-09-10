@@ -485,6 +485,8 @@
 
   .hs-tier-card-inner {
     width: 100%;
+    max-width: 230px;
+    aspect-ratio: 512 / 776;
     filter: none !important;
     transition:
       transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
@@ -523,6 +525,7 @@
 
   .hs-tier-card:hover .hs-tier-card-inner,
   .hs-tier-card:focus-within .hs-tier-card-inner {
+    transform: translateY(-2px) scale(1.02);
     filter: drop-shadow(0 12px 10px rgba(56, 29, 12, 0.28)) drop-shadow(0 0 9px var(--tier-card-rarity-glow)) !important;
     will-change: transform;
   }
@@ -530,15 +533,12 @@
   .hs-tier-card-inner > img {
     display: block;
     width: 100%;
-    max-width: 230px;
-    aspect-ratio: 512 / 776;
+    height: 100%;
     object-fit: contain;
   }
 
   .hs-tier-card-inner--fallback {
-    max-width: 230px;
-    height: auto;
-    aspect-ratio: 512 / 776;
+    height: 100%;
   }
 
   .hs-tier-card-inner img,
@@ -561,8 +561,14 @@
       gap: 0.45rem;
       padding-inline: 0;
     }
-    .hs-tier-card-inner > img,
-    .hs-tier-card-inner--fallback { max-width: 190px; }
+    .hs-tier-card-inner { max-width: 190px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hs-tier-card-inner {
+      transition: none !important;
+      transform: none !important;
+    }
   }
 
   .space-y-10 > .anim-fade-up .flex-shrink-0.rounded-full.border-\[3px\] {

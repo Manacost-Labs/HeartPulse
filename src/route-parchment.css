@@ -890,7 +890,22 @@
 }
 
 .arena-app-winrates .arena-class-meter-fill {
+  transform-origin: left center;
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
   border-radius: 1px !important;
+}
+
+.arena-app-winrates .arena-class-meter-label {
+  display: block;
+  min-width: 3.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arena-app-winrates .arena-class-meter-fill {
+    transition: none;
+    will-change: auto;
+  }
 }
 
 .arena-app-winrates section[aria-label='Смотри также'] {
