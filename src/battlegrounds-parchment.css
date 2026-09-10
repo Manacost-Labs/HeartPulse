@@ -1233,7 +1233,7 @@
 }
 
 .arena-app-battlegrounds .bg-hero-action-card__body {
-  grid-template-columns: 8rem minmax(0, 1fr) !important;
+  grid-template-columns: 8rem minmax(0, 1fr);
   align-items: center;
 }
 
@@ -1253,10 +1253,20 @@
   transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+@media (min-width: 1536px) {
+  .arena-app-battlegrounds .bg-hero-media-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .arena-app-battlegrounds .bg-hero-media-grid > :first-child:nth-last-child(3) {
+    grid-column: auto;
+  }
+}
+
 @media (max-width: 479px) {
   .arena-app-battlegrounds .bg-hero-media-grid { grid-template-columns: minmax(0, 1fr); }
   .arena-app-battlegrounds .bg-hero-action-card__body {
-    grid-template-columns: 4.5rem minmax(0, 1fr) !important;
+    grid-template-columns: 4.5rem minmax(0, 1fr);
   }
 
   .arena-app-battlegrounds .bg-hero-action-card__media {
@@ -1294,6 +1304,8 @@
   color: #f5e2b9 !important;
   background: #100b0c !important;
   box-shadow: 0 11px 20px rgba(13, 5, 7, 0.3) !important;
+  backface-visibility: hidden;
+  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms ease-out;
 }
 
 .arena-app-battlegrounds .bg-hero-detail-page .bg-hero-reliquary .bg-hero-action-card--gold {
@@ -1302,8 +1314,12 @@
 
 .arena-app-battlegrounds .bg-hero-detail-page .bg-hero-reliquary .bg-hero-action-card:hover,
 .arena-app-battlegrounds .bg-hero-detail-page .bg-hero-reliquary .bg-hero-action-card:focus-visible {
-  filter: brightness(1.08);
+  transform: translate3d(0, -2px, 0);
   box-shadow: 0 14px 25px rgba(11, 4, 7, 0.42) !important;
+}
+
+.arena-app-battlegrounds .bg-hero-detail-page .bg-hero-action-card:is(:hover, :focus-visible) .bg-hero-action-card__image {
+  transform: scale(1.015);
 }
 
 .arena-app-battlegrounds .bg-hero-detail-page .bg-hero-reliquary .bg-hero-action-card > p:first-child {
@@ -2660,8 +2676,15 @@
   .arena-app-battlegrounds .bg-library-page [data-library-card-tile] img,
   .arena-app-battlegrounds .battleground-hero-card,
   .arena-app-battlegrounds .battleground-hero-card img,
+  .arena-app-battlegrounds .bg-hero-action-card,
+  .arena-app-battlegrounds .bg-hero-action-card__image,
   .arena-app-battlegrounds .bg-hero-distribution__place > span {
     transition-duration: 0.01ms !important;
+  }
+
+  .arena-app-battlegrounds .bg-hero-detail-page .bg-hero-action-card:is(:hover, :focus-visible),
+  .arena-app-battlegrounds .bg-hero-detail-page .bg-hero-action-card:is(:hover, :focus-visible) .bg-hero-action-card__image {
+    transform: none;
   }
 
 }

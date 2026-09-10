@@ -991,7 +991,7 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
                       border: '1.5px solid #0a0502',
                     }}>
                     {/* Fill */}
-                    <WinrateMeterFill color={cls.color} label={`${cls.winrate.toFixed(1)}%`} scale={barPct / 100} />
+                    <WinrateMeterFill color={cls.color} delayMs={Math.min(index * 22, 176)} label={`${cls.winrate.toFixed(1)}%`} scale={barPct / 100} />
                   </div>
 
                   {/* Games count */}

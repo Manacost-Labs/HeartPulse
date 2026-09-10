@@ -488,9 +488,8 @@
     max-width: 230px;
     aspect-ratio: 512 / 776;
     filter: none !important;
-    transition:
-      transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
-      filter 0.22s ease !important;
+    backface-visibility: hidden;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .tierlist-card-grid {
@@ -515,6 +514,21 @@
     width: 100%;
     max-width: 230px;
     place-items: center;
+    isolation: isolate;
+  }
+
+  .hs-tier-card::after {
+    position: absolute;
+    z-index: -1;
+    inset: 8% 7%;
+    border-radius: 18%;
+    background: var(--tier-card-rarity-glow);
+    content: '';
+    opacity: 0;
+    filter: blur(16px);
+    pointer-events: none;
+    transform: scale(0.94);
+    transition: opacity 0.24s ease-out, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .hs-tier-card[data-rarity='free'],
@@ -525,9 +539,14 @@
 
   .hs-tier-card:hover .hs-tier-card-inner,
   .hs-tier-card:focus-within .hs-tier-card-inner {
-    transform: translateY(-2px) scale(1.02);
-    filter: drop-shadow(0 12px 10px rgba(56, 29, 12, 0.28)) drop-shadow(0 0 9px var(--tier-card-rarity-glow)) !important;
+    transform: translate3d(0, -2px, 0) scale(1.012);
     will-change: transform;
+  }
+
+  .hs-tier-card:hover::after,
+  .hs-tier-card:focus-within::after {
+    opacity: 0.24;
+    transform: scale(1);
   }
 
   .hs-tier-card-inner > img {
@@ -565,9 +584,15 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .hs-tier-card-inner {
-      transition: none !important;
-      transform: none !important;
+    .hs-tier-card .hs-tier-card-inner,
+    .hs-tier-card:is(:hover, :focus-within) .hs-tier-card-inner {
+      transition: none;
+      transform: none;
+    }
+
+    .hs-tier-card::after {
+      transition: none;
+      transform: none;
     }
   }
 

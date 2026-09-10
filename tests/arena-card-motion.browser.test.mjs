@@ -32,13 +32,29 @@ async function assertStableGeometryAndChart(page, width) {
     const label = document.querySelector('.arena-class-meter-label');
     const fill = document.querySelector('.arena-class-meter-fill');
     const utilityProbe = document.querySelector('.arena-motion-tailwind-probe');
-    return { labelText: label?.textContent, labelOpacity: label ? getComputedStyle(label).opacity : '', labelBackground: label ? getComputedStyle(label).backgroundColor : '', fillTransition: fill ? getComputedStyle(fill).transitionProperty : '', fillDuration: fill ? getComputedStyle(fill).transitionDuration : '', utilityPadding: utilityProbe ? getComputedStyle(utilityProbe).paddingTop : '' };
+    const cardFrame = document.querySelector('.hs-tier-card-inner');
+    return {
+      labelText: label?.textContent,
+      labelOpacity: label ? getComputedStyle(label).opacity : '',
+      labelBackground: label ? getComputedStyle(label).backgroundColor : '',
+      fillTransition: fill ? getComputedStyle(fill).transitionProperty : '',
+      fillDuration: fill ? getComputedStyle(fill).transitionDuration : '',
+      fillDelays: [...document.querySelectorAll('.arena-class-meter-fill')].map(element => getComputedStyle(element).transitionDelay),
+      cardTransition: cardFrame ? getComputedStyle(cardFrame).transitionProperty : '',
+      cardDuration: cardFrame ? getComputedStyle(cardFrame).transitionDuration : '',
+      cardTiming: cardFrame ? getComputedStyle(cardFrame).transitionTimingFunction : '',
+      utilityPadding: utilityProbe ? getComputedStyle(utilityProbe).paddingTop : '',
+    };
   });
   assert.equal(immediate.labelText, '54.2%', `${width}px label is readable from the first frame`);
   assert.equal(immediate.labelOpacity, '1', `${width}px label is never hidden during fill entrance`);
   assert.notEqual(immediate.labelBackground, 'rgba(0, 0, 0, 0)', `${width}px label has a stable contrast backing`);
   assert.ok(!immediate.fillTransition.includes('width'), `${width}px fill does not transition width`);
   assert.ok(parseFloat(immediate.fillDuration) <= 0.4, `${width}px fill entrance completes within 400ms`);
+  assert.ok(immediate.fillDelays.length >= 2 && parseFloat(immediate.fillDelays[1]) > parseFloat(immediate.fillDelays[0]), `${width}px chart bars enter with a subtle stagger`);
+  assert.equal(immediate.cardTransition, 'transform', `${width}px card hover animates only the compositor-friendly transform`);
+  assert.ok(parseFloat(immediate.cardDuration) >= 0.24 && parseFloat(immediate.cardDuration) <= 0.32, `${width}px card hover is soft without feeling delayed`);
+  assert.match(immediate.cardTiming, /cubic-bezier/, `${width}px card hover uses a smooth easing curve`);
   assert.equal(immediate.utilityPadding, '12px', `${width}px Tailwind p-3 survives DeferredRoutes CSS loading`);
   const cards = await page.$$eval('.hs-tier-card', nodes => nodes.map(card => {
     const outer = card.getBoundingClientRect();

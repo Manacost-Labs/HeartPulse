@@ -26,11 +26,7 @@ import {
   type TrinketView,
 } from './battlegroundTrinkets';
 import { optimizedBattlegroundThumbnailUrl } from './battlegroundImageUrls';
-import {
-  battlegroundFullCardImage,
-  battlegroundHeroCardImage,
-  preferredBattlegroundHeroImage,
-} from './battlegroundHeroImages';
+import { battlegroundFullCardImage, battlegroundHeroCardImage, preferredBattlegroundHeroImage } from './battlegroundHeroImages';
 import { BattlegroundTrinketTierRow } from './BattlegroundTrinketTierRow';
 import { BattlegroundTrinketViewToggle } from './BattlegroundTrinketViewToggle';
 import { BattlegroundHeroCard as MemoBattlegroundHeroCard } from './BattlegroundHeroCard';
@@ -570,10 +566,8 @@ function bgHeroLibraryForDetail(libraryHero: any): any {
     });
   const buddyCard = libraryHero?.buddy?.card;
   const goldenBuddy = libraryHero?.buddy?.golden || buddyCard?.golden || null;
-  const goldenBuddyImage = battlegroundFullCardImage(
-    goldenBuddy?.card_id,
-    goldenBuddy?.image_gold || goldenBuddy?.image,
-  ) || battlegroundHeroCardImage(goldenBuddy?.card_id);
+  const goldenBuddyImage = battlegroundFullCardImage(goldenBuddy?.card_id, goldenBuddy?.image_gold || goldenBuddy?.image)
+    || battlegroundHeroCardImage(goldenBuddy?.card_id);
   const heroImage = battlegroundHeroCardImage(libraryHero?.card_id) || libraryHero?.images?.hero || BG_FALLBACK_ICON;
   return {
     ...libraryHero,
@@ -1536,9 +1530,7 @@ function bgDetailImageSources(...sources: Array<string | null | undefined>): str
 
 function bgDetailCardSources(card: any, tone: 'normal' | 'gold' = 'normal'): string[] {
   if (!card) return [];
-  const primaryImage = tone === 'gold'
-    ? card?.image_gold || card?.image
-    : card?.image;
+  const primaryImage = tone === 'gold' ? card?.image_gold || card?.image : card?.image;
   return bgDetailImageSources(
     battlegroundFullCardImage(card?.card_id, primaryImage),
     tone === 'gold' ? card?.image_gold : null,
@@ -1829,7 +1821,7 @@ function BattlegroundHeroMediaCard({
     <button
       type="button"
       onClick={onOpen}
-      className={`bg-hero-action-card group rounded-2xl border p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(61,42,30,0.1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b58a2f] ${
+      className={`bg-hero-action-card group rounded-2xl border p-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b58a2f] ${
         tone === 'gold'
           ? 'bg-hero-action-card--gold border-[#d6a74c] bg-[linear-gradient(135deg,#fff2cf,#eed19c)]'
           : 'border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffdf8,#f8eed9)]'
@@ -1869,7 +1861,7 @@ function BattlegroundHeroBarChart({ rows, title, valueLabel = 'Доля', tourId
   const max = Math.max(1, ...rows.map(row => row.value));
   const activeRow = rows[activeIndex] || rows[0] || null;
   return (
-    <section className="rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
+    <section className="bg-hero-chart-card rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
       <div
         className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"
         data-tour-id={tourId}
@@ -1924,7 +1916,7 @@ function BattlegroundHeroTavernStack({ rows }: { rows: any[] }) {
   });
   const turns = Array.from(byTurn.keys()).sort((a, b) => a - b);
   return (
-    <section className="rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
+    <section className="bg-hero-chart-card rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="font-hs text-xl text-[#3d2a1e]">Таверна по ходам</h3>
@@ -1996,7 +1988,7 @@ function BattlegroundHeroLineChart({ rows }: { rows: any[] }) {
     return `${index ? 'L' : 'M'} ${x.toFixed(1)} ${y.toFixed(1)}`;
   }).join(' ');
   return (
-    <section className="rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
+    <section className="bg-hero-chart-card rounded-2xl border border-[#d7b66a]/65 bg-[linear-gradient(180deg,#fffef9,#f4ead4)] p-4 shadow-[0_12px_28px_rgba(61,42,30,0.08)]">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <h3 className="font-hs text-xl text-[#3d2a1e]">Когда прожимать силу героя</h3>
         {activePoint && (

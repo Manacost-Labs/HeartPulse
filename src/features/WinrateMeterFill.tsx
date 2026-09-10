@@ -3,11 +3,12 @@ import './WinrateMeterFill.css';
 
 type WinrateMeterFillProps = {
   color: string;
+  delayMs?: number;
   label: string;
   scale: number;
 };
 
-export function WinrateMeterFill({ color, label, scale }: WinrateMeterFillProps) {
+export function WinrateMeterFill({ color, delayMs = 0, label, scale }: WinrateMeterFillProps) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -22,6 +23,7 @@ export function WinrateMeterFill({ color, label, scale }: WinrateMeterFillProps)
         style={{
           width: '100%',
           transform: `scaleX(${visible ? scale : 0})`,
+          transitionDelay: `${delayMs}ms`,
           backgroundImage: `linear-gradient(180deg, ${color}ff 0%, ${color}cc 100%)`,
           boxShadow: `inset 0 2px 5px rgba(255,255,255,0.25), inset 0 -2px 5px rgba(0,0,0,0.35), 0 0 12px ${color}66`,
         }}

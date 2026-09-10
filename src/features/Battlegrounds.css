@@ -2,12 +2,18 @@
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transform: translateY(4px);
-  transition: opacity 240ms ease-out, transform 240ms ease-out, visibility 0s 240ms;
+  transform: translate3d(10px, 0, 0) scale(0.975);
+  backface-visibility: hidden;
+  transition: opacity 280ms cubic-bezier(0.16, 1, 0.3, 1), transform 280ms cubic-bezier(0.16, 1, 0.3, 1), visibility 0s 280ms;
 }
 
 .battleground-hero-main {
-  transition: transform 240ms ease-out;
+  backface-visibility: hidden;
+  transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.battleground-hero-card {
+  transition: border-color 240ms ease-out, box-shadow 280ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .battleground-hero-card:not([data-preview-dismissed='true']):focus-visible .battleground-hero-related-card {
@@ -19,7 +25,7 @@
 }
 
 .battleground-hero-card[data-has-related='true']:not([data-preview-dismissed='true']):focus-visible .battleground-hero-main {
-  transform: translateX(-1.5rem);
+  transform: translate3d(-0.75rem, 0, 0);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -32,7 +38,7 @@
   }
 
   .battleground-hero-card[data-has-related='true']:not([data-preview-dismissed='true']):hover .battleground-hero-main {
-    transform: translateX(-1.5rem);
+    transform: translate3d(-0.75rem, 0, 0);
   }
 
   .battleground-hero-card[data-has-related='false']:hover .battleground-hero-main {
@@ -46,11 +52,12 @@
 
 @media (min-width: 40rem) {
   .bg-hero-bar-row {
-    grid-template-columns: 92px 1fr 74px;
+    grid-template-columns: 92px minmax(0, 1fr) 74px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .battleground-hero-card,
   .battleground-hero-card .battleground-hero-related-card,
   .battleground-hero-card .battleground-hero-main {
     transition: none;

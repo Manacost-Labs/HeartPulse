@@ -1,5 +1,8 @@
 .bg-hero-statistics {
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
+  overflow-x: clip;
   color: var(--arena-ink);
 }
 
@@ -37,8 +40,39 @@
 }
 
 .bg-hero-statistics [role='tabpanel'][hidden] { display: none; }
-.bg-hero-statistics__content { display: grid; gap: 1rem; min-width: 0; }
+.bg-hero-statistics [role='tabpanel'] {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  animation: bg-hero-stat-panel-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.bg-hero-statistics__content {
+  display: grid;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  gap: 1rem;
+}
+
+.bg-hero-statistics__content > * {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.bg-hero-statistics .bg-hero-chart-card {
+  width: min(100%, 72rem);
+  min-width: 0;
+  justify-self: center;
+  overflow: hidden;
+}
+
+@keyframes bg-hero-stat-panel-in {
+  from { opacity: 0; transform: translate3d(0, 5px, 0); }
+  to { opacity: 1; transform: none; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .bg-hero-statistics__tabs button { transition: none; }
+  .bg-hero-statistics [role='tabpanel'] { animation: none; }
 }
