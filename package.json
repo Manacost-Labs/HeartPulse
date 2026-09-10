@@ -235,7 +235,7 @@
     "react-dom": "^19.0.0",
     "redis": "^4.7.1",
     "sanitize-html": "2.17.7",
-    "sharp": "0.35.3",
+    "sharp": "0.35.4",
     "web-vitals": "^6.0.0"
   },
   "devDependencies": {
@@ -267,6 +267,7 @@
     "js-yaml": "5.2.2",
     "postcss": "8.5.23",
     "qs": "6.16.0",
+    "smol-toml": "1.8.0",
     "valibot": "1.4.2"
   },
   "description": "Russian Hearthstone Arena and Battlegrounds analytics platform"
