@@ -3,7 +3,7 @@ import type { IncomingMessage } from 'node:http';
 import { Router, urlencoded } from 'express';
 import rateLimit from 'express-rate-limit';
 import type { BrowserIdentityOptions } from './configuration.js';
-import { createBrowserIdentityProvider } from './provider.js';
+import { createBrowserIdentityProvider, offlineAccessRequested, readerGrantPolicy, REMEMBERED_READER_GRANT_TTL_SECONDS } from './provider.js';
 import { createSessionBindings } from './sessionBindings.js';
 import { interactionView } from './interactionView.js';
 
@@ -57,13 +57,16 @@ export function createBrowserIdentityRuntime(options: RuntimeOptions) {
       }
       const client = options.clients.find(item => item.id === interaction.params.client_id);
       if (!client) { res.sendStatus(400); return; }
+      const requestedScope = typeof interaction.params.scope === 'string' ? interaction.params.scope : undefined;
+      const grantPolicy = readerGrantPolicy(client.id, requestedScope);
       const expected = csrf(interaction.uid, account.sessionHash);
       if (req.method === 'GET') {
         // Native form POSTs need a non-opaque Origin; cross-origin referrers stay suppressed.
         res.set('Referrer-Policy', 'same-origin');
         // Browsers also apply form-action to the authorization redirect back to this client.
         res.set('Content-Security-Policy', `default-src 'none'; style-src 'unsafe-inline'; form-action 'self' ${client.redirectUri}; frame-ancestors 'none'; base-uri 'none'`);
-        res.type('html').send(interactionView(account.displayName ?? '', new URL(client.redirectUri).hostname, expected)); return;
+        res.type('html').send(interactionView(account.displayName ?? '', new URL(client.redirectUri).hostname,
+          expected, grantPolicy.rememberLogin)); return;
       }
       const supplied = typeof req.body?.csrf === 'string' ? req.body.csrf : '';
       if (req.get('Origin') !== origin || req.get('Sec-Fetch-Site') === 'cross-site'
@@ -74,10 +77,15 @@ export function createBrowserIdentityRuntime(options: RuntimeOptions) {
         await provider.interactionFinished(req, res, { error: 'access_denied' }, { mergeWithLastSubmission: false }); return;
       }
       if (req.body.decision !== 'continue') { res.sendStatus(400); return; }
+      if (offlineAccessRequested(requestedScope) && !grantPolicy.rememberLogin) {
+        await provider.interactionFinished(req, res, { error: 'invalid_scope',
+          error_description: 'offline_access is unavailable for this client' }, { mergeWithLastSubmission: false }); return;
+      }
       const grant = new provider.Grant({ accountId: account.subject, clientId: client.id });
-      grant.addOIDCScope('openid profile');
+      grant.addOIDCScope(grantPolicy.rememberLogin ? 'openid profile offline_access' : 'openid profile');
       const grantId = await grant.save();
-      bindings.bind(grantId, account.subject, account.sessionHash);
+      bindings.bind(grantId, account.subject, account.sessionHash,
+        grantPolicy.rememberLogin ? REMEMBERED_READER_GRANT_TTL_SECONDS * 1000 : undefined);
       await provider.interactionFinished(req, res, {
         login: { accountId: account.subject }, consent: { grantId },
       }, { mergeWithLastSubmission: false });
