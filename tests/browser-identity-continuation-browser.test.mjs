@@ -70,12 +70,19 @@ function listen() {
 const chromiumPath = ['/usr/bin/chromium', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable']
   .find(existsSync);
 assert.ok(chromiumPath, 'Chromium/Chrome executable is required');
+const browserLaunchOptions = {
+  executablePath: chromiumPath,
+  headless: true,
+  args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+};
+assert.ok(browserLaunchOptions.args.includes('--disable-dev-shm-usage'),
+  'CI browser launch must avoid constrained shared memory');
 
 let browser;
 try {
   const port = await listen();
   const origin = `http://127.0.0.1:${port}`;
-  browser = await puppeteer.launch({ executablePath: chromiumPath, headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+  browser = await puppeteer.launch(browserLaunchOptions);
   const page = await browser.newPage();
 
   await page.goto(`${origin}/?login#reader_interaction=${interaction}`, { waitUntil: 'networkidle0' });
