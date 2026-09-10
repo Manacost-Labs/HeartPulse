@@ -21,3 +21,13 @@
 @media (prefers-reduced-motion: reduce) {
   .arena-class-meter-fill { transition: none; }
 }
+
+@media (forced-colors: active) {
+  .arena-class-meter-label {
+    color: CanvasText;
+    background: Canvas;
+    border-color: CanvasText;
+    box-shadow: none;
+    text-shadow: none;
+  }
+}

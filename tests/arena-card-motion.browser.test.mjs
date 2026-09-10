@@ -79,6 +79,15 @@ try {
   assert.equal(reducedMotion.cardTransform, 'none', 'reduced-motion cards stay static on hover');
   assert.ok(parseFloat(reducedMotion.cardDuration) <= 0.001, 'reduced-motion cards do not animate perceptibly');
   assert.ok(parseFloat(reducedMotion.fillDuration) <= 0.001, 'reduced-motion chart fills do not animate perceptibly');
+  const mediaClient = await page.createCDPSession();
+  await mediaClient.send('Emulation.setEmulatedMedia', { features: [{ name: 'forced-colors', value: 'active' }] });
+  assert.ok(await page.evaluate(() => matchMedia('(forced-colors: active)').matches));
+  await page.addScriptTag({ path: 'node_modules/axe-core/axe.min.js' });
+  const contrast = await page.evaluate(async () => {
+    const result = await window.axe.run({ include: [['.arena-class-meter-label']] }, { runOnly: ['color-contrast'] });
+    return result.violations.map(violation => ({ id: violation.id, impact: violation.impact }));
+  });
+  assert.deepEqual(contrast, [], 'class percentages remain readable in forced colors');
   assert.deepEqual(runtimeErrors, []);
   console.log('Arena card-motion browser tests passed');
 } finally {

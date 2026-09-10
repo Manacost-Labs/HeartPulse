@@ -17,6 +17,8 @@ win-rate chart.
   transform-only transition no longer than 400 ms, while a contrast-backed
   percentage chip stays visible outside the transformed layer from first render.
 - `prefers-reduced-motion` disables card and fill transitions.
+- Forced-colors mode uses system canvas/text colors for percentage labels;
+  focused axe contrast checks and the canonical 200% reflow audit cover it.
 
 ## Verification
 
