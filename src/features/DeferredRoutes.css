@@ -509,44 +509,16 @@
   }
 
   .hs-tier-card {
-    --tier-card-rarity-glow: rgba(218, 235, 247, 0.82);
     display: grid;
     width: 100%;
     max-width: 230px;
     place-items: center;
-    isolation: isolate;
   }
-
-  .hs-tier-card::after {
-    position: absolute;
-    z-index: -1;
-    inset: 8% 7%;
-    border-radius: 18%;
-    background: var(--tier-card-rarity-glow);
-    content: '';
-    opacity: 0;
-    filter: blur(16px);
-    pointer-events: none;
-    transform: scale(0.94);
-    transition: opacity 0.24s ease-out, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .hs-tier-card[data-rarity='free'],
-  .hs-tier-card[data-rarity='common'] { --tier-card-rarity-glow: rgba(218, 235, 247, 0.82); }
-  .hs-tier-card[data-rarity='rare'] { --tier-card-rarity-glow: rgba(50, 139, 255, 0.9); }
-  .hs-tier-card[data-rarity='epic'] { --tier-card-rarity-glow: rgba(157, 78, 235, 0.9); }
-  .hs-tier-card[data-rarity='legendary'] { --tier-card-rarity-glow: rgba(255, 151, 38, 0.94); }
 
   .hs-tier-card:hover .hs-tier-card-inner,
   .hs-tier-card:focus-within .hs-tier-card-inner {
     transform: translate3d(0, -2px, 0) scale(1.012);
     will-change: transform;
-  }
-
-  .hs-tier-card:hover::after,
-  .hs-tier-card:focus-within::after {
-    opacity: 0.24;
-    transform: scale(1);
   }
 
   .hs-tier-card-inner > img {
@@ -586,11 +558,6 @@
   @media (prefers-reduced-motion: reduce) {
     .hs-tier-card .hs-tier-card-inner,
     .hs-tier-card:is(:hover, :focus-within) .hs-tier-card-inner {
-      transition: none;
-      transform: none;
-    }
-
-    .hs-tier-card::after {
       transition: none;
       transform: none;
     }
