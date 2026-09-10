@@ -2178,7 +2178,8 @@ async function assertResponsiveFixtureState(page, fixture, label) {
 const browserLaunchOptions = {
   headless: 'new',
   executablePath: CHROMIUM_PATH,
-  args: ['--no-sandbox', '--disable-dev-shm-usage'],
+  // Headless hosts may have no physical pointer; mobile pages still opt into touch below.
+  args: ['--no-sandbox', '--disable-dev-shm-usage', '--blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4'],
   dumpio: true,
 };
 
@@ -2369,7 +2370,11 @@ async function assertArenaDataRoutePresentation(page, path, device) {
     if (routePath === '/tierlist') {
       const grid = document.querySelector('.tierlist-card-grid');
       const firstCard = document.querySelector('.hs-tier-card');
+      const firstFrame = firstCard?.querySelector('.hs-tier-card-inner');
       const firstImage = firstCard?.querySelector('.hs-tier-card-inner > img');
+      const firstFrameStyle = firstFrame ? getComputedStyle(firstFrame) : null;
+      const frameRect = firstFrame?.getBoundingClientRect();
+      const imageRect = firstImage?.getBoundingClientRect();
       const firstImageStyle = firstImage ? getComputedStyle(firstImage) : null;
       return {
         kind: 'tierlist',
@@ -2383,8 +2388,10 @@ async function assertArenaDataRoutePresentation(page, path, device) {
         gridPaddingInline: grid ? getComputedStyle(grid).paddingInline : '',
         firstCardRarity: firstCard?.getAttribute('data-rarity') || '',
         firstCardMaxWidth: firstCard ? getComputedStyle(firstCard).maxWidth : '',
-        firstImageMaxWidth: firstImageStyle?.maxWidth || '',
-        firstImageAspectRatio: firstImageStyle?.aspectRatio || '',
+        firstFrameMaxWidth: firstFrameStyle?.maxWidth || '',
+        firstFrameAspectRatio: firstFrameStyle?.aspectRatio || '',
+        imageFillsFrame: Boolean(frameRect && imageRect && frameRect.width > 0 && frameRect.height > 0
+          && Math.abs(frameRect.width - imageRect.width) < 1 && Math.abs(frameRect.height - imageRect.height) < 1),
         firstImageObjectFit: firstImageStyle?.objectFit || '',
       };
     }
@@ -2460,12 +2467,13 @@ async function assertArenaDataRoutePresentation(page, path, device) {
     if (state.gridColumns !== expectedColumns || state.firstCardRarity !== 'legendary') {
       failures.push(`${prefix}: responsive card grid or rarity metadata changed (${JSON.stringify({ columns: state.gridColumns, rarity: state.firstCardRarity })})`);
     }
-    const expectedImageMaxWidth = device === 'desktop' ? '230px' : '190px';
+    const expectedFrameMaxWidth = device === 'desktop' ? '230px' : '190px';
     const expectedGap = device === 'desktop' ? '17.28px' : '7.2px';
     const expectedPaddingInline = device === 'desktop' ? '4.8px' : '0px';
     if (state.firstCardMaxWidth !== '230px'
-      || state.firstImageMaxWidth !== expectedImageMaxWidth
-      || state.firstImageAspectRatio !== '512 / 776'
+      || state.firstFrameMaxWidth !== expectedFrameMaxWidth
+      || state.firstFrameAspectRatio !== '512 / 776'
+      || !state.imageFillsFrame
       || state.firstImageObjectFit !== 'contain'
       || state.gridGap !== expectedGap
       || state.gridPaddingInline !== expectedPaddingInline) {
@@ -2718,6 +2726,9 @@ for (const route of authenticatedRoutes) {
         ), { timeout: 10_000 });
       }
       if (route.path === '/heroes' && device === 'desktop') {
+        if (!await page.evaluate(() => matchMedia('(hover: hover) and (pointer: fine)').matches)) {
+          throw new Error('Desktop hero hover QA requires a fine pointer');
+        }
         const hoverHeroSelector = '.battleground-hero-card[data-has-related="true"]';
         await page.waitForSelector(hoverHeroSelector, { visible: true, timeout: 10_000 });
         await page.hover(hoverHeroSelector);
