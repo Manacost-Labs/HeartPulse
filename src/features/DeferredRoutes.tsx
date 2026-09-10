@@ -18,6 +18,7 @@ import FAQSection from '../components/FAQSection';
 import TierlistEarlyStatsNotice from './TierlistEarlyStatsNotice';
 import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
 import { ArenaTierListSearchIntro } from '../modules/searchLanding/arena';
+import { WinrateMeterFill } from './WinrateMeterFill';
 const SocialLoginLinks = React.lazy(() => import('./SocialLoginLinks'));
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -823,30 +824,6 @@ export const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabl
   );
 }) as React.FC<HSCardProps>;
 
-const WinrateMeterFill: React.FC<{ color: string; scale: number }> = ({ color, scale }) => {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(frame);
-  }, []);
-
-  return (
-    <div
-      className="arena-class-meter-fill absolute inset-y-0 left-0 rounded-full"
-      style={{
-        width: '100%',
-        transform: `scaleX(${visible ? scale : 0})`,
-        backgroundImage: `linear-gradient(180deg, ${color}ff 0%, ${color}cc 100%)`,
-        boxShadow: `inset 0 2px 5px rgba(255,255,255,0.25), inset 0 -2px 5px rgba(0,0,0,0.35), 0 0 12px ${color}66`,
-      }}
-    >
-      <div className="absolute inset-x-0 top-0 h-[40%] rounded-t-full"
-        style={{ background: 'linear-gradient(180deg,rgba(255,255,255,0.3),transparent)' }} />
-    </div>
-  );
-};
-
 // ─── Skeleton / misc ──────────────────────────────────────────────────────────
 
 const Skeleton: React.FC<{ className?: string; style?: React.CSSProperties }> = ({ className = '', style }) => (
@@ -979,7 +956,7 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
                   key={cls.id}
                   data-rank={index + 1}
                   data-tour-id={index === 0 ? 'arena-classes-ranking' : undefined}
-                  className="arena-class-row row-hover group relative grid items-center gap-2.5 rounded-2xl overflow-hidden cursor-default sm:flex sm:gap-4"
+                  className="arena-class-row group relative grid items-center gap-2.5 rounded-2xl overflow-hidden cursor-default sm:flex sm:gap-4"
                   style={{
                     background: 'linear-gradient(135deg, #ede0c0 0%, #e2cfa0 50%, #d8c090 100%)',
                     border: '1.5px solid #c9a86c',
@@ -1014,14 +991,7 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
                       border: '1.5px solid #0a0502',
                     }}>
                     {/* Fill */}
-                    <WinrateMeterFill color={cls.color} scale={barPct / 100} />
-                    <span className="arena-class-meter-label relative z-10 pl-3 font-bold text-xs sm:text-sm tracking-wide"
-                      style={{
-                        color: cls.textDark ? 'rgba(0,0,0,0.85)' : '#fff',
-                        textShadow: cls.textDark ? 'none' : '0 1px 4px rgba(0,0,0,0.9)',
-                      }}>
-                      {cls.winrate.toFixed(1)}%
-                    </span>
+                    <WinrateMeterFill color={cls.color} label={`${cls.winrate.toFixed(1)}%`} scale={barPct / 100} />
                   </div>
 
                   {/* Games count */}

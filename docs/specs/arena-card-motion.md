@@ -13,9 +13,9 @@ win-rate chart.
 - Fine-pointer hover may lift a card by at most 2 px and scale it by at most
   1.02. Rarity drop-shadow glow, focus preview and touch/static behavior stay
   intact.
-- Class rows have no entrance stagger or horizontal movement. Their fill uses
-  a transform-only transition no longer than 400 ms, while the percentage is
-  visible outside the transformed layer from first render.
+- Class rows have no entrance stagger or hover movement. Their fill uses a
+  transform-only transition no longer than 400 ms, while a contrast-backed
+  percentage chip stays visible outside the transformed layer from first render.
 - `prefers-reduced-motion` disables card and fill transitions.
 
 ## Verification
