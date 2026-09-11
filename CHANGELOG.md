@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- IceCrow теперь может безопасно привязать устройство через HearthPulse и
+  отправлять идемпотентные ограниченные пакеты результатов Стандарта, Вольного
+  режима, Арены, Полей сражений и подтверждённых снимков коллекции.
+
 - Added a Cover administrator hand-off through HearthPulse. Cover now uses a
   host-only session cookie validated against the current HearthPulse admin and
   block state on every request, replacing the shared Basic Auth boundary.

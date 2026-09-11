@@ -78,6 +78,7 @@ const manager = createApplicationAuthManager({
       'catalog.read',
       'images.read',
       'statistics.read',
+      'tracker.write',
     ],
   }],
   verificationUri: 'https://arena.hs-manacost.ru/connect',
@@ -122,7 +123,7 @@ try {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       client_id: 'manacost-tracker',
-      scope: 'profile.read subscription.read catalog.read images.read statistics.read',
+      scope: 'profile.read subscription.read tracker.write',
     }),
   });
   assert.equal(startedResponse.status, 200);
@@ -147,7 +148,7 @@ try {
   assert.equal(inspected.authorization.clientName, 'Manacost Tracker');
   assert.deepEqual(
     inspected.authorization.scopes,
-    ['profile.read', 'subscription.read', 'catalog.read', 'images.read', 'statistics.read'],
+    ['profile.read', 'subscription.read', 'tracker.write'],
   );
   assert.equal(typeof inspected.authorization.expiresAt, 'number');
 

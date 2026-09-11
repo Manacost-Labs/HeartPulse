@@ -1,11 +1,10 @@
 import type { DatabaseSync } from 'node:sqlite';
 import {
-  APPLICATION_AUTH_SCOPES,
   type ApplicationAuthRepository,
-  type ApplicationAuthScope,
   type ApplicationDeviceAuthorization,
   type ApplicationToken,
 } from './model.js';
+import { APPLICATION_AUTH_SCOPES, type ApplicationAuthScope } from './scopes.js';
 
 export const APPLICATION_AUTH_TABLES_SQL = `
   CREATE TABLE IF NOT EXISTS application_device_authorizations (

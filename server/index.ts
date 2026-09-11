@@ -150,6 +150,11 @@ import { createCardImageRouter, normalizeCardImageId } from './cardImageRoutes.j
 import { createCardImageDependencies } from './app/createCardImageDependencies.js';
 import { installProcessLifecycle } from './app/lifecycle/processLifecycle.js';
 import { registerApplicationAuth } from './app/registerApplicationAuth.js';
+import {
+  registerTrackerIngestion,
+  registerTrackerIngestionRateLimit,
+} from './app/registerTrackerIngestion.js';
+import { TRACKER_MAX_BATCH_BYTES } from './modules/trackerIngestion/public.js';
 import { registerBrowserIdentity } from './app/registerBrowserIdentity.js';
 import { normalizeBoostyPaymentDates } from './modules/readerEntitlements/public.js';
 import { serializeApplicationProfileUser, serializeApplicationSubscription } from './app/applicationAuthProfile.js';
@@ -7460,10 +7465,12 @@ app.use(createUploadAuthorizationGuard({
   setPrivateNoStore,
 }));
 const browserIdentity = registerBrowserIdentity({ app, getDatabase: db, authCookieName: AUTH_COOKIE_NAME });
+registerTrackerIngestionRateLimit(app);
 app.use(createRouteAwareJsonParser({
   defaultLimit: process.env.API_JSON_BODY_LIMIT || '1mb',
   adminUploadMaxBytes: ADMIN_UPLOAD_MAX_BYTES,
   galleryUploadMaxBytes: GALLERY_UPLOAD_MAX_BYTES,
+  trackerBatchMaxBytes: TRACKER_MAX_BATCH_BYTES,
 }));
 app.use(express.urlencoded({ extended: false, limit: '16kb' }));
 
@@ -7479,6 +7486,7 @@ const cardImageRouterDependencies = createCardImageDependencies({
 });
 
 const applicationAuth = registerApplicationAuth({ app, getDatabase: db, appUrl: APP_URL, userAuth, resolveUser: userId => loadAuthStore().users.find(user => user.id === userId && !user.blockedAt) ?? null, serializeUser: user => serializeApplicationProfileUser(user, APP_URL), readSubscription: userId => serializeApplicationSubscription(readSubscriptionStatus(userId) ?? emptySubscriptionStatus()), emptySubscription: () => serializeApplicationSubscription(emptySubscriptionStatus()), setPrivateNoStore });
+registerTrackerIngestion({ app, getDatabase: db, accessTokens: applicationAuth, setPrivateNoStore });
 registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit, cardImageDependencies: cardImageRouterDependencies, accessTokens: applicationAuth, publicOrigin: APP_URL, ...createPublicApiCardSources(() => constructedCardDataService), metaStatistics: { loadMeta: loadStandardMeta, loadCatalog: loadConstructedArchetypeCatalog, loadHistory: loadConstructedArchetypeHistory, loadAnalysis: loadConstructedArchetypeAnalysis }, deckStatistics: { loadCatalog: loadConstructedArchetypeCatalog }, arenaStatistics: { loadClasses: source => source === 'firestone' ? fetchFirestoneClassWinratesData() : fetchFreshestClassWinratesData(), loadCards: source => getTierlistApiData(source, Date.now()).then(result => result.data), loadLegendaries: source => getLegendariesApiData(source, Date.now()).then(result => result.data), loadMatchups: source => source === 'firestone' ? fetchFirestoneClassWinratesData().then(firestoneArenaMatchupsDataset) : fetchClassMatchupsData() } });
 app.use('/_internal', createTierlistCacheBustRouter({
   resolveSource: source => Object.prototype.hasOwnProperty.call(TIERLIST_DATASET_BY_SOURCE, source ?? '')

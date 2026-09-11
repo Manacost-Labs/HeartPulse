@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 75,
-    "routeRegistrations": 220,
-    "middlewareRegistrations": 116,
+    "sourceFiles": 77,
+    "routeRegistrations": 221,
+    "middlewareRegistrations": 118,
     "explicitGuardRouteRegistrations": 58,
     "unresolvedPaths": 0
   },
@@ -937,6 +937,34 @@
       ],
       "guardSignals": [],
       "source": "server/app/registerPublicApi.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/v1/tracker/events/batch"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "rateLimit(...)"
+      ],
+      "guardSignals": [
+        "rateLimit(...)"
+      ],
+      "source": "server/app/registerTrackerIngestion.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/v1"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "createTrackerIngestionRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/app/registerTrackerIngestion.ts",
       "sourceOrder": 1
     },
     {
@@ -3974,6 +4002,18 @@
       "guardSignals": [],
       "source": "server/modules/readerPermissions/public.ts",
       "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/tracker/events/batch",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/trackerIngestion/routes.ts",
+      "sourceOrder": 0
     },
     {
       "kind": "route",

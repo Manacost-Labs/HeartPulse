@@ -139,6 +139,7 @@
         "tests/application-auth-profile.test.ts",
         "tests/application-auth-repository.test.ts",
         "tests/application-auth-routes.test.ts",
+        "tests/tracker-ingestion-routes.test.ts",
         "tests/arena-deck-routes.test.ts",
         "tests/arena-synergy-history-store.test.ts",
         "tests/article-cover-routes.test.ts",

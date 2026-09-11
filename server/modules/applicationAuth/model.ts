@@ -1,14 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-
-export const APPLICATION_AUTH_SCOPES = [
-  'profile.read',
-  'subscription.read',
-  'catalog.read',
-  'images.read',
-  'statistics.read',
-] as const;
-
-export type ApplicationAuthScope = typeof APPLICATION_AUTH_SCOPES[number];
+import { APPLICATION_AUTH_SCOPES, type ApplicationAuthScope } from './scopes.js';
 export type ApplicationAuthClient = {
   id: string;
   name: string;

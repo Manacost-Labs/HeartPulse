@@ -104,6 +104,24 @@
       "forbiddenImports": ["src/**", "other server module internals"]
     },
     {
+      "name": "backend-tracker-ingestion",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Own bounded, authenticated and idempotent IceCrow profile-event ingestion.",
+      "paths": ["server/modules/trackerIngestion"],
+      "publicEntrypoints": ["server/modules/trackerIngestion/public.ts"],
+      "frontendRoutes": [],
+      "backendRoutes": [{ "method": "POST", "path": "/api/v1/tracker/events/batch" }],
+      "contracts": ["server/modules/trackerIngestion/public.ts", "docs/specs/tracker-ingestion.md"],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": ["sqlite:tracker_profile_events"],
+      "externalServices": ["IceCrow desktop clients authorized through applicationAuth"],
+      "tests": ["tests/tracker-ingestion-routes.test.ts"],
+      "allowedDependencies": ["backend-application-auth public contract", "Node.js sqlite", "Express at the routes boundary"],
+      "forbiddenImports": ["src/**", "other server module internals except applicationAuth/public.ts"]
+    },
+    {
       "name": "backend-arena",
       "status": "transitional",
       "owner": "arena-data",
