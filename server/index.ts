@@ -8486,13 +8486,13 @@ app.get('/api/auth/telegram/config', (_req, res) => {
     ],
   });
 });
-registerSocialOAuthRoutes(app, { appUrl: APP_URL, cookieValue, cookieSecure: telegramOidcCookieSecure, cookieDomain: authCookieDomain, setPrivateNoStore, userAuth, setAuthCookie, loadAuthStore, saveAuthStore, createAuthSession, identityOwner, database: db, sha256, hashSecret, sha256Base64Url });
+registerSocialOAuthRoutes(app, { appUrl: APP_URL, cookieValue, cookieSecure: telegramOidcCookieSecure, cookieDomain: req => legacyArenaCookieDomain(req, APP_URL), setPrivateNoStore, userAuth, setAuthCookie, loadAuthStore, saveAuthStore, createAuthSession, identityOwner, database: db, sha256, hashSecret, sha256Base64Url });
 registerPatreonOAuthRoutes(app, {
   appUrl: APP_URL,
   client: PATREON_CLIENT,
   cookieValue,
   cookieSecure: telegramOidcCookieSecure,
-  cookieDomain: authCookieDomain,
+  cookieDomain: req => legacyArenaCookieDomain(req, APP_URL),
   setPrivateNoStore,
   userAuth,
   setAuthCookie,
