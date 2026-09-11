@@ -122,6 +122,46 @@
       "forbiddenImports": ["src/**", "new consumers before a public entrypoint exists"]
     },
     {
+      "name": "backend-browser-session-cookies",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Own browser session cookie construction and legacy Arena-domain cookie cleanup.",
+      "paths": ["server/modules/browserSessionCookies"],
+      "publicEntrypoints": ["server/modules/browserSessionCookies/public.ts"],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": ["server/modules/browserSessionCookies/public.ts"],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": ["tests/browser-session-cookies.test.ts"],
+      "allowedDependencies": ["Express request/response types"],
+      "forbiddenImports": ["src/**", "other server module internals"]
+    },
+    {
+      "name": "backend-cover-admin-sso",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Own the short-lived HearthPulse-to-Cover browser hand-off and the current-admin authorization boundary consumed by Cover Nginx.",
+      "paths": ["server/modules/coverAdminSso"],
+      "publicEntrypoints": ["server/modules/coverAdminSso/public.ts"],
+      "frontendRoutes": [],
+      "backendRoutes": [
+        { "method": "GET", "path": "/api/auth/cover/start" },
+        { "method": "GET", "path": "/api/auth/cover/callback" },
+        { "method": "GET", "path": "/api/auth/cover/authorize" }
+      ],
+      "contracts": ["server/modules/coverAdminSso/routes.ts", "docs/specs/cover-admin-sso.md"],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": ["sqlite:cover_sso_handoffs", "HearthPulse user store supplied by composition"],
+      "externalServices": ["Cover Nginx auth_request over loopback"],
+      "tests": ["tests/cover-admin-sso.test.ts"],
+      "allowedDependencies": ["Node.js crypto", "Express at the routes boundary"],
+      "forbiddenImports": ["src/**", "other server module internals", "database access outside injected dependencies"]
+    },
+    {
       "name": "backend-constructed-cards",
       "status": "transitional",
       "owner": "constructed-cards",
@@ -217,6 +257,24 @@
       "tests": ["tests/subscription-refresh-job.test.ts"],
       "allowedDependencies": ["server/shared", "node-cron at the job boundary"],
       "forbiddenImports": ["src/**", "other server module internals"]
+    },
+    {
+      "name": "frontend-cover-admin-sso",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Own the fixed post-login resume path for the Cover administrator hand-off.",
+      "paths": ["src/modules/coverAdminSso"],
+      "publicEntrypoints": ["src/modules/coverAdminSso/public.ts"],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": ["src/modules/coverAdminSso/public.ts", "docs/specs/cover-admin-sso.md"],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": ["tests/cover-admin-sso-client.test.ts"],
+      "allowedDependencies": ["browser URL and navigation APIs"],
+      "forbiddenImports": ["server/**", "other frontend module internals"]
     },
     {
       "name": "frontend-account-route",

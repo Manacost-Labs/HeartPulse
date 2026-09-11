@@ -20,6 +20,7 @@ import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
 import { ArenaTierListSearchIntro } from '../modules/searchLanding/arena';
 import { WinrateMeterFill } from './WinrateMeterFill';
 const SocialLoginLinks = React.lazy(() => import('./SocialLoginLinks'));
+import { continueToCoverAfterLogin, coverSsoReturnTo } from '../modules/coverAdminSso/public';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -3305,6 +3306,7 @@ export function LoginPanel({
         onAuthChange?.(data.user);
         setPassword('');
         setMsg(null);
+        continueToCoverAfterLogin();
         return;
       }
       setAuthStep('code');
@@ -3409,6 +3411,7 @@ export function LoginPanel({
       setProfileContactEmail(data.user?.contactEmail || (isRealAuthEmail(data.user?.email) ? data.user.email : ''));
       onAuthChange?.(data.user);
       setCode('');
+      continueToCoverAfterLogin();
     } catch (err: any) {
       setMsg({ type: 'err', text: err.message });
     } finally {
@@ -3519,10 +3522,7 @@ export function LoginPanel({
     setAuthChecking(false);
   };
 
-  const telegramLoginUrl = authUrlWithReturnTo(
-    telegramMode === 'legacy-widget' ? telegramCallbackUrl : telegramAuthUrl,
-    '/?login&telegram=ok',
-  );
+  const telegramLoginUrl = authUrlWithReturnTo(telegramMode === 'legacy-widget' ? telegramCallbackUrl : telegramAuthUrl, coverSsoReturnTo() || '/?login&telegram=ok');
   const telegramLinkUrl = authUrlWithReturnTo(
     telegramMode === 'legacy-widget' ? telegramCallbackUrl : telegramAuthUrl,
     '/?login&telegram=linked',

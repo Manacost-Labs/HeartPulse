@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 74,
-    "routeRegistrations": 217,
-    "middlewareRegistrations": 115,
+    "sourceFiles": 75,
+    "routeRegistrations": 220,
+    "middlewareRegistrations": 116,
     "explicitGuardRouteRegistrations": 58,
     "unresolvedPaths": 0
   },
@@ -2872,13 +2872,26 @@
       ],
       "receiver": "app",
       "handlers": [
+        "createCoverAdminSsoRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/index.ts",
+      "sourceOrder": 59
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
         "createAuthVerificationRouter(...)"
       ],
       "guardSignals": [
         "createAuthVerificationRouter(...)"
       ],
       "source": "server/index.ts",
-      "sourceOrder": 59
+      "sourceOrder": 60
     },
     {
       "kind": "middleware",
@@ -2893,7 +2906,7 @@
         "createAuthProfileRouter(...)"
       ],
       "source": "server/index.ts",
-      "sourceOrder": 60
+      "sourceOrder": 61
     },
     {
       "kind": "middleware",
@@ -2906,7 +2919,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 61
+      "sourceOrder": 62
     },
     {
       "kind": "middleware",
@@ -2919,7 +2932,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 62
+      "sourceOrder": 63
     },
     {
       "kind": "middleware",
@@ -2932,7 +2945,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 63
+      "sourceOrder": 64
     },
     {
       "kind": "middleware",
@@ -2945,7 +2958,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 64
+      "sourceOrder": 65
     },
     {
       "kind": "middleware",
@@ -2958,7 +2971,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 65
+      "sourceOrder": 66
     },
     {
       "kind": "middleware",
@@ -2971,7 +2984,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 66
+      "sourceOrder": 67
     },
     {
       "kind": "middleware",
@@ -2984,7 +2997,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 67
+      "sourceOrder": 68
     },
     {
       "kind": "middleware",
@@ -2997,7 +3010,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 68
+      "sourceOrder": 69
     },
     {
       "kind": "middleware",
@@ -3010,7 +3023,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 69
+      "sourceOrder": 70
     },
     {
       "kind": "middleware",
@@ -3023,7 +3036,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 70
+      "sourceOrder": 71
     },
     {
       "kind": "middleware",
@@ -3036,7 +3049,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 71
+      "sourceOrder": 72
     },
     {
       "kind": "middleware",
@@ -3049,7 +3062,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 72
+      "sourceOrder": 73
     },
     {
       "kind": "middleware",
@@ -3062,7 +3075,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 73
+      "sourceOrder": 74
     },
     {
       "kind": "middleware",
@@ -3075,7 +3088,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 74
+      "sourceOrder": 75
     },
     {
       "kind": "route",
@@ -3091,7 +3104,7 @@
         "authCodeRequestLimiter"
       ],
       "source": "server/index.ts",
-      "sourceOrder": 75
+      "sourceOrder": 76
     },
     {
       "kind": "route",
@@ -3107,7 +3120,7 @@
         "authCodeVerifyLimiter"
       ],
       "source": "server/index.ts",
-      "sourceOrder": 76
+      "sourceOrder": 77
     },
     {
       "kind": "middleware",
@@ -3120,7 +3133,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 77
+      "sourceOrder": 78
     },
     {
       "kind": "middleware",
@@ -3133,7 +3146,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 78
+      "sourceOrder": 79
     },
     {
       "kind": "middleware",
@@ -3146,7 +3159,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 79
+      "sourceOrder": 80
     },
     {
       "kind": "route",
@@ -3158,7 +3171,7 @@
       "handler": "createReferralRedirectHandler(referralRouterDependencies)",
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 80
+      "sourceOrder": 81
     },
     {
       "kind": "middleware",
@@ -3171,7 +3184,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 81
+      "sourceOrder": 82
     },
     {
       "kind": "middleware",
@@ -3184,7 +3197,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 82
+      "sourceOrder": 83
     },
     {
       "kind": "middleware",
@@ -3197,7 +3210,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 83
+      "sourceOrder": 84
     },
     {
       "kind": "middleware",
@@ -3210,7 +3223,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 84
+      "sourceOrder": 85
     },
     {
       "kind": "middleware",
@@ -3223,7 +3236,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 85
+      "sourceOrder": 86
     },
     {
       "kind": "middleware",
@@ -3236,7 +3249,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 86
+      "sourceOrder": 87
     },
     {
       "kind": "middleware",
@@ -3249,7 +3262,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 87
+      "sourceOrder": 88
     },
     {
       "kind": "middleware",
@@ -3262,7 +3275,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 88
+      "sourceOrder": 89
     },
     {
       "kind": "middleware",
@@ -3275,7 +3288,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 89
+      "sourceOrder": 90
     },
     {
       "kind": "middleware",
@@ -3288,7 +3301,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 90
+      "sourceOrder": 91
     },
     {
       "kind": "middleware",
@@ -3301,7 +3314,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 91
+      "sourceOrder": 92
     },
     {
       "kind": "middleware",
@@ -3314,7 +3327,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 92
+      "sourceOrder": 93
     },
     {
       "kind": "middleware",
@@ -3327,7 +3340,7 @@
       ],
       "guardSignals": [],
       "source": "server/index.ts",
-      "sourceOrder": 93
+      "sourceOrder": 94
     },
     {
       "kind": "route",
@@ -3483,6 +3496,42 @@
       "guardSignals": [],
       "source": "server/modules/browserIdentity/runtime.ts",
       "sourceOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/auth/cover/start",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/coverAdminSso/routes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/auth/cover/callback",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/coverAdminSso/routes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/auth/cover/authorize",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/coverAdminSso/routes.ts",
+      "sourceOrder": 2
     },
     {
       "kind": "route",

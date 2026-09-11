@@ -40,6 +40,8 @@ import {
   createPatreonTokenCipher,
   type PatreonAuthorization,
 } from './patreonOAuth.js';
+import { createBrowserSessionCookieHandlers, legacyArenaCookieDomain } from './modules/browserSessionCookies/public.js';
+import { createCoverAdminSsoRouter } from './modules/coverAdminSso/public.js';
 import { csrfRequestAllowed } from './csrf.js';
 import { configureLoopbackProxyTrust, corsOriginAllowed, getTrustedClientIp } from './networkBoundary.js';
 import { isPublicMediaApiRequest } from './apiRateLimitPolicy.js';
@@ -465,6 +467,9 @@ const BLIZZCORE_ARCHETYPES_API_URL = process.env.BLIZZCORE_ARCHETYPES_API_URL
 const STANDARD_ARCHETYPE_TRANSLATION_CACHE_MS = Math.max(60_000, Number(process.env.STANDARD_ARCHETYPE_TRANSLATION_CACHE_MS || 6 * 60 * 60 * 1000));
 const KOLODAHS_RELATED_CARD_PAGES_DIR = join(KOLODAHS_DB_ROOT, 'var/wiki-hs-cache/related-card-pages');
 const AUTH_COOKIE_NAME = 'manacost_auth_token';
+const COVER_SSO_SIGNING_SECRET = (process.env.COVER_SSO_SIGNING_SECRET || '').trim();
+const COVER_SSO_PROXY_KEY = (process.env.COVER_SSO_PROXY_KEY || '').trim();
+const COVER_SSO_ORIGIN = (process.env.COVER_SSO_ORIGIN || 'https://cover.hs-manacost.ru').trim();
 const AUTH_FROM = process.env.AUTH_FROM || 'noreply@hs-manacost.ru';
 const NEWSLETTER_FROM = process.env.NEWSLETTER_FROM || AUTH_FROM;
 const NEWSLETTER_FROM_NAME = (process.env.NEWSLETTER_FROM_NAME || 'Manacost').trim();
@@ -486,6 +491,11 @@ const AUTH_SESSION_REFRESH_WINDOW_MS = Math.max(
     Number(process.env.AUTH_SESSION_REFRESH_WINDOW_MS || 7 * 24 * 60 * 60 * 1000),
   ),
 );
+const { setAuthCookie, clearAuthCookie } = createBrowserSessionCookieHandlers({
+  cookieName: AUTH_COOKIE_NAME,
+  sessionTtlMs: AUTH_SESSION_TTL_MS,
+  appUrl: APP_URL,
+});
 const AUTH_CODE_TTL_MS = 10 * 60 * 1000;
 const AUTH_CODE_MAX_ATTEMPTS = 5;
 const AUTH_CODE_REQUEST_COOLDOWN_MS = Math.max(30_000, Number(process.env.AUTH_CODE_REQUEST_COOLDOWN_MS || 60_000));
@@ -1285,6 +1295,7 @@ function assertIdentityAvailable(provider: string, providerUserId: string, userI
 }
 
 function migrateLegacyAuthStore(database: DatabaseSync) {
+  database.exec('CREATE TABLE IF NOT EXISTS cover_sso_handoffs (ticket_hash TEXT PRIMARY KEY, expires_at INTEGER NOT NULL); CREATE INDEX IF NOT EXISTS idx_cover_sso_handoffs_expiry ON cover_sso_handoffs(expires_at);');
   const migrated = database.prepare('SELECT value FROM meta WHERE key = ?').get('legacy_auth_migrated') as { value?: string } | undefined;
   if (migrated?.value === '1') return;
 
@@ -1534,6 +1545,31 @@ function authUserFromRow(row: any): AdminUser {
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
+}
+
+/** A Cover auth_request runs for every asset, so it must avoid session cleanup and full-store reads. */
+function findAuthUserById(userId: string): AdminUser | null {
+  if (!userId || userId.length > 240) return null;
+  const row = dbGet<Record<string, unknown>>(`
+    SELECT
+      u.*,
+      tg.provider_user_id AS telegram_id,
+      tg.username AS telegram_username,
+      tg.photo_url AS telegram_photo_url
+    FROM users u
+    LEFT JOIN identities tg ON tg.user_id = u.id AND tg.provider = 'telegram'
+    WHERE u.id = ?
+    LIMIT 1
+  `, userId);
+  return row ? authUserFromRow(row) : null;
+}
+
+/** Atomically consume a hashed Cover ticket so restarts cannot make it reusable. */
+function redeemCoverSsoHandoff(ticketHash: string, expiresAt: number): boolean {
+  const database = db();
+  database.prepare('DELETE FROM cover_sso_handoffs WHERE expires_at <= ?').run(Date.now());
+  return database.prepare('INSERT OR IGNORE INTO cover_sso_handoffs (ticket_hash, expires_at) VALUES (?, ?)')
+    .run(ticketHash, expiresAt).changes > 0;
 }
 
 function loadAuthStore(): AdminAuthStore {
@@ -2497,64 +2533,6 @@ function cookieValue(req: import('express').Request, name: string): string {
   return '';
 }
 
-function authCookieDomain(req: import('express').Request): string {
-  if (new URL(APP_URL).hostname !== 'arena.hs-manacost.ru') return '';
-  const host = String(req.headers.host ?? '').split(':')[0].toLowerCase();
-  return host === 'arena.hs-manacost.ru' || host.endsWith('.arena.hs-manacost.ru') ? 'Domain=.arena.hs-manacost.ru' : '';
-}
-
-function setAuthCookie(req: import('express').Request, res: import('express').Response, token: string) {
-  const maxAgeSeconds = Math.floor(AUTH_SESSION_TTL_MS / 1000);
-  const secure = String(req.headers['x-forwarded-proto'] ?? req.protocol).includes('https')
-    || String(req.headers.host ?? '').includes('arena.hs-manacost.ru')
-    || String(req.headers.host ?? '').includes('hearthpulse.net');
-  const attributes = [
-    'Path=/',
-    'HttpOnly',
-    'SameSite=Lax',
-    secure ? 'Secure' : '',
-  ].filter(Boolean);
-  const legacyDomain = authCookieDomain(req);
-  if (legacyDomain) {
-    res.append('Set-Cookie', [
-      `${AUTH_COOKIE_NAME}=`,
-      ...attributes,
-      'Max-Age=0',
-      legacyDomain,
-    ].join('; '));
-  }
-  res.append('Set-Cookie', [
-    `${AUTH_COOKIE_NAME}=${encodeURIComponent(token)}`,
-    ...attributes,
-    `Max-Age=${maxAgeSeconds}`,
-  ].join('; '));
-}
-
-function clearAuthCookie(req: import('express').Request, res: import('express').Response) {
-  const secure = String(req.headers['x-forwarded-proto'] ?? req.protocol).includes('https')
-    || String(req.headers.host ?? '').includes('arena.hs-manacost.ru')
-    || String(req.headers.host ?? '').includes('hearthpulse.net');
-  const attributes = [
-    'Path=/',
-    'HttpOnly',
-    'SameSite=Lax',
-    secure ? 'Secure' : '',
-    'Max-Age=0',
-  ].filter(Boolean);
-  res.append('Set-Cookie', [
-    `${AUTH_COOKIE_NAME}=`,
-    ...attributes,
-  ].join('; '));
-  const legacyDomain = authCookieDomain(req);
-  if (legacyDomain) {
-    res.append('Set-Cookie', [
-      `${AUTH_COOKIE_NAME}=`,
-      ...attributes,
-      legacyDomain,
-    ].join('; '));
-  }
-}
-
 function telegramOidcCookieSecure(req: import('express').Request): boolean {
   return String(req.headers['x-forwarded-proto'] ?? req.protocol).includes('https')
     || String(req.headers.host ?? '').includes('arena.hs-manacost.ru')
@@ -2606,7 +2584,7 @@ function writeTelegramOidcStates(req: import('express').Request, res: import('ex
     'HttpOnly',
     'SameSite=Lax',
     telegramOidcCookieSecure(req) ? 'Secure' : '',
-    authCookieDomain(req),
+    legacyArenaCookieDomain(req, APP_URL),
   ].filter(Boolean).join('; ');
   res.append('Set-Cookie', cookie);
 }
@@ -2629,7 +2607,7 @@ function clearTelegramOidcCookie(req: import('express').Request, res: import('ex
     'HttpOnly',
     'SameSite=Lax',
     telegramOidcCookieSecure(req) ? 'Secure' : '',
-    authCookieDomain(req),
+    legacyArenaCookieDomain(req, APP_URL),
   ].filter(Boolean).join('; ');
   res.append('Set-Cookie', cookie);
 }
@@ -7383,6 +7361,12 @@ const apiLimiter = rateLimit({
     req.path.startsWith('/card-image/')
     || isPublicMediaApiRequest(req.method, req.path)
     || (req.method === 'GET' && req.originalUrl.startsWith('/api/gallery/'))
+    // This auth_request runs for every Cover asset. Only a correctly keyed
+    // internal GET bypasses the public API budget before the router checks it.
+    || (req.method === 'GET'
+      && req.path === '/auth/cover/authorize'
+      && COVER_SSO_PROXY_KEY.length >= 32
+      && safeEqualString(req.headers['x-cover-sso-key'], COVER_SSO_PROXY_KEY))
     || req.ip === '127.0.0.1'
     || req.ip === '::1'
   ),
@@ -8948,6 +8932,16 @@ app.post('/api/auth/telegram', async (req, res) => {
 });
 
 app.use('/api/auth/verify', authCodeVerifyLimiter);
+app.use('/api', createCoverAdminSsoRouter({
+  authenticate: userAuth,
+  resolveUser: findAuthUserById,
+  isAdmin: isAdminUser,
+  redeemHandoff: redeemCoverSsoHandoff,
+  signingSecret: COVER_SSO_SIGNING_SECRET,
+  proxyKey: COVER_SSO_PROXY_KEY,
+  coverOrigin: COVER_SSO_ORIGIN,
+  setPrivateNoStore,
+}));
 app.use('/api', createAuthVerificationRouter({
   normalizeEmail,
   isRealEmail,
