@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   ChevronRight,
@@ -79,17 +79,44 @@ export function ParserRunDetailsDrawer({
   onClose: () => void;
 }) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLElement>(null);
   const progress = runProgress(run);
 
   useEffect(() => {
     const previouslyFocused = document.activeElement;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     closeButtonRef.current?.focus();
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+    const handleDialogKeys = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+
+      const focusable = drawerRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusable?.length) {
+        event.preventDefault();
+        drawerRef.current?.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
     };
-    document.addEventListener('keydown', closeOnEscape);
+    document.addEventListener('keydown', handleDialogKeys);
     return () => {
-      document.removeEventListener('keydown', closeOnEscape);
+      document.removeEventListener('keydown', handleDialogKeys);
+      document.body.style.overflow = previousBodyOverflow;
       if (previouslyFocused instanceof HTMLElement) previouslyFocused.focus();
     };
   }, [onClose]);
@@ -99,14 +126,17 @@ export function ParserRunDetailsDrawer({
       <button
         type="button"
         className="admin-parser-run-drawer-backdrop"
+        tabIndex={-1}
         aria-label="Закрыть детали запуска"
         onClick={onClose}
       />
       <aside
+        ref={drawerRef}
         className="admin-parser-run-drawer"
         role="dialog"
         aria-modal="true"
         aria-labelledby="parser-run-details-title"
+        tabIndex={-1}
       >
         <header>
           <div>
@@ -186,6 +216,7 @@ export function ParserRunsCard({
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [reason, setReason] = useState('');
   const selectedRun = runs.find(run => run.id === selectedRunId) ?? null;
+  const closeSelectedRun = useCallback(() => setSelectedRunId(null), []);
 
   useEffect(() => {
     setSelected(current => new Set([...current].filter(id => sections.some(section => section.id === id))));
@@ -327,7 +358,7 @@ export function ParserRunsCard({
         <ParserRunDetailsDrawer
           run={selectedRun}
           sections={sections}
-          onClose={() => setSelectedRunId(null)}
+          onClose={closeSelectedRun}
         />
       )}
     </section>
