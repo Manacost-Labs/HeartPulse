@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { LayoutDashboard, Trophy } from 'lucide-react';
+import { ContestAdminDashboard } from '../src/features/ContestAdminDashboard.js';
 import { AdminWorkspaceShell } from '../src/modules/adminWorkspace/public.js';
 
 const navigation = [
@@ -46,6 +47,10 @@ const desktopHtml = renderToStaticMarkup(
 
 assert.match(desktopHtml, /class="contest-admin-page admin-workspace-page admin-tailadmin-shell"/);
 assert.match(desktopHtml, /<header[^>]*class="admin-command-bar"[^>]*aria-label="Панель управления"/);
+assert.match(desktopHtml, /HearthPulse/);
+assert.match(desktopHtml, /src="\/arena-logo-icon-256.webp"/);
+assert.match(desktopHtml, /aria-label="Найти раздел админ-панели"/);
+assert.match(desktopHtml, /placeholder="Найти раздел…"/);
 assert.match(desktopHtml, /id="admin-primary-navigation"/);
 assert.match(desktopHtml, /aria-label="Разделы админ панели"/);
 assert.match(desktopHtml, /aria-current="page"/);
@@ -56,6 +61,35 @@ assert.match(desktopHtml, /aria-labelledby="admin-section-title"/);
 assert.match(desktopHtml, /<h1 id="admin-section-title">Обзор<\/h1>/);
 assert.match(desktopHtml, /Рабочее содержимое/);
 assert.doesNotMatch(desktopHtml, /role="dialog"/);
+
+const dashboardHtml = renderToStaticMarkup(
+  <ContestAdminDashboard
+    articleCount={184}
+    galleryCount={42}
+    boostyPaidCount={321}
+    telegramAccessCount={288}
+    contestCount={6}
+    contestEntryCount={1284}
+    referralCount={23}
+    referralClickCount={8905}
+    recentReferralClicks={[{
+      id: 'click-1',
+      referralId: 'ref-1',
+      slug: 'launch',
+      clickedAt: '2026-09-13T12:00:00Z',
+      userAgent: '',
+      referrer: '',
+      landingPath: '/',
+    }]}
+    formatDate={() => '13 сентября, 12:00'}
+    onNavigate={noop}
+    onCreateContest={noop}
+  />,
+);
+assert.match(dashboardHtml, /Пульс проекта/);
+assert.match(dashboardHtml, /Данные и парсеры/);
+assert.match(dashboardHtml, /184/);
+assert.match(dashboardHtml, /\/r\/launch/);
 
 const mobileHtml = renderToStaticMarkup(
   <AdminWorkspaceShell

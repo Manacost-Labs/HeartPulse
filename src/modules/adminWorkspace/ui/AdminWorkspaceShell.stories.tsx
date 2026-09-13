@@ -128,6 +128,15 @@ export const FullAccess: Story = {
   },
 };
 
+export const FilteredNavigation: Story = {
+  play: async ({ canvas }) => {
+    const search = canvas.getByRole('searchbox', { name: 'Найти раздел админ-панели' });
+    await userEvent.type(search, 'парсер');
+    await expect(canvas.getByRole('button', { name: /Данные и парсеры/ })).toBeVisible();
+    await expect(canvas.queryByRole('button', { name: /Конкурсы/ })).not.toBeInTheDocument();
+  },
+};
+
 export const MobileDrawerOpen: Story = {
   args: { menuOpen: true },
   parameters: {

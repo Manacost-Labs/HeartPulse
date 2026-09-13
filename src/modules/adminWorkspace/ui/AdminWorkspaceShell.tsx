@@ -1,5 +1,5 @@
-import React, { type ReactNode, type Ref } from 'react';
-import { ExternalLink, Menu, X } from 'lucide-react';
+import React, { useMemo, useState, type ReactNode, type Ref } from 'react';
+import { ExternalLink, Menu, Search, X } from 'lucide-react';
 
 export type AdminWorkspaceNavigationItem<Section extends string = string> = {
   id: Section;
@@ -48,9 +48,16 @@ export function AdminWorkspaceShell<Section extends string>({
   onDismissMessage,
   children,
 }: AdminWorkspaceShellProps<Section>) {
+  const [navigationQuery, setNavigationQuery] = useState('');
   const activeItem = navigation.find(item => item.id === activeSection) ?? navigation[0];
   const userInitial = userLabel.trim().charAt(0).toLocaleUpperCase('ru-RU') || 'A';
-  const navigationGroups = navigation.reduce<Array<{
+  const filteredNavigation = useMemo(() => {
+    const query = navigationQuery.trim().toLocaleLowerCase('ru-RU');
+    if (!query) return navigation;
+    return navigation.filter(item => [item.label, item.caption, item.group]
+      .some(value => value.toLocaleLowerCase('ru-RU').includes(query)));
+  }, [navigation, navigationQuery]);
+  const navigationGroups = filteredNavigation.reduce<Array<{
     label: string;
     items: Array<AdminWorkspaceNavigationItem<Section>>;
   }>>((groups, item) => {
@@ -82,9 +89,9 @@ export function AdminWorkspaceShell<Section extends string>({
           {menuOpen ? <X size={21} aria-hidden="true" /> : <Menu size={21} aria-hidden="true" />}
         </button>
 
-        <a href="/" className="admin-command-brand" aria-label="Manacost Admin — открыть сайт">
-          <span className="admin-command-logo" aria-hidden="true" />
-          <span className="admin-command-name">Manacost</span>
+        <a href="/" className="admin-command-brand" aria-label="HearthPulse Admin — открыть сайт">
+          <img className="admin-command-logo" src="/arena-logo-icon-256.webp" alt="" />
+          <span className="admin-command-name">HearthPulse</span>
           <em>Admin</em>
         </a>
 
@@ -146,6 +153,18 @@ export function AdminWorkspaceShell<Section extends string>({
             </button>
           </div>
 
+          <label className="admin-nav-search">
+            <span className="sr-only">Найти раздел админ-панели</span>
+            <Search size={17} aria-hidden="true" />
+            <input
+              type="search"
+              value={navigationQuery}
+              placeholder="Найти раздел…"
+              aria-label="Найти раздел админ-панели"
+              onChange={event => setNavigationQuery(event.target.value)}
+            />
+          </label>
+
           <nav id="admin-primary-navigation" className="admin-workspace-nav-list">
             {navigationGroups.map((group, groupIndex) => {
               const groupId = `admin-nav-group-${groupIndex}`;
@@ -160,7 +179,10 @@ export function AdminWorkspaceShell<Section extends string>({
                         type="button"
                         className={active ? 'is-active' : ''}
                         aria-current={active ? 'page' : undefined}
-                        onClick={() => onNavigate(item.id)}
+                        onClick={() => {
+                          setNavigationQuery('');
+                          onNavigate(item.id);
+                        }}
                         key={item.id}
                       >
                         <Icon size={19} strokeWidth={1.8} aria-hidden="true" />
@@ -174,6 +196,9 @@ export function AdminWorkspaceShell<Section extends string>({
                 </div>
               );
             })}
+            {!filteredNavigation.length && (
+              <p className="admin-nav-empty" role="status">Разделы не найдены.</p>
+            )}
           </nav>
 
           <a className="admin-nav-site-link" href="/" target="_blank" rel="noreferrer">
@@ -191,7 +216,7 @@ export function AdminWorkspaceShell<Section extends string>({
         >
           <div className="admin-section-header">
             <div>
-              <span>Manacost / Админка</span>
+              <span>HearthPulse / Админка</span>
               <h1 id="admin-section-title">{activeItem?.label ?? 'Админка'}</h1>
               <p>{activeItem?.caption ?? 'Управление проектом'}</p>
             </div>

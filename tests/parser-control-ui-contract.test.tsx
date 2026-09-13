@@ -10,7 +10,10 @@ import { normalizeParserAudit, normalizeParserControl, normalizeParserRuns } fro
 import { ParserAuditCard } from '../src/features/adminParserControl/ParserAuditCard.js';
 import { pollActiveParserRuns } from '../src/features/adminParserControl/ParserControlPanel.js';
 import { ParserControlInitialError } from '../src/features/adminParserControl/ParserControlStatus.js';
-import { ParserRunsCard } from '../src/features/adminParserControl/ParserRunsCard.js';
+import {
+  ParserRunDetailsDrawer,
+  ParserRunsCard,
+} from '../src/features/adminParserControl/ParserRunsCard.js';
 import { ParserScheduleCard } from '../src/features/adminParserControl/ParserScheduleCard.js';
 
 const snapshot = normalizeParserControl({
@@ -91,13 +94,27 @@ assert.match(runsMarkup, /role="alert"/);
 assert.match(runsMarkup, /Не удалось обновить историю запусков/);
 assert.match(runsMarkup, /Повторить/);
 assert.match(runsMarkup, /уже запущенных источников не добавлены повторно/);
-assert.match(runsMarkup, /Результаты источников/);
-assert.match(runsMarkup, /HSReplay Arena/);
-assert.match(runsMarkup, /Показан сохранённый снимок/);
-assert.match(runsMarkup, /Ошибки источника/);
-assert.match(runsMarkup, /origin timeout/);
-assert.match(runsMarkup, /publisher returned stale data/);
-assert.match(runsMarkup, /Показаны первые 2 из 75 ошибок/);
+assert.match(runsMarkup, /<table/);
+assert.match(runsMarkup, /Открыть детали запуска/);
+
+const runDetailsMarkup = renderToStaticMarkup(
+  <ParserRunDetailsDrawer
+    run={runs[0]!}
+    sections={snapshot.sections}
+    onClose={() => undefined}
+  />,
+);
+assert.match(runDetailsMarkup, /role="dialog"/);
+assert.match(runDetailsMarkup, /aria-modal="true"/);
+assert.match(runDetailsMarkup, /Детали запуска/);
+assert.match(runDetailsMarkup, /HSReplay Arena/);
+assert.match(runDetailsMarkup, /Показан сохранённый снимок/);
+assert.match(runDetailsMarkup, /Ошибки источника/);
+assert.match(runDetailsMarkup, /origin timeout/);
+assert.match(runDetailsMarkup, /publisher returned stale data/);
+assert.match(runDetailsMarkup, /Показаны первые 2 из 75 ошибок/);
+assert.match(runDetailsMarkup, /Закрыть детали запуска/);
+assert.doesNotMatch(runDetailsMarkup, /Удалить/);
 
 const emptyRunsWithErrorMarkup = renderToStaticMarkup(
   <ParserRunsCard
