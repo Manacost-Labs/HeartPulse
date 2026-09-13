@@ -1,5 +1,6 @@
 import type { FormEvent, RefObject } from 'react';
 import { Image as ImageIcon, Trophy } from 'lucide-react';
+import { AdminOperationsHeader } from './AdminOperationsHeader';
 import { ContestAdminImageUploader } from './ContestAdminImageUploader';
 import { ADMIN_INPUT } from './contestAdminUi';
 
@@ -133,7 +134,7 @@ function ContestManager(props: ContestAdminContestsProps) {
   const filters: Array<{ id: keyof typeof stats; label: string }> = [{ id: 'all', label: 'Все' }, { id: 'active', label: 'Активные' }, { id: 'planned', label: 'Скоро' }, { id: 'draft', label: 'Черновики' }, { id: 'completed', label: 'Завершены' }, { id: 'cancelled', label: 'Отменены' }];
   return (
     <div className="contest-admin-card admin-contest-manage-card">
-      <div className="admin-contest-form-head"><div><span className="contest-eyebrow">Управление</span><h2>Рабочий стол конкурсов</h2><p>Один экран для проверки заявок, выбора победителей и завершения конкурса.</p></div><button type="button" className="contest-secondary-button" onClick={onReset}>Новый конкурс</button></div>
+      <div className="admin-contest-form-head"><div><span className="contest-eyebrow">Рабочий процесс</span><h2>Выберите конкурс и обработайте заявки</h2><p>Проверка участников, выбор победителей и публикация результата идут по порядку.</p></div></div>
       <div className="admin-contest-summary-grid" aria-label="Сводка конкурсов">{filters.map(filter => <button type="button" key={filter.id} className={statusFilter === filter.id ? 'is-active' : ''} aria-pressed={statusFilter === filter.id} onClick={() => onStatusFilterChange(filter.id)}><strong>{stats[filter.id]}</strong><span>{filter.label}</span></button>)}</div>
       <div className="admin-contest-workflow">
         <div className="admin-contest-picker"><div className="admin-subsection-head"><div><strong>1. Выберите конкурс</strong><span>{contests.length ? `${contests.length} в текущем фильтре` : 'нет конкурсов в фильтре'}</span></div></div><div className="admin-contest-list">{contests.map(contest => <div key={contest.id} className={contest.id === selectedContestId ? 'is-selected' : ''}><button type="button" aria-pressed={contest.id === selectedContestId} onClick={() => onSelectContest(contest)}><strong>{contest.title}</strong><span>{statusLabel(contest.status)} · {contest.entriesCount ?? 0} заявок{contest.endsAt ? ` · ${formatDate(contest.endsAt)}` : ''}</span></button></div>)}{!contests.length && <p className="contest-muted" role="status">В этом фильтре конкурсов нет.</p>}</div></div>
@@ -153,8 +154,26 @@ function ContestManager(props: ContestAdminContestsProps) {
 
 export function ContestAdminContests(props: ContestAdminContestsProps) {
   return (
-    <div className="contest-admin-grid">
-      <div className="admin-view-switch" role="group" aria-label="Режим работы с конкурсами"><button type="button" className={props.view === 'manage' ? 'is-active' : ''} aria-pressed={props.view === 'manage'} onClick={() => props.onViewChange('manage')}>Управление</button><button type="button" className={props.view === 'editor' ? 'is-active' : ''} aria-pressed={props.view === 'editor'} onClick={() => props.onViewChange('editor')}>{props.form.id ? 'Редактирование' : 'Новый конкурс'}</button></div>
+    <div className="contest-admin-grid admin-operations-page">
+      <AdminOperationsHeader
+        eyebrow="Рост"
+        title="Конкурсы"
+        description="Создание конкурса, заявки и публикация победителей — в одном последовательном процессе."
+        status={props.loading ? 'Обновляем конкурсы' : props.stats.active ? `Активные конкурсы: ${props.stats.active}` : 'Нет активных конкурсов'}
+        statusTone={props.loading ? 'working' : props.stats.active ? 'ready' : 'attention'}
+        metrics={[
+          { label: 'Всего', value: props.stats.all, detail: 'включая архив' },
+          { label: 'Активны', value: props.stats.active, detail: 'видны участникам' },
+          { label: 'Запланированы', value: props.stats.planned, detail: 'ждут старта' },
+          { label: 'Черновики', value: props.stats.draft, detail: 'не опубликованы' },
+        ]}
+        actions={(
+          <div className="admin-view-switch" role="toolbar" aria-label="Режим работы с конкурсами">
+            <button type="button" className={props.view === 'manage' ? 'is-active' : ''} aria-pressed={props.view === 'manage'} onClick={() => props.onViewChange('manage')}>Управление</button>
+            <button type="button" className={props.view === 'editor' ? 'is-active' : ''} aria-pressed={props.view === 'editor'} onClick={() => props.onReset()}>{props.form.id ? 'Новый конкурс' : 'Создать конкурс'}</button>
+          </div>
+        )}
+      />
       {props.view === 'editor' ? <ContestEditor {...props} /> : <ContestManager {...props} />}
     </div>
   );

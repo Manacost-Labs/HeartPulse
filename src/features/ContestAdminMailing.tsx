@@ -1,4 +1,5 @@
 import { Mail, Monitor, Newspaper, Send, Smartphone, Trophy } from 'lucide-react';
+import { AdminOperationsHeader } from './AdminOperationsHeader';
 
 export type MailingSegment = 'all-consented' | 'active' | 'former';
 export type MailingPreviewMode = 'desktop' | 'mobile';
@@ -110,18 +111,28 @@ export function ContestAdminMailing({ overview, loading, draft, previewHtml, pre
   ];
 
   return (
-    <div className="admin-mailing-page">
-      <div className="admin-stat-grid admin-mailing-stats">
-        <div><span>Доступно для отправки</span><strong>{overview?.summary.eligible ?? '—'}</strong><small>только с подтверждённым согласием</small></div>
-        <div><span>Активные</span><strong>{overview?.summary.active ?? '—'}</strong><small>с действующим доступом</small></div>
-        <div><span>Бывшие</span><strong>{overview?.summary.former ?? '—'}</strong><small>адрес сохранён, отписки не было</small></div>
-        <div><span>Исключены</span><strong>{overview?.summary.excluded ?? '—'}</strong><small>отписаны, без согласия или заблокированы</small></div>
-      </div>
+    <div className="admin-mailing-page admin-operations-page">
+      <AdminOperationsHeader
+        eyebrow="Аудитория"
+        title="Рассылка"
+        description="Соберите письмо, проверьте безопасный предпросмотр и отправьте выбранной аудитории."
+        status={loading ? 'Обновляем реестр' : overview?.transport.configured ? `Почта готова · ${overview.transport.from}` : 'Почта требует настройки'}
+        statusTone={loading ? 'working' : overview?.transport.configured ? 'ready' : 'attention'}
+        metrics={[
+          { label: 'Можно отправлять', value: overview?.summary.eligible ?? '—', detail: 'есть согласие' },
+          { label: 'Активные', value: overview?.summary.active ?? '—', detail: 'с доступом' },
+          { label: 'Бывшие', value: overview?.summary.former ?? '—', detail: 'не отписались' },
+          { label: 'Исключены', value: overview?.summary.excluded ?? '—', detail: 'не получат письмо' },
+        ]}
+        actions={(
+          <button type="button" className="contest-secondary-button" disabled={loading} onClick={onReload}>
+            {loading ? 'Обновляем…' : 'Обновить данные'}
+          </button>
+        )}
+      />
 
       <section className="contest-admin-card admin-mailing-templates" aria-labelledby="mailing-templates-title">
-        <div className="contest-users-head"><div><h2 id="mailing-templates-title">Начать с шаблона</h2><p className="contest-muted">Шаблон заполнит тему и HTML. Всё можно отредактировать перед отправкой.</p></div>
-          <button type="button" className="contest-secondary-button" disabled={loading} onClick={onReload}>{loading ? 'Обновляем…' : 'Обновить данные'}</button>
-        </div>
+        <div className="contest-users-head"><div><h2 id="mailing-templates-title">1. Начните с шаблона</h2><p className="contest-muted">Шаблон заполнит тему и HTML. Всё можно отредактировать перед отправкой.</p></div></div>
         <div className="admin-mailing-template-grid">
           {(overview?.templates || []).map(template => {
             const TemplateIcon = template.id === 'latest-article' ? Newspaper : template.id === 'tier-list-update' ? Trophy : Mail;
@@ -135,7 +146,7 @@ export function ContestAdminMailing({ overview, loading, draft, previewHtml, pre
 
       <div className="admin-mailing-layout">
         <section className="contest-admin-card admin-mailing-editor" aria-labelledby="mailing-editor-title">
-          <div className="admin-card-heading"><span className="admin-card-heading-icon"><Mail size={19} /></span><div><h2 id="mailing-editor-title">Содержание письма</h2><p>Сначала выберите аудиторию, затем проверьте письмо справа.</p></div></div>
+          <div className="admin-card-heading"><span className="admin-card-heading-icon"><Mail size={19} /></span><div><h2 id="mailing-editor-title">2. Аудитория и содержание</h2><p>Выберите получателей, заполните письмо и проверьте его перед отправкой.</p></div></div>
           <fieldset className="admin-mailing-audience"><legend>Получатели</legend>{segments.map(segment => (
             <label key={segment.id} className={draft.segment === segment.id ? 'is-selected' : ''}>
               <input type="radio" name="mailing-segment" value={segment.id} checked={draft.segment === segment.id} onChange={() => onDraftChange({ segment: segment.id })} />
@@ -155,7 +166,7 @@ export function ContestAdminMailing({ overview, loading, draft, previewHtml, pre
         </section>
 
         <section className="contest-admin-card admin-mailing-preview-card" aria-labelledby="mailing-preview-title">
-          <div className="admin-mailing-preview-toolbar"><div><h2 id="mailing-preview-title">Предпросмотр</h2><p>Точная версия после серверной очистки HTML</p></div><fieldset aria-label="Размер предпросмотра">
+          <div className="admin-mailing-preview-toolbar"><div><h2 id="mailing-preview-title">3. Предпросмотр</h2><p>Точная версия после серверной очистки HTML</p></div><fieldset aria-label="Размер предпросмотра">
             <button type="button" className={previewMode === 'desktop' ? 'is-active' : ''} aria-pressed={previewMode === 'desktop'} onClick={() => onPreviewModeChange('desktop')}><Monitor size={16} /><span>Экран</span></button>
             <button type="button" className={previewMode === 'mobile' ? 'is-active' : ''} aria-pressed={previewMode === 'mobile'} onClick={() => onPreviewModeChange('mobile')}><Smartphone size={16} /><span>Телефон</span></button>
           </fieldset></div>

@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } 
 import '../route-parchment.css';
 import {
   CircleDollarSign,
-  ChartNoAxesCombined,
   Database,
   Gift,
   Image as ImageIcon,
@@ -99,9 +98,6 @@ const AdminApiKeys = React.lazy(async () => {
   const module = await import('../modules/developerApi/public');
   return { default: module.AdminApiKeys };
 });
-const ContestAdminArenaSynergies = React.lazy(() => import('./ContestAdminArenaSynergies'));
-const ContestAdminAnalytics = React.lazy(async () => ({ default: (await import('./ContestAdminAnalytics')).ContestAdminAnalytics }));
-
 type AuthUser = {
   id?: string;
   profileId?: string;
@@ -415,14 +411,12 @@ const ADMIN_NAV_ITEMS: ReadonlyArray<{
   { id: 'standard-data', label: 'Данные и парсеры', caption: 'Режим меты, автообновление и очереди', status: 'Центр управления данными', group: 'Система', icon: Database },
   { id: 'fun-decks', label: 'Фановые колоды', caption: 'Off-meta подборка и коды колод', status: 'Обновляется автоматически', group: 'Система', icon: Sparkles },
   { id: 'api-keys', label: 'Public API', caption: 'Ключи приложений и доступ к данным', status: 'Секрет показывается один раз', group: 'Система', icon: ShieldCheck },
-  { id: 'arena-synergies', label: 'Сочетания в Арене', caption: 'Связки карт и решения redraft', status: 'Последние 500 победных забегов', group: 'Система', icon: ChartNoAxesCombined },
   { id: 'users', label: 'Пользователи', caption: 'Права, блокировки и контакты', status: 'Действия с подтверждением', group: 'Аудитория', icon: Users },
   { id: 'mailing', label: 'Рассылка', caption: 'Письма, шаблоны и история отправок', status: 'Безопасная очередь отправки', group: 'Аудитория', icon: Mail },
   { id: 'boosty', label: 'Boosty', caption: 'Подписчики и уровни доступа', status: 'Данные только для просмотра', group: 'Аудитория', icon: CircleDollarSign },
-  { id: 'analytics', label: 'Аналитика', caption: 'Статьи, подписки, выручка и удержание', status: 'Наблюдаемые данные Boosty', group: 'Аудитория', icon: ChartNoAxesCombined },
   { id: 'telegram', label: 'Telegram', caption: 'Аккаунты и проверка доступа', status: 'Данные только для просмотра', group: 'Аудитория', icon: MessageCircle },
   { id: 'contests', label: 'Конкурсы', caption: 'Заявки, статусы и победители', status: 'Сохранение по кнопке', group: 'Рост', icon: Trophy },
-  { id: 'referrals', label: 'Реферальные ссылки', caption: 'Кампании и статистика кликов', status: 'Сохранение по кнопке', group: 'Рост', icon: Link2 },
+  { id: 'referrals', label: 'Реферальная ссылка', caption: 'Кампании и статистика кликов', status: 'Сохранение по кнопке', group: 'Рост', icon: Link2 },
 ];
 const CONTEST_ADMIN_NAV_ITEMS = ADMIN_NAV_ITEMS.filter(item => item.id === 'contests');
 
@@ -1598,10 +1592,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
             />
           )}
 
-          {hasFullAdminAccess && adminSection === 'analytics' && (
-            <React.Suspense fallback={<p className="contest-muted" role="status">Загружаем аналитику…</p>}><ContestAdminAnalytics /></React.Suspense>
-          )}
-
           {hasFullAdminAccess && adminSection === 'api-keys' && (
             <React.Suspense fallback={<RouteFallback minHeight={440} />}><AdminApiKeys /></React.Suspense>
           )}
@@ -1679,12 +1669,6 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           {hasFullAdminAccess && adminSection === 'fun-decks' && (
             <React.Suspense fallback={<p className="contest-muted" role="status">Загружаем фановые колоды…</p>}>
               <ContestAdminFunDecks />
-            </React.Suspense>
-          )}
-
-          {hasFullAdminAccess && adminSection === 'arena-synergies' && (
-            <React.Suspense fallback={<p className="contest-muted" role="status">Считаем сочетания Арены…</p>}>
-              <ContestAdminArenaSynergies />
             </React.Suspense>
           )}
 

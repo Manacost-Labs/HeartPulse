@@ -889,9 +889,9 @@ const adminFixtures = {
         role: 'user',
         country: 'RU',
         telegramUsername: 'first_user',
-        contactVkUrl: '',
-        contactTelegram: '@first_user',
-        contactEmail: 'first@example.test',
+        contactVkUrl: 'https://vk.com/hearthpulse_community_manager_with_a_long_contact_name',
+        contactTelegram: '@hearthpulse_community_manager_with_a_long_contact_name',
+        contactEmail: 'hearthpulse.community.manager.with.a.long.address@example.test',
         lifetimeAccess: false,
         manualAccess: { enabled: false, expiresAt: null },
         subscription: { hasAccess: true, source: 'qa', checkedAt: '2026-07-11T00:00:00.000Z' },
@@ -3456,7 +3456,7 @@ for (const [device, viewport] of [
     });
     await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 3);
     await page.evaluate(() => {
-      const button = [...document.querySelectorAll('.admin-translation-list-card > .admin-card-heading button')]
+      const button = [...document.querySelectorAll('.admin-operations-actions button')]
         .find(element => element.textContent?.includes('Обновить из BlizzCore'));
       if (!(button instanceof HTMLButtonElement)) throw new Error('BlizzCore sync action is missing');
       button.click();
@@ -3701,8 +3701,9 @@ for (const [device, viewport] of [
     await page.goto(`${BASE}/?admin&section=mailing`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-mailing-template-grid button').length === 1);
     await page.waitForFunction(() => document.querySelector('.admin-mailing-preview-stage iframe'));
+    await page.screenshot({ path: `${OUT}/admin-mailing-${device}.png`, fullPage: false });
     const mailingInitial = await page.evaluate(() => ({
-      stats: [...document.querySelectorAll('.admin-mailing-stats strong')].map(element => element.textContent?.trim() || ''),
+      stats: [...document.querySelectorAll('.admin-operations-metric-value')].map(element => element.textContent?.trim() || ''),
       campaigns: document.querySelectorAll('.admin-mailing-history > div').length,
       contacts: document.querySelectorAll('.admin-mailing-contacts > div').length,
       previewCount: document.querySelector('.admin-mailing-preview-meta strong')?.textContent?.trim() || '',
@@ -3730,6 +3731,7 @@ for (const [device, viewport] of [
 
     await page.goto(`${BASE}/?admin&section=contests`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.contest-entry-row').length === 2);
+    await page.screenshot({ path: `${OUT}/admin-contests-${device}.png`, fullPage: false });
     const contestsState = await page.evaluate(() => ({
       summaryButtons: document.querySelectorAll('.admin-contest-summary-grid button').length,
       selectedTitle: document.querySelector('.admin-selected-contest h3')?.textContent?.trim() || '',
@@ -3751,12 +3753,12 @@ for (const [device, viewport] of [
         const style = getComputedStyle(element);
         return {
           display: style.display,
-          marginLeft: style.marginLeft,
-          marginRight: style.marginRight,
           width: element.getBoundingClientRect().width,
-          parentWidth: element.parentElement?.getBoundingClientRect().width || 0,
+          buttons: element.querySelectorAll('button').length,
         };
       })(),
+      operationsHeaderWidth: document.querySelector('.admin-operations-header')?.getBoundingClientRect().width || 0,
+      workspaceWidth: document.querySelector('.admin-workspace-content')?.getBoundingClientRect().width || 0,
       scrollWidth: document.documentElement.scrollWidth,
       clientWidth: document.documentElement.clientWidth,
     }));
@@ -3766,6 +3768,9 @@ for (const [device, viewport] of [
     if (contestsState.scrollWidth > contestsState.clientWidth + 1) {
       failures.push(`admin contests [${device}]: horizontal overflow ${contestsState.scrollWidth} > ${contestsState.clientWidth}`);
     }
+    if (contestsState.operationsHeaderWidth < contestsState.workspaceWidth * 0.92) {
+      failures.push(`admin contests [${device}]: operations header does not span the workspace (${contestsState.operationsHeaderWidth} < ${contestsState.workspaceWidth})`);
+    }
     if (!contestsState.dangerButton
       || contestsState.dangerButton.borderColor !== 'rgb(226, 168, 168)'
       || contestsState.dangerButton.color !== 'rgb(179, 45, 46)'
@@ -3773,10 +3778,9 @@ for (const [device, viewport] of [
       failures.push(`admin contests [${device}]: danger action lost its owned visual state (${JSON.stringify(contestsState.dangerButton)})`);
     }
     if (!contestsState.viewSwitch
-      || contestsState.viewSwitch.display !== 'grid'
-      || contestsState.viewSwitch.marginLeft !== '0px'
-      || contestsState.viewSwitch.marginRight !== '0px'
-      || contestsState.viewSwitch.width >= contestsState.viewSwitch.parentWidth) {
+      || contestsState.viewSwitch.display !== 'flex'
+      || contestsState.viewSwitch.buttons !== 2
+      || contestsState.viewSwitch.width > 360) {
       failures.push(`admin contests [${device}]: view switch lost its compact owned layout (${JSON.stringify(contestsState.viewSwitch)})`);
     }
     await page.click('.contest-entry-row:not(.is-disabled) input[type="checkbox"]');
@@ -3803,7 +3807,7 @@ for (const [device, viewport] of [
     await page.waitForFunction(() => [...document.querySelectorAll('.admin-contest-list button strong')]
       .some(element => element.textContent?.trim() === 'Контрольный конкурс — обновлён'));
 
-    await page.click('.admin-contest-manage-card .admin-contest-form-head > button');
+    await page.click('.admin-operations-actions .admin-view-switch button:last-child');
     await page.waitForFunction(() => document.querySelector('.admin-contest-form h2')?.textContent?.trim() === 'Новый конкурс');
     const contestMainInputs = await page.$$('.admin-contest-section:first-of-type input');
     if (contestMainInputs.length < 2) throw new Error('Contest title and prize inputs are missing');
@@ -3845,6 +3849,7 @@ for (const [device, viewport] of [
 
     await page.goto(`${BASE}/?admin&section=users`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.contest-user-row').length === 2);
+    await page.screenshot({ path: `${OUT}/admin-users-${device}.png`, fullPage: false });
     const usersState = await page.evaluate(() => {
       const row = document.querySelector('.contest-user-row');
       const badges = row?.querySelector('.contest-user-badges');
@@ -3854,9 +3859,11 @@ for (const [device, viewport] of [
       const badgesStyle = badges ? getComputedStyle(badges) : null;
       const roleStyle = role ? getComputedStyle(role) : null;
       const menuWrapStyle = menuWrap ? getComputedStyle(menuWrap) : null;
+      const contacts = row?.querySelector('.admin-user-facts div:nth-child(2) dd');
+      const contactsStyle = contacts ? getComputedStyle(contacts) : null;
       return {
         rows: document.querySelectorAll('.contest-user-row').length,
-        summary: document.querySelector('.contest-users-head .contest-muted')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+        summary: [...document.querySelectorAll('.admin-operations-metric-value')].map(element => element.textContent?.trim() || ''),
         scrollWidth: document.documentElement.scrollWidth,
         clientWidth: document.documentElement.clientWidth,
         badgesDisplay: badgesStyle?.display || '',
@@ -3864,13 +3871,19 @@ for (const [device, viewport] of [
         roleColor: roleStyle?.color || '',
         rowColor: rowStyle?.color || '',
         menuWrapDisplay: menuWrapStyle?.display || '',
+        contactsText: contacts?.textContent?.trim() || '',
+        contactsWhiteSpace: contactsStyle?.whiteSpace || '',
+        contactsOverflowWrap: contactsStyle?.overflowWrap || '',
       };
     });
-    if (usersState.rows !== 2 || !usersState.summary.includes('Показано 2 из 2')) {
+    if (usersState.rows !== 2 || usersState.summary[0] !== '2' || usersState.summary[1] !== '2') {
       failures.push(`admin users [${device}]: deterministic user list did not render`);
     }
     if (usersState.scrollWidth > usersState.clientWidth + 1) {
       failures.push(`admin users [${device}]: horizontal overflow ${usersState.scrollWidth} > ${usersState.clientWidth}`);
+    }
+    if (!usersState.contactsText.includes('hearthpulse.community.manager.with.a.long.address@example.test') || usersState.contactsWhiteSpace !== 'normal' || usersState.contactsOverflowWrap !== 'anywhere') {
+      failures.push(`admin users [${device}]: long contact details are hidden or cannot wrap (${JSON.stringify(usersState)})`);
     }
     if (usersState.badgesDisplay !== 'flex' || usersState.badgesGap < 5 || usersState.roleColor === usersState.rowColor || usersState.menuWrapDisplay !== 'block') {
       failures.push(`admin users [${device}]: badge/menu cascade changed (${JSON.stringify(usersState)})`);
@@ -3924,6 +3937,7 @@ for (const [device, viewport] of [
     if (!focusRestored) failures.push(`admin users [${device}]: Escape did not restore focus to the action trigger`);
     await page.evaluate(() => { window.confirm = () => true; });
     for (const actionText of ['Дать полный доступ', 'Сделать администратором', 'Заблокировать']) {
+      console.log(`→ admin users [${device}] ${actionText}`);
       await page.click('.contest-user-row:first-child .contest-user-menu-trigger');
       await page.waitForSelector('.contest-user-menu[role="menu"]', { visible: true });
       await page.evaluate(text => {
@@ -3941,28 +3955,30 @@ for (const [device, viewport] of [
         const row = document.querySelector('.contest-user-row:first-child');
         if (!row) return false;
         if (text === 'Дать полный доступ') return row.querySelector('.contest-access-ok')?.textContent?.includes('полный доступ');
-        if (text === 'Сделать администратором') return row.textContent?.includes('администратор');
+        if (text === 'Сделать администратором') return row.querySelector('.contest-role-admin')?.textContent?.includes('админ');
         return row.querySelector('.contest-role-blocked')?.textContent?.includes('заблокирован');
       }, {}, actionText);
       await page.waitForFunction(() => !document.querySelector('.contest-user-menu'));
       await page.waitForFunction(() => !document.querySelector('.contest-user-menu-trigger')?.hasAttribute('disabled'));
+      console.log(`✓ admin users [${device}] ${actionText}`);
     }
+    console.log(`→ admin users [${device}] persistence reload`);
     await page.goto(`${BASE}/?admin&section=users`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.contest-user-row').length === 2);
     const persistedUser = await page.$eval('.contest-user-row:first-child', element => element.textContent?.replace(/\s+/g, ' ').trim() || '');
-    if (!persistedUser.includes('администратор') || !persistedUser.includes('заблокирован') || !persistedUser.includes('полный доступ')) {
+    if (!persistedUser.includes('админ') || !persistedUser.includes('заблокирован') || !persistedUser.includes('полный доступ')) {
       failures.push(`admin users [${device}]: role/block/manual-access mutations did not persist after navigation`);
     }
+    console.log(`✓ admin users [${device}] persistence reload`);
 
     const previouslyUncoveredSections = [
       ['fun-decks', 'Фановые колоды', '.admin-standard-operations', '.admin-fun-decks__stats strong', '0'],
       ['api-keys', 'Public API', '.admin-api-keys', '.admin-api-key-empty', 'Ключей пока нет'],
-      ['arena-synergies', 'Сочетания в Арене', '.arena-synergy-panel', '.arena-synergy-stats strong', '24'],
-      ['analytics', 'Аналитика', '.boosty-analytics', '.boosty-analytics-stats strong', '2'],
-      ['referrals', 'Реферальные ссылки', '.admin-referral-layout', '.admin-referral-row strong', 'QA campaign'],
+      ['referrals', 'Реферальная ссылка', '.admin-referral-layout', '.admin-referral-row strong', 'QA campaign'],
     ];
     let previouslyUncoveredViolationCount = 0;
     for (const [section, heading, selector, loadedSelector, loadedText] of previouslyUncoveredSections) {
+      console.log(`→ admin ${section} [${device}]`);
       await page.goto(`${BASE}/?admin&section=${section}`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
       await page.waitForFunction(expectedHeading => (
         document.querySelector('#admin-section-title')?.textContent?.trim() === expectedHeading
@@ -3974,6 +3990,7 @@ for (const [device, viewport] of [
         return ready?.textContent?.includes(expectedText)
           && !workspace?.querySelector('[aria-busy="true"]');
       }, { timeout: 20_000 }, loadedSelector, loadedText);
+      if (section === 'referrals') await page.screenshot({ path: `${OUT}/admin-referrals-${device}.png`, fullPage: false });
       const sectionState = await page.evaluate(expectedSection => ({
         section: new URL(window.location.href).searchParams.get('section'),
         content: document.querySelector('.admin-workspace-content')?.textContent?.trim() || '',
@@ -3991,6 +4008,19 @@ for (const [device, viewport] of [
         `admin ${section} [${device}]`,
         '.admin-workspace-content',
       );
+      console.log(`✓ admin ${section} [${device}]`);
+    }
+
+    for (const removedSection of ['analytics', 'arena-synergies']) {
+      await page.goto(`${BASE}/?admin&section=${removedSection}`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+      await page.waitForFunction(() => document.querySelector('#admin-section-title')?.textContent?.trim() === 'Обзор');
+      const removedSectionState = await page.evaluate(section => ({
+        section: new URL(window.location.href).searchParams.get('section'),
+        staleNavigation: Boolean(document.querySelector(`[data-section="${section}"]`)),
+      }), removedSection);
+      if (removedSectionState.section !== 'dashboard' || removedSectionState.staleNavigation) {
+        failures.push(`admin removed section ${removedSection} [${device}]: did not fall back to dashboard (${JSON.stringify(removedSectionState)})`);
+      }
     }
 
     await page.goto(`${BASE}/?login`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
