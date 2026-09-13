@@ -2,8 +2,8 @@
 set -euo pipefail
 
 root="${ARENA_STATIC_ROOT:-/srv/arena/static}"
-minimum_files="${ARENA_STATIC_MIN_FILES:-5000}"
-minimum_bytes="${ARENA_STATIC_MIN_BYTES:-100000000}"
+minimum_files="${ARENA_STATIC_MIN_FILES:-4500}"
+minimum_bytes="${ARENA_STATIC_MIN_BYTES:-70000000}"
 keep_releases="${ARENA_STATIC_KEEP_RELEASES:-3}"
 prepare_ttl_minutes="${ARENA_STATIC_PREPARE_TTL_MINUTES:-60}"
 skip_reload="${ARENA_STATIC_SKIP_RELOAD:-0}"

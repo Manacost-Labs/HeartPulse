@@ -104,6 +104,13 @@ After changing these files, run `npm run test:deployment`, install the scripts
 with mode `0755`, reload systemd, start the service once, and confirm that its
 second run reports every edge as already current without invoking rsync.
 
+The guarded activator defaults to a fail-closed floor of 4,500 files and 70 MB.
+Those limits sit below both validated production bundles measured during the
+September 2026 rollout (about 4,900 files and 77 MB). This heuristic rejects an
+undersized tree below either floor; successful `rsync` is the integrity gate for
+a transfer that remains above both floors. Remeasure the active and previous
+known-good bundles before changing either threshold.
+
 The cache-path file replaces, rather than supplements, the historical
 `proxy_cache_path` declaration embedded in an edge vhost. Back up both files,
 remove exactly the old declaration and install the versioned file in one
