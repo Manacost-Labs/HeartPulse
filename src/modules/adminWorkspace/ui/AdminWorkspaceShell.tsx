@@ -1,38 +1,14 @@
-import React, { type ReactNode, type Ref } from 'react';
+import React from 'react';
 import { X } from 'lucide-react';
 import { AdminCommandBar } from './AdminCommandBar';
 import { AdminWorkspaceNavigation } from './AdminWorkspaceNavigation';
+import type { AdminWorkspaceShellProps } from './adminWorkspaceTypes';
 
-export type AdminWorkspaceNavigationItem<Section extends string = string> = {
-  id: Section;
-  label: string;
-  caption: string;
-  status: string;
-  group: string;
-  icon: React.ElementType;
-};
-
-export type AdminWorkspaceShellMessage = {
-  type: 'ok' | 'err';
-  text: string;
-};
-
-export type AdminWorkspaceShellProps<Section extends string = string> = {
-  navigation: ReadonlyArray<AdminWorkspaceNavigationItem<Section>>;
-  activeSection: Section;
-  menuOpen: boolean;
-  accessLabel: string;
-  userLabel: string;
-  userTitle?: string;
-  message: AdminWorkspaceShellMessage | null;
-  menuButtonRef?: Ref<HTMLButtonElement>;
-  navigationRef?: Ref<HTMLElement>;
-  onToggleMenu: () => void;
-  onCloseMenu: () => void;
-  onNavigate: (section: Section) => void;
-  onDismissMessage: () => void;
-  children: ReactNode;
-};
+export type {
+  AdminWorkspaceNavigationItem,
+  AdminWorkspaceShellMessage,
+  AdminWorkspaceShellProps,
+} from './adminWorkspaceTypes';
 
 export function AdminWorkspaceShell<Section extends string>({
   navigation,

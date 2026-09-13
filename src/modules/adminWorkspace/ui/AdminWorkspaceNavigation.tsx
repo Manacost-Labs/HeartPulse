@@ -1,6 +1,6 @@
 import React, { useMemo, useState, type Ref } from 'react';
 import { ExternalLink, Search, X } from 'lucide-react';
-import type { AdminWorkspaceNavigationItem } from './AdminWorkspaceShell';
+import type { AdminWorkspaceNavigationItem } from './adminWorkspaceTypes';
 
 export function AdminWorkspaceNavigation<Section extends string>({
   navigation,
