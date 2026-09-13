@@ -156,9 +156,7 @@ export function ParserRunsCard({
                       </td>
                       <td><time dateTime={run.requestedAt || undefined}>{formatAdminDate(run.requestedAt)}</time></td>
                       <td>
-                        <button
-                          type="button"
-                          className="admin-parser-run-open"
+                        <button type="button" className="admin-parser-run-open"
                           aria-label={`Открыть сведения о запуске ${run.id}`}
                           onClick={() => setSelectedRunId(run.id)}
                         >
