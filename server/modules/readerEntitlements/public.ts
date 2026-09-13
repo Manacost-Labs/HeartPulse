@@ -2,6 +2,7 @@ import { timingSafeEqual } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { json, Router, type ErrorRequestHandler, type Request, type RequestHandler } from 'express';
 import { rateLimit } from 'express-rate-limit';
+import { isExactReaderClient } from '../browserIdentity/public.js';
 
 type PaidSource = 'boosty' | 'patreon';
 type StaticClient = { id: string; secret: string; redirectUri: string };
@@ -16,7 +17,6 @@ export interface ReaderEntitlementsOptions {
 
 const MAX_EVIDENCE_AGE_MS = 30 * 60_000;
 const SUBJECT = /^[A-Za-z0-9_-]{1,128}$/;
-const STAGING_CLIENT = 'manacost-reader-staging';
 const QUALIFYING_ENTITLEMENTS = ['arena', 'battlegrounds', 'standard', 'contests', 'guidesArchive', 'arenaArticles', 'battlegroundsArticles'] as const;
 
 function object(value: string): Record<string, unknown> {
@@ -83,7 +83,7 @@ function basicCredentials(request: Request): { id: string; secret: string } | nu
 
 function authorized(request: Request, clients: StaticClient[]): boolean {
   const supplied = basicCredentials(request);
-  const client = supplied?.id === STAGING_CLIENT ? clients.find(item => item.id === supplied.id) : undefined;
+  const client = supplied ? clients.find(item => item.id === supplied.id && isExactReaderClient(item)) : undefined;
   if (!supplied || !client) return false;
   const expected = Buffer.from(client.secret);
   const actual = Buffer.from(supplied.secret);

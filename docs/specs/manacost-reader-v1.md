@@ -20,9 +20,10 @@ replayed idempotently after login; comment submission must never be automatic.
 - Reader cookie: `__Host-manacost_reader`, Secure, HttpOnly, SameSite=Lax,
   Path=/, no Domain. Opaque random identifiers; hashed storage keys; encrypted
   upstream tokens at rest with deployment-managed keys.
-- Only the exact staging Reader client may explicitly request `offline_access`
-  and receive consent for up to 30 days. Its original grant, binding and refresh
-  family deadlines never slide; access tokens remain 300 seconds. New consumer
+- Only the exact staging or production Reader client may explicitly request
+  `offline_access` and receive consent for up to 30 days. Its original grant,
+  binding and refresh family deadlines never slide; access tokens remain 300
+  seconds. New consumer
   cookies have Max-Age 2,592,000; existing/no-refresh sessions remain short.
 - Refresh uses a durable one-shot claim and atomic active-session comparison.
   Concurrent reads/writes share rotation; logout must win. Invalid or ambiguous
@@ -60,9 +61,10 @@ to verify the signed ID token, state and nonce, then introspection/userinfo on e
 private profile read. A transactional local session comparison makes logout win
 against an in-flight re-login. Validated cancellation returns to the local page.
 
-The remembered-login extension requests `openid profile offline_access` only for
-the exact staging Reader client. Consent explicitly discloses the 30-day maximum
-and early revocation by the original HearthPulse session. Ineligible offline
+The remembered-login extension requests `openid profile offline_access` only
+for an exact staging or production Reader client. Consent explicitly discloses
+the 30-day maximum and early revocation by the original HearthPulse session.
+Ineligible offline
 requests receive `invalid_scope`, never an implicit grant or consent loop.
 Provider endpoint tests cover fixed expiry, later rotation, replay, consumed-token
 revocation and expired grants. The coordinated BFF release needs independent

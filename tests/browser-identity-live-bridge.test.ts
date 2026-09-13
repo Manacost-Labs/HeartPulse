@@ -25,14 +25,25 @@ test('production identity accepts only the explicitly enabled exact staging clie
       'https://test.hs-manacost.ru/reader-auth/callback/',
     ]) assert.throws(() => validateIdentityOptions({ ...options, allowStagingClient: true,
       clients: [{ ...options.clients[0], redirectUri }] }));
-    for (const id of ['manacost-reader', 'other-staging']) {
+    for (const id of ['manacost-reader', 'manacost-reader-production', 'other-staging']) {
       assert.throws(() => validateIdentityOptions({ ...options, allowStagingClient: true,
         clients: [{ ...options.clients[0], id }] }));
     }
     assert.throws(() => validateIdentityOptions({ ...options, allowStagingClient: true,
       deployment: 'staging', issuer: 'https://test.hearthpulse.net/identity' }));
-    assert.doesNotThrow(() => validateIdentityOptions({ ...options,
-      clients: [{ ...options.clients[0], id: 'manacost-reader',
-        redirectUri: 'https://hs-manacost.ru/reader-auth/callback' }] }));
+    const productionClient = { ...options.clients[0], id: 'manacost-reader-production',
+      redirectUri: 'https://hs-manacost.ru/reader-auth/callback' };
+    assert.doesNotThrow(() => validateIdentityOptions({ ...options, allowStagingClient: false,
+      clients: [productionClient] }));
+    assert.doesNotThrow(() => validateIdentityOptions({ ...options, allowStagingClient: true,
+      clients: [productionClient, options.clients[0]] }));
+    for (const redirectUri of [
+      'https://hs-manacost.com/reader-auth/callback',
+      'https://www.hs-manacost.ru/reader-auth/callback',
+      'https://hs-manacost.ru/reader-auth/callback/',
+    ]) assert.throws(() => validateIdentityOptions({ ...options, allowStagingClient: false,
+      clients: [{ ...productionClient, redirectUri }] }));
+    assert.throws(() => validateIdentityOptions({ ...options, allowStagingClient: false,
+      clients: [{ ...productionClient, id: 'manacost-reader' }] }));
   } finally { database.close(); }
 });

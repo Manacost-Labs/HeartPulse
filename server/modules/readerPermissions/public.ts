@@ -2,6 +2,7 @@ import { timingSafeEqual } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { json, Router, type ErrorRequestHandler, type Request, type RequestHandler } from 'express';
 import { rateLimit } from 'express-rate-limit';
+import { isExactReaderClient } from '../browserIdentity/public.js';
 
 type StaticClient = { id: string; secret: string; redirectUri: string };
 type PermissionRow = { subject: string; role: string | null; blocked_at: string | null };
@@ -11,19 +12,16 @@ export interface ReaderPermissionsOptions {
   clients: StaticClient[];
 }
 
-const STAGING_CLIENT = 'manacost-reader-staging';
-const STAGING_CALLBACK = 'https://test.hs-manacost.ru/reader-auth/callback';
 const SUBJECT = /^[A-Za-z0-9_-]{1,128}$/;
 
-/** Requires the one Reader bridge credential that deployment must explicitly provision before enabling this route. */
+/** Requires at least one exact Reader credential that deployment explicitly provisions before enabling this route. */
 export function assertReaderPermissionsClient(clients: unknown): asserts clients is StaticClient[] {
   const valid = Array.isArray(clients) && clients.some(client => client && typeof client === 'object'
-    && (client as StaticClient).id === STAGING_CLIENT
-    && (client as StaticClient).redirectUri === STAGING_CALLBACK
+    && isExactReaderClient(client as StaticClient)
     && typeof (client as StaticClient).secret === 'string'
     && (client as StaticClient).secret.length >= 43
     && Buffer.byteLength((client as StaticClient).secret, 'utf8') >= 43);
-  if (!valid) throw new Error('Reader permissions staging client is invalid');
+  if (!valid) throw new Error('Reader permissions client is invalid');
 }
 
 function basicCredentials(request: Request): { id: string; secret: string } | null {
@@ -39,7 +37,7 @@ function basicCredentials(request: Request): { id: string; secret: string } | nu
 
 function authorized(request: Request, clients: StaticClient[]): boolean {
   const supplied = basicCredentials(request);
-  const client = supplied?.id === STAGING_CLIENT ? clients.find(item => item.id === supplied.id) : undefined;
+  const client = supplied ? clients.find(item => item.id === supplied.id && isExactReaderClient(item)) : undefined;
   if (!supplied || !client) return false;
   const expected = Buffer.from(client.secret);
   const actual = Buffer.from(supplied.secret);

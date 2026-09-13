@@ -1,17 +1,19 @@
 # Manacost reader identity
 
-Status: staging production-identity bridge exists; remembered-login extension
-requires its own reviewed release and acceptance evidence.
+Status: staging bridge exists; an exact production Reader client is prepared as
+a disabled release candidate. Activation still requires reviewed release and
+separate browser acceptance evidence.
 
 ## First vertical slice
 
 Reader grants currently depend on the exact existing HearthPulse browser session
 as an immutable security generation. Canonical reset/block/logout invalidate that
 session. This avoids adding a parallel account lifecycle before it is tested.
-The original five-minute slice is extended only for `manacost-reader-staging`
-with explicit `offline_access` consent. That grant, canonical binding and refresh
-family last at most 30 days; access tokens remain 300 seconds. Other clients keep
-their seven-day grant policy and cannot obtain runtime offline consent.
+The original five-minute slice is extended only for the exact staging or
+production Reader client with explicit `offline_access` consent. That grant,
+canonical binding and refresh family last at most 30 days; access tokens remain
+300 seconds. Other clients keep their seven-day grant policy and cannot obtain
+runtime offline consent.
 
 Rotation retains the initial refresh token's `iiat` deadline and an expired Grant
 blocks issuance before rotation. The binding is never renewed. This remains
@@ -44,12 +46,14 @@ authentication data and previous release binaries on rollback: restoring an old
 session database can revive revoked access. A previous consumer can continue
 using short sessions; remembered sessions may require re-login after rollback.
 
-The user selected real HearthPulse accounts for the test cabinet. One default-off
-exception is permitted: production issuer `https://hearthpulse.net/identity`,
-client `manacost-reader-staging`, callback
-`https://test.hs-manacost.ru/reader-auth/callback`. Both sides require explicit
-flags. Other mixed deployments remain rejected. Switch the BFF to fresh keys
-and a fresh database; preserve old isolated subjects/sessions/queues separately.
+Two exact confidential clients are reserved. Production uses issuer
+`https://hearthpulse.net/identity`, client `manacost-reader-production` and
+callback `https://hs-manacost.ru/reader-auth/callback`. The default-off staging
+exception uses client `manacost-reader-staging` and callback
+`https://test.hs-manacost.ru/reader-auth/callback`; it additionally requires the
+bridge flag. Near-match identifiers, `.com`, `www`, alternate ports and trailing
+slashes are rejected. Each BFF uses fresh keys and a separate database; preserve
+old isolated subjects, sessions and queues separately.
 
 ## Boundaries and alternatives
 
