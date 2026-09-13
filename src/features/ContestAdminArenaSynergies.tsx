@@ -11,11 +11,9 @@ import {
   Sparkles,
   UsersRound,
 } from 'lucide-react';
+import { isArenaSynergyPayload } from '../../shared/arenaSynergyValidation';
 import type {
-  ArenaCombination,
-  ArenaClassId,
-  ArenaRedraftCard,
-  ArenaSynergyPayload,
+  ArenaCombination, ArenaClassId, ArenaRedraftCard, ArenaSynergyPayload,
 } from '../../shared/arenaSynergyContract';
 import { ArenaDraftAdvisorPanel } from './ArenaDraftAdvisorPanel';
 import { ArenaSynergyCardIdentity } from './ArenaSynergyCardIdentity';
@@ -621,10 +619,11 @@ async function fetchArenaSynergies(
     headers: { Accept: 'application/json' },
     signal: options.signal,
   });
-  const result = await response.json().catch(() => ({})) as ArenaSynergyPayload & { error?: string };
+  const result = await response.json().catch(() => ({})) as { error?: string };
   if (!response.ok) {
     throw new Error(result.error || 'Не удалось загрузить сочетания Арены');
   }
+  if (!isArenaSynergyPayload(result)) throw new Error('Сервис сочетаний Арены вернул неполные данные. Повторите запрос.');
   return result;
 }
 

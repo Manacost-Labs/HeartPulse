@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { analyzeArenaSynergies } from '../server/arenaSynergyAnalysis.js';
+import { isArenaSynergyPayload } from '../shared/arenaSynergyValidation.js';
 
 type CardSeed = { id: string; name?: string };
 
@@ -373,6 +374,23 @@ const historical = analyzeArenaSynergies({
   },
   now: new Date('2026-07-22T01:00:00Z'),
 });
+assert.equal(isArenaSynergyPayload({}), false);
+assert.equal(isArenaSynergyPayload(result), true);
+const invalidCohort = structuredClone(result) as unknown as Record<string, unknown>;
+invalidCohort.cohort = {};
+assert.equal(isArenaSynergyPayload(invalidCohort), false);
+const invalidSummary = structuredClone(result) as unknown as { summary: Record<string, unknown> };
+delete invalidSummary.summary.recordCounts;
+assert.equal(isArenaSynergyPayload(invalidSummary), false);
+const invalidRecordCount = structuredClone(result) as unknown as { summary: { recordCounts: Record<string, unknown> } };
+invalidRecordCount.summary.recordCounts['12-0'] = {};
+assert.equal(isArenaSynergyPayload(invalidRecordCount), false);
+const invalidQuality = structuredClone(result) as unknown as { dataQuality: Record<string, unknown> };
+delete invalidQuality.dataQuality.checks;
+assert.equal(isArenaSynergyPayload(invalidQuality), false);
+const invalidCombination = structuredClone(result) as unknown as { combinations: Array<Record<string, unknown>> };
+if (invalidCombination.combinations[0]) delete invalidCombination.combinations[0].interactionEvidence;
+assert.equal(isArenaSynergyPayload(invalidCombination), false);
 const blendedPair = historical.combinations.find(item => (
   item.cards.some(cardItem => cardItem.id === A.id)
   && item.cards.some(cardItem => cardItem.id === B.id)

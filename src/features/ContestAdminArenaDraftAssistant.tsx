@@ -19,13 +19,10 @@ import {
   useReducer,
   useState,
 } from 'react';
+import { isArenaSynergyPayload } from '../../shared/arenaSynergyValidation';
 import type {
-  ArenaClassId,
-  ArenaDraftAdviceRequest,
-  ArenaDraftAdviceResponse,
-  ArenaDraftChoice,
-  ArenaSynergyCard,
-  ArenaSynergyPayload,
+  ArenaClassId, ArenaDraftAdviceRequest, ArenaDraftAdviceResponse,
+  ArenaDraftChoice, ArenaSynergyCard, ArenaSynergyPayload,
 } from '../../shared/arenaSynergyContract';
 import {
   addDraftCard,
@@ -752,8 +749,9 @@ async function loadArenaSynergyPayload(
     headers: { Accept: 'application/json' },
     signal,
   });
-  const data = await response.json().catch(() => ({})) as ArenaSynergyPayload & { error?: string };
+  const data = await response.json().catch(() => ({})) as { error?: string };
   if (!response.ok) throw new Error(data.error || 'Не удалось загрузить данные помощника.');
+  if (!isArenaSynergyPayload(data)) throw new Error('Сервис помощника Арены вернул неполные данные. Повторите запрос.');
   return data;
 }
 

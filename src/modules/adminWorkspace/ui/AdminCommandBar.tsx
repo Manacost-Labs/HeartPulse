@@ -33,13 +33,18 @@ export function AdminCommandBar({
       <a href="/" className="admin-command-brand" aria-label="HearthPulse Admin — открыть сайт">
         <img className="admin-command-logo" src="/arena-logo-icon-256.webp" alt="" />
         <span className="admin-command-name">HearthPulse</span>
-        <em>Admin</em>
       </a>
 
       <div className="admin-command-actions">
-        <span className="admin-system-pulse"><i />Доступ подтверждён</span>
-        <a href="/" target="_blank" rel="noreferrer">
-          Открыть сайт <ExternalLink size={16} aria-hidden="true" />
+        <a
+          href="/"
+          className="admin-public-site-link"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Открыть публичный сайт HearthPulse"
+        >
+          <span>Сайт</span>
+          <ExternalLink size={15} aria-hidden="true" />
         </a>
         <span className="admin-user-chip" title={userTitle}>
           <b aria-hidden="true">{userInitial}</b>

@@ -942,6 +942,72 @@ const adminFixtures = {
     sanitizedHtmlBody: '<h1>Предпросмотр QA</h1>',
     previewDigest: 'qa-preview-digest',
   },
+  '/api/admin/boosty/analytics': {
+    semantics: 'combined_subscription_events',
+    from: '2026-07-01T00:00:00.000Z',
+    to: '2026-07-29T00:00:00.000Z',
+    summary: { newSubscriptions: 2, renewals: 3, revenueRub: 2500, observedDecreaseRub: 0 },
+    plans: [],
+    retention: [],
+    coverage: {
+      baselineAt: '2026-07-01T00:00:00.000Z',
+      lastAcceptedPollAt: '2026-07-28T00:00:00.000Z',
+      acceptedPolls: 28,
+      maxPollGapSeconds: 86400,
+      complete: true,
+    },
+    articleIntervals: [],
+    generatedAt: '2026-07-28T00:00:00.000Z',
+    limitations: [],
+    sourceBreakdown: [],
+    sales: null,
+  },
+  '/api/admin/fun-decks': {
+    fetchedAt: '2026-07-28T00:00:00.000Z',
+    detectorVersion: 'qa-v1',
+    stats: { published_by_format: { standard: 0, wild: 0 }, rejected: 0, candidates: 0 },
+    cadence: { label: 'Дважды в час', timers: ['15', '45'], schedule: ':15 / :45' },
+    decks: [],
+  },
+  '/api/admin/api-keys': { keys: [] },
+  '/api/admin/arena-synergies': {
+    schemaVersion: 2,
+    generatedAt: '2026-07-28T00:00:00.000Z',
+    selectedClass: 'ALL',
+    source: { winningDecksFetchedAt: '2026-07-28T00:00:00.000Z', cardStatsFetchedAt: null },
+    cohort: {
+      id: 'qa-arena-cohort',
+      patchVersion: '36.0.3',
+      patchPublishedAt: '2026-07-20T00:00:00.000Z',
+      poolFingerprint: 'qa-arena-pool-fingerprint',
+      from: '2026-07-20T00:00:00.000Z',
+      to: '2026-07-28T00:00:00.000Z',
+    },
+    summary: { runsAvailable: 24, runsAnalyzed: 24, redraftRuns: 5, recordCounts: { '12-0': 8 }, warnings: [] },
+    availableClasses: [{ id: 'ALL', label: 'Все классы', runs: 24 }],
+    methodology: {
+      sampleLimit: 1000,
+      minimumPairRuns: 5,
+      minimumLift: 1.05,
+      packageFilterShare: 0.8,
+      classStratified: true,
+      outcomeMetric: '12-win run quality',
+      note: 'Контрольная детерминированная выборка.',
+    },
+    dataQuality: { status: 'healthy', score: 100, metrics: {}, checks: [] },
+    reliability: {
+      sampleMode: 'stable',
+      servedFrom: 'live',
+      currentWeight: 1,
+      historicalWeight: 0,
+      stableAtRuns: 20,
+      previousCohortId: null,
+      limitations: [],
+    },
+    history: [],
+    combinations: [],
+    redraft: [],
+  },
 };
 
 const wildMatchupsFixture = {
@@ -3154,7 +3220,12 @@ for (const [device, viewport] of [
     mailingCampaigns: structuredClone(adminFixtures['/api/admin/mailings/overview'].campaigns),
   };
   await page.setViewport(viewport);
-  await mockApplicationApi(page, { authenticated: true, admin: true, adminState });
+  await mockApplicationApi(page, {
+    authenticated: true,
+    admin: true,
+    adminState,
+    strictApi: true,
+  });
   try {
     await page.goto(`${BASE}/?admin&section=dashboard`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.admin-stat-grid', { timeout: 20_000 });
@@ -3178,6 +3249,9 @@ for (const [device, viewport] of [
       return {
         stats,
         quickActions,
+        commandBarHeight: document.querySelector('.admin-command-bar')?.getBoundingClientRect().height ?? 0,
+        commandLogoSize: document.querySelector('.admin-command-logo')?.getBoundingClientRect().width ?? 0,
+        hasRedundantAccessStatus: Boolean(document.querySelector('.admin-system-pulse')),
         emptyClicksStatus: document.querySelector('.admin-referral-clicks [role="status"]')?.textContent?.trim() || '',
         dashboardColumns: getComputedStyle(document.querySelector('.admin-dashboard-grid')).gridTemplateColumns.split(/\s+/).length,
         scrollWidth: root.scrollWidth,
@@ -3198,6 +3272,9 @@ for (const [device, viewport] of [
       }
     }
     if (state.quickActions.length !== 9) failures.push(`admin dashboard [${device}]: expected 9 quick actions, got ${state.quickActions.length}`);
+    if (state.commandBarHeight !== 56 || state.commandLogoSize !== 32 || state.hasRedundantAccessStatus) {
+      failures.push(`admin dashboard [${device}]: compact command bar regressed (${JSON.stringify(state)})`);
+    }
     if (state.dashboardColumns !== (device === 'desktop' ? 2 : 1)) failures.push(`admin dashboard [${device}]: expected owned ${device === 'desktop' ? 'two' : 'single'}-column layout, got ${state.dashboardColumns}`);
     if (!state.emptyClicksStatus.includes('Переходов пока нет')) failures.push(`admin dashboard [${device}]: recent-click empty state is not exposed`);
     if (state.scrollWidth > state.clientWidth + 1) failures.push(`admin dashboard [${device}]: horizontal overflow ${state.scrollWidth} > ${state.clientWidth}`);
@@ -3875,6 +3952,45 @@ for (const [device, viewport] of [
     const persistedUser = await page.$eval('.contest-user-row:first-child', element => element.textContent?.replace(/\s+/g, ' ').trim() || '');
     if (!persistedUser.includes('администратор') || !persistedUser.includes('заблокирован') || !persistedUser.includes('полный доступ')) {
       failures.push(`admin users [${device}]: role/block/manual-access mutations did not persist after navigation`);
+    }
+
+    const previouslyUncoveredSections = [
+      ['fun-decks', 'Фановые колоды', '.admin-standard-operations', '.admin-fun-decks__stats strong', '0'],
+      ['api-keys', 'Public API', '.admin-api-keys', '.admin-api-key-empty', 'Ключей пока нет'],
+      ['arena-synergies', 'Сочетания в Арене', '.arena-synergy-panel', '.arena-synergy-stats strong', '24'],
+      ['analytics', 'Аналитика', '.boosty-analytics', '.boosty-analytics-stats strong', '2'],
+      ['referrals', 'Реферальные ссылки', '.admin-referral-layout', '.admin-referral-row strong', 'QA campaign'],
+    ];
+    let previouslyUncoveredViolationCount = 0;
+    for (const [section, heading, selector, loadedSelector, loadedText] of previouslyUncoveredSections) {
+      await page.goto(`${BASE}/?admin&section=${section}`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+      await page.waitForFunction(expectedHeading => (
+        document.querySelector('#admin-section-title')?.textContent?.trim() === expectedHeading
+      ), {}, heading);
+      await page.waitForSelector(selector, { timeout: 20_000 });
+      await page.waitForFunction((readySelector, expectedText) => {
+        const workspace = document.querySelector('.admin-workspace-content');
+        const ready = document.querySelector(readySelector);
+        return ready?.textContent?.includes(expectedText)
+          && !workspace?.querySelector('[aria-busy="true"]');
+      }, { timeout: 20_000 }, loadedSelector, loadedText);
+      const sectionState = await page.evaluate(expectedSection => ({
+        section: new URL(window.location.href).searchParams.get('section'),
+        content: document.querySelector('.admin-workspace-content')?.textContent?.trim() || '',
+        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+        overlay: Boolean(document.querySelector('vite-error-overlay, #webpack-dev-server-client-overlay')),
+        error: document.querySelector('.admin-workspace-content [role="alert"]')?.textContent?.trim() || '',
+        busy: Boolean(document.querySelector('.admin-workspace-content [aria-busy="true"]')),
+      }), section);
+      if (sectionState.section !== section || !sectionState.content || sectionState.overflow
+        || sectionState.overlay || sectionState.error || sectionState.busy) {
+        failures.push(`admin ${section} [${device}]: section did not mount safely (${JSON.stringify(sectionState)})`);
+      }
+      previouslyUncoveredViolationCount += await auditAccessibility(
+        page,
+        `admin ${section} [${device}]`,
+        '.admin-workspace-content',
+      );
     }
 
     await page.goto(`${BASE}/?login`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
@@ -5165,7 +5281,7 @@ for (const [device, viewport] of [
     await page.screenshot({ path: `${OUT}/constructed-card-detail-${device}.png`, fullPage: false });
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
     await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
-    console.log(`✓ admin dashboard/articles/translations/mechanics/Standard data/gallery/Boosty/Telegram/mailing/contests/users/profile/standard panels [${device}] interactions + axe (${violationCount + articlesViolationCount + translationsViolationCount + mechanicTranslationsViolationCount + standardOpsViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + profileViolationCount + profileTourViolationCount + archetypeViolationCount + archetypeTourViolationCount + standardMetaViolationCount + standardMetaTourViolationCount + standardMatchupsTourViolationCount + viciousGoldViolationCount + viciousGoldTourViolationCount + constructedCardsViolationCount + constructedTourViolationCount + constructedDetailViolationCount + constructedDetailTourViolationCount} violations)`);
+    console.log(`✓ all 16 admin sections plus profile/standard panels [${device}] interactions + axe (${violationCount + articlesViolationCount + translationsViolationCount + mechanicTranslationsViolationCount + standardOpsViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + previouslyUncoveredViolationCount + profileViolationCount + profileTourViolationCount + archetypeViolationCount + archetypeTourViolationCount + standardMetaViolationCount + standardMetaTourViolationCount + standardMatchupsTourViolationCount + viciousGoldViolationCount + viciousGoldTourViolationCount + constructedCardsViolationCount + constructedTourViolationCount + constructedDetailViolationCount + constructedDetailTourViolationCount} violations)`);
   } catch (error) {
     const diagnostic = await page.evaluate(() => ({
       body: document.body?.innerText.slice(0, 320).replace(/\s+/g, ' ') || 'empty body',
@@ -5175,7 +5291,7 @@ for (const [device, viewport] of [
       })),
       url: window.location.href,
     })).catch(() => ({ body: 'unavailable body', stats: [], url: page.url() }));
-    failures.push(`admin dashboard [${device}]: ${error.message}; state: ${JSON.stringify(diagnostic)}`);
+    failures.push(`admin dashboard [${device}]: ${error.message}; runtime: ${runtimeErrors.join(' | ') || 'none'}; state: ${JSON.stringify(diagnostic)}`);
   } finally {
     await page.close();
   }

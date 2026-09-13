@@ -309,9 +309,9 @@ export function createAdminArchetypeTranslationRouter(
       await dependencies.ensureSeeded?.();
       const observed = await dependencies.loadObservedArchetypes();
       const coverage = analyzeArchetypeTranslationCoverage(dependencies.getDatabase(), observed);
-      if (dependencies.resolveMissingDeckCodes && coverage.items.some(item => !item.deckCode)) {
-        coverage.items = await dependencies.resolveMissingDeckCodes(coverage.items, observed);
-      }
+      // Coverage is the primary result. Some observed rows already contain a
+      // deck code, but missing codes must not trigger slow upstream lookups and
+      // hold the entire admin page hostage.
       return response.json(coverage);
     } catch {
       return response.status(502).json({ error: 'Не удалось проверить актуальные архетипы' });

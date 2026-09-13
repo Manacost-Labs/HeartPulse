@@ -45,7 +45,6 @@ import {
   type BoostyAdminStatus,
   type BoostySubscribersPayload,
 } from './ContestAdminBoosty';
-import { ContestAdminAnalytics } from './ContestAdminAnalytics';
 import {
   ContestAdminTelegram,
   type TelegramAccountsPayload,
@@ -101,6 +100,7 @@ const AdminApiKeys = React.lazy(async () => {
   return { default: module.AdminApiKeys };
 });
 const ContestAdminArenaSynergies = React.lazy(() => import('./ContestAdminArenaSynergies'));
+const ContestAdminAnalytics = React.lazy(async () => ({ default: (await import('./ContestAdminAnalytics')).ContestAdminAnalytics }));
 
 type AuthUser = {
   id?: string;
@@ -1599,7 +1599,7 @@ export function ContestAdminPanel({ authUser, authChecking = false }: { authUser
           )}
 
           {hasFullAdminAccess && adminSection === 'analytics' && (
-            <ContestAdminAnalytics />
+            <React.Suspense fallback={<p className="contest-muted" role="status">Загружаем аналитику…</p>}><ContestAdminAnalytics /></React.Suspense>
           )}
 
           {hasFullAdminAccess && adminSection === 'api-keys' && (

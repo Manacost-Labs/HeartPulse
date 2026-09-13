@@ -75,6 +75,7 @@ app.use('/api', createAdminArchetypeTranslationRouter({
   },
   resolveMissingDeckCodes: async items => {
     deckCodeResolutionRuns += 1;
+    await new Promise(resolve => setTimeout(resolve, 750));
     return items.map(item => item.nameEn === 'New Rogue'
       ? { ...item, deckCode: 'AAECAaIHBqH0BcekBoqoBq+oBr2+BqrqBgyRnwT3nwT2nwTawwXfwwW/9wXIlAbungbZogbJqAa2tQYAAA==' }
       : item);
@@ -124,8 +125,11 @@ try {
   });
   assert.equal(seedRuns, 1);
 
+  const coverageStartedAt = performance.now();
   const coverage = await request('/admin/archetype-translations/untranslated', { headers: adminHeaders });
+  const coverageDurationMs = performance.now() - coverageStartedAt;
   assert.equal(coverage.response.status, 200);
+  assert.ok(coverageDurationMs < 250, `coverage response must not wait for optional deck-code enrichment (${coverageDurationMs.toFixed(1)} ms)`);
   assert.deepEqual(coverage.body, {
     items: [{
       nameEn: 'New Priest',
@@ -134,14 +138,13 @@ try {
     }, {
       nameEn: 'New Rogue',
       ranks: ['Легенда'],
-      deckCode: 'AAECAaIHBqH0BcekBoqoBq+oBr2+BqrqBgyRnwT3nwT2nwTawwXfwwW/9wXIlAbungbZogbJqAa2tQYAAA==',
     }],
     totalObserved: 4,
     translated: 2,
     missing: 2,
     coveragePercent: 50,
   });
-  assert.equal(deckCodeResolutionRuns, 1);
+  assert.equal(deckCodeResolutionRuns, 0, 'coverage must not trigger slow per-archetype upstream lookups');
   assert.deepEqual(analyzeArchetypeTranslationCoverage(database, []), {
     items: [], totalObserved: 0, translated: 0, missing: 0, coveragePercent: 100,
   });

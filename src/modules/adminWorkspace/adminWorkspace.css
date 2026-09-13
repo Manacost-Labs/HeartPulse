@@ -1,7 +1,7 @@
 /* HearthPulse operations shell. Product workflows keep their feature CSS. */
 
 .admin-workspace-page.admin-tailadmin-shell {
-  --admin-bar-h: 68px;
+  --admin-bar-h: 56px;
   --admin-nav-w: 256px;
   --admin-ink: #2d241c;
   --admin-muted: #75685c;
@@ -41,10 +41,10 @@
   inset: 0 0 auto;
   z-index: 100;
   height: var(--admin-bar-h);
-  padding: 0 22px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   color: var(--admin-ink);
   background: rgba(255, 253, 248, 0.96);
   border-bottom: 1px solid #decba8;
@@ -53,18 +53,18 @@
 }
 
 .admin-tailadmin-shell .admin-command-brand {
-  min-height: 44px;
+  min-height: 40px;
   display: inline-flex;
   align-items: center;
-  gap: 11px;
+  gap: 9px;
   color: var(--admin-ink);
   text-decoration: none;
   white-space: nowrap;
 }
 
 .admin-tailadmin-shell .admin-command-logo {
-  width: 42px;
-  height: 42px;
+  width: 32px;
+  height: 32px;
   display: block;
   flex: 0 0 auto;
   place-items: center;
@@ -78,19 +78,6 @@
   font-size: 1.04rem;
   font-weight: 800;
   letter-spacing: 0.035em;
-}
-
-.admin-tailadmin-shell .admin-command-brand em {
-  padding: 3px 7px;
-  border: 1px solid #d9b979;
-  border-radius: 999px;
-  color: var(--admin-gold-dark);
-  background: #fff6e4;
-  font-size: 0.66rem;
-  font-style: normal;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .admin-tailadmin-shell .admin-menu-toggle {
@@ -116,14 +103,13 @@
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .admin-tailadmin-shell .admin-command-actions > a,
-.admin-tailadmin-shell .admin-user-chip,
-.admin-tailadmin-shell .admin-system-pulse {
-  min-height: 40px;
-  padding: 0 12px;
+.admin-tailadmin-shell .admin-user-chip {
+  min-height: 36px;
+  padding: 0 10px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -142,12 +128,6 @@
   background: var(--admin-blue-soft);
 }
 
-.admin-tailadmin-shell .admin-system-pulse {
-  border-color: #b7d1ae;
-  color: #2e6a3d;
-  background: #f1f8ec;
-}
-
 .admin-tailadmin-shell .admin-user-chip {
   max-width: 260px;
   padding-left: 5px;
@@ -157,8 +137,8 @@
 }
 
 .admin-tailadmin-shell .admin-user-chip b {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   display: grid;
   flex: 0 0 auto;
   place-items: center;
@@ -175,7 +155,6 @@
   white-space: nowrap;
 }
 
-.admin-tailadmin-shell .admin-system-pulse i,
 .admin-tailadmin-shell .admin-section-status i {
   width: 7px;
   height: 7px;
@@ -840,16 +819,12 @@
 .admin-tailadmin-shell .admin-dashboard-activity .admin-referral-clicks span:last-child { color: var(--admin-muted); font-size: 0.65rem; text-align: right; }
 
 @media (max-width: 1160px) {
-  .admin-tailadmin-shell .admin-system-pulse {
-    display: none;
-  }
-
   .admin-tailadmin-shell .admin-dashboard-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 1023px) {
   .admin-workspace-page.admin-tailadmin-shell {
-    --admin-bar-h: 64px;
+    --admin-bar-h: 56px;
   }
 
   .admin-tailadmin-shell .admin-command-bar {
@@ -942,16 +917,10 @@
     gap: 10px;
   }
 
-  .admin-tailadmin-shell .admin-command-logo {
-    width: 36px;
-    height: 36px;
-  }
-
   .admin-tailadmin-shell .admin-command-name {
     font-size: 0.9rem;
   }
 
-  .admin-tailadmin-shell .admin-command-brand em,
   .admin-tailadmin-shell .admin-user-chip {
     display: none;
   }

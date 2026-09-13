@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 
 const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 const gallerySource = readFileSync(new URL('../src/features/GalleryTab.tsx', import.meta.url), 'utf8');
+const contestsSource = readFileSync(new URL('../src/features/Contests.tsx', import.meta.url), 'utf8');
 
 assert.match(
   appSource,
@@ -28,6 +29,16 @@ assert.doesNotMatch(
   gallerySource,
   /role="dialog"/,
   'the gallery route must not own a second custom modal implementation',
+);
+assert.doesNotMatch(
+  contestsSource,
+  /import \{ ContestAdminAnalytics \} from '\.\/ContestAdminAnalytics';/,
+  'analytics must not increase the initial admin bundle for every section',
+);
+assert.match(
+  contestsSource,
+  /React\.lazy\([\s\S]*?import\('\.\/ContestAdminAnalytics'\)/,
+  'analytics must load only when its admin section is opened',
 );
 
 console.log('deferred route module-boundary contracts passed');

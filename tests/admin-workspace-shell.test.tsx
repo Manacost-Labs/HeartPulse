@@ -49,6 +49,8 @@ assert.match(desktopHtml, /class="contest-admin-page admin-workspace-page admin-
 assert.match(desktopHtml, /<header[^>]*class="admin-command-bar"[^>]*aria-label="Панель управления"/);
 assert.match(desktopHtml, /HearthPulse/);
 assert.match(desktopHtml, /src="\/arena-logo-icon-256.webp"/);
+assert.match(desktopHtml, /aria-label="Открыть публичный сайт HearthPulse"/);
+assert.doesNotMatch(desktopHtml, /Доступ подтверждён/);
 assert.match(desktopHtml, /aria-label="Найти раздел админ-панели"/);
 assert.match(desktopHtml, /name="admin-navigation-search"/);
 assert.match(desktopHtml, /placeholder="Найти раздел…"/);
@@ -121,6 +123,8 @@ const shellCss = readFileSync(
   new URL('../src/modules/adminWorkspace/adminWorkspace.css', import.meta.url),
   'utf8',
 );
+assert.match(shellCss, /--admin-bar-h:\s*56px;/);
+assert.match(shellCss, /\.admin-tailadmin-shell \.admin-command-logo \{[\s\S]*?width:\s*32px;[\s\S]*?height:\s*32px;/);
 const drawerBreakpointStart = shellCss.indexOf('@media (max-width: 1023px)');
 const drawerBreakpointEnd = shellCss.indexOf('@media (max-width: 640px)', drawerBreakpointStart);
 const drawerBreakpoint = shellCss.slice(drawerBreakpointStart, drawerBreakpointEnd);

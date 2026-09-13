@@ -3,8 +3,7 @@ import { AlertTriangle, CalendarRange, RefreshCw } from 'lucide-react';
 import {
   analyticsQueryRange,
   defaultAnalyticsDateRange,
-  formatAnalyticsDate,
-  formatRub,
+  formatAnalyticsDate, formatRub, isBoostyArticleAnalyticsPayload,
   type AnalyticsDateRange,
 } from './boostyAnalyticsModel';
 import { ContestAdminBoostySales } from './ContestAdminBoostySales';
@@ -173,6 +172,7 @@ export function ContestAdminAnalytics() {
             : 'Не удалось загрузить аналитику подписок',
         );
       }
+      if (!isBoostyArticleAnalyticsPayload(data)) throw new Error('Сервис аналитики вернул неполные данные. Повторите запрос.');
       setPayload(data as BoostyArticleAnalyticsPayload);
     } catch (loadError) {
       if ((loadError as Error).name !== 'AbortError') {
@@ -397,7 +397,7 @@ export function ContestAdminAnalyticsView({
           </div>
           <span>{intervals.length} интервалов</span>
         </div>
-        <div className="boosty-analytics-table-wrap">
+        <div className="boosty-analytics-table-wrap" tabIndex={0}>
           <table className="boosty-analytics-table">
             <thead>
               <tr>
