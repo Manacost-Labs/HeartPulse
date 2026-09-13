@@ -120,7 +120,7 @@ export function ParserRunsCard({
                   <th scope="col">Статус</th>
                   <th scope="col">Источники</th>
                   <th scope="col">Запрошен</th>
-                  <th scope="col"><span className="sr-only">Детали</span></th>
+                  <th scope="col" aria-label="Детали" />
                 </tr>
               </thead>
               <tbody>
@@ -156,12 +156,14 @@ export function ParserRunsCard({
                       </td>
                       <td><time dateTime={run.requestedAt || undefined}>{formatAdminDate(run.requestedAt)}</time></td>
                       <td>
-                        <span
+                        <button
+                          type="button"
                           className="admin-parser-run-open"
-                          aria-hidden="true"
+                          aria-label={`Открыть сведения о запуске ${run.id}`}
+                          onClick={() => setSelectedRunId(run.id)}
                         >
                           <ChevronRight size={18} aria-hidden="true" />
-                        </span>
+                        </button>
                       </td>
                     </tr>
                   );

@@ -94,6 +94,9 @@ assert.match(runsMarkup, /Повторить/);
 assert.match(runsMarkup, /уже запущенных источников не добавлены повторно/);
 assert.match(runsMarkup, /<table/);
 assert.match(runsMarkup, /Открыть детали запуска/);
+assert.match(runsMarkup, /Открыть сведения о запуске run-1/);
+assert.match(runsMarkup, /<th scope="col" aria-label="Детали"><\/th>/);
+assert.doesNotMatch(runsMarkup, /class="sr-only">Детали/);
 assert.match(runsMarkup, /name="parser-sections"/);
 assert.match(runsMarkup, /name="parser-run-reason"/);
 
