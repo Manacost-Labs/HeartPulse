@@ -213,8 +213,10 @@ export function ParserRunsCard({
         <legend>Выберите разделы</legend>
         <div>
           {sections.map(section => (
-            <label key={section.id}>
+            <label htmlFor={`parser-run-section-${section.id}`} key={section.id}>
               <input
+                id={`parser-run-section-${section.id}`}
+                name="parser-sections"
                 type="checkbox"
                 checked={selected.has(section.id)}
                 onChange={event => setSelected(current => {
@@ -230,9 +232,16 @@ export function ParserRunsCard({
       </fieldset>
 
       <div className="admin-parser-run-actions">
-        <label>
+        <label htmlFor="parser-run-reason">
           Причина запуска <span>(необязательно)</span>
-          <input value={reason} maxLength={300} placeholder="Например: проверка данных после патча" onChange={event => setReason(event.target.value)} />
+          <input
+            id="parser-run-reason"
+            name="parser-run-reason"
+            value={reason}
+            maxLength={300}
+            placeholder="Например: проверка данных после патча"
+            onChange={event => setReason(event.target.value)}
+          />
         </label>
         <button type="button" className="contest-primary-button" disabled={starting || !selected.size} onClick={start}>
           <Play size={17} /> {starting ? 'Добавляем в очередь…' : `Запустить${selected.size ? ` · ${selected.size}` : ''}`}

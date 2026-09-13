@@ -620,6 +620,9 @@
 
 .admin-tailadmin-shell .admin-stat-grid dt svg { color: var(--admin-stat-accent, var(--admin-gold)); }
 .admin-tailadmin-shell .admin-stat-grid dd { margin: 0; }
+.admin-tailadmin-shell .admin-stat-grid dd > strong,
+.admin-tailadmin-shell .admin-stat-grid dd > small { display: block; }
+.admin-tailadmin-shell .admin-stat-grid dd > small { margin-top: 4px; }
 
 .admin-tailadmin-shell .admin-stat-grid strong {
   margin: 5px 0;

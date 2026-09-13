@@ -50,6 +50,7 @@ assert.match(desktopHtml, /<header[^>]*class="admin-command-bar"[^>]*aria-label=
 assert.match(desktopHtml, /HearthPulse/);
 assert.match(desktopHtml, /src="\/arena-logo-icon-256.webp"/);
 assert.match(desktopHtml, /aria-label="Найти раздел админ-панели"/);
+assert.match(desktopHtml, /name="admin-navigation-search"/);
 assert.match(desktopHtml, /placeholder="Найти раздел…"/);
 assert.match(desktopHtml, /id="admin-primary-navigation"/);
 assert.match(desktopHtml, /aria-label="Разделы админ панели"/);

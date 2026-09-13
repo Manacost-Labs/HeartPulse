@@ -96,6 +96,8 @@ assert.match(runsMarkup, /Повторить/);
 assert.match(runsMarkup, /уже запущенных источников не добавлены повторно/);
 assert.match(runsMarkup, /<table/);
 assert.match(runsMarkup, /Открыть детали запуска/);
+assert.match(runsMarkup, /name="parser-sections"/);
+assert.match(runsMarkup, /name="parser-run-reason"/);
 
 const runDetailsMarkup = renderToStaticMarkup(
   <ParserRunDetailsDrawer

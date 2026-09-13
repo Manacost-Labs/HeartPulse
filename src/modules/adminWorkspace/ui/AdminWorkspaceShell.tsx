@@ -158,6 +158,7 @@ export function AdminWorkspaceShell<Section extends string>({
             <Search size={17} aria-hidden="true" />
             <input
               type="search"
+              name="admin-navigation-search"
               value={navigationQuery}
               placeholder="Найти раздел…"
               aria-label="Найти раздел админ-панели"
