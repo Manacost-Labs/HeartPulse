@@ -72,7 +72,7 @@ export function AdminWorkspaceNavigation<Section extends string>({
         {groups.map((group, groupIndex) => {
           const groupId = `admin-nav-group-${groupIndex}`;
           return (
-            <div className="admin-nav-cluster" role="group" aria-labelledby={groupId} key={group.label}>
+            <section className="admin-nav-cluster" aria-labelledby={groupId} key={group.label}>
               <span className="admin-nav-group" id={groupId}>{group.label}</span>
               {group.items.map(item => {
                 const Icon = item.icon;
@@ -93,7 +93,7 @@ export function AdminWorkspaceNavigation<Section extends string>({
                   </button>
                 );
               })}
-            </div>
+            </section>
           );
         })}
         {!filteredNavigation.length && <p className="admin-nav-empty" role="status">Разделы не найдены.</p>}
