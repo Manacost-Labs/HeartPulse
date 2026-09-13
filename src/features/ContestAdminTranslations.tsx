@@ -33,15 +33,6 @@ type TranslationCoverage = {
   coveragePercent: number;
 };
 type MessageHandler = (message: AdminMessage | null) => void;
-type LatestRequestLease = {
-  signal: AbortSignal;
-  isCurrent: () => boolean;
-  release: () => void;
-};
-type LatestRequestCoordinator = {
-  begin: () => LatestRequestLease;
-  cancel: () => void;
-};
 const EMPTY_DRAFT: TranslationDraft = { nameEn: '', nameRu: '' };
 const EMPTY_RESPONSE: TranslationResponse = {
   items: [], total: 0, page: 1, pageSize: 40, pages: 1,
@@ -51,10 +42,16 @@ const EMPTY_COVERAGE: TranslationCoverage = {
   items: [], totalObserved: 0, translated: 0, missing: 0, coveragePercent: 100,
 };
 
+function requestHeaders(): HeadersInit {
+  return { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' };
+}
+
+type LatestRequestLease = { signal: AbortSignal; isCurrent: () => boolean; release: () => void };
+type LatestRequestCoordinator = { begin: () => LatestRequestLease; cancel: () => void };
+
 export function createLatestRequestCoordinator(): LatestRequestCoordinator {
   let requestId = 0;
   let activeController: AbortController | null = null;
-
   return {
     begin() {
       activeController?.abort();
@@ -64,9 +61,7 @@ export function createLatestRequestCoordinator(): LatestRequestCoordinator {
       return {
         signal: controller.signal,
         isCurrent: () => currentRequestId === requestId && !controller.signal.aborted,
-        release: () => {
-          if (currentRequestId === requestId) activeController = null;
-        },
+        release: () => { if (currentRequestId === requestId) activeController = null; },
       };
     },
     cancel() {
@@ -77,8 +72,10 @@ export function createLatestRequestCoordinator(): LatestRequestCoordinator {
   };
 }
 
-function requestHeaders(): HeadersInit {
-  return { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' };
+function useLatestRequestCoordinator(): LatestRequestCoordinator {
+  const coordinatorRef = useRef<LatestRequestCoordinator | null>(null);
+  if (!coordinatorRef.current) coordinatorRef.current = createLatestRequestCoordinator();
+  return coordinatorRef.current;
 }
 
 function formatSyncDate(value: string | null): string {
@@ -107,6 +104,17 @@ async function copyText(value: string): Promise<boolean> {
   }
 }
 
+function restoreTranslationEditorFocus(input: HTMLInputElement | null) {
+  window.requestAnimationFrame(() => {
+    const activeElement = document.activeElement;
+    const focusRemainsInEditor = activeElement instanceof Element
+      && Boolean(activeElement.closest('.admin-translation-form'));
+    if (!activeElement || activeElement === document.body || focusRemainsInEditor) {
+      input?.focus({ preventScroll: true });
+    }
+  });
+}
+
 type TranslationWorkspaceViewProps = {
   data: TranslationResponse;
   loading: boolean;
@@ -114,6 +122,7 @@ type TranslationWorkspaceViewProps = {
   syncing: boolean;
   coverage: TranslationCoverage;
   coverageLoading: boolean;
+  coverageLoaded: boolean;
   coverageError: string;
   query: string;
   source: string;
@@ -142,6 +151,7 @@ function TranslationWorkspaceView({
   syncing,
   coverage,
   coverageLoading,
+  coverageLoaded,
   coverageError,
   query,
   source,
@@ -168,11 +178,11 @@ function TranslationWorkspaceView({
         eyebrow="Контент"
         title="Переводы"
         description="Закройте пробелы в названиях архетипов и синхронизируйте справочник без потери ручных правок."
-        status={syncing ? 'Синхронизируем BlizzCore' : coverageLoading ? 'Проверяем покрытие' : coverage.missing ? `${coverage.missing} требуют перевода` : 'Все актуальные названия переведены'}
+        status={syncing ? 'Синхронизируем BlizzCore' : coverageLoading ? (coverageLoaded ? 'Обновляем покрытие' : 'Проверяем покрытие') : coverage.missing ? `${coverage.missing} требуют перевода` : 'Все актуальные названия переведены'}
         statusTone={syncing || coverageLoading ? 'working' : coverage.missing ? 'attention' : 'ready'}
         metrics={[
-          { label: 'Покрытие', value: coverageLoading ? '…' : `${coverage.coveragePercent}%`, detail: `${coverage.translated} из ${coverage.totalObserved}` },
-          { label: 'В очереди', value: coverageLoading ? '…' : coverage.missing, detail: coverage.missing ? 'видны на английском' : 'очередь пуста' },
+          { label: 'Покрытие', value: coverageLoading && !coverageLoaded ? '…' : `${coverage.coveragePercent}%`, detail: `${coverage.translated} из ${coverage.totalObserved}` },
+          { label: 'В очереди', value: coverageLoading && !coverageLoaded ? '…' : coverage.missing, detail: coverage.missing ? 'видны на английском' : 'очередь пуста' },
           { label: 'В справочнике', value: data.stats.total, detail: `${data.stats.manual} ручных` },
           { label: 'Синхронизация', value: data.stats.lastSyncedAt ? new Date(data.stats.lastSyncedAt).toLocaleDateString('ru-RU') : 'не было', detail: 'api.blizzcore.ru' },
         ]}
@@ -232,7 +242,7 @@ function TranslationWorkspaceView({
           <p className="admin-translation-form-note">После сохранения поля очистятся, а очередь обновится без скачка страницы.</p>
         </div>
       </form>
-      <section className="contest-admin-card admin-translation-coverage" aria-labelledby="translation-coverage-title">
+      <section className="contest-admin-card admin-translation-coverage" aria-labelledby="translation-coverage-title" aria-busy={coverageLoading}>
         <div className="admin-card-heading">
           <div>
             <h2 id="translation-coverage-title">Что ещё не переведено</h2>
@@ -242,7 +252,7 @@ function TranslationWorkspaceView({
             {coverageLoading ? 'Проверяем…' : 'Проверить ещё раз'}
           </button>
         </div>
-        {!coverageError && !coverageLoading && (
+        {coverageLoaded && (
           <div className="admin-translation-progress">
             <progress
               aria-label="Покрытие переводами актуальных архетипов"
@@ -258,8 +268,8 @@ function TranslationWorkspaceView({
             <button type="button" onClick={onRetryCoverage}>Повторить</button>
           </div>
         )}
-        {!coverageError && coverageLoading && <p className="contest-muted admin-translation-empty" role="status">Проверяем актуальные матчапы и срезы меты…</p>}
-        {!coverageError && !coverageLoading && coverage.items.length > 0 && (
+        {!coverageError && coverageLoading && !coverageLoaded && <p className="contest-muted admin-translation-empty" role="status">Проверяем актуальные матчапы и срезы меты…</p>}
+        {coverageLoaded && coverage.items.length > 0 && (
           <ul className="admin-untranslated-list" aria-label="Архетипы без перевода">
             {coverage.items.map(item => (
               <li key={item.nameEn}>
@@ -287,7 +297,7 @@ function TranslationWorkspaceView({
             ))}
           </ul>
         )}
-        {!coverageError && !coverageLoading && coverage.items.length === 0 && (
+        {coverageLoaded && coverage.items.length === 0 && (
           <div className="admin-translation-covered" role="status">
             <strong>Все актуальные архетипы переведены</strong>
             <span>Новые названия появятся здесь автоматически после обновления матчапов или меты.</span>
@@ -364,11 +374,13 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
   const [query, setQuery] = useState('');
   const [source, setSource] = useState('');
   const [page, setPage] = useState(1);
+  const [refreshVersion, setRefreshVersion] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [coverage, setCoverage] = useState<TranslationCoverage>(EMPTY_COVERAGE);
   const [coverageLoading, setCoverageLoading] = useState(true);
+  const [coverageLoaded, setCoverageLoaded] = useState(false);
   const [coverageError, setCoverageError] = useState('');
   const [editing, setEditing] = useState<ArchetypeTranslation | null>(null);
   const [draft, setDraft] = useState<TranslationDraft>(EMPTY_DRAFT);
@@ -376,11 +388,11 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
   const copiedDeckTimerRef = useRef<number | null>(null);
   const englishInputRef = useRef<HTMLInputElement>(null);
   const russianInputRef = useRef<HTMLInputElement>(null);
-  const loadCoordinatorRef = useRef<LatestRequestCoordinator | null>(null);
-  if (!loadCoordinatorRef.current) loadCoordinatorRef.current = createLatestRequestCoordinator();
+  const loadCoordinator = useLatestRequestCoordinator();
+  const coverageCoordinator = useLatestRequestCoordinator();
 
   const load = useCallback(async () => {
-    const request = loadCoordinatorRef.current!.begin();
+    const request = loadCoordinator.begin();
     setLoading(true);
     const params = new URLSearchParams({ page: String(page), pageSize: '40' });
     if (query.trim()) params.set('q', query.trim());
@@ -396,44 +408,46 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
     } catch (error) {
       if (!request.isCurrent()) return;
       onMessage({ type: 'err', text: error instanceof Error ? error.message : 'Не удалось загрузить переводы' });
-      setData(EMPTY_RESPONSE);
     } finally {
       if (request.isCurrent()) setLoading(false);
       request.release();
     }
-  }, [onMessage, page, query, source]);
+  }, [loadCoordinator, onMessage, page, query, source]);
 
-  const loadCoverage = useCallback(async (signal?: AbortSignal) => {
+  const loadCoverage = useCallback(async () => {
+    const request = coverageCoordinator.begin();
     setCoverageLoading(true);
     setCoverageError('');
     try {
       const response = await fetch('/api/admin/archetype-translations/untranslated', {
-        headers: requestHeaders(), cache: 'no-store', credentials: 'same-origin', signal,
+        headers: requestHeaders(), cache: 'no-store', credentials: 'same-origin', signal: request.signal,
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'Не удалось проверить актуальные архетипы');
+      if (!request.isCurrent()) return;
       setCoverage(payload as TranslationCoverage);
+      setCoverageLoaded(true);
     } catch (error) {
-      if (signal?.aborted) return;
+      if (!request.isCurrent()) return;
       setCoverageError(error instanceof Error ? error.message : 'Не удалось проверить актуальные архетипы');
     } finally {
-      if (!signal?.aborted) setCoverageLoading(false);
+      if (request.isCurrent()) setCoverageLoading(false);
+      request.release();
     }
-  }, []);
+  }, [coverageCoordinator]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), query.trim() ? 220 : 0);
     return () => {
       window.clearTimeout(timer);
-      loadCoordinatorRef.current?.cancel();
+      loadCoordinator.cancel();
     };
-  }, [load]);
+  }, [load, loadCoordinator, query, refreshVersion]);
 
   useEffect(() => {
-    const controller = new AbortController();
-    void loadCoverage(controller.signal);
-    return () => controller.abort();
-  }, [loadCoverage]);
+    void loadCoverage();
+    return () => coverageCoordinator.cancel();
+  }, [coverageCoordinator, loadCoverage]);
 
   useEffect(() => () => {
     if (copiedDeckTimerRef.current !== null) window.clearTimeout(copiedDeckTimerRef.current);
@@ -459,25 +473,11 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'Не удалось сохранить перевод');
       resetEditor();
-      if (page !== 1) {
-        setPage(1);
-        await loadCoverage();
-      } else {
-        await Promise.all([load(), loadCoverage()]);
-      }
-      await new Promise<void>(resolve => {
-        window.requestAnimationFrame(() => {
-          const activeElement = document.activeElement;
-          const focusRemainsInEditor = activeElement instanceof Element
-            && Boolean(activeElement.closest('.admin-translation-form'));
-          const focusMayBeRestored = !activeElement
-            || activeElement === document.body
-            || focusRemainsInEditor;
-          if (focusMayBeRestored) englishInputRef.current?.focus({ preventScroll: true });
-          resolve();
-        });
-      });
       onMessage({ type: 'ok', text: successMessage });
+      restoreTranslationEditorFocus(englishInputRef.current);
+      setPage(1);
+      setRefreshVersion(current => current + 1);
+      void loadCoverage();
     } catch (error) {
       onMessage({ type: 'err', text: error instanceof Error ? error.message : 'Не удалось сохранить перевод' });
     } finally {
@@ -518,7 +518,7 @@ export function ContestAdminTranslations({ onMessage }: { onMessage: MessageHand
   return (
     <TranslationWorkspaceView
       data={data} loading={loading} saving={saving} syncing={syncing}
-      coverage={coverage} coverageLoading={coverageLoading} coverageError={coverageError}
+      coverage={coverage} coverageLoading={coverageLoading} coverageLoaded={coverageLoaded} coverageError={coverageError}
       query={query} source={source} draft={draft} editing={editing}
       onQueryChange={value => { setQuery(value); setPage(1); }}
       onSourceChange={value => { setSource(value); setPage(1); }}

@@ -1368,13 +1368,19 @@ async function mockApplicationApi(page, {
         const key = item.nameEn.toLocaleLowerCase('en-US');
         return !translatedKeys.some(translationKey => key === translationKey || key.includes(translationKey));
       });
-      request.respond(jsonResponse({
+      const respond = () => request.respond(jsonResponse({
         items,
         totalObserved: observed.length,
         translated: observed.length - items.length,
         missing: items.length,
         coveragePercent: Math.round(((observed.length - items.length) / observed.length) * 1_000) / 10,
       }));
+      if (adminState.delayNextTranslationCoverage) {
+        adminState.delayNextTranslationCoverage = false;
+        setTimeout(respond, 900);
+      } else {
+        respond();
+      }
       return;
     }
     if (admin && url.pathname === '/api/admin/archetype-translations') {
@@ -1392,7 +1398,14 @@ async function mockApplicationApi(page, {
           syncedAt: null,
           updatedBy: 'qa-admin',
         });
-        request.respond({ ...jsonResponse({ success: true, translation: translations.at(-1) }), status: 201 });
+        adminState.delayNextTranslationCoverage = true;
+        const respond = () => request.respond({ ...jsonResponse({ success: true, translation: translations.at(-1) }), status: 201 });
+        if (adminState.delayNextTranslationMutation) {
+          adminState.delayNextTranslationMutation = false;
+          setTimeout(respond, 350);
+        } else {
+          respond();
+        }
         return;
       }
       const query = (url.searchParams.get('q') || '').toLocaleLowerCase('ru-RU');
@@ -1420,6 +1433,7 @@ async function mockApplicationApi(page, {
       const item = translations.find(row => row.id === Number(translationEditMatch[1]));
       const payload = JSON.parse(request.postData() || '{}').translation || {};
       if (item) Object.assign(item, payload, { source: 'manual', updatedBy: 'qa-admin' });
+      adminState.delayNextTranslationCoverage = true;
       request.respond(jsonResponse({ success: true, translation: item }));
       return;
     }
@@ -3407,11 +3421,45 @@ for (const [device, viewport] of [
     await translationInputs[1].type('Душа Бездны Охотник на демонов');
     const translationPositionBeforeSave = await page.evaluate(() => ({
       scrollY: window.scrollY,
+      scrollHeight: document.documentElement.scrollHeight,
       editorTop: document.querySelector('.admin-translation-editor')?.getBoundingClientRect().top ?? 0,
     }));
+    await page.evaluate(() => {
+      window.__qaTranslationStableNodes = {
+        workspace: document.querySelector('.admin-translation-workspace'),
+        coverageList: document.querySelector('.admin-untranslated-list'),
+      };
+    });
+    const translationSaveStartedAt = Date.now();
+    adminState.delayNextTranslationMutation = true;
     await page.click('.admin-translation-form button[type="submit"]');
+    const translationSearchDuringSave = await page.$('.admin-translation-toolbar input');
+    if (!translationSearchDuringSave) throw new Error('Translation search field is missing');
+    await translationSearchDuringSave.type('Rainbow');
+    await page.waitForFunction(() => document.querySelector('.admin-translation-coverage button')?.textContent?.includes('Проверяем'));
+    const translationPendingState = await page.evaluate(() => ({
+      sameWorkspace: window.__qaTranslationStableNodes?.workspace === document.querySelector('.admin-translation-workspace'),
+      sameCoverageList: window.__qaTranslationStableNodes?.coverageList === document.querySelector('.admin-untranslated-list'),
+      coverageBusy: document.querySelector('.admin-translation-coverage')?.getAttribute('aria-busy'),
+      coverageRows: document.querySelectorAll('.admin-untranslated-list li').length,
+      tableRows: document.querySelectorAll('.admin-translation-table tbody tr').length,
+      routeFallback: Boolean(document.querySelector('.route-fallback')),
+      scrollHeight: document.documentElement.scrollHeight,
+    }));
+    if (!translationPendingState.sameWorkspace
+      || !translationPendingState.sameCoverageList
+      || translationPendingState.coverageBusy !== 'true'
+      || translationPendingState.coverageRows !== 10
+      || translationPendingState.tableRows !== 1
+      || translationPendingState.routeFallback) {
+      failures.push(`admin translations [${device}]: background refresh replaced or collapsed visible content (${JSON.stringify(translationPendingState)})`);
+    }
     await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Перевод добавлен'));
-    await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 3);
+    const translationFeedbackMs = Date.now() - translationSaveStartedAt;
+    if (translationFeedbackMs >= 700) failures.push(`admin translations [${device}]: save feedback waited ${translationFeedbackMs}ms for background refresh`);
+    else console.log(`✓ admin translations [${device}] stable background refresh + ${translationFeedbackMs}ms save feedback`);
+    await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 1
+      && document.querySelector('.admin-translation-table tbody tr')?.textContent?.includes('Rainbow Mage'));
     await page.waitForFunction(() => document.querySelectorAll('.admin-untranslated-list li').length === 9);
     const translationPositionAfterSave = await page.evaluate(() => ({
       scrollY: window.scrollY,
@@ -3420,19 +3468,63 @@ for (const [device, viewport] of [
       englishValue: document.querySelector('#admin-translation-name-en')?.value || '',
       russianValue: document.querySelector('#admin-translation-name-ru')?.value || '',
     }));
-    if (Math.abs(translationPositionAfterSave.scrollY - translationPositionBeforeSave.scrollY) > 2
-      || Math.abs(translationPositionAfterSave.editorTop - translationPositionBeforeSave.editorTop) > 2
-      || translationPositionAfterSave.activeField !== 'admin-translation-name-en'
+    if (translationPositionAfterSave.activeField !== 'admin-translation-search'
       || translationPositionAfterSave.englishValue || translationPositionAfterSave.russianValue) {
-      failures.push(`admin translations [${device}]: save shifted the workspace or did not prepare the next entry (${JSON.stringify({ before: translationPositionBeforeSave, after: translationPositionAfterSave })})`);
+      failures.push(`admin translations [${device}]: save overrode active search or left stale editor values (${JSON.stringify(translationPositionAfterSave)})`);
     }
     await page.screenshot({ path: `${OUT}/admin-translations-after-add-${device}.png`, fullPage: false });
+    await page.click('.admin-translation-search-control button[aria-label="Очистить поиск"]');
+    await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 3);
     await page.click('.admin-translation-table tbody tr:first-child button');
     await page.waitForFunction(() => document.querySelector('.admin-translation-form h2')?.textContent?.includes('Редактирование'));
     const editInputs = await page.$$('.admin-translation-form input');
     await replaceControlledInputValue(page, editInputs[1], 'Контрольный Воин');
+    const translationPositionBeforeEdit = await page.evaluate(() => ({
+      scrollY: window.scrollY,
+      scrollHeight: document.documentElement.scrollHeight,
+      editorTop: document.querySelector('.admin-translation-editor')?.getBoundingClientRect().top ?? 0,
+    }));
+    await page.evaluate(() => {
+      window.__qaTranslationStableNodes = {
+        workspace: document.querySelector('.admin-translation-workspace'),
+        coverageList: document.querySelector('.admin-untranslated-list'),
+      };
+    });
+    const translationEditStartedAt = Date.now();
     await page.click('.admin-translation-form button[type="submit"]');
+    await page.waitForFunction(() => document.querySelector('.admin-translation-coverage button')?.textContent?.includes('Проверяем'));
+    const translationEditPendingState = await page.evaluate(() => ({
+      sameWorkspace: window.__qaTranslationStableNodes?.workspace === document.querySelector('.admin-translation-workspace'),
+      sameCoverageList: window.__qaTranslationStableNodes?.coverageList === document.querySelector('.admin-untranslated-list'),
+      coverageBusy: document.querySelector('.admin-translation-coverage')?.getAttribute('aria-busy'),
+      coverageRows: document.querySelectorAll('.admin-untranslated-list li').length,
+      tableRows: document.querySelectorAll('.admin-translation-table tbody tr').length,
+      routeFallback: Boolean(document.querySelector('.route-fallback')),
+      scrollHeight: document.documentElement.scrollHeight,
+    }));
+    if (!translationEditPendingState.sameWorkspace
+      || !translationEditPendingState.sameCoverageList
+      || translationEditPendingState.coverageBusy !== 'true'
+      || translationEditPendingState.coverageRows !== 9
+      || translationEditPendingState.tableRows !== 3
+      || translationEditPendingState.routeFallback
+      || translationEditPendingState.scrollHeight < translationPositionBeforeEdit.scrollHeight - 2) {
+      failures.push(`admin translations [${device}]: edit refresh replaced or collapsed visible content (${JSON.stringify(translationEditPendingState)})`);
+    }
     await page.waitForFunction(() => document.querySelector('.admin-toast')?.textContent?.includes('Перевод обновлён'));
+    const translationEditFeedbackMs = Date.now() - translationEditStartedAt;
+    if (translationEditFeedbackMs >= 700) failures.push(`admin translations [${device}]: edit feedback waited ${translationEditFeedbackMs}ms for background refresh`);
+    await page.waitForFunction(() => document.querySelector('.admin-translation-coverage button')?.textContent?.includes('Проверить ещё раз'));
+    const translationPositionAfterEdit = await page.evaluate(() => ({
+      scrollY: window.scrollY,
+      editorTop: document.querySelector('.admin-translation-editor')?.getBoundingClientRect().top ?? 0,
+      activeField: document.activeElement?.id || '',
+    }));
+    if (Math.abs(translationPositionAfterEdit.scrollY - translationPositionBeforeEdit.scrollY) > 2
+      || Math.abs(translationPositionAfterEdit.editorTop - translationPositionBeforeEdit.editorTop) > 2
+      || translationPositionAfterEdit.activeField !== 'admin-translation-name-en') {
+      failures.push(`admin translations [${device}]: edit shifted the workspace or lost focus (${JSON.stringify({ before: translationPositionBeforeEdit, after: translationPositionAfterEdit })})`);
+    }
     const translationSearch = await page.$('.admin-translation-toolbar input');
     if (!translationSearch) throw new Error('Translation search field is missing');
     await translationSearch.type('несуществующий архетип');
