@@ -4662,31 +4662,20 @@
 .admin-tailadmin-shell .admin-parser-progress { background: #e8dece; }
 .admin-tailadmin-shell .admin-parser-progress > span { background: linear-gradient(90deg, #86591d, #d4a44b); }
 
-.admin-parser-run-drawer-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 140;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.admin-parser-run-drawer-backdrop {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
+.admin-parser-run-drawer::backdrop {
   background: rgba(31, 21, 15, 0.6);
   backdrop-filter: blur(3px);
-  cursor: default;
 }
 
 .admin-parser-run-drawer {
-  position: relative;
+  position: fixed;
+  inset: 0 0 0 auto;
+  z-index: 140;
   width: min(640px, 100%);
+  max-width: none;
   height: 100%;
+  max-height: 100dvh;
+  margin: 0;
   padding: 22px;
   display: flex;
   flex-direction: column;
@@ -4694,6 +4683,7 @@
   overflow-y: auto;
   color: var(--admin-ink);
   background: #f8f1e6;
+  border: 0;
   border-left: 1px solid #d7c09a;
   box-shadow: -22px 0 60px rgba(32, 20, 12, 0.24);
   animation: admin-run-drawer-in 180ms ease-out;

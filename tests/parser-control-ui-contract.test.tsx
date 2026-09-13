@@ -10,10 +10,8 @@ import { normalizeParserAudit, normalizeParserControl, normalizeParserRuns } fro
 import { ParserAuditCard } from '../src/features/adminParserControl/ParserAuditCard.js';
 import { pollActiveParserRuns } from '../src/features/adminParserControl/ParserControlPanel.js';
 import { ParserControlInitialError } from '../src/features/adminParserControl/ParserControlStatus.js';
-import {
-  ParserRunDetailsDrawer,
-  ParserRunsCard,
-} from '../src/features/adminParserControl/ParserRunsCard.js';
+import { ParserRunDetailsDialog } from '../src/features/adminParserControl/ParserRunDetailsDialog.js';
+import { ParserRunsCard } from '../src/features/adminParserControl/ParserRunsCard.js';
 import { ParserScheduleCard } from '../src/features/adminParserControl/ParserScheduleCard.js';
 
 const snapshot = normalizeParserControl({
@@ -100,7 +98,7 @@ assert.match(runsMarkup, /name="parser-sections"/);
 assert.match(runsMarkup, /name="parser-run-reason"/);
 
 const runDetailsMarkup = renderToStaticMarkup(
-  <ParserRunDetailsDrawer
+  <ParserRunDetailsDialog
     run={runs[0]!}
     sections={snapshot.sections}
     onClose={() => undefined}
