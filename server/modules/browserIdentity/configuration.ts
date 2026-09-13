@@ -7,6 +7,30 @@ export interface ReaderIdentity {
   displayName?: string;
 }
 
+export interface BrowserIdentityClient {
+  id: string;
+  secret: string;
+  redirectUri: string;
+}
+
+export const READER_STAGING_CLIENT_ID = 'manacost-reader-staging';
+export const READER_PRODUCTION_CLIENT_ID = 'manacost-reader-production';
+export const READER_STAGING_CALLBACK = 'https://test.hs-manacost.ru/reader-auth/callback';
+export const READER_PRODUCTION_CALLBACK = 'https://hs-manacost.ru/reader-auth/callback';
+
+const READER_CALLBACKS = new Map([
+  [READER_STAGING_CLIENT_ID, READER_STAGING_CALLBACK],
+  [READER_PRODUCTION_CLIENT_ID, READER_PRODUCTION_CALLBACK],
+]);
+
+export function isExactReaderClient(client: BrowserIdentityClient): boolean {
+  return READER_CALLBACKS.get(client.id) === client.redirectUri;
+}
+
+export function isReaderClientId(clientId: string): boolean {
+  return READER_CALLBACKS.has(clientId);
+}
+
 export interface BrowserIdentityOptions {
   issuer: string;
   deployment: 'production' | 'staging' | 'test';
@@ -15,7 +39,7 @@ export interface BrowserIdentityOptions {
   encryptionKey: Uint8Array;
   signingKeys: NonNullable<Configuration['jwks']>;
   cookieKeys: string[];
-  clients: { id: string; secret: string; redirectUri: string }[];
+  clients: BrowserIdentityClient[];
   // Composition must implement authoritative block/epoch/grant checks, not a profile cache.
   resolveAccount(subject: string, grantId?: string): Promise<ReaderIdentity | undefined>;
   resolveBrowserAccount?(subject: string, request: IncomingMessage): Promise<ReaderIdentity | undefined>;
@@ -46,14 +70,15 @@ export function validateIdentityOptions(options: BrowserIdentityOptions): void {
   if (!options.clients.length) throw new Error('At least one static identity client required');
   for (const client of options.clients) {
     const url = secureUrl(client.redirectUri);
-    const productionCallback = ['hs-manacost.ru', 'hs-manacost.com'].includes(url.hostname);
+    const productionHost = url.hostname === 'hs-manacost.ru' || url.hostname === 'hs-manacost.com';
     const stagingBridge = options.allowStagingClient === true && production
-      && client.id === 'manacost-reader-staging'
-      && client.redirectUri === 'https://test.hs-manacost.ru/reader-auth/callback';
-    const reservedStagingClientInProduction = production && client.id === 'manacost-reader-staging';
+      && client.id === READER_STAGING_CLIENT_ID && client.redirectUri === READER_STAGING_CALLBACK;
+    const productionReader = production
+      && client.id === READER_PRODUCTION_CLIENT_ID && client.redirectUri === READER_PRODUCTION_CALLBACK;
     if (!client.id || ids.has(client.id) || client.secret.length < 43
-      || url.pathname !== '/reader-auth/callback' || url.port || (production !== productionCallback && !stagingBridge)
-      || (reservedStagingClientInProduction && !stagingBridge)) {
+      || url.pathname !== '/reader-auth/callback' || url.port
+      || (!production && productionHost)
+      || (production && !productionReader && !stagingBridge)) {
       throw new Error('Invalid identity client or deployment mismatch');
     }
     ids.add(client.id);

@@ -8,6 +8,7 @@ import { createReaderPermissionsRouter } from '../server/modules/readerPermissio
 import { registerBrowserIdentity } from '../server/app/registerBrowserIdentity.js';
 
 const client = { id: 'manacost-reader-staging', secret: 's'.repeat(43), redirectUri: 'https://test.hs-manacost.ru/reader-auth/callback' };
+const productionClient = { id: 'manacost-reader-production', secret: 'p'.repeat(43), redirectUri: 'https://hs-manacost.ru/reader-auth/callback' };
 const basic = (secret = client.secret, id = client.id) => `Basic ${Buffer.from(`${id}:${secret}`).toString('base64')}`;
 
 function validIdentityEnvironment(clients: unknown): NodeJS.ProcessEnv {
@@ -67,6 +68,23 @@ test('rejects browser, unauthorized, malformed and duplicate inputs before permi
   assert.equal((await post('{}', { 'content-type': 'text/plain' })).status, 415);
 }));
 
+test('exact production Reader credential can query permissions while legacy near-match ids cannot', async () => {
+  const database = new DatabaseSync(':memory:');
+  database.exec("CREATE TABLE users (id TEXT PRIMARY KEY, role TEXT, blocked_at TEXT); INSERT INTO users VALUES ('administrator','admin',NULL);");
+  const app = express();
+  app.use('/identity', createReaderPermissionsRouter({ database, clients: [client, productionClient] }));
+  const server = createServer(app); await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address(); if (!address || typeof address === 'string') throw new Error('Missing test port');
+  try {
+    const request = (id: string, secret: string) => fetch(`http://127.0.0.1:${address.port}/identity/reader-permissions`, {
+      method: 'POST', headers: { authorization: basic(secret, id), 'content-type': 'application/json' },
+      body: JSON.stringify({ subjects: ['administrator'] }),
+    });
+    assert.equal((await request(productionClient.id, productionClient.secret)).status, 200);
+    assert.equal((await request('manacost-reader', productionClient.secret)).status, 401);
+  } finally { await new Promise<void>(resolve => server.close(() => resolve())); database.close(); }
+});
+
 test('fails closed with 503 when the canonical users role query cannot run', async () => {
   const database = new DatabaseSync(':memory:');
   const app = express(); app.use('/identity', createReaderPermissionsRouter({ database, clients: [client] }));
@@ -116,7 +134,6 @@ test('pre-auth ceiling bounds rejected requests and both quotas recover after th
 });
 
 test('runtime permissions route needs both identity and permissions opt-ins', async () => {
-  const productionClient = { id: 'manacost-reader', secret: 'p'.repeat(43), redirectUri: 'https://hs-manacost.ru/reader-auth/callback' };
   for (const flags of [
     { BROWSER_IDENTITY_ENABLED: undefined, READER_PERMISSIONS_ENABLED: '1', expected: 404 },
     { BROWSER_IDENTITY_ENABLED: '1', READER_PERMISSIONS_ENABLED: undefined, expected: 404 },
@@ -139,27 +156,29 @@ test('runtime permissions route needs both identity and permissions opt-ins', as
   }
 });
 
-test('permissions flag fails closed at startup without an exact valid staging client', () => {
+test('permissions flag fails closed at startup without an exact valid Reader client', () => {
   const database = new DatabaseSync(':memory:');
   database.exec('CREATE TABLE users (id TEXT PRIMARY KEY, blocked_at TEXT); CREATE TABLE sessions (token_hash TEXT PRIMARY KEY, user_id TEXT, expires_at INTEGER);');
-  const productionClient = { id: 'manacost-reader', secret: 'p'.repeat(43), redirectUri: 'https://hs-manacost.ru/reader-auth/callback' };
-  const invalidStagingClients = [
-    [productionClient],
+  const invalidReaderClients = [
+    [{ ...productionClient, id: 'manacost-reader' }],
+    [{ ...productionClient, secret: 'short' }],
     [productionClient, { ...client, secret: 'short' }],
     [productionClient, { ...client, redirectUri: 'https://test.hs-manacost.ru/reader-auth/callback/' }],
   ];
   try {
-    for (const clients of invalidStagingClients) {
+    for (const clients of invalidReaderClients) {
       assert.throws(() => registerBrowserIdentity({ app: express(), getDatabase: () => database, authCookieName: 'login', environment: validIdentityEnvironment(clients) }), /Browser identity configuration invalid/);
     }
   } finally { database.close(); }
 });
 
-test('permissions bridge accepts only the existing exact staging-client deployment shape', () => {
+test('permissions bridge accepts exact production and optional staging deployment shapes', () => {
   const database = new DatabaseSync(':memory:');
   database.exec('CREATE TABLE users (id TEXT PRIMARY KEY, blocked_at TEXT); CREATE TABLE sessions (token_hash TEXT PRIMARY KEY, user_id TEXT, expires_at INTEGER);');
-  const productionClient = { id: 'manacost-reader', secret: 'p'.repeat(43), redirectUri: 'https://hs-manacost.ru/reader-auth/callback' };
   try {
+    const productionOnly = registerBrowserIdentity({ app: express(), getDatabase: () => database, authCookieName: 'login',
+      environment: { ...validIdentityEnvironment([productionClient]), BROWSER_IDENTITY_ALLOW_STAGING_CLIENT: undefined } });
+    assert.ok(productionOnly); productionOnly.stop();
     const result = registerBrowserIdentity({ app: express(), getDatabase: () => database, authCookieName: 'login', environment: validIdentityEnvironment([productionClient, client]) });
     assert.ok(result); result.stop();
   } finally { database.close(); }

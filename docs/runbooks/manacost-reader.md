@@ -5,7 +5,8 @@ browser acceptance must be checked separately before declaring activation.
 
 ## Boundary and configuration
 
-The cabinet stays at `https://test.hs-manacost.ru/account/`; login uses
+The production cabinet stays at `https://hs-manacost.ru/account/`; the isolated
+acceptance cabinet remains at `https://test.hs-manacost.ru/account/`. Both use
 `https://hearthpulse.net`. Canonical login, WordPress administrator accounts,
 mail transport, user records and background jobs remain unchanged.
 
@@ -17,6 +18,11 @@ Required: `BROWSER_IDENTITY_DEPLOYMENT=production`, `BROWSER_IDENTITY_ISSUER`,
 `BROWSER_IDENTITY_TRUST_PROXY=1` requires a restricted, verified proxy chain.
 Invalid enabled config fails closed. Never log or commit configuration values.
 
+Production requires client `manacost-reader-production` with exact callback
+`https://hs-manacost.ru/reader-auth/callback`. Do not reuse the legacy
+`manacost-reader` identifier or accept `.com`, `www`, alternate ports or a
+trailing slash.
+
 `BROWSER_IDENTITY_ALLOW_STAGING_CLIENT=1` permits only the production issuer,
 client `manacost-reader-staging` and exact callback
 `https://test.hs-manacost.ru/reader-auth/callback`. BFF separately requires
@@ -24,7 +30,7 @@ client `manacost-reader-staging` and exact callback
 Both flags default off; no arbitrary test clients or domains are allowed.
 
 The separately gated paid-comments bridge uses
-`READER_ENTITLEMENTS_ENABLED=1` and the same static confidential client list.
+`READER_ENTITLEMENTS_ENABLED=1` and the same exact static Reader client list.
 `READER_ENTITLEMENTS_PAID_SOURCES` is an explicit comma-separated allowlist;
 the default is `boosty,patreon`, and any other value fails configuration.
 The endpoint reads only cached subscription evidence and must stay disabled
@@ -117,8 +123,9 @@ Cleanup failures log only a fixed message and retry on the next tick.
 
 Every private operation checks the exact canonical parent session and blocked
 status. There is no positive identity cache. The remembered-login extension
-allows explicit offline consent only for `manacost-reader-staging`: grants,
-canonical bindings and the initial refresh family have a 30-day absolute limit.
+allows explicit offline consent only for an exact staging or production Reader
+client: grants, canonical bindings and the initial refresh family have a 30-day
+absolute limit.
 Access tokens remain 300 seconds, and parent expiry/logout/reset/block still
 ends access earlier. Ineligible offline requests return `invalid_scope`.
 
