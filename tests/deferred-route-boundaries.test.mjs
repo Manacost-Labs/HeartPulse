@@ -30,15 +30,9 @@ assert.doesNotMatch(
   /role="dialog"/,
   'the gallery route must not own a second custom modal implementation',
 );
-assert.doesNotMatch(
-  contestsSource,
-  /import \{ ContestAdminAnalytics \} from '\.\/ContestAdminAnalytics';/,
-  'analytics must not increase the initial admin bundle for every section',
-);
-assert.match(
-  contestsSource,
-  /React\.lazy\([\s\S]*?import\('\.\/ContestAdminAnalytics'\)/,
-  'analytics must load only when its admin section is opened',
-);
+assert.doesNotMatch(contestsSource, /ContestAdminAnalytics/, 'removed analytics must not remain connected to the admin workspace');
+assert.doesNotMatch(contestsSource, /ContestAdminArenaSynergies/, 'removed Arena synergies must not remain connected to the admin workspace');
+assert.doesNotMatch(contestsSource, /id: 'analytics'/, 'removed analytics must not remain in admin navigation');
+assert.doesNotMatch(contestsSource, /id: 'arena-synergies'/, 'removed Arena synergies must not remain in admin navigation');
 
 console.log('deferred route module-boundary contracts passed');

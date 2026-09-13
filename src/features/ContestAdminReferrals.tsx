@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AdminOperationsHeader } from './AdminOperationsHeader';
 
 export type AdminReferralLink = {
   id: string;
@@ -61,6 +62,9 @@ export function ContestAdminReferrals({
   const [draft, setDraft] = useState<ReferralDraft>(EMPTY_REFERRAL_DRAFT);
   const [clicksExpanded, setClicksExpanded] = useState(false);
   const visibleClicks = clicksExpanded ? referralClicks : referralClicks.slice(0, 8);
+  const activeCount = referrals.filter(item => item.status === 'active').length;
+  const totalClicks = referrals.reduce((sum, item) => sum + item.clicks, 0);
+  const uniqueClicks = referrals.reduce((sum, item) => sum + item.uniqueClicks, 0);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -69,24 +73,40 @@ export function ContestAdminReferrals({
   };
 
   return (
-    <div className="contest-admin-grid admin-referral-layout">
-      <form className="contest-admin-card admin-referral-form" onSubmit={submit}>
-        <h2>Новая рекламная ссылка</h2>
-        <label>Название<input value={draft.label} onChange={event => setDraft(value => ({ ...value, label: event.target.value }))} placeholder="Telegram июль, VK пост, Boosty баннер" /></label>
-        <label>Slug<input value={draft.slug} onChange={event => setDraft(value => ({ ...value, slug: event.target.value }))} placeholder="tg-july" /></label>
-        <label>Кампания<input value={draft.campaign} onChange={event => setDraft(value => ({ ...value, campaign: event.target.value }))} placeholder="summer-2026" /></label>
-        <label>Куда вести<input value={draft.targetPath} onChange={event => setDraft(value => ({ ...value, targetPath: event.target.value }))} placeholder="/" /></label>
-        <label>Статус
-          <select value={draft.status} onChange={event => setDraft(value => ({ ...value, status: event.target.value }))}>
-            <option value="active">Активна</option>
-            <option value="paused">Пауза</option>
-          </select>
-        </label>
-        <button type="submit" disabled={loading} className="contest-primary-button">Создать ссылку</button>
-      </form>
+    <div className="admin-operations-page admin-referrals-page">
+      <AdminOperationsHeader
+        eyebrow="Рост"
+        title="Реферальная ссылка"
+        description="Создавайте адреса для кампаний и сразу отслеживайте переходы по каждому каналу."
+        status={loading ? 'Обновляем переходы' : activeCount ? `${activeCount} активных ссылок` : 'Создайте первую ссылку'}
+        statusTone={loading ? 'working' : activeCount ? 'ready' : 'attention'}
+        metrics={[
+          { label: 'Всего ссылок', value: referrals.length, detail: 'за всё время' },
+          { label: 'Активны', value: activeCount, detail: 'принимают переходы' },
+          { label: 'Клики', value: totalClicks, detail: 'всего' },
+          { label: 'Уникальные', value: uniqueClicks, detail: 'по всем ссылкам' },
+        ]}
+      />
+      <div className="contest-admin-grid admin-referral-layout">
+        <form className="contest-admin-card admin-referral-form" onSubmit={submit}>
+          <span className="contest-eyebrow">Новая кампания</span>
+          <h2>Создать отслеживаемую ссылку</h2>
+          <p className="contest-muted">Название видно только команде. Slug станет коротким адресом после <code>/r/</code>.</p>
+          <label>Название<input value={draft.label} onChange={event => setDraft(value => ({ ...value, label: event.target.value }))} placeholder="Telegram июль, VK пост, Boosty баннер" /></label>
+          <label>Короткий адрес (slug)<input value={draft.slug} onChange={event => setDraft(value => ({ ...value, slug: event.target.value }))} placeholder="tg-july" /></label>
+          <label>Кампания<input value={draft.campaign} onChange={event => setDraft(value => ({ ...value, campaign: event.target.value }))} placeholder="summer-2026" /></label>
+          <label>Куда вести<input value={draft.targetPath} onChange={event => setDraft(value => ({ ...value, targetPath: event.target.value }))} placeholder="/" /></label>
+          <label>Статус
+            <select value={draft.status} onChange={event => setDraft(value => ({ ...value, status: event.target.value }))}>
+              <option value="active">Активна</option>
+              <option value="paused">Пауза</option>
+            </select>
+          </label>
+          <button type="submit" disabled={loading} className="contest-primary-button">Создать ссылку</button>
+        </form>
 
-      <div className="contest-admin-card admin-referral-report">
-        <h2>Статистика ссылок</h2>
+        <div className="contest-admin-card admin-referral-report">
+        <h2>Ссылки и результат</h2>
         <div className="admin-referral-list">
           {referrals.map(item => (
             <div key={item.id} className="admin-referral-row">
@@ -120,6 +140,7 @@ export function ContestAdminReferrals({
             {clicksExpanded ? 'Свернуть переходы' : `Показать все переходы (${referralClicks.length})`}
           </button>
         )}
+        </div>
       </div>
     </div>
   );

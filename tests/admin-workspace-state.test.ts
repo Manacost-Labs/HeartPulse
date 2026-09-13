@@ -42,8 +42,8 @@ assert.equal(funDecks.section, 'fun-decks');
 const apiKeys = adminWorkspaceReducer(funDecks, { type: 'navigate', section: 'api-keys' });
 assert.equal(apiKeys.section, 'api-keys');
 
-const arenaSynergies = adminWorkspaceReducer(funDecks, { type: 'navigate', section: 'arena-synergies' });
-assert.equal(arenaSynergies.section, 'arena-synergies');
+const referrals = adminWorkspaceReducer(funDecks, { type: 'navigate', section: 'referrals' });
+assert.equal(referrals.section, 'referrals');
 
 const sameUserMenuClosed = adminWorkspaceReducer(
   adminWorkspaceReducer(initial, { type: 'toggleUserMenu', userId: 'user-1' }),

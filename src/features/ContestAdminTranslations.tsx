@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
+import { AdminOperationsHeader } from './AdminOperationsHeader';
 import type { AdminMessage } from './adminWorkspaceState';
 
 export type ArchetypeTranslation = {
@@ -163,21 +164,24 @@ function TranslationWorkspaceView({
 }: TranslationWorkspaceViewProps) {
   return (
     <div className="admin-translation-workspace">
-      <div className="admin-stat-grid admin-translation-stats" aria-label="Сводка переводов">
-        <div className={coverage.missing ? 'needs-attention' : 'is-complete'}>
-          <span>Покрытие Standard</span>
-          <strong>{coverageLoading ? '…' : `${coverage.coveragePercent}%`}</strong>
-          <small>{coverage.translated} из {coverage.totalObserved} актуальных</small>
-        </div>
-        <div className={coverage.missing ? 'needs-attention' : 'is-complete'}>
-          <span>Нужно перевести</span>
-          <strong>{coverageLoading ? '…' : coverage.missing}</strong>
-          <small>{coverage.missing ? 'видны пользователям на английском' : 'всё переведено'}</small>
-        </div>
-        <div><span>Таблица переводов</span><strong>{data.stats.total}</strong><small>{data.stats.blizzcore} BlizzCore · {data.stats.manual} ручных</small></div>
-        <div><span>Последняя синхронизация</span><strong className="admin-translation-date">{formatSyncDate(data.stats.lastSyncedAt)}</strong><small>источник: api.blizzcore.ru</small></div>
-      </div>
-
+      <AdminOperationsHeader
+        eyebrow="Контент"
+        title="Переводы"
+        description="Закройте пробелы в названиях архетипов и синхронизируйте справочник без потери ручных правок."
+        status={syncing ? 'Синхронизируем BlizzCore' : coverageLoading ? 'Проверяем покрытие' : coverage.missing ? `${coverage.missing} требуют перевода` : 'Все актуальные названия переведены'}
+        statusTone={syncing || coverageLoading ? 'working' : coverage.missing ? 'attention' : 'ready'}
+        metrics={[
+          { label: 'Покрытие', value: coverageLoading ? '…' : `${coverage.coveragePercent}%`, detail: `${coverage.translated} из ${coverage.totalObserved}` },
+          { label: 'В очереди', value: coverageLoading ? '…' : coverage.missing, detail: coverage.missing ? 'видны на английском' : 'очередь пуста' },
+          { label: 'В справочнике', value: data.stats.total, detail: `${data.stats.manual} ручных` },
+          { label: 'Синхронизация', value: data.stats.lastSyncedAt ? new Date(data.stats.lastSyncedAt).toLocaleDateString('ru-RU') : 'не было', detail: 'api.blizzcore.ru' },
+        ]}
+        actions={(
+          <button type="button" className="contest-secondary-button" onClick={onSync} disabled={syncing}>
+            {syncing ? 'Синхронизация…' : 'Обновить из BlizzCore'}
+          </button>
+        )}
+      />
       <form className="contest-admin-card admin-translation-form admin-translation-editor" onSubmit={onSubmit}>
         <div className="admin-card-heading">
           <div>
@@ -228,7 +232,6 @@ function TranslationWorkspaceView({
           <p className="admin-translation-form-note">После сохранения поля очистятся, а очередь обновится без скачка страницы.</p>
         </div>
       </form>
-
       <section className="contest-admin-card admin-translation-coverage" aria-labelledby="translation-coverage-title">
         <div className="admin-card-heading">
           <div>
@@ -299,9 +302,6 @@ function TranslationWorkspaceView({
               <h2 id="translation-table-title">Таблица переводов</h2>
               <p className="contest-muted">Найдено: {data.total}. Изменения сразу применяются к названиям архетипов.</p>
             </div>
-            <button type="button" className="contest-secondary-button" onClick={onSync} disabled={syncing}>
-              {syncing ? 'Синхронизация…' : 'Обновить из BlizzCore'}
-            </button>
           </div>
           <div className="admin-list-toolbar admin-translation-toolbar">
             <label htmlFor="admin-translation-search">
