@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, fn, userEvent } from 'storybook/test';
+import { expect, fn, userEvent, waitFor } from 'storybook/test';
 import { ParserRunsCard } from './ParserRunsCard';
 import { normalizeParserControl, normalizeParserRuns } from './normalize';
 import '../contests.css';
@@ -95,6 +95,9 @@ type Story = StoryObj<typeof meta>;
 
 export const OperationsTable: Story = {
   play: async ({ canvas, args }) => {
+    await waitFor(() => expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
+      document.documentElement.clientWidth,
+    ));
     const firstSection = canvas.getByRole('checkbox', { name: /Арена/ });
     await userEvent.click(firstSection);
     await userEvent.type(canvas.getByPlaceholderText(/проверка данных после патча/i), 'Контрольный запуск');
@@ -109,7 +112,7 @@ export const OperationsTable: Story = {
     await userEvent.tab();
     await expect(drawerCloseButton).toHaveFocus();
     await userEvent.click(drawerCloseButton);
-    await expect(canvas.queryByRole('dialog', { name: 'Детали запуска' })).not.toBeInTheDocument();
+    await waitFor(() => expect(canvas.queryByRole('dialog', { name: 'Детали запуска' })).not.toBeInTheDocument());
   },
 };
 
