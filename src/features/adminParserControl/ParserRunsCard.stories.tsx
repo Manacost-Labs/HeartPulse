@@ -102,7 +102,7 @@ export const OperationsTable: Story = {
     await expect(args.onStart).toHaveBeenCalledWith(['arena'], 'Контрольный запуск');
 
     await userEvent.click(canvas.getByRole('button', { name: 'Открыть детали запуска: Обновление после патча 33.4' }));
-    await expect(canvas.getByRole('dialog', { name: 'Детали запуска' })).toBeVisible();
+    await expect(await canvas.findByRole('dialog', { name: 'Детали запуска' })).toBeVisible();
     await expect(canvas.getByText('HSReplay Arena')).toBeVisible();
     const drawerCloseButton = canvas.getByRole('button', { name: 'Закрыть детали запуска' });
     await expect(drawerCloseButton).toHaveFocus();

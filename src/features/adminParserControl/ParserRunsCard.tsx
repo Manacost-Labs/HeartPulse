@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import {
   AlertCircle,
   ChevronRight,
@@ -7,8 +7,12 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { formatAdminDate, RUN_LABEL } from './format';
-import { ParserRunDetailsDialog } from './ParserRunDetailsDialog';
 import type { ParserRun, ParserSection } from './types';
+
+const ParserRunDetailsDialog = lazy(async () => {
+  const module = await import('./ParserRunDetailsDialog');
+  return { default: module.ParserRunDetailsDialog };
+});
 
 function runProgress(run: ParserRun) {
   if (run.totalSources <= 0) return 0;
@@ -169,11 +173,13 @@ export function ParserRunsCard({
       </div>
 
       {selectedRun && (
-        <ParserRunDetailsDialog
-          run={selectedRun}
-          sections={sections}
-          onClose={closeSelectedRun}
-        />
+        <Suspense fallback={null}>
+          <ParserRunDetailsDialog
+            run={selectedRun}
+            sections={sections}
+            onClose={closeSelectedRun}
+          />
+        </Suspense>
       )}
     </section>
   );
