@@ -3430,6 +3430,8 @@ for (const [device, viewport] of [
     await page.goto(`${BASE}/?admin&section=standard-data`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-standard-operations__routes a').length === 4);
     await page.waitForSelector('.admin-parser-schedule', { timeout: 20_000 });
+    await page.click('.admin-parser-run-link');
+    await page.waitForSelector('.admin-parser-run-drawer[open]');
     const standardOperationsState = await page.evaluate(() => {
       const scheduleCard = document.querySelector('#parser-schedules-title')?.closest('.admin-parser-card');
       return {
@@ -3462,6 +3464,8 @@ for (const [device, viewport] of [
       || standardOperationsState.sources !== 4 || standardOperationsState.actions !== 4 || standardOperationsState.overflow) {
       failures.push(`admin Standard operations [${device}]: status workspace regressed (${JSON.stringify(standardOperationsState)})`);
     }
+    await page.click('button[aria-label="Закрыть детали запуска"]');
+    await page.waitForSelector('.admin-parser-run-drawer', { hidden: true });
     await page.evaluate(() => {
       const button = document.querySelector('.admin-standard-operations__actions button:nth-child(3)');
       if (!(button instanceof HTMLButtonElement)) throw new Error('DeckView preview cache reset action is missing');

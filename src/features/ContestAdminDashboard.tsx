@@ -2,12 +2,14 @@ import React from 'react';
 import {
   Activity,
   ArrowUpRight,
+  BadgeDollarSign,
   BookOpenText,
   Database,
   ImagePlus,
   MailPlus,
   Megaphone,
   Plus,
+  Send,
   Trophy,
   Users,
   WandSparkles,
@@ -94,6 +96,8 @@ export function ContestAdminDashboard({
             <button type="button" onClick={() => onNavigate('gallery')}><ImagePlus size={18} />Загрузить арт</button>
             <button type="button" onClick={() => onNavigate('translations')}><WandSparkles size={18} />Добавить перевод</button>
             <button type="button" onClick={() => onNavigate('mailing')}><MailPlus size={18} />Создать рассылку</button>
+            <button type="button" onClick={() => onNavigate('boosty')}><BadgeDollarSign size={18} />Открыть Boosty</button>
+            <button type="button" onClick={() => onNavigate('telegram')}><Send size={18} />Открыть Telegram</button>
             <button type="button" onClick={() => onNavigate('referrals')}><Megaphone size={18} />Новая рекламная ссылка</button>
             <button type="button" onClick={() => onNavigate('users')}><Users size={18} />Найти пользователя</button>
           </div>

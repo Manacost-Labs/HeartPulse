@@ -1998,7 +1998,7 @@
 
 .admin-workspace-page .admin-danger-button {
   border-color: #e2a8a8;
-  color: var(--admin-danger);
+  color: #b32d2e;
   background: #fff7f7;
 }
 
@@ -4596,7 +4596,7 @@
 }
 
 .admin-tailadmin-shell .admin-parser-run-table-wrap thead {
-  color: #7b6a59;
+  color: var(--admin-muted);
   background: #f5ede0;
 }
 
@@ -4644,7 +4644,7 @@
 .admin-tailadmin-shell .admin-parser-run-link strong,
 .admin-tailadmin-shell .admin-parser-run-link code { display: block; overflow-wrap: anywhere; }
 .admin-tailadmin-shell .admin-parser-run-link strong { font-size: 0.73rem; }
-.admin-tailadmin-shell .admin-parser-run-link code { margin-top: 4px; color: #8a7968; font-size: 0.59rem; }
+.admin-tailadmin-shell .admin-parser-run-link code { margin-top: 4px; color: var(--admin-muted); font-size: 0.59rem; }
 .admin-tailadmin-shell .admin-parser-run-table__deduplicated { display: block; margin-top: 3px; color: #76578d; font-size: 0.59rem; line-height: 1.35; }
 .admin-tailadmin-shell .admin-parser-run-open {
   width: 38px;

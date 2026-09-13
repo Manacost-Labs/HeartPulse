@@ -42,6 +42,11 @@ export const OperationalOverview: Story = {
     await expect(args.onNavigate).toHaveBeenCalledWith('standard-data');
     await userEvent.click(canvas.getByRole('button', { name: 'Создать конкурс' }));
     await expect(args.onCreateContest).toHaveBeenCalledOnce();
+    await expect(canvas.getAllByRole('button')).toHaveLength(11);
+    await userEvent.click(canvas.getByRole('button', { name: 'Открыть Boosty' }));
+    await expect(args.onNavigate).toHaveBeenCalledWith('boosty');
+    await userEvent.click(canvas.getByRole('button', { name: 'Открыть Telegram' }));
+    await expect(args.onNavigate).toHaveBeenCalledWith('telegram');
   },
 };
 
