@@ -78,10 +78,7 @@ import {
 const AdminWorkspaceShell = React.lazy(
   () => import('../modules/adminWorkspace/AdminWorkspaceShell.lazy'),
 );
-const ContestAdminDashboard = React.lazy(async () => {
-  const module = await import('./ContestAdminDashboard');
-  return { default: module.ContestAdminDashboard };
-});
+const ContestAdminDashboard = React.lazy(() => import('./ContestAdminDashboard').then(module => ({ default: module.ContestAdminDashboard })));
 
 const ContestAdminTranslations = React.lazy(async () => {
   const module = await import('./ContestAdminTranslations');
