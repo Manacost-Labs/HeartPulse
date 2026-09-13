@@ -104,7 +104,7 @@ const runDetailsMarkup = renderToStaticMarkup(
     onClose={() => undefined}
   />,
 );
-assert.match(runDetailsMarkup, /role="dialog"/);
+assert.match(runDetailsMarkup, /<dialog/);
 assert.match(runDetailsMarkup, /aria-modal="true"/);
 assert.match(runDetailsMarkup, /Детали запуска/);
 assert.match(runDetailsMarkup, /HSReplay Arena/);

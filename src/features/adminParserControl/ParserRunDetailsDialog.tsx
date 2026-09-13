@@ -82,25 +82,26 @@ export function ParserRunDetailsDialog({
     <dialog
       ref={dialogRef}
       className="admin-parser-run-drawer"
-      role="dialog"
       aria-modal="true"
       aria-labelledby="parser-run-details-title"
       onClose={onClose}
-      onKeyDown={event => {
-        if (event.key !== 'Tab') return;
-        event.preventDefault();
-        closeButtonRef.current?.focus();
-      }}
-      onClick={event => {
-        if (event.target === event.currentTarget) requestClose();
-      }}
     >
       <header>
         <div>
           <span>Операционный журнал</span>
           <h3 id="parser-run-details-title">Детали запуска</h3>
         </div>
-        <button ref={closeButtonRef} type="button" aria-label="Закрыть детали запуска" onClick={requestClose}>
+        <button
+          ref={closeButtonRef}
+          type="button"
+          aria-label="Закрыть детали запуска"
+          onClick={requestClose}
+          onKeyDown={event => {
+            if (event.key !== 'Tab') return;
+            event.preventDefault();
+            closeButtonRef.current?.focus();
+          }}
+        >
           <X size={20} aria-hidden="true" />
         </button>
       </header>
