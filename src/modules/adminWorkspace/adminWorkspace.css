@@ -757,7 +757,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #98702d;
+  color: var(--admin-gold-dark);
   font-size: 0.65rem;
   font-weight: 820;
   letter-spacing: 0.1em;
