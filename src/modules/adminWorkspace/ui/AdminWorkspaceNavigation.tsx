@@ -82,6 +82,9 @@ export function AdminWorkspaceNavigation<Section extends string>({
                     type="button"
                     className={active ? 'is-active' : ''}
                     aria-current={active ? 'page' : undefined}
+                    aria-label={`${item.label}: ${item.caption}`}
+                    data-admin-nav-label={item.label}
+                    title={item.label}
                     onClick={() => {
                       setQuery('');
                       onNavigate(item.id);

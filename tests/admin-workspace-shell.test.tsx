@@ -57,6 +57,7 @@ assert.match(desktopHtml, /placeholder="Найти раздел…"/);
 assert.match(desktopHtml, /id="admin-primary-navigation"/);
 assert.match(desktopHtml, /aria-label="Разделы админ панели"/);
 assert.match(desktopHtml, /aria-current="page"/);
+assert.match(desktopHtml, /data-admin-nav-label="Обзор"/);
 assert.match(desktopHtml, /Рабочий стол/);
 assert.match(desktopHtml, /Рост/);
 assert.match(desktopHtml, /id="admin-section-dashboard"/);
@@ -124,6 +125,10 @@ const shellCss = readFileSync(
   'utf8',
 );
 assert.match(shellCss, /--admin-bar-h:\s*56px;/);
+assert.match(shellCss, /--admin-bar-h:\s*84px;/);
+assert.match(shellCss, /--admin-nav-w:\s*72px;/);
+assert.match(shellCss, /background:\s*#080b10;/);
+assert.match(shellCss, /box-shadow:\s*6px 6px 0 rgba\(56, 64, 75, 0\.72\);/);
 assert.match(shellCss, /\.admin-tailadmin-shell \.admin-command-logo \{[\s\S]*?width:\s*32px;[\s\S]*?height:\s*32px;/);
 const drawerBreakpointStart = shellCss.indexOf('@media (max-width: 1023px)');
 const drawerBreakpointEnd = shellCss.indexOf('@media (max-width: 640px)', drawerBreakpointStart);

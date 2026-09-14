@@ -3286,7 +3286,9 @@ for (const [device, viewport] of [
       }
     }
     if (state.quickActions.length !== 9) failures.push(`admin dashboard [${device}]: expected 9 quick actions, got ${state.quickActions.length}`);
-    if (state.commandBarHeight !== 56 || state.commandLogoSize !== 32 || state.hasRedundantAccessStatus) {
+    const commandBarHeight = device === 'desktop' ? 84 : 56;
+    const commandLogoSize = device === 'desktop' ? 34 : 32;
+    if (state.commandBarHeight !== commandBarHeight || state.commandLogoSize !== commandLogoSize || state.hasRedundantAccessStatus) {
       failures.push(`admin dashboard [${device}]: compact command bar regressed (${JSON.stringify(state)})`);
     }
     if (state.dashboardColumns !== (device === 'desktop' ? 2 : 1)) failures.push(`admin dashboard [${device}]: expected owned ${device === 'desktop' ? 'two' : 'single'}-column layout, got ${state.dashboardColumns}`);

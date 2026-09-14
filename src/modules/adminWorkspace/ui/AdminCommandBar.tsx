@@ -1,5 +1,5 @@
 import React, { type Ref } from 'react';
-import { ExternalLink, Menu, X } from 'lucide-react';
+import { ChevronDown, ExternalLink, Menu, X } from 'lucide-react';
 
 export function AdminCommandBar({
   menuOpen,
@@ -17,7 +17,7 @@ export function AdminCommandBar({
   const userInitial = userLabel.trim().charAt(0).toLocaleUpperCase('ru-RU') || 'A';
 
   return (
-    <header className="admin-command-bar" aria-label="Панель управления" inert={menuOpen ? true : undefined}>
+    <header className="admin-command-bar" aria-label="Панель управления">
       <button
         ref={menuButtonRef}
         type="button"
@@ -32,7 +32,8 @@ export function AdminCommandBar({
 
       <a href="/" className="admin-command-brand" aria-label="HearthPulse Admin — открыть сайт">
         <img className="admin-command-logo" src="/arena-logo-icon-256.webp" alt="" />
-        <span className="admin-command-name">HearthPulse</span>
+        <span className="admin-command-name">Админка</span>
+        <ChevronDown className="admin-command-brand-caret" size={16} aria-hidden="true" />
       </a>
 
       <div className="admin-command-actions">

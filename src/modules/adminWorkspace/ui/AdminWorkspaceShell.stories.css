@@ -12,10 +12,10 @@
 .admin-shell-story-stats > div,
 .admin-shell-story-card {
   padding: 18px 20px;
-  border: 1px solid var(--admin-divider);
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+  border: 1px solid var(--admin-divider-strong);
+  border-radius: 6px;
+  background: var(--admin-surface);
+  box-shadow: 6px 6px 0 rgba(56, 64, 75, 0.72);
 }
 
 .admin-shell-story-stats > div {
@@ -53,9 +53,10 @@
   min-height: 44px;
   padding: 0 12px;
   border: 1px solid var(--admin-divider-strong);
-  border-radius: 8px;
-  color: #344054;
-  background: #fff;
+  border-radius: 5px;
+  color: var(--admin-ink);
+  background: #fffefa;
+  box-shadow: 3px 3px 0 rgba(56, 64, 75, 0.18);
 }
 
 @media (max-width: 640px) {
