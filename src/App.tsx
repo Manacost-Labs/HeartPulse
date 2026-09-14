@@ -5,7 +5,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { LogIn, UserCircle } from 'lucide-react';
 import { PublicNavigation } from './app/shell/PublicNavigation';
-import { RouteContentReveal } from './app/shell/RouteContentReveal';
 import { RouteLoadingSurface } from './app/shell/RouteLoadingSurface';
 import { getCanonicalRedirectUrl } from './config/domain';
 import { usePageScrollLock } from './hooks/usePageScrollLock';
@@ -1481,7 +1480,7 @@ export default function App() {
 	          )}
 	          <main id="main-content" tabIndex={-1} className={`arena-main relative flex flex-col items-center ${isFullWidthBuilder ? 'arena-main-wide' : ''} ${isAdminMode ? 'arena-main-admin' : ''}`}>
         {/* Parchment container */}
-	        <div className={`arena-content w-full max-w-6xl mx-auto bg-parchment rounded-xl border-[3px] sm:border-[4px] border-[#6b4c2a] shadow-[inset_0_0_60px_rgba(139,69,19,0.15),0_0_0_2px_#2c1e16,0_15px_30px_rgba(0,0,0,0.6)] p-3 sm:p-6 md:p-10 relative z-0 ${isFullWidthBuilder ? 'arena-content-wide' : ''} ${isAdminMode ? 'arena-content-admin' : ''} ${isOpenSurfacePage ? 'arena-content-open' : ''}`}>
+	        <div key={`${routeView}:${currentPath}`} className={`arena-content anim-fade-up w-full max-w-6xl mx-auto bg-parchment rounded-xl border-[3px] sm:border-[4px] border-[#6b4c2a] shadow-[inset_0_0_60px_rgba(139,69,19,0.15),0_0_0_2px_#2c1e16,0_15px_30px_rgba(0,0,0,0.6)] p-3 sm:p-6 md:p-10 relative z-0 ${isFullWidthBuilder ? 'arena-content-wide' : ''} ${isAdminMode ? 'arena-content-admin' : ''} ${isOpenSurfacePage ? 'arena-content-open' : ''}`}>
           {!isAdminMode && !isOpenSurfacePage && <>
             <div className="absolute top-0 left-0 w-8 h-8 sm:w-16 sm:h-16 border-t-2 sm:border-t-4 border-l-2 sm:border-l-4 border-gold rounded-tl-xl opacity-50" />
             <div className="absolute top-0 right-0 w-8 h-8 sm:w-16 sm:h-16 border-t-2 sm:border-t-4 border-r-2 sm:border-r-4 border-gold rounded-tr-xl opacity-50" />
@@ -1489,7 +1488,7 @@ export default function App() {
             <div className="absolute bottom-0 right-0 w-8 h-8 sm:w-16 sm:h-16 border-b-2 sm:border-b-4 border-r-2 sm:border-r-4 border-gold rounded-br-xl opacity-50" />
           </>}
 
-          <RouteContentReveal key={`${routeView}:${currentPath}`}>
+          <>
           {routeView === 'pending' ? (
             <RouteFallback />
           ) : routeView === 'not-found' || routeView === 'unavailable' ? (
@@ -1722,7 +1721,7 @@ export default function App() {
                 )}
             </>
           )}
-          </RouteContentReveal>
+          </>
           </div>
 	        </main>
 	        {!isAdminMode && <React.Suspense fallback={null}><LazySiteFooter onNavigate={(tab: string) => navigate(tab as TabId)} /></React.Suspense>}

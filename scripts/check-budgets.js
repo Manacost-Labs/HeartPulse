@@ -77,9 +77,12 @@ const budgets = {
   // The shared Rust parchment preview adds one lazy-module pointer to Vite's
   // eager preload map (+117 raw / +26 gzip bytes). Rendering code, CSS and the
   // generated image remain lazy; keep the measured metadata cost ratcheted.
+  // The compact public navigation shell changes the content hash of eager
+  // preload names. Pin that measured gzip transfer so the guard distinguishes
+  // filename-only recompression from an actual route payload regression.
   mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_743),
   initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_761),
-  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 80_801),
+  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 81_664),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),
   deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 108_350),
