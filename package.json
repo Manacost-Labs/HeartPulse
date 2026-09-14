@@ -255,7 +255,7 @@
     "fast-check": "4.9.0",
     "knip": "6.29.0",
     "markdownlint-cli2": "0.23.1",
-    "puppeteer": "25.4.0",
+    "puppeteer": "25.10.0",
     "react-doctor": "0.5.8",
     "storybook": "10.5.4",
     "tailwindcss": "^4.1.14",

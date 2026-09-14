@@ -26,7 +26,7 @@ type BrowserRuntimeOptions = {
   log?: (message: string) => void;
 };
 
-const PUPPETEER_VERSION = '25.4.0';
+const PUPPETEER_VERSION = '25.10.0';
 const RUNTIME_SMOKE_PAGE = 'data:text/html,<title>hearthpulse-runtime-ok</title>';
 
 function defaultIsExecutable(path: string): boolean {

@@ -125,7 +125,7 @@ test('browser launcher accepts Chromium 152 when the real runtime contract passe
     } as never),
   });
 
-  assert.match(logs.join('\n'), /puppeteer=25\.4\.0.*browser=Chromium\/152\.0\.8000\.10/s);
+  assert.match(logs.join('\n'), /puppeteer=25\.10\.0.*browser=Chromium\/152\.0\.8000\.10/s);
   await browser.close();
 });
 
