@@ -1,8 +1,9 @@
-import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, Grid3X3, ListFilter, RefreshCw, Search, X } from 'lucide-react';
 import '../route-parchment.css';
 import './StandardMatchups.css';
+import { type ActiveMatrixMatchup, useCloseMatrixMatchup, useTooltipViewportPosition } from './standardMatchupsTooltip';
 
 type StandardMatchupsFormat = 'standard' | 'wild';
 type StandardMatchupsView = 'overview' | 'matrix';
@@ -39,17 +40,6 @@ interface StandardMatchupsData {
   columns: StandardMatchupsColumn[];
   rows: StandardMatchupsRow[];
   warning?: string;
-}
-
-interface ActiveMatrixMatchup {
-  row: StandardMatchupsRow;
-  cell: StandardMatchupsCell;
-  rowLabel: string;
-  opponentLabel: string;
-  anchor: HTMLButtonElement;
-  left: number;
-  top: number;
-  placement: 'above' | 'below';
 }
 
 function formatDate(iso: string | null): string {
@@ -374,13 +364,7 @@ function StandardMatchupsPage() {
     });
   }, []);
 
-  const closeMatrixMatchup = useCallback((restoreFocus = false) => {
-    adjustedTooltipAnchorRef.current = null;
-    setActiveMatrixMatchup(current => {
-      if (restoreFocus) window.requestAnimationFrame(() => current?.anchor.focus());
-      return null;
-    });
-  }, []);
+  const closeMatrixMatchup = useCloseMatrixMatchup(adjustedTooltipAnchorRef, setActiveMatrixMatchup);
 
   const openMatrixMatchup = useCallback((
     event: React.MouseEvent<HTMLButtonElement> | React.KeyboardEvent<HTMLButtonElement>,
@@ -411,28 +395,7 @@ function StandardMatchupsPage() {
     });
   }, []);
 
-  useLayoutEffect(() => {
-    const tooltip = matchupTooltipRef.current;
-    if (!activeMatrixMatchup || !tooltip) return;
-    if (adjustedTooltipAnchorRef.current === activeMatrixMatchup.anchor) return;
-
-    const rect = tooltip.getBoundingClientRect();
-    const padding = 12;
-    const nextLeft = Math.min(
-      Math.max(padding, rect.left),
-      Math.max(padding, window.innerWidth - rect.width - padding),
-    );
-    const nextTop = Math.min(
-      Math.max(padding, rect.top),
-      Math.max(padding, window.innerHeight - rect.height - padding),
-    );
-    adjustedTooltipAnchorRef.current = activeMatrixMatchup.anchor;
-    if (Math.abs(nextLeft - rect.left) < 1 && Math.abs(nextTop - rect.top) < 1) return;
-
-    setActiveMatrixMatchup(current => current === activeMatrixMatchup
-      ? { ...current, left: nextLeft, top: nextTop, placement: 'below' }
-      : current);
-  }, [activeMatrixMatchup]);
+  useTooltipViewportPosition(activeMatrixMatchup, matchupTooltipRef, adjustedTooltipAnchorRef, setActiveMatrixMatchup);
 
   useEffect(() => {
     if (!activeMatrixMatchup) return undefined;

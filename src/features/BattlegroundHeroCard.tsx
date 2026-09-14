@@ -49,7 +49,7 @@ export const BattlegroundHeroCard = memo(function BattlegroundHeroCard({ hero, t
       <h4 className="mt-2 min-h-[2.2rem] font-hs text-sm leading-tight text-[#3d2a1e]">{hero.name}</h4>
       <div className="mt-2 flex flex-wrap justify-center gap-1.5">
         <span className="rounded-md border border-[#d7b66a]/70 bg-[#fff3c4] px-2.5 py-1 font-hs text-sm leading-none text-[#3d2a1e] shadow-sm">{hero.averagePlace || '—'}</span>
-        {hero.popularity && <span className="rounded-md border border-[#bfdbfe] bg-[#dbeafe] px-2.5 py-1 text-xs font-bold leading-none text-[#1e3a8a] shadow-sm">{hero.popularity}</span>}
+        {hero.popularity && <span className="relative -top-px rounded-md border border-[#bfdbfe] bg-[#dbeafe] px-2.5 py-1 text-xs font-bold leading-none text-[#1e3a8a] shadow-sm">{hero.popularity}</span>}
       </div>
       {hero.heroPower && <span className="sr-only">Сила героя: {hero.heroPower.name}.{tier ? ` Тир ${tier}.` : ''}</span>}
     </a>

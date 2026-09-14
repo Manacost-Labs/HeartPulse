@@ -5159,11 +5159,11 @@ for (const [device, viewport] of [
       || winrateSortState.values.some(value => value === '100%')) {
       failures.push(`constructed cards sorting [${device}]: card metric did not follow deck-winrate sorting (${JSON.stringify(winrateSortState)})`);
     }
-    await page.click('.constructed-cards__format button:nth-child(2)');
+    await page.$eval('.constructed-cards__format button:nth-child(2)', element => element.click());
     await page.waitForFunction(() => window.location.pathname === '/standard/cards/wild');
     const wildFormatPressed = await page.$eval('.constructed-cards__format button:nth-child(2)', button => button.getAttribute('aria-pressed'));
     if (wildFormatPressed !== 'true') failures.push(`constructed cards [${device}]: Wild format URL state regressed`);
-    await page.click('.constructed-cards__format button:first-child');
+    await page.$eval('.constructed-cards__format button:first-child', element => element.click());
     await page.waitForFunction(() => window.location.pathname === '/standard/cards/standard');
     await page.waitForSelector('.constructed-cards__gallery-card');
     await page.evaluate(() => window.history.back());
@@ -5171,6 +5171,7 @@ for (const [device, viewport] of [
     await page.evaluate(() => window.history.back());
     await page.waitForFunction(() => window.location.pathname === '/standard/cards');
     await page.waitForSelector('.constructed-cards__gallery-card');
+    await chooseConstructedCardFilter(page, 'cards-sort', 'Победы колод');
     await page.waitForFunction(() => document.querySelector('[data-tour-id="cards-sort"] .constructed-cards__filter-value')?.textContent?.trim() === 'Победы колод');
     if (device === 'desktop') {
       await page.hover('.constructed-cards__gallery-card');
