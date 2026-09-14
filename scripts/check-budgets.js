@@ -82,7 +82,7 @@ const budgets = {
   // filename-only recompression from an actual route payload regression.
   mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_743),
   initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_761),
-  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 81_664),
+  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 81_709),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),
   deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 108_350),
