@@ -91,8 +91,8 @@ Gold is not a general panel fill. Use it for small accents, asset-native details
 
 | Token | Value | Usage |
 |---|---|---|
-| `--font-display` / `--font-hs` | `HSDisplay`, fallback serif | brand, headings, menu links, tier labels |
-| `--font-body` | `Inter`, sans-serif | descriptions, filters, tables, metadata |
+| `--font-display` / `--font-hs` | `HSDisplay`, fallback serif | brand, headings, menu links and tier labels |
+| `--font-body` | `Inter`, sans-serif | descriptions, filters, tables and metadata |
 
 - Display type is expressive; body copy stays plain and compact.
 - Uppercase is limited to kickers and small section labels.
@@ -164,7 +164,7 @@ The public shell groups secondary destinations instead of filling the rail with 
 
 ## Navigation
 
-- Desktop rail uses red texture, gold icons and expressive cream text.
+- Desktop rail uses red texture, a compact HearthPulse fire-mark, gold icons and expressive cream text.
 - Active link uses a darker red field plus a gold left rule; it must stay readable without glow.
 - Profile badge stays in the Hearthstone deck frame.
 - Mobile uses the same red material, a compact brand and a burger/X button with `aria-expanded`.

@@ -3,24 +3,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { X, Menu, ChevronDown, Grid3X3, LogIn, UserCircle, Gift } from 'lucide-react';
+import { LogIn, UserCircle } from 'lucide-react';
+import { PublicNavigation } from './app/shell/PublicNavigation';
+import { RouteContentReveal } from './app/shell/RouteContentReveal';
+import { RouteLoadingSurface } from './app/shell/RouteLoadingSurface';
 import { getCanonicalRedirectUrl } from './config/domain';
 import { usePageScrollLock } from './hooks/usePageScrollLock';
 import AuthAvatar from './components/AuthAvatar';
 import {
   ADMIN_ONLY_TAB_IDS,
-  ADMIN_TABS,
   applyPageMeta,
   ARENA_TABS,
-  BG_BUILDER_TABS,
-  BG_PRIMARY_TABS,
   BG_TAB_IDS,
   MISC_TABS,
   PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS,
-  STANDARD_TABS,
   tabFromPath,
   TABS,
-  TOP_LEVEL_TABS,
   type TabId,
 } from './routes';
 import {
@@ -547,53 +545,6 @@ interface GalleryData {
   updatedAt: string | null;
 }
 
-// ─── Tab transition wrapper ────────────────────────────────────────────────────
-type NavigationRoute = (typeof TABS)[number];
-
-function NavigationRouteLinks({
-  routes,
-  activeTab,
-  variant,
-  sublink = false,
-  onNavigate,
-  onWarm,
-}: {
-  routes: readonly NavigationRoute[];
-  activeTab: TabId;
-  variant: 'mobile' | 'sidebar';
-  sublink?: boolean;
-  onNavigate: (tab: TabId) => void;
-  onWarm: (tab: TabId) => void;
-}) {
-  const classPrefix = variant === 'mobile' ? 'arena-mobile-menu' : 'arena-sidebar';
-  const iconSize = sublink ? 17 : variant === 'mobile' ? 18 : 19;
-
-  return routes.map(tab => {
-    const Icon = tab.icon;
-    const active = activeTab === tab.id;
-    return (
-      <a
-        key={tab.id}
-        href={tab.slug}
-        onPointerEnter={() => onWarm(tab.id)}
-        onPointerDown={() => onWarm(tab.id)}
-        onFocus={() => onWarm(tab.id)}
-        onClick={(event) => {
-          event.preventDefault();
-          onNavigate(tab.id);
-        }}
-        aria-current={active ? 'page' : undefined}
-        className={`${classPrefix}-link ${sublink ? `${classPrefix}-sublink ` : ''}${active ? `${classPrefix}-link-active` : ''}`}
-        style={variant === 'sidebar' ? { textDecoration: 'none' } : undefined}
-      >
-        <span className={`${classPrefix}-link-icon flex-shrink-0`} aria-hidden="true">
-          <Icon size={iconSize} strokeWidth={1.8} />
-        </span>
-        <span>{tab.label}</span>
-      </a>
-    );
-  });
-}
 const loadDeferredRoutesModule = () => import('./features/DeferredRoutes');
 const loadHomeModule = () => import('./features/Home');
 const loadFAQPageModule = () => import('./features/FAQPage');
@@ -677,25 +628,7 @@ function preloadRouteModule(route: TabId | 'login'): void {
   void ROUTE_PRELOADERS[route]?.().catch(() => {});
 }
 
-function RouteFallback({ minHeight = 520 }: { minHeight?: number }) {
-  return (
-    <div
-      className="route-fallback"
-      aria-busy="true"
-      aria-label="Загрузка раздела"
-      style={{
-        minHeight,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: '#8b6c42',
-        fontFamily: 'var(--font-display)',
-      }}
-    >
-      Загрузка...
-    </div>
-  );
-}
+const RouteFallback = RouteLoadingSurface;
 
 // ─── Persistent cache with TTL (survives tab close, expires with data) ────────
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 h — matches server scrape interval
@@ -1000,7 +933,6 @@ export default function App() {
     || appAuthUser.id === 'user_42368c85b8de'
     || appAuthUser.profileId === 'user_42368c85b8de'
   ));
-  const visibleStandardTabs = STANDARD_TABS;
   const visibleArenaTabs = useMemo(() => ARENA_TABS.filter(tab => !ADMIN_ONLY_TAB_IDS.has(tab.id) || appIsAdmin), [appIsAdmin]);
   const visibleMiscTabs = useMemo(
     () => MISC_TABS.filter(tab => !ADMIN_ONLY_TAB_IDS.has(tab.id) || appIsAdmin),
@@ -1483,6 +1415,17 @@ export default function App() {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [mobileMenuOpen]);
 
+  const mobileNavigationProfile = useMemo(() => (
+    <>
+      {appAuthUser ? <AuthAvatar user={appAuthUser} size={28} /> : appAuthChecking && appHasAuthHint ? <UserCircle size={18} className="flex-shrink-0" /> : <LogIn size={18} className="flex-shrink-0" />}
+      <span>{appAuthUser || (appAuthChecking && appHasAuthHint) ? 'Профиль' : 'Войти'}</span>
+    </>
+  ), [appAuthChecking, appAuthUser, appHasAuthHint]);
+  const sidebarNavigationProfile = useMemo(
+    () => <HeaderProfileButton user={appAuthUser} checking={appAuthChecking && appHasAuthHint} />,
+    [appAuthChecking, appAuthUser, appHasAuthHint],
+  );
+
 		  return (
     <div className={`min-h-screen bg-wood text-[#3d2a1e] font-body arena-app-shell ${routeView === 'not-found' ? 'arena-app-not-found' : ''} ${activeTab === 'home' && !isAdminMode && routeSurfaceAvailable && !isAccountRoute ? 'arena-app-home' : ''} ${isAccountRoute && !isAdminMode ? 'arena-app-profile' : ''} ${activeTab === 'deck-builder' && routeSurfaceAvailable ? 'arena-app-deck-builder' : ''} ${isEditorialSurfacePage ? `arena-app-editorial arena-app-${activeTab}` : ''} ${isGameDataSurfacePage ? `arena-app-game-data arena-app-${activeTab}` : ''} ${isBattlegroundsSurfacePage ? `arena-app-battlegrounds arena-app-${activeTab}` : ''}`}>
       <a
@@ -1492,214 +1435,37 @@ export default function App() {
       >
         К основному содержимому
       </a>
-      {!isAdminMode && <header className="arena-mobile-topbar lg:hidden">
-        <a
-          href="/"
-          onClick={(e) => { e.preventDefault(); navigate('home'); }}
-          className="arena-mobile-brand"
-          aria-label="Manacost Stats — на главную"
-        >
-          <span>Manacost Stats</span>
-        </a>
-        <button
-          ref={mobileMenuToggleRef}
-          type="button"
-          onClick={() => {
+      <div className="arena-layout-shell">
+        {!isAdminMode && (
+          <PublicNavigation
+          activeTab={activeTab}
+          mobileMenuOpen={mobileMenuOpen}
+          mobileNavGroup={mobileNavGroup}
+          sidebarNavGroup={sidebarNavGroup}
+          visibleArenaTabs={visibleArenaTabs}
+          visibleMiscTabs={visibleMiscTabs}
+          appIsContestAdmin={appIsContestAdmin}
+          wantsLogin={wantsLogin}
+          updatedAtLabel={globalUpdatedAt ? formatDate(globalUpdatedAt) : 'Нет данных'}
+          mobileMenuRef={mobileMenuRef}
+          mobileMenuToggleRef={mobileMenuToggleRef}
+          mobileProfile={mobileNavigationProfile}
+          sidebarProfile={sidebarNavigationProfile}
+          profileLabel={appAuthUser || (appAuthChecking && appHasAuthHint) ? 'Открыть профиль' : 'Войти в профиль'}
+          onNavigate={navigate}
+          onNavigateLogin={navigateLogin}
+          onWarm={warmRoute}
+          onToggleMobileMenu={() => {
             if (mobileMenuOpen) setMobileNavGroup(null);
             setMobileMenuOpen(!mobileMenuOpen);
           }}
-          className="arena-mobile-nav-toggle"
-          aria-expanded={mobileMenuOpen}
-          aria-controls="arena-mobile-menu"
-          aria-label={mobileMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
-        >
-          {mobileMenuOpen ? <X size={21} /> : <Menu size={21} />}
-        </button>
-      </header>}
-
-      {!isAdminMode && mobileMenuOpen && (
-        <>
-          <button
-            type="button"
-            className="arena-mobile-drawer-backdrop lg:hidden"
-            aria-label="Закрыть меню"
-            onClick={() => { setMobileMenuOpen(false); setMobileNavGroup(null); }}
+          onCloseMobileMenu={() => {
+            setMobileMenuOpen(false);
+            setMobileNavGroup(null);
+          }}
+          onToggleMobileNavGroup={group => setMobileNavGroup(current => current === group ? null : group)}
+          onToggleSidebarNavGroup={group => setSidebarNavGroup(current => current === group ? null : group)}
           />
-          <nav ref={mobileMenuRef} id="arena-mobile-menu" className="arena-mobile-menu lg:hidden" aria-label="Мобильная навигация">
-            <NavigationRouteLinks routes={TOP_LEVEL_TABS} activeTab={activeTab} variant="mobile" onNavigate={navigate} onWarm={warmRoute} />
-            {appIsContestAdmin && <NavigationRouteLinks routes={ADMIN_TABS} activeTab={activeTab} variant="mobile" onNavigate={navigate} onWarm={warmRoute} />}
-            <div className="arena-mobile-menu-section" aria-label="Раздел Традиционный режим">
-              Традиционный режим
-            </div>
-            <NavigationRouteLinks routes={visibleStandardTabs} activeTab={activeTab} variant="mobile" onNavigate={navigate} onWarm={warmRoute} />
-            <div className="arena-mobile-menu-section" aria-label="Раздел Арена">
-              Арена
-            </div>
-            <NavigationRouteLinks routes={visibleArenaTabs} activeTab={activeTab} variant="mobile" onNavigate={navigate} onWarm={warmRoute} />
-            <div className="arena-mobile-menu-section" aria-label="Раздел Поля Сражений">
-              Поля Сражений
-            </div>
-            <NavigationRouteLinks routes={BG_PRIMARY_TABS} activeTab={activeTab} variant="mobile" onNavigate={navigate} onWarm={warmRoute} />
-            <div className="arena-mobile-menu-group">
-              <button
-                type="button"
-                className={`arena-mobile-menu-link arena-mobile-menu-group-trigger ${BG_BUILDER_TABS.some(tab => tab.id === activeTab) ? 'arena-mobile-menu-link-active' : ''}`}
-                aria-expanded={mobileNavGroup === 'constructors'}
-                aria-controls="arena-mobile-constructors"
-                onClick={() => setMobileNavGroup(group => group === 'constructors' ? null : 'constructors')}
-              >
-                <span className="arena-mobile-menu-link-icon flex-shrink-0" aria-hidden="true"><Grid3X3 size={18} strokeWidth={1.8} /></span>
-                <span>Конструкторы</span>
-                <ChevronDown size={16} className="arena-nav-group-chevron" />
-              </button>
-              <div id="arena-mobile-constructors" className="arena-mobile-menu-group-items" hidden={mobileNavGroup !== 'constructors'}>
-                <NavigationRouteLinks
-                  routes={BG_BUILDER_TABS}
-                  activeTab={activeTab}
-                  variant="mobile"
-                  sublink
-                  onNavigate={tab => { navigate(tab); setMobileNavGroup(null); }}
-                  onWarm={warmRoute}
-                />
-              </div>
-            </div>
-            <div className="arena-mobile-menu-group arena-mobile-menu-group--misc">
-              <button
-                type="button"
-                className={`arena-mobile-menu-link arena-mobile-menu-group-trigger ${visibleMiscTabs.some(tab => tab.id === activeTab) ? 'arena-mobile-menu-link-active' : ''}`}
-                aria-expanded={mobileNavGroup === 'misc'}
-                aria-controls="arena-mobile-misc"
-                onClick={() => setMobileNavGroup(group => group === 'misc' ? null : 'misc')}
-              >
-                <span className="arena-mobile-menu-link-icon flex-shrink-0" aria-hidden="true"><Gift size={18} strokeWidth={1.8} /></span>
-                <span>Разное</span>
-                <ChevronDown size={16} className="arena-nav-group-chevron" />
-              </button>
-              <div id="arena-mobile-misc" className="arena-mobile-menu-group-items" hidden={mobileNavGroup !== 'misc'}>
-                <NavigationRouteLinks
-                  routes={visibleMiscTabs}
-                  activeTab={activeTab}
-                  variant="mobile"
-                  sublink
-                  onNavigate={tab => { navigate(tab); setMobileNavGroup(null); }}
-                  onWarm={warmRoute}
-                />
-              </div>
-            </div>
-            <a
-              href="/?login"
-              onPointerEnter={() => warmRoute('login')}
-              onFocus={() => warmRoute('login')}
-              onClick={(e) => { e.preventDefault(); navigateLogin(); }}
-              className={`arena-mobile-menu-link arena-mobile-menu-profile ${wantsLogin ? 'arena-mobile-menu-link-active' : ''}`}
-            >
-              {appAuthUser ? (
-                <AuthAvatar user={appAuthUser} size={28} />
-              ) : appAuthChecking && appHasAuthHint ? (
-                <UserCircle size={18} className="flex-shrink-0" />
-              ) : (
-                <LogIn size={18} className="flex-shrink-0" />
-              )}
-              <span>{appAuthUser || (appAuthChecking && appHasAuthHint) ? 'Профиль' : 'Войти'}</span>
-            </a>
-          </nav>
-        </>
-      )}
-
-      <div className="arena-layout-shell">
-        {!isAdminMode && (
-          <aside className="arena-sidebar" aria-label="Основная навигация">
-            <a
-              href="/"
-              onClick={(e) => { e.preventDefault(); navigate('home'); }}
-              className="arena-sidebar-brand"
-              aria-label="Manacost Stats — на главную"
-            >
-              <span className="arena-sidebar-brand-copy">
-                <strong>Manacost Stats</strong>
-              </span>
-            </a>
-
-            <nav className="arena-sidebar-nav" aria-label="Разделы сайта">
-              <NavigationRouteLinks routes={TOP_LEVEL_TABS} activeTab={activeTab} variant="sidebar" onNavigate={navigate} onWarm={warmRoute} />
-              {appIsContestAdmin && <NavigationRouteLinks routes={ADMIN_TABS} activeTab={activeTab} variant="sidebar" onNavigate={navigate} onWarm={warmRoute} />}
-              <div className="arena-sidebar-section" aria-label="Раздел Традиционный режим">
-                Традиционный режим
-              </div>
-              <NavigationRouteLinks routes={visibleStandardTabs} activeTab={activeTab} variant="sidebar" onNavigate={navigate} onWarm={warmRoute} />
-              <div className="arena-sidebar-section" aria-label="Раздел Арена">
-                Арена
-              </div>
-              <NavigationRouteLinks routes={visibleArenaTabs} activeTab={activeTab} variant="sidebar" onNavigate={navigate} onWarm={warmRoute} />
-              <div className="arena-sidebar-section" aria-label="Раздел Поля Сражений">
-                Поля Сражений
-              </div>
-              <NavigationRouteLinks routes={BG_PRIMARY_TABS} activeTab={activeTab} variant="sidebar" onNavigate={navigate} onWarm={warmRoute} />
-              <div className="arena-sidebar-nav-group">
-                <button
-                  type="button"
-                  className={`arena-sidebar-link arena-sidebar-nav-group-trigger ${BG_BUILDER_TABS.some(tab => tab.id === activeTab) ? 'arena-sidebar-link-active' : ''}`}
-                  aria-expanded={sidebarNavGroup === 'constructors'}
-                  aria-controls="arena-sidebar-constructors"
-                  onClick={() => setSidebarNavGroup(group => group === 'constructors' ? null : 'constructors')}
-                >
-                  <span className="arena-sidebar-link-icon flex-shrink-0" aria-hidden="true"><Grid3X3 size={19} strokeWidth={1.8} /></span>
-                  <span>Конструкторы</span>
-                  <ChevronDown size={15} className="arena-nav-group-chevron" />
-                </button>
-                <div id="arena-sidebar-constructors" className="arena-sidebar-nav-group-items" hidden={sidebarNavGroup !== 'constructors'}>
-                  <NavigationRouteLinks
-                    routes={BG_BUILDER_TABS}
-                    activeTab={activeTab}
-                    variant="sidebar"
-                    sublink
-                    onNavigate={tab => { navigate(tab); setSidebarNavGroup(null); }}
-                    onWarm={warmRoute}
-                  />
-                </div>
-              </div>
-              <div className="arena-sidebar-nav-group arena-sidebar-nav-group--misc">
-                <button
-                  type="button"
-                  className={`arena-sidebar-link arena-sidebar-nav-group-trigger ${visibleMiscTabs.some(tab => tab.id === activeTab) ? 'arena-sidebar-link-active' : ''}`}
-                  aria-expanded={sidebarNavGroup === 'misc'}
-                  aria-controls="arena-sidebar-misc"
-                  onClick={() => setSidebarNavGroup(group => group === 'misc' ? null : 'misc')}
-                >
-                  <span className="arena-sidebar-link-icon flex-shrink-0" aria-hidden="true"><Gift size={19} strokeWidth={1.8} /></span>
-                  <span>Разное</span>
-                  <ChevronDown size={15} className="arena-nav-group-chevron" />
-                </button>
-                <div id="arena-sidebar-misc" className="arena-sidebar-nav-group-items" hidden={sidebarNavGroup !== 'misc'}>
-                  <NavigationRouteLinks
-                    routes={visibleMiscTabs}
-                    activeTab={activeTab}
-                    variant="sidebar"
-                    sublink
-                    onNavigate={tab => { navigate(tab); setSidebarNavGroup(null); }}
-                    onWarm={warmRoute}
-                  />
-                </div>
-              </div>
-            </nav>
-
-            <div className="arena-sidebar-status" aria-label="Дата обновления данных">
-              <span>Обновлено</span>
-              <strong>{globalUpdatedAt ? formatDate(globalUpdatedAt) : 'Нет данных'}</strong>
-            </div>
-
-            <a
-              href="/?login"
-              onPointerEnter={() => warmRoute('login')}
-              onFocus={() => warmRoute('login')}
-              onClick={(e) => { e.preventDefault(); navigateLogin(); }}
-              className={`arena-sidebar-profile ${wantsLogin ? 'arena-sidebar-profile-active' : ''}`}
-              aria-label={appAuthUser || (appAuthChecking && appHasAuthHint) ? 'Открыть профиль' : 'Войти в профиль'}
-              style={{ textDecoration: 'none' }}
-            >
-              <HeaderProfileButton user={appAuthUser} checking={appAuthChecking && appHasAuthHint} />
-            </a>
-          </aside>
         )}
 
 	        <div className={`arena-workspace ${!isAdminMode ? 'arena-workspace-with-tools' : ''} ${isFullWidthBuilder ? 'arena-workspace-wide' : ''} ${isAdminMode ? 'arena-workspace-admin' : ''}`}>
@@ -1723,6 +1489,7 @@ export default function App() {
             <div className="absolute bottom-0 right-0 w-8 h-8 sm:w-16 sm:h-16 border-b-2 sm:border-b-4 border-r-2 sm:border-r-4 border-gold rounded-br-xl opacity-50" />
           </>}
 
+          <RouteContentReveal key={`${routeView}:${currentPath}`}>
           {routeView === 'pending' ? (
             <RouteFallback />
           ) : routeView === 'not-found' || routeView === 'unavailable' ? (
@@ -1955,11 +1722,12 @@ export default function App() {
                 )}
             </>
           )}
+          </RouteContentReveal>
           </div>
 	        </main>
-		        {!isAdminMode && <React.Suspense fallback={null}><LazySiteFooter onNavigate={(tab: string) => navigate(tab as TabId)} /></React.Suspense>}
+	        {!isAdminMode && <React.Suspense fallback={null}><LazySiteFooter onNavigate={(tab: string) => navigate(tab as TabId)} /></React.Suspense>}
 	        {!isAdminMode && <React.Suspense fallback={null}><LazySupportPrompt /></React.Suspense>}
-        </div>
+	        </div>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowRight,
   BarChart3,
@@ -12,11 +12,38 @@ const HomeArenaDirectory = React.lazy(() => import('./HomeArenaDirectory'));
 const HomeBattlegrounds = React.lazy(() => import('./HomeBattlegrounds'));
 const HomeLatestArticles = React.lazy(() => import('./HomeLatestArticles'));
 
-function HomeSectionFallback({ label }: { label: string }) {
+function HomeSectionFallback({ announce = false, label }: { announce?: boolean; label: string }) {
   return (
-    <section className="home-deferred-placeholder" role="status" aria-live="polite">
+    <section className="home-deferred-placeholder" {...(announce ? { role: 'status', 'aria-live': 'polite' } : {})}>
       <span>Загружается раздел «{label}»…</span>
     </section>
+  );
+}
+
+const HOME_SECTION_PRELOAD_MARGIN = '720px 0px';
+
+function DeferredHomeSection({ children, label }: React.PropsWithChildren<{ label: string }>) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [nearViewport, setNearViewport] = useState(() => typeof IntersectionObserver === 'undefined');
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || nearViewport) return undefined;
+    const observer = new IntersectionObserver(entries => {
+      if (!entries.some(entry => entry.isIntersecting)) return;
+      setNearViewport(true);
+      observer.disconnect();
+    }, { rootMargin: HOME_SECTION_PRELOAD_MARGIN });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [nearViewport]);
+
+  return (
+    <div ref={containerRef} data-home-deferred-section={label}>
+      {nearViewport
+        ? <HomeSectionBoundary label={label}>{children}</HomeSectionBoundary>
+        : <HomeSectionFallback label={label} />}
+    </div>
   );
 }
 
@@ -121,7 +148,6 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
       .slice(0, 3),
     [homeSummaryData?.topClasses],
   );
-
   return (
     <div className="home-modern home-workbench">
       <section className="home-stage" aria-labelledby="draft-home-title">
@@ -207,7 +233,6 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
           </a>
         </aside>
       </section>
-
       <nav className="home-page-index" aria-label="Быстрые переходы по главной странице">
         <span>На этой странице</span>
         <a href="#home-articles-heading">Статьи</a>
@@ -216,23 +241,23 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
         <a href="#faq-heading">Частые вопросы</a>
       </nav>
 
-      <HomeSectionBoundary label="Последние статьи">
-        <React.Suspense fallback={<HomeSectionFallback label="Последние статьи" />}>
+      <DeferredHomeSection label="Последние статьи">
+        <React.Suspense fallback={<HomeSectionFallback announce label="Последние статьи" />}>
           <HomeLatestArticles articles={articles} loading={loadingArticles} onNavigate={onNavigate} />
         </React.Suspense>
-      </HomeSectionBoundary>
+      </DeferredHomeSection>
 
-      <HomeSectionBoundary label="Поля Сражений">
-        <React.Suspense fallback={<HomeSectionFallback label="Поля Сражений" />}>
+      <DeferredHomeSection label="Поля Сражений">
+        <React.Suspense fallback={<HomeSectionFallback announce label="Поля Сражений" />}>
           <HomeBattlegrounds onNavigate={onNavigate} />
         </React.Suspense>
-      </HomeSectionBoundary>
+      </DeferredHomeSection>
 
-      <HomeSectionBoundary label="Арена">
-        <React.Suspense fallback={<HomeSectionFallback label="Арена" />}>
+      <DeferredHomeSection label="Арена">
+        <React.Suspense fallback={<HomeSectionFallback announce label="Арена" />}>
           <HomeArenaDirectory onNavigate={onNavigate} />
         </React.Suspense>
-      </HomeSectionBoundary>
+      </DeferredHomeSection>
 
       <aside className="home-community home-reveal" aria-label="Сообщество и поддержка">
         <span className="home-community__lead">
@@ -251,7 +276,9 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
         </a>
       </aside>
 
-      <div className="home-faq-zone home-reveal">{faq}</div>
+      <DeferredHomeSection label="Частые вопросы">
+        <div className="home-faq-zone home-reveal">{faq}</div>
+      </DeferredHomeSection>
     </div>
   );
 }

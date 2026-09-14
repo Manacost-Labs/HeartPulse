@@ -110,7 +110,7 @@ export default function GlobalUtilityHeader({
   const [openingArticleId, setOpeningArticleId] = useState('');
   const [helpOpen, setHelpOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
-  const [tourAvailable, setTourAvailable] = useState(false);
+  const [availableTourContext, setAvailableTourContext] = useState<string | null>(null);
   const admin = accessStatus === true;
   const subscriptionStatus = admin ? null : accessStatus;
   const access: GlobalSearchAccess = {
@@ -127,26 +127,27 @@ export default function GlobalUtilityHeader({
     arena: admin || Boolean(subscriptionStatus?.entitlements?.arena),
     battlegrounds: admin || Boolean(subscriptionStatus?.entitlements?.battlegrounds),
   };
-
+  const tourContext = `${auth}:${pagePath}`;
+  const tourAvailable = availableTourContext === tourContext;
   useEffect(() => {
+    if (!helpOpen) return undefined;
     let active = true;
     void Promise.all([
       import('../features/pageTour/pageTourDefinitions'),
       import('../features/pageTour/pageTourModel'),
     ]).then(([definitions, model]) => {
       const resolved = model.resolvePageTour(pagePath, definitions.PAGE_TOURS);
-      if (active) setTourAvailable(Boolean(resolved && (resolved.id !== 'profile' || auth)));
+      if (active) setAvailableTourContext(resolved && (resolved.id !== 'profile' || auth) ? tourContext : null);
     }).catch(() => {
-      if (active) setTourAvailable(false);
+      if (active) setAvailableTourContext(null);
     });
     return () => { active = false; };
-  }, [auth, pagePath]);
-
+  }, [auth, helpOpen, pagePath, tourContext]);
   useEffect(() => {
     setSearchOpen(false);
     setHelpOpen(false);
     setTourOpen(false);
-  }, [pagePath]);
+  }, [auth, pagePath]);
 
   useEffect(() => {
     const normalizedQuery = query.trim();
@@ -213,7 +214,6 @@ export default function GlobalUtilityHeader({
       document.removeEventListener('keydown', closeOnEscape);
     };
   }, []);
-
   const closePanels = () => {
     setSearchOpen(false);
     setHelpOpen(false);
