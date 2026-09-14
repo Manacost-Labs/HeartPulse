@@ -119,11 +119,15 @@ assert.match(mobileHtml, /role="alert"/);
 assert.match(mobileHtml, /aria-label="Закрыть уведомление"/);
 assert.match(mobileHtml, /class="admin-nav-close"/);
 assert.doesNotMatch(mobileHtml, />Обзор</);
+assert.match(desktopHtml, /class="admin-section-frame"/);
 
 const shellCss = readFileSync(
   new URL('../src/modules/adminWorkspace/adminWorkspace.css', import.meta.url),
   'utf8',
 );
+assert.match(shellCss, /\.admin-tailadmin-shell \.admin-section-frame \{[\s\S]*?animation: admin-section-enter 180ms cubic-bezier\(0\.16, 1, 0\.3, 1\) both;/);
+assert.match(shellCss, /\.admin-tailadmin-shell \.admin-workspace-nav-list button\.is-active \{[\s\S]*?color: #f7fbff;[\s\S]*?background: #253446;/);
+assert.match(shellCss, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.admin-tailadmin-shell \.admin-section-frame[\s\S]*?animation: none;/);
 assert.match(shellCss, /--admin-bar-h:\s*56px;/);
 assert.match(shellCss, /--admin-bar-h:\s*84px;/);
 assert.match(shellCss, /--admin-nav-w:\s*72px;/);

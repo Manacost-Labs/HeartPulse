@@ -78,15 +78,17 @@ export function AdminWorkspaceShell<Section extends string>({
           aria-labelledby="admin-section-title"
           inert={menuOpen ? true : undefined}
         >
-          <div className="admin-section-header">
-            <div>
-              <span>HearthPulse / Админка</span>
-              <h1 id="admin-section-title">{activeItem?.label ?? 'Админка'}</h1>
-              <p>{activeItem?.caption ?? 'Управление проектом'}</p>
+          <div className="admin-section-frame" key={activeSection}>
+            <div className="admin-section-header">
+              <div>
+                <span>HearthPulse / Админка</span>
+                <h1 id="admin-section-title">{activeItem?.label ?? 'Админка'}</h1>
+                <p>{activeItem?.caption ?? 'Управление проектом'}</p>
+              </div>
+              {activeItem && <div className="admin-section-status"><i />{activeItem.status}</div>}
             </div>
-            {activeItem && <div className="admin-section-status"><i />{activeItem.status}</div>}
+            {children}
           </div>
-          {children}
         </div>
       </div>
     </section>
