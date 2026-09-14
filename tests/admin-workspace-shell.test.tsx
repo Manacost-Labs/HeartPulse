@@ -126,6 +126,7 @@ const shellCss = readFileSync(
   'utf8',
 );
 assert.match(shellCss, /\.admin-tailadmin-shell \.admin-section-frame \{[\s\S]*?animation: admin-section-enter 180ms cubic-bezier\(0\.16, 1, 0\.3, 1\) both;/);
+assert.match(shellCss, /@keyframes admin-section-enter \{[\s\S]*?from \{ opacity: 0\.01; transform: translateY\(5px\); \}/);
 assert.match(shellCss, /\.admin-tailadmin-shell \.admin-workspace-nav-list button\.is-active \{[\s\S]*?color: #f7fbff;[\s\S]*?background: #253446;/);
 assert.match(shellCss, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.admin-tailadmin-shell \.admin-section-frame[\s\S]*?animation: none;/);
 assert.match(shellCss, /--admin-bar-h:\s*56px;/);

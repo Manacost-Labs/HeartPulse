@@ -1169,6 +1169,35 @@
   visibility: visible;
   transition-delay: 95ms, 0s;
 }
+.admin-tailadmin-shell .admin-workspace-nav.is-open .admin-nav-group {
+  position: relative;
+  margin: 9px 10px 6px;
+  padding-left: 9px;
+  color: #9caec3;
+  font-size: 0.61rem;
+  letter-spacing: 0.14em;
+}
+.admin-tailadmin-shell .admin-workspace-nav.is-open .admin-nav-group::before {
+  position: absolute;
+  left: 0;
+  top: 0.18em;
+  bottom: 0.18em;
+  width: 2px;
+  content: '';
+  background: #c99a50;
+}
+.admin-tailadmin-shell .admin-workspace-nav.is-open .admin-workspace-nav-list button {
+  min-height: 46px;
+}
+.admin-tailadmin-shell .admin-workspace-nav.is-open .admin-workspace-nav-list button strong {
+  color: #dce6f2;
+  font-size: 0.8rem;
+  font-weight: 760;
+  letter-spacing: 0.008em;
+}
+.admin-tailadmin-shell .admin-workspace-nav.is-open .admin-workspace-nav-list button.is-active strong {
+  color: #fff;
+}
 .admin-tailadmin-shell .admin-workspace-nav.is-open .admin-nav-site-link { width: 100%; margin: auto 0 0; padding: 10px; justify-content: flex-start; }
 
 .admin-tailadmin-shell .admin-workspace-content {
@@ -1182,7 +1211,7 @@
 }
 
 @keyframes admin-section-enter {
-  from { opacity: 0; transform: translateY(5px); }
+  from { opacity: 0.01; transform: translateY(5px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .admin-tailadmin-shell .admin-section-header { min-height: 74px; margin-bottom: 28px; padding-bottom: 18px; border-bottom: 1px dashed #69707a; }
