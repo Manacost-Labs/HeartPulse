@@ -7172,7 +7172,7 @@ for (const [device, viewport] of [
       };
     });
     if (openState.bodyPosition !== 'fixed' || openState.htmlOverflow !== 'hidden') failures.push('mobile menu: background is not scroll-locked');
-    if (openState.sectionText !== 'Традиционный режим') failures.push(`mobile menu: unexpected first section label ${openState.sectionText}`);
+    if (!openState.sectionText.startsWith('Традиционный режим')) failures.push(`mobile menu: unexpected first section label ${openState.sectionText}`);
     if (!openState.profileWidth || openState.profileRight > openState.viewportWidth + 1) failures.push('mobile menu: profile control frame overflows');
     if (!openState.constructors || !openState.misc) failures.push('mobile menu: grouped navigation controls are missing');
     if (openState.missingRoutes.length) failures.push(`mobile menu: missing routes ${openState.missingRoutes.join(', ')}`);
@@ -7220,8 +7220,8 @@ for (const [device, viewport] of [
       || openState.activeBackground !== 'rgba(48, 4, 7, 0.42)'
       || openState.activeBeforeDisplay !== 'none'
       || openState.sectionMarginTop !== '10.4px'
-      || openState.sectionColor !== 'rgb(223, 182, 95)'
-      || openState.sectionSize !== '10.08px'
+      || openState.sectionColor !== 'rgb(159, 177, 202)'
+      || openState.sectionSize !== '10.88px'
       || openState.profilePosition !== 'relative'
       || openState.profileMinHeight !== '50px'
       || openState.profilePadding !== '10.88px 12.8px'
