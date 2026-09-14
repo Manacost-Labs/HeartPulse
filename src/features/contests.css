@@ -1013,8 +1013,11 @@
 }
 
 .admin-winner-entry.is-disabled {
-  opacity: 0.68;
   cursor: not-allowed;
+}
+
+.admin-winner-entry.is-disabled .admin-winner-select {
+  opacity: 0.68;
 }
 
 .admin-winner-entry.is-disabled .contest-entry-actions button {

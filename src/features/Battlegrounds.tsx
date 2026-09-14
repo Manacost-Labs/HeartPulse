@@ -2308,7 +2308,7 @@ function BattlegroundHeroPatchChange({
                   : 'border-[#e2cf99] bg-[#fff9ed] text-[#3d2a1e]'
             }`}
           >
-            <p className="text-xs font-bold uppercase tracking-[0.12em] opacity-75">{note.label}</p>
+            <p className="text-xs font-bold uppercase tracking-[0.12em]">{note.label}</p>
             <p className="mt-1 text-base font-black leading-tight">{note.value || '—'}</p>
           </div>
         ))}

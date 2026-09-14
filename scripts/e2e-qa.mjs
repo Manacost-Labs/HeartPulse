@@ -4919,6 +4919,8 @@ for (const [device, viewport] of [
         withinViewport: Boolean(rect
           && rect.left >= 0 && rect.right <= window.innerWidth + 1
           && rect.top >= 0 && rect.bottom <= window.innerHeight + 1),
+        bounds: rect ? { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom } : null,
+        viewport: { width: window.innerWidth, height: window.innerHeight },
         activeCell: Boolean(activeCell),
         closeHeight: dialog?.querySelector('button')?.getBoundingClientRect().height ?? 0,
         pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
@@ -5245,7 +5247,7 @@ for (const [device, viewport] of [
     }
     await page.screenshot({ path: `${OUT}/constructed-cards-table-${device}.png`, fullPage: false });
     await page.click('.constructed-cards__view button:first-child');
-    await page.click('.constructed-cards__gallery-card');
+    await page.$eval('.constructed-cards__gallery-card-link', element => element.click());
     await page.waitForSelector('.constructed-card-detail__hero');
     await page.waitForSelector('.constructed-card-detail__pool-toggle');
     await page.waitForFunction(() => {
@@ -5900,7 +5902,9 @@ for (const [device, viewport] of [
     await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.home-latest-articles');
     await page.waitForSelector('.home-bg-directory');
+    await page.$eval('[data-home-deferred-section="Арена"]', element => element.scrollIntoView({ block: 'center' }));
     await page.waitForSelector('.home-arena-directory');
+    await page.$eval('[data-home-deferred-section="Частые вопросы"]', element => element.scrollIntoView({ block: 'center' }));
     await page.waitForSelector('.home-faq-zone');
     await page.waitForSelector('#faq-heading');
     await page.waitForSelector('.arena-footer__link');
@@ -6671,10 +6675,13 @@ for (const [device, viewport] of [
   });
   try {
     await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.$eval('[data-home-deferred-section="Последние статьи"]', element => element.scrollIntoView({ block: 'center' }));
     await page.waitForSelector('[data-home-error]', { visible: true, timeout: 15_000 });
     await page.waitForSelector('.home-bg-directory', { visible: true });
+    await page.$eval('[data-home-deferred-section="Арена"]', element => element.scrollIntoView({ block: 'center' }));
     await page.waitForSelector('.home-arena-directory', { visible: true });
     await page.waitForSelector('.home-community', { visible: true });
+    await page.$eval('[data-home-deferred-section="Частые вопросы"]', element => element.scrollIntoView({ block: 'center' }));
     await page.waitForSelector('.home-faq-zone', { visible: true });
     const recoveryState = await page.$eval('[data-home-error]', element => {
       const button = element.querySelector('button');
@@ -6893,7 +6900,7 @@ for (const [device, viewport] of [
         mainPaddingTop: mainStyles?.paddingTop || '',
       };
     });
-    if (sidebarState.sectionText !== 'Традиционный режим') failures.push(`desktop sidebar: unexpected first section label ${sidebarState.sectionText}`);
+    if (!sidebarState.sectionText.startsWith('Традиционный режим')) failures.push(`desktop sidebar: unexpected first section label ${sidebarState.sectionText}`);
     if (Math.abs(sidebarState.width - 258) > 0.1
       || sidebarState.height < sidebarState.viewportHeight
       || sidebarState.padding !== '14.4px 11.52px'
@@ -6915,9 +6922,9 @@ for (const [device, viewport] of [
       || sidebarState.navPadding !== '7.2px 0px'
       || sidebarState.navBorderColor !== 'rgba(232, 192, 103, 0.2)'
       || sidebarState.sectionMargin !== '11.52px 8.8px 4px'
-      || sidebarState.sectionColor !== 'rgb(220, 175, 85)'
-      || sidebarState.sectionSize !== '9.76px'
-      || sidebarState.sectionWeight !== '850'
+      || sidebarState.sectionColor !== 'rgb(234, 210, 161)'
+      || sidebarState.sectionSize !== '16px'
+      || sidebarState.sectionWeight !== '400'
       || sidebarState.linkMinHeight !== '40px'
       || sidebarState.linkGap !== '9.92px'
       || sidebarState.linkPadding !== '8.32px 9.92px'

@@ -1,4 +1,5 @@
-import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, Grid3X3, ListFilter, RefreshCw, Search, X } from 'lucide-react';
 import '../route-parchment.css';
 import './StandardMatchups.css';
@@ -290,6 +291,7 @@ function StandardMatchupsPage() {
   const matrixScrollRef = useRef<HTMLDivElement | null>(null);
   const matrixTopScrollRef = useRef<HTMLDivElement | null>(null);
   const matchupTooltipRef = useRef<HTMLDivElement | null>(null);
+  const adjustedTooltipAnchorRef = useRef<HTMLButtonElement | null>(null);
   const [activeMatrixMatchup, setActiveMatrixMatchup] = useState<ActiveMatrixMatchup | null>(null);
   const deferredMatchupSearch = useDeferredValue(matchupSearch.trim().toLocaleLowerCase('ru-RU'));
   const deferredMatrixSearch = useDeferredValue(matrixSearch.trim().toLocaleLowerCase('ru-RU'));
@@ -373,6 +375,7 @@ function StandardMatchupsPage() {
   }, []);
 
   const closeMatrixMatchup = useCallback((restoreFocus = false) => {
+    adjustedTooltipAnchorRef.current = null;
     setActiveMatrixMatchup(current => {
       if (restoreFocus) window.requestAnimationFrame(() => current?.anchor.focus());
       return null;
@@ -407,6 +410,29 @@ function StandardMatchupsPage() {
       placement: hasRoomBelow ? 'below' : 'above',
     });
   }, []);
+
+  useLayoutEffect(() => {
+    const tooltip = matchupTooltipRef.current;
+    if (!activeMatrixMatchup || !tooltip) return;
+    if (adjustedTooltipAnchorRef.current === activeMatrixMatchup.anchor) return;
+
+    const rect = tooltip.getBoundingClientRect();
+    const padding = 12;
+    const nextLeft = Math.min(
+      Math.max(padding, rect.left),
+      Math.max(padding, window.innerWidth - rect.width - padding),
+    );
+    const nextTop = Math.min(
+      Math.max(padding, rect.top),
+      Math.max(padding, window.innerHeight - rect.height - padding),
+    );
+    adjustedTooltipAnchorRef.current = activeMatrixMatchup.anchor;
+    if (Math.abs(nextLeft - rect.left) < 1 && Math.abs(nextTop - rect.top) < 1) return;
+
+    setActiveMatrixMatchup(current => current === activeMatrixMatchup
+      ? { ...current, left: nextLeft, top: nextTop, placement: 'below' }
+      : current);
+  }, [activeMatrixMatchup]);
 
   useEffect(() => {
     if (!activeMatrixMatchup) return undefined;
@@ -975,7 +1001,8 @@ function StandardMatchupsPage() {
                   top: activeMatrixMatchup.top,
                   transform: activeMatrixMatchup.placement === 'above' ? 'translateY(-100%)' : undefined,
                 };
-                return (
+                return createPortal(
+                  <div className="arena-app-standard-matchups">
                   <div
                     ref={matchupTooltipRef}
                     id="standard-matchups-cell-dialog"
@@ -1018,7 +1045,8 @@ function StandardMatchupsPage() {
                       )}
                     </div>
                   </div>
-                );
+                  </div>
+                , document.body);
               })()}
               </>
               )}
