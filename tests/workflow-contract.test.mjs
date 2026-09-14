@@ -14,7 +14,7 @@ assert.match(workflow, /workflow_dispatch:/);
 assert.match(workflow, /permissions:\s*\n\s*contents:\s*read/);
 assert.match(workflow, /hs-arena-scraper\.timer/);
 assert.match(workflow, /actions\/checkout@v7/);
-assert.match(workflow, /actions\/setup-node@v6/);
+assert.match(workflow, /actions\/setup-node@v7/);
 assert.match(workflow, /node-version:\s*'22'/);
 assert.doesNotMatch(workflow, /^\s*schedule:/m);
 assert.doesNotMatch(workflow, /\bgit\s+(?:add|commit|push)\b/);
@@ -68,11 +68,11 @@ assert.match(
 );
 assert.match(
   productionJob,
-  /uses:\s*actions\/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38\s*# v6\.5\.0/,
+  /uses:\s*actions\/setup-node@820762786026740c76f36085b0efc47a31fe5020\s*# v7\.0\.0/,
 );
 assert.match(
   productionJob,
-  /uses:\s*actions\/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131\s*# v7\.0\.0/,
+  /uses:\s*actions\/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c\s*# v8\.0\.1/,
 );
 assert.doesNotMatch(productionJob, /uses:\s*[^\s@]+@v\d+/);
 assert.match(
@@ -117,7 +117,7 @@ assert.match(
   /- name:\s*Run full responsive visual QA\s+env:\s+QA_SCREENSHOT_DIR:\s*\$\{\{ runner\.temp \}\}\/mobile-visual-qa\s+run:\s*npm run qa:responsive:all/,
 );
 assert.match(mobileVisualWorkflow, /actions\/checkout@v7/);
-assert.match(mobileVisualWorkflow, /actions\/setup-node@v6/);
+assert.match(mobileVisualWorkflow, /actions\/setup-node@v7/);
 assert.match(mobileVisualWorkflow, /node-version:\s*'22'/);
 assert.match(mobileVisualWorkflow, /run:\s*npm ci/);
 assert.match(mobileVisualWorkflow, /run:\s*npm run qa:responsive:all/);
@@ -144,7 +144,7 @@ assert.match(productionMonitorWorkflow, /group:\s*production-monitor/);
 assert.match(productionMonitorWorkflow, /cancel-in-progress:\s*true/);
 assert.match(productionMonitorWorkflow, /timeout-minutes:\s*5/);
 assert.match(productionMonitorWorkflow, /actions\/checkout@v7/);
-assert.match(productionMonitorWorkflow, /actions\/setup-node@v6/);
+assert.match(productionMonitorWorkflow, /actions\/setup-node@v7/);
 assert.match(productionMonitorWorkflow, /node-version:\s*'22'/);
 assert.match(productionMonitorWorkflow, /PRODUCTION_BASE_URL:\s*https:\/\/hearthpulse\.net/);
 assert.match(productionMonitorWorkflow, /MONITOR_ATTEMPTS:\s*'2'/);
