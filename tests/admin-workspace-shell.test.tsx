@@ -129,6 +129,8 @@ assert.match(shellCss, /\.admin-tailadmin-shell \.admin-section-frame \{[\s\S]*?
 assert.match(shellCss, /@keyframes admin-section-enter \{[\s\S]*?from \{ opacity: 0\.01; transform: translateY\(5px\); \}/);
 assert.match(shellCss, /\.admin-tailadmin-shell \.admin-workspace-nav-list button\.is-active \{[\s\S]*?color: #f7fbff;[\s\S]*?background: #253446;/);
 assert.match(shellCss, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.admin-tailadmin-shell \.admin-section-frame[\s\S]*?animation: none;/);
+assert.match(shellCss, /\.admin-tailadmin-shell :is\(input, textarea, select\) \{[\s\S]*?transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;/);
+assert.match(shellCss, /\.admin-tailadmin-shell :is\(\.contest-primary-button, \.contest-secondary-button, \.admin-quick-actions button, \.admin-pagination button\):active:not\(:disabled\) \{[\s\S]*?transform: translate\(1px, 1px\);/);
 assert.match(shellCss, /--admin-bar-h:\s*56px;/);
 assert.match(shellCss, /--admin-bar-h:\s*84px;/);
 assert.match(shellCss, /--admin-nav-w:\s*72px;/);
