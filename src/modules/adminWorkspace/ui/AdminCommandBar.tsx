@@ -1,5 +1,5 @@
 import React, { type Ref } from 'react';
-import { ChevronDown, ExternalLink, Menu, X } from 'lucide-react';
+import { ExternalLink, Menu, X } from 'lucide-react';
 
 export function AdminCommandBar({
   menuOpen,
@@ -29,12 +29,6 @@ export function AdminCommandBar({
       >
         {menuOpen ? <X size={21} aria-hidden="true" /> : <Menu size={21} aria-hidden="true" />}
       </button>
-
-      <a href="/" className="admin-command-brand" aria-label="HearthPulse Admin — открыть сайт">
-        <img className="admin-command-logo" src="/arena-logo-icon-256.webp" alt="" />
-        <span className="admin-command-name">Админка</span>
-        <ChevronDown className="admin-command-brand-caret" size={16} aria-hidden="true" />
-      </a>
 
       <div className="admin-command-actions">
         <a

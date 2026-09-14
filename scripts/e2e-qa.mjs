@@ -3287,7 +3287,7 @@ for (const [device, viewport] of [
     }
     if (state.quickActions.length !== 9) failures.push(`admin dashboard [${device}]: expected 9 quick actions, got ${state.quickActions.length}`);
     const commandBarHeight = device === 'desktop' ? 84 : 56;
-    const commandLogoSize = device === 'desktop' ? 34 : 32;
+    const commandLogoSize = 0;
     if (state.commandBarHeight !== commandBarHeight || state.commandLogoSize !== commandLogoSize || state.hasRedundantAccessStatus) {
       failures.push(`admin dashboard [${device}]: compact command bar regressed (${JSON.stringify(state)})`);
     }

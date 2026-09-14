@@ -47,8 +47,8 @@ const desktopHtml = renderToStaticMarkup(
 
 assert.match(desktopHtml, /class="contest-admin-page admin-workspace-page admin-tailadmin-shell"/);
 assert.match(desktopHtml, /<header[^>]*class="admin-command-bar"[^>]*aria-label="Панель управления"/);
-assert.match(desktopHtml, /HearthPulse/);
-assert.match(desktopHtml, /src="\/arena-logo-icon-256.webp"/);
+assert.doesNotMatch(desktopHtml, /admin-command-brand/,
+  'the utility header must not repeat the product brand beside the left rail');
 assert.match(desktopHtml, /aria-label="Открыть публичный сайт HearthPulse"/);
 assert.doesNotMatch(desktopHtml, /Доступ подтверждён/);
 assert.match(desktopHtml, /aria-label="Найти раздел админ-панели"/);
@@ -133,7 +133,7 @@ assert.match(shellCss, /\.admin-tailadmin-shell \.admin-command-logo \{[\s\S]*?w
 const drawerBreakpointStart = shellCss.indexOf('@media (max-width: 1023px)');
 const drawerBreakpointEnd = shellCss.indexOf('@media (max-width: 640px)', drawerBreakpointStart);
 const drawerBreakpoint = shellCss.slice(drawerBreakpointStart, drawerBreakpointEnd);
-const compactBreakpoint = shellCss.slice(shellCss.indexOf('@media (max-width: 390px)'));
+const referenceSystem = shellCss.slice(shellCss.indexOf('/* Admin reference system:'));
 
 assert.notEqual(drawerBreakpointStart, -1);
 assert.notEqual(drawerBreakpointEnd, -1);
@@ -158,6 +158,9 @@ assert.ok(toastCloseRules.some(rule => /width:\s*44px;/.test(rule)));
 assert.ok(toastCloseRules.some(rule => /height:\s*44px;/.test(rule)));
 assert.match(externalLinkTouchRule, /min-height:\s*44px;/);
 assert.match(workflowTouchRule, /min-height:\s*44px;/);
-assert.match(compactBreakpoint, /\.admin-tailadmin-shell \.admin-command-brand \{[\s\S]*?min-width:\s*44px;/);
+assert.match(referenceSystem, /\.admin-tailadmin-shell \.admin-workspace-nav \{[\s\S]*?transition:\s*width 220ms cubic-bezier\(0\.2, 0\.8, 0\.2, 1\), padding 220ms cubic-bezier\(0\.2, 0\.8, 0\.2, 1\);/,
+  'the desktop rail must expand smoothly rather than jump between compact and open states');
+assert.match(referenceSystem, /\.admin-tailadmin-shell \.admin-workspace-nav\.is-open \.admin-workspace-nav-list button > span \{[\s\S]*?opacity:\s*1;/,
+  'navigation labels must fade in with the expanded rail');
 
 console.log('admin workspace shell render assertions passed');

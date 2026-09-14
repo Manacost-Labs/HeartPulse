@@ -41,8 +41,6 @@ export function constructedCardDataNotice(value: {
   const notices: string[] = [];
   if (value.partial === true && !/часть подробной информации/i.test(warning)) {
     notices.push('Часть подробной информации временно недоступна. Основные данные карты восстановлены из библиотеки.');
-  } else if (value.dataStatus === 'stale' && !/последн\w* сохран[её]нн/i.test(warning)) {
-    notices.push('Показываем последнюю сохранённую версию данных. Новое обновление уже запрашивается.');
   }
   if (warning) notices.push(warning);
   return notices.filter((notice, index, values) => values.indexOf(notice) === index).join(' ') || null;

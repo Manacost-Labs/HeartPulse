@@ -24,7 +24,8 @@ assert.doesNotMatch(constructedCardRequestError('detail', 503, 'QA_PRIVATE_ERROR
 
 assert.equal(
   constructedCardDataNotice({ dataStatus: 'stale', partial: false }),
-  'Показываем последнюю сохранённую версию данных. Новое обновление уже запрашивается.',
+  null,
+  'a complete last-known-good catalog is still usable and should not interrupt reading',
 );
 assert.equal(
   constructedCardDataNotice({ dataStatus: 'stale', partial: true }),
@@ -40,14 +41,14 @@ assert.equal(
   'Статистика карт временно недоступна.',
   'a fresh raw catalog must still surface a simultaneous statistics outage',
 );
-assert.match(
+assert.equal(
   constructedCardDataNotice({
     dataStatus: 'stale',
     partial: false,
     warning: 'Статистика карт временно недоступна.',
-  }) || '',
-  /сохранённую версию[\s\S]*Статистика карт временно недоступна/,
-  'the stale notice must not suppress a simultaneous statistics warning',
+  }),
+  'Статистика карт временно недоступна.',
+  'a concrete server warning must remain visible without an extra stale-data banner',
 );
 
 const standardCardsSource = readFileSync(new URL('../src/features/StandardCards.tsx', import.meta.url), 'utf8');
