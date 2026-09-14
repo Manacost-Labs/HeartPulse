@@ -106,9 +106,11 @@ test('hero detail keeps buddies aligned and statistics navigable without a chart
       };
     });
     assert.match(heroMotion.cardTransition, /box-shadow/, 'hero tile has a deliberate surface transition');
-    assert.ok(parseFloat(heroMotion.previewDuration) >= 0.24 && parseFloat(heroMotion.previewDuration) <= 0.32, 'hero power reveal is gentle but responsive');
+    assert.ok(parseFloat(heroMotion.previewDuration) >= 0.38 && parseFloat(heroMotion.previewDuration) <= 0.44, 'hero power reveal gives the card enough time to settle');
     assert.match(heroMotion.previewTiming, /cubic-bezier/, 'hero power reveal uses smooth easing');
     await page.hover('.battleground-hero-card');
+    const previewDelay = await page.$eval('.battleground-hero-related-card', element => parseFloat(getComputedStyle(element).transitionDelay));
+    assert.ok(previewDelay >= 0.05 && previewDelay <= 0.09, 'pointer hover gives the hero portrait a brief lead before revealing its power');
     await page.waitForFunction(() => getComputedStyle(document.querySelector('.battleground-hero-related-card')).opacity === '1');
     await page.hover('.battleground-hero-related-card');
     assert.equal(await page.$eval('.battleground-hero-related-card', element => getComputedStyle(element).opacity), '1', 'power remains hoverable');
