@@ -45,9 +45,8 @@ assert.equal(ADMIN_ONLY_TAB_IDS.has('standard-cards'), false, 'Constructed cards
 assert.equal(ADMIN_ONLY_TAB_IDS.has('fun-decks'), false, 'Fun decks must stay visible publicly');
 assert.equal(PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS['fun-decks'], 'standard', 'Fun decks must expose a public Diamond teaser');
 assert.equal(tabFromPath('/standard/fun-decks'), 'fun-decks');
-assert.equal(ADMIN_ONLY_TAB_IDS.has('deck-builder'), true, 'Deck builder must stay administrator-only under Разное');
-assert.equal(tabFromPath('/deck-builder'), 'deck-builder');
-assert.equal(isKnownPath('/deck-builder'), true);
+assert.equal(isKnownPath('/deck-builder'), false, 'removed deck builder route must remain unknown');
+assert.equal(isKnownPath('/archetypes'), false, 'removed archetypes route must remain unknown');
 assert.equal(tabFromPath('/arena/draft'), 'home');
 assert.equal(isKnownPath('/arena/draft'), false, 'removed draft route must remain unknown');
 assert.equal(tabFromPath('/standard/meta/standard/legacy-slug'), 'constructed-archetypes', 'legacy archetype details must keep opening the catalog');

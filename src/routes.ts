@@ -7,7 +7,6 @@ import {
   Gem,
   Gift,
   Grid3X3,
-  LayoutGrid,
   Home,
   Image as ImageIcon,
   LibraryBig,
@@ -61,24 +60,6 @@ export const TABS = [
   },
   {
     id: 'contests', label: 'Конкурсы', icon: Gift, slug: '/contests', group: 'misc', entitlement: null,
-  },
-  {
-    id: 'deck-builder',
-    label: 'Конструктор колоды',
-    icon: LayoutGrid,
-    slug: '/deck-builder',
-    group: 'misc',
-    entitlement: null,
-    adminOnly: true,
-  },
-  {
-    id: 'archetypes',
-    label: 'Архетипы',
-    icon: ListTree,
-    slug: '/archetypes',
-    group: 'misc',
-    entitlement: null,
-    adminOnly: true,
   },
   {
     id: 'standard-matchups', label: 'Матчапы', icon: Swords, slug: '/standard/matchups', group: 'standard', entitlement: 'standard',
