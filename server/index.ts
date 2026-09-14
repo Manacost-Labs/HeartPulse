@@ -2905,19 +2905,19 @@ function renderNewsletterHtml(draft: NewsletterDraft, unsubscribeUrl: string, pr
     ${csp}
     <title>${safeSubject}</title>
     <style>
-      body{margin:0;padding:0;background:#eef3f8;color:#1d2c3a;font-family:Arial,Helvetica,sans-serif}
-      .mail-wrap{width:100%;padding:24px 10px;background:#eef3f8}
-      .mail-card{width:100%;max-width:640px;margin:0 auto;border:1px solid #cad7e4;border-radius:14px;background:#fff;overflow:hidden}
-      .mail-head{padding:22px 28px;background:#0b1f36;color:#fff}
-      .mail-head small{display:block;color:#80dff3;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-      .mail-head strong{display:block;margin-top:5px;font-size:22px}
-      .mail-content{padding:28px;color:#26394c;font-size:16px;line-height:1.65}
-      .mail-content h1,.mail-content h2,.mail-content h3{margin:0 0 14px;color:#162b40;line-height:1.25}
-      .mail-content p{margin:0 0 16px}.mail-content a{color:#087fbd;font-weight:700}.mail-content img{display:block;max-width:100%;height:auto;margin:18px auto;border-radius:10px}
-      .mail-content blockquote{margin:18px 0;padding:14px 18px;border-left:4px solid #22b6db;background:#f1f8fc}
-      .mail-content table{max-width:100%;border-collapse:collapse}.mail-content td,.mail-content th{padding:8px;border:1px solid #d7e0ea}
-      .mail-foot{padding:20px 28px;border-top:1px solid #d7e0ea;background:#f7f9fb;color:#687888;font-size:12px;line-height:1.55}
-      .mail-foot a{color:#526d83}
+      body{margin:0;padding:0;background:#ead6a7 url('${APP_URL}/wallpaper/arena-parchment.jpg') repeat;color:#30251c;font-family:Arial,Helvetica,sans-serif}
+      .mail-wrap{width:100%;padding:28px 10px;background:linear-gradient(rgba(249,235,202,.72),rgba(236,213,166,.78)),url('${APP_URL}/wallpaper/arena-parchment.jpg') repeat}
+      .mail-card{width:100%;max-width:640px;margin:0 auto;border:6px solid #5f371d;border-radius:0;background:#f7e8bf;overflow:hidden;box-shadow:0 10px 24px rgba(46,22,11,.2)}
+      .mail-head{padding:22px 28px;border-bottom:4px solid #d9ab49;background:linear-gradient(90deg,rgba(69,5,9,.18),rgba(122,20,25,.12)),#8d171d url('${APP_URL}/wallpaper/arena-rail-red.jpg') center/375px 172px repeat;color:#fff0c8}
+      .mail-head small{display:block;color:#efc96f;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+      .mail-head strong{display:block;margin-top:5px;color:#fff0c8;font-family:Georgia,serif;font-size:24px;line-height:1.2}
+      .mail-content{padding:28px;background:rgba(247,232,191,.92);color:#30251c;font-size:16px;line-height:1.65}
+      .mail-content h1,.mail-content h2,.mail-content h3{margin:0 0 14px;color:#5d0d13;font-family:Georgia,serif;line-height:1.25}
+      .mail-content p{margin:0 0 16px}.mail-content a{color:#8d171d;font-weight:700;text-decoration:underline}.mail-content img{display:block;max-width:100%;height:auto;margin:18px auto;border:1px solid #5f371d;border-radius:0}
+      .mail-content blockquote{margin:18px 0;padding:14px 18px;border-left:4px solid #8d171d;background:#ead6a7}
+      .mail-content table{max-width:100%;border-collapse:collapse}.mail-content td,.mail-content th{padding:8px;border:1px solid #b99352}
+      .mail-foot{padding:20px 28px;border-top:1px solid #5f371d;background:#2e160b;color:#f7e8bf;font-size:12px;line-height:1.55}
+      .mail-foot a{color:#efc96f}
       @media(max-width:520px){.mail-wrap{padding:0}.mail-card{border-radius:0;border-left:0;border-right:0}.mail-head,.mail-content,.mail-foot{padding-left:18px;padding-right:18px}}
     </style>
   </head>

@@ -1152,6 +1152,40 @@
 .admin-tailadmin-shell .admin-workspace-nav-list button.is-active > svg { color: currentColor; }
 .admin-tailadmin-shell .admin-nav-site-link { width: 48px; min-height: 48px; margin: auto auto 0; padding: 0; justify-content: center; border-radius: 6px; }
 
+.admin-tailadmin-shell .admin-workspace-nav:not(.is-open) .admin-workspace-nav-list {
+  align-items: stretch;
+  gap: 0;
+}
+.admin-tailadmin-shell .admin-workspace-nav:not(.is-open) .admin-nav-cluster {
+  gap: 0;
+  padding-bottom: 8px;
+}
+.admin-tailadmin-shell .admin-workspace-nav:not(.is-open) .admin-nav-cluster + .admin-nav-cluster {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(156, 174, 195, 0.14);
+}
+.admin-tailadmin-shell .admin-workspace-nav:not(.is-open) .admin-workspace-nav-list button {
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+  border-radius: 0;
+}
+.admin-tailadmin-shell .admin-workspace-nav:not(.is-open) .admin-workspace-nav-list button:hover {
+  border-color: transparent;
+  background: #141c27;
+}
+.admin-tailadmin-shell .admin-workspace-nav:not(.is-open) .admin-workspace-nav-list button.is-active {
+  border-color: transparent;
+  background: #151e2a;
+  box-shadow: inset 3px 0 0 #e8c46f;
+}
+.admin-tailadmin-shell .admin-workspace-nav:not(.is-open) .admin-nav-site-link {
+  width: 100%;
+  margin-inline: 0;
+  border-radius: 0;
+}
+
 .admin-tailadmin-shell .admin-workspace-nav.is-open { width: 268px; align-items: stretch; }
 .admin-tailadmin-shell .admin-workspace-nav.is-open .admin-nav-intro { padding: 8px 10px 12px; justify-content: flex-start; border-bottom: 1px solid #25303c; }
 .admin-tailadmin-shell .admin-workspace-nav.is-open .admin-nav-intro-copy,
