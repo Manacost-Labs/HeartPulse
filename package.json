@@ -228,7 +228,7 @@
     "dotenv": "^17.3.1",
     "express": "^4.21.2",
     "express-rate-limit": "^8.3.1",
-    "lucide-react": "^0.546.0",
+    "lucide-react": "^1.45.0",
     "node-cron": "^4.5.0",
     "oidc-provider": "9.12.2",
     "puppeteer-core": "25.10.0",
