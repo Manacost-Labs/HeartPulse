@@ -259,7 +259,7 @@ export const PUBLIC_API_OPENAPI = {
             name: 'cardId',
             in: 'path',
             required: true,
-            schema: { type: 'string', pattern: '^[A-Za-z0-9_]{2,80}$' },
+            schema: { type: 'string', pattern: '^(?:[A-Za-z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18})$' },
           },
           {
             name: 'format',
@@ -374,7 +374,7 @@ export const PUBLIC_API_OPENAPI = {
             name: 'cardId',
             in: 'path',
             required: true,
-            schema: { type: 'string', pattern: '^[A-Za-z0-9_]{2,80}$' },
+            schema: { type: 'string', pattern: '^(?:[A-Za-z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18})$' },
           },
           {
             name: 'format',
@@ -439,7 +439,7 @@ export const PUBLIC_API_OPENAPI = {
             name: 'cardId',
             in: 'path',
             required: true,
-            schema: { type: 'string', pattern: '^[A-Za-z0-9_]{2,80}$' },
+            schema: { type: 'string', pattern: '^(?:[A-Za-z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18})$' },
           },
           {
             name: 'format',
@@ -1673,7 +1673,7 @@ export const PUBLIC_API_OPENAPI = {
           'referencedTags', 'keywordIds', 'releasedAt', 'images',
         ],
         properties: {
-          id: { type: 'string', pattern: '^[A-Za-z0-9_]{2,80}$' },
+          id: { type: 'string', pattern: '^(?:[A-Za-z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18})$' },
           dbfId: { type: ['integer', 'null'], minimum: 0 },
           slug: { type: ['string', 'null'] },
           collectible: { type: 'boolean' },
@@ -1887,7 +1887,7 @@ export const PUBLIC_API_OPENAPI = {
         additionalProperties: false,
         required: ['cardId', 'metrics'],
         properties: {
-          cardId: { type: 'string', pattern: '^[A-Za-z0-9_]{2,80}$' },
+          cardId: { type: 'string', pattern: '^(?:[A-Za-z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18})$' },
           metrics: { $ref: '#/components/schemas/CardStatisticsMetrics' },
         },
       },

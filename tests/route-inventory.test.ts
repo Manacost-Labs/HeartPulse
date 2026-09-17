@@ -127,7 +127,7 @@ assert.equal(
 );
 assert.equal(
   byId.get('standard-card-detail')?.pathParameters?.cardId?.pattern,
-  '^[A-Za-z0-9_]{2,80}$',
+  '^(?:[A-Za-z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18})$',
   'constructed card detail IDs must use the same bounded public resolver contract',
 );
 assert.equal(byId.get('bg-hero-detail')?.pathParameters?.dbfId?.pattern, '^[1-9][0-9]*$',

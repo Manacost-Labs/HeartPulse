@@ -9,7 +9,7 @@ import type {
 export const MAX_SITEMAP_ENTRIES = 50_000;
 const SCHEMA_VERSION = 1;
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
-const KEY_PATTERN = /^[A-Za-z0-9_]{2,80}$/;
+const KEY_PATTERN = /^(?:[A-Za-z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18})$/;
 const LASTMOD_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export class SitemapCandidateRejectedError extends Error {

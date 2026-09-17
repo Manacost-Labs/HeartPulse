@@ -32,7 +32,7 @@ export type CardImageResponder = (
 
 export function normalizeCardImageId(value: unknown): string | null {
   const cardId = String(value ?? '').trim();
-  if (!/^[A-Za-z0-9_]+$/.test(cardId) || cardId.length > 80) return null;
+  if (!/^(?:[A-Za-z0-9_]{1,80}|blizzard:[1-9][0-9]{0,18})$/.test(cardId)) return null;
   return cardId;
 }
 

@@ -106,7 +106,7 @@ export class PublicCardStatisticsQueryError extends Error {
   }
 }
 
-const CARD_ID_PATTERN = /^[A-Za-z0-9_]{2,80}$/;
+const CARD_ID_PATTERN = /^(?:[A-Za-z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18})$/;
 const FORMATS = new Set<PublicCardStatisticsFormat>(['standard', 'wild']);
 const PERIODS = new Set<PublicCardStatisticsPeriod>(['1d', '3d', '7d', '14d', 'patch']);
 const RANKS = new Set<PublicCardStatisticsRank>(['legend', 'diamond_4_1', 'diamond', 'platinum']);
@@ -168,9 +168,9 @@ function parseSlice(query: Record<string, unknown>): StatisticsSlice {
 }
 
 function cardId(value: unknown): string {
-  const normalized = scalar(value).toUpperCase();
+  const normalized = scalar(value);
   if (!CARD_ID_PATTERN.test(normalized)) throw new PublicCardStatisticsQueryError();
-  return normalized;
+  return normalized.startsWith('blizzard:') ? normalized : normalized.toUpperCase();
 }
 
 function finite(value: unknown, options?: { minimum?: number; maximum?: number; integer?: boolean }): number | null {
@@ -283,7 +283,7 @@ function decodeCursor(value: unknown, slice: StatisticsSlice): string | null {
     || !CARD_ID_PATTERN.test(cursorCardId ?? '')) {
     throw new PublicCardStatisticsQueryError();
   }
-  return String(cursorCardId).toUpperCase();
+  return cardId(cursorCardId);
 }
 
 function compareCardIds(left: string, right: string): number {

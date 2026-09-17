@@ -47,6 +47,7 @@ export type ConstructedCardSeoRouterDependencies = {
 };
 
 const CANONICAL_ORIGIN = 'https://hearthpulse.net';
+const CONSTRUCTED_CARD_ID_PATTERN = /^(?:[A-Za-z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18})$/;
 const INDEX_ROBOTS = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
 const NOINDEX_ROBOTS = 'noindex, nofollow';
 const FORMAT_LABELS: Record<ConstructedCardFormat, string> = {
@@ -171,7 +172,7 @@ export function isIndexableConstructedCard(card: JsonRecord): boolean {
   const name = record(card.name);
   const publicName = text(name.ru, 180) ?? text(name.en, 180);
   return card.catalogPending !== true
-    && /^[A-Za-z0-9_]{2,80}$/.test(id)
+    && CONSTRUCTED_CARD_ID_PATTERN.test(id)
     && Boolean(publicName);
 }
 
@@ -634,7 +635,7 @@ export function createConstructedCardSeoRouter(dependencies: ConstructedCardSeoR
     const rawFormat = String(request.params.format ?? '');
     const cardId = String(request.params.cardId ?? '');
     const format = rawFormat === 'standard' || rawFormat === 'wild' ? rawFormat : null;
-    if (!format || !/^[A-Za-z0-9_]{2,80}$/.test(cardId)) {
+    if (!format || !CONSTRUCTED_CARD_ID_PATTERN.test(cardId)) {
       const html = renderNoindexDocument({
         title: 'Карта не найдена | HearthPulse',
         description: 'Запрошенная карта Hearthstone не найдена.',

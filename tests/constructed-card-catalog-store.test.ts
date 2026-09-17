@@ -19,6 +19,18 @@ const card = (index: number) => ({
   images: { card: `https://cdn.example.test/CARD_${index}.png` },
 });
 const cards = Array.from({ length: 10 }, (_, index) => card(index + 1));
+const namespacedDirectory = mkdtempSync(join(tmpdir(), 'arena-constructed-card-catalog-namespaced-'));
+try {
+  const namespaced = new ConstructedCardCatalogStore({
+    stateDirectory: namespacedDirectory,
+    now: clock,
+    minimumCardCountByFormat: { standard: 1, wild: 1 },
+  }).publish('standard', [{ ...card(130_118), card_id: 'blizzard:130118' }], { expectedTotal: 1 });
+  assert.equal(namespaced.cards[0].card_id, 'blizzard:130118',
+    'provider namespace IDs must remain stable in the durable catalog');
+} finally {
+  rmSync(namespacedDirectory, { recursive: true, force: true });
+}
 const rawCardsWithPrivateSentinels = cards.map((item, index) => index === 0 ? {
   ...item,
   stats: { privateSentinel: 'QA_PRIVATE_STATS' },

@@ -469,6 +469,11 @@ try {
   assert.equal(publicDetailPayload.card.stats, null);
   assert.equal(publicDetailPayload.card.decks[0].winrate, null);
   assert.equal(publicDetailPayload.card.decks[0].score, null);
+
+  const missingNamespacedDetail = await fetch(`${publicOrigin}/blizzard%3A130118?format=standard`);
+  assert.equal(missingNamespacedDetail.status, 404, 'a provider namespaced ID must reach the card lookup instead of being rejected as malformed');
+  assert.ok(calls.includes('detail:standard:standard:blizzard:130118:1d:legend'));
+
   const publicHistory = await fetch(`${publicOrigin}/CARD_1/history?format=standard&period=7d&days=30`);
   const publicHistoryPayload = await publicHistory.json() as any;
   assert.equal(publicHistoryPayload.statsAccess, false);

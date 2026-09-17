@@ -400,7 +400,7 @@ function plainText(value: string | null | undefined): string {
 
 function routeState(path: string): { page: 'list' | 'detail'; format: CardFormat; cardId: string | null } {
   const normalized = decodeURIComponent(path).replace(/\?.*$/, '').replace(/\/+$/, '');
-  const match = normalized.match(/^\/standard\/cards\/(standard|wild)\/([a-zA-Z0-9_]{2,80})$/);
+  const match = normalized.match(/^\/standard\/cards\/(standard|wild)\/((?:[a-zA-Z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18}))$/);
   if (match) return { page: 'detail', format: match[1] as CardFormat, cardId: match[2] };
   const listMatch = normalized.match(/^\/standard\/cards\/(standard|wild)$/);
   return { page: 'list', format: listMatch?.[1] as CardFormat || 'standard', cardId: null };

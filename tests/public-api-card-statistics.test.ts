@@ -243,6 +243,10 @@ try {
     },
   });
 
+  const missingNamespaced = await fetch(`${origin}/cards/blizzard%3A130118/statistics`, { headers });
+  assert.equal(missingNamespaced.status, 404,
+    'a provider namespaced ID must reach statistics lookup instead of being rejected as malformed');
+
   const history = await fetch(
     `${origin}/cards/CARD_1/statistics/history?format=wild&period=14d&rank=diamond&days=365`,
     { headers },

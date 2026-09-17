@@ -17,7 +17,7 @@ const CARD_IMAGE_USER_AGENT = 'Mozilla/5.0 (compatible; ManacostArena/1.0)';
  * card record but has not generated its localized framed render yet.
  */
 export function cardImageRemoteCandidates(cardId: string): CardImageRemoteCandidate[] {
-  if (!/^[A-Za-z0-9_]{1,80}$/.test(cardId)) throw new Error('Invalid card image ID');
+  if (!/^(?:[A-Za-z0-9_]{1,80}|blizzard:[1-9][0-9]{0,18})$/.test(cardId)) throw new Error('Invalid card image ID');
   const encoded = encodeURIComponent(cardId);
   return [
     {

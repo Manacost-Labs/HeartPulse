@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import express from 'express';
 import { createPublicApiRouter } from '../server/modules/publicApi/public.js';
+import { serializePublicCard } from '../server/modules/publicApi/cards.js';
 import type { PublicApiKey } from '../server/modules/publicApi/public.js';
 
 const authenticatedKey: PublicApiKey = {
@@ -78,6 +79,9 @@ const cards = [
     images: { card: 'https://blocked.example/card-2.png' },
   },
 ];
+
+assert.equal(serializePublicCard({ ...cards[0], card_id: 'blizzard:130118' }).id, 'blizzard:130118',
+  'the public catalog must preserve provider namespace IDs');
 
 let listLoads = 0;
 let detailLoads = 0;
@@ -263,6 +267,10 @@ try {
   }]);
   assert.equal(JSON.stringify(detailPayload).includes('external_links'), false);
   assert.equal(detailLoads, 1);
+
+  const namespacedDetail = await fetch(`${origin}/api/v1/cards/blizzard%3A130118?format=standard`, { headers });
+  assert.equal(namespacedDetail.status, 200, 'the public API must accept a provider namespaced card ID');
+  assert.equal((await namespacedDetail.json() as Record<string, any>).data.id, 'blizzard:130118');
 
   const notFound = await fetch(`${origin}/api/v1/cards/MISSING_1?format=wild`, { headers });
   assert.equal(notFound.status, 404);

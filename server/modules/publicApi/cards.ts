@@ -112,7 +112,7 @@ export class PublicCardQueryError extends Error {
   }
 }
 
-const CARD_ID_PATTERN = /^[A-Za-z0-9_]{2,80}$/;
+const CARD_ID_PATTERN = /^(?:[A-Za-z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18})$/;
 const FILTER_PATTERN = /^[A-Za-z0-9_]{1,80}$/;
 const DEFAULT_LIMIT = 60;
 const MAX_LIMIT = 120;
@@ -126,6 +126,10 @@ function record(value: unknown): JsonRecord {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as JsonRecord
     : {};
+}
+
+function canonicalCardId(cardId: string): string {
+  return cardId.startsWith('blizzard:') ? cardId : cardId.toUpperCase();
 }
 
 function boundedString(value: unknown, maxLength: number): string | null {
@@ -346,13 +350,13 @@ function decodeCursor(value: unknown): string | null {
   if (!text) return null;
   if (!/^[A-Za-z0-9_-]{4,128}$/.test(text)) throw new PublicCardQueryError();
   const decoded = Buffer.from(text, 'base64url').toString('utf8');
-  const match = /^v1:([A-Za-z0-9_]{2,80})$/.exec(decoded);
+  const match = /^v1:((?:[A-Za-z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18}))$/.exec(decoded);
   if (!match || Buffer.from(decoded).toString('base64url') !== text) throw new PublicCardQueryError();
-  return match[1].toUpperCase();
+  return canonicalCardId(match[1]);
 }
 
 function encodeCursor(cardId: string): string {
-  return Buffer.from(`v1:${cardId.toUpperCase()}`).toString('base64url');
+  return Buffer.from(`v1:${canonicalCardId(cardId)}`).toString('base64url');
 }
 
 function searchable(card: PublicCardSummary): string {
@@ -416,7 +420,7 @@ export function createPublicCardCatalog(source: PublicCardCatalogSource) {
           && includesTerm([card.rarity], rarity)
           && includesTerm([...card.mechanics, ...card.referencedTags], mechanic));
       const start = cursor
-        ? cards.findIndex(card => card.id.toUpperCase().localeCompare(cursor, 'en', {
+        ? cards.findIndex(card => canonicalCardId(card.id).localeCompare(cursor, 'en', {
           numeric: true,
           sensitivity: 'base',
         }) > 0)
@@ -446,7 +450,7 @@ export function createPublicCardCatalog(source: PublicCardCatalogSource) {
       const format = queryFormat(formatValue, 'wild');
       const cardId = singleQueryValue(cardIdValue);
       if (!CARD_ID_PATTERN.test(cardId)) throw new PublicCardQueryError();
-      const result = await source.loadCardDetail(format, cardId.toUpperCase());
+      const result = await source.loadCardDetail(format, canonicalCardId(cardId));
       if (!result) return null;
       return {
         data: serializePublicCardDetail(result.card),

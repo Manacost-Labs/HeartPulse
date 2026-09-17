@@ -50,6 +50,7 @@ async function get(path: string, headers: Record<string, string> = {}) {
 
 try {
   assert.equal(normalizeCardImageId(' EX1_001 '), 'EX1_001');
+  assert.equal(normalizeCardImageId('blizzard:130118'), 'blizzard:130118');
   assert.equal(normalizeCardImageId('../secret'), null);
   assert.equal(normalizeCardImageId('x'.repeat(81)), null);
 

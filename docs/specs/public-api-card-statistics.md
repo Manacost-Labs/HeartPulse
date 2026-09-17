@@ -63,6 +63,9 @@ rejected rather than silently skipping records.
 The resource accepts the same format, rank and period dimensions. It returns
 `404 CARD_STATISTICS_NOT_FOUND` when the card is not in the selected catalog.
 A known card with no reliable sample returns `200` and nullable metrics.
+`cardId` accepts either the existing alphanumeric/underscore identifier or the
+provider namespace form `blizzard:<positive DBF ID>`; clients must URL-encode
+the colon in a path segment.
 
 ### Card statistics history
 
