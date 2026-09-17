@@ -29,6 +29,12 @@ assert.equal(setOptions[3].label, 'Unknown Future Set');
 assert.equal(setOptions[3].icon, undefined,
   'future sets must remain usable before a matching logo is synced');
 
+assert.equal(
+  setFilterOptions(['BE'])[1].label,
+  'Власть Темной империи',
+  'the current provider set code must use the published Russian expansion name',
+);
+
 const manaOptions = numericFilterOptions('Любая', '/assets/mana.png');
 assert.equal(manaOptions.length, 12);
 assert.deepEqual(manaOptions.slice(0, 3), [
