@@ -24,8 +24,6 @@ export type ConstructedCardFormat = 'standard' | 'wild';
 export type ConstructedCardPeriod = '1d' | '3d' | '7d' | '14d' | 'patch';
 export type ConstructedCardRank = 'legend' | 'diamond_4_1' | 'diamond' | 'platinum';
 
-const CONSTRUCTED_CARD_ID_PATTERN = /^(?:[A-Za-z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18})$/;
-
 export type ConstructedCardPeriodDescriptor = {
   id: ConstructedCardPeriod;
   label: string;
@@ -1478,7 +1476,7 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
     if (!statsFormat) return response.status(400).json({ error: 'Неизвестный формат статистики' });
     if (!period) return response.status(400).json({ error: 'Неизвестный период статистики' });
     if (!rank) return response.status(400).json({ error: 'Неизвестный ранг статистики' });
-    if (!CONSTRUCTED_CARD_ID_PATTERN.test(cardId)) return response.status(400).json({ error: 'Некорректный ID карты' });
+    if (!/^(?:[A-Za-z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18})$/.test(cardId)) return response.status(400).json({ error: 'Некорректный ID карты' });
     try {
       const statsAccess = Boolean(await dependencies.canAccessStats?.(request));
       const result = await dependencies.loadCardDetail(format, cardId, period, statsFormat, rank);
@@ -1518,7 +1516,7 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
     if (!format) return response.status(400).json({ error: 'Неизвестный формат карт' });
     if (!period) return response.status(400).json({ error: 'Неизвестный период статистики' });
     if (!rank) return response.status(400).json({ error: 'Неизвестный ранг статистики' });
-    if (!CONSTRUCTED_CARD_ID_PATTERN.test(cardId)) return response.status(400).json({ error: 'Некорректный ID карты' });
+    if (!/^(?:[A-Za-z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18})$/.test(cardId)) return response.status(400).json({ error: 'Некорректный ID карты' });
     try {
       const statsAccess = Boolean(await dependencies.canAccessStats?.(request));
       const responsePeriod = periodDescriptor(period);
@@ -1570,7 +1568,7 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
     if (!statsFormat) return response.status(400).json({ error: 'Неизвестный формат статистики' });
     if (!period) return response.status(400).json({ error: 'Неизвестный период статистики' });
     if (!rank) return response.status(400).json({ error: 'Неизвестный ранг статистики' });
-    if (!CONSTRUCTED_CARD_ID_PATTERN.test(cardId) || !/^[a-zA-Z0-9_-]{1,80}$/.test(deckId)) {
+    if (!/^(?:[A-Za-z0-9_]{2,80}|blizzard:[1-9][0-9]{0,18})$/.test(cardId) || !/^[a-zA-Z0-9_-]{1,80}$/.test(deckId)) {
       return response.status(400).json({ error: 'Некорректный ID карты или колоды' });
     }
     if (!dependencies.createDeckPreview) return response.status(503).json({ error: 'DeckView временно недоступен' });
