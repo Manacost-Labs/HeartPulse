@@ -5,8 +5,6 @@
  * and referral redirects because those flows have browser or server semantics.
  */
 export function shouldHandleClientNavigation({
-  button,
-  defaultPrevented,
   metaKey,
   ctrlKey,
   shiftKey,
@@ -14,11 +12,8 @@ export function shouldHandleClientNavigation({
   href,
   target,
   download,
-  optOut,
   origin,
 }: {
-  button: number;
-  defaultPrevented: boolean;
   metaKey: boolean;
   ctrlKey: boolean;
   shiftKey: boolean;
@@ -26,13 +21,10 @@ export function shouldHandleClientNavigation({
   href: string | null;
   target: string | null;
   download: boolean;
-  optOut: boolean;
   origin: string;
 }): URL | null {
   if (
-    defaultPrevented
-    || button !== 0
-    || metaKey
+    metaKey
     || ctrlKey
     || shiftKey
     || altKey
@@ -40,7 +32,6 @@ export function shouldHandleClientNavigation({
     || href.startsWith('#')
     || (target && target !== '_self')
     || download
-    || optOut
   ) return null;
 
   let destination: URL;
@@ -49,11 +40,7 @@ export function shouldHandleClientNavigation({
   } catch {
     return null;
   }
-  if (
-    destination.origin !== origin
-    || destination.pathname.startsWith('/api/')
-    || destination.pathname.startsWith('/r/')
-  ) return null;
+  if (destination.origin !== origin || /^\/(?:api|r)\//.test(destination.pathname)) return null;
 
   return destination;
 }

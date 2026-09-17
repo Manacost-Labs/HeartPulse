@@ -5,8 +5,6 @@ const siteOrigin = 'https://hearthpulse.net';
 
 function navigation(overrides: Partial<Parameters<typeof shouldHandleClientNavigation>[0]> = {}) {
   return shouldHandleClientNavigation({
-    button: 0,
-    defaultPrevented: false,
     metaKey: false,
     ctrlKey: false,
     shiftKey: false,
@@ -14,7 +12,6 @@ function navigation(overrides: Partial<Parameters<typeof shouldHandleClientNavig
     href: '/standard/meta',
     target: null,
     download: false,
-    optOut: false,
     origin: siteOrigin,
     ...overrides,
   });
@@ -30,6 +27,5 @@ assert.equal(navigation({ href: '#faq' }), null, 'in-page anchors must retain na
 assert.equal(navigation({ target: '_blank' }), null, 'new-tab links must remain native');
 assert.equal(navigation({ download: true }), null, 'downloads must remain native');
 assert.equal(navigation({ ctrlKey: true }), null, 'modified clicks must remain native');
-assert.equal(navigation({ optOut: true }), null, 'explicit opt-outs must remain native');
 
 console.log('client navigation assertions passed');

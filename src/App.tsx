@@ -850,11 +850,10 @@ export default function App() {
 
   useEffect(() => {
     const onDocumentClick = (event: MouseEvent) => {
+      if (event.defaultPrevented) return;
       const anchor = event.target instanceof Element ? event.target.closest('a[href]') : null;
       if (!(anchor instanceof HTMLAnchorElement)) return;
       const destination = shouldHandleClientNavigation({
-        button: event.button,
-        defaultPrevented: event.defaultPrevented,
         metaKey: event.metaKey,
         ctrlKey: event.ctrlKey,
         shiftKey: event.shiftKey,
@@ -862,7 +861,6 @@ export default function App() {
         href: anchor.getAttribute('href'),
         target: anchor.getAttribute('target'),
         download: anchor.hasAttribute('download'),
-        optOut: anchor.dataset.spaNavigation === 'false',
         origin: window.location.origin,
       });
       if (!destination || !isKnownPath(destination.pathname)) return;
