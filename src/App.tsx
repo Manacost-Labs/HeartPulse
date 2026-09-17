@@ -16,6 +16,7 @@ import {
   BG_TAB_IDS,
   MISC_TABS,
   PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS,
+  isKnownPath,
   tabFromPath,
   TABS,
   type TabId,
@@ -29,6 +30,7 @@ import {
   shouldPreserveInitialServerMeta,
   withHistoryRouteKnowledge,
 } from './routing/clientRouteResolution';
+import { shouldHandleClientNavigation } from './routing/clientNavigation';
 import { lazyNamedExport } from './routing/lazyNamedExport';
 import { publicProfileIdFromPath } from './profileRoutes';
 // Preserve authoritative entity metadata/404 context through the first client
@@ -798,55 +800,78 @@ export default function App() {
     localStorage.removeItem('etag_wr_hsreplay');
   }, []);
 
-  /** Navigate to a tab: update state + browser URL */
-  const navigate = useCallback((tab: TabId) => {
-    const slug = TABS.find(t => t.id === tab)!.slug;
+  const navigateLocation = useCallback((destination: URL, tabOverride?: TabId) => {
+    const pathname = destination.pathname.startsWith('/') ? destination.pathname : `/${destination.pathname}`;
+    const tab = tabOverride ?? tabFromPath(pathname);
     preloadRouteModule(tab);
-    if (window.location.pathname !== slug || window.location.search || window.location.hash) {
-      window.history.pushState({ tab, routeKnown: true }, '', slug);
+    if (
+      window.location.pathname !== pathname
+      || window.location.search !== destination.search
+      || window.location.hash !== destination.hash
+    ) {
+      window.history.pushState({ tab, routeKnown: true }, '', `${pathname}${destination.search}${destination.hash}`);
     }
-    React.startTransition(() => {
-      setRouteResolution(settledClientRouteResolution(slug, true));
-      setLocationSearch('');
-      setCurrentPath(slug);
+    const updateRoute = () => React.startTransition(() => {
+      setRouteResolution(settledClientRouteResolution(pathname, true));
+      setLocationSearch(destination.search);
+      setCurrentPath(pathname);
       setActiveTab(tab);
       setMobileMenuOpen(false);
     });
-    window.scrollTo({ top: 0, behavior: 'auto' });
+    const startViewTransition = (document as Document & {
+      startViewTransition?: (callback: () => void) => unknown;
+    }).startViewTransition;
+    if (startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      startViewTransition.call(document, updateRoute);
+    } else {
+      updateRoute();
+    }
+    if (destination.hash) {
+      requestAnimationFrame(() => document.getElementById(decodeURIComponent(destination.hash.slice(1)))?.scrollIntoView());
+    } else {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
   }, []);
 
+  /** Navigate to a tab: update state + browser URL. */
+  const navigate = useCallback((tab: TabId) => {
+    const slug = TABS.find(t => t.id === tab)!.slug;
+    navigateLocation(new URL(slug, window.location.origin));
+  }, [navigateLocation]);
+
   const navigatePath = useCallback((path: string) => {
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    const tab = tabFromPath(normalizedPath);
-    preloadRouteModule(tab);
-    if (window.location.pathname !== normalizedPath || window.location.search || window.location.hash) {
-      window.history.pushState({ tab, routeKnown: true }, '', normalizedPath);
-    }
-    React.startTransition(() => {
-      setRouteResolution(settledClientRouteResolution(normalizedPath, true));
-      setLocationSearch('');
-      setCurrentPath(normalizedPath);
-      setActiveTab(tab);
-      setMobileMenuOpen(false);
-    });
-    window.scrollTo({ top: 0, behavior: 'auto' });
-  }, []);
+    navigateLocation(new URL(path, window.location.origin));
+  }, [navigateLocation]);
 
   const navigateLogin = useCallback(() => {
     preloadRouteModule('login');
-    const path = '/';
-    const search = '?login';
-    if (window.location.pathname !== path || window.location.search !== search || window.location.hash) {
-      window.history.pushState({ tab: activeTab, login: true, routeKnown: true }, '', `${path}${search}`);
-    }
-    React.startTransition(() => {
-      setRouteResolution(settledClientRouteResolution(path, true));
-      setLocationSearch(search);
-      setCurrentPath(path);
-      setMobileMenuOpen(false);
-    });
-    window.scrollTo({ top: 0, behavior: 'auto' });
-  }, [activeTab]);
+    navigateLocation(new URL('/?login', window.location.origin), activeTab);
+  }, [activeTab, navigateLocation]);
+
+  useEffect(() => {
+    const onDocumentClick = (event: MouseEvent) => {
+      const anchor = event.target instanceof Element ? event.target.closest('a[href]') : null;
+      if (!(anchor instanceof HTMLAnchorElement)) return;
+      const destination = shouldHandleClientNavigation({
+        button: event.button,
+        defaultPrevented: event.defaultPrevented,
+        metaKey: event.metaKey,
+        ctrlKey: event.ctrlKey,
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+        href: anchor.getAttribute('href'),
+        target: anchor.getAttribute('target'),
+        download: anchor.hasAttribute('download'),
+        optOut: anchor.dataset.spaNavigation === 'false',
+        origin: window.location.origin,
+      });
+      if (!destination || !isKnownPath(destination.pathname)) return;
+      event.preventDefault();
+      navigateLocation(destination);
+    };
+    document.addEventListener('click', onDocumentClick);
+    return () => document.removeEventListener('click', onDocumentClick);
+  }, [navigateLocation]);
 
   /** Handle browser back / forward */
   useEffect(() => {
@@ -1474,7 +1499,7 @@ export default function App() {
 	          )}
 	          <main id="main-content" tabIndex={-1} className={`arena-main relative flex flex-col items-center ${isFullWidthBuilder ? 'arena-main-wide' : ''} ${isAdminMode ? 'arena-main-admin' : ''}`}>
         {/* Parchment container */}
-	        <div key={`${routeView}:${currentPath}`} className={`arena-content anim-fade-up w-full max-w-6xl mx-auto bg-parchment rounded-xl border-[3px] sm:border-[4px] border-[#6b4c2a] shadow-[inset_0_0_60px_rgba(139,69,19,0.15),0_0_0_2px_#2c1e16,0_15px_30px_rgba(0,0,0,0.6)] p-3 sm:p-6 md:p-10 relative z-0 ${isFullWidthBuilder ? 'arena-content-wide' : ''} ${isAdminMode ? 'arena-content-admin' : ''} ${isOpenSurfacePage ? 'arena-content-open' : ''}`}>
+	        <div className={`arena-content w-full max-w-6xl mx-auto bg-parchment rounded-xl border-[3px] sm:border-[4px] border-[#6b4c2a] shadow-[inset_0_0_60px_rgba(139,69,19,0.15),0_0_0_2px_#2c1e16,0_15px_30px_rgba(0,0,0,0.6)] p-3 sm:p-6 md:p-10 relative z-0 ${isFullWidthBuilder ? 'arena-content-wide' : ''} ${isAdminMode ? 'arena-content-admin' : ''} ${isOpenSurfacePage ? 'arena-content-open' : ''}`}>
           {!isAdminMode && !isOpenSurfacePage && <>
             <div className="absolute top-0 left-0 w-8 h-8 sm:w-16 sm:h-16 border-t-2 sm:border-t-4 border-l-2 sm:border-l-4 border-gold rounded-tl-xl opacity-50" />
             <div className="absolute top-0 right-0 w-8 h-8 sm:w-16 sm:h-16 border-t-2 sm:border-t-4 border-r-2 sm:border-r-4 border-gold rounded-tr-xl opacity-50" />

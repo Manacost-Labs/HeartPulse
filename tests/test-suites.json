@@ -43,6 +43,7 @@
         "tests/card-image-delivery-config.test.ts",
         "tests/card-image-remote.test.ts",
         "tests/card-opening-performance.test.ts",
+        "tests/client-navigation.test.ts",
         "tests/claude-post-push-review-hook.test.mjs",
         "tests/constructed-card-catalog-controls.test.tsx",
         "tests/constructed-card-catalog-model.test.ts",

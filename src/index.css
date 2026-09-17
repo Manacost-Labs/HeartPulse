@@ -847,6 +847,26 @@
     contain: layout paint;
   }
 
+  @supports (view-transition-name: route-content) {
+    .arena-content { view-transition-name: route-content; }
+
+    ::view-transition-old(route-content) {
+      animation: route-content-leave 120ms ease-in both;
+    }
+
+    ::view-transition-new(route-content) {
+      animation: route-content-enter 160ms ease-out both;
+    }
+  }
+
+  @keyframes route-content-leave {
+    to { opacity: 0; transform: translateY(-2px); }
+  }
+
+  @keyframes route-content-enter {
+    from { opacity: 0; transform: translateY(4px); }
+  }
+
   /* Hover-lift for winrate rows — replaces JS onMouseEnter/Leave DOM mutation */
   .row-hover {
     box-shadow:
