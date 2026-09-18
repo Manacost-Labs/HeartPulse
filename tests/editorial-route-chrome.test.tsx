@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { SectionBanner } from '../src/features/EditorialRouteChrome';
 
@@ -12,5 +13,17 @@ assert.equal(
   'the responsive editorial banner must expose exactly one H1',
 );
 assert.match(html, /<h1[^>]*>Статьи<\/h1>/);
+assert.match(
+  html,
+  /class="[^"]*site-page-hero[^\"]*"/,
+  'the editorial banner must opt into the shared page-hero size and motion contract',
+);
+
+const guideArchiveSource = readFileSync(new URL('../src/features/GuidesArchive.tsx', import.meta.url), 'utf8');
+assert.match(
+  guideArchiveSource,
+  /className="site-page-hero guide-archive-hero"/,
+  'the guides archive must share the public page-hero contract',
+);
 
 console.log('editorial route chrome assertions passed');

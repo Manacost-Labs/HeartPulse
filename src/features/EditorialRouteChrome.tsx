@@ -57,18 +57,7 @@ export function SectionBanner({
   subtitle: string;
 }) {
   return (
-    <div
-      className="section-banner-modern relative -mx-3 -mt-3 mb-5 flex flex-col items-start justify-center gap-1 overflow-hidden px-4 py-4 sm:-mx-6 sm:-mt-6 sm:mb-6 sm:px-8 md:-mx-10 md:-mt-10 md:px-10"
-      style={{
-        minHeight: 'clamp(120px, 13vw, 165px)',
-        background: [
-          'radial-gradient(circle at 82% 18%, rgba(246,206,104,0.24), transparent 26rem)',
-          'linear-gradient(135deg, rgba(9,21,39,0.96), rgba(23,43,72,0.9) 54%, rgba(58,31,22,0.74))',
-        ].join(', '),
-        borderBottom: '1px solid rgba(246, 206, 104, 0.25)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -18px 34px rgba(5,10,19,0.22)',
-      }}
-    >
+    <header className="site-page-hero section-banner-modern relative -mx-3 -mt-3 mb-5 flex flex-col items-start justify-center gap-1 overflow-hidden px-4 py-4 sm:-mx-6 sm:-mt-6 sm:mb-6 sm:px-8 md:-mx-10 md:-mt-10 md:px-10">
       <h1
         className="font-hs tracking-wide"
         style={{
@@ -88,6 +77,6 @@ export function SectionBanner({
       >
         {subtitle}
       </p>
-    </div>
+    </header>
   );
 }

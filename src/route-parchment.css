@@ -1,5 +1,16 @@
 /* Route-owned parchment surfaces. Loaded only by lazy route owners. */
 
+:root {
+  --site-page-hero-min-height: clamp(270px, 22vw, 360px);
+  --site-page-hero-padding-block: clamp(1.8rem, 3.8vw, 3.4rem);
+  --site-page-hero-padding-inline: clamp(1.35rem, 4vw, 3.4rem);
+}
+
+@keyframes site-page-hero-sheen {
+  from { opacity: 0.35; }
+  to { opacity: 0.75; }
+}
+
 /* ─── Editorial archive: articles, gallery, guides, contests ───────────── */
 
 :is(.arena-app-editorial, .arena-app-game-data) .arena-main {
@@ -22,10 +33,10 @@
 }
 
 :is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern {
-  min-height: 152px;
+  min-height: var(--site-page-hero-min-height) !important;
   height: auto !important;
   margin: 0 0 1.35rem !important;
-  padding: 2rem clamp(1.35rem, 3vw, 2.7rem) !important;
+  padding: var(--site-page-hero-padding-block) var(--site-page-hero-padding-inline) !important;
   overflow: hidden !important;
   border: 12px solid transparent !important;
   border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
@@ -52,6 +63,14 @@
   background:
     radial-gradient(circle at 83% 20%, rgba(237, 196, 104, 0.13), transparent 16rem),
     linear-gradient(90deg, rgba(35, 2, 5, 0.1), transparent 52%) !important;
+  will-change: opacity;
+  animation: site-page-hero-sheen 12s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern::before {
+    animation: none;
+  }
 }
 
 :is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern h1 {

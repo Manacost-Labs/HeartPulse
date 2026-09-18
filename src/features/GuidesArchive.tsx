@@ -137,11 +137,11 @@ function GuidesArchiveList({ navigatePath }: { navigatePath: (path: string) => v
 
   return (
     <section className="guide-archive-page">
-      <div className="guide-archive-hero">
+      <header className="site-page-hero guide-archive-hero">
         <span className="guide-archive-eyebrow">Архив Манакоста</span>
         <h1>Архив гайдов</h1>
         <p>Старые гайды, мета-отчеты и материалы Koloda Hearthstone в новом аккуратном формате для чтения.</p>
-      </div>
+      </header>
 
       <div className="guide-archive-toolbar">
         <form

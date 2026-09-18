@@ -29,8 +29,20 @@ const stylesheet = readFileSync(
 );
 assert.match(stylesheet, /profile-hero-hth\.webp/);
 assert.match(stylesheet, /main-page-rail-border\.png/);
+assert.match(stylesheet, /var\(--site-page-hero-min-height\)/);
+assert.match(stylesheet, /hero-sheen/);
 assert.match(stylesheet, /@media \(max-width: 720px\)/);
 assert.match(stylesheet, /prefers-reduced-motion/);
+
+const routeStylesheet = readFileSync(
+  new URL('../src/route-parchment.css', import.meta.url),
+  'utf8',
+);
+assert.match(
+  routeStylesheet,
+  /:root\s*\{[\s\S]*--site-page-hero-min-height:/,
+  'the shared page-hero dimensions must load on editorial routes too',
+);
 
 for (const protectedFile of ['App.tsx', 'routes.ts', 'parchment-theme.css']) {
   const source = readFileSync(new URL(`../src/${protectedFile}`, import.meta.url), 'utf8');

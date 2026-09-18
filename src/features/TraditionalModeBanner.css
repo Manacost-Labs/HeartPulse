@@ -5,8 +5,8 @@
   grid-template-columns: minmax(0, 0.9fr) minmax(300px, 0.55fr);
   gap: clamp(2rem, 6vw, 6rem);
   align-items: end;
-  min-height: clamp(310px, 29vw, 430px);
-  padding: clamp(2.2rem, 4.5vw, 4.25rem);
+  min-height: var(--site-page-hero-min-height);
+  padding: var(--site-page-hero-padding-block) var(--site-page-hero-padding-inline);
   overflow: hidden;
   border: 12px solid transparent;
   border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
@@ -33,6 +33,8 @@
   border: 1px solid rgba(248, 208, 109, 0.18);
   content: '';
   pointer-events: none;
+  will-change: opacity;
+  animation: site-page-hero-sheen 12s ease-in-out infinite alternate;
 }
 
 .traditional-mode-banner__copy {
@@ -128,8 +130,6 @@
 @media (max-width: 980px) {
   .traditional-mode-banner {
     grid-template-columns: minmax(0, 1fr) minmax(250px, 0.65fr);
-    min-height: 350px;
-    padding: clamp(1.8rem, 4.5vw, 3rem);
     background-position: 62% 32%;
   }
 
@@ -140,10 +140,11 @@
 
 @media (max-width: 720px) {
   .traditional-mode-banner {
+    --site-page-hero-min-height: 360px;
+    --site-page-hero-padding-block: 1.8rem;
+    --site-page-hero-padding-inline: 1.4rem;
     grid-template-columns: 1fr;
     align-content: space-between;
-    min-height: 410px;
-    padding: 1.8rem 1.4rem 1.2rem;
     border-width: 8px;
     background:
       linear-gradient(
@@ -187,8 +188,8 @@
 
 @media (max-width: 390px) {
   .traditional-mode-banner {
-    min-height: 390px;
-    padding-inline: 1rem;
+    --site-page-hero-min-height: 340px;
+    --site-page-hero-padding-inline: 1rem;
     border-width: 6px;
   }
 
@@ -210,4 +211,6 @@
   .traditional-mode-banner {
     scroll-behavior: auto;
   }
+
+  .traditional-mode-banner::after { animation: none; }
 }

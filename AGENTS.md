@@ -16,47 +16,19 @@ When a task touches the Hearthstone parser / `hearthstone-parses` /
 
 Do not invent a Firecrawl-first path for those pipelines.
 
-## Required Notion Task Tracking
-
-Every Codex, Claude, or other AI-agent task that concerns HearthPulse,
-https://hearthpulse.net, or any parser, scraper, ingestion pipeline, source
-normalizer, cache, scheduled parser job, or parser administration in this
-repository must be recorded in the shared Notion task database:
-
-- Database: https://app.notion.com/p/ae96648273a24b50b687e3af7cefb623
-- Database ID: `ae96648273a24b50b687e3af7cefb623`
-- Data source ID: `90448a2c-5f1c-4742-928c-c8b5e1b23815`
-
-The task database is the shared source of truth for both Codex and Claude.
-
-1. Before implementation, search the database for the same task and create it
-   only when no matching task exists.
-2. Set an appropriate `Статус`, `Приоритет`, `Очередь`, `Тип`,
-   `Направление`, `Размер`, `Риск`, and `Критерий готовности`. Do not add or
-   recreate an assignee/responsible-person property.
-3. Keep the Notion status current while working. Record blockers in `Блокер`.
-4. Before finishing, add `Git commit` when a commit exists and `Production SHA`
-   when the change has been deployed. Mark the task `Готово` only after the
-   relevant checks pass and, when requested, production is verified.
-5. Never store credentials, tokens, private user data, or other secrets in
-   Notion.
-
-Do not silently skip tracking. If the Notion connector is unavailable, report
-that as a blocker and record the task as soon as access is restored.
-
 ## Required Multi-Session Coordination
 
-Codex, Claude, and other agents share the repository and the Notion task
-database. Treat one task, one branch, and one worktree as one ownership unit.
+Codex, Claude, and other agents share the repository. Treat one task, one branch,
+and one worktree as one ownership unit.
 
-1. Before editing, claim or update the matching Notion task, create an isolated
-   task branch/worktree, and run `npm run agent:session:preflight`.
+1. Before editing, create an isolated task branch/worktree and run
+   `npm run agent:session:preflight`.
 2. Never implement directly in the shared `main` worktree. Do not modify,
    clean, reset, stash, delete, or copy uncommitted files from another
    session's worktree.
 3. The preflight fetches `origin/main`, lists all linked worktrees, and blocks
-   overlapping uncommitted paths. Resolve an overlap through the shared Notion
-   task before either session continues editing those files.
+   overlapping uncommitted paths. Coordinate directly with the other session
+   before either session continues editing those files.
 4. Before integration, commit the task changes and run
    `npm run agent:integration:preflight`. It requires a clean task worktree and
    proves that the task branch contains the current `origin/main`.
@@ -64,8 +36,8 @@ database. Treat one task, one branch, and one worktree as one ownership unit.
    If another session advances `main`, fetch and rebase or merge in the task
    worktree, repeat validation, and retry.
 6. Only a successful push to `main` may trigger production. Feature-branch
-   pushes never deploy. Record the final Git commit and deployed Production SHA
-   in the shared Notion task so every later session sees the same state.
+   pushes never deploy. Report the final Git commit and deployed Production SHA
+   in the task handoff.
 
 Dirty sibling worktrees are expected and are reported for awareness; only
 overlapping uncommitted paths or an outdated integration base are blockers.
@@ -82,8 +54,8 @@ The repository includes project-scoped tools for safer implementation:
 - For authored JavaScript or TypeScript changes, run
   `npm run security:semgrep` before finishing. It scans only changed files and
   is nonblocking while the project baseline is being established. Use
-  `npm run security:semgrep:strict` when the matching Notion task explicitly
-  requires a clean strict gate.
+  `npm run security:semgrep:strict` when the task explicitly requires a clean
+  strict gate.
 - Run `npm run test:agent-tooling` after changing either integration.
 - Run `npm run security:gitleaks` before publishing security-sensitive changes.
   Keep the pinned image digest, `--redact`, full-history scan, and artifact/
@@ -158,9 +130,8 @@ The routing step itself is mandatory for every repository task:
    skill does not satisfy this rule.
 4. Load only matching skills. Do not read the whole catalog into context when
    it is unrelated to the current task.
-5. If a required skill is missing or unreadable, record the blocker in the
-   matching Notion task and continue only when a safe documented fallback
-   exists.
+5. If a required skill is missing or unreadable, report the blocker and
+   continue only when a safe documented fallback exists.
 
 | Task | Required skills/resources |
 | --- | --- |
@@ -190,32 +161,6 @@ failed network requests, accessibility structure and relevant performance
 signals. A text-only code review is not an acceptable visual verification.
 
 Run `npm run test:agent-tooling` after changing this routing contract.
-
-## Required Miro Design Context
-
-The shared Miro board is the persistent source of visual context for ideas,
-layouts, user flows, and diagrams:
-
-- Board: https://miro.com/app/board/uXjVGearFGc=/
-- Official MCP server: `https://mcp.miro.com/`
-
-For every Codex, Claude, or other AI-agent task involving UI, UX, page layout,
-navigation, visual behavior, mockups, or architecture/process diagrams:
-
-1. Read the relevant board context through the official Miro MCP before
-   implementation. If the requested frame or area is ambiguous, identify the
-   likely relevant frames and ask only when choosing the wrong one would
-   materially change the result.
-2. Treat Miro as supporting design context. Direct user instructions,
-   repository requirements, production data, and verified runtime behavior
-   remain authoritative when they conflict.
-3. Use Miro read-only by default. Do not create, edit, move, or delete board
-   items unless the user explicitly requests that board change.
-4. Never copy credentials, tokens, private user data, or secrets into the board,
-   repository, prompts, or Notion.
-5. If Miro is unavailable, record the blocker in the matching Notion task and
-   state whether implementation can safely continue without the missing visual
-   context.
 
 ## Required Changelog Post
 
