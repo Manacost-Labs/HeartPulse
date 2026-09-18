@@ -34,14 +34,14 @@ assert.match(stylesheet, /hero-sheen/);
 assert.match(stylesheet, /@media \(max-width: 720px\)/);
 assert.match(stylesheet, /prefers-reduced-motion/);
 
-const routeStylesheet = readFileSync(
-  new URL('../src/route-parchment.css', import.meta.url),
+const tokenStylesheet = readFileSync(
+  new URL('../src/styles/tokens.css', import.meta.url),
   'utf8',
 );
 assert.match(
-  routeStylesheet,
+  tokenStylesheet,
   /:root\s*\{[\s\S]*--site-page-hero-min-height:/,
-  'the shared page-hero dimensions must load on editorial routes too',
+  'the shared page-hero dimensions must load globally for editorial routes too',
 );
 
 for (const protectedFile of ['App.tsx', 'routes.ts', 'parchment-theme.css']) {

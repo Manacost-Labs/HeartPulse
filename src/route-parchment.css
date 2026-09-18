@@ -1,11 +1,5 @@
 /* Route-owned parchment surfaces. Loaded only by lazy route owners. */
 
-:root {
-  --site-page-hero-min-height: clamp(270px, 22vw, 360px);
-  --site-page-hero-padding-block: clamp(1.8rem, 3.8vw, 3.4rem);
-  --site-page-hero-padding-inline: clamp(1.35rem, 4vw, 3.4rem);
-}
-
 @keyframes site-page-hero-sheen {
   from { opacity: 0.35; }
   to { opacity: 0.75; }

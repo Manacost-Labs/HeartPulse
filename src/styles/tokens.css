@@ -26,6 +26,11 @@
     #251006 100%
   );
 
+  /* Shared banner geometry across traditional and editorial routes. */
+  --site-page-hero-min-height: clamp(270px, 22vw, 360px);
+  --site-page-hero-padding-block: clamp(1.8rem, 3.8vw, 3.4rem);
+  --site-page-hero-padding-inline: clamp(1.35rem, 4vw, 3.4rem);
+
   /* Legacy draft surfaces still used by the home and data workspaces. */
   --draft-ink: #10233d;
   --draft-muted: #52657e;
