@@ -746,21 +746,6 @@
 
 /* ─── Keyframe animations ─────────────────────────────────────────────────── */
 
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0);    }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-@keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.985); }
-  to   { opacity: 1; transform: scale(1);    }
-}
-
 @keyframes shimmer {
   0%   { background-position: -400% 0; }
   100% { background-position:  400% 0; }
@@ -822,11 +807,9 @@
   .border-gold { border-color: #d4af37; }
 
   /* Entry animations with stagger */
-  .anim-fade-up {
-    animation: fadeInUp 0.24s ease-out both;
-  }
+  .anim-fade-up,
   .anim-scale-in {
-    animation: scaleIn 0.2s ease-out both;
+    animation: route-content-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   /* Skeleton shimmer */
@@ -843,13 +826,13 @@
   }
 
   .route-fallback {
-    animation: fadeIn 0.12s ease-out both;
     contain: layout paint;
   }
 
   @supports (view-transition-name: route-content) {
     .arena-content { view-transition-name: route-content; }
 
+    ::view-transition-group(root),
     ::view-transition-old(root),
     ::view-transition-new(root) {
       animation: none;

@@ -827,7 +827,7 @@
 
   .profile-page,
   .login-page {
-    animation: fadeIn 0.16s ease-out both;
+    animation: none;
   }
 
   .arena-content .anim-fade-up,
