@@ -57,7 +57,7 @@ export function SectionBanner({
   subtitle: string;
 }) {
   return (
-    <header className="site-page-hero section-banner-modern relative -mx-3 -mt-3 mb-5 flex flex-col items-start justify-center gap-1 overflow-hidden px-4 py-4 sm:-mx-6 sm:-mt-6 sm:mb-6 sm:px-8 md:-mx-10 md:-mt-10 md:px-10">
+    <header className="section-banner-modern relative -mx-3 -mt-3 mb-5 flex flex-col items-start justify-center gap-1 overflow-hidden px-4 py-4 sm:-mx-6 sm:-mt-6 sm:mb-6 sm:px-8 md:-mx-10 md:-mt-10 md:px-10">
       <h1
         className="font-hs tracking-wide"
         style={{

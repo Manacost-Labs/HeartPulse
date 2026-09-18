@@ -1,10 +1,5 @@
 /* Route-owned parchment surfaces. Loaded only by lazy route owners. */
 
-@keyframes site-page-hero-sheen {
-  from { opacity: 0.35; }
-  to { opacity: 0.75; }
-}
-
 /* ─── Editorial archive: articles, gallery, guides, contests ───────────── */
 
 :is(.arena-app-editorial, .arena-app-game-data) .arena-main {
@@ -57,14 +52,6 @@
   background:
     radial-gradient(circle at 83% 20%, rgba(237, 196, 104, 0.13), transparent 16rem),
     linear-gradient(90deg, rgba(35, 2, 5, 0.1), transparent 52%) !important;
-  will-change: opacity;
-  animation: site-page-hero-sheen 12s ease-in-out infinite alternate;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern::before {
-    animation: none;
-  }
 }
 
 :is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern h1 {

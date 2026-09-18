@@ -28,8 +28,7 @@
   content: '';
   pointer-events: none;
   background: linear-gradient(110deg, rgba(255, 226, 151, 0.16), transparent 42%, rgba(41, 2, 5, 0.14));
-  will-change: opacity;
-  animation: site-page-hero-sheen 12s ease-in-out infinite alternate;
+  opacity: 0.55;
 }
 
 .guide-archive-hero > * {
@@ -541,8 +540,4 @@
   .guide-archive-pagination {
     flex-direction: column;
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .guide-archive-hero::before { animation: none; }
 }

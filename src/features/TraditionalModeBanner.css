@@ -214,3 +214,8 @@
 
   .traditional-mode-banner::after { animation: none; }
 }
+
+@keyframes site-page-hero-sheen {
+  from { opacity: 0.35; }
+  to { opacity: 0.75; }
+}
