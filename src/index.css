@@ -5,8 +5,6 @@
 
 .arena-app-shell {
   --arena-mobile-sticky-offset: 70px;
-  --arena-route-transition-duration: 220ms;
-  --arena-route-transition-easing: cubic-bezier(0.22, 1, 0.36, 1);
   --arena-stale-badge-bg: linear-gradient(135deg, #7a1e1e, #4a0a0a);
   --arena-stale-badge-text: #fca5a5;
   --arena-update-badge-bg: linear-gradient(135deg, #3a2210, #2c1e16);
@@ -858,11 +856,11 @@
     }
 
     ::view-transition-old(route-content) {
-      animation: route-content-leave var(--arena-route-transition-duration) var(--arena-route-transition-easing) both;
+      animation: route-content-leave 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
     }
 
     ::view-transition-new(route-content) {
-      animation: route-content-enter var(--arena-route-transition-duration) var(--arena-route-transition-easing) both;
+      animation: route-content-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
     }
   }
 
