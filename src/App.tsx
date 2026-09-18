@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { flushSync } from 'react-dom';
 import { LogIn, UserCircle } from 'lucide-react';
 import { PublicNavigation } from './app/shell/PublicNavigation';
 import { RouteLoadingSurface } from './app/shell/RouteLoadingSurface';
@@ -800,6 +801,19 @@ export default function App() {
     localStorage.removeItem('etag_wr_hsreplay');
   }, []);
 
+  const commitRouteUpdate = useCallback((update: () => void) => {
+    const startViewTransition = (document as Document & {
+      startViewTransition?: (callback: () => void) => unknown;
+    }).startViewTransition;
+    if (startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      // The browser captures the destination frame when this callback returns.
+      // React's concurrent transition may commit later, which causes a flash.
+      startViewTransition.call(document, () => flushSync(update));
+      return;
+    }
+    React.startTransition(update);
+  }, []);
+
   const navigateLocation = useCallback((destination: URL, tabOverride?: TabId) => {
     const pathname = destination.pathname.startsWith('/') ? destination.pathname : `/${destination.pathname}`;
     const tab = tabOverride ?? tabFromPath(pathname);
@@ -811,27 +825,20 @@ export default function App() {
     ) {
       window.history.pushState({ tab, routeKnown: true }, '', `${pathname}${destination.search}${destination.hash}`);
     }
-    const updateRoute = () => React.startTransition(() => {
+    const updateRoute = () => {
       setRouteResolution(settledClientRouteResolution(pathname, true));
       setLocationSearch(destination.search);
       setCurrentPath(pathname);
       setActiveTab(tab);
       setMobileMenuOpen(false);
-    });
-    const startViewTransition = (document as Document & {
-      startViewTransition?: (callback: () => void) => unknown;
-    }).startViewTransition;
-    if (startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      startViewTransition.call(document, updateRoute);
-    } else {
-      updateRoute();
-    }
+    };
+    commitRouteUpdate(updateRoute);
     if (destination.hash) {
       requestAnimationFrame(() => document.getElementById(decodeURIComponent(destination.hash.slice(1)))?.scrollIntoView());
     } else {
       window.scrollTo({ top: 0, behavior: 'auto' });
     }
-  }, []);
+  }, [commitRouteUpdate]);
 
   /** Navigate to a tab: update state + browser URL. */
   const navigate = useCallback((tab: TabId) => {
@@ -876,18 +883,19 @@ export default function App() {
     const onPop = (e: PopStateEvent) => {
       const tab = e.state?.tab ?? tabFromPath(window.location.pathname);
       const known = historyRouteKnowledge(e.state);
-      React.startTransition(() => {
+      const updateRoute = () => {
         if (known !== null) {
           setRouteResolution(settledClientRouteResolution(window.location.pathname, known));
         }
         setLocationSearch(window.location.search);
         setCurrentPath(window.location.pathname);
         setActiveTab(tab);
-      });
+      };
+      commitRouteUpdate(updateRoute);
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
-  }, []);
+  }, [commitRouteUpdate]);
 
   useEffect(() => {
     const loadedAsset = currentAppAssetPath();

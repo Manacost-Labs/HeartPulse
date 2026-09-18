@@ -5,6 +5,8 @@
 
 .arena-app-shell {
   --arena-mobile-sticky-offset: 70px;
+  --arena-route-transition-duration: 220ms;
+  --arena-route-transition-easing: cubic-bezier(0.22, 1, 0.36, 1);
   --arena-stale-badge-bg: linear-gradient(135deg, #7a1e1e, #4a0a0a);
   --arena-stale-badge-text: #fca5a5;
   --arena-update-badge-bg: linear-gradient(135deg, #3a2210, #2c1e16);
@@ -850,21 +852,26 @@
   @supports (view-transition-name: route-content) {
     .arena-content { view-transition-name: route-content; }
 
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation: none;
+    }
+
     ::view-transition-old(route-content) {
-      animation: route-content-leave 120ms ease-in both;
+      animation: route-content-leave var(--arena-route-transition-duration) var(--arena-route-transition-easing) both;
     }
 
     ::view-transition-new(route-content) {
-      animation: route-content-enter 160ms ease-out both;
+      animation: route-content-enter var(--arena-route-transition-duration) var(--arena-route-transition-easing) both;
     }
   }
 
   @keyframes route-content-leave {
-    to { opacity: 0; transform: translateY(-2px); }
+    to { opacity: 0; transform: translateY(-4px); }
   }
 
   @keyframes route-content-enter {
-    from { opacity: 0; transform: translateY(4px); }
+    from { opacity: 0; transform: translateY(6px); }
   }
 
   /* Hover-lift for winrate rows — replaces JS onMouseEnter/Leave DOM mutation */

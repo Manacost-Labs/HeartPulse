@@ -14,10 +14,19 @@ assert.match(html, /Собираем раздел/);
 assert.match(html, /min-height:640px/);
 
 const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+const indexCss = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
 assert.doesNotMatch(appSource, /key=\{`\$\{routeView\}:\$\{currentPath\}`\}/,
   'the route shell must stay mounted so navigation does not flash');
 assert.match(appSource, /startViewTransition/,
   'supported browsers must animate the stable route shell');
+assert.match(appSource, /flushSync\(update\)/,
+  'a View Transition must capture the committed destination route, not a deferred React update');
+assert.match(appSource, /commitRouteUpdate\(updateRoute\)/,
+  'forward navigation and browser history navigation must share one transition policy');
+assert.match(indexCss, /--arena-route-transition-duration:\s*220ms/,
+  'route changes must use one shared duration');
+assert.match(indexCss, /::view-transition-old\(root\)[\s\S]*animation:\s*none/,
+  'the browser default root cross-fade must not overlap the content transition');
 assert.match(appSource, /navigateLocation\(new URL\('\/\?login', window\.location\.origin\), activeTab\)/,
   'opening login must preserve the page beneath the authentication surface');
 
