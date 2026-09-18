@@ -2592,9 +2592,8 @@ export function Legendaries({ data, loading, error, legendarySource, onLegendary
               key={`${group.keyCard.cardId}-${idx}`}
               data-rank={idx + 1}
               data-tour-id={idx === 0 ? 'arena-legendaries-results' : undefined}
-              className="legendary-group-card anim-scale-in card-hover rounded-2xl flex flex-col items-center p-4 gap-3 cursor-default"
+              className="legendary-group-card card-hover rounded-2xl flex flex-col items-center p-4 gap-3 cursor-default"
               style={{
-                animationDelay: `${Math.min(idx, 20) * 0.04}s`,
                 background: 'linear-gradient(145deg,#ede0c0,#e0cc9e)',
                 border: '1.5px solid #c4a46a',
               }}

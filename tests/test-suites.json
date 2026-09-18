@@ -237,6 +237,7 @@
         "tests/global-utility-header-progressive-loading.test.ts",
         "tests/home-progressive-loading.test.ts",
         "tests/http-route-manifest.test.mjs",
+        "tests/legendaries-motion.test.ts",
         "tests/network-boundary.test.ts",
         "tests/page-tour-engine-contracts.test.ts",
         "tests/patreon-oauth.test.ts",
