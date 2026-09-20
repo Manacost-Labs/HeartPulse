@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { SectionBanner } from './EditorialRouteChrome';
 import '../route-parchment.css';
 import './DeferredRoutes.css';
+import './TraditionalModeBanner.css';
 
 const meta = {
   title: 'Editorial/SectionBanner',

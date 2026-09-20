@@ -17,7 +17,7 @@ import {
   Sparkles,
   Volume2,
 } from 'lucide-react';
-import '../route-parchment.css';
+import './StandardCards.styles';
 import { publicResourceUrl } from '../publicResourceUrl';
 import { fallbackCardImageToOrigin } from '../config/publicAssetDelivery';
 import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
@@ -104,9 +104,6 @@ import {
   translateConstructedMechanic,
 } from '../../shared/constructedCardTranslations';
 import '../vendor/hsreplay-deck-view/hsreplay-deck-view.js';
-import '../vendor/hsreplay-deck-view/hsreplay-deck-view.css';
-import './ConstructedCardCatalogControls.css';
-import './StandardCards.css';
 
 type CardFormat = ConstructedCardFormat;
 type ViewMode = 'gallery' | 'table';

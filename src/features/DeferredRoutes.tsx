@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, memo, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
 import '../route-parchment.css';
+import './TraditionalModeBanner.css';
 import './DeferredRoutes.css';
 import { Trophy, Scroll, RefreshCw, AlertTriangle, X, Search, Star, Home, BookOpen, Menu, ChevronLeft, ChevronRight, Grid3X3, List, LogIn, Eye, EyeOff, UserCircle, ThumbsUp, ThumbsDown, ShieldCheck, Image as ImageIcon, ArrowDown, ArrowUp, ChevronDown, Copy, ExternalLink } from 'lucide-react';
 import { getCanonicalRedirectUrl } from '../config/domain';

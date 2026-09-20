@@ -2010,6 +2010,7 @@ async function inspectLayout(page, { mobile }) {
       shellFilter: shellStyle?.filter || null,
       routeParchmentExpected,
       routeParchmentLoaded,
+      editorialTools: Boolean(shell?.classList.contains('arena-app-editorial') && document.querySelector('.arena-workspace-with-tools')),
       battlegroundsSurface: shell?.classList.contains('arena-app-battlegrounds') || false,
       battlegroundsBackground: shellStyle?.backgroundImage || '',
       battlegroundsSign: content ? getComputedStyle(content, '::before').backgroundImage : '',
@@ -2076,7 +2077,9 @@ function assertLayout(path, layout) {
     })})`);
   }
   if (layout.routeParchmentExpected && !layout.battlegroundsSurface) {
-    const expectedPadding = layout.mobile ? '16px 12.8px 40px' : '0px 40.32px 56px';
+    const expectedPadding = layout.mobile
+      ? '16px 12.8px 40px'
+      : `${layout.editorialTools ? 0 : 24}px 24px 56px`;
     if (layout.contentPadding !== expectedPadding) {
       failures.push(`${path}: route content padding changed (${layout.contentPadding}; expected ${expectedPadding})`);
     }
@@ -2093,7 +2096,12 @@ function assertLayout(path, layout) {
   if (layout.bannerOverflow && layout.bannerOverflow !== 'hidden') {
     failures.push(`${path}: banner decoration is not contained (${layout.bannerOverflow})`);
   }
-  if (layout.mobile && layout.bannerHeight > 260) failures.push(`${path}: mobile banner is unexpectedly tall (${layout.bannerHeight}px)`);
+  if (layout.bannerHeight) {
+    const expectedHeight = layout.mobile ? 360 : 320;
+    if (Math.abs(layout.bannerHeight - expectedHeight) > 1) {
+      failures.push(`${path}: shared banner height changed (${layout.bannerHeight}px; expected ${expectedHeight}px)`);
+    }
+  }
   if (layout.suspiciousOverlays.length) {
     failures.push(`${path}: dark viewport overlay detected (${layout.suspiciousOverlays.join(', ')})`);
   }

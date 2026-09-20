@@ -3,6 +3,7 @@ import { Download, Image as ImageIcon, Maximize2, X } from 'lucide-react';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
 import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
 import '../route-parchment.css';
+import './TraditionalModeBanner.css';
 import './DeferredRoutes.css';
 
 type GalleryItem = {

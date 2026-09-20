@@ -12,6 +12,10 @@ clipping across traditional and Arena
 surfaces. It also checks reduced motion. It uses synthetic public labels;
 it does not authenticate or request paid datasets.
 
+Run `npm run qa:ci` before publication to verify the built application, including
+shared Arena/editorial banner heights and route canvas padding. These assertions
+follow the same responsive header contract as the focused regression.
+
 For a live guest audit, the locally installed Jev pipeline supports:
 
 ```sh
