@@ -142,12 +142,12 @@
     background:
       linear-gradient(
         180deg,
-        rgba(58, 3, 13, 1) 28%,
-        rgba(57, 2, 13, 0.65) 40%,
+        rgba(58, 3, 13, 1) 40%,
+        rgba(57, 2, 13, 0.30) 48%,
         rgba(45, 2, 11, 0.20) 62%,
         rgba(28, 1, 7, 0.72) 100%
       ),
-      url('/wallpaper/profile-hero-hth.webp') right bottom / auto 72% no-repeat,
+      url('/wallpaper/profile-hero-hth.webp') right bottom / auto 60% no-repeat,
       #3a030d;
   }
 
