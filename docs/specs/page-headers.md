@@ -16,6 +16,8 @@ since those destinations remain in the main navigation. Current titles and
 summaries fit without cropping at
 320, 390, 768 and 1440 pixels. Extra content or enlarged text may grow a header;
 fixed heights and line clamps must not hide content. The route keeps one H1.
+The shared artwork is right-aligned and scaled by banner height, rather than
+stretched to cover a wide canvas, so the character’s face is not cropped.
 The existing route transitions stay intact, and decorative opacity motion is
 disabled with `prefers-reduced-motion: reduce`.
 
