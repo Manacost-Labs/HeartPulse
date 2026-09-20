@@ -81,9 +81,12 @@ const budgets = {
   // preload names. Pin its measured CI transfer with a 38-byte build-hash
   // tolerance so the guard distinguishes filename-only recompression from an
   // actual route payload regression.
+  // Shared page-header CSS adds a lazy preload entry (+54 raw / +30 gzip
+  // bytes in CI). Pin the measured 81,776-byte release transfer plus the
+  // existing 38-byte hash tolerance; raw JS and CSS ceilings stay unchanged.
   mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_743),
   initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_761),
-  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 81_750),
+  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 81_814),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),
   deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 108_350),

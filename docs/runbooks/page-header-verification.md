@@ -12,6 +12,11 @@ clipping across traditional and Arena
 surfaces. It also checks reduced motion. It uses synthetic public labels;
 it does not authenticate or request paid datasets.
 
+Install the locked dependencies in the isolated worktree with `npm ci`. For
+production-size checks, build with `RELEASE_SHA` set to the full commit SHA;
+the development placeholder has different compression and cannot certify the
+release budget.
+
 Run `npm run qa:ci` before publication to verify the built application, including
 shared Arena/editorial banner heights and route canvas padding. These assertions
 follow the same responsive header contract as the focused regression.
