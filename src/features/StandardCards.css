@@ -1,7 +1,9 @@
+@import './TraditionalModeBanner.css';
+
 .arena-app-shell.arena-app-standard-cards .arena-workspace .arena-main { padding: 0; }
 .arena-app-shell.arena-app-standard-cards .arena-workspace .arena-content.arena-content-open {
-  max-width: 1580px;
-  padding: clamp(0.75rem, 2vw, 2rem) clamp(0.55rem, 2.3vw, 2.35rem) 4rem;
+  max-width: var(--site-page-width);
+  padding: var(--site-page-gutter) var(--site-page-gutter) 4rem;
 }
 
 .constructed-cards {
@@ -20,18 +22,8 @@
 .constructed-cards input,
 .constructed-cards select { font-family: var(--font-body); }
 
-.constructed-cards__header {
-  display: flex;
-  gap: 1.2rem;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 92px;
-  padding: 0.7rem 1.25rem 0.9rem;
-  border-bottom: 1px solid rgba(112, 67, 30, 0.28);
-}
-.constructed-cards__header > div { display: flex; gap: 1rem; align-items: center; min-width: 0; }
-.constructed-cards__header h1 { margin: 0; font-family: var(--font-display); font-size: clamp(2.2rem, 4vw, 3.6rem); line-height: 1; }
-.constructed-cards__header > p { flex: 0 0 auto; margin: 0; font-family: var(--font-display); font-size: 1.05rem; }
+.constructed-cards__header > div { display: grid; gap: 1rem; min-width: 0; }
+.constructed-cards__header > p { position: relative; z-index: 1; margin: 0; color: #e9cf92; font-size: 1rem; }
 .constructed-cards__beta { display: flex; gap: 0.45rem; align-items: center; }
 .constructed-cards__beta span { display: inline-flex; gap: 0.28rem; align-items: center; min-height: 30px; padding: 0.25rem 0.6rem; border: 1px solid #9d7135; background: rgba(255, 239, 188, 0.7); color: #5a3419; font-size: 0.68rem; font-weight: 900; }
 .constructed-cards__beta span:first-child { border-color: #8c2528; background: var(--cards-wine); color: #ffe6b0; }
@@ -417,7 +409,6 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
 }
 
 @media (max-width: 900px) {
-  .constructed-cards__header { align-items: flex-start; }
   .constructed-cards__header > div { display: grid; gap: 0.45rem; }
   .constructed-cards__primary-controls > * { flex: 1 1 190px; }
   .constructed-cards__direction { flex: 0 0 46px; }
@@ -435,9 +426,6 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
 }
 
 @media (max-width: 640px) {
-  .arena-app-shell.arena-app-standard-cards .arena-workspace .arena-content.arena-content-open { padding: 0.45rem 0.28rem 2.5rem; }
-  .constructed-cards__header { min-height: 0; padding: 0.65rem 0.55rem; }
-  .constructed-cards__header h1 { font-size: 2.2rem; }
   .constructed-cards__header > p { font-size: 0.82rem; }
   .constructed-cards__beta { flex-wrap: wrap; }
   .constructed-cards__beta span { min-height: 25px; font-size: 0.57rem; }

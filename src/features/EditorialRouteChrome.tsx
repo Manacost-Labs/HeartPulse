@@ -57,26 +57,11 @@ export function SectionBanner({
   subtitle: string;
 }) {
   return (
-    <header className="section-banner-modern relative -mx-3 -mt-3 mb-5 flex flex-col items-start justify-center gap-1 overflow-hidden px-4 py-4 sm:-mx-6 sm:-mt-6 sm:mb-6 sm:px-8 md:-mx-10 md:-mt-10 md:px-10">
-      <h1
-        className="font-hs tracking-wide"
-        style={{
-          fontSize: 'clamp(1.5rem, 3.5vw, 2.55rem)',
-          color: '#fff7cf',
-          textShadow: '0 3px 18px rgba(0,0,0,0.48)',
-        }}
-      >
-        {title}
-      </h1>
-      <p
-        className="font-body text-xs font-semibold sm:text-sm"
-        style={{
-          color: '#c8d5e8',
-          textShadow: '0 1px 8px rgba(0,0,0,0.48)',
-        }}
-      >
-        {subtitle}
-      </p>
+    <header className="section-banner-modern">
+      <div className="traditional-mode-banner__copy">
+        <h1>{title}</h1>
+        <p>{subtitle}</p>
+      </div>
     </header>
   );
 }

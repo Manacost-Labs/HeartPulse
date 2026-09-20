@@ -12,9 +12,9 @@
   --archetype-gold: #d9ab49;
   --archetype-ink: #30251c;
   --archetype-muted: #735e49;
-  width: min(100%, 1320px);
+  width: 100%;
   margin: 0 auto;
-  padding: clamp(0.75rem, 2vw, 1.5rem);
+  padding: 0;
   color: var(--archetype-ink);
   font-family: var(--font-body);
 }
@@ -1107,7 +1107,6 @@
 }
 
 @media (max-width: 820px) {
-  .archetypes-page { padding: 0.6rem; }
   .archetypes-hero { min-height: 0; padding: 1rem; border-width: 8px; }
   .archetypes-hero h1 { font-size: clamp(2rem, 11vw, 3rem); }
   .archetypes-hero__summary { grid-template-columns: 1fr; }
@@ -1177,7 +1176,6 @@
 }
 
 @media (max-width: 390px) {
-  .archetypes-page { padding: 0.35rem; }
   .archetypes-hero { padding: 0.75rem; border-width: 5px; }
   .archetypes-hero h1 { font-size: clamp(1.8rem, 10vw, 2.35rem); }
   .archetypes-format-switch { padding: 0.4rem; border-width: 5px; }

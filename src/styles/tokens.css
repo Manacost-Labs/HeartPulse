@@ -27,9 +27,16 @@
   );
 
   /* Shared banner geometry across traditional and editorial routes. */
-  --site-page-hero-min-height: clamp(270px, 22vw, 360px);
-  --site-page-hero-padding-block: clamp(1.8rem, 3.8vw, 3.4rem);
-  --site-page-hero-padding-inline: clamp(1.35rem, 4vw, 3.4rem);
+  --site-page-hero-min-height: 320px;
+  --site-page-hero-content-gap: 16px;
+  --site-page-hero-mobile-min-height: 360px;
+  --site-page-hero-mobile-title-size: clamp(1.75rem, 8vw, 2.5rem);
+  --site-page-hero-title-size: clamp(2rem, 4vw, 3.6rem);
+  --site-page-hero-title-leading: 1.05;
+  --site-page-gutter: clamp(0.75rem, 2vw, 1.5rem);
+  --site-page-width: 1480px;
+  --site-page-hero-padding-block: clamp(1.25rem, 2.5vw, 2rem);
+  --site-page-hero-padding-inline: clamp(1rem, 2.5vw, 2rem);
 
   /* Legacy draft surfaces still used by the home and data workspaces. */
   --draft-ink: #10233d;

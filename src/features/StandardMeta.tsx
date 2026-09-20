@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
 import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
-import { StandardMetaRelatedLinks, StandardMetaSearchIntro } from '../modules/searchLanding/standardMeta';
+import { StandardMetaSearchIntro } from '../modules/searchLanding/standardMeta';
 import { AsyncSurfaceState, RecoverableSurfaceBoundary } from './recovery/RecoverableSurface';
 import { datasetContractErrorMessage } from '../../shared/datasetEnvelope';
 import {
@@ -549,8 +549,6 @@ function StandardMetaContent({
           <div><dt>Игр в выборке</dt><dd>{data.items.reduce((sum, item) => sum + (item.games ?? 0), 0).toLocaleString('ru-RU')}</dd></div>
         </dl>
       </section>
-
-      <StandardMetaRelatedLinks />
 
       {datasetEnvelope && (
         datasetEnvelope.mode === 'early'

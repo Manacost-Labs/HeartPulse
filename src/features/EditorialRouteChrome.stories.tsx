@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { SectionBanner } from './EditorialRouteChrome';
 import '../route-parchment.css';
+import './DeferredRoutes.css';
 
 const meta = {
   title: 'Editorial/SectionBanner',
@@ -22,5 +23,12 @@ export const LongCopy: Story = {
   args: {
     title: 'Разбор обновления и актуальной меты',
     subtitle: 'Подробные материалы, колоды и советы, которые остаются читаемыми на широком экране и телефоне.',
+  },
+};
+
+export const ArenaLongTitle: Story = {
+  args: {
+    title: 'Тир-лист карт Арены Hearthstone',
+    subtitle: 'Оценки карт для каждого класса — текущий патч',
   },
 };

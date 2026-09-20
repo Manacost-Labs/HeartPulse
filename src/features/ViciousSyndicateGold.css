@@ -2,8 +2,8 @@
 
 .arena-app-shell.arena-app-standard-vicious-gold .arena-workspace .arena-main { padding: 0; }
 .arena-app-shell.arena-app-standard-vicious-gold .arena-workspace .arena-content.arena-content-open {
-  max-width: 1540px;
-  padding: clamp(1rem, 2.4vw, 2.5rem) clamp(0.8rem, 2.8vw, 2.8rem) 4rem;
+  max-width: var(--site-page-width);
+  padding: var(--site-page-gutter) var(--site-page-gutter) 4rem;
 }
 
 .vsgold {
@@ -293,7 +293,6 @@
 }
 
 @media (max-width: 720px) {
-  .arena-app-shell.arena-app-standard-vicious-gold .arena-workspace .arena-content.arena-content-open { padding: 0.5rem 0.35rem 2.25rem; }
   .vsgold__hero {
     gap: 0.62rem;
     min-height: 0;

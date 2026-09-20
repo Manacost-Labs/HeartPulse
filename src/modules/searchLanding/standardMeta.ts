@@ -1,1 +1,1 @@
-export { StandardMetaRelatedLinks, StandardMetaSearchIntro } from './ui/StandardMetaSearchIntro';
+export { StandardMetaSearchIntro } from './ui/StandardMetaSearchIntro';

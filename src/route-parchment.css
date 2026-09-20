@@ -7,74 +7,18 @@
 }
 
 :is(.arena-app-editorial, .arena-app-game-data) .arena-content.arena-content-open {
-  max-width: 1480px;
-  padding: clamp(1rem, 2.5vw, 2.4rem) clamp(1rem, 2.8vw, 2.8rem) 3.5rem;
+  max-width: var(--site-page-width);
+  padding: var(--site-page-gutter) var(--site-page-gutter) 3.5rem;
 }
 
 @media (min-width: 1024px) {
-  :is(.arena-app-editorial, .arena-app-game-data) .arena-workspace-with-tools .arena-content.arena-content-open {
+  .arena-app-editorial .arena-workspace-with-tools .arena-content.arena-content-open {
     padding-top: 0;
   }
 }
 
 .arena-app-editorial :where(.articles-page, .gallery-page, .guide-archive-page, .guide-archive-detail, .contests-page) {
   color: var(--arena-ink);
-}
-
-:is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern {
-  min-height: var(--site-page-hero-min-height) !important;
-  height: auto !important;
-  margin: 0 0 1.35rem !important;
-  padding: var(--site-page-hero-padding-block) var(--site-page-hero-padding-inline) !important;
-  overflow: hidden !important;
-  border: 12px solid transparent !important;
-  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
-  border-image-slice: 18 !important;
-  border-image-width: 12px !important;
-  border-image-outset: 2px !important;
-  border-image-repeat: stretch !important;
-  border-radius: 2px !important;
-  color: #fff0c4 !important;
-  background:
-    linear-gradient(90deg, rgba(69, 5, 9, 0.08), rgba(122, 20, 25, 0.12)),
-    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
-  box-shadow:
-    inset 0 0 0 2px rgba(236, 190, 84, 0.13),
-    inset 0 -28px 42px rgba(42, 3, 6, 0.2),
-    0 16px 28px rgba(73, 39, 15, 0.16) !important;
-}
-
-:is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern::before {
-  content: '' !important;
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 83% 20%, rgba(237, 196, 104, 0.13), transparent 16rem),
-    linear-gradient(90deg, rgba(35, 2, 5, 0.1), transparent 52%) !important;
-}
-
-:is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern h1 {
-  position: relative;
-  z-index: 1;
-  margin: 0 !important;
-  color: #fff1c5 !important;
-  font-family: var(--font-display) !important;
-  font-size: clamp(2rem, 4vw, 3.4rem) !important;
-  line-height: 0.98 !important;
-  letter-spacing: 0.008em !important;
-  text-shadow: 0 3px 4px rgba(38, 3, 5, 0.7) !important;
-}
-
-:is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern p {
-  position: relative;
-  z-index: 1;
-  max-width: 720px;
-  margin: 0.55rem 0 0 !important;
-  color: #edcf91 !important;
-  font-size: 0.88rem !important;
-  line-height: 1.45 !important;
-  text-shadow: 0 2px 2px rgba(38, 3, 5, 0.7) !important;
 }
 
 :is(.arena-app-editorial, .arena-app-game-data) nav[aria-label='Breadcrumb'] {
@@ -1531,27 +1475,12 @@
 @media (max-width: 1023px) {
   :is(.arena-app-editorial, .arena-app-game-data) .arena-content.arena-content-open {
     max-width: 100% !important;
-    padding: 1.4rem clamp(1rem, 4vw, 2rem) 3rem !important;
+    padding: var(--site-page-gutter) var(--site-page-gutter) 3rem !important;
   }
 }
 
 @media (max-width: 720px) {
-  :is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern {
-    min-height: 118px !important;
-    margin-bottom: 1rem !important;
-    padding: 1.35rem 1.1rem !important;
-    border-width: 8px !important;
-    border-image-width: 8px !important;
-    box-shadow: 0 10px 20px rgba(69, 38, 15, 0.14) !important;
-  }
 
-  :is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern h1 {
-    font-size: clamp(1.75rem, 9vw, 2.4rem) !important;
-  }
-
-  :is(.arena-app-editorial, .arena-app-game-data) .section-banner-modern p {
-    font-size: 0.78rem !important;
-  }
 
   .arena-app-gallery .gallery-intro {
     padding: 0.2rem 0 1rem 0.85rem;

@@ -1,13 +1,15 @@
-.traditional-mode-banner {
+:is(.traditional-mode-banner, .constructed-cards__header, .section-banner-modern) {
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(300px, 0.55fr);
-  gap: clamp(2rem, 6vw, 6rem);
-  align-items: end;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.55fr);
+  gap: 1.5rem;
+  align-items: center;
   min-height: var(--site-page-hero-min-height);
+  margin-bottom: var(--site-page-hero-content-gap);
   padding: var(--site-page-hero-padding-block) var(--site-page-hero-padding-inline);
   overflow: hidden;
+  border-radius: 0;
   border: 12px solid transparent;
   border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
   color: #fff0c4;
@@ -26,10 +28,11 @@
     0 14px 30px rgba(67, 35, 14, 0.18);
 }
 
-.traditional-mode-banner::after {
+:is(.traditional-mode-banner, .constructed-cards__header, .section-banner-modern)::after {
   position: absolute;
   z-index: -1;
   inset: 7px;
+  background: none;
   border: 1px solid rgba(248, 208, 109, 0.18);
   content: '';
   pointer-events: none;
@@ -37,29 +40,31 @@
   animation: site-page-hero-sheen 12s ease-in-out infinite alternate;
 }
 
-.traditional-mode-banner__copy {
+:is(.traditional-mode-banner__copy, .constructed-cards__header > div) {
   z-index: 1;
   align-self: center;
-  max-width: 650px;
+  min-width: 0;
+  max-width: 720px;
 }
 
-.traditional-mode-banner__copy h1 {
+:is(.traditional-mode-banner__copy, .constructed-cards__header > div) h1 {
   max-width: 720px;
   margin: 0;
   color: #fff2ca;
   font-family: var(--font-display);
-  font-size: clamp(3.5rem, 7vw, 6.8rem);
-  line-height: 0.88;
+  font-size: var(--site-page-hero-title-size);
+  line-height: var(--site-page-hero-title-leading);
   letter-spacing: -0.035em;
   text-wrap: balance;
+  overflow-wrap: anywhere;
   text-shadow: 0 3px 10px rgba(27, 0, 5, 0.62);
 }
 
-.traditional-mode-banner__copy p {
+:is(.traditional-mode-banner__copy, .constructed-cards__header > div) p {
   max-width: 590px;
   margin: clamp(1rem, 2vw, 1.45rem) 0 0;
   color: #e9cf92;
-  font-size: clamp(1rem, 1.45vw, 1.28rem);
+  font-size: 1rem;
   line-height: 1.48;
   text-wrap: balance;
   text-shadow: 0 2px 8px rgba(25, 0, 5, 0.6);
@@ -127,22 +132,9 @@
   width: fit-content;
 }
 
-@media (max-width: 980px) {
-  .traditional-mode-banner {
-    grid-template-columns: minmax(0, 1fr) minmax(250px, 0.65fr);
-    background-position: 62% 32%;
-  }
-
-  .traditional-mode-banner__copy h1 {
-    font-size: clamp(3rem, 8vw, 5rem);
-  }
-}
-
 @media (max-width: 720px) {
-  .traditional-mode-banner {
-    --site-page-hero-min-height: 360px;
-    --site-page-hero-padding-block: 1.8rem;
-    --site-page-hero-padding-inline: 1.4rem;
+  :is(.traditional-mode-banner, .constructed-cards__header, .section-banner-modern) {
+    min-height: var(--site-page-hero-mobile-min-height);
     grid-template-columns: 1fr;
     align-content: space-between;
     border-width: 8px;
@@ -158,17 +150,16 @@
       #3a030d;
   }
 
-  .traditional-mode-banner__copy {
+  :is(.traditional-mode-banner__copy, .constructed-cards__header > div) {
     align-self: start;
   }
 
-  .traditional-mode-banner__copy h1 {
-    max-width: 11ch;
-    font-size: clamp(2.65rem, 13.5vw, 4.4rem);
-    line-height: 0.9;
+  :is(.traditional-mode-banner__copy, .constructed-cards__header > div) h1 {
+    max-width: 100%;
+    font-size: var(--site-page-hero-mobile-title-size);
   }
 
-  .traditional-mode-banner__copy p {
+  :is(.traditional-mode-banner__copy, .constructed-cards__header > div) p {
     max-width: 28rem;
     margin-top: 0.8rem;
     font-size: 0.92rem;
@@ -187,14 +178,8 @@
 }
 
 @media (max-width: 390px) {
-  .traditional-mode-banner {
-    --site-page-hero-min-height: 340px;
-    --site-page-hero-padding-inline: 1rem;
+  :is(.traditional-mode-banner, .constructed-cards__header, .section-banner-modern) {
     border-width: 6px;
-  }
-
-  .traditional-mode-banner__copy h1 {
-    font-size: clamp(2.35rem, 13vw, 3rem);
   }
 
   .traditional-mode-banner__summary dt {
@@ -208,14 +193,26 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .traditional-mode-banner {
+  :is(.traditional-mode-banner, .constructed-cards__header, .section-banner-modern) {
     scroll-behavior: auto;
   }
 
-  .traditional-mode-banner::after { animation: none; }
+  :is(.traditional-mode-banner, .constructed-cards__header, .section-banner-modern)::after { animation: none; }
 }
 
 @keyframes site-page-hero-sheen {
   from { opacity: 0.35; }
   to { opacity: 0.75; }
+}
+
+.section-banner-modern {
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0 0 var(--site-page-hero-content-gap);
+}
+
+.section-banner-modern::before { content: none; }
+
+/* The banner owns this gap; route panels must not add a second gutter. */
+.arena-app-shell :is(.traditional-mode-banner, .constructed-cards__header, .section-banner-modern) + * {
+  margin-top: 0;
 }
