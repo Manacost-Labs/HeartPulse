@@ -2424,14 +2424,6 @@
   .arena-app-profile .profile-workspace .profile-status-chip:last-child:nth-child(odd) {
     grid-column: 1 / -1;
   }
-
-  .arena-app-profile .profile-workspace :is(
-    .profile-settings-form,
-    .profile-subscription-panel
-  ) {
-    border-width: 6px;
-    border-image-width: 6px;
-  }
 }
 
 @media (max-width: 640px) {

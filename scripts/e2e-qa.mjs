@@ -4198,7 +4198,7 @@ for (const [device, viewport] of [
     });
     const expectedProfile = device === 'desktop'
       ? {
-          cardPadding: '0px', cardRadius: '0px', heroMinHeight: '240px',
+          cardPadding: '0px', cardRadius: '0px', heroMinHeight: '190px',
           heroMargin: '0px', heroAlign: 'center', bodyDisplay: 'flex',
           bodyDirection: 'row', bodyAlign: 'center', statusDisplay: 'flex',
         }
@@ -4234,9 +4234,10 @@ for (const [device, viewport] of [
     }
     const framedProfileSurfaces = [profileState.materials.settings, profileState.materials.subscription];
     if (framedProfileSurfaces.some(surface => !surface
-      || !surface.borderImageSource.includes('main-page-rail-border.png')
+      || surface.borderImageSource !== 'none'
+      || surface.borderLeftWidth !== '1px'
       || !surface.backgroundImage.includes('arena-parchment.jpg')
-      || surface.borderRadius !== '0px')) {
+      || surface.borderRadius !== '3px')) {
       failures.push(`profile [${device}]: settings or subscription frame changed (${JSON.stringify(framedProfileSurfaces)})`);
     }
     if (profileState.materials.source?.borderImageSource !== 'none'
@@ -4244,12 +4245,14 @@ for (const [device, viewport] of [
       || profileState.materials.source?.borderRadius !== '0px') {
       failures.push(`profile [${device}]: subscription source list row changed (${JSON.stringify(profileState.materials.source)})`);
     }
-    if (!profileState.materials.contests?.borderImageSource.includes('main-page-rail-border.png')
-      || profileState.materials.contests?.borderRadius !== '0px') {
+    if (profileState.materials.contests?.borderImageSource !== 'none'
+      || profileState.materials.contests?.borderLeftWidth !== '1px'
+      || profileState.materials.contests?.borderRadius !== '3px') {
       failures.push(`profile [${device}]: contest frame changed (${JSON.stringify(profileState.materials.contests)})`);
     }
-    if (!profileState.materials.statusChip?.backgroundImage.includes('deck-border.png')
-      || profileState.materials.statusChip?.minHeight !== '38px') {
+    if (profileState.materials.statusChip?.backgroundImage !== 'none'
+      || profileState.materials.statusChip?.borderImageSource !== 'none'
+      || profileState.materials.statusChip?.minHeight !== (device === 'mobile' ? '38px' : '28px')) {
       failures.push(`profile [${device}]: status chip material changed (${JSON.stringify(profileState.materials.statusChip)})`);
     }
     if (profileState.publicProfileActionCount !== 2
