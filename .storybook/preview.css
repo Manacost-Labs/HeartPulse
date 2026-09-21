@@ -18,6 +18,10 @@
   width: min(100%, 82rem);
 }
 
+.storybook-manacost-surface > .profile-story-shell {
+  width: min(100%, 82rem);
+}
+
 .sb-main-fullscreen .storybook-manacost-surface:has(> .admin-tailadmin-shell) {
   padding: 0;
   background: #f5f7fb;

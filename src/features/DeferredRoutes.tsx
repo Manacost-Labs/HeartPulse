@@ -15,6 +15,7 @@ import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import SubscriptionPurchaseButtons from '../components/SubscriptionPurchaseButtons';
 import PaywallGate from '../components/PaywallGate';
 import ProfileIdentityHero from '../components/ProfileIdentityHero';
+import ProfileAccessSummary from './ProfileAccessSummary';
 import FAQSection from '../components/FAQSection';
 import TierlistEarlyStatsNotice from './TierlistEarlyStatsNotice';
 import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
@@ -3633,15 +3634,154 @@ export function LoginPanel({
               {msg.text}
             </div>
           )}
+          <section className={`profile-subscription-panel ${subscription?.hasAccess ? 'profile-subscription-panel--active' : ''}`}>
+            <ProfileAccessSummary
+              pending={subscriptionPending}
+              active={Boolean(subscription?.hasAccess)}
+              checkedAt={formatSubscriptionDate(subscription?.checkedAt ?? null)}
+              onRefresh={() => { void fetchSubscription(true); }}
+            />
+            <p className="profile-subscription-copy">
+              {subscription?.message || 'Подтвердите подписку через Boosty, Patreon или Telegram VIP-канал.'}
+            </p>
+            {subscriptionAccessLabels.length > 0 && (
+              <div className="profile-access-list">
+                {subscriptionAccessLabels.map(label => (
+                  <span key={label} className="profile-access-item">
+                    {label}
+                  </span>
+                ))}
+              </div>
+            )}
+            <details className="profile-subscription-management" open={subscriptionChecked && !subscription?.hasAccess}>
+              <summary>Настроить доступ</summary>
+              <div className="profile-subscription-sources">
+                <div className={`profile-subscription-source ${subscription?.boosty?.hasAccess ? 'profile-subscription-source--active' : ''}`}>
+                  <img src="/ad/boosty.png" alt="" />
+                  <div>
+                  <strong>Boosty</strong>
+                  <p>
+                    {subscription?.boosty?.hasAccess
+                      ? `${subscription.boosty.levelName || 'Уровень'} · ${subscription.boosty.price || 0} RUB`
+                      : subscription?.boosty?.message || 'Почта еще не проверена.'}
+                  </p>
+                  </div>
+                </div>
+                <div className={`profile-subscription-source profile-subscription-source--telegram ${subscription?.telegram?.hasAccess ? 'profile-subscription-source--active' : ''}`} data-tour-id="profile-telegram-access">
+                  <img src="/ad/telegram.png" alt="" />
+                  <div>
+                  <strong>Telegram</strong>
+                  <p>
+                    {subscription?.telegram?.hasAccess
+                      ? 'Найден в VIP-канале'
+                      : subscription?.telegram?.message || 'Войдите через Telegram для проверки каналов.'}
+                  </p>
+                  <div className="profile-subscription-source__actions">
+                    <button
+                      type="button"
+                      onClick={() => { void handleTelegramLinkCodeRequest(); }}
+                      disabled={telegramLinkLoading || !telegramBotUsername}
+                    >
+                      {telegramLinkLoading ? 'Создаем...' : 'ID-код для бота'}
+                    </button>
+                    {telegramLinkCode && (
+                      <code>
+                        {telegramLinkCode}
+                      </code>
+                    )}
+                    {telegramLinkBotUrl && (
+                      <a
+                        href={telegramLinkBotUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="profile-subscription-source__link"
+                      >
+                        Открыть @{telegramBotUsername}
+                      </a>
+                    )}
+                    {telegramLinkExpiresLabel && (
+                      <span className="profile-subscription-source__expiry">до {telegramLinkExpiresLabel}</span>
+                    )}
+                  </div>
+                  <p className="profile-subscription-source__tip">
+                    Для Boosty-почты в боте: /email name@example.com.
+                  </p>
+                  </div>
+                </div>
+                <div className={`profile-subscription-source profile-subscription-source--patreon ${subscription?.patreon?.hasAccess ? 'profile-subscription-source--active' : ''}`}>
+                  <span className="profile-subscription-source__brand profile-subscription-source__brand--patreon" aria-hidden="true">P</span>
+                  <div>
+                    <strong>Patreon</strong>
+                    <p>{subscription?.patreon?.hasAccess ? `${subscription.patreon.tierTitles?.join(' · ') || 'Алмаз'} · полный доступ` : subscription?.patreon?.message || 'Привяжите Patreon для проверки подписки.'}</p>
+                    {subscription?.patreon?.configured ? (
+                      <div className="profile-subscription-source__actions"><a href={patreonLinkUrl} className="profile-subscription-source__link profile-subscription-source__link--button">{subscription.patreon.connected ? 'Обновить Patreon' : 'Привязать Patreon'}</a></div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+              <form
+                className="profile-boosty-form"
+                data-tour-id="profile-boosty-access"
+                onSubmit={boostyStep === 'email' ? handleBoostyEmailRequest : handleBoostyEmailConfirm}
+              >
+                <p>
+                  Введите почту, на которую оформлена подписка Boosty.
+                </p>
+                <input
+                  type="email"
+                  aria-label="Почта подписки Boosty"
+                  value={boostyEmail}
+                  onChange={e => setBoostyEmail(e.target.value)}
+                  placeholder="Email из Boosty"
+                />
+                {boostyStep === 'code' && (
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    aria-label="Код подтверждения Boosty"
+                    value={boostyCode}
+                    onChange={e => setBoostyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="6-значный код"
+                    className="profile-boosty-code"
+                  />
+                )}
+                <button type="submit" disabled={subscriptionLoading}>
+                  {subscriptionLoading
+                    ? 'Проверяем...'
+                    : boostyStep === 'email'
+                      ? 'Подтвердить Boosty-почту'
+                      : 'Подтвердить код Boosty'}
+                </button>
+              </form>
+              {telegramEnabled && !authUser.telegramUsername && (
+                <div className="profile-telegram-link">
+                  <p>
+                    Контакт @username не подтверждает подписку. Привяжите аккаунт Telegram.
+                  </p>
+                  {telegramMode === 'legacy-widget' && telegramBotUsername ? (
+                    <TelegramLoginWidget
+                      botUsername={telegramBotUsername}
+                      authUrl={telegramLinkUrl}
+                      label="Привязать Telegram"
+                    />
+                  ) : (
+                    <a href={telegramLinkUrl}>
+                      Привязать Telegram
+                    </a>
+                  )}
+                </div>
+              )}
+            </details>
+          </section>
           <section className="profile-contact-section">
             <form
               className="profile-settings-form"
               onSubmit={handleProfileSave}
             >
               <div className="profile-section-heading" data-tour-id="profile-contacts">
-                <strong>Настройки и каналы связи</strong>
+                <h2>Контакты и настройки</h2>
                 <span>
-                  Укажите удобные контакты. Они будут использоваться для конкурсов, призов и важных уведомлений.
+                  Для связи по конкурсам, призам и важным уведомлениям.
                 </span>
               </div>
               <label>
@@ -3677,164 +3817,12 @@ export function LoginPanel({
               </button>
             </form>
           </section>
-          <section className={`profile-subscription-panel ${subscription?.hasAccess ? 'profile-subscription-panel--active' : ''}`}>
-            <div className="profile-subscription-header" data-tour-id="profile-access-status">
-              <div>
-                <p className="profile-subscription-kicker">
-                  Доступ к закрытым разделам
-                </p>
-                <strong className="profile-subscription-state">
-                  {subscriptionPending
-                    ? 'Проверяем...'
-                    : subscription?.hasAccess
-                      ? 'Активна'
-                      : 'Не подтверждена'}
-                </strong>
-              </div>
-              <button
-                type="button"
-                onClick={() => { void fetchSubscription(true); }}
-                disabled={subscriptionLoading}
-              >
-                {subscriptionLoading ? 'Проверяем...' : 'Обновить'}
-              </button>
-            </div>
-            <p className="profile-subscription-copy">
-              {subscription?.message || 'Подтвердите подписку через Boosty, Patreon или Telegram VIP-канал.'}
-            </p>
-            {subscriptionAccessLabels.length > 0 && (
-              <div className="profile-access-list">
-                {subscriptionAccessLabels.map(label => (
-                  <span key={label} className="profile-access-item">
-                    {label}
-                  </span>
-                ))}
-              </div>
-            )}
-            <div className="profile-subscription-sources">
-              <div className={`profile-subscription-source ${subscription?.boosty?.hasAccess ? 'profile-subscription-source--active' : ''}`}>
-                <img src="/ad/boosty.png" alt="" />
-                <div>
-                <strong>Boosty</strong>
-                <p>
-                  {subscription?.boosty?.hasAccess
-                    ? `${subscription.boosty.levelName || 'Уровень'} · ${subscription.boosty.price || 0} RUB`
-                    : subscription?.boosty?.message || 'Почта еще не проверена.'}
-                </p>
-                </div>
-              </div>
-              <div className={`profile-subscription-source profile-subscription-source--telegram ${subscription?.telegram?.hasAccess ? 'profile-subscription-source--active' : ''}`} data-tour-id="profile-telegram-access">
-                <img src="/ad/telegram.png" alt="" />
-                <div>
-                <strong>Telegram</strong>
-                <p>
-                  {subscription?.telegram?.hasAccess
-                    ? 'Найден в VIP-канале'
-                    : subscription?.telegram?.message || 'Войдите через Telegram для проверки каналов.'}
-                </p>
-                <div className="profile-subscription-source__actions">
-                  <button
-                    type="button"
-                    onClick={() => { void handleTelegramLinkCodeRequest(); }}
-                    disabled={telegramLinkLoading || !telegramBotUsername}
-                  >
-                    {telegramLinkLoading ? 'Создаем...' : 'ID-код для бота'}
-                  </button>
-                  {telegramLinkCode && (
-                    <code>
-                      {telegramLinkCode}
-                    </code>
-                  )}
-                  {telegramLinkBotUrl && (
-                    <a
-                      href={telegramLinkBotUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="profile-subscription-source__link"
-                    >
-                      Открыть @{telegramBotUsername}
-                    </a>
-                  )}
-                  {telegramLinkExpiresLabel && (
-                    <span className="profile-subscription-source__expiry">до {telegramLinkExpiresLabel}</span>
-                  )}
-                </div>
-                <p className="profile-subscription-source__tip">
-                  Для Boosty-почты в боте: /email name@example.com.
-                </p>
-                </div>
-              </div>
-              <div className={`profile-subscription-source profile-subscription-source--patreon ${subscription?.patreon?.hasAccess ? 'profile-subscription-source--active' : ''}`}>
-                <span className="profile-subscription-source__brand profile-subscription-source__brand--patreon" aria-hidden="true">P</span>
-                <div>
-                  <strong>Patreon</strong>
-                  <p>{subscription?.patreon?.hasAccess ? `${subscription.patreon.tierTitles?.join(' · ') || 'Алмаз'} · полный доступ` : subscription?.patreon?.message || 'Привяжите Patreon для проверки подписки.'}</p>
-                  {subscription?.patreon?.configured ? (
-                    <div className="profile-subscription-source__actions"><a href={patreonLinkUrl} className="profile-subscription-source__link profile-subscription-source__link--button">{subscription.patreon.connected ? 'Обновить Patreon' : 'Привязать Patreon'}</a></div>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-            <p className="profile-subscription-checked">
-              Последняя проверка: {formatSubscriptionDate(subscription?.checkedAt ?? null)}
-            </p>
-            <form
-              className="profile-boosty-form"
-              data-tour-id="profile-boosty-access"
-              onSubmit={boostyStep === 'email' ? handleBoostyEmailRequest : handleBoostyEmailConfirm}
-            >
-              <p>
-                Для Boosty подтвердите почту, которая указана в вашем Boosty-профиле. Это отдельная проверка от Telegram.
-              </p>
-              <input
-                type="email"
-                value={boostyEmail}
-                onChange={e => setBoostyEmail(e.target.value)}
-                placeholder="Email из Boosty"
-              />
-              {boostyStep === 'code' && (
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={boostyCode}
-                  onChange={e => setBoostyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="6-значный код"
-                  className="profile-boosty-code"
-                />
-              )}
-              <button type="submit" disabled={subscriptionLoading}>
-                {subscriptionLoading
-                  ? 'Проверяем...'
-                  : boostyStep === 'email'
-                    ? 'Подтвердить Boosty-почту'
-                    : 'Подтвердить код Boosty'}
-              </button>
-            </form>
-            {telegramEnabled && !authUser.telegramUsername && (
-              <div className="profile-telegram-link">
-                <p>
-                  Для Telegram-подписки нужно привязать сам Telegram-аккаунт. Поле @username в контактах не подходит для проверки VIP-канала.
-                </p>
-                {telegramMode === 'legacy-widget' && telegramBotUsername ? (
-                  <TelegramLoginWidget
-                    botUsername={telegramBotUsername}
-                    authUrl={telegramLinkUrl}
-                    label="Привязать Telegram"
-                  />
-                ) : (
-                  <a href={telegramLinkUrl}>
-                    Привязать Telegram
-                  </a>
-                )}
-              </div>
-            )}
-          </section>
           <section className="profile-contests">
             <div className="profile-contests__heading" data-tour-id="profile-contests">
               <div>
-                <strong>История участия в конкурсах</strong>
+                <h2>Ваши конкурсы</h2>
                 <span>
-                  Здесь отображаются конкурсы, куда вы подали заявку через профиль Манакоста.
+                  Заявки, результаты и призы в одном месте.
                 </span>
               </div>
               <span className="profile-contests__count">
@@ -3846,7 +3834,7 @@ export function LoginPanel({
               <div className="profile-contests__state">Загружаем историю...</div>
             ) : contestHistory.length === 0 ? (
               <div className="profile-contests__state profile-contests__state--empty">
-                Вы пока не участвовали в конкурсах. Когда нажмете “Участвовать” на странице конкурса, заявка появится здесь.
+                Пока нет участий. Выберите конкурс — заявки и результаты появятся здесь.
               </div>
             ) : (
               <div className="profile-contest-list">

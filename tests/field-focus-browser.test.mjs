@@ -49,3 +49,33 @@ test('search fields keep their shape during pointer typing and retain a Tab indi
     await server.close();
   }
 });
+
+test('account has its own surface and usable access and contact groups', async () => {
+  const server = await createServer({ server: { host: '127.0.0.1', port: 0 } });
+  let browser;
+  try {
+    await server.listen();
+    browser = await puppeteer.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
+    const page = await browser.newPage();
+    for (const width of [390, 1440]) {
+      await page.setViewport({ width, height: 1000 });
+      await page.goto(`${server.resolvedUrls.local[0]}tests/fixtures/profile-workspace.html`);
+      await page.waitForSelector('.profile-subscription-panel--active');
+      assert.equal(await page.$eval('.arena-content', e => getComputedStyle(e).borderTopWidth), '0px', 'account must not inherit the previous route frame');
+      assert.equal(await page.$eval('.arena-content', e => getComputedStyle(e).backgroundColor), 'rgba(0, 0, 0, 0)');
+      assert.equal(await page.$eval('.profile-subscription-management', e => e.open), false, 'connected users see status before setup');
+      await page.click('.profile-subscription-management summary');
+      assert.equal(await page.$eval('.profile-subscription-management', e => e.open), true);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
+      assert.ok(await page.$eval('.profile-settings-form input', e => e.getBoundingClientRect().height) >= 44);
+    }
+    await page.setViewport({ width: 390, height: 1000 });
+    await page.goto(`${server.resolvedUrls.local[0]}tests/fixtures/profile-workspace.html?access=none`);
+    await page.waitForFunction(() => document.querySelector('.profile-subscription-management')?.open === true);
+    assert.match(await page.$eval('.profile-subscription-state', e => e.textContent), /не подтверждён/);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
+  } finally {
+    await browser?.close();
+    await server.close();
+  }
+});
