@@ -7,7 +7,7 @@ import './parchment-theme.css';
 import { installFieldFocusMode } from './app/shell/installFieldFocusMode';
 
 const disposeFieldFocusMode = installFieldFocusMode(document);
-if (import.meta.hot) import.meta.hot.dispose(disposeFieldFocusMode);
+if (import.meta.hot && disposeFieldFocusMode) import.meta.hot.dispose(disposeFieldFocusMode);
 
 const releaseId = typeof __APP_RELEASE_SHA__ === 'string' ? __APP_RELEASE_SHA__ : 'development';
 

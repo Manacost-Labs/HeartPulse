@@ -84,15 +84,19 @@ const budgets = {
   // Shared page-header CSS adds a lazy preload entry (+54 raw / +30 gzip
   // bytes in CI). Pin the measured 81,776-byte release transfer plus the
   // existing 38-byte hash tolerance; raw JS and CSS ceilings stay unchanged.
+  // Field focus distinguishes pointer typing from Tab navigation with two
+  // page-lifetime listeners. Allow its measured sub-0.1 KiB gzip addition and
+  // release-hash variance while staying below 80 KiB. Removing duplicate
+  // field outlines also lets us tighten the initial CSS ceiling.
   mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_743),
   initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_761),
-  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 81_814),
+  initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 81_880),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),
   deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 108_350),
   galleryPageJs: Number(process.env.BUDGET_GALLERY_PAGE_JS_BYTES || 4_700),
   editorialRouteChromeJs: Number(process.env.BUDGET_EDITORIAL_ROUTE_CHROME_JS_BYTES || 2_450),
-  css: Number(process.env.BUDGET_CSS_BYTES || 136_863),
+  css: Number(process.env.BUDGET_CSS_BYTES || 136_800),
   routeCss: Number(process.env.BUDGET_ROUTE_CSS_BYTES || 48_350),
   deferredRoutesCss: Number(process.env.BUDGET_DEFERRED_ROUTES_CSS_BYTES || 52_084),
   loginPanelCss: Number(process.env.BUDGET_LOGIN_PANEL_CSS_BYTES || 4_500),

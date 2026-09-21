@@ -5,7 +5,7 @@ import './preview.css';
 import { installFieldFocusMode } from '../src/app/shell/installFieldFocusMode';
 
 const disposeFieldFocusMode = installFieldFocusMode(document);
-if (import.meta.hot) import.meta.hot.dispose(disposeFieldFocusMode);
+if (import.meta.hot && disposeFieldFocusMode) import.meta.hot.dispose(disposeFieldFocusMode);
 
 const preview: Preview = {
   parameters: {

@@ -726,8 +726,7 @@
   /* Consistent, on-theme keyboard focus ring across all interactive elements */
   a:focus-visible,
   button:focus-visible,
-  [role="button"]:focus-visible,
-  input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"]):focus-visible {
+  [role="button"]:focus-visible {
     outline: none;
     box-shadow: 0 0 0 3px rgba(252, 211, 77, 0.55);
     border-radius: 8px;
