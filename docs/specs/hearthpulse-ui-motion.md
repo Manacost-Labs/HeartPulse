@@ -48,8 +48,7 @@ Avoid adding logic to ratcheted monolithic files: extract presentation first.
 7. Verify release identity, live route/assets and rollback availability before
    reporting production completion and posting the public changelog.
 
-Miro MCP is unavailable in this session; the explicit user brief and existing
-project design are the design reference. Production content requires a
+The explicit user brief and existing project design are the design reference. Production content requires a
 subscription in a clean browser: local deterministic fixtures validate private
 UI, while live anonymous checks cannot prove a subscriber session.
 

@@ -158,7 +158,7 @@ cross the API boundary.
 - Developer docs show the bulk synchronization request and endpoint list.
 - Type checking, architecture lint, Semgrep, Gitleaks, release verification,
   production health checks and browser verification must pass before the
-  Notion task is closed.
+  task is marked complete.
 
 ## Rollback
 

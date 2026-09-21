@@ -22,11 +22,27 @@
       rgba(49, 4, 13, 0.24) 76%,
       rgba(30, 2, 9, 0.08) 100%
     ),
-    url('/wallpaper/profile-hero-hth.webp') right center / auto 100% no-repeat,
     #3a030d;
   box-shadow:
     inset 0 0 0 1px rgba(248, 208, 109, 0.22),
     0 14px 30px rgba(67, 35, 14, 0.18);
+}
+
+/* The fade follows the artwork's edge at every banner width. */
+:is(.traditional-mode-banner, .constructed-cards__header, .section-banner-modern)::before {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  right: 0;
+  height: 100%;
+  aspect-ratio: 1430 / 645;
+  max-width: 100%;
+  background:
+    linear-gradient(90deg, rgba(73, 5, 17, 0.76), rgba(49, 4, 13, 0.24) 55%, rgba(30, 2, 9, 0.08)),
+    url('/wallpaper/profile-hero-hth.webp') right center / cover no-repeat;
+  mask-image: linear-gradient(90deg, transparent, #000 40%);
+  content: '';
+  pointer-events: none;
 }
 
 :is(.traditional-mode-banner, .constructed-cards__header, .section-banner-modern)::after {
@@ -147,8 +163,14 @@
         rgba(45, 2, 11, 0.20) 62%,
         rgba(28, 1, 7, 0.72) 100%
       ),
-      url('/wallpaper/profile-hero-hth.webp') right bottom / auto 60% no-repeat,
       #3a030d;
+  }
+
+  :is(.traditional-mode-banner, .constructed-cards__header, .section-banner-modern)::before {
+    top: auto;
+    bottom: 0;
+    height: 60%;
+    mask-image: linear-gradient(180deg, transparent, #000 32%);
   }
 
   :is(.traditional-mode-banner__copy, .constructed-cards__header > div) {

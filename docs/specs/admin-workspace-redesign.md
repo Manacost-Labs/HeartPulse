@@ -11,9 +11,8 @@ The approved visual references are committed with this specification:
 - [`../assets/admin-redesign/overview-reference.png`](../assets/admin-redesign/overview-reference.png)
 - [`../assets/admin-redesign/parser-operations-reference.png`](../assets/admin-redesign/parser-operations-reference.png)
 
-Miro was unavailable during implementation. The direct user-approved ImageGen
-references above, the current Storybook states and verified application
-behaviour are therefore the design authority for this release.
+The direct user-approved ImageGen references above, the current Storybook
+states and verified application behaviour are the design authority for this release.
 
 ## Product principles
 

@@ -26,7 +26,6 @@ import { datasetContractErrorMessage } from '../../shared/datasetEnvelope';
 import {
   STANDARD_META_MEDIA_TYPE,
   parseStandardMetaApiResponse,
-  type StandardMetaEnvelope,
   type StandardMetaPeriod,
 } from '../../shared/standardMetaContract';
 import DeckListView, { type DeckListCard } from './decklist/DeckListView';
@@ -410,7 +409,6 @@ function StandardMetaContent({
   const [view, setView] = useState<MetaView>('cards');
   const [sort, setSort] = useState<{ key: MetaSortKey | null; direction: MetaSortDirection }>({ key: null, direction: 'desc' });
   const [data, setData] = useState<MetaPayload>(EMPTY_DATA);
-  const [datasetEnvelope, setDatasetEnvelope] = useState<StandardMetaEnvelope | null>(null);
   const [metaRevision, setMetaRevision] = useState(0);
   const requestKey = `${format}:${rank}:${period ?? 'auto'}:${minGames}:${metaRevision}:${hasFullAccess ? 'full' : 'teaser'}`;
   const [resolvedRequestKey, setResolvedRequestKey] = useState('');
@@ -450,13 +448,11 @@ function StandardMetaContent({
           }
           if (!period) setPeriod(verified.data.period);
           setData(verified.data);
-          setDatasetEnvelope(verified.envelope);
         }
       })
       .catch(cause => {
         if (cause instanceof DOMException && cause.name === 'AbortError') return;
         if (currentRequest === requestId.current) {
-          setDatasetEnvelope(null);
           setRequestError({ key: requestKey, message: datasetContractErrorMessage(cause) });
         }
       })
@@ -550,28 +546,12 @@ function StandardMetaContent({
         </dl>
       </section>
 
-      {datasetEnvelope && (
-        datasetEnvelope.mode === 'early'
-        || datasetEnvelope.freshness === 'aging'
-        || datasetEnvelope.freshness === 'stale'
-        || datasetEnvelope.partial
-      ) && (
-        <AsyncSurfaceState
-          variant="stale"
-          compact
-          className="standard-meta__data-notice"
-          title={datasetEnvelope.mode === 'early' ? 'Ранняя мета' : 'Данные ожидают обновления'}
-          message={datasetEnvelope.quality.warnings[0]
-            || `Источник обновлён ${new Date(datasetEnvelope.sourceUpdatedAt || datasetEnvelope.publishedAt).toLocaleString('ru-RU')}.`}
-        />
-      )}
-
       <section className="standard-meta__controls" aria-label="Фильтры меты">
         <div className="standard-meta__panel-heading">
           <span aria-hidden="true"><Swords size={18} /></span>
           <div><strong>Управление срезом</strong><small>Выберите формат, рейтинг и временной диапазон</small></div>
         </div>
-        <div>
+        <div className="standard-meta__format-control">
           <span className="standard-meta__control-label">Формат</span>
           <div className="standard-meta__segmented">
             {FORMATS.map(option => {

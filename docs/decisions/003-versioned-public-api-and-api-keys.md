@@ -73,4 +73,4 @@ behavior the source of truth and require another production dependency.
 - Prefix lookup is followed by constant-time digest comparison.
 - Revoked keys fail with the same generic response as unknown keys.
 - Responses containing a newly created raw key use `Cache-Control: no-store`.
-- API keys are never written to logs, audit details, Notion or client storage.
+- API keys are never written to logs, audit details, task reports or client storage.

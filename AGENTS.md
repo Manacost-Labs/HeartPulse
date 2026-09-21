@@ -16,6 +16,12 @@ When a task touches the Hearthstone parser / `hearthstone-parses` /
 
 Do not invent a Firecrawl-first path for those pipelines.
 
+## Task and Design Context
+
+Use the current user request, repository documentation and supplied visual
+references for task scope and design context. External task databases and
+design boards are not required to investigate, implement or verify work.
+
 ## Required Multi-Session Coordination
 
 Codex, Claude, and other agents share the repository. Treat one task, one branch,

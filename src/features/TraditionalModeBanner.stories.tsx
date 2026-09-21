@@ -11,6 +11,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const MetaOverview: Story = {};
+export const MetaOverview: Story = {
+  parameters: {
+    docs: { description: { story: 'HSGuru artwork fades into the burgundy background without a visible image edge, including on narrow screens.' } },
+  },
+};
 export const Cards: Story = { args: { index: 5 } };
 export const ArenaLongTitle: Story = { args: { index: 7 } };

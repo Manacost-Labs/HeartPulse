@@ -78,7 +78,7 @@ export function evaluateSessionState({
     errors.push('The branch does not contain the current origin/main; fetch and rebase or merge before continuing.');
   }
   if (overlaps.length > 0) {
-    errors.push('Another session has overlapping uncommitted paths; coordinate through the shared Notion task first.');
+    errors.push('Another session has overlapping uncommitted paths; coordinate ownership with the other session first.');
   }
   if (integration && currentDirtyPaths.length > 0) {
     errors.push('Integration requires a clean current worktree.');

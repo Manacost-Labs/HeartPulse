@@ -225,7 +225,7 @@
 .standard-meta__rank-tabs {
   display: flex;
   min-width: 0;
-  min-height: 48px;
+  height: 64px;
   margin: 0;
   padding: 0.25rem;
   border: 1px solid rgba(92, 54, 24, 0.24);
@@ -242,6 +242,15 @@
   background: transparent;
   cursor: pointer;
   transition: background 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.standard-meta__format-control {
+  display: flex;
+  flex-direction: column;
+}
+
+.standard-meta__format-control .standard-meta__segmented {
+  margin-top: calc(14px + 0.22rem);
 }
 
 .standard-meta__segmented button {
@@ -280,7 +289,7 @@
 
 .standard-meta__rank-groups {
   display: grid;
-  grid-template-columns: minmax(250px, 0.9fr) minmax(350px, 1.1fr);
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   gap: 0.5rem;
 }
 
@@ -291,6 +300,8 @@
 }
 
 .standard-meta__rank-group > span {
+  height: 14px;
+  line-height: 14px;
   display: inline-flex;
   gap: 0.3rem;
   align-items: center;
@@ -302,7 +313,6 @@
 }
 
 .standard-meta__rank-group > span svg { color: var(--meta-purple); }
-.standard-meta__rank-group .standard-meta__rank-tabs { min-height: 44px; }
 .standard-meta__rank-select { display: none; }
 
 .standard-meta__secondary-filters {
@@ -1053,8 +1063,8 @@
 @media (max-width: 1050px) {
   .standard-meta__masthead { grid-template-columns: 1fr; }
   .standard-meta__masthead-stats { min-height: 88px; }
-  .standard-meta__controls { grid-template-columns: 1fr 1fr; }
-  .standard-meta__rank-groups { grid-template-columns: 1fr; }
+  .standard-meta__controls { grid-template-columns: minmax(0, 1fr); }
+  .standard-meta__format-control .standard-meta__segmented { margin-top: 0; }
   .standard-meta__search { grid-column: 1 / -1; }
   .standard-meta__secondary-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .standard-meta__grid { grid-template-columns: 1fr; }
@@ -1094,7 +1104,7 @@
   .standard-meta__search { width: 100%; min-width: 0; max-width: 100%; }
   .standard-meta__control-label { margin-bottom: 0.3rem; font-size: 0.6rem; }
   .standard-meta__segmented,
-  .standard-meta__rank-tabs { min-height: 44px; padding: 0.15rem; }
+  .standard-meta__rank-tabs { height: auto; min-height: 44px; padding: 0.15rem; }
   .standard-meta__segmented button,
   .standard-meta__rank-tabs button { min-height: 44px; padding: 0.3rem 0.48rem; }
   .standard-meta__segmented strong { font-size: 0.76rem; }

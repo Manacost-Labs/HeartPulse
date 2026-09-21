@@ -89,7 +89,7 @@ as legacy until evidence establishes its owner; do not invent a module name.
 For a normal change, load only:
 
 1. `AGENTS.md` and this map;
-2. the matching Notion task and its acceptance criteria;
+2. the current user request and its acceptance criteria;
 3. the owning public entrypoint or route plus direct callers;
 4. the focused model, adapter and test files returned by the catalog;
 5. the one authoritative architecture, specification or runbook document;

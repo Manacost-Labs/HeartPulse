@@ -71,8 +71,7 @@ Each slice is committed independently after its focused checks pass.
   and required real-browser review pass.
 - Operational documentation and `CHANGELOG.md` describe the changed behavior.
 
-## Tooling constraint
+## Scope boundary
 
-Miro is unavailable in the current environment. Work may continue because
 Phase 0 does not include visual or layout changes. Any discovery that requires
-such a change pauses until the design context is available.
+such a change needs a separate user-approved task with explicit visual references.

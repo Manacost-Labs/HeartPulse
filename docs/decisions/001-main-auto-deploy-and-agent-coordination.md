@@ -17,8 +17,8 @@ Giving a hosted CI runner an SSH key would also create a broad reusable secret.
 
 ## Decision
 
-- One task owns one branch and one linked worktree. Notion remains the shared
-  cross-agent task ledger.
+- One task owns one branch and one linked worktree. The user request and
+  repository documentation hold the task scope and acceptance criteria.
 - A repository preflight fetches `origin/main`, reports dirty sibling
   worktrees, blocks overlapping uncommitted paths, and prevents integration
   when the task branch is stale or dirty.
@@ -52,8 +52,8 @@ changes and cannot prove which commit produced the running files.
 ### Automatically merge every agent branch
 
 Rejected because branch presence does not establish task completeness. Agents
-coordinate ownership through Notion and integrate only committed, validated
-work through normal Git ancestry.
+coordinate ownership through task branches and session preflights, and integrate
+only committed, validated work through normal Git ancestry.
 
 ## Consequences
 

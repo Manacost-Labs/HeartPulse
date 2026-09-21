@@ -259,7 +259,7 @@ npm run qa:e2e
 | Supply chain | Dependabot, OSV-Scanner, Dependency Review, npm audit, OpenSSF Scorecard |
 | Наблюдаемость | Sentry React/Node SDK, Sentry MCP, Chrome DevTools MCP, readiness/metrics, production monitor и browser observer |
 | Delivery | GitHub Actions, immutable artifacts, Nginx, systemd, atomic symlink switch, rollback и encrypted backups |
-| Контекст команды | Notion для задач, Miro для схем и UX-контекста, Codex/Claude post-push review |
+| Контекст команды | Задание пользователя, документация и визуальные референсы в репозитории, Codex/Claude post-push review |
 
 Все security Actions закреплены полными commit SHA, а чувствительные интеграции
 остаются выключенными без явной серверной конфигурации. Подробности и команды
