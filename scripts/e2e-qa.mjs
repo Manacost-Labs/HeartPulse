@@ -4193,7 +4193,7 @@ for (const [device, viewport] of [
         },
         publicProfileActionCount: document.querySelectorAll('.profile-public-link :is(a, button)').length,
         logoutGridColumn: getComputedStyle(document.querySelector('.profile-account-actions__logout')).gridColumn,
-        adminMetaHref: document.querySelector('[data-profile-admin-destination="standard-meta"]')?.getAttribute('href') || '',
+        accountActionLinks: document.querySelectorAll('.profile-account-actions a').length,
       };
     });
     const expectedProfile = device === 'desktop'
@@ -4270,8 +4270,8 @@ for (const [device, viewport] of [
       || profileState.materials.input?.backgroundColor !== 'rgba(255, 246, 219, 0.72)') {
       failures.push(`profile [${device}]: profile input material changed (${JSON.stringify(profileState.materials.input)})`);
     }
-    if (profileState.adminMetaHref !== '/standard/meta') {
-      failures.push(`profile [${device}]: admin meta destination is missing or incorrect (${profileState.adminMetaHref})`);
+    if (profileState.accountActionLinks !== 0) {
+      failures.push(`profile [${device}]: retired account shortcuts returned (${profileState.accountActionLinks})`);
     }
     const profileTourViolationCount = await auditPageTour(page, {
       label: `profile [${device}]`,

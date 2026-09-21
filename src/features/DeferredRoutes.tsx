@@ -3869,16 +3869,6 @@ export function LoginPanel({
             )}
           </section>
           <div className="profile-account-actions" data-tour-id="profile-account-actions">
-            {(authUser.adminAllowed || authUser.role === 'admin') && (
-              <>
-                <a href="/standard/meta" data-profile-admin-destination="standard-meta">
-                  Открыть мету Standard · Beta
-                </a>
-                <a href={'/?admin&section=list'} data-profile-admin-destination="articles">
-                  Настроить статьи
-                </a>
-              </>
-            )}
             <button type="button" className="profile-account-actions__logout" onClick={handleLogout}>
               Выйти
             </button>

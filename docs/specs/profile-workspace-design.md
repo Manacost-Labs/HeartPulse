@@ -38,6 +38,8 @@ Keep existing account and subscription API contracts and privacy boundaries.
 last verification time. An active subscription initially collapses the native
 setup disclosure; unconfirmed access opens it. The account surface is styled
 independently of the previous tab, and promotional overlays are hidden there.
+The bottom account actions contain sign-out only, including for administrators;
+the former Standard meta and article-management shortcuts are removed.
 
 ## Verification
 

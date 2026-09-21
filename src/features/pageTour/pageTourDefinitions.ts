@@ -47,7 +47,7 @@ export const PAGE_TOURS: readonly PageTourDefinition[] = [
       { id: 'telegram', target: 'profile-telegram-access', title: 'Проверка Telegram', description: 'Создайте ID-код и отправьте его боту. Обычное поле @username в контактах не подтверждает членство в VIP-канале.', audience: 'non-admin', preferredPlacement: 'top' },
       { id: 'boosty', target: 'profile-boosty-access', title: 'Подтверждение Boosty', description: 'Введите именно почту из Boosty-профиля. После шестизначного кода сайт обновит доступ к разделам вашего уровня.', audience: 'non-admin', preferredPlacement: 'top' },
       { id: 'contests', target: 'profile-contests', title: 'Ваши конкурсы', description: 'Здесь появляются отправленные заявки, их статус, призы и отметка победителя. Счётчик показывает количество участий и побед.', preferredPlacement: 'top' },
-      { id: 'actions', target: 'profile-account-actions', title: 'Быстрые действия', description: 'Здесь находятся доступные вашей роли переходы и безопасный выход из текущей сессии.', audience: 'admin', preferredPlacement: 'top' },
+      { id: 'actions', target: 'profile-account-actions', title: 'Выход из аккаунта', description: 'Нажмите «Выйти», чтобы завершить текущую сессию на этом устройстве.', audience: 'admin', preferredPlacement: 'top' },
     ],
   },
   {
