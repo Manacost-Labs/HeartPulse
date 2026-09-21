@@ -514,12 +514,6 @@
   transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
 }
 
-.arena-app-battlegrounds .bg-heroes-search:focus-within {
-  border-color: rgba(143, 83, 109, 0.72);
-  background: rgba(255, 249, 230, 0.82);
-  box-shadow: 0 0 0 3px rgba(143, 83, 109, 0.12);
-}
-
 .arena-app-battlegrounds .bg-heroes-search input {
   appearance: none;
   border: 0;

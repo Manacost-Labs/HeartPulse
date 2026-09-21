@@ -39,12 +39,6 @@
   transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
 }
 
-.constructed-card-search__field:focus-within {
-  border-color: #60417a;
-  background: rgba(255, 251, 234, 0.94);
-  box-shadow: 0 0 0 2px rgba(96, 65, 122, 0.18), inset 0 1px rgba(255, 255, 255, 0.62);
-}
-
 .constructed-card-search__field > svg {
   flex: 0 0 auto;
   color: #784927;

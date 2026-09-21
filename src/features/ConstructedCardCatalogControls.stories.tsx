@@ -56,6 +56,34 @@ export const SearchPending: Story = {
   ),
 };
 
+export const PointerTyping: Story = {
+  render: () => <SearchFixture />,
+  play: async ({ canvasElement }) => {
+    const input = within(canvasElement).getByRole('searchbox', { name: 'Поиск карт' });
+    await userEvent.click(input);
+    await userEvent.clear(input);
+    await userEvent.type(input, 'маг');
+    await expect(input).toHaveValue('маг');
+    await expect(input).toHaveFocus();
+    await expect(getComputedStyle(input).boxShadow).toBe('none');
+    await expect(getComputedStyle(input).outlineStyle).toBe('none');
+  },
+};
+
+export const KeyboardFocus: Story = {
+  render: () => <SearchFixture />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const input = canvas.getByRole('searchbox', { name: 'Поиск карт' });
+    await userEvent.click(input);
+    await userEvent.tab();
+    await userEvent.tab({ shift: true });
+    await expect(input).toHaveFocus();
+    await expect(getComputedStyle(input).outlineWidth).toBe('2px');
+    await expect(getComputedStyle(input).boxShadow).toBe('none');
+  },
+};
+
 export const CompactDownload: Story = {
   render: () => (
     <div style={{ minHeight: 180, display: 'grid', placeItems: 'center' }}>

@@ -1,0 +1,12 @@
+/* Route styles must not add a second ring inside decorative field frames.
+   Text inputs also match :focus-visible after a pointer click, so Tab mode
+   is tracked explicitly. Native toggles keep their own focus treatment. */
+html :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"]), select, textarea):focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+html:not([data-field-focus="pointer"]) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"]), select, textarea):focus-visible {
+  outline: 2px solid currentColor !important;
+  outline-offset: -2px !important;
+}

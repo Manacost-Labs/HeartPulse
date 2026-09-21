@@ -324,12 +324,6 @@
   transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
 }
 
-.archetypes-search:focus-within {
-  border-color: var(--archetypes-wine);
-  background: rgba(255, 251, 235, 0.94);
-  box-shadow: 0 0 0 3px rgba(103, 19, 28, 0.13);
-}
-
 .archetypes-search svg {
   width: 1.1rem;
   height: 1.1rem;

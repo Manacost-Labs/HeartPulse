@@ -313,11 +313,6 @@
   box-shadow: none;
 }
 
-.draft-card-picker-control:focus-within {
-  outline: 3px solid rgba(239, 201, 111, 0.48);
-  outline-offset: 1px;
-}
-
 .draft-mana-curve {
   display: grid;
   gap: 0.45rem;

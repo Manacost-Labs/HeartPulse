@@ -336,9 +336,6 @@
 }
 
 .archetypes-sort svg { position: absolute; right: 0.7rem; pointer-events: none; }
-.archetypes-search:focus-within,
-.archetypes-sort:focus-within { outline: 3px solid rgba(141, 23, 29, 0.2); border-color: #8d171d; }
-
 .archetypes-ledger {
   margin-top: 1rem;
   overflow: hidden;

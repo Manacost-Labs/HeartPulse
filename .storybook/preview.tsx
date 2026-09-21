@@ -2,6 +2,10 @@ import type { Preview } from '@storybook/react-vite';
 
 import '../src/index.css';
 import './preview.css';
+import { installFieldFocusMode } from '../src/app/shell/installFieldFocusMode';
+
+const disposeFieldFocusMode = installFieldFocusMode(document);
+if (import.meta.hot) import.meta.hot.dispose(disposeFieldFocusMode);
 
 const preview: Preview = {
   parameters: {

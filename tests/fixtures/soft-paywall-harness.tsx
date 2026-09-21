@@ -4,6 +4,9 @@ import StandardMetaPage from '../../src/features/StandardMeta';
 import ConstructedArchetypes from '../../src/features/ConstructedArchetypes';
 import FunDecksPage from '../../src/features/FunDecksPage';
 import '../../src/index.css';
+import { installFieldFocusMode } from '../../src/app/shell/installFieldFocusMode';
+
+installFieldFocusMode(document);
 
 const metaItems = [
   ['void-soul-dh', 'Void Soul DH', 'Охотник на демонов Бездны', 'demonhunter', 60.4, 36.7, 390_438],

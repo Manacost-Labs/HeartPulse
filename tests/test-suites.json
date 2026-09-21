@@ -276,6 +276,7 @@
         "tests/battleground-accessories-browser.test.mjs",
         "tests/battleground-hero-motion-browser.test.mjs",
         "tests/page-headers-browser.test.mjs",
+        "tests/field-focus-browser.test.mjs",
         "tests/arena-card-motion.browser.test.mjs",
         "tests/constructed-archetypes-browser.test.mjs",
         "tests/controlled-input-browser.test.mjs",

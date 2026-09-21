@@ -381,11 +381,6 @@
   cursor: pointer;
 }
 
-.fun-decks-tools__sort:focus-within {
-  outline: 3px solid var(--fun-gold);
-  outline-offset: 2px;
-}
-
 .fun-decks-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -4,6 +4,10 @@ import App from './App.tsx';
 import AppErrorBoundary from './components/AppErrorBoundary';
 import './index.css';
 import './parchment-theme.css';
+import { installFieldFocusMode } from './app/shell/installFieldFocusMode';
+
+const disposeFieldFocusMode = installFieldFocusMode(document);
+if (import.meta.hot) import.meta.hot.dispose(disposeFieldFocusMode);
 
 const releaseId = typeof __APP_RELEASE_SHA__ === 'string' ? __APP_RELEASE_SHA__ : 'development';
 
