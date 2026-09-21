@@ -1994,11 +1994,6 @@
       "actions actions";
     align-items: start;
   }
-
-  .profile-workspace .profile-contact-section {
-    position: sticky;
-    top: 1rem;
-  }
 }
 
 @media (max-width: 640px) {

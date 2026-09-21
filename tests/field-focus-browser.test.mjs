@@ -68,6 +68,9 @@ test('account has its own surface and usable access and contact groups', async (
       assert.equal(await page.$eval('.profile-subscription-management', e => e.open), true);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
       assert.ok(await page.$eval('.profile-settings-form input', e => e.getBoundingClientRect().height) >= 44);
+      await page.$eval('.profile-account-actions', e => e.scrollIntoView({ block: 'center' }));
+      assert.equal(await page.evaluate(() => document.querySelector('.profile-settings-form').getBoundingClientRect().bottom
+        <= document.querySelector('.profile-account-actions').getBoundingClientRect().top), true, 'contacts must not overlap sign-out while scrolling');
     }
     await page.setViewport({ width: 390, height: 1000 });
     await page.goto(`${server.resolvedUrls.local[0]}tests/fixtures/profile-workspace.html?access=none`);
