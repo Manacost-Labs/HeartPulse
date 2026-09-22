@@ -114,6 +114,14 @@ with current contracts, verify each bounded change, and record its merge.
 
 ## Superseded Reader iterations
 
+- Pending `feat/manacost-reader-v1-reviewed` snapshot `f5e335d1`: compared the
+  module, composition, UI continuation and tests to the now-merged staging tip.
+  They are identical except that the draft lacks nine lines of later consent
+  Referrer-Policy/CSP fixes and their assertions. The staging draft's config,
+  dependency versions and operational instructions are superseded by the
+  reviewed production implementation. Preserve the verified current versions;
+  the resolved merge changes no application files.
+
 - Pending `feat/manacost-reader-production-client-20260913` snapshot
   `14f7b1ad`: all twelve source/configuration/test files already match upstream
   exactly. The three remaining documentation differences are newer release
