@@ -189,3 +189,17 @@ with current contracts, verify each bounded change, and record its merge.
   the old draft used the shared legacy TLS pool. Other differences are the
   already-reconciled early staging iteration. No application diff; the passing
   identity suite includes cleanup, revocation and session-binding behavior.
+
+## Rebased analytics history
+
+`feat/boosty-article-analytics-20260728` was already integrated under rebased
+commits. Verified original/integrated pairs:
+`376fd39/5f45a8d`, `44016e2/665bc2e`, `98599c1/6e1277e`,
+`a29c013/7e382b1`, `245ad55/5e961ce`, `1120ba2/5113468`,
+`c795727/9108cc3`, `81dddb6/73e48a0`, `2af5fcf/d7218da`,
+`f6893a7/0f61a0f`, `a410da7/88478e6`, `5d438d4/790c74e`,
+`c7f90c6/44e9e4d`. Feature modules/tests match their counterparts; differences
+in composition and UI include independent card-media, filters and cosmetics
+work. Retained those newer implementations, current dependencies and notes.
+The resolved application tree is unchanged. Boosty analytics, card period,
+history storage and constructed-card route tests pass.
