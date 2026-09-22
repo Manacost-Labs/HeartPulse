@@ -65,6 +65,11 @@ because integration passed.
 
 - Current upstream fetched; isolated worktree preflight passed.
 - Backups completed and verified.
+- Removed 79 local branches already ancestral to upstream after checking their
+  saved SHA and clean worktree state. Detached 78 corresponding worktrees at
+  exactly the same commits, preserving every file (including ignored state).
+  Ten branches with dirty worktrees and `main` remain protected. Exact receipts:
+  `merged-branch-cleanup.json` in the backup directory.
 - Divergent history reduced to 13 independent tips (excluding migration).
 - `chore/hearthpulse-reader-audit-20260910`: the sole commit is patch-equivalent
   to upstream. A three-way merge produced no file changes; its ancestry is now
