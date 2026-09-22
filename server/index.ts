@@ -149,6 +149,7 @@ import { createCardImageDependencies } from './app/createCardImageDependencies.j
 import { installProcessLifecycle } from './app/lifecycle/processLifecycle.js';
 import { registerApplicationAuth } from './app/registerApplicationAuth.js';
 import { registerBrowserIdentity } from './app/registerBrowserIdentity.js';
+import { normalizeBoostyPaymentDates } from './modules/readerEntitlements/public.js';
 import { serializeApplicationProfileUser, serializeApplicationSubscription } from './app/applicationAuthProfile.js';
 import { createBlizzardCardImageClient, downloadBlizzardCardImage } from './blizzardCards.js';
 import { resolveConstructedCardImageSourceUrl } from './constructedCardImageOverrides.js';
@@ -224,7 +225,7 @@ import { createAdminImageUploadRouter } from './adminImageUploadRoutes.js';
 import { fetchRemoteAdminImage } from './adminRemoteImage.js';
 import { createAdminImageGenerationRouter } from './adminImageGenerationRoutes.js';
 import { createPublicApiCardSources, registerPublicApi } from './app/registerPublicApi.js';
-import { startSubscriptionRefreshJob } from './modules/subscription/public.js';
+import { startSubscriptionRefreshJob, writeSubscriptionCacheRow } from './modules/subscription/public.js';
 import {
   firestoneArenaMatchupsDataset,
   normalizeFirestoneArenaClassRows,
@@ -3558,22 +3559,8 @@ function writeSubscriptionStatus(user: AdminUser, status: SubscriptionStatus) {
   const patreon = normalizePatreonSubscriptionDetail(status.patreon);
   const entitlements = mergeEntitlements(status.entitlements, boosty.entitlements, telegram.entitlements, patreon.entitlements);
   const hasAccess = hasAnyEntitlement(entitlements);
-  dbRun(`
-    INSERT INTO subscriptions (
-      user_id, has_access, source, message, checked_at, stale, boosty_json, telegram_json, patreon_json, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(user_id) DO UPDATE SET
-      has_access = excluded.has_access,
-      source = excluded.source,
-      message = excluded.message,
-      checked_at = excluded.checked_at,
-      stale = excluded.stale,
-      boosty_json = excluded.boosty_json,
-      telegram_json = excluded.telegram_json,
-      patreon_json = excluded.patreon_json,
-      updated_at = excluded.updated_at
-  `, user.id, hasAccess ? 1 : 0, status.source, status.message, status.checkedAt, status.stale ? 1 : 0,
-    JSON.stringify(boosty), JSON.stringify(telegram), JSON.stringify(patreon), nowIso);
+  writeSubscriptionCacheRow(db(), { userId: user.id, hasAccess, source: status.source, message: status.message,
+    checkedAt: status.checkedAt, stale: status.stale, boosty, telegram, patreon, updatedAt: nowIso });
 }
 
 function writeSubscriptionCheck(user: AdminUser, source: string, hasAccess: boolean, detail: Record<string, any>) {
@@ -3696,6 +3683,7 @@ async function checkBoostySubscription(user: AdminUser): Promise<Record<string, 
     const subscriber = data?.subscriber && typeof data.subscriber === 'object' ? data.subscriber : null;
     const money = subscriber?.money && typeof subscriber.money === 'object' ? subscriber.money : {};
     const level = subscriber?.level && typeof subscriber.level === 'object' ? subscriber.level : {};
+    const paymentDates = normalizeBoostyPaymentDates(subscriber);
     const price = Number(money.currentPrice ?? level.price ?? 0) || 0;
     const active = Boolean(data?.hasAccess ?? subscriber?.hasActivePaidAccess);
     const levelName = String(level.name || '');
@@ -3712,6 +3700,7 @@ async function checkBoostySubscription(user: AdminUser): Promise<Record<string, 
       minLevelName: BOOSTY_MIN_LEVEL_NAME,
       price,
       levelName,
+      ...paymentDates,
       entitlements,
       message: hasAccess
         ? 'Boosty подписка подтверждена.'

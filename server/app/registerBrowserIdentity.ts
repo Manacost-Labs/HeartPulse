@@ -1,6 +1,7 @@
 import type { Application } from 'express';
 import type { DatabaseSync } from 'node:sqlite';
 import { createBrowserIdentityRuntime, startIdentityCleanup } from '../modules/browserIdentity/public.js';
+import { createReaderEntitlementsRouter } from '../modules/readerEntitlements/public.js';
 
 /** Opt-in composition only: unset configuration must not change the existing login or public site. */
 export function registerBrowserIdentity({ app, getDatabase, authCookieName, environment = process.env }: {
@@ -19,6 +20,17 @@ export function registerBrowserIdentity({ app, getDatabase, authCookieName, envi
       signingKeys: JSON.parse(environment.BROWSER_IDENTITY_JWKS ?? '{}'),
       clients: JSON.parse(environment.BROWSER_IDENTITY_CLIENTS ?? '[]'),
     });
+    if (environment.READER_ENTITLEMENTS_ENABLED === '1') {
+      const configuredSources = (environment.READER_ENTITLEMENTS_PAID_SOURCES ?? 'boosty,patreon').split(',').map(value => value.trim());
+      if (!configuredSources.length || configuredSources.some(value => value !== 'boosty' && value !== 'patreon')) {
+        throw new Error('Invalid reader entitlement source allowlist');
+      }
+      app.use('/identity', createReaderEntitlementsRouter({
+        database: getDatabase(),
+        clients: JSON.parse(environment.BROWSER_IDENTITY_CLIENTS ?? '[]'),
+        allowedSources: configuredSources as Array<'boosty' | 'patreon'>,
+      }));
+    }
     app.use('/identity', runtime.router);
     return startIdentityCleanup(getDatabase());
   } catch { throw new Error('Browser identity configuration invalid; no secret values are logged'); }
