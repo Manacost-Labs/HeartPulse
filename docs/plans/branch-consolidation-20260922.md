@@ -166,3 +166,8 @@ with current contracts, verify each bounded change, and record its merge.
   Preserve the later lazy account wrapper and fragment-only continuation, which
   avoid logging the interaction handle and leave connect/public profiles alone.
   Removed the obsolete hook wiring after conflict resolution; no application diff.
+
+- Pending Reader login draft `b0f715b5`: same obsolete query-based hook as the
+  account draft, placed in `src/lib`. Retained the domain-owned lazy wrapper
+  and removed the duplicate draft file/wiring. The original remains in its
+  archive commit; no application change is needed.
