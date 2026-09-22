@@ -1,0 +1,31 @@
+[Unit]
+Description=Read-only Hearthstone game-data completeness audit
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/var/www/koloda/data/www/hs-arena.ru/current/build/server/modules/gameDataAudit/cli.js
+
+[Service]
+Type=oneshot
+User=koloda
+Group=koloda
+WorkingDirectory=/var/www/koloda/data/www/hs-arena.ru/current
+EnvironmentFile=/etc/hs-arena/hs-arena.env
+EnvironmentFile=-/etc/db-kolodahs-card-scan.env
+Environment=GAME_DATA_AUDIT_CODEX_ENABLED=0
+EnvironmentFile=-/etc/hs-arena/game-data-audit.env
+Environment=APP_ROOT_DIR=/var/www/koloda/data/www/hs-arena.ru/current
+Environment=GAME_DATA_AUDIT_STATE_DIR=/var/www/koloda/data/www/hs-arena.ru/shared/server-data/game-data-audit
+ExecStart=/usr/bin/node build/server/modules/gameDataAudit/cli.js --scheduled
+TimeoutStartSec=30m
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/www/koloda/data/www/hs-arena.ru/shared/server-data/game-data-audit
+ReadWritePaths=-/var/lib/hs-arena/game-data-audit-codex
+SuccessExitStatus=20
+StandardOutput=journal
+StandardError=journal

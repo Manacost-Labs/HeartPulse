@@ -497,6 +497,27 @@ fan-out bounded: Wild currently spans more than thirty large pages, and loading
 all of them simultaneously can overload the local DB proxy and make a recently
 verified catalog appear as LKG after a transient fetch failure.
 
+## Game-data audit timer
+
+The read-only game-data audit checks release signals, catalog completeness,
+golden Battlegrounds variants, localized media and statistics health. Install
+its hourly scheduler after the release containing the compiled CLI is active:
+
+```bash
+sudo install -m 644 deploy/systemd/hs-arena-game-data-audit.service \
+  /etc/systemd/system/
+sudo install -m 644 deploy/systemd/hs-arena-game-data-audit.timer \
+  /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now hs-arena-game-data-audit.timer
+```
+
+The hourly timer performs a real audit every six hours and switches to hourly
+audits for 72 hours after a release signal changes. Its state is stored below
+`shared/server-data/game-data-audit`. Optional Codex escalation and the
+root-owned environment file are documented in
+`docs/runbooks/game-data-audit.md`.
+
 ## Verified production drill
 
 The first production drill on 2026-07-11 switched release `bc19b2b` back to
@@ -515,5 +536,6 @@ curl -fsS https://hearthpulse.net/api/health/data
 curl -fsS https://hearthpulse.net/api/metrics
 sudo systemctl list-timers 'hs-arena-backup*'
 sudo systemctl list-timers 'hs-arena-scraper*'
+sudo systemctl list-timers 'hs-arena-game-data-audit*'
 npm run qa:e2e
 ```

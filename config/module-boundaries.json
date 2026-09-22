@@ -489,6 +489,23 @@
       "docs": [
         "docs/architecture/module-boundaries.md"
       ]
+    },
+    {
+      "id": "server.gameDataAudit",
+      "runtime": "server",
+      "root": "server/modules/gameDataAudit",
+      "purpose": "Collect bounded read-only source observations and persist deterministic game-data audit reports.",
+      "owner": "data-platform",
+      "publicEntry": "server/modules/gameDataAudit/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:game-data-audit"
+      ],
+      "docs": [
+        "docs/specs/game-data-audit-pipeline.md",
+        "docs/runbooks/game-data-audit.md",
+        "docs/decisions/010-read-only-game-data-audit.md"
+      ]
     }
   ],
   "migrationAreas": [

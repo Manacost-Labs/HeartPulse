@@ -1025,6 +1025,49 @@
       "forbiddenImports": [
         "other module internals"
       ]
+    },
+    {
+      "name": "backend-game-data-audit",
+      "status": "modular",
+      "owner": "data-platform",
+      "purpose": "Read-only bounded game-data audit with opt-in diagnostic review.",
+      "paths": [
+        "server/modules/gameDataAudit"
+      ],
+      "publicEntrypoints": [
+        "server/modules/gameDataAudit/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": [
+        "docs/specs/game-data-audit-pipeline.md"
+      ],
+      "jobs": [
+        "server/modules/gameDataAudit/cli.ts"
+      ],
+      "cacheNamespaces": [],
+      "dataStores": [
+        "filesystem:audit reports and state"
+      ],
+      "externalServices": [
+        "configured allowlisted game-data sources",
+        "optional Codex CLI"
+      ],
+      "tests": [
+        "tests/game-data-audit-codex.test.ts",
+        "tests/game-data-audit-contract.test.mjs",
+        "tests/game-data-audit-model.test.ts",
+        "tests/game-data-audit-repository.test.ts",
+        "tests/game-data-audit-store.test.ts"
+      ],
+      "allowedDependencies": [
+        "Node.js filesystem/crypto/process",
+        "bounded Fetch API"
+      ],
+      "forbiddenImports": [
+        "src/**",
+        "other server module internals"
+      ]
     }
   ],
   "legacyAreas": [

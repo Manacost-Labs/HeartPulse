@@ -233,7 +233,10 @@
     "test:browser-identity-contracts": "node --import tsx --test tests/browser-identity-storage.test.ts tests/browser-identity-provider.test.ts tests/browser-identity-binding.test.ts tests/browser-identity-runtime.test.ts tests/browser-identity-cleanup.test.ts tests/browser-identity-lifecycle.test.ts tests/browser-identity-live-bridge.test.ts",
     "test:reader-entitlements-contracts": "node --import tsx --test tests/reader-entitlements-routes.test.ts",
     "test:reader-permissions-contracts": "node --import tsx --test tests/reader-permissions-routes.test.ts",
-    "test:browser-session-cookies-contracts": "node --import tsx --test tests/browser-session-cookies.test.ts"
+    "test:browser-session-cookies-contracts": "node --import tsx --test tests/browser-session-cookies.test.ts",
+    "game-data:audit": "tsx server/modules/gameDataAudit/cli.ts --force",
+    "game-data:audit:scheduled": "tsx server/modules/gameDataAudit/cli.ts --scheduled",
+    "test:game-data-audit": "tsx --test tests/game-data-audit-model.test.ts tests/game-data-audit-repository.test.ts tests/game-data-audit-codex.test.ts tests/game-data-audit-store.test.ts && node --test tests/game-data-audit-contract.test.mjs"
   },
   "dependencies": {
     "@firestone-hs/deckstrings": "^2.2.8",

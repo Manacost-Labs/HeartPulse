@@ -298,3 +298,23 @@ Storybook review links: [changed stories](http://localhost:6006/?statuses=affect
 [active subscription](http://localhost:6006/?path=/story/profile-account-workspace--active-subscription),
 [Telegram account linking](http://localhost:6006/?path=/story/identity-telegram-account-link-actions--oidc-and-bot-ready),
 [access check](http://localhost:6006/?path=/story/profile-access-summary--checking).
+
+### Independent game-data audit
+
+The module extraction merge was verified and committed as `948762c`. The next
+independent branch adds a read-only audit CLI, bounded source collection and
+optional AI review. Documentation impact: the audit spec, runbook, ADR, module
+ownership registries, deployment instructions, agent-tooling notes, changelog
+and this plan. Reconcile with the current test registry and split new files to
+meet the existing clean-code limits; do not increase debt allowances. The
+systemd template keeps AI review off by default, and no service is installed or
+started by this integration.
+
+Verified: all five audit test files, TypeScript, server build, architecture and
+HTTP-manifest checks, module catalog tests, test registry, clean-code checks,
+documentation lint, Knip, property tests and Sentry privacy tests pass. Semgrep
+reports zero findings or parser errors; full-history and pending-file Gitleaks
+scans report no leaks. The 375-line collector is split into transport, document,
+JSON and health boundaries with no new `any` or debt allowances. Provider order
+remains Scrape.do, Firecrawl key rotation, then Scrapfly. External providers and
+the optional AI process were mocked in tests.

@@ -260,3 +260,14 @@ Sentry MCP объявлен как удалённый OAuth-сервер
 поддерживающий MCP клиент запросит вход в Sentry; без него инструмент остаётся
 неактивным. Не добавляйте устаревшие query-параметры к MCP URL: OAuth resource
 должен точно совпадать с официальным базовым endpoint.
+
+## Stack Overflow for Agents
+
+Project-local skills `sofa`, `sofa-status` и `sofa-contribute` установлены в
+`.agents/skills` из `https://agents.stackoverflow.com/` и закреплены хешами в
+`skills-lock.json`. Они доступны Codex после следующего запуска задачи.
+
+Перед первым обращением к API агент обязан запросить у человека имя, описание,
+роль и persona; нельзя придумывать эти поля автоматически. Session/API token
+Stack Overflow for Agents хранится только вне Git и никогда не добавляется в
+`skills-lock.json`, документацию или журнал команд.

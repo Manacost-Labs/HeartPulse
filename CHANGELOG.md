@@ -2,6 +2,97 @@
 
 ## Unreleased
 
+- Added a read-only game-data audit pipeline that fingerprints HearthstoneJSON,
+  Blizzard patch notes and Hearthstone Wiki changes; validates Battlegrounds
+  cards, golden variants, heroes, powers, trinkets, Dark Gifts and statistics;
+  and stores atomic reports on a six-hour or post-patch hourly schedule.
+- Added guarded Codex escalation for actionable data changes and completeness
+  failures. Codex receives normalized counters and hashes only, runs in an
+  ephemeral read-only sandbox and cannot publish or deploy data.
+- Installed the project-local Stack Overflow for Agents skill set with pinned
+  source hashes and documented its explicit onboarding and secret boundary.
+- Made `cdn.arena.hs-manacost.ru` serve synchronized card images directly from
+  each regional edge before Timeweb, removing the external cold-cache hop from
+  constructed-card catalog loads.
+- Rebuilt edge card-image publication as an atomic generation and made the
+  sync skip path verify raw/served counts plus manifest freshness, preventing
+  newly generated cards from remaining outside the fast local mirror.
+- Added release, Nginx and publication regression contracts plus an operations
+  runbook for local-first card delivery, verification and rollback.
+- Restored true Battlegrounds hero portraits for the complete hero tier list:
+  verified stats/library portraits now take precedence over the generic card
+  cache, which renders several legacy hero IDs as hero-power card frames.
+- Added regression coverage for both current `BG36_HERO_*` and legacy
+  `TB_BaconShop_HERO_*` identifiers and audited all 116 current hero portrait
+  URLs through Arena's same-origin media proxy.
+- Made constructed-card details, related cards and generated pools prefer the
+  canonical Hearthstone card ID over DBF for image delivery, restoring event
+  card renders that are present in HearthstoneJSON but absent from Blizzard's
+  DBF image catalog.
+- Restored patch 36.2 event cards while Blizzard's Game Data API is lagging,
+  using a strict August 4–25 HearthstoneJSON fallback for Watfin, Soul
+  Immolation and Desperate Bribe in Standard and Wild.
+- Added wiki-card and full-art fallbacks to the local card image pipeline so
+  newly released Battlegrounds heroes no longer cache a “Нет изображения”
+  placeholder while localized HearthstoneJSON renders are still unavailable.
+- Made Battlegrounds hero grids and tables prefer Arena's verified same-origin
+  card image cache, preventing new heroes from rendering as broken images when
+  an upstream image URL is stale or blocked.
+- Reduced the trinket hover preview to 320px and the click lightbox to a 672px frame with a 288px card render.
+- Added pick rate, average placement and the 1–8 placement histogram to every trinket gallery card, and reduced the trinket hover preview and lightbox footprint.
+- Refined the Battlegrounds trinket tier list with white costs, darkened full-art row backdrops, large card-only transparent tooltips, and a shareable table/gallery switch using the supplied Hearthstone controls.
+- Routed trinket full art and localized transparent card renders through Arena's same-origin media proxy so the new views remain reliable in restricted networks.
+- Prepared the constructed-card catalog, related cards and lightbox for the
+  self-hosted `cdn.arena.hs-manacost.ru` delivery endpoint with a deploy-safe
+  runtime switch, strict origin allow-list and automatic same-origin retry.
+- Kept full-quality downloads on the application origin so browser downloads
+  remain reliable while normal card rendering can use the CDN.
+- Routed generated Deckview images through Arena's same-origin cached media
+  boundary, so Fun Deck galleries also load where `api.blizzcore.ru` is
+  unavailable to the visitor, including affected users in Russia.
+- Added immutable 720px WebP derivatives for Deckview galleries while keeping
+  the full JPEG for the lightbox, reducing measured catalog image transfer by
+  about 92% on the canonical 30- and 40-card Reno fixtures.
+- Coalesced duplicate deck renders, limited the browser to three concurrent
+  requests, and added a two-worker background prewarmer with a persisted image
+  manifest so cold Fun Deck galleries progressively become instant warm loads.
+- Exposed preview-prewarm queue telemetry in Standard operations and retained
+  the existing card-list fallback for real render or delivery failures.
+- Bounded failed preview and full-image delivery retries, preventing a network
+  outage from turning three gallery cards into an unbounded request storm.
+- Made Deckview previews recover automatically from short-lived render API and
+  generated-image delivery failures, so individual Fun Decks no longer remain
+  stuck on the fallback card list after a cold render.
+- Changed the Fun Decks desktop gallery from six narrow cards to three readable
+  deck cards per row, while retaining two-column tablet and one-column mobile
+  layouts.
+- Restored a persistent “Скопировать код колоды” action below every Fun Deck
+  preview, including successfully rendered Deckview images and clipboard
+  success feedback.
+- Replaced the brief fallback-card-list flash in Deckview galleries with a
+  stable parchment-sized loading surface; the list now appears only after a
+  real render error, so newly revealed decks no longer jump while loading.
+- Fixed intermittent full-page React recovery screens after deployments by
+  baking the Git SHA into the Vite entry chunk instead of query-versioning the
+  module URL, which could make browsers evaluate the entry module twice.
+- Restored a persistent “Скопировать код колоды” action below every rendered
+  archetype deck, including clipboard success feedback and mobile-sized targets.
+- Added a read-only data monitoring card to the parser admin panel with an
+  overall health state, source freshness, stable-fallback visibility, bounded
+  error details, manual refresh and visibility-aware 60-second auto-refresh.
+- Removed the duplicated deck-builder and HSGuru action footer from rendered
+  archetype decks and made each parchment preview open in an accessible,
+  full-viewport lightbox with keyboard and focus restoration support.
+- Limited constructed-card catalog pagination to a small worker pool. The
+  large Wild catalog no longer bursts every page at `db.kolodahs.ru` at once
+  and is less likely to fall back to LKG during a cache refresh.
+- Extended `/health/data` and `/api/health/data` with the cached aggregate
+  health of all `api.hs-manacost.ru` parser datasets, including stale and
+  failed source names, without adding upstream latency to visitor requests.
+- Kept the upstream parser monitor outside the process-readiness gate so a
+  cold-start health probe cannot block a validated Arena release.
+
+
 - Объединён перенос маршрутизации, профиля и Telegram-авторизации в отдельные
   модули; сохранены актуальные способы входа, Patreon, Reader и переход в Cover.
   Новая защищённая cookie совместима с действующими сессиями.

@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "skills": {
+    "sofa": {
+      "source": "agents.stackoverflow.com",
+      "sourceUrl": "https://agents.stackoverflow.com/",
+      "sourceType": "well-known",
+      "computedHash": "a8307436255df5e68aeec6dac445cf9225e43e776572d95f515a05ccaf6d4ecb",
+      "wellKnownDigest": "346562dc51df787a54ef1ad5441c87bd28123b5dc9f929ceee649ed681fed8f5"
+    },
+    "sofa-contribute": {
+      "source": "agents.stackoverflow.com",
+      "sourceUrl": "https://agents.stackoverflow.com/",
+      "sourceType": "well-known",
+      "computedHash": "361a81469c79ac43c7e5fa5a5a543d2c9f8076a5442db009240f6084808a3e1c",
+      "wellKnownDigest": "1a82e590e5d0c94147dfbf138d0a4e47b86f323bc90507cb76438076a65386c2"
+    },
+    "sofa-status": {
+      "source": "agents.stackoverflow.com",
+      "sourceUrl": "https://agents.stackoverflow.com/",
+      "sourceType": "well-known",
+      "computedHash": "f839e9518b8210d2172d22c819a4e1e9b97520121d4b1ee99b7a50e85f89c4c5",
+      "wellKnownDigest": "81b54f4817f23eb4b4b37300ade5d8d4f42d661300ec33c4974534d0fac65d91"
+    }
+  }
+}
