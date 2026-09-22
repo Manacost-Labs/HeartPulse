@@ -176,3 +176,9 @@ with current contracts, verify each bounded change, and record its merge.
   composition, tests and specification to `0ea31e8`, already reconciled above.
   Retained the exact production-client policy and newer inventory/release notes;
   the resolved application tree is unchanged.
+
+- Pending paid-comments draft `5d569538`: subscription cache changes already
+  match the current tree; the old endpoint lacks the production-client allowlist
+  and bounded pre-auth rate limit. Retained those later protections, their
+  documentation and regression coverage. Entitlement-route tests pass; no
+  application files differ after reconciliation.
