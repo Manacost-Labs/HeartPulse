@@ -33,6 +33,7 @@ import {
   withHistoryRouteKnowledge,
 } from './routing/clientRouteResolution';
 import { publicProfileIdFromPath } from './profileRoutes';
+import { useReaderAuthState } from './modules/browserIdentity/public';
 // Preserve authoritative entity metadata/404 context through the first client
 // pass. The marker belongs only to the URL that bootstrapped this document.
 const BOOTSTRAP_ROUTE_ROOT = globalThis.document?.getElementById('root');
@@ -983,8 +984,7 @@ export default function App() {
   const isApplicationConnectPage = normalizeClientRoutePath(currentPath) === '/connect';
   const isAccountRoute = routeSurfaceAvailable && (isApplicationConnectPage || Boolean(publicProfileId) || wantsLogin);
   const isAdminMode = routeSurfaceAvailable && (wantsAdmin || activeTab === 'admin-panel');
-  const [appAuthUser, setAppAuthUser] = useState<AuthUser | null>(null);
-  const [appAuthChecking, setAppAuthChecking] = useState(true);
+  const { appAuthUser, setAppAuthUser, appAuthChecking, setAppAuthChecking } = useReaderAuthState<AuthUser>(locationSearch);
   const [appHasAuthHint, setAppHasAuthHint] = useState(() => hasAuthSessionHint());
   const [appSubscription, setAppSubscription] = useState<SubscriptionStatus | null>(null);
   const [appSubscriptionLoading, setAppSubscriptionLoading] = useState(false);
