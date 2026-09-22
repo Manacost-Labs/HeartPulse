@@ -148,6 +148,7 @@ import { createCardImageRouter, normalizeCardImageId } from './cardImageRoutes.j
 import { createCardImageDependencies } from './app/createCardImageDependencies.js';
 import { installProcessLifecycle } from './app/lifecycle/processLifecycle.js';
 import { registerApplicationAuth } from './app/registerApplicationAuth.js';
+import { registerBrowserIdentity } from './app/registerBrowserIdentity.js';
 import { serializeApplicationProfileUser, serializeApplicationSubscription } from './app/applicationAuthProfile.js';
 import { createBlizzardCardImageClient, downloadBlizzardCardImage } from './blizzardCards.js';
 import { resolveConstructedCardImageSourceUrl } from './constructedCardImageOverrides.js';
@@ -7485,6 +7486,7 @@ app.use(createUploadAuthorizationGuard({
   adminImageAllowed: req => Boolean(adminAuth(req) || contestAdminAuth(req)),
   setPrivateNoStore,
 }));
+registerBrowserIdentity({ app, getDatabase: db, authCookieName: AUTH_COOKIE_NAME });
 app.use(createRouteAwareJsonParser({
   defaultLimit: process.env.API_JSON_BODY_LIMIT || '1mb',
   adminUploadMaxBytes: ADMIN_UPLOAD_MAX_BYTES,
