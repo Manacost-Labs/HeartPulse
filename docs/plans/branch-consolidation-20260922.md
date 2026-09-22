@@ -171,3 +171,8 @@ with current contracts, verify each bounded change, and record its merge.
   account draft, placed in `src/lib`. Retained the domain-owned lazy wrapper
   and removed the duplicate draft file/wiring. The original remains in its
   archive commit; no application change is needed.
+
+- Pending community-permissions draft `b4c180f6` has identical bridge source,
+  composition, tests and specification to `0ea31e8`, already reconciled above.
+  Retained the exact production-client policy and newer inventory/release notes;
+  the resolved application tree is unchanged.
