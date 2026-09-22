@@ -7,6 +7,7 @@ import {
   Gem,
   Gift,
   Grid3X3,
+  FileText,
   LayoutGrid,
   Home,
   Image as ImageIcon,
@@ -49,6 +50,12 @@ export const TABS = [
   },
   {
     id: 'developer-api', label: 'API', icon: CircleHelp, slug: '/developers/api', group: 'footer', entitlement: null,
+  },
+  {
+    id: 'privacy', label: 'Конфиденциальность', icon: ShieldCheck, slug: '/privacy', group: 'footer', entitlement: null,
+  },
+  {
+    id: 'terms', label: 'Условия использования', icon: FileText, slug: '/terms', group: 'footer', entitlement: null,
   },
   {
     id: 'gallery', label: 'Галерея', icon: ImageIcon, slug: '/gallery', group: 'misc', entitlement: null,

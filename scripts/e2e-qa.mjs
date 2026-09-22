@@ -5646,6 +5646,8 @@ for (const [device, viewport] of [
       '/gallery',
       '/developers/api/',
       '/api/v1/openapi.json',
+      '/privacy',
+      '/terms',
     ];
     if (JSON.stringify(homeCssState.footerLinks) !== JSON.stringify(expectedFooterLinks)) {
       failures.push(`home lazy sections: canonical footer links are incomplete (${homeCssState.footerLinks.join(', ')})`);

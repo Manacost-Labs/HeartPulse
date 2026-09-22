@@ -22,6 +22,20 @@
       "description": "Документация Manacost Public API для Hearthstone-приложений: авторизация по API-ключу, OpenAPI-контракт, каталог ресурсов и примеры запросов.",
       "sitemap": true
     },
+    "/privacy": {
+      "policyRouteId": "privacy",
+      "navigationRouteId": "privacy",
+      "title": "Политика конфиденциальности HearthPulse | Manacost",
+      "description": "Политика конфиденциальности HearthPulse: данные профиля, вход, защищённые сессии, Telegram, Boosty и способы связи с командой Manacost.",
+      "sitemap": true
+    },
+    "/terms": {
+      "policyRouteId": "terms",
+      "navigationRouteId": "terms",
+      "title": "Условия использования HearthPulse | Manacost",
+      "description": "Условия использования HearthPulse: правила работы с профилем, подписочным доступом, материалами сайта и сервисами Manacost.",
+      "sitemap": true
+    },
     "/connect": {
       "policyRouteId": "application-connect",
       "title": "Подключение приложения — Manacost",

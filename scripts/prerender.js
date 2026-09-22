@@ -20,6 +20,25 @@ if (PUBLIC_SEO_REGISTRY.schemaVersion !== 1
 const SITE_URL = PUBLIC_ROUTE_INVENTORY.canonicalOrigin;
 const TODAY = new Date().toISOString().split('T')[0];
 const THIRTY_DAYS_AGO = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().split('T')[0];
+const LEGAL_PAGES = JSON.parse(readFileSync(resolve(process.cwd(), 'config/legal-pages.json'), 'utf8'));
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+}
+
+function renderLegalText(value) {
+  return escapeHtml(value)
+    .replaceAll('{{telegram}}', '<a href="https://t.me/manacost_ru">Telegram Manacost</a>')
+    .replaceAll('{{privacy}}', '<a href="/privacy">Политика конфиденциальности</a>');
+}
+
+function renderLegalNoscript(kind) {
+  const page = LEGAL_PAGES.pages[kind];
+  const otherPath = kind === 'privacy' ? '/terms' : '/privacy';
+  const otherTitle = LEGAL_PAGES.pages[kind === 'privacy' ? 'terms' : 'privacy'].title;
+  const sections = page.sections.map(section => `<h2>${escapeHtml(section.heading)}</h2>${section.paragraphs.map(paragraph => `<p>${renderLegalText(paragraph)}</p>`).join('')}`).join('');
+  return `<h1>${escapeHtml(page.title)} HearthPulse</h1><p>Актуальная редакция от ${escapeHtml(LEGAL_PAGES.updatedAt)}.</p>${sections}<p><a href="${otherPath}">${escapeHtml(otherTitle)}</a> | <a href="/">На главную</a></p>`;
+}
 
 function renderSeoTemplate(value) {
   return String(value).replace(/\{([a-z]+)\}/g, (_match, token) => {
@@ -190,6 +209,30 @@ const PAGES = {
       ],
     }],
     noscript: '<h1>Manacost Public API</h1><p>Документация API для Hearthstone-приложений: API-ключи, OpenAPI и каталог доступных ресурсов.</p><p><a href="/api/v1/openapi.json">Открыть OpenAPI JSON</a></p>',
+  },
+  '/privacy': {
+    h1: 'Политика конфиденциальности HearthPulse',
+    ogType: 'website',
+    structuredData: [{
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Главная', item: SITE_URL },
+        { '@type': 'ListItem', position: 2, name: 'Политика конфиденциальности', item: `${SITE_URL}/privacy/` },
+      ],
+    }],
+    noscript: renderLegalNoscript('privacy'),
+  },
+  '/terms': {
+    h1: 'Условия использования HearthPulse',
+    ogType: 'website',
+    structuredData: [{
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Главная', item: SITE_URL },
+        { '@type': 'ListItem', position: 2, name: 'Условия использования', item: `${SITE_URL}/terms/` },
+      ],
+    }],
+    noscript: renderLegalNoscript('terms'),
   },
   '/standard/matchups': {
     h1: 'Матчапы Стандарта Hearthstone',

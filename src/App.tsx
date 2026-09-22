@@ -597,6 +597,7 @@ function NavigationRouteLinks({
 const loadDeferredRoutesModule = () => import('./features/DeferredRoutes');
 const loadHomeModule = () => import('./features/Home');
 const loadFAQPageModule = () => import('./features/FAQPage');
+const loadLegalPageModule = () => import('./features/LegalPage');
 const loadDeveloperApiModule = () => import('./modules/developerApi/public');
 const loadBgLibraryModule = () => import('./features/BgLibrary');
 const loadGuidesArchiveModule = () => import('./features/GuidesArchive');
@@ -617,6 +618,7 @@ const LazySupportPrompt = React.lazy(() => import('./components/SupportPrompt'))
 const LazySiteFooter = React.lazy(() => import('./components/SiteFooter'));
 const LazyHomeTab = React.lazy(loadHomeModule);
 const LazyFAQPage = React.lazy(loadFAQPageModule);
+const LazyLegalPage = React.lazy(loadLegalPageModule);
 const LazyDeveloperApiPage = React.lazy(() => loadDeveloperApiModule().then(module => ({ default: module.DeveloperApiPage })));
 const LazyAccountRoute = React.lazy(() => import('./modules/accountRoute/public'));
 const LazyNotFoundPage = React.lazy(() => import('./features/NotFoundPageRoute'));
@@ -651,6 +653,8 @@ const ROUTE_PRELOADERS: Partial<Record<TabId | 'login', () => Promise<unknown>>>
   legendaries: loadDeferredRoutesModule,
   articles: loadDeferredRoutesModule,
   faq: loadFAQPageModule,
+  privacy: loadLegalPageModule,
+  terms: loadLegalPageModule,
   'developer-api': loadDeveloperApiModule,
   gallery: loadGalleryModule,
   login: loadDeferredRoutesModule,
@@ -1422,7 +1426,7 @@ export default function App() {
   const isFullWidthBuilder = routeSurfaceAvailable && (activeTab === 'standard-matchups' || activeTab === 'standard-meta' || activeTab === 'fun-decks' || activeTab === 'constructed-archetypes' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive' || activeTab === 'deck-builder' || activeTab === 'archetypes');
   // Login is its own visual route. Do not inherit the surface class of the
   // page that happened to be open before the profile was requested.
-  const isEditorialSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['articles', 'faq', 'developer-api', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
+  const isEditorialSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['articles', 'faq', 'developer-api', 'privacy', 'terms', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
   const isGameDataSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'standard-meta', 'fun-decks', 'constructed-archetypes', 'standard-vicious-gold', 'standard-cards', 'tierlist', 'legendaries', 'archetypes', 'cosmetics'].includes(activeTab);
   const isBattlegroundsSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && BG_TAB_IDS.has(activeTab);
   const isOpenSurfacePage = !isAdminMode && (!routeSurfaceAvailable || activeTab === 'home' || isEditorialSurfacePage || isGameDataSurfacePage || isBattlegroundsSurfacePage);
@@ -1909,6 +1913,11 @@ export default function App() {
                 )}
                 {activeTab === 'developer-api' && (
                   <React.Suspense fallback={<RouteFallback minHeight={760} />}><LazyDeveloperApiPage /></React.Suspense>
+                )}
+                {(activeTab === 'privacy' || activeTab === 'terms') && (
+                  <React.Suspense fallback={<RouteFallback minHeight={760} />}>
+                    <LazyLegalPage kind={activeTab} navigatePath={navigatePath} />
+                  </React.Suspense>
                 )}
                 {activeTab === 'gallery' && (
                   <React.Suspense fallback={<RouteFallback minHeight={640} />}>

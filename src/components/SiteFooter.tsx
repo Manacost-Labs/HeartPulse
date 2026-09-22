@@ -54,6 +54,10 @@ export default function SiteFooter(_props: { onNavigate?: (tab: string) => void 
 
       <div className="arena-footer__legal">
         <p>© 2024–{year} Manacost. Все права защищены.</p>
+        <nav className="arena-footer__legal-links" aria-label="Правовые документы">
+          <a href="/privacy" className="arena-footer__link">Конфиденциальность</a>
+          <a href="/terms" className="arena-footer__link">Условия использования</a>
+        </nav>
         <p>Hearthstone® — зарегистрированная торговая марка Blizzard Entertainment.</p>
       </div>
     </footer>
