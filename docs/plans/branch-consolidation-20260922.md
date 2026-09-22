@@ -75,6 +75,11 @@ because integration passed.
   to upstream. A three-way merge produced no file changes; its ancestry is now
   recorded without changing application behavior. Review/simplification found
   no new code to alter; baseline verification remains applicable.
+- `feat/manacost-reader-production-client-final-20260913`: all source and test
+  changes merge identically to current upstream. The only conflict is an empty
+  incoming changelog section against newer release notes; retain those notes.
+  The existing production-client entry is present on both sides. Resulting
+  application tree is unchanged; this merge records the integrated ancestry.
 - Initial upstream checks already passed in the migration preparation worktree:
   TypeScript, architecture, credential/verification/application-auth/session
   tests and full Vite/server/prerender build.
