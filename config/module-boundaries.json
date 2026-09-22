@@ -506,6 +506,22 @@
         "docs/runbooks/game-data-audit.md",
         "docs/decisions/010-read-only-game-data-audit.md"
       ]
+    },
+    {
+      "id": "client.legalPages",
+      "runtime": "client",
+      "root": "src/modules/legalPages",
+      "purpose": "Render the shared privacy and terms documents as lazy public routes.",
+      "owner": "web-platform",
+      "publicEntry": "src/modules/legalPages/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:routes",
+        "npm run test:prerender-seo"
+      ],
+      "docs": [
+        "docs/specs/legal-pages.md"
+      ]
     }
   ],
   "migrationAreas": [

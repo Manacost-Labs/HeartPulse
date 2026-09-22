@@ -2208,15 +2208,16 @@ function assertSharedMobileChrome(label, profileId, chrome) {
   // The developer resources are a first-class third footer section. On
   // phones the sections stack into one column; the medium profile has enough
   // room for all three columns. Keep the height caps close to the measured
-  // geometry so future content growth still has an explicit review point.
-  const footerHeightMaximum = { 'compact-min': 800, 'phone-baseline': 780, medium: 360 }[profileId];
+  // geometry including the two legal links so future content growth still
+  // has an explicit review point.
+  const footerHeightMaximum = { 'compact-min': 890, 'phone-baseline': 825, medium: 404 }[profileId];
   const expectedFooterColumns = profileId === 'medium' ? 3 : 1;
   const targetIsLargeEnough = target => target && target.width >= 44 && target.height >= 44;
   const valid = chrome.header?.height >= 40 && chrome.header.height <= 50
     && targetIsLargeEnough(chrome.searchInput)
     && targetIsLargeEnough(chrome.faqButton)
     && chrome.footerColumnCount === expectedFooterColumns
-    && chrome.footerLinks.length === 10
+    && chrome.footerLinks.length === 12
     && chrome.footerLinks.every(targetIsLargeEnough)
     && chrome.footer?.height <= footerHeightMaximum
     && !chrome.pageOverflows
@@ -5967,6 +5968,8 @@ for (const [device, viewport] of [
       '/gallery',
       '/developers/api/',
       '/api/v1/openapi.json',
+      '/privacy',
+      '/terms',
     ];
     if (JSON.stringify(homeCssState.footerLinks) !== JSON.stringify(expectedFooterLinks)) {
       failures.push(`home lazy sections: canonical footer links are incomplete (${homeCssState.footerLinks.join(', ')})`);

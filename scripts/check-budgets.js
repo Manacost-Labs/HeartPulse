@@ -93,8 +93,8 @@ const budgets = {
   // Measured against e1ad451: initial gzip decreases 81,977 -> 81,659 bytes;
   // the raw preload map grows 735 bytes, and moved avatar styles add 535 bytes.
   // The existing admin shell remains 5,334 JS / 34,727 CSS bytes in both builds.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_880),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_898),
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 68_420),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 261_438),
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 81_880),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),

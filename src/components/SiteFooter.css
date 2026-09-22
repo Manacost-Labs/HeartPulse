@@ -97,6 +97,19 @@
   font-size: 0.75rem;
 }
 
+.arena-footer__legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.2rem 0.9rem;
+}
+
+.arena-footer__legal-links .arena-footer__link {
+  min-height: 44px;
+  color: inherit;
+  font-size: 0.75rem;
+}
+
 .arena-app-shell .arena-footer {
   margin-top: 0;
   border-top: 5px solid transparent;
@@ -153,6 +166,7 @@
     align-items: center;
     text-align: center;
   }
+
 }
 
 @media (min-width: 640px) {

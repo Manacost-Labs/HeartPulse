@@ -66,6 +66,34 @@
       "entitlement": null
     },
     {
+      "id": "privacy",
+      "pattern": "/privacy",
+      "kind": "static",
+      "owner": "product-shell",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "privacy",
+      "entitlement": null
+    },
+    {
+      "id": "terms",
+      "pattern": "/terms",
+      "kind": "static",
+      "owner": "product-shell",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "terms",
+      "entitlement": null
+    },
+    {
       "id": "application-connect",
       "pattern": "/connect",
       "kind": "static",

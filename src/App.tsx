@@ -25,6 +25,7 @@ import {
   LazyCosmetics,
   LazyDeveloperApiPage,
   LazyFAQPage,
+  LazyLegalPage,
   LazyFunDecksPage,
   LazyGalleryTab,
   LazyGuidesArchive,
@@ -1075,7 +1076,7 @@ export default function App() {
   const isFullWidthBuilder = routeSurfaceAvailable && (activeTab === 'standard-matchups' || activeTab === 'standard-meta' || activeTab === 'fun-decks' || activeTab === 'constructed-archetypes' || activeTab === 'standard-vicious-gold' || activeTab === 'standard-cards' || activeTab === 'bg-heroes' || activeTab === 'bg-library' || activeTab === 'bg-tier-list' || activeTab === 'bg-strategies' || activeTab === 'bg-tier-builder' || activeTab === 'admin-panel' || activeTab === 'guides-archive');
   // Login is its own visual route. Do not inherit the surface class of the
   // page that happened to be open before the profile was requested.
-  const isEditorialSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['articles', 'faq', 'developer-api', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
+  const isEditorialSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['articles', 'faq', 'developer-api', 'privacy', 'terms', 'gallery', 'guides-archive', 'contests'].includes(activeTab);
   const isGameDataSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && ['winrates', 'standard-matchups', 'standard-meta', 'fun-decks', 'constructed-archetypes', 'standard-vicious-gold', 'standard-cards', 'tierlist', 'legendaries', 'archetypes', 'cosmetics'].includes(activeTab);
   const isBattlegroundsSurfacePage = routeSurfaceAvailable && !isAdminMode && !wantsLogin && BG_TAB_IDS.has(activeTab);
   const isOpenSurfacePage = !isAdminMode && (!routeSurfaceAvailable || activeTab === 'home' || isEditorialSurfacePage || isGameDataSurfacePage || isBattlegroundsSurfacePage);
@@ -1394,6 +1395,9 @@ export default function App() {
                   <React.Suspense fallback={<RouteFallback minHeight={760} />}>
                     <LazyFAQPage navigatePath={navigatePath} />
                   </React.Suspense>
+                )}
+                {(activeTab === 'privacy' || activeTab === 'terms') && (
+                  <React.Suspense fallback={<RouteFallback minHeight={760} />}><LazyLegalPage kind={activeTab} navigatePath={navigatePath} /></React.Suspense>
                 )}
                 {activeTab === 'developer-api' && (
                   <React.Suspense fallback={<RouteFallback minHeight={760} />}><LazyDeveloperApiPage /></React.Suspense>

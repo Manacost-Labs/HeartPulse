@@ -8,6 +8,7 @@ const projectRoot = resolve(import.meta.dirname, '..');
 const distDir = mkdtempSync(resolve(tmpdir(), 'manacost-prerender-seo-'));
 const registry = JSON.parse(readFileSync(resolve(projectRoot, 'config/public-seo-pages.json'), 'utf8'));
 const routeInventory = JSON.parse(readFileSync(resolve(projectRoot, 'src/shared/seo/publicRouteInventory.json'), 'utf8'));
+const legalPages = JSON.parse(readFileSync(resolve(projectRoot, 'src/modules/legalPages/content.json'), 'utf8'));
 const homeSummaryFixture = resolve(distDir, 'home-summary-fixture.json');
 const privateSentinels = [
   'QA_PRIVATE_DECK_CODE_AAECA_TEST_ONLY',
@@ -225,6 +226,19 @@ try {
   assert.match(standardMeta, /<h1>HSGuru: мета Hearthstone<\/h1>/);
   assert.match(standardMeta, /HSGuru[^<]*источник/i);
   assert.match(standardMeta, /href="\/standard\/archetypes"[^>]*>Архетипы и колоды Hearthstone<\/a>/i);
+
+  for (const [kind, page] of Object.entries(legalPages.pages)) {
+    const legalHtml = readOutput(outputPath(`/${kind}`));
+    const legalText = legalHtml.replace(/<[^>]*>/g, '');
+    assert.match(legalText, new RegExp(escapePattern(page.title)), `${kind} must expose its title without JavaScript`);
+    for (const section of page.sections) {
+      assert.match(legalText, new RegExp(escapePattern(section.heading)), `${kind} must expose every section heading without JavaScript`);
+      for (const paragraph of section.paragraphs) {
+        const expected = paragraph.replace('{{telegram}}', 'Telegram Manacost').replace('{{privacy}}', 'Политика конфиденциальности');
+        assert.match(legalText, new RegExp(escapePattern(expected)), `${kind} static text must match the shared legal source`);
+      }
+    }
+  }
 
   const sitemapIndex = readOutput('sitemap.xml');
   assert.match(sitemapIndex, /<sitemapindex xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">/,

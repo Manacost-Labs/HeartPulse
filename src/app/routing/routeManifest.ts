@@ -30,6 +30,7 @@ import type { ResolvedPublicUrlPolicy } from '../../shared/seo/publicUrlPolicy';
 
 export const loadDeferredRoutesModule = () => import('../../features/DeferredRoutes');
 export const loadHomeModule = () => import('../../features/Home');
+export const loadLegalPageModule = () => import('./legalPageRoute');
 export const loadFAQPageModule = () => import('../../features/FAQPage');
 export const loadDeveloperApiModule = () => import('../../modules/developerApi/public');
 export const loadBgLibraryModule = () => import('../../features/BgLibrary');
@@ -68,6 +69,8 @@ export const ROUTE_MANIFEST = [
   defineRouteSurface({
     id: 'developer-api', label: 'API', icon: CircleHelp, path: '/developers/api', group: 'footer', entitlement: null,
   }, loadDeveloperApiModule),
+  defineRouteSurface({ id: 'privacy', label: 'Конфиденциальность', icon: CircleHelp, path: '/privacy', group: 'footer', entitlement: null }, loadLegalPageModule),
+  defineRouteSurface({ id: 'terms', label: 'Условия использования', icon: CircleHelp, path: '/terms', group: 'footer', entitlement: null }, loadLegalPageModule),
   defineRouteSurface({
     id: 'gallery', label: 'Галерея', icon: ImageIcon, path: '/gallery', group: 'misc', entitlement: null,
   }, loadGalleryModule),

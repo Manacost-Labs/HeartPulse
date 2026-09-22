@@ -23,6 +23,8 @@ const EXPECTED_ROUTE_PATHS = [
   ['articles', '/articles'],
   ['faq', '/faq'],
   ['developer-api', '/developers/api'],
+  ['privacy', '/privacy'],
+  ['terms', '/terms'],
   ['gallery', '/gallery'],
   ['cosmetics', '/cosmetics'],
   ['guides-archive', '/guides-archive'],

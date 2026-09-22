@@ -318,3 +318,41 @@ scans report no leaks. The 375-line collector is split into transport, document,
 JSON and health boundaries with no new `any` or debt allowances. Provider order
 remains Scrape.do, Firecrawl key rotation, then Scrapfly. External providers and
 the optional AI process were mocked in tests.
+
+### Preserved legal-page draft
+
+The audit pipeline merge is committed as `55f2dea`. Integrate archived draft
+`d58b806` through the current routing manifest and a separate legal-pages module.
+Documentation impact: `docs/specs/legal-pages.md`, module ownership registries,
+SEO inventories, `CHANGELOG.md` and this plan. The stored legal text is preserved
+from the user's draft; this integration does not certify legal adequacy or
+publish it. Verify both routes, shared prerender text and mobile presentation.
+
+The two legal routes add 538 raw bytes to startup JS (261,390 total), while
+gzip remains within the unchanged 81,880-byte limit at 81,815 bytes. Raw budgets
+allow that measured routing increment plus the existing hash-length margin;
+the document content and styles stay lazy. Route and prerender tests, TypeScript,
+Storybook build/contracts and clean-code checks pass.
+
+Chrome DevTools MCP verified both legal pages and the footer at 1440 and 390
+pixels: six completed renders, no horizontal overflow, console errors or
+failed requests in the built workshop. Mobile and desktop screenshots were
+inspected. A real E2E regression exposed undersized tablet legal links; all
+footer links now retain the existing 44px target minimum. The new row has
+explicit height limits documented in the legal-page spec.
+
+Storybook: [privacy](http://localhost:6006/?path=/story/public-legal-documents--privacy),
+[terms](http://localhost:6006/?path=/story/public-legal-documents--terms), and
+[footer](http://localhost:6006/?path=/story/navigation-site-footer--legal-links).
+
+Before cleanup, all 11 original dirty worktrees were compared against their
+immutable snapshot indexes: unchanged heads and file contents, no new untracked
+files. Cleanup remains pending until both final draft snapshots are integrated.
+
+Final legal-page verification: authenticated/mobile E2E passes after fixing the
+44px tablet targets and measuring the medium footer at 401.77px (404px limit).
+The broad responsive run passed 320px and 390px; the subsequent green run
+rechecks 768px alongside the full authenticated/navigation flows. Both builds,
+route/SEO/Storybook contracts, architecture, bundle budgets, documentation,
+clean-code and Semgrep checks pass. The original staged patches also match all
+11 saved backups exactly.

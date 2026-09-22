@@ -44,6 +44,7 @@ export {
   LazyCosmetics,
   LazyDeveloperApiPage,
   LazyFAQPage,
+  LazyLegalPage,
   LazyFunDecksPage,
   LazyGalleryTab,
   LazyGuidesArchive,

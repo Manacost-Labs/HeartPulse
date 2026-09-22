@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Добавлены страницы конфиденциальности и условий использования, ссылки в
+  подвале и единый текст для интерфейса и статической SEO-версии.
+
 - Added a read-only game-data audit pipeline that fingerprints HearthstoneJSON,
   Blizzard patch notes and Hearthstone Wiki changes; validates Battlegrounds
   cards, golden variants, heroes, powers, trinkets, Dark Gifts and statistics;

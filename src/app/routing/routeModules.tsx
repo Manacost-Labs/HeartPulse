@@ -8,6 +8,7 @@ import {
   loadDeferredRoutesModule,
   loadDeveloperApiModule,
   loadFAQPageModule,
+  loadLegalPageModule,
   loadFunDecksModule,
   loadGalleryModule,
   loadGuidesArchiveModule,
@@ -25,6 +26,7 @@ export function prefetchInitialStandardCardCatalog(hasFullAccess: boolean): Prom
 }
 
 export const LazyHomeTab = React.lazy(loadHomeModule);
+export const LazyLegalPage = React.lazy(loadLegalPageModule);
 export const LazyFAQPage = React.lazy(loadFAQPageModule);
 export const LazyDeveloperApiPage = React.lazy(() => loadDeveloperApiModule()
   .then(module => ({ default: module.DeveloperApiPage })));
