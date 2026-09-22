@@ -71,6 +71,7 @@
     "test:storybook": "node --test tests/storybook-mcp-contract.test.mjs",
     "test:security-tooling": "node --test tests/security-tooling-contract.test.mjs",
     "test:production-scraper-runtime": "node tests/production-scraper-runtime.test.mjs",
+    "test:production-auth-e2e": "node tests/production-auth-e2e.test.mjs",
     "test:property": "tsx tests/parser-normalization-property.test.ts",
     "test:sentry": "tsx tests/sentry-privacy.test.ts && tsx tests/web-vitals-sentry.test.ts && tsx tests/web-vitals-routes.test.ts",
     "test:mobile-layout-diagnostics": "node tests/mobile-layout-diagnostics.test.mjs",
