@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import ts from 'typescript';
 
 const PRODUCT_ROOTS = ['src', 'server', 'shared'];
-const CODE_EXTENSIONS = new Set(['.cjs', '.js', '.jsx', '.mjs', '.ts', '.tsx']);
+const CODE_EXTENSIONS = new Set(['.cjs', '.cts', '.js', '.jsx', '.mjs', '.mts', '.ts', '.tsx']);
 const IGNORED_DIRECTORIES = new Set([
   '.git',
   'build',
@@ -74,10 +74,10 @@ function functionName(node) {
   return null;
 }
 
-export function collectFunctionSizes(repositoryRoot) {
+export function collectFunctionSizes(repositoryRoot, options = {}) {
   const absoluteRoot = path.resolve(repositoryRoot);
   const files = [];
-  for (const productRoot of PRODUCT_ROOTS) {
+  for (const productRoot of options.roots ?? PRODUCT_ROOTS) {
     const directory = path.join(absoluteRoot, productRoot);
     if (existsSync(directory)) collectCodeFiles(directory, files);
   }

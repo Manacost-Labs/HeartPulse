@@ -19,5 +19,9 @@ test('privileged deployer installer is explicit, auditable and fail closed', () 
   assert.match(installer, /printf 'sha256=%s\\n'/);
   assert.match(installer, /printf 'capability=%s\\n'/);
   assert.match(installer, /cmp -s/, 'installation checks must compare the complete expected manifest');
+  assert.match(installer, /contract drift: expected=.*installed=/,
+    'check failures must report both reviewed and installed contract versions');
+  assert.match(installer, /remediation:.*--install/,
+    'check failures must identify the controlled installation path');
   assert.doesNotMatch(installer, /chmod\s+-R|chown\s+-R/, 'installer must not mutate broad directory trees');
 });

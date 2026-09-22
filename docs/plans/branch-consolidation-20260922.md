@@ -80,6 +80,14 @@ because integration passed.
   incoming changelog section against newer release notes; retain those notes.
   The existing production-client entry is present on both sides. Resulting
   application tree is unchanged; this merge records the integrated ancestry.
+- `fix/clean-code-ratchet-hardening-20260828`: integrated the five-commit
+  tooling/deployer-contract branch without conflicts. Review checked CI base
+  selection, rename-budget constraints, prepared writes and deployer drift
+  handling. The extracted modules keep policy separate from collection and CLI
+  orchestration; no further simplification is needed for this integration.
+  Validation: 23 focused tests, TypeScript, architecture and complete build pass;
+  changed-file Semgrep reports zero findings and zero parser errors. The deploy
+  installer was not executed against production.
 - Initial upstream checks already passed in the migration preparation worktree:
   TypeScript, architecture, credential/verification/application-auth/session
   tests and full Vite/server/prerender build.

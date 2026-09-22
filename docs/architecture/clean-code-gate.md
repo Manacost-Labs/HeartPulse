@@ -1,6 +1,6 @@
 # Clean-code quality gate
 
-## Purpose and first-slice scope
+## Purpose and authored scope
 
 The clean-code gate prevents new TypeScript and TSX debt while legacy code is
 reduced through small vertical slices. It is local, deterministic and does not
@@ -8,10 +8,18 @@ use network services or add a dependency. The implementation composes the
 existing TypeScript AST inventory and named-function analyzer instead of
 parsing another command's console output or maintaining a third analyzer.
 
-This first slice enforces authored files below `src/`, `server/` and `shared/`.
+The gate enforces authored TypeScript and TSX below `src/`, `server/` and
+`shared/`, plus JavaScript and TypeScript modules below `scripts/clean-code/`.
 Generated, build, dependency and vendored trees are excluded. CSS, React hook
 complexity, import fan-out and dead-code candidates remain reportable work for
 later slices; they are not silently claimed as enforced here.
+
+The implementation is deliberately layered: source collection depends on the
+shared AST analyzers, validation has no I/O, evaluation is pure, reporting only
+serializes results, and the CLI owns Git, clock and filesystem boundaries. The
+runtime module graph is acyclic and cannot import tests. Every clean-code
+module is itself a new authored file, so the 250-line and 120-line function
+limits apply without adding tooling paths to a legacy registry.
 
 ## Commands
 
@@ -81,11 +89,16 @@ To accept measured reductions after tests prove the change, run:
 npm run quality:clean-code:baseline -- --accept
 ```
 
-The command writes only `config/clean-code-baseline.json` and refuses a new or
-larger legacy file budget. `--initialize` is accepted only while the checked
-baseline is empty; it cannot be reused after the initial repository snapshot.
-Review the baseline diff and commit it atomically with the code and tests that
-caused the reduction.
+The command previews confirmed Git renames before writing. `--accept` stages
+and replaces `config/clean-code-baseline.json`, the source-debt registry and
+the function-size registry as one validated migration. File, source-debt and
+function ceilings may stay level or decrease during a rename; growth, an
+existing destination budget or a duplicate rewritten exception ID blocks the
+whole operation. Exact path-based exception IDs move with the renamed file.
+
+`--initialize` is accepted only while the checked baseline is empty; it cannot
+be reused after the initial repository snapshot. Review all three registry
+diffs and commit them atomically with the rename and its tests.
 
 ## CI relationship and current baseline
 
@@ -98,3 +111,21 @@ The initial baseline at `2afc0bb321a89426331c7077b214f48d25fdc422`
 contains 354 authored TS/TSX files and 77 legacy files above 250 lines. The
 vendored HSReplay adapter is excluded. At introduction the combined gate has
 zero unsuppressed findings and no exceptions.
+
+## Hardening contract
+
+The hardened ratchet makes the changed range auditable instead of inferring
+success from an empty diff. Reports identify the checked `head`,
+`base`, base source and changed authored-file count. GitHub push and pull
+request workflows provide their event SHAs explicitly. When an implicit CI
+base cannot be proved, the gate checks the full authored scope; an invalid
+explicit base is an error.
+
+Confirmed Git renames retain every path-keyed clean-code budget through a
+previewed, reduction-only migration. Acceptance updates the file-line,
+source-debt and function-size registries together and rewrites exact exception
+IDs. Conflicts and growth fail closed.
+
+Validation dates are passed into pure functions by the CLI clock boundary.
+Tests use fixed dates, so expiry behavior and report bytes do not depend on the
+machine clock.

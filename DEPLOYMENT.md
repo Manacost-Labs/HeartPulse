@@ -32,6 +32,14 @@ representative responsive browser matrix also runs in a separate
 release-blocking observatory job. Both hosted jobs must pass before the
 production runner can download the immutable artifact.
 
+The production job runs a read-only helper contract preflight immediately
+after checkout and before downloading the artifact. It compares the reviewed
+gate and deployer versions, checksums, ownership, modes, capability manifest
+and advertised capabilities with the installed root-owned pair. Any drift
+reports both expected and installed values and stops before artifact handling.
+See [the deploy-helper contract runbook](docs/runbooks/production-deployer-contract.md)
+for diagnosis and controlled remediation.
+
 After validation succeeds, the `deploy-production` job targets only the
 repository-level runner labelled `hs-arena-production`. GitHub's `production`
 environment limits deployment to `main`; the `hs-arena-production` concurrency
