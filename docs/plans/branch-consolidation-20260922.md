@@ -120,3 +120,8 @@ with current contracts, verify each bounded change, and record its merge.
   exact production/staging allowlist, production-client rejection tests, newer
   route inventory and release notes. The resolved application tree is unchanged;
   all nine permission-route tests pass against temporary SQLite databases.
+- `feat/reader-session-30-days-20260910`: fixed-expiry grants, session bindings,
+  rotation and consent tests are already present. Removed the duplicate old
+  staging-only grant-policy block introduced by automatic merging; retained the
+  newer production-aware policy, its tests and documentation. The application
+  tree remains unchanged; the complete browser-identity suite passes.
