@@ -3,45 +3,62 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { flushSync } from 'react-dom';
 import { LogIn, UserCircle } from 'lucide-react';
 import { PublicNavigation } from './app/shell/PublicNavigation';
 import { RouteLoadingSurface } from './app/shell/RouteLoadingSurface';
 import { getCanonicalRedirectUrl } from './config/domain';
 import { usePageScrollLock } from './hooks/usePageScrollLock';
-import AuthAvatar from './components/AuthAvatar';
 import {
   ADMIN_ONLY_TAB_IDS,
-  applyPageMeta,
   ARENA_TABS,
   BG_TAB_IDS,
+  LazyAccountRoute,
+  LazyArticlesTab,
+  LazyBattlegroundHeroesRoute,
+  LazyBattlegroundStrategyBuilderEmbed,
+  LazyBattlegroundTierBuilderEmbed,
+  LazyBattlegroundTierList,
+  LazyBgLibrary,
+  LazyConstructedArchetypesPage,
+  LazyContestAdminPanel,
+  LazyContestsPage,
+  LazyCosmetics,
+  LazyDeveloperApiPage,
+  LazyFAQPage,
+  LazyFunDecksPage,
+  LazyGalleryTab,
+  LazyGuidesArchive,
+  LazyHomeTab,
+  LazyLegendaries,
+  LazyNotFoundPage,
+  LazyStandardCardsPage,
+  LazyStandardMatchupsPage,
+  LazyStandardMetaPage,
+  LazyTierList,
+  LazyViciousSyndicateGoldPage,
+  LazyWinrates,
   MISC_TABS,
-  PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS,
-  isKnownPath,
-  tabFromPath,
-  TABS,
-  type TabId,
-} from './routes';
-import {
-  clientRouteView,
-  historyRouteKnowledge,
-  initialClientRouteResolution,
   normalizeClientRoutePath,
-  settledClientRouteResolution,
-  shouldPreserveInitialServerMeta,
-  withHistoryRouteKnowledge,
-} from './routing/clientRouteResolution';
-import { shouldHandleClientNavigation } from './routing/clientNavigation';
-import { lazyNamedExport } from './routing/lazyNamedExport';
-import { publicProfileIdFromPath } from './profileRoutes';
-// Preserve authoritative entity metadata/404 context through the first client
-// pass. The marker belongs only to the URL that bootstrapped this document.
-const BOOTSTRAP_ROUTE_ROOT = globalThis.document?.getElementById('root');
-const INITIAL_SERVER_ROUTE_STATUS = BOOTSTRAP_ROUTE_ROOT?.dataset.routeStatus;
-const INITIAL_SERVER_META_HINT = INITIAL_SERVER_ROUTE_STATUS
-  ? normalizeClientRoutePath(location.pathname)
-  : null;
-delete BOOTSTRAP_ROUTE_ROOT?.dataset.routeStatus;
+  prefetchInitialStandardCardCatalog,
+  preloadRouteModule,
+  PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS,
+  ROUTE_MANIFEST,
+  type TabId,
+  useApplicationNavigation,
+} from './app/routing/public';
+import {
+  AuthAvatar,
+  canAccessAdminWorkspace,
+  canManageContests,
+  fetchCurrentAuthUser,
+  publicProfileIdFromPath,
+  type AuthUser,
+} from './modules/identity/public';
+import {
+  hasSubscriptionEntitlement,
+  type SubscriptionStatus,
+} from './modules/subscriptions/public';
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ClassData {
   id: string;
@@ -301,109 +318,6 @@ const FALLBACK_CLASSES: ClassData[] = [
   { id: 'priest',  name: 'Жрец',               winrate: 44.5, color: '#d1d1d1', textDark: true },
   { id: 'dh',      name: 'Охотник на демонов', winrate: 43.2, color: '#224722' },
 ];
-type AuthUser = {
-  id?: string;
-  profileId?: string;
-  publicProfileId?: string;
-  email: string;
-  name: string;
-  role: 'admin' | 'user' | string;
-  country?: string;
-  newsletterOptIn?: boolean;
-  avatarInitials?: string;
-  telegramUsername?: string;
-  photoUrl?: string;
-  contactVkUrl?: string;
-  contactTelegram?: string;
-  contactEmail?: string;
-  adminAllowed?: boolean;
-  contestAdminAllowed?: boolean;
-};
-
-function abortableDelay(milliseconds: number, signal: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (signal.aborted) {
-      reject(new DOMException('Aborted', 'AbortError'));
-      return;
-    }
-    const timeout = window.setTimeout(resolve, milliseconds);
-    signal.addEventListener('abort', () => {
-      window.clearTimeout(timeout);
-      reject(new DOMException('Aborted', 'AbortError'));
-    }, { once: true });
-  });
-}
-
-async function fetchCurrentAuthUser(signal: AbortSignal): Promise<AuthUser | null> {
-  let lastError: unknown = new Error('Не удалось проверить текущую сессию');
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      const response = await fetch('/api/auth/me', {
-        credentials: 'same-origin',
-        cache: 'no-store',
-        signal,
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || 'Не удалось проверить текущую сессию');
-      if (!data.user) return null;
-      return {
-        ...data.user,
-        adminAllowed: Boolean(data.user.adminAllowed ?? data.adminAllowed),
-        contestAdminAllowed: Boolean(data.user.contestAdminAllowed ?? data.contestAdminAllowed),
-      };
-    } catch (error) {
-      if (signal.aborted) throw error;
-      lastError = error;
-      if (attempt < 2) await abortableDelay(350 * (attempt + 1), signal);
-    }
-  }
-  throw lastError;
-}
-
-type SubscriptionStatus = {
-  hasAccess: boolean;
-  source: string;
-  checkedAt: string | null;
-  stale: boolean;
-  message: string;
-  entitlements?: {
-    arena?: boolean;
-    battlegrounds?: boolean;
-    standard?: boolean;
-    contests?: boolean;
-    guidesArchive?: boolean;
-    arenaArticles?: boolean;
-    battlegroundsArticles?: boolean;
-  };
-  boosty: {
-    checked?: boolean;
-    found?: boolean;
-    hasAccess?: boolean;
-    email?: string;
-    price?: number;
-    levelName?: string;
-    message?: string;
-  };
-  telegram: {
-    checked?: boolean;
-    hasAccess?: boolean;
-    username?: string;
-    message?: string;
-    chats?: Array<{ chatId: string; ok: boolean; status?: string; isMember?: boolean; error?: string }>;
-  };
-  patreon: { configured?: boolean; connected?: boolean; checked?: boolean; hasAccess?: boolean; tierTitles?: string[]; highestTierAmountCents?: number; message?: string };
-};
-type SubscriptionEntitlementKey = keyof NonNullable<SubscriptionStatus['entitlements']>;
-
-function hasSubscriptionEntitlement(
-  subscription: SubscriptionStatus | null | undefined,
-  entitlement: SubscriptionEntitlementKey | null,
-): boolean {
-  if (!subscription) return false;
-  if (!entitlement) return Boolean(subscription.hasAccess);
-  return Boolean(subscription.entitlements?.[entitlement]);
-}
-
 type TelegramAuthPayload = {
   id: number | string;
   first_name?: string;
@@ -547,82 +461,13 @@ interface GalleryData {
   updatedAt: string | null;
 }
 
-const loadDeferredRoutesModule = () => import('./features/DeferredRoutes');
-const loadHomeModule = () => import('./features/Home');
-const loadFAQPageModule = () => import('./features/FAQPage');
-const loadDeveloperApiModule = () => import('./modules/developerApi/public');
-const loadBgLibraryModule = () => import('./features/BgLibrary');
-const loadGuidesArchiveModule = () => import('./features/GuidesArchive');
-const loadCosmeticsModule = () => import('./features/Cosmetics');
-const loadGalleryModule = () => import('./features/GalleryTab');
-const loadStandardMatchupsModule = () => import('./features/StandardMatchups');
-const loadStandardMetaModule = () => import('./features/StandardMeta');
-const loadConstructedArchetypesModule = () => import('./features/ConstructedArchetypes');
-const loadViciousSyndicateGoldModule = () => import('./features/ViciousSyndicateGold');
-const loadStandardCardsModule = () => import('./features/StandardCards');
-const loadFunDecksModule = () => import('./features/FunDecksPage');
-const loadContestsModule = () => import('./features/Contests');
-const loadBattlegroundsModule = () => import('./features/Battlegrounds');
+// ─── Tab transition wrapper ────────────────────────────────────────────────────
 const LazyPaywallGate = React.lazy(() => import('./components/PaywallGate'));
 const LazyGlobalUtilityHeader = React.lazy(() => import('./components/GlobalUtilityHeader'));
 const LazyFAQSection = React.lazy(() => import('./components/FAQSection'));
 const LazySupportPrompt = React.lazy(() => import('./components/SupportPrompt'));
 const LazySiteFooter = React.lazy(() => import('./components/SiteFooter'));
-const LazyHomeTab = React.lazy(loadHomeModule);
-const LazyFAQPage = React.lazy(loadFAQPageModule);
-const LazyDeveloperApiPage = lazyNamedExport(loadDeveloperApiModule, 'DeveloperApiPage');
-const LazyAccountRoute = React.lazy(() => import('./modules/browserIdentity/public'));
-const LazyNotFoundPage = React.lazy(() => import('./features/NotFoundPageRoute'));
-const LazyWinrates = lazyNamedExport(loadDeferredRoutesModule, 'Winrates');
-const LazyTierList = lazyNamedExport(loadDeferredRoutesModule, 'TierList');
-const LazyLegendaries = lazyNamedExport(loadDeferredRoutesModule, 'Legendaries');
-const LazyArticlesTab = lazyNamedExport(loadDeferredRoutesModule, 'ArticlesTab');
-const LazyGalleryTab = React.lazy(loadGalleryModule);
-const LazyBgLibrary = React.lazy(loadBgLibraryModule);
-const LazyGuidesArchive = React.lazy(loadGuidesArchiveModule);
-const LazyCosmetics = React.lazy(loadCosmeticsModule);
-const LazyStandardMatchupsPage = React.lazy(loadStandardMatchupsModule);
-const LazyStandardMetaPage = React.lazy(loadStandardMetaModule);
-const LazyConstructedArchetypesPage = React.lazy(loadConstructedArchetypesModule);
-const LazyViciousSyndicateGoldPage = React.lazy(loadViciousSyndicateGoldModule);
-const LazyStandardCardsPage = React.lazy(loadStandardCardsModule);
-const LazyFunDecksPage = React.lazy(loadFunDecksModule);
-const LazyContestsPage = lazyNamedExport(loadContestsModule, 'ContestsPage');
-const LazyContestAdminPanel = React.lazy(() => loadContestsModule().then(module => ({ default: module.ContestAdminPanel })));
-const LazyBattlegroundHeroesRoute = lazyNamedExport(loadBattlegroundsModule, 'BattlegroundHeroesRoute');
-const LazyBattlegroundTierList = lazyNamedExport(loadBattlegroundsModule, 'BattlegroundTierList');
-const LazyBattlegroundStrategyBuilderEmbed = lazyNamedExport(loadBattlegroundsModule, 'BattlegroundStrategyBuilderEmbed');
-const LazyBattlegroundTierBuilderEmbed = lazyNamedExport(loadBattlegroundsModule, 'BattlegroundTierBuilderEmbed');
 const STANDARD_SOFT_PAYWALL_TABS = new Set<TabId>(['standard-meta', 'constructed-archetypes', 'fun-decks']);
-const ROUTE_PRELOADERS: Partial<Record<TabId | 'login', () => Promise<unknown>>> = {
-  winrates: loadDeferredRoutesModule,
-  tierlist: loadDeferredRoutesModule,
-  legendaries: loadDeferredRoutesModule,
-  articles: loadDeferredRoutesModule,
-  faq: loadFAQPageModule,
-  'developer-api': loadDeveloperApiModule,
-  gallery: loadGalleryModule,
-  login: loadDeferredRoutesModule,
-  'admin-panel': loadContestsModule,
-  contests: loadContestsModule,
-  'standard-matchups': loadStandardMatchupsModule,
-  'standard-meta': loadStandardMetaModule,
-  'constructed-archetypes': loadConstructedArchetypesModule,
-  'standard-vicious-gold': loadViciousSyndicateGoldModule,
-  'standard-cards': loadStandardCardsModule,
-  'fun-decks': loadFunDecksModule,
-  'bg-strategies': loadBattlegroundsModule,
-  'bg-heroes': loadBattlegroundsModule,
-  'bg-tier-list': loadBattlegroundsModule,
-  'bg-tier-builder': loadBattlegroundsModule,
-  'bg-library': loadBgLibraryModule,
-  'guides-archive': loadGuidesArchiveModule,
-  cosmetics: loadCosmeticsModule,
-};
-
-function preloadRouteModule(route: TabId | 'login'): void {
-  void ROUTE_PRELOADERS[route]?.().catch(() => {});
-}
 
 const RouteFallback = RouteLoadingSurface;
 
@@ -716,62 +561,22 @@ async function fetchTierlistSnapshot(src: TierlistSource, bust = false): Promise
 
 export default function App() {
   const redirectToWwwUrl = getCanonicalRedirectUrl(window.location);
-  const [activeTab, setActiveTab] = useState<TabId>(() => tabFromPath(window.location.pathname));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileNavGroup, setMobileNavGroup] = useState<'constructors' | 'misc' | null>(null);
   const [sidebarNavGroup, setSidebarNavGroup] = useState<'constructors' | 'misc' | null>(null);
   const mobileMenuRef = useRef<HTMLElement>(null);
   const mobileMenuToggleRef = useRef<HTMLButtonElement>(null);
-
-  const [locationSearch, setLocationSearch] = useState(() => window.location.search);
-  const [currentPath, setCurrentPath] = useState(() => window.location.pathname);
-  const [routeResolution, setRouteResolution] = useState(() => initialClientRouteResolution(
-    window.location.pathname,
-    INITIAL_SERVER_ROUTE_STATUS === '404' ? INITIAL_SERVER_META_HINT : null,
-  ));
-  const routeView = clientRouteView(routeResolution, currentPath);
+  const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
+  const {
+    activeTab,
+    currentPath,
+    locationSearch,
+    navigate,
+    navigateLogin,
+    navigatePath,
+    routeView,
+  } = useApplicationNavigation(closeMobileMenu);
   const locationParams = new URLSearchParams(locationSearch);
-  const initialMetaPassRef = useRef(true);
-
-  useEffect(() => {
-    const known = routeView === 'known' ? true : routeView === 'not-found' ? false : null;
-    if (known === null || historyRouteKnowledge(window.history.state) === known) return;
-    window.history.replaceState(withHistoryRouteKnowledge(window.history.state, known), '');
-  }, [routeView]);
-
-  useEffect(() => {
-    let active = true;
-    const preserveInitialServerMeta = shouldPreserveInitialServerMeta(
-      currentPath,
-      INITIAL_SERVER_META_HINT,
-      initialMetaPassRef.current,
-    );
-    const isInitialPlainHome = initialMetaPassRef.current
-      && activeTab === 'home'
-      && currentPath === '/'
-      && locationSearch === '';
-    initialMetaPassRef.current = false;
-    if (isInitialPlainHome || preserveInitialServerMeta) return undefined;
-    void applyPageMeta(activeTab, currentPath, locationSearch)
-      .then(policy => {
-        if (!active) return;
-        // pushState is synchronous, while route metadata resolves asynchronously.
-        // Ignore a policy that belongs to the page we just left even when its
-        // effect cleanup has not run yet (for example during a startTransition).
-        // Otherwise the stale result briefly makes the new route "pending",
-        // unmounting it and discarding local filters before the next policy wins.
-        if (normalizeClientRoutePath(window.location.pathname) !== policy.normalizedPathname) return;
-        setRouteResolution(settledClientRouteResolution(policy.normalizedPathname, policy.known));
-      })
-      .catch(() => {
-        if (active) {
-          setRouteResolution(previous => clientRouteView(previous, currentPath) === 'not-found'
-            ? previous
-            : { pathname: normalizeClientRoutePath(currentPath), status: 'unavailable' });
-        }
-      });
-    return () => { active = false; };
-  }, [activeTab, currentPath, locationSearch]);
 
   useEffect(() => {
     if (redirectToWwwUrl) {
@@ -800,102 +605,6 @@ export default function App() {
     localStorage.removeItem('wr_hsreplay');
     localStorage.removeItem('etag_wr_hsreplay');
   }, []);
-
-  const commitRouteUpdate = useCallback((update: () => void) => {
-    const startViewTransition = (document as Document & {
-      startViewTransition?: (callback: () => void) => unknown;
-    }).startViewTransition;
-    if (startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      // The browser captures the destination frame when this callback returns.
-      // React's concurrent transition may commit later, which causes a flash.
-      startViewTransition.call(document, () => flushSync(update));
-      return;
-    }
-    React.startTransition(update);
-  }, []);
-
-  const navigateLocation = useCallback((destination: URL, tabOverride?: TabId) => {
-    const pathname = destination.pathname.startsWith('/') ? destination.pathname : `/${destination.pathname}`;
-    const tab = tabOverride ?? tabFromPath(pathname);
-    preloadRouteModule(tab);
-    if (
-      window.location.pathname !== pathname
-      || window.location.search !== destination.search
-      || window.location.hash !== destination.hash
-    ) {
-      window.history.pushState({ tab, routeKnown: true }, '', `${pathname}${destination.search}${destination.hash}`);
-    }
-    const updateRoute = () => {
-      setRouteResolution(settledClientRouteResolution(pathname, true));
-      setLocationSearch(destination.search);
-      setCurrentPath(pathname);
-      setActiveTab(tab);
-      setMobileMenuOpen(false);
-    };
-    commitRouteUpdate(updateRoute);
-    if (destination.hash) {
-      requestAnimationFrame(() => document.getElementById(decodeURIComponent(destination.hash.slice(1)))?.scrollIntoView());
-    } else {
-      window.scrollTo({ top: 0, behavior: 'auto' });
-    }
-  }, [commitRouteUpdate]);
-
-  /** Navigate to a tab: update state + browser URL. */
-  const navigate = useCallback((tab: TabId) => {
-    const slug = TABS.find(t => t.id === tab)!.slug;
-    navigateLocation(new URL(slug, window.location.origin));
-  }, [navigateLocation]);
-
-  const navigatePath = useCallback((path: string) => {
-    navigateLocation(new URL(path, window.location.origin));
-  }, [navigateLocation]);
-
-  const navigateLogin = useCallback(() => {
-    preloadRouteModule('login');
-    navigateLocation(new URL('/?login', window.location.origin), activeTab);
-  }, [activeTab, navigateLocation]);
-
-  useEffect(() => {
-    const onDocumentClick = (event: MouseEvent) => {
-      if (event.defaultPrevented) return;
-      const anchor = event.target instanceof Element ? event.target.closest('a[href]') : null;
-      if (!(anchor instanceof HTMLAnchorElement)) return;
-      const destination = shouldHandleClientNavigation({
-        metaKey: event.metaKey,
-        ctrlKey: event.ctrlKey,
-        shiftKey: event.shiftKey,
-        altKey: event.altKey,
-        href: anchor.getAttribute('href'),
-        target: anchor.getAttribute('target'),
-        download: anchor.hasAttribute('download'),
-        origin: window.location.origin,
-      });
-      if (!destination || !isKnownPath(destination.pathname)) return;
-      event.preventDefault();
-      navigateLocation(destination);
-    };
-    document.addEventListener('click', onDocumentClick);
-    return () => document.removeEventListener('click', onDocumentClick);
-  }, [navigateLocation]);
-
-  /** Handle browser back / forward */
-  useEffect(() => {
-    const onPop = (e: PopStateEvent) => {
-      const tab = e.state?.tab ?? tabFromPath(window.location.pathname);
-      const known = historyRouteKnowledge(e.state);
-      const updateRoute = () => {
-        if (known !== null) {
-          setRouteResolution(settledClientRouteResolution(window.location.pathname, known));
-        }
-        setLocationSearch(window.location.search);
-        setCurrentPath(window.location.pathname);
-        setActiveTab(tab);
-      };
-      commitRouteUpdate(updateRoute);
-    };
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
-  }, [commitRouteUpdate]);
 
   useEffect(() => {
     const loadedAsset = currentAppAssetPath();
@@ -932,7 +641,7 @@ export default function App() {
     };
   }, []);
 
-  // Admin panel: ?admin in URL; access is checked by authenticated user ID.
+  // Admin panel: ?admin in URL; visibility follows validated server permissions.
   const wantsAdmin = locationParams.has('admin');
   const wantsLogin = locationParams.has('login');
   const publicProfileId = publicProfileIdFromPath(currentPath);
@@ -945,18 +654,8 @@ export default function App() {
   const [appHasAuthHint, setAppHasAuthHint] = useState(() => hasAuthSessionHint());
   const [appSubscription, setAppSubscription] = useState<SubscriptionStatus | null>(null);
   const [appSubscriptionLoading, setAppSubscriptionLoading] = useState(false);
-  const appIsContestAdmin = Boolean(appAuthUser && (
-    appAuthUser.contestAdminAllowed
-    || appAuthUser.adminAllowed
-    || appAuthUser.id === 'user_42368c85b8de'
-    || appAuthUser.profileId === 'user_42368c85b8de'
-  ));
-  const appIsAdmin = Boolean(appAuthUser && (
-    appAuthUser.adminAllowed
-    || appAuthUser.role === 'admin'
-    || appAuthUser.id === 'user_42368c85b8de'
-    || appAuthUser.profileId === 'user_42368c85b8de'
-  ));
+  const appIsContestAdmin = canManageContests(appAuthUser);
+  const appIsAdmin = canAccessAdminWorkspace(appAuthUser);
   const visibleArenaTabs = useMemo(() => ARENA_TABS.filter(tab => !ADMIN_ONLY_TAB_IDS.has(tab.id) || appIsAdmin), [appIsAdmin]);
   const visibleMiscTabs = useMemo(
     () => MISC_TABS.filter(tab => !ADMIN_ONLY_TAB_IDS.has(tab.id) || appIsAdmin),
@@ -1043,7 +742,7 @@ export default function App() {
     }
   }, [appAuthUser]);
 
-  const activeTabLabel = TABS.find(tab => tab.id === activeTab)?.label || 'Раздел';
+  const activeTabLabel = ROUTE_MANIFEST.find(tab => tab.id === activeTab)?.label || 'Раздел';
   const activeTabEntitlement = PRIVATE_SUBSCRIPTION_TAB_ENTITLEMENTS[activeTab] ?? null;
   const privateRouteActive = Boolean(activeTabEntitlement) && !appIsAdmin;
   const privateRouteChecking = privateRouteActive && (appAuthChecking || (Boolean(appAuthUser) && appSubscriptionLoading && !appSubscription));
@@ -1277,11 +976,9 @@ export default function App() {
     warmedRoutesRef.current.add(route);
     preloadRouteModule(route);
 
-    if (route === 'standard-cards') void loadStandardCardsModule().then(module => (
-      module.prefetchInitialConstructedCardCatalog(
-        'standard', appIsAdmin || hasSubscriptionEntitlement(appSubscription, 'standard'),
-      )
-    )).catch(() => {});
+    if (route === 'standard-cards') void prefetchInitialStandardCardCatalog(
+      appIsAdmin || hasSubscriptionEntitlement(appSubscription, 'standard'),
+    ).catch(() => {});
 
     if (route === 'articles' && !articlesRequestedRef.current) {
       void fetchArticles({ silent: true });

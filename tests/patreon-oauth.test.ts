@@ -102,8 +102,8 @@ assert.notEqual(ciphertext, 'refresh-token');
 assert.equal(cipher.decrypt(ciphertext), 'refresh-token');
 assert.equal(cipher.decrypt(`${ciphertext}tampered`), null);
 
-const profileRoute = readFileSync(new URL('../src/features/DeferredRoutes.tsx', import.meta.url), 'utf8');
-const profileStyles = readFileSync(new URL('../src/features/DeferredRoutes.css', import.meta.url), 'utf8');
+const profileRoute = readFileSync(new URL('../src/modules/identity/ui/LoginPanel.tsx', import.meta.url), 'utf8');
+const profileStyles = readFileSync(new URL('../src/modules/identity/ui/IdentityProfile.css', import.meta.url), 'utf8');
 const patreonAccount = readFileSync(new URL('../server/patreonAccount.ts', import.meta.url), 'utf8');
 assert.match(profileRoute, /\/api\/auth\/patreon\/start/);
 assert.match(profileRoute, /Привязать Patreon/);

@@ -3,7 +3,7 @@ import { expect, fn, userEvent, waitFor } from 'storybook/test';
 import { ParserRunsCard } from './ParserRunsCard';
 import { normalizeParserControl, normalizeParserRuns } from './normalize';
 import '../contests.css';
-import '../../modules/adminWorkspace/adminWorkspace.css';
+import '../../modules/adminWorkspace/public.css';
 
 const snapshot = normalizeParserControl({
   sections: [

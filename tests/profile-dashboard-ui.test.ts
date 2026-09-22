@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const profileRoute = readFileSync(
-  new URL('../src/features/DeferredRoutes.tsx', import.meta.url),
+  new URL('../src/modules/identity/ui/LoginPanel.tsx', import.meta.url),
   'utf8',
 );
 const profileIdentityStyles = readFileSync(
-  new URL('../src/components/ProfileIdentityHero.css', import.meta.url),
+  new URL('../src/modules/identity/ui/ProfileIdentityHero.css', import.meta.url),
   'utf8',
 );
 assert.match(profileRoute, /profile-subscription-source--active/);

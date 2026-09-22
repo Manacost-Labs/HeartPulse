@@ -6,93 +6,237 @@
       "status": "modular",
       "owner": "identity-platform",
       "purpose": "Own confidential reader paid-status queries over cached subscription evidence.",
-      "paths": ["server/modules/readerEntitlements"],
-      "publicEntrypoints": ["server/modules/readerEntitlements/public.ts"],
+      "paths": [
+        "server/modules/readerEntitlements"
+      ],
+      "publicEntrypoints": [
+        "server/modules/readerEntitlements/public.ts"
+      ],
       "frontendRoutes": [],
-      "backendRoutes": [{ "method": "POST", "path": "/identity/reader-entitlements" }],
-      "contracts": ["server/modules/readerEntitlements/public.ts", "docs/specs/reader-entitlements.md"],
+      "backendRoutes": [
+        {
+          "method": "POST",
+          "path": "/identity/reader-entitlements"
+        }
+      ],
+      "contracts": [
+        "server/modules/readerEntitlements/public.ts",
+        "docs/specs/reader-entitlements.md"
+      ],
       "jobs": [],
       "cacheNamespaces": [],
-      "dataStores": ["sqlite:users (read-only)", "sqlite:subscriptions (read-only)"],
+      "dataStores": [
+        "sqlite:users (read-only)",
+        "sqlite:subscriptions (read-only)"
+      ],
       "externalServices": [],
-      "tests": ["tests/reader-entitlements-routes.test.ts"],
-      "allowedDependencies": ["Node.js crypto/sqlite", "Express at the routes boundary"],
-      "forbiddenImports": ["src/**", "other server module internals"]
+      "tests": [
+        "tests/reader-entitlements-routes.test.ts"
+      ],
+      "allowedDependencies": [
+        "Node.js crypto/sqlite",
+        "Express at the routes boundary"
+      ],
+      "forbiddenImports": [
+        "src/**",
+        "other server module internals"
+      ]
     },
     {
       "name": "backend-reader-permissions",
       "status": "modular",
       "owner": "identity-platform",
       "purpose": "Own fresh, confidential Reader administrator permission queries from canonical user state.",
-      "paths": ["server/modules/readerPermissions"],
-      "publicEntrypoints": ["server/modules/readerPermissions/public.ts"],
+      "paths": [
+        "server/modules/readerPermissions"
+      ],
+      "publicEntrypoints": [
+        "server/modules/readerPermissions/public.ts"
+      ],
       "frontendRoutes": [],
-      "backendRoutes": [{ "method": "POST", "path": "/identity/reader-permissions" }],
-      "contracts": ["server/modules/readerPermissions/public.ts", "docs/specs/reader-permissions.md"],
+      "backendRoutes": [
+        {
+          "method": "POST",
+          "path": "/identity/reader-permissions"
+        }
+      ],
+      "contracts": [
+        "server/modules/readerPermissions/public.ts",
+        "docs/specs/reader-permissions.md"
+      ],
       "jobs": [],
       "cacheNamespaces": [],
-      "dataStores": ["sqlite:users (read-only)"],
+      "dataStores": [
+        "sqlite:users (read-only)"
+      ],
       "externalServices": [],
-      "tests": ["tests/reader-permissions-routes.test.ts"],
-      "allowedDependencies": ["Node.js crypto/sqlite", "Express at the routes boundary"],
-      "forbiddenImports": ["src/**", "other server module internals"]
+      "tests": [
+        "tests/reader-permissions-routes.test.ts"
+      ],
+      "allowedDependencies": [
+        "Node.js crypto/sqlite",
+        "Express at the routes boundary"
+      ],
+      "forbiddenImports": [
+        "src/**",
+        "other server module internals"
+      ]
     },
     {
       "name": "backend-browser-identity",
       "status": "modular",
       "owner": "identity-platform",
       "purpose": "Own opt-in reader OIDC, browser consent and grants tied to canonical browser sessions.",
-      "paths": ["server/modules/browserIdentity"],
-      "publicEntrypoints": ["server/modules/browserIdentity/public.ts"],
+      "paths": [
+        "server/modules/browserIdentity"
+      ],
+      "publicEntrypoints": [
+        "server/modules/browserIdentity/public.ts"
+      ],
       "frontendRoutes": [],
       "backendRoutes": [
-        { "method": "GET", "path": "/identity/auth" },
-        { "method": "POST", "path": "/identity/token" },
-        { "method": "GET", "path": "/identity/me" },
-        { "method": "POST", "path": "/identity/token/introspection" },
-        { "method": "POST", "path": "/identity/token/revocation" },
-        { "method": "GET", "path": "/identity/interaction/:uid" },
-        { "method": "POST", "path": "/identity/interaction/:uid" }
+        {
+          "method": "GET",
+          "path": "/identity/auth"
+        },
+        {
+          "method": "POST",
+          "path": "/identity/token"
+        },
+        {
+          "method": "GET",
+          "path": "/identity/me"
+        },
+        {
+          "method": "POST",
+          "path": "/identity/token/introspection"
+        },
+        {
+          "method": "POST",
+          "path": "/identity/token/revocation"
+        },
+        {
+          "method": "GET",
+          "path": "/identity/interaction/:uid"
+        },
+        {
+          "method": "POST",
+          "path": "/identity/interaction/:uid"
+        }
       ],
-      "contracts": ["server/modules/browserIdentity/configuration.ts"],
-      "jobs": ["server/modules/browserIdentity/cleanupLifecycle.ts"],
+      "contracts": [
+        "server/modules/browserIdentity/configuration.ts"
+      ],
+      "jobs": [
+        "server/modules/browserIdentity/cleanupLifecycle.ts"
+      ],
       "cacheNamespaces": [],
-      "dataStores": ["sqlite:browser_identity_models", "sqlite:browser_identity_revoked_grants", "sqlite:browser_identity_session_bindings", "sqlite:users (read-only)", "sqlite:sessions (read-only)"],
+      "dataStores": [
+        "sqlite:browser_identity_models",
+        "sqlite:browser_identity_revoked_grants",
+        "sqlite:browser_identity_session_bindings",
+        "sqlite:users (read-only)",
+        "sqlite:sessions (read-only)"
+      ],
       "externalServices": [],
-      "tests": ["tests/browser-identity-storage.test.ts", "tests/browser-identity-provider.test.ts", "tests/browser-identity-binding.test.ts", "tests/browser-identity-runtime.test.ts", "tests/browser-identity-cleanup.test.ts", "tests/browser-identity-lifecycle.test.ts", "tests/browser-identity-live-bridge.test.ts"],
-      "allowedDependencies": ["Node.js crypto/sqlite", "oidc-provider", "Express at the routes boundary"],
-      "forbiddenImports": ["src/**", "other server module internals"]
+      "tests": [
+        "tests/browser-identity-storage.test.ts",
+        "tests/browser-identity-provider.test.ts",
+        "tests/browser-identity-binding.test.ts",
+        "tests/browser-identity-runtime.test.ts",
+        "tests/browser-identity-cleanup.test.ts",
+        "tests/browser-identity-lifecycle.test.ts",
+        "tests/browser-identity-live-bridge.test.ts"
+      ],
+      "allowedDependencies": [
+        "Node.js crypto/sqlite",
+        "oidc-provider",
+        "Express at the routes boundary"
+      ],
+      "forbiddenImports": [
+        "src/**",
+        "other server module internals"
+      ]
     },
     {
       "name": "frontend-reader-auth",
-      "status": "modular", "owner": "identity-platform",
+      "status": "modular",
+      "owner": "identity-platform",
       "purpose": "Own bounded reader continuation around the existing lazy account surface.",
-      "paths": ["src/modules/browserIdentity"], "publicEntrypoints": ["src/modules/browserIdentity/public.ts"],
-      "frontendRoutes": [], "backendRoutes": [], "contracts": [], "jobs": [], "cacheNamespaces": [],
-      "dataStores": ["sessionStorage:hp_reader_interaction"], "externalServices": [],
-      "tests": ["tests/reader-auth-continuation.test.ts"], "allowedDependencies": ["React", "browser sessionStorage", "frontend-account-route public entrypoint"],
-      "forbiddenImports": ["server/**"]
+      "paths": [
+        "src/modules/browserIdentity"
+      ],
+      "publicEntrypoints": [
+        "src/modules/browserIdentity/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": [],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [
+        "sessionStorage:hp_reader_interaction"
+      ],
+      "externalServices": [],
+      "tests": [
+        "tests/reader-auth-continuation.test.ts"
+      ],
+      "allowedDependencies": [
+        "React",
+        "browser sessionStorage",
+        "frontend-account-route public entrypoint"
+      ],
+      "forbiddenImports": [
+        "server/**"
+      ]
     },
     {
       "name": "backend-application-auth",
       "status": "modular",
       "owner": "identity-platform",
       "purpose": "Own device authorization, application tokens and the authenticated application profile API.",
-      "paths": ["server/modules/applicationAuth"],
-      "publicEntrypoints": ["server/modules/applicationAuth/public.ts"],
+      "paths": [
+        "server/modules/applicationAuth"
+      ],
+      "publicEntrypoints": [
+        "server/modules/applicationAuth/public.ts"
+      ],
       "frontendRoutes": [],
       "backendRoutes": [
-        { "method": "POST", "path": "/api/v1/oauth/device/code" },
-        { "method": "GET", "path": "/api/v1/oauth/device/authorization" },
-        { "method": "POST", "path": "/api/v1/oauth/device/approve" },
-        { "method": "POST", "path": "/api/v1/oauth/token" },
-        { "method": "POST", "path": "/api/v1/oauth/revoke" },
-        { "method": "GET", "path": "/api/v1/me" }
+        {
+          "method": "POST",
+          "path": "/api/v1/oauth/device/code"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/oauth/device/authorization"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/oauth/device/approve"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/oauth/token"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/oauth/revoke"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/me"
+        }
       ],
-      "contracts": ["server/modules/applicationAuth/model.ts"],
+      "contracts": [
+        "server/modules/applicationAuth/model.ts"
+      ],
       "jobs": [],
       "cacheNamespaces": [],
-      "dataStores": ["sqlite:application_device_authorizations", "sqlite:application_tokens"],
+      "dataStores": [
+        "sqlite:application_device_authorizations",
+        "sqlite:application_tokens"
+      ],
       "externalServices": [],
       "tests": [
         "tests/application-auth-model.test.ts",
@@ -100,151 +244,323 @@
         "tests/application-auth-repository.test.ts",
         "tests/application-auth-routes.test.ts"
       ],
-      "allowedDependencies": ["server/shared", "Node.js crypto/sqlite", "Express at the routes boundary"],
-      "forbiddenImports": ["src/**", "other server module internals"]
+      "allowedDependencies": [
+        "server/shared",
+        "Node.js crypto/sqlite",
+        "Express at the routes boundary"
+      ],
+      "forbiddenImports": [
+        "src/**",
+        "other server module internals"
+      ]
     },
     {
       "name": "backend-tracker-ingestion",
       "status": "modular",
       "owner": "identity-platform",
       "purpose": "Own bounded, authenticated and idempotent IceCrow profile-event ingestion.",
-      "paths": ["server/modules/trackerIngestion"],
-      "publicEntrypoints": ["server/modules/trackerIngestion/public.ts"],
+      "paths": [
+        "server/modules/trackerIngestion"
+      ],
+      "publicEntrypoints": [
+        "server/modules/trackerIngestion/public.ts"
+      ],
       "frontendRoutes": [],
-      "backendRoutes": [{ "method": "POST", "path": "/api/v1/tracker/events/batch" }],
-      "contracts": ["server/modules/trackerIngestion/public.ts", "docs/specs/tracker-ingestion.md"],
+      "backendRoutes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/tracker/events/batch"
+        }
+      ],
+      "contracts": [
+        "server/modules/trackerIngestion/public.ts",
+        "docs/specs/tracker-ingestion.md"
+      ],
       "jobs": [],
       "cacheNamespaces": [],
-      "dataStores": ["sqlite:tracker_profile_events"],
-      "externalServices": ["IceCrow desktop clients authorized through applicationAuth"],
-      "tests": ["tests/tracker-ingestion-routes.test.ts"],
-      "allowedDependencies": ["backend-application-auth public contract", "Node.js sqlite", "Express at the routes boundary"],
-      "forbiddenImports": ["src/**", "other server module internals except applicationAuth/public.ts"]
+      "dataStores": [
+        "sqlite:tracker_profile_events"
+      ],
+      "externalServices": [
+        "IceCrow desktop clients authorized through applicationAuth"
+      ],
+      "tests": [
+        "tests/tracker-ingestion-routes.test.ts"
+      ],
+      "allowedDependencies": [
+        "backend-application-auth public contract",
+        "Node.js sqlite",
+        "Express at the routes boundary"
+      ],
+      "forbiddenImports": [
+        "src/**",
+        "other server module internals except applicationAuth/public.ts"
+      ]
     },
     {
       "name": "backend-arena",
       "status": "transitional",
       "owner": "arena-data",
       "purpose": "Own the extracted Arena class-statistics normalization while legacy Arena routes remain outside the module.",
-      "paths": ["server/modules/arena"],
+      "paths": [
+        "server/modules/arena"
+      ],
       "publicEntrypoints": [],
       "frontendRoutes": [],
       "backendRoutes": [],
-      "contracts": ["server/modules/arena/classStatisticsNormalizer.ts"],
+      "contracts": [
+        "server/modules/arena/classStatisticsNormalizer.ts"
+      ],
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],
       "externalServices": [],
-      "tests": ["tests/arena-class-statistics-normalizer.test.ts"],
-      "allowedDependencies": ["server/shared"],
-      "forbiddenImports": ["src/**", "new consumers before a public entrypoint exists"]
+      "tests": [
+        "tests/arena-class-statistics-normalizer.test.ts"
+      ],
+      "allowedDependencies": [
+        "server/shared"
+      ],
+      "forbiddenImports": [
+        "src/**",
+        "new consumers before a public entrypoint exists"
+      ]
     },
     {
       "name": "backend-browser-session-cookies",
       "status": "modular",
       "owner": "identity-platform",
       "purpose": "Own browser session cookie construction and legacy Arena-domain cookie cleanup.",
-      "paths": ["server/modules/browserSessionCookies"],
-      "publicEntrypoints": ["server/modules/browserSessionCookies/public.ts"],
+      "paths": [
+        "server/modules/browserSessionCookies"
+      ],
+      "publicEntrypoints": [
+        "server/modules/browserSessionCookies/public.ts"
+      ],
       "frontendRoutes": [],
       "backendRoutes": [],
-      "contracts": ["server/modules/browserSessionCookies/public.ts"],
+      "contracts": [
+        "server/modules/browserSessionCookies/public.ts"
+      ],
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],
       "externalServices": [],
-      "tests": ["tests/browser-session-cookies.test.ts"],
-      "allowedDependencies": ["Express request/response types"],
-      "forbiddenImports": ["src/**", "other server module internals"]
+      "tests": [
+        "tests/browser-session-cookies.test.ts"
+      ],
+      "allowedDependencies": [
+        "Express request/response types"
+      ],
+      "forbiddenImports": [
+        "src/**",
+        "other server module internals"
+      ]
     },
     {
       "name": "backend-cover-admin-sso",
       "status": "modular",
       "owner": "identity-platform",
       "purpose": "Own the short-lived HearthPulse-to-Cover browser hand-off and the current-admin authorization boundary consumed by Cover Nginx.",
-      "paths": ["server/modules/coverAdminSso"],
-      "publicEntrypoints": ["server/modules/coverAdminSso/public.ts"],
+      "paths": [
+        "server/modules/coverAdminSso"
+      ],
+      "publicEntrypoints": [
+        "server/modules/coverAdminSso/public.ts"
+      ],
       "frontendRoutes": [],
       "backendRoutes": [
-        { "method": "GET", "path": "/api/auth/cover/start" },
-        { "method": "GET", "path": "/api/auth/cover/callback" },
-        { "method": "GET", "path": "/api/auth/cover/authorize" }
+        {
+          "method": "GET",
+          "path": "/api/auth/cover/start"
+        },
+        {
+          "method": "GET",
+          "path": "/api/auth/cover/callback"
+        },
+        {
+          "method": "GET",
+          "path": "/api/auth/cover/authorize"
+        }
       ],
-      "contracts": ["server/modules/coverAdminSso/routes.ts", "docs/specs/cover-admin-sso.md"],
+      "contracts": [
+        "server/modules/coverAdminSso/routes.ts",
+        "docs/specs/cover-admin-sso.md"
+      ],
       "jobs": [],
       "cacheNamespaces": [],
-      "dataStores": ["sqlite:cover_sso_handoffs", "HearthPulse user store supplied by composition"],
-      "externalServices": ["Cover Nginx auth_request over loopback"],
-      "tests": ["tests/cover-admin-sso.test.ts"],
-      "allowedDependencies": ["Node.js crypto", "Express at the routes boundary"],
-      "forbiddenImports": ["src/**", "other server module internals", "database access outside injected dependencies"]
+      "dataStores": [
+        "sqlite:cover_sso_handoffs",
+        "HearthPulse user store supplied by composition"
+      ],
+      "externalServices": [
+        "Cover Nginx auth_request over loopback"
+      ],
+      "tests": [
+        "tests/cover-admin-sso.test.ts"
+      ],
+      "allowedDependencies": [
+        "Node.js crypto",
+        "Express at the routes boundary"
+      ],
+      "forbiddenImports": [
+        "src/**",
+        "other server module internals",
+        "database access outside injected dependencies"
+      ]
     },
     {
       "name": "backend-constructed-cards",
       "status": "transitional",
       "owner": "constructed-cards",
       "purpose": "Own the extracted related-card transformation while the main constructed API remains a compatibility module.",
-      "paths": ["server/modules/constructedCards"],
+      "paths": [
+        "server/modules/constructedCards"
+      ],
       "publicEntrypoints": [],
       "frontendRoutes": [],
       "backendRoutes": [],
-      "contracts": ["server/modules/constructedCards/relatedCards.ts"],
+      "contracts": [
+        "server/modules/constructedCards/relatedCards.ts"
+      ],
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],
       "externalServices": [],
-      "tests": ["tests/constructed-card-ui-status.test.ts"],
-      "allowedDependencies": ["server/shared", "shared browser-safe contracts"],
-      "forbiddenImports": ["src/**", "new consumers before a public entrypoint exists"]
+      "tests": [
+        "tests/constructed-card-ui-status.test.ts"
+      ],
+      "allowedDependencies": [
+        "server/shared",
+        "shared browser-safe contracts"
+      ],
+      "forbiddenImports": [
+        "src/**",
+        "new consumers before a public entrypoint exists"
+      ]
     },
     {
       "name": "backend-ecosystem",
       "status": "modular",
       "owner": "identity-platform",
       "purpose": "Own protected server-to-server user and subscription transport adapters.",
-      "paths": ["server/modules/ecosystem"],
-      "publicEntrypoints": ["server/modules/ecosystem/public.ts"],
+      "paths": [
+        "server/modules/ecosystem"
+      ],
+      "publicEntrypoints": [
+        "server/modules/ecosystem/public.ts"
+      ],
       "frontendRoutes": [],
       "backendRoutes": [
-        { "method": "GET", "path": "/api/ecosystem/internal/user" },
-        { "method": "GET", "path": "/api/ecosystem/internal/subscription" },
-        { "method": "POST", "path": "/api/ecosystem/internal/subscription" }
+        {
+          "method": "GET",
+          "path": "/api/ecosystem/internal/user"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ecosystem/internal/subscription"
+        },
+        {
+          "method": "POST",
+          "path": "/api/ecosystem/internal/subscription"
+        }
       ],
-      "contracts": ["server/modules/ecosystem/public.ts"],
+      "contracts": [
+        "server/modules/ecosystem/public.ts"
+      ],
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],
-      "externalServices": ["HearthPulse ecosystem clients through the internal authorization guard"],
-      "tests": ["tests/ecosystem-internal-routes.test.ts"],
-      "allowedDependencies": ["server/shared", "Express at the routes boundary"],
-      "forbiddenImports": ["src/**", "other server module internals"]
+      "externalServices": [
+        "HearthPulse ecosystem clients through the internal authorization guard"
+      ],
+      "tests": [
+        "tests/ecosystem-internal-routes.test.ts"
+      ],
+      "allowedDependencies": [
+        "server/shared",
+        "Express at the routes boundary"
+      ],
+      "forbiddenImports": [
+        "src/**",
+        "other server module internals"
+      ]
     },
     {
       "name": "backend-public-api",
       "status": "modular",
       "owner": "developer-platform",
       "purpose": "Own versioned public API schemas, serializers, statistics use cases, credentials and route registration.",
-      "paths": ["server/modules/publicApi"],
-      "publicEntrypoints": ["server/modules/publicApi/public.ts"],
+      "paths": [
+        "server/modules/publicApi"
+      ],
+      "publicEntrypoints": [
+        "server/modules/publicApi/public.ts"
+      ],
       "frontendRoutes": [],
       "backendRoutes": [
-        { "method": "GET", "path": "/api/v1/openapi.json" },
-        { "method": "*", "path": "/api/v1/catalog/**" },
-        { "method": "*", "path": "/api/v1/cards/**" },
-        { "method": "GET", "path": "/api/v1/card-statistics" },
-        { "method": "GET", "path": "/api/v1/meta-statistics" },
-        { "method": "GET", "path": "/api/v1/archetypes/**" },
-        { "method": "GET", "path": "/api/v1/deck-statistics" },
-        { "method": "GET", "path": "/api/v1/decks/**" },
-        { "method": "GET", "path": "/api/v1/arena/**" },
-        { "method": "GET", "path": "/api/v1/battlegrounds/**" },
-        { "method": "*", "path": "/api/admin/api-keys/**" }
+        {
+          "method": "GET",
+          "path": "/api/v1/openapi.json"
+        },
+        {
+          "method": "*",
+          "path": "/api/v1/catalog/**"
+        },
+        {
+          "method": "*",
+          "path": "/api/v1/cards/**"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/card-statistics"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/meta-statistics"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/archetypes/**"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/deck-statistics"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/decks/**"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/arena/**"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/battlegrounds/**"
+        },
+        {
+          "method": "*",
+          "path": "/api/admin/api-keys/**"
+        }
       ],
-      "contracts": ["server/modules/publicApi/model.ts", "server/modules/publicApi/openapi.ts"],
+      "contracts": [
+        "server/modules/publicApi/model.ts",
+        "server/modules/publicApi/openapi.ts"
+      ],
       "jobs": [],
-      "cacheNamespaces": ["memory:public-card-catalog", "memory:public-meta-statistics", "memory:public-deck-statistics"],
-      "dataStores": ["sqlite:public_api_keys", "read-only product datasets supplied by composition"],
-      "externalServices": ["loopback Battlegrounds API at 127.0.0.1:3108"],
+      "cacheNamespaces": [
+        "memory:public-card-catalog",
+        "memory:public-meta-statistics",
+        "memory:public-deck-statistics"
+      ],
+      "dataStores": [
+        "sqlite:public_api_keys",
+        "read-only product datasets supplied by composition"
+      ],
+      "externalServices": [
+        "loopback Battlegrounds API at 127.0.0.1:3108"
+      ],
       "tests": [
         "tests/public-api-arena-statistics.test.ts",
         "tests/public-api-battleground-statistics.test.ts",
@@ -255,123 +571,240 @@
         "tests/public-api-meta-statistics.test.ts",
         "tests/public-api-v1.test.ts"
       ],
-      "allowedDependencies": ["server/shared", "shared browser-safe contracts", "Node.js crypto/sqlite", "Express at the routes boundary"],
-      "forbiddenImports": ["src/**", "other server module internals except documented composition adapters"]
+      "allowedDependencies": [
+        "server/shared",
+        "shared browser-safe contracts",
+        "Node.js crypto/sqlite",
+        "Express at the routes boundary"
+      ],
+      "forbiddenImports": [
+        "src/**",
+        "other server module internals except documented composition adapters"
+      ]
     },
     {
       "name": "backend-subscription",
       "status": "transitional",
       "owner": "subscription-platform",
       "purpose": "Own the subscription refresh process job and canonical cached-status persistence while entitlement services remain composition dependencies.",
-      "paths": ["server/modules/subscription"],
-      "publicEntrypoints": ["server/modules/subscription/public.ts"],
+      "paths": [
+        "server/modules/subscription"
+      ],
+      "publicEntrypoints": [
+        "server/modules/subscription/public.ts"
+      ],
       "frontendRoutes": [],
       "backendRoutes": [],
-      "contracts": ["server/modules/subscription/public.ts", "server/modules/subscription/cacheRepository.ts"],
-      "jobs": ["server/modules/subscription/jobs/refreshJob.ts"],
+      "contracts": [
+        "server/modules/subscription/public.ts",
+        "server/modules/subscription/cacheRepository.ts"
+      ],
+      "jobs": [
+        "server/modules/subscription/jobs/refreshJob.ts"
+      ],
       "cacheNamespaces": [],
-      "dataStores": ["sqlite:subscriptions (write through canonical cache repository)"],
-      "externalServices": ["subscription providers behind refreshAllSubscriptions"],
-      "tests": ["tests/subscription-refresh-job.test.ts"],
-      "allowedDependencies": ["server/shared", "node-cron at the job boundary"],
-      "forbiddenImports": ["src/**", "other server module internals"]
+      "dataStores": [
+        "sqlite:subscriptions (write through canonical cache repository)"
+      ],
+      "externalServices": [
+        "subscription providers behind refreshAllSubscriptions"
+      ],
+      "tests": [
+        "tests/subscription-refresh-job.test.ts"
+      ],
+      "allowedDependencies": [
+        "server/shared",
+        "node-cron at the job boundary"
+      ],
+      "forbiddenImports": [
+        "src/**",
+        "other server module internals"
+      ]
     },
     {
       "name": "frontend-cover-admin-sso",
       "status": "modular",
       "owner": "identity-platform",
       "purpose": "Own the fixed post-login resume path for the Cover administrator hand-off.",
-      "paths": ["src/modules/coverAdminSso"],
-      "publicEntrypoints": ["src/modules/coverAdminSso/public.ts"],
+      "paths": [
+        "src/modules/coverAdminSso"
+      ],
+      "publicEntrypoints": [
+        "src/modules/coverAdminSso/public.ts"
+      ],
       "frontendRoutes": [],
       "backendRoutes": [],
-      "contracts": ["src/modules/coverAdminSso/public.ts", "docs/specs/cover-admin-sso.md"],
+      "contracts": [
+        "src/modules/coverAdminSso/public.ts",
+        "docs/specs/cover-admin-sso.md"
+      ],
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],
       "externalServices": [],
-      "tests": ["tests/cover-admin-sso-client.test.ts"],
-      "allowedDependencies": ["browser URL and navigation APIs"],
-      "forbiddenImports": ["server/**", "other frontend module internals"]
+      "tests": [
+        "tests/cover-admin-sso-client.test.ts"
+      ],
+      "allowedDependencies": [
+        "browser URL and navigation APIs"
+      ],
+      "forbiddenImports": [
+        "server/**",
+        "other frontend module internals"
+      ]
     },
     {
       "name": "frontend-account-route",
       "status": "transitional",
       "owner": "identity-platform",
       "purpose": "Compose login, application-connect and public-profile account surfaces behind one lazy route entrypoint.",
-      "paths": ["src/modules/accountRoute"],
-      "publicEntrypoints": ["src/modules/accountRoute/public.ts"],
-      "frontendRoutes": ["/id/:publicProfileId", "/profiles/:legacyPublicProfileId"],
+      "paths": [
+        "src/modules/accountRoute"
+      ],
+      "publicEntrypoints": [
+        "src/modules/accountRoute/public.ts"
+      ],
+      "frontendRoutes": [
+        "/id/:publicProfileId",
+        "/profiles/:legacyPublicProfileId"
+      ],
       "backendRoutes": [],
       "contracts": [],
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],
       "externalServices": [],
-      "tests": ["tests/public-profile-client-routes.test.ts"],
-      "allowedDependencies": ["frontend-application-connect public entrypoint", "legacy profile/login compatibility routes", "React"],
-      "forbiddenImports": ["server/**", "other frontend module internals"]
+      "tests": [
+        "tests/public-profile-client-routes.test.ts"
+      ],
+      "allowedDependencies": [
+        "frontend-application-connect public entrypoint",
+        "legacy profile/login compatibility routes",
+        "React"
+      ],
+      "forbiddenImports": [
+        "server/**",
+        "other frontend module internals"
+      ]
     },
     {
       "name": "frontend-admin-workspace",
       "status": "modular",
       "owner": "admin-platform",
       "purpose": "Own the reusable administrator workspace shell, navigation and responsive presentation.",
-      "paths": ["src/modules/adminWorkspace"],
-      "publicEntrypoints": ["src/modules/adminWorkspace/public.ts", "src/modules/adminWorkspace/AdminWorkspaceShell.lazy.ts"],
-      "frontendRoutes": ["/admin"],
+      "paths": [
+        "src/modules/adminWorkspace"
+      ],
+      "publicEntrypoints": [
+        "src/modules/adminWorkspace/public.ts",
+        "src/modules/adminWorkspace/AdminWorkspaceShell.lazy.ts"
+      ],
+      "frontendRoutes": [
+        "/admin"
+      ],
       "backendRoutes": [],
       "contracts": [],
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],
       "externalServices": [],
-      "tests": ["tests/admin-workspace-shell.test.tsx", "tests/admin-workspace-state.test.ts"],
-      "allowedDependencies": ["shared UI primitives", "React", "lucide-react"],
-      "forbiddenImports": ["server/**", "other frontend module internals"]
+      "tests": [
+        "tests/admin-workspace-shell.test.tsx",
+        "tests/admin-workspace-state.test.ts"
+      ],
+      "allowedDependencies": [
+        "shared UI primitives",
+        "React",
+        "lucide-react"
+      ],
+      "forbiddenImports": [
+        "server/**",
+        "other frontend module internals"
+      ]
     },
     {
       "name": "frontend-application-connect",
       "status": "modular",
       "owner": "identity-platform",
       "purpose": "Own the device authorization route, runtime response schema, API client and presentation state.",
-      "paths": ["src/modules/applicationConnect"],
-      "publicEntrypoints": ["src/modules/applicationConnect/public.ts"],
-      "frontendRoutes": ["/connect"],
+      "paths": [
+        "src/modules/applicationConnect"
+      ],
+      "publicEntrypoints": [
+        "src/modules/applicationConnect/public.ts"
+      ],
+      "frontendRoutes": [
+        "/connect"
+      ],
       "backendRoutes": [],
-      "contracts": ["src/modules/applicationConnect/schema/deviceAuthorization.ts"],
+      "contracts": [
+        "src/modules/applicationConnect/schema/deviceAuthorization.ts"
+      ],
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],
-      "externalServices": ["same-origin application authorization API"],
-      "tests": ["tests/application-connect-api.test.ts", "tests/application-connect-page.test.ts"],
-      "allowedDependencies": ["shared browser platform", "React", "injected login presentation contract"],
-      "forbiddenImports": ["server/**", "other frontend module internals"]
+      "externalServices": [
+        "same-origin application authorization API"
+      ],
+      "tests": [
+        "tests/application-connect-api.test.ts",
+        "tests/application-connect-page.test.ts"
+      ],
+      "allowedDependencies": [
+        "shared browser platform",
+        "React",
+        "injected login presentation contract"
+      ],
+      "forbiddenImports": [
+        "server/**",
+        "other frontend module internals"
+      ]
     },
     {
       "name": "frontend-developer-api",
       "status": "modular",
       "owner": "developer-platform",
       "purpose": "Own public API documentation UI and administrator API-key controls.",
-      "paths": ["src/modules/developerApi"],
-      "publicEntrypoints": ["src/modules/developerApi/public.ts"],
-      "frontendRoutes": ["/developers/api"],
+      "paths": [
+        "src/modules/developerApi"
+      ],
+      "publicEntrypoints": [
+        "src/modules/developerApi/public.ts"
+      ],
+      "frontendRoutes": [
+        "/developers/api"
+      ],
       "backendRoutes": [],
-      "contracts": ["src/modules/developerApi/api/adminApiKeys.ts"],
+      "contracts": [
+        "src/modules/developerApi/api/adminApiKeys.ts"
+      ],
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],
-      "externalServices": ["same-origin public API and administrator API-key endpoints"],
-      "tests": ["tests/public-api-ui.test.ts"],
-      "allowedDependencies": ["shared browser platform", "React", "lucide-react"],
-      "forbiddenImports": ["server/**", "other frontend module internals"]
+      "externalServices": [
+        "same-origin public API and administrator API-key endpoints"
+      ],
+      "tests": [
+        "tests/public-api-ui.test.ts"
+      ],
+      "allowedDependencies": [
+        "shared browser platform",
+        "React",
+        "lucide-react"
+      ],
+      "forbiddenImports": [
+        "server/**",
+        "other frontend module internals"
+      ]
     },
     {
       "name": "frontend-search-landing",
       "status": "modular",
       "owner": "search-experience",
       "purpose": "Own visible search-intent introductions and contextual navigation for canonical public landing pages.",
-      "paths": ["src/modules/searchLanding"],
+      "paths": [
+        "src/modules/searchLanding"
+      ],
       "publicEntrypoints": [
         "src/modules/searchLanding/arena.ts",
         "src/modules/searchLanding/battlegrounds.ts",
@@ -384,9 +817,214 @@
       "cacheNamespaces": [],
       "dataStores": [],
       "externalServices": [],
-      "tests": ["tests/seo-registry.test.ts"],
-      "allowedDependencies": ["React"],
-      "forbiddenImports": ["server/**", "other frontend module internals"]
+      "tests": [
+        "tests/seo-registry.test.ts"
+      ],
+      "allowedDependencies": [
+        "React"
+      ],
+      "forbiddenImports": [
+        "server/**",
+        "other frontend module internals"
+      ]
+    },
+    {
+      "name": "frontend-battlegrounds",
+      "status": "modular",
+      "owner": "web-platform",
+      "purpose": "Owns client Battlegrounds hero catalog contracts, full-quality portrait policy, current-roster normalization and the versioned legacy-builder bridge.",
+      "paths": [
+        "src/modules/battlegrounds"
+      ],
+      "publicEntrypoints": [
+        "src/modules/battlegrounds/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md",
+        "docs/runbooks/battlegrounds-patch-refresh.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": [
+        "tests/battleground-hero-contracts.test.ts",
+        "tests/battleground-image-optimization.test.ts",
+        "tests/battleground-accessories-browser.test.mjs"
+      ],
+      "allowedDependencies": [],
+      "forbiddenImports": [
+        "other module internals"
+      ]
+    },
+    {
+      "name": "frontend-identity",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Owns the browser account identity contract, guest and private session transport, login and profile presentation primitives.",
+      "paths": [
+        "src/modules/identity"
+      ],
+      "publicEntrypoints": [
+        "src/modules/identity/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": [
+        "tests/application-connect-api.test.ts",
+        "tests/application-connect-page.test.ts",
+        "tests/auth-credential-routes.test.ts",
+        "tests/auth-profile-routes.test.ts",
+        "tests/auth-verification-routes.test.ts",
+        "tests/client-identity-guest-auth.test.ts",
+        "tests/client-identity-session.test.ts",
+        "tests/csrf.test.ts",
+        "tests/password-reset-routes.test.ts",
+        "tests/public-profile-identity.test.ts",
+        "tests/public-profile-routes.test.ts",
+        "tests/public-profile-client-routes.test.ts",
+        "tests/subscription-access.test.ts"
+      ],
+      "allowedDependencies": [
+        "client.subscriptions",
+        "client.coverAdminSso"
+      ],
+      "forbiddenImports": [
+        "other module internals"
+      ]
+    },
+    {
+      "name": "frontend-subscriptions",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Owns the client subscription-status contract, entitlement access policy and display metadata.",
+      "paths": [
+        "src/modules/subscriptions"
+      ],
+      "publicEntrypoints": [
+        "src/modules/subscriptions/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": [
+        "tests/subscription-access.test.ts"
+      ],
+      "allowedDependencies": [],
+      "forbiddenImports": [
+        "other module internals"
+      ]
+    },
+    {
+      "name": "backend-identity",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Owns private browser-session inspection, account-profile updates and logout HTTP routes.",
+      "paths": [
+        "server/modules/identity"
+      ],
+      "publicEntrypoints": [
+        "server/modules/identity/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": [
+        "tests/auth-profile-routes.test.ts"
+      ],
+      "allowedDependencies": [],
+      "forbiddenImports": [
+        "other module internals"
+      ]
+    },
+    {
+      "name": "backend-telegramAuth",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Owns verified Telegram claim parsing, immutable account resolution, one-time intents, session-bound link credentials and transactional identity claiming.",
+      "paths": [
+        "server/modules/telegramAuth"
+      ],
+      "publicEntrypoints": [
+        "server/modules/telegramAuth/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md",
+        "docs/specs/telegram-identity.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": [
+        "tests/telegram-auth-intent.test.ts",
+        "tests/telegram-identity-resolution.test.ts",
+        "tests/telegram-identity-repository.test.ts"
+      ],
+      "allowedDependencies": [],
+      "forbiddenImports": [
+        "other module internals"
+      ]
+    },
+    {
+      "name": "backend-publicProfile",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Owns public profile identity, SQLite persistence, privacy-safe serialization and HTTP routes.",
+      "paths": [
+        "server/modules/publicProfile"
+      ],
+      "publicEntrypoints": [
+        "server/modules/publicProfile/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md",
+        "docs/specs/card-controls-and-public-profiles.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [],
+      "externalServices": [],
+      "tests": [
+        "tests/public-profile-identity.test.ts",
+        "tests/public-profile-routes.test.ts",
+        "tests/public-profile-client-routes.test.ts"
+      ],
+      "allowedDependencies": [],
+      "forbiddenImports": [
+        "other module internals"
+      ]
     }
   ],
   "legacyAreas": [
@@ -395,18 +1033,32 @@
       "status": "legacy",
       "owner": "application-platform",
       "purpose": "Own the remaining server composition root while routes and lifecycle concerns move behind explicit module entrypoints.",
-      "paths": ["server/index.ts"],
-      "publicEntrypoints": ["server/index.ts"],
+      "paths": [
+        "server/index.ts"
+      ],
+      "publicEntrypoints": [
+        "server/index.ts"
+      ],
       "frontendRoutes": [],
       "backendRoutes": [],
       "contracts": [],
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],
-      "externalServices": ["all services wired by the server composition root"],
-      "tests": ["tests/http-route-manifest.test.mjs", "tests/process-lifecycle.test.ts"],
-      "allowedDependencies": ["server module public entrypoints", "application infrastructure"],
-      "forbiddenImports": ["new business logic implemented directly in server/index.ts"],
+      "externalServices": [
+        "all services wired by the server composition root"
+      ],
+      "tests": [
+        "tests/http-route-manifest.test.mjs",
+        "tests/process-lifecycle.test.ts"
+      ],
+      "allowedDependencies": [
+        "server module public entrypoints",
+        "application infrastructure"
+      ],
+      "forbiddenImports": [
+        "new business logic implemented directly in server/index.ts"
+      ],
       "migrationTarget": "server application composition below 500 lines",
       "exitCriteria": "server/index.ts only wires module entrypoints, shared middleware and process lifecycle below the documented size budget."
     },
@@ -415,8 +1067,12 @@
       "status": "legacy",
       "owner": "frontend-platform",
       "purpose": "Own the shared lazy-route host until every exported surface has a domain-owned module entrypoint.",
-      "paths": ["src/features/DeferredRoutes.tsx"],
-      "publicEntrypoints": ["src/features/DeferredRoutes.tsx"],
+      "paths": [
+        "src/features/DeferredRoutes.tsx"
+      ],
+      "publicEntrypoints": [
+        "src/features/DeferredRoutes.tsx"
+      ],
       "frontendRoutes": [],
       "backendRoutes": [],
       "contracts": [],
@@ -424,9 +1080,17 @@
       "cacheNamespaces": [],
       "dataStores": [],
       "externalServices": [],
-      "tests": ["tests/deferred-route-boundaries.test.mjs", "tests/routes.test.ts"],
-      "allowedDependencies": ["route-owned frontend components", "React lazy loading"],
-      "forbiddenImports": ["new domain behavior implemented in the shared route host"],
+      "tests": [
+        "tests/deferred-route-boundaries.test.mjs",
+        "tests/routes.test.ts"
+      ],
+      "allowedDependencies": [
+        "route-owned frontend components",
+        "React lazy loading"
+      ],
+      "forbiddenImports": [
+        "new domain behavior implemented in the shared route host"
+      ],
       "migrationTarget": "route-owned frontend modules",
       "exitCriteria": "DeferredRoutes.tsx is removed or contains only generic lazy-loading infrastructure with no domain component ownership."
     },
@@ -435,8 +1099,12 @@
       "status": "legacy",
       "owner": "battlegrounds-platform",
       "purpose": "Own the mixed Battlegrounds route host while data and tool surfaces are extracted into separate modules.",
-      "paths": ["src/features/Battlegrounds.tsx"],
-      "publicEntrypoints": ["src/features/Battlegrounds.tsx"],
+      "paths": [
+        "src/features/Battlegrounds.tsx"
+      ],
+      "publicEntrypoints": [
+        "src/features/Battlegrounds.tsx"
+      ],
       "frontendRoutes": [],
       "backendRoutes": [],
       "contracts": [],
@@ -444,9 +1112,17 @@
       "cacheNamespaces": [],
       "dataStores": [],
       "externalServices": [],
-      "tests": ["tests/routes.test.ts", "tests/bg-library-catalog-model.test.ts"],
-      "allowedDependencies": ["Battlegrounds data and tool presentation dependencies", "React"],
-      "forbiddenImports": ["new unrelated product domains in the Battlegrounds host"],
+      "tests": [
+        "tests/routes.test.ts",
+        "tests/bg-library-catalog-model.test.ts"
+      ],
+      "allowedDependencies": [
+        "Battlegrounds data and tool presentation dependencies",
+        "React"
+      ],
+      "forbiddenImports": [
+        "new unrelated product domains in the Battlegrounds host"
+      ],
       "migrationTarget": "frontend Battlegrounds route modules",
       "exitCriteria": "Battlegrounds.tsx is replaced by thin route composition over data-owned and tool-owned module entrypoints."
     },
@@ -456,17 +1132,31 @@
       "owner": "editorial",
       "purpose": "Own the public articles route that is still served through the shared deferred-route host.",
       "paths": [],
-      "publicEntrypoints": ["src/features/DeferredRoutes.tsx"],
-      "frontendRoutes": ["/articles"],
+      "publicEntrypoints": [
+        "src/features/DeferredRoutes.tsx"
+      ],
+      "frontendRoutes": [
+        "/articles"
+      ],
       "backendRoutes": [],
       "contracts": [],
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],
-      "externalServices": ["same-origin public article API"],
-      "tests": ["tests/routes.test.ts", "tests/article-access.test.ts"],
-      "allowedDependencies": ["shared deferred-route host", "article presentation dependencies"],
-      "forbiddenImports": ["Battlegrounds and administrator domain internals"],
+      "externalServices": [
+        "same-origin public article API"
+      ],
+      "tests": [
+        "tests/routes.test.ts",
+        "tests/article-access.test.ts"
+      ],
+      "allowedDependencies": [
+        "shared deferred-route host",
+        "article presentation dependencies"
+      ],
+      "forbiddenImports": [
+        "Battlegrounds and administrator domain internals"
+      ],
       "migrationTarget": "frontend-articles",
       "exitCriteria": "The /articles route resolves through a cataloged frontend-articles public entrypoint and no longer depends on DeferredRoutes.tsx."
     },
@@ -476,17 +1166,40 @@
       "owner": "battlegrounds-data",
       "purpose": "Own public Battlegrounds hero, library and tier-list routes while they remain hosted in the mixed Battlegrounds feature.",
       "paths": [],
-      "publicEntrypoints": ["src/features/Battlegrounds.tsx"],
-      "frontendRoutes": ["/heroes", "/heroes/:dbfId", "/library", "/library/archive", "/library/:kind", "/library/archive/:kind", "/library/:kind/:slugAndDbfId", "/library/:additionalKind/:slugAndDbfId", "/library/archive/:kind/:slugAndDbfId", "/battlegrounds/tier-list"],
+      "publicEntrypoints": [
+        "src/features/Battlegrounds.tsx"
+      ],
+      "frontendRoutes": [
+        "/heroes",
+        "/heroes/:dbfId",
+        "/library",
+        "/library/archive",
+        "/library/:kind",
+        "/library/archive/:kind",
+        "/library/:kind/:slugAndDbfId",
+        "/library/:additionalKind/:slugAndDbfId",
+        "/library/archive/:kind/:slugAndDbfId",
+        "/battlegrounds/tier-list"
+      ],
       "backendRoutes": [],
       "contracts": [],
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],
-      "externalServices": ["same-origin Battlegrounds catalog APIs"],
-      "tests": ["tests/routes.test.ts", "tests/bg-library-catalog-model.test.ts"],
-      "allowedDependencies": ["Battlegrounds presentation and catalog dependencies", "shared Battlegrounds host"],
-      "forbiddenImports": ["Battlegrounds tool and unrelated product domain internals"],
+      "externalServices": [
+        "same-origin Battlegrounds catalog APIs"
+      ],
+      "tests": [
+        "tests/routes.test.ts",
+        "tests/bg-library-catalog-model.test.ts"
+      ],
+      "allowedDependencies": [
+        "Battlegrounds presentation and catalog dependencies",
+        "shared Battlegrounds host"
+      ],
+      "forbiddenImports": [
+        "Battlegrounds tool and unrelated product domain internals"
+      ],
       "migrationTarget": "frontend-battlegrounds-data",
       "exitCriteria": "All listed data routes resolve through a cataloged frontend-battlegrounds-data public entrypoint."
     },
@@ -496,17 +1209,32 @@
       "owner": "battlegrounds-tools",
       "purpose": "Own public Battlegrounds strategy and tier-builder tools while they remain hosted in the mixed Battlegrounds feature.",
       "paths": [],
-      "publicEntrypoints": ["src/features/Battlegrounds.tsx"],
-      "frontendRoutes": ["/battlegrounds/strategies", "/battlegrounds/tier-builder"],
+      "publicEntrypoints": [
+        "src/features/Battlegrounds.tsx"
+      ],
+      "frontendRoutes": [
+        "/battlegrounds/strategies",
+        "/battlegrounds/tier-builder"
+      ],
       "backendRoutes": [],
       "contracts": [],
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],
-      "externalServices": ["same-origin Battlegrounds tool APIs"],
-      "tests": ["tests/routes.test.ts", "tests/battleground-strategy-audit.test.ts"],
-      "allowedDependencies": ["Battlegrounds strategy and tier-builder dependencies", "shared Battlegrounds host"],
-      "forbiddenImports": ["Battlegrounds catalog and unrelated product domain internals"],
+      "externalServices": [
+        "same-origin Battlegrounds tool APIs"
+      ],
+      "tests": [
+        "tests/routes.test.ts",
+        "tests/battleground-strategy-audit.test.ts"
+      ],
+      "allowedDependencies": [
+        "Battlegrounds strategy and tier-builder dependencies",
+        "shared Battlegrounds host"
+      ],
+      "forbiddenImports": [
+        "Battlegrounds catalog and unrelated product domain internals"
+      ],
       "migrationTarget": "frontend-battlegrounds-tools",
       "exitCriteria": "Both tool routes resolve through a cataloged frontend-battlegrounds-tools public entrypoint."
     }

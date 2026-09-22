@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const styles = readFileSync(
-  new URL('../src/features/LoginPanel.css', import.meta.url),
+  new URL('../src/modules/identity/ui/LoginPanel.css', import.meta.url),
   'utf8',
 );
 

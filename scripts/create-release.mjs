@@ -10,6 +10,7 @@ const nginxContractDefinitions = [
   { source: 'deploy/nginx/arena-html-routing.conf', installPath: '/etc/nginx/snippets/arena-html-routing.conf', roles: ['origin'] },
   { source: 'deploy/nginx/arena-seo-map.conf', installPath: '/etc/nginx/conf.d/31-arena-seo-map.conf', roles: ['origin'] },
   { source: 'deploy/nginx/arena-edge-region-map.conf', installPath: '/etc/nginx/conf.d/32-arena-edge-region-map.conf', roles: ['origin'] },
+  { source: 'deploy/nginx/arena-origin-real-ip.conf', installPath: '/etc/nginx/conf.d/koloda-ru-proxy-realip.conf', roles: ['origin'] },
   { source: 'deploy/nginx/arena-card-local-maps.conf', installPath: '/etc/nginx/conf.d/31-arena-card-local-maps.conf', roles: ['edge'] },
   { source: 'deploy/nginx/arena-edge-client-region-map.conf', installPath: '/etc/nginx/conf.d/33-arena-edge-client-region-map.conf', roles: ['edge'] },
   { source: 'deploy/nginx/arena-edge-cache-path.conf', installPath: '/etc/nginx/conf.d/34-arena-edge-cache-path.conf', roles: ['edge'] },

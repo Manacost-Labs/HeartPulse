@@ -17,7 +17,7 @@ test('real consent -> authorization code -> profile, then canonical parent logou
     INSERT INTO users VALUES ('reader', 'Читатель', NULL);`);
   database.prepare('INSERT INTO sessions VALUES (?, ?, ?)').run(createHash('sha256').update(token).digest('hex'), 'reader', Date.now() + 600_000);
   const runtime = createBrowserIdentityRuntime({ issuer, deployment: 'test', database, encryptionKey: randomBytes(32),
-    authCookieName: 'hp_test_login', trustedProxy: true, cookieKeys: [randomBytes(32).toString('base64url')],
+    authCookieName: '__Host-hp_test_login', legacyAuthCookieName: 'hp_test_login', trustedProxy: true, cookieKeys: [randomBytes(32).toString('base64url')],
     signingKeys: { keys: [{ ...generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey.export({ format: 'jwk' }), kid: 'test', use: 'sig', alg: 'RS256' }] },
     clients: [{ id: 'test-reader', secret, redirectUri }] });
   const app = express(); app.set('trust proxy', 'loopback'); app.use('/identity', runtime.router);

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { createServer } from 'node:net';
 import { stripVTControlCharacters } from 'node:util';
 import puppeteer from 'puppeteer';
 import { reserveLocalPort } from './fixtures/reserve-local-port.mjs';

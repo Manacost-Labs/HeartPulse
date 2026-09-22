@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from 'express';
+import { asyncRoute } from './shared/http/asyncRoute.js';
 
 type ArticleUser = { id: string };
 type ArticlesCacheEntry = { data: any; etag: string };
@@ -90,7 +91,7 @@ export function createArticleRouter(dependencies: ArticleRouterDependencies): Ro
     return response.json(data);
   });
 
-  router.post('/articles/:articleId/vote', async (request, response) => {
+  router.post('/articles/:articleId/vote', asyncRoute(async (request, response) => {
     setPrivateNoStore(response);
     const user = dependencies.authenticate(request);
     if (!user) return response.status(401).json({ error: 'Требуется вход в профиль Манакоста' });
@@ -144,7 +145,7 @@ export function createArticleRouter(dependencies: ArticleRouterDependencies): Ro
       dislikes: Number(counts?.dislikes || 0),
       userVote: next ? (Number(next.vote) === 1 ? 'like' : 'dislike') : null,
     });
-  });
+  }));
 
   return router;
 }

@@ -1,0 +1,968 @@
+{
+  "schemaVersion": 3,
+  "moduleRoots": [
+    "src/modules",
+    "server/modules"
+  ],
+  "sharedRoots": [
+    {
+      "id": "shared-root.client",
+      "runtime": "client",
+      "root": "src/shared",
+      "purpose": "Owns domain-independent browser SEO, route-inventory and public URL policy primitives shared across client modules.",
+      "owner": "web-platform",
+      "focusedTests": [
+        "npm run test:nginx-canonical-hosts",
+        "npm run test:nginx-routing",
+        "npm run test:prerender-seo",
+        "npm run test:public-url-policy",
+        "npm run test:responsive-inventory",
+        "npm run test:route-inventory",
+        "npm run test:seo-registry",
+        "npm run test:routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/decisions/0001-public-url-indexability.md",
+        "docs/specs/application-route-manifest.md"
+      ],
+      "safeStarts": [
+        "src/shared/seo/publicUrlPolicy.ts",
+        "src/shared/seo/publicRouteInventory.json"
+      ]
+    },
+    {
+      "id": "shared-root.server",
+      "runtime": "server",
+      "root": "server/shared",
+      "purpose": "Owns domain-independent Express and HTTP primitives shared across server modules.",
+      "owner": "web-platform",
+      "focusedTests": [
+        "npm run test:article-routes",
+        "npm run test:ecosystem-internal-routes",
+        "npm run test:server-build"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ],
+      "safeStarts": [
+        "server/shared/http/asyncRoute.ts"
+      ]
+    }
+  ],
+  "modules": [
+    {
+      "id": "client.accountRoute",
+      "runtime": "client",
+      "root": "src/modules/accountRoute",
+      "purpose": "Composes the login, application-connect and public-profile account routes.",
+      "owner": "identity-platform",
+      "publicEntry": "src/modules/accountRoute/public.ts",
+      "dependencies": [
+        "client.applicationConnect",
+        "client.identity"
+      ],
+      "focusedTests": [
+        "npm run test:application-connect",
+        "npm run test:public-profiles",
+        "npm run test:routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/public-api-v1-first-slice.md",
+        "docs/specs/card-controls-and-public-profiles.md"
+      ]
+    },
+    {
+      "id": "client.adminWorkspace",
+      "runtime": "client",
+      "root": "src/modules/adminWorkspace",
+      "purpose": "Owns the authenticated administrator workspace shell, navigation and responsive drawer.",
+      "owner": "operations",
+      "publicEntry": "src/modules/adminWorkspace/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:admin-workspace-state"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/admin-tailadmin-workspace-shell.md"
+      ],
+      "publicStyleEntry": "src/modules/adminWorkspace/public.css"
+    },
+    {
+      "id": "client.battlegrounds",
+      "runtime": "client",
+      "root": "src/modules/battlegrounds",
+      "purpose": "Owns client Battlegrounds hero catalog contracts, full-quality portrait policy, current-roster normalization and the versioned legacy-builder bridge.",
+      "owner": "web-platform",
+      "publicEntry": "src/modules/battlegrounds/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:battleground-hero-contracts",
+        "npm run test:battleground-image-optimization",
+        "npm run test:battleground-accessories"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md",
+        "docs/runbooks/battlegrounds-patch-refresh.md"
+      ]
+    },
+    {
+      "id": "client.applicationConnect",
+      "runtime": "client",
+      "root": "src/modules/applicationConnect",
+      "purpose": "Owns the browser device-authorization review and approval flow.",
+      "owner": "identity-platform",
+      "publicEntry": "src/modules/applicationConnect/public.ts",
+      "dependencies": [
+        "client.identity"
+      ],
+      "focusedTests": [
+        "npm run test:application-connect"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/public-api-v1-first-slice.md"
+      ]
+    },
+    {
+      "id": "client.identity",
+      "runtime": "client",
+      "root": "src/modules/identity",
+      "purpose": "Owns the browser account identity contract, guest and private session transport, login and profile presentation primitives.",
+      "owner": "identity-platform",
+      "publicEntry": "src/modules/identity/public.ts",
+      "publicStyleEntry": "src/modules/identity/public.css",
+      "dependencies": [
+        "client.subscriptions",
+        "client.coverAdminSso"
+      ],
+      "focusedTests": [
+        "npm run test:application-connect",
+        "npm run test:auth-credential-routes",
+        "npm run test:auth-profile-routes",
+        "npm run test:auth-verification-routes",
+        "npm run test:client-identity-guest-auth",
+        "npm run test:client-identity-session",
+        "npm run test:csrf",
+        "npm run test:password-reset-routes",
+        "npm run test:public-profiles",
+        "npm run test:subscription-access"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ]
+    },
+    {
+      "id": "client.developerApi",
+      "runtime": "client",
+      "root": "src/modules/developerApi",
+      "purpose": "Owns the developer API documentation surface and administrator API-key UI.",
+      "owner": "web-platform",
+      "publicEntry": "src/modules/developerApi/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:public-api-ui"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/decisions/003-versioned-public-api-and-api-keys.md",
+        "docs/specs/public-api-v1-first-slice.md"
+      ]
+    },
+    {
+      "id": "client.subscriptions",
+      "runtime": "client",
+      "root": "src/modules/subscriptions",
+      "purpose": "Owns the client subscription-status contract, entitlement access policy and display metadata.",
+      "owner": "identity-platform",
+      "publicEntry": "src/modules/subscriptions/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:subscription-access"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ]
+    },
+    {
+      "id": "server.applicationAuth",
+      "runtime": "server",
+      "root": "server/modules/applicationAuth",
+      "purpose": "Owns application clients, device authorization, token policy, persistence and HTTP routes.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/applicationAuth/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:application-auth"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/decisions/003-versioned-public-api-and-api-keys.md",
+        "docs/specs/public-api-v1-first-slice.md"
+      ]
+    },
+    {
+      "id": "server.arena",
+      "runtime": "server",
+      "root": "server/modules/arena",
+      "purpose": "Owns normalization of Arena class-statistics datasets for public consumption.",
+      "owner": "web-platform",
+      "publicEntry": "server/modules/arena/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:public-api"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/public-api-arena-statistics.md"
+      ]
+    },
+    {
+      "id": "server.constructedCards",
+      "runtime": "server",
+      "root": "server/modules/constructedCards",
+      "purpose": "Owns constructed-card service contracts, errors and history persistence, plus catalog querying, facets, statistics normalization, validation, merging and related-card/generated-pool enrichment.",
+      "owner": "web-platform",
+      "publicEntry": "server/modules/constructedCards/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:constructed-card-routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/public-api-v1-first-slice.md",
+        "docs/specs/constructed-card-data-performance.md"
+      ]
+    },
+    {
+      "id": "server.ecosystem",
+      "runtime": "server",
+      "root": "server/modules/ecosystem",
+      "purpose": "Owns protected internal ecosystem user and subscription HTTP routes.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/ecosystem/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:ecosystem-internal-routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md",
+        "docs/decisions/009-global-edge-delivery-and-private-api-boundary.md"
+      ]
+    },
+    {
+      "id": "server.identity",
+      "runtime": "server",
+      "root": "server/modules/identity",
+      "purpose": "Owns private browser-session inspection, account-profile updates and logout HTTP routes.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/identity/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:auth-profile-routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ]
+    },
+    {
+      "id": "server.telegramAuth",
+      "runtime": "server",
+      "root": "server/modules/telegramAuth",
+      "purpose": "Owns verified Telegram claim parsing, immutable account resolution, one-time intents, session-bound link credentials and transactional identity claiming.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/telegramAuth/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:telegram-identity"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md",
+        "docs/specs/telegram-identity.md"
+      ]
+    },
+    {
+      "id": "server.publicProfile",
+      "runtime": "server",
+      "root": "server/modules/publicProfile",
+      "purpose": "Owns public profile identity, SQLite persistence, privacy-safe serialization and HTTP routes.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/publicProfile/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:public-profiles"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md",
+        "docs/specs/card-controls-and-public-profiles.md"
+      ]
+    },
+    {
+      "id": "server.publicApi",
+      "runtime": "server",
+      "root": "server/modules/publicApi",
+      "purpose": "Owns API-key policy and the versioned public cards, decks, Arena, Battlegrounds and statistics APIs.",
+      "owner": "web-platform",
+      "publicEntry": "server/modules/publicApi/public.ts",
+      "dependencies": [
+        "server.trackerIngestion"
+      ],
+      "focusedTests": [
+        "npm run test:public-api"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/decisions/003-versioned-public-api-and-api-keys.md",
+        "docs/specs/public-api-v1-first-slice.md",
+        "docs/specs/public-api-statistics-coverage.md"
+      ]
+    },
+    {
+      "id": "client.searchLanding",
+      "runtime": "client",
+      "root": "src/modules/searchLanding",
+      "purpose": "Own visible search-intent introductions and contextual navigation for canonical public landing pages.",
+      "owner": "search-experience",
+      "publicEntry": "src/modules/searchLanding/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:seo-registry"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
+      "id": "client.coverAdminSso",
+      "runtime": "client",
+      "root": "src/modules/coverAdminSso",
+      "purpose": "Own the fixed post-login resume path for the Cover administrator hand-off.",
+      "owner": "identity-platform",
+      "publicEntry": "src/modules/coverAdminSso/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:cover-admin-sso-contracts"
+      ],
+      "docs": [
+        "docs/specs/cover-admin-sso.md",
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
+      "id": "client.browserIdentity",
+      "runtime": "client",
+      "root": "src/modules/browserIdentity",
+      "purpose": "Own bounded reader continuation around the existing lazy account surface.",
+      "owner": "identity-platform",
+      "publicEntry": "src/modules/browserIdentity/public.ts",
+      "dependencies": [
+        "client.accountRoute"
+      ],
+      "focusedTests": [
+        "npm run test:browser-identity-contracts"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
+      "id": "server.subscription",
+      "runtime": "server",
+      "root": "server/modules/subscription",
+      "purpose": "Own the subscription refresh process job and canonical cached-status persistence while entitlement services remain composition dependencies.",
+      "owner": "subscription-platform",
+      "publicEntry": "server/modules/subscription/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:subscription-refresh-job"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
+      "id": "server.trackerIngestion",
+      "runtime": "server",
+      "root": "server/modules/trackerIngestion",
+      "purpose": "Own bounded, authenticated and idempotent IceCrow profile-event ingestion.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/trackerIngestion/public.ts",
+      "dependencies": [
+        "server.applicationAuth"
+      ],
+      "focusedTests": [
+        "npm run test:tracker-ingestion"
+      ],
+      "docs": [
+        "docs/specs/tracker-ingestion.md",
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
+      "id": "server.coverAdminSso",
+      "runtime": "server",
+      "root": "server/modules/coverAdminSso",
+      "purpose": "Own the short-lived HearthPulse-to-Cover browser hand-off and the current-admin authorization boundary consumed by Cover Nginx.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/coverAdminSso/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:cover-admin-sso-contracts"
+      ],
+      "docs": [
+        "docs/specs/cover-admin-sso.md",
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
+      "id": "server.readerEntitlements",
+      "runtime": "server",
+      "root": "server/modules/readerEntitlements",
+      "purpose": "Own confidential reader paid-status queries over cached subscription evidence.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/readerEntitlements/public.ts",
+      "dependencies": [
+        "server.browserIdentity"
+      ],
+      "focusedTests": [
+        "npm run test:reader-entitlements-contracts"
+      ],
+      "docs": [
+        "docs/specs/reader-entitlements.md",
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
+      "id": "server.readerPermissions",
+      "runtime": "server",
+      "root": "server/modules/readerPermissions",
+      "purpose": "Own fresh, confidential Reader administrator permission queries from canonical user state.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/readerPermissions/public.ts",
+      "dependencies": [
+        "server.browserIdentity"
+      ],
+      "focusedTests": [
+        "npm run test:reader-permissions-contracts"
+      ],
+      "docs": [
+        "docs/specs/reader-permissions.md",
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
+      "id": "server.browserIdentity",
+      "runtime": "server",
+      "root": "server/modules/browserIdentity",
+      "purpose": "Own opt-in reader OIDC, browser consent and grants tied to canonical browser sessions.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/browserIdentity/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:browser-identity-contracts"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
+      "id": "server.browserSessionCookies",
+      "runtime": "server",
+      "root": "server/modules/browserSessionCookies",
+      "purpose": "Own browser session cookie construction and legacy Arena-domain cookie cleanup.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/browserSessionCookies/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:browser-session-cookies-contracts"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md"
+      ]
+    }
+  ],
+  "migrationAreas": [
+    {
+      "id": "client.applicationComposition",
+      "runtime": "client",
+      "roots": [
+        "src/App.tsx",
+        "src/app",
+        "src/main.tsx",
+        "src/routes.ts"
+      ],
+      "excludeRoots": [],
+      "purpose": "Composes the browser application shell and canonical route manifest while route owners move behind module public entries.",
+      "owner": "web-platform",
+      "targetModules": [
+        "client.accountRoute",
+        "client.adminWorkspace",
+        "client.applicationConnect",
+        "client.battlegrounds",
+        "client.developerApi",
+        "client.identity",
+        "client.subscriptions"
+      ],
+      "focusedTests": [
+        "npm run test:routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ],
+      "safeStarts": [
+        "src/App.tsx",
+        "src/app/routing/routeManifest.ts"
+      ],
+      "routeScope": {
+        "mode": "all"
+      },
+      "knownDebt": [
+        "The application shell still imports legacy route components and coordinates domain state outside canonical modules."
+      ]
+    },
+    {
+      "id": "client.battlegroundsLegacy",
+      "runtime": "client",
+      "roots": [
+        "public/bg-legacy",
+        "src/features/BattlegroundCardVariantToggle.stories.tsx",
+        "src/features/BattlegroundCardVariantToggle.tsx",
+        "src/features/BattlegroundHeroLedger.tsx",
+        "src/features/BattlegroundTrinketGalleryStats.tsx",
+        "src/features/BattlegroundTrinketTierRow.tsx",
+        "src/features/BattlegroundTrinketViewToggle.tsx",
+        "src/features/Battlegrounds.css",
+        "src/features/Battlegrounds.tsx",
+        "src/features/BgLibrary.tsx",
+        "src/features/battlegroundCardVariants.ts",
+        "src/features/battlegroundImageUrls.ts",
+        "src/features/battlegroundTrinkets.ts",
+        "src/features/bgLibraryCatalogModel.ts"
+      ],
+      "excludeRoots": [],
+      "purpose": "Owns the legacy Battlegrounds screens, builders and static contracts until they move behind client.battlegrounds.",
+      "owner": "web-platform",
+      "targetModules": [
+        "client.battlegrounds"
+      ],
+      "focusedTests": [
+        "npm run test:battleground-accessories",
+        "npm run test:battleground-hero-contracts",
+        "npm run test:battleground-image-optimization",
+        "npm run test:battleground-library-seo-routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md",
+        "docs/runbooks/battlegrounds-patch-refresh.md"
+      ],
+      "safeStarts": [
+        "public/bg-legacy/hero-tier-builder.js",
+        "public/bg-legacy/strategy-builder.gridfix2.js",
+        "src/features/Battlegrounds.tsx",
+        "src/features/BgLibrary.tsx"
+      ],
+      "routeScope": {
+        "mode": "owners",
+        "owners": [
+          "battlegrounds-data",
+          "battlegrounds-tools"
+        ]
+      },
+      "knownDebt": [
+        "Battlegrounds route components and classic builders remain split between src/features and public/bg-legacy."
+      ]
+    },
+    {
+      "id": "client.featureLegacy",
+      "runtime": "client",
+      "roots": [
+        "src/features"
+      ],
+      "excludeRoots": [
+        "src/features/BattlegroundCardVariantToggle.stories.tsx",
+        "src/features/BattlegroundCardVariantToggle.tsx",
+        "src/features/BattlegroundHeroLedger.tsx",
+        "src/features/BattlegroundTrinketGalleryStats.tsx",
+        "src/features/BattlegroundTrinketTierRow.tsx",
+        "src/features/BattlegroundTrinketViewToggle.tsx",
+        "src/features/Battlegrounds.css",
+        "src/features/Battlegrounds.tsx",
+        "src/features/BgLibrary.tsx",
+        "src/features/battlegroundCardVariants.ts",
+        "src/features/battlegroundImageUrls.ts",
+        "src/features/battlegroundTrinkets.ts",
+        "src/features/bgLibraryCatalogModel.ts"
+      ],
+      "purpose": "Owns route-level client features that still combine UI, transport and domain behavior outside canonical modules.",
+      "owner": "web-platform",
+      "targetModules": [
+        "client.adminWorkspace",
+        "client.identity",
+        "client.subscriptions"
+      ],
+      "focusedTests": [
+        "npm run test:routes",
+        "npm run test:seo-registry"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ],
+      "safeStarts": [
+        "src/features/ContestAdminDashboard.tsx",
+        "src/features/DeferredRoutes.tsx",
+        "src/features/Home.tsx",
+        "src/features/StandardCards.tsx"
+      ],
+      "routeScope": {
+        "mode": "owners",
+        "owners": [
+          "admin-platform",
+          "arena-data",
+          "community",
+          "cosmetics-data",
+          "developer-platform",
+          "editorial",
+          "growth",
+          "identity",
+          "product-shell",
+          "traditional-data"
+        ]
+      },
+      "knownDebt": [
+        "The feature tree remains a transitional mixed-domain layer and must be split one vertical slice at a time."
+      ]
+    },
+    {
+      "id": "client.platformLegacy",
+      "runtime": "client",
+      "roots": [
+        "src"
+      ],
+      "excludeRoots": [
+        "src/App.tsx",
+        "src/app",
+        "src/features",
+        "src/main.tsx",
+        "src/modules",
+        "src/routes.ts",
+        "src/shared"
+      ],
+      "purpose": "Owns transitional client components, styles, content, telemetry and vendor adapters outside domain modules and shared roots.",
+      "owner": "web-platform",
+      "targetModules": [],
+      "focusedTests": [
+        "npm run test:routes"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ],
+      "safeStarts": [
+        "src/components/AppErrorBoundary.tsx",
+        "src/index.css",
+        "src/telemetry/webVitals.ts"
+      ],
+      "routeScope": {
+        "mode": "all"
+      },
+      "knownDebt": [
+        "Client platform files still mix reusable infrastructure with product presentation and need explicit module or shared destinations."
+      ]
+    },
+    {
+      "id": "server.applicationComposition",
+      "runtime": "server",
+      "roots": [
+        "server/app",
+        "server/index.ts"
+      ],
+      "excludeRoots": [],
+      "purpose": "Composes the HTTP application and mounts canonical modules alongside legacy route groups.",
+      "owner": "web-platform",
+      "targetModules": [
+        "server.applicationAuth",
+        "server.arena",
+        "server.constructedCards",
+        "server.ecosystem",
+        "server.identity",
+        "server.publicApi",
+        "server.publicProfile",
+        "server.telegramAuth"
+      ],
+      "focusedTests": [
+        "npm run test:server-build"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ],
+      "safeStarts": [
+        "server/app/registerPublicApi.ts",
+        "server/index.ts"
+      ],
+      "routeScope": {
+        "mode": "all"
+      },
+      "knownDebt": [
+        "server/index.ts remains the oversized composition root and still owns legacy wiring that belongs in route modules."
+      ]
+    },
+    {
+      "id": "server.guidesLegacy",
+      "runtime": "server",
+      "roots": [
+        "server/guides"
+      ],
+      "excludeRoots": [],
+      "purpose": "Owns guide sanitization helpers used by the editorial archive until an editorial server module exists.",
+      "owner": "editorial",
+      "targetModules": [],
+      "focusedTests": [
+        "npm run test:guides"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ],
+      "safeStarts": [
+        "server/guides/sanitize.ts"
+      ],
+      "routeScope": {
+        "mode": "owners",
+        "owners": [
+          "editorial"
+        ]
+      },
+      "knownDebt": [
+        "Editorial server behavior has no canonical module boundary yet."
+      ]
+    },
+    {
+      "id": "server.legacyRuntime",
+      "runtime": "server",
+      "roots": [
+        "server"
+      ],
+      "excludeRoots": [
+        "server/app",
+        "server/guides",
+        "server/index.ts",
+        "server/modules",
+        "server/shared"
+      ],
+      "purpose": "Owns legacy HTTP routes, stores, data adapters and operational services awaiting extraction into server modules.",
+      "owner": "web-platform",
+      "targetModules": [
+        "server.applicationAuth",
+        "server.arena",
+        "server.constructedCards",
+        "server.ecosystem",
+        "server.identity",
+        "server.publicApi",
+        "server.publicProfile",
+        "server.telegramAuth"
+      ],
+      "focusedTests": [
+        "npm run test:server-build"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ],
+      "safeStarts": [
+        "server/cardImageRoutes.ts",
+        "server/health.ts",
+        "server/standardMetaRoutes.ts"
+      ],
+      "routeScope": {
+        "mode": "all"
+      },
+      "knownDebt": [
+        "Most server domains still expose route and persistence behavior from the legacy server root instead of public module entries."
+      ]
+    },
+    {
+      "id": "shared.crossRuntimeContracts",
+      "runtime": "shared",
+      "roots": [
+        "shared"
+      ],
+      "excludeRoots": [],
+      "purpose": "Owns transitional cross-runtime data contracts that have not moved into an explicitly governed shared package.",
+      "owner": "web-platform",
+      "targetModules": [
+        "client.battlegrounds",
+        "server.arena",
+        "server.constructedCards",
+        "server.publicApi"
+      ],
+      "focusedTests": [
+        "npm run test:public-api"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/architecture/modularization-plan.md"
+      ],
+      "safeStarts": [
+        "shared/publicResourceUrl.ts",
+        "shared/standardMetaContract.ts"
+      ],
+      "routeScope": {
+        "mode": "owners",
+        "owners": [
+          "arena-data",
+          "battlegrounds-data",
+          "traditional-data"
+        ]
+      },
+      "knownDebt": [
+        "Top-level shared contracts are not yet governed as a runtime-neutral package with explicit public entries."
+      ]
+    }
+  ],
+  "allowlistBudgets": {
+    "missingPublicEntry": 0,
+    "internalImport": 0,
+    "moduleLegacyImport": 5,
+    "runtimeCrossing": 2,
+    "typeCycle": 2
+  },
+  "exceptions": {
+    "missingPublicEntry": [],
+    "internalImport": [],
+    "moduleLegacyImport": [
+      {
+        "source": "server/modules/publicApi/deckStatistics.ts",
+        "target": "server/constructedArchetypeRoutes.ts",
+        "kind": "type",
+        "owner": "web-platform",
+        "reason": "Public deck statistics still consume route-owned archetype contract types.",
+        "expiresOn": "2026-12-31"
+      },
+      {
+        "source": "server/modules/publicApi/metaStatistics.ts",
+        "target": "server/constructedArchetypeRoutes.ts",
+        "kind": "type",
+        "owner": "web-platform",
+        "reason": "Public meta statistics still consume route-owned archetype contract types.",
+        "expiresOn": "2026-12-31"
+      },
+      {
+        "source": "server/modules/publicApi/metaStatistics.ts",
+        "target": "server/standardMetaDataset.ts",
+        "kind": "runtime",
+        "owner": "web-platform",
+        "reason": "Standard-meta envelope construction has not yet moved behind a module or shared contract.",
+        "expiresOn": "2026-12-31"
+      },
+      {
+        "source": "server/modules/publicApi/metaStatistics.ts",
+        "target": "shared/standardMetaContract.ts",
+        "kind": "type",
+        "owner": "web-platform",
+        "reason": "The repository-level shared directory is a temporary cross-runtime contract location not defined as platform shared by ADR 002.",
+        "expiresOn": "2026-12-31"
+      },
+      {
+        "source": "server/modules/publicApi/routes.ts",
+        "target": "server/cardImageRoutes.ts",
+        "kind": "runtime",
+        "owner": "web-platform",
+        "reason": "Public API image routing still delegates to the legacy card-image route implementation.",
+        "expiresOn": "2026-12-31"
+      }
+    ],
+    "runtimeCrossing": [
+      {
+        "source": "server/constructedCardSeoRoutes.ts",
+        "target": "src/features/constructedRelatedCards.ts",
+        "kind": "runtime",
+        "owner": "web-platform",
+        "reason": "The legacy SEO route temporarily reuses related-card presentation data from the client feature tree.",
+        "expiresOn": "2026-12-31"
+      },
+      {
+        "source": "server/sentry.ts",
+        "target": "src/telemetry/sentryPrivacy.ts",
+        "kind": "runtime",
+        "owner": "observability",
+        "reason": "Server telemetry temporarily reuses privacy scrubbing that has not yet moved to a runtime-neutral shared contract.",
+        "expiresOn": "2026-12-31"
+      }
+    ],
+    "typeCycle": [
+      {
+        "source": "src/features/ContestAdminAnalytics.tsx",
+        "target": "src/features/ContestAdminBoostySales.tsx",
+        "kind": "type-cycle",
+        "nodes": [
+          "src/features/ContestAdminAnalytics.tsx",
+          "src/features/ContestAdminBoostySales.tsx"
+        ],
+        "edges": [
+          {
+            "source": "src/features/ContestAdminAnalytics.tsx",
+            "target": "src/features/ContestAdminBoostySales.tsx",
+            "kind": "runtime"
+          },
+          {
+            "source": "src/features/ContestAdminBoostySales.tsx",
+            "target": "src/features/ContestAdminAnalytics.tsx",
+            "kind": "type"
+          }
+        ],
+        "owner": "operations",
+        "reason": "Boosty sales imports analytics-owned types while the analytics view imports the Boosty component.",
+        "expiresOn": "2026-12-31"
+      },
+      {
+        "source": "src/features/HsReplayDeckList.tsx",
+        "target": "src/features/hsReplayDeckPreviewInteractions.ts",
+        "kind": "type-cycle",
+        "nodes": [
+          "src/features/HsReplayDeckList.tsx",
+          "src/features/HsReplayDeckPreviewController.tsx",
+          "src/features/hsReplayDeckPreviewInteractions.ts"
+        ],
+        "edges": [
+          {
+            "source": "src/features/HsReplayDeckList.tsx",
+            "target": "src/features/HsReplayDeckPreviewController.tsx",
+            "kind": "runtime"
+          },
+          {
+            "source": "src/features/HsReplayDeckPreviewController.tsx",
+            "target": "src/features/HsReplayDeckList.tsx",
+            "kind": "type"
+          },
+          {
+            "source": "src/features/HsReplayDeckPreviewController.tsx",
+            "target": "src/features/hsReplayDeckPreviewInteractions.ts",
+            "kind": "runtime"
+          },
+          {
+            "source": "src/features/hsReplayDeckPreviewInteractions.ts",
+            "target": "src/features/HsReplayDeckList.tsx",
+            "kind": "type"
+          }
+        ],
+        "owner": "web-platform",
+        "reason": "Preview orchestration and interactions import list-owned types while the list imports the controller at runtime.",
+        "expiresOn": "2026-12-31"
+      }
+    ]
+  }
+}

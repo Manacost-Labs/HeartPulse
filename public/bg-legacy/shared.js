@@ -2,105 +2,17 @@
   const MAX_DOWNLOAD_SIZE_MB = 1.95;
   let picaInstance = null;
 
-  const PUBLIC_RESOURCE_SOURCE_BY_HOST = {
-    "api.kolodahearthstone.com": { key: "db", prefixes: ["/uploads/"] },
-    "db.kolodahs.ru": { key: "db", prefixes: ["/uploads/"] },
-    "bg.kolodahearthstone.ru": { key: "bg", prefixes: ["/assset/"] },
-    "art.hearthstonejson.com": { key: "hsjson", prefixes: ["/v1/"] },
-    "api.hearthstonejson.com": { key: "hsjson-api", prefixes: ["/v1/"] },
-    "hearthstone.wiki.gg": { key: "wiki", prefixes: ["/images/"] },
-    "static.hsreplay.net": { key: "hsreplay", prefixes: ["/static/"] }
-  };
+  const CURRENT_HERO_REQUEST_TIMEOUT_MS = 8000;
 
   function publicResourceUrl(value) {
     const raw = String(value || "").trim();
-    if (!raw || raw.startsWith("/api/public-resource/")) return raw;
+    const bridge = window.__hsArenaBattlegroundHeroRosterBridgeV1;
+    if (bridge?.version !== 1 || typeof bridge.publicResourceUrl !== "function") return raw;
     try {
-      const url = new URL(raw);
-      const source = PUBLIC_RESOURCE_SOURCE_BY_HOST[url.hostname.toLowerCase()];
-      if (url.protocol !== "https:" || !source || !source.prefixes.some((prefix) => url.pathname.startsWith(prefix))) {
-        return raw;
-      }
-      return `/api/public-resource/${source.key}${url.pathname}${url.search}`;
+      return bridge.publicResourceUrl(raw);
     } catch (error) {
       return raw;
     }
-  }
-
-  const HERO_TIER_ORDER = ["S", "A", "B", "C", "D"];
-  const CURRENT_HERO_REQUEST_TIMEOUT_MS = 8000;
-  const MINIMUM_CURRENT_HERO_POOL_RATIO = 0.75;
-
-  function normalizedHeroName(value) {
-    return String(value || "")
-      .toLowerCase()
-      .replace(/ё/g, "е")
-      .replace(/\s+/g, " ")
-      .trim();
-  }
-
-  function battlegroundHeroCardImage(cardId) {
-    const normalized = String(cardId || "").trim();
-    if (!/^[A-Za-z0-9_]+$/.test(normalized)) return "";
-    return `/api/card-image/${encodeURIComponent(normalized)}/full.webp?v=bg-heroes-20260806b`;
-  }
-
-  function normalizeCurrentHeroTiers(statsPayload, libraryPayload, fallback) {
-    const statsHeroes = Array.isArray(statsPayload?.heroes)
-      ? statsPayload.heroes
-      : (Array.isArray(statsPayload?.view?.heroes) ? statsPayload.view.heroes : []);
-    const libraryByDbfId = new Map();
-    (Array.isArray(libraryPayload?.data) ? libraryPayload.data : []).forEach((hero) => {
-      const dbfId = Number(hero?.dbf ?? hero?.dbfId);
-      if (Number.isFinite(dbfId)) libraryByDbfId.set(dbfId, hero);
-    });
-    const fallbackByName = new Map();
-    (Array.isArray(fallback) ? fallback : []).forEach((section) => {
-      (Array.isArray(section?.heroes) ? section.heroes : []).forEach((hero) => {
-        const key = normalizedHeroName(hero?.name);
-        if (key) fallbackByName.set(key, hero);
-      });
-    });
-    const heroesByTier = new Map(HERO_TIER_ORDER.map((tier) => [tier, []]));
-
-    statsHeroes.forEach((hero) => {
-      const dbfId = Number(hero?.dbfId ?? hero?.dbf ?? hero?.dbf_id);
-      const libraryHero = Number.isFinite(dbfId) ? libraryByDbfId.get(dbfId) : null;
-      const name = String(libraryHero?.name?.ru || hero?.hero || hero?.name || "").trim();
-      if (!name) return;
-
-      const tierValue = String(hero?.tier || "D").trim().toUpperCase();
-      const tier = HERO_TIER_ORDER.includes(tierValue) ? tierValue : "D";
-      const englishName = String(libraryHero?.name?.en || hero?.englishName || "").trim();
-      const cardId = String(libraryHero?.card_id || hero?.cardId || hero?.card_id || "").trim();
-      const fallbackHero = fallbackByName.get(normalizedHeroName(name));
-      const image = publicResourceUrl(
-        hero?.image
-        || hero?.images?.hero
-        || libraryHero?.images?.hero
-        || fallbackHero?.image
-        || battlegroundHeroCardImage(cardId)
-      );
-
-      heroesByTier.get(tier).push({
-        name,
-        englishName,
-        popularity: hero?.pick_rate == null ? "" : String(hero.pick_rate),
-        averagePlace: hero?.avg_placement == null ? "" : String(hero.avg_placement),
-        image,
-        dbfId: Number.isFinite(dbfId) ? dbfId : undefined,
-        cardId
-      });
-    });
-
-    return HERO_TIER_ORDER.flatMap((tier) => {
-      const heroes = heroesByTier.get(tier);
-      heroes.sort((left, right) => (
-        Number.parseFloat(String(left.averagePlace || "99").replace(",", "."))
-        - Number.parseFloat(String(right.averagePlace || "99").replace(",", "."))
-      ));
-      return heroes.length ? [{ tier, title: `${tier} Тир`, heroes }] : [];
-    });
   }
 
   /**
@@ -136,19 +48,45 @@
         });
       const [statsPayload, libraryPayload] = await Promise.all([statsRequest, libraryRequest]);
       if (statsPayload?.ok === false) throw new Error("API героев вернул ошибку");
-      const current = normalizeCurrentHeroTiers(statsPayload, libraryPayload, fallback);
-      if (!current.length) throw new Error("Пустой пул героев");
-      const fallbackHeroCount = fallback.reduce(
-        (total, section) => total + (Array.isArray(section?.heroes) ? section.heroes.length : 0),
-        0
-      );
-      const currentHeroCount = current.reduce((total, section) => total + section.heroes.length, 0);
-      if (fallbackHeroCount >= 20
-        && currentHeroCount < Math.ceil(fallbackHeroCount * MINIMUM_CURRENT_HERO_POOL_RATIO)) {
-        throw new Error(`Неполный пул героев: ${currentHeroCount} из ожидаемых ${fallbackHeroCount}`);
+      const bridge = window.__hsArenaBattlegroundHeroRosterBridgeV1;
+      if (bridge?.version !== 1 || typeof bridge.resolve !== "function") {
+        throw new Error("Модуль пула героев не подключен");
       }
-      window.tierData = current;
-      return current;
+      const resolution = bridge.resolve({
+        statsPayload,
+        libraryPayload,
+        fallbackSections: fallback
+      });
+      if (!resolution || typeof resolution !== "object") {
+        throw new Error("Модуль пула героев вернул некорректный ответ");
+      }
+      if (resolution.status === "fallback") {
+        throw new Error(resolution.reason === "below-reference-threshold"
+          ? `Неполный пул героев: ${resolution.currentCount} из ожидаемых ${resolution.fallbackCount}`
+          : "Пустой пул героев");
+      }
+      const tiersAreWellFormed = Array.isArray(resolution.tiers)
+        && resolution.tiers.length > 0
+        && resolution.tiers.every((section) => section
+          && typeof section === "object"
+          && Array.isArray(section.heroes));
+      const resolvedHeroCount = tiersAreWellFormed
+        ? resolution.tiers.reduce((total, section) => total + section.heroes.length, 0)
+        : 0;
+      if (resolution.status !== "accepted"
+        || !tiersAreWellFormed
+        || !Number.isInteger(resolution.currentCount)
+        || resolution.currentCount < 1
+        || !Number.isInteger(resolution.fallbackCount)
+        || resolution.fallbackCount < 0
+        || !Number.isInteger(resolution.minimumCount)
+        || resolution.minimumCount < 1
+        || resolution.currentCount < resolution.minimumCount
+        || resolvedHeroCount !== resolution.currentCount) {
+        throw new Error("Модуль пула героев вернул некорректный ответ");
+      }
+      window.tierData = resolution.tiers;
+      return resolution.tiers;
     } catch (error) {
       console.warn("Не удалось обновить героев; используется резервный список.", error);
       return fallback;

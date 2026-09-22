@@ -62,6 +62,7 @@ export {
   type HsReplayStrategyPublication,
   type HsReplayStrategyUpstreamFreshness,
 } from './hsreplayStrategyFreshness.js';
+export { createLocalBattlegroundStatisticsSource } from './battlegroundSource.js';
 export { PUBLIC_API_OPENAPI } from './openapi.js';
 export {
   createSqliteApiKeyRepository,
@@ -69,3 +70,5 @@ export {
   PUBLIC_API_KEYS_TABLE_SQL,
 } from './repository.js';
 export { createAdminApiKeyRouter, createPublicApiRouter } from './routes.js';
+
+export { proxyHsReplayStrategyPayload } from './hsreplayStrategySource.js';

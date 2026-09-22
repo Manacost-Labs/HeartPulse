@@ -1213,6 +1213,7 @@ async function mockApplicationApi(page, {
       }
       const payload = JSON.parse(request.postData() || '{}');
       request.respond(jsonResponse({
+        success: true,
         user: {
           id: admin ? 'qa-admin' : 'qa-subscriber',
           profileId: admin ? 'qa-admin' : 'qa-subscriber',

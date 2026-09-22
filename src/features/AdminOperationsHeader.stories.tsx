@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent } from 'storybook/test';
 import { AdminOperationsHeader } from './AdminOperationsHeader';
 import './contests.css';
-import '../modules/adminWorkspace/adminWorkspace.css';
+import '../modules/adminWorkspace/public.css';
 
 const onRefresh = fn();
 

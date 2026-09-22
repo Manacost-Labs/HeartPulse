@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { applyDocumentPageMeta, resolvePublicUrlPolicy } from '../src/seo/publicUrlPolicy';
+import { applyDocumentPageMeta, resolvePublicUrlPolicy } from '../src/shared/seo/publicUrlPolicy';
 import { tabFromPath } from '../src/routes';
 
 const ORIGIN = 'https://hearthpulse.net';
@@ -53,6 +53,11 @@ await expectPolicy('/library/minions/example-123', {
   robots: INDEX_ROBOTS,
   canonicalUrl: `${ORIGIN}/library/minions/example-123/`,
 });
+await expectPolicy('/library/minions/%D1%81%D1%83%D1%89%D0%B5%D1%81%D1%82%D0%B2%D0%BE-123', {
+  routeId: 'bg-library-detail',
+  robots: INDEX_ROBOTS,
+  canonicalUrl: `${ORIGIN}/library/minions/%D1%81%D1%83%D1%89%D0%B5%D1%81%D1%82%D0%B2%D0%BE-123/`,
+});
 
 for (const invalidPath of [
   '/articlesevil',
@@ -61,6 +66,9 @@ for (const invalidPath of [
   '/standard/cards/standard/bad-id!',
   '/standard/cards/standard/A',
   `/standard/cards/standard/${'A'.repeat(81)}`,
+  '/id/01',
+  '/id/2147483648',
+  '/id/%31',
 ]) {
   await expectPolicy(invalidPath, {
     routeId: 'unknown-path',

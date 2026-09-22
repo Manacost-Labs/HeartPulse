@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 const projectRoot = resolve(import.meta.dirname, '..');
 const distDir = mkdtempSync(resolve(tmpdir(), 'manacost-prerender-seo-'));
 const registry = JSON.parse(readFileSync(resolve(projectRoot, 'config/public-seo-pages.json'), 'utf8'));
-const routeInventory = JSON.parse(readFileSync(resolve(projectRoot, 'config/public-route-inventory.json'), 'utf8'));
+const routeInventory = JSON.parse(readFileSync(resolve(projectRoot, 'src/shared/seo/publicRouteInventory.json'), 'utf8'));
 const homeSummaryFixture = resolve(distDir, 'home-summary-fixture.json');
 const privateSentinels = [
   'QA_PRIVATE_DECK_CODE_AAECA_TEST_ONLY',

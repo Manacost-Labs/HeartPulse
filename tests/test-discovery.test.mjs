@@ -241,6 +241,6 @@ test('forwards termination to the child process group', async () => {
     });
 
     await assert.rejects(run, error => error.signal === 'SIGTERM');
-    assert.deepEqual(signals, ['SIGTERM']);
+    assert.deepEqual(signals, ['SIGTERM', 'SIGKILL']);
   });
 });

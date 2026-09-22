@@ -242,3 +242,59 @@ Retained the current stronger assertions, scoped CSS, reduced-motion behavior
 and gentle entrance delays. Removed only the duplicate old global meter styles
 from the merge result. The application tree is unchanged; Chromium geometry,
 hover, reduced-motion and forced-colors checks pass.
+
+### Route/module branch reconciliation
+
+`fix/route-inventory-canonical-read-20260818` contributes the domain extraction,
+Telegram identity binding and checked agent context tooling. Its older account
+UI was reconciled with current profile controls, social providers, Patreon,
+Cover and Reader. Obsolete deck-builder/archetype navigation stays removed.
+Current BG full-card/golden-buddy images remain exported by the domain policy.
+
+Both architecture inventories remain enforced. Two resolved type-only cycles
+were removed; no import exception allowance increased. The existing login
+function budget follows its new owner and drops from 936 to 763 lines. Moved
+fetch ownership is accounted for without increasing the repository total;
+newly extracted code loses obsolete SQLite suppressions and explicit `any`.
+
+Cookie regression tests reproduced rejection of old sessions and invalid
+Domain attributes on the new host-prefixed cookie. Both now pass, including
+real Reader consent/code/profile requests through a temporary database.
+
+The file-size baseline follows the partial identity extraction: the original
+4,829-line DeferredRoutes allowance becomes 3,192 + 1,042 lines across the two
+owners (4,234 total). This preserves and lowers existing debt, while new query,
+Telegram-schema and route-surface files stay under the default 250-line limit.
+
+Verification also uses performance-optimization plus the web-quality audit,
+performance, Core Web Vitals and accessibility skills. The original frontend
+was rebuilt in the parked, clean migration worktree (unchanged from e1ad451).
+Initial JS gzip decreases from 81,977 to 81,659 bytes; raw JS changes from
+260,117 to 260,852 bytes, and initial CSS from 136,808 to 137,343 bytes after
+moving eager avatar presentation into its public stylesheet. The compressed
+startup gate remains unchanged. DeferredRoutes + login JS becomes 107,549
+bytes versus the previous combined 107,936-byte route. Admin shell JS/CSS
+remain exactly 5,334/34,727 bytes; their inherited older-branch limits were
+corrected to these verified pre-existing sizes. Profile-hero CSS decreases
+from 6,113 to 6,101 bytes. No threshold was removed or bypassed.
+
+Validation for this integration: all 272 registered unit/integration/contract
+files pass (271 in the final batch, then the relocated route-surface assertion
+passes separately); TypeScript, architecture, clean-code, registry and agent
+tooling checks pass. Vite/server/prerender and Storybook build successfully;
+Knip, property and Sentry checks pass. Semgrep reports zero findings/errors and
+the pinned redacted Gitleaks scan reports no secrets in history or pending files.
+
+The deterministic production-build browser suite passes desktop/mobile flows
+and axe checks. Chrome DevTools MCP additionally reviews all 14 changed profile,
+public-profile and Telegram states at 1440 and 390 pixels from built Storybook:
+28 completed renders, no console errors and no overflow. The focused profile
+review has no failed requests, validates its accessibility tree and inspects
+screenshots; local LCP is 440 ms and initial CLS is 0.096 (lab-only measurements,
+not production field data). Development-only HMR disconnections disappeared
+when reviewing the built workshop. No deployment or external message occurred.
+
+Storybook review links: [changed stories](http://localhost:6006/?statuses=affected;modified;new),
+[active subscription](http://localhost:6006/?path=/story/profile-account-workspace--active-subscription),
+[Telegram account linking](http://localhost:6006/?path=/story/identity-telegram-account-link-actions--oidc-and-bot-ready),
+[access check](http://localhost:6006/?path=/story/profile-access-summary--checking).

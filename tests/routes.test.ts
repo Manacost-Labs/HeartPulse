@@ -7,7 +7,7 @@ import {
   tabFromPath,
   TABS,
   TOP_LEVEL_TABS,
-} from '../src/routes';
+} from '../src/app/routing/public';
 import { seoPageForNavigationRoute } from '../src/seo/registry';
 
 assert.equal(new Set(TABS.map(route => route.id)).size, TABS.length, 'route ids must be unique');

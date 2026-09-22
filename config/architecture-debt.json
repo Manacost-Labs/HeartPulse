@@ -4,24 +4,6 @@
   "typeOnlyCycles": [
     {
       "files": [
-        "server/constructedCardHistoryStore.ts",
-        "server/constructedCardRoutes.ts"
-      ],
-      "owner": "constructed-cards",
-      "reason": "The history store and legacy route composition still exchange route-owned history types.",
-      "removal": "Move the history DTO and query contract into the constructed-cards model before separating the route adapter."
-    },
-    {
-      "files": [
-        "src/features/BattlegroundHeroLedger.tsx",
-        "src/features/Battlegrounds.tsx"
-      ],
-      "owner": "battlegrounds",
-      "reason": "The extracted hero ledger still consumes types owned by the legacy Battlegrounds route bundle.",
-      "removal": "Move the ledger view model into the Battlegrounds module model during the route extraction."
-    },
-    {
-      "files": [
         "src/features/ContestAdminAnalytics.tsx",
         "src/features/ContestAdminBoostySales.tsx"
       ],

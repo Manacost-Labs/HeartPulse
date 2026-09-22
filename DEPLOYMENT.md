@@ -217,6 +217,73 @@ curl -fsS https://hearthpulse.net/api/health/ready
 Do not remove the old workspace `dist` or `server/data` until the new service,
 nginx paths, authenticated E2E and one rollback drill have all passed.
 
+## Telegram identity cutover
+
+Configure Telegram before building the coordinated Arena and KHA-bot release.
+In the @BotFather mini app, open **Bot Settings > Web Login** for the production
+bot and register both allowed URLs:
+
+- `https://arena.hs-manacost.ru`
+- `https://arena.hs-manacost.ru/api/auth/telegram/callback`
+
+Copy the displayed client ID and client secret into the server-only
+`TELEGRAM_OIDC_CLIENT_ID` and `TELEGRAM_OIDC_CLIENT_SECRET` variables. Keep the
+default `RS256` signing algorithm under **Web Login > Advanced**: Arena rejects
+other ID-token algorithms. Telegram's current setup and validation contract is
+documented in the official
+[Log In With Telegram guide](https://core.telegram.org/bots/telegram-login).
+
+Set `TELEGRAM_AUTH_BOT_TOKEN` and `TELEGRAM_AUTH_BOT_USERNAME` together. Set
+the same independent random value in Arena's
+`TELEGRAM_AUTH_BOT_WEBHOOK_SECRET` and the KHA bot's
+`ARENA_AUTH_WEBHOOK_SECRET`. The KHA bot receives updates through polling and
+forwards only exact Arena link tokens to the authenticated Arena endpoint; do
+not install a competing Telegram webhook for this bot. Both applications can
+derive a compatible secret from the bot token when the variable is absent, but
+an explicit rotated value keeps the trust boundary auditable.
+
+Configuration fails at startup when only half of a bot or OIDC credential pair
+is present. The supported modes are:
+
+- neither pair: Telegram authentication is disabled;
+- bot pair only: legacy Login Widget sign-in and bot-code linking;
+- OIDC pair only: OIDC sign-in and OIDC account linking;
+- both pairs: OIDC is primary and the strong bot-code path is also available.
+
+`TELEGRAM_LINK_CODE_TTL_MS` defaults to 900000 and is bounded to 5–60 minutes.
+Never put Telegram tokens, OIDC secrets, link codes or user payloads in source,
+commands, screenshots or logs.
+
+This cutover is deliberately not N/N-1 compatible: old short link codes become
+invalid, and the old production auth-cookie name is ignored. Existing users
+must sign in once after deployment. Release and roll back Arena and the KHA bot
+together; a mixed pair cannot complete both old and strong code formats.
+
+Before enabling traffic:
+
+1. Audit Telegram identity rows read-only and stop on duplicate or missing
+   owners; never pick a winner automatically. Application startup repeats a
+   privacy-safe count audit and creates
+   `idx_identities_user_telegram_provider`; an audit failure is a deployment
+   stop, not permission to delete or merge rows.
+2. Install the release's `deploy/nginx/arena-origin-real-ip.conf` as
+   `/etc/nginx/conf.d/koloda-ru-proxy-realip.conf`, run `nginx -t`, reload, and
+   prove that two EU clients have distinct request keys. This file includes the
+   Limburg IPv4 and IPv6 addresses but deliberately leaves the shared
+   `CF-Connecting-IP` header policy in `cloudflare.conf`.
+3. Run both projects' focused auth tests and security checks from clean source
+   worktrees.
+4. Verify `/api/auth/telegram/config` reports the intended mode without
+   exposing credentials.
+5. Smoke-test OIDC sign-in, OIDC linking, bot linking through `/link`, logout
+   during each link flow, `/profile` email verification and subscription refresh.
+6. Confirm a revoked initiating session cannot commit a link and that replaying
+   an intent or code fails.
+
+Rollback both services to their reviewed previous revisions, repeat the mode
+check and sign-in smoke, and announce the expected one-time login if the cookie
+cutover remains active.
+
 ## Local mail transport
 
 The application submits authentication and newsletter mail to the local Exim

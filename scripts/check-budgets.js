@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { gzipSync } from 'zlib';
+import { auditAdminWorkspaceAssets } from './lib/initial-asset-audit.mjs';
 
 const distRoot = join(process.cwd(), 'dist');
 const distAssets = join(distRoot, 'assets');
@@ -88,18 +89,28 @@ const budgets = {
   // page-lifetime listeners. Allow its measured sub-0.1 KiB gzip addition and
   // release-hash variance while staying below 80 KiB. Removing duplicate
   // field outlines also lets us tighten the initial CSS ceiling.
-  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_743),
-  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_761),
+  // Consolidation preserves the current account controls and eager avatar CSS.
+  // Measured against e1ad451: initial gzip decreases 81,977 -> 81,659 bytes;
+  // the raw preload map grows 735 bytes, and moved avatar styles add 535 bytes.
+  // The existing admin shell remains 5,334 JS / 34,727 CSS bytes in both builds.
+  mainJs: Number(process.env.BUDGET_MAIN_JS_BYTES || 67_880),
+  initialJs: Number(process.env.BUDGET_INITIAL_JS_BYTES || 260_898),
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 81_880),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),
-  deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 108_350),
+  deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 78_000),
+  loginPanelJs: Number(process.env.BUDGET_LOGIN_PANEL_JS_BYTES || 29_850),
+  publicProfilePageJs: Number(process.env.BUDGET_PUBLIC_PROFILE_PAGE_JS_BYTES || 3_400),
+  profileIdentityHeroJs: Number(process.env.BUDGET_PROFILE_IDENTITY_HERO_JS_BYTES || 1_150),
   galleryPageJs: Number(process.env.BUDGET_GALLERY_PAGE_JS_BYTES || 4_700),
   editorialRouteChromeJs: Number(process.env.BUDGET_EDITORIAL_ROUTE_CHROME_JS_BYTES || 2_450),
-  css: Number(process.env.BUDGET_CSS_BYTES || 136_800),
+  css: Number(process.env.BUDGET_CSS_BYTES || 137_343),
   routeCss: Number(process.env.BUDGET_ROUTE_CSS_BYTES || 48_350),
-  deferredRoutesCss: Number(process.env.BUDGET_DEFERRED_ROUTES_CSS_BYTES || 52_084),
+  deferredRoutesCss: Number(process.env.BUDGET_DEFERRED_ROUTES_CSS_BYTES || 31_300),
   loginPanelCss: Number(process.env.BUDGET_LOGIN_PANEL_CSS_BYTES || 4_500),
+  identityProfileCss: Number(process.env.BUDGET_IDENTITY_PROFILE_CSS_BYTES || 20_700),
+  publicProfilePageCss: Number(process.env.BUDGET_PUBLIC_PROFILE_PAGE_CSS_BYTES || 900),
+  profileIdentityHeroCss: Number(process.env.BUDGET_PROFILE_IDENTITY_HERO_CSS_BYTES || 6_113),
   homeSectionCss: Number(process.env.BUDGET_HOME_SECTION_CSS_BYTES || 5_000),
   faqSectionCss: Number(process.env.BUDGET_FAQ_SECTION_CSS_BYTES || 4_000),
   faqPageCss: Number(process.env.BUDGET_FAQ_PAGE_CSS_BYTES || 7_000),
@@ -116,13 +127,30 @@ const budgets = {
   cardPreviewSheetCss: Number(process.env.BUDGET_CARD_PREVIEW_SHEET_CSS_BYTES || 3_100),
   cardPreviewTooltipJs: Number(process.env.BUDGET_CARD_PREVIEW_TOOLTIP_JS_BYTES || 900),
   cardPreviewTooltipCss: Number(process.env.BUDGET_CARD_PREVIEW_TOOLTIP_CSS_BYTES || 650),
+  adminWorkspaceShellJs: Number(process.env.BUDGET_ADMIN_WORKSPACE_SHELL_JS_BYTES || 5_334),
+  adminWorkspaceShellCss: Number(process.env.BUDGET_ADMIN_WORKSPACE_SHELL_CSS_BYTES || 34_727),
 };
 
 const files = readdirSync(distAssets)
   .map(name => ({ name, bytes: statSync(join(distAssets, name)).size }))
   .sort((a, b) => b.bytes - a.bytes);
 
+function assetGroup(assets) {
+  return assets.length > 0 ? {
+    name: assets.join(' + '),
+    bytes: assets.reduce((sum, asset) => sum + statSync(join(distRoot, asset)).size, 0),
+  } : null;
+}
+
 const entryHtml = readFileSync(join(distRoot, 'index.html'), 'utf8');
+const viteManifest = JSON.parse(
+  readFileSync(join(distRoot, '.vite', 'manifest.json'), 'utf8'),
+);
+const adminWorkspaceAssetAudit = auditAdminWorkspaceAssets({
+  manifest: viteManifest,
+  html: entryHtml,
+  readAsset: asset => readFileSync(join(distRoot, asset), 'utf8'),
+});
 const entryMatch = entryHtml.match(
   /<script\b[^>]*\btype=["']module["'][^>]*\bsrc=["'][^"']*\/assets\/(index-[^"']+\.js)["']/i,
 );
@@ -140,7 +168,29 @@ const deferredRoutesCss = files.find(file => /^(?:DeferredRoutes|EditorialRouteC
 const deferredRoutesJs = files.find(file => /^DeferredRoutes-.*\.js$/.test(file.name));
 const galleryPageJs = files.find(file => /^GalleryTab-.*\.js$/.test(file.name));
 const editorialRouteChromeJs = files.find(file => /^EditorialRouteChrome-.*\.js$/.test(file.name));
-const loginPanelCss = files.find(file => /^LoginPanel-.*\.css$/.test(file.name));
+const loginPanelEntry = viteManifest['src/modules/identity/ui/LoginPanel.tsx'];
+const loginPanelStylesEntry = viteManifest['src/modules/identity/ui/LoginPanel.css'];
+const loginPanelJs = loginPanelEntry?.file ? assetGroup([loginPanelEntry.file]) : null;
+const identityProfileCss = assetGroup(loginPanelEntry?.css ?? []);
+const loginPanelCss = loginPanelStylesEntry?.file
+  ? assetGroup([loginPanelStylesEntry.file])
+  : null;
+const publicProfilePageEntry = viteManifest['src/modules/identity/ui/PublicProfilePage.tsx'];
+const publicProfilePageJs = publicProfilePageEntry?.file
+  ? assetGroup([publicProfilePageEntry.file])
+  : null;
+const publicProfilePageCss = assetGroup(publicProfilePageEntry?.css ?? []);
+const profileIdentityHeroKey = [...new Set([
+  ...(loginPanelEntry?.imports ?? []),
+  ...(publicProfilePageEntry?.imports ?? []),
+])].find(key => /^_ProfileIdentityHero-.*\.js$/.test(key));
+const profileIdentityHeroEntry = profileIdentityHeroKey
+  ? viteManifest[profileIdentityHeroKey]
+  : null;
+const profileIdentityHeroJs = profileIdentityHeroEntry?.file
+  ? assetGroup([profileIdentityHeroEntry.file])
+  : null;
+const profileIdentityHeroCss = assetGroup(profileIdentityHeroEntry?.css ?? []);
 const faqSectionCss = files.find(file => /^FAQSection-.*\.css$/.test(file.name));
 const faqPageCss = files.find(file => /^FAQPage-.*\.css$/.test(file.name));
 const faqPageJs = files.find(file => /^FAQPage-.*\.js$/.test(file.name));
@@ -156,21 +206,18 @@ const cardPreviewSheetJs = files.find(file => /^CardPreviewSheet-.*\.js$/.test(f
 const cardPreviewSheetCss = files.find(file => /^CardPreviewSheet-.*\.css$/.test(file.name));
 const cardPreviewTooltipJs = files.find(file => /^CardPreviewTooltip-.*\.js$/.test(file.name));
 const cardPreviewTooltipCss = files.find(file => /^CardPreviewTooltip-.*\.css$/.test(file.name));
+const adminWorkspaceShellJs = assetGroup(adminWorkspaceAssetAudit.shell.js);
+const adminWorkspaceShellCss = assetGroup(adminWorkspaceAssetAudit.shell.css);
 const homeSectionCssFiles = files.filter(file => /^Home(?:ArenaDirectory|Battlegrounds|LatestArticles)-.*\.css$/.test(file.name));
 const largestHomeSectionCss = homeSectionCssFiles.length === 3
   ? homeSectionCssFiles.sort((left, right) => right.bytes - left.bytes)[0]
   : null;
 const vendorReact = files.find(file => /^vendor-react-.*\.js$/.test(file.name));
-const initialJsFiles = [mainJs, vendorReact]
-  .filter(Boolean);
-const initialJs = initialJsFiles.length === 2 ? {
-  name: initialJsFiles.map(file => file.name).join(' + '),
-  bytes: initialJsFiles.reduce((sum, file) => sum + file.bytes, 0),
-} : null;
-const initialJsGzip = initialJsFiles.length === 2 ? {
-  name: 'gzip(' + initialJsFiles.map(file => file.name).join(' + ') + ')',
-  bytes: initialJsFiles.reduce((sum, file) => (
-    sum + gzipSync(readFileSync(join(distAssets, file.name)), { level: 9 }).length
+const initialJs = assetGroup(adminWorkspaceAssetAudit.initial.js);
+const initialJsGzip = initialJs ? {
+  name: 'gzip(' + adminWorkspaceAssetAudit.initial.js.join(' + ') + ')',
+  bytes: adminWorkspaceAssetAudit.initial.js.reduce((sum, asset) => (
+    sum + gzipSync(readFileSync(join(distRoot, asset)), { level: 9 }).length
   ), 0),
 } : null;
 
@@ -181,12 +228,18 @@ const checks = [
   ['initial JS gzip total', initialJsGzip, budgets.initialJsGzip],
   ['largest route JS', routeJs[0], budgets.routeJs],
   ['Arena deferred route JS', deferredRoutesJs, budgets.deferredRoutesJs],
+  ['identity login-panel JS', loginPanelJs, budgets.loginPanelJs],
+  ['identity public-profile page JS', publicProfilePageJs, budgets.publicProfilePageJs],
+  ['identity profile-hero JS', profileIdentityHeroJs, budgets.profileIdentityHeroJs],
   ['Gallery route JS', galleryPageJs, budgets.galleryPageJs],
   ['editorial route chrome JS', editorialRouteChromeJs, budgets.editorialRouteChromeJs],
   ['initial CSS', css, budgets.css],
   ['shared route CSS', routeCss, budgets.routeCss],
   ['Arena route-owner CSS', deferredRoutesCss, budgets.deferredRoutesCss],
   ['lazy public-auth CSS', loginPanelCss, budgets.loginPanelCss],
+  ['lazy authenticated-profile CSS', identityProfileCss, budgets.identityProfileCss],
+  ['lazy public-profile page CSS', publicProfilePageCss, budgets.publicProfilePageCss],
+  ['lazy identity profile-hero CSS', profileIdentityHeroCss, budgets.profileIdentityHeroCss],
   ['largest lazy home-section CSS', largestHomeSectionCss, budgets.homeSectionCss],
   ['lazy FAQ-section CSS', faqSectionCss, budgets.faqSectionCss],
   ['lazy FAQ-page CSS', faqPageCss, budgets.faqPageCss],
@@ -203,6 +256,8 @@ const checks = [
   ['lazy card-preview sheet CSS', cardPreviewSheetCss, budgets.cardPreviewSheetCss],
   ['lazy card-preview tooltip JS', cardPreviewTooltipJs, budgets.cardPreviewTooltipJs],
   ['lazy card-preview tooltip CSS', cardPreviewTooltipCss, budgets.cardPreviewTooltipCss],
+  ['lazy administrator workspace JS', adminWorkspaceShellJs, budgets.adminWorkspaceShellJs],
+  ['lazy administrator workspace CSS', adminWorkspaceShellCss, budgets.adminWorkspaceShellCss],
 ];
 
 let failed = false;
@@ -218,6 +273,48 @@ for (const [label, file, budget] of checks) {
   if (!ok) failed = true;
 }
 
-console.log('[budget] aggregate startup assets are ratcheted below the previous production baseline.');
+for (const asset of adminWorkspaceAssetAudit.leaks.js) {
+  console.error(`[budget] administrator workspace shell leaked into initial JS: ${asset}`);
+  failed = true;
+}
+for (const asset of adminWorkspaceAssetAudit.leaks.css) {
+  console.error(`[budget] administrator workspace styles leaked into initial CSS: ${asset}`);
+  failed = true;
+}
+if (
+  adminWorkspaceAssetAudit.leaks.js.length === 0
+  && adminWorkspaceAssetAudit.leaks.css.length === 0
+) {
+  console.log('[budget] ok administrator workspace JS and CSS remain outside the static entry graph');
+}
+
+function transitiveImports(entryKey) {
+  const imports = new Set();
+  const pending = [entryKey];
+  while (pending.length > 0) {
+    const currentKey = pending.pop();
+    if (!currentKey || imports.has(currentKey)) continue;
+    imports.add(currentKey);
+    // Both lazy routes share the application entry. Its dynamic-import list is
+    // the route registry, not a dependency owned by either identity screen.
+    if (currentKey === 'index.html') continue;
+    const entry = viteManifest[currentKey];
+    pending.push(...(entry?.imports ?? []), ...(entry?.dynamicImports ?? []));
+  }
+  imports.delete(entryKey);
+  return imports;
+}
+
+const loginImports = transitiveImports('src/modules/identity/ui/LoginPanel.tsx');
+const publicProfileImports = transitiveImports('src/modules/identity/ui/PublicProfilePage.tsx');
+if (loginImports.has('src/modules/identity/ui/PublicProfilePage.tsx')
+  || publicProfileImports.has('src/modules/identity/ui/LoginPanel.tsx')) {
+  console.error('[budget] identity login and public-profile route chunks import each other');
+  failed = true;
+} else {
+  console.log('[budget] ok identity login and public-profile route chunks remain independent');
+}
+
+console.log('[budget] aggregate startup assets are ratcheted to the documented production baseline.');
 
 if (failed) process.exit(1);

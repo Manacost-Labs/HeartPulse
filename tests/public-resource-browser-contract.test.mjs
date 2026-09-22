@@ -14,8 +14,6 @@ const blockedHosts = [
   'static.hsreplay.net',
 ];
 const baselineViolations = [
-  'src/features/ArenaSynergyCardIdentity.tsx -> art.hearthstonejson.com',
-  'src/features/battlegroundTrinkets.ts -> bg.kolodahearthstone.ru',
 ];
 
 function collectFiles(directory) {

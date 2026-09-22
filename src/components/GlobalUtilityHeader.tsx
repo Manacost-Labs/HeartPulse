@@ -11,6 +11,10 @@ import {
 } from 'lucide-react';
 import './GlobalUtilityHeader.css';
 import type { PageTourAccess } from '../features/pageTour/pageTourDefinitions';
+import {
+  hasSubscriptionEntitlement,
+  type SubscriptionAccess,
+} from '../modules/subscriptions/public';
 
 const LazyPageTour = lazy(() => import('../features/pageTour/PageTour'));
 
@@ -54,16 +58,7 @@ export type GlobalSearchAccess = {
   battlegroundsArticles: boolean;
 };
 
-type HeaderSubscription = {
-  hasAccess?: boolean;
-  entitlements?: {
-    arena?: boolean;
-    battlegrounds?: boolean;
-    standard?: boolean;
-    arenaArticles?: boolean;
-    battlegroundsArticles?: boolean;
-  };
-} | null;
+type HeaderSubscription = SubscriptionAccess | null;
 
 function articleRequiresAccess(article: SearchArticle, access: GlobalSearchAccess): boolean {
   if (!article.vip || access.admin) return false;
@@ -115,17 +110,17 @@ export default function GlobalUtilityHeader({
   const subscriptionStatus = admin ? null : accessStatus;
   const access: GlobalSearchAccess = {
     admin,
-    anySubscription: admin || Boolean(subscriptionStatus?.hasAccess),
-    standard: admin || Boolean(subscriptionStatus?.entitlements?.standard),
-    arenaArticles: admin || Boolean(subscriptionStatus?.entitlements?.arenaArticles),
-    battlegroundsArticles: admin || Boolean(subscriptionStatus?.entitlements?.battlegroundsArticles),
+    anySubscription: admin || hasSubscriptionEntitlement(subscriptionStatus, null),
+    standard: admin || hasSubscriptionEntitlement(subscriptionStatus, 'standard'),
+    arenaArticles: admin || hasSubscriptionEntitlement(subscriptionStatus, 'arenaArticles'),
+    battlegroundsArticles: admin || hasSubscriptionEntitlement(subscriptionStatus, 'battlegroundsArticles'),
   };
   const tourAccess: PageTourAccess = {
     authenticated: auth,
     admin,
-    standard: admin || Boolean(subscriptionStatus?.entitlements?.standard),
-    arena: admin || Boolean(subscriptionStatus?.entitlements?.arena),
-    battlegrounds: admin || Boolean(subscriptionStatus?.entitlements?.battlegrounds),
+    standard: admin || hasSubscriptionEntitlement(subscriptionStatus, 'standard'),
+    arena: admin || hasSubscriptionEntitlement(subscriptionStatus, 'arena'),
+    battlegrounds: admin || hasSubscriptionEntitlement(subscriptionStatus, 'battlegrounds'),
   };
   const tourContext = `${auth}:${pagePath}`;
   const tourAvailable = availableTourContext === tourContext;

@@ -5,8 +5,8 @@ import { createReaderEntitlementsRouter } from '../modules/readerEntitlements/pu
 import { assertReaderPermissionsClient, createReaderPermissionsRouter } from '../modules/readerPermissions/public.js';
 
 /** Opt-in composition only: unset configuration must not change the existing login or public site. */
-export function registerBrowserIdentity({ app, getDatabase, authCookieName, environment = process.env }: {
-  app: Application; getDatabase: () => DatabaseSync; authCookieName: string; environment?: NodeJS.ProcessEnv;
+export function registerBrowserIdentity({ app, getDatabase, authCookieName, legacyAuthCookieName, environment = process.env }: {
+  app: Application; getDatabase: () => DatabaseSync; authCookieName: string; legacyAuthCookieName?: string; environment?: NodeJS.ProcessEnv;
 }): { stop: () => void } | undefined {
   if (environment.BROWSER_IDENTITY_ENABLED !== '1') return;
   try {
@@ -14,7 +14,7 @@ export function registerBrowserIdentity({ app, getDatabase, authCookieName, envi
     if (deployment !== 'production' && deployment !== 'staging') throw new Error('Invalid environment');
     const clients = JSON.parse(environment.BROWSER_IDENTITY_CLIENTS ?? '[]');
     const runtime = createBrowserIdentityRuntime({
-      issuer: environment.BROWSER_IDENTITY_ISSUER ?? '', deployment, database: getDatabase(), authCookieName,
+      issuer: environment.BROWSER_IDENTITY_ISSUER ?? '', deployment, database: getDatabase(), authCookieName, legacyAuthCookieName,
       trustedProxy: environment.BROWSER_IDENTITY_TRUST_PROXY === '1',
       allowStagingClient: environment.BROWSER_IDENTITY_ALLOW_STAGING_CLIENT === '1',
       encryptionKey: Buffer.from(environment.BROWSER_IDENTITY_ENCRYPTION_KEY ?? '', 'base64url'),

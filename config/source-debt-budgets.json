@@ -14,7 +14,6 @@
       "server/blizzardCards.ts": 1,
       "server/classMatchupRoutes.ts": 4,
       "server/constructedCardCatalogStore.ts": 1,
-      "server/constructedCardHistoryStore.ts": 1,
       "server/constructedCardImagePrewarmer.ts": 4,
       "server/constructedCardRoutes.ts": 3,
       "server/cosmeticsRoutes.ts": 4,
@@ -30,7 +29,7 @@
       "server/guidesArchiveRoutes.ts": 8,
       "server/homeSummaryRoutes.ts": 5,
       "server/hsguruDeckInfo.ts": 2,
-      "server/index.ts": 290,
+      "server/index.ts": 282,
       "server/legendaryRoutes.ts": 4,
       "server/modules/constructedCards/relatedCards.ts": 1,
       "server/operationalRoutes.ts": 1,
@@ -51,10 +50,10 @@
       "src/features/constructedRelatedCards.ts": 1,
       "src/features/ContestAdminContests.tsx": 2,
       "src/features/ContestAdminTelegram.tsx": 1,
-      "src/features/Contests.tsx": 26,
+      "src/features/Contests.tsx": 24,
       "src/features/Cosmetics.tsx": 1,
       "src/features/DeckBuilder.tsx": 2,
-      "src/features/DeferredRoutes.tsx": 16,
+      "src/features/DeferredRoutes.tsx": 3,
       "src/features/GuidesArchive.tsx": 1,
       "src/features/StandardCards.tsx": 13,
       "src/features/StandardMatchups.tsx": 1
@@ -66,7 +65,6 @@
       "server/archetypeDeckIdentity.ts": 1,
       "server/deckBuilderRoutes.ts": 1,
       "server/index.ts": 1,
-      "server/publicProfileIdentity.ts": 1,
       "server/referralRoutes.ts": 1
     },
     "nonNullAssertions": {
@@ -82,7 +80,6 @@
       "server/metrics.ts": 2,
       "server/webVitalsRoutes.ts": 1,
       "shared/arenaDraftAdvisor.ts": 2,
-      "src/App.tsx": 1,
       "src/components/GlobalUtilityHeader.tsx": 4,
       "src/components/ModalSurface/modalSurfaceManager.ts": 1,
       "src/features/ArchetypeHistoryChart.tsx": 1,
@@ -94,10 +91,10 @@
       "src/features/ContestAdminAnalytics.stories.tsx": 1,
       "src/features/ContestAdminArenaDraftAssistant.stories.tsx": 1,
       "src/features/ContestAdminArenaSynergies.stories.tsx": 2,
-      "src/features/ContestAdminTranslations.tsx": 2,
+      "src/features/ContestAdminTranslations.tsx": 1,
       "src/features/Cosmetics.tsx": 2,
       "src/features/DeckBuilder.tsx": 1,
-      "src/features/DeferredRoutes.tsx": 6,
+      "src/features/DeferredRoutes.tsx": 5,
       "src/features/FAQPage.tsx": 1,
       "src/features/StandardMeta.tsx": 1,
       "src/main.tsx": 1,
@@ -127,7 +124,7 @@
       "src/features/Cosmetics.tsx": 1,
       "src/features/DeckBuilder.tsx": 3,
       "src/features/decklist/useResolvedDeck.ts": 1,
-      "src/features/DeferredRoutes.tsx": 18,
+      "src/features/DeferredRoutes.tsx": 2,
       "src/features/FunDecksPage.tsx": 1,
       "src/features/GuidesArchive.tsx": 2,
       "src/features/PublicProfilePage.tsx": 1,
@@ -139,7 +136,14 @@
       "src/modules/developerApi/api/adminApiKeys.ts": 3,
       "src/telemetry/clientIncident.ts": 1,
       "src/telemetry/webVitals.ts": 1,
-      "src/vendor/hsreplay-deck-view/hsreplay-deck-view.js": 1
+      "src/vendor/hsreplay-deck-view/hsreplay-deck-view.js": 1,
+      "src/modules/identity/api/authSessionApi.ts": 1,
+      "src/modules/identity/api/guestAuthApi.ts": 1,
+      "src/modules/identity/api/privateAccountApi.ts": 2,
+      "src/modules/identity/api/publicProfileApi.ts": 1,
+      "src/modules/identity/api/telegramAuthConfigApi.ts": 1,
+      "src/modules/identity/api/telegramLinkApi.ts": 1,
+      "src/modules/identity/ui/LoginPanel.tsx": 4
     }
   }
 }

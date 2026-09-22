@@ -1,7 +1,10 @@
 import { Router, type Request, type RequestHandler, type Response } from 'express';
 // @ts-ignore: node:sqlite is available in the production Node 22 runtime.
 import type { DatabaseSync } from 'node:sqlite';
-import type { ConstructedCardCollection } from './constructedCardRoutes.js';
+import type {
+  ConstructedCardCollection,
+  ConstructedCardFormat,
+} from './modules/constructedCards/public.js';
 import {
   CONSTRUCTED_ADMIN_WIKI_TERMS,
   CONSTRUCTED_TRANSLATION_EXAMPLE_CARD_IDS,
@@ -11,7 +14,6 @@ import {
 } from '../shared/constructedCardTranslations.js';
 
 type AdminIdentity = { id: string };
-type CardFormat = 'standard' | 'wild';
 type JsonRecord = Record<string, any>;
 
 export const DEFAULT_CONSTRUCTED_MECHANIC_TRANSLATIONS: Record<string, string> = DEFAULT_CONSTRUCTED_TERM_TRANSLATIONS;
@@ -48,7 +50,7 @@ export type AdminMechanicTranslationRouterDependencies = {
   adminGuard: RequestHandler;
   adminAuth: (request: Request) => AdminIdentity | null;
   getDatabase: () => DatabaseSync;
-  loadCards: (format: CardFormat) => Promise<ConstructedCardCollection>;
+  loadCards: (format: ConstructedCardFormat) => Promise<ConstructedCardCollection>;
   setPrivateNoStore: (response: Response) => void;
   recordAudit?: (actor: AdminIdentity, action: string, entityId: string, details?: Record<string, unknown>) => void;
   now?: () => Date;

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import routeInventory from '../config/public-route-inventory.json';
+import routeInventory from '../src/shared/seo/publicRouteInventory.json';
 import { TABS } from '../src/routes';
 import {
   publicSeoPages,
@@ -8,7 +8,7 @@ import {
   seoPageForExactPath,
   seoPageForNavigationRoute,
 } from '../src/seo/registry';
-import { resolvePublicUrlPolicy } from '../src/seo/publicUrlPolicy';
+import { resolvePublicUrlPolicy } from '../src/shared/seo/publicUrlPolicy';
 import { subscriptionPaywallHeading } from '../src/components/subscriptionPaywallHeading';
 
 const pages = publicSeoPages();

@@ -14,6 +14,11 @@ import {
   createConstructedCardRouter,
 } from '../server/constructedCardRoutes.js';
 
+function record(value: unknown): Record<string, unknown> {
+  assert.ok(value && typeof value === 'object' && !Array.isArray(value));
+  return value as Record<string, unknown>;
+}
+
 const baseCards = [
   {
     card_id: 'CARD_1', dbf: 1, name: { ru: 'Альфа', en: 'Alpha' }, card_set: 'CORE',
@@ -272,14 +277,14 @@ try {
 
     const synthesized = await details.service.loadCardDetail('standard', 'CARD_1');
     assert.equal(synthesized?.partial, true);
-    assert.equal(synthesized?.card.name.ru, 'Альфа');
-    assert.equal(synthesized?.card.stats.deckPopularity, 12.5);
+    assert.equal(record(synthesized?.card.name).ru, 'Альфа');
+    assert.equal(record(synthesized?.card.stats).deckPopularity, 12.5);
 
     detailMode = 'ok';
     details.service.invalidate?.();
     const rich = await details.service.loadCardDetail('standard', 'CARD_1');
     assert.equal(rich?.partial, false);
-    assert.equal(rich?.card.wiki.marker, 'enriched-detail');
+    assert.equal(record(rich?.card.wiki).marker, 'enriched-detail');
 
     now += 1_001;
     statsPopularity = '7.5%';
@@ -287,8 +292,8 @@ try {
     const staleRich = await details.service.loadCardDetail('standard', 'CARD_1');
     assert.equal(staleRich?.partial, true);
     assert.equal(staleRich?.dataStatus, 'stale');
-    assert.equal(staleRich?.card.wiki.marker, 'enriched-detail');
-    assert.equal(staleRich?.card.stats.deckPopularity, 7.5,
+    assert.equal(record(staleRich?.card.wiki).marker, 'enriched-detail');
+    assert.equal(record(staleRich?.card.stats).deckPopularity, 7.5,
       'stale enriched content must only receive statistics from the current stats response');
 
     detailMode = 'not-found';
@@ -371,7 +376,7 @@ try {
     });
 
     const initialDetail = await detailTtl.service.loadCardDetail('standard', 'CARD_1');
-    assert.equal(initialDetail?.card.wiki.marker, 'long-lived-detail');
+    assert.equal(record(initialDetail?.card.wiki).marker, 'long-lived-detail');
     assert.equal(detailTtl.calls.detail, 1);
 
     detailTtlNow += 1_001;
@@ -379,7 +384,7 @@ try {
     const refreshedStatistics = await detailTtl.service.loadCardDetail('standard', 'CARD_1');
     assert.equal(refreshedStatistics?.partial, false,
       'fresh statistics must compose with the longer-lived enriched card detail');
-    assert.equal(refreshedStatistics?.card.wiki.marker, 'long-lived-detail');
+    assert.equal(record(refreshedStatistics?.card.wiki).marker, 'long-lived-detail');
     assert.equal(detailTtl.calls.detail, 1,
       'detail enrichment must not be re-fetched when only the statistics cache expires');
   } finally {
@@ -447,7 +452,7 @@ try {
     });
     const enriched = await sourceAware.service.loadCardDetail('standard', 'CARD_1');
     assert.equal(enriched?.partial, false, 'a successful empty deck source is complete, not an outage');
-    assert.equal(enriched?.card.wiki.patch_changes[0].entries[0].manacost_title, 'Русское описание патча');
+    assert.equal(record(enriched?.card.wiki).patch_changes[0].entries[0].manacost_title, 'Русское описание патча');
 
     sourceNow += 1_001;
     sourcesAvailable = false;
@@ -456,7 +461,7 @@ try {
       'a deck/patch source outage must not be cached or labelled as a complete fresh detail');
     assert.equal(degradedSources?.dataStatus, 'stale');
     assert.match(degradedSources?.warning || '', /колод|патч/i);
-    assert.equal(degradedSources?.card.wiki.patch_changes[0].entries[0].manacost_title, 'Русское описание патча',
+    assert.equal(record(degradedSources?.card.wiki).patch_changes[0].entries[0].manacost_title, 'Русское описание патча',
       'an expired good enriched detail must survive a secondary-source outage');
   } finally {
     rmSync(detailSourceDirectory, { recursive: true, force: true });
@@ -493,6 +498,7 @@ try {
     });
     const completeDeckDetail = await pagedDecks.service.loadCardDetail('standard', 'CARD_1');
     assert.equal(completeDeckDetail?.partial, false);
+    assert.ok(Array.isArray(completeDeckDetail?.card.decks));
     assert.equal(completeDeckDetail?.card.decks.length, 1);
 
     deckNow += 1_001;
@@ -502,6 +508,7 @@ try {
       'an oversized duplicate offset page must degrade detail instead of being cached as a complete deck source');
     assert.equal(duplicatePageDetail?.dataStatus, 'stale');
     assert.match(duplicatePageDetail?.warning || '', /Колоды с этой картой временно недоступны/);
+    assert.ok(Array.isArray(duplicatePageDetail?.card.decks));
     assert.equal(duplicatePageDetail?.card.decks.length, 1,
       'a malformed refresh must retain the bounded previous deck enrichment');
   } finally {

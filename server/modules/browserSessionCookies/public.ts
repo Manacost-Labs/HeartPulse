@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 
 type BrowserSessionCookieDependencies = {
   cookieName: string;
+  legacyCookieName?: string;
   sessionTtlMs: number;
   appUrl: string;
 };
@@ -26,24 +27,37 @@ export function createBrowserSessionCookieHandlers(dependencies: BrowserSessionC
     'Path=/',
     'HttpOnly',
     'SameSite=Lax',
-    isSecureRequest(request) ? 'Secure' : '',
+    dependencies.appUrl.startsWith('https://') || isSecureRequest(request) ? 'Secure' : '',
     maxAge,
   ].filter(Boolean);
 
-  const clear = (request: Request, response: Response) => {
+  const expire = (request: Request, response: Response, name: string) => {
     const attributes = cookieAttributes(request, 'Max-Age=0');
-    response.append('Set-Cookie', [`${dependencies.cookieName}=`, ...attributes].join('; '));
+    response.append('Set-Cookie', [`${name}=`, ...attributes].join('; '));
     const legacyDomain = legacyArenaCookieDomain(request, dependencies.appUrl);
-    if (legacyDomain) response.append('Set-Cookie', [`${dependencies.cookieName}=`, ...attributes, legacyDomain].join('; '));
+    if (legacyDomain && !name.startsWith('__Host-')) response.append('Set-Cookie', [`${name}=`, ...attributes, legacyDomain].join('; '));
+  };
+
+  const expireLegacyName = (request: Request, response: Response) => {
+    if (dependencies.legacyCookieName && dependencies.legacyCookieName !== dependencies.cookieName) {
+      expire(request, response, dependencies.legacyCookieName);
+    }
   };
 
   return {
     setAuthCookie(request: Request, response: Response, token: string) {
       const attributes = cookieAttributes(request, `Max-Age=${Math.floor(dependencies.sessionTtlMs / 1000)}`);
+      if (dependencies.cookieName.startsWith('__Host-') && !attributes.includes('Secure')) {
+        throw new Error('__Host- auth cookie requires HTTPS');
+      }
+      expireLegacyName(request, response);
       const legacyDomain = legacyArenaCookieDomain(request, dependencies.appUrl);
-      if (legacyDomain) response.append('Set-Cookie', [`${dependencies.cookieName}=`, ...cookieAttributes(request, 'Max-Age=0'), legacyDomain].join('; '));
+      if (legacyDomain && !dependencies.cookieName.startsWith('__Host-')) response.append('Set-Cookie', [`${dependencies.cookieName}=`, ...cookieAttributes(request, 'Max-Age=0'), legacyDomain].join('; '));
       response.append('Set-Cookie', [`${dependencies.cookieName}=${encodeURIComponent(token)}`, ...attributes].join('; '));
     },
-    clearAuthCookie: clear,
+    clearAuthCookie(request: Request, response: Response) {
+      expire(request, response, dependencies.cookieName);
+      expireLegacyName(request, response);
+    },
   };
 }

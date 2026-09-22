@@ -31,6 +31,47 @@
 DevTools MCP, проверить целевые разрешения, overflow, консоль, сеть,
 accessibility tree и показатели производительности.
 
+## Проверенная навигация по архитектуре
+
+Перед широким чтением используйте ownership-контекст для модуля, legacy-файла
+или всего репозитория:
+
+```bash
+npm run agent:context -- client.battlegrounds
+npm run agent:context -- src/features/BgLibrary.tsx
+npm run agent:context -- shared-root.client
+npm run agent:context -- server/shared/http/asyncRoute.ts
+npm run agent:context -- root
+```
+
+Canonical shared roots are navigable by stable id, root or nested path. Their
+schema-v3 records expose the declared owner, purpose, focused tests,
+documentation and safe starts instead of synthesizing placeholder ownership.
+Their context and check plan also conservatively include every canonical module
+and migration area in the same runtime, so a legacy caller cannot silently lose
+its focused test.
+`agent:impact -- <module-id-or-path-or-root> --json` добавляет обратных callers,
+затронутые контракты, focused tests, документацию, долг и маршруты.
+`agent:check -- <target> --list` строит безопасный allowlisted план без запуска,
+а без `--list` выполняет его. `agent:map -- --json` выдаёт детерминированную
+полную карту модулей, owned shared roots, migration areas и канонических
+публичных URL.
+
+Служебные JSON-ответы не содержат абсолютных путей или timestamp. Маршруты не
+копируются в module inventory: `routeScope` выбирает только существующих
+owner-id, а pattern, route id и policy загружаются из
+`src/shared/seo/publicRouteInventory.json`.
+
+Сам architecture checker оставляет `scripts/check-module-boundaries.mjs`
+стабильным facade для orchestration и CLI. Поиск файлов, безопасность путей,
+грамматика аргументов CLI, парсинг импортов, resolution/glob-граф, циклы и
+форматирование отчёта разнесены по именованным владельцам в `scripts/lib/`.
+Config checker принимает только канонический repository-relative regular file,
+запрещает symlink-компоненты и читает файл через проверенный descriptor. Размеры
+всех владельцев ratcheted отдельными budget-проверками, а CLI и порядок
+diagnostics закреплены characterization tests; при изменении правила агенту не
+нужно читать весь checker целиком.
+
 ## Storybook и Storybook MCP
 
 Storybook 10 работает как локальная мастерская React-компонентов и не входит в

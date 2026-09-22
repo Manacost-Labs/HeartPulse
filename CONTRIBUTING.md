@@ -28,6 +28,27 @@ npm run dev
 Node.js 22+ обязателен. Большинство страниц может работать на сохранённых
 snapshots без внешних ключей; не добавляйте тестовые секреты в репозиторий.
 
+## Навигация по архитектуре
+
+Перед изменением кода получите карту владельцев и оцените область влияния:
+
+```bash
+npm run agent:map
+npm run agent:context -- client.identity
+npm run agent:context -- src/features/BgLibrary.tsx
+npm run agent:context -- root
+npm run agent:impact -- src/modules/identity/public.ts
+npm run agent:check -- src/modules/identity/public.ts --list
+```
+
+`agent:map` показывает модули и отдельный реестр публичных URL,
+`agent:context` — контракт модуля, канонический shared root, проверенную
+legacy-зону или общий обзор репозитория, `agent:impact` — вызывающий код,
+затронутые контракты, маршруты и
+тесты. После просмотра плана уберите `--list`, чтобы `agent:check` безопасно
+запустил архитектурную проверку, TypeScript и только целевые тесты. Для чистого
+JSON используйте `npm run --silent ... -- --json`.
+
 ## Перед pull request
 
 Запустите единый gate:

@@ -18,6 +18,21 @@ until it has exactly one entry in `config/architecture-catalog.json`.
 The decision and its trade-offs are recorded in
 [`docs/decisions/002-domain-modules-and-documentation-contract.md`](../decisions/002-domain-modules-and-documentation-contract.md).
 
+## Consolidated inventories
+
+`config/module-boundaries.json` governs the resolved import graph, focused
+commands and migration-area coverage. `config/architecture-catalog.json`
+provides product ownership, routes and operational context. Every physical
+module appears in both inventories. `lint:architecture` checks both the graph
+and the independently ratcheted `config/architecture-debt.json`; moving an owner
+must remove obsolete exceptions rather than increase the allowance.
+
+Application route manifests, lazy loaders and history synchronization live in
+`src/app/routing`. Identity owns login, profile and Telegram-link presentation;
+subscriptions owns entitlement contracts. Reader continuation wraps the lazy
+account route. Current public URLs, removed legacy pages, Cover continuation,
+Patreon and Google/Discord/Yandex sign-in remain available as before the move.
+
 ## Core principles
 
 1. Organize business behavior by domain, not only by technical file type.
@@ -46,6 +61,7 @@ src/
       hooks/
       ui/
       public.ts
+      public.css  # optional eager style contract
   shared/
     api/
     config/
@@ -55,6 +71,8 @@ src/
 
 The folders are responsibilities, not a requirement to create empty
 directories. A small module may need only `model/`, `ui/` and `public.ts`.
+`public.css` exists only when application composition must load an eager style
+contract without importing a module's private UI stylesheet.
 
 ### `src/app`
 
@@ -78,6 +96,8 @@ cards, Battlegrounds, decks, profiles, subscriptions and editorial content.
 - `hooks/` owns browser state and asynchronous UI orchestration.
 - `ui/` renders typed data and emits user intent.
 - `public.ts` exposes the smallest stable contract needed outside the module.
+- `public.css`, when declared, is the only supported cross-boundary stylesheet
+  entry and delegates to module-owned CSS.
 
 Other modules must not import an internal path such as
 `modules/cards/model/privatePolicy`. They use the narrow public contract. Avoid
@@ -149,7 +169,7 @@ Source imports follow these boundaries:
 
 | Source | May import |
 | --- | --- |
-| `app` composition | a module's `public.ts`, `shared` |
+| `app` composition | a module's `public.ts`, declared `public.css`, `shared` |
 | Module route | its hooks/services, adapters, UI and model |
 | Module hook or service | its model and explicit ports |
 | Module API or repository adapter | its model/schema and `shared` |

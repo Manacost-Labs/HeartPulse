@@ -85,6 +85,7 @@ try {
 const browserSources = [
   readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8'),
   readFileSync(new URL('../src/features/DeferredRoutes.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('../src/modules/identity/ui/LoginPanel.tsx', import.meta.url), 'utf8'),
 ].join('\n');
 assert.doesNotMatch(browserSources, /setAuthToken\s*\(/, 'browser must not retain a session bearer token');
 assert.doesNotMatch(browserSources, /Authorization:\s*`Bearer/, 'same-origin browser API calls must use the httpOnly cookie');

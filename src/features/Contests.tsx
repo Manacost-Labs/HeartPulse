@@ -17,6 +17,15 @@ import {
 } from 'lucide-react';
 import './contests.css';
 import {
+  subscriptionEntitlementLabels,
+  type SubscriptionStatus,
+} from '../modules/subscriptions/public';
+import {
+  canAccessAdminWorkspace,
+  canManageContests,
+} from '../modules/identity/public';
+import type { AuthUser } from '../modules/identity/public';
+import {
   ContestAdminReferrals,
   type AdminReferralClick,
   type AdminReferralLink,
@@ -72,10 +81,9 @@ import {
   type AdminMessage,
   type AdminWorkspaceSection,
 } from './adminWorkspaceState';
+import { loadAdminWorkspaceShell } from '../modules/adminWorkspace/public';
 
-const AdminWorkspaceShell = React.lazy(
-  () => import('../modules/adminWorkspace/AdminWorkspaceShell.lazy'),
-);
+const AdminWorkspaceShell = React.lazy(loadAdminWorkspaceShell);
 const ContestAdminDashboard = React.lazy(() => import('./ContestAdminDashboard').then(module => ({ default: module.ContestAdminDashboard })));
 
 const ContestAdminTranslations = React.lazy(async () => {
@@ -98,53 +106,10 @@ const AdminApiKeys = React.lazy(async () => {
   const module = await import('../modules/developerApi/public');
   return { default: module.AdminApiKeys };
 });
-type AuthUser = {
-  id?: string;
-  profileId?: string;
-  email: string;
-  name: string;
-  role: 'admin' | 'user' | string;
-  country?: string;
-  newsletterOptIn?: boolean;
-  avatarInitials?: string;
-  telegramUsername?: string;
-  photoUrl?: string;
-  contactVkUrl?: string;
-  contactTelegram?: string;
-  contactEmail?: string;
-  adminAllowed?: boolean;
-  contestAdminAllowed?: boolean;
-};
 
-type SubscriptionStatus = {
-  hasAccess: boolean;
-  source: string;
-  checkedAt: string | null;
-  stale: boolean;
-  message: string;
-  boosty: Record<string, any>;
-  telegram: Record<string, any>;
-  entitlements?: Partial<Record<SubscriptionEntitlementKey, boolean>>;
-};
 
-type SubscriptionEntitlementKey =
-  | 'arena'
-  | 'battlegrounds'
-  | 'standard'
-  | 'contests'
-  | 'guidesArchive'
-  | 'arenaArticles'
-  | 'battlegroundsArticles';
 
-const SUBSCRIPTION_ENTITLEMENT_LABELS: ReadonlyArray<[SubscriptionEntitlementKey, string]> = [
-  ['arena', 'Арена'],
-  ['battlegrounds', 'Поля Сражений'],
-  ['standard', 'Стандарт'],
-  ['contests', 'Конкурсы'],
-  ['guidesArchive', 'Архив гайдов'],
-  ['arenaArticles', 'Статьи Арены'],
-  ['battlegroundsArticles', 'Статьи Полей'],
-];
+
 
 function formatDate(iso: string | null): string {
   if (!iso) return 'нет данных';
@@ -185,12 +150,6 @@ function addHoursForDateInput(hours: number): string {
 
 function RouteFallback({ minHeight = 520 }: { minHeight?: number }) {
   return <div className="route-fallback" aria-busy="true" aria-label="Загрузка раздела" style={{ minHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b6c42', fontFamily: 'var(--font-display)' }}>Загрузка...</div>;
-}
-
-const CONTEST_ADMIN_USER_ID = 'user_42368c85b8de';
-
-function isContestAdminUser(user: AuthUser | null | undefined): boolean {
-  return Boolean(user && (user.contestAdminAllowed || user.adminAllowed || user.id === CONTEST_ADMIN_USER_ID || user.profileId === CONTEST_ADMIN_USER_ID));
 }
 
 function authJsonHeaders(): HeadersInit {
@@ -436,15 +395,6 @@ function adminSectionFromLocation(defaultSection: AdminWorkspaceSection): AdminW
   return defaultSection;
 }
 
-function subscriptionEntitlementLabels(subscription: { hasAccess?: boolean; entitlements?: SubscriptionStatus['entitlements'] } | null | undefined): string[] {
-  if (!subscription?.entitlements) return subscription?.hasAccess ? ['Все разделы'] : [];
-  const labels: string[] = [];
-  for (const [key, label] of SUBSCRIPTION_ENTITLEMENT_LABELS) {
-    if (subscription.entitlements[key]) labels.push(label);
-  }
-  return labels;
-}
-
 async function uploadGalleryArtFile(file: File, metadata: { title: string; description: string; tag: string; source: string }): Promise<GalleryItem> {
   if (!file.type.startsWith('image/')) throw new Error('Можно загружать только изображения');
   const dataUrl = await fileToDataUrl(file);
@@ -459,8 +409,8 @@ async function uploadGalleryArtFile(file: File, metadata: { title: string; descr
 }
 
 export function ContestAdminPanel({ authUser, authChecking = false }: { authUser: AuthUser | null; authChecking?: boolean }) {
-  const allowed = isContestAdminUser(authUser);
-  const hasFullAdminAccess = Boolean(authUser && (authUser.adminAllowed || authUser.role === 'admin'));
+  const allowed = canManageContests(authUser);
+  const hasFullAdminAccess = canAccessAdminWorkspace(authUser);
   const [contests, setContests] = useState<Contest[]>([]);
   const [entries, setEntries] = useState<ContestEntry[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(false);

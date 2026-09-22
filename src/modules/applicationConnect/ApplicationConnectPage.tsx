@@ -1,3 +1,4 @@
+import type { AuthUser } from '../identity/public';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   applicationConnectApi,
@@ -7,20 +8,19 @@ import { ApplicationConnectView } from './ApplicationConnectView';
 import {
   normalizedUserCode,
   type ConnectState,
-  type ConnectUser,
   type DeviceAuthorization,
 } from './applicationConnectModel';
 
 export type ApplicationConnectLoginPanelProps = {
-  initialAuthUser: ConnectUser | null;
+  initialAuthUser: AuthUser | null;
   parentAuthChecking: boolean;
-  onAuthChange: (user: ConnectUser | null) => void;
+  onAuthChange: (user: AuthUser | null) => void;
 };
 
 export type ApplicationConnectPageProps = {
-  initialAuthUser: ConnectUser | null;
+  initialAuthUser: AuthUser | null;
   parentAuthChecking: boolean;
-  onAuthChange: (user: ConnectUser | null) => void;
+  onAuthChange: (user: AuthUser | null) => void;
   loginPanelComponent: React.ComponentType<ApplicationConnectLoginPanelProps>;
   api?: ApplicationConnectApi;
 };
@@ -102,7 +102,7 @@ export default function ApplicationConnectPage({
     }
   };
 
-  const handleAuthChange = (nextUser: ConnectUser | null) => {
+  const handleAuthChange = (nextUser: AuthUser | null) => {
     onAuthChange(nextUser);
     if (nextUser) {
       updateConnectUrl(userCode);

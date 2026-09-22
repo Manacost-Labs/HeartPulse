@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { ConstructedCardHistoryStore } from '../server/constructedCardHistoryStore.js';
+import { ConstructedCardHistoryStore } from '../server/modules/constructedCards/public.js';
 
 const directory = mkdtempSync(join(tmpdir(), 'arena-constructed-card-history-'));
 let now = Date.parse('2026-07-27T12:00:00.000Z');

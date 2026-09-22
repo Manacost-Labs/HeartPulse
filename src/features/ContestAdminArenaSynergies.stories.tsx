@@ -1,10 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent } from 'storybook/test';
 import type { ArenaCombination, ArenaSynergyPayload } from '../../shared/arenaSynergyContract';
+import { loadAdminWorkspaceShell } from '../modules/adminWorkspace/public';
 import { ArenaSynergyPanel } from './ContestAdminArenaSynergies';
 import './contests.css';
-import '../modules/adminWorkspace/adminWorkspace.css';
-
 const payload: ArenaSynergyPayload = {
   schemaVersion: 2,
   generatedAt: '2026-07-30T10:00:00Z',
@@ -208,7 +207,6 @@ const payload: ArenaSynergyPayload = {
     netCopies: 143,
   }],
 };
-
 const baseCombination = payload.combinations[0];
 const payloadWithCategories: ArenaSynergyPayload = {
   ...payload,
@@ -257,7 +255,6 @@ const payloadWithCategories: ArenaSynergyPayload = {
     },
   ],
 };
-
 const draftCards = Array.from(new Map([
   ...payloadWithCategories.combinations.flatMap(combination => combination.cards),
   ...payloadWithCategories.redraft.map(row => row.card),
@@ -324,6 +321,9 @@ function withoutMatchedControls(combination: ArenaCombination): ArenaCombination
 const meta = {
   title: 'Admin/Arena Synergies',
   render: args => <ArenaSynergyPanel {...args} />,
+  beforeEach: async () => {
+    await loadAdminWorkspaceShell();
+  },
   decorators: [
     Story => (
       <div className="admin-workspace-page admin-tailadmin-shell">

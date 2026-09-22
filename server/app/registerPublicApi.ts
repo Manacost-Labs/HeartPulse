@@ -7,12 +7,12 @@ import {
 import {
   createAdminApiKeyRouter,
   createApiKeyManager,
+  createLocalBattlegroundStatisticsSource,
   createPublicApiRouter,
   createSqliteApiKeyRepository,
   initializePublicApiKeyRepository,
 } from '../modules/publicApi/public.js';
-import type { ConstructedCardDataService } from '../constructedCardRoutes.js';
-import { createLocalBattlegroundStatisticsSource } from '../modules/publicApi/battlegroundSource.js';
+import type { ConstructedCardDataService } from '../modules/constructedCards/public.js';
 
 type RegisterPublicApiDependencies<TAdmin> = {
   app: Application;

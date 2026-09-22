@@ -25,6 +25,7 @@ interface AuthTokenCandidateOptions {
   authorization?: string;
   cookieHeader?: string;
   cookieName: string;
+  legacyCookieName?: string;
   bodyToken?: string;
 }
 
@@ -32,13 +33,16 @@ export function authTokenCandidates({
   authorization,
   cookieHeader,
   cookieName,
+  legacyCookieName,
   bodyToken,
 }: AuthTokenCandidateOptions): string[] {
   const header = String(authorization ?? '');
   const bearer = header.toLowerCase().startsWith('bearer ') ? header.slice(7).trim() : '';
+  const primaryPresent = (cookieHeader ?? '').split(';').some(part => part.trim().startsWith(`${cookieName}=`));
+  const browserCookieName = !primaryPresent && legacyCookieName ? legacyCookieName : cookieName;
   return [...new Set([
     bearer,
-    ...cookieValues(cookieHeader, cookieName),
+    ...cookieValues(cookieHeader, browserCookieName),
     String(bodyToken ?? '').trim(),
   ].filter(Boolean))];
 }

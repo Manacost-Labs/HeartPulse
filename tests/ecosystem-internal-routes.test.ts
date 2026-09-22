@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import express from 'express';
+import express, { type ErrorRequestHandler } from 'express';
 import { createEcosystemInternalRouter } from '../server/modules/ecosystem/public.js';
 import {
   requestLoggingMiddleware,

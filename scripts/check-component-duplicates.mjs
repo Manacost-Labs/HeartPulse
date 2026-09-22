@@ -5,6 +5,7 @@ const MAX_DUPLICATE_COMPONENTS = 0;
 const definitionPattern = /^(?:export\s+)?function\s+([A-Z][A-Za-z0-9_]*)\b/gm;
 
 const fileSources = FILES.map(file => readFileSync(file, 'utf8'));
+const identityLoginSource = readFileSync('src/modules/identity/ui/LoginPanel.tsx', 'utf8');
 const componentSets = fileSources.map(source => new Set(
   [...source.matchAll(definitionPattern)].map(match => match[1]),
 ));
@@ -21,11 +22,11 @@ if (duplicates.length > MAX_DUPLICATE_COMPONENTS) {
 console.log('[architecture] single-owner component guard passed');
 
 const deferredSource = fileSources[1];
-const profileStart = deferredSource.indexOf('const profileName =');
-const loginStart = deferredSource.indexOf('<div className="login-page"', profileStart);
-const loginEnd = deferredSource.indexOf('function InternalLinks', loginStart);
-const passwordInputStart = deferredSource.indexOf('function PasswordInput');
-const passwordInputEnd = deferredSource.indexOf('function AuthCheckingCard', passwordInputStart);
+const profileStart = identityLoginSource.indexOf('const profileName =');
+const loginStart = identityLoginSource.indexOf('<div className="login-page"', profileStart);
+const loginEnd = identityLoginSource.length;
+const passwordInputStart = identityLoginSource.indexOf('function PasswordInput');
+const passwordInputEnd = identityLoginSource.indexOf('function AuthCheckingCard', passwordInputStart);
 const cardModalStart = deferredSource.indexOf('const CardModal:');
 const cardModalEnd = deferredSource.indexOf('// ─── HSCard', cardModalStart);
 
@@ -38,7 +39,7 @@ if (
   process.exit(1);
 }
 
-const profileInlineStyles = deferredSource
+const profileInlineStyles = identityLoginSource
   .slice(profileStart, loginStart)
   .match(/\bstyle\s*=/g) || [];
 
@@ -49,8 +50,8 @@ if (profileInlineStyles.length > 0) {
 }
 
 const loginInlineStyles = [
-  deferredSource.slice(passwordInputStart, passwordInputEnd),
-  deferredSource.slice(loginStart, loginEnd),
+  identityLoginSource.slice(passwordInputStart, passwordInputEnd),
+  identityLoginSource.slice(loginStart, loginEnd),
 ].flatMap(source => source.match(/\bstyle\s*=/g) || []);
 
 console.log(`[architecture] public auth inline styles: ${loginInlineStyles.length} / 0`);

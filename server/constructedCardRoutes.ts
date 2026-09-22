@@ -7,113 +7,79 @@ import {
   type ConstructedCardCatalogDocument,
 } from './constructedCardCatalogStore.js';
 import {
+  ConstructedCardCatalogUnavailableError,
+  createConstructedCardCatalogQuery,
+  ConstructedCardDetailUnavailableError,
   ConstructedCardHistoryStore,
-  type ConstructedCardHistoryPoint,
-} from './constructedCardHistoryStore.js';
-import {
+  ConstructedCardUpstreamError,
   enrichConstructedCardPools,
   enrichConstructedRelatedCards,
-} from './modules/constructedCards/relatedCards.js';
+  mergeConstructedCardRows as mergeConstructedCardRowsModel,
+  MIN_RELIABLE_CONSTRUCTED_CARD_GAMES as minimumReliableConstructedCardGames,
+  normalizeConstructedCardStats as normalizeConstructedCardStatsModel,
+  type ConstructedCardCatalogHealth,
+  type ConstructedCardCollection,
+  type ConstructedCardDataService,
+  type ConstructedCardDeck,
+  type ConstructedCardDetailResult,
+  type ConstructedCardFormat,
+  type ConstructedCardHistoryPoint,
+  type ConstructedCardPeriod,
+  type ConstructedCardPeriodDescriptor,
+  type ConstructedCardRank,
+  type ConstructedCardRankDescriptor,
+  validateConstructedCardStatsDataset as validateConstructedCardStatsDatasetModel,
+} from './modules/constructedCards/public.js';
 
 export {
+  ConstructedCardCatalogUnavailableError,
+  ConstructedCardDetailUnavailableError,
+  ConstructedCardUpstreamError,
   enrichConstructedCardPools,
   enrichConstructedRelatedCards,
-} from './modules/constructedCards/relatedCards.js';
-
-export type ConstructedCardFormat = 'standard' | 'wild';
-export type ConstructedCardPeriod = '1d' | '3d' | '7d' | '14d' | 'patch';
-export type ConstructedCardRank = 'legend' | 'diamond_4_1' | 'diamond' | 'platinum';
-
-export type ConstructedCardPeriodDescriptor = {
-  id: ConstructedCardPeriod;
-  label: string;
-  timeRange: string | null;
-  patch: string | null;
 };
-
-export type ConstructedCardRankDescriptor = {
-  id: ConstructedCardRank;
-  label: string;
-  rankRange: string;
+export type {
+  ConstructedCardCatalogHealth,
+  ConstructedCardCollection,
+  ConstructedCardDataService,
+  ConstructedCardDeck,
+  ConstructedCardDetailResult,
+  ConstructedCardFormat,
+  ConstructedCardPeriod,
+  ConstructedCardPeriodDescriptor,
+  ConstructedCardRank,
+  ConstructedCardRankDescriptor,
 };
 
 type JsonRecord = Record<string, any>;
 
-export type ConstructedCardCollection = {
-  cards: JsonRecord[];
-  updatedAt: string | null;
-  sourceUrl: string;
-  warning?: string | null;
-  cacheSource: 'fresh' | 'LKG';
-  dataStatus: 'fresh' | 'stale';
-  partial: false;
-  datasetVersion: string;
-  catalogVerifiedAt: string;
-  catalogPublishedAt: string;
-  period?: ConstructedCardPeriodDescriptor;
-  rank?: ConstructedCardRankDescriptor;
-};
+const {
+  cardMechanics: cardMechanicsModel,
+  constructedCardFacetCounts: constructedCardFacetCountsModel,
+  constructedCardFacets: constructedCardFacetsModel,
+  queryConstructedCards: queryConstructedCardsModel,
+} = createConstructedCardCatalogQuery({ isPublicTerm: isPublicConstructedTerm });
 
-export type ConstructedCardDetailResult = {
-  card: JsonRecord;
-  cacheSource: 'fresh' | 'LKG';
-  dataStatus: 'fresh' | 'stale';
-  partial: boolean;
-  warning: string | null;
-  datasetVersion: string;
-  period?: ConstructedCardPeriodDescriptor;
-  rank?: ConstructedCardRankDescriptor;
-};
-
-export type ConstructedCardCatalogHealth = {
-  format: ConstructedCardFormat;
-  state: 'fresh' | 'stale' | 'expired' | 'missing';
-  dataStatus: 'fresh' | 'stale' | 'unavailable';
-  cacheSource: 'fresh' | 'LKG' | null;
-  verifiedAt: string | null;
-  publishedAt: string | null;
-  records: number;
-  datasetVersion: string | null;
-  warning: string | null;
-};
-
-export type ConstructedCardDataService = {
-  loadCards: (
-    format: ConstructedCardFormat,
-    period?: ConstructedCardPeriod,
-    rank?: ConstructedCardRank,
-  ) => Promise<ConstructedCardCollection>;
-  loadCardDetail: (
-    format: ConstructedCardFormat,
-    cardId: string,
-    period?: ConstructedCardPeriod,
-    statsFormat?: ConstructedCardFormat,
-    rank?: ConstructedCardRank,
-  ) => Promise<ConstructedCardDetailResult | null>;
-  loadCardHistory: (
-    format: ConstructedCardFormat,
-    cardId: string,
-    period?: ConstructedCardPeriod,
-    rank?: ConstructedCardRank,
-    days?: number,
-  ) => Promise<ConstructedCardHistoryPoint[]>;
-  getCatalogHealth: (format: ConstructedCardFormat) => ConstructedCardCatalogHealth;
-  invalidate?: () => void;
-};
-
-export type ConstructedCardDeck = {
-  id: string;
-  title: string;
-  archetype: string | null;
-  archetypeLabel: string;
-  className: string | null;
-  deckCode: string;
-  source: string | null;
-  sourceUrl: string | null;
-  winrate: number | null;
-  score: string | null;
-  updatedAt: string | null;
-};
+// Preserve the original loose TypeScript facade while consumers migrate to the
+// unknown-based contracts from server.constructedCards/public.ts.
+export const cardMechanics: (card: JsonRecord) => string[] = cardMechanicsModel;
+export const constructedCardFacetCounts: (
+  cards: JsonRecord[],
+) => ReturnType<typeof constructedCardFacetCountsModel> = constructedCardFacetCountsModel;
+export const constructedCardFacets: (
+  cards: JsonRecord[],
+) => ReturnType<typeof constructedCardFacetsModel> = constructedCardFacetsModel;
+export const MIN_RELIABLE_CONSTRUCTED_CARD_GAMES = minimumReliableConstructedCardGames;
+export const mergeConstructedCardRows: (catalogCards: JsonRecord[], statsCards: JsonRecord[]) => JsonRecord[] =
+  mergeConstructedCardRowsModel;
+export const normalizeConstructedCardStats: (row: JsonRecord | undefined) => JsonRecord | null =
+  normalizeConstructedCardStatsModel;
+export const queryConstructedCards: (
+  cards: JsonRecord[],
+  query: Record<string, unknown>,
+) => JsonRecord[] = queryConstructedCardsModel;
+export const validateConstructedCardStatsDataset: (statsCards: JsonRecord[]) => void =
+  validateConstructedCardStatsDatasetModel;
 
 type ConstructedCardDeckPreview = {
   hash: string;
@@ -163,34 +129,6 @@ type DataServiceDependencies = {
   detailCacheTtlMs?: number;
 };
 
-export class ConstructedCardUpstreamError extends Error {
-  readonly status: number | null;
-
-  constructor(message: string, status: number | null = null, options?: { cause?: unknown }) {
-    super(message, options);
-    this.name = 'ConstructedCardUpstreamError';
-    this.status = Number.isInteger(status) ? status : null;
-  }
-}
-
-export class ConstructedCardCatalogUnavailableError extends Error {
-  readonly retryAfterSeconds = 60;
-
-  constructor(message = 'Constructed card catalog is unavailable', options?: { cause?: unknown }) {
-    super(message, options);
-    this.name = 'ConstructedCardCatalogUnavailableError';
-  }
-}
-
-export class ConstructedCardDetailUnavailableError extends Error {
-  readonly retryAfterSeconds = 60;
-
-  constructor(message = 'Constructed card detail could not be authoritatively resolved', options?: { cause?: unknown }) {
-    super(message, options);
-    this.name = 'ConstructedCardDetailUnavailableError';
-  }
-}
-
 const FORMATS = new Set<ConstructedCardFormat>(['standard', 'wild']);
 const PERIODS = new Set<ConstructedCardPeriod>(['1d', '3d', '7d', '14d', 'patch']);
 const RANKS = new Set<ConstructedCardRank>(['legend', 'diamond_4_1', 'diamond', 'platinum']);
@@ -222,30 +160,7 @@ const RANK_RANGES: Record<ConstructedCardRank, string> = {
 };
 const DEFAULT_PAGE_SIZE = 60;
 const MAX_PAGE_SIZE = 120;
-// One-day card slices contain a long tail with only a handful of observations.
-// Showing percentages for those rows produces technically valid but misleading
-// 75–100% leaders. Keep the sample count visible, but only publish rate metrics
-// once the card has enough observed plays to make comparisons useful.
-export const MIN_RELIABLE_CONSTRUCTED_CARD_GAMES = 100;
-const SORTS = new Set(['popularity', 'winrate', 'games', 'mana', 'attack', 'health', 'name', 'set', 'class', 'mechanics']);
 const STATISTIC_SORTS = new Set(['popularity', 'winrate', 'games']);
-const CONSTRUCTED_SET_RELEASE_ORDER = [
-  'ESCAPEFROM_VIOLET_HOLD', 'CATACLYSM', 'TIME_TRAVEL', 'THE_LOST_CITY', 'EMERALD_DREAM',
-  'SPACE', 'ISLAND_VACATION', 'WHIZBANGS_WORKSHOP', 'WILD_WEST', 'WONDERS', 'TITANS',
-  'BATTLE_OF_THE_BANDS', 'RETURN_OF_THE_LICH_KING', 'PATH_OF_ARTHAS', 'REVENDRETH',
-  'THE_SUNKEN_CITY', 'ALTERAC_VALLEY', 'STORMWIND', 'THE_BARRENS', 'DARKMOON_FAIRE',
-  'SCHOLOMANCE', 'BLACK_TEMPLE', 'YEAR_OF_THE_DRAGON', 'DRAGONS', 'ULDUM', 'DALARAN',
-  'TROLL', 'BOOMSDAY', 'GILNEAS', 'LOOTAPALOOZA', 'ICECROWN', 'UNGORO', 'GANGS',
-  'KARA', 'OG', 'LOE', 'TGT', 'BRM', 'GVG', 'NAXX', 'DEMON_HUNTER_INITIATE',
-  'EXPERT1', 'CORE', 'LEGACY', 'EVENT',
-] as const;
-const CONSTRUCTED_SET_RELEASE_INDEX = new Map<string, number>(
-  CONSTRUCTED_SET_RELEASE_ORDER.map((set, index) => [set, index]),
-);
-const VALID_CLASSES = new Set([
-  'DEATHKNIGHT', 'DEMONHUNTER', 'DRUID', 'HUNTER', 'MAGE', 'PALADIN',
-  'PRIEST', 'ROGUE', 'SHAMAN', 'WARLOCK', 'WARRIOR', 'NEUTRAL', 'DREAM',
-]);
 const CONSTRUCTED_ARCHETYPE_FALLBACK_RU: Record<string, string> = {
   'elwynn boar warlock': 'Чернокнижник на Эльвинских вепрях',
   'hand warlock': 'Хендлок',
@@ -355,179 +270,9 @@ function readHistoryDays(value: unknown): number {
   return Number.isFinite(parsed) ? Math.max(7, Math.min(parsed, 365)) : 90;
 }
 
-function readFilter(value: unknown): string {
-  return String(value ?? '').trim().slice(0, 120);
-}
-
-function readNumberFilter(value: unknown): number | null {
-  const raw = readFilter(value);
-  if (!raw) return null;
-  const parsed = Number(raw);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function percentNumber(value: unknown): number | null {
-  const raw = String(value ?? '').replace('%', '').replace(',', '.').trim();
-  if (!raw || raw === '—' || raw === '-') return null;
-  const parsed = Number(raw);
-  return Number.isFinite(parsed) && parsed >= 0 && parsed <= 100 ? parsed : null;
-}
-
 function finiteNumber(value: unknown): number | null {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
-}
-
-function searchableText(card: JsonRecord): string {
-  return [card?.name?.ru, card?.name?.en, card?.card_id, card?.slug]
-    .filter(Boolean)
-    .join(' ')
-    .toLocaleLowerCase('ru');
-}
-
-export function cardMechanics(card: JsonRecord): string[] {
-  return [...new Set([
-    ...(Array.isArray(card?.mechanics) ? card.mechanics : []),
-    ...(Array.isArray(card?.referenced_tags) ? card.referenced_tags : []),
-  ].map(value => String(value).trim()).filter(isPublicConstructedTerm))];
-}
-
-function cardClasses(card: JsonRecord): string[] {
-  return [...new Set([card?.class, ...(Array.isArray(card?.multi_class) ? card.multi_class : [])]
-    .map(value => String(value ?? '').trim().toUpperCase())
-    .filter(value => VALID_CLASSES.has(value)))];
-}
-
-function cardMinionTypes(card: JsonRecord): string[] {
-  return [...new Set([
-    card?.minion_type,
-    ...(Array.isArray(card?.minion_types) ? card.minion_types : []),
-  ]
-    .map(value => String(value ?? '').trim().toUpperCase())
-    .filter(Boolean))];
-}
-
-function compareNullableNumbers(left: unknown, right: unknown, direction: number): number {
-  const a = finiteNumber(left);
-  const b = finiteNumber(right);
-  if (a === null && b === null) return 0;
-  if (a === null) return 1;
-  if (b === null) return -1;
-  return (a - b) * direction;
-}
-
-function compareText(left: unknown, right: unknown, direction: number): number {
-  return String(left ?? '').localeCompare(String(right ?? ''), 'ru', { sensitivity: 'base' }) * direction;
-}
-
-function compareSetRelease(left: unknown, right: unknown, direction: number): number {
-  const leftSet = String(left ?? '').trim().toUpperCase();
-  const rightSet = String(right ?? '').trim().toUpperCase();
-  const index = (set: string) => {
-    if (!set) return Number.MAX_SAFE_INTEGER;
-    // A newly released set may reach the catalog before this fallback list is
-    // updated. Keep unknown named sets ahead of known historical expansions.
-    return CONSTRUCTED_SET_RELEASE_INDEX.get(set) ?? -1;
-  };
-  return (index(leftSet) - index(rightSet)) * direction
-    || compareText(leftSet, rightSet, direction);
-}
-
-function sortCards(cards: JsonRecord[], sort: string, direction: 'asc' | 'desc'): JsonRecord[] {
-  const numericDirection = direction === 'asc' ? 1 : -1;
-  return [...cards].sort((left, right) => {
-    let result = 0;
-    if (sort === 'popularity') result = compareNullableNumbers(left?.stats?.deckPopularity, right?.stats?.deckPopularity, numericDirection);
-    else if (sort === 'winrate') result = compareNullableNumbers(left?.stats?.deckWinrate, right?.stats?.deckWinrate, numericDirection);
-    else if (sort === 'games') result = compareNullableNumbers(left?.stats?.timesPlayed, right?.stats?.timesPlayed, numericDirection);
-    else if (sort === 'mana') result = compareNullableNumbers(left?.mana_cost, right?.mana_cost, numericDirection);
-    else if (sort === 'attack') result = compareNullableNumbers(left?.attack, right?.attack, numericDirection);
-    else if (sort === 'health') result = compareNullableNumbers(left?.health, right?.health, numericDirection);
-    else if (sort === 'set') result = compareSetRelease(left?.card_set, right?.card_set, numericDirection);
-    else if (sort === 'class') result = compareText(left?.class, right?.class, numericDirection);
-    else if (sort === 'mechanics') result = compareText(cardMechanics(left).join(' '), cardMechanics(right).join(' '), numericDirection);
-    else result = compareText(left?.name?.ru ?? left?.name?.en, right?.name?.ru ?? right?.name?.en, numericDirection);
-    return result || compareText(left?.name?.ru ?? left?.name?.en, right?.name?.ru ?? right?.name?.en, 1);
-  });
-}
-
-function uniqueSorted(values: unknown[]): string[] {
-  return [...new Set(values.map(value => String(value ?? '').trim()).filter(Boolean))]
-    .sort((left, right) => left.localeCompare(right, 'ru', { sensitivity: 'base' }));
-}
-
-function countedValues(values: unknown[]): Array<{ value: string; count: number }> {
-  const counts = new Map<string, number>();
-  for (const rawValue of values) {
-    const value = String(rawValue ?? '').trim();
-    if (value) counts.set(value, (counts.get(value) ?? 0) + 1);
-  }
-  return [...counts.entries()]
-    .map(([value, count]) => ({ value, count }))
-    .sort((left, right) => left.value.localeCompare(right.value, 'ru', { sensitivity: 'base' }));
-}
-
-export function queryConstructedCards(cards: JsonRecord[], query: Record<string, unknown>) {
-  const search = readFilter(query.query).toLocaleLowerCase('ru');
-  const className = readFilter(query.class).toUpperCase();
-  const deckClass = readFilter(query.deckClass).toUpperCase();
-  const cardSet = readFilter(query.set).toUpperCase();
-  const mechanic = readFilter(query.mechanic).toUpperCase();
-  const minionType = readFilter(query.minionType).toUpperCase();
-  const spellSchool = readFilter(query.spellSchool).toUpperCase();
-  const type = readFilter(query.type).toUpperCase();
-  const rarity = readFilter(query.rarity).toUpperCase();
-  const manaFilter = readFilter(query.mana).toUpperCase();
-  const manaTenPlus = manaFilter === '10+';
-  const mana = manaTenPlus ? null : readNumberFilter(query.mana);
-  const attack = readNumberFilter(query.attack);
-  const health = readNumberFilter(query.health);
-  const sort = SORTS.has(String(query.sort)) ? String(query.sort) : 'set';
-  const direction = query.direction === 'desc' ? 'desc' : 'asc';
-
-  const filtered = cards.filter(card => {
-    if (search && !searchableText(card).includes(search)) return false;
-    const classes = cardClasses(card);
-    if (deckClass && !classes.includes(deckClass) && !classes.includes('NEUTRAL')) return false;
-    if (className && !classes.includes(className)) return false;
-    if (cardSet && String(card?.card_set ?? '').toUpperCase() !== cardSet) return false;
-    if (mechanic && !cardMechanics(card).map(value => value.toUpperCase()).includes(mechanic)) return false;
-    if (minionType && !cardMinionTypes(card).includes(minionType)) return false;
-    if (spellSchool && String(card?.spell_school ?? '').toUpperCase() !== spellSchool) return false;
-    if (type && String(card?.card_type?.slug ?? '').toUpperCase() !== type) return false;
-    if (rarity && String(card?.rarity ?? '').toUpperCase() !== rarity) return false;
-    if (manaTenPlus && (finiteNumber(card?.mana_cost) ?? -1) < 10) return false;
-    if (mana !== null && finiteNumber(card?.mana_cost) !== mana) return false;
-    if (attack !== null && finiteNumber(card?.attack) !== attack) return false;
-    if (health !== null && finiteNumber(card?.health) !== health) return false;
-    return true;
-  });
-
-  return sortCards(filtered, sort, direction);
-}
-
-export function constructedCardFacets(cards: JsonRecord[]) {
-  return {
-    classes: uniqueSorted(cards.flatMap(cardClasses)),
-    sets: uniqueSorted(cards.map(card => card?.card_set)),
-    mechanics: uniqueSorted(cards.flatMap(cardMechanics)),
-    minionTypes: uniqueSorted(cards.flatMap(cardMinionTypes)),
-    spellSchools: uniqueSorted(cards.map(card => card?.spell_school)),
-    types: uniqueSorted(cards.map(card => card?.card_type?.slug)),
-    rarities: uniqueSorted(cards.map(card => card?.rarity)),
-  };
-}
-
-export function constructedCardFacetCounts(cards: JsonRecord[]) {
-  return {
-    classes: countedValues(cards.flatMap(cardClasses)),
-    sets: countedValues(cards.map(card => card?.card_set)),
-    mechanics: countedValues(cards.flatMap(cardMechanics)),
-    minionTypes: countedValues(cards.flatMap(cardMinionTypes)),
-    spellSchools: countedValues(cards.map(card => card?.spell_school)),
-    types: countedValues(cards.map(card => card?.card_type?.slug)),
-    rarities: countedValues(cards.map(card => card?.rarity)),
-  };
 }
 
 export function constructedCardCoverage(cards: JsonRecord[]) {
@@ -550,108 +295,6 @@ export function redactConstructedCardStatistics(card: JsonRecord): JsonRecord {
       ? card.decks.map((deck: JsonRecord) => ({ ...deck, winrate: null, score: null }))
       : card?.decks,
   };
-}
-
-export function normalizeConstructedCardStats(row: JsonRecord | undefined): JsonRecord | null {
-  if (!row) return null;
-  const timesPlayed = finiteNumber(row.times_played);
-  const hasReliableRateSample = timesPlayed !== null && timesPlayed >= MIN_RELIABLE_CONSTRUCTED_CARD_GAMES;
-  return {
-    deckPopularity: percentNumber(row.deck_popularity),
-    deckWinrate: hasReliableRateSample ? percentNumber(row.deck_winrate) : null,
-    averageCopies: finiteNumber(row.avg_copies),
-    timesPlayed,
-    winrateWhenPlayed: hasReliableRateSample ? percentNumber(row.winrate_when_played) : null,
-    winrateWhenDrawn: hasReliableRateSample ? percentNumber(row.winrate_when_drawn) : null,
-    keepPercentage: hasReliableRateSample ? percentNumber(row.keep_percentage) : null,
-    openingHandWinrate: hasReliableRateSample ? percentNumber(row.opening_hand_winrate) : null,
-    averageTurnsInHand: finiteNumber(row.avg_turns_in_hand),
-    averageTurnPlayed: finiteNumber(row.avg_turn_played_on),
-  };
-}
-
-export function validateConstructedCardStatsDataset(statsCards: JsonRecord[]): void {
-  if (!statsCards.length) throw new Error('Constructed card statistics dataset is empty');
-  let invalidPopularity = 0;
-  let extremePopularity = 0;
-  let cardsWithPopularity = 0;
-  for (const row of statsCards) {
-    const raw = String(row?.deck_popularity ?? '').replace('%', '').replace(',', '.').trim();
-    if (!raw || raw === '—' || raw === '-') continue;
-    const value = Number(raw);
-    if (!Number.isFinite(value) || value < 0 || value > 100) {
-      invalidPopularity += 1;
-      continue;
-    }
-    cardsWithPopularity += 1;
-    if (value >= 80) extremePopularity += 1;
-  }
-  if (!cardsWithPopularity) throw new Error('Constructed card statistics have no deck popularity values');
-  if (invalidPopularity > Math.max(3, Math.ceil(statsCards.length * 0.01))) {
-    throw new Error(`Constructed card statistics contain ${invalidPopularity} invalid popularity values`);
-  }
-  // A cross-class constructed sample cannot contain a large block of cards
-  // present in almost every deck. Reject a wrong column or malformed stale
-  // snapshot instead of publishing the familiar 97–100% cascade.
-  if (extremePopularity >= 10) {
-    throw new Error(`Constructed card statistics contain ${extremePopularity} implausible popularity values`);
-  }
-}
-
-export function mergeConstructedCardRows(catalogCards: JsonRecord[], statsCards: JsonRecord[]): JsonRecord[] {
-  const statsByCardId = new Map<string, JsonRecord>();
-  const statsByDbf = new Map<number, JsonRecord>();
-  for (const row of statsCards) {
-    const cardId = String(row?.id ?? '').trim().toUpperCase();
-    const dbf = finiteNumber(row?.dbfId);
-    if (cardId) statsByCardId.set(cardId, row);
-    if (dbf !== null) statsByDbf.set(dbf, row);
-  }
-  const matchedStats = new Set<JsonRecord>();
-  const representedCardIds = new Set(catalogCards.map(card => String(card?.card_id ?? '').trim().toUpperCase()).filter(Boolean));
-  const representedDbfs = new Set(catalogCards.map(card => finiteNumber(card?.dbf)).filter((value): value is number => value !== null));
-  const mergedCards: JsonRecord[] = catalogCards.map(card => {
-    const cardId = String(card?.card_id ?? '').trim().toUpperCase();
-    const dbf = finiteNumber(card?.dbf);
-    const stats = statsByCardId.get(cardId) ?? (dbf !== null ? statsByDbf.get(dbf) : undefined);
-    if (stats) matchedStats.add(stats);
-    return { ...card, stats: normalizeConstructedCardStats(stats) };
-  });
-
-  // The catalog and HSReplay snapshots are refreshed independently. Keep a
-  // newly observed statistics row visible during the short window before the
-  // card database catches up instead of silently dropping it from the UI.
-  for (const row of statsCards) {
-    if (matchedStats.has(row)) continue;
-    const cardId = String(row?.id ?? '').trim();
-    if (!cardId) continue;
-    const normalizedCardId = cardId.toUpperCase();
-    const dbf = finiteNumber(row?.dbfId);
-    if (representedCardIds.has(normalizedCardId) || (dbf !== null && representedDbfs.has(dbf))) continue;
-    representedCardIds.add(normalizedCardId);
-    if (dbf !== null) representedDbfs.add(dbf);
-    mergedCards.push({
-      card_id: cardId,
-      dbf,
-      name: { ru: String(row?.name ?? '').trim() || null, en: null },
-      text: { ru: null, en: null },
-      flavor: { ru: null, en: null },
-      card_set: null,
-      card_type: { slug: String(row?.type ?? '').trim() || null, name_ru: null },
-      rarity: String(row?.rarity ?? '').trim() || null,
-      class: String(row?.cardClass ?? '').trim() || null,
-      multi_class: [],
-      mana_cost: finiteNumber(row?.cost),
-      attack: null,
-      health: null,
-      mechanics: [],
-      referenced_tags: [],
-      images: { card: null, golden: null, signature: null, diamond: null, crop: null },
-      catalogPending: true,
-      stats: normalizeConstructedCardStats(row),
-    });
-  }
-  return mergedCards;
 }
 
 type CompleteCatalogCandidate = {

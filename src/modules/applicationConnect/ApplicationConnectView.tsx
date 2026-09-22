@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { AuthUser } from '../identity/public';
 import {
   AlertTriangle,
   KeyRound,
@@ -12,7 +13,6 @@ import {
   formatConnectExpiry,
   normalizedUserCode,
   type ConnectState,
-  type ConnectUser,
   type DeviceAuthorization,
 } from './applicationConnectModel';
 import './applicationConnect.css';
@@ -20,7 +20,7 @@ import './applicationConnect.css';
 export type ApplicationConnectViewProps = {
   state: ConnectState;
   userCode: string;
-  user: ConnectUser | null;
+  user: AuthUser | null;
   authorization: DeviceAuthorization | null;
   errorMessage: string;
   loginPanel?: ReactNode;

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BarChart3, ChevronDown, ExternalLink, Filter, Search } from 'lucide-react';
-import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
+import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
 import { publicResourceUrl } from '../publicResourceUrl';
 import BattlegroundCardVariantToggle, {
   type BattlegroundCardVariant,

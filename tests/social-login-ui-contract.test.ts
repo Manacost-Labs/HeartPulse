@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 
-const loginPanel = readFileSync(new URL('../src/features/DeferredRoutes.tsx', import.meta.url), 'utf8');
-const socialLoginLinks = readFileSync(new URL('../src/features/SocialLoginLinks.tsx', import.meta.url), 'utf8');
-const socialLoginStyles = readFileSync(new URL('../src/features/SocialLoginLinks.css', import.meta.url), 'utf8');
+const loginPanel = readFileSync(new URL('../src/modules/identity/ui/LoginPanel.tsx', import.meta.url), 'utf8');
+const socialLoginLinks = readFileSync(new URL('../src/modules/identity/ui/SocialLoginLinks.tsx', import.meta.url), 'utf8');
+const socialLoginStyles = readFileSync(new URL('../src/modules/identity/ui/SocialLoginLinks.css', import.meta.url), 'utf8');
 
-assert.match(loginPanel, /setSocialLoginProviders\(data\.socialProviders\)/);
+assert.match(loginPanel, /socialProviders: socialLoginProviders,[\s\S]*useTelegramAuthConfig\(\)/);
 assert.match(loginPanel, /telegramAuthUrl=\{telegramEnabled && telegramMode !== 'legacy-widget'/);
 assert.match(loginPanel, /withDivider=\{telegramMode !== 'legacy-widget'\}/);
 assert.match(socialLoginLinks, /login-provider-grid/);

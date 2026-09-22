@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { shouldHandleClientNavigation } from '../src/routing/clientNavigation';
+import { shouldHandleClientNavigation } from '../src/app/routing/clientNavigation';
 
 const siteOrigin = 'https://hearthpulse.net';
 

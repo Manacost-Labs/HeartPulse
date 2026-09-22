@@ -70,6 +70,12 @@ assert.deepEqual(
 );
 
 assert.deepEqual(
+  cookieValues('manacost_auth_token=%; manacost_auth_token=current', 'manacost_auth_token'),
+  ['current'],
+  'a malformed duplicate cookie must neither throw nor hide the valid host-only session cookie',
+);
+
+assert.deepEqual(
   authTokenCandidates({
     authorization: 'Bearer api-token',
     cookieHeader: 'manacost_auth_token=stale; manacost_auth_token=current',
@@ -81,3 +87,7 @@ assert.deepEqual(
 );
 
 console.log('auth session lifetime and multi-device contract tests passed');
+
+assert.deepEqual(authTokenCandidates({ cookieHeader: 'old_login=existing', cookieName: '__Host-login', legacyCookieName: 'old_login' }), ['existing'], 'existing sessions survive the cookie rename');
+assert.deepEqual(authTokenCandidates({ cookieHeader: '__Host-login=current; old_login=existing', cookieName: '__Host-login', legacyCookieName: 'old_login' }), ['current'], 'primary cookie takes precedence over the retired name');
+assert.deepEqual(authTokenCandidates({ cookieHeader: '__Host-login=%; old_login=existing', cookieName: '__Host-login', legacyCookieName: 'old_login' }), [], 'a malformed primary cookie must not fall back to a legacy identity');

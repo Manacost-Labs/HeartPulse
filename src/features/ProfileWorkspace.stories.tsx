@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
-import { LoginPanel } from './DeferredRoutes';
+import { lazy, Suspense } from 'react';
+import { loadLoginPanel } from '../modules/identity/public';
+const LoginPanel = lazy(loadLoginPanel);
 import { mockProfileRequests, profileUser } from '../../tests/fixtures/profile-workspace-data';
 import '../parchment-theme.css';
 
@@ -13,7 +15,7 @@ const meta = {
   decorators: [Story => (
     <div className="profile-story-shell arena-app-shell arena-app-profile bg-wood">
       <div className="arena-main">
-        <div className="arena-content arena-content-open"><Story /></div>
+        <div className="arena-content arena-content-open"><Suspense fallback="Загрузка профиля…"><Story /></Suspense></div>
       </div>
     </div>
   )],
@@ -53,7 +55,7 @@ export const RefreshFailure: Story = {
 export const SaveContacts: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const contact = canvas.getByRole('textbox', { name: 'Почта для связи' });
+    const contact = await canvas.findByRole('textbox', { name: 'Почта для связи' });
     await userEvent.clear(contact);
     await userEvent.type(contact, 'contact@example.com');
     await userEvent.click(canvas.getByRole('button', { name: 'Сохранить профиль' }));

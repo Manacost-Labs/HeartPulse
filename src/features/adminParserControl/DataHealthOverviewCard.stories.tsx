@@ -2,8 +2,8 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent, within } from 'storybook/test';
 import { DataHealthOverviewCard } from './DataHealthOverviewCard';
 import { normalizeParserControl } from './normalize';
+import { loadAdminWorkspaceShell } from '../../modules/adminWorkspace/public';
 import '../contests.css';
-import '../../modules/adminWorkspace/adminWorkspace.css';
 import './DataHealthOverviewCard.css';
 
 const healthySnapshot = normalizeParserControl({
@@ -58,6 +58,11 @@ const degradedSnapshot = normalizeParserControl({
 const meta = {
   title: 'Admin/Мониторинг данных',
   component: DataHealthOverviewCard,
+  beforeEach: async () => {
+    const workspace = loadAdminWorkspaceShell();
+    expect(loadAdminWorkspaceShell()).toBe(workspace);
+    await workspace;
+  },
   decorators: [Story => <main className="admin-workspace-page admin-tailadmin-shell"><Story /></main>],
   parameters: { layout: 'padded' },
   args: {

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./styles/tokens.css";
+@import "./modules/identity/public.css";
 @import "./styles/field-focus.css";
 /* Local agent traces can contain copied class names and must never affect the release CSS graph. */
 @source not "../.codex-team";

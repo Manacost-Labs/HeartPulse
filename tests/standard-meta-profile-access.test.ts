@@ -6,8 +6,13 @@ const publicNavigationSource = readFileSync(new URL('../src/app/shell/PublicNavi
 
 assert.match(
   appSource,
-  /adminAllowed:\s*Boolean\(data\.user\.adminAllowed\s*\?\?\s*data\.adminAllowed\)/,
-  'the shell must preserve top-level adminAllowed from the auth contract for administrative tools',
+  /fetchCurrentAuthUser\(signal\)/,
+  'the shell must consume the validated identity session contract',
+);
+assert.match(
+  appSource,
+  /canAccessAdminWorkspace\(appAuthUser\)/,
+  'the shell must use the validated identity permission policy for administrative tools',
 );
 assert.match(
   publicNavigationSource,

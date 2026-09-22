@@ -1,0 +1,45 @@
+/* Eager identity avatar presentation, loaded through identity/public.css. */
+.auth-avatar {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--auth-avatar-size);
+  height: var(--auth-avatar-size);
+  overflow: visible;
+  color: #fff1c8;
+  font-family: var(--font-display);
+  font-size: var(--auth-avatar-font-size);
+  font-weight: 900;
+  line-height: 1;
+  background: conic-gradient(from 18deg, #6c4216, #fff0ae 20%, #8c5a20 34%, #f3ce70 49%, #704315 63%, #f9dc83 78%, #6c4216);
+  border: 1px solid #ffe9ad;
+  border-radius: 50%;
+  box-shadow: 0 8px 22px rgba(25, 4, 9, .4), 0 0 0 2px #39180a, 0 0 0 3px rgba(230, 186, 91, .58), inset 0 1px 0 #fff6ce;
+}
+
+.auth-avatar__portrait {
+  position: absolute;
+  inset: var(--auth-avatar-inset);
+  width: calc(var(--auth-avatar-size) - var(--auth-avatar-inset) - var(--auth-avatar-inset));
+  height: calc(var(--auth-avatar-size) - var(--auth-avatar-inset) - var(--auth-avatar-inset));
+  border: 1px solid rgba(255, 235, 177, .62);
+  border-radius: 50%;
+}
+
+.auth-avatar__initials {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  text-shadow: 0 2px 0 rgba(38, 4, 8, .85), 0 0 10px rgba(255, 220, 132, .36);
+  background: radial-gradient(circle at 30% 18%, rgba(255, 245, 211, .22), transparent 24%), repeating-conic-gradient(rgba(255, 255, 255, .045) 0 7deg, transparent 7deg 24deg), radial-gradient(circle, #76539a, #24132f 74%);
+  box-shadow: inset 0 0 16px rgba(12, 2, 7, .55), inset 0 1px 0 rgba(255, 248, 218, .18);
+}
+
+.auth-avatar__image {
+  z-index: 1;
+  display: block;
+  object-fit: cover;
+  filter: saturate(.92) contrast(1.04);
+}

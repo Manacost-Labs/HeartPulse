@@ -14,17 +14,18 @@ assert.match(html, /Собираем раздел/);
 assert.match(html, /min-height:640px/);
 
 const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+const navigationSource = readFileSync(new URL('../src/app/routing/useApplicationNavigation.ts', import.meta.url), 'utf8');
 const indexCss = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
 const deferredRoutesCss = readFileSync(new URL('../src/features/DeferredRoutes.css', import.meta.url), 'utf8');
 assert.doesNotMatch(appSource, /key=\{`\$\{routeView\}:\$\{currentPath\}`\}/,
   'the route shell must stay mounted so navigation does not flash');
-assert.match(appSource, /startViewTransition/,
+assert.match(navigationSource, /startViewTransition/,
   'supported browsers must animate the stable route shell');
-assert.match(appSource, /startViewTransition && !window\.matchMedia\('\(prefers-reduced-motion: reduce\)'\)\.matches/,
+assert.match(navigationSource, /startViewTransition && !window\.matchMedia\('\(prefers-reduced-motion: reduce\)'\)\.matches/,
   'reduced-motion users must bypass route animation');
-assert.match(appSource, /flushSync\(update\)/,
+assert.match(navigationSource, /flushSync\(update\)/,
   'a View Transition must capture the committed destination route, not a deferred React update');
-assert.match(appSource, /commitRouteUpdate\(updateRoute\)/,
+assert.match(navigationSource, /commitRouteUpdate\(updateRoute\)/,
   'forward navigation and browser history navigation must share one transition policy');
 assert.match(indexCss, /::view-transition-group\(route-content\)\s*\{[^}]*animation-duration:\s*300ms/,
   'route geometry must settle over the same calm interval as the destination frame');
@@ -48,7 +49,7 @@ assert.doesNotMatch(indexCss, /\.route-fallback\s*\{\s*animation:/,
   'the lazy route fallback must not animate separately after the route transition begins');
 assert.doesNotMatch(deferredRoutesCss, /\.profile-page,[\s\S]*animation:\s*fadeIn/,
   'profile and login routes must not add a different page-entry animation');
-assert.match(appSource, /navigateLocation\(new URL\('\/\?login', window\.location\.origin\), activeTab\)/,
+assert.match(navigationSource, /navigateLocation\(new URL\('\/\?login', window\.location\.origin\), activeTab\)/,
   'opening login must preserve the page beneath the authentication surface');
 
 console.log('route loading surface assertions passed');

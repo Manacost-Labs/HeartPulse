@@ -57,6 +57,19 @@ The repository includes project-scoped tools for safer implementation:
   network, console, accessibility, and performance investigation. Keep its
   isolated profile, telemetry/CrUX opt-outs, redacted headers, and URL
   allowlist enabled.
+- Before broad source reads, run
+  `npm run agent:context -- <module-id-or-path-or-root>` to load a module,
+  canonical shared root, checked migration area or the governed project overview, including
+  routes, safe starts, focused tests, documentation and current debt.
+- Run CodeGraph reads through `npm run agent:codegraph -- <read-command>`.
+  The wrapper synchronizes a worktree-local index, or reuses the `main` index
+  only when both worktrees are clean and point at the same commit. Do not call
+  lifecycle commands or override its project path.
+- Keep authored `*.test.ts`, `*.test.tsx` and `*.test.mjs` files under `tests/`
+  and register each exactly once in `tests/test-suites.json`. The registry gate
+  scans the authored repository tree, so a misplaced or unregistered test fails
+  validation. Run `npm run test:registry` after adding, moving or deleting
+  tests; `npm test` executes the checked registry.
 - For authored JavaScript or TypeScript changes, run
   `npm run security:semgrep` before finishing. It scans only changed files and
   is nonblocking while the project baseline is being established. Use
@@ -142,7 +155,7 @@ The routing step itself is mandatory for every repository task:
 | Task | Required skills/resources |
 | --- | --- |
 | Every repository task | `agent-resource-index`, `agent-skills:using-agent-skills`, and `agent-skills:context-engineering` |
-| Any codebase investigation | `codegraph` first when `.codegraph/` exists; `context7` for current library/framework/API documentation |
+| Any codebase investigation | `npm run agent:context -- <module-id-or-path-or-root>` before broad source reads; the `codegraph` skill through `npm run agent:codegraph -- explore "<question>"` for worktree-safe navigation; `context7` for current library/framework/API documentation |
 | New feature or non-trivial behavior change | `agent-skills:spec-driven-development`; add `agent-skills:planning-and-task-breakdown` when the work has multiple independently verifiable steps |
 | Any code implementation | `agent-skills:incremental-implementation` and `agent-skills:test-driven-development` |
 | Bug diagnosis or fix | `agent-skills:debugging-and-error-recovery` and `agent-skills:test-driven-development` |
@@ -184,4 +197,8 @@ When the work changes behavior, also update `CHANGELOG.md` under the current ver
 
 ## Release Version
 
-Current public version: `v1.0.73`.
+The current public version is the first explicit `## v...` heading after
+`Unreleased` in `CHANGELOG.md`. Resolve it at posting time; do not hardcode a
+second copy in agent instructions. When an unreleased change is posted before
+deployment, use that current public version and state clearly that the change is
+awaiting integration. Only the release owner creates the next version section.

@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import '../route-parchment.css';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
-import { applyDocumentPageMeta } from '../seo/publicUrlPolicy';
+import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
 import { publicResourceImageUrl, publicResourceUrl } from '../publicResourceUrl';
 import { cachedCardImage } from './cosmeticsCardImage';
 import {

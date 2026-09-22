@@ -9,6 +9,7 @@ import { interactionView } from './interactionView.js';
 
 type RuntimeOptions = Omit<BrowserIdentityOptions, 'resolveAccount' | 'resolveBrowserAccount'> & {
   authCookieName: string;
+  legacyAuthCookieName?: string;
   trustedProxy: boolean;
 };
 
@@ -17,11 +18,13 @@ export function createBrowserIdentityRuntime(options: RuntimeOptions) {
   const bindings = createSessionBindings(options.database, options.encryptionKey);
   const origin = new URL(options.issuer).origin;
   const browser = (request: IncomingMessage) => {
-    const cookies = (request.headers.cookie ?? '').split(';').map(part => part.trim())
-      .filter(part => part.startsWith(`${options.authCookieName}=`));
+    const parts = (request.headers.cookie ?? '').split(';').map(part => part.trim());
+    const primaryPresent = parts.some(part => part.startsWith(`${options.authCookieName}=`));
+    const cookieName = !primaryPresent && options.legacyAuthCookieName ? options.legacyAuthCookieName : options.authCookieName;
+    const cookies = parts.filter(part => part.startsWith(`${cookieName}=`));
     if (cookies.length !== 1) return undefined;
     let token: string;
-    try { token = decodeURIComponent(cookies[0].slice(options.authCookieName.length + 1)); } catch { return undefined; }
+    try { token = decodeURIComponent(cookies[0].slice(cookieName.length + 1)); } catch { return undefined; }
     if (!/^[a-f0-9]{64}$/.test(token)) return undefined;
     const sessionHash = createHash('sha256').update(token).digest('hex');
     const row = options.database.prepare('SELECT user_id FROM sessions WHERE token_hash = ?').get(sessionHash);

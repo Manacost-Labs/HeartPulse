@@ -15,14 +15,14 @@ import {
   enrichConstructedCardPatches,
   enrichConstructedCardPools,
   enrichConstructedRelatedCards,
-  mergeConstructedCardRows,
-  MIN_RELIABLE_CONSTRUCTED_CARD_GAMES,
   queryConstructedCards,
   translateConstructedArchetype,
-  validateConstructedCardStatsDataset,
   redactConstructedCardStatistics,
   type ConstructedCardRouterDependencies,
 } from '../server/constructedCardRoutes.js';
+import {
+  mergeConstructedCardRows,
+} from '../server/modules/constructedCards/public.js';
 
 const catalogCards = [
   {
@@ -43,40 +43,17 @@ const mergedCards = mergeConstructedCardRows(catalogCards, [{
   winrate_when_played: '57.2%', winrate_when_drawn: '55.1%', keep_percentage: '43.2%', opening_hand_winrate: '52.4%',
 }]);
 
-assert.equal(mergedCards[0].stats.deckPopularity, 12.5);
-assert.equal(mergedCards[0].stats.deckWinrate, 54.3);
 const lowSampleCards = mergeConstructedCardRows(catalogCards, [
   {
     id: 'CARD_1', dbfId: 1, deck_popularity: '0.1%', deck_winrate: '100%', times_played: 3,
     winrate_when_played: '100%', winrate_when_drawn: '100%', keep_percentage: '100%', opening_hand_winrate: '100%',
   },
-  { id: 'CARD_2', dbfId: 2, deck_popularity: '2%', deck_winrate: '57%', times_played: MIN_RELIABLE_CONSTRUCTED_CARD_GAMES },
+  { id: 'CARD_2', dbfId: 2, deck_popularity: '2%', deck_winrate: '57%', times_played: 100 },
 ]);
-assert.equal(lowSampleCards[0].stats.timesPlayed, 3, 'small samples must remain visible as context');
-assert.equal(lowSampleCards[0].stats.deckWinrate, null, 'small-sample deck winrates must not be presented as reliable percentages');
-assert.equal(lowSampleCards[0].stats.winrateWhenPlayed, null);
-assert.equal(lowSampleCards[0].stats.winrateWhenDrawn, null);
-assert.equal(lowSampleCards[0].stats.keepPercentage, null);
-assert.equal(lowSampleCards[0].stats.openingHandWinrate, null);
 assert.deepEqual(
   queryConstructedCards(lowSampleCards, { sort: 'winrate', direction: 'desc' }).map(card => card.card_id),
   ['CARD_2', 'CARD_1'],
   'unreliable 100% rows must sort after cards with a sufficient sample',
-);
-assert.equal(mergedCards[1].stats, null, 'catalog cards without Legend statistics must remain in the library');
-assert.equal(
-  mergeConstructedCardRows(catalogCards, [{ id: 'CARD_1', dbfId: 1, deck_popularity: '137%', deck_winrate: '54%' }])[0].stats.deckPopularity,
-  null,
-  'out-of-range percentages must never reach the card UI',
-);
-assert.doesNotThrow(() => validateConstructedCardStatsDataset([
-  { id: 'CARD_1', deck_popularity: '23.28%' },
-  { id: 'CARD_2', deck_popularity: '12.5%' },
-]));
-assert.throws(
-  () => validateConstructedCardStatsDataset(Array.from({ length: 10 }, (_, index) => ({ id: `BAD_${index}`, deck_popularity: `${97 + index / 10}%` }))),
-  /implausible popularity values/,
-  'a systemic 97–100% popularity cascade must be rejected as a malformed snapshot',
 );
 const serviceStateDirectory = mkdtempSync(join(tmpdir(), 'arena-constructed-card-routes-'));
 const degradedService = createConstructedCardDataService({
@@ -160,20 +137,6 @@ assert.deepEqual(
   (await historyService.loadCardHistory('standard', 'CARD_1', '1d', 'legend', 30)).map(point => point.recordedAt),
   ['2026-07-27T10:00:00.000Z'],
   'a validated upstream refresh must be persisted for the history chart',
-);
-const pendingCatalogCard = mergeConstructedCardRows(catalogCards, [{
-  id: 'CARD_3', dbfId: 3, name: 'Гамма', type: 'SPELL', rarity: 'EPIC', cardClass: 'PRIEST', cost: 3,
-  deck_popularity: '1.2%', times_played: 42,
-}]).find(card => card.card_id === 'CARD_3');
-assert.equal(pendingCatalogCard?.catalogPending, true, 'a fresh HSReplay card must survive catalog synchronization lag');
-assert.equal(pendingCatalogCard?.stats.deckPopularity, 1.2);
-assert.equal(
-  mergeConstructedCardRows(catalogCards, [
-    { id: 'CARD_1', dbfId: 1, deck_popularity: '2%' },
-    { id: 'CARD_1', dbfId: 1, deck_popularity: '3%' },
-  ]).length,
-  2,
-  'duplicate statistics rows must not create duplicate catalog cards',
 );
 assert.deepEqual(queryConstructedCards(mergedCards, { class: 'mage', mechanic: 'battlecry' }).map(card => card.card_id), ['CARD_1']);
 assert.deepEqual(

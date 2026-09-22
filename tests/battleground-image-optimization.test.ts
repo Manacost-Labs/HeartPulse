@@ -10,7 +10,7 @@ import {
   battlegroundFullCardImage,
   preferredBattlegroundGoldenBuddyImage,
   preferredBattlegroundHeroImage,
-} from '../src/features/battlegroundHeroImages.js';
+} from '../src/modules/battlegrounds/model/heroImagePolicy.js';
 import { optimizedBattlegroundThumbnailUrl } from '../src/features/battlegroundImageUrls.js';
 
 const transform = battlegroundImageTransformFromQuery({

@@ -4,7 +4,7 @@ import test from 'node:test';
 
 const read = path => readFileSync(path, 'utf8');
 
-test('Storybook scripts and development dependencies are pinned', () => {
+test('Storybook scripts, registry coverage and development dependencies are pinned', () => {
   const packageJson = JSON.parse(read('package.json'));
   const testRegistry = JSON.parse(read('tests/test-suites.json'));
 

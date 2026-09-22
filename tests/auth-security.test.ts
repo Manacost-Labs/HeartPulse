@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   decodeSignedStateCookie,
   encodeSignedStateCookie,
@@ -38,5 +39,27 @@ assert.equal(decodeSignedStateCookie(`${payload}.${tamperedSignature}`, secret),
 assert.equal(decodeSignedStateCookie(signed.split('.')[0], secret), null, 'unsigned legacy cookie must be rejected');
 assert.equal(decodeSignedStateCookie(`x.${'a'.repeat(9_000)}`, secret), null, 'oversized cookie must be rejected');
 assert.throws(() => encodeSignedStateCookie(state, ''), /secret is required/);
+
+const serverSource = readFileSync(new URL('../server/index.ts', import.meta.url), 'utf8');
+assert.match(
+  serverSource,
+  /AUTH_COOKIE_NAME = APP_URL\.startsWith\('https:\/\/'\)[\s\S]{0,100}__Host-manacost_auth_token/,
+  'production sessions must use a sibling-resistant __Host- cookie name',
+);
+assert.match(
+  serverSource,
+  /cookieName: AUTH_COOKIE_NAME/,
+  'authentication must read only the environment-selected primary session cookie',
+);
+assert.match(
+  serverSource,
+  /authCookiePresent:\s*cookieValues\([\s\S]{0,160}AUTH_COOKIE_NAME,[\s\S]{0,40}\.length > 0/,
+  'CSRF detection must inspect all duplicate auth cookies, matching authentication semantics',
+);
+assert.match(
+  serverSource,
+  /try \{\s*const oidcState = telegramOidcFlow\.take/,
+  'malformed OIDC cookies must remain inside the async callback error boundary',
+);
 
 console.log('authentication redirect and signed-state tests passed');

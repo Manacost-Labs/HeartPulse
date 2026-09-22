@@ -1,142 +1,280 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
-import { analyzeArchitecture } from './architecture-baseline.mjs';
+import { singleLineErrorMessage } from './lib/diagnostic-text-policy.mjs';
+import { parseModuleBoundaryCliArguments } from './lib/module-boundary-cli.mjs';
+import { pathBelongsToMigrationArea } from './lib/module-inventory.mjs';
+import {
+  validateModuleInventoryMetadata,
+} from './lib/module-inventory-validation.mjs';
+import { CANONICAL_SHARED_ROOTS } from './lib/module-boundary-contracts.mjs';
+import { validateExceptionGraph } from './lib/module-boundary-exceptions.mjs';
+import {
+  compareEdges,
+  edgeKey,
+} from './lib/module-boundary-edges.mjs';
+import { describeCycles } from './lib/module-boundary-graph.mjs';
+import {
+  isInside,
+  projectPath,
+  readCanonicalRepositoryTextFile,
+  repositoryEntryKind,
+} from './lib/repository-path-policy.mjs';
+import { formatModuleBoundaryReport } from './lib/module-boundary-report.mjs';
+import {
+  walkOwnershipFiles,
+  walkSourceFiles,
+} from './lib/module-boundary-source-scan.mjs';
+import {
+  buildEdges,
+  readCompilerOptions,
+} from './lib/module-import-graph.mjs';
 
-function nonEmptyString(value, label) {
-  if (typeof value !== 'string' || value.trim().length === 0) {
-    throw new Error(`${label} must be a non-empty string`);
-  }
-  return value;
+export {
+  formatModuleBoundaryReport,
+  validateModuleInventoryMetadata,
+};
+
+function moduleForPath(modules, path) {
+  return modules
+    .filter(module => isInside(path, module.root))
+    .sort((left, right) => right.root.length - left.root.length)[0] || null;
 }
 
-function boundaryKey(entry) {
-  const target = typeof entry.target === 'string' ? entry.target : '';
-  return [entry.rule, entry.file, entry.import, target].join('\0');
+function isPublicModuleEntry(module, path) {
+  return path === module.publicEntry
+    || (typeof module.publicStyleEntry === 'string' && path === module.publicStyleEntry);
 }
 
-function cycleKey(files) {
-  return [...files].sort().join('\0');
+function sharedRuntimeForPath(sharedRoots, path) {
+  for (const sharedRoot of Array.isArray(sharedRoots) ? sharedRoots : []) {
+    if (typeof sharedRoot?.root === 'string' && isInside(path, sharedRoot.root)) {
+      return sharedRoot.runtime;
+    }
+  }
+  return null;
 }
 
-function assertMetadata(entry, label) {
-  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
-    throw new Error(`${label} exception must be an object`);
-  }
-  nonEmptyString(entry.owner, `${label} owner`);
-  nonEmptyString(entry.reason, `${label} reason`);
-  nonEmptyString(entry.removal, `${label} removal`);
+function pathBelongsToSharedRuntime(sharedRoots, runtime, path) {
+  return (Array.isArray(sharedRoots) ? sharedRoots : []).some(sharedRoot => (
+    sharedRoot?.runtime === runtime
+      && typeof sharedRoot.root === 'string'
+      && isInside(path, sharedRoot.root)
+  ));
 }
 
-function compareDebt(actualEntries, registeredEntries, keyForEntry, label) {
-  const actualByKey = new Map(actualEntries.map(entry => [keyForEntry(entry), entry]));
-  const registeredByKey = new Map();
-  for (const entry of registeredEntries) {
-    assertMetadata(entry, label);
-    const key = keyForEntry(entry);
-    if (registeredByKey.has(key)) throw new Error(`duplicate ${label} exception: ${key.replaceAll('\0', ' -> ')}`);
-    registeredByKey.set(key, entry);
-  }
-  const unclassified = [...actualByKey.keys()].filter(key => !registeredByKey.has(key)).sort();
-  const stale = [...registeredByKey.keys()].filter(key => !actualByKey.has(key)).sort();
-  return { unclassified, stale };
+function projectRuntimeForPath(path) {
+  if (isInside(path, 'src')) return 'client';
+  if (isInside(path, 'server')) return 'server';
+  return null;
 }
 
-export function validateArchitectureDebt(baseline, registry) {
-  if (!registry || typeof registry !== 'object' || Array.isArray(registry)) {
-    throw new Error('architecture debt registry must be an object');
-  }
-  if (registry.version !== 1) throw new Error('architecture debt registry version must be 1');
-  if (!Array.isArray(registry.boundaryViolations)) {
-    throw new Error('architecture debt boundaryViolations must be an array');
-  }
-  if (!Array.isArray(registry.typeOnlyCycles)) {
-    throw new Error('architecture debt typeOnlyCycles must be an array');
-  }
+function addError(errors, code, message, details = {}) {
+  errors.push({ code, message, ...details });
+}
 
-  const dependencies = baseline?.dependencies;
-  if (!dependencies
-    || !Array.isArray(dependencies.boundaryViolations)
-    || !Array.isArray(dependencies.runtimeCycles)
-    || !Array.isArray(dependencies.typeOnlyCycles)) {
-    throw new Error('architecture baseline dependency metrics are invalid');
+function validateMigrationCoverage(areas, modules, ownershipFiles, errors) {
+  const legacyFiles = ownershipFiles.filter(path => (
+    !moduleForPath(modules, path)
+    && !sharedRuntimeForPath(CANONICAL_SHARED_ROOTS, path)
+  ));
+  let orphaned = 0;
+  let overlapping = 0;
+  for (const source of legacyFiles) {
+    const matches = areas.filter(area => pathBelongsToMigrationArea(source, area));
+    if (matches.length === 0) {
+      orphaned += 1;
+      addError(errors, 'orphaned-migration-source', `product source has no migration owner: ${source}`, { source });
+    } else if (matches.length > 1) {
+      overlapping += 1;
+      addError(
+        errors,
+        'overlapping-migration-source',
+        `product source has multiple migration owners: ${source}`,
+        { source, migrationAreas: matches.map(area => area.id).sort() },
+      );
+    }
   }
+  return { orphaned, overlapping };
+}
 
+function validateDeclaredDependencies(modules, edges, errors) {
+  const actualDependencies = new Map(modules.map(module => [module.id, new Set()]));
+  for (const edge of edges) {
+    const sourceModule = moduleForPath(modules, edge.source);
+    const targetModule = moduleForPath(modules, edge.target);
+    if (sourceModule && targetModule && sourceModule.id !== targetModule.id) {
+      actualDependencies.get(sourceModule.id)?.add(targetModule.id);
+    }
+  }
+  for (const module of modules) {
+    for (const dependency of module.dependencies) {
+      if (!actualDependencies.get(module.id)?.has(dependency)) {
+        addError(
+          errors,
+          'stale-module-dependency',
+          `${module.id} declares unused dependency ${dependency}`,
+          { source: module.id, target: dependency },
+        );
+      }
+    }
+  }
+}
+
+export function analyzeModuleBoundaries({
+  rootDir = process.cwd(),
+  configPath = 'config/module-boundaries.json',
+  now = new Date(),
+} = {}) {
+  const absoluteRoot = resolve(rootDir);
   const errors = [];
-  if (dependencies.runtimeCycles.length > 0) {
-    errors.push(`runtime import cycles are forbidden: ${dependencies.runtimeCycles.map(cycle => cycle.join(' -> ')).join('; ')}`);
+  let config;
+  try {
+    const configSource = readCanonicalRepositoryTextFile({
+      rootDir: absoluteRoot,
+      repositoryPath: configPath,
+      subject: 'Module boundary config',
+    });
+    config = JSON.parse(configSource);
+  } catch (error) {
+    return {
+      ok: false,
+      counts: { modules: 0, migrationAreas: 0, sources: 0, ownershipSources: 0, edges: 0, orphanedMigrationSource: 0, overlappingMigrationSource: 0, missingPublicEntry: 0, internalImport: 0, moduleLegacyImport: 0, runtimeCrossing: 0, typeCycle: 0, runtimeCycle: 0 },
+      violations: { missingPublicEntry: [], internalImport: [], moduleLegacyImport: [], runtimeCrossing: [], typeCycle: [] },
+      cycles: { runtime: [], typeInclusive: [] },
+      edges: [],
+      errors: [{ code: 'invalid-config', message: singleLineErrorMessage(error) }],
+    };
   }
 
-  for (const exception of registry.boundaryViolations) {
-    assertMetadata(exception, 'boundary violation');
-    nonEmptyString(exception.rule, 'boundary exception rule');
-    nonEmptyString(exception.file, 'boundary exception file');
-    nonEmptyString(exception.import, 'boundary exception import');
-    if (exception.target !== undefined) nonEmptyString(exception.target, 'boundary exception target');
-  }
-  const boundaryDebt = compareDebt(
-    dependencies.boundaryViolations,
-    registry.boundaryViolations,
-    boundaryKey,
-    'boundary violation',
+  const sharedRoots = CANONICAL_SHARED_ROOTS;
+  const configuredModules = Array.isArray(config?.modules) ? config.modules : [];
+  const metadata = validateModuleInventoryMetadata({ rootDir: absoluteRoot, config, now });
+  errors.push(...metadata.errors);
+  const migrationAreas = metadata.migrationAreas;
+  const modules = metadata.modules;
+
+  const sourceScan = walkSourceFiles(absoluteRoot);
+  errors.push(...sourceScan.errors);
+  const absoluteSourceFiles = sourceScan.files;
+  const sourceFiles = absoluteSourceFiles.map(path => projectPath(absoluteRoot, path));
+  const ownershipScan = walkOwnershipFiles(absoluteRoot);
+  errors.push(...ownershipScan.errors);
+  const migrationCoverage = validateMigrationCoverage(
+    migrationAreas,
+    modules,
+    ownershipScan.files,
+    errors,
   );
-  if (boundaryDebt.unclassified.length > 0) {
-    errors.push(`unclassified boundary violations: ${boundaryDebt.unclassified.map(key => key.replaceAll('\0', ' -> ')).join('; ')}`);
-  }
-  if (boundaryDebt.stale.length > 0) {
-    errors.push(`stale boundary violation exceptions: ${boundaryDebt.stale.map(key => key.replaceAll('\0', ' -> ')).join('; ')}`);
+  const compilerConfig = readCompilerOptions(absoluteRoot);
+  errors.push(...compilerConfig.errors);
+  const graph = buildEdges(absoluteRoot, absoluteSourceFiles, compilerConfig.options);
+  errors.push(...graph.errors);
+  const edges = graph.edges;
+  validateDeclaredDependencies(modules, edges, errors);
+
+  const violations = {
+    missingPublicEntry: [],
+    internalImport: [],
+    moduleLegacyImport: [],
+    runtimeCrossing: [],
+    typeCycle: [],
+  };
+
+  for (const module of modules) {
+    const expectedPublicEntry = `${module.root}/public.ts`;
+    if (repositoryEntryKind(absoluteRoot, expectedPublicEntry) !== 'file') {
+      violations.missingPublicEntry.push({
+        source: module.root,
+        target: expectedPublicEntry,
+        kind: 'missing-public-entry',
+        module: module.id,
+      });
+    }
   }
 
-  for (const exception of registry.typeOnlyCycles) {
-    assertMetadata(exception, 'type-only cycle');
-    if (!Array.isArray(exception.files) || exception.files.length < 2) {
-      throw new Error('type-only cycle exception files must contain at least two paths');
+  for (const edge of edges) {
+    const sourceModule = moduleForPath(modules, edge.source);
+    const targetModule = moduleForPath(modules, edge.target);
+    const sourceSharedRuntime = sharedRuntimeForPath(sharedRoots, edge.source);
+    const sourceRuntime = projectRuntimeForPath(edge.source);
+    const targetRuntime = projectRuntimeForPath(edge.target);
+
+    if (sourceRuntime && targetRuntime && sourceRuntime !== targetRuntime) {
+      violations.runtimeCrossing.push(edge);
     }
-    for (const file of exception.files) nonEmptyString(file, 'type-only cycle file');
-    if (new Set(exception.files).size !== exception.files.length) {
-      throw new Error(`duplicate path in type-only cycle exception: ${exception.files.join(', ')}`);
+
+    if (targetModule && sourceModule?.id !== targetModule.id && !isPublicModuleEntry(targetModule, edge.target)) {
+      violations.internalImport.push(edge);
     }
-  }
-  const typeOnlyDebt = compareDebt(
-    dependencies.typeOnlyCycles,
-    registry.typeOnlyCycles,
-    entry => cycleKey(Array.isArray(entry) ? entry : entry.files),
-    'type-only cycle',
-  );
-  if (typeOnlyDebt.unclassified.length > 0) {
-    errors.push(`unclassified type-only cycles: ${typeOnlyDebt.unclassified.map(key => key.replaceAll('\0', ' -> ')).join('; ')}`);
-  }
-  if (typeOnlyDebt.stale.length > 0) {
-    errors.push(`stale type-only cycle exceptions: ${typeOnlyDebt.stale.map(key => key.replaceAll('\0', ' -> ')).join('; ')}`);
+
+    if (sourceModule && targetModule && sourceModule.id !== targetModule.id) {
+      if (sourceModule.runtime !== targetModule.runtime) {
+        addError(errors, 'cross-runtime-import', `${sourceModule.id} imports ${targetModule.id} across runtimes`, { edge });
+      }
+      if (!(sourceModule.dependencies || []).includes(targetModule.id)) {
+        addError(errors, 'undeclared-module-dependency', `${sourceModule.id} must declare dependency on ${targetModule.id}`, { edge });
+      }
+    }
+
+    if (sourceModule && !targetModule) {
+      const allowedShared = pathBelongsToSharedRuntime(sharedRoots, sourceModule.runtime, edge.target);
+      if (!allowedShared) violations.moduleLegacyImport.push(edge);
+    }
+
+    if (sourceSharedRuntime) {
+      const allowedShared = pathBelongsToSharedRuntime(sharedRoots, sourceSharedRuntime, edge.target);
+      if (!allowedShared) {
+        addError(errors, 'shared-back-dependency', `${edge.source} imports outside ${sourceSharedRuntime} shared roots`, { edge });
+      }
+    }
   }
 
-  if (errors.length > 0) throw new Error(errors.join('\n'));
+  violations.internalImport = [...new Map(violations.internalImport.map(edge => [edgeKey(edge), edge])).values()].sort(compareEdges);
+  violations.moduleLegacyImport = [...new Map(violations.moduleLegacyImport.map(edge => [edgeKey(edge), edge])).values()].sort(compareEdges);
+  violations.runtimeCrossing = [...new Map(violations.runtimeCrossing.map(edge => [edgeKey(edge), edge])).values()].sort(compareEdges);
+  violations.missingPublicEntry.sort(compareEdges);
+
+  const cycles = describeCycles(sourceFiles, edges);
+  violations.typeCycle = cycles.typeInclusive;
+  for (const cycle of cycles.runtime) {
+    addError(errors, 'runtime-cycle', `runtime import cycle: ${cycle.nodes.join(' -> ')}`, { cycle });
+  }
+
+  validateExceptionGraph(config, violations, errors);
+
   return {
-    boundaryExceptions: registry.boundaryViolations.length,
-    runtimeCycles: dependencies.runtimeCycles.length,
-    typeOnlyCycleExceptions: registry.typeOnlyCycles.length,
+    ok: errors.length === 0,
+    counts: {
+      modules: configuredModules.length,
+      migrationAreas: migrationAreas.length,
+      sources: sourceFiles.length,
+      ownershipSources: ownershipScan.files.length,
+      edges: edges.length,
+      orphanedMigrationSource: migrationCoverage.orphaned,
+      overlappingMigrationSource: migrationCoverage.overlapping,
+      missingPublicEntry: violations.missingPublicEntry.length,
+      internalImport: violations.internalImport.length,
+      moduleLegacyImport: violations.moduleLegacyImport.length,
+      runtimeCrossing: violations.runtimeCrossing.length,
+      typeCycle: cycles.typeInclusive.length,
+      runtimeCycle: cycles.runtime.length,
+    },
+    violations,
+    cycles,
+    edges,
+    errors,
   };
 }
 
-function main() {
-  const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-  const registry = JSON.parse(readFileSync(
-    path.join(repositoryRoot, 'config', 'architecture-debt.json'),
-    'utf8',
-  ));
-  const summary = validateArchitectureDebt(analyzeArchitecture(repositoryRoot), registry);
-  console.log(
-    `[module-boundaries] ok runtime-cycles=${summary.runtimeCycles} boundary-exceptions=${summary.boundaryExceptions} type-only-cycle-exceptions=${summary.typeOnlyCycleExceptions}`,
-  );
-}
-
-const invokedPath = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href : '';
+const invokedPath = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href : '';
 if (invokedPath === import.meta.url) {
-  try {
-    main();
-  } catch (error) {
-    console.error(`[module-boundaries] ${error instanceof Error ? error.message : String(error)}`);
-    process.exitCode = 1;
+  const parsed = parseModuleBoundaryCliArguments(process.argv.slice(2));
+  if (parsed.error) {
+    console.error(parsed.error);
+    process.exit(2);
   }
+  const report = analyzeModuleBoundaries(parsed);
+  console.log(formatModuleBoundaryReport(report));
+  if (!report.ok) process.exit(1);
 }

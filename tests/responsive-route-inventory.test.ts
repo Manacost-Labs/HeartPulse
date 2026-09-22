@@ -57,7 +57,7 @@ type ResponsiveInventory = {
 };
 
 const publicInventory = JSON.parse(readFileSync(
-  new URL('../config/public-route-inventory.json', import.meta.url),
+  new URL('../src/shared/seo/publicRouteInventory.json', import.meta.url),
   'utf8',
 )) as PublicInventory;
 const responsiveInventory = JSON.parse(readFileSync(

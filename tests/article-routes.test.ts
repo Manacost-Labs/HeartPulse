@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import express from 'express';
+import express, { type ErrorRequestHandler } from 'express';
 // @ts-ignore: node:sqlite is available in the production Node 22 runtime.
 import { DatabaseSync } from 'node:sqlite';
 import { createArticleRouter, type ArticleRouterDependencies } from '../server/articleRoutes.js';
@@ -23,6 +23,10 @@ const articlesEntry = {
   etag: '"articles-base"',
 };
 const accessErrors: unknown[] = [];
+const forwardedErrors: unknown[] = [];
+const unhandledRejections: unknown[] = [];
+const recordUnhandledRejection = (reason: unknown) => unhandledRejections.push(reason);
+process.on('unhandledRejection', recordUnhandledRejection);
 
 function dependencies(overrides: Partial<ArticleRouterDependencies> = {}): ArticleRouterDependencies {
   return {
@@ -32,7 +36,10 @@ function dependencies(overrides: Partial<ArticleRouterDependencies> = {}): Artic
       return id ? { id } : null;
     },
     shapeArticles: (data: any, userId: string) => ({ ...data, viewer: userId }),
-    refreshSubscription: async (user: { id: string }) => ({ hasAccess: user.id === 'member', userId: user.id }),
+    refreshSubscription: async (user: { id: string }) => {
+      if (user.id === 'error') throw new Error('subscription refresh failed');
+      return { hasAccess: user.id === 'member', userId: user.id };
+    },
     findArticle: (articleId: string) => articleId === 'a1' ? { id: 'a1', mode: 'arena' } : null,
     isAdmin: (user: { id: string }) => user.id === 'admin',
     subscriptionAllowsArticle: (subscription: any) => Boolean(subscription.hasAccess),
@@ -66,6 +73,11 @@ function startApp(overrides: Partial<ArticleRouterDependencies> = {}) {
   const app = express();
   app.use(express.json());
   app.use('/api', createArticleRouter(dependencies(overrides)));
+  const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
+    forwardedErrors.push(error);
+    response.status(500).json({ error: 'Internal test error' });
+  };
+  app.use(errorHandler);
   return app.listen(0, '127.0.0.1');
 }
 
@@ -201,6 +213,17 @@ try {
   assert.equal(invalidVote.response.status, 400);
   assert.deepEqual(invalidVote.body, { error: 'Некорректный голос' });
 
+  const failedVote = await request('/articles/a1/vote', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Test-User': 'error' },
+    body: JSON.stringify({ vote: 'like' }),
+    signal: AbortSignal.timeout(500),
+  });
+  assert.equal(failedVote.response.status, 500);
+  assert.deepEqual(failedVote.body, { error: 'Internal test error' });
+  assert.equal(forwardedErrors.length, 1);
+  assert.deepEqual(unhandledRejections, []);
+
   const liked = await voteRequest('member', 'like');
   assert.deepEqual(liked.body, { success: true, articleId: 'a1', likes: 1, dislikes: 0, userVote: 'like' });
   const stored = database.prepare('SELECT * FROM article_votes WHERE article_id = ? AND user_id = ?').get('a1', 'member') as any;
@@ -216,6 +239,7 @@ try {
   const adminLike = await voteRequest('admin', 'like');
   assert.deepEqual(adminLike.body, { success: true, articleId: 'a1', likes: 1, dislikes: 1, userVote: 'like' });
 } finally {
+  process.off('unhandledRejection', recordUnhandledRejection);
   await Promise.all([server, noDataServer].map(instance => new Promise<void>((resolve, reject) => (
     instance.close(error => error ? reject(error) : resolve())
   ))));

@@ -21,7 +21,7 @@ const entryFiles = new Set([
   'src/main.tsx',
   'src/routes.ts',
   'src/features/Home.tsx',
-  'src/components/AuthAvatar.tsx',
+  'src/modules/identity/ui/AuthAvatar.tsx',
   'src/hooks/usePageScrollLock.ts',
 ]);
 const unusedCodes = new Set([6133, 6196]);
@@ -67,8 +67,9 @@ if (returnedAdminSymbols.length > 0) {
 }
 
 const appSource = readFileSync('src/App.tsx', 'utf8');
+const routeModulesSource = readFileSync('src/app/routing/routeModules.tsx', 'utf8');
 const contestsSource = readFileSync('src/features/Contests.tsx', 'utf8');
-if (!/module\.ContestAdminPanel\b/.test(appSource) || !/export\s+function\s+ContestAdminPanel\b/.test(contestsSource)) {
+if (!/module\.ContestAdminPanel\b/.test(routeModulesSource) || !/export\s+function\s+ContestAdminPanel\b/.test(contestsSource)) {
   console.error('[entry-dead-code] live ContestAdminPanel route contract is missing');
   process.exit(1);
 }

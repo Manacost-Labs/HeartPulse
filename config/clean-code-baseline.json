@@ -76,7 +76,7 @@
       "src/features/Cosmetics.tsx": 948,
       "src/features/DeckBuilder.tsx": 1239,
       "src/features/decklist/DeckListView.tsx": 334,
-      "src/features/DeferredRoutes.tsx": 4829,
+      "src/features/DeferredRoutes.tsx": 3192,
       "src/features/FunDecksPage.tsx": 560,
       "src/features/GuidesArchive.tsx": 313,
       "src/features/Home.tsx": 257,
@@ -85,7 +85,8 @@
       "src/features/StandardCards.tsx": 1560,
       "src/features/StandardMatchups.tsx": 1064,
       "src/features/StandardMeta.tsx": 826,
-      "src/features/ViciousSyndicateGold.tsx": 427
+      "src/features/ViciousSyndicateGold.tsx": 427,
+      "src/modules/identity/ui/LoginPanel.tsx": 1042
     }
   },
   "exceptions": []

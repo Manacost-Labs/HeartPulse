@@ -1,5 +1,5 @@
 export const profileUser = {
-  id: 'profile-demo', publicProfileId: '1042', name: 'Александр',
+  id: 'profile-demo', adminAllowed: false, contestAdminAllowed: false, publicProfileId: '1042', name: 'Александр',
   email: 'player@example.com', role: 'user', avatarInitials: 'АЛ',
   country: 'Россия', contactTelegram: '@hearthstone_player',
   contactEmail: 'player@example.com', contactVkUrl: '', newsletterOptIn: false,
@@ -11,10 +11,10 @@ export function mockProfileRequests(active = true, failRefresh = false) {
   window.fetch = async (input, init) => {
     const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, window.location.href);
     if (!url.pathname.startsWith('/api/')) return originalFetch(input, init);
-    if (url.pathname === '/api/auth/me') return Response.json({ user });
+    if (url.pathname === '/api/auth/me') return Response.json({ success: true, user });
     if (url.pathname === '/api/auth/profile') {
       user = { ...user, ...JSON.parse(String(init?.body || '{}')) };
-      return Response.json({ user });
+      return Response.json({ success: true, user });
     }
     if (url.pathname === '/api/subscription/refresh' && failRefresh) {
       return Response.json({ error: 'Не удалось проверить подписку. Попробуйте ещё раз.' }, { status: 503 });

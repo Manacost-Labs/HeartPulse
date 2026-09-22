@@ -14,7 +14,7 @@ import {
   collectFunctionSizes,
   validateFunctionSizeBudgets,
 } from '../scripts/check-function-size-budgets.mjs';
-import { validateArchitectureDebt } from '../scripts/check-module-boundaries.mjs';
+import { validateArchitectureDebt } from '../scripts/check-architecture-debt.mjs';
 import { validateSourceDebt } from '../scripts/check-source-debt.mjs';
 
 function writeFixture(repositoryRoot, relativePath, contents) {

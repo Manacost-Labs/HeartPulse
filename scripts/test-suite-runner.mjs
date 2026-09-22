@@ -27,6 +27,7 @@ const IGNORED_DIRECTORY_NAMES = new Set([
   'test-results',
 ]);
 const ENVIRONMENT_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const FORCE_KILL_DELAY_MS = 1_000;
 const FORWARDED_SIGNALS = ['SIGINT', 'SIGTERM'];
 
 function isRecord(value) {
@@ -195,7 +196,12 @@ function terminateChild(child, signal) {
   child.kill?.(signal);
 }
 
-function runChild(testFile, repositoryRoot, environment, spawnImpl, signalEmitter, killImpl) {
+function runChild(
+  testFile,
+  repositoryRoot,
+  environment,
+  spawnImpl, signalEmitter, killImpl,
+) {
   const { command, args } = commandForTest(testFile);
   return new Promise((resolve, reject) => {
     const child = spawnImpl(command, args, {
@@ -206,20 +212,64 @@ function runChild(testFile, repositoryRoot, environment, spawnImpl, signalEmitte
       stdio: 'inherit',
     });
     let settled = false;
-    const signalHandlers = Object.fromEntries(FORWARDED_SIGNALS.map(signal => [
-      signal,
-      () => killImpl(child, signal),
-    ]));
+    let forwardedSignal = null;
+    let forceKillTimer = null;
+    let forceKillSent = false;
     const cleanup = () => {
-      for (const signal of FORWARDED_SIGNALS) {
-        signalEmitter.removeListener(signal, signalHandlers[signal]);
+      for (const signal of FORWARDED_SIGNALS) signalEmitter.removeListener(signal, signalHandlers[signal]);
+      if (forceKillTimer) clearTimeout(forceKillTimer);
+    };
+    const interruptError = signal => {
+      const error = new Error(`${testFile} interrupted by ${signal}`);
+      error.signal = signal;
+      error.testFile = testFile;
+      return error;
+    };
+    const forceKill = () => {
+      if (forceKillSent) return;
+      forceKillSent = true;
+      try {
+        killImpl(child, 'SIGKILL');
+      } catch {
+        // The original interruption remains the result even if the group exited first.
       }
     };
+    const forwardSignal = signal => {
+      if (settled) return;
+      if (forwardedSignal) {
+        forceKill();
+        return;
+      }
+      forwardedSignal = signal;
+      try {
+        killImpl(child, signal);
+        forceKillTimer = setTimeout(forceKill, FORCE_KILL_DELAY_MS);
+        forceKillTimer.unref?.();
+      } catch (error) {
+        settled = true;
+        cleanup();
+        const interrupted = interruptError(signal);
+        interrupted.cause = error;
+        reject(interrupted);
+      }
+    };
+    const signalHandlers = Object.fromEntries(
+      FORWARDED_SIGNALS.map(signal => [signal, () => forwardSignal(signal)]),
+    );
     for (const signal of FORWARDED_SIGNALS) signalEmitter.on(signal, signalHandlers[signal]);
+
+    const rejectInterrupted = () => {
+      if (!forwardedSignal) return false;
+      forceKill();
+      cleanup();
+      reject(interruptError(forwardedSignal));
+      return true;
+    };
 
     child.once('error', error => {
       if (settled) return;
       settled = true;
+      if (rejectInterrupted()) return;
       cleanup();
       error.testFile = testFile;
       reject(error);
@@ -227,6 +277,7 @@ function runChild(testFile, repositoryRoot, environment, spawnImpl, signalEmitte
     child.once('close', (exitCode, signal) => {
       if (settled) return;
       settled = true;
+      if (rejectInterrupted()) return;
       cleanup();
       if (signal) {
         const error = new Error(`${testFile} terminated by ${signal}`);
