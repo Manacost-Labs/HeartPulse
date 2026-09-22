@@ -88,6 +88,14 @@ because integration passed.
   Validation: 23 focused tests, TypeScript, architecture and complete build pass;
   changed-file Semgrep reports zero findings and zero parser errors. The deploy
   installer was not executed against production.
+- `codex/hearthpulse-tavern-navigation-20260914`: retained the newer targeted
+  scroll in the failed-home-chunk case, included the missing deferred-section
+  activation and scoped menu-title assertions to their actual title elements.
+  Syntax and deterministic authenticated/desktop/mobile browser scenarios pass
+  against the local production build (`QA_RESPONSIVE_SCOPE=off`; the separate
+  observatory matrix was outside this test-only increment). No application
+  rendering code changed. Evidence:
+  `/tmp/hearthpulse-consolidation-navigation-qa.log`.
 - Initial upstream checks already passed in the migration preparation worktree:
   TypeScript, architecture, credential/verification/application-auth/session
   tests and full Vite/server/prerender build.

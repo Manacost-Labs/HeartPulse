@@ -5914,6 +5914,7 @@ for (const [device, viewport] of [
   await mockApplicationApi(page, { authenticated: true });
   try {
     await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.waitForSelector('.home-latest-articles');
     await page.waitForSelector('.home-bg-directory');
     await page.$eval('[data-home-deferred-section="Арена"]', element => element.scrollIntoView({ block: 'center' }));
@@ -6845,7 +6846,7 @@ for (const [device, viewport] of [
         navMarginTop: navStyles?.marginTop || '',
         navPadding: navStyles?.padding || '',
         navBorderColor: navStyles?.borderTopColor || '',
-        sectionText: section?.textContent?.trim() || '',
+        sectionText: section?.querySelector('.arena-sidebar-section-title')?.textContent?.trim() || '',
         sectionMargin: sectionStyles?.margin || '',
         sectionColor: sectionStyles?.color || '',
         sectionSize: sectionStyles?.fontSize || '',
@@ -7171,7 +7172,7 @@ for (const [device, viewport] of [
         activeColor: activeContract.color,
         activeBackground: activeContract.background,
         activeBeforeDisplay: activeContract.beforeDisplay,
-        sectionText: section?.textContent?.trim() || '',
+        sectionText: section?.querySelector('.arena-mobile-menu-section-title')?.textContent?.trim() || '',
         sectionMarginTop: section ? getComputedStyle(section).marginTop : '',
         sectionColor: section ? getComputedStyle(section).color : '',
         sectionSize: section ? getComputedStyle(section).fontSize : '',
