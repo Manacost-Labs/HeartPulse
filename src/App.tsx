@@ -618,7 +618,7 @@ const LazySiteFooter = React.lazy(() => import('./components/SiteFooter'));
 const LazyHomeTab = React.lazy(loadHomeModule);
 const LazyFAQPage = React.lazy(loadFAQPageModule);
 const LazyDeveloperApiPage = React.lazy(() => loadDeveloperApiModule().then(module => ({ default: module.DeveloperApiPage })));
-const LazyAccountRoute = React.lazy(() => import('./modules/accountRoute/public'));
+const LazyAccountRoute = React.lazy(() => import('./modules/browserIdentity/public'));
 const LazyNotFoundPage = React.lazy(() => import('./features/NotFoundPageRoute'));
 const LazyWinrates = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.Winrates })));
 const LazyTierList = React.lazy(() => loadDeferredRoutesModule().then(module => ({ default: module.TierList })));
