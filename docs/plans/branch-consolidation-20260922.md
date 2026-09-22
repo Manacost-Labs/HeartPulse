@@ -114,6 +114,13 @@ with current contracts, verify each bounded change, and record its merge.
 
 ## Superseded Reader iterations
 
+- Pending `feat/manacost-reader-production-client-20260913` snapshot
+  `14f7b1ad`: all twelve source/configuration/test files already match upstream
+  exactly. The three remaining documentation differences are newer release
+  notes, line wrapping and the newly verified isolation option. Retained those
+  current documents. The merge changes no application files; the 31 passing
+  identity/startup/continuation tests remain applicable.
+
 - `feat/reader-community-identity-release-20260910`: its permission bridge is
   already present. Compared source, tests and specification: the only behavior
   difference is the old staging-only client restriction. Preserve the newer
