@@ -62,12 +62,16 @@ test('configuration rejects unsafe redirects, missing key material and mixed sta
   } finally { db.close(); }
 });
 
-test('only explicit offline consent for the staging reader receives the 30-day grant policy', () => {
-  assert.deepEqual(readerGrantPolicy('manacost-reader-staging', 'openid profile offline_access'), {
-    rememberLogin: true, ttlSeconds: REMEMBERED_READER_GRANT_TTL_SECONDS,
-  });
+test('only explicit offline consent for exact staging or production readers receives the 30-day grant policy', () => {
+  for (const clientId of ['manacost-reader-staging', 'manacost-reader-production']) {
+    assert.deepEqual(readerGrantPolicy(clientId, 'openid profile offline_access'), {
+      rememberLogin: true, ttlSeconds: REMEMBERED_READER_GRANT_TTL_SECONDS,
+    });
+  }
   for (const [clientId, scope] of [
     ['manacost-reader-staging', 'openid profile'],
+    ['manacost-reader-production', 'openid profile'],
+    ['manacost-reader', 'openid profile offline_access'],
     ['another-client', 'openid profile offline_access'],
   ]) {
     assert.deepEqual(readerGrantPolicy(clientId, scope), {

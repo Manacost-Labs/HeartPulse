@@ -3,8 +3,8 @@
 Status: disabled-by-default internal contract. This endpoint is not a browser API
 and does not change OIDC issuance, introspection, login, or session binding.
 
-`POST /identity/reader-entitlements` accepts HTTP Basic authentication from the
-configured static `manacost-reader-staging` confidential client. Requests with
+`POST /identity/reader-entitlements` accepts HTTP Basic authentication from a
+configured exact staging or production Reader confidential client. Requests with
 an `Origin` header or cross-site fetch metadata are rejected. The strict JSON
 body is `{ "subjects": ["..."] }`, with 1–20 unique opaque HearthPulse subjects,
 a 4 KiB body limit, and no additional fields.

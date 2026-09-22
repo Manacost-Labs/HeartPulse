@@ -1,8 +1,7 @@
 import Provider, { type Configuration } from 'oidc-provider';
 import { createIdentityAdapter } from './adapter.js';
-import { type BrowserIdentityOptions, validateIdentityOptions } from './configuration.js';
+import { isReaderClientId, type BrowserIdentityOptions, validateIdentityOptions } from './configuration.js';
 
-export const READER_STAGING_CLIENT_ID = 'manacost-reader-staging';
 export const DEFAULT_READER_GRANT_TTL_SECONDS = 7 * 24 * 60 * 60;
 export const REMEMBERED_READER_GRANT_TTL_SECONDS = 30 * 24 * 60 * 60;
 
@@ -10,9 +9,9 @@ const hasScope = (scope: string | undefined, expected: string) => scope?.split(/
 
 export const offlineAccessRequested = (scope: string | undefined) => hasScope(scope, 'offline_access');
 
-/** The longer lifetime is deliberately restricted to an explicit offline grant for the staging reader. */
+/** The longer lifetime is restricted to explicit offline consent by an exact Reader client. */
 export function readerGrantPolicy(clientId: string, scope: string | undefined) {
-  const rememberLogin = clientId === READER_STAGING_CLIENT_ID && offlineAccessRequested(scope);
+  const rememberLogin = isReaderClientId(clientId) && offlineAccessRequested(scope);
   return { rememberLogin, ttlSeconds: rememberLogin
     ? REMEMBERED_READER_GRANT_TTL_SECONDS : DEFAULT_READER_GRANT_TTL_SECONDS };
 }

@@ -9,9 +9,10 @@ import { writeSubscriptionCacheRow } from '../server/modules/subscription/public
 import { registerBrowserIdentity } from '../server/app/registerBrowserIdentity.js';
 
 const client = { id: 'manacost-reader-staging', secret: 's'.repeat(43), redirectUri: 'https://test.hs-manacost.ru/reader-auth/callback' };
+const productionClient = { id: 'manacost-reader-production', secret: 'p'.repeat(43), redirectUri: 'https://hs-manacost.ru/reader-auth/callback' };
 const now = Date.parse('2026-09-08T12:00:00.000Z');
 
-function fixture() {
+function fixture(clients = [client]) {
   const database = new DatabaseSync(':memory:');
   database.exec(`CREATE TABLE users (id TEXT PRIMARY KEY, blocked_at TEXT);
     CREATE TABLE subscriptions (user_id TEXT PRIMARY KEY, has_access INTEGER NOT NULL DEFAULT 0, source TEXT NOT NULL DEFAULT 'none', message TEXT NOT NULL DEFAULT '', checked_at TEXT, stale INTEGER, boosty_json TEXT, telegram_json TEXT, patreon_json TEXT, updated_at TEXT NOT NULL DEFAULT '');
@@ -41,13 +42,13 @@ function fixture() {
   insert.run('free', fresh, 0, '{}', '{}', '{}');
   database.exec("INSERT INTO manual_subscription_grants VALUES ('free', 1)");
   const app = express();
-  app.use('/identity', createReaderEntitlementsRouter({ database, clients: [client], allowedSources: ['boosty', 'patreon'], now: () => now }));
+  app.use('/identity', createReaderEntitlementsRouter({ database, clients, allowedSources: ['boosty', 'patreon'], now: () => now }));
   const server = createServer(app);
   return { database, server };
 }
 
-async function withServer(run: (origin: string) => Promise<void>) {
-  const { database, server } = fixture();
+async function withServer(run: (origin: string) => Promise<void>, clients = [client]) {
+  const { database, server } = fixture(clients);
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   const address = server.address(); if (!address || typeof address === 'string') throw new Error('Missing test port');
   try { await run(`http://127.0.0.1:${address.port}`); }
@@ -98,6 +99,15 @@ test('confidential batch endpoint rejects unauthenticated, wrong-client and cros
     assert.equal(response.status, 403);
   }
 }));
+
+test('exact production Reader credential can query entitlements while legacy near-match ids cannot', async () => withServer(async origin => {
+  const body = JSON.stringify({ subjects: ['boosty-paid'] });
+  const request = (id: string, secret: string) => fetch(`${origin}/identity/reader-entitlements`, {
+    method: 'POST', headers: { authorization: basic(secret, id), 'content-type': 'application/json' }, body,
+  });
+  assert.equal((await request(productionClient.id, productionClient.secret)).status, 200);
+  assert.equal((await request('manacost-reader', productionClient.secret)).status, 401);
+}, [client, productionClient]));
 
 test('failed authentication cannot consume the confidential client quota', async () => withServer(async origin => {
   const body = JSON.stringify({ subjects: ['boosty-paid'] });
