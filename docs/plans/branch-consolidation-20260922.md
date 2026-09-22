@@ -100,5 +100,14 @@ because integration passed.
   TypeScript, architecture, credential/verification/application-auth/session
   tests and full Vite/server/prerender build.
 
-Next action: simulate the 13 independent merges and inspect only the resulting
-changes/conflicts, then integrate the smallest complete change first.
+- Preserved all eleven dirty worktrees as immutable archive commits using
+  alternate indexes, without changing their original files or indexes. The
+  pending-file secret scan passed; `worktree-snapshots.json` and
+  `snapshots.bundle` in the backup directory preserve the exact receipts.
+- Imported the two pending documentation files from the old `main` worktree.
+  `docs/agent-skills.md` indexes canonical resources without changing routing;
+  `META_INTELLIGENCE_LAB_SUMMARY.md` is explicitly marked as a historical draft,
+  not a claim that the proposed API, jobs or budget are active. No code changes.
+
+Next action: reconcile remaining independent branches and archived pending work
+with current contracts, verify each bounded change, and record its merge.
