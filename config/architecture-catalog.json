@@ -1106,6 +1106,59 @@
         "server/**",
         "other domain internals"
       ]
+    },
+    {
+      "name": "backend-account-credentials",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Preserve independent accounts and sessions across SMTP waits.",
+      "paths": [
+        "server/modules/accountCredentials"
+      ],
+      "publicEntrypoints": [
+        "server/modules/accountCredentials/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [
+        {
+          "method": "POST",
+          "path": "/api/auth/register"
+        },
+        {
+          "method": "POST",
+          "path": "/api/auth/login"
+        }
+      ],
+      "contracts": [
+        "docs/specs/authentication-persistence.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [
+        "credential issuance reservations"
+      ],
+      "dataStores": [
+        "sqlite:users",
+        "sqlite:pending_codes",
+        "sqlite:identities",
+        "sqlite:mailing_contacts"
+      ],
+      "externalServices": [
+        "injected SMTP delivery"
+      ],
+      "tests": [
+        "tests/auth-credential-routes.test.ts",
+        "tests/auth-persistence-integration.test.mjs"
+      ],
+      "allowedDependencies": [
+        "Express at the HTTP boundary",
+        "Node.js SQLite via injected connection",
+        "injected account creation adapter"
+      ],
+      "forbiddenImports": [
+        "src/**",
+        "other module internals",
+        "server/index.ts"
+      ]
     }
   ],
   "legacyAreas": [

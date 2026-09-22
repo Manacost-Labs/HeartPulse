@@ -272,7 +272,7 @@ import {
 } from './modules/publicProfile/public.js';
 import { completePasswordReset, createPasswordResetRouter } from './passwordResetRoutes.js';
 import { authenticatedUserPayload, createAuthVerificationRouter } from './authVerificationRoutes.js';
-import { createAuthCredentialRouter, deliverCredentialCode } from './authCredentialRoutes.js';
+import { createAuthCredentialRouter, createCredentialCodeIssuer, createCredentialRepository, createCredentialService } from './modules/accountCredentials/public.js';
 import { addBoundedAuthSession, authTokenCandidates, cookieValues } from './authSessions.js';
 import { sendLocalSmtpMessage } from './localSmtp.js';
 
@@ -1696,31 +1696,22 @@ function saveAuthStore(
   }
 }
 
-const authCodeIssueHistory = new Map<string, number[]>();
+const credentialCodeIssuer = createCredentialCodeIssuer({
+  now: Date.now,
+  generateCode: () => randomInt(100000, 1000000).toString(),
+  hashCode: sha256,
+  ttlMs: AUTH_CODE_TTL_MS,
+  cooldownMs: AUTH_CODE_REQUEST_COOLDOWN_MS,
+  windowMs: AUTH_CODE_ISSUE_WINDOW_MS,
+  maximumIssues: AUTH_CODE_MAX_ISSUES_PER_WINDOW,
+});
 
 function prepareAuthCode(store: AdminAuthStore, email: string): { ok: true; code: string } | { ok: false; status: number; error: string } {
-  const now = Date.now();
-  const windowStart = now - AUTH_CODE_ISSUE_WINDOW_MS;
-  const recent = (authCodeIssueHistory.get(email) || []).filter(timestamp => timestamp > windowStart);
-  const lastIssuedAt = recent.at(-1) || 0;
-  if (lastIssuedAt && now - lastIssuedAt < AUTH_CODE_REQUEST_COOLDOWN_MS) {
-    return { ok: false, status: 429, error: 'Код уже отправлен. Подождите минуту перед повторной отправкой.' };
-  }
-  if (recent.length >= AUTH_CODE_MAX_ISSUES_PER_WINDOW) {
-    return { ok: false, status: 429, error: 'Слишком много кодов для этой почты. Попробуйте позже.' };
-  }
-
-  const code = randomInt(100000, 1000000).toString();
-  const existing = store.pendingCodes.find(item => item.email === email && item.expiresAt > now);
-  store.pendingCodes = store.pendingCodes.filter(item => item.email !== email && item.expiresAt > now);
-  store.pendingCodes.push({
-    email,
-    codeHash: sha256(code),
-    expiresAt: now + AUTH_CODE_TTL_MS,
-    attempts: existing ? existing.attempts : 0,
-  });
-  authCodeIssueHistory.set(email, [...recent, now]);
-  return { ok: true, code };
+  const prepared = credentialCodeIssuer.prepare(email, store.pendingCodes.find(item => item.email === email) ?? null);
+  if (prepared.ok === false) return prepared;
+  store.pendingCodes = store.pendingCodes.filter(item => item.email !== email && item.expiresAt > Date.now());
+  store.pendingCodes.push(prepared.record);
+  return { ok: true, code: prepared.code };
 }
 
 function verifyPendingCode(pending: PendingCode, code: string): boolean {
@@ -8243,80 +8234,41 @@ app.use('/api', createOperationalRouter({
   publicCacheHeader: CACHE_5M,
 }));
 
+const credentialService = createCredentialService({
+  repository: createCredentialRepository({ database: db, now: Date.now, insertAccount: upsertUserRow }),
+  codeIssuer: credentialCodeIssuer,
+  now: Date.now,
+  userId: email => `user_${sha256(email).slice(0, 12)}`,
+  hashPassword: hashSecret,
+  verifyPassword: verifySecret,
+  deliverCode: sendAuthCodeEmail,
+});
+
 app.use('/api/auth/register', authCodeRequestLimiter);
 app.use('/api/auth/login', authPasswordLimiter, authCodeRequestLimiter);
 app.use('/api', createAuthCredentialRouter({
   normalizeEmail,
   isRealEmail,
-  register: async ({ email, password, name, country, newsletterOptIn }) => {
-    const store = loadAuthStore();
-    if (store.users.some(item => item.email === email)) {
-      return { ok: false, status: 409, error: 'Пользователь с такой почтой уже есть' } as const;
-    }
-
-    const now = new Date().toISOString();
-    store.users.push({
-      id: `user_${sha256(email).slice(0, 12)}`,
-      email,
-      name,
-      role: 'user',
-      country,
-      newsletterOptIn,
-      avatarInitials: name.slice(0, 2).toUpperCase(),
-      passwordHash: hashSecret(password),
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    const authCode = prepareAuthCode(store, email);
-    if (authCode.ok === false) return authCode;
-    await deliverCredentialCode(
-      () => sendAuthCodeEmail(email, authCode.code),
-      () => saveAuthStore(store),
-    );
-    return {
-      ok: true,
-      payload: { success: true, email, message: 'Аккаунт создан. Код отправлен на почту' },
-    } as const;
-  },
-  login: async ({ email, password }, req) => {
-    const store = loadAuthStore();
-    const user = store.users.find(item => item.email === email);
-    if (!user || user.blockedAt || !verifySecret(password, user.passwordHash)) {
-      return { ok: false, status: 401, error: 'Неверная почта или пароль' } as const;
-    }
-
+  register: credentialService.register,
+  login: ({ email, password }, req) => credentialService.login({ email, password }, () => {
     const activeSession = authenticatedSessionFromRequest(req);
-    const token = activeSession?.token ?? '';
-    if (activeSession?.user.email === email) {
-      if (refreshAuthSessionIfNeeded(activeSession.store, activeSession.session)) {
-        saveAuthStore(activeSession.store);
-      }
-      return {
-        ok: true,
-        sessionToken: token,
-        payload: {
-          success: true,
-          authenticated: true,
-          user: publicUser(activeSession.user),
-          adminAllowed: isAdminUser(activeSession.user),
-          contestAdminAllowed: isContestAdminUser(activeSession.user),
-          message: 'Вы уже вошли в аккаунт.',
-        },
-      } as const;
+    if (activeSession?.user.email !== email) return null;
+    if (refreshAuthSessionIfNeeded(activeSession.store, activeSession.session)) {
+      saveAuthStore(activeSession.store);
     }
-
-    const authCode = prepareAuthCode(store, email);
-    if (authCode.ok === false) return authCode;
-    await deliverCredentialCode(
-      () => sendAuthCodeEmail(email, authCode.code),
-      () => saveAuthStore(store),
-    );
     return {
       ok: true,
-      payload: { success: true, email, message: 'Код отправлен на почту' },
-    } as const;
-  },
+      sessionToken: activeSession.token,
+      payload: {
+        success: true,
+        authenticated: true,
+        user: publicUser(activeSession.user),
+        adminAllowed: isAdminUser(activeSession.user),
+        contestAdminAllowed: isContestAdminUser(activeSession.user),
+        message: 'Вы уже вошли в аккаунт.',
+      },
+    };
+  }),
   setAuthCookie,
   setPrivateNoStore,
   reportFailure: operation => console.warn(`[auth] ${operation} could not be completed`),

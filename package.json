@@ -237,7 +237,8 @@
     "test:browser-session-cookies-contracts": "node --import tsx --test tests/browser-session-cookies.test.ts",
     "game-data:audit": "tsx server/modules/gameDataAudit/cli.ts --force",
     "game-data:audit:scheduled": "tsx server/modules/gameDataAudit/cli.ts --scheduled",
-    "test:game-data-audit": "tsx --test tests/game-data-audit-model.test.ts tests/game-data-audit-repository.test.ts tests/game-data-audit-codex.test.ts tests/game-data-audit-store.test.ts && node --test tests/game-data-audit-contract.test.mjs"
+    "test:game-data-audit": "tsx --test tests/game-data-audit-model.test.ts tests/game-data-audit-repository.test.ts tests/game-data-audit-codex.test.ts tests/game-data-audit-store.test.ts && node --test tests/game-data-audit-contract.test.mjs",
+    "test:auth-persistence": "node --test tests/auth-persistence-integration.test.mjs"
   },
   "dependencies": {
     "@firestone-hs/deckstrings": "^2.2.8",

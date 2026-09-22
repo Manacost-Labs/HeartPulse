@@ -522,6 +522,22 @@
       "docs": [
         "docs/specs/legal-pages.md"
       ]
+    },
+    {
+      "id": "server.accountCredentials",
+      "runtime": "server",
+      "root": "server/modules/accountCredentials",
+      "purpose": "Own credential HTTP validation, delivery-safe registration/login and targeted account/code persistence.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/accountCredentials/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:auth-credential-routes",
+        "npm run test:auth-persistence"
+      ],
+      "docs": [
+        "docs/specs/authentication-persistence.md"
+      ]
     }
   ],
   "migrationAreas": [

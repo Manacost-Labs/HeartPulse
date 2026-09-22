@@ -168,6 +168,7 @@
         "tests/article-cover-routes.test.ts",
         "tests/article-routes.test.ts",
         "tests/auth-credential-routes.test.ts",
+        "tests/auth-persistence-integration.test.mjs",
         "tests/auth-profile-routes.test.ts",
         "tests/auth-verification-routes.test.ts",
         "tests/battleground-library-seo-routes.test.ts",

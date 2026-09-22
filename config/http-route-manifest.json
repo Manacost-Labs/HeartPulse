@@ -1034,30 +1034,6 @@
     {
       "kind": "route",
       "method": "POST",
-      "path": "/auth/register",
-      "pathKind": "string",
-      "receiver": "router",
-      "middleware": [],
-      "handler": "<inline-handler>",
-      "guardSignals": [],
-      "source": "server/authCredentialRoutes.ts",
-      "sourceOrder": 0
-    },
-    {
-      "kind": "route",
-      "method": "POST",
-      "path": "/auth/login",
-      "pathKind": "string",
-      "receiver": "router",
-      "middleware": [],
-      "handler": "<inline-handler>",
-      "guardSignals": [],
-      "source": "server/authCredentialRoutes.ts",
-      "sourceOrder": 1
-    },
-    {
-      "kind": "route",
-      "method": "POST",
       "path": "/auth/verify",
       "pathKind": "string",
       "receiver": "router",
@@ -3394,6 +3370,30 @@
       "guardSignals": [],
       "source": "server/metrics.ts",
       "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/auth/register",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/accountCredentials/routes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/auth/login",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/accountCredentials/routes.ts",
+      "sourceOrder": 1
     },
     {
       "kind": "route",

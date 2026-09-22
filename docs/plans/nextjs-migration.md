@@ -5,13 +5,13 @@
 - User request: repair the five audited behaviors, extract complete domain
   capabilities, and introduce a Next.js App Router pilot alongside Vite.
 - Branch: `codex/nextjs-migration-20260922`.
-- Base and audited commit: `e1ad451cc6723d1a1aeda2dbfc2bf9d4f35b9f23`.
+- Audited commit: `e1ad451cc6723d1a1aeda2dbfc2bf9d4f35b9f23`.
 - Worktree: `/home/debian/.codex-worktrees/nextjs-migration-20260922`.
 - Every verified increment includes its tests, documentation and a separate
   commit. Continue with the next independent increment after verification.
 - This plan records progress locally. External task databases and design boards
   are not required by the current project instructions.
-- Deployment, integration into `main`, external announcements and changes to
+- Deployment, external announcements and changes to
   live data require a separate instruction. All runtime tests use temporary
   databases and controlled external dependencies.
 - `HeartPulse-backup-2026-09-22-e1ad451.zip` contains repository history only;
@@ -49,34 +49,55 @@ then code-simplification. No delegated implementation is planned.
 
 Fresh dependencies installed from the lockfile using `npm ci`.
 
-| Check | Result at the base commit |
-| --- | --- |
-| `npm run agent:session:preflight` | PASS; isolated branch, no overlapping edits |
-| `npm run lint` | PASS |
-| `npm run lint:architecture` | PASS; 19 modules, 221 routes, 118 middleware registrations |
-| `npm run test:auth-credential-routes` | PASS |
-| `npm run test:auth-verification-routes` | PASS |
-| `npm run test:application-auth` | PASS |
-| `npm run test:auth-sessions` | PASS |
-| `npm run build` | PASS; Vite, server TypeScript and prerender |
+- `npm run agent:session:preflight`. Result at the base commit: PASS; isolated
+  branch, no overlapping edits
+- `npm run lint`. Result at the base commit: PASS
+- `npm run lint:architecture`. Result at the base commit: PASS; 19 modules, 221
+  routes, 118 middleware registrations
+- `npm run test:auth-credential-routes`. Result at the base commit: PASS
+- `npm run test:auth-verification-routes`. Result at the base commit: PASS
+- `npm run test:application-auth`. Result at the base commit: PASS
+- `npm run test:auth-sessions`. Result at the base commit: PASS
+- `npm run build`. Result at the base commit: PASS; Vite, server TypeScript and
+  prerender
 
 Existing credential tests replace the registration/login use cases; they do
 not reproduce concurrent SMTP completion against the real SQLite persistence.
 
 ## Ordered increments
 
-| Step | Dependency | Acceptance and verification | State |
-| --- | --- | --- | --- |
-| 0. Baseline and plan | None | Current upstream verified; existing types, architecture, auth tests and build recorded | Complete |
-| 1. Credential persistence | 0 | Two registrations finishing SMTP in either order preserve both users and unrelated sessions; email failure is explicit; SQL transactions end before network waits | Reproduced; paused for requested branch consolidation |
-| 2. Account blocking | 1 | Browser sessions, application access/refresh tokens, issuance and tracker batches reject blocked accounts using one server policy | Pending |
-| 3. Arena data states | 0 | No demo percentages in normal UI; loading, empty, error and stale real cache are distinct; source/update time visible | Pending |
-| 4. BG cache recovery | 0 | Fallback snapshot expires; retries replace it when API recovers; deterministic time tests | Pending |
-| 5. Card URL contract | 0 | Links, canonical, sitemap and monitor agree for ordinary IDs and encoded `blizzard:<dbf>` IDs | Pending |
-| 6. Domain extraction | 1–5 | Complete account, cards, Arena and BG slices separate routes/UI, services/loaders, repositories and pure model; hotspots and ratchets shrink | Pending |
-| 7. Next.js foundations | 5–6 | Official stable version/docs verified; side-by-side build; explicit URL ownership, switch and rollback; legacy default remains functional | Pending |
-| 8. Public card pilot | 7 | Existing React presentation reused; indexable server HTML, canonical/sitemap, redirects and HTTP 404 verified; no private data in public cache | Pending |
-| 9. End-to-end handoff | 8 | Real backend with test DB covers registration, blocking, subscription, catalog and API recovery; desktop/mobile browser, SEO, console/network/accessibility checked | Pending |
+- Step 0: Baseline and plan. Dependency: None; Acceptance and verification: Current
+  upstream verified; existing types, architecture, auth tests and build
+  recorded; State: Complete
+- Step 1: Credential persistence. Dependency: 0; Acceptance and verification: Two
+  registrations finishing SMTP in either order preserve both users and unrelated
+  sessions; email failure is explicit; SQL transactions end before network
+  waits; State: Complete
+- Step 2: Account blocking. Dependency: 1; Acceptance and verification: Browser
+  sessions, application access/refresh tokens, issuance and tracker batches
+  reject blocked accounts using one server policy; State: Pending
+- Step 3: Arena data states. Dependency: 0; Acceptance and verification: No demo
+  percentages in normal UI; loading, empty, error and stale real cache are
+  distinct; source/update time visible; State: Pending
+- Step 4: BG cache recovery. Dependency: 0; Acceptance and verification: Fallback
+  snapshot expires; retries replace it when API recovers; deterministic time
+  tests; State: Pending
+- Step 5: Card URL contract. Dependency: 0; Acceptance and verification: Links,
+  canonical, sitemap and monitor agree for ordinary IDs and encoded
+  `blizzard:<dbf>` IDs; State: Pending
+- Step 6: Domain extraction. Dependency: 1–5; Acceptance and verification: Complete
+  account, cards, Arena and BG slices separate routes/UI, services/loaders,
+  repositories and pure model; hotspots and ratchets shrink; State: Pending
+- Step 7: Next.js foundations. Dependency: 5–6; Acceptance and verification: Official
+  stable version/docs verified; side-by-side build; explicit URL ownership,
+  switch and rollback; legacy default remains functional; State: Pending
+- Step 8: Public card pilot. Dependency: 7; Acceptance and verification: Existing
+  React presentation reused; indexable server HTML, canonical/sitemap, redirects
+  and HTTP 404 verified; no private data in public cache; State: Pending
+- Step 9: End-to-end handoff. Dependency: 8; Acceptance and verification: Real
+  backend with test DB covers registration, blocking, subscription, catalog and
+  API recovery; desktop/mobile browser, SEO, console/network/accessibility
+  checked; State: Pending
 
 Step 6 is split into separate account, cards, Arena and BG commits. Step 7 and
 step 8 are split further if configuration, routing and page behavior cannot be
@@ -116,7 +137,7 @@ pilot must default to the legacy route owner and support switching only its
 owned public paths back to Vite without changing API/data services. Do not
 delete the Vite build until a separately verified migration phase allows it.
 
-## Next action
+## Consolidation checkpoint (completed)
 
 The user changed the required order on 2026-09-22: consolidate outstanding
 branches into `main`, clean up branches, then resume the migration on a separate
@@ -130,3 +151,42 @@ into `main` during consolidation. After consolidation, update this branch from
 the validated `main`, restore that exact stash with `git stash apply`, wire the
 module into the backend and turn the two failing race tests green. Keep the
 stash until the restored work has a verified commit.
+
+## Resumed after consolidation
+
+Local `main` is clean at `12ec5868020f40d5ea77e05b6d3a4e4b5e75cfec`. All old
+branches and 11 dirty worktrees were integrated or reconciled with preserved
+backups; only `main` and this migration branch remain. The two planning commits
+were rebased onto that main, and the exact recorded stash was restored. Local
+main integration after verification is explicitly authorized; no push or
+production deployment is authorized.
+
+Recheck the SMTP race against this new base before wiring the credential module.
+Keep isolated backend jobs disabled. Credential HTTP validation, service, code
+issuance and targeted SQL belong to `server/modules/accountCredentials`; retain
+existing account/profile/contact side effects through an injected adapter.
+Documentation impact: this plan, authentication-persistence spec, architecture
+ownership, changelog and the manual-auth runbook. The manual acceptance helper
+must request explicit newsletter consent because the existing registration
+contract requires it; it must not silently submit an incompatible false value.
+
+## Credential persistence verified
+
+The race was rechecked on the consolidated base: both controlled SMTP orders
+lost users before the fix (two failed tests, one delivery-failure test passed).
+After targeted persistence, six real-backend cases pass: both registration
+orders, failed delivery followed by retry, concurrent profile edits, account
+blocking during SMTP and password change during SMTP. An unrelated write during
+delivery proves no SQLite transaction spans the network wait. Failed-code
+attempts changed concurrently are preserved.
+
+Existing credential, verification, session, reset and authentication-security
+contracts pass, along with TypeScript, server compilation, architecture, test
+registry and clean-code checks. Semgrep and selected-path auth scans report zero
+findings; full-history and pending-file Gitleaks scans find no secrets. The HTTP
+manifest changes only the router's owning source file (222 routes remain).
+
+The manual helper separately requires the registration API's existing newsletter
+consent. A local pseudo-terminal check verified password masking and refusal
+without network requests; the unattended guard also passes. No production
+acceptance test was run. Next: reproduce and repair application-token blocking.

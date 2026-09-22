@@ -141,6 +141,13 @@ server/
     observability/
 ```
 
+The account-credentials slice lives in `server/modules/accountCredentials`.
+Its HTTP router, service, code-issuance policy and SQLite repository own
+registration/login. Composition injects delivery and the legacy account-insert
+adapter to preserve profile, identity and contact side effects. It persists
+only the affected account/code after SMTP, as specified in
+[authentication persistence](../specs/authentication-persistence.md).
+
 ### `server/app`
 
 Is the composition root. It creates infrastructure, registers middleware and
