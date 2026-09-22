@@ -1,4 +1,4 @@
-import { constructedCardPath, constructedCardRoute as routeState } from '../modules/constructedCards/public';
+import { ConstructedCardIdentity, constructedCardPath, constructedCardRoute as routeState } from '../modules/constructedCards/public';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
@@ -1261,6 +1261,22 @@ function ConstructedCardDecks({ decks, format }: { decks: ConstructedDeck[]; for
   );
 }
 
+const cardIdentityFacts = (card: CardRecord, format: CardFormat) => [
+  { label: 'Мана', value: number(card.mana_cost) },
+  { label: 'Класс', value: classLabel(card.class || 'NEUTRAL') },
+  { label: 'Тип', value: card.card_type?.name_ru || constructedTypeLabel(card.card_type?.slug || '—') },
+  { label: 'Редкость', value: constructedRarityLabel(card.rarity || '—') },
+  { label: 'Дополнение', value: card.card_set ? constructedSetLabel(card.card_set) : 'Не указано' },
+  { label: 'Художник', value: card.artist || 'Не указан' },
+  ...[['Атака', card.attack], ['Здоровье', card.health], ['Прочность', card.durability], ['Броня', card.armor]]
+    .filter(([, value]) => value !== null && value !== undefined)
+    .map(([label, value]) => ({ label: String(label), value })),
+  ...(card.minion_type ? [{ label: 'Тип существа', value: constructedTribeLabel(card.minion_type) }] : []),
+  ...(card.spell_school ? [{ label: 'Школа магии', value: constructedSpellSchoolLabel(card.spell_school) }] : []),
+  { label: 'Форматы', value: card.formats?.map(item => item.name_ru || item.name_en || item.slug).join(', ') || (format === 'standard' ? 'Стандартный, Вольный' : 'Вольный') },
+  { label: 'ID карты', value: <><code>{card.card_id}</code>{card.dbf ? ` · DBF ${card.dbf}` : ''}</> },
+];
+
 function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoading, authUser, onRefreshSubscription }: { format: CardFormat; cardId: string } & Pick<StandardCardsProps, 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'authUser' | 'onRefreshSubscription'>) {
   const [period, setPeriod] = useConstructedCardPeriod();
   const [rank, setRank] = useConstructedCardRank();
@@ -1458,20 +1474,12 @@ function DetailPage({ format, cardId, navigatePath, statsAccess, statsAccessLoad
           </button>
           <div className="constructed-card-detail__variants" aria-label="Вариант изображения" data-tour-id="card-art">{variants.map(item => <button key={item.id} type="button" aria-pressed={variant === item.id} onClick={() => setVariant(item.id)}>{item.label}</button>)}</div>
         </div>
-        <div className="constructed-card-detail__identity">
-          <div className="constructed-card-detail__title" data-tour-id="card-identity"><img src={classIcon(card.class)} alt="" /><div><h1>{cardName(card)}</h1><p>{card.name?.en}</p></div></div>
-          <dl className="constructed-card-detail__meta">
-            <div><dt>Мана</dt><dd>{number(card.mana_cost)}</dd></div><div><dt>Класс</dt><dd>{classLabel(card.class || 'NEUTRAL')}</dd></div>
-            <div><dt>Тип</dt><dd>{card.card_type?.name_ru || constructedTypeLabel(card.card_type?.slug || '—')}</dd></div><div><dt>Редкость</dt><dd>{constructedRarityLabel(card.rarity || '—')}</dd></div>
-            <div><dt>Дополнение</dt><dd>{card.card_set ? constructedSetLabel(card.card_set) : 'Не указано'}</dd></div><div><dt>Художник</dt><dd>{card.artist || 'Не указан'}</dd></div>
-            {card.attack !== null && card.attack !== undefined && <div><dt>Атака</dt><dd>{card.attack}</dd></div>}{card.health !== null && card.health !== undefined && <div><dt>Здоровье</dt><dd>{card.health}</dd></div>}
-            {card.durability !== null && card.durability !== undefined && <div><dt>Прочность</dt><dd>{card.durability}</dd></div>}{card.armor !== null && card.armor !== undefined && <div><dt>Броня</dt><dd>{card.armor}</dd></div>}
-            {card.minion_type && <div><dt>Тип существа</dt><dd>{constructedTribeLabel(card.minion_type)}</dd></div>}{card.spell_school && <div><dt>Школа магии</dt><dd>{constructedSpellSchoolLabel(card.spell_school)}</dd></div>}
-            <div><dt>Форматы</dt><dd>{card.formats?.map(item => item.name_ru || item.name_en || item.slug).join(', ') || (format === 'standard' ? 'Стандартный, Вольный' : 'Вольный')}</dd></div>
-            <div><dt>ID карты</dt><dd><code>{card.card_id}</code>{card.dbf ? ` · DBF ${card.dbf}` : ''}</dd></div>
-          </dl>
-          <div className="constructed-card-detail__copy"><h2>Описание</h2><p>{plainText(card.text?.ru || card.text?.en)}</p>{plainText(card.flavor?.ru || card.flavor?.en) && <><h3>Художественный текст</h3><blockquote>{plainText(card.flavor?.ru || card.flavor?.en)}</blockquote></>}</div>
-        </div>
+        <ConstructedCardIdentity
+          name={cardName(card)} englishName={card.name?.en} classIconUrl={classIcon(card.class)}
+          rulesText={plainText(card.text?.ru || card.text?.en)}
+          flavorText={plainText(card.flavor?.ru || card.flavor?.en)}
+          facts={cardIdentityFacts(card, format)}
+        />
         <div className={`constructed-card-detail__statistics${serverStatsAccess ? '' : ' is-locked'}`}>
           <div data-tour-id="card-statistics"><h2>Статистика · {rankLabel}</h2><span>{statsFormatLabel} · {periodLabel}{serverStatsAccess ? ` · обновлено ${formatDate(card.statsUpdatedAt)}` : ' · тариф «Алмаз»'}</span></div>
           <div className="constructed-card-detail__statistics-controls" aria-label="Выбор статистики карты">

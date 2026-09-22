@@ -45,3 +45,8 @@ export type {
   ConstructedCardRankDescriptor,
 } from './serviceContracts.js';
 export { ConstructedCardHistoryStore } from './repository/historyStore.js';
+
+export { isIndexableConstructedCard, projectPublicConstructedCardSeoData } from './publicCardProjection.js';
+export type { PublicConstructedCardSeoData } from './publicCardProjection.js';
+export { createConstructedCardReader } from './publicCardReader.js';
+export { createPublicCardRouter } from './publicCardRoutes.js';

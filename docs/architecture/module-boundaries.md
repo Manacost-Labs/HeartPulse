@@ -320,3 +320,8 @@ Constructed card client routes belong to `src/modules/constructedCards`.
 Its public contract validates identities and generates encoded links; shared
 SEO policy only normalizes generic URL segments. Express and monitoring keep
 runtime-specific adapters, checked against the same card URL specification.
+
+The constructed-card server module owns public projections and the bounded
+catalog/detail reader. HTTP adapters expose HTML and an allowlisted public JSON
+read model. The frontend module exposes the identity presentation independently
+of request state; the legacy feature composes it with existing interactive UI.

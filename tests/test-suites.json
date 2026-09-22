@@ -120,6 +120,7 @@
         "tests/public-api-ui.test.ts",
         "tests/public-api-v1.test.ts",
         "tests/public-asset-delivery.test.ts",
+        "tests/public-card-read-model.test.ts",
         "tests/public-profile-identity.test.ts",
         "tests/public-resource-url.test.ts",
         "tests/recoverable-surface.test.tsx",

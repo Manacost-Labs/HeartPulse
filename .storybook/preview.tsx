@@ -1,3 +1,4 @@
+import '../src/features/StandardCards.styles';
 import type { Preview } from '@storybook/react-vite';
 
 import '../src/index.css';

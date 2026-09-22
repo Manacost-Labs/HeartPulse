@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 77,
-    "routeRegistrations": 222,
-    "middlewareRegistrations": 119,
+    "sourceFiles": 78,
+    "routeRegistrations": 223,
+    "middlewareRegistrations": 120,
     "explicitGuardRouteRegistrations": 59,
     "unresolvedPaths": 0
   },
@@ -1610,6 +1610,19 @@
       "sourceOrder": 9
     },
     {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "createPublicCardRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/constructedCardSeoRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
       "kind": "route",
       "method": "GET",
       "path": "/standard/cards/:format/:cardId/",
@@ -1619,7 +1632,7 @@
       "handler": "handler",
       "guardSignals": [],
       "source": "server/constructedCardSeoRoutes.ts",
-      "sourceOrder": 0
+      "sourceOrder": 1
     },
     {
       "kind": "route",
@@ -3521,6 +3534,18 @@
       "guardSignals": [],
       "source": "server/modules/browserIdentity/runtime.ts",
       "sourceOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/api/public/constructed-cards/:format/:cardId",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/constructedCards/publicCardRoutes.ts",
+      "sourceOrder": 0
     },
     {
       "kind": "route",

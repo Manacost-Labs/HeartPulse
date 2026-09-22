@@ -87,7 +87,7 @@ not reproduce concurrent SMTP completion against the real SQLite persistence.
   `blizzard:<dbf>` IDs; State: Complete
 - Step 6: Domain extraction. Dependency: 1–5; Acceptance and verification: Complete
   account, cards, Arena and BG slices separate routes/UI, services/loaders,
-  repositories and pure model; hotspots and ratchets shrink; State: Pending
+  repositories and pure model; hotspots and ratchets shrink; State: Complete
 - Step 7: Next.js foundations. Dependency: 5–6; Acceptance and verification: Official
   stable version/docs verified; side-by-side build; explicit URL ownership,
   switch and rollback; legacy default remains functional; State: Pending
@@ -299,3 +299,33 @@ correct public heading/canonical, no overflow or broken images. The local fixtur
 uses the actual format metadata shape. External analytics requests are blocked
 by the isolated browser allowlist; application requests use controlled responses.
 No production endpoint was contacted. Evidence: `/tmp/hp-card-url-browser.json`.
+
+## Steps 6–8 implementation contract
+
+Documentation impact: `docs/specs/public-card-read-model.md`,
+`docs/decisions/nextjs-public-card-pilot.md`, `docs/runbooks/nextjs-public-web.md`,
+`docs/architecture/module-boundaries.md`, `docs/specs/constructed-card-urls.md`,
+this plan and `CHANGELOG.md`.
+
+Use the migration/deprecation workflow. The pilot isolates public detail pages,
+retains the current React card presentation and navigation, and receives only
+an allowlisted public read model during server rendering. Browser requests keep
+using same-origin Express APIs with server-side entitlement enforcement. Next
+must not load SQLite, Redis, SMTP or jobs. The default owner is legacy; a local
+proxy configuration explicitly assigns the card-detail namespace to Next when
+enabled and sends all other URLs to Express. Disabling the flag restores legacy
+ownership without changing data. Production activation is outside this task.
+
+The completed domain slices are credentials, Arena class rankings, BG hero
+rankings and constructed-card public reads. Existing catalog query/statistics
+modules remain owners of catalog behavior. Further monolith extraction continues
+incrementally; the pilot does not require migrating every feature at once.
+
+Step 6 verification: public HTTP read-model tests cover credential-independent
+allowlisting, fresh absence, stale absence, duplicate identity and deadlines.
+Existing rich SEO-route tests still pass. TypeScript, architecture, byte budgets,
+clean-code, registry and documentation checks pass, as do Vite/server and
+Storybook builds. Two identity stories pass their interaction checks and Chrome
+DevTools review at 1440/390/320 pixels with no overflow or broken images.
+Semgrep has zero findings. The legacy SEO renderer now injects the platform
+image resolver into the domain projection; no architecture exception was added.

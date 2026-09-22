@@ -234,12 +234,14 @@
       "publicEntry": "server/modules/constructedCards/public.ts",
       "dependencies": [],
       "focusedTests": [
-        "npm run test:constructed-card-routes"
+        "npm run test:constructed-card-routes",
+        "npm run test:public-card-read-model"
       ],
       "docs": [
         "docs/architecture/module-boundaries.md",
         "docs/specs/public-api-v1-first-slice.md",
-        "docs/specs/constructed-card-data-performance.md"
+        "docs/specs/constructed-card-data-performance.md",
+        "docs/specs/public-card-read-model.md"
       ]
     },
     {

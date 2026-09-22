@@ -1645,3 +1645,8 @@
 
 - Card links, canonical metadata, sitemap and monitoring now agree on encoded
   Blizzard IDs. Invalid and double-encoded identities cannot crash navigation.
+
+### Public card module
+
+- Extracted bounded card reads and the public projection for both HTML and JSON.
+- Reused the card identity presentation without changing public card controls.
