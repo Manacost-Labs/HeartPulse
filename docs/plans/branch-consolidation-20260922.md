@@ -234,3 +234,11 @@ the workspace and `4da4b9d` deliberately removed its meta/article shortcuts.
 Retained that newer design and assertions instead of restoring the omitted
 summary or removed actions. The profile contract test passes and the earlier
 full desktop/mobile authenticated QA covers this unchanged application tree.
+
+`fix/hearthpulse-arena-motion-20260910`: its stable card geometry and readable
+percentage labels are incorporated in `d49bbcc`, then refined by `9079e28`
+(scoped styles), `16c1e96` (forced-colors contrast) and `ec044d8` (smooth motion).
+Retained the current stronger assertions, scoped CSS, reduced-motion behavior
+and gentle entrance delays. Removed only the duplicate old global meter styles
+from the merge result. The application tree is unchanged; Chromium geometry,
+hover, reduced-motion and forced-colors checks pass.
