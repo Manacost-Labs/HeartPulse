@@ -155,3 +155,8 @@ with current contracts, verify each bounded change, and record its merge.
   ratchets pass; Semgrep has zero findings/parser errors. Review confirms the
   default startup behavior is preserved and no additional helper is needed for
   this composition-only switch. No rendered frontend behavior changed.
+
+- Pending Reader foundation `28f7ee5c`: the adapter/encryption/provider tests
+  match the later staging foundation; its only module differences omit browser
+  account resolution and the runtime export. Retained the integrated consent,
+  grant/session binding and production configuration. No application diff.
