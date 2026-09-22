@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 73,
-    "routeRegistrations": 216,
-    "middlewareRegistrations": 113,
-    "explicitGuardRouteRegistrations": 57,
+    "sourceFiles": 74,
+    "routeRegistrations": 217,
+    "middlewareRegistrations": 115,
+    "explicitGuardRouteRegistrations": 58,
     "unresolvedPaths": 0
   },
   "registrations": [
@@ -894,11 +894,24 @@
       ],
       "receiver": "app",
       "handlers": [
-        "runtime.router"
+        "createReaderPermissionsRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/app/registerBrowserIdentity.ts",
       "sourceOrder": 1
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/identity"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "runtime.router"
+      ],
+      "guardSignals": [],
+      "source": "server/app/registerBrowserIdentity.ts",
+      "sourceOrder": 2
     },
     {
       "kind": "middleware",
@@ -3876,6 +3889,41 @@
       ],
       "guardSignals": [],
       "source": "server/modules/readerEntitlements/public.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/reader-permissions",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "privateHeaders",
+        "preAuthLimiter",
+        "authorize",
+        "rateLimit(...)",
+        "json(...)"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "preAuthLimiter",
+        "authorize",
+        "rateLimit(...)"
+      ],
+      "source": "server/modules/readerPermissions/public.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/reader-permissions"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "bodyError"
+      ],
+      "guardSignals": [],
+      "source": "server/modules/readerPermissions/public.ts",
       "sourceOrder": 1
     },
     {
