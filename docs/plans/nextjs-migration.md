@@ -68,7 +68,7 @@ not reproduce concurrent SMTP completion against the real SQLite persistence.
 | Step | Dependency | Acceptance and verification | State |
 | --- | --- | --- | --- |
 | 0. Baseline and plan | None | Current upstream verified; existing types, architecture, auth tests and build recorded | Complete |
-| 1. Credential persistence | 0 | Two registrations finishing SMTP in either order preserve both users and unrelated sessions; email failure is explicit; SQL transactions end before network waits | In progress |
+| 1. Credential persistence | 0 | Two registrations finishing SMTP in either order preserve both users and unrelated sessions; email failure is explicit; SQL transactions end before network waits | Reproduced; paused for requested branch consolidation |
 | 2. Account blocking | 1 | Browser sessions, application access/refresh tokens, issuance and tracker batches reject blocked accounts using one server policy | Pending |
 | 3. Arena data states | 0 | No demo percentages in normal UI; loading, empty, error and stale real cache are distinct; source/update time visible | Pending |
 | 4. BG cache recovery | 0 | Fallback snapshot expires; retries replace it when API recovers; deterministic time tests | Pending |
@@ -88,7 +88,10 @@ modules without adding `any`, suppressions or architectural exceptions.
 - Credential race: confirmed in source at the base commit. Registration and
   login call `saveAuthStore(store)` after awaiting SMTP; persistence replaces
   pending codes and sessions and deletes users missing from the old snapshot.
-  Behavioral reproduction is the next implementation checkpoint.
+  A real-backend integration test reproduced lost users with SMTP completion
+  orders `[0, 1]` and `[1, 0]`. The failed-delivery test passes (HTTP 503, no
+  account or pending code created). Full local evidence:
+  `/tmp/hearthpulse-auth-race-red.log` (2 failed, 1 passed).
 - Blocking: browser-to-user resolution already filters `blockedAt` in one
   application-auth adapter. Access-token, refresh, issuance and tracker paths
   still need independent verification; do not assume they share that filter.
@@ -115,7 +118,15 @@ delete the Vite build until a separately verified migration phase allows it.
 
 ## Next action
 
-Reproduce the credential race with the actual HTTP boundary and temporary
-SQLite database, controlling only SMTP. Extract the persistence/use-case
-boundary needed to fix it, verify both SMTP orders and failure recovery, then
-commit the implementation and update this plan.
+The user changed the required order on 2026-09-22: consolidate outstanding
+branches into `main`, clean up branches, then resume the migration on a separate
+branch and merge it after validation. Production publication still requires an
+explicit deployment instruction.
+
+The reproduction tests and preliminary, unintegrated credential module are
+preserved in stash commit `7f314f610f31e2f05d5dfb1033d85cf90769d145` (including
+untracked files). They are not a completed implementation and must not be merged
+into `main` during consolidation. After consolidation, update this branch from
+the validated `main`, restore that exact stash with `git stash apply`, wire the
+module into the backend and turn the two failing race tests green. Keep the
+stash until the restored work has a verified commit.
