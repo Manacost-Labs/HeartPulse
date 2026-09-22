@@ -182,3 +182,10 @@ with current contracts, verify each bounded change, and record its merge.
   and bounded pre-auth rate limit. Retained those later protections, their
   documentation and regression coverage. Entitlement-route tests pass; no
   application files differ after reconciliation.
+
+- Pending live-identity draft `da6d69fe`: cleanup implementation/schema match
+  current code exactly. Keep later replay-evidence assertions, fixed grant
+  deadlines, production-client rules and the dedicated verified-TLS upstream;
+  the old draft used the shared legacy TLS pool. Other differences are the
+  already-reconciled early staging iteration. No application diff; the passing
+  identity suite includes cleanup, revocation and session-binding behavior.
