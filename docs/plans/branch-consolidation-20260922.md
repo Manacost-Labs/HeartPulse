@@ -356,3 +356,25 @@ rechecks 768px alongside the full authenticated/navigation flows. Both builds,
 route/SEO/Storybook contracts, architecture, bundle budgets, documentation,
 clean-code and Semgrep checks pass. The original staged patches also match all
 11 saved backups exactly.
+
+### Preserved manual authentication acceptance
+
+Legal pages were committed as `d9d8bbb`. The final archived draft adds an
+interactive production-authentication helper. Documentation impact:
+`docs/runbooks/manual-auth-acceptance.md`, `CHANGELOG.md` and this plan; the test
+registry must retain its explicit exclusion from unattended suites. A red
+regression proves the original helper does not reject non-interactive use
+before prompting. Require a TTY, keep the explicit human confirmation, use the
+public Writable API to hide password input, preserve CSRF Origin and avoid
+newsletter enrollment. No production requests or emails are authorized here.
+
+The manual-helper guard reproduces red before the fix and passes afterward.
+Registry, clean-code and documentation checks pass. Password masking uses a
+Writable output stream instead of Node's private readline method. The helper
+was not run interactively; no accounts, emails or production data were changed.
+
+The combined unit/integration/contract run covered 278 test files: 277 passed;
+one existing QA-source contract still expected ten footer links. It now expects
+twelve, consistent with the rendered footer and preserved 44px checks. A focused
+rerun verifies that correction. Project Semgrep, the selected manual-auth
+`codex-semgrep` scan and both Gitleaks scans report no findings.

@@ -1,6 +1,11 @@
 {
   "version": 1,
-  "exclusions": [],
+  "exclusions": [
+    {
+      "file": "tests/production-auth-e2e.test.mjs",
+      "reason": "Interactive production acceptance test sends real verification emails and requires a human-entered code."
+    }
+  ],
   "fileEnvironment": {
     "tests/hsreplay-tierlist.test.ts": {
       "TIERLIST_TEST_SKIP_HANDLER": "1"
@@ -216,6 +221,7 @@
         "tests/parser-run-reconciler.test.ts",
         "tests/password-reset-routes.test.ts",
         "tests/patreon-oauth-routes.test.ts",
+        "tests/production-auth-manual-guard.test.mjs",
         "tests/public-profile-client-routes.test.ts",
         "tests/public-profile-routes.test.ts",
         "tests/public-resource-routes.test.ts",

@@ -93,8 +93,8 @@ assert.ok(
 );
 assert.ok(
   browserQa.includes("const expectedFooterColumns = profileId === 'medium' ? 3 : 1;")
-    && browserQa.includes('chrome.footerLinks.length === 10'),
-  'responsive QA must model the three-section developer footer at every mobile profile',
+    && browserQa.includes('chrome.footerLinks.length === 12'),
+  'responsive QA must model the three-section footer and legal links at every mobile profile',
 );
 assert.ok(
   browserQa.includes("'/developers/api/'")
