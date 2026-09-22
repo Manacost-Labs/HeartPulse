@@ -224,3 +224,13 @@ redesign, so retained its current state-machine test instead of restoring the
 removed UI. Targeted behavioral tests and documentation lint pass. Application
 sources are identical to the previously built tree; only examples, fixtures and
 historical documentation change in this increment.
+
+## Profile and animation iterations
+
+`codex/hearthpulse-profile-dashboard-20260906` was integrated as `f938f9e` with
+the extra summary component omitted. Active subscription styling and logout
+layout already remain in the current profile. Subsequent `1adf2d8` redesigned
+the workspace and `4da4b9d` deliberately removed its meta/article shortcuts.
+Retained that newer design and assertions instead of restoring the omitted
+summary or removed actions. The profile contract test passes and the earlier
+full desktop/mobile authenticated QA covers this unchanged application tree.
