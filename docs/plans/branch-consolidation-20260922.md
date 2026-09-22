@@ -160,3 +160,9 @@ with current contracts, verify each bounded change, and record its merge.
   match the later staging foundation; its only module differences omit browser
   account resolution and the runtime export. Retained the integrated consent,
   grant/session binding and production configuration. No application diff.
+
+- Pending Reader account draft `73808b28`: provider/runtime equal the preserved
+  v1 draft; its new hook eagerly puts query-based continuation in `App.tsx`.
+  Preserve the later lazy account wrapper and fragment-only continuation, which
+  avoid logging the interaction handle and leave connect/public profiles alone.
+  Removed the obsolete hook wiring after conflict resolution; no application diff.
