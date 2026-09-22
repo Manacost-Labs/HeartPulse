@@ -263,6 +263,7 @@ const DEFAULT_APP_ROOT_DIR = existsSync(join(__dirname, '..', '..', 'package.jso
   : join(__dirname, '..');
 const APP_ROOT_DIR = resolve(process.env.APP_ROOT_DIR || DEFAULT_APP_ROOT_DIR);
 const DATA_DIR = resolve(process.env.SERVER_DATA_DIR || join(APP_ROOT_DIR, 'server', 'data'));
+const BACKGROUND_JOBS_ENABLED = process.env.BACKGROUND_JOBS_ENABLED !== '0';
 const SNAPSHOT_PUBLICATION_FILE = join(DATA_DIR, '.snapshots-published');
 const loadData = (filename: string): any | null => loadSnapshot(DATA_DIR, filename);
 const RELEASE_SHA = (() => {
@@ -950,10 +951,10 @@ function enrichBattlegroundHeroPayload(payload: any): any {
   };
 }
 
-const kolodahsPrewarmTimer = setTimeout(() => {
+const kolodahsPrewarmTimer = BACKGROUND_JOBS_ENABLED ? setTimeout(() => {
   loadKolodahsCardIndex();
-}, 1_000);
-kolodahsPrewarmTimer.unref?.();
+}, 1_000) : undefined;
+kolodahsPrewarmTimer?.unref?.();
 
 function normalizeEmail(value: unknown): string {
   return String(value ?? '').trim().toLowerCase();
@@ -7643,7 +7644,7 @@ const constructedCardDataService = createConstructedCardDataService({
     error instanceof Error ? error.message : error,
   ),
 });
-void Promise.allSettled([
+if (BACKGROUND_JOBS_ENABLED) void Promise.allSettled([
   constructedCardDataService.loadCards('standard'),
   constructedCardDataService.loadCards('wild'),
 ]).then(results => {
@@ -8009,7 +8010,7 @@ app.use(createCosmeticsSeoRouter({
     error instanceof Error ? error.message : error,
   ),
 }));
-void Promise.allSettled([
+if (BACKGROUND_JOBS_ENABLED) void Promise.allSettled([
   cosmeticsDataService.loadCatalog('heroes', { page: 1, perPage: 48, q: '' }),
   cosmeticsDataService.loadCatalog('coins', { page: 1, perPage: 100, q: '' }),
   cosmeticsDataService.loadCatalog('pets', { page: 1, perPage: 100, q: '' }),
@@ -8331,7 +8332,7 @@ const upstreamDataHealth = createUpstreamDataHealthMonitor({
   timeoutMs: Number(process.env.HS_DATA_API_HEALTH_TIMEOUT_MS || 5_000),
   refreshIntervalMs: Number(process.env.HS_DATA_API_HEALTH_REFRESH_MS || 5 * 60_000),
 });
-upstreamDataHealth.start();
+if (BACKGROUND_JOBS_ENABLED) upstreamDataHealth.start();
 const criticalDataHealth = createCriticalDataHealth({
   loadDataset: loadDataCached,
   getConstructedCatalogHealth: format => constructedCardDataService.getCatalogHealth(format),
@@ -9796,7 +9797,7 @@ app.use('/api', createAdminFunDecksRouter({
   onError: error => console.error('[admin fun decks]', error instanceof Error ? error.message : error),
 }));
 
-app.use('/api', createAdminArenaSynergyServiceRouter({ adminGuard: adminIdGuard, setPrivateNoStore, csrfAllowed: cookieMutationCsrfAllowed, fetchDataset, stateDirectory: DATA_DIR, enableRefreshPipeline: process.env.ARENA_DRAFT_REFRESH_ENABLED !== '0', onRefreshMetric: metric => httpMetrics.arenaDraftRefreshFinished(metric) }));
+app.use('/api', createAdminArenaSynergyServiceRouter({ adminGuard: adminIdGuard, setPrivateNoStore, csrfAllowed: cookieMutationCsrfAllowed, fetchDataset, stateDirectory: DATA_DIR, enableRefreshPipeline: BACKGROUND_JOBS_ENABLED && process.env.ARENA_DRAFT_REFRESH_ENABLED !== '0', onRefreshMetric: metric => httpMetrics.arenaDraftRefreshFinished(metric) }));
 
 async function invalidateParserControlledDataCaches(): Promise<void> {
   await clearParserDataCaches({
@@ -9879,12 +9880,14 @@ app.use('/api', createAdminImageGenerationRouter({
 installSentryExpressErrorHandler(app);
 app.use(structuredErrorMiddleware());
 
-const subscriptionRefreshJob = startSubscriptionRefreshJob({ refresh: refreshAllSubscriptions });
+const subscriptionRefreshJob = BACKGROUND_JOBS_ENABLED ? startSubscriptionRefreshJob({ refresh: refreshAllSubscriptions }) : undefined;
 
 const httpServer = app.listen(PORT, HOST, () => {
   console.log(`[Server] API server running on http://${HOST || 'localhost'}:${PORT}`);
   console.log('[Server] Card images: HearthstoneJSON 512x responsive cache');
   console.log('[Server] Scraping is isolated in hs-arena-scraper.service. Trigger queue: POST /api/scrape');
+
+  if (!BACKGROUND_JOBS_ENABLED) return;
 
   if (hsDataParserControlClient.configured) {
     const parserRunRecoveryLoop = startParserRunRecoveryLoop({
@@ -9918,7 +9921,7 @@ const httpServer = app.listen(PORT, HOST, () => {
 
 installProcessLifecycle({
   server: httpServer,
-  quiesce: [{ name: 'subscription-refresh-job', stop: subscriptionRefreshJob.stop },
+  quiesce: [...(subscriptionRefreshJob ? [{ name: 'subscription-refresh-job', stop: subscriptionRefreshJob.stop }] : []),
     ...(browserIdentity ? [{ name: 'browser-identity-cleanup', stop: browserIdentity.stop }] : [])],
   timeoutMs: Number(process.env.SERVER_SHUTDOWN_TIMEOUT_MS || 10_000),
 });

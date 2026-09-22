@@ -125,3 +125,18 @@ with current contracts, verify each bounded change, and record its merge.
   staging-only grant-policy block introduced by automatic merging; retained the
   newer production-aware policy, its tests and documentation. The application
   tree remains unchanged; the complete browser-identity suite passes.
+- `feat/manacost-reader-staging-20260908`: retained the current fragment-only
+  login continuation, exact client allowlists, permissions/entitlements,
+  fixed-expiry sessions and storage cleanup. Integrated its outstanding
+  `BACKGROUND_JOBS_ENABLED=0` composition option and isolated real-server test.
+  The test reproduced a merge incompatibility in shutdown registration (an
+  absent subscription timer); register that timer only when present while
+  retaining identity cleanup. Documentation impact: this plan, the Reader
+  runbook and `CHANGELOG.md`. Selected implementation skills: incremental
+  implementation, TDD, debugging, security, API/source-driven development and
+  CI automation; the disproof is the failing real-server regression.
+  Verification after correction: isolated backend/identity/continuation tests,
+  TypeScript, architecture, full build, documentation lint and changed-code
+  ratchets pass; Semgrep has zero findings/parser errors. Review confirms the
+  default startup behavior is preserved and no additional helper is needed for
+  this composition-only switch. No rendered frontend behavior changed.

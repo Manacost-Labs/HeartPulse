@@ -160,6 +160,14 @@ profiles/comments; no data reset or global logout is part of this change.
 
 ## Rollback and evidence
 
+For an isolated local or staging instance, `BACKGROUND_JOBS_ENABLED=0` disables
+startup prewarming, upstream health polling, parser recovery, subscription
+refresh, arena synergy refresh and startup synchronization. Request-driven API
+operations remain available. The default keeps these background tasks enabled.
+Identity storage cleanup still runs when browser identity is enabled, and is
+stopped during graceful shutdown. Always provide separate database/data paths;
+this flag does not isolate storage or disable explicit administrative requests.
+
 Stop the BFF before restoring the old isolated config/state pointer. Disable
 production identity or its bridge flag; restore the reviewed application and
 matching Nginx contract when necessary. Application rollback alone does not
