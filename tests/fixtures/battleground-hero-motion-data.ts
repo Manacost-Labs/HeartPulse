@@ -32,7 +32,7 @@ export const heroMotionDetail = {
 export const heroMotionApis: Record<string, unknown> = {
   '/api/bg/heroes/61488/details': heroMotionDetail,
   '/api/bg/heroes/61489/details': { ...heroMotionDetail, stats: { hero: { ...heroMotionDetail.stats.hero, placement_distribution: [] } } },
-  '/api/bg/heroes': { ok: true, view: { heroes: [{ ...heroMotionDetail.stats.hero, image: heroImage, hero_power: { card: power } }] } },
+  '/api/bg/heroes': { ok: true, fetched_at: '2026-09-22T12:00:00Z', view: { heroes: [{ ...heroMotionDetail.stats.hero, image: heroImage, hero_power: { card: power } }] } },
   '/api/bg/library/extra/heroes': { data: [{ dbf: 61488, ...heroMotionDetail.libraryHero }] },
   '/api/bg/heroes/compositions': { ok: true, compositions: {}, composition_names: {} },
 };

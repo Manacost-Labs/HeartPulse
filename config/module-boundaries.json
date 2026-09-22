@@ -95,19 +95,21 @@
       "id": "client.battlegrounds",
       "runtime": "client",
       "root": "src/modules/battlegrounds",
-      "purpose": "Owns client Battlegrounds hero catalog contracts, full-quality portrait policy, current-roster normalization and the versioned legacy-builder bridge.",
+      "purpose": "Owns hero catalog contracts, expiring tier data and recovery, portrait policy, roster normalization and the legacy-builder bridge.",
       "owner": "web-platform",
       "publicEntry": "src/modules/battlegrounds/public.ts",
       "dependencies": [],
       "focusedTests": [
         "npm run test:battleground-hero-contracts",
         "npm run test:battleground-image-optimization",
-        "npm run test:battleground-accessories"
+        "npm run test:battleground-accessories",
+        "npm run test:battleground-hero-cache"
       ],
       "docs": [
         "docs/architecture/module-boundaries.md",
         "docs/architecture/modularization-plan.md",
-        "docs/runbooks/battlegrounds-patch-refresh.md"
+        "docs/runbooks/battlegrounds-patch-refresh.md",
+        "docs/specs/battleground-hero-cache.md"
       ]
     },
     {

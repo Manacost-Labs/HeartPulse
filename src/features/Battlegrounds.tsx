@@ -7,6 +7,9 @@ import {
 } from '../modules/searchLanding/public';
 import {
   battlegroundHeroCardImage,
+  createBattlegroundHeroTierResource,
+  useBattlegroundHeroTierData,
+  type BattlegroundHeroTierData,
   battlegroundHeroRosterBridgeV1,
   preferredBattlegroundHeroImage,
   type BattlegroundHeroMmr,
@@ -197,9 +200,6 @@ interface BattlegroundHeroDetailPayload {
   fetched_at?: string;
 }
 
-type BattlegroundHeroCacheEntry = { sections: BattlegroundHeroTierSection[]; sourceLabel: string };
-const BG_HEROES_CLIENT_CACHE = new Map<string, BattlegroundHeroCacheEntry>();
-const BG_HEROES_CLIENT_REQUESTS = new Map<string, Promise<BattlegroundHeroCacheEntry>>();
 const BG_HERO_DETAIL_CLIENT_CACHE = new Map<string, BattlegroundHeroDetailPayload>();
 const BG_HERO_COMPOSITION_CLIENT_CACHE = new Map<string, string>();
 const BG_HERO_COMPOSITION_REQUESTS = new Map<string, Promise<string>>();
@@ -440,54 +440,40 @@ function groupBgHeroesFromApi(
   });
 }
 
-async function bgLoadHeroSlice(
+async function bgFetchLiveHeroSlice(
   mode: BattlegroundHeroMode,
   mmr: BattlegroundHeroMmr,
-): Promise<BattlegroundHeroCacheEntry> {
-  const cacheKey = `${mode}:${mmr}`;
-  const cached = BG_HEROES_CLIENT_CACHE.get(cacheKey);
-  if (cached) return cached;
-  const pending = BG_HEROES_CLIENT_REQUESTS.get(cacheKey);
-  if (pending) return pending;
-
-  const request = (async () => {
-    try {
-      const [apiPayload, libraryByDbfId, imageByDbfId] = await Promise.all([
-        fetch(bgHeroApiUrl(mode, mmr)).then(async response => {
-          const payload = await response.json().catch(() => ({}));
-          if (!response.ok || payload?.ok === false) throw new Error(payload?.error || 'API героев временно недоступен');
-          return payload;
-        }),
-        bgLoadHeroLibrary(),
-        bgLoadHeroImageMap(),
-      ]);
-      const sections = groupBgHeroesFromApi(apiPayload, imageByDbfId, libraryByDbfId);
-      if (!sections.length) throw new Error('API героев вернул пустой список');
-      const modeLabel = mode === 'duos' ? 'Дуо' : 'Соло';
-      const mmrLabel = BG_HERO_MMR_OPTIONS.find(option => option.id === mmr)?.label || '';
-      const entry = {
-        sections,
-        sourceLabel: `HSReplay · ${modeLabel} · ${mmrLabel} · обновлено ${formatDate(apiPayload.fetched_at)}`,
-      };
-      BG_HEROES_CLIENT_CACHE.set(cacheKey, entry);
-      return entry;
-    } catch (apiError) {
-      if (mode === 'duos') throw apiError;
-      const response = await fetch('/bg-legacy/tier-data.js?v=heroes-20260626', { cache: 'no-store' });
-      if (!response.ok) throw new Error('Не удалось загрузить резервный тир-лист героев');
-      const parsed = parseLegacyHeroTierData(await response.text());
-      if (!parsed.length) throw new Error('В резервном тир-листе героев нет данных');
-      const entry = { sections: parsed, sourceLabel: 'Резервный локальный снапшот' };
-      BG_HEROES_CLIENT_CACHE.set(cacheKey, entry);
-      return entry;
-    }
-  })().finally(() => {
-    BG_HEROES_CLIENT_REQUESTS.delete(cacheKey);
-  });
-
-  BG_HEROES_CLIENT_REQUESTS.set(cacheKey, request);
-  return request;
+): Promise<BattlegroundHeroTierData> {
+  const [apiPayload, libraryByDbfId, imageByDbfId] = await Promise.all([
+    fetch(bgHeroApiUrl(mode, mmr)).then(async response => {
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || payload?.ok === false) throw new Error(payload?.error || 'API героев временно недоступен');
+      return payload;
+    }),
+    bgLoadHeroLibrary(),
+    bgLoadHeroImageMap(),
+  ]);
+  const sections = groupBgHeroesFromApi(apiPayload, imageByDbfId, libraryByDbfId);
+  if (!sections.length) throw new Error('API героев вернул пустой список');
+  const modeLabel = mode === 'duos' ? 'Дуо' : 'Соло';
+  const mmrLabel = BG_HERO_MMR_OPTIONS.find(option => option.id === mmr)?.label || '';
+  return { sections,
+    sourceLabel: `HSReplay · ${modeLabel} · ${mmrLabel} · обновлено ${formatDate(apiPayload.fetched_at)}`,
+  };
 }
+
+async function bgLoadHeroSnapshot(): Promise<BattlegroundHeroTierData> {
+  const response = await fetch('/bg-legacy/tier-data.js?v=heroes-20260626', { cache: 'no-store' });
+  if (!response.ok) throw new Error('Не удалось загрузить резервный тир-лист героев');
+  const sections = parseLegacyHeroTierData(await response.text());
+  if (!sections.length) throw new Error('В резервном тир-листе героев нет данных');
+  return { sections, sourceLabel: 'Резервный локальный снапшот' };
+}
+
+const bgHeroTierResource = createBattlegroundHeroTierResource({
+  loadLive: bgFetchLiveHeroSlice,
+  loadSnapshot: bgLoadHeroSnapshot,
+});
 
 function bgScheduleHeroPrefetch(
   selectedMode: BattlegroundHeroMode,
@@ -508,12 +494,12 @@ function bgScheduleHeroPrefetch(
   ];
 
   const timer = window.setTimeout(() => {
-    const queue = targets.filter(([targetMode, targetMmr]) => !BG_HEROES_CLIENT_CACHE.has(`${targetMode}:${targetMmr}`));
+    const queue = targets.filter(([targetMode, targetMmr]) => !bgHeroTierResource.peek(targetMode, targetMmr));
     const worker = async () => {
       while (!cancelled) {
         const target = queue.shift();
         if (!target) return;
-        await bgLoadHeroSlice(target[0], target[1]).catch(() => undefined);
+        await bgHeroTierResource.load(target[0], target[1]).catch(() => undefined);
       }
     };
     void Promise.all([worker(), worker()]);
@@ -3548,51 +3534,14 @@ function BattlegroundTierList() {
 
 function BattlegroundHeroTierList({ onNavigate }: { onNavigate: (path: string) => void }) {
   const initialUrlState = useMemo(bgHeroListUrlState, []);
-  const initialCacheKey = `${initialUrlState.mode}:${initialUrlState.mmr}`;
-  const initialHeroesCache = BG_HEROES_CLIENT_CACHE.get(initialCacheKey);
-  const [sections, setSections] = useState<BattlegroundHeroTierSection[]>(() => initialHeroesCache?.sections || []);
-  const [sourceLabel, setSourceLabel] = useState(() => initialHeroesCache?.sourceLabel || '');
   const [mode, setMode] = useState<BattlegroundHeroMode>(initialUrlState.mode);
   const [mmr, setMmr] = useState<BattlegroundHeroMmr>(initialUrlState.mmr);
   const [view, setView] = useState<BattlegroundHeroView>(initialUrlState.view);
   const [searchTerm, setSearchTerm] = useState(initialUrlState.search);
   const [sortKey, setSortKey] = useState<BattlegroundHeroSortKey>(initialUrlState.sortKey);
   const [sortDirection, setSortDirection] = useState<BattlegroundHeroSortDirection>(initialUrlState.sortDirection);
-  const [loading, setLoading] = useState(() => !initialHeroesCache);
-  const [error, setError] = useState('');
+  const { sections, sourceLabel, loading, error } = useBattlegroundHeroTierData(bgHeroTierResource, mode, mmr);
   const deferredSearchTerm = useDeferredValue(searchTerm);
-
-  useEffect(() => {
-    let alive = true;
-    const cacheKey = `${mode}:${mmr}`;
-    const cached = BG_HEROES_CLIENT_CACHE.get(cacheKey);
-    if (cached) {
-      setSections(cached.sections);
-      setSourceLabel(cached.sourceLabel);
-      setLoading(false);
-      setError('');
-      return () => { alive = false; };
-    }
-
-    setLoading(true);
-    setError('');
-    void bgLoadHeroSlice(mode, mmr)
-      .then(entry => {
-        if (!alive) return;
-        React.startTransition(() => {
-          setSections(entry.sections);
-          setSourceLabel(entry.sourceLabel);
-          setError('');
-        });
-      })
-      .catch(loadError => {
-        if (alive) setError(loadError?.message || 'Не удалось загрузить тир-лист героев');
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
-      });
-    return () => { alive = false; };
-  }, [mmr, mode]);
 
   useEffect(() => bgScheduleHeroPrefetch(initialUrlState.mode, initialUrlState.mmr), [initialUrlState.mmr, initialUrlState.mode]);
 

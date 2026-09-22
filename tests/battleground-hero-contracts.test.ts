@@ -83,8 +83,10 @@ const RUNTIME_CONTRACT_NAMES = [
   'battlegroundFullCardImage',
   'battlegroundHeroCardImage',
   'battlegroundHeroRosterBridgeV1',
+  'createBattlegroundHeroTierResource',
   'preferredBattlegroundGoldenBuddyImage',
   'preferredBattlegroundHeroImage',
+  'useBattlegroundHeroTierData',
 ] as const;
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -106,10 +108,10 @@ for (const statement of publicEntry.statements) {
   const destination = statement.isTypeOnly ? publicTypeNames : publicRuntimeNames;
   destination.push(...statement.exportClause.elements.map(element => element.name.text));
 }
-assert.deepEqual(publicTypeNames.sort(), [...CONTRACT_NAMES],
-  'the Battlegrounds public entry must expose exactly the seven hero catalog contracts');
+assert.deepEqual(publicTypeNames.sort(), [...CONTRACT_NAMES, 'BattlegroundHeroTierData'].sort(),
+  'the Battlegrounds public entry exposes the hero catalog and tier-data contracts');
 assert.deepEqual(publicRuntimeNames.sort(), [...RUNTIME_CONTRACT_NAMES],
-  'the Battlegrounds public entry must expose exactly the hero image policy and legacy bridge');
+  'the Battlegrounds public entry exposes the image policy, legacy bridge and tier resource');
 
 const heroCatalogModel = parsedSource(
   '../src/modules/battlegrounds/model/heroCatalog.ts',
@@ -175,7 +177,7 @@ function assertConsumerImports(
   return sourceFile;
 }
 
-assertConsumerImports('../src/features/Battlegrounds.tsx', CONTRACT_NAMES, RUNTIME_CONTRACT_NAMES);
+assertConsumerImports('../src/features/Battlegrounds.tsx', [...CONTRACT_NAMES, 'BattlegroundHeroTierData'], RUNTIME_CONTRACT_NAMES);
 const ledgerSource = assertConsumerImports(
   '../src/features/BattlegroundHeroLedger.tsx',
   CONTRACT_NAMES.filter(name => name !== 'BattlegroundHeroRelatedCard'),

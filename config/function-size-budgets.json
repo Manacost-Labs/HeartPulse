@@ -44,7 +44,7 @@
     "src/features/BattlegroundHeroLedger.tsx#BattlegroundHeroLedger": 140,
     "src/features/Battlegrounds.tsx#BattlegroundHeroDetailPage": 368,
     "src/features/Battlegrounds.tsx#BattlegroundHeroMediaLightbox": 171,
-    "src/features/Battlegrounds.tsx#BattlegroundHeroTierList": 266,
+    "src/features/Battlegrounds.tsx#BattlegroundHeroTierList": 229,
     "src/features/Battlegrounds.tsx#BattlegroundTierCard": 140,
     "src/features/Battlegrounds.tsx#BattlegroundTierList": 552,
     "src/features/BattlegroundTrinketTierRow.tsx#BattlegroundTrinketTierRow": 173,

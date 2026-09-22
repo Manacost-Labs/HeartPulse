@@ -2,6 +2,12 @@
 
 ## Purpose
 
+The Battlegrounds module owns hero-tier cache lifetimes and mounted-consumer
+retry scheduling and the React subscription hook. The legacy route injects
+live API and local snapshot loaders;
+it retains source normalization and rendering while consuming the module's
+public resource contract. Disposing a view stops its timers and callbacks.
+
 `src/modules/arenaClasses` owns validated class statistics, account-scoped
 browser caching, request lifecycle and ranking presentation. The legacy Arena
 route composes this module with its existing permission gate and page chrome;

@@ -81,7 +81,7 @@ not reproduce concurrent SMTP completion against the real SQLite persistence.
   distinct; source/update time visible; State: Complete
 - Step 4: BG cache recovery. Dependency: 0; Acceptance and verification: Fallback
   snapshot expires; retries replace it when API recovers; deterministic time
-  tests; State: Pending
+  tests; State: Complete
 - Step 5: Card URL contract. Dependency: 0; Acceptance and verification: Links,
   canonical, sitemap and monitor agree for ordinary IDs and encoded
   `blizzard:<dbf>` IDs; State: Pending
@@ -251,3 +251,32 @@ The final build with explicit chunk ownership passed the complete authenticated
 and mobile E2E again. The final Storybook build and 21-state Chrome review also
 passed after that configuration change. Next: give Battlegrounds hero snapshots
 an expiry and a mounted-view retry path so API recovery replaces the snapshot.
+
+## Battlegrounds cache increment
+
+Documentation impact: this plan, `docs/specs/battleground-hero-cache.md`,
+`docs/architecture/module-boundaries.md`, the Battlegrounds catalog entry and
+`CHANGELOG.md`. Move hero-tier cache ownership into the existing Battlegrounds
+module. Live responses expire after five minutes; reserve snapshots expire
+after thirty seconds. Mounted consumers retry at expiry, share in-flight
+requests and stop callbacks/timers when disposed. A recovered API replaces the
+snapshot without reloading the page. Duos must never use a solo snapshot.
+
+The former loader was executed with controlled dependencies: after an API
+failure and sixty seconds of simulated time, it still returned the snapshot
+and had made only one API request. The new resource passes clock-controlled
+expiry, live recovery, concurrent-request, bounded-error-retry and disposal
+checks. The React hook also owns filter-specific state, so a newly selected
+mode cannot briefly show the previous mode's rows.
+
+Hero contracts, TypeScript, production build and byte budgets, architecture,
+clean-code, registry, docs, Semgrep, Knip, parser properties, Sentry privacy,
+Storybook contract/build, agent-tooling and hero-motion browser checks pass.
+React Doctor has no errors; its one warning concerns the existing two-worker
+prefetch loop, whose sequential awaits intentionally limit concurrency.
+Chrome DevTools reviewed the live hero-list story at 320, 390 and 1440 pixels:
+no overflow, broken images, application errors or failed requests; observed
+local LCP was at most 164 ms and CLS below 0.028. Screenshots were inspected.
+The Battlegrounds file cap is now 4,101 lines and the tier-list function cap is
+229 lines, with no new source-debt or import exceptions. Next: card URL
+round-trip, canonical, sitemap and production-monitor consistency.
