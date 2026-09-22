@@ -27,6 +27,7 @@
     "node_modules",
     "build",
     "dist",
-    "storybook-static"
+    "storybook-static",
+    "apps/public-web"
   ]
 }

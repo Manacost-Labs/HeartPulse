@@ -6,5 +6,6 @@ description = "Generated application and component-workshop artifacts"
 paths = [
   '''^build/''',
   '''^dist/''',
+  '''^apps/public-web/\.next/''',
   '''^storybook-static/''',
 ]

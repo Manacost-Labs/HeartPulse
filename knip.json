@@ -3,13 +3,17 @@
   "entry": [
     "scripts/*.{js,mjs}",
     ".storybook/**/*.{ts,tsx}",
-    "src/**/*.stories.{ts,tsx}"
+    "src/**/*.stories.{ts,tsx}",
+    "apps/public-web/app/**/*.{ts,tsx}",
+    "apps/public-web/*.mjs"
   ],
   "project": [
     "src/**/*.{ts,tsx,css,mdx}",
     ".storybook/**/*.{ts,tsx,css}",
     "server/**/*.ts",
-    "scripts/*.{js,mjs}"
+    "scripts/*.{js,mjs}",
+    "apps/public-web/{app,lib,ui}/**/*.{ts,tsx}",
+    "apps/public-web/*.mjs"
   ],
   "ignore": [
     "public/**",

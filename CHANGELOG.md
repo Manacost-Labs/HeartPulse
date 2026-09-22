@@ -1650,3 +1650,9 @@
 
 - Extracted bounded card reads and the public projection for both HTML and JSON.
 - Reused the card identity presentation without changing public card controls.
+
+### Next.js foundation
+
+- Added an isolated Next.js 16.3.6 App Router build alongside Vite.
+- Added an opt-in local card-route gateway with tested switching and rollback.
+  Production routing remains unchanged.

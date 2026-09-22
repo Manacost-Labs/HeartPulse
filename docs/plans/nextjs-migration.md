@@ -90,7 +90,7 @@ not reproduce concurrent SMTP completion against the real SQLite persistence.
   repositories and pure model; hotspots and ratchets shrink; State: Complete
 - Step 7: Next.js foundations. Dependency: 5–6; Acceptance and verification: Official
   stable version/docs verified; side-by-side build; explicit URL ownership,
-  switch and rollback; legacy default remains functional; State: Pending
+  switch and rollback; legacy default remains functional; State: Complete
 - Step 8: Public card pilot. Dependency: 7; Acceptance and verification: Existing
   React presentation reused; indexable server HTML, canonical/sitemap, redirects
   and HTTP 404 verified; no private data in public cache; State: Pending
@@ -329,3 +329,14 @@ Storybook builds. Two identity stories pass their interaction checks and Chrome
 DevTools review at 1440/390/320 pixels with no overflow or broken images.
 Semgrep has zero findings. The legacy SEO renderer now injects the platform
 image resolver into the domain projection; no architecture exception was added.
+
+Step 7 verification: Next 16.3.6 production build and isolated TypeScript
+check pass; runtime health returns 200/no-store and an unknown route returns
+HTTP 404. Gateway tests exercise disabled, enabled and rollback states, retaining
+query strings, cookies and API bodies. Vite retains its separate typecheck to
+avoid Next ambient ProcessEnv declarations changing backend/test contracts.
+Knip, property, Sentry, architecture, clean-code, registry, docs and agent-tooling
+checks pass. npm reports zero dependency vulnerabilities. Semgrep has zero
+findings and Gitleaks finds no source/history leaks; generated `.next` artifacts
+are excluded alongside existing Vite/Storybook build outputs. The existing
+4320 listener was preserved; local Next smoke tests use the free port 4330.

@@ -12,3 +12,7 @@ screenshot/
 .env
 .env.*
 !.env.example
+
+# Isolated Next.js build output
+apps/public-web/.next/
+apps/public-web/tsconfig.tsbuildinfo
