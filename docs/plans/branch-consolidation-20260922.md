@@ -111,3 +111,12 @@ because integration passed.
 
 Next action: reconcile remaining independent branches and archived pending work
 with current contracts, verify each bounded change, and record its merge.
+
+## Superseded Reader iterations
+
+- `feat/reader-community-identity-release-20260910`: its permission bridge is
+  already present. Compared source, tests and specification: the only behavior
+  difference is the old staging-only client restriction. Preserve the newer
+  exact production/staging allowlist, production-client rejection tests, newer
+  route inventory and release notes. The resolved application tree is unchanged;
+  all nine permission-route tests pass against temporary SQLite databases.
