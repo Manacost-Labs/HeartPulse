@@ -66,6 +66,10 @@ because integration passed.
 - Current upstream fetched; isolated worktree preflight passed.
 - Backups completed and verified.
 - Divergent history reduced to 13 independent tips (excluding migration).
+- `chore/hearthpulse-reader-audit-20260910`: the sole commit is patch-equivalent
+  to upstream. A three-way merge produced no file changes; its ancestry is now
+  recorded without changing application behavior. Review/simplification found
+  no new code to alter; baseline verification remains applicable.
 - Initial upstream checks already passed in the migration preparation worktree:
   TypeScript, architecture, credential/verification/application-auth/session
   tests and full Vite/server/prerender build.
