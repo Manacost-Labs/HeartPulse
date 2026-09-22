@@ -75,7 +75,7 @@ not reproduce concurrent SMTP completion against the real SQLite persistence.
   waits; State: Complete
 - Step 2: Account blocking. Dependency: 1; Acceptance and verification: Browser
   sessions, application access/refresh tokens, issuance and tracker batches
-  reject blocked accounts using one server policy; State: Pending
+  reject blocked accounts using one server policy; State: Complete
 - Step 3: Arena data states. Dependency: 0; Acceptance and verification: No demo
   percentages in normal UI; loading, empty, error and stale real cache are
   distinct; source/update time visible; State: Pending
@@ -190,3 +190,25 @@ The manual helper separately requires the registration API's existing newsletter
 consent. A local pseudo-terminal check verified password masking and refusal
 without network requests; the unattended guard also passes. No production
 acceptance test was run. Next: reproduce and repair application-token blocking.
+
+## Account blocking increment
+
+Documentation impact: this plan, `docs/specs/public-api-v1-first-slice.md`,
+`docs/architecture/module-boundaries.md` and `CHANGELOG.md`. Device approval,
+exchange, refresh and bearer authentication must consult current account state;
+blocked or missing accounts cannot use an existing grant. Verify the real
+backend's browser session and tracker batch routes against a temporary SQLite
+database, with active-account controls before blocking.
+
+The baseline passed browser/session and browser approval checks but failed four
+application checks: exchange, refresh, token-family revocation and tracker
+writes. All six real-backend cases now pass, including rejection after an
+observed blocked account is unblocked. Existing application protocol, SQLite
+repository, tracker and credential-race tests also pass. The current-account
+resolver uses an indexed lookup, not a whole-store snapshot. Protocol contracts
+are separated from the manager; its existing size limit is preserved.
+
+TypeScript, server compilation, architecture, clean-code, registry and docs
+checks pass. Selected auth scans and Semgrep have no findings; Gitleaks finds
+no secrets. Next: replace Arena's synthetic fallback percentages with explicit
+loading, empty, error and stale real-data states.

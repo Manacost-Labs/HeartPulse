@@ -1,114 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { APPLICATION_AUTH_SCOPES, type ApplicationAuthScope } from './scopes.js';
-export type ApplicationAuthClient = {
-  id: string;
-  name: string;
-  scopes: ApplicationAuthScope[];
-};
-
-export type ApplicationDeviceAuthorization = {
-  deviceCodeHash: string;
-  userCodeHash: string;
-  clientId: string;
-  scopes: ApplicationAuthScope[];
-  status: 'PENDING' | 'APPROVED' | 'DENIED' | 'CONSUMED';
-  userId: string | null;
-  createdAt: number;
-  expiresAt: number;
-  intervalSeconds: number;
-  lastPolledAt: number | null;
-  approvedAt: number | null;
-  deniedAt: number | null;
-  consumedAt: number | null;
-};
-
-export type ApplicationToken = {
-  id: string;
-  familyId: string;
-  clientId: string;
-  userId: string;
-  scopes: ApplicationAuthScope[];
-  accessTokenHash: string;
-  refreshTokenHash: string;
-  accessExpiresAt: number;
-  refreshExpiresAt: number;
-  createdAt: number;
-  revokedAt: number | null;
-  replacedById: string | null;
-};
-
-export type ApplicationAuthRepository = {
-  insertDevice: (record: ApplicationDeviceAuthorization) => boolean;
-  findDeviceByHash: (hash: string) => ApplicationDeviceAuthorization | null;
-  findDeviceByUserCodeHash: (hash: string) => ApplicationDeviceAuthorization | null;
-  approveDevice: (hash: string, userId: string, approvedAt: number) => boolean;
-  denyDevice: (hash: string, deniedAt: number) => boolean;
-  recordDevicePoll: (hash: string, polledAt: number, intervalSeconds: number) => boolean;
-  issueDeviceTokens: (
-    hash: string,
-    token: ApplicationToken,
-    consumedAt: number,
-  ) => boolean;
-  findTokenByAccessHash: (hash: string) => ApplicationToken | null;
-  findTokenByRefreshHash: (hash: string) => ApplicationToken | null;
-  rotateRefreshToken: (
-    oldRefreshHash: string,
-    next: ApplicationToken,
-    revokedAt: number,
-  ) => boolean;
-  revokeTokenFamily: (familyId: string, revokedAt: number) => void;
-  revokeByRefreshHash: (hash: string, revokedAt: number) => boolean;
-};
-
-type ApplicationAuthManagerDependencies = {
-  repository: ApplicationAuthRepository;
-  clients: ApplicationAuthClient[];
-  verificationUri: string;
-  now?: () => number;
-  randomId?: (prefix: string) => string;
-  randomSecret?: (prefix: string) => string;
-  randomUserCode?: () => string;
-};
-
-type TokenPair = {
-  ok: true;
-  accessToken: string;
-  refreshToken: string;
-  tokenType: 'Bearer';
-  expiresIn: number;
-  scope: string;
-};
-
-type TokenError = {
-  ok: false;
-  error: 'authorization_pending' | 'slow_down' | 'access_denied' | 'expired_token' | 'invalid_grant';
-};
-
-export type ApplicationAuthManager = {
-  begin: (input: { clientId: unknown; scope: unknown }) => {
-    deviceCode: string;
-    userCode: string;
-    verificationUri: string;
-    verificationUriComplete: string;
-    expiresIn: number;
-    interval: number;
-  };
-  approve: (input: { userCode: unknown; userId: string }) => boolean;
-  deny: (input: { userCode: unknown }) => boolean;
-  inspect: (userCode: unknown) => {
-    clientId: string;
-    clientName: string;
-    scopes: ApplicationAuthScope[];
-    expiresAt: number;
-  } | null;
-  exchangeDevice: (input: { clientId: unknown; deviceCode: unknown }) => TokenPair | TokenError;
-  refresh: (input: { clientId: unknown; refreshToken: unknown }) => TokenPair | TokenError;
-  authenticate: (
-    accessToken: unknown,
-    requiredScopes: readonly ApplicationAuthScope[],
-  ) => ApplicationToken | null | 'FORBIDDEN';
-  revoke: (refreshToken: unknown) => boolean;
-};
+import type { ApplicationAuthManager, ApplicationAuthManagerDependencies, ApplicationToken, TokenPair } from './contracts.js';
 
 export class ApplicationAuthValidationError extends Error {
   constructor() {
@@ -150,6 +42,15 @@ function tokenValue(value: unknown, prefix: string): string {
   const token = String(value ?? '').trim();
   return token.startsWith(prefix) && token.length >= prefix.length + 32 ? token : '';
 }
+
+const pairFrom = (accessToken: string, refreshToken: string, record: ApplicationToken): TokenPair => ({
+  ok: true,
+  accessToken,
+  refreshToken,
+  tokenType: 'Bearer',
+  expiresIn: Math.floor((record.accessExpiresAt - record.createdAt) / 1_000),
+  scope: record.scopes.join(' '),
+});
 
 /**
  * Implements the protocol state machine independently from HTTP and SQLite.
@@ -204,15 +105,6 @@ export function createApplicationAuthManager(
     return { accessToken, refreshToken, record };
   };
 
-  const pairFrom = (accessToken: string, refreshToken: string, record: ApplicationToken): TokenPair => ({
-    ok: true,
-    accessToken,
-    refreshToken,
-    tokenType: 'Bearer',
-    expiresIn: Math.floor((record.accessExpiresAt - record.createdAt) / 1_000),
-    scope: record.scopes.join(' '),
-  });
-
   return {
     begin(input) {
       const { client, scopes } = resolveClientAndScopes(input.clientId, input.scope);
@@ -257,7 +149,7 @@ export function createApplicationAuthManager(
 
     approve(input) {
       const userCode = normalizeUserCode(input.userCode);
-      if (!userCode || !input.userId) return false;
+      if (!userCode || !input.userId || !dependencies.isAccountActive(input.userId)) return false;
       const record = dependencies.repository.findDeviceByUserCodeHash(digest(userCode));
       if (!record || record.expiresAt <= now()) return false;
       return dependencies.repository.approveDevice(record.deviceCodeHash, input.userId, now());
@@ -319,6 +211,10 @@ export function createApplicationAuthManager(
         return { ok: false, error: 'authorization_pending' };
       }
       if (!record.userId) return { ok: false, error: 'invalid_grant' };
+      if (!dependencies.isAccountActive(record.userId)) {
+        dependencies.repository.denyDevice(hash, currentTime);
+        return { ok: false, error: 'access_denied' };
+      }
 
       const issued = issueTokenRecord(
         record.clientId,
@@ -345,7 +241,7 @@ export function createApplicationAuthManager(
         dependencies.repository.revokeTokenFamily(previous.familyId, currentTime);
         return { ok: false, error: 'invalid_grant' };
       }
-      if (previous.refreshExpiresAt <= currentTime) {
+      if (previous.refreshExpiresAt <= currentTime || !dependencies.isAccountActive(previous.userId)) {
         dependencies.repository.revokeTokenFamily(previous.familyId, currentTime);
         return { ok: false, error: 'invalid_grant' };
       }
@@ -373,6 +269,10 @@ export function createApplicationAuthManager(
       if (!accessToken) return null;
       const record = dependencies.repository.findTokenByAccessHash(digest(accessToken));
       if (!record || record.revokedAt || record.accessExpiresAt <= now()) return null;
+      if (!dependencies.isAccountActive(record.userId)) {
+        dependencies.repository.revokeTokenFamily(record.familyId, now());
+        return null;
+      }
       if (requiredScopes.some(scope => !record.scopes.includes(scope))) return 'FORBIDDEN';
       return record;
     },

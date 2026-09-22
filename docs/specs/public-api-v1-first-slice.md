@@ -142,6 +142,14 @@ The registered public client uses the OAuth 2.0 Device Authorization Grant:
 6. Rotate the 30-day refresh token at the same token endpoint. A replayed
    refresh token revokes the complete token family.
 
+Approval, device exchange, refresh and bearer authentication check the current
+account record. Blocked or missing accounts cannot authorize an application or
+use existing credentials, including at `/api/v1/tracker/events/batch`. A rejected
+exchange denies the device grant; a rejected refresh or bearer request revokes
+its token family. Unblocking the account does not restore credentials already
+revoked this way. Denials are private, non-cacheable responses and do not write
+tracker events.
+
 The device and user codes expire after ten minutes. The database stores only
 SHA-256 digests of device, access and refresh credentials. Raw values exist
 only in one-time protocol responses and must be stored by the desktop client

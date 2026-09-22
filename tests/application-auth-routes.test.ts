@@ -27,7 +27,7 @@ const repository: ApplicationAuthRepository = {
   },
   denyDevice: (hash, deniedAt) => {
     const row = devices.get(hash);
-    if (!row || row.status !== 'PENDING') return false;
+    if (!row || !['PENDING', 'APPROVED'].includes(row.status)) return false;
     devices.set(hash, { ...row, status: 'DENIED', deniedAt });
     return true;
   },
@@ -68,6 +68,7 @@ const repository: ApplicationAuthRepository = {
 
 let random = 0;
 const manager = createApplicationAuthManager({
+  isAccountActive: userId => userId === 'user-1',
   repository,
   clients: [{
     id: 'manacost-tracker',

@@ -1,8 +1,6 @@
 import { Router, type Request, type Response } from 'express';
-import {
-  ApplicationAuthValidationError,
-  type ApplicationAuthManager,
-} from './model.js';
+import { ApplicationAuthValidationError } from './model.js';
+import type { ApplicationAuthManager } from './contracts.js';
 
 type ApplicationAuthRouterDependencies<User extends { id: string }, Subscription> = {
   manager: ApplicationAuthManager;

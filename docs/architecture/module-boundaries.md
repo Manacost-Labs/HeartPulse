@@ -2,6 +2,12 @@
 
 ## Purpose
 
+Application authorization owns protocol contracts and token policy separately
+inside `server/modules/applicationAuth`. Composition injects the canonical
+current-account resolver; the module rechecks eligibility when approving,
+exchanging, refreshing and authenticating credentials. Tracker ingestion shares
+this authenticator and cannot bypass account blocking.
+
 This document is the architectural contract for new code and incremental
 refactoring in HS-Arena. It defines ownership and dependency direction so the
 application can be changed without first understanding a multi-thousand-line

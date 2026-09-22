@@ -7352,7 +7352,19 @@ const cardImageRouterDependencies = createCardImageDependencies({
   ),
 });
 
-const applicationAuth = registerApplicationAuth({ app, getDatabase: db, appUrl: APP_URL, userAuth, resolveUser: userId => loadAuthStore().users.find(user => user.id === userId && !user.blockedAt) ?? null, serializeUser: user => serializeApplicationProfileUser(user, APP_URL), readSubscription: userId => serializeApplicationSubscription(readSubscriptionStatus(userId) ?? emptySubscriptionStatus()), emptySubscription: () => serializeApplicationSubscription(emptySubscriptionStatus()), setPrivateNoStore });
+const applicationAuth = registerApplicationAuth({
+  app, getDatabase: db, appUrl: APP_URL, userAuth,
+  resolveUser: userId => {
+    const user = findAuthUserById(userId);
+    return user && !user.blockedAt ? user : null;
+  },
+  serializeUser: user => serializeApplicationProfileUser(user, APP_URL),
+  readSubscription: userId => serializeApplicationSubscription(
+    readSubscriptionStatus(userId) ?? emptySubscriptionStatus(),
+  ),
+  emptySubscription: () => serializeApplicationSubscription(emptySubscriptionStatus()),
+  setPrivateNoStore,
+});
 registerTrackerIngestion({ app, getDatabase: db, accessTokens: applicationAuth, setPrivateNoStore });
 registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit, cardImageDependencies: cardImageRouterDependencies, accessTokens: applicationAuth, publicOrigin: APP_URL, ...createPublicApiCardSources(() => constructedCardDataService), metaStatistics: { loadMeta: loadStandardMeta, loadCatalog: loadConstructedArchetypeCatalog, loadHistory: loadConstructedArchetypeHistory, loadAnalysis: loadConstructedArchetypeAnalysis }, deckStatistics: { loadCatalog: loadConstructedArchetypeCatalog }, arenaStatistics: { loadClasses: source => source === 'firestone' ? fetchFirestoneClassWinratesData() : fetchFreshestClassWinratesData(), loadCards: source => getTierlistApiData(source, Date.now()).then(result => result.data), loadLegendaries: source => getLegendariesApiData(source, Date.now()).then(result => result.data), loadMatchups: source => source === 'firestone' ? fetchFirestoneClassWinratesData().then(firestoneArenaMatchupsDataset) : fetchClassMatchupsData() } });
 app.use('/_internal', createTierlistCacheBustRouter({

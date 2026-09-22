@@ -28,7 +28,7 @@ const repository: ApplicationAuthRepository = {
   },
   denyDevice: (hash, deniedAt) => {
     const record = devices.get(hash);
-    if (!record || record.status !== 'PENDING') return false;
+    if (!record || !['PENDING', 'APPROVED'].includes(record.status)) return false;
     devices.set(hash, { ...record, status: 'DENIED', deniedAt });
     return true;
   },
@@ -79,6 +79,7 @@ let now = Date.UTC(2026, 6, 29, 14, 0, 0);
 let randomCounter = 0;
 const userCodes = ['ABCD-EFGH', 'WXYZ-2345', 'QRST-6789'];
 const manager = createApplicationAuthManager({
+  isAccountActive: userId => userId === 'user-1',
   repository,
   clients: [{
     id: 'manacost-tracker',
@@ -132,6 +133,7 @@ const tooFast = manager.exchangeDevice({
 });
 assert.deepEqual(tooFast, { ok: false, error: 'slow_down' });
 
+assert.equal(manager.approve({ userCode: 'abcd efgh', userId: 'missing-account' }), false);
 assert.equal(manager.approve({ userCode: 'abcd efgh', userId: 'user-1' }), true);
 now += 10_000;
 const issued = manager.exchangeDevice({

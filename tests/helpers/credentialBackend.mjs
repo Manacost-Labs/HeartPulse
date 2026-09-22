@@ -141,7 +141,7 @@ export async function startCredentialBackend() {
       database, smtp, close,
       request(path, body, headers = {}) {
         return fetch(`${origin}${path}`, {
-          method: 'POST',
+          method: body === undefined ? 'GET' : 'POST',
           headers: { 'Content-Type': 'application/json', Origin: origin, ...headers },
           body: JSON.stringify(body),
           signal: AbortSignal.timeout(8000),

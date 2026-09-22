@@ -3,7 +3,7 @@ import {
   type ApplicationAuthRepository,
   type ApplicationDeviceAuthorization,
   type ApplicationToken,
-} from './model.js';
+} from './contracts.js';
 import { APPLICATION_AUTH_SCOPES, type ApplicationAuthScope } from './scopes.js';
 
 export const APPLICATION_AUTH_TABLES_SQL = `
@@ -206,7 +206,7 @@ export function createSqliteApplicationAuthRepository(
       const result = getDatabase().prepare(`
         UPDATE application_device_authorizations
         SET status = 'DENIED', denied_at = ?
-        WHERE device_code_hash = ? AND status = 'PENDING' AND expires_at > ?
+        WHERE device_code_hash = ? AND status IN ('PENDING', 'APPROVED') AND expires_at > ?
       `).run(deniedAt, hash, deniedAt);
       return Number(result.changes) === 1;
     },

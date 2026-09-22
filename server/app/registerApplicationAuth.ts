@@ -43,6 +43,7 @@ export function registerApplicationAuth<User extends { id: string }, Subscriptio
   initializeApplicationAuthRepository(dependencies.getDatabase);
   const manager = createApplicationAuthManager({
     repository: createSqliteApplicationAuthRepository(dependencies.getDatabase),
+    isAccountActive: userId => dependencies.resolveUser(userId) !== null,
     clients: [{
       id: 'manacost-tracker',
       name: 'Manacost Tracker',
