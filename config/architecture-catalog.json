@@ -1159,6 +1159,43 @@
         "other module internals",
         "server/index.ts"
       ]
+    },
+    {
+      "name": "frontend-arena-classes",
+      "status": "modular",
+      "owner": "web-platform",
+      "purpose": "Owns Arena class-statistics client state, cache and ranking presentation.",
+      "paths": [
+        "src/modules/arenaClasses"
+      ],
+      "publicEntrypoints": [
+        "src/modules/arenaClasses/public.ts"
+      ],
+      "frontendRoutes": [
+        "/classes"
+      ],
+      "backendRoutes": [],
+      "contracts": [
+        "docs/specs/arena-classes-data.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [
+        "arena-classes:v3:<account>:<source>"
+      ],
+      "dataStores": [
+        "browser:localStorage"
+      ],
+      "externalServices": [],
+      "tests": [
+        "tests/arena-classes-data.test.ts"
+      ],
+      "allowedDependencies": [
+        "React"
+      ],
+      "forbiddenImports": [
+        "server/**",
+        "other frontend module internals"
+      ]
     }
   ],
   "legacyAreas": [

@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { HSCard, Winrates } from './DeferredRoutes';
+import { HSCard, WinratesView as Winrates } from './DeferredRoutes';
 
 const portraitSource = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="512" height="776"%3E%3Crect width="512" height="776" fill="%23315576"/%3E%3C/svg%3E';
 const wideSource = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="960" height="320"%3E%3Crect width="960" height="320" fill="%23644c82"/%3E%3C/svg%3E';
@@ -50,13 +50,11 @@ export const DisparateSourcesAndFallback: Story = {
 type WinratesProps = ComponentProps<typeof Winrates>;
 
 const winrateProps: WinratesProps = {
-  classes: [{ id: 'mage', name: 'Маг', winrate: 54.2, color: '#4c78d0', games: 12890 }],
-  loading: false,
-  switching: false,
-  error: false,
-  updatedAt: '2026-09-10T12:00:00.000Z',
-  winrateSource: 'hsreplay',
-  onSourceChange: () => undefined,
+  state: { status: 'ready', data: {
+    classes: [{ id: 'mage', name: 'Маг', winrate: 54.2, color: '#4c78d0', games: 12890 }],
+    updatedAt: '2026-09-10T12:00:00.000Z', source: 'hsreplay',
+  } },
+  onRetry: () => undefined,
   onNavigate: () => undefined,
   authUser: null,
   subscriptionStatus: null,

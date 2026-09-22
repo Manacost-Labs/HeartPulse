@@ -98,7 +98,8 @@ const budgets = {
   initialJsGzip: Number(process.env.BUDGET_INITIAL_JS_GZIP_BYTES || 81_880),
   vendorReact: Number(process.env.BUDGET_VENDOR_REACT_BYTES || 194_000),
   routeJs: Number(process.env.BUDGET_ROUTE_JS_BYTES || 134_300),
-  deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 78_000),
+  deferredRoutesJs: Number(process.env.BUDGET_DEFERRED_ROUTES_JS_BYTES || 73_675),
+  arenaClassesJs: 7_642,
   loginPanelJs: Number(process.env.BUDGET_LOGIN_PANEL_JS_BYTES || 29_850),
   publicProfilePageJs: Number(process.env.BUDGET_PUBLIC_PROFILE_PAGE_JS_BYTES || 3_400),
   profileIdentityHeroJs: Number(process.env.BUDGET_PROFILE_IDENTITY_HERO_JS_BYTES || 1_150),
@@ -127,7 +128,8 @@ const budgets = {
   cardPreviewSheetCss: Number(process.env.BUDGET_CARD_PREVIEW_SHEET_CSS_BYTES || 3_100),
   cardPreviewTooltipJs: Number(process.env.BUDGET_CARD_PREVIEW_TOOLTIP_JS_BYTES || 900),
   cardPreviewTooltipCss: Number(process.env.BUDGET_CARD_PREVIEW_TOOLTIP_CSS_BYTES || 650),
-  adminWorkspaceShellJs: Number(process.env.BUDGET_ADMIN_WORKSPACE_SHELL_JS_BYTES || 5_334),
+  // Explicit module chunks move one React import to vendor-react (+5 bytes).
+  adminWorkspaceShellJs: Number(process.env.BUDGET_ADMIN_WORKSPACE_SHELL_JS_BYTES || 5_339),
   adminWorkspaceShellCss: Number(process.env.BUDGET_ADMIN_WORKSPACE_SHELL_CSS_BYTES || 34_727),
 };
 
@@ -166,6 +168,7 @@ const css = files.find(file => /^index-.*\.css$/.test(file.name));
 const routeCss = files.find(file => /^route-parchment-.*\.css$/.test(file.name));
 const deferredRoutesCss = files.find(file => /^(?:DeferredRoutes|EditorialRouteChrome)-.*\.css$/.test(file.name));
 const deferredRoutesJs = files.find(file => /^DeferredRoutes-.*\.js$/.test(file.name));
+const arenaClassesJs = files.find(file => /^arena-classes-.*\.js$/.test(file.name));
 const galleryPageJs = files.find(file => /^GalleryTab-.*\.js$/.test(file.name));
 const editorialRouteChromeJs = files.find(file => /^EditorialRouteChrome-.*\.js$/.test(file.name));
 const loginPanelEntry = viteManifest['src/modules/identity/ui/LoginPanel.tsx'];
@@ -228,6 +231,7 @@ const checks = [
   ['initial JS gzip total', initialJsGzip, budgets.initialJsGzip],
   ['largest route JS', routeJs[0], budgets.routeJs],
   ['Arena deferred route JS', deferredRoutesJs, budgets.deferredRoutesJs],
+  ['Arena classes module JS', arenaClassesJs, budgets.arenaClassesJs],
   ['identity login-panel JS', loginPanelJs, budgets.loginPanelJs],
   ['identity public-profile page JS', publicProfilePageJs, budgets.publicProfilePageJs],
   ['identity profile-hero JS', profileIdentityHeroJs, budgets.profileIdentityHeroJs],

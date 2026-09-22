@@ -538,6 +538,22 @@
       "docs": [
         "docs/specs/authentication-persistence.md"
       ]
+    },
+    {
+      "id": "client.arenaClasses",
+      "runtime": "client",
+      "root": "src/modules/arenaClasses",
+      "purpose": "Owns validated Arena class statistics, account-scoped cache, loading state and ranking presentation.",
+      "owner": "web-platform",
+      "publicEntry": "src/modules/arenaClasses/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:arena-classes-data"
+      ],
+      "docs": [
+        "docs/specs/arena-classes-data.md",
+        "docs/architecture/module-boundaries.md"
+      ]
     }
   ],
   "migrationAreas": [

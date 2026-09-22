@@ -1,6 +1,7 @@
 import type { Preview } from '@storybook/react-vite';
 
 import '../src/index.css';
+import '../src/route-parchment.css';
 import './preview.css';
 import { installFieldFocusMode } from '../src/app/shell/installFieldFocusMode';
 

@@ -31,6 +31,7 @@
         "tests/architecture-baseline.test.mjs",
         "tests/architecture-catalog.test.mjs",
         "tests/arena-class-statistics-normalizer.test.ts",
+        "tests/arena-classes-data.test.ts",
         "tests/arena-draft-advisor.test.ts",
         "tests/arena-draft-assistant-ui.test.ts",
         "tests/arena-draft-refresh-pipeline.test.ts",

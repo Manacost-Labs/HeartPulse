@@ -177,11 +177,7 @@ interface LegendariesData {
   warning?: string;
 }
 
-interface WinratesData {
-  classes: ClassData[];
-  updatedAt: string | null;
-  source: string;
-}
+
 
 interface TierlistData {
   sections:  ClassSection[];
@@ -306,19 +302,7 @@ async function fetchLatestAppAsset(pathname: string, signal: AbortSignal): Promi
 }
 
 // ─── Fallback data ────────────────────────────────────────────────────────────
-const FALLBACK_CLASSES: ClassData[] = [
-  { id: 'dk',      name: 'Рыцарь смерти',     winrate: 56.2, color: '#1f252d' },
-  { id: 'paladin', name: 'Паладин',            winrate: 54.8, color: '#a88a45' },
-  { id: 'shaman',  name: 'Шаман',              winrate: 53.1, color: '#2a2e6b' },
-  { id: 'hunter',  name: 'Охотник',            winrate: 51.5, color: '#1d5921' },
-  { id: 'mage',    name: 'Маг',                winrate: 50.2, color: '#2b5c85' },
-  { id: 'rogue',   name: 'Разбойник',          winrate: 49.8, color: '#333333' },
-  { id: 'warlock', name: 'Чернокнижник',       winrate: 48.5, color: '#5c265c' },
-  { id: 'druid',   name: 'Друид',              winrate: 47.2, color: '#704a16' },
-  { id: 'warrior', name: 'Воин',               winrate: 46.1, color: '#7a1e1e' },
-  { id: 'priest',  name: 'Жрец',               winrate: 44.5, color: '#d1d1d1', textDark: true },
-  { id: 'dh',      name: 'Охотник на демонов', winrate: 43.2, color: '#224722' },
-];
+
 type TelegramAuthPayload = {
   id: number | string;
   first_name?: string;
@@ -475,10 +459,7 @@ const RouteFallback = RouteLoadingSurface;
 // ─── Persistent cache with TTL (survives tab close, expires with data) ────────
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 h — matches server scrape interval
 const TIERLIST_CACHE_TTL_MS = 60 * 1000;
-const WINRATES_CACHE_KEY: Record<'hsreplay' | 'firestone', string> = {
-  hsreplay: 'wr_hsreplay_arena_v2',
-  firestone: 'wr_firestone',
-};
+
 
 function cacheGet<T>(key: string, maxAgeMs: number = CACHE_TTL_MS): T | null {
   try {
@@ -782,16 +763,12 @@ export default function App() {
     void fetchAppSubscription(false);
   }, [appAuthUser, fetchAppSubscription]);
 
-  const [winrateSource, setWinrateSource] = useState<'hsreplay' | 'firestone'>('hsreplay');
-  const winrateSourceRef = useRef<'hsreplay' | 'firestone'>('hsreplay');
   const [tierlistSource, setTierlistSource] = useState<TierlistSource>('hsreplay');
   const tierlistSourceRef = useRef<TierlistSource>('hsreplay');
   const [switchingTierlistSource, setSwitchingTierlistSource] = useState(false);
   const [legendarySource, setLegendarySource] = useState<LegendarySource>('hsreplay');
   const [switchingLegendarySource, setSwitchingLegendarySource] = useState(false);
-  const [winratesData, setWinratesData] = useState<WinratesData>({
-    classes: FALLBACK_CLASSES, updatedAt: null, source: 'initial',
-  });
+  const [arenaClassesUpdatedAt, setArenaClassesUpdatedAt] = useState<string | null>(null);
   const [tierlistData, setTierlistData] = useState<TierlistData>({
     sections: [], cards: {}, updatedAt: null, source: 'initial',
   });
@@ -804,17 +781,13 @@ export default function App() {
   const [galleryData, setGalleryData] = useState<GalleryData>({ items: [], updatedAt: null });
   const [loadingGallery, setLoadingGallery] = useState(false);
 
-  const [loadingWinrates,    setLoadingWinrates]    = useState(false); // false = show fallback immediately
   const [loadingTierlist,    setLoadingTierlist]    = useState(true);
   const [loadingLegendaries, setLoadingLegendaries] = useState(true);
   const [loadingHomeSummary, setLoadingHomeSummary] = useState(true);
-  const [errorWinrates,      setErrorWinrates]      = useState(false);
   const [errorTierlist,      setErrorTierlist]      = useState(false);
   const [errorLegendaries,   setErrorLegendaries]   = useState(false);
-  const [switchingSource,    setSwitchingSource]    = useState(false);
 
   // Generation counters prevent race conditions when two fetches run simultaneously
-  const wrGenRef = useRef(0);
   const tlGenRef = useRef(0);
   const lgGenRef = useRef(0);
   const homeSummaryGenRef = useRef(0);
@@ -843,27 +816,11 @@ export default function App() {
       if (gen !== homeSummaryGenRef.current) return;
       setHomeSummaryData(result.data);
     } catch {
-      // Keep the static winrate fallback; cards/legendaries stay as skeleton-free empty strips.
+      // Leave summary sections empty when no verified response is available.
     } finally {
       if (gen === homeSummaryGenRef.current) setLoadingHomeSummary(false);
     }
   }, []);
-
-  const fetchWinrates = useCallback(async (src: 'hsreplay' | 'firestone' = 'hsreplay') => {
-    const gen = ++wrGenRef.current;
-    const cacheKey = WINRATES_CACHE_KEY[src];
-    try {
-      // Show persisted cache instantly (survives tab close)
-      const cached = cacheGet<any>(cacheKey);
-      if (cached && gen === wrGenRef.current) setWinratesData(cached);
-      // Fetch fresh — ETag skips body if unchanged
-      const result = await fetchWithETag(`/api/winrates?source=${src}`, cacheKey);
-      if (!result || gen !== wrGenRef.current) return;
-      setWinratesData(result.data);
-      setErrorWinrates(false);
-    } catch { if (gen === wrGenRef.current) setErrorWinrates(true); }
-    finally  { if (gen === wrGenRef.current) { setLoadingWinrates(false); setSwitchingSource(false); } }
-	  }, []);
 
   const fetchTierlist = useCallback(async (src: TierlistSource = 'hsreplay', bust = false) => {
     const gen = ++tlGenRef.current;
@@ -991,17 +948,14 @@ export default function App() {
 
   const globalUpdatedAt = useMemo(
     () => latestHomeSummaryUpdatedAt(homeSummaryData)
-      || winratesData.updatedAt
+      || arenaClassesUpdatedAt
       || tierlistData.updatedAt
       || legendariesData.updatedAt
       || null,
-    [homeSummaryData, legendariesData.updatedAt, tierlistData.updatedAt, winratesData.updatedAt],
+    [homeSummaryData, legendariesData.updatedAt, tierlistData.updatedAt, arenaClassesUpdatedAt],
   );
 
-  useEffect(() => {
-    if (activeTab !== 'winrates' || privateRouteChecking || privateRouteLocked) return;
-    void fetchWinrates();
-  }, [activeTab, fetchWinrates, privateRouteChecking, privateRouteLocked]);
+
 
   useEffect(() => {
     if (homeSummaryRequestedRef.current) return;
@@ -1269,21 +1223,13 @@ export default function App() {
 	                {activeTab === 'winrates' && (
                   renderPrivateRoute(
                     <React.Suspense fallback={<RouteFallback minHeight={720} />}>
-	                    <LazyWinrates classes={winratesData.classes} loading={loadingWinrates} error={errorWinrates}
-	                      updatedAt={winratesData.updatedAt}
-	                      winrateSource={winrateSource}
-	                      switching={switchingSource}
+	                    <LazyWinrates onUpdatedAt={setArenaClassesUpdatedAt}
                       onNavigate={(tab: string) => navigate(tab as TabId)}
                       authUser={appAuthUser}
                       subscriptionStatus={appSubscription}
                       subscriptionLoading={appAuthChecking || appSubscriptionLoading}
                       onRefreshSubscription={() => fetchAppSubscription(true)}
-                      onSourceChange={async (src) => {
-                        setWinrateSource(src);
-                        winrateSourceRef.current = src;
-                        setSwitchingSource(true);
-                        await fetchWinrates(src);
-                      }} />
+                      />
                     </React.Suspense>
                     ,
                     720,

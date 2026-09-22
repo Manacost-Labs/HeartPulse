@@ -1,0 +1,31 @@
+.arena-classes-data-meta,
+.arena-classes-notice {
+  margin: 0 0 1rem;
+  color: #624522;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.arena-classes-notice {
+  padding: 0.75rem;
+  background: #f5ead3;
+  border: 1px solid #bda174;
+  border-radius: 0.5rem;
+}
+
+.arena-classes-retry {
+  min-height: 44px;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  color: #3d2208;
+  background: #efe0be;
+  border: 1px solid #8b6c42;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.arena-classes-retry:focus-visible {
+  outline: 3px solid #795013;
+  outline-offset: 3px;
+}

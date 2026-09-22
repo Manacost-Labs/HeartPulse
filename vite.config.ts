@@ -48,8 +48,11 @@ export default defineConfig(({mode}) => {
       },
       rollupOptions: {
         output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom', 'react-dom/client'],
+          onlyExplicitManualChunks: true,
+          manualChunks(id) {
+            if (id.includes('/src/modules/arenaClasses/')) return 'arena-classes';
+            if (id.includes('jsx-runtime') || id.includes('jsx-dev-runtime')) return;
+            if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'vendor-react';
           },
         },
       },

@@ -1,6 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import '../index.css';
-import '../route-parchment.css';
 import { WinrateMeterFill } from './WinrateMeterFill';
 
 const meta = {

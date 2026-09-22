@@ -2,6 +2,11 @@
 
 ## Purpose
 
+`src/modules/arenaClasses` owns validated class statistics, account-scoped
+browser caching, request lifecycle and ranking presentation. The legacy Arena
+route composes this module with its existing permission gate and page chrome;
+the application shell retains only the displayed update timestamp.
+
 Application authorization owns protocol contracts and token policy separately
 inside `server/modules/applicationAuth`. Composition injects the canonical
 current-account resolver; the module rechecks eligibility when approving,

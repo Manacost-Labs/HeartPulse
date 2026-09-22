@@ -78,7 +78,7 @@ not reproduce concurrent SMTP completion against the real SQLite persistence.
   reject blocked accounts using one server policy; State: Complete
 - Step 3: Arena data states. Dependency: 0; Acceptance and verification: No demo
   percentages in normal UI; loading, empty, error and stale real cache are
-  distinct; source/update time visible; State: Pending
+  distinct; source/update time visible; State: Complete
 - Step 4: BG cache recovery. Dependency: 0; Acceptance and verification: Fallback
   snapshot expires; retries replace it when API recovers; deterministic time
   tests; State: Pending
@@ -212,3 +212,42 @@ TypeScript, server compilation, architecture, clean-code, registry and docs
 checks pass. Selected auth scans and Semgrep have no findings; Gitleaks finds
 no secrets. Next: replace Arena's synthetic fallback percentages with explicit
 loading, empty, error and stale real-data states.
+
+## Arena classes increment
+
+Documentation impact: this plan, `docs/specs/arena-classes-data.md`,
+`docs/architecture/module-boundaries.md`, both module catalogs and `CHANGELOG.md`.
+Move class-statistics loading, validated account-scoped caching and the ranking
+board into `src/modules/arenaClasses`. The legacy route keeps its page chrome
+and permission gate. Remove both synthetic fallback arrays and the shell's
+class-fetch orchestration. Preserve the existing meter presentation; add stories
+for loading, real results, empty, error and stale cache. Cached protected data
+must be discarded on authorization failure and never be shared across accounts.
+
+Arena verification: deterministic cache/state tests, type checking, production
+build, registry, documentation, architecture, clean-code, Semgrep, Storybook
+contract/build, agent-tooling and card-motion browser tests pass. React Doctor
+0.5.8 reports no findings on changed files. The installed 0.9.13 also finishes
+its scan but prints an unrelated setup hint because the script is not named
+`doctor`; no setup changes were made.
+
+Chrome DevTools reviewed seven stories at 320, 390 and 1440 pixels (21 renders):
+no horizontal overflow, broken images, application console errors or failed
+network requests. A Storybook Story Store deprecation warning remains in its
+runtime. Observed local LCP was at most 224 ms and CLS below 0.003. Mobile and
+desktop screenshots were inspected. Full authenticated/mobile E2E, including
+320/390-pixel responsive routes, passed.
+
+The initial JavaScript is 260,031 bytes raw / 81,329 gzip, within unchanged
+startup caps. Explicit module splitting lowers the legacy Arena chunk to
+73,675 bytes and creates a 7,642-byte classes chunk; both caps are ratcheted to
+those measured values. The administrator shell changes only an import from the
+entry chunk to vendor-react (+5 bytes, 5,334 to 5,339); its measured cap reflects
+that metadata change. App and DeferredRoutes source caps fall to 1,395 and
+3,064 lines, and App's function cap falls to 852 lines. No import exceptions or
+source-debt allowances were added.
+
+The final build with explicit chunk ownership passed the complete authenticated
+and mobile E2E again. The final Storybook build and 21-state Chrome review also
+passed after that configuration change. Next: give Battlegrounds hero snapshots
+an expiry and a mounted-view retry path so API recovery replaces the snapshot.

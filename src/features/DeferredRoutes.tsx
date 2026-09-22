@@ -22,18 +22,11 @@ import {
 import TierlistEarlyStatsNotice from './TierlistEarlyStatsNotice';
 import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
 import { ArenaTierListSearchIntro } from '../modules/searchLanding/public';
-import { WinrateMeterFill } from './WinrateMeterFill';
+import { ArenaClassesBoard, useArenaClasses } from '../modules/arenaClasses/public';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface ClassData {
-  id: string;
-  name: string;
-  winrate: number;
-  color: string;
-  textDark?: boolean;
-  games?: number;
-}
+
 
 interface ClassMatchup {
   classAId: string;
@@ -133,21 +126,7 @@ const CLASS_ICON: Record<string, string> = {
 };
 
 /** Maps winrate class IDs → icon path (supports both short 'dk' and full 'death-knight' forms) */
-const CLASS_ICON_BY_ID: Record<string, string> = {
-  dk:             '/class_icon/deathknight.png',
-  'death-knight': '/class_icon/deathknight.png',
-  dh:             '/class_icon/demonhunter.png',
-  'demon-hunter': '/class_icon/demonhunter.png',
-  druid:          '/class_icon/druid.png',
-  hunter:         '/class_icon/hunter.png',
-  mage:           '/class_icon/mage.png',
-  paladin:        '/class_icon/paladin.png',
-  priest:         '/class_icon/priest.png',
-  rogue:          '/class_icon/rogue.png',
-  shaman:         '/class_icon/shaman.png',
-  warlock:        '/class_icon/warlock.png',
-  warrior:        '/class_icon/warrior.png',
-};
+
 
 interface LegendaryCard {
   cardId: string;
@@ -205,11 +184,7 @@ interface LegendariesData {
   warning?: string;
 }
 
-interface WinratesData {
-  classes: ClassData[];
-  updatedAt: string | null;
-  source: string;
-}
+
 
 interface TierlistData {
   sections:  ClassSection[];
@@ -369,19 +344,7 @@ const TIER_COLORS: Record<string, string> = {
 
 // ─── Fallback data ────────────────────────────────────────────────────────────
 
-const FALLBACK_CLASSES: ClassData[] = [
-  { id: 'dk',      name: 'Рыцарь смерти',     winrate: 56.2, color: '#1f252d' },
-  { id: 'paladin', name: 'Паладин',            winrate: 54.8, color: '#a88a45' },
-  { id: 'shaman',  name: 'Шаман',              winrate: 53.1, color: '#2a2e6b' },
-  { id: 'hunter',  name: 'Охотник',            winrate: 51.5, color: '#1d5921' },
-  { id: 'mage',    name: 'Маг',                winrate: 50.2, color: '#2b5c85' },
-  { id: 'rogue',   name: 'Разбойник',          winrate: 49.8, color: '#333333' },
-  { id: 'warlock', name: 'Чернокнижник',       winrate: 48.5, color: '#5c265c' },
-  { id: 'druid',   name: 'Друид',              winrate: 47.2, color: '#704a16' },
-  { id: 'warrior', name: 'Воин',               winrate: 46.1, color: '#7a1e1e' },
-  { id: 'priest',  name: 'Жрец',               winrate: 44.5, color: '#d1d1d1', textDark: true },
-  { id: 'dh',      name: 'Охотник на демонов', winrate: 43.2, color: '#224722' },
-];
+
 
 // ─── Fullscreen card modal ────────────────────────────────────────────────────
 
@@ -875,18 +838,24 @@ const UpdateBadge: React.FC<{ updatedAt: string | null }> =
 // ─── Winrates tab ─────────────────────────────────────────────────────────────
 
 
-export function Winrates({ classes, loading, switching, error, updatedAt, winrateSource, onSourceChange, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription }: {
-  classes: ClassData[]; loading: boolean; switching: boolean; error: boolean;
-  updatedAt: string | null;
-  winrateSource: 'hsreplay' | 'firestone';
-  onSourceChange: (src: 'hsreplay' | 'firestone') => void;
+type WinratesProps = {
   onNavigate: (tab: string) => void;
   authUser: AuthUser | null;
   subscriptionStatus: SubscriptionStatus | null;
   subscriptionLoading: boolean;
   onRefreshSubscription: () => Promise<SubscriptionStatus | null>;
+};
+
+export function Winrates(props: WinratesProps & { onUpdatedAt: (value: string | null) => void }) {
+  const allowed = !props.subscriptionLoading && hasSubscriptionEntitlement(props.subscriptionStatus, 'arena');
+  const { state, retry } = useArenaClasses(props.authUser?.id, allowed, props.onUpdatedAt);
+  return <WinratesView {...props} state={state} onRetry={retry} />;
+}
+
+export function WinratesView({ onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, state, onRetry }: WinratesProps & {
+  state: React.ComponentProps<typeof ArenaClassesBoard>['state'];
+  onRetry: () => void;
 }) {
-  const maxWinrate = useMemo(() => Math.max(...classes.map(c => c.winrate), 1), [classes]);
   const paywallActive = !subscriptionLoading && !hasSubscriptionEntitlement(subscriptionStatus, 'arena');
 
   return (
@@ -912,104 +881,7 @@ export function Winrates({ classes, loading, switching, error, updatedAt, winrat
         subscriptionLoading={subscriptionLoading}
         onRefreshSubscription={onRefreshSubscription}
       >
-      {/* UpdateBadge row */}
-      <div
-        className="arena-classes-update flex items-center justify-end mb-6 -mt-2"
-        data-tour-id="arena-classes-source"
-      >
-        <UpdateBadge updatedAt={updatedAt} />
-      </div>
-
-      {error && (
-        <div className="flex items-center gap-2 text-[#8b6c42] text-xs mb-5 px-3 py-2 rounded-lg bg-[#8b4513]/10 border border-[#8b4513]/20">
-          <AlertTriangle size={13} /><span>Нет соединения — показаны кэшированные данные</span>
-        </div>
-      )}
-
-      <div
-        className="arena-classes-board space-y-2.5 sm:space-y-3 relative"
-      >
-        <div className="arena-source-loading-overlay absolute inset-0 z-10 flex items-center justify-center rounded-2xl pointer-events-none"
-          style={{
-            background: 'transparent',
-            backdropFilter: 'none',
-            opacity: switching && !loading ? 1 : 0,
-            visibility: switching && !loading ? 'visible' : 'hidden',
-            transition: 'opacity 0.25s ease',
-          }}>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl font-hs text-sm"
-            style={{ background: 'linear-gradient(135deg,#5a3000,#3d1e00)', color: '#fcd34d',
-              transform: switching && !loading ? 'scale(1)' : 'scale(0.9)',
-              transition: 'transform 0.25s cubic-bezier(0.16,1,0.3,1)',
-            }}>
-            <RefreshCw size={14} style={{ animation: 'spin 0.8s linear infinite' }} />
-            Загрузка HSReplay…
-          </div>
-        </div>
-        {loading
-          ? Array.from({ length: 11 }).map((_, i) => (
-              <div key={i} className="skeleton h-16 sm:h-[72px] w-full" style={{ animationDelay: `${i * 0.06}s` }} />
-            ))
-          : classes.map((cls, index) => {
-              const icon    = CLASS_ICON_BY_ID[cls.id];
-              const barPct = Math.max((cls.winrate / maxWinrate) * 100, 6);
-
-              return (
-                <div
-                  key={cls.id}
-                  data-rank={index + 1}
-                  data-tour-id={index === 0 ? 'arena-classes-ranking' : undefined}
-                  className="arena-class-row group relative grid items-center gap-2.5 rounded-2xl overflow-hidden cursor-default sm:flex sm:gap-4"
-                  style={{
-                    background: 'linear-gradient(135deg, #ede0c0 0%, #e2cfa0 50%, #d8c090 100%)',
-                    border: '1.5px solid #c9a86c',
-                    padding: '10px 14px',
-                    gridTemplateColumns: '28px 36px minmax(82px,96px) minmax(0,1fr)',
-                  }}
-                >
-                  <span className="arena-class-rank" aria-label={`Место ${index + 1}`}>{index + 1}</span>
-                  {/* Class icon */}
-                  {icon && (
-                    <img src={icon} alt={cls.name}
-                      className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]"
-                      draggable={false}
-                    />
-                  )}
-
-                  {/* Class name */}
-                  <div className="min-w-0 sm:flex-shrink-0 sm:w-40">
-                    <span className="font-hs text-sm sm:text-base text-[#3d2208] tracking-wide leading-tight">
-                      {cls.name}
-                    </span>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div
-                    className="arena-class-meter relative h-7 sm:h-8 rounded-full overflow-hidden sm:flex-grow"
-                    data-tour-id={index === 0 ? 'arena-classes-details' : undefined}
-                    style={{
-                      minWidth: 118,
-                      background: 'linear-gradient(180deg,#1a0e06 0%,#2c1a0e 100%)',
-                      boxShadow: 'inset 0 3px 8px rgba(0,0,0,0.85), inset 0 -1px 2px rgba(255,255,255,0.05)',
-                      border: '1.5px solid #0a0502',
-                    }}>
-                    {/* Fill */}
-                    <WinrateMeterFill color={cls.color} delayMs={Math.min(index * 22, 176)} label={`${cls.winrate.toFixed(1)}%`} scale={barPct / 100} />
-                  </div>
-
-                  {/* Games count */}
-                  {(cls.games ?? 0) > 0 && (
-                    <div className="flex-shrink-0 hidden lg:block text-right min-w-[88px]">
-                      <span className="text-xs text-[#8b6c42] font-medium">
-                        {cls.games!.toLocaleString('ru-RU')} игр
-                      </span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-      </div>
-
+      <ArenaClassesBoard state={state} onRetry={onRetry} />
       <InternalLinks links={[
         { label: 'Тир-лист карт →', href: '/tierlist', onClick: () => onNavigate('tierlist') },
         { label: 'Легендарки →', href: '/legendaries', onClick: () => onNavigate('legendaries') },

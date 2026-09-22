@@ -238,6 +238,7 @@
     "game-data:audit": "tsx server/modules/gameDataAudit/cli.ts --force",
     "game-data:audit:scheduled": "tsx server/modules/gameDataAudit/cli.ts --scheduled",
     "test:game-data-audit": "tsx --test tests/game-data-audit-model.test.ts tests/game-data-audit-repository.test.ts tests/game-data-audit-codex.test.ts tests/game-data-audit-store.test.ts && node --test tests/game-data-audit-contract.test.mjs",
+    "test:arena-classes-data": "tsx tests/arena-classes-data.test.ts",
     "test:account-blocking": "node --test tests/account-blocking-integration.test.mjs",
     "test:auth-persistence": "node --test tests/auth-persistence-integration.test.mjs"
   },
